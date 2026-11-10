@@ -1,0 +1,9 @@
+{
+  "appId": "ru.paseka.journal",
+  "appName": "Пасека",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false
+  }
+}
