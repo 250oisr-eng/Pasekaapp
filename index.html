@@ -49,6 +49,16 @@
 .frame-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:10px;font-size:11px;color:#526052}.frame-legend span{display:flex;align-items:center;gap:5px}.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 
 .home-hive-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.home-hive{background:#fff;border:1px solid #e1e5dc;border-radius:13px;padding:11px;cursor:pointer;min-width:0}.home-hive b{display:block}.home-hive .numbers{font-size:19px;font-weight:800;margin:5px 0 2px;color:#24452f}.home-hive .muted{font-size:11px}.home-alert{border-left:4px solid #c65c42}.task-item{padding:10px 0;border-bottom:1px solid #edf0e9}.task-item:last-child{border-bottom:0}.task-date{font-size:12px;color:#68736a}.task-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.task-actions button{padding:7px 10px;font-size:12px}.task-overdue{color:#a33d2d;font-weight:750}.task-suggested{background:#f7f5e9;border-radius:10px;padding:10px;margin:8px 0}.home-section-title{font-size:15px;margin:0 0 8px}
+.apiary-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}
+.apiary-stat{min-width:0;padding:9px 5px;text-align:center;border-radius:10px;background:#f1f4ed}
+.apiary-stat b{display:block;font-size:21px;line-height:1.15;color:#24452f}
+.apiary-stat span{display:block;margin-top:3px;font-size:10px;line-height:1.2;color:#68736a;overflow-wrap:anywhere}
+.apiary-attention{margin-top:9px}
+.apiary-attention-group{padding:9px 0;border-top:1px solid #edf0e9}
+.apiary-attention-group>b{font-size:12px}
+.apiary-attention-row{display:grid;grid-template-columns:minmax(72px,.65fr) minmax(0,1.5fr);gap:8px;padding:5px 0;font-size:12px;line-height:1.3}
+.apiary-attention-row span:last-child{color:#68736a}
+@media(max-width:360px){.apiary-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.apiary-stat span{font-size:11px}}
 
 /* Управление сборкой прямо на схеме */
 .honey-unit{position:relative;cursor:pointer;min-height:76px;border:2px dashed #b9c2b6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
@@ -187,6 +197,7 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 <header class="home-header"><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
 <section id="home" class="panel active">
+ <div class="card apiary-status-card"><div class="row"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
  <div class="card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Управление →</button></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
  <div class="card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog()">＋ Запланировать</button></div><div id="homeAlerts"></div><div id="homeTasks"></div></div>
  <div class="card"><b>Последние события</b><div id="recent" class="muted">Записей пока нет.</div></div>
@@ -230,7 +241,7 @@ function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<
 function nextFamilyCode(){const yy=String(new Date().getFullYear()).slice(-2);let max=0;for(const f of S.families||[]){const m=String(f.name||'').match(/^(\d{2})-(\d+)$/);if(m&&m[1]===yy)max=Math.max(max,Number(m[2])||0);if(Number(f.familyYear)===2000+Number(yy))max=Math.max(max,Number(f.familySequence)||0)}return yy+'-'+(max+1)}
 function hname(id){const h=S.hives.find(x=>x.id===id);return h?'Улей '+(h.number||S.hives.indexOf(h)+1):'Улей'}
 function card(h){const count=S.families.filter(f=>f.hive===h.id).length,l=layoutFor(h.id),installed=(l.installedBoxes||[]).slice().sort((a,b)=>a-b),honey=(l.honeyBoxInstalled||[]).filter(Boolean).length;let graphic='';if(l.mode==='winter'){const order=(l.winterOrder||installed).filter(n=>installed.includes(n));graphic=order.map(n=>'<i class="hive-mini-box"></i>').join('')}else{graphic=[1,2,3].map(col=>{const ns=[col,col+3].filter(n=>installed.includes(n));return ns.length?'<span class="hive-mini-section">'+ns.map(()=>'<i class="hive-mini-box"></i>').join('')+'</span>':''}).join('')}if(honey)graphic+='<span class="hive-mini-honey">'+honey+'</span>';return '<div class="hive-row"><div class="hive-row-main" onclick="openHive(\''+h.id+'\')"><b>'+safe(hname(h.id))+'</b><div class="hive-mini-status">'+(graphic?'<span class="hive-mini-graphic">'+graphic+'</span>':'<span class="hive-mini-empty" aria-label="Сборка не задана">—</span>')+'<span class="muted">'+(installed.length+honey)+' '+ruPlural(installed.length+honey,'корпус','корпуса','корпусов')+' · '+count+' '+ruPlural(count,'семья','семьи','семей')+'</span></div></div><button class="primary" onclick="openHive(\''+h.id+'\')">Открыть</button><button onclick="deleteHive(\''+h.id+'\')">Удалить</button></div>'}
-function renderHiveHeaderSummary(h){const host=$('hiveHeaderSummary');if(!host||!h)return;const families=S.families.filter(f=>f.hive===h.id).length,l=layoutFor(h.id),brood=(l.installedBoxes||[]).length,honey=(l.honeyBoxInstalled||[]).filter(Boolean).length,latest=S.records.filter(r=>!r.archivedAt&&r.hive===h.id&&r.type==='Осмотр').sort((a,b)=>b.date.localeCompare(a.date))[0];const boxes=brood+honey;host.innerHTML='<div>'+safe(hname(h.id))+' · '+families+' '+ruPlural(families,'семья','семьи','семей')+'</div><small>Установлено корпусов: '+boxes+' · '+(latest?'Последний осмотр: '+safe(latest.date):'Осмотров пока нет')+'</small>';host.style.display='block'}
+function renderHiveHeaderSummary(h){const host=$('hiveHeaderSummary');if(!host||!h)return;const families=S.families.filter(f=>f.hive===h.id).length,l=layoutFor(h.id),brood=(l.installedBoxes||[]).length,honey=(l.honeyBoxInstalled||[]).filter(Boolean).length,latest=S.records.filter(r=>!r.archivedAt&&r.hive===h.id&&r.type==='Осмотр').sort((a,b)=>b.date.localeCompare(a.date))[0];const boxes=brood+honey;host.innerHTML='<div>'+safe(hname(h.id))+' · '+families+' '+ruPlural(families,'семья','семьи','семей')+'</div><small>Гнездовых: '+brood+' · Медовых: '+honey+' · Всего: '+boxes+' · '+(latest?'Последний осмотр: '+safe(latest.date):'Осмотров пока нет')+'</small>';host.style.display='block'}
 function renderFamilyHealthSummary(){const host=$('familyHealthSummary');if(!host||!selectedHiveId)return;const rows=S.records.filter(r=>!r.archivedAt&&r.hive===selectedHiveId&&r.type==='Осмотр').sort((a,b)=>b.date.localeCompare(a.date));if(!rows.length){host.innerHTML='';return}const x=rows[0],p=rows[1],diff=(key,label)=>x[key]!=null&&p&&p[key]!=null?'<span class="pill">'+label+': '+x[key]+'/6 ('+(x[key]-p[key]>0?'+':'')+(x[key]-p[key])+')</span>':x[key]!=null?'<span class="pill">'+label+': '+x[key]+'/6</span>':'';const alerts=[];if(x.queenCells==='swarm')alerts.push('Отмечены роевые маточники');if(x.swarmSigns==='several')alerts.push('Зафиксировано несколько роевых признаков');if(x.queen==='notSeen'&&x.eggs==='no')alerts.push('Матка не найдена и свежих яиц нет — нужна повторная оценка');if(x.broodPattern==='mosaic')alerts.push('Отмечена пёстрость расплода');const labels={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, есть свежие яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники, тип не определён',one:'Один роевой признак',several:'Несколько роевых признаков'};host.innerHTML='<div class="card"><b>Последняя оценка семьи</b><div class="muted">Осмотр: '+safe(x.date)+'</div><div style="margin:7px 0">'+diff('occupancy','Занято пчёлами')+diff('broodFrames','Расплод')+diff('freeDrawn','Свободная сушь')+'</div><div class="muted">'+[x.queen&&labels[x.queen],x.eggs&&labels[x.eggs],x.broodPattern&&labels[x.broodPattern],x.queenCells&&labels[x.queenCells],x.swarmSigns&&labels[x.swarmSigns]].filter(Boolean).map(safe).join(' · ')+'</div>'+(alerts.length?'<div class="home-alert card"><b>Требует внимания</b><ul>'+alerts.map(v=>'<li>'+safe(v)+'</li>').join('')+'</ul><div class="muted">Это сигналы для повторного осмотра, а не автоматический диагноз.</div></div>':'')+'</div>'}
 function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, но есть яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники не определены',one:'Один роевой признак',several:'Несколько роевых признаков'};[['queen','Матка'],['eggs','Яйца'],['broodPattern','Расплод'],['queenCells','Маточники'],['swarmSigns','Роевые признаки']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+(m[r[k]]||r[k]))})}if(r.type==='Обработка'){[['treatmentProduct','Препарат'],['treatmentActive','Действующее вещество'],['treatmentMethod','Способ'],['treatmentDose','Доза по инструкции'],['treatmentCheck','Контроль']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}return pairs.length?'<p class="muted">'+pairs.map(safe).join(' · ')+'</p>':''}
 function render(){
@@ -249,8 +260,35 @@ function render(){
 
 function dateShift(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)}
 function formatTaskDate(d){return new Date(d+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}
+function renderApiaryStatus(){
+ const host=$('apiaryStatus'),attention=$('apiaryAttention');if(!host||!attention)return;
+ const active=S.records.filter(r=>!r.archivedAt&&r.type==='Осмотр');
+ const latestByHive=new Map();
+ active.forEach(r=>{const prev=latestByHive.get(r.hive);if(!prev||r.date>prev.date)latestByHive.set(r.hive,r)});
+ const stale=[],signals=[];
+ S.hives.forEach(h=>{
+  const r=latestByHive.get(h.id);
+  if(!r){stale.push({h,date:'Нет осмотров'});return}
+  const age=Math.floor((new Date(today()+'T12:00:00')-new Date(r.date+'T12:00:00'))/86400000);
+  if(age>=30)stale.push({h,date:'Осмотр '+r.date});
+  const reasons=[];
+  if(r.queenCells==='swarm')reasons.push('роевые маточники');
+  if(r.swarmSigns==='several')reasons.push('несколько роевых признаков');
+  if(r.queen==='notSeen'&&r.eggs==='no')reasons.push('матка не найдена и нет свежих яиц');
+  if(r.broodPattern==='mosaic')reasons.push('пёстрый расплод');
+  if(reasons.length)signals.push({h,reasons});
+ });
+ const familyCount=S.families.length,hiveCount=S.hives.length;
+ host.innerHTML='<div class="apiary-stat"><b>'+hiveCount+'</b><span>'+ruPlural(hiveCount,'улей','улья','ульев')+'</span></div><div class="apiary-stat"><b>'+familyCount+'</b><span>'+ruPlural(familyCount,'семья','семьи','семей')+'</span></div><div class="apiary-stat"><b>'+signals.length+'</b><span>семей с сигналами</span></div><div class="apiary-stat"><b>'+stale.length+'</b><span>давно без осмотра</span></div>';
+ const parts=[];
+ if(signals.length)parts.push('<div class="apiary-attention-group"><b>Сигналы по последним осмотрам</b>'+signals.map(x=>'<div class="apiary-attention-row"><span>'+safe(hname(x.h.id))+'</span><span>'+safe(x.reasons.join('; '))+'</span></div>').join('')+'</div>');
+ if(stale.length)parts.push('<div class="apiary-attention-group"><b>Нет свежего осмотра (30 дней и более)</b>'+stale.map(x=>'<div class="apiary-attention-row"><span>'+safe(hname(x.h.id))+'</span><span>'+safe(x.date)+'</span></div>').join('')+'</div>');
+ attention.innerHTML=parts.join('')||'<div class="muted">По журналу нет отмеченных сигналов. Это не заменяет осмотр пчёл.</div>';
+ $('apiaryStatusDate').textContent=today();
+}
 function renderHome(){
  S.tasks=S.tasks||[];
+ renderApiaryStatus();
  $('homeHives').innerHTML=S.hives.map(h=>{
   const l=layoutFor(h.id),families=S.families.filter(f=>f.hive===h.id).length;
   const winter=l.mode==='winter';
