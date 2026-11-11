@@ -64,9 +64,9 @@
 
 /* Главный экран: миниатюра фактической сборки */
 .home-hive{display:flex;flex-direction:column;gap:5px;min-height:145px}
-.mini-hive{display:flex;align-items:flex-end;justify-content:center;gap:4px;min-height:42px;padding:4px 0}
-.mini-box{display:block;width:18px;height:25px;border:2px solid #748477;border-radius:3px 3px 5px 5px;background:#dce7dc;box-shadow:inset 0 -4px #b6c8b6}
-.mini-box.honey{height:18px;border-color:#b38b36;background:#f5e6b5;box-shadow:inset 0 -4px #e5cd8b}
+.mini-hive{display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-start;gap:2px;min-height:42px;padding:4px 0}
+.mini-box{display:block;width:58px;height:8px;border:1px solid #748477;border-radius:2px;background:#dce7dc;box-shadow:inset 0 -2px #b6c8b6}
+.mini-box.honey{height:7px;border-color:#b38b36;background:#f5e6b5;box-shadow:inset 0 -2px #e5cd8b}
 .mini-empty{font-size:11px;color:#89938a}
 .home-hive .numbers{font-size:15px;margin:0;white-space:nowrap}
 .assembly-actions{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
@@ -87,11 +87,11 @@
   <div class="card">
    <div class="row"><div><div class="muted">Карточка улья</div><h2 id="selectedHiveTitle" style="margin:3px 0"></h2></div><div><button onclick="showHiveListScreen()">← Все ульи</button><button onclick="editSelectedHive()">Изменить</button></div></div>
   </div>
-  <div class="row"><h3>Конструкция и рамки</h3><span class="pill">6 гнездовых + 2 медовых</span></div>
+  <div class="row"><h3>Конструкция и рамки</h3></div>
   <div class="row"><button id="summerMode" class="active" onclick="setStructureMode('summer')">Летняя сборка</button><button id="winterMode" onclick="setStructureMode('winter')">Зимовка</button></div>
   <div class="card"><div class="row"><b id="structureTitle">Фактическая сборка</b><span class="muted">Только установленные корпуса</span></div><div class="assembly-actions"><button onclick="addNextBroodBox()">＋ Гнездовой корпус</button><button onclick="addNextHoneyBox()">＋ Медовый корпус</button></div><div id="honeyPair" class="honey-pair"></div><div id="hiveDiagram"></div><div class="frame-legend"><span><i class="legend-dot" style="background:#32834f"></i>Запечатана</span><span><i class="legend-dot" style="background:#62b9d5"></i>Откачана</span><span><i class="legend-dot" style="background:#f0b84b"></i>Мёд не запечатан</span><span><i class="legend-dot" style="background:#d8ddd7"></i>Вощина</span><span><i class="legend-dot" style="background:#9b6bc2"></i>Печатный расплод</span><span><i class="legend-dot" style="background:#6aa9dc"></i>Яйца</span><span><i class="legend-dot" style="background:#dc8b62"></i>Трутневая ячейка</span></div></div>
   <div id="winterControls" class="card" style="display:none"><b>Сборка зимней колонны</b><p class="muted">Выбери три фактически переставленных корпуса и их порядок сверху вниз.</p><div id="winterPicker"></div><button class="primary" onclick="commitWinter()">Сохранить сборку</button><button onclick="restoreSummer()">Летняя конфигурация</button></div>
-  <p class="muted">Нажми на свободное место, чтобы установить корпус. На установленном корпусе нажми «Снять». Карандаш открывает настройки корпуса, рамки — их карточки.</p>
+  <p class="muted">Добавляй корпуса кнопками над схемой. Снятые корпуса здесь не отображаются. На установленном корпусе доступны снятие и настройки; нажми на рамку, чтобы открыть её карточку.</p>
   <div class="card"><div id="selectedFamilies"></div><div id="familyHealthSummary"></div>
    <div class="row" style="margin-top:10px"><button onclick="addFamily(selectedHiveId)">＋ Семья</button><button onclick="openHiveJournal(selectedHiveId)">Журнал</button><button class="primary" onclick="openExtractionDialog()">Откачка мёда</button></div><div id="hiveExtractionActions"></div>
   </div>
