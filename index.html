@@ -141,6 +141,15 @@ dialog{width:min(94vw,500px);max-width:calc(100vw - 20px);max-height:calc(100vh 
 nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%;max-width:100%;padding-left:0;padding-right:0;overflow:visible;}
 nav button{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;max-width:100%;min-height:40px;padding:8px 2px;font-size:clamp(10px,3vw,13px);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:clip;flex:none;}
 @media(max-width:340px){nav{gap:3px}nav button{font-size:10px;padding-left:1px;padding-right:1px;}}
+
+/* Главная: летом гнездовые корпуса стоят в один горизонтальный ряд, зимой — вертикальной колонной */
+.mini-summer-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:2px;width:100%;padding:4px 1px}
+.mini-summer-row .mini-brood-box{height:30px;min-width:0;padding:2px 1px;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:2px}
+.mini-summer-row .mini-brood-box>b{font-size:7px;text-align:center;line-height:1}
+.mini-summer-row .mini-brood-frames{width:100%;height:7px;flex:none;gap:1px}
+.mini-summer-row .mini-frame{height:6px}
+.mini-winter-stack{width:100%;padding:3px 0}
+.mini-winter-stack .mini-brood-box{width:62%;height:17px}
 </style></head><body>
 <header class="home-header"><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
@@ -217,7 +226,7 @@ function renderHome(){
   const marks=(frames,cls)=>frames.map(fr=>'<i class="mini-frame '+cls+' status-'+safe(fr.status||'foundation')+'" title="'+safe(frameStatusName(fr.status))+'"></i>').join('');
   const honeyRows=[1,2].filter(n=>l.honeyBoxInstalled[n-1]).map(n=>'<div class="mini-honey-tier"><span>М'+n+'</span><div class="mini-honey-frames">'+marks(l.honeyFrames[n-1],'')+'</div></div>').join('');
   const broodBox=n=>{const b=l.boxes[n],family=S.families.find(f=>f.id===b.family);return '<div class="mini-brood-box '+(family?'has-family':'')+'"><b>Г'+n+'</b><div class="mini-brood-frames">'+marks(b.frames,'')+'</div></div>'};
-  let body=winter?'<div class="mini-winter-stack">'+order.map(broodBox).join('')+'</div>':'<div class="mini-sections">'+[1,2,3].map(col=>{const nums=[col,col+3].filter(n=>l.installedBoxes.includes(n));return '<div class="mini-section"><span class="mini-section-label">С'+col+'</span>'+(nums.map(broodBox).join('')||'<span class="mini-empty">—</span>')+'</div>'}).join('')+'</div>';
+  let body=winter?'<div class="mini-winter-stack">'+order.map(broodBox).join('')+'</div>':'<div class="mini-summer-row">'+order.map(broodBox).join('')+'</div>';
   const visual='<div class="mini-hive '+(winter?'winter':'summer')+'" aria-label="Схема фактической сборки улья">'+(honeyRows?'<div class="mini-honey-stack">'+honeyRows+'</div>':'')+body+'</div>';
   return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(h.name)+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' '+ruPlural(families,'семья','семьи','семей')+(pending.length?' · '+pending.length+' '+ruPlural(pending.length,'задача','задачи','задач'):'')+(urgent?' · Есть просрочка':'')+'</div></div>';
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
