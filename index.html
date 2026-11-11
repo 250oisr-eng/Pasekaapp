@@ -400,8 +400,35 @@ function editRecord(id){const r=S.records.find(x=>x.id===id);if(!r)return;$('rec
 async function deleteRecord(id){const r=S.records.find(x=>x.id===id);if(!r||r.archivedAt)return;if(!confirm('Переместить запись в архив? История и прикреплённые файлы сохранятся.'))return;r.archivedAt=new Date().toISOString();r.updatedAt=r.archivedAt;S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type:'record_archived',entityId:r.id,at:r.archivedAt});await save()}async function restoreRecord(id){const r=S.records.find(x=>x.id===id);if(!r||!r.archivedAt)return;delete r.archivedAt;r.updatedAt=new Date().toISOString();S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type:'record_restored',entityId:r.id,at:r.updatedAt});await save()}
 function fillFamilies(){$('rfamily').innerHTML='<option value="">Не указана</option>'+S.families.filter(f=>f.hive===$('rhive').value).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('')}
 async function fileData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file)})}
-async function prepareImage(file){const src=await fileData(file);return new Promise(resolve=>{const img=new Image();img.onload=()=>{const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve({kind:'image',name:file.name,type:'image/jpeg',data:canvas.toDataURL('image/jpeg',.82)})};img.onerror=()=>resolve({kind:'image',name:file.name,type:file.type,data:src});img.src=src})}
-$('rmedia').onchange=async()=>{const files=[...$('rmedia').files];$('mediaPreview').innerHTML='';for(const f of files){if(f.type.startsWith('video/')&&f.size>50*1024*1024){alert('Видео «'+f.name+'» больше 50 МБ и пропущено.');continue}if(!f.type.startsWith('image/')&&!f.type.startsWith('video/'))continue;const data=f.type.startsWith('image/')?await prepareImage(f):{kind:'video',name:f.name,type:f.type,data:await fileData(f)};const el=data.kind==='video'?document.createElement('video'):document.createElement('img');el.src=data.data;if(data.kind==='video')el.controls=true;$('mediaPreview').appendChild(el)}};
+async function prepareImage(file){
+ const src=await fileData(file);
+ return new Promise(resolve=>{
+  const fallback=()=>resolve({kind:'image',name:file.name,type:file.type,data:src});
+  const img=new Image();
+  img.onload=()=>{
+   try{
+    const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Не удалось подготовить изображение');
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    resolve({kind:'image',name:file.name,type:'image/jpeg',data:canvas.toDataURL('image/jpeg',.82)});
+   }catch(e){fallback()}
+  };
+  img.onerror=fallback;img.src=src;
+ });
+}
+$('rmedia').onchange=async()=>{
+ const files=[...$('rmedia').files];$('mediaPreview').innerHTML='';
+ for(const f of files){
+  if(f.type.startsWith('video/')&&f.size>50*1024*1024){alert('Видео «'+f.name+'» больше 50 МБ. При сохранении записи его придётся заменить.');continue}
+  if(!f.type.startsWith('image/')&&!f.type.startsWith('video/'))continue;
+  try{
+   const data=f.type.startsWith('image/')?await prepareImage(f):{kind:'video',name:f.name,type:f.type,data:await fileData(f)};
+   const el=data.kind==='video'?document.createElement('video'):document.createElement('img');el.src=data.data;
+   if(data.kind==='video')el.controls=true;$('mediaPreview').appendChild(el);
+  }catch(err){alert('Не удалось подготовить вложение «'+f.name+'»: '+(err?.message||err));}
+ }
+};
 $('rtype').onchange=toggleOccupancy;
 $('recordForm').onsubmit=async e=>{
  e.preventDefault();
@@ -553,7 +580,6 @@ function toggleBroodBox(n){
  else l.installedBoxes.push(n);
  save();
 }
-function installBroodBox(){const n=Number($('bodyToInstall')?.value);if(n)toggleBroodBox(n)}
 function toggleHoneyPair(){
  const l=layoutFor(selectedStructureHive());if(l.mode==='winter')return alert('Медовые корпуса не устанавливаются в зимней сборке. Сначала перейди в летний режим.');
  const on=l.honeyBoxInstalled.some(Boolean);
