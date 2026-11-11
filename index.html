@@ -405,30 +405,29 @@ $('rmedia').onchange=async()=>{const files=[...$('rmedia').files];$('mediaPrevie
 $('rtype').onchange=toggleOccupancy;
 $('recordForm').onsubmit=async e=>{
  e.preventDefault();
+ const files=[...$('rmedia').files],tooLarge=files.find(f=>f.type.startsWith('video/')&&f.size>50*1024*1024);
+ if(tooLarge){alert('Видео «'+tooLarge.name+'» больше 50 МБ. Уменьши файл или выбери другое видео. Запись не сохранена.');return}
+ const media=[];
  try{
-  const files=[...$('rmedia').files];
-  const tooLarge=files.find(f=>f.type.startsWith('video/')&&f.size>50*1024*1024);
-  if(tooLarge){alert('Видео «'+tooLarge.name+'» больше 50 МБ. Уменьши файл или выбери другое видео. Запись не сохранена.');return}
-  const media=[];
   for(const f of files){
    if(f.type.startsWith('image/'))media.push(await prepareImage(f));
    else if(f.type.startsWith('video/'))media.push({kind:'video',name:f.name,type:f.type,data:await fileData(f)});
   }
-  const hiveId=$('rhive').value,familyId=$('rfamily').value;
-  if(!S.hives.some(h=>h.id===hiveId)){alert('Выбранный улей не найден. Запись не сохранена.');return}
-  if(familyId&&!S.families.some(f=>f.id===familyId&&f.hive===hiveId)){alert('Выбранная семья не принадлежит этому улью. Запись не сохранена.');return}
-  const id=$('recordId').value,oldRecord=id?S.records.find(r=>r.id===id):null;
-  if(id&&!oldRecord){alert('Редактируемая запись не найдена. Обнови журнал и повтори.');return}
-  const combinedMedia=[...(oldRecord?.media||[]),...media];
-  const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';
-  const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};
-  if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
-  if(!oldRecord){
-   createExpansionSuggestion(data);
-   if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
-  }
-  $('recordDlg').close();$('rhive').disabled=false;await save();
- }catch(err){alert('Не удалось сохранить запись или подготовить вложение: '+(err?.message||err)+'. Данные формы оставлены открытыми.')}
+ }catch(err){alert('Не удалось прочитать вложение: '+(err?.message||err)+'. Запись не сохранена, форма оставлена открытой.');return}
+ const hiveId=$('rhive').value,familyId=$('rfamily').value;
+ if(!S.hives.some(h=>h.id===hiveId)){alert('Выбранный улей не найден. Запись не сохранена.');return}
+ if(familyId&&!S.families.some(f=>f.id===familyId&&f.hive===hiveId)){alert('Выбранная семья не принадлежит этому улью. Запись не сохранена.');return}
+ const id=$('recordId').value,oldRecord=id?S.records.find(r=>r.id===id):null;
+ if(id&&!oldRecord){alert('Редактируемая запись не найдена. Обнови журнал и повтори.');return}
+ const combinedMedia=[...(oldRecord?.media||[]),...media];
+ const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';
+ const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};
+ if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
+ if(!oldRecord){
+  createExpansionSuggestion(data);
+  if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
+ }
+ $('recordDlg').close();$('rhive').disabled=false;await save();
 }
 
 const FRAME_TYPES=[{id:'foundation',name:'Вощина',short:'В',status:'foundation'},{id:'strip',name:'Полоска вощины',short:'П',status:'foundation'},{id:'comb',name:'Сушь',short:'С',status:'drawn'}];
