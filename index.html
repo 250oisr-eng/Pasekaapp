@@ -88,7 +88,7 @@
 .mini-box{display:block;width:58px;height:8px;border:1px solid #748477;border-radius:2px;background:#dce7dc;box-shadow:inset 0 -2px #b6c8b6}
 .mini-box.honey{height:7px;border-color:#b38b36;background:#f5e6b5;box-shadow:inset 0 -2px #e5cd8b}
 .mini-empty{font-size:11px;color:#89938a}
-.home-hive .numbers{font-size:15px;margin:0;white-space:nowrap}
+.home-hive .numbers{font-size:15px;margin:0;white-space:normal;overflow-wrap:anywhere;line-height:1.2;min-width:0}
 .assembly-actions{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
 .assembly-actions button{flex:1;min-width:130px}
 .honey-pair{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
@@ -161,14 +161,14 @@ function renderHome(){
   const winter=l.mode==='winter';
   const order=winter?(l.winterOrder||[]).filter(n=>l.installedBoxes.includes(n)):l.installedBoxes.slice().sort((a,b)=>a-b);
   const brood=order.length,honey=l.honeyBoxInstalled.filter(Boolean).length;
-  const composition=[brood?brood+' гнезд. корпус'+(brood===1?'':'а'):'',honey?honey+' медов. корпус'+(honey===1?'':'а'):''].filter(Boolean).join(' · ')||'Нет установленных корпусов';
+  const composition=[brood?brood+' гнезд. корпус'+(brood===1?'':'а'):'',honey?honey+' медов. корпус'+(honey===1?'':'а'):''].filter(Boolean).join(' · ');
   const pending=S.tasks.filter(t=>t.hive===h.id&&['pending','suggested'].includes(t.status)),urgent=pending.some(t=>t.status==='pending'&&t.date<today());
   const marks=(frames,cls)=>frames.map(fr=>'<i class="mini-frame '+cls+' status-'+safe(fr.status||'foundation')+'" title="'+safe(frameStatusName(fr.status))+'"></i>').join('');
   const honeyRows=[1,2].filter(n=>l.honeyBoxInstalled[n-1]).map(n=>'<div class="mini-honey-tier"><span>М'+n+'</span><div class="mini-honey-frames">'+marks(l.honeyFrames[n-1],'')+'</div></div>').join('');
   const broodBox=n=>{const b=l.boxes[n],family=S.families.find(f=>f.id===b.family);return '<div class="mini-brood-box '+(family?'has-family':'')+'"><b>Г'+n+'</b><div class="mini-brood-frames">'+marks(b.frames,'')+'</div></div>'};
   let body=winter?'<div class="mini-winter-stack">'+order.map(broodBox).join('')+'</div>':'<div class="mini-sections">'+[1,2,3].map(col=>{const nums=[col,col+3].filter(n=>l.installedBoxes.includes(n));return '<div class="mini-section"><span class="mini-section-label">С'+col+'</span>'+(nums.map(broodBox).join('')||'<span class="mini-empty">—</span>')+'</div>'}).join('')+'</div>';
   const visual='<div class="mini-hive '+(winter?'winter':'summer')+'" aria-label="Схема фактической сборки улья">'+(honeyRows?'<div class="mini-honey-stack">'+honeyRows+'</div>':'')+body+'</div>';
-  return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(h.name)+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div>'+visual+'<div class="numbers">'+composition+'</div><div class="muted">'+families+' семей'+(pending.length?' · '+pending.length+' задач':'')+(urgent?' · Есть просрочка':'')+'</div></div>';
+  return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(h.name)+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' семей'+(pending.length?' · '+pending.length+' задач':'')+(urgent?' · Есть просрочка':'')+'</div></div>';
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
  const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>a.date.localeCompare(b.date));
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
