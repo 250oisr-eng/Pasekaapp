@@ -288,4 +288,5 @@ function downloadBackup(){let a=document.createElement('a'),u=URL.createObjectUR
 async function restoreBackup(){let f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');try{let o=JSON.parse(await f.text()),s=o.state||o;if(!Array.isArray(s.hives)||!Array.isArray(s.records)||!Array.isArray(s.families))throw Error('Неверный архив');if(confirm('Заменить текущие данные архивом?')){S=s;await write();render();alert('Восстановлено')}}catch(e){alert('Ошибка: '+e.message)}}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 (async()=>{await openDB();S=await read()||S;S.extractions=S.extractions||[];S.tasks=S.tasks||[];selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();history.replaceState({pasekaTab:'home'},'',location.pathname);showTab('home',false);if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})})();
-</script></body></html>
+</script><!-- graphical-assembly-cache-v22 -->
+</body></html>
