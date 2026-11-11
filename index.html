@@ -114,6 +114,27 @@ dialog{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow-y:a
  nav{padding:5px 0}
  dialog{padding:14px}
 }
+/* Общая адаптация: ширина и высота любого экрана */
+html{width:100%;min-height:100%;height:auto;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{width:100%;min-height:100vh;min-height:100dvh;overflow-x:hidden;overflow-wrap:anywhere}
+main{width:100%;max-width:760px;margin:0 auto;padding:10px 12px calc(96px + env(safe-area-inset-bottom,0px))}
+header{background:#fff0b8!important;color:#3e3928!important;padding:18px 16px;border-radius:0 0 18px 18px;transition:background-color .18s ease}
+body[data-page="hives"] header{background:#dcecff!important;color:#26394b!important}
+body[data-page="hiveDetail"] header{background:#dcefe5!important;color:#294238!important}
+body[data-page="journal"] header{background:#f5e2d5!important;color:#4b382f!important}
+body[data-page="settings"] header{background:#e9e1f5!important;color:#40364f!important}
+.stats div{background:#ffffff80}
+nav{max-width:100%;min-width:0;scrollbar-width:thin}
+.panel{min-width:0;width:100%;max-width:100%}
+.card,.row,.hive-row,.winter-row,.home-hive-grid,.hive-stage,.honey-pair{min-width:0;max-width:100%}
+.hive-row{flex-wrap:wrap}
+.hive-row-main{flex:1 1 130px}
+.hive-row button{max-width:100%}
+img,video,canvas,svg{max-width:100%}
+dialog{width:min(94vw,500px);max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px);overflow:auto;overscroll-behavior:contain}
+.fab{bottom:max(12px,env(safe-area-inset-bottom,0px));right:max(12px,env(safe-area-inset-right,0px));max-width:calc(100vw - 24px)}
+@media(max-width:420px){main{padding-left:9px;padding-right:9px}.card{padding:12px}.stats{gap:5px}.stats div{min-width:0;padding:5px 7px}.hive-row{gap:7px}.hive-row button{padding:7px 8px;font-size:11px}}
+@media(max-height:560px){header{padding:8px 12px}.stats{margin-top:3px}.stats b{font-size:15px}main{padding-top:5px}nav{padding:5px 0}dialog{padding:12px}}
 </style></head><body>
 <header class="home-header"><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Управление ульями</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
@@ -222,7 +243,7 @@ function createExpansionSuggestion(record){
 }
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}}
 function selectJournalHive(id){activeJournalHive=id;render()}
-function paintTab(tab){if(!document.getElementById(tab))tab='home';if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='home'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',journal:'#f5e2d5',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='home'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab)}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
