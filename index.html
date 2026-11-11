@@ -193,14 +193,36 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
  .assembly-actions button,.transition-actions button{min-width:0}
 }
 
- .honey-pair-control{grid-column:1/-1;width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:9px;padding:12px;border:2px dashed #aeb8ad;border-radius:12px;background:#fafbf8}.honey-pair-control.is-installed{border-style:solid;border-color:#c49a3c;background:#fff8e6}.honey-pair-summary{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.honey-pair-toggle{width:100%}.honey-pair-edit{display:grid;grid-template-columns:1fr 1fr;gap:7px}.honey-pair-edit button{padding:8px 5px;font-size:12px}.honey-pair-edit button:disabled{opacity:.45;cursor:not-allowed}body:not([data-page="home"]) .stats{display:none!important}</style></head><body>
+ .honey-pair-control{grid-column:1/-1;width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:9px;padding:12px;border:2px dashed #aeb8ad;border-radius:12px;background:#fafbf8}.honey-pair-control.is-installed{border-style:solid;border-color:#c49a3c;background:#fff8e6}.honey-pair-summary{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.honey-pair-toggle{width:100%}.honey-pair-edit{display:grid;grid-template-columns:1fr 1fr;gap:7px}.honey-pair-edit button{padding:8px 5px;font-size:12px}.honey-pair-edit button:disabled{opacity:.45;cursor:not-allowed}body:not([data-page="home"]) .stats{display:none!important}
+.ai-messages{display:flex;flex-direction:column;gap:9px;max-height:48vh;overflow:auto;margin:12px 0;padding:2px}.ai-bubble{max-width:94%;padding:11px 12px;border-radius:13px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4;font-size:14px}.ai-bubble.user{align-self:flex-end;background:#e6eee3;color:#203b29}.ai-bubble.assistant{align-self:flex-start;background:#f0edf5;color:#30283c;border:1px solid #e1dbe9}.ai-bubble small{display:block;color:#68736a;font-size:10px;margin-bottom:4px}.ai-empty{padding:16px;text-align:center;color:#68736a;font-size:13px;background:#f6f6f2;border-radius:10px}
+</style></head><body>
 <header class="home-header"><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="ai">ИИ</button><button data-tab="settings">Настройки</button></nav>
 <section id="home" class="panel active">
  <div class="card apiary-status-card"><div class="row"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
  <div class="card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Управление →</button></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
  <div class="card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog()">＋ Запланировать</button></div><div id="homeAlerts"></div><div id="homeTasks"></div></div>
  <div class="card"><b>Последние события</b><div id="recent" class="muted">Записей пока нет.</div></div>
+</section>
+<section id="ai" class="panel">
+ <div class="card"><div class="row"><div><h2 style="margin:0">ИИ-помощник</h2><span class="muted">Консультации по данным твоей пасеки</span></div><span class="pill">ИИ</span></div>
+  <p class="muted">ИИ получает только текстовые сведения из журнала и текущую схему ульев, когда ты отправляешь вопрос. Фото и видео пока не передаются. Ответы — рекомендации для проверки, а не замена осмотру.</p>
+  <div id="aiAuthStatus" class="muted">Проверяем подключение…</div>
+  <div id="aiSignedOut" style="display:none">
+   <label for="aiName">Имя (только при регистрации)</label><input id="aiName" autocomplete="name" placeholder="Как к тебе обращаться">
+   <label for="aiEmail">Электронная почта</label><input id="aiEmail" type="email" autocomplete="username" placeholder="you@example.com">
+   <label for="aiPassword">Пароль</label><input id="aiPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Не менее 8 символов">
+   <div class="row"><button class="primary" type="button" onclick="signInAI()">Войти</button><button type="button" onclick="signUpAI()">Создать аккаунт</button></div>
+   <p class="muted">Вход нужен только для защиты доступа к ИИ. Основной журнал продолжает храниться на телефоне.</p>
+  </div>
+  <div id="aiSignedIn" style="display:none">
+   <div class="row"><span id="aiUserLabel" class="muted"></span><button type="button" onclick="signOutAI()">Выйти</button></div>
+   <div id="aiMessages" class="ai-messages"></div>
+   <label for="aiQuestion">Задай вопрос</label><textarea id="aiQuestion" rows="3" placeholder="Например: какие семьи требуют внимания по последним осмотрам?"></textarea>
+   <div class="row"><button class="primary" id="aiSendButton" type="button" onclick="sendAIQuestion()">Отправить вопрос</button><button type="button" onclick="clearAIHistory()">Очистить диалог</button></div>
+   <p class="muted">Перед отправкой проверь вопрос: вместе с ним ИИ получит сводку журнала, семей, рамок и перемещений без фото и видео.</p>
+  </div>
+ </div>
 </section>
 <section id="hives" class="panel">
  <div class="row"><h2>Ульи</h2><button class="primary" type="button" data-action="open-new-hive">＋ Добавить</button></div>
@@ -234,7 +256,7 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
-function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function openDB(){return new Promise((ok,no)=>{let q=indexedDB.open(DB,2);q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE)};q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
@@ -365,9 +387,72 @@ function createExpansionSuggestion(record){
 }
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}}
 function selectJournalHive(id){activeJournalHive=id;render()}
-function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',journal:'#f5e2d5',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='home'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
-function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab)}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',journal:'#f5e2d5',ai:'#e6e0f2',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='home'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(tab==='ai')initAIAuth()}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
+
+const AI_AUTH_URL='https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech/paseka/auth';
+const AI_FUNCTION_URL='https://br-solitary-glitter-b9ur69hv-pasekaai.compute.c-7.eu-central-1.aws.neon.tech/';
+let aiAuthClient=null,aiAuthUser=null,aiAuthError='',aiBusy=false,aiInitPromise=null;
+async function initAIAuth(){
+ if(aiInitPromise)return aiInitPromise;
+ aiInitPromise=(async()=>{
+  const status=$('aiAuthStatus');if(status)status.textContent='Подключаем защищённый вход…';
+  try{
+   const mod=await import('https://esm.sh/@neon/auth');
+   aiAuthClient=mod.createAuthClient(AI_AUTH_URL);
+   const result=await aiAuthClient.getSession();
+   if(result.error)throw new Error(result.error.message||'Не удалось проверить сеанс');
+   aiAuthUser=result.data?.user||null;aiAuthError='';renderAIAuth();
+  }catch(e){aiAuthError='Не удалось подключить авторизацию: '+(e.message||e);if(status)status.textContent=aiAuthError;renderAIAuth()}
+ })();
+ return aiInitPromise;
+}
+function renderAIAuth(){
+ const status=$('aiAuthStatus'),out=$('aiSignedOut'),inside=$('aiSignedIn');if(!status||!out||!inside)return;
+ out.style.display=aiAuthUser?'none':'block';inside.style.display=aiAuthUser?'block':'none';
+ status.textContent=aiAuthError||(aiAuthUser?'Вход выполнен. ИИ доступен.':'Войди или создай аккаунт, чтобы пользоваться ИИ.');
+ if(aiAuthUser){$('aiUserLabel').textContent=aiAuthUser.email||aiAuthUser.name||'Авторизован';renderAIChat()}
+}
+async function signInAI(){
+ if(!aiAuthClient)return alert('Авторизация ещё не подключена. Повтори через несколько секунд.');
+ const email=$('aiEmail').value.trim(),password=$('aiPassword').value;if(!email||!password)return alert('Введи электронную почту и пароль.');
+ try{const r=await aiAuthClient.signIn.email({email,password});if(r.error)throw new Error(r.error.message||'Ошибка входа');const s=await aiAuthClient.getSession();aiAuthUser=s.data?.user||r.data?.user||null;aiAuthError='';renderAIAuth()}catch(e){alert('Не удалось войти: '+(e.message||e))}
+}
+async function signUpAI(){
+ if(!aiAuthClient)return alert('Авторизация ещё не подключена. Повтори через несколько секунд.');
+ const name=$('aiName').value.trim(),email=$('aiEmail').value.trim(),password=$('aiPassword').value;
+ if(!name||!email||password.length<8)return alert('Для регистрации укажи имя, почту и пароль не короче 8 символов.');
+ try{const r=await aiAuthClient.signUp.email({name,email,password});if(r.error)throw new Error(r.error.message||'Ошибка регистрации');const s=await aiAuthClient.getSession();aiAuthUser=s.data?.user||r.data?.user||null;aiAuthError='';renderAIAuth();if(!aiAuthUser)alert('Аккаунт создан. Теперь войди с почтой и паролем.')}catch(e){alert('Не удалось создать аккаунт: '+(e.message||e))}
+}
+async function signOutAI(){if(!aiAuthClient)return;try{await aiAuthClient.signOut();aiAuthUser=null;renderAIAuth()}catch(e){alert('Не удалось завершить сеанс: '+(e.message||e))}}
+function buildAIContext(){
+ const hives=S.hives.map(h=>{const l=layoutFor(h.id),installed=l.installedBoxes||[];return {number:h.number,mode:l.mode||'summer',installedBoxes:installed,winterOrder:l.winterOrder||[],boxes:[1,2,3,4,5,6].map(n=>({number:n,installed:installed.includes(n),frames:frameArray(l,n).map(fr=>({status:fr.status||'',note:fr.note||fr.notes||''}))})),honeyPair:{installed:(l.honeyBoxInstalled||[]).every(Boolean),frames:(l.honeyFrames||[]).map(arr=>arr.map(fr=>({status:fr.status||'',note:fr.note||''})))}}});
+ const families=S.families.map(f=>({code:f.code,name:f.name,hiveNumber:S.hives.find(h=>h.id===f.hive)?.number||null,breed:f.breed,origin:f.origin,parentFamilyCode:S.families.find(x=>x.id===f.parentFamilyId)?.code||null,queenYear:f.queenYear,notes:f.notes}));
+ const records=S.records.filter(r=>!r.archivedAt).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(-30).map(({media,...r})=>r);
+ return {apiary:{location:'Пензенская область, Грабово',hiveConstruction:'Farrar: шесть гнездовых корпусов по шесть рамок в трёх секциях; два медовых корпуса по десять рамок устанавливаются и снимаются парой'},hives,families,latestJournalRecords:records,tasks:(S.tasks||[]).slice(-30),recentChanges:(S.auditLog||[]).slice(-30)};
+}
+function renderAIChat(){
+ const host=$('aiMessages');if(!host)return;const messages=S.aiMessages||[];
+ host.innerHTML=messages.length?messages.map(m=>'<div class="ai-bubble '+(m.role==='user'?'user':'assistant')+'"><small>'+(m.role==='user'?'Ты':'ИИ-помощник')+'</small>'+safe(m.content)+'</div>').join(''):'<div class="ai-empty">Диалог пока пуст. Спроси, например: «Какие семьи требуют внимания по последним осмотрам?»</div>';
+ host.scrollTop=host.scrollHeight;
+}
+async function sendAIQuestion(){
+ if(aiBusy)return;if(!aiAuthUser||!aiAuthClient)return alert('Сначала войди в приложение.');
+ const field=$('aiQuestion'),question=field.value.trim();if(!question)return;
+ aiBusy=true;const button=$('aiSendButton');button.disabled=true;button.textContent='ИИ отвечает…';
+ const history=(S.aiMessages||[]).slice(-10).map(m=>({role:m.role,content:m.content}));
+ S.aiMessages=S.aiMessages||[];S.aiMessages.push({role:'user',content:question,at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);field.value='';renderAIChat();await save();
+ try{
+  const tokenResult=await aiAuthClient.token();if(tokenResult.error||!tokenResult.data?.token)throw new Error(tokenResult.error?.message||'Не удалось получить токен доступа');
+  const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+tokenResult.data.token},body:JSON.stringify({question,history,context:buildAIContext()})});
+  const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
+  S.aiMessages.push({role:'assistant',content:String(data.answer||'ИИ не вернул ответ.'),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
+ }catch(e){S.aiMessages.push({role:'assistant',content:'Не удалось получить ответ: '+(e.message||e),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat()}
+ finally{aiBusy=false;button.disabled=false;button.textContent='Отправить вопрос'}
+}
+async function clearAIHistory(){if(!confirm('Очистить историю диалога с ИИ на этом устройстве?'))return;S.aiMessages=[];await save();renderAIChat()}
+
 window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
 function openHive(id){selectedHiveId=id;activeJournalHive=id;render();showTab('hiveDetail')}function showHiveListScreen(){showTab('hives')}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
 async function deleteHive(id){
@@ -888,7 +973,7 @@ function validateBackupState(state){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
  for(const key of ['hives','families','records'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует корректный раздел: '+key);
- for(const key of ['tasks','extractions','snapshots','auditLog'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
+ for(const key of ['tasks','extractions','snapshots','auditLog','aiMessages'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
  for(const key of ['meta','layouts'])if(state[key]!=null&&!isObject(state[key]))throw new Error('Повреждён раздел архива: '+key);
  for(const key of ['hives','families','records'])if(!state[key].every(isObject))throw new Error('В разделе «'+key+'» обнаружены повреждённые элементы');
  for(const record of state.records)if(record.media!=null&&(!Array.isArray(record.media)||!record.media.every(isObject)))throw new Error('Повреждён список вложений записи журнала');
@@ -936,7 +1021,7 @@ async function deleteAllData(){
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 document.addEventListener('click',function(event){const addButton=event.target.closest('[data-action="open-new-hive"]');if(addButton){event.preventDefault();openNewHive();return}const button=event.target.closest('[data-action="toggle-honey-pair"]');if(!button)return;event.preventDefault();event.stopPropagation();toggleHoneyPair()});
-function migrateState(){let changed=false;S.meta=S.meta||{};const now=new Date().toISOString();const touch=x=>{if(!x.id){x.id=uid();changed=true}if(!x.createdAt){const d=x.date?new Date(x.date+'T12:00:00'):null;x.createdAt=d&&!Number.isNaN(d.getTime())?d.toISOString():now;changed=true}if(!x.updatedAt){x.updatedAt=x.createdAt;changed=true}};S.hives=S.hives||[];S.hives.forEach((h,i)=>{if(!Number.isInteger(Number(h.number))||Number(h.number)<1){h.number=i+1;changed=true}if(h.name){delete h.name;changed=true}});S.meta.nextHiveNumber=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));S.families=S.families||[];S.records=S.records||[];S.tasks=S.tasks||[];S.extractions=S.extractions||[];S.snapshots=S.snapshots||[];S.layouts=S.layouts||{};S.auditLog=S.auditLog||[];S.meta=S.meta||{};const from=S.meta.schemaVersion||1;if(from<2){const before=JSON.parse(JSON.stringify({hives:S.hives,families:S.families,records:S.records.map(({media,...r})=>r),tasks:S.tasks,extractions:S.extractions,layouts:S.layouts||{}}));S.snapshots.push({at:now,...before});S.snapshots=S.snapshots.slice(-12);S.hives.forEach(touch);S.families.forEach(touch);S.records.forEach(touch);S.tasks.forEach(touch);S.extractions.forEach(e=>{touch(e);(e.items||[]).forEach(touch)});S.hives.forEach(h=>{const l=layoutFor(h.id);l.corpusIds=l.corpusIds||{};[1,2,3,4,5,6,'H1','H2'].forEach(k=>{if(!l.corpusIds[k]){l.corpusIds[k]=uid();changed=true}const arr=frameArray(l,k);arr.forEach(fr=>{if(!fr.id){fr.id=uid();changed=true}if(!Array.isArray(fr.history)){fr.history=[];changed=true}fr.history.forEach(ev=>{if(!ev.id){ev.id=uid();changed=true}})})})});S.meta.schemaVersion=2;S.meta.updatedAt=now;S.meta.deviceId=S.meta.deviceId||uid();S.auditLog.push({id:uid(),type:'schema_migration',from,to:2,at:now,note:'Добавлены постоянные внутренние ID и метаданные без изменения физических номеров рамок'});changed=true}return changed}
+function migrateState(){let changed=false;S.meta=S.meta||{};const now=new Date().toISOString();const touch=x=>{if(!x.id){x.id=uid();changed=true}if(!x.createdAt){const d=x.date?new Date(x.date+'T12:00:00'):null;x.createdAt=d&&!Number.isNaN(d.getTime())?d.toISOString():now;changed=true}if(!x.updatedAt){x.updatedAt=x.createdAt;changed=true}};S.hives=S.hives||[];S.hives.forEach((h,i)=>{if(!Number.isInteger(Number(h.number))||Number(h.number)<1){h.number=i+1;changed=true}if(h.name){delete h.name;changed=true}});S.meta.nextHiveNumber=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));S.families=S.families||[];S.records=S.records||[];S.tasks=S.tasks||[];S.extractions=S.extractions||[];S.snapshots=S.snapshots||[];S.layouts=S.layouts||{};S.auditLog=S.auditLog||[];S.aiMessages=S.aiMessages||[];S.meta=S.meta||{};const from=S.meta.schemaVersion||1;if(from<2){const before=JSON.parse(JSON.stringify({hives:S.hives,families:S.families,records:S.records.map(({media,...r})=>r),tasks:S.tasks,extractions:S.extractions,layouts:S.layouts||{}}));S.snapshots.push({at:now,...before});S.snapshots=S.snapshots.slice(-12);S.hives.forEach(touch);S.families.forEach(touch);S.records.forEach(touch);S.tasks.forEach(touch);S.extractions.forEach(e=>{touch(e);(e.items||[]).forEach(touch)});S.hives.forEach(h=>{const l=layoutFor(h.id);l.corpusIds=l.corpusIds||{};[1,2,3,4,5,6,'H1','H2'].forEach(k=>{if(!l.corpusIds[k]){l.corpusIds[k]=uid();changed=true}const arr=frameArray(l,k);arr.forEach(fr=>{if(!fr.id){fr.id=uid();changed=true}if(!Array.isArray(fr.history)){fr.history=[];changed=true}fr.history.forEach(ev=>{if(!ev.id){ev.id=uid();changed=true}})})})});S.meta.schemaVersion=2;S.meta.updatedAt=now;S.meta.deviceId=S.meta.deviceId||uid();S.auditLog.push({id:uid(),type:'schema_migration',from,to:2,at:now,note:'Добавлены постоянные внутренние ID и метаданные без изменения физических номеров рамок'});changed=true}return changed}
 async function requestStoragePersistence(){try{if(!navigator.storage||!navigator.storage.persist){storagePersisted=false;return}storagePersisted=await navigator.storage.persisted();if(!storagePersisted)storagePersisted=await navigator.storage.persist()}catch(e){storagePersisted=false}}
 async function updateStorageEstimate(){const host=$('storageUsage');if(!host)return;try{if(!navigator.storage?.estimate){host.textContent='Оценка занятого места браузером недоступна.';return}const e=await navigator.storage.estimate();storageEstimate=e;if(!Number.isFinite(e.usage)||!Number.isFinite(e.quota)||e.quota<=0){host.textContent='Браузер не предоставил оценку объёма хранилища.';return}const mb=n=>Math.round(n/1024/1024*10)/10,free=Math.max(0,e.quota-e.usage),pct=Math.round(e.usage/e.quota*100);host.textContent='Занято приложениями этого сайта: '+mb(e.usage)+' МБ из '+mb(e.quota)+' МБ · свободно примерно '+mb(free)+' МБ'+(pct>=85?' · мало свободного места':'')+'. Оценка приблизительная.';host.style.color=pct>=85?'#a33':''}catch(e){host.textContent='Не удалось получить оценку хранилища.'}}
 (async()=>{
