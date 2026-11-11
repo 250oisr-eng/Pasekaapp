@@ -400,7 +400,7 @@ async function initAIAuth(){
   const status=$('aiAuthStatus');if(status)status.textContent='Подключаем защищённый вход…';
   try{
    const mod=await import('https://esm.sh/@neon/auth');
-   aiAuthClient=mod.createAuthClient(AI_AUTH_URL);
+   aiAuthClient=mod.createAuthClient(AI_AUTH_URL,{fetchOptions:{credentials:'include'}});
    const result=await aiAuthClient.getSession();
    if(result.error)throw new Error(result.error.message||'Не удалось проверить сеанс');
    aiAuthUser=result.data?.user||null;aiAuthError='';renderAIAuth();
