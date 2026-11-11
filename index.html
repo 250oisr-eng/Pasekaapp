@@ -419,13 +419,25 @@ function videoTypeFor(file){
 function getVideoDuration(file){
  return new Promise((resolve,reject)=>{
   const url=URL.createObjectURL(file),video=document.createElement('video');
+  let settled=false,timer=setTimeout(()=>finishError('Истекло время проверки длительности видео'),12000);
+  const cleanup=()=>{clearTimeout(timer);video.onloadedmetadata=null;video.ondurationchange=null;video.onseeked=null;video.onerror=null;URL.revokeObjectURL(url)};
+  const finishError=message=>{if(settled)return;settled=true;cleanup();reject(new Error(message))};
+  const finish=()=>{
+   if(settled)return;
+   const duration=Number(video.duration),seekEnd=video.seekable&&video.seekable.length?Number(video.seekable.end(video.seekable.length-1)):0;
+   const actual=Math.max(Number.isFinite(duration)?duration:0,Number.isFinite(seekEnd)?seekEnd:0);
+   if(actual>0){settled=true;cleanup();resolve(actual)}
+  };
   video.preload='metadata';
   video.onloadedmetadata=()=>{
-   const duration=video.duration;URL.revokeObjectURL(url);
-   if(Number.isFinite(duration))resolve(duration);else reject(new Error('Не удалось определить длительность видео'));
+   finish();
+   if(!settled&&Number.isFinite(video.duration)&&video.duration>0){try{video.currentTime=video.duration}catch(e){}}
   };
-  video.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Не удалось прочитать длительность видео'))};
+  video.ondurationchange=finish;
+  video.onseeked=finish;
+  video.onerror=()=>finishError('Не удалось прочитать длительность видео');
   video.src=url;
+  video.load();
  });
 }
 async function addCapturedVideo(file){
@@ -497,6 +509,15 @@ $('recordForm').onsubmit=async e=>{
  if(familyId&&!S.families.some(f=>f.id===familyId&&f.hive===hiveId)){alert('Выбранная семья не принадлежит этому улью. Запись не сохранена.');return}
  const id=$('recordId').value,oldRecord=id?S.records.find(r=>r.id===id):null;
  if(id&&!oldRecord){alert('Редактируемая запись не найдена. Обнови журнал и повтори.');return}
+ for(const item of pendingRecordMedia){
+  if(item.kind==='video'&&item.data){
+   try{
+    const blob=await fetch(item.data).then(response=>response.blob());
+    const duration=await getVideoDuration(blob);
+    if(duration>40){alert('Видео длится '+duration.toFixed(1)+' сек. Максимум — 40 секунд. Запись не сохранена.');return}
+   }catch(err){alert('Не удалось повторно проверить длительность добавленного видео: '+(err?.message||err)+'. Запись не сохранена.');return}
+  }
+ }
  const combinedMedia=[...(oldRecord?.media||[]),...media,...pendingRecordMedia];
  const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';
  const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};
