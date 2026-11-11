@@ -609,8 +609,42 @@ function returnHoneyBoxes(eventId,hiveId){const ev=(S.extractions||[]).find(x=>x
 async function confirmHoneyReturn(){const date=$('honeyReturnDate').value;if(!date)return alert('Укажи дату возврата');for(const r of returningHoney){const ev=S.extractions.find(x=>x.id===r.eventId),item=ev.items.find(x=>x.hiveId===r.hiveId),l=layoutFor(r.hiveId);r.boxes.forEach(key=>{l.honeyBoxInstalled[Number(key.slice(1))-1]=true});l.honeyInstalled=true;item.boxes=[...r.boxes];item.returnedAt=date;item.returned=true;item.returnedBoxes=[...r.boxes]}$('returnHoneyDlg').close();await save()}
 
 async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
-async function restoreBackup(){let f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');try{let o=JSON.parse(await f.text()),restored=o.state||o;if(!Array.isArray(restored.hives)||!Array.isArray(restored.records)||!Array.isArray(restored.families))throw Error('Неверный архив');if(!confirm('Заменить текущие данные архивом?'))return;await saveQueue;const current=await readMain();if(current){await writeAutoBackup(current);autoBackupInfo=await readAutoBackup()}const oldState=S;S=restored;try{migrateState();await write()}catch(e){S=oldState;throw e}autoBackupRecovered=false;render();alert('Восстановлено')}catch(e){alert('Ошибка: '+e.message)}}
-async function restoreAutoBackup(){try{await saveQueue;const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут заменены, но сначала сохранятся как резервная копия.'))return;const current=await readMain();if(current)await writeAutoBackup(current);const oldState=S;S=backup.state;try{await write()}catch(e){S=oldState;throw e}autoBackupRecovered=false;autoBackupInfo=await readAutoBackup();render();alert('Предыдущая полная автокопия восстановлена.')}catch(e){alert('Не удалось восстановить автокопию: '+(e.message||e))}}
+function validateBackupState(state){
+ const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+ if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
+ for(const key of ['hives','families','records'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует корректный раздел: '+key);
+ for(const key of ['tasks','extractions','snapshots','auditLog'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
+ for(const key of ['meta','layouts'])if(state[key]!=null&&!isObject(state[key]))throw new Error('Повреждён раздел архива: '+key);
+ for(const key of ['hives','families','records'])if(!state[key].every(isObject))throw new Error('В разделе «'+key+'» обнаружены повреждённые элементы');
+ for(const record of state.records)if(record.media!=null&&(!Array.isArray(record.media)||!record.media.every(isObject)))throw new Error('Повреждён список вложений записи журнала');
+ if(state.extractions&&!state.extractions.every(x=>isObject(x)&& (x.items==null||Array.isArray(x.items))))throw new Error('Повреждён раздел откачки мёда');
+ if(state.layouts)for(const layout of Object.values(state.layouts)){if(!isObject(layout))throw new Error('Повреждены данные сборки улья');if(layout.boxes!=null&&!isObject(layout.boxes))throw new Error('Повреждены гнездовые корпуса');if(layout.honeyFrames!=null&&!Array.isArray(layout.honeyFrames))throw new Error('Повреждены медовые рамки')}
+ return state;
+}
+async function restoreBackup(){
+ const f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');
+ try{
+  const o=JSON.parse(await f.text()),restored=validateBackupState(o.state||o);
+  if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
+  await saveQueue;
+  const current=await readMain();if(current){await writeAutoBackup(current);autoBackupInfo=await readAutoBackup()}
+  const oldState=S;S=restored;
+  try{migrateState();await write()}catch(e){S=oldState;throw e}
+  autoBackupRecovered=false;render();alert('Архив восстановлен. Текущее состояние до восстановления сохранено в автокопии.');
+ }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
+}
+async function restoreAutoBackup(){
+ try{
+  await saveQueue;
+  const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
+  const restored=validateBackupState(backup.state);
+  if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
+  const current=await readMain();if(current)await writeAutoBackup(current);
+  const oldState=S;S=restored;
+  try{migrateState();await write()}catch(e){S=oldState;throw e}
+  autoBackupRecovered=false;autoBackupInfo=await readAutoBackup();render();alert('Предыдущая полная автокопия восстановлена.');
+ }catch(e){alert('Не удалось восстановить автокопию: '+(e.message||e))}
+}
 
 async function deleteAllData(){
  if(!confirm('Удалить ВСЕ данные приложения на этом устройстве? Это действие нельзя отменить. Рекомендуется сначала скачать архив.'))return;
