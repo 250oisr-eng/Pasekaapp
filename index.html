@@ -174,7 +174,8 @@ async function saveExtraction(){
 function renderHiveExtractionActions(){
  const host=$('hiveExtractionActions');if(!host||!selectedHiveId)return;
  const pending=(S.extractions||[]).flatMap(e=>(e.items||[]).filter(x=>x.hiveId===selectedHiveId&&!x.returnedAt).map(x=>({event:e,item:x})));
- host.innerHTML=pending.length?'<div class="card"><b>Корпуса после откачки</b>'+pending.map(x=>'<div class="row"><span>'+safe(x.item.boxes.map(frameLocationName).join(', '))+' · '+safe(x.event.date)+'</span><button onclick="returnHoneyBoxes(\''+x.event.id+'\',\''+x.item.hiveId+'\')">Вернуть</button></div>').join('')+'</div>':'';
+ const seasonTotal=(S.extractions||[]).flatMap(e=>e.items||[]).filter(x=>x.hiveId===selectedHiveId).reduce((n,x)=>n+Number(x.kilograms||0),0);
+ host.innerHTML='<div class="card"><b>Мёд откачан в этом улье</b><div class="honey-total">'+seasonTotal.toFixed(1)+' кг</div>'+(pending.length?'<div class="divider"></div><b>Корпуса после откачки</b>'+pending.map(x=>'<div class="row"><span>'+safe(x.item.boxes.map(frameLocationName).join(', '))+' · '+safe(x.event.date)+'</span><button data-eid="'+x.event.id+'" data-hid="'+x.item.hiveId+'" onclick="returnHoneyBoxes(this.dataset.eid,this.dataset.hid)">Вернуть</button></div>').join(''):'<p class="muted">Нет корпусов, ожидающих возврата.</p>')+'</div>';
 }
 let returningHoney=[];
 function returnHoneyBoxes(eventId,hiveId){const ev=(S.extractions||[]).find(x=>x.id===eventId),item=ev?.items.find(x=>x.hiveId===hiveId);if(!ev||!item)return;returningHoney=[{eventId,hiveId,boxes:item.boxes}];$('returnHoneyRows').innerHTML='<div class="card"><b>'+safe(hname(hiveId))+'</b><p>'+safe(item.boxes.map(frameLocationName).join(', '))+'</p><label>Дата возврата</label><input id="honeyReturnDate" type="date" value="'+today()+'"></div>';returnHoneyDlg.showModal()}
