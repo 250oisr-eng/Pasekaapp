@@ -444,8 +444,8 @@ async function sendAIQuestion(){
  const history=(S.aiMessages||[]).slice(-10).map(m=>({role:m.role,content:m.content}));
  S.aiMessages=S.aiMessages||[];S.aiMessages.push({role:'user',content:question,at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);field.value='';renderAIChat();await save();
  try{
-  const sessionResult=await aiAuthClient.getSession();if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
-  const accessToken=sessionResult.data?.session?.token;if(!accessToken)throw new Error('Сеанс найден, но токен доступа отсутствует. Выйди из ИИ-помощника и войди снова.');
+  let accessToken='';const sessionResult=await aiAuthClient.getSession({fetchOptions:{onSuccess:(ctx)=>{accessToken=ctx.response.headers.get('set-auth-jwt')||''}}});if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
+  accessToken=accessToken||sessionResult.data?.session?.token||'';if(!accessToken)throw new Error('Neon Auth не выдал JWT. Сеанс пользователя есть, но серверный токен не получен.');
   const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:buildAIContext()})});
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
   S.aiMessages.push({role:'assistant',content:String(data.answer||'ИИ не вернул ответ.'),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
