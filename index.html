@@ -153,6 +153,36 @@ nav button{display:flex;align-items:center;justify-content:center;width:100%;min
 .mini-summer-row .mini-frame{height:6px}
 .mini-winter-stack{width:100%;padding:3px 0}
 .mini-winter-stack .mini-brood-box{width:62%;height:17px}
+
+/* Финальная проверка адаптивности: не разрывать слова, переносить только между словами */
+*,*::before,*::after{word-break:normal;hyphens:none}
+body{overflow-wrap:normal}
+h1,h2,h3,p,b,strong,span,label,small,div{word-break:normal;overflow-wrap:normal;hyphens:none}
+.card,.panel,.row,.hive-row,.home-hive,.box-unit,.box-unit-head,.winter-row,.winter-column-slot,.transition-choice{min-width:0;max-width:100%}
+.row>* , .hive-row>* , .box-unit-head>* , .winter-slot-head>*{min-width:0}
+button{white-space:normal;word-break:normal;overflow-wrap:normal;flex-shrink:1;min-width:0;max-width:100%;text-wrap:balance}
+nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+.box-unit-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px}
+.box-unit-head strong{font-size:clamp(10px,2.8vw,12px);line-height:1.2;overflow-wrap:normal}
+.box-unit-head>span{font-size:10px;white-space:nowrap;word-break:keep-all;flex:none}
+.box-unit-head button{white-space:nowrap;word-break:keep-all;flex-shrink:0}
+.hive-row-main{min-width:0;overflow:hidden}
+.hive-row-main>*{min-width:0;max-width:100%}
+.hive-row-main .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.transition-choice{align-items:center;min-width:0;line-height:1.25}
+.transition-choice input{flex:0 0 auto}
+.frame-editor button{white-space:normal;word-break:normal;overflow-wrap:normal;min-width:0}
+.winter-slot-head{min-width:0;flex-wrap:wrap}
+.winter-slot-head select{min-width:0;max-width:100%}
+@media(max-width:360px){
+ .box-unit-head{gap:3px}
+ .box-unit-head strong{font-size:10px}
+ .box-unit-head>span{font-size:9px}
+ .hive-row{gap:5px;padding:9px}
+ .hive-row button{font-size:10px;padding:6px}
+ .assembly-actions button,.transition-actions button{min-width:0}
+}
+
 </style></head><body>
 <header class="home-header"><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
@@ -317,7 +347,7 @@ function renderStructure(){
  $('assemblyMode').value=l.mode||'summer';$('assemblyMode').disabled=!editing;$('assemblyEditBtn').style.display=editing?'none':'';$('assemblyDoneBtn').style.display=editing?'':'none';
  $('assemblyModeHint').textContent=editing?'Выбирай корпуса на схеме. Нажми на корпус, чтобы открыть его рамки и данные семьи.':'Комплектация зафиксирована. Для изменений нажми «Изменить».';
  $('structureTitle').textContent=(l.mode==='winter'?'Зимняя':'Летняя')+(editing?' комплектация — настройка':' комплектация');$('addBroodBoxBtn').style.display='none';$('addHoneyBoxBtn').style.display='none';$('honeyPair').style.display=l.mode==='summer'?'':'none';
- const body=n=>{const x=l.boxes[n],fam=S.families.find(f=>f.id===x.family);return '<div class="box-unit '+(fam?'filled':'')+' '+(installed.includes(n)?'':'setup-empty')+'" '+(editing?'onclick="editBox('+n+')" style="cursor:pointer"':'')+'><div class="box-unit-head"><strong>Корпус №'+n+(fam?' · '+safe(fam.name):'')+'</strong><span>'+(installed.includes(n)?(editing?'Выбран':'Установлен'):(editing?'Выбрать':''))+'</span></div><div class="frame-strip">'+x.frames.map((fr,i)=>frameChip(fr,String(n),i)).join('')+'</div></div>'};
+ const body=n=>{const x=l.boxes[n],fam=S.families.find(f=>f.id===x.family);return '<div class="box-unit '+(fam?'filled':'')+' '+(installed.includes(n)?'':'setup-empty')+'" '+(editing?'onclick="editBox('+n+')" style="cursor:pointer"':'')+'><div class="box-unit-head"><strong>Корпус №'+n+(fam?' · '+safe(fam.name):'')+'</strong><span>'+(installed.includes(n)?(editing?'Выбран':'В улье'):(editing?'Выбрать':''))+'</span></div><div class="frame-strip">'+x.frames.map((fr,i)=>frameChip(fr,String(n),i)).join('')+'</div></div>'};
  if(l.mode==='summer'){
   $('hiveDiagram').innerHTML='<div class="hive-stage"><div><div class="summer-row-label">Верхний ряд · 4–6</div><div class="summer-box-row">'+[4,5,6].map(body).join('')+'</div></div><div><div class="summer-row-label">Нижний ряд · 1–3</div><div class="summer-box-row">'+[1,2,3].map(body).join('')+'</div></div></div>';
   $('honeyPair').innerHTML=[1,2].filter(n=>editing||l.honeyBoxInstalled[n-1]).map(n=>'<div class="honey-unit '+(l.honeyBoxInstalled[n-1]?'installed':'setup-empty')+'" '+(editing?'onclick="editBox(&quot;H'+n+'&quot;)" style="cursor:pointer"':'')+'><b>Медовый корпус '+n+'</b><span class="muted">'+(l.honeyBoxInstalled[n-1]?'Выбран · 10 рамок':'Выбрать · 10 рамок')+'</span></div>').join('');
@@ -426,5 +456,5 @@ async function restoreBackup(){let f=$('backupFile').files[0];if(!f)return alert
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 function migrateState(){let changed=false;const now=new Date().toISOString();const touch=x=>{if(!x.id){x.id=uid();changed=true}if(!x.createdAt){const d=x.date?new Date(x.date+'T12:00:00'):null;x.createdAt=d&&!Number.isNaN(d.getTime())?d.toISOString():now;changed=true}if(!x.updatedAt){x.updatedAt=x.createdAt;changed=true}};S.hives=S.hives||[];S.hives.forEach((h,i)=>{if(!Number.isInteger(Number(h.number))||Number(h.number)<1){h.number=i+1;changed=true}if(h.name){delete h.name;changed=true}});S.meta.nextHiveNumber=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));S.families=S.families||[];S.records=S.records||[];S.tasks=S.tasks||[];S.extractions=S.extractions||[];S.snapshots=S.snapshots||[];S.layouts=S.layouts||{};S.auditLog=S.auditLog||[];S.meta=S.meta||{};const from=S.meta.schemaVersion||1;if(from<2){const before=JSON.parse(JSON.stringify({hives:S.hives,families:S.families,records:S.records.map(({media,...r})=>r),tasks:S.tasks,extractions:S.extractions,layouts:S.layouts||{}}));S.snapshots.push({at:now,...before});S.snapshots=S.snapshots.slice(-12);S.hives.forEach(touch);S.families.forEach(touch);S.records.forEach(touch);S.tasks.forEach(touch);S.extractions.forEach(e=>{touch(e);(e.items||[]).forEach(touch)});S.hives.forEach(h=>{const l=layoutFor(h.id);l.corpusIds=l.corpusIds||{};[1,2,3,4,5,6,'H1','H2'].forEach(k=>{if(!l.corpusIds[k]){l.corpusIds[k]=uid();changed=true}const arr=frameArray(l,k);arr.forEach(fr=>{if(!fr.id){fr.id=uid();changed=true}if(!Array.isArray(fr.history)){fr.history=[];changed=true}fr.history.forEach(ev=>{if(!ev.id){ev.id=uid();changed=true}})})})});S.meta.schemaVersion=2;S.meta.updatedAt=now;S.meta.deviceId=S.meta.deviceId||uid();S.auditLog.push({id:uid(),type:'schema_migration',from,to:2,at:now,note:'Добавлены постоянные внутренние ID и метаданные без изменения физических номеров рамок'});changed=true}return changed}
 (async()=>{await openDB();S=await read()||S;const migrated=migrateState();if(migrated)await write();S.extractions=S.extractions||[];S.tasks=S.tasks||[];selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();history.replaceState({pasekaTab:'home'},'',location.pathname);showTab('home',false);if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})})();
-</script><!-- graphical-assembly-cache-v22 -->
+</script><!-- graphical-assembly-cache-v23 -->
 </body></html>
