@@ -177,7 +177,7 @@ async function saveExtraction(){
   if(!Number.isFinite(kg)||kg<=0)return alert('Укажи количество мёда больше нуля для '+hname(hid));
   const l=layoutFor(hid),frameIds=[];
   keys.forEach(key=>{const arr=frameArray(l,key);arr.forEach(fr=>{if(['nectar','sealed','drawn','partial'].includes(fr.status)){fr.history=fr.history||[];fr.history.push({date,action:'extraction',from:fr.status,to:'extracted'});fr.status='extracted';frameIds.push(fr.frameId)}});l.honeyBoxInstalled[Number(key.slice(1))-1]=false});
-  l.honeyInstalled=l.honeyBoxInstalled.some(Boolean);
+  l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
   items.push({hiveId:hid,boxes:keys,kilograms:kg,frameIds,returnedAt:null});
  }
  const event={id:uid(),date,items,createdAt:new Date().toISOString()};
