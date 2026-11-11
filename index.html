@@ -61,6 +61,17 @@
 .box-unit-head strong{font-size:11px;text-align:left;min-width:0}
 .box-unit-head button{font-size:10px;padding:5px 6px;white-space:nowrap}
 .box-unit-head .box-edit{padding:4px 6px}
+
+/* Главный экран: миниатюра фактической сборки */
+.home-hive{display:flex;flex-direction:column;gap:5px;min-height:145px}
+.mini-hive{display:flex;align-items:flex-end;justify-content:center;gap:4px;min-height:42px;padding:4px 0}
+.mini-box{display:block;width:18px;height:25px;border:2px solid #748477;border-radius:3px 3px 5px 5px;background:#dce7dc;box-shadow:inset 0 -4px #b6c8b6}
+.mini-box.honey{height:18px;border-color:#b38b36;background:#f5e6b5;box-shadow:inset 0 -4px #e5cd8b}
+.mini-empty{font-size:11px;color:#89938a}
+.home-hive .numbers{font-size:15px;margin:0;white-space:nowrap}
+.assembly-actions{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.assembly-actions button{flex:1;min-width:130px}
+.honey-pair{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 </style></head><body>
 <header><h1>🐝 Пасека</h1><div class="muted" style="color:#dbe6da">Личный журнал пчеловода · Грабово</div><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Пасека</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
@@ -78,7 +89,7 @@
   </div>
   <div class="row"><h3>Конструкция и рамки</h3><span class="pill">6 гнездовых + 2 медовых</span></div>
   <div class="row"><button id="summerMode" class="active" onclick="setStructureMode('summer')">Летняя сборка</button><button id="winterMode" onclick="setStructureMode('winter')">Зимовка</button></div>
-  <div class="card"><div class="row"><b id="structureTitle">Фактическая сборка</b><span class="muted">Нажми на корпус для установки или снятия</span></div><div id="honeyPair" class="honey-pair"></div><div id="hiveDiagram"></div><div class="frame-legend"><span><i class="legend-dot" style="background:#32834f"></i>Запечатана</span><span><i class="legend-dot" style="background:#62b9d5"></i>Откачана</span><span><i class="legend-dot" style="background:#f0b84b"></i>Мёд не запечатан</span><span><i class="legend-dot" style="background:#d8ddd7"></i>Вощина</span><span><i class="legend-dot" style="background:#9b6bc2"></i>Печатный расплод</span><span><i class="legend-dot" style="background:#6aa9dc"></i>Яйца</span><span><i class="legend-dot" style="background:#dc8b62"></i>Трутневая ячейка</span></div></div>
+  <div class="card"><div class="row"><b id="structureTitle">Фактическая сборка</b><span class="muted">Только установленные корпуса</span></div><div class="assembly-actions"><button onclick="addNextBroodBox()">＋ Гнездовой корпус</button><button onclick="addNextHoneyBox()">＋ Медовый корпус</button></div><div id="honeyPair" class="honey-pair"></div><div id="hiveDiagram"></div><div class="frame-legend"><span><i class="legend-dot" style="background:#32834f"></i>Запечатана</span><span><i class="legend-dot" style="background:#62b9d5"></i>Откачана</span><span><i class="legend-dot" style="background:#f0b84b"></i>Мёд не запечатан</span><span><i class="legend-dot" style="background:#d8ddd7"></i>Вощина</span><span><i class="legend-dot" style="background:#9b6bc2"></i>Печатный расплод</span><span><i class="legend-dot" style="background:#6aa9dc"></i>Яйца</span><span><i class="legend-dot" style="background:#dc8b62"></i>Трутневая ячейка</span></div></div>
   <div id="winterControls" class="card" style="display:none"><b>Сборка зимней колонны</b><p class="muted">Выбери три фактически переставленных корпуса и их порядок сверху вниз.</p><div id="winterPicker"></div><button class="primary" onclick="commitWinter()">Сохранить сборку</button><button onclick="restoreSummer()">Летняя конфигурация</button></div>
   <p class="muted">Нажми на свободное место, чтобы установить корпус. На установленном корпусе нажми «Снять». Карандаш открывает настройки корпуса, рамки — их карточки.</p>
   <div class="card"><div id="selectedFamilies"></div><div id="familyHealthSummary"></div>
@@ -125,7 +136,17 @@ function dateShift(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.get
 function formatTaskDate(d){return new Date(d+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}
 function renderHome(){
  S.tasks=S.tasks||[];
- $('homeHives').innerHTML=S.hives.map(h=>{const l=layoutFor(h.id),families=S.families.filter(f=>f.hive===h.id).length,brood=l.mode==='winter'&&l.winterOrder?.length===3?3:6,honey=l.honeyBoxInstalled.filter(Boolean).length,pending=S.tasks.filter(t=>t.hive===h.id&&['pending','suggested'].includes(t.status));const urgent=pending.some(t=>t.status==='pending'&&t.date<today());return '<div class="home-hive" onclick="openHive(\''+h.id+'\')"><div class="row"><b>'+safe(h.name)+'</b><span>'+ (urgent?'⚠️':'🐝')+'</span></div><div class="numbers">'+brood+' + '+honey+'</div><div class="muted">гнездовых · медовых корпусов</div><div class="muted">'+families+' семей'+(pending.length?' · '+pending.length+' задач':'')+'</div></div>'}).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
+ $('homeHives').innerHTML=S.hives.map(h=>{
+  const l=layoutFor(h.id),families=S.families.filter(f=>f.hive===h.id).length;
+  const brood=l.mode==='winter'&&l.winterOrder?.length===3?l.winterOrder.filter(n=>l.installedBoxes.includes(n)).length:l.installedBoxes.length;
+  const honey=l.honeyBoxInstalled.filter(Boolean).length;
+  const pending=S.tasks.filter(t=>t.hive===h.id&&['pending','suggested'].includes(t.status));
+  const urgent=pending.some(t=>t.status==='pending'&&t.date<today());
+  const broodVisual=(l.mode==='winter'&&l.winterOrder?.length===3?l.winterOrder.filter(n=>l.installedBoxes.includes(n)):l.installedBoxes.slice().sort((x,y)=>x-y)).map(()=>'<i class="mini-box brood"></i>');
+  const honeyVisual=l.honeyBoxInstalled.filter(Boolean).map(()=>'<i class="mini-box honey"></i>');
+  const visual=broodVisual.concat(honeyVisual).join('');
+  return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(h.name)+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="mini-hive" aria-label="Фактически установленные корпуса">'+(visual||'<span class="mini-empty">Нет установленных корпусов</span>')+'</div><div class="numbers">'+brood+' гнезд. · '+honey+' медов.</div><div class="muted">'+families+' семей'+(pending.length?' · '+pending.length+' задач':'')+(urgent?' · Есть просрочка':'')+'</div></div>';
+ }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
  const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>a.date.localeCompare(b.date));
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
  $('homeAlerts').innerHTML=overdue.length?'<div class="card home-alert"><b>⚠ Просрочено: '+overdue.length+'</b>'+overdue.map(t=>taskMarkup(t)).join('')+'</div>':'';
@@ -191,28 +212,31 @@ function setStructureMode(mode){structureMode=mode;const l=layoutFor(selectedStr
 function renderStructure(){
  const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;
  const l=layoutFor(hid),installed=l.installedBoxes.slice().sort((a,b)=>a-b);
- $('structureTitle').textContent=structureMode==='winter'?'Зимняя колонна':'Фактическая сборка · нажми на корпус';
- $('honeyPair').innerHTML=[1,2].map(n=>{
-  const key='H'+n,frames=l.honeyFrames[n-1],on=l.honeyBoxInstalled[n-1];
-  return '<div class="honey-unit '+(on?'installed':'')+'"><b>Медовый корпус '+n+'</b><span class="muted">'+(on?'Установлен · 10 рамок':'Не установлен')+'</span>'+(on?'<button class="box-edit" onclick="event.stopPropagation();editBox(\''+key+'\')">✎</button><div class="frame-strip honey-strip">'+frames.map((fr,i)=>frameChip(fr,key,i)).join('')+'</div>':'')+'<button class="box-action" onclick="toggleHoneyBox('+n+')">'+(on?'− Снять':'＋ Установить')+'</button></div>';
+ $('structureTitle').textContent=structureMode==='winter'?'Зимняя колонна':'Фактическая сборка';
+ $('honeyPair').innerHTML=[1,2].filter(n=>l.honeyBoxInstalled[n-1]).map(n=>{
+  const key='H'+n,frames=l.honeyFrames[n-1];
+  return '<div class="honey-unit installed"><b>Медовый корпус '+n+'</b><span class="muted">10 рамок</span><button class="box-edit" onclick="event.stopPropagation();editBox(&quot;'+key+'&quot;)">✎</button><div class="frame-strip honey-strip">'+frames.map((fr,i)=>frameChip(fr,key,i)).join('')+'</div><button class="box-action" onclick="toggleHoneyBox('+n+')">− Снять</button></div>';
  }).join('');
  if(structureMode==='summer'){
-  $('hiveDiagram').innerHTML='<div class="hive-stage">'+[1,2,3].map(col=>{
-   return '<div class="section-stack"><h3>Секция '+col+'</h3>'+[col,col+3].map(n=>installed.includes(n)?boxMarkup(n,l.boxes[n]):'<button class="box-slot" onclick="toggleBroodBox('+n+')"><strong>＋ Корпус №'+n+'</strong><span>Установить</span></button>').join('')+'</div>';
-  }).join('')+'</div>';
+  const stacks=[1,2,3].map(col=>{
+   const actual=[col,col+3].filter(n=>installed.includes(n));
+   return actual.length?'<div class="section-stack"><h3>Секция '+col+'</h3>'+actual.map(n=>boxMarkup(n,l.boxes[n])).join('')+'</div>':'';
+  }).join('');
+  $('hiveDiagram').innerHTML=stacks?'<div class="hive-stage">'+stacks+'</div>':'<p class="empty">В этом улье пока нет установленных корпусов.</p>';
  }else{
   const order=l.winterOrder.filter(n=>installed.includes(n));
-  $('hiveDiagram').innerHTML=order.length?'<div style="max-width:260px;margin:auto">'+order.map(n=>boxMarkup(n,l.boxes[n])).join('')+'</div>':'<p class="empty">Зимняя колонна ещё не собрана из установленных корпусов.</p>';
+  $('hiveDiagram').innerHTML=order.length?'<div style="max-width:260px;margin:auto">'+order.map(n=>boxMarkup(n,l.boxes[n])).join('')+'</div>':'<p class="empty">Зимняя колонна не собрана.</p>';
  }
  if(structureMode==='winter')renderWinterPicker(l);
 }
-
 function frameChip(f,key,index){return '<span role="button" tabindex="0" class="frame-chip status-'+safe(f.status||'foundation')+' '+(f.status==='foundation'?(f.type==='strip'?'partial':'wax'):'')+'" onclick="event.stopPropagation();openFrameFromDiagram(&quot;'+key+'&quot;,'+index+')" title="Открыть рамку '+safe(f.frameId)+': '+frameStatusName(f.status)+'">'+safe(f.frameId)+'</span>'}
 function openFrameFromDiagram(key,index){editBox(String(key));editingFrame=index;renderFrameEditor()}
 function boxMarkup(n,b){
  const family=S.families.find(f=>f.id===b.family),color=family?FAMILY_COLORS[S.families.indexOf(family)%FAMILY_COLORS.length]:'#aeb8ad';
  return '<div class="box-unit '+(family?'filled':'')+'" style="--family-color:'+color+'"><div class="box-unit-head"><strong>Корпус №'+n+(family?' · '+safe(family.name):'')+'</strong><button onclick="toggleBroodBox('+n+')">− Снять</button><button class="box-edit" onclick="editBox('+n+')">✎</button></div><div class="frame-strip">'+b.frames.map((fr,i)=>frameChip(fr,String(n),i)).join('')+'</div></div>';
 }
+function addNextBroodBox(){const l=layoutFor(selectedStructureHive()),n=[1,2,3,4,5,6].find(x=>!l.installedBoxes.includes(x));if(!n)return alert('Все гнездовые корпуса уже установлены');l.installedBoxes.push(n);save()}
+function addNextHoneyBox(){const l=layoutFor(selectedStructureHive()),idx=l.honeyBoxInstalled.findIndex(x=>!x);if(idx<0)return alert('Оба медовых корпуса уже установлены');toggleHoneyBox(idx+1)}
 function toggleBroodBox(n){
  const l=layoutFor(selectedStructureHive()),b=l.boxes[n],installed=l.installedBoxes.includes(n);
  if(installed&&b.family){alert('В корпусе назначена семья. Сначала перемести семью в другой корпус или сними её назначение.');return}
