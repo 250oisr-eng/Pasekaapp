@@ -541,6 +541,14 @@ async function moveFrame(){
  const l=layoutFor(selectedStructureHive()),source=frameArray(l,editingBox),targetKey=$('frameMoveTo').value,target=frameArray(l,targetKey);
  if(!source||!source[editingFrame])return alert('Выбранная рамка больше не найдена. Обнови редактор.');
  if(source===target)return alert('Выбери другой корпус для перемещения рамки.');
+ if(String(targetKey).startsWith('H')){
+  if(l.mode==='winter'||!l.honeyBoxInstalled.every(Boolean))return alert('Медовые рамки можно перемещать только при установленных обоих медовых корпусах в летней сборке.');
+ }else{
+  const targetNumber=Number(targetKey);
+  const targetInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(targetNumber):(l.installedBoxes||[]).includes(targetNumber);
+  if(!targetInstalled)return alert('Сначала установи выбранный гнездовой корпус в текущую сборку.');
+  if(l.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке нельзя использовать корпуса №2 и №5.');
+ }
  if(!target||target.length>=frameCapacity(targetKey))return alert('В выбранном корпусе нет свободного места');
  commitFrameEdit();
  const fr=source[editingFrame],from={location:editingBox,position:editingFrame+1};
@@ -561,10 +569,13 @@ function saveBox(){
    const hiveId=selectedStructureHive();
    const family=fid?S.families.find(x=>x.id===fid):null;
    if(fid&&(!family||family.hive!==hiveId)){alert('Нельзя назначить корпусу семью из другого улья.');return}
+   if(fid&&Object.entries(l.boxes).some(([boxKey,other])=>boxKey!==editingBox&&other.family===fid)){alert('Эта семья уже назначена другому гнездовому корпусу. Сначала сними прежнее назначение.');return}
    if(origin==='offshoot'){
     const parent=S.families.find(x=>x.id===parentFamilyId&&x.hive===hiveId);
     if(!parent||parent.id===fid){alert('Для отводка выбери другую исходную семью из этого же улья.');return}
    }
+   const previousFamily=b.family?S.families.find(x=>x.id===b.family):null;
+   if(previousFamily&&previousFamily.id!==fid&&previousFamily.box===n)delete previousFamily.box;
    b.origin=origin;b.breed=breed;b.familyName=familyName;b.parentFamilyId=parentFamilyId;
    if(!fid&&origin){
     const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]);
