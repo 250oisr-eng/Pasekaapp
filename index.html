@@ -232,7 +232,7 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 <dialog id="extractDlg"><h2>Откачка мёда</h2><p class="muted">Отметь ульи и медовые корпуса одной откачки. Количество мёда укажи отдельно для каждого улья.</p><label>Дата откачки</label><input type="date" id="extractDate"><div id="extractRows"></div><div class="row"><button onclick="$('extractDlg').close()">Отмена</button><button class="primary" onclick="saveExtraction()">Зафиксировать откачку</button></div></dialog>
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
 <script>
-const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function openDB(){return new Promise((ok,no)=>{let q=indexedDB.open(DB,2);q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE)};q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
@@ -427,18 +427,20 @@ async function startVideoCapture(){
   const types=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
   const mime=types.find(t=>MediaRecorder.isTypeSupported(t));
   const recorderOptions={videoBitsPerSecond:1400000,audioBitsPerSecond:64000};if(mime)recorderOptions.mimeType=mime;videoRecorder=new MediaRecorder(cameraStream,recorderOptions);
-  videoChunks=[];videoRecorder.ondataavailable=e=>{if(e.data&&e.data.size)videoChunks.push(e.data)};
-  videoRecorder.onerror=e=>{alert('Ошибка видеозаписи: '+(e.error?.message||'неизвестная ошибка'));stopVideoCapture(true)};
+  videoChunks=[];videoCaptureFailed=false;videoCaptureBytes=0;
+  videoRecorder.ondataavailable=e=>{if(e.data&&e.data.size){videoCaptureBytes+=e.data.size;if(videoCaptureBytes>50*1024*1024){videoCaptureFailed=true;alert('Запись остановлена: размер видео превысил 50 МБ.');stopVideoCapture(true);return}videoChunks.push(e.data)}};
+  videoRecorder.onerror=e=>{videoCaptureFailed=true;alert('Ошибка видеозаписи: '+(e.error?.message||'неизвестная ошибка')+'. Этот ролик не будет сохранён.');stopVideoCapture(true)};
   videoRecorder.onstop=async()=>{
    const blob=new Blob(videoChunks,{type:videoRecorder?.mimeType||'video/webm'});
    if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;videoRecorder=null;
    $('cameraPreview').srcObject=null;$('videoCapturePanel').style.display='none';
+   if(videoCaptureFailed){videoChunks=[];videoCaptureBytes=0;$('videoCountdown').textContent='Видео не сохранено из-за ошибки записи.';return}
    if(blob.size){
     if(blob.size>50*1024*1024){alert('Видео получилось больше 50 МБ и не добавлено. Попробуй записать короче.')}
     else try{const type=blob.type||'video/webm',ext=type.includes('mp4')?'mp4':'webm',item={kind:'video',name:'Видео осмотра '+new Date().toLocaleString('ru-RU')+'.'+ext,type,data:await fileData(blob)};pendingRecordMedia.push(item);const v=document.createElement('video');v.controls=true;v.preload='metadata';v.src=item.data;$('mediaPreview').appendChild(v);$('videoCountdown').textContent='Видео добавлено к записи.'}
     catch(e){alert('Не удалось сохранить видео: '+(e.message||e))}
    }
-   videoChunks=[];
+   videoChunks=[];videoCaptureBytes=0;
   };
   videoRecorder.start(1000);$('stopVideoBtn').disabled=false;
   const end=Date.now()+60000;
