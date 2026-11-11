@@ -85,7 +85,7 @@
  <div id="hiveList"></div>
  <div id="selectedHivePanel" style="display:none">
   <div class="card">
-   <div class="row"><div><div class="muted">Выбранный объект</div><h2 id="selectedHiveTitle" style="margin:3px 0"></h2></div><button onclick="editSelectedHive()">Изменить</button></div>
+   <div class="row"><div><div class="muted">Карточка улья</div><h2 id="selectedHiveTitle" style="margin:3px 0"></h2></div><div><button onclick="showHiveListScreen()">← Все ульи</button><button onclick="editSelectedHive()">Изменить</button></div></div>
   </div>
   <div class="row"><h3>Конструкция и рамки</h3><span class="pill">6 гнездовых + 2 медовых</span></div>
   <div class="row"><button id="summerMode" class="active" onclick="setStructureMode('summer')">Летняя сборка</button><button id="winterMode" onclick="setStructureMode('winter')">Зимовка</button></div>
@@ -109,7 +109,7 @@
 <dialog id="extractDlg"><h2>Откачка мёда</h2><p class="muted">Отметь ульи и медовые корпуса одной откачки. Количество мёда укажи отдельно для каждого улья.</p><label>Дата откачки</label><input type="date" id="extractDate"><div id="extractRows"></div><div class="row"><button onclick="extractDlg.close()">Отмена</button><button class="primary" onclick="saveExtraction()">Зафиксировать откачку</button></div></dialog>
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="returnHoneyDlg.close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
 <script>
-const DB='paseka-v1',STORE='main';let db,activeJournalHive='',selectedHiveId='',tabHistory=[];let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>new Date().toISOString().slice(0,10),safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DB='paseka-v1',STORE='main';let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>new Date().toISOString().slice(0,10),safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function openDB(){return new Promise((ok,no)=>{let q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore(STORE);q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
 function read(){return new Promise(ok=>{let q=db.transaction(STORE).objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result)})}
 function write(){return new Promise(ok=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(S,'state');t.oncomplete=ok})}
@@ -120,9 +120,9 @@ function renderFamilyHealthSummary(){const host=$('familyHealthSummary');if(!hos
 function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, но есть яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники не определены',one:'Один роевой признак',several:'Несколько роевых признаков'};[['queen','Матка'],['eggs','Яйца'],['broodPattern','Расплод'],['queenCells','Маточники'],['swarmSigns','Роевые признаки']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+(m[r[k]]||r[k]))})}if(r.type==='Обработка'){[['treatmentProduct','Препарат'],['treatmentActive','Действующее вещество'],['treatmentMethod','Способ'],['treatmentDose','Доза по инструкции'],['treatmentCheck','Контроль']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}return pairs.length?'<p class="muted">'+pairs.map(safe).join(' · ')+'</p>':''}
 function render(){
  $('nh').textContent=S.hives.length;$('nf').textContent=S.families.length;$('nr').textContent=S.records.length;
- $('hiveList').innerHTML=S.hives.map(card).join('')||'<div class="empty">Ульев пока нет.</div>';
+ $('hiveList').innerHTML=S.hives.map(card).join('')||'<div class="empty">Ульев пока нет.</div>'; $('hiveList').style.display=showHiveList?'block':'none';
  S.extractions=S.extractions||[];if(!S.hives.some(h=>h.id===selectedHiveId))selectedHiveId=S.hives[0]?.id||'';
- $('selectedHivePanel').style.display=selectedHiveId?'block':'none';
+ $('selectedHivePanel').style.display=selectedHiveId&&!showHiveList?'block':'none';
  if(selectedHiveId){const h=S.hives.find(x=>x.id===selectedHiveId);$('selectedHiveTitle').textContent=h.name;$('selectedFamilies').innerHTML=S.families.filter(f=>f.hive===selectedHiveId).map(f=>'<span class="pill">🐝 '+safe(f.name)+' · '+safe(f.breed==='Другая'?f.custom:f.breed)+'</span>').join('')||'<div class="muted">Семьи ещё не добавлены.</div>';}renderFamilyHealthSummary();
  const jh=$('journalHive');if(jh){jh.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+h.id+'">'+safe(h.name)+'</option>').join('');if(S.hives.some(h=>h.id===activeJournalHive))jh.value=activeJournalHive;else if(selectedHiveId){activeJournalHive=selectedHiveId;jh.value=selectedHiveId}else activeJournalHive='';}
  const list=activeJournalHive?S.records.filter(r=>r.hive===activeJournalHive):[];
@@ -179,7 +179,7 @@ function paintTab(tab){if(!document.getElementById(tab))tab='home';if(tab==='hiv
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab)}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
-function openHive(id){selectedHiveId=id;activeJournalHive=id;render();showTab('hives')}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
+function openHive(id){selectedHiveId=id;activeJournalHive=id;showHiveList=false;render();showTab('hives')}function showHiveListScreen(){showHiveList=true;render()}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
 function editHive(id){let h=S.hives.find(x=>x.id===id);$('hiveName').value=h.name;$('hiveDesc').value=h.desc;hiveDlg.showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.name=$('hiveName').value;h.desc=$('hiveDesc').value;hiveDlg.close();$('hiveForm').onsubmit=defaultHive;await save()}}
 function defaultHive(e){e.preventDefault();const h={id:uid(),name:$('hiveName').value,desc:$('hiveDesc').value};S.hives.push(h);selectedHiveId=h.id;activeJournalHive=h.id;hiveDlg.close();$('hiveForm').reset();save()}
 $('hiveForm').onsubmit=defaultHive;
@@ -310,7 +310,7 @@ async function confirmHoneyReturn(){const date=$('honeyReturnDate').value;if(!da
 
 function downloadBackup(){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify({app:'Paseka',state:S},null,2)],{type:'application/json'}));a.href=u;a.download='paseka-backup-'+today()+'.json';a.click();URL.revokeObjectURL(u)}
 async function restoreBackup(){let f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');try{let o=JSON.parse(await f.text()),s=o.state||o;if(!Array.isArray(s.hives)||!Array.isArray(s.records)||!Array.isArray(s.families))throw Error('Неверный архив');if(confirm('Заменить текущие данные архивом?')){S=s;await write();render();alert('Восстановлено')}}catch(e){alert('Ошибка: '+e.message)}}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='hives'){showHiveList=true;render()}showTab(b.dataset.tab)});
 (async()=>{await openDB();S=await read()||S;S.extractions=S.extractions||[];S.tasks=S.tasks||[];selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();history.replaceState({pasekaTab:'home'},'',location.pathname);showTab('home',false);if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})})();
 </script><!-- graphical-assembly-cache-v22 -->
 </body></html>
