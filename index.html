@@ -31,6 +31,19 @@
 .frame-chip.status-damaged{background:#d99b8c;color:#54261c}
 .frame-chip.status-discard{background:#777;color:#fff}
 .extract-row{margin:10px 0}.extract-hive{display:flex;align-items:center;gap:8px}.extract-options{padding:8px 0 0 26px}.extract-options .row{gap:12px;flex-wrap:wrap}.extract-options label{display:flex;align-items:center;gap:5px}
+.honey-total{font-size:24px;font-weight:750;color:#8a671b;margin-top:5px}
+.frame-chip.status-nectar{background:#f0b84b;color:#38270a;border-color:#cf942c}
+.frame-chip.status-sealed{background:#32834f;color:#fff;border-color:#21653a}
+.frame-chip.status-extracted{background:#62b9d5;color:#123744;border-color:#3295b4}
+.frame-chip.status-foundation{background:#d8ddd7;color:#374139}
+.frame-chip.status-partial{background:#f4df8b;color:#4b3a0b;border-color:#d7bc60}
+.frame-chip.status-drawn{background:#e7c66a;color:#493b12}
+.frame-chip.status-damaged{background:#d99b8c;color:#54261c}
+.frame-chip.status-discard{background:#777;color:#fff}
+.frame-editor button.status-sealed{background:#32834f;color:#fff}
+.frame-editor button.status-extracted{background:#62b9d5;color:#123744}
+.frame-editor button.status-nectar{background:#f0b84b;color:#38270a}
+.extract-row{margin:10px 0}.extract-hive{display:flex;align-items:center;gap:8px}.extract-options{padding:8px 0 0 26px}.extract-options .row{gap:12px;flex-wrap:wrap}.extract-options label{display:flex;align-items:center;gap:5px}
 </style></head><body>
 <header><h1>🐝 Пасека</h1><div class="muted" style="color:#dbe6da">Личный журнал пчеловода · Грабово</div><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Пасека</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
@@ -119,19 +132,19 @@ function layoutFor(hid){S.layouts=S.layouts||{};if(!S.layouts[hid])S.layouts[hid
 function selectedStructureHive(){return selectedHiveId||S.hives[0]?.id||''}
 function setStructureMode(mode){structureMode=mode;const l=layoutFor(selectedStructureHive());l.mode=mode;$('summerMode').classList.toggle('active',mode==='summer');$('winterMode').classList.toggle('active',mode==='winter');$('winterControls').style.display=mode==='winter'?'block':'none';renderStructure()}
 function renderStructure(){const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid);$('structureTitle').textContent=structureMode==='winter'?'Зимняя колонна · три корпуса':'Летняя сборка · три секции рядом';$('honeyPair').innerHTML=[1,2].map(n=>{const key='H'+n,frames=l.honeyFrames[n-1];return '<div class="honey-unit '+(l.honeyBoxInstalled[n-1]?'installed':'')+'"><b onclick="editBox(\''+key+'\')">Медовый корпус '+n+'</b><br>'+(l.honeyBoxInstalled[n-1]?'Установлен':'Снят')+'<br><span class="muted">10 рамок · нажми для просмотра</span><div class="frame-strip honey-strip">'+frames.map((fr,i)=>frameChip(fr,key,i)).join('')+'</div></div>'}).join('');if(structureMode==='summer'){$('hiveDiagram').innerHTML='<div class="hive-stage">'+[1,2,3].map(col=>'<div class="section-stack"><h3>Секция '+col+'</h3>'+[col+3,col].map(n=>boxMarkup(n,l.boxes[n])).join('')+'</div>').join('')+'</div>'}else{const order=l.winterOrder.length===3?l.winterOrder:[1,2,3];$('hiveDiagram').innerHTML='<div style="max-width:260px;margin:auto">'+order.map(n=>boxMarkup(n,l.boxes[n])).join('')+'</div>'}if(structureMode==='winter')renderWinterPicker(l)}
-function frameChip(f,key,index){return '<span role="button" tabindex="0" class="frame-chip '+(f.status==='foundation'?(f.type==='strip'?'partial':'wax'):f.status==='drawn'?'':' '+f.status)+'" onclick="event.stopPropagation();openFrameFromDiagram(&quot;'+key+'&quot;,'+index+')" title="Открыть рамку '+safe(f.frameId)+': '+frameStatusName(f.status)+'">'+safe(f.frameId)+'</span>'}
+function frameChip(f,key,index){return '<span role="button" tabindex="0" class="frame-chip status-'+safe(f.status||'foundation')+' '+(f.status==='foundation'?(f.type==='strip'?'partial':'wax'):'')+'" onclick="event.stopPropagation();openFrameFromDiagram(&quot;'+key+'&quot;,'+index+')" title="Открыть рамку '+safe(f.frameId)+': '+frameStatusName(f.status)+'">'+safe(f.frameId)+'</span>'}
 function openFrameFromDiagram(key,index){editBox(String(key));editingFrame=index;renderFrameEditor()}
 function boxMarkup(n,b){const family=S.families.find(f=>f.id===b.family);const color=family?FAMILY_COLORS[S.families.indexOf(family)%FAMILY_COLORS.length]:'#aeb8ad';return '<div class="box-unit '+(family?'filled':'')+'" style="--family-color:'+color+'" onclick="editBox('+n+')"><strong>Корпус №'+n+(family?' · '+safe(family.name):'')+'</strong><div class="frame-strip">'+b.frames.map((fr,i)=>frameChip(fr,String(n),i)).join('')+'</div></div>'}
-function toggleHoney(){const l=layoutFor(selectedStructureHive());l.honeyInstalled=!l.honeyInstalled;save()}
+function toggleHoney(){const l=layoutFor(selectedStructureHive()),next=!l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=[next,next];l.honeyInstalled=next;save()}
 function editBox(key){editingBox=String(key);editingFrame=0;const l=layoutFor(selectedStructureHive()),isHoney=editingBox.startsWith('H'),b=isHoney?null:l.boxes[editingBox],frames=frameArray(l,editingBox);$('boxDlgTitle').textContent=frameLocationName(editingBox);$('boxDlgHint').textContent=frames.length+' рамок · номера закреплены за каждой физической рамкой';$('boxFamilyLabel').style.display=isHoney?'none':'';$('boxFamily').style.display=isHoney?'none':'';$('boxFamily').innerHTML='<option value="">Семья не назначена</option>'+S.families.map((f,i)=>'<option value="'+f.id+'">'+safe(f.name)+' · '+safe(f.breed==='Другая'?f.custom:f.breed)+'</option>').join('');$('boxFamily').value=b?.family||'';$('addFrameBtn').style.display=frames.length<frameCapacity(editingBox)?'':'none';renderFrameEditor();boxDlg.showModal()}
 function frameStatusName(id){return FRAME_STATUSES.find(x=>x[0]===id)?.[1]||'Не указан'}
 function renderFrameEditor(){
  const l=layoutFor(selectedStructureHive()),frames=frameArray(l,editingBox);
- $('frameEditor').innerHTML=frames.map((x,i)=>'<button class="'+(i===editingFrame?'selected':'')+'" onclick="chooseFrame('+i+')">'+safe(x.frameId)+'<br><b>'+frameStatusName(x.status)+'</b></button>').join('');
+ $('frameEditor').innerHTML=frames.map((x,i)=>'<button class="status-'+safe(x.status||'foundation')+' '+(i===editingFrame?'selected':'')+'" onclick="chooseFrame('+i+')">'+safe(x.frameId)+'<br><b>'+frameStatusName(x.status)+'</b></button>').join('');
  const x=frames[editingFrame];if(!x){$('frameDetails').style.display='none';return}
  $('frameDetails').style.display='block';
  const destinations=[1,2,3,4,5,6,'H1','H2'].filter(k=>String(k)!==editingBox);
- const history=(x.history||[]).map(h=>'<p class="muted">'+safe(h.date)+': '+(h.action==='move'?'Перемещение: '+safe(frameLocationName(h.from.location))+' → '+safe(frameLocationName(h.to.location)):safe(frameStatusName(h.from.status))+' → '+safe(frameStatusName(h.to.status)))+'</p>').join('');
+ const history=(x.history||[]).map(h=>'<p class="muted">'+safe(h.date)+': '+(h.action==='move'?'Перемещение: '+safe(frameLocationName(h.from.location))+' → '+safe(frameLocationName(h.to.location)):h.action==='extraction'?'Откачка мёда: '+safe(frameStatusName(h.from))+' → Откачана':safe(frameStatusName(h.from.status))+' → '+safe(frameStatusName(h.to.status)))+'</p>').join('');
  $('frameDetails').innerHTML=`<b>Рамка ${safe(x.frameId)}</b><div class="muted">Сейчас находится: ${frameLocationName(editingBox)} · позиция ${editingFrame+1} · изначальный корпус: ${frameLocationName(x.originBox||editingBox)}</div><label>Тип рамки</label><select id="frameType" onchange="syncFrameType()">${FRAME_TYPES.map(t=>'<option value="'+t.id+'" '+(x.type===t.id?'selected':'')+'>'+t.name+'</option>').join('')}</select><label>Текущий статус</label><select id="frameStatus" onchange="syncFrameStatus()">${FRAME_STATUSES.map(t=>'<option value="'+t[0]+'" '+(x.status===t[0]?'selected':'')+'>'+t[1]+'</option>').join('')}</select><label>Заметка</label><input id="frameNote" value="${safe(x.note||'')}" placeholder="Например, отстроена наполовину"><label>Переместить рамку в другой корпус</label><select id="frameMoveTo">${destinations.map(k=>'<option value="'+k+'">'+frameLocationName(k)+'</option>').join('')}</select><button type="button" onclick="moveFrame()">Переместить рамку ${safe(x.frameId)}</button><details><summary>История рамки (${(x.history||[]).length})</summary>${history}</details>`;
 }
 function syncFrameType(){const t=$('frameType').value;if(t==='comb')$('frameStatus').value='drawn';else if($('frameStatus').value==='drawn')$('frameStatus').value='foundation'}
@@ -160,7 +173,7 @@ async function saveExtraction(){
   const hid=ch.dataset.hive,keys=[...document.querySelectorAll('.extract-box[data-hive="'+hid+'"]:checked')].map(x=>x.value);
   if(!keys.length)return alert('Для '+hname(hid)+' выбери хотя бы один медовый корпус');
   const kg=Number(document.querySelector('.extract-kg[data-hive="'+hid+'"]').value);
-  if(!Number.isFinite(kg)||kg<0)return alert('Укажи количество мёда для '+hname(hid));
+  if(!Number.isFinite(kg)||kg<=0)return alert('Укажи количество мёда больше нуля для '+hname(hid));
   const l=layoutFor(hid),frameIds=[];
   keys.forEach(key=>{const arr=frameArray(l,key);arr.forEach(fr=>{if(['nectar','sealed','drawn','partial'].includes(fr.status)){fr.history=fr.history||[];fr.history.push({date,action:'extraction',from:fr.status,to:'extracted'});fr.status='extracted';frameIds.push(fr.frameId)}});l.honeyBoxInstalled[Number(key.slice(1))-1]=false});
   l.honeyInstalled=l.honeyBoxInstalled.some(Boolean);
@@ -168,7 +181,7 @@ async function saveExtraction(){
  }
  const event={id:uid(),date,items,createdAt:new Date().toISOString()};
  S.extractions=S.extractions||[];S.extractions.push(event);
- S.records.push({id:uid(),date,type:'Откачка мёда',hive:items.length===1?items[0].hiveId:'multiple',family:'',text:items.map(x=>hname(x.hiveId)+': '+x.kilograms+' кг · '+x.boxes.map(frameLocationName).join(', ')).join('; '),extractionId:event.id,media:[]});
+ items.forEach(x=>S.records.push({id:uid(),date,type:'Откачка мёда',hive:x.hiveId,family:'',text:x.kilograms+' кг · '+x.boxes.map(frameLocationName).join(', '),extractionId:event.id,media:[]}));
  extractDlg.close();await save();
 }
 function renderHiveExtractionActions(){
