@@ -140,12 +140,13 @@ function renderHome(){
   const l=layoutFor(h.id),families=S.families.filter(f=>f.hive===h.id).length;
   const brood=l.mode==='winter'&&l.winterOrder?.length===3?l.winterOrder.filter(n=>l.installedBoxes.includes(n)).length:l.installedBoxes.length;
   const honey=l.honeyBoxInstalled.filter(Boolean).length;
+  const composition=[brood?brood+' гнезд. корпус'+(brood===1?'':'а'):'',honey?honey+' медов. корпус'+(honey===1?'':'а'):''].filter(Boolean).join(' · ')||'Нет установленных корпусов';
   const pending=S.tasks.filter(t=>t.hive===h.id&&['pending','suggested'].includes(t.status));
   const urgent=pending.some(t=>t.status==='pending'&&t.date<today());
   const broodVisual=(l.mode==='winter'&&l.winterOrder?.length===3?l.winterOrder.filter(n=>l.installedBoxes.includes(n)):l.installedBoxes.slice().sort((x,y)=>x-y)).map(()=>'<i class="mini-box brood"></i>');
   const honeyVisual=l.honeyBoxInstalled.filter(Boolean).map(()=>'<i class="mini-box honey"></i>');
   const visual=broodVisual.concat(honeyVisual).join('');
-  return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(h.name)+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="mini-hive" aria-label="Фактически установленные корпуса">'+(visual||'<span class="mini-empty">Нет установленных корпусов</span>')+'</div><div class="numbers">'+brood+' гнезд. · '+honey+' медов.</div><div class="muted">'+families+' семей'+(pending.length?' · '+pending.length+' задач':'')+(urgent?' · Есть просрочка':'')+'</div></div>';
+  return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(h.name)+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="mini-hive" aria-label="Фактически установленные корпуса">'+(visual||'<span class="mini-empty">Нет установленных корпусов</span>')+'</div><div class="numbers">'+composition+'</div><div class="muted">'+families+' семей'+(pending.length?' · '+pending.length+' задач':'')+(urgent?' · Есть просрочка':'')+'</div></div>';
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
  const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>a.date.localeCompare(b.date));
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
