@@ -391,7 +391,33 @@ async function fileData(file){return new Promise((resolve,reject)=>{const reader
 async function prepareImage(file){const src=await fileData(file);return new Promise(resolve=>{const img=new Image();img.onload=()=>{const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve({kind:'image',name:file.name,type:'image/jpeg',data:canvas.toDataURL('image/jpeg',.82)})};img.onerror=()=>resolve({kind:'image',name:file.name,type:file.type,data:src});img.src=src})}
 $('rmedia').onchange=async()=>{const files=[...$('rmedia').files];$('mediaPreview').innerHTML='';for(const f of files){if(f.type.startsWith('video/')&&f.size>50*1024*1024){alert('Видео «'+f.name+'» больше 50 МБ и пропущено.');continue}if(!f.type.startsWith('image/')&&!f.type.startsWith('video/'))continue;const data=f.type.startsWith('image/')?await prepareImage(f):{kind:'video',name:f.name,type:f.type,data:await fileData(f)};const el=data.kind==='video'?document.createElement('video'):document.createElement('img');el.src=data.data;if(data.kind==='video')el.controls=true;$('mediaPreview').appendChild(el)}};
 $('rtype').onchange=toggleOccupancy;
-$('recordForm').onsubmit=async e=>{e.preventDefault();const media=[];for(const f of [...$('rmedia').files]){if(f.type.startsWith('video/')&&f.size>50*1024*1024)continue;if(f.type.startsWith('image/'))media.push(await prepareImage(f));else if(f.type.startsWith('video/'))media.push({kind:'video',name:f.name,type:f.type,data:await fileData(f)})}const id=$('recordId').value;const oldRecord=id?S.records.find(r=>r.id===id):null;const combinedMedia=[...(oldRecord?.media||[]),...media];const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:$('rhive').value,family:$('rfamily').value,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);if(!oldRecord){createExpansionSuggestion(data);if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}}$('recordDlg').close();$('rhive').disabled=false;await save()}
+$('recordForm').onsubmit=async e=>{
+ e.preventDefault();
+ try{
+  const files=[...$('rmedia').files];
+  const tooLarge=files.find(f=>f.type.startsWith('video/')&&f.size>50*1024*1024);
+  if(tooLarge){alert('Видео «'+tooLarge.name+'» больше 50 МБ. Уменьши файл или выбери другое видео. Запись не сохранена.');return}
+  const media=[];
+  for(const f of files){
+   if(f.type.startsWith('image/'))media.push(await prepareImage(f));
+   else if(f.type.startsWith('video/'))media.push({kind:'video',name:f.name,type:f.type,data:await fileData(f)});
+  }
+  const hiveId=$('rhive').value,familyId=$('rfamily').value;
+  if(!S.hives.some(h=>h.id===hiveId)){alert('Выбранный улей не найден. Запись не сохранена.');return}
+  if(familyId&&!S.families.some(f=>f.id===familyId&&f.hive===hiveId)){alert('Выбранная семья не принадлежит этому улью. Запись не сохранена.');return}
+  const id=$('recordId').value,oldRecord=id?S.records.find(r=>r.id===id):null;
+  if(id&&!oldRecord){alert('Редактируемая запись не найдена. Обнови журнал и повтори.');return}
+  const combinedMedia=[...(oldRecord?.media||[]),...media];
+  const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';
+  const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};
+  if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
+  if(!oldRecord){
+   createExpansionSuggestion(data);
+   if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
+  }
+  $('recordDlg').close();$('rhive').disabled=false;await save();
+ }catch(err){alert('Не удалось сохранить запись или подготовить вложение: '+(err?.message||err)+'. Данные формы оставлены открытыми.')}
+}
 
 const FRAME_TYPES=[{id:'foundation',name:'Вощина',short:'В',status:'foundation'},{id:'strip',name:'Полоска вощины',short:'П',status:'foundation'},{id:'comb',name:'Сушь',short:'С',status:'drawn'}];
 const FRAME_STATUSES=[['foundation','Вощина'],['partial','Частично отстроена'],['drawn','Отстроена'],['eggs','Яйца'],['brood-sealed','Печатный расплод'],['drone-cell','Трутневая ячейка'],['nectar','С мёдом, не запечатана'],['sealed','Запечатана'],['extracted','Откачана'],['damaged','Повреждена'],['discard','Под выбраковку']];
@@ -543,17 +569,29 @@ function toggleExtractRow(el){const box=document.querySelector('[data-options="'
 async function saveExtraction(){
  const date=$('extractDate').value;if(!date)return alert('Укажи дату откачки');
  const selected=[...document.querySelectorAll('.extract-select:checked')];if(!selected.length)return alert('Выбери хотя бы один улей');
- const items=[];
+ const plans=[];
  for(const ch of selected){
   const hid=ch.dataset.hive,pair=document.querySelector('.extract-pair[data-hive="'+hid+'"]');
   if(!pair?.checked)return alert('Для '+hname(hid)+' необходимо выбрать оба медовых корпуса');
-  const keys=['H1','H2'];
-  const kg=Number(document.querySelector('.extract-kg[data-hive="'+hid+'"]').value);
+  const kgText=String(document.querySelector('.extract-kg[data-hive="'+hid+'"]')?.value||'').trim().replace(',','.');
+  const kg=Number(kgText);
   if(!Number.isFinite(kg)||kg<=0)return alert('Укажи количество мёда больше нуля для '+hname(hid));
-  const l=layoutFor(hid),frameIds=[];if(!l.honeyBoxInstalled.every(Boolean))return alert('В '+hname(hid)+' должны быть установлены оба медовых корпуса');
-  keys.forEach(key=>{const arr=frameArray(l,key);arr.forEach(fr=>{if(['nectar','sealed'].includes(fr.status)){fr.history=fr.history||[];fr.history.push({date,action:'extraction',from:fr.status,to:'extracted'});fr.status='extracted';frameIds.push(fr.frameId)}})});
-  l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;
-  items.push({hiveId:hid,boxes:keys,kilograms:kg,frameIds,returnedAt:null});
+  const l=layoutFor(hid);
+  if(!l.honeyBoxInstalled.every(Boolean))return alert('В '+hname(hid)+' должны быть установлены оба медовых корпуса');
+  const frameIds=['H1','H2'].flatMap(key=>frameArray(l,key).filter(fr=>['nectar','sealed'].includes(fr.status)).map(fr=>fr.frameId));
+  plans.push({hiveId:hid,kg,l,frameIds});
+ }
+ const items=[];
+ for(const plan of plans){
+  ['H1','H2'].forEach(key=>frameArray(plan.l,key).forEach(fr=>{
+   if(['nectar','sealed'].includes(fr.status)){
+    fr.history=fr.history||[];
+    fr.history.push({date,action:'extraction',from:fr.status,to:'extracted'});
+    fr.status='extracted';
+   }
+  }));
+  plan.l.honeyBoxInstalled=[false,false];plan.l.honeyInstalled=false;
+  items.push({hiveId:plan.hiveId,boxes:['H1','H2'],kilograms:plan.kg,frameIds:plan.frameIds,returnedAt:null});
  }
  const event={id:uid(),date,items,createdAt:new Date().toISOString()};
  S.extractions=S.extractions||[];S.extractions.push(event);
