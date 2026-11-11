@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#24452f"><link rel="manifest" href="./manifest.webmanifest"><title>Пасека</title>
+<style>
+:root{font-family:system-ui;color:#202820;background:#f4f3ed}*{box-sizing:border-box}body{margin:0;overflow-wrap:anywhere;word-break:normal}main,section,.card,.panel,dialog,.row,.hive-row,.winter-row{min-width:0;max-width:100%}h1,h2,h3,p,b,strong,span,label,small{overflow-wrap:anywhere}input,select,textarea{min-width:0;max-width:100%}header{background:#24452f;color:white;padding:22px;border-radius:0 0 22px 22px}h1{margin:0;font-size:25px}main{max-width:760px;margin:auto;padding:14px 14px 90px}nav{display:flex;gap:7px;overflow:auto;position:sticky;top:0;background:#f4f3ed;padding:12px 0;z-index:2}button{max-width:100%;white-space:nowrap;overflow-wrap:normal;flex-shrink:0;border:0;border-radius:12px;padding:10px 11px;font-size:14px;line-height:1.2;font-weight:650;cursor:pointer;background:#e5eae1;color:#24452f}nav button{flex-shrink:0;padding:9px 11px;font-size:13px}.row{flex-wrap:wrap}.hive-row{flex-wrap:nowrap}.hive-row button{padding:8px 9px;font-size:12px}.fab{white-space:nowrap}button.active,.primary{background:#24452f;color:white}.panel{display:none}.panel.active{display:block}.card{background:white;border:1px solid #e1e5dc;border-radius:16px;padding:15px;margin:10px 0}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.muted{color:#68736a;font-size:13px}.stats{display:flex;gap:7px;margin-top:10px;max-width:390px}.stats div{background:#ffffff18;padding:5px 8px;border-radius:9px;flex:0 1 auto;min-width:64px;text-align:center}.stats b{display:block;font-size:17px;line-height:1.15}.stats span{font-size:10px;opacity:.88}input,select,textarea{width:100%;padding:12px;border:1px solid #d9ded5;border-radius:10px;margin:5px 0 12px;font:inherit}label{font-size:13px;font-weight:700}dialog{border:0;border-radius:18px;width:min(94vw,500px);padding:20px}dialog::backdrop{background:#0008}.pill{display:inline-block;background:#e2eee1;color:#24452f;border-radius:20px;padding:4px 9px;font-size:12px;margin:3px}.fab{position:fixed;bottom:18px;right:18px;background:#e4b64e;color:#282819;border-radius:30px;padding:15px 19px;font-size:16px}.empty{text-align:center;color:#68736a;padding:25px}.media-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.media-grid img,.media-grid video{width:100%;max-height:220px;object-fit:cover;border-radius:10px;background:#111}.media-note{font-size:12px;color:#68736a;margin:-6px 0 12px}
+
+/* Графическая модель улья */
+.hive-stage{display:flex;flex-direction:column;gap:8px;width:100%}
+.summer-box-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;align-items:stretch}
+.summer-row-label{font-size:11px;color:#667266;text-align:center;margin:0 0 -4px}
+.summer-box-row .box-unit{min-width:0;margin:0}
+.mini-brood-slot{min-height:30px;visibility:hidden}
+.box-unit{border:2px solid #aeb8ad;border-radius:9px;padding:6px 4px;margin:5px 0;background:#fff;cursor:pointer}
+.box-unit.filled{border-color:var(--family-color,#4d8c60);background:color-mix(in srgb,var(--family-color,#4d8c60) 10%,white)}
+.box-unit strong{display:block;font-size:12px;text-align:center}
+.frame-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;margin-top:5px}
+.frame-chip{cursor:pointer;height:24px;min-width:0;overflow:hidden;font-size:7px;border:1px solid #aab2a8;border-radius:3px;background:#e7c66c;color:#4c4226;font-size:9px;font-weight:800;display:grid;place-items:center}
+.frame-chip.wax{background:#f0d987}.frame-chip.partial{background:repeating-linear-gradient(135deg,#d7b76c 0 4px,#f5e5b8 4px 8px)}.frame-chip.damaged{background:#d99a91;color:#542b25}.frame-chip.discard{background:#777;color:#fff}.frame-chip.empty{background:#f4f4f0;color:#999}
+.honey-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.honey-unit{border:2px dashed #aeb8ad;border-radius:10px;padding:12px;text-align:center;font-size:12px;background:#fff}
+.honey-strip{grid-template-columns:repeat(5,minmax(0,1fr));margin-top:8px}.honey-strip .frame-chip{height:24px;font-size:8px}.honey-unit.installed{border-style:solid;border-color:#c49a3c;background:#fff7df}
+.frame-editor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.frame-editor button{padding:9px 3px;font-size:11px;background:#f1f2ed;border:1px solid #d9ded5}
+.frame-editor button.selected{outline:2px solid #24452f;background:#e4eee3}
+.winter-order{display:grid;gap:6px}.winter-row{display:flex;align-items:center;justify-content:space-between;background:#f3f4ef;border-radius:9px;padding:8px}
+@media(max-width:380px){.hive-stage{gap:4px}.section-stack{padding:4px}.box-unit{padding:4px 2px}.frame-strip{gap:1px}.frame-chip{height:20px;font-size:8px}}
+.hive-row{display:flex;align-items:center;gap:10px;padding:11px 12px;margin:7px 0;border:1px solid #e1e5dc;border-radius:13px;background:#fff}.hive-row.chosen{border-color:#4d8c60;background:#f0f6ef}.hive-row-main{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px;cursor:pointer}.hive-row-main .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hive-mini-status{display:flex;align-items:center;gap:8px;min-width:0}.hive-mini-graphic{display:flex;align-items:flex-end;gap:4px;min-width:0}.hive-mini-section{display:flex;flex-direction:column-reverse;gap:2px}.hive-mini-box{display:block;width:20px;height:7px;border:1px solid #718575;border-radius:2px;background:#dce8dc}.hive-mini-honey{display:inline-flex;align-items:center;justify-content:center;width:20px;height:16px;border:1px solid #b48c36;border-radius:3px;background:#f5e4ad;color:#684d14;font-size:10px;font-weight:700}.hive-mini-empty{display:inline-flex;width:20px;height:18px;align-items:center;justify-content:center;border:1px dashed #aeb8ad;border-radius:4px;color:#7b857c;font-size:12px;flex:none}.hive-mini-status .muted{font-size:11px;min-width:0}.hive-row button{flex-shrink:0;padding:8px 11px}#selectedHivePanel h3{margin:8px 0}#selectedHivePanel .card{margin-top:12px}#summerMode,#winterMode{flex:1}#summerMode.active,#winterMode.active{background:#24452f;color:#fff}
+.frame-chip.status-nectar{background:#f0b84b;color:#38270a;border-color:#cf942c}
+.frame-chip.status-sealed{background:#32834f;color:#fff;border-color:#21653a}
+.frame-chip.status-extracted{background:#62b9d5;color:#123744;border-color:#3295b4}
+.frame-chip.status-foundation{background:#d8ddd7;color:#374139}
+.frame-chip.status-partial{background:#f4df8b;color:#4b3a0b;border-color:#d7bc60}
+.frame-chip.status-drawn{background:#e7c66a;color:#493b12}
+.frame-chip.status-damaged{background:#d99b8c;color:#54261c}
+.frame-chip.status-discard{background:#777;color:#fff}.frame-chip.status-brood-sealed{background:#9b6bc2;color:#fff;border-color:#75449a}.frame-chip.status-eggs{background:#6aa9dc;color:#12344c;border-color:#4388bd}.frame-chip.status-drone-cell{background:#dc8b62;color:#482515;border-color:#b96a43}
+.extract-row{margin:10px 0}.extract-hive{display:flex;align-items:center;gap:8px}.extract-options{padding:8px 0 0 26px}.extract-options .row{gap:12px;flex-wrap:wrap}.extract-options label{display:flex;align-items:center;gap:5px}
+.honey-total{font-size:24px;font-weight:750;color:#8a671b;margin-top:5px}
+.frame-chip.status-nectar{background:#f0b84b;color:#38270a;border-color:#cf942c}
+.frame-chip.status-sealed{background:#32834f;color:#fff;border-color:#21653a}
+.frame-chip.status-extracted{background:#62b9d5;color:#123744;border-color:#3295b4}
+.frame-chip.status-foundation{background:#d8ddd7;color:#374139}
+.frame-chip.status-partial{background:#f4df8b;color:#4b3a0b;border-color:#d7bc60}
+.frame-chip.status-drawn{background:#e7c66a;color:#493b12}
+.frame-chip.status-damaged{background:#d99b8c;color:#54261c}
+.frame-chip.status-discard{background:#777;color:#fff}
+.frame-editor button.status-sealed{background:#32834f;color:#fff}
+.frame-editor button.status-extracted{background:#62b9d5;color:#123744}
+.frame-editor button.status-nectar{background:#f0b84b;color:#38270a}
+.extract-row{margin:10px 0}.extract-hive{display:flex;align-items:center;gap:8px}.extract-options{padding:8px 0 0 26px}.extract-options .row{gap:12px;flex-wrap:wrap}.extract-options label{display:flex;align-items:center;gap:5px}
+.frame-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:10px;font-size:11px;color:#526052}.frame-legend span{display:flex;align-items:center;gap:5px}.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+.home-hive-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.home-hive{background:#fff;border:1px solid #e1e5dc;border-radius:13px;padding:11px;cursor:pointer;min-width:0}.home-hive b{display:block}.home-hive .numbers{font-size:19px;font-weight:800;margin:5px 0 2px;color:#24452f}.home-hive .muted{font-size:11px}.home-alert{border-left:4px solid #c65c42}.task-item{padding:10px 0;border-bottom:1px solid #edf0e9}.task-item:last-child{border-bottom:0}.task-date{font-size:12px;color:#68736a}.task-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.task-actions button{padding:7px 10px;font-size:12px}.task-overdue{color:#a33d2d;font-weight:750}.task-suggested{background:#f7f5e9;border-radius:10px;padding:10px;margin:8px 0}.home-section-title{font-size:15px;margin:0 0 8px}
+.apiary-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}
+.apiary-stat{min-width:0;padding:9px 5px;text-align:center;border-radius:10px;background:#f1f4ed}
+.apiary-stat b{display:block;font-size:21px;line-height:1.15;color:#24452f}
+.apiary-stat span{display:block;margin-top:3px;font-size:10px;line-height:1.2;color:#68736a;overflow-wrap:anywhere}
+.apiary-attention{margin-top:9px}
+.apiary-attention-group{padding:9px 0;border-top:1px solid #edf0e9}
+.apiary-attention-group>b{font-size:12px}
+.apiary-attention-row{display:grid;grid-template-columns:minmax(72px,.65fr) minmax(0,1.5fr);gap:8px;padding:5px 0;font-size:12px;line-height:1.3}
+.apiary-attention-row span:last-child{color:#68736a}
+@media(max-width:360px){.apiary-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.apiary-stat span{font-size:11px}}
+
+/* Управление сборкой прямо на схеме */
+.honey-unit{position:relative;cursor:pointer;min-height:76px;border:2px dashed #b9c2b6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.honey-unit.installed{border-style:solid}
+.honey-unit .box-action{font-size:11px;padding:5px 8px;margin-top:3px}
+.honey-unit .box-edit{position:absolute;right:5px;top:5px;padding:4px 6px;font-size:11px}
+.section-stack{min-height:110px}
+.box-slot{border:2px dashed #c5cec2;border-radius:9px;min-height:58px;margin:5px 0;background:#f4f6f1;color:#607060;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;font-size:12px;cursor:pointer;width:100%}
+.box-slot strong{font-size:12px}
+.box-unit{cursor:default}
+.box-unit-head{display:flex;align-items:center;justify-content:space-between;gap:3px}
+.box-unit-head strong{font-size:11px;text-align:left;min-width:0}
+.box-unit-head button{font-size:10px;padding:5px 6px;white-space:nowrap}
+.box-unit-head .box-edit{padding:4px 6px}
+
+
+/* Главный экран: схема улья с тремя секциями и вертикальными корпусами */
+.home-hive{min-height:0;gap:6px;padding:10px}
+.home-hive .numbers{font-size:13px;white-space:normal;line-height:1.25}
+.mini-hive{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:3px;min-height:0;padding:3px 5px 5px;border-bottom:2px solid #8e9a8d;border-radius:0 0 5px 5px;background:linear-gradient(#f8faf6,#eef2eb)}
+.mini-honey-stack{display:grid;gap:2px;margin:0 auto 3px;width:78%}
+.mini-honey-tier{height:12px;border:1.5px solid #b38b36;border-radius:3px;background:#f5e6b5;display:flex;align-items:center;gap:3px;padding:1px 3px;box-shadow:inset 0 -2px #e5cd8b}
+.mini-honey-tier>span{font-size:7px;font-weight:800;color:#795d20}
+.mini-honey-frames{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:1px;flex:1;height:7px}
+.mini-sections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;align-items:end}
+.mini-section{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-width:0;padding:2px;border:1px solid #cbd3c7;border-radius:4px;background:#ffffffb8}
+.mini-section-label{font-size:7px;line-height:1;color:#718071;text-align:center}
+.mini-brood-box{height:18px;min-width:0;border:1.5px solid #819182;border-radius:3px;background:#dce7dc;display:flex;align-items:center;gap:2px;padding:2px;box-shadow:inset 0 -2px #b6c8b6}
+.mini-brood-box.has-family{border-color:#4d8c60;background:#e3efe2}
+.mini-brood-box>b{font-size:7px;line-height:1;color:#425244;flex:0 0 auto}
+.mini-brood-frames{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;min-width:0;flex:1;height:10px}
+.mini-frame{display:block;min-width:0;border:1px solid #aab2a8;border-radius:1px;background:#d8ddd7}
+.mini-frame.status-sealed{background:#32834f;border-color:#21653a}.mini-frame.status-extracted{background:#62b9d5;border-color:#3295b4}.mini-frame.status-nectar{background:#f0b84b;border-color:#cf942c}.mini-frame.status-brood-sealed{background:#9b6bc2;border-color:#75449a}.mini-frame.status-eggs{background:#6aa9dc;border-color:#4388bd}.mini-frame.status-drone-cell{background:#dc8b62;border-color:#b96a43}.mini-frame.status-damaged{background:#d99b8c;border-color:#b96a5c}.mini-frame.status-discard{background:#777;border-color:#555}
+.mini-winter-stack{display:flex;flex-direction:column;align-items:center;gap:2px}.mini-winter-stack .mini-brood-box{width:78%;height:17px}
+.mini-empty{font-size:9px;color:#89938a;text-align:center}
+
+.home-hive{display:flex;flex-direction:column;gap:5px;min-height:145px}
+.mini-hive{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;min-height:42px;padding:4px 0}
+.mini-box{display:block;width:58px;height:8px;border:1px solid #748477;border-radius:2px;background:#dce7dc;box-shadow:inset 0 -2px #b6c8b6}
+.mini-box.honey{height:7px;border-color:#b38b36;background:#f5e6b5;box-shadow:inset 0 -2px #e5cd8b}
+.mini-empty{font-size:11px;color:#89938a}
+.home-hive .numbers{font-size:15px;margin:0;white-space:normal;overflow-wrap:anywhere;line-height:1.2;min-width:0}
+.assembly-actions{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.assembly-actions button{flex:1;min-width:130px}
+.honey-pair{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.assembly-mode-control{display:grid;grid-template-columns:1fr;gap:4px;margin:10px 0;padding:11px;border:1px solid #dce3d8;border-radius:12px;background:#f9faf7}.assembly-mode-control label{font-size:13px}.assembly-mode-control select{margin:0}.assembly-mode-control p{margin:2px 0 0}.transition-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.transition-choice{display:flex;align-items:center;gap:7px;padding:9px;border:1px solid #dce3d8;border-radius:9px;background:#fafbf8;font-size:13px}.transition-choice input{width:auto;margin:0}.transition-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.transition-actions button{flex:1;min-width:120px}.winter-order{display:grid;gap:7px}.winter-row select{margin:0}.box-unit.setup-empty{border-style:dashed;border-color:#9eaa9d;background:#f7f9f5}.honey-unit.setup-empty{border:2px dashed #9eaa9d;background:#f7f9f5}.setup-winter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.setup-winter .transition-choice{margin:0}
+/* Адаптация к высоте экрана: длинные страницы прокручиваются, окна не выходят за экран */
+html{min-height:100%;height:100%;-webkit-text-size-adjust:100%}
+body{min-height:100%;min-height:100dvh;overflow-x:hidden}
+main{width:100%;padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+dialog{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+.fab{bottom:max(12px,env(safe-area-inset-bottom,0px));right:max(12px,env(safe-area-inset-right,0px))}
+@media(max-height:700px){
+ header{padding:12px 16px;border-radius:0 0 16px 16px}
+ main{padding-top:8px}
+ nav{padding:7px 0}
+ .card{padding:12px;margin:8px 0}
+ .fab{padding:11px 15px;font-size:14px}
+}
+@media(max-height:560px){
+ header{padding:8px 12px}
+ .stats{margin-top:4px}
+ .stats b{font-size:15px}
+ main{padding-top:5px}
+ nav{padding:5px 0}
+ dialog{padding:14px}
+}
+/* Общая адаптация: ширина и высота любого экрана */
+html{width:100%;min-height:100%;height:auto;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{width:100%;min-height:100vh;min-height:100dvh;overflow-x:hidden;overflow-wrap:anywhere}
+main{width:100%;max-width:760px;margin:0 auto;padding:10px 12px calc(96px + env(safe-area-inset-bottom,0px))}
+header{background:#fff0b8!important;color:#3e3928!important;padding:18px 16px;border-radius:0 0 18px 18px;transition:background-color .18s ease}
+body[data-page="hives"] header{background:#dcecff!important;color:#26394b!important}
+body[data-page="hiveDetail"] header{background:#dcefe5!important;color:#294238!important}.hive-header-summary{margin-top:2px;font-size:14px;font-weight:650;line-height:1.35}.hive-header-summary small{display:block;margin-top:4px;font-size:11px;font-weight:500;opacity:.78}
+body[data-page="journal"] header{background:#f5e2d5!important;color:#4b382f!important}
+body[data-page="settings"] header{background:#e9e1f5!important;color:#40364f!important}
+.stats div{background:#ffffff80}
+nav{max-width:100%;min-width:0;scrollbar-width:thin}
+.panel{min-width:0;width:100%;max-width:100%}
+.card,.row,.hive-row,.winter-row,.home-hive-grid,.hive-stage,.honey-pair{min-width:0;max-width:100%}
+.hive-row{flex-wrap:wrap}
+.hive-row-main{flex:1 1 130px}
+.hive-row button{max-width:100%}
+img,video,canvas,svg{max-width:100%}
+dialog{width:min(94vw,500px);max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px);overflow:auto;overscroll-behavior:contain}
+.fab{bottom:max(12px,env(safe-area-inset-bottom,0px));right:max(12px,env(safe-area-inset-right,0px));max-width:calc(100vw - 24px)}
+@media(max-width:420px){main{padding-left:9px;padding-right:9px}.card{padding:12px}.stats{gap:5px}.stats div{min-width:0;padding:5px 7px}.hive-row{gap:7px}.hive-row button{padding:7px 8px;font-size:11px}}
+@media(max-height:560px){header{padding:8px 12px}.stats{margin-top:3px}.stats b{font-size:15px}main{padding-top:5px}nav{padding:5px 0}dialog{padding:12px}}
+
+/* Меню всегда помещается в ширину экрана: четыре равные ячейки без горизонтального выезда */
+.winter-column{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:420px;margin:10px auto}.winter-column-slot{width:100%;padding:8px;border:1px solid #cbd3c7;border-radius:12px;background:#fafbf8}.winter-slot-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}.winter-slot-head b{font-size:13px}.winter-slot-head select{width:auto;max-width:58%;margin:0;padding:7px;font-size:12px}
+nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%;max-width:100%;padding-left:0;padding-right:0;overflow:visible;}
+nav button{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;max-width:100%;min-height:40px;padding:8px 2px;font-size:clamp(10px,3vw,13px);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:clip;flex:none;}
+@media(max-width:340px){nav{gap:3px}nav button{font-size:10px;padding-left:1px;padding-right:1px;}}
+
+/* Главная: летняя сборка — два ряда по три корпуса; зимняя — вертикальная колонна */
+.mini-summer-layout{display:grid;grid-template-rows:repeat(2,auto);gap:3px;width:100%;padding:3px 0}
+.mini-summer-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:3px;width:100%;padding:1px}
+.mini-summer-row .mini-brood-box{height:30px;min-width:0;padding:2px 1px;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:2px}
+.mini-summer-row .mini-brood-box>b{font-size:7px;text-align:center;line-height:1}
+.mini-summer-row .mini-brood-frames{width:100%;height:7px;flex:none;gap:1px}
+.mini-summer-row .mini-frame{height:6px}
+.mini-winter-stack{width:100%;padding:3px 0}
+.mini-winter-stack .mini-brood-box{width:62%;height:17px}
+
+/* Финальная проверка адаптивности: не разрывать слова, переносить только между словами */
+*,*::before,*::after{word-break:normal;hyphens:none}
+body{overflow-wrap:normal}
+h1,h2,h3,p,b,strong,span,label,small,div{word-break:normal;overflow-wrap:normal;hyphens:none}
+.card,.panel,.row,.hive-row,.home-hive,.box-unit,.box-unit-head,.winter-row,.winter-column-slot,.transition-choice{min-width:0;max-width:100%}
+.row>* , .hive-row>* , .box-unit-head>* , .winter-slot-head>*{min-width:0}
+button{white-space:normal;word-break:normal;overflow-wrap:normal;flex-shrink:1;min-width:0;max-width:100%;text-wrap:balance}
+nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+.box-unit-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px}
+.box-unit-head strong{font-size:clamp(10px,2.8vw,12px);line-height:1.2;overflow-wrap:normal}
+.box-unit-head>span{font-size:10px;white-space:nowrap;word-break:keep-all;flex:none}
+.box-unit-head button{white-space:nowrap;word-break:keep-all;flex-shrink:0}
+.hive-row-main{min-width:0;overflow:hidden}
+.hive-row-main>*{min-width:0;max-width:100%}
+.hive-row-main .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.transition-choice{align-items:center;min-width:0;line-height:1.25}
+.transition-choice input{flex:0 0 auto}
+.frame-editor button{white-space:normal;word-break:normal;overflow-wrap:normal;min-width:0}
+.winter-slot-head{min-width:0;flex-wrap:wrap}
+.winter-slot-head select{min-width:0;max-width:100%}
+@media(max-width:360px){
+ .box-unit-head{gap:3px}
+ .box-unit-head strong{font-size:10px}
+ .box-unit-head>span{font-size:9px}
+ .hive-row{gap:5px;padding:9px}
+ .hive-row button{font-size:10px;padding:6px}
+ .assembly-actions button,.transition-actions button{min-width:0}
+}
+
+ .honey-pair-control{grid-column:1/-1;width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:9px;padding:12px;border:2px dashed #aeb8ad;border-radius:12px;background:#fafbf8}.honey-pair-control.is-installed{border-style:solid;border-color:#c49a3c;background:#fff8e6}.honey-pair-summary{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.honey-pair-toggle{width:100%}.honey-pair-edit{display:grid;grid-template-columns:1fr 1fr;gap:7px}.honey-pair-edit button{padding:8px 5px;font-size:12px}.honey-pair-edit button:disabled{opacity:.45;cursor:not-allowed}body:not([data-page="home"]) .stats{display:none!important}</style></head><body>
+<header class="home-header"><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
+<section id="home" class="panel active">
+ <div class="card apiary-status-card"><div class="row"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
+ <div class="card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Управление →</button></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
+ <div class="card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog()">＋ Запланировать</button></div><div id="homeAlerts"></div><div id="homeTasks"></div></div>
+ <div class="card"><b>Последние события</b><div id="recent" class="muted">Записей пока нет.</div></div>
+</section>
+<section id="hives" class="panel">
+ <div class="row"><h2>Ульи</h2><button class="primary" type="button" data-action="open-new-hive">＋ Добавить</button></div>
+ <div id="hiveList"></div>
+</section>
+<section id="hiveDetail" class="panel"><div id="selectedHivePanel" style="display:none">
+  <div class="card">
+   <div class="row"><div><div class="muted">Карточка улья</div><h2 id="selectedHiveTitle" style="margin:3px 0"></h2></div><div><button onclick="showHiveListScreen()">← Все ульи</button><button onclick="editSelectedHive()">Примечание</button></div></div>
+  </div>
+  <div class="row"><h3>Конструкция и рамки</h3></div>
+  <div class="assembly-mode-control" id="assemblyModeControl"><label for="assemblyMode">Комплектация улья</label><select id="assemblyMode" onchange="beginModeChange(this.value)"><option value="summer">Летняя сборка</option><option value="winter">Зимняя сборка</option></select><p id="assemblyModeHint" class="muted">После настройки состав будет зафиксирован.</p><button type="button" id="assemblyEditBtn" onclick="editCurrentAssembly()">Изменить</button><button type="button" class="primary" id="assemblyDoneBtn" style="display:none" onclick="finishAssemblySetup()">Готово</button></div><div id="modeTransition" class="card" style="display:none"></div>
+  <div class="card"><div class="row"><b id="structureTitle">Фактическая сборка</b><span class="muted">Только установленные корпуса</span></div><div class="assembly-actions"><button id="addBroodBoxBtn" onclick="addNextBroodBox()">＋ Гнездовой корпус</button><button id="addHoneyBoxBtn" onclick="addNextHoneyBox()">＋ Медовый корпус</button></div><div id="honeyPair" class="honey-pair"></div><div id="hiveDiagram"></div><div class="frame-legend"><span><i class="legend-dot" style="background:#32834f"></i>Запечатана</span><span><i class="legend-dot" style="background:#62b9d5"></i>Откачана</span><span><i class="legend-dot" style="background:#f0b84b"></i>Мёд не запечатан</span><span><i class="legend-dot" style="background:#d8ddd7"></i>Вощина</span><span><i class="legend-dot" style="background:#9b6bc2"></i>Печатный расплод</span><span><i class="legend-dot" style="background:#6aa9dc"></i>Яйца</span><span><i class="legend-dot" style="background:#dc8b62"></i>Трутневая ячейка</span></div></div>
+  
+  <p class="muted">Добавляй корпуса кнопками над схемой. Снятые корпуса здесь не отображаются. На установленном корпусе доступны снятие и настройки; нажми на рамку, чтобы открыть её карточку.</p>
+  <div class="card"><div id="selectedFamilies"></div><div id="familyHealthSummary"></div>
+   <div class="row" style="margin-top:10px"><button onclick="addFamily(selectedHiveId)">＋ Семья</button><button onclick="openHiveJournal(selectedHiveId)">Журнал</button><button class="primary" onclick="openExtractionDialog()">Откачка мёда</button></div><div id="hiveExtractionActions"></div>
+  </div>
+ </div>
+</div></section>
+<section id="journal" class="panel"><div class="row"><h2>Журнал</h2><button class="primary" onclick="newRecord()">＋ Запись</button></div><label>Улей</label><select id="journalHive" onchange="selectJournalHive(this.value)"></select><div id="records"></div></section>
+<section id="settings" class="panel"><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится одна полная копия предыдущего состояния, включая фотографии и видео. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Это важно при потере устройства или очистке браузера.</p><button class="primary" onclick="downloadBackup()">Скачать архив</button><label>Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Безвозвратно удаляет все ульи, семьи, рамки, записи журнала, задачи и локальные резервные снимки на этом устройстве. Перед удалением скачай архив.</p><button type="button" style="background:#a83225;color:white" onclick="deleteAllData()">Удалить все данные</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
+</main>
+<dialog id="familyTransferDlg"><h2>Перемещение семьи</h2><form id="familyTransferForm"><input type="hidden" id="transferFamilyId"><p id="transferFamilyInfo" class="muted"></p><label>В какой улей переместить</label><select id="transferTargetHive" required onchange="updateFamilyTransferTargets()"></select><label>Свободный установленный корпус</label><select id="transferTargetBox" required></select><p class="media-note">Вместе с семьёй переместятся все её рамки. Физические корпуса остаются на своих местах: рамки обменяются с рамками выбранного свободного корпуса назначения.</p><div class="row"><button type="button" onclick="$('familyTransferDlg').close()">Отмена</button><button class="primary">Переместить семью и рамки</button></div></form></dialog>
+<dialog id="hiveDlg"><h2 id="hiveDialogTitle">Новый улей</h2><form id="hiveForm"><label>Первоначальная комплектация</label><select id="newHiveMode"><option value="summer">Летняя</option><option value="winter">Зимняя</option></select><label>Примечание об улье (необязательно)</label><textarea id="hiveDesc" placeholder="Например, особенности размещения или обслуживания"></textarea><button class="primary">Создать и настроить корпуса</button><button type="button" onclick="hiveDlg.close()">Отмена</button></form></dialog>
+<dialog id="familyDlg"><h2>Новая семья</h2><form id="familyForm"><input type="hidden" id="familyHive"><label>Код семьи (формируется автоматически)</label><input id="familyName" readonly required><label>Как появилась семья</label><select id="familyOrigin" required onchange="syncFamilyOrigin()"><option value="">Выбери происхождение</option><option value="package">Пчелопакет</option><option value="swarm">Рой</option><option value="family">Готовая семья</option><option value="offshoot">Отводок</option></select><div id="familyParentWrap" style="display:none"><label>От какой семьи сделан отводок</label><select id="familyParent"><option value="">Выбери исходную семью</option></select></div><label>Порода</label><select id="breed"><option>Карпатка</option><option>Карника</option><option>Бакфаст</option><option>Среднерусская</option><option>Итальянская</option><option>Серая горная кавказская</option><option>Местная / помесная</option><option>Неизвестная</option></select><button class="primary">Сохранить</button><button type="button" onclick="$('familyDlg').close()">Отмена</button></form></dialog>
+<dialog id="recordDlg"><h2 id="recordTitle">Новая запись</h2><form id="recordForm"><input type="hidden" id="recordId"><label>Дата</label><input id="rdate" type="date" required><label>Тип</label><select id="rtype"><option>Осмотр</option><option>Подкормка</option><option>Обработка</option><option>Медосбор</option><option>Зимовка</option><option>Перемещение</option><option>Заметка</option></select><label>Улей</label><select id="rhive" required></select><label>Семья</label><select id="rfamily"><option value="">Не указана</option></select><label id="occupancyLabel" style="display:none">Занято пчёлами рамок в основном гнезде (из 6)</label><input id="roccupancy" type="number" min="0" max="6" step="1" style="display:none" placeholder="Например, 5"><label id="broodLabel" style="display:none">Рамок с расплодом (из 6)</label><input id="rbrood" type="number" min="0" max="6" step="1" style="display:none" placeholder="Например, 4"><label id="drawnLabel" style="display:none">Свободных отстроенных рамок в гнезде</label><input id="rdrawn" type="number" min="0" max="6" step="1" style="display:none" placeholder="Например, 1"><div id="expansionHint" class="media-note" style="display:none">Данные помогают оценить потребность в расширении. Рекомендация не заменяет осмотр и решение пчеловода.</div><div id="queenFields" style="display:none"><label>Матка</label><select id="rqueen"><option value="">Не оценивалась</option><option value="seen">Матка обнаружена</option><option value="notSeen">Не обнаружена</option><option value="eggs">Матка не найдена, есть свежие яйца</option></select><label>Свежие яйца</label><select id="reggs"><option value="">Не оценивалось</option><option value="yes">Есть</option><option value="no">Нет</option></select><label>Характер расплода</label><select id="rbroodPattern"><option value="">Не оценивался</option><option value="solid">Сплошной, ровный</option><option value="mosaic">Пестрота / пропуски</option><option value="weak">Мало расплода</option><option value="none">Расплода нет</option></select><label>Маточники</label><select id="rqueenCells"><option value="">Не оценивались</option><option value="none">Не обнаружены</option><option value="swarm">Роевые</option><option value="supersedure">Тихой смены</option><option value="emergency">Свищевые</option><option value="unknown">Есть, тип не определён</option></select><label>Признаки роевого состояния</label><select id="rswarmSigns"><option value="">Не оценивались</option><option value="none">Не замечены</option><option value="one">Один признак</option><option value="several">Несколько признаков одновременно</option></select><p class="media-note">Роевой риск оценивается по совокупности признаков и повторным осмотрам. Отдельный признак не является диагнозом.</p></div><div id="treatmentFields" style="display:none"><label>Препарат</label><input id="rtreatmentProduct" placeholder="Название по упаковке"><label>Действующее вещество</label><input id="rtreatmentActive" placeholder="Указать с этикетки"><label>Способ применения</label><input id="rtreatmentMethod" placeholder="По инструкции препарата"><label>Доза / концентрация по инструкции</label><input id="rtreatmentDose" placeholder="Точно по этикетке"><label>Контроль после обработки</label><input id="rtreatmentCheck" type="date"><p class="media-note">Соблюдай инструкцию, температурные ограничения и сроки ожидания для меда. Приложение не рассчитывает дозу и не заменяет этикетку.</p></div><label>Наблюдения / работы</label><textarea id="rtext"></textarea><label>Фото и видео осмотра</label><div class="row" style="justify-content:flex-start;gap:7px;flex-wrap:wrap"><label class="primary" for="capturePhoto" style="padding:10px 12px;border-radius:10px;cursor:pointer">📷 Снять фото</label><input id="capturePhoto" type="file" accept="image/*" capture="environment" style="display:none"><button type="button" onclick="captureVideoFromPhone()">● Снять видео</button><input id="captureVideo" type="file" accept="video/*" capture="environment" style="display:none"></div><div class="media-note">Видео снимается штатной камерой телефона. Максимум 40 секунд и 50 МБ.</div><label>Или выбрать файлы из телефона</label><input id="rmedia" type="file" accept="image/*,video/*" multiple><div class="media-note">Выбранные из телефона видео — до 40 секунд и 50 МБ каждое.</div><div id="mediaPreview" class="media-grid"></div><div id="existingMedia" class="media-grid"></div><button class="primary">Сохранить запись</button><button type="button" onclick="requestCloseRecordDialog()">Отмена</button></form></dialog>
+
+<dialog id="boxDlg"><h2 id="boxDlgTitle">Корпус</h2><div class="muted" id="boxDlgHint"></div><label id="boxInstalledLabel"><input type="checkbox" id="boxInstalled" style="width:auto;margin-right:7px">Корпус фактически установлен в улье</label><div id="boxBeeFields"><label>Как появилась семья</label><select id="boxOrigin" onchange="syncBoxOrigin()"><option value="">Не указано</option><option value="package">Пчелопакет</option><option value="swarm">Рой</option><option value="family">Готовая семья</option><option value="offshoot">Отводок</option></select><div id="offshootParentWrap" style="display:none"><label>От какой семьи сделан отводок</label><select id="offshootParent"><option value="">Выбери исходную семью</option></select></div><label>Порода</label><select id="boxBreed"><option>Карпатка</option><option>Карника</option><option>Бакфаст</option><option>Среднерусская</option><option>Итальянская</option><option>Серая горная кавказская</option><option>Местная / помесная</option><option>Неизвестная</option></select><label>Код семьи (формируется автоматически)</label><input id="boxFamilyName" readonly placeholder="Будет присвоен автоматически"></div><label id="boxFamilyLabel">Выбрать уже заведённую семью</label><select id="boxFamily" onchange="syncBoxFamily()"></select><label>Рамки — нажми на номер для редактирования</label><div id="frameEditor" class="frame-editor"></div><button id="addFrameBtn" type="button" onclick="addFrame()">＋ Добавить новую рамку</button><div class="card" id="frameDetails" style="display:none"></div><button class="primary" onclick="saveBox()">Готово</button></dialog>
+<dialog id="planDlg"><h2>Запланировать работу</h2><form id="planForm"><label>Действие</label><select id="planType"><option>Осмотр</option><option>Обработка</option><option>Расширение гнезда</option><option>Подкормка</option><option>Проверка матки</option><option>Подготовка к зимовке</option><option>Другое</option></select><label>Улей</label><select id="planHive" required></select><label>Дата</label><input id="planDate" type="date" required><label>Комментарий</label><textarea id="planNote" placeholder="Что проверить или выполнить"></textarea><div class="row"><button type="button" onclick="$('planDlg').close()">Отмена</button><button class="primary">Сохранить план</button></div></form></dialog>
+<dialog id="extractDlg"><h2>Откачка мёда</h2><p class="muted">Отметь ульи и медовые корпуса одной откачки. Количество мёда укажи отдельно для каждого улья.</p><label>Дата откачки</label><input type="date" id="extractDate"><div id="extractRows"></div><div class="row"><button onclick="$('extractDlg').close()">Отмена</button><button class="primary" onclick="saveExtraction()">Зафиксировать откачку</button></div></dialog>
+<dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
+<script>
+const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function openDB(){return new Promise((ok,no)=>{let q=indexedDB.open(DB,2);q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE)};q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
+function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
+function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
+async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
+function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
+function writeAutoBackup(state){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readwrite');t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||new Error('Обновление автокопии прервано'))})}
+async function save(){
+ S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};
+ S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();delete S.meta.saveError;
+ const lightRecords=S.records.map(({media,...r})=>r);
+ const historical={hives:S.hives,families:S.families,records:lightRecords,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks};
+ const frozenHistorical=typeof structuredClone==='function'?structuredClone(historical):JSON.parse(JSON.stringify(historical));
+ S.snapshots.push({at:new Date().toISOString(),...frozenHistorical});
+ S.snapshots=S.snapshots.slice(-12);
+ let snapshot;
+ try{snapshot=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+ catch(e){S.meta.saveError='Не удалось подготовить копию данных к сохранению';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Не закрывай приложение и скачай JSON-архив.');return false}
+ const run=()=>persistSnapshot(snapshot);
+ const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});return pending
+}
+async function persistSnapshot(state){
+ let previous=null,previousReadFailed=false;
+ try{previous=await readMain()}catch(e){previousReadFailed=true;state.meta.autoBackupError='Не удалось прочитать прежнее состояние для автокопии'}
+ if(previous){try{await writeAutoBackup(previous);autoBackupInfo={at:new Date().toISOString()};delete state.meta.autoBackupError;state.meta.autoBackupAt=autoBackupInfo.at}catch(e){state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию'}}
+ try{
+  await write(state);
+  if(!previous&&!previousReadFailed){try{await writeAutoBackup(state);autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;await write(state)}catch(e){state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write(state)}}
+  if(S.meta?.updatedAt===state.meta.updatedAt){delete S.meta.saveError;if(state.meta.autoBackupError)S.meta.autoBackupError=state.meta.autoBackupError;else delete S.meta.autoBackupError;S.meta.autoBackupAt=state.meta.autoBackupAt}
+  render();updateStorageEstimate();return true
+ }catch(e){
+  state.meta.saveError=e&&e.name==='QuotaExceededError'?'Недостаточно места для сохранения основной базы':'Не удалось сохранить основную базу';
+  if(S.meta?.updatedAt===state.meta.updatedAt)S.meta.saveError=state.meta.saveError;
+  render();alert('ВНИМАНИЕ: '+state.meta.saveError+'. Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.');return false
+ }
+}
+function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
+function nextFamilyCode(){const yy=String(new Date().getFullYear()).slice(-2);let max=0;for(const f of S.families||[]){const m=String(f.name||'').match(/^(\d{2})-(\d+)$/);if(m&&m[1]===yy)max=Math.max(max,Number(m[2])||0);if(Number(f.familyYear)===2000+Number(yy))max=Math.max(max,Number(f.familySequence)||0)}return yy+'-'+(max+1)}
+function hname(id){const h=S.hives.find(x=>x.id===id);return h?'Улей '+(h.number||S.hives.indexOf(h)+1):'Улей'}
+function card(h){const count=S.families.filter(f=>f.hive===h.id).length,l=layoutFor(h.id),installed=(l.installedBoxes||[]).slice().sort((a,b)=>a-b),honey=(l.honeyBoxInstalled||[]).filter(Boolean).length;let graphic='';if(l.mode==='winter'){const order=(l.winterOrder||installed).filter(n=>installed.includes(n));graphic=order.map(n=>'<i class="hive-mini-box"></i>').join('')}else{graphic=[1,2,3].map(col=>{const ns=[col,col+3].filter(n=>installed.includes(n));return ns.length?'<span class="hive-mini-section">'+ns.map(()=>'<i class="hive-mini-box"></i>').join('')+'</span>':''}).join('')}if(honey)graphic+='<span class="hive-mini-honey">'+honey+'</span>';return '<div class="hive-row"><div class="hive-row-main" onclick="openHive(\''+h.id+'\')"><b>'+safe(hname(h.id))+'</b><div class="hive-mini-status">'+(graphic?'<span class="hive-mini-graphic">'+graphic+'</span>':'<span class="hive-mini-empty" aria-label="Сборка не задана">—</span>')+'<span class="muted">'+(installed.length+honey)+' '+ruPlural(installed.length+honey,'корпус','корпуса','корпусов')+' · '+count+' '+ruPlural(count,'семья','семьи','семей')+'</span></div></div><button class="primary" onclick="openHive(\''+h.id+'\')">Открыть</button><button onclick="deleteHive(\''+h.id+'\')">Удалить</button></div>'}
+function renderHiveHeaderSummary(h){const host=$('hiveHeaderSummary');if(!host||!h)return;const families=S.families.filter(f=>f.hive===h.id).length,l=layoutFor(h.id),brood=(l.installedBoxes||[]).length,honey=(l.honeyBoxInstalled||[]).filter(Boolean).length,latest=S.records.filter(r=>!r.archivedAt&&r.hive===h.id&&r.type==='Осмотр').sort((a,b)=>b.date.localeCompare(a.date))[0];const boxes=brood+honey;host.innerHTML='<div>'+safe(hname(h.id))+' · '+families+' '+ruPlural(families,'семья','семьи','семей')+'</div><small>Гнездовых: '+brood+' · Медовых: '+honey+' · Всего: '+boxes+' · '+(latest?'Последний осмотр: '+safe(latest.date):'Осмотров пока нет')+'</small>';host.style.display='block'}
+function renderFamilyHealthSummary(){const host=$('familyHealthSummary');if(!host||!selectedHiveId)return;const rows=S.records.filter(r=>!r.archivedAt&&r.hive===selectedHiveId&&r.type==='Осмотр').sort((a,b)=>b.date.localeCompare(a.date));if(!rows.length){host.innerHTML='';return}const x=rows[0],p=rows[1],diff=(key,label)=>x[key]!=null&&p&&p[key]!=null?'<span class="pill">'+label+': '+x[key]+'/6 ('+(x[key]-p[key]>0?'+':'')+(x[key]-p[key])+')</span>':x[key]!=null?'<span class="pill">'+label+': '+x[key]+'/6</span>':'';const alerts=[];if(x.queenCells==='swarm')alerts.push('Отмечены роевые маточники');if(x.swarmSigns==='several')alerts.push('Зафиксировано несколько роевых признаков');if(x.queen==='notSeen'&&x.eggs==='no')alerts.push('Матка не найдена и свежих яиц нет — нужна повторная оценка');if(x.broodPattern==='mosaic')alerts.push('Отмечена пёстрость расплода');const labels={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, есть свежие яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники, тип не определён',one:'Один роевой признак',several:'Несколько роевых признаков'};host.innerHTML='<div class="card"><b>Последняя оценка семьи</b><div class="muted">Осмотр: '+safe(x.date)+'</div><div style="margin:7px 0">'+diff('occupancy','Занято пчёлами')+diff('broodFrames','Расплод')+diff('freeDrawn','Свободная сушь')+'</div><div class="muted">'+[x.queen&&labels[x.queen],x.eggs&&labels[x.eggs],x.broodPattern&&labels[x.broodPattern],x.queenCells&&labels[x.queenCells],x.swarmSigns&&labels[x.swarmSigns]].filter(Boolean).map(safe).join(' · ')+'</div>'+(alerts.length?'<div class="home-alert card"><b>Требует внимания</b><ul>'+alerts.map(v=>'<li>'+safe(v)+'</li>').join('')+'</ul><div class="muted">Это сигналы для повторного осмотра, а не автоматический диагноз.</div></div>':'')+'</div>'}
+function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, но есть яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники не определены',one:'Один роевой признак',several:'Несколько роевых признаков'};[['queen','Матка'],['eggs','Яйца'],['broodPattern','Расплод'],['queenCells','Маточники'],['swarmSigns','Роевые признаки']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+(m[r[k]]||r[k]))})}if(r.type==='Обработка'){[['treatmentProduct','Препарат'],['treatmentActive','Действующее вещество'],['treatmentMethod','Способ'],['treatmentDose','Доза по инструкции'],['treatmentCheck','Контроль']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}return pairs.length?'<p class="muted">'+pairs.map(safe).join(' · ')+'</p>':''}
+function render(){
+ $('hiveList').innerHTML=S.hives.map(card).join('')||'<div class="empty">Ульев пока нет.</div>'; $('hiveList').style.display='block';
+ S.extractions=S.extractions||[];if(!S.hives.some(h=>h.id===selectedHiveId))selectedHiveId=S.hives[0]?.id||'';
+ $('selectedHivePanel').style.display=selectedHiveId?'block':'none';
+ if(selectedHiveId){const h=S.hives.find(x=>x.id===selectedHiveId);$('selectedHiveTitle').textContent=hname(h.id);renderHiveHeaderSummary(h);$('selectedFamilies').innerHTML=S.families.filter(f=>f.hive===selectedHiveId).map(f=>'<div class="row" style="justify-content:space-between;gap:6px;margin:5px 0"><span class="pill">🐝 '+safe(f.name)+' · '+safe(f.breed==='Другая'?f.custom:f.breed)+'</span><button type="button" onclick="openFamilyTransfer(\''+f.id+'\')">Переместить</button></div>').join('')||'<div class="muted">Семьи ещё не добавлены.</div>';}renderFamilyHealthSummary();
+ const jh=$('journalHive');if(jh){jh.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');if(S.hives.some(h=>h.id===activeJournalHive))jh.value=activeJournalHive;else if(selectedHiveId){activeJournalHive=selectedHiveId;jh.value=selectedHiveId}else activeJournalHive='';}
+ const list=activeJournalHive?S.records.filter(r=>r.hive===activeJournalHive):[];
+ $('records').innerHTML=activeJournalHive?(list.filter(r=>!r.archivedAt).sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<div class="card"><div class="row"><b>'+safe(r.type)+'</b><span class="muted">'+safe(r.date)+'</span></div><p>'+safe(r.text)+'</p>'+recordExtraHtml(r)+'<div class="row"><button onclick="editRecord(\''+r.id+'\')">Изменить</button><button onclick="deleteRecord(\''+r.id+'\')">В архив</button></div></div>').join('')||'<div class="empty">Для этого улья записей пока нет.</div>'):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';
+ const activeRecords=S.records.filter(r=>!r.archivedAt);$('recent').textContent=activeRecords.length?activeRecords.slice(-3).reverse().map(r=>r.date+' · '+r.type+' · '+hname(r.hive)).join(' / '):'Записей пока нет.';$('archivedRecords').innerHTML=S.records.filter(r=>r.archivedAt).sort((a,b)=>b.archivedAt.localeCompare(a.archivedAt)).map(r=>'<div class="row"><span>'+safe(r.date)+' · '+safe(r.type)+' · '+safe(hname(r.hive))+'</span><button onclick="restoreRecord(\''+r.id+'\')">Восстановить</button></div>').join('')||'<p class="muted">Архив пуст.</p>';
+ renderHome();
+ if(S.meta?.saveError)$('backupStatus').textContent='ОШИБКА сохранения основной базы: '+S.meta.saveError;else if(autoBackupRecovered)$('backupStatus').textContent='Основная база восстановлена из полной автокопии · снимков: '+S.snapshots.length;else if(S.meta?.autoBackupError)$('backupStatus').textContent='Основные данные сохранены · ошибка автокопии: '+S.meta.autoBackupError;else $('backupStatus').textContent=(autoBackupInfo?'Полная автокопия: '+new Date(autoBackupInfo.at).toLocaleString('ru-RU'):'Полная автокопия ещё не создана')+' · снимков: '+S.snapshots.length;$('backupStatus').textContent+=' · '+(storagePersisted===true?'защита от автоматической очистки включена':storagePersisted===false?'браузер не предоставил защиту от автоматической очистки':'статус защиты хранилища неизвестен');
+ const auditHost=$('auditHistory');if(auditHost){const events=(S.auditLog||[]).filter(x=>x.type!=='schema_migration').slice().reverse().slice(0,100);auditHost.innerHTML=events.length?events.map(x=>{const d=new Date(x.at||x.date||0),when=Number.isNaN(d.getTime())?'Дата неизвестна':d.toLocaleString('ru-RU');const hive=x.hiveId?hname(x.hiveId):'Пасека';let detail='Изменение';if(x.type==='frame_moved')detail='Рамка '+safe(x.frameId||'')+': корпус '+safe(x.from?.box||'?')+' → '+safe(x.to?.box||'?')+' · '+hive;else if(x.type==='family_box_assignment')detail='Назначение семьи корпусу №'+safe(x.box)+': '+(x.fromFamilyId?'семья':'пусто')+' → '+(x.toFamilyId?'семья':'пусто')+' · '+hive;else if(x.type==='brood_box_installed')detail='Установлен гнездовой корпус №'+safe(x.box)+' · '+hive;else if(x.type==='brood_box_removed')detail='Снят гнездовой корпус №'+safe(x.box)+' · '+hive;else if(x.type==='family_transferred')detail='Семья '+safe(x.familyName||'')+' и '+safe(x.frameCount||0)+' рамок: '+safe(hname(x.fromHiveId))+' / корпус №'+safe(x.fromBox)+' → '+safe(hname(x.toHiveId))+' / корпус №'+safe(x.toBox);return '<div class="task-item"><div class="task-date">'+safe(when)+'</div><div>'+detail+'</div></div>'}).join(''):'<p class="muted">История пока пуста. Новые перемещения будут записываться автоматически.</p>'}
+ if(selectedHiveId){renderStructure();renderHiveExtractionActions()}
+}
+
+function dateShift(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function formatTaskDate(d){return new Date(d+'T12:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}
+function renderApiaryStatus(){
+ const host=$('apiaryStatus'),attention=$('apiaryAttention');if(!host||!attention)return;
+ const active=S.records.filter(r=>!r.archivedAt&&r.type==='Осмотр');
+ const latestByHive=new Map();
+ active.forEach(r=>{const prev=latestByHive.get(r.hive);if(!prev||r.date>prev.date)latestByHive.set(r.hive,r)});
+ const stale=[],signals=[];
+ S.hives.forEach(h=>{
+  const r=latestByHive.get(h.id);
+  if(!r){stale.push({h,date:'Нет осмотров'});return}
+  const age=Math.floor((new Date(today()+'T12:00:00')-new Date(r.date+'T12:00:00'))/86400000);
+  if(age>=30)stale.push({h,date:'Осмотр '+r.date});
+  const reasons=[];
+  if(r.queenCells==='swarm')reasons.push('роевые маточники');
+  if(r.swarmSigns==='several')reasons.push('несколько роевых признаков');
+  if(r.queen==='notSeen'&&r.eggs==='no')reasons.push('матка не найдена и нет свежих яиц');
+  if(r.broodPattern==='mosaic')reasons.push('пёстрый расплод');
+  if(reasons.length)signals.push({h,reasons});
+ });
+ const familyCount=S.families.length,hiveCount=S.hives.length;
+ host.innerHTML='<div class="apiary-stat"><b>'+hiveCount+'</b><span>'+ruPlural(hiveCount,'улей','улья','ульев')+'</span></div><div class="apiary-stat"><b>'+familyCount+'</b><span>'+ruPlural(familyCount,'семья','семьи','семей')+'</span></div><div class="apiary-stat"><b>'+signals.length+'</b><span>семей с сигналами</span></div><div class="apiary-stat"><b>'+stale.length+'</b><span>давно без осмотра</span></div>';
+ const parts=[];
+ if(signals.length)parts.push('<div class="apiary-attention-group"><b>Сигналы по последним осмотрам</b>'+signals.map(x=>'<div class="apiary-attention-row"><span>'+safe(hname(x.h.id))+'</span><span>'+safe(x.reasons.join('; '))+'</span></div>').join('')+'</div>');
+ if(stale.length)parts.push('<div class="apiary-attention-group"><b>Нет свежего осмотра (30 дней и более)</b>'+stale.map(x=>'<div class="apiary-attention-row"><span>'+safe(hname(x.h.id))+'</span><span>'+safe(x.date)+'</span></div>').join('')+'</div>');
+ attention.innerHTML=parts.join('')||'<div class="muted">По журналу нет отмеченных сигналов. Это не заменяет осмотр пчёл.</div>';
+ $('apiaryStatusDate').textContent=today();
+}
+function renderHome(){
+ S.tasks=S.tasks||[];
+ renderApiaryStatus();
+ $('homeHives').innerHTML=S.hives.map(h=>{
+  const l=layoutFor(h.id),families=S.families.filter(f=>f.hive===h.id).length;
+  const winter=l.mode==='winter';
+  const order=winter?(l.winterOrder||[]).filter(n=>l.installedBoxes.includes(n)):l.installedBoxes.slice().sort((a,b)=>a-b);
+  const brood=order.length,honey=l.honeyBoxInstalled.filter(Boolean).length;
+  const composition=[brood?brood+' гнезд. корпус'+(brood===1?'':'а'):'',honey?honey+' медов. корпус'+(honey===1?'':'а'):''].filter(Boolean).join(' · ');
+  const pending=S.tasks.filter(t=>t.hive===h.id&&['pending','suggested'].includes(t.status)),urgent=pending.some(t=>t.status==='pending'&&t.date<today());
+  const marks=(frames,cls)=>frames.map(fr=>'<i class="mini-frame '+cls+' status-'+safe(fr.status||'foundation')+'" title="'+safe(frameStatusName(fr.status))+'"></i>').join('');
+  const honeyRows=[1,2].filter(n=>l.honeyBoxInstalled[n-1]).map(n=>'<div class="mini-honey-tier"><span>М'+n+'</span><div class="mini-honey-frames">'+marks(l.honeyFrames[n-1],'')+'</div></div>').join('');
+  const broodBox=n=>{const b=l.boxes[n],family=S.families.find(f=>f.id===b.family);return '<div class="mini-brood-box '+(family?'has-family':'')+'"><b>Г'+n+'</b><div class="mini-brood-frames">'+marks(b.frames,'')+'</div></div>'};
+  const summerRow=nums=>nums.map(n=>l.installedBoxes.includes(n)?broodBox(n):'<div class="mini-brood-slot" aria-hidden="true"></div>').join('');let body=winter?'<div class="mini-winter-stack">'+order.map(broodBox).join('')+'</div>':'<div class="mini-summer-layout"><div class="mini-summer-row upper-row">'+summerRow([4,5,6])+'</div><div class="mini-summer-row lower-row">'+summerRow([1,2,3])+'</div></div>';
+  const visual='<div class="mini-hive '+(winter?'winter':'summer')+'" aria-label="Схема фактической сборки улья">'+(honeyRows?'<div class="mini-honey-stack">'+honeyRows+'</div>':'')+body+'</div>';
+  return '<div class="home-hive" onclick="openHive(&quot;'+h.id+'&quot;)"><div class="row"><b>'+safe(hname(h.id))+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' '+ruPlural(families,'семья','семьи','семей')+(pending.length?' · '+pending.length+' '+ruPlural(pending.length,'задача','задачи','задач'):'')+(urgent?' · Есть просрочка':'')+'</div></div>';
+ }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
+ const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>a.date.localeCompare(b.date));
+ const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
+ $('homeAlerts').innerHTML=overdue.length?'<div class="card home-alert"><b>⚠ Просрочено: '+overdue.length+'</b>'+overdue.map(t=>taskMarkup(t)).join('')+'</div>':'';
+ $('homeTasks').innerHTML=(todayTasks.length?'<h3 class="home-section-title">Сегодня</h3>'+todayTasks.map(taskMarkup).join(''):'')+(suggested.length?'<h3 class="home-section-title">Рекомендации приложения</h3>'+suggested.map(taskMarkup).join(''):'')+(future.length?'<h3 class="home-section-title">Предстоит</h3>'+future.slice(0,5).map(taskMarkup).join(''):'')+(!active.length?'<div class="muted" style="padding:10px 0">Запланированных работ пока нет.</div>':'');
+}
+function taskMarkup(t){const suggested=t.status==='suggested',late=t.status==='pending'&&t.date<today();return '<div class="'+(suggested?'task-suggested':'task-item')+'"><div class="row"><b>'+safe(t.type)+'</b><span class="task-date '+(late?'task-overdue':'')+'">'+(late?'Просрочено · ':'')+formatTaskDate(t.date)+'</span></div><div class="muted">'+safe(hname(t.hive))+(t.note?' · '+safe(t.note):'')+'</div>'+(suggested?'<div class="muted">Предварительная рекомендация по данным осмотра. Подтверди после проверки условий.</div>':'')+'<div class="task-actions">'+(suggested?'<button class="primary" onclick="acceptTask(\''+t.id+'\')">Подтвердить</button><button onclick="dismissTask(\''+t.id+'\')">Отклонить</button>':'<button class="primary" onclick="completeTask(\''+t.id+'\')">Выполнено</button><button onclick="rescheduleTask(\''+t.id+'\')">Перенести</button>')+'</div></div>'}
+function openPlanDialog(){if(!S.hives.length)return alert('Сначала добавь улей');$('planHive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('planDate').value=dateShift(today(),1);$('planNote').value='';$('planDlg').showModal()}
+$('planForm').onsubmit=async e=>{e.preventDefault();S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:$('planHive').value,type:$('planType').value,date:$('planDate').value,note:$('planNote').value,source:'manual',status:'pending',createdAt:new Date().toISOString()});$('planDlg').close();await save()}
+async function completeTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.status='done';t.completedAt=today();S.records.push({id:uid(),date:today(),type:t.type,hive:t.hive,family:'',text:'Выполнено по плану. '+(t.note||''),media:[]});await save()}
+async function acceptTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.status='pending';t.source='confirmed';await save()}
+async function dismissTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.status='dismissed';await save()}
+async function rescheduleTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;const d=prompt('Новая дата (ГГГГ-ММ-ДД):',dateShift(today(),1));if(!d)return;if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return alert('Укажи дату в формате ГГГГ-ММ-ДД');t.date=d;await save()}
+function createExpansionSuggestion(record){
+ if(record.type!=='Осмотр'||record.occupancy==null||record.broodFrames==null||record.freeDrawn==null)return;
+ const month=Number(record.date.slice(5,7));
+ if(month<4||month>8)return;
+ const occupied=Number(record.occupancy),brood=Number(record.broodFrames),free=Number(record.freeDrawn);
+ if(occupied<5||brood<3||free>1)return;
+ S.tasks=S.tasks||[];
+ if(S.tasks.some(t=>t.hive===record.hive&&t.type==='Расширение гнезда'&&['pending','suggested'].includes(t.status)))return;
+ const days=occupied===6&&brood>=4?1:2;
+ const family=S.families.find(f=>f.id===record.family);
+ const breed=family?(family.breed==='Другая'?family.custom:family.breed):'порода не указана';
+ const note='Оценка по осмотру: '+occupied+' из 6 рамок занято пчёлами, расплод на '+brood+' рамках, свободных отстроенных рамок — '+free+'. Порода: '+breed+'. Ориентир — повторно оценить необходимость расширения через '+days+' дн. Перед работой проверь наличие суши/вощины, силу семьи, температуру, взяток и прогноз погоды. Порода сохраняется как контекст; решение определяется фактическим состоянием семьи.';
+ S.tasks.push({id:uid(),hive:record.hive,type:'Расширение гнезда',date:dateShift(record.date,days),note,source:'auto',status:'suggested',basis:{occupancy:occupied,broodFrames:brood,freeDrawn:free,breed},createdAt:new Date().toISOString()});
+}
+function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}}
+function selectJournalHive(id){activeJournalHive=id;render()}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',journal:'#f5e2d5',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='home'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab)}
+function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
+window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
+function openHive(id){selectedHiveId=id;activeJournalHive=id;render();showTab('hiveDetail')}function showHiveListScreen(){showTab('hives')}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
+async function deleteHive(id){
+ const h=S.hives.find(x=>x.id===id);if(!h)return;
+ if(!confirm('Удалить '+hname(id)+'? Вместе с ним будут удалены его семьи, записи, задачи и данные корпусов.'))return;
+ S.hives=S.hives.filter(x=>x.id!==id);
+ S.families=S.families.filter(x=>x.hive!==id);
+ S.records=S.records.filter(x=>x.hive!==id);
+ S.tasks=S.tasks.filter(x=>x.hive!==id);
+ S.extractions=(S.extractions||[]).map(event=>({...event,items:(event.items||[]).filter(item=>item.hiveId!==id)})).filter(event=>event.items.length);
+ if(S.layouts)delete S.layouts[id];
+ if(selectedHiveId===id)selectedHiveId='';
+ if(activeJournalHive===id)activeJournalHive='';
+ await save();showTab('hives');
+}
+function openNewHive(){const dlg=$('hiveDlg'),form=$('hiveForm');if(!dlg||!form){alert('Не удалось открыть создание улья: окно или форма не найдены.');return}try{$('hiveDialogTitle').textContent='Новый улей';form.reset();$('newHiveMode').value='summer';form.onsubmit=defaultHive;if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','')}catch(err){alert('Ошибка открытия окна создания улья: '+(err.message||err))}}
+function editHive(id){let h=S.hives.find(x=>x.id===id);if(!h)return;$('hiveDialogTitle').textContent=hname(id)+' · примечание';$('hiveDesc').value=h.desc||'';$('hiveDlg').showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.desc=$('hiveDesc').value;$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive;await save()}}
+async function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));const h={id:uid(),number,desc:$('hiveDesc').value};S.meta.nextHiveNumber=number+1;S.hives.push(h);const l=layoutFor(h.id);l.mode=$('newHiveMode').value;l.setupComplete=false;l.setupEditing=true;l.installedBoxes=[];l.honeyBoxInstalled=[false,false];l.winterOrder=[];selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';try{await save();$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}catch(err){alert('Не удалось сохранить улей: '+(err.message||err))}}
+$('hiveForm').onsubmit=defaultHive;
+function syncFamilyOrigin(){const isOffshoot=$('familyOrigin').value==='offshoot',wrap=$('familyParentWrap'),parent=$('familyParent');wrap.style.display=isOffshoot?'block':'none';parent.required=isOffshoot;if(!isOffshoot)parent.value=''}
+let transferringFamilyId='';
+function findFamilyBox(familyId){
+ for(const h of S.hives){const l=layoutFor(h.id);for(let n=1;n<=6;n++)if(l.boxes[n]?.family===familyId)return {hiveId:h.id,box:n,layout:l,data:l.boxes[n]}}
+ return null;
+}
+function openFamilyTransfer(familyId){
+ const family=S.families.find(f=>f.id===familyId);if(!family)return;
+ const source=findFamilyBox(familyId);
+ if(!source){alert('У этой семьи не найден гнездовой корпус с её рамками. Сначала назначь семью физическому корпусу.');return}
+ if(source.hiveId!==family.hive){alert('Обнаружено несоответствие учёта семьи и корпуса. Перемещение отменено.');return}
+ transferringFamilyId=familyId;$('transferFamilyId').value=familyId;
+ $('transferFamilyInfo').textContent='Семья '+family.name+' · сейчас: '+hname(source.hiveId)+', корпус №'+source.box+' · рамок: '+source.data.frames.length;
+ $('transferTargetHive').innerHTML=S.hives.filter(h=>h.id!==family.hive).map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');
+ if(!$('transferTargetHive').options.length){alert('Для перемещения сначала создай второй улей.');return}
+ updateFamilyTransferTargets();$('familyTransferForm').onsubmit=confirmFamilyTransfer;$('familyTransferDlg').showModal();
+}
+function updateFamilyTransferTargets(){
+ const targetId=$('transferTargetHive').value,host=$('transferTargetBox');if(!host)return;
+ if(!targetId){host.innerHTML='';return}
+ const l=layoutFor(targetId),installed=l.mode==='winter'?(l.winterOrder||l.installedBoxes||[]):(l.installedBoxes||[]);
+ const available=[1,2,3,4,5,6].filter(n=>installed.includes(n)&&!l.boxes[n].family&&(l.mode!=='winter'||[1,3,4,6].includes(n)));
+ host.innerHTML=available.map(n=>'<option value="'+n+'">Корпус №'+n+'</option>').join('');
+ if(!available.length)host.innerHTML='<option value="">Нет свободных установленных корпусов</option>';
+}
+async function confirmFamilyTransfer(e){
+ e.preventDefault();
+ const family=S.families.find(f=>f.id===transferringFamilyId),targetHiveId=$('transferTargetHive').value,targetNumber=Number($('transferTargetBox').value);
+ if(!family)return alert('Семья не найдена. Обнови страницу.');
+ const placements=[];
+ for(const h of S.hives){const layout=layoutFor(h.id);for(let n=1;n<=6;n++)if(layout.boxes[n]?.family===family.id)placements.push({hiveId:h.id,box:n});}
+ if(placements.length!==1)return alert(placements.length?'Семья назначена нескольким корпусам. Сначала исправь учёт; перенос отменён.':'Не удалось подтвердить расположение семьи и её рамок. Перемещение отменено.');
+ const source=findFamilyBox(family.id);
+ if(!source||source.hiveId!==family.hive||(family.box!=null&&Number(family.box)!==source.box))return alert('Расположение семьи и корпуса не совпадает. Сначала исправь учёт; перенос отменён.');
+ if(!targetHiveId||targetHiveId===family.hive)return alert('Выбери другой улей.');
+ const targetLayout=layoutFor(targetHiveId),targetInstalled=targetLayout.mode==='winter'?(targetLayout.winterOrder||targetLayout.installedBoxes||[]):(targetLayout.installedBoxes||[]);
+ const targetBox=targetLayout.boxes[targetNumber];
+ if(!targetBox||!targetInstalled.includes(targetNumber)||targetBox.family)return alert('Выбранный корпус не установлен или уже занят другой семьёй. Выбери свободный установленный корпус.');
+ if(targetLayout.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке разрешены только корпуса №1, 3, 4 и 6.');
+ const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
+ if(!frames.length||frames.length>6||targetFrames.length>6)return alert('Не удалось проверить комплект рамок. Перемещение отменено.');
+ const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId);
+ if(!confirm('Переместить семью '+familyName+' и '+frames.length+' рамок из '+hname(fromHiveId)+', корпус №'+fromBox+' в '+hname(targetHiveId)+', корпус №'+targetNumber+'? Рамки выбранного корпуса назначения перейдут в освобождаемый корпус источника.'))return;
+ sourceBox.frames=targetFrames;targetBox.frames=frames;
+ targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';
+ sourceBox.family='';sourceBox.origin='';sourceBox.breed='Неизвестная';sourceBox.familyName='';sourceBox.parentFamilyId='';
+ family.hive=targetHiveId;family.box=targetNumber;
+ const movedAt=new Date().toISOString();
+ frames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:today(),action:'family_transfer',from:{hiveId:fromHiveId,box:fromBox},to:{hiveId:targetHiveId,box:targetNumber}});fr.location=String(targetNumber)});
+ logAudit('family_transferred',{familyId:family.id,familyName,fromHiveId,fromBox,toHiveId:targetHiveId,toBox:targetNumber,frameCount:frames.length,frameIds:movedFrames,at:movedAt});
+ $('familyTransferDlg').close();transferringFamilyId='';selectedHiveId=targetHiveId;activeJournalHive=targetHiveId;
+ await save();render();showTab('hiveDetail');
+}
+function addFamily(id){$('familyForm').reset();$('familyHive').value=id;$('familyName').value=nextFamilyCode();$('familyParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(f=>f.hive===id).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('');syncFamilyOrigin();$('familyDlg').showModal()}
+$('familyForm').onsubmit=e=>{e.preventDefault();const hive=$('familyHive').value,origin=$('familyOrigin').value,parentFamilyId=origin==='offshoot'?$ ('familyParent').value:'';if(!S.hives.some(h=>h.id===hive))return alert('Сначала выбери существующий улей');if(!origin)return alert('Укажи происхождение семьи');if(origin==='offshoot'){const parent=S.families.find(f=>f.id===parentFamilyId&&f.hive===hive);if(!parent)return alert('Исходная семья должна принадлежать этому же улью');}const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]);S.families.push({id:uid(),hive,name:code,familyYear:year,familySequence:sequence,breed:$('breed').value,origin,parentFamilyId});$('familyDlg').close();save()}
+function prepareRecordForm(){pendingRecordMedia=[];$('mediaPreview').innerHTML='';$('existingMedia').innerHTML='';$('rmedia').value='';$('capturePhoto').value='';$('captureVideo').value='';$('rhive').disabled=false;$('rhive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('rhive').onchange=fillFamilies}
+function newRecord(){if(!S.hives.length){alert('Сначала добавь улей');return}if(!activeJournalHive){alert('Сначала выбери улей и открой его журнал');return}$('recordForm').reset();$('recordId').value='';$('recordTitle').textContent='Новая запись · '+hname(activeJournalHive);prepareRecordForm();$('rhive').value=activeJournalHive;$('rhive').disabled=true;$('rdate').value=today();$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value='';toggleOccupancy();fillFamilies();$('recordDlg').showModal()}
+function mediaHtml(items){
+ return (items||[]).map((m,i)=>{
+  const name=safe(m.name||('Файл '+(i+1))),raw=String(m.data||'');
+  const imageData=/^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(raw);
+  const videoData=/^data:video\/[a-z0-9.+-]+(?:;[^,]*)?;base64,/i.test(raw);
+  if(m.kind==='video'&&videoData)return '<div class="media-item"><video controls preload="metadata" src="'+safe(raw)+'"></video><div class="muted">'+name+'</div></div>';
+  if(m.kind==='image'&&imageData)return '<div class="media-item"><img loading="lazy" src="'+safe(raw)+'" alt="'+name+'"><div class="muted">'+name+'</div></div>';
+  return '<div class="media-item"><span>'+name+' · файл недоступен или формат не поддерживается</span></div>';
+ }).join('');
+}
+function editRecord(id){const r=S.records.find(x=>x.id===id);if(!r)return;$('recordForm').reset();$('recordId').value=r.id;$('recordTitle').textContent='Редактирование записи';prepareRecordForm();$('rdate').value=r.date;$('rtype').value=r.type;$('roccupancy').value=r.occupancy??'';$('rbrood').value=r.broodFrames??'';$('rdrawn').value=r.freeDrawn??'';toggleOccupancy();$('rhive').value=r.hive;fillFamilies();$('rfamily').value=r.family||'';$('rqueen').value=r.queen||'';$('reggs').value=r.eggs||'';$('rbroodPattern').value=r.broodPattern||'';$('rqueenCells').value=r.queenCells||'';$('rswarmSigns').value=r.swarmSigns||'';$('rtreatmentProduct').value=r.treatmentProduct||'';$('rtreatmentActive').value=r.treatmentActive||'';$('rtreatmentMethod').value=r.treatmentMethod||'';$('rtreatmentDose').value=r.treatmentDose||'';$('rtreatmentCheck').value=r.treatmentCheck||'';$('rtext').value=r.text||'';$('existingMedia').innerHTML=mediaHtml(r.media||[]);$('recordDlg').showModal()}
+async function deleteRecord(id){const r=S.records.find(x=>x.id===id);if(!r||r.archivedAt)return;if(!confirm('Переместить запись в архив? История и прикреплённые файлы сохранятся.'))return;r.archivedAt=new Date().toISOString();r.updatedAt=r.archivedAt;S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type:'record_archived',entityId:r.id,at:r.archivedAt});await save()}async function restoreRecord(id){const r=S.records.find(x=>x.id===id);if(!r||!r.archivedAt)return;delete r.archivedAt;r.updatedAt=new Date().toISOString();S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type:'record_restored',entityId:r.id,at:r.updatedAt});await save()}
+function fillFamilies(){$('rfamily').innerHTML='<option value="">Не указана</option>'+S.families.filter(f=>f.hive===$('rhive').value).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('')}
+async function fileData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file)})}
+async function addCapturedPhoto(file){
+ if(!file||!file.type.startsWith('image/'))return;
+ try{const item=await prepareImage(file);pendingRecordMedia.push(item);const img=document.createElement('img');img.src=item.data;img.alt=item.name;$('mediaPreview').appendChild(img)}
+ catch(e){alert('Не удалось обработать фото: '+(e.message||e))}
+ $('capturePhoto').value='';
+}
+$('capturePhoto').onchange=()=>addCapturedPhoto($('capturePhoto').files[0]);
+function requestCloseRecordDialog(){$('recordDlg').close()}
+function captureVideoFromPhone(){const input=$('captureVideo');if(input){input.value='';input.click()}}
+function videoTypeFor(file){
+ const ext=((file.name||'').match(/\.([a-z0-9]+)$/i)||[])[1]?.toLowerCase()||'mp4';
+ const known={mp4:'video/mp4',m4v:'video/mp4',mov:'video/quicktime',webm:'video/webm','3gp':'video/3gpp','3gpp':'video/3gpp'};
+ return file.type&&file.type.startsWith('video/')?file.type:(known[ext]||'video/mp4');
+}
+function getVideoDuration(file){
+ return new Promise((resolve,reject)=>{
+  const url=URL.createObjectURL(file),video=document.createElement('video');
+  let settled=false,timer=setTimeout(()=>finishError('Истекло время проверки длительности видео'),12000);
+  const cleanup=()=>{clearTimeout(timer);video.onloadedmetadata=null;video.ondurationchange=null;video.onseeked=null;video.onerror=null;URL.revokeObjectURL(url)};
+  const finishError=message=>{if(settled)return;settled=true;cleanup();reject(new Error(message))};
+  const finish=()=>{
+   if(settled)return;
+   const duration=Number(video.duration),seekEnd=video.seekable&&video.seekable.length?Number(video.seekable.end(video.seekable.length-1)):0;
+   const actual=Math.max(Number.isFinite(duration)?duration:0,Number.isFinite(seekEnd)?seekEnd:0);
+   if(actual>0){settled=true;cleanup();resolve(actual)}
+  };
+  video.preload='metadata';
+  video.onloadedmetadata=()=>{
+   finish();
+   if(!settled&&Number.isFinite(video.duration)&&video.duration>0){try{video.currentTime=video.duration}catch(e){}}
+  };
+  video.ondurationchange=finish;
+  video.onseeked=finish;
+  video.onerror=()=>finishError('Не удалось прочитать длительность видео');
+  video.src=url;
+  video.load();
+ });
+}
+async function addCapturedVideo(file){
+ if(!file)return;
+ if(file.size>50*1024*1024){alert('Видео больше 50 МБ. Сними ролик короче или выбери файл меньшего размера.');$('captureVideo').value='';return}
+ try{
+  const duration=await getVideoDuration(file);
+  if(duration>40){alert('Видео длится '+duration.toFixed(1)+' сек. Максимальная длительность — 40 секунд. Выбери или сними более короткий ролик.');return}
+  const item={kind:'video',name:file.name||'Видео осмотра.mp4',type:videoTypeFor(file),data:await fileData(file)};
+  pendingRecordMedia.push(item);
+  const v=document.createElement('video');v.controls=true;v.preload='metadata';v.playsInline=true;v.src=item.data;$('mediaPreview').appendChild(v);
+  const note=document.createElement('div');note.className='media-note';note.textContent='Видео добавлено · '+(file.size/1024/1024).toFixed(1)+' МБ';$('mediaPreview').appendChild(note);
+ }catch(e){alert('Не удалось прочитать видео: '+(e.message||e))}
+ $('captureVideo').value='';
+}
+$('captureVideo').onchange=()=>addCapturedVideo($('captureVideo').files[0]);
+async function prepareImage(file){
+ const src=await fileData(file);
+ return new Promise(resolve=>{
+  const fallback=()=>resolve({kind:'image',name:file.name,type:file.type,data:src});
+  const img=new Image();
+  img.onload=()=>{
+   try{
+    const max=1600,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Не удалось подготовить изображение');
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    resolve({kind:'image',name:file.name,type:'image/jpeg',data:canvas.toDataURL('image/jpeg',.82)});
+   }catch(e){fallback()}
+  };
+  img.onerror=fallback;img.src=src;
+ });
+}
+$('rmedia').onchange=async()=>{
+ const files=[...$('rmedia').files];$('mediaPreview').innerHTML='';
+ for(const f of files){
+  if(f.type.startsWith('video/')&&f.size>50*1024*1024){alert('Видео «'+f.name+'» больше 50 МБ. При сохранении записи его придётся заменить.');continue}
+  if(!f.type.startsWith('image/')&&!f.type.startsWith('video/'))continue;
+  try{
+   if(f.type.startsWith('video/')){
+    const duration=await getVideoDuration(f);
+    if(duration>40){alert('Видео «'+f.name+'» длится '+duration.toFixed(1)+' сек. Максимум — 40 секунд. Файл пропущен.');continue}
+   }
+   const data=f.type.startsWith('image/')?await prepareImage(f):{kind:'video',name:f.name,type:videoTypeFor(f),data:await fileData(f)};
+   const el=data.kind==='video'?document.createElement('video'):document.createElement('img');el.src=data.data;
+   if(data.kind==='video')el.controls=true;$('mediaPreview').appendChild(el);
+  }catch(err){alert('Не удалось подготовить вложение «'+f.name+'»: '+(err?.message||err));}
+ }
+};
+$('rtype').onchange=toggleOccupancy;
+$('recordForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(videoRecorder&&videoRecorder.state==='recording'){alert('Сначала нажми «Остановить» и дождись появления видео в предпросмотре, затем сохрани запись.');return}
+ const files=[...$('rmedia').files],tooLarge=files.find(f=>(f.type.startsWith('video/')||/\.(mp4|m4v|mov|webm|3gp)$/i.test(f.name))&&f.size>50*1024*1024);
+ if(tooLarge){alert('Видео «'+tooLarge.name+'» больше 50 МБ. Уменьши файл или выбери другое видео. Запись не сохранена.');return}
+ const media=[];
+ try{
+  for(const f of files){
+   if(f.type.startsWith('image/'))media.push(await prepareImage(f));
+   else if(f.type.startsWith('video/')||/\.(mp4|m4v|mov|webm|3gp)$/i.test(f.name)){
+    const duration=await getVideoDuration(f);
+    if(duration>40){alert('Видео «'+f.name+'» длится '+duration.toFixed(1)+' сек. Максимум — 40 секунд. Запись не сохранена.');return}
+    media.push({kind:'video',name:f.name,type:videoTypeFor(f),data:await fileData(f)});
+   }
+  }
+ }catch(err){alert('Не удалось прочитать вложение: '+(err?.message||err)+'. Запись не сохранена, форма оставлена открытой.');return}
+ const hiveId=$('rhive').value,familyId=$('rfamily').value;
+ if(!S.hives.some(h=>h.id===hiveId)){alert('Выбранный улей не найден. Запись не сохранена.');return}
+ if(familyId&&!S.families.some(f=>f.id===familyId&&f.hive===hiveId)){alert('Выбранная семья не принадлежит этому улью. Запись не сохранена.');return}
+ const id=$('recordId').value,oldRecord=id?S.records.find(r=>r.id===id):null;
+ if(id&&!oldRecord){alert('Редактируемая запись не найдена. Обнови журнал и повтори.');return}
+ for(const item of pendingRecordMedia){
+  if(item.kind==='video'&&item.data){
+   try{
+    const blob=await fetch(item.data).then(response=>response.blob());
+    const duration=await getVideoDuration(blob);
+    if(duration>40){alert('Видео длится '+duration.toFixed(1)+' сек. Максимум — 40 секунд. Запись не сохранена.');return}
+   }catch(err){alert('Не удалось повторно проверить длительность добавленного видео: '+(err?.message||err)+'. Запись не сохранена.');return}
+  }
+ }
+ const combinedMedia=[...(oldRecord?.media||[]),...media,...pendingRecordMedia];
+ const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';
+ const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};
+ if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
+ if(!oldRecord){
+  createExpansionSuggestion(data);
+  if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
+ }
+ $('recordDlg').close();$('rhive').disabled=false;await save();
+}
+
+const FRAME_TYPES=[{id:'foundation',name:'Вощина',short:'В',status:'foundation'},{id:'strip',name:'Полоска вощины',short:'П',status:'foundation'},{id:'comb',name:'Сушь',short:'С',status:'drawn'}];
+const FRAME_STATUSES=[['foundation','Вощина'],['partial','Частично отстроена'],['drawn','Отстроена'],['eggs','Яйца'],['brood-sealed','Печатный расплод'],['drone-cell','Трутневая ячейка'],['nectar','С мёдом, не запечатана'],['sealed','Запечатана'],['extracted','Откачана'],['damaged','Повреждена'],['discard','Под выбраковку']];
+const FAMILY_COLORS=['#4d8c60','#d7b63f','#4c83c5','#9a70b5','#d47b45','#579c9b'];
+let structureMode='summer',editingBox=null,editingFrame=0;
+const BOX_CODES={1:'11',4:'12',2:'21',5:'22',3:'31',6:'32'};
+function framePrefix(key){if(String(key).startsWith('H'))return String(key);return BOX_CODES[key]||'99'}
+function frameLocationName(key){return String(key).startsWith('H')?'Медовый корпус '+String(key).slice(1):'Гнездовой корпус №'+key}
+function frameCapacity(key){return String(key).startsWith('H')?10:6}
+function frameArray(l,key){return String(key).startsWith('H')?l.honeyFrames[Number(String(key).slice(1))-1]:l.boxes[key].frames}
+function nextFrameId(l,key){const prefix=framePrefix(key);let max=0;[1,2,3,4,5,6,'H1','H2'].forEach(k=>frameArray(l,k).forEach(fr=>{const id=String(fr.frameId||'');if(id.startsWith(prefix)){const tail=String(key).startsWith('H')?id.slice(prefix.length+1):id.slice(prefix.length);const n=Number(tail);if(Number.isFinite(n))max=Math.max(max,n)}}));return prefix+(String(key).startsWith('H')?'-'+String(max+1).padStart(2,'0'):String(max+1))}
+function layoutFor(hid){
+ S.layouts=S.layouts||{};
+ if(!S.layouts[hid]||typeof S.layouts[hid]!=='object'||Array.isArray(S.layouts[hid]))S.layouts[hid]={boxes:{},honeyInstalled:false,honeyBoxInstalled:[false,false],installedBoxes:[],winterOrder:[],mode:'summer'};
+ const l=S.layouts[hid];
+ if(!l.boxes||typeof l.boxes!=='object'||Array.isArray(l.boxes))l.boxes={};
+ if(!['summer','winter'].includes(l.mode))l.mode='summer';
+ const makeBroodFrames=n=>Array.from({length:6},(_,i)=>({frameId:framePrefix(n)+String(i+1),originBox:String(n),location:String(n),type:'foundation',status:'foundation',history:[]}));
+ if(!Array.isArray(l.honeyFrames)){
+  l.honeyFrames=[[],[]];
+  for(let h=1;h<=2;h++)for(let i=1;i<=10;i++)l.honeyFrames[h-1].push({frameId:'H'+h+'-'+String(i).padStart(2,'0'),originBox:'H'+h,location:'H'+h,type:'foundation',status:'foundation',history:[]});
+ }
+ while(l.honeyFrames.length<2)l.honeyFrames.push([]);
+ for(let h=0;h<2;h++)if(!Array.isArray(l.honeyFrames[h]))l.honeyFrames[h]=[];
+ for(let n=1;n<=6;n++){
+  if(!l.boxes[n]||typeof l.boxes[n]!=='object'||Array.isArray(l.boxes[n]))l.boxes[n]={family:'',frames:makeBroodFrames(n)};
+  if(!Array.isArray(l.boxes[n].frames))l.boxes[n].frames=makeBroodFrames(n);
+  l.boxes[n].frames.forEach((fr,i)=>{
+   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.boxes[n].frames[i]={frameId:framePrefix(n)+String(i+1),originBox:String(n),location:String(n),type:'foundation',status:'foundation',history:[]};
+   if(!fr.frameId)fr.frameId=framePrefix(n)+String(i+1);
+   fr.originBox=fr.originBox||String(n);fr.location=String(n);
+   if(!Array.isArray(fr.history))fr.history=[];
+  });
+ }
+ if(!Array.isArray(l.installedBoxes)){
+  l.installedBoxes=[];
+  for(let n=1;n<=6;n++){const box=l.boxes[n];if(box.family||box.frames.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note))l.installedBoxes.push(n)}
+ }
+ if(!Array.isArray(l.winterOrder))l.winterOrder=[];
+ if(!Array.isArray(l.honeyBoxInstalled)){
+  const flags=[0,1].map(h=>l.honeyFrames[h].some(fr=>fr&&(fr.status&&fr.status!=='foundation'||fr.type&&fr.type!=='foundation'||fr.note)));
+  const on=flags.some(Boolean);l.honeyBoxInstalled=[on,on];
+ }else{
+  const on=l.honeyBoxInstalled.some(Boolean);l.honeyBoxInstalled=[on,on];
+ }
+ if(l.mode==='winter')l.honeyBoxInstalled=[false,false];
+ l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
+ for(let h=1;h<=2;h++){
+  const arr=l.honeyFrames[h-1];
+  arr.forEach((fr,i)=>{
+   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.honeyFrames[h-1][i]={frameId:'H'+h+'-'+String(i+1).padStart(2,'0'),originBox:'H'+h,location:'H'+h,type:'foundation',status:'foundation',history:[]};
+   if(!fr.frameId)fr.frameId='H'+h+'-'+String(i+1).padStart(2,'0');
+   fr.originBox=fr.originBox||'H'+h;fr.location='H'+h;
+   if(!Array.isArray(fr.history))fr.history=[];
+  });
+ }
+ return l;
+}
+function selectedStructureHive(){return selectedHiveId||S.hives[0]?.id||''}
+let pendingAssemblyMode=null;
+function beginModeChange(mode){const l=layoutFor(selectedStructureHive());if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}if(mode==='winter'){const blocked=[2,5].filter(n=>l.boxes[n].family);if(blocked.length){alert('Зимой нельзя использовать центральные корпуса №2 и №5. Сначала перемести семьи из этих корпусов в допустимые №1, 3, 4 или 6.');$('assemblyMode').value='summer';return}const current=l.mode==='summer'?l.installedBoxes.slice():((l.winterOrder||[]).length===3?l.winterOrder.slice():l.installedBoxes.slice());const eligible=[1,3,4,6],seed=[...current.filter(n=>eligible.includes(n)),...eligible.filter(n=>!current.includes(n))].slice(0,3);l.winterOrder=seed;l.installedBoxes=seed.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}else{l.installedBoxes=l.mode==='winter'?(l.winterOrder||[]).slice():l.installedBoxes.slice();l.winterOrder=[]}l.mode=mode;$('modeTransition').style.display='none';renderStructure()}
+function editCurrentAssembly(){const l=layoutFor(selectedStructureHive());if(l.setupEditing)return;l.setupEditing=true;renderStructure()}
+function cancelModeChange(){const l=layoutFor(selectedStructureHive());pendingAssemblyMode=null;l.setupEditing=false;$('modeTransition').style.display='none';$('assemblyMode').value=l.mode||'summer';renderStructure()}
+function renderAssemblyTransition(l){
+ const host=$('modeTransition');host.style.display='block';
+ if(pendingAssemblyMode==='winter'){
+  const eligible=[1,3,4,6],saved=l.mode==='winter'&&Array.isArray(l.winterOrder)?l.winterOrder: l.installedBoxes;const current=[...saved.filter(n=>eligible.includes(n)),...eligible.filter(n=>!saved.includes(n))].slice(0,3);
+  host.innerHTML='<b>Переход на зимнюю сборку</b><p class="muted">Выбери три гнездовых корпуса, которые действительно будут стоять в зимней колонне. Укажи порядок сверху вниз. Остальные гнездовые и оба медовых корпуса будут отмечены как снятые, но данные рамок сохранятся.</p><div class="winter-order">'+[0,1,2].map(i=>'<div class="winter-row"><label>'+(i===0?'Верхний':i===1?'Средний':'Нижний')+' корпус</label><select id="winterSlot'+i+'">'+[1,3,4,6].map(n=>'<option value="'+n+'" '+((current[i]||[1,3,4][i])===n?'selected':'')+'>№'+n+'</option>').join('')+'</select></div>').join('')+'</div><div class="transition-actions"><button class="primary" onclick="commitWinter()">Применить зимнюю сборку</button><button onclick="cancelModeChange()">Отмена</button></div>';
+ }else{
+  host.innerHTML='<b>Настройка летней сборки</b><p class="muted">Отметь все гнездовые корпуса, которые физически установлены в улье. Летняя схема распределяет их по трём секциям: 1-я секция — корпуса №1 и №4, 2-я — №2 и №5, 3-я — №3 и №6. Медовые корпуса устанавливаются и снимаются только парой. Снятые корпуса и их рамки останутся в учёте.</p><b>Гнездовые корпуса</b><div class="transition-grid">'+[1,2,3,4,5,6].map(n=>'<label class="transition-choice"><input type="checkbox" class="summer-brood-choice" value="'+n+'" '+((l.mode==='winter'?(l.winterOrder||[]).includes(n):l.installedBoxes.includes(n))?'checked':'')+'> Корпус №'+n+'</label>').join('')+'</div><b>Медовые корпуса</b><div class="transition-grid"><label class="transition-choice"><input type="checkbox" class="summer-honey-pair" '+(l.mode!=='winter'&&l.honeyBoxInstalled.every(Boolean)?'checked':'')+'> Оба корпуса · 2 × 10 рамок</label></div><div class="transition-actions"><button class="primary" onclick="commitSummer()">Применить летнюю сборку</button><button onclick="cancelModeChange()">Отмена</button></div>';
+ }
+ host.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function rememberCurrentAssembly(l){l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];l.assemblies.push({date:today(),mode:l.mode||'summer',installedBoxes:[...l.installedBoxes],honeyBoxInstalled:[...l.honeyBoxInstalled],winterOrder:[...(l.winterOrder||[])]})}
+function renderStructure(){
+ const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid),editing=!!l.setupEditing,installed=l.installedBoxes.slice();
+ $('assemblyMode').value=l.mode||'summer';$('assemblyMode').disabled=!editing;$('assemblyEditBtn').style.display=editing?'none':'';$('assemblyDoneBtn').style.display=editing?'':'none';
+ $('assemblyModeHint').textContent=editing?'Выбирай корпуса на схеме. Нажми на корпус, чтобы открыть его рамки и данные семьи.':'Комплектация зафиксирована. Для изменений нажми «Изменить».';
+ $('structureTitle').textContent=(l.mode==='winter'?'Зимняя':'Летняя')+(editing?' комплектация — настройка':' комплектация');$('addBroodBoxBtn').style.display='none';$('addHoneyBoxBtn').style.display='none';$('honeyPair').style.display=l.mode==='summer'?'':'none';
+ const body=n=>{const x=l.boxes[n],fam=S.families.find(f=>f.id===x.family);return '<div class="box-unit '+(fam?'filled':'')+' '+(installed.includes(n)?'':'setup-empty')+'" '+(editing?'onclick="editBox('+n+')" style="cursor:pointer"':'')+'><div class="box-unit-head"><strong>Корпус №'+n+(fam?' · '+safe(fam.name):'')+'</strong><span>'+(installed.includes(n)?(editing?'Выбран':'В улье'):(editing?'Выбрать':''))+'</span></div><div class="frame-strip">'+x.frames.map((fr,i)=>frameChip(fr,String(n),i)).join('')+'</div></div>'};
+ if(l.mode==='summer'){
+  $('hiveDiagram').innerHTML='<div class="hive-stage"><div><div class="summer-row-label">Верхний ряд · 4–6</div><div class="summer-box-row">'+[4,5,6].map(body).join('')+'</div></div><div><div class="summer-row-label">Нижний ряд · 1–3</div><div class="summer-box-row">'+[1,2,3].map(body).join('')+'</div></div></div>';
+  const honeyOn=l.honeyBoxInstalled.some(Boolean);if(honeyOn){l.honeyBoxInstalled=[true,true];l.honeyInstalled=true}else{l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}
+  $('honeyPair').innerHTML='<div class="honey-pair-control '+(honeyOn?'is-installed':'')+'"><div class="honey-pair-summary"><b>Медовые корпуса · 2 × 10 рамок</b><span class="muted">'+(honeyOn?'Оба корпуса установлены':'Оба корпуса сняты')+'</span></div>'+(editing?'<button class="primary honey-pair-toggle" type="button" data-action="toggle-honey-pair">'+(honeyOn?'Снять оба корпуса':'Установить оба корпуса')+'</button>':'')+'<div class="honey-pair-edit"><button type="button" '+(!honeyOn?'disabled':'')+' onclick="editBox(\'H1\')">Настроить рамки 1</button><button type="button" '+(!honeyOn?'disabled':'')+' onclick="editBox(\'H2\')">Настроить рамки 2</button></div></div>';
+ }else{
+  l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;
+  const eligible=[1,3,4,6],saved=l.winterOrder&&l.winterOrder.length===3?l.winterOrder:installed;const order=[...saved.filter(n=>eligible.includes(n)),...eligible.filter(n=>!saved.includes(n))].slice(0,3);
+  l.winterOrder=order;l.installedBoxes=order.slice();$('honeyPair').innerHTML='';
+  $('hiveDiagram').innerHTML='<div class="winter-column">'+order.map((n,i)=>'<div class="winter-column-slot"><div class="winter-slot-head"><b>'+(i===0?'Верхний':i===1?'Средний':'Нижний')+' корпус</b>'+(editing?'<select aria-label="Выбрать корпус для позиции '+(i+1)+'" onchange="changeWinterSlot('+i+',this.value)">'+[1,3,4,6].map(k=>'<option value="'+k+'" '+(k===n?'selected':'')+' '+(order.includes(k)&&k!==n?'disabled':'')+'>Корпус №'+k+'</option>').join('')+'</select>':'')+'</div>'+body(n)+'</div>').join('')+'</div><p class="muted">'+(editing?'В колонне ровно три корпуса. Выбери для каждой позиции один из шести существующих корпусов.':'Зимняя колонна: три установленных корпуса.')+'</p>';
+ }
+ $('modeTransition').style.display='none';
+}
+function changeWinterSlot(index,value){const l=layoutFor(selectedStructureHive()),order=(l.winterOrder||l.installedBoxes||[]).slice(),n=Number(value);if(![1,3,4,6].includes(n)){alert('Для зимней колонны подходят только корпуса №1, 3, 4 и 6.');renderStructure();return}if(order.some((x,i)=>i!==index&&x===n)){alert('Каждый корпус можно выбрать только один раз.');renderStructure();return}order[index]=n;l.winterOrder=order;l.installedBoxes=order.slice();renderStructure()}
+async function finishAssemblySetup(){const l=layoutFor(selectedStructureHive());if(l.mode==='winter'&&((l.winterOrder||[]).length!==3||new Set(l.winterOrder).size!==3||(l.winterOrder||[]).some(n=>![1,3,4,6].includes(n)))){alert('Для зимней комплектации выбери три разных корпуса из №1, 3, 4 и 6.');return}if(l.mode==='summer'&&!l.installedBoxes.length&&!l.honeyBoxInstalled.some(Boolean)){alert('Выбери хотя бы один установленный корпус.');return}const assigned=[1,2,3,4,5,6].filter(n=>l.boxes[n].family);const chosen=l.mode==='winter'?l.winterOrder:l.installedBoxes;if(assigned.some(n=>!chosen.includes(n))){alert('В сборке должны остаться корпуса с назначенными семьями: №'+assigned.filter(n=>!chosen.includes(n)).join(', №'));return}if(l.mode==='winter'){l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}l.setupComplete=true;l.setupEditing=false;await save()}
+async function commitWinter(){
+ const l=layoutFor(selectedStructureHive()),vals=[0,1,2].map(i=>Number($('winterSlot'+i)?.value));
+ if(vals.some(n=>![1,3,4,6].includes(n))||new Set(vals).size!==3){alert('Для зимней колонны выбери три разных корпуса из №1, 3, 4 и 6.');return}
+ const familyBoxes=[1,2,3,4,5,6].filter(n=>l.boxes[n].family);if(familyBoxes.some(n=>!vals.includes(n))){alert('В выбранной зимней колонне должны остаться все корпуса с назначенными семьями: №'+familyBoxes.filter(n=>!vals.includes(n)).join(', №'));return}
+ rememberCurrentAssembly(l);l.installedBoxes=[...vals];l.winterOrder=[...vals];l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;l.mode='winter';
+ pendingAssemblyMode=null;$('modeTransition').style.display='none';await save();
+}
+async function commitSummer(){
+ const l=layoutFor(selectedStructureHive()),brood=[...document.querySelectorAll('.summer-brood-choice:checked')].map(x=>Number(x.value));
+ const honeyOn=!!document.querySelector('.summer-honey-pair')?.checked,honey=[honeyOn,honeyOn];
+ if(!brood.length&&!honeyOn){alert('Отметь хотя бы один установленный корпус');return}
+ const familyBoxes=[1,2,3,4,5,6].filter(n=>l.boxes[n].family);if(familyBoxes.some(n=>!brood.includes(n))){alert('Нельзя снять корпус с назначенной семьёй. Оставь в сборке корпус №'+familyBoxes.filter(n=>!brood.includes(n)).join(', №')+' или сначала перемести семью.');return}
+ rememberCurrentAssembly(l);l.installedBoxes=brood;l.honeyBoxInstalled=honey;l.honeyInstalled=honey.every(Boolean);l.mode='summer';
+ pendingAssemblyMode=null;$('modeTransition').style.display='none';await save();
+}
+function frameChip(f,key,index){return '<span role="button" tabindex="0" class="frame-chip status-'+safe(f.status||'foundation')+' '+(f.status==='foundation'?(f.type==='strip'?'partial':'wax'):'')+'" onclick="event.stopPropagation();openFrameFromDiagram(&quot;'+key+'&quot;,'+index+')" title="Открыть рамку '+safe(f.frameId)+': '+frameStatusName(f.status)+'">'+safe(f.frameId)+'</span>'}
+function openFrameFromDiagram(key,index){editBox(String(key));editingFrame=index;renderFrameEditor()}
+function boxMarkup(n,b){
+ const family=S.families.find(f=>f.id===b.family),color=family?FAMILY_COLORS[S.families.indexOf(family)%FAMILY_COLORS.length]:'#aeb8ad';
+ return '<div class="box-unit '+(family?'filled':'')+'" style="--family-color:'+color+'"><div class="box-unit-head"><strong>Корпус №'+n+(family?' · '+safe(family.name):'')+'</strong><button onclick="toggleBroodBox('+n+')">− Снять</button><button class="box-edit" onclick="editBox('+n+')">✎</button></div><div class="frame-strip">'+b.frames.map((fr,i)=>frameChip(fr,String(n),i)).join('')+'</div></div>';
+}
+function addNextBroodBox(){const l=layoutFor(selectedStructureHive());if(l.mode==='winter')return alert('В зимней сборке ровно три корпуса. Для изменения состава перейди в летний режим.');const n=[1,2,3,4,5,6].find(x=>!l.installedBoxes.includes(x));if(!n)return alert('Все гнездовые корпуса уже установлены');l.installedBoxes.push(n);save()}
+function addNextHoneyBox(){toggleHoneyPair()}
+function toggleBroodBox(n){
+ const l=layoutFor(selectedStructureHive()),b=l.boxes[n],installed=l.installedBoxes.includes(n);if(l.mode==='winter'&&installed)return alert('Зимняя колонна должна содержать ровно три корпуса. Для изменения состава перейди в летний режим.');
+ if(installed&&b.family){alert('В корпусе назначена семья. Сначала перемести семью в другой корпус или сними её назначение.');return}
+ if(installed){const hasData=b.frames.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note);if(hasData&&!confirm('В корпусе есть заполненные данные рамок. Снять корпус с улья, сохранив все данные?'))return;l.installedBoxes=l.installedBoxes.filter(x=>x!==n);l.winterOrder=(l.winterOrder||[]).filter(x=>x!==n)}
+ else l.installedBoxes.push(n);
+ save();
+}
+function toggleHoneyPair(){
+ const l=layoutFor(selectedStructureHive());if(l.mode==='winter')return alert('Медовые корпуса не устанавливаются в зимней сборке. Сначала перейди в летний режим.');
+ const on=l.honeyBoxInstalled.some(Boolean);
+ if(on){
+  const hasData=l.honeyFrames.some(arr=>arr.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note));
+  if(hasData&&!confirm('В медовых корпусах есть данные рамок. Снять оба корпуса с улья, сохранив все данные?'))return;
+  l.honeyBoxInstalled=[false,false];
+ }else l.honeyBoxInstalled=[true,true];
+ l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);save();
+}
+function toggleHoneyBox(){toggleHoneyPair()}
+function syncBoxOrigin(){const wrap=$('offshootParentWrap'),sel=$('offshootParent');if(!wrap||!sel)return;wrap.style.display=$('boxOrigin').value==='offshoot'?'block':'none'}
+function syncBoxFamily(){const f=S.families.find(x=>x.id===$('boxFamily').value);if(f){$('boxBreed').value=f.breed||'Неизвестная';$('boxFamilyName').value=f.name||'';$('boxOrigin').value=f.origin||'';if($('offshootParent'))$('offshootParent').value=f.parentFamilyId||'';syncBoxOrigin()}}
+function editBox(key){const l=layoutFor(selectedStructureHive()),isHoney=String(key).startsWith('H');if(!l.setupEditing&&!isHoney){alert('Комплектация зафиксирована. Нажми «Изменить», чтобы редактировать корпуса.');return}if(isHoney&&l.mode==='winter'){alert('В зимней сборке медовые корпуса не используются.');return}if(isHoney&&!l.honeyBoxInstalled.every(Boolean)){alert('Сначала установи оба медовых корпуса.');return}editingBox=String(key);editingFrame=0;const b=isHoney?null:l.boxes[editingBox],frames=frameArray(l,editingBox),winter=l.mode==='winter'&&!!l.setupComplete;$('boxDlgTitle').textContent=frameLocationName(editingBox);$('boxDlgHint').textContent=frames.length+' рамок · номера закреплены за каждой физической рамкой';$('boxInstalledLabel').style.display=(isHoney||winter)?'none':'';$('boxInstalled').checked=isHoney?l.honeyBoxInstalled[Number(editingBox.slice(1))-1]:l.installedBoxes.includes(Number(editingBox));$('boxBeeFields').style.display=(isHoney||winter)?'none':'';$('boxFamilyLabel').style.display=(isHoney||winter)?'none':'';$('boxFamily').style.display=(isHoney||winter)?'none':'';$('boxFamily').innerHTML='<option value="">Семья не назначена</option>'+S.families.filter(f=>f.hive===selectedStructureHive()).map(f=>'<option value="'+f.id+'">'+safe(f.name)+' · '+safe(f.breed)+'</option>').join('');$('boxFamily').value=b?.family||'';$('boxOrigin').value=b?.origin||'';$('boxBreed').value=b?.breed||'Неизвестная';$('boxFamilyName').value=b?.familyName||nextFamilyCode();if($('offshootParent')){$('offshootParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(f=>f.hive===selectedStructureHive()&&f.id!==b?.family).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('');$('offshootParent').value=b?.parentFamilyId||'';syncBoxOrigin()}$('addFrameBtn').style.display=frames.length<frameCapacity(editingBox)?'':'none';renderFrameEditor();$('boxDlg').showModal()}
+function frameStatusName(id){return FRAME_STATUSES.find(x=>x[0]===id)?.[1]||'Не указан'}
+function renderFrameEditor(){
+ const l=layoutFor(selectedStructureHive()),frames=frameArray(l,editingBox);
+ $('frameEditor').innerHTML=frames.map((x,i)=>'<button class="status-'+safe(x.status||'foundation')+' '+(i===editingFrame?'selected':'')+'" onclick="chooseFrame('+i+')">'+safe(x.frameId)+'<br><b>'+frameStatusName(x.status)+'</b></button>').join('');
+ const x=frames[editingFrame];if(!x){$('frameDetails').style.display='none';return}
+ $('frameDetails').style.display='block';
+ const destinations=[1,2,3,4,5,6,'H1','H2'].filter(k=>String(k)!==editingBox);
+ const history=(x.history||[]).map(h=>'<p class="muted">'+safe(h.date)+': '+(h.action==='move'?'Перемещение: '+safe(frameLocationName(h.from.location))+' → '+safe(frameLocationName(h.to.location)):h.action==='extraction'?'Откачка мёда: '+safe(frameStatusName(h.from))+' → Откачана':safe(frameStatusName(h.from.status))+' → '+safe(frameStatusName(h.to.status)))+'</p>').join('');
+ $('frameDetails').innerHTML=`<b>Рамка ${safe(x.frameId)}</b><div class="muted">Сейчас находится: ${frameLocationName(editingBox)} · позиция ${editingFrame+1} · изначальный корпус: ${frameLocationName(x.originBox||editingBox)}</div><label>Тип рамки</label><select id="frameType" onchange="syncFrameType()">${FRAME_TYPES.map(t=>'<option value="'+t.id+'" '+(x.type===t.id?'selected':'')+'>'+t.name+'</option>').join('')}</select><label>Текущий статус</label><select id="frameStatus" onchange="syncFrameStatus()">${FRAME_STATUSES.map(t=>'<option value="'+t[0]+'" '+(x.status===t[0]?'selected':'')+'>'+t[1]+'</option>').join('')}</select><label>Заметка</label><input id="frameNote" value="${safe(x.note||'')}" placeholder="Например, отстроена наполовину"><label>Переместить рамку в другой корпус</label><select id="frameMoveTo">${destinations.map(k=>'<option value="'+k+'">'+frameLocationName(k)+'</option>').join('')}</select><button type="button" onclick="moveFrame()">Переместить рамку ${safe(x.frameId)}</button><details><summary>История рамки (${(x.history||[]).length})</summary>${history}</details>`;
+}
+function syncFrameType(){const t=$('frameType').value;if(t==='comb')$('frameStatus').value='drawn';else if($('frameStatus').value==='drawn')$('frameStatus').value='foundation'}
+function syncFrameStatus(){if($('frameStatus').value==='drawn')$('frameType').value='comb'}
+function commitFrameEdit(){const l=layoutFor(selectedStructureHive()),x=frameArray(l,editingBox)[editingFrame];if(!x)return;const next={type:$('frameType').value,status:$('frameStatus').value,note:$('frameNote').value};const changed=x.type!==next.type||x.status!==next.status||x.note!==next.note;if(changed){x.history=x.history||[];x.history.push({date:today(),from:{type:x.type,status:x.status,note:x.note||''},to:next});Object.assign(x,next)}}
+function chooseFrame(i){commitFrameEdit();editingFrame=i;renderFrameEditor()}
+function addFrame(){const l=layoutFor(selectedStructureHive()),arr=frameArray(l,editingBox);if(arr.length>=frameCapacity(editingBox))return alert('Корпус заполнен');const fr={frameId:nextFrameId(l,editingBox),originBox:editingBox,location:editingBox,type:'foundation',status:'foundation',history:[]};arr.push(fr);editingFrame=arr.length-1;renderFrameEditor()}
+async function moveFrame(){
+ const l=layoutFor(selectedStructureHive()),source=frameArray(l,editingBox),targetKey=$('frameMoveTo').value,target=frameArray(l,targetKey);
+ if(!source||!source[editingFrame])return alert('Выбранная рамка больше не найдена. Обнови редактор.');
+ if(source===target)return alert('Выбери другой корпус для перемещения рамки.');
+ if(String(targetKey).startsWith('H')){
+  if(l.mode==='winter'||!l.honeyBoxInstalled.every(Boolean))return alert('Медовые рамки можно перемещать только при установленных обоих медовых корпусах в летней сборке.');
+ }else{
+  const targetNumber=Number(targetKey);
+  const targetInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(targetNumber):(l.installedBoxes||[]).includes(targetNumber);
+  if(!targetInstalled)return alert('Сначала установи выбранный гнездовой корпус в текущую сборку.');
+  if(l.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке нельзя использовать корпуса №2 и №5.');
+ }
+ if(!target||target.length>=frameCapacity(targetKey))return alert('В выбранном корпусе нет свободного места');
+ commitFrameEdit();
+ const fr=source[editingFrame],from={location:editingBox,position:editingFrame+1};
+ source.splice(editingFrame,1);fr.history=fr.history||[];
+ fr.history.push({date:today(),action:'move',from,to:{location:targetKey,position:target.length+1}});
+ fr.location=targetKey;target.push(fr);logAudit('frame_moved',{hiveId:selectedStructureHive(),frameId:fr.frameId,from:{box:from.location,position:from.position},to:{box:targetKey,position:target.length}});editingBox=targetKey;editingFrame=target.length-1;
+ renderFrameEditor();await save();
+}
+function saveBox(){
+ commitFrameEdit();
+ const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),oldBox=l.boxes[editingBox],oldFamily=oldBox?.family||'',wasInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
+ if(!editingBox.startsWith('H')){
+  const n=Number(editingBox),b=l.boxes[editingBox];
+  if(!(l.mode==='winter'&&l.setupComplete)){
+   const origin=$('boxOrigin').value,breed=$('boxBreed').value,familyName=$('boxFamilyName').value.trim();
+   const parentFamilyId=origin==='offshoot'?($('offshootParent')?.value||''):'';
+   const fid=$('boxFamily').value;
+   const hiveId=selectedStructureHive();
+   const family=fid?S.families.find(x=>x.id===fid):null;
+   if(fid&&(!family||family.hive!==hiveId)){alert('Нельзя назначить корпусу семью из другого улья.');return}
+   if(fid&&Object.entries(l.boxes).some(([boxKey,other])=>boxKey!==editingBox&&other.family===fid)){alert('Эта семья уже назначена другому гнездовому корпусу. Сначала сними прежнее назначение.');return}
+   if(origin==='offshoot'){
+    const parent=S.families.find(x=>x.id===parentFamilyId&&x.hive===hiveId);
+    if(!parent||parent.id===fid){alert('Для отводка выбери другую исходную семью из этого же улья.');return}
+   }
+   const previousFamily=b.family?S.families.find(x=>x.id===b.family):null;
+   if(previousFamily&&previousFamily.id!==fid&&previousFamily.box===n)delete previousFamily.box;
+   b.origin=origin;b.breed=breed;b.familyName=familyName;b.parentFamilyId=parentFamilyId;
+   if(!fid&&origin){
+    const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]);
+    b.familyName=code;
+    const created={id:uid(),hive:hiveId,name:code,familyYear:year,familySequence:sequence,breed:b.breed,origin,parentFamilyId};
+    S.families.push(created);b.family=created.id;
+   }else{
+    b.family=fid;
+    if(family){family.breed=breed;family.origin=origin||family.origin;family.name=familyName||family.name;family.box=n;family.parentFamilyId=parentFamilyId||family.parentFamilyId||''}
+   }
+  }
+  if(l.setupEditing&&l.mode==='summer'){
+   if($('boxInstalled').checked){if(!l.installedBoxes.includes(n))l.installedBoxes.push(n)}
+   else l.installedBoxes=l.installedBoxes.filter(x=>x!==n);
+  }
+ }
+ const newFamily=l.boxes[editingBox]?.family||'';
+ const nowInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
+ if(oldFamily!==newFamily)logAudit('family_box_assignment',{hiveId,box:editingBox,fromFamilyId:oldFamily||null,toFamilyId:newFamily||null});
+ if(wasInstalled!==nowInstalled)logAudit(nowInstalled?'brood_box_installed':'brood_box_removed',{hiveId,box:editingBox});
+ $('boxDlg').close();save();
+}
+function openExtractionDialog(){
+ $('extractDate').value=today();
+ $('extractRows').innerHTML=S.hives.map(h=>{const l=layoutFor(h.id);return '<div class="card extract-row"><label class="extract-hive"><input type="checkbox" class="extract-select" data-hive="'+h.id+'" onchange="toggleExtractRow(this)"> <b>'+safe(hname(h.id))+'</b></label><div class="extract-options" data-options="'+h.id+'" style="display:none"><div class="row"><label><input type="checkbox" class="extract-pair" data-hive="'+h.id+'" '+(l.honeyBoxInstalled.every(Boolean)?'checked':'disabled')+'> Оба медовых корпуса · 2 × 10 рамок</label></div><label>Получено мёда, кг</label><input class="extract-kg" data-hive="'+h.id+'" type="number" min="0" step="0.1" placeholder="Например, 18,5"></div></div>'}).join('')||'<p>Сначала добавь улей.</p>';
+ $('extractDlg').showModal();
+}
+function toggleExtractRow(el){const box=document.querySelector('[data-options="'+el.dataset.hive+'"]');if(box)box.style.display=el.checked?'block':'none'}
+async function saveExtraction(){
+ const date=$('extractDate').value;if(!date)return alert('Укажи дату откачки');
+ const selected=[...document.querySelectorAll('.extract-select:checked')];if(!selected.length)return alert('Выбери хотя бы один улей');
+ const plans=[];
+ for(const ch of selected){
+  const hid=ch.dataset.hive,pair=document.querySelector('.extract-pair[data-hive="'+hid+'"]');
+  if(!pair?.checked)return alert('Для '+hname(hid)+' необходимо выбрать оба медовых корпуса');
+  const kgText=String(document.querySelector('.extract-kg[data-hive="'+hid+'"]')?.value||'').trim().replace(',','.');
+  const kg=Number(kgText);
+  if(!Number.isFinite(kg)||kg<=0)return alert('Укажи количество мёда больше нуля для '+hname(hid));
+  const l=layoutFor(hid);
+  if(l.mode==='winter')return alert('Откачка медовых корпусов возможна только в летней сборке: '+hname(hid));
+  if(!l.honeyBoxInstalled.every(Boolean))return alert('В '+hname(hid)+' должны быть установлены оба медовых корпуса');
+  const frameIds=['H1','H2'].flatMap(key=>frameArray(l,key).filter(fr=>['nectar','sealed'].includes(fr.status)).map(fr=>fr.frameId));
+  plans.push({hiveId:hid,kg,l,frameIds});
+ }
+ const items=[];
+ for(const plan of plans){
+  ['H1','H2'].forEach(key=>frameArray(plan.l,key).forEach(fr=>{
+   if(['nectar','sealed'].includes(fr.status)){
+    fr.history=fr.history||[];
+    fr.history.push({date,action:'extraction',from:fr.status,to:'extracted'});
+    fr.status='extracted';
+   }
+  }));
+  plan.l.honeyBoxInstalled=[false,false];plan.l.honeyInstalled=false;
+  items.push({hiveId:plan.hiveId,boxes:['H1','H2'],kilograms:plan.kg,frameIds:plan.frameIds,returnedAt:null});
+ }
+ const event={id:uid(),date,items,createdAt:new Date().toISOString()};
+ S.extractions=S.extractions||[];S.extractions.push(event);
+ items.forEach(x=>S.records.push({id:uid(),date,type:'Откачка мёда',hive:x.hiveId,family:'',text:x.kilograms+' кг · '+x.boxes.map(frameLocationName).join(', '),extractionId:event.id,media:[]}));
+ $('extractDlg').close();await save();
+}
+function renderHiveExtractionActions(){
+ const host=$('hiveExtractionActions');if(!host||!selectedHiveId)return;
+ const pending=(S.extractions||[]).flatMap(e=>(e.items||[]).filter(x=>x.hiveId===selectedHiveId&&!x.returnedAt).map(x=>({event:e,item:x})));
+ const seasonTotal=(S.extractions||[]).flatMap(e=>e.items||[]).filter(x=>x.hiveId===selectedHiveId).reduce((n,x)=>n+Number(x.kilograms||0),0);
+ host.innerHTML='<div class="card"><b>Мёд откачан в этом улье</b><div class="honey-total">'+seasonTotal.toFixed(1)+' кг</div>'+(pending.length?'<div class="divider"></div><b>Корпуса после откачки</b>'+pending.map(x=>'<div class="row"><span>'+safe(x.item.boxes.map(frameLocationName).join(', '))+' · '+safe(x.event.date)+'</span><button data-eid="'+x.event.id+'" data-hid="'+x.item.hiveId+'" onclick="returnHoneyBoxes(this.dataset.eid,this.dataset.hid)">Вернуть</button></div>').join(''):'<p class="muted">Нет корпусов, ожидающих возврата.</p>')+'</div>';
+}
+let returningHoney=[];
+function returnHoneyBoxes(eventId,hiveId){
+ const ev=(S.extractions||[]).find(x=>x.id===eventId),item=ev?.items.find(x=>x.hiveId===hiveId);
+ if(!ev||!item)return;
+ if(item.returnedAt)return alert('Эти медовые корпуса уже возвращены.');
+ if(layoutFor(hiveId).mode==='winter')return alert('Сначала переведи '+hname(hiveId)+' в летнюю сборку. В зимней сборке медовые корпуса не устанавливаются.');
+ returningHoney=[{eventId,hiveId,boxes:['H1','H2']}];
+ $('returnHoneyRows').innerHTML='<div class="card"><b>'+safe(hname(hiveId))+'</b><p>Оба медовых корпуса · 2 × 10 рамок</p><label>Дата возврата</label><input id="honeyReturnDate" type="date" value="'+today()+'"></div>';
+ $('returnHoneyDlg').showModal();
+}
+async function confirmHoneyReturn(){
+ const date=$('honeyReturnDate').value;if(!date)return alert('Укажи дату возврата');
+ const plans=[];
+ for(const r of returningHoney){
+  const ev=(S.extractions||[]).find(x=>x.id===r.eventId),item=ev?.items.find(x=>x.hiveId===r.hiveId);
+  if(!ev||!item)return alert('Запись об откачке не найдена. Обнови страницу и повтори.');
+  if(item.returnedAt)return alert('Эти медовые корпуса уже отмечены как возвращённые.');
+  const l=layoutFor(r.hiveId);if(l.mode==='winter')return alert('Нельзя вернуть медовые корпуса в зимнюю сборку. Сначала перейди на летнюю.');
+  plans.push({r,item,l});
+ }
+ for(const {r,item,l} of plans){
+  l.honeyBoxInstalled=[true,true];l.honeyInstalled=true;
+  item.boxes=['H1','H2'];item.returnedAt=date;item.returned=true;item.returnedBoxes=['H1','H2'];
+ }
+ $('returnHoneyDlg').close();await save();
+}
+
+async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function validateBackupState(state){
+ const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+ if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
+ for(const key of ['hives','families','records'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует корректный раздел: '+key);
+ for(const key of ['tasks','extractions','snapshots','auditLog'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
+ for(const key of ['meta','layouts'])if(state[key]!=null&&!isObject(state[key]))throw new Error('Повреждён раздел архива: '+key);
+ for(const key of ['hives','families','records'])if(!state[key].every(isObject))throw new Error('В разделе «'+key+'» обнаружены повреждённые элементы');
+ for(const record of state.records)if(record.media!=null&&(!Array.isArray(record.media)||!record.media.every(isObject)))throw new Error('Повреждён список вложений записи журнала');
+ if(state.extractions&&!state.extractions.every(x=>isObject(x)&&(x.items==null||(Array.isArray(x.items)&&x.items.every(isObject)))))throw new Error('Повреждён раздел откачки мёда');
+ if(state.layouts)for(const layout of Object.values(state.layouts)){if(!isObject(layout))throw new Error('Повреждены данные сборки улья');if(layout.boxes!=null&&(!isObject(layout.boxes)||Object.values(layout.boxes).some(box=>!isObject(box)||(box.frames!=null&&(!Array.isArray(box.frames)||!box.frames.every(isObject))))))throw new Error('Повреждены гнездовые корпуса');if(layout.honeyFrames!=null&&(!Array.isArray(layout.honeyFrames)||!layout.honeyFrames.every(frames=>Array.isArray(frames)&&frames.every(isObject))))throw new Error('Повреждены медовые рамки');if(layout.honeyBoxInstalled!=null&&!Array.isArray(layout.honeyBoxInstalled))throw new Error('Повреждено состояние медовых корпусов');if(layout.installedBoxes!=null&&!Array.isArray(layout.installedBoxes))throw new Error('Повреждён список установленных корпусов');if(layout.winterOrder!=null&&!Array.isArray(layout.winterOrder))throw new Error('Повреждён порядок зимней колонны')}
+ return state;
+}
+async function restoreBackup(){
+ const f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');
+ try{
+  const o=JSON.parse(await f.text()),restored=validateBackupState(o.state||o);
+  if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
+  await saveQueue;
+  const current=await readMain();if(current){await writeAutoBackup(current);autoBackupInfo=await readAutoBackup()}
+  const oldState=S;S=restored;
+  try{migrateState();await write()}catch(e){S=oldState;throw e}
+  autoBackupRecovered=false;render();alert('Архив восстановлен. Текущее состояние до восстановления сохранено в автокопии.');
+ }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
+}
+async function restoreAutoBackup(){
+ try{
+  await saveQueue;
+  const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
+  const restored=validateBackupState(backup.state);
+  if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
+  const current=await readMain();if(current)await writeAutoBackup(current);
+  const oldState=S;S=restored;
+  try{migrateState();await write()}catch(e){S=oldState;throw e}
+  autoBackupRecovered=false;autoBackupInfo=await readAutoBackup();render();alert('Предыдущая полная автокопия восстановлена.');
+ }catch(e){alert('Не удалось восстановить автокопию: '+(e.message||e))}
+}
+
+async function deleteAllData(){
+ if(!confirm('Удалить ВСЕ данные приложения на этом устройстве? Это действие нельзя отменить. Рекомендуется сначала скачать архив.'))return;
+ await saveQueue;
+ const phrase=prompt('Для окончательного подтверждения введи: УДАЛИТЬ ВСЁ');
+ if(phrase!=='УДАЛИТЬ ВСЁ'){if(phrase!==null)alert('Подтверждение не совпало. Данные не удалены.');return}
+ try{
+  if(db){db.close();db=null}
+  await new Promise((resolve,reject)=>{const req=indexedDB.deleteDatabase(DB);req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('База занята другой открытой вкладкой. Закрой другие вкладки приложения и повтори.'))});
+  alert('Все локальные данные приложения удалены. Страница будет перезагружена.');
+  location.reload();
+ }catch(e){alert('Не удалось удалить данные: '+(e.message||e))}
+}
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.addEventListener('click',function(event){const addButton=event.target.closest('[data-action="open-new-hive"]');if(addButton){event.preventDefault();openNewHive();return}const button=event.target.closest('[data-action="toggle-honey-pair"]');if(!button)return;event.preventDefault();event.stopPropagation();toggleHoneyPair()});
+function migrateState(){let changed=false;S.meta=S.meta||{};const now=new Date().toISOString();const touch=x=>{if(!x.id){x.id=uid();changed=true}if(!x.createdAt){const d=x.date?new Date(x.date+'T12:00:00'):null;x.createdAt=d&&!Number.isNaN(d.getTime())?d.toISOString():now;changed=true}if(!x.updatedAt){x.updatedAt=x.createdAt;changed=true}};S.hives=S.hives||[];S.hives.forEach((h,i)=>{if(!Number.isInteger(Number(h.number))||Number(h.number)<1){h.number=i+1;changed=true}if(h.name){delete h.name;changed=true}});S.meta.nextHiveNumber=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));S.families=S.families||[];S.records=S.records||[];S.tasks=S.tasks||[];S.extractions=S.extractions||[];S.snapshots=S.snapshots||[];S.layouts=S.layouts||{};S.auditLog=S.auditLog||[];S.meta=S.meta||{};const from=S.meta.schemaVersion||1;if(from<2){const before=JSON.parse(JSON.stringify({hives:S.hives,families:S.families,records:S.records.map(({media,...r})=>r),tasks:S.tasks,extractions:S.extractions,layouts:S.layouts||{}}));S.snapshots.push({at:now,...before});S.snapshots=S.snapshots.slice(-12);S.hives.forEach(touch);S.families.forEach(touch);S.records.forEach(touch);S.tasks.forEach(touch);S.extractions.forEach(e=>{touch(e);(e.items||[]).forEach(touch)});S.hives.forEach(h=>{const l=layoutFor(h.id);l.corpusIds=l.corpusIds||{};[1,2,3,4,5,6,'H1','H2'].forEach(k=>{if(!l.corpusIds[k]){l.corpusIds[k]=uid();changed=true}const arr=frameArray(l,k);arr.forEach(fr=>{if(!fr.id){fr.id=uid();changed=true}if(!Array.isArray(fr.history)){fr.history=[];changed=true}fr.history.forEach(ev=>{if(!ev.id){ev.id=uid();changed=true}})})})});S.meta.schemaVersion=2;S.meta.updatedAt=now;S.meta.deviceId=S.meta.deviceId||uid();S.auditLog.push({id:uid(),type:'schema_migration',from,to:2,at:now,note:'Добавлены постоянные внутренние ID и метаданные без изменения физических номеров рамок'});changed=true}return changed}
+async function requestStoragePersistence(){try{if(!navigator.storage||!navigator.storage.persist){storagePersisted=false;return}storagePersisted=await navigator.storage.persisted();if(!storagePersisted)storagePersisted=await navigator.storage.persist()}catch(e){storagePersisted=false}}
+async function updateStorageEstimate(){const host=$('storageUsage');if(!host)return;try{if(!navigator.storage?.estimate){host.textContent='Оценка занятого места браузером недоступна.';return}const e=await navigator.storage.estimate();storageEstimate=e;if(!Number.isFinite(e.usage)||!Number.isFinite(e.quota)||e.quota<=0){host.textContent='Браузер не предоставил оценку объёма хранилища.';return}const mb=n=>Math.round(n/1024/1024*10)/10,free=Math.max(0,e.quota-e.usage),pct=Math.round(e.usage/e.quota*100);host.textContent='Занято приложениями этого сайта: '+mb(e.usage)+' МБ из '+mb(e.quota)+' МБ · свободно примерно '+mb(free)+' МБ'+(pct>=85?' · мало свободного места':'')+'. Оценка приблизительная.';host.style.color=pct>=85?'#a33':''}catch(e){host.textContent='Не удалось получить оценку хранилища.'}}
+(async()=>{
+ try{
+  await openDB();await requestStoragePersistence();
+  const loaded=await read();
+  if(loaded){
+   try{S=validateBackupState(loaded)}
+   catch(primaryError){
+    const backup=await readAutoBackup();
+    if(!backup||!backup.state)throw new Error('Основная база повреждена, а пригодной автокопии нет: '+primaryError.message);
+    S=validateBackupState(backup.state);autoBackupRecovered=true;
+   }
+  }
+  const migrated=migrateState();if(migrated||autoBackupRecovered)await write();
+  S.extractions=S.extractions||[];S.tasks=S.tasks||[];
+  const existingBackup=await readAutoBackup();
+  if(!existingBackup){try{await writeAutoBackup(S);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write()}}
+  selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
+  history.replaceState({pasekaTab:'home'},'',location.pathname);
+  showTab('home',false);
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
+ }catch(e){alert('Не удалось безопасно открыть данные пасеки: '+(e.message||e)+'. Не очищай данные браузера. Если есть JSON-архив, восстанови его после проверки.')}
+})();
+</script><!-- graphical-assembly-cache-v23 -->
+<!-- Pages publish trigger: latest honey-super settings fix -->
+</body></html>
