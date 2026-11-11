@@ -44,6 +44,7 @@
 .frame-editor button.status-extracted{background:#62b9d5;color:#123744}
 .frame-editor button.status-nectar{background:#f0b84b;color:#38270a}
 .extract-row{margin:10px 0}.extract-hive{display:flex;align-items:center;gap:8px}.extract-options{padding:8px 0 0 26px}.extract-options .row{gap:12px;flex-wrap:wrap}.extract-options label{display:flex;align-items:center;gap:5px}
+.frame-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:10px;font-size:11px;color:#526052}.frame-legend span{display:flex;align-items:center;gap:5px}.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 </style></head><body>
 <header><h1>🐝 Пасека</h1><div class="muted" style="color:#dbe6da">Личный журнал пчеловода · Грабово</div><div class="stats"><div><b id="nh">0</b><span>ульев</span></div><div><b id="nf">0</b><span>семей</span></div><div><b id="nr">0</b><span>записей</span></div></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Пасека</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="settings">Настройки</button></nav>
@@ -62,7 +63,7 @@
   </div>
   <div class="row"><h3>Конструкция и рамки</h3><span class="pill">6 гнездовых + 2 медовых</span></div>
   <div class="row"><button id="summerMode" class="active" onclick="setStructureMode('summer')">Летняя сборка</button><button id="winterMode" onclick="setStructureMode('winter')">Зимовка</button></div>
-  <div class="card"><div class="row"><b id="structureTitle">Три секции рядом</b><button onclick="toggleHoney()">Медовые корпуса</button></div><div id="honeyPair" class="honey-pair"></div><div id="hiveDiagram"></div></div>
+  <div class="card"><div class="row"><b id="structureTitle">Три секции рядом</b><button onclick="toggleHoney()">Медовые корпуса</button></div><div id="honeyPair" class="honey-pair"></div><div id="hiveDiagram"></div><div class="frame-legend"><span><i class="legend-dot" style="background:#32834f"></i>Запечатана</span><span><i class="legend-dot" style="background:#62b9d5"></i>Откачана</span><span><i class="legend-dot" style="background:#f0b84b"></i>Мёд не запечатан</span><span><i class="legend-dot" style="background:#d8ddd7"></i>Вощина</span></div></div>
   <div id="winterControls" class="card" style="display:none"><b>Сборка зимней колонны</b><p class="muted">Выбери три фактически переставленных корпуса и их порядок сверху вниз.</p><div id="winterPicker"></div><button class="primary" onclick="commitWinter()">Сохранить сборку</button><button onclick="restoreSummer()">Летняя конфигурация</button></div>
   <p class="muted">Нажми на корпус или рамку. Карточка объекта откроет только действия, доступные для него.</p>
  </div>
@@ -161,7 +162,7 @@ async function restoreSummer(){const l=layoutFor(selectedStructureHive());l.mode
 
 function openExtractionDialog(){
  $('extractDate').value=today();
- $('extractRows').innerHTML=S.hives.map(h=>{const l=layoutFor(h.id);return '<div class="card extract-row"><label class="extract-hive"><input type="checkbox" class="extract-select" data-hive="'+h.id+'" onchange="toggleExtractRow(this)"> <b>'+safe(h.name)+'</b></label><div class="extract-options" data-options="'+h.id+'" style="display:none"><div class="row"><label><input type="checkbox" class="extract-box" data-hive="'+h.id+'" value="H1" '+(l.honeyBoxInstalled[0]?'checked':'')+'> Медовый корпус 1</label><label><input type="checkbox" class="extract-box" data-hive="'+h.id+'" value="H2" '+(l.honeyBoxInstalled[1]?'checked':'')+'> Медовый корпус 2</label></div><label>Получено мёда, кг</label><input class="extract-kg" data-hive="'+h.id+'" type="number" min="0" step="0.1" placeholder="Например, 18,5"></div></div>'}).join('')||'<p>Сначала добавь улей.</p>';
+ $('extractRows').innerHTML=S.hives.map(h=>{const l=layoutFor(h.id);return '<div class="card extract-row"><label class="extract-hive"><input type="checkbox" class="extract-select" data-hive="'+h.id+'" onchange="toggleExtractRow(this)"> <b>'+safe(h.name)+'</b></label><div class="extract-options" data-options="'+h.id+'" style="display:none"><div class="row"><label><input type="checkbox" class="extract-box" data-hive="'+h.id+'" value="H1" '+(l.honeyBoxInstalled[0]?'checked':'disabled')+'> Медовый корпус 1</label><label><input type="checkbox" class="extract-box" data-hive="'+h.id+'" value="H2" '+(l.honeyBoxInstalled[1]?'checked':'disabled')+'> Медовый корпус 2</label></div><label>Получено мёда, кг</label><input class="extract-kg" data-hive="'+h.id+'" type="number" min="0" step="0.1" placeholder="Например, 18,5"></div></div>'}).join('')||'<p>Сначала добавь улей.</p>';
  extractDlg.showModal();
 }
 function toggleExtractRow(el){const box=document.querySelector('[data-options="'+el.dataset.hive+'"]');if(box)box.style.display=el.checked?'block':'none'}
