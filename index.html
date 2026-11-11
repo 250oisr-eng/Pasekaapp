@@ -366,7 +366,19 @@ function showTab(tab,push=true){const current=document.querySelector('.panel.act
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
 function openHive(id){selectedHiveId=id;activeJournalHive=id;render();showTab('hiveDetail')}function showHiveListScreen(){showTab('hives')}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
-async function deleteHive(id){const h=S.hives.find(x=>x.id===id);if(!h)return;if(!confirm('Удалить '+hname(id)+'? Вместе с ним будут удалены его семьи, записи, задачи и данные корпусов.'))return;S.hives=S.hives.filter(x=>x.id!==id);S.families=S.families.filter(x=>x.hive!==id);S.records=S.records.filter(x=>x.hive!==id);S.tasks=S.tasks.filter(x=>x.hive!==id);S.extractions=(S.extractions||[]).filter(x=>!(x.items||[]).some(item=>item.hiveId===id));if(S.layouts)delete S.layouts[id];if(selectedHiveId===id)selectedHiveId='';if(activeJournalHive===id)activeJournalHive='';await save();showTab('hives')}
+async function deleteHive(id){
+ const h=S.hives.find(x=>x.id===id);if(!h)return;
+ if(!confirm('Удалить '+hname(id)+'? Вместе с ним будут удалены его семьи, записи, задачи и данные корпусов.'))return;
+ S.hives=S.hives.filter(x=>x.id!==id);
+ S.families=S.families.filter(x=>x.hive!==id);
+ S.records=S.records.filter(x=>x.hive!==id);
+ S.tasks=S.tasks.filter(x=>x.hive!==id);
+ S.extractions=(S.extractions||[]).map(event=>({...event,items:(event.items||[]).filter(item=>item.hiveId!==id)})).filter(event=>event.items.length);
+ if(S.layouts)delete S.layouts[id];
+ if(selectedHiveId===id)selectedHiveId='';
+ if(activeJournalHive===id)activeJournalHive='';
+ await save();showTab('hives');
+}
 function openNewHive(){const dlg=$('hiveDlg'),form=$('hiveForm');if(!dlg||!form){alert('Не удалось открыть создание улья: окно или форма не найдены.');return}try{$('hiveDialogTitle').textContent='Новый улей';form.reset();$('newHiveMode').value='summer';form.onsubmit=defaultHive;if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','')}catch(err){alert('Ошибка открытия окна создания улья: '+(err.message||err))}}
 function editHive(id){let h=S.hives.find(x=>x.id===id);if(!h)return;$('hiveDialogTitle').textContent=hname(id)+' · примечание';$('hiveDesc').value=h.desc||'';$('hiveDlg').showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.desc=$('hiveDesc').value;$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive;await save()}}
 async function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));const h={id:uid(),number,desc:$('hiveDesc').value};S.meta.nextHiveNumber=number+1;S.hives.push(h);const l=layoutFor(h.id);l.mode=$('newHiveMode').value;l.setupComplete=false;l.setupEditing=true;l.installedBoxes=[];l.honeyBoxInstalled=[false,false];l.winterOrder=[];selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';try{await save();$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}catch(err){alert('Не удалось сохранить улей: '+(err.message||err))}}
@@ -525,7 +537,18 @@ function syncFrameStatus(){if($('frameStatus').value==='drawn')$('frameType').va
 function commitFrameEdit(){const l=layoutFor(selectedStructureHive()),x=frameArray(l,editingBox)[editingFrame];if(!x)return;const next={type:$('frameType').value,status:$('frameStatus').value,note:$('frameNote').value};const changed=x.type!==next.type||x.status!==next.status||x.note!==next.note;if(changed){x.history=x.history||[];x.history.push({date:today(),from:{type:x.type,status:x.status,note:x.note||''},to:next});Object.assign(x,next)}}
 function chooseFrame(i){commitFrameEdit();editingFrame=i;renderFrameEditor()}
 function addFrame(){const l=layoutFor(selectedStructureHive()),arr=frameArray(l,editingBox);if(arr.length>=frameCapacity(editingBox))return alert('Корпус заполнен');const fr={frameId:nextFrameId(l,editingBox),originBox:editingBox,location:editingBox,type:'foundation',status:'foundation',history:[]};arr.push(fr);editingFrame=arr.length-1;renderFrameEditor()}
-function moveFrame(){commitFrameEdit();const l=layoutFor(selectedStructureHive()),source=frameArray(l,editingBox),targetKey=$('frameMoveTo').value,target=frameArray(l,targetKey);if(target.length>=frameCapacity(targetKey))return alert('В выбранном корпусе нет свободного места');const fr=source[editingFrame],from={location:editingBox,position:editingFrame+1};source.splice(editingFrame,1);fr.history=fr.history||[];fr.history.push({date:today(),action:'move',from,to:{location:targetKey,position:target.length+1}});fr.location=targetKey;target.push(fr);editingBox=targetKey;editingFrame=target.length-1;renderFrameEditor();save()}
+async function moveFrame(){
+ const l=layoutFor(selectedStructureHive()),source=frameArray(l,editingBox),targetKey=$('frameMoveTo').value,target=frameArray(l,targetKey);
+ if(!source||!source[editingFrame])return alert('Выбранная рамка больше не найдена. Обнови редактор.');
+ if(source===target)return alert('Выбери другой корпус для перемещения рамки.');
+ if(!target||target.length>=frameCapacity(targetKey))return alert('В выбранном корпусе нет свободного места');
+ commitFrameEdit();
+ const fr=source[editingFrame],from={location:editingBox,position:editingFrame+1};
+ source.splice(editingFrame,1);fr.history=fr.history||[];
+ fr.history.push({date:today(),action:'move',from,to:{location:targetKey,position:target.length+1}});
+ fr.location=targetKey;target.push(fr);editingBox=targetKey;editingFrame=target.length-1;
+ renderFrameEditor();await save();
+}
 function saveBox(){
  commitFrameEdit();
  const l=layoutFor(selectedStructureHive());
