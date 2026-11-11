@@ -232,14 +232,40 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 <dialog id="extractDlg"><h2>Откачка мёда</h2><p class="muted">Отметь ульи и медовые корпуса одной откачки. Количество мёда укажи отдельно для каждого улья.</p><label>Дата откачки</label><input type="date" id="extractDate"><div id="extractRows"></div><div class="row"><button onclick="$('extractDlg').close()">Отмена</button><button class="primary" onclick="saveExtraction()">Зафиксировать откачку</button></div></dialog>
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
 <script>
-const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>new Date().toISOString().slice(0,10),safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null;let saveQueue=Promise.resolve();let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>new Date().toISOString().slice(0,10),safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function openDB(){return new Promise((ok,no)=>{let q=indexedDB.open(DB,2);q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE)};q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
 async function read(){const current=await readMain();if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}return undefined}
-function write(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(S,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
+function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
 function writeAutoBackup(state){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readwrite');t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||new Error('Обновление автокопии прервано'))})}
-async function save(){S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();const lightRecords=S.records.map(({media,...r})=>r);S.snapshots.push({at:new Date().toISOString(),hives:S.hives,families:S.families,records:lightRecords,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks});S.snapshots=S.snapshots.slice(-12);let previous=null,previousReadFailed=false;try{previous=await readMain()}catch(e){previousReadFailed=true;S.meta.autoBackupError='Не удалось прочитать прежнее состояние для автокопии'}if(previous){try{await writeAutoBackup(previous);autoBackupInfo={at:new Date().toISOString()};delete S.meta.autoBackupError;S.meta.autoBackupAt=autoBackupInfo.at}catch(e){S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию'}}try{delete S.meta.saveError;await write();if(!previous&&!previousReadFailed){try{await writeAutoBackup(S);autoBackupInfo={at:new Date().toISOString()};S.meta.autoBackupAt=autoBackupInfo.at;delete S.meta.autoBackupError;await write()}catch(e){S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write()}}render();return true}catch(e){S.meta.saveError=e&&e.name==='QuotaExceededError'?'Недостаточно места для сохранения основной базы':'Не удалось сохранить основную базу';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.');return false}}
+async function save(){
+ S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};
+ S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();delete S.meta.saveError;
+ const lightRecords=S.records.map(({media,...r})=>r);
+ S.snapshots.push({at:new Date().toISOString(),hives:S.hives,families:S.families,records:lightRecords,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks});
+ S.snapshots=S.snapshots.slice(-12);
+ let snapshot;
+ try{snapshot=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+ catch(e){S.meta.saveError='Не удалось подготовить копию данных к сохранению';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Не закрывай приложение и скачай JSON-архив.');return false}
+ const run=()=>persistSnapshot(snapshot);
+ const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});return pending
+}
+async function persistSnapshot(state){
+ let previous=null,previousReadFailed=false;
+ try{previous=await readMain()}catch(e){previousReadFailed=true;state.meta.autoBackupError='Не удалось прочитать прежнее состояние для автокопии'}
+ if(previous){try{await writeAutoBackup(previous);autoBackupInfo={at:new Date().toISOString()};delete state.meta.autoBackupError;state.meta.autoBackupAt=autoBackupInfo.at}catch(e){state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию'}}
+ try{
+  await write(state);
+  if(!previous&&!previousReadFailed){try{await writeAutoBackup(state);autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;await write(state)}catch(e){state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write(state)}}
+  if(S.meta?.updatedAt===state.meta.updatedAt){delete S.meta.saveError;if(state.meta.autoBackupError)S.meta.autoBackupError=state.meta.autoBackupError;else delete S.meta.autoBackupError;S.meta.autoBackupAt=state.meta.autoBackupAt}
+  render();return true
+ }catch(e){
+  state.meta.saveError=e&&e.name==='QuotaExceededError'?'Недостаточно места для сохранения основной базы':'Не удалось сохранить основную базу';
+  if(S.meta?.updatedAt===state.meta.updatedAt)S.meta.saveError=state.meta.saveError;
+  render();alert('ВНИМАНИЕ: '+state.meta.saveError+'. Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.');return false
+ }
+}
 function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
 function nextFamilyCode(){const yy=String(new Date().getFullYear()).slice(-2);let max=0;for(const f of S.families||[]){const m=String(f.name||'').match(/^(\d{2})-(\d+)$/);if(m&&m[1]===yy)max=Math.max(max,Number(m[2])||0);if(Number(f.familyYear)===2000+Number(yy))max=Math.max(max,Number(f.familySequence)||0)}return yy+'-'+(max+1)}
 function hname(id){const h=S.hives.find(x=>x.id===id);return h?'Улей '+(h.number||S.hives.indexOf(h)+1):'Улей'}
