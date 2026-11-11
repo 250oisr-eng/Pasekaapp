@@ -390,10 +390,12 @@ function prepareRecordForm(){$('mediaPreview').innerHTML='';$('existingMedia').i
 function newRecord(){if(!S.hives.length){alert('Сначала добавь улей');return}if(!activeJournalHive){alert('Сначала выбери улей и открой его журнал');return}$('recordForm').reset();$('recordId').value='';$('recordTitle').textContent='Новая запись · '+hname(activeJournalHive);prepareRecordForm();$('rhive').value=activeJournalHive;$('rhive').disabled=true;$('rdate').value=today();$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value='';toggleOccupancy();fillFamilies();$('recordDlg').showModal()}
 function mediaHtml(items){
  return (items||[]).map((m,i)=>{
-  const src=safe(m.data||''),name=safe(m.name||('Файл '+(i+1)));
-  if(m.kind==='video')return '<div class="media-item"><video controls preload="metadata" src="'+src+'"></video><div class="muted">'+name+'</div></div>';
-  if(m.kind==='image')return '<div class="media-item"><img loading="lazy" src="'+src+'" alt="'+name+'"><div class="muted">'+name+'</div></div>';
-  return '<div class="media-item"><a href="'+src+'" target="_blank" rel="noopener">'+name+'</a></div>';
+  const name=safe(m.name||('Файл '+(i+1))),raw=String(m.data||'');
+  const imageData=/^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(raw);
+  const videoData=/^data:video\/[a-z0-9.+-]+;base64,/i.test(raw);
+  if(m.kind==='video'&&videoData)return '<div class="media-item"><video controls preload="metadata" src="'+safe(raw)+'"></video><div class="muted">'+name+'</div></div>';
+  if(m.kind==='image'&&imageData)return '<div class="media-item"><img loading="lazy" src="'+safe(raw)+'" alt="'+name+'"><div class="muted">'+name+'</div></div>';
+  return '<div class="media-item"><span>'+name+' · файл недоступен или формат не поддерживается</span></div>';
  }).join('');
 }
 function editRecord(id){const r=S.records.find(x=>x.id===id);if(!r)return;$('recordForm').reset();$('recordId').value=r.id;$('recordTitle').textContent='Редактирование записи';prepareRecordForm();$('rdate').value=r.date;$('rtype').value=r.type;$('roccupancy').value=r.occupancy??'';$('rbrood').value=r.broodFrames??'';$('rdrawn').value=r.freeDrawn??'';toggleOccupancy();$('rhive').value=r.hive;fillFamilies();$('rfamily').value=r.family||'';$('rqueen').value=r.queen||'';$('reggs').value=r.eggs||'';$('rbroodPattern').value=r.broodPattern||'';$('rqueenCells').value=r.queenCells||'';$('rswarmSigns').value=r.swarmSigns||'';$('rtreatmentProduct').value=r.treatmentProduct||'';$('rtreatmentActive').value=r.treatmentActive||'';$('rtreatmentMethod').value=r.treatmentMethod||'';$('rtreatmentDose').value=r.treatmentDose||'';$('rtreatmentCheck').value=r.treatmentCheck||'';$('rtext').value=r.text||'';$('existingMedia').innerHTML=mediaHtml(r.media||[]);$('recordDlg').showModal()}
