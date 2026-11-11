@@ -101,7 +101,7 @@
  <div class="card"><b>Последние события</b><div id="recent" class="muted">Записей пока нет.</div></div>
 </section>
 <section id="hives" class="panel">
- <div class="row"><h2>Ульи</h2><button class="primary" onclick="hiveDlg.showModal()">＋ Добавить</button></div>
+ <div class="row"><h2>Ульи</h2><button class="primary" onclick="openNewHive()">＋ Добавить</button></div>
  <div id="hiveList"></div>
  <div id="selectedHivePanel" style="display:none">
   <div class="card">
@@ -203,6 +203,7 @@ function showTab(tab,push=true){const current=document.querySelector('.panel.act
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 window.addEventListener('popstate',event=>paintTab(event.state&&event.state.pasekaTab?event.state.pasekaTab:'home'))
 function openHive(id){selectedHiveId=id;activeJournalHive=id;showHiveList=false;render();showTab('hives')}function showHiveListScreen(){showHiveList=true;render()}function editSelectedHive(){if(selectedHiveId)editHive(selectedHiveId)}function openHiveJournal(id){activeJournalHive=id;selectedHiveId=id;showTab('journal');render()}
+function openNewHive(){$('hiveDialogTitle').textContent='Новый улей';$('hiveForm').reset();$('hiveForm').onsubmit=defaultHive;hiveDlg.showModal()}
 function editHive(id){let h=S.hives.find(x=>x.id===id);if(!h)return;$('hiveDialogTitle').textContent=hname(id)+' · описание';$('hiveDesc').value=h.desc||'';hiveDlg.showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.desc=$('hiveDesc').value;hiveDlg.close();$('hiveForm').onsubmit=defaultHive;await save()}}
 function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));const h={id:uid(),number,desc:$('hiveDesc').value};S.meta.nextHiveNumber=number+1;S.hives.push(h);selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';hiveDlg.close();$('hiveForm').reset();save()}
 $('hiveForm').onsubmit=defaultHive;
