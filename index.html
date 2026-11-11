@@ -425,7 +425,7 @@ async function startVideoCapture(){
   $('cameraPreview').srcObject=cameraStream;$('videoCapturePanel').style.display='block';
   const types=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
   const mime=types.find(t=>MediaRecorder.isTypeSupported(t));
-  videoRecorder=mime?new MediaRecorder(cameraStream,{mimeType:mime}):new MediaRecorder(cameraStream);
+  const recorderOptions={videoBitsPerSecond:1400000,audioBitsPerSecond:64000};if(mime)recorderOptions.mimeType=mime;videoRecorder=new MediaRecorder(cameraStream,recorderOptions);
   videoChunks=[];videoRecorder.ondataavailable=e=>{if(e.data&&e.data.size)videoChunks.push(e.data)};
   videoRecorder.onerror=e=>{alert('Ошибка видеозаписи: '+(e.error?.message||'неизвестная ошибка'));stopVideoCapture(true)};
   videoRecorder.onstop=async()=>{
@@ -446,7 +446,7 @@ async function startVideoCapture(){
   videoTimer=setTimeout(()=>stopVideoCapture(),60000);
  }catch(e){if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;$('videoCapturePanel').style.display='none';alert('Не удалось открыть камеру. Проверь разрешение на камеру и микрофон: '+(e.message||e))}
 }
-$('recordDlg').addEventListener('close',()=>stopVideoCapture(true));
+$('recordDlg').addEventListener('cancel',e=>{if(videoRecorder&&videoRecorder.state==='recording'){e.preventDefault();alert('Сначала нажми «Остановить» и дождись появления видео в предпросмотре.')}});$('recordDlg').addEventListener('close',()=>stopVideoCapture(true));
 async function prepareImage(file){
  const src=await fileData(file);
  return new Promise(resolve=>{
@@ -479,6 +479,7 @@ $('rmedia').onchange=async()=>{
 $('rtype').onchange=toggleOccupancy;
 $('recordForm').onsubmit=async e=>{
  e.preventDefault();
+ if(videoRecorder&&videoRecorder.state==='recording'){alert('Сначала нажми «Остановить» и дождись появления видео в предпросмотре, затем сохрани запись.');return}
  const files=[...$('rmedia').files],tooLarge=files.find(f=>f.type.startsWith('video/')&&f.size>50*1024*1024);
  if(tooLarge){alert('Видео «'+tooLarge.name+'» больше 50 МБ. Уменьши файл или выбери другое видео. Запись не сохранена.');return}
  const media=[];
