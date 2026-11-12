@@ -1614,7 +1614,7 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  const profile={id:'farrar-6x6-v1',family:'farrar'};
  const validate=loadFunction('validateVirtualApiary',{
   S:state,inspectFamilyLineage:()=>[],inspectTaskIntegrity:()=>[],
-  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]})
+  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]}),inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')
  });
  const result=validate();
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
