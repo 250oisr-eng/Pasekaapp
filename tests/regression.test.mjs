@@ -1025,7 +1025,7 @@ test('main database write rejects a stale revision without overwriting newer sta
    return tx;
   }
  };
- const write=loadFunction('writeMainIfUnchanged',{db});
+ const write=loadFunction('writeMainIfUnchanged',{db,STORE:'main'});
  const previous=await write({meta:{revisionId:'rev-2'},value:'newer'},'rev-1');
  assert.equal(previous.meta.revisionId,'rev-1');
  assert.equal(stored.meta.revisionId,'rev-2');
@@ -1516,7 +1516,7 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
   getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]})
  });
  const result=validate();
- assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
+ assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration preserves physical frame IDs and adds stable metadata exactly once',()=>{
  const state={
