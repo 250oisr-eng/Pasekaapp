@@ -1583,11 +1583,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- const migrate=loadFunction('migrateState');
  for(const version of [0,3,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
-  const before=JSON.stringify(state);
-  assert.throws(()=>migrate.call({S:state}),/Неподдерживаемая версия схемы данных/);
+  const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
+  assert.throws(()=>migrate(),/Неподдерживаемая версия схемы данных/);
   assert.equal(JSON.stringify(state),before);
  }
 });
