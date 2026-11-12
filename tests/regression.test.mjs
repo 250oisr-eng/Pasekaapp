@@ -1588,7 +1588,7 @@ test('frame inventory numbers are global, permanent, six digits and idempotent a
  ]);
  assert.equal(values.length,4);
  assert.equal(new Set(values).size,4);
- assert.ok(values.every(value=>/^\\d{6}$/.test(value)));
+ assert.ok(values.every(value=>/^\d{6}$/.test(value)));
  assert.equal(state.layouts.h1.boxes[1].frames[0].frameId,'B1');
  const after=JSON.stringify(state);
  ensure(state);
