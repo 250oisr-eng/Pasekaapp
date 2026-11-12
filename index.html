@@ -801,7 +801,7 @@ function renderAICommandPreview(message,index){
  if(message.commandStatus==='pending'&&plan?.ok&&plan.kind==='suggest_tasks'&&Array.isArray(plan.suggestions)){
   const rows=plan.suggestions.map(item=>{
    const hive=S.hives.find(h=>h?.id===item.hiveId),evidence=item.evidence||[];
-   const refs=evidence.map(r=>'<li>'+safe(r.date||'Дата не указана')+' · '+safe(r.type||'Запись')+' · '+safe(r.text||'').slice(0,220)+'</li>').join('');
+   const refs=evidence.map(r=>'<li>'+safe(r.date||'Дата не указана')+' · '+safe(r.type||'Запись')+' · '+safe(r.text||'').slice(0,220)+(r.fingerprint?'<br><span class="muted">Снимок записи проверяется перед сохранением</span>':'')+'</li>').join('');
    return '<li><b>'+safe(item.type)+'</b> · '+safe(hive?'Улей №'+hive.number:'Улей')+'<br><span class="muted">Срок: '+safe(item.date||'не назначен')+'</span><p>'+safe(item.note)+'</p><p class="muted">Основание: '+safe(item.rationale)+'</p><details><summary>Записи-основания ('+evidence.length+')</summary><ul>'+refs+'</ul></details></li>';
   }).join('');
   return '<div class="ai-command-preview"><b>Предлагаемые задачи · '+plan.suggestions.length+'</b><ol>'+rows+'</ol><p class="muted">Пока это только предварительный план. Даты не назначены без основания. После подтверждения задачи появятся в списке как предложения; каждую можно будет отдельно принять или отклонить.</p><div class="ai-command-actions"><button type="button" class="primary" data-ai-confirm="'+index+'">Сохранить предложения</button><button type="button" data-ai-cancel="'+index+'">Отменить</button></div></div>';
@@ -881,6 +881,9 @@ async function confirmAICommand(index){
  const message=S.aiMessages?.[index];
  if(!message||message.commandStatus!=='pending'||!message.commandProposal||!message.commandPlan)return;
  const plan=message.commandPlan;
+ if(!aiCommandRevisionIsCurrent(S,message)){
+  message.commandStatus='stale';message.commandError='Данные пасеки изменились после отправки запроса ИИ. Построй новый план на актуальных данных.';await save();renderAIChat();return;
+ }
  if(plan.kind==='suggest_tasks'){
   const lines=plan.suggestions.map(item=>item.type+' · '+(S.hives.find(h=>h?.id===item.hiveId)?.number?'улей №'+S.hives.find(h=>h?.id===item.hiveId).number:'улей')+' · '+(item.date||'без даты')+' · записи: '+item.sourceRecordIds.join(', '));
   if(!confirm('Сохранить предложенные задачи? Они появятся со статусом «предложено» и не станут активными до отдельного подтверждения.\\n\\n'+lines.join('\\n')))return;
@@ -928,16 +931,20 @@ async function sendAIQuestion(){
  try{
   let accessToken='';const sessionResult=await aiAuthClient.getSession({fetchOptions:{onSuccess:(ctx)=>{accessToken=ctx.response.headers.get('set-auth-jwt')||''}}});if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
   accessToken=accessToken||sessionResult.data?.session?.token||'';if(!accessToken)throw new Error('Вход выполнен, но Neon Auth не вернул JWT. Проверь соединение с сервером авторизации и повтори вход.');
-  const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:buildAIContext()})});
+  const requestContext=buildAIContext(),requestRevision=S.meta?.revisionId||null;
+  const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:requestContext})});
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
   const extracted=extractAICommandProposal(data.answer||''),assistantMessage={role:'assistant',content:extracted.answer||'ИИ не вернул ответ.',at:new Date().toISOString()};
   if(extracted.parseError)assistantMessage.content+='\n\n'+extracted.parseError;
   if(extracted.proposal){
-   assistantMessage.commandProposal=extracted.proposal;
-   const validation=extracted.proposal.kind==='suggest_tasks'?validateAITaskSuggestionProposal(S,extracted.proposal):validateAICommandProposal(S,extracted.proposal);
-   if(validation.status==='ready_for_preview'){assistantMessage.commandStatus='pending';assistantMessage.commandPlan=validation.plan}
-   else if(validation.status==='needs_clarification'){assistantMessage.commandStatus='needs_clarification';assistantMessage.commandError=validation.clarifyingQuestions.join(' ')}
-   else{assistantMessage.commandStatus='rejected';assistantMessage.commandError=validation.errors?.map(error=>error.code).join(', ')||'команда не прошла проверку'}
+   assistantMessage.commandProposal=extracted.proposal;assistantMessage.commandRevision=requestRevision;
+   if((S.meta?.revisionId||null)!==requestRevision){assistantMessage.commandStatus='stale';assistantMessage.commandError='Данные пасеки изменились, пока ИИ готовил ответ. Обнови анализ и построй новый план.'}
+   else{
+    const validation=extracted.proposal.kind==='suggest_tasks'?validateAITaskSuggestionProposal(S,extracted.proposal):validateAICommandProposal(S,extracted.proposal);
+    if(validation.status==='ready_for_preview'){assistantMessage.commandStatus='pending';assistantMessage.commandPlan=validation.plan}
+    else if(validation.status==='needs_clarification'){assistantMessage.commandStatus='needs_clarification';assistantMessage.commandError=validation.clarifyingQuestions.join(' ')}
+    else{assistantMessage.commandStatus='rejected';assistantMessage.commandError=validation.errors?.map(error=>error.code).join(', ')||'команда не прошла проверку'}
+   }
   }
   S.aiMessages.push(assistantMessage);S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
  }catch(e){S.aiMessages.push({role:'assistant',content:'Не удалось получить ответ: '+(e.message||e),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat()}
@@ -1543,6 +1550,18 @@ function applyFrameMovePlan(state,plan,date){
  if(draft.auditLog.length>500)draft.auditLog=draft.auditLog.slice(-500);
  return {ok:true,state:draft,moves:audit};
 }
+function aiStableSnapshot(value){
+ if(Array.isArray(value))return value.map(aiStableSnapshot);
+ if(value&&typeof value==='object'){
+  const result={};
+  Object.keys(value).filter(key=>key!=='media').sort().forEach(key=>{if(value[key]!==undefined)result[key]=aiStableSnapshot(value[key])});
+  return result;
+ }
+ return value;
+}
+function aiCommandRevisionIsCurrent(state,message){
+ return !!message&&(message.commandRevision??null)===(state?.meta?.revisionId||null);
+}
 function validateAITaskSuggestionProposal(state,proposal){
  const fail=(code,details={})=>({status:'invalid',ok:false,errors:[{code,details}],clarifyingQuestions:[],plan:null});
  const validDate=value=>{
@@ -1557,9 +1576,12 @@ function validateAITaskSuggestionProposal(state,proposal){
  if(proposal.suggestions.length>8)return fail('ai_task_too_many_suggestions',{maximum:8});
  const allowedTypes=new Set(['Осмотр','Обработка','Расширение гнезда','Подкормка','Проверка матки','Подготовка к зимовке','Другое','Контроль после обработки']);
  const hives=new Set((Array.isArray(state?.hives)?state.hives:[]).map(h=>h?.id).filter(Boolean));
- const records=new Map((Array.isArray(state?.records)?state.records:[]).filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
+ const activeRecords=Array.isArray(state?.records)?state.records.filter(r=>r&&!r.archivedAt):[];
+ const recordCounts=new Map();
+ activeRecords.forEach(record=>{if(typeof record.id==='string')recordCounts.set(record.id,(recordCounts.get(record.id)||0)+1)});
+ const records=new Map(activeRecords.filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
  const activeTasks=Array.isArray(state?.tasks)?state.tasks.filter(t=>t&&['pending','suggested'].includes(t.status)):[];
- const seen=new Set(),suggestions=[];
+ const seenTasks=new Set(),suggestions=[];
  for(let index=0;index<proposal.suggestions.length;index++){
   const item=proposal.suggestions[index];
   if(!item||typeof item!=='object'||Array.isArray(item))return fail('ai_task_invalid_item',{index});
@@ -1574,35 +1596,45 @@ function validateAITaskSuggestionProposal(state,proposal){
   const evidence=[];
   for(const recordId of sourceRecordIds){
    const record=records.get(recordId);
-   if(!record||record.archivedAt||record.hive!==hiveId)return fail('ai_task_evidence_not_found_or_mismatched',{index,recordId,hiveId});
+   if(!record||recordCounts.get(recordId)!==1||record.archivedAt||record.hive!==hiveId||!validDate(record.date)||typeof record.type!=='string')return fail('ai_task_evidence_not_found_or_mismatched',{index,recordId,hiveId});
    evidence.push(record);
   }
-  const key=hiveId+'|'+type+'|'+sourceRecordIds.slice().sort().join('|');
-  if(seen.has(key))return fail('ai_task_duplicate_in_proposal',{index});
-  seen.add(key);
+  const taskKey=hiveId+'|'+type;
+  if(seenTasks.has(taskKey))return fail('ai_task_duplicate_in_proposal',{index,hiveId,type});
+  seenTasks.add(taskKey);
   if(activeTasks.some(task=>task.hive===hiveId&&task.type===type))return fail('ai_task_duplicate_active',{index,hiveId,type});
-  suggestions.push({hiveId,type,date,note,rationale,sourceRecordIds:sourceRecordIds.slice(),evidence:evidence.map(r=>({id:r.id,date:r.date||'',type:r.type||'',text:String(r.text||'').slice(0,500)}))});
+  suggestions.push({hiveId,type,date,note,rationale,sourceRecordIds:sourceRecordIds.slice(),evidence:evidence.map(r=>({id:r.id,date:r.date||'',type:r.type||'',text:String(r.text||'').slice(0,500),fingerprint:JSON.stringify(aiStableSnapshot(r))}))});
  }
- return {status:'ready_for_preview',ok:true,errors:[],clarifyingQuestions:[],plan:{ok:true,kind:'suggest_tasks',suggestions}};
+ return {status:'ready_for_preview',ok:true,errors:[],clarifyingQuestions:[],plan:{ok:true,kind:'suggest_tasks',expectedRevision:state?.meta?.revisionId||null,suggestions}};
 }
 function revalidateAITaskSuggestionPreview(state,proposal,reviewedPlan){
  const validation=validateAITaskSuggestionProposal(state,proposal);
  if(validation.status!=='ready_for_preview')return {ok:false,status:validation.status,errors:validation.errors||[]};
+ if((reviewedPlan?.expectedRevision??null)!==(state?.meta?.revisionId||null))return {ok:false,status:'stale',errors:[{code:'ai_task_revision_changed'}]};
  if(!reviewedPlan||JSON.stringify(validation.plan.suggestions)!==JSON.stringify(reviewedPlan.suggestions))return {ok:false,status:'stale',errors:[{code:'ai_task_preview_changed'}]};
  return {ok:true,status:'ready_for_preview',plan:validation.plan};
 }
 function applyAITaskSuggestionsToDraft(state,plan,makeId,createdAt){
  if(!state||!plan?.ok||plan.kind!=='suggest_tasks'||!Array.isArray(plan.suggestions)||typeof makeId!=='function')return {ok:false,errors:[{code:'ai_task_plan_invalid'}]};
+ if((plan.expectedRevision??null)!==(state?.meta?.revisionId||null))return {ok:false,errors:[{code:'ai_task_revision_changed'}]};
+ const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:plan.suggestions.map(item=>({hiveId:item.hiveId,type:item.type,date:item.date,note:item.note,rationale:item.rationale,sourceRecordIds:item.sourceRecordIds}))};
+ const checked=revalidateAITaskSuggestionPreview(state,proposal,plan);
+ if(!checked.ok)return {ok:false,errors:checked.errors||[{code:'ai_task_plan_stale'}]};
+ if(typeof createdAt!=='string'||!Number.isFinite(Date.parse(createdAt)))return {ok:false,errors:[{code:'ai_task_created_at_invalid'}]};
  const clone=typeof structuredClone==='function'?structuredClone(state):JSON.parse(JSON.stringify(state));
  clone.tasks=Array.isArray(clone.tasks)?clone.tasks:[];clone.auditLog=Array.isArray(clone.auditLog)?clone.auditLog:[];
+ const usedIds=new Set([...clone.tasks,...clone.auditLog].map(item=>item?.id).filter(id=>typeof id==='string'));
+ const nextId=()=>{const id=makeId();if(typeof id!=='string'||!id.trim()||usedIds.has(id))return null;usedIds.add(id);return id};
  const created=[];
- for(const suggestion of plan.suggestions){
-  const task={id:makeId(),hive:suggestion.hiveId,type:suggestion.type,date:suggestion.date,note:suggestion.note,aiRationale:suggestion.rationale,aiSourceRecordIds:suggestion.sourceRecordIds.slice(),source:'ai',status:'suggested',createdAt};
+ for(const suggestion of checked.plan.suggestions){
+  const id=nextId();if(!id)return {ok:false,errors:[{code:'ai_task_generated_id_invalid_or_duplicate'}]};
+  const task={id,hive:suggestion.hiveId,type:suggestion.type,date:suggestion.date,note:suggestion.note,aiRationale:suggestion.rationale,aiSourceRecordIds:suggestion.sourceRecordIds.slice(),source:'ai',status:'suggested',createdAt};
   const validation=validateTaskDraft(task,clone);
   if(!validation.ok)return {ok:false,errors:validation.errors};
   clone.tasks.push(task);created.push(task);
  }
- clone.auditLog.push({id:makeId(),type:'ai_task_suggestions_created',at:createdAt,taskIds:created.map(t=>t.id),sourceRecordIds:[...new Set(created.flatMap(t=>t.aiSourceRecordIds))]});
+ const auditId=nextId();if(!auditId)return {ok:false,errors:[{code:'ai_task_audit_id_invalid_or_duplicate'}]};
+ clone.auditLog.push({id:auditId,type:'ai_task_suggestions_created',at:createdAt,taskIds:created.map(t=>t.id),sourceRecordIds:[...new Set(created.flatMap(t=>t.aiSourceRecordIds))]});
  return {ok:true,state:clone,tasks:created};
 }
 function validateAICommandProposal(state,proposal){
