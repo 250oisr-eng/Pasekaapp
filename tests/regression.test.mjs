@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { IDBFactory } from 'fake-indexeddb';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
@@ -1741,4 +1742,88 @@ test('record dialog has compact responsive layout rules for portrait and landsca
  assert.match(html,/@media\s*\(orientation:landscape\)\s*and\s*\(max-height:520px\)/);
  assert.match(html,/@media\s*\(orientation:portrait\)\s*and\s*\(max-width:560px\)/);
  assert.match(html,/max-height:calc\(100dvh - 8px\)/);
+});
+
+
+function openRealIndexedDb(factory, name, backupKeyPath = false) {
+ return new Promise((resolve,reject)=>{
+  const request=factory.open(name,1);
+  request.onupgradeneeded=()=>{
+   const db=request.result;
+   db.createObjectStore('main');
+   db.createObjectStore('backup',backupKeyPath?{keyPath:'id'}:undefined);
+  };
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error||new Error('Не удалось открыть тестовую IndexedDB'));
+ });
+}
+function completeTransaction(tx) {
+ return new Promise((resolve,reject)=>{
+  tx.oncomplete=()=>resolve();
+  tx.onabort=()=>reject(tx.error||new Error('Тестовая транзакция прервана'));
+  tx.onerror=()=>reject(tx.error||new Error('Ошибка тестовой транзакции'));
+ });
+}
+async function seedIndexedDb(db, stores) {
+ const tx=db.transaction(stores,'readwrite');
+ const done=completeTransaction(tx);
+ for(const [store,value,key] of arguments[1].entries()) tx.objectStore(store).put(value,key);
+ await done;
+}
+async function readIndexedDb(db,store,key) {
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(store,'readonly'),request=tx.objectStore(store).get(key);
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+}
+let indexedDbTestSequence=0;
+
+test('IndexedDB real API serializes competing revision writes and rejects the stale second writer',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'revision-race-'+(++indexedDbTestSequence));
+ try{
+  await seedIndexedDb(db,[['main',{meta:{revisionId:'rev-1'},value:'initial'},'state']]);
+  const write=loadFunction('writeMainIfUnchanged',{db,STORE:'main'});
+  const results=await Promise.allSettled([
+   write({meta:{revisionId:'rev-2a'},value:'writer-a'},'rev-1'),
+   write({meta:{revisionId:'rev-2b'},value:'writer-b'},'rev-1')
+  ]);
+  assert.equal(results.filter(x=>x.status==='fulfilled').length,1);
+  const rejected=results.find(x=>x.status==='rejected');
+  assert.equal(rejected.reason.name,'PasekaConflictError');
+  const saved=await readIndexedDb(db,'main','state');
+  assert.ok(['rev-2a','rev-2b'].includes(saved.meta.revisionId));
+  assert.notEqual(saved.meta.revisionId,'rev-1');
+ }finally{db.close()}
+});
+
+test('IndexedDB real API commits restored state and previous backup atomically',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'atomic-restore-'+(++indexedDbTestSequence));
+ try{
+  const previous={meta:{revisionId:'rev-1'},value:'previous'};
+  await seedIndexedDb(db,[['main',previous,'state']]);
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const restored={meta:{revisionId:'rev-2'},value:'restored'};
+  const returned=await write(restored,'rev-1');
+  assert.deepEqual(returned,previous);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),restored);
+  const backup=await readIndexedDb(db,'backup','previous');
+  assert.deepEqual(backup.state,previous);
+  assert.equal(typeof backup.at,'string');
+ }finally{db.close()}
+});
+
+test('IndexedDB real API aborts main restore when backup write fails',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'atomic-restore-failure-'+(++indexedDbTestSequence),true);
+ try{
+  const previous={meta:{revisionId:'rev-1'},value:'must-survive'};
+  await seedIndexedDb(db,[['main',previous,'state']]);
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  await assert.rejects(write({meta:{revisionId:'rev-2'},value:'must-not-commit'},'rev-1'),error=>error?.name==='DataError');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),previous);
+  assert.equal(await readIndexedDb(db,'backup','previous'),undefined);
+ }finally{db.close()}
 });
