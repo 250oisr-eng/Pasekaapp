@@ -1393,7 +1393,15 @@ function validateHiveAssemblyProfile(profile,layout){
  if(!Array.isArray(layout.installedBoxes))add('installed_boxes_invalid');
  if(installed.some(key=>!broodKeys.includes(key)))add('installed_box_unknown');
  if(new Set(installed).size!==installed.length)add('installed_box_duplicate');
+ if(layout.boxes&&typeof layout.boxes==='object'&&!Array.isArray(layout.boxes)){
+  for(const key of broodKeys){
+   const box=layout.boxes[key];
+   if(box&&Array.isArray(box.frames)&&box.frames.length>profile.brood.framesPerBox)add('brood_box_over_capacity');
+   if(box?.family&&!installed.includes(key))add('family_box_not_installed');
+  }
+ }
  const honey=Array.isArray(layout.honeyBoxInstalled)?layout.honeyBoxInstalled:[];
+ if(Array.isArray(layout.honeyFrames))honeyKeys.forEach((key,index)=>{const frames=layout.honeyFrames[index];if(Array.isArray(frames)&&frames.length>profile.honey.framesPerBox)add('honey_box_over_capacity')});
  if(honey.length!==honeyKeys.length)add('honey_installation_count_mismatch');
  if(honey.some(value=>typeof value!=='boolean'))add('honey_installation_flag_invalid');
  if(capabilities.honeyInstallation==='paired'&&honey.length&&honey.some(Boolean)&&!honey.every(Boolean))add('honey_pair_mismatch');
