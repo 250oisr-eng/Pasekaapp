@@ -1478,6 +1478,67 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  assert.equal(state.hives[0].profileId,'farrar-6x6-v1');
 });
 
+
+function honeyReturnFixture(){
+ const state={
+  hives:[{id:'h1'},{id:'h2'}],
+  layouts:{
+   h1:{mode:'summer',honeyBoxInstalled:[false,false]},
+   h2:{mode:'summer',honeyBoxInstalled:[false,false]}
+  },
+  extractions:[
+   {id:'e1',date:'2026-08-01',items:[{hiveId:'h1',kilograms:12}]},
+   {id:'e2',date:'2026-08-02',items:[{hiveId:'h2',kilograms:15}]}
+  ],
+  auditLog:[]
+ };
+ const elements={honeyReturnDate:{value:'2026-11-12'},returnHoneyDlg:{close(){}}};
+ let saves=0;const alerts=[];
+ const deps={
+  S:state,
+  returningHoney:[{eventId:'e1',hiveId:'h1'},{eventId:'e2',hiveId:'h2'}],
+  $:id=>elements[id],
+  alert:message=>alerts.push(message),
+  save:async()=>{saves++;return true},
+  logAudit:(type,details)=>state.auditLog.push({type,...details})
+ };
+ return {state,deps,alerts,get saves(){return saves}};
+}
+test('honey pair return validates all hives before atomically returning both pairs',async()=>{
+ const fixture=honeyReturnFixture();
+ await loadFunction('confirmHoneyReturn',fixture.deps)();
+ assert.deepEqual(fixture.state.layouts.h1.honeyBoxInstalled,[true,true]);
+ assert.deepEqual(fixture.state.layouts.h2.honeyBoxInstalled,[true,true]);
+ assert.equal(fixture.state.extractions[0].items[0].returnedAt,'2026-11-12');
+ assert.equal(fixture.state.extractions[1].items[0].returnedAt,'2026-11-12');
+ assert.equal(fixture.state.auditLog.length,2);
+ assert.equal(fixture.saves,1);
+ assert.deepEqual(fixture.alerts,[]);
+});
+test('honey pair return rejects an invalid later hive without partially changing an earlier hive',async()=>{
+ const fixture=honeyReturnFixture();
+ fixture.state.layouts.h2.mode='winter';
+ const before=JSON.stringify(fixture.state);
+ await loadFunction('confirmHoneyReturn',fixture.deps)();
+ assert.equal(JSON.stringify(fixture.state),before);
+ assert.equal(fixture.saves,0);
+ assert.equal(fixture.state.auditLog.length,0);
+ assert.match(fixture.alerts[0],/зимнюю сборку/i);
+});
+test('honey pair return rejects repeated and duplicate return requests',async()=>{
+ const fixture=honeyReturnFixture();
+ fixture.state.extractions[0].items[0].returnedAt='2026-11-10';
+ fixture.deps.returningHoney=[{eventId:'e1',hiveId:'h1'}];
+ await loadFunction('confirmHoneyReturn',fixture.deps)();
+ assert.equal(fixture.saves,0);
+ assert.match(fixture.alerts[0],/уже отмечены/i);
+ const second=honeyReturnFixture();
+ second.deps.returningHoney=[{eventId:'e1',hiveId:'h1'},{eventId:'e1',hiveId:'h1'}];
+ await loadFunction('confirmHoneyReturn',second.deps)();
+ assert.equal(second.saves,0);
+ assert.match(second.alerts[0],/повторную/i);
+});
+
 test('record dialog has compact responsive layout rules for portrait and landscape phones',()=>{
   assert.match(html,/@media\s*\(orientation:landscape\)/);
  assert.match(html,/#recordDlg\s+form\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
