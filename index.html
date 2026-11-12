@@ -1267,6 +1267,7 @@ function planFrameMoves(state,requests){
 }
 function applyFrameMovePlan(state,plan,date){
  if(!plan?.ok||!Array.isArray(plan.moves)||!plan.moves.length)return {ok:false,errors:[{code:'move_plan_invalid',details:{}}]};
+ if(!Array.isArray(plan.preview)||JSON.stringify(plan.preview)!==JSON.stringify(plan.moves))return {ok:false,errors:[{code:'move_plan_preview_mismatch',details:{}}]};
  if((state?.meta?.revisionId||null)!==(plan.expectedRevision||null))return {ok:false,errors:[{code:'move_plan_stale',details:{expected:plan.expectedRevision||null,actual:state?.meta?.revisionId||null}}]};
  const checked=planFrameMoves(state,plan.moves);
  if(!checked.ok)return {ok:false,errors:checked.errors};
