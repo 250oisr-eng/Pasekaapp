@@ -945,7 +945,7 @@ test('AI task suggestion confirmation persists suggested tasks and audit exactly
  const deps={
   S:state,confirm:()=>true,aiCommandContextIsCurrent:()=>true,
   revalidateAICommandPreview:(current,proposal,plan)=>({ok:true,plan}),
-  applyAITaskSuggestionsToDraft:(current,plan)=>({ok:true,state:{...current,tasks:[{id:'task-1',hive:'h1',status:'suggested',date:null}],auditLog:[{id:'audit-1',type:'ai_task_suggestions_created'}]}}),
+  applyAITaskSuggestionsToDraft:(current,plan)=>{const draft=structuredClone(current);draft.tasks.push({id:'task-1',hive:'h1',status:'suggested',date:null});draft.auditLog.push({id:'audit-1',type:'ai_task_suggestions_created'});return {ok:true,state:draft}},
   uid:()=> 'generated-id',
   save:async()=>{saves++;savedState=deps.S;return true},
   renderAIChat:()=>{renders++}
@@ -967,7 +967,7 @@ test('AI task suggestion confirmation rolls back the in-memory draft when persis
  const deps={
   S:state,confirm:()=>true,aiCommandContextIsCurrent:()=>true,
   revalidateAICommandPreview:(current,proposal,plan)=>({ok:true,plan}),
-  applyAITaskSuggestionsToDraft:(current)=>({ok:true,state:{...current,tasks:[{id:'task-1',hive:'h1',status:'suggested'}],auditLog:[{id:'audit-1',type:'ai_task_suggestions_created'}]}}),
+  applyAITaskSuggestionsToDraft:(current)=>{const draft=structuredClone(current);draft.tasks.push({id:'task-1',hive:'h1',status:'suggested'});draft.auditLog.push({id:'audit-1',type:'ai_task_suggestions_created'});return {ok:true,state:draft}},
   uid:()=> 'generated-id',
   save:async()=>{deps.S.meta.saveError='Ошибка записи';return false},
   renderAIChat:()=>{}
