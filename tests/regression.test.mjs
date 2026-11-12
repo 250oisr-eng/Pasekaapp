@@ -1371,3 +1371,11 @@ test('configured honey box arrays are initialized to their profile capacity',()=
  assert.equal(result.honeyFrames[0].length,7);
  assert.equal(result.honeyFrames[0][0].frameId,'M1-01');
 });
+
+test('journal supports family filtering and inline attachment previews',()=>{
+ assert.match(html,/id="journalFamilyFilter"/);
+ const source=extractFunction('renderJournalRecords');
+ assert.match(source,/familySelect/);
+ assert.match(source,/mediaHtml\(r\.media\)/);
+ assert.match(source,/mediaNames/);
+});
