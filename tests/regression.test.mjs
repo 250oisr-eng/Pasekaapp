@@ -1346,3 +1346,28 @@ test('journal uses chronological entries and profile-aware frame search',()=>{
 test('PWA manifest does not lock the app to portrait or landscape',()=>{
  assert.equal(manifest.orientation,'any');
 });
+
+test('hive list miniatures use the selected construction profile',()=>{
+ const source=extractFunction('card');
+ assert.match(source,/profileBroodKeys\(h\.id\)/);
+ assert.match(source,/profileHoneyKeys\(h\.id\)/);
+ assert.match(source,/profile\?\.layout\?\.rows/);
+});
+
+test('home miniatures render the installed boxes and honey boxes from each hive profile',()=>{
+ const source=extractFunction('renderHome');
+ assert.match(source,/profileBroodKeys\(h\.id\)/);
+ assert.match(source,/profileHoneyKeys\(h\.id\)/);
+ assert.match(source,/layoutRows\.map/);
+ assert.doesNotMatch(source,/\[1,2,3\]/);
+ assert.doesNotMatch(source,/\[1,2\]\.filter/);
+});
+
+test('configured honey box arrays are initialized to their profile capacity',()=>{
+ const profile={id:'test-profile',schemaVersion:1,status:'ready',name:'Test',family:'custom',frame:{heightMm:230},brood:{boxCount:1,framesPerBox:8,boxKeys:['B1']},honey:{boxCount:1,framesPerBox:7,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const state={layouts:{},hives:[{id:'h1'}]};
+ const layout=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>key==='M1'?7:8,framePrefix:key=>key});
+ const result=layout('h1');
+ assert.equal(result.honeyFrames[0].length,7);
+ assert.equal(result.honeyFrames[0][0].frameId,'M1-01');
+});
