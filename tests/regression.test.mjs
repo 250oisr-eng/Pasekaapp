@@ -1400,7 +1400,7 @@ test('hive and frame cards support keyboard activation',()=>{
 
 
 test('custom Farrar column keeps frame height distinct from brood box height',()=>{
-  const profileBlock=html.match(/'farrar-6x6-v1':\\{([\\s\\S]*?)\\n \\},\\n 'dadant-template-v1'/);
+  const profileBlock=html.match(/'farrar-6x6-v1':\{([\s\S]*?)\n \},\n 'dadant-template-v1'/);
   assert.ok(profileBlock,'Farrar column profile must exist');
   assert.match(profileBlock[1],/frame:\\{widthMm:null,heightMm:180,/);
   assert.match(profileBlock[1],/brood:\\{boxCount:6,framesPerBox:6,boxHeightMm:195,/);
