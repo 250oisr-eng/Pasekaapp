@@ -1033,10 +1033,33 @@ test('main database write rejects a stale revision without overwriting newer sta
  assert.equal(stored.meta.revisionId,'rev-2');
  assert.equal(stored.value,'newer');
 });
+test('automatic backup writes the exact previous state only when the main revision matches',async()=>{
+ let current={meta:{revisionId:'rev-2'},value:'current'},backup=null,putCount=0;
+ const db={transaction(stores,mode){
+  assert.deepEqual(stores,['main','backup']);assert.equal(mode,'readwrite');
+  const tx={objectStore(name){return name==='main'?{get(){const request={};queueMicrotask(()=>{request.result=structuredClone(current);request.onsuccess?.()});return request}}:{put(value,key){putCount++;backup={value:structuredClone(value),key};queueMicrotask(()=>tx.oncomplete?.())}}}};
+  return tx;
+ }};
+ const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+ const previous={meta:{revisionId:'rev-1'},value:'previous'};
+ assert.equal(await write(previous,'rev-2'),true);
+ assert.equal(putCount,1);assert.equal(backup.key,'previous');assert.deepEqual(backup.value.state,previous);
+ assert.equal(await write({value:'stale'},'rev-1'),false);
+ assert.equal(putCount,1,'a stale snapshot must never replace the existing automatic backup');
+ assert.deepEqual(backup.value.state,previous);
+});
 test('backup shape validator accepts a minimal valid empty apiary',()=>{
  const validate=loadFunction('validateBackupState');
  const state=rawBackupFixture();
  assert.equal(validate(state),state);
+});
+test('backup shape validator rejects unsupported future schema versions without migration',()=>{
+ const validate=loadFunction('validateBackupState');
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:3}}),/более новой версией приложения/i);
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
+ assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:2}}).meta.schemaVersion,2);
+ assert.equal(validate(rawBackupFixture()),rawBackupFixture());
 });
 test('backup shape validator rejects malformed journal media and nested box data',()=>{
  const validate=loadFunction('validateBackupState');
