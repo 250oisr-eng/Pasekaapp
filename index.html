@@ -521,6 +521,45 @@ function validateVirtualApiary(){
    seen.add(cursor);cursor=S.families.find(x=>x?.id===cursor)?.parentFamilyId||'';
   }
  }
+
+ const recordIds=new Set();
+ for(const record of Array.isArray(S.records)?S.records:[]){
+  if(!record||typeof record!=='object')continue;
+  if(record.id){if(recordIds.has(record.id))add(errors,'duplicate_record_id',{recordId:record.id});recordIds.add(record.id)}
+  if(record.hive&&!hiveIds.has(record.hive))add(errors,'record_hive_missing',{recordId:record.id||null,hiveId:record.hive});
+  if(record.familySnapshotAtTime&&record.family&&record.familySnapshotAtTime.id!==record.family)add(errors,'record_family_snapshot_mismatch',{recordId:record.id||null,familyId:record.family,snapshotId:record.familySnapshotAtTime.id||null});
+ }
+ const taskIds=new Set();
+ for(const task of Array.isArray(S.tasks)?S.tasks:[]){
+  if(!task||typeof task!=='object')continue;
+  if(task.id){if(taskIds.has(task.id))add(errors,'duplicate_task_id',{taskId:task.id});taskIds.add(task.id)}
+  if(task.hive&&!hiveIds.has(task.hive))add(errors,'task_hive_missing',{taskId:task.id||null,hiveId:task.hive});
+ }
+ const extractionIds=new Set();
+ for(const event of Array.isArray(S.extractions)?S.extractions:[]){
+  if(!event||typeof event!=='object')continue;
+  if(event.id){if(extractionIds.has(event.id))add(errors,'duplicate_extraction_id',{extractionId:event.id});extractionIds.add(event.id)}
+  const itemHives=new Set();
+  for(const item of Array.isArray(event.items)?event.items:[]){
+   if(!item||typeof item!=='object')continue;
+   if(!item.hiveId||!hiveIds.has(item.hiveId)){add(errors,'extraction_hive_missing',{extractionId:event.id||null,hiveId:item.hiveId||null});continue}
+   if(itemHives.has(item.hiveId))add(errors,'duplicate_extraction_hive',{extractionId:event.id||null,hiveId:item.hiveId});
+   itemHives.add(item.hiveId);
+   if(item.kilograms!=null&&(!Number.isFinite(Number(item.kilograms))||Number(item.kilograms)<=0))add(errors,'invalid_extraction_weight',{extractionId:event.id||null,hiveId:item.hiveId,kilograms:item.kilograms});
+   if(item.frameIds!=null){
+    if(!Array.isArray(item.frameIds)||item.frameIds.some(id=>typeof id!=='string'||!id)||new Set(item.frameIds).size!==item.frameIds.length)add(errors,'invalid_extraction_frame_ids',{extractionId:event.id||null,hiveId:item.hiveId});
+    else{
+     const l=layouts[item.hiveId],frameIds=new Set((Array.isArray(l?.honeyFrames)?l.honeyFrames:[]).flatMap(group=>Array.isArray(group)?group.map(frame=>frame?.frameId).filter(Boolean):[]));
+     item.frameIds.forEach(frameId=>{if(!frameIds.has(frameId))add(errors,'extraction_frame_missing',{extractionId:event.id||null,hiveId:item.hiveId,frameId})});
+    }
+   }
+  }
+ }
+ const extractionById=new Map((Array.isArray(S.extractions)?S.extractions:[]).filter(event=>event?.id).map(event=>[event.id,event]));
+ for(const record of Array.isArray(S.records)?S.records:[])if(record?.extractionId){
+  const event=extractionById.get(record.extractionId),linked=event?.items?.some(item=>item?.hiveId===record.hive);
+  if(!linked)add(errors,'record_extraction_link_missing',{recordId:record.id||null,extractionId:record.extractionId,hiveId:record.hive||null});
+ }
  return {status:errors.length?'errors':warnings.length?'warnings':'ok',errorCount:errors.length,warningCount:warnings.length,errors,warnings};
 }
 function buildAIContext(){
