@@ -1542,7 +1542,8 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
 (async()=>{
  try{
   await openDB();await requestStoragePersistence();
-  const startupMain=await readMain(),startupExpectedRevision=startupMain?.meta?.revisionId||null;
+  let startupMain=null;try{startupMain=await readMain()}catch(e){}
+  const startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
   if(loaded){
    try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
