@@ -257,16 +257,40 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
-function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function openDB(){return new Promise((ok,no)=>{let q=indexedDB.open(DB,2);q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE)};q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
 async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
 function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
+function writeMainIfUnchanged(state,expectedRevision){
+ return new Promise((ok,no)=>{
+  let previous=null,conflict=null,t;
+  try{
+   t=db.transaction(STORE,'readwrite');
+   const store=t.objectStore(STORE),q=store.get('state');
+   q.onsuccess=()=>{
+    previous=q.result||null;
+    const actual=previous?.meta?.revisionId||null;
+    if(actual!==expectedRevision){
+     conflict=new Error('Данные уже изменены в другой вкладке или на другом устройстве. Текущие изменения не записаны, чтобы не затереть более свежие данные.');
+     conflict.name='PasekaConflictError';
+     try{t.abort()}catch(e){}
+     return;
+    }
+    store.put(state,'state');
+   };
+   q.onerror=()=>{try{t.abort()}catch(e){}};
+   t.oncomplete=()=>ok(previous);
+   t.onabort=()=>no(conflict||t.error||q.error||new Error('Сохранение прервано'));
+   t.onerror=()=>no(conflict||t.error||new Error('Ошибка транзакции сохранения'));
+  }catch(e){no(e)}
+ });
+}
 function writeAutoBackup(state){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readwrite');t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||new Error('Обновление автокопии прервано'))})}
 async function save(){
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};
- S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();delete S.meta.saveError;
+ S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
  const lightRecords=S.records.map(({media,...r})=>r);
  const historical={hives:S.hives,families:S.families,records:lightRecords,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks};
  const frozenHistorical=typeof structuredClone==='function'?structuredClone(historical):JSON.parse(JSON.stringify(historical));
@@ -279,18 +303,32 @@ async function save(){
  const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});return pending
 }
 async function persistSnapshot(state){
- let previous=null,previousReadFailed=false;
- try{previous=await readMain()}catch(e){previousReadFailed=true;state.meta.autoBackupError='Не удалось прочитать прежнее состояние для автокопии'}
- if(previous){try{await writeAutoBackup(previous);autoBackupInfo={at:new Date().toISOString()};delete state.meta.autoBackupError;state.meta.autoBackupAt=autoBackupInfo.at}catch(e){state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию'}}
  try{
-  await write(state);
-  if(!previous&&!previousReadFailed){try{await writeAutoBackup(state);autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;await write(state)}catch(e){state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write(state)}}
-  if(S.meta?.updatedAt===state.meta.updatedAt){delete S.meta.saveError;if(state.meta.autoBackupError)S.meta.autoBackupError=state.meta.autoBackupError;else delete S.meta.autoBackupError;S.meta.autoBackupAt=state.meta.autoBackupAt}
-  render();updateStorageEstimate();return true
+  const previous=await writeMainIfUnchanged(state,lastPersistedRevision);
+  lastPersistedRevision=state.meta?.revisionId||null;
+  try{
+   const backupState=previous||state;
+   await writeAutoBackup(backupState);
+   autoBackupInfo={at:new Date().toISOString()};
+   state.meta.autoBackupAt=autoBackupInfo.at;
+   delete state.meta.autoBackupError;
+  }catch(e){
+   state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
+  }
+  if(S.meta?.revisionId===state.meta?.revisionId){
+   delete S.meta.saveError;
+   if(state.meta.autoBackupError)S.meta.autoBackupError=state.meta.autoBackupError;
+   else delete S.meta.autoBackupError;
+   if(state.meta.autoBackupAt)S.meta.autoBackupAt=state.meta.autoBackupAt;
+  }
+  render();updateStorageEstimate();return true;
  }catch(e){
-  state.meta.saveError=e&&e.name==='QuotaExceededError'?'Недостаточно места для сохранения основной базы':'Не удалось сохранить основную базу';
-  if(S.meta?.updatedAt===state.meta.updatedAt)S.meta.saveError=state.meta.saveError;
-  render();alert('ВНИМАНИЕ: '+state.meta.saveError+'. Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.');return false
+  const conflict=e?.name==='PasekaConflictError';
+  state.meta.saveError=conflict?e.message:e&&e.name==='QuotaExceededError'?'Недостаточно места для сохранения основной базы':'Не удалось сохранить основную базу';
+  if(S.meta?.revisionId===state.meta?.revisionId)S.meta.saveError=state.meta.saveError;
+  render();
+  alert('ВНИМАНИЕ: '+state.meta.saveError+(conflict?' Открой приложение заново, чтобы загрузить актуальное состояние. Перед этим скачай JSON-архив текущих несохранённых изменений.':' Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.'));
+  return false;
  }
 }
 function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
@@ -1514,7 +1552,9 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
     throw new Error('Автокопия также не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок: '+codes+'). Основная база не перезаписывалась.');
    }
   }
+  if(!S.meta.revisionId){S.meta.revisionId=uid();migrated=true}
   if(migrated||autoBackupRecovered)await write();
+  lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   const existingBackup=await readAutoBackup();
   if(!existingBackup){try{await writeAutoBackup(S);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write()}}
