@@ -498,11 +498,14 @@ test('AI panel discloses speech-recognition privacy and keeps explicit send cont
 });
 
 
-test('journal draft from AI workspace requires an explicit hive and opens an editable note only',()=>{
+test('journal draft from AI workspace maps explicit inspection values and keeps an editable source note',()=>{
   const alerts=[],tabs=[],nodes={
     aiJournalHiveSelect:{value:'hive-1'},
-    aiJournalDraftInput:{value:' Осмотрел семью, увидел свежие яйца. '},
-    rtype:{value:''},rtext:{value:''},recordTitle:{textContent:''}
+    aiJournalDraftInput:{value:' Осмотрел семью: матка обнаружена, свежие яйца есть, пчёлами занято 5 рамок. '},
+    rtype:{value:''},rtext:{value:''},recordTitle:{textContent:''},
+    roccupancy:{value:''},rbrood:{value:''},rdrawn:{value:''},
+    rqueen:{value:''},reggs:{value:''},rbroodPattern:{value:''},rqueenCells:{value:''},rswarmSigns:{value:''},
+    aiJournalExtractNotice:{textContent:'',style:{display:'none'}}
   };
   const state={hives:[{id:'hive-1'}],records:[]};
   let opened=false,toggled=false;
@@ -512,14 +515,20 @@ test('journal draft from AI workspace requires an explicit hive and opens an edi
     alert:message=>alerts.push(message),
     showTab:tab=>tabs.push(tab),
     newRecord:()=>{opened=true},
-    toggleOccupancy:()=>{toggled=true}
+    toggleOccupancy:()=>{toggled=true},
+    extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
   });
   prepare();
   assert.equal(opened,true);
   assert.equal(toggled,true);
   assert.deepEqual(tabs,['journal']);
-  assert.equal(nodes.rtype.value,'Заметка');
-  assert.equal(nodes.rtext.value,'Осмотрел семью, увидел свежие яйца.');
+  assert.equal(nodes.rtype.value,'Осмотр');
+  assert.equal(nodes.roccupancy.value,'5');
+  assert.equal(nodes.rqueen.value,'seen');
+  assert.equal(nodes.reggs.value,'yes');
+  assert.equal(nodes.rtext.value,'Осмотрел семью: матка обнаружена, свежие яйца есть, пчёлами занято 5 рамок.');
+  assert.match(nodes.aiJournalExtractNotice.textContent,/заполнено полей 3/);
+  assert.equal(nodes.aiJournalExtractNotice.style.display,'block');
   assert.equal(nodes.recordTitle.textContent,'Черновик записи · проверь поля');
   assert.equal(state.records.length,0);
   assert.equal(alerts.length,0);
