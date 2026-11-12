@@ -909,6 +909,7 @@ async function confirmAICommand(index){
  }
  const applied=applyFrameMovePlan(S,checked.plan,today());
  if(!applied.ok){message.commandStatus='stale';message.commandError=applied.errors?.[0]?.code||'не удалось применить план';await save();renderAIChat();return}
+ const previousState=S;
  S=applied.state;
  const savedMessage=S.aiMessages[index];if(savedMessage){savedMessage.commandStatus='applied';savedMessage.appliedAt=new Date().toISOString()}
  const persisted=await save();
