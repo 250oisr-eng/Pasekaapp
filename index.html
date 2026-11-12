@@ -1112,23 +1112,29 @@ function commitFrameEdit(){const l=layoutFor(selectedStructureHive()),hiveId=sel
 function chooseFrame(i){commitFrameEdit();editingFrame=i;renderFrameEditor()}
 function addFrame(){const l=layoutFor(selectedStructureHive()),arr=frameArray(l,editingBox);if(arr.length>=frameCapacity(editingBox))return alert('Корпус заполнен');const fr={frameId:nextFrameId(l,editingBox),originBox:editingBox,location:editingBox,type:'foundation',status:'foundation',history:[]};arr.push(fr);editingFrame=arr.length-1;logAudit('frame_added',{hiveId:selectedStructureHive(),box:editingBox,frameId:fr.frameId});renderFrameEditor()}
 async function moveFrame(){
- const l=layoutFor(selectedStructureHive()),source=frameArray(l,editingBox),targetKey=$('frameMoveTo').value,target=frameArray(l,targetKey);
- if(!source||!source[editingFrame])return alert('Выбранная рамка больше не найдена. Обнови редактор.');
+ const hiveId=selectedStructureHive(),l=layoutFor(hiveId),targetKey=String($('frameMoveTo').value||'');
+ if(!['1','2','3','4','5','6','H1','H2'].includes(targetKey))return alert('Выбран некорректный корпус назначения.');
+ if(!['1','2','3','4','5','6','H1','H2'].includes(String(editingBox)))return alert('Исходный корпус больше не найден. Обнови редактор.');
+ const source=frameArray(l,editingBox),target=frameArray(l,targetKey),fr=source?.[editingFrame];
+ if(!Array.isArray(source)||!fr||!fr.frameId)return alert('Выбранная рамка больше не найдена или не имеет номера. Обнови редактор.');
+ if(!Array.isArray(target))return alert('Не удалось открыть корпус назначения. Перемещение отменено.');
  if(source===target)return alert('Выбери другой корпус для перемещения рамки.');
+ if(fr.location!=null&&String(fr.location)!==String(editingBox))return alert('Расположение рамки не совпадает с исходным корпусом. Исправь учёт; перемещение отменено.');
+ if(target.some(existing=>existing?.frameId===fr.frameId))return alert('В корпусе назначения уже есть рамка с таким номером. Перемещение отменено.');
  if(String(targetKey).startsWith('H')){
-  if(l.mode==='winter'||!l.honeyBoxInstalled.every(Boolean))return alert('Медовые рамки можно перемещать только при установленных обоих медовых корпусах в летней сборке.');
+  if(l.mode==='winter'||!Array.isArray(l.honeyBoxInstalled)||!l.honeyBoxInstalled.every(Boolean))return alert('Медовые рамки можно перемещать только при установленных обоих медовых корпусах в летней сборке.');
  }else{
   const targetNumber=Number(targetKey);
   const targetInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(targetNumber):(l.installedBoxes||[]).includes(targetNumber);
   if(!targetInstalled)return alert('Сначала установи выбранный гнездовой корпус в текущую сборку.');
   if(l.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке нельзя использовать корпуса №2 и №5.');
  }
- if(!target||target.length>=frameCapacity(targetKey))return alert('В выбранном корпусе нет свободного места');
+ if(target.length>=frameCapacity(targetKey))return alert('В выбранном корпусе нет свободного места');
  commitFrameEdit();
- const fr=source[editingFrame],from={location:editingBox,position:editingFrame+1};
+ const from={location:editingBox,position:editingFrame+1};
  source.splice(editingFrame,1);fr.history=fr.history||[];
  fr.history.push({date:today(),action:'move',from,to:{location:targetKey,position:target.length+1}});
- fr.location=targetKey;target.push(fr);logAudit('frame_moved',{hiveId:selectedStructureHive(),frameId:fr.frameId,from:{box:from.location,position:from.position},to:{box:targetKey,position:target.length}});editingBox=targetKey;editingFrame=target.length-1;
+ fr.location=targetKey;target.push(fr);logAudit('frame_moved',{hiveId,frameId:fr.frameId,from:{box:from.location,position:from.position},to:{box:targetKey,position:target.length}});editingBox=targetKey;editingFrame=target.length-1;
  renderFrameEditor();await save();
 }
 function saveBox(){
