@@ -696,3 +696,14 @@ test('AI suggested tasks may remain undated until the user accepts them',()=>{
  assert.equal(validate({id:'t1',hive:'h1',type:'Осмотр',date:null,note:'Проверить',source:'ai',status:'suggested'},state).ok,true);
  assert.equal(validate({id:'t2',hive:'h1',type:'Осмотр',date:null,note:'Проверить',source:'manual',status:'pending'},state).ok,false);
 });
+
+test('AI suggested task cannot be accepted without a user-selected date',async()=>{
+ const task={id:'t1',hive:'h1',type:'Осмотр',date:null,status:'suggested',source:'ai'};
+ const state={tasks:[task],hives:[{id:'h1'}],auditLog:[],snapshots:[],meta:{}};
+ let saves=0;
+ const accept=loadFunction('acceptTask',{S:state,prompt:()=>null,alert:()=>{},save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),render:()=>{}});
+ await accept('t1');
+ assert.equal(task.status,'suggested');
+ assert.equal(task.date,null);
+ assert.equal(saves,0);
+});
