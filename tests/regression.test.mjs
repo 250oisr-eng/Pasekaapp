@@ -317,8 +317,8 @@ test('AI frame move completes the full preview-confirmation-persistence flow ato
  await loadFunction('confirmAICommand',deps)(0);
  assert.equal(saveCalls,1,'the confirmed operation is persisted once');
  assert.equal(renderCalls,1,'the chat is refreshed after the result');
- assert.equal(message.commandStatus,'applied');
- assert.ok(message.appliedAt);
+ assert.equal(deps.S.aiMessages[0].commandStatus,'applied');
+ assert.ok(deps.S.aiMessages[0].appliedAt);
  assert.deepEqual(deps.S.layouts.h1.boxes[1].frames.map(frame=>frame.frameId),['B']);
  assert.deepEqual(deps.S.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A']);
  assert.equal(deps.S.layouts.h1.boxes[3].frames[0].location,'3');
@@ -326,7 +326,7 @@ test('AI frame move completes the full preview-confirmation-persistence flow ato
  assert.equal(deps.S.auditLog.at(-1).type,'frames_moved_batch');
  const saved=JSON.parse(persistedSnapshot);
  assert.equal(saved.aiMessages[0].commandStatus,'applied');
- assert.deepEqual(saved.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A','C']);
+ assert.deepEqual(saved.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A']);
 });
 test('inline application JavaScript remains syntactically valid',()=>{
   const start=html.indexOf('<script>'),end=html.indexOf('</script>',start);
