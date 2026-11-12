@@ -1433,3 +1433,13 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
  assert.equal(profile.honey.boxHeightMm,null);
  assert.equal(profile.frame.heightMm,180);
 });
+
+
+test('record dialog has compact responsive layout rules for portrait and landscape phones',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/@media\s*\(orientation:landscape\)/);
+ assert.match(html,/#recordDlg\s+form\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(html,/@media\s*\(orientation:landscape\)\s*and\s*\(max-height:520px\)/);
+ assert.match(html,/@media\s*\(orientation:portrait\)\s*and\s*\(max-width:560px\)/);
+ assert.match(html,/max-height:calc\(100dvh - 8px\)/);
+});
