@@ -2315,22 +2315,30 @@ async function confirmHoneyReturn(){
  try{draft=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
  catch(e){return alert('Не удалось подготовить безопасный возврат медовых корпусов: '+(e.message||e))}
  S=draft;
- for(const plan of plans){
-  const event=(S.extractions||[]).find(x=>x?.id===plan.eventId);
-  const item=Array.isArray(event?.items)?event.items.find(x=>x?.hiveId===plan.hiveId):null;
-  const l=S.layouts?.[plan.hiveId];
-  if(!event||!item||!l){S=originalState;return alert('Данные изменились во время подготовки возврата. Операция отменена.')}
-  l.honeyBoxInstalled=[true,true];l.honeyInstalled=true;
-  item.boxes=['H1','H2'];item.returnedAt=date;item.returned=true;item.returnedBoxes=['H1','H2'];
-  logAudit('honey_pair_returned',{hiveId:plan.hiveId,date,extractionDate:event.date,kilograms:item.kilograms});
- }
- const saved=await save();
- if(!saved){
+ try{
+  for(const plan of plans){
+   const event=(S.extractions||[]).find(x=>x?.id===plan.eventId);
+   const item=Array.isArray(event?.items)?event.items.find(x=>x?.hiveId===plan.hiveId):null;
+   const l=S.layouts?.[plan.hiveId];
+   if(!event||!item||!l)throw new Error('Данные изменились во время подготовки возврата. Операция отменена.');
+   l.honeyBoxInstalled=[true,true];l.honeyInstalled=true;
+   item.boxes=['H1','H2'];item.returnedAt=date;item.returned=true;item.returnedBoxes=['H1','H2'];
+   logAudit('honey_pair_returned',{hiveId:plan.hiveId,date,extractionDate:event.date,kilograms:item.kilograms});
+  }
+  const saved=await save();
+  if(!saved){
+   const saveError=S.meta?.saveError;
+   S=originalState;S.meta=S.meta||{};
+   if(saveError)S.meta.saveError=saveError;
+   render();return false;
+  }
+ }catch(e){
+  const failure=e?.message||'Неизвестная ошибка';
   const saveError=S.meta?.saveError;
-  S=originalState;
-  S.meta=S.meta||{};
+  S=originalState;S.meta=S.meta||{};
   if(saveError)S.meta.saveError=saveError;
   render();
+  alert('Возврат медовых корпусов отменён: '+failure+'. Исходные данные восстановлены.');
   return false;
  }
  $('returnHoneyDlg').close();returningHoney=[];
