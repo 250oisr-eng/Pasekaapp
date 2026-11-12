@@ -1244,3 +1244,24 @@ test('paired honey configuration rejects partial installation while independent 
  assert.ok(validate(paired,layout).errors.some(error=>error.code==='honey_pair_mismatch'));
  assert.equal(validate(independent,layout).ok,true);
 });
+
+test('frame move planner uses configured profile keys and capacities',()=>{
+ const plan=loadFunction('planFrameMoves');
+ const profile={id:'custom-v1',status:'ready',family:'custom',brood:{boxKeys:['B1','B2','B3'],framesPerBox:10},honey:{boxKeys:['M1'],framesPerBox:8,installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3']}};
+ const frame=(id,location)=>({frameId:id,location,history:[]});
+ const state={hives:[{id:'custom-hive',profile}],layouts:{'custom-hive':{mode:'summer',installedBoxes:['B1','B2'],honeyBoxInstalled:[true],boxes:{B1:{family:'',frames:[frame('f1','B1')]},B2:{family:'',frames:Array.from({length:9},(_,i)=>frame('b'+i,'B2'))},B3:{family:'',frames:[]}},honeyFrames:[Array.from({length:8},(_,i)=>frame('m'+i,'M1'))]}}};
+ const result=plan(state,[{hiveId:'custom-hive',frameId:'f1',fromBox:'B1',toBox:'B2'}]);
+ assert.equal(result.ok,true,JSON.stringify(result.errors));
+ assert.equal(result.moves[0].toBox,'B2');
+ const invalid=plan(state,[{hiveId:'custom-hive',frameId:'f1',fromBox:'B1',toBox:'1'}]);
+ assert.equal(invalid.ok,false);
+ assert.ok(invalid.errors.some(error=>error.code==='invalid_move_reference'));
+});
+
+test('frame move planner refuses profile templates that are not operational',()=>{
+ const plan=loadFunction('planFrameMoves');
+ const state={hives:[{id:'h1',profile:{id:'ruta-template-v1',status:'template',brood:{boxKeys:['B1']},honey:{boxKeys:[]}}}],layouts:{h1:{mode:'summer',installedBoxes:['B1'],boxes:{B1:{frames:[{frameId:'f',location:'B1',history:[]}]}},honeyFrames:[],honeyBoxInstalled:[]}}};
+ const result=plan(state,[{hiveId:'h1',frameId:'f',fromBox:'B1',toBox:'B1'}]);
+ assert.equal(result.ok,false);
+ assert.ok(result.errors.some(error=>error.code==='move_profile_not_operational'));
+});
