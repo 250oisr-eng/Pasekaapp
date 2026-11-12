@@ -433,9 +433,9 @@ async function signUpAI(){
 }
 async function signOutAI(){if(!aiAuthClient)return;try{await aiAuthClient.signOut();aiAuthUser=null;renderAIAuth()}catch(e){alert('Не удалось завершить сеанс: '+(e.message||e))}}
 function validateVirtualApiary(){
- const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set();
+ const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set(),hiveNumbers=new Set();
  const add=(list,code,details)=>list.push({code,details});
- for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id)}
+ for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add(errors,'invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add(errors,'duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)}
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.parentFamilySnapshot&&family.parentFamilyId&&family.parentFamilySnapshot.id!==family.parentFamilyId)add(errors,'family_parent_snapshot_mismatch',{familyId:family.id,parentFamilyId:family.parentFamilyId,snapshotId:family.parentFamilySnapshot.id||null});}
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const layouts=isObject(S.layouts)?S.layouts:{};
@@ -1228,7 +1228,7 @@ function validateBackupState(state){
 function validateRawBackupIntegrity(state){
  const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f&&typeof f==='object'&&!Array.isArray(f)&&f.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
- const hiveIds=new Set();(state.hives||[]).forEach(hive=>{if(!hive?.id){add('invalid_hive_identity',{hiveNumber:hive?.number??null});return}if(hiveIds.has(hive.id))add('duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id)});
+ const hiveIds=new Set(),hiveNumbers=new Set();(state.hives||[]).forEach(hive=>{if(!hive?.id){add('invalid_hive_identity',{hiveNumber:hive?.number??null});return}if(hiveIds.has(hive.id))add('duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add('invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add('duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)});
  const familyIds=new Set();familyRows.forEach(f=>{if(!f||typeof f!=='object'||!f.id){add('invalid_family_identity',{familyId:f?.id||null});return}if(familyIds.has(f.id))add('duplicate_family_id',{familyId:f.id});familyIds.add(f.id);if(f.parentFamilySnapshot&&f.parentFamilyId&&f.parentFamilySnapshot.id!==f.parentFamilyId)add('family_parent_snapshot_mismatch',{familyId:f.id,parentFamilyId:f.parentFamilyId,snapshotId:f.parentFamilySnapshot.id||null})});
  const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{};
  for(const hive of state.hives||[]){
