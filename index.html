@@ -1123,7 +1123,8 @@ function extractInspectionFieldsFromText(input){
  if(/признак(?:ов)?\s+роев(?:ого|ого состояния)\s+нет|роев(?:ых|ого)\s+признак(?:ов)?\s+нет|роевых признаков не обнаружено/i.test(normalized))assign('swarmSigns','none',/признак(?:ов)?\s+роев(?:ого|ого состояния)\s+нет|роев(?:ых|ого)\s+признак(?:ов)?\s+нет|роевых признаков не обнаружено/i);
  else if(/несколько\s+признак(?:ов)?\s+роев/i.test(normalized))assign('swarmSigns','several',/несколько\s+признак(?:ов)?\s+роев/i);
  else if(/один\s+признак\s+роев/i.test(normalized))assign('swarmSigns','one',/один\s+признак\s+роев/i);
- return {type:Object.keys(fields).length?'Осмотр':'Заметка',fields,evidence,fieldCount:Object.keys(fields).length};
+ const inspectionMention=/\\bосмотр(?:ел|ела|ели|а)?\\b|осматривал(?:а|и)?|проверил(?:а|и)?\\s+(?:семью|улей|гнездо)|провел(?:а|и)?\\s+осмотр/i.test(normalized);
+ return {type:Object.keys(fields).length||inspectionMention?'Осмотр':'Заметка',fields,evidence,fieldCount:Object.keys(fields).length};
 }
 function prepareJournalDraftFromAI(){
  const field=$('aiJournalDraftInput'),description=String(field?.value||'').trim();
