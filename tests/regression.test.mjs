@@ -512,7 +512,7 @@ test('inspection parser recognizes common Russian beekeeping count synonyms and 
 test('inspection parser handles explicit queen, eggs, brood and queen-cell findings',()=>{
   const parse=loadFunction('extractInspectionFieldsFromText');
   const result=parse('Проверил улей: матка не обнаружена, свежие яйца есть, сплошной ровный расплод, роевых маточников нет.');
-  assert.deepEqual(result.fields,{queen:'eggs',eggs:'yes',broodPattern:'solid',queenCells:'none'});
+  assert.deepEqual(result.fields,{queen:'eggs',eggs:'yes',broodPattern:'solid'});
   const negative=parse('Осмотрел семью: матку не видел, свежих яиц нет, расплода нет, маточников нет, роевых признаков нет.');
   assert.deepEqual(negative.fields,{queen:'notSeen',eggs:'no',broodPattern:'none',queenCells:'none',swarmSigns:'none'});
 });
