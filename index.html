@@ -510,7 +510,7 @@ function writeMainWithBackup(state,expectedRevision){
 function writeAutoBackup(state,expectedRevision){return new Promise((ok,no)=>{let t=db.transaction([STORE,BACKUP_STORE],'readwrite'),written=false,q=t.objectStore(STORE).get('state');q.onsuccess=()=>{const current=q.result||null;if((current?.meta?.revisionId||null)!==expectedRevision)return;t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');written=true};q.onerror=()=>{try{t.abort()}catch(e){}};t.oncomplete=()=>ok(written);t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||q.error||new Error('Обновление автокопии прервано'))})}
 async function save(){
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];
- S.meta.schemaVersion=4;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
+ S.meta.schemaVersion=5;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
  let snapshot;
  try{
   const lightRecords=S.records.map(({media,...r})=>r);
