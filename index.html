@@ -215,7 +215,7 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
  <div class="card"><div class="row"><div><h2 style="margin:0">ИИ-помощник</h2><span class="muted">Консультации по данным твоей пасеки</span></div><span class="pill">ИИ</span></div>
   <p class="muted">ИИ получает только текстовые сведения из журнала и текущую схему ульев, когда ты отправляешь вопрос. Фото и видео пока не передаются. Ответы — рекомендации для проверки, а не замена осмотру.</p>
   <div id="aiAuthStatus" class="muted">Проверяем подключение…</div>
-  <div class="card" id="aiJournalDraftCard"><b>Подготовить запись журнала</b><p class="muted">Опиши наблюдение или выполненную работу. Текст попадёт в черновик заметки; выбери дату, улей, семью и тип события в форме. ИИ не анализирует и не отправляет это описание.</p><label for="aiJournalDraftInput">Описание события</label><textarea id="aiJournalDraftInput" rows="3" placeholder="Например: осмотрел семью, заметил первые яйца, корм не добавлял…"></textarea><button type="button" class="primary" onclick="prepareJournalDraftFromAI()">Открыть черновик журнала</button></div>
+  <div class="card" id="aiJournalDraftCard"><b>Подготовить запись журнала</b><p class="muted">Опиши наблюдение или выполненную работу. Текст попадёт в черновик заметки; выбери дату, улей, семью и тип события в форме. ИИ не анализирует и не отправляет это описание.</p><label for="aiJournalHiveSelect">К какому улью относится событие?</label><select id="aiJournalHiveSelect"><option value="">— Выбери улей —</option></select><label for="aiJournalDraftInput">Описание события</label><textarea id="aiJournalDraftInput" rows="3" placeholder="Например: осмотрел семью, заметил первые яйца, корм не добавлял…"></textarea><button type="button" class="primary" onclick="prepareJournalDraftFromAI()">Открыть черновик журнала</button></div>
   <div id="aiSignedOut" style="display:none">
    <label for="aiName">Имя (только при регистрации)</label><input id="aiName" autocomplete="name" placeholder="Как к тебе обращаться">
    <label for="aiEmail">Электронная почта</label><input id="aiEmail" type="email" autocomplete="username" placeholder="you@example.com">
@@ -351,6 +351,7 @@ function recordFamilyHtml(r){if(!r.family)return '';const family=S.families.find
 function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={seen:'Матка обнаружена',notSeen:'Матка не обнаружена',eggs:'Матка не найдена, но есть яйца',yes:'Свежие яйца есть',no:'Свежих яиц нет',solid:'Расплод ровный',mosaic:'Расплод пёстрый',weak:'Мало расплода',none:'Расплода нет',swarm:'Роевые маточники',supersedure:'Маточники тихой смены',emergency:'Свищевые маточники',unknown:'Маточники не определены',one:'Один роевой признак',several:'Несколько роевых признаков'};[['queen','Матка'],['eggs','Яйца'],['broodPattern','Расплод'],['queenCells','Маточники'],['swarmSigns','Роевые признаки']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+(m[r[k]]||r[k]))})}if(r.type==='Обработка'){[['treatmentProduct','Препарат'],['treatmentActive','Действующее вещество'],['treatmentMethod','Способ'],['treatmentDose','Доза по инструкции'],['treatmentCheck','Контроль']].forEach(([k,l])=>{if(r[k])pairs.push(l+': '+r[k])})}return pairs.length?'<p class="muted">'+pairs.map(safe).join(' · ')+'</p>':''}
 function render(){
  $('hiveList').innerHTML=S.hives.map(card).join('')||'<div class="empty">Ульев пока нет.</div>'; $('hiveList').style.display='block';
+ const aiHive=$('aiJournalHiveSelect');if(aiHive){const previous=aiHive.value;aiHive.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');aiHive.value=S.hives.some(h=>h.id===previous)?previous:'';}
  S.extractions=S.extractions||[];if(!S.hives.some(h=>h.id===selectedHiveId))selectedHiveId=S.hives[0]?.id||'';
  $('selectedHivePanel').style.display=selectedHiveId?'block':'none';
  if(selectedHiveId){const h=S.hives.find(x=>x.id===selectedHiveId);$('selectedHiveTitle').textContent=hname(h.id);renderHiveHeaderSummary(h);$('selectedFamilies').innerHTML=S.families.filter(f=>f.hive===selectedHiveId).map(f=>'<div class="row" style="justify-content:space-between;gap:6px;margin:5px 0;flex-wrap:wrap"><span class="pill">🐝 '+safe(f.name)+' · '+safe(f.breed==='Другая'?f.custom:f.breed)+' · '+safe(familyStageLabel(f))+'</span><span class="row" style="gap:4px">'+(f.origin==='offshoot'&&familyStage(f)!=='independent'?'<button type="button" onclick="markOffshootIndependent(\''+f.id+'\')">Стала самостоятельной</button>':'')+'<button type="button" onclick="openFamilyTransfer(\''+f.id+'\')">Переместить</button></span></div>').join('')||'<div class="muted">Семьи ещё не добавлены.</div>'}renderFamilyHealthSummary();
@@ -969,7 +970,9 @@ function prepareJournalDraftFromAI(){
  const field=$('aiJournalDraftInput'),description=String(field?.value||'').trim();
  if(!description)return alert('Сначала опиши наблюдение или выполненную работу.');
  if(!Array.isArray(S.hives)||!S.hives.length)return alert('Сначала добавь улей.');
- if(!activeJournalHive||!S.hives.some(hive=>hive?.id===activeJournalHive))activeJournalHive=S.hives[0].id;
+ const hiveId=String($('aiJournalHiveSelect')?.value||'');
+ if(!hiveId||!S.hives.some(hive=>hive?.id===hiveId))return alert('Выбери улей, к которому относится эта запись. Нельзя назначать улей автоматически.');
+ activeJournalHive=hiveId;
  showTab('journal');newRecord();
  $('rtype').value='Заметка';toggleOccupancy();$('rtext').value=description;
  $('recordTitle').textContent='Черновик записи · проверь поля';
