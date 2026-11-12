@@ -585,7 +585,7 @@ async function deleteHive(id){
  });
  affectedChildren.forEach(f=>{
   const parent=familySnapshots.get(f.parentFamilyId);
-  if(parent&&!f.parentFamilySnapshot)f.parentFamilySnapshot={...parent,reason:'hive_deleted'};
+  if(parent)f.parentFamilySnapshot={...parent,reason:'hive_deleted'};
  });
  linkedRecords.forEach(r=>{
   const family=familySnapshots.get(r.family);
@@ -595,7 +595,7 @@ async function deleteHive(id){
   if(otherHiveId===id||!layout?.boxes)return;
   Object.values(layout.boxes).forEach(box=>{
    const parent=box?.parentFamilyId&&familySnapshots.get(box.parentFamilyId);
-   if(parent&&!box.parentFamilySnapshot)box.parentFamilySnapshot={...parent,reason:'hive_deleted'};
+   if(parent)box.parentFamilySnapshot={...parent,reason:'hive_deleted'};
   });
  });
  S.hives=S.hives.filter(x=>x.id!==id);
@@ -684,7 +684,7 @@ async function confirmFamilyTransfer(e){
  };
  preserveUniqueFrameIds(frames,targetLayout,targetNumber,fromHiveId,targetHiveId);
  preserveUniqueFrameIds(targetFrames,source.layout,fromBox,targetHiveId,fromHiveId);
- targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';targetBox.parentFamilySnapshot=sourceBox.parentFamilySnapshot||family.parentFamilySnapshot||null;
+ targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';targetBox.parentFamilySnapshot=family.parentFamilySnapshot||sourceBox.parentFamilySnapshot||null;
  sourceBox.family='';sourceBox.origin='';sourceBox.breed='Неизвестная';sourceBox.familyName='';sourceBox.parentFamilyId='';sourceBox.parentFamilySnapshot=null;
  family.hive=targetHiveId;family.box=targetNumber;
  const movedAt=new Date().toISOString();
@@ -1093,26 +1093,28 @@ function saveBox(){
    const family=fid?S.families.find(x=>x.id===fid):null;
    if(fid&&(!family||family.hive!==hiveId)){alert('Нельзя назначить корпусу семью из другого улья.');return}
    if(fid&&Object.entries(l.boxes).some(([boxKey,other])=>boxKey!==editingBox&&other.family===fid)){alert('Эта семья уже назначена другому гнездовому корпусу. Сначала сними прежнее назначение.');return}
+   let parentSnapshotToKeep=null;
    if(origin==='offshoot'){
     const parent=S.families.find(x=>x.id===parentFamilyId);
     const retainedParentId=family?.parentFamilyId||b.parentFamilyId||'';
     const retainedSnapshot=family?.parentFamilySnapshot||b.parentFamilySnapshot;const archivedParentValid=!parent&&retainedSnapshot?.id===parentFamilyId;if((!parent&&!archivedParentValid)||parent?.id===fid||(parent&&parent.hive!==hiveId&&parent.id!==retainedParentId&&!archivedParentValid)){alert('Для отводка выбери существующую исходную семью или сохрани ранее записанную архивную родословную.');return}if(family&&familyLineageWouldCycle(fid,parentFamilyId)){alert('Нельзя назначить потомка исходной семьёй: это создаст цикл в родословной.');return}
+    parentSnapshotToKeep=archivedParentValid?retainedSnapshot:null;
    }
    const previousFamily=b.family?S.families.find(x=>x.id===b.family):null;
    if(previousFamily&&previousFamily.id!==fid&&previousFamily.box===n)delete previousFamily.box;
-   b.origin=origin;b.breed=breed;b.familyName=familyName;b.parentFamilyId=parentFamilyId;
+   b.origin=origin;b.breed=breed;b.familyName=familyName;b.parentFamilyId=parentFamilyId;b.parentFamilySnapshot=parentSnapshotToKeep;
    if(!fid&&origin){
     const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]);
     b.familyName=code;
-    const created={id:uid(),hive:hiveId,box:n,name:code,familyYear:year,familySequence:sequence,breed:b.breed,origin,parentFamilyId};
+    const created={id:uid(),hive:hiveId,box:n,name:code,familyYear:year,familySequence:sequence,breed:b.breed,origin,parentFamilyId,parentFamilySnapshot:parentSnapshotToKeep};
     S.families.push(created);b.family=created.id;
     logAudit('family_created',{hiveId,familyId:created.id,familyName:code,origin,parentFamilyId:parentFamilyId||null,box:n});
    }else{
     b.family=fid;
     if(family){
-     const before={name:family.name,breed:family.breed,origin:family.origin,parentFamilyId:family.parentFamilyId||''};
-     family.breed=breed;family.origin=origin||family.origin;family.name=familyName||family.name;family.box=n;family.parentFamilyId=parentFamilyId||family.parentFamilyId||'';
-     const after={name:family.name,breed:family.breed,origin:family.origin,parentFamilyId:family.parentFamilyId||''};
+     const before={name:family.name,breed:family.breed,origin:family.origin,parentFamilyId:family.parentFamilyId||'',parentFamilySnapshot:family.parentFamilySnapshot||null};
+     family.breed=breed;family.origin=origin||family.origin;family.name=familyName||family.name;family.box=n;family.parentFamilyId=parentFamilyId;family.parentFamilySnapshot=parentSnapshotToKeep;
+     const after={name:family.name,breed:family.breed,origin:family.origin,parentFamilyId:family.parentFamilyId||'',parentFamilySnapshot:family.parentFamilySnapshot||null};
      if(Object.keys(before).some(k=>before[k]!==after[k]))logAudit('family_details_updated',{hiveId,familyId:family.id,familyName:family.name,box:n,from:before,to:after});
     }
    }
