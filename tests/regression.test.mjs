@@ -193,3 +193,47 @@ test('AI command proposal rejects unknown hives, unsupported actions and invalid
   assert.ok(invalid.errors.some(error=>error.code==='move_target_not_installed'));
   assert.deepEqual(state.layouts.h1.boxes[1].frames.map(frame=>frame.frameId),['A','B']);
 });
+
+
+test('batch frame move requires exact location metadata and well-formed history',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const wrongLocation=frameMoveFixture();
+  wrongLocation.layouts.h1.boxes[1].frames[0].location='';
+  assert.ok(plan(wrongLocation,[{hiveId:'h1',frameId:'A',toBox:'3'}]).errors.some(x=>x.code==='move_frame_location_mismatch'));
+  const brokenHistory=frameMoveFixture();
+  brokenHistory.layouts.h1.boxes[1].frames[0].history=[null];
+  assert.ok(plan(brokenHistory,[{hiveId:'h1',frameId:'A',toBox:'3'}]).errors.some(x=>x.code==='move_frame_history_invalid'));
+});
+
+test('batch frame move enforces the installed honey pair and ten-frame capacity',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
+  const state=frameMoveFixture();
+  state.layouts.h1.honeyBoxInstalled=[true,false];
+  assert.ok(plan(state,[{hiveId:'h1',frameId:'A',toBox:'H1'}]).errors.some(x=>x.code==='move_target_not_installed'));
+  state.layouts.h1.honeyBoxInstalled=[true,true];
+  state.layouts.h1.honeyFrames=[Array.from({length:10},(_,i)=>({frameId:'H'+i,location:'H1',history:[]})),[]];
+  const before=JSON.stringify(state);
+  const full=plan(state,[{hiveId:'h1',frameId:'A',toBox:'H1'}]);
+  assert.ok(full.errors.some(x=>x.code==='move_target_over_capacity'));
+  assert.equal(JSON.stringify(state),before);
+  assert.equal(apply(state,full,'2026-11-12').ok,false);
+});
+
+test('batch frame move preserves family assignments and frame lineage while crossing family boxes',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
+  const state=frameMoveFixture();
+  state.families=[{id:'family-a',hive:'h1',box:1,origin:'swarm'},{id:'family-b',hive:'h1',box:3,origin:'offshoot',parentFamilyId:'family-a'}];
+  state.layouts.h1.boxes[1].family='family-a';
+  state.layouts.h1.boxes[3].family='family-b';
+  state.layouts.h1.boxes[1].frames[0].history=[{date:'2026-11-01',action:'inspected'}];
+  const result=apply(state,plan(state,[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]),'2026-11-12');
+  assert.equal(result.ok,true);
+  assert.equal(result.state.layouts.h1.boxes[1].family,'family-a');
+  assert.equal(result.state.layouts.h1.boxes[3].family,'family-b');
+  assert.equal(result.state.families[1].parentFamilyId,'family-a');
+  assert.equal(result.state.layouts.h1.boxes[3].frames.find(frame=>frame.frameId==='A').history[0].action,'inspected');
+  assert.equal(result.state.layouts.h1.boxes[3].frames.find(frame=>frame.frameId==='A').history.at(-1).action,'move');
+  assert.equal(state.layouts.h1.boxes[1].frames.find(frame=>frame.frameId==='A').history.length,1);
+});
