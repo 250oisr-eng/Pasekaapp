@@ -342,7 +342,7 @@ function renderApiaryStatus(){
  const parts=[];
  if(signals.length)parts.push('<div class="apiary-attention-group"><b>Сигналы по последним осмотрам</b>'+signals.map(x=>'<div class="apiary-attention-row"><span>'+safe(hname(x.h.id))+'</span><span>'+safe(x.reasons.join('; '))+'</span></div>').join('')+'</div>');
  if(stale.length)parts.push('<div class="apiary-attention-group"><b>Нет свежей записи об осмотре (30 дней и более)</b>'+stale.map(x=>'<div class="apiary-attention-row"><span>'+safe(hname(x.h.id))+'</span><span>'+safe(x.date)+'</span></div>').join('')+'</div>');
- const integrityNames={invalid_assembly_mode:'Неизвестный режим сборки',invalid_installed_boxes_list:'Повреждён список установленных корпусов',invalid_winter_order:'Повреждён порядок зимней колонны',invalid_honey_pair_state:'Повреждено состояние медовой пары',invalid_brood_box:'Повреждена запись гнездового корпуса',invalid_brood_frames:'Повреждён список гнездовых рамок',invalid_frame_record:'Повреждена запись рамки',missing_frame_id:'У рамки отсутствует номер',invalid_frame_history:'Повреждена история рамки',invalid_honey_frames:'Повреждён список медовых рамок',invalid_honey_frame_group:'Повреждён список рамок медового корпуса',invalid_honey_frame_pair:'Должно быть ровно два медовых корпуса',invalid_installed_box:'Некорректный номер установленного корпуса',duplicate_installed_box:'Корпус повторяется в списке сборки',winter_requires_three_distinct_boxes:'Зимняя сборка должна содержать ровно три разных корпуса',winter_contains_forbidden_boxes:'В зимней сборке есть запрещённый корпус',winter_installed_order_mismatch:'Список установленных корпусов не совпадает с зимним порядком',honey_boxes_in_winter:'Медовые корпуса отмечены установленными зимой',honey_pair_mismatch:'Медовые корпуса должны устанавливаться и сниматься парой',brood_box_over_capacity:'Превышена вместимость гнездового корпуса',honey_box_over_capacity:'Превышена вместимость медового корпуса',duplicate_frame_id:'Обнаружен повторяющийся номер рамки',box_references_missing_family:'Корпус ссылается на отсутствующую семью',family_hive_mismatch:'Семья закреплена за другим ульем',family_in_forbidden_winter_box:'Семья находится в запрещённом зимнем корпусе',family_in_uninstalled_box:'Семья находится в снятом корпусе',family_assigned_to_multiple_boxes:'Одна семья назначена нескольким корпусам',family_without_physical_box:'Семья пока не размещена в физическом корпусе',family_hive_missing:'Семья привязана к несуществующему улью',family_box_mismatch:'Номер корпуса в карточке семьи не совпадает с размещением',family_parent_archived:'Исходная семья удалена вместе с ульем; родословная сохранена в архивной записи',family_parent_missing:'Не найдена исходная семья и её архивная запись'};
+ const integrityNames={invalid_assembly_mode:'Неизвестный режим сборки',invalid_installed_boxes_list:'Повреждён список установленных корпусов',invalid_winter_order:'Повреждён порядок зимней колонны',invalid_honey_pair_state:'Повреждено состояние медовой пары',invalid_brood_box:'Повреждена запись гнездового корпуса',invalid_brood_frames:'Повреждён список гнездовых рамок',invalid_frame_record:'Повреждена запись рамки',missing_frame_id:'У рамки отсутствует номер',invalid_frame_history:'Повреждена история рамки',invalid_honey_frames:'Повреждён список медовых рамок',invalid_honey_frame_group:'Повреждён список рамок медового корпуса',invalid_honey_frame_pair:'Должно быть ровно два медовых корпуса',invalid_installed_box:'Некорректный номер установленного корпуса',duplicate_installed_box:'Корпус повторяется в списке сборки',winter_requires_three_distinct_boxes:'Зимняя сборка должна содержать ровно три разных корпуса',winter_contains_forbidden_boxes:'В зимней сборке есть запрещённый корпус',winter_installed_order_mismatch:'Список установленных корпусов не совпадает с зимним порядком',honey_boxes_in_winter:'Медовые корпуса отмечены установленными зимой',honey_pair_mismatch:'Медовые корпуса должны устанавливаться и сниматься парой',brood_box_over_capacity:'Превышена вместимость гнездового корпуса',honey_box_over_capacity:'Превышена вместимость медового корпуса',duplicate_frame_id:'Обнаружен повторяющийся номер рамки',box_references_missing_family:'Корпус ссылается на отсутствующую семью',family_hive_mismatch:'Семья закреплена за другим ульем',family_in_forbidden_winter_box:'Семья находится в запрещённом зимнем корпусе',family_in_uninstalled_box:'Семья находится в снятом корпусе',family_assigned_to_multiple_boxes:'Одна семья назначена нескольким корпусам',family_without_physical_box:'Семья пока не размещена в физическом корпусе',family_hive_missing:'Семья привязана к несуществующему улью',family_box_mismatch:'Номер корпуса в карточке семьи не совпадает с размещением',family_parent_archived:'Исходная семья удалена вместе с ульем; родословная сохранена в архивной записи',family_parent_missing:'Не найдена исходная семья и её архивная запись',family_lineage_cycle:'Обнаружен цикл в родословной семей'};
  if(integrity.errors.length)parts.push('<div class="apiary-attention-group"><b>Ошибки виртуальной модели ('+integrity.errorCount+')</b>'+integrity.errors.map(x=>'<div class="apiary-attention-row"><span>'+safe(integrityNames[x.code]||x.code)+'</span><span>'+(x.details?.hiveNumber?'Улей '+safe(x.details.hiveNumber):'')+(x.details?.box?' · корпус '+safe(x.details.box):'')+'</span></div>').join('')+'</div>');
  if(integrity.warnings.length)parts.push('<div class="apiary-attention-group"><b>Предупреждения виртуальной модели ('+integrity.warningCount+')</b>'+integrity.warnings.map(x=>'<div class="apiary-attention-row"><span>'+safe(integrityNames[x.code]||x.code)+'</span><span>'+safe(x.details?.familyCode||'')+'</span></div>').join('')+'</div>');
  attention.innerHTML=parts.join('')||'<div class="muted">По виртуальным данным нет отмеченных сигналов и нарушений структуры.</div>';
@@ -509,6 +509,11 @@ function validateVirtualApiary(){
    if(family.parentFamilySnapshot?.id===family.parentFamilyId)add(warnings,'family_parent_archived',{familyCode:family.code||family.name,parentFamilyCode:family.parentFamilySnapshot.code||family.parentFamilySnapshot.name||''});
    else add(warnings,'family_parent_missing',{familyCode:family.code||family.name,parentFamilyId:family.parentFamilyId});
   }
+  let cursor=family.parentFamilyId||'',seen=new Set([family.id]);
+  while(cursor){
+   if(seen.has(cursor)){add(errors,'family_lineage_cycle',{familyCode:family.code||family.name,familyId:family.id});break}
+   seen.add(cursor);cursor=S.families.find(x=>x.id===cursor)?.parentFamilyId||'';
+  }
  }
  return {status:errors.length?'errors':warnings.length?'warnings':'ok',errorCount:errors.length,warningCount:warnings.length,errors,warnings};
 }
@@ -573,7 +578,11 @@ async function deleteHive(id){
  const childCount=affectedChildren.length,recordCount=linkedRecords.length;
  if(!confirm('Удалить '+hname(id)+'? Его семьи, записи, задачи и данные корпусов будут удалены. Исторические ссылки других семей и записей на эти семьи сохранятся как архивные сведения. Продолжить?'))return;
  const archivedAt=new Date().toISOString(),hiveNumber=h.number||null;
- const familySnapshots=new Map(deletedFamilies.map(f=>[f.id,{id:f.id,name:f.name||f.code||'Без названия',code:f.code||f.name||'Без названия',hiveId:id,hiveNumber,archivedAt}]));
+ const familySnapshots=new Map(deletedFamilies.map(f=>[f.id,{id:f.id,name:f.name||f.code||'Без названия',code:f.code||f.name||'Без названия',hiveId:id,hiveNumber,archivedAt,parentFamilyId:f.parentFamilyId||'',parentFamilySnapshot:f.parentFamilySnapshot||null}]));
+ familySnapshots.forEach(snapshot=>{
+  const parent=familySnapshots.get(snapshot.parentFamilyId);
+  if(parent)snapshot.parentFamilySnapshot={id:parent.id,name:parent.name,code:parent.code,hiveId:parent.hiveId,hiveNumber:parent.hiveNumber,archivedAt:parent.archivedAt,reason:'hive_deleted'};
+ });
  affectedChildren.forEach(f=>{
   const parent=familySnapshots.get(f.parentFamilyId);
   if(parent&&!f.parentFamilySnapshot)f.parentFamilySnapshot={...parent,reason:'hive_deleted'};
@@ -606,6 +615,17 @@ async function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=
 $('hiveForm').onsubmit=defaultHive;
 function syncFamilyOrigin(){const isOffshoot=$('familyOrigin').value==='offshoot',wrap=$('familyParentWrap'),parent=$('familyParent');wrap.style.display=isOffshoot?'block':'none';parent.required=isOffshoot;if(!isOffshoot)parent.value=''}
 let transferringFamilyId='';
+function familyLineageWouldCycle(familyId,parentFamilyId){
+ if(!familyId||!parentFamilyId)return false;
+ const seen=new Set([familyId]);let cursor=parentFamilyId;
+ while(cursor){
+  if(seen.has(cursor))return true;
+  seen.add(cursor);
+  const parent=S.families.find(f=>f.id===cursor);
+  cursor=parent?.parentFamilyId||'';
+ }
+ return false;
+}
 function findFamilyBox(familyId){
  for(const h of S.hives){const l=layoutFor(h.id);for(let n=1;n<=6;n++)if(l.boxes[n]?.family===familyId)return {hiveId:h.id,box:n,layout:l,data:l.boxes[n]}}
  return null;
@@ -1076,7 +1096,7 @@ function saveBox(){
    if(origin==='offshoot'){
     const parent=S.families.find(x=>x.id===parentFamilyId);
     const retainedParentId=family?.parentFamilyId||b.parentFamilyId||'';
-    const retainedSnapshot=family?.parentFamilySnapshot||b.parentFamilySnapshot;const archivedParentValid=!parent&&retainedSnapshot?.id===parentFamilyId;if((!parent&&!archivedParentValid)||parent?.id===fid||(parent&&parent.hive!==hiveId&&parent.id!==retainedParentId&&!archivedParentValid)){alert('Для отводка выбери существующую исходную семью или сохрани ранее записанную архивную родословную.');return}
+    const retainedSnapshot=family?.parentFamilySnapshot||b.parentFamilySnapshot;const archivedParentValid=!parent&&retainedSnapshot?.id===parentFamilyId;if((!parent&&!archivedParentValid)||parent?.id===fid||(parent&&parent.hive!==hiveId&&parent.id!==retainedParentId&&!archivedParentValid)){alert('Для отводка выбери существующую исходную семью или сохрани ранее записанную архивную родословную.');return}if(family&&familyLineageWouldCycle(fid,parentFamilyId)){alert('Нельзя назначить потомка исходной семьёй: это создаст цикл в родословной.');return}
    }
    const previousFamily=b.family?S.families.find(x=>x.id===b.family):null;
    if(previousFamily&&previousFamily.id!==fid&&previousFamily.box===n)delete previousFamily.box;
@@ -1255,6 +1275,13 @@ function validateRawBackupIntegrity(state){
   for(const family of state.families||[])if(family.hive===hive.id&&family.box!=null){
    const boxesForFamily=placements.get(family.id)||[];
    if(!boxesForFamily.includes(Number(family.box)))add('family_box_mismatch',{hiveId:hive.id,familyId:family.id,box:family.box,actual:boxesForFamily});
+  }
+ }
+ for(const family of state.families||[]){
+  let cursor=family.parentFamilyId||'',seen=new Set([family.id]);
+  while(cursor){
+   if(seen.has(cursor)){add('family_lineage_cycle',{familyId:family.id,parentFamilyId:cursor});break}
+   seen.add(cursor);cursor=families.get(cursor)?.parentFamilyId||'';
   }
  }
  return {errors,errorCount:errors.length};
