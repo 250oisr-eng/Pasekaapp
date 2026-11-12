@@ -996,7 +996,7 @@ function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
  const inspectTaskIntegrity=loadFunction('inspectTaskIntegrity');
  const inspectPlantModuleIntegrity=loadFunction('inspectPlantModuleIntegrity');
- return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity,inspectPlantModuleIntegrity})(state);
+ return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity,inspectPlantModuleIntegrity,inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')})(state);
 }
 
 test('main database write rejects a stale revision without overwriting newer state',async()=>{
@@ -1594,6 +1594,14 @@ test('frame inventory numbers are global, permanent, six digits and idempotent a
  ensure(state);
  assert.equal(JSON.stringify(state),after,'running assignment twice must not change assigned numbers');
 });
+test('frame inventory integrity rejects duplicate and malformed physical labels and requires labels in schema 4',()=>{
+ const inspect=loadFunction('inspectFrameInventoryIntegrity');
+ const state={meta:{schemaVersion:4},layouts:{h1:{boxes:{1:{frames:[{frameId:'A',inventoryNumber:'000001'},{frameId:'B',inventoryNumber:'bad'}]}},honeyFrames:[[{frameId:'C',inventoryNumber:'000001'}],[]]}}};
+ const errors=inspect(state);
+ assert.ok(errors.some(error=>error.code==='invalid_frame_inventory_number'));
+ assert.ok(errors.some(error=>error.code==='duplicate_frame_inventory_number'));
+ assert.ok(errors.some(error=>error.code==='frame_inventory_number_missing'));
+});
 test('runtime integrity allows the same local frame ID in different hives',()=>{
  const frame={frameId:'GLOBAL-FRAME-02',location:'1',history:[]};
  const state={
@@ -1642,7 +1650,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  };
  layoutFor('h1').boxes['1']={frames:[frame]};
  let sequence=0;
- const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
  assert.equal(migrate(),true);
  assert.equal(state.meta.schemaVersion,4);
  assert.ok(state.meta.deviceId);
@@ -1654,6 +1662,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  assert.ok(state.snapshots.length>0);
  assert.equal(frame.frameId,'PHYSICAL-FRAME-01');
  assert.ok(frame.id);
+ assert.equal(frame.inventoryNumber,'000001');
  assert.deepEqual(frame.history,[]);
  assert.ok(state.layouts.h1.corpusIds['1']);
  assert.ok(state.layouts.h1.corpusIds.H1);
@@ -1904,7 +1913,7 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   inspectFamilyLineage:loadFunction('inspectFamilyLineage'),
   inspectTaskIntegrity:loadFunction('inspectTaskIntegrity')
  });
- const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity,inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity')});
+ const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity,inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')});
  const deps={
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:corrupt})}]}),
@@ -1914,6 +1923,7 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   validateBackupState,
   assertRawBackupIntegrity,
   inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),
+  inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity'),
   alert:message=>alerts.push(message)
  };
  await loadFunction('restoreBackup',deps)();
