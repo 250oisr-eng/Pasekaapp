@@ -25,6 +25,14 @@ test('family lineage accepts live and archived parents', () => {
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
   assert.deepEqual(inspect([{id:'c',origin:'offshoot',parentFamilyId:'p',parentFamilySnapshot:{id:'p'}}]), []);
 });
+test('family breed, line and queen provenance accept universal labels and reject malformed metadata',()=>{
+ const inspect=loadFunction('inspectFamilyLineage');
+ assert.deepEqual(inspect([{id:'f1',breed:'Порода из нового каталога',line:'Линия X-17',queen:{code:'Q-2026-014',year:2026,source:'Заводчик',notes:'Проверенная родословная'}}]),[]);
+ assert.ok(inspect([{id:'f2',breed:'x'.repeat(101)}]).some(x=>x.code==='invalid_family_breed'));
+ assert.ok(inspect([{id:'f3',line:'x'.repeat(121)}]).some(x=>x.code==='invalid_family_line'));
+ assert.ok(inspect([{id:'f4',queen:{year:1800}}]).some(x=>x.code==='invalid_family_queen_provenance'));
+ assert.ok(inspect([{id:'f5',queen:'not-an-object'}]).some(x=>x.code==='invalid_family_queen_provenance'));
+});
 test('family lineage rejects missing parents and cycles', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.ok(inspect([{id:'c',origin:'offshoot',parentFamilyId:'missing'}]).some(x=>x.code==='family_parent_missing'));
