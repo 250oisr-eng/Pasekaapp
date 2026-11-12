@@ -486,7 +486,7 @@ function renderHiveHeaderSummary(h){
  const host=$('hiveHeaderSummary');if(!host||!h)return;
  const profile=getHiveProfile(h),families=S.families.filter(f=>f.hive===h.id).length,l=layoutFor(h.id);
  const brood=(l.installedBoxes||[]).length,honey=(l.honeyBoxInstalled||[]).filter(Boolean).length,latest=S.records.filter(r=>!r.archivedAt&&r.hive===h.id&&r.type==='Осмотр').sort((a,b)=>b.date.localeCompare(a.date))[0];
- const mode=l.mode==='winter'?'зимняя сборка':'летняя сборка',height=profile?.frame?.heightMm?' · рамка '+profile.frame.heightMm+' мм':'';
+ const mode=l.mode==='winter'?'зимняя сборка':'летняя сборка',height=profile?.frame?.heightMm?' · все рамки '+profile.frame.heightMm+' мм':'';
  host.innerHTML='<div>'+safe(hname(h.id))+' · '+families+' '+ruPlural(families,'семья','семьи','семей')+'</div><small>'+safe(profile?.name||'Профиль не указан')+' · '+mode+height+' · гнездовых: '+brood+' · медовых: '+honey+' · '+(latest?'Последний осмотр: '+safe(latest.date):'Осмотров пока нет')+'</small>';
  host.style.display='block';
 }
