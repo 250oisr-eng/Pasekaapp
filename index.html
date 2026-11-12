@@ -1099,31 +1099,54 @@ function newRecord(){if(!S.hives.length){alert('Сначала добавь ул
 function extractInspectionFieldsFromText(input){
  const text=String(input||'').trim(),normalized=text.toLocaleLowerCase('ru-RU').replace(/ё/g,'е');
  const fields={},evidence={};
- const assign=(field,value,pattern)=>{const match=normalized.match(pattern);if(match&&fields[field]===undefined){fields[field]=value;evidence[field]=text.slice(Math.max(0,match.index-45),Math.min(text.length,match.index+match[0].length+55)).trim()}};
- const count=(pattern)=>{const m=normalized.match(pattern);if(!m)return null;const n=Number(m[1]);return Number.isInteger(n)&&n>=0&&n<=6?{value:n,excerpt:text.slice(Math.max(0,m.index-45),Math.min(text.length,m.index+m[0].length+55)).trim()}:null};
- const occupancy=count(/(?:занято|пчелами занято|пчелы занимают)\s*([0-6])\s*рам/i)||count(/([0-6])\s*рам(?:ок|ки)?\s*(?:занято|заняты пчелами)/i);
- if(occupancy){fields.occupancy=occupancy.value;evidence.occupancy=occupancy.excerpt}else delete fields.occupancy;
- const brood=count(/(?:расплода|с расплодом)\s*(?:на|—|:)?\s*([0-6])\s*рам/i)||count(/([0-6])\s*рам(?:ок|ки)?\s*(?:с расплодом|расплода)/i);
+ const excerpt=match=>text.slice(Math.max(0,match.index-45),Math.min(text.length,match.index+match[0].length+55)).trim();
+ const assign=(field,value,pattern)=>{const match=normalized.match(pattern);if(match&&fields[field]===undefined){fields[field]=value;evidence[field]=excerpt(match)}};
+ const count=(pattern)=>{const match=normalized.match(pattern);if(!match)return null;const value=Number(match[1]);return Number.isInteger(value)&&value>=0&&value<=6?{value,excerpt:excerpt(match)}:null};
+ const frameWord='рам(?:ка|ки|ок|ке|ках|ками)?';
+ const occupancy=count(new RegExp('(?:занято|заняты|обсижено|обсиживают|пчелы занимают)\\\\s*(?:пчелами\\\\s*)?([0-6])\\\\s*'+frameWord,'i'))||
+  count(new RegExp('([0-6])\\\\s*'+frameWord+'\\\\s*(?:занято|заняты(?:\\\\s+пчелами)?|обсижено(?:\\\\s+пчелами)?)','i'))||
+  count(new RegExp('на\\\\s+([0-6])\\\\s*'+frameWord+'\\\\s+(?:сидят|держатся)\\\\s+пчелы','i'));
+ if(occupancy){fields.occupancy=occupancy.value;evidence.occupancy=occupancy.excerpt}
+ const brood=count(new RegExp('(?:расплода|расплод)\\\\s*(?:на|—|:)\\\\s*([0-6])\\\\s*'+frameWord,'i'))||
+  count(new RegExp('([0-6])\\\\s*'+frameWord+'\\\\s*(?:с\\\\s+расплодом|расплода)','i'))||
+  count(new RegExp('([0-6])\\\\s*'+frameWord+'\\\\s+занято\\\\s+расплодом','i'));
  if(brood){fields.broodFrames=brood.value;evidence.broodFrames=brood.excerpt}
- const drawn=count(/(?:свободных отстроенных рамок|свободные отстроенные рамки)\s*(?:—|:)?\s*([0-6])/i)||count(/([0-6])\s*свободн(?:ых отстроенных рамок|ые отстроенные рамки)/i);
+ const drawn=count(/(?:свободн(?:ых|ые)\\s+(?:отстроенных\\s+)?(?:рамок|рамки)|свободной\\s+суши)\\s*(?:—|:)?\\s*([0-6])/i)||
+  count(/([0-6])\\s*(?:свободн(?:ых|ые)\\s+(?:отстроенных\\s+)?(?:рамок|рамки)|рам(?:ка|ки|ок)\\s+свободной\\s+суши)/i);
  if(drawn){fields.freeDrawn=drawn.value;evidence.freeDrawn=drawn.excerpt}
- if(/матк(?:а|у)\s+не\s+(?:обнаружена|видел|увидел|нашел|нашёл)/i.test(normalized))assign('queen','notSeen',/матк(?:а|у)\s+не\s+(?:обнаружена|видел|увидел|нашел|нашел)/i);
- else if(/матк(?:а|у)\s+(?:обнаружена|увидел|увидена|найдена)|видел(?:а)?\s+матку/i.test(normalized))assign('queen','seen',/матк(?:а|у)\s+(?:обнаружена|увидел|увидена|найдена)|видел(?:а)?\s+матку/i);
- if(/свеж(?:ие|их)\s+яйц(?:а|ы)\s+(?:есть|обнаружены|видны)|есть\s+свеж(?:ие|их)\s+яйц/i.test(normalized))assign('eggs','yes',/свеж(?:ие|их)\s+яйц(?:а|ы)\s+(?:есть|обнаружены|видны)|есть\s+свеж(?:ие|их)\s+яйц/i);
- else if(/свеж(?:их|их)\s+яиц\s+нет|яиц\s+нет/i.test(normalized))assign('eggs','no',/свежих\s+яиц\s+нет|яиц\s+нет/i);
- if(/расплода\s+нет|нет\s+расплода/i.test(normalized))assign('broodPattern','none',/расплода\s+нет|нет\s+расплода/i);
- else if(/мало\s+расплода|расплода\s+мало/i.test(normalized))assign('broodPattern','weak',/мало\s+расплода|расплода\s+мало/i);
- else if(/пестр(?:ый|ая|ота)|мозаичн(?:ый|ая)|пропуск(?:и|ов)\s+в\s+расплод/i.test(normalized))assign('broodPattern','mosaic',/пестр(?:ый|ая|ота)|мозаичн(?:ый|ая)|пропуск(?:и|ов)\s+в\s+расплод/i);
- else if(/расплод\s+(?:сплошной|ровный)|сплошной\s+расплод/i.test(normalized))assign('broodPattern','solid',/расплод\s+(?:сплошной|ровный)|сплошной\s+расплод/i);
- if(/маточников\s+нет|нет\s+маточников|маточники\s+не\s+обнаружены/i.test(normalized))assign('queenCells','none',/маточников\s+нет|маточники\s+не\s+обнаружены/i);
- else if(/роев(?:ые|ых)\s+маточник/i.test(normalized))assign('queenCells','swarm',/роев(?:ые|ых)\s+маточник/i);
- else if(/маточник(?:и)?\s+(?:тихой\s+смены|на\s+тихую\s+смену)/i.test(normalized))assign('queenCells','supersedure',/маточник(?:и)?\s+(?:тихой\s+смены|на\s+тихую\s+смену)/i);
- else if(/свищев(?:ые|ых)\s+маточник/i.test(normalized))assign('queenCells','emergency',/свищев(?:ые|ых)\s+маточник/i);
- else if(/маточник(?:и)?\s+есть|есть\s+маточник/i.test(normalized))assign('queenCells','unknown',/маточник(?:и)?\s+есть|есть\s+маточник/i);
- if(/признак(?:ов)?\s+роев(?:ого|ого состояния)\s+нет|роев(?:ых|ого)\s+признак(?:ов)?\s+нет|роевых признаков не обнаружено/i.test(normalized))assign('swarmSigns','none',/признак(?:ов)?\s+роев(?:ого|ого состояния)\s+нет|роев(?:ых|ого)\s+признак(?:ов)?\s+нет|роевых признаков не обнаружено/i);
- else if(/несколько\s+признак(?:ов)?\s+роев/i.test(normalized))assign('swarmSigns','several',/несколько\s+признак(?:ов)?\s+роев/i);
- else if(/один\s+признак\s+роев/i.test(normalized))assign('swarmSigns','one',/один\s+признак\s+роев/i);
- const inspectionMention=/(?:осмотр(?:ел|ела|ели)?|осматривал(?:а|и)?|проверил(?:а|и)?\s+(?:семью|улей|гнездо)|провел(?:а|и)?\s+осмотр)/i.test(normalized);
+ const queenAbsent=/матк(?:а|у)\\s+(?:не\\s+(?:обнаружена|видел(?:а)?|увидел(?:а)?|нашел(?:а)?|найдена)|отсутствует)|матку\\s+не\\s+видел(?:а)?|матки\\s+не\\s+видно/i;
+ const queenPresent=/матк(?:а|у)\\s+(?:обнаружена|увидел(?:а)?|увидена|найдена|есть)|видел(?:а)?\\s+матку|матка\\s+на\\s+месте/i;
+ if(queenAbsent.test(normalized))assign('queen','notSeen',queenAbsent);
+ else if(queenPresent.test(normalized))assign('queen','seen',queenPresent);
+ const eggsYes=/свеж(?:ие|их)\\s+яйц(?:а|ы)\\s+(?:есть|обнаружены|видны)|есть\\s+свеж(?:ие|их)\\s+яйц|яйц(?:а|о)\\s+обнаружены/i;
+ const eggsNo=/(?:свеж(?:их|ие)\\s+)?яиц?\\s+(?:нет|не\\s+обнаружено)|яйц(?:а|о)\\s+отсутствуют/i;
+ if(eggsNo.test(normalized))assign('eggs','no',eggsNo);
+ else if(eggsYes.test(normalized))assign('eggs','yes',eggsYes);
+ const broodNone=/расплода\\s+нет|нет\\s+расплода|расплод\\s+отсутствует/i;
+ const broodWeak=/мало\\s+расплода|расплода\\s+мало|расплода\\s+немного/i;
+ const broodMosaic=/пестр(?:ый|ая|ота)|мозаичн(?:ый|ая)|пропуск(?:и|ов)\\s+в\\s+расплод|расплод\\s+неравномерный/i;
+ const broodSolid=/расплод\\s+(?:сплошной|ровный)|сплошной\\s+расплод|ровный\\s+расплод/i;
+ if(broodNone.test(normalized))assign('broodPattern','none',broodNone);
+ else if(broodWeak.test(normalized))assign('broodPattern','weak',broodWeak);
+ else if(broodMosaic.test(normalized))assign('broodPattern','mosaic',broodMosaic);
+ else if(broodSolid.test(normalized))assign('broodPattern','solid',broodSolid);
+ const cellsNone=/маточников\\s+нет|нет\\s+маточников|маточники\\s+не\\s+обнаружены|маточников\\s+не\\s+обнаружил(?:а)?/i;
+ const cellsSwarm=/роев(?:ые|ых)\\s+маточник/i;
+ const cellsSupersedure=/маточник(?:и)?\\s+(?:тихой\\s+смены|на\\s+тихую\\s+смену)/i;
+ const cellsEmergency=/свищев(?:ые|ых)\\s+маточник/i;
+ const cellsPresent=/маточник(?:и)?\\s+(?:есть|имеются)|есть\\s+маточник/i;
+ if(cellsNone.test(normalized))assign('queenCells','none',cellsNone);
+ else if(cellsSwarm.test(normalized))assign('queenCells','swarm',cellsSwarm);
+ else if(cellsSupersedure.test(normalized))assign('queenCells','supersedure',cellsSupersedure);
+ else if(cellsEmergency.test(normalized))assign('queenCells','emergency',cellsEmergency);
+ else if(cellsPresent.test(normalized))assign('queenCells','unknown',cellsPresent);
+ const swarmNone=/признак(?:ов)?\\s+роев(?:ого|ого состояния)\\s+нет|роев(?:ых|ого)\\s+признак(?:ов)?\\s+нет|роевых признаков не обнаружено|роевых признаков нет/i;
+ const swarmSeveral=/несколько\\s+признак(?:ов)?\\s+роев|несколько\\s+роевых\\s+признаков/i;
+ const swarmOne=/один\\s+признак\\s+роев|есть\\s+признак\\s+роевого\\s+состояния/i;
+ if(swarmNone.test(normalized))assign('swarmSigns','none',swarmNone);
+ else if(swarmSeveral.test(normalized))assign('swarmSigns','several',swarmSeveral);
+ else if(swarmOne.test(normalized))assign('swarmSigns','one',swarmOne);
+ const inspectionMention=/(?:осмотр(?:ел|ела|ели)?|осматривал(?:а|и)?|проверил(?:а|и)?\\s+(?:семью|улей|гнездо)|провел(?:а|и)?\\s+осмотр|проверка\\s+(?:семьи|улья|гнезда))/i.test(normalized);
  return {type:Object.keys(fields).length||inspectionMention?'Осмотр':'Заметка',fields,evidence,fieldCount:Object.keys(fields).length};
 }
 function prepareJournalDraftFromAI(){
