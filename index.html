@@ -423,6 +423,39 @@ function renderApiaryStatus(){
  attention.innerHTML=parts.join('')||'<div class="muted">По виртуальным данным нет отмеченных сигналов и нарушений структуры.</div>';
  $('apiaryStatusDate').textContent=today();
 }
+function validateTaskDraft(draft,state,existingTask=null){
+ const errors=[];
+ const realDate=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [year,month,day]=value.split('-').map(Number),date=new Date(Date.UTC(year,month-1,day));
+  return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+ };
+ const types=['Осмотр','Обработка','Расширение гнезда','Подкормка','Проверка матки','Подготовка к зимовке','Другое','Контроль после обработки'];
+ if(!types.includes(draft?.type))errors.push({code:'task_invalid_type',message:'Неизвестный тип задачи.'});
+ if(!realDate(draft?.date))errors.push({code:'task_invalid_date',message:'Укажи существующую календарную дату задачи.'});
+ if(typeof draft?.hive!=='string'||!state?.hives?.some(hive=>hive?.id===draft.hive))errors.push({code:'task_hive_missing',message:'Улей задачи не найден.'});
+ if(typeof draft?.note!=='string'||draft.note.length>3000)errors.push({code:'task_invalid_note',message:'Комментарий задачи должен содержать не более 3000 символов.'});
+ if(state?.tasks?.some(task=>task?.id===draft?.id&&task!==existingTask))errors.push({code:'task_duplicate_id',message:'Идентификатор задачи уже используется.'});
+ return {ok:errors.length===0,errors};
+}
+function validateTaskCompletion(state,taskId,date,recordId){
+ const errors=[],task=state?.tasks?.find(item=>item?.id===taskId);
+ const realDate=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [year,month,day]=value.split('-').map(Number),d=new Date(Date.UTC(year,month-1,day));
+  return d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day;
+ };
+ if(!task)errors.push({code:'task_missing'});
+ else{
+  if(task.status!=='pending')errors.push({code:'task_not_active'});
+  if(task.completedRecordId||state.records?.some(record=>record?.taskId===task.id))errors.push({code:'task_already_recorded'});
+  if(!state.hives?.some(hive=>hive?.id===task.hive))errors.push({code:'task_hive_missing'});
+  if(typeof task.type!=='string'||!task.type.trim())errors.push({code:'task_invalid_type'});
+ }
+ if(!realDate(date))errors.push({code:'task_completion_invalid_date'});
+ if(typeof recordId!=='string'||!recordId||state.records?.some(record=>record?.id===recordId))errors.push({code:'task_completion_duplicate_record'});
+ return {ok:errors.length===0,errors,task};
+}
 function renderHome(){
  S.tasks=S.tasks||[];
  renderApiaryStatus();
@@ -447,16 +480,36 @@ function renderHome(){
 }
 function taskMarkup(t){const suggested=t.status==='suggested',late=t.status==='pending'&&t.date<today();return '<div class="'+(suggested?'task-suggested':'task-item')+'"><div class="row"><b>'+safe(t.type)+'</b><span class="task-date '+(late?'task-overdue':'')+'">'+(late?'Просрочено · ':'')+formatTaskDate(t.date)+'</span></div><div class="muted">'+safe(hname(t.hive))+(t.note?' · '+safe(t.note):'')+'</div>'+(suggested?'<div class="muted">Предварительная рекомендация по данным осмотра. Подтверди после проверки условий.</div>':'')+'<div class="task-actions">'+(suggested?'<button class="primary" onclick="acceptTask(\''+t.id+'\')">Подтвердить</button><button onclick="dismissTask(\''+t.id+'\')">Отклонить</button>':'<button class="primary" onclick="completeTask(\''+t.id+'\')">Выполнено</button><button onclick="rescheduleTask(\''+t.id+'\')">Перенести</button>')+'</div></div>'}
 function openPlanDialog(){if(!S.hives.length)return alert('Сначала добавь улей');$('planHive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('planDate').value=dateShift(today(),1);$('planNote').value='';$('planDlg').showModal()}
-$('planForm').onsubmit=async e=>{e.preventDefault();S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:$('planHive').value,type:$('planType').value,date:$('planDate').value,note:$('planNote').value,source:'manual',status:'pending',createdAt:new Date().toISOString()});$('planDlg').close();await save()}
+$('planForm').onsubmit=async e=>{
+ e.preventDefault();S.tasks=S.tasks||[];
+ const draft={id:uid(),hive:$('planHive').value,type:$('planType').value,date:$('planDate').value,note:$('planNote').value,source:'manual',status:'pending',createdAt:new Date().toISOString()};
+ const validation=validateTaskDraft(draft,S);
+ if(!validation.ok)return alert(validation.errors.map(error=>error.message).join('\n'));
+ S.tasks.push(draft);$('planDlg').close();await save();
+}
 async function completeTask(id){
  const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
- if(t.status==='done')return alert('Эта задача уже отмечена выполненной.');
- if(!S.hives.some(h=>h?.id===t.hive))return alert('Улей задачи больше не существует. Запись о выполнении не создана.');
- const recordId=uid(),date=today();
+ const recordId=uid(),date=today(),validation=validateTaskCompletion(S,id,date,recordId);
+ if(!validation.ok){
+  const code=validation.errors[0].code;
+  return alert(code==='task_not_active'||code==='task_already_recorded'?'Эта задача уже закрыта или для неё уже создана запись.':code==='task_hive_missing'?'Улей задачи больше не существует. Запись о выполнении не создана.':'Не удалось проверить задачу. Запись о выполнении не создана.');
+ }
+ const previousTask={...t},previousRecordCount=S.records.length,previousAuditCount=(S.auditLog||[]).length,previousSnapshotCount=(S.snapshots||[]).length,previousMeta={...(S.meta||{})};
  t.status='done';t.completedAt=date;t.completedRecordId=recordId;
  S.records.push({id:recordId,date,type:t.type,hive:t.hive,family:'',taskId:t.id,text:'Выполнено по плану. '+(t.note||''),media:[]});
  logAudit('task_completed',{taskId:t.id,hiveId:t.hive,recordId,date});
- await save();
+ const saved=await save();
+ if(!saved){
+  Object.keys(t).forEach(key=>delete t[key]);Object.assign(t,previousTask);
+  S.records.splice(previousRecordCount);
+  if(S.auditLog)S.auditLog.splice(previousAuditCount);
+  if(S.snapshots)S.snapshots.splice(previousSnapshotCount);
+  const saveError=S.meta?.saveError;
+  S.meta=previousMeta;if(saveError)S.meta.saveError=saveError;
+  render();
+  return false;
+ }
+ return true;
 }
 async function acceptTask(id){
  const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
