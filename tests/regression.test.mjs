@@ -1167,3 +1167,41 @@ test('inspection text extraction rejects frame counts outside the six-frame broo
  assert.deepEqual(result.fields,{});
 });
 
+
+
+test('hive profile catalog resolves legacy hives to the preserved Farrar profile',()=>{
+  const getProfile=loadFunction('getHiveProfile',{HIVE_PROFILE_CATALOG:{
+    'farrar-6x6-v1':{id:'farrar-6x6-v1',schemaVersion:1,family:'farrar',status:'ready',name:'Farrar',frame:{heightMm:195},brood:{boxCount:6,framesPerBox:6,boxKeys:['1','2','3','4','5','6']},honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5']}}
+  }});
+  const profile=getProfile({id:'old-hive'});
+  assert.equal(profile.id,'farrar-6x6-v1');
+  assert.equal(profile.brood.framesPerBox,6);
+  profile.name='Changed copy';
+  assert.equal(getProfile({profileId:'farrar-6x6-v1'}).name,'Farrar');
+});
+
+test('hive profile validator accepts a complete configurable construction',()=>{
+  const validate=loadFunction('validateHiveProfile');
+  const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3']}};
+  assert.deepEqual(validate(profile),{ok:true,errors:[]});
+});
+
+test('hive profile validator refuses incomplete Dadant and Ruta templates as active configurations',()=>{
+  const validate=loadFunction('validateHiveProfile');
+  for(const family of ['dadant','ruta']){
+    const template={id:family+'-template-v1',schemaVersion:1,family,status:'template',name:family+' setup'};
+    assert.equal(validate(template).ok,false);
+    assert.ok(validate(template).errors.some(x=>x.code==='profile_requires_configuration'));
+    assert.equal(validate(template,{allowTemplate:true}).ok,true);
+  }
+});
+
+test('hive profile validator rejects mismatched capacities and winter references',()=>{
+  const validate=loadFunction('validateHiveProfile');
+  const profile={id:'bad-v1',schemaVersion:1,status:'ready',name:'Bad',frame:{heightMm:195},brood:{boxCount:2,framesPerBox:6,boxKeys:['1','2']},honey:{boxCount:1,framesPerBox:10,boxKeys:['H1'],installation:'paired'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','9'],forbiddenBoxKeys:['2']}};
+  const result=validate(profile);
+  assert.equal(result.ok,false);
+  assert.ok(result.errors.some(x=>x.code==='profile_honey_installation_invalid'));
+  assert.ok(result.errors.some(x=>x.code==='profile_winter_required_count_invalid'));
+  assert.ok(result.errors.some(x=>x.code==='profile_winter_allowed_keys_invalid'));
+});
