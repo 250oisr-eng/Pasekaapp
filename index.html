@@ -1202,20 +1202,28 @@ function returnHoneyBoxes(eventId,hiveId){
 }
 async function confirmHoneyReturn(){
  const date=$('honeyReturnDate').value;if(!date)return alert('Укажи дату возврата');
- const plans=[];
+ if(!Array.isArray(returningHoney)||!returningHoney.length)return alert('Не выбраны медовые корпуса для возврата.');
+ const plans=[],seen=new Set();
  for(const r of returningHoney){
-  const ev=(S.extractions||[]).find(x=>x.id===r.eventId),item=ev?.items.find(x=>x.hiveId===r.hiveId);
+  if(!r?.eventId||!r?.hiveId||seen.has(String(r.eventId)+'|'+String(r.hiveId)))return alert('В списке возврата обнаружена повторная или некорректная операция.');
+  seen.add(String(r.eventId)+'|'+String(r.hiveId));
+  const ev=(S.extractions||[]).find(x=>x?.id===r.eventId),item=Array.isArray(ev?.items)?ev.items.find(x=>x?.hiveId===r.hiveId):null;
   if(!ev||!item)return alert('Запись об откачке не найдена. Обнови страницу и повтори.');
   if(item.returnedAt)return alert('Эти медовые корпуса уже отмечены как возвращённые.');
-  const l=layoutFor(r.hiveId);if(l.mode==='winter')return alert('Нельзя вернуть медовые корпуса в зимнюю сборку. Сначала перейди на летнюю.');
-  plans.push({r,item,l});
+  if(!(S.hives||[]).some(h=>h?.id===r.hiveId))return alert('Улей для возврата больше не существует. Операция отменена.');
+  const l=S.layouts?.[r.hiveId];
+  if(!l||typeof l!=='object'||Array.isArray(l))return alert('Не найдена сохранённая конструкция улья. Возврат отменён.');
+  if(l.mode==='winter')return alert('Нельзя вернуть медовые корпуса в зимнюю сборку. Сначала перейди на летнюю.');
+  if(!Array.isArray(l.honeyBoxInstalled)||l.honeyBoxInstalled.length!==2)return alert('Повреждено состояние медовой пары. Возврат отменён.');
+  if(l.honeyBoxInstalled.some(Boolean))return alert('Медовая пара уже установлена. Проверь состояние корпусов, чтобы не выполнить возврат повторно.');
+  plans.push({r,item,l,event:ev});
  }
- for(const {r,item,l} of plans){
+ for(const {r,item,l,event} of plans){
   l.honeyBoxInstalled=[true,true];l.honeyInstalled=true;
   item.boxes=['H1','H2'];item.returnedAt=date;item.returned=true;item.returnedBoxes=['H1','H2'];
-  logAudit('honey_pair_returned',{hiveId:r.hiveId,date,extractionDate:ev.date,kilograms:item.kilograms});
+  logAudit('honey_pair_returned',{hiveId:r.hiveId,date,extractionDate:event.date,kilograms:item.kilograms});
  }
- $('returnHoneyDlg').close();await save();
+ $('returnHoneyDlg').close();returningHoney=[];await save();
 }
 
 async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
