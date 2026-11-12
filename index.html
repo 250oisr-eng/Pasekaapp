@@ -566,7 +566,9 @@ function validateVirtualApiary(){
   if(!task||typeof task!=='object')continue;
   if(task.id){if(taskIds.has(task.id))add(errors,'duplicate_task_id',{taskId:task.id});taskIds.add(task.id)}
   if(task.hive&&!hiveIds.has(task.hive))add(errors,'task_hive_missing',{taskId:task.id||null,hiveId:task.hive});
+  if(task.completedRecordId&&!S.records.some(record=>record?.id===task.completedRecordId&&record.taskId===task.id))add(errors,'task_completion_record_missing',{taskId:task.id||null,recordId:task.completedRecordId});
  }
+ for(const record of Array.isArray(S.records)?S.records:[])if(record?.taskId&&!taskIds.has(record.taskId))add(errors,'record_task_link_missing',{recordId:record.id||null,taskId:record.taskId});
  const extractionIds=new Set();
  for(const event of Array.isArray(S.extractions)?S.extractions:[]){
   if(!event||typeof event!=='object')continue;
@@ -1393,7 +1395,9 @@ function validateRawBackupIntegrity(state){
   if(!task||typeof task!=='object')continue;
   if(task.id){if(taskIds.has(task.id))add('duplicate_task_id',{taskId:task.id});taskIds.add(task.id)}
   if(task.hive&&!hiveIds.has(task.hive))add('task_hive_missing',{taskId:task.id||null,hiveId:task.hive});
+  if(task.completedRecordId&&!state.records.some(record=>record?.id===task.completedRecordId&&record.taskId===task.id))add('task_completion_record_missing',{taskId:task.id||null,recordId:task.completedRecordId});
  }
+ for(const record of state.records||[])if(record.taskId&&!taskIds.has(record.taskId))add('record_task_link_missing',{recordId:record.id||null,taskId:record.taskId});
  const extractionIds=new Set();
  for(const event of state.extractions||[]){
   if(!event||typeof event!=='object')continue;
