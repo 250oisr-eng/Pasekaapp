@@ -1986,3 +1986,25 @@ test('IndexedDB connection closes on versionchange so another tab can upgrade',a
  assert.equal(fakeDb.closed,true);
  assert.equal(deps.db,null);
 });
+
+
+test('save reports snapshot preparation failures without throwing or queuing a partial save',async()=>{
+ const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},snapshots:[]};
+ const alerts=[];
+ let queued=false;
+ const save=loadFunction('save',{
+  S:state,
+  uid:()=> 'new-revision',
+  structuredClone:()=>{throw new DOMException('unsupported value','DataCloneError')},
+  saveQueue:Promise.resolve(),
+  persistSnapshot:async()=>{queued=true;return true},
+  render:()=>{},
+  alert:message=>alerts.push(message)
+ });
+ const result=await save();
+ assert.equal(result,false);
+ assert.equal(queued,false,'invalid snapshot must never enter the persistence queue');
+ assert.equal(state.snapshots.length,0,'failed snapshot preparation must not mutate snapshot history');
+ assert.match(state.meta.saveError,/подготовить копию данных/);
+ assert.equal(alerts.length,1);
+});
