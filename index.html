@@ -578,15 +578,16 @@ async function confirmFamilyTransfer(e){
  if(targetLayout.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке разрешены только корпуса №1, 3, 4 и 6.');
  const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
  if(!frames.length||frames.length>6||targetFrames.length>6)return alert('Не удалось проверить комплект рамок. Перемещение отменено.');
- const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId);
+ const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId),displacedFrames=targetFrames.map(fr=>fr.frameId);
  if(!confirm('Переместить семью '+familyName+' и '+frames.length+' рамок из '+hname(fromHiveId)+', корпус №'+fromBox+' в '+hname(targetHiveId)+', корпус №'+targetNumber+'? Рамки выбранного корпуса назначения перейдут в освобождаемый корпус источника.'))return;
  sourceBox.frames=targetFrames;targetBox.frames=frames;
  targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';
  sourceBox.family='';sourceBox.origin='';sourceBox.breed='Неизвестная';sourceBox.familyName='';sourceBox.parentFamilyId='';
  family.hive=targetHiveId;family.box=targetNumber;
- const movedAt=new Date().toISOString();
- frames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:today(),action:'family_transfer',from:{hiveId:fromHiveId,box:fromBox},to:{hiveId:targetHiveId,box:targetNumber}});fr.location=String(targetNumber)});
- logAudit('family_transferred',{familyId:family.id,familyName,fromHiveId,fromBox,toHiveId:targetHiveId,toBox:targetNumber,frameCount:frames.length,frameIds:movedFrames,at:movedAt});
+ const movedAt=new Date().toISOString(),moveDate=today();
+ frames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'family_transfer',from:{hiveId:fromHiveId,box:fromBox},to:{hiveId:targetHiveId,box:targetNumber}});fr.location=String(targetNumber)});
+ targetFrames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'box_frames_swapped',from:{hiveId:targetHiveId,box:targetNumber},to:{hiveId:fromHiveId,box:fromBox}});fr.location=String(fromBox)});
+ logAudit('family_transferred',{familyId:family.id,familyName,fromHiveId,fromBox,toHiveId:targetHiveId,toBox:targetNumber,frameCount:frames.length,frameIds:movedFrames,displacedFrameCount:targetFrames.length,displacedFrameIds:displacedFrames,at:movedAt});
  $('familyTransferDlg').close();transferringFamilyId='';selectedHiveId=targetHiveId;activeJournalHive=targetHiveId;
  await save();render();showTab('hiveDetail');
 }
