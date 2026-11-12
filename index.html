@@ -1087,14 +1087,14 @@ function renderAICommandPreview(message,index){
  return '';
 }
 function renderAIChat(){
- const host=$('aiMessages');if(!host)return;const messages=S.aiMessages||[];
+ const host=$('aiMessages');if(!host)return;const wasNearBottom=host.scrollHeight-host.scrollTop-host.clientHeight<64;const messages=S.aiMessages||[];
  host.innerHTML=messages.length?messages.map((m,i)=>'<div class="ai-bubble '+(m.role==='user'?'user':'assistant')+'"><small>'+(m.role==='user'?'Ты':'ИИ-помощник')+'</small>'+safe(m.content)+(m.role==='assistant'?renderAICommandPreview(m,i):'')+'<button type="button" class="ai-copy" data-copy-ai="'+i+'">Копировать сообщение</button></div>').join(''):'<div class="ai-empty">Диалог пока пуст. Спроси, например: «Какие семьи требуют внимания по последним осмотрам?»</div>';
  host.onclick=event=>{
   const copy=event.target.closest('[data-copy-ai]');if(copy){copyAIMessage(Number(copy.dataset.copyAi),copy);return}
   const confirmButton=event.target.closest('[data-ai-confirm]');if(confirmButton){confirmAICommand(Number(confirmButton.dataset.aiConfirm));return}
   const cancelButton=event.target.closest('[data-ai-cancel]');if(cancelButton)cancelAICommand(Number(cancelButton.dataset.aiCancel));
  };
- host.scrollTop=host.scrollHeight;
+ if(wasNearBottom)host.scrollTop=host.scrollHeight;
 }
 async function copyAIMessage(index,button){
  const message=(S.aiMessages||[])[index];if(!message)return;
