@@ -255,13 +255,13 @@ test('batch frame move refuses a plan changed after its preview was prepared',()
 test('AI command marker parser extracts only a valid JSON proposal',()=>{
   const extract=loadFunction('extractAICommandProposal');
   const proposal={schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
-  const valid=extract('Перенесу после проверки.\\n[[PASEKA_COMMAND_JSON]]'+JSON.stringify(proposal)+'[[/PASEKA_COMMAND_JSON]]');
+  const valid=extract('Перенесу после проверки.'+String.fromCharCode(10)+'[[PASEKA_COMMAND_JSON]]'+JSON.stringify(proposal)+'[[/PASEKA_COMMAND_JSON]]');
   assert.deepEqual(valid.proposal,proposal);
   assert.equal(valid.answer,'Перенесу после проверки.');
   assert.equal(valid.parseError,'');
   assert.equal(extract('Обычный ответ без команды.').proposal,null);
-  assert.match(extract('Ответ\\n[[PASEKA_COMMAND_JSON]]{broken}[[/PASEKA_COMMAND_JSON]]').parseError,/разобрать/);
-  assert.match(extract('Ответ\\n[[PASEKA_COMMAND_JSON]]{').parseError,/не завершён/);
+  assert.match(extract('Ответ'+String.fromCharCode(10)+'[[PASEKA_COMMAND_JSON]]{broken}[[/PASEKA_COMMAND_JSON]]').parseError,/разобрать/);
+  assert.match(extract('Ответ'+String.fromCharCode(10)+'[[PASEKA_COMMAND_JSON]]{').parseError,/не завершён/);
 });
 
 test('AI move preview can be safely revalidated after a chat save changes only revision',()=>{
