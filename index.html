@@ -392,7 +392,7 @@ function showTab(tab,push=true){const current=document.querySelector('.panel.act
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 
 const AI_AUTH_URL='https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech/paseka/auth';
-const AI_FUNCTION_URL='https://br-solitary-glitter-b9ur69hv-pasekaai2.compute.c-7.eu-central-1.aws.neon.tech/';
+const AI_FUNCTION_URL='https://pasekaapp.250oisr.workers.dev/';
 let aiAuthClient=null,aiAuthUser=null,aiAuthError='',aiBusy=false,aiInitPromise=null;
 async function initAIAuth(){
  if(aiInitPromise)return aiInitPromise;
