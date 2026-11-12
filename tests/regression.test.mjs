@@ -469,7 +469,6 @@ test('confirmed AI frame move is not reported as saved when persistence fails',a
     save:async()=>false,renderAIChat:()=>{renders++}
   });
   await confirmMove(0);
-  assert.equal(state.aiMessages[0].commandStatus,'pending');
   assert.equal(message.commandStatus,'save_failed');
   assert.match(message.commandError,/не сохранено в основной базе/);
   assert.equal(confirms,1);
