@@ -401,7 +401,7 @@ async function rescheduleTask(id){
  if(!['pending','suggested'].includes(t.status))return alert('Перенести можно только активную или предложенную задачу.');
  if(!S.hives.some(h=>h?.id===t.hive))return alert('Улей задачи больше не существует. Перенос отменён.');
  const d=prompt('Новая дата (ГГГГ-ММ-ДД):',dateShift(today(),1));if(!d)return;
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return alert('Укажи дату в формате ГГГГ-ММ-ДД');
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return alert('Укажи дату в формате ГГГГ-ММ-ДД');
  const [year,month,day]=d.split('-').map(Number),check=new Date(year,month-1,day);
  if(check.getFullYear()!==year||check.getMonth()!==month-1||check.getDate()!==day)return alert('Такой календарной даты не существует.');
  const previousDate=t.date;t.date=d;logAudit('task_rescheduled',{taskId:t.id,hiveId:t.hive,from:previousDate,to:d});await save();
