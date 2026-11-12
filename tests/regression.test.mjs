@@ -2008,3 +2008,30 @@ test('save reports snapshot preparation failures without throwing or queuing a p
  assert.match(state.meta.saveError,/подготовить копию данных/);
  assert.equal(alerts.length,1);
 });
+
+
+test('save queue serializes snapshots and continues after a failed persistence attempt',async()=>{
+ const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},snapshots:[]};
+ const calls=[];let sequence=0,releaseFirst;
+ const firstWrite=new Promise((resolve,reject)=>{releaseFirst={resolve,reject}});
+ const save=loadFunction('save',{
+  S:state,
+  uid:()=> 'revision-'+(++sequence),
+  saveQueue:Promise.resolve(),
+  persistSnapshot:async snapshot=>{
+   calls.push(snapshot.meta.revisionId);
+   if(calls.length===1)await firstWrite;
+   return true;
+  },
+  render:()=>{},
+  alert:()=>{}
+ });
+ const first=save();
+ const second=save();
+ await Promise.resolve();await Promise.resolve();await Promise.resolve();
+ assert.deepEqual(calls,['revision-1'],'the second snapshot must wait for the first persistence attempt');
+ releaseFirst.reject(new Error('simulated interrupted write'));
+ await assert.rejects(first,/simulated interrupted write/);
+ assert.equal(await second,true,'a failed earlier write must not poison the save queue');
+ assert.deepEqual(calls,['revision-1','revision-2']);
+});
