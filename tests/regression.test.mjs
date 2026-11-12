@@ -1846,3 +1846,60 @@ test('IndexedDB real API updates automatic backup only for the matching main rev
   assert.deepEqual(await readIndexedDb(db,'backup','previous'),written);
  }finally{db.close()}
 });
+
+test('JSON backup restore keeps current in-memory state when atomic database write fails',async()=>{
+ const current={meta:{revisionId:'current-rev'},hives:[{id:'current-hive'}],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
+ const restored={meta:{schemaVersion:2},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const alerts=[];
+ const deps={
+  S:current,
+  $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
+  confirm:()=>true,
+  saveQueue:Promise.resolve(),
+  readMain:async()=>({meta:{revisionId:'current-rev'}}),
+  validateBackupState:state=>state,
+  assertRawBackupIntegrity:state=>state,
+  migrateState:()=>false,
+  uid:()=> 'restored-rev',
+  logAudit:(type)=>{deps.S.auditLog.push({type})},
+  validateVirtualApiary:()=>({errorCount:0,errors:[]}),
+  writeMainWithBackup:async()=>{throw new Error('simulated IndexedDB transaction failure')},
+  render:()=>{},
+  alert:message=>alerts.push(message)
+ };
+ await loadFunction('restoreBackup',deps)();
+ assert.equal(deps.S,current,'failed restore must reinstate original in-memory state');
+ assert.equal(current.meta.revisionId,'current-rev');
+ assert.equal(alerts.length,1);
+ assert.match(alerts[0],/simulated IndexedDB transaction failure/);
+});
+
+test('JSON backup restore rejects corrupt source before confirmation or database writes',async()=>{
+ const current={meta:{revisionId:'current-rev'},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{}};
+ const corrupt={...rawBackupFixture(),hives:[{id:'duplicate',number:1},{id:'duplicate',number:2}]};
+ let confirmations=0,writes=0;
+ const alerts=[];
+ const validateBackupState=loadFunction('validateBackupState');
+ const validateRawBackupIntegrity=loadFunction('validateRawBackupIntegrity',{
+  inspectFamilyLineage:loadFunction('inspectFamilyLineage'),
+  inspectTaskIntegrity:loadFunction('inspectTaskIntegrity')
+ });
+ const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity});
+ const deps={
+  S:current,
+  $:()=>({files:[{text:async()=>JSON.stringify({state:corrupt})}]}),
+  confirm:()=>{confirmations++;return true},
+  saveQueue:Promise.resolve(),
+  readMain:async()=>{writes++;return null},
+  validateBackupState,
+  assertRawBackupIntegrity,
+  alert:message=>alerts.push(message)
+ };
+ await loadFunction('restoreBackup',deps)();
+ assert.equal(deps.S,current);
+ assert.equal(confirmations,0,'corrupt archive must be rejected before user confirmation');
+ assert.equal(writes,0,'corrupt archive must not read or write the live database');
+ assert.equal(alerts.length,1);
+ assert.match(alerts[0],/не прошёл проверку исходных данных/i);
+});
+
