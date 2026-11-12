@@ -194,7 +194,7 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 }
 
  .honey-pair-control{grid-column:1/-1;width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:9px;padding:12px;border:2px dashed #aeb8ad;border-radius:12px;background:#fafbf8}.honey-pair-control.is-installed{border-style:solid;border-color:#c49a3c;background:#fff8e6}.honey-pair-summary{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.honey-pair-toggle{width:100%}.honey-pair-edit{display:grid;grid-template-columns:1fr 1fr;gap:7px}.honey-pair-edit button{padding:8px 5px;font-size:12px}.honey-pair-edit button:disabled{opacity:.45;cursor:not-allowed}body:not([data-page="home"]) .stats{display:none!important}
-.ai-messages{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:9px;width:100%;min-width:0;max-width:100%;max-height:min(52vh,520px);overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;margin:12px 0;padding:4px;box-sizing:border-box}.ai-bubble{position:relative;display:block;width:fit-content;min-width:0;max-width:100%;box-sizing:border-box;padding:11px 12px;border-radius:13px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;line-height:1.4;font-size:14px;user-select:text;-webkit-user-select:text}.ai-bubble.user{align-self:flex-end;background:#e6eee3;color:#203b29}.ai-bubble.assistant{align-self:flex-start;background:#f0edf5;color:#30283c;border:1px solid #e1dbe9}.ai-bubble small{display:block;color:#68736a;font-size:10px;margin-bottom:4px}.ai-copy{display:block;margin:8px 0 0 auto;padding:5px 9px;border-radius:8px;background:#ffffffb8;color:#445448;font-size:11px;font-weight:600;white-space:normal}.ai-empty{padding:16px;text-align:center;color:#68736a;font-size:13px;background:#f6f6f2;border-radius:10px}
+.ai-messages{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:9px;width:100%;min-width:0;max-width:100%;max-height:min(52vh,520px);overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;margin:12px 0;padding:4px;box-sizing:border-box}.ai-bubble{position:relative;display:block;width:fit-content;min-width:0;max-width:100%;box-sizing:border-box;padding:11px 12px;border-radius:13px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;line-height:1.4;font-size:14px;user-select:text;-webkit-user-select:text}.ai-bubble.user{align-self:flex-end;background:#e6eee3;color:#203b29}.ai-bubble.assistant{align-self:flex-start;background:#f0edf5;color:#30283c;border:1px solid #e1dbe9}.ai-bubble small{display:block;color:#68736a;font-size:10px;margin-bottom:4px}.ai-copy{display:block;margin:8px 0 0 auto;padding:5px 9px;border-radius:8px;background:#ffffffb8;color:#445448;font-size:11px;font-weight:600;white-space:normal}.ai-empty{padding:16px;text-align:center;color:#68736a;font-size:13px;background:#f6f6f2;border-radius:10px}.ai-command-preview{margin-top:10px;padding:10px;border:1px solid #c7d8c8;border-radius:10px;background:#fff}.ai-command-preview ol{padding-left:22px;margin:8px 0}.ai-command-preview li{padding:4px 0;overflow-wrap:anywhere}.ai-command-actions{display:flex;gap:7px;flex-wrap:wrap}.ai-command-result{margin-top:8px;padding:8px;border-radius:8px;background:#ffffffa8;font-size:12px;color:#455448}
 </style></head><body>
 <header class="home-header"><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav><button class="active" data-tab="home">Главная</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="ai">ИИ</button><button data-tab="settings">Настройки</button></nav>
@@ -681,10 +681,46 @@ function buildAIContext(){
  });
  return {modelIntegrity,apiary:{location:'Пензенская область, Грабово',hiveConstruction:'Farrar: шесть физических гнездовых корпусов по шесть рамок, размещённых в трёх секциях; сверху два медовых корпуса по десять рамок, устанавливаются и снимаются только парой',summerLayout:{lowerRow:[1,2,3],upperRow:[4,5,6],numbering:'Номера 1–6 — постоянные физические номера корпусов; они не меняются при перестановке',sections:3},sideOpenings:{bothSides:[2,5],centerSideOnly:[1,3,4,6],note:'Указано только расположение отверстий на боковых стенках; не делай без дополнительных данных выводов об их назначении или о сквозной вентиляции'},winterRules:{requiredBroodBoxes:3,allowedPhysicalNumbers:[1,3,4,6],forbiddenPhysicalNumbers:[2,5]}},hives,families,latestJournalRecords:records,tasks:(S.tasks||[]).slice(-30),recentChanges:(S.auditLog||[]).slice(-30)};
 }
+function extractAICommandProposal(answer){
+ const text=String(answer||''),startTag='[[PASEKA_COMMAND_JSON]]',endTag='[[/PASEKA_COMMAND_JSON]]';
+ const start=text.indexOf(startTag);
+ if(start<0)return {answer:text.trim(),proposal:null,parseError:''};
+ const second=text.indexOf(startTag,start+startTag.length);
+ const end=text.indexOf(endTag,start+startTag.length);
+ const clean=[text.slice(0,start),end>=0?text.slice(end+endTag.length):''].filter(Boolean).join('\n\n').trim();
+ if(second>=0)return {answer:clean,proposal:null,parseError:'В ответе найдено несколько блоков команд. Ничего не изменено.'};
+ if(end<0)return {answer:clean,proposal:null,parseError:'Блок команды не завершён. Ничего не изменено.'};
+ try{
+  const proposal=JSON.parse(text.slice(start+startTag.length,end).trim());
+  if(!proposal||typeof proposal!=='object'||Array.isArray(proposal))throw new Error('Ожидался объект команды');
+  return {answer:clean,proposal,parseError:''};
+ }catch(e){return {answer:clean,proposal:null,parseError:'Не удалось разобрать предложение ИИ: '+(e.message||'ошибка JSON')+'. Ничего не изменено.'}}
+}
+function renderAICommandPreview(message,index){
+ const plan=message.commandPlan;
+ if(message.commandStatus==='pending'&&plan?.ok&&Array.isArray(plan.moves)){
+  const rows=plan.moves.map(move=>{
+   const hive=S.hives.find(item=>item?.id===move.hiveId),layout=S.layouts?.[move.hiveId];
+   const familyId=move.toBox.startsWith('H')?'':layout?.boxes?.[move.toBox]?.family||'';
+   const family=S.families.find(item=>item?.id===familyId);
+   const familyLabel=family?' · '+safe(family.name||family.code||'семья'):'';
+   return '<li><b>'+safe(move.frameId)+'</b>: '+safe(hive?'Улей №'+hive.number:'Улей')+', '+safe(frameLocationName(move.fromBox))+' → '+safe(frameLocationName(move.toBox))+familyLabel+'</li>';
+  }).join('');
+  return '<div class="ai-command-preview"><b>План перемещения · '+plan.moves.length+' '+ruPlural(plan.moves.length,'рамка','рамки','рамок')+'</b><ol>'+rows+'</ol><p class="muted">Проверь номера рамок, ульи и корпуса. Данные изменятся только после твоего подтверждения.</p><div class="ai-command-actions"><button type="button" class="primary" data-ai-confirm="'+index+'">Подтвердить перемещение</button><button type="button" data-ai-cancel="'+index+'">Отменить</button></div></div>';
+ }
+ if(message.commandStatus==='applied')return '<div class="ai-command-result">Перемещения внесены в виртуальную модель и журнал операций.</div>';
+ if(message.commandStatus==='cancelled')return '<div class="ai-command-result">Предложение отменено. Данные не менялись.</div>';
+ if(message.commandStatus==='stale'||message.commandStatus==='rejected')return '<div class="ai-command-result">Предложение не применено: '+safe(message.commandError||'требуется повторная проверка')+'. Данные не менялись.</div>';
+ return '';
+}
 function renderAIChat(){
  const host=$('aiMessages');if(!host)return;const messages=S.aiMessages||[];
- host.innerHTML=messages.length?messages.map((m,i)=>'<div class="ai-bubble '+(m.role==='user'?'user':'assistant')+'"><small>'+(m.role==='user'?'Ты':'ИИ-помощник')+'</small>'+safe(m.content)+'<button type="button" class="ai-copy" data-copy-ai="'+i+'">Копировать сообщение</button></div>').join(''):'<div class="ai-empty">Диалог пока пуст. Спроси, например: «Какие семьи требуют внимания по последним осмотрам?»</div>';
- host.onclick=event=>{const button=event.target.closest('[data-copy-ai]');if(button)copyAIMessage(Number(button.dataset.copyAi),button)};
+ host.innerHTML=messages.length?messages.map((m,i)=>'<div class="ai-bubble '+(m.role==='user'?'user':'assistant')+'"><small>'+(m.role==='user'?'Ты':'ИИ-помощник')+'</small>'+safe(m.content)+(m.role==='assistant'?renderAICommandPreview(m,i):'')+'<button type="button" class="ai-copy" data-copy-ai="'+i+'">Копировать сообщение</button></div>').join(''):'<div class="ai-empty">Диалог пока пуст. Спроси, например: «Какие семьи требуют внимания по последним осмотрам?»</div>';
+ host.onclick=event=>{
+  const copy=event.target.closest('[data-copy-ai]');if(copy){copyAIMessage(Number(copy.dataset.copyAi),copy);return}
+  const confirmButton=event.target.closest('[data-ai-confirm]');if(confirmButton){confirmAICommand(Number(confirmButton.dataset.aiConfirm));return}
+  const cancelButton=event.target.closest('[data-ai-cancel]');if(cancelButton)cancelAICommand(Number(cancelButton.dataset.aiCancel));
+ };
  host.scrollTop=host.scrollHeight;
 }
 async function copyAIMessage(index,button){
@@ -695,6 +731,26 @@ async function copyAIMessage(index,button){
   else{const field=document.createElement('textarea');field.value=value;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';field.style.left='0';field.style.top='0';document.body.appendChild(field);field.select();field.setSelectionRange(0,field.value.length);const copied=document.execCommand('copy');field.remove();if(!copied)throw new Error('Копирование не поддерживается браузером')}
   const label=button.textContent;button.textContent='Скопировано';button.disabled=true;setTimeout(()=>{if(button.isConnected){button.textContent=label;button.disabled=false}},1400);
  }catch(e){alert('Не удалось скопировать сообщение. Выдели текст вручную и выбери «Копировать».')}
+}
+async function confirmAICommand(index){
+ const message=S.aiMessages?.[index];
+ if(!message||message.commandStatus!=='pending'||!message.commandProposal||!message.commandPlan)return;
+ const plan=message.commandPlan;
+ const lines=plan.moves.map(move=>move.frameId+': '+frameLocationName(move.fromBox)+' → '+frameLocationName(move.toBox));
+ if(!confirm('Подтвердить пакетное перемещение рамок?\n\n'+lines.join('\n')+'\n\nБудет изменена виртуальная модель и добавлена запись в журнал операций.'))return;
+ const validation=validateAICommandProposal(S,message.commandProposal);
+ if(validation.status!=='ready_for_preview'||(S.meta?.revisionId||null)!==(plan.expectedRevision||null)||JSON.stringify(validation.plan?.moves)!==JSON.stringify(plan.moves)){
+  message.commandStatus='stale';message.commandError='состояние пасеки или состав плана изменились после предварительного просмотра. Запроси новый план';await save();renderAIChat();return;
+ }
+ const applied=applyFrameMovePlan(S,plan,today());
+ if(!applied.ok){message.commandStatus='stale';message.commandError=applied.errors?.[0]?.code||'не удалось применить план';await save();renderAIChat();return}
+ S=applied.state;
+ const savedMessage=S.aiMessages[index];if(savedMessage){savedMessage.commandStatus='applied';savedMessage.appliedAt=new Date().toISOString()}
+ await save();renderAIChat();
+}
+async function cancelAICommand(index){
+ const message=S.aiMessages?.[index];if(!message||message.commandStatus!=='pending')return;
+ message.commandStatus='cancelled';await save();renderAIChat();
 }
 async function sendAIQuestion(){
  if(aiBusy)return;if(!aiAuthUser||!aiAuthClient)return alert('Сначала войди в приложение.');
@@ -707,7 +763,16 @@ async function sendAIQuestion(){
   accessToken=accessToken||sessionResult.data?.session?.token||'';if(!accessToken)throw new Error('Вход выполнен, но Neon Auth не вернул JWT. Проверь соединение с сервером авторизации и повтори вход.');
   const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:buildAIContext()})});
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
-  S.aiMessages.push({role:'assistant',content:String(data.answer||'ИИ не вернул ответ.'),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
+  const extracted=extractAICommandProposal(data.answer||''),assistantMessage={role:'assistant',content:extracted.answer||'ИИ не вернул ответ.',at:new Date().toISOString()};
+  if(extracted.parseError)assistantMessage.content+='\n\n'+extracted.parseError;
+  if(extracted.proposal){
+   assistantMessage.commandProposal=extracted.proposal;
+   const validation=validateAICommandProposal(S,extracted.proposal);
+   if(validation.status==='ready_for_preview'){assistantMessage.commandStatus='pending';assistantMessage.commandPlan=validation.plan}
+   else if(validation.status==='needs_clarification'){assistantMessage.commandStatus='needs_clarification';assistantMessage.commandError=validation.clarifyingQuestions.join(' ')}
+   else{assistantMessage.commandStatus='rejected';assistantMessage.commandError=validation.errors?.map(error=>error.code).join(', ')||'команда не прошла проверку'}
+  }
+  S.aiMessages.push(assistantMessage);S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
  }catch(e){S.aiMessages.push({role:'assistant',content:'Не удалось получить ответ: '+(e.message||e),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat()}
  finally{aiBusy=false;button.disabled=false;button.textContent='Отправить вопрос'}
 }
