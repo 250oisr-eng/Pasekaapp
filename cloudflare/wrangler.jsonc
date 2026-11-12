@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "paseka-ai",
+  "name": "pasekaapp",
   "main": "worker.js",
   "compatibility_date": "2026-11-12",
   "ai": {
