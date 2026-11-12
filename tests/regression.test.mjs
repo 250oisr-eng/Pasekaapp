@@ -1031,3 +1031,32 @@ test('raw backup integrity rejects impossible calendar dates for independent off
  assert.ok(result.errors.some(error=>error.code==='invalid_family_established_date'));
 });
 
+test('inspection text extraction maps only explicit observations to structured fields',()=>{
+ const extract=loadFunction('extractInspectionFieldsFromText');
+ const result=extract('Осмотр: пчёлами занято 5 рамок; расплода на 4 рамках; 2 свободные отстроенные рамки; матка обнаружена; свежие яйца есть; расплод ровный; роевые маточники; несколько признаков роевого состояния.');
+ assert.equal(result.type,'Осмотр');
+ assert.deepEqual(result.fields,{occupancy:5,broodFrames:4,freeDrawn:2,queen:'seen',eggs:'yes',broodPattern:'solid',queenCells:'swarm',swarmSigns:'several'});
+ assert.equal(result.fieldCount,8);
+ assert.equal(Object.keys(result.evidence).length,8);
+});
+
+test('inspection text extraction leaves unspecified and ambiguous observations empty',()=>{
+ const extract=loadFunction('extractInspectionFieldsFromText');
+ const result=extract('Осмотрел семью. Матка, возможно, есть; яйца вроде бы видел; расплод выглядит нормально.');
+ assert.equal(result.type,'Заметка');
+ assert.deepEqual(result.fields,{});
+ assert.equal(result.fieldCount,0);
+});
+
+test('inspection text extraction preserves explicit negative and alternative observations',()=>{
+ const extract=loadFunction('extractInspectionFieldsFromText');
+ const result=extract('Матка не обнаружена, свежих яиц нет, расплода нет, маточники не обнаружены, роевых признаков не обнаружено.');
+ assert.deepEqual(result.fields,{queen:'notSeen',eggs:'no',broodPattern:'none',queenCells:'none',swarmSigns:'none'});
+});
+
+test('inspection text extraction rejects frame counts outside the six-frame brood box',()=>{
+ const extract=loadFunction('extractInspectionFieldsFromText');
+ const result=extract('Занято 8 рамок, расплода на 7 рамках, 9 свободных отстроенных рамок.');
+ assert.deepEqual(result.fields,{});
+});
+
