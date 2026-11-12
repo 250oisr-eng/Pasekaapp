@@ -1087,7 +1087,6 @@ async function moveFrame(){
  renderFrameEditor();await save();
 }
 function saveBox(){
- commitFrameEdit();
  const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),oldBox=l.boxes[editingBox],oldFamily=oldBox?.family||'',wasInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
  if(!editingBox.startsWith('H')){
   const n=Number(editingBox),b=l.boxes[editingBox];
@@ -1106,6 +1105,7 @@ function saveBox(){
     const retainedSnapshot=family?.parentFamilySnapshot||b.parentFamilySnapshot;const archivedParentValid=!parent&&retainedSnapshot?.id===parentFamilyId;if((!parent&&!archivedParentValid)||parent?.id===fid||(parent&&parent.hive!==hiveId&&parent.id!==retainedParentId&&!archivedParentValid)){alert('Для отводка выбери существующую исходную семью или сохрани ранее записанную архивную родословную.');return}if(family&&familyLineageWouldCycle(fid,parentFamilyId)){alert('Нельзя назначить потомка исходной семьёй: это создаст цикл в родословной.');return}
     parentSnapshotToKeep=archivedParentValid?retainedSnapshot:null;
    }
+   commitFrameEdit();
    const previousFamily=b.family?S.families.find(x=>x.id===b.family):null;
    if(previousFamily&&previousFamily.id!==fid&&previousFamily.box===n)delete previousFamily.box;
    b.origin=origin;b.breed=breed;b.familyName=familyName;b.parentFamilyId=parentFamilyId;b.parentFamilySnapshot=parentSnapshotToKeep;
@@ -1129,6 +1129,8 @@ function saveBox(){
    if($('boxInstalled').checked){if(!l.installedBoxes.includes(n))l.installedBoxes.push(n)}
    else l.installedBoxes=l.installedBoxes.filter(x=>x!==n);
   }
+ }else{
+  commitFrameEdit();
  }
  const newFamily=l.boxes[editingBox]?.family||'';
  const nowInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
