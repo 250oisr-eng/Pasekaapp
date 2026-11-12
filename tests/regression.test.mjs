@@ -329,3 +329,27 @@ test('batch frame move compares the executable plan with its reviewed preview',(
   assert.equal(result.errors[0].code,'move_plan_changed');
   assert.equal(JSON.stringify(state),before);
 });
+
+
+test('hybrid workspace exposes five clear navigation destinations and home AI entry points',()=>{
+  const nav=html.match(/<nav aria-label="Основные разделы">([\\s\\S]*?)<\\/nav>/);
+  assert.ok(nav,'accessible main navigation exists');
+  assert.equal((nav[1].match(/data-tab=/g)||[]).length,5);
+  for(const label of ['Обзор','Ульи','Журнал','ИИ','Ещё'])assert.ok(nav[1].includes('>'+label+'</button>'));
+  assert.ok(html.includes('id="homeAIQuestion"'));
+  assert.ok(html.includes('class="ai-capabilities"'));
+  assert.ok(html.includes('class="ai-prompt-chips"'));
+});
+
+test('home AI entry copies the chosen prompt into chat without sending it',()=>{
+  let activeTab='',focused=false;
+  const nodes={homeAIQuestion:{value:'  Проверь состояние семей  '},aiQuestion:{value:'',focus(){focused=true}}};
+  const ask=loadFunction('askAIFromHome',{$:id=>nodes[id],showTab:tab=>{activeTab=tab}});
+  ask();
+  assert.equal(activeTab,'ai');
+  assert.equal(nodes.aiQuestion.value,'Проверь состояние семей');
+  assert.equal(focused,true);
+  const helper=loadFunction('useAIPrompt',{$:id=>nodes[id]});
+  helper('Составь план работ');
+  assert.equal(nodes.aiQuestion.value,'Составь план работ');
+});
