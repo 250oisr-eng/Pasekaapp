@@ -901,6 +901,9 @@ function inspectFamilyLineage(rows){
  for(const family of Array.isArray(rows)?rows:[]){
   if(!family||typeof family!=='object'||!family.id)continue;
   const parentId=family.parentFamilyId||'',snapshot=family.parentFamilySnapshot;
+  if(family.breed!=null&&(typeof family.breed!=='string'||family.breed.length>100))errors.push({code:'invalid_family_breed',details:{familyId:family.id}});
+  if(family.line!=null&&(typeof family.line!=='string'||family.line.length>120))errors.push({code:'invalid_family_line',details:{familyId:family.id}});
+  if(family.queen!=null){const q=family.queen;if(!q||typeof q!=='object'||Array.isArray(q)||q.code!=null&&(typeof q.code!=='string'||q.code.length>80)||q.year!=null&&(!Number.isInteger(q.year)||q.year<1900||q.year>new Date().getFullYear()+1)||q.source!=null&&(typeof q.source!=='string'||q.source.length>160)||q.notes!=null&&(typeof q.notes!=='string'||q.notes.length>1000))errors.push({code:'invalid_family_queen_provenance',details:{familyId:family.id}})}
   if(snapshot&&parentId&&snapshot.id!==parentId)errors.push({code:'family_parent_snapshot_mismatch',details:{familyId:family.id,parentFamilyId:parentId,snapshotId:snapshot.id||null}});
   if(family.origin==='offshoot'&&!parentId&&!snapshot?.id)errors.push({code:'offshoot_parent_missing',details:{familyId:family.id}});
   if(parentId&&!families.has(parentId)&&snapshot?.id!==parentId)errors.push({code:'family_parent_missing',details:{familyId:family.id,parentFamilyId:parentId}});
