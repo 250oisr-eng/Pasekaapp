@@ -1542,6 +1542,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
 (async()=>{
  try{
   await openDB();await requestStoragePersistence();
+  const startupMain=await readMain(),startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
   if(loaded){
    try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
@@ -1566,8 +1567,8 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
     throw new Error('Автокопия также не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок: '+codes+'). Основная база не перезаписывалась.');
    }
   }
+  if(migrated||autoBackupRecovered){S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await writeMainIfUnchanged(S,startupExpectedRevision)}
   if(!S.meta.revisionId){S.meta.revisionId=uid();migrated=true}
-  if(migrated||autoBackupRecovered)await write();
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   const existingBackup=await readAutoBackup();
