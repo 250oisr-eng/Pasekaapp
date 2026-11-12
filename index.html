@@ -1302,6 +1302,9 @@ async function confirmFamilyTransfer(e){
  if(frames.some(fr=>fr.location!=null&&String(fr.location)!==String(source.box))||targetFrames.some(fr=>fr.location!=null&&String(fr.location)!==String(targetNumber)))return alert('Расположение одной или нескольких рамок не совпадает с корпусом. Сначала исправь учёт; перенос отменён.');
  const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId),displacedFrames=targetFrames.map(fr=>fr.frameId);
  if(!confirm('Переместить семью '+familyName+' и '+frames.length+' рамок из '+hname(fromHiveId)+', корпус №'+fromBox+' в '+hname(targetHiveId)+', корпус №'+targetNumber+'? Рамки выбранного корпуса назначения перейдут в освобождаемый корпус источника.'))return;
+ const originalState=S;let rollbackState;
+ try{rollbackState=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+ catch(e){return alert('Не удалось подготовить безопасный перенос семьи: '+(e.message||e))}
  sourceBox.frames=targetFrames;targetBox.frames=frames;
  const moveDate=today(),frameIdChanges=[];
  S.records.filter(r=>r.family===family.id).forEach(r=>{if(!r.familyNameAtTime)r.familyNameAtTime=family.name||'';if(!r.familyHiveAtTime)r.familyHiveAtTime=r.hive||fromHiveId});
@@ -1326,8 +1329,18 @@ async function confirmFamilyTransfer(e){
  frames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'family_transfer',from:{hiveId:fromHiveId,box:fromBox},to:{hiveId:targetHiveId,box:targetNumber}});fr.location=String(targetNumber)});
  targetFrames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'box_frames_swapped',from:{hiveId:targetHiveId,box:targetNumber},to:{hiveId:fromHiveId,box:fromBox}});fr.location=String(fromBox)});
  logAudit('family_transferred',{familyId:family.id,familyName,fromHiveId,fromBox,toHiveId:targetHiveId,toBox:targetNumber,frameCount:frames.length,frameIds:movedFrames,frameIdsAfter:frames.map(fr=>fr.frameId),displacedFrameCount:targetFrames.length,displacedFrameIds:displacedFrames,displacedFrameIdsAfter:targetFrames.map(fr=>fr.frameId),frameIdChanges,at:movedAt});
+ let saved=false,saveFailure='';
+ try{saved=await save()}catch(e){saveFailure=e?.message||'Неизвестная ошибка сохранения'}
+ if(!saved){
+  const saveError=S.meta?.saveError||saveFailure;
+  S=rollbackState;
+  if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError}
+  render();
+  alert('Перенос семьи отменён: данные не удалось сохранить. Исходное расположение и рамки восстановлены.'+(saveError?' Причина: '+saveError:''));
+  return;
+ }
  $('familyTransferDlg').close();transferringFamilyId='';selectedHiveId=targetHiveId;activeJournalHive=targetHiveId;
- await save();render();showTab('hiveDetail');
+ render();showTab('hiveDetail');
 }
 function addFamily(id){$('familyForm').reset();$('familyHive').value=id;$('familyName').value=nextFamilyCode();$('familyParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(f=>f.hive===id).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('');syncFamilyOrigin();$('familyDlg').showModal()}
 $('familyForm').onsubmit=e=>{e.preventDefault();const hive=$('familyHive').value,origin=$('familyOrigin').value,parentFamilyId=origin==='offshoot'?$('familyParent').value:'';if(!S.hives.some(h=>h.id===hive))return alert('Сначала выбери существующий улей');if(!origin)return alert('Укажи происхождение семьи');if(origin==='offshoot'){const parent=S.families.find(f=>f.id===parentFamilyId&&f.hive===hive);if(!parent)return alert('Исходная семья должна принадлежать этому же улью');}const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]),family={id:uid(),hive,name:code,familyYear:year,familySequence:sequence,breed:$('breed').value,origin,parentFamilyId,stage:origin==='offshoot'?'developing':'independent'};S.families.push(family);logAudit('family_created',{hiveId:hive,familyId:family.id,familyName:code,origin,parentFamilyId:parentFamilyId||null,box:null});$('familyDlg').close();save()}
