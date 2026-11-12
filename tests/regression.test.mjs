@@ -543,6 +543,59 @@ test('inspection parser recognizes queen cells by type without confusing them wi
   assert.deepEqual(result.fields,{queenCells:'emergency',swarmSigns:'several'});
 });
 
+test('inspection parser handles colloquial frame counts and shortened beekeeping wording',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Осмотр: пчёлы на 5 рамках; расплода на 3-х рамках; суши свободной — 2.');
+  assert.deepEqual(result.fields,{occupancy:5,broodFrames:3,freeDrawn:2});
+  assert.equal(result.fieldCount,3);
+  const alternate=parse('Пчёлами занято 4 рамки, 2 рамки обсижены пчёлами.');
+  assert.equal(alternate.fields.occupancy,undefined);
+  const common=parse('5 рамок обсижены пчёлами; расплода 3 рамки.');
+  assert.equal(common.fields.occupancy,5);
+  assert.equal(common.fields.broodFrames,3);
+});
+
+test('inspection parser scopes negatives and positives to separate clauses',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Осмотр: матки не видел, яйца есть; расплода нет, но свежие яйца обнаружены; маточников нет, но есть один роевой признак.');
+  assert.equal(result.fields.queen,'eggs');
+  assert.equal(result.fields.eggs,'yes');
+  assert.equal(result.fields.broodPattern,'none');
+  assert.equal(result.fields.queenCells,'none');
+  assert.equal(result.fields.swarmSigns,'one');
+  const opposite=parse('Роевых признаков нет, маточники обнаружены.');
+  assert.equal(opposite.fields.swarmSigns,'none');
+  assert.equal(opposite.fields.queenCells,'unknown');
+});
+
+test('inspection parser rejects contradictory values for the same field',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Матка не найдена, но матка есть; расплода нет, расплод ровный; занято 5 рамок, затем 4 рамки обсижены.');
+  assert.equal(result.fields.queen,undefined);
+  assert.equal(result.fields.broodPattern,undefined);
+  assert.equal(result.fields.occupancy,undefined);
+  assert.equal(result.fieldCount,0);
+});
+
+test('inspection parser ignores uncertainty only in the clause where it occurs',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Возможно, занято 5 рамок; матка обнаружена; свежие яйца есть.');
+  assert.deepEqual(result.fields,{queen:'seen',eggs:'yes'});
+  assert.equal(result.fieldCount,2);
+  const allUncertain=parse('Пчёлы занимают около 5 рамок; матка вроде бы есть.');
+  assert.deepEqual(allUncertain.fields,{});
+});
+
+test('inspection parser accepts only explicit count values within physical frame capacity',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  for(const value of [0,1,2,3,4,5,6]){
+    const result=parse('Осмотр: занято '+value+' рамок.');
+    assert.equal(result.fields.occupancy,value);
+  }
+  const invalid=parse('Осмотр: занято 7 рамок.');
+  assert.equal(invalid.fields.occupancy,undefined);
+});
+
 test('journal draft from AI workspace maps explicit inspection values and keeps an editable source note',()=>{
   const alerts=[],tabs=[],nodes={
     aiJournalHiveSelect:{value:'hive-1'},
