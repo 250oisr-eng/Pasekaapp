@@ -1478,7 +1478,7 @@ function beginModeChange(mode){
   l.mode=mode;
   if(mode==='winter'){
    const allowed=(profile.winter.allowedBoxKeys||[]).map(String),required=profile.winter.requiredBroodBoxes;
-   const current=(l.winterOrder||l.installedBoxes||[]).map(String).filter(k=>allowed.includes(k));
+   const savedWinter=(l.winterOrder||[]).length?l.winterOrder:(l.installedBoxes||[]),current=savedWinter.map(String).filter(k=>allowed.includes(k));
    l.winterOrder=[...current,...allowed.filter(k=>!current.includes(k))].slice(0,required);
    l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);
   }else{l.winterOrder=[];if(profile.honey.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>on)}}
@@ -1533,7 +1533,7 @@ function renderConfiguredProfileStructure(hid,l,profile){
  $('structureTitle').textContent=profile.name+(editing?' — настройка':'');$('addBroodBoxBtn').style.display='none';$('addHoneyBoxBtn').style.display='none';
  const selected=(l.installedBoxes||[]).map(String),winterOrder=(l.winterOrder||[]).map(String);
  const body=key=>{const box=l.boxes[key],family=S.families.find(f=>f.id===box?.family),isOn=winter?winterOrder.includes(key):selected.includes(key);return '<div class="box-unit '+(family?'filled':'')+' '+(isOn?'':'setup-empty')+'"><div class="box-unit-head"><strong>'+safe(frameLocationName(key,hid))+(family?' · '+safe(family.name):'')+'</strong><span>'+(isOn?'В сборке':'Снят')+'</span></div><div class="frame-strip">'+box.frames.map((fr,i)=>frameChip(fr,key,i)).join('')+'</div>'+(editing?'<label class="transition-choice"><input type="checkbox" data-profile-brood="'+safe(key)+'" '+(isOn?'checked':'')+' '+(winter&&!(profile.winter.allowedBoxKeys||[]).includes(key)?'disabled':'')+'> Установлен</label>':'')+'</div>'};
- $('hiveDiagram').innerHTML='<div class="transition-grid">'+(winter?((profile.winter.allowedBoxKeys||[]).map(body).join('')):broodKeys.map(body).join(''))+'</div>';
+ $('hiveDiagram').innerHTML='<div class="transition-grid">'+broodKeys.map(body).join('')+'</div>';
  $('honeyPair').innerHTML=honeyKeys.length&&!winter?'<div class="card"><b>Медовые корпуса</b><div class="transition-grid">'+honeyKeys.map((key,i)=>'<label class="transition-choice"><input type="checkbox" data-profile-honey="'+safe(key)+'" '+(l.honeyBoxInstalled[i]?'checked':'')+' '+(!editing?'disabled':'')+'> '+safe(frameLocationName(key,hid))+' · '+l.honeyFrames[i].length+'/'+profile.honey.framesPerBox+'</label><button type="button" '+(!l.honeyBoxInstalled[i]?'disabled':'')+' onclick="editBox(\''+safe(key)+'\')">Рамки</button>').join('')+'</div></div>':'';
  $('modeTransition').style.display='none';
  if(editing)$('hiveDiagram').insertAdjacentHTML('beforeend','<button class="primary" type="button" onclick="applyProfileAssemblySelection()">Применить выбранные корпуса</button>');
