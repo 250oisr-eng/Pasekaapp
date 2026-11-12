@@ -979,3 +979,15 @@ test('AI task suggestion confirmation rolls back the in-memory draft when persis
  assert.equal(message.commandStatus,'save_failed');
  assert.match(message.commandError,/исходные данные не изменены/);
 });
+
+
+test('raw backup integrity accepts a valid family placed in its physical brood box',()=>{
+ const state={
+  ...rawBackupFixture(),
+  hives:[{id:'h1',number:1}],
+  families:[{id:'fam-1',hive:'h1',box:1,origin:'swarm'}],
+  layouts:{h1:{mode:'summer',installedBoxes:[1],boxes:{1:{family:'fam-1',frames:[]}},honeyFrames:[[],[]]}}
+ };
+ const result=inspectRawBackup(state);
+ assert.equal(result.errorCount,0,JSON.stringify(result.errors));
+});
