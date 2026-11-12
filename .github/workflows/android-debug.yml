@@ -82,7 +82,8 @@ jobs:
             source = source.replace(pattern, `$1${value}`);
           }
           fs.writeFileSync(path, source);
-          const min = Number(source.match(/^\\s*minSdkVersion\\s*=\\s*(\\d+)/m)?.[1]);
+          const minLine = source.split(/\\r?\\n/).find(line => /^\\s*minSdkVersion\\s*=/.test(line));
+          const min = Number(minLine?.match(/minSdkVersion\\s*=\\s*(\\d+)/)?.[1]);
           if (min !== 35) throw new Error(`Expected minSdkVersion 35, got ${min}`);
           console.log('Android minimum API: 35 (Android 15); compile/target API: 35');
           NODE
