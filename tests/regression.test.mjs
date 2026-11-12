@@ -1502,7 +1502,7 @@ function honeyReturnFixture(){
   save:async()=>{saves++;return true},
   logAudit:(type,details)=>state.auditLog.push({type,...details})
  };
- return {state,deps,alerts,get saves(){return saves}};
+ return {get state(){return deps.S},deps,alerts,get saves(){return saves}};
 }
 test('honey pair return validates all hives before atomically returning both pairs',async()=>{
  const fixture=honeyReturnFixture();
@@ -1525,6 +1525,20 @@ test('honey pair return rejects an invalid later hive without partially changing
  assert.equal(fixture.state.auditLog.length,0);
  assert.match(fixture.alerts[0],/зимнюю сборку/i);
 });
+
+test('honey pair return restores the original state when persistence fails',async()=>{
+ const fixture=honeyReturnFixture();
+ const original=fixture.state;
+ fixture.deps.save=async()=>{fixture.deps.S.meta={saveError:'Не удалось сохранить'};return false};
+ await loadFunction('confirmHoneyReturn',fixture.deps)();
+ assert.equal(fixture.state,original);
+ assert.deepEqual(fixture.state.layouts.h1.honeyBoxInstalled,[false,false]);
+ assert.equal(fixture.state.extractions[0].items[0].returnedAt,undefined);
+ assert.equal(fixture.state.auditLog.length,0);
+ assert.equal(fixture.state.meta.saveError,'Не удалось сохранить');
+ assert.equal(fixture.saves,0);
+});
+
 test('honey pair return rejects repeated and duplicate return requests',async()=>{
  const fixture=honeyReturnFixture();
  fixture.state.extractions[0].items[0].returnedAt='2026-11-10';
