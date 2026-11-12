@@ -749,6 +749,7 @@ async function confirmFamilyTransfer(e){
  if(targetLayout.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке разрешены только корпуса №1, 3, 4 и 6.');
  const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
  if(!Array.isArray(frames)||!Array.isArray(targetFrames)||!frames.length||frames.length>6||targetFrames.length>6||frames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId)||targetFrames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId))return alert('Не удалось проверить комплект рамок и их номера. Перемещение отменено.');
+ if(new Set(frames.map(fr=>String(fr.frameId))).size!==frames.length||new Set(targetFrames.map(fr=>String(fr.frameId))).size!==targetFrames.length)return alert('В одном из корпусов обнаружены повторяющиеся номера рамок. Сначала исправь учёт; перенос отменён.');
  if(frames.some(fr=>fr.location!=null&&String(fr.location)!==String(source.box))||targetFrames.some(fr=>fr.location!=null&&String(fr.location)!==String(targetNumber)))return alert('Расположение одной или нескольких рамок не совпадает с корпусом. Сначала исправь учёт; перенос отменён.');
  const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId),displacedFrames=targetFrames.map(fr=>fr.frameId);
  if(!confirm('Переместить семью '+familyName+' и '+frames.length+' рамок из '+hname(fromHiveId)+', корпус №'+fromBox+' в '+hname(targetHiveId)+', корпус №'+targetNumber+'? Рамки выбранного корпуса назначения перейдут в освобождаемый корпус источника.'))return;
@@ -1154,6 +1155,8 @@ async function moveFrame(){
  if(!Array.isArray(target))return alert('Не удалось открыть корпус назначения. Перемещение отменено.');
  if(source===target)return alert('Выбери другой корпус для перемещения рамки.');
  if(fr.location!=null&&String(fr.location)!==String(editingBox))return alert('Расположение рамки не совпадает с исходным корпусом. Исправь учёт; перемещение отменено.');
+ const duplicateFrameLocation=[1,2,3,4,5,6,'H1','H2'].some(key=>frameArray(l,key).some((candidate,index)=>candidate?.frameId===fr.frameId&&!(String(key)===String(editingBox)&&index===editingFrame)));
+ if(duplicateFrameLocation)return alert('В этом улье уже есть другая рамка с таким номером. Сначала исправь учёт; перемещение отменено.');
  if(target.some(existing=>existing?.frameId===fr.frameId))return alert('В корпусе назначения уже есть рамка с таким номером. Перемещение отменено.');
  if(String(targetKey).startsWith('H')){
   if(l.mode==='winter'||!Array.isArray(l.honeyBoxInstalled)||!l.honeyBoxInstalled.every(Boolean))return alert('Медовые рамки можно перемещать только при установленных обоих медовых корпусах в летней сборке.');
