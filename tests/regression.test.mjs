@@ -1339,7 +1339,7 @@ test('apiary workspace exposes global, hive and journal search controls',()=>{
 
 test('journal uses chronological entries and profile-aware frame search',()=>{
  assert.match(html,/class="journal-timeline"/);
- assert.match(html,/class="[^"]*\\bjournal-entry\\b/);
+ assert.match(html,/class="[^"]*\bjournal-entry\b/);
  assert.match(html,/profileBroodKeys\(hive\.id\)/);
  assert.match(html,/profileHoneyKeys\(hive\.id\)/);
 });
@@ -1395,7 +1395,7 @@ test('hive directory uses correct Russian declension for the hive count',()=>{
 test('hive and frame cards support keyboard activation',()=>{
  assert.match(html,/class="hive-row-main" role="button" tabindex="0"/);
  assert.match(html,/class="home-hive" role="button" tabindex="0"/);
- assert.match(html,/target\\??\\.matches\\('\.hive-row-main\\[role="button"\\],\\.home-hive\\[role="button"\\],\\.frame-chip\\[role="button"\\]'\\)/);
+ assert.match(html,/target\??\.matches\('\.hive-row-main\[role="button"\],\.home-hive\[role="button"\],\.frame-chip\[role="button"\]'\)/);
 });
 
 
