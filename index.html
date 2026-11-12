@@ -638,6 +638,9 @@ function validateVirtualApiary(){
  for(const hive of S.hives){
   if(!hive||typeof hive!=='object')continue;
   const l=isObject(layouts[hive.id])?layouts[hive.id]:{},boxes=isObject(l.boxes)?l.boxes:{};
+  const profile=getHiveProfile(hive),profileValidation=validateHiveProfile(profile);
+  if(!profileValidation.ok)profileValidation.errors.forEach(error=>add(errors,error.code,{hiveNumber:hive.number,profileId:profile?.id||hive.profileId||null}));
+  else if(profile.family!=='farrar')add(errors,'profile_operations_not_supported',{hiveNumber:hive.number,profileId:profile.id,family:profile.family});
   const mode=l.mode||'summer',installed=Array.isArray(l.installedBoxes)?l.installedBoxes:[],installedNumbers=installed.map(Number),seenBoxes=new Set();
   if(!['summer','winter'].includes(mode))add(errors,'invalid_assembly_mode',{hiveNumber:hive.number,mode});
   if(!Array.isArray(l.installedBoxes)&&l.installedBoxes!=null)add(errors,'invalid_installed_boxes_list',{hiveNumber:hive.number});
@@ -1370,6 +1373,41 @@ function validateHiveProfile(profile,options={}){
   if(!positive(winter.requiredBroodBoxes)||winter.requiredBroodBoxes>brood.boxCount)add('profile_winter_required_count_invalid');
   if(!Array.isArray(winter.allowedBoxKeys)||winter.allowedBoxKeys.some(k=>!brood.boxKeys?.includes(k)))add('profile_winter_allowed_keys_invalid');
   if(!Array.isArray(winter.forbiddenBoxKeys)||winter.forbiddenBoxKeys.some(k=>!brood.boxKeys?.includes(k)))add('profile_winter_forbidden_keys_invalid');
+ }
+ return {ok:errors.length===0,errors};
+}
+
+
+function getHiveProfileCapabilities(profile){
+ const validation=validateHiveProfile(profile);
+ if(!validation.ok)return {ok:false,errors:validation.errors};
+ const broodKeys=profile.brood.boxKeys.slice(),honeyKeys=(profile.honey.boxKeys||[]).slice();
+ return {ok:true,profileId:profile.id,family:profile.family,broodKeys,honeyKeys,broodCapacity:profile.brood.framesPerBox,honeyCapacity:profile.honey.boxCount?profile.honey.framesPerBox:0,frameHeightMm:profile.frame.heightMm,honeyInstallation:profile.honey.installation,winter:cloneHiveProfile(profile.winter||{enabled:false})};
+}
+function validateHiveAssemblyProfile(profile,layout){
+ const capabilities=getHiveProfileCapabilities(profile),errors=[];
+ const add=code=>errors.push({code});
+ if(!capabilities.ok)return {ok:false,errors:capabilities.errors};
+ if(!layout||typeof layout!=='object'||Array.isArray(layout))return {ok:false,errors:[{code:'layout_not_object'}]};
+ const broodKeys=capabilities.broodKeys,honeyKeys=capabilities.honeyKeys,installed=Array.isArray(layout.installedBoxes)?layout.installedBoxes.map(String):[];
+ if(!Array.isArray(layout.installedBoxes))add('installed_boxes_invalid');
+ if(installed.some(key=>!broodKeys.includes(key)))add('installed_box_unknown');
+ if(new Set(installed).size!==installed.length)add('installed_box_duplicate');
+ const honey=Array.isArray(layout.honeyBoxInstalled)?layout.honeyBoxInstalled:[];
+ if(honey.length!==honeyKeys.length)add('honey_installation_count_mismatch');
+ if(honey.some(value=>typeof value!=='boolean'))add('honey_installation_flag_invalid');
+ if(capabilities.honeyInstallation==='paired'&&honey.length&&honey.some(Boolean)&&!honey.every(Boolean))add('honey_pair_mismatch');
+ if(layout.mode==='winter'){
+  const winter=capabilities.winter||{};
+  if(!winter.enabled)add('winter_not_supported');
+  const order=Array.isArray(layout.winterOrder)?layout.winterOrder.map(String):[];
+  if(winter.enabled&&order.length!==winter.requiredBroodBoxes)add('winter_box_count_mismatch');
+  if(new Set(order).size!==order.length)add('winter_box_duplicate');
+  if(order.some(key=>!broodKeys.includes(key)))add('winter_box_unknown');
+  if(order.some(key=>(winter.forbiddenBoxKeys||[]).includes(key)))add('winter_box_forbidden');
+  if(Array.isArray(winter.allowedBoxKeys)&&order.some(key=>!winter.allowedBoxKeys.includes(key)))add('winter_box_not_allowed');
+  if(installed.length!==order.length||installed.some(key=>!order.includes(key)))add('winter_installed_order_mismatch');
+  if(honey.some(Boolean)&&!winter.honeyAllowed)add('winter_honey_not_allowed');
  }
  return {ok:errors.length===0,errors};
 }
