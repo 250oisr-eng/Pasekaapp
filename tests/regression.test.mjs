@@ -332,6 +332,33 @@ test('AI frame move rejects a stale preview before asking for confirmation or mu
  assert.equal(saves,1,'stale status is persisted for the user');
  assert.equal(renders,1);
 });
+test('AI frame move rejects a tampered reviewed plan after confirmation without applying it',async()=>{
+ const state=frameMoveFixture();
+ const planMoves=loadFunction('planFrameMoves');
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves});
+ const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const proposal={schemaVersion:1,kind:'move_frames',commandId:'tamper-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+ const preview=validate(state,proposal);
+ assert.equal(preview.status,'ready_for_preview');
+ state.aiMessages=[{commandProposal:proposal,commandContextFingerprint:fingerprint(state),commandStatus:'pending',commandPlan:{...preview.plan,moves:preview.plan.moves.map(move=>({...move,toBox:'2'}))}}];
+ let confirmations=0,saves=0,renders=0;
+ const deps={
+  S:state,confirm:()=>{confirmations++;return true},
+  aiCommandContextIsCurrent:(s,m)=>m.commandContextFingerprint===fingerprint(s),
+  revalidateAICommandPreview:loadFunction('revalidateAICommandPreview',{validateAICommandProposal:validate}),
+  applyFrameMovePlan:loadFunction('applyFrameMovePlan',{planFrameMoves}),
+  frameLocationName:box=>'корпус '+box,today:()=>'2026-11-12',
+  save:async()=>{saves++;return true},renderAIChat:()=>{renders++}
+ };
+ await loadFunction('confirmAICommand',deps)(0);
+ assert.equal(confirmations,1,'the reviewed action reaches the explicit confirmation gate');
+ assert.equal(deps.S.aiMessages[0].commandStatus,'stale');
+ assert.equal(deps.S.layouts.h1.boxes[1].frames.some(frame=>frame.frameId==='A'),true);
+ assert.equal(deps.S.layouts.h1.boxes[2].frames.some(frame=>frame.frameId==='A'),false);
+ assert.equal(deps.S.layouts.h1.boxes[3].frames.length,0);
+ assert.equal(saves,1,'the rejected preview status is saved');
+ assert.equal(renders,1);
+});
 test('AI frame move completes the full preview-confirmation-persistence flow atomically',async()=>{
  const state=frameMoveFixture();
  const planMoves=loadFunction('planFrameMoves');
