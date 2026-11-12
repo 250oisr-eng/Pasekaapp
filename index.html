@@ -1494,7 +1494,22 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
     S=assertRawBackupIntegrity(validateBackupState(backup.state));autoBackupRecovered=true;
    }
   }
-  const migrated=migrateState();if(migrated||autoBackupRecovered)await write();
+  let migrated=migrateState();
+  let startupIntegrity=validateVirtualApiary();
+  if(startupIntegrity.errorCount){
+   if(autoBackupRecovered)throw new Error('Полная автокопия не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок). Основная база не перезаписывалась.');
+   const backup=await readAutoBackup();
+   if(!backup||!backup.state)throw new Error('Основная база не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок), а пригодной автокопии нет. Данные не перезаписывались.');
+   S=assertRawBackupIntegrity(validateBackupState(backup.state));
+   autoBackupRecovered=true;
+   migrated=migrateState();
+   startupIntegrity=validateVirtualApiary();
+   if(startupIntegrity.errorCount){
+    const codes=[...new Set(startupIntegrity.errors.map(x=>x.code))].slice(0,6).join(', ');
+    throw new Error('Автокопия также не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок: '+codes+'). Основная база не перезаписывалась.');
+   }
+  }
+  if(migrated||autoBackupRecovered)await write();
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   const existingBackup=await readAutoBackup();
   if(!existingBackup){try{await writeAutoBackup(S);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write()}}
