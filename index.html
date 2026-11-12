@@ -1210,9 +1210,9 @@ function validateRawBackupIntegrity(state){
    else{if(l.honeyFrames.length!==2)add('invalid_honey_frame_pair',{hiveId:hive.id,count:l.honeyFrames.length});l.honeyFrames.forEach((frames,i)=>inspectFrames(frames,10,'H'+(i+1)))}
   }
   for(const [familyId,boxesForFamily] of placements)if(boxesForFamily.length>1)add('family_assigned_to_multiple_boxes',{hiveId:hive.id,familyId,boxes:boxesForFamily});
-  for(const [familyId,boxesForFamily] of placements){
-   const family=families.get(familyId);
-   if(family&&family.box!=null&&!boxesForFamily.includes(Number(family.box)))add('family_box_mismatch',{hiveId:hive.id,familyId,box:family.box,actual:boxesForFamily});
+  for(const family of state.families||[])if(family.hive===hive.id&&family.box!=null){
+   const boxesForFamily=placements.get(family.id)||[];
+   if(!boxesForFamily.includes(Number(family.box)))add('family_box_mismatch',{hiveId:hive.id,familyId:family.id,box:family.box,actual:boxesForFamily});
   }
  }
  return {errors,errorCount:errors.length};
