@@ -1404,4 +1404,8 @@ test('custom Farrar column keeps frame height distinct from brood box height',()
   assert.ok(profileBlock,'Farrar column profile must exist');
   assert.ok(profileBlock[1].includes('frame:{widthMm:null,heightMm:180,'));
   assert.ok(profileBlock[1].includes('brood:{boxCount:6,framesPerBox:6,boxHeightMm:195,'));
+  assert.ok(profileBlock[1].includes("honey:{boxCount:2,framesPerBox:10,boxHeightMm:null,boxKeys:['H1','H2'],installation:'paired'}"));
+  const profile=loadFunction('cloneHiveProfile')({id:'farrar-6x6-v1',frame:{heightMm:180},brood:{},honey:{}});
+  assert.equal(profile.frame.heightMm,180,'one shared frame height applies to brood and honey frames in all assemblies');
+
 });
