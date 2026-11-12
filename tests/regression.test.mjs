@@ -322,8 +322,8 @@ test('batch frame move compares the executable plan with its reviewed preview',(
   const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:plan});
   const state=frameMoveFixture(),before=JSON.stringify(state);
   const prepared=plan(state,[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]);
-  prepared.moves[0].toBox='2';
-  prepared.preview[0].toBox='2';
+  prepared.moves[0].fromPosition=99;
+  prepared.preview[0].fromPosition=99;
   const result=apply(state,prepared,'2026-11-12');
   assert.equal(result.ok,false);
   assert.equal(result.errors[0].code,'move_plan_changed');
