@@ -1108,6 +1108,14 @@ test('backup shape validator rejects malformed journal media and nested box data
  assert.throws(()=>validate({...rawBackupFixture(),layouts:{h1:{boxes:{1:{frames:'not-an-array'}}}}}),/гнездовые корпуса/i);
  assert.throws(()=>validate({...rawBackupFixture(),layouts:{h1:{honeyFrames:[[], 'bad']}}}),/медовые рамки/i);
 });
+test('backup shape validator rejects malformed entries in optional collections',()=>{
+ const validate=loadFunction('validateBackupState');
+ for(const key of ['tasks','snapshots','auditLog','aiMessages']){
+  assert.throws(()=>validate({...rawBackupFixture(),[key]:[null]}),/повреждённые элементы/i, key+' must contain objects only');
+  assert.equal(validate({...rawBackupFixture(),[key]:[]})[key].length,0);
+  assert.equal(validate({...rawBackupFixture(),[key]:[{id:'valid'}]})[key][0].id,'valid');
+ }
+});
 test('raw backup integrity rejects duplicate hive identity and number',()=>{
  const state={...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h1',number:1}]};
  const result=inspectRawBackup(state);
