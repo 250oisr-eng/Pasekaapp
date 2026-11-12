@@ -1009,6 +1009,18 @@ test('raw backup integrity rejects duplicate frame IDs and mismatched physical l
  assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
  assert.ok(result.errors.some(error=>error.code==='frame_location_mismatch'));
 });
+test('raw backup integrity rejects duplicate physical frame IDs across different hives',()=>{
+ const frame={frameId:'GLOBAL-FRAME-01',location:'1',history:[]};
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h2',number:2}],
+  layouts:{
+   h1:{mode:'summer',installedBoxes:[1],boxes:{1:{frames:[{...frame}]}},honeyFrames:[[],[]]},
+   h2:{mode:'summer',installedBoxes:[1],boxes:{1:{frames:[{...frame}]}},honeyFrames:[[],[]]}
+  }
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
+});
 test('raw backup integrity rejects forbidden winter family placement',()=>{
  const state={
   ...rawBackupFixture(),hives:[{id:'h1',number:1}],
@@ -1436,6 +1448,23 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
+test('runtime integrity rejects duplicate physical frame IDs across different hives',()=>{
+ const frame={frameId:'GLOBAL-FRAME-02',location:'1',history:[]};
+ const state={
+  hives:[{id:'h1',number:1},{id:'h2',number:2}],families:[],records:[],tasks:[],extractions:[],
+  layouts:{
+   h1:{mode:'summer',installedBoxes:[1],honeyBoxInstalled:[false,false],boxes:{1:{frames:[{...frame}]}},honeyFrames:[[],[]]},
+   h2:{mode:'summer',installedBoxes:[1],honeyBoxInstalled:[false,false],boxes:{1:{frames:[{...frame}]}},honeyFrames:[[],[]]}
+  }
+ };
+ const profile={id:'farrar-6x6-v1',family:'farrar'};
+ const validate=loadFunction('validateVirtualApiary',{
+  S:state,inspectFamilyLineage:()=>[],inspectTaskIntegrity:()=>[],
+  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]})
+ });
+ const result=validate();
+ assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
+});
 test('schema migration preserves physical frame IDs and adds stable metadata exactly once',()=>{
  const state={
   meta:{schemaVersion:1},
