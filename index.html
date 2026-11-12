@@ -912,9 +912,15 @@ async function confirmAICommand(index){
  S=applied.state;
  const savedMessage=S.aiMessages[index];if(savedMessage){savedMessage.commandStatus='applied';savedMessage.appliedAt=new Date().toISOString()}
  const persisted=await save();
- if(!persisted&&savedMessage){
-  savedMessage.commandStatus='save_failed';
-  savedMessage.commandError='Перемещение уже выполнено в памяти этой страницы, но не сохранено в основной базе. Не закрывай приложение; скачай JSON-архив несохранённых изменений. После перезапуска проверь фактическое состояние.';
+ if(!persisted){
+  const error=S.meta?.saveError;
+  S=previousState;
+  if(error){S.meta=S.meta||{};S.meta.saveError=error}
+  const originalMessage=S.aiMessages?.[index];
+  if(originalMessage){
+   originalMessage.commandStatus='save_failed';
+   originalMessage.commandError='Не удалось сохранить пакетное перемещение. Операция отменена в текущей модели. Проверь ошибку сохранения и обнови приложение перед новой попыткой.';
+  }
  }
  renderAIChat();
 }
