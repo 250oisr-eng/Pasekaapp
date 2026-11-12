@@ -1903,3 +1903,45 @@ test('JSON backup restore rejects corrupt source before confirmation or database
  assert.match(alerts[0],/не прошёл проверку исходных данных/i);
 });
 
+
+
+test('JSON backup restore integrates with real IndexedDB and preserves the exact previous database state',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'json-restore-integration-'+(++indexedDbTestSequence));
+ try{
+  const previous={meta:{schemaVersion:2,revisionId:'current-rev'},hives:[{id:'live-hive',number:1}],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
+  const restored={meta:{schemaVersion:2},hives:[{id:'restored-hive',number:2}],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
+  await seedIndexedDb(db,[['main',previous,'state']]);
+  const alerts=[];
+  const deps={
+   S:previous,
+   db,STORE:'main',BACKUP_STORE:'backup',
+   $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
+   confirm:()=>true,
+   saveQueue:Promise.resolve(),
+   readMain:loadFunction('readMain',{db,STORE:'main'}),
+   validateBackupState:state=>state,
+   assertRawBackupIntegrity:state=>state,
+   migrateState:()=>false,
+   uid:()=> 'restored-rev',
+   logAudit(type){deps.S.auditLog.push({type})},
+   validateVirtualApiary:()=>({errorCount:0,errors:[]}),
+   writeMainWithBackup:loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'}),
+   lastPersistedRevision:null,
+   autoBackupInfo:null,
+   autoBackupRecovered:false,
+   render:()=>{},
+   alert:message=>alerts.push(message)
+  };
+  await loadFunction('restoreBackup',deps)();
+  const saved=await readIndexedDb(db,'main','state');
+  const backup=await readIndexedDb(db,'backup','previous');
+  assert.equal(saved.meta.revisionId,'restored-rev');
+  assert.equal(saved.hives[0].id,'restored-hive');
+  assert.equal(saved.auditLog.at(-1).type,'backup_restored');
+  assert.deepEqual(backup.state,previous,'the automatic backup must preserve the exact state replaced by restore');
+  assert.equal(deps.lastPersistedRevision,'restored-rev');
+  assert.equal(alerts.length,1);
+  assert.match(alerts[0],/Архив восстановлен/i);
+ }finally{db.close()}
+});
