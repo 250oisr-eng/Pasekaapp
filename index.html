@@ -1412,53 +1412,57 @@ function validateHiveAssemblyProfile(profile,layout){
  return {ok:errors.length===0,errors};
 }
 
-function framePrefix(key){if(String(key).startsWith('H'))return String(key);return BOX_CODES[key]||'99'}
-function frameLocationName(key){return String(key).startsWith('H')?'Медовый корпус '+String(key).slice(1):'Гнездовой корпус №'+key}
-function frameCapacity(key){return String(key).startsWith('H')?10:6}
-function frameArray(l,key){return String(key).startsWith('H')?l.honeyFrames[Number(String(key).slice(1))-1]:l.boxes[key].frames}
-function nextFrameId(l,key){const prefix=framePrefix(key);let max=0;[1,2,3,4,5,6,'H1','H2'].forEach(k=>frameArray(l,k).forEach(fr=>{const id=String(fr.frameId||'');if(id.startsWith(prefix)){const tail=String(key).startsWith('H')?id.slice(prefix.length+1):id.slice(prefix.length);const n=Number(tail);if(Number.isFinite(n))max=Math.max(max,n)}}));return prefix+(String(key).startsWith('H')?'-'+String(max+1).padStart(2,'0'):String(max+1))}
+function profileForHive(hid=selectedStructureHive()){const hive=S.hives.find(item=>item?.id===hid);return getHiveProfile(hive)}
+function profileBroodKeys(hid=selectedStructureHive()){return profileForHive(hid)?.brood?.boxKeys?.map(String)||['1','2','3','4','5','6']}
+function profileHoneyKeys(hid=selectedStructureHive()){return profileForHive(hid)?.honey?.boxKeys?.map(String)||['H1','H2']}
+function isHoneyBoxKey(key,hid=selectedStructureHive()){return profileHoneyKeys(hid).includes(String(key))}
+function framePrefix(key,hid=selectedStructureHive()){const value=String(key);if(isHoneyBoxKey(value,hid))return value;return BOX_CODES[value]||value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()||'BX'}
+function frameLocationName(key,hid=selectedStructureHive()){const value=String(key);if(isHoneyBoxKey(value,hid))return 'Медовый корпус '+value;return 'Гнездовой корпус №'+value}
+function frameCapacity(key,hid=selectedStructureHive()){const profile=profileForHive(hid);return isHoneyBoxKey(key,hid)?Number(profile?.honey?.framesPerBox)||10:Number(profile?.brood?.framesPerBox)||6}
+function frameArray(l,key,hid=selectedStructureHive()){const value=String(key),honeyKeys=profileHoneyKeys(hid);return honeyKeys.includes(value)?l.honeyFrames[honeyKeys.indexOf(value)]:l.boxes[value].frames}
+function nextFrameId(l,key,hid=selectedStructureHive()){const value=String(key),honey=isHoneyBoxKey(value,hid),prefix=framePrefix(value,hid);let max=0;[...profileBroodKeys(hid),...profileHoneyKeys(hid)].forEach(k=>frameArray(l,k,hid).forEach(fr=>{const id=String(fr.frameId||'');if(id.startsWith(prefix)){const tail=honey?id.slice(prefix.length+1):id.slice(prefix.length);const n=Number(tail);if(Number.isFinite(n))max=Math.max(max,n)}}));return prefix+(honey?'-'+String(max+1).padStart(2,'0'):String(max+1))}
 function layoutFor(hid){
  S.layouts=S.layouts||{};
- if(!S.layouts[hid]||typeof S.layouts[hid]!=='object'||Array.isArray(S.layouts[hid]))S.layouts[hid]={boxes:{},honeyInstalled:false,honeyBoxInstalled:[false,false],installedBoxes:[],winterOrder:[],mode:'summer'};
+ const profile=profileForHive(hid),broodKeys=profile?.brood?.boxKeys?.map(String)||['1','2','3','4','5','6'],honeyKeys=profile?.honey?.boxKeys?.map(String)||['H1','H2'];
+ if(!S.layouts[hid]||typeof S.layouts[hid]!=='object'||Array.isArray(S.layouts[hid]))S.layouts[hid]={boxes:{},honeyInstalled:false,honeyBoxInstalled:honeyKeys.map(()=>false),installedBoxes:[],winterOrder:[],mode:'summer'};
  const l=S.layouts[hid];
  if(!l.boxes||typeof l.boxes!=='object'||Array.isArray(l.boxes))l.boxes={};
  if(!['summer','winter'].includes(l.mode))l.mode='summer';
- const makeBroodFrames=n=>Array.from({length:6},(_,i)=>({frameId:framePrefix(n)+String(i+1),originBox:String(n),location:String(n),type:'foundation',status:'foundation',history:[]}));
- if(!Array.isArray(l.honeyFrames)){
-  l.honeyFrames=[[],[]];
-  for(let h=1;h<=2;h++)for(let i=1;i<=10;i++)l.honeyFrames[h-1].push({frameId:'H'+h+'-'+String(i).padStart(2,'0'),originBox:'H'+h,location:'H'+h,type:'foundation',status:'foundation',history:[]});
- }
- while(l.honeyFrames.length<2)l.honeyFrames.push([]);
- for(let h=0;h<2;h++)if(!Array.isArray(l.honeyFrames[h]))l.honeyFrames[h]=[];
- for(let n=1;n<=6;n++){
-  if(!l.boxes[n]||typeof l.boxes[n]!=='object'||Array.isArray(l.boxes[n]))l.boxes[n]={family:'',frames:makeBroodFrames(n)};
-  if(!Array.isArray(l.boxes[n].frames))l.boxes[n].frames=makeBroodFrames(n);
-  l.boxes[n].frames.forEach((fr,i)=>{
-   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.boxes[n].frames[i]={frameId:framePrefix(n)+String(i+1),originBox:String(n),location:String(n),type:'foundation',status:'foundation',history:[]};
-   if(!fr.frameId)fr.frameId=framePrefix(n)+String(i+1);
-   fr.originBox=fr.originBox||String(n);fr.location=String(n);
+ const makeBroodFrames=key=>Array.from({length:frameCapacity(key,hid)},(_,i)=>({frameId:framePrefix(key,hid)+String(i+1),originBox:String(key),location:String(key),type:'foundation',status:'foundation',history:[]}));
+ if(!Array.isArray(l.honeyFrames))l.honeyFrames=honeyKeys.map(()=>[]);
+ while(l.honeyFrames.length<honeyKeys.length)l.honeyFrames.push([]);
+ l.honeyFrames=l.honeyFrames.slice(0,honeyKeys.length);
+ for(let i=0;i<honeyKeys.length;i++)if(!Array.isArray(l.honeyFrames[i]))l.honeyFrames[i]=[];
+ for(const key of broodKeys){
+  if(!l.boxes[key]||typeof l.boxes[key]!=='object'||Array.isArray(l.boxes[key]))l.boxes[key]={family:'',frames:makeBroodFrames(key)};
+  if(!Array.isArray(l.boxes[key].frames))l.boxes[key].frames=makeBroodFrames(key);
+  l.boxes[key].frames.forEach((fr,i)=>{
+   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.boxes[key].frames[i]={frameId:framePrefix(key,hid)+String(i+1),originBox:String(key),location:String(key),type:'foundation',status:'foundation',history:[]};
+   if(!fr.frameId)fr.frameId=framePrefix(key,hid)+String(i+1);
+   fr.originBox=fr.originBox||String(key);fr.location=String(key);
    if(!Array.isArray(fr.history))fr.history=[];
   });
  }
  if(!Array.isArray(l.installedBoxes)){
   l.installedBoxes=[];
-  for(let n=1;n<=6;n++){const box=l.boxes[n];if(box.family||box.frames.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note))l.installedBoxes.push(n)}
+  for(const key of broodKeys){const box=l.boxes[key];if(box.family||box.frames.some(fr=>(fr.status&&fr.status!=='foundation')||(fr.type&&fr.type!=='foundation')||fr.note))l.installedBoxes.push(/^\\d+$/.test(key)?Number(key):key)}
  }
  if(!Array.isArray(l.winterOrder))l.winterOrder=[];
  if(!Array.isArray(l.honeyBoxInstalled)){
-  const flags=[0,1].map(h=>l.honeyFrames[h].some(fr=>fr&&(fr.status&&fr.status!=='foundation'||fr.type&&fr.type!=='foundation'||fr.note)));
-  const on=flags.some(Boolean);l.honeyBoxInstalled=[on,on];
+  const flags=honeyKeys.map((key,i)=>l.honeyFrames[i].some(fr=>fr&&(fr.status&&fr.status!=='foundation'||fr.type&&fr.type!=='foundation'||fr.note)));
+  const on=flags.some(Boolean);l.honeyBoxInstalled=profile?.honey?.installation==='paired'?honeyKeys.map(()=>on):flags;
  }else{
-  const on=l.honeyBoxInstalled.some(Boolean);l.honeyBoxInstalled=[on,on];
+  l.honeyBoxInstalled=honeyKeys.map((key,i)=>Boolean(l.honeyBoxInstalled[i]));
+  if(profile?.honey?.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=honeyKeys.map(()=>on)}
  }
- if(l.mode==='winter')l.honeyBoxInstalled=[false,false];
- l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
- for(let h=1;h<=2;h++){
-  const arr=l.honeyFrames[h-1];
+ if(l.mode==='winter'&&!profile?.winter?.honeyAllowed)l.honeyBoxInstalled=honeyKeys.map(()=>false);
+ l.honeyInstalled=l.honeyBoxInstalled.length>0&&l.honeyBoxInstalled.every(Boolean);
+ for(let h=0;h<honeyKeys.length;h++){
+  const key=honeyKeys[h],arr=l.honeyFrames[h];
   arr.forEach((fr,i)=>{
-   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.honeyFrames[h-1][i]={frameId:'H'+h+'-'+String(i+1).padStart(2,'0'),originBox:'H'+h,location:'H'+h,type:'foundation',status:'foundation',history:[]};
-   if(!fr.frameId)fr.frameId='H'+h+'-'+String(i+1).padStart(2,'0');
-   fr.originBox=fr.originBox||'H'+h;fr.location='H'+h;
+   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.honeyFrames[h][i]={frameId:framePrefix(key,hid)+'-'+String(i+1).padStart(2,'0'),originBox:key,location:key,type:'foundation',status:'foundation',history:[]};
+   if(!fr.frameId)fr.frameId=framePrefix(key,hid)+'-'+String(i+1).padStart(2,'0');
+   fr.originBox=fr.originBox||key;fr.location=key;
    if(!Array.isArray(fr.history))fr.history=[];
   });
  }
