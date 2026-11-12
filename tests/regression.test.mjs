@@ -477,3 +477,16 @@ test('confirmed AI frame move is marked applied only after persistence succeeds'
   assert.equal(message.commandStatus,'applied');
   assert.ok(message.appliedAt);
 });
+
+
+test('batch frame move never treats winter-forbidden boxes as installed even in malformed winter order',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const state=frameMoveFixture();
+  state.layouts.h1.mode='winter';
+  state.layouts.h1.winterOrder=[1,2,3];
+  state.layouts.h1.installedBoxes=[1,2,3];
+  const toForbidden=plan(state,[{hiveId:'h1',frameId:'A',toBox:'2'}]);
+  assert.ok(toForbidden.errors.some(error=>error.code==='move_target_not_installed'));
+  const fromForbidden=plan(state,[{hiveId:'h1',frameId:'C',fromBox:'2',toBox:'1'}]);
+  assert.ok(fromForbidden.errors.some(error=>error.code==='move_source_not_installed'));
+});
