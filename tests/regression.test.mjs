@@ -1541,6 +1541,24 @@ test('honey pair return restores the original state when persistence fails',asyn
  assert.equal(fixture.saves,0);
 });
 
+test('honey pair return restores the exact original state when persistence throws',async()=>{
+ const fixture=honeyReturnFixture();
+ const original=JSON.stringify(fixture.state);
+ fixture.deps.save=async()=>{throw new Error('storage exploded')};
+ await loadFunction('confirmHoneyReturn',fixture.deps)();
+ assert.equal(JSON.stringify(fixture.state),original);
+ assert.deepEqual(fixture.alerts,['Возврат медовых корпусов отменён: storage exploded. Исходные данные восстановлены.']);
+ assert.equal(fixture.saves,0);
+});
+test('honey pair return rolls back all changes when audit logging throws',async()=>{
+ const fixture=honeyReturnFixture();
+ const original=JSON.stringify(fixture.state);
+ fixture.deps.logAudit=()=>{throw new Error('audit unavailable')};
+ await loadFunction('confirmHoneyReturn',fixture.deps)();
+ assert.equal(JSON.stringify(fixture.state),original);
+ assert.deepEqual(fixture.alerts,['Возврат медовых корпусов отменён: audit unavailable. Исходные данные восстановлены.']);
+ assert.equal(fixture.saves,0);
+});
 test('honey pair return rejects repeated and duplicate return requests',async()=>{
  const fixture=honeyReturnFixture();
  fixture.state.extractions[0].items[0].returnedAt='2026-11-10';
