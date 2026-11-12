@@ -1571,7 +1571,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   const existingBackup=await readAutoBackup();
-  if(!existingBackup){try{await writeAutoBackup(S);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию';await write()}}
+  if(!existingBackup){try{await writeAutoBackup(S,S.meta?.revisionId||null);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию'}}
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
