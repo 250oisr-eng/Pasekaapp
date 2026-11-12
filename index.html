@@ -516,10 +516,20 @@ function inspectFamilyLineage(rows){
  }
  return errors;
 }
+function inspectTaskIntegrity(rows){
+ const errors=[],allowed=new Set(['pending','suggested','done','dismissed']);
+ for(const task of Array.isArray(rows)?rows:[]){
+  if(!task||typeof task!=='object'||Array.isArray(task))continue;
+  if(task.status!=null&&!allowed.has(task.status))errors.push({code:'invalid_task_status',details:{taskId:task.id||null,status:task.status}});
+  if(task.date!=null){const value=task.date,valid=typeof value==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value)&&Number.isFinite(new Date(value+'T00:00:00Z').getTime())&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;if(!valid)errors.push({code:'invalid_task_date',details:{taskId:task.id||null,date:value}})}
+ }
+ return errors;
+}
 function validateVirtualApiary(){
  const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set(),hiveNumbers=new Set();
  const add=(list,code,details)=>list.push({code,details});
  inspectFamilyLineage(S.families).forEach(error=>add(errors,error.code,error.details));
+ inspectTaskIntegrity(S.tasks).forEach(error=>add(errors,error.code,error.details));
  for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add(errors,'invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add(errors,'duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)}
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.stage!=null&&!['developing','independent'].includes(family.stage))add(errors,'invalid_family_stage',{familyId:family.id,stage:family.stage});if(family.origin!=='offshoot'&&family.stage==='developing')add(errors,'invalid_non_offshoot_stage',{familyId:family.id,origin:family.origin,stage:family.stage});if(family.stage==='independent'&&family.origin==='offshoot'&&family.establishedAt!=null&&!/^\d{4}-\d{2}-\d{2}$/.test(family.establishedAt))add(errors,'invalid_family_established_date',{familyId:family.id,date:family.establishedAt});}
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -1386,6 +1396,7 @@ function validateRawBackupIntegrity(state){
  const errors=[],familyRows=Array.isArray(state.families)?state.families:[];
  const add=(code,details)=>errors.push({code,details});
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
+ inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
  const hiveIds=new Set(),hiveNumbers=new Set();(state.hives||[]).forEach(hive=>{if(!hive?.id){add('invalid_hive_identity',{hiveNumber:hive?.number??null});return}if(hiveIds.has(hive.id))add('duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add('invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add('duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)});
  const familyIds=new Set();familyRows.forEach(f=>{if(!f||typeof f!=='object'||!f.id){add('invalid_family_identity',{familyId:f?.id||null});return}if(familyIds.has(f.id))add('duplicate_family_id',{familyId:f.id});familyIds.add(f.id);if(f.parentFamilySnapshot&&f.parentFamilyId&&f.parentFamilySnapshot.id!==f.parentFamilyId)add('family_parent_snapshot_mismatch',{familyId:f.id,parentFamilyId:f.parentFamilyId,snapshotId:f.parentFamilySnapshot.id||null});if(!f.hive||!hiveIds.has(f.hive))add('family_hive_missing',{familyId:f.id,hiveId:f.hive||null});if(f.box!=null&&(!Number.isInteger(Number(f.box))||Number(f.box)<1||Number(f.box)>6))add('invalid_family_box_reference',{familyId:f.id,hiveId:f.hive||null,box:f.box})});
  const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{};
