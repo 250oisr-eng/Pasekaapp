@@ -292,7 +292,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .journal-entry-media .muted{font-size:10px;overflow-wrap:anywhere}
 @media(min-width:700px){.journal-filter-row{grid-template-columns:minmax(0,1fr) minmax(125px,.42fr) minmax(135px,.45fr) minmax(145px,.35fr) auto}}
 @media(max-width:380px){.journal-filter-row{grid-template-columns:minmax(0,1fr) minmax(105px,.7fr)}.journal-filter-row input[type="search"]{grid-column:1/-1}.journal-filter-row input[type="date"]{grid-column:1}.journal-filter-row button{grid-column:2}}
-@media(orientation:landscape) and (min-width:700px){body[data-page="hiveDetail"] #selectedHivePanel>.hive-diagram-note{grid-column:1}}</style></head><body>
+@media(orientation:landscape) and (min-width:700px){body[data-page="hiveDetail"] #selectedHivePanel>.hive-diagram-note{grid-column:1}}.hive-row-main[role="button"],.home-hive[role="button"]{cursor:pointer}.hive-row-main[role="button"]:focus-visible,.home-hive[role="button"]:focus-visible{outline:3px solid #83a989;outline-offset:2px}</style></head><body>
 <header class="home-header"><div class="home-brand"><div><div class="home-brand-title">Пасека</div><div class="home-brand-subtitle">Управление · журнал · ИИ-помощник</div></div><button type="button" class="home-ai-shortcut" onclick="showTab('ai')">Спросить ИИ <span aria-hidden="true">↗</span></button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="ai">ИИ</button><button data-tab="settings">Ещё</button></nav>
 <section id="home" class="panel active">
@@ -480,7 +480,7 @@ function card(h){
  else graphic=rows.map(row=>{const boxes=row.filter(key=>installed.includes(key));return boxes.length?'<span class="hive-mini-section">'+boxes.map(()=>'<i class="hive-mini-box"></i>').join('')+'</span>':''}).join('');
  if(honey)graphic+='<span class="hive-mini-honey">'+honey+'</span>';
  const profileLabel=profile?.name||'Профиль не указан';
- return '<div class="hive-row" data-hive-id="'+safe(h.id)+'"><div class="hive-row-main" onclick="openHive(this.parentElement.dataset.hiveId)"><b>'+safe(hname(h.id))+'</b><div class="hive-mini-status">'+(graphic?'<span class="hive-mini-graphic">'+graphic+'</span>':'<span class="hive-mini-empty" aria-label="Сборка не задана">—</span>')+'<span class="muted">'+safe(profileLabel)+' · '+(installed.length+honey)+' '+ruPlural(installed.length+honey,'корпус','корпуса','корпусов')+' · '+count+' '+ruPlural(count,'семья','семьи','семей')+'</span></div></div><button class="primary" onclick="openHive(this.parentElement.dataset.hiveId)">Открыть</button><button onclick="deleteHive(this.parentElement.dataset.hiveId)">Удалить</button></div>';
+ return '<div class="hive-row" data-hive-id="'+safe(h.id)+'"><div class="hive-row-main" role="button" tabindex="0" aria-label="Открыть улей" onclick="openHive(this.parentElement.dataset.hiveId)"><b>'+safe(hname(h.id))+'</b><div class="hive-mini-status">'+(graphic?'<span class="hive-mini-graphic">'+graphic+'</span>':'<span class="hive-mini-empty" aria-label="Сборка не задана">—</span>')+'<span class="muted">'+safe(profileLabel)+' · '+(installed.length+honey)+' '+ruPlural(installed.length+honey,'корпус','корпуса','корпусов')+' · '+count+' '+ruPlural(count,'семья','семьи','семей')+'</span></div></div><button class="primary" onclick="openHive(this.parentElement.dataset.hiveId)">Открыть</button><button onclick="deleteHive(this.parentElement.dataset.hiveId)">Удалить</button></div>';
 }
 function renderHiveHeaderSummary(h){
  const host=$('hiveHeaderSummary');if(!host||!h)return;
@@ -557,6 +557,12 @@ function renderGlobalSearch(){
  host.innerHTML=shown.length?shown.map(item=>'<button type="button" class="global-search-result" data-kind="'+item.kind+'" data-id="'+safe(item.id)+'" data-hive="'+safe(item.hiveId)+'" data-box="'+safe(item.box||'')+'" data-index="'+(Number.isInteger(item.index)?item.index:-1)+'" onclick="openGlobalSearchResult(this)"><span><b>'+safe(item.label)+'</b><small>'+safe(item.detail||'')+'</small></span><span aria-hidden="true">↗</span></button>').join(''):'<div class="muted global-search-empty">Совпадений не найдено.</div>';
  if(results.length>shown.length)host.insertAdjacentHTML('beforeend','<div class="muted global-search-empty">Показаны первые '+shown.length+' совпадений из '+results.length+'. Уточни запрос.</div>');
 }
+document.addEventListener('keydown',event=>{
+ if(event.key!=='Enter'&&event.key!==' ')return;
+ const target=event.target;
+ if(!target?.matches('.hive-row-main[role="button"],.home-hive[role="button"],.frame-chip[role="button"]'))return;
+ event.preventDefault();target.click();
+});
 function openGlobalSearchResult(button){
  const kind=button.dataset.kind,hiveId=button.dataset.hive,box=button.dataset.box,index=Number(button.dataset.index);
  if(kind==='hive'||kind==='family'){openHive(hiveId);return}
@@ -664,7 +670,7 @@ function renderHome(){
   const layoutRows=Array.isArray(profile?.layout?.rows)&&profile.layout.rows.length?profile.layout.rows.map(row=>row.map(String).filter(key=>broodKeys.includes(key))):[broodKeys];
   const body=winter?'<div class="mini-winter-stack">'+order.map(broodBox).join('')+'</div>':'<div class="mini-summer-layout">'+layoutRows.map(row=>'<div class="mini-summer-row">'+row.map(key=>order.includes(key)?broodBox(key):'<div class="mini-brood-slot" aria-hidden="true"></div>').join('')+'</div>').join('')+'</div>';
   const visual='<div class="mini-hive '+(winter?'winter':'summer')+'" aria-label="Схема фактической сборки улья">'+(honeyRows?'<div class="mini-honey-stack">'+honeyRows+'</div>':'')+body+'</div>';
-  return '<div class="home-hive" onclick="openHive(&quot;'+safe(h.id)+'&quot;)"><div class="row"><b>'+safe(hname(h.id))+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="muted home-hive-profile">'+safe(profile?.name||'Профиль не указан')+'</div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' '+ruPlural(families,'семья','семьи','семей')+(pending.length?' · '+pending.length+' '+ruPlural(pending.length,'задача','задачи','задач'):'')+(urgent?' · Есть просрочка':'')+'</div></div>';
+  return '<div class="home-hive" role="button" tabindex="0" aria-label="Открыть '+safe(hname(h.id))+'" onclick="openHive(&quot;'+safe(h.id)+'&quot;)"><div class="row"><b>'+safe(hname(h.id))+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="muted home-hive-profile">'+safe(profile?.name||'Профиль не указан')+'</div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' '+ruPlural(families,'семья','семьи','семей')+(pending.length?' · '+pending.length+' '+ruPlural(pending.length,'задача','задачи','задач'):'')+(urgent?' · Есть просрочка':'')+'</div></div>';
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
  const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31')));
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
