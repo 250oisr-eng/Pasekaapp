@@ -1278,7 +1278,7 @@ function applyFrameMovePlan(state,plan,date){
   const index=source.findIndex(frame=>frame?.frameId===move.frameId);
   if(index<0)return {ok:false,errors:[{code:'move_frame_disappeared',details:{hiveId:move.hiveId,frameId:move.frameId}}]};
   const [frame]=source.splice(index,1);
-  moved.push({move,frame,position:index+1});
+  moved.push({move,frame,position:move.fromPosition});
  }
  const audit=[];
  for(const item of moved){
