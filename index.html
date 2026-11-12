@@ -2411,8 +2411,8 @@ function validateRawBackupIntegrity(state){
     if(!fr||typeof fr!=='object'||Array.isArray(fr)){add('invalid_frame_record',{hiveId:hive.id,box:boxKey});return}
     if(!fr.frameId)add('missing_frame_id',{hiveId:hive.id,box:boxKey});
     if(fr.frameId){
-     if(frameIds.has(fr.frameId))add('duplicate_frame_id',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
-     frameIds.add(fr.frameId);
+     if(seenFrameIds.has(fr.frameId))add('duplicate_frame_id',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
+     seenFrameIds.add(fr.frameId);
     }
     if(fr.location!=null&&String(fr.location)!==String(boxKey))add('frame_location_mismatch',{hiveId:hive.id,box:boxKey,frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add('invalid_frame_history',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
