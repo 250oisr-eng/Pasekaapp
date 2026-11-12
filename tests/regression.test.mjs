@@ -293,6 +293,41 @@ test('AI move preview is rejected when the frame location changes after review',
   assert.notEqual(checked.status,'ready_for_preview');
 });
 
+test('AI frame move completes the full preview-confirmation-persistence flow atomically',async()=>{
+ const state=frameMoveFixture();
+ const planMoves=loadFunction('planFrameMoves');
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves:planMoves});
+ const revalidate=loadFunction('revalidateAICommandPreview',{validateAICommandProposal:validate});
+ const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:planMoves});
+ const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const isCurrent=loadFunction('aiCommandContextIsCurrent',{aiCommandContextFingerprint:fingerprint});
+ const proposal={schemaVersion:1,kind:'move_frames',commandId:'integration-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+ const preview=validate(state,proposal);
+ assert.equal(preview.status,'ready_for_preview');
+ const message={role:'assistant',content:'План подготовлен.',commandProposal:proposal,commandContextFingerprint:fingerprint(state),commandStatus:'pending',commandPlan:preview.plan};
+ state.aiMessages=[message];
+ let persistedSnapshot='',saveCalls=0,renderCalls=0;
+ const deps={
+  S:state,confirm:()=>true,aiCommandContextIsCurrent:isCurrent,
+  revalidateAICommandPreview:revalidate,applyFrameMovePlan:apply,
+  frameLocationName:box=>'корпус '+box,today:()=>'2026-11-12',
+  save:async()=>{saveCalls++;persistedSnapshot=JSON.stringify(deps.S);return true},
+  renderAIChat:()=>{renderCalls++}
+ };
+ await loadFunction('confirmAICommand',deps)(0);
+ assert.equal(saveCalls,1,'the confirmed operation is persisted once');
+ assert.equal(renderCalls,1,'the chat is refreshed after the result');
+ assert.equal(message.commandStatus,'applied');
+ assert.ok(message.appliedAt);
+ assert.deepEqual(deps.S.layouts.h1.boxes[1].frames.map(frame=>frame.frameId),['B']);
+ assert.deepEqual(deps.S.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A']);
+ assert.equal(deps.S.layouts.h1.boxes[3].frames[0].location,'3');
+ assert.equal(deps.S.layouts.h1.boxes[3].frames[0].history.at(-1).action,'move');
+ assert.equal(deps.S.auditLog.at(-1).type,'frames_moved_batch');
+ const saved=JSON.parse(persistedSnapshot);
+ assert.equal(saved.aiMessages[0].commandStatus,'applied');
+ assert.deepEqual(saved.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A','C']);
+});
 test('inline application JavaScript remains syntactically valid',()=>{
   const start=html.indexOf('<script>'),end=html.indexOf('</script>',start);
   assert.ok(start>=0&&end>start);
