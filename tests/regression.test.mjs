@@ -250,3 +250,51 @@ test('batch frame move refuses a plan changed after its preview was prepared',()
   assert.equal(result.errors[0].code,'move_plan_preview_mismatch');
   assert.equal(JSON.stringify(state),before);
 });
+
+
+test('AI command marker parser extracts only a valid JSON proposal',()=>{
+  const extract=loadFunction('extractAICommandProposal');
+  const proposal={schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+  const valid=extract('Перенесу после проверки.\\n[[PASEKA_COMMAND_JSON]]'+JSON.stringify(proposal)+'[[/PASEKA_COMMAND_JSON]]');
+  assert.deepEqual(valid.proposal,proposal);
+  assert.equal(valid.answer,'Перенесу после проверки.');
+  assert.equal(valid.parseError,'');
+  assert.equal(extract('Обычный ответ без команды.').proposal,null);
+  assert.match(extract('Ответ\\n[[PASEKA_COMMAND_JSON]]{broken}[[/PASEKA_COMMAND_JSON]]').parseError,/разобрать/);
+  assert.match(extract('Ответ\\n[[PASEKA_COMMAND_JSON]]{').parseError,/не завершён/);
+});
+
+test('AI move preview can be safely revalidated after a chat save changes only revision',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const validate=loadFunction('validateAICommandProposal',{planFrameMoves:plan});
+  const revalidate=loadFunction('revalidateAICommandPreview',{validateAICommandProposal:validate});
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:plan});
+  const state=frameMoveFixture();
+  const proposal={schemaVersion:1,kind:'move_frames',commandId:'chat-save-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+  const reviewed=validate(state,proposal);
+  assert.equal(reviewed.status,'ready_for_preview');
+  state.meta.revisionId='rev-after-chat-save';
+  const checked=revalidate(state,proposal,reviewed.plan);
+  assert.equal(checked.ok,true);
+  assert.equal(checked.plan.expectedRevision,'rev-after-chat-save');
+  assert.equal(apply(state,checked.plan,'2026-11-12').ok,true);
+});
+
+test('AI move preview is rejected when the frame location changes after review',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const validate=loadFunction('validateAICommandProposal',{planFrameMoves:plan});
+  const revalidate=loadFunction('revalidateAICommandPreview',{validateAICommandProposal:validate});
+  const state=frameMoveFixture();
+  const proposal={schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+  const reviewed=validate(state,proposal);
+  state.layouts.h1.boxes[1].frames[0].location='2';
+  const checked=revalidate(state,proposal,reviewed.plan);
+  assert.equal(checked.ok,false);
+  assert.notEqual(checked.status,'ready_for_preview');
+});
+
+test('inline application JavaScript remains syntactically valid',()=>{
+  const start=html.indexOf('<script>'),end=html.indexOf('</script>',start);
+  assert.ok(start>=0&&end>start);
+  assert.doesNotThrow(()=>new Function(html.slice(start+8,end)));
+});
