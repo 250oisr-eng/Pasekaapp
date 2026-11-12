@@ -198,6 +198,8 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 
 /* Hybrid workspace: overview, navigation and AI workflows */
 .home-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin:0 auto}.home-brand-title{font-size:22px;font-weight:850;letter-spacing:-.4px;line-height:1.1}.home-brand-subtitle{font-size:11px;opacity:.75;margin-top:4px}.home-ai-shortcut{background:#24452f;color:#fff;padding:10px 12px;font-size:12px;border-radius:12px}.home-ai-shortcut span{padding-left:4px}.home-ai-card{border-color:#d5dfd1;background:linear-gradient(145deg,#fff 0%,#f5f8f2 100%)}.home-ai-spark{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#e7efdf;color:#315d3b;font-size:19px}.home-ai-card textarea{margin:10px 0 8px;min-height:64px;resize:vertical}.home-ai-actions{justify-content:flex-start}.home-ai-actions button{flex:1}.home-ai-prompts,.ai-prompt-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.home-ai-prompts button,.ai-prompt-chips button{white-space:normal;text-align:left;font-size:11px;line-height:1.25;padding:8px 10px;border:1px solid #dce4d8;background:#f7f9f5;border-radius:18px}.ai-capabilities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0;padding:10px;border-radius:12px;background:#f3f6f0}.ai-capabilities>div{min-width:0}.ai-capabilities b,.ai-capabilities span{display:block}.ai-capabilities b{font-size:12px;color:#315d3b}.ai-capabilities span{font-size:10px;line-height:1.3;color:#68736a;margin-top:3px}.ai-prompt-heading{font-size:12px;font-weight:750;margin-top:12px}.ai-prompt-chips{margin:7px 0 12px}.ai-messages{scroll-margin-top:12px}nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}nav button{font-weight:700}@media(max-width:360px){.home-brand-title{font-size:20px}.home-brand-subtitle{font-size:10px}.home-ai-actions{align-items:stretch}.home-ai-actions button{font-size:11px;padding:9px 7px}.ai-capabilities{gap:4px;padding:8px}.ai-capabilities span{font-size:9px}}
+
+.ai-input-actions{justify-content:flex-start;align-items:stretch;flex-wrap:wrap}.ai-input-actions button{flex:1 1 auto}.ai-input-actions #aiSendButton{flex:1.3 1 110px}@media(max-width:360px){.ai-input-actions button{font-size:11px;padding:9px 7px}}
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><div class="home-brand-title">Пасека</div><div class="home-brand-subtitle">Управление · журнал · ИИ-помощник</div></div><button type="button" class="home-ai-shortcut" onclick="showTab('ai')">Спросить ИИ <span aria-hidden="true">↗</span></button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="ai">ИИ</button><button data-tab="settings">Ещё</button></nav>
@@ -224,8 +226,9 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
    <div class="row"><span id="aiUserLabel" class="muted"></span><button type="button" onclick="signOutAI()">Выйти</button></div>
    <div class="ai-capabilities"><div><b>Анализирует</b><span>семьи, рамки, журнал и задачи</span></div><div><b>Предлагает</b><span>планы и уточняющие вопросы</span></div><div><b>Выполняет</b><span>только после твоего подтверждения</span></div></div><div class="ai-prompt-heading">Быстрые запросы</div><div class="ai-prompt-chips"><button type="button" onclick="useAIPrompt('Проанализируй состояние пасеки по журналу и покажи, где не хватает данных.')">Общий анализ</button><button type="button" onclick="useAIPrompt('Какие семьи и отводки требуют внимания? Обоснуй по записям.')">Семьи и отводки</button><button type="button" onclick="useAIPrompt('Составь план ближайших работ по имеющимся задачам и данным.')">План работ</button><button type="button" onclick="useAIPrompt('Помоги подготовить перемещение рамок. Сначала уточни недостающие данные.')">Перемещение рамок</button></div><div id="aiMessages" class="ai-messages"></div>
    <label for="aiQuestion">Задай вопрос или опиши действие</label><textarea id="aiQuestion" rows="3" placeholder="Например: какие семьи требуют внимания по последним осмотрам?"></textarea>
-   <div class="row"><button class="primary" id="aiSendButton" type="button" onclick="sendAIQuestion()">Отправить вопрос</button><button type="button" onclick="clearAIHistory()">Очистить диалог</button></div>
-   <p class="muted">Перед отправкой проверь вопрос: вместе с ним ИИ получит сводку журнала, семей, рамок и перемещений без фото и видео.</p>
+   <div class="row ai-input-actions"><button class="primary" id="aiSendButton" type="button" onclick="sendAIQuestion()">Отправить</button><button type="button" id="aiVoiceButton" onclick="startAIVoiceInput(this)">🎙 Диктовать</button><button type="button" onclick="clearAIHistory()">Очистить диалог</button></div>
+   <p class="muted">При диктовке распознавание выполняет браузер или устройство; в зависимости от них аудио может обрабатываться внешним сервисом. В ИИ отправляется только распознанный текст, после твоего нажатия «Отправить».</p>
+   <p class="muted">Вместе с вопросом ИИ получит текстовую сводку журнала, семей, рамок и перемещений. Фото и видео пока не передаются.</p>
   </div>
  </div>
 </section>
@@ -473,6 +476,7 @@ function goBack(){if(history.state&&history.state.pasekaTab)history.back();else 
 const AI_AUTH_URL='https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech/paseka/auth';
 const AI_FUNCTION_URL='https://pasekaapp.250oisr.workers.dev/';
 let aiAuthClient=null,aiAuthUser=null,aiAuthError='',aiBusy=false,aiInitPromise=null;
+let aiRecognition=null;
 async function initAIAuth(){
  if(aiInitPromise)return aiInitPromise;
  aiInitPromise=(async()=>{
@@ -735,6 +739,28 @@ async function copyAIMessage(index,button){
   else{const field=document.createElement('textarea');field.value=value;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';field.style.left='0';field.style.top='0';document.body.appendChild(field);field.select();field.setSelectionRange(0,field.value.length);const copied=document.execCommand('copy');field.remove();if(!copied)throw new Error('Копирование не поддерживается браузером')}
   const label=button.textContent;button.textContent='Скопировано';button.disabled=true;setTimeout(()=>{if(button.isConnected){button.textContent=label;button.disabled=false}},1400);
  }catch(e){alert('Не удалось скопировать сообщение. Выдели текст вручную и выбери «Копировать».')}
+}
+function startAIVoiceInput(button){
+ if(aiBusy||aiRecognition)return;
+ const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!Speech)return alert('В этом браузере нет встроенного распознавания речи. Можно продолжить вводить текст вручную.');
+ if(!confirm('Запустить диктовку? Распознавание выполняет браузер или устройство; в зависимости от настроек аудио может передаваться внешнему сервису распознавания. В приложение попадёт только текст, и он не будет отправлен ИИ без отдельного нажатия «Отправить».'))return;
+ const recognition=new Speech();aiRecognition=recognition;
+ recognition.lang='ru-RU';recognition.interimResults=false;recognition.maxAlternatives=1;
+ button.disabled=true;button.textContent='Слушаю…';
+ recognition.onresult=event=>{
+  const transcript=Array.from(event.results||[]).map(result=>result[0]?.transcript||'').join(' ').trim();
+  const field=$('aiQuestion');
+  if(transcript&&field){field.value=(field.value.trim()?field.value.trim()+' ':'')+transcript;field.focus()}
+ };
+ recognition.onerror=event=>{
+  if(event.error!=='no-speech'&&event.error!=='aborted')alert('Не удалось распознать речь: '+event.error+'. Проверь разрешение на микрофон или введи текст вручную.');
+ };
+ recognition.onend=()=>{
+  button.disabled=false;button.textContent='🎙 Диктовать';
+  if(aiRecognition===recognition)aiRecognition=null;
+ };
+ try{recognition.start()}catch(error){aiRecognition=null;button.disabled=false;button.textContent='🎙 Диктовать';alert('Не удалось запустить микрофон: '+(error.message||error))}
 }
 function askAIFromHome(question){
  const source=$('homeAIQuestion'),value=String(question??source?.value??'').trim();
