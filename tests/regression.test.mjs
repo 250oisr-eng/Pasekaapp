@@ -1059,7 +1059,7 @@ test('backup shape validator rejects unsupported future schema versions without 
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:2}}).meta.schemaVersion,2);
- assert.equal(validate(rawBackupFixture()),rawBackupFixture());
+ const legacy=rawBackupFixture();assert.equal(validate(legacy),legacy);
 });
 test('backup shape validator rejects malformed journal media and nested box data',()=>{
  const validate=loadFunction('validateBackupState');
