@@ -549,7 +549,7 @@ function validateVirtualApiary(){
    if(item.frameIds!=null){
     if(!Array.isArray(item.frameIds)||item.frameIds.some(id=>typeof id!=='string'||!id)||new Set(item.frameIds).size!==item.frameIds.length)add(errors,'invalid_extraction_frame_ids',{extractionId:event.id||null,hiveId:item.hiveId});
     else{
-     const l=layouts[item.hiveId],frameIds=new Set((Array.isArray(l?.honeyFrames)?l.honeyFrames:[]).flatMap(group=>Array.isArray(group)?group.map(frame=>frame?.frameId).filter(Boolean):[]));
+     const l=layouts[item.hiveId]||{},frameIds=new Set([...Array.from({length:6},(_,i)=>l.boxes?.[i+1]?.frames||[]),...(Array.isArray(l.honeyFrames)?l.honeyFrames:[])].flatMap(group=>Array.isArray(group)?group.map(frame=>frame?.frameId).filter(Boolean):[]));
      item.frameIds.forEach(frameId=>{if(!frameIds.has(frameId))add(errors,'extraction_frame_missing',{extractionId:event.id||null,hiveId:item.hiveId,frameId})});
     }
    }
@@ -1370,7 +1370,7 @@ function validateRawBackupIntegrity(state){
    if(item.frameIds!=null){
     if(!Array.isArray(item.frameIds)||item.frameIds.some(id=>typeof id!=='string'||!id)||new Set(item.frameIds).size!==item.frameIds.length)add('invalid_extraction_frame_ids',{extractionId:event.id||null,hiveId:item.hiveId});
     else{
-     const frameIds=new Set((layouts[item.hiveId]?.honeyFrames||[]).flatMap(group=>Array.isArray(group)?group.map(frame=>frame?.frameId).filter(Boolean):[]));
+     const frameLayout=layouts[item.hiveId]||{},frameIds=new Set([...Array.from({length:6},(_,i)=>frameLayout.boxes?.[i+1]?.frames||[]),...(Array.isArray(frameLayout.honeyFrames)?frameLayout.honeyFrames:[])].flatMap(group=>Array.isArray(group)?group.map(frame=>frame?.frameId).filter(Boolean):[]));
      item.frameIds.forEach(frameId=>{if(!frameIds.has(frameId))add('extraction_frame_missing',{extractionId:event.id||null,hiveId:item.hiveId,frameId})});
     }
    }
