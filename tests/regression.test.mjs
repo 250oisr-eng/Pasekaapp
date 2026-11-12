@@ -1170,7 +1170,8 @@ test('inspection text extraction rejects frame counts outside the six-frame broo
 
 
 test('hive profile catalog resolves legacy hives to the preserved Farrar profile',()=>{
-  const getProfile=loadFunction('getHiveProfile',{HIVE_PROFILE_CATALOG:{
+  const clone=loadFunction('cloneHiveProfile');
+  const getProfile=loadFunction('getHiveProfile',{cloneHiveProfile:clone,HIVE_PROFILE_CATALOG:{
     'farrar-6x6-v1':{id:'farrar-6x6-v1',schemaVersion:1,family:'farrar',status:'ready',name:'Farrar',frame:{heightMm:195},brood:{boxCount:6,framesPerBox:6,boxKeys:['1','2','3','4','5','6']},honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5']}}
   }});
   const profile=getProfile({id:'old-hive'});
@@ -1198,7 +1199,7 @@ test('hive profile validator refuses incomplete Dadant and Ruta templates as act
 
 test('hive profile validator rejects mismatched capacities and winter references',()=>{
   const validate=loadFunction('validateHiveProfile');
-  const profile={id:'bad-v1',schemaVersion:1,status:'ready',name:'Bad',frame:{heightMm:195},brood:{boxCount:2,framesPerBox:6,boxKeys:['1','2']},honey:{boxCount:1,framesPerBox:10,boxKeys:['H1'],installation:'paired'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','9'],forbiddenBoxKeys:['2']}};
+  const profile={id:'bad-v1',schemaVersion:1,status:'ready',name:'Bad',frame:{heightMm:195},brood:{boxCount:2,framesPerBox:6,boxKeys:['1','2']},honey:{boxCount:1,framesPerBox:10,boxKeys:['H1'],installation:'invalid-mode'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','9'],forbiddenBoxKeys:['2']}};
   const result=validate(profile);
   assert.equal(result.ok,false);
   assert.ok(result.errors.some(x=>x.code==='profile_honey_installation_invalid'));
