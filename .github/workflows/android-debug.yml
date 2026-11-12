@@ -68,6 +68,8 @@ jobs:
         run: npx cap add android
       - name: Sync Android project
         run: npx cap sync android
+      - name: Use Android 15-compatible Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
       - name: Require Android 15 or newer
         shell: bash
         run: |
