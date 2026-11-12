@@ -503,7 +503,7 @@ function renderHiveDirectory(){
   const haystack=[hname(h.id),h.id,profile?.name,layout.mode==='winter'?'зимняя':'летняя',...families.flatMap(f=>[f.name,f.code,f.breed,f.custom]),...frames.map(f=>f.frameId)].join(' ').toLocaleLowerCase('ru-RU');
   return (mode==='all'||layout.mode===mode)&&(!query||haystack.includes(query));
  });
- const count=$('hiveDirectoryCount');if(count)count.textContent=filtered.length+' из '+S.hives.length+' '+ruPlural(S.hives.length,'улья','ульев','ульев');
+ const count=$('hiveDirectoryCount');if(count)count.textContent=filtered.length+' из '+S.hives.length+' '+ruPlural(S.hives.length,'улей','улья','ульев');
  host.innerHTML=filtered.map(card).join('')||(S.hives.length?'<div class="empty">По этому запросу ульи не найдены.</div>':'<div class="empty">Ульев пока нет.</div>');
 }
 function renderJournalRecords(){
