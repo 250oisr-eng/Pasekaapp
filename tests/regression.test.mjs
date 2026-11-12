@@ -861,3 +861,73 @@ test('AI task apply rejects stale/tampered plans and generated duplicate IDs ato
  assert.equal(apply(state,plan,()=> 'same-id','2026-11-12T12:00:00Z').ok,false);
  assert.equal(state.tasks.length,0);
 });
+
+
+function rawBackupFixture(){
+ return {hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{}};
+}
+function inspectRawBackup(state){
+ const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
+ const inspectTaskIntegrity=loadFunction('inspectTaskIntegrity');
+ return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity})(state);
+}
+
+test('backup shape validator accepts a minimal valid empty apiary',()=>{
+ const validate=loadFunction('validateBackupState');
+ const state=rawBackupFixture();
+ assert.equal(validate(state),state);
+});
+test('backup shape validator rejects malformed journal media and nested box data',()=>{
+ const validate=loadFunction('validateBackupState');
+ assert.throws(()=>validate({...rawBackupFixture(),records:[{id:'r1',media:'not-an-array'}]}),/вложений записи журнала/i);
+ assert.throws(()=>validate({...rawBackupFixture(),layouts:{h1:{boxes:{1:{frames:'not-an-array'}}}}}),/гнездовые корпуса/i);
+ assert.throws(()=>validate({...rawBackupFixture(),layouts:{h1:{honeyFrames:[[], 'bad']}}}),/медовые рамки/i);
+});
+test('raw backup integrity rejects duplicate hive identity and number',()=>{
+ const state={...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h1',number:1}]};
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='duplicate_hive_id'));
+ assert.ok(result.errors.some(error=>error.code==='duplicate_hive_number'));
+});
+test('raw backup integrity rejects duplicate frame IDs and mismatched physical locations',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  layouts:{h1:{mode:'summer',installedBoxes:[1,2],boxes:{
+   1:{frames:[{frameId:'f1',location:'2',history:[]}]},
+   2:{frames:[{frameId:'f1',location:'2',history:[]}]}
+  },honeyFrames:[[],[]]}}
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
+ assert.ok(result.errors.some(error=>error.code==='frame_location_mismatch'));
+});
+test('raw backup integrity rejects forbidden winter family placement',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  families:[{id:'fam',hive:'h1',box:2}],
+  layouts:{h1:{mode:'winter',installedBoxes:[1,2,3],winterOrder:[1,2,3],boxes:{2:{family:'fam',frames:[]}}}}
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='family_in_forbidden_winter_box'));
+ assert.ok(result.errors.some(error=>error.code==='winter_requires_three_allowed_boxes'));
+});
+test('raw backup integrity rejects dangling task and journal links',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  records:[{id:'r1',hive:'missing-hive',taskId:'missing-task'}],
+  tasks:[{id:'t1',hive:'missing-hive',completedRecordId:'missing-record'}]
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='record_hive_missing'));
+ assert.ok(result.errors.some(error=>error.code==='record_task_link_missing'));
+ assert.ok(result.errors.some(error=>error.code==='task_hive_missing'));
+ assert.ok(result.errors.some(error=>error.code==='task_completion_record_missing'));
+});
+test('raw backup assertion rejects invalid source data without rewriting it',()=>{
+ const state={...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h1',number:2}]};
+ const before=JSON.stringify(state);
+ const validateRawBackupIntegrity=state=>inspectRawBackup(state);
+ const assertIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity});
+ assert.throws(()=>assertIntegrity(state),/Архив не прошёл проверку исходных данных/);
+ assert.equal(JSON.stringify(state),before);
+});
