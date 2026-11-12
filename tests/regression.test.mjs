@@ -728,11 +728,15 @@ test('AI task evidence fingerprint detects structured field changes, not only te
  state.records[0].queen='notSeen';
  assert.equal(revalidate(state,proposal,plan).status,'stale');
 });
-test('AI task plan is rejected when the local revision changed after the request',()=>{
- const current=loadFunction('aiCommandRevisionIsCurrent');
- const state={meta:{revisionId:'rev-2'}};
- assert.equal(current(state,{commandRevision:'rev-1'}),false);
- assert.equal(current(state,{commandRevision:'rev-2'}),true);
+test('AI command context fingerprint ignores save metadata but detects domain changes',()=>{
+ const fingerprint=loadFunction('aiCommandContextFingerprint',{S:{}});
+ const current=loadFunction('aiCommandContextIsCurrent',{aiCommandContextFingerprint:fingerprint});
+ const state={hives:[{id:'h1'}],families:[],layouts:{h1:{}},records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',queen:'seen'}],tasks:[],extractions:[],meta:{revisionId:'rev-1'}};
+ const message={commandContextFingerprint:fingerprint(state)};
+ state.meta.revisionId='rev-2';
+ assert.equal(current(state,message),true);
+ state.records[0].queen='notSeen';
+ assert.equal(current(state,message),false);
 });
 test('AI task evidence with duplicate active journal IDs is rejected as ambiguous',()=>{
  const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
