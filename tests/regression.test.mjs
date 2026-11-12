@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
@@ -1343,6 +1344,5 @@ test('journal uses chronological entries and profile-aware frame search',()=>{
 });
 
 test('PWA manifest does not lock the app to portrait or landscape',()=>{
- const manifest=JSON.parse(html.match(/<link rel="manifest" href="([^"]+)"/)?.[0] ? '{"orientation":"any"}' : '{"orientation":"any"}');
  assert.equal(manifest.orientation,'any');
 });
