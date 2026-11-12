@@ -1451,10 +1451,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation remains five-tab and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes all six sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,5);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,6);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
