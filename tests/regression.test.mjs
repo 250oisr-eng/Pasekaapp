@@ -1037,7 +1037,8 @@ test('automatic backup writes the exact previous state only when the main revisi
  let current={meta:{revisionId:'rev-2'},value:'current'},backup=null,putCount=0;
  const db={transaction(stores,mode){
   assert.deepEqual(stores,['main','backup']);assert.equal(mode,'readwrite');
-  const tx={objectStore(name){return name==='main'?{get(){const request={};queueMicrotask(()=>{request.result=structuredClone(current);request.onsuccess?.()});return request}}:{put(value,key){putCount++;backup={value:structuredClone(value),key};queueMicrotask(()=>tx.oncomplete?.())}}}};
+  let wrote=false;
+  const tx={objectStore(name){return name==='main'?{get(){const request={};queueMicrotask(()=>{request.result=structuredClone(current);request.onsuccess?.();if(!wrote)tx.oncomplete?.()});return request}}:{put(value,key){wrote=true;putCount++;backup={value:structuredClone(value),key};queueMicrotask(()=>tx.oncomplete?.())}}}};
   return tx;
  }};
  const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
