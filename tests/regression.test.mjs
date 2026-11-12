@@ -441,3 +441,39 @@ test('journal draft refuses empty descriptions and missing hives without opening
   assert.equal(opened,0);
   assert.match(alerts[1],/добавь улей/);
 });
+
+
+test('confirmed AI frame move is not reported as saved when persistence fails',async()=>{
+  const message={commandStatus:'pending',commandProposal:{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',toBox:'3'}]},commandPlan:{moves:[{frameId:'A',fromBox:'1',toBox:'3'}]}};
+  const state={aiMessages:[message]};
+  let confirms=0,renders=0;
+  const confirmMove=loadFunction('confirmAICommand',{
+    S:state,confirm:()=>{confirms++;return true},
+    revalidateAICommandPreview:()=>({ok:true,plan:{moves:[{frameId:'A'}]}}),
+    applyFrameMovePlan:()=>({ok:true,state:{aiMessages:[message],changed:true},moves:[]}),
+    frameLocationName:box=>box,today:()=> '2026-11-12',
+    save:async()=>false,renderAIChat:()=>{renders++}
+  });
+  await confirmMove(0);
+  assert.equal(state.aiMessages[0].commandStatus,'pending');
+  assert.equal(message.commandStatus,'save_failed');
+  assert.match(message.commandError,/не сохранено в основной базе/);
+  assert.equal(confirms,1);
+  assert.equal(renders,1);
+  await confirmMove(0);
+  assert.equal(confirms,1,'a failed save must not allow the same command to be confirmed again');
+});
+
+test('confirmed AI frame move is marked applied only after persistence succeeds',async()=>{
+  const message={commandStatus:'pending',commandProposal:{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',toBox:'3'}]},commandPlan:{moves:[{frameId:'A',fromBox:'1',toBox:'3'}]}};
+  const confirmMove=loadFunction('confirmAICommand',{
+    S:{aiMessages:[message]},confirm:()=>true,
+    revalidateAICommandPreview:()=>({ok:true,plan:{moves:[{frameId:'A'}]}}),
+    applyFrameMovePlan:()=>({ok:true,state:{aiMessages:[message]},moves:[]}),
+    frameLocationName:box=>box,today:()=> '2026-11-12',
+    save:async()=>true,renderAIChat:()=>{}
+  });
+  await confirmMove(0);
+  assert.equal(message.commandStatus,'applied');
+  assert.ok(message.appliedAt);
+});
