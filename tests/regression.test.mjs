@@ -1430,7 +1430,7 @@ test('layout initialization creates physical frame arrays from the selected prof
  const profileForHive=()=>profile;
  const frameCapacity=(key)=>key==='M1'?8:10;
  const framePrefix=(key)=>key;
- const layout=loadFunction('layoutFor',{S:state,profileForHive,frameCapacity,framePrefix});
+ const layout=loadFunction('layoutFor',{S:state,profileForHive,frameCapacity,framePrefix,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
  const result=layout('h1');
  assert.equal(result.boxes.B1.frames.length,10);
  assert.equal(result.boxes.B2.frames.length,10);
@@ -1506,7 +1506,7 @@ test('home miniatures render the installed boxes and honey boxes from each hive 
 test('configured honey box arrays are initialized to their profile capacity',()=>{
  const profile={id:'test-profile',schemaVersion:1,status:'ready',name:'Test',family:'custom',frame:{heightMm:230},brood:{boxCount:1,framesPerBox:8,boxKeys:['B1']},honey:{boxCount:1,framesPerBox:7,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
  const state={layouts:{},hives:[{id:'h1'}]};
- const layout=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>key==='M1'?7:8,framePrefix:key=>key});
+ const layout=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>key==='M1'?7:8,framePrefix:key=>key,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
  const result=layout('h1');
  assert.equal(result.honeyFrames[0].length,7);
  assert.equal(result.honeyFrames[0][0].frameId,'M1-01');
