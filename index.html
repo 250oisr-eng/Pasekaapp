@@ -881,7 +881,7 @@ async function confirmAICommand(index){
  const message=S.aiMessages?.[index];
  if(!message||message.commandStatus!=='pending'||!message.commandProposal||!message.commandPlan)return;
  const plan=message.commandPlan;
- if(!aiCommandRevisionIsCurrent(S,message)){
+ if(!aiCommandContextIsCurrent(S,message)){
   message.commandStatus='stale';message.commandError='Данные пасеки изменились после отправки запроса ИИ. Построй новый план на актуальных данных.';await save();renderAIChat();return;
  }
  if(plan.kind==='suggest_tasks'){
@@ -931,14 +931,14 @@ async function sendAIQuestion(){
  try{
   let accessToken='';const sessionResult=await aiAuthClient.getSession({fetchOptions:{onSuccess:(ctx)=>{accessToken=ctx.response.headers.get('set-auth-jwt')||''}}});if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
   accessToken=accessToken||sessionResult.data?.session?.token||'';if(!accessToken)throw new Error('Вход выполнен, но Neon Auth не вернул JWT. Проверь соединение с сервером авторизации и повтори вход.');
-  const requestContext=buildAIContext(),requestRevision=S.meta?.revisionId||null;
+  const requestContext=buildAIContext(),requestFingerprint=aiCommandContextFingerprint(S);
   const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:requestContext})});
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
   const extracted=extractAICommandProposal(data.answer||''),assistantMessage={role:'assistant',content:extracted.answer||'ИИ не вернул ответ.',at:new Date().toISOString()};
   if(extracted.parseError)assistantMessage.content+='\n\n'+extracted.parseError;
   if(extracted.proposal){
-   assistantMessage.commandProposal=extracted.proposal;assistantMessage.commandRevision=requestRevision;
-   if((S.meta?.revisionId||null)!==requestRevision){assistantMessage.commandStatus='stale';assistantMessage.commandError='Данные пасеки изменились, пока ИИ готовил ответ. Обнови анализ и построй новый план.'}
+   assistantMessage.commandProposal=extracted.proposal;assistantMessage.commandContextFingerprint=requestFingerprint;
+   if(aiCommandContextFingerprint(S)!==requestFingerprint){assistantMessage.commandStatus='stale';assistantMessage.commandError='Данные пасеки изменились, пока ИИ готовил ответ. Обнови анализ и построй новый план.'}
    else{
     const validation=extracted.proposal.kind==='suggest_tasks'?validateAITaskSuggestionProposal(S,extracted.proposal):validateAICommandProposal(S,extracted.proposal);
     if(validation.status==='ready_for_preview'){assistantMessage.commandStatus='pending';assistantMessage.commandPlan=validation.plan}
@@ -1559,8 +1559,13 @@ function aiStableSnapshot(value){
  }
  return value;
 }
-function aiCommandRevisionIsCurrent(state,message){
- return !!message&&(message.commandRevision??null)===(state?.meta?.revisionId||null);
+function aiCommandContextFingerprint(state){
+ const source=state||S,records=Array.isArray(source?.records)?source.records.filter(r=>r&&!r.archivedAt).map(({media,...record})=>record):[];
+ const tasks=Array.isArray(source?.tasks)?source.tasks.filter(task=>task&&['pending','suggested'].includes(task.status)):[];
+ return JSON.stringify(aiStableSnapshot({hives:source?.hives||[],families:source?.families||[],layouts:source?.layouts||{},records,tasks,extractions:source?.extractions||[]}));
+}
+function aiCommandContextIsCurrent(state,message){
+ return !!message&&typeof message.commandContextFingerprint==='string'&&message.commandContextFingerprint===aiCommandContextFingerprint(state);
 }
 function validateAITaskSuggestionProposal(state,proposal){
  const fail=(code,details={})=>({status:'invalid',ok:false,errors:[{code,details}],clarifyingQuestions:[],plan:null});
@@ -1605,18 +1610,16 @@ function validateAITaskSuggestionProposal(state,proposal){
   if(activeTasks.some(task=>task.hive===hiveId&&task.type===type))return fail('ai_task_duplicate_active',{index,hiveId,type});
   suggestions.push({hiveId,type,date,note,rationale,sourceRecordIds:sourceRecordIds.slice(),evidence:evidence.map(r=>({id:r.id,date:r.date||'',type:r.type||'',text:String(r.text||'').slice(0,500),fingerprint:JSON.stringify(aiStableSnapshot(r))}))});
  }
- return {status:'ready_for_preview',ok:true,errors:[],clarifyingQuestions:[],plan:{ok:true,kind:'suggest_tasks',expectedRevision:state?.meta?.revisionId||null,suggestions}};
+ return {status:'ready_for_preview',ok:true,errors:[],clarifyingQuestions:[],plan:{ok:true,kind:'suggest_tasks',suggestions}};
 }
 function revalidateAITaskSuggestionPreview(state,proposal,reviewedPlan){
  const validation=validateAITaskSuggestionProposal(state,proposal);
  if(validation.status!=='ready_for_preview')return {ok:false,status:validation.status,errors:validation.errors||[]};
- if((reviewedPlan?.expectedRevision??null)!==(state?.meta?.revisionId||null))return {ok:false,status:'stale',errors:[{code:'ai_task_revision_changed'}]};
  if(!reviewedPlan||JSON.stringify(validation.plan.suggestions)!==JSON.stringify(reviewedPlan.suggestions))return {ok:false,status:'stale',errors:[{code:'ai_task_preview_changed'}]};
  return {ok:true,status:'ready_for_preview',plan:validation.plan};
 }
 function applyAITaskSuggestionsToDraft(state,plan,makeId,createdAt){
  if(!state||!plan?.ok||plan.kind!=='suggest_tasks'||!Array.isArray(plan.suggestions)||typeof makeId!=='function')return {ok:false,errors:[{code:'ai_task_plan_invalid'}]};
- if((plan.expectedRevision??null)!==(state?.meta?.revisionId||null))return {ok:false,errors:[{code:'ai_task_revision_changed'}]};
  const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:plan.suggestions.map(item=>({hiveId:item.hiveId,type:item.type,date:item.date,note:item.note,rationale:item.rationale,sourceRecordIds:item.sourceRecordIds}))};
  const checked=revalidateAITaskSuggestionPreview(state,proposal,plan);
  if(!checked.ok)return {ok:false,errors:checked.errors||[{code:'ai_task_plan_stale'}]};
