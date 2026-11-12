@@ -1078,6 +1078,32 @@ $('rmedia').onchange=async()=>{
  }
 };
 $('rtype').onchange=toggleOccupancy;
+function validateJournalRecordDraft(draft,state,existingRecord=null){
+ const errors=[];
+ const realDate=value=>{
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [year,month,day]=value.split('-').map(Number),date=new Date(Date.UTC(year,month-1,day));
+  return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+ };
+ const types=['Осмотр','Подкормка','Обработка','Медосбор','Зимовка','Перемещение','Заметка'];
+ if(!realDate(draft?.date))errors.push({code:'journal_invalid_date',field:'date',message:'Укажи существующую календарную дату записи.'});
+ if(!types.includes(draft?.type))errors.push({code:'journal_invalid_type',field:'type',message:'Неизвестный тип записи журнала.'});
+ if(typeof draft?.hive!=='string'||!state?.hives?.some(hive=>hive?.id===draft.hive))errors.push({code:'journal_hive_missing',field:'hive',message:'Улей записи не найден.'});
+ if(draft?.family){
+  const family=state?.families?.find(item=>item?.id===draft.family);
+  const archivedLink=existingRecord?.family===draft.family&&existingRecord?.familySnapshotAtTime?.id===draft.family;
+  if(!archivedLink&&(!family||family.hive!==draft.hive))errors.push({code:'journal_family_mismatch',field:'family',message:'Семья не принадлежит выбранному улью или больше не существует.'});
+ }
+ if(state?.records?.some(record=>record?.id===draft?.id&&record!==existingRecord))errors.push({code:'journal_duplicate_id',field:'id',message:'Идентификатор записи уже используется.'});
+ if(draft?.type==='Осмотр'){
+  for(const [field,label] of [['occupancy','занятых пчёлами рамок'],['broodFrames','рамок с расплодом'],['freeDrawn','свободных отстроенных рамок']]){
+   const value=draft[field];
+   if(value!==null&&value!==undefined&&(!Number.isInteger(value)||value<0||value>6))errors.push({code:'journal_invalid_frame_count',field,message:'Количество «'+label+'» должно быть целым числом от 0 до 6.'});
+  }
+ }
+ if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
+ return {ok:errors.length===0,errors};
+}
 $('recordForm').onsubmit=async e=>{
  e.preventDefault();
  if(videoRecorder&&videoRecorder.state==='recording'){alert('Сначала нажми «Остановить» и дождись появления видео в предпросмотре, затем сохрани запись.');return}
@@ -1112,6 +1138,8 @@ $('recordForm').onsubmit=async e=>{
  const combinedMedia=[...(oldRecord?.media||[]),...media,...pendingRecordMedia];
  const isInspection=$('rtype').value==='Осмотр',isTreatment=$('rtype').value==='Обработка';
  const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,familyNameAtTime:familyId?(oldRecord?.family===familyId?(oldRecord.familyNameAtTime||selectedFamily?.name||''):(selectedFamily?.name||'')):'',familyHiveAtTime:familyId?(oldRecord?.family===familyId?(oldRecord.familyHiveAtTime||oldRecord.hive||hiveId):hiveId):'',familySnapshotAtTime:familyId&&oldRecord?.family===familyId?(oldRecord.familySnapshotAtTime||null):null,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',media:combinedMedia};
+ const journalValidation=validateJournalRecordDraft(data,S,oldRecord);
+ if(!journalValidation.ok){alert(journalValidation.errors.map(error=>error.message).join('\n'));return}
  if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
  if(!oldRecord){
   createExpansionSuggestion(data);
