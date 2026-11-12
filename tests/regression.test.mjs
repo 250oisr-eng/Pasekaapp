@@ -1253,6 +1253,12 @@ test('frame move planner uses configured profile keys and capacities',()=>{
  const result=plan(state,[{hiveId:'custom-hive',frameId:'f1',fromBox:'B1',toBox:'B2'}]);
  assert.equal(result.ok,true,JSON.stringify(result.errors));
  assert.equal(result.moves[0].toBox,'B2');
+ const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:plan});
+ const applied=apply(state,result,'2026-11-12');
+ assert.equal(applied.ok,true,JSON.stringify(applied.errors));
+ assert.equal(applied.state.layouts['custom-hive'].boxes.B1.frames.length,0);
+ assert.equal(applied.state.layouts['custom-hive'].boxes.B2.frames.length,10);
+ assert.equal(applied.state.layouts['custom-hive'].boxes.B2.frames.at(-1).location,'B2');
  const invalid=plan(state,[{hiveId:'custom-hive',frameId:'f1',fromBox:'B1',toBox:'1'}]);
  assert.equal(invalid.ok,false);
  assert.ok(invalid.errors.some(error=>error.code==='invalid_move_reference'));
