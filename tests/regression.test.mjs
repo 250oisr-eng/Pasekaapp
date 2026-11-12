@@ -1009,7 +1009,7 @@ test('raw backup integrity rejects duplicate frame IDs and mismatched physical l
  assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
  assert.ok(result.errors.some(error=>error.code==='frame_location_mismatch'));
 });
-test('raw backup integrity rejects duplicate physical frame IDs across different hives',()=>{
+test('raw backup integrity allows the same local frame ID in different hives',()=>{
  const frame={frameId:'GLOBAL-FRAME-01',location:'1',history:[]};
  const state={
   ...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h2',number:2}],
@@ -1019,7 +1019,7 @@ test('raw backup integrity rejects duplicate physical frame IDs across different
   }
  };
  const result=inspectRawBackup(state);
- assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
+ assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('raw backup integrity rejects forbidden winter family placement',()=>{
  const state={
@@ -1448,7 +1448,7 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
-test('runtime integrity rejects duplicate physical frame IDs across different hives',()=>{
+test('runtime integrity allows the same local frame ID in different hives',()=>{
  const frame={frameId:'GLOBAL-FRAME-02',location:'1',history:[]};
  const state={
   hives:[{id:'h1',number:1},{id:'h2',number:2}],families:[],records:[],tasks:[],extractions:[],
