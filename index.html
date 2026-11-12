@@ -1245,7 +1245,9 @@ async function saveExtraction(){
   const l=layoutFor(hid);
   if(l.mode==='winter')return alert('Откачка медовых корпусов возможна только в летней сборке: '+hname(hid));
   if(!l.honeyBoxInstalled.every(Boolean))return alert('В '+hname(hid)+' должны быть установлены оба медовых корпуса');
-  const frameIds=['H1','H2'].flatMap(key=>frameArray(l,key).filter(fr=>['nectar','sealed'].includes(fr.status)).map(fr=>fr.frameId));
+  const extractionFrames=['H1','H2'].flatMap(key=>frameArray(l,key).filter(fr=>['nectar','sealed'].includes(fr.status)));
+  const frameIds=extractionFrames.map(fr=>fr?.frameId);
+  if(frameIds.some(id=>typeof id!=='string'||!id)||new Set(frameIds).size!==frameIds.length)return alert('В медовой паре обнаружены рамки без номера или с повторяющимися номерами. Откачка отменена; сначала исправь учёт.');
   plans.push({hiveId:hid,kg,l,frameIds});
  }
  const items=[];
