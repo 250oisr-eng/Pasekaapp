@@ -503,3 +503,61 @@ test('batch frame move never treats winter-forbidden boxes as installed even in 
   const fromForbidden=plan(state,[{hiveId:'h1',frameId:'C',fromBox:'2',toBox:'1'}]);
   assert.ok(fromForbidden.errors.some(error=>error.code==='move_source_not_installed'));
 });
+
+test('journal draft validator accepts a complete and correctly linked inspection',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'}],families:[{id:'f1',hive:'h1'}],records:[]};
+ const result=validate({id:'r1',date:'2024-02-29',type:'Осмотр',hive:'h1',family:'f1',occupancy:5,broodFrames:3,freeDrawn:1},state);
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.errors,[]);
+});
+
+test('journal draft validator rejects impossible calendar dates and unsupported record types',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'}],families:[],records:[]};
+ const result=validate({id:'r1',date:'2026-02-30',type:'Неизвестный тип',hive:'h1',family:''},state);
+ assert.equal(result.ok,false);
+ assert.ok(result.errors.some(error=>error.code==='journal_invalid_date'));
+ assert.ok(result.errors.some(error=>error.code==='journal_invalid_type'));
+});
+
+test('journal draft validator rejects missing hives and cross-hive family links',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'},{id:'h2'}],families:[{id:'f1',hive:'h1'}],records:[]};
+ const result=validate({id:'r1',date:'2026-11-12',type:'Заметка',hive:'h2',family:'f1'},state);
+ assert.ok(result.errors.some(error=>error.code==='journal_family_mismatch'));
+ const missing=validate({id:'r2',date:'2026-11-12',type:'Заметка',hive:'missing',family:''},state);
+ assert.ok(missing.errors.some(error=>error.code==='journal_hive_missing'));
+});
+
+test('journal draft validator accepts an archived family link only while editing its original record',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'}],families:[],records:[]};
+ const archived={id:'r1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
+ const draft={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
+ assert.equal(validate(draft,state,archived).ok,true);
+ assert.ok(validate({...draft,id:'r2'},state,null).errors.some(error=>error.code==='journal_family_mismatch'));
+});
+
+test('journal draft validator rejects duplicate record identifiers',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'}],families:[],records:[{id:'existing'}]};
+ const result=validate({id:'existing',date:'2026-11-12',type:'Заметка',hive:'h1',family:''},state);
+ assert.ok(result.errors.some(error=>error.code==='journal_duplicate_id'));
+ assert.equal(validate({id:'existing',date:'2026-11-12',type:'Заметка',hive:'h1',family:''},state,state.records[0]).ok,true);
+});
+
+test('journal inspection metrics must be whole numbers within the six-frame capacity',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'}],families:[],records:[]};
+ const result=validate({id:'r1',date:'2026-11-12',type:'Осмотр',hive:'h1',family:'',occupancy:6.5,broodFrames:-1,freeDrawn:7},state);
+ assert.equal(result.errors.filter(error=>error.code==='journal_invalid_frame_count').length,3);
+});
+
+test('journal treatment follow-up date is validated as a real date',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'}],families:[],records:[]};
+ const result=validate({id:'r1',date:'2026-11-12',type:'Обработка',hive:'h1',family:'',treatmentCheck:'2026-02-30'},state);
+ assert.ok(result.errors.some(error=>error.code==='journal_invalid_treatment_check_date'));
+ assert.equal(validate({id:'r2',date:'2026-11-12',type:'Обработка',hive:'h1',family:'',treatmentCheck:'2024-02-29'},state).ok,true);
+});
