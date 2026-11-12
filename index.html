@@ -1055,7 +1055,7 @@ async function restoreBackup(){
   await saveQueue;
   const current=await readMain();if(current){await writeAutoBackup(current);autoBackupInfo=await readAutoBackup()}
   const oldState=S;S=restored;
-  try{migrateState();await write()}catch(e){S=oldState;throw e}
+  try{migrateState();const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}await write()}catch(e){S=oldState;throw e}
   autoBackupRecovered=false;render();alert('Архив восстановлен. Текущее состояние до восстановления сохранено в автокопии.');
  }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
 }
@@ -1067,7 +1067,7 @@ async function restoreAutoBackup(){
   if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
   const current=await readMain();if(current)await writeAutoBackup(current);
   const oldState=S;S=restored;
-  try{migrateState();await write()}catch(e){S=oldState;throw e}
+  try{migrateState();const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}await write()}catch(e){S=oldState;throw e}
   autoBackupRecovered=false;autoBackupInfo=await readAutoBackup();render();alert('Предыдущая полная автокопия восстановлена.');
  }catch(e){alert('Не удалось восстановить автокопию: '+(e.message||e))}
 }
