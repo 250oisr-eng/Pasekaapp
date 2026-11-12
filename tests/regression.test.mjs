@@ -95,3 +95,71 @@ test('family transfer rejects inconsistent target frame locations without partia
   assert.equal(result.audit.length,0);
   assert.equal(result.alerts.length,1);
 });
+
+function frameMoveFixture(){
+  const boxes=Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:'',frames:[]}]));
+  const make=(id,box)=>({frameId:id,location:String(box),originBox:String(box),type:'comb',status:'drawn',history:[]});
+  boxes[1].frames=[make('A','1'),make('B','1')];
+  boxes[2].frames=[make('C','2'),make('D','2')];
+  return {meta:{revisionId:'rev-1'},hives:[{id:'h1',number:1}],families:[],records:[],tasks:[],layouts:{h1:{mode:'summer',installedBoxes:[1,2,3],winterOrder:[],honeyBoxInstalled:[false,false],honeyFrames:[[],[]],boxes}}};
+}
+test('batch frame move plans and applies several moves atomically',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan');
+  const state=frameMoveFixture();
+  const result=plan(state,[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'},{hiveId:'h1',frameId:'B',fromBox:'1',toBox:'3'},{hiveId:'h1',frameId:'C',fromBox:'2',toBox:'3'}]);
+  assert.equal(result.ok,true);
+  const applied=apply(state,result,'2026-11-12');
+  assert.equal(applied.ok,true);
+  assert.deepEqual(applied.state.layouts.h1.boxes[1].frames,[]);
+  assert.deepEqual(applied.state.layouts.h1.boxes[2].frames.map(x=>x.frameId),['D']);
+  assert.deepEqual(applied.state.layouts.h1.boxes[3].frames.map(x=>x.frameId),['A','B','C']);
+  assert.deepEqual(state.layouts.h1.boxes[1].frames.map(x=>x.frameId),['A','B'],'source state is not mutated');
+  assert.equal(applied.state.layouts.h1.boxes[3].frames[0].history.at(-1).to.location,'3');
+  assert.equal(applied.state.auditLog.at(-1).type,'frames_moved_batch');
+});
+test('batch frame move supports an exchange without intermediate capacity failure',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan');
+  const state=frameMoveFixture();
+  const result=plan(state,[{hiveId:'h1',frameId:'A',toBox:'2'},{hiveId:'h1',frameId:'C',toBox:'1'}]);
+  assert.equal(result.ok,true);
+  const applied=apply(state,result,'2026-11-12');
+  assert.equal(applied.ok,true);
+  assert.deepEqual(applied.state.layouts.h1.boxes[1].frames.map(x=>x.frameId),['B','C']);
+  assert.deepEqual(applied.state.layouts.h1.boxes[2].frames.map(x=>x.frameId),['D','A']);
+});
+test('batch frame move rejects overflow and leaves original state untouched',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan');
+  const state=frameMoveFixture();
+  state.layouts.h1.boxes[3].frames=Array.from({length:6},(_,i)=>({frameId:'T'+i,location:'3',history:[]}));
+  const before=JSON.stringify(state);
+  const result=plan(state,[{hiveId:'h1',frameId:'A',toBox:'3'}]);
+  assert.equal(result.ok,false);
+  assert.ok(result.errors.some(x=>x.code==='move_target_over_capacity'));
+  assert.equal(apply(state,result,'2026-11-12').ok,false);
+  assert.equal(JSON.stringify(state),before);
+});
+test('batch frame move rejects wrong source, duplicate IDs and uninstalled targets',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const state=frameMoveFixture();
+  assert.ok(plan(state,[{hiveId:'h1',frameId:'A',fromBox:'2',toBox:'3'}]).errors.some(x=>x.code==='move_source_mismatch'));
+  state.layouts.h1.boxes[2].frames.push({...state.layouts.h1.boxes[1].frames[0]});
+  assert.ok(plan(state,[{hiveId:'h1',frameId:'A',toBox:'3'}]).errors.some(x=>x.code==='move_frame_id_ambiguous'));
+  const clean=frameMoveFixture();
+  assert.ok(plan(clean,[{hiveId:'h1',frameId:'A',toBox:'4'}]).errors.some(x=>x.code==='move_target_not_installed'));
+});
+test('batch frame move rejects winter forbidden boxes and stale plans',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan');
+  const state=frameMoveFixture();
+  state.layouts.h1.mode='winter';state.layouts.h1.installedBoxes=[1,3,4];state.layouts.h1.winterOrder=[1,3,4];
+  assert.ok(plan(state,[{hiveId:'h1',frameId:'A',toBox:'2'}]).errors.some(x=>x.code==='move_target_not_installed'));
+  const summer=frameMoveFixture(),valid=plan(summer,[{hiveId:'h1',frameId:'A',toBox:'3'}]);
+  summer.meta.revisionId='rev-2';
+  const stale=apply(summer,valid,'2026-11-12');
+  assert.equal(stale.ok,false);
+  assert.equal(stale.errors[0].code,'move_plan_stale');
+  assert.deepEqual(summer.layouts.h1.boxes[1].frames.map(x=>x.frameId),['A','B']);
+});
