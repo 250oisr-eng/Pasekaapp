@@ -215,6 +215,7 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
  <div class="card"><div class="row"><div><h2 style="margin:0">ИИ-помощник</h2><span class="muted">Консультации по данным твоей пасеки</span></div><span class="pill">ИИ</span></div>
   <p class="muted">ИИ получает только текстовые сведения из журнала и текущую схему ульев, когда ты отправляешь вопрос. Фото и видео пока не передаются. Ответы — рекомендации для проверки, а не замена осмотру.</p>
   <div id="aiAuthStatus" class="muted">Проверяем подключение…</div>
+  <div class="card" id="aiJournalDraftCard"><b>Подготовить запись журнала</b><p class="muted">Опиши наблюдение или выполненную работу. Текст попадёт в черновик заметки; выбери дату, улей, семью и тип события в форме. ИИ не анализирует и не отправляет это описание.</p><label for="aiJournalDraftInput">Описание события</label><textarea id="aiJournalDraftInput" rows="3" placeholder="Например: осмотрел семью, заметил первые яйца, корм не добавлял…"></textarea><button type="button" class="primary" onclick="prepareJournalDraftFromAI()">Открыть черновик журнала</button></div>
   <div id="aiSignedOut" style="display:none">
    <label for="aiName">Имя (только при регистрации)</label><input id="aiName" autocomplete="name" placeholder="Как к тебе обращаться">
    <label for="aiEmail">Электронная почта</label><input id="aiEmail" type="email" autocomplete="username" placeholder="you@example.com">
@@ -958,6 +959,16 @@ function addFamily(id){$('familyForm').reset();$('familyHive').value=id;$('famil
 $('familyForm').onsubmit=e=>{e.preventDefault();const hive=$('familyHive').value,origin=$('familyOrigin').value,parentFamilyId=origin==='offshoot'?$('familyParent').value:'';if(!S.hives.some(h=>h.id===hive))return alert('Сначала выбери существующий улей');if(!origin)return alert('Укажи происхождение семьи');if(origin==='offshoot'){const parent=S.families.find(f=>f.id===parentFamilyId&&f.hive===hive);if(!parent)return alert('Исходная семья должна принадлежать этому же улью');}const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]),family={id:uid(),hive,name:code,familyYear:year,familySequence:sequence,breed:$('breed').value,origin,parentFamilyId,stage:origin==='offshoot'?'developing':'independent'};S.families.push(family);logAudit('family_created',{hiveId:hive,familyId:family.id,familyName:code,origin,parentFamilyId:parentFamilyId||null,box:null});$('familyDlg').close();save()}
 function prepareRecordForm(){pendingRecordMedia=[];$('mediaPreview').innerHTML='';$('existingMedia').innerHTML='';$('rmedia').value='';$('capturePhoto').value='';$('captureVideo').value='';$('rhive').disabled=false;$('rhive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('rhive').onchange=fillFamilies}
 function newRecord(){if(!S.hives.length){alert('Сначала добавь улей');return}if(!activeJournalHive){alert('Сначала выбери улей и открой его журнал');return}$('recordForm').reset();$('recordId').value='';$('recordTitle').textContent='Новая запись · '+hname(activeJournalHive);prepareRecordForm();$('rhive').value=activeJournalHive;$('rhive').disabled=true;$('rdate').value=today();$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value='';toggleOccupancy();fillFamilies();$('recordDlg').showModal()}
+function prepareJournalDraftFromAI(){
+ const field=$('aiJournalDraftInput'),description=String(field?.value||'').trim();
+ if(!description)return alert('Сначала опиши наблюдение или выполненную работу.');
+ if(!Array.isArray(S.hives)||!S.hives.length)return alert('Сначала добавь улей.');
+ if(!activeJournalHive||!S.hives.some(hive=>hive?.id===activeJournalHive))activeJournalHive=S.hives[0].id;
+ showTab('journal');newRecord();
+ $('rtype').value='Заметка';toggleOccupancy();$('rtext').value=description;
+ $('recordTitle').textContent='Черновик записи · проверь поля';
+ if(field)field.value='';
+}
 function mediaHtml(items){
  return (items||[]).map((m,i)=>{
   const name=safe(m.name||('Файл '+(i+1))),raw=String(m.data||'');
