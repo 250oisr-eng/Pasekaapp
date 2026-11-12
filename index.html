@@ -1103,7 +1103,7 @@ function extractInspectionFieldsFromText(input){
  let cursor=0,part;
  while((part=splitter.exec(normalized))!==null){if(normalized.slice(cursor,part.index).trim())clauses.push({value:normalized.slice(cursor,part.index),start:cursor});cursor=part.index+part[0].length}
  if(normalized.slice(cursor).trim())clauses.push({value:normalized.slice(cursor),start:cursor});
- const uncertain=/\b(?:возможно|вероятно|кажется|похоже|предположительно|примерно|около|порядка|вроде(?:\s+бы)?|как\s+будто|не\s+уверен(?:а)?)\b/i;
+ const uncertain=/(?:^|[^а-яё])(?:возможно|вероятно|кажется|похоже|предположительно|примерно|около|порядка|вроде(?:\s+бы)?|как\s+будто|не\s+уверен(?:а)?)(?=$|[^а-яё])/i;
  const usable=clauses.filter(c=>!uncertain.test(c.value));
  const evidenceFor=c=>source.slice(c.start,Math.min(source.length,c.start+c.value.length)).trim();
  const collectCount=patterns=>{
@@ -1130,6 +1130,7 @@ function extractInspectionFieldsFromText(input){
  put('broodFrames',collectCount([
   new RegExp('(?:расплода|расплод)\\s*(?:на|—|:)\\s*'+n+'\\s*'+frame,'i'),
   new RegExp(n+'\\s*'+frame+'\\s*(?:с\\s+расплодом|расплода)','i'),
+  new RegExp('расплода\\s+'+n+'\\s*'+frame,'i'),
   new RegExp(n+'\\s*'+frame+'\\s+занято\\s+расплодом','i'),
   new RegExp('расплодом\\s+занято\\s*'+n+'\\s*'+frame,'i')
  ]));
