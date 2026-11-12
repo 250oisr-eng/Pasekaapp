@@ -293,6 +293,45 @@ test('AI move preview is rejected when the frame location changes after review',
   assert.notEqual(checked.status,'ready_for_preview');
 });
 
+test('AI frame move cancellation leaves the preview pending and changes nothing',async()=>{
+ const state=frameMoveFixture();
+ const planMoves=loadFunction('planFrameMoves');
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves});
+ const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const proposal={schemaVersion:1,kind:'move_frames',commandId:'cancel-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+ const preview=validate(state,proposal);
+ assert.equal(preview.status,'ready_for_preview');
+ state.aiMessages=[{commandProposal:proposal,commandContextFingerprint:fingerprint(state),commandStatus:'pending',commandPlan:preview.plan}];
+ const before=JSON.stringify(state);
+ let saves=0,renders=0;
+ const deps={S:state,confirm:()=>false,aiCommandContextIsCurrent:(s,m)=>m.commandContextFingerprint===fingerprint(s),save:async()=>{saves++;return true},renderAIChat:()=>{renders++}};
+ await loadFunction('confirmAICommand',deps)(0);
+ assert.equal(JSON.stringify(deps.S),before);
+ assert.equal(deps.S.aiMessages[0].commandStatus,'pending');
+ assert.equal(saves,0,'cancellation must not persist');
+ assert.equal(renders,0,'cancellation must not report a result');
+});
+test('AI frame move rejects a stale preview before asking for confirmation or mutating data',async()=>{
+ const state=frameMoveFixture();
+ const planMoves=loadFunction('planFrameMoves');
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves});
+ const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const proposal={schemaVersion:1,kind:'move_frames',commandId:'stale-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+ const preview=validate(state,proposal);
+ assert.equal(preview.status,'ready_for_preview');
+ state.aiMessages=[{commandProposal:proposal,commandContextFingerprint:fingerprint(state),commandStatus:'pending',commandPlan:preview.plan}];
+ state.layouts.h1.boxes[1].frames[0].type='changed-after-preview';
+ let confirmations=0,saves=0,renders=0;
+ const deps={S:state,confirm:()=>{confirmations++;return true},aiCommandContextIsCurrent:(s,m)=>m.commandContextFingerprint===fingerprint(s),save:async()=>{saves++;return true},renderAIChat:()=>{renders++}};
+ await loadFunction('confirmAICommand',deps)(0);
+ assert.equal(confirmations,0,'stale plan must not reach confirmation');
+ assert.equal(deps.S.aiMessages[0].commandStatus,'stale');
+ assert.equal(deps.S.layouts.h1.boxes[1].frames.some(frame=>frame.frameId==='A'),true);
+ assert.equal(deps.S.layouts.h1.boxes[3].frames.length,0);
+ assert.equal(deps.S.auditLog,undefined);
+ assert.equal(saves,1,'stale status is persisted for the user');
+ assert.equal(renders,1);
+});
 test('AI frame move completes the full preview-confirmation-persistence flow atomically',async()=>{
  const state=frameMoveFixture();
  const planMoves=loadFunction('planFrameMoves');
