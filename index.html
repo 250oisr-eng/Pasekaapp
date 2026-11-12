@@ -373,10 +373,39 @@ function renderHome(){
 function taskMarkup(t){const suggested=t.status==='suggested',late=t.status==='pending'&&t.date<today();return '<div class="'+(suggested?'task-suggested':'task-item')+'"><div class="row"><b>'+safe(t.type)+'</b><span class="task-date '+(late?'task-overdue':'')+'">'+(late?'Просрочено · ':'')+formatTaskDate(t.date)+'</span></div><div class="muted">'+safe(hname(t.hive))+(t.note?' · '+safe(t.note):'')+'</div>'+(suggested?'<div class="muted">Предварительная рекомендация по данным осмотра. Подтверди после проверки условий.</div>':'')+'<div class="task-actions">'+(suggested?'<button class="primary" onclick="acceptTask(\''+t.id+'\')">Подтвердить</button><button onclick="dismissTask(\''+t.id+'\')">Отклонить</button>':'<button class="primary" onclick="completeTask(\''+t.id+'\')">Выполнено</button><button onclick="rescheduleTask(\''+t.id+'\')">Перенести</button>')+'</div></div>'}
 function openPlanDialog(){if(!S.hives.length)return alert('Сначала добавь улей');$('planHive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('planDate').value=dateShift(today(),1);$('planNote').value='';$('planDlg').showModal()}
 $('planForm').onsubmit=async e=>{e.preventDefault();S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:$('planHive').value,type:$('planType').value,date:$('planDate').value,note:$('planNote').value,source:'manual',status:'pending',createdAt:new Date().toISOString()});$('planDlg').close();await save()}
-async function completeTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.status='done';t.completedAt=today();S.records.push({id:uid(),date:today(),type:t.type,hive:t.hive,family:'',text:'Выполнено по плану. '+(t.note||''),media:[]});await save()}
-async function acceptTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.status='pending';t.source='confirmed';await save()}
-async function dismissTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.status='dismissed';await save()}
-async function rescheduleTask(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;const d=prompt('Новая дата (ГГГГ-ММ-ДД):',dateShift(today(),1));if(!d)return;if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return alert('Укажи дату в формате ГГГГ-ММ-ДД');t.date=d;await save()}
+async function completeTask(id){
+ const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
+ if(t.status==='done')return alert('Эта задача уже отмечена выполненной.');
+ if(!S.hives.some(h=>h?.id===t.hive))return alert('Улей задачи больше не существует. Запись о выполнении не создана.');
+ const recordId=uid(),date=today();
+ t.status='done';t.completedAt=date;t.completedRecordId=recordId;
+ S.records.push({id:recordId,date,type:t.type,hive:t.hive,family:'',taskId:t.id,text:'Выполнено по плану. '+(t.note||''),media:[]});
+ logAudit('task_completed',{taskId:t.id,hiveId:t.hive,recordId,date});
+ await save();
+}
+async function acceptTask(id){
+ const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
+ if(t.status!=='suggested')return alert('Принять можно только предложенную задачу.');
+ if(!S.hives.some(h=>h?.id===t.hive))return alert('Улей задачи больше не существует. Принятие отменено.');
+ t.status='pending';t.source='confirmed';logAudit('task_accepted',{taskId:t.id,hiveId:t.hive});await save();
+}
+async function dismissTask(id){
+ const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
+ if(t.status==='done')return alert('Выполненную задачу нельзя отклонить.');
+ if(!S.hives.some(h=>h?.id===t.hive))return alert('Улей задачи больше не существует. Отклонение отменено.');
+ if(t.status==='dismissed')return;
+ t.status='dismissed';logAudit('task_dismissed',{taskId:t.id,hiveId:t.hive});await save();
+}
+async function rescheduleTask(id){
+ const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
+ if(!['pending','suggested'].includes(t.status))return alert('Перенести можно только активную или предложенную задачу.');
+ if(!S.hives.some(h=>h?.id===t.hive))return alert('Улей задачи больше не существует. Перенос отменён.');
+ const d=prompt('Новая дата (ГГГГ-ММ-ДД):',dateShift(today(),1));if(!d)return;
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return alert('Укажи дату в формате ГГГГ-ММ-ДД');
+ const [year,month,day]=d.split('-').map(Number),check=new Date(year,month-1,day);
+ if(check.getFullYear()!==year||check.getMonth()!==month-1||check.getDate()!==day)return alert('Такой календарной даты не существует.');
+ const previousDate=t.date;t.date=d;logAudit('task_rescheduled',{taskId:t.id,hiveId:t.hive,from:previousDate,to:d});await save();
+}
 function createExpansionSuggestion(record){
  if(record.type!=='Осмотр'||record.occupancy==null||record.broodFrames==null||record.freeDrawn==null)return;
  const month=Number(record.date.slice(5,7));
