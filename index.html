@@ -676,7 +676,7 @@ async function confirmFamilyTransfer(e){
  if(targetLayout.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке разрешены только корпуса №1, 3, 4 и 6.');
  const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
  if(!Array.isArray(frames)||!Array.isArray(targetFrames)||!frames.length||frames.length>6||targetFrames.length>6||frames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId)||targetFrames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId))return alert('Не удалось проверить комплект рамок и их номера. Перемещение отменено.');
- if(frames.some(fr=>fr.location!=null&&String(fr.location)!==String(fromBox))||targetFrames.some(fr=>fr.location!=null&&String(fr.location)!==String(targetNumber)))return alert('Расположение одной или нескольких рамок не совпадает с корпусом. Сначала исправь учёт; перенос отменён.');
+ if(frames.some(fr=>fr.location!=null&&String(fr.location)!==String(source.box))||targetFrames.some(fr=>fr.location!=null&&String(fr.location)!==String(targetNumber)))return alert('Расположение одной или нескольких рамок не совпадает с корпусом. Сначала исправь учёт; перенос отменён.');
  const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId),displacedFrames=targetFrames.map(fr=>fr.frameId);
  if(!confirm('Переместить семью '+familyName+' и '+frames.length+' рамок из '+hname(fromHiveId)+', корпус №'+fromBox+' в '+hname(targetHiveId)+', корпус №'+targetNumber+'? Рамки выбранного корпуса назначения перейдут в освобождаемый корпус источника.'))return;
  sourceBox.frames=targetFrames;targetBox.frames=frames;
