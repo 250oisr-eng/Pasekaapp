@@ -355,3 +355,43 @@ test('home AI entry copies the chosen prompt into chat without sending it',()=>{
   helper('Составь план работ');
   assert.equal(nodes.aiQuestion.value,'Составь план работ');
 });
+
+
+test('voice dictation appends Russian transcript to the draft without sending it',()=>{
+  let started=false,alerts=[];
+  const field={value:'Проверь семьи',focus(){}};
+  function FakeRecognition(){this.start=()=>{started=true;this.onresult({results:[[{transcript:'и отводки'}]]});this.onend()}}
+  const button={disabled:false,textContent:'🎙 Диктовать'};
+  const recognitionState={aiBusy:false,aiRecognition:null};
+  const dictate=loadFunction('startAIVoiceInput',{
+    window:{SpeechRecognition:FakeRecognition},
+    confirm:()=>true,
+    alert:message=>alerts.push(message),
+    $:id=>id==='aiQuestion'?field:null,
+    ...recognitionState
+  });
+  dictate(button);
+  assert.equal(started,true);
+  assert.equal(field.value,'Проверь семьи и отводки');
+  assert.equal(button.disabled,false);
+  assert.equal(button.textContent,'🎙 Диктовать');
+  assert.deepEqual(alerts,[]);
+});
+
+test('voice dictation explains unsupported browsers and does not start silently',()=>{
+  let warning='',confirmed=false;
+  const dictate=loadFunction('startAIVoiceInput',{
+    window:{},aiBusy:false,aiRecognition:null,
+    confirm:()=>{confirmed=true;return true},
+    alert:message=>{warning=message}
+  });
+  dictate({disabled:false,textContent:'🎙 Диктовать'});
+  assert.match(warning,/нет встроенного распознавания речи/);
+  assert.equal(confirmed,false);
+});
+
+test('AI panel discloses speech-recognition privacy and keeps explicit send control',()=>{
+  assert.ok(html.includes('id="aiVoiceButton"'));
+  assert.ok(html.includes('аудио может обрабатываться внешним сервисом'));
+  assert.ok(html.includes('id="aiSendButton"'));
+});
