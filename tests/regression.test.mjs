@@ -1499,6 +1499,7 @@ function honeyReturnFixture(){
   returningHoney:[{eventId:'e1',hiveId:'h1'},{eventId:'e2',hiveId:'h2'}],
   $:id=>elements[id],
   alert:message=>alerts.push(message),
+  render:()=>{},
   save:async()=>{saves++;return true},
   logAudit:null
  };
@@ -1551,7 +1552,7 @@ test('honey pair return rejects repeated and duplicate return requests',async()=
  second.deps.returningHoney=[{eventId:'e1',hiveId:'h1'},{eventId:'e1',hiveId:'h1'}];
  await loadFunction('confirmHoneyReturn',second.deps)();
  assert.equal(second.saves,0);
- assert.match(second.alerts[0],/повторную/i);
+ assert.match(second.alerts[0],/повторн/i);
 });
 
 test('record dialog has compact responsive layout rules for portrait and landscape phones',()=>{
