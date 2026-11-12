@@ -462,7 +462,7 @@ test('confirmed AI frame move is not reported as saved when persistence fails',a
   const state={aiMessages:[message]};
   let confirms=0,renders=0;
   const confirmMove=loadFunction('confirmAICommand',{
-    S:state,confirm:()=>{confirms++;return true},
+    S:state,confirm:()=>{confirms++;return true},aiCommandContextIsCurrent:()=>true,
     revalidateAICommandPreview:()=>({ok:true,plan:{moves:[{frameId:'A'}]}}),
     applyFrameMovePlan:()=>({ok:true,state:{aiMessages:[message],changed:true},moves:[]}),
     frameLocationName:box=>box,today:()=> '2026-11-12',
@@ -480,7 +480,7 @@ test('confirmed AI frame move is not reported as saved when persistence fails',a
 test('confirmed AI frame move is marked applied only after persistence succeeds',async()=>{
   const message={commandStatus:'pending',commandProposal:{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',toBox:'3'}]},commandPlan:{moves:[{frameId:'A',fromBox:'1',toBox:'3'}]}};
   const confirmMove=loadFunction('confirmAICommand',{
-    S:{aiMessages:[message]},confirm:()=>true,
+    S:{aiMessages:[message]},confirm:()=>true,aiCommandContextIsCurrent:()=>true,
     revalidateAICommandPreview:()=>({ok:true,plan:{moves:[{frameId:'A'}]}}),
     applyFrameMovePlan:()=>({ok:true,state:{aiMessages:[message]},moves:[]}),
     frameLocationName:box=>box,today:()=> '2026-11-12',
@@ -729,7 +729,7 @@ test('AI task evidence fingerprint detects structured field changes, not only te
  assert.equal(revalidate(state,proposal,plan).status,'stale');
 });
 test('AI command context fingerprint ignores save metadata but detects domain changes',()=>{
- const fingerprint=loadFunction('aiCommandContextFingerprint',{S:{}});
+ const fingerprint=loadFunction('aiCommandContextFingerprint',{S:{},aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const current=loadFunction('aiCommandContextIsCurrent',{aiCommandContextFingerprint:fingerprint});
  const state={hives:[{id:'h1'}],families:[],layouts:{h1:{}},records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',queen:'seen'}],tasks:[],extractions:[],meta:{revisionId:'rev-1'}};
  const message={commandContextFingerprint:fingerprint(state)};
