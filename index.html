@@ -2292,7 +2292,7 @@ function returnHoneyBoxes(eventId,hiveId){
  $('returnHoneyRows').innerHTML='<div class="card"><b>'+safe(hname(hiveId))+'</b><p>Оба медовых корпуса · 2 × 10 рамок</p><label>Дата возврата</label><input id="honeyReturnDate" type="date" value="'+today()+'"></div>';
  $('returnHoneyDlg').showModal();
 }
-async function confirmHoneyReturn(){
+async async function confirmHoneyReturn(){
  const date=$('honeyReturnDate').value;if(!date)return alert('Укажи дату возврата');
  if(!Array.isArray(returningHoney)||!returningHoney.length)return alert('Не выбраны медовые корпуса для возврата.');
  const plans=[],seen=new Set();
@@ -2308,14 +2308,33 @@ async function confirmHoneyReturn(){
   if(l.mode==='winter')return alert('Нельзя вернуть медовые корпуса в зимнюю сборку. Сначала перейди на летнюю.');
   if(!Array.isArray(l.honeyBoxInstalled)||l.honeyBoxInstalled.length!==2)return alert('Повреждено состояние медовой пары. Возврат отменён.');
   if(l.honeyBoxInstalled.some(Boolean))return alert('Медовая пара уже установлена. Проверь состояние корпусов, чтобы не выполнить возврат повторно.');
-  plans.push({r,item,l,event:ev});
+  plans.push({eventId:r.eventId,hiveId:r.hiveId});
  }
- for(const {r,item,l,event} of plans){
+ const originalState=S;
+ let draft;
+ try{draft=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+ catch(e){return alert('Не удалось подготовить безопасный возврат медовых корпусов: '+(e.message||e))}
+ S=draft;
+ for(const plan of plans){
+  const event=(S.extractions||[]).find(x=>x?.id===plan.eventId);
+  const item=Array.isArray(event?.items)?event.items.find(x=>x?.hiveId===plan.hiveId):null;
+  const l=S.layouts?.[plan.hiveId];
+  if(!event||!item||!l){S=originalState;return alert('Данные изменились во время подготовки возврата. Операция отменена.')}
   l.honeyBoxInstalled=[true,true];l.honeyInstalled=true;
   item.boxes=['H1','H2'];item.returnedAt=date;item.returned=true;item.returnedBoxes=['H1','H2'];
-  logAudit('honey_pair_returned',{hiveId:r.hiveId,date,extractionDate:event.date,kilograms:item.kilograms});
+  logAudit('honey_pair_returned',{hiveId:plan.hiveId,date,extractionDate:event.date,kilograms:item.kilograms});
  }
- $('returnHoneyDlg').close();returningHoney=[];await save();
+ const saved=await save();
+ if(!saved){
+  const saveError=S.meta?.saveError;
+  S=originalState;
+  S.meta=S.meta||{};
+  if(saveError)S.meta.saveError=saveError;
+  render();
+  return false;
+ }
+ $('returnHoneyDlg').close();returningHoney=[];
+ return true;
 }
 
 async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
