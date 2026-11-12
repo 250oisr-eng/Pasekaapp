@@ -237,3 +237,16 @@ test('batch frame move preserves family assignments and frame lineage while cros
   assert.equal(result.state.layouts.h1.boxes[3].frames.find(frame=>frame.frameId==='A').history.at(-1).action,'move');
   assert.equal(state.layouts.h1.boxes[1].frames.find(frame=>frame.frameId==='A').history.length,1);
 });
+
+
+test('batch frame move refuses a plan changed after its preview was prepared',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
+  const state=frameMoveFixture(),before=JSON.stringify(state);
+  const prepared=plan(state,[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]);
+  prepared.moves[0].toBox='2';
+  const result=apply(state,prepared,'2026-11-12');
+  assert.equal(result.ok,false);
+  assert.equal(result.errors[0].code,'move_plan_preview_mismatch');
+  assert.equal(JSON.stringify(state),before);
+});
