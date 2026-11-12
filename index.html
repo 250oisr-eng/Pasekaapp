@@ -1318,7 +1318,7 @@ function planFrameMoves(state,requests){
    const arr=getFrames(key);
    if(arr?.some((frame,index)=>frame?.frameId===frameId&&!(key===actualFrom&&index===found.index))){fail('move_duplicate_frame_id',{hiveId,frameId,box:key});break}
   }
-  const move={hiveId,frameId,fromBox:actualFrom,toBox,fromPosition:found.index+1};
+  const move={hiveId,frameId,fromBox:actualFrom,toBox,fromPosition:found.index+1,fromFamilyId:actualFrom.startsWith('H')?'':String(boxes[actualFrom]?.family||''),toFamilyId:toBox.startsWith('H')?'':String(boxes[toBox]?.family||'')};
   moves.push(move);
   if(!byHive.has(hiveId))byHive.set(hiveId,{layout,requests:[]});
   byHive.get(hiveId).requests.push(move);
@@ -1342,7 +1342,7 @@ function applyFrameMovePlan(state,plan,date){
  if((state?.meta?.revisionId||null)!==(plan.expectedRevision||null))return {ok:false,errors:[{code:'move_plan_stale',details:{expected:plan.expectedRevision||null,actual:state?.meta?.revisionId||null}}]};
  const checked=planFrameMoves(state,plan.moves);
  if(!checked.ok)return {ok:false,errors:checked.errors};
- if(checked.moves.length!==plan.moves.length)return {ok:false,errors:[{code:'move_plan_changed',details:{}}]};
+ if(checked.moves.length!==plan.moves.length||JSON.stringify(checked.moves)!==JSON.stringify(plan.moves))return {ok:false,errors:[{code:'move_plan_changed',details:{}}]};
  let draft;
  try{draft=typeof structuredClone==='function'?structuredClone(state):JSON.parse(JSON.stringify(state))}
  catch{return {ok:false,errors:[{code:'move_state_clone_failed',details:{}}]}}
