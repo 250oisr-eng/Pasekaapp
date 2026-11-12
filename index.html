@@ -1113,7 +1113,7 @@ function extractInspectionFieldsFromText(input){
   count(new RegExp('([0-6])\\s*'+frameWord+'\\s+занято\\s+расплодом','i'));
  if(brood){fields.broodFrames=brood.value;evidence.broodFrames=brood.excerpt}
  const drawn=count(/(?:свободн(?:ых|ые)\s+(?:отстроенн(?:ых|ые)\s+)?(?:рамок|рамки)|свободной\s+суши)\s*(?:—|:)?\s*([0-6])/i)||
-  count(/([0-6])\s*(?:свободн(?:ых|ые)\s+(?:отстроенных\s+)?(?:рамок|рамки)|рам(?:ка|ки|ок)\s+свободной\s+суши)/i);
+  count(/([0-6])\s*(?:свободн(?:ых|ые)\s+(?:отстроенн(?:ых|ые)\s+)?(?:рамок|рамки)|рам(?:ка|ки|ок)\s+свободной\s+суши)/i);
  if(drawn){fields.freeDrawn=drawn.value;evidence.freeDrawn=drawn.excerpt}
  const queenAbsent=/матк(?:а|у)\s+(?:не\s+(?:обнаружена|видел(?:а)?|увидел(?:а)?|нашел(?:а)?|найдена)|отсутствует)|матку\s+не\s+видел(?:а)?|матки\s+не\s+видно/i;
  const queenPresent=/матк(?:а|у)\s+(?:обнаружена|увидел(?:а)?|увидена|найдена|есть)|видел(?:а)?\s+матку|матка\s+на\s+месте/i;
