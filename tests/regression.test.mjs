@@ -1435,6 +1435,49 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 });
 
 
+
+test('schema migration preserves physical frame IDs and adds stable metadata exactly once',()=>{
+ const state={
+  meta:{schemaVersion:1},
+  hives:[{id:'h1',number:1}],
+  families:[{name:'Семья без внутреннего ID'}],
+  records:[{hive:'h1',date:'2026-11-12',type:'Осмотр'}],
+  tasks:[],extractions:[{items:[{}]}],snapshots:[],layouts:{},auditLog:[],aiMessages:[]
+ };
+ const frame={frameId:'PHYSICAL-FRAME-01',location:'1'};
+ const layoutFor=hiveId=>{
+  state.layouts[hiveId]=state.layouts[hiveId]||{boxes:{},honeyFrames:[[],[]]};
+  return state.layouts[hiveId];
+ };
+ const frameArray=(layout,key)=>{
+  if(key==='H1'||key==='H2'){
+   const index=key==='H1'?0:1;
+   return layout.honeyFrames[index];
+  }
+  layout.boxes[key]=layout.boxes[key]||{frames:[]};
+  return layout.boxes[key].frames;
+ };
+ layoutFor('h1').boxes['1']={frames:[frame]};
+ let sequence=0;
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,2);
+ assert.ok(state.meta.deviceId);
+ assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
+ assert.ok(state.families[0].id);
+ assert.ok(state.records[0].id);
+ assert.ok(state.extractions[0].id);
+ assert.ok(state.extractions[0].items[0].id);
+ assert.ok(state.snapshots.length>0);
+ assert.equal(frame.frameId,'PHYSICAL-FRAME-01');
+ assert.ok(frame.id);
+ assert.deepEqual(frame.history,[]);
+ assert.ok(state.layouts.h1.corpusIds['1']);
+ assert.ok(state.layouts.h1.corpusIds.H1);
+ assert.equal(migrate(),false);
+ assert.equal(state.hives[0].profileId,'farrar-6x6-v1');
+});
+
 test('record dialog has compact responsive layout rules for portrait and landscape phones',()=>{
   assert.match(html,/@media\s*\(orientation:landscape\)/);
  assert.match(html,/#recordDlg\s+form\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
