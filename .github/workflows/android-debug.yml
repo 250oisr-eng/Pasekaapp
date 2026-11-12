@@ -68,6 +68,24 @@ jobs:
         run: npx cap add android
       - name: Sync Android project
         run: npx cap sync android
+      - name: Require Android 15 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'android/variables.gradle';
+          let source = fs.readFileSync(path, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)\\d+`, 'm');
+            if (!pattern.test(source)) throw new Error(`Could not find ${key} in ${path}; refusing to build with an unknown Android SDK configuration`);
+            source = source.replace(pattern, `$1${value}`);
+          }
+          fs.writeFileSync(path, source);
+          const min = Number(source.match(/^\\s*minSdkVersion\\s*=\\s*(\\d+)/m)?.[1]);
+          if (min !== 35) throw new Error(`Expected minSdkVersion 35, got ${min}`);
+          console.log('Android minimum API: 35 (Android 15); compile/target API: 35');
+          NODE
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Upload APK
