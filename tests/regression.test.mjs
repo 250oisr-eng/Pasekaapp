@@ -1308,3 +1308,17 @@ test('profile assembly rejects removing a brood box that still owns a family',()
  const result=validate(profile,layout);
  assert.ok(result.errors.some(error=>error.code==='family_box_not_installed'));
 });
+
+test('mobile navigation remains five-tab and is positioned as a safe-area-aware bottom bar',()=>{
+ const nav=html.match(/<nav aria-label="Основные разделы">([\\s\\S]*?)<\\/nav>/);
+ assert.ok(nav);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,5);
+ assert.match(html,/main>nav\\[aria-label="Основные разделы"\\][\\s\\S]*?position:fixed!important/);
+ assert.match(html,/env\\(safe-area-inset-bottom,0px\\)/);
+});
+
+test('responsive workspace defines both portrait and landscape orientation layouts',()=>{
+ assert.match(html,/@media \\(orientation:landscape\\)/);
+ assert.match(html,/@media \\(orientation:portrait\\)/);
+ assert.match(html,/max-height:520px/);
+});
