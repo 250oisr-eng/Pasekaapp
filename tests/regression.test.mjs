@@ -332,10 +332,12 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 
 
 test('hybrid workspace exposes five clear navigation destinations and home AI entry points',()=>{
-  const nav=html.match(/<nav aria-label="Основные разделы">([\\s\\S]*?)<\\/nav>/);
-  assert.ok(nav,'accessible main navigation exists');
-  assert.equal((nav[1].match(/data-tab=/g)||[]).length,5);
-  for(const label of ['Обзор','Ульи','Журнал','ИИ','Ещё'])assert.ok(nav[1].includes('>'+label+'</button>'));
+  const navStart=html.indexOf('<nav aria-label="Основные разделы">');
+  const navEnd=html.indexOf('</nav>',navStart);
+  assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
+  const nav=html.slice(navStart,navEnd);
+  assert.equal((nav.match(/data-tab=/g)||[]).length,5);
+  for(const label of ['Обзор','Ульи','Журнал','ИИ','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.ok(html.includes('id="homeAIQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));
