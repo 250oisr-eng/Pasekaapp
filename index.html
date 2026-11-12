@@ -2292,7 +2292,7 @@ function returnHoneyBoxes(eventId,hiveId){
  $('returnHoneyRows').innerHTML='<div class="card"><b>'+safe(hname(hiveId))+'</b><p>Оба медовых корпуса · 2 × 10 рамок</p><label>Дата возврата</label><input id="honeyReturnDate" type="date" value="'+today()+'"></div>';
  $('returnHoneyDlg').showModal();
 }
-async async function confirmHoneyReturn(){
+async function confirmHoneyReturn(){
  const date=$('honeyReturnDate').value;if(!date)return alert('Укажи дату возврата');
  if(!Array.isArray(returningHoney)||!returningHoney.length)return alert('Не выбраны медовые корпуса для возврата.');
  const plans=[],seen=new Set();
