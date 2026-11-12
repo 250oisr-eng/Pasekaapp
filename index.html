@@ -426,11 +426,50 @@ async function signUpAI(){
  try{const r=await aiAuthClient.signUp.email({name,email,password});if(r.error)throw new Error(r.error.message||'Ошибка регистрации');const s=await aiAuthClient.getSession();aiAuthUser=s.data?.user||r.data?.user||null;aiAuthError='';renderAIAuth();if(!aiAuthUser)alert('Аккаунт создан. Теперь войди с почтой и паролем.')}catch(e){alert('Не удалось создать аккаунт: '+(e.message||e))}
 }
 async function signOutAI(){if(!aiAuthClient)return;try{await aiAuthClient.signOut();aiAuthUser=null;renderAIAuth()}catch(e){alert('Не удалось завершить сеанс: '+(e.message||e))}}
+function validateVirtualApiary(){
+ const errors=[],warnings=[],familyPlacements=new Map();
+ const add=(list,code,details)=>list.push({code,details});
+ for(const hive of S.hives){
+  const l=layoutFor(hive.id),installed=l.installedBoxes||[],seenBoxes=new Set();
+  for(const n of installed){if(!Number.isInteger(Number(n))||Number(n)<1||Number(n)>6)add(errors,'invalid_installed_box',{hiveNumber:hive.number,box:n});if(seenBoxes.has(Number(n)))add(errors,'duplicate_installed_box',{hiveNumber:hive.number,box:n});seenBoxes.add(Number(n))}
+  if(l.mode==='winter'){
+   const order=Array.isArray(l.winterOrder)?l.winterOrder:[];
+   if(order.length!==3||new Set(order).size!==3)add(errors,'winter_requires_three_distinct_boxes',{hiveNumber:hive.number,order});
+   const forbidden=order.filter(n=>![1,3,4,6].includes(Number(n)));
+   if(forbidden.length)add(errors,'winter_contains_forbidden_boxes',{hiveNumber:hive.number,boxes:forbidden});
+   if(installed.length!==3||new Set(installed).size!==3||installed.some(n=>!order.includes(n))||order.some(n=>!installed.includes(n)))add(errors,'winter_installed_order_mismatch',{hiveNumber:hive.number,installedBoxes:installed,winterOrder:order});
+   if((l.honeyBoxInstalled||[]).some(Boolean))add(errors,'honey_boxes_in_winter',{hiveNumber:hive.number});
+  }
+  const honey=l.honeyBoxInstalled||[false,false];
+  if(Boolean(honey[0])!==Boolean(honey[1]))add(errors,'honey_pair_mismatch',{hiveNumber:hive.number,installed:honey});
+  const frameIds=new Set();
+  for(let n=1;n<=6;n++){
+   const box=l.boxes[n],frames=frameArray(l,n)||[];
+   if(frames.length>6)add(errors,'brood_box_over_capacity',{hiveNumber:hive.number,box:n,count:frames.length,capacity:6});
+   if(box?.family){
+    const occurrences=familyPlacements.get(box.family)||[];
+    occurrences.push({hiveId:hive.id,hiveNumber:hive.number,box:n,installed:installed.includes(n)});
+    familyPlacements.set(box.family,occurrences);
+    const family=S.families.find(x=>x.id===box.family);
+    if(!family)add(errors,'box_references_missing_family',{hiveNumber:hive.number,box:n,familyId:box.family});
+    else if(family.hive!==hive.id)add(errors,'family_hive_mismatch',{familyCode:family.code,hiveNumber:hive.number,box:n});
+    if(l.mode==='winter'&&![1,3,4,6].includes(n))add(errors,'family_in_forbidden_winter_box',{hiveNumber:hive.number,box:n,familyCode:family?.code||''});
+    if(l.setupComplete&&!installed.includes(n))add(errors,'family_in_uninstalled_box',{hiveNumber:hive.number,box:n,familyCode:family?.code||''});
+   }
+   frames.forEach(fr=>{if(frameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});frameIds.add(fr.frameId)});
+  }
+  (l.honeyFrames||[]).forEach((frames,i)=>{if((frames||[]).length>10)add(errors,'honey_box_over_capacity',{hiveNumber:hive.number,box:'H'+(i+1),count:frames.length,capacity:10});(frames||[]).forEach(fr=>{if(frameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});frameIds.add(fr.frameId)})});
+ }
+ for(const [familyId,placements] of familyPlacements){if(placements.length>1)add(errors,'family_assigned_to_multiple_boxes',{familyId,placements})}
+ for(const family of S.families){const placements=familyPlacements.get(family.id)||[];if(!placements.length)add(warnings,'family_without_physical_box',{familyCode:family.code||family.name,hiveId:family.hive||''})}
+ return {status:errors.length?'errors':warnings.length?'warnings':'ok',errorCount:errors.length,warningCount:warnings.length,errors,warnings};
+}
 function buildAIContext(){
  const hives=S.hives.map(h=>{const l=layoutFor(h.id),installed=l.installedBoxes||[];return {number:h.number,mode:l.mode||'summer',installedBoxes:installed,winterOrder:l.winterOrder||[],boxes:[1,2,3,4,5,6].map(n=>({number:n,installed:installed.includes(n),familyId:l.boxes[n]?.family||'',familyCode:S.families.find(f=>f.id===l.boxes[n]?.family)?.code||'',familyName:S.families.find(f=>f.id===l.boxes[n]?.family)?.name||'',frames:frameArray(l,n).map(fr=>({status:fr.status||'',note:fr.note||fr.notes||''}))})),honeyPair:{installed:(l.honeyBoxInstalled||[]).every(Boolean),frames:(l.honeyFrames||[]).map(arr=>arr.map(fr=>({status:fr.status||'',note:fr.note||''})))}}});
  const families=S.families.map(f=>{const hive=S.hives.find(h=>h.id===f.hive),l=hive?layoutFor(hive.id):null,physicalBox=l?[1,2,3,4,5,6].find(n=>l.boxes[n]?.family===f.id)||null:null;return {code:f.code,name:f.name,hiveNumber:hive?.number||null,physicalBox,breed:f.breed,origin:f.origin,parentFamilyCode:S.families.find(x=>x.id===f.parentFamilyId)?.code||null,queenYear:f.queenYear,notes:f.notes}});
  const records=S.records.filter(r=>!r.archivedAt).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(-30).map(({media,...r})=>{const family=S.families.find(f=>f.id===r.family),hive=S.hives.find(h=>h.id===r.hive);return {...r,hiveNumber:hive?.number||null,familyCode:family?.code||'',familyName:family?.name||''}});
- return {apiary:{location:'Пензенская область, Грабово',hiveConstruction:'Farrar: шесть физических гнездовых корпусов по шесть рамок, размещённых в трёх секциях; сверху два медовых корпуса по десять рамок, устанавливаются и снимаются только парой',summerLayout:{lowerRow:[1,2,3],upperRow:[4,5,6],numbering:'Номера 1–6 — постоянные физические номера корпусов; они не меняются при перестановке',sections:3},sideOpenings:{bothSides:[2,5],centerSideOnly:[1,3,4,6],note:'Указано только расположение отверстий на боковых стенках; не делай без дополнительных данных выводов об их назначении или о сквозной вентиляции'},winterRules:{requiredBroodBoxes:3,allowedPhysicalNumbers:[1,3,4,6],forbiddenPhysicalNumbers:[2,5]}},hives,families,latestJournalRecords:records,tasks:(S.tasks||[]).slice(-30),recentChanges:(S.auditLog||[]).slice(-30)};
+ const modelIntegrity=validateVirtualApiary();
+ return {modelIntegrity,apiary:{location:'Пензенская область, Грабово',hiveConstruction:'Farrar: шесть физических гнездовых корпусов по шесть рамок, размещённых в трёх секциях; сверху два медовых корпуса по десять рамок, устанавливаются и снимаются только парой',summerLayout:{lowerRow:[1,2,3],upperRow:[4,5,6],numbering:'Номера 1–6 — постоянные физические номера корпусов; они не меняются при перестановке',sections:3},sideOpenings:{bothSides:[2,5],centerSideOnly:[1,3,4,6],note:'Указано только расположение отверстий на боковых стенках; не делай без дополнительных данных выводов об их назначении или о сквозной вентиляции'},winterRules:{requiredBroodBoxes:3,allowedPhysicalNumbers:[1,3,4,6],forbiddenPhysicalNumbers:[2,5]}},hives,families,latestJournalRecords:records,tasks:(S.tasks||[]).slice(-30),recentChanges:(S.auditLog||[]).slice(-30)};
 }
 function renderAIChat(){
  const host=$('aiMessages');if(!host)return;const messages=S.aiMessages||[];
