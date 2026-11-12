@@ -116,6 +116,8 @@ test('batch frame move plans and applies several moves atomically',()=>{
   assert.deepEqual(applied.state.layouts.h1.boxes[3].frames.map(x=>x.frameId),['A','B','C']);
   assert.deepEqual(state.layouts.h1.boxes[1].frames.map(x=>x.frameId),['A','B'],'source state is not mutated');
   assert.equal(applied.state.layouts.h1.boxes[3].frames[0].history.at(-1).to.location,'3');
+  assert.equal(applied.state.layouts.h1.boxes[3].frames[0].history.at(-1).from.position,1);
+  assert.equal(applied.state.layouts.h1.boxes[3].frames[1].history.at(-1).from.position,2);
   assert.equal(applied.state.auditLog.at(-1).type,'frames_moved_batch');
 });
 test('batch frame move supports an exchange without intermediate capacity failure',()=>{
