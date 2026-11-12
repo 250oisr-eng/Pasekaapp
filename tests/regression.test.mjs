@@ -980,6 +980,42 @@ function inspectRawBackup(state){
  return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity})(state);
 }
 
+test('main database write rejects a stale revision without overwriting newer state',async()=>{
+ let stored={meta:{revisionId:'rev-1'},value:'original'};
+ const db={
+  transaction(){
+   let aborted=false;
+   const tx={
+    error:null,
+    objectStore(){
+     return {
+      get(){
+       const request={result:null,error:null};
+       queueMicrotask(()=>{if(!aborted){request.result=structuredClone(stored);request.onsuccess?.()}});
+       return request;
+      },
+      put(value){
+       stored=structuredClone(value);
+       queueMicrotask(()=>{if(!aborted)tx.oncomplete?.()});
+      }
+     };
+    },
+    abort(){
+     aborted=true;
+     queueMicrotask(()=>tx.onabort?.());
+    }
+   };
+   return tx;
+  }
+ };
+ const write=loadFunction('writeMainIfUnchanged',{db});
+ const previous=await write({meta:{revisionId:'rev-2'},value:'newer'},'rev-1');
+ assert.equal(previous.meta.revisionId,'rev-1');
+ assert.equal(stored.meta.revisionId,'rev-2');
+ await assert.rejects(write({meta:{revisionId:'rev-3'},value:'stale'},'rev-1'),error=>error.name==='PasekaConflictError');
+ assert.equal(stored.meta.revisionId,'rev-2');
+ assert.equal(stored.value,'newer');
+});
 test('backup shape validator accepts a minimal valid empty apiary',()=>{
  const validate=loadFunction('validateBackupState');
  const state=rawBackupFixture();
