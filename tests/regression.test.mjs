@@ -56,7 +56,7 @@ function transferFixture() {
     }
   };
 }
-async function runTransfer(data) {
+async function runTransfer(data, save = async()=>true) {
   const deps = {
     S: JSON.parse(JSON.stringify(data)),
     transferringFamilyId:'fam', selectedHiveId:'h1', activeJournalHive:'h1',
@@ -69,7 +69,7 @@ async function runTransfer(data) {
     frameArray(layout,key){return key==='H1'?layout.honeyFrames[0]:key==='H2'?layout.honeyFrames[1]:layout.boxes[key].frames;},
     findFamilyBox(id){for(const hive of this.S.hives)for(let n=1;n<=6;n++){const box=this.S.layouts[hive.id]?.boxes[n];if(box?.family===id)return {hiveId:hive.id,box:n,data:box,layout:this.S.layouts[hive.id]};}return null;},
     nextFrameId(layout){return String(Math.max(0,...[1,2,3,4,5,6,'H1','H2'].flatMap(k=>(this.frameArray(layout,k)||[]).map(frame=>Number(frame.frameId)||0)))+1);},
-    async save(){return true;}, render(){}, showTab(){}
+    async save(){return save();}, render(){}, showTab(){}
   };
   const fn = loadFunction('confirmFamilyTransfer', deps);
   await fn({preventDefault(){}});
@@ -85,6 +85,23 @@ test('family transfer moves family and swaps frame sets while retaining lineage'
   assert.equal(result.S.layouts.h1.boxes[1].family,'');
   assert.equal(result.S.layouts.h2.boxes[2].family,'fam');
   assert.equal(result.audit[0][0],'family_transferred');
+});
+test('family transfer restores the original hive and frame state when persistence returns false',async()=>{
+ const data=transferFixture(),before=JSON.stringify(data);
+ const result=await runTransfer(data,async()=>false);
+ assert.equal(JSON.stringify(result.S),before);
+ assert.equal(result.S.families[0].hive,'h1');
+ assert.equal(result.S.families[0].box,1);
+ assert.deepEqual(result.S.layouts.h1.boxes[1].frames.map(frame=>frame.frameId),['1','2']);
+ assert.deepEqual(result.S.layouts.h2.boxes[2].frames.map(frame=>frame.frameId),['1','9']);
+ assert.equal(result.S.auditLog,undefined);
+ assert.match(result.alerts[0],/не удалось сохранить/i);
+});
+test('family transfer restores the original state when persistence throws',async()=>{
+ const data=transferFixture(),before=JSON.stringify(data);
+ const result=await runTransfer(data,async()=>{throw new Error('storage exploded')});
+ assert.equal(JSON.stringify(result.S),before);
+ assert.match(result.alerts[0],/storage exploded/i);
 });
 test('family transfer rejects inconsistent target frame locations without partial mutation', async () => {
   const data = transferFixture();
