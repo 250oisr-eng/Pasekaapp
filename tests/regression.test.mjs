@@ -1271,3 +1271,29 @@ test('frame move planner refuses profile templates that are not operational',()=
  assert.equal(result.ok,false);
  assert.ok(result.errors.some(error=>error.code==='move_profile_not_operational'));
 });
+
+test('profile frame helpers use the selected hive capacities and custom honey keys',()=>{
+ const profile={id:'custom-v1',status:'ready',schemaVersion:1,name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:8,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const profileForHive=()=>profile;
+ const isHoney=loadFunction('isHoneyBoxKey',{profileHoneyKeys:()=>['M1']});
+ const capacity=loadFunction('frameCapacity',{profileForHive,isHoneyBoxKey:isHoney});
+ assert.equal(capacity('B1','h1'),10);
+ assert.equal(capacity('M1','h1'),8);
+ assert.equal(isHoney('M1','h1'),true);
+ assert.equal(isHoney('H1','h1'),false);
+});
+
+test('layout initialization creates physical frame arrays from the selected profile',()=>{
+ const profile={id:'custom-v1',status:'ready',schemaVersion:1,name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:8,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const state={layouts:{},hives:[{id:'h1'}]};
+ const profileForHive=()=>profile;
+ const frameCapacity=(key)=>key==='M1'?8:10;
+ const framePrefix=(key)=>key;
+ const layout=loadFunction('layoutFor',{S:state,profileForHive,frameCapacity,framePrefix});
+ const result=layout('h1');
+ assert.equal(result.boxes.B1.frames.length,10);
+ assert.equal(result.boxes.B2.frames.length,10);
+ assert.equal(result.honeyFrames.length,1);
+ assert.equal(result.honeyFrames[0].length,8);
+ assert.equal(result.honeyFrames[0][0].location,'M1');
+});
