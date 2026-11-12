@@ -502,9 +502,25 @@ async function signUpAI(){
  try{const r=await aiAuthClient.signUp.email({name,email,password});if(r.error)throw new Error(r.error.message||'Ошибка регистрации');const s=await aiAuthClient.getSession();aiAuthUser=s.data?.user||r.data?.user||null;aiAuthError='';renderAIAuth();if(!aiAuthUser)alert('Аккаунт создан. Теперь войди с почтой и паролем.')}catch(e){alert('Не удалось создать аккаунт: '+(e.message||e))}
 }
 async function signOutAI(){if(!aiAuthClient)return;try{await aiAuthClient.signOut();aiAuthUser=null;renderAIAuth()}catch(e){alert('Не удалось завершить сеанс: '+(e.message||e))}}
+function inspectFamilyLineage(rows){
+ const errors=[],families=new Map((Array.isArray(rows)?rows:[]).filter(f=>f&&typeof f==='object'&&!Array.isArray(f)&&f.id).map(f=>[f.id,f]));
+ const validDate=value=>typeof value==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value)&&Number.isFinite(new Date(value+'T00:00:00Z').getTime())&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+ for(const family of Array.isArray(rows)?rows:[]){
+  if(!family||typeof family!=='object'||!family.id)continue;
+  const parentId=family.parentFamilyId||'',snapshot=family.parentFamilySnapshot;
+  if(snapshot&&parentId&&snapshot.id!==parentId)errors.push({code:'family_parent_snapshot_mismatch',details:{familyId:family.id,parentFamilyId:parentId,snapshotId:snapshot.id||null}});
+  if(family.origin==='offshoot'&&!parentId&&!snapshot?.id)errors.push({code:'offshoot_parent_missing',details:{familyId:family.id}});
+  if(parentId&&!families.has(parentId)&&snapshot?.id!==parentId)errors.push({code:'family_parent_missing',details:{familyId:family.id,parentFamilyId:parentId}});
+  if(family.stage==='independent'&&family.origin==='offshoot'&&family.establishedAt!=null&&!validDate(family.establishedAt))errors.push({code:'invalid_family_established_date',details:{familyId:family.id,date:family.establishedAt}});
+  let cursor=parentId,seen=new Set([family.id]);
+  while(cursor){if(seen.has(cursor)){errors.push({code:'family_lineage_cycle',details:{familyId:family.id,parentFamilyId:cursor}});break}seen.add(cursor);cursor=families.get(cursor)?.parentFamilyId||'';}
+ }
+ return errors;
+}
 function validateVirtualApiary(){
  const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set(),hiveNumbers=new Set();
  const add=(list,code,details)=>list.push({code,details});
+ inspectFamilyLineage(S.families).forEach(error=>add(errors,error.code,error.details));
  for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add(errors,'invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add(errors,'duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)}
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.stage!=null&&!['developing','independent'].includes(family.stage))add(errors,'invalid_family_stage',{familyId:family.id,stage:family.stage});if(family.origin!=='offshoot'&&family.stage==='developing')add(errors,'invalid_non_offshoot_stage',{familyId:family.id,origin:family.origin,stage:family.stage});if(family.stage==='independent'&&family.origin==='offshoot'&&family.establishedAt!=null&&!/^\d{4}-\d{2}-\d{2}$/.test(family.establishedAt))add(errors,'invalid_family_established_date',{familyId:family.id,date:family.establishedAt});if(family.parentFamilySnapshot&&family.parentFamilyId&&family.parentFamilySnapshot.id!==family.parentFamilyId)add(errors,'family_parent_snapshot_mismatch',{familyId:family.id,parentFamilyId:family.parentFamilyId,snapshotId:family.parentFamilySnapshot.id||null});}
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -1370,6 +1386,7 @@ function validateBackupState(state){
 function validateRawBackupIntegrity(state){
  const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f&&typeof f==='object'&&!Array.isArray(f)&&f.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
+ inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  const hiveIds=new Set(),hiveNumbers=new Set();(state.hives||[]).forEach(hive=>{if(!hive?.id){add('invalid_hive_identity',{hiveNumber:hive?.number??null});return}if(hiveIds.has(hive.id))add('duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add('invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add('duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)});
  const familyIds=new Set();familyRows.forEach(f=>{if(!f||typeof f!=='object'||!f.id){add('invalid_family_identity',{familyId:f?.id||null});return}if(familyIds.has(f.id))add('duplicate_family_id',{familyId:f.id});familyIds.add(f.id);if(f.parentFamilySnapshot&&f.parentFamilyId&&f.parentFamilySnapshot.id!==f.parentFamilyId)add('family_parent_snapshot_mismatch',{familyId:f.id,parentFamilyId:f.parentFamilyId,snapshotId:f.parentFamilySnapshot.id||null});if(!f.hive||!hiveIds.has(f.hive))add('family_hive_missing',{familyId:f.id,hiveId:f.hive||null});if(f.box!=null&&(!Number.isInteger(Number(f.box))||Number(f.box)<1||Number(f.box)>6))add('invalid_family_box_reference',{familyId:f.id,hiveId:f.hive||null,box:f.box})});
  const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{};
@@ -1472,14 +1489,6 @@ function validateRawBackupIntegrity(state){
  for(const record of state.records||[])if(record.extractionId){
   const event=extractionById.get(record.extractionId),linked=event?.items?.some(item=>item?.hiveId===record.hive);
   if(!linked)add('record_extraction_link_missing',{recordId:record.id||null,extractionId:record.extractionId,hiveId:record.hive||null});
- }
- for(const family of state.families||[]){
-  if(!family||typeof family!=='object'||!family.id)continue;
-  let cursor=family.parentFamilyId||'',seen=new Set([family.id]);
-  while(cursor){
-   if(seen.has(cursor)){add('family_lineage_cycle',{familyId:family.id,parentFamilyId:cursor});break}
-   seen.add(cursor);cursor=families.get(cursor)?.parentFamilyId||'';
-  }
  }
  return {errors,errorCount:errors.length};
 }
