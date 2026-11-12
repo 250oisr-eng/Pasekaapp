@@ -1353,7 +1353,7 @@ function planFrameMoves(state,requests){
   if(!['summer','winter'].includes(layout.mode||'summer')){fail('invalid_assembly_mode',{hiveId,mode:layout.mode});continue}
   const boxes=layout.boxes, honey=layout.honeyFrames;
   const getFrames=key=>key.startsWith('H')?(Array.isArray(honey)&&Array.isArray(honey[Number(key.slice(1))-1])?honey[Number(key.slice(1))-1]:null):(boxes&&typeof boxes==='object'&&!Array.isArray(boxes)&&boxes[key]&&Array.isArray(boxes[key].frames)?boxes[key].frames:null);
-  const installed=key=>key.startsWith('H')?layout.mode!=='winter'&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled.length===2&&layout.honeyBoxInstalled.every(Boolean):(layout.mode==='winter'?(layout.winterOrder||[]).map(Number).includes(Number(key)):(layout.installedBoxes||[]).map(Number).includes(Number(key)));
+  const installed=key=>key.startsWith('H')?layout.mode!=='winter'&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled.length===2&&layout.honeyBoxInstalled.every(Boolean):(layout.mode==='winter'?['1','3','4','6'].includes(key)&&(layout.winterOrder||[]).map(Number).includes(Number(key)):(layout.installedBoxes||[]).map(Number).includes(Number(key)));
   const locations=[];
   for(const key of ['1','2','3','4','5','6','H1','H2']){
    const arr=getFrames(key);
