@@ -122,7 +122,7 @@ test('batch frame move plans and applies several moves atomically',()=>{
 });
 test('batch frame move supports an exchange without intermediate capacity failure',()=>{
   const plan=loadFunction('planFrameMoves');
-  const apply=loadFunction('applyFrameMovePlan');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
   const state=frameMoveFixture();
   const result=plan(state,[{hiveId:'h1',frameId:'A',toBox:'2'},{hiveId:'h1',frameId:'C',toBox:'1'}]);
   assert.equal(result.ok,true);
@@ -133,7 +133,7 @@ test('batch frame move supports an exchange without intermediate capacity failur
 });
 test('batch frame move rejects overflow and leaves original state untouched',()=>{
   const plan=loadFunction('planFrameMoves');
-  const apply=loadFunction('applyFrameMovePlan');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
   const state=frameMoveFixture();
   state.layouts.h1.boxes[3].frames=Array.from({length:6},(_,i)=>({frameId:'T'+i,location:'3',history:[]}));
   const before=JSON.stringify(state);
@@ -154,7 +154,7 @@ test('batch frame move rejects wrong source, duplicate IDs and uninstalled targe
 });
 test('batch frame move rejects winter forbidden boxes and stale plans',()=>{
   const plan=loadFunction('planFrameMoves');
-  const apply=loadFunction('applyFrameMovePlan');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
   const state=frameMoveFixture();
   state.layouts.h1.mode='winter';state.layouts.h1.installedBoxes=[1,3,4];state.layouts.h1.winterOrder=[1,3,4];
   assert.ok(plan(state,[{hiveId:'h1',frameId:'A',toBox:'2'}]).errors.some(x=>x.code==='move_target_not_installed'));
