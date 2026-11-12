@@ -1,1 +1,1 @@
-{"name":"Пасека — журнал пчеловода","short_name":"Пасека","start_url":"./","scope":"./","display":"standalone","background_color":"#f4f3ed","theme_color":"#24452f","lang":"ru","icons":[]}
+{"name":"Пасека — журнал пчеловода","short_name":"Пасека","start_url":"./","scope":"./","display":"standalone","background_color":"#f4f3ed","theme_color":"#24452f","lang":"ru","icons":[{"src":"./icons/paseka.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
