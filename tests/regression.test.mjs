@@ -105,7 +105,7 @@ function frameMoveFixture(){
 }
 test('batch frame move plans and applies several moves atomically',()=>{
   const plan=loadFunction('planFrameMoves');
-  const apply=loadFunction('applyFrameMovePlan');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:loadFunction('planFrameMoves')});
   const state=frameMoveFixture();
   const result=plan(state,[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'},{hiveId:'h1',frameId:'B',fromBox:'1',toBox:'3'},{hiveId:'h1',frameId:'C',fromBox:'2',toBox:'3'}]);
   assert.equal(result.ok,true);
