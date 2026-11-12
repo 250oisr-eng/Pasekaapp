@@ -399,7 +399,7 @@ async function initAIAuth(){
  aiInitPromise=(async()=>{
   const status=$('aiAuthStatus');if(status)status.textContent='Подключаем защищённый вход…';
   try{
-   const mod=await import('https://esm.sh/@neon/neon-js/auth');
+   const mod=await import('https://esm.sh/@neon/auth');
    aiAuthClient=mod.createAuthClient(AI_AUTH_URL,{fetchOptions:{credentials:'include'}});
    const result=await aiAuthClient.getSession();
    if(result.error)throw new Error(result.error.message||'Не удалось проверить сеанс');
@@ -444,8 +444,8 @@ async function sendAIQuestion(){
  const history=(S.aiMessages||[]).slice(-10).map(m=>({role:m.role,content:m.content}));
  S.aiMessages=S.aiMessages||[];S.aiMessages.push({role:'user',content:question,at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);field.value='';renderAIChat();await save();
  try{
-  const tokenResult=await aiAuthClient.token();if(tokenResult.error)throw new Error(tokenResult.error.message||'Не удалось получить JWT');
-  const accessToken=tokenResult.data?.token||'';if(!accessToken)throw new Error('Neon Auth не выдал JWT для запроса к ИИ. Проверь сессию и повтори вход.');
+  let accessToken='';const sessionResult=await aiAuthClient.getSession({fetchOptions:{onSuccess:(ctx)=>{accessToken=ctx.response.headers.get('set-auth-jwt')||''}}});if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
+  accessToken=accessToken||sessionResult.data?.session?.token||'';if(!accessToken)throw new Error('Вход выполнен, но Neon Auth не вернул JWT. Проверь соединение с сервером авторизации и повтори вход.');
   const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:buildAIContext()})});
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
   S.aiMessages.push({role:'assistant',content:String(data.answer||'ИИ не вернул ответ.'),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
