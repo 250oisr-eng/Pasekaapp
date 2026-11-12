@@ -1746,9 +1746,9 @@ function ensureFrameInventoryNumbers(state=S){
   for(const group of Array.isArray(layout.honeyFrames)?layout.honeyFrames:[])if(Array.isArray(group))frames.push(...group);
  }
  const used=new Set();let max=0;
- for(const frame of frames){const value=String(frame?.inventoryNumber||'');if(/^\\d{6}$/.test(value)&&!used.has(value)){used.add(value);max=Math.max(max,Number(value));}else if(value){frame.inventoryNumber='';}}
+ for(const frame of frames){const value=String(frame?.inventoryNumber||'');if(/^\d{6}$/.test(value)&&!used.has(value)){used.add(value);max=Math.max(max,Number(value));}else if(value){frame.inventoryNumber='';}}
  let next=Math.max(max+1,Number(state.meta.nextFrameInventoryNumber)||1);
- for(const frame of frames){if(!frame||typeof frame!=='object'||/^\\d{6}$/.test(String(frame.inventoryNumber||'')))continue;while(used.has(String(next).padStart(6,'0')))next++;frame.inventoryNumber=String(next).padStart(6,'0');used.add(frame.inventoryNumber);next++;}
+ for(const frame of frames){if(!frame||typeof frame!=='object'||/^\d{6}$/.test(String(frame.inventoryNumber||'')))continue;while(used.has(String(next).padStart(6,'0')))next++;frame.inventoryNumber=String(next).padStart(6,'0');used.add(frame.inventoryNumber);next++;}
  state.meta.nextFrameInventoryNumber=next;
  return frames.length;
 }
