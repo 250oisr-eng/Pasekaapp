@@ -860,7 +860,7 @@ function inspectTaskIntegrity(rows){
  return errors;
 }
 function validateVirtualApiary(){
- const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set(),hiveNumbers=new Set(),globalFrameIds=new Set();
+ const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set(),hiveNumbers=new Set();
  const add=(list,code,details)=>list.push({code,details});
  inspectFamilyLineage(S.families).forEach(error=>add(errors,error.code,error.details));
  inspectTaskIntegrity(S.tasks).forEach(error=>add(errors,error.code,error.details));
@@ -896,6 +896,7 @@ function validateVirtualApiary(){
   if(l.honeyBoxInstalled!=null&&(!Array.isArray(l.honeyBoxInstalled)||l.honeyBoxInstalled.length!==2))add(errors,'invalid_honey_pair_state',{hiveNumber:hive.number,installed:l.honeyBoxInstalled});
   if(Boolean(honey[0])!==Boolean(honey[1]))add(errors,'honey_pair_mismatch',{hiveNumber:hive.number,installed:honey});
   if(mode==='winter'&&honey.some(Boolean))add(errors,'honey_boxes_in_winter',{hiveNumber:hive.number});
+  const frameIds=new Set();
   for(let n=1;n<=6;n++){
    const box=boxes[n],frames=Array.isArray(box?.frames)?box.frames:[];
    if(box!=null&&!isObject(box))add(errors,'invalid_brood_box',{hiveNumber:hive.number,box:n});
@@ -914,8 +915,8 @@ function validateVirtualApiary(){
    frames.forEach(fr=>{
     if(!isObject(fr)){add(errors,'invalid_frame_record',{hiveNumber:hive.number,box:n});return}
     if(!fr.frameId)add(errors,'missing_frame_id',{hiveNumber:hive.number,box:n});
-    else if(globalFrameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});
-    if(fr.frameId)globalFrameIds.add(fr.frameId);
+    else if(frameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});
+    if(fr.frameId)frameIds.add(fr.frameId);
     if(fr.location!=null&&String(fr.location)!==String(n))add(errors,'frame_location_mismatch',{hiveNumber:hive.number,box:n,frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add(errors,'invalid_frame_history',{hiveNumber:hive.number,box:n,frameId:fr.frameId});
     else if(Array.isArray(fr.history)&&fr.history.some(event=>!isObject(event)))add(errors,'invalid_frame_history_entry',{hiveNumber:hive.number,box:n,frameId:fr.frameId});
@@ -929,8 +930,8 @@ function validateVirtualApiary(){
    frames.forEach(fr=>{
     if(!isObject(fr)){add(errors,'invalid_frame_record',{hiveNumber:hive.number,box:'H'+(i+1)});return}
     if(!fr.frameId)add(errors,'missing_frame_id',{hiveNumber:hive.number,box:'H'+(i+1)});
-    else if(globalFrameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});
-    if(fr.frameId)globalFrameIds.add(fr.frameId);
+    else if(frameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});
+    if(fr.frameId)frameIds.add(fr.frameId);
     if(fr.location!=null&&String(fr.location)!==('H'+(i+1)))add(errors,'frame_location_mismatch',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add(errors,'invalid_frame_history',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId});
     else if(Array.isArray(fr.history)&&fr.history.some(event=>!isObject(event)))add(errors,'invalid_frame_history_entry',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId});
@@ -2365,7 +2366,7 @@ function validateRawBackupIntegrity(state){
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
  const hiveIds=new Set(),hiveNumbers=new Set();(state.hives||[]).forEach(hive=>{if(!hive?.id){add('invalid_hive_identity',{hiveNumber:hive?.number??null});return}if(hiveIds.has(hive.id))add('duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add('invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add('duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)});
  const familyIds=new Set();familyRows.forEach(f=>{if(!f||typeof f!=='object'||!f.id){add('invalid_family_identity',{familyId:f?.id||null});return}if(familyIds.has(f.id))add('duplicate_family_id',{familyId:f.id});familyIds.add(f.id);if(f.parentFamilySnapshot&&f.parentFamilyId&&f.parentFamilySnapshot.id!==f.parentFamilyId)add('family_parent_snapshot_mismatch',{familyId:f.id,parentFamilyId:f.parentFamilyId,snapshotId:f.parentFamilySnapshot.id||null});if(f.stage!=null&&!['developing','independent'].includes(f.stage))add('invalid_family_stage',{familyId:f.id,stage:f.stage});if(f.origin!=='offshoot'&&f.stage==='developing')add('invalid_non_offshoot_stage',{familyId:f.id,origin:f.origin,stage:f.stage});if(f.stage==='independent'&&f.origin==='offshoot'&&f.establishedAt!=null&&!validDate(f.establishedAt))add('invalid_family_established_date',{familyId:f.id,date:f.establishedAt});if(!f.hive||!hiveIds.has(f.hive))add('family_hive_missing',{familyId:f.id,hiveId:f.hive||null});if(f.box!=null&&(!Number.isInteger(Number(f.box))||Number(f.box)<1||Number(f.box)>6))add('invalid_family_box_reference',{familyId:f.id,hiveId:f.hive||null,box:f.box})});
- const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{},globalFrameIds=new Set();
+ const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{};
  Object.keys(layouts).forEach(hiveId=>{if(!hiveIds.has(hiveId))add('orphan_hive_layout',{hiveId})});
  for(const hive of state.hives||[]){
   const l=layouts[hive.id];if(!l||typeof l!=='object'||Array.isArray(l))continue;
@@ -2388,7 +2389,7 @@ function validateRawBackupIntegrity(state){
    else if(Boolean(h[0])!==Boolean(h[1]))add('honey_pair_mismatch',{hiveId:hive.id,value:h});
    else if(l.mode==='winter'&&h.some(Boolean))add('honey_boxes_in_winter',{hiveId:hive.id});
   }
-  const boxes=l.boxes&&typeof l.boxes==='object'&&!Array.isArray(l.boxes)?l.boxes:{},placements=new Map();
+  const boxes=l.boxes&&typeof l.boxes==='object'&&!Array.isArray(l.boxes)?l.boxes:{},seenFrameIds=new Set(),placements=new Map();
   const inspectFrames=(frames,capacity,boxKey)=>{
    if(!Array.isArray(frames)){add('invalid_frame_list',{hiveId:hive.id,box:boxKey});return}
    if(frames.length>capacity)add('frame_capacity_exceeded',{hiveId:hive.id,box:boxKey,count:frames.length,capacity});
@@ -2396,8 +2397,8 @@ function validateRawBackupIntegrity(state){
     if(!fr||typeof fr!=='object'||Array.isArray(fr)){add('invalid_frame_record',{hiveId:hive.id,box:boxKey});return}
     if(!fr.frameId)add('missing_frame_id',{hiveId:hive.id,box:boxKey});
     if(fr.frameId){
-     if(globalFrameIds.has(fr.frameId))add('duplicate_frame_id',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
-     globalFrameIds.add(fr.frameId);
+     if(frameIds.has(fr.frameId))add('duplicate_frame_id',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
+     frameIds.add(fr.frameId);
     }
     if(fr.location!=null&&String(fr.location)!==String(boxKey))add('frame_location_mismatch',{hiveId:hive.id,box:boxKey,frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add('invalid_frame_history',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
