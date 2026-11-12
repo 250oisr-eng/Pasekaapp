@@ -931,3 +931,51 @@ test('raw backup assertion rejects invalid source data without rewriting it',()=
  assert.throws(()=>assertIntegrity(state),/Архив не прошёл проверку исходных данных/);
  assert.equal(JSON.stringify(state),before);
 });
+
+
+function taskSuggestionCommandFixture(){
+ const suggestion={hiveId:'h1',type:'Осмотр',date:null,note:'Повторно проверить.',rationale:'Есть исходная запись.',sourceRecordIds:['r1']};
+ const message={role:'assistant',content:'Предлагаю задачу.',commandStatus:'pending',commandProposal:{schemaVersion:1,kind:'suggest_tasks',suggestions:[suggestion]},commandPlan:{kind:'suggest_tasks',suggestions:[suggestion]}};
+ return {hives:[{id:'h1',number:7}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'}],tasks:[],auditLog:[],aiMessages:[message],meta:{revisionId:'rev-1'}};
+}
+test('AI task suggestion confirmation persists suggested tasks and audit exactly once',async()=>{
+ const state=taskSuggestionCommandFixture();
+ const message=state.aiMessages[0];
+ let saves=0,renders=0,savedState=null;
+ const deps={
+  S:state,confirm:()=>true,aiCommandContextIsCurrent:()=>true,
+  revalidateAICommandPreview:(current,proposal,plan)=>({ok:true,plan}),
+  applyAITaskSuggestionsToDraft:(current,plan)=>({ok:true,state:{...current,tasks:[{id:'task-1',hive:'h1',status:'suggested',date:null}],auditLog:[{id:'audit-1',type:'ai_task_suggestions_created'}]}}),
+  uid:()=> 'generated-id',
+  save:async()=>{saves++;savedState=deps.S;return true},
+  renderAIChat:()=>{renders++}
+ };
+ await loadFunction('confirmAICommand',deps)(0);
+ assert.equal(saves,1);
+ assert.equal(renders,1);
+ assert.equal(deps.S.tasks.length,1);
+ assert.equal(deps.S.tasks[0].status,'suggested');
+ assert.equal(deps.S.aiMessages[0].commandStatus,'applied');
+ assert.ok(deps.S.aiMessages[0].appliedAt);
+ assert.equal(deps.S.auditLog[0].type,'ai_task_suggestions_created');
+ assert.equal(savedState,deps.S);
+ assert.equal(message.commandStatus,'pending','the previous snapshot is not mutated by draft application');
+});
+test('AI task suggestion confirmation rolls back the in-memory draft when persistence fails',async()=>{
+ const state=taskSuggestionCommandFixture();
+ const message=state.aiMessages[0];
+ const deps={
+  S:state,confirm:()=>true,aiCommandContextIsCurrent:()=>true,
+  revalidateAICommandPreview:(current,proposal,plan)=>({ok:true,plan}),
+  applyAITaskSuggestionsToDraft:(current)=>({ok:true,state:{...current,tasks:[{id:'task-1',hive:'h1',status:'suggested'}],auditLog:[{id:'audit-1',type:'ai_task_suggestions_created'}]}}),
+  uid:()=> 'generated-id',
+  save:async()=>{deps.S.meta.saveError='Ошибка записи';return false},
+  renderAIChat:()=>{}
+ };
+ await loadFunction('confirmAICommand',deps)(0);
+ assert.equal(deps.S,state);
+ assert.equal(deps.S.tasks.length,0);
+ assert.equal(deps.S.meta.saveError,'Ошибка записи');
+ assert.equal(message.commandStatus,'save_failed');
+ assert.match(message.commandError,/исходные данные не изменены/);
+});
