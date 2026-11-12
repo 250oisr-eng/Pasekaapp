@@ -1827,3 +1827,22 @@ test('IndexedDB real API aborts main restore when backup write fails',async()=>{
   assert.equal(await readIndexedDb(db,'backup','previous'),undefined);
  }finally{db.close()}
 });
+
+test('IndexedDB real API updates automatic backup only for the matching main revision',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'auto-backup-'+(++indexedDbTestSequence));
+ try{
+  const current={meta:{revisionId:'rev-1'},value:'current'};
+  const oldBackup={at:'2026-11-11T12:00:00.000Z',state:{meta:{revisionId:'rev-0'},value:'old-backup'}};
+  await seedIndexedDb(db,[['main',current,'state'],['backup',oldBackup,'previous']]);
+  const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const snapshot={meta:{revisionId:'rev-1'},value:'snapshot-for-current'};
+  assert.equal(await write(snapshot,'rev-1'),true);
+  const written=await readIndexedDb(db,'backup','previous');
+  assert.deepEqual(written.state,snapshot);
+  assert.equal(typeof written.at,'string');
+  await seedIndexedDb(db,[['main',{meta:{revisionId:'rev-2'},value:'newer-main'},'state']]);
+  assert.equal(await write({meta:{revisionId:'rev-1'},value:'stale-snapshot'},'rev-1'),false);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),written);
+ }finally{db.close()}
+});
