@@ -397,8 +397,9 @@ test('AI panel discloses speech-recognition privacy and keeps explicit send cont
 });
 
 
-test('journal draft from AI workspace opens an editable note and does not create a record',()=>{
+test('journal draft from AI workspace requires an explicit hive and opens an editable note only',()=>{
   const alerts=[],tabs=[],nodes={
+    aiJournalHiveSelect:{value:'hive-1'},
     aiJournalDraftInput:{value:' Осмотрел семью, увидел свежие яйца. '},
     rtype:{value:''},rtext:{value:''},recordTitle:{textContent:''}
   };
@@ -421,6 +422,19 @@ test('journal draft from AI workspace opens an editable note and does not create
   assert.equal(nodes.recordTitle.textContent,'Черновик записи · проверь поля');
   assert.equal(state.records.length,0);
   assert.equal(alerts.length,0);
+});
+
+test('journal draft refuses to guess a hive when none is selected',()=>{
+  const alerts=[];let opened=0;
+  const nodes={aiJournalHiveSelect:{value:''},aiJournalDraftInput:{value:'Осмотрел семью'}};
+  const prepare=loadFunction('prepareJournalDraftFromAI',{
+    S:{hives:[{id:'hive-1'},{id:'hive-2'}],records:[]},activeJournalHive:'hive-2',
+    $:id=>nodes[id]||{value:''},alert:message=>alerts.push(message),
+    showTab:()=>{},newRecord:()=>opened++,toggleOccupancy:()=>{}
+  });
+  prepare();
+  assert.equal(opened,0);
+  assert.match(alerts[0],/Выбери улей/);
 });
 
 test('journal draft refuses empty descriptions and missing hives without opening a record',()=>{
