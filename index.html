@@ -2396,6 +2396,7 @@ function validateBackupState(state){
  if(schemaVersion>2){const error=new Error('Архив создан более новой версией приложения (схема '+schemaVersion+'). Обнови приложение перед восстановлением.');error.code='UNSUPPORTED_SCHEMA_VERSION';throw error;}
  for(const key of ['hives','families','records'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует корректный раздел: '+key);
  for(const key of ['tasks','extractions','snapshots','auditLog','aiMessages'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
+  for(const key of ['tasks','snapshots','auditLog','aiMessages'])if(state[key]!=null&&!state[key].every(isObject))throw new Error('В разделе «'+key+'» обнаружены повреждённые элементы');
  for(const key of ['meta','layouts'])if(state[key]!=null&&!isObject(state[key]))throw new Error('Повреждён раздел архива: '+key);
  for(const key of ['hives','families','records'])if(!state[key].every(isObject))throw new Error('В разделе «'+key+'» обнаружены повреждённые элементы');
  for(const record of state.records)if(record.media!=null&&(!Array.isArray(record.media)||!record.media.every(isObject)))throw new Error('Повреждён список вложений записи журнала');
