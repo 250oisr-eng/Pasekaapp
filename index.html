@@ -923,6 +923,7 @@ function validateVirtualApiary(){
  const errors=[],warnings=[],familyPlacements=new Map(),familyIds=new Set(),hiveIds=new Set(),hiveNumbers=new Set();
  const add=(list,code,details)=>list.push({code,details});
  inspectFamilyLineage(S.families).forEach(error=>add(errors,error.code,error.details));
+ inspectFrameInventoryIntegrity(S).forEach(error=>add(errors,error.code,error.details));
  inspectTaskIntegrity(S.tasks).forEach(error=>add(errors,error.code,error.details));
  for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add(errors,'invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add(errors,'duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)}
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.stage!=null&&!['developing','independent'].includes(family.stage))add(errors,'invalid_family_stage',{familyId:family.id,stage:family.stage});if(family.origin!=='offshoot'&&family.stage==='developing')add(errors,'invalid_non_offshoot_stage',{familyId:family.id,origin:family.origin,stage:family.stage});if(family.stage==='independent'&&family.origin==='offshoot'&&family.establishedAt!=null&&!/^\d{4}-\d{2}-\d{2}$/.test(family.establishedAt))add(errors,'invalid_family_established_date',{familyId:family.id,date:family.establishedAt});}
@@ -2005,7 +2006,7 @@ function editBox(key){const hid=selectedStructureHive(),l=layoutFor(hid),profile
 function frameStatusName(id){return FRAME_STATUSES.find(x=>x[0]===id)?.[1]||'Не указан'}
 function renderFrameEditor(){
  const l=layoutFor(selectedStructureHive()),frames=frameArray(l,editingBox);
- $('frameEditor').innerHTML=frames.map((x,i)=>'<button class="status-'+safe(x.status||'foundation')+' '+(i===editingFrame?'selected':'')+'" onclick="chooseFrame('+i+')">'+safe(x.frameId)+'<br><b>'+frameStatusName(x.status)+'</b></button>').join('');
+ $('frameEditor').innerHTML=frames.map((x,i)=>'<button class="status-'+safe(x.status||'foundation')+' '+(i===editingFrame?'selected':'')+'" onclick="chooseFrame('+i+')" >'+'№'+safe(x.inventoryNumber||'—')+'<br><small>'+safe(x.frameId)+'</small><br><b>'+frameStatusName(x.status)+'</b></button>').join('');
  const x=frames[editingFrame];if(!x){$('frameDetails').style.display='none';return}
  $('frameDetails').style.display='block';
  const destinations=[...profileBroodKeys(),...profileHoneyKeys()].filter(k=>String(k)!==editingBox);
@@ -2454,6 +2455,22 @@ function validateBackupState(state){
  if(state.layouts)for(const layout of Object.values(state.layouts)){if(!isObject(layout))throw new Error('Повреждены данные сборки улья');if(layout.boxes!=null&&(!isObject(layout.boxes)||Object.values(layout.boxes).some(box=>!isObject(box)||(box.frames!=null&&(!Array.isArray(box.frames)||!box.frames.every(isObject))))))throw new Error('Повреждены гнездовые корпуса');if(layout.honeyFrames!=null&&(!Array.isArray(layout.honeyFrames)||!layout.honeyFrames.every(frames=>Array.isArray(frames)&&frames.every(isObject))))throw new Error('Повреждены медовые рамки');if(layout.honeyBoxInstalled!=null&&!Array.isArray(layout.honeyBoxInstalled))throw new Error('Повреждено состояние медовых корпусов');if(layout.installedBoxes!=null&&!Array.isArray(layout.installedBoxes))throw new Error('Повреждён список установленных корпусов');if(layout.winterOrder!=null&&!Array.isArray(layout.winterOrder))throw new Error('Повреждён порядок зимней колонны')}
  return state;
 }
+function inspectFrameInventoryIntegrity(state){
+ const errors=[],seen=new Map(),required=Number(state?.meta?.schemaVersion)>=4;
+ const add=(code,details)=>errors.push({code,details});
+ for(const [hiveId,layout] of Object.entries(state?.layouts||{})){
+  if(!layout||typeof layout!=='object')continue;
+  const groups=[...Object.entries(layout.boxes||{}).map(([box,value])=>({box,frames:value?.frames})),...(Array.isArray(layout.honeyFrames)?layout.honeyFrames.map((frames,index)=>({box:'H'+(index+1),frames})):[])];
+  for(const group of groups)for(let position=0;position<(Array.isArray(group.frames)?group.frames.length:0);position++){
+   const frame=group.frames[position],number=String(frame?.inventoryNumber||'');
+   if(!number){if(required)add('frame_inventory_number_missing',{hiveId,box:group.box,position:position+1,frameId:frame?.frameId||null});continue;}
+   if(!/^\\d{6}$/.test(number)){add('invalid_frame_inventory_number',{hiveId,box:group.box,position:position+1,inventoryNumber:number});continue;}
+   if(seen.has(number))add('duplicate_frame_inventory_number',{inventoryNumber:number,first:seen.get(number),duplicate:{hiveId,box:group.box,position:position+1}});
+   else seen.set(number,{hiveId,box:group.box,position:position+1});
+  }
+ }
+ return errors;
+}
 function validateRawBackupIntegrity(state){
  const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f?.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
@@ -2565,6 +2582,7 @@ function validateRawBackupIntegrity(state){
   if(!linked)add('record_extraction_link_missing',{recordId:record.id||null,extractionId:record.extractionId,hiveId:record.hive||null});
  }
  inspectPlantModuleIntegrity(state).forEach(error=>errors.push(error));
+ inspectFrameInventoryIntegrity(state).forEach(error=>errors.push(error));
  return {errors,errorCount:errors.length};
 }
 function assertRawBackupIntegrity(state){
