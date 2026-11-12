@@ -1500,8 +1500,9 @@ function honeyReturnFixture(){
   $:id=>elements[id],
   alert:message=>alerts.push(message),
   save:async()=>{saves++;return true},
-  logAudit:(type,details)=>state.auditLog.push({type,...details})
+  logAudit:null
  };
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
  return {get state(){return deps.S},deps,alerts,get saves(){return saves}};
 }
 test('honey pair return validates all hives before atomically returning both pairs',async()=>{
