@@ -2464,7 +2464,7 @@ function inspectFrameInventoryIntegrity(state){
   for(const group of groups)for(let position=0;position<(Array.isArray(group.frames)?group.frames.length:0);position++){
    const frame=group.frames[position],number=String(frame?.inventoryNumber||'');
    if(!number){if(required)add('frame_inventory_number_missing',{hiveId,box:group.box,position:position+1,frameId:frame?.frameId||null});continue;}
-   if(!/^\\d{6}$/.test(number)){add('invalid_frame_inventory_number',{hiveId,box:group.box,position:position+1,inventoryNumber:number});continue;}
+   if(!/^\d{6}$/.test(number)){add('invalid_frame_inventory_number',{hiveId,box:group.box,position:position+1,inventoryNumber:number});continue;}
    if(seen.has(number))add('duplicate_frame_inventory_number',{inventoryNumber:number,first:seen.get(number),duplicate:{hiveId,box:group.box,position:position+1}});
    else seen.set(number,{hiveId,box:group.box,position:position+1});
   }
