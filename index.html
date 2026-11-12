@@ -718,6 +718,7 @@ function renderAICommandPreview(message,index){
   return '<div class="ai-command-preview"><b>План перемещения · '+plan.moves.length+' '+ruPlural(plan.moves.length,'рамка','рамки','рамок')+'</b><ol>'+rows+'</ol><p class="muted">Проверь номера рамок, ульи и корпуса. Данные изменятся только после твоего подтверждения.</p><div class="ai-command-actions"><button type="button" class="primary" data-ai-confirm="'+index+'">Подтвердить перемещение</button><button type="button" data-ai-cancel="'+index+'">Отменить</button></div></div>';
  }
  if(message.commandStatus==='applied')return '<div class="ai-command-result">Перемещения внесены в виртуальную модель и журнал операций.</div>';
+ if(message.commandStatus==='save_failed')return '<div class="ai-command-result">Не удалось сохранить подтверждённое перемещение: '+safe(message.commandError||'состояние осталось только в памяти страницы')+'</div>';
  if(message.commandStatus==='cancelled')return '<div class="ai-command-result">Предложение отменено. Данные не менялись.</div>';
  if(message.commandStatus==='stale'||message.commandStatus==='rejected')return '<div class="ai-command-result">Предложение не применено: '+safe(message.commandError||'требуется повторная проверка')+'. Данные не менялись.</div>';
  return '';
@@ -790,7 +791,12 @@ async function confirmAICommand(index){
  if(!applied.ok){message.commandStatus='stale';message.commandError=applied.errors?.[0]?.code||'не удалось применить план';await save();renderAIChat();return}
  S=applied.state;
  const savedMessage=S.aiMessages[index];if(savedMessage){savedMessage.commandStatus='applied';savedMessage.appliedAt=new Date().toISOString()}
- await save();renderAIChat();
+ const persisted=await save();
+ if(!persisted&&savedMessage){
+  savedMessage.commandStatus='save_failed';
+  savedMessage.commandError='Перемещение уже выполнено в памяти этой страницы, но не сохранено в основной базе. Не закрывай приложение; скачай JSON-архив несохранённых изменений. После перезапуска проверь фактическое состояние.';
+ }
+ renderAIChat();
 }
 async function cancelAICommand(index){
  const message=S.aiMessages?.[index];if(!message||message.commandStatus!=='pending')return;
