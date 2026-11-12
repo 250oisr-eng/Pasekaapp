@@ -521,7 +521,7 @@ function inspectTaskIntegrity(rows){
  for(const task of Array.isArray(rows)?rows:[]){
   if(!task||typeof task!=='object'||Array.isArray(task))continue;
   if(task.status!=null&&!allowed.has(task.status))errors.push({code:'invalid_task_status',details:{taskId:task.id||null,status:task.status}});
-  if(task.date!=null){const value=task.date,valid=typeof value==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value)&&Number.isFinite(new Date(value+'T00:00:00Z').getTime())&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;if(!valid)errors.push({code:'invalid_task_date',details:{taskId:task.id||null,date:value}})}
+  if(task.date!=null){const value=task.date,valid=typeof value==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&Number.isFinite(new Date(value+'T00:00:00Z').getTime())&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;if(!valid)errors.push({code:'invalid_task_date',details:{taskId:task.id||null,date:value}})}
  }
  return errors;
 }
