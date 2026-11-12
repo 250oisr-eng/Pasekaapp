@@ -1648,8 +1648,8 @@ function planFrameMoves(state,requests){
   const allKeys=[...broodKeys,...honeyKeys],allowed=new Set(allKeys);
   if(!allowed.has(toBox)||fromBox&&!allowed.has(fromBox)){fail('invalid_move_reference',{hiveId,frameId,fromBox,toBox});continue}
   const boxes=layout.boxes, honey=layout.honeyFrames;
-  const getFrames=key=>honeyKeys.includes(key)?(Array.isArray(honey)&&Array.isArray(honey[Number(key.slice(1))-1])?honey[Number(key.slice(1))-1]:null):(boxes&&typeof boxes==='object'&&!Array.isArray(boxes)&&boxes[key]&&Array.isArray(boxes[key].frames)?boxes[key].frames:null);
-  const installed=key=>honeyKeys.includes(key)?layout.mode!=='winter'&&honeyKeys.includes(key)&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled[Number(key.slice(1))-1]===true&&(profile?.honey?.installation!=='paired'||layout.honeyBoxInstalled.every(Boolean)):(layout.mode==='winter'?(profile?.winter?.allowedBoxKeys?.map(String)||['1','3','4','6']).includes(key)&&(layout.winterOrder||[]).map(String).includes(key):(layout.installedBoxes||[]).map(String).includes(key));
+  const getFrames=key=>honeyKeys.includes(key)?(Array.isArray(honey)&&Array.isArray(honey[honeyKeys.indexOf(key)])?honey[honeyKeys.indexOf(key)]:null):(boxes&&typeof boxes==='object'&&!Array.isArray(boxes)&&boxes[key]&&Array.isArray(boxes[key].frames)?boxes[key].frames:null);
+  const installed=key=>honeyKeys.includes(key)?layout.mode!=='winter'&&honeyKeys.includes(key)&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled[honeyKeys.indexOf(key)]===true&&(profile?.honey?.installation!=='paired'||layout.honeyBoxInstalled.every(Boolean)):(layout.mode==='winter'?(profile?.winter?.allowedBoxKeys?.map(String)||['1','3','4','6']).includes(key)&&(layout.winterOrder||[]).map(String).includes(key):(layout.installedBoxes||[]).map(String).includes(key));
   const locations=[];
   for(const key of allKeys){
    const arr=getFrames(key);
@@ -1674,16 +1674,16 @@ function planFrameMoves(state,requests){
   byHive.get(hiveId).requests.push(move);
  }
  for(const [hiveId,entry] of byHive){
-  const {layout}=entry,counts=new Map();
+  const {layout}=entry,counts=new Map(),moveHive=state.hives.find(h=>h?.id===hiveId),moveHoneyKeys=moveHive?.profile?.honey?.boxKeys?.map(String)||['H1','H2'];
   for(const key of [...(state.hives.find(h=>h?.id===hiveId)?.profile?.brood?.boxKeys?.map(String)||['1','2','3','4','5','6']),...(state.hives.find(h=>h?.id===hiveId)?.profile?.honey?.boxKeys?.map(String)||['H1','H2'])]){
-   const arr=honeyKeys.includes(key)?layout.honeyFrames?.[Number(key.slice(1))-1]:layout.boxes?.[key]?.frames;
+   const arr=moveHoneyKeys.includes(key)?layout.honeyFrames?.[moveHoneyKeys.indexOf(key)]:layout.boxes?.[key]?.frames;
    if(!Array.isArray(arr))continue;
    const outgoing=entry.requests.filter(move=>move.fromBox===key).length;
    counts.set(key,arr.length-outgoing);
   }
   for(const move of entry.requests)counts.set(move.toBox,(counts.get(move.toBox)||0)+1);
   const moveProfile=state.hives.find(h=>h?.id===hiveId)?.profile,broodCapacity=Number(moveProfile?.brood?.framesPerBox)||6,honeyCapacity=Number(moveProfile?.honey?.framesPerBox)||10;
-  for(const [key,count] of counts){const capacity=honeyKeys.includes(key)?honeyCapacity:broodCapacity;if(count>capacity)fail('move_target_over_capacity',{hiveId,box:key,count,capacity})}
+  for(const [key,count] of counts){const capacity=moveHoneyKeys.includes(key)?honeyCapacity:broodCapacity;if(count>capacity)fail('move_target_over_capacity',{hiveId,box:key,count,capacity})}
  }
  return {ok:errors.length===0,errors,moves:errors.length?[]:moves,expectedRevision:state.meta?.revisionId||null,preview:errors.length?[]:moves.map(move=>({...move}))};
 }
@@ -1699,7 +1699,7 @@ function applyFrameMovePlan(state,plan,date){
  catch{return {ok:false,errors:[{code:'move_state_clone_failed',details:{}}]}}
  const moved=[];
  for(const move of checked.moves){
-  const layout=draft.layouts[move.hiveId],hiveProfile=draft.hives.find(h=>h?.id===move.hiveId)?.profile,honeyKeys=hiveProfile?.honey?.boxKeys?.map(String)||['H1','H2'],source=honeyKeys.includes(move.fromBox)?layout.honeyFrames[Number(move.fromBox.slice(1))-1]:layout.boxes[move.fromBox].frames;
+  const layout=draft.layouts[move.hiveId],hiveProfile=draft.hives.find(h=>h?.id===move.hiveId)?.profile,honeyKeys=hiveProfile?.honey?.boxKeys?.map(String)||['H1','H2'],source=honeyKeys.includes(move.fromBox)?layout.honeyFrames[honeyKeys.indexOf(move.fromBox)]:layout.boxes[move.fromBox].frames;
   const index=source.findIndex(frame=>frame?.frameId===move.frameId);
   if(index<0)return {ok:false,errors:[{code:'move_frame_disappeared',details:{hiveId:move.hiveId,frameId:move.frameId}}]};
   const [frame]=source.splice(index,1);
@@ -1708,7 +1708,7 @@ function applyFrameMovePlan(state,plan,date){
  const audit=[];
  for(const item of moved){
   const {move,frame}=item,layout=draft.layouts[move.hiveId];
-  const hiveProfile=draft.hives.find(h=>h?.id===move.hiveId)?.profile,honeyKeys=hiveProfile?.honey?.boxKeys?.map(String)||['H1','H2'],target=honeyKeys.includes(move.toBox)?layout.honeyFrames[Number(move.toBox.slice(1))-1]:layout.boxes[move.toBox].frames;
+  const hiveProfile=draft.hives.find(h=>h?.id===move.hiveId)?.profile,honeyKeys=hiveProfile?.honey?.boxKeys?.map(String)||['H1','H2'],target=honeyKeys.includes(move.toBox)?layout.honeyFrames[honeyKeys.indexOf(move.toBox)]:layout.boxes[move.toBox].frames;
   const toPosition=target.length+1;
   frame.history.push({date:date||new Date().toISOString().slice(0,10),action:'move',from:{location:move.fromBox,position:item.position},to:{location:move.toBox,position:toPosition}});
   frame.location=move.toBox;target.push(frame);
