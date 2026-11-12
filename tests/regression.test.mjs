@@ -1765,7 +1765,7 @@ function completeTransaction(tx) {
  });
 }
 async function seedIndexedDb(db, stores) {
- const tx=db.transaction(stores,'readwrite');
+ const tx=db.transaction(stores.map(([store])=>store),'readwrite');
  const done=completeTransaction(tx);
  for(const [store,value,key] of stores) tx.objectStore(store).put(value,key);
  await done;
