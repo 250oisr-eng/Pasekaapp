@@ -1173,11 +1173,12 @@ test('inspection text extraction rejects frame counts outside the six-frame broo
 test('hive profile catalog resolves legacy hives to the preserved Farrar profile',()=>{
   const clone=loadFunction('cloneHiveProfile');
   const getProfile=loadFunction('getHiveProfile',{cloneHiveProfile:clone,HIVE_PROFILE_CATALOG:{
-    'farrar-6x6-v1':{id:'farrar-6x6-v1',schemaVersion:1,family:'farrar',status:'ready',name:'Farrar',frame:{heightMm:195},brood:{boxCount:6,framesPerBox:6,boxKeys:['1','2','3','4','5','6']},honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5']}}
+    'farrar-6x6-v1':{id:'farrar-6x6-v1',schemaVersion:1,family:'farrar',status:'ready',name:'Farrar',frame:{heightMm:180},brood:{boxCount:6,framesPerBox:6,boxKeys:['1','2','3','4','5','6']},honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5']}}
   }});
   const profile=getProfile({id:'old-hive'});
   assert.equal(profile.id,'farrar-6x6-v1');
   assert.equal(profile.brood.framesPerBox,6);
+   assert.equal(profile.frame.heightMm,180);
   profile.name='Changed copy';
   assert.equal(getProfile({profileId:'farrar-6x6-v1'}).name,'Farrar');
 });
@@ -1395,4 +1396,12 @@ test('hive and frame cards support keyboard activation',()=>{
  assert.match(html,/class="hive-row-main" role="button" tabindex="0"/);
  assert.match(html,/class="home-hive" role="button" tabindex="0"/);
  assert.match(html,/target\.matches\('\.hive-row-main\[role="button"\],\.home-hive\[role="button"\],\.frame-chip\[role="button"\]'\)/);
+});
+
+
+test('custom Farrar column keeps frame height distinct from brood box height',()=>{
+  const profileBlock=html.match(/'farrar-6x6-v1':\\{([\\s\\S]*?)\\n \\},\\n 'dadant-template-v1'/);
+  assert.ok(profileBlock,'Farrar column profile must exist');
+  assert.match(profileBlock[1],/frame:\\{widthMm:null,heightMm:180,/);
+  assert.match(profileBlock[1],/brood:\\{boxCount:6,framesPerBox:6,boxHeightMm:195,/);
 });
