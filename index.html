@@ -1227,6 +1227,9 @@ function saveBox(){
    const family=fid?S.families.find(x=>x.id===fid):null;
    if(fid&&(!family||family.hive!==hiveId)){alert('Нельзя назначить корпусу семью из другого улья.');return}
    if(fid&&Object.entries(l.boxes).some(([boxKey,other])=>boxKey!==editingBox&&other.family===fid)){alert('Эта семья уже назначена другому гнездовому корпусу. Сначала сними прежнее назначение.');return}
+   if(family?.origin&&origin!==family.origin){alert('Происхождение семьи — постоянная историческая характеристика. Его нельзя изменить после создания.');return}
+   const immutableParentId=family?.parentFamilyId||family?.parentFamilySnapshot?.id||'';
+   if(family?.origin==='offshoot'&&immutableParentId&&parentFamilyId!==immutableParentId){alert('Исходную семью отводка нельзя заменить: родословная сохраняется неизменной.');return}
    let parentSnapshotToKeep=null;
    if(origin==='offshoot'){
     const parent=S.families.find(x=>x.id===parentFamilyId);
