@@ -643,7 +643,7 @@ test('completeTask persists one linked journal record and blocks a repeated comp
 });
 
 test('AI task planner requires real source records belonging to the selected hive',()=>{
- const validate=loadFunction('validateAITaskSuggestionProposal');
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',text:'Матка не обнаружена'}],tasks:[]};
  const base={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Проверка матки',date:null,note:'Провести повторную проверку матки.',rationale:'В записи осмотра указано, что матка не обнаружена.',sourceRecordIds:['r1']}]};
  const good=validate(state,base);
@@ -656,7 +656,7 @@ test('AI task planner requires real source records belonging to the selected hiv
  assert.equal(validate(state,wrongHive).errors[0].code,'ai_task_hive_missing');
 });
 test('AI task planner rejects invalid dates and duplicate active or repeated suggestions',()=>{
- const validate=loadFunction('validateAITaskSuggestionProposal');
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const base={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:'2026-02-30',note:'Повторный осмотр.',rationale:'Основание из журнала.',sourceRecordIds:['r1']}]};
  const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'}],tasks:[]};
  assert.equal(validate(state,base).errors[0].code,'ai_task_invalid_date');
@@ -666,8 +666,8 @@ test('AI task planner rejects invalid dates and duplicate active or repeated sug
  assert.equal(validate(active,{...duplicate,suggestions:[{...duplicate.suggestions[0],date:null}]}).errors[0].code,'ai_task_duplicate_active');
 });
 test('AI task preview becomes stale when its source journal record changes',()=>{
- const validate=loadFunction('validateAITaskSuggestionProposal');
- const revalidate=loadFunction('revalidateAITaskSuggestionPreview',{validateAITaskSuggestionProposal:validate});
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const revalidate=loadFunction('revalidateAITaskSuggestionPreview',{validateAITaskSuggestionProposal:validate,aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',text:'Исходное наблюдение'}],tasks:[]};
  const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Проверка матки',date:null,note:'Проверить.',rationale:'По записи.',sourceRecordIds:['r1']}]};
  const plan=validate(state,proposal).plan;
@@ -677,9 +677,13 @@ test('AI task preview becomes stale when its source journal record changes',()=>
 });
 test('AI task suggestions are not added until the explicit draft-apply step',()=>{
  const validateDraft=loadFunction('validateTaskDraft');
- const apply=loadFunction('applyAITaskSuggestionsToDraft',{validateTaskDraft:validateDraft});
- const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1'}],tasks:[],auditLog:[]};
- const plan={ok:true,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:null,note:'Повторно проверить.',rationale:'Есть основание.',sourceRecordIds:['r1']}]};
+ const stable=loadFunction('aiStableSnapshot');
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:stable});
+ const revalidate=loadFunction('revalidateAITaskSuggestionPreview',{validateAITaskSuggestionProposal:validate});
+ const apply=loadFunction('applyAITaskSuggestionsToDraft',{validateTaskDraft:validateDraft,revalidateAITaskSuggestionPreview:revalidate});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'}],tasks:[],auditLog:[],meta:{revisionId:'rev-1'}};
+ const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:null,note:'Повторно проверить.',rationale:'Есть основание.',sourceRecordIds:['r1']}]};
+ const plan=validate(state,proposal).plan;
  assert.equal(state.tasks.length,0);
  const result=apply(state,plan,(()=>{let n=0;return()=> 'new-'+(++n)})(),'2026-11-12T12:00:00.000Z');
  assert.equal(state.tasks.length,0);
@@ -706,4 +710,48 @@ test('AI suggested task cannot be accepted without a user-selected date',async()
  assert.equal(task.status,'suggested');
  assert.equal(task.date,null);
  assert.equal(saves,0);
+});
+
+test('AI task planner rejects repeated task type for one hive even with different evidence',()=>{
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'},{id:'r2',hive:'h1',date:'2026-11-11',type:'Осмотр'}],tasks:[]};
+ const item={hiveId:'h1',type:'Осмотр',date:null,note:'Провести осмотр.',rationale:'Есть основание.',sourceRecordIds:['r1']};
+ const result=validate(state,{schemaVersion:1,kind:'suggest_tasks',suggestions:[item,{...item,sourceRecordIds:['r2']}]});
+ assert.equal(result.errors[0].code,'ai_task_duplicate_in_proposal');
+});
+test('AI task evidence fingerprint detects structured field changes, not only text',()=>{
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const revalidate=loadFunction('revalidateAITaskSuggestionPreview',{validateAITaskSuggestionProposal:validate});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',queen:'seen',text:''}],tasks:[],meta:{revisionId:'rev-1'}};
+ const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Проверка матки',date:null,note:'Повторно проверить.',rationale:'По данным осмотра.',sourceRecordIds:['r1']}]};
+ const plan=validate(state,proposal).plan;
+ state.records[0].queen='notSeen';
+ assert.equal(revalidate(state,proposal,plan).status,'stale');
+});
+test('AI task plan is rejected when the local revision changed after the request',()=>{
+ const current=loadFunction('aiCommandRevisionIsCurrent');
+ const state={meta:{revisionId:'rev-2'}};
+ assert.equal(current(state,{commandRevision:'rev-1'}),false);
+ assert.equal(current(state,{commandRevision:'rev-2'}),true);
+});
+test('AI task evidence with duplicate active journal IDs is rejected as ambiguous',()=>{
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'},{id:'r1',hive:'h1',date:'2026-11-11',type:'Осмотр'}],tasks:[]};
+ const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:null,note:'Проверить.',rationale:'Есть основание.',sourceRecordIds:['r1']}]};
+ assert.equal(validate(state,proposal).errors[0].code,'ai_task_evidence_not_found_or_mismatched');
+});
+test('AI task apply rejects stale/tampered plans and generated duplicate IDs atomically',()=>{
+ const validateDraft=loadFunction('validateTaskDraft');
+ const stable=loadFunction('aiStableSnapshot');
+ const validate=loadFunction('validateAITaskSuggestionProposal',{aiStableSnapshot:stable});
+ const revalidate=loadFunction('revalidateAITaskSuggestionPreview',{validateAITaskSuggestionProposal:validate});
+ const apply=loadFunction('applyAITaskSuggestionsToDraft',{validateTaskDraft:validateDraft,revalidateAITaskSuggestionPreview:revalidate});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'}],tasks:[],auditLog:[],meta:{revisionId:'rev-1'}};
+ const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:null,note:'Проверить.',rationale:'По записи.',sourceRecordIds:['r1']}]};
+ const plan=validate(state,proposal).plan;
+ const tampered={...plan,suggestions:plan.suggestions.map(x=>({...x,note:'подменено после проверки'}))};
+ assert.equal(apply(state,tampered,()=> 'id-1','2026-11-12T12:00:00Z').ok,false);
+ assert.equal(state.tasks.length,0);
+ assert.equal(apply(state,plan,()=> 'same-id','2026-11-12T12:00:00Z').ok,false);
+ assert.equal(state.tasks.length,0);
 });
