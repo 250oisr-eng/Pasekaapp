@@ -440,6 +440,7 @@ function validateVirtualApiary(){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const layouts=isObject(S.layouts)?S.layouts:{};
  for(const hive of S.hives){
+  if(!hive||typeof hive!=='object')continue;
   const l=isObject(layouts[hive.id])?layouts[hive.id]:{},boxes=isObject(l.boxes)?l.boxes:{};
   const mode=l.mode||'summer',installed=Array.isArray(l.installedBoxes)?l.installedBoxes:[],installedNumbers=installed.map(Number),seenBoxes=new Set();
   if(!['summer','winter'].includes(mode))add(errors,'invalid_assembly_mode',{hiveNumber:hive.number,mode});
@@ -472,7 +473,7 @@ function validateVirtualApiary(){
     const occurrences=familyPlacements.get(box.family)||[];
     occurrences.push({hiveId:hive.id,hiveNumber:hive.number,box:n,installed:installedNumbers.includes(n)});
     familyPlacements.set(box.family,occurrences);
-    const family=S.families.find(x=>x.id===box.family);
+    const family=S.families.find(x=>x?.id===box.family);
     if(!family)add(errors,'box_references_missing_family',{hiveNumber:hive.number,box:n,familyId:box.family});
     else if(family.hive!==hive.id)add(errors,'family_hive_mismatch',{familyCode:family.code||family.name,hiveNumber:hive.number,box:n});
     if(mode==='winter'&&![1,3,4,6].includes(n))add(errors,'family_in_forbidden_winter_box',{hiveNumber:hive.number,box:n,familyCode:family?.code||''});
@@ -505,19 +506,19 @@ function validateVirtualApiary(){
  for(const [familyId,placements] of familyPlacements)if(placements.length>1)add(errors,'family_assigned_to_multiple_boxes',{familyId,placements});
  for(const family of S.families){
   if(!family||typeof family!=='object'||!family.id)continue;
-  const placements=familyPlacements.get(family.id)||[],hiveExists=S.hives.some(h=>h.id===family.hive);
+  const placements=familyPlacements.get(family.id)||[],hiveExists=S.hives.some(h=>h?.id===family.hive);
   if(!hiveExists)add(errors,'family_hive_missing',{familyCode:family.code||family.name,hiveId:family.hive||''});
   if(placements.length&&(!placements.some(p=>p.hiveId===family.hive&&p.box===Number(family.box))))add(errors,'family_box_mismatch',{familyCode:family.code||family.name,hiveId:family.hive||'',box:family.box,actualPlacements:placements});
   if(!placements.length&&family.box!=null)add(errors,'family_box_without_placement',{familyCode:family.code||family.name,hiveId:family.hive||'',box:family.box});
   if(!placements.length)add(warnings,'family_without_physical_box',{familyCode:family.code||family.name,hiveId:family.hive||''});
-  if(family.parentFamilyId&&!S.families.some(x=>x.id===family.parentFamilyId)){
+  if(family.parentFamilyId&&!S.families.some(x=>x?.id===family.parentFamilyId)){
    if(family.parentFamilySnapshot?.id===family.parentFamilyId)add(warnings,'family_parent_archived',{familyCode:family.code||family.name,parentFamilyCode:family.parentFamilySnapshot.code||family.parentFamilySnapshot.name||''});
    else add(warnings,'family_parent_missing',{familyCode:family.code||family.name,parentFamilyId:family.parentFamilyId});
   }
   let cursor=family.parentFamilyId||'',seen=new Set([family.id]);
   while(cursor){
    if(seen.has(cursor)){add(errors,'family_lineage_cycle',{familyCode:family.code||family.name,familyId:family.id});break}
-   seen.add(cursor);cursor=S.families.find(x=>x.id===cursor)?.parentFamilyId||'';
+   seen.add(cursor);cursor=S.families.find(x=>x?.id===cursor)?.parentFamilyId||'';
   }
  }
  return {status:errors.length?'errors':warnings.length?'warnings':'ok',errorCount:errors.length,warningCount:warnings.length,errors,warnings};
