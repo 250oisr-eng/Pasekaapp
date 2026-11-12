@@ -732,17 +732,23 @@ async function copyAIMessage(index,button){
   const label=button.textContent;button.textContent='Скопировано';button.disabled=true;setTimeout(()=>{if(button.isConnected){button.textContent=label;button.disabled=false}},1400);
  }catch(e){alert('Не удалось скопировать сообщение. Выдели текст вручную и выбери «Копировать».')}
 }
+function revalidateAICommandPreview(state,proposal,reviewedPlan){
+ const validation=validateAICommandProposal(state,proposal);
+ if(validation.status!=='ready_for_preview')return {ok:false,status:validation.status,errors:validation.errors||[],clarifyingQuestions:validation.clarifyingQuestions||[]};
+ if(!reviewedPlan||JSON.stringify(validation.plan.moves)!==JSON.stringify(reviewedPlan.moves)||JSON.stringify(validation.plan.preview)!==JSON.stringify(reviewedPlan.preview))return {ok:false,status:'stale',errors:[{code:'ai_command_preview_changed'}],clarifyingQuestions:[]};
+ return {ok:true,status:'ready_for_preview',plan:validation.plan};
+}
 async function confirmAICommand(index){
  const message=S.aiMessages?.[index];
  if(!message||message.commandStatus!=='pending'||!message.commandProposal||!message.commandPlan)return;
  const plan=message.commandPlan;
  const lines=plan.moves.map(move=>move.frameId+': '+frameLocationName(move.fromBox)+' → '+frameLocationName(move.toBox));
  if(!confirm('Подтвердить пакетное перемещение рамок?\n\n'+lines.join('\n')+'\n\nБудет изменена виртуальная модель и добавлена запись в журнал операций.'))return;
- const validation=validateAICommandProposal(S,message.commandProposal);
- if(validation.status!=='ready_for_preview'||(S.meta?.revisionId||null)!==(plan.expectedRevision||null)||JSON.stringify(validation.plan?.moves)!==JSON.stringify(plan.moves)){
+ const checked=revalidateAICommandPreview(S,message.commandProposal,plan);
+ if(!checked.ok){
   message.commandStatus='stale';message.commandError='состояние пасеки или состав плана изменились после предварительного просмотра. Запроси новый план';await save();renderAIChat();return;
  }
- const applied=applyFrameMovePlan(S,plan,today());
+ const applied=applyFrameMovePlan(S,checked.plan,today());
  if(!applied.ok){message.commandStatus='stale';message.commandError=applied.errors?.[0]?.code||'не удалось применить план';await save();renderAIChat();return}
  S=applied.state;
  const savedMessage=S.aiMessages[index];if(savedMessage){savedMessage.commandStatus='applied';savedMessage.appliedAt=new Date().toISOString()}
