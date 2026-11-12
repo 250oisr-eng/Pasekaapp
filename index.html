@@ -1865,7 +1865,7 @@ function validateBackupState(state){
  return state;
 }
 function validateRawBackupIntegrity(state){
- const errors=[],familyRows=Array.isArray(state.families)?state.families:[];
+ const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f?.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
