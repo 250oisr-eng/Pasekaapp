@@ -1002,7 +1002,7 @@ async function deleteHive(id){
 }
 function openNewHive(){const dlg=$('hiveDlg'),form=$('hiveForm');if(!dlg||!form){alert('Не удалось открыть создание улья: окно или форма не найдены.');return}try{$('hiveDialogTitle').textContent='Новый улей';form.reset();$('newHiveMode').value='summer';form.onsubmit=defaultHive;if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','')}catch(err){alert('Ошибка открытия окна создания улья: '+(err.message||err))}}
 function editHive(id){let h=S.hives.find(x=>x.id===id);if(!h)return;$('hiveDialogTitle').textContent=hname(id)+' · примечание';$('hiveDesc').value=h.desc||'';$('hiveDlg').showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.desc=$('hiveDesc').value;$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive;await save()}}
-async function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));const h={id:uid(),number,desc:$('hiveDesc').value};S.meta.nextHiveNumber=number+1;S.hives.push(h);const l=layoutFor(h.id);l.mode=$('newHiveMode').value;l.setupComplete=false;l.setupEditing=true;l.installedBoxes=[];l.honeyBoxInstalled=[false,false];l.winterOrder=[];selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';try{await save();$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}catch(err){alert('Не удалось сохранить улей: '+(err.message||err))}}
+async function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));const h={id:uid(),number,desc:$('hiveDesc').value,profileId:'farrar-6x6-v1'};S.meta.nextHiveNumber=number+1;S.hives.push(h);const l=layoutFor(h.id);l.mode=$('newHiveMode').value;l.setupComplete=false;l.setupEditing=true;l.installedBoxes=[];l.honeyBoxInstalled=[false,false];l.winterOrder=[];selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';try{await save();$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}catch(err){alert('Не удалось сохранить улей: '+(err.message||err))}}
 $('hiveForm').onsubmit=defaultHive;
 function syncFamilyOrigin(){const isOffshoot=$('familyOrigin').value==='offshoot',wrap=$('familyParentWrap'),parent=$('familyParent');wrap.style.display=isOffshoot?'block':'none';parent.required=isOffshoot;if(!isOffshoot)parent.value=''}
 let transferringFamilyId='';
@@ -1326,6 +1326,54 @@ const FRAME_STATUSES=[['foundation','Вощина'],['partial','Частично
 const FAMILY_COLORS=['#4d8c60','#d7b63f','#4c83c5','#9a70b5','#d47b45','#579c9b'];
 let structureMode='summer',editingBox=null,editingFrame=0;
 const BOX_CODES={1:'11',4:'12',2:'21',5:'22',3:'31',6:'32'};
+const HIVE_PROFILE_CATALOG={
+ 'farrar-6x6-v1':{
+  id:'farrar-6x6-v1',schemaVersion:1,family:'farrar',status:'ready',name:'Фаррар · секционная колонна 6×6',
+  frame:{widthMm:null,heightMm:195,topBarMm:null,bottomBarMm:null},
+  brood:{boxCount:6,framesPerBox:6,boxHeightMm:195,boxKeys:['1','2','3','4','5','6']},
+  honey:{boxCount:2,framesPerBox:10,boxHeightMm:null,boxKeys:['H1','H2'],installation:'paired'},
+  layout:{rows:[['1','2','3'],['4','5','6']],sections:3},
+  winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5'],honeyAllowed:false}
+ },
+ 'dadant-template-v1':{id:'dadant-template-v1',schemaVersion:1,family:'dadant',status:'template',name:'Дадан · настроить конкретный вариант',requiresConfiguration:true},
+ 'ruta-template-v1':{id:'ruta-template-v1',schemaVersion:1,family:'ruta',status:'template',name:'Рут / Langstroth · настроить конкретный вариант',requiresConfiguration:true},
+ 'custom-template-v1':{id:'custom-template-v1',schemaVersion:1,family:'custom',status:'template',name:'Пользовательская конструкция',requiresConfiguration:true}
+};
+function cloneHiveProfile(profile){return profile&&typeof profile==='object'&&!Array.isArray(profile)?JSON.parse(JSON.stringify(profile)):null}
+function getHiveProfile(hive,catalog=HIVE_PROFILE_CATALOG){
+ if(!hive||typeof hive!=='object')return null;
+ if(hive.profile&&typeof hive.profile==='object'&&!Array.isArray(hive.profile))return cloneHiveProfile(hive.profile);
+ const id=String(hive.profileId||'farrar-6x6-v1');
+ return cloneHiveProfile(catalog?.[id]||null);
+}
+function validateHiveProfile(profile,options={}){
+ const errors=[],add=code=>errors.push({code});
+ if(!profile||typeof profile!=='object'||Array.isArray(profile))return {ok:false,errors:[{code:'profile_not_object'}]};
+ if(profile.schemaVersion!==1)add('profile_schema_unsupported');
+ if(typeof profile.id!=='string'||!profile.id.trim())add('profile_id_missing');
+ if(typeof profile.name!=='string'||!profile.name.trim())add('profile_name_missing');
+ if(profile.status==='template'){
+  if(!options.allowTemplate)add('profile_requires_configuration');
+  return {ok:errors.length===0,errors};
+ }
+ if(profile.status!=='ready')add('profile_status_invalid');
+ const positive=(value)=>Number.isInteger(value)&&value>0;
+ const brood=profile.brood||{},honey=profile.honey||{},frame=profile.frame||{},winter=profile.winter||{};
+ if(!positive(brood.boxCount))add('profile_brood_box_count_invalid');
+ if(!positive(brood.framesPerBox))add('profile_brood_capacity_invalid');
+ if(!Array.isArray(brood.boxKeys)||brood.boxKeys.length!==brood.boxCount||new Set(brood.boxKeys).size!==brood.boxKeys.length||brood.boxKeys.some(k=>typeof k!=='string'||!k.trim()))add('profile_brood_keys_invalid');
+ if(!Number.isFinite(frame.heightMm)||frame.heightMm<=0)add('profile_frame_height_invalid');
+ if(!Number.isInteger(honey.boxCount)||honey.boxCount<0)add('profile_honey_box_count_invalid');
+ if(honey.boxCount>0&&(!positive(honey.framesPerBox)||!Array.isArray(honey.boxKeys)||honey.boxKeys.length!==honey.boxCount||new Set(honey.boxKeys).size!==honey.boxKeys.length))add('profile_honey_capacity_invalid');
+ if(!['paired','independent'].includes(honey.installation))add('profile_honey_installation_invalid');
+ if(winter.enabled){
+  if(!positive(winter.requiredBroodBoxes)||winter.requiredBroodBoxes>brood.boxCount)add('profile_winter_required_count_invalid');
+  if(!Array.isArray(winter.allowedBoxKeys)||winter.allowedBoxKeys.some(k=>!brood.boxKeys?.includes(k)))add('profile_winter_allowed_keys_invalid');
+  if(!Array.isArray(winter.forbiddenBoxKeys)||winter.forbiddenBoxKeys.some(k=>!brood.boxKeys?.includes(k)))add('profile_winter_forbidden_keys_invalid');
+ }
+ return {ok:errors.length===0,errors};
+}
+
 function framePrefix(key){if(String(key).startsWith('H'))return String(key);return BOX_CODES[key]||'99'}
 function frameLocationName(key){return String(key).startsWith('H')?'Медовый корпус '+String(key).slice(1):'Гнездовой корпус №'+key}
 function frameCapacity(key){return String(key).startsWith('H')?10:6}
@@ -2090,7 +2138,7 @@ async function deleteAllData(){
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 document.addEventListener('click',function(event){const addButton=event.target.closest('[data-action="open-new-hive"]');if(addButton){event.preventDefault();openNewHive();return}const button=event.target.closest('[data-action="toggle-honey-pair"]');if(!button)return;event.preventDefault();event.stopPropagation();toggleHoneyPair()});
-function migrateState(){let changed=false;S.meta=S.meta||{};const now=new Date().toISOString();const touch=x=>{if(!x.id){x.id=uid();changed=true}if(!x.createdAt){const d=x.date?new Date(x.date+'T12:00:00'):null;x.createdAt=d&&!Number.isNaN(d.getTime())?d.toISOString():now;changed=true}if(!x.updatedAt){x.updatedAt=x.createdAt;changed=true}};S.hives=S.hives||[];S.hives.forEach((h,i)=>{if(!Number.isInteger(Number(h.number))||Number(h.number)<1){h.number=i+1;changed=true}if(h.name){delete h.name;changed=true}});S.meta.nextHiveNumber=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));S.families=S.families||[];S.records=S.records||[];S.tasks=S.tasks||[];S.extractions=S.extractions||[];S.snapshots=S.snapshots||[];S.layouts=S.layouts||{};S.auditLog=S.auditLog||[];S.aiMessages=S.aiMessages||[];S.meta=S.meta||{};const from=S.meta.schemaVersion||1;if(from<2){const before=JSON.parse(JSON.stringify({hives:S.hives,families:S.families,records:S.records.map(({media,...r})=>r),tasks:S.tasks,extractions:S.extractions,layouts:S.layouts||{}}));S.snapshots.push({at:now,...before});S.snapshots=S.snapshots.slice(-12);S.hives.forEach(touch);S.families.forEach(touch);S.records.forEach(touch);S.tasks.forEach(touch);S.extractions.forEach(e=>{touch(e);(e.items||[]).forEach(touch)});S.hives.forEach(h=>{const l=layoutFor(h.id);l.corpusIds=l.corpusIds||{};[1,2,3,4,5,6,'H1','H2'].forEach(k=>{if(!l.corpusIds[k]){l.corpusIds[k]=uid();changed=true}const arr=frameArray(l,k);arr.forEach(fr=>{if(!fr.id){fr.id=uid();changed=true}if(!Array.isArray(fr.history)){fr.history=[];changed=true}fr.history.forEach(ev=>{if(!ev.id){ev.id=uid();changed=true}})})})});S.meta.schemaVersion=2;S.meta.updatedAt=now;S.meta.deviceId=S.meta.deviceId||uid();S.auditLog.push({id:uid(),type:'schema_migration',from,to:2,at:now,note:'Добавлены постоянные внутренние ID и метаданные без изменения физических номеров рамок'});changed=true}return changed}
+function migrateState(){let changed=false;S.meta=S.meta||{};const now=new Date().toISOString();const touch=x=>{if(!x.id){x.id=uid();changed=true}if(!x.createdAt){const d=x.date?new Date(x.date+'T12:00:00'):null;x.createdAt=d&&!Number.isNaN(d.getTime())?d.toISOString():now;changed=true}if(!x.updatedAt){x.updatedAt=x.createdAt;changed=true}};S.hives=S.hives||[];S.hives.forEach((h,i)=>{if(!Number.isInteger(Number(h.number))||Number(h.number)<1){h.number=i+1;changed=true}if(h.name){delete h.name;changed=true}if(!h.profileId&&!h.profile){h.profileId='farrar-6x6-v1';changed=true}});S.meta.nextHiveNumber=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));S.families=S.families||[];S.records=S.records||[];S.tasks=S.tasks||[];S.extractions=S.extractions||[];S.snapshots=S.snapshots||[];S.layouts=S.layouts||{};S.auditLog=S.auditLog||[];S.aiMessages=S.aiMessages||[];S.meta=S.meta||{};const from=S.meta.schemaVersion||1;if(from<2){const before=JSON.parse(JSON.stringify({hives:S.hives,families:S.families,records:S.records.map(({media,...r})=>r),tasks:S.tasks,extractions:S.extractions,layouts:S.layouts||{}}));S.snapshots.push({at:now,...before});S.snapshots=S.snapshots.slice(-12);S.hives.forEach(touch);S.families.forEach(touch);S.records.forEach(touch);S.tasks.forEach(touch);S.extractions.forEach(e=>{touch(e);(e.items||[]).forEach(touch)});S.hives.forEach(h=>{const l=layoutFor(h.id);l.corpusIds=l.corpusIds||{};[1,2,3,4,5,6,'H1','H2'].forEach(k=>{if(!l.corpusIds[k]){l.corpusIds[k]=uid();changed=true}const arr=frameArray(l,k);arr.forEach(fr=>{if(!fr.id){fr.id=uid();changed=true}if(!Array.isArray(fr.history)){fr.history=[];changed=true}fr.history.forEach(ev=>{if(!ev.id){ev.id=uid();changed=true}})})})});S.meta.schemaVersion=2;S.meta.updatedAt=now;S.meta.deviceId=S.meta.deviceId||uid();S.auditLog.push({id:uid(),type:'schema_migration',from,to:2,at:now,note:'Добавлены постоянные внутренние ID и метаданные без изменения физических номеров рамок'});changed=true}return changed}
 async function requestStoragePersistence(){try{if(!navigator.storage||!navigator.storage.persist){storagePersisted=false;return}storagePersisted=await navigator.storage.persisted();if(!storagePersisted)storagePersisted=await navigator.storage.persist()}catch(e){storagePersisted=false}}
 async function updateStorageEstimate(){const host=$('storageUsage');if(!host)return;try{if(!navigator.storage?.estimate){host.textContent='Оценка занятого места браузером недоступна.';return}const e=await navigator.storage.estimate();storageEstimate=e;if(!Number.isFinite(e.usage)||!Number.isFinite(e.quota)||e.quota<=0){host.textContent='Браузер не предоставил оценку объёма хранилища.';return}const mb=n=>Math.round(n/1024/1024*10)/10,free=Math.max(0,e.quota-e.usage),pct=Math.round(e.usage/e.quota*100);host.textContent='Занято приложениями этого сайта: '+mb(e.usage)+' МБ из '+mb(e.quota)+' МБ · свободно примерно '+mb(free)+' МБ'+(pct>=85?' · мало свободного места':'')+'. Оценка приблизительная.';host.style.color=pct>=85?'#a33':''}catch(e){host.textContent='Не удалось получить оценку хранилища.'}}
 (async()=>{
