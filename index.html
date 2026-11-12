@@ -1099,7 +1099,7 @@ function newRecord(){if(!S.hives.length){alert('Сначала добавь ул
 function extractInspectionFieldsFromText(input){
  const text=String(input||'').trim(),normalized=text.toLocaleLowerCase('ru-RU').replace(/ё/g,'е');
  const fields={},evidence={};
- const isUncertain=match=>/(?:возможно|вероятно|кажется|похоже|предположительно|примерно|около|порядка|не уверен(?:а)?)\\b/i.test(normalized.slice(Math.max(0,match.index-30),Math.min(normalized.length,match.index+match[0].length+12)));
+ const isUncertain=match=>/(?:возможно|вероятно|кажется|похоже|предположительно|примерно|около|порядка|не уверен(?:а)?)(?=\\s|[,;:.!?]|$)/i.test(normalized.slice(Math.max(0,match.index-30),Math.min(normalized.length,match.index+match[0].length+12)));
  const excerpt=match=>text.slice(Math.max(0,match.index-45),Math.min(text.length,match.index+match[0].length+55)).trim();
  const assign=(field,value,pattern)=>{const match=normalized.match(pattern);if(match&&fields[field]===undefined&&!isUncertain(match)){fields[field]=value;evidence[field]=excerpt(match)}};
  const count=(pattern)=>{const match=normalized.match(pattern);if(!match||isUncertain(match))return null;const value=Number(match[1]);return Number.isInteger(value)&&value>=0&&value<=6?{value,excerpt:excerpt(match)}:null};
