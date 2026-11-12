@@ -1043,7 +1043,7 @@ test('inspection text extraction maps only explicit observations to structured f
 test('inspection text extraction leaves unspecified and ambiguous observations empty',()=>{
  const extract=loadFunction('extractInspectionFieldsFromText');
  const result=extract('Осмотрел семью. Матка, возможно, есть; яйца вроде бы видел; расплод выглядит нормально.');
- assert.equal(result.type,'Заметка');
+ assert.equal(result.type,'Осмотр');
  assert.deepEqual(result.fields,{});
  assert.equal(result.fieldCount,0);
 });
