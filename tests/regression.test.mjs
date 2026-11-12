@@ -498,6 +498,51 @@ test('AI panel discloses speech-recognition privacy and keeps explicit send cont
 });
 
 
+test('inspection parser recognizes common Russian beekeeping count synonyms and preserves evidence',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Осмотр: пчёлами занято 5 рамок, расплод на 3 рамках, свободной суши 2 рамки.');
+  assert.deepEqual(result.fields,{occupancy:5,broodFrames:3,freeDrawn:2});
+  assert.equal(result.fieldCount,3);
+  for(const key of Object.keys(result.fields))assert.match(result.evidence[key],/рам/);
+  const alternate=parse('Осмотр: 4 рамки обсижены пчёлами, 2 рамки с расплодом.');
+  assert.equal(alternate.fields.occupancy,4);
+  assert.equal(alternate.fields.broodFrames,2);
+});
+
+test('inspection parser handles explicit queen, eggs, brood and queen-cell findings',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Проверил улей: матка не обнаружена, свежие яйца есть, сплошной ровный расплод, роевых маточников нет.');
+  assert.deepEqual(result.fields,{queen:'eggs',eggs:'yes',broodPattern:'solid',queenCells:'none'});
+  const negative=parse('Осмотрел семью: матку не видел, свежих яиц нет, расплода нет, маточников нет, роевых признаков нет.');
+  assert.deepEqual(negative.fields,{queen:'notSeen',eggs:'no',broodPattern:'none',queenCells:'none',swarmSigns:'none'});
+});
+
+test('inspection parser leaves hedged and approximate observations unfilled',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Возможно, занято 5 рамок; кажется, матка есть; примерно 3 рамки с расплодом.');
+  assert.deepEqual(result.fields,{});
+  assert.equal(result.fieldCount,0);
+  const uncertain=parse('Осмотрел семью, возможно матка обнаружена.');
+  assert.equal(uncertain.type,'Осмотр');
+  assert.equal(uncertain.fields.queen,undefined);
+});
+
+test('inspection parser does not infer absent values or accept counts outside 0–6',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Осмотр: занято 7 рамок, расплод на 10 рамках, свободных отстроенных рамок — 8.');
+  assert.deepEqual(result.fields,{});
+  assert.equal(result.fieldCount,0);
+  const sparse=parse('Осмотрел семью. Состояние матки и расплода не оценивал.');
+  assert.deepEqual(sparse.fields,{});
+  assert.equal(sparse.type,'Осмотр');
+});
+
+test('inspection parser recognizes queen cells by type without confusing them with swarm signs',()=>{
+  const parse=loadFunction('extractInspectionFieldsFromText');
+  const result=parse('Осмотр: обнаружены свищевые маточники, несколько признаков роевого состояния.');
+  assert.deepEqual(result.fields,{queenCells:'emergency',swarmSigns:'several'});
+});
+
 test('journal draft from AI workspace maps explicit inspection values and keeps an editable source note',()=>{
   const alerts=[],tabs=[],nodes={
     aiJournalHiveSelect:{value:'hive-1'},
