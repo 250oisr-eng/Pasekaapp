@@ -561,3 +561,83 @@ test('journal treatment follow-up date is validated as a real date',()=>{
  assert.ok(result.errors.some(error=>error.code==='journal_invalid_treatment_check_date'));
  assert.equal(validate({id:'r2',date:'2026-11-12',type:'Обработка',hive:'h1',family:'',treatmentCheck:'2024-02-29'},state).ok,true);
 });
+
+test('task draft validator accepts a valid task and rejects impossible dates, missing hives and invalid types',()=>{
+ const validate=loadFunction('validateTaskDraft');
+ const state={hives:[{id:'h1'}],tasks:[]};
+ assert.equal(validate({id:'t1',hive:'h1',type:'Осмотр',date:'2024-02-29',note:'Проверить'},state).ok,true);
+ const bad=validate({id:'t2',hive:'missing',type:'Неизвестно',date:'2026-02-30',note:'x'},state);
+ for(const code of ['task_invalid_type','task_invalid_date','task_hive_missing'])assert.ok(bad.errors.some(error=>error.code===code));
+});
+
+test('task draft validator prevents duplicate IDs and oversized notes',()=>{
+ const validate=loadFunction('validateTaskDraft');
+ const state={hives:[{id:'h1'}],tasks:[{id:'existing'}]};
+ const bad=validate({id:'existing',hive:'h1',type:'Другое',date:'2026-11-12',note:'x'.repeat(3001)},state);
+ assert.ok(bad.errors.some(error=>error.code==='task_duplicate_id'));
+ assert.ok(bad.errors.some(error=>error.code==='task_invalid_note'));
+ assert.equal(validate({id:'existing',hive:'h1',type:'Другое',date:'2026-11-12',note:'ok'},state,state.tasks[0]).ok,true);
+});
+
+test('task completion validator prevents closing a task twice or without its hive',()=>{
+ const validate=loadFunction('validateTaskCompletion');
+ const state={hives:[{id:'h1'}],tasks:[{id:'t1',hive:'h1',type:'Осмотр',status:'pending'}],records:[]};
+ assert.equal(validate(state,'t1','2026-11-12','r1').ok,true);
+ state.records.push({id:'r1',taskId:'t1'});
+ assert.ok(validate(state,'t1','2026-11-12','r2').errors.some(error=>error.code==='task_already_recorded'));
+ state.tasks[0].status='done';state.records=[];
+ assert.ok(validate(state,'t1','2026-11-12','r3').errors.some(error=>error.code==='task_not_active'));
+ state.tasks[0].status='pending';state.tasks[0].hive='missing';
+ assert.ok(validate(state,'t1','2026-11-12','r4').errors.some(error=>error.code==='task_hive_missing'));
+});
+
+test('task completion validator rejects invalid dates and duplicate journal record IDs',()=>{
+ const validate=loadFunction('validateTaskCompletion');
+ const state={hives:[{id:'h1'}],tasks:[{id:'t1',hive:'h1',type:'Осмотр',status:'pending'}],records:[{id:'taken'}]};
+ const result=validate(state,'t1','2026-02-30','taken');
+ assert.ok(result.errors.some(error=>error.code==='task_completion_invalid_date'));
+ assert.ok(result.errors.some(error=>error.code==='task_completion_duplicate_record'));
+});
+
+test('completeTask rolls back task, journal and audit changes when persistence fails',async()=>{
+ const task={id:'t1',hive:'h1',type:'Осмотр',status:'pending',note:'Осмотр'};
+ const state={hives:[{id:'h1'}],tasks:[task],records:[],auditLog:[],snapshots:[],meta:{revisionId:'rev-old'}};
+ let renders=0;
+ const complete=loadFunction('completeTask',{
+  S:state,uid:()=> 'record-1',today:()=> '2026-11-12',
+  validateTaskCompletion:loadFunction('validateTaskCompletion'),
+  logAudit:(type,details)=>state.auditLog.push({type,...details}),
+  save:async()=>{state.meta.saveError='Не сохранено';return false},
+  render:()=>{renders++},alert:()=>{}
+ });
+ const result=await complete('t1');
+ assert.equal(result,false);
+ assert.equal(task.status,'pending');
+ assert.equal(task.completedRecordId,undefined);
+ assert.equal(state.records.length,0);
+ assert.equal(state.auditLog.length,0);
+ assert.equal(state.snapshots.length,0);
+ assert.equal(state.meta.saveError,'Не сохранено');
+ assert.equal(renders,1);
+});
+
+test('completeTask persists one linked journal record and blocks a repeated completion',async()=>{
+ const task={id:'t1',hive:'h1',type:'Осмотр',status:'pending',note:'Осмотр'};
+ const state={hives:[{id:'h1'}],tasks:[task],records:[],auditLog:[],snapshots:[],meta:{}};
+ let saves=0;
+ const complete=loadFunction('completeTask',{
+  S:state,uid:()=> 'record-1',today:()=> '2026-11-12',
+  validateTaskCompletion:loadFunction('validateTaskCompletion'),
+  logAudit:(type,details)=>state.auditLog.push({type,...details}),
+  save:async()=>{saves++;return true},render:()=>{},alert:()=>{}
+ });
+ assert.equal(await complete('t1'),true);
+ assert.equal(task.status,'done');
+ assert.equal(task.completedRecordId,'record-1');
+ assert.equal(state.records.length,1);
+ assert.equal(state.records[0].taskId,'t1');
+ assert.equal(state.auditLog.length,1);
+ await complete('t1');
+ assert.equal(saves,1);
+ assert.equal(state.records.length,1);
+});
