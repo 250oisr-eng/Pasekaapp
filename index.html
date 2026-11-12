@@ -503,7 +503,7 @@ async function signUpAI(){
 async function signOutAI(){if(!aiAuthClient)return;try{await aiAuthClient.signOut();aiAuthUser=null;renderAIAuth()}catch(e){alert('Не удалось завершить сеанс: '+(e.message||e))}}
 function inspectFamilyLineage(rows){
  const errors=[],families=new Map((Array.isArray(rows)?rows:[]).filter(f=>f&&typeof f==='object'&&!Array.isArray(f)&&f.id).map(f=>[f.id,f]));
- const validDate=value=>typeof value==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(value)&&Number.isFinite(new Date(value+'T00:00:00Z').getTime())&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+ const validDate=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(new Date(value+'T00:00:00Z').getTime())&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
  for(const family of Array.isArray(rows)?rows:[]){
   if(!family||typeof family!=='object'||!family.id)continue;
   const parentId=family.parentFamilyId||'',snapshot=family.parentFamilySnapshot;
