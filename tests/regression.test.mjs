@@ -1408,3 +1408,28 @@ test('custom Farrar column keeps frame height distinct from brood box height',()
   assert.equal((profileBlock[1].match(/frame:\{/g)||[]).length,1,'profile defines one shared frame geometry for brood and honey frames');
 
 });
+
+
+test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in every assembly mode',()=>{
+ const profile={id:'farrar-6x6-v1',schemaVersion:1,status:'ready',name:'Farrar sectional column',family:'farrar',
+  frame:{widthMm:null,heightMm:180,topBarMm:null,bottomBarMm:null},
+  brood:{boxCount:6,framesPerBox:6,boxHeightMm:195,boxKeys:['1','2','3','4','5','6']},
+  honey:{boxCount:2,framesPerBox:10,boxHeightMm:null,boxKeys:['H1','H2'],installation:'paired'},
+  winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5'],honeyAllowed:false}};
+ const validate=loadFunction('validateHiveProfile');
+ const clone=loadFunction('cloneHiveProfile');
+ const capabilities=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validate,cloneHiveProfile:clone});
+ assert.equal(validate(profile).ok,true);
+ for(const mode of ['summer','winter']){
+  const assembly={mode,installedBoxes:mode==='winter'?['1','3','4']:['1','2','3','4','5','6'],winterOrder:mode==='winter'?['1','3','4']:[],honeyBoxInstalled:mode==='winter'?[false,false]:[true,true]};
+  const result=capabilities(profile);
+  assert.equal(result.ok,true);
+  assert.equal(result.frameHeightMm,180);
+  assert.equal(result.broodCapacity,6);
+  assert.equal(result.honeyCapacity,10);
+  assert.equal(assembly.mode,mode);
+ }
+ assert.equal(profile.brood.boxHeightMm,195);
+ assert.equal(profile.honey.boxHeightMm,null);
+ assert.equal(profile.frame.heightMm,180);
+});
