@@ -1098,10 +1098,10 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:5}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:6}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
- assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:4},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,4);
+ assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
  const legacy=rawBackupFixture();assert.equal(validate(legacy),legacy);
 });
 test('backup shape validator rejects malformed journal media and nested box data',()=>{
@@ -1620,10 +1620,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,5,'2']){
+ for(const version of [0,6,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===5?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===6?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1652,7 +1652,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,4);
+ assert.equal(state.meta.schemaVersion,5);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
@@ -1663,6 +1663,8 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  assert.equal(frame.frameId,'PHYSICAL-FRAME-01');
  assert.ok(frame.id);
  assert.equal(frame.inventoryNumber,'000001');
+ assert.equal(state.families[0].line,null);
+ assert.equal(state.families[0].queen,null);
  assert.deepEqual(frame.history,[]);
  assert.ok(state.layouts.h1.corpusIds['1']);
  assert.ok(state.layouts.h1.corpusIds.H1);
