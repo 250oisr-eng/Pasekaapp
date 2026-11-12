@@ -457,24 +457,25 @@ test('journal draft refuses empty descriptions and missing hives without opening
 });
 
 
-test('confirmed AI frame move is not reported as saved when persistence fails',async()=>{
+test('confirmed AI frame move rolls back the in-memory draft when persistence fails',async()=>{
   const message={commandStatus:'pending',commandProposal:{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',toBox:'3'}]},commandPlan:{moves:[{frameId:'A',fromBox:'1',toBox:'3'}]}};
-  const state={aiMessages:[message]};
-  let confirms=0,renders=0;
-  const confirmMove=loadFunction('confirmAICommand',{
-    S:state,confirm:()=>{confirms++;return true},aiCommandContextIsCurrent:()=>true,
+  const state={aiMessages:[message],meta:{revisionId:'rev-1'}};
+  const deps={
+    S:state,confirm:()=>true,aiCommandContextIsCurrent:()=>true,
     revalidateAICommandPreview:()=>({ok:true,plan:{moves:[{frameId:'A'}]}}),
-    applyFrameMovePlan:()=>({ok:true,state:{aiMessages:[message],changed:true},moves:[]}),
+    applyFrameMovePlan:()=>({ok:true,state:{aiMessages:[message],changed:true,meta:{revisionId:'rev-2'}},moves:[]}),
     frameLocationName:box=>box,today:()=> '2026-11-12',
-    save:async()=>false,renderAIChat:()=>{renders++}
-  });
+    save:async()=>{deps.S.meta.saveError='Конфликт сохранения';return false},renderAIChat:()=>{}
+  };
+  const confirmMove=loadFunction('confirmAICommand',deps);
   await confirmMove(0);
+  assert.equal(deps.S,state,'the original in-memory state must be restored');
+  assert.equal(deps.S.changed,undefined);
+  assert.equal(deps.S.meta.saveError,'Конфликт сохранения');
   assert.equal(message.commandStatus,'save_failed');
-  assert.match(message.commandError,/не сохранено в основной базе/);
-  assert.equal(confirms,1);
-  assert.equal(renders,1);
+  assert.match(message.commandError,/Операция отменена в текущей модели/);
   await confirmMove(0);
-  assert.equal(confirms,1,'a failed save must not allow the same command to be confirmed again');
+  assert.equal(message.commandStatus,'save_failed','a failed command must not be confirmed again');
 });
 
 test('confirmed AI frame move is marked applied only after persistence succeeds',async()=>{
