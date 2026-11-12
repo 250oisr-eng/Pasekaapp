@@ -1471,7 +1471,19 @@ function layoutFor(hid){
 function selectedStructureHive(){return selectedHiveId||S.hives[0]?.id||''}
 let pendingAssemblyMode=null,assemblyEditSnapshot=null;
 function beginModeChange(mode){
- const hiveId=selectedStructureHive(),l=layoutFor(hiveId);
+ const hiveId=selectedStructureHive(),l=layoutFor(hiveId),profile=profileForHive(hiveId);
+ if(profile?.family!=='farrar'){
+  if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
+  if(!['summer','winter'].includes(mode)||(mode==='winter'&&!profile?.winter?.enabled)){alert('Зимняя сборка не настроена в этом профиле.');$('assemblyMode').value=l.mode||'summer';return}
+  l.mode=mode;
+  if(mode==='winter'){
+   const allowed=(profile.winter.allowedBoxKeys||[]).map(String),required=profile.winter.requiredBroodBoxes;
+   const current=(l.winterOrder||l.installedBoxes||[]).map(String).filter(k=>allowed.includes(k));
+   l.winterOrder=[...current,...allowed.filter(k=>!current.includes(k))].slice(0,required);
+   l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);
+  }else{l.winterOrder=[];if(profile.honey.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>on)}}
+  renderStructure();return;
+ }
  if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
  if(!['summer','winter'].includes(mode)){ $('assemblyMode').value=l.mode||'summer';return }
  if(mode==='winter'){
@@ -1514,8 +1526,36 @@ function renderAssemblyTransition(l){
 }
 function assemblyBoxChanges(from,to){const a=from?.boxes||[],b=to?.boxes||[],added=b.filter(n=>!a.includes(n)),removed=a.filter(n=>!b.includes(n)),moved=[];if(from?.mode==='winter'&&to?.mode==='winter'){const oldOrder=from.winterOrder||a,newOrder=to.winterOrder||b;newOrder.forEach((n,i)=>{const oldIndex=oldOrder.indexOf(n);if(oldIndex>=0&&oldIndex!==i)moved.push({box:n,from:oldIndex+1,to:i+1})})}return{added,removed,moved}}
 function rememberCurrentAssembly(l){l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];l.assemblies.push({date:today(),mode:l.mode||'summer',installedBoxes:[...(l.installedBoxes||[])],honeyBoxInstalled:[...(l.honeyBoxInstalled||[false,false])],winterOrder:[...(l.winterOrder||[])]});l.assemblies=l.assemblies.slice(-30)}
+function renderConfiguredProfileStructure(hid,l,profile){
+ const editing=!!l.setupEditing,broodKeys=profileBroodKeys(hid),honeyKeys=profileHoneyKeys(hid),winter=l.mode==='winter';
+ $('assemblyMode').value=l.mode||'summer';$('assemblyMode').disabled=!editing||!profile.winter?.enabled;$('assemblyEditBtn').style.display=editing?'none':'';$('assemblyDoneBtn').style.display=editing?'':'none';
+ $('assemblyModeHint').textContent=editing?'Отметь физически установленные корпуса и сохрани комплектацию.':'Комплектация зафиксирована. Для изменений нажми «Изменить».';
+ $('structureTitle').textContent=profile.name+(editing?' — настройка':'');$('addBroodBoxBtn').style.display='none';$('addHoneyBoxBtn').style.display='none';
+ const selected=(l.installedBoxes||[]).map(String),winterOrder=(l.winterOrder||[]).map(String);
+ const body=key=>{const box=l.boxes[key],family=S.families.find(f=>f.id===box?.family),isOn=winter?winterOrder.includes(key):selected.includes(key);return '<div class="box-unit '+(family?'filled':'')+' '+(isOn?'':'setup-empty')+'"><div class="box-unit-head"><strong>'+safe(frameLocationName(key,hid))+(family?' · '+safe(family.name):'')+'</strong><span>'+(isOn?'В сборке':'Снят')+'</span></div><div class="frame-strip">'+box.frames.map((fr,i)=>frameChip(fr,key,i)).join('')+'</div>'+(editing?'<label class="transition-choice"><input type="checkbox" data-profile-brood="'+safe(key)+'" '+(isOn?'checked':'')+' '+(winter&&!(profile.winter.allowedBoxKeys||[]).includes(key)?'disabled':'')+'> Установлен</label>':'')+'</div>'};
+ $('hiveDiagram').innerHTML='<div class="transition-grid">'+(winter?((profile.winter.allowedBoxKeys||[]).map(body).join('')):broodKeys.map(body).join(''))+'</div>';
+ $('honeyPair').innerHTML=honeyKeys.length&&!winter?'<div class="card"><b>Медовые корпуса</b><div class="transition-grid">'+honeyKeys.map((key,i)=>'<label class="transition-choice"><input type="checkbox" data-profile-honey="'+safe(key)+'" '+(l.honeyBoxInstalled[i]?'checked':'')+' '+(!editing?'disabled':'')+'> '+safe(frameLocationName(key,hid))+' · '+l.honeyFrames[i].length+'/'+profile.honey.framesPerBox+'</label><button type="button" '+(!l.honeyBoxInstalled[i]?'disabled':'')+' onclick="editBox(\''+safe(key)+'\')">Рамки</button>').join('')+'</div></div>':'';
+ $('modeTransition').style.display='none';
+ if(editing)$('hiveDiagram').insertAdjacentHTML('beforeend','<button class="primary" type="button" onclick="applyProfileAssemblySelection()">Применить выбранные корпуса</button>');
+}
+function applyProfileAssemblySelection(){
+ const hid=selectedStructureHive(),l=layoutFor(hid),profile=profileForHive(hid),winter=l.mode==='winter';
+ const checked=[...document.querySelectorAll('[data-profile-brood]:checked')].map(el=>el.getAttribute('data-profile-brood'));
+ if(winter){l.winterOrder=checked;l.installedBoxes=checked.slice();l.honeyBoxInstalled=profileHoneyKeys(hid).map(()=>false)}
+ else{l.installedBoxes=checked;l.honeyBoxInstalled=profileHoneyKeys(hid).map(key=>!!document.querySelector('[data-profile-honey="'+key+'"]:checked'));if(profile.honey.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=profileHoneyKeys(hid).map(()=>on)}}
+ renderStructure();
+}
+async function finishProfileAssemblySetup(hid,l,profile){
+ const validation=validateHiveAssemblyProfile(profile,l);
+ if(!validation.ok){alert('Комплектация не прошла проверку: '+validation.errors.map(x=>x.code).join(', '));return}
+ const wasComplete=!!l.setupComplete;l.setupComplete=true;l.setupEditing=false;
+ logAudit(wasComplete?'assembly_changed':'assembly_configured',{hiveId:hid,profileId:profile.id,mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:(l.honeyBoxInstalled||[]).slice()});
+ assemblyEditSnapshot=null;await save();renderStructure();
+}
 function renderStructure(){
- const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid),editing=!!l.setupEditing,installed=l.installedBoxes.slice();
+ const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid),profile=profileForHive(hid);
+ if(profile&&profile.family!=='farrar'){renderConfiguredProfileStructure(hid,l,profile);return}
+ const editing=!!l.setupEditing,installed=l.installedBoxes.slice();
  $('assemblyMode').value=l.mode||'summer';$('assemblyMode').disabled=!editing;$('assemblyEditBtn').style.display=editing?'none':'';$('assemblyDoneBtn').style.display=editing?'':'none';
  $('assemblyModeHint').textContent=editing?'Выбирай корпуса на схеме. Нажми на корпус, чтобы открыть его рамки и данные семьи.':'Комплектация зафиксирована. Для изменений нажми «Изменить».';
  $('structureTitle').textContent=(l.mode==='winter'?'Зимняя':'Летняя')+(editing?' комплектация — настройка':' комплектация');$('addBroodBoxBtn').style.display='none';$('addHoneyBoxBtn').style.display='none';$('honeyPair').style.display=l.mode==='summer'?'':'none';
@@ -1534,7 +1574,9 @@ function renderStructure(){
 }
 function changeWinterSlot(index,value){const l=layoutFor(selectedStructureHive()),order=(l.winterOrder||l.installedBoxes||[]).slice(),n=Number(value);if(![1,3,4,6].includes(n)){alert('Для зимней колонны подходят только корпуса №1, 3, 4 и 6.');renderStructure();return}if(order.some((x,i)=>i!==index&&x===n)){alert('Каждый корпус можно выбрать только один раз.');renderStructure();return}order[index]=n;l.winterOrder=order;l.installedBoxes=order.slice();renderStructure()}
 async function finishAssemblySetup(){
- const hiveId=selectedStructureHive(),l=layoutFor(hiveId),wasComplete=!!l.setupComplete;
+ const hiveId=selectedStructureHive(),l=layoutFor(hiveId),profile=profileForHive(hiveId);
+ if(profile&&profile.family!=='farrar')return finishProfileAssemblySetup(hiveId,l,profile);
+ const wasComplete=!!l.setupComplete;
  const before=assemblyEditSnapshot?.hiveId===hiveId?{mode:assemblyEditSnapshot.mode,boxes:assemblyEditSnapshot.installedBoxes.slice(),winterOrder:assemblyEditSnapshot.winterOrder.slice(),honeyBoxInstalled:assemblyEditSnapshot.honeyBoxInstalled.slice()}:{mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:(l.honeyBoxInstalled||[false,false]).slice()};
  if(l.mode==='winter'&&((l.winterOrder||[]).length!==3||new Set(l.winterOrder).size!==3||(l.winterOrder||[]).some(n=>![1,3,4,6].includes(n)))){
   alert('Для зимней комплектации выбери три разных корпуса из №1, 3, 4 и 6.');return;
@@ -1879,7 +1921,11 @@ async function moveFrame(){
 }
 
 function saveBox(){
- const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),oldBox=l.boxes[editingBox],oldFamily=oldBox?.family||'',wasInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
+ const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),profile=profileForHive(hiveId);
+ if(profile&&profile.family!=='farrar'){
+  commitFrameEdit();save().then(()=>{if($('boxDlg')?.open)$('boxDlg').close();renderStructure()});return;
+ }
+ const oldBox=l.boxes[editingBox],oldFamily=oldBox?.family||'',wasInstalled=l.mode==='winter'?(l.winterOrder||[]).includes(Number(editingBox)):(l.installedBoxes||[]).includes(Number(editingBox));
  if(!isHoneyBoxKey(editingBox,selectedStructureHive())){
   const n=Number(editingBox),b=l.boxes[editingBox];
   if(!(l.mode==='winter'&&l.setupComplete)){
