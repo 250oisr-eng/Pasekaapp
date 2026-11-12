@@ -1948,7 +1948,6 @@ test('JSON backup restore integrates with real IndexedDB and preserves the exact
 
 
 test('AI chat preserves the reader scroll position and follows new messages only when already at the bottom',()=>{
- const render=loadFunction('renderAIChat');
  function hostAt(scrollTop){
   return {
    _html:'',scrollTop,scrollHeight:1000,clientHeight:200,onclick:null,
@@ -1957,9 +1956,9 @@ test('AI chat preserves the reader scroll position and follows new messages only
   };
  }
  const reading=hostAt(120);
- render({$:()=>reading,S:{aiMessages:[{role:'user',content:'Earlier message'}]},safe:String,renderAICommandPreview:()=>''})();
+ loadFunction('renderAIChat',{$:()=>reading,S:{aiMessages:[{role:'user',content:'Earlier message'}]},safe:String,renderAICommandPreview:()=>''})();
  assert.equal(reading.scrollTop,120,'rendering must not pull a reader away from older messages');
  const following=hostAt(790);
- render({$:()=>following,S:{aiMessages:[{role:'user',content:'Latest message'}]},safe:String,renderAICommandPreview:()=>''})();
+ loadFunction('renderAIChat',{$:()=>following,S:{aiMessages:[{role:'user',content:'Latest message'}]},safe:String,renderAICommandPreview:()=>''})();
  assert.equal(following.scrollTop,1200,'a reader already at the bottom should follow the updated conversation');
 });
