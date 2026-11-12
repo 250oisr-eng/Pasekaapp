@@ -881,7 +881,7 @@ function renderAssemblyTransition(l){
  host.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function assemblyBoxChanges(from,to){const a=from?.boxes||[],b=to?.boxes||[],added=b.filter(n=>!a.includes(n)),removed=a.filter(n=>!b.includes(n)),moved=[];if(from?.mode==='winter'&&to?.mode==='winter'){const oldOrder=from.winterOrder||a,newOrder=to.winterOrder||b;newOrder.forEach((n,i)=>{const oldIndex=oldOrder.indexOf(n);if(oldIndex>=0&&oldIndex!==i)moved.push({box:n,from:oldIndex+1,to:i+1})})}return{added,removed,moved}}
-function rememberCurrentAssembly(l){l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];l.assemblies.push({date:today(),mode:l.mode||'summer',installedBoxes:[...l.installedBoxes],honeyBoxInstalled:[...l.honeyBoxInstalled],winterOrder:[...(l.winterOrder||[])]})}
+function rememberCurrentAssembly(l){l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];l.assemblies.push({date:today(),mode:l.mode||'summer',installedBoxes:[...(l.installedBoxes||[])],honeyBoxInstalled:[...(l.honeyBoxInstalled||[false,false])],winterOrder:[...(l.winterOrder||[])]});l.assemblies=l.assemblies.slice(-30)}
 function renderStructure(){
  const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid),editing=!!l.setupEditing,installed=l.installedBoxes.slice();
  $('assemblyMode').value=l.mode||'summer';$('assemblyMode').disabled=!editing;$('assemblyEditBtn').style.display=editing?'none':'';$('assemblyDoneBtn').style.display=editing?'':'none';
@@ -1042,7 +1042,7 @@ function saveBox(){
    if(!fid&&origin){
     const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]);
     b.familyName=code;
-    const created={id:uid(),hive:hiveId,name:code,familyYear:year,familySequence:sequence,breed:b.breed,origin,parentFamilyId};
+    const created={id:uid(),hive:hiveId,box:n,name:code,familyYear:year,familySequence:sequence,breed:b.breed,origin,parentFamilyId};
     S.families.push(created);b.family=created.id;
     logAudit('family_created',{hiveId,familyId:created.id,familyName:code,origin,parentFamilyId:parentFamilyId||null,box:n});
    }else{
@@ -1153,10 +1153,79 @@ function validateBackupState(state){
  if(state.layouts)for(const layout of Object.values(state.layouts)){if(!isObject(layout))throw new Error('Повреждены данные сборки улья');if(layout.boxes!=null&&(!isObject(layout.boxes)||Object.values(layout.boxes).some(box=>!isObject(box)||(box.frames!=null&&(!Array.isArray(box.frames)||!box.frames.every(isObject))))))throw new Error('Повреждены гнездовые корпуса');if(layout.honeyFrames!=null&&(!Array.isArray(layout.honeyFrames)||!layout.honeyFrames.every(frames=>Array.isArray(frames)&&frames.every(isObject))))throw new Error('Повреждены медовые рамки');if(layout.honeyBoxInstalled!=null&&!Array.isArray(layout.honeyBoxInstalled))throw new Error('Повреждено состояние медовых корпусов');if(layout.installedBoxes!=null&&!Array.isArray(layout.installedBoxes))throw new Error('Повреждён список установленных корпусов');if(layout.winterOrder!=null&&!Array.isArray(layout.winterOrder))throw new Error('Повреждён порядок зимней колонны')}
  return state;
 }
+function validateRawBackupIntegrity(state){
+ const errors=[],families=new Map((state.families||[]).map(f=>[f.id,f]));
+ const add=(code,details)=>errors.push({code,details});
+ const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{};
+ for(const hive of state.hives||[]){
+  const l=layouts[hive.id];if(!l||typeof l!=='object'||Array.isArray(l))continue;
+  if(l.mode!=null&&!['summer','winter'].includes(l.mode))add('invalid_assembly_mode',{hiveId:hive.id,mode:l.mode});
+  const installed=Array.isArray(l.installedBoxes)?l.installedBoxes:null;
+  if(l.installedBoxes!=null&&!installed)add('invalid_installed_boxes_list',{hiveId:hive.id});
+  if(installed){
+   const seen=new Set();
+   installed.forEach(n=>{if(!Number.isInteger(n)||n<1||n>6)add('invalid_installed_box',{hiveId:hive.id,box:n});if(seen.has(n))add('duplicate_installed_box',{hiveId:hive.id,box:n});seen.add(n)});
+  }
+  const order=Array.isArray(l.winterOrder)?l.winterOrder:null;
+  if(l.winterOrder!=null&&!order)add('invalid_winter_order',{hiveId:hive.id});
+  if(l.mode==='winter'){
+   if(!order||order.length!==3||new Set(order).size!==3||order.some(n=>![1,3,4,6].includes(n)))add('winter_requires_three_allowed_boxes',{hiveId:hive.id,order:l.winterOrder});
+   if(installed&&(!order||installed.length!==3||installed.some(n=>!order.includes(n))||order.some(n=>!installed.includes(n))))add('winter_installed_order_mismatch',{hiveId:hive.id,installedBoxes:installed,winterOrder:order});
+  }
+  if(l.honeyBoxInstalled!=null){
+   const h=l.honeyBoxInstalled;
+   if(!Array.isArray(h)||h.length!==2)add('invalid_honey_pair_state',{hiveId:hive.id,value:h});
+   else if(Boolean(h[0])!==Boolean(h[1]))add('honey_pair_mismatch',{hiveId:hive.id,value:h});
+   else if(l.mode==='winter'&&h.some(Boolean))add('honey_boxes_in_winter',{hiveId:hive.id});
+  }
+  const boxes=l.boxes&&typeof l.boxes==='object'&&!Array.isArray(l.boxes)?l.boxes:{},seenFrameIds=new Set(),placements=new Map();
+  const inspectFrames=(frames,capacity,boxKey)=>{
+   if(!Array.isArray(frames)){add('invalid_frame_list',{hiveId:hive.id,box:boxKey});return}
+   if(frames.length>capacity)add('frame_capacity_exceeded',{hiveId:hive.id,box:boxKey,count:frames.length,capacity});
+   frames.forEach(fr=>{
+    if(!fr||typeof fr!=='object'||Array.isArray(fr)){add('invalid_frame_record',{hiveId:hive.id,box:boxKey});return}
+    if(fr.frameId){
+     if(seenFrameIds.has(fr.frameId))add('duplicate_frame_id',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
+     seenFrameIds.add(fr.frameId);
+    }
+    if(fr.location!=null&&String(fr.location)!==String(boxKey))add('frame_location_mismatch',{hiveId:hive.id,box:boxKey,frameId:fr.frameId,location:fr.location});
+    if(fr.history!=null&&!Array.isArray(fr.history))add('invalid_frame_history',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
+   });
+  };
+  for(let n=1;n<=6;n++){
+   const box=boxes[n]||boxes[String(n)];if(!box)continue;
+   if(!box||typeof box!=='object'||Array.isArray(box)){add('invalid_brood_box',{hiveId:hive.id,box:n});continue}
+   if(box.frames!=null)inspectFrames(box.frames,6,n);
+   if(box.family){
+    const rows=placements.get(box.family)||[];rows.push(n);placements.set(box.family,rows);
+    const family=families.get(box.family);
+    if(!family)add('box_references_missing_family',{hiveId:hive.id,box:n,familyId:box.family});
+    else if(family.hive!==hive.id)add('family_hive_mismatch',{hiveId:hive.id,box:n,familyId:box.family});
+    if(l.mode==='winter'&&![1,3,4,6].includes(n))add('family_in_forbidden_winter_box',{hiveId:hive.id,box:n,familyId:box.family});
+    if(installed&&!installed.includes(n))add('family_in_uninstalled_box',{hiveId:hive.id,box:n,familyId:box.family});
+   }
+  }
+  if(l.honeyFrames!=null){
+   if(!Array.isArray(l.honeyFrames))add('invalid_honey_frames',{hiveId:hive.id});
+   else l.honeyFrames.forEach((frames,i)=>inspectFrames(frames,10,'H'+(i+1)));
+  }
+  for(const [familyId,boxesForFamily] of placements)if(boxesForFamily.length>1)add('family_assigned_to_multiple_boxes',{hiveId:hive.id,familyId,boxes:boxesForFamily});
+  for(const [familyId,boxesForFamily] of placements){
+   const family=families.get(familyId);
+   if(family&&family.box!=null&&!boxesForFamily.includes(Number(family.box)))add('family_box_mismatch',{hiveId:hive.id,familyId,box:family.box,actual:boxesForFamily});
+  }
+ }
+ return {errors,errorCount:errors.length};
+}
+function assertRawBackupIntegrity(state){
+ const result=validateRawBackupIntegrity(state);
+ if(result.errorCount){const codes=[...new Set(result.errors.map(x=>x.code))].slice(0,6).join(', ');throw new Error('Архив не прошёл проверку исходных данных ('+result.errorCount+' ошибок: '+codes+'). Исходный архив не исправлялся; текущие данные сохранены.')}
+ return state;
+}
 async function restoreBackup(){
  const f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');
  try{
-  const o=JSON.parse(await f.text()),restored=validateBackupState(o.state||o);
+  const o=JSON.parse(await f.text()),restored=assertRawBackupIntegrity(validateBackupState(o.state||o));
   if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
   await saveQueue;
   const current=await readMain();if(current){await writeAutoBackup(current);autoBackupInfo=await readAutoBackup()}
@@ -1169,7 +1238,7 @@ async function restoreAutoBackup(){
  try{
   await saveQueue;
   const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
-  const restored=validateBackupState(backup.state);
+  const restored=assertRawBackupIntegrity(validateBackupState(backup.state));
   if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
   const current=await readMain();if(current)await writeAutoBackup(current);
   const oldState=S;S=restored;
@@ -1201,11 +1270,11 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   await openDB();await requestStoragePersistence();
   const loaded=await read();
   if(loaded){
-   try{S=validateBackupState(loaded)}
+   try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
    catch(primaryError){
     const backup=await readAutoBackup();
     if(!backup||!backup.state)throw new Error('Основная база повреждена, а пригодной автокопии нет: '+primaryError.message);
-    S=validateBackupState(backup.state);autoBackupRecovered=true;
+    S=assertRawBackupIntegrity(validateBackupState(backup.state));autoBackupRecovered=true;
    }
   }
   const migrated=migrateState();if(migrated||autoBackupRecovered)await write();
