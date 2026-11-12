@@ -486,6 +486,7 @@ function validateVirtualApiary(){
     if(fr.frameId)frameIds.add(fr.frameId);
     if(fr.location!=null&&String(fr.location)!==String(n))add(errors,'frame_location_mismatch',{hiveNumber:hive.number,box:n,frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add(errors,'invalid_frame_history',{hiveNumber:hive.number,box:n,frameId:fr.frameId});
+    else if(Array.isArray(fr.history)&&fr.history.some(event=>!isObject(event)))add(errors,'invalid_frame_history_entry',{hiveNumber:hive.number,box:n,frameId:fr.frameId});
    });
   }
   const honeyFrames=Array.isArray(l.honeyFrames)?l.honeyFrames:[];
@@ -500,6 +501,7 @@ function validateVirtualApiary(){
     if(fr.frameId)frameIds.add(fr.frameId);
     if(fr.location!=null&&String(fr.location)!==('H'+(i+1)))add(errors,'frame_location_mismatch',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add(errors,'invalid_frame_history',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId});
+    else if(Array.isArray(fr.history)&&fr.history.some(event=>!isObject(event)))add(errors,'invalid_frame_history_entry',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId});
    });
   });
  }
@@ -1324,6 +1326,7 @@ function validateRawBackupIntegrity(state){
     }
     if(fr.location!=null&&String(fr.location)!==String(boxKey))add('frame_location_mismatch',{hiveId:hive.id,box:boxKey,frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add('invalid_frame_history',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
+    else if(Array.isArray(fr.history)&&fr.history.some(event=>!event||typeof event!=='object'||Array.isArray(event)))add('invalid_frame_history_entry',{hiveId:hive.id,box:boxKey,frameId:fr.frameId});
    });
   };
   for(let n=1;n<=6;n++){
