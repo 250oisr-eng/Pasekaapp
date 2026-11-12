@@ -1478,10 +1478,18 @@ function beginModeChange(mode){
   l.mode=mode;
   if(mode==='winter'){
    const allowed=(profile.winter.allowedBoxKeys||[]).map(String),required=profile.winter.requiredBroodBoxes;
-   const savedWinter=(l.winterOrder||[]).length?l.winterOrder:(l.installedBoxes||[]),current=savedWinter.map(String).filter(k=>allowed.includes(k));
+   const savedSummer=assemblyEditSnapshot?.hiveId===hiveId&&assemblyEditSnapshot.mode==='summer'?assemblyEditSnapshot.installedBoxes:(l.installedBoxes||[]);
+   const savedWinter=(l.winterOrder||[]).length?l.winterOrder:savedSummer,current=savedWinter.map(String).filter(k=>allowed.includes(k));
    l.winterOrder=[...current,...allowed.filter(k=>!current.includes(k))].slice(0,required);
    l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);
-  }else{l.winterOrder=[];if(profile.honey.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>on)}}
+  }else{
+   l.winterOrder=[];
+   if(assemblyEditSnapshot?.hiveId===hiveId&&assemblyEditSnapshot.mode==='summer'){
+    l.installedBoxes=assemblyEditSnapshot.installedBoxes.slice();l.honeyBoxInstalled=assemblyEditSnapshot.honeyBoxInstalled.slice();
+   }else if(profile.honey.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){
+    const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>on);
+   }
+  }
   renderStructure();return;
  }
  if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
