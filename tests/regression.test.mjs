@@ -1390,3 +1390,9 @@ test('hive directory uses correct Russian declension for the hive count',()=>{
  const source=extractFunction('renderHiveDirectory');
  assert.match(source,/ruPlural\(S\.hives\.length,'улей','улья','ульев'\)/);
 });
+
+test('hive and frame cards support keyboard activation',()=>{
+ assert.match(html,/class="hive-row-main" role="button" tabindex="0"/);
+ assert.match(html,/class="home-hive" role="button" tabindex="0"/);
+ assert.match(html,/target\.matches\('\.hive-row-main\[role="button"\],\.home-hive\[role="button"\],\.frame-chip\[role="button"\]'\)/);
+});
