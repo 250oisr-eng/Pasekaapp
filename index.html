@@ -439,6 +439,7 @@ function validateVirtualApiary(){
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.parentFamilySnapshot&&family.parentFamilyId&&family.parentFamilySnapshot.id!==family.parentFamilyId)add(errors,'family_parent_snapshot_mismatch',{familyId:family.id,parentFamilyId:family.parentFamilyId,snapshotId:family.parentFamilySnapshot.id||null});}
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const layouts=isObject(S.layouts)?S.layouts:{};
+ for(const hiveId of Object.keys(layouts))if(!hiveIds.has(hiveId))add(errors,'orphan_hive_layout',{hiveId});
  for(const hive of S.hives){
   if(!hive||typeof hive!=='object')continue;
   const l=isObject(layouts[hive.id])?layouts[hive.id]:{},boxes=isObject(l.boxes)?l.boxes:{};
