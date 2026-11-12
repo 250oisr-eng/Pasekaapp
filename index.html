@@ -483,6 +483,7 @@ function validateVirtualApiary(){
     if(!fr.frameId)add(errors,'missing_frame_id',{hiveNumber:hive.number,box:n});
     else if(frameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});
     if(fr.frameId)frameIds.add(fr.frameId);
+    if(fr.location!=null&&String(fr.location)!==String(n))add(errors,'frame_location_mismatch',{hiveNumber:hive.number,box:n,frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add(errors,'invalid_frame_history',{hiveNumber:hive.number,box:n,frameId:fr.frameId});
    });
   }
@@ -496,6 +497,7 @@ function validateVirtualApiary(){
     if(!fr.frameId)add(errors,'missing_frame_id',{hiveNumber:hive.number,box:'H'+(i+1)});
     else if(frameIds.has(fr.frameId))add(errors,'duplicate_frame_id',{hiveNumber:hive.number,frameId:fr.frameId});
     if(fr.frameId)frameIds.add(fr.frameId);
+    if(fr.location!=null&&String(fr.location)!==('H'+(i+1)))add(errors,'frame_location_mismatch',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId,location:fr.location});
     if(fr.history!=null&&!Array.isArray(fr.history))add(errors,'invalid_frame_history',{hiveNumber:hive.number,box:'H'+(i+1),frameId:fr.frameId});
    });
   });
