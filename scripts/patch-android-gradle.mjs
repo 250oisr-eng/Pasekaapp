@@ -9,22 +9,22 @@ export function patchAndroidGradleSources(buildGradle, wrapperProperties) {
   const agpPattern = /(classpath\s+['"]com\.android\.tools\.build:gradle:)[^'"]+(['"])/g;
   const agpMatches = [...buildGradle.matchAll(agpPattern)];
   if (agpMatches.length !== 1) {
-    throw new Error(\`Expected exactly one Android Gradle Plugin classpath declaration; found \${agpMatches.length}. Refusing to guess the generated project format.\`);
+    throw new Error('Expected exactly one Android Gradle Plugin classpath declaration; found ' + agpMatches.length + '. Refusing to guess the generated project format.');
   }
-  const patchedBuildGradle = buildGradle.replace(agpPattern, \`$1\${AGP_VERSION}$2\`);
+  const patchedBuildGradle = buildGradle.replace(agpPattern, '$1' + AGP_VERSION + '$2');
 
   const wrapperPattern = /^distributionUrl=.*gradle-[^/\s]+-(?:all|bin)\.zip.*$/gm;
   const wrapperMatches = [...wrapperProperties.matchAll(wrapperPattern)];
   if (wrapperMatches.length !== 1) {
-    throw new Error(\`Expected exactly one Gradle wrapper distribution URL; found \${wrapperMatches.length}. Refusing to guess the generated project format.\`);
+    throw new Error('Expected exactly one Gradle wrapper distribution URL; found ' + wrapperMatches.length + '. Refusing to guess the generated project format.');
   }
   const patchedWrapper = wrapperProperties.replace(
     wrapperPattern,
     'distributionUrl=https\\://services.gradle.org/distributions/gradle-' + GRADLE_VERSION + '-all.zip'
   );
 
-  if (!patchedBuildGradle.includes(\`com.android.tools.build:gradle:\${AGP_VERSION}\`) ||
-      !patchedWrapper.includes(\`gradle-\${GRADLE_VERSION}-all.zip\`)) {
+  if (!patchedBuildGradle.includes('com.android.tools.build:gradle:' + AGP_VERSION) ||
+      !patchedWrapper.includes('gradle-' + GRADLE_VERSION + '-all.zip')) {
     throw new Error('Android Gradle toolchain verification failed.');
   }
   return { buildGradle: patchedBuildGradle, wrapperProperties: patchedWrapper };
@@ -43,7 +43,7 @@ async function main() {
     fs.writeFile(buildPath, patched.buildGradle),
     fs.writeFile(wrapperPath, patched.wrapperProperties)
   ]);
-  console.log(\`Android Gradle Plugin \${AGP_VERSION}; Gradle \${GRADLE_VERSION}; target API 35 compatibility toolchain configured.\`);
+  console.log('Android Gradle Plugin ' + AGP_VERSION + '; Gradle ' + GRADLE_VERSION + '; target API 35 compatibility toolchain configured.');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
