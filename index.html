@@ -455,6 +455,33 @@ function writeMainIfUnchanged(state,expectedRevision){
   }catch(e){no(e)}
  });
 }
+function writeMainWithBackup(state,expectedRevision){
+ return new Promise((ok,no)=>{
+  let previous=null,conflict=null,failure=null,tx,settled=false;
+  const rejectOnce=error=>{if(!settled){settled=true;no(error)}};
+  try{
+   tx=db.transaction([STORE,BACKUP_STORE],'readwrite');
+   const main=tx.objectStore(STORE),backup=tx.objectStore(BACKUP_STORE),q=main.get('state');
+   q.onsuccess=()=>{
+    previous=q.result||null;
+    if((previous?.meta?.revisionId||null)!==expectedRevision){
+     conflict=new Error('Данные уже изменены в другой вкладке или на другом устройстве. Восстановление отменено, чтобы не затереть более свежие данные.');
+     conflict.name='PasekaConflictError';
+     try{tx.abort()}catch(e){rejectOnce(conflict)}
+     return;
+    }
+    try{
+     main.put(state,'state');
+     if(previous)backup.put({at:new Date().toISOString(),state:previous},'previous');
+    }catch(e){failure=e;try{tx.abort()}catch(abortError){rejectOnce(failure)}}
+   };
+   q.onerror=()=>{failure=q.error||new Error('Не удалось прочитать текущую базу перед восстановлением');try{tx.abort()}catch(e){rejectOnce(failure)}};
+   tx.oncomplete=()=>{if(!settled){settled=true;ok(previous)}};
+   tx.onabort=()=>rejectOnce(conflict||failure||tx.error||q.error||new Error('Атомарное восстановление прервано'));
+   tx.onerror=()=>rejectOnce(conflict||failure||tx.error||new Error('Ошибка атомарного восстановления'));
+  }catch(e){rejectOnce(e)}
+ });
+}
 function writeAutoBackup(state,expectedRevision){return new Promise((ok,no)=>{let t=db.transaction([STORE,BACKUP_STORE],'readwrite'),written=false,q=t.objectStore(STORE).get('state');q.onsuccess=()=>{const current=q.result||null;if((current?.meta?.revisionId||null)!==expectedRevision)return;t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');written=true};q.onerror=()=>{try{t.abort()}catch(e){}};t.oncomplete=()=>ok(written);t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||q.error||new Error('Обновление автокопии прервано'))})}
 async function save(){
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};
@@ -2501,7 +2528,7 @@ async function restoreBackup(){
   await saveQueue;
   const current=await readMain();
   const oldState=S;S=restored;
-  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainIfUnchanged(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous){try{if(await writeAutoBackup(previous,lastPersistedRevision))autoBackupInfo=await readAutoBackup()}catch(e){S.meta.autoBackupError='Не удалось обновить полную резервную копию'}}}catch(e){S=oldState;throw e}
+  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo=await readAutoBackup();}catch(e){S=oldState;throw e}
   autoBackupRecovered=false;render();alert('Архив восстановлен. Текущее состояние до восстановления сохранено в автокопии.');
  }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
 }
@@ -2513,7 +2540,7 @@ async function restoreAutoBackup(){
   if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
   const current=await readMain();
   const oldState=S;S=restored;
-  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainIfUnchanged(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous){try{if(await writeAutoBackup(previous,lastPersistedRevision))autoBackupInfo=await readAutoBackup()}catch(e){S.meta.autoBackupError='Не удалось обновить полную резервную копию'}}}catch(e){S=oldState;throw e}
+  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo=await readAutoBackup();}catch(e){S=oldState;throw e}
   autoBackupRecovered=false;autoBackupInfo=await readAutoBackup();render();alert('Предыдущая полная автокопия восстановлена.');
  }catch(e){alert('Не удалось восстановить автокопию: '+(e.message||e))}
 }
