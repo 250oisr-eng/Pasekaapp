@@ -296,7 +296,7 @@ test('AI move preview is rejected when the frame location changes after review',
 test('AI frame move cancellation leaves the preview pending and changes nothing',async()=>{
  const state=frameMoveFixture();
  const planMoves=loadFunction('planFrameMoves');
- const validate=loadFunction('validateAICommandProposal',{planFrameMoves});
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves:planMoves});
  const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const proposal={schemaVersion:1,kind:'move_frames',commandId:'cancel-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
  const preview=validate(state,proposal);
@@ -314,7 +314,7 @@ test('AI frame move cancellation leaves the preview pending and changes nothing'
 test('AI frame move rejects a stale preview before asking for confirmation or mutating data',async()=>{
  const state=frameMoveFixture();
  const planMoves=loadFunction('planFrameMoves');
- const validate=loadFunction('validateAICommandProposal',{planFrameMoves});
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves:planMoves});
  const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const proposal={schemaVersion:1,kind:'move_frames',commandId:'stale-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
  const preview=validate(state,proposal);
@@ -335,7 +335,7 @@ test('AI frame move rejects a stale preview before asking for confirmation or mu
 test('AI frame move rejects a tampered reviewed plan after confirmation without applying it',async()=>{
  const state=frameMoveFixture();
  const planMoves=loadFunction('planFrameMoves');
- const validate=loadFunction('validateAICommandProposal',{planFrameMoves});
+ const validate=loadFunction('validateAICommandProposal',{planFrameMoves:planMoves});
  const fingerprint=loadFunction('aiCommandContextFingerprint',{aiStableSnapshot:loadFunction('aiStableSnapshot')});
  const proposal={schemaVersion:1,kind:'move_frames',commandId:'tamper-1',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
  const preview=validate(state,proposal);
@@ -346,7 +346,7 @@ test('AI frame move rejects a tampered reviewed plan after confirmation without 
   S:state,confirm:()=>{confirmations++;return true},
   aiCommandContextIsCurrent:(s,m)=>m.commandContextFingerprint===fingerprint(s),
   revalidateAICommandPreview:loadFunction('revalidateAICommandPreview',{validateAICommandProposal:validate}),
-  applyFrameMovePlan:loadFunction('applyFrameMovePlan',{planFrameMoves}),
+  applyFrameMovePlan:loadFunction('applyFrameMovePlan',{planFrameMoves:planMoves}),
   frameLocationName:box=>'корпус '+box,today:()=>'2026-11-12',
   save:async()=>{saves++;return true},renderAIChat:()=>{renders++}
  };
