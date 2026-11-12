@@ -456,8 +456,8 @@ test('hybrid workspace exposes five clear navigation destinations and home AI en
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,5);
-  for(const label of ['Обзор','Ульи','Журнал','ИИ','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  assert.equal((nav.match(/data-tab=/g)||[]).length,6);
+  for(const label of ['Обзор','Ульи','Журнал','Медоносы','ИИ','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.ok(html.includes('id="homeAIQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));
@@ -995,7 +995,8 @@ function rawBackupFixture(){
 function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
  const inspectTaskIntegrity=loadFunction('inspectTaskIntegrity');
- return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity})(state);
+ const inspectPlantModuleIntegrity=loadFunction('inspectPlantModuleIntegrity');
+ return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity,inspectPlantModuleIntegrity})(state);
 }
 
 test('main database write rejects a stale revision without overwriting newer state',async()=>{
@@ -1097,10 +1098,10 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:3}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:4}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
- assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:2}}).meta.schemaVersion,2);
+ assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:3},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,3);
  const legacy=rawBackupFixture();assert.equal(validate(legacy),legacy);
 });
 test('backup shape validator rejects malformed journal media and nested box data',()=>{
@@ -1592,10 +1593,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,3,'2']){
+ for(const version of [0,4,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===3?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===4?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1624,7 +1625,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,2);
+ assert.equal(state.meta.schemaVersion,3);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
@@ -1893,6 +1894,7 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   readMain:async()=>{writes++;return null},
   validateBackupState,
   assertRawBackupIntegrity,
+  inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),
   alert:message=>alerts.push(message)
  };
  await loadFunction('restoreBackup',deps)();
