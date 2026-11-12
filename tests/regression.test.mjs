@@ -1049,6 +1049,46 @@ test('automatic backup writes the exact previous state only when the main revisi
  assert.equal(putCount,1,'a stale snapshot must never replace the existing automatic backup');
  assert.deepEqual(backup.value.state,previous);
 });
+async function runAtomicRestore(expectedRevision='rev-1',backupFails=false){
+ let mainState={meta:{revisionId:'rev-1'},value:'current'},backupState={state:{value:'older'}};
+ const db={transaction(stores,mode){
+  assert.deepEqual(stores,['main','backup']);assert.equal(mode,'readwrite');
+  let stagedMain=null,stagedBackup=null,aborted=false;
+  const tx={error:null,
+   objectStore(name){
+    if(name==='main')return{
+     get(){const request={};queueMicrotask(()=>{request.result=structuredClone(mainState);request.onsuccess?.();queueMicrotask(()=>{if(!aborted){if(stagedMain!==null)mainState=stagedMain;if(stagedBackup!==null)backupState=stagedBackup;tx.oncomplete?.()}})});return request},
+     put(value){stagedMain=structuredClone(value)}
+    };
+    return{put(value,key){if(backupFails)throw new Error('quota exceeded');stagedBackup={value:structuredClone(value),key}}};
+   },
+   abort(){aborted=true;queueMicrotask(()=>tx.onabort?.())}
+  };
+  return tx;
+ }};
+ const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+ return{write,read:()=>({mainState,backupState})};
+}
+test('atomic restore replaces the main database and preserves the exact previous state in one transaction',async()=>{
+ const fixture=await runAtomicRestore();
+ const restored={meta:{revisionId:'rev-2'},value:'restored'};
+ const previous=await fixture.write(restored,'rev-1');
+ assert.deepEqual(previous,{meta:{revisionId:'rev-1'},value:'current'});
+ assert.deepEqual(fixture.read().mainState,restored);
+ assert.deepEqual(fixture.read().backupState,{value:{at:fixture.read().backupState.value.at,state:previous},key:'previous'});
+});
+test('atomic restore rejects a stale revision without changing either database store',async()=>{
+ const fixture=await runAtomicRestore('stale');
+ const before=structuredClone(fixture.read());
+ await assert.rejects(fixture.write({meta:{revisionId:'rev-2'},value:'restored'},'stale'),error=>error.name==='PasekaConflictError');
+ assert.deepEqual(fixture.read(),before);
+});
+test('atomic restore rolls back the main database when preserving the previous backup fails',async()=>{
+ const fixture=await runAtomicRestore('rev-1',true);
+ const before=structuredClone(fixture.read());
+ await assert.rejects(fixture.write({meta:{revisionId:'rev-2'},value:'restored'},'rev-1'),/quota exceeded/i);
+ assert.deepEqual(fixture.read(),before);
+});
 test('backup shape validator accepts a minimal valid empty apiary',()=>{
  const validate=loadFunction('validateBackupState');
  const state=rawBackupFixture();
