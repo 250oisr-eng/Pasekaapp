@@ -1099,7 +1099,7 @@ function newRecord(){if(!S.hives.length){alert('Сначала добавь ул
 function extractInspectionFieldsFromText(input){
  const text=String(input||'').trim(),normalized=text.toLocaleLowerCase('ru-RU').replace(/ё/g,'е');
  const fields={},evidence={};
- const isUncertain=match=>/(?:возможно|вероятно|кажется|похоже|предположительно|примерно|около|порядка|не уверен(?:а)?)(?=\\s|[,;:.!?]|$)/i.test(normalized.slice(Math.max(0,match.index-30),Math.min(normalized.length,match.index+match[0].length+12)));
+ const isUncertain=match=>/(?:возможно|вероятно|кажется|похоже|предположительно|примерно|около|порядка|не уверен(?:а)?)(?=\s|[,;:.!?]|$)/i.test(normalized.slice(Math.max(0,match.index-30),Math.min(normalized.length,match.index+match[0].length+12)));
  const excerpt=match=>text.slice(Math.max(0,match.index-45),Math.min(text.length,match.index+match[0].length+55)).trim();
  const assign=(field,value,pattern)=>{const match=normalized.match(pattern);if(match&&fields[field]===undefined&&!isUncertain(match)){fields[field]=value;evidence[field]=excerpt(match)}};
  const count=(pattern)=>{const match=normalized.match(pattern);if(!match||isUncertain(match))return null;const value=Number(match[1]);return Number.isInteger(value)&&value>=0&&value<=6?{value,excerpt:excerpt(match)}:null};
@@ -1112,7 +1112,7 @@ function extractInspectionFieldsFromText(input){
   count(new RegExp('([0-6])\\s*'+frameWord+'\\s*(?:с\\s+расплодом|расплода)','i'))||
   count(new RegExp('([0-6])\\s*'+frameWord+'\\s+занято\\s+расплодом','i'));
  if(brood){fields.broodFrames=brood.value;evidence.broodFrames=brood.excerpt}
- const drawn=count(/(?:свободн(?:ых|ые)\s+(?:отстроенных\s+)?(?:рамок|рамки)|свободной\s+суши)\s*(?:—|:)?\s*([0-6])/i)||
+ const drawn=count(/(?:свободн(?:ых|ые)\s+(?:отстроенн(?:ых|ые)\s+)?(?:рамок|рамки)|свободной\s+суши)\s*(?:—|:)?\s*([0-6])/i)||
   count(/([0-6])\s*(?:свободн(?:ых|ые)\s+(?:отстроенных\s+)?(?:рамок|рамки)|рам(?:ка|ки|ок)\s+свободной\s+суши)/i);
  if(drawn){fields.freeDrawn=drawn.value;evidence.freeDrawn=drawn.excerpt}
  const queenAbsent=/матк(?:а|у)\s+(?:не\s+(?:обнаружена|видел(?:а)?|увидел(?:а)?|нашел(?:а)?|найдена)|отсутствует)|матку\s+не\s+видел(?:а)?|матки\s+не\s+видно/i;
