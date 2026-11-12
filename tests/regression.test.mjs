@@ -991,3 +991,22 @@ test('raw backup integrity accepts a valid family placed in its physical brood b
  const result=inspectRawBackup(state);
  assert.equal(result.errorCount,0,JSON.stringify(result.errors));
 });
+
+
+test('raw backup integrity rejects frames without IDs before restore',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  layouts:{h1:{mode:'summer',installedBoxes:[1],boxes:{1:{frames:[{location:1,history:[]}]}},honeyFrames:[[],[]]}}
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='missing_frame_id'));
+});
+test('raw backup integrity rejects invalid family lifecycle fields',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  families:[{id:'fam-1',hive:'h1',origin:'swarm',stage:'developing',box:null}],
+  layouts:{h1:{mode:'summer',installedBoxes:[],boxes:{},honeyFrames:[[],[]]}}
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='invalid_non_offshoot_stage'));
+});
