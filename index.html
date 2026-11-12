@@ -1486,7 +1486,11 @@ function layoutFor(hid){
  if(!Array.isArray(l.honeyFrames))l.honeyFrames=honeyKeys.map(()=>[]);
  while(l.honeyFrames.length<honeyKeys.length)l.honeyFrames.push([]);
  l.honeyFrames=l.honeyFrames.slice(0,honeyKeys.length);
- for(let i=0;i<honeyKeys.length;i++)if(!Array.isArray(l.honeyFrames[i]))l.honeyFrames[i]=[];
+ for(let i=0;i<honeyKeys.length;i++){
+  if(!Array.isArray(l.honeyFrames[i]))l.honeyFrames[i]=[];
+  const key=honeyKeys[i],frames=l.honeyFrames[i],capacity=frameCapacity(key,hid);
+  while(frames.length<capacity)frames.push({frameId:framePrefix(key,hid)+'-'+String(frames.length+1).padStart(2,'0'),originBox:key,location:key,type:'foundation',status:'foundation',history:[]});
+ }
  for(const key of broodKeys){
   if(!l.boxes[key]||typeof l.boxes[key]!=='object'||Array.isArray(l.boxes[key]))l.boxes[key]={family:'',frames:makeBroodFrames(key)};
   if(!Array.isArray(l.boxes[key].frames))l.boxes[key].frames=makeBroodFrames(key);
@@ -1757,7 +1761,8 @@ function planFrameMoves(state,requests){
   if(!allowed.has(toBox)||fromBox&&!allowed.has(fromBox)){fail('invalid_move_reference',{hiveId,frameId,fromBox,toBox});continue}
   const boxes=layout.boxes, honey=layout.honeyFrames;
   const getFrames=key=>honeyKeys.includes(key)?(Array.isArray(honey)&&Array.isArray(honey[honeyKeys.indexOf(key)])?honey[honeyKeys.indexOf(key)]:null):(boxes&&typeof boxes==='object'&&!Array.isArray(boxes)&&boxes[key]&&Array.isArray(boxes[key].frames)?boxes[key].frames:null);
-  const installed=key=>honeyKeys.includes(key)?layout.mode!=='winter'&&honeyKeys.includes(key)&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled[honeyKeys.indexOf(key)]===true&&(profile?.honey?.installation!=='paired'||layout.honeyBoxInstalled.every(Boolean)):(layout.mode==='winter'?(profile?.winter?.allowedBoxKeys?.map(String)||['1','3','4','6']).includes(key)&&(layout.winterOrder||[]).map(String).includes(key):(layout.installedBoxes||[]).map(String).includes(key));
+  const honeyInstallation=profile?.honey?.installation||'paired';
+  const installed=key=>honeyKeys.includes(key)?layout.mode!=='winter'&&honeyKeys.includes(key)&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled[honeyKeys.indexOf(key)]===true&&(honeyInstallation!=='paired'||layout.honeyBoxInstalled.every(Boolean)):(layout.mode==='winter'?(profile?.winter?.allowedBoxKeys?.map(String)||['1','3','4','6']).includes(key)&&(layout.winterOrder||[]).map(String).includes(key):(layout.installedBoxes||[]).map(String).includes(key));
   const locations=[];
   for(const key of allKeys){
    const arr=getFrames(key);
