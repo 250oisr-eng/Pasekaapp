@@ -1010,3 +1010,24 @@ test('raw backup integrity rejects invalid family lifecycle fields',()=>{
  const result=inspectRawBackup(state);
  assert.ok(result.errors.some(error=>error.code==='invalid_non_offshoot_stage'));
 });
+
+test('raw backup integrity accepts a valid establishment date for an independent offshoot',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  families:[{id:'fam-1',hive:'h1',origin:'offshoot',stage:'independent',establishedAt:'2026-05-03',parentFamilyId:'archived-parent',parentFamilySnapshot:{id:'archived-parent'},box:null}],
+  layouts:{h1:{mode:'summer',installedBoxes:[],boxes:{},honeyFrames:[[],[]]}}
+ };
+ const result=inspectRawBackup(state);
+ assert.equal(result.errorCount,0,JSON.stringify(result.errors));
+});
+
+test('raw backup integrity rejects impossible calendar dates for independent offshoots',()=>{
+ const state={
+  ...rawBackupFixture(),hives:[{id:'h1',number:1}],
+  families:[{id:'fam-1',hive:'h1',origin:'offshoot',stage:'independent',establishedAt:'2026-02-30',parentFamilyId:'archived-parent',parentFamilySnapshot:{id:'archived-parent'},box:null}],
+  layouts:{h1:{mode:'summer',installedBoxes:[],boxes:{},honeyFrames:[[],[]]}}
+ };
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='invalid_family_established_date'));
+});
+
