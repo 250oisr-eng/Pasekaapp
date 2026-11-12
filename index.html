@@ -666,7 +666,7 @@ function buildAIContext(){
  const modelIntegrity=validateVirtualApiary();
  const hives=S.hives.map(h=>{
   const l=layoutFor(h.id),installed=Array.isArray(l.installedBoxes)?l.installedBoxes:[],honeyInstalled=Array.isArray(l.honeyBoxInstalled)&&l.honeyBoxInstalled.length===2&&l.honeyBoxInstalled.every(Boolean);
-  return {number:h.number,mode:l.mode||'summer',installedBoxes:installed,winterOrder:l.winterOrder||[],boxes:[1,2,3,4,5,6].map(n=>{
+  return {id:h.id,number:h.number,mode:l.mode||'summer',installedBoxes:installed,winterOrder:l.winterOrder||[],boxes:[1,2,3,4,5,6].map(n=>{
    const familyId=l.boxes[n]?.family||'',family=S.families.find(f=>f.id===familyId);
    return {number:n,installed:installed.includes(n),familyId,familyCode:family?.code||family?.name||'',familyName:family?.name||family?.code||'',frames:frameArray(l,n).map(fr=>({frameId:fr.frameId||'',type:fr.type||'',status:fr.status||'',location:fr.location||String(n),note:fr.note||fr.notes||'',history:(Array.isArray(fr.history)?fr.history:[]).slice(-5).map(event=>({date:event.date||'',action:event.action||'',from:event.from??null,to:event.to??null,reason:event.reason||''}))}))};
   }),honeyPair:{installed:honeyInstalled,frameGroups:(l.honeyFrames||[]).map((arr,i)=>({box:'H'+(i+1),frames:(Array.isArray(arr)?arr:[]).map(fr=>({frameId:fr.frameId||'',type:fr.type||'',status:fr.status||'',location:fr.location||('H'+(i+1)),note:fr.note||'',history:(Array.isArray(fr.history)?fr.history:[]).slice(-5).map(event=>({date:event.date||'',action:event.action||'',from:event.from??null,to:event.to??null,reason:event.reason||''}))}))}))}};
@@ -1293,6 +1293,33 @@ function applyFrameMovePlan(state,plan,date){
  draft.auditLog.push({id:'batch-'+(plan.commandId||plan.expectedRevision||'move')+'-'+draft.auditLog.length,type:'frames_moved_batch',at:new Date().toISOString(),moves:audit});
  if(draft.auditLog.length>500)draft.auditLog=draft.auditLog.slice(-500);
  return {ok:true,state:draft,moves:audit};
+}
+function validateAICommandProposal(state,proposal){
+ const fail=(code,details={})=>({status:'invalid',ok:false,errors:[{code,details}],clarifyingQuestions:[],plan:null});
+ if(!proposal||typeof proposal!=='object'||Array.isArray(proposal))return fail('ai_command_not_object');
+ if(proposal.schemaVersion!==1)return fail('ai_command_schema_unsupported',{schemaVersion:proposal.schemaVersion??null});
+ if(proposal.kind!=='move_frames')return fail('ai_command_kind_unsupported',{kind:proposal.kind??null});
+ if(!Array.isArray(proposal.moves)||!proposal.moves.length)return {status:'needs_clarification',ok:false,errors:[],clarifyingQuestions:['Уточни, какие именно рамки нужно переместить и куда.'],plan:null};
+ if(proposal.moves.length>24)return fail('ai_command_too_many_moves',{count:proposal.moves.length,maximum:24});
+ const questions=[],requests=[];
+ proposal.moves.forEach((move,index)=>{
+  if(!move||typeof move!=='object'||Array.isArray(move)){questions.push('Шаг '+(index+1)+': укажи рамку, улей и корпус назначения.');return}
+  const hiveId=typeof move.hiveId==='string'?move.hiveId.trim():'';
+  const frameId=typeof move.frameId==='string'?move.frameId.trim():'';
+  const toBox=move.toBox==null?'':String(move.toBox);
+  if(!hiveId)questions.push('Шаг '+(index+1)+': из какого улья перемещается рамка?');
+  else if(!state?.hives?.some(hive=>hive?.id===hiveId))return;
+  if(!frameId)questions.push('Шаг '+(index+1)+': какую именно рамку нужно переместить? Нужен её постоянный номер.');
+  if(!toBox)questions.push('Шаг '+(index+1)+': в какой физический корпус установить рамку?');
+  if(hiveId&&frameId&&toBox)requests.push({hiveId,frameId,toBox,fromBox:move.fromBox==null?'':String(move.fromBox)});
+ });
+ if(questions.length)return {status:'needs_clarification',ok:false,errors:[],clarifyingQuestions:[...new Set(questions)],plan:null};
+ for(const [index,move] of proposal.moves.entries()){
+  if(move?.hiveId&&!state?.hives?.some(hive=>hive?.id===move.hiveId))return fail('ai_command_hive_unknown',{index,hiveId:move.hiveId});
+ }
+ const plan=planFrameMoves(state,requests);
+ if(!plan.ok)return {status:'invalid',ok:false,errors:plan.errors,clarifyingQuestions:[],plan:null};
+ return {status:'ready_for_preview',ok:true,errors:[],clarifyingQuestions:[],plan:{...plan,commandId:typeof proposal.commandId==='string'&&proposal.commandId.trim()?proposal.commandId.trim():null,kind:'move_frames',explanation:typeof proposal.explanation==='string'?proposal.explanation.slice(0,500):''}};
 }
 async function moveFrame(){
  const hiveId=selectedStructureHive(),sourceKey=String(editingBox||''),targetKey=String($('frameMoveTo')?.value||''),layout=layoutFor(hiveId),frame=frameArray(layout,sourceKey)?.[editingFrame];
