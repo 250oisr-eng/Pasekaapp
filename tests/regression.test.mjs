@@ -1385,3 +1385,8 @@ test('hive detail keeps the hives navigation destination active',()=>{
  assert.match(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='hives'/);
  assert.doesNotMatch(paint,/tab==='hiveDetail'&&x\.dataset\.tab==='home'/);
 });
+
+test('hive directory uses correct Russian declension for the hive count',()=>{
+ const source=extractFunction('renderHiveDirectory');
+ assert.match(source,/ruPlural\(S\.hives\.length,'улей','улья','ульев'\)/);
+});
