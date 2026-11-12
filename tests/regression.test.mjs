@@ -1962,3 +1962,27 @@ test('AI chat preserves the reader scroll position and follows new messages only
  loadFunction('renderAIChat',{$:()=>following,S:{aiMessages:[{role:'user',content:'Latest message'}]},safe:String,renderAICommandPreview:()=>''})();
  assert.equal(following.scrollTop,1200,'a reader already at the bottom should follow the updated conversation');
 });
+
+
+test('IndexedDB open rejects a blocked upgrade and closes a late connection',async()=>{
+ const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}}};
+ const open=loadFunction('openDB',deps),pending=open();
+ request.onblocked();
+ await assert.rejects(pending,/занята другой вкладкой/i);
+ request.result=fakeDb;request.onsuccess();
+ assert.equal(fakeDb.closed,true);
+ assert.equal(deps.db,null);
+});
+
+test('IndexedDB connection closes on versionchange so another tab can upgrade',async()=>{
+ const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;request.onsuccess();
+ await pending;
+ assert.equal(deps.db,fakeDb);
+ fakeDb.onversionchange();
+ assert.equal(fakeDb.closed,true);
+ assert.equal(deps.db,null);
+});
