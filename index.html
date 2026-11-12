@@ -766,7 +766,7 @@ function buildAIContext(){
  const modelIntegrity=validateVirtualApiary();
  const hives=S.hives.map(h=>{
   const l=layoutFor(h.id),installed=Array.isArray(l.installedBoxes)?l.installedBoxes:[],honeyInstalled=Array.isArray(l.honeyBoxInstalled)&&l.honeyBoxInstalled.length===2&&l.honeyBoxInstalled.every(Boolean);
-  return {id:h.id,number:h.number,mode:l.mode||'summer',installedBoxes:installed,winterOrder:l.winterOrder||[],boxes:[1,2,3,4,5,6].map(n=>{
+  return {id:h.id,number:h.number,constructionProfile:getHiveProfile(h),mode:l.mode||'summer',installedBoxes:installed,winterOrder:l.winterOrder||[],boxes:[1,2,3,4,5,6].map(n=>{
    const familyId=l.boxes[n]?.family||'',family=S.families.find(f=>f.id===familyId);
    return {number:n,installed:installed.includes(n),familyId,familyCode:family?.code||family?.name||'',familyName:family?.name||family?.code||'',frames:frameArray(l,n).map(fr=>({frameId:fr.frameId||'',type:fr.type||'',status:fr.status||'',location:fr.location||String(n),note:fr.note||fr.notes||'',history:(Array.isArray(fr.history)?fr.history:[]).slice(-5).map(event=>({date:event.date||'',action:event.action||'',from:event.from??null,to:event.to??null,reason:event.reason||''}))}))};
   }),honeyPair:{installed:honeyInstalled,frameGroups:(l.honeyFrames||[]).map((arr,i)=>({box:'H'+(i+1),frames:(Array.isArray(arr)?arr:[]).map(fr=>({frameId:fr.frameId||'',type:fr.type||'',status:fr.status||'',location:fr.location||('H'+(i+1)),note:fr.note||'',history:(Array.isArray(fr.history)?fr.history:[]).slice(-5).map(event=>({date:event.date||'',action:event.action||'',from:event.from??null,to:event.to??null,reason:event.reason||''}))}))}))}};
