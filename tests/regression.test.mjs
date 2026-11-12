@@ -395,3 +395,49 @@ test('AI panel discloses speech-recognition privacy and keeps explicit send cont
   assert.ok(html.includes('аудио может обрабатываться внешним сервисом'));
   assert.ok(html.includes('id="aiSendButton"'));
 });
+
+
+test('journal draft from AI workspace opens an editable note and does not create a record',()=>{
+  const alerts=[],tabs=[],nodes={
+    aiJournalDraftInput:{value:' Осмотрел семью, увидел свежие яйца. '},
+    rtype:{value:''},rtext:{value:''},recordTitle:{textContent:''}
+  };
+  const state={hives:[{id:'hive-1'}],records:[]};
+  let opened=false,toggled=false;
+  const prepare=loadFunction('prepareJournalDraftFromAI',{
+    S:state,activeJournalHive:'',
+    $:id=>nodes[id]||{value:''},
+    alert:message=>alerts.push(message),
+    showTab:tab=>tabs.push(tab),
+    newRecord:()=>{opened=true},
+    toggleOccupancy:()=>{toggled=true}
+  });
+  prepare();
+  assert.equal(opened,true);
+  assert.equal(toggled,true);
+  assert.deepEqual(tabs,['journal']);
+  assert.equal(nodes.rtype.value,'Заметка');
+  assert.equal(nodes.rtext.value,'Осмотрел семью, увидел свежие яйца.');
+  assert.equal(nodes.recordTitle.textContent,'Черновик записи · проверь поля');
+  assert.equal(state.records.length,0);
+  assert.equal(alerts.length,0);
+});
+
+test('journal draft refuses empty descriptions and missing hives without opening a record',()=>{
+  const alerts=[];
+  let opened=0;
+  const nodes={aiJournalDraftInput:{value:'   '}};
+  const prepare=loadFunction('prepareJournalDraftFromAI',{
+    S:{hives:[],records:[]},activeJournalHive:'',
+    $:id=>nodes[id]||{value:''},
+    alert:message=>alerts.push(message),
+    showTab:()=>{},newRecord:()=>opened++,toggleOccupancy:()=>{}
+  });
+  prepare();
+  assert.equal(opened,0);
+  assert.match(alerts[0],/опиши наблюдение/);
+  nodes.aiJournalDraftInput.value='Осмотр';
+  prepare();
+  assert.equal(opened,0);
+  assert.match(alerts[1],/добавь улей/);
+});
