@@ -298,3 +298,34 @@ test('inline application JavaScript remains syntactically valid',()=>{
   assert.ok(start>=0&&end>start);
   assert.doesNotThrow(()=>new Function(html.slice(start+8,end)));
 });
+
+
+test('AI move preview becomes stale when a source or target family assignment changes',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const validate=loadFunction('validateAICommandProposal',{planFrameMoves:plan});
+  const revalidate=loadFunction('revalidateAICommandPreview',{validateAICommandProposal:validate});
+  const state=frameMoveFixture();
+  state.layouts.h1.boxes[1].family='family-a';
+  state.layouts.h1.boxes[3].family='family-b';
+  const proposal={schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]};
+  const reviewed=validate(state,proposal);
+  assert.equal(reviewed.status,'ready_for_preview');
+  state.layouts.h1.boxes[3].family='family-c';
+  state.meta.revisionId='rev-family-changed';
+  const checked=revalidate(state,proposal,reviewed.plan);
+  assert.equal(checked.ok,false);
+  assert.equal(checked.status,'stale');
+});
+
+test('batch frame move compares the executable plan with its reviewed preview',()=>{
+  const plan=loadFunction('planFrameMoves');
+  const apply=loadFunction('applyFrameMovePlan',{planFrameMoves:plan});
+  const state=frameMoveFixture(),before=JSON.stringify(state);
+  const prepared=plan(state,[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]);
+  prepared.moves[0].toBox='2';
+  prepared.preview[0].toBox='2';
+  const result=apply(state,prepared,'2026-11-12');
+  assert.equal(result.ok,false);
+  assert.equal(result.errors[0].code,'move_plan_changed');
+  assert.equal(JSON.stringify(state),before);
+});
