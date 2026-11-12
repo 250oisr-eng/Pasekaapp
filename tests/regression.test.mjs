@@ -1098,7 +1098,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:4}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:5}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:4},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,4);
@@ -1596,7 +1596,7 @@ test('frame inventory numbers are global, permanent, six digits and idempotent a
 });
 test('frame inventory integrity rejects duplicate and malformed physical labels and requires labels in schema 4',()=>{
  const inspect=loadFunction('inspectFrameInventoryIntegrity');
- const state={meta:{schemaVersion:4},layouts:{h1:{boxes:{1:{frames:[{frameId:'A',inventoryNumber:'000001'},{frameId:'B',inventoryNumber:'bad'}]}},honeyFrames:[[{frameId:'C',inventoryNumber:'000001'}],[]]}}};
+ const state={meta:{schemaVersion:4},layouts:{h1:{boxes:{1:{frames:[{frameId:'A',inventoryNumber:'000001'},{frameId:'B',inventoryNumber:'bad'}]}},honeyFrames:[[{frameId:'C',inventoryNumber:'000001'},{frameId:'D'}],[]]}}};
  const errors=inspect(state);
  assert.ok(errors.some(error=>error.code==='invalid_frame_inventory_number'));
  assert.ok(errors.some(error=>error.code==='duplicate_frame_inventory_number'));
@@ -1911,7 +1911,9 @@ test('JSON backup restore rejects corrupt source before confirmation or database
  const validateBackupState=loadFunction('validateBackupState');
  const validateRawBackupIntegrity=loadFunction('validateRawBackupIntegrity',{
   inspectFamilyLineage:loadFunction('inspectFamilyLineage'),
-  inspectTaskIntegrity:loadFunction('inspectTaskIntegrity')
+  inspectTaskIntegrity:loadFunction('inspectTaskIntegrity'),
+  inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),
+  inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')
  });
  const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity,inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')});
  const deps={
