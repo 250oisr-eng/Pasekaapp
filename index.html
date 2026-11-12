@@ -2363,6 +2363,10 @@ async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('
 function validateBackupState(state){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
+ if(state.meta!=null&&!isObject(state.meta))throw new Error('Повреждены метаданные архива');
+ const schemaVersion=state.meta?.schemaVersion;
+ if(schemaVersion!=null&&(!Number.isInteger(schemaVersion)||schemaVersion<1))throw new Error('Некорректная версия схемы архива');
+ if(schemaVersion>2)throw new Error('Архив создан более новой версией приложения (схема '+schemaVersion+'). Обнови приложение перед восстановлением.');
  for(const key of ['hives','families','records'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует корректный раздел: '+key);
  for(const key of ['tasks','extractions','snapshots','auditLog','aiMessages'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
  for(const key of ['meta','layouts'])if(state[key]!=null&&!isObject(state[key]))throw new Error('Повреждён раздел архива: '+key);
