@@ -1,4 +1,4 @@
-const ALLOWED_ORIGIN = 'https://250oisr-eng.github.io';
+const ALLOWED_ORIGINS = new Set(['https://250oisr-eng.github.io', 'https://localhost']);
 const AUTH_ISSUER = 'https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech';
 const JWKS_URL = 'https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech/paseka/auth/.well-known/jwks.json';
 const MODEL = '@cf/google/gemma-4-26b-a4b-it';
@@ -9,7 +9,7 @@ function json(data, status, origin) {
   return new Response(JSON.stringify(data), { status, headers: {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
-    'access-control-allow-origin': origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : 'null',
+    'access-control-allow-origin': ALLOWED_ORIGINS.has(origin) ? origin : 'null',
     'vary': 'Origin'
   }});
 }
@@ -55,10 +55,10 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get('origin') || '';
     if (request.method === 'OPTIONS') {
-      if (origin !== ALLOWED_ORIGIN) return new Response(null,{status:403});
-      return new Response(null,{status:204,headers:{'access-control-allow-origin':ALLOWED_ORIGIN,'access-control-allow-methods':'POST, OPTIONS','access-control-allow-headers':'authorization, content-type','access-control-max-age':'86400','vary':'Origin'}});
+      if (!ALLOWED_ORIGINS.has(origin)) return new Response(null,{status:403});
+      return new Response(null,{status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-methods':'POST, OPTIONS','access-control-allow-headers':'authorization, content-type','access-control-max-age':'86400','vary':'Origin'}});
     }
-    if (origin !== ALLOWED_ORIGIN) return json({error:'Forbidden origin'},403,origin);
+    if (!ALLOWED_ORIGINS.has(origin)) return json({error:'Forbidden origin'},403,origin);
     if (request.method !== 'POST') return json({error:'Method not allowed'},405,origin);
     if (!env.AI || typeof env.AI.run !== 'function') return json({error:'Не подключена привязка Workers AI (AI).'},503,origin);
     const auth = request.headers.get('authorization') || '';
