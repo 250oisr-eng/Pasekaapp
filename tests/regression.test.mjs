@@ -165,3 +165,31 @@ test('batch frame move rejects winter forbidden boxes and stale plans',()=>{
   assert.equal(stale.errors[0].code,'move_plan_stale');
   assert.deepEqual(summer.layouts.h1.boxes[1].frames.map(x=>x.frameId),['A','B']);
 });
+
+test('AI command proposal requires clarification when a frame reference is incomplete',()=>{
+  const validate=loadFunction('validateAICommandProposal',{planFrameMoves:loadFunction('planFrameMoves')});
+  const state=frameMoveFixture();
+  const result=validate(state,{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',toBox:'3'}]});
+  assert.equal(result.status,'needs_clarification');
+  assert.ok(result.clarifyingQuestions.some(question=>question.includes('рамку')));
+  assert.deepEqual(state.layouts.h1.boxes[1].frames.map(frame=>frame.frameId),['A','B']);
+});
+test('AI command proposal creates a validated preview but never mutates data',()=>{
+  const validate=loadFunction('validateAICommandProposal',{planFrameMoves:loadFunction('planFrameMoves')});
+  const state=frameMoveFixture(),before=JSON.stringify(state);
+  const result=validate(state,{schemaVersion:1,kind:'move_frames',commandId:'cmd-1',explanation:'Перенос рамки',moves:[{hiveId:'h1',frameId:'A',fromBox:'1',toBox:'3'}]});
+  assert.equal(result.status,'ready_for_preview');
+  assert.equal(result.plan.commandId,'cmd-1');
+  assert.equal(result.plan.moves[0].frameId,'A');
+  assert.equal(JSON.stringify(state),before);
+});
+test('AI command proposal rejects unknown hives, unsupported actions and invalid destinations',()=>{
+  const validate=loadFunction('validateAICommandProposal',{planFrameMoves:loadFunction('planFrameMoves')});
+  const state=frameMoveFixture();
+  assert.equal(validate(state,{schemaVersion:1,kind:'delete_hive'}).errors[0].code,'ai_command_kind_unsupported');
+  assert.equal(validate(state,{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'missing',frameId:'A',toBox:'3'}]}).errors[0].code,'ai_command_hive_unknown');
+  const invalid=validate(state,{schemaVersion:1,kind:'move_frames',moves:[{hiveId:'h1',frameId:'A',toBox:'5'}]});
+  assert.equal(invalid.status,'invalid');
+  assert.ok(invalid.errors.some(error=>error.code==='move_target_not_installed'));
+  assert.deepEqual(state.layouts.h1.boxes[1].frames.map(frame=>frame.frameId),['A','B']);
+});
