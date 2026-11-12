@@ -1332,11 +1332,12 @@ async function confirmFamilyTransfer(e){
  let saved=false,saveFailure='';
  try{saved=await save()}catch(e){saveFailure=e?.message||'Неизвестная ошибка сохранения'}
  if(!saved){
-  const saveError=S.meta?.saveError||saveFailure;
+  const saveError=S.meta?.saveError;
+  const failure=saveError||saveFailure;
   S=rollbackState;
   if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError}
   render();
-  alert('Перенос семьи отменён: данные не удалось сохранить. Исходное расположение и рамки восстановлены.'+(saveError?' Причина: '+saveError:''));
+  alert('Перенос семьи отменён: данные не удалось сохранить. Исходное расположение и рамки восстановлены.'+(failure?' Причина: '+failure:''));
   return;
  }
  $('familyTransferDlg').close();transferringFamilyId='';selectedHiveId=targetHiveId;activeJournalHive=targetHiveId;
