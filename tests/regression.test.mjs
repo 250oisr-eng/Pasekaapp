@@ -1297,3 +1297,14 @@ test('layout initialization creates physical frame arrays from the selected prof
  assert.equal(result.honeyFrames[0].length,8);
  assert.equal(result.honeyFrames[0][0].location,'M1');
 });
+
+test('profile assembly rejects removing a brood box that still owns a family',()=>{
+ const validateProfile=loadFunction('validateHiveProfile');
+ const clone=loadFunction('cloneHiveProfile');
+ const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
+ const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
+ const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
+ const layout={mode:'summer',installedBoxes:['B2'],winterOrder:[],honeyBoxInstalled:[],boxes:{B1:{family:'family-1',frames:[]},B2:{family:'',frames:[]}},honeyFrames:[]};
+ const result=validate(profile,layout);
+ assert.ok(result.errors.some(error=>error.code==='family_box_not_installed'));
+});
