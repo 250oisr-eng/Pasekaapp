@@ -501,6 +501,7 @@ function validateVirtualApiary(){
  }
  for(const [familyId,placements] of familyPlacements)if(placements.length>1)add(errors,'family_assigned_to_multiple_boxes',{familyId,placements});
  for(const family of S.families){
+  if(!family||typeof family!=='object'||!family.id)continue;
   const placements=familyPlacements.get(family.id)||[],hiveExists=S.hives.some(h=>h.id===family.hive);
   if(!hiveExists)add(errors,'family_hive_missing',{familyCode:family.code||family.name,hiveId:family.hive||''});
   if(placements.length&&(!placements.some(p=>p.hiveId===family.hive&&p.box===Number(family.box))))add(errors,'family_box_mismatch',{familyCode:family.code||family.name,hiveId:family.hive||'',box:family.box,actualPlacements:placements});
@@ -1219,7 +1220,7 @@ function validateBackupState(state){
  return state;
 }
 function validateRawBackupIntegrity(state){
- const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.map(f=>[f.id,f]));
+ const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f&&typeof f==='object'&&!Array.isArray(f)&&f.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
  const familyIds=new Set();familyRows.forEach(f=>{if(!f||typeof f!=='object'||!f.id){add('invalid_family_identity',{familyId:f?.id||null});return}if(familyIds.has(f.id))add('duplicate_family_id',{familyId:f.id});familyIds.add(f.id);if(f.parentFamilySnapshot&&f.parentFamilyId&&f.parentFamilySnapshot.id!==f.parentFamilyId)add('family_parent_snapshot_mismatch',{familyId:f.id,parentFamilyId:f.parentFamilyId,snapshotId:f.parentFamilySnapshot.id||null})});
  const layouts=state.layouts&&typeof state.layouts==='object'&&!Array.isArray(state.layouts)?state.layouts:{};
@@ -1282,6 +1283,7 @@ function validateRawBackupIntegrity(state){
   }
  }
  for(const family of state.families||[]){
+  if(!family||typeof family!=='object'||!family.id)continue;
   let cursor=family.parentFamilyId||'',seen=new Set([family.id]);
   while(cursor){
    if(seen.has(cursor)){add('family_lineage_cycle',{familyId:family.id,parentFamilyId:cursor});break}
