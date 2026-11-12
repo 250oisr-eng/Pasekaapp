@@ -79,7 +79,7 @@ export default {
     const history = Array.isArray(body.history) ? body.history.slice(-8).map(m=>({role:m?.role==='assistant'?'assistant':'user',content:String(m?.content||'').slice(0,2500)})) : [];
     const messages = [{role:'system',content:SYSTEM+'\n\nДАННЫЕ ПАСЕКИ:\n'+context},...history,{role:'user',content:question}];
     try {
-      const result = await env.AI.run(MODEL,{messages,max_tokens:900,temperature:0.25});
+      const result = await env.AI.run(MODEL,{messages,max_tokens:900,temperature:0.25,chat_template_kwargs:{enable_thinking:false}});
       const answer = result?.response || result?.text || result?.choices?.[0]?.message?.content || '';
       if (!answer) return json({error:'Модель не вернула текстовый ответ.'},502,origin);
       return json({answer:String(answer).slice(0,12000),provider:'Cloudflare Workers AI',model:MODEL},200,origin);
