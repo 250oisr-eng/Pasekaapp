@@ -1212,6 +1212,88 @@ function syncFrameStatus(){if($('frameStatus').value==='drawn')$('frameType').va
 function commitFrameEdit(){const l=layoutFor(selectedStructureHive()),hiveId=selectedStructureHive(),x=frameArray(l,editingBox)[editingFrame];if(!x)return;const next={type:$('frameType').value,status:$('frameStatus').value,note:$('frameNote').value};const previous={type:x.type,status:x.status,note:x.note||''};const changed=x.type!==next.type||x.status!==next.status||x.note!==next.note;if(changed){x.history=x.history||[];x.history.push({date:today(),action:'updated',from:previous,to:next});logAudit('frame_updated',{hiveId,box:editingBox,frameId:x.frameId,from:previous,to:next});Object.assign(x,next)}}
 function chooseFrame(i){commitFrameEdit();editingFrame=i;renderFrameEditor()}
 function addFrame(){const l=layoutFor(selectedStructureHive()),arr=frameArray(l,editingBox);if(arr.length>=frameCapacity(editingBox))return alert('Корпус заполнен');const fr={frameId:nextFrameId(l,editingBox),originBox:editingBox,location:editingBox,type:'foundation',status:'foundation',history:[]};arr.push(fr);editingFrame=arr.length-1;logAudit('frame_added',{hiveId:selectedStructureHive(),box:editingBox,frameId:fr.frameId});renderFrameEditor()}
+function planFrameMoves(state,requests){
+ const errors=[],moves=[],allowed=new Set(['1','2','3','4','5','6','H1','H2']);
+ const fail=(code,details={})=>errors.push({code,details});
+ if(!state||typeof state!=='object'||!Array.isArray(state.hives)||!Array.isArray(requests)||!requests.length)return {ok:false,errors:[{code:'invalid_move_request',details:{}}],moves:[]};
+ const seenRequests=new Set(),byHive=new Map();
+ for(const request of requests){
+  const hiveId=String(request?.hiveId||''),frameId=String(request?.frameId||''),toBox=String(request?.toBox||''),fromBox=request?.fromBox==null?'':String(request.fromBox);
+  if(!hiveId||!frameId||!allowed.has(toBox)||fromBox&&!allowed.has(fromBox)){fail('invalid_move_reference',{hiveId,frameId,fromBox,toBox});continue}
+  const requestKey=hiveId+'\u0000'+frameId;
+  if(seenRequests.has(requestKey)){fail('duplicate_move_request',{hiveId,frameId});continue}
+  seenRequests.add(requestKey);
+  const hive=state.hives.find(item=>item?.id===hiveId),layout=state.layouts?.[hiveId];
+  if(!hive||!layout||typeof layout!=='object'||Array.isArray(layout)){fail('move_hive_or_layout_missing',{hiveId,frameId});continue}
+  if(!['summer','winter'].includes(layout.mode||'summer')){fail('invalid_assembly_mode',{hiveId,mode:layout.mode});continue}
+  const boxes=layout.boxes, honey=layout.honeyFrames;
+  const getFrames=key=>key.startsWith('H')?(Array.isArray(honey)&&Array.isArray(honey[Number(key.slice(1))-1])?honey[Number(key.slice(1))-1]:null):(boxes&&typeof boxes==='object'&&!Array.isArray(boxes)&&boxes[key]&&Array.isArray(boxes[key].frames)?boxes[key].frames:null);
+  const installed=key=>key.startsWith('H')?layout.mode!=='winter'&&Array.isArray(layout.honeyBoxInstalled)&&layout.honeyBoxInstalled.length===2&&layout.honeyBoxInstalled.every(Boolean):(layout.mode==='winter'?(layout.winterOrder||[]).map(Number).includes(Number(key)):(layout.installedBoxes||[]).map(Number).includes(Number(key)));
+  const locations=[];
+  for(const key of ['1','2','3','4','5','6','H1','H2']){
+   const arr=getFrames(key);
+   if(!arr){fail('move_box_frames_missing',{hiveId,box:key});continue}
+   arr.forEach((frame,index)=>{if(frame?.frameId===frameId)locations.push({box:key,index,frame})});
+  }
+  if(locations.length!==1){fail(locations.length?'move_frame_id_ambiguous':'move_frame_not_found',{hiveId,frameId,matches:locations.length});continue}
+  const found=locations[0],actualFrom=found.box;
+  if(fromBox&&fromBox!==actualFrom){fail('move_source_mismatch',{hiveId,frameId,expected:fromBox,actual:actualFrom});continue}
+  if(actualFrom===toBox){fail('move_same_box',{hiveId,frameId,box:actualFrom});continue}
+  if(!installed(actualFrom)){fail('move_source_not_installed',{hiveId,frameId,box:actualFrom});continue}
+  if(!installed(toBox)){fail('move_target_not_installed',{hiveId,frameId,box:toBox});continue}
+  if(found.frame?.location!=null&&String(found.frame.location)!==actualFrom){fail('move_frame_location_mismatch',{hiveId,frameId,box:actualFrom,location:found.frame.location});continue}
+  if(!Array.isArray(found.frame?.history)){fail('move_frame_history_invalid',{hiveId,frameId});continue}
+  for(const key of ['1','2','3','4','5','6','H1','H2']){
+   const arr=getFrames(key);
+   if(arr?.some((frame,index)=>frame?.frameId===frameId&&!(key===actualFrom&&index===found.index))){fail('move_duplicate_frame_id',{hiveId,frameId,box:key});break}
+  }
+  const move={hiveId,frameId,fromBox:actualFrom,toBox,fromPosition:found.index+1};
+  moves.push(move);
+  if(!byHive.has(hiveId))byHive.set(hiveId,{layout,requests:[]});
+  byHive.get(hiveId).requests.push(move);
+ }
+ for(const [hiveId,entry] of byHive){
+  const {layout}=entry,counts=new Map();
+  for(const key of ['1','2','3','4','5','6','H1','H2']){
+   const arr=key.startsWith('H')?layout.honeyFrames?.[Number(key.slice(1))-1]:layout.boxes?.[key]?.frames;
+   if(!Array.isArray(arr))continue;
+   const outgoing=entry.requests.filter(move=>move.fromBox===key).length;
+   counts.set(key,arr.length-outgoing);
+  }
+  for(const move of entry.requests)counts.set(move.toBox,(counts.get(move.toBox)||0)+1);
+  for(const [key,count] of counts){const capacity=key.startsWith('H')?10:6;if(count>capacity)fail('move_target_over_capacity',{hiveId,box:key,count,capacity})}
+ }
+ return {ok:errors.length===0,errors,moves:errors.length?[]:moves,expectedRevision:state.meta?.revisionId||null,preview:errors.length?[]:moves.map(move=>({...move}))};
+}
+function applyFrameMovePlan(state,plan,date){
+ if(!plan?.ok||!Array.isArray(plan.moves)||!plan.moves.length)return {ok:false,errors:[{code:'move_plan_invalid',details:{}}]};
+ if((state?.meta?.revisionId||null)!==(plan.expectedRevision||null))return {ok:false,errors:[{code:'move_plan_stale',details:{expected:plan.expectedRevision||null,actual:state?.meta?.revisionId||null}}]};
+ const checked=planFrameMoves(state,plan.moves);
+ if(!checked.ok)return {ok:false,errors:checked.errors};
+ if(checked.moves.length!==plan.moves.length)return {ok:false,errors:[{code:'move_plan_changed',details:{}}]};
+ const draft=typeof structuredClone==='function'?structuredClone(state):JSON.parse(JSON.stringify(state));
+ const moved=[];
+ for(const move of checked.moves){
+  const layout=draft.layouts[move.hiveId],source=move.fromBox.startsWith('H')?layout.honeyFrames[Number(move.fromBox.slice(1))-1]:layout.boxes[move.fromBox].frames;
+  const index=source.findIndex(frame=>frame?.frameId===move.frameId);
+  if(index<0)return {ok:false,errors:[{code:'move_frame_disappeared',details:{hiveId:move.hiveId,frameId:move.frameId}}]};
+  const [frame]=source.splice(index,1);
+  moved.push({move,frame,position:index+1});
+ }
+ const audit=[];
+ for(const item of moved){
+  const {move,frame}=item,layout=draft.layouts[move.hiveId];
+  const target=move.toBox.startsWith('H')?layout.honeyFrames[Number(move.toBox.slice(1))-1]:layout.boxes[move.toBox].frames;
+  const toPosition=target.length+1;
+  frame.history.push({date:date||new Date().toISOString().slice(0,10),action:'move',from:{location:move.fromBox,position:item.position},to:{location:move.toBox,position:toPosition}});
+  frame.location=move.toBox;target.push(frame);
+  audit.push({hiveId:move.hiveId,frameId:move.frameId,from:{box:move.fromBox,position:item.position},to:{box:move.toBox,position:toPosition}});
+ }
+ draft.auditLog=Array.isArray(draft.auditLog)?draft.auditLog:[];
+ draft.auditLog.push({id:'batch-'+(plan.commandId||plan.expectedRevision||'move')+'-'+draft.auditLog.length,type:'frames_moved_batch',at:new Date().toISOString(),moves:audit});
+ if(draft.auditLog.length>500)draft.auditLog=draft.auditLog.slice(-500);
+ return {ok:true,state:draft,moves:audit};
+}
 async function moveFrame(){
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId),targetKey=String($('frameMoveTo').value||'');
  if(!['1','2','3','4','5','6','H1','H2'].includes(targetKey))return alert('Выбран некорректный корпус назначения.');
