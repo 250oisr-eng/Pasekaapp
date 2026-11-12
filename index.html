@@ -1103,8 +1103,8 @@ function extractInspectionFieldsFromText(input){
  const assign=(field,value,pattern)=>{const match=normalized.match(pattern);if(match&&fields[field]===undefined){fields[field]=value;evidence[field]=excerpt(match)}};
  const count=(pattern)=>{const match=normalized.match(pattern);if(!match)return null;const value=Number(match[1]);return Number.isInteger(value)&&value>=0&&value<=6?{value,excerpt:excerpt(match)}:null};
  const frameWord='рам(?:ка|ки|ок|ке|ках|ками)?';
- const occupancy=count(new RegExp('(?:занято|заняты|обсижено|обсиживают|пчелы занимают)\\s*(?:пчелами\\s*)?([0-6])\\s*'+frameWord,'i'))||
-  count(new RegExp('([0-6])\\s*'+frameWord+'\\s*(?:занято|заняты(?:\\s+пчелами)?|обсижено(?:\\s+пчелами)?)','i'))||
+ const occupancy=count(new RegExp('(?:занято|заняты|обсижено|обсижены|обсиживают|пчелы занимают)\\s*(?:пчелами\\s*)?([0-6])\\s*'+frameWord,'i'))||
+  count(new RegExp('([0-6])\\s*'+frameWord+'\\s*(?:занято|заняты(?:\\s+пчелами)?|обсижено|обсижены(?:\\s+пчелами)?)','i'))||
   count(new RegExp('на\\s+([0-6])\\s*'+frameWord+'\\s+(?:сидят|держатся)\\s+пчелы','i'));
  if(occupancy){fields.occupancy=occupancy.value;evidence.occupancy=occupancy.excerpt}
  const brood=count(new RegExp('(?:расплода|расплод)\\s*(?:на|—|:)\\s*([0-6])\\s*'+frameWord,'i'))||
@@ -1122,6 +1122,7 @@ function extractInspectionFieldsFromText(input){
  const eggsNo=/(?:свеж(?:их|ие)\s+)?яиц?\s+(?:нет|не\s+обнаружено)|яйц(?:а|о)\s+отсутствуют/i;
  if(eggsNo.test(normalized))assign('eggs','no',eggsNo);
  else if(eggsYes.test(normalized))assign('eggs','yes',eggsYes);
+ if(fields.queen==='notSeen'&&fields.eggs==='yes')fields.queen='eggs';
  const broodNone=/расплода\s+нет|нет\s+расплода|расплод\s+отсутствует/i;
  const broodWeak=/мало\s+расплода|расплода\s+мало|расплода\s+немного/i;
  const broodMosaic=/пестр(?:ый|ая|ота)|мозаичн(?:ый|ая)|пропуск(?:и|ов)\s+в\s+расплод|расплод\s+неравномерный/i;
