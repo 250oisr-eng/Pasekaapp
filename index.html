@@ -486,14 +486,21 @@ function writeAutoBackup(state,expectedRevision){return new Promise((ok,no)=>{le
 async function save(){
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};
  S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
- const lightRecords=S.records.map(({media,...r})=>r);
- const historical={hives:S.hives,families:S.families,records:lightRecords,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks};
- const frozenHistorical=typeof structuredClone==='function'?structuredClone(historical):JSON.parse(JSON.stringify(historical));
- S.snapshots.push({at:new Date().toISOString(),...frozenHistorical});
- S.snapshots=S.snapshots.slice(-12);
  let snapshot;
- try{snapshot=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
- catch(e){S.meta.saveError='Не удалось подготовить копию данных к сохранению';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Не закрывай приложение и скачай JSON-архив.');return false}
+ try{
+  const lightRecords=S.records.map(({media,...r})=>r);
+  const historical={hives:S.hives,families:S.families,records:lightRecords,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks};
+  const frozenHistorical=typeof structuredClone==='function'?structuredClone(historical):JSON.parse(JSON.stringify(historical));
+  const nextSnapshots=[...(S.snapshots||[]),{at:new Date().toISOString(),...frozenHistorical}].slice(-12);
+  const stateForSave={...S,snapshots:nextSnapshots};
+  snapshot=typeof structuredClone==='function'?structuredClone(stateForSave):JSON.parse(JSON.stringify(stateForSave));
+  S.snapshots=nextSnapshots;
+ }catch(e){
+  S.meta.saveError='Не удалось подготовить копию данных к сохранению';
+  render();
+  alert('ВНИМАНИЕ: '+S.meta.saveError+'. Не закрывай приложение и скачай JSON-архив.');
+  return false;
+ }
  const run=()=>persistSnapshot(snapshot);
  const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});return pending
 }
