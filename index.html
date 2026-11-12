@@ -1241,8 +1241,8 @@ function planFrameMoves(state,requests){
   if(actualFrom===toBox){fail('move_same_box',{hiveId,frameId,box:actualFrom});continue}
   if(!installed(actualFrom)){fail('move_source_not_installed',{hiveId,frameId,box:actualFrom});continue}
   if(!installed(toBox)){fail('move_target_not_installed',{hiveId,frameId,box:toBox});continue}
-  if(found.frame?.location!=null&&String(found.frame.location)!==actualFrom){fail('move_frame_location_mismatch',{hiveId,frameId,box:actualFrom,location:found.frame.location});continue}
-  if(!Array.isArray(found.frame?.history)){fail('move_frame_history_invalid',{hiveId,frameId});continue}
+  if(String(found.frame?.location??'')!==actualFrom){fail('move_frame_location_mismatch',{hiveId,frameId,box:actualFrom,location:found.frame?.location??null});continue}
+  if(!Array.isArray(found.frame?.history)||found.frame.history.some(event=>!event||typeof event!=='object'||Array.isArray(event))){fail('move_frame_history_invalid',{hiveId,frameId});continue}
   for(const key of ['1','2','3','4','5','6','H1','H2']){
    const arr=getFrames(key);
    if(arr?.some((frame,index)=>frame?.frameId===frameId&&!(key===actualFrom&&index===found.index))){fail('move_duplicate_frame_id',{hiveId,frameId,box:key});break}
@@ -1271,7 +1271,9 @@ function applyFrameMovePlan(state,plan,date){
  const checked=planFrameMoves(state,plan.moves);
  if(!checked.ok)return {ok:false,errors:checked.errors};
  if(checked.moves.length!==plan.moves.length)return {ok:false,errors:[{code:'move_plan_changed',details:{}}]};
- const draft=typeof structuredClone==='function'?structuredClone(state):JSON.parse(JSON.stringify(state));
+ let draft;
+ try{draft=typeof structuredClone==='function'?structuredClone(state):JSON.parse(JSON.stringify(state))}
+ catch{return {ok:false,errors:[{code:'move_state_clone_failed',details:{}}]}}
  const moved=[];
  for(const move of checked.moves){
   const layout=draft.layouts[move.hiveId],source=move.fromBox.startsWith('H')?layout.honeyFrames[Number(move.fromBox.slice(1))-1]:layout.boxes[move.fromBox].frames;
