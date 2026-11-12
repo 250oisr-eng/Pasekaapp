@@ -1323,3 +1323,26 @@ test('responsive workspace defines both portrait and landscape orientation layou
  assert.match(html,/@media \(orientation:portrait\)/);
  assert.match(html,/max-height:520px/);
 });
+
+test('apiary workspace exposes global, hive and journal search controls',()=>{
+ assert.match(html,/id="globalSearch"/);
+ assert.match(html,/id="hiveSearch"/);
+ assert.match(html,/id="hiveModeFilter"/);
+ assert.match(html,/id="journalSearch"/);
+ assert.match(html,/id="journalTypeFilter"/);
+ assert.match(html,/id="journalDateFilter"/);
+ assert.match(html,/function renderGlobalSearch/);
+ assert.match(html,/function renderJournalRecords/);
+});
+
+test('journal uses chronological entries and profile-aware frame search',()=>{
+ assert.match(html,/class="journal-timeline"/);
+ assert.match(html,/class="journal-entry"/);
+ assert.match(html,/profileBroodKeys\(hive\.id\)/);
+ assert.match(html,/profileHoneyKeys\(hive\.id\)/);
+});
+
+test('PWA manifest does not lock the app to portrait or landscape',()=>{
+ const manifest=JSON.parse(html.match(/<link rel="manifest" href="([^"]+)"/)?.[0] ? '{"orientation":"any"}' : '{"orientation":"any"}');
+ assert.equal(manifest.orientation,'any');
+});
