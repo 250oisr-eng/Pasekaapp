@@ -2328,15 +2328,15 @@ async function confirmHoneyReturn(){
   const saved=await save();
   if(!saved){
    const saveError=S.meta?.saveError;
-   S=originalState;S.meta=S.meta||{};
-   if(saveError)S.meta.saveError=saveError;
+   S=originalState;
+   if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError;}
    render();return false;
   }
  }catch(e){
   const failure=e?.message||'Неизвестная ошибка';
   const saveError=S.meta?.saveError;
-  S=originalState;S.meta=S.meta||{};
-  if(saveError)S.meta.saveError=saveError;
+  S=originalState;
+  if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError;}
   render();
   alert('Возврат медовых корпусов отменён: '+failure+'. Исходные данные восстановлены.');
   return false;
