@@ -1885,7 +1885,7 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   inspectFamilyLineage:loadFunction('inspectFamilyLineage'),
   inspectTaskIntegrity:loadFunction('inspectTaskIntegrity')
  });
- const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity});
+ const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity,inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity')});
  const deps={
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:corrupt})}]}),
