@@ -3,5 +3,8 @@
   "name": "paseka-ai",
   "main": "worker.js",
   "compatibility_date": "2026-11-12",
-  "ai": { "binding": "AI" }
+  "ai": {
+    "binding": "AI"
+  },
+  "workers_dev": true
 }
