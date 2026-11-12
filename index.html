@@ -446,6 +446,7 @@ async function sendAIQuestion(){
  try{
   let accessToken='';const sessionResult=await aiAuthClient.getSession({fetchOptions:{onSuccess:(ctx)=>{accessToken=ctx.response.headers.get('set-auth-jwt')||''}}});if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
   accessToken=accessToken||sessionResult.data?.session?.token||'';if(!accessToken)throw new Error('Вход выполнен, но Neon Auth не вернул JWT. Проверь соединение с сервером авторизации и повтори вход.');
+  const diagnostic=await fetch('https://br-solitary-glitter-b9ur69hv-pasekadiag.compute.c-7.eu-central-1.aws.neon.tech/',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:'{}'});const diagnosticData=await diagnostic.json().catch(()=>({}));if(!diagnostic.ok||!diagnosticData.ok)throw new Error('Проверка JWT Neon: '+(diagnosticData.error||'HTTP '+diagnostic.status));
   const r=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+accessToken},body:JSON.stringify({question,history,context:buildAIContext()})});
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Ошибка сервера ('+r.status+')');
   S.aiMessages.push({role:'assistant',content:String(data.answer||'ИИ не вернул ответ.'),at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();
