@@ -641,3 +641,58 @@ test('completeTask persists one linked journal record and blocks a repeated comp
  assert.equal(saves,1);
  assert.equal(state.records.length,1);
 });
+
+test('AI task planner requires real source records belonging to the selected hive',()=>{
+ const validate=loadFunction('validateAITaskSuggestionProposal');
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',text:'Матка не обнаружена'}],tasks:[]};
+ const base={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Проверка матки',date:null,note:'Провести повторную проверку матки.',rationale:'В записи осмотра указано, что матка не обнаружена.',sourceRecordIds:['r1']}]};
+ const good=validate(state,base);
+ assert.equal(good.status,'ready_for_preview');
+ assert.equal(good.plan.suggestions[0].date,null);
+ assert.equal(good.plan.suggestions[0].evidence[0].id,'r1');
+ const fabricated=structuredClone(base);fabricated.suggestions[0].sourceRecordIds=['invented'];
+ assert.equal(validate(state,fabricated).errors[0].code,'ai_task_evidence_not_found_or_mismatched');
+ const wrongHive=structuredClone(base);wrongHive.suggestions[0].hiveId='h2';
+ assert.equal(validate(state,wrongHive).errors[0].code,'ai_task_hive_missing');
+});
+test('AI task planner rejects invalid dates and duplicate active or repeated suggestions',()=>{
+ const validate=loadFunction('validateAITaskSuggestionProposal');
+ const base={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:'2026-02-30',note:'Повторный осмотр.',rationale:'Основание из журнала.',sourceRecordIds:['r1']}]};
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр'}],tasks:[]};
+ assert.equal(validate(state,base).errors[0].code,'ai_task_invalid_date');
+ const duplicate={...base,suggestions:[{...base.suggestions[0],date:null},{...base.suggestions[0],date:null}]};
+ assert.equal(validate(state,duplicate).errors[0].code,'ai_task_duplicate_in_proposal');
+ const active={...state,tasks:[{hive:'h1',type:'Осмотр',status:'pending'}]};
+ assert.equal(validate(active,{...duplicate,suggestions:[{...duplicate.suggestions[0],date:null}]}).errors[0].code,'ai_task_duplicate_active');
+});
+test('AI task preview becomes stale when its source journal record changes',()=>{
+ const validate=loadFunction('validateAITaskSuggestionProposal');
+ const revalidate=loadFunction('revalidateAITaskSuggestionPreview',{validateAITaskSuggestionProposal:validate});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1',date:'2026-11-10',type:'Осмотр',text:'Исходное наблюдение'}],tasks:[]};
+ const proposal={schemaVersion:1,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Проверка матки',date:null,note:'Проверить.',rationale:'По записи.',sourceRecordIds:['r1']}]};
+ const plan=validate(state,proposal).plan;
+ assert.equal(revalidate(state,proposal,plan).ok,true);
+ state.records[0].text='Изменённое наблюдение';
+ assert.equal(revalidate(state,proposal,plan).status,'stale');
+});
+test('AI task suggestions are not added until the explicit draft-apply step',()=>{
+ const validateDraft=loadFunction('validateTaskDraft');
+ const apply=loadFunction('applyAITaskSuggestionsToDraft',{validateTaskDraft:validateDraft});
+ const state={hives:[{id:'h1'}],records:[{id:'r1',hive:'h1'}],tasks:[],auditLog:[]};
+ const plan={ok:true,kind:'suggest_tasks',suggestions:[{hiveId:'h1',type:'Осмотр',date:null,note:'Повторно проверить.',rationale:'Есть основание.',sourceRecordIds:['r1']}]};
+ assert.equal(state.tasks.length,0);
+ const result=apply(state,plan,(()=>{let n=0;return()=> 'new-'+(++n)})(),'2026-11-12T12:00:00.000Z');
+ assert.equal(state.tasks.length,0);
+ assert.equal(result.ok,true);
+ assert.equal(result.state.tasks.length,1);
+ assert.equal(result.state.tasks[0].status,'suggested');
+ assert.equal(result.state.tasks[0].date,null);
+ assert.deepEqual(result.state.tasks[0].aiSourceRecordIds,['r1']);
+ assert.equal(result.state.auditLog[0].type,'ai_task_suggestions_created');
+});
+test('AI suggested tasks may remain undated until the user accepts them',()=>{
+ const validate=loadFunction('validateTaskDraft');
+ const state={hives:[{id:'h1'}],tasks:[]};
+ assert.equal(validate({id:'t1',hive:'h1',type:'Осмотр',date:null,note:'Проверить',source:'ai',status:'suggested'},state).ok,true);
+ assert.equal(validate({id:'t2',hive:'h1',type:'Осмотр',date:null,note:'Проверить',source:'manual',status:'pending'},state).ok,false);
+});
