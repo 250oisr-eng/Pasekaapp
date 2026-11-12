@@ -684,8 +684,8 @@ async function confirmFamilyTransfer(e){
  };
  preserveUniqueFrameIds(frames,targetLayout,targetNumber,fromHiveId,targetHiveId);
  preserveUniqueFrameIds(targetFrames,source.layout,fromBox,targetHiveId,fromHiveId);
- targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';
- sourceBox.family='';sourceBox.origin='';sourceBox.breed='Неизвестная';sourceBox.familyName='';sourceBox.parentFamilyId='';
+ targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';targetBox.parentFamilySnapshot=sourceBox.parentFamilySnapshot||family.parentFamilySnapshot||null;
+ sourceBox.family='';sourceBox.origin='';sourceBox.breed='Неизвестная';sourceBox.familyName='';sourceBox.parentFamilyId='';sourceBox.parentFamilySnapshot=null;
  family.hive=targetHiveId;family.box=targetNumber;
  const movedAt=new Date().toISOString();
  frames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'family_transfer',from:{hiveId:fromHiveId,box:fromBox},to:{hiveId:targetHiveId,box:targetNumber}});fr.location=String(targetNumber)});
