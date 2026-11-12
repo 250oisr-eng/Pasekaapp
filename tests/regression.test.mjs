@@ -304,7 +304,7 @@ test('AI frame move cancellation leaves the preview pending and changes nothing'
  state.aiMessages=[{commandProposal:proposal,commandContextFingerprint:fingerprint(state),commandStatus:'pending',commandPlan:preview.plan}];
  const before=JSON.stringify(state);
  let saves=0,renders=0;
- const deps={S:state,confirm:()=>false,aiCommandContextIsCurrent:(s,m)=>m.commandContextFingerprint===fingerprint(s),save:async()=>{saves++;return true},renderAIChat:()=>{renders++}};
+ const deps={S:state,confirm:()=>false,aiCommandContextIsCurrent:(s,m)=>m.commandContextFingerprint===fingerprint(s),frameLocationName:box=>'корпус '+box,save:async()=>{saves++;return true},renderAIChat:()=>{renders++}};
  await loadFunction('confirmAICommand',deps)(0);
  assert.equal(JSON.stringify(deps.S),before);
  assert.equal(deps.S.aiMessages[0].commandStatus,'pending');
