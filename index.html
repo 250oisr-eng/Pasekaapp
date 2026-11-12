@@ -287,7 +287,7 @@ function writeMainIfUnchanged(state,expectedRevision){
   }catch(e){no(e)}
  });
 }
-function writeAutoBackup(state){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readwrite');t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||new Error('Обновление автокопии прервано'))})}
+function writeAutoBackup(state,expectedRevision){return new Promise((ok,no)=>{let t=db.transaction([STORE,BACKUP_STORE],'readwrite'),written=false,q=t.objectStore(STORE).get('state');q.onsuccess=()=>{const current=q.result||null;if((current?.meta?.revisionId||null)!==expectedRevision)return;t.objectStore(BACKUP_STORE).put({at:new Date().toISOString(),state},'previous');written=true};q.onerror=()=>{try{t.abort()}catch(e){}};t.oncomplete=()=>ok(written);t.onerror=()=>no(t.error||new Error('Не удалось обновить автокопию'));t.onabort=()=>no(t.error||q.error||new Error('Обновление автокопии прервано'))})}
 async function save(){
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};
  S.meta.schemaVersion=2;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
@@ -308,9 +308,8 @@ async function persistSnapshot(state){
   lastPersistedRevision=state.meta?.revisionId||null;
   try{
    const backupState=previous||state;
-   await writeAutoBackup(backupState);
-   autoBackupInfo={at:new Date().toISOString()};
-   state.meta.autoBackupAt=autoBackupInfo.at;
+   const backupWritten=await writeAutoBackup(backupState,state.meta?.revisionId||null);
+   if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;}
    delete state.meta.autoBackupError;
   }catch(e){
    state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
@@ -1503,9 +1502,9 @@ async function restoreBackup(){
   const o=JSON.parse(await f.text()),restored=assertRawBackupIntegrity(validateBackupState(o.state||o));
   if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
   await saveQueue;
-  const current=await readMain();if(current){await writeAutoBackup(current);autoBackupInfo=await readAutoBackup()}
+  const current=await readMain();
   const oldState=S;S=restored;
-  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}await write();lastPersistedRevision=S.meta.revisionId}catch(e){S=oldState;throw e}
+  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainIfUnchanged(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous){try{if(await writeAutoBackup(previous,lastPersistedRevision))autoBackupInfo=await readAutoBackup()}catch(e){S.meta.autoBackupError='Не удалось обновить полную резервную копию'}}}catch(e){S=oldState;throw e}
   autoBackupRecovered=false;render();alert('Архив восстановлен. Текущее состояние до восстановления сохранено в автокопии.');
  }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
 }
@@ -1515,9 +1514,9 @@ async function restoreAutoBackup(){
   const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
   const restored=assertRawBackupIntegrity(validateBackupState(backup.state));
   if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
-  const current=await readMain();if(current)await writeAutoBackup(current);
+  const current=await readMain();
   const oldState=S;S=restored;
-  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}await write();lastPersistedRevision=S.meta.revisionId}catch(e){S=oldState;throw e}
+  try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainIfUnchanged(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous){try{if(await writeAutoBackup(previous,lastPersistedRevision))autoBackupInfo=await readAutoBackup()}catch(e){S.meta.autoBackupError='Не удалось обновить полную резервную копию'}}}catch(e){S=oldState;throw e}
   autoBackupRecovered=false;autoBackupInfo=await readAutoBackup();render();alert('Предыдущая полная автокопия восстановлена.');
  }catch(e){alert('Не удалось восстановить автокопию: '+(e.message||e))}
 }
