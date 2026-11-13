@@ -94,7 +94,7 @@ test('entrance video archive is available offline and stores blobs separately fr
   assert.match(html, /indexedDB\.open\(DB,3\)/);
   assert.match(html, /createObjectStore\('entrance_media',\{keyPath:'id'\}\)/);
   assert.match(html, /transaction\('entrance_media','readwrite'\)/);
-  assert.match(html, /Сервер анализа ещё не подключён/);
+  assert.match(html, /Техническая оценка кадров/);
 });
 
 test('entrance video preview releases the object URL on every dialog close path', () => {
@@ -151,7 +151,9 @@ test('entrance anomaly baseline never triggers with fewer than five comparable o
 test('entrance archive UI does not submit local video or blobs to a remote endpoint', () => {
   const archiveSection=html.slice(html.indexOf('data-tab="entrance"'));
   assert.match(archiveSection,/local_only|waiting_for_server/);
-  assert.match(archiveSection,/Сервер анализа ещё не подключён/);
+  assert.match(archiveSection,/inspectEntranceVideoFrameQuality/);
+  assert.match(archiveSection,/frameQualityCheck/);
+  assert.match(archiveSection,/Распознавание пчёл ещё не подключено/);
   assert.doesNotMatch(archiveSection,/fetch\s*\([^)]*(?:video|blob|entrance_media)/i);
 });
 
