@@ -30,19 +30,19 @@ function transitionVideoQueue(record,next,details={}){
  return {ok:true,record:updated};
 }
 function validateQueuedVideoRecord(record){
- const errors=[];
+ const issues=[];
  if(!record||typeof record!=='object')return {ok:false,errors:['record_invalid']};
- if(typeof record.id!=='string'||!record.id.trim())errors.push('id_missing');
- if(typeof record.hiveId!=='string'||!record.hiveId.trim())errors.push('hive_id_missing');
- if(!finite(Date.parse(record.capturedAt)))errors.push('captured_at_invalid');
- if(!finite(record.durationSec)||record.durationSec<20||record.durationSec>90)errors.push('duration_invalid');
- if(!Number.isInteger(record.width)||record.width<640||!Number.isInteger(record.height)||record.height<360)errors.push('resolution_invalid');
- if(!finite(record.bytes)||record.bytes<=0)errors.push('bytes_invalid');
- if(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0)errors.push('blob_missing');
- else if(finite(record.bytes)&&record.blob.size!==record.bytes)errors.push('blob_size_mismatch');
- if(typeof record.mimeType!=='string'||!record.mimeType.toLowerCase().startsWith('video/'))errors.push('mime_type_invalid');
- if(!VIDEO_QUEUE_STATES.includes(record.status))errors.push('status_invalid');
- return {ok:errors.length===0,errors};
+ if(typeof record.id!=='string'||!record.id.trim())issues.push('id_missing');
+ if(typeof record.hiveId!=='string'||!record.hiveId.trim())issues.push('hive_id_missing');
+ if(typeof record.capturedAt!=='string'||!Number.isFinite(Date.parse(record.capturedAt)))issues.push('captured_at_invalid');
+ if(typeof record.durationSec!=='number'||!Number.isFinite(record.durationSec)||record.durationSec<20||record.durationSec>90)issues.push('duration_invalid');
+ if(!Number.isInteger(record.width)||record.width<640||!Number.isInteger(record.height)||record.height<360)issues.push('resolution_invalid');
+ if(typeof record.bytes!=='number'||!Number.isFinite(record.bytes)||record.bytes<=0)issues.push('bytes_invalid');
+ if(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0)issues.push('blob_missing');
+ else if(typeof record.bytes==='number'&&record.blob.size!==record.bytes)issues.push('blob_size_mismatch');
+ if(typeof record.mimeType!=='string'||!record.mimeType.toLowerCase().startsWith('video/'))issues.push('mime_type_invalid');
+ if(!VIDEO_QUEUE_STATES.includes(record.status))issues.push('status_invalid');
+ return {ok:issues.length===0,errors:issues};
 }
 function canDeleteVideoOriginal(record){
  return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
