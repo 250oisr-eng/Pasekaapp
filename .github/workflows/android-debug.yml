@@ -13,6 +13,7 @@ on:
       - 'android/**'
       - 'scripts/**'
       - '.github/workflows/android-debug.yml'
+      - '.github/workflows/quality.yml'
 
 concurrency:
   group: android-${{ github.ref }}
