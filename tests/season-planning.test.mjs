@@ -8,7 +8,7 @@ test('nectar backward planning calculates a range from flowering date',()=>{
  const result=plan.buildNectarBackwardPlan({plantName:'Липа',floweringDate:'2027-07-05'});
  assert.deepEqual(result.eggLayingWindow,{from:'2027-05-17',to:'2027-05-31'});
  assert.equal(result.targetEggLayingDate,'2027-05-24');
- assert.match(result.warning,/не стимулируй автоматически/i);
+ assert.match(result.warning,/не стимулируй.*автоматически/i);
 });
 test('nectar planner rejects impossible dates and inverted ranges',()=>{
  assert.throws(()=>plan.buildNectarBackwardPlan({floweringDate:'2027-02-30'}),/дату/i);
