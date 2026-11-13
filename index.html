@@ -923,7 +923,7 @@ function openFrameReconciliation(){
 }
 async function saveFrameReconciliation(event){
  event?.preventDefault?.();const value=$('reconciliationTarget').value.split('|'),target=value[0]==='hive'?{type:'hive',hiveId:value[1],boxKey:value[2]}:{type:'storage',bodyId:value[1]},previous=cloneApiaryState();
- const result=PasekaReconciliation.record(S,{date:$('reconciliationDate').value,target,observedCodes:$('reconciliationCodes').value,notes:$('reconciliationNotes').value},PasekaLabels,new Date().toISOString());
+ const rawCodes=$('reconciliationCodes').value.trim(),normalized=rawCodes?PasekaReconciliationVoice.normalizeSpokenFrameCodes(rawCodes):{codes:[],issues:[],canNormalize:true};if(!normalized.canNormalize){refreshFrameReconciliationPreview();return alert('Не удалось однозначно прочитать все коды. Исправь сомнительные фрагменты вручную. Сверка не сохранена.');}const result=PasekaReconciliation.record(S,{date:$('reconciliationDate').value,target,observedCodes:normalized.codes, inputText:rawCodes,notes:$('reconciliationNotes').value},PasekaLabels,new Date().toISOString());
  if(!result.ok)return alert(({invalid_date:'Укажи правильную дату.',hive_not_found:'Улей больше не найден.',body_not_found:'Складской корпус больше не найден.'})[result.error]||'Не удалось записать сверку: '+result.error);
  logAudit('physical_frame_reconciliation_recorded',{inspectionId:result.inspection.id,target,issueCount:result.inspection.issues.length});
  if(!await save()){S=previous;render();return alert('Сверка не сохранена. Исходные данные восстановлены.')}
