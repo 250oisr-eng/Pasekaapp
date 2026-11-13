@@ -64,9 +64,9 @@ test('detector executor handles shutdown races and interrupted workers',()=>{
 });
 
 test('Android build keeps Android 10 compatible while compiling and targeting API 35',()=>{
- assert.match(androidWorkflow,/minSdkVersion: 23/);
+ assert.match(androidWorkflow,/minSdkVersion: 24/);
  assert.match(androidWorkflow,/compileSdkVersion: 35/);
  assert.match(androidWorkflow,/targetSdkVersion: 35/);
- assert.match(androidWorkflow,/min !== 23/);
+ assert.match(androidWorkflow,/min !== 24/);
  assert.doesNotMatch(androidWorkflow,/minSdkVersion: 35/);
 });
