@@ -40,7 +40,7 @@ function validateQueuedVideoRecord(record){
  if(!finite(record.bytes)||record.bytes<=0)errors.push('bytes_invalid');
  if(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0)errors.push('blob_missing');
  else if(finite(record.bytes)&&record.blob.size!==record.bytes)errors.push('blob_size_mismatch');
- if(typeof record.mimeType!=='string'||!/^video\\//i.test(record.mimeType))errors.push('mime_type_invalid');
+ if(typeof record.mimeType!=='string'||!record.mimeType.toLowerCase().startsWith('video/'))errors.push('mime_type_invalid');
  if(!VIDEO_QUEUE_STATES.includes(record.status))errors.push('status_invalid');
  return {ok:errors.length===0,errors};
 }
