@@ -1,14 +1,14 @@
 package ru.paseka.beedetector;
 
 import android.content.Context;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.Map;
 
 /**
- * Probes the bundled LiteRT runtime without introducing a Kotlin compiler
- * requirement into the Capacitor plugin module. The public CompiledModel API
- * is Kotlin-first; this bridge resolves Environment.create(Context) safely.
+ * Smoke-tests the bundled standalone LiteRT Environment API.
+ * This deliberately does not load a model or claim inference availability.
  */
 final class LiteRtRuntimeProbe {
     static final class Result {
@@ -27,13 +27,18 @@ final class LiteRtRuntimeProbe {
             Class<?> environmentClass =
                 Class.forName("com.google.ai.edge.litert.Environment");
             Method factory = findFactory(environmentClass);
-            Object receiver = null;
             if (!Modifier.isStatic(factory.getModifiers())) {
-                Field companionField = environmentClass.getField("Companion");
-                receiver = companionField.get(null);
+                return new Result(false);
             }
 
-            environment = factory.invoke(receiver, context.getApplicationContext());
+            // Standalone LiteRT exposes create(Context, Map, boolean), or create(Map).
+            if (factory.getParameterTypes().length == 3) {
+                environment = factory.invoke(
+                    null, context.getApplicationContext(), Collections.emptyMap(), false
+                );
+            } else {
+                environment = factory.invoke(null, Collections.emptyMap());
+            }
             if (environment == null) {
                 return new Result(false);
             }
@@ -58,11 +63,11 @@ final class LiteRtRuntimeProbe {
     private static Method findFactory(Class<?> environmentClass)
         throws ReflectiveOperationException {
         try {
-            return environmentClass.getMethod("create", Context.class);
-        } catch (NoSuchMethodException noStaticFactory) {
-            Class<?> companionClass = Class.forName(
-                environmentClass.getName() + "$Companion");
-            return companionClass.getMethod("create", Context.class);
+            return environmentClass.getMethod(
+                "create", Context.class, Map.class, boolean.class
+            );
+        } catch (NoSuchMethodException noContextFactory) {
+            return environmentClass.getMethod("create", Map.class);
         }
     }
 }
