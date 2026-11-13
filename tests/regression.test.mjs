@@ -2245,3 +2245,61 @@ test('voice inspection refuses an oversized note before changing any field',()=>
  assert.equal(nodes.roccupancy.value,'');
  assert.equal(nodes.rtext.value.length,12000);
 });
+
+test('voice parser recognizes explicit feeding and treatment field commands',()=>{
+ const parse=new Function(voiceParserSource+';return parseApiaryVoiceCommand;')();
+ assert.deepEqual(parse('Пасека, слушай, заполни поля подкормки: корм: сироп, состав: сахар и вода, количество: 1 л.'),{
+  type:'feeding_fields',text:'корм: сироп, состав: сахар и вода, количество: 1 л.'
+ });
+ assert.deepEqual(parse('Пасека, слушай, заполни поля обработки: препарат: Бипин, действующее вещество: амитраз.'),{
+  type:'treatment_fields',text:'препарат: Бипин, действующее вещество: амитраз.'
+ });
+ assert.equal(parse('Пасека, слушай, сколько дать сиропа?').type,'question');
+});
+test('journal operation parser maps only explicitly labelled feeding values',()=>{
+ const extract=new Function(voiceParserSource+';return extractJournalOperationFields;')();
+ const result=extract('корм: сироп, состав: сахар и вода, количество: 1 л, концентрация: 1:1, способ подачи: внутренняя кормушка','feeding');
+ assert.deepEqual(result.fields,{type:'сироп',substance:'сахар и вода',amount:'1 л',concentration:'1:1',method:'внутренняя кормушка'});
+ assert.equal(result.fieldCount,5);
+ assert.deepEqual(result.ambiguous,[]);
+});
+test('journal operation parser preserves treatment labels and validates control dates',()=>{
+ const extract=new Function(voiceParserSource+';return extractJournalOperationFields;')();
+ const result=extract('препарат: Бипин, действующее вещество: амитраз, способ применения: по инструкции, доза: только по этикетке, контроль: 20.11.2026','treatment');
+ assert.deepEqual(result.fields,{product:'Бипин',active:'амитраз',method:'по инструкции',dose:'только по этикетке',check:'2026-11-20'});
+ const invalid=extract('контроль: 31.02.2026','treatment');
+ assert.deepEqual(invalid.fields,{});
+ assert.deepEqual(invalid.ambiguous,['check']);
+});
+test('journal operation parser refuses conflicting duplicate labels',()=>{
+ const extract=new Function(voiceParserSource+';return extractJournalOperationFields;')();
+ const result=extract('количество: 1 л, количество: 2 л','feeding');
+ assert.deepEqual(result.fields,{});
+ assert.deepEqual(result.ambiguous,['amount']);
+});
+test('voice operation fields fill only empty inputs and retain original transcript without saving',()=>{
+ const nodes={rtext:{value:'Осмотр завершён.'},rtreatmentProduct:{value:''},rtreatmentActive:{value:'старое значение'},rtreatmentMethod:{value:''},rtreatmentDose:{value:''},rtreatmentCheck:{value:''},aiJournalExtractNotice:{textContent:'',style:{display:'none'}}};
+ const apply=loadFunction('applyVoiceOperationFieldsToOpenRecord',{
+  $:id=>nodes[id]||null,
+  extractJournalOperationFields:new Function(voiceParserSource+';return extractJournalOperationFields;')()
+ });
+ const result=apply('treatment','препарат: Бипин, действующее вещество: амитраз, доза: 1 мл');
+ assert.deepEqual(result.filled,['product','dose']);
+ assert.deepEqual(result.skipped,['active']);
+ assert.equal(nodes.rtreatmentProduct.value,'Бипин');
+ assert.equal(nodes.rtreatmentActive.value,'старое значение');
+ assert.equal(nodes.rtreatmentDose.value,'1 мл');
+ assert.equal(nodes.rtext.value,'Осмотр завершён.\\nпрепарат: Бипин, действующее вещество: амитраз, доза: 1 мл');
+ assert.match(nodes.aiJournalExtractNotice.textContent,/не сохранена/);
+});
+test('voice operation refuses to mutate form when note would exceed limit',()=>{
+ const nodes={rtext:{value:'x'.repeat(12000)},rfeedingType:{value:''}};
+ const apply=loadFunction('applyVoiceOperationFieldsToOpenRecord',{
+  $:id=>nodes[id]||null,
+  extractJournalOperationFields:new Function(voiceParserSource+';return extractJournalOperationFields;')()
+ });
+ const result=apply('feeding','корм: сироп');
+ assert.equal(result.reason,'note_limit');
+ assert.equal(nodes.rfeedingType.value,'');
+ assert.equal(nodes.rtext.value.length,12000);
+});
