@@ -883,14 +883,43 @@ async function installInventoryHoneyPair(pairId){
  await saveInventoryChange(previous);
 }
 
+let reconciliationEditedCodes=null,reconciliationEditedRaw=null;
 function reconciliationTargetLabel(target){if(target?.type==='hive')return hname(target.hiveId)+(target.boxKey&&target.boxKey!=='*'?' · '+frameLocationName(target.boxKey,target.hiveId):' · все корпуса');const body=S.equipmentInventory?.bodies?.[target?.bodyId];return 'Склад · корпус '+(body?.labelCode?PasekaLabels.formatLabelCode('body',body.labelCode):String(target?.bodyId||''));}
 function refreshFrameReconciliationPreview(){
  const field=$('reconciliationCodes'),preview=$('reconciliationVoicePreview');if(!field||!preview)return;
- const result=PasekaReconciliationVoice.normalizeSpokenFrameCodes(field.value);
- if(!field.value.trim()){preview.textContent='Здесь появится предварительное чтение произнесённых кодов.';return}
- if(result.codes.length&&result.issues.length){preview.textContent='Возможное чтение: '+result.preview+'. Есть сомнительные фрагменты — '+result.issues.map(x=>x.text||x.segment||x.type).join('; ')+'. Исходный текст не изменён.';return}
- if(result.canNormalize){preview.textContent='Возможное чтение: '+result.preview+'. Сверь каждый символ с этикетками. В поле остаётся исходная диктовка.';return}
- preview.textContent='Не удалось однозначно разобрать речь. Исходный текст сохранён без исправлений. Проверь и поправь его вручную.';
+ const raw=field.value,result=PasekaReconciliationVoice.normalizeSpokenFrameCodes(raw);
+ if(raw!==reconciliationEditedRaw){reconciliationEditedRaw=raw;reconciliationEditedCodes=result.codes.slice()}
+ preview.replaceChildren();
+ if(!raw.trim()){preview.textContent='Здесь появится предварительное чтение произнесённых кодов.';return}
+ if(!result.canNormalize){
+  preview.textContent=(result.codes.length?'Распознано без сомнений: '+result.preview+'. ':'')+'Есть сомнительные фрагменты — '+result.issues.map(x=>x.text||x.segment||x.type).join('; ')+'. Исправь исходный текст; сохранение заблокировано.';
+  return;
+ }
+ const intro=document.createElement('p');intro.textContent='Проверь код по этикетке. Каждый символ можно исправить отдельно; исходная диктовка останется без изменений.';preview.append(intro);
+ const list=document.createElement('div');list.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:8px 0';
+ reconciliationEditedCodes.forEach((code,index)=>{
+  const group=document.createElement('label');group.style.cssText='display:inline-flex;align-items:center;gap:4px;padding:6px 8px;border:1px solid var(--border,#bbb);border-radius:8px';
+  const caption=document.createElement('span');caption.textContent='Код '+(index+1);caption.style.marginRight='4px';group.append(caption);
+  [...String(code)].forEach((symbol,position)=>{
+   const input=document.createElement('input');input.type='text';input.maxLength=1;input.value=symbol;input.autocomplete='off';input.spellcheck=false;input.setAttribute('aria-label','Код '+(index+1)+', символ '+(position+1));input.style.cssText='width:2.2em;min-width:2.2em;text-align:center;text-transform:uppercase;padding:5px 2px';input.dataset.codeIndex=String(index);input.dataset.symbolIndex=String(position);input.addEventListener('input',()=>updateReconciliationCodeSymbol(input));group.append(input);
+  });
+  list.append(group);
+ });
+ preview.append(list);
+ const validation=PasekaReconciliationVoice.validateEditedFrameCodes(reconciliationEditedCodes);
+ const status=document.createElement('p');status.setAttribute('aria-live','polite');
+ if(validation.ok){status.textContent='Проверка пройдена. Будут сохранены исправленные коды: '+reconciliationEditedCodes.join(', ')+'. Исходная речь сохранится отдельно.'}
+ else{status.textContent='Есть неверные символы или неполные коды. Исправь их перед сохранением.'}
+ preview.append(status);
+}
+function updateReconciliationCodeSymbol(input){
+ const index=Number(input.dataset.codeIndex),position=Number(input.dataset.symbolIndex);if(!Number.isInteger(index)||!Number.isInteger(position)||!reconciliationEditedCodes?.[index])return;
+ const value=String(input.value||'').toLocaleUpperCase('ru-RU').slice(0,1);input.value=value;
+ const chars=[...String(reconciliationEditedCodes[index])];chars[position]=value;reconciliationEditedCodes[index]=chars.join('');
+ const validation=PasekaReconciliationVoice.validateEditedFrameCodes(reconciliationEditedCodes);
+ input.style.borderColor=validation.ok?'':'#c33';
+ const preview=$('reconciliationVoicePreview'),status=preview?.lastElementChild;
+ if(status)status.textContent=validation.ok?'Проверка пройдена. Будут сохранены исправленные коды: '+reconciliationEditedCodes.join(', ')+'. Исходная речь сохранится отдельно.':'Есть неверные символы или неполные коды. Исправь их перед сохранением.';
 }
 function appendFrameReconciliationVoice(transcript){
  const field=$('reconciliationCodes'),status=$('reconciliationVoiceStatus');if(!field)return {ok:false,error:'field_missing'};
@@ -919,11 +948,11 @@ function openFrameReconciliation(){
  const select=$('reconciliationTarget'),options=[];
  for(const hive of S.hives){const keys=[...profileBroodKeys(hive.id),...profileHoneyKeys(hive.id)];options.push('<option value="hive|'+safe(hive.id)+'|*">'+safe(hname(hive.id))+' · все корпуса</option>');for(const key of keys)options.push('<option value="hive|'+safe(hive.id)+'|'+safe(key)+'">'+safe(hname(hive.id))+' · '+safe(frameLocationName(key,hive.id))+'</option>')}
  for(const body of Object.values(S.equipmentInventory?.bodies||{}))if(Array.isArray(body.frames)&&body.frames.some(f=>f?.labelCode))options.push('<option value="storage|'+safe(body.id)+'">'+safe(reconciliationTargetLabel({type:'storage',bodyId:body.id}))+'</option>');
- select.innerHTML=options.join('');if(!options.length)return alert('Сначала добавь улей или складской корпус.');$('reconciliationDate').value=today();$('reconciliationCodes').value='';$('reconciliationNotes').value='';$('frameReconciliationDlg').showModal();
+ select.innerHTML=options.join('');if(!options.length)return alert('Сначала добавь улей или складской корпус.');$('reconciliationDate').value=today();$('reconciliationCodes').value='';$('reconciliationNotes').value='';reconciliationEditedCodes=null;reconciliationEditedRaw=null;refreshFrameReconciliationPreview();$('frameReconciliationDlg').showModal();
 }
 async function saveFrameReconciliation(event){
  event?.preventDefault?.();const value=$('reconciliationTarget').value.split('|'),target=value[0]==='hive'?{type:'hive',hiveId:value[1],boxKey:value[2]}:{type:'storage',bodyId:value[1]},previous=cloneApiaryState();
- const rawCodes=$('reconciliationCodes').value.trim(),normalized=rawCodes?PasekaReconciliationVoice.normalizeSpokenFrameCodes(rawCodes):{codes:[],issues:[],canNormalize:true};if(!normalized.canNormalize){refreshFrameReconciliationPreview();return alert('Не удалось однозначно прочитать все коды. Исправь сомнительные фрагменты вручную. Сверка не сохранена.');}const result=PasekaReconciliation.record(S,{date:$('reconciliationDate').value,target,observedCodes:normalized.codes, inputText:rawCodes,notes:$('reconciliationNotes').value},PasekaLabels,new Date().toISOString());
+ const rawCodes=$('reconciliationCodes').value.trim(),normalized=rawCodes?PasekaReconciliationVoice.normalizeSpokenFrameCodes(rawCodes):{codes:[],issues:[],canNormalize:true},editedCurrent=reconciliationEditedRaw===$('reconciliationCodes').value,observedCodes=editedCurrent&&Array.isArray(reconciliationEditedCodes)?reconciliationEditedCodes.slice():normalized.codes,editedValidation=rawCodes?PasekaReconciliationVoice.validateEditedFrameCodes(observedCodes):{ok:true};if(!normalized.canNormalize||!editedValidation.ok){refreshFrameReconciliationPreview();return alert(!normalized.canNormalize?'Не удалось однозначно прочитать все коды. Исправь сомнительные фрагменты в исходном тексте. Сверка не сохранена.':'В исправленных кодах есть недопустимые символы или неполная запись. Сверка не сохранена.');}const result=PasekaReconciliation.record(S,{date:$('reconciliationDate').value,target,observedCodes,inputText:rawCodes,notes:$('reconciliationNotes').value},PasekaLabels,new Date().toISOString());
  if(!result.ok)return alert(({invalid_date:'Укажи правильную дату.',hive_not_found:'Улей больше не найден.',body_not_found:'Складской корпус больше не найден.'})[result.error]||'Не удалось записать сверку: '+result.error);
  logAudit('physical_frame_reconciliation_recorded',{inspectionId:result.inspection.id,target,issueCount:result.inspection.issues.length});
  if(!await save()){S=previous;render();return alert('Сверка не сохранена. Исходные данные восстановлены.')}
