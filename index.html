@@ -1201,7 +1201,7 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Отменить и удалить исходник</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
@@ -1240,8 +1240,19 @@ async function handleEntranceVideoFile(files){
  if(status)status.textContent='Проверяю резкость, освещение и изменение изображения по кадрам…';
  const frameQuality=await inspectEntranceVideoFrameQuality(file);
  try{
-  const estimate=await navigator.storage?.estimate?.();
-  if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
+  const storage=navigator.storage;
+  let persistent=false;
+  if(storage?.persisted)try{persistent=await storage.persisted()}catch{}
+  if(!persistent&&storage?.persist){
+   try{persistent=await storage.persist()}catch{persistent=false}
+  }
+  const estimate=await storage?.estimate?.();
+  const capacity=PasekaEntranceAnalysis.assessStorageCapacity({
+   quota:estimate?.quota,usage:estimate?.usage,requiredBytes:file.size,persistent
+  });
+  if(!capacity.ok)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
+  if(!persistent&&!confirm('Хранилище браузера не защищено от автоматической очистки. Видео может быть удалено системой до завершения анализа. Продолжить и сохранить временный исходник?'))return;
+  if(status&&!persistent)status.textContent='Внимание: браузер не подтвердил постоянное хранилище. Не закрывай и не очищай данные приложения до завершения анализа.';
  }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
  const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
  try{
@@ -1257,7 +1268,7 @@ let entrancePreviewUrl=null;
 function cleanupEntranceVideoPreview(){const video=$('entranceVideoPreview');if(video){video.pause();video.removeAttribute('src');video.load()}if(entrancePreviewUrl){URL.revokeObjectURL(entrancePreviewUrl);entrancePreviewUrl=null}}
 function closeEntranceVideoPreview(){const dialog=$('entranceVideoPreviewDlg');if(dialog?.open)dialog.close();cleanupEntranceVideoPreview()}
 async function removeEntranceVideo(id){
- if(!confirm('Удалить оригинал видео с этого устройства? Это действие нельзя отменить.'))return;
+ if(!confirm('Отменить ожидание анализа и удалить временный исходник с этого устройства? Это действие нельзя отменить.'))return;
  try{await deleteEntranceVideoBlob(id);await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Видео удалено с устройства.'}catch(error){alert(error.message||'Не удалось удалить видео')}
 }
 function toggleVarroaFields(){const board=$('varroaType')?.value==='sticky_board';$('varroaAdultFields').hidden=board;$('varroaBoardFields').hidden=!board}
