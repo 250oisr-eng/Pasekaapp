@@ -105,7 +105,7 @@ test('entrance video archive is available offline and stores blobs separately fr
   assert.match(html, /indexedDB\.open\(DB,3\)/);
   assert.match(html, /createObjectStore\('entrance_media',\{keyPath:'id'\}\)/);
   assert.match(html, /transaction\('entrance_media','readwrite'\)/);
-  assert.match(html, /Техническая оценка кадров/);
+  assert.match(html, /Техническое качество кадров:/);
 });
 
 test('entrance video preview releases the object URL on every dialog close path', () => {
