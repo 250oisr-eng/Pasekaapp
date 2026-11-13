@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const parserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
+const sessionSource = await readFile(new URL('../js/voice-session.js', import.meta.url), 'utf8');
 const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const webPrepareScript = await readFile(new URL('../scripts/prepare-web.mjs', import.meta.url), 'utf8');
 
@@ -11,11 +12,16 @@ function loadVoiceParser() {
   return new Function(parserSource + '\nreturn parseApiaryVoiceCommand;')();
 }
 
+function loadVoiceSession(windowRef, deps = {}) {
+  const factory = new Function('window', sessionSource + '\nreturn window.PasekaVoiceSession.createApiaryVoiceSession;')(windowRef);
+  return factory({ windowRef, getElement: () => null, ...deps });
+}
+
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
   assert.ok(match, 'Function not found: ' + name);
-const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
+  const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
   next.lastIndex = match.index + match[0].length;
   const end = next.exec(html);
   return html.slice(match.index, end ? end.index : html.indexOf('</script>', match.index));
@@ -25,13 +31,14 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + extractFunction(name) + '); }')(globals);
 }
 
-
-test('standalone voice parser is loaded before the app and precached for offline startup', () => {
+test('voice modules load before the app and are precached and packaged for offline use', () => {
   const parserScript = html.indexOf('<script src="./js/voice-command-parser.js"></script>');
-  const appScript = html.indexOf('<script>', parserScript);
-  assert.ok(parserScript >= 0 && appScript > parserScript);
-  assert.match(serviceWorker, /paseka-shell-v256/);
+  const sessionScript = html.indexOf('<script src="./js/voice-session.js"></script>');
+  const appScript = html.indexOf('<script>', sessionScript);
+  assert.ok(parserScript >= 0 && sessionScript > parserScript && appScript > sessionScript);
+  assert.match(serviceWorker, /paseka-shell-v257/);
   assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
+  assert.match(serviceWorker, /\.\/js\/voice-session\.js/);
   assert.match(webPrepareScript, /cp\("js", "www\/js", \{ recursive: true \}\)/);
 });
 
@@ -70,26 +77,23 @@ test('voice parser maps confirmation, cancellation, repeat and stop to explicit 
   assert.deepEqual(parse('   '), { type: 'ignore' });
 });
 
-test('continuous voice recognition forwards final results only and schedules a safe restart', () => {
+test('voice session starts continuous Russian recognition and forwards final results only', () => {
   let recognition;
   const forwarded = [];
   const scheduled = [];
+  const statuses = [];
   class MockRecognition {
     constructor() { recognition = this; }
     start() { this.started = true; }
     stop() { this.stopped = true; }
   }
-  const deps = {
-    window: { SpeechRecognition: MockRecognition },
-    apiaryVoiceSessionActive: true,
-    apiaryVoiceSpeaking: false,
-    apiaryVoiceRecognition: null,
-    apiaryVoiceArmed: false,
-    apiaryVoiceStatus(message) { this.status = message; },
-    handleApiaryVoiceTranscript(value) { forwarded.push(value); },
-    setTimeout(callback, delay) { scheduled.push({ callback, delay }); }
-  };
-  loadFunction('startApiaryVoiceRecognition', deps)();
+  const windowRef = { SpeechRecognition: MockRecognition };
+  const session = loadVoiceSession(windowRef, {
+    onTranscript: value => forwarded.push(value),
+    onStatus: value => statuses.push(value),
+    setTimer(callback, delay) { scheduled.push({ callback, delay }); }
+  });
+  assert.equal(session.start(), true);
   assert.ok(recognition.started);
   assert.equal(recognition.lang, 'ru-RU');
   assert.equal(recognition.continuous, true);
@@ -103,37 +107,61 @@ test('continuous voice recognition forwards final results only and schedules a s
   });
   assert.deepEqual(forwarded, ['Пасека, слушай']);
   recognition.onend();
-  assert.equal(deps.apiaryVoiceRecognition, null);
+  assert.equal(session.state.recognition, null);
   assert.equal(scheduled.length, 1);
   assert.equal(scheduled[0].delay, 350);
 });
 
-test('voice recognition permission denial stops the session instead of retrying forever', () => {
-  let stopped = false;
-  const deps = {
-    window: { SpeechRecognition: class { start() {} } },
-    apiaryVoiceSessionActive: true,
-    apiaryVoiceSpeaking: false,
-    apiaryVoiceRecognition: null,
-    apiaryVoiceArmed: false,
-    apiaryVoiceStatus(message) { this.status = message; },
-    stopApiaryVoiceSession() { stopped = true; this.apiaryVoiceSessionActive = false; }
-  };
-  loadFunction('startApiaryVoiceRecognition', deps)();
-  const recognition = deps.apiaryVoiceRecognition;
-  assert.ok(recognition);
+test('voice session stops after microphone permission denial', () => {
+  let recognition;
+  const statuses = [];
+  class MockRecognition {
+    constructor() { recognition = this; }
+    start() {}
+    stop() { this.stopped = true; }
+  }
+  const session = loadVoiceSession({ SpeechRecognition: MockRecognition }, {
+    onStatus: value => statuses.push(value)
+  });
+  session.start();
   recognition.onerror({ error: 'not-allowed' });
-  assert.equal(stopped, true);
-  assert.match(deps.status, /Нет разрешения на микрофон/);
+  assert.equal(session.state.active, false);
+  assert.equal(recognition.stopped, true);
+  assert.match(statuses.join(' '), /Нет разрешения на микрофон/);
 });
 
+test('stopping voice session releases microphone, cancels speech and resets controls', () => {
+  let microphoneStopped = false;
+  let speechCancelled = false;
+  const button = { textContent: '■ Завершить сеанс', classList: { add(value) { this.added = value; }, remove() {} } };
+  const recognition = { start() {}, stop() { microphoneStopped = true; } };
+  class MockUtterance {}
+  const windowRef = {
+    SpeechRecognition: class { constructor() { return recognition; } },
+    speechSynthesis: { cancel() { speechCancelled = true; }, speak() {} }
+  };
+  const session = loadVoiceSession(windowRef, {
+    getElement(id) { return id === 'aiVoiceSessionButton' ? button : null; },
+    getUtterance: MockUtterance
+  });
+  session.start();
+  session.arm(10000);
+  session.stop();
+  assert.equal(session.state.active, false);
+  assert.equal(session.state.armed, false);
+  assert.equal(session.state.armExpiresAt, 0);
+  assert.equal(session.state.recognition, null);
+  assert.equal(microphoneStopped, true);
+  assert.equal(speechCancelled, true);
+  assert.equal(button.textContent, '🎙 Начать сеанс');
+  assert.equal(button.classList.added, 'primary');
+});
 
 test('voice confirmation cannot apply anything when there is no pending AI operation', async () => {
   let confirmationCalls = 0;
   const spoken = [];
   const deps = {
-    apiaryVoiceArmed: true,
-    apiaryVoiceArmExpiresAt: Date.now() + 10000,
+    apiaryVoiceSession: { isArmed: () => true, clearArmed() {}, arm() {} },
     S: { aiMessages: [] },
     parseApiaryVoiceCommand: loadVoiceParser(),
     apiaryVoiceStatus(message) { this.status = message; },
@@ -151,8 +179,7 @@ test('voice confirmation delegates to the normal plan revalidation path with exp
   const spoken = [];
   const message = { role: 'assistant', commandStatus: 'pending' };
   const deps = {
-    apiaryVoiceArmed: true,
-    apiaryVoiceArmExpiresAt: Date.now() + 10000,
+    apiaryVoiceSession: { isArmed: () => true, clearArmed() {}, arm() {} },
     S: { aiMessages: [message] },
     parseApiaryVoiceCommand: loadVoiceParser(),
     apiaryVoiceStatus(value) { this.status = value; },
@@ -167,32 +194,4 @@ test('voice confirmation delegates to the normal plan revalidation path with exp
   assert.deepEqual(calls, [{ index: 0, voiceConfirmed: true }]);
   assert.match(deps.status, /Операция подтверждена и сохранена/);
   assert.deepEqual(spoken, ['Операция подтверждена и сохранена.']);
-});
-
-test('stopping voice session releases microphone, cancels speech and resets controls', () => {
-  let microphoneStopped = false;
-  let speechCancelled = false;
-  const button = { textContent: '■ Завершить сеанс', classList: { add(value) { this.added = value; } } };
-  const recognition = { stop() { microphoneStopped = true; } };
-  const deps = {
-    apiaryVoiceSessionActive: true,
-    apiaryVoiceArmed: true,
-    apiaryVoiceArmExpiresAt: Date.now() + 1000,
-    apiaryVoiceRecognition: recognition,
-    apiaryVoiceSpeaking: true,
-    window: { speechSynthesis: { cancel() { speechCancelled = true; } } },
-    $(id) { return id === 'aiVoiceSessionButton' ? button : null; },
-    apiaryVoiceStatus(message) { this.status = message; }
-  };
-  loadFunction('stopApiaryVoiceSession', deps)();
-  assert.equal(deps.apiaryVoiceSessionActive, false);
-  assert.equal(deps.apiaryVoiceArmed, false);
-  assert.equal(deps.apiaryVoiceArmExpiresAt, 0);
-  assert.equal(deps.apiaryVoiceRecognition, null);
-  assert.equal(deps.apiaryVoiceSpeaking, false);
-  assert.equal(microphoneStopped, true);
-  assert.equal(speechCancelled, true);
-  assert.equal(button.textContent, '🎙 Начать сеанс');
-  assert.equal(button.classList.added, 'primary');
-  assert.match(deps.status, /Сеанс выключен/);
 });
