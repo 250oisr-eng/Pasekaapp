@@ -2303,3 +2303,22 @@ test('voice operation refuses to mutate form when note would exceed limit',()=>{
  assert.equal(nodes.rfeedingType.value,'');
  assert.equal(nodes.rtext.value.length,12000);
 });
+
+test('treatment voice parser extracts label waiting period and batch without calculating them',()=>{
+ const extract=new Function(voiceParserSource+';return extractJournalOperationFields;')();
+ const result=extract('препарат: Название с упаковки, срок ожидания по этикетке: 14 дней, номер партии: АБ123','treatment');
+ assert.deepEqual(result.fields,{product:'Название с упаковки',waiting:'14 дней',batch:'АБ123'});
+ assert.deepEqual(result.ambiguous,[]);
+});
+test('treatment waiting period and batch fields preserve existing values',()=>{
+ const nodes={rtext:{value:''},rtreatmentProduct:{value:''},rtreatmentWaiting:{value:'уже записано'},rtreatmentBatch:{value:''},aiJournalExtractNotice:{textContent:'',style:{display:'none'}}};
+ const apply=loadFunction('applyVoiceOperationFieldsToOpenRecord',{
+  $:id=>nodes[id]||null,
+  extractJournalOperationFields:new Function(voiceParserSource+';return extractJournalOperationFields;')()
+ });
+ const result=apply('treatment','срок ожидания: 14 дней, партия: АБ123');
+ assert.deepEqual(result.filled,['batch']);
+ assert.deepEqual(result.skipped,['waiting']);
+ assert.equal(nodes.rtreatmentWaiting.value,'уже записано');
+ assert.equal(nodes.rtreatmentBatch.value,'АБ123');
+});
