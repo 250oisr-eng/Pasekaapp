@@ -101,3 +101,55 @@ test('entrance video preview releases the object URL on every dialog close path'
   assert.match(html, /function cleanupEntranceVideoPreview\(\)/);
   assert.match(html, /URL\.revokeObjectURL\(entrancePreviewUrl\)/);
 });
+
+
+test('entrance frame quality refuses to score insufficient or malformed samples', () => {
+  assert.deepEqual(entrance.assessFrameQuality([]), {status:'unknown',score:null,flags:['insufficient_samples']});
+  assert.equal(entrance.assessFrameQuality([{brightness:0.5,sharpness:80,motion:0.01}]).status,'unknown');
+  const malformed=entrance.assessFrameQuality([
+    {brightness:NaN,sharpness:80,motion:0.01},
+    {brightness:0.5,sharpness:80,motion:0.01},
+    {brightness:0.5,sharpness:80,motion:0.01}
+  ]);
+  assert.equal(malformed.status,'unknown');
+  assert.ok(malformed.flags.includes('invalid_samples'));
+});
+
+test('entrance metadata accepts supported boundary values and rejects unsupported MIME types', () => {
+  const boundary=entrance.assessVideoMetadata({durationSec:20,width:640,height:360,bytes:250*1024*1024,mimeType:'video/mp4'});
+  assert.equal(boundary.ok,true);
+  const unsupported=entrance.assessVideoMetadata({durationSec:60,width:1920,height:1080,bytes:1000,mimeType:'application/octet-stream'});
+  assert.equal(unsupported.ok,false);
+  assert.ok(unsupported.errors.some(x=>x.code==='unsupported_video_type'));
+});
+
+test('entrance metrics reject invalid duration and apply confidence threshold consistently', () => {
+  assert.equal(entrance.computeMetrics([],0).ok,false);
+  const result=entrance.computeMetrics([
+    {id:'a',className:'bee',direction:'in',confidence:0.59,pollen:true,pollenConfidence:0.99},
+    {id:'b',className:'bee',direction:'in',confidence:0.6,pollen:true,pollenConfidence:0.6},
+    {id:'c',className:'bee',direction:'in',confidence:0.95,pollen:false,pollenConfidence:0.95}
+  ],30,{confidenceThreshold:0.6});
+  assert.equal(result.counts.returningBeeTracks,2);
+  assert.equal(result.counts.incomingPerMinute,4);
+  assert.equal(result.counts.pollenCarriers,1);
+  assert.equal(result.counts.pollenNegative,1);
+  assert.equal(result.counts.pollenShare,0.5);
+});
+
+test('entrance anomaly baseline never triggers with fewer than five comparable observations', () => {
+  const history=Array.from({length:4},()=>({quality:{countReliable:true},metrics:{incomingPerMinute:100}}));
+  const result=entrance.detectAnomalies({
+    quality:{status:'good',countReliable:true},
+    metrics:{incomingPerMinute:1}
+  },history);
+  assert.deepEqual(result.alerts,[]);
+  assert.equal(result.baseline.incomingPerMinute.ready,false);
+});
+
+test('entrance archive UI does not submit local video or blobs to a remote endpoint', () => {
+  const archiveSection=html.slice(html.indexOf('data-tab="entrance"'));
+  assert.match(archiveSection,/local_only|waiting_for_server/);
+  assert.match(archiveSection,/Сервер анализа ещё не подключён/);
+  assert.doesNotMatch(archiveSection,/fetch\s*\([^)]*(?:video|blob|entrance_media)/i);
+});
