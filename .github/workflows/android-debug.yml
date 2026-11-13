@@ -11,9 +11,9 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
-      - 'scripts/**'
+      - 'scripts/prepare-web.mjs'
+      - 'scripts/patch-android-gradle.mjs'
       - '.github/workflows/android-debug.yml'
-      - '.github/workflows/quality.yml'
 
 concurrency:
   group: android-${{ github.ref }}
@@ -68,6 +68,8 @@ jobs:
         run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Run regression tests
+        run: npm test
       - name: Prepare web assets
         run: npm run web:prepare
       - name: Generate Android project

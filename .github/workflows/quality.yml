@@ -12,7 +12,6 @@ on:
       - 'scripts/**'
       - 'tests/**'
       - '.github/workflows/quality.yml'
-      - '.github/workflows/android-debug.yml'
 
 concurrency:
   group: quality-${{ github.ref }}
