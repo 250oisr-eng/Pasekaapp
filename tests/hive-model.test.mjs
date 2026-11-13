@@ -14,7 +14,7 @@ test('hive domain module is loaded before the app and cached offline', () => {
   const appScript = html.indexOf('<script>', moduleScript);
   assert.ok(moduleScript >= 0 && appScript > moduleScript);
   assert.match(html, /PasekaHiveModel\.assemblyBoxChanges/);
-  assert.match(serviceWorker, /paseka-shell-v\\d+/);
+  assert.match(serviceWorker, /paseka-shell-v\d+/);
   assert.match(serviceWorker, /\.\/js\/hive-model\.js/);
 });
 
