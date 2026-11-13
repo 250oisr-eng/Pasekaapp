@@ -39,7 +39,7 @@ test('voice modules load before the app and are precached and packaged for offli
   assert.match(html, /window\.PasekaVoiceSession\.createApiaryVoiceSession/);
   assert.match(html, /apiaryVoiceSession\.state\.active/);
   assert.doesNotMatch(html, /apiaryVoiceRecognition|apiaryVoiceSessionActive|apiaryVoiceArmed|apiaryVoiceSpeaking|apiaryVoiceArmExpiresAt/);
-  assert.match(serviceWorker, /paseka-shell-v261/);
+  assert.match(serviceWorker, /paseka-shell-v262/);
   assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
   assert.match(serviceWorker, /\.\/js\/voice-session\.js/);
   assert.match(webPrepareScript, /cp\("js", "www\/js", \{ recursive: true \}\)/);
