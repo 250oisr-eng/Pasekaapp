@@ -460,6 +460,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <dialog id="planDlg"><h2>Запланировать работу</h2><form id="planForm"><label>Действие</label><select id="planType"><option>Осмотр</option><option>Обработка</option><option>Расширение гнезда</option><option>Подкормка</option><option>Проверка матки</option><option>Подготовка к зимовке</option><option>Другое</option></select><label>Улей</label><select id="planHive" required></select><label>Дата</label><input id="planDate" type="date" required><label>Комментарий</label><textarea id="planNote" placeholder="Что проверить или выполнить"></textarea><div class="row"><button type="button" onclick="$('planDlg').close()">Отмена</button><button class="primary">Сохранить план</button></div></form></dialog>
 <dialog id="extractDlg"><h2>Откачка мёда</h2><p class="muted">Отметь ульи и медовые корпуса одной откачки. Количество мёда укажи отдельно для каждого улья.</p><label>Дата откачки</label><input type="date" id="extractDate"><div id="extractRows"></div><div class="row"><button onclick="$('extractDlg').close()">Отмена</button><button class="primary" onclick="saveExtraction()">Зафиксировать откачку</button></div></dialog>
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
+<script src="./js/voice-command-parser.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1265,21 +1266,6 @@ async function copyAIMessage(index,button){
   else{const field=document.createElement('textarea');field.value=value;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';field.style.left='0';field.style.top='0';document.body.appendChild(field);field.select();field.setSelectionRange(0,field.value.length);const copied=document.execCommand('copy');field.remove();if(!copied)throw new Error('Копирование не поддерживается браузером')}
   const label=button.textContent;button.textContent='Скопировано';button.disabled=true;setTimeout(()=>{if(button.isConnected){button.textContent=label;button.disabled=false}},1400);
  }catch(e){alert('Не удалось скопировать сообщение. Выдели текст вручную и выбери «Копировать».')}
-}
-function parseApiaryVoiceCommand(value,armed=false){
- const raw=String(value??'').trim();
- const normalized=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/[.,!?;:]/g,' ').replace(/\s+/g,' ').trim();
- if(!normalized)return {type:'ignore'};
- if(/^(заверши голосовой режим|останови голосовой режим|стоп пасека)$/.test(normalized))return {type:'stop'};
- const wake=normalized.match(/^(?:пасека\s+)?слушай(?:\s+|$)/);
- if(!wake&&!armed)return {type:'ignore'};
- const command=wake?normalized.slice(wake[0].length).trim():normalized;
- if(!command)return {type:'wake'};
- if(/^(подтверждаю|подтвердить)$/.test(command))return {type:'confirm'};
- if(/^(отмена|отмени)$/.test(command))return {type:'cancel'};
- if(/^(повтори|прочитай ответ)$/.test(command))return {type:'repeat'};
- if(/^(заверши голосовой режим|останови голосовой режим|стоп)$/.test(command))return {type:'stop'};
- return {type:'question',text:command};
 }
 function apiaryVoiceStatus(message){
  const host=$('apiaryVoiceStatus');if(host)host.textContent=message;
