@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const parserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
+const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 
 function loadVoiceParser() {
   return new Function(parserSource + '\nreturn parseApiaryVoiceCommand;')();
@@ -22,6 +23,15 @@ const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
 function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + extractFunction(name) + '); }')(globals);
 }
+
+
+test('standalone voice parser is loaded before the app and precached for offline startup', () => {
+  const parserScript = html.indexOf('<script src="./js/voice-command-parser.js"></script>');
+  const appScript = html.indexOf('<script>', parserScript);
+  assert.ok(parserScript >= 0 && appScript > parserScript);
+  assert.match(serviceWorker, /paseka-shell-v256/);
+  assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
+});
 
 test('voice parser recognizes wake phrases with punctuation and Russian case variants', () => {
   const parse = loadVoiceParser();
