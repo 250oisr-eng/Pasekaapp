@@ -56,7 +56,7 @@ final class LiteRtRuntimeProbe {
     }
 
     private static Method findFactory(Class<?> environmentClass)
-        throws NoSuchMethodException {
+        throws ReflectiveOperationException {
         try {
             return environmentClass.getMethod("create", Context.class);
         } catch (NoSuchMethodException noStaticFactory) {
