@@ -436,7 +436,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <div class="card" style="background:#f7f8f4">
    <b>Перед съёмкой</b>
    <ul><li>Весь леток и прилётная доска должны быть в кадре.</li><li>Держи телефон неподвижно, примерно в 30–50 см от летка.</li><li>Не направляй объектив на солнце и не используй цифровое увеличение.</li><li>Старайся снять около 60 секунд; допустимый диапазон первой версии — 20–90 секунд.</li></ul>
-   <p class="muted">На этом этапе проверяются формат, длительность, размер и разрешение. Тряска, резкость, засветка и насекомые ещё не анализируются.</p>
+   <p class="muted">После сохранения оцениваются яркость, резкость и различие соседних кадров. Распознавание пчёл, направления полёта и проверка того, что весь леток попал в кадр, пока не подключены.</p>
   </div>
   <label for="entranceVideoInput">Снять видео или выбрать готовую запись</label>
   <input id="entranceVideoInput" type="file" accept="video/*" capture="environment" onchange="handleEntranceVideoFile(this.files);this.value='';">
@@ -1108,13 +1108,30 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">Только на устройстве</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Состояние: сохранено локально; анализа ещё нет.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">Только на устройстве</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Распознавание пчёл ещё не подключено.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
  const url=URL.createObjectURL(file);
  try{return await new Promise((resolve,reject)=>{const video=document.createElement('video');video.preload='metadata';video.muted=true;video.onloadedmetadata=()=>resolve({durationSec:video.duration,width:video.videoWidth,height:video.videoHeight});video.onerror=()=>reject(new Error('Не удалось прочитать параметры видео. Возможно, формат не поддерживается.'));video.src=url;video.load()})}
  finally{URL.revokeObjectURL(url)}
+}
+async function inspectEntranceVideoFrameQuality(file){
+ const url=URL.createObjectURL(file),video=document.createElement('video');
+ try{
+  video.preload='auto';video.muted=true;video.playsInline=true;video.src=url;
+  await new Promise((resolve,reject)=>{
+   if(video.readyState>=1&&video.videoWidth){resolve();return}
+   const cleanup=()=>{video.removeEventListener('loadedmetadata',done);video.removeEventListener('error',fail)};
+   const done=()=>{cleanup();resolve()},fail=()=>{cleanup();reject(new Error('Не удалось декодировать кадры видео.'))};
+   video.addEventListener('loadedmetadata',done,{once:true});video.addEventListener('error',fail,{once:true});video.load();
+  });
+  const sampled=await PasekaEntranceAnalysis.sampleVideoFrames(video,{count:5});
+  if(!sampled.ok)return {status:'unknown',score:null,flags:[sampled.reason||'frame_sampling_unavailable'],note:'Кадры не удалось надёжно декодировать; оригинал можно сохранить и проверить позже.'};
+  const quality=PasekaEntranceAnalysis.assessFrameQuality(sampled.samples);
+  return {...quality,sampleCount:sampled.samples.length,method:sampled.method,motionNote:sampled.motionNote};
+ }catch(error){return {status:'unknown',score:null,flags:['frame_quality_check_failed'],note:String(error&&error.message||'Ошибка анализа кадров')}} 
+ finally{video.pause();video.removeAttribute('src');video.load();URL.revokeObjectURL(url)}
 }
 async function handleEntranceVideoFile(files){
  const file=files&&files[0],status=$('entranceVideoStatus'),hiveId=$('entranceHiveSelect')?.value||'';
@@ -1126,14 +1143,16 @@ async function handleEntranceVideoFile(files){
  const check=PasekaEntranceAnalysis.assessVideoMetadata({...metadata,bytes:file.size,mimeType:file.type});
  if(!check.ok){const message=check.errors.map(x=>x.message).join('\n');if(status)status.textContent=message;return alert(message)}
  if(check.warnings.length)alert(check.warnings.map(x=>x.message).join('\n'));
+ if(status)status.textContent='Проверяю резкость, освещение и изменение изображения по кадрам…';
+ const frameQuality=await inspectEntranceVideoFrameQuality(file);
  try{
   const estimate=await navigator.storage?.estimate?.();
   if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
  }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
- const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'local_only',metadataCheck:check,blob:file};
+ const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'local_only',metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
  try{
   await putEntranceVideo(record);
-  if(status)status.textContent='Видео сохранено на этом устройстве. Сервер анализа ещё не подключён; файл никуда не отправлен.';
+  if(status)status.textContent='Видео сохранено локально. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет; файл никуда не отправлен.';
   await refreshEntranceVideos();
  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
 }
