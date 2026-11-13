@@ -9,3 +9,5 @@ test('missing locations, same location and corrupt duplicate mappings are reject
 test('UI loads the body module before app code and precaches it',()=>{assert.ok(html.indexOf('./js/equipment-bodies.js')<html.indexOf('<script>'));assert.ok(html.includes('swapPhysicalCorpora()'));assert.ok(html.includes('corpusMoveTo'));assert.ok(sw.includes('./js/equipment-bodies.js'));assert.match(sw,/paseka-shell-v262/)});
 
 test('matching profile IDs are sufficient when profile objects are stored by reference',()=>{const s=fixture();for(const hive of s.hives){hive.profileId=hive.profile.id;delete hive.profile;}const r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,true)});
+
+test('corpus swap rejects a mismatch between installed and stored positions',()=>{const s=fixture();s.layouts.h1.installedBoxes=['1'];const r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,false);assert.equal(r.error.code,'installation_mismatch')});
