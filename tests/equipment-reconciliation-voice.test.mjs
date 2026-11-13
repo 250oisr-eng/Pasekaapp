@@ -14,3 +14,8 @@ test('incomplete spoken groups remain unresolved',()=>{const r=V.normalizeSpoken
 test('invalid alphabet symbols are not silently corrected',()=>{const r=V.normalizeSpokenFrameCodes('7ЗМ');assert.deepEqual(r.codes,[]);assert.equal(r.issues[0].type,'unrecognized')});
 test('ordinary Russian words are not interpreted as frame codes',()=>{const r=V.normalizeSpokenFrameCodes('рамки возле улья');assert.deepEqual(r.codes,[]);assert.equal(r.canNormalize,false)});
 test('valid groups are not hidden when another segment is uncertain',()=>{const r=V.normalizeSpokenFrameCodes('семь ка эм, рамки');assert.deepEqual(r.codes,['7КМ']);assert.equal(r.canNormalize,false);assert.equal(r.issues.length,1)});
+
+test('explicit letter and digit markers disambiguate ordinary letter names',()=>{assert.deepEqual(V.normalizeSpokenFrameCodes('семь буква а эм').codes,['7АМ']);assert.equal(V.normalizeSpokenFrameCodes('семь буква а эм').canNormalize,true);assert.deepEqual(V.normalizeSpokenFrameCodes('цифра семь ка эм').codes,['7КМ']);assert.deepEqual(V.normalizeSpokenFrameCodes('буква ю буква я буква е').issues[0].type,'incomplete')});
+test('accepts contiguous direct codes in groups of three',()=>{assert.deepEqual(V.normalizeSpokenFrameCodes('7КМ7КН').codes,['7КМ','7КН']);assert.equal(V.normalizeSpokenFrameCodes('7КМ7КН').canNormalize,true)});
+test('mixed spoken and direct codes preserve their order',()=>{assert.deepEqual(V.normalizeSpokenFrameCodes('семь ка эм 7КН четыре эр эн').codes,['7КМ','7КН','4РН'])});
+test('does not silently map unsupported Ё to Е',()=>{const r=V.normalizeSpokenFrameCodes('семь буква ё эм');assert.deepEqual(r.codes,[]);assert.equal(r.canNormalize,false)});
