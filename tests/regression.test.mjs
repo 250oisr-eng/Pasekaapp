@@ -49,6 +49,24 @@ test('family provenance save keeps changes only after successful persistence',as
  assert.equal(deps.S.families[0].breed,'Карника');
 });
 
+test('queen registry migration preserves legacy queen details without inventing introduction dates',()=>{
+ const migrate=loadFunction('migrateQueenRegistry');
+ const state={families:[{id:'f1',queen:{code:'Q-1',year:2024,source:'Питомник',notes:'Линия A'}},{id:'f2',queen:null},{id:'f3',queen:{code:'Q-3'}}]};
+ let n=0;migrate(state,()=> 'queen-'+(++n),'2026-11-13T10:00:00.000Z');
+ assert.equal(state.queens.length,2);assert.equal(state.families[0].currentQueenId,state.queens[0].id);assert.equal(state.queens[0].code,'Q-1');assert.equal(state.queens[0].familyId,'f1');
+ assert.equal(state.queenEvents.length,2);assert.equal(state.queenEvents[0].date,null);assert.equal(state.queenEvents[0].type,'legacy_imported');
+ const snapshot=JSON.stringify(state);migrate(state,()=> 'unexpected','2026-11-14T10:00:00.000Z');assert.equal(JSON.stringify(state),snapshot);
+});
+test('queen registry integrity detects broken current links, invalid statuses and event references',()=>{
+ const inspect=loadFunction('inspectQueenRegistryIntegrity');
+ const state={families:[{id:'f1',currentQueenId:'q1'}],queens:[{id:'q1',familyId:'f1',status:'current'},{id:'q2',familyId:'missing',status:'ghost'}],queenEvents:[{id:'e1',type:'introduced',familyId:'f1',queenId:'absent',date:'2026-02-30'}]};
+ const codes=inspect(state).map(x=>x.code);assert.ok(codes.includes('queen_family_missing'));assert.ok(codes.includes('invalid_queen_status'));assert.ok(codes.includes('queen_event_queen_missing'));assert.ok(codes.includes('invalid_queen_event_date'));
+});
+test('queen registry accepts current and historical queen records',()=>{
+ const inspect=loadFunction('inspectQueenRegistryIntegrity');
+ assert.deepEqual(inspect({families:[{id:'f1',currentQueenId:'q1'}],queens:[{id:'q1',familyId:'f1',status:'current',year:2025},{id:'q0',familyId:'f1',status:'replaced',year:2023}],queenEvents:[{id:'e1',type:'introduced',familyId:'f1',queenId:'q1',date:'2025-05-01'},{id:'e2',type:'replaced',familyId:'f1',queenId:'q0',date:'2025-05-01'}]}),[]);
+});
+
 test('family lineage rejects missing parents and cycles', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.ok(inspect([{id:'c',origin:'offshoot',parentFamilyId:'missing'}]).some(x=>x.code==='family_parent_missing'));
