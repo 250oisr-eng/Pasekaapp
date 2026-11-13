@@ -884,6 +884,29 @@ async function installInventoryHoneyPair(pairId){
 }
 
 function reconciliationTargetLabel(target){if(target?.type==='hive')return hname(target.hiveId)+(target.boxKey&&target.boxKey!=='*'?' · '+frameLocationName(target.boxKey,target.hiveId):' · все корпуса');const body=S.equipmentInventory?.bodies?.[target?.bodyId];return 'Склад · корпус '+(body?.labelCode?PasekaLabels.formatLabelCode('body',body.labelCode):String(target?.bodyId||''));}
+function appendFrameReconciliationVoice(transcript){
+ const field=$('reconciliationCodes'),status=$('reconciliationVoiceStatus');if(!field)return {ok:false,error:'field_missing'};
+ const result=PasekaReconciliationVoice.appendRecognizedCodes(field.value,transcript,12000);
+ if(!result.ok){if(status)status.textContent=result.error==='too_long'?'Список слишком длинный. Удали лишнее вручную.':'Нет распознанного текста.';return result}
+ field.value=result.value;field.dispatchEvent(new Event('input',{bubbles:true}));if(status)status.textContent='Добавлено в черновик: '+result.added+'. Проверь каждый символ.';return result;
+}
+function stopFrameReconciliationDictation(){
+ if(reconciliationRecognition){const current=reconciliationRecognition;reconciliationRecognition=null;try{current.stop()}catch(error){}}
+ const button=$('reconciliationVoiceButton');if(button){button.disabled=false;button.textContent='🎙 Диктовать коды'}
+}
+function dictateFrameReconciliation(){
+ if(reconciliationRecognition)return;
+ if(apiaryVoiceSession?.state?.active){alert('Общий голосовой сеанс уже использует микрофон. Скажи «Пасека, слушай», затем «добавь рамки 7КМ, 7КН».');return}
+ const Speech=window.SpeechRecognition||window.webkitSpeechRecognition,status=$('reconciliationVoiceStatus'),button=$('reconciliationVoiceButton');
+ if(!Speech){if(status)status.textContent='Распознавание речи недоступно. Используй голосовой ввод клавиатуры Android или введи коды вручную.';return}
+ if(!confirm('Запустить диктовку кодов? Распознавание выполняет браузер или устройство; аудио может передаваться внешнему сервису. Приложение сохранит только распознанный текст. До нажатия «Сохранить сверку» данные останутся черновиком.'))return;
+ const recognition=new Speech();reconciliationRecognition=recognition;recognition.lang='ru-RU';recognition.continuous=false;recognition.interimResults=false;recognition.maxAlternatives=3;
+ if(button){button.disabled=true;button.textContent='Слушаю…'}if(status)status.textContent='Говори коды по одному, делая короткую паузу между группами.';
+ recognition.onresult=event=>{const transcript=Array.from(event.results||[]).map(item=>item[0]?.transcript||'').join(' ').trim();if(transcript){const result=appendFrameReconciliationVoice(transcript);if(result.ok&&status)status.textContent='Распознано: '+transcript+'. Проверь коды в поле перед сохранением.'}};
+ recognition.onerror=event=>{if(status)status.textContent=event.error==='not-allowed'?'Нет разрешения на микрофон. Разреши доступ в браузере.':'Ошибка распознавания: '+event.error+'. Можно использовать голосовой ввод клавиатуры.'};
+ recognition.onend=()=>{if(reconciliationRecognition===recognition)reconciliationRecognition=null;if(button){button.disabled=false;button.textContent='🎙 Диктовать коды'}};
+ try{recognition.start()}catch(error){reconciliationRecognition=null;if(button){button.disabled=false;button.textContent='🎙 Диктовать коды'}if(status)status.textContent='Не удалось запустить микрофон: '+(error.message||error)}
+}
 function openFrameReconciliation(){
  const select=$('reconciliationTarget'),options=[];
  for(const hive of S.hives){const keys=[...profileBroodKeys(hive.id),...profileHoneyKeys(hive.id)];options.push('<option value="hive|'+safe(hive.id)+'|*">'+safe(hname(hive.id))+' · все корпуса</option>');for(const key of keys)options.push('<option value="hive|'+safe(hive.id)+'|'+safe(key)+'">'+safe(hname(hive.id))+' · '+safe(frameLocationName(key,hive.id))+'</option>')}
@@ -1489,6 +1512,12 @@ async function handleApiaryVoiceTranscript(transcript){
   return;
  }
  if(parsed.type==='question'){
+  const dialog=$('frameReconciliationDlg'),command=PasekaReconciliationVoice.parseReconciliationVoiceCommand(parsed.text);
+  if(dialog?.open&&command.type==='append_codes'){
+   const result=appendFrameReconciliationVoice(command.codes);
+   apiaryVoiceStatus(result.ok?'Коды добавлены в черновик. Проверь каждый символ.':'Не удалось добавить коды в черновик.');
+   speakApiaryVoice(result.ok?'Добавил распознанные коды в черновик. Проверь их перед сохранением.':'Не удалось добавить коды. Проверь список на экране.');return;
+  }
   const field=$('aiQuestion');if(!field)return;
   field.value=parsed.text;apiaryVoiceStatus('Отправляю вопрос ИИ…');
   await sendAIQuestion();

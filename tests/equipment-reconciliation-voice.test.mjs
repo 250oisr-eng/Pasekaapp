@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const source=await readFile(new URL('../js/equipment-reconciliation-voice.js',import.meta.url),'utf8'),html=await readFile(new URL('../index.html',import.meta.url),'utf8'),sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+const win={};new Function('window',source)(win);const V=win.PasekaReconciliationVoice;
+test('voice helper is loaded and cached',()=>{assert.ok(html.includes('equipment-reconciliation-voice.js'));assert.ok(sw.includes('./js/equipment-reconciliation-voice.js'))});
+test('recognizes explicit append phrases only',()=>{assert.deepEqual(V.parseReconciliationVoiceCommand('добавь рамки 7КМ, 7КН'),{type:'append_codes',codes:'7КМ, 7КН'});assert.deepEqual(V.parseReconciliationVoiceCommand('Запиши коды рамок Р-7КП'),{type:'append_codes',codes:'Р-7КП'});assert.deepEqual(V.parseReconciliationVoiceCommand('какие рамки надо проверить'),{type:'ignore'});assert.deepEqual(V.parseReconciliationVoiceCommand('удали рамку 7КМ'),{type:'ignore'})});
+test('recognized text appends without overwriting existing codes',()=>{assert.deepEqual(V.appendRecognizedCodes('7КМ','7КН'),{ok:true,value:'7КМ\n7КН',added:'7КН'});assert.deepEqual(V.appendRecognizedCodes('','7КМ'),{ok:true,value:'7КМ',added:'7КМ'});assert.equal(V.appendRecognizedCodes('','').error,'empty_transcript')});
+test('oversized transcripts are rejected',()=>{const r=V.appendRecognizedCodes('7КМ','А'.repeat(10),12);assert.equal(r.ok,false);assert.equal(r.error,'too_long')});
