@@ -47,3 +47,11 @@ test('summary keeps adult-bee samples separate from sticky-board observations',(
  assert.equal(summary.adultBeeSamples,1);
  assert.equal(summary.stickyBoardObservations,1);
 });
+
+test('Varroa module is loaded before app and cached for offline use',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.ok(html.indexOf('./js/varroa-monitor.js')<html.indexOf('<script>'));
+ assert.ok(sw.includes('./js/varroa-monitor.js'));
+});
