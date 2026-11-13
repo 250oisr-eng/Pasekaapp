@@ -2005,7 +2005,7 @@ async function confirmFamilyTransfer(e){
  const preserveUniqueFrameIds=(items,layout,destination,fromHive,toHive)=>{
   items.forEach(fr=>{
    const oldId=String(fr.frameId||'');
-   if(idExistsOutside(layout,oldId,destination,fromHive===targetHiveId?toHive:fromHive)){
+   if(idExistsOutside(layout,oldId,destination,toHive)){
     const newId=nextFrameId(layout,destination);
     fr.history=Array.isArray(fr.history)?fr.history:[];
     fr.history.push({date:moveDate,action:'frame_id_changed',from:oldId,to:newId,reason:'family_transfer',fromHiveId:fromHive,toHiveId:toHive,fromBox:fromHive===targetHiveId?targetNumber:fromBox,toBox:toHive===targetHiveId?targetNumber:fromBox});
