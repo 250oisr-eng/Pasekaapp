@@ -1279,7 +1279,7 @@ function parseApiaryVoiceCommand(value,armed=false){
  if(/^(отмена|отмени)$/.test(command))return {type:'cancel'};
  if(/^(повтори|прочитай ответ)$/.test(command))return {type:'repeat'};
  if(/^(заверши голосовой режим|останови голосовой режим|стоп)$/.test(command))return {type:'stop'};
- return {type:'question',text:wake?raw.replace(/^(?:пасека[\s,.:;!?-]+\s*)?слушай\b[\s,.:;!?-]*/i,'').trim():raw};
+ return {type:'question',text:command};
 }
 function apiaryVoiceStatus(message){
  const host=$('apiaryVoiceStatus');if(host)host.textContent=message;
