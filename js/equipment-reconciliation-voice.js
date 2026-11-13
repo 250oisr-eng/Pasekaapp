@@ -10,13 +10,25 @@ function appendRecognizedCodes(current,recognized,maxLength=12000){const before=
 function normalizeSpokenFrameCodes(value){
  const raw=String(value??'').trim(),codes=[],issues=[];
  if(!raw)return {raw,codes,issues:[{type:'empty',text:''}],canNormalize:false,preview:''};
- const prepared=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/(^|[\s,;])р\s*-\s*/giu,'$1');
+ const prepared=raw.toLocaleLowerCase('ru-RU').replace(/(^|[\s,;])р\s*-\s*/giu,'$1');
  const segments=prepared.split(/[;,\n.!?]+|\s+и\s+/u).map(x=>x.trim()).filter(Boolean);
+ const explicitLetters={а:'А',е:'Е',у:'У',э:'Э',ю:'Ю',я:'Я'};
  for(const segment of segments){
   const tokens=segment.split(/[\s-]+/u).filter(Boolean),chars=[];let issue=null;
-  for(const token of tokens){
-   const direct=token.toLocaleUpperCase('ru-RU');
-   if(direct.length===3&&[...direct].every(char=>ALPHABET.includes(char))){chars.push(...direct);continue}
+  for(let i=0;i<tokens.length;i++){
+   const token=tokens[i],direct=token.toLocaleUpperCase('ru-RU');
+   if(direct.length>=3&&direct.length%3===0&&[...direct].every(char=>ALPHABET.includes(char))){for(let p=0;p<direct.length;p+=3)codes.push(direct.slice(p,p+3));continue}
+   if(token==='буква'){
+    const next=tokens[++i];
+    if(next&&explicitLetters[next]){chars.push(explicitLetters[next]);continue}
+    if(next&&SPOKEN[next]){chars.push(SPOKEN[next]);continue}
+    issue={type:'ambiguous',text:next||token};break;
+   }
+   if(token==='цифра'){
+    const next=tokens[++i];
+    if(next&&DIGITS[next]){chars.push(DIGITS[next]);continue}
+    issue={type:'ambiguous',text:next||token};break;
+   }
    if(/^[245679]$/.test(token)){chars.push(token);continue}
    if(DIGITS[token]){chars.push(DIGITS[token]);continue}
    if(SPOKEN[token]){chars.push(SPOKEN[token]);continue}
