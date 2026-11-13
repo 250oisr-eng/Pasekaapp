@@ -2408,3 +2408,20 @@ test('feeding plan comparison calculates only same-unit completed task differenc
  assert.equal(result.events.find(event=>event.id==='e').status,'notMeasured');
  assert.equal(result.events.find(event=>event.id==='f').status,'planMissing');
 });
+
+test('feeding plan comparison flags every duplicate task record and excludes them from totals',()=>{
+ const parse=loadFunction('parseFeedingQuantity');
+ const build=loadFunction('buildFeedingPlanComparison',{parseFeedingQuantity:parse});
+ const records=[
+  {id:'dup-a',taskId:'same-task',type:'Подкормка',hive:'h1',date:'2026-11-11',plannedFeedingAmount:'2 л',feedingAmount:'2 л'},
+  {id:'dup-b',taskId:'same-task',type:'Подкормка',hive:'h1',date:'2026-11-12',plannedFeedingAmount:'2 л',feedingAmount:'3 л'},
+  {id:'unique',taskId:'unique-task',type:'Подкормка',hive:'h1',date:'2026-11-13',plannedFeedingAmount:'1 л',feedingAmount:'1,5 л'}
+ ];
+ const result=build(records,'h1');
+ assert.equal(result.events.length,3);
+ assert.equal(result.summary.duplicateTask,2);
+ assert.equal(result.summary.over,1);
+ assert.equal(result.summary.matched,0);
+ assert.deepEqual(result.totals,[{unit:'л',planned:1,actual:1.5,difference:0.5,count:1}]);
+ assert.ok(result.events.filter(event=>event.taskId==='same-task').every(event=>event.status==='duplicateTask'));
+});
