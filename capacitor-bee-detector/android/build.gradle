@@ -12,4 +12,6 @@ android {
 
 dependencies {
     implementation project(':capacitor-android')
+    // Standalone LiteRT runtime: bundled in the APK; no Google Play services dependency.
+    implementation 'com.google.ai.edge.litert:litert:2.3.2'
 }
