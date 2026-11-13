@@ -79,6 +79,17 @@ test('snapshot source contains queen registry and queen history',()=>{
  assert.match(save,/queens:S\.queens,queenEvents:S\.queenEvents/);
 });
 
+test('queen replacement keeps previous queen in history and links new queen to family',()=>{
+ const apply=loadFunction('applyQueenChange');let n=0;const state={families:[{id:'f1',name:'26-1',hive:'h1',currentQueenId:'q1',queen:{code:'Q1'}}],queens:[{id:'q1',familyId:'f1',code:'Q1',status:'current'}],queenEvents:[]};
+ const result=apply(state,{familyId:'f1',code:'Q2',year:'2026',source:'Питомник',notes:'Линия B',date:'2026-06-01'},()=> 'new-'+(++n));
+ assert.equal(result.replaced,true);assert.equal(state.queens.find(q=>q.id==='q1').status,'replaced');assert.equal(result.queen.status,'current');assert.equal(state.families[0].currentQueenId,result.queen.id);assert.equal(state.queenEvents[0].type,'replaced');assert.equal(state.queenEvents[0].previousQueenId,'q1');
+});
+test('queen first registration and metadata edit do not invent event dates',()=>{
+ const apply=loadFunction('applyQueenChange');let n=0;const state={families:[{id:'f1',hive:'h1'}],queens:[],queenEvents:[]};
+ const first=apply(state,{familyId:'f1',code:'Q1',year:'2025',date:null},()=> 'id-'+(++n));assert.equal(first.replaced,false);assert.equal(state.queenEvents[0].type,'introduced');assert.equal(state.queenEvents[0].date,null);
+ const edited=apply(state,{familyId:'f1',queenId:first.queen.id,code:'Q1A',year:'2025',date:null},()=> 'id-'+(++n));assert.equal(edited.queen.code,'Q1A');assert.equal(state.queenEvents[1].type,'note');assert.equal(state.queenEvents[1].date,null);
+});
+
 test('family lineage rejects missing parents and cycles', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.ok(inspect([{id:'c',origin:'offshoot',parentFamilyId:'missing'}]).some(x=>x.code==='family_parent_missing'));
