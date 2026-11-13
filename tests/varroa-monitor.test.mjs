@@ -14,6 +14,7 @@ test('adult bee sample calculates mites per 100 bees without adding diagnostic l
  assert.equal(row.mitesPer100Bees,3);
  assert.equal(row.source,'manual');
  assert.equal(row.method,'alcohol_wash');
+ assert.equal(row.hiveLabelAtTime,'Улей');
  assert.equal(row.diagnosis,undefined);
 });
 test('sticky board uses a separate 24-hour fall rate',()=>{
@@ -55,4 +56,10 @@ test('Varroa module is loaded before app and cached for offline use',async()=>{
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.ok(html.indexOf('./js/varroa-monitor.js')<html.indexOf('<script>'));
  assert.ok(sw.includes('./js/varroa-monitor.js'));
+});
+
+test('historical measurements remain valid after their hive is archived',()=>{
+ const row=make({type:'adult_bee_sample',hiveId:'h1',date:'2026-08-12',method:'sugar_roll',beesCount:100,mitesCount:2});
+ const errors=api.inspectVarroaIntegrity({meta:{schemaVersion:10},hives:[{id:'h2'}],varroaObservations:[row]});
+ assert.deepEqual(errors,[]);
 });
