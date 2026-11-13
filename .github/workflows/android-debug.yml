@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'index.html'
+      - 'js/**'
       - 'manifest.webmanifest'
       - 'sw.js'
       - 'package.json'
