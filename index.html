@@ -1281,7 +1281,10 @@ async function handleEntranceVideoFile(files){
  const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
  try{
   await putEntranceVideo(record);
-  if(status)status.textContent='Видео помещено во временную очередь. Сервер анализа ещё не подключён: автоматический анализ и удаление после анализа пока недоступны. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
+  const qualityLabels={underexposed:'недостаточное освещение',overexposed:'пересвет',blurred:'размытое изображение',entrance_out_of_frame:'леток частично вне кадра'};
+  const qualityIssues=(frameQuality.flags||[]).map(flag=>qualityLabels[flag]).filter(Boolean);
+  const qualityText=frameQuality.status==='good'?'хорошее':frameQuality.status==='limited'?'ограниченное':frameQuality.status==='poor'?'низкое':'не определено';
+  if(status)status.textContent='Видео сохранено во временной очереди. Техническое качество кадров: '+qualityText+'.'+(qualityIssues.length?' Замечания: '+qualityIssues.join(', ')+'.':'')+' Сервер анализа не подключён: распознавания пчёл, подсчёта прилётов/вылетов и автоматического удаления пока нет. Различие кадров не является подсчётом пчёл и может включать движение камеры.';
   await refreshEntranceVideos();
  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
 }
