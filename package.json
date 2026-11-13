@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@capacitor/android": "6.2.1",
-    "@capacitor/core": "6.2.1"
+    "@capacitor/core": "6.2.1",
+    "@paseka/capacitor-bee-detector": "file:./capacitor-bee-detector"
   },
   "devDependencies": {
     "@capacitor/cli": "6.2.1",
