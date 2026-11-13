@@ -17,8 +17,9 @@ function normalizeSpokenFrameCodes(value){
  let characters=[];
  const flushBeforeIssue=()=>{const completeLength=characters.length-characters.length%3;for(let i=0;i<completeLength;i+=3)codes.push(characters.slice(i,i+3).join(''));characters=[];};
  const flush=()=>{
-  if(characters.length%3===0){for(let i=0;i<characters.length;i+=3)codes.push(characters.slice(i,i+3).join(''));}
-  else issues.push({type:'incomplete',characters:characters.length});
+  const completeLength=characters.length-characters.length%3;
+  for(let i=0;i<completeLength;i+=3)codes.push(characters.slice(i,i+3).join(''));
+  if(characters.length!==completeLength)issues.push({type:'incomplete',characters:characters.length-completeLength});
   characters=[];
  };
  for(let i=0;i<tokens.length;i++){
