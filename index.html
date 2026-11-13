@@ -442,7 +442,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <input id="entranceVideoInput" type="file" accept="video/*" capture="environment" onchange="handleEntranceVideoFile(this.files);this.value='';">
   <div id="entranceVideoStatus" class="muted" aria-live="polite">Выбери улей, затем сними видео или выбери файл из галереи.</div>
  </div>
- <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Сервер анализа пока не подключён; записи не отправляются в интернет.</div><div id="entranceVideoList"></div></div>
+ <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Записи ставятся в локальную очередь. Сервер анализа ещё не подключён: передача и автоматическое удаление пока отключены.</div><div id="entranceVideoList"></div></div>
 </section>
 <section id="hiveDetail" class="panel"><div id="selectedHivePanel" style="display:none">
   <div class="card hive-summary-card">
@@ -1108,7 +1108,7 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">Только на устройстве</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Распознавание пчёл ещё не подключено.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
@@ -1150,10 +1150,10 @@ async function handleEntranceVideoFile(files){
   const estimate=await navigator.storage?.estimate?.();
   if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
  }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
- const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'local_only',metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
+ const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
  try{
   await putEntranceVideo(record);
-  if(status)status.textContent='Видео сохранено локально. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет; файл никуда не отправлен.';
+  if(status)status.textContent='Видео сохранено в локальную очередь. Сервер анализа ещё не подключён, поэтому отправка и автоматическое удаление не выполняются. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
   await refreshEntranceVideos();
  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
 }
