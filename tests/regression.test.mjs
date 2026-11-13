@@ -312,6 +312,39 @@ test('batch frame move rejects winter forbidden boxes and stale plans',()=>{
   assert.deepEqual(summer.layouts.h1.boxes[1].frames.map(x=>x.frameId),['A','B']);
 });
 
+
+test('profile-driven frame moves support arbitrary keys, capacities and independent honey bodies',()=>{
+ const profile={id:'custom-move-v1',schemaVersion:1,status:'ready',name:'Custom move fixture',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:3,boxKeys:['LOW','MID','UP']},honey:{boxCount:1,framesPerBox:4,boxKeys:['SUPER'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['LOW','UP'],forbiddenBoxKeys:['MID'],honeyAllowed:false}};
+ const make=(id,location)=>({frameId:id,labelCode:'ААА',location,originBox:location,type:'comb',status:'drawn',history:[]});
+ const state={meta:{revisionId:'custom-rev-1'},hives:[{id:'custom-hive',number:7,profile}],families:[],records:[],tasks:[],layouts:{'custom-hive':{mode:'summer',installedBoxes:['LOW','MID','UP'],winterOrder:[],honeyBoxInstalled:[true],honeyFrames:[[make('H1','SUPER')]],boxes:{LOW:{family:'',frames:[make('F1','LOW')]},MID:{family:'',frames:[]},UP:{family:'',frames:[]}}}}};
+ const plan=loadFunction('planFrameMoves'),apply=loadFunction('applyFrameMovePlan',{planFrameMoves:plan});
+ const move=plan(state,[{hiveId:'custom-hive',frameId:'F1',fromBox:'LOW',toBox:'UP'}]);
+ assert.equal(move.ok,true,JSON.stringify(move.errors));
+ const applied=apply(state,move,'2026-11-13');
+ assert.equal(applied.ok,true);
+ assert.deepEqual(applied.state.layouts['custom-hive'].boxes.LOW.frames,[]);
+ assert.deepEqual(applied.state.layouts['custom-hive'].boxes.UP.frames.map(frame=>frame.frameId),['F1']);
+ assert.equal(applied.state.layouts['custom-hive'].honeyFrames[0][0].frameId,'H1');
+ assert.equal(applied.state.layouts['custom-hive'].boxes.UP.frames[0].labelCode,'ААА');
+ assert.equal(state.layouts['custom-hive'].boxes.LOW.frames[0].location,'LOW');
+});
+test('profile-driven frame moves enforce configured capacity and winter allowed keys',()=>{
+ const profile={id:'custom-move-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:2,boxKeys:['LOW','MID','UP']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['LOW','UP'],forbiddenBoxKeys:['MID'],honeyAllowed:false}};
+ const make=(id,location)=>({frameId:id,location,history:[]});
+ const state={meta:{revisionId:'winter-rev'},hives:[{id:'h',profile}],families:[],records:[],tasks:[],layouts:{h:{mode:'summer',installedBoxes:['LOW','MID','UP'],winterOrder:[],honeyBoxInstalled:[],honeyFrames:[],boxes:{LOW:{family:'',frames:[make('A','LOW')]},MID:{family:'',frames:[]},UP:{family:'',frames:[make('B','UP'),make('C','UP')]}}}}};
+ const plan=loadFunction('planFrameMoves');
+ const overflow=plan(state,[{hiveId:'h',frameId:'A',toBox:'UP'}]);
+ assert.ok(overflow.errors.some(error=>error.code==='move_target_over_capacity'));
+ state.layouts.h.mode='winter';state.layouts.h.installedBoxes=['LOW','UP'];state.layouts.h.winterOrder=['LOW','UP'];
+ assert.ok(plan(state,[{hiveId:'h',frameId:'A',toBox:'MID'}]).errors.some(error=>error.code==='move_target_not_installed'));
+});
+test('profileId-backed frame moves resolve the selected profile catalog',()=>{
+ const profile={id:'catalog-custom-v1',schemaVersion:1,status:'ready',name:'Catalog custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:2,boxKeys:['A','B']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
+ const state={meta:{revisionId:'catalog-rev'},profileCatalog:{'catalog-custom-v1':profile},hives:[{id:'h',profileId:'catalog-custom-v1'}],families:[],records:[],tasks:[],layouts:{h:{mode:'summer',installedBoxes:['A','B'],honeyBoxInstalled:[],honeyFrames:[],boxes:{A:{family:'',frames:[{frameId:'X',location:'A',history:[]}]},B:{family:'',frames:[]}}}}};
+ const result=loadFunction('planFrameMoves')(state,[{hiveId:'h',frameId:'X',toBox:'B'}]);
+ assert.equal(result.ok,true,JSON.stringify(result.errors));
+});
+
 test('AI command proposal requires clarification when a frame reference is incomplete',()=>{
   const validate=loadFunction('validateAICommandProposal',{planFrameMoves:loadFunction('planFrameMoves')});
   const state=frameMoveFixture();
