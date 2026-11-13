@@ -95,6 +95,33 @@ test('queen first registration and metadata edit do not invent event dates',()=>
  const edited=apply(state,{familyId:'f1',queenId:first.queen.id,code:'Q1A',year:'2025',date:null},()=> 'id-'+(++n));assert.equal(edited.queen.code,'Q1A');assert.equal(state.queenEvents[1].type,'note');assert.equal(state.queenEvents[1].date,null);
 });
 
+test('queen registry renders chronological event timelines, unknown dates and previous queens safely',()=>{
+ const host={innerHTML:''};
+ const escapeHtml=value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const render=loadFunction('renderQueenRegistry',{
+  $:id=>id==='queenRegistryList'?host:null,
+  S:{
+   families:[{id:'f1',name:'Семья 1',hive:'h1',currentQueenId:'q2'}],
+   queens:[
+    {id:'q1',familyId:'f1',code:'Q-OLD',status:'replaced',createdAt:'2026-05-01T00:00:00Z'},
+    {id:'q2',familyId:'f1',code:'Q-NEW',status:'current',year:2026,source:'Питомник',createdAt:'2026-06-01T00:00:00Z'}
+   ],
+   queenEvents:[
+    {id:'e1',type:'legacy_imported',queenId:'q1',familyId:'f1',date:null,createdAt:'2026-05-01T00:00:00Z',notes:'Старая запись <script>alert(1)</script>'},
+    {id:'e2',type:'replaced',queenId:'q2',previousQueenId:'q1',familyId:'f1',date:'2026-06-01',createdAt:'2026-06-01T00:00:00Z',notes:'Матка заменена'},
+    {id:'e3',type:'note',queenId:'q2',familyId:'f1',date:'2026-09-01',createdAt:'2026-09-01T00:00:00Z',notes:'Осенний осмотр'}
+   ]
+  },
+  safe:escapeHtml,
+  hname:id=>'Улей '+id
+ });
+ render();
+ assert.ok(host.innerHTML.indexOf('Зарегистрирована замена')<host.innerHTML.indexOf('Сведения обновлены'),'events must be ordered by their recorded dates');
+ assert.match(host.innerHTML,/Предыдущая матка: Q-OLD/);
+ assert.match(host.innerHTML,/дата не указана/);
+ assert.match(host.innerHTML,/Старая запись &lt;script&gt;/);
+ assert.doesNotMatch(host.innerHTML,/<script>alert\(1\)<\/script>/);
+});
 test('family lineage rejects missing parents and cycles', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.ok(inspect([{id:'c',origin:'offshoot',parentFamilyId:'missing'}]).some(x=>x.code==='family_parent_missing'));
