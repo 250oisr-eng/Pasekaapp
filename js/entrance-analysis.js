@@ -34,8 +34,8 @@ async function sampleVideoFrames(video,options={}){
  const width=Math.min(480,Math.max(160,video.videoWidth||0)),height=Math.max(120,Math.round(width*(video.videoHeight||3)/(video.videoWidth||4)));
  if(!video.videoWidth||!video.videoHeight)return {ok:false,reason:'video_dimensions_unavailable',samples:[]};
  canvas.width=width;canvas.height=height;
- const originalTime=video.currentTime,wasPaused=video.paused,samples=[];let previous=null;
- const seek=time=>new Promise((resolve,reject)=>{const done=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);resolve();};const fail=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);reject(new Error('video_seek_failed'));};video.addEventListener('seeked',done,{once:true});video.addEventListener('error',fail,{once:true});try{video.currentTime=time;}catch(e){fail();}});
+ const originalTime=video.currentTime,wasPaused=video.paused,samples=[];let previous=null;if(!wasPaused)video.pause();
+ const seek=time=>new Promise((resolve,reject)=>{if(Math.abs(video.currentTime-time)<0.001){resolve();return;}const done=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);resolve();};const fail=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);reject(new Error('video_seek_failed'));};video.addEventListener('seeked',done,{once:true});video.addEventListener('error',fail,{once:true});try{video.currentTime=time;}catch(e){fail();}});
  try{
   for(let i=0;i<count;i++){
    const time=clamp(video.duration*(i+1)/(count+1),0,Math.max(0,video.duration-0.05));
@@ -46,7 +46,7 @@ async function sampleVideoFrames(video,options={}){
   }
  }catch(error){return {ok:false,reason:'frame_sampling_failed',samples,errorCode:String(error&&error.message||'unknown')};}
  finally{try{await seek(clamp(originalTime,0,Math.max(0,video.duration-0.05)));}catch{} if(!wasPaused&&typeof video.play==='function')try{await video.play();}catch{}}
- return {ok:samples.length>=3,reason:samples.length>=3?null:'insufficient_decoded_frames',samples,dimensions:{width,height},method:'canvas_luminance_laplacian_frame_difference'};
+ return {ok:samples.length>=3,reason:samples.length>=3?null:'insufficient_decoded_frames',samples,dimensions:{width,height},method:'canvas_luminance_laplacian_frame_difference',motionNote:'Разница кадров включает движение пчёл и камеры; отдельно дрожание камеры не диагностируется.'};
 }
 
 function assessFrameQuality(samples=[]){
@@ -58,7 +58,7 @@ function assessFrameQuality(samples=[]){
  if(brightness<0.08)flags.push('underexposed');
  if(brightness>0.94)flags.push('overexposed');
  if(sharpness<35)flags.push('blurred');
- if(motion>0.22)flags.push('camera_shake');
+ if(motion>0.22)flags.push('high_frame_difference');
  if(coverage!==null&&coverage<0.9)flags.push('entrance_out_of_frame');
  const score=clamp((brightness>=0.08&&brightness<=0.94?0.25:0)+(sharpness>=35?0.25:0)+(motion<=0.22?0.25:0)+(coverage===null?0:coverage>=0.9?0.25:0),0,1);
  return {status:score>=0.75?'good':score>=0.5?'limited':'poor',score,flags,measured:{brightness,sharpness,motion,entranceCoverage:coverage},limitations:coverage===null?['entrance_framing_not_automatically_verified']:[]};
