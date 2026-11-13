@@ -26,7 +26,7 @@ test('entrance frame quality reports shake, blur, exposure and framing flags', (
     {brightness:0.99,sharpness:10,motion:0.6,entranceCoverage:0.5}
   ]);
   assert.equal(q.status,'poor');
-  for(const flag of ['overexposed','blurred','camera_shake','entrance_out_of_frame'])assert.ok(q.flags.includes(flag));
+  for(const flag of ['overexposed','blurred','high_frame_difference','entrance_out_of_frame'])assert.ok(q.flags.includes(flag));
 });
 
 test('entrance metrics count unique tracks, not repeated frame detections', () => {
@@ -152,4 +152,39 @@ test('entrance archive UI does not submit local video or blobs to a remote endpo
   assert.match(archiveSection,/local_only|waiting_for_server/);
   assert.match(archiveSection,/Сервер анализа ещё не подключён/);
   assert.doesNotMatch(archiveSection,/fetch\s*\([^)]*(?:video|blob|entrance_media)/i);
+});
+
+
+test('pixel measurement computes luminance, edge sharpness and temporal difference from real image data', () => {
+  const width=16,height=16;
+  const flat=new Uint8ClampedArray(width*height*4);
+  for(let i=0;i<width*height;i++){flat[i*4]=128;flat[i*4+1]=128;flat[i*4+2]=128;flat[i*4+3]=255;}
+  const uniform=entrance.measureFramePixels({data:flat},width,height);
+  assert.equal(uniform.ok,true);
+  assert.ok(Math.abs(uniform.brightness-128/255)<0.001);
+  assert.equal(uniform.sharpness,0);
+  const checker=new Uint8ClampedArray(width*height*4);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){const i=(y*width+x)*4,v=(x+y)%2?255:0;checker[i]=v;checker[i+1]=v;checker[i+2]=v;checker[i+3]=255;}
+  const textured=entrance.measureFramePixels({data:checker},width,height,flat.length===width*height*4?Float32Array.from({length:width*height},()=>128):null);
+  assert.ok(textured.sharpness>uniform.sharpness);
+  assert.ok(textured.motion>0);
+  assert.equal(entrance.measureFramePixels({data:new Uint8ClampedArray(4)},1,1).ok,false);
+});
+
+test('frame quality does not claim entrance framing was verified when no detector supplied it', () => {
+  const quality=entrance.assessFrameQuality([
+    {brightness:0.5,sharpness:80,motion:0.01},
+    {brightness:0.51,sharpness:82,motion:0.02},
+    {brightness:0.49,sharpness:78,motion:0.01}
+  ]);
+  assert.equal(quality.measured.entranceCoverage,null);
+  assert.ok(quality.limitations.includes('entrance_framing_not_automatically_verified'));
+  assert.equal(quality.score,0.75);
+});
+
+test('video sampler clearly reports unavailable browser decoding instead of fabricating samples', async () => {
+  const result=await entrance.sampleVideoFrames({duration:60,currentTime:0});
+  assert.equal(result.ok,false);
+  assert.equal(result.reason,'video_unavailable');
+  assert.deepEqual(result.samples,[]);
 });
