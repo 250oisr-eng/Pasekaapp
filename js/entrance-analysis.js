@@ -18,6 +18,10 @@ function transitionVideoQueue(record,next,details={}){
  if(!record||typeof record!=='object'||!VIDEO_QUEUE_STATES.includes(record.status)||!VIDEO_QUEUE_STATES.includes(next))return {ok:false,reason:'invalid_state'};
  if(!VIDEO_QUEUE_TRANSITIONS[record.status].includes(next))return {ok:false,reason:'transition_not_allowed'};
  const updated={...record,...details,status:next,updatedAt:details.updatedAt||new Date().toISOString()};
+ // Завершение означает, что результат уже надёжно записан, а сервер подтвердил удаление исходника.
+ // Нельзя переводить задание в completed только по факту завершения вычислений.
+ if(next==='completed'&&updated.resultPersisted!==true)return {ok:false,reason:'result_not_persisted'};
+ if(next==='completed'&&updated.serverDeleteConfirmed!==true)return {ok:false,reason:'server_delete_not_confirmed'};
  if(next==='uploading')updated.uploadStartedAt=updated.updatedAt;
  if(next==='uploaded')updated.uploadedAt=updated.updatedAt;
  if(next==='analyzing')updated.analysisStartedAt=updated.updatedAt;
