@@ -191,3 +191,25 @@ test('video sampler clearly reports unavailable browser decoding instead of fabr
   assert.equal(result.reason,'video_unavailable');
   assert.deepEqual(result.samples,[]);
 });
+
+
+test('video queue transitions are explicit and reject illegal state changes', () => {
+  const initial={id:'v1',status:'waiting_for_server'};
+  const upload=entrance.transitionVideoQueue(initial,'uploading',{updatedAt:'2026-11-13T10:00:00.000Z'});
+  assert.equal(upload.ok,true);
+  assert.equal(upload.record.uploadStartedAt,'2026-11-13T10:00:00.000Z');
+  assert.equal(entrance.transitionVideoQueue(initial,'completed').ok,false);
+  assert.equal(entrance.transitionVideoQueue(upload.record,'completed').reason,'transition_not_allowed');
+  const retry=entrance.transitionVideoQueue(upload.record,'failed_retryable',{lastError:'Сеть пропала'});
+  assert.equal(retry.record.lastError,'Сеть пропала');
+  assert.equal(entrance.transitionVideoQueue(retry.record,'uploading').ok,true);
+});
+
+test('original video can be deleted only after completed analysis, persisted result and server confirmation', () => {
+  const base={status:'completed',resultPersisted:true,serverDeleteConfirmed:true};
+  assert.equal(entrance.canDeleteVideoOriginal(base),true);
+  assert.equal(entrance.canDeleteVideoOriginal({...base,resultPersisted:false}),false);
+  assert.equal(entrance.canDeleteVideoOriginal({...base,serverDeleteConfirmed:false}),false);
+  assert.equal(entrance.canDeleteVideoOriginal({...base,status:'analyzing'}),false);
+  assert.equal(entrance.canDeleteVideoOriginal({status:'failed_retryable',resultPersisted:true,serverDeleteConfirmed:true}),false);
+});
