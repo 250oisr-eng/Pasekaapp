@@ -8,7 +8,7 @@ function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
   assert.ok(match, 'Function not found: ' + name);
-  const next = /\\n(?:async\\s+)?function\\s+[A-Za-z_$][\\w$]*\\s*\\(/g;
+const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
   next.lastIndex = match.index + match[0].length;
   const end = next.exec(html);
   return html.slice(match.index, end ? end.index : html.indexOf('</script>', match.index));
