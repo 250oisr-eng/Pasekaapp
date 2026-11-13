@@ -2,6 +2,19 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'android/**'
+      - 'scripts/prepare-web.mjs'
+      - 'scripts/patch-android-gradle.mjs'
+      - '.github/workflows/android-debug.yml'
   push:
     paths:
       - 'index.html'
