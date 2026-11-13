@@ -2399,7 +2399,7 @@ test('feeding plan comparison calculates only same-unit completed task differenc
  ];
  const result=build(records,'h1');
  assert.equal(result.events.length,7);
- assert.deepEqual(result.summary,{matched:1,over:1,under:1,notMeasured:1,planMissing:1,unitMismatch:1,unparsed:1});
+ assert.deepEqual(result.summary,{matched:1,over:1,under:1,notMeasured:1,planMissing:1,unitMismatch:1,unparsed:1,duplicateTask:0});
  assert.deepEqual(result.totals,[{unit:'л',planned:5,actual:5,difference:0,count:3}]);
  assert.equal(result.events[0].id,'g','events are ordered newest first');
  assert.equal(result.events.find(event=>event.id==='b').difference,-0.5);
