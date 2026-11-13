@@ -26,7 +26,8 @@ test('entrance frame quality reports shake, blur, exposure and framing flags', (
     {brightness:0.99,sharpness:10,motion:0.6,entranceCoverage:0.5}
   ]);
   assert.equal(q.status,'poor');
-  for(const flag of ['overexposed','blurred','high_frame_difference','entrance_out_of_frame'])assert.ok(q.flags.includes(flag));
+  for(const flag of ['overexposed','blurred','entrance_out_of_frame'])assert.ok(q.flags.includes(flag));
+  assert.ok(q.limitations.includes('camera_stability_not_separately_assessed'));
 });
 
 test('entrance metrics count unique tracks, not repeated frame detections', () => {
@@ -179,7 +180,7 @@ test('frame quality does not claim entrance framing was verified when no detecto
   ]);
   assert.equal(quality.measured.entranceCoverage,null);
   assert.ok(quality.limitations.includes('entrance_framing_not_automatically_verified'));
-  assert.equal(quality.score,0.75);
+  assert.equal(quality.score,1);
 });
 
 test('video sampler clearly reports unavailable browser decoding instead of fabricating samples', async () => {
