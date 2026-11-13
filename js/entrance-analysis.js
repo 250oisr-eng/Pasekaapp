@@ -14,19 +14,54 @@ function assessVideoMetadata(input={}){
  if(input.mimeType&&!/^video\/(mp4|webm|quicktime|3gpp|x-matroska)/i.test(String(input.mimeType)))errors.push({code:'unsupported_video_type',message:'Формат видео не поддерживается.'});
  return {ok:errors.length===0,errors,warnings,metadata:{durationSec:finite(duration)?duration:null,width:finite(width)?width:null,height:finite(height)?height:null,bytes:finite(bytes)?bytes:null,mimeType:String(input.mimeType||'')},stage:'metadata_only',note:'Проверены только свойства файла. Тряска, резкость, засветка и видимость летка ещё не оценены.'};
 }
+
+function measureFramePixels(imageData,width,height,previousGray){
+ if(!imageData||!imageData.data||!Number.isInteger(width)||!Number.isInteger(height)||width<8||height<8||imageData.data.length<width*height*4)return {ok:false,reason:'invalid_image_data'};
+ const data=imageData.data,gray=new Float32Array(width*height);let sum=0;
+ for(let i=0,p=0;i<gray.length;i++,p+=4){const y=0.2126*data[p]+0.7152*data[p+1]+0.0722*data[p+2];gray[i]=y;sum+=y;}
+ const brightness=sum/gray.length/255;let lapSum=0,lapSq=0,count=0;
+ for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const i=y*width+x;const lap=gray[i-1]+gray[i+1]+gray[i-width]+gray[i+width]-4*gray[i];lapSum+=lap;lapSq+=lap*lap;count++;}
+ const lapMean=lapSum/count,sharpness=Math.max(0,lapSq/count-lapMean*lapMean);
+ let motion=null;
+ if(previousGray&&previousGray.length===gray.length){let diff=0;for(let i=0;i<gray.length;i++)diff+=Math.abs(gray[i]-previousGray[i]);motion=diff/gray.length/255;}
+ return {ok:true,brightness,sharpness,motion,gray};
+}
+async function sampleVideoFrames(video,options={}){
+ const count=Number.isInteger(options.count)?clamp(options.count,3,9):5;
+ if(!video||!finite(video.duration)||video.duration<1||typeof document==='undefined')return {ok:false,reason:'video_unavailable',samples:[]};
+ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+ if(!ctx)return {ok:false,reason:'canvas_unavailable',samples:[]};
+ const width=Math.min(480,Math.max(160,video.videoWidth||0)),height=Math.max(120,Math.round(width*(video.videoHeight||3)/(video.videoWidth||4)));
+ if(!video.videoWidth||!video.videoHeight)return {ok:false,reason:'video_dimensions_unavailable',samples:[]};
+ canvas.width=width;canvas.height=height;
+ const originalTime=video.currentTime,wasPaused=video.paused,samples=[];let previous=null;
+ const seek=time=>new Promise((resolve,reject)=>{const done=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);resolve();};const fail=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);reject(new Error('video_seek_failed'));};video.addEventListener('seeked',done,{once:true});video.addEventListener('error',fail,{once:true});try{video.currentTime=time;}catch(e){fail();}});
+ try{
+  for(let i=0;i<count;i++){
+   const time=clamp(video.duration*(i+1)/(count+1),0,Math.max(0,video.duration-0.05));
+   await seek(time);ctx.drawImage(video,0,0,width,height);
+   const measured=measureFramePixels(ctx.getImageData(0,0,width,height),width,height,previous);
+   if(!measured.ok)continue;
+   previous=measured.gray;samples.push({timeSec:time,brightness:measured.brightness,sharpness:measured.sharpness,motion:measured.motion});
+  }
+ }catch(error){return {ok:false,reason:'frame_sampling_failed',samples,errorCode:String(error&&error.message||'unknown')};}
+ finally{try{await seek(clamp(originalTime,0,Math.max(0,video.duration-0.05)));}catch{} if(!wasPaused&&typeof video.play==='function')try{await video.play();}catch{}}
+ return {ok:samples.length>=3,reason:samples.length>=3?null:'insufficient_decoded_frames',samples,dimensions:{width,height},method:'canvas_luminance_laplacian_frame_difference'};
+}
+
 function assessFrameQuality(samples=[]){
  if(!Array.isArray(samples)||samples.length<3)return {status:'unknown',score:null,flags:['insufficient_samples']};
  const usable=samples.filter(x=>x&&finite(x.brightness)&&finite(x.sharpness)&&finite(x.motion));
  if(usable.length<3)return {status:'unknown',score:null,flags:['invalid_samples']};
- const brightness=median(usable.map(x=>x.brightness)),sharpness=median(usable.map(x=>x.sharpness)),motion=median(usable.map(x=>x.motion)),coverage=median(usable.map(x=>finite(x.entranceCoverage)?x.entranceCoverage:1));
+ const brightness=median(usable.map(x=>x.brightness)),sharpness=median(usable.map(x=>x.sharpness)),motion=median(usable.map(x=>x.motion)),coverage=median(usable.map(x=>finite(x.entranceCoverage)?x.entranceCoverage:NaN));
  const flags=[];
  if(brightness<0.08)flags.push('underexposed');
  if(brightness>0.94)flags.push('overexposed');
  if(sharpness<35)flags.push('blurred');
  if(motion>0.22)flags.push('camera_shake');
- if(coverage<0.9)flags.push('entrance_out_of_frame');
- const score=clamp((brightness>=0.08&&brightness<=0.94?0.25:0)+(sharpness>=35?0.25:0)+(motion<=0.22?0.25:0)+(coverage>=0.9?0.25:0),0,1);
- return {status:score>=0.75?'good':score>=0.5?'limited':'poor',score,flags,measured:{brightness,sharpness,motion,entranceCoverage:coverage}};
+ if(coverage!==null&&coverage<0.9)flags.push('entrance_out_of_frame');
+ const score=clamp((brightness>=0.08&&brightness<=0.94?0.25:0)+(sharpness>=35?0.25:0)+(motion<=0.22?0.25:0)+(coverage===null?0:coverage>=0.9?0.25:0),0,1);
+ return {status:score>=0.75?'good':score>=0.5?'limited':'poor',score,flags,measured:{brightness,sharpness,motion,entranceCoverage:coverage},limitations:coverage===null?['entrance_framing_not_automatically_verified']:[]};
 }
 function computeMetrics(tracks=[],durationSec=60,options={}){
  const errors=[];
@@ -84,5 +119,5 @@ function detectAnomalies(current,history=[],context={}){
  if(context.peerMedian&&finite(context.peerMedian.pollenShare)&&finite(current.metrics.pollenShare)&&current.metrics.pollenShare<context.peerMedian.pollenShare*0.45&&!alerts.some(a=>a.id==='pollen_share_drop'))alerts.push({id:'pollen_share_peer_gap',severity:'attention',title:'Пыльценосная активность ниже соседних семей',observation:'Доля пыльценосов заметно ниже медианы сопоставимых семей пасеки.',measured:current.metrics.pollenShare,baseline:context.peerMedian.pollenShare,possibleCauses:['различия в потребности семей','локальные условия','изменение состояния расплода'],recommendedAction:'Повторить наблюдение и проверить семью при ближайшем осмотре.',diagnosis:false,requiresHumanCheck:true});
  return {alerts,baseline:baselines,suppressed:[]};
 }
-root.PasekaEntranceAnalysis=Object.freeze({VERSION,assessVideoMetadata,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
+root.PasekaEntranceAnalysis=Object.freeze({VERSION,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
 })(typeof window!=='undefined'?window:globalThis);
