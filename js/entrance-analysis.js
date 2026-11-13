@@ -29,6 +29,21 @@ function transitionVideoQueue(record,next,details={}){
  if(next==='failed_retryable'||next==='failed_permanent')updated.lastError=String(details.lastError||'Неизвестная ошибка').slice(0,500);
  return {ok:true,record:updated};
 }
+function validateQueuedVideoRecord(record){
+ const errors=[];
+ if(!record||typeof record!=='object')return {ok:false,errors:['record_invalid']};
+ if(typeof record.id!=='string'||!record.id.trim())errors.push('id_missing');
+ if(typeof record.hiveId!=='string'||!record.hiveId.trim())errors.push('hive_id_missing');
+ if(!finite(Date.parse(record.capturedAt)))errors.push('captured_at_invalid');
+ if(!finite(record.durationSec)||record.durationSec<20||record.durationSec>90)errors.push('duration_invalid');
+ if(!Number.isInteger(record.width)||record.width<640||!Number.isInteger(record.height)||record.height<360)errors.push('resolution_invalid');
+ if(!finite(record.bytes)||record.bytes<=0)errors.push('bytes_invalid');
+ if(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0)errors.push('blob_missing');
+ else if(finite(record.bytes)&&record.blob.size!==record.bytes)errors.push('blob_size_mismatch');
+ if(typeof record.mimeType!=='string'||!/^video\\//i.test(record.mimeType))errors.push('mime_type_invalid');
+ if(!VIDEO_QUEUE_STATES.includes(record.status))errors.push('status_invalid');
+ return {ok:errors.length===0,errors};
+}
 function canDeleteVideoOriginal(record){
  return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
 }
@@ -156,5 +171,5 @@ function detectAnomalies(current,history=[],context={}){
  if(context.peerMedian&&finite(context.peerMedian.pollenShare)&&finite(current.metrics.pollenShare)&&current.metrics.pollenShare<context.peerMedian.pollenShare*0.45&&!alerts.some(a=>a.id==='pollen_share_drop'))alerts.push({id:'pollen_share_peer_gap',severity:'attention',title:'Пыльценосная активность ниже соседних семей',observation:'Доля пыльценосов заметно ниже медианы сопоставимых семей пасеки.',measured:current.metrics.pollenShare,baseline:context.peerMedian.pollenShare,possibleCauses:['различия в потребности семей','локальные условия','изменение состояния расплода'],recommendedAction:'Повторить наблюдение и проверить семью при ближайшем осмотре.',diagnosis:false,requiresHumanCheck:true});
  return {alerts,baseline:baselines,suppressed:[]};
 }
-root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,canDeleteVideoOriginal,assessStorageCapacity,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
+root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,validateQueuedVideoRecord,canDeleteVideoOriginal,assessStorageCapacity,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
 })(typeof window!=='undefined'?window:globalThis);
