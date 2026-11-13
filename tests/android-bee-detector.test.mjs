@@ -47,3 +47,11 @@ test('Android plugin declares the standalone LiteRT runtime and CPU-first PoC',a
  assert.doesNotMatch(gradle,/play-services-litert/);
  assert.doesNotMatch(gradle,/litert-gpu/);
 });
+
+test('detector executor is instance-scoped and stopped when Capacitor destroys the plugin',()=>{
+ assert.match(java,/private final ExecutorService runtimeExecutor/);
+ assert.match(java,/runtimeExecutor\\.shutdownNow\\(\\)/);
+ assert.match(java,/protected void handleOnDestroy\\(\\)/);
+ assert.match(java,/if \\(!destroyed\\)/);
+ assert.doesNotMatch(java,/static final ExecutorService/);
+});
