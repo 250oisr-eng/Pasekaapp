@@ -35,7 +35,7 @@ async function sampleVideoFrames(video,options={}){
  if(!video.videoWidth||!video.videoHeight)return {ok:false,reason:'video_dimensions_unavailable',samples:[]};
  canvas.width=width;canvas.height=height;
  const originalTime=video.currentTime,wasPaused=video.paused,samples=[];let previous=null;if(!wasPaused)video.pause();
- const seek=time=>new Promise((resolve,reject)=>{if(Math.abs(video.currentTime-time)<0.001){resolve();return;}const done=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);resolve();};const fail=()=>{video.removeEventListener('seeked',done);video.removeEventListener('error',fail);reject(new Error('video_seek_failed'));};video.addEventListener('seeked',done,{once:true});video.addEventListener('error',fail,{once:true});try{video.currentTime=time;}catch(e){fail();}});
+ const seek=time=>new Promise((resolve,reject)=>{if(Math.abs(video.currentTime-time)<0.001){resolve();return;}let timer;const cleanup=()=>{clearTimeout(timer);video.removeEventListener('seeked',done);video.removeEventListener('error',fail);};const done=()=>{cleanup();resolve();};const fail=()=>{cleanup();reject(new Error('video_seek_failed_or_timeout'));};video.addEventListener('seeked',done,{once:true});video.addEventListener('error',fail,{once:true});timer=setTimeout(fail,10000);try{video.currentTime=time;}catch(e){fail();}});
  try{
   for(let i=0;i<count;i++){
    const time=clamp(video.duration*(i+1)/(count+1),0,Math.max(0,video.duration-0.05));
