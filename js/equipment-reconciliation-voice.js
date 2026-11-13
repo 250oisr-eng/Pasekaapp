@@ -17,7 +17,7 @@ function normalizeSpokenFrameCodes(value){
   const tokens=segment.split(/[\s-]+/u).filter(Boolean),chars=[];let issue=null;
   for(let i=0;i<tokens.length;i++){
    const token=tokens[i],direct=token.toLocaleUpperCase('ru-RU');
-   if(direct.length>=3&&direct.length%3===0&&[...direct].every(char=>ALPHABET.includes(char))){for(let p=0;p<direct.length;p+=3)codes.push(direct.slice(p,p+3));continue}
+   if(direct.length>=3&&direct.length%3===0&&[...direct].every(char=>ALPHABET.includes(char))){chars.push(...direct);continue}
    if(token==='буква'){
     const next=tokens[++i];
     if(next&&explicitLetters[next]){chars.push(explicitLetters[next]);continue}
