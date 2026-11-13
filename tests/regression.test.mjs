@@ -17,7 +17,12 @@ function extractFunction(name) {
 }
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
-  return new Function('deps', 'with (deps) { return (' + source + '); }')(globals);
+  const deps = { ...globals };
+  if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
+    deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
+    deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
+  }
+  return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
 test('family lineage accepts live and archived parents', () => {
@@ -69,7 +74,7 @@ test('queen registry accepts current and historical queen records',()=>{
 
 test('schema 6 backup requires queen registry arrays and validates their entries',()=>{
  const validate=loadFunction('validateBackupState');
- const base={meta:{schemaVersion:6},hives:[],families:[],records:[],queens:[],queenEvents:[]};
+ const base={meta:{schemaVersion:6},hives:[],families:[],records:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[]};
  assert.equal(validate(base),base);
  assert.throws(()=>validate({...base,queens:undefined}),/отсутствует новый раздел: queens/);
  assert.throws(()=>validate({...base,queenEvents:[null]}),/обнаружены повреждённые элементы/);
@@ -1163,7 +1168,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:6}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:7}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -1685,10 +1690,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,6,'2']){
+ for(const version of [0,7,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===6?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===7?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
