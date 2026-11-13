@@ -10,7 +10,7 @@ function appendRecognizedCodes(current,recognized,maxLength=12000){const before=
 function normalizeSpokenFrameCodes(value){
  const raw=String(value??'').trim(),codes=[],issues=[];
  if(!raw)return {raw,codes,issues:[{type:'empty',text:''}],canNormalize:false,preview:''};
- const prepared=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/\bр\s*-\s*/giu,' ');
+ const prepared=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/(^|[\s,;])р\s*-\s*/giu,'$1');
  const segments=prepared.split(/[;,\n.!?]+|\s+и\s+/u).map(x=>x.trim()).filter(Boolean);
  for(const segment of segments){
   const tokens=segment.split(/[\s-]+/u).filter(Boolean),chars=[];let issue=null;
