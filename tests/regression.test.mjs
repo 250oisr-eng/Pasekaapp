@@ -157,9 +157,10 @@ function transferFixture() {
     hives:[{id:'h1',number:1},{id:'h2',number:2}],
     families:[{id:'fam',name:'26-1',hive:'h1',box:1,origin:'offshoot',parentFamilyId:'parent'},{id:'parent',name:'26-0',hive:'h1',box:3}],
     records:[{id:'record-1',family:'fam',hive:'h1'}],
+    equipmentLabels:{bodies:{body-h1-1:'ААА',body-h2-2:'ААБ'}},
     layouts:{
-      h1:{mode:'summer',installedBoxes:[1,2,3],honeyFrames:[[],[]],boxes:makeBoxes({1:'fam',3:'parent'},{1:[{frameId:'1',location:'1',history:[]},{frameId:'2',location:'1',history:[]}]})},
-      h2:{mode:'summer',installedBoxes:[1,2,3],honeyFrames:[[],[]],boxes:makeBoxes({}, {2:[{frameId:'1',location:'2',history:[]},{frameId:'9',location:'2',history:[]}]})}
+      h1:{mode:'summer',installedBoxes:[1,2,3],honeyFrames:[[],[]],corpusIds:{1:'body-h1-1',2:'body-h1-2'},boxes:makeBoxes({1:'fam',3:'parent'},{1:[{frameId:'1',labelCode:'ААГ',location:'1',history:[]},{frameId:'2',labelCode:'ААД',location:'1',history:[]}]})},
+      h2:{mode:'summer',installedBoxes:[1,2,3],honeyFrames:[[],[]],corpusIds:{1:'body-h2-1',2:'body-h2-2'},boxes:makeBoxes({}, {2:[{frameId:'1',labelCode:'ААЕ',location:'2',history:[]},{frameId:'9',labelCode:'ААЖ',location:'2',history:[]}]})}
     }
   };
 }
@@ -188,7 +189,13 @@ test('family transfer moves family and swaps frame sets while retaining lineage'
   assert.equal(result.S.families[0].box,2);
   assert.equal(result.S.families[0].parentFamilyId,'parent');
   assert.deepEqual(result.S.layouts.h2.boxes[2].frames.map(x=>x.frameId),['1','2']);
+  assert.deepEqual(result.S.layouts.h2.boxes[2].frames.map(x=>x.labelCode),['ААГ','ААД'],'physical frame labels follow the frames');
   assert.deepEqual(result.S.layouts.h1.boxes[1].frames.map(x=>x.frameId),['1','9']);
+  assert.deepEqual(result.S.layouts.h1.boxes[1].frames.map(x=>x.labelCode),['ААЕ','ААЖ'],'displaced physical frame labels remain with those frames');
+  assert.equal(result.S.equipmentLabels.bodies['body-h1-1'],'ААА');
+  assert.equal(result.S.equipmentLabels.bodies['body-h2-2'],'ААБ');
+  assert.equal(result.S.layouts.h1.corpusIds[1],'body-h1-1');
+  assert.equal(result.S.layouts.h2.corpusIds[2],'body-h2-2');
   assert.equal(result.S.layouts.h1.boxes[1].family,'');
   assert.equal(result.S.layouts.h2.boxes[2].family,'fam');
   assert.equal(result.audit[0][0],'family_transferred');
@@ -223,7 +230,8 @@ test('family transfer rejects inconsistent target frame locations without partia
 
 function frameMoveFixture(){
   const boxes=Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:'',frames:[]}]));
-  const make=(id,box)=>({frameId:id,location:String(box),originBox:String(box),type:'comb',status:'drawn',history:[]});
+  const labels={A:'ААА',B:'ААБ',C:'ААГ',D:'ААД'};
+  const make=(id,box)=>({frameId:id,labelCode:labels[id],location:String(box),originBox:String(box),type:'comb',status:'drawn',history:[]});
   boxes[1].frames=[make('A','1'),make('B','1')];
   boxes[2].frames=[make('C','2'),make('D','2')];
   return {meta:{revisionId:'rev-1'},hives:[{id:'h1',number:1}],families:[],records:[],tasks:[],layouts:{h1:{mode:'summer',installedBoxes:[1,2,3],winterOrder:[],honeyBoxInstalled:[false,false],honeyFrames:[[],[]],boxes}}};
@@ -239,6 +247,7 @@ test('batch frame move plans and applies several moves atomically',()=>{
   assert.deepEqual(applied.state.layouts.h1.boxes[1].frames,[]);
   assert.deepEqual(applied.state.layouts.h1.boxes[2].frames.map(x=>x.frameId),['D']);
   assert.deepEqual(applied.state.layouts.h1.boxes[3].frames.map(x=>x.frameId),['A','B','C']);
+  assert.deepEqual(applied.state.layouts.h1.boxes[3].frames.map(x=>x.labelCode),['ААА','ААБ','ААГ'],'permanent physical codes move with frames');
   assert.deepEqual(state.layouts.h1.boxes[1].frames.map(x=>x.frameId),['A','B'],'source state is not mutated');
   assert.equal(applied.state.layouts.h1.boxes[3].frames[0].history.at(-1).to.location,'3');
   assert.equal(applied.state.layouts.h1.boxes[3].frames[0].history.at(-1).from.position,1);
