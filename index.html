@@ -1948,7 +1948,7 @@ function familyLineageWouldCycle(familyId,parentFamilyId){
  return false;
 }
 function findFamilyBox(familyId){
- for(const h of S.hives){const l=layoutFor(h.id);for(let n=1;n<=6;n++)if(l.boxes[n]?.family===familyId)return {hiveId:h.id,box:n,layout:l,data:l.boxes[n]}}
+ for(const h of S.hives){const l=layoutFor(h.id),keys=familyTransferBoxKeys(profileForHive(h.id));for(const key of keys)if(l.boxes[key]?.family===familyId)return {hiveId:h.id,box:key,layout:l,data:l.boxes[key]}}
  return null;
 }
 function openFamilyTransfer(familyId){
@@ -1972,17 +1972,17 @@ function updateFamilyTransferTargets(){
 }
 async function confirmFamilyTransfer(e){
  e.preventDefault();
- const family=S.families.find(f=>f.id===transferringFamilyId),targetHiveId=$('transferTargetHive').value,targetNumber=Number($('transferTargetBox').value);
+ const family=S.families.find(f=>f.id===transferringFamilyId),targetHiveId=$('transferTargetHive').value,targetNumber=String($('transferTargetBox').value||'');
  if(!family)return alert('Семья не найдена. Обнови страницу.');
  const placements=[];
- for(const h of S.hives){const layout=layoutFor(h.id);for(let n=1;n<=6;n++)if(layout.boxes[n]?.family===family.id)placements.push({hiveId:h.id,box:n});}
+ for(const h of S.hives){const layout=layoutFor(h.id);for(const key of familyTransferBoxKeys(profileForHive(h.id)))if(layout.boxes[key]?.family===family.id)placements.push({hiveId:h.id,box:key});}
  if(placements.length!==1)return alert(placements.length?'Семья назначена нескольким корпусам. Сначала исправь учёт; перенос отменён.':'Не удалось подтвердить расположение семьи и её рамок. Перемещение отменено.');
  const source=findFamilyBox(family.id);
- if(!source||source.hiveId!==family.hive||(family.box!=null&&Number(family.box)!==source.box))return alert('Расположение семьи и корпуса не совпадает. Сначала исправь учёт; перенос отменён.');
+ if(!source||source.hiveId!==family.hive||(family.box!=null&&String(family.box)!==String(source.box)))return alert('Расположение семьи и корпуса не совпадает. Сначала исправь учёт; перенос отменён.');
  if(!targetHiveId||targetHiveId===family.hive)return alert('Выбери другой улей.');
  const targetHive=S.hives.find(h=>h?.id===targetHiveId);
  if(!targetHive)return alert('Улей назначения больше не существует. Обнови список и повтори перенос.');
- if(!Number.isInteger(targetNumber)||targetNumber<1||targetNumber>6)return alert('Выбери корректный гнездовой корпус с номером от 1 до 6.');
+ if(!familyTransferBoxKeys(profileForHive(targetHiveId)).includes(targetNumber))return alert('Выбранный корпус отсутствует в профиле улья назначения.');
  const targetLayout=layoutFor(targetHiveId);
  if(!targetLayout||!targetLayout.boxes||typeof targetLayout.boxes!=='object')return alert('Не удалось проверить конструкцию улья назначения. Перенос отменён.');
  const targetInstalled=targetLayout.mode==='winter'?(targetLayout.winterOrder||targetLayout.installedBoxes||[]):(targetLayout.installedBoxes||[]);
@@ -1990,7 +1990,7 @@ async function confirmFamilyTransfer(e){
  if(!targetBox||!targetInstalled.includes(targetNumber)||targetBox.family)return alert('Выбранный корпус не установлен или уже занят другой семьёй. Выбери свободный установленный корпус.');
  if(targetLayout.mode==='winter'&&![1,3,4,6].includes(targetNumber))return alert('В зимней сборке разрешены только корпуса №1, 3, 4 и 6.');
  const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
- if(!Array.isArray(frames)||!Array.isArray(targetFrames)||!frames.length||frames.length>6||targetFrames.length>6||frames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId)||targetFrames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId))return alert('Не удалось проверить комплект рамок и их номера. Перемещение отменено.');
+ if(!Array.isArray(frames)||!Array.isArray(targetFrames)||!frames.length||frames.length>frameCapacity(targetNumber,targetHiveId)||targetFrames.length>frameCapacity(source.box,source.hiveId)||frames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId)||targetFrames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId))return alert('Не удалось проверить комплект рамок и их номера. Перемещение отменено.');
  if(new Set(frames.map(fr=>String(fr.frameId))).size!==frames.length||new Set(targetFrames.map(fr=>String(fr.frameId))).size!==targetFrames.length)return alert('В одном из корпусов обнаружены повторяющиеся номера рамок. Сначала исправь учёт; перенос отменён.');
  if(frames.some(fr=>fr.location!=null&&String(fr.location)!==String(source.box))||targetFrames.some(fr=>fr.location!=null&&String(fr.location)!==String(targetNumber)))return alert('Расположение одной или нескольких рамок не совпадает с корпусом. Сначала исправь учёт; перенос отменён.');
  const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId),displacedFrames=targetFrames.map(fr=>fr.frameId);
@@ -2001,11 +2001,11 @@ async function confirmFamilyTransfer(e){
  sourceBox.frames=targetFrames;targetBox.frames=frames;
  const moveDate=today(),frameIdChanges=[];
  S.records.filter(r=>r.family===family.id).forEach(r=>{if(!r.familyNameAtTime)r.familyNameAtTime=family.name||'';if(!r.familyHiveAtTime)r.familyHiveAtTime=r.hive||fromHiveId});
- const idExistsOutside=(layout,id,destination)=>[1,2,3,4,5,6,'H1','H2'].some(key=>String(key)!==String(destination)&&frameArray(layout,key).some(fr=>fr?.frameId===id));
+ const idExistsOutside=(layout,id,destination,hiveId)=>[...profileBroodKeys(hiveId),...profileHoneyKeys(hiveId)].some(key=>String(key)!==String(destination)&&frameArray(layout,key,hiveId).some(fr=>fr?.frameId===id));
  const preserveUniqueFrameIds=(items,layout,destination,fromHive,toHive)=>{
   items.forEach(fr=>{
    const oldId=String(fr.frameId||'');
-   if(idExistsOutside(layout,oldId,destination)){
+   if(idExistsOutside(layout,oldId,destination,fromHive===targetHiveId?toHive:fromHive)){
     const newId=nextFrameId(layout,destination);
     fr.history=Array.isArray(fr.history)?fr.history:[];
     fr.history.push({date:moveDate,action:'frame_id_changed',from:oldId,to:newId,reason:'family_transfer',fromHiveId:fromHive,toHiveId:toHive,fromBox:fromHive===targetHiveId?targetNumber:fromBox,toBox:toHive===targetHiveId?targetNumber:fromBox});
@@ -2017,7 +2017,7 @@ async function confirmFamilyTransfer(e){
  preserveUniqueFrameIds(targetFrames,source.layout,fromBox,targetHiveId,fromHiveId);
  targetBox.family=family.id;targetBox.origin=sourceBox.origin||family.origin||'';targetBox.breed=sourceBox.breed||family.breed||'Неизвестная';targetBox.familyName=sourceBox.familyName||family.name;targetBox.parentFamilyId=sourceBox.parentFamilyId||family.parentFamilyId||'';targetBox.parentFamilySnapshot=family.parentFamilySnapshot||sourceBox.parentFamilySnapshot||null;
  sourceBox.family='';sourceBox.origin='';sourceBox.breed='Неизвестная';sourceBox.familyName='';sourceBox.parentFamilyId='';sourceBox.parentFamilySnapshot=null;
- family.hive=targetHiveId;family.box=targetNumber;
+ family.hive=targetHiveId;family.box=/^\\d+$/.test(targetNumber)?Number(targetNumber):targetNumber;
  const movedAt=new Date().toISOString();
  frames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'family_transfer',from:{hiveId:fromHiveId,box:fromBox},to:{hiveId:targetHiveId,box:targetNumber}});fr.location=String(targetNumber)});
  targetFrames.forEach(fr=>{fr.history=Array.isArray(fr.history)?fr.history:[];fr.history.push({date:moveDate,action:'box_frames_swapped',from:{hiveId:targetHiveId,box:targetNumber},to:{hiveId:fromHiveId,box:fromBox}});fr.location=String(fromBox)});
@@ -2382,6 +2382,13 @@ function validateHiveAssemblyProfile(profile,layout){
  return {ok:errors.length===0,errors};
 }
 
+function familyTransferBoxKeys(profile){return Array.isArray(profile?.brood?.boxKeys)?profile.brood.boxKeys.map(String):['1','2','3','4','5','6']}
+function familyTransferWinterKeys(profile){return Array.isArray(profile?.winter?.allowedBoxKeys)?profile.winter.allowedBoxKeys.map(String):['1','3','4','6']}
+function familyTransferTargets(profile,layout){
+ const keys=familyTransferBoxKeys(profile),installed=new Set((layout?.mode==='winter'?(layout.winterOrder||layout.installedBoxes||[]):(layout?.installedBoxes||[])).map(String));
+ const allowed=layout?.mode==='winter'?new Set(familyTransferWinterKeys(profile)):null;
+ return keys.filter(key=>installed.has(key)&&!!layout?.boxes?.[key]&&!layout.boxes[key].family&&(!allowed||allowed.has(key)));
+}
 function profileForHive(hid=selectedStructureHive()){const hive=S.hives.find(item=>item?.id===hid);return getHiveProfile(hive)}
 function profileBroodKeys(hid=selectedStructureHive()){return profileForHive(hid)?.brood?.boxKeys?.map(String)||['1','2','3','4','5','6']}
 function profileHoneyKeys(hid=selectedStructureHive()){return profileForHive(hid)?.honey?.boxKeys?.map(String)||['H1','H2']}
