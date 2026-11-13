@@ -1412,7 +1412,7 @@ function validateVirtualApiary(){
   const l=isObject(layouts[hive.id])?layouts[hive.id]:{},boxes=isObject(l.boxes)?l.boxes:{};
   const profile=getHiveProfile(hive),profileValidation=validateHiveProfile(profile);
   if(!profileValidation.ok)profileValidation.errors.forEach(error=>add(errors,error.code,{hiveNumber:hive.number,profileId:profile?.id||hive.profileId||null}));
-  else if(profile.family!=='farrar')add(errors,'profile_operations_not_supported',{hiveNumber:hive.number,profileId:profile.id,family:profile.family});
+  else if(profile.family!=='farrar'){add(errors,'profile_operations_not_supported',{hiveNumber:hive.number,profileId:profile.id,family:profile.family});validateHiveAssemblyProfile(profile,l).errors.forEach(error=>add(errors,error.code,{hiveNumber:hive.number,profileId:profile.id}));}
   const mode=l.mode||'summer',installed=Array.isArray(l.installedBoxes)?l.installedBoxes:[],installedNumbers=installed.map(Number),seenBoxes=new Set();
   if(!['summer','winter'].includes(mode))add(errors,'invalid_assembly_mode',{hiveNumber:hive.number,mode});
   if(!Array.isArray(l.installedBoxes)&&l.installedBoxes!=null)add(errors,'invalid_installed_boxes_list',{hiveNumber:hive.number});
@@ -2329,25 +2329,43 @@ function getHiveProfileCapabilities(profile){
  return {ok:true,profileId:profile.id,family:profile.family,broodKeys,honeyKeys,broodCapacity:profile.brood.framesPerBox,honeyCapacity:profile.honey.boxCount?profile.honey.framesPerBox:0,frameHeightMm:profile.frame.heightMm,honeyInstallation:profile.honey.installation,winter:cloneHiveProfile(profile.winter||{enabled:false})};
 }
 function validateHiveAssemblyProfile(profile,layout){
- const capabilities=getHiveProfileCapabilities(profile),errors=[];
+ const capabilities=getHiveProfileCapabilities(profile),errors=[],frameIds=new Set();
  const add=code=>errors.push({code});
+ const inspectFrames=(frames,boxKey,kind,capacity)=>{
+  if(!Array.isArray(frames)){add(kind+'_frames_invalid');return}
+  if(frames.length>capacity)add(kind+'_box_over_capacity');
+  for(const frame of frames){
+   if(!frame||typeof frame!=='object'||Array.isArray(frame)){add('invalid_frame_record');continue}
+   if(!frame.frameId)add('missing_frame_id');
+   else if(frameIds.has(frame.frameId))add('duplicate_frame_id');
+   if(frame.frameId)frameIds.add(frame.frameId);
+   if(frame.location!=null&&String(frame.location)!==String(boxKey))add('frame_location_mismatch');
+   if(frame.history!=null&&(!Array.isArray(frame.history)||frame.history.some(event=>!event||typeof event!=='object'||Array.isArray(event))))add('invalid_frame_history');
+  }
+ };
  if(!capabilities.ok)return {ok:false,errors:capabilities.errors};
  if(!layout||typeof layout!=='object'||Array.isArray(layout))return {ok:false,errors:[{code:'layout_not_object'}]};
  const broodKeys=capabilities.broodKeys,honeyKeys=capabilities.honeyKeys,installed=Array.isArray(layout.installedBoxes)?layout.installedBoxes.map(String):[];
  if(!Array.isArray(layout.installedBoxes))add('installed_boxes_invalid');
  if(installed.some(key=>!broodKeys.includes(key)))add('installed_box_unknown');
  if(new Set(installed).size!==installed.length)add('installed_box_duplicate');
- if(layout.boxes&&typeof layout.boxes==='object'&&!Array.isArray(layout.boxes)){
-  for(const key of broodKeys){
-   const box=layout.boxes[key];
-   if(box&&Array.isArray(box.frames)&&box.frames.length>profile.brood.framesPerBox)add('brood_box_over_capacity');
-   if(box?.family&&!installed.includes(key))add('family_box_not_installed');
-  }
+ if(layout.boxes!=null&&(!layout.boxes||typeof layout.boxes!=='object'||Array.isArray(layout.boxes)))add('brood_boxes_invalid');
+ const boxes=layout.boxes&&typeof layout.boxes==='object'&&!Array.isArray(layout.boxes)?layout.boxes:{};
+ for(const key of broodKeys){
+  const box=boxes[key];
+  if(box==null)continue;
+  if(!box||typeof box!=='object'||Array.isArray(box)){add('invalid_brood_box');continue}
+  if(box.family&&!installed.includes(key))add('family_box_not_installed');
+  if(box.frames!=null)inspectFrames(box.frames,key,'brood',profile.brood.framesPerBox);
  }
+ for(const key of Object.keys(boxes))if(!broodKeys.includes(String(key)))add('brood_box_unknown');
  const honey=Array.isArray(layout.honeyBoxInstalled)?layout.honeyBoxInstalled:[];
- if(Array.isArray(layout.honeyFrames))honeyKeys.forEach((key,index)=>{const frames=layout.honeyFrames[index];if(Array.isArray(frames)&&frames.length>profile.honey.framesPerBox)add('honey_box_over_capacity')});
+ if(!Array.isArray(layout.honeyBoxInstalled))add('honey_installation_invalid');
  if(honey.length!==honeyKeys.length)add('honey_installation_count_mismatch');
  if(honey.some(value=>typeof value!=='boolean'))add('honey_installation_flag_invalid');
+ if(!Array.isArray(layout.honeyFrames)||layout.honeyFrames.length!==honeyKeys.length)add('honey_frames_count_mismatch');
+ const honeyFrames=Array.isArray(layout.honeyFrames)?layout.honeyFrames:[];
+ honeyKeys.forEach((key,index)=>{if(honeyFrames[index]!=null)inspectFrames(honeyFrames[index],key,'honey',profile.honey.framesPerBox)});
  if(capabilities.honeyInstallation==='paired'&&honey.length&&honey.some(Boolean)&&!honey.every(Boolean))add('honey_pair_mismatch');
  if(layout.mode==='winter'){
   const winter=capabilities.winter||{};
