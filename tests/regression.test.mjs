@@ -622,13 +622,13 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes six clear navigation destinations and home AI entry points',()=>{
+test('hybrid workspace exposes eight clear navigation destinations and home AI entry points',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,7);
-  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  assert.equal((nav.match(/data-tab=/g)||[]).length,8);
+  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
   assert.ok(html.includes('id="homeAIQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
@@ -1648,10 +1648,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation includes all seven sections and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes all eight sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,7);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,8);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
@@ -1796,10 +1796,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,10,'2']){
+ for(const version of [0,11,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===10?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===11?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
