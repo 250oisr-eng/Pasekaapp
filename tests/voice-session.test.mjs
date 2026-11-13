@@ -109,3 +109,73 @@ test('voice recognition permission denial stops the session instead of retrying 
   assert.equal(stopped, true);
   assert.match(deps.status, /Нет разрешения на микрофон/);
 });
+
+
+test('voice confirmation cannot apply anything when there is no pending AI operation', async () => {
+  let confirmationCalls = 0;
+  const spoken = [];
+  const deps = {
+    apiaryVoiceArmed: true,
+    apiaryVoiceArmExpiresAt: Date.now() + 10000,
+    S: { aiMessages: [] },
+    parseApiaryVoiceCommand: loadFunction('parseApiaryVoiceCommand'),
+    apiaryVoiceStatus(message) { this.status = message; },
+    speakApiaryVoice(message) { spoken.push(message); },
+    confirmAICommand() { confirmationCalls++; }
+  };
+  await loadFunction('handleApiaryVoiceTranscript', deps)('Пасека, слушай, подтверждаю');
+  assert.equal(confirmationCalls, 0);
+  assert.match(deps.status, /Нет ожидающей подтверждения операции/);
+  assert.deepEqual(spoken, ['Нет операции для подтверждения.']);
+});
+
+test('voice confirmation delegates to the normal plan revalidation path with explicit voice confirmation', async () => {
+  const calls = [];
+  const spoken = [];
+  const message = { role: 'assistant', commandStatus: 'pending' };
+  const deps = {
+    apiaryVoiceArmed: true,
+    apiaryVoiceArmExpiresAt: Date.now() + 10000,
+    S: { aiMessages: [message] },
+    parseApiaryVoiceCommand: loadFunction('parseApiaryVoiceCommand'),
+    apiaryVoiceStatus(value) { this.status = value; },
+    speakApiaryVoice(value) { spoken.push(value); },
+    async confirmAICommand(index, voiceConfirmed) {
+      calls.push({ index, voiceConfirmed });
+      message.commandStatus = 'applied';
+      return true;
+    }
+  };
+  await loadFunction('handleApiaryVoiceTranscript', deps)('Пасека слушай подтверждаю');
+  assert.deepEqual(calls, [{ index: 0, voiceConfirmed: true }]);
+  assert.match(deps.status, /Операция подтверждена и сохранена/);
+  assert.deepEqual(spoken, ['Операция подтверждена и сохранена.']);
+});
+
+test('stopping voice session releases microphone, cancels speech and resets controls', () => {
+  let microphoneStopped = false;
+  let speechCancelled = false;
+  const button = { textContent: '■ Завершить сеанс', classList: { add(value) { this.added = value; } } };
+  const recognition = { stop() { microphoneStopped = true; } };
+  const deps = {
+    apiaryVoiceSessionActive: true,
+    apiaryVoiceArmed: true,
+    apiaryVoiceArmExpiresAt: Date.now() + 1000,
+    apiaryVoiceRecognition: recognition,
+    apiaryVoiceSpeaking: true,
+    window: { speechSynthesis: { cancel() { speechCancelled = true; } } },
+    $(id) { return id === 'aiVoiceSessionButton' ? button : null; },
+    apiaryVoiceStatus(message) { this.status = message; }
+  };
+  loadFunction('stopApiaryVoiceSession', deps)();
+  assert.equal(deps.apiaryVoiceSessionActive, false);
+  assert.equal(deps.apiaryVoiceArmed, false);
+  assert.equal(deps.apiaryVoiceArmExpiresAt, 0);
+  assert.equal(deps.apiaryVoiceRecognition, null);
+  assert.equal(deps.apiaryVoiceSpeaking, false);
+  assert.equal(microphoneStopped, true);
+  assert.equal(speechCancelled, true);
+  assert.equal(button.textContent, '🎙 Начать сеанс');
+  assert.equal(button.classList.added, 'primary');
+  assert.match(deps.status, /Сеанс выключен/);
+});
