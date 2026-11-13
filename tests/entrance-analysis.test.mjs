@@ -241,7 +241,7 @@ test('video queue cannot complete before the result is persisted and server dele
 });
 
 test('video queue keeps a retryable analysis when server deletion acknowledgement is missing', () => {
-  const analyzing={id:'v3',status:'analyzing',resultPersisted:true,serverDeleteConfirmed:false};
+  const analyzing={id:'v3',status:'analyzing',resultPersisted:true,serverUploadConfirmed:true,serverDeleteConfirmed:false};
   const result=entrance.transitionVideoQueue(analyzing,'completed');
   assert.equal(result.ok,false);
   assert.equal(result.reason,'server_delete_not_confirmed');
