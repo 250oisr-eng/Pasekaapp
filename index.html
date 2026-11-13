@@ -367,7 +367,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 @media (orientation:landscape) and (min-width:560px) and (max-width:899px){main{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))!important}.fab{bottom:calc(124px + env(safe-area-inset-bottom,0px))!important}}
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><div class="home-brand-title">Пасека</div><div class="home-brand-subtitle">Управление · журнал · ИИ-помощник</div></div><button type="button" class="home-ai-shortcut" onclick="showTab('ai')">Спросить ИИ <span aria-hidden="true">↗</span></button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="settings">Ещё</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="planning">План</button><button data-tab="settings">Ещё</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
@@ -442,6 +442,26 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <button class="primary" type="submit">Сохранить досье</button>
  </form></div>
  <div class="card"><div class="row"><b>Зафиксированные инциденты</b><span class="muted" id="incidentCount">0</span></div><div id="incidentList"></div></div>
+</section>
+<section id="planning" class="panel">
+ <div class="card"><h2 style="margin-top:0">Сезонное планирование</h2><p class="muted">Расчёты работают на смартфоне и используют даты, которые ты вводишь сам. Это биологические ориентиры, а не точные прогнозы. Цветение и погоду нужно подтверждать наблюдениями на месте.</p></div>
+ <div class="card"><h3 style="margin-top:0">Обратный календарь медосбора</h3><p class="muted">Рассчитывает ориентировочное окно яйцекладки, чтобы к ожидаемому цветению выросло поколение будущих сборщиц. В расчёте учтено развитие рабочей пчелы и примерный период работы внутри улья после выхода.</p>
+  <label for="nectarPlantName">Медонос</label><input id="nectarPlantName" maxlength="120" placeholder="Например: липа">
+  <label for="nectarFloweringDate">Ожидаемое начало цветения</label><input id="nectarFloweringDate" type="date">
+  <div class="row"><div style="flex:1"><label for="nectarMinLead">Минимум дней до цветения</label><input id="nectarMinLead" type="number" min="21" max="70" value="35"></div><div style="flex:1"><label for="nectarMaxLead">Максимум дней</label><input id="nectarMaxLead" type="number" min="21" max="70" value="49"></div></div>
+  <button type="button" class="primary" onclick="renderNectarBackwardPlan()">Рассчитать окно яйцекладки</button><div id="nectarPlanResult" class="muted" aria-live="polite"></div>
+ </div>
+ <div class="card"><h3 style="margin-top:0">Календарь вывода маток</h3><p class="muted">Отсчёт зависит от возраста личинки в момент прививки. Для личинки примерно суточного возраста ориентир выхода — около 12 дней после прививки.</p>
+  <label for="queenGraftDate">Дата прививки</label><input id="queenGraftDate" type="date">
+  <label for="queenLarvaAge">Возраст личинки после выхода из яйца, часов</label><input id="queenLarvaAge" type="number" min="0" max="48" step="1" value="24">
+  <button type="button" class="primary" onclick="renderQueenRearingTimeline()">Построить календарь</button><div id="queenTimelineResult" aria-live="polite"></div>
+ </div>
+ <div class="card"><h3 style="margin-top:0">Контрольный интервал осмотра</h3><p class="muted">Настраиваемое напоминание. Семидневный цикл можно использовать в период роевого риска, но он не гарантирует обнаружение всех маточников и предотвращение выхода роя.</p>
+  <label for="inspectionLastDate">Дата последнего осмотра</label><input id="inspectionLastDate" type="date">
+  <label for="inspectionInterval">Интервал, дней</label><input id="inspectionInterval" type="number" min="1" max="30" value="7">
+  <button type="button" class="primary" onclick="renderInspectionReminder()">Рассчитать дату следующего контроля</button><div id="inspectionReminderResult" class="muted" aria-live="polite"></div>
+ </div>
+ <div class="card"><b>Что появится следующим этапом</b><p class="muted">Шаблоны технологических карт, оценка силы семьи, селекционная карта матки, сезонные KPI и фото-протокол разбора погибшей семьи. Сначала будут добавлены проверяемые ручные записи; автоматические диагнозы по фотографиям не планируются.</p></div>
 </section>
 <section id="ai" class="panel">
  <div class="card ai-console-card"><div class="ai-hero"><div class="ai-hero-orb" aria-hidden="true"><span>✦</span></div><div class="ai-hero-copy"><div class="ai-eyebrow">ПАСЕКА · ИНТЕЛЛЕКТУАЛЬНЫЙ ПОМОЩНИК</div><h2 style="margin:2px 0">ИИ-помощник</h2><span class="ai-hero-subtitle">Консультации по данным твоей пасеки</span></div><span class="ai-hero-tag">AI</span></div>
@@ -528,6 +548,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
+<script src="./js/season-planning.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1291,6 +1312,28 @@ async function savePesticideIncident(event){
  if(!await save()){S=previous;render();return}
  $('incidentForm').reset();pendingIncidentMedia=[];$('incidentObservedAt').value=localIncidentDateTime();$('incidentGpsStatus').textContent='GPS не запрашивался';renderPesticideIncidentModule();
 }
+function renderSeasonPlanning(){
+ const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()],['inspectionLastDate',today()]];
+ defaults.forEach(([id,value])=>{const field=$(id);if(field&&!field.value)field.value=value});
+}
+function renderNectarBackwardPlan(){
+ const host=$('nectarPlanResult');if(!host)return;
+ try{
+  const result=PasekaSeasonPlanning.buildNectarBackwardPlan({plantName:$('nectarPlantName').value,floweringDate:$('nectarFloweringDate').value,minLeadDays:$('nectarMinLead').value,maxLeadDays:$('nectarMaxLead').value});
+  host.innerHTML='<div style="margin-top:12px"><b>'+(result.plantName?safe(result.plantName)+' · ':'')+'Ожидаемое цветение: '+safe(result.floweringDate)+'</b><p>Ориентировочное окно яйцекладки: <b>'+safe(result.eggLayingWindow.from)+' — '+safe(result.eggLayingWindow.to)+'</b></p><p>Средний ориентир: '+safe(result.targetEggLayingDate)+'</p><p class="muted">'+safe(result.basis)+'</p><p class="muted">'+safe(result.warning)+'</p></div>';
+ }catch(error){host.textContent=error.message||'Не удалось рассчитать даты.'}
+}
+function renderQueenRearingTimeline(){
+ const host=$('queenTimelineResult');if(!host)return;
+ try{
+  const result=PasekaSeasonPlanning.buildQueenRearingTimeline({graftDate:$('queenGraftDate').value,larvaAgeHours:$('queenLarvaAge').value});
+  host.innerHTML='<div style="margin-top:12px"><b>Ожидаемый выход: '+safe(result.estimatedEmergence.from)+' — '+safe(result.estimatedEmergence.to)+'</b><ul>'+result.milestones.map(item=>'<li><b>'+safe(item.label)+':</b> '+safe(item.from)+(item.from!==item.to?' — '+safe(item.to):'')+'</li>').join('')+'</ul><p class="muted">'+safe(result.basis)+'</p><p class="muted">'+safe(result.warning)+'</p></div>';
+ }catch(error){host.textContent=error.message||'Не удалось построить календарь.'}
+}
+function renderInspectionReminder(){
+ const host=$('inspectionReminderResult');if(!host)return;
+ try{const result=PasekaSeasonPlanning.buildInspectionReminder({lastInspection:$('inspectionLastDate').value,intervalDays:$('inspectionInterval').value});host.innerHTML='<p style="margin-top:12px"><b>Следующий контроль: '+safe(result.dueDate)+'</b></p><p>'+safe(result.warning)+'</p>'}catch(error){host.textContent=error.message||'Не удалось рассчитать дату.'}
+}
 function render(){
  renderHiveDirectory();renderPlantModule();renderVarroaModule();renderPesticideIncidentModule();renderQueenRegistry();renderEquipmentInventory();
  renderEquipmentReconciliation();
@@ -1494,7 +1537,7 @@ function createExpansionSuggestion(record){
 }
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка',feeding=$('rtype').value==='Подкормка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';$('feedingFields').style.display=feeding?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}}
 function selectJournalHive(id){activeJournalHive=id;render()}
-function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',planning:'#e2eedf',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='planning')renderSeasonPlanning();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(tab==='ai')initAIAuth()}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 
