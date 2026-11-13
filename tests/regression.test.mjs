@@ -1136,7 +1136,7 @@ function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
  const inspectTaskIntegrity=loadFunction('inspectTaskIntegrity');
  const inspectPlantModuleIntegrity=loadFunction('inspectPlantModuleIntegrity');
- return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity,inspectPlantModuleIntegrity,inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')})(state);
+ return loadFunction('validateRawBackupIntegrity',{inspectFamilyLineage,inspectTaskIntegrity,inspectPlantModuleIntegrity})(state);
 }
 
 test('main database write rejects a stale revision without overwriting newer state',async()=>{
@@ -1238,7 +1238,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:7}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:9}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -1570,7 +1570,7 @@ test('layout initialization creates physical frame arrays from the selected prof
  const profileForHive=()=>profile;
  const frameCapacity=(key)=>key==='M1'?8:10;
  const framePrefix=(key)=>key;
- const layout=loadFunction('layoutFor',{S:state,profileForHive,frameCapacity,framePrefix,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
+ const layout=loadFunction('layoutFor',{S:state,profileForHive,frameCapacity,framePrefix});
  const result=layout('h1');
  assert.equal(result.boxes.B1.frames.length,10);
  assert.equal(result.boxes.B2.frames.length,10);
@@ -1646,7 +1646,7 @@ test('home miniatures render the installed boxes and honey boxes from each hive 
 test('configured honey box arrays are initialized to their profile capacity',()=>{
  const profile={id:'test-profile',schemaVersion:1,status:'ready',name:'Test',family:'custom',frame:{heightMm:230},brood:{boxCount:1,framesPerBox:8,boxKeys:['B1']},honey:{boxCount:1,framesPerBox:7,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
  const state={layouts:{},hives:[{id:'h1'}]};
- const layout=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>key==='M1'?7:8,framePrefix:key=>key,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
+ const layout=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>key==='M1'?7:8,framePrefix:key=>key});
  const result=layout('h1');
  assert.equal(result.honeyFrames[0].length,7);
  assert.equal(result.honeyFrames[0][0].frameId,'M1-01');
@@ -1715,32 +1715,11 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
-test('frame inventory numbers are global, permanent, six digits and idempotent across brood and honey frames',()=>{
- const state={meta:{nextFrameInventoryNumber:1},layouts:{
-  h1:{boxes:{1:{frames:[{frameId:'B1',inventoryNumber:'000041'},{frameId:'B2'}]}},honeyFrames:[[{frameId:'H1'}],[]]},
-  h2:{boxes:{1:{frames:[{frameId:'B1',inventoryNumber:'000041'}]}},honeyFrames:[[],[]]}
- }};
- const ensure=loadFunction('ensureFrameInventoryNumbers');
- ensure(state);
- const values=Object.values(state.layouts).flatMap(layout=>[
-  ...Object.values(layout.boxes).flatMap(box=>box.frames.map(frame=>frame.inventoryNumber)),
-  ...layout.honeyFrames.flatMap(group=>group.map(frame=>frame.inventoryNumber))
- ]);
- assert.equal(values.length,4);
- assert.equal(new Set(values).size,4);
- assert.ok(values.every(value=>/^\d{6}$/.test(value)));
- assert.equal(state.layouts.h1.boxes[1].frames[0].frameId,'B1');
- const after=JSON.stringify(state);
- ensure(state);
- assert.equal(JSON.stringify(state),after,'running assignment twice must not change assigned numbers');
-});
-test('frame inventory integrity rejects duplicate and malformed physical labels and requires labels in schema 4',()=>{
- const inspect=loadFunction('inspectFrameInventoryIntegrity');
- const state={meta:{schemaVersion:4},layouts:{h1:{boxes:{1:{frames:[{frameId:'A',inventoryNumber:'000001'},{frameId:'B',inventoryNumber:'bad'}]}},honeyFrames:[[{frameId:'C',inventoryNumber:'000001'},{frameId:'D'}],[]]}}};
- const errors=inspect(state);
- assert.ok(errors.some(error=>error.code==='invalid_frame_inventory_number'));
- assert.ok(errors.some(error=>error.code==='duplicate_frame_inventory_number'));
- assert.ok(errors.some(error=>error.code==='frame_inventory_number_missing'));
+test('six-digit frame inventory is not part of the current model',()=>{
+ const source=extractFunction('migrateState');
+ assert.match(source,/delete frame\.inventoryNumber/);
+ assert.match(source,/delete S\.meta\.nextFrameInventoryNumber/);
+ assert.doesNotMatch(source,/ensureFrameInventoryNumbers/);
 });
 test('runtime integrity allows the same local frame ID in different hives',()=>{
  const frame={frameId:'GLOBAL-FRAME-02',location:'1',history:[]};
@@ -1754,16 +1733,16 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  const profile={id:'farrar-6x6-v1',family:'farrar'};
  const validate=loadFunction('validateVirtualApiary',{
   S:state,inspectFamilyLineage:()=>[],inspectTaskIntegrity:()=>[],
-  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]}),inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')
+  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]})
  });
  const result=validate();
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,8,'2']){
+ for(const version of [0,9,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===8?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===9?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1775,7 +1754,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
   records:[{hive:'h1',date:'2026-11-12',type:'Осмотр'}],
   tasks:[],extractions:[{items:[{}]}],snapshots:[],layouts:{},auditLog:[],aiMessages:[]
  };
- const frame={frameId:'PHYSICAL-FRAME-01',location:'1'};
+ const frame={frameId:'PHYSICAL-FRAME-01',location:'1',inventoryNumber:'000001'};
  const layoutFor=hiveId=>{
   state.layouts[hiveId]=state.layouts[hiveId]||{boxes:{},honeyFrames:[[],[]]};
   return state.layouts[hiveId];
@@ -1790,9 +1769,9 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  };
  layoutFor('h1').boxes['1']={frames:[frame]};
  let sequence=0;
- const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,7);
+ assert.equal(state.meta.schemaVersion,8);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
@@ -1802,7 +1781,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  assert.ok(state.snapshots.length>0);
  assert.equal(frame.frameId,'PHYSICAL-FRAME-01');
  assert.ok(frame.id);
- assert.equal(frame.inventoryNumber,'000001');
+ assert.equal(frame.inventoryNumber,undefined);
  assert.equal(state.families[0].line,null);
  assert.equal(state.families[0].queen,null);
  assert.deepEqual(frame.history,[]);
@@ -2055,9 +2034,9 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   inspectFamilyLineage:loadFunction('inspectFamilyLineage'),
   inspectTaskIntegrity:loadFunction('inspectTaskIntegrity'),
   inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),
-  inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')
+  
  });
- const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity,inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity')});
+ const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity,inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity')});
  const deps={
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:corrupt})}]}),
@@ -2067,7 +2046,7 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   validateBackupState,
   assertRawBackupIntegrity,
   inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),
-  inspectFrameInventoryIntegrity:loadFunction('inspectFrameInventoryIntegrity'),
+  ,
   alert:message=>alerts.push(message)
  };
  await loadFunction('restoreBackup',deps)();
