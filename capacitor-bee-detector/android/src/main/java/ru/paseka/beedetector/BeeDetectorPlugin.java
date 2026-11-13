@@ -21,26 +21,27 @@ public class BeeDetectorPlugin extends Plugin {
 
     @PluginMethod
     public void getStatus(PluginCall call) {
+        if (destroyed) return;
         Context appContext = getContext().getApplicationContext();
-        if (destroyed || runtimeExecutor.isShutdown()) {
-            resolveUnavailable(call, "plugin_destroyed");
+        if (runtimeExecutor.isShutdown()) {
+            resolveUnavailable(call, "runtime_executor_unavailable");
             return;
         }
         try {
             runtimeExecutor.execute(() -> {
-            if (destroyed || Thread.currentThread().isInterrupted()) return;
-            LiteRtRuntimeProbe.Result probe = LiteRtRuntimeProbe.initializeAndClose(appContext);
-            JSObject result = new JSObject();
-            result.put("bridgeAvailable", true);
-            result.put("bridgeVersion", BRIDGE_VERSION);
-            result.put("runtimeAvailable", probe.available);
-            result.put("modelAvailable", false);
-            result.put("inferenceAvailable", false);
-            result.put("status", "unavailable");
-            result.put("reason", probe.available ? "model_not_installed" : "runtime_initialization_failed");
-            if (!destroyed && !Thread.currentThread().isInterrupted()) {
-                call.resolve(result);
-            }
+                if (destroyed || Thread.currentThread().isInterrupted()) return;
+                LiteRtRuntimeProbe.Result probe = LiteRtRuntimeProbe.initializeAndClose(appContext);
+                JSObject result = new JSObject();
+                result.put("bridgeAvailable", true);
+                result.put("bridgeVersion", BRIDGE_VERSION);
+                result.put("runtimeAvailable", probe.available);
+                result.put("modelAvailable", false);
+                result.put("inferenceAvailable", false);
+                result.put("status", "unavailable");
+                result.put("reason", probe.available ? "model_not_installed" : "runtime_initialization_failed");
+                if (!destroyed && !Thread.currentThread().isInterrupted()) {
+                    call.resolve(result);
+                }
             });
         } catch (RejectedExecutionException error) {
             if (!destroyed) {
