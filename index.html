@@ -916,8 +916,8 @@ function updateReconciliationCodeSymbol(input){
  const index=Number(input.dataset.codeIndex),position=Number(input.dataset.symbolIndex);if(!Number.isInteger(index)||!Number.isInteger(position)||!reconciliationEditedCodes?.[index])return;
  const value=String(input.value||'').toLocaleUpperCase('ru-RU').slice(0,1);input.value=value;
  const chars=[...String(reconciliationEditedCodes[index])];chars[position]=value||'\u0000';reconciliationEditedCodes[index]=chars.join('');
- const validation=PasekaReconciliationVoice.validateEditedFrameCodes(reconciliationEditedCodes);
- input.style.borderColor=validation.ok?'':'#c33';
+ const validation=PasekaReconciliationVoice.validateEditedFrameCodes(reconciliationEditedCodes),invalidSymbol=validation.errors.some(error=>error.index===index&&error.position===position);
+ input.setAttribute('aria-invalid',String(invalidSymbol));input.style.borderColor=invalidSymbol?'#c33':'';
  const preview=$('reconciliationVoicePreview'),status=preview?.lastElementChild;
  if(status)status.textContent=validation.ok?'Проверка пройдена. Будут сохранены исправленные коды: '+reconciliationEditedCodes.join(', ')+'. Исходная речь сохранится отдельно.':'Есть неверные символы или неполные коды. Исправь их перед сохранением.';
 }
