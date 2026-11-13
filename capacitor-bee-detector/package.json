@@ -2,12 +2,13 @@
   "name": "@paseka/capacitor-bee-detector",
   "version": "0.1.0",
   "description": "Local Android bridge for the Paseka on-device bee detector",
-  "main": "dist/plugin.cjs.js",
+  "main": "index.js",
   "module": "dist/esm/index.js",
-  "types": "dist/esm/index.d.ts",
+  "types": "src/definitions.ts",
   "files": [
     "android",
-    "dist"
+    "src",
+    "index.js"
   ],
   "license": "UNLICENSED",
   "peerDependencies": {
