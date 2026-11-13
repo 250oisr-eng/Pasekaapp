@@ -45,15 +45,6 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - name: Cache Gradle build data
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
       - name: Locate or install Android command-line tools
         shell: bash
         run: |
@@ -99,7 +90,7 @@ jobs:
             source = source.replace(pattern, `$1${value}`);
           }
           fs.writeFileSync(path, source);
-          const minLine = source.split('\\n').find(line => line.trim().startsWith('minSdkVersion'));
+          const minLine = source.split(/\\r?\\n/).find(line => line.trim().startsWith('minSdkVersion'));
           const min = Number(minLine?.split('=').pop()?.trim());
           if (min !== 35) throw new Error(`Expected minSdkVersion 35, got ${min}`);
           console.log('Android minimum API: 35 (Android 15); compile/target API: 35');
