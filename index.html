@@ -1548,6 +1548,20 @@ async function handleApiaryVoiceTranscript(transcript){
   else{apiaryVoiceStatus('Пока нет ответа ИИ.');speakApiaryVoice('Пока нет ответа ИИ.')}
   return;
  }
+ if(parsed.type==='journal_draft'){
+  const description=String(parsed.text||'').trim(),recordDialog=$('recordDlg');
+  if(recordDialog?.open){
+   const note=$('rtext'),next=note?(note.value.trim()?note.value.trim()+'\\n'+description:description):'';
+   if(!note||next.length>12000){apiaryVoiceStatus('Не удалось добавить текст: проверь поле заметки и его размер.');speakApiaryVoice('Не удалось добавить текст в заметку.');return}
+   note.value=next;apiaryVoiceStatus('Текст добавлен в заметку текущей записи. Проверь его и сохрани запись вручную.');speakApiaryVoice('Добавил текст в заметку. Проверь и сохрани запись вручную.');return;
+  }
+  const hiveId=String($('aiJournalHiveSelect')?.value||'');
+  if(!hiveId||!S.hives?.some(hive=>hive?.id===hiveId)){
+   showTab('ai');apiaryVoiceStatus('Сначала выбери улей в блоке подготовки записи. Ничего не сохранено.');speakApiaryVoice('Сначала выбери улей, затем повтори команду.');$('aiJournalHiveSelect')?.focus();return;
+  }
+  const draftField=$('aiJournalDraftInput');if(!draftField){apiaryVoiceStatus('Форма подготовки записи недоступна.');return}
+  draftField.value=description;prepareJournalDraftFromAI();apiaryVoiceStatus('Открыл черновик записи журнала. Ничего не сохранено. Проверь дату, улей и все показатели, затем сохрани вручную.');speakApiaryVoice('Черновик записи открыт. Ничего не сохранено. Проверь поля и сохрани вручную.');return;
+ }
  if(parsed.type==='question'){
   const dialog=$('frameReconciliationDlg'),command=PasekaReconciliationVoice.parseReconciliationVoiceCommand(parsed.text);
   if(dialog?.open&&command.type==='append_codes'){
