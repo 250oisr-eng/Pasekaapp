@@ -22,10 +22,10 @@ test('deadout draft validates hive, dates, enum values and bounded photos',()=>{
  assert.throws(()=>deadout.buildDeadoutReviewDraft({...base,foodStatus:'made_up'},hives,[],()=> 'x','now'),/чек-листа/i);
  assert.throws(()=>deadout.buildDeadoutReviewDraft(base,hives,[{kind:'image',name:'x',data:'not-an-image'}],()=> 'x','now'),/фотография/i);
 });
-test('deadout review integrity protects identity and keeps diagnosis unset',()=>{
+test('deadout review integrity protects identity, keeps diagnosis unset and accepts pre-schema-12 backups',()=>{
  const item=deadout.buildDeadoutReviewDraft(base,hives,[],()=> 'd1','2027-03-10T10:00:00.000Z');
  const state={hives,deadoutReviews:[item]};
- assert.deepEqual(deadout.inspectDeadoutIntegrity(state),[]);
+ assert.deepEqual(deadout.inspectDeadoutIntegrity(state),[]);assert.deepEqual(deadout.inspectDeadoutIntegrity({meta:{schemaVersion:11},hives,deadoutReviews:undefined}),[]);
  assert.equal(deadout.inspectDeadoutIntegrity({hives,deadoutReviews:[{...item,diagnosis:'starvation'}]})[0].code,'deadout_diagnosis_must_remain_unset');
 });
 test('deadout differential does not turn a single visual sign into a definitive diagnosis',()=>{
