@@ -3,7 +3,11 @@
 const SCOPES=Object.freeze(['selected_hives','whole_apiary','unknown']);
 const MAX_MEDIA=3,MAX_MEDIA_DATA=3000000;
 const text=(value,max)=>{const s=String(value??'').trim();if(s.length>max)throw new Error('Одно из текстовых полей превышает допустимую длину.');return s};
-const validDateTime=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)&&!Number.isNaN(new Date(value).getTime());
+function validDateTime(value){
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))return false;
+ const [date,time]=value.split('T'),[year,month,day]=date.split('-').map(Number),[hour,minute]=time.split(':').map(Number),d=new Date(Date.UTC(year,month-1,day));
+ return d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day&&hour>=0&&hour<=23&&minute>=0&&minute<=59;
+}
 function buildPesticideIncidentDraft(input,hives,media,makeId,now){
  if(!Array.isArray(hives))throw new Error('Не удалось прочитать список ульев.');
  const observedAt=String(input?.observedAt||'');
@@ -16,6 +20,7 @@ function buildPesticideIncidentDraft(input,hives,media,makeId,now){
  const deadRaw=input.deadBeesCount==null?'':String(input.deadBeesCount).trim();
  let deadBeesCount=null;
  if(deadRaw!==''){if(!/^\d+$/.test(deadRaw)||Number(deadRaw)>10000000)throw new Error('Количество погибших пчёл должно быть целым числом от 0 до 10000000.');deadBeesCount=Number(deadRaw)}
+ const sampleCollectedAt=String(input.sampleCollectedAt||'');if(sampleCollectedAt&&!validDateTime(sampleCollectedAt))throw new Error('Проверь дату и время отбора пробы.');
  const notes=text(input.notes,4000),symptoms=text(input.symptoms,2000),locationLabel=text(input.locationLabel,200),crop=text(input.suspectedCrop,160),substance=text(input.suspectedSubstance,200),area=text(input.suspectedArea,300),weather=text(input.weatherNotes,1000),reportedTo=text(input.reportedTo,200),reportReference=text(input.reportReference,160),sampleId=text(input.sampleId,160),sampleSeal=text(input.sampleSeal,160),sampleTransferredTo=text(input.sampleTransferredTo,200);
  const latRaw=input.latitude==null?'':String(input.latitude).trim(),lonRaw=input.longitude==null?'':String(input.longitude).trim();
  let latitude=null,longitude=null,locationAccuracyM=null;
@@ -30,7 +35,7 @@ function buildPesticideIncidentDraft(input,hives,media,makeId,now){
  if(files.length>MAX_MEDIA)throw new Error('Можно прикрепить не более трёх фотографий.');
  for(const file of files){if(!file||file.kind!=='image'||typeof file.name!=='string'||file.name.length>180||!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||typeof file.data!=='string'||!/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(file.data)||file.data.length>MAX_MEDIA_DATA)throw new Error('Фотография имеет неподдерживаемый формат или превышает лимит размера.')}
  const snapshots=affected.map(h=>({id:h.id,number:Number.isInteger(Number(h.number))?Number(h.number):null,label:Number.isInteger(Number(h.number))?'Улей №'+Number(h.number):'Улей'}));
- return {id:makeId(),observedAt,scope,affectedHiveIds:affected.map(h=>h.id),affectedHiveSnapshots:snapshots,deadBeesCount,symptoms,locationLabel,latitude,longitude,locationAccuracyM,gpsCapturedAt:latitude==null?null:String(input.gpsCapturedAt||''),suspectedCrop:crop,suspectedSubstance:substance,suspectedArea:area,weatherNotes:weather,reportedTo,reportReference,sampleId,sampleCollectedAt:String(input.sampleCollectedAt||''),sampleSeal,sampleTransferredTo,notes,media:files.map(x=>({kind:'image',name:x.name,type:x.type,data:x.data,sizeBytes:Number(x.sizeBytes)||0,capturedAt:x.capturedAt||null})),causationStatus:'unconfirmed',status:'open',source:'smartphone_manual',createdAt:now,updatedAt:now};
+ return {id:makeId(),observedAt,scope,affectedHiveIds:affected.map(h=>h.id),affectedHiveSnapshots:snapshots,deadBeesCount,symptoms,locationLabel,latitude,longitude,locationAccuracyM,gpsCapturedAt:latitude==null?null:String(input.gpsCapturedAt||''),suspectedCrop:crop,suspectedSubstance:substance,suspectedArea:area,weatherNotes:weather,reportedTo,reportReference,sampleId,sampleCollectedAt,sampleSeal,sampleTransferredTo,notes,media:files.map(x=>({kind:'image',name:x.name,type:x.type,data:x.data,sizeBytes:Number(x.sizeBytes)||0,capturedAt:x.capturedAt||null})),causationStatus:'unconfirmed',status:'open',source:'smartphone_manual',createdAt:now,updatedAt:now};
 }
 function inspectPesticideIncidentIntegrity(state){
  const errors=[],rows=Array.isArray(state?.pesticideIncidents)?state.pesticideIncidents:[],hives=new Set((Array.isArray(state?.hives)?state.hives:[]).map(h=>h?.id).filter(Boolean)),ids=new Set();
