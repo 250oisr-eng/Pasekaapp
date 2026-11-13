@@ -15,7 +15,8 @@ function buildVarroaObservation(input,hives,makeId,now){
  if(!validDate(date))throw new Error('Укажи корректную дату наблюдения.');
  const notes=String(input.notes||'').trim();
  if(notes.length>2000)throw new Error('Примечание не должно превышать 2000 символов.');
- const base={id:makeId(),type,hiveId,date,notes,createdAt:now,updatedAt:now,source:'manual'};
+ const hive=hives.find(item=>item?.id===hiveId),hiveNumber=Number.isInteger(Number(hive?.number))&&Number(hive.number)>0?Number(hive.number):null;
+ const base={id:makeId(),type,hiveId,hiveNumberAtTime:hiveNumber,hiveLabelAtTime:hiveNumber?'Улей №'+hiveNumber:'Улей',date,notes,createdAt:now,updatedAt:now,source:'manual'};
  if(type==='adult_bee_sample'){
   const method=String(input.method||'');
   if(!METHODS.includes(method))throw new Error('Выбери способ отбора пробы.');
@@ -37,7 +38,7 @@ function inspectVarroaIntegrity(state){
   if(!row||typeof row!=='object'||!row.id){add('varroa_invalid_id');continue}
   if(ids.has(row.id)){add('varroa_duplicate_id',{id:row.id});continue}ids.add(row.id);
   if(!TYPES.includes(row.type))add('varroa_invalid_type',{id:row.id,type:row.type??null});
-  if(!hives.has(row.hiveId))add('varroa_hive_missing',{id:row.id,hiveId:row.hiveId??null});
+  if(!hives.has(row.hiveId)&&!(typeof row.hiveLabelAtTime==='string'&&row.hiveLabelAtTime.trim()))add('varroa_hive_missing',{id:row.id,hiveId:row.hiveId??null});
   if(!validDate(row.date))add('varroa_invalid_date',{id:row.id,date:row.date??null});
   if(typeof row.notes!=='string'||row.notes.length>2000)add('varroa_invalid_notes',{id:row.id});
   if(row.type==='adult_bee_sample'){
