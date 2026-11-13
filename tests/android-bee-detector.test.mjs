@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 const java=await readFile(new URL('../capacitor-bee-detector/android/src/main/java/ru/paseka/beedetector/BeeDetectorPlugin.java',import.meta.url),'utf8');
 const probe=await readFile(new URL('../capacitor-bee-detector/android/src/main/java/ru/paseka/beedetector/LiteRtRuntimeProbe.java',import.meta.url),'utf8');
 const pkg=JSON.parse(await readFile(new URL('../capacitor-bee-detector/package.json',import.meta.url),'utf8'));
+const androidWorkflow=await readFile(new URL('../.github/workflows/android-debug.yml',import.meta.url),'utf8');
 
 test('local Capacitor plugin is registered as an Android plugin package',()=>{
  assert.equal(pkg.name,'@paseka/capacitor-bee-detector');
@@ -60,4 +61,12 @@ test('detector executor handles shutdown races and interrupted workers',()=>{
  assert.match(java,/RejectedExecutionException/);
  assert.match(java,/Thread\.currentThread\(\)\.isInterrupted\(\)/);
  assert.match(java,/runtime_executor_unavailable/);
+});
+
+test('Android build keeps Android 10 compatible while compiling and targeting API 35',()=>{
+ assert.match(androidWorkflow,/minSdkVersion: 23/);
+ assert.match(androidWorkflow,/compileSdkVersion: 35/);
+ assert.match(androidWorkflow,/targetSdkVersion: 35/);
+ assert.match(androidWorkflow,/min !== 23/);
+ assert.doesNotMatch(androidWorkflow,/minSdkVersion: 35/);
 });
