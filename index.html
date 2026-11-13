@@ -462,6 +462,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <dialog id="returnHoneyDlg"><h2>Возврат медовых корпусов</h2><p class="muted">Выбери корпуса, возвращаемые после откачки. Статус рамок «Откачана» сохранится.</p><div id="returnHoneyRows"></div><div class="row"><button onclick="$('returnHoneyDlg').close()">Отмена</button><button class="primary" onclick="confirmHoneyReturn()">Отметить возврат</button></div></dialog>
 <script src="./js/voice-command-parser.js"></script>
 <script src="./js/voice-session.js"></script>
+<script src="./js/hive-model.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2055,7 +2056,8 @@ function renderAssemblyTransition(l){
  }
  host.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function assemblyBoxChanges(from,to){const a=from?.boxes||[],b=to?.boxes||[],added=b.filter(n=>!a.includes(n)),removed=a.filter(n=>!b.includes(n)),moved=[];if(from?.mode==='winter'&&to?.mode==='winter'){const oldOrder=from.winterOrder||a,newOrder=to.winterOrder||b;newOrder.forEach((n,i)=>{const oldIndex=oldOrder.indexOf(n);if(oldIndex>=0&&oldIndex!==i)moved.push({box:n,from:oldIndex+1,to:i+1})})}return{added,removed,moved}}
+function assemblyBoxChanges(from,to){return window.PasekaHiveModel.assemblyBoxChanges(from,to)}
+
 function rememberCurrentAssembly(l){l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];l.assemblies.push({date:today(),mode:l.mode||'summer',installedBoxes:[...(l.installedBoxes||[])],honeyBoxInstalled:[...(l.honeyBoxInstalled||[false,false])],winterOrder:[...(l.winterOrder||[])]});l.assemblies=l.assemblies.slice(-30)}
 function renderConfiguredProfileStructure(hid,l,profile){
  const editing=!!l.setupEditing,broodKeys=profileBroodKeys(hid),honeyKeys=profileHoneyKeys(hid),winter=l.mode==='winter';
@@ -2642,22 +2644,8 @@ function validateBackupState(state){
  if(state.layouts)for(const layout of Object.values(state.layouts)){if(!isObject(layout))throw new Error('Повреждены данные сборки улья');if(layout.boxes!=null&&(!isObject(layout.boxes)||Object.values(layout.boxes).some(box=>!isObject(box)||(box.frames!=null&&(!Array.isArray(box.frames)||!box.frames.every(isObject))))))throw new Error('Повреждены гнездовые корпуса');if(layout.honeyFrames!=null&&(!Array.isArray(layout.honeyFrames)||!layout.honeyFrames.every(frames=>Array.isArray(frames)&&frames.every(isObject))))throw new Error('Повреждены медовые рамки');if(layout.honeyBoxInstalled!=null&&!Array.isArray(layout.honeyBoxInstalled))throw new Error('Повреждено состояние медовых корпусов');if(layout.installedBoxes!=null&&!Array.isArray(layout.installedBoxes))throw new Error('Повреждён список установленных корпусов');if(layout.winterOrder!=null&&!Array.isArray(layout.winterOrder))throw new Error('Повреждён порядок зимней колонны')}
  return state;
 }
-function inspectFrameInventoryIntegrity(state){
- const errors=[],seen=new Map(),required=Number(state?.meta?.schemaVersion)>=4;
- const add=(code,details)=>errors.push({code,details});
- for(const [hiveId,layout] of Object.entries(state?.layouts||{})){
-  if(!layout||typeof layout!=='object')continue;
-  const groups=[...Object.entries(layout.boxes||{}).map(([box,value])=>({box,frames:value?.frames})),...(Array.isArray(layout.honeyFrames)?layout.honeyFrames.map((frames,index)=>({box:'H'+(index+1),frames})):[])];
-  for(const group of groups)for(let position=0;position<(Array.isArray(group.frames)?group.frames.length:0);position++){
-   const frame=group.frames[position],number=String(frame?.inventoryNumber||'');
-   if(!number){if(required)add('frame_inventory_number_missing',{hiveId,box:group.box,position:position+1,frameId:frame?.frameId||null});continue;}
-   if(!/^\d{6}$/.test(number)){add('invalid_frame_inventory_number',{hiveId,box:group.box,position:position+1,inventoryNumber:number});continue;}
-   if(seen.has(number))add('duplicate_frame_inventory_number',{inventoryNumber:number,first:seen.get(number),duplicate:{hiveId,box:group.box,position:position+1}});
-   else seen.set(number,{hiveId,box:group.box,position:position+1});
-  }
- }
- return errors;
-}
+function inspectFrameInventoryIntegrity(state){return window.PasekaHiveModel.inspectFrameInventoryIntegrity(state)}
+
 function validateRawBackupIntegrity(state){
  const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f?.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
