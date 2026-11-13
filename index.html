@@ -254,8 +254,9 @@ main>nav[aria-label="Основные разделы"] button{
  font-size:clamp(10px,2.8vw,13px);line-height:1.15;white-space:normal;
  text-align:center;text-overflow:clip;overflow-wrap:normal;
 }
-main{padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important}
-.fab{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}
+main{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))!important}
+.fab{bottom:calc(124px + env(safe-area-inset-bottom,0px))!important}
+@media(min-width:900px){main>nav[aria-label="Основные разделы"]{grid-template-columns:repeat(9,minmax(0,1fr))!important}main{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}.fab{bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}}
 dialog{max-height:calc(100dvh - 16px)!important;overscroll-behavior:contain}
 @media (orientation:landscape) and (min-width:560px){
  header{padding:10px 20px!important;border-radius:0 0 14px 14px}
