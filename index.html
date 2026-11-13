@@ -1992,7 +1992,7 @@ async function confirmFamilyTransfer(e){
  if(!sourceProfileCheck.ok)return alert('Профиль исходного улья не готов к безопасному перемещению семьи.');
  const targetLayout=layoutFor(targetHiveId);
  if(!targetLayout||!targetLayout.boxes||typeof targetLayout.boxes!=='object')return alert('Не удалось проверить конструкцию улья назначения. Перенос отменён.');
- const targetProfile=profileForHive(targetHiveId),targetAvailable=familyTransferTargets(targetProfile,targetLayout),targetBox=targetLayout.boxes[targetNumber];
+ const targetAvailable=familyTransferTargets(targetProfile,targetLayout),targetBox=targetLayout.boxes[targetNumber];
  if(!targetBox||!targetAvailable.includes(targetNumber))return alert('Выбранный корпус не установлен, запрещён профилем или уже занят другой семьёй. Выбери свободный допустимый корпус.');
  const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
  if(!Array.isArray(frames)||!Array.isArray(targetFrames)||!frames.length||frames.length>frameCapacity(targetNumber,targetHiveId)||targetFrames.length>frameCapacity(source.box,source.hiveId)||frames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId)||targetFrames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId))return alert('Не удалось проверить комплект рамок и их номера. Перемещение отменено.');
