@@ -32,6 +32,15 @@ function transitionVideoQueue(record,next,details={}){
 function canDeleteVideoOriginal(record){
  return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
 }
+function assessStorageCapacity(input={}){
+ const quota=Number(input.quota),usage=Number(input.usage),required=Number(input.requiredBytes);
+ if(!finite(required)||required<=0)return {ok:false,reason:'invalid_required_bytes',availableBytes:null};
+ if(!finite(quota)||quota<=0||!finite(usage)||usage<0)return {ok:true,reason:'estimate_unavailable',availableBytes:null,warning:'storage_estimate_unavailable'};
+ const availableBytes=Math.max(0,quota-usage);
+ const reserveBytes=Math.max(16*1024*1024,required*0.15);
+ if(availableBytes<required+reserveBytes)return {ok:false,reason:'insufficient_space',availableBytes,requiredBytes:required,reserveBytes};
+ return {ok:true,reason:'capacity_available',availableBytes,requiredBytes:required,reserveBytes,warning:input.persistent===true?null:'storage_not_persistent'};
+}
 function assessVideoMetadata(input={}){
  const errors=[],warnings=[];
  const duration=Number(input.durationSec),width=Number(input.width),height=Number(input.height),bytes=Number(input.bytes);
@@ -147,5 +156,5 @@ function detectAnomalies(current,history=[],context={}){
  if(context.peerMedian&&finite(context.peerMedian.pollenShare)&&finite(current.metrics.pollenShare)&&current.metrics.pollenShare<context.peerMedian.pollenShare*0.45&&!alerts.some(a=>a.id==='pollen_share_drop'))alerts.push({id:'pollen_share_peer_gap',severity:'attention',title:'Пыльценосная активность ниже соседних семей',observation:'Доля пыльценосов заметно ниже медианы сопоставимых семей пасеки.',measured:current.metrics.pollenShare,baseline:context.peerMedian.pollenShare,possibleCauses:['различия в потребности семей','локальные условия','изменение состояния расплода'],recommendedAction:'Повторить наблюдение и проверить семью при ближайшем осмотре.',diagnosis:false,requiresHumanCheck:true});
  return {alerts,baseline:baselines,suppressed:[]};
 }
-root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,canDeleteVideoOriginal,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
+root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,canDeleteVideoOriginal,assessStorageCapacity,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
 })(typeof window!=='undefined'?window:globalThis);
