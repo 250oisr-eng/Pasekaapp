@@ -2517,7 +2517,8 @@ test('family transfer targets follow each hive profile keys and winter restricti
  assert.deepEqual(targets(profile,winter),['A','C']);
  assert.deepEqual(keys({brood:{boxKeys:['Корпус-01','X2']}}),['Корпус-01','X2']);
 });
-\n
+
+
 test('Varroa journal is integrated as a phone-only offline section with migration and backup support',()=>{
  assert.match(html,/data-tab="varroa"/);
  assert.match(html,/id="varroaForm"/);
