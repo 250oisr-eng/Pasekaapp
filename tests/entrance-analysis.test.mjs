@@ -95,3 +95,9 @@ test('entrance video archive is available offline and stores blobs separately fr
   assert.match(html, /transaction\('entrance_media','readwrite'\)/);
   assert.match(html, /Сервер анализа ещё не подключён/);
 });
+
+test('entrance video preview releases the object URL on every dialog close path', () => {
+  assert.match(html, /onclose="cleanupEntranceVideoPreview\(\)"/);
+  assert.match(html, /function cleanupEntranceVideoPreview\(\)/);
+  assert.match(html, /URL\.revokeObjectURL\(entrancePreviewUrl\)/);
+});
