@@ -352,3 +352,11 @@ test('video queue UI exposes cancellation only for cancellable local states', ()
   assert.match(html,/Идёт анализ/);
   assert.match(html,/Ожидает передачи · локально/);
 });
+
+test('video queue UI exposes cancellation only for cancellable local states', () => {
+  assert.match(html,/canManuallyCancelVideo\(x,true,false\)/);
+  assert.match(html,/Передача выполняется/);
+  assert.match(html,/Передано на сервер/);
+  assert.match(html,/Идёт анализ/);
+  assert.match(html,/Ожидает передачи · локально/);
+});
