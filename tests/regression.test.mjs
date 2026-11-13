@@ -17,7 +17,7 @@ function extractFunction(name) {
 }
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
-  const deps = { ...globals };
+  const deps = globals;
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -1722,7 +1722,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,5);
+ assert.equal(state.meta.schemaVersion,6);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
