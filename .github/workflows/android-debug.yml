@@ -100,7 +100,7 @@ jobs:
           const fs = require('node:fs');
           const path = 'android/variables.gradle';
           let source = fs.readFileSync(path, 'utf8');
-          for (const [key, value] of Object.entries({ minSdkVersion: 23, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+          for (const [key, value] of Object.entries({ minSdkVersion: 24, compileSdkVersion: 35, targetSdkVersion: 35 })) {
             const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)\\d+`, 'm');
             if (!pattern.test(source)) throw new Error(`Could not find ${key} in ${path}; refusing to build with an unknown Android SDK configuration`);
             source = source.replace(pattern, `$1${value}`);
@@ -108,8 +108,8 @@ jobs:
           fs.writeFileSync(path, source);
           const minLine = source.split(/\r?\n/).find(line => line.trim().startsWith('minSdkVersion'));
           const min = Number(minLine?.split('=').pop()?.trim());
-          if (min !== 23) throw new Error(`Expected minSdkVersion 23, got ${min}`);
-          console.log('Android minimum API: 23; compile/target API: 35');
+          if (min !== 24) throw new Error(`Expected minSdkVersion 24, got ${min}`);
+          console.log('Android minimum API: 24; compile/target API: 35');
           NODE
       - name: Cache Gradle build data
         uses: actions/cache@v4
