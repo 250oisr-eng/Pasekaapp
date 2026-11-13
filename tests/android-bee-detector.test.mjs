@@ -25,3 +25,11 @@ test('native bridge never fabricates detections while the model is absent',()=>{
  assert.match(java,/result.put\("reason", "model_not_installed"\)/);
  assert.doesNotMatch(java,/put\("detections"/);
 });
+
+test('native detector accepts only readable files inside the private app cache',()=>{
+ assert.match(java,/getCacheDir\(\)\.getCanonicalFile\(\)/);
+ assert.match(java,/getCanonicalFile\(\)/);
+ assert.match(java,/frame_path_outside_app_cache/);
+ assert.match(java,/frame_file_unavailable/);
+ assert.match(java,/frame\.isFile\(\)\s*\|\|\s*!frame\.canRead\(\)/);
+});
