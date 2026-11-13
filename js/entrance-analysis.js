@@ -4,6 +4,30 @@ const VERSION='entrance-analysis-core-v1';
 const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
 const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const median=values=>{const a=values.filter(finite).slice().sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2};
+const VIDEO_QUEUE_STATES=Object.freeze(['waiting_for_server','uploading','uploaded','analyzing','completed','failed_retryable','failed_permanent']);
+const VIDEO_QUEUE_TRANSITIONS=Object.freeze({
+ waiting_for_server:['uploading','failed_permanent'],
+ uploading:['uploaded','failed_retryable','failed_permanent'],
+ uploaded:['analyzing','failed_retryable','failed_permanent'],
+ analyzing:['completed','failed_retryable','failed_permanent'],
+ failed_retryable:['uploading','failed_permanent'],
+ failed_permanent:['waiting_for_server'],
+ completed:[]
+});
+function transitionVideoQueue(record,next,details={}){
+ if(!record||typeof record!=='object'||!VIDEO_QUEUE_STATES.includes(record.status)||!VIDEO_QUEUE_STATES.includes(next))return {ok:false,reason:'invalid_state'};
+ if(!VIDEO_QUEUE_TRANSITIONS[record.status].includes(next))return {ok:false,reason:'transition_not_allowed'};
+ const updated={...record,...details,status:next,updatedAt:details.updatedAt||new Date().toISOString()};
+ if(next==='uploading')updated.uploadStartedAt=updated.updatedAt;
+ if(next==='uploaded')updated.uploadedAt=updated.updatedAt;
+ if(next==='analyzing')updated.analysisStartedAt=updated.updatedAt;
+ if(next==='completed')updated.completedAt=updated.updatedAt;
+ if(next==='failed_retryable'||next==='failed_permanent')updated.lastError=String(details.lastError||'Неизвестная ошибка').slice(0,500);
+ return {ok:true,record:updated};
+}
+function canDeleteVideoOriginal(record){
+ return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
+}
 function assessVideoMetadata(input={}){
  const errors=[],warnings=[];
  const duration=Number(input.durationSec),width=Number(input.width),height=Number(input.height),bytes=Number(input.bytes);
@@ -119,5 +143,5 @@ function detectAnomalies(current,history=[],context={}){
  if(context.peerMedian&&finite(context.peerMedian.pollenShare)&&finite(current.metrics.pollenShare)&&current.metrics.pollenShare<context.peerMedian.pollenShare*0.45&&!alerts.some(a=>a.id==='pollen_share_drop'))alerts.push({id:'pollen_share_peer_gap',severity:'attention',title:'Пыльценосная активность ниже соседних семей',observation:'Доля пыльценосов заметно ниже медианы сопоставимых семей пасеки.',measured:current.metrics.pollenShare,baseline:context.peerMedian.pollenShare,possibleCauses:['различия в потребности семей','локальные условия','изменение состояния расплода'],recommendedAction:'Повторить наблюдение и проверить семью при ближайшем осмотре.',diagnosis:false,requiresHumanCheck:true});
  return {alerts,baseline:baselines,suppressed:[]};
 }
-root.PasekaEntranceAnalysis=Object.freeze({VERSION,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
+root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,canDeleteVideoOriginal,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
 })(typeof window!=='undefined'?window:globalThis);
