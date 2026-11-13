@@ -680,7 +680,7 @@ function renderHiveDirectory(){
 }
 
 function parseFeedingQuantity(value){
- const raw=String(value??'').trim(),match=raw.match(/^(\\d+(?:[.,]\\d+)?)\\s*([а-яё]+)$/iu);
+ const raw=String(value??'').trim(),match=raw.match(/^(\d+(?:[.,]\d+)?)\s*([а-яё]+)$/iu);
  if(!match)return null;
  const aliases={л:'л',литр:'л',литра:'л',литров:'л',мл:'мл',миллилитр:'мл',миллилитра:'мл',миллилитров:'мл',кг:'кг',килограмм:'кг',килограмма:'кг',килограммов:'кг',г:'г',гр:'г',грамм:'г',грамма:'г',граммов:'г',шт:'шт',штука:'шт',штуки:'шт',штук:'шт'};
  const unit=aliases[match[2].toLocaleLowerCase('ru-RU')],amount=Number(match[1].replace(',','.'));
