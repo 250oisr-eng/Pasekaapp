@@ -33,6 +33,22 @@ test('family breed, line and queen provenance accept universal labels and reject
  assert.ok(inspect([{id:'f4',queen:{year:1800}}]).some(x=>x.code==='invalid_family_queen_provenance'));
  assert.ok(inspect([{id:'f5',queen:'not-an-object'}]).some(x=>x.code==='invalid_family_queen_provenance'));
 });
+test('family provenance save rolls back in-memory edits when persistence fails',async()=>{
+ const original={meta:{revisionId:'rev-1'},hives:[{id:'h1'}],families:[{id:'f1',hive:'h1',breed:'Карпатка',line:'A',queen:{code:'Q1'},origin:'family',stage:'independent'}],records:[],tasks:[],extractions:[],layouts:{}};
+ const deps={S:JSON.parse(JSON.stringify(original)),save:async()=>{deps.S.families[0].breed='Карника';deps.S.meta.saveError='Не удалось сохранить основную базу';return false},render(){this.rendered=true}};
+ const saveMutation=loadFunction('saveFamilyMutation',deps),before=JSON.parse(JSON.stringify(deps.S));
+ assert.equal(await saveMutation(before),false);
+ assert.deepEqual(deps.S.families,before.families);
+ assert.equal(deps.S.meta.saveError,'Не удалось сохранить основную базу');
+ assert.equal(deps.rendered,true);
+});
+test('family provenance save keeps changes only after successful persistence',async()=>{
+ const deps={S:{families:[{id:'f1',breed:'Карника'}]},save:async()=>true,render(){}};
+ const saveMutation=loadFunction('saveFamilyMutation',deps);
+ assert.equal(await saveMutation({families:[{id:'f1',breed:'Карпатка'}]}),true);
+ assert.equal(deps.S.families[0].breed,'Карника');
+});
+
 test('family lineage rejects missing parents and cycles', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.ok(inspect([{id:'c',origin:'offshoot',parentFamilyId:'missing'}]).some(x=>x.code==='family_parent_missing'));
