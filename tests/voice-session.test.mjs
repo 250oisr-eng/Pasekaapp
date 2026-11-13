@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const parserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
+
+function loadVoiceParser() {
+  return new Function(parserSource + '\\nreturn parseApiaryVoiceCommand;')();
+}
 
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
@@ -19,7 +24,7 @@ function loadFunction(name, globals = {}) {
 }
 
 test('voice parser recognizes wake phrases with punctuation and Russian case variants', () => {
-  const parse = loadFunction('parseApiaryVoiceCommand');
+  const parse = loadVoiceParser();
   assert.deepEqual(parse('Пасека, слушай: какие семьи требуют осмотра?'), {
     type: 'question',
     text: 'какие семьи требуют осмотра'
@@ -33,7 +38,7 @@ test('voice parser recognizes wake phrases with punctuation and Russian case var
 });
 
 test('voice parser ignores ordinary speech until explicitly armed', () => {
-  const parse = loadFunction('parseApiaryVoiceCommand');
+  const parse = loadVoiceParser();
   assert.deepEqual(parse('какие семьи требуют внимания'), { type: 'ignore' });
   assert.deepEqual(parse('отмена'), { type: 'ignore' });
   assert.deepEqual(parse('покажи журнал', true), {
@@ -44,7 +49,7 @@ test('voice parser ignores ordinary speech until explicitly armed', () => {
 });
 
 test('voice parser maps confirmation, cancellation, repeat and stop to explicit actions', () => {
-  const parse = loadFunction('parseApiaryVoiceCommand');
+  const parse = loadVoiceParser();
   assert.deepEqual(parse('подтверждаю', true), { type: 'confirm' });
   assert.deepEqual(parse('Пасека слушай, отмена'), { type: 'cancel' });
   assert.deepEqual(parse('Пасека, слушай, повтори'), { type: 'repeat' });
@@ -118,7 +123,7 @@ test('voice confirmation cannot apply anything when there is no pending AI opera
     apiaryVoiceArmed: true,
     apiaryVoiceArmExpiresAt: Date.now() + 10000,
     S: { aiMessages: [] },
-    parseApiaryVoiceCommand: loadFunction('parseApiaryVoiceCommand'),
+    parseApiaryVoiceCommand: loadVoiceParser(),
     apiaryVoiceStatus(message) { this.status = message; },
     speakApiaryVoice(message) { spoken.push(message); },
     confirmAICommand() { confirmationCalls++; }
@@ -137,7 +142,7 @@ test('voice confirmation delegates to the normal plan revalidation path with exp
     apiaryVoiceArmed: true,
     apiaryVoiceArmExpiresAt: Date.now() + 10000,
     S: { aiMessages: [message] },
-    parseApiaryVoiceCommand: loadFunction('parseApiaryVoiceCommand'),
+    parseApiaryVoiceCommand: loadVoiceParser(),
     apiaryVoiceStatus(value) { this.status = value; },
     speakApiaryVoice(value) { spoken.push(value); },
     async confirmAICommand(index, voiceConfirmed) {
