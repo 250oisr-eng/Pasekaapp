@@ -60,7 +60,7 @@ function assessFrameQuality(samples=[]){
  if(sharpness<35)flags.push('blurred');
  
  if(coverage!==null&&coverage<0.9)flags.push('entrance_out_of_frame');
- const score=clamp((brightness>=0.08&&brightness<=0.94?0.5:0)+(sharpness>=35?0.5:0)+(coverage===null?0:coverage>=0.9?0.0:0),0,1);
+ const score=clamp((brightness>=0.08&&brightness<=0.94?0.5:0)+(sharpness>=35?0.5:0),0,1);
  return {status:score>=0.75?'good':score>=0.5?'limited':'poor',score,flags,measured:{brightness,sharpness,motion,entranceCoverage:coverage},limitations:[...(coverage===null?['entrance_framing_not_automatically_verified']:[]),'camera_stability_not_separately_assessed','frame_difference_includes_bee_movement']};
 }
 function computeMetrics(tracks=[],durationSec=60,options={}){
