@@ -569,6 +569,29 @@ test('hybrid workspace exposes five clear navigation destinations and home AI en
   assert.ok(html.includes('class="ai-prompt-chips"'));
 });
 
+test('hands-free voice parser requires the wake phrase and separates confirmation controls from questions',()=>{
+ const parse=loadFunction('parseApiaryVoiceCommand');
+ assert.deepEqual(parse('Пасека, слушай'),{type:'wake'});
+ assert.deepEqual(parse('Пасека, слушай, поменяй местами рамки 1 и 2'),{type:'question',text:'поменяй местами рамки 1 и 2'});
+ assert.deepEqual(parse('слушай подтверждаю'),{type:'confirm'});
+ assert.deepEqual(parse('отмени',true),{type:'cancel'});
+ assert.deepEqual(parse('прочитай ответ',true),{type:'repeat'});
+ assert.deepEqual(parse('подтверждаю'),{type:'ignore'});
+ assert.deepEqual(parse('заверши голосовой режим'),{type:'stop'});
+ assert.deepEqual(parse('пчёлы активно летают'),{type:'ignore'});
+});
+test('AI hands-free voice UI explains foreground session and exposes live status',()=>{
+ assert.match(html,/id="aiVoiceSessionButton"[^>]*onclick="toggleApiaryVoiceSession\(\)"/);
+ assert.match(html,/id="apiaryVoiceStatus"[^>]*aria-live="polite"/);
+ assert.match(html,/Экран приложения должен оставаться открытым/);
+ assert.match(html,/function stopApiaryVoiceSession\(\)/);
+ assert.match(html,/function speakApiaryVoice\(value\)/);
+});
+test('AI command confirmation can be explicitly confirmed by voice without removing the visual confirmation flow',()=>{
+ assert.match(html,/async function confirmAICommand\(index,voiceConfirmed=false\)/);
+ assert.equal((html.match(/if\(!voiceConfirmed&&!confirm\(/g)||[]).length,2);
+ assert.match(html,/handleApiaryVoiceTranscript\(transcript\)/);
+});
 test('home AI entry copies the chosen prompt into chat without sending it',()=>{
   let activeTab='',focused=false;
   const nodes={homeAIQuestion:{value:'  Проверь состояние семей  '},aiQuestion:{value:'',focus(){focused=true}}};
