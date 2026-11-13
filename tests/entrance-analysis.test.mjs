@@ -353,4 +353,17 @@ test('video queue UI exposes cancellation only for cancellable local states', ()
   assert.match(html,/Ожидает передачи · локально/);
 });
 
-
+test('completed queue records require every server and persistence confirmation even while Blob remains', () => {
+  const blob=new Blob(['video-bytes'],{type:'video/mp4'});
+  const base={
+    id:'v-completed-guard',hiveId:'h1',capturedAt:'2026-11-13T12:00:00.000Z',
+    durationSec:60,width:1920,height:1080,bytes:blob.size,mimeType:'video/mp4',
+    status:'completed',resultPersisted:true,serverUploadConfirmed:true,
+    serverDeleteConfirmed:true,blob
+  };
+  assert.equal(entrance.validateQueuedVideoRecord(base).ok,true);
+  assert.ok(entrance.validateQueuedVideoRecord({...base,resultPersisted:false}).errors.includes('completed_result_not_persisted'));
+  assert.ok(entrance.validateQueuedVideoRecord({...base,serverUploadConfirmed:false}).errors.includes('completed_upload_not_confirmed'));
+  assert.ok(entrance.validateQueuedVideoRecord({...base,serverDeleteConfirmed:false}).errors.includes('completed_server_delete_not_confirmed'));
+  assert.ok(entrance.validateQueuedVideoRecord({...base,blob:null}).errors.includes('blob_missing'));
+});
