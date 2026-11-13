@@ -8,11 +8,13 @@ const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', im
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
+const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
 const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
+new Function('window', varroaSource)(appWindow);
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
@@ -30,6 +32,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
+  deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
@@ -1292,7 +1295,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:10}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:11}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -1825,7 +1828,8 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,9);
+ assert.equal(state.meta.schemaVersion,10);
+ assert.deepEqual(state.varroaObservations,[]);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
@@ -2512,4 +2516,23 @@ test('family transfer targets follow each hive profile keys and winter restricti
  const winter={mode:'winter',winterOrder:['A','B','C'],installedBoxes:['A','B','C'],boxes:summer.boxes};
  assert.deepEqual(targets(profile,winter),['A','C']);
  assert.deepEqual(keys({brood:{boxKeys:['Корпус-01','X2']}}),['Корпус-01','X2']);
+});
+\n
+test('Varroa journal is integrated as a phone-only offline section with migration and backup support',()=>{
+ assert.match(html,/data-tab="varroa"/);
+ assert.match(html,/id="varroaForm"/);
+ assert.match(html,/id="varroaHive"/);
+ assert.match(html,/id="varroaType"/);
+ assert.match(html,/PasekaVarroa\.buildVarroaObservation/);
+ assert.match(html,/S\.meta\.schemaVersion=10/);
+ assert.match(html,/varroaObservations/);
+ assert.match(html,/PasekaVarroa\.inspectVarroaIntegrity/);
+});
+test('schema 9 migration creates an empty Varroa section and does not alter existing apiary data',()=>{
+ const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,10);
+ assert.deepEqual(state.varroaObservations,[]);
+ assert.equal(migrate(),false);
 });
