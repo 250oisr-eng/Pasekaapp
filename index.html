@@ -915,7 +915,7 @@ function refreshFrameReconciliationPreview(){
 function updateReconciliationCodeSymbol(input){
  const index=Number(input.dataset.codeIndex),position=Number(input.dataset.symbolIndex);if(!Number.isInteger(index)||!Number.isInteger(position)||!reconciliationEditedCodes?.[index])return;
  const value=String(input.value||'').toLocaleUpperCase('ru-RU').slice(0,1);input.value=value;
- const chars=[...String(reconciliationEditedCodes[index])];chars[position]=value;reconciliationEditedCodes[index]=chars.join('');
+ const chars=[...String(reconciliationEditedCodes[index])];chars[position]=value||'\u0000';reconciliationEditedCodes[index]=chars.join('');
  const validation=PasekaReconciliationVoice.validateEditedFrameCodes(reconciliationEditedCodes);
  input.style.borderColor=validation.ok?'':'#c33';
  const preview=$('reconciliationVoicePreview'),status=preview?.lastElementChild;
