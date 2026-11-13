@@ -42,13 +42,13 @@ function suggestPossibleFactors(review){
 }
 function inspectDeadoutIntegrity(state){
  const errors=[],items=state?.deadoutReviews;
- if(!Array.isArray(items))return [{code:'deadout_section_missing',details:{}}];
+ if(!Array.isArray(items))return Number(state?.meta?.schemaVersion||1)<12?[]:[{code:'deadout_section_missing',details:{}}];
  const ids=new Set(),hiveIds=new Set((state.hives||[]).map(x=>x.id));
  for(const item of items){
   if(!item||typeof item!=='object'||typeof item.id!=='string'||!item.id||ids.has(item.id)){errors.push({code:'deadout_invalid_or_duplicate_id',details:{id:item?.id||null}});continue}
   ids.add(item.id);
   if(!hiveIds.has(item.hiveId)&&(!Number.isInteger(item.hiveNumberAtTime)||item.hiveNumberAtTime<1))errors.push({code:'deadout_hive_reference_missing',details:{id:item.id,hiveId:item.hiveId}});
-  if(!validDate(item.observedAt))errors.push({code:'deadout_invalid_date',details:{id:item.id}});
+  if(!validDate(item.observedAt))errors.push({code:'deadout_invalid_date',details:{id:item.id}});if(item.lastAliveDate!=null&&(!validDate(item.lastAliveDate)||item.lastAliveDate>item.observedAt))errors.push({code:'deadout_invalid_last_alive_date',details:{id:item.id}});if(typeof item.notes!=='string'||item.notes.length>4000||typeof item.seasonContext!=='string'||item.seasonContext.length>1000)errors.push({code:'deadout_invalid_text',details:{id:item.id}});
   for(const [key,values] of Object.entries(ENUMS))if(!values.includes(item[key]))errors.push({code:'deadout_invalid_'+key,details:{id:item.id}});
   if(item.diagnosis!==null)errors.push({code:'deadout_diagnosis_must_remain_unset',details:{id:item.id}});
   if(item.media!=null&&(!Array.isArray(item.media)||item.media.length>3||!item.media.every(photo=>photo&&photo.kind==='image'&&typeof photo.name==='string'&&photo.name.length<=160&&typeof photo.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)&&photo.data.length<=4500000)))errors.push({code:'deadout_invalid_media',details:{id:item.id}});
