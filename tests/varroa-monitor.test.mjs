@@ -27,6 +27,7 @@ test('sample types cannot be mixed and all required values are validated',()=>{
  assert.throws(()=>make({type:'adult_bee_sample',hiveId:'h1',date:'2026-08-10',method:'unknown',beesCount:300,mitesCount:2}),/способ отбора/i);
  assert.throws(()=>make({type:'adult_bee_sample',hiveId:'h1',date:'2026-08-10',method:'alcohol_wash',beesCount:0,mitesCount:2}),/количество пчёл/i);
  assert.throws(()=>make({type:'sticky_board',hiveId:'h1',date:'2026-08-10',mitesCount:2,exposureHours:0}),/период наблюдения/i);
+ assert.throws(()=>make({type:'sticky_board',hiveId:'h1',date:'2026-08-10',mitesCount:'',exposureHours:24}),/количество клещей/i);
 });
 test('integrity catches duplicate IDs, broken hive links and incorrect derived rates',()=>{
  const errors=api.inspectVarroaIntegrity({meta:{schemaVersion:10},hives, varroaObservations:[
