@@ -35,6 +35,10 @@ function normalizeDetections(input,options={}){
  }
  return {ok:errors.length===0,errors,detections};
 }
+function registerNativePlugin(capacitor){
+ if(!capacitor||typeof capacitor.registerPlugin!=='function')return null;
+ try{return capacitor.registerPlugin('BeeDetector');}catch(_){return null;}
+}
 function createCapacitorRuntime(plugin){
  if(!plugin||typeof plugin.detectFrame!=='function')return null;
  return Object.freeze({async detect(frame){
@@ -67,5 +71,7 @@ function createBeeDetectorAdapter(config={}){
   }
  });
 }
-root.PasekaBeeDetector=Object.freeze({VERSION,validateModelManifest,normalizeDetections,createCapacitorRuntime,createBeeDetectorAdapter});
+const nativePlugin=registerNativePlugin(root.Capacitor);
+root.PasekaNativeBeeDetector=nativePlugin;
+root.PasekaBeeDetector=Object.freeze({VERSION,validateModelManifest,normalizeDetections,registerNativePlugin,createCapacitorRuntime,createBeeDetectorAdapter});
 })(typeof window!=='undefined'?window:globalThis);
