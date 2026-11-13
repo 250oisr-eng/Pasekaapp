@@ -5,6 +5,12 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
+const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
+const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
+const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
+const appWindow = {};
+new Function('window', hiveModelSource)(appWindow);
+new Function('window', equipmentLabelsSource)(appWindow);
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
@@ -18,6 +24,9 @@ function extractFunction(name) {
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
+  deps.window ||= appWindow;
+  deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
+  deps.PasekaLabels ||= appWindow.PasekaLabels;
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -570,7 +579,7 @@ test('hybrid workspace exposes five clear navigation destinations and home AI en
 });
 
 test('hands-free voice parser requires the wake phrase and separates confirmation controls from questions',()=>{
- const parse=loadFunction('parseApiaryVoiceCommand');
+ const parse=new Function(voiceParserSource+'\nreturn parseApiaryVoiceCommand;')();
  assert.deepEqual(parse('Пасека, слушай'),{type:'wake'});
  assert.deepEqual(parse('Пасека, слушай, поменяй местами рамки 1 и 2'),{type:'question',text:'поменяй местами рамки 1 и 2'});
  assert.deepEqual(parse('Пасека слушай: поменяй местами рамки 1 и 2'),{type:'question',text:'поменяй местами рамки 1 и 2'});
@@ -1751,10 +1760,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,7,'2']){
+ for(const version of [0,8,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===7?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===8?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1783,7 +1792,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray,ensureFrameInventoryNumbers:loadFunction('ensureFrameInventoryNumbers')});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,6);
+ assert.equal(state.meta.schemaVersion,7);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
