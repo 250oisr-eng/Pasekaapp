@@ -30,3 +30,23 @@ test('registering both honey bodies in a paired profile links them as one instal
 test('migration does not guess the type of an orphaned legacy body code',()=>{const s=fixture();s.equipmentLabels.bodies.orphan='7М2';I.migrate(s,makeId,now);assert.equal(s.equipmentInventory.bodies.orphan,undefined);assert.equal(s.equipmentLabels.bodies.orphan,'7М2')});
 
 test('inventory UI provides live search and filters for kind, condition and physical location',()=>{assert.match(html,/function filterEquipmentInventory\(\)/);assert.match(html,/id="inventorySearch"/);assert.match(html,/id="inventoryFilterKind"/);assert.match(html,/id="inventoryFilterCondition"/);assert.match(html,/id="inventoryFilterLocation"/);assert.match(html,/data-inventory-body="1"/);assert.match(html,/data-search=/);assert.match(html,/clearEquipmentInventoryFilters\(\)/)});
+
+test('inventory filters match code, type, condition and current physical location',()=>{
+ const match=html.match(/function filterEquipmentInventory\\(\\)\\{[\\s\\S]*?\\n\\}/);assert.ok(match,'filter function is present');
+ const elements={
+  inventorySearch:{value:'7м2'},
+  inventoryFilterKind:{value:'brood'},
+  inventoryFilterCondition:{value:'good'},
+  inventoryFilterLocation:{value:'storage'},
+  inventoryFilterResult:{textContent:''}
+ };
+ const cards=[
+  {dataset:{search:'7м2 сарай',kind:'brood',condition:'good',location:'storage'},hidden:false},
+  {dataset:{search:'7м2 сарай',kind:'honey',condition:'good',location:'storage'},hidden:false},
+  {dataset:{search:'7м2 сарай',kind:'brood',condition:'repair',location:'storage'},hidden:false},
+  {dataset:{search:'7м2 улей',kind:'brood',condition:'good',location:'hive'},hidden:false}
+ ];
+ const host={querySelectorAll:()=>cards};const get=id=>id==='equipmentInventoryContent'?host:elements[id]||null;
+ const run=new Function('$',`let equipmentInventoryFilterText='',equipmentInventoryFilterKind='all',equipmentInventoryFilterCondition='all',equipmentInventoryFilterLocation='all';${match[0]};return filterEquipmentInventory;`)(get);
+ run();assert.deepEqual(cards.map(x=>x.hidden),[false,true,true,true]);assert.equal(elements.inventoryFilterResult.textContent,'Показано: 1 из 4');
+});
