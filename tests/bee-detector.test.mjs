@@ -33,3 +33,10 @@ test('native Capacitor plugin registration is optional on web and named consiste
  assert.equal(detector.registerNativePlugin({registerPlugin(name){registeredName=name;return plugin;}}),plugin);
  assert.equal(registeredName,'BeeDetector');
 });
+
+test('Capacitor runtime treats malformed native responses as unavailable, not zero detections',async()=>{
+ for (const malformed of [null,undefined,{}, {status:'ok'}, {detections:null}]) {
+  const runtime=detector.createCapacitorRuntime({async detectFrame(){return malformed;}});
+  assert.deepEqual(await runtime.detect({path:'/app/cache/frame.jpg'}),{status:'unavailable',reason:'native_response_invalid'});
+ }
+});
