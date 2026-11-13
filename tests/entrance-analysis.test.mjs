@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../js/entrance-analysis.js', import.meta.url), 'utf8');
 const api = {};
-new Function('root', source)(api);
+new Function('window', source)(api);
 const entrance = api.PasekaEntranceAnalysis;
 
 test('entrance video metadata rejects unusable duration, size and resolution', () => {
