@@ -2,34 +2,22 @@ function extractJournalOperationFields(input,kind){
  const source=String(input??'').trim();
  const normalized=source.toLocaleLowerCase('ru-RU').replace(/ё/g,'е');
  const maps={
-  treatment:{
-   product:['название препарата','препарат'],
-   active:['действующее вещество','активное вещество'],
-   method:['способ применения','способ'],
-   dose:['доза по инструкции','доза','дозировка','концентрация'],
-   check:['дата контроля','контроль','проверка']
-  },
-  feeding:{
-   type:['вид корма','тип корма','корм'],
-   substance:['состав корма','состав'],
-   amount:['количество','объем','объём'],
-   concentration:['концентрация','соотношение','пропорция'],
-   method:['способ подачи','способ','кормушка']
-  }
+  treatment:{product:['название препарата','препарат'],active:['действующее вещество','активное вещество'],method:['способ применения','способ'],dose:['доза по инструкции','доза','дозировка','концентрация'],check:['дата контроля','контроль','проверка']},
+  feeding:{type:['вид корма','тип корма','корм'],substance:['состав корма','состав'],amount:['количество','объем','объём'],concentration:['концентрация','соотношение','пропорция'],method:['способ подачи','способ','кормушка']}
  };
  const aliases=maps[kind];
  if(!aliases)return {fields:{},evidence:{},ambiguous:[],fieldCount:0};
  const aliasToField=new Map();
  for(const [field,names] of Object.entries(aliases))for(const name of names)aliasToField.set(name,field);
- const labelAlternatives=[...aliasToField.keys()].sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+ const escapeRe=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const labelAlternatives=[...aliasToField.keys()].sort((a,b)=>b.length-a.length).map(escapeRe).join('|');
  const labelRe=new RegExp('(?:^|[;,\\n])\\s*('+labelAlternatives+')\\s*[:=—-]\\s*','giu');
  const matches=[...normalized.matchAll(labelRe)],found={};
  for(let i=0;i<matches.length;i++){
   const match=matches[i],field=aliasToField.get(match[1].trim());
   const start=match.index+match[0].length,end=i+1<matches.length?matches[i+1].index:normalized.length;
   const value=source.slice(start,end).trim().replace(/[;,\\s]+$/u,'').trim();
-  if(!value)continue;
-  (found[field] ||= []).push(value);
+  if(value)(found[field] ||= []).push(value);
  }
  const fields={},evidence={},ambiguous=[];
  for(const [field,values] of Object.entries(found)){
@@ -57,16 +45,16 @@ function parseApiaryVoiceCommand(value,armed=false){
  if(!wake&&!armed)return {type:'ignore'};
  const command=wake?normalized.slice(wake[0].length).trim():normalized;
  if(!command)return {type:'wake'};
- const treatmentFields=command.match(/^(?:заполни\\s+поля\\s+обработки|внеси\\s+данные\\s+обработки|запиши\\s+данные\\s+обработки)\\s*[:,-]?\\s*(.+)$/);
+ const treatmentFields=command.match(/^(?:заполни\s+поля\s+обработки|внеси\s+данные\s+обработки|запиши\s+данные\s+обработки)\s*[:,-]?\s*(.+)$/);
  if(treatmentFields?.[1]?.trim()){
-  const rawCommand=raw.replace(/^(?:пасека[\\s,.:;!?-]+)?слушай[\\s,.:;!?-]*/iu,'').trim();
-  const rawValue=rawCommand.match(/^(?:заполни\\s+поля\\s+обработки|внеси\\s+данные\\s+обработки|запиши\\s+данные\\s+обработки)\\s*[:,-]?\\s*([\\s\\S]+)$/iu);
+  const rawCommand=raw.replace(/^(?:пасека[\s,.:;!?-]+)?слушай[\s,.:;!?-]*/iu,'').trim();
+  const rawValue=rawCommand.match(/^(?:заполни\s+поля\s+обработки|внеси\s+данные\s+обработки|запиши\s+данные\s+обработки)\s*[:,-]?\s*([\s\S]+)$/iu);
   return {type:'treatment_fields',text:(rawValue?.[1]||treatmentFields[1]).trim()};
  }
- const feedingFields=command.match(/^(?:заполни\\s+поля\\s+подкормки|внеси\\s+данные\\s+подкормки|запиши\\s+данные\\s+подкормки)\\s*[:,-]?\\s*(.+)$/);
+ const feedingFields=command.match(/^(?:заполни\s+поля\s+подкормки|внеси\s+данные\s+подкормки|запиши\s+данные\s+подкормки)\s*[:,-]?\s*(.+)$/);
  if(feedingFields?.[1]?.trim()){
-  const rawCommand=raw.replace(/^(?:пасека[\\s,.:;!?-]+)?слушай[\\s,.:;!?-]*/iu,'').trim();
-  const rawValue=rawCommand.match(/^(?:заполни\\s+поля\\s+подкормки|внеси\\s+данные\\s+подкормки|запиши\\s+данные\\s+подкормки)\\s*[:,-]?\\s*([\\s\\S]+)$/iu);
+  const rawCommand=raw.replace(/^(?:пасека[\s,.:;!?-]+)?слушай[\s,.:;!?-]*/iu,'').trim();
+  const rawValue=rawCommand.match(/^(?:заполни\s+поля\s+подкормки|внеси\s+данные\s+подкормки|запиши\s+данные\s+подкормки)\s*[:,-]?\s*([\s\S]+)$/iu);
   return {type:'feeding_fields',text:(rawValue?.[1]||feedingFields[1]).trim()};
  }
  const inspectionFields=command.match(/^(?:заполни\s+поля\s+осмотра|внеси\s+показатели\s+осмотра|запиши\s+показатели\s+осмотра)\s*[:,-]?\s*(.+)$/);
