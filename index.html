@@ -2623,7 +2623,7 @@ function validateBackupState(state){
  if(state.meta!=null&&!isObject(state.meta))throw new Error('Повреждены метаданные архива');
  const schemaVersion=state.meta?.schemaVersion;
  if(schemaVersion!=null&&(!Number.isInteger(schemaVersion)||schemaVersion<1))throw new Error('Некорректная версия схемы архива');
- if(schemaVersion>6){const error=new Error('Архив создан более новой версией приложения (схема '+schemaVersion+'). Обнови приложение перед восстановлением.');error.code='UNSUPPORTED_SCHEMA_VERSION';throw error;}
+ if(schemaVersion>8){const error=new Error('Архив создан более новой версией приложения (схема '+schemaVersion+'). Обнови приложение перед восстановлением.');error.code='UNSUPPORTED_SCHEMA_VERSION';throw error;}
  for(const key of ['hives','families','records'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует корректный раздел: '+key);
  for(const key of ['tasks','extractions','snapshots','auditLog','aiMessages','plantCatalog','plantLocations','plantObservations','plantAIQueue'])if(state[key]!=null&&!Array.isArray(state[key]))throw new Error('Повреждён раздел архива: '+key);
  if(schemaVersion>=6)for(const key of ['queens','queenEvents'])if(!Array.isArray(state[key]))throw new Error('В архиве отсутствует новый раздел: '+key);
