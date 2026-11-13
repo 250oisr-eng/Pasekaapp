@@ -2230,7 +2230,7 @@ test('voice inspection fills only empty fields, preserves the source note and ne
  assert.equal(nodes.rbrood.value,'3');
  assert.equal(nodes.rqueen.value,'seen');
  assert.equal(nodes.reggs.value,'yes');
- assert.equal(nodes.rtext.value,'Осмотр начат вручную.\\nМатка обнаружена, свежие яйца есть, расплод на 3 рамках, занято 5 рамок.');
+ assert.equal(nodes.rtext.value,['Осмотр начат вручную.','Матка обнаружена, свежие яйца есть, расплод на 3 рамках, занято 5 рамок.'].join('\n'));
  assert.match(nodes.aiJournalExtractNotice.textContent,/не изменены уже заполненные поля/);
  assert.match(nodes.aiJournalExtractNotice.textContent,/не сохранена/);
 });
