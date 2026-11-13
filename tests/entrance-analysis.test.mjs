@@ -206,7 +206,8 @@ test('video queue transitions are explicit and reject illegal state changes', ()
 });
 
 test('original video can be deleted only after completed analysis, persisted result and server confirmation', () => {
-  const base={status:'completed',resultPersisted:true,serverDeleteConfirmed:true};
+  const blob=new Blob(['video-bytes'],{type:'video/mp4'});
+  const base={status:'completed',resultPersisted:true,serverUploadConfirmed:true,serverDeleteConfirmed:true,bytes:blob.size,blob};
   assert.equal(entrance.canDeleteVideoOriginal(base),true);
   assert.equal(entrance.canDeleteVideoOriginal({...base,resultPersisted:false}),false);
   assert.equal(entrance.canDeleteVideoOriginal({...base,serverDeleteConfirmed:false}),false);
@@ -216,21 +217,22 @@ test('original video can be deleted only after completed analysis, persisted res
 
 
 test('video queue cannot complete before the result is persisted and server deletion is confirmed', () => {
-  const analyzing={id:'v2',status:'analyzing'};
+  const analysisBlob=new Blob(['video-bytes'],{type:'video/mp4'});
+  const analyzing={id:'v2',status:'analyzing',bytes:analysisBlob.size,blob:analysisBlob};
   const notPersisted=entrance.transitionVideoQueue(analyzing,'completed',{
-    resultPersisted:false,serverDeleteConfirmed:true
+    resultPersisted:false,serverUploadConfirmed:true,serverDeleteConfirmed:true
   });
   assert.equal(notPersisted.ok,false);
   assert.equal(notPersisted.reason,'result_not_persisted');
 
   const notConfirmed=entrance.transitionVideoQueue(analyzing,'completed',{
-    resultPersisted:true,serverDeleteConfirmed:false
+    resultPersisted:true,serverUploadConfirmed:true,serverDeleteConfirmed:false
   });
   assert.equal(notConfirmed.ok,false);
   assert.equal(notConfirmed.reason,'server_delete_not_confirmed');
 
   const completed=entrance.transitionVideoQueue(analyzing,'completed',{
-    resultPersisted:true,serverDeleteConfirmed:true,
+    resultPersisted:true,serverUploadConfirmed:true,serverDeleteConfirmed:true,
     updatedAt:'2026-11-13T12:00:00.000Z'
   });
   assert.equal(completed.ok,true);
@@ -287,4 +289,58 @@ test('temporary video IndexedDB insertion is atomic and cannot overwrite an exis
   assert.match(html,/objectStore\('entrance_media'\)\.add\(record\)/);
   assert.doesNotMatch(html,/objectStore\('entrance_media'\)\.put\(record\)/);
   assert.match(html,/Запись видео повреждена или исходный файл отсутствует/);
+});
+
+test('uploaded transition requires an explicit server upload acknowledgement', () => {
+  const uploading={id:'v-upload',status:'uploading'};
+  assert.equal(entrance.transitionVideoQueue(uploading,'uploaded').reason,'server_upload_not_confirmed');
+  const accepted=entrance.transitionVideoQueue(uploading,'uploaded',{serverUploadConfirmed:true});
+  assert.equal(accepted.ok,true);
+  assert.equal(accepted.record.serverUploadConfirmed,true);
+  assert.equal(accepted.record.serverDeleteConfirmed,undefined);
+});
+
+test('completed without Blob is valid only after both server confirmations and local purge marker', () => {
+  const base={id:'v-purged',hiveId:'h1',capturedAt:'2026-11-13T12:00:00.000Z',durationSec:60,width:1920,height:1080,bytes:12,mimeType:'video/mp4',status:'completed',resultPersisted:true,serverUploadConfirmed:true,serverDeleteConfirmed:true,localOriginalDeleted:true,localOriginalDeletedAt:'2026-11-13T12:10:00.000Z'};
+  assert.equal(entrance.validateQueuedVideoRecord(base).ok,true);
+  assert.equal(entrance.validateQueuedVideoRecord({...base,serverUploadConfirmed:false}).ok,false);
+  assert.equal(entrance.validateQueuedVideoRecord({...base,serverDeleteConfirmed:false}).ok,false);
+  assert.equal(entrance.validateQueuedVideoRecord({...base,localOriginalDeleted:false}).ok,false);
+  assert.equal(entrance.validateQueuedVideoRecord({...base,localOriginalDeletedAt:'not-a-date'}).ok,false);
+});
+
+test('missing Blob is rejected in every state that can still require the source', () => {
+  const base={id:'v-no-blob',hiveId:'h1',capturedAt:'2026-11-13T12:00:00.000Z',durationSec:60,width:1920,height:1080,bytes:12,mimeType:'video/mp4',blob:null};
+  for(const status of ['waiting_for_server','uploading','uploaded','analyzing','failed_retryable','failed_permanent']){
+    assert.equal(entrance.validateQueuedVideoRecord({...base,status}).ok,false,status);
+  }
+});
+
+test('manual cancellation is distinct from server cleanup and requires explicit owner confirmation', () => {
+  const record={id:'v-cancel',status:'waiting_for_server'};
+  assert.equal(entrance.canManuallyCancelVideo(record,false),false);
+  assert.equal(entrance.canManuallyCancelVideo(record,true),true);
+  for(const status of ['failed_retryable','failed_permanent']){
+    assert.equal(entrance.canManuallyCancelVideo({...record,status},true),true);
+  }
+  for(const status of ['uploading','uploaded','analyzing','completed']){
+    assert.equal(entrance.canManuallyCancelVideo({...record,status},true),false,status);
+  }
+  assert.equal(entrance.canManuallyCancelVideo(record,true,true),false);
+  assert.equal(entrance.canManuallyCancelVideo({...record,transferInProgress:true},true),false);
+});
+
+test('legacy completed record without new confirmations cannot be treated as locally purged', () => {
+  const legacy={id:'legacy-video',hiveId:'h1',capturedAt:'2026-11-13T12:00:00.000Z',durationSec:60,width:1920,height:1080,bytes:12,mimeType:'video/mp4',status:'completed'};
+  assert.equal(entrance.validateQueuedVideoRecord(legacy).ok,false);
+  assert.equal(entrance.canDeleteVideoOriginal(legacy),false);
+});
+
+test('automatic local original cleanup requires upload, result and server-delete confirmations and a Blob', () => {
+  const blob=new Blob(['video-bytes'],{type:'video/mp4'});
+  const valid={status:'completed',resultPersisted:true,serverUploadConfirmed:true,serverDeleteConfirmed:true,localOriginalDeleted:false,activeOperation:false,transferInProgress:false,bytes:blob.size,blob};
+  assert.equal(entrance.canDeleteVideoOriginal(valid),true);
+  for(const patch of [{serverUploadConfirmed:false},{resultPersisted:false},{serverDeleteConfirmed:false},{activeOperation:true},{transferInProgress:true},{blob:null}]){
+    assert.equal(entrance.canDeleteVideoOriginal({...valid,...patch}),false);
+  }
 });
