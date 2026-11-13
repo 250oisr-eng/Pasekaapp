@@ -510,6 +510,13 @@ test('AI frame move completes the full preview-confirmation-persistence flow ato
  assert.equal(saved.aiMessages[0].commandStatus,'applied');
  assert.deepEqual(saved.layouts.h1.boxes[3].frames.map(frame=>frame.frameId),['A']);
 });
+test('AI assistant has a dedicated central navigation control and a themed workspace',()=>{
+  assert.match(html,/<button data-tab="ai" class="nav-ai-button"[^>]*aria-label="Открыть ИИ-помощника"/);
+  assert.match(html,/class="ai-hero"/);
+  assert.match(html,/class="ai-hero-orb"/);
+  assert.match(html,/main>nav\\[aria-label="Основные разделы"\\]\\{grid-template-columns:minmax\\(0,1fr\\) minmax\\(0,1fr\\) minmax\\(0,1fr\\) 66px/);
+});
+
 test('inline application JavaScript remains syntactically valid',()=>{
   const start=html.indexOf('<script>'),end=html.indexOf('</script>',start);
   assert.ok(start>=0&&end>start);
