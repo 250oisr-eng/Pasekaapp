@@ -1,5 +1,5 @@
 (()=>{const ALPHABET='АБГДЕЖКЛМНПРСТУФХЦЧШЩЭЮЯ245679',CAPACITY=ALPHABET.length**3;
-function normalizeCode(v,t){let s=String(v??'').trim().toLocaleUpperCase('ru-RU'),p=t==='frame'?'Р':t==='body'?'К':'';if(p)s=s.replace(new RegExp('^'+p+'[\s-]*'),'');s=s.replace(/[\s-]/g,'');return s.length===3&&[...s].every(c=>ALPHABET.includes(c))?s:null}
+function normalizeCode(v,t){let s=String(v??'').trim().toLocaleUpperCase('ru-RU'),p=t==='frame'?'Р':t==='body'?'К':'';if(p&&s.startsWith(p))s=s.slice(1).replace(/^[-\s]+/,'');s=s.replace(/[\s-]/g,'');return s.length===3&&[...s].every(c=>ALPHABET.includes(c))?s:null}
 function formatLabelCode(t,v){const c=normalizeCode(v,t);return c?(t==='frame'?'Р-':t==='body'?'К-':'')+c:''}
 function encode(n){let s='';for(let i=0;i<3;i++){s=ALPHABET[n%30]+s;n=Math.floor(n/30)}return s}
 function frames(state){const a=[];for(const [h,l] of Object.entries(state?.layouts||{})){if(!l||typeof l!=='object')continue;for(const [b,v] of Object.entries(l.boxes||{}))if(Array.isArray(v?.frames))v.frames.forEach((f,i)=>a.push({frame:f,hiveId:h,box:b,position:i+1}));if(Array.isArray(l.honeyFrames))l.honeyFrames.forEach((g,j)=>{if(Array.isArray(g))g.forEach((f,i)=>a.push({frame:f,hiveId:h,box:'H'+(j+1),position:i+1}))})}return a}
