@@ -2372,3 +2372,39 @@ test('non-feeding task completion does not request a feeding quantity',async()=>
  const complete=loadFunction('completeTask',{S:state,uid:()=> 'record-inspect',today:()=> '2026-11-13',prompt:()=>{prompts++;return 'x'},validateTaskCompletion:loadFunction('validateTaskCompletion'),logAudit:(type,details)=>state.auditLog.push({type,...details}),save:async()=>true,render:()=>{},alert:()=>{}});
  assert.equal(await complete('t-inspect'),true);assert.equal(prompts,0);
 });
+
+test('feeding quantity parser accepts explicit decimal amounts and rejects unknown or malformed units',()=>{
+ const parse=loadFunction('parseFeedingQuantity');
+ assert.deepEqual(parse('1,5 л'),{amount:1.5,unit:'л'});
+ assert.deepEqual(parse('250 миллилитров'),{amount:250,unit:'мл'});
+ assert.deepEqual(parse('2 килограмма'),{amount:2,unit:'кг'});
+ assert.equal(parse('около литра'),null);
+ assert.equal(parse('-1 л'),null);
+ assert.equal(parse('1 л примерно'),null);
+});
+test('feeding plan comparison calculates only same-unit completed task differences',()=>{
+ const parse=loadFunction('parseFeedingQuantity');
+ const build=loadFunction('buildFeedingPlanComparison',{parseFeedingQuantity:parse});
+ const records=[
+  {id:'a',taskId:'ta',type:'Подкормка',hive:'h1',date:'2026-11-01',plannedFeedingAmount:'2 л',feedingAmount:'2 л'},
+  {id:'b',taskId:'tb',type:'Подкормка',hive:'h1',date:'2026-11-02',plannedFeedingAmount:'2 л',feedingAmount:'1,5 л'},
+  {id:'c',taskId:'tc',type:'Подкормка',hive:'h1',date:'2026-11-03',plannedFeedingAmount:'1 л',feedingAmount:'1,5 л'},
+  {id:'d',taskId:'td',type:'Подкормка',hive:'h1',date:'2026-11-04',plannedFeedingAmount:'1 кг',feedingAmount:'500 г'},
+  {id:'e',taskId:'te',type:'Подкормка',hive:'h1',date:'2026-11-05',plannedFeedingAmount:'3 л',feedingAmount:''},
+  {id:'f',taskId:'tf',type:'Подкормка',hive:'h1',date:'2026-11-06',plannedFeedingAmount:'',feedingAmount:'1 л'},
+  {id:'g',taskId:'tg',type:'Подкормка',hive:'h1',date:'2026-11-07',plannedFeedingAmount:'около литра',feedingAmount:'1 л'},
+  {id:'manual',type:'Подкормка',hive:'h1',date:'2026-11-08',feedingAmount:'10 л'},
+  {id:'archived',taskId:'th',type:'Подкормка',hive:'h1',date:'2026-11-09',plannedFeedingAmount:'1 л',feedingAmount:'1 л',archivedAt:'2026-11-10'},
+  {id:'other',taskId:'ti',type:'Подкормка',hive:'h2',date:'2026-11-10',plannedFeedingAmount:'1 л',feedingAmount:'1 л'}
+ ];
+ const result=build(records,'h1');
+ assert.equal(result.events.length,7);
+ assert.deepEqual(result.summary,{matched:1,over:1,under:1,notMeasured:1,planMissing:1,unitMismatch:1,unparsed:1});
+ assert.deepEqual(result.totals,[{unit:'л',planned:5,actual:5,difference:0,count:3}]);
+ assert.equal(result.events[0].id,'g','events are ordered newest first');
+ assert.equal(result.events.find(event=>event.id==='b').difference,-0.5);
+ assert.equal(result.events.find(event=>event.id==='c').difference,0.5);
+ assert.equal(result.events.find(event=>event.id==='d').status,'unitMismatch');
+ assert.equal(result.events.find(event=>event.id==='e').status,'notMeasured');
+ assert.equal(result.events.find(event=>event.id==='f').status,'planMissing');
+});
