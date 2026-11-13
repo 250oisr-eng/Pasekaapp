@@ -266,3 +266,25 @@ test('entrance temporary queue warns when persistent browser storage is not avai
   assert.match(html,/Хранилище браузера не защищено от автоматической очистки/);
   assert.match(html,/Отменить и удалить исходник/);
 });
+
+test('temporary queue record validation requires matching metadata and a real video blob', () => {
+  const blob=new Blob(['video-bytes'],{type:'video/mp4'});
+  const record={
+    id:'video-1',hiveId:'hive-1',capturedAt:'2026-11-13T12:00:00.000Z',
+    durationSec:60,width:1920,height:1080,bytes:blob.size,mimeType:'video/mp4',
+    status:'waiting_for_server',blob
+  };
+  assert.deepEqual(entrance.validateQueuedVideoRecord(record),{ok:true,errors:[]});
+  assert.ok(entrance.validateQueuedVideoRecord({...record,blob:null}).errors.includes('blob_missing'));
+  assert.ok(entrance.validateQueuedVideoRecord({...record,bytes:blob.size+1}).errors.includes('blob_size_mismatch'));
+  assert.ok(entrance.validateQueuedVideoRecord({...record,hiveId:''}).errors.includes('hive_id_missing'));
+  assert.ok(entrance.validateQueuedVideoRecord({...record,durationSec:10}).errors.includes('duration_invalid'));
+  assert.ok(entrance.validateQueuedVideoRecord({...record,status:'unknown'}).errors.includes('status_invalid'));
+});
+
+test('temporary video IndexedDB insertion is atomic and cannot overwrite an existing queue ID', () => {
+  assert.match(html,/validateQueuedVideoRecord\(record\)/);
+  assert.match(html,/objectStore\('entrance_media'\)\.add\(record\)/);
+  assert.doesNotMatch(html,/objectStore\('entrance_media'\)\.put\(record\)/);
+  assert.match(html,/Запись видео повреждена или исходный файл отсутствует/);
+});
