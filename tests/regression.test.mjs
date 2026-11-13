@@ -2351,3 +2351,24 @@ test('feeding ledger preserves historical family names and never combines incomp
  assert.equal(result[0].name,'Старая семья');
  assert.deepEqual(result[0].totals,[{unit:'л',amount:1,count:1},{unit:'мл',amount:250,count:1}]);
 });
+
+test('feeding task completion records actual quantity separately from planned quantity',async()=>{
+ const task={id:'t-feed',hive:'h1',type:'Подкормка',status:'pending',note:'Выдать семье корм',plannedFeedingAmount:'2 л',plannedFeedingType:'Сироп',plannedFeedingSubstance:'Сахар и вода',plannedFeedingConcentration:'1:1',plannedFeedingMethod:'Внутренняя кормушка'};
+ const state={hives:[{id:'h1'}],tasks:[task],records:[],auditLog:[],snapshots:[],meta:{}};let saved=0;
+ const complete=loadFunction('completeTask',{S:state,uid:()=> 'record-feed',today:()=> '2026-11-13',prompt:()=> '1,5 л',validateTaskCompletion:loadFunction('validateTaskCompletion'),logAudit:(type,details)=>state.auditLog.push({type,...details}),save:async()=>{saved++;return true},render:()=>{},alert:()=>{}});
+ assert.equal(await complete('t-feed'),true);assert.equal(saved,1);assert.equal(task.status,'done');assert.equal(state.records.length,1);
+ assert.equal(state.records[0].feedingAmount,'1,5 л');assert.equal(state.records[0].plannedFeedingAmount,'2 л');assert.equal(state.records[0].feedingType,'Сироп');assert.equal(state.records[0].feedingSubstance,'Сахар и вода');
+ assert.equal(state.auditLog[0].plannedFeedingAmount,'2 л');assert.equal(state.auditLog[0].actualFeedingAmount,'1,5 л');
+});
+test('canceling feeding task completion leaves task and journal untouched',async()=>{
+ const task={id:'t-feed',hive:'h1',type:'Подкормка',status:'pending',plannedFeedingAmount:'2 л'};
+ const state={hives:[{id:'h1'}],tasks:[task],records:[],auditLog:[],snapshots:[],meta:{}};let saves=0;
+ const complete=loadFunction('completeTask',{S:state,uid:()=> 'record-feed',today:()=> '2026-11-13',prompt:()=>null,validateTaskCompletion:loadFunction('validateTaskCompletion'),logAudit:(type,details)=>state.auditLog.push({type,...details}),save:async()=>{saves++;return true},render:()=>{},alert:()=>{}});
+ assert.equal(await complete('t-feed'),false);assert.equal(task.status,'pending');assert.equal(state.records.length,0);assert.equal(state.auditLog.length,0);assert.equal(saves,0);
+});
+test('non-feeding task completion does not request a feeding quantity',async()=>{
+ const task={id:'t-inspect',hive:'h1',type:'Осмотр',status:'pending',note:'Проверить'};
+ const state={hives:[{id:'h1'}],tasks:[task],records:[],auditLog:[],snapshots:[],meta:{}};let prompts=0;
+ const complete=loadFunction('completeTask',{S:state,uid:()=> 'record-inspect',today:()=> '2026-11-13',prompt:()=>{prompts++;return 'x'},validateTaskCompletion:loadFunction('validateTaskCompletion'),logAudit:(type,details)=>state.auditLog.push({type,...details}),save:async()=>true,render:()=>{},alert:()=>{}});
+ assert.equal(await complete('t-inspect'),true);assert.equal(prompts,0);
+});
