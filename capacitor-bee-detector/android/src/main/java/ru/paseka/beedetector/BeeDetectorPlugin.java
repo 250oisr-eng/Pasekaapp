@@ -14,13 +14,19 @@ import java.util.concurrent.Executors;
 @CapacitorPlugin(name = "BeeDetector")
 public class BeeDetectorPlugin extends Plugin {
     private static final String BRIDGE_VERSION = "0.2.0";
-    private static final ExecutorService RUNTIME_EXECUTOR =
+    private final ExecutorService runtimeExecutor =
         Executors.newSingleThreadExecutor();
+    private volatile boolean destroyed = false;
 
     @PluginMethod
     public void getStatus(PluginCall call) {
         Context appContext = getContext().getApplicationContext();
-        RUNTIME_EXECUTOR.execute(() -> {
+        if (destroyed || runtimeExecutor.isShutdown()) {
+            resolveUnavailable(call, "plugin_destroyed");
+            return;
+        }
+        runtimeExecutor.execute(() -> {
+            if (destroyed) return;
             LiteRtRuntimeProbe.Result probe = LiteRtRuntimeProbe.initializeAndClose(appContext);
             JSObject result = new JSObject();
             result.put("bridgeAvailable", true);
@@ -30,8 +36,17 @@ public class BeeDetectorPlugin extends Plugin {
             result.put("inferenceAvailable", false);
             result.put("status", "unavailable");
             result.put("reason", probe.available ? "model_not_installed" : "runtime_initialization_failed");
-            call.resolve(result);
+            if (!destroyed) {
+                call.resolve(result);
+            }
         });
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        destroyed = true;
+        runtimeExecutor.shutdownNow();
+        super.handleOnDestroy();
     }
 
     @PluginMethod
