@@ -58,4 +58,4 @@ function createBeeDetectorAdapter(config={}){
  });
 }
 root.PasekaBeeDetector=Object.freeze({VERSION,validateModelManifest,normalizeDetections,createBeeDetectorAdapter});
-})(typeof globalThis!=='undefined'?globalThis:window);
+})(typeof window!=='undefined'?window:globalThis);
