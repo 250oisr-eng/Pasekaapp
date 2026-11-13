@@ -688,12 +688,15 @@ function parseFeedingQuantity(value){
 }
 function buildFeedingPlanComparison(records,hiveId){
  const source=(Array.isArray(records)?records:[]).filter(record=>record&&!record.archivedAt&&record.type==='Подкормка'&&record.hive===hiveId&&record.taskId&&Object.prototype.hasOwnProperty.call(record,'plannedFeedingAmount'));
- const summary={matched:0,over:0,under:0,notMeasured:0,planMissing:0,unitMismatch:0,unparsed:0};
+ const taskCounts=new Map();
+ source.forEach(record=>taskCounts.set(record.taskId,(taskCounts.get(record.taskId)||0)+1));
+ const summary={matched:0,over:0,under:0,notMeasured:0,planMissing:0,unitMismatch:0,unparsed:0,duplicateTask:0};
  const totals=new Map();
  const events=source.map(record=>{
   const plannedText=String(record.plannedFeedingAmount??'').trim(),actualText=String(record.feedingAmount??'').trim();
   let status,planned=parseFeedingQuantity(plannedText),actual=parseFeedingQuantity(actualText),difference=null,unit='';
-  if(!plannedText)status='planMissing';
+  if(taskCounts.get(record.taskId)>1)status='duplicateTask';
+  else if(!plannedText)status='planMissing';
   else if(!actualText)status='notMeasured';
   else if(!planned||!actual)status='unparsed';
   else if(planned.unit!==actual.unit)status='unitMismatch';
@@ -704,7 +707,7 @@ function buildFeedingPlanComparison(records,hiveId){
    total.planned+=planned.amount;total.actual+=actual.amount;total.difference+=difference;total.count++;totals.set(unit,total);
   }
   summary[status]++;
-  return {id:record.id||record.taskId,date:record.date||'',planned:plannedText,actual:actualText,status,unit,difference};
+  return {id:record.id||record.taskId,taskId:record.taskId,date:record.date||'',planned:plannedText,actual:actualText,status,unit,difference};
  }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  return {events,summary,totals:[...totals.values()].map(item=>({...item,planned:Number(item.planned.toFixed(6)),actual:Number(item.actual.toFixed(6)),difference:Number(item.difference.toFixed(6))})).sort((a,b)=>a.unit.localeCompare(b.unit,'ru'))};
 }
@@ -737,9 +740,9 @@ function renderFeedingPlanComparison(){
  panel.style.display=total?'block':'none';
  if(!total){host.innerHTML='';if(count)count.textContent='';return}
  if(count)count.textContent=total+' выполнено';
- const labels={matched:'По плану',over:'Выдано больше плана',under:'Выдано меньше плана',notMeasured:'Факт не измерен',planMissing:'План не задан',unitMismatch:'Единицы различаются',unparsed:'Количество не распознано'};
+ const labels={matched:'По плану',over:'Выдано больше плана',under:'Выдано меньше плана',notMeasured:'Факт не измерен',planMissing:'План не задан',unitMismatch:'Единицы различаются',unparsed:'Количество не распознано',duplicateTask:'Повторная запись задачи — исключена из сумм'};
  const totals=result.totals.map(item=>'План '+safe(formatFeedingTotal(item.planned))+' '+safe(item.unit)+' · факт '+safe(formatFeedingTotal(item.actual))+' '+safe(item.unit)+' · отклонение '+safe(formatFeedingTotal(item.difference))+' '+safe(item.unit)+' ('+item.count+')').join('<br>');
- const summary=[['По плану',result.summary.matched],['Меньше плана',result.summary.under],['Больше плана',result.summary.over],['Факт не измерен',result.summary.notMeasured],['План не задан',result.summary.planMissing],['Разные единицы',result.summary.unitMismatch],['Не распознано',result.summary.unparsed]].filter(([,value])=>value).map(([label,value])=>safe(label)+': '+value).join(' · ');
+ const summary=[['По плану',result.summary.matched],['Меньше плана',result.summary.under],['Больше плана',result.summary.over],['Факт не измерен',result.summary.notMeasured],['План не задан',result.summary.planMissing],['Разные единицы',result.summary.unitMismatch],['Не распознано',result.summary.unparsed],['Повторные записи',result.summary.duplicateTask]].filter(([,value])=>value).map(([label,value])=>safe(label)+': '+value).join(' · ');
  const rows=result.events.map(event=>{
   const delta=event.difference===null?'':' · отклонение '+(event.difference>0?'+':'')+formatFeedingTotal(event.difference)+' '+event.unit;
   return '<li><b>'+safe(event.date||'Дата не указана')+'</b> · план: '+safe(event.planned||'не задан')+' · факт: '+safe(event.actual||'не измерен')+'<div class="muted">'+safe(labels[event.status])+safe(delta)+'</div></li>';
