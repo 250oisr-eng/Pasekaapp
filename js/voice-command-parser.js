@@ -8,7 +8,11 @@ function parseApiaryVoiceCommand(value,armed=false){
  const command=wake?normalized.slice(wake[0].length).trim():normalized;
  if(!command)return {type:'wake'};
  const journalDraft=command.match(/^(?:запиши\s+в\s+журнал|создай\s+черновик\s+записи|добавь\s+запись\s+в\s+журнал)\s*[:,-]?\s*(.+)$/);
- if(journalDraft?.[1]?.trim())return {type:'journal_draft',text:journalDraft[1].trim()};
+ if(journalDraft?.[1]?.trim()){
+  const rawCommand=raw.replace(/^(?:пасека[\s,.:;!?-]+)?слушай[\s,.:;!?-]*/iu,'').trim();
+  const rawDraft=rawCommand.match(/^(?:запиши\s+в\s+журнал|создай\s+черновик\s+записи|добавь\s+запись\s+в\s+журнал)\s*[:,-]?\s*([\s\S]+)$/iu);
+  return {type:'journal_draft',text:(rawDraft?.[1]||journalDraft[1]).trim()};
+ }
  if(/^(подтверждаю|подтвердить)$/.test(command))return {type:'confirm'};
  if(/^(отмена|отмени)$/.test(command))return {type:'cancel'};
  if(/^(повтори|прочитай ответ)$/.test(command))return {type:'repeat'};
