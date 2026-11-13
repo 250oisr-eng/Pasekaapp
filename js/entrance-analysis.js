@@ -18,6 +18,12 @@ function transitionVideoQueue(record,next,details={}){
  if(!record||typeof record!=='object'||!VIDEO_QUEUE_STATES.includes(record.status)||!VIDEO_QUEUE_STATES.includes(next))return {ok:false,reason:'invalid_state'};
  if(!VIDEO_QUEUE_TRANSITIONS[record.status].includes(next))return {ok:false,reason:'transition_not_allowed'};
  const updated={...record,...details,status:next,updatedAt:details.updatedAt||new Date().toISOString()};
+ // Завершение означает, что результат уже надёжно записан, а сервер подтвердил удаление исходника.
+ // Нельзя переводить задание в completed только по факту завершения вычислений.
+ if(next==='uploaded'&&updated.serverUploadConfirmed!==true)return {ok:false,reason:'server_upload_not_confirmed'};
+ if(next==='completed'&&updated.serverUploadConfirmed!==true)return {ok:false,reason:'server_upload_not_confirmed'};
+ if(next==='completed'&&updated.resultPersisted!==true)return {ok:false,reason:'result_not_persisted'};
+ if(next==='completed'&&updated.serverDeleteConfirmed!==true)return {ok:false,reason:'server_delete_not_confirmed'};
  if(next==='uploading')updated.uploadStartedAt=updated.updatedAt;
  if(next==='uploaded')updated.uploadedAt=updated.updatedAt;
  if(next==='analyzing')updated.analysisStartedAt=updated.updatedAt;
@@ -25,8 +31,49 @@ function transitionVideoQueue(record,next,details={}){
  if(next==='failed_retryable'||next==='failed_permanent')updated.lastError=String(details.lastError||'Неизвестная ошибка').slice(0,500);
  return {ok:true,record:updated};
 }
+function hasConfirmedLocalOriginalPurge(record){
+ return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverUploadConfirmed===true&&record.serverDeleteConfirmed===true&&record.localOriginalDeleted===true&&typeof record.localOriginalDeletedAt==='string'&&Number.isFinite(Date.parse(record.localOriginalDeletedAt))&&record.activeOperation!==true&&record.transferInProgress!==true;
+}
+function validateQueuedVideoRecord(record){
+ const issues=[];
+ if(!record||typeof record!=='object')return {ok:false,errors:['record_invalid']};
+ if(typeof record.id!=='string'||!record.id.trim())issues.push('id_missing');
+ if(typeof record.hiveId!=='string'||!record.hiveId.trim())issues.push('hive_id_missing');
+ if(typeof record.capturedAt!=='string'||!Number.isFinite(Date.parse(record.capturedAt)))issues.push('captured_at_invalid');
+ if(typeof record.durationSec!=='number'||!Number.isFinite(record.durationSec)||record.durationSec<20||record.durationSec>90)issues.push('duration_invalid');
+ if(!Number.isInteger(record.width)||record.width<640||!Number.isInteger(record.height)||record.height<360)issues.push('resolution_invalid');
+ if(typeof record.bytes!=='number'||!Number.isFinite(record.bytes)||record.bytes<=0)issues.push('bytes_invalid');
+ if(typeof record.mimeType!=='string'||!record.mimeType.toLowerCase().startsWith('video/'))issues.push('mime_type_invalid');
+ if(!VIDEO_QUEUE_STATES.includes(record.status))issues.push('status_invalid');
+ if(record.status==='completed'){
+  if(record.resultPersisted!==true)issues.push('completed_result_not_persisted');
+  if(record.serverUploadConfirmed!==true)issues.push('completed_upload_not_confirmed');
+  if(record.serverDeleteConfirmed!==true)issues.push('completed_server_delete_not_confirmed');
+  if(record.localOriginalDeleted===true&&!hasConfirmedLocalOriginalPurge(record))issues.push('local_purge_not_confirmed');
+  if(record.localOriginalDeleted!==true&&(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0))issues.push('blob_missing');
+ }else{
+  if(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0)issues.push('blob_missing');
+ }
+ if(record.blob&&typeof record.blob.size==='number'&&(record.blob.size<=0||record.blob.size!==record.bytes))issues.push('blob_size_mismatch');
+ return {ok:issues.length===0,errors:issues};
+}
+function canManuallyCancelVideo(record,ownerConfirmed=false,operationActive=false){
+ if(ownerConfirmed!==true||operationActive===true||!record||typeof record!=='object')return false;
+ if(!['waiting_for_server','failed_retryable','failed_permanent'].includes(record.status))return false;
+ if(record.activeOperation===true||record.transferInProgress===true)return false;
+ return true;
+}
 function canDeleteVideoOriginal(record){
- return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
+ return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverUploadConfirmed===true&&record.serverDeleteConfirmed===true&&record.localOriginalDeleted!==true&&record.activeOperation!==true&&record.transferInProgress!==true&&!!record.blob&&typeof record.blob.size==='number'&&record.blob.size>0&&record.blob.size===record.bytes;
+}
+function assessStorageCapacity(input={}){
+ const quota=Number(input.quota),usage=Number(input.usage),required=Number(input.requiredBytes);
+ if(!finite(required)||required<=0)return {ok:false,reason:'invalid_required_bytes',availableBytes:null};
+ if(!finite(quota)||quota<=0||!finite(usage)||usage<0)return {ok:true,reason:'estimate_unavailable',availableBytes:null,warning:'storage_estimate_unavailable'};
+ const availableBytes=Math.max(0,quota-usage);
+ const reserveBytes=Math.max(16*1024*1024,required*0.15);
+ if(availableBytes<required+reserveBytes)return {ok:false,reason:'insufficient_space',availableBytes,requiredBytes:required,reserveBytes};
+ return {ok:true,reason:'capacity_available',availableBytes,requiredBytes:required,reserveBytes,warning:input.persistent===true?null:'storage_not_persistent'};
 }
 function assessVideoMetadata(input={}){
  const errors=[],warnings=[];
@@ -75,9 +122,13 @@ async function sampleVideoFrames(video,options={}){
 
 function assessFrameQuality(samples=[]){
  if(!Array.isArray(samples)||samples.length<3)return {status:'unknown',score:null,flags:['insufficient_samples']};
- const usable=samples.filter(x=>x&&finite(x.brightness)&&finite(x.sharpness)&&finite(x.motion));
+ // Первый декодированный кадр закономерно не имеет motion: для него нет предыдущего кадра.
+ // Это не должно выбрасывать первый кадр из оценки экспозиции и резкости.
+ const usable=samples.filter(x=>x&&finite(x.brightness)&&finite(x.sharpness));
  if(usable.length<3)return {status:'unknown',score:null,flags:['invalid_samples']};
- const brightness=median(usable.map(x=>x.brightness)),sharpness=median(usable.map(x=>x.sharpness)),motion=median(usable.map(x=>x.motion)),coverage=median(usable.map(x=>finite(x.entranceCoverage)?x.entranceCoverage:NaN));
+ const motionValues=usable.filter(x=>finite(x.motion)).map(x=>x.motion);
+ const coverageValues=usable.filter(x=>finite(x.entranceCoverage)).map(x=>x.entranceCoverage);
+ const brightness=median(usable.map(x=>x.brightness)),sharpness=median(usable.map(x=>x.sharpness)),motion=motionValues.length?median(motionValues):null,coverage=coverageValues.length?median(coverageValues):null;
  const flags=[];
  if(brightness<0.08)flags.push('underexposed');
  if(brightness>0.94)flags.push('overexposed');
@@ -143,5 +194,5 @@ function detectAnomalies(current,history=[],context={}){
  if(context.peerMedian&&finite(context.peerMedian.pollenShare)&&finite(current.metrics.pollenShare)&&current.metrics.pollenShare<context.peerMedian.pollenShare*0.45&&!alerts.some(a=>a.id==='pollen_share_drop'))alerts.push({id:'pollen_share_peer_gap',severity:'attention',title:'Пыльценосная активность ниже соседних семей',observation:'Доля пыльценосов заметно ниже медианы сопоставимых семей пасеки.',measured:current.metrics.pollenShare,baseline:context.peerMedian.pollenShare,possibleCauses:['различия в потребности семей','локальные условия','изменение состояния расплода'],recommendedAction:'Повторить наблюдение и проверить семью при ближайшем осмотре.',diagnosis:false,requiresHumanCheck:true});
  return {alerts,baseline:baselines,suppressed:[]};
 }
-root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,canDeleteVideoOriginal,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
+root.PasekaEntranceAnalysis=Object.freeze({VERSION,VIDEO_QUEUE_STATES,transitionVideoQueue,validateQueuedVideoRecord,canManuallyCancelVideo,canDeleteVideoOriginal,hasConfirmedLocalOriginalPurge,assessStorageCapacity,assessVideoMetadata,measureFramePixels,sampleVideoFrames,assessFrameQuality,computeMetrics,summarizeBaseline,detectAnomalies});
 })(typeof window!=='undefined'?window:globalThis);
