@@ -1517,6 +1517,30 @@ function apiaryVoiceStatus(message){apiaryVoiceSession.status(message)}
 function stopApiaryVoiceSession(){apiaryVoiceSession.stop()}
 function startApiaryVoiceRecognition(){apiaryVoiceSession.startRecognition()}
 function speakApiaryVoice(value){apiaryVoiceSession.speak(value)}
+function applyVoiceInspectionFieldsToOpenRecord(description){
+ const raw=String(description??'').trim();
+ if(!raw)return {ok:false,filled:[],skipped:[],fieldCount:0};
+ const extracted=extractInspectionFieldsFromText(raw);
+ const note=$('rtext'),nextNote=note?(note.value.trim()?note.value.trim()+'\\n'+raw:raw):'';
+ if(!note||nextNote.length>12000)return {ok:false,filled:[],skipped:[],fieldCount:extracted.fieldCount,reason:'note_limit'};
+ const ids={occupancy:'roccupancy',broodFrames:'rbrood',freeDrawn:'rdrawn',queen:'rqueen',eggs:'reggs',broodPattern:'rbroodPattern',queenCells:'rqueenCells',swarmSigns:'rswarmSigns'};
+ const filled=[],skipped=[];
+ for(const [field,value] of Object.entries(extracted.fields)){
+  const element=$(ids[field]);
+  if(!element)continue;
+  if(String(element.value??'')===''){element.value=String(value);filled.push(field)}
+  else skipped.push(field);
+ }
+ note.value=nextNote;
+ const notice=$('aiJournalExtractNotice');
+ if(notice){
+  const labels={occupancy:'Занято пчёлами рамок',broodFrames:'Рамок с расплодом',freeDrawn:'Свободных отстроенных рамок',queen:'Матка',eggs:'Свежие яйца',broodPattern:'Характер расплода',queenCells:'Маточники',swarmSigns:'Признаки роевого состояния'};
+  const evidence=Object.entries(extracted.evidence).map(([key,value])=>(labels[key]||key)+': «'+value+'»').join(' · ');
+  notice.textContent='Голосовой ввод: заполнено новых полей '+filled.length+' из '+extracted.fieldCount+'. '+(skipped.length?'Не изменены уже заполненные поля: '+skipped.map(key=>labels[key]||key).join(', ')+'. ':'')+(evidence?'Основание: '+evidence+'. ':'')+'Исходная фраза добавлена в заметку. Проверь значения; запись не сохранена.';
+  notice.style.display='block';
+ }
+ return {ok:filled.length>0,filled,skipped,fieldCount:extracted.fieldCount,type:extracted.type};
+}
 async function handleApiaryVoiceTranscript(transcript){
  const armed=apiaryVoiceSession.isArmed();
  const parsed=parseApiaryVoiceCommand(transcript,armed);
@@ -1547,6 +1571,24 @@ async function handleApiaryVoiceTranscript(transcript){
   if(last){apiaryVoiceStatus('Повторяю последний ответ ИИ.');speakApiaryVoice(last.content)}
   else{apiaryVoiceStatus('Пока нет ответа ИИ.');speakApiaryVoice('Пока нет ответа ИИ.')}
   return;
+ }
+ if(parsed.type==='inspection_fields'){
+  const description=String(parsed.text||'').trim(),recordDialog=$('recordDlg');
+  if(recordDialog?.open){
+   const result=applyVoiceInspectionFieldsToOpenRecord(description);
+   if(result.reason==='note_limit'){apiaryVoiceStatus('Не удалось добавить фразу: превышен допустимый размер заметки. Поля не изменены.');speakApiaryVoice('Заметка слишком длинная. Поля не изменены.');return;}
+   apiaryVoiceStatus(result.ok?'Показатели добавлены в пустые поля. Заполненные поля не изменены. Проверь результат и сохрани вручную.':'Новых однозначных значений для пустых полей не найдено. Исходная фраза добавлена в заметку для проверки.');
+   speakApiaryVoice(result.ok?'Заполнил пустые поля осмотра. Уже заполненные не менял. Проверь запись и сохрани вручную.':'Новых однозначных показателей не найдено. Фразу добавил в заметку.');
+   return;
+  }
+  const hiveId=String($('aiJournalHiveSelect')?.value||'');
+  if(!hiveId||!S.hives?.some(hive=>hive?.id===hiveId)){
+   showTab('ai');apiaryVoiceStatus('Сначала выбери улей в блоке подготовки записи. Ничего не сохранено.');speakApiaryVoice('Сначала выбери улей, затем повтори команду.');$('aiJournalHiveSelect')?.focus();return;
+  }
+  const draftField=$('aiJournalDraftInput');if(!draftField){apiaryVoiceStatus('Форма подготовки записи недоступна.');return;}
+  draftField.value=description;prepareJournalDraftFromAI();
+  apiaryVoiceStatus('Открыл черновик осмотра. Однозначные показатели перенесены в поля; проверь их и сохрани вручную.');
+  speakApiaryVoice('Черновик осмотра открыт. Проверь все показатели и сохрани вручную.');return;
  }
  if(parsed.type==='journal_draft'){
   const description=String(parsed.text||'').trim(),recordDialog=$('recordDlg');

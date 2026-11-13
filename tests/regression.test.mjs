@@ -2202,3 +2202,46 @@ test('save queue serializes snapshots and continues after a failed persistence a
  assert.equal(await second,true,'a failed earlier write must not poison the save queue');
  assert.deepEqual(calls,['revision-1','revision-2']);
 });
+
+test('voice parser recognizes explicit inspection-field commands without capturing ordinary questions',()=>{
+ const parse=new Function(voiceParserSource+';return parseApiaryVoiceCommand;')();
+ assert.deepEqual(parse('Пасека, слушай, заполни поля осмотра: матка обнаружена, яйца есть, занято 4 рамки.'),{
+  type:'inspection_fields',text:'матка обнаружена, яйца есть, занято 4 рамки.'
+ });
+ assert.equal(parse('Пасека, слушай, какие семьи требуют внимания?').type,'question');
+});
+test('voice inspection fills only empty fields, preserves the source note and never saves',()=>{
+ const nodes={
+  rtext:{value:'Осмотр начат вручную.'},
+  roccupancy:{value:'2'},rbrood:{value:''},rdrawn:{value:''},
+  rqueen:{value:''},reggs:{value:''},rbroodPattern:{value:''},
+  rqueenCells:{value:''},rswarmSigns:{value:''},
+  aiJournalExtractNotice:{textContent:'',style:{display:'none'}}
+ };
+ const apply=loadFunction('applyVoiceInspectionFieldsToOpenRecord',{
+  $:id=>nodes[id]||null,
+  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+ });
+ const result=apply('Матка обнаружена, свежие яйца есть, расплод на 3 рамках, занято 5 рамок.');
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.filled,['broodFrames','queen','eggs']);
+ assert.deepEqual(result.skipped,['occupancy']);
+ assert.equal(nodes.roccupancy.value,'2','existing field must not be overwritten');
+ assert.equal(nodes.rbrood.value,'3');
+ assert.equal(nodes.rqueen.value,'seen');
+ assert.equal(nodes.reggs.value,'yes');
+ assert.equal(nodes.rtext.value,'Осмотр начат вручную.\\nМатка обнаружена, свежие яйца есть, расплод на 3 рамках, занято 5 рамок.');
+ assert.match(nodes.aiJournalExtractNotice.textContent,/не изменены уже заполненные поля/);
+ assert.match(nodes.aiJournalExtractNotice.textContent,/не сохранена/);
+});
+test('voice inspection refuses an oversized note before changing any field',()=>{
+ const nodes={rtext:{value:'x'.repeat(12000)},roccupancy:{value:''}};
+ const apply=loadFunction('applyVoiceInspectionFieldsToOpenRecord',{
+  $:id=>nodes[id]||null,
+  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+ });
+ const result=apply('Занято 5 рамок.');
+ assert.equal(result.reason,'note_limit');
+ assert.equal(nodes.roccupancy.value,'');
+ assert.equal(nodes.rtext.value.length,12000);
+});
