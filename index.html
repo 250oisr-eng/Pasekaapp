@@ -1551,7 +1551,7 @@ async function handleApiaryVoiceTranscript(transcript){
  if(parsed.type==='journal_draft'){
   const description=String(parsed.text||'').trim(),recordDialog=$('recordDlg');
   if(recordDialog?.open){
-   const note=$('rtext'),next=note?(note.value.trim()?note.value.trim()+'\\n'+description:description):'';
+   const note=$('rtext'),next=note?(note.value.trim()?note.value.trim()+'\n'+description:description):'';
    if(!note||next.length>12000){apiaryVoiceStatus('Не удалось добавить текст: проверь поле заметки и его размер.');speakApiaryVoice('Не удалось добавить текст в заметку.');return}
    note.value=next;apiaryVoiceStatus('Текст добавлен в заметку текущей записи. Проверь его и сохрани запись вручную.');speakApiaryVoice('Добавил текст в заметку. Проверь и сохрани запись вручную.');return;
   }
