@@ -41,8 +41,8 @@ function computeMetrics(tracks=[],durationSec=60,options={}){
  const rows=[...unique.values()],accepted=rows.filter(t=>finite(Number(t.confidence))&&Number(t.confidence)>=threshold);
  const incoming=accepted.filter(t=>t.direction==='in'&&t.className==='bee');
  const outgoing=accepted.filter(t=>t.direction==='out'&&t.className==='bee');
- const pollen=incoming.filter(t=>t.pollen===true||finite(t.pollenConfidence)&&t.pollenConfidence>=threshold);
- const pollenNegative=incoming.filter(t=>t.pollen===false||finite(t.pollenConfidence)&&t.pollenConfidence>=threshold&&!t.pollen);
+ const pollen=incoming.filter(t=>t.pollen===true||t.pollen!==false&&finite(t.pollenConfidence)&&t.pollenConfidence>=threshold);
+ const pollenNegative=incoming.filter(t=>t.pollen===false||t.pollen!==true&&finite(t.pollenConfidence)&&t.pollenConfidence>=threshold);
  const wasps=accepted.filter(t=>['wasp','hornet','large_wasp_like'].includes(t.className));
  const drones=accepted.filter(t=>t.className==='drone');
  const dead=accepted.filter(t=>t.className==='dead_bee');
