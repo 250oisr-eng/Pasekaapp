@@ -2461,3 +2461,14 @@ test('profile assembly validates dynamic brood and honey frame registries',()=>{
  assert.ok(result.errors.some(error=>error.code==='frame_location_mismatch'));
  assert.ok(result.errors.some(error=>error.code==='honey_box_over_capacity'));
 });
+
+test('family transfer targets follow each hive profile keys and winter restrictions',()=>{
+ const keys=loadFunction('familyTransferBoxKeys');
+ const targets=loadFunction('familyTransferTargets',{familyTransferBoxKeys:keys,familyTransferWinterKeys:loadFunction('familyTransferWinterKeys')});
+ const profile={brood:{boxKeys:['A','B','C','D']},winter:{allowedBoxKeys:['A','C']}};
+ const summer={mode:'summer',installedBoxes:['A','B','C'],boxes:{A:{family:''},B:{family:'f1'},C:{family:''},D:{family:''}}};
+ assert.deepEqual(targets(profile,summer),['A','C']);
+ const winter={mode:'winter',winterOrder:['A','B','C'],installedBoxes:['A','B','C'],boxes:summer.boxes};
+ assert.deepEqual(targets(profile,winter),['A','C']);
+ assert.deepEqual(keys({brood:{boxKeys:['Корпус-01','X2']}}),['Корпус-01','X2']);
+});
