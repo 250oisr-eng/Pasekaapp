@@ -625,13 +625,13 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes ten clear navigation destinations and home AI entry points',()=>{
+test('hybrid workspace exposes eleven clear navigation destinations and home AI entry points',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,10);
-  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  assert.equal((nav.match(/data-tab=/g)||[]).length,11);
+  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
   assert.ok(html.includes('id="homeAIQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
@@ -1651,10 +1651,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation includes all ten sections and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes all eleven sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,10);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,11);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
@@ -2552,7 +2552,9 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
  assert.match(html,/PasekaIncident\.buildPesticideIncidentDraft/);
  assert.match(html,/PasekaIncident\.inspectPesticideIncidentIntegrity/);
  assert.match(html,/S\.meta\.schemaVersion=12/);
- assert.match(html,/pesticideIncidents/);\n assert.match(html,/deadoutReviews/);\n assert.match(html,/PasekaDeadout\.inspectDeadoutIntegrity/);
+ assert.match(html,/pesticideIncidents/);
+ assert.match(html,/deadoutReviews/);
+ assert.match(html,/PasekaDeadout\.inspectDeadoutIntegrity/);
 });
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
