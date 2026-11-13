@@ -713,15 +713,19 @@ function buildFeedingPlanComparison(records,hiveId){
 }
 function buildFeedingLedger(records,families,hiveId){
  const source=(Array.isArray(records)?records:[]).filter(record=>record&&!record.archivedAt&&record.type==='Подкормка'&&record.hive===hiveId);
+ const taskCounts=new Map();
+ source.filter(record=>typeof record.taskId==='string'&&record.taskId).forEach(record=>taskCounts.set(record.taskId,(taskCounts.get(record.taskId)||0)+1));
  const unitAliases={л:'л',литр:'л',литра:'л',литров:'л',мл:'мл',миллилитр:'мл',миллилитра:'мл',миллилитров:'мл',кг:'кг',килограмм:'кг',килограмма:'кг',килограммов:'кг',г:'г',гр:'г',грамм:'г',грамма:'г',граммов:'г',шт:'шт',штука:'шт',штуки:'шт',штук:'шт'};
  const groups=new Map();
  for(const record of source){
   const familyId=typeof record.family==='string'&&record.family?record.family:'__unassigned__';
   const family=(Array.isArray(families)?families:[]).find(item=>item?.id===familyId);
   const name=record.familyNameAtTime||record.familySnapshotAtTime?.name||family?.name||(familyId==='__unassigned__'?'Семья не указана':'Архивная семья');
-  if(!groups.has(familyId))groups.set(familyId,{familyId,name,count:0,latest:'',events:[],totals:new Map(),unparsedCount:0});
+  if(!groups.has(familyId))groups.set(familyId,{familyId,name,count:0,latest:'',events:[],totals:new Map(),unparsedCount:0,duplicateCount:0,duplicateTaskIds:[]});
   const group=groups.get(familyId);group.count++;group.events.push(record);
   if(record.date&&(!group.latest||record.date>group.latest))group.latest=record.date;
+  const duplicate=typeof record.taskId==='string'&&record.taskId&&taskCounts.get(record.taskId)>1;
+  if(duplicate){group.duplicateCount++;if(!group.duplicateTaskIds.includes(record.taskId))group.duplicateTaskIds.push(record.taskId);continue}
   const raw=String(record.feedingAmount||'').trim(),match=raw.match(/^(\d+(?:[.,]\d+)?)\s*([а-яё]+)$/iu);
   const unit=match?unitAliases[match[2].toLocaleLowerCase('ru-RU')]:null;
   if(!match||!unit){if(raw)group.unparsedCount++;continue}
@@ -729,7 +733,7 @@ function buildFeedingLedger(records,families,hiveId){
   if(!Number.isFinite(amount)||amount<0){group.unparsedCount++;continue}
   const total=group.totals.get(unit)||{unit,amount:0,count:0};total.amount+=amount;total.count++;group.totals.set(unit,total);
  }
- return [...groups.values()].map(group=>({familyId:group.familyId,name:group.name,count:group.count,latest:group.latest,totals:[...group.totals.values()].sort((a,b)=>a.unit.localeCompare(b.unit,'ru')),unparsedCount:group.unparsedCount,events:group.events.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))||a.name.localeCompare(b.name,'ru'));
+ return [...groups.values()].map(group=>({familyId:group.familyId,name:group.name,count:group.count,latest:group.latest,totals:[...group.totals.values()].sort((a,b)=>a.unit.localeCompare(b.unit,'ru')),unparsedCount:group.unparsedCount,duplicateCount:group.duplicateCount,duplicateTaskIds:group.duplicateTaskIds,events:group.events.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))||a.name.localeCompare(b.name,'ru'));
 }
 function formatFeedingTotal(value){return Number(value.toFixed(3)).toLocaleString('ru-RU',{maximumFractionDigits:3})}
 function renderFeedingPlanComparison(){
@@ -760,8 +764,8 @@ function renderFeedingLedger(){
  host.innerHTML=groups.map(group=>{
   const totals=group.totals.length?group.totals.map(total=>safe(formatFeedingTotal(total.amount))+' '+safe(total.unit)+' <span class="muted">('+total.count+' записей)</span>').join(' · '):'Количество с единицами не указано';
   const last=group.latest?'Последняя выдача: '+safe(group.latest):'Дата не указана';
-  const eventsHtml=group.events.map(record=>'<li><b>'+safe(record.date||'Дата не указана')+'</b> · '+safe(record.feedingAmount||'количество не указано')+(record.feedingType?' · '+safe(record.feedingType):'')+(record.feedingSubstance?' · '+safe(record.feedingSubstance):'')+'</li>').join('');
-  return '<div class="card" style="margin-top:8px"><div class="row" style="justify-content:space-between;gap:8px"><b>'+safe(group.name)+'</b><span class="muted">'+group.count+' '+ruPlural(group.count,'выдача','выдачи','выдач')+'</span></div><div>'+totals+'</div><div class="muted">'+last+(group.unparsedCount?' · без суммирования: '+group.unparsedCount:'')+'</div><details><summary>История выдач</summary><ul>'+eventsHtml+'</ul></details></div>';
+  const eventsHtml=group.events.map(record=>'<li><b>'+safe(record.date||'Дата не указана')+'</b> · '+safe(record.feedingAmount||'количество не указано')+(record.feedingType?' · '+safe(record.feedingType):'')+(record.feedingSubstance?' · '+safe(record.feedingSubstance):'')+(record.taskId&&group.duplicateTaskIds.includes(record.taskId)?' · повторная запись задачи, не суммируется':'')+'</li>').join('');
+  return '<div class="card" style="margin-top:8px"><div class="row" style="justify-content:space-between;gap:8px"><b>'+safe(group.name)+'</b><span class="muted">'+group.count+' '+ruPlural(group.count,'выдача','выдачи','выдач')+'</span></div><div>'+totals+'</div><div class="muted">'+last+(group.unparsedCount?' · без суммирования: '+group.unparsedCount:'')+(group.duplicateCount?' · повторные задачи исключены из сумм: '+group.duplicateCount:'')+'</div><details><summary>История выдач</summary><ul>'+eventsHtml+'</ul></details></div>';
  }).join('');
 }
 
