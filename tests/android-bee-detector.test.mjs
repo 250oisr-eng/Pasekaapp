@@ -55,3 +55,9 @@ test('detector executor is instance-scoped and stopped when Capacitor destroys t
  assert.match(java,/if \\(!destroyed\\)/);
  assert.doesNotMatch(java,/static final ExecutorService/);
 });
+
+test('detector executor handles shutdown races and interrupted workers',()=>{
+ assert.match(java,/catch \\(RejectedExecutionException error\\)/);
+ assert.match(java,/Thread\\.currentThread\\(\\)\\.isInterrupted\\(\\)/);
+ assert.match(java,/runtime_executor_unavailable/);
+});
