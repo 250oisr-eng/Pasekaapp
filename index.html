@@ -445,7 +445,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <section id="journal" class="panel">
  <div class="row"><div><h2>Журнал</h2><div class="muted">Хронология наблюдений и работ</div></div><button class="primary" onclick="newRecord()">＋ Запись</button></div>
  <label for="journalHive">Улей</label><select id="journalHive" onchange="selectJournalHive(this.value)"></select>
- <section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button></div>
+ <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button></div>
  <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
 </section>
 <section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится одна полная копия предыдущего состояния, включая фотографии и видео. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Это важно при потере устройства или очистке браузера.</p><button class="primary" onclick="downloadBackup()">Скачать архив</button><label>Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Безвозвратно удаляет все ульи, семьи, рамки, записи журнала, задачи и локальные резервные снимки на этом устройстве. Перед удалением скачай архив.</p><button type="button" style="background:#a83225;color:white" onclick="deleteAllData()">Удалить все данные</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
@@ -679,6 +679,35 @@ function renderHiveDirectory(){
  host.innerHTML=filtered.map(card).join('')||(S.hives.length?'<div class="empty">По этому запросу ульи не найдены.</div>':'<div class="empty">Ульев пока нет.</div>');
 }
 
+function parseFeedingQuantity(value){
+ const raw=String(value??'').trim(),match=raw.match(/^(\\d+(?:[.,]\\d+)?)\\s*([а-яё]+)$/iu);
+ if(!match)return null;
+ const aliases={л:'л',литр:'л',литра:'л',литров:'л',мл:'мл',миллилитр:'мл',миллилитра:'мл',миллилитров:'мл',кг:'кг',килограмм:'кг',килограмма:'кг',килограммов:'кг',г:'г',гр:'г',грамм:'г',грамма:'г',граммов:'г',шт:'шт',штука:'шт',штуки:'шт',штук:'шт'};
+ const unit=aliases[match[2].toLocaleLowerCase('ru-RU')],amount=Number(match[1].replace(',','.'));
+ return unit&&Number.isFinite(amount)&&amount>=0?{amount,unit}:null;
+}
+function buildFeedingPlanComparison(records,hiveId){
+ const source=(Array.isArray(records)?records:[]).filter(record=>record&&!record.archivedAt&&record.type==='Подкормка'&&record.hive===hiveId&&record.taskId&&Object.prototype.hasOwnProperty.call(record,'plannedFeedingAmount'));
+ const summary={matched:0,over:0,under:0,notMeasured:0,planMissing:0,unitMismatch:0,unparsed:0};
+ const totals=new Map();
+ const events=source.map(record=>{
+  const plannedText=String(record.plannedFeedingAmount??'').trim(),actualText=String(record.feedingAmount??'').trim();
+  let status,planned=parseFeedingQuantity(plannedText),actual=parseFeedingQuantity(actualText),difference=null,unit='';
+  if(!plannedText)status='planMissing';
+  else if(!actualText)status='notMeasured';
+  else if(!planned||!actual)status='unparsed';
+  else if(planned.unit!==actual.unit)status='unitMismatch';
+  else{
+   unit=planned.unit;difference=Number((actual.amount-planned.amount).toFixed(6));
+   status=Math.abs(difference)<1e-9?'matched':difference>0?'over':'under';
+   const total=totals.get(unit)||{unit,planned:0,actual:0,difference:0,count:0};
+   total.planned+=planned.amount;total.actual+=actual.amount;total.difference+=difference;total.count++;totals.set(unit,total);
+  }
+  summary[status]++;
+  return {id:record.id||record.taskId,date:record.date||'',planned:plannedText,actual:actualText,status,unit,difference};
+ }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ return {events,summary,totals:[...totals.values()].map(item=>({...item,planned:Number(item.planned.toFixed(6)),actual:Number(item.actual.toFixed(6)),difference:Number(item.difference.toFixed(6))})).sort((a,b)=>a.unit.localeCompare(b.unit,'ru'))};
+}
 function buildFeedingLedger(records,families,hiveId){
  const source=(Array.isArray(records)?records:[]).filter(record=>record&&!record.archivedAt&&record.type==='Подкормка'&&record.hive===hiveId);
  const unitAliases={л:'л',литр:'л',литра:'л',литров:'л',мл:'мл',миллилитр:'мл',миллилитра:'мл',миллилитров:'мл',кг:'кг',килограмм:'кг',килограмма:'кг',килограммов:'кг',г:'г',гр:'г',грамм:'г',грамма:'г',граммов:'г',шт:'шт',штука:'шт',штуки:'шт',штук:'шт'};
@@ -700,6 +729,23 @@ function buildFeedingLedger(records,families,hiveId){
  return [...groups.values()].map(group=>({familyId:group.familyId,name:group.name,count:group.count,latest:group.latest,totals:[...group.totals.values()].sort((a,b)=>a.unit.localeCompare(b.unit,'ru')),unparsedCount:group.unparsedCount,events:group.events.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))})).sort((a,b)=>String(b.latest).localeCompare(String(a.latest))||a.name.localeCompare(b.name,'ru'));
 }
 function formatFeedingTotal(value){return Number(value.toFixed(3)).toLocaleString('ru-RU',{maximumFractionDigits:3})}
+function renderFeedingPlanComparison(){
+ const panel=$('feedingPlanComparisonPanel'),host=$('feedingPlanComparisonContent'),count=$('feedingPlanComparisonCount');
+ if(!panel||!host)return;
+ if(!activeJournalHive){panel.style.display='none';return}
+ const result=buildFeedingPlanComparison(S.records,activeJournalHive),total=result.events.length;
+ panel.style.display=total?'block':'none';
+ if(!total){host.innerHTML='';if(count)count.textContent='';return}
+ if(count)count.textContent=total+' выполнено';
+ const labels={matched:'По плану',over:'Выдано больше плана',under:'Выдано меньше плана',notMeasured:'Факт не измерен',planMissing:'План не задан',unitMismatch:'Единицы различаются',unparsed:'Количество не распознано'};
+ const totals=result.totals.map(item=>'План '+safe(formatFeedingTotal(item.planned))+' '+safe(item.unit)+' · факт '+safe(formatFeedingTotal(item.actual))+' '+safe(item.unit)+' · отклонение '+safe(formatFeedingTotal(item.difference))+' '+safe(item.unit)+' ('+item.count+')').join('<br>');
+ const summary=[['По плану',result.summary.matched],['Меньше плана',result.summary.under],['Больше плана',result.summary.over],['Факт не измерен',result.summary.notMeasured],['План не задан',result.summary.planMissing],['Разные единицы',result.summary.unitMismatch],['Не распознано',result.summary.unparsed]].filter(([,value])=>value).map(([label,value])=>safe(label)+': '+value).join(' · ');
+ const rows=result.events.map(event=>{
+  const delta=event.difference===null?'':' · отклонение '+(event.difference>0?'+':'')+formatFeedingTotal(event.difference)+' '+event.unit;
+  return '<li><b>'+safe(event.date||'Дата не указана')+'</b> · план: '+safe(event.planned||'не задан')+' · факт: '+safe(event.actual||'не измерен')+'<div class="muted">'+safe(labels[event.status])+safe(delta)+'</div></li>';
+ }).join('');
+ host.innerHTML='<div class="muted">'+summary+'</div>'+(totals?'<div style="margin-top:7px">'+totals+'</div>':'')+'<details style="margin-top:8px"><summary>События сравнения</summary><ul>'+rows+'</ul></details>';
+}
 function renderFeedingLedger(){
  const host=$('feedingLedgerContent'),panel=$('feedingLedgerPanel'),count=$('feedingLedgerCount');
  if(!host||!panel)return;
