@@ -9,12 +9,14 @@ const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.met
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
+const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
 const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
 new Function('window', varroaSource)(appWindow);
+new Function('window', incidentSource)(appWindow);
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
@@ -33,6 +35,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
+  deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
@@ -622,13 +625,13 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes eight clear navigation destinations and home AI entry points',()=>{
+test('hybrid workspace exposes nine clear navigation destinations and home AI entry points',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,8);
-  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  assert.equal((nav.match(/data-tab=/g)||[]).length,9);
+  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
   assert.ok(html.includes('id="homeAIQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
@@ -1648,10 +1651,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation includes all eight sections and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes all nine sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,8);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,9);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
@@ -1796,10 +1799,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,11,'2']){
+ for(const version of [0,12,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===11?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===12?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1828,8 +1831,9 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,10);
+ assert.equal(state.meta.schemaVersion,11);
  assert.deepEqual(state.varroaObservations,[]);
+ assert.deepEqual(state.pesticideIncidents,[]);
  assert.ok(state.meta.deviceId);
  assert.ok(state.hives[0].profileId==='farrar-6x6-v1');
  assert.ok(state.families[0].id);
@@ -2533,7 +2537,25 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,10);
+ assert.equal(state.meta.schemaVersion,11);
  assert.deepEqual(state.varroaObservations,[]);
+ assert.deepEqual(state.pesticideIncidents,[]);
  assert.equal(migrate(),false);
+});
+
+
+test('pesticide incident dossier is integrated with smartphone capture, local state, backup and migration',()=>{
+ assert.match(html,/data-tab="incidents"/);
+ assert.match(html,/id="incidentForm"/);
+ assert.match(html,/capture="environment"/);
+ assert.match(html,/captureIncidentLocation\(\)/);
+ assert.match(html,/PasekaIncident\.buildPesticideIncidentDraft/);
+ assert.match(html,/PasekaIncident\.inspectPesticideIncidentIntegrity/);
+ assert.match(html,/S\.meta\.schemaVersion=11/);
+ assert.match(html,/pesticideIncidents/);
+});
+test('schema 10 migration creates an empty incident section and preserves existing Varroa records',()=>{
+ const state={meta:{schemaVersion:10},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}]};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,11);assert.deepEqual(state.pesticideIncidents,[]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
