@@ -122,9 +122,13 @@ async function sampleVideoFrames(video,options={}){
 
 function assessFrameQuality(samples=[]){
  if(!Array.isArray(samples)||samples.length<3)return {status:'unknown',score:null,flags:['insufficient_samples']};
- const usable=samples.filter(x=>x&&finite(x.brightness)&&finite(x.sharpness)&&finite(x.motion));
+ // Первый декодированный кадр закономерно не имеет motion: для него нет предыдущего кадра.
+ // Это не должно выбрасывать первый кадр из оценки экспозиции и резкости.
+ const usable=samples.filter(x=>x&&finite(x.brightness)&&finite(x.sharpness));
  if(usable.length<3)return {status:'unknown',score:null,flags:['invalid_samples']};
- const brightness=median(usable.map(x=>x.brightness)),sharpness=median(usable.map(x=>x.sharpness)),motion=median(usable.map(x=>x.motion)),coverage=median(usable.map(x=>finite(x.entranceCoverage)?x.entranceCoverage:NaN));
+ const motionValues=usable.filter(x=>finite(x.motion)).map(x=>x.motion);
+ const coverageValues=usable.filter(x=>finite(x.entranceCoverage)).map(x=>x.entranceCoverage);
+ const brightness=median(usable.map(x=>x.brightness)),sharpness=median(usable.map(x=>x.sharpness)),motion=motionValues.length?median(motionValues):null,coverage=coverageValues.length?median(coverageValues):null;
  const flags=[];
  if(brightness<0.08)flags.push('underexposed');
  if(brightness>0.94)flags.push('overexposed');
