@@ -15,6 +15,7 @@ function normalizeSpokenFrameCodes(value){
  const tokens=prepared.match(/[^\\s,;.!?]+/gu)||[];
  const explicitLetters={а:'А',е:'Е',у:'У',э:'Э',ю:'Ю',я:'Я'};
  let characters=[];
+ const flushBeforeIssue=()=>{const completeLength=characters.length-characters.length%3;for(let i=0;i<completeLength;i+=3)codes.push(characters.slice(i,i+3).join(''));characters=[];};
  const flush=()=>{
   if(characters.length%3===0){for(let i=0;i<characters.length;i+=3)codes.push(characters.slice(i,i+3).join(''));}
   else issues.push({type:'incomplete',characters:characters.length});
@@ -27,7 +28,7 @@ function normalizeSpokenFrameCodes(value){
    const next=tokens[++i];
    if(next&&explicitLetters[next]){characters.push(explicitLetters[next]);continue}
    if(next&&SPOKEN[next]){characters.push(SPOKEN[next]);continue}
-   issues.push({type:'ambiguous',text:next||token});characters=[];continue;
+   issues.push({type:'ambiguous',text:next||token});flushBeforeIssue();continue;
   }
   if(token==='цифра'){
    const next=tokens[++i];
@@ -38,7 +39,7 @@ function normalizeSpokenFrameCodes(value){
   if(DIGITS[token]){characters.push(DIGITS[token]);continue}
   if(SPOKEN[token]){characters.push(SPOKEN[token]);continue}
   if(AMBIGUOUS.has(token)){issues.push({type:'ambiguous',text:token});characters=[];continue}
-  issues.push({type:'unrecognized',text:token});characters=[];
+  issues.push({type:'unrecognized',text:token});flushBeforeIssue();
  }
  if(characters.length)flush();
  return {raw,codes,issues,canNormalize:codes.length>0&&issues.length===0,preview:codes.join(', ')};
