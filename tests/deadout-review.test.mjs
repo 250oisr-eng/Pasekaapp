@@ -33,3 +33,15 @@ test('deadout differential does not turn a single visual sign into a definitive 
  const result=deadout.suggestPossibleFactors(item);
  assert.equal(result.candidates.length,1);assert.equal(result.candidates[0].code,'dead_at_emergence');assert.equal(result.diagnosis,null);
 });
+
+test('deadout workflow is wired into the smartphone UI, local schema and offline cache',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.match(html,/data-tab="deadout"/);
+ assert.match(html,/id="deadoutForm"/);
+ assert.match(html,/capture="environment"/);
+ assert.match(html,/PasekaDeadout\.buildDeadoutReviewDraft/);
+ assert.match(html,/PasekaDeadout\.inspectDeadoutIntegrity/);
+ assert.match(html,/S\.meta\.schemaVersion=12/);
+ assert.match(sw,/\.\/js\/deadout-review\.js/);
+});
