@@ -19,7 +19,8 @@ test('native bridge probes standalone LiteRT off the UI thread',()=>{
  assert.match(java,/RUNTIME_EXECUTOR\.execute/);
  assert.match(java,/probe\.available/);
  assert.match(probe,/com\.google\.ai\.edge\.litert\.Environment/);
- assert.match(probe,/"create", Context\.class, Map\.class, boolean\.class/);\n assert.match(probe,/"create", Map\.class/);
+ assert.match(probe,/"create", Context\.class, Map\.class, boolean\.class/);
+ assert.match(probe,/"create", Map\.class/);
  assert.match(probe,/getMethod\("close"\)/);
  assert.match(probe,/environment\.getClass\(\)\.getMethod\("close"\)/);
 });
