@@ -2529,7 +2529,7 @@ test('Varroa journal is integrated as a phone-only offline section with migratio
  assert.match(html,/id="varroaHive"/);
  assert.match(html,/id="varroaType"/);
  assert.match(html,/PasekaVarroa\.buildVarroaObservation/);
- assert.match(html,/S\.meta\.schemaVersion=10/);
+ assert.match(html,/S\.meta\.schemaVersion=12/);
  assert.match(html,/varroaObservations/);
  assert.match(html,/PasekaVarroa\.inspectVarroaIntegrity/);
 });
@@ -2540,6 +2540,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  assert.equal(state.meta.schemaVersion,12);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
+ assert.deepEqual(state.deadoutReviews,[]);
  assert.equal(migrate(),false);
 });
 
