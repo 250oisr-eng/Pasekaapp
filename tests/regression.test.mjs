@@ -573,6 +573,8 @@ test('hands-free voice parser requires the wake phrase and separates confirmatio
  const parse=loadFunction('parseApiaryVoiceCommand');
  assert.deepEqual(parse('Пасека, слушай'),{type:'wake'});
  assert.deepEqual(parse('Пасека, слушай, поменяй местами рамки 1 и 2'),{type:'question',text:'поменяй местами рамки 1 и 2'});
+ assert.deepEqual(parse('Пасека слушай: поменяй местами рамки 1 и 2'),{type:'question',text:'поменяй местами рамки 1 и 2'});
+ assert.deepEqual(parse('СЛУШАЙ, запиши наблюдение',true),{type:'question',text:'запиши наблюдение'});
  assert.deepEqual(parse('слушай подтверждаю'),{type:'confirm'});
  assert.deepEqual(parse('отмени',true),{type:'cancel'});
  assert.deepEqual(parse('прочитай ответ',true),{type:'repeat'});
