@@ -16,7 +16,7 @@ test('local Capacitor plugin is registered as an Android plugin package',()=>{
 
 test('native bridge probes standalone LiteRT off the UI thread',()=>{
  assert.match(java,/Executors\.newSingleThreadExecutor\(\)/);
- assert.match(java,/RUNTIME_EXECUTOR\.execute/);
+ assert.match(java,/runtimeExecutor\.execute/);
  assert.match(java,/probe\.available/);
  assert.match(probe,/com\.google\.ai\.edge\.litert\.Environment/);
  assert.match(probe,/"create", Context\.class, Map\.class, boolean\.class/);
