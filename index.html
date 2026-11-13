@@ -1564,7 +1564,7 @@ function applyVoiceOperationFieldsToOpenRecord(kind,description){
   notice.textContent='Голосовой ввод: заполнено новых полей '+filled.length+'. '+(skipped.length?'Уже заполненные поля не изменены: '+skipped.map(key=>labels[key]||key).join(', ')+'. ':'')+(ambiguous.length?'Не удалось однозначно разобрать: '+ambiguous.join(', ')+'. ':'')+(evidence?'Основание: '+evidence+'. ':'')+'Исходная фраза сохранена в заметке. Проверь данные; запись не сохранена.';
   notice.style.display='block';
  }
- return {ok:filled.length>0,filled,skipped,ambiguous,fieldCount:extracted.fieldCount,kind};
+ return {ok:filled.length>0,filled,skipped,ambiguous:extracted.ambiguous,fieldCount:extracted.fieldCount,kind};
 }
 async function handleApiaryVoiceTranscript(transcript){
  const armed=apiaryVoiceSession.isArmed();

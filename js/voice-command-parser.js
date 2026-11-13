@@ -16,7 +16,7 @@ function extractJournalOperationFields(input,kind){
  for(let i=0;i<matches.length;i++){
   const match=matches[i],field=aliasToField.get(match[1].trim());
   const start=match.index+match[0].length,end=i+1<matches.length?matches[i+1].index:normalized.length;
-  const value=source.slice(start,end).trim().replace(/[;,\\s]+$/u,'').trim();
+  const value=source.slice(start,end).trim().replace(/[;,\s]+$/u,'').trim();
   if(value)(found[field] ||= []).push(value);
  }
  const fields={},evidence={},ambiguous=[];
@@ -25,8 +25,8 @@ function extractJournalOperationFields(input,kind){
   if(distinct.length!==1){ambiguous.push(field);continue}
   let value=values[0];
   if(kind==='treatment'&&field==='check'){
-   let dateMatch=value.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
-   if(!dateMatch){const local=value.match(/^(\\d{2})\\.(\\d{2})\\.(\\d{4})$/);if(local)dateMatch=[value,local[3],local[2],local[1]]}
+   let dateMatch=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+   if(!dateMatch){const local=value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);if(local)dateMatch=[value,local[3],local[2],local[1]]}
    if(!dateMatch){ambiguous.push(field);continue}
    const [,y,m,d]=dateMatch,dt=new Date(Date.UTC(Number(y),Number(m)-1,Number(d)));
    if(dt.getUTCFullYear()!==Number(y)||dt.getUTCMonth()!==Number(m)-1||dt.getUTCDate()!==Number(d)){ambiguous.push(field);continue}
