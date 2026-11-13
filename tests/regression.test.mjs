@@ -2425,3 +2425,20 @@ test('feeding plan comparison flags every duplicate task record and excludes the
  assert.deepEqual(result.totals,[{unit:'л',planned:1,actual:1.5,difference:0.5,count:1}]);
  assert.ok(result.events.filter(event=>event.taskId==='same-task').every(event=>event.status==='duplicateTask'));
 });
+
+test('feeding ledger preserves duplicate task records in history but excludes them from totals',()=>{
+ const build=loadFunction('buildFeedingLedger');
+ const result=build([
+  {id:'dup-a',taskId:'same-task',type:'Подкормка',hive:'h1',family:'f1',date:'2026-11-10',feedingAmount:'2 л'},
+  {id:'dup-b',taskId:'same-task',type:'Подкормка',hive:'h1',family:'f1',date:'2026-11-11',feedingAmount:'3 л'},
+  {id:'unique',taskId:'unique-task',type:'Подкормка',hive:'h1',family:'f1',date:'2026-11-12',feedingAmount:'1,5 л'},
+  {id:'other-hive',taskId:'same-task',type:'Подкормка',hive:'h2',family:'f1',date:'2026-11-12',feedingAmount:'99 л'}
+ ],[{id:'f1',name:'Семья 1'}],'h1');
+ assert.equal(result.length,1);
+ const group=result[0];
+ assert.equal(group.count,3,'all records remain visible in history');
+ assert.equal(group.duplicateCount,2);
+ assert.deepEqual(group.duplicateTaskIds,['same-task']);
+ assert.deepEqual(group.totals,[{unit:'л',amount:1.5,count:1}]);
+ assert.deepEqual(group.events.map(event=>event.id),['unique','dup-b','dup-a']);
+});
