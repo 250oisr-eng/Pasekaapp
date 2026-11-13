@@ -744,6 +744,10 @@ function openGlobalSearchResult(button){
 }
 function inventoryConditionLabel(value){return ({good:'Исправен',needs_repair:'Требует осмотра/ремонта',repair:'В ремонте',retired:'Списан'})[value]||'Не указано'}
 function inventoryKindLabel(value){return value==='honey'?'Медовый':'Гнездовой'}
+function inventoryBodyFrameCount(body,loc){
+ const frames=loc?.type==='hive'||loc?.type==='hive_uninstalled'?frameArray(layoutFor(loc.hiveId),loc.boxKey,loc.hiveId):body.frames;
+ return Array.isArray(frames)?frames.length:0;
+}
 function inventoryEventDetails(ev){
  const pos=value=>value?hname(value.hiveId)+' · '+frameLocationName(value.boxKey??value.box,value.hiveId):'';
  const condition=value=>({good:'исправен',needs_repair:'требует внимания',repair:'в ремонте',retired:'списан'}[value]||value||'не указано');
@@ -781,12 +785,12 @@ function clearEquipmentInventoryFilters(){
 }
 function renderEquipmentInventory(){
  const host=$('equipmentInventoryContent'),summary=$('equipmentInventorySummary');if(!host||!summary)return;
- const bodies=Object.values(S.equipmentInventory?.bodies||{}).filter(Boolean),locations=bodies.map(b=>PasekaInventory.locateBody(S,b.id,profileForHive)),inHives=locations.filter(x=>x?.type==='hive').length,removed=locations.filter(x=>x?.type==='hive_uninstalled').length,stock=locations.filter(x=>x?.type==='storage').length,repair=bodies.filter(b=>['repair','needs_repair'].includes(b.condition)).length;
- summary.textContent='Всего: '+bodies.length+' · установлены: '+inHives+' · сняты из сборки: '+removed+' · на складе: '+stock+' · требуют внимания: '+repair;
+ const bodies=Object.values(S.equipmentInventory?.bodies||{}).filter(Boolean),locations=bodies.map(b=>PasekaInventory.locateBody(S,b.id,profileForHive)),inHives=locations.filter(x=>x?.type==='hive').length,removed=locations.filter(x=>x?.type==='hive_uninstalled').length,stock=locations.filter(x=>x?.type==='storage').length,repair=bodies.filter(b=>['repair','needs_repair'].includes(b.condition)).length,frameTotal=bodies.reduce((sum,body,i)=>sum+inventoryBodyFrameCount(body,locations[i]),0);
+ summary.textContent='Всего: '+bodies.length+' · установлены: '+inHives+' · сняты из сборки: '+removed+' · на складе: '+stock+' · требуют внимания: '+repair+' · рамок в учёте: '+frameTotal;
  if(!host.isConnected)return;
  const hives=S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
  const rows=bodies.slice().sort((a,b)=>String(a.labelCode||'').localeCompare(String(b.labelCode||''),'ru')).map(body=>{
-  const loc=PasekaInventory.locateBody(S,body.id,profileForHive),inApiary=loc?.type==='hive'||loc?.type==='hive_uninstalled',bodyFrames=inApiary?frameArray(layoutFor(loc.hiveId),loc.boxKey,loc.hiveId):body.frames,frameCount=Array.isArray(bodyFrames)?bodyFrames.length:0,pair=body.pairId?bodies.filter(x=>x.pairId===body.pairId):[],isPair=body.kind==='honey'&&pair.length===2;const historyRows=(body.events||[]).slice().reverse().slice(0,12).map(ev=>{const labels={registered:'Добавлен в инвентарь',placed:'Учтён в улье',moved_to_storage:'Перемещён на склад',installed:'Установлен в улей',details_updated:'Обновлены сведения',legacy_imported:'Перенесён из старой версии',moved_between_hives:'Переставлен в другую позицию'};return '<p class="muted">'+safe(ev.at?new Date(ev.at).toLocaleString('ru-RU'):'Дата неизвестна')+' · '+safe(labels[ev.type]||ev.type)+(inventoryEventDetails(ev)?' · '+safe(inventoryEventDetails(ev)):'')+'</p>'}).join('');
+  const loc=PasekaInventory.locateBody(S,body.id,profileForHive),inApiary=loc?.type==='hive'||loc?.type==='hive_uninstalled',frameCount=inventoryBodyFrameCount(body,loc),pair=body.pairId?bodies.filter(x=>x.pairId===body.pairId):[],isPair=body.kind==='honey'&&pair.length===2;const historyRows=(body.events||[]).slice().reverse().slice(0,12).map(ev=>{const labels={registered:'Добавлен в инвентарь',placed:'Учтён в улье',moved_to_storage:'Перемещён на склад',installed:'Установлен в улей',details_updated:'Обновлены сведения',legacy_imported:'Перенесён из старой версии',moved_between_hives:'Переставлен в другую позицию'};return '<p class="muted">'+safe(ev.at?new Date(ev.at).toLocaleString('ru-RU'):'Дата неизвестна')+' · '+safe(labels[ev.type]||ev.type)+(inventoryEventDetails(ev)?' · '+safe(inventoryEventDetails(ev)):'')+'</p>'}).join('');
   let action='';
   if(!inApiary&&body.kind==='brood'&&body.condition!=='repair'&&body.condition!=='retired'){
    const opts=S.hives.flatMap(h=>profileBroodKeys(h.id).map(key=>{const l=layoutFor(h.id),box=l.boxes?.[key],installed=(l.mode==='winter'?(l.winterOrder||[]):(l.installedBoxes||[])).map(String).includes(String(key));return installed&&!box?.family?'<option value="'+safe(h.id)+'|'+safe(key)+'">'+safe(hname(h.id))+' · '+safe(frameLocationName(key,h.id))+'</option>':''})).join('');
