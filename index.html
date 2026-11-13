@@ -1521,7 +1521,7 @@ function applyVoiceInspectionFieldsToOpenRecord(description){
  const raw=String(description??'').trim();
  if(!raw)return {ok:false,filled:[],skipped:[],fieldCount:0};
  const extracted=extractInspectionFieldsFromText(raw);
- const note=$('rtext'),nextNote=note?(note.value.trim()?note.value.trim()+'\\n'+raw:raw):'';
+ const note=$('rtext'),nextNote=note?(note.value.trim()?note.value.trim()+'\n'+raw:raw):'';
  if(!note||nextNote.length>12000)return {ok:false,filled:[],skipped:[],fieldCount:extracted.fieldCount,reason:'note_limit'};
  const ids={occupancy:'roccupancy',broodFrames:'rbrood',freeDrawn:'rdrawn',queen:'rqueen',eggs:'reggs',broodPattern:'rbroodPattern',queenCells:'rqueenCells',swarmSigns:'rswarmSigns'};
  const filled=[],skipped=[];

@@ -8,7 +8,11 @@ function parseApiaryVoiceCommand(value,armed=false){
  const command=wake?normalized.slice(wake[0].length).trim():normalized;
  if(!command)return {type:'wake'};
  const inspectionFields=command.match(/^(?:заполни\s+поля\s+осмотра|внеси\s+показатели\s+осмотра|запиши\s+показатели\s+осмотра)\s*[:,-]?\s*(.+)$/);
- if(inspectionFields?.[1]?.trim())return {type:'inspection_fields',text:inspectionFields[1].trim()};
+ if(inspectionFields?.[1]?.trim()){
+  const rawCommand=raw.replace(/^(?:пасека[\\s,.:;!?-]+)?слушай[\\s,.:;!?-]*/iu,'').trim();
+  const rawInspection=rawCommand.match(/^(?:заполни\\s+поля\\s+осмотра|внеси\\s+показатели\\s+осмотра|запиши\\s+показатели\\s+осмотра)\\s*[:,-]?\\s*([\\s\\S]+)$/iu);
+  return {type:'inspection_fields',text:(rawInspection?.[1]||inspectionFields[1]).trim()};
+ }
  const journalDraft=command.match(/^(?:запиши\s+в\s+журнал|создай\s+черновик\s+записи|добавь\s+запись\s+в\s+журнал)\s*[:,-]?\s*(.+)$/);
  if(journalDraft?.[1]?.trim()){
   const rawCommand=raw.replace(/^(?:пасека[\s,.:;!?-]+)?слушай[\s,.:;!?-]*/iu,'').trim();
