@@ -262,7 +262,7 @@ test('temporary video storage checks quota and reserves headroom', () => {
 });
 
 test('entrance temporary queue warns when persistent browser storage is not available', () => {
-  assert.match(html,/requestEntranceStoragePersistence/);
+  assert.match(html,/storage\.persist\(\)/);
   assert.match(html,/Хранилище браузера не защищено от автоматической очистки/);
   assert.match(html,/Отменить и удалить исходник/);
 });
