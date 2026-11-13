@@ -32,7 +32,7 @@ test('migration does not guess the type of an orphaned legacy body code',()=>{co
 test('inventory UI provides live search and filters for kind, condition and physical location',()=>{assert.match(html,/function filterEquipmentInventory\(\)/);assert.match(html,/id="inventorySearch"/);assert.match(html,/id="inventoryFilterKind"/);assert.match(html,/id="inventoryFilterCondition"/);assert.match(html,/id="inventoryFilterLocation"/);assert.match(html,/data-inventory-body="1"/);assert.match(html,/data-search=/);assert.match(html,/clearEquipmentInventoryFilters\(\)/)});
 
 test('inventory filters match code, type, condition and current physical location',()=>{
- const match=html.match(/function filterEquipmentInventory\\(\\)\\{[\\s\\S]*?\\n\\}/);assert.ok(match,'filter function is present');
+ const match=html.match(/function filterEquipmentInventory\(\)\{[\s\S]*?\n\}/);assert.ok(match,'filter function is present');
  const elements={
   inventorySearch:{value:'7м2'},
   inventoryFilterKind:{value:'brood'},
