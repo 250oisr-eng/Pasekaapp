@@ -178,9 +178,17 @@ async function runTransfer(data, save = async()=>true) {
     hname:id=>'Улей '+id, today:()=>'2026-11-12',
     logAudit(...args){this.audit.push(args);},
     layoutFor(id){return this.S.layouts[id];},
+    profileForHive(){return {schemaVersion:1,id:'farrar-test',name:'Farrar test',status:'ready',family:'farrar',brood:{boxCount:6,framesPerBox:6,boxKeys:['1','2','3','4','5','6']},honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'},frame:{heightMm:180},winter:{enabled:true,requiredBroodBoxes:3,allowedBoxKeys:['1','3','4','6'],forbiddenBoxKeys:['2','5']}};},
+    validateHiveProfile(){return {ok:true,errors:[]};},
+    familyTransferBoxKeys:loadFunction('familyTransferBoxKeys'),
+    familyTransferTargets:loadFunction('familyTransferTargets',{familyTransferBoxKeys:loadFunction('familyTransferBoxKeys'),familyTransferWinterKeys:loadFunction('familyTransferWinterKeys')}),
+    frameCapacity(){return 6;},
+    profileBroodKeys(){return ['1','2','3','4','5','6'];},
+    profileHoneyKeys(){return ['H1','H2'];},
     frameArray(layout,key){return key==='H1'?layout.honeyFrames[0]:key==='H2'?layout.honeyFrames[1]:layout.boxes[key].frames;},
-    findFamilyBox(id){for(const hive of this.S.hives)for(let n=1;n<=6;n++){const box=this.S.layouts[hive.id]?.boxes[n];if(box?.family===id)return {hiveId:hive.id,box:n,data:box,layout:this.S.layouts[hive.id]};}return null;},
+    findFamilyBox(id){for(const hive of this.S.hives)for(let n=1;n<=6;n++){const box=this.S.layouts[hive.id]?.boxes[n];if(box?.family===id)return {hiveId:hive.id,box:String(n),data:box,layout:this.S.layouts[hive.id]};}return null;},
     nextFrameId(layout){return String(Math.max(0,...[1,2,3,4,5,6,'H1','H2'].flatMap(k=>(this.frameArray(layout,k)||[]).map(frame=>Number(frame.frameId)||0)))+1);},
+    frameLocationName(key){return 'Корпус '+key;},safe:value=>String(value),
     async save(){return save();}, render(){}, showTab(){}
   };
   const fn = loadFunction('confirmFamilyTransfer', deps);
