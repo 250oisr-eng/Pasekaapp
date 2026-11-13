@@ -45,13 +45,16 @@ function validateQueuedVideoRecord(record){
  if(typeof record.bytes!=='number'||!Number.isFinite(record.bytes)||record.bytes<=0)issues.push('bytes_invalid');
  if(typeof record.mimeType!=='string'||!record.mimeType.toLowerCase().startsWith('video/'))issues.push('mime_type_invalid');
  if(!VIDEO_QUEUE_STATES.includes(record.status))issues.push('status_invalid');
- const blobRequired=record.status!=='completed'||!hasConfirmedLocalOriginalPurge(record);
- if(blobRequired){
+ if(record.status==='completed'){
+  if(record.resultPersisted!==true)issues.push('completed_result_not_persisted');
+  if(record.serverUploadConfirmed!==true)issues.push('completed_upload_not_confirmed');
+  if(record.serverDeleteConfirmed!==true)issues.push('completed_server_delete_not_confirmed');
+  if(record.localOriginalDeleted===true&&!hasConfirmedLocalOriginalPurge(record))issues.push('local_purge_not_confirmed');
+  if(record.localOriginalDeleted!==true&&(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0))issues.push('blob_missing');
+ }else{
   if(!record.blob||typeof record.blob.size!=='number'||record.blob.size<=0)issues.push('blob_missing');
-  else if(record.blob.size!==record.bytes)issues.push('blob_size_mismatch');
- }else if(record.blob&&typeof record.blob.size==='number'&&(record.blob.size<=0||record.blob.size!==record.bytes)){
-  issues.push('blob_size_mismatch');
  }
+ if(record.blob&&typeof record.blob.size==='number'&&(record.blob.size<=0||record.blob.size!==record.bytes))issues.push('blob_size_mismatch');
  return {ok:issues.length===0,errors:issues};
 }
 function canManuallyCancelVideo(record,ownerConfirmed=false,operationActive=false){
