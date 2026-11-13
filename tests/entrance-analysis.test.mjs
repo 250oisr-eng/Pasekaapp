@@ -245,3 +245,24 @@ test('video queue keeps a retryable analysis when server deletion acknowledgemen
   assert.equal(result.reason,'server_delete_not_confirmed');
   assert.equal(entrance.canDeleteVideoOriginal(analyzing),false);
 });
+
+
+test('temporary video storage checks quota and reserves headroom', () => {
+  const good=entrance.assessStorageCapacity({quota:500_000_000,usage:100_000_000,requiredBytes:50_000_000,persistent:true});
+  assert.equal(good.ok,true);
+  assert.equal(good.reason,'capacity_available');
+  assert.equal(good.warning,null);
+  const low=entrance.assessStorageCapacity({quota:100_000_000,usage:40_000_000,requiredBytes:50_000_000,persistent:true});
+  assert.equal(low.ok,false);
+  assert.equal(low.reason,'insufficient_space');
+  const notPersistent=entrance.assessStorageCapacity({quota:500_000_000,usage:100_000_000,requiredBytes:50_000_000,persistent:false});
+  assert.equal(notPersistent.ok,true);
+  assert.equal(notPersistent.warning,'storage_not_persistent');
+  assert.equal(entrance.assessStorageCapacity({requiredBytes:0}).ok,false);
+});
+
+test('entrance temporary queue warns when persistent browser storage is not available', () => {
+  assert.match(html,/requestEntranceStoragePersistence/);
+  assert.match(html,/Хранилище браузера не защищено от автоматической очистки/);
+  assert.match(html,/Отменить и удалить исходник/);
+});
