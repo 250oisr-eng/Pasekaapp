@@ -18,6 +18,7 @@ test('whole-apiary scope snapshots all existing hive IDs; unknown scope remains 
 });
 test('incident validates date, scope, hive selection, dead count and coordinates',()=>{
  assert.throws(()=>build({...base,observedAt:'2026-02-30T12:00'}),/дату и время/i);
+ assert.throws(()=>build({...base,sampleCollectedAt:'2026-02-30T12:00'}),/время отбора пробы/i);
  assert.throws(()=>build({...base,scope:'wrong'}),/охват инцидента/i);
  assert.throws(()=>build({...base,hiveIds:[]}),/Выбери существующие ульи/i);
  assert.throws(()=>build({...base,deadBeesCount:'-1'}),/Количество погибших/i);
