@@ -1122,9 +1122,10 @@ async function inspectEntranceVideoFrameQuality(file){
   video.preload='auto';video.muted=true;video.playsInline=true;video.src=url;
   await new Promise((resolve,reject)=>{
    if(video.readyState>=1&&video.videoWidth){resolve();return}
-   const cleanup=()=>{video.removeEventListener('loadedmetadata',done);video.removeEventListener('error',fail)};
-   const done=()=>{cleanup();resolve()},fail=()=>{cleanup();reject(new Error('Не удалось декодировать кадры видео.'))};
-   video.addEventListener('loadedmetadata',done,{once:true});video.addEventListener('error',fail,{once:true});video.load();
+   let timer;
+   const cleanup=()=>{clearTimeout(timer);video.removeEventListener('loadedmetadata',done);video.removeEventListener('error',fail)};
+   const done=()=>{cleanup();resolve()},fail=()=>{cleanup();reject(new Error('Не удалось декодировать кадры видео или истекло время ожидания.'))};
+   video.addEventListener('loadedmetadata',done,{once:true});video.addEventListener('error',fail,{once:true});timer=setTimeout(fail,15000);video.load();
   });
   const sampled=await PasekaEntranceAnalysis.sampleVideoFrames(video,{count:5});
   if(!sampled.ok)return {status:'unknown',score:null,flags:[sampled.reason||'frame_sampling_unavailable'],note:'Кадры не удалось надёжно декодировать; оригинал можно сохранить и проверить позже.'};
