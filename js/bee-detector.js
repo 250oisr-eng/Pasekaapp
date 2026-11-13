@@ -35,6 +35,15 @@ function normalizeDetections(input,options={}){
  }
  return {ok:errors.length===0,errors,detections};
 }
+function createCapacitorRuntime(plugin){
+ if(!plugin||typeof plugin.detectFrame!=='function')return null;
+ return Object.freeze({async detect(frame){
+  if(!frame||typeof frame.path!=='string'||!frame.path.trim())throw new Error('A local frame path is required');
+  const result=await plugin.detectFrame({framePath:frame.path});
+  if(result&&result.status==='unavailable')return {status:'unavailable',reason:result.reason||'native_runtime_unavailable'};
+  return result&&Array.isArray(result.detections)?result.detections:[];
+ }});
+}
 function createBeeDetectorAdapter(config={}){
  const manifest=validateModelManifest(config.manifest);
  const runtime=config.runtime;
@@ -49,6 +58,7 @@ function createBeeDetectorAdapter(config={}){
    if(!frame||typeof frame!=='object')return {ok:false,status:'invalid_input',reason:'frame_missing',detections:[]};
    try{
     const raw=await runtime.detect(frame);
+    if(raw&&raw.status==='unavailable')return {ok:false,status:'unavailable',reason:raw.reason||'native_runtime_unavailable',detections:[]};
     const normalized=normalizeDetections(raw,config.limits||{});
     return {...normalized,status:normalized.ok?'ok':'partial',modelId:config.manifest.id,modelVersion:config.manifest.version};
    }catch(error){
@@ -57,5 +67,5 @@ function createBeeDetectorAdapter(config={}){
   }
  });
 }
-root.PasekaBeeDetector=Object.freeze({VERSION,validateModelManifest,normalizeDetections,createBeeDetectorAdapter});
+root.PasekaBeeDetector=Object.freeze({VERSION,validateModelManifest,normalizeDetections,createCapacitorRuntime,createBeeDetectorAdapter});
 })(typeof window!=='undefined'?window:globalThis);
