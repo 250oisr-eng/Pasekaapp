@@ -32,8 +32,7 @@ test('standalone voice parser is loaded before the app and precached for offline
   assert.ok(parserScript >= 0 && appScript > parserScript);
   assert.match(serviceWorker, /paseka-shell-v256/);
   assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
-  assert.match(webPrepareScript, /mkdir\("www\/js"/);
-  assert.match(webPrepareScript, /copyFile\("js\/voice-command-parser\.js", "www\/js\/voice-command-parser\.js"\)/);
+  assert.match(webPrepareScript, /cp\("js", "www\/js", \{ recursive: true \}\)/);
 });
 
 test('voice parser recognizes wake phrases with punctuation and Russian case variants', () => {
