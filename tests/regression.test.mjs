@@ -2442,3 +2442,22 @@ test('feeding ledger preserves duplicate task records in history but excludes th
  assert.deepEqual(group.totals,[{unit:'л',amount:1.5,count:1}]);
  assert.deepEqual(group.events.map(event=>event.id),['unique','dup-b','dup-a']);
 });
+
+test('profile assembly validates dynamic brood and honey frame registries',()=>{
+ const validateProfile=loadFunction('validateHiveProfile');
+ const clone=loadFunction('cloneHiveProfile');
+ const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
+ const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
+ const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:2,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:1,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const good={mode:'summer',installedBoxes:['B1','B2'],honeyBoxInstalled:[true],boxes:{B1:{family:'',frames:[{frameId:'f1',location:'B1',history:[]}]},B2:{family:'',frames:[{frameId:'f2',location:'B2',history:[]},{frameId:'f3',location:'B2',history:[]}]}},honeyFrames:[[{frameId:'f4',location:'M1',history:[]}]]};
+ assert.deepEqual(validate(profile,good),{ok:true,errors:[]});
+ const bad=structuredClone(good);
+ bad.boxes.B2.frames[0].frameId='f1';
+ bad.boxes.B2.frames[1].location='B1';
+ bad.honeyFrames[0].push({frameId:'f5',location:'M1',history:[]});
+ const result=validate(profile,bad);
+ assert.equal(result.ok,false);
+ assert.ok(result.errors.some(error=>error.code==='duplicate_frame_id'));
+ assert.ok(result.errors.some(error=>error.code==='frame_location_mismatch'));
+ assert.ok(result.errors.some(error=>error.code==='honey_box_over_capacity'));
+});
