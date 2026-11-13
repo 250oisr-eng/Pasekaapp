@@ -1955,6 +1955,8 @@ function openFamilyTransfer(familyId){
  const family=S.families.find(f=>f.id===familyId);if(!family)return;
  const source=findFamilyBox(familyId);
  if(!source){alert('У этой семьи не найден гнездовой корпус с её рамками. Сначала назначь семью физическому корпусу.');return}
+ const sourceProfile=profileForHive(source.hiveId),sourceProfileCheck=validateHiveProfile(sourceProfile);
+ if(!sourceProfileCheck.ok){alert('Профиль исходного улья не готов к безопасному перемещению семьи: '+sourceProfileCheck.errors.map(x=>x.code).join(', '));return}
  if(source.hiveId!==family.hive){alert('Обнаружено несоответствие учёта семьи и корпуса. Перемещение отменено.');return}
  transferringFamilyId=familyId;$('transferFamilyId').value=familyId;
  $('transferFamilyInfo').textContent='Семья '+family.name+' · сейчас: '+hname(source.hiveId)+', корпус №'+source.box+' · рамок: '+source.data.frames.length;
@@ -1965,7 +1967,9 @@ function openFamilyTransfer(familyId){
 function updateFamilyTransferTargets(){
  const targetId=$('transferTargetHive').value,host=$('transferTargetBox');if(!host)return;
  if(!targetId){host.innerHTML='';return}
- const l=layoutFor(targetId),profile=profileForHive(targetId),available=familyTransferTargets(profile,l);
+ const l=layoutFor(targetId),profile=profileForHive(targetId),profileCheck=validateHiveProfile(profile);
+ if(!profileCheck.ok){host.innerHTML='<option value="">Профиль улья не готов к операциям</option>';return}
+ const available=familyTransferTargets(profile,l);
  host.innerHTML=available.map(key=>'<option value="'+safe(key)+'">'+safe(frameLocationName(key,targetId))+'</option>').join('');
  if(!available.length)host.innerHTML='<option value="">Нет свободных установленных корпусов</option>';
 }
@@ -1981,7 +1985,11 @@ async function confirmFamilyTransfer(e){
  if(!targetHiveId||targetHiveId===family.hive)return alert('Выбери другой улей.');
  const targetHive=S.hives.find(h=>h?.id===targetHiveId);
  if(!targetHive)return alert('Улей назначения больше не существует. Обнови список и повтори перенос.');
- if(!familyTransferBoxKeys(profileForHive(targetHiveId)).includes(targetNumber))return alert('Выбранный корпус отсутствует в профиле улья назначения.');
+ const targetProfile=profileForHive(targetHiveId),targetProfileCheck=validateHiveProfile(targetProfile);
+ if(!targetProfileCheck.ok)return alert('Профиль улья назначения не готов к безопасному перемещению семьи: '+targetProfileCheck.errors.map(x=>x.code).join(', '));
+ if(!familyTransferBoxKeys(targetProfile).includes(targetNumber))return alert('Выбранный корпус отсутствует в профиле улья назначения.');
+ const sourceProfileCheck=validateHiveProfile(profileForHive(source.hiveId));
+ if(!sourceProfileCheck.ok)return alert('Профиль исходного улья не готов к безопасному перемещению семьи.');
  const targetLayout=layoutFor(targetHiveId);
  if(!targetLayout||!targetLayout.boxes||typeof targetLayout.boxes!=='object')return alert('Не удалось проверить конструкцию улья назначения. Перенос отменён.');
  const targetProfile=profileForHive(targetHiveId),targetAvailable=familyTransferTargets(targetProfile,targetLayout),targetBox=targetLayout.boxes[targetNumber];
