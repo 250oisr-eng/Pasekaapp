@@ -1520,7 +1520,7 @@ test('profile assembly validation enforces profile-specific winter and honey rul
  const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
  const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
  const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3'],honeyAllowed:false}};
- assert.deepEqual(validate(profile,{mode:'winter',installedBoxes:['B1','B2'],winterOrder:['B1','B2'],honeyBoxInstalled:[false]}),{ok:true,errors:[]});
+ assert.deepEqual(validate(profile,{mode:'winter',installedBoxes:['B1','B2'],winterOrder:['B1','B2'],honeyBoxInstalled:[false],honeyFrames:[[]]}),{ok:true,errors:[]});
  const invalid=validate(profile,{mode:'winter',installedBoxes:['B1','B3'],winterOrder:['B1','B3'],honeyBoxInstalled:[true]});
  assert.ok(invalid.errors.some(error=>error.code==='winter_box_not_allowed'));
  assert.ok(invalid.errors.some(error=>error.code==='winter_honey_not_allowed'));
@@ -1534,7 +1534,7 @@ test('paired honey configuration rejects partial installation while independent 
  const base={schemaVersion:1,status:'ready',name:'test',frame:{heightMm:195},brood:{boxCount:2,framesPerBox:6,boxKeys:['1','2']},winter:{enabled:false}};
  const paired={...base,id:'paired',honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'}};
  const independent={...base,id:'independent',honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'independent'}};
- const layout={mode:'summer',installedBoxes:['1'],honeyBoxInstalled:[true,false]};
+ const layout={mode:'summer',installedBoxes:['1'],honeyBoxInstalled:[true,false],honeyFrames:[[],[]]};
  assert.ok(validate(paired,layout).errors.some(error=>error.code==='honey_pair_mismatch'));
  assert.equal(validate(independent,layout).ok,true);
 });
