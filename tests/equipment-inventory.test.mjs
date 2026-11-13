@@ -52,7 +52,7 @@ test('inventory filters match code, type, condition and current physical locatio
 });
 
 test('inventory history explains physical moves and the card displays frame count',()=>{
- assert.match(html,/function inventoryEventDetails\(ev\)/);assert.match(html,/Рамок: /);
+ assert.match(html,/function inventoryEventDetails\(ev\)/);assert.match(html,/рамок: /);
  const match=html.match(/function inventoryEventDetails\(ev\)\{[\s\S]*?\n\}/);assert.ok(match);
  const details=new Function('hname','frameLocationName',`${match[0]};return inventoryEventDetails;`)((id)=>'Улей '+id,(key)=>'Корпус '+key);
  assert.equal(details({type:'moved_between_hives',from:{hiveId:'h1',boxKey:'1'},to:{hiveId:'h2',boxKey:'2'}}),'Улей h1 · Корпус 1 → Улей h2 · Корпус 2');
