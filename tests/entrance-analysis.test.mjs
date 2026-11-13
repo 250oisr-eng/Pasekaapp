@@ -213,3 +213,35 @@ test('original video can be deleted only after completed analysis, persisted res
   assert.equal(entrance.canDeleteVideoOriginal({...base,status:'analyzing'}),false);
   assert.equal(entrance.canDeleteVideoOriginal({status:'failed_retryable',resultPersisted:true,serverDeleteConfirmed:true}),false);
 });
+
+
+test('video queue cannot complete before the result is persisted and server deletion is confirmed', () => {
+  const analyzing={id:'v2',status:'analyzing'};
+  const notPersisted=entrance.transitionVideoQueue(analyzing,'completed',{
+    resultPersisted:false,serverDeleteConfirmed:true
+  });
+  assert.equal(notPersisted.ok,false);
+  assert.equal(notPersisted.reason,'result_not_persisted');
+
+  const notConfirmed=entrance.transitionVideoQueue(analyzing,'completed',{
+    resultPersisted:true,serverDeleteConfirmed:false
+  });
+  assert.equal(notConfirmed.ok,false);
+  assert.equal(notConfirmed.reason,'server_delete_not_confirmed');
+
+  const completed=entrance.transitionVideoQueue(analyzing,'completed',{
+    resultPersisted:true,serverDeleteConfirmed:true,
+    updatedAt:'2026-11-13T12:00:00.000Z'
+  });
+  assert.equal(completed.ok,true);
+  assert.equal(completed.record.status,'completed');
+  assert.equal(entrance.canDeleteVideoOriginal(completed.record),true);
+});
+
+test('video queue keeps a retryable analysis when server deletion acknowledgement is missing', () => {
+  const analyzing={id:'v3',status:'analyzing',resultPersisted:true,serverDeleteConfirmed:false};
+  const result=entrance.transitionVideoQueue(analyzing,'completed');
+  assert.equal(result.ok,false);
+  assert.equal(result.reason,'server_delete_not_confirmed');
+  assert.equal(entrance.canDeleteVideoOriginal(analyzing),false);
+});
