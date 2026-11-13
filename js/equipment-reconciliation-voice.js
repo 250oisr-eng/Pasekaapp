@@ -5,15 +5,15 @@ const SPOKEN={
 };
 const DIGITS={'два':'2','четыре':'4','пять':'5','шесть':'6','семь':'7','девять':'9'};
 const AMBIGUOUS=new Set(['а','е','у','э','ю','я','же','и']);
-function parseReconciliationVoiceCommand(value){const text=String(value??'').trim().replace(/[.,!?;:]+$/g,'').replace(/\\s+/g,' ');const match=text.match(/^(?:добавь|добавить|запиши|внеси)\\s+(?:рамки|коды\\s+рамок)\\s+(.+)$/iu);return match?{type:'append_codes',codes:match[1].trim()}:{type:'ignore'}}
-function appendRecognizedCodes(current,recognized,maxLength=12000){const before=String(current??'').trim(),addition=String(recognized??'').trim();if(!addition)return {ok:false,error:'empty_transcript'};const next=before?before+'\\n'+addition:addition;if(next.length>maxLength)return {ok:false,error:'too_long'};return {ok:true,value:next,added:addition}}
+function parseReconciliationVoiceCommand(value){const text=String(value??'').trim().replace(/[.,!?;:]+$/g,'').replace(/\s+/g,' ');const match=text.match(/^(?:добавь|добавить|запиши|внеси)\s+(?:рамки|коды\s+рамок)\s+(.+)$/iu);return match?{type:'append_codes',codes:match[1].trim()}:{type:'ignore'}}
+function appendRecognizedCodes(current,recognized,maxLength=12000){const before=String(current??'').trim(),addition=String(recognized??'').trim();if(!addition)return {ok:false,error:'empty_transcript'};const next=before?before+'\n'+addition:addition;if(next.length>maxLength)return {ok:false,error:'too_long'};return {ok:true,value:next,added:addition}}
 function normalizeSpokenFrameCodes(value){
  const raw=String(value??'').trim(),codes=[],issues=[];
  if(!raw)return {raw,codes,issues:[{type:'empty',text:''}],canNormalize:false,preview:''};
- const prepared=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/\\bр\\s*-\\s*/giu,' ');
- const segments=prepared.split(/[;,\\n.!?]+|\\s+и\\s+/u).map(x=>x.trim()).filter(Boolean);
+ const prepared=raw.toLocaleLowerCase('ru-RU').replace(/ё/g,'е').replace(/\bр\s*-\s*/giu,' ');
+ const segments=prepared.split(/[;,\n.!?]+|\s+и\s+/u).map(x=>x.trim()).filter(Boolean);
  for(const segment of segments){
-  const tokens=segment.split(/[\\s-]+/u).filter(Boolean),chars=[];let issue=null;
+  const tokens=segment.split(/[\s-]+/u).filter(Boolean),chars=[];let issue=null;
   for(const token of tokens){
    const direct=token.toLocaleUpperCase('ru-RU');
    if(direct.length===3&&[...direct].every(char=>ALPHABET.includes(char))){chars.push(...direct);continue}
