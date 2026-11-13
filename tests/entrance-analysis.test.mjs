@@ -85,3 +85,13 @@ test('entrance anomaly engine suppresses poor video and emits cautious recommend
   assert.ok(result.alerts.every(x=>x.diagnosis===false&&x.requiresHumanCheck===true));
   assert.ok(result.alerts.some(x=>x.contextWarning));
 });
+
+const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+test('entrance video archive is available offline and stores blobs separately from the main state', () => {
+  assert.match(html, /data-tab="entrance"/);
+  assert.match(html, /id="entranceVideoInput"[^>]*capture="environment"/);
+  assert.match(html, /indexedDB\.open\(DB,3\)/);
+  assert.match(html, /createObjectStore\('entrance_media',\{keyPath:'id'\}\)/);
+  assert.match(html, /transaction\('entrance_media','readwrite'\)/);
+  assert.match(html, /Сервер анализа ещё не подключён/);
+});

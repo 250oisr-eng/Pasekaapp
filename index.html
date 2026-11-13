@@ -364,7 +364,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 @media(prefers-reduced-motion:reduce){#ai *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 \n.ai-voice-panel{margin:12px 0;padding:13px;border:1px solid #d7e2d3;border-radius:14px;background:linear-gradient(145deg,#f8faf6,#eef4eb)}.ai-voice-panel .row{align-items:center}.ai-voice-status{margin-top:10px;padding:9px 11px;border-radius:10px;background:#e3eddf;color:#31523a;font-size:13px;font-weight:650;line-height:1.35}.ai-voice-panel p{margin:9px 0 0}\n</style></head><body>
 <header class="home-header"><div class="home-brand"><div><div class="home-brand-title">Пасека</div><div class="home-brand-subtitle">Управление · журнал · ИИ-помощник</div></div><button type="button" class="home-ai-shortcut" onclick="showTab('ai')">Спросить ИИ <span aria-hidden="true">↗</span></button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="settings">Ещё</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="settings">Ещё</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
@@ -428,6 +428,22 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
  <div id="hiveList"></div>
  <div class="card" style="margin-top:14px"><div class="row"><div><b>Реестр маток</b><div class="muted">Текущие и выбывшие матки, история ввода и замены</div></div></div><div id="queenRegistryList"></div></div>
 </section>
+<section id="entrance" class="panel">
+ <div class="card">
+  <div class="row"><div><h2 style="margin:0">Видео летка</h2><div class="muted">Короткое наблюдение без открытия улья</div></div><span class="pill">Начальный этап</span></div>
+  <p>Выбери улей и сними видео примерно на минуту. Запись сохранится на этом телефоне. Интернет на пасеке не требуется.</p>
+  <label for="entranceHiveSelect">Улей</label><select id="entranceHiveSelect" onchange="refreshEntranceVideos()"></select>
+  <div class="card" style="background:#f7f8f4">
+   <b>Перед съёмкой</b>
+   <ul><li>Весь леток и прилётная доска должны быть в кадре.</li><li>Держи телефон неподвижно, примерно в 30–50 см от летка.</li><li>Не направляй объектив на солнце и не используй цифровое увеличение.</li><li>Старайся снять около 60 секунд; допустимый диапазон первой версии — 20–90 секунд.</li></ul>
+   <p class="muted">На этом этапе проверяются формат, длительность, размер и разрешение. Тряска, резкость, засветка и насекомые ещё не анализируются.</p>
+  </div>
+  <label for="entranceVideoInput">Снять видео или выбрать готовую запись</label>
+  <input id="entranceVideoInput" type="file" accept="video/*" capture="environment" onchange="handleEntranceVideoFile(this.files);this.value='';">
+  <div id="entranceVideoStatus" class="muted" aria-live="polite">Выбери улей, затем сними видео или выбери файл из галереи.</div>
+ </div>
+ <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Сервер анализа пока не подключён; записи не отправляются в интернет.</div><div id="entranceVideoList"></div></div>
+</section>
 <section id="hiveDetail" class="panel"><div id="selectedHivePanel" style="display:none">
   <div class="card hive-summary-card">
    <div class="row"><div><div class="muted">Карточка улья</div><h2 id="selectedHiveTitle" style="margin:3px 0"></h2></div><div><button onclick="showHiveListScreen()">← Все ульи</button><button onclick="editSelectedHive()">Примечание</button></div></div>
@@ -450,6 +466,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 </section>
 <section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится одна полная копия предыдущего состояния, включая фотографии и видео. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Это важно при потере устройства или очистке браузера.</p><button class="primary" onclick="downloadBackup()">Скачать архив</button><label>Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Безвозвратно удаляет все ульи, семьи, рамки, записи журнала, задачи и локальные резервные снимки на этом устройстве. Перед удалением скачай архив.</p><button type="button" style="background:#a83225;color:white" onclick="deleteAllData()">Удалить все данные</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
 </main>
+<dialog id="entranceVideoPreviewDlg" style="width:min(96vw,760px)"><h2>Видео летка</h2><video id="entranceVideoPreview" controls playsinline style="width:100%;max-height:65vh;background:#111;border-radius:12px"></video><p class="muted" id="entranceVideoPreviewInfo"></p><button type="button" onclick="closeEntranceVideoPreview()">Закрыть</button></dialog>
 <dialog id="familyTransferDlg"><h2>Перемещение семьи</h2><form id="familyTransferForm"><input type="hidden" id="transferFamilyId"><p id="transferFamilyInfo" class="muted"></p><label>В какой улей переместить</label><select id="transferTargetHive" required onchange="updateFamilyTransferTargets()"></select><label>Свободный установленный корпус</label><select id="transferTargetBox" required></select><p class="media-note">Вместе с семьёй переместятся все её рамки. Физические корпуса остаются на своих местах: рамки обменяются с рамками выбранного свободного корпуса назначения.</p><div class="row"><button type="button" onclick="$('familyTransferDlg').close()">Отмена</button><button class="primary">Переместить семью и рамки</button></div></form></dialog>
 <dialog id="hiveDlg"><h2 id="hiveDialogTitle">Новый улей</h2><form id="hiveForm"><label>Первоначальная комплектация</label><select id="newHiveMode"><option value="summer">Летняя</option><option value="winter">Зимняя</option></select><label>Примечание об улье (необязательно)</label><textarea id="hiveDesc" placeholder="Например, особенности размещения или обслуживания"></textarea><button class="primary">Создать и настроить корпуса</button><button type="button" onclick="hiveDlg.close()">Отмена</button></form></dialog>
 <dialog id="familyDlg"><h2 id="familyDialogTitle">Новая семья</h2><form id="familyForm"><input type="hidden" id="familyHive"><input type="hidden" id="familyId"><label>Код семьи (формируется автоматически)</label><input id="familyName" readonly required><label>Как появилась семья</label><select id="familyOrigin" required onchange="syncFamilyOrigin()"><option value="">Выбери происхождение</option><option value="package">Пчелопакет</option><option value="swarm">Рой</option><option value="family">Готовая семья</option><option value="offshoot">Отводок</option></select><div id="familyParentWrap" style="display:none"><label>От какой семьи сделан отводок</label><select id="familyParent"><option value="">Выбери исходную семью</option></select></div><label>Порода (можно указать любую)</label><input id="breed" list="breedOptions" maxlength="100" placeholder="Например, карника, бакфаст или местная"><datalist id="breedOptions"><option value="Карпатка"></option><option value="Карника"></option><option value="Бакфаст"></option><option value="Среднерусская"></option><option value="Итальянская"></option><option value="Серая горная кавказская"></option><option value="Местная / помесная"></option><option value="Неизвестная"></option></datalist><label>Линия / селекционная группа (необязательно)</label><input id="familyLine" maxlength="120" placeholder="Название линии или номер"><label>Матка: индивидуальный номер (необязательно)</label><input id="queenCode" maxlength="80" placeholder="Например, Q-2026-014"><label>Год вывода матки</label><input id="queenYear" type="number" min="1900" max="2100" placeholder="Год"><label>Происхождение матки / поставщик</label><input id="queenSource" maxlength="160" placeholder="Питомник, заводчик, собственный вывод"><label>Примечание о происхождении</label><textarea id="queenNotes" maxlength="1000" placeholder="Покупка, родословная, сведения о родителях и спаривании"></textarea><button class="primary">Сохранить</button><button type="button" onclick="$('familyDlg').close()">Отмена</button></form></dialog>
@@ -494,7 +511,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
  return {ok:errors.length===0,errors};
 }
-function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,2)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE)};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
+function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
 async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
@@ -1067,6 +1084,68 @@ function renderEquipmentReconciliation(){
  }).join('')||'<p class="muted">Осмотры ещё не записывались.</p>';
 }
 
+function putEntranceVideo(record){
+ return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(record)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
+}
+function listEntranceVideos(){
+ return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').getAll()}catch(e){no(e);return}q.onsuccess=()=>ok((q.result||[]).sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||''))));q.onerror=()=>no(q.error||new Error('Не удалось прочитать список видео'))});
+}
+function getEntranceVideo(id){
+ return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').get(id)}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error||new Error('Не удалось открыть видео'))});
+}
+function deleteEntranceVideoBlob(id){
+ return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').delete(id)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось удалить видео'));tx.onabort=()=>no(tx.error||new Error('Удаление видео прервано'))});
+}
+function entranceBytes(value){if(!Number.isFinite(value)||value<0)return '—';if(value<1024*1024)return Math.round(value/1024)+' КБ';return (value/1024/1024).toFixed(1)+' МБ'}
+function renderEntranceModule(){
+ const select=$('entranceHiveSelect');if(!select)return;
+ const previous=select.value;select.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
+ select.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:'');
+ refreshEntranceVideos();
+}
+async function refreshEntranceVideos(){
+ const host=$('entranceVideoList');if(!host)return;
+ const hiveId=$('entranceHiveSelect')?.value||'';
+ try{
+  const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">Только на устройстве</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Состояние: сохранено локально; анализа ещё нет.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+ }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
+}
+async function inspectEntranceVideoFile(file){
+ const url=URL.createObjectURL(file);
+ try{return await new Promise((resolve,reject)=>{const video=document.createElement('video');video.preload='metadata';video.muted=true;video.onloadedmetadata=()=>resolve({durationSec:video.duration,width:video.videoWidth,height:video.videoHeight});video.onerror=()=>reject(new Error('Не удалось прочитать параметры видео. Возможно, формат не поддерживается.'));video.src=url;video.load()})}
+ finally{URL.revokeObjectURL(url)}
+}
+async function handleEntranceVideoFile(files){
+ const file=files&&files[0],status=$('entranceVideoStatus'),hiveId=$('entranceHiveSelect')?.value||'';
+ if(!file)return;
+ if(!hiveId){if(status)status.textContent='Сначала выбери улей.';return alert('Сначала выбери улей, к которому относится видео.')}
+ if(status)status.textContent='Проверяю параметры видео…';
+ let metadata;
+ try{metadata=await inspectEntranceVideoFile(file)}catch(error){if(status)status.textContent=error.message;return alert(error.message)}
+ const check=PasekaEntranceAnalysis.assessVideoMetadata({...metadata,bytes:file.size,mimeType:file.type});
+ if(!check.ok){const message=check.errors.map(x=>x.message).join('\n');if(status)status.textContent=message;return alert(message)}
+ if(check.warnings.length)alert(check.warnings.map(x=>x.message).join('\n'));
+ try{
+  const estimate=await navigator.storage?.estimate?.();
+  if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
+ }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
+ const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'local_only',metadataCheck:check,blob:file};
+ try{
+  await putEntranceVideo(record);
+  if(status)status.textContent='Видео сохранено на этом устройстве. Сервер анализа ещё не подключён; файл никуда не отправлен.';
+  await refreshEntranceVideos();
+ }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
+}
+async function viewEntranceVideo(id){
+ try{const item=await getEntranceVideo(id);if(!item?.blob)throw new Error('Файл видео не найден.');const video=$('entranceVideoPreview');if(!video)return;closeEntranceVideoPreview();entrancePreviewUrl=URL.createObjectURL(item.blob);video.src=entrancePreviewUrl;$('entranceVideoPreviewInfo').textContent=hname(item.hiveId)+' · '+new Date(item.capturedAt).toLocaleString('ru-RU')+' · '+Math.round(item.durationSec)+' с';$('entranceVideoPreviewDlg').showModal()}catch(error){alert(error.message||'Не удалось открыть видео')}
+}
+let entrancePreviewUrl=null;
+function closeEntranceVideoPreview(){const dialog=$('entranceVideoPreviewDlg'),video=$('entranceVideoPreview');if(video){video.pause();video.removeAttribute('src');video.load()}if(entrancePreviewUrl){URL.revokeObjectURL(entrancePreviewUrl);entrancePreviewUrl=null}if(dialog?.open)dialog.close()}
+async function removeEntranceVideo(id){
+ if(!confirm('Удалить оригинал видео с этого устройства? Это действие нельзя отменить.'))return;
+ try{await deleteEntranceVideoBlob(id);await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Видео удалено с устройства.'}catch(error){alert(error.message||'Не удалось удалить видео')}
+}
 function render(){
  renderHiveDirectory();renderPlantModule();renderQueenRegistry();renderEquipmentInventory();
  renderEquipmentReconciliation();
@@ -1270,7 +1349,7 @@ function createExpansionSuggestion(record){
 }
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка',feeding=$('rtype').value==='Подкормка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';$('feedingFields').style.display=feeding?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}}
 function selectJournalHive(id){activeJournalHive=id;render()}
-function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',journal:'#f5e2d5',ai:'#e6e0f2',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(tab==='ai')initAIAuth()}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 
