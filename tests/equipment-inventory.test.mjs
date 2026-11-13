@@ -73,3 +73,6 @@ test('inventory search tokens include permanent frame codes carried by a physica
  assert.deepEqual(tokens([{labelCode:'7КМ'},{labelCode:'7КН'},{},null]),['Р-7КМ','Р-7КН']);
  assert.deepEqual(tokens(null),[]);
 });
+
+test('integrity inspection detects a paired honey set split between hive and storage',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.equipmentInventory.bodies[pair.bodies[0].id].storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_split'));});
+test('integrity inspection detects a paired honey set installed across two hives',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.layouts.h2.corpusIds.H2=pair.bodies[1].id;s.layouts.h2.honeyFrames[1]=[];for(const body of pair.bodies)body.storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_location_mismatch'));});
