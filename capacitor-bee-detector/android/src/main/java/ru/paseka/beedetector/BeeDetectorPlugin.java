@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 @CapacitorPlugin(name = "BeeDetector")
 public class BeeDetectorPlugin extends Plugin {
@@ -25,8 +26,9 @@ public class BeeDetectorPlugin extends Plugin {
             resolveUnavailable(call, "plugin_destroyed");
             return;
         }
-        runtimeExecutor.execute(() -> {
-            if (destroyed) return;
+        try {
+            runtimeExecutor.execute(() -> {
+            if (destroyed || Thread.currentThread().isInterrupted()) return;
             LiteRtRuntimeProbe.Result probe = LiteRtRuntimeProbe.initializeAndClose(appContext);
             JSObject result = new JSObject();
             result.put("bridgeAvailable", true);
@@ -36,10 +38,15 @@ public class BeeDetectorPlugin extends Plugin {
             result.put("inferenceAvailable", false);
             result.put("status", "unavailable");
             result.put("reason", probe.available ? "model_not_installed" : "runtime_initialization_failed");
-            if (!destroyed) {
+            if (!destroyed && !Thread.currentThread().isInterrupted()) {
                 call.resolve(result);
             }
-        });
+            });
+        } catch (RejectedExecutionException error) {
+            if (!destroyed) {
+                resolveUnavailable(call, "runtime_executor_unavailable");
+            }
+        }
     }
 
     @Override
