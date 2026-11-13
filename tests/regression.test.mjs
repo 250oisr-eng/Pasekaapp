@@ -1799,10 +1799,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,12,'2']){
+ for(const version of [0,13,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===12?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===13?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1831,7 +1831,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,11);
+ assert.equal(state.meta.schemaVersion,12);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.ok(state.meta.deviceId);
@@ -2537,7 +2537,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,11);
+ assert.equal(state.meta.schemaVersion,12);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.equal(migrate(),false);
@@ -2551,11 +2551,11 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
  assert.match(html,/captureIncidentLocation\(\)/);
  assert.match(html,/PasekaIncident\.buildPesticideIncidentDraft/);
  assert.match(html,/PasekaIncident\.inspectPesticideIncidentIntegrity/);
- assert.match(html,/S\.meta\.schemaVersion=11/);
- assert.match(html,/pesticideIncidents/);
+ assert.match(html,/S\.meta\.schemaVersion=12/);
+ assert.match(html,/pesticideIncidents/);\n assert.match(html,/deadoutReviews/);\n assert.match(html,/PasekaDeadout\.inspectDeadoutIntegrity/);
 });
-test('schema 10 migration creates an empty incident section and preserves existing Varroa records',()=>{
- const state={meta:{schemaVersion:10},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}]};
+test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
+ const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,11);assert.deepEqual(state.pesticideIncidents,[]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
