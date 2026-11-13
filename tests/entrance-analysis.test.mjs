@@ -30,6 +30,17 @@ test('entrance frame quality reports shake, blur, exposure and framing flags', (
   assert.ok(q.limitations.includes('camera_stability_not_separately_assessed'));
 });
 
+test('entrance frame quality accepts the first sampled frame without a motion value', () => {
+  const result=entrance.assessFrameQuality([
+    {brightness:0.42,sharpness:80,motion:null},
+    {brightness:0.44,sharpness:75,motion:0.08},
+    {brightness:0.43,sharpness:82,motion:0.06}
+  ]);
+  assert.equal(result.status,'good');
+  assert.equal(result.measured.brightness,0.43);
+  assert.equal(result.measured.motion,0.07);
+});
+
 test('entrance metrics count unique tracks, not repeated frame detections', () => {
   const tracks=[
     {id:'a',className:'bee',direction:'in',confidence:0.95,pollen:true,pollenConfidence:0.92},
