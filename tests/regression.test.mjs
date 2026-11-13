@@ -2322,3 +2322,32 @@ test('treatment waiting period and batch fields preserve existing values',()=>{
  assert.equal(nodes.rtreatmentWaiting.value,'уже записано');
  assert.equal(nodes.rtreatmentBatch.value,'АБ123');
 });
+
+test('feeding ledger groups repeated feedings by family and sums only identical explicit units',()=>{
+ const build=loadFunction('buildFeedingLedger');
+ const records=[
+  {id:'a',type:'Подкормка',hive:'h1',family:'f1',date:'2026-10-01',feedingAmount:'1 л'},
+  {id:'b',type:'Подкормка',hive:'h1',family:'f1',date:'2026-10-03',feedingAmount:'0,5 л'},
+  {id:'c',type:'Подкормка',hive:'h1',family:'f1',date:'2026-10-04',feedingAmount:'500 мл'},
+  {id:'d',type:'Подкормка',hive:'h1',family:'f2',date:'2026-10-02',feedingAmount:'2 кг'},
+  {id:'e',type:'Подкормка',hive:'h1',date:'2026-10-05',feedingAmount:'количество уточнить'},
+  {id:'f',type:'Подкормка',hive:'h2',family:'f1',date:'2026-10-06',feedingAmount:'99 л'},
+  {id:'g',type:'Подкормка',hive:'h1',family:'f1',date:'2026-10-07',feedingAmount:'3 л',archivedAt:'2026-10-08'}
+ ];
+ const result=build(records,[{id:'f1',name:'Семья 1'},{id:'f2',name:'Семья 2'}],'h1');
+ assert.equal(result.length,3);
+ const f1=result.find(group=>group.familyId==='f1');
+ assert.equal(f1.count,3);assert.equal(f1.latest,'2026-10-04');
+ assert.deepEqual(f1.totals,[{unit:'л',amount:1.5,count:2},{unit:'мл',amount:500,count:1}]);
+ assert.deepEqual(result.find(group=>group.familyId==='f2').totals,[{unit:'кг',amount:2,count:1}]);
+ assert.equal(result.find(group=>group.familyId==='__unassigned__').unparsedCount,1);
+});
+test('feeding ledger preserves historical family names and never combines incompatible units',()=>{
+ const build=loadFunction('buildFeedingLedger');
+ const result=build([
+  {type:'Подкормка',hive:'h1',family:'deleted',familyNameAtTime:'Старая семья',date:'2026-09-01',feedingAmount:'1 л'},
+  {type:'Подкормка',hive:'h1',family:'deleted',familySnapshotAtTime:{name:'Снимок семьи'},date:'2026-09-02',feedingAmount:'250 мл'}
+ ],[],'h1');
+ assert.equal(result[0].name,'Старая семья');
+ assert.deepEqual(result[0].totals,[{unit:'л',amount:1,count:1},{unit:'мл',amount:250,count:1}]);
+});
