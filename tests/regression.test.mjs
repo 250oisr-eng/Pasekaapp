@@ -157,7 +157,7 @@ function transferFixture() {
     hives:[{id:'h1',number:1},{id:'h2',number:2}],
     families:[{id:'fam',name:'26-1',hive:'h1',box:1,origin:'offshoot',parentFamilyId:'parent'},{id:'parent',name:'26-0',hive:'h1',box:3}],
     records:[{id:'record-1',family:'fam',hive:'h1'}],
-    equipmentLabels:{bodies:{body-h1-1:'ААА',body-h2-2:'ААБ'}},
+    equipmentLabels:{bodies:{'body-h1-1':'ААА','body-h2-2':'ААБ'}},
     layouts:{
       h1:{mode:'summer',installedBoxes:[1,2,3],honeyFrames:[[],[]],corpusIds:{1:'body-h1-1',2:'body-h1-2'},boxes:makeBoxes({1:'fam',3:'parent'},{1:[{frameId:'1',labelCode:'ААГ',location:'1',history:[]},{frameId:'2',labelCode:'ААД',location:'1',history:[]}]})},
       h2:{mode:'summer',installedBoxes:[1,2,3],honeyFrames:[[],[]],corpusIds:{1:'body-h2-1',2:'body-h2-2'},boxes:makeBoxes({}, {2:[{frameId:'1',labelCode:'ААЕ',location:'2',history:[]},{frameId:'9',labelCode:'ААЖ',location:'2',history:[]}]})}
