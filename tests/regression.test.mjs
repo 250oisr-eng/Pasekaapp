@@ -67,6 +67,18 @@ test('queen registry accepts current and historical queen records',()=>{
  assert.deepEqual(inspect({families:[{id:'f1',currentQueenId:'q1'}],queens:[{id:'q1',familyId:'f1',status:'current',year:2025},{id:'q0',familyId:'f1',status:'replaced',year:2023}],queenEvents:[{id:'e1',type:'introduced',familyId:'f1',queenId:'q1',date:'2025-05-01'},{id:'e2',type:'replaced',familyId:'f1',queenId:'q0',date:'2025-05-01'}]}),[]);
 });
 
+test('schema 6 backup requires queen registry arrays and validates their entries',()=>{
+ const validate=loadFunction('validateBackupState');
+ const base={meta:{schemaVersion:6},hives:[],families:[],records:[],queens:[],queenEvents:[]};
+ assert.equal(validate(base),base);
+ assert.throws(()=>validate({...base,queens:undefined}),/отсутствует новый раздел: queens/);
+ assert.throws(()=>validate({...base,queenEvents:[null]}),/обнаружены повреждённые элементы/);
+});
+test('snapshot source contains queen registry and queen history',()=>{
+ const save=extractFunction('save');
+ assert.match(save,/queens:S\.queens,queenEvents:S\.queenEvents/);
+});
+
 test('family lineage rejects missing parents and cycles', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.ok(inspect([{id:'c',origin:'offshoot',parentFamilyId:'missing'}]).some(x=>x.code==='family_parent_missing'));
