@@ -718,7 +718,7 @@ function renderGlobalSearch(){
   for(const family of families)if([family.name,family.code,family.breed,family.custom,family.line,family.queen?.code,family.queen?.source].join(' ').toLocaleLowerCase('ru-RU').includes(query))results.push({kind:'family',id:family.id,hiveId:hive.id,label:family.name||family.code||'Семья',detail:'Семья · '+hname(hive.id)});
   for(const key of [...profileBroodKeys(hive.id),...profileHoneyKeys(hive.id)]){
    const frames=frameArray(layout,key,hive.id)||[];
-   frames.forEach((frame,index)=>{if(String(frame.frameId||'').toLocaleLowerCase('ru-RU').includes(query))results.push({kind:'frame',id:frame.frameId,hiveId:hive.id,box:key,index,label:'Рамка '+frame.frameId,detail:'Корпус '+key+' · '+hname(hive.id)});});
+   frames.forEach((frame,index)=>{const frameCode=PasekaLabels.formatLabelCode('frame',frame.labelCode),searchable=[frame.frameId,frameCode,frame.labelCode].filter(Boolean).join(' ').toLocaleLowerCase('ru-RU');if(searchable.includes(query))results.push({kind:'frame',id:frame.frameId,hiveId:hive.id,box:key,index,label:'Рамка '+(frameCode||frame.frameId),detail:'Корпус '+key+' · '+hname(hive.id)});});
   }
  }
  for(const record of S.records.filter(r=>!r.archivedAt)){

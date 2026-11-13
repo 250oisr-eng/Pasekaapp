@@ -12,3 +12,5 @@ test('retired frame and body codes are permanently reserved',()=>{const s={meta:
 test('manually registered labels are respected after reservation',()=>{const s={meta:{usedFrameLabelCodes:['ААА']},layouts:{h:{boxes:{1:{frames:[]}},honeyFrames:[]}}};assert.equal(L.assignFrameCode(s,{}),'ААБ')});
 
 test('frame labels remain unique and visible to integrity checks while frames are stored inside a corpus',()=>{const s={meta:{},layouts:{h:{boxes:{1:{frames:[]}},honeyFrames:[]}},equipmentInventory:{bodies:{stock:{frames:[{frameId:'stored-1',labelCode:'ААА'}]}}}};assert.equal(L.nextCode(s,'frame'),'ААБ');assert.deepEqual(L.inspectLabelIntegrity(s),[]);s.layouts.h.boxes[1].frames.push({frameId:'active-1',labelCode:'ААА'});assert.ok(L.inspectLabelIntegrity(s).some(x=>x.code==='duplicate_frame_label_code'))});
+
+test('global search finds frames by permanent three-symbol code',()=>{assert.ok(html.includes("PasekaLabels.formatLabelCode('frame',frame.labelCode)"));assert.ok(html.includes('frameCode,frame.labelCode].filter(Boolean).join'));assert.ok(html.includes("label:'Рамка '+(frameCode||frame.frameId)"));});
