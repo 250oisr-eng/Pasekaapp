@@ -2046,7 +2046,7 @@ test('JSON backup restore rejects corrupt source before confirmation or database
   validateBackupState,
   assertRawBackupIntegrity,
   inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity'),
-  ,
+
   alert:message=>alerts.push(message)
  };
  await loadFunction('restoreBackup',deps)();
