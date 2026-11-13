@@ -344,3 +344,11 @@ test('automatic local original cleanup requires upload, result and server-delete
     assert.equal(entrance.canDeleteVideoOriginal({...valid,...patch}),false);
   }
 });
+
+test('video queue UI exposes cancellation only for cancellable local states', () => {
+  assert.match(html,/canManuallyCancelVideo\(x,true,false\)/);
+  assert.match(html,/Передача выполняется/);
+  assert.match(html,/Передано на сервер/);
+  assert.match(html,/Идёт анализ/);
+  assert.match(html,/Ожидает передачи · локально/);
+});
