@@ -514,7 +514,8 @@ test('AI assistant has a dedicated central navigation control and a themed works
   assert.match(html,/<button data-tab="ai" class="nav-ai-button"[^>]*aria-label="Открыть ИИ-помощника"/);
   assert.match(html,/class="ai-hero"/);
   assert.match(html,/class="ai-hero-orb"/);
-  assert.match(html,/main>nav\\[aria-label="Основные разделы"\\]\\{grid-template-columns:minmax\\(0,1fr\\) minmax\\(0,1fr\\) minmax\\(0,1fr\\) 66px/);
+  assert.match(html,/class="card ai-console-card"/);
+  assert.ok(html.includes('main>nav[aria-label="Основные разделы"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 66px'));
 });
 
 test('inline application JavaScript remains syntactically valid',()=>{
