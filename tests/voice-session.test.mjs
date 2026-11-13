@@ -6,7 +6,7 @@ const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const parserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
 
 function loadVoiceParser() {
-  return new Function(parserSource + '\\nreturn parseApiaryVoiceCommand;')();
+  return new Function(parserSource + '\nreturn parseApiaryVoiceCommand;')();
 }
 
 function extractFunction(name) {
