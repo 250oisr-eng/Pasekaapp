@@ -33,3 +33,10 @@ test('native detector accepts only readable files inside the private app cache',
  assert.match(java,/frame_file_unavailable/);
  assert.match(java,/frame\.isFile\(\)\s*\|\|\s*!frame\.canRead\(\)/);
 });
+
+test('Android plugin declares the standalone LiteRT runtime and CPU-first PoC',async()=>{
+ const gradle=await readFile(new URL('../capacitor-bee-detector/android/build.gradle',import.meta.url),'utf8');
+ assert.match(gradle,/com\.google\.ai\.edge\.litert:litert:2\.3\.2/);
+ assert.doesNotMatch(gradle,/play-services-litert/);
+ assert.doesNotMatch(gradle,/litert-gpu/);
+});
