@@ -45,7 +45,10 @@ function createCapacitorRuntime(plugin){
   if(!frame||typeof frame.path!=='string'||!frame.path.trim())throw new Error('A local frame path is required');
   const result=await plugin.detectFrame({framePath:frame.path});
   if(result&&result.status==='unavailable')return {status:'unavailable',reason:result.reason||'native_runtime_unavailable'};
-  return result&&Array.isArray(result.detections)?result.detections:[];
+  // A malformed bridge response is not evidence of zero bees. Preserve the
+  // unavailable state instead of silently converting it into an empty result.
+  if(!result||!Array.isArray(result.detections))return {status:'unavailable',reason:'native_response_invalid'};
+  return result.detections;
  }});
 }
 function createBeeDetectorAdapter(config={}){
