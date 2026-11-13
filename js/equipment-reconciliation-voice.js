@@ -45,5 +45,17 @@ function normalizeSpokenFrameCodes(value){
  if(characters.length)flush();
  return {raw,codes,issues,canNormalize:codes.length>0&&issues.length===0,preview:codes.join(', ')};
 }
-window.PasekaReconciliationVoice={parseReconciliationVoiceCommand,appendRecognizedCodes,normalizeSpokenFrameCodes};
+
+function validateEditedFrameCodes(codes){
+ const errors=[];
+ if(!Array.isArray(codes)||!codes.length)return {ok:false,errors:[{index:-1,reason:'empty'}]};
+ codes.forEach((raw,index)=>{
+  const code=String(raw??'').toLocaleUpperCase('ru-RU');
+  if(code.length!==3){errors.push({index,reason:'length'});return}
+  for(let position=0;position<3;position++)if(!ALPHABET.includes(code[position]))errors.push({index,position,reason:'character',value:code[position]});
+ });
+ return {ok:errors.length===0,errors};
+}
+
+window.PasekaReconciliationVoice={parseReconciliationVoiceCommand,appendRecognizedCodes,normalizeSpokenFrameCodes,validateEditedFrameCodes};
 })();
