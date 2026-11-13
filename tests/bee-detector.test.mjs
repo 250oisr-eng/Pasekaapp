@@ -25,3 +25,11 @@ test('adapter propagates native unavailable state without reporting zero bee act
  assert.equal(result.reason,'model_not_installed');
  assert.deepEqual(result.detections,[]);
 });
+
+test('native Capacitor plugin registration is optional on web and named consistently on Android',()=>{
+ let registeredName=null;
+ const plugin={async detectFrame(){return {status:'unavailable',reason:'model_not_installed'};}};
+ assert.equal(detector.registerNativePlugin(null),null);
+ assert.equal(detector.registerNativePlugin({registerPlugin(name){registeredName=name;return plugin;}}),plugin);
+ assert.equal(registeredName,'BeeDetector');
+});
