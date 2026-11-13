@@ -11,7 +11,7 @@ function normalizeSpokenFrameCodes(value){
  const raw=String(value??'').trim(),codes=[],issues=[];
  if(!raw)return {raw,codes,issues:[{type:'empty',text:''}],canNormalize:false,preview:''};
  // Speech engines may insert commas between spoken symbols, not only between frame codes.
- const prepared=raw.toLocaleLowerCase('ru-RU').replace(/(^|[\s,;])р\s*-\s*/giu,'$1');
+ const prepared=raw.toLocaleLowerCase('ru-RU').replace(/(^|[\s,;])р\s*-\s*/giu,'$1').replace(/\s+и\s+/gu,' ');
  const tokens=prepared.match(/[^\s,;.!?]+/gu)||[];
  const explicitLetters={а:'А',е:'Е',у:'У',э:'Э',ю:'Ю',я:'Я'};
  let characters=[];
