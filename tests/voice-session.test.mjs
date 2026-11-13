@@ -198,3 +198,4 @@ test('voice confirmation delegates to the normal plan revalidation path with exp
   assert.match(deps.status, /Операция подтверждена и сохранена/);
   assert.deepEqual(spoken, ['Операция подтверждена и сохранена.']);
 });
+test('voice parser recognizes explicit journal draft commands without saving records',()=>{const parse=loadVoiceParser();assert.deepEqual(parse('Пасека, слушай, запиши в журнал: осмотрел улей, матку видел',true),{type:'journal_draft',text:'осмотрел улей, матку видел'});assert.deepEqual(parse('создай черновик записи осмотрел семью',true),{type:'journal_draft',text:'осмотрел семью'});assert.deepEqual(parse('добавь запись в журнал: дал сироп',true),{type:'journal_draft',text:'дал сироп'});assert.deepEqual(parse('запиши в журнал',true),{type:'question',text:'запиши в журнал'})});
