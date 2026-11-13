@@ -937,7 +937,14 @@ const AI_AUTH_URL='https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aw
 const AI_FUNCTION_URL='https://pasekaapp.250oisr.workers.dev/';
 let aiAuthClient=null,aiAuthUser=null,aiAuthError='',aiBusy=false,aiInitPromise=null;
 let aiRecognition=null;
-let apiaryVoiceRecognition=null,apiaryVoiceSessionActive=false,apiaryVoiceArmed=false,apiaryVoiceSpeaking=false,apiaryVoiceArmExpiresAt=0;
+const apiaryVoiceSession=window.PasekaVoiceSession.createApiaryVoiceSession({
+ windowRef:window,
+ getElement:$,
+ onTranscript:handleApiaryVoiceTranscript,
+ onStatus:message=>{const host=$('apiaryVoiceStatus');if(host)host.textContent=message},
+ getUtterance:window.SpeechSynthesisUtterance,
+ setTimer:(callback,delay)=>setTimeout(callback,delay)
+});
 async function initAIAuth(){
  if(aiInitPromise)return aiInitPromise;
  aiInitPromise=(async()=>{
@@ -1267,59 +1274,18 @@ async function copyAIMessage(index,button){
   const label=button.textContent;button.textContent='Скопировано';button.disabled=true;setTimeout(()=>{if(button.isConnected){button.textContent=label;button.disabled=false}},1400);
  }catch(e){alert('Не удалось скопировать сообщение. Выдели текст вручную и выбери «Копировать».')}
 }
-function apiaryVoiceStatus(message){
- const host=$('apiaryVoiceStatus');if(host)host.textContent=message;
-}
-function stopApiaryVoiceSession(){
- apiaryVoiceSessionActive=false;apiaryVoiceArmed=false;apiaryVoiceArmExpiresAt=0;
- if(apiaryVoiceRecognition){const current=apiaryVoiceRecognition;apiaryVoiceRecognition=null;try{current.stop()}catch(e){}}
- if(window.speechSynthesis)window.speechSynthesis.cancel();
- apiaryVoiceSpeaking=false;
- const button=$('aiVoiceSessionButton');if(button){button.textContent='🎙 Начать сеанс';button.classList.add('primary')}
- apiaryVoiceStatus('Сеанс выключен. Микрофон больше не используется этим режимом.');
-}
-function startApiaryVoiceRecognition(){
- if(!apiaryVoiceSessionActive||apiaryVoiceSpeaking||apiaryVoiceRecognition)return;
- const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!Speech){apiaryVoiceStatus('На этом устройстве браузер не поддерживает непрерывное распознавание. Используй разовую диктовку или голосовой ввод клавиатуры.');stopApiaryVoiceSession();return}
- const recognition=new Speech();apiaryVoiceRecognition=recognition;
- recognition.lang='ru-RU';recognition.continuous=true;recognition.interimResults=false;recognition.maxAlternatives=1;
- recognition.onresult=event=>{
-  for(let i=event.resultIndex||0;i<event.results.length;i++){
-   const result=event.results[i];if(!result.isFinal)continue;
-   const transcript=String(result[0]?.transcript||'').trim();if(transcript)handleApiaryVoiceTranscript(transcript);
-  }
- };
- recognition.onerror=event=>{
-  if(event.error==='not-allowed'||event.error==='service-not-allowed'){apiaryVoiceStatus('Нет разрешения на микрофон или службу распознавания. Разреши доступ в Android и запусти сеанс снова.');stopApiaryVoiceSession()}
-  else if(event.error!=='no-speech'&&event.error!=='aborted')apiaryVoiceStatus('Ошибка распознавания: '+event.error+'. Попробую продолжить слушать.');
- };
- recognition.onend=()=>{
-  if(apiaryVoiceRecognition===recognition)apiaryVoiceRecognition=null;
-  if(apiaryVoiceSessionActive&&!apiaryVoiceSpeaking)setTimeout(startApiaryVoiceRecognition,350);
- };
- try{recognition.start();apiaryVoiceStatus(apiaryVoiceArmed?'Слушаю команду…':'Сеанс активен. Скажи «Пасека, слушай».')}
- catch(error){if(apiaryVoiceRecognition===recognition)apiaryVoiceRecognition=null;apiaryVoiceStatus('Не удалось запустить микрофон: '+(error.message||error));stopApiaryVoiceSession()}
-}
-function speakApiaryVoice(value){
- if(!apiaryVoiceSessionActive||!window.speechSynthesis||typeof SpeechSynthesisUtterance==='undefined')return;
- const text=String(value||'').trim().slice(0,900);if(!text)return;
- apiaryVoiceSpeaking=true;
- if(apiaryVoiceRecognition){const current=apiaryVoiceRecognition;apiaryVoiceRecognition=null;try{current.stop()}catch(e){}}
- window.speechSynthesis.cancel();
- const utterance=new SpeechSynthesisUtterance(text);utterance.lang='ru-RU';utterance.rate=1;
- utterance.onend=()=>{apiaryVoiceSpeaking=false;if(apiaryVoiceSessionActive)startApiaryVoiceRecognition()};
- utterance.onerror=()=>{apiaryVoiceSpeaking=false;if(apiaryVoiceSessionActive)startApiaryVoiceRecognition()};
- window.speechSynthesis.speak(utterance);
-}
+function apiaryVoiceStatus(message){apiaryVoiceSession.status(message)}
+function stopApiaryVoiceSession(){apiaryVoiceSession.stop()}
+function startApiaryVoiceRecognition(){apiaryVoiceSession.startRecognition()}
+function speakApiaryVoice(value){apiaryVoiceSession.speak(value)}
 async function handleApiaryVoiceTranscript(transcript){
- const armed=apiaryVoiceArmed&&Date.now()<=apiaryVoiceArmExpiresAt;
+ const armed=apiaryVoiceSession.isArmed();
  const parsed=parseApiaryVoiceCommand(transcript,armed);
  if(parsed.type==='ignore')return;
  if(parsed.type==='wake'){
-  apiaryVoiceArmed=true;apiaryVoiceArmExpiresAt=Date.now()+15000;apiaryVoiceStatus('Ключевая фраза распознана. Говори команду в течение 15 секунд.');return;
+  apiaryVoiceSession.arm(15000);apiaryVoiceStatus('Ключевая фраза распознана. Говори команду в течение 15 секунд.');return;
  }
- apiaryVoiceArmed=false;apiaryVoiceArmExpiresAt=0;
+ apiaryVoiceSession.clearArmed();
  if(parsed.type==='stop'){stopApiaryVoiceSession();return}
  if(parsed.type==='confirm'){
   const index=(S.aiMessages||[]).findLastIndex(message=>message?.role==='assistant'&&message.commandStatus==='pending');
@@ -1350,14 +1316,11 @@ async function handleApiaryVoiceTranscript(transcript){
  }
 }
 function toggleApiaryVoiceSession(){
- if(apiaryVoiceSessionActive){stopApiaryVoiceSession();return}
- const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!Speech){apiaryVoiceStatus('Браузер не поддерживает голосовой сеанс. Попробуй разовую диктовку.');return}
+ if(apiaryVoiceSession.state.active){stopApiaryVoiceSession();return}
  if(!confirm('Запустить голосовой сеанс? Пока он активен, приложение будет слушать микрофон на открытом экране. Распознавание может выполняться внешней службой и требовать интернет. Аудиозаписи приложение не сохраняет.'))return;
- apiaryVoiceSessionActive=true;apiaryVoiceArmed=false;apiaryVoiceArmExpiresAt=0;
- const button=$('aiVoiceSessionButton');if(button){button.textContent='■ Завершить сеанс';button.classList.remove('primary')}
- startApiaryVoiceRecognition();
+ apiaryVoiceSession.start();
 }
+
 function startAIVoiceInput(button){
  if(aiBusy||aiRecognition)return;
  const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1470,8 +1433,8 @@ async function sendAIQuestion(){
     else{assistantMessage.commandStatus='rejected';assistantMessage.commandError=validation.errors?.map(error=>error.code).join(', ')||'команда не прошла проверку'}
    }
   }
-  S.aiMessages.push(assistantMessage);S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();if(apiaryVoiceSessionActive)speakApiaryVoice(assistantMessage.content+(assistantMessage.commandStatus==='pending'?' Скажи «Пасека, слушай, подтверждаю» после проверки плана или «Пасека, слушай, отмена».':''));
- }catch(e){const errorMessage='Не удалось получить ответ: '+(e.message||e);S.aiMessages.push({role:'assistant',content:errorMessage,at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();if(apiaryVoiceSessionActive)speakApiaryVoice(errorMessage)}
+  S.aiMessages.push(assistantMessage);S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();if(apiaryVoiceSession.state.active)speakApiaryVoice(assistantMessage.content+(assistantMessage.commandStatus==='pending'?' Скажи «Пасека, слушай, подтверждаю» после проверки плана или «Пасека, слушай, отмена».':''));
+ }catch(e){const errorMessage='Не удалось получить ответ: '+(e.message||e);S.aiMessages.push({role:'assistant',content:errorMessage,at:new Date().toISOString()});S.aiMessages=S.aiMessages.slice(-40);await save();renderAIChat();if(apiaryVoiceSession.state.active)speakApiaryVoice(errorMessage)}
  finally{aiBusy=false;button.disabled=false;button.textContent='Отправить вопрос'}
 }
 async function clearAIHistory(){if(!confirm('Очистить историю диалога с ИИ на этом устройстве?'))return;S.aiMessages=[];await save();renderAIChat()}
