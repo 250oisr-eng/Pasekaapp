@@ -1298,7 +1298,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:11}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:12}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
