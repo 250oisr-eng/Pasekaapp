@@ -61,7 +61,8 @@ function validateVideoMetadata(metadata, size) {
   if (metadata.bytes !== size) fail('INVALID_VIDEO_METADATA', 'Video metadata size does not match payload size.');
   if (typeof metadata.mimeType !== 'string' || metadata.mimeType.length > 128 || !/^video\//i.test(metadata.mimeType)) fail('INVALID_VIDEO_METADATA', 'Invalid video MIME type.');
   if (typeof metadata.name !== 'string' || metadata.name.length > 120) fail('INVALID_VIDEO_METADATA', 'Invalid video file name.');
-  if (metadata.status != null && (typeof metadata.status !== 'string' || metadata.status.length > 40)) fail('INVALID_VIDEO_METADATA', 'Invalid video queue status.');
+  const statuses = ['waiting_for_server', 'uploading', 'uploaded', 'analyzing', 'completed', 'failed_retryable', 'failed_permanent'];
+  if (metadata.status != null && !statuses.includes(metadata.status)) fail('INVALID_VIDEO_METADATA', 'Invalid video queue status.');
   if (metadata.retryCount != null && (!Number.isSafeInteger(metadata.retryCount) || metadata.retryCount < 0 || metadata.retryCount > 10000)) fail('INVALID_VIDEO_METADATA', 'Invalid retry count.');
 }
 function validateManifest(manifest, manifestLength, expectedFileSize, limits = LIMITS) {
@@ -77,6 +78,7 @@ function validateManifest(manifest, manifestLength, expectedFileSize, limits = L
   let videoCount = 0;
   let totalPayloadBytes = 0;
   const paths = new Set();
+  const videoIds = new Set();
   const entries = [];
   for (let i = 0; i < manifest.entries.length; i++) {
     const item = manifest.entries[i];
@@ -97,6 +99,8 @@ function validateManifest(manifest, manifestLength, expectedFileSize, limits = L
       const expectedPath = 'entrance-media/' + String(videoCount).padStart(6, '0') + '.blob';
       if (item.path !== expectedPath || item.size > limits.maxVideoBytes) fail('INVALID_VIDEO_ENTRY', 'Video entry path or size is invalid.');
       validateVideoMetadata(item.metadata, item.size);
+      if (videoIds.has(item.metadata.id)) fail('DUPLICATE_VIDEO_ID', 'Archive contains duplicate video IDs.');
+      videoIds.add(item.metadata.id);
       if (item.mimeType !== item.metadata.mimeType) fail('INVALID_ENTRY_MIME', 'Video MIME type does not match its metadata.');
     } else {
       fail('INVALID_ENTRY_KIND', 'Unknown archive entry kind.');
