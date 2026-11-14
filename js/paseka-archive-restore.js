@@ -572,13 +572,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   const revertedRevisionId = restoredState?.meta?.revisionId || null;
 
   // Phase B: only IndexedDB requests and synchronous checks/mutations.
-  let tx, failure = null, result = null, settled = false;
+  let tx, failure = null, result = null, settled = false, stopKeepAlive = () => {};
   return new Promise((resolve, reject) => {
     const rejectOnce = error => {
       if (!settled) { settled = true; reject(error); }
     };
     const abortWith = error => {
       failure = error;
+      stopKeepAlive();
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
@@ -588,6 +589,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const media = tx.objectStore('entrance_media');
       const stagingStore = tx.objectStore(STAGING_STORE);
       const historyStore = tx.objectStore(HISTORY_STORE);
+      // Keep the readwrite transaction active while rollback snapshot Blobs are
+      // re-hashed. This closes the gap between Phase A validation and Phase B.
+      stopKeepAlive = holdTransactionOpen(tx, stagingStore);
       const reads = {
         currentState: main.get('state'),
         currentVideos: media.getAll(),
@@ -598,13 +602,26 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       };
       const values = {};
       let pending = Object.keys(reads).length;
-      const process = () => {
+      const process = async () => {
         try {
           const currentState = values.currentState || null;
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = values.rollbackRecords || [];
           const currentImportSession = values.importSession;
+          // Re-hash the actual snapshot bytes under the same write lock used by
+          // the final rollback. Size/type-only fingerprints cannot detect a
+          // same-size Blob replacement that retains the old checksum field.
+          for (const item of currentRecords.filter(record => record?.kind === 'rollback_video')) {
+            const snapshotVideo = item.record;
+            if (!snapshotVideo?.blob || !/^[a-f0-9]{64}$/.test(snapshotVideo.blobSha256 || '')) {
+              fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no valid content checksum.');
+            }
+            const actualSnapshotHash = await sha256BlobHex(snapshotVideo.blob, cryptoProvider);
+            if (actualSnapshotHash !== snapshotVideo.blobSha256) {
+              fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot no longer matches its saved SHA-256 checksum. Rollback was cancelled.');
+            }
+          }
           if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId ||
               history.importSessionId !== knownHistory.importSessionId) {
             fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
@@ -657,6 +674,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
             rollbackSnapshotRemoved: true,
             restoredVideoCount: restoredVideos.length
           };
+          stopKeepAlive();
         } catch (error) {
           abortWith(error);
         }
@@ -670,6 +688,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         request.onerror = () => abortWith(request.error || new Error('Could not read rollback snapshot or live data.'));
       }
       tx.oncomplete = () => {
+        stopKeepAlive();
         if (!settled) { settled = true; resolve(result); }
       };
       tx.onabort = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
