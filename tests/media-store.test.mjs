@@ -177,6 +177,45 @@ test('orphan audit is read-only and protects blobs referenced by current state, 
   db.close();
 });
 
+test('orphan audit cursor-scans large stores and returns metadata without Blob payloads', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-cursor-audit-large', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('auto_snapshots');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  await Media.putImage(db, { id: 'large-used', blob: image([1, 2, 3]) }, webcrypto);
+  await Media.putImage(db, { id: 'large-orphan', blob: image([4, 5, 6]) }, webcrypto);
+  const write = db.transaction(['main', 'auto_snapshots'], 'readwrite');
+  for (let index = 0; index < 1200; index++) {
+    write.objectStore(index % 2 ? 'main' : 'auto_snapshots')
+      .put({ nested: { media: [{ blobId: 'large-used' }] } }, `record-${index}`);
+  }
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.blobCount, 2);
+  assert.equal(report.referencedCount, 1);
+  assert.equal(report.orphanedCount, 1);
+  assert.equal(report.referenced[0].id, 'large-used');
+  assert.equal(report.referenced[0].referenceCount, 1200);
+  assert.deepEqual(report.referenced[0].referencedBy, ['auto_snapshots', 'main']);
+  assert.equal(report.orphaned[0].id, 'large-orphan');
+  assert.equal(Object.hasOwn(report.orphaned[0], 'blob'), false);
+  assert.equal(report.deletionPerformed, false);
+  db.close();
+});
+
 test('orphan audit reports dangling references and never classifies them as deletable blobs', async () => {
   const factory = new IDBFactory();
   const db = await new Promise((resolve, reject) => {
