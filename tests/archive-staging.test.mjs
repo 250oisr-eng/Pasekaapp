@@ -954,3 +954,101 @@ test('separate tab connections cannot create duplicate staging sessions for the 
   db.close();
   secondTabDb.close();
 });
+
+
+test('discard racing with restore preflight aborts commit without changing live state or media', async () => {
+  const db = await openTestDb('paseka-stage-discard-restore-preflight-race');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-discard-race' }, hives: [], families: [], records: [] };
+  const liveVideoBlob = new Blob(['user video survives discard race'], { type: 'video/mp4' });
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'live-video-race', hiveId: 'hive-live', blob: liveVideoBlob,
+    blobSha256: await globalThis.PasekaSha256.hashBlobHex(liveVideoBlob)
+  });
+
+  const archive = await makeArchive('backup-discard-restore-preflight-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  let releaseHash;
+  let notifyHashStarted;
+  const hashStarted = new Promise(resolve => { notifyHashStarted = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  const gatedArchiveApi = {
+    ...Archive,
+    async hashBlobChunks(...args) {
+      const result = await Archive.hashBlobChunks(...args);
+      if (firstHash) {
+        firstHash = false;
+        notifyHashStarted();
+        await hashGate;
+      }
+      return result;
+    }
+  };
+
+  const commit = Restore.commitStagedArchive(
+    db, staged.session.sessionId, 'live-before-discard-race', webcrypto, gatedArchiveApi, () => true
+  );
+  await hashStarted;
+  assert.equal(await Restore.discardArchiveRestoreSession(db, staged.session.sessionId), true);
+  releaseHash();
+  await assert.rejects(commit, { code: 'STAGING_SESSION_INCOMPLETE' });
+
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-discard-race');
+  const remainingVideo = await get(db, 'entrance_media', 'live-video-race');
+  assert.equal(await remainingVideo.blob.text(), 'user video survives discard race');
+  assert.equal(remainingVideo.blobSha256, await globalThis.PasekaSha256.hashBlobHex(liveVideoBlob));
+  assert.equal((await getAll(db, 'archive_staging')).some(row => row.sessionId === staged.session.sessionId), false);
+  assert.equal((await getAll(db, 'archive_history')).length, 0);
+  db.close();
+});
+
+test('discard queued behind atomic restore cannot remove committed import or rollback snapshot', async () => {
+  const db = await openTestDb('paseka-stage-discard-restore-commit-race');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-commit-race' }, hives: [], families: [], records: [] };
+  const liveVideoBlob = new Blob(['original video for rollback'], { type: 'video/mp4' });
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'live-video-commit-race', hiveId: 'hive-live', blob: liveVideoBlob,
+    blobSha256: await globalThis.PasekaSha256.hashBlobHex(liveVideoBlob)
+  });
+
+  const archive = await makeArchive('backup-discard-restore-commit-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  let notifyCommitTransaction;
+  const commitTransactionStarted = new Promise(resolve => { notifyCommitTransaction = resolve; });
+  const instrumentedDb = new Proxy(db, {
+    get(target, property) {
+      if (property === 'transaction') {
+        return (...args) => {
+          const tx = target.transaction(...args);
+          const stores = Array.isArray(args[0]) ? args[0] : [args[0]];
+          if (args[1] === 'readwrite' && stores.includes('main') &&
+              stores.includes('archive_staging') && stores.includes('archive_history')) {
+            notifyCommitTransaction();
+          }
+          return tx;
+        };
+      }
+      return Reflect.get(target, property, target);
+    }
+  });
+
+  const commit = Restore.commitStagedArchive(
+    instrumentedDb, staged.session.sessionId, 'live-before-commit-race', webcrypto, Archive, () => true
+  );
+  await commitTransactionStarted;
+  const discard = Restore.discardArchiveRestoreSession(db, staged.session.sessionId);
+  const committed = await commit;
+  assert.equal(committed.importedVideoCount, 1);
+  await assert.rejects(discard, { code: 'COMMITTED_IMPORT_PROTECTED' });
+
+  const importedState = await get(db, 'main', 'state');
+  assert.equal(importedState.records[0].note, 'archive state');
+  const history = await get(db, 'archive_history', 'backup-discard-restore-commit-race');
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackAvailable, true);
+  assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId)).kind, 'rollback_session');
+  assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId + ':video:live-video-commit-race')).record.id, 'live-video-commit-race');
+  db.close();
+});
