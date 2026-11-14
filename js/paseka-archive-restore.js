@@ -240,7 +240,11 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         for (const record of normalizedRows) {
           if (currentRows.find(current => current.id === record.id)?.blobSha256 === undefined) baselineStore.put(record);
         }
-        baselineTx.objectStore(STAGING_STORE).add(session);
+        const sessionAddRequest = baselineTx.objectStore(STAGING_STORE).add(session);
+        sessionAddRequest.onerror = () => {
+          baselineFailure = sessionAddRequest.error || new Error('Could not reserve the archive staging session.');
+          try { baselineTx.abort(); } catch (ignored) {}
+        };
       } catch (error) {
         baselineFailure = error;
         try { baselineTx.abort(); } catch (ignored) {}
