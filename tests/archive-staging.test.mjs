@@ -296,6 +296,8 @@ test('atomic archive commit replaces state and entrance videos while preserving 
     db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true,
     async state => ({ ...state, migratedForTest: true })
   );
+  assert.equal(committed.importedVideoCount, 1);
+  assert.equal(committed.orphanedVideoCount, 0);
 
   const currentState = await get(db, 'main', 'state');
   const currentVideos = await getAll(db, 'entrance_media');
@@ -472,7 +474,9 @@ test('atomic archive commit marks videos whose hive reference is missing from th
   const archive = await makeArchive('backup-orphan-video', 'state without the referenced hive', 'hive-no-longer-present');
   const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
   assert.deepEqual(staged.session.orphanVideoIds, ['video-1']);
-  await Restore.commitStagedArchive(db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true);
+  assert.equal(committed.importedVideoCount, 1);
+  assert.equal(committed.orphanedVideoCount, 1);
   const importedVideo = await get(db, 'entrance_media', 'video-1');
   assert.equal(importedVideo.hiveId, 'hive-no-longer-present');
   assert.equal(importedVideo.orphanedHiveReference, true);
