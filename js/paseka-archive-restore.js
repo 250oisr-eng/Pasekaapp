@@ -463,8 +463,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
     fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
   }
-  if (typeof knownHistory.importedMediaFingerprint !== 'string' ||
-      mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
+  if (typeof knownHistory.importedMediaFingerprint !== 'string') {
+    fail('ROLLBACK_MEDIA_BASELINE_MISSING', 'This import predates video change protection. Rollback is disabled to avoid deleting videos that may have been added later.');
+  }
+  if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
   const snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
