@@ -37,11 +37,7 @@ async function checksum(blob, cryptoProvider) {
   if (!root.PasekaSha256 || typeof root.PasekaSha256.hashBlobHex !== 'function') {
     fail('MEDIA_CRYPTO_UNAVAILABLE', 'Incremental SHA-256 is unavailable.');
   }
-  try {
-    return await root.PasekaSha256.hashBlobHex(blob);
-  } catch (error) {
-    fail('MEDIA_CRYPTO_UNAVAILABLE', 'The image bytes cannot be hashed safely.');
-  }
+  return root.PasekaSha256.hashBlobHex(blob);
 }
 function requestResult(request) {
   return new Promise((resolve, reject) => {
