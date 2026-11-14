@@ -8,6 +8,7 @@ const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8
 const mediaReferenceSwitchSource = await readFile(new URL('../js/paseka-media-reference-switch.js', import.meta.url), 'utf8');
 const archiveRestoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
 const sha256Source = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
+new Function(sha256Source)();
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
