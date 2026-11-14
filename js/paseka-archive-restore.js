@@ -548,7 +548,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
-  const snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
+  let snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
   const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
       rollbackSession.stagedCount !== rollbackSession.totalEntries ||
@@ -589,6 +589,28 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     if (restoredState.auditLog.length > 500) restoredState.auditLog = restoredState.auditLog.slice(-500);
     const validationResult = await validateState(restoredState);
     if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
+  }
+
+  // Re-read and re-hash snapshot media after all caller-supplied async
+  // validation. This closes the Phase A validation window without keeping a
+  // readwrite transaction alive across Blob I/O.
+  const finalSnapshotReadTx = db.transaction(STAGING_STORE, 'readonly');
+  const finalSnapshotReadDone = transactionDone(finalSnapshotReadTx);
+  const finalSnapshotRows = await requestValue(finalSnapshotReadTx.index('sessionId').getAll(rollbackSessionId));
+  await finalSnapshotReadDone;
+  snapshotRecords = (finalSnapshotRows || []).filter(record => record && record.sessionId === rollbackSessionId);
+  if (snapshotRecords.length !== rollbackSession.totalEntries + 1) {
+    fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
+  }
+  for (const item of snapshotRecords.filter(record => record?.kind === 'rollback_video')) {
+    const expectedSnapshotHash = phaseASnapshotHashes.get(item.id);
+    if (!item.record?.blob || !expectedSnapshotHash) {
+      fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable, verified Blob.');
+    }
+    const actualSnapshotHash = await sha256BlobHex(item.record.blob, cryptoProvider);
+    if (actualSnapshotHash !== expectedSnapshotHash) {
+      fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot changed after validation. Rollback was cancelled.');
+    }
   }
 
   const restoredVideos = [];
