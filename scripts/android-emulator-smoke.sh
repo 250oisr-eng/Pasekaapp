@@ -17,7 +17,7 @@ if [[ -z "$APP_PID" ]]; then
   exit 1
 fi
 
-CRASH_LOG="$(adb logcat -d -t 5000 | grep -E 'FATAL EXCEPTION|Fatal signal [0-9]+ \\(' | grep -E 'ru\\.paseka\\.journal|Process: ru\\.paseka\\.journal' || true)"
+CRASH_LOG="$(adb logcat -d -t 5000 | grep -E 'FATAL EXCEPTION|Fatal signal [0-9]+ \(' | grep -E 'ru\.paseka\.journal|Process: ru\.paseka\.journal' || true)"
 if [[ -n "$CRASH_LOG" ]]; then
   printf '%s\n' "$CRASH_LOG"
   echo "Fatal app crash detected"
