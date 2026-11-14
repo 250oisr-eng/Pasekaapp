@@ -2568,6 +2568,14 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
+test('journal and plant screens hydrate IndexedDB media and release object URLs before rerender', () => {
+  assert.ok(html.includes('PasekaMediaRenderer.hydrate(mediaHost,record.media||[],db,window.crypto)'));
+  assert.ok(html.includes('PasekaMediaRenderer.hydrate(card,item.media||[],db,window.crypto)'));
+  assert.ok(html.includes('PasekaMediaRenderer.releaseContainer(host)'));
+  assert.ok(html.includes('data-media-index'));
+  assert.ok(html.includes('PasekaMediaRenderer.releaseContainer(host);'));
+});
+
 test('media renderer is loaded after its store and cached for offline use', () => {
   const storeIndex=html.indexOf('<script src="./js/paseka-media-store.js"></script>');
   const rendererIndex=html.indexOf('<script src="./js/paseka-media-renderer.js"></script>');
