@@ -6,7 +6,7 @@ function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.
 function done(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('IndexedDB transaction failed.'));tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted.'))})}
 function key(c){return [c.collection,c.entityId,c.mediaIndex].join(':')}
 function locate(state,c){const list=state?.[c.collection];if(!Array.isArray(list))return null;let entity=list.find(x=>x&&x.id===c.entityId);if(!entity&&/^legacy-index-\d+$/.test(c.entityId))entity=list[Number(c.entityId.slice(13))]||null;return entity?.media?.[c.mediaIndex]||null}
-async function sha(blob,cryptoProvider){if(!cryptoProvider?.subtle?.digest)fail('MEDIA_CRYPTO_UNAVAILABLE','SHA-256 is unavailable.');return Array.from(new Uint8Array(await cryptoProvider.subtle.digest('SHA-256',await blob.arrayBuffer())),b=>b.toString(16).padStart(2,'0')).join('')}
+async function sha(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('MEDIA_CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');try{return await root.PasekaSha256.hashBlobHex(blob)}catch(error){fail('MEDIA_CRYPTO_UNAVAILABLE','Stored image bytes cannot be hashed safely.')}}
 async function verify(db,state,plan,migrationId,cryptoProvider){
  if(!db?.objectStoreNames?.contains(BLOBS)||!db.objectStoreNames.contains(JOURNAL))fail('MIGRATION_STORE_UNAVAILABLE','Migration stores are unavailable.');
  if(!state||!plan||!Array.isArray(plan.candidates)||!Array.isArray(plan.sourceCollections))fail('INVALID_MIGRATION_PLAN','A valid dry-run plan and source state are required.');
