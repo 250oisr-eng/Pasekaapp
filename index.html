@@ -1204,7 +1204,7 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos();
-  const isOrphan=x=>x.orphanedHiveReference===true||!S.hives.some(h=>h.id===x.hiveId);
+  const isOrphan=x=>!S.hives.some(h=>h.id===x.hiveId);
   const filtered=hiveId==='__orphaned__'?rows.filter(isOrphan):rows.filter(x=>!hiveId||x.hiveId===hiveId);
   host.innerHTML=filtered.length?filtered.map(x=>{
    const orphan=isOrphan(x);
