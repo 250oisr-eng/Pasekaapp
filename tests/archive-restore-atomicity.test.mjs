@@ -71,6 +71,64 @@ test('staged cleanup validates and deletes within one readwrite transaction', as
   db.close();
 });
 
+test('orphaned staging rows are cleaned when their session header is missing', async () => {
+  const db = await makeDatabase();
+  const tx = db.transaction('archive_staging', 'readwrite');
+  tx.objectStore('archive_staging').put({
+    id: 'orphan-1:video:lost-header',
+    sessionId: 'orphan-1',
+    kind: 'video',
+    blob: new Blob(['orphan'])
+  });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('orphan setup failed'));
+  });
+
+  assert.equal(await api.discardArchiveRestoreSession(db, 'orphan-1'), true);
+  const verify = db.transaction('archive_staging', 'readonly');
+  const remaining = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('archive_staging').index('sessionId').getAll('orphan-1');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(remaining.length, 0);
+  db.close();
+});
+
+test('orphaned staging rows referenced by archive history are preserved', async () => {
+  const db = await makeDatabase();
+  const tx = db.transaction(['archive_staging', 'archive_history'], 'readwrite');
+  tx.objectStore('archive_staging').put({
+    id: 'orphan-referenced:state',
+    sessionId: 'orphan-referenced',
+    kind: 'state',
+    blob: new Blob(['state'])
+  });
+  tx.objectStore('archive_history').put({
+    backupId: 'backup-referenced',
+    status: 'committed',
+    importSessionId: 'orphan-referenced'
+  });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('referenced orphan setup failed'));
+  });
+
+  await assert.rejects(
+    api.discardArchiveRestoreSession(db, 'orphan-referenced'),
+    error => error.code === 'ORPHANED_STAGING_REFERENCED'
+  );
+  const verify = db.transaction('archive_staging', 'readonly');
+  const remaining = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('archive_staging').index('sessionId').getAll('orphan-referenced');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(remaining.length, 1);
+  db.close();
+});
+
 test('committed imports remain protected by the same atomic cleanup transaction', async () => {
   const db = await makeDatabase();
   await seed(db, { id: 'committed-1', sessionId: 'committed-1', kind: 'session', status: 'committed' });
