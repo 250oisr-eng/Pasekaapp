@@ -1221,3 +1221,45 @@ test('explicit staging finalization aborts if a concurrent writer changes the ve
   db.close();
   secondTabDb.close();
 });
+
+
+test('concurrent finalizers converge on the same ready staging session', async () => {
+  const db = await openTestDb('paseka-stage-concurrent-finalize');
+  const archive = await makeArchive('backup-concurrent-finalize');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  delete header.completedAt;
+  await put(db, 'archive_staging', header);
+
+  let waiting = 0, releaseHash;
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let notifyBoth;
+  const bothHashing = new Promise(resolve => { notifyBoth = resolve; });
+  const gatedArchive = {
+    ...Archive,
+    async hashBlobChunks(...args) {
+      const result = await Archive.hashBlobChunks(...args);
+      if (waiting < 2) {
+        waiting++;
+        if (waiting === 2) notifyBoth();
+        await hashGate;
+      }
+      return result;
+    }
+  };
+
+  const first = Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, gatedArchive, () => true);
+  const second = Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, gatedArchive, () => true);
+  await bothHashing;
+  releaseHash();
+  const [a, b] = await Promise.all([first, second]);
+
+  assert.equal(a.status, 'ready');
+  assert.equal(b.status, 'ready');
+  assert.equal(a.completedAt, b.completedAt, 'both callers must observe the same committed finalization');
+  const stored = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(stored.status, 'ready');
+  assert.equal(stored.completedAt, a.completedAt);
+  db.close();
+});
