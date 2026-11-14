@@ -4,7 +4,9 @@ import { IDBFactory } from 'fake-indexeddb';
 import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
+const shaSource = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
 const source = await readFile(new URL('../js/paseka-media-store.js', import.meta.url), 'utf8');
+new Function(shaSource)();
 new Function(source)();
 const Media = globalThis.PasekaMediaStore;
 
