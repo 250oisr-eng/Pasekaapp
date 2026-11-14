@@ -529,7 +529,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <input id="entranceVideoInput" type="file" accept="video/*" capture="environment" onchange="handleEntranceVideoFile(this.files);this.value='';">
   <div id="entranceVideoStatus" class="muted" aria-live="polite">Выбери улей, затем сними видео или выбери файл из галереи.</div>
  </div>
- <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Записи ставятся в локальную очередь. Сервер анализа ещё не подключён: передача и автоматическое удаление пока отключены.</div><div id="entranceVideoList"></div></div>
+ <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Записи ставятся в локальную очередь. Сервер анализа ещё не подключён: передача и автоматическое удаление пока отключены.</div><div id="entranceVideoList" aria-live="polite"></div></div>
 </section>
 <section id="hiveDetail" class="panel"><div id="selectedHivePanel" style="display:none">
   <div class="card hive-summary-card">
