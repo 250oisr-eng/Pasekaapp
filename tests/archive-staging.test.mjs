@@ -261,7 +261,7 @@ test('missing staged video is rejected before restore and preserves the live jou
   });
   await assert.rejects(
     Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
-    { code: 'STAGING_CONTENT_MISSING' }
+    { code: 'STAGING_ENTRY_SET_INVALID' }
   );
   assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-missing-video');
   db.close();
@@ -283,7 +283,7 @@ test('staged archive rejects unknown extra entry kinds', async () => {
   });
   await assert.rejects(
     Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
-    { code: 'STAGING_FINGERPRINT_SET_INVALID' }
+    { code: 'STAGING_ENTRY_SET_INVALID' }
   );
   db.close();
 });
