@@ -1,6 +1,9 @@
 name: Generate npm lockfile artifact
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/lockfile-bootstrap.yml'
   push:
     paths:
       - '.github/workflows/lockfile-bootstrap.yml'
