@@ -98,3 +98,23 @@ test('rejects invalid chunk sizes and unreadable Blob inputs', async () => {
   await assert.rejects(hashBlobHex(blob(new Uint8Array([1])), { chunkBytes: CHUNK_BYTES + 1 }), RangeError);
   await assert.rejects(hashBlobHex({ size: 1 }), { code: 'SHA256_BLOB_UNAVAILABLE' });
 });
+
+
+test('preserves partial blocks when Blob chunks are not multiples of 64 bytes', async () => {
+  const bytes = Uint8Array.from({ length: 100 }, (_, index) => (index * 19 + 7) & 0xff);
+  assert.equal(
+    await hashBlobHex(blob(bytes), { chunkBytes: 37 }),
+    referenceHash(bytes)
+  );
+});
+
+test('keeps simultaneous SHA-256 operations isolated', async () => {
+  const first = Uint8Array.from({ length: 384 * 1024 + 17 }, (_, index) => (index * 11 + 3) & 0xff);
+  const second = Uint8Array.from({ length: 256 * 1024 + 29 }, (_, index) => (index * 23 + 5) & 0xff);
+  const [firstDigest, secondDigest] = await Promise.all([
+    hashBlobHex(blob(first), { chunkBytes: 128 * 1024 + 3 }),
+    hashBlobHex(blob(second), { chunkBytes: 96 * 1024 + 5 })
+  ]);
+  assert.equal(firstDigest, referenceHash(first));
+  assert.equal(secondDigest, referenceHash(second));
+});
