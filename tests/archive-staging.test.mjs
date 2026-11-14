@@ -238,3 +238,17 @@ test('staged archive checksums are reverified before staged content is returned'
   );
   db.close();
 });
+
+
+test('invalid archive is rejected before any staging session is created', async () => {
+  const db = await openTestDb('paseka-stage-invalid-input');
+  const archive = await makeArchive('backup-invalid-input');
+  const bytes = new Uint8Array(await archive.arrayBuffer());
+  bytes[bytes.length - 1] ^= 0xff;
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, new Blob([bytes]), webcrypto, Archive, () => true),
+    { code: 'CHECKSUM_MISMATCH' }
+  );
+  assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 0);
+  db.close();
+});
