@@ -392,3 +392,102 @@ test('rollback detects changes to orphaned hive reference metadata', async () =>
   }, async () => true), error => error.code === 'ROLLBACK_MEDIA_CHANGED');
   db.close();
 });
+
+
+function deferred() {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+}
+
+function gatedCrypto(expectedCalls) {
+  const started = deferred();
+  const release = deferred();
+  let calls = 0;
+  return {
+    started: started.promise,
+    release: release.resolve,
+    getRandomValues(bytes) { bytes.fill(12); return bytes; },
+    async digest(_, data) {
+      calls++;
+      if (calls >= expectedCalls) started.resolve();
+      await release.promise;
+      const hash = createHash('sha256').update(Buffer.from(data)).digest();
+      return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+    }
+  };
+}
+
+test('rollback rechecks fresh history after Phase A validation', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const cryptoProvider = gatedCrypto(1);
+  const pending = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
+  await cryptoProvider.started;
+
+  const mutation = db.transaction('archive_history', 'readwrite');
+  const historyStore = mutation.objectStore('archive_history');
+  const historyRequest = historyStore.get('backup-1');
+  historyRequest.onsuccess = () => historyStore.put({ ...historyRequest.result, rollbackSessionId: 'replaced-session' });
+  await new Promise((resolve, reject) => {
+    mutation.oncomplete = resolve;
+    mutation.onabort = mutation.onerror = () => reject(mutation.error || new Error('history mutation failed'));
+  });
+  cryptoProvider.release();
+
+  await assert.rejects(pending, error => error.code === 'ROLLBACK_NOT_AVAILABLE');
+  const verify = db.transaction('main', 'readonly');
+  const state = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('main').get('state');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(state.meta.revisionId, 'imported-revision');
+  db.close();
+});
+
+test('only one of two concurrent rollbacks can consume the same snapshot', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const cryptoProvider = gatedCrypto(2);
+  const first = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
+  const second = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
+  await cryptoProvider.started;
+  cryptoProvider.release();
+
+  const results = await Promise.allSettled([first, second]);
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  assert.equal(results.filter(result => result.status === 'rejected').length, 1);
+  const rejected = results.find(result => result.status === 'rejected');
+  assert.ok(['ROLLBACK_NOT_AVAILABLE', 'ROLLBACK_SNAPSHOT_MISSING', 'ROLLBACK_SNAPSHOT_CHANGED'].includes(rejected.reason.code));
+  const verify = db.transaction(['main', 'archive_history', 'archive_staging'], 'readonly');
+  const [state, history, snapshot] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_history').get('backup-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get('rollback-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId.length > 0, true);
+  assert.equal(history.status, 'reverted');
+  assert.equal(snapshot, undefined);
+  db.close();
+});
+
+test('rollback refuses legacy videos without a saved content hash', async () => {
+  const db = await makeDatabase();
+  const importedVideo = await seedRollback(db);
+  const tx = db.transaction('entrance_media', 'readwrite');
+  tx.objectStore('entrance_media').put({ ...importedVideo, blobSha256: undefined });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('legacy media mutation failed'));
+  });
+
+  await assert.rejects(api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
+    getRandomValues(bytes) { bytes.fill(13); return bytes; },
+    async digest(_, data) {
+      const hash = createHash('sha256').update(Buffer.from(data)).digest();
+      return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+    }
+  }, async () => true), error => error.code === 'ROLLBACK_MEDIA_HASH_MISSING');
+  db.close();
+});
