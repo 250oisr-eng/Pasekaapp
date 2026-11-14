@@ -1,7 +1,7 @@
 (function (root) {
 'use strict';
 
-const DATA_IMAGE=/^data:image\/(?:jpeg|png|gif|webp|avif|bmp|heic|heif);base64,[a-z0-9+/]*={0,2}$/i;
+const DATA_IMAGE=/^data:image\/(?:jpeg|png|gif|webp|avif|bmp|heic|heif);base64,[a-z0-9+/]+={0,2}$/i;
 
 function fail(code,message){
   const error=new Error(message||code);
