@@ -91,8 +91,7 @@ async function putImage(db, input, cryptoProvider, options = {}) {
   const done = transactionResult(tx);
   const store = tx.objectStore(STORE);
   try {
-    await requestResult(store.add(record));
-    await done;
+    await Promise.all([requestResult(store.add(record)), done]);
     return metadataOf(record);
   } catch (error) {
     try { tx.abort(); } catch (abortError) { /* transaction may already be complete */ }
@@ -105,8 +104,7 @@ async function getImage(db, id, cryptoProvider, options = {}) {
   assertId(id);
   const tx = db.transaction(STORE, 'readonly');
   const done = transactionResult(tx);
-  const record = await requestResult(tx.objectStore(STORE).get(id));
-  await done;
+  const [record] = await Promise.all([requestResult(tx.objectStore(STORE).get(id)), done]);
   if (!record) return null;
   if (!record.blob || record.sizeBytes !== record.blob.size || record.mimeType !== record.blob.type) {
     fail('IMAGE_METADATA_MISMATCH', 'Stored image metadata does not match its Blob.');
@@ -121,8 +119,7 @@ async function listImages(db) {
   assertDatabase(db);
   const tx = db.transaction(STORE, 'readonly');
   const done = transactionResult(tx);
-  const records = await requestResult(tx.objectStore(STORE).getAll());
-  await done;
+  const [records] = await Promise.all([requestResult(tx.objectStore(STORE).getAll()), done]);
   return (records || []).map(metadataOf).sort((a, b) =>
     String(b.createdAt).localeCompare(String(a.createdAt)) || a.id.localeCompare(b.id));
 }
