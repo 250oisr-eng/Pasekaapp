@@ -3418,7 +3418,6 @@ async function downloadFullArchive(){
 }
 
 
-let pendingFullArchiveRestore = null;
 function validateFullArchiveImportState(state) {
   validateBackupState(state);
   assertRawBackupIntegrity(state);
@@ -3451,7 +3450,7 @@ async function prepareFullArchiveRestore() {
   if (button) button.disabled = true;
   $('fullArchiveRestorePreview').hidden = true;
   $('fullArchiveRestoreActions').hidden = true;
-  pendingFullArchiveRestore = null;
+  window.__pasekaPendingFullArchiveRestore = null;
   try {
     await saveQueue;
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения.');
@@ -3465,7 +3464,7 @@ async function prepareFullArchiveRestore() {
       db, file, window.crypto, PasekaArchive, validateFullArchiveImportState,
       { onProgress: progress => setFullArchiveRestoreStatus('Проверка и подготовка архива: ' + progress.staged + ' из ' + progress.total + ' элементов…') }
     );
-    pendingFullArchiveRestore = { sessionId: staged.session.sessionId, expectedRevision };
+    window.__pasekaPendingFullArchiveRestore = { sessionId: staged.session.sessionId, expectedRevision };
     showFullArchiveRestorePreview(staged.session);
     setFullArchiveRestoreStatus(staged.alreadyStaged ? 'Ранее проверенный архив найден во временной области.' : 'Проверка завершена. Рабочие данные не менялись.');
     await renderArchiveImportHistory();
@@ -3486,19 +3485,19 @@ async function resumeFullArchiveRestore(sessionId) {
     if (expectedRevision !== (S.meta?.revisionId ?? null)) throw new Error('Рабочая база изменилась. Обнови страницу и повтори.');
     setFullArchiveRestoreStatus('Повторно проверяю временную копию перед восстановлением…');
     const staged = await PasekaArchiveRestore.getStagedArchive(db, sessionId, window.crypto, PasekaArchive, validateFullArchiveImportState);
-    pendingFullArchiveRestore = { sessionId, expectedRevision };
+    window.__pasekaPendingFullArchiveRestore = { sessionId, expectedRevision };
     showFullArchiveRestorePreview(staged.session);
     setFullArchiveRestoreStatus('Временная копия повторно проверена. Рабочие данные не менялись.');
   } catch (error) {
-    pendingFullArchiveRestore = null;
+    window.__pasekaPendingFullArchiveRestore = null;
     setFullArchiveRestoreStatus('Не удалось открыть подготовленный архив: ' + (error?.message || error));
   }
 }
 async function cancelFullArchiveRestore() {
-  if (!pendingFullArchiveRestore) return;
+  if (!window.__pasekaPendingFullArchiveRestore) return;
   try {
-    await PasekaArchiveRestore.discardArchiveRestoreSession(db, pendingFullArchiveRestore.sessionId);
-    pendingFullArchiveRestore = null;
+    await PasekaArchiveRestore.discardArchiveRestoreSession(db, window.__pasekaPendingFullArchiveRestore.sessionId);
+    window.__pasekaPendingFullArchiveRestore = null;
     $('fullArchiveRestorePreview').hidden = true;
     $('fullArchiveRestoreActions').hidden = true;
     setFullArchiveRestoreStatus('Подготовленная временная копия удалена. Рабочие данные не менялись.');
@@ -3523,7 +3522,7 @@ async function prepareMigratedArchiveState(state) {
   }
 }
 async function commitFullArchiveRestore() {
-  if (!pendingFullArchiveRestore) return;
+  if (!window.__pasekaPendingFullArchiveRestore) return;
   if (!confirm('Заменить текущую пасеку содержимым полного архива? Текущие данные и видео будут сохранены во временной точке отката.')) return;
   const actions = $('fullArchiveRestoreActions');
   if (actions) actions.hidden = true;
@@ -3531,19 +3530,19 @@ async function commitFullArchiveRestore() {
     await saveQueue;
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Восстановление остановлено.');
     const live = await readMain();
-    if ((live?.meta?.revisionId ?? null) !== pendingFullArchiveRestore.expectedRevision) {
+    if ((live?.meta?.revisionId ?? null) !== window.__pasekaPendingFullArchiveRestore.expectedRevision) {
       throw new Error('Рабочая база изменилась после проверки архива. Повторно проверь архив перед восстановлением.');
     }
     setFullArchiveRestoreStatus('Повторно проверяю архив и атомарно заменяю данные…');
     const result = await PasekaArchiveRestore.commitStagedArchive(
-      db, pendingFullArchiveRestore.sessionId, pendingFullArchiveRestore.expectedRevision,
+      db, window.__pasekaPendingFullArchiveRestore.sessionId, window.__pasekaPendingFullArchiveRestore.expectedRevision,
       window.crypto, PasekaArchive, validateFullArchiveImportState, prepareMigratedArchiveState
     );
     S = result.state;
     lastPersistedRevision = S.meta?.revisionId || null;
     autoBackupRecovered = false;
     autoBackupInfo = await readAutoBackup();
-    pendingFullArchiveRestore = null;
+    window.__pasekaPendingFullArchiveRestore = null;
     $('fullArchiveRestorePreview').hidden = true;
     $('fullArchiveFile').value = '';
     render();
@@ -3551,7 +3550,7 @@ async function commitFullArchiveRestore() {
     await renderArchiveImportHistory();
   } catch (error) {
     setFullArchiveRestoreStatus('Восстановление не выполнено: ' + (error?.message || error) + ' Рабочая база не должна быть заменена частично.');
-    if (pendingFullArchiveRestore) actions.hidden = false;
+    if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
   }
 }
 async function rollbackFullArchiveImport(backupId) {
@@ -3605,7 +3604,7 @@ async function renderArchiveImportHistory() {
         if (!confirm('Удалить эту временную копию архива? Рабочие данные не изменятся.')) return;
         try {
           await PasekaArchiveRestore.discardArchiveRestoreSession(db, session.sessionId);
-          if (pendingFullArchiveRestore?.sessionId === session.sessionId) pendingFullArchiveRestore = null;
+          if (window.__pasekaPendingFullArchiveRestore?.sessionId === session.sessionId) window.__pasekaPendingFullArchiveRestore = null;
           await renderArchiveImportHistory();
         } catch (error) { setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + (error?.message || error)); }
       });
