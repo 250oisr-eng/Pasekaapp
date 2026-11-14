@@ -15,7 +15,7 @@ function validGpsTimestamp(value){
  const [,year,month,day,hour,minute,second,zone,sign,offsetHour,offsetMinute]=match;
  const y=Number(year),m=Number(month),d=Number(day),h=Number(hour),min=Number(minute),sec=Number(second),date=new Date(Date.UTC(y,m-1,d));
  if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d||h>23||min>59||sec>59)return false;
- if(zone!=='Z'&&(Number(offsetHour)>23||Number(offsetMinute)>59))return false;
+ if(zone!=='Z'&&(Number(offsetHour)>14||Number(offsetMinute)>59||(Number(offsetHour)===14&&Number(offsetMinute)!==0)))return false;
  return Number.isFinite(Date.parse(value));
 }
 function buildPesticideIncidentDraft(input,hives,media,makeId,now){
