@@ -1145,8 +1145,9 @@ test('explicit staging finalization refuses a missing content record and preserv
 });
 
 test('explicit staging finalization aborts if a concurrent writer changes the verified revision', async () => {
-  const db = await openTestDb('paseka-stage-finalize-write-race');
-  const secondTabDb = await openTestDb('paseka-stage-finalize-write-race', db._factory);
+  const factory = new IDBFactory();
+  const db = await openTestDb('paseka-stage-finalize-write-race', factory);
+  const secondTabDb = await openTestDb('paseka-stage-finalize-write-race', factory);
   const archive = await makeArchive('backup-finalize-write-race');
   const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
   const header = await get(db, 'archive_staging', staged.session.sessionId);
