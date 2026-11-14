@@ -2697,5 +2697,7 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
   assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
   assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  assert.ok(html.includes('function archiveRestoreErrorText(error)'));
+  assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
   assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
 });
