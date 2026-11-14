@@ -141,3 +141,45 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+  emulator-smoke:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 35, 36]
+        target: [google_apis]
+        arch: [x86_64]
+    steps:
+      - name: Download debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: paseka-debug-apk-capacitor-8
+          path: artifacts
+      - name: Boot Android emulator and smoke-test app
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          profile: pixel_2
+          disable-animations: true
+          emulator-boot-timeout: 900
+          script: |
+            set -euo pipefail
+            adb install artifacts/app-debug.apk
+            adb logcat -c
+            adb shell monkey -p ru.paseka.journal 1
+            sleep 20
+            if ! adb shell pidof ru.paseka.journal >/dev/null; then
+              echo "Paseka process is not running after launch"
+              adb logcat -d -t 5000
+              exit 1
+            fi
+            if adb logcat -d -t 5000 | grep -E "FATAL EXCEPTION|Fatal signal [0-9]+ \\(" | grep -E "ru\\.paseka\\.journal|Process: ru\\.paseka\\.journal"; then
+              echo "Fatal app crash detected"
+              exit 1
+            fi
+            echo "Paseka launch smoke test passed on API ${{ matrix.api-level }}"
