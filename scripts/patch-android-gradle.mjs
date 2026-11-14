@@ -6,21 +6,21 @@ const AGP_VERSION = '8.13.0';
 const GRADLE_VERSION = '8.14.3';
 
 export function patchAndroidGradleSources(buildGradle, wrapperProperties) {
-  const agpPattern = /(classpath\\s+['"]com\\.android\\.tools\\.build:gradle:)[^'"]+(['"])/g;
+  const agpPattern = /(classpath\s+['"]com\.android\.tools\.build:gradle:)[^'"]+(['"])/g;
   const agpMatches = [...buildGradle.matchAll(agpPattern)];
   if (agpMatches.length !== 1) {
     throw new Error('Expected exactly one Android Gradle Plugin classpath declaration; found ' + agpMatches.length + '. Refusing to guess the generated project format.');
   }
   const patchedBuildGradle = buildGradle.replace(agpPattern, '$1' + AGP_VERSION + '$2');
 
-  const wrapperPattern = /^distributionUrl=.*gradle-[^/\\s]+-(?:all|bin)\\.zip.*$/gm;
+  const wrapperPattern = /^distributionUrl=.*gradle-[^/\s]+-(?:all|bin)\.zip.*$/gm;
   const wrapperMatches = [...wrapperProperties.matchAll(wrapperPattern)];
   if (wrapperMatches.length !== 1) {
     throw new Error('Expected exactly one Gradle wrapper distribution URL; found ' + wrapperMatches.length + '. Refusing to guess the generated project format.');
   }
   const patchedWrapper = wrapperProperties.replace(
     wrapperPattern,
-    'distributionUrl=https\\\\://services.gradle.org/distributions/gradle-' + GRADLE_VERSION + '-all.zip'
+    'distributionUrl=https\\://services.gradle.org/distributions/gradle-' + GRADLE_VERSION + '-all.zip'
   );
 
   if (!patchedBuildGradle.includes('com.android.tools.build:gradle:' + AGP_VERSION) ||
