@@ -16,7 +16,7 @@ function validate(db,candidate,migrationId,verifiedItem,revision,newRevision){
  if(typeof revision!=='string'||!revision||typeof newRevision!=='string'||!newRevision||revision===newRevision)fail('INVALID_REVISION','Distinct current and next revisions are required.');
 }
 function decodeDataUrl(value){
- const match=typeof value==='string'&&/^data:(image\\/[a-z0-9.+-]+);base64,([a-z0-9+/]*={0,2})$/i.exec(value);
+ const match=typeof value==='string'&&/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/]*={0,2})$/i.exec(value);
  if(!match)fail('SOURCE_INVALID','The legacy image data URL is invalid.');
  let binary;try{binary=atob(match[2])}catch(e){fail('SOURCE_INVALID','The legacy image data URL cannot be decoded.')}
  const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
