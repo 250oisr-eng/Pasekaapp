@@ -2706,6 +2706,7 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('Эти видео сохранятся без привязки; после импорта их можно найти фильтром «Видео без найденного улья».'));
   assert.ok(html.includes('Видео без найденного улья'));
   assert.ok(html.includes('Фильтр видео летка'));
+  assert.ok(html.includes('title="Все видео, видео без найденного улья или видео выбранного улья"'));
   assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
   assert.ok(html.includes('function archiveRestoreErrorText(error)'));
   assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
