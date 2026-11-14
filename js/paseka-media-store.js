@@ -75,12 +75,16 @@ async function putImage(db, input, cryptoProvider, options = {}) {
       (typeof input.capturedAt !== 'string' || input.capturedAt.length > 40 || !Number.isFinite(Date.parse(input.capturedAt)))) {
     fail('INVALID_IMAGE_METADATA', 'Image capture date is invalid.');
   }
-  const sha256 = await checksum(input.blob, cryptoProvider);
+  // Snapshot the immutable Blob reference before awaiting Web Crypto. The
+  // caller may replace input.blob while digest() is pending; storing that new
+  // Blob with the old digest would create a false integrity record.
+  const blob = input.blob;
+  const sha256 = await checksum(blob, cryptoProvider);
   const record = {
     id: input.id,
-    blob: input.blob,
-    mimeType: input.blob.type,
-    sizeBytes: input.blob.size,
+    blob,
+    mimeType: blob.type,
+    sizeBytes: blob.size,
     name: input.name || '',
     capturedAt: input.capturedAt || null,
     createdAt: new Date().toISOString(),
