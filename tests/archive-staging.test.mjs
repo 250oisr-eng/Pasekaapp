@@ -535,7 +535,7 @@ test('full archive export, staged import, atomic rollback round-trip preserves s
 });
 
 
-test('archive staging hashes legacy video Blob bytes inside the baseline transaction', async () => {
+test('archive staging hashes legacy video Blob bytes outside IndexedDB write transactions', async () => {
   const db = await openTestDb('paseka-stage-legacy-video-hash');
   const legacyBlob = new Blob(['legacy video bytes'], { type: 'video/mp4' });
   await put(db, 'entrance_media', {
@@ -567,4 +567,43 @@ test('archive staging rejects a legacy video whose persisted checksum disagrees 
   assert.equal((await get(db, 'entrance_media', 'tampered-video')).blobSha256, '0'.repeat(64));
   assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 0);
   db.close();
+});
+
+
+test('archive staging does not open a write transaction while hashing legacy media', async () => {
+  const db = await openTestDb('paseka-stage-hash-outside-write');
+  const legacyBlob = new Blob(['legacy bytes'], { type: 'video/mp4' });
+  await put(db, 'entrance_media', { id: 'legacy-video', hiveId: 'hive-old', blob: legacyBlob });
+  const archive = await makeArchive('backup-hash-outside-write');
+  const modes = [];
+  const observedDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      modes.push(args[1] || 'readonly');
+      return db.transaction(...args);
+    }
+  };
+  const originalHash = globalThis.PasekaSha256.hashBlobHex;
+  let announceStarted;
+  let releaseHash;
+  const started = new Promise(resolve => { announceStarted = resolve; });
+  globalThis.PasekaSha256.hashBlobHex = blob => {
+    announceStarted();
+    return new Promise((resolve, reject) => {
+      releaseHash = () => originalHash(blob).then(resolve, reject);
+    });
+  };
+  try {
+    const operation = Restore.stageArchiveForRestore(observedDb, archive, webcrypto, Archive, () => true);
+    await started;
+    assert.ok(modes.length > 0);
+    assert.ok(modes.every(mode => mode === 'readonly'), 'no readwrite transaction may remain open during Blob hashing');
+    releaseHash();
+    const result = await operation;
+    assert.equal(result.session.status, 'ready');
+    assert.ok(modes.includes('readwrite'), 'a short write transaction is opened after hashing');
+  } finally {
+    globalThis.PasekaSha256.hashBlobHex = originalHash;
+    db.close();
+  }
 });
