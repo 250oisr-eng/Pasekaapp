@@ -1370,13 +1370,22 @@ function renderDeadoutModule(){
   return '<div style="padding:12px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>Улей №'+safe(item.hiveNumberAtTime||hive?.number||'—')+'</b><span class="muted">'+safe(item.observedAt)+'</span></div><div class="muted">'+safe(labels.foodStatus[item.foodStatus]||'Корм не оценён')+' · '+safe(labels.moisture[item.moisture]||'Влага не оценена')+'</div><b>Возможные направления проверки</b>'+(candidates?'<ul>'+candidates+'</ul>':'<p class="muted">Недостаточно наблюдений для выделения направления проверки.</p>')+(analysis.checks.length?'<div class="muted">Что ещё проверить: '+safe(analysis.checks.join(' '))+'</div>':'')+(photos?'<div class="row" style="gap:6px;margin-top:8px">'+photos+'</div>':'')+(item.notes?'<p>'+safe(item.notes)+'</p>':'')+'<p class="muted">'+safe(analysis.disclaimer)+'</p></div>';
  }).join('');
 }
-async function saveDeadoutReview(event){
+async async function saveDeadoutReview(event){
  event?.preventDefault?.();
- const input={hiveId:$('deadoutHive').value,observedAt:$('deadoutObservedAt').value,lastAliveDate:$('deadoutLastAlive').value,foodStatus:$('deadoutFood').value,clusterPosition:$('deadoutCluster').value,moisture:$('deadoutMoisture').value,brood:$('deadoutBrood').value,deadBeesInCells:$('deadoutCells').value,varroaEvidence:$('deadoutVarroa').value,queenStatus:$('deadoutQueen').value,rodentEvidence:$('deadoutRodents').value,seasonContext:$('deadoutSeasonContext').value,notes:$('deadoutNotes').value};
- let review;try{review=PasekaDeadout.buildDeadoutReviewDraft(input,S.hives,pendingDeadoutMedia,uid,new Date().toISOString())}catch(error){alert(error.message||'Проверь поля разбора');return}
- const previous=cloneApiaryState();S.deadoutReviews=S.deadoutReviews||[];S.deadoutReviews.push(review);logAudit('deadout_review_created',{reviewId:review.id,hiveId:review.hiveId,observedAt:review.observedAt});
- if(!await save()){S=previous;render();return}
- $('deadoutForm').reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
+ if(window.__pasekaDeadoutSaveBusy)return;
+ window.__pasekaDeadoutSaveBusy=true;
+ const form=$('deadoutForm'),submitButton=form?.querySelector('button[type="submit"],button:not([type])');
+ if(submitButton)submitButton.disabled=true;
+ try{
+  const input={hiveId:$('deadoutHive').value,observedAt:$('deadoutObservedAt').value,lastAliveDate:$('deadoutLastAlive').value,foodStatus:$('deadoutFood').value,clusterPosition:$('deadoutCluster').value,moisture:$('deadoutMoisture').value,brood:$('deadoutBrood').value,deadBeesInCells:$('deadoutCells').value,varroaEvidence:$('deadoutVarroa').value,queenStatus:$('deadoutQueen').value,rodentEvidence:$('deadoutRodents').value,seasonContext:$('deadoutSeasonContext').value,notes:$('deadoutNotes').value};
+  let review;try{review=PasekaDeadout.buildDeadoutReviewDraft(input,S.hives,pendingDeadoutMedia,uid,new Date().toISOString())}catch(error){alert(error.message||'Проверь поля разбора');return}
+  const previous=cloneApiaryState();S.deadoutReviews=S.deadoutReviews||[];S.deadoutReviews.push(review);logAudit('deadout_review_created',{reviewId:review.id,hiveId:review.hiveId,observedAt:review.observedAt});
+  if(!await save()){S=previous;render();return}
+  $('deadoutForm').reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
+ }finally{
+  window.__pasekaDeadoutSaveBusy=false;
+  if(submitButton)submitButton.disabled=false;
+ }
 }
 function renderSeasonPlanning(){
  const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()],['inspectionLastDate',today()]];
