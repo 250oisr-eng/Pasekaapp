@@ -2571,7 +2571,11 @@ test('schema 11 migration creates an empty deadout section and preserves existin
 test('full archive export is available separately from the JSON-only backup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v315'"));
+  assert.match(serviceWorker, /const CACHE\s*=\s*['"]paseka-shell-v318['"]/);
+  assert.ok(serviceWorker.includes("const CACHE_PREFIX = 'paseka-shell-'"));
+  assert.ok(serviceWorker.includes("key.startsWith(CACHE_PREFIX) && key !== CACHE"));
+  assert.ok(serviceWorker.includes("caches.match('./index.html')"));
+  assert.ok(serviceWorker.includes("if (response && response.ok)"));
   assert.ok(html.includes('id="downloadFullArchiveButton"'));
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
@@ -2654,7 +2658,7 @@ test('full archive export handler blocks export when the latest save failed', as
 });
 
 
-test('IndexedDB v3 upgrades to v7 with archive staging, history, snapshots, image blobs and migration journal', async () => {
+test('IndexedDB v3 upgrades to v8 with archive staging, history, snapshots, image blobs and migration journal', async () => {
   const factory = new IDBFactory();
   const request = factory.open('paseka-upgrade-v3-v6', 3);
   request.onupgradeneeded = () => {
@@ -2672,14 +2676,16 @@ test('IndexedDB v3 upgrades to v7 with archive staging, history, snapshots, imag
     db: null, indexedDB: factory
   };
   await loadFunction('openDB', deps)();
-  assert.equal(deps.db.version, 7);
+  assert.equal(deps.db.version, 8);
   assert.equal(deps.db.objectStoreNames.contains('archive_staging'), true);
   assert.equal(deps.db.objectStoreNames.contains('archive_history'), true);
   assert.equal(deps.db.objectStoreNames.contains('auto_snapshots'), true);
   assert.equal(deps.db.objectStoreNames.contains('media_blobs'), true);
   assert.equal(deps.db.objectStoreNames.contains('media_migration_journal'), true);
   assert.ok(serviceWorker.includes("'./js/paseka-media-migration-engine.js'"));
+  assert.ok(serviceWorker.includes("'./js/paseka-media-reference-switch.js'"));
   const tx = deps.db.transaction('archive_staging', 'readonly');
+  assert.equal(deps.db.objectStoreNames.contains('media_reference_journal'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('sessionId'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('kind'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('backupId'), true);
@@ -2690,7 +2696,7 @@ test('IndexedDB v3 upgrades to v7 with archive staging, history, snapshots, imag
 test('archive staging manager is loaded and cached for offline startup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive-restore.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive-restore.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v315'"));
+  assert.match(serviceWorker, /const CACHE\s*=\s*['"]paseka-shell-v318['"]/);
   assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
 });
 

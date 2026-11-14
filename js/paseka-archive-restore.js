@@ -53,6 +53,101 @@ async function putStagingRecord(db, record) {
 async function updateSession(db, session) {
   await putStagingRecord(db, session);
 }
+async function putStagingEntryAndUpdateSession(db, record, session) {
+  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const store = tx.objectStore(STAGING_STORE);
+  let nextSession = null;
+  let failure = null;
+  const sessionRequest = store.get(session.sessionId || session.id);
+  sessionRequest.onerror = () => {
+    failure = sessionRequest.error || new Error('Could not read the staging session.');
+    try { tx.abort(); } catch (error) {}
+  };
+  sessionRequest.onsuccess = () => {
+    const currentSession = sessionRequest.result;
+    if (!currentSession || currentSession.kind !== 'session' ||
+        !['staging', 'ready'].includes(currentSession.status)) {
+      failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    if (!Number.isSafeInteger(currentSession.stagingEpoch) || currentSession.stagingEpoch < 0) {
+      failure = Object.assign(new Error('Legacy staging sessions must be imported again.'), { code: 'STAGING_LEGACY_SESSION' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    const nextEpoch = currentSession.stagingEpoch + 1;
+    if (!Number.isSafeInteger(nextEpoch)) {
+      failure = Object.assign(new Error('Staging revision limit was exceeded.'), { code: 'STAGING_REVISION_EXHAUSTED' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    const existingRequest = store.get(record.id);
+    existingRequest.onerror = () => {
+      failure = existingRequest.error || new Error('Could not inspect the staged entry.');
+      try { tx.abort(); } catch (error) {}
+    };
+    existingRequest.onsuccess = () => {
+      const existing = existingRequest.result;
+      if (existing && (existing.sessionId !== currentSession.sessionId || existing.kind === 'session')) {
+        failure = Object.assign(new Error('Staging entry identity conflicts with an existing record.'), { code: 'STAGING_ENTRY_ID_CONFLICT' });
+        try { tx.abort(); } catch (error) {}
+        return;
+      }
+      nextSession = {
+        ...currentSession,
+        stagedCount: currentSession.stagedCount + (existing ? 0 : 1),
+        stagingEpoch: nextEpoch
+      };
+      store.put({ ...record, stagingRevision: nextEpoch });
+      store.put(nextSession);
+    };
+  };
+  try {
+    await transactionDone(tx);
+  } catch (error) {
+    throw failure || error;
+  }
+  Object.assign(session, nextSession);
+}
+function stagingMetadataFingerprint(session, records) {
+  const contentRecords = (records || [])
+    .filter(record => record && record.sessionId === session.sessionId && record.kind !== 'session')
+    .map(record => {
+      const revision = record.stagingRevision;
+      const size = Number.isSafeInteger(record.size) ? record.size : record.blob?.size;
+      const chunks = Array.isArray(record.chunkSha256) ? record.chunkSha256 : null;
+      if (typeof record.id !== 'string' || !record.id || !Number.isSafeInteger(revision) ||
+          revision < 1 || !Number.isSafeInteger(size) || size < 0 || !chunks ||
+          chunks.some(hash => typeof hash !== 'string' || !/^[a-f0-9]{64}$/i.test(hash))) {
+        fail('STAGING_FINGERPRINT_METADATA_INVALID', 'Staged entry metadata is incomplete or invalid.');
+      }
+      return [record.id, record.kind, revision, size, chunks];
+    })
+    .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  if (contentRecords.length !== session.stagedCount ||
+      new Set(contentRecords.map(record => record[0])).size !== contentRecords.length) {
+    fail('STAGING_FINGERPRINT_SET_INVALID', 'Staged entry set does not match its session.');
+  }
+  const canonical = JSON.stringify([
+    'PASEKA-STAGING-FINGERPRINT',
+    1,
+    session.sessionId,
+    session.backupId,
+    session.fingerprint,
+    session.stagingEpoch,
+    session.stagedCount,
+    contentRecords
+  ]);
+  // FNV-1a 64-bit: synchronous mutation detector, not an authenticity check.
+  let hash = 0xcbf29ce484222325n;
+  const prime = 0x100000001b3n;
+  for (const byte of new TextEncoder().encode(canonical)) {
+    hash ^= BigInt(byte);
+    hash = BigInt.asUintN(64, hash * prime);
+  }
+  return hash.toString(16).padStart(16, '0');
+}
 async function manifestFingerprint(manifest, cryptoProvider) {
   if (!cryptoProvider || !cryptoProvider.subtle || typeof cryptoProvider.subtle.digest !== 'function') fail('CRYPTO_UNAVAILABLE', 'SHA-256 is unavailable.');
   const bytes = new TextEncoder().encode(JSON.stringify(manifest));
@@ -90,6 +185,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     manifest: checked.manifest,
     totalEntries: checked.videoEntries.length + 1,
     stagedCount: 0,
+    stagingEpoch: 0,
     orphanVideoIds: checked.orphanVideoIds.slice(),
     status: 'staging',
     errorCode: null,
@@ -99,11 +195,14 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   try {
     await putStagingRecord(db, session);
     sessionCreated = true;
-    await putStagingRecord(db, { id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob });
-    session.stagedCount = 1;
-    await updateSession(db, session);
+    const stateManifestEntry = checked.manifest.entries.find(entry => entry.kind === 'state');
+    if (!stateManifestEntry || !Array.isArray(stateManifestEntry.chunkSha256)) fail('STAGING_MANIFEST_MISMATCH', 'State entry checksum metadata is missing.');
+    await putStagingEntryAndUpdateSession(db, {
+      id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob,
+      size: checked.stateBlob.size, chunkSha256: stateManifestEntry.chunkSha256
+    }, session);
     for (const item of checked.videoEntries) {
-      await putStagingRecord(db, {
+      await putStagingEntryAndUpdateSession(db, {
         id: sessionId + ':video:' + item.metadata.id,
         sessionId,
         kind: 'video',
@@ -114,9 +213,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         metadata: item.metadata,
         blob: item.blob,
         orphanedHiveReference: item.orphanedHiveReference
-      });
-      session.stagedCount++;
-      await updateSession(db, session);
+      }, session);
       if (typeof options.onProgress === 'function') options.onProgress({ staged: session.stagedCount, total: session.totalEntries });
     }
     session.status = 'ready';
@@ -154,19 +251,59 @@ function cloneState(value) {
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }
+function mediaRecordsFingerprint(records) {
+  const ordered = (records || []).slice().sort((a, b) =>
+    String(a?.id || '') < String(b?.id || '') ? -1 : String(a?.id || '') > String(b?.id || '') ? 1 : 0
+  );
+  return JSON.stringify(ordered, (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) {
+      return { __blob: true, size: value.size, type: value.type };
+    }
+    return value;
+  });
+}
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
   if (!db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('full_backup') || !db.objectStoreNames.contains('entrance_media')) {
     fail('LIVE_DATABASE_STORES_MISSING', 'The live Paseka database stores are unavailable.');
   }
   if (expectedRevision === undefined) fail('EXPECTED_REVISION_REQUIRED', 'The current database revision is required before restore.');
+
+  // Phase A: all Blob reads, hashing, parsing and state validation happen before
+  // opening the final write transaction. No non-IDB await is allowed in Phase B.
   const staged = await getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState);
-  const rollbackSessionId = randomId(cryptoProvider);
+  let importedState = cloneState(staged.state);
   const now = new Date().toISOString();
-  let tx, stopKeepAlive = null, failure = null, result = null, settled = false;
+  importedState.meta = { ...(importedState.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: now };
+  importedState.auditLog = Array.isArray(importedState.auditLog) ? importedState.auditLog : [];
+  importedState.auditLog.push({ id: 'archive-import-' + sessionId, type: 'backup_restored', at: now, source: 'full_archive', backupId: staged.session.backupId });
+  if (importedState.auditLog.length > 500) importedState.auditLog = importedState.auditLog.slice(-500);
+  const validationResult = await validateState(importedState);
+  if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the staged state before commit.');
+  if (prepareState !== undefined) {
+    if (typeof prepareState !== 'function') fail('STATE_PREPARATION_INVALID', 'The archive state preparation callback is invalid.');
+    const prepared = await prepareState(importedState);
+    if (!prepared || typeof prepared !== 'object' || Array.isArray(prepared)) fail('STATE_PREPARATION_INVALID', 'The archive state preparation callback did not return a valid state.');
+    importedState = cloneState(prepared);
+    const preparedValidation = await validateState(importedState);
+    if (preparedValidation === false) fail('STATE_VALIDATION_FAILED', 'The migrated archive state failed validation.');
+  }
+  const importedHiveIds = new Set(Array.isArray(importedState.hives) ? importedState.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
+  const importedVideos = staged.videos.map(record => ({
+    ...record.metadata,
+    blob: record.blob,
+    orphanedHiveReference: !importedHiveIds.has(record.metadata.hiveId)
+  }));
+  const rollbackSessionId = randomId(cryptoProvider);
+  let tx, failure = null, result = null, settled = false;
+
   return new Promise((resolve, reject) => {
     const rejectOnce = error => {
       if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
       tx = db.transaction(['main', 'full_backup', 'entrance_media', STAGING_STORE, HISTORY_STORE], 'readwrite');
@@ -184,120 +321,97 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       };
       const values = {};
       let pending = Object.keys(reads).length;
-      const abortWith = error => {
-        failure = error;
-        try { tx.abort(); } catch (abortError) { rejectOnce(error); }
-      };
       const process = () => {
-        stopKeepAlive = holdTransactionOpen(tx, stagingStore);
-        (async () => {
-          try {
-            const currentState = values.currentState || null;
-            const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
-            const session = values.session;
-            const records = values.stagedRecords || [];
-            if (values.history && values.history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
-            if (values.history && values.history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
-            if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
-            if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
-            if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
-            if (!session.manifest || !Array.isArray(session.manifest.entries) || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest is invalid.');
-            if (await manifestFingerprint(session.manifest, cryptoProvider) !== session.fingerprint) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest fingerprint is invalid.');
-            if (records.length !== session.totalEntries + 1) fail('STAGING_CONTENT_MISSING', 'Staged entry count does not match the session.');
-            const stateRecords = records.filter(record => record.kind === 'state');
-            const videoRecords = records.filter(record => record.kind === 'video');
-            if (stateRecords.length !== 1) fail('STAGING_CONTENT_MISSING', 'Staged archive must contain exactly one state entry.');
-            const stateRecord = stateRecords[0];
-            const stateEntry = session.manifest.entries.find(entry => entry.kind === 'state');
-            if (!stateRecord?.blob || !stateEntry || stateRecord.blob.size !== stateEntry.size) fail('STAGING_STATE_SIZE_MISMATCH', 'Staged state size does not match its manifest.');
-            if (JSON.stringify(await archiveApi.hashBlobChunks(stateRecord.blob, cryptoProvider)) !== JSON.stringify(stateEntry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged state checksum does not match its manifest.');
-            let wrapper;
-            try { wrapper = JSON.parse(await stateRecord.blob.text()); }
-            catch (error) { fail('STAGING_STATE_INVALID', 'Staged state JSON is invalid.'); }
-            if (!wrapper || wrapper.app !== 'Paseka' || !wrapper.state || typeof wrapper.state !== 'object' || Array.isArray(wrapper.state)) fail('STAGING_STATE_INVALID', 'Staged state wrapper is invalid.');
-            let state = cloneState(wrapper.state);
-            if (state.meta?.schemaVersion !== session.schemaVersion) fail('STAGING_SCHEMA_MISMATCH', 'Staged state schema does not match its session.');
-            const manifestVideos = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
-            if (manifestVideos.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
-            if (records.length !== stateRecords.length + videoRecords.length + 1) fail('STAGING_CONTENT_MISSING', 'Staged archive contains unexpected records.');
-            const importedHiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
-            for (const record of videoRecords) {
-              const entry = manifestVideos.find(item => item.metadata?.id === record.metadata?.id);
-              if (!record.blob || !record.metadata || !entry || entry.path !== record.path || entry.size !== record.size || record.blob.size !== record.size || JSON.stringify(record.metadata) !== JSON.stringify(entry.metadata)) {
-                fail('STAGING_VIDEO_MANIFEST_MISMATCH', 'A staged video does not match its manifest entry.');
-              }
-              if (JSON.stringify(await archiveApi.hashBlobChunks(record.blob, cryptoProvider)) !== JSON.stringify(entry.chunkSha256)) {
-                fail('STAGING_CHECKSUM_MISMATCH', 'Staged video checksum does not match its manifest: ' + record.metadata.id);
-              }
-            }
-            state.meta = { ...(state.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: now };
-            state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
-            state.auditLog.push({ id: 'archive-import-' + sessionId, type: 'backup_restored', at: now, source: 'full_archive', backupId: session.backupId });
-            if (state.auditLog.length > 500) state.auditLog = state.auditLog.slice(-500);
-            const validationResult = await validateState(state);
-            if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the staged state before commit.');
-            if (prepareState !== undefined) {
-              if (typeof prepareState !== 'function') fail('STATE_PREPARATION_INVALID', 'The archive state preparation callback is invalid.');
-              const prepared = await prepareState(state);
-              if (!prepared || typeof prepared !== 'object' || Array.isArray(prepared)) fail('STATE_PREPARATION_INVALID', 'The archive state preparation callback did not return a valid state.');
-              state = cloneState(prepared);
-              const preparedValidation = await validateState(state);
-              if (preparedValidation === false) fail('STATE_VALIDATION_FAILED', 'The migrated archive state failed validation.');
-            }
-
-            const rollbackEntries = (currentState ? 1 : 0) + currentVideos.length;
-            const rollbackSession = {
-              id: rollbackSessionId,
-              sessionId: rollbackSessionId,
-              kind: 'rollback_session',
-              sourceBackupId: session.backupId,
-              createdAt: now,
-              status: 'ready',
-              totalEntries: rollbackEntries,
-              stagedCount: rollbackEntries
-            };
-            stopKeepAlive?.();
-            if (currentState) {
-              backup.put({ at: now, state: currentState }, 'previous');
-              stagingStore.put({ id: rollbackSessionId + ':state', sessionId: rollbackSessionId, kind: 'rollback_state', state: currentState });
-            }
-            stagingStore.put(rollbackSession);
-            for (const oldVideo of currentVideos) {
-              stagingStore.put({
-                id: rollbackSessionId + ':video:' + String(oldVideo.id),
-                sessionId: rollbackSessionId,
-                kind: 'rollback_video',
-                originalId: oldVideo.id,
-                record: oldVideo
-              });
-            }
-            main.put(state, 'state');
-            media.clear();
-            for (const record of videoRecords) media.put({ ...record.metadata, blob: record.blob, orphanedHiveReference: !importedHiveIds.has(record.metadata.hiveId) });
-            const historyRecord = {
-              backupId: session.backupId,
-              fingerprint: session.fingerprint,
-              importedAt: now,
-              status: 'committed',
-              schemaVersion: session.schemaVersion,
-              archiveBytes: session.archiveBytes,
-              videoCount: videoRecords.length,
-              orphanedVideoCount: videoRecords.filter(record => !importedHiveIds.has(record.metadata.hiveId)).length,
-              rollbackSessionId,
-              rollbackAvailable: true,
-              importSessionId: sessionId
-            };
-            historyStore.put(historyRecord);
-            stagingStore.put({ ...session, status: 'committed', committedAt: now, importedRevisionId: state.meta.revisionId, rollbackSessionId });
-            for (const record of records) {
-              if (record.sessionId === sessionId && record.id !== sessionId) stagingStore.delete(record.id);
-            }
-            result = { state, history: historyRecord, rollbackSessionId, previousVideoCount: currentVideos.length, importedVideoCount: videoRecords.length, orphanedVideoCount: videoRecords.filter(record => !importedHiveIds.has(record.metadata.hiveId)).length };
-          } catch (error) {
-            stopKeepAlive?.();
-            abortWith(error);
+        try {
+          const currentState = values.currentState || null;
+          const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
+          const session = values.session;
+          const records = values.stagedRecords || [];
+          if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) {
+            fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
           }
-        })();
+          if (values.history && values.history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
+          if (values.history && values.history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
+          if (!Number.isSafeInteger(session.stagingEpoch) || session.stagingEpoch < 0) fail('STAGING_LEGACY_SESSION', 'This staged import predates revision tracking. Discard it and import the archive again.');
+          if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
+          const contentRecords = records.filter(record => record && record.sessionId === sessionId && record.kind !== 'session');
+          const knownKinds = new Set(['state', 'video']);
+          if (contentRecords.some(record => !knownKinds.has(record.kind))) fail('STAGING_KIND_UNKNOWN', 'Staged archive contains an unsupported entry type.');
+          const revisions = contentRecords.map(record => record.stagingRevision);
+          if (contentRecords.length !== session.stagedCount ||
+              revisions.some(revision => !Number.isSafeInteger(revision) || revision < 1 || revision > session.stagingEpoch) ||
+              new Set(revisions).size !== revisions.length) {
+            fail('STAGING_REVISION_INVALID', 'Staged entry revisions are missing, duplicated, or inconsistent. Import the archive again.');
+          }
+          if (stagingMetadataFingerprint(session, records) !== staged.stagingMetadataFingerprint) {
+            fail('STAGING_CONTENT_CHANGED', 'Staged entries changed after archive verification. Verify the archive again before restoring.');
+          }
+          const expectedIds = new Set([sessionId + ':state', ...staged.videos.map(video => sessionId + ':video:' + video.metadata.id)]);
+          const actualIds = new Set(contentRecords.map(record => record.id));
+          if (expectedIds.size !== contentRecords.length || actualIds.size !== expectedIds.size ||
+              Array.from(expectedIds).some(id => !actualIds.has(id))) {
+            fail('STAGING_RECORD_SET_MISMATCH', 'Staged entry set does not match the verified archive manifest.');
+          }
+          if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
+
+          const rollbackEntries = (currentState ? 1 : 0) + currentVideos.length;
+          const rollbackSession = {
+            id: rollbackSessionId,
+            sessionId: rollbackSessionId,
+            kind: 'rollback_session',
+            sourceBackupId: session.backupId,
+            createdAt: now,
+            status: 'ready',
+            totalEntries: rollbackEntries,
+            stagedCount: rollbackEntries
+          };
+          if (currentState) {
+            backup.put({ at: now, state: currentState }, 'previous');
+            stagingStore.put({ id: rollbackSessionId + ':state', sessionId: rollbackSessionId, kind: 'rollback_state', state: currentState });
+          }
+          stagingStore.put(rollbackSession);
+          for (const oldVideo of currentVideos) {
+            stagingStore.put({
+              id: rollbackSessionId + ':video:' + String(oldVideo.id),
+              sessionId: rollbackSessionId,
+              kind: 'rollback_video',
+              originalId: oldVideo.id,
+              record: oldVideo
+            });
+          }
+          main.put(importedState, 'state');
+          media.clear();
+          for (const record of importedVideos) media.put(record);
+          const historyRecord = {
+            backupId: session.backupId,
+            fingerprint: session.fingerprint,
+            importedAt: now,
+            status: 'committed',
+            schemaVersion: session.schemaVersion,
+            archiveBytes: session.archiveBytes,
+            videoCount: importedVideos.length,
+            orphanedVideoCount: importedVideos.filter(record => record.orphanedHiveReference).length,
+            importedMediaFingerprint: mediaRecordsFingerprint(importedVideos),
+            rollbackSessionId,
+            rollbackAvailable: true,
+            importSessionId: sessionId
+          };
+          historyStore.put(historyRecord);
+          stagingStore.put({ ...session, status: 'committed', committedAt: now, importedRevisionId: importedState.meta.revisionId, rollbackSessionId });
+          for (const record of records) {
+            if (record.sessionId === sessionId && record.id !== sessionId) stagingStore.delete(record.id);
+          }
+          result = {
+            state: importedState,
+            history: historyRecord,
+            rollbackSessionId,
+            previousVideoCount: currentVideos.length,
+            importedVideoCount: importedVideos.length,
+            orphanedVideoCount: importedVideos.filter(record => record.orphanedHiveReference).length
+          };
+        } catch (error) {
+          abortWith(error);
+        }
       };
       for (const [key, request] of Object.entries(reads)) {
         request.onsuccess = () => {
@@ -313,7 +427,6 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       tx.onabort = () => rejectOnce(failure || tx.error || new Error('Atomic archive restore transaction aborted.'));
       tx.onerror = () => rejectOnce(failure || tx.error || new Error('Atomic archive restore transaction failed.'));
     } catch (error) {
-      stopKeepAlive?.();
       rejectOnce(error);
     }
   });
@@ -325,16 +438,99 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     fail('LIVE_DATABASE_STORES_MISSING', 'The live Paseka database stores are unavailable.');
   }
   if (expectedRevision === undefined) fail('EXPECTED_REVISION_REQUIRED', 'The current database revision is required before rollback.');
+  if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before rollback.');
+
+  // Phase A: read and validate the rollback snapshot before opening the final
+  // write transaction. All non-IDB awaits stay outside Phase B.
   const knownHistory = await getHistory(db, backupId);
   if (!knownHistory || knownHistory.status !== 'committed' || !knownHistory.rollbackSessionId || !knownHistory.importSessionId) {
     fail('ROLLBACK_NOT_AVAILABLE', 'There is no committed archive import with an available rollback snapshot.');
   }
   const rollbackSessionId = knownHistory.rollbackSessionId;
+  const readTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readonly');
+  const readStore = readTx.objectStore(STAGING_STORE);
+  const [rollbackSession, records, importSession, phaseAMedia] = await Promise.all([
+    requestValue(readStore.get(rollbackSessionId)),
+    requestValue(readStore.index('sessionId').getAll(rollbackSessionId)),
+    requestValue(readStore.get(knownHistory.importSessionId)),
+    requestValue(readTx.objectStore('entrance_media').getAll())
+  ]);
+  await transactionDone(readTx);
+
+  if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') {
+    fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
+  }
+  if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
+    fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+  }
+  if (typeof knownHistory.importedMediaFingerprint !== 'string') {
+    fail('ROLLBACK_MEDIA_BASELINE_MISSING', 'This import predates video change protection. Rollback is disabled to avoid deleting videos that may have been added later.');
+  }
+  if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
+    fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
+  }
+  const snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
+  const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
+  if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
+      rollbackSession.stagedCount !== rollbackSession.totalEntries ||
+      contentRecords.length !== rollbackSession.totalEntries) {
+    fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot is incomplete.');
+  }
+  const stateRecords = contentRecords.filter(record => record.kind === 'rollback_state');
+  const videoRecords = contentRecords.filter(record => record.kind === 'rollback_video');
+  if (contentRecords.some(record => !['rollback_state', 'rollback_video'].includes(record.kind)) ||
+      stateRecords.length > 1 || stateRecords.length + videoRecords.length !== rollbackSession.totalEntries) {
+    fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot contains unexpected or duplicate entries.');
+  }
+
+  let restoredState = null;
+  if (stateRecords.length === 1) {
+    const stateRecord = stateRecords[0];
+    if (!stateRecord.state || typeof stateRecord.state !== 'object' || Array.isArray(stateRecord.state)) {
+      fail('ROLLBACK_STATE_INVALID', 'The previous state is invalid.');
+    }
+    restoredState = cloneState(stateRecord.state);
+    const preparedAt = new Date().toISOString();
+    restoredState.meta = { ...(restoredState.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: preparedAt };
+    restoredState.auditLog = Array.isArray(restoredState.auditLog) ? restoredState.auditLog : [];
+    restoredState.auditLog.push({ id: 'archive-rollback-' + backupId, type: 'backup_rollback', at: preparedAt, source: 'full_archive', backupId });
+    if (restoredState.auditLog.length > 500) restoredState.auditLog = restoredState.auditLog.slice(-500);
+    const validationResult = await validateState(restoredState);
+    if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
+  }
+
+  const restoredVideos = [];
+  const seenIds = new Set();
+  for (const item of videoRecords) {
+    const record = item.record;
+    if (!record || typeof record.id !== 'string' || !record.id || seenIds.has(record.id)) {
+      fail('ROLLBACK_VIDEO_INVALID', 'The previous video list contains an invalid or duplicate ID.');
+    }
+    seenIds.add(record.id);
+    restoredVideos.push(record);
+  }
+
+  // Recheck a deterministic representation in Phase B. Blob bytes are not
+  // re-hashed here; all snapshot mutations must use the atomic restore path.
+  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
+    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
+  ), (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
+    return value;
+  });
+  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
   const now = new Date().toISOString();
-  let tx, stopKeepAlive = null, failure = null, result = null, settled = false;
+  const revertedRevisionId = restoredState?.meta?.revisionId || null;
+
+  // Phase B: only IndexedDB requests and synchronous checks/mutations.
+  let tx, failure = null, result = null, settled = false;
   return new Promise((resolve, reject) => {
     const rejectOnce = error => {
       if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
       tx = db.transaction(['main', 'full_backup', 'entrance_media', STAGING_STORE, HISTORY_STORE], 'readwrite');
@@ -345,6 +541,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const historyStore = tx.objectStore(HISTORY_STORE);
       const reads = {
         currentState: main.get('state'),
+        currentVideos: media.getAll(),
         history: historyStore.get(backupId),
         rollbackSession: stagingStore.get(rollbackSessionId),
         rollbackRecords: stagingStore.index('sessionId').getAll(rollbackSessionId),
@@ -352,65 +549,65 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       };
       const values = {};
       let pending = Object.keys(reads).length;
-      const abortWith = error => {
-        failure = error;
-        try { tx.abort(); } catch (abortError) { rejectOnce(error); }
-      };
       const process = () => {
-        stopKeepAlive = holdTransactionOpen(tx, stagingStore);
-        (async () => {
-          try {
-            const currentState = values.currentState || null;
-            const history = values.history;
-            const rollbackSession = values.rollbackSession;
-            const records = values.rollbackRecords || [];
-            const importSession = values.importSession;
-            if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId) fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
-            if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
-            if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
-            if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
-            if (records.length !== rollbackSession.totalEntries + 1 || rollbackSession.stagedCount !== rollbackSession.totalEntries) fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot is incomplete.');
-            const stateRecords = records.filter(record => record.kind === 'rollback_state');
-            const videoRecords = records.filter(record => record.kind === 'rollback_video');
-            if (stateRecords.length !== 1 || videoRecords.length + 1 !== rollbackSession.totalEntries) fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot does not contain the expected state and videos.');
-            const stateRecord = stateRecords[0];
-            if (!stateRecord.state || typeof stateRecord.state !== 'object') fail('ROLLBACK_STATE_INVALID', 'The previous state is invalid.');
-            const state = cloneState(stateRecord.state);
-            state.meta = { ...(state.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: now };
-            state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
-            state.auditLog.push({ id: 'archive-rollback-' + backupId, type: 'backup_rollback', at: now, source: 'full_archive', backupId });
-            if (state.auditLog.length > 500) state.auditLog = state.auditLog.slice(-500);
-            const validationResult = await validateState(state);
-            if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
-            const restoredVideos = [];
-            const seenIds = new Set();
-            for (const item of videoRecords) {
-              const record = item.record;
-              if (!record || typeof record.id !== 'string' || !record.id || seenIds.has(record.id)) fail('ROLLBACK_VIDEO_INVALID', 'The previous video list contains an invalid or duplicate ID.');
-              seenIds.add(record.id);
-              restoredVideos.push(record);
-            }
-            stopKeepAlive?.();
-            backup.put({ at: now, state: currentState }, 'previous');
-            main.put(state, 'state');
-            media.clear();
-            for (const record of restoredVideos) media.put(record);
-            historyStore.put({
-              ...history,
-              status: 'reverted',
-              rollbackSessionId: null,
-              rollbackAvailable: false,
-              revertedAt: now,
-              revertedRevisionId: state.meta.revisionId
-            });
-            for (const record of records) stagingStore.delete(record.id);
-            stagingStore.put({ ...importSession, backupId: undefined, sourceBackupId: backupId, status: 'reverted', revertedAt: now });
-            result = { state, backupId, rollbackSessionId, rollbackSnapshotRemoved: true, restoredVideoCount: restoredVideos.length };
-          } catch (error) {
-            stopKeepAlive?.();
-            abortWith(error);
+        try {
+          const currentState = values.currentState || null;
+          const history = values.history;
+          const currentRollbackSession = values.rollbackSession;
+          const currentRecords = values.rollbackRecords || [];
+          const currentImportSession = values.importSession;
+          if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId ||
+              history.importSessionId !== knownHistory.importSessionId) {
+            fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
           }
-        })();
+          if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
+            fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
+          }
+          if (mediaRecordsFingerprint(values.currentVideos || []) !== knownHistory.importedMediaFingerprint) {
+            fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
+          }
+          if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
+              currentRollbackSession.status !== 'ready' ||
+              currentRollbackSession.totalEntries !== rollbackSession.totalEntries ||
+              currentRollbackSession.stagedCount !== rollbackSession.stagedCount) {
+            fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
+          }
+          if (!currentImportSession || currentImportSession.kind !== 'session' ||
+              currentImportSession.status !== 'committed' || currentImportSession.backupId !== backupId) {
+            fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+          }
+          if (currentRecords.length !== snapshotRecords.length ||
+              snapshotFingerprint(currentRecords) !== expectedSnapshotFingerprint) {
+            fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
+          }
+
+          if (currentState) backup.put({ at: now, state: currentState }, 'previous');
+          if (restoredState) main.put(restoredState, 'state');
+          else main.delete('state');
+          media.clear();
+          for (const record of restoredVideos) media.put(record);
+          historyStore.put({
+            ...history,
+            status: 'reverted',
+            rollbackSessionId: null,
+            rollbackAvailable: false,
+            revertedAt: now,
+            revertedRevisionId
+          });
+          for (const record of currentRecords) stagingStore.delete(record.id);
+          const revertedImportSession = { ...currentImportSession, sourceBackupId: backupId, status: 'reverted', revertedAt: now };
+          delete revertedImportSession.backupId;
+          stagingStore.put(revertedImportSession);
+          result = {
+            state: restoredState,
+            backupId,
+            rollbackSessionId,
+            rollbackSnapshotRemoved: true,
+            restoredVideoCount: restoredVideos.length
+          };
+        } catch (error) {
+          abortWith(error);
+        }
       };
       for (const [key, request] of Object.entries(reads)) {
         request.onsuccess = () => {
@@ -418,7 +615,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           pending--;
           if (pending === 0) process();
         };
-        request.onerror = () => abortWith(request.error || new Error('Could not read rollback snapshot.'));
+        request.onerror = () => abortWith(request.error || new Error('Could not read rollback snapshot or live data.'));
       }
       tx.oncomplete = () => {
         if (!settled) { settled = true; resolve(result); }
@@ -426,7 +623,6 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       tx.onabort = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
       tx.onerror = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction failed.'));
     } catch (error) {
-      stopKeepAlive?.();
       rejectOnce(error);
     }
   });
@@ -564,22 +760,59 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
     if (JSON.stringify(hashes) !== JSON.stringify(entry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged video checksum does not match its manifest: ' + record.metadata.id);
     videos.push({ ...record, orphanedHiveReference: !hiveIds.has(record.metadata.hiveId) });
   }
-  return { session, state, videos: videos.sort((a, b) => String(a.path).localeCompare(String(b.path))) };
+  return {
+    session,
+    state,
+    videos: videos.sort((a, b) => String(a.path) < String(b.path) ? -1 : String(a.path) > String(b.path) ? 1 : 0),
+    stagingMetadataFingerprint: stagingMetadataFingerprint(session, records)
+  };
 }
-async function discardArchiveRestoreSession(db, sessionId) {
+function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
-  const checkTx = db.transaction(STAGING_STORE, 'readonly');
-  const session = await requestValue(checkTx.objectStore(STAGING_STORE).get(sessionId));
-  await transactionDone(checkTx);
-  if (!session) return false;
-  if (session.kind === 'rollback_session') fail('ROLLBACK_SNAPSHOT_PROTECTED', 'A rollback snapshot cannot be deleted through the staging cleanup action.');
-  if (session.kind === 'session' && session.status === 'committed') fail('COMMITTED_IMPORT_PROTECTED', 'A committed import is protected until its rollback is explicitly resolved.');
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
-  const store = tx.objectStore(STAGING_STORE);
-  const keys = await requestValue(store.index('sessionId').getAllKeys(sessionId));
-  for (const key of keys) store.delete(key);
-  await transactionDone(tx);
-  return keys.length > 0;
+  return new Promise((resolve, reject) => {
+    let tx, failure = null, result = false, settled = false;
+    const rejectOnce = error => {
+      if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
+    };
+    try {
+      // Read, validate and delete under one readwrite lock. A concurrent commit
+      // must either finish first (and be protected) or observe the cleanup.
+      tx = db.transaction(STAGING_STORE, 'readwrite');
+      const store = tx.objectStore(STAGING_STORE);
+      const sessionRequest = store.get(sessionId);
+      sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read the staged import session.'));
+      sessionRequest.onsuccess = () => {
+        const session = sessionRequest.result;
+        if (!session) { result = false; return; }
+        if (session.kind === 'rollback_session') {
+          abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
+          return;
+        }
+        if (session.kind === 'session' && session.status === 'committed') {
+          abortWith(Object.assign(new Error('A committed import is protected until its rollback is explicitly resolved.'), { code: 'COMMITTED_IMPORT_PROTECTED' }));
+          return;
+        }
+        const keysRequest = store.index('sessionId').getAllKeys(sessionId);
+        keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
+        keysRequest.onsuccess = () => {
+          const keys = keysRequest.result || [];
+          for (const key of keys) store.delete(key);
+          result = keys.length > 0;
+        };
+      };
+      tx.oncomplete = () => {
+        if (!settled) { settled = true; resolve(result); }
+      };
+      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Staged import cleanup transaction aborted.'));
+      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Staged import cleanup transaction failed.'));
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
 }
 
 root.PasekaArchiveRestore = Object.freeze({
