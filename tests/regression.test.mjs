@@ -40,6 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
+  deps.journalBroodCapacity ||= (hiveId,state=deps.S) => { const hive=state?.hives?.find(item=>item?.id===hiveId); const profile=hive?.profile||(deps.getHiveProfile?deps.getHiveProfile(hive):(hive?.profileId?null:{brood:{framesPerBox:6}})); const value=profile?.brood?.framesPerBox; return Number.isSafeInteger(value)&&value>0?value:null; };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -759,6 +760,23 @@ test('inspection parser does not infer absent values or accept counts outside 0�
   assert.equal(sparse.type,'Осмотр');
 });
 
+test('expansion suggestions scale their thresholds and denominator to the hive brood capacity',()=>{
+ const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8}}}],families:[],tasks:[]};let sequence=0;
+ const suggest=loadFunction('createExpansionSuggestion',{S:state,uid:()=>String(++sequence),dateShift:(date,days)=>'2026-06-'+String(10+days).padStart(2,'0')});
+ suggest({id:'r1',date:'2026-06-10',type:'Осмотр',hive:'h8',occupancy:7,broodFrames:4,freeDrawn:1});
+ assert.equal(state.tasks.length,1);assert.match(state.tasks[0].note,/7 из 8 рамок/);assert.equal(state.tasks[0].basis.capacity,8);
+ state.tasks.length=0;suggest({id:'r2',date:'2026-06-10',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:6,freeDrawn:1});
+ assert.equal(state.tasks[0].date,'2026-06-11');
+});
+
+test('inspection parser reads multi-digit counts against the selected hive capacity',()=>{
+ const parse=loadFunction('extractInspectionFieldsFromText');
+ assert.deepEqual(parse('Осмотр: занято 8 рамок, расплод на 7 рамках, свободной суши 8.',8).fields,{occupancy:8,broodFrames:7,freeDrawn:8});
+ assert.equal(parse('Осмотр: занято 9 рамок.',8).fields.occupancy,undefined);
+ assert.equal(parse('Осмотр: занято 12 рамок.',12).fields.occupancy,12);
+ assert.equal(parse('Осмотр: занято 12 рамок.',null).fields.occupancy,12);
+});
+
 test('inspection parser recognizes queen cells by type without confusing them with swarm signs',()=>{
   const parse=loadFunction('extractInspectionFieldsFromText');
   const result=parse('Осмотр: обнаружены свищевые маточники, несколько признаков роевого состояния.');
@@ -816,6 +834,12 @@ test('inspection parser accepts only explicit count values within physical frame
   }
   const invalid=parse('Осмотр: занято 7 рамок.');
   assert.equal(invalid.fields.occupancy,undefined);
+});
+
+test('inspection form exposes dynamic capacity and an explicit unknown-capacity warning',()=>{
+ assert.ok(html.includes('id="capacityWarning"'));assert.ok(html.includes('function updateJournalInspectionCapacity()'));
+ assert.ok(!html.includes('id="roccupancy" type="number" min="0" max="6"'));
+ assert.ok(!html.includes('id="rbrood" type="number" min="0" max="6"'));
 });
 
 test('journal draft from AI workspace maps explicit inspection values and keeps an editable source note',()=>{
@@ -941,6 +965,24 @@ test('journal draft validator accepts a complete and correctly linked inspection
  const result=validate({id:'r1',date:'2024-02-29',type:'Осмотр',hive:'h1',family:'f1',occupancy:5,broodFrames:3,freeDrawn:1},state);
  assert.equal(result.ok,true);
  assert.deepEqual(result.errors,[]);
+});
+
+test('journal draft validator applies the selected hive brood capacity and leaves unknown capacity unbounded',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8}}},{id:'unknown',profileId:'missing-profile'}],families:[],records:[]};
+ assert.equal(validate({id:'r8',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:7,freeDrawn:8},state).ok,true);
+ const invalid=validate({id:'r9',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:9},state);
+ assert.ok(invalid.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
+ assert.equal(validate({id:'r10',date:'2026-11-15',type:'Осмотр',hive:'unknown',occupancy:10,broodFrames:9,freeDrawn:10},state).ok,true);
+});
+
+test('journal inspection metrics preserve unchanged historical values after profile capacity changes',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6}}}],families:[],records:[]};
+ const old={id:'r1',date:'2026-06-01',type:'Осмотр',hive:'h1',occupancy:8,broodFrames:7,freeDrawn:1};
+ assert.equal(validate({...old,text:'Дополнена заметка'},state,old).ok,true);
+ const changed=validate({...old,occupancy:7,text:'Дополнена заметка'},state,old);
+ assert.ok(changed.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
 });
 
 test('journal draft validator rejects impossible calendar dates and unsupported record types',()=>{
