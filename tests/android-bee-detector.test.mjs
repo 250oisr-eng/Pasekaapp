@@ -76,14 +76,12 @@ test('Android CI uses the Capacitor 8 JavaScript and Android toolchain',()=>{
  assert.match(androidWorkflow,/node-version: 22/);
  assert.match(androidWorkflow,/java-version: '21'/);
  assert.match(androidWorkflow,/platforms;android-36/);
- assert.match(androidWorkflow,/build-tools;36\\.0\\.0/);
+ assert.match(androidWorkflow,/build-tools;36\.0\.0/);
  assert.match(androidWorkflow,/minSdkVersion: 24/);
  assert.match(androidWorkflow,/compileSdkVersion: 36/);
  assert.match(androidWorkflow,/targetSdkVersion: 36/);
- assert.match(androidWorkflow,/targetSdkVersion: 36/);
- assert.match(androidWorkflow,/minSdkVersion: 24/);
- assert.match(gradlePatcher,/AGP_VERSION = '8\\.13\\.0'/);
- assert.match(gradlePatcher,/GRADLE_VERSION = '8\\.14\\.3'/);
+ assert.match(gradlePatcher,/AGP_VERSION = '8\.13\.0'/);
+ assert.match(gradlePatcher,/GRADLE_VERSION = '8\.14\.3'/);
  assert.doesNotMatch(androidWorkflow,/node-version: 20/);
  assert.doesNotMatch(androidWorkflow,/java-version: '17'/);
 });
