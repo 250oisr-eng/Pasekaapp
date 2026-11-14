@@ -109,7 +109,7 @@ jobs:
           }
           fs.writeFileSync(path, source);
           const actual = Object.fromEntries(['minSdkVersion','compileSdkVersion','targetSdkVersion'].map(key => {
-            const line = source.split(/\\r?\\n/).find(item => item.trim().startsWith(key));
+            const line = source.split(/\r?\n/).find(item => item.trim().startsWith(key));
             return [key, Number(line?.split('=').pop()?.trim())];
           }));
           if (actual.minSdkVersion !== 24 || actual.compileSdkVersion !== 36 || actual.targetSdkVersion !== 36) {
