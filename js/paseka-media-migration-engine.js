@@ -6,7 +6,7 @@ const DEFAULT_MAX_IMAGE_BYTES=25*1024*1024;
 function fail(code,message){const e=new Error(message||code);e.code=code;throw e}
 function hex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}
 async function digest(bytes,cryptoProvider){if(!cryptoProvider?.subtle?.digest)fail('MEDIA_CRYPTO_UNAVAILABLE','SHA-256 is unavailable.');return hex(new Uint8Array(await cryptoProvider.subtle.digest('SHA-256',bytes)))}
-async function digestBlob(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('MEDIA_CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');try{return await root.PasekaSha256.hashBlobHex(blob)}catch(error){fail('MEDIA_CRYPTO_UNAVAILABLE','Stored image bytes cannot be hashed safely.')}}
+async function digestBlob(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('MEDIA_CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');return root.PasekaSha256.hashBlobHex(blob)}
 function request(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('IndexedDB request failed.'))})}
 function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error||new Error('IndexedDB transaction failed.'));tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted.'))})}
 function assertDb(db){if(!db?.objectStoreNames?.contains(BLOBS)||!db.objectStoreNames.contains(JOURNAL))fail('MIGRATION_STORE_UNAVAILABLE','The database does not contain the migration stores.')}
