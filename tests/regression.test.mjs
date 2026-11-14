@@ -2837,6 +2837,7 @@ test('entrance video list exposes imported videos whose hive reference is orphan
   assert.match(host.innerHTML, /orphan-video/);
 
   const resolvedHost = { innerHTML: '' };
+  select.value = 'removed-hive';
   const resolved = loadFunction('refreshEntranceVideos', {
     $: id => id === 'entranceVideoList' ? resolvedHost : select,
     listEntranceVideos: async () => [{
