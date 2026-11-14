@@ -27,6 +27,9 @@ test('GPS accuracy and capture time are validated and normalized with coordinate
  assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'yesterday'}),/время фиксации GPS/i);
  assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-02-30T14:30:15.000Z'}),/время фиксации GPS/i);
  assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+99:00'}),/время фиксации GPS/i);
+ assert.equal(api.validGpsTimestamp('2026-08-12T14:30:15+14:00'),true);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+14:01'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+23:59'}),/время фиксации GPS/i);
 });
 test('incident validates date, scope, hive selection, dead count and coordinates',()=>{
  assert.throws(()=>build({...base,observedAt:'2026-02-30T12:00'}),/дату и время/i);
