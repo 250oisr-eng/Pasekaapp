@@ -2633,7 +2633,7 @@ test('schema 11 migration creates an empty deadout section and preserves existin
 
 
 test('journal capacity sums the per-box capacity of physically installed brood boxes',()=>{
- const capacity=loadFunction('journalBroodCapacity');
+ const capacity=loadFunction('journalBroodCapacity',{getHiveProfile:hive=>hive?.profile||null});
  const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1','2','3','4','5','6']}}}],layouts:{h1:{mode:'summer',installedBoxes:[1,3,4]} }};
  assert.equal(capacity('h1',state),18);
  state.layouts.h1.mode='winter';state.layouts.h1.winterOrder=[1,3,4];
