@@ -5,7 +5,9 @@ import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const codecSource = await readFile(new URL('../js/paseka-archive.js', import.meta.url), 'utf8');
+const shaSource = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
 const restoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
+new Function(shaSource)();
 new Function(codecSource)();
 new Function(restoreSource)();
 const Archive = globalThis.PasekaArchive;
