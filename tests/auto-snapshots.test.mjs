@@ -106,3 +106,30 @@ test('skips a corrupted newest snapshot and recovers the newest older valid one'
   assert.equal(recovered.snapshot.id, 'rev-1');
   db.close();
 });
+
+test('skips an oversized state instead of consuming snapshot quota', async () => {
+  const db = await openDb('snapshot-size-guard');
+  await put(db, 'main', fixture('main-1', 'current'), 'state');
+  const result = await Snapshots.writeSnapshot(db, fixture('large-1', 'x'.repeat(500)), 'main-1', webcrypto, { maxSnapshotBytes: 100 });
+  assert.equal(result.written, false);
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'SNAPSHOT_TOO_LARGE');
+  assert.equal((await Snapshots.listSnapshots(db)).length, 0);
+  db.close();
+});
+
+test('enforces the total byte budget and retains the newest snapshot', async () => {
+  const db = await openDb('snapshot-total-budget');
+  await put(db, 'main', fixture('main-1', 'current'), 'state');
+  const first = await Snapshots.writeSnapshot(db, fixture('rev-1', 'same-size'), 'main-1', webcrypto, { maxTotalBytes: 10000 });
+  assert.equal(first.written, true);
+  const budget = first.snapshot.sizeBytes + 1;
+  await put(db, 'main', fixture('main-2', 'current'), 'state');
+  const second = await Snapshots.writeSnapshot(db, fixture('rev-2', 'same-size'), 'main-2', webcrypto, { maxTotalBytes: budget });
+  assert.equal(second.written, true);
+  const items = await Snapshots.listSnapshots(db);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'rev-2');
+  assert.ok(items[0].sizeBytes <= budget);
+  db.close();
+});
