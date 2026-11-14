@@ -57,8 +57,20 @@ async function updateSession(db, session) {
   };
   request.onsuccess = () => {
     const currentSession = request.result;
-    if (!currentSession || currentSession.kind !== 'session' ||
-        currentSession.status !== 'staging') {
+    if (!currentSession || currentSession.kind !== 'session') {
+      failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    // If explicit recovery finalized the same complete revision just before the
+    // original writer's final status update, treat that update as an idempotent
+    // success. Never let a stale failure path downgrade a ready session.
+    if (currentSession.status === 'ready' && session.status === 'ready' &&
+        currentSession.fingerprint === session.fingerprint &&
+        currentSession.stagingEpoch === session.stagingEpoch &&
+        currentSession.stagedCount === session.stagedCount &&
+        currentSession.totalEntries === session.totalEntries) return;
+    if (currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
       return;
