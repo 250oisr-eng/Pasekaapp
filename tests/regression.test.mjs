@@ -1721,7 +1721,7 @@ test('journal supports family filtering and inline attachment previews',()=>{
  assert.match(html,/id="journalFamilyFilter"/);
  const source=extractFunction('renderJournalRecords');
  assert.match(source,/familySelect/);
- assert.match(source,/mediaHtml\(r\.media\)/);
+ assert.match(source,/mediaHtml\(r\.media,true\)/);
  assert.match(source,/mediaNames/);
 });
 
