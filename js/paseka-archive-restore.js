@@ -45,13 +45,31 @@ async function findSessionByBackupId(db, backupId) {
   await transactionDone(tx);
   return result || null;
 }
-async function putStagingRecord(db, record) {
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
-  tx.objectStore(STAGING_STORE).put(record);
-  await transactionDone(tx);
-}
 async function updateSession(db, session) {
-  await putStagingRecord(db, session);
+  const sessionId = session.sessionId || session.id;
+  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const store = tx.objectStore(STAGING_STORE);
+  let failure = null;
+  const request = store.get(sessionId);
+  request.onerror = () => {
+    failure = request.error || new Error('Could not read the staging session before updating it.');
+    try { tx.abort(); } catch (error) {}
+  };
+  request.onsuccess = () => {
+    const currentSession = request.result;
+    if (!currentSession || currentSession.kind !== 'session' ||
+        !['staging', 'ready'].includes(currentSession.status)) {
+      failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    store.put({ ...currentSession, ...session });
+  };
+  try {
+    await transactionDone(tx);
+  } catch (error) {
+    throw failure || error;
+  }
 }
 async function putStagingEntryAndUpdateSession(db, record, session) {
   const tx = db.transaction(STAGING_STORE, 'readwrite');
