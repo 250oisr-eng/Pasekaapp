@@ -58,7 +58,7 @@ async function updateSession(db, session) {
   request.onsuccess = () => {
     const currentSession = request.result;
     if (!currentSession || currentSession.kind !== 'session' ||
-        !['staging', 'ready'].includes(currentSession.status)) {
+        currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
       return;
@@ -84,7 +84,7 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
   sessionRequest.onsuccess = () => {
     const currentSession = sessionRequest.result;
     if (!currentSession || currentSession.kind !== 'session' ||
-        !['staging', 'ready'].includes(currentSession.status)) {
+        currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
       return;
@@ -867,7 +867,7 @@ async function listArchiveRestoreSessions(db) {
   await transactionDone(tx);
   return rows.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
-async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
+async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, allowStaging = false) {
   ensureStores(db);
   if (!archiveApi || typeof archiveApi.hashBlobChunks !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
   if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before restore.');
@@ -879,7 +879,7 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   ]);
   await transactionDone(tx);
   if (!session || session.kind !== 'session') fail('STAGING_SESSION_NOT_FOUND', 'Staged import session was not found.');
-  if (session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
+  if ((session.status !== 'ready' && !(allowStaging && session.status === 'staging')) || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
   if (!session.manifest || !Array.isArray(session.manifest.entries)) fail('STAGING_MANIFEST_MISSING', 'Staged archive manifest is missing.');
   if (session.manifest.backupId !== session.backupId || session.manifest.schemaVersion !== session.schemaVersion || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged session metadata does not match its manifest.');
   const sessionRecords = records.filter(record => record.kind === 'session');
@@ -942,6 +942,81 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
     stagingMetadataFingerprint: stagingMetadataFingerprint(session, records)
   };
 }
+
+async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
+  // Validate the complete manifest, state and every Blob outside a write transaction.
+  // The short transaction below then proves that the verified staging revision
+  // is still the exact revision being finalized.
+  const staged = await getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, true);
+  if (staged.session.status !== 'staging') {
+    fail('STAGING_FINALIZE_NOT_ALLOWED', 'Only an interrupted staging session can be finalized.');
+  }
+  const verifiedSession = staged.session;
+  const verifiedFingerprint = staged.stagingMetadataFingerprint;
+
+  return new Promise((resolve, reject) => {
+    let tx, failure = null, result = null, settled = false;
+    const rejectOnce = error => {
+      if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
+    };
+    try {
+      tx = db.transaction(STAGING_STORE, 'readwrite');
+      const store = tx.objectStore(STAGING_STORE);
+      const sessionRequest = store.get(sessionId);
+      const recordsRequest = store.index('sessionId').getAll(sessionId);
+      const values = {};
+      let pending = 2;
+      const process = () => {
+        try {
+          const current = values.session;
+          const records = values.records || [];
+          if (!current || current.kind !== 'session' || current.status !== 'staging' ||
+              current.sessionId !== verifiedSession.sessionId ||
+              current.backupId !== verifiedSession.backupId ||
+              current.fingerprint !== verifiedSession.fingerprint ||
+              current.stagingEpoch !== verifiedSession.stagingEpoch ||
+              current.stagedCount !== verifiedSession.stagedCount ||
+              current.totalEntries !== verifiedSession.totalEntries ||
+              current.stagedCount !== current.totalEntries ||
+              records.length !== current.totalEntries + 1 ||
+              stagingMetadataFingerprint(current, records) !== verifiedFingerprint) {
+            fail('STAGING_FINALIZE_CHANGED', 'Staging data changed during verification. The session remains unchanged; verify it again.');
+          }
+          result = {
+            ...current,
+            status: 'ready',
+            completedAt: new Date().toISOString(),
+            errorCode: null,
+            errorMessage: null
+          };
+          store.put(result);
+        } catch (error) {
+          abortWith(error);
+        }
+      };
+      for (const [key, request] of [['session', sessionRequest], ['records', recordsRequest]]) {
+        request.onsuccess = () => {
+          values[key] = request.result;
+          pending--;
+          if (pending === 0) process();
+        };
+        request.onerror = () => abortWith(request.error || new Error('Could not recheck the staging session.'));
+      }
+      tx.oncomplete = () => {
+        if (!settled) { settled = true; resolve(result); }
+      };
+      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Staging finalization transaction aborted.'));
+      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Staging finalization transaction failed.'));
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+}
+
 function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
   return new Promise((resolve, reject) => {
@@ -1017,6 +1092,6 @@ function discardArchiveRestoreSession(db, sessionId) {
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
   stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, discardArchiveRollbackSnapshot, listArchiveRestoreSessions, listArchiveImportHistory,
-  getStagedArchive, discardArchiveRestoreSession
+  getStagedArchive, finalizeStagedArchive, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);
