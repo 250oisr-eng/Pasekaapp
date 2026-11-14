@@ -2784,3 +2784,31 @@ test('deadout review submit ignores repeated taps while the first save is pendin
   assert.equal(renderCalls, 0);
   assert.equal(win.__pasekaDeadoutSaveBusy, false);
 });
+
+
+test('deadout review save failure restores the previous state and releases the submit lock', async () => {
+  const button = { disabled: false };
+  const form = { querySelector: () => button, reset() {} };
+  const win = {};
+  const state = { hives: [{ id: 'hive-1', number: 1 }], deadoutReviews: [] };
+  const deps = {
+    window: win,
+    $: id => id === 'deadoutForm' ? form : { value: id === 'deadoutHive' ? 'hive-1' : id === 'deadoutObservedAt' ? '2026-11-14' : '' },
+    S: state,
+    pendingDeadoutMedia: [],
+    PasekaDeadout: { buildDeadoutReviewDraft: () => ({ id: 'review-failed', hiveId: 'hive-1', observedAt: '2026-11-14' }) },
+    uid: () => 'review-failed',
+    cloneApiaryState: () => ({ ...deps.S, deadoutReviews: [...deps.S.deadoutReviews] }),
+    logAudit() {},
+    async save() { return false; },
+    render() {},
+    renderDeadoutModule() {},
+    today: () => '2026-11-14',
+    alert() {}
+  };
+  const handler = loadFunction('saveDeadoutReview', deps);
+  await handler({ preventDefault() {} });
+  assert.equal(deps.S.deadoutReviews.length, 0);
+  assert.equal(button.disabled, false);
+  assert.equal(win.__pasekaDeadoutSaveBusy, false);
+});
