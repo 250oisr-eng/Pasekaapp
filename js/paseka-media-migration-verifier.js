@@ -15,7 +15,7 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
  const [blobs,journals]=await Promise.all([req(tx.objectStore(BLOBS).getAll()),req(tx.objectStore(JOURNAL).getAll())]);await finished;
  const ownedBlobs=new Map(blobs.filter(x=>x.migrationId===migrationId).map(x=>[x.id,x]));
  const ownedJournals=journals.filter(x=>x.migrationId===migrationId);
- const problems=[],verified=[],usedBlobIds=new Set();
+ const problems=[],verified=[],usedBlobIds=new Set();let sourceChanged=false,destinationCorrupted=false;
  const seen=new Set();
  for(const c of plan.candidates){
   if(!c||typeof c.id!=='string'||typeof c.collection!=='string'||typeof c.entityId!=='string'||!Number.isInteger(c.mediaIndex)||c.mediaIndex<0){problems.push({candidateId:c?.id||null,code:'INVALID_CANDIDATE'});continue}
@@ -32,8 +32,9 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
   const journal=matches[0];
   const blob=journal&&ownedBlobs.get(journal.blobId);
   if(!journal||journal.status!=='completed'||!blob){problems.push({candidateId:c.id,code:'COPY_MISSING'});continue}
-  if(journal.sha256!==expected||blob.sha256!==expected||blob.sourceKey!==sourceKey||blob.blob?.size!==bytes.length||blob.blob?.type!==match[1].toLowerCase()){problems.push({candidateId:c.id,code:'METADATA_MISMATCH'});continue}
-  if(await sha(blob.blob,cryptoProvider)!==expected){problems.push({candidateId:c.id,code:'BLOB_CHECKSUM_MISMATCH'});continue}
+  if(journal.sha256!==expected){sourceChanged=true;problems.push({candidateId:c.id,code:'SOURCE_CHECKSUM_MISMATCH'});continue}
+  if(blob.sha256!==expected||blob.sourceKey!==sourceKey||blob.blob?.size!==bytes.length||blob.blob?.type!==match[1].toLowerCase()){destinationCorrupted=true;problems.push({candidateId:c.id,code:'METADATA_MISMATCH'});continue}
+  if(await sha(blob.blob,cryptoProvider)!==expected){destinationCorrupted=true;problems.push({candidateId:c.id,code:'BLOB_CHECKSUM_MISMATCH'});continue}
   usedBlobIds.add(blob.id);
   verified.push({candidateId:c.id,blobId:blob.id,sha256:expected,sizeBytes:bytes.length});
  }
@@ -41,7 +42,7 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
  if(unexpected.length)problems.push({code:'UNEXPECTED_JOURNAL_ENTRIES',count:unexpected.length});
  const orphanedBlobs=[...ownedBlobs.keys()].filter(id=>!usedBlobIds.has(id));
  if(orphanedBlobs.length)problems.push({code:'UNEXPECTED_BLOB_ENTRIES',count:orphanedBlobs.length});
- return Object.freeze({mode:'preflight-verification',readOnly:true,ready:problems.length===0&&verified.length===plan.candidates.length,expected:plan.candidates.length,verified:verified.length,problems,verifiedItems:verified,sourceChanged:false,linksChanged:false,legacyDataDeleted:false});
+ return Object.freeze({mode:'preflight-verification',readOnly:true,ready:problems.length===0&&verified.length===plan.candidates.length,expected:plan.candidates.length,verified:verified.length,problems,verifiedItems:verified,sourceChanged,destinationCorrupted,linksChanged:false,legacyDataDeleted:false});
 }
 const api=Object.freeze({verify});
 root.PasekaMediaMigrationVerifier=api;
