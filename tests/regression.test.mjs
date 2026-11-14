@@ -2571,11 +2571,12 @@ test('schema 11 migration creates an empty deadout section and preserves existin
 test('full archive export is available separately from the JSON-only backup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v310'"));
   assert.ok(html.includes('id="downloadFullArchiveButton"'));
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
-  assert.ok(html.includes('Восстановление полного архива будет добавлено отдельно'));
+  assert.ok(html.includes('Восстановить полный архив'));
+  assert.ok(html.includes('id="fullArchiveFile"'));
   assert.ok(html.includes('Скачать архив'));
 });
 
@@ -2681,6 +2682,24 @@ test('IndexedDB v3 upgrades to v4 with dedicated archive staging and history sto
 test('archive staging manager is loaded and cached for offline startup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive-restore.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive-restore.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v310'"));
   assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
+});
+
+
+test('full archive restore UI requires staging, explicit confirmation, and offers rollback', () => {
+  assert.ok(html.includes('id="fullArchiveFile"'));
+  assert.ok(html.includes('onclick="prepareFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="commitFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="cancelFullArchiveRestore()"'));
+  assert.ok(html.includes('function validateFullArchiveImportState(state)'));
+  assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
+  assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
+  assert.ok(html.includes('Удалить точку отката'));
+  assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  assert.ok(html.includes('function archiveRestoreErrorText(error)'));
+  assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
+  assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
 });
