@@ -53,21 +53,22 @@ test('binds the checksum to the Blob captured before asynchronous hashing', asyn
   let digestStarted;
   const started = new Promise(resolve => { digestStarted = resolve; });
   const gate = new Promise(resolve => { releaseDigest = resolve; });
-  const delayedCrypto = {
-    subtle: {
-      digest: async (algorithm, bytes) => {
-        digestStarted();
-        await gate;
-        return webcrypto.subtle.digest(algorithm, bytes);
-      }
+  const originalHasher = globalThis.PasekaSha256;
+  globalThis.PasekaSha256 = {
+    ...originalHasher,
+    hashBlobHex: async (blob, options) => {
+      digestStarted();
+      await gate;
+      return originalHasher.hashBlobHex(blob, options);
     }
   };
   const input = { id: 'snapshot-image', blob: image([1, 2, 3]) };
-  const saving = Media.putImage(db, input, delayedCrypto);
+  const saving = Media.putImage(db, input, webcrypto);
   await started;
   input.blob = image([9, 9, 9]);
   releaseDigest();
   await saving;
+  globalThis.PasekaSha256 = originalHasher;
   const stored = await Media.getImage(db, 'snapshot-image', webcrypto);
   assert.deepEqual([...new Uint8Array(await stored.blob.arrayBuffer())], [1, 2, 3]);
   db.close();
