@@ -450,11 +450,13 @@ function discardArchiveRollbackSnapshot(db, backupId) {
           pending--;
           if (pending !== 0) return;
           if (!session || session.kind !== 'rollback_session' || session.sourceBackupId !== backupId ||
-              !['ready', 'used'].includes(session.status)) {
+              !['ready', 'used'].includes(session.status) || !Array.isArray(keys) ||
+              session.stagedCount !== session.totalEntries || keys.length !== session.totalEntries + 1 ||
+              !keys.includes(rollbackSessionId)) {
             abortWith(Object.assign(new Error('The rollback snapshot could not be verified and was not deleted.'), { code: 'ROLLBACK_SNAPSHOT_INVALID' }));
             return;
           }
-          for (const key of keys || []) stagingStore.delete(key);
+          for (const key of keys) stagingStore.delete(key);
           historyStore.put({
             ...history,
             rollbackSessionId: null,
