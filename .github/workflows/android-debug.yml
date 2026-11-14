@@ -168,7 +168,7 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 900
           script: |
-            set -euo pipefail
+            set -eu
             adb install artifacts/app-debug.apk
             adb logcat -c
             adb shell monkey -p ru.paseka.journal 1
