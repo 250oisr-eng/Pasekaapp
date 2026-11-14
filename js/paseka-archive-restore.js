@@ -267,8 +267,8 @@ function cloneState(value) {
 }
 function mediaRecordsFingerprint(records) {
   // Versioned, explicit fields keep harmless schema additions from invalidating
-  // rollback. Blob bytes are intentionally not covered by this synchronous
-  // fingerprint; content integrity is handled by a separate SHA-256 baseline.
+  // rollback. blobSha256 covers the actual media bytes and is produced before
+  // every supported write/import path.
   const canonical = (records || []).map(record => {
     if (!record || typeof record.id !== 'string' || !record.id) {
       fail('MEDIA_FINGERPRINT_RECORD_INVALID', 'A video record has no stable ID.');
@@ -276,6 +276,7 @@ function mediaRecordsFingerprint(records) {
     const blob = record.blob;
     return [
       record.id,
+      typeof record.blobSha256 === 'string' ? record.blobSha256 : null,
       typeof record.hiveId === 'string' ? record.hiveId : null,
       typeof record.capturedAt === 'string' ? record.capturedAt : null,
       Number.isFinite(record.durationSec) ? record.durationSec : null,
@@ -287,6 +288,13 @@ function mediaRecordsFingerprint(records) {
     ];
   }).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
   return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 2, canonical]);
+}
+async function sha256BlobHex(blob, cryptoProvider) {
+  if (!blob || typeof blob.arrayBuffer !== 'function' || !cryptoProvider?.subtle?.digest) {
+    fail('MEDIA_HASH_UNAVAILABLE', 'The video bytes cannot be hashed safely on this device.');
+  }
+  const digest = await cryptoProvider.subtle.digest('SHA-256', await blob.arrayBuffer());
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
@@ -315,11 +323,12 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
     if (preparedValidation === false) fail('STATE_VALIDATION_FAILED', 'The migrated archive state failed validation.');
   }
   const importedHiveIds = new Set(Array.isArray(importedState.hives) ? importedState.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
-  const importedVideos = staged.videos.map(record => ({
+  const importedVideos = await Promise.all(staged.videos.map(async record => ({
     ...record.metadata,
     blob: record.blob,
+    blobSha256: await sha256BlobHex(record.blob, cryptoProvider),
     orphanedHiveReference: !importedHiveIds.has(record.metadata.hiveId)
-  }));
+  })));
   const rollbackSessionId = randomId(cryptoProvider);
   let tx, failure = null, result = null, settled = false;
 
@@ -496,6 +505,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (typeof knownHistory.importedMediaFingerprint !== 'string') {
     fail('ROLLBACK_MEDIA_BASELINE_MISSING', 'This import predates video change protection. Rollback is disabled to avoid deleting videos that may have been added later.');
   }
+  if (phaseAMedia.some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || ''))) {
+    fail('ROLLBACK_MEDIA_HASH_MISSING', 'One or more videos predate content hashing. Export them and create a fresh verified archive before rollback.');
+  }
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
@@ -593,7 +605,8 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
             fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
           }
-          if (typeof history.importedMediaFingerprint !== 'string' ||
+          if ((values.currentVideos || []).some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || '')) ||
+              typeof history.importedMediaFingerprint !== 'string' ||
               history.importedMediaFingerprint !== knownHistory.importedMediaFingerprint ||
               mediaRecordsFingerprint(values.currentVideos || []) !== history.importedMediaFingerprint) {
             fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
