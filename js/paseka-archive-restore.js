@@ -948,6 +948,10 @@ function discardArchiveRestoreSession(db, sessionId) {
           abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
           return;
         }
+        if (session && session.kind !== 'session') {
+          abortWith(Object.assign(new Error('The staging session header is invalid; staged records were preserved.'), { code: 'STAGING_SESSION_INVALID' }));
+          return;
+        }
         if (session?.kind === 'session' && session.status === 'committed') {
           abortWith(Object.assign(new Error('A committed import is protected until its rollback is explicitly resolved.'), { code: 'COMMITTED_IMPORT_PROTECTED' }));
           return;
