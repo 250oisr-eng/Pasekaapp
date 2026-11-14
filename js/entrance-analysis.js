@@ -143,16 +143,18 @@ function assessFrameQuality(samples=[]){
  return {status:score>=0.75?'good':score>=0.5?'limited':'poor',score,flags,measured:{brightness,sharpness,motion,entranceCoverage:coverage},limitations:[...(coverage===null?['entrance_framing_not_automatically_verified']:[]),'camera_stability_not_separately_assessed','frame_difference_includes_bee_movement']};
 }
 function computeMetrics(tracks=[],durationSec=60,options={}){
- const errors=[];
- if(!Array.isArray(tracks)||!finite(Number(durationSec))||Number(durationSec)<=0)return {ok:false,errors:[{code:'invalid_analysis_input'}]};
+ if(!Array.isArray(tracks)||!finite(durationSec)||durationSec<=0)return {ok:false,errors:[{code:'invalid_analysis_input'}]};
+ if(!options||typeof options!=='object'||Array.isArray(options))options={};
  const threshold=finite(options.confidenceThreshold)?clamp(options.confidenceThreshold,0.1,0.99):0.6;
  const unique=new Map();
  for(const track of tracks){
   if(!track||typeof track.id!=='string'||!track.id)continue;
   const old=unique.get(track.id);
-  if(!old||Number(track.confidence||0)>Number(old.confidence||0))unique.set(track.id,track);
+  const confidence=finite(track.confidence)?track.confidence:-Infinity;
+  const oldConfidence=old&&finite(old.confidence)?old.confidence:-Infinity;
+  if(!old||confidence>oldConfidence)unique.set(track.id,track);
  }
- const rows=[...unique.values()],accepted=rows.filter(t=>finite(Number(t.confidence))&&Number(t.confidence)>=threshold);
+ const rows=[...unique.values()],accepted=rows.filter(t=>finite(t.confidence)&&t.confidence>=threshold);
  const incoming=accepted.filter(t=>t.direction==='in'&&t.className==='bee');
  const outgoing=accepted.filter(t=>t.direction==='out'&&t.className==='bee');
  const pollen=incoming.filter(t=>t.pollen===true||t.pollen!==false&&finite(t.pollenConfidence)&&t.pollenConfidence>=threshold);
@@ -161,7 +163,7 @@ function computeMetrics(tracks=[],durationSec=60,options={}){
  const drones=accepted.filter(t=>t.className==='drone');
  const dead=accepted.filter(t=>t.className==='dead_bee');
  const fights=Array.isArray(options.events)?options.events.filter(e=>e&&e.type==='fight'&&finite(e.confidence)&&e.confidence>=threshold).length:0;
- const duration=Number(durationSec),coverage=finite(options.trackingCoverage)?clamp(options.trackingCoverage,0,1):null,crowding=finite(options.crowdingScore)?clamp(options.crowdingScore,0,1):null;
+ const duration=durationSec,coverage=finite(options.trackingCoverage)?clamp(options.trackingCoverage,0,1):null,crowding=finite(options.crowdingScore)?clamp(options.crowdingScore,0,1):null;
  const poorTracking=coverage!==null&&coverage<0.65,tooCrowded=crowding!==null&&crowding>0.35;
  const incomingClassified=pollen.length+pollenNegative.length;
  const countReliable=!poorTracking&&!tooCrowded&&accepted.length>0;
