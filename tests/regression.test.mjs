@@ -69,6 +69,10 @@ test('intentional full data deletion clears the startup marker before deleting t
  assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&databaseDeleteIndex>clearIndex&&reloadIndex>databaseDeleteIndex);
  assert.ok(html.includes("Хранилище настроек недоступно; база не удалена."));
 });
+test('automatic backup copy explicitly excludes separately stored entrance videos',()=>{
+ assert.ok(html.includes('включая фотографии и видео, прикреплённые к записям журнала и карточкам наблюдений'));
+ assert.ok(html.includes('Видео летка хранится отдельно и в эту автокопию не входит'));
+});
 test('manual JSON backup clearly warns that entrance videos are excluded',()=>{
  assert.ok(html.includes('<b>JSON-копия данных</b>'));
  assert.ok(html.includes('отдельные видео летка из локального хранилища в этот файл не входят'));
