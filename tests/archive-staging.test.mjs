@@ -191,6 +191,25 @@ test('unreferenced orphan staging rows can be discarded repeatedly without touch
 });
 
 
+test('staging cleanup refuses an unknown session-header kind without deleting its records', async () => {
+  const db = await openTestDb('paseka-stage-unknown-header-kind');
+  const archive = await makeArchive('backup-unknown-header-kind');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const rowsBefore = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.kind = 'unexpected_header';
+  await put(db, 'archive_staging', header);
+  await assert.rejects(
+    Restore.discardArchiveRestoreSession(db, staged.session.sessionId),
+    { code: 'STAGING_SESSION_INVALID' }
+  );
+  const rowsAfter = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  assert.equal(rowsAfter.length, rowsBefore.length);
+  assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).kind, 'unexpected_header');
+  db.close();
+});
+
+
 test('archive staging is idempotent for the same verified backup and manifest', async () => {
   const db = await openTestDb('paseka-stage-repeat');
   const archive = await makeArchive('backup-repeat-1');
