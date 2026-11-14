@@ -53,6 +53,15 @@ async function putStagingRecord(db, record) {
 async function updateSession(db, session) {
   await putStagingRecord(db, session);
 }
+async function putStagingEntryAndUpdateSession(db, record, session) {
+  const nextSession = { ...session, stagedCount: session.stagedCount + 1 };
+  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const store = tx.objectStore(STAGING_STORE);
+  store.put(record);
+  store.put(nextSession);
+  await transactionDone(tx);
+  Object.assign(session, nextSession);
+}
 async function manifestFingerprint(manifest, cryptoProvider) {
   if (!cryptoProvider || !cryptoProvider.subtle || typeof cryptoProvider.subtle.digest !== 'function') fail('CRYPTO_UNAVAILABLE', 'SHA-256 is unavailable.');
   const bytes = new TextEncoder().encode(JSON.stringify(manifest));
@@ -99,11 +108,9 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   try {
     await putStagingRecord(db, session);
     sessionCreated = true;
-    await putStagingRecord(db, { id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob });
-    session.stagedCount = 1;
-    await updateSession(db, session);
+    await putStagingEntryAndUpdateSession(db, { id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob }, session);
     for (const item of checked.videoEntries) {
-      await putStagingRecord(db, {
+      await putStagingEntryAndUpdateSession(db, {
         id: sessionId + ':video:' + item.metadata.id,
         sessionId,
         kind: 'video',
@@ -114,9 +121,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         metadata: item.metadata,
         blob: item.blob,
         orphanedHiveReference: item.orphanedHiveReference
-      });
-      session.stagedCount++;
-      await updateSession(db, session);
+      }, session);
       if (typeof options.onProgress === 'function') options.onProgress({ staged: session.stagedCount, total: session.totalEntries });
     }
     session.status = 'ready';
