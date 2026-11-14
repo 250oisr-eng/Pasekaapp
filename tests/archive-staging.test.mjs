@@ -400,13 +400,23 @@ test('atomic rollback restores previous state and videos and permits a later rei
   assert.equal(restoredVideos[0].id, 'previous-video');
   assert.equal(restoredVideos[0].blob.size, oldVideoBlob.size);
   assert.equal(history.status, 'reverted');
+  assert.equal(history.rollbackSessionId, null);
+  assert.equal(history.rollbackAvailable, false);
   assert.equal(history.revertedRevisionId, rolledBack.state.meta.revisionId);
   assert.equal(importSession.status, 'reverted');
   assert.equal(importSession.backupId, undefined);
-  assert.equal(rollbackSession.status, 'used');
+  assert.equal(rollbackSession, undefined);
 
   const restaged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
   assert.equal(restaged.session.backupId, 'backup-atomic-rollback');
+  const reimported = await Restore.commitStagedArchive(
+    db, restaged.session.sessionId, rolledBack.state.meta.revisionId, webcrypto, Archive, () => true
+  );
+  const newHistory = await get(db, 'archive_history', 'backup-atomic-rollback');
+  assert.equal(newHistory.status, 'committed');
+  assert.equal(newHistory.rollbackSessionId, reimported.rollbackSessionId);
+  assert.notEqual(newHistory.rollbackSessionId, committed.rollbackSessionId);
+  assert.ok(await get(db, 'archive_staging', reimported.rollbackSessionId));
   db.close();
 });
 
