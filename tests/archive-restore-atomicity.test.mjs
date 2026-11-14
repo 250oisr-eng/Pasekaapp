@@ -654,3 +654,79 @@ test('archive commit rejects staging metadata changed during Phase A validation'
   assert.equal(state, undefined);
   db.close();
 });
+
+test('archive commit abort after media.clear preserves prior state and video library', async () => {
+  const db = await makeDatabase();
+  const previousBlob = new Blob(['pre-import-video'], { type: 'video/mp4' });
+  const previousVideo = {
+    id: 'video-before-failed-commit',
+    blob: previousBlob,
+    blobSha256: createHash('sha256').update(Buffer.from('pre-import-video')).digest('hex'),
+    capturedAt: '2026-11-14T09:00:00.000Z'
+  };
+  const seedTx = db.transaction(['main', 'entrance_media'], 'readwrite');
+  seedTx.objectStore('main').put({
+    meta: { revisionId: 'before-revision' },
+    hives: [{ id: 'before-hive' }],
+    auditLog: []
+  }, 'state');
+  seedTx.objectStore('entrance_media').put(previousVideo);
+  await new Promise((resolve, reject) => {
+    seedTx.oncomplete = resolve;
+    seedTx.onabort = seedTx.onerror = () => reject(seedTx.error || new Error('initial state seed failed'));
+  });
+
+  const { staged, archiveApi, cryptoProvider } = await stageMinimalArchive(db);
+  const injectedDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      return new Proxy(tx, {
+        get(target, property) {
+          if (property === 'objectStore') {
+            return name => {
+              const store = target.objectStore(name);
+              if (name !== 'archive_history') return store;
+              return new Proxy(store, {
+                get(storeTarget, storeProperty) {
+                  if (storeProperty === 'put') {
+                    return () => {
+                      throw new DOMException('Injected archive-history write failure', 'QuotaExceededError');
+                    };
+                  }
+                  const value = Reflect.get(storeTarget, storeProperty, storeTarget);
+                  return typeof value === 'function' ? value.bind(storeTarget) : value;
+                }
+              });
+            };
+          }
+          const value = Reflect.get(target, property, target);
+          return typeof value === 'function' ? value.bind(target) : value;
+        }
+      });
+    }
+  };
+
+  await assert.rejects(
+    api.commitStagedArchive(injectedDb, staged.session.id, 'before-revision', cryptoProvider, archiveApi, async () => true),
+    error => error && error.name === 'QuotaExceededError'
+  );
+
+  const verify = db.transaction(['main', 'entrance_media', 'archive_history', 'archive_staging'], 'readonly');
+  const [state, videos, history, session] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_history').get('commit-integration-backup'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get(staged.session.id); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+
+  assert.equal(state.meta.revisionId, 'before-revision');
+  assert.deepEqual(state.hives, [{ id: 'before-hive' }]);
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, previousVideo.id);
+  assert.equal(await videos[0].blob.text(), 'pre-import-video');
+  assert.equal(history, undefined);
+  assert.equal(session.status, 'ready');
+  db.close();
+});
+
