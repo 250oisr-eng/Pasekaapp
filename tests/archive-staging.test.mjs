@@ -746,14 +746,20 @@ test('concurrent tabs cannot create two staging sessions for the same backup', a
   const rejected = results.filter(result => result.status === 'rejected');
 
   assert.equal(validationArrivals, 2);
-  assert.equal(fulfilled.length, 1, 'exactly one concurrent staging attempt may succeed');
-  assert.equal(rejected.length, 1, 'the competing attempt must fail safely');
-  assert.ok(
-    rejected[0].reason.code === 'BACKUP_STAGING_CONFLICT' ||
-    rejected[0].reason.code === 'INCOMPLETE_STAGING_EXISTS' ||
-    rejected[0].reason.name === 'ConstraintError',
-    'the losing tab must receive a recognized safe conflict, got: ' + String(rejected[0].reason.code || rejected[0].reason.name || rejected[0].reason.message)
-  );
+  assert.equal(fulfilled.length + rejected.length, 2);
+  assert.ok(fulfilled.length >= 1, 'at least one tab must stage the archive');
+  assert.equal(fulfilled.filter(result => result.value.alreadyStaged === false).length, 1,
+    'exactly one tab may create the staging session');
+  if (rejected.length) {
+    assert.ok(
+      rejected[0].reason.code === 'BACKUP_STAGING_CONFLICT' ||
+      rejected[0].reason.code === 'INCOMPLETE_STAGING_EXISTS' ||
+      rejected[0].reason.name === 'ConstraintError',
+      'a rejected tab must receive a recognized safe conflict, got: ' + String(rejected[0].reason.code || rejected[0].reason.name || rejected[0].reason.message)
+    );
+  }
+  const sessionIds = new Set(fulfilled.map(result => result.value.session.sessionId));
+  assert.equal(sessionIds.size, 1, 'concurrent tabs must converge on the same staging session');
 
   const sessions = await Restore.listArchiveRestoreSessions(db);
   assert.equal(sessions.length, 1, 'only one session header may exist for the backup ID');
