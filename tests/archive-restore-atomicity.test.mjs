@@ -180,7 +180,7 @@ test('each staged blob and its stagedCount are committed in the same readwrite t
 test('staging metadata fingerprint is stable and changes when an entry revision changes', async () => {
   const db = await makeDatabase();
   const cryptoProvider = {
-    getRandomValues(bytes) { bytes.fill(9); return bytes; },
+    getRandomValues(bytes) { bytes.fill(9); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } },
     subtle: { async digest() { return new Uint8Array(32).buffer; } }
   };
   const stateBlob = new Blob([JSON.stringify({
@@ -276,7 +276,7 @@ test('rollback refuses to erase videos added after archive import', async () => 
 
   await assert.rejects(
     api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
-      getRandomValues(bytes) { bytes.fill(3); return bytes; }
+      getRandomValues(bytes) { bytes.fill(3); return bytes; }, subtle: { async digest(_, data) { return createHash('sha256').update(Buffer.from(data)).digest().buffer.slice(createHash('sha256').update(Buffer.from(data)).digest().byteOffset, createHash('sha256').update(Buffer.from(data)).digest().byteOffset + 32); } }
     }, async () => true),
     error => error.code === 'ROLLBACK_MEDIA_CHANGED'
   );
@@ -297,7 +297,7 @@ test('rollback proceeds when entrance videos still match the imported baseline',
   const db = await makeDatabase();
   await seedRollback(db);
   const result = await api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
-    getRandomValues(bytes) { bytes.fill(4); return bytes; }
+    getRandomValues(bytes) { bytes.fill(4); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } }
   }, async () => true);
   assert.equal(result.restoredVideoCount, 0);
   assert.equal(result.state.meta.revisionId.length > 0, true);
@@ -355,7 +355,7 @@ test('rollback rejects same-size same-type video byte replacement', async () => 
   tx.objectStore('entrance_media').put(replacement);
   await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(tx.error || new Error('replacement failed')); });
   await assert.rejects(api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
-    getRandomValues(bytes) { bytes.fill(8); return bytes; }
+    getRandomValues(bytes) { bytes.fill(8); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } }
   }, async () => true), error => error.code === 'ROLLBACK_MEDIA_CHANGED');
   db.close();
 });
@@ -367,7 +367,7 @@ test('rollback fingerprint ignores harmless video metadata additions', async () 
   tx.objectStore('entrance_media').put({ ...importedVideo, syncStatus: 'not-synced' });
   await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(tx.error || new Error('metadata update failed')); });
   const result = await api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
-    getRandomValues(bytes) { bytes.fill(9); return bytes; }
+    getRandomValues(bytes) { bytes.fill(9); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } }
   }, async () => true);
   assert.equal(result.rollbackSnapshotRemoved, true);
   db.close();
