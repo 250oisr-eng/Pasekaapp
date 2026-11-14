@@ -3447,11 +3447,13 @@ function showFullArchiveRestorePreview(session) {
   const actions = $('fullArchiveRestoreActions');
   if (!preview || !actions) return;
   const videos = (session.manifest?.entries || []).filter(entry => entry.kind === 'entrance_video').length;
+  const orphanCount = (session.orphanVideoIds || []).length;
   const date = session.archiveCreatedAt ? new Date(session.archiveCreatedAt).toLocaleString('ru-RU') : 'не указана';
   preview.textContent = 'Архив проверен. Создан: ' + date +
     '. Версия данных: ' + session.schemaVersion +
     '. Видео летка: ' + videos +
-    '. Видео без найденного улья: ' + (session.orphanVideoIds || []).length +
+    '. Видео без найденного улья: ' + orphanCount +
+    (orphanCount ? '. Эти видео сохранятся, но останутся без привязки к улью.' : '') +
     '. Размер: ' + entranceBytes(session.archiveBytes) +
     '. При подтверждении текущий журнал и все текущие видео будут заменены.';
   preview.hidden = false;
