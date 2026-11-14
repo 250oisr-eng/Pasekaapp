@@ -199,15 +199,40 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
     const baselineStore = baselineTx.objectStore('entrance_media');
     const baselineRequest = baselineStore.getAll();
+    let baselineFailure = null;
     baselineRequest.onsuccess = () => {
-      try {
-        session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRequest.result || []);
+      // Legacy video rows may predate persisted checksums. Hash their actual
+      // immutable Blob bytes while the readwrite transaction is held open,
+      // then persist the checksum in that same transaction. This makes the
+      // later Phase B fingerprint detect same-size/same-MIME content swaps.
+      const stopKeepAlive = holdTransactionOpen(baselineTx, baselineStore);
+      Promise.all((baselineRequest.result || []).map(async record => {
+        if (!record || !record.blob || typeof record.blob.slice !== 'function') {
+          fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob. The archive import was not staged.');
+        }
+        const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+        if (record.blobSha256 !== undefined &&
+            (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
+          fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum. The archive import was not staged.');
+        }
+        const normalized = { ...record, blobSha256: actualHash };
+        baselineStore.put(normalized);
+        return normalized;
+      })).then(records => {
+        session.baselineMediaFingerprint = mediaRecordsFingerprint(records);
+        stopKeepAlive();
         baselineTx.objectStore(STAGING_STORE).add(session);
-      } catch (error) {
+      }).catch(error => {
+        baselineFailure = error;
+        stopKeepAlive();
         try { baselineTx.abort(); } catch (ignored) {}
-      }
+      });
     };
-    await transactionDone(baselineTx);
+    try {
+      await transactionDone(baselineTx);
+    } catch (error) {
+      throw baselineFailure || error;
+    }
     sessionCreated = true;
     const stateManifestEntry = checked.manifest.entries.find(entry => entry.kind === 'state');
     if (!stateManifestEntry || !Array.isArray(stateManifestEntry.chunkSha256)) fail('STAGING_MANIFEST_MISMATCH', 'State entry checksum metadata is missing.');
