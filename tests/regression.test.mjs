@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+const mediaReferenceSwitchSource = await readFile(new URL('../js/paseka-media-reference-switch.js', import.meta.url), 'utf8');
 const archiveRestoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
@@ -2919,4 +2920,90 @@ test('entrance video save hashes and stores the same Blob snapshot when caller m
   assert.equal(stored.blob, firstBlob);
   assert.equal(stored.bytes, 1);
   assert.equal(stored.blobSha256, '41');
+});
+
+
+test('photo reference switch revalidates Blob bytes before reporting an idempotent success', async () => {
+  const module = { exports: {} };
+  new Function('module', 'exports', mediaReferenceSwitchSource)(module, module.exports);
+  const { switchOne } = module.exports;
+  const factory = new IDBFactory();
+  const open = factory.open('paseka-reference-switch-idempotency', 1);
+  open.onupgradeneeded = () => {
+    const db = open.result;
+    db.createObjectStore('main');
+    db.createObjectStore('media_blobs', { keyPath: 'id' });
+    db.createObjectStore('media_migration_journal', { keyPath: 'id' });
+    db.createObjectStore('media_reference_journal', { keyPath: 'id' });
+  };
+  const db = await new Promise((resolve, reject) => {
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+  const bytes = new Uint8Array([1, 2, 3]);
+  const blob = new Blob([bytes], { type: 'image/png' });
+  const sha256 = Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
+  const candidate = { id: 'candidate-1', collection: 'records', entityId: 'record-1', mediaIndex: 0 };
+  const migrationId = 'migration-1';
+  const sourceKey = 'records:record-1:0';
+  const verifiedItem = { blobId: 'blob-1', sha256, sizeBytes: bytes.length, mimeType: 'image/png' };
+  const state = {
+    meta: { revisionId: 'revision-1' },
+    records: [{ id: 'record-1', media: [{ data: 'data:image/png;base64,AQID', name: 'photo.png' }] }]
+  };
+  const tx = db.transaction(['main', 'media_blobs', 'media_migration_journal'], 'readwrite');
+  tx.objectStore('main').put(state, 'state');
+  tx.objectStore('media_blobs').put({
+    id: verifiedItem.blobId, blob, mimeType: verifiedItem.mimeType,
+    sizeBytes: verifiedItem.sizeBytes, sha256, migrationId, sourceKey
+  });
+  tx.objectStore('media_migration_journal').put({
+    id: 'copy-1', migrationId, candidateId: candidate.id, sourceKey,
+    blobId: verifiedItem.blobId, sha256, status: 'completed'
+  });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  const request = (store, key) => new Promise((resolve, reject) => {
+    const r = store.get(key);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+  const first = await switchOne(db, {
+    candidate, migrationId, verifiedItem,
+    expectedRevision: 'revision-1', newRevision: 'revision-2'
+  }, globalThis.crypto);
+  assert.equal(first.status, 'switched');
+  const second = await switchOne(db, {
+    candidate, migrationId, verifiedItem,
+    expectedRevision: 'revision-1', newRevision: 'revision-3'
+  }, globalThis.crypto);
+  assert.equal(second.status, 'already_switched');
+  const corruptTx = db.transaction('media_blobs', 'readwrite');
+  const store = corruptTx.objectStore('media_blobs');
+  const stored = await request(store, verifiedItem.blobId);
+  store.put({ ...stored, blob: new Blob([new Uint8Array([9, 9, 9])], { type: 'image/png' }) });
+  await new Promise((resolve, reject) => {
+    corruptTx.oncomplete = resolve;
+    corruptTx.onerror = () => reject(corruptTx.error);
+    corruptTx.onabort = () => reject(corruptTx.error);
+  });
+  await assert.rejects(
+    switchOne(db, {
+      candidate, migrationId, verifiedItem,
+      expectedRevision: 'revision-2', newRevision: 'revision-4'
+    }, globalThis.crypto),
+    error => error.code === 'DESTINATION_CORRUPTED'
+  );
+  const finalTx = db.transaction('main', 'readonly');
+  const finalState = await request(finalTx.objectStore('main'), 'state');
+  await new Promise((resolve, reject) => {
+    finalTx.oncomplete = resolve;
+    finalTx.onerror = () => reject(finalTx.error);
+  });
+  assert.equal(finalState.meta.revisionId, 'revision-2');
+  assert.equal(finalState.records[0].media[0].data, 'data:image/png;base64,AQID');
+  db.close();
 });
