@@ -154,7 +154,7 @@ function cloneState(value) {
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }
-async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState) {
+async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
   if (!db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('full_backup') || !db.objectStoreNames.contains('entrance_media')) {
     fail('LIVE_DATABASE_STORES_MISSING', 'The live Paseka database stores are unavailable.');
@@ -215,7 +215,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             try { wrapper = JSON.parse(await stateRecord.blob.text()); }
             catch (error) { fail('STAGING_STATE_INVALID', 'Staged state JSON is invalid.'); }
             if (!wrapper || wrapper.app !== 'Paseka' || !wrapper.state || typeof wrapper.state !== 'object' || Array.isArray(wrapper.state)) fail('STAGING_STATE_INVALID', 'Staged state wrapper is invalid.');
-            const state = cloneState(wrapper.state);
+            let state = cloneState(wrapper.state);
             if (state.meta?.schemaVersion !== session.schemaVersion) fail('STAGING_SCHEMA_MISMATCH', 'Staged state schema does not match its session.');
             const manifestVideos = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
             if (manifestVideos.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
@@ -236,6 +236,14 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             if (state.auditLog.length > 500) state.auditLog = state.auditLog.slice(-500);
             const validationResult = await validateState(state);
             if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the staged state before commit.');
+            if (prepareState !== undefined) {
+              if (typeof prepareState !== 'function') fail('STATE_PREPARATION_INVALID', 'The archive state preparation callback is invalid.');
+              const prepared = await prepareState(state);
+              if (!prepared || typeof prepared !== 'object' || Array.isArray(prepared)) fail('STATE_PREPARATION_INVALID', 'The archive state preparation callback did not return a valid state.');
+              state = cloneState(prepared);
+              const preparedValidation = await validateState(state);
+              if (preparedValidation === false) fail('STATE_VALIDATION_FAILED', 'The migrated archive state failed validation.');
+            }
 
             const rollbackEntries = (currentState ? 1 : 0) + currentVideos.length;
             const rollbackSession = {
