@@ -75,7 +75,7 @@ function videoFixture() {
     queueCreatedAt: '2026-11-14T09:00:00.000Z', retryCount: 0, blob
   };
 }
-async function makeArchive(backupId, note = 'archive state') {
+async function makeArchive(backupId, note = 'archive state', videoHiveId = 'hive-1') {
   const stateBlob = new Blob([JSON.stringify({ app: 'Paseka', state: stateFixture(note) })], { type: 'application/json' });
   const video = videoFixture();
   const manifest = {
@@ -95,7 +95,7 @@ async function makeArchive(backupId, note = 'archive state') {
         mimeType: 'video/mp4', chunkSize: Archive.CHUNK_BYTES,
         chunkSha256: await Archive.hashBlobChunks(video.blob, webcrypto),
         metadata: {
-          id: video.id, hiveId: video.hiveId, capturedAt: video.capturedAt,
+          id: video.id, hiveId: videoHiveId, capturedAt: video.capturedAt,
           durationSec: video.durationSec, width: video.width, height: video.height,
           bytes: video.bytes, mimeType: video.mimeType, name: video.name,
           status: video.status, queueCreatedAt: video.queueCreatedAt, retryCount: 0
@@ -457,5 +457,20 @@ test('rollback snapshot cleanup refuses an incomplete snapshot without deleting 
   );
   assert.ok(await get(db, 'archive_staging', committed.rollbackSessionId));
   assert.equal((await get(db, 'archive_history', 'backup-rollback-cleanup-tamper')).rollbackSessionId, committed.rollbackSessionId);
+  db.close();
+});
+
+
+test('atomic archive commit marks videos whose hive reference is missing from the imported state', async () => {
+  const db = await openTestDb('paseka-stage-orphan-video');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'live-revision' }, hives: [], families: [], records: [] };
+  await put(db, 'main', oldState, 'state');
+  const archive = await makeArchive('backup-orphan-video', 'state without the referenced hive', 'hive-no-longer-present');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  assert.deepEqual(staged.session.orphanVideoIds, ['video-1']);
+  await Restore.commitStagedArchive(db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true);
+  const importedVideo = await get(db, 'entrance_media', 'video-1');
+  assert.equal(importedVideo.hiveId, 'hive-no-longer-present');
+  assert.equal(importedVideo.orphanedHiveReference, true);
   db.close();
 });
