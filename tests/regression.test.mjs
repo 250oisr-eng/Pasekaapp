@@ -40,7 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
-  deps.journalBroodCapacity ||= (hiveId,state=deps.S) => { const hive=state?.hives?.find(item=>item?.id===hiveId); const profile=hive?.profile||(deps.getHiveProfile?deps.getHiveProfile(hive):(hive?.profileId?null:{brood:{framesPerBox:6}})); const value=profile?.brood?.framesPerBox; return Number.isSafeInteger(value)&&value>0?value:null; };
+  deps.journalBroodCapacity ||= (hiveId,state=deps.S) => { const hive=state?.hives?.find(item=>item?.id===hiveId); const profile=hive?.profile||(deps.getHiveProfile?deps.getHiveProfile(hive):(hive?.profileId?null:null)); const perBox=profile?.brood?.framesPerBox,layout=state?.layouts?.[hiveId]; if(!Number.isSafeInteger(perBox)||perBox<=0||!layout||!Array.isArray(layout.installedBoxes))return null; const keys=Array.isArray(profile.brood?.boxKeys)?profile.brood.boxKeys.map(String):[]; const installed=layout.mode==='winter'&&Array.isArray(layout.winterOrder)&&layout.winterOrder.length?layout.winterOrder:layout.installedBoxes; const count=new Set(installed.map(String).filter(key=>keys.includes(key))).size,capacity=count*perBox; return Number.isSafeInteger(capacity)&&capacity>0?capacity:null; };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -990,7 +990,7 @@ test('journal draft validator accepts a complete and correctly linked inspection
 
 test('journal draft validator applies the selected hive brood capacity and leaves unknown capacity unbounded',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
- const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8}}},{id:'unknown',profileId:'missing-profile'}],families:[],records:[]};
+ const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8,boxKeys:['1','2','3','4']}}},{id:'unknown',profileId:'missing-profile'}],layouts:{h8:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
  assert.equal(validate({id:'r8',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:7,freeDrawn:8},state).ok,true);
  const invalid=validate({id:'r9',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:9},state);
  assert.ok(invalid.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
@@ -999,12 +999,12 @@ test('journal draft validator applies the selected hive brood capacity and leave
 
 test('journal inspection metrics preserve unchanged historical values after profile capacity changes',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
- const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6}}}],families:[],records:[]};
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1']}}}],layouts:{h1:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
  const old={id:'r1',date:'2026-06-01',type:'Осмотр',hive:'h1',occupancy:8,broodFrames:7,freeDrawn:1};
  assert.equal(validate({...old,text:'Дополнена заметка'},state,old).ok,true);
  const changed=validate({...old,occupancy:7,text:'Дополнена заметка'},state,old);
  assert.ok(changed.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
- const moved=validate({...old,hive:'h2',text:'Перенос записи'}, {hives:[...state.hives,{id:'h2',profile:{brood:{framesPerBox:6}}}],families:[],records:[]},old);
+ const moved=validate({...old,hive:'h2',text:'Перенос записи'}, {hives:[...state.hives,{id:'h2',profile:{brood:{framesPerBox:6,boxKeys:['1']}}}],layouts:{...state.layouts,h2:{mode:'summer',installedBoxes:['1']}},families:[],records:[]},old);
  assert.ok(moved.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
 });
 
@@ -1045,7 +1045,7 @@ test('journal draft validator rejects duplicate record identifiers',()=>{
 
 test('journal inspection metrics must be whole numbers within the six-frame capacity',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
- const state={hives:[{id:'h1'}],families:[],records:[]};
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1']}}}],layouts:{h1:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Осмотр',hive:'h1',family:'',occupancy:6.5,broodFrames:-1,freeDrawn:7},state);
  assert.equal(result.errors.filter(error=>error.code==='journal_invalid_frame_count').length,3);
 });
@@ -2629,4 +2629,18 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+});
+
+
+test('journal capacity sums the per-box capacity of physically installed brood boxes',()=>{
+ const capacity=loadFunction('journalBroodCapacity');
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1','2','3','4','5','6']}}}],layouts:{h1:{mode:'summer',installedBoxes:[1,3,4]} }};
+ assert.equal(capacity('h1',state),18);
+ state.layouts.h1.mode='winter';state.layouts.h1.winterOrder=[1,3,4];
+ assert.equal(capacity('h1',state),18);
+ state.layouts.h1.winterOrder=[1,3];
+ assert.equal(capacity('h1',state),12);
+ state.layouts.h1.installedBoxes=[];
+ state.layouts.h1.winterOrder=[];
+ assert.equal(capacity('h1',state),null);
 });
