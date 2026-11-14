@@ -68,9 +68,9 @@ test('intentional full data deletion clears the prior-use startup marker',()=>{
  assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&reloadIndex>clearIndex);
 });
 test('manual JSON backup clearly warns that entrance videos are excluded',()=>{
- assert.match(html,/<b>JSON-копия данных<\\/b>/);
- assert.match(html,/отдельные видео летка из локального хранилища в этот файл не входят/);
- assert.match(html,/Скачать JSON-копию \\(без видео летка\\)/);
+ assert.ok(html.includes('<b>JSON-копия данных</b>'));
+ assert.ok(html.includes('отдельные видео летка из локального хранилища в этот файл не входят'));
+ assert.ok(html.includes('Скачать JSON-копию (без видео летка)'));
 });
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
