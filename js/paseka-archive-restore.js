@@ -394,7 +394,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
             });
             for (const record of records) stagingStore.delete(record.id);
             stagingStore.put({ ...importSession, backupId: undefined, sourceBackupId: backupId, status: 'reverted', revertedAt: now });
-            result = { state, backupId, rollbackSessionId, restoredVideoCount: restoredVideos.length };
+            result = { state, backupId, rollbackSessionId, rollbackSnapshotRemoved: true, restoredVideoCount: restoredVideos.length };
           } catch (error) {
             stopKeepAlive?.();
             abortWith(error);
