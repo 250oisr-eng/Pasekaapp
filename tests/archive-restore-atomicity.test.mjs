@@ -946,6 +946,10 @@ test('Phase B lock blocks concurrent rollback snapshot mutation until byte verif
 
   let competingWriteExecuted = false;
   const competingWrite = db.transaction('archive_staging', 'readwrite');
+  const competingWriteDone = new Promise((resolve, reject) => {
+    competingWrite.oncomplete = resolve;
+    competingWrite.onabort = competingWrite.onerror = () => reject(competingWrite.error || new Error('competing write failed'));
+  });
   const competingStore = competingWrite.objectStore('archive_staging');
   const competingRead = competingStore.get('rollback-1:video:previous');
   competingRead.onsuccess = () => {
@@ -964,10 +968,7 @@ test('Phase B lock blocks concurrent rollback snapshot mutation until byte verif
 
   releasePhaseBHash.resolve();
   const rolledBack = await rollback;
-  await new Promise((resolve, reject) => {
-    competingWrite.oncomplete = resolve;
-    competingWrite.onabort = competingWrite.onerror = () => reject(competingWrite.error || new Error('competing write failed'));
-  });
+  await competingWriteDone;
 
   assert.equal(rolledBack.rollbackSnapshotRemoved, true);
   assert.equal(competingWriteExecuted, true);
