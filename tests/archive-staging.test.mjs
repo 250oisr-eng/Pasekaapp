@@ -675,6 +675,7 @@ test('quota failure during media staging preserves live data and leaves a safely
   const [failedSession] = await Restore.listArchiveRestoreSessions(db);
   assert.equal(failedSession.backupId, 'backup-stage-quota-failure');
   assert.equal(failedSession.status, 'failed');
+  assert.equal(failedSession.errorCode, 'QuotaExceededError');
   assert.equal(failedSession.stagedCount, 1);
   assert.equal((await get(db, 'archive_staging', failedSession.sessionId + ':state')).kind, 'state');
   assert.equal(await get(db, 'archive_staging', failedSession.sessionId + ':video:video-1'), undefined);
