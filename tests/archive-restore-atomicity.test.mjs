@@ -228,14 +228,19 @@ test('staging metadata fingerprint is stable and changes when an entry revision 
 
 
 function mediaFingerprint(records) {
-  return JSON.stringify((records || []).slice().sort((a, b) =>
-    String(a?.id || '') < String(b?.id || '') ? -1 : String(a?.id || '') > String(b?.id || '') ? 1 : 0
-  ), (key, value) => {
-    if (typeof Blob !== 'undefined' && value instanceof Blob) {
-      return { __blob: true, size: value.size, type: value.type };
-    }
-    return value;
-  });
+  const canonical = (records || []).map(record => {
+    const blob = record.blob;
+    return [record.id, typeof record.blobSha256 === 'string' ? record.blobSha256 : null,
+      typeof record.hiveId === 'string' ? record.hiveId : null,
+      typeof record.capturedAt === 'string' ? record.capturedAt : null,
+      Number.isFinite(record.durationSec) ? record.durationSec : null,
+      Number.isFinite(record.width) ? record.width : null,
+      Number.isFinite(record.height) ? record.height : null,
+      Number.isFinite(record.bytes) ? record.bytes : (blob && Number.isFinite(blob.size) ? blob.size : null),
+      blob && Number.isFinite(blob.size) ? blob.size : null,
+      blob && typeof blob.type === 'string' ? blob.type : null];
+  }).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+  return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT',2,canonical]);
 }
 
 async function seedRollback(db, { currentVideos = [] } = {}) {
@@ -276,7 +281,7 @@ test('rollback refuses to erase videos added after archive import', async () => 
 
   await assert.rejects(
     api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
-      getRandomValues(bytes) { bytes.fill(3); return bytes; }, subtle: { async digest(_, data) { return createHash('sha256').update(Buffer.from(data)).digest().buffer.slice(createHash('sha256').update(Buffer.from(data)).digest().byteOffset, createHash('sha256').update(Buffer.from(data)).digest().byteOffset + 32); } }
+      getRandomValues(bytes) { bytes.fill(3); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } }
     }, async () => true),
     error => error.code === 'ROLLBACK_MEDIA_CHANGED'
   );
