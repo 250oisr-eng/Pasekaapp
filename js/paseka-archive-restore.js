@@ -251,6 +251,17 @@ function cloneState(value) {
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }
+function mediaRecordsFingerprint(records) {
+  const ordered = (records || []).slice().sort((a, b) =>
+    String(a?.id || '') < String(b?.id || '') ? -1 : String(a?.id || '') > String(b?.id || '') ? 1 : 0
+  );
+  return JSON.stringify(ordered, (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) {
+      return { __blob: true, size: value.size, type: value.type };
+    }
+    return value;
+  });
+}
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
   if (!db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('full_backup') || !db.objectStoreNames.contains('entrance_media')) {
@@ -380,6 +391,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             archiveBytes: session.archiveBytes,
             videoCount: importedVideos.length,
             orphanedVideoCount: importedVideos.filter(record => record.orphanedHiveReference).length,
+            importedMediaFingerprint: mediaRecordsFingerprint(importedVideos),
             rollbackSessionId,
             rollbackAvailable: true,
             importSessionId: sessionId
@@ -435,12 +447,13 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     fail('ROLLBACK_NOT_AVAILABLE', 'There is no committed archive import with an available rollback snapshot.');
   }
   const rollbackSessionId = knownHistory.rollbackSessionId;
-  const readTx = db.transaction(STAGING_STORE, 'readonly');
+  const readTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readonly');
   const readStore = readTx.objectStore(STAGING_STORE);
-  const [rollbackSession, records, importSession] = await Promise.all([
+  const [rollbackSession, records, importSession, phaseAMedia] = await Promise.all([
     requestValue(readStore.get(rollbackSessionId)),
     requestValue(readStore.index('sessionId').getAll(rollbackSessionId)),
-    requestValue(readStore.get(knownHistory.importSessionId))
+    requestValue(readStore.get(knownHistory.importSessionId)),
+    requestValue(readTx.objectStore('entrance_media').getAll())
   ]);
   await transactionDone(readTx);
 
@@ -449,6 +462,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   }
   if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
     fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+  }
+  if (typeof knownHistory.importedMediaFingerprint !== 'string' ||
+      mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
+    fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
   const snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
   const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
@@ -522,6 +539,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const historyStore = tx.objectStore(HISTORY_STORE);
       const reads = {
         currentState: main.get('state'),
+        currentVideos: media.getAll(),
         history: historyStore.get(backupId),
         rollbackSession: stagingStore.get(rollbackSessionId),
         rollbackRecords: stagingStore.index('sessionId').getAll(rollbackSessionId),
@@ -542,6 +560,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           }
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
             fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
+          }
+          if (mediaRecordsFingerprint(values.currentVideos || []) !== knownHistory.importedMediaFingerprint) {
+            fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
           }
           if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
               currentRollbackSession.status !== 'ready' ||
