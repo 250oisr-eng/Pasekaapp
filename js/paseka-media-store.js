@@ -161,29 +161,67 @@ async function auditOrphanedImages(db) {
   assertDatabase(db);
   const storeNames = Array.from({ length: db.objectStoreNames.length }, (_, index) => db.objectStoreNames.item(index)).filter(name => name && name !== STORE);
   if (!storeNames.length) fail('MEDIA_REFERENCE_STORES_UNAVAILABLE', 'No application data stores are available for a safe reference audit.');
+
+  // Walk one IndexedDB record at a time. getAll() would clone every state,
+  // snapshot and Blob payload into memory simultaneously on mobile devices.
   const tx = db.transaction([...storeNames, STORE], 'readonly');
   const done = transactionResult(tx);
-  const requests = storeNames.map(name => [name, requestResult(tx.objectStore(name).getAll())]);
-  const blobRequest = requestResult(tx.objectStore(STORE).getAll());
-  const values = await Promise.all([...requests.map(item => item[1]), blobRequest, done]);
   const references = new Map();
-  for (let i = 0; i < storeNames.length; i++) {
-    const name = storeNames[i];
-    for (const record of values[i] || []) collectBlobReferences(record, name, references, new WeakSet());
+  const blobMetadata = [];
+  let blobCount = 0;
+
+  function scanStore(name, visit) {
+    return new Promise((resolve, reject) => {
+      let request;
+      try {
+        request = tx.objectStore(name).openCursor();
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      request.onerror = () => reject(request.error || new Error('IndexedDB cursor failed.'));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+        try {
+          visit(cursor.value);
+          cursor.continue();
+        } catch (error) {
+          reject(error);
+          try { tx.abort(); } catch (abortError) { /* transaction may already be inactive */ }
+        }
+      };
+    });
   }
-  const blobs = values[storeNames.length] || [];
-  const byId = new Map(blobs.filter(record => record && typeof record.id === 'string').map(record => [record.id, record]));
+
+  const scans = storeNames.map(name => scanStore(name, record => {
+    collectBlobReferences(record, name, references, new WeakSet());
+  }));
+  scans.push(scanStore(STORE, record => {
+    blobCount++;
+    if (record && typeof record.id === 'string') blobMetadata.push(metadataOf(record));
+  }));
+
+  await Promise.all([...scans, done]);
+
+  const blobIds = new Set(blobMetadata.map(record => record.id));
   const orphaned = [];
   const referenced = [];
-  for (const record of blobs) {
-    if (!record || typeof record.id !== 'string') continue;
-    const reference = references.get(record.id);
-    const item = { ...metadataOf(record), referenceCount: reference?.count || 0, referencedBy: reference ? [...reference.stores].sort() : [] };
+  for (const metadata of blobMetadata) {
+    const reference = references.get(metadata.id);
+    const item = {
+      ...metadata,
+      referenceCount: reference?.count || 0,
+      referencedBy: reference ? [...reference.stores].sort() : []
+    };
     if (reference) referenced.push(item);
     else orphaned.push(item);
   }
   const missingReferences = [...references.values()]
-    .filter(reference => !byId.has(reference.id))
+    .filter(reference => !blobIds.has(reference.id))
     .map(reference => ({ blobId: reference.id, referenceCount: reference.count, referencedBy: [...reference.stores].sort() }))
     .sort((a, b) => a.blobId.localeCompare(b.blobId));
   orphaned.sort((a, b) => a.id.localeCompare(b.id));
@@ -192,7 +230,7 @@ async function auditOrphanedImages(db) {
     mode: 'read-only-audit',
     readOnly: true,
     deletionPerformed: false,
-    blobCount: blobs.length,
+    blobCount,
     referencedCount: referenced.length,
     orphanedCount: orphaned.length,
     missingReferenceCount: missingReferences.length,
