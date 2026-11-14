@@ -422,6 +422,31 @@ function gatedHasher(expectedCalls) {
     }
   };
 }
+function gatedSnapshotHasher(expectedCalls) {
+  const started = deferred();
+  const release = deferred();
+  const original = appWindow.PasekaSha256;
+  let snapshotCalls = 0;
+  appWindow.PasekaSha256 = {
+    async hashBlobHex(blob, options) {
+      if (await blob.text() === 'previous') {
+        snapshotCalls++;
+        if (snapshotCalls >= expectedCalls) {
+          started.resolve();
+          await release.promise;
+        }
+      }
+      return original.hashBlobHex(blob, options);
+    }
+  };
+  return {
+    started: started.promise,
+    release() {
+      release.resolve();
+      appWindow.PasekaSha256 = original;
+    }
+  };
+}
 function testCryptoProvider() {
   return { getRandomValues(bytes) { bytes.fill(13); return bytes; } };
 }
@@ -925,7 +950,7 @@ test('Phase B lock blocks concurrent rollback snapshot mutation until byte verif
     setup.onabort = setup.onerror = () => reject(setup.error || new Error('snapshot setup failed'));
   });
 
-  const hasherGate = gatedHasher(3);
+  const hasherGate = gatedSnapshotHasher(2);
   const cryptoProvider = testCryptoProvider();
   const rollback = api.rollbackCommittedArchive(
     db, 'backup-1', 'imported-revision', cryptoProvider, async () => true
