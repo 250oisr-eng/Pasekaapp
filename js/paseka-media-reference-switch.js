@@ -70,7 +70,7 @@ async function switchOne(db,{candidate,migrationId,verifiedItem,expectedRevision
    };
    const a=main.get('state');a.onsuccess=()=>{mainNow=a.result;check()};a.onerror=()=>{failure=a.error;try{tx.abort()}catch(e){reject(failure)}};
    const b=blobs.get(verifiedItem.blobId);b.onsuccess=()=>{blobNow=b.result;check()};b.onerror=()=>{failure=b.error;try{tx.abort()}catch(e){reject(failure)}};
-   const c=copies.get(migrationId+':'+candidate.id);c.onsuccess=()=>{copyNow=c.result;check()};c.onerror=()=>{failure=c.error;try{tx.abort()}catch(e){reject(failure)}};
+   const c=copies.getAll();c.onsuccess=()=>{copyNow=(c.result||[]).find(x=>x?.migrationId===migrationId&&x?.candidateId===candidate.id&&x?.sourceKey===sourceKey(candidate));check()};c.onerror=()=>{failure=c.error;try{tx.abort()}catch(e){reject(failure)}};
    tx.oncomplete=()=>resolve({status:'switched',journalId:id,revision:newRevision,legacyDataRetained:true});
    tx.onabort=()=>reject(failure||tx.error||new Error('Photo reference switch aborted.'));
    tx.onerror=()=>reject(failure||tx.error||new Error('Photo reference switch failed.'));
