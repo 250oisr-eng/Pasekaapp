@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
@@ -2564,4 +2565,84 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+});
+
+test('full archive export is available separately from the JSON-only backup', () => {
+  assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
+  assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v308'"));
+  assert.ok(html.includes('id="downloadFullArchiveButton"'));
+  assert.ok(html.includes('onclick="downloadFullArchive()"'));
+  assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
+  assert.ok(html.includes('Восстановление полного архива будет добавлено отдельно'));
+  assert.ok(html.includes('Скачать архив'));
+});
+
+
+test('full archive export handler downloads the generated archive without deleting local data', async () => {
+  const button = { disabled: false };
+  const status = { textContent: '' };
+  let clicked = false;
+  let adapterCalls = 0;
+  const anchor = { href: '', download: '', click() { clicked = true; }, remove() {} };
+  const archiveApi = {
+    async exportArchiveFromDatabase(db, crypto) {
+      adapterCalls++;
+      assert.equal(db, database);
+      assert.equal(crypto, cryptoProvider);
+      return { blob: new Blob(['archive']), summary: { videoCount: 2, archiveBytes: 7 } };
+    }
+  };
+  const database = {};
+  const cryptoProvider = {};
+  const win = { crypto: cryptoProvider, PasekaArchive: archiveApi };
+  const urlApi = { createObjectURL: blob => { assert.equal(blob.size, 7); return 'blob:test-archive'; }, revokeObjectURL() {} };
+  const alerts = [];
+  const handler = loadFunction('downloadFullArchive', {
+    $: id => id === 'downloadFullArchiveButton' ? button : status,
+    saveQueue: Promise.resolve(),
+    S: { meta: {} },
+    db: database,
+    window: win,
+    PasekaArchive: archiveApi,
+    document: { createElement: () => anchor, body: { appendChild() {} } },
+    URL: urlApi,
+    setTimeout: callback => callback(),
+    today: () => '2026-11-14',
+    entranceBytes: bytes => bytes + ' bytes',
+    alert: message => alerts.push(message)
+  });
+  await handler();
+  assert.equal(adapterCalls, 1);
+  assert.equal(clicked, true);
+  assert.equal(anchor.download, 'paseka-full-backup-2026-11-14.paseka');
+  assert.match(status.textContent, /2 видео летка/);
+  assert.equal(button.disabled, false);
+  assert.deepEqual(alerts, []);
+});
+
+test('full archive export handler blocks export when the latest save failed', async () => {
+  const status = { textContent: '' };
+  let adapterCalls = 0;
+  const archiveApi = { async exportArchiveFromDatabase() { adapterCalls++; throw new Error('must not run'); } };
+  const win = { crypto: {}, PasekaArchive: archiveApi };
+  const alerts = [];
+  const handler = loadFunction('downloadFullArchive', {
+    $: id => id === 'downloadFullArchiveButton' ? { disabled: false } : status,
+    saveQueue: Promise.resolve(),
+    S: { meta: { saveError: 'quota' } },
+    db: {},
+    window: win,
+    PasekaArchive: archiveApi,
+    document: { createElement() { throw new Error('unexpected download'); }, body: { appendChild() {} } },
+    URL: { createObjectURL() { throw new Error('unexpected URL'); } },
+    setTimeout() {},
+    today: () => '2026-11-14',
+    entranceBytes: bytes => String(bytes),
+    alert: message => alerts.push(message)
+  });
+  await handler();
+  assert.equal(adapterCalls, 0);
+  assert.match(status.textContent, /несохранённые изменения/);
+  assert.equal(alerts.length, 1);
 });
