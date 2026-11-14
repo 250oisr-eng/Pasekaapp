@@ -337,6 +337,15 @@ test('atomic archive commit replaces state and entrance videos while preserving 
     Restore.discardArchiveRestoreSession(db, committed.rollbackSessionId),
     { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }
   );
+  const cleanup = await Restore.discardArchiveRollbackSnapshot(db, 'backup-atomic-commit');
+  assert.equal(cleanup.deletedRecords, 3);
+  const cleanedHistory = await get(db, 'archive_history', 'backup-atomic-commit');
+  assert.equal(cleanedHistory.rollbackSessionId, null);
+  assert.equal(cleanedHistory.rollbackAvailable, false);
+  await assert.rejects(
+    Restore.rollbackCommittedArchive(db, 'backup-atomic-commit', currentState.meta.revisionId, webcrypto, () => true),
+    { code: 'ROLLBACK_NOT_AVAILABLE' }
+  );
   db.close();
 });
 
@@ -418,4 +427,21 @@ test('atomic rollback refuses a stale revision and preserves the imported state'
   assert.equal((await get(db, 'archive_history', 'backup-stale-rollback')).status, 'committed');
   assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId)).status, 'ready');
   db.close();
+});
+
+
+test('full archive restore UI requires staging, explicit confirmation, and offers rollback', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="fullArchiveFile"'));
+  assert.ok(html.includes('onclick="prepareFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="commitFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="cancelFullArchiveRestore()"'));
+  assert.ok(html.includes('function validateFullArchiveImportState(state)'));
+  assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
+  assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
+  assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  assert.ok(html.includes('function archiveRestoreErrorText(error)'));
+  assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
 });
