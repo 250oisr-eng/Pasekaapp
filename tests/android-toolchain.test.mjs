@@ -27,9 +27,10 @@ test('Android toolchain patch refuses an unknown wrapper template', () => {
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 test('Android emulator smoke script is valid Bash and checks launch/crash state', () => {
-  const scriptPath = new URL('../scripts/android-emulator-smoke.sh', import.meta.url);
+  const scriptPath = fileURLToPath(new URL('../scripts/android-emulator-smoke.sh', import.meta.url));
   const syntax = spawnSync('bash', ['-n', scriptPath], { encoding: 'utf8' });
   assert.equal(syntax.status, 0, syntax.stderr);
   const source = readFileSync(scriptPath, 'utf8');
