@@ -99,3 +99,66 @@ test('rollback snapshots cannot be removed by staged-session cleanup', async () 
   assert.deepEqual(tracked.modes, ['readwrite']);
   db.close();
 });
+
+
+test('each staged blob and its stagedCount are committed in the same readwrite transaction', async () => {
+  const db = await makeDatabase();
+  const tracked = trackedDb(db);
+  const cryptoProvider = {
+    getRandomValues(bytes) { bytes.fill(7); return bytes; },
+    subtle: { async digest() { return new Uint8Array(32).buffer; } }
+  };
+  const stateBlob = new Blob(['state']);
+  const videoA = new Blob(['video-a']);
+  const videoB = new Blob(['video-b']);
+  const manifest = {
+    entries: [
+      { kind: 'state', size: stateBlob.size, chunkSha256: [] },
+      { kind: 'entrance_video', path: 'videos/a.mp4', size: videoA.size, chunkSize: 1024, chunkSha256: [], metadata: { id: 'video-a', hiveId: 'hive-a' } },
+      { kind: 'entrance_video', path: 'videos/b.mp4', size: videoB.size, chunkSize: 1024, chunkSha256: [], metadata: { id: 'video-b', hiveId: 'hive-b' } }
+    ]
+  };
+  const archiveApi = {
+    async validateArchiveForRestore() {
+      return {
+        backupId: 'atomic-stage-backup',
+        createdAt: '2026-11-14T00:00:00.000Z',
+        schemaVersion: 1,
+        archiveBytes: 100,
+        manifest,
+        stateBlob,
+        videoEntries: [
+          { ...manifest.entries[1], blob: videoA, orphanVideoReference: false },
+          { ...manifest.entries[2], blob: videoB, orphanVideoReference: false }
+        ],
+        orphanVideoIds: []
+      };
+    }
+  };
+
+  const progress = [];
+  const result = await api.stageArchiveForRestore(
+    tracked,
+    new Blob(['archive']),
+    cryptoProvider,
+    archiveApi,
+    async () => true,
+    { onProgress: value => progress.push(value.staged) }
+  );
+
+  assert.equal(result.session.status, 'ready');
+  assert.equal(result.session.stagedCount, 3);
+  assert.deepEqual(progress, [2, 3]);
+  // Session creation, three atomic entry+counter writes, and final ready status.
+  assert.deepEqual(tracked.modes, ['readonly', 'readonly', 'readwrite', 'readwrite', 'readwrite', 'readwrite', 'readwrite']);
+
+  const verify = db.transaction('archive_staging', 'readonly');
+  const stored = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('archive_staging').get(result.session.id);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(stored.stagedCount, 3);
+  assert.equal(stored.status, 'ready');
+  db.close();
+});
