@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+const archiveRestoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
@@ -2570,7 +2571,7 @@ test('schema 11 migration creates an empty deadout section and preserves existin
 test('full archive export is available separately from the JSON-only backup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v308'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
   assert.ok(html.includes('id="downloadFullArchiveButton"'));
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
@@ -2645,4 +2646,41 @@ test('full archive export handler blocks export when the latest save failed', as
   assert.equal(adapterCalls, 0);
   assert.match(status.textContent, /несохранённые изменения/);
   assert.equal(alerts.length, 1);
+});
+
+
+test('IndexedDB v3 upgrades to v4 with dedicated archive staging and history stores', async () => {
+  const factory = new IDBFactory();
+  const request = factory.open('paseka-upgrade-v3-v4', 3);
+  request.onupgradeneeded = () => {
+    request.result.createObjectStore('main');
+    request.result.createObjectStore('full_backup');
+    request.result.createObjectStore('entrance_media', { keyPath: 'id' });
+  };
+  const oldDb = await new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  oldDb.close();
+  const deps = {
+    DB: 'paseka-upgrade-v3-v4', STORE: 'main', BACKUP_STORE: 'full_backup',
+    db: null, indexedDB: factory
+  };
+  await loadFunction('openDB', deps)();
+  assert.equal(deps.db.version, 4);
+  assert.equal(deps.db.objectStoreNames.contains('archive_staging'), true);
+  assert.equal(deps.db.objectStoreNames.contains('archive_history'), true);
+  const tx = deps.db.transaction('archive_staging', 'readonly');
+  assert.equal(tx.objectStore('archive_staging').indexNames.contains('sessionId'), true);
+  assert.equal(tx.objectStore('archive_staging').indexNames.contains('kind'), true);
+  assert.equal(tx.objectStore('archive_staging').indexNames.contains('backupId'), true);
+  assert.equal(tx.objectStore('archive_staging').index('backupId').unique, true);
+  deps.db.close();
+});
+
+test('archive staging manager is loaded and cached for offline startup', () => {
+  assert.ok(html.includes('<script src="./js/paseka-archive-restore.js"></script>'));
+  assert.ok(serviceWorker.includes("'./js/paseka-archive-restore.js'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
+  assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
 });

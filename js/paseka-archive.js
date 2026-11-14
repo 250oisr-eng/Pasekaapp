@@ -319,12 +319,18 @@ async function validateArchiveForRestore(blob, cryptoProvider, validateState) {
   if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the archived state.');
   const hiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
   const videoEntries = parsed.entries.filter(entry => entry.kind === 'entrance_video').map(entry => ({
+    path: entry.path,
+    size: entry.size,
+    chunkSize: entry.chunkSize,
+    chunkSha256: entry.chunkSha256.slice(),
     metadata: entry.metadata,
     blob: readArchiveEntry(blob, entry),
     orphanedHiveReference: !hiveIds.has(entry.metadata.hiveId)
   }));
   return {
     backupId: parsed.manifest.backupId,
+    manifest: parsed.manifest,
+    stateBlob: readArchiveEntry(blob, parsed.stateEntry),
     createdAt: parsed.manifest.createdAt,
     schemaVersion: parsed.manifest.schemaVersion,
     state,
