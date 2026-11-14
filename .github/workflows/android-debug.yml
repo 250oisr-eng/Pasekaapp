@@ -12,6 +12,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
+      - 'capacitor-bee-detector/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - '.github/workflows/android-debug.yml'
@@ -25,6 +26,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
+      - 'capacitor-bee-detector/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - '.github/workflows/android-debug.yml'
@@ -46,7 +48,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Cache npm download data
         uses: actions/cache@v4
         with:
@@ -58,7 +60,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - name: Locate or install Android command-line tools
         shell: bash
         run: |
@@ -79,7 +81,7 @@ jobs:
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
       - name: Install Android SDK packages
-        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Run regression tests
@@ -90,9 +92,9 @@ jobs:
         run: npx cap add android
       - name: Sync Android project
         run: npx cap sync android
-      - name: Use Android 15-compatible Gradle toolchain
+      - name: Use Capacitor 8 Android toolchain
         run: node scripts/patch-android-gradle.mjs
-      - name: Keep Android minimum compatible with Capacitor and LiteRT
+      - name: Verify Android SDK configuration
         shell: bash
         run: |
           set -euo pipefail
@@ -100,16 +102,20 @@ jobs:
           const fs = require('node:fs');
           const path = 'android/variables.gradle';
           let source = fs.readFileSync(path, 'utf8');
-          for (const [key, value] of Object.entries({ minSdkVersion: 24, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+          for (const [key, value] of Object.entries({ minSdkVersion: 24, compileSdkVersion: 36, targetSdkVersion: 36 })) {
             const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)\\d+`, 'm');
             if (!pattern.test(source)) throw new Error(`Could not find ${key} in ${path}; refusing to build with an unknown Android SDK configuration`);
             source = source.replace(pattern, `$1${value}`);
           }
           fs.writeFileSync(path, source);
-          const minLine = source.split(/\r?\n/).find(line => line.trim().startsWith('minSdkVersion'));
-          const min = Number(minLine?.split('=').pop()?.trim());
-          if (min !== 24) throw new Error(`Expected minSdkVersion 24, got ${min}`);
-          console.log('Android minimum API: 24; compile/target API: 35');
+          const actual = Object.fromEntries(['minSdkVersion','compileSdkVersion','targetSdkVersion'].map(key => {
+            const line = source.split(/\\r?\\n/).find(item => item.trim().startsWith(key));
+            return [key, Number(line?.split('=').pop()?.trim())];
+          }));
+          if (actual.minSdkVersion !== 24 || actual.compileSdkVersion !== 36 || actual.targetSdkVersion !== 36) {
+            throw new Error('Unexpected Android SDK values: ' + JSON.stringify(actual));
+          }
+          console.log('Verified Android SDK configuration:', actual);
           NODE
       - name: Cache Gradle build data
         uses: actions/cache@v4
@@ -125,7 +131,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: paseka-debug-apk
+          name: paseka-debug-apk-capacitor-8
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
