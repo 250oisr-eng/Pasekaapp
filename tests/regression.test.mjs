@@ -2571,7 +2571,7 @@ test('schema 11 migration creates an empty deadout section and preserves existin
 test('full archive export is available separately from the JSON-only backup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v314'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v315'"));
   assert.ok(html.includes('id="downloadFullArchiveButton"'));
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
@@ -2690,7 +2690,7 @@ test('IndexedDB v3 upgrades to v7 with archive staging, history, snapshots, imag
 test('archive staging manager is loaded and cached for offline startup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive-restore.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive-restore.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v314'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v315'"));
   assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
 });
 
