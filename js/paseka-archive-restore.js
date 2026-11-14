@@ -384,8 +384,15 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
             main.put(state, 'state');
             media.clear();
             for (const record of restoredVideos) media.put(record);
-            historyStore.put({ ...history, status: 'reverted', revertedAt: now, revertedRevisionId: state.meta.revisionId });
-            stagingStore.put({ ...rollbackSession, status: 'used', usedAt: now });
+            historyStore.put({
+              ...history,
+              status: 'reverted',
+              rollbackSessionId: null,
+              rollbackAvailable: false,
+              revertedAt: now,
+              revertedRevisionId: state.meta.revisionId
+            });
+            for (const record of records) stagingStore.delete(record.id);
             stagingStore.put({ ...importSession, backupId: undefined, sourceBackupId: backupId, status: 'reverted', revertedAt: now });
             result = { state, backupId, rollbackSessionId, restoredVideoCount: restoredVideos.length };
           } catch (error) {
