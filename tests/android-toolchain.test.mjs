@@ -24,3 +24,17 @@ test('Android toolchain patch refuses an unknown wrapper template', () => {
     /exactly one Gradle wrapper distribution URL/
   );
 });
+
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+test('Android emulator smoke script is valid Bash and checks launch/crash state', () => {
+  const scriptPath = new URL('../scripts/android-emulator-smoke.sh', import.meta.url);
+  const syntax = spawnSync('bash', ['-n', scriptPath], { encoding: 'utf8' });
+  assert.equal(syntax.status, 0, syntax.stderr);
+  const source = readFileSync(scriptPath, 'utf8');
+  assert.match(source, /adb install/);
+  assert.match(source, /pidof/);
+  assert.match(source, /FATAL EXCEPTION/);
+  assert.match(source, /Fatal app crash detected/);
+});
