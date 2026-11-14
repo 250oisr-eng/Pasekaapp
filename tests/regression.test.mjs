@@ -60,12 +60,14 @@ test('startup guard is checked before migration and first-run initialization req
  assert.match(html,/if\(startupStatus==='missing'\)throw new Error/);
  assert.match(html,/if\(startupStatus==='first_run'\|\|startupStatus==='unverified'\)/);
 });
-test('intentional full data deletion clears the prior-use startup marker',()=>{
+test('intentional full data deletion clears the startup marker before deleting the database',()=>{
  assert.ok(html.includes("function clearStartupMarker(){try{localStorage.removeItem(STARTUP_MARKER_KEY)"));
  const deleteIndex=html.indexOf("async function deleteAllData()");
- const clearIndex=html.indexOf("clearStartupMarker();",deleteIndex);
+ const clearIndex=html.indexOf("if(!clearStartupMarker())throw",deleteIndex);
+ const databaseDeleteIndex=html.indexOf("indexedDB.deleteDatabase(DB)",deleteIndex);
  const reloadIndex=html.indexOf("location.reload();",deleteIndex);
- assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&reloadIndex>clearIndex);
+ assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&databaseDeleteIndex>clearIndex&&reloadIndex>databaseDeleteIndex);
+ assert.ok(html.includes("Хранилище настроек недоступно; база не удалена."));
 });
 test('manual JSON backup clearly warns that entrance videos are excluded',()=>{
  assert.ok(html.includes('<b>JSON-копия данных</b>'));
