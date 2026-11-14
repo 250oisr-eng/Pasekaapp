@@ -1082,3 +1082,114 @@ test('concurrent discard during final staging progress cannot resurrect a delete
   assert.equal(remaining.length, 0, 'a completed discard must not be undone by a late session update');
   db.close();
 });
+
+
+test('a fully persisted staging session can be explicitly verified and finalized after interruption', async () => {
+  const db = await openTestDb('paseka-stage-explicit-finalize');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-finalize' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const archive = await makeArchive('backup-explicit-finalize');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+
+  const interrupted = await get(db, 'archive_staging', staged.session.sessionId);
+  interrupted.status = 'staging';
+  delete interrupted.completedAt;
+  await put(db, 'archive_staging', interrupted);
+
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_SESSION_INCOMPLETE' }
+  );
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'INCOMPLETE_STAGING_EXISTS' }
+  );
+
+  const finalized = await Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
+  assert.equal(finalized.status, 'ready');
+  assert.equal(finalized.stagedCount, finalized.totalEntries);
+  const verified = await Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
+  assert.equal(verified.state.records[0].note, 'archive state');
+  assert.equal(verified.videos.length, 1);
+  const repeated = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  assert.equal(repeated.alreadyStaged, true);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-finalize');
+  db.close();
+});
+
+test('explicit staging finalization refuses a missing content record and preserves the session', async () => {
+  const db = await openTestDb('paseka-stage-finalize-incomplete');
+  const archive = await makeArchive('backup-finalize-incomplete');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  await put(db, 'archive_staging', header);
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('archive_staging', 'readwrite');
+    tx.objectStore('archive_staging').delete(staged.session.sessionId + ':video:video-1');
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  await assert.rejects(
+    Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_ENTRY_SET_INVALID' }
+  );
+  const preservedHeader = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(preservedHeader.status, 'staging');
+  assert.equal(preservedHeader.stagedCount, 2);
+  assert.ok(await get(db, 'archive_staging', staged.session.sessionId + ':state'));
+  assert.equal(await get(db, 'archive_staging', staged.session.sessionId + ':video:video-1'), undefined);
+  db.close();
+});
+
+test('explicit staging finalization aborts if a concurrent writer changes the verified revision', async () => {
+  const db = await openTestDb('paseka-stage-finalize-write-race');
+  const secondTabDb = await openTestDb('paseka-stage-finalize-write-race', db._factory);
+  const archive = await makeArchive('backup-finalize-write-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  await put(db, 'archive_staging', header);
+
+  let releaseHash, notifyHash;
+  const hashStarted = new Promise(resolve => { notifyHash = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  const gatedArchive = {
+    ...Archive,
+    async hashBlobChunks(...args) {
+      const result = await Archive.hashBlobChunks(...args);
+      if (firstHash) {
+        firstHash = false;
+        notifyHash();
+        await hashGate;
+      }
+      return result;
+    }
+  };
+  const finalize = Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, gatedArchive, () => true);
+  await hashStarted;
+
+  const stateEntryId = staged.session.sessionId + ':state';
+  const stateEntry = await get(secondTabDb, 'archive_staging', stateEntryId);
+  const currentHeader = await get(secondTabDb, 'archive_staging', staged.session.sessionId);
+  const nextEpoch = currentHeader.stagingEpoch + 1;
+  stateEntry.stagingRevision = nextEpoch;
+  currentHeader.stagingEpoch = nextEpoch;
+  await new Promise((resolve, reject) => {
+    const tx = secondTabDb.transaction('archive_staging', 'readwrite');
+    tx.objectStore('archive_staging').put(stateEntry);
+    tx.objectStore('archive_staging').put(currentHeader);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  releaseHash();
+
+  await assert.rejects(finalize, { code: 'STAGING_FINALIZE_CHANGED' });
+  assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).status, 'staging');
+  db.close();
+  secondTabDb.close();
+});
