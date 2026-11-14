@@ -9,7 +9,13 @@ function validDateTime(value){
  return d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day&&hour>=0&&hour<=23&&minute>=0&&minute<=59;
 }
 function validGpsTimestamp(value){
- if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value))return false;
+ if(typeof value!=='string')return false;
+ const match=value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|([+-])(\d{2}):(\d{2}))$/);
+ if(!match)return false;
+ const [,year,month,day,hour,minute,second,zone,sign,offsetHour,offsetMinute]=match;
+ const y=Number(year),m=Number(month),d=Number(day),h=Number(hour),min=Number(minute),sec=Number(second),date=new Date(Date.UTC(y,m-1,d));
+ if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d||h>23||min>59||sec>59)return false;
+ if(zone!=='Z'&&(Number(offsetHour)>23||Number(offsetMinute)>59))return false;
  return Number.isFinite(Date.parse(value));
 }
 function buildPesticideIncidentDraft(input,hives,media,makeId,now){
