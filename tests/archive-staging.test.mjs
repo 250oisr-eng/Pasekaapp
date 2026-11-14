@@ -49,6 +49,14 @@ function get(db, storeName, key) {
     request.onerror = () => reject(request.error);
   });
 }
+function getAll(db, storeName) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const request = tx.objectStore(storeName).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
 function stateFixture(note = 'archive state') {
   return {
     meta: { schemaVersion: 12, revisionId: 'archive-revision' },
@@ -267,5 +275,81 @@ test('staged manifest metadata is rechecked against its stored fingerprint', asy
     Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
     { code: 'STAGING_MANIFEST_MISMATCH' }
   );
+  db.close();
+});
+
+
+test('atomic archive commit replaces state and entrance videos while preserving rollback data', async () => {
+  const db = await openTestDb('paseka-stage-atomic-commit');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'live-revision' }, hives: [], families: [], records: [], auditLog: [] };
+  const oldVideoBlob = new Blob(['old entrance video'], { type: 'video/mp4' });
+  await put(db, 'main', oldState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'live-video', hiveId: 'old-hive', capturedAt: '2026-11-13T09:00:00.000Z',
+    durationSec: 10, width: 640, height: 480, bytes: oldVideoBlob.size,
+    mimeType: 'video/mp4', name: 'old.mp4', status: 'waiting_for_server', blob: oldVideoBlob
+  });
+
+  const archive = await makeArchive('backup-atomic-commit');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true);
+
+  const currentState = await get(db, 'main', 'state');
+  const currentVideos = await getAll(db, 'entrance_media');
+  const previousState = await get(db, 'full_backup', 'previous');
+  const history = await get(db, 'archive_history', 'backup-atomic-commit');
+  const committedSession = await get(db, 'archive_staging', staged.session.sessionId);
+  const rollbackSession = await get(db, 'archive_staging', committed.rollbackSessionId);
+  const rollbackState = await get(db, 'archive_staging', committed.rollbackSessionId + ':state');
+  const rollbackVideo = await get(db, 'archive_staging', committed.rollbackSessionId + ':video:live-video');
+
+  assert.equal(currentState.records[0].note, 'archive state');
+  assert.notEqual(currentState.meta.revisionId, 'archive-revision');
+  assert.equal(currentState.auditLog.at(-1).source, 'full_archive');
+  assert.equal(currentVideos.length, 1);
+  assert.equal(currentVideos[0].id, 'video-1');
+  assert.equal(currentVideos[0].blob.size, 4);
+  assert.equal(previousState.state.meta.revisionId, 'live-revision');
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackSessionId, committed.rollbackSessionId);
+  assert.equal(committedSession.status, 'committed');
+  assert.equal(rollbackSession.kind, 'rollback_session');
+  assert.equal(rollbackState.state.meta.revisionId, 'live-revision');
+  assert.equal(rollbackVideo.record.id, 'live-video');
+  assert.equal(rollbackVideo.record.blob.size, oldVideoBlob.size);
+
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'ALREADY_IMPORTED' }
+  );
+  await assert.rejects(
+    Restore.discardArchiveRestoreSession(db, staged.session.sessionId),
+    { code: 'COMMITTED_IMPORT_PROTECTED' }
+  );
+  await assert.rejects(
+    Restore.discardArchiveRestoreSession(db, committed.rollbackSessionId),
+    { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }
+  );
+  db.close();
+});
+
+test('atomic archive commit refuses a stale live revision without changing state or media', async () => {
+  const db = await openTestDb('paseka-stage-stale-commit');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'live-revision' }, hives: [], families: [], records: [] };
+  const oldVideo = { id: 'live-video', hiveId: 'old-hive', blob: new Blob(['old'], { type: 'video/mp4' }) };
+  await put(db, 'main', oldState, 'state');
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-stale-commit');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+
+  await assert.rejects(
+    Restore.commitStagedArchive(db, staged.session.sessionId, 'stale-revision', webcrypto, Archive, () => true),
+    { code: 'RESTORE_CONFLICT' }
+  );
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-revision');
+  assert.equal((await getAll(db, 'entrance_media')).length, 1);
+  assert.equal((await get(db, 'entrance_media', 'live-video')).id, 'live-video');
+  assert.equal(await get(db, 'archive_history', 'backup-stale-commit'), undefined);
+  assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).status, 'ready');
   db.close();
 });
