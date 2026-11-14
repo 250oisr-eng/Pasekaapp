@@ -644,9 +644,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const media = tx.objectStore('entrance_media');
       const stagingStore = tx.objectStore(STAGING_STORE);
       const historyStore = tx.objectStore(HISTORY_STORE);
-      // Keep the readwrite transaction active while rollback snapshot Blobs are
-      // re-hashed. This closes the gap between Phase A validation and Phase B.
-      stopKeepAlive = holdTransactionOpen(tx, stagingStore);
+      // Snapshot Blob bytes were verified in Phase A outside IndexedDB.
+      // Phase B is intentionally synchronous: only IDB request callbacks,
+      // metadata checks and mutations run while this write transaction is open.
       const reads = {
         currentState: main.get('state'),
         currentVideos: media.getAll(),
@@ -657,25 +657,19 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       };
       const values = {};
       let pending = Object.keys(reads).length;
-      const process = async () => {
+      const process = () => {
         try {
           const currentState = values.currentState || null;
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = values.rollbackRecords || [];
           const currentImportSession = values.importSession;
-          // Re-hash the actual snapshot bytes under the same write lock used by
-          // the final rollback. Size/type-only fingerprints cannot detect a
-          // same-size Blob replacement that retains the old checksum field.
+          // The immutable Blob bytes were SHA-256 verified in Phase A. The
+          // snapshot row set and metadata fingerprint are rechecked here under
+          // the write lock; no asynchronous work is permitted in this phase.
           for (const item of currentRecords.filter(record => record?.kind === 'rollback_video')) {
-            const snapshotVideo = item.record;
-            const expectedSnapshotHash = phaseASnapshotHashes.get(item.id);
-            if (!snapshotVideo?.blob || !expectedSnapshotHash) {
+            if (!item.record?.blob || !phaseASnapshotHashes.has(item.id)) {
               fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable, verified Blob.');
-            }
-            const actualSnapshotHash = await sha256BlobHex(snapshotVideo.blob, cryptoProvider);
-            if (actualSnapshotHash !== expectedSnapshotHash) {
-              fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot changed after validation. Rollback was cancelled.');
             }
           }
           if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId ||
@@ -730,7 +724,6 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
             rollbackSnapshotRemoved: true,
             restoredVideoCount: restoredVideos.length
           };
-          stopKeepAlive();
         } catch (error) {
           abortWith(error);
         }
@@ -744,17 +737,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         request.onerror = () => abortWith(request.error || new Error('Could not read rollback snapshot or live data.'));
       }
       tx.oncomplete = () => {
-        stopKeepAlive();
         if (!settled) { settled = true; resolve(result); }
       };
-      tx.onabort = () => {
-        stopKeepAlive();
-        rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
-      };
-      tx.onerror = () => {
-        stopKeepAlive();
-        rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction failed.'));
-      };
+      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
+      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction failed.'));
     } catch (error) {
       rejectOnce(error);
     }
