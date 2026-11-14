@@ -85,7 +85,8 @@ function assessVideoMetadata(input={}){
  else if(width<640||height<360)warnings.push({code:'resolution_limited',message:'Разрешение низкое: распознавание мелких объектов может быть ненадёжным.'});
  if(!finite(bytes)||bytes<=0||bytes>250*1024*1024)errors.push({code:'file_size_invalid',message:'Файл пустой или превышает допустимый размер 250 МБ.'});
  const mimeType=typeof input.mimeType==='string'?input.mimeType:'';
- if(mimeType&&!/^video\/(mp4|webm|quicktime|3gpp|x-matroska)/i.test(mimeType))errors.push({code:'unsupported_video_type',message:'Формат видео не поддерживается.'});
+ if(input.mimeType!==undefined&&input.mimeType!==null&&typeof input.mimeType!=='string')errors.push({code:'invalid_mime_type',message:'Не удалось проверить тип видеофайла.'});
+ else if(mimeType&&!/^video\/(mp4|webm|quicktime|3gpp|x-matroska)/i.test(mimeType))errors.push({code:'unsupported_video_type',message:'Формат видео не поддерживается.'});
  return {ok:errors.length===0,errors,warnings,metadata:{durationSec:finite(duration)?duration:null,width:finite(width)?width:null,height:finite(height)?height:null,bytes:finite(bytes)?bytes:null,mimeType},stage:'metadata_only',note:'Проверены только свойства файла. Тряска, резкость, засветка и видимость летка ещё не оценены.'};
 }
 
