@@ -608,3 +608,93 @@ test('archive staging does not open a write transaction while hashing legacy med
     db.close();
   }
 });
+
+
+test('quota failure during media staging preserves live data and leaves a safely discardable failed session', async () => {
+  const db = await openTestDb('paseka-stage-quota-failure');
+  const liveState = {
+    meta: { schemaVersion: 12, revisionId: 'live-before-quota' },
+    hives: [{ id: 'live-hive', number: 7 }],
+    families: [], records: [{ id: 'live-record', note: 'must survive quota failure' }]
+  };
+  const liveBlob = new Blob(['user video must survive'], { type: 'video/mp4' });
+  const liveHash = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await liveBlob.arrayBuffer())),
+    byte => byte.toString(16).padStart(2, '0')).join('');
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'user-video-before-quota', hiveId: 'live-hive', blob: liveBlob,
+    blobSha256: liveHash, bytes: liveBlob.size, mimeType: 'video/mp4'
+  });
+
+  const archive = await makeArchive('backup-stage-quota-failure');
+  let injected = false;
+  const quotaDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      return new Proxy(tx, {
+        get(target, property) {
+          if (property === 'objectStore') {
+            return name => {
+              const store = target.objectStore(name);
+              if (name !== 'archive_staging') return store;
+              return new Proxy(store, {
+                get(storeTarget, method) {
+                  if (method === 'put') {
+                    return value => {
+                      if (!injected && value?.kind === 'video') {
+                        injected = true;
+                        try { target.abort(); } catch (error) {}
+                        throw new DOMException('Injected storage quota exhaustion.', 'QuotaExceededError');
+                      }
+                      return storeTarget.put(value);
+                    };
+                  }
+                  const result = Reflect.get(storeTarget, method, storeTarget);
+                  return typeof result === 'function' ? result.bind(storeTarget) : result;
+                }
+              });
+            };
+          }
+          const result = Reflect.get(target, property, target);
+          return typeof result === 'function' ? result.bind(target) : result;
+        }
+      });
+    }
+  };
+
+  await assert.rejects(
+    Restore.stageArchiveForRestore(quotaDb, archive, webcrypto, Archive, () => true),
+    error => error && error.name === 'QuotaExceededError'
+  );
+  assert.equal(injected, true);
+
+  const [failedSession] = await Restore.listArchiveRestoreSessions(db);
+  assert.equal(failedSession.backupId, 'backup-stage-quota-failure');
+  assert.equal(failedSession.status, 'failed');
+  assert.equal(failedSession.stagedCount, 1);
+  assert.equal((await get(db, 'archive_staging', failedSession.sessionId + ':state')).kind, 'state');
+  assert.equal(await get(db, 'archive_staging', failedSession.sessionId + ':video:video-1'), undefined);
+
+  const afterFailureState = await get(db, 'main', 'state');
+  const afterFailureVideos = await getAll(db, 'entrance_media');
+  assert.equal(afterFailureState.meta.revisionId, 'live-before-quota');
+  assert.equal(afterFailureState.records[0].note, 'must survive quota failure');
+  assert.equal(afterFailureVideos.length, 1);
+  assert.equal(afterFailureVideos[0].id, 'user-video-before-quota');
+  assert.equal(afterFailureVideos[0].blobSha256, liveHash);
+  assert.equal(await afterFailureVideos[0].blob.text(), 'user video must survive');
+
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'INCOMPLETE_STAGING_EXISTS' }
+  );
+  assert.equal(await Restore.discardArchiveRestoreSession(db, failedSession.sessionId), true);
+
+  const retried = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  assert.equal(retried.session.status, 'ready');
+  assert.equal(retried.session.stagedCount, 2);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-quota');
+  assert.equal((await get(db, 'entrance_media', 'user-video-before-quota')).blobSha256, liveHash);
+  db.close();
+});
