@@ -705,8 +705,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         stopKeepAlive();
         if (!settled) { settled = true; resolve(result); }
       };
-      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
-      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction failed.'));
+      tx.onabort = () => {
+        stopKeepAlive();
+        rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
+      };
+      tx.onerror = () => {
+        stopKeepAlive();
+        rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction failed.'));
+      };
     } catch (error) {
       rejectOnce(error);
     }
