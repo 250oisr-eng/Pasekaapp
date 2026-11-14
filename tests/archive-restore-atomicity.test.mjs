@@ -408,12 +408,14 @@ function gatedCrypto(expectedCalls) {
     started: started.promise,
     release: release.resolve,
     getRandomValues(bytes) { bytes.fill(12); return bytes; },
-    async digest(_, data) {
-      calls++;
-      if (calls >= expectedCalls) started.resolve();
-      await release.promise;
-      const hash = createHash('sha256').update(Buffer.from(data)).digest();
-      return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+    subtle: {
+      async digest(_, data) {
+        calls++;
+        if (calls >= expectedCalls) started.resolve();
+        await release.promise;
+        const hash = createHash('sha256').update(Buffer.from(data)).digest();
+        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+      }
     }
   };
 }
