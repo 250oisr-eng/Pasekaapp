@@ -3613,7 +3613,7 @@ async function commitFullArchiveRestore() {
     $('fullArchiveRestorePreview').hidden = true;
     $('fullArchiveFile').value = '';
     render();
-    setFullArchiveRestoreStatus('Восстановление завершено. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
+    setFullArchiveRestoreStatus('Восстановление завершено. Видео: ' + result.importedVideoCount + ', без привязки к улью: ' + result.orphanedVideoCount + '. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
     await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
     setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
