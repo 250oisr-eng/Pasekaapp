@@ -36,7 +36,7 @@ async function copyOne(db,state,candidate,migrationId,cryptoProvider,options={})
  const blob=new Blob([decoded.bytes],{type:decoded.mime});
  const record={id:keyIds.blobId,blob,mimeType:decoded.mime,sizeBytes:decoded.size,name:typeof media.name==='string'?media.name.slice(0,160):'',capturedAt:null,createdAt:new Date().toISOString(),sha256,schemaVersion:1,migrationId,sourceKey:key};
  const journal={id:migrationId+':'+keyIds.journalId,migrationId,candidateId:candidate.id,blobId:keyIds.blobId,sourceKey:key,sha256,status:'completed',completedAt:new Date().toISOString()};
- const tx=db.transaction([BLOBS,JOURNAL],'readwrite'),done=txDone(tx),bs=tx.objectStore(BLOBS),js=tx.objectStore(JOURNAL);
+ const tx=db.transaction([BLOBS,JOURNAL],'readwrite'),done=txDone(tx),bs=tx.objectStore(BLOBS),js=tx.objectStore(JOURNAL);done.catch(()=>{});
  try{
   const [existingBlob,existingJournal]=await Promise.all([request(bs.get(record.id)),request(js.get(journal.id))]);
   if(existingJournal&&existingBlob&&existingJournal.migrationId===migrationId&&existingBlob.migrationId===migrationId&&existingJournal.sha256===sha256&&existingBlob.sha256===sha256){
