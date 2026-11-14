@@ -6,6 +6,15 @@ const DEFAULT_LIMIT = 3;
 const DEFAULT_MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024;
 const DEFAULT_MAX_TOTAL_BYTES = 16 * 1024 * 1024;
 function fail(code, message) { const error = new Error(message || code); error.code = code; throw error; }
+function normalizeStorageError(error) {
+  if (error?.name === 'QuotaExceededError' || error?.code === 22 || error?.code === 1014) {
+    const normalized = new Error('Недостаточно места в локальном хранилище. Старые проверенные снимки сохранены; освободите место и повторите попытку.');
+    normalized.code = 'SNAPSHOT_QUOTA_EXCEEDED';
+    normalized.cause = error;
+    return normalized;
+  }
+  return error || new Error('Snapshot transaction failed.');
+}
 function requestValue(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -95,8 +104,8 @@ async function writeSnapshot(db, state, expectedRevision, cryptoProvider, option
       };
       mainRequest.onerror = () => { failure = mainRequest.error || new Error('Could not verify the current database revision.'); try { tx.abort(); } catch (error) { reject(failure); } };
       tx.oncomplete = () => resolve({ written: added, count: snapshotCount, totalBytes, snapshot });
-      tx.onabort = () => reject(conflict || failure || tx.error || new Error('Snapshot transaction aborted.'));
-      tx.onerror = () => reject(conflict || failure || tx.error || new Error('Snapshot transaction failed.'));
+      tx.onabort = () => reject(conflict || failure || normalizeStorageError(tx.error || new Error('Snapshot transaction aborted.')));
+      tx.onerror = () => reject(conflict || failure || normalizeStorageError(tx.error || new Error('Snapshot transaction failed.')));
     } catch (error) { reject(error); }
   });
 }
