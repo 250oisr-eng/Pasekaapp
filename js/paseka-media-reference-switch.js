@@ -48,7 +48,14 @@ async function switchOne(db,{candidate,migrationId,verifiedItem,expectedRevision
  ]);
  await readDone;
  if(existing){
-  if(existing.status==='committed'&&sameValue(locate(state,candidate),existing.committedMedia))return {status:'already_switched',journalId:id,revision:state?.meta?.revisionId||null};
+  if(existing.status==='committed'&&sameValue(locate(state,candidate),existing.committedMedia)){
+   const descriptor={blobId:existing.blobId,sha256:existing.sha256,sizeBytes:existing.committedMedia?.sizeBytes,mimeType:existing.committedMedia?.mimeType};
+   if(!blobMatches(blob,descriptor,migrationId,candidate))fail('DESTINATION_CORRUPTED','The committed photo Blob is missing or its metadata no longer matches.');
+   if(await sha(blob.blob,cryptoProvider)!==existing.sha256)fail('DESTINATION_CORRUPTED','The committed photo Blob content no longer matches its SHA-256 descriptor.');
+   const checkpoints=copyRows.filter(x=>x?.migrationId===migrationId&&x?.candidateId===candidate.id&&x?.sourceKey===sourceKey(candidate)&&x?.status==='completed'&&x?.blobId===existing.blobId&&x?.sha256===existing.sha256);
+   if(checkpoints.length!==1)fail('COPY_CHECKPOINT_INVALID','The committed photo no longer has exactly one matching copy checkpoint.');
+   return {status:'already_switched',journalId:id,revision:state?.meta?.revisionId||null};
+  }
   if(existing.status==='rolled_back')fail('REFERENCE_ALREADY_ROLLED_BACK','This reference-switch journal was already rolled back; use a new migration ID.');
   fail('REFERENCE_JOURNAL_CONFLICT','An existing reference-switch journal does not match the current photo.');
  }
