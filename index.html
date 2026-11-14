@@ -602,6 +602,16 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
  return {ok:errors.length===0,errors};
 }
+const STARTUP_MARKER_KEY='paseka.everInitialized.v1';
+function readStartupMarker(){try{return localStorage.getItem(STARTUP_MARKER_KEY)==='1'}catch(e){return null}}
+function markStartupInitialized(){try{localStorage.setItem(STARTUP_MARKER_KEY,'1');return true}catch(e){return false}}
+function classifyStartupState(mainState,backupState,previouslyUsed){
+ if(mainState)return 'existing';
+ if(backupState?.state)return 'recoverable';
+ if(previouslyUsed===true)return 'missing';
+ if(previouslyUsed===null)return 'unverified';
+ return 'first_run';
+}
 function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
@@ -3670,7 +3680,14 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   await openDB();await requestStoragePersistence();
   let startupMain=null;try{startupMain=await readMain()}catch(e){}
   const startupExpectedRevision=startupMain?.meta?.revisionId||null;
+  const previouslyUsed=readStartupMarker();
   const loaded=await read();
+  const startupStatus=classifyStartupState(startupMain,autoBackupInfo,previouslyUsed);
+  if(startupStatus==='missing')throw new Error('Возможная потеря данных: основная база и внутренняя копия отсутствуют, хотя приложение ранее использовалось. Новая пасека не создана. Найди внешний JSON-архив или обратись за помощью до продолжения.');
+  if(startupStatus==='first_run'||startupStatus==='unverified'){
+   const accepted=confirm('Данные пасеки на этом устройстве не найдены. Если ты уже пользовался приложением, это может означать потерю базы. Не продолжай и не очищай данные — сначала найди резервный JSON-архив. Если это действительно первый запуск, нажми «ОК», чтобы создать пустую пасеку.');
+   if(!accepted)throw new Error('Создание новой пасеки отменено. Существующие данные не изменены.');
+  }
   if(loaded){
    try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
    catch(primaryError){
@@ -3698,6 +3715,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   if(!S.meta.revisionId){S.meta=S.meta||{};S.meta.revisionId=uid();migrated=true}
   if(migrated||autoBackupRecovered){S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await writeMainIfUnchanged(S,startupExpectedRevision)}
   lastPersistedRevision=S.meta.revisionId||null;
+  if(!markStartupInitialized())console.warn('Paseka: не удалось сохранить диагностическую отметку первого запуска; обнаружение потери IndexedDB будет ограничено.');
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   const existingBackup=await readAutoBackup();
   if(!existingBackup){try{await writeAutoBackup(S,S.meta?.revisionId||null);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию'}}
