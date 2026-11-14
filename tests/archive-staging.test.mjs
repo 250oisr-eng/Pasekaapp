@@ -717,8 +717,11 @@ test('quota failure during media staging survives database reopen and preserves 
 });
 
 
-test('concurrent tabs cannot create two staging sessions for the same backup', async () => {
-  const db = await openTestDb('paseka-stage-concurrent-tabs');
+test('separate tab connections cannot create duplicate staging sessions for the same backup', async () => {
+  const factory = new IDBFactory();
+  const db = await openTestDb('paseka-stage-concurrent-tabs', factory);
+  const secondTabDb = await openTestDb('paseka-stage-concurrent-tabs', factory);
+  assert.notEqual(db, secondTabDb, 'each simulated tab must own a separate database connection');
   const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-concurrent-stage' }, hives: [], families: [], records: [] };
   await put(db, 'main', liveState, 'state');
 
@@ -740,7 +743,7 @@ test('concurrent tabs cannot create two staging sessions for the same backup', a
 
   const results = await Promise.allSettled([
     Restore.stageArchiveForRestore(db, archive, webcrypto, synchronizedArchiveApi, validateState),
-    Restore.stageArchiveForRestore(db, archive, webcrypto, synchronizedArchiveApi, validateState)
+    Restore.stageArchiveForRestore(secondTabDb, archive, webcrypto, synchronizedArchiveApi, validateState)
   ]);
   const fulfilled = results.filter(result => result.status === 'fulfilled');
   const rejected = results.filter(result => result.status === 'rejected');
@@ -774,4 +777,5 @@ test('concurrent tabs cannot create two staging sessions for the same backup', a
   assert.equal(stagingRows.filter(row => row.kind === 'session').length, 1);
   assert.equal(stagingRows.filter(row => row.kind !== 'session').length, 2);
   db.close();
+  secondTabDb.close();
 });
