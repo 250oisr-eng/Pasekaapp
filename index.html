@@ -3750,12 +3750,17 @@ async function renderArchiveImportHistory() {
         : 'Подготовка архива была прервана. Рабочие данные не изменены. Удали эту временную копию и повтори подготовку архива.';
       row.appendChild(failure);
     }
-    if (session.status === 'staging') {
+    if (session.status === 'staging' && session.stagedCount === session.totalEntries) {
       const finalize = document.createElement('button');
       finalize.type = 'button';
       finalize.textContent = 'Проверить и завершить подготовку';
       finalize.addEventListener('click', () => finalizeFullArchiveStaging(session.sessionId));
       row.appendChild(finalize);
+    } else if (session.status === 'staging') {
+      const incomplete = document.createElement('p');
+      incomplete.className = 'muted';
+      incomplete.textContent = 'Подготовка прервана до записи всех элементов. Эту временную копию нельзя завершить; удали её и выбери архив повторно.';
+      row.appendChild(incomplete);
     }
     if (session.status === 'ready') {
       const resume = document.createElement('button');
