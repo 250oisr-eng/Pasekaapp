@@ -45,6 +45,32 @@ test('stores an image Blob with size, MIME and SHA-256 metadata and reads it bac
   db.close();
 });
 
+test('binds the checksum to the Blob captured before asynchronous hashing', async () => {
+  const db = await openDb('media-store-blob-snapshot');
+  let releaseDigest;
+  let digestStarted;
+  const started = new Promise(resolve => { digestStarted = resolve; });
+  const gate = new Promise(resolve => { releaseDigest = resolve; });
+  const delayedCrypto = {
+    subtle: {
+      digest: async (algorithm, bytes) => {
+        digestStarted();
+        await gate;
+        return webcrypto.subtle.digest(algorithm, bytes);
+      }
+    }
+  };
+  const input = { id: 'snapshot-image', blob: image([1, 2, 3]) };
+  const saving = Media.putImage(db, input, delayedCrypto);
+  await started;
+  input.blob = image([9, 9, 9]);
+  releaseDigest();
+  await saving;
+  const stored = await Media.getImage(db, 'snapshot-image', webcrypto);
+  assert.deepEqual([...new Uint8Array(await stored.blob.arrayBuffer())], [1, 2, 3]);
+  db.close();
+});
+
 test('rejects duplicate IDs without replacing the original image', async () => {
   const db = await openDb('media-store-duplicate');
   await Media.putImage(db, { id: 'same-id', blob: image([1]) }, webcrypto);
