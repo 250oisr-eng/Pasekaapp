@@ -278,6 +278,7 @@ function mediaRecordsFingerprint(records) {
       record.id,
       typeof record.blobSha256 === 'string' ? record.blobSha256 : null,
       typeof record.hiveId === 'string' ? record.hiveId : null,
+      record.orphanedHiveReference === true,
       typeof record.capturedAt === 'string' ? record.capturedAt : null,
       Number.isFinite(record.durationSec) ? record.durationSec : null,
       Number.isFinite(record.width) ? record.width : null,
@@ -287,7 +288,7 @@ function mediaRecordsFingerprint(records) {
       blob && typeof blob.type === 'string' ? blob.type : null
     ];
   }).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
-  return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 2, canonical]);
+  return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 3, canonical]);
 }
 async function sha256BlobHex(blob, cryptoProvider) {
   if (!blob || typeof blob.arrayBuffer !== 'function' || !cryptoProvider?.subtle?.digest) {
