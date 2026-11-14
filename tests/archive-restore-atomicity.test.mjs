@@ -4,8 +4,10 @@ import { IDBFactory } from 'fake-indexeddb';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
+const shaSource = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
 const source = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
 const appWindow = {};
+new Function('window', shaSource)(appWindow);
 new Function('window', source)(appWindow);
 const api = appWindow.PasekaArchiveRestore;
 
