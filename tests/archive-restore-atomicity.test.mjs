@@ -894,3 +894,147 @@ test('rollback re-hashes snapshot video bytes under the final transaction lock',
   assert.equal(await snapshot.record.blob.text(), 'TAMPERED');
   db.close();
 });
+
+
+test('Phase B lock blocks concurrent rollback snapshot mutation until byte verification finishes', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const snapshotBlob = new Blob(['previous'], { type: 'video/mp4' });
+  const snapshotHash = createHash('sha256').update(Buffer.from('previous')).digest('hex');
+  const setup = db.transaction('archive_staging', 'readwrite');
+  const setupStore = setup.objectStore('archive_staging');
+  const sessionRequest = setupStore.get('rollback-1');
+  sessionRequest.onsuccess = () => {
+    setupStore.put({ ...sessionRequest.result, totalEntries: 2, stagedCount: 2 });
+    setupStore.put({
+      id: 'rollback-1:video:previous',
+      sessionId: 'rollback-1',
+      kind: 'rollback_video',
+      originalId: 'previous',
+      record: { id: 'previous', blob: snapshotBlob, blobSha256: snapshotHash }
+    });
+  };
+  await new Promise((resolve, reject) => {
+    setup.oncomplete = resolve;
+    setup.onabort = setup.onerror = () => reject(setup.error || new Error('snapshot setup failed'));
+  });
+
+  const phaseBHashStarted = deferred();
+  const releasePhaseBHash = deferred();
+  let digestCalls = 0;
+  const cryptoProvider = {
+    getRandomValues(bytes) { bytes.fill(19); return bytes; },
+    subtle: {
+      async digest(_, data) {
+        digestCalls++;
+        // Phase A hashes the live imported video and rollback snapshot. The
+        // third digest is the snapshot re-hash under the final write lock.
+        if (digestCalls === 3) {
+          phaseBHashStarted.resolve();
+          await releasePhaseBHash.promise;
+        }
+        const hash = createHash('sha256').update(Buffer.from(data)).digest();
+        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+      }
+    }
+  };
+
+  const rollback = api.rollbackCommittedArchive(
+    db, 'backup-1', 'imported-revision', cryptoProvider, async () => true
+  );
+  await phaseBHashStarted.promise;
+
+  let competingWriteExecuted = false;
+  const competingWrite = db.transaction('archive_staging', 'readwrite');
+  const competingStore = competingWrite.objectStore('archive_staging');
+  const competingRead = competingStore.get('rollback-1:video:previous');
+  competingRead.onsuccess = () => {
+    competingWriteExecuted = true;
+    // If this transaction were allowed to run before the re-hash completed,
+    // it would replace the snapshot with same-size bytes and stale metadata.
+    if (competingRead.result) {
+      competingStore.put({
+        ...competingRead.result,
+        record: { ...competingRead.result.record, blob: new Blob(['TAMPERED'], { type: 'video/mp4' }) }
+      });
+    }
+  };
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(competingWriteExecuted, false, 'competing write must wait behind the rollback transaction');
+
+  releasePhaseBHash.resolve();
+  const rolledBack = await rollback;
+  await new Promise((resolve, reject) => {
+    competingWrite.oncomplete = resolve;
+    competingWrite.onabort = competingWrite.onerror = () => reject(competingWrite.error || new Error('competing write failed'));
+  });
+
+  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
+  assert.equal(competingWriteExecuted, true);
+  const verify = db.transaction('archive_staging', 'readonly');
+  const remaining = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('archive_staging').get('rollback-1:video:previous');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(remaining, undefined, 'the queued writer must not recreate a consumed rollback snapshot');
+  db.close();
+});
+
+test('Phase B hash failure aborts rollback and retains the complete rollback snapshot', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const snapshotBlob = new Blob(['previous'], { type: 'video/mp4' });
+  const snapshotHash = createHash('sha256').update(Buffer.from('previous')).digest('hex');
+  const setup = db.transaction('archive_staging', 'readwrite');
+  const setupStore = setup.objectStore('archive_staging');
+  const sessionRequest = setupStore.get('rollback-1');
+  sessionRequest.onsuccess = () => {
+    setupStore.put({ ...sessionRequest.result, totalEntries: 2, stagedCount: 2 });
+    setupStore.put({
+      id: 'rollback-1:video:previous',
+      sessionId: 'rollback-1',
+      kind: 'rollback_video',
+      originalId: 'previous',
+      record: { id: 'previous', blob: snapshotBlob, blobSha256: snapshotHash }
+    });
+  };
+  await new Promise((resolve, reject) => {
+    setup.oncomplete = resolve;
+    setup.onabort = setup.onerror = () => reject(setup.error || new Error('snapshot setup failed'));
+  });
+
+  let digestCalls = 0;
+  const cryptoProvider = {
+    getRandomValues(bytes) { bytes.fill(23); return bytes; },
+    subtle: {
+      async digest(_, data) {
+        digestCalls++;
+        if (digestCalls === 3) throw new Error('Injected Phase B digest failure');
+        const hash = createHash('sha256').update(Buffer.from(data)).digest();
+        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+      }
+    }
+  };
+
+  await assert.rejects(
+    api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true),
+    /Injected Phase B digest failure/
+  );
+
+  const verify = db.transaction(['main', 'archive_history', 'archive_staging', 'entrance_media'], 'readonly');
+  const [state, history, rollbackSession, snapshot, videos] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_history').get('backup-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get('rollback-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get('rollback-1:video:previous'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId, 'imported-revision');
+  assert.equal(history.status, 'committed');
+  assert.equal(rollbackSession.status, 'ready');
+  assert.equal(await snapshot.record.blob.text(), 'previous');
+  assert.equal(snapshot.record.blobSha256, snapshotHash);
+  assert.equal(videos.length, 1);
+  db.close();
+});
