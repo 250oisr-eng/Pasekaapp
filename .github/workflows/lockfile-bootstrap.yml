@@ -1,0 +1,32 @@
+name: Generate npm lockfile artifact
+
+on:
+  push:
+    paths:
+      - '.github/workflows/lockfile-bootstrap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate lockfile without installing packages
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify lockfile includes local BeeDetector plugin
+        run: node -e "const p=require('./package-lock.json'); if (!p.packages?.['node_modules/@paseka/capacitor-bee-detector'] || p.packages['node_modules/@paseka/capacitor-bee-detector'].resolved !== 'file:capacitor-bee-detector') process.exit(1)"
+      - name: Upload lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-npm-lockfile
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 3
