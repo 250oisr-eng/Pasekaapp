@@ -197,7 +197,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             const session = values.session;
             const records = values.stagedRecords || [];
             if (values.history) fail('ALREADY_IMPORTED', 'This archive has already been imported.');
-            if (!session || session.kind !== 'session' || session.status !== 'ready') fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
+            if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
             if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
             if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
             if (!session.manifest || !Array.isArray(session.manifest.entries) || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest is invalid.');
@@ -354,6 +354,12 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
 }
 async function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
+  const checkTx = db.transaction(STAGING_STORE, 'readonly');
+  const session = await requestValue(checkTx.objectStore(STAGING_STORE).get(sessionId));
+  await transactionDone(checkTx);
+  if (!session) return false;
+  if (session.kind === 'rollback_session') fail('ROLLBACK_SNAPSHOT_PROTECTED', 'A rollback snapshot cannot be deleted through the staging cleanup action.');
+  if (session.kind === 'session' && session.status === 'committed') fail('COMMITTED_IMPORT_PROTECTED', 'A committed import is protected until its rollback is explicitly resolved.');
   const tx = db.transaction(STAGING_STORE, 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
   const keys = await requestValue(store.index('sessionId').getAllKeys(sessionId));
