@@ -112,11 +112,12 @@ test('archive import stages verified state and video without touching live data'
   assert.equal(staged.session.status, 'ready');
   assert.equal(staged.session.stagedCount, 2);
 
-  const contents = await Restore.getStagedArchive(db, staged.session.sessionId);
+  const contents = await Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
   assert.equal(contents.state.records[0].note, 'archive state');
   assert.equal(contents.videos.length, 1);
   assert.equal(contents.videos[0].metadata.id, 'video-1');
   assert.equal(contents.videos[0].blob.size, 4);
+  assert.equal(contents.videos[0].orphanedHiveReference, false);
 
   const sessions = await Restore.listArchiveRestoreSessions(db);
   assert.equal(sessions.length, 1);
@@ -199,5 +200,31 @@ test('concurrent attempts cannot create duplicate staging sessions for one backu
   const rejected = results.find(result => result.status === 'rejected');
   if (rejected) assert.ok(['BACKUP_STAGING_CONFLICT', 'INCOMPLETE_STAGING_EXISTS'].includes(rejected.reason.code));
   assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 1);
+  db.close();
+});
+
+
+test('staged archive checksums are reverified before staged content is returned', async () => {
+  const db = await openTestDb('paseka-stage-tamper');
+  const archive = await makeArchive('backup-stage-tamper');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const tx = db.transaction('archive_staging', 'readwrite');
+  const store = tx.objectStore('archive_staging');
+  const record = await new Promise((resolve, reject) => {
+    const request = store.get(staged.session.sessionId + ':video:video-1');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  record.blob = new Blob([new Uint8Array([99, 20, 30, 40])], { type: 'video/mp4' });
+  store.put(record);
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_CHECKSUM_MISMATCH' }
+  );
   db.close();
 });
