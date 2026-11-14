@@ -253,6 +253,14 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             if (values.history && values.history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
             if (values.history && values.history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
             if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
+            if (!Number.isSafeInteger(session.stagingEpoch) || session.stagingEpoch < 0) fail('STAGING_LEGACY_SESSION', 'This staged import predates revision tracking. Discard it and import the archive again.');
+            const stagedContentRecords = records.filter(record => record.sessionId === sessionId && record.kind !== 'session');
+            const stagedRevisions = stagedContentRecords.map(record => record.stagingRevision);
+            if (stagedContentRecords.length !== session.stagedCount ||
+                stagedRevisions.some(revision => !Number.isSafeInteger(revision) || revision < 1 || revision > session.stagingEpoch) ||
+                new Set(stagedRevisions).size !== stagedRevisions.length) {
+              fail('STAGING_REVISION_INVALID', 'Staged entry revisions are missing, duplicated, or inconsistent. Import the archive again.');
+            }
             if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
             if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
             if (!session.manifest || !Array.isArray(session.manifest.entries) || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest is invalid.');
