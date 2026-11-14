@@ -3427,6 +3427,21 @@ function setFullArchiveRestoreStatus(message) {
   const status = $('fullArchiveRestoreStatus');
   if (status) status.textContent = message;
 }
+function archiveRestoreErrorText(error) {
+  if (error?.name === 'QuotaExceededError' || error?.code === 'QUOTA_EXCEEDED') {
+    return 'Недостаточно свободного места для временной копии и точки отката. Рабочие данные не заменены. Освободи место и повтори.';
+  }
+  if (error?.code === 'RESTORE_CONFLICT') {
+    return 'Рабочая база изменилась после предпросмотра. Повтори проверку архива; новые записи не будут затёрты.';
+  }
+  if (error?.code === 'CHECKSUM_MISMATCH' || error?.code === 'STAGING_CHECKSUM_MISMATCH') {
+    return 'Контрольная сумма не совпала. Архив повреждён или изменён; восстановление остановлено.';
+  }
+  if (error?.code === 'UNSUPPORTED_SCHEMA_VERSION') {
+    return 'Архив создан более новой версией приложения. Сначала обнови приложение.';
+  }
+  return error?.message || 'Неизвестная ошибка восстановления.';
+}
 function showFullArchiveRestorePreview(session) {
   const preview = $('fullArchiveRestorePreview');
   const actions = $('fullArchiveRestoreActions');
@@ -3469,7 +3484,7 @@ async function prepareFullArchiveRestore() {
     setFullArchiveRestoreStatus(staged.alreadyStaged ? 'Ранее проверенный архив найден во временной области.' : 'Проверка завершена. Рабочие данные не менялись.');
     await renderArchiveImportHistory();
   } catch (error) {
-    setFullArchiveRestoreStatus('Архив не подготовлен: ' + (error?.message || error));
+    setFullArchiveRestoreStatus('Архив не подготовлен: ' + archiveRestoreErrorText(error));
     await renderArchiveImportHistory().catch(() => {});
   } finally {
     if (button) button.disabled = false;
@@ -3490,7 +3505,7 @@ async function resumeFullArchiveRestore(sessionId) {
     setFullArchiveRestoreStatus('Временная копия повторно проверена. Рабочие данные не менялись.');
   } catch (error) {
     window.__pasekaPendingFullArchiveRestore = null;
-    setFullArchiveRestoreStatus('Не удалось открыть подготовленный архив: ' + (error?.message || error));
+    setFullArchiveRestoreStatus('Не удалось открыть подготовленный архив: ' + archiveRestoreErrorText(error));
   }
 }
 async function cancelFullArchiveRestore() {
@@ -3503,7 +3518,7 @@ async function cancelFullArchiveRestore() {
     setFullArchiveRestoreStatus('Подготовленная временная копия удалена. Рабочие данные не менялись.');
     await renderArchiveImportHistory();
   } catch (error) {
-    setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + (error?.message || error));
+    setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + archiveRestoreErrorText(error));
   }
 }
 async function prepareMigratedArchiveState(state) {
@@ -3551,7 +3566,7 @@ async function commitFullArchiveRestore() {
     setFullArchiveRestoreStatus('Восстановление завершено. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
     await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
-    setFullArchiveRestoreStatus('Восстановление не выполнено: ' + (error?.message || error) + ' Рабочая база не должна быть заменена частично.');
+    setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
     if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
   } finally {
     window.__pasekaRestoreBusy = false;
@@ -3578,7 +3593,7 @@ async function rollbackFullArchiveImport(backupId) {
     setFullArchiveRestoreStatus('Предыдущее состояние восстановлено. Видео летка: ' + result.restoredVideoCount + '.');
     await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
-    setFullArchiveRestoreStatus('Отмена восстановления не выполнена: ' + (error?.message || error));
+    setFullArchiveRestoreStatus('Отмена восстановления не выполнена: ' + archiveRestoreErrorText(error));
   } finally {
     window.__pasekaRestoreBusy = false;
   }
@@ -3615,7 +3630,7 @@ async function renderArchiveImportHistory() {
           await PasekaArchiveRestore.discardArchiveRestoreSession(db, session.sessionId);
           if (window.__pasekaPendingFullArchiveRestore?.sessionId === session.sessionId) window.__pasekaPendingFullArchiveRestore = null;
           await renderArchiveImportHistory();
-        } catch (error) { setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + (error?.message || error)); }
+        } catch (error) { setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + archiveRestoreErrorText(error)); }
       });
       row.appendChild(discard);
     }
