@@ -1052,3 +1052,33 @@ test('discard queued behind atomic restore cannot remove committed import or rol
   assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId + ':video:live-video-commit-race')).record.id, 'live-video-commit-race');
   db.close();
 });
+
+test('concurrent discard during final staging progress cannot resurrect a deleted session header', async () => {
+  const db = await openTestDb('paseka-stage-discard-finalization-race');
+  const archive = await makeArchive('backup-discard-finalization-race');
+  const fixedCrypto = {
+    subtle: webcrypto.subtle,
+    getRandomValues(bytes) {
+      bytes.fill(0x5a);
+      return bytes;
+    }
+  };
+  const expectedSessionId = '5a'.repeat(16);
+  let discardPromise = null;
+
+  const stagePromise = Restore.stageArchiveForRestore(
+    db, archive, fixedCrypto, Archive, () => true,
+    {
+      onProgress() {
+        discardPromise = Restore.discardArchiveRestoreSession(db, expectedSessionId);
+      }
+    }
+  );
+
+  await assert.rejects(stagePromise, { code: 'STAGING_SESSION_NOT_WRITABLE' });
+  assert.ok(discardPromise, 'progress callback must start cleanup before final session update');
+  assert.equal(await discardPromise, true);
+  const remaining = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === expectedSessionId);
+  assert.equal(remaining.length, 0, 'a completed discard must not be undone by a late session update');
+  db.close();
+});
