@@ -2576,6 +2576,8 @@ test('full archive export is available separately from the JSON-only backup', ()
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
   assert.ok(html.includes('Восстановить полный архив'));
+  assert.ok(html.includes('Отдельные оригиналы видео летка в эту точку отката не входят.'));
+  assert.ok(!html.includes('полная копия предыдущего состояния, включая фотографии и видео'));
   assert.ok(html.includes('id="fullArchiveFile"'));
   assert.ok(html.includes('id="shareFullArchiveButton"'));
   assert.ok(html.includes('function shareFullArchive()'));
