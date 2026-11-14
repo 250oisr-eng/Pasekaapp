@@ -11,7 +11,7 @@ function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>reso
 function assertDb(db){if(!db?.objectStoreNames?.contains(BLOBS)||!db.objectStoreNames.contains(JOURNAL))fail('MIGRATION_STORE_UNAVAILABLE','The database does not contain the migration stores.')}
 function assertMigrationId(id){if(typeof id!=='string'||!id.trim()||id.length>100)fail('INVALID_MIGRATION_ID','Migration ID must contain 1–100 characters.')}
 function sourceKey(c){return [c.collection,c.entityId,c.mediaIndex].join(':')}
-function locate(state,c){const list=state?.[c.collection];if(!Array.isArray(list))return null;let entity=list.find(x=>x&&x.id===c.entityId);if(!entity&&/^legacy-index-\\d+$/.test(c.entityId))entity=list[Number(c.entityId.slice('legacy-index-'.length))]||null;if(!entity||!Array.isArray(entity.media))return null;return entity.media[c.mediaIndex]||null}
+function locate(state,c){const list=state?.[c.collection];if(!Array.isArray(list))return null;let entity=list.find(x=>x&&x.id===c.entityId);if(!entity&&/^legacy-index-\d+$/.test(c.entityId))entity=list[Number(c.entityId.slice('legacy-index-'.length))]||null;if(!entity||!Array.isArray(entity.media))return null;return entity.media[c.mediaIndex]||null}
 function decode(dataUrl,maxBytes){
  if(typeof dataUrl!=='string')fail('INVALID_LEGACY_IMAGE','Legacy image data is missing.');
  const m=/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/]*={0,2})$/i.exec(dataUrl);
