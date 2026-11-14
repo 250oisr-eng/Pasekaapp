@@ -496,3 +496,113 @@ test('rollback refuses legacy videos without a saved content hash', async () => 
   }, async () => true), error => error.code === 'ROLLBACK_MEDIA_HASH_MISSING');
   db.close();
 });
+
+
+function archiveTestCrypto() {
+  let sequence = 0;
+  return {
+    getRandomValues(bytes) {
+      bytes.fill(++sequence);
+      return bytes;
+    },
+    subtle: {
+      async digest(_, data) {
+        const hash = createHash('sha256').update(Buffer.from(data)).digest();
+        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+      }
+    }
+  };
+}
+
+async function stageMinimalArchive(db, { archiveApiOverrides = {} } = {}) {
+  const stateBlob = new Blob([JSON.stringify({
+    app: 'Paseka',
+    state: { meta: { schemaVersion: 1 }, hives: [], auditLog: [] }
+  })]);
+  const manifest = {
+    backupId: 'commit-integration-backup',
+    schemaVersion: 1,
+    entries: [{ kind: 'state', size: stateBlob.size, chunkSha256: [] }]
+  };
+  const archiveApi = {
+    async validateArchiveForRestore() {
+      return {
+        backupId: manifest.backupId,
+        createdAt: '2026-11-14T00:00:00.000Z',
+        schemaVersion: 1,
+        archiveBytes: stateBlob.size,
+        manifest,
+        stateBlob,
+        videoEntries: [],
+        orphanVideoIds: []
+      };
+    },
+    async hashBlobChunks() { return []; },
+    ...archiveApiOverrides
+  };
+  const cryptoProvider = archiveTestCrypto();
+  const staged = await api.stageArchiveForRestore(
+    db, new Blob(['archive']), cryptoProvider, archiveApi, async () => true
+  );
+  return { staged, archiveApi, cryptoProvider };
+}
+
+test('archive commit writes imported state, history and rollback snapshot atomically', async () => {
+  const db = await makeDatabase();
+  const { staged, archiveApi, cryptoProvider } = await stageMinimalArchive(db);
+  const result = await api.commitStagedArchive(
+    db, staged.session.id, null, cryptoProvider, archiveApi, async () => true
+  );
+
+  assert.equal(result.history.status, 'committed');
+  assert.equal(result.previousVideoCount, 0);
+  assert.equal(result.importedVideoCount, 0);
+
+  const tx = db.transaction(['main', 'entrance_media', 'archive_history', 'archive_staging'], 'readonly');
+  const [state, videos, history, rollbackSession] = await Promise.all([
+    new Promise((resolve, reject) => { const q = tx.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = tx.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = tx.objectStore('archive_history').get('commit-integration-backup'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = tx.objectStore('archive_staging').get(result.rollbackSessionId); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId, result.state.meta.revisionId);
+  assert.deepEqual(videos, []);
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackSessionId, result.rollbackSessionId);
+  assert.equal(rollbackSession.kind, 'rollback_session');
+  assert.equal(rollbackSession.status, 'ready');
+  db.close();
+});
+
+test('archive commit preserves videos added after staging and rejects the stale baseline', async () => {
+  const db = await makeDatabase();
+  const { staged, archiveApi, cryptoProvider } = await stageMinimalArchive(db);
+  const blob = new Blob(['new-video'], { type: 'video/mp4' });
+  const video = {
+    id: 'added-during-staging',
+    blob,
+    blobSha256: createHash('sha256').update(Buffer.from('new-video')).digest('hex'),
+    capturedAt: '2026-11-14T12:00:00.000Z'
+  };
+  const add = db.transaction('entrance_media', 'readwrite');
+  add.objectStore('entrance_media').put(video);
+  await new Promise((resolve, reject) => {
+    add.oncomplete = resolve;
+    add.onabort = add.onerror = () => reject(add.error || new Error('video insert failed'));
+  });
+
+  await assert.rejects(
+    api.commitStagedArchive(db, staged.session.id, null, cryptoProvider, archiveApi, async () => true),
+    error => error.code === 'RESTORE_MEDIA_CHANGED'
+  );
+
+  const verify = db.transaction(['main', 'entrance_media'], 'readonly');
+  const [state, videos] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state, undefined);
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, video.id);
+  db.close();
+});
