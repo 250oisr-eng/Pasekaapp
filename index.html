@@ -3638,6 +3638,9 @@ async function rollbackFullArchiveImport(backupId) {
     S = result.state;
     lastPersistedRevision = S.meta?.revisionId || null;
     autoBackupRecovered = false;
+    window.__pasekaPendingFullArchiveRestore = null;
+    $('fullArchiveRestorePreview').hidden = true;
+    $('fullArchiveRestoreActions').hidden = true;
     try { autoBackupInfo = await readAutoBackup(); } catch (backupError) { autoBackupInfo = null; }
     render();
     setFullArchiveRestoreStatus('Предыдущее состояние восстановлено. Использованная точка отката удалена. Видео летка возвращено: ' + result.restoredVideoCount + '.');
