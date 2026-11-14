@@ -1008,7 +1008,7 @@ test('rollback detects concurrent snapshot mutation without holding a write tran
     setup.onabort = setup.onerror = () => reject(setup.error || new Error('snapshot setup failed'));
   });
 
-  const hasherGate = gatedSnapshotHasher(2);
+  const hasherGate = gatedSnapshotHasher(1);
   const cryptoProvider = testCryptoProvider();
   const rollback = api.rollbackCommittedArchive(
     db, 'backup-1', 'imported-revision', cryptoProvider, async () => true
