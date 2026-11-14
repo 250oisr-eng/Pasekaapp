@@ -606,3 +606,58 @@ test('archive commit preserves videos added after staging and rejects the stale 
   assert.equal(videos[0].id, video.id);
   db.close();
 });
+
+
+test('archive commit rejects staging metadata changed during Phase A validation', async () => {
+  const db = await makeDatabase();
+  const started = deferred();
+  const release = deferred();
+  let hashCalls = 0;
+  const { staged, cryptoProvider } = await stageMinimalArchive(db, {
+    archiveApiOverrides: {
+      async hashBlobChunks() {
+        hashCalls++;
+        if (hashCalls === 1) {
+          started.resolve();
+          await release.promise;
+        }
+        return [];
+      }
+    }
+  });
+
+  const pending = api.commitStagedArchive(
+    db, staged.session.id, null, cryptoProvider,
+    {
+      async hashBlobChunks() { return []; }
+    },
+    async () => true
+  );
+  await started.promise;
+
+  const mutation = db.transaction('archive_staging', 'readwrite');
+  const store = mutation.objectStore('archive_staging');
+  const request = store.get(staged.session.id + ':state');
+  request.onsuccess = () => store.put({
+    ...request.result,
+    stagingRevision: request.result.stagingRevision + 1
+  });
+  await new Promise((resolve, reject) => {
+    mutation.oncomplete = resolve;
+    mutation.onabort = mutation.onerror = () => reject(mutation.error || new Error('staging mutation failed'));
+  });
+  release.resolve();
+
+  await assert.rejects(
+    pending,
+    error => error.code === 'STAGING_CONTENT_CHANGED'
+  );
+  const verify = db.transaction('main', 'readonly');
+  const state = await new Promise((resolve, reject) => {
+    const q = verify.objectStore('main').get('state');
+    q.onsuccess = () => resolve(q.result);
+    q.onerror = () => reject(q.error);
+  });
+  assert.equal(state, undefined);
+  db.close();
+});
