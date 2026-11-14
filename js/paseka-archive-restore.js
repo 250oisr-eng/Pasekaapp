@@ -964,6 +964,18 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
   // The short transaction below then proves that the verified staging revision
   // is still the exact revision being finalized.
   const staged = await readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, true);
+  if (!Number.isSafeInteger(staged.session.stagingEpoch) || staged.session.stagingEpoch < 0) {
+    fail('STAGING_LEGACY_SESSION', 'Legacy staging sessions must be imported again.');
+  }
+  if (!Number.isSafeInteger(staged.session.stagedCount) ||
+      !Number.isSafeInteger(staged.session.totalEntries) ||
+      staged.session.totalEntries < 1 ||
+      staged.session.stagedCount !== staged.session.totalEntries) {
+    fail('STAGING_FINALIZE_CHANGED', 'Staging counters are invalid. The session remains unchanged.');
+  }
+  // Repeated requests are safe: validate the ready archive fully, then return
+  // its existing header without opening another write transaction.
+  if (staged.session.status === 'ready') return staged.session;
   if (staged.session.status !== 'staging') {
     fail('STAGING_FINALIZE_NOT_ALLOWED', 'Only an interrupted staging session can be finalized.');
   }
