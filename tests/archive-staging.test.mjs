@@ -387,6 +387,7 @@ test('atomic rollback restores previous state and videos and permits a later rei
   const rolledBack = await Restore.rollbackCommittedArchive(
     db, 'backup-atomic-rollback', committed.state.meta.revisionId, webcrypto, () => true
   );
+  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
   const restoredState = await get(db, 'main', 'state');
   const restoredVideos = await getAll(db, 'entrance_media');
   const history = await get(db, 'archive_history', 'backup-atomic-rollback');
