@@ -2661,6 +2661,7 @@ test('IndexedDB v3 upgrades to v4 with dedicated archive staging and history sto
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+  oldDb.close();
   const deps = {
     DB: 'paseka-upgrade-v3-v4', STORE: 'main', BACKUP_STORE: 'full_backup',
     db: null, indexedDB: factory
@@ -2673,7 +2674,6 @@ test('IndexedDB v3 upgrades to v4 with dedicated archive staging and history sto
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('sessionId'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('kind'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('backupId'), true);
-  oldDb.close();
   deps.db.close();
 });
 
