@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +31,7 @@ test('Git backup refuses to omit uncommitted changes', () => {
     const result = spawnSync('bash', [backupScript, join(temp, 'backups')], { cwd: temp, encoding: 'utf8' });
     assert.equal(result.status, 3, result.stderr);
     assert.match(result.stderr, /незакоммиченные изменения/i);
-    assert.deepEqual(readdirSync(join(temp, 'backups')), []);
+    assert.equal(existsSync(join(temp, 'backups')), false, 'backup directory must not be created when the repository is dirty');
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }
