@@ -533,3 +533,38 @@ test('full archive export, staged import, atomic rollback round-trip preserves s
   sourceDb.close();
   targetDb.close();
 });
+
+
+test('archive staging hashes legacy video Blob bytes inside the baseline transaction', async () => {
+  const db = await openTestDb('paseka-stage-legacy-video-hash');
+  const legacyBlob = new Blob(['legacy video bytes'], { type: 'video/mp4' });
+  await put(db, 'entrance_media', {
+    id: 'legacy-video', hiveId: 'hive-old', bytes: legacyBlob.size, blob: legacyBlob
+  });
+  const archive = await makeArchive('backup-legacy-video-hash');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const saved = await get(db, 'entrance_media', 'legacy-video');
+  const expected = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await legacyBlob.arrayBuffer())),
+    byte => byte.toString(16).padStart(2, '0')).join('');
+  assert.equal(saved.blobSha256, expected);
+  assert.equal(saved.blob.size, legacyBlob.size);
+  assert.equal(staged.session.status, 'ready');
+  db.close();
+});
+
+test('archive staging rejects a legacy video whose persisted checksum disagrees with its Blob', async () => {
+  const db = await openTestDb('paseka-stage-legacy-video-hash-mismatch');
+  const blob = new Blob(['actual bytes'], { type: 'video/mp4' });
+  await put(db, 'entrance_media', {
+    id: 'tampered-video', hiveId: 'hive-old', bytes: blob.size, blob,
+    blobSha256: '0'.repeat(64)
+  });
+  const archive = await makeArchive('backup-legacy-video-hash-mismatch');
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'MEDIA_BASELINE_HASH_MISMATCH' }
+  );
+  assert.equal((await get(db, 'entrance_media', 'tampered-video')).blobSha256, '0'.repeat(64));
+  assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 0);
+  db.close();
+});
