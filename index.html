@@ -605,6 +605,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
 }
 function readStartupMarker(){try{return localStorage.getItem(STARTUP_MARKER_KEY)==='1'}catch(e){return null}}
 function markStartupInitialized(){try{localStorage.setItem(STARTUP_MARKER_KEY,'1');return true}catch(e){return false}}
+function clearStartupMarker(){try{localStorage.removeItem(STARTUP_MARKER_KEY);return true}catch(e){return false}}
 function classifyStartupState(mainState,backupState,previouslyUsed){
  if(mainState)return 'existing';
  if(backupState?.state)return 'recoverable';
@@ -3580,6 +3581,7 @@ async function deleteAllData(){
  try{
   if(db){db.close();db=null}
   await new Promise((resolve,reject)=>{const req=indexedDB.deleteDatabase(DB);req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('База занята другой открытой вкладкой. Закрой другие вкладки приложения и повтори.'))});
+  clearStartupMarker();
   alert('Все локальные данные приложения удалены. Страница будет перезагружена.');
   location.reload();
  }catch(e){alert('Не удалось удалить данные: '+(e.message||e))}
