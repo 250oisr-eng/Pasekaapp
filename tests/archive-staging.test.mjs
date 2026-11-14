@@ -1113,12 +1113,34 @@ test('a fully persisted staging session can be explicitly verified and finalized
   const finalized = await Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
   assert.equal(finalized.status, 'ready');
   assert.equal(finalized.stagedCount, finalized.totalEntries);
+  const repeatedFinalize = await Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
+  assert.equal(repeatedFinalize.status, 'ready');
+  assert.equal(repeatedFinalize.completedAt, finalized.completedAt, 'repeated finalization must not rewrite the ready session');
   const verified = await Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
   assert.equal(verified.state.records[0].note, 'archive state');
   assert.equal(verified.videos.length, 1);
   const repeated = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
   assert.equal(repeated.alreadyStaged, true);
   assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-finalize');
+  db.close();
+});
+
+test('explicit staging finalization rejects a legacy session without a valid staging epoch', async () => {
+  const db = await openTestDb('paseka-stage-finalize-legacy');
+  const archive = await makeArchive('backup-finalize-legacy');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  delete header.stagingEpoch;
+  await put(db, 'archive_staging', header);
+
+  await assert.rejects(
+    Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_LEGACY_SESSION' }
+  );
+  const preserved = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(preserved.status, 'staging');
+  assert.equal(preserved.stagingEpoch, undefined);
   db.close();
 });
 
