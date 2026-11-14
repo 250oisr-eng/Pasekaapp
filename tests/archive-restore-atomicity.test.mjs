@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 
 const source = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
 const appWindow = {};
@@ -238,7 +239,8 @@ function mediaFingerprint(records) {
 }
 
 async function seedRollback(db, { currentVideos = [] } = {}) {
-  const importedVideo = { id: 'imported-video', blob: new Blob(['imported'], { type: 'video/mp4' }), capturedAt: '2026-11-14T10:00:00.000Z' };
+  const importedBlob = new Blob(['imported'], { type: 'video/mp4' });
+  const importedVideo = { id: 'imported-video', blob: importedBlob, blobSha256: createHash('sha256').update(Buffer.from('imported')).digest('hex'), capturedAt: '2026-11-14T10:00:00.000Z' };
   const tx = db.transaction(['main', 'entrance_media', 'archive_staging', 'archive_history'], 'readwrite');
   tx.objectStore('main').put({ meta: { revisionId: 'imported-revision' }, hives: [], auditLog: [] }, 'state');
   for (const video of currentVideos.length ? currentVideos : [importedVideo]) tx.objectStore('entrance_media').put(video);
@@ -341,5 +343,32 @@ test('archive staging captures a canonical video-library baseline atomically wit
     q.onerror = () => reject(q.error);
   });
   assert.equal(stored.baselineMediaFingerprint, staged.session.baselineMediaFingerprint);
+  db.close();
+});
+
+
+test('rollback rejects same-size same-type video byte replacement', async () => {
+  const db = await makeDatabase();
+  const importedVideo = await seedRollback(db);
+  const replacement = { ...importedVideo, blob: new Blob(['IMPORTED'], { type: 'video/mp4' }) };
+  const tx = db.transaction('entrance_media', 'readwrite');
+  tx.objectStore('entrance_media').put(replacement);
+  await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(tx.error || new Error('replacement failed')); });
+  await assert.rejects(api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
+    getRandomValues(bytes) { bytes.fill(8); return bytes; }
+  }, async () => true), error => error.code === 'ROLLBACK_MEDIA_CHANGED');
+  db.close();
+});
+
+test('rollback fingerprint ignores harmless video metadata additions', async () => {
+  const db = await makeDatabase();
+  const importedVideo = await seedRollback(db);
+  const tx = db.transaction('entrance_media', 'readwrite');
+  tx.objectStore('entrance_media').put({ ...importedVideo, syncStatus: 'not-synced' });
+  await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(tx.error || new Error('metadata update failed')); });
+  const result = await api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
+    getRandomValues(bytes) { bytes.fill(9); return bytes; }
+  }, async () => true);
+  assert.equal(result.rollbackSnapshotRemoved, true);
   db.close();
 });
