@@ -2814,3 +2814,25 @@ test('deadout review save failure restores the previous state and releases the s
   assert.equal(button.disabled, false);
   assert.equal(win.__pasekaDeadoutSaveBusy, false);
 });
+
+
+test('entrance video list exposes imported videos whose hive reference is orphaned', async () => {
+  const host = { innerHTML: '' };
+  const select = { value: '__orphaned__' };
+  const render = loadFunction('refreshEntranceVideos', {
+    $: id => id === 'entranceVideoList' ? host : select,
+    listEntranceVideos: async () => [{
+      id: 'orphan-video', hiveId: 'removed-hive', orphanedHiveReference: true,
+      capturedAt: '2026-11-14T09:00:00.000Z', durationSec: 30, width: 640, height: 480,
+      bytes: 12, status: 'waiting_for_server'
+    }],
+    S: { hives: [] },
+    safe: value => String(value ?? ''),
+    hname: id => 'Улей ' + id,
+    entranceBytes: () => '12 Б'
+  });
+  await render();
+  assert.match(host.innerHTML, /Улей из архива не найден/);
+  assert.match(host.innerHTML, /Сохранённый ID улья из архива: removed-hive/);
+  assert.match(host.innerHTML, /orphan-video/);
+});
