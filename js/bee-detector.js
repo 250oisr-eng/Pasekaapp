@@ -24,10 +24,12 @@ function normalizeDetections(input,options={}){
  if(input.length>limits.maxDetectionsPerFrame)errors.push('detection_limit_exceeded');
  for(const item of input.slice(0,limits.maxDetectionsPerFrame)){
   if(!item||typeof item!=='object')continue;
-  const confidence=Number(item.confidence),box=item.box||item.boundingBox;
+  const confidence=item.confidence,box=item.box||item.boundingBox;
+  // Native/model output is a trust boundary: reject coercible strings, nulls,
+  // booleans and other non-numeric values instead of silently normalizing them.
   if(!finite(confidence)||confidence<limits.minConfidence||confidence>1)continue;
-  if(!box||!['x','y','width','height'].every(k=>finite(Number(box[k]))))continue;
-  const x=Number(box.x),y=Number(box.y),width=Number(box.width),height=Number(box.height);
+  if(!box||!['x','y','width','height'].every(k=>finite(box[k])))continue;
+  const x=box.x,y=box.y,width=box.width,height=box.height;
   if(width<=0||height<=0||x<0||y<0||x+width>1||y+height>1)continue;
   const className=String(item.className||item.label||'').toLowerCase();
   if(!['bee','wasp','drone','unknown'].includes(className))continue;

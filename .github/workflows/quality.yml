@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             npm-${{ runner.os }}-
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Audit npm dependency vulnerabilities
         run: npm audit --audit-level=high
       - name: Run complete regression suite
