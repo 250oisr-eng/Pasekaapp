@@ -292,18 +292,6 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     throw error;
   }
 }
-function holdTransactionOpen(tx, store) {
-  let active = true;
-  const pulse = () => {
-    if (!active) return;
-    let request;
-    try { request = store.get('__paseka_archive_tx_keepalive__'); }
-    catch (error) { active = false; return; }
-    request.onsuccess = request.onerror = () => { if (active) pulse(); };
-  };
-  pulse();
-  return () => { active = false; };
-}
 function cloneState(value) {
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
