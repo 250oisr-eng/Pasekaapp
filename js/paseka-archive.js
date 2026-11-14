@@ -325,6 +325,7 @@ async function validateArchiveForRestore(blob, cryptoProvider, validateState) {
   }));
   return {
     backupId: parsed.manifest.backupId,
+    manifest: parsed.manifest,
     createdAt: parsed.manifest.createdAt,
     schemaVersion: parsed.manifest.schemaVersion,
     state,
