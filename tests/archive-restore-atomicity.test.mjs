@@ -9,8 +9,7 @@ const appWindow = {};
 new Function('window', source)(appWindow);
 const api = appWindow.PasekaArchiveRestore;
 
-async function makeDatabase() {
-  const factory = new IDBFactory();
+async function makeDatabase(factory = new IDBFactory()) {
   const request = factory.open('archive-cleanup-test', 1);
   request.onupgradeneeded = () => {
     const staging = request.result.createObjectStore('archive_staging', { keyPath: 'id' });
@@ -572,6 +571,83 @@ test('archive commit writes imported state, history and rollback snapshot atomic
   assert.equal(rollbackSession.kind, 'rollback_session');
   assert.equal(rollbackSession.status, 'ready');
   db.close();
+});
+
+test('committed archive and rollback snapshot survive closing and reopening IndexedDB', async () => {
+  const factory = new IDBFactory();
+  const db = await makeDatabase(factory);
+  const seedTx = db.transaction('main', 'readwrite');
+  seedTx.objectStore('main').put({
+    meta: { schemaVersion: 1, revisionId: 'before-restart-revision' },
+    hives: [{ id: 'hive-before-import', name: 'Старая пасека' }],
+    auditLog: []
+  }, 'state');
+  await new Promise((resolve, reject) => {
+    seedTx.oncomplete = resolve;
+    seedTx.onabort = seedTx.onerror = () => reject(seedTx.error || new Error('initial state seed failed'));
+  });
+
+  const { staged, archiveApi, cryptoProvider } = await stageMinimalArchive(db);
+  const committed = await api.commitStagedArchive(
+    db, staged.session.id, 'before-restart-revision', cryptoProvider, archiveApi, async () => true
+  );
+  assert.equal(committed.history.status, 'committed');
+  db.close();
+
+  // A fresh connection simulates an application process restart while the
+  // browser's durable IndexedDB database remains intact.
+  const reopened = await makeDatabase(factory);
+  const verify = reopened.transaction(['main', 'archive_history', 'archive_staging'], 'readonly');
+  const [importedState, history, rollbackSession, importSession] = await Promise.all([
+    new Promise((resolve, reject) => {
+      const q = verify.objectStore('main').get('state');
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    }),
+    new Promise((resolve, reject) => {
+      const q = verify.objectStore('archive_history').get('commit-integration-backup');
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    }),
+    new Promise((resolve, reject) => {
+      const q = verify.objectStore('archive_staging').get(committed.rollbackSessionId);
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    }),
+    new Promise((resolve, reject) => {
+      const q = verify.objectStore('archive_staging').get(staged.session.id);
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    })
+  ]);
+  assert.equal(importedState.meta.revisionId, committed.state.meta.revisionId);
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackSessionId, committed.rollbackSessionId);
+  assert.equal(rollbackSession.status, 'ready');
+  assert.equal(importSession.status, 'committed');
+
+  const rolledBack = await api.rollbackCommittedArchive(
+    reopened, 'commit-integration-backup', importedState.meta.revisionId, cryptoProvider, async () => true
+  );
+  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
+  assert.deepEqual(rolledBack.state.hives, [{ id: 'hive-before-import', name: 'Старая пасека' }]);
+
+  const finalTx = reopened.transaction(['main', 'archive_history'], 'readonly');
+  const [restoredState, finalHistory] = await Promise.all([
+    new Promise((resolve, reject) => {
+      const q = finalTx.objectStore('main').get('state');
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    }),
+    new Promise((resolve, reject) => {
+      const q = finalTx.objectStore('archive_history').get('commit-integration-backup');
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    })
+  ]);
+  assert.deepEqual(restoredState.hives, [{ id: 'hive-before-import', name: 'Старая пасека' }]);
+  assert.equal(finalHistory.status, 'reverted');
+  reopened.close();
 });
 
 test('archive commit preserves videos added after staging and rejects the stale baseline', async () => {
