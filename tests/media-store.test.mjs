@@ -135,3 +135,67 @@ test('returns null for a missing image ID', async () => {
   assert.equal(await Media.getImage(db, 'absent', webcrypto), null);
   db.close();
 });
+
+
+test('orphan audit is read-only and protects blobs referenced by current state, snapshots and journals', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-orphan-audit', 1);
+    request.onupgradeneeded = () => {
+      const d = request.result;
+      d.createObjectStore('main');
+      d.createObjectStore('auto_snapshots', { keyPath: 'id' });
+      d.createObjectStore('media_migration_journal', { keyPath: 'id' });
+      d.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await Media.putImage(db, { id: 'used-current', blob: image([1]) }, webcrypto);
+  await Media.putImage(db, { id: 'used-snapshot', blob: image([2]) }, webcrypto);
+  await Media.putImage(db, { id: 'used-journal', blob: image([3]) }, webcrypto);
+  await Media.putImage(db, { id: 'orphan-photo', blob: image([4]) }, webcrypto);
+  const write = db.transaction(['main', 'auto_snapshots', 'media_migration_journal'], 'readwrite');
+  write.objectStore('main').put({ records: [{ media: [{ blobId: 'used-current', storage: 'indexeddb-blob-v1' }] }] }, 'state');
+  write.objectStore('auto_snapshots').put({ id: 'snapshot-1', state: { plantObservations: [{ media: [{ blobId: 'used-snapshot' }] }] } });
+  write.objectStore('media_migration_journal').put({ id: 'journal-1', blobId: 'used-journal' });
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.mode, 'read-only-audit');
+  assert.equal(report.readOnly, true);
+  assert.equal(report.deletionPerformed, false);
+  assert.deepEqual(report.referenced.map(item => item.id), ['used-current', 'used-journal', 'used-snapshot']);
+  assert.deepEqual(report.orphaned.map(item => item.id), ['orphan-photo']);
+  assert.deepEqual(report.missingReferences, []);
+  assert.equal((await Media.getImage(db, 'orphan-photo', webcrypto)).blob.size, 1);
+  assert.equal((await Media.getImage(db, 'used-current', webcrypto)).blob.size, 1);
+  db.close();
+});
+
+test('orphan audit reports dangling references and never classifies them as deletable blobs', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-dangling-audit', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const tx = db.transaction('main', 'readwrite');
+  tx.objectStore('main').put({ records: [{ media: [{ blobId: 'missing-photo' }] }] }, 'state');
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.orphanedCount, 0);
+  assert.deepEqual(report.missingReferences, [{ blobId: 'missing-photo', referenceCount: 1, referencedBy: ['main'] }]);
+  db.close();
+});
