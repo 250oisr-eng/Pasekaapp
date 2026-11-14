@@ -39,7 +39,7 @@ async function copyOne(db,state,candidate,migrationId,cryptoProvider,options={})
  const tx=db.transaction([BLOBS,JOURNAL],'readwrite'),done=txDone(tx),bs=tx.objectStore(BLOBS),js=tx.objectStore(JOURNAL);done.catch(()=>{});
  try{
   const [existingBlob,existingJournal]=await Promise.all([request(bs.get(record.id)),request(js.get(journal.id))]);
-  if(existingJournal&&existingBlob&&existingJournal.migrationId===migrationId&&existingBlob.migrationId===migrationId&&existingJournal.sha256===sha256&&existingBlob.sha256===sha256&&existingBlob.blob&&existingBlob.blob.size===existingBlob.sizeBytes&&existingBlob.blob.type===existingBlob.mimeType&&await digest(await existingBlob.blob.arrayBuffer(),cryptoProvider)===sha256){
+  if(existingJournal&&existingBlob&&existingJournal.migrationId===migrationId&&existingBlob.migrationId===migrationId&&existingJournal.sha256===sha256&&existingBlob.sha256===sha256&&existingJournal.candidateId===candidate.id&&existingJournal.sourceKey===key&&existingBlob.sourceKey===key&&existingBlob.blob&&existingBlob.blob.size===existingBlob.sizeBytes&&existingBlob.blob.type===existingBlob.mimeType&&await digest(await existingBlob.blob.arrayBuffer(),cryptoProvider)===sha256){
    await done;return {status:'already_copied',blobId:record.id,sha256};
   }
   if(existingBlob||existingJournal)fail('MIGRATION_ID_CONFLICT','A destination ID already exists but does not match this migration; nothing was overwritten.');
