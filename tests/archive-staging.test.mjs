@@ -316,6 +316,9 @@ test('atomic archive commit replaces state and entrance videos while preserving 
   assert.equal(previousState.state.meta.revisionId, 'live-revision');
   assert.equal(history.status, 'committed');
   assert.equal(history.rollbackSessionId, committed.rollbackSessionId);
+  const historyList = await Restore.listArchiveImportHistory(db);
+  assert.equal(historyList[0].backupId, 'backup-atomic-commit');
+  assert.equal(historyList[0].status, 'committed');
   assert.equal(committedSession.status, 'committed');
   assert.equal(rollbackSession.kind, 'rollback_session');
   assert.equal(rollbackState.state.meta.revisionId, 'live-revision');
