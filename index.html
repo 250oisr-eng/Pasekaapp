@@ -1615,7 +1615,7 @@ function createExpansionSuggestion(record){
 }
 function updateJournalInspectionCapacity(){
  const hiveId=$('rhive')?.value||activeJournalHive,capacity=journalBroodCapacity(hiveId);
- const fields=[['occupancyLabel','roccupancy','Занято пчёлами рамок в основном гнезде'],['broodLabel','rbrood','Рамок с расплодом'],['drawnLabel','rdrawn','Свободных отстроенных рамок в гнезде']];
+ const fields=[['occupancyLabel','roccupancy','Занято пчёлами рамок во всех установленных гнездовых корпусах'],['broodLabel','rbrood','Рамок с расплодом'],['drawnLabel','rdrawn','Свободных отстроенных рамок в гнезде']];
  for(const [labelId,inputId,label] of fields){const caption=$(labelId),input=$(inputId);if(caption)caption.textContent=label+(capacity===null?' (вместимость профиля не указана)':' (из '+capacity+')');if(input){if(capacity===null||(input.value!==''&&Number(input.value)>capacity))input.removeAttribute('max');else input.max=String(capacity)}}
  const warning=$('capacityWarning'),inspection=$('rtype')?.value==='Осмотр';
  if(warning){warning.style.display=inspection&&capacity===null?'block':'none';warning.textContent='В профиле выбранного улья или его сборке не указана вместимость установленных гнездовых корпусов. Верхний предел не установлен; вводи только фактически проверенное число рамок.'}
