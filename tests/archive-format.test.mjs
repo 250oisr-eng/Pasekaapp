@@ -8,7 +8,7 @@ new Function(source)();
 const Archive = globalThis.PasekaArchive;
 
 async function fixture(videoBytes = new Uint8Array([1, 2, 3, 4, 5])) {
-  const state = new Blob([JSON.stringify({ app: 'Paseka', state: { hives: [], families: [], records: [] } })], { type: 'application/json' });
+  const state = new Blob([JSON.stringify({ app: 'Paseka', state: { meta: { schemaVersion: 12 }, hives: [], families: [], records: [] } })], { type: 'application/json' });
   const video = new Blob([videoBytes], { type: 'video/mp4' });
   const metadata = {
     id: 'video-1',
@@ -146,5 +146,44 @@ test('Paseka archive rejects an archive larger than the caller policy', async ()
   await assert.rejects(
     Archive.parseArchiveBlob(original.blob, { ...Archive.LIMITS, maxArchiveBytes: original.blob.size - 1 }),
     { code: 'ARCHIVE_SIZE_LIMIT' }
+  );
+});
+
+
+test('Paseka restore preflight verifies archive, validates state, and reports orphaned video references', async () => {
+  const original = await fixture();
+  let validationCalls = 0;
+  const checked = await Archive.validateArchiveForRestore(original.blob, webcrypto, state => {
+    validationCalls++;
+    assert.equal(state.meta.schemaVersion, 12);
+    return true;
+  });
+  assert.equal(validationCalls, 1);
+  assert.equal(checked.backupId, original.manifest.backupId);
+  assert.equal(checked.videoEntries.length, 1);
+  assert.equal(checked.videoEntries[0].orphanedHiveReference, true);
+  assert.deepEqual(checked.orphanVideoIds, ['video-1']);
+  assert.equal(checked.videoEntries[0].blob.size, original.video.size);
+});
+
+test('Paseka restore preflight refuses to continue after checksum failure', async () => {
+  const original = await fixture();
+  const parsed = await Archive.parseArchiveBlob(original.blob);
+  const bytes = new Uint8Array(await original.blob.arrayBuffer());
+  bytes[parsed.stateEntry.offset] ^= 0xff;
+  const tampered = new Blob([bytes]);
+  let validationCalls = 0;
+  await assert.rejects(
+    Archive.validateArchiveForRestore(tampered, webcrypto, () => { validationCalls++; return true; }),
+    { code: 'CHECKSUM_MISMATCH' }
+  );
+  assert.equal(validationCalls, 0, 'application state validation must not run before archive integrity checks');
+});
+
+test('Paseka restore preflight requires the application validator and matching state schema', async () => {
+  const original = await fixture();
+  await assert.rejects(
+    Archive.validateArchiveForRestore(original.blob, webcrypto),
+    { code: 'STATE_VALIDATOR_REQUIRED' }
   );
 });
