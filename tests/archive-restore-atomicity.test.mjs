@@ -308,3 +308,38 @@ test('rollback proceeds when entrance videos still match the imported baseline',
   assert.equal(videos.length, 0);
   db.close();
 });
+
+
+test('archive staging captures a canonical video-library baseline atomically with its session', async () => {
+  const db = await makeDatabase();
+  const initialVideo = { id: 'existing-video', hiveId: 'hive-1', capturedAt: '2026-11-14T08:00:00.000Z', blob: new Blob(['existing'], { type: 'video/mp4' }), bytes: 8 };
+  const seedTx = db.transaction('entrance_media', 'readwrite');
+  seedTx.objectStore('entrance_media').put(initialVideo);
+  await new Promise((resolve, reject) => {
+    seedTx.oncomplete = resolve;
+    seedTx.onabort = seedTx.onerror = () => reject(seedTx.error || new Error('media seed failed'));
+  });
+  const cryptoProvider = {
+    getRandomValues(bytes) { bytes.fill(11); return bytes; },
+    subtle: { async digest() { return new Uint8Array(32).buffer; } }
+  };
+  const stateBlob = new Blob([JSON.stringify({ app: 'Paseka', state: { meta: { schemaVersion: 1 }, hives: [] } })]);
+  const manifest = { entries: [{ kind: 'state', size: stateBlob.size, chunkSha256: [] }] };
+  const archiveApi = {
+    async validateArchiveForRestore() {
+      return { backupId: 'media-baseline-backup', createdAt: '2026-11-14T00:00:00.000Z', schemaVersion: 1, archiveBytes: stateBlob.size, manifest, stateBlob, videoEntries: [], orphanVideoIds: [] };
+    },
+    async hashBlobChunks() { return []; }
+  };
+  const staged = await api.stageArchiveForRestore(db, new Blob(['archive']), cryptoProvider, archiveApi, async () => true);
+  assert.equal(typeof staged.session.baselineMediaFingerprint, 'string');
+  assert.match(staged.session.baselineMediaFingerprint, /^\\["PASEKA-MEDIA-FINGERPRINT",2,/);
+  const read = db.transaction('archive_staging', 'readonly');
+  const stored = await new Promise((resolve, reject) => {
+    const q = read.objectStore('archive_staging').get(staged.session.id);
+    q.onsuccess = () => resolve(q.result);
+    q.onerror = () => reject(q.error);
+  });
+  assert.equal(stored.baselineMediaFingerprint, staged.session.baselineMediaFingerprint);
+  db.close();
+});
