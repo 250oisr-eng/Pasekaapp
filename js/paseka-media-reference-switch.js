@@ -32,7 +32,7 @@ function decodeDataUrl(value){
  return {bytes,mimeType:match[1].toLowerCase()};
 }
 function hex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}
-async function sha(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');try{return await root.PasekaSha256.hashBlobHex(blob)}catch(error){fail('CRYPTO_UNAVAILABLE','The photo bytes cannot be hashed safely.')}}
+async function sha(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');return root.PasekaSha256.hashBlobHex(blob)}
 function blobMatches(blob,descriptor,migrationId,candidate){
  return !!blob&&blob.id===descriptor.blobId&&blob.migrationId===migrationId&&blob.sourceKey===sourceKey(candidate)&&blob.sha256===descriptor.sha256&&blob.sizeBytes===descriptor.sizeBytes&&blob.mimeType===descriptor.mimeType&&blob.blob?.size===descriptor.sizeBytes&&blob.blob?.type===descriptor.mimeType;
 }
