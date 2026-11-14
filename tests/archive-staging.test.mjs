@@ -583,16 +583,17 @@ test('archive staging does not open a write transaction while hashing legacy med
       return db.transaction(...args);
     }
   };
-  const originalHash = globalThis.PasekaSha256.hashBlobHex;
+  const originalShaApi = globalThis.PasekaSha256;
+  const originalHash = originalShaApi.hashBlobHex;
   let announceStarted;
   let releaseHash;
   const started = new Promise(resolve => { announceStarted = resolve; });
-  globalThis.PasekaSha256.hashBlobHex = blob => {
+  globalThis.PasekaSha256 = { ...originalShaApi, hashBlobHex: blob => {
     announceStarted();
     return new Promise((resolve, reject) => {
       releaseHash = () => originalHash(blob).then(resolve, reject);
     });
-  };
+  } };
   try {
     const operation = Restore.stageArchiveForRestore(observedDb, archive, webcrypto, Archive, () => true);
     await started;
@@ -603,7 +604,7 @@ test('archive staging does not open a write transaction while hashing legacy med
     assert.equal(result.session.status, 'ready');
     assert.ok(modes.includes('readwrite'), 'a short write transaction is opened after hashing');
   } finally {
-    globalThis.PasekaSha256.hashBlobHex = originalHash;
+    globalThis.PasekaSha256 = originalShaApi;
     db.close();
   }
 });
