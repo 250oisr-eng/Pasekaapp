@@ -254,3 +254,18 @@ test('invalid archive is rejected before any staging session is created', async 
   assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 0);
   db.close();
 });
+
+
+test('staged manifest metadata is rechecked against its stored fingerprint', async () => {
+  const db = await openTestDb('paseka-stage-manifest-tamper');
+  const archive = await makeArchive('backup-stage-manifest-tamper');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const session = await get(db, 'archive_staging', staged.session.sessionId);
+  session.manifest.schemaVersion = 11;
+  await put(db, 'archive_staging', session);
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_MANIFEST_MISMATCH' }
+  );
+  db.close();
+});
