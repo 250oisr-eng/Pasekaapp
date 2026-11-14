@@ -15,9 +15,10 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
  const [blobs,journals]=await Promise.all([req(tx.objectStore(BLOBS).getAll()),req(tx.objectStore(JOURNAL).getAll())]);await finished;
  const ownedBlobs=new Map(blobs.filter(x=>x.migrationId===migrationId).map(x=>[x.id,x]));
  const ownedJournals=journals.filter(x=>x.migrationId===migrationId);
- const problems=[],verified=[];
+ const problems=[],verified=[],usedBlobIds=new Set();
  const seen=new Set();
  for(const c of plan.candidates){
+  if(!c||typeof c.id!=='string'||typeof c.collection!=='string'||typeof c.entityId!=='string'||!Number.isInteger(c.mediaIndex)||c.mediaIndex<0){problems.push({candidateId:c?.id||null,code:'INVALID_CANDIDATE'});continue}
   const sourceKey=key(c);
   if(seen.has(sourceKey)){problems.push({candidateId:c.id,code:'DUPLICATE_SOURCE'});continue}seen.add(sourceKey);
   const media=locate(state,c);
@@ -26,15 +27,20 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
   if(!match){problems.push({candidateId:c.id,code:'SOURCE_INVALID'});continue}
   let bytes;try{const raw=atob(match[2]);bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i)}catch(_){problems.push({candidateId:c.id,code:'SOURCE_INVALID_BASE64'});continue}
   const expected=await sha(new Blob([bytes],{type:match[1].toLowerCase()}),cryptoProvider);
-  const journal=ownedJournals.find(x=>x.candidateId===c.id&&x.sourceKey===sourceKey);
+  const matches=ownedJournals.filter(x=>x.candidateId===c.id&&x.sourceKey===sourceKey);
+  if(matches.length>1){problems.push({candidateId:c.id,code:'DUPLICATE_JOURNAL_ENTRIES'});continue}
+  const journal=matches[0];
   const blob=journal&&ownedBlobs.get(journal.blobId);
   if(!journal||journal.status!=='completed'||!blob){problems.push({candidateId:c.id,code:'COPY_MISSING'});continue}
   if(journal.sha256!==expected||blob.sha256!==expected||blob.sourceKey!==sourceKey||blob.blob?.size!==bytes.length||blob.blob?.type!==match[1].toLowerCase()){problems.push({candidateId:c.id,code:'METADATA_MISMATCH'});continue}
   if(await sha(blob.blob,cryptoProvider)!==expected){problems.push({candidateId:c.id,code:'BLOB_CHECKSUM_MISMATCH'});continue}
+  usedBlobIds.add(blob.id);
   verified.push({candidateId:c.id,blobId:blob.id,sha256:expected,sizeBytes:bytes.length});
  }
  const unexpected=ownedJournals.filter(j=>!plan.candidates.some(c=>c.id===j.candidateId));
  if(unexpected.length)problems.push({code:'UNEXPECTED_JOURNAL_ENTRIES',count:unexpected.length});
+ const orphanedBlobs=[...ownedBlobs.keys()].filter(id=>!usedBlobIds.has(id));
+ if(orphanedBlobs.length)problems.push({code:'UNEXPECTED_BLOB_ENTRIES',count:orphanedBlobs.length});
  return Object.freeze({mode:'preflight-verification',readOnly:true,ready:problems.length===0&&verified.length===plan.candidates.length,expected:plan.candidates.length,verified:verified.length,problems,verifiedItems:verified,sourceChanged:false,linksChanged:false,legacyDataDeleted:false});
 }
 const api=Object.freeze({verify});
