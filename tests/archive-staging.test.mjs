@@ -644,7 +644,6 @@ test('quota failure during media staging preserves live data and leaves a safely
                     return value => {
                       if (!injected && value?.kind === 'video') {
                         injected = true;
-                        try { target.abort(); } catch (error) {}
                         throw new DOMException('Injected storage quota exhaustion.', 'QuotaExceededError');
                       }
                       return storeTarget.put(value);
