@@ -47,6 +47,43 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+test('startup classifier blocks an unexpectedly empty database after prior use',()=>{
+ const classify=loadFunction('classifyStartupState');
+ assert.equal(classify(null,null,true),'missing');
+ assert.equal(classify({meta:{revisionId:'r1'}},null,true),'existing');
+ assert.equal(classify(null,{state:{hives:[]}},true),'recoverable');
+ assert.equal(classify(null,null,false),'first_run');
+ assert.equal(classify(null,null,null),'unverified');
+});
+test('startup guard is checked before migration and first-run initialization requires confirmation',()=>{
+ assert.match(html,/const startupStatus=classifyStartupState\(startupMain,autoBackupInfo,previouslyUsed\)/);
+ assert.match(html,/if\(startupStatus==='missing'\)throw new Error/);
+ assert.match(html,/if\(startupStatus==='first_run'\|\|startupStatus==='unverified'\)/);
+});
+test('intentional full data deletion clears the startup marker before deleting the database',()=>{
+ assert.ok(html.includes("function clearStartupMarker(){try{localStorage.removeItem(STARTUP_MARKER_KEY)"));
+ const deleteIndex=html.indexOf("async function deleteAllData()");
+ const clearIndex=html.indexOf("if(!clearStartupMarker())throw",deleteIndex);
+ const databaseDeleteIndex=html.indexOf("indexedDB.deleteDatabase(DB)",deleteIndex);
+ const reloadIndex=html.indexOf("location.reload();",deleteIndex);
+ assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&databaseDeleteIndex>clearIndex&&reloadIndex>databaseDeleteIndex);
+ assert.ok(html.includes("Хранилище настроек недоступно; база не удалена."));
+});
+test('full data deletion confirmation explicitly includes all local media and backups',()=>{
+ assert.ok(html.includes('включая фотографии, видео летка и внутренние резервные копии'));
+});
+test('automatic backup copy explicitly excludes separately stored entrance videos',()=>{
+ assert.ok(html.includes('включая фотографии и видео, прикреплённые к записям журнала и карточкам наблюдений'));
+ assert.ok(html.includes('Видео летка хранится отдельно и в эту автокопию не входит'));
+ assert.ok(html.includes('Видео летка не восстанавливается и останется без изменений; проверь его привязку к ульям.'));
+ assert.ok(html.includes('видео останутся без изменений и могут относиться к прежней пасеке'));
+ assert.ok(html.includes('Видео летка не восстанавливается и останется без изменений; проверь его привязку к ульям.'));
+});
+test('manual JSON backup clearly warns that entrance videos are excluded',()=>{
+ assert.ok(html.includes('<b>JSON-копия данных</b>'));
+ assert.ok(html.includes('отдельные видео летка из локального хранилища в этот файл не входят'));
+ assert.ok(html.includes('Скачать JSON-копию (без видео летка)'));
+});
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
