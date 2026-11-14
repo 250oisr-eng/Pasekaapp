@@ -89,3 +89,17 @@ test('updateDetails preserves a body with a corrupt per-body event journal',()=>
 });
 
 test('updateDetails is atomic when the shared event journal is corrupt',()=>{const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Исходная запись'},labels,makeId,now).body;s.equipmentInventory.events={corrupt:true};const before=JSON.stringify(s),r=I.updateDetails(s,body.id,{notes:'Изменено',storageLocation:'Новый склад',condition:'needs_repair'},'2026-11-14T12:00:00.000Z');assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);});
+
+
+test('recordSwap rejects a corrupt per-body journal without partially moving either corpus',()=>{
+ const s=fixture();I.migrate(s,makeId,now);s.equipmentInventory.bodies.b1.events={corrupt:true};
+ const before=JSON.stringify(s),r=I.recordSwap(s,{from:{hiveId:'h1',box:'1',corpusId:'b1'},to:{hiveId:'h2',box:'1'},swappedCorpusId:'b3'},now);
+ assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
+
+test('stock installation is atomic when the incoming body journal is corrupt',()=>{
+ const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ stock.events={corrupt:true};const before=JSON.stringify(s);
+ const r=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
+ assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
