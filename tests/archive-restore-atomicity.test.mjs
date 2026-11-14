@@ -806,3 +806,91 @@ test('archive commit abort after media.clear preserves prior state and video lib
   db.close();
 });
 
+
+
+test('rollback re-hashes snapshot video bytes under the final transaction lock', async () => {
+  const db = await makeDatabase();
+  const importedVideo = await seedRollback(db);
+  const snapshotBlob = new Blob(['previous'], { type: 'video/mp4' });
+  const snapshotHash = createHash('sha256').update(Buffer.from('previous')).digest('hex');
+  const prepare = db.transaction('archive_staging', 'readwrite');
+  const staging = prepare.objectStore('archive_staging');
+  const sessionRequest = staging.get('rollback-1');
+  sessionRequest.onsuccess = () => {
+    staging.put({ ...sessionRequest.result, totalEntries: 2, stagedCount: 2 });
+    staging.put({
+      id: 'rollback-1:video:previous',
+      sessionId: 'rollback-1',
+      kind: 'rollback_video',
+      originalId: 'previous',
+      record: {
+        id: 'previous',
+        blob: snapshotBlob,
+        blobSha256: snapshotHash,
+        capturedAt: '2026-11-14T08:00:00.000Z'
+      }
+    });
+  };
+  await new Promise((resolve, reject) => {
+    prepare.oncomplete = resolve;
+    prepare.onabort = prepare.onerror = () => reject(prepare.error || new Error('snapshot setup failed'));
+  });
+
+  const validationStarted = deferred();
+  const releaseValidation = deferred();
+  const cryptoProvider = {
+    getRandomValues(bytes) { bytes.fill(17); return bytes; },
+    subtle: {
+      async digest(_, data) {
+        const hash = createHash('sha256').update(Buffer.from(data)).digest();
+        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+      }
+    }
+  };
+  const pendingRollback = api.rollbackCommittedArchive(
+    db,
+    'backup-1',
+    'imported-revision',
+    cryptoProvider,
+    async () => {
+      validationStarted.resolve();
+      await releaseValidation.promise;
+      return true;
+    }
+  );
+  await validationStarted.promise;
+
+  // Replace the stored Blob after Phase A has verified its checksum. Keep the
+  // same byte length, MIME type and stale checksum to defeat metadata checks.
+  const tamper = db.transaction('archive_staging', 'readwrite');
+  const tamperStore = tamper.objectStore('archive_staging');
+  const key = 'rollback-1:video:previous';
+  const get = tamperStore.get(key);
+  get.onsuccess = () => {
+    tamperStore.put({
+      ...get.result,
+      record: { ...get.result.record, blob: new Blob(['TAMPERED'], { type: 'video/mp4' }) }
+    });
+  };
+  await new Promise((resolve, reject) => {
+    tamper.oncomplete = resolve;
+    tamper.onabort = tamper.onerror = () => reject(tamper.error || new Error('snapshot tamper setup failed'));
+  });
+  releaseValidation.resolve();
+
+  await assert.rejects(
+    pendingRollback,
+    error => error.code === 'ROLLBACK_SNAPSHOT_CONTENT_CHANGED'
+  );
+  const verify = db.transaction(['main', 'entrance_media', 'archive_staging'], 'readonly');
+  const [state, videos, snapshot] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get(key); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId, 'imported-revision');
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, importedVideo.id);
+  assert.equal(await snapshot.record.blob.text(), 'TAMPERED');
+  db.close();
+});
