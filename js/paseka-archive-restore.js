@@ -203,8 +203,10 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             if (!session.manifest || !Array.isArray(session.manifest.entries) || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest is invalid.');
             if (await manifestFingerprint(session.manifest, cryptoProvider) !== session.fingerprint) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest fingerprint is invalid.');
             if (records.length !== session.totalEntries + 1) fail('STAGING_CONTENT_MISSING', 'Staged entry count does not match the session.');
-            const stateRecord = records.find(record => record.kind === 'state');
+            const stateRecords = records.filter(record => record.kind === 'state');
             const videoRecords = records.filter(record => record.kind === 'video');
+            if (stateRecords.length !== 1) fail('STAGING_CONTENT_MISSING', 'Staged archive must contain exactly one state entry.');
+            const stateRecord = stateRecords[0];
             const stateEntry = session.manifest.entries.find(entry => entry.kind === 'state');
             if (!stateRecord?.blob || !stateEntry || stateRecord.blob.size !== stateEntry.size) fail('STAGING_STATE_SIZE_MISMATCH', 'Staged state size does not match its manifest.');
             if (JSON.stringify(await archiveApi.hashBlobChunks(stateRecord.blob, cryptoProvider)) !== JSON.stringify(stateEntry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged state checksum does not match its manifest.');
@@ -216,6 +218,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             if (state.meta?.schemaVersion !== session.schemaVersion) fail('STAGING_SCHEMA_MISMATCH', 'Staged state schema does not match its session.');
             const manifestVideos = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
             if (manifestVideos.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
+            if (records.length !== stateRecords.length + videoRecords.length + 1) fail('STAGING_CONTENT_MISSING', 'Staged archive contains unexpected records.');
             for (const record of videoRecords) {
               const entry = manifestVideos.find(item => item.metadata?.id === record.metadata?.id);
               if (!record.blob || !record.metadata || !entry || entry.path !== record.path || entry.size !== record.size || record.blob.size !== record.size || JSON.stringify(record.metadata) !== JSON.stringify(entry.metadata)) {
