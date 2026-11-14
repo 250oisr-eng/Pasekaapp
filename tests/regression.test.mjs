@@ -2678,7 +2678,8 @@ test('IndexedDB v3 upgrades to v8 with archive staging, history, snapshots, imag
   assert.equal(deps.db.objectStoreNames.contains('auto_snapshots'), true);
   assert.equal(deps.db.objectStoreNames.contains('media_blobs'), true);
   assert.equal(deps.db.objectStoreNames.contains('media_migration_journal'), true);
-  assert.ok(serviceWorker.includes("'./js/paseka-media-migration-engine.js'"));\n  assert.ok(serviceWorker.includes("'./js/paseka-media-reference-switch.js'"));
+  assert.ok(serviceWorker.includes("'./js/paseka-media-migration-engine.js'"));
+  assert.ok(serviceWorker.includes("'./js/paseka-media-reference-switch.js'"));
   const tx = deps.db.transaction('archive_staging', 'readonly');
   assert.equal(deps.db.objectStoreNames.contains('media_reference_journal'), true);\n  assert.equal(tx.objectStore('archive_staging').indexNames.contains('sessionId'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('kind'), true);
