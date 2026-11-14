@@ -353,3 +353,62 @@ test('atomic archive commit refuses a stale live revision without changing state
   assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).status, 'ready');
   db.close();
 });
+
+
+test('atomic rollback restores previous state and videos and permits a later reimport', async () => {
+  const db = await openTestDb('paseka-stage-atomic-rollback');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [], auditLog: [] };
+  const oldVideoBlob = new Blob(['previous media'], { type: 'video/mp4' });
+  await put(db, 'main', oldState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'previous-video', hiveId: 'old-hive', capturedAt: '2026-11-12T09:00:00.000Z',
+    durationSec: 8, width: 640, height: 480, bytes: oldVideoBlob.size,
+    mimeType: 'video/mp4', name: 'previous.mp4', status: 'waiting_for_server', blob: oldVideoBlob
+  });
+  const archive = await makeArchive('backup-atomic-rollback');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'before-import', webcrypto, Archive, () => true);
+
+  const rolledBack = await Restore.rollbackCommittedArchive(
+    db, 'backup-atomic-rollback', committed.state.meta.revisionId, webcrypto, () => true
+  );
+  const restoredState = await get(db, 'main', 'state');
+  const restoredVideos = await getAll(db, 'entrance_media');
+  const history = await get(db, 'archive_history', 'backup-atomic-rollback');
+  const importSession = await get(db, 'archive_staging', staged.session.sessionId);
+  const rollbackSession = await get(db, 'archive_staging', committed.rollbackSessionId);
+
+  assert.equal(restoredState.records.length, 0);
+  assert.notEqual(restoredState.meta.revisionId, 'before-import');
+  assert.equal(restoredState.auditLog.at(-1).type, 'backup_rollback');
+  assert.equal(restoredVideos.length, 1);
+  assert.equal(restoredVideos[0].id, 'previous-video');
+  assert.equal(restoredVideos[0].blob.size, oldVideoBlob.size);
+  assert.equal(history.status, 'reverted');
+  assert.equal(history.revertedRevisionId, rolledBack.state.meta.revisionId);
+  assert.equal(importSession.status, 'reverted');
+  assert.equal(importSession.backupId, undefined);
+  assert.equal(rollbackSession.status, 'used');
+
+  const restaged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  assert.equal(restaged.session.backupId, 'backup-atomic-rollback');
+  db.close();
+});
+
+test('atomic rollback refuses a stale revision and preserves the imported state', async () => {
+  const db = await openTestDb('paseka-stage-stale-rollback');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [] };
+  await put(db, 'main', oldState, 'state');
+  const archive = await makeArchive('backup-stale-rollback');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'before-import', webcrypto, Archive, () => true);
+
+  await assert.rejects(
+    Restore.rollbackCommittedArchive(db, 'backup-stale-rollback', 'changed-after-import', webcrypto, () => true),
+    { code: 'RESTORE_CONFLICT' }
+  );
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, committed.state.meta.revisionId);
+  assert.equal((await get(db, 'archive_history', 'backup-stale-rollback')).status, 'committed');
+  assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId)).status, 'ready');
+  db.close();
+});
