@@ -110,6 +110,44 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
   }
   Object.assign(session, nextSession);
 }
+function stagingMetadataFingerprint(session, records) {
+  const contentRecords = (records || [])
+    .filter(record => record && record.sessionId === session.sessionId && record.kind !== 'session')
+    .map(record => {
+      const revision = record.stagingRevision;
+      const size = Number.isSafeInteger(record.size) ? record.size : record.blob?.size;
+      const chunks = Array.isArray(record.chunkSha256) ? record.chunkSha256 : null;
+      if (typeof record.id !== 'string' || !record.id || !Number.isSafeInteger(revision) ||
+          revision < 1 || !Number.isSafeInteger(size) || size < 0 || !chunks ||
+          chunks.some(hash => typeof hash !== 'string' || !/^[a-f0-9]{64}$/i.test(hash))) {
+        fail('STAGING_FINGERPRINT_METADATA_INVALID', 'Staged entry metadata is incomplete or invalid.');
+      }
+      return [record.id, record.kind, revision, size, chunks];
+    })
+    .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  if (contentRecords.length !== session.stagedCount ||
+      new Set(contentRecords.map(record => record[0])).size !== contentRecords.length) {
+    fail('STAGING_FINGERPRINT_SET_INVALID', 'Staged entry set does not match its session.');
+  }
+  const canonical = JSON.stringify([
+    'PASEKA-STAGING-FINGERPRINT',
+    1,
+    session.sessionId,
+    session.backupId,
+    session.fingerprint,
+    session.stagingEpoch,
+    session.stagedCount,
+    contentRecords
+  ]);
+  // FNV-1a 64-bit: synchronous mutation detector, not an authenticity check.
+  let hash = 0xcbf29ce484222325n;
+  const prime = 0x100000001b3n;
+  for (const byte of new TextEncoder().encode(canonical)) {
+    hash ^= BigInt(byte);
+    hash = BigInt.asUintN(64, hash * prime);
+  }
+  return hash.toString(16).padStart(16, '0');
+}
 async function manifestFingerprint(manifest, cryptoProvider) {
   if (!cryptoProvider || !cryptoProvider.subtle || typeof cryptoProvider.subtle.digest !== 'function') fail('CRYPTO_UNAVAILABLE', 'SHA-256 is unavailable.');
   const bytes = new TextEncoder().encode(JSON.stringify(manifest));
@@ -157,7 +195,12 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   try {
     await putStagingRecord(db, session);
     sessionCreated = true;
-    await putStagingEntryAndUpdateSession(db, { id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob }, session);
+    const stateManifestEntry = checked.manifest.entries.find(entry => entry.kind === 'state');
+    if (!stateManifestEntry || !Array.isArray(stateManifestEntry.chunkSha256)) fail('STAGING_MANIFEST_MISMATCH', 'State entry checksum metadata is missing.');
+    await putStagingEntryAndUpdateSession(db, {
+      id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob,
+      size: checked.stateBlob.size, chunkSha256: stateManifestEntry.chunkSha256
+    }, session);
     for (const item of checked.videoEntries) {
       await putStagingEntryAndUpdateSession(db, {
         id: sessionId + ':video:' + item.metadata.id,
@@ -260,6 +303,9 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
                 stagedRevisions.some(revision => !Number.isSafeInteger(revision) || revision < 1 || revision > session.stagingEpoch) ||
                 new Set(stagedRevisions).size !== stagedRevisions.length) {
               fail('STAGING_REVISION_INVALID', 'Staged entry revisions are missing, duplicated, or inconsistent. Import the archive again.');
+            }
+            if (stagingMetadataFingerprint(session, records) !== staged.stagingMetadataFingerprint) {
+              fail('STAGING_CONTENT_CHANGED', 'Staged entries changed after archive verification. Verify the archive again before restoring.');
             }
             if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
             if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
@@ -626,7 +672,12 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
     if (JSON.stringify(hashes) !== JSON.stringify(entry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged video checksum does not match its manifest: ' + record.metadata.id);
     videos.push({ ...record, orphanedHiveReference: !hiveIds.has(record.metadata.hiveId) });
   }
-  return { session, state, videos: videos.sort((a, b) => String(a.path).localeCompare(String(b.path))) };
+  return {
+    session,
+    state,
+    videos: videos.sort((a, b) => String(a.path) < String(b.path) ? -1 : String(a.path) > String(b.path) ? 1 : 0),
+    stagingMetadataFingerprint: stagingMetadataFingerprint(session, records)
+  };
 }
 function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
