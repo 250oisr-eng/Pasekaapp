@@ -73,6 +73,8 @@ test('automatic backup copy explicitly excludes separately stored entrance video
  assert.ok(html.includes('включая фотографии и видео, прикреплённые к записям журнала и карточкам наблюдений'));
  assert.ok(html.includes('Видео летка хранится отдельно и в эту автокопию не входит'));
  assert.ok(html.includes('Видео летка в этой автокопии нет.'));
+ assert.ok(html.includes('видео останутся без изменений и могут относиться к прежней пасеке'));
+ assert.ok(html.includes('Видео летка не восстанавливается и останется без изменений; проверь его привязку к ульям.'));
 });
 test('manual JSON backup clearly warns that entrance videos are excluded',()=>{
  assert.ok(html.includes('<b>JSON-копия данных</b>'));
