@@ -225,6 +225,49 @@ test('unique backup ID index prevents duplicate staging session records', async 
 });
 
 
+test('staged state corruption is rejected before restore and preserves the live journal', async () => {
+  const db = await openTestDb('paseka-stage-state-tamper');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-state-tamper' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const archive = await makeArchive('backup-stage-state-tamper');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const record = await get(db, 'archive_staging', staged.session.sessionId + ':state');
+  const bytes = new Uint8Array(await record.blob.arrayBuffer());
+  bytes[bytes.length - 2] ^= 0x01;
+  record.blob = new Blob([bytes], { type: 'application/json' });
+  await put(db, 'archive_staging', record);
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_CHECKSUM_MISMATCH' }
+  );
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-state-tamper');
+  db.close();
+});
+
+
+test('missing staged video is rejected before restore and preserves the live journal', async () => {
+  const db = await openTestDb('paseka-stage-missing-video');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-missing-video' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const archive = await makeArchive('backup-stage-missing-video');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('archive_staging', 'readwrite');
+    const request = tx.objectStore('archive_staging').delete(staged.session.sessionId + ':video:video-1');
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_CONTENT_MISSING' }
+  );
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-missing-video');
+  db.close();
+});
+
+
 test('staged archive checksums are reverified before staged content is returned', async () => {
   const db = await openTestDb('paseka-stage-tamper');
   const archive = await makeArchive('backup-stage-tamper');
