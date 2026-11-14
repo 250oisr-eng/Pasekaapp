@@ -3523,6 +3523,19 @@ function setFullArchiveRestoreStatus(message) {
   if (status) status.textContent = message;
 }
 function archiveRestoreErrorText(error) {
+  if (error?.code === 'STAGING_FINALIZE_CHANGED') {
+    return 'Временная копия изменилась или её счётчики повреждены. Обнови список и повтори проверку. Рабочие данные не менялись.';
+  }
+  if (error?.code === 'STAGING_FINALIZE_NOT_ALLOWED' || error?.code === 'STAGING_SESSION_NOT_FOUND') {
+    return 'Временная копия уже изменилась или удалена в другом окне. Обнови список. Рабочие данные не менялись.';
+  }
+  if (error?.code === 'STAGING_LEGACY_SESSION') {
+    return 'Эта временная копия создана старой версией приложения и не может быть безопасно завершена. Удали её и подготовь архив заново.';
+  }
+  if (error?.code === 'STAGING_SESSION_INCOMPLETE' || error?.code === 'STAGING_ENTRY_SET_INVALID' ||
+      error?.code === 'STAGING_CONTENT_MISSING' || error?.code === 'STAGING_MANIFEST_MISMATCH') {
+    return 'Содержимое временной копии неполное или повреждено. Завершить подготовку нельзя. Рабочие данные не менялись.';
+  }
   if (error?.name === 'QuotaExceededError' || error?.code === 'QUOTA_EXCEEDED') {
     return 'Недостаточно свободного места для временной копии и точки отката. Рабочие данные не заменены. Освободи место и повтори.';
   }
@@ -3588,17 +3601,39 @@ async function prepareFullArchiveRestore() {
   }
 }
 
-async function finalizeFullArchiveStaging(sessionId) {
+async function finalizeFullArchiveStaging(sessionId, button) {
+  if (button?.disabled) return;
+  const originalText = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Проверяю…';
+  }
+
+  let finalized = false;
   try {
     setFullArchiveRestoreStatus('Повторно проверяю все данные временной копии. Рабочие данные не меняются…');
     await PasekaArchiveRestore.finalizeStagedArchive(
       db, sessionId, window.crypto, PasekaArchive, validateFullArchiveImportState
     );
+    finalized = true;
     setFullArchiveRestoreStatus('Временная копия полностью проверена и готова к просмотру и восстановлению.');
-    await renderArchiveImportHistory();
   } catch (error) {
     setFullArchiveRestoreStatus('Не удалось завершить подготовку: ' + archiveRestoreErrorText(error));
-    await renderArchiveImportHistory().catch(() => {});
+  } finally {
+    if (button?.isConnected) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = originalText;
+    }
+  }
+
+  try {
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus(finalized
+      ? 'Подготовка завершена, но список временных копий не обновился. Обнови страницу, чтобы увидеть готовый архив.'
+      : 'Список временных копий не обновился. Обнови страницу; рабочие данные не менялись.');
   }
 }
 async function resumeFullArchiveRestore(sessionId) {
@@ -3750,12 +3785,21 @@ async function renderArchiveImportHistory() {
         : 'Подготовка архива была прервана. Рабочие данные не изменены. Удали эту временную копию и повтори подготовку архива.';
       row.appendChild(failure);
     }
-    if (session.status === 'staging' && session.stagedCount === session.totalEntries) {
+    const validStagingCounters =
+      Number.isSafeInteger(session.totalEntries) && session.totalEntries > 0 &&
+      Number.isSafeInteger(session.stagedCount) && session.stagedCount >= 0 &&
+      session.stagedCount <= session.totalEntries;
+    if (session.status === 'staging' && validStagingCounters && session.stagedCount === session.totalEntries) {
       const finalize = document.createElement('button');
       finalize.type = 'button';
       finalize.textContent = 'Проверить и завершить подготовку';
-      finalize.addEventListener('click', () => finalizeFullArchiveStaging(session.sessionId));
+      finalize.addEventListener('click', () => finalizeFullArchiveStaging(session.sessionId, finalize));
       row.appendChild(finalize);
+    } else if (session.status === 'staging' && !validStagingCounters) {
+      const invalid = document.createElement('p');
+      invalid.className = 'muted';
+      invalid.textContent = 'Сведения о подготовке временной копии повреждены или неполны. Завершать её нельзя. Рабочие данные не изменены. Проверь архив повторно; при необходимости удали эту временную копию и подготовь архив заново.';
+      row.appendChild(invalid);
     } else if (session.status === 'staging') {
       const incomplete = document.createElement('p');
       incomplete.className = 'muted';
