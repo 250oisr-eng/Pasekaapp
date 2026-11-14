@@ -268,6 +268,69 @@ test('missing staged video is rejected before restore and preserves the live jou
 });
 
 
+test('staged archive rejects unknown extra entry kinds', async () => {
+  const db = await openTestDb('paseka-stage-unknown-entry');
+  const archive = await makeArchive('backup-stage-unknown-entry');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  await put(db, 'archive_staging', {
+    id: staged.session.sessionId + ':unexpected',
+    sessionId: staged.session.sessionId,
+    kind: 'unexpected',
+    size: 1,
+    chunkSha256: ['0'.repeat(64)],
+    stagingRevision: staged.session.stagingEpoch,
+    blob: new Blob(['x'])
+  });
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_FINGERPRINT_SET_INVALID' }
+  );
+  db.close();
+});
+
+
+test('staged archive rejects duplicate video rows that omit a manifest video', async () => {
+  const db = await openTestDb('paseka-stage-duplicate-video');
+  const initialArchive = await makeArchive('backup-stage-duplicate-video');
+  const checked = await Archive.validateArchiveForRestore(initialArchive, webcrypto, () => true);
+  const firstVideo = checked.videoEntries[0];
+  const secondBlob = new Blob([new Uint8Array([51, 52, 53, 54, 55])], { type: 'video/mp4' });
+  const secondMetadata = { ...firstVideo.metadata, id: 'video-2', name: 'entrance-2.mp4', bytes: secondBlob.size };
+  const secondEntry = {
+    path: 'entrance-media/000002.blob',
+    kind: 'entrance_video',
+    size: secondBlob.size,
+    mimeType: secondBlob.type,
+    chunkSize: firstVideo.chunkSize,
+    metadata: secondMetadata,
+    chunkSha256: await Archive.hashBlobChunks(secondBlob, webcrypto)
+  };
+  const manifest = {
+    ...checked.manifest,
+    entries: [...checked.manifest.entries, secondEntry]
+  };
+  const archive = Archive.buildArchiveBlob(manifest, [checked.stateBlob, firstVideo.blob, secondBlob]);
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const firstRecord = await get(db, 'archive_staging', staged.session.sessionId + ':video:video-1');
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('archive_staging', 'readwrite');
+    const store = tx.objectStore('archive_staging');
+    store.delete(staged.session.sessionId + ':video:video-2');
+    store.put({ ...firstRecord, id: staged.session.sessionId + ':video:video-duplicate' });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_VIDEO_MANIFEST_MISMATCH' }
+  );
+  db.close();
+});
+
+
+
+
 test('staged archive checksums are reverified before staged content is returned', async () => {
   const db = await openTestDb('paseka-stage-tamper');
   const archive = await makeArchive('backup-stage-tamper');
