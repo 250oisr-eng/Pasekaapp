@@ -378,3 +378,17 @@ test('completed queue records require every server and persistence confirmation 
   assert.ok(entrance.validateQueuedVideoRecord({...base,serverDeleteConfirmed:false}).errors.includes('completed_server_delete_not_confirmed'));
   assert.ok(entrance.validateQueuedVideoRecord({...base,blob:null}).errors.includes('blob_missing'));
 });
+
+test('entrance metadata rejects coercible strings, nulls and booleans', () => {
+  const valid={durationSec:60,width:1920,height:1080,bytes:1000,mimeType:'video/mp4'};
+  for (const patch of [
+    {durationSec:'60'}, {durationSec:null}, {durationSec:true},
+    {width:'1920'}, {height:null}, {bytes:'1000'}, {bytes:false}
+  ]) {
+    const result=entrance.assessVideoMetadata({...valid,...patch});
+    assert.equal(result.ok,false,JSON.stringify(patch));
+  }
+  const malformedMime=entrance.assessVideoMetadata({...valid,mimeType:123});
+  assert.equal(malformedMime.ok,true);
+  assert.equal(malformedMime.metadata.mimeType,'');
+});

@@ -77,13 +77,16 @@ function assessStorageCapacity(input={}){
 }
 function assessVideoMetadata(input={}){
  const errors=[],warnings=[];
- const duration=Number(input.durationSec),width=Number(input.width),height=Number(input.height),bytes=Number(input.bytes);
+ // Browser media metadata is numeric. Do not coerce untrusted strings, nulls
+ // or booleans into plausible measurements at this validation boundary.
+ const duration=input.durationSec,width=input.width,height=input.height,bytes=input.bytes;
  if(!finite(duration)||duration<20||duration>90)errors.push({code:'duration_out_of_range',message:'Для анализа требуется видео продолжительностью от 20 до 90 секунд; целевая длительность — около 60 секунд.'});
  if(!finite(width)||!finite(height)||width<320||height<240)errors.push({code:'resolution_too_low',message:'Не удалось получить подходящее разрешение видео.'});
  else if(width<640||height<360)warnings.push({code:'resolution_limited',message:'Разрешение низкое: распознавание мелких объектов может быть ненадёжным.'});
  if(!finite(bytes)||bytes<=0||bytes>250*1024*1024)errors.push({code:'file_size_invalid',message:'Файл пустой или превышает допустимый размер 250 МБ.'});
- if(input.mimeType&&!/^video\/(mp4|webm|quicktime|3gpp|x-matroska)/i.test(String(input.mimeType)))errors.push({code:'unsupported_video_type',message:'Формат видео не поддерживается.'});
- return {ok:errors.length===0,errors,warnings,metadata:{durationSec:finite(duration)?duration:null,width:finite(width)?width:null,height:finite(height)?height:null,bytes:finite(bytes)?bytes:null,mimeType:String(input.mimeType||'')},stage:'metadata_only',note:'Проверены только свойства файла. Тряска, резкость, засветка и видимость летка ещё не оценены.'};
+ const mimeType=typeof input.mimeType==='string'?input.mimeType:'';
+ if(mimeType&&!/^video\/(mp4|webm|quicktime|3gpp|x-matroska)/i.test(mimeType))errors.push({code:'unsupported_video_type',message:'Формат видео не поддерживается.'});
+ return {ok:errors.length===0,errors,warnings,metadata:{durationSec:finite(duration)?duration:null,width:finite(width)?width:null,height:finite(height)?height:null,bytes:finite(bytes)?bytes:null,mimeType},stage:'metadata_only',note:'Проверены только свойства файла. Тряска, резкость, засветка и видимость летка ещё не оценены.'};
 }
 
 function measureFramePixels(imageData,width,height,previousGray){
