@@ -57,7 +57,7 @@ function create(options={}){
       const index=Number(node.getAttribute('data-media-index'));
       const media=Number.isInteger(index)&&index>=0?items?.[index]:null;
       const result=await resolveImage(media,db,cryptoProvider);
-      if(renderTokens.get(container)!==token)return hydrated;
+      if(renderTokens.get(container)!==token||!container.contains(node)){if(result.storage==='indexeddb-blob-v1')release(result.src);return hydrated;}
       const old=elementUrls.get(node);
       if(old){release(old);elementUrls.delete(node)}
       if(result.status==='ready'){
