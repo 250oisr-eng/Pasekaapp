@@ -97,6 +97,7 @@ function validateManifest(manifest, manifestLength, expectedFileSize, limits = L
       const expectedPath = 'entrance-media/' + String(videoCount).padStart(6, '0') + '.blob';
       if (item.path !== expectedPath || item.size > limits.maxVideoBytes) fail('INVALID_VIDEO_ENTRY', 'Video entry path or size is invalid.');
       validateVideoMetadata(item.metadata, item.size);
+      if (item.mimeType !== item.metadata.mimeType) fail('INVALID_ENTRY_MIME', 'Video MIME type does not match its metadata.');
     } else {
       fail('INVALID_ENTRY_KIND', 'Unknown archive entry kind.');
     }
@@ -162,7 +163,7 @@ async function parseArchiveBlob(blob, limits = LIMITS) {
   return { format: FORMAT, version: VERSION, manifest, entries: validated.entries, stateEntry: validated.stateEntry, videoCount: validated.videoCount, totalPayloadBytes: validated.totalPayloadBytes };
 }
 async function verifyArchiveEntry(blob, entry, cryptoProvider) {
-  if (!blob || typeof blob.slice !== 'function' || !entry || !Number.isSafeInteger(entry.offset) || !Number.isSafeInteger(entry.size) || !Array.isArray(entry.chunkSha256)) fail('INVALID_ENTRY', 'Invalid archive entry reference.');
+  if (!blob || typeof blob.slice !== 'function' || !entry || !isInteger(entry.offset) || !isInteger(entry.size) || entry.size < 1 || entry.end !== entry.offset + entry.size || entry.end > blob.size || !Array.isArray(entry.chunkSha256)) fail('INVALID_ENTRY', 'Invalid archive entry reference.');
   if (!cryptoProvider || !cryptoProvider.subtle || typeof cryptoProvider.subtle.digest !== 'function') fail('CRYPTO_UNAVAILABLE', 'SHA-256 is unavailable.');
   const chunkSize = entry.chunkSize;
   if (chunkSize !== CHUNK_BYTES || entry.chunkSha256.length !== Math.ceil(entry.size / chunkSize)) fail('INVALID_CHUNK_HASHES', 'Entry chunk hash list is invalid.');
