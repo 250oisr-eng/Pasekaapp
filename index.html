@@ -578,7 +578,13 @@ const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function journalBroodCapacity(hiveId,state=S){
  const hive=state?.hives?.find(item=>item?.id===hiveId);if(!hive)return null;
- const profile=getHiveProfile(hive),capacity=profile?.brood?.framesPerBox;
+ const profile=getHiveProfile(hive),perBox=profile?.brood?.framesPerBox,layout=state?.layouts?.[hiveId];
+ if(!Number.isSafeInteger(perBox)||perBox<=0||!layout||!Array.isArray(layout.installedBoxes))return null;
+ const boxKeys=Array.isArray(profile.brood?.boxKeys)?profile.brood.boxKeys.map(String):[];
+ const installed=layout.mode==='winter'&&Array.isArray(layout.winterOrder)&&layout.winterOrder.length
+  ?layout.winterOrder:layout.installedBoxes;
+ const installedCount=new Set(installed.map(String).filter(key=>boxKeys.includes(key))).size;
+ const capacity=installedCount*perBox;
  return Number.isSafeInteger(capacity)&&capacity>0?capacity:null;
 }
 function validateJournalRecordDraft(draft,state,existingRecord=null){
