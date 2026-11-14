@@ -2742,6 +2742,7 @@ test('deadout review submit ignores repeated taps while the first save is pendin
   const savePromise = new Promise(resolve => { resolveSave = resolve; });
   const button = { disabled: false };
   const form = { querySelector: () => button, reset() {} };
+  const win = {};
   const state = { hives: [{ id: 'hive-1', number: 1 }], deadoutReviews: [] };
   const inputValues = {
     deadoutHive: 'hive-1', deadoutObservedAt: '2026-11-14', deadoutLastAlive: '',
@@ -2751,7 +2752,7 @@ test('deadout review submit ignores repeated taps while the first save is pendin
     deadoutNotes: ''
   };
   const handler = loadFunction('saveDeadoutReview', {
-    window: {},
+    window: win,
     $: id => id === 'deadoutForm' ? form : { value: inputValues[id] || '' },
     S: state,
     pendingDeadoutMedia: [],
@@ -2780,5 +2781,6 @@ test('deadout review submit ignores repeated taps while the first save is pendin
   resolveSave(true);
   await first;
   assert.equal(button.disabled, false);
-  assert.equal(handler && renderCalls, 0);
+  assert.equal(renderCalls, 0);
+  assert.equal(win.__pasekaDeadoutSaveBusy, false);
 });
