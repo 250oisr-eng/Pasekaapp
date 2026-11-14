@@ -3007,3 +3007,13 @@ test('photo reference switch revalidates Blob bytes before reporting an idempote
   assert.equal(finalState.records[0].media[0].data, 'data:image/png;base64,AQID');
   db.close();
 });
+
+
+test('settings expose a read-only photo integrity audit without a delete action', () => {
+  assert.ok(html.includes('id="auditMediaStorageButton"'));
+  assert.ok(html.includes('onclick="auditMediaStorage()"'));
+  assert.ok(html.includes('PasekaMediaStore.auditOrphanedImages(db)'));
+  assert.ok(html.includes('id="mediaStorageAuditDetails"'));
+  assert.ok(html.includes('Ничего не удалено.'));
+  assert.ok(!html.includes('deleteOrphanedImages'));
+});
