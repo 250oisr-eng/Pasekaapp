@@ -401,35 +401,38 @@ function deferred() {
   return { promise, resolve };
 }
 
-function gatedCrypto(expectedCalls) {
+function gatedHasher(expectedCalls) {
   const started = deferred();
   const release = deferred();
+  const original = appWindow.PasekaSha256;
   let calls = 0;
-  return {
-    started: started.promise,
-    release: release.resolve,
-    getRandomValues(bytes) {
-      bytes.fill(13);
-      return bytes;
-    },
-    subtle: {
-      async digest(_, data) {
-        calls++;
-        if (calls >= expectedCalls) started.resolve();
-        await release.promise;
-        const hash = createHash('sha256').update(Buffer.from(data)).digest();
-        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
-      }
+  appWindow.PasekaSha256 = {
+    async hashBlobHex(blob, options) {
+      calls++;
+      if (calls >= expectedCalls) started.resolve();
+      await release.promise;
+      return original.hashBlobHex(blob, options);
     }
   };
+  return {
+    started: started.promise,
+    release() {
+      release.resolve();
+      appWindow.PasekaSha256 = original;
+    }
+  };
+}
+function testCryptoProvider() {
+  return { getRandomValues(bytes) { bytes.fill(13); return bytes; } };
 }
 
 test('rollback rechecks fresh history after Phase A validation', async () => {
   const db = await makeDatabase();
   await seedRollback(db);
-  const cryptoProvider = gatedCrypto(1);
+  const cryptoProvider = testCryptoProvider();
+  const hasherGate = gatedHasher(1);
   const pending = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
-  await cryptoProvider.started;
+  await hasherGate.started;
 
   const mutation = db.transaction('archive_history', 'readwrite');
   const historyStore = mutation.objectStore('archive_history');
@@ -439,7 +442,7 @@ test('rollback rechecks fresh history after Phase A validation', async () => {
     mutation.oncomplete = resolve;
     mutation.onabort = mutation.onerror = () => reject(mutation.error || new Error('history mutation failed'));
   });
-  cryptoProvider.release();
+  hasherGate.release();
 
   await assert.rejects(pending, error => error.code === 'ROLLBACK_NOT_AVAILABLE');
   const verify = db.transaction('main', 'readonly');
@@ -455,11 +458,12 @@ test('rollback rechecks fresh history after Phase A validation', async () => {
 test('only one of two concurrent rollbacks can consume the same snapshot', async () => {
   const db = await makeDatabase();
   await seedRollback(db);
-  const cryptoProvider = gatedCrypto(2);
+  const cryptoProvider = testCryptoProvider();
+  const hasherGate = gatedHasher(2);
   const first = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
   const second = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
-  await cryptoProvider.started;
-  cryptoProvider.release();
+  await hasherGate.started;
+  hasherGate.release();
 
   const results = await Promise.allSettled([first, second]);
   assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
