@@ -15,6 +15,8 @@ function create(options={}){
   const mediaStore=options.mediaStore||root.PasekaMediaStore;
   const urlApi=options.urlApi||root.URL;
   const ownedUrls=new Set();
+  const elementUrls=new WeakMap();
+  const renderTokens=new WeakMap();
 
   async function resolveImage(media,db,cryptoProvider){
     if(!media||typeof media!=='object')return {status:'missing',src:null,reason:'INVALID_MEDIA_RECORD'};
@@ -46,6 +48,43 @@ function create(options={}){
     }
     return {status:'missing',src:null,reason};
   }
+  async function hydrate(container,items,db,cryptoProvider){
+    if(!container||typeof container.querySelectorAll!=='function')return 0;
+    const token={};renderTokens.set(container,token);
+    const nodes=Array.from(container.querySelectorAll('img[data-media-index]'));
+    let hydrated=0;
+    for(const node of nodes){
+      const index=Number(node.getAttribute('data-media-index'));
+      const media=Number.isInteger(index)&&index>=0?items?.[index]:null;
+      const result=await resolveImage(media,db,cryptoProvider);
+      if(renderTokens.get(container)!==token)return hydrated;
+      const old=elementUrls.get(node);
+      if(old){release(old);elementUrls.delete(node)}
+      if(result.status==='ready'){
+        node.src=result.src;
+        if(result.storage==='indexeddb-blob-v1')elementUrls.set(node,result.src);
+        node.removeAttribute('data-media-index');
+        hydrated++;
+      }else{
+        node.removeAttribute('src');
+        node.alt='Фотография недоступна';
+        node.classList.add('media-unavailable');
+        node.removeAttribute('data-media-index');
+      }
+    }
+    return hydrated;
+  }
+  function releaseContainer(container){
+    if(!container||typeof container.querySelectorAll!=='function')return 0;
+    renderTokens.set(container,{});
+    let released=0;
+    for(const node of container.querySelectorAll('img')){
+      const src=elementUrls.get(node);
+      if(src&&release(src))released++;
+      elementUrls.delete(node);
+    }
+    return released;
+  }
   function release(src){
     if(typeof src!=='string'||!ownedUrls.has(src))return false;
     ownedUrls.delete(src);
@@ -58,7 +97,7 @@ function create(options={}){
     ownedUrls.clear();
     return count;
   }
-  return Object.freeze({resolveImage,release,releaseAll,get activeObjectUrlCount(){return ownedUrls.size}});
+  return Object.freeze({resolveImage,hydrate,releaseContainer,release,releaseAll,get activeObjectUrlCount(){return ownedUrls.size}});
 }
 const api=Object.freeze({safeLegacyImage,create});
 root.PasekaMediaRenderer=api;
