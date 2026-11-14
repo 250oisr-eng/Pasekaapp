@@ -104,8 +104,8 @@ async function writeSnapshot(db, state, expectedRevision, cryptoProvider, option
       };
       mainRequest.onerror = () => { failure = mainRequest.error || new Error('Could not verify the current database revision.'); try { tx.abort(); } catch (error) { reject(failure); } };
       tx.oncomplete = () => resolve({ written: added, count: snapshotCount, totalBytes, snapshot });
-      tx.onabort = () => reject(conflict || failure || normalizeStorageError(tx.error || new Error('Snapshot transaction aborted.')));
-      tx.onerror = () => reject(conflict || failure || normalizeStorageError(tx.error || new Error('Snapshot transaction failed.')));
+      tx.onabort = () => reject(conflict || normalizeStorageError(failure || tx.error || new Error('Snapshot transaction aborted.')));
+      tx.onerror = () => reject(conflict || normalizeStorageError(failure || tx.error || new Error('Snapshot transaction failed.')));
     } catch (error) { reject(error); }
   });
 }
