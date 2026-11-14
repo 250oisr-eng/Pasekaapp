@@ -427,3 +427,24 @@ test('atomic rollback refuses a stale revision and preserves the imported state'
   assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId)).status, 'ready');
   db.close();
 });
+
+
+test('rollback snapshot cleanup refuses an incomplete snapshot without deleting it', async () => {
+  const db = await openTestDb('paseka-stage-rollback-cleanup-tamper');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [] };
+  await put(db, 'main', oldState, 'state');
+  const archive = await makeArchive('backup-rollback-cleanup-tamper');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'before-import', webcrypto, Archive, () => true);
+  const rollbackSession = await get(db, 'archive_staging', committed.rollbackSessionId);
+  rollbackSession.stagedCount = 0;
+  await put(db, 'archive_staging', rollbackSession);
+
+  await assert.rejects(
+    Restore.discardArchiveRollbackSnapshot(db, 'backup-rollback-cleanup-tamper'),
+    { code: 'ROLLBACK_SNAPSHOT_INVALID' }
+  );
+  assert.ok(await get(db, 'archive_staging', committed.rollbackSessionId));
+  assert.equal((await get(db, 'archive_history', 'backup-rollback-cleanup-tamper')).rollbackSessionId, committed.rollbackSessionId);
+  db.close();
+});
