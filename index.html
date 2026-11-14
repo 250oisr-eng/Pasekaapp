@@ -3522,8 +3522,9 @@ async function prepareMigratedArchiveState(state) {
   }
 }
 async function commitFullArchiveRestore() {
-  if (!window.__pasekaPendingFullArchiveRestore) return;
+  if (!window.__pasekaPendingFullArchiveRestore || window.__pasekaRestoreBusy) return;
   if (!confirm('Заменить текущую пасеку содержимым полного архива? Текущие данные и видео будут сохранены во временной точке отката.')) return;
+  window.__pasekaRestoreBusy = true;
   const actions = $('fullArchiveRestoreActions');
   if (actions) actions.hidden = true;
   try {
@@ -3551,10 +3552,14 @@ async function commitFullArchiveRestore() {
   } catch (error) {
     setFullArchiveRestoreStatus('Восстановление не выполнено: ' + (error?.message || error) + ' Рабочая база не должна быть заменена частично.');
     if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
+  } finally {
+    window.__pasekaRestoreBusy = false;
   }
 }
 async function rollbackFullArchiveImport(backupId) {
+  if (window.__pasekaRestoreBusy) return;
   if (!confirm('Отменить это восстановление и вернуть состояние, которое было до него?')) return;
+  window.__pasekaRestoreBusy = true;
   try {
     await saveQueue;
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения.');
@@ -3572,6 +3577,8 @@ async function rollbackFullArchiveImport(backupId) {
     await renderArchiveImportHistory();
   } catch (error) {
     setFullArchiveRestoreStatus('Отмена восстановления не выполнена: ' + (error?.message || error));
+  } finally {
+    window.__pasekaRestoreBusy = false;
   }
 }
 async function renderArchiveImportHistory() {
