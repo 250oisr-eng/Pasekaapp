@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+const shaSource=await readFile(new URL('../js/paseka-sha256.js',import.meta.url),'utf8');new Function(shaSource)();
 const engineSource=await readFile(new URL('../js/paseka-media-migration-engine.js',import.meta.url),'utf8');new Function(engineSource)();
 const switchSource=await readFile(new URL('../js/paseka-media-reference-switch.js',import.meta.url),'utf8');new Function(switchSource)();
 const Engine=globalThis.PasekaMediaMigrationEngine,Switch=globalThis.PasekaMediaReferenceSwitch;
