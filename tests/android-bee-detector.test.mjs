@@ -6,6 +6,8 @@ const java=await readFile(new URL('../capacitor-bee-detector/android/src/main/ja
 const probe=await readFile(new URL('../capacitor-bee-detector/android/src/main/java/ru/paseka/beedetector/LiteRtRuntimeProbe.java',import.meta.url),'utf8');
 const pkg=JSON.parse(await readFile(new URL('../capacitor-bee-detector/package.json',import.meta.url),'utf8'));
 const androidWorkflow=await readFile(new URL('../.github/workflows/android-debug.yml',import.meta.url),'utf8');
+const rootPackage=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
+const gradlePatcher=await readFile(new URL('../scripts/patch-android-gradle.mjs',import.meta.url),'utf8');
 
 test('local Capacitor plugin is registered as an Android plugin package',()=>{
  assert.equal(pkg.name,'@paseka/capacitor-bee-detector');
@@ -63,10 +65,25 @@ test('detector executor handles shutdown races and interrupted workers',()=>{
  assert.match(java,/runtime_executor_unavailable/);
 });
 
-test('Android build keeps Android 10 compatible while compiling and targeting API 35',()=>{
+test('Capacitor dependencies are pinned to the same stable 8.6.2 release',()=>{
+ assert.equal(rootPackage.dependencies['@capacitor/android'],'8.6.2');
+ assert.equal(rootPackage.dependencies['@capacitor/core'],'8.6.2');
+ assert.equal(rootPackage.devDependencies['@capacitor/cli'],'8.6.2');
+ assert.equal(pkg.peerDependencies['@capacitor/core'],'^8.0.0');
+});
+
+test('Android CI uses the Capacitor 8 JavaScript and Android toolchain',()=>{
+ assert.match(androidWorkflow,/node-version: 22/);
+ assert.match(androidWorkflow,/java-version: '21'/);
+ assert.match(androidWorkflow,/platforms;android-36/);
+ assert.match(androidWorkflow,/build-tools;36\\.0\\.0/);
  assert.match(androidWorkflow,/minSdkVersion: 24/);
- assert.match(androidWorkflow,/compileSdkVersion: 35/);
- assert.match(androidWorkflow,/targetSdkVersion: 35/);
- assert.match(androidWorkflow,/min !== 24/);
- assert.doesNotMatch(androidWorkflow,/minSdkVersion: 35/);
+ assert.match(androidWorkflow,/compileSdkVersion: 36/);
+ assert.match(androidWorkflow,/targetSdkVersion: 36/);
+ assert.match(androidWorkflow,/targetSdkVersion: 36/);
+ assert.match(androidWorkflow,/minSdkVersion: 24/);
+ assert.match(gradlePatcher,/AGP_VERSION = '8\\.13\\.0'/);
+ assert.match(gradlePatcher,/GRADLE_VERSION = '8\\.14\\.3'/);
+ assert.doesNotMatch(androidWorkflow,/node-version: 20/);
+ assert.doesNotMatch(androidWorkflow,/java-version: '17'/);
 });
