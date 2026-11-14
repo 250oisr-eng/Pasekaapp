@@ -63,12 +63,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   ensureStores(db);
   if (!archiveApi || typeof archiveApi.validateArchiveForRestore !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
   const checked = await archiveApi.validateArchiveForRestore(archiveBlob, cryptoProvider, validateState);
-  const fingerprint = await manifestFingerprint({
-    backupId: checked.backupId,
-    createdAt: checked.createdAt,
-    schemaVersion: checked.schemaVersion,
-    entries: checked.videoEntries.map(item => item.metadata)
-  }, cryptoProvider);
+  const fingerprint = await manifestFingerprint(checked.manifest, cryptoProvider);
   const history = await getHistory(db, checked.backupId);
   if (history) {
     if (history.fingerprint !== fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
