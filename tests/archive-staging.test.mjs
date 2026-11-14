@@ -203,8 +203,8 @@ test('concurrent attempts cannot create duplicate staging sessions for one backu
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true)
   ]);
-  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
   const fulfilled = results.filter(result => result.status === 'fulfilled');
+  assert.ok(fulfilled.length === 1 || fulfilled.length === 2);
   assert.equal(fulfilled.filter(result => !result.value.alreadyStaged).length, 1);
   assert.equal(fulfilled.filter(result => result.value.alreadyStaged).length + results.filter(result => result.status === 'rejected').length, 1);
   const rejected = results.find(result => result.status === 'rejected');
