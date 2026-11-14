@@ -1191,9 +1191,12 @@ function renderEquipmentReconciliation(){
 async function putEntranceVideo(record){
  if(!record?.blob||typeof record.blob.arrayBuffer!=='function')throw new Error('Не удалось проверить содержимое видео перед сохранением.');
  if(!window.crypto?.subtle?.digest)throw new Error('На этом устройстве недоступна проверка целостности видео.');
- const digest=await window.crypto.subtle.digest('SHA-256',await record.blob.arrayBuffer());
+ // Blob is immutable, but the caller's record object is not. Snapshot both
+ // before awaiting SHA-256 so the stored bytes and checksum cannot diverge.
+ const blob=record.blob,snapshot={...record,blob};
+ const digest=await window.crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
  const blobSha256=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
- const verifiedRecord={...record,blobSha256};
+ const verifiedRecord={...snapshot,blobSha256};
  return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(verifiedRecord)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
 }
 function listEntranceVideos(){
