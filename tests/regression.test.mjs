@@ -2897,7 +2897,7 @@ test('entrance video save hashes and stores the same Blob snapshot when caller m
   const record = { id: 'video-snapshot', blob: firstBlob, bytes: 1 };
   let stored = null;
   const tx = {
-    objectStore() { return { put(value) { stored = value; } } 
+    objectStore() { return { put(value) { stored = value; } }; }
   };
   const save = loadFunction('putEntranceVideo', {
     db: { transaction() { return tx; } },
