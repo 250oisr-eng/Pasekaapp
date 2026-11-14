@@ -633,7 +633,7 @@ test('archive commit rejects staging metadata changed during Phase A validation'
   const request = store.get(staged.session.id + ':state');
   request.onsuccess = () => store.put({
     ...request.result,
-    stagingRevision: request.result.stagingRevision + 1
+    chunkSha256: ['a'.repeat(64)]
   });
   await new Promise((resolve, reject) => {
     mutation.oncomplete = resolve;
