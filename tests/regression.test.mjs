@@ -2698,6 +2698,7 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
   assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
   assert.ok(html.includes('Удалить точку отката'));
+  assert.ok(html.includes('Точка отката хранит прежние видео и может занимать много места'));
   assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
   assert.ok(html.includes('function archiveRestoreErrorText(error)'));
   assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
