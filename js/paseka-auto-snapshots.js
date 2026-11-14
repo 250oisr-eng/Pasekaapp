@@ -66,7 +66,7 @@ async function writeSnapshot(db, state, expectedRevision, cryptoProvider, option
     state
   };
   return new Promise((resolve, reject) => {
-    let tx, conflict = null, failure = null, added = false;
+    let tx, conflict = null, failure = null, added = false, snapshotCount = 0;
     try {
       tx = db.transaction([MAIN_STORE, SNAPSHOT_STORE], 'readwrite');
       const main = tx.objectStore(MAIN_STORE);
@@ -91,6 +91,7 @@ async function writeSnapshot(db, state, expectedRevision, cryptoProvider, option
             const retained = added ? existing.concat(snapshot) : existing;
             const ordered = sortNewestFirst(retained);
             for (const old of ordered.slice(maxSnapshots)) snapshots.delete(old.id);
+            snapshotCount = Math.min(maxSnapshots, ordered.length);
           } catch (error) {
             failure = error;
             try { tx.abort(); } catch (abortError) { reject(failure); }
@@ -105,7 +106,7 @@ async function writeSnapshot(db, state, expectedRevision, cryptoProvider, option
         failure = mainRequest.error || new Error('Could not verify the current database revision.');
         try { tx.abort(); } catch (error) { reject(failure); }
       };
-      tx.oncomplete = () => resolve({ written: added, count: Math.min(maxSnapshots, (added ? 1 : 0)), snapshot });
+      tx.oncomplete = () => resolve({ written: added, count: snapshotCount, snapshot });
       tx.onabort = () => reject(conflict || failure || tx.error || new Error('Snapshot transaction aborted.'));
       tx.onerror = () => reject(conflict || failure || tx.error || new Error('Snapshot transaction failed.'));
     } catch (error) { reject(error); }
