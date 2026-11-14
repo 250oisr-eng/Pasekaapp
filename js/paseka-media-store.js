@@ -159,7 +159,7 @@ function collectBlobReferences(value, storeName, references, seen) {
 }
 async function auditOrphanedImages(db) {
   assertDatabase(db);
-  const storeNames = Array.from(db.objectStoreNames).filter(name => name !== STORE);
+  const storeNames = Array.from({ length: db.objectStoreNames.length }, (_, index) => db.objectStoreNames.item(index)).filter(name => name && name !== STORE);
   if (!storeNames.length) fail('MEDIA_REFERENCE_STORES_UNAVAILABLE', 'No application data stores are available for a safe reference audit.');
   const tx = db.transaction([...storeNames, STORE], 'readonly');
   const done = transactionResult(tx);
