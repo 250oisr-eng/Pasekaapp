@@ -566,20 +566,52 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   }
   return { session, state, videos: videos.sort((a, b) => String(a.path).localeCompare(String(b.path))) };
 }
-async function discardArchiveRestoreSession(db, sessionId) {
+function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
-  const checkTx = db.transaction(STAGING_STORE, 'readonly');
-  const session = await requestValue(checkTx.objectStore(STAGING_STORE).get(sessionId));
-  await transactionDone(checkTx);
-  if (!session) return false;
-  if (session.kind === 'rollback_session') fail('ROLLBACK_SNAPSHOT_PROTECTED', 'A rollback snapshot cannot be deleted through the staging cleanup action.');
-  if (session.kind === 'session' && session.status === 'committed') fail('COMMITTED_IMPORT_PROTECTED', 'A committed import is protected until its rollback is explicitly resolved.');
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
-  const store = tx.objectStore(STAGING_STORE);
-  const keys = await requestValue(store.index('sessionId').getAllKeys(sessionId));
-  for (const key of keys) store.delete(key);
-  await transactionDone(tx);
-  return keys.length > 0;
+  return new Promise((resolve, reject) => {
+    let tx, failure = null, result = false, settled = false;
+    const rejectOnce = error => {
+      if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
+    };
+    try {
+      // Read, validate and delete under one readwrite lock. A concurrent commit
+      // must either finish first (and be protected) or observe the cleanup.
+      tx = db.transaction(STAGING_STORE, 'readwrite');
+      const store = tx.objectStore(STAGING_STORE);
+      const sessionRequest = store.get(sessionId);
+      sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read the staged import session.'));
+      sessionRequest.onsuccess = () => {
+        const session = sessionRequest.result;
+        if (!session) { result = false; return; }
+        if (session.kind === 'rollback_session') {
+          abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
+          return;
+        }
+        if (session.kind === 'session' && session.status === 'committed') {
+          abortWith(Object.assign(new Error('A committed import is protected until its rollback is explicitly resolved.'), { code: 'COMMITTED_IMPORT_PROTECTED' }));
+          return;
+        }
+        const keysRequest = store.index('sessionId').getAllKeys(sessionId);
+        keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
+        keysRequest.onsuccess = () => {
+          const keys = keysRequest.result || [];
+          for (const key of keys) store.delete(key);
+          result = keys.length > 0;
+        };
+      };
+      tx.oncomplete = () => {
+        if (!settled) { settled = true; resolve(result); }
+      };
+      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Staged import cleanup transaction aborted.'));
+      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Staged import cleanup transaction failed.'));
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
 }
 
 root.PasekaArchiveRestore = Object.freeze({
