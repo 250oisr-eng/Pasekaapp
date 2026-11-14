@@ -141,6 +141,8 @@ async function hashBlobHex(blob, options = {}) {
       throw error;
     }
     const bytes = new Uint8Array(await part.arrayBuffer());
+    // Do not spend CPU hashing a chunk after cancellation while it was read.
+    if (signal?.aborted) throw abortError();
     if (bytes.byteLength !== end - offset) {
       const error = new Error('Blob chunk length did not match the requested range.');
       error.code = 'SHA256_CHUNK_LENGTH_MISMATCH';
