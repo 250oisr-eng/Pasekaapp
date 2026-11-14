@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { patchAndroidGradleSources } from '../scripts/patch-android-gradle.mjs';
 
-test('Android toolchain patch upgrades AGP and Gradle wrapper for API 35', () => {
+test('Android toolchain patch upgrades AGP and Gradle wrapper for API 36', () => {
   const result = patchAndroidGradleSources(
     "buildscript { dependencies { classpath 'com.android.tools.build:gradle:8.2.1' } }",
     'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.2.1-all.zip\n'
