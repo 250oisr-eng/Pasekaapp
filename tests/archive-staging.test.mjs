@@ -22,7 +22,7 @@ function openTestDb(name) {
       const staging = request.result.createObjectStore('archive_staging', { keyPath: 'id' });
       staging.createIndex('sessionId', 'sessionId', { unique: false });
       staging.createIndex('kind', 'kind', { unique: false });
-      staging.createIndex('backupId', 'backupId', { unique: false });
+      staging.createIndex('backupId', 'backupId', { unique: true });
       request.result.createObjectStore('archive_history', { keyPath: 'backupId' });
     };
     request.onsuccess = () => resolve(request.result);
