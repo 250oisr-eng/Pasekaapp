@@ -2887,3 +2887,36 @@ test('entrance video list exposes imported videos whose hive reference is orphan
   assert.match(resolvedHost.innerHTML, /Улей removed-hive/);
   assert.doesNotMatch(resolvedHost.innerHTML, /Улей из архива не найден/);
 });
+
+test('entrance video save hashes and stores the same Blob snapshot when caller mutates its record', async () => {
+  let releaseDigest, digestStarted;
+  const started = new Promise(resolve => { digestStarted = resolve; });
+  const gate = new Promise(resolve => { releaseDigest = resolve; });
+  const firstBlob = new Blob(['A'], { type: 'video/mp4' });
+  const replacementBlob = new Blob(['B'], { type: 'video/mp4' });
+  const record = { id: 'video-snapshot', blob: firstBlob, bytes: 1 };
+  let stored = null;
+  const tx = {
+    objectStore() { return { put(value) { stored = value; } } 
+  };
+  const save = loadFunction('putEntranceVideo', {
+    db: { transaction() { return tx; } },
+    window: {
+      crypto: { subtle: { digest: async (_algorithm, bytes) => {
+        digestStarted();
+        await gate;
+        return new Uint8Array([new Uint8Array(bytes)[0]]).buffer;
+      } } }
+    }
+  })(record);
+  await started;
+  record.blob = replacementBlob;
+  record.bytes = 99;
+  releaseDigest();
+  await new Promise(resolve => setImmediate(resolve));
+  tx.oncomplete();
+  assert.equal(await save, true);
+  assert.equal(stored.blob, firstBlob);
+  assert.equal(stored.bytes, 1);
+  assert.equal(stored.blobSha256, '41');
+});
