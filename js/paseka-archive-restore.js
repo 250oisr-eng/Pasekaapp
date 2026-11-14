@@ -284,7 +284,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     if (sessionCreated) {
       try {
         session.status = 'failed';
-        session.errorCode = String(error && error.code || 'STAGING_FAILED').slice(0, 80);
+        session.errorCode = String(error && (error.code || error.name) || 'STAGING_FAILED').slice(0, 80);
         session.errorMessage = String(error && error.message || 'Staging failed').slice(0, 500);
         await updateSession(db, session);
       } catch (ignored) {}
