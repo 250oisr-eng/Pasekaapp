@@ -78,4 +78,14 @@ test('inventory search tokens include permanent frame codes carried by a physica
 
 test('integrity inspection detects a paired honey set split between hive and storage',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.equipmentInventory.bodies[pair.bodies[0].id].storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_split'));});
 test('integrity inspection detects a paired honey set installed across two hives',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.layouts.h2.corpusIds.H2=pair.bodies[1].id;s.layouts.h2.honeyFrames[1]=[];for(const body of pair.bodies)body.storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_location_mismatch'));});
+test('updateDetails preserves a body with a corrupt per-body event journal',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Исходная запись'},labels,makeId,now).body;
+ body.events={corrupt:true};
+ const before=JSON.stringify(s);
+ const r=I.updateDetails(s,body.id,{notes:'Изменено',storageLocation:'Новый склад',condition:'needs_repair'},'2026-11-14T12:00:00.000Z');
+ assert.equal(r.ok,false);
+ assert.equal(r.error,'invalid_body_event_journal');
+ assert.equal(JSON.stringify(s),before);
+});
+
 test('updateDetails is atomic when the shared event journal is corrupt',()=>{const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Исходная запись'},labels,makeId,now).body;s.equipmentInventory.events={corrupt:true};const before=JSON.stringify(s),r=I.updateDetails(s,body.id,{notes:'Изменено',storageLocation:'Новый склад',condition:'needs_repair'},'2026-11-14T12:00:00.000Z');assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);});
