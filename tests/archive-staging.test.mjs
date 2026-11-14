@@ -487,3 +487,47 @@ test('atomic archive commit marks videos whose hive reference is missing from th
   assert.equal(importedVideo.orphanedHiveReference, true);
   db.close();
 });
+
+
+test('full archive export, staged import, atomic rollback round-trip preserves source and destination data', async () => {
+  const sourceDb = await openTestDb('paseka-full-roundtrip-source');
+  const targetDb = await openTestDb('paseka-full-roundtrip-target');
+  const sourceState = stateFixture('source journal with photo metadata');
+  const sourceVideo = videoFixture();
+  const targetState = {
+    meta: { schemaVersion: 12, revisionId: 'target-before-import' },
+    hives: [{ id: 'target-hive', number: 9 }],
+    families: [], records: [{ id: 'target-record', note: 'keep until commit' }], auditLog: []
+  };
+  const targetVideoBlob = new Blob(['target previous video'], { type: 'video/mp4' });
+  const targetVideo = {
+    id: 'target-video', hiveId: 'target-hive', capturedAt: '2026-11-13T09:00:00.000Z',
+    durationSec: 12, width: 640, height: 480, bytes: targetVideoBlob.size,
+    mimeType: 'video/mp4', name: 'target.mp4', status: 'waiting_for_server', blob: targetVideoBlob
+  };
+  await put(sourceDb, 'main', sourceState, 'state');
+  await put(sourceDb, 'entrance_media', sourceVideo);
+  await put(targetDb, 'main', targetState, 'state');
+  await put(targetDb, 'entrance_media', targetVideo);
+
+  const exported = await Archive.exportArchiveFromDatabase(sourceDb, webcrypto);
+  assert.equal(exported.summary.videoCount, 1);
+  const staged = await Restore.stageArchiveForRestore(targetDb, exported.blob, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(
+    targetDb, staged.session.sessionId, 'target-before-import', webcrypto, Archive, () => true
+  );
+  assert.equal((await get(targetDb, 'main', 'state')).records[0].note, 'source journal with photo metadata');
+  assert.equal((await getAll(targetDb, 'entrance_media')).length, 1);
+  assert.equal((await get(targetDb, 'entrance_media', 'video-1')).blob.size, sourceVideo.blob.size);
+
+  await Restore.rollbackCommittedArchive(
+    targetDb, exported.manifest.backupId, committed.state.meta.revisionId, webcrypto, () => true
+  );
+  assert.equal((await get(targetDb, 'main', 'state')).meta.revisionId !== 'target-before-import', true);
+  assert.equal((await get(targetDb, 'main', 'state')).records[0].note, 'keep until commit');
+  assert.equal((await get(targetDb, 'entrance_media', 'target-video')).blob.size, targetVideoBlob.size);
+  assert.equal((await get(sourceDb, 'main', 'state')).records[0].note, 'source journal with photo metadata');
+  assert.equal((await get(sourceDb, 'entrance_media', 'video-1')).blob.size, sourceVideo.blob.size);
+  sourceDb.close();
+  targetDb.close();
+});
