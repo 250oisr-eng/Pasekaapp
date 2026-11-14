@@ -1075,8 +1075,7 @@ test('concurrent discard during final staging progress cannot resurrect a delete
     }
   );
 
-  const stagedResult = await stagePromise;
-  assert.equal(stagedResult.session.status, 'ready');
+  await assert.rejects(stagePromise, { code: 'STAGING_SESSION_NOT_WRITABLE' });
   assert.ok(discardPromise, 'progress callback must start cleanup before final session update');
   assert.equal(await discardPromise, true);
   const remaining = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === expectedSessionId);
