@@ -3598,6 +3598,21 @@ async function rollbackFullArchiveImport(backupId) {
     window.__pasekaRestoreBusy = false;
   }
 }
+async function discardFullArchiveRollbackSnapshot(backupId) {
+  if (window.__pasekaRestoreBusy) return;
+  if (!confirm('Удалить сохранённую точку отката? После этого отменить это восстановление будет невозможно. Текущие данные останутся без изменений.')) return;
+  window.__pasekaRestoreBusy = true;
+  try {
+    const result = await PasekaArchiveRestore.discardArchiveRollbackSnapshot(db, backupId);
+    setFullArchiveRestoreStatus('Точка отката удалена. Освобождено записей: ' + result.deletedRecords + '.');
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus('Не удалось удалить точку отката: ' + archiveRestoreErrorText(error));
+  } finally {
+    window.__pasekaRestoreBusy = false;
+  }
+}
+
 async function renderArchiveImportHistory() {
   const container = $('archiveImportHistory');
   if (!container || !db || !window.PasekaArchiveRestore) return;
@@ -3642,12 +3657,19 @@ async function renderArchiveImportHistory() {
     const description = document.createElement('p');
     description.textContent = 'Архив ' + item.backupId + ' · ' + (item.status === 'committed' ? 'восстановлен' : item.status === 'reverted' ? 'восстановление отменено' : item.status) + ' · ' + new Date(item.importedAt).toLocaleString('ru-RU');
     row.appendChild(description);
-    if (item.status === 'committed') {
+    if (item.status === 'committed' && item.rollbackSessionId) {
       const undo = document.createElement('button');
       undo.type = 'button';
       undo.textContent = 'Отменить восстановление';
       undo.addEventListener('click', () => rollbackFullArchiveImport(item.backupId));
       row.appendChild(undo);
+    }
+    if (item.rollbackSessionId) {
+      const discardRollback = document.createElement('button');
+      discardRollback.type = 'button';
+      discardRollback.textContent = 'Удалить точку отката';
+      discardRollback.addEventListener('click', () => discardFullArchiveRollbackSnapshot(item.backupId));
+      row.appendChild(discardRollback);
     }
     container.appendChild(row);
   }
