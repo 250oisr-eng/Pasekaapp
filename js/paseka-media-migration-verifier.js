@@ -15,7 +15,7 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
  const [blobs,journals]=await Promise.all([req(tx.objectStore(BLOBS).getAll()),req(tx.objectStore(JOURNAL).getAll())]);await finished;
  const ownedBlobs=new Map(blobs.filter(x=>x.migrationId===migrationId).map(x=>[x.id,x]));
  const ownedJournals=journals.filter(x=>x.migrationId===migrationId);
- const problems=[],verified=[],usedBlobIds=new Set();let sourceChanged=false,destinationCorrupted=false;
+ // Source changes and destination damage are independent failure classes; never collapse them into one generic mismatch.\n const problems=[],verified=[],usedBlobIds=new Set();let sourceChanged=false,destinationCorrupted=false;
  const seen=new Set();
  for(const c of plan.candidates){
   if(!c||typeof c.id!=='string'||typeof c.collection!=='string'||typeof c.entityId!=='string'||!Number.isInteger(c.mediaIndex)||c.mediaIndex<0){problems.push({candidateId:c?.id||null,code:'INVALID_CANDIDATE'});continue}
