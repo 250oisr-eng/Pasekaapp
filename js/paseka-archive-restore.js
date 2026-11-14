@@ -54,18 +54,60 @@ async function updateSession(db, session) {
   await putStagingRecord(db, session);
 }
 async function putStagingEntryAndUpdateSession(db, record, session) {
-  const nextEpoch = (Number.isSafeInteger(session.stagingEpoch) ? session.stagingEpoch : 0) + 1;
-  const nextSession = {
-    ...session,
-    stagedCount: session.stagedCount + 1,
-    stagingEpoch: nextEpoch
-  };
-  const versionedRecord = { ...record, stagingRevision: nextEpoch };
   const tx = db.transaction(STAGING_STORE, 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
-  store.put(versionedRecord);
-  store.put(nextSession);
-  await transactionDone(tx);
+  let nextSession = null;
+  let failure = null;
+  const sessionRequest = store.get(session.sessionId || session.id);
+  sessionRequest.onerror = () => {
+    failure = sessionRequest.error || new Error('Could not read the staging session.');
+    try { tx.abort(); } catch (error) {}
+  };
+  sessionRequest.onsuccess = () => {
+    const currentSession = sessionRequest.result;
+    if (!currentSession || currentSession.kind !== 'session' ||
+        !['staging', 'ready'].includes(currentSession.status)) {
+      failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    if (!Number.isSafeInteger(currentSession.stagingEpoch) || currentSession.stagingEpoch < 0) {
+      failure = Object.assign(new Error('Legacy staging sessions must be imported again.'), { code: 'STAGING_LEGACY_SESSION' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    const nextEpoch = currentSession.stagingEpoch + 1;
+    if (!Number.isSafeInteger(nextEpoch)) {
+      failure = Object.assign(new Error('Staging revision limit was exceeded.'), { code: 'STAGING_REVISION_EXHAUSTED' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    const existingRequest = store.get(record.id);
+    existingRequest.onerror = () => {
+      failure = existingRequest.error || new Error('Could not inspect the staged entry.');
+      try { tx.abort(); } catch (error) {}
+    };
+    existingRequest.onsuccess = () => {
+      const existing = existingRequest.result;
+      if (existing && (existing.sessionId !== currentSession.sessionId || existing.kind === 'session')) {
+        failure = Object.assign(new Error('Staging entry identity conflicts with an existing record.'), { code: 'STAGING_ENTRY_ID_CONFLICT' });
+        try { tx.abort(); } catch (error) {}
+        return;
+      }
+      nextSession = {
+        ...currentSession,
+        stagedCount: currentSession.stagedCount + (existing ? 0 : 1),
+        stagingEpoch: nextEpoch
+      };
+      store.put({ ...record, stagingRevision: nextEpoch });
+      store.put(nextSession);
+    };
+  };
+  try {
+    await transactionDone(tx);
+  } catch (error) {
+    throw failure || error;
+  }
   Object.assign(session, nextSession);
 }
 async function manifestFingerprint(manifest, cryptoProvider) {
