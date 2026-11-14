@@ -294,12 +294,7 @@ async function sha256BlobHex(blob, cryptoProvider) {
   if (!root.PasekaSha256 || typeof root.PasekaSha256.hashBlobHex !== 'function') {
     fail('MEDIA_HASH_UNAVAILABLE', 'The incremental SHA-256 module is unavailable on this device.');
   }
-  try {
-    return await root.PasekaSha256.hashBlobHex(blob);
-  } catch (error) {
-    if (error?.name === 'AbortError') throw error;
-    fail('MEDIA_HASH_UNAVAILABLE', 'The video bytes cannot be hashed safely on this device.');
-  }
+  return root.PasekaSha256.hashBlobHex(blob);
 }
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
