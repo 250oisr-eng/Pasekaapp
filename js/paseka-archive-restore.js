@@ -119,6 +119,9 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     await updateSession(db, session);
     return { session, alreadyStaged: false };
   } catch (error) {
+    if (error && error.name === 'ConstraintError' && !sessionCreated) {
+      fail('BACKUP_STAGING_CONFLICT', 'Another tab started staging this backup at the same time. Refresh the list of staged imports.');
+    }
     if (sessionCreated) {
       try {
         session.status = 'failed';
