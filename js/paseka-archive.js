@@ -298,6 +298,42 @@ async function exportArchiveFromDatabase(db, cryptoProvider, options = {}) {
   };
 }
 
+async function validateArchiveForRestore(blob, cryptoProvider, validateState) {
+  if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before restore.');
+  const parsed = await parseArchiveBlob(blob);
+  await verifyArchive(blob, parsed, cryptoProvider);
+  let wrapper;
+  try {
+    wrapper = JSON.parse(await readArchiveEntry(blob, parsed.stateEntry).text());
+  } catch (error) {
+    fail('INVALID_STATE_JSON', 'The archive state entry is not valid JSON.');
+  }
+  if (!isObject(wrapper) || wrapper.app !== 'Paseka' || !isObject(wrapper.state)) {
+    fail('INVALID_STATE_WRAPPER', 'The archive does not contain a valid Paseka state wrapper.');
+  }
+  const state = wrapper.state;
+  if (!state.meta || state.meta.schemaVersion !== parsed.manifest.schemaVersion) {
+    fail('STATE_SCHEMA_MISMATCH', 'The state schema version does not match the archive manifest.');
+  }
+  const validationResult = await validateState(state);
+  if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the archived state.');
+  const hiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
+  const videoEntries = parsed.entries.filter(entry => entry.kind === 'entrance_video').map(entry => ({
+    metadata: entry.metadata,
+    blob: readArchiveEntry(blob, entry),
+    orphanedHiveReference: !hiveIds.has(entry.metadata.hiveId)
+  }));
+  return {
+    backupId: parsed.manifest.backupId,
+    createdAt: parsed.manifest.createdAt,
+    schemaVersion: parsed.manifest.schemaVersion,
+    state,
+    videoEntries,
+    orphanVideoIds: videoEntries.filter(item => item.orphanedHiveReference).map(item => item.metadata.id),
+    archiveBytes: blob.size
+  };
+}
+
 function readArchiveEntry(blob, entry) {
   if (!blob || typeof blob.slice !== 'function' || !entry || !Number.isSafeInteger(entry.offset) || !Number.isSafeInteger(entry.size) || entry.offset < 0 || entry.size < 1 || entry.end !== entry.offset + entry.size || entry.end > blob.size) fail('INVALID_ENTRY', 'Invalid archive entry bounds.');
   return blob.slice(entry.offset, entry.end, entry.mimeType || '');
@@ -306,6 +342,6 @@ function readArchiveEntry(blob, entry) {
 root.PasekaArchive = Object.freeze({
   MAGIC_TEXT, FORMAT, VERSION, HEADER_BYTES, CHUNK_BYTES, LIMITS,
   hashBlobChunks, buildArchiveBlob, parseArchiveBlob, verifyArchiveEntry, verifyArchive, readArchiveEntry,
-  readConsistentDatabaseSnapshot, exportArchiveFromDatabase
+  readConsistentDatabaseSnapshot, exportArchiveFromDatabase, validateArchiveForRestore
 });
 })(typeof window !== 'undefined' ? window : globalThis);
