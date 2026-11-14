@@ -3708,7 +3708,7 @@ async function renderArchiveImportHistory() {
     const row = document.createElement('div');
     row.className = 'muted';
     const description = document.createElement('p');
-    description.textContent = 'Архив ' + item.backupId + ' · ' + (item.status === 'committed' ? 'восстановлен' : item.status === 'reverted' ? 'восстановление отменено' : item.status) + ' · ' + new Date(item.importedAt).toLocaleString('ru-RU');
+    description.textContent = 'Архив ' + item.backupId + ' · ' + (item.status === 'committed' ? 'восстановлен' : item.status === 'reverted' ? 'восстановление отменено' : item.status) + (Number.isInteger(item.videoCount) ? ' · видео: ' + item.videoCount : '') + (Number.isInteger(item.orphanedVideoCount) && item.orphanedVideoCount ? ' · без привязки: ' + item.orphanedVideoCount : '') + ' · ' + new Date(item.importedAt).toLocaleString('ru-RU');
     row.appendChild(description);
     if (item.status === 'committed' && item.rollbackSessionId) {
       const undo = document.createElement('button');
