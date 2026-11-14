@@ -2572,6 +2572,10 @@ test('full archive export is available separately from the JSON-only backup', ()
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
   assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v318'"));
+  assert.ok(serviceWorker.includes("const CACHE_PREFIX = 'paseka-shell-'"));
+  assert.ok(serviceWorker.includes("key.startsWith(CACHE_PREFIX) && key !== CACHE"));
+  assert.ok(serviceWorker.includes("caches.match('./index.html')"));
+  assert.ok(serviceWorker.includes("if (response && response.ok)"));
   assert.ok(html.includes('id="downloadFullArchiveButton"'));
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
