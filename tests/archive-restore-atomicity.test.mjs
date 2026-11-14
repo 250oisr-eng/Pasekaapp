@@ -925,30 +925,12 @@ test('Phase B lock blocks concurrent rollback snapshot mutation until byte verif
     setup.onabort = setup.onerror = () => reject(setup.error || new Error('snapshot setup failed'));
   });
 
-  const phaseBHashStarted = deferred();
-  const releasePhaseBHash = deferred();
-  let digestCalls = 0;
-  const cryptoProvider = {
-    getRandomValues(bytes) { bytes.fill(19); return bytes; },
-    subtle: {
-      async digest(_, data) {
-        digestCalls++;
-        // Phase A hashes the live imported video and rollback snapshot. The
-        // third digest is the snapshot re-hash under the final write lock.
-        if (digestCalls === 3) {
-          phaseBHashStarted.resolve();
-          await releasePhaseBHash.promise;
-        }
-        const hash = createHash('sha256').update(Buffer.from(data)).digest();
-        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
-      }
-    }
-  };
-
+  const hasherGate = gatedHasher(3);
+  const cryptoProvider = testCryptoProvider();
   const rollback = api.rollbackCommittedArchive(
     db, 'backup-1', 'imported-revision', cryptoProvider, async () => true
   );
-  await phaseBHashStarted.promise;
+  await hasherGate.started;
 
   let competingWriteExecuted = false;
   const competingWrite = db.transaction('archive_staging', 'readwrite');
@@ -972,7 +954,7 @@ test('Phase B lock blocks concurrent rollback snapshot mutation until byte verif
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(competingWriteExecuted, false, 'competing write must wait behind the rollback transaction');
 
-  releasePhaseBHash.resolve();
+  hasherGate.release();
   const rolledBack = await rollback;
   await competingWriteDone;
 
