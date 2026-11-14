@@ -1002,7 +1002,7 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
         try {
           const current = values.session;
           const records = values.records || [];
-          if (!current || current.kind !== 'session' || current.status !== 'staging' ||
+          if (!current || current.kind !== 'session' || !['staging', 'ready'].includes(current.status) ||
               current.sessionId !== verifiedSession.sessionId ||
               current.backupId !== verifiedSession.backupId ||
               current.fingerprint !== verifiedSession.fingerprint ||
@@ -1013,6 +1013,13 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
               records.length !== current.totalEntries + 1 ||
               stagingMetadataFingerprint(current, records) !== verifiedFingerprint) {
             fail('STAGING_FINALIZE_CHANGED', 'Staging data changed during verification. The session remains unchanged; verify it again.');
+          }
+          // Another finalizer may have completed the exact verified revision
+          // while this caller was hashing. Treat that concurrent completion as
+          // an idempotent success and preserve its original completion time.
+          if (current.status === 'ready') {
+            result = current;
+            return;
           }
           result = {
             ...current,
