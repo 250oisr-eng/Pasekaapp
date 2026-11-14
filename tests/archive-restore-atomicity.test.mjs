@@ -272,7 +272,8 @@ async function seedRollback(db, { currentVideos = [] } = {}) {
 test('rollback refuses to erase videos added after archive import', async () => {
   const db = await makeDatabase();
   const importedVideo = await seedRollback(db);
-  const addedVideo = { id: 'new-video', blob: new Blob(['new'], { type: 'video/mp4' }), capturedAt: '2026-11-14T11:00:00.000Z' };
+  const addedBlob = new Blob(['new'], { type: 'video/mp4' });
+  const addedVideo = { id: 'new-video', blob: addedBlob, blobSha256: createHash('sha256').update(Buffer.from('new')).digest('hex'), capturedAt: '2026-11-14T11:00:00.000Z' };
   const add = db.transaction('entrance_media', 'readwrite');
   add.objectStore('entrance_media').put(addedVideo);
   await new Promise((resolve, reject) => {
@@ -362,7 +363,7 @@ test('rollback rejects same-size same-type video byte replacement', async () => 
   await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(tx.error || new Error('replacement failed')); });
   await assert.rejects(api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
     getRandomValues(bytes) { bytes.fill(8); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } }
-  }, async () => true), error => error.code === 'ROLLBACK_MEDIA_CHANGED');
+  }, async () => true), error => error.code === 'ROLLBACK_MEDIA_CONTENT_CHANGED');
   db.close();
 });
 
