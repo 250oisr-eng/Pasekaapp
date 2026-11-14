@@ -67,6 +67,11 @@ test('intentional full data deletion clears the prior-use startup marker',()=>{
  const reloadIndex=html.indexOf("location.reload();",deleteIndex);
  assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&reloadIndex>clearIndex);
 });
+test('manual JSON backup clearly warns that entrance videos are excluded',()=>{
+ assert.match(html,/<b>JSON-копия данных<\\/b>/);
+ assert.match(html,/отдельные видео летка из локального хранилища в этот файл не входят/);
+ assert.match(html,/Скачать JSON-копию \\(без видео летка\\)/);
+});
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
