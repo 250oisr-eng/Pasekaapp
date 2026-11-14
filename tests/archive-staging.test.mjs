@@ -632,8 +632,10 @@ test('quota failure during media staging preserves live data and leaves a safely
     objectStoreNames: db.objectStoreNames,
     transaction(...args) {
       const tx = db.transaction(...args);
+      let injectedQuotaError = null;
       return new Proxy(tx, {
         get(target, property) {
+          if (property === 'error') return injectedQuotaError || target.error;
           if (property === 'objectStore') {
             return name => {
               const store = target.objectStore(name);
@@ -644,7 +646,9 @@ test('quota failure during media staging preserves live data and leaves a safely
                     return value => {
                       if (!injected && value?.kind === 'video') {
                         injected = true;
-                        throw new DOMException('Injected storage quota exhaustion.', 'QuotaExceededError');
+                        injectedQuotaError = new DOMException('Injected storage quota exhaustion.', 'QuotaExceededError');
+                        target.abort();
+                        return null;
                       }
                       return storeTarget.put(value);
                     };
