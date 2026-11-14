@@ -836,6 +836,16 @@ test('inspection parser accepts only explicit count values within physical frame
   assert.equal(invalid.fields.occupancy,undefined);
 });
 
+test('inspection parser honors selected profile capacity for 8-frame and unknown-capacity hives',()=>{
+ const parse=loadFunction('extractInspectionFieldsFromText');
+ const eight=parse('Осмотр: занято 8 рамок, расплода на 7 рамках, свободных отстроенных рамок 8.',8);
+ assert.deepEqual(eight.fields,{occupancy:8,broodFrames:7,freeDrawn:8});
+ const over=parse('Осмотр: занято 9 рамок.',8);
+ assert.equal(over.fields.occupancy,undefined);
+ const unknown=parse('Осмотр: занято 10 рамок.',null);
+ assert.equal(unknown.fields.occupancy,10);
+});
+
 test('inspection form does not browser-block an unchanged historical count above current profile capacity',()=>{
  const nodes={rhive:{value:'h1'},rtype:{value:'Осмотр'},occupancyLabel:{textContent:''},broodLabel:{textContent:''},drawnLabel:{textContent:''},roccupancy:{value:'8',max:'6',removeAttribute(name){if(name==='max')this.max=null}},rbrood:{value:'',max:'6',removeAttribute(name){if(name==='max')this.max=null}},rdrawn:{value:'1',max:'6',removeAttribute(name){if(name==='max')this.max=null}},capacityWarning:{style:{display:'block'},textContent:''}};
  const update=loadFunction('updateJournalInspectionCapacity',{$:id=>nodes[id],journalBroodCapacity:()=>6});
