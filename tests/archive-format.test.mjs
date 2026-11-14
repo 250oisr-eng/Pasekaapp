@@ -75,12 +75,12 @@ test('Paseka archive hashes payloads in bounded one-megabyte chunks', async () =
 
 test('Paseka archive rejects unknown magic and oversized manifest header before parsing', async () => {
   const badMagic = new Uint8Array(Archive.HEADER_BYTES);
-  assert.rejects(Archive.parseArchiveBlob(new Blob([badMagic])), { code: 'INVALID_MAGIC' });
+  await assert.rejects(Archive.parseArchiveBlob(new Blob([badMagic])), { code: 'INVALID_MAGIC' });
 
   const header = new Uint8Array(Archive.HEADER_BYTES);
   header.set(Uint8Array.from(Archive.MAGIC_TEXT, ch => ch.charCodeAt(0)));
   new DataView(header.buffer).setUint32(8, 0xffffffff, true);
-  assert.rejects(Archive.parseArchiveBlob(new Blob([header])), { code: 'MANIFEST_SIZE_LIMIT' });
+  await assert.rejects(Archive.parseArchiveBlob(new Blob([header])), { code: 'MANIFEST_SIZE_LIMIT' });
 });
 
 test('Paseka archive rejects trailing bytes and declared-size mismatches', async () => {
