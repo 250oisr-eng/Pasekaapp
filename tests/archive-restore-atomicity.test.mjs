@@ -171,3 +171,53 @@ test('each staged blob and its stagedCount are committed in the same readwrite t
   assert.deepEqual(entries.map(record => record.stagingRevision).sort((a, b) => a - b), [1, 2, 3]);
   db.close();
 });
+
+
+test('staging metadata fingerprint is stable and changes when an entry revision changes', async () => {
+  const db = await makeDatabase();
+  const cryptoProvider = {
+    getRandomValues(bytes) { bytes.fill(9); return bytes; },
+    subtle: { async digest() { return new Uint8Array(32).buffer; } }
+  };
+  const stateBlob = new Blob([JSON.stringify({
+    app: 'Paseka',
+    state: { meta: { schemaVersion: 1 }, hives: [] }
+  })]);
+  const manifest = {
+    backupId: 'fingerprint-backup',
+    schemaVersion: 1,
+    entries: [{ kind: 'state', size: stateBlob.size, chunkSha256: [] }]
+  };
+  const archiveApi = {
+    async validateArchiveForRestore() {
+      return {
+        backupId: manifest.backupId,
+        createdAt: '2026-11-14T00:00:00.000Z',
+        schemaVersion: 1,
+        archiveBytes: stateBlob.size,
+        manifest,
+        stateBlob,
+        videoEntries: [],
+        orphanVideoIds: []
+      };
+    },
+    async hashBlobChunks() { return []; }
+  };
+  const staged = await api.stageArchiveForRestore(db, new Blob(['archive']), cryptoProvider, archiveApi, async () => true);
+  const first = await api.getStagedArchive(db, staged.session.id, cryptoProvider, archiveApi, async () => true);
+  const second = await api.getStagedArchive(db, staged.session.id, cryptoProvider, archiveApi, async () => true);
+  assert.match(first.stagingMetadataFingerprint, /^[a-f0-9]{16}$/);
+  assert.equal(first.stagingMetadataFingerprint, second.stagingMetadataFingerprint);
+
+  const tx = db.transaction('archive_staging', 'readwrite');
+  const store = tx.objectStore('archive_staging');
+  const request = store.get(staged.session.id + ':state');
+  request.onsuccess = () => store.put({ ...request.result, stagingRevision: request.result.stagingRevision + 1 });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('mutation failed'));
+  });
+  const changed = await api.getStagedArchive(db, staged.session.id, cryptoProvider, archiveApi, async () => true);
+  assert.notEqual(changed.stagingMetadataFingerprint, first.stagingMetadataFingerprint);
+  db.close();
+});
