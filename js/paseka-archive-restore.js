@@ -426,16 +426,92 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     fail('LIVE_DATABASE_STORES_MISSING', 'The live Paseka database stores are unavailable.');
   }
   if (expectedRevision === undefined) fail('EXPECTED_REVISION_REQUIRED', 'The current database revision is required before rollback.');
+  if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before rollback.');
+
+  // Phase A: read and validate the rollback snapshot before opening the final
+  // write transaction. All non-IDB awaits stay outside Phase B.
   const knownHistory = await getHistory(db, backupId);
   if (!knownHistory || knownHistory.status !== 'committed' || !knownHistory.rollbackSessionId || !knownHistory.importSessionId) {
     fail('ROLLBACK_NOT_AVAILABLE', 'There is no committed archive import with an available rollback snapshot.');
   }
   const rollbackSessionId = knownHistory.rollbackSessionId;
+  const readTx = db.transaction(STAGING_STORE, 'readonly');
+  const readStore = readTx.objectStore(STAGING_STORE);
+  const [rollbackSession, records, importSession] = await Promise.all([
+    requestValue(readStore.get(rollbackSessionId)),
+    requestValue(readStore.index('sessionId').getAll(rollbackSessionId)),
+    requestValue(readStore.get(knownHistory.importSessionId))
+  ]);
+  await transactionDone(readTx);
+
+  if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') {
+    fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
+  }
+  if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
+    fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+  }
+  const snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
+  const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
+  if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
+      rollbackSession.stagedCount !== rollbackSession.totalEntries ||
+      contentRecords.length !== rollbackSession.totalEntries) {
+    fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot is incomplete.');
+  }
+  const stateRecords = contentRecords.filter(record => record.kind === 'rollback_state');
+  const videoRecords = contentRecords.filter(record => record.kind === 'rollback_video');
+  if (contentRecords.some(record => !['rollback_state', 'rollback_video'].includes(record.kind)) ||
+      stateRecords.length > 1 || stateRecords.length + videoRecords.length !== rollbackSession.totalEntries) {
+    fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot contains unexpected or duplicate entries.');
+  }
+
+  let restoredState = null;
+  if (stateRecords.length === 1) {
+    const stateRecord = stateRecords[0];
+    if (!stateRecord.state || typeof stateRecord.state !== 'object' || Array.isArray(stateRecord.state)) {
+      fail('ROLLBACK_STATE_INVALID', 'The previous state is invalid.');
+    }
+    restoredState = cloneState(stateRecord.state);
+    const preparedAt = new Date().toISOString();
+    restoredState.meta = { ...(restoredState.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: preparedAt };
+    restoredState.auditLog = Array.isArray(restoredState.auditLog) ? restoredState.auditLog : [];
+    restoredState.auditLog.push({ id: 'archive-rollback-' + backupId, type: 'backup_rollback', at: preparedAt, source: 'full_archive', backupId });
+    if (restoredState.auditLog.length > 500) restoredState.auditLog = restoredState.auditLog.slice(-500);
+    const validationResult = await validateState(restoredState);
+    if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
+  }
+
+  const restoredVideos = [];
+  const seenIds = new Set();
+  for (const item of videoRecords) {
+    const record = item.record;
+    if (!record || typeof record.id !== 'string' || !record.id || seenIds.has(record.id)) {
+      fail('ROLLBACK_VIDEO_INVALID', 'The previous video list contains an invalid or duplicate ID.');
+    }
+    seenIds.add(record.id);
+    restoredVideos.push(record);
+  }
+
+  // Recheck a deterministic representation in Phase B. Blob bytes are not
+  // re-hashed here; all snapshot mutations must use the atomic restore path.
+  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
+    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
+  ), (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
+    return value;
+  });
+  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
   const now = new Date().toISOString();
-  let tx, stopKeepAlive = null, failure = null, result = null, settled = false;
+  const revertedRevisionId = restoredState?.meta?.revisionId || null;
+
+  // Phase B: only IndexedDB requests and synchronous checks/mutations.
+  let tx, failure = null, result = null, settled = false;
   return new Promise((resolve, reject) => {
     const rejectOnce = error => {
       if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
       tx = db.transaction(['main', 'full_backup', 'entrance_media', STAGING_STORE, HISTORY_STORE], 'readwrite');
@@ -453,65 +529,62 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       };
       const values = {};
       let pending = Object.keys(reads).length;
-      const abortWith = error => {
-        failure = error;
-        try { tx.abort(); } catch (abortError) { rejectOnce(error); }
-      };
       const process = () => {
-        stopKeepAlive = holdTransactionOpen(tx, stagingStore);
-        (async () => {
-          try {
-            const currentState = values.currentState || null;
-            const history = values.history;
-            const rollbackSession = values.rollbackSession;
-            const records = values.rollbackRecords || [];
-            const importSession = values.importSession;
-            if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId) fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
-            if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
-            if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
-            if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
-            if (records.length !== rollbackSession.totalEntries + 1 || rollbackSession.stagedCount !== rollbackSession.totalEntries) fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot is incomplete.');
-            const stateRecords = records.filter(record => record.kind === 'rollback_state');
-            const videoRecords = records.filter(record => record.kind === 'rollback_video');
-            if (stateRecords.length !== 1 || videoRecords.length + 1 !== rollbackSession.totalEntries) fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot does not contain the expected state and videos.');
-            const stateRecord = stateRecords[0];
-            if (!stateRecord.state || typeof stateRecord.state !== 'object') fail('ROLLBACK_STATE_INVALID', 'The previous state is invalid.');
-            const state = cloneState(stateRecord.state);
-            state.meta = { ...(state.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: now };
-            state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
-            state.auditLog.push({ id: 'archive-rollback-' + backupId, type: 'backup_rollback', at: now, source: 'full_archive', backupId });
-            if (state.auditLog.length > 500) state.auditLog = state.auditLog.slice(-500);
-            const validationResult = await validateState(state);
-            if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
-            const restoredVideos = [];
-            const seenIds = new Set();
-            for (const item of videoRecords) {
-              const record = item.record;
-              if (!record || typeof record.id !== 'string' || !record.id || seenIds.has(record.id)) fail('ROLLBACK_VIDEO_INVALID', 'The previous video list contains an invalid or duplicate ID.');
-              seenIds.add(record.id);
-              restoredVideos.push(record);
-            }
-            stopKeepAlive?.();
-            backup.put({ at: now, state: currentState }, 'previous');
-            main.put(state, 'state');
-            media.clear();
-            for (const record of restoredVideos) media.put(record);
-            historyStore.put({
-              ...history,
-              status: 'reverted',
-              rollbackSessionId: null,
-              rollbackAvailable: false,
-              revertedAt: now,
-              revertedRevisionId: state.meta.revisionId
-            });
-            for (const record of records) stagingStore.delete(record.id);
-            stagingStore.put({ ...importSession, backupId: undefined, sourceBackupId: backupId, status: 'reverted', revertedAt: now });
-            result = { state, backupId, rollbackSessionId, rollbackSnapshotRemoved: true, restoredVideoCount: restoredVideos.length };
-          } catch (error) {
-            stopKeepAlive?.();
-            abortWith(error);
+        try {
+          const currentState = values.currentState || null;
+          const history = values.history;
+          const currentRollbackSession = values.rollbackSession;
+          const currentRecords = values.rollbackRecords || [];
+          const currentImportSession = values.importSession;
+          if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId ||
+              history.importSessionId !== knownHistory.importSessionId) {
+            fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
           }
-        })();
+          if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
+            fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
+          }
+          if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
+              currentRollbackSession.status !== 'ready' ||
+              currentRollbackSession.totalEntries !== rollbackSession.totalEntries ||
+              currentRollbackSession.stagedCount !== rollbackSession.stagedCount) {
+            fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
+          }
+          if (!currentImportSession || currentImportSession.kind !== 'session' ||
+              currentImportSession.status !== 'committed' || currentImportSession.backupId !== backupId) {
+            fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+          }
+          if (currentRecords.length !== snapshotRecords.length ||
+              snapshotFingerprint(currentRecords) !== expectedSnapshotFingerprint) {
+            fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
+          }
+
+          if (currentState) backup.put({ at: now, state: currentState }, 'previous');
+          if (restoredState) main.put(restoredState, 'state');
+          else main.delete('state');
+          media.clear();
+          for (const record of restoredVideos) media.put(record);
+          historyStore.put({
+            ...history,
+            status: 'reverted',
+            rollbackSessionId: null,
+            rollbackAvailable: false,
+            revertedAt: now,
+            revertedRevisionId
+          });
+          for (const record of currentRecords) stagingStore.delete(record.id);
+          const revertedImportSession = { ...currentImportSession, sourceBackupId: backupId, status: 'reverted', revertedAt: now };
+          delete revertedImportSession.backupId;
+          stagingStore.put(revertedImportSession);
+          result = {
+            state: restoredState,
+            backupId,
+            rollbackSessionId,
+            rollbackSnapshotRemoved: true,
+            restoredVideoCount: restoredVideos.length
+          };
+        } catch (error) {
+          abortWith(error);
+        }
       };
       for (const [key, request] of Object.entries(reads)) {
         request.onsuccess = () => {
@@ -519,7 +592,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           pending--;
           if (pending === 0) process();
         };
-        request.onerror = () => abortWith(request.error || new Error('Could not read rollback snapshot.'));
+        request.onerror = () => abortWith(request.error || new Error('Could not read rollback snapshot or live data.'));
       }
       tx.oncomplete = () => {
         if (!settled) { settled = true; resolve(result); }
@@ -527,7 +600,6 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       tx.onabort = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction aborted.'));
       tx.onerror = () => rejectOnce(failure || tx.error || new Error('Atomic archive rollback transaction failed.'));
     } catch (error) {
-      stopKeepAlive?.();
       rejectOnce(error);
     }
   });
