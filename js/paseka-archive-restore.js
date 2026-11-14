@@ -596,7 +596,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   // readwrite transaction alive across Blob I/O.
   const finalSnapshotReadTx = db.transaction(STAGING_STORE, 'readonly');
   const finalSnapshotReadDone = transactionDone(finalSnapshotReadTx);
-  const finalSnapshotRows = await requestValue(finalSnapshotReadTx.index('sessionId').getAll(rollbackSessionId));
+  const finalSnapshotRows = await requestValue(finalSnapshotReadTx.objectStore(STAGING_STORE).index('sessionId').getAll(rollbackSessionId));
   await finalSnapshotReadDone;
   snapshotRecords = (finalSnapshotRows || []).filter(record => record && record.sessionId === rollbackSessionId);
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1) {
