@@ -17,6 +17,9 @@ async function makeDatabase() {
     staging.createIndex('kind', 'kind');
     staging.createIndex('backupId', 'backupId');
     request.result.createObjectStore('archive_history', { keyPath: 'backupId' });
+    request.result.createObjectStore('main');
+    request.result.createObjectStore('full_backup');
+    request.result.createObjectStore('entrance_media', { keyPath: 'id' });
   };
   const db = await new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -219,5 +222,89 @@ test('staging metadata fingerprint is stable and changes when an entry revision 
   });
   const changed = await api.getStagedArchive(db, staged.session.id, cryptoProvider, archiveApi, async () => true);
   assert.notEqual(changed.stagingMetadataFingerprint, first.stagingMetadataFingerprint);
+  db.close();
+});
+
+
+function mediaFingerprint(records) {
+  return JSON.stringify((records || []).slice().sort((a, b) =>
+    String(a?.id || '') < String(b?.id || '') ? -1 : String(a?.id || '') > String(b?.id || '') ? 1 : 0
+  ), (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) {
+      return { __blob: true, size: value.size, type: value.type };
+    }
+    return value;
+  });
+}
+
+async function seedRollback(db, { currentVideos = [] } = {}) {
+  const importedVideo = { id: 'imported-video', blob: new Blob(['imported'], { type: 'video/mp4' }), capturedAt: '2026-11-14T10:00:00.000Z' };
+  const tx = db.transaction(['main', 'entrance_media', 'archive_staging', 'archive_history'], 'readwrite');
+  tx.objectStore('main').put({ meta: { revisionId: 'imported-revision' }, hives: [], auditLog: [] }, 'state');
+  for (const video of currentVideos.length ? currentVideos : [importedVideo]) tx.objectStore('entrance_media').put(video);
+  const staging = tx.objectStore('archive_staging');
+  staging.put({ id: 'rollback-1', sessionId: 'rollback-1', kind: 'rollback_session', sourceBackupId: 'backup-1', status: 'ready', totalEntries: 1, stagedCount: 1 });
+  staging.put({ id: 'rollback-1:state', sessionId: 'rollback-1', kind: 'rollback_state', state: { meta: { revisionId: 'old-revision' }, hives: [], auditLog: [] } });
+  staging.put({ id: 'import-1', sessionId: 'import-1', kind: 'session', backupId: 'backup-1', status: 'committed' });
+  tx.objectStore('archive_history').put({
+    backupId: 'backup-1',
+    fingerprint: 'archive-fingerprint',
+    status: 'committed',
+    rollbackSessionId: 'rollback-1',
+    importSessionId: 'import-1',
+    importedMediaFingerprint: mediaFingerprint([importedVideo])
+  });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('rollback seed failed'));
+  });
+  return importedVideo;
+}
+
+test('rollback refuses to erase videos added after archive import', async () => {
+  const db = await makeDatabase();
+  const importedVideo = await seedRollback(db);
+  const addedVideo = { id: 'new-video', blob: new Blob(['new'], { type: 'video/mp4' }), capturedAt: '2026-11-14T11:00:00.000Z' };
+  const add = db.transaction('entrance_media', 'readwrite');
+  add.objectStore('entrance_media').put(addedVideo);
+  await new Promise((resolve, reject) => {
+    add.oncomplete = resolve;
+    add.onabort = add.onerror = () => reject(add.error || new Error('video insert failed'));
+  });
+
+  await assert.rejects(
+    api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
+      getRandomValues(bytes) { bytes.fill(3); return bytes; }
+    }, async () => true),
+    error => error.code === 'ROLLBACK_MEDIA_CHANGED'
+  );
+
+  const verify = db.transaction(['main', 'entrance_media', 'archive_history'], 'readonly');
+  const [state, videos, history] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_history').get('backup-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId, 'imported-revision');
+  assert.deepEqual(videos.map(video => video.id).sort(), [importedVideo.id, addedVideo.id].sort());
+  assert.equal(history.status, 'committed');
+  db.close();
+});
+
+test('rollback proceeds when entrance videos still match the imported baseline', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const result = await api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
+    getRandomValues(bytes) { bytes.fill(4); return bytes; }
+  }, async () => true);
+  assert.equal(result.restoredVideoCount, 0);
+  assert.equal(result.state.meta.revisionId.length > 0, true);
+  const verify = db.transaction(['main', 'entrance_media', 'archive_history'], 'readonly');
+  const videos = await new Promise((resolve, reject) => {
+    const q = verify.objectStore('entrance_media').getAll();
+    q.onsuccess = () => resolve(q.result);
+    q.onerror = () => reject(q.error);
+  });
+  assert.equal(videos.length, 0);
   db.close();
 });
