@@ -2654,7 +2654,7 @@ test('full archive export handler blocks export when the latest save failed', as
 });
 
 
-test('IndexedDB v3 upgrades to v6 with archive staging, history, snapshots and image blobs', async () => {
+test('IndexedDB v3 upgrades to v7 with archive staging, history, snapshots, image blobs and migration journal', async () => {
   const factory = new IDBFactory();
   const request = factory.open('paseka-upgrade-v3-v6', 3);
   request.onupgradeneeded = () => {
@@ -2672,11 +2672,12 @@ test('IndexedDB v3 upgrades to v6 with archive staging, history, snapshots and i
     db: null, indexedDB: factory
   };
   await loadFunction('openDB', deps)();
-  assert.equal(deps.db.version, 6);
+  assert.equal(deps.db.version, 7);
   assert.equal(deps.db.objectStoreNames.contains('archive_staging'), true);
   assert.equal(deps.db.objectStoreNames.contains('archive_history'), true);
   assert.equal(deps.db.objectStoreNames.contains('auto_snapshots'), true);
   assert.equal(deps.db.objectStoreNames.contains('media_blobs'), true);
+  assert.equal(deps.db.objectStoreNames.contains('media_migration_journal'), true);
   const tx = deps.db.transaction('archive_staging', 'readonly');
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('sessionId'), true);
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('kind'), true);
