@@ -108,8 +108,8 @@ test('stock installation is atomic when the incoming body journal is corrupt',()
 test('legacy null body history is initialized when an inventory event is first recorded',()=>{
  const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Старая запись'},labels,makeId,now).body;
  body.events=null;
- const r=I.updateDetails(s,body.id,{notes:'Обновлено'},now);
+ const r=I.updateDetails(s,body.id,{notes:'Обновлено'},now),saved=s.equipmentInventory.bodies[body.id];
  assert.equal(r.ok,true);
- assert.ok(Array.isArray(body.events));
- assert.equal(body.events.at(-1).type,'details_updated');
+ assert.ok(Array.isArray(saved.events));
+ assert.equal(saved.events.at(-1).type,'details_updated');
 });
