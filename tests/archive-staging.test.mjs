@@ -268,6 +268,31 @@ test('missing staged video is rejected before restore and preserves the live jou
 });
 
 
+test('staged archive rejects unknown extra entry kinds', async () => {
+  const db = await openTestDb('paseka-stage-unknown-entry');
+  const archive = await makeArchive('backup-stage-unknown-entry');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const session = await get(db, 'archive_staging', staged.session.sessionId);
+  session.stagedCount += 1;
+  session.stagingEpoch += 1;
+  await put(db, 'archive_staging', session);
+  await put(db, 'archive_staging', {
+    id: session.sessionId + ':unexpected',
+    sessionId: session.sessionId,
+    kind: 'unexpected',
+    size: 1,
+    chunkSha256: ['0'.repeat(64)],
+    stagingRevision: session.stagingEpoch,
+    blob: new Blob(['x'])
+  });
+  await assert.rejects(
+    Restore.getStagedArchive(db, session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_ENTRY_SET_INVALID' }
+  );
+  db.close();
+});
+
+
 test('staged archive checksums are reverified before staged content is returned', async () => {
   const db = await openTestDb('paseka-stage-tamper');
   const archive = await makeArchive('backup-stage-tamper');
