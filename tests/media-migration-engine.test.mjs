@@ -19,4 +19,43 @@ test('rejects invalid candidate and unavailable database stores',async()=>{const
 
 test('copies candidates for entities without IDs using the planner fallback key',async()=>{const db=await openDb('engine-legacy-index'),s={records:[{media:[{kind:'image',data:data([3,4,5])}]}]},c={id:'legacy-image:records:legacy-index-0:0',collection:'records',entityId:'legacy-index-0',mediaIndex:0};const r=await Engine.copyOne(db,s,c,'migration-index',webcrypto);assert.equal(r.status,'copied');assert.equal((await Engine.getProgress(db,'migration-index',webcrypto)).completed,1);db.close()});
 test('detects corrupted stored Blob bytes instead of reporting successful resume',async()=>{const db=await openDb('engine-corrupt'),s=state();await Engine.copyOne(db,s,candidate,'migration-corrupt',webcrypto);const tx=db.transaction('media_blobs','readwrite'),store=tx.objectStore('media_blobs'),records=await new Promise((resolve,reject)=>{const q=store.getAll();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});const rec=records[0];rec.blob=new Blob([new Uint8Array([8,8,8])],{type:'image/jpeg'});store.put(rec);await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});const progress=await Engine.getProgress(db,'migration-corrupt',webcrypto);assert.equal(progress.completed,0);assert.equal(progress.orphanedJournalEntries,1);await assert.rejects(Engine.copyOne(db,s,candidate,'migration-corrupt',webcrypto),{code:'MIGRATION_ID_CONFLICT'});db.close()});
+test('rollback preserves copied Blobs referenced by live state or snapshots', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('engine-rollback-protect-references', 1);
+    request.onupgradeneeded = () => {
+      const d = request.result;
+      d.createObjectStore('media_blobs', { keyPath: 'id' });
+      d.createObjectStore('media_migration_journal', { keyPath: 'id' });
+      d.createObjectStore('main');
+      d.createObjectStore('auto_snapshots', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const s = state();
+  const copied = await Engine.copyOne(db, s, candidate, 'migration-protected', webcrypto);
+  const tx = db.transaction(['main', 'auto_snapshots'], 'readwrite');
+  tx.objectStore('main').put({ records: [{ media: [{ blobId: copied.blobId }] }] }, 'state');
+  tx.objectStore('auto_snapshots').put({ id: 'snapshot-1', state: { records: [{ media: [{ blobId: copied.blobId }] }] } });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  const result = await Engine.rollback(db, 'migration-protected');
+  assert.equal(result.removedBlobs, 0);
+  assert.equal(result.protectedBlobs, 1);
+  assert.equal(result.removedJournals, 1);
+  const read = db.transaction('media_blobs', 'readonly');
+  const stored = await new Promise((resolve, reject) => {
+    const request = read.objectStore('media_blobs').get(copied.blobId);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.ok(stored, 'referenced Blob must remain available');
+  db.close();
+});
+
 test('rollback is idempotent and does not touch the original state',async()=>{const db=await openDb('engine-rollback-idempotent'),s=state(),before=structuredClone(s);await Engine.copyOne(db,s,candidate,'migration-rb',webcrypto);const first=await Engine.rollback(db,'migration-rb'),second=await Engine.rollback(db,'migration-rb');assert.equal(first.removedBlobs,1);assert.equal(second.removedBlobs,0);assert.deepEqual(s,before);db.close()});
