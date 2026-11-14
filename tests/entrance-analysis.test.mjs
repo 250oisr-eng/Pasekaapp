@@ -389,6 +389,6 @@ test('entrance metadata rejects coercible strings, nulls and booleans', () => {
     assert.equal(result.ok,false,JSON.stringify(patch));
   }
   const malformedMime=entrance.assessVideoMetadata({...valid,mimeType:123});
-  assert.equal(malformedMime.ok,true);
-  assert.equal(malformedMime.metadata.mimeType,'');
+  assert.equal(malformedMime.ok,false);
+  assert.ok(malformedMime.errors.some(x=>x.code==='invalid_mime_type'));
 });
