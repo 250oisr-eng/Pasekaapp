@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+const shaSource=await readFile(new URL('../js/paseka-sha256.js',import.meta.url),'utf8');new Function(shaSource)();
 const source=await readFile(new URL('../js/paseka-media-migration-verifier.js',import.meta.url),'utf8');new Function(source)();
 const Verifier=globalThis.PasekaMediaMigrationVerifier;
 function openDb(name){const f=new IDBFactory();return new Promise((resolve,reject)=>{const q=f.open(name,7);q.onupgradeneeded=()=>{q.result.createObjectStore('media_blobs',{keyPath:'id'});q.result.createObjectStore('media_migration_journal',{keyPath:'id'})};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
