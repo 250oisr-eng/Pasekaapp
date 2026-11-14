@@ -1007,23 +1007,25 @@ test('Phase B hash failure aborts rollback and retains the complete rollback sna
     setup.onabort = setup.onerror = () => reject(setup.error || new Error('snapshot setup failed'));
   });
 
-  let digestCalls = 0;
-  const cryptoProvider = {
-    getRandomValues(bytes) { bytes.fill(23); return bytes; },
-    subtle: {
-      async digest(_, data) {
-        digestCalls++;
-        if (digestCalls === 3) throw new Error('Injected Phase B digest failure');
-        const hash = createHash('sha256').update(Buffer.from(data)).digest();
-        return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
-      }
+  let hashCalls = 0;
+  const originalHasher = appWindow.PasekaSha256;
+  appWindow.PasekaSha256 = {
+    async hashBlobHex(blob, options) {
+      hashCalls++;
+      if (hashCalls === 3) throw new Error('Injected Phase B hash failure');
+      return originalHasher.hashBlobHex(blob, options);
     }
   };
+  const cryptoProvider = { getRandomValues(bytes) { bytes.fill(23); return bytes; } };
 
-  await assert.rejects(
-    api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true),
-    /Injected Phase B digest failure/
-  );
+  try {
+    await assert.rejects(
+      api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true),
+      /Injected Phase B hash failure/
+    );
+  } finally {
+    appWindow.PasekaSha256 = originalHasher;
+  }
 
   const verify = db.transaction(['main', 'archive_history', 'archive_staging', 'entrance_media'], 'readonly');
   const [state, history, rollbackSession, snapshot, videos] = await Promise.all([
