@@ -281,6 +281,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
               schemaVersion: session.schemaVersion,
               archiveBytes: session.archiveBytes,
               rollbackSessionId,
+              rollbackAvailable: true,
               importSessionId: sessionId
             };
             historyStore.put(historyRecord);
@@ -418,6 +419,77 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   });
 }
 
+function discardArchiveRollbackSnapshot(db, backupId) {
+  ensureStores(db);
+  return new Promise((resolve, reject) => {
+    let tx, failure = null, result = null, settled = false;
+    const rejectOnce = error => {
+      if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
+    };
+    try {
+      tx = db.transaction([STAGING_STORE, HISTORY_STORE], 'readwrite');
+      const stagingStore = tx.objectStore(STAGING_STORE);
+      const historyStore = tx.objectStore(HISTORY_STORE);
+      const historyRequest = historyStore.get(backupId);
+      historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not read archive history.'));
+      historyRequest.onsuccess = () => {
+        const history = historyRequest.result;
+        if (!history || !['committed', 'reverted'].includes(history.status) || !history.rollbackSessionId) {
+          abortWith(Object.assign(new Error('There is no retained rollback snapshot for this archive.'), { code: 'ROLLBACK_NOT_AVAILABLE' }));
+          return;
+        }
+        const rollbackSessionId = history.rollbackSessionId;
+        const sessionRequest = stagingStore.get(rollbackSessionId);
+        const keysRequest = stagingStore.index('sessionId').getAllKeys(rollbackSessionId);
+        let pending = 2, session, keys;
+        const finish = () => {
+          pending--;
+          if (pending !== 0) return;
+          if (!session || session.kind !== 'rollback_session' || session.sourceBackupId !== backupId ||
+              !['ready', 'used'].includes(session.status)) {
+            abortWith(Object.assign(new Error('The rollback snapshot could not be verified and was not deleted.'), { code: 'ROLLBACK_SNAPSHOT_INVALID' }));
+            return;
+          }
+          for (const key of keys || []) stagingStore.delete(key);
+          historyStore.put({
+            ...history,
+            rollbackSessionId: null,
+            rollbackAvailable: false,
+            rollbackDiscardedAt: new Date().toISOString()
+          });
+          if (history.importSessionId) {
+            const importRequest = stagingStore.get(history.importSessionId);
+            importRequest.onerror = () => abortWith(importRequest.error || new Error('Could not update the import session.'));
+            importRequest.onsuccess = () => {
+              const importSession = importRequest.result;
+              if (importSession && importSession.kind === 'session') {
+                const updated = { ...importSession };
+                delete updated.rollbackSessionId;
+                stagingStore.put(updated);
+              }
+            };
+          }
+          result = { backupId, deletedRecords: (keys || []).length };
+        };
+        sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read rollback session.'));
+        sessionRequest.onsuccess = () => { session = sessionRequest.result; finish(); };
+        keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not read rollback records.'));
+        keysRequest.onsuccess = () => { keys = keysRequest.result; finish(); };
+      };
+      tx.oncomplete = () => {
+        if (!settled) { settled = true; resolve(result); }
+      };
+      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Rollback snapshot cleanup transaction aborted.'));
+      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Rollback snapshot cleanup transaction failed.'));
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+}
 async function listArchiveImportHistory(db) {
   ensureStores(db);
   const tx = db.transaction(HISTORY_STORE, 'readonly');
@@ -497,7 +569,7 @@ async function discardArchiveRestoreSession(db, sessionId) {
 
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
-  stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, listArchiveRestoreSessions, listArchiveImportHistory,
+  stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, discardArchiveRollbackSnapshot, listArchiveRestoreSessions, listArchiveImportHistory,
   getStagedArchive, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);
