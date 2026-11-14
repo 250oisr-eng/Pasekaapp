@@ -869,20 +869,19 @@ function discardArchiveRestoreSession(db, sessionId) {
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
-      // Read, validate and delete under one readwrite lock. A concurrent commit
-      // must either finish first (and be protected) or observe the cleanup.
-      tx = db.transaction(STAGING_STORE, 'readwrite');
+      // Validate ownership and delete under one write lock. If the session
+      // header was lost, only unreferenced orphan rows may be removed.
+      tx = db.transaction([STAGING_STORE, HISTORY_STORE], 'readwrite');
       const store = tx.objectStore(STAGING_STORE);
       const sessionRequest = store.get(sessionId);
       sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read the staged import session.'));
       sessionRequest.onsuccess = () => {
         const session = sessionRequest.result;
-        if (!session) { result = false; return; }
-        if (session.kind === 'rollback_session') {
+        if (session?.kind === 'rollback_session') {
           abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
           return;
         }
-        if (session.kind === 'session' && session.status === 'committed') {
+        if (session?.kind === 'session' && session.status === 'committed') {
           abortWith(Object.assign(new Error('A committed import is protected until its rollback is explicitly resolved.'), { code: 'COMMITTED_IMPORT_PROTECTED' }));
           return;
         }
@@ -890,6 +889,22 @@ function discardArchiveRestoreSession(db, sessionId) {
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
           const keys = keysRequest.result || [];
+          if (!session && keys.length) {
+            const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
+            historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
+            historyRequest.onsuccess = () => {
+              const referenced = (historyRequest.result || []).some(item =>
+                item.importSessionId === sessionId || item.rollbackSessionId === sessionId
+              );
+              if (referenced) {
+                abortWith(Object.assign(new Error('Orphaned staging records are still referenced by archive history and were preserved.'), { code: 'ORPHANED_STAGING_REFERENCED' }));
+                return;
+              }
+              for (const key of keys) store.delete(key);
+              result = keys.length > 0;
+            };
+            return;
+          }
           for (const key of keys) store.delete(key);
           result = keys.length > 0;
         };
