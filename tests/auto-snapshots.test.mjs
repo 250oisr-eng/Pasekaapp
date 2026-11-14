@@ -159,7 +159,7 @@ test('treats an unserializable legacy snapshot as oversized during rotation', as
   await put(db, 'main', fixture('main-1', 'current'), 'state');
   const invalid = { id: 'legacy-bad', at: '2099-01-01T00:00:00.000Z', revisionId: 'legacy-bad',
     checksum: 'invalid', state: { meta: { revisionId: 'legacy-bad' }, value: 1n } };
-  await put(db, 'auto_snapshots', invalid, invalid.id);
+  await put(db, 'auto_snapshots', invalid);
   const result = await Snapshots.writeSnapshot(db, fixture('rev-1', 'small'), 'main-1', webcrypto, { maxTotalBytes: 10000 });
   assert.equal(result.written, true);
   const items = await Snapshots.listSnapshots(db);
