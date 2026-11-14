@@ -3728,6 +3728,14 @@ async function renderArchiveImportHistory() {
     const description = document.createElement('p');
     description.textContent = 'Архив ' + session.backupId + ' · ' + session.status + ' · подготовлено элементов: ' + session.stagedCount + '/' + session.totalEntries;
     row.appendChild(description);
+    if (session.status === 'failed') {
+      const failure = document.createElement('p');
+      failure.className = 'muted';
+      failure.textContent = session.errorCode === 'QuotaExceededError' || session.errorCode === 'QUOTA_EXCEEDED'
+        ? 'Не хватило места для временной копии. Рабочие данные не изменены. Освободи место, удали эту временную копию и выбери архив повторно.'
+        : 'Подготовка архива была прервана. Рабочие данные не изменены. Удали эту временную копию и повтори подготовку архива.';
+      row.appendChild(failure);
+    }
     if (session.status === 'ready') {
       const resume = document.createElement('button');
       resume.type = 'button';
