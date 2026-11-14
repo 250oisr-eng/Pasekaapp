@@ -407,6 +407,10 @@ function gatedCrypto(expectedCalls) {
   return {
     started: started.promise,
     release: release.resolve,
+    getRandomValues(bytes) {
+      bytes.fill(13);
+      return bytes;
+    },
     subtle: {
       async digest(_, data) {
         calls++;
