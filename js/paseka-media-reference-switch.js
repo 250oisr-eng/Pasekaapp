@@ -6,8 +6,17 @@ function fail(code,message){const error=new Error(message||code);error.code=code
 function request(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('IndexedDB request failed.'))})}
 function done(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('IndexedDB transaction failed.'));tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted.'))})}
 function sourceKey(c){return [c.collection,c.entityId,c.mediaIndex].join(':')}
-function locate(state,c){const list=state?.[c.collection];if(!Array.isArray(list))return null;let entity=list.find(x=>x&&x.id===c.entityId);if(!entity&&/^legacy-index-\\d+$/.test(c.entityId))entity=list[Number(c.entityId.slice(13))]||null;return entity?.media?.[c.mediaIndex]||null}
+function locate(state,c){const list=state?.[c.collection];if(!Array.isArray(list))return null;let entity=list.find(x=>x&&x.id===c.entityId);if(!entity&&/^legacy-index-\d+$/.test(c.entityId))entity=list[Number(c.entityId.slice('legacy-index-'.length))]||null;return entity?.media?.[c.mediaIndex]||null}
 function clone(value){if(typeof structuredClone==='function')return structuredClone(value);return JSON.parse(JSON.stringify(value))}
+function sameValue(a,b){
+ if(Object.is(a,b))return true;
+ if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;
+ if(Array.isArray(a)||Array.isArray(b))return Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((v,i)=>sameValue(v,b[i]));
+ const ap=Object.getPrototypeOf(a),bp=Object.getPrototypeOf(b);
+ if(ap!==bp||(ap!==Object.prototype&&ap!==null))return false;
+ const ak=Object.keys(a).sort(),bk=Object.keys(b).sort();
+ return ak.length===bk.length&&ak.every((k,i)=>k===bk[i]&&sameValue(a[k],b[k]));
+}
 function validate(db,candidate,migrationId,verifiedItem,revision,newRevision){
  if(!db?.objectStoreNames?.contains(MAIN)||!db.objectStoreNames.contains(BLOBS)||!db.objectStoreNames.contains(COPY_JOURNAL)||!db.objectStoreNames.contains(JOURNAL))fail('REFERENCE_STORE_UNAVAILABLE','Required media reference stores are unavailable.');
  if(!candidate||!COLLECTIONS.has(candidate.collection)||typeof candidate.entityId!=='string'||!candidate.entityId||!Number.isInteger(candidate.mediaIndex)||candidate.mediaIndex<0||typeof candidate.id!=='string')fail('INVALID_CANDIDATE','A valid photo candidate is required.');
@@ -38,7 +47,11 @@ async function switchOne(db,{candidate,migrationId,verifiedItem,expectedRevision
   request(readTx.objectStore(JOURNAL).get(id))
  ]);
  await readDone;
- if(existing?.status==='committed')return {status:'already_switched',journalId:id,revision:state?.meta?.revisionId||null};
+ if(existing){
+  if(existing.status==='committed'&&sameValue(locate(state,candidate),existing.committedMedia))return {status:'already_switched',journalId:id,revision:state?.meta?.revisionId||null};
+  if(existing.status==='rolled_back')fail('REFERENCE_ALREADY_ROLLED_BACK','This reference-switch journal was already rolled back; use a new migration ID.');
+  fail('REFERENCE_JOURNAL_CONFLICT','An existing reference-switch journal does not match the current photo.');
+ }
  if(!state||state.meta?.revisionId!==expectedRevision)fail('REVISION_CONFLICT','Main state revision changed before switching.');
  const previousMedia=locate(state,candidate);
  if(!previousMedia||typeof previousMedia.data!=='string')fail('SOURCE_MISSING','The original legacy photo is missing.');
@@ -86,11 +99,15 @@ async function rollbackOne(db,journalId,newRevision){
    tx=db.transaction([MAIN,JOURNAL],'readwrite');const main=tx.objectStore(MAIN),journals=tx.objectStore(JOURNAL);
    const check=()=>{if(--remaining!==0)return;try{
     if(!entry)fail('REFERENCE_JOURNAL_MISSING','Reference switch journal entry was not found.');
+    if(!COLLECTIONS.has(entry.collection)||typeof entry.entityId!=='string'||!Number.isInteger(entry.mediaIndex)||entry.mediaIndex<0||!entry.previousMedia||!entry.committedMedia)fail('REFERENCE_JOURNAL_INVALID','Reference switch journal entry is invalid.');
     if(entry.status==='rolled_back'){resolve({status:'already_rolled_back',journalId});return}
     if(entry.status!=='committed')fail('REFERENCE_NOT_COMMITTED','Only a committed switch can be rolled back.');
     const current=locate(mainState,entry);
-    if(!current||current.storage!=='indexeddb-blob-v1'||current.blobId!==entry.blobId||current.sha256!==entry.sha256||current.data!==entry.previousMedia.data)fail('ROLLBACK_CONFLICT','The photo reference has changed; rollback will not overwrite newer data.');
-    const restored=clone(mainState),target=locate(restored,entry);const entity=restored[entry.collection].find(x=>x&&x.id===entry.entityId)||restored[entry.collection][Number(String(entry.entityId).slice(13))];entity.media[entry.mediaIndex]=clone(entry.previousMedia);
+    if(!current||!sameValue(current,entry.committedMedia))fail('ROLLBACK_CONFLICT','The photo object has changed since switching; rollback will not overwrite newer edits.');
+    const restored=clone(mainState),target=locate(restored,entry);if(!target)fail('ROLLBACK_CONFLICT','The selected photo no longer exists.');
+    const list=restored[entry.collection],entity=list.find(x=>x&&x.id===entry.entityId)||(/^legacy-index-\d+$/.test(entry.entityId)?list[Number(entry.entityId.slice('legacy-index-'.length))]:null);
+    if(!entity||!Array.isArray(entity.media)||!entity.media[entry.mediaIndex])fail('ROLLBACK_CONFLICT','The selected photo no longer exists.');
+    entity.media[entry.mediaIndex]=clone(entry.previousMedia);
     restored.meta={...(restored.meta||{}),revisionId:newRevision,updatedAt:new Date().toISOString()};
     journals.put({...entry,status:'rolled_back',rolledBackAt:new Date().toISOString(),rollbackRevision:newRevision});
     main.put(restored,'state');
