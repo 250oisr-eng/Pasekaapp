@@ -148,6 +148,7 @@ test('each staged blob and its stagedCount are committed in the same readwrite t
 
   assert.equal(result.session.status, 'ready');
   assert.equal(result.session.stagedCount, 3);
+  assert.equal(result.session.stagingEpoch, 3);
   assert.deepEqual(progress, [2, 3]);
   // Session creation, three atomic entry+counter writes, and final ready status.
   assert.deepEqual(tracked.modes, ['readonly', 'readonly', 'readwrite', 'readwrite', 'readwrite', 'readwrite', 'readwrite']);
@@ -159,6 +160,14 @@ test('each staged blob and its stagedCount are committed in the same readwrite t
     request.onerror = () => reject(request.error);
   });
   assert.equal(stored.stagedCount, 3);
+  assert.equal(stored.stagingEpoch, 3);
   assert.equal(stored.status, 'ready');
+
+  const entries = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('archive_staging').index('sessionId').getAll(result.session.id);
+    request.onsuccess = () => resolve(request.result.filter(record => record.kind !== 'session'));
+    request.onerror = () => reject(request.error);
+  });
+  assert.deepEqual(entries.map(record => record.stagingRevision).sort((a, b) => a - b), [1, 2, 3]);
   db.close();
 });
