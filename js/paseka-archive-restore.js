@@ -87,6 +87,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     archiveCreatedAt: checked.createdAt,
     schemaVersion: checked.schemaVersion,
     archiveBytes: checked.archiveBytes,
+    manifest: checked.manifest,
     totalEntries: checked.videoEntries.length + 1,
     stagedCount: 0,
     orphanVideoIds: checked.orphanVideoIds.slice(),
@@ -98,7 +99,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   try {
     await putStagingRecord(db, session);
     sessionCreated = true;
-    await putStagingRecord(db, { id: sessionId + ':state', sessionId, kind: 'state', state: checked.state });
+    await putStagingRecord(db, { id: sessionId + ':state', sessionId, kind: 'state', blob: checked.stateBlob });
     session.stagedCount = 1;
     await updateSession(db, session);
     for (const item of checked.videoEntries) {
@@ -106,6 +107,10 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         id: sessionId + ':video:' + item.metadata.id,
         sessionId,
         kind: 'video',
+        path: item.path,
+        size: item.size,
+        chunkSize: item.chunkSize,
+        chunkSha256: item.chunkSha256,
         metadata: item.metadata,
         blob: item.blob,
         orphanedHiveReference: item.orphanedHiveReference
@@ -140,8 +145,10 @@ async function listArchiveRestoreSessions(db) {
   await transactionDone(tx);
   return rows.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
-async function getStagedArchive(db, sessionId) {
+async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
   ensureStores(db);
+  if (!archiveApi || typeof archiveApi.hashBlobChunks !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
+  if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before restore.');
   const tx = db.transaction(STAGING_STORE, 'readonly');
   const store = tx.objectStore(STAGING_STORE);
   const [session, records] = await Promise.all([
@@ -151,10 +158,34 @@ async function getStagedArchive(db, sessionId) {
   await transactionDone(tx);
   if (!session || session.kind !== 'session') fail('STAGING_SESSION_NOT_FOUND', 'Staged import session was not found.');
   if (session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
+  if (!session.manifest || !Array.isArray(session.manifest.entries)) fail('STAGING_MANIFEST_MISSING', 'Staged archive manifest is missing.');
   const stateRecord = records.find(record => record.kind === 'state');
   const videoRecords = records.filter(record => record.kind === 'video');
-  if (!stateRecord || videoRecords.length + 1 !== session.totalEntries) fail('STAGING_CONTENT_MISSING', 'Staged archive content is incomplete.');
-  return { session, state: stateRecord.state, videos: videoRecords };
+  if (!stateRecord || !stateRecord.blob || videoRecords.length + 1 !== session.totalEntries) fail('STAGING_CONTENT_MISSING', 'Staged archive content is incomplete.');
+  const stateEntry = session.manifest.entries.find(entry => entry.kind === 'state');
+  if (!stateEntry || stateRecord.blob.size !== stateEntry.size) fail('STAGING_STATE_SIZE_MISMATCH', 'Staged state size does not match its manifest.');
+  const stateHashes = await archiveApi.hashBlobChunks(stateRecord.blob, cryptoProvider);
+  if (JSON.stringify(stateHashes) !== JSON.stringify(stateEntry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged state checksum does not match its manifest.');
+  let wrapper;
+  try { wrapper = JSON.parse(await stateRecord.blob.text()); }
+  catch (error) { fail('STAGING_STATE_INVALID', 'Staged state JSON is invalid.'); }
+  if (!wrapper || wrapper.app !== 'Paseka' || !wrapper.state || typeof wrapper.state !== 'object' || Array.isArray(wrapper.state)) fail('STAGING_STATE_INVALID', 'Staged state wrapper is invalid.');
+  const state = wrapper.state;
+  if (state.meta?.schemaVersion !== session.schemaVersion) fail('STAGING_SCHEMA_MISMATCH', 'Staged state schema does not match its session.');
+  const validationResult = await validateState(state);
+  if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the staged state.');
+  const videoEntries = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
+  if (videoEntries.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
+  const videos = [];
+  for (const record of videoRecords) {
+    if (!record.blob || !record.metadata || record.blob.size !== record.size) fail('STAGING_VIDEO_SIZE_MISMATCH', 'A staged video is missing or has an invalid size.');
+    const entry = videoEntries.find(item => item.metadata?.id === record.metadata.id);
+    if (!entry || entry.path !== record.path || entry.size !== record.size) fail('STAGING_VIDEO_MANIFEST_MISMATCH', 'A staged video does not match its manifest entry.');
+    const hashes = await archiveApi.hashBlobChunks(record.blob, cryptoProvider);
+    if (JSON.stringify(hashes) !== JSON.stringify(entry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged video checksum does not match its manifest: ' + record.metadata.id);
+    videos.push(record);
+  }
+  return { session, state, videos: videos.sort((a, b) => String(a.path).localeCompare(String(b.path))) };
 }
 async function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
