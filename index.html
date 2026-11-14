@@ -3565,7 +3565,7 @@ async function restoreAutoBackup(){
   await saveQueue;
   const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
   const restored=assertRawBackupIntegrity(validateBackupState(backup.state));
-  if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
+  if(!confirm('Восстановить предыдущее состояние, включая фото и видео, прикреплённые к записям и карточкам? Видео летка в этой автокопии нет. Текущие данные будут сохранены в резервной копии.'))return;
   const current=await readMain();
   const oldState=S;S=restored;
   try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo={at:new Date().toISOString()};}catch(e){S=oldState;throw e}
