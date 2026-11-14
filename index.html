@@ -1194,16 +1194,22 @@ function deleteEntranceVideoBlob(id){
 function entranceBytes(value){if(!Number.isFinite(value)||value<0)return '—';if(value<1024*1024)return Math.round(value/1024)+' КБ';return (value/1024/1024).toFixed(1)+' МБ'}
 function renderEntranceModule(){
  const select=$('entranceHiveSelect');if(!select)return;
- const previous=select.value;select.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
- select.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:'');
+ const previous=select.value;
+ select.innerHTML='<option value="">— Все видео —</option><option value="__orphaned__">Видео без найденного улья</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
+ select.value=previous==='__orphaned__'?'__orphaned__':(S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:''));
  refreshEntranceVideos();
 }
 async function refreshEntranceVideos(){
  const host=$('entranceVideoList');if(!host)return;
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
-  const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  const rows=await listEntranceVideos();
+  const isOrphan=x=>x.orphanedHiveReference===true||!S.hives.some(h=>h.id===x.hiveId);
+  const filtered=hiveId==='__orphaned__'?rows.filter(isOrphan):rows.filter(x=>!hiveId||x.hiveId===hiveId);
+  host.innerHTML=filtered.length?filtered.map(x=>{
+   const orphan=isOrphan(x);
+   return '<article class="card"><div class="row"><b>'+safe(orphan?'Улей из архива не найден':hname(x.hiveId))+'</b><span class="pill">'+(orphan?'Без привязки':x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div>'+(orphan?'<div class="muted">Сохранённый ID улья из архива: '+safe(x.hiveId)+'. Видео сохранено, но исходный улей в восстановленном журнале не найден.</div>':'')+'<div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\\''+safe(x.id)+'\\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\\''+safe(x.id)+'\\')">Удалить</button></div></article>';
+  }).join(''):'<p class="empty">'+(hiveId==='__orphaned__'?'Видео без найденного улья не обнаружены.':'Для выбранного фильтра видеозаписей пока нет.')+'</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
