@@ -508,6 +508,12 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (phaseAMedia.some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || ''))) {
     fail('ROLLBACK_MEDIA_HASH_MISSING', 'One or more videos predate content hashing. Export them and create a fresh verified archive before rollback.');
   }
+  for (const record of phaseAMedia) {
+    const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+    if (actualHash !== record.blobSha256) {
+      fail('ROLLBACK_MEDIA_CONTENT_CHANGED', 'A video file no longer matches its saved SHA-256 checksum. Rollback was cancelled to preserve the current library.');
+    }
+  }
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
