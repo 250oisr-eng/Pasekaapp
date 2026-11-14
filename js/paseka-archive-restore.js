@@ -410,6 +410,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   });
 }
 
+async function listArchiveImportHistory(db) {
+  ensureStores(db);
+  const tx = db.transaction(HISTORY_STORE, 'readonly');
+  const records = await requestValue(tx.objectStore(HISTORY_STORE).getAll());
+  await transactionDone(tx);
+  return records.sort((a, b) => String(b.importedAt || '').localeCompare(String(a.importedAt || '')));
+}
+
 async function listArchiveRestoreSessions(db) {
   ensureStores(db);
   const tx = db.transaction(STAGING_STORE, 'readonly');
@@ -481,7 +489,7 @@ async function discardArchiveRestoreSession(db, sessionId) {
 
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
-  stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, listArchiveRestoreSessions,
+  stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, listArchiveRestoreSessions, listArchiveImportHistory,
   getStagedArchive, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);
