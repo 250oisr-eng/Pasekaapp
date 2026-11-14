@@ -859,6 +859,7 @@ test('inspection form does not browser-block an unchanged historical count above
 
 test('inspection form exposes dynamic capacity and an explicit unknown-capacity warning',()=>{
  assert.ok(html.includes('id="capacityWarning"'));assert.ok(html.includes('function updateJournalInspectionCapacity()'));
+ assert.ok(html.includes('Занято пчёлами рамок во всех установленных гнездовых корпусах'));
  assert.ok(!html.includes('id="roccupancy" type="number" min="0" max="6"'));
  assert.ok(!html.includes('id="rbrood" type="number" min="0" max="6"'));
 });
