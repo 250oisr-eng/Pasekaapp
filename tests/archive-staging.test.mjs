@@ -292,7 +292,10 @@ test('atomic archive commit replaces state and entrance videos while preserving 
 
   const archive = await makeArchive('backup-atomic-commit');
   const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
-  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(
+    db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true,
+    async state => ({ ...state, migratedForTest: true })
+  );
 
   const currentState = await get(db, 'main', 'state');
   const currentVideos = await getAll(db, 'entrance_media');
@@ -304,6 +307,7 @@ test('atomic archive commit replaces state and entrance videos while preserving 
   const rollbackVideo = await get(db, 'archive_staging', committed.rollbackSessionId + ':video:live-video');
 
   assert.equal(currentState.records[0].note, 'archive state');
+  assert.equal(currentState.migratedForTest, true);
   assert.notEqual(currentState.meta.revisionId, 'archive-revision');
   assert.equal(currentState.auditLog.at(-1).source, 'full_archive');
   assert.equal(currentVideos.length, 1);
