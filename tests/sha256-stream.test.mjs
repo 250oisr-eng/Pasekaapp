@@ -118,3 +118,34 @@ test('keeps simultaneous SHA-256 operations isolated', async () => {
   assert.equal(firstDigest, referenceHash(first));
   assert.equal(secondDigest, referenceHash(second));
 });
+
+
+test('does not schedule another chunk after cancellation during arrayBuffer read', async () => {
+  const controller = new AbortController();
+  let timerCalls = 0;
+  const originalSetTimeout = globalThis.setTimeout;
+  const cancellableBlob = {
+    size: CHUNK_BYTES + 1,
+    slice(start, end) {
+      return {
+        arrayBuffer: async () => {
+          if (start === 0) controller.abort();
+          return new Uint8Array(end - start).buffer;
+        }
+      };
+    }
+  };
+  globalThis.setTimeout = (...args) => {
+    timerCalls++;
+    return originalSetTimeout(...args);
+  };
+  try {
+    await assert.rejects(
+      hashBlobHex(cancellableBlob, { signal: controller.signal }),
+      { name: 'AbortError' }
+    );
+    assert.equal(timerCalls, 0, 'cancellation must be observed before yielding or scheduling the next chunk');
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
+});
