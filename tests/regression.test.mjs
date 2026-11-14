@@ -2699,6 +2699,7 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('function validateFullArchiveImportState(state)'));
   assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
   assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
+  assert.ok(html.includes('result.orphanedVideoCount'));
   assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
   assert.ok(html.includes('window.__pasekaPendingFullArchiveRestore = null;'));
   assert.ok(html.includes("$('fullArchiveRestoreActions').hidden = true;"));
