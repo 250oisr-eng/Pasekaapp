@@ -3579,9 +3579,10 @@ async function deleteAllData(){
  const phrase=prompt('Для окончательного подтверждения введи: УДАЛИТЬ ВСЁ');
  if(phrase!=='УДАЛИТЬ ВСЁ'){if(phrase!==null)alert('Подтверждение не совпало. Данные не удалены.');return}
  try{
+  // Clear the prior-use marker first. If storage is unavailable, abort before deleting the database.
+  if(!clearStartupMarker())throw new Error('Не удалось подготовить удаление данных. Хранилище настроек недоступно; база не удалена. Повтори попытку позже.');
   if(db){db.close();db=null}
   await new Promise((resolve,reject)=>{const req=indexedDB.deleteDatabase(DB);req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('База занята другой открытой вкладкой. Закрой другие вкладки приложения и повтори.'))});
-  clearStartupMarker();
   alert('Все локальные данные приложения удалены. Страница будет перезагружена.');
   location.reload();
  }catch(e){alert('Не удалось удалить данные: '+(e.message||e))}
