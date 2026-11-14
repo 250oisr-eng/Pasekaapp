@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { patchAndroidGradleSources } from '../scripts/patch-android-gradle.mjs';
 
 const java=await readFile(new URL('../capacitor-bee-detector/android/src/main/java/ru/paseka/beedetector/BeeDetectorPlugin.java',import.meta.url),'utf8');
 const probe=await readFile(new URL('../capacitor-bee-detector/android/src/main/java/ru/paseka/beedetector/LiteRtRuntimeProbe.java',import.meta.url),'utf8');
@@ -84,4 +85,17 @@ test('Android CI uses the Capacitor 8 JavaScript and Android toolchain',()=>{
  assert.match(gradlePatcher,/GRADLE_VERSION = '8\.14\.3'/);
  assert.doesNotMatch(androidWorkflow,/node-version: 20/);
  assert.doesNotMatch(androidWorkflow,/java-version: '17'/);
+});
+
+test('Capacitor 8 Gradle patcher upgrades a generated project deterministically',()=>{
+ const patched=patchAndroidGradleSources(
+  "buildscript { dependencies { classpath 'com.android.tools.build:gradle:8.6.1' } }",
+  "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip\\n"
+ );
+ assert.match(patched.buildGradle,/com\\.android\\.tools\\.build:gradle:8\\.13\\.0/);
+ assert.match(patched.wrapperProperties,/gradle-8\\.14\\.3-all\\.zip/);
+ assert.throws(()=>patchAndroidGradleSources(
+  "classpath 'com.android.tools.build:gradle:8.6.1'\\nclasspath 'com.android.tools.build:gradle:8.6.1'",
+  "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip\\n"
+ ),/Expected exactly one/);
 });
