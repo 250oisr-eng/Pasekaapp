@@ -186,4 +186,11 @@ test('Paseka restore preflight requires the application validator and matching s
     Archive.validateArchiveForRestore(original.blob, webcrypto),
     { code: 'STATE_VALIDATOR_REQUIRED' }
   );
+  const mismatch = await fixture();
+  mismatch.manifest.schemaVersion = 11;
+  const mismatchBlob = Archive.buildArchiveBlob(mismatch.manifest, [mismatch.state, mismatch.video]);
+  await assert.rejects(
+    Archive.validateArchiveForRestore(mismatchBlob, webcrypto, () => true),
+    { code: 'STATE_SCHEMA_MISMATCH' }
+  );
 });
