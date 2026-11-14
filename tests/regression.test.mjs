@@ -47,6 +47,19 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+test('startup classifier blocks an unexpectedly empty database after prior use',()=>{
+ const classify=loadFunction('classifyStartupState');
+ assert.equal(classify(null,null,true),'missing');
+ assert.equal(classify({meta:{revisionId:'r1'}},null,true),'existing');
+ assert.equal(classify(null,{state:{hives:[]}},true),'recoverable');
+ assert.equal(classify(null,null,false),'first_run');
+ assert.equal(classify(null,null,null),'unverified');
+});
+test('startup guard is checked before migration and first-run initialization requires confirmation',()=>{
+ assert.match(html,/const startupStatus=classifyStartupState\(startupMain,autoBackupInfo,previouslyUsed\)/);
+ assert.match(html,/if\(startupStatus==='missing'\)throw new Error/);
+ assert.match(html,/if\(startupStatus==='first_run'\|\|startupStatus==='unverified'\)/);
+});
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
