@@ -974,6 +974,11 @@ function discardArchiveRestoreSession(db, sessionId) {
           abortWith(Object.assign(new Error('A committed import is protected until its rollback is explicitly resolved.'), { code: 'COMMITTED_IMPORT_PROTECTED' }));
           return;
         }
+        if (session?.kind === 'session' &&
+            !['staging', 'ready', 'failed', 'reverted'].includes(session.status)) {
+          abortWith(Object.assign(new Error('The staging session status is invalid; staged records were preserved.'), { code: 'STAGING_SESSION_INVALID' }));
+          return;
+        }
         const keysRequest = store.index('sessionId').getAllKeys(sessionId);
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
