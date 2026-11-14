@@ -273,6 +273,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
               schemaVersion: session.schemaVersion,
               archiveBytes: session.archiveBytes,
               rollbackSessionId,
+              rollbackAvailable: true,
               importSessionId: sessionId
             };
             historyStore.put(historyRecord);
@@ -410,6 +411,51 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   });
 }
 
+async function discardArchiveRollbackSnapshot(db, backupId) {
+  ensureStores(db);
+  const tx = db.transaction([STAGING_STORE, HISTORY_STORE], 'readwrite');
+  const done = transactionDone(tx);
+  const stagingStore = tx.objectStore(STAGING_STORE);
+  const historyStore = tx.objectStore(HISTORY_STORE);
+  const values = await requestValue(historyStore.get(backupId));
+  if (!values || !['committed', 'reverted'].includes(values.status) || !values.rollbackSessionId) {
+    try { tx.abort(); } catch (error) {}
+    await done.catch(() => {});
+    fail('ROLLBACK_NOT_AVAILABLE', 'There is no retained rollback snapshot for this archive.');
+  }
+  const rollbackSessionId = values.rollbackSessionId;
+  const [session, keys] = await Promise.all([
+    requestValue(stagingStore.get(rollbackSessionId)),
+    requestValue(stagingStore.index('sessionId').getAllKeys(rollbackSessionId))
+  ]);
+  if (!session || session.kind !== 'rollback_session' || session.sourceBackupId !== backupId ||
+      !['ready', 'used'].includes(session.status)) {
+    try { tx.abort(); } catch (error) {}
+    await done.catch(() => {});
+    fail('ROLLBACK_SNAPSHOT_INVALID', 'The rollback snapshot could not be verified and was not deleted.');
+  }
+  for (const key of keys) stagingStore.delete(key);
+  historyStore.put({
+    ...values,
+    rollbackSessionId: null,
+    rollbackAvailable: false,
+    rollbackDiscardedAt: new Date().toISOString()
+  });
+  if (values.importSessionId) {
+    const importRequest = stagingStore.get(values.importSessionId);
+    importRequest.onsuccess = () => {
+      const importSession = importRequest.result;
+      if (importSession && importSession.kind === 'session') {
+        const updated = { ...importSession };
+        delete updated.rollbackSessionId;
+        stagingStore.put(updated);
+      }
+    };
+  }
+  await done;
+  return { backupId, deletedRecords: keys.length };
+}
+
 async function listArchiveImportHistory(db) {
   ensureStores(db);
   const tx = db.transaction(HISTORY_STORE, 'readonly');
@@ -489,7 +535,7 @@ async function discardArchiveRestoreSession(db, sessionId) {
 
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
-  stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, listArchiveRestoreSessions, listArchiveImportHistory,
+  stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, discardArchiveRollbackSnapshot, listArchiveRestoreSessions, listArchiveImportHistory,
   getStagedArchive, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);
