@@ -290,7 +290,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             for (const record of records) {
               if (record.sessionId === sessionId && record.id !== sessionId) stagingStore.delete(record.id);
             }
-            result = { state, history: historyRecord, rollbackSessionId, previousVideoCount: currentVideos.length };
+            result = { state, history: historyRecord, rollbackSessionId, previousVideoCount: currentVideos.length, importedVideoCount: videoRecords.length, orphanedVideoCount: videoRecords.filter(record => !importedHiveIds.has(record.metadata.hiveId)).length };
           } catch (error) {
             stopKeepAlive?.();
             abortWith(error);
