@@ -3587,6 +3587,20 @@ async function prepareFullArchiveRestore() {
     if (button) button.disabled = false;
   }
 }
+
+async function finalizeFullArchiveStaging(sessionId) {
+  try {
+    setFullArchiveRestoreStatus('Повторно проверяю все данные временной копии. Рабочие данные не меняются…');
+    await PasekaArchiveRestore.finalizeStagedArchive(
+      db, sessionId, window.crypto, PasekaArchive, validateFullArchiveImportState
+    );
+    setFullArchiveRestoreStatus('Временная копия полностью проверена и готова к просмотру и восстановлению.');
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus('Не удалось завершить подготовку: ' + archiveRestoreErrorText(error));
+    await renderArchiveImportHistory().catch(() => {});
+  }
+}
 async function resumeFullArchiveRestore(sessionId) {
   try {
     await saveQueue;
@@ -3735,6 +3749,13 @@ async function renderArchiveImportHistory() {
         ? 'Не хватило места для временной копии. Рабочие данные не изменены. Освободи место, удали эту временную копию и выбери архив повторно.'
         : 'Подготовка архива была прервана. Рабочие данные не изменены. Удали эту временную копию и повтори подготовку архива.';
       row.appendChild(failure);
+    }
+    if (session.status === 'staging') {
+      const finalize = document.createElement('button');
+      finalize.type = 'button';
+      finalize.textContent = 'Проверить и завершить подготовку';
+      finalize.addEventListener('click', () => finalizeFullArchiveStaging(session.sessionId));
+      row.appendChild(finalize);
     }
     if (session.status === 'ready') {
       const resume = document.createElement('button');
