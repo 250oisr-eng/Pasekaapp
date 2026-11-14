@@ -3531,7 +3531,8 @@ async function commitFullArchiveRestore() {
     await saveQueue;
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Восстановление остановлено.');
     const live = await readMain();
-    if ((live?.meta?.revisionId ?? null) !== window.__pasekaPendingFullArchiveRestore.expectedRevision) {
+    if ((live?.meta?.revisionId ?? null) !== window.__pasekaPendingFullArchiveRestore.expectedRevision ||
+        (S.meta?.revisionId ?? null) !== window.__pasekaPendingFullArchiveRestore.expectedRevision) {
       throw new Error('Рабочая база изменилась после проверки архива. Повторно проверь архив перед восстановлением.');
     }
     setFullArchiveRestoreStatus('Повторно проверяю архив и атомарно заменяю данные…');
@@ -3565,6 +3566,7 @@ async function rollbackFullArchiveImport(backupId) {
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения.');
     const live = await readMain();
     if (!live) throw new Error('Рабочее состояние не найдено.');
+    if ((live.meta?.revisionId ?? null) !== (S.meta?.revisionId ?? null)) throw new Error('Рабочая база изменилась или не совпадает с текущим экраном. Обнови приложение перед отменой восстановления.');
     const result = await PasekaArchiveRestore.rollbackCommittedArchive(
       db, backupId, live.meta?.revisionId ?? null, window.crypto, validateFullArchiveImportState
     );
