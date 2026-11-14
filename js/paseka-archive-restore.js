@@ -867,7 +867,7 @@ async function listArchiveRestoreSessions(db) {
   await transactionDone(tx);
   return rows.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
-async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, allowStaging = false) {
+async function readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, allowStaging) {
   ensureStores(db);
   if (!archiveApi || typeof archiveApi.hashBlobChunks !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
   if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before restore.');
@@ -943,11 +943,15 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   };
 }
 
+async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
+  return readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, false);
+}
+
 async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
   // Validate the complete manifest, state and every Blob outside a write transaction.
   // The short transaction below then proves that the verified staging revision
   // is still the exact revision being finalized.
-  const staged = await getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, true);
+  const staged = await readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, true);
   if (staged.session.status !== 'staging') {
     fail('STAGING_FINALIZE_NOT_ALLOWED', 'Only an interrupted staging session can be finalized.');
   }
