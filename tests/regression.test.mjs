@@ -2835,4 +2835,21 @@ test('entrance video list exposes imported videos whose hive reference is orphan
   assert.match(host.innerHTML, /Улей из архива не найден/);
   assert.match(host.innerHTML, /Сохранённый ID улья из архива: removed-hive/);
   assert.match(host.innerHTML, /orphan-video/);
+
+  const resolvedHost = { innerHTML: '' };
+  const resolved = loadFunction('refreshEntranceVideos', {
+    $: id => id === 'entranceVideoList' ? resolvedHost : select,
+    listEntranceVideos: async () => [{
+      id: 'orphan-video', hiveId: 'removed-hive', orphanedHiveReference: true,
+      capturedAt: '2026-11-14T09:00:00.000Z', durationSec: 30, width: 640, height: 480,
+      bytes: 12, status: 'waiting_for_server'
+    }],
+    S: { hives: [{ id: 'removed-hive' }] },
+    safe: value => String(value ?? ''),
+    hname: id => 'Улей ' + id,
+    entranceBytes: () => '12 Б'
+  });
+  await resolved();
+  assert.match(resolvedHost.innerHTML, /Улей removed-hive/);
+  assert.doesNotMatch(resolvedHost.innerHTML, /Улей из архива не найден/);
 });
