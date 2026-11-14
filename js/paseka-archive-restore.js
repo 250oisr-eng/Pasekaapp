@@ -67,7 +67,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   const history = await getHistory(db, checked.backupId);
   if (history) {
     if (history.fingerprint !== fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
-    fail('ALREADY_IMPORTED', 'This archive has already been imported.');
+    if (history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
   }
   const existing = await findSessionByBackupId(db, checked.backupId);
   if (existing) {
@@ -196,7 +196,8 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
             const session = values.session;
             const records = values.stagedRecords || [];
-            if (values.history) fail('ALREADY_IMPORTED', 'This archive has already been imported.');
+            if (values.history && values.history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
+            if (values.history && values.history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
             if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
             if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
             if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
@@ -271,7 +272,8 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
               status: 'committed',
               schemaVersion: session.schemaVersion,
               archiveBytes: session.archiveBytes,
-              rollbackSessionId
+              rollbackSessionId,
+              importSessionId: sessionId
             };
             historyStore.put(historyRecord);
             stagingStore.put({ ...session, status: 'committed', committedAt: now, importedRevisionId: state.meta.revisionId, rollbackSessionId });
