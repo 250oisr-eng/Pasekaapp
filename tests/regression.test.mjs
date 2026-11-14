@@ -994,6 +994,8 @@ test('journal inspection metrics preserve unchanged historical values after prof
  assert.equal(validate({...old,text:'Дополнена заметка'},state,old).ok,true);
  const changed=validate({...old,occupancy:7,text:'Дополнена заметка'},state,old);
  assert.ok(changed.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
+ const moved=validate({...old,hive:'h2',text:'Перенос записи'}, {hives:[...state.hives,{id:'h2',profile:{brood:{framesPerBox:6}}}],families:[],records:[]},old);
+ assert.ok(moved.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
 });
 
 test('journal draft validator rejects impossible calendar dates and unsupported record types',()=>{
