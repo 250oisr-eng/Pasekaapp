@@ -392,3 +392,21 @@ test('entrance metadata rejects coercible strings, nulls and booleans', () => {
   assert.equal(malformedMime.ok,false);
   assert.ok(malformedMime.errors.some(x=>x.code==='invalid_mime_type'));
 });
+
+test('entrance metrics reject coerced duration and confidence values', () => {
+  assert.equal(entrance.computeMetrics([], '60').ok,false);
+  assert.equal(entrance.computeMetrics([], null).ok,false);
+  for (const confidence of ['0.99', null, true]) {
+    const result=entrance.computeMetrics([
+      {id:'bad',className:'bee',direction:'in',confidence,pollen:true}
+    ],60);
+    assert.equal(result.ok,true);
+    assert.equal(result.counts.returningBeeTracks,0);
+    assert.equal(result.quality.countReliable,false);
+  }
+  const mixed=entrance.computeMetrics([
+    {id:'same',className:'bee',direction:'in',confidence:'0.99'},
+    {id:'same',className:'bee',direction:'in',confidence:0.8}
+  ],60);
+  assert.equal(mixed.counts.returningBeeTracks,1);
+});
