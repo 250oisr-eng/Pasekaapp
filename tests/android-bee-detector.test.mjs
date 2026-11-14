@@ -90,12 +90,12 @@ test('Android CI uses the Capacitor 8 JavaScript and Android toolchain',()=>{
 test('Capacitor 8 Gradle patcher upgrades a generated project deterministically',()=>{
  const patched=patchAndroidGradleSources(
   "buildscript { dependencies { classpath 'com.android.tools.build:gradle:8.6.1' } }",
-  "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip\\n"
+  "distributionUrl=https://services.gradle.org/distributions/gradle-8.7-all.zip"
  );
- assert.match(patched.buildGradle,/com\\.android\\.tools\\.build:gradle:8\\.13\\.0/);
- assert.match(patched.wrapperProperties,/gradle-8\\.14\\.3-all\\.zip/);
+ assert.ok(patched.buildGradle.includes('com.android.tools.build:gradle:8.13.0'));
+ assert.ok(patched.wrapperProperties.includes('gradle-8.14.3-all.zip'));
  assert.throws(()=>patchAndroidGradleSources(
-  "classpath 'com.android.tools.build:gradle:8.6.1'\\nclasspath 'com.android.tools.build:gradle:8.6.1'",
-  "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-all.zip\\n"
+  "classpath 'com.android.tools.build:gradle:8.6.1'\nclasspath 'com.android.tools.build:gradle:8.6.1'",
+  "distributionUrl=https://services.gradle.org/distributions/gradle-8.7-all.zip"
  ),/Expected exactly one/);
 });
