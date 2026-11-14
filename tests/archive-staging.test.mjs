@@ -32,11 +32,13 @@ function openTestDb(name) {
 function put(db, storeName, value, key) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite');
-    if (key === undefined) tx.objectStore(storeName).put(value);
-    else tx.objectStore(storeName).put(value, key);
+    const request = key === undefined
+      ? tx.objectStore(storeName).put(value)
+      : tx.objectStore(storeName).put(value, key);
+    request.onerror = () => reject(request.error || new Error('IndexedDB put failed.'));
     tx.oncomplete = resolve;
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed.'));
+    tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted.'));
   });
 }
 function get(db, storeName, key) {
