@@ -238,3 +238,59 @@ test('orphan audit reports dangling references and never classifies them as dele
   assert.deepEqual(report.missingReferences, [{ blobId: 'missing-photo', referenceCount: 1, referencedBy: ['main'] }]);
   db.close();
 });
+
+
+test('orphan audit safely traverses cyclic records and counts each blob reference once', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-cyclic-audit', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  await Media.putImage(db, { id: 'cycle-photo', blob: image([7, 8]) }, webcrypto);
+  const cyclicRecord = { blobId: 'cycle-photo', nested: { blobId: 'cycle-photo' } };
+  cyclicRecord.self = cyclicRecord;
+  const write = db.transaction('main', 'readwrite');
+  write.objectStore('main').put(cyclicRecord, 'cyclic');
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.referencedCount, 1);
+  assert.equal(report.orphanedCount, 0);
+  assert.equal(report.referenced[0].referenceCount, 2);
+  assert.deepEqual(report.referenced[0].referencedBy, ['main']);
+  db.close();
+});
+
+test('orphan audit rejects an aborted readonly transaction instead of returning a partial report', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-aborted-audit', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  const abortingDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      tx.abort();
+      return tx;
+    }
+  };
+  await assert.rejects(Media.auditOrphanedImages(abortingDb));
+  db.close();
+});
