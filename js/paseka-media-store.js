@@ -138,7 +138,71 @@ async function measureStorage(db) {
     sizeBytes: total.sizeBytes + (Number.isSafeInteger(record.sizeBytes) && record.sizeBytes >= 0 ? record.sizeBytes : 0)
   }), { count: 0, sizeBytes: 0 });
 }
-const api = Object.freeze({ STORE, SCHEMA_VERSION, DEFAULT_MAX_IMAGE_BYTES, putImage, getImage, listImages, measureStorage });
+
+function collectBlobReferences(value, storeName, references, seen) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) collectBlobReferences(item, storeName, references, seen);
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'blobId' && typeof child === 'string' && child.trim()) {
+      const entry = references.get(child) || { id: child, count: 0, stores: new Set() };
+      entry.count++;
+      entry.stores.add(storeName);
+      references.set(child, entry);
+    } else if (child && typeof child === 'object') {
+      collectBlobReferences(child, storeName, references, seen);
+    }
+  }
+}
+async function auditOrphanedImages(db) {
+  assertDatabase(db);
+  const storeNames = Array.from(db.objectStoreNames).filter(name => name !== STORE);
+  if (!storeNames.length) fail('MEDIA_REFERENCE_STORES_UNAVAILABLE', 'No application data stores are available for a safe reference audit.');
+  const tx = db.transaction([...storeNames, STORE], 'readonly');
+  const done = transactionResult(tx);
+  const requests = storeNames.map(name => [name, requestResult(tx.objectStore(name).getAll())]);
+  const blobRequest = requestResult(tx.objectStore(STORE).getAll());
+  const values = await Promise.all([...requests.map(item => item[1]), blobRequest, done]);
+  const references = new Map();
+  for (let i = 0; i < storeNames.length; i++) {
+    const name = storeNames[i];
+    for (const record of values[i] || []) collectBlobReferences(record, name, references, new WeakSet());
+  }
+  const blobs = values[storeNames.length] || [];
+  const byId = new Map(blobs.filter(record => record && typeof record.id === 'string').map(record => [record.id, record]));
+  const orphaned = [];
+  const referenced = [];
+  for (const record of blobs) {
+    if (!record || typeof record.id !== 'string') continue;
+    const reference = references.get(record.id);
+    const item = { ...metadataOf(record), referenceCount: reference?.count || 0, referencedBy: reference ? [...reference.stores].sort() : [] };
+    if (reference) referenced.push(item);
+    else orphaned.push(item);
+  }
+  const missingReferences = [...references.values()]
+    .filter(reference => !byId.has(reference.id))
+    .map(reference => ({ blobId: reference.id, referenceCount: reference.count, referencedBy: [...reference.stores].sort() }))
+    .sort((a, b) => a.blobId.localeCompare(b.blobId));
+  orphaned.sort((a, b) => a.id.localeCompare(b.id));
+  referenced.sort((a, b) => a.id.localeCompare(b.id));
+  return Object.freeze({
+    mode: 'read-only-audit',
+    readOnly: true,
+    deletionPerformed: false,
+    blobCount: blobs.length,
+    referencedCount: referenced.length,
+    orphanedCount: orphaned.length,
+    missingReferenceCount: missingReferences.length,
+    referenced,
+    orphaned,
+    missingReferences
+  });
+}
+
+const api = Object.freeze({ STORE, SCHEMA_VERSION, DEFAULT_MAX_IMAGE_BYTES, putImage, getImage, listImages, measureStorage, auditOrphanedImages });
 root.PasekaMediaStore = api;
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
