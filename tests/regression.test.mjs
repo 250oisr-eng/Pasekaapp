@@ -7,6 +7,7 @@ const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const mediaReferenceSwitchSource = await readFile(new URL('../js/paseka-media-reference-switch.js', import.meta.url), 'utf8');
 const archiveRestoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
+const sha256Source = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
@@ -2707,6 +2708,16 @@ test('IndexedDB v3 upgrades to v8 with archive staging, history, snapshots, imag
   assert.equal(tx.objectStore('archive_staging').indexNames.contains('backupId'), true);
   assert.equal(tx.objectStore('archive_staging').index('backupId').unique, true);
   deps.db.close();
+});
+
+test('incremental SHA-256 is loaded and cached before media integrity modules', () => {
+  const shaTag = '<script src="./js/paseka-sha256.js"></script>';
+  assert.ok(html.includes(shaTag));
+  assert.ok(serviceWorker.includes("'./js/paseka-sha256.js'"));
+  assert.ok(html.indexOf(shaTag) < html.indexOf('<script src="./js/paseka-archive-restore.js"></script>'));
+  assert.ok(html.indexOf(shaTag) < html.indexOf('<script src="./js/paseka-media-store.js"></script>'));
+  assert.ok(sha256Source.includes('const CHUNK_BYTES = 1024 * 1024'));
+  assert.ok(sha256Source.includes('class Sha256'));
 });
 
 test('archive staging manager is loaded and cached for offline startup', () => {
