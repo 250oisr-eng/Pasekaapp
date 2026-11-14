@@ -1100,6 +1100,11 @@ test('a fully persisted staging session can be explicitly verified and finalized
     Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
     { code: 'STAGING_SESSION_INCOMPLETE' }
   );
+  // The public read API must not expose the internal interrupted-session mode.
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true, true),
+    { code: 'STAGING_SESSION_INCOMPLETE' }
+  );
   await assert.rejects(
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
     { code: 'INCOMPLETE_STAGING_EXISTS' }
