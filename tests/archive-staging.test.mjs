@@ -320,6 +320,9 @@ test('atomic archive commit replaces state and entrance videos while preserving 
   assert.equal(historyList[0].backupId, 'backup-atomic-commit');
   assert.equal(historyList[0].status, 'committed');
   assert.equal(committedSession.status, 'committed');
+  const retainedStageRows = (await getAll(db, 'archive_staging')).filter(record => record.sessionId === staged.session.sessionId);
+  assert.equal(retainedStageRows.length, 1);
+  assert.equal(retainedStageRows[0].kind, 'session');
   assert.equal(rollbackSession.kind, 'rollback_session');
   assert.equal(rollbackState.state.meta.revisionId, 'live-revision');
   assert.equal(rollbackVideo.record.id, 'live-video');
@@ -430,23 +433,6 @@ test('atomic rollback refuses a stale revision and preserves the imported state'
 });
 
 
-test('full archive restore UI requires staging, explicit confirmation, and offers rollback', async () => {
-  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.ok(html.includes('id="fullArchiveFile"'));
-  assert.ok(html.includes('onclick="prepareFullArchiveRestore()"'));
-  assert.ok(html.includes('onclick="commitFullArchiveRestore()"'));
-  assert.ok(html.includes('onclick="cancelFullArchiveRestore()"'));
-  assert.ok(html.includes('function validateFullArchiveImportState(state)'));
-  assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
-  assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
-  assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
-  assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
-  assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
-  assert.ok(html.includes('function archiveRestoreErrorText(error)'));
-  assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
-});
-
-
 test('rollback snapshot cleanup refuses an incomplete snapshot without deleting it', async () => {
   const db = await openTestDb('paseka-stage-rollback-cleanup-tamper');
   const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [] };
@@ -465,4 +451,20 @@ test('rollback snapshot cleanup refuses an incomplete snapshot without deleting 
   assert.ok(await get(db, 'archive_staging', committed.rollbackSessionId));
   assert.equal((await get(db, 'archive_history', 'backup-rollback-cleanup-tamper')).rollbackSessionId, committed.rollbackSessionId);
   db.close();
+
+
+test('full archive restore UI requires staging, explicit confirmation, and offers rollback', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="fullArchiveFile"'));
+  assert.ok(html.includes('onclick="prepareFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="commitFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="cancelFullArchiveRestore()"'));
+  assert.ok(html.includes('function validateFullArchiveImportState(state)'));
+  assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
+  assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
+  assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  assert.ok(html.includes('function archiveRestoreErrorText(error)'));
+  assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
 });
