@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { patchAndroidGradleSources } from '../scripts/patch-android-gradle.mjs';
 
-test('Android toolchain patch upgrades AGP and Gradle wrapper for API 35', () => {
+test('Android toolchain patch upgrades AGP and Gradle wrapper for API 36', () => {
   const result = patchAndroidGradleSources(
     "buildscript { dependencies { classpath 'com.android.tools.build:gradle:8.2.1' } }",
     'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.2.1-all.zip\n'
   );
-  assert.match(result.buildGradle, /com\.android\.tools\.build:gradle:8\.6\.1/);
-  assert.match(result.wrapperProperties, /gradle-8\.7-all\.zip/);
+  assert.match(result.buildGradle, /com\.android\.tools\.build:gradle:8\.13\.0/);
+  assert.match(result.wrapperProperties, /gradle-8\.14\.3-all\.zip/);
 });
 
 test('Android toolchain patch refuses an unknown AGP template', () => {

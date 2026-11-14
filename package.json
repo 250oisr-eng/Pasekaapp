@@ -10,12 +10,12 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "6.2.1",
-    "@capacitor/core": "6.2.1",
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2",
     "@paseka/capacitor-bee-detector": "file:./capacitor-bee-detector"
   },
   "devDependencies": {
-    "@capacitor/cli": "6.2.1",
+    "@capacitor/cli": "8.6.2",
     "fake-indexeddb": "6.2.4"
   }
 }

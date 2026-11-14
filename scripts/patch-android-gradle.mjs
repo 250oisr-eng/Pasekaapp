@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const AGP_VERSION = '8.6.1';
-const GRADLE_VERSION = '8.7';
+const AGP_VERSION = '8.13.0';
+const GRADLE_VERSION = '8.14.3';
 
 export function patchAndroidGradleSources(buildGradle, wrapperProperties) {
   const agpPattern = /(classpath\s+['"]com\.android\.tools\.build:gradle:)[^'"]+(['"])/g;
@@ -43,7 +43,7 @@ async function main() {
     fs.writeFile(buildPath, patched.buildGradle),
     fs.writeFile(wrapperPath, patched.wrapperProperties)
   ]);
-  console.log('Android Gradle Plugin ' + AGP_VERSION + '; Gradle ' + GRADLE_VERSION + '; target API 35 compatibility toolchain configured.');
+  console.log('Capacitor 8 Android toolchain configured: AGP ' + AGP_VERSION + '; Gradle ' + GRADLE_VERSION + '; compile/target API 36.');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
