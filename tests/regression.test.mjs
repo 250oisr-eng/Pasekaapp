@@ -2684,3 +2684,17 @@ test('archive staging manager is loaded and cached for offline startup', () => {
   assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
   assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
 });
+
+
+test('full archive restore UI requires staging, explicit confirmation, and offers rollback', () => {
+  assert.ok(html.includes('id="fullArchiveFile"'));
+  assert.ok(html.includes('onclick="prepareFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="commitFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="cancelFullArchiveRestore()"'));
+  assert.ok(html.includes('function validateFullArchiveImportState(state)'));
+  assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
+  assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
+  assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
+});
