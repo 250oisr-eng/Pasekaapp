@@ -69,6 +69,9 @@ test('intentional full data deletion clears the startup marker before deleting t
  assert.ok(deleteIndex>=0&&clearIndex>deleteIndex&&databaseDeleteIndex>clearIndex&&reloadIndex>databaseDeleteIndex);
  assert.ok(html.includes("Хранилище настроек недоступно; база не удалена."));
 });
+test('full data deletion confirmation explicitly includes all local media and backups',()=>{
+ assert.ok(html.includes('включая фотографии, видео летка и внутренние резервные копии'));
+});
 test('automatic backup copy explicitly excludes separately stored entrance videos',()=>{
  assert.ok(html.includes('включая фотографии и видео, прикреплённые к записям журнала и карточкам наблюдений'));
  assert.ok(html.includes('Видео летка хранится отдельно и в эту автокопию не входит'));
