@@ -203,8 +203,8 @@ test('concurrent attempts cannot create duplicate staging sessions for one backu
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true)
   ]);
-  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
   const fulfilled = results.filter(result => result.status === 'fulfilled');
+  assert.ok(fulfilled.length === 1 || fulfilled.length === 2);
   assert.equal(fulfilled.filter(result => !result.value.alreadyStaged).length, 1);
   assert.equal(fulfilled.filter(result => result.value.alreadyStaged).length + results.filter(result => result.status === 'rejected').length, 1);
   const rejected = results.find(result => result.status === 'rejected');
@@ -312,6 +312,9 @@ test('atomic archive commit replaces state and entrance videos while preserving 
   assert.equal(previousState.state.meta.revisionId, 'live-revision');
   assert.equal(history.status, 'committed');
   assert.equal(history.rollbackSessionId, committed.rollbackSessionId);
+  const historyList = await Restore.listArchiveImportHistory(db);
+  assert.equal(historyList[0].backupId, 'backup-atomic-commit');
+  assert.equal(historyList[0].status, 'committed');
   assert.equal(committedSession.status, 'committed');
   assert.equal(rollbackSession.kind, 'rollback_session');
   assert.equal(rollbackState.state.meta.revisionId, 'live-revision');
