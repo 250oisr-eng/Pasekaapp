@@ -297,9 +297,11 @@ test('staged archive rejects duplicate video rows that omit a manifest video', a
   const secondBlob = new Blob([new Uint8Array([51, 52, 53, 54, 55])], { type: 'video/mp4' });
   const secondMetadata = { ...firstVideo.metadata, id: 'video-2', name: 'entrance-2.mp4', bytes: secondBlob.size };
   const secondEntry = {
-    ...firstVideo,
     path: 'entrance-media/000002.blob',
+    kind: 'entrance_video',
     size: secondBlob.size,
+    mimeType: secondBlob.type,
+    chunkSize: firstVideo.chunkSize,
     metadata: secondMetadata,
     chunkSha256: await Archive.hashBlobChunks(secondBlob, webcrypto)
   };
