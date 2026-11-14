@@ -37,7 +37,7 @@ async function verify(db,state,plan,migrationId,cryptoProvider){
   if(blob.sha256!==expected||blob.sourceKey!==sourceKey||blob.blob?.size!==bytes.length||blob.blob?.type!==match[1].toLowerCase()){destinationCorrupted=true;problems.push({candidateId:c.id,code:'METADATA_MISMATCH'});continue}
   if(await sha(blob.blob,cryptoProvider)!==expected){destinationCorrupted=true;problems.push({candidateId:c.id,code:'BLOB_CHECKSUM_MISMATCH'});continue}
   usedBlobIds.add(blob.id);
-  verified.push({candidateId:c.id,blobId:blob.id,sha256:expected,sizeBytes:bytes.length});
+  verified.push({candidateId:c.id,blobId:blob.id,sha256:expected,sizeBytes:bytes.length,mimeType:match[1].toLowerCase()});
  }
  const unexpected=ownedJournals.filter(j=>!plan.candidates.some(c=>c.id===j.candidateId));
  if(unexpected.length)problems.push({code:'UNEXPECTED_JOURNAL_ENTRIES',count:unexpected.length});
