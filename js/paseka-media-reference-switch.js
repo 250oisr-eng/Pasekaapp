@@ -59,6 +59,9 @@ async function switchOne(db,{candidate,migrationId,verifiedItem,expectedRevision
  const sourceSha=await sha(new Blob([decoded.bytes],{type:decoded.mimeType}),cryptoProvider);
  if(sourceSha!==verifiedItem.sha256||decoded.mimeType!==verifiedItem.mimeType||decoded.bytes.byteLength!==verifiedItem.sizeBytes)fail('SOURCE_CHANGED','The legacy photo no longer matches the verified copy.');
  if(!blobMatches(blob,verifiedItem,migrationId,candidate))fail('DESTINATION_CORRUPTED','The copied Blob does not match the verified descriptor.');
+ // Metadata alone is not proof of payload integrity: verify the actual bytes
+ // immediately before preparing the atomic reference switch.
+ if(await sha(blob.blob,cryptoProvider)!==verifiedItem.sha256)fail('DESTINATION_CORRUPTED','The copied Blob content does not match its SHA-256 descriptor.');
  const checkpoints=copyRows.filter(x=>x?.migrationId===migrationId&&x?.candidateId===candidate.id&&x?.sourceKey===sourceKey(candidate)&&x?.status==='completed'&&x?.blobId===verifiedItem.blobId&&x?.sha256===verifiedItem.sha256);
  if(checkpoints.length!==1)fail('COPY_CHECKPOINT_INVALID','Exactly one completed copy checkpoint is required.');
  const nextState=clone(state),nextMedia=locate(nextState,candidate);
