@@ -12,7 +12,7 @@
   ],
   "license": "UNLICENSED",
   "peerDependencies": {
-    "@capacitor/core": "^6.2.1"
+    "@capacitor/core": "^8.0.0"
   },
   "capacitor": {
     "android": {
