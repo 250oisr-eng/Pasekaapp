@@ -154,6 +154,34 @@ test('skips a snapshot larger than the total budget without deleting existing re
   db.close();
 });
 
+test('preserves verified recovery points when IndexedDB quota is exceeded', async () => {
+  const db = await openDb('snapshot-quota-failure');
+  await put(db, 'main', fixture('main-1', 'current'), 'state');
+  const first = await Snapshots.writeSnapshot(db, fixture('rev-safe', 'verified'), 'main-1', webcrypto);
+  const storePrototype = Object.getPrototypeOf(db.transaction('auto_snapshots', 'readonly').objectStore('auto_snapshots'));
+  const originalPut = storePrototype.put;
+  storePrototype.put = function (value, ...args) {
+    if (this.name === 'auto_snapshots' && value?.id === 'rev-quota') {
+      throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
+    }
+    return originalPut.call(this, value, ...args);
+  };
+  try {
+    await put(db, 'main', fixture('main-2', 'current'), 'state');
+    await assert.rejects(
+      Snapshots.writeSnapshot(db, fixture('rev-quota', 'new'), 'main-2', webcrypto),
+      error => error.code === 'SNAPSHOT_QUOTA_EXCEEDED'
+    );
+  } finally {
+    storePrototype.put = originalPut;
+  }
+  const items = await Snapshots.listSnapshots(db);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, first.snapshot.id);
+  assert.equal((await Snapshots.getLatestValidSnapshot(db, webcrypto)).snapshot.id, first.snapshot.id);
+  db.close();
+});
+
 test('treats an unserializable legacy snapshot as oversized during rotation', async () => {
   const db = await openDb('snapshot-invalid-legacy-size');
   await put(db, 'main', fixture('main-1', 'current'), 'state');
