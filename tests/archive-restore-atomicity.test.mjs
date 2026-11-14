@@ -985,7 +985,7 @@ test('rollback re-hashes snapshot video bytes under the final transaction lock',
 });
 
 
-test('Phase B lock blocks concurrent rollback snapshot mutation until byte verification finishes', async () => {
+test('rollback detects concurrent snapshot mutation without holding a write transaction during hashing', async () => {
   const db = await makeDatabase();
   await seedRollback(db);
   const snapshotBlob = new Blob(['previous'], { type: 'video/mp4' });
@@ -1034,26 +1034,22 @@ test('Phase B lock blocks concurrent rollback snapshot mutation until byte verif
       });
     }
   };
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(competingWriteExecuted, false, 'competing write must wait behind the rollback transaction');
+  await competingWriteDone;
+  assert.equal(competingWriteExecuted, true, 'the short readonly/hash phase must not block unrelated writes');
 
   hasherGate.release();
-  const rolledBack = await rollback;
-  await competingWriteDone;
-
-  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
-  assert.equal(competingWriteExecuted, true);
+  await assert.rejects(rollback, error => error.code === 'ROLLBACK_SNAPSHOT_CONTENT_CHANGED');
   const verify = db.transaction('archive_staging', 'readonly');
   const remaining = await new Promise((resolve, reject) => {
     const request = verify.objectStore('archive_staging').get('rollback-1:video:previous');
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-  assert.equal(remaining, undefined, 'the queued writer must not recreate a consumed rollback snapshot');
+  assert.equal(await remaining.record.blob.text(), 'TAMPERED', 'rollback must refuse to consume a snapshot changed during verification');
   db.close();
 });
 
-test('Phase B hash failure aborts rollback and retains the complete rollback snapshot', async () => {
+test('snapshot hash failure before commit preserves the complete rollback snapshot', async () => {
   const db = await makeDatabase();
   await seedRollback(db);
   const snapshotBlob = new Blob(['previous'], { type: 'video/mp4' });
