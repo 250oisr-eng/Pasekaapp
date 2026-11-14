@@ -187,6 +187,117 @@ async function verifyArchive(blob, parsed, cryptoProvider) {
   for (const entry of parsed.entries) await verifyArchiveEntry(blob, entry, cryptoProvider);
   return true;
 }
+function readConsistentDatabaseSnapshot(db) {
+  return new Promise((resolve, reject) => {
+    let tx, stateRequest, videosRequest, state, videos, settled = false;
+    const rejectOnce = error => { if (!settled) { settled = true; reject(error); } };
+    try {
+      if (!db || !db.objectStoreNames || !db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('entrance_media')) {
+        fail('DATABASE_STORES_MISSING', 'Required Paseka database stores are unavailable.');
+      }
+      tx = db.transaction(['main', 'entrance_media'], 'readonly');
+      stateRequest = tx.objectStore('main').get('state');
+      videosRequest = tx.objectStore('entrance_media').getAll();
+      stateRequest.onsuccess = () => { state = stateRequest.result || null; };
+      videosRequest.onsuccess = () => { videos = Array.isArray(videosRequest.result) ? videosRequest.result : []; };
+      stateRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(stateRequest.error || error); } };
+      videosRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(videosRequest.error || error); } };
+      tx.oncomplete = () => {
+        if (settled) return;
+        settled = true;
+        if (!state || typeof state !== 'object' || Array.isArray(state)) {
+          reject(new Error('Основное состояние пасеки не найдено. Экспорт отменён.'));
+          return;
+        }
+        resolve({ state, videos });
+      };
+      tx.onabort = () => rejectOnce(tx.error || stateRequest.error || videosRequest.error || new Error('Чтение согласованной копии базы прервано.'));
+      tx.onerror = () => rejectOnce(tx.error || new Error('Не удалось прочитать согласованную копию базы.'));
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+}
+function archiveVideoMetadata(record) {
+  if (!isObject(record)) fail('INVALID_VIDEO_RECORD', 'Entrance video record is invalid.');
+  const keys = ['id', 'hiveId', 'capturedAt', 'durationSec', 'width', 'height', 'bytes', 'mimeType', 'name', 'status', 'queueCreatedAt', 'retryCount', 'lastAttemptAt', 'nextAttemptAt', 'lastError', 'metadataCheck', 'frameQualityCheck'];
+  const metadata = {};
+  for (const key of keys) if (record[key] !== undefined) metadata[key] = record[key];
+  return metadata;
+}
+function createBackupId(cryptoProvider) {
+  if (!cryptoProvider || typeof cryptoProvider.getRandomValues !== 'function') fail('CRYPTO_UNAVAILABLE', 'Secure random number generation is unavailable.');
+  const bytes = new Uint8Array(16);
+  cryptoProvider.getRandomValues(bytes);
+  return bytesToHex(bytes);
+}
+async function exportArchiveFromDatabase(db, cryptoProvider, options = {}) {
+  const snapshot = await readConsistentDatabaseSnapshot(db);
+  const stateVersion = snapshot.state.meta && snapshot.state.meta.schemaVersion;
+  if (!Number.isSafeInteger(stateVersion) || stateVersion < 1 || stateVersion > 12) {
+    fail('UNSUPPORTED_STATE_SCHEMA', 'The saved Paseka state has an unsupported schema version.');
+  }
+  const stateBlob = new Blob([JSON.stringify({ app: 'Paseka', state: snapshot.state })], { type: 'application/json' });
+  if (stateBlob.size < 1 || stateBlob.size > LIMITS.maxStateBytes) fail('STATE_SIZE_LIMIT', 'Saved Paseka state exceeds the archive limit.');
+  const sortedVideos = snapshot.videos.slice().sort((a, b) =>
+    String(a && a.capturedAt || '').localeCompare(String(b && b.capturedAt || '')) ||
+    String(a && a.id || '').localeCompare(String(b && b.id || ''))
+  );
+  if (sortedVideos.length + 1 > LIMITS.maxEntries) fail('ENTRY_COUNT_LIMIT', 'Too many entrance videos for one archive.');
+  const entries = [{
+    path: 'state.json',
+    kind: 'state',
+    size: stateBlob.size,
+    mimeType: 'application/json',
+    chunkSize: CHUNK_BYTES,
+    chunkSha256: await hashBlobChunks(stateBlob, cryptoProvider)
+  }];
+  const payloads = [stateBlob];
+  for (let index = 0; index < sortedVideos.length; index++) {
+    const record = sortedVideos[index];
+    if (!record || !record.blob || typeof record.blob.slice !== 'function' || !Number.isSafeInteger(record.blob.size)) {
+      fail('VIDEO_BLOB_MISSING', 'An entrance-video record has no readable original: ' + String(record && record.id || index));
+    }
+    if (record.blob.size < 1 || record.blob.size > LIMITS.maxVideoBytes) fail('VIDEO_SIZE_LIMIT', 'An entrance video is outside the supported size range.');
+    const metadata = archiveVideoMetadata(record);
+    metadata.bytes = record.bytes;
+    const mimeType = String(record.mimeType || record.blob.type || '');
+    if (!mimeType || mimeType !== record.blob.type && record.blob.type) fail('INVALID_ENTRY_MIME', 'Entrance-video MIME type is inconsistent.');
+    metadata.mimeType = mimeType;
+    const entry = {
+      path: 'entrance-media/' + String(index + 1).padStart(6, '0') + '.blob',
+      kind: 'entrance_video',
+      size: record.blob.size,
+      mimeType,
+      chunkSize: CHUNK_BYTES,
+      chunkSha256: await hashBlobChunks(record.blob, cryptoProvider),
+      metadata
+    };
+    entries.push(entry);
+    payloads.push(record.blob);
+  }
+  const manifest = {
+    format: FORMAT,
+    version: VERSION,
+    backupId: options.backupId || createBackupId(cryptoProvider),
+    createdAt: options.createdAt || new Date().toISOString(),
+    schemaVersion: stateVersion,
+    entries
+  };
+  const blob = buildArchiveBlob(manifest, payloads);
+  return {
+    blob,
+    manifest,
+    summary: {
+      backupId: manifest.backupId,
+      createdAt: manifest.createdAt,
+      schemaVersion: manifest.schemaVersion,
+      videoCount: sortedVideos.length,
+      archiveBytes: blob.size
+    }
+  };
+}
+
 function readArchiveEntry(blob, entry) {
   if (!blob || typeof blob.slice !== 'function' || !entry || !Number.isSafeInteger(entry.offset) || !Number.isSafeInteger(entry.size) || entry.offset < 0 || entry.size < 1 || entry.end !== entry.offset + entry.size || entry.end > blob.size) fail('INVALID_ENTRY', 'Invalid archive entry bounds.');
   return blob.slice(entry.offset, entry.end, entry.mimeType || '');
@@ -194,6 +305,7 @@ function readArchiveEntry(blob, entry) {
 
 root.PasekaArchive = Object.freeze({
   MAGIC_TEXT, FORMAT, VERSION, HEADER_BYTES, CHUNK_BYTES, LIMITS,
-  hashBlobChunks, buildArchiveBlob, parseArchiveBlob, verifyArchiveEntry, verifyArchive, readArchiveEntry
+  hashBlobChunks, buildArchiveBlob, parseArchiveBlob, verifyArchiveEntry, verifyArchive, readArchiveEntry,
+  readConsistentDatabaseSnapshot, exportArchiveFromDatabase
 });
 })(typeof window !== 'undefined' ? window : globalThis);
