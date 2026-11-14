@@ -193,40 +193,58 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   };
   let sessionCreated = false;
   try {
-    // Capture the live video baseline and create the staging session under one
-    // IndexedDB write lock. Any later video add/delete makes commit refuse to
-    // clear the library instead of silently losing work created during staging.
+    // Read and hash the live media outside IndexedDB transactions. Never keep a
+    // readwrite transaction alive across Blob I/O or asynchronous SHA-256.
+    const baselineReadTx = db.transaction('entrance_media', 'readonly');
+    const baselineReadDone = transactionDone(baselineReadTx);
+    const baselineRows = await requestValue(baselineReadTx.objectStore('entrance_media').getAll());
+    await baselineReadDone;
+    const baselineRecords = await Promise.all((baselineRows || []).map(async record => {
+      if (!record || !record.blob || typeof record.blob.slice !== 'function') {
+        fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob. The archive import was not staged.');
+      }
+      const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+      if (record.blobSha256 !== undefined &&
+          (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
+        fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum. The archive import was not staged.');
+      }
+      return { ...record, blobSha256: actualHash };
+    }));
+    session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRecords);
+
+    // Re-read under a short write lock. All checks and puts below are
+    // synchronous request-callback work; supported media writers persist their
+    // own SHA-256, so a concurrent content replacement is detected here.
     const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
     const baselineStore = baselineTx.objectStore('entrance_media');
     const baselineRequest = baselineStore.getAll();
     let baselineFailure = null;
     baselineRequest.onsuccess = () => {
-      // Legacy video rows may predate persisted checksums. Hash their actual
-      // immutable Blob bytes while the readwrite transaction is held open,
-      // then persist the checksum in that same transaction. This makes the
-      // later Phase B fingerprint detect same-size/same-MIME content swaps.
-      const stopKeepAlive = holdTransactionOpen(baselineTx, baselineStore);
-      Promise.all((baselineRequest.result || []).map(async record => {
-        if (!record || !record.blob || typeof record.blob.slice !== 'function') {
-          fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob. The archive import was not staged.');
+      try {
+        const currentRows = baselineRequest.result || [];
+        const expectedById = new Map(baselineRecords.map(record => [record.id, record]));
+        if (currentRows.length !== baselineRecords.length ||
+            currentRows.some(record => !record || !expectedById.has(record.id))) {
+          fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was not staged.');
         }
-        const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
-        if (record.blobSha256 !== undefined &&
-            (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
-          fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum. The archive import was not staged.');
+        const normalizedRows = currentRows.map(record => {
+          const expected = expectedById.get(record.id);
+          if (record.blobSha256 !== undefined && record.blobSha256 !== expected.blobSha256) {
+            fail('RESTORE_MEDIA_CHANGED', 'A video changed while the archive was being prepared. The import was not staged.');
+          }
+          return { ...record, blobSha256: expected.blobSha256 };
+        });
+        if (mediaRecordsFingerprint(normalizedRows) !== session.baselineMediaFingerprint) {
+          fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was not staged.');
         }
-        const normalized = { ...record, blobSha256: actualHash };
-        baselineStore.put(normalized);
-        return normalized;
-      })).then(records => {
-        session.baselineMediaFingerprint = mediaRecordsFingerprint(records);
-        stopKeepAlive();
+        for (const record of normalizedRows) {
+          if (currentRows.find(current => current.id === record.id)?.blobSha256 === undefined) baselineStore.put(record);
+        }
         baselineTx.objectStore(STAGING_STORE).add(session);
-      }).catch(error => {
+      } catch (error) {
         baselineFailure = error;
-        stopKeepAlive();
         try { baselineTx.abort(); } catch (ignored) {}
-      });
+      }
     };
     try {
       await transactionDone(baselineTx);
