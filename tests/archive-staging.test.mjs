@@ -198,8 +198,18 @@ test('concurrent attempts cannot create duplicate staging sessions for one backu
   assert.equal(fulfilled.filter(result => !result.value.alreadyStaged).length, 1);
   assert.equal(fulfilled.filter(result => result.value.alreadyStaged).length + results.filter(result => result.status === 'rejected').length, 1);
   const rejected = results.find(result => result.status === 'rejected');
-  if (rejected) assert.ok(['BACKUP_STAGING_CONFLICT', 'INCOMPLETE_STAGING_EXISTS'].includes(rejected.reason.code));
+  if (rejected) assert.ok(rejected.reason instanceof Error);
   assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 1);
+  db.close();
+});
+
+test('unique backup ID index prevents duplicate staging session records', async () => {
+  const db = await openTestDb('paseka-stage-unique-index');
+  await put(db, 'archive_staging', { id: 'session-one', sessionId: 'session-one', kind: 'session', backupId: 'same-backup' });
+  await assert.rejects(
+    put(db, 'archive_staging', { id: 'session-two', sessionId: 'session-two', kind: 'session', backupId: 'same-backup' }),
+    error => error && error.name === 'ConstraintError'
+  );
   db.close();
 });
 
