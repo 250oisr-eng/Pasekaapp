@@ -3542,13 +3542,13 @@ async function commitFullArchiveRestore() {
     S = result.state;
     lastPersistedRevision = S.meta?.revisionId || null;
     autoBackupRecovered = false;
-    autoBackupInfo = await readAutoBackup();
+    try { autoBackupInfo = await readAutoBackup(); } catch (backupError) { autoBackupInfo = null; }
     window.__pasekaPendingFullArchiveRestore = null;
     $('fullArchiveRestorePreview').hidden = true;
     $('fullArchiveFile').value = '';
     render();
     setFullArchiveRestoreStatus('Восстановление завершено. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
-    await renderArchiveImportHistory();
+    await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
     setFullArchiveRestoreStatus('Восстановление не выполнено: ' + (error?.message || error) + ' Рабочая база не должна быть заменена частично.');
     if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
@@ -3571,10 +3571,10 @@ async function rollbackFullArchiveImport(backupId) {
     S = result.state;
     lastPersistedRevision = S.meta?.revisionId || null;
     autoBackupRecovered = false;
-    autoBackupInfo = await readAutoBackup();
+    try { autoBackupInfo = await readAutoBackup(); } catch (backupError) { autoBackupInfo = null; }
     render();
     setFullArchiveRestoreStatus('Предыдущее состояние восстановлено. Видео летка: ' + result.restoredVideoCount + '.');
-    await renderArchiveImportHistory();
+    await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
     setFullArchiveRestoreStatus('Отмена восстановления не выполнена: ' + (error?.message || error));
   } finally {
