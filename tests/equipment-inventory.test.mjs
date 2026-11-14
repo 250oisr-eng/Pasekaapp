@@ -80,14 +80,14 @@ test('integrity inspection detects a paired honey set split between hive and sto
 test('integrity inspection detects a paired honey set installed across two hives',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.layouts.h2.corpusIds.H2=pair.bodies[1].id;s.layouts.h2.honeyFrames[1]=[];for(const body of pair.bodies)body.storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_location_mismatch'));});
 
 test('default Farrar profile keeps 180 mm frames distinct from 195 mm brood body height',()=>{
- const appProfile=html.match(/'farrar-6x6-v1':\\{([\\s\\S]*?)\\n \\},/);
+ const appProfile=html.match(/'farrar-6x6-v1':\{([\s\S]*?)\n \},/);
  assert.ok(appProfile,'default Farrar profile exists in the app catalog');
- assert.match(appProfile[1],/frame:\\{[^}]*heightMm:180/);
- assert.match(appProfile[1],/brood:\\{[^}]*boxHeightMm:195/);
- assert.match(appProfile[1],/honey:\\{[^}]*framesPerBox:10/);
- const inventoryProfile=source.match(/const DEFAULT_PROFILE=\\{([\\s\\S]*?)\\};/);
+ assert.match(appProfile[1],/frame:\{[^}]*heightMm:180/);
+ assert.match(appProfile[1],/brood:\{[^}]*boxHeightMm:195/);
+ assert.match(appProfile[1],/honey:\{[^}]*framesPerBox:10/);
+ const inventoryProfile=source.match(/const DEFAULT_PROFILE=\{([\s\S]*?)\};/);
  assert.ok(inventoryProfile,'inventory fallback profile exists');
- assert.match(inventoryProfile[1],/frame:\\{[^}]*heightMm:180/);
- assert.match(inventoryProfile[1],/brood:\\{[^}]*boxHeightMm:195/);
- assert.match(inventoryProfile[1],/honey:\\{[^}]*framesPerBox:10/);
+ assert.match(inventoryProfile[1],/frame:\{[^}]*heightMm:180/);
+ assert.match(inventoryProfile[1],/brood:\{[^}]*boxHeightMm:195/);
+ assert.match(inventoryProfile[1],/honey:\{[^}]*framesPerBox:10/);
 });
