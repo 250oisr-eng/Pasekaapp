@@ -2705,3 +2705,28 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
   assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
 });
+
+
+test('full archive can be shared through the system file share sheet when supported', async () => {
+  const blob = new Blob(['paseka archive']);
+  let shared = null;
+  const status = { textContent: '' };
+  class MockFile extends Blob {
+    constructor(parts, name, options) { super(parts, options); this.name = name; }
+  }
+  const handler = loadFunction('shareFullArchive', {
+    window: { __pasekaFullArchiveBlob: blob },
+    navigator: {
+      canShare: payload => payload.files?.length === 1,
+      async share(payload) { shared = payload; }
+    },
+    File: MockFile,
+    today: () => '2026-11-14',
+    $: () => status
+  });
+  await handler();
+  assert.equal(shared.title, 'Полный архив пасеки');
+  assert.equal(shared.files[0].name, 'paseka-full-backup-2026-11-14.paseka');
+  assert.equal(await shared.files[0].text(), 'paseka archive');
+  assert.match(status.textContent, /Системное меню отправки закрыто/);
+});
