@@ -183,3 +183,18 @@ test('archive staging refuses a database without the dedicated staging stores', 
   );
   db.close();
 });
+
+
+test('concurrent attempts cannot create duplicate staging sessions for one backup ID', async () => {
+  const db = await openTestDb('paseka-stage-concurrent');
+  const archive = await makeArchive('backup-concurrent-1');
+  const results = await Promise.allSettled([
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true)
+  ]);
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  const rejected = results.find(result => result.status === 'rejected');
+  assert.equal(rejected.reason.code, 'BACKUP_STAGING_CONFLICT');
+  assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 1);
+  db.close();
+});
