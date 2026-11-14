@@ -2668,7 +2668,7 @@ test('IndexedDB v3 upgrades to v5 with archive staging, history and rotating sna
   });
   oldDb.close();
   const deps = {
-    DB: 'paseka-upgrade-v3-v4', STORE: 'main', BACKUP_STORE: 'full_backup',
+    DB: 'paseka-upgrade-v3-v5', STORE: 'main', BACKUP_STORE: 'full_backup', AUTO_SNAPSHOT_STORE: 'auto_snapshots',
     db: null, indexedDB: factory
   };
   await loadFunction('openDB', deps)();
