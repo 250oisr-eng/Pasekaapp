@@ -16,8 +16,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Checkout
+      - name: Checkout feature branch
         uses: actions/checkout@v4
+        with:
+          ref: chore/npm-lockfile-bootstrap-2026-11-14
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
