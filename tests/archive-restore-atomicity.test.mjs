@@ -613,25 +613,18 @@ test('archive commit rejects staging metadata changed during Phase A validation'
   const started = deferred();
   const release = deferred();
   let hashCalls = 0;
-  const { staged, cryptoProvider } = await stageMinimalArchive(db, {
-    archiveApiOverrides: {
-      async hashBlobChunks() {
-        hashCalls++;
-        if (hashCalls === 1) {
-          started.resolve();
-          await release.promise;
-        }
-        return [];
-      }
+  const { staged, cryptoProvider, archiveApi } = await stageMinimalArchive(db);
+  archiveApi.hashBlobChunks = async () => {
+    hashCalls++;
+    if (hashCalls === 1) {
+      started.resolve();
+      await release.promise;
     }
-  });
+    return [];
+  };
 
   const pending = api.commitStagedArchive(
-    db, staged.session.id, null, cryptoProvider,
-    {
-      async hashBlobChunks() { return []; }
-    },
-    async () => true
+    db, staged.session.id, null, cryptoProvider, archiveApi, async () => true
   );
   await started.promise;
 
