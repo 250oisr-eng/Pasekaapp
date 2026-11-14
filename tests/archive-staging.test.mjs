@@ -451,6 +451,7 @@ test('rollback snapshot cleanup refuses an incomplete snapshot without deleting 
   assert.ok(await get(db, 'archive_staging', committed.rollbackSessionId));
   assert.equal((await get(db, 'archive_history', 'backup-rollback-cleanup-tamper')).rollbackSessionId, committed.rollbackSessionId);
   db.close();
+});
 
 
 test('full archive restore UI requires staging, explicit confirmation, and offers rollback', async () => {
