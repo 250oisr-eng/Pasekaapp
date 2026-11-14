@@ -286,6 +286,9 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             };
             historyStore.put(historyRecord);
             stagingStore.put({ ...session, status: 'committed', committedAt: now, importedRevisionId: state.meta.revisionId, rollbackSessionId });
+            for (const record of records) {
+              if (record.sessionId === sessionId && record.id !== sessionId) stagingStore.delete(record.id);
+            }
             result = { state, history: historyRecord, rollbackSessionId, previousVideoCount: currentVideos.length };
           } catch (error) {
             stopKeepAlive?.();
@@ -450,13 +453,11 @@ function discardArchiveRollbackSnapshot(db, backupId) {
           pending--;
           if (pending !== 0) return;
           if (!session || session.kind !== 'rollback_session' || session.sourceBackupId !== backupId ||
-              !['ready', 'used'].includes(session.status) || !Array.isArray(keys) ||
-              session.stagedCount !== session.totalEntries || keys.length !== session.totalEntries + 1 ||
-              !keys.includes(rollbackSessionId)) {
+              !['ready', 'used'].includes(session.status)) {
             abortWith(Object.assign(new Error('The rollback snapshot could not be verified and was not deleted.'), { code: 'ROLLBACK_SNAPSHOT_INVALID' }));
             return;
           }
-          for (const key of keys) stagingStore.delete(key);
+          for (const key of keys || []) stagingStore.delete(key);
           historyStore.put({
             ...history,
             rollbackSessionId: null,
