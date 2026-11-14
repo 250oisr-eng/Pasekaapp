@@ -281,6 +281,8 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
               status: 'committed',
               schemaVersion: session.schemaVersion,
               archiveBytes: session.archiveBytes,
+              videoCount: videoRecords.length,
+              orphanedVideoCount: videoRecords.filter(record => !importedHiveIds.has(record.metadata.hiveId)).length,
               rollbackSessionId,
               rollbackAvailable: true,
               importSessionId: sessionId
