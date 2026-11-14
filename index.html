@@ -3501,7 +3501,7 @@ function showFullArchiveRestorePreview(session) {
     '. Версия данных: ' + session.schemaVersion +
     '. Видео летка: ' + videos +
     '. Видео без найденного улья: ' + orphanCount +
-    (orphanCount ? '. Эти видео сохранятся, но останутся без привязки к улью.' : '') +
+    (orphanCount ? '. Эти видео сохранятся без привязки; после импорта их можно найти фильтром «Видео без найденного улья».' : '') +
     '. Размер: ' + entranceBytes(session.archiveBytes) +
     '. При подтверждении текущий журнал и все текущие видео будут заменены.';
   preview.hidden = false;
