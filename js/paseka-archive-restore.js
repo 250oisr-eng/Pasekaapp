@@ -193,7 +193,21 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   };
   let sessionCreated = false;
   try {
-    await putStagingRecord(db, session);
+    // Capture the live video baseline and create the staging session under one
+    // IndexedDB write lock. Any later video add/delete makes commit refuse to
+    // clear the library instead of silently losing work created during staging.
+    const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
+    const baselineStore = baselineTx.objectStore('entrance_media');
+    const baselineRequest = baselineStore.getAll();
+    baselineRequest.onsuccess = () => {
+      try {
+        session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRequest.result || []);
+        baselineTx.objectStore(STAGING_STORE).add(session);
+      } catch (error) {
+        try { baselineTx.abort(); } catch (ignored) {}
+      }
+    };
+    await transactionDone(baselineTx);
     sessionCreated = true;
     const stateManifestEntry = checked.manifest.entries.find(entry => entry.kind === 'state');
     if (!stateManifestEntry || !Array.isArray(stateManifestEntry.chunkSha256)) fail('STAGING_MANIFEST_MISMATCH', 'State entry checksum metadata is missing.');
@@ -252,15 +266,27 @@ function cloneState(value) {
   return JSON.parse(JSON.stringify(value));
 }
 function mediaRecordsFingerprint(records) {
-  const ordered = (records || []).slice().sort((a, b) =>
-    String(a?.id || '') < String(b?.id || '') ? -1 : String(a?.id || '') > String(b?.id || '') ? 1 : 0
-  );
-  return JSON.stringify(ordered, (key, value) => {
-    if (typeof Blob !== 'undefined' && value instanceof Blob) {
-      return { __blob: true, size: value.size, type: value.type };
+  // Versioned, explicit fields keep harmless schema additions from invalidating
+  // rollback. Blob bytes are intentionally not covered by this synchronous
+  // fingerprint; content integrity is handled by a separate SHA-256 baseline.
+  const canonical = (records || []).map(record => {
+    if (!record || typeof record.id !== 'string' || !record.id) {
+      fail('MEDIA_FINGERPRINT_RECORD_INVALID', 'A video record has no stable ID.');
     }
-    return value;
-  });
+    const blob = record.blob;
+    return [
+      record.id,
+      typeof record.hiveId === 'string' ? record.hiveId : null,
+      typeof record.capturedAt === 'string' ? record.capturedAt : null,
+      Number.isFinite(record.durationSec) ? record.durationSec : null,
+      Number.isFinite(record.width) ? record.width : null,
+      Number.isFinite(record.height) ? record.height : null,
+      Number.isFinite(record.bytes) ? record.bytes : (blob && Number.isFinite(blob.size) ? blob.size : null),
+      blob && Number.isFinite(blob.size) ? blob.size : null,
+      blob && typeof blob.type === 'string' ? blob.type : null
+    ];
+  }).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 2, canonical]);
 }
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
@@ -351,6 +377,10 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (expectedIds.size !== contentRecords.length || actualIds.size !== expectedIds.size ||
               Array.from(expectedIds).some(id => !actualIds.has(id))) {
             fail('STAGING_RECORD_SET_MISMATCH', 'Staged entry set does not match the verified archive manifest.');
+          }
+          if (typeof session.baselineMediaFingerprint !== 'string' ||
+              mediaRecordsFingerprint(currentVideos) !== session.baselineMediaFingerprint) {
+            fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was cancelled to preserve newer videos. Start the import again after reviewing the video library.');
           }
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
 
@@ -563,7 +593,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
             fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
           }
-          if (mediaRecordsFingerprint(values.currentVideos || []) !== knownHistory.importedMediaFingerprint) {
+          if (typeof history.importedMediaFingerprint !== 'string' ||
+              history.importedMediaFingerprint !== knownHistory.importedMediaFingerprint ||
+              mediaRecordsFingerprint(values.currentVideos || []) !== history.importedMediaFingerprint) {
             fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
           }
           if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
