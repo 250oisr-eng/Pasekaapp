@@ -34,9 +34,10 @@ function bytesToHex(bytes) {
   return Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
 }
 async function checksum(blob, cryptoProvider) {
-  if (!cryptoProvider?.subtle?.digest) fail('MEDIA_CRYPTO_UNAVAILABLE', 'SHA-256 is unavailable.');
-  const digest = await cryptoProvider.subtle.digest('SHA-256', await blob.arrayBuffer());
-  return bytesToHex(new Uint8Array(digest));
+  if (!root.PasekaSha256 || typeof root.PasekaSha256.hashBlobHex !== 'function') {
+    fail('MEDIA_CRYPTO_UNAVAILABLE', 'Incremental SHA-256 is unavailable.');
+  }
+  return root.PasekaSha256.hashBlobHex(blob);
 }
 function requestResult(request) {
   return new Promise((resolve, reject) => {
@@ -75,12 +76,16 @@ async function putImage(db, input, cryptoProvider, options = {}) {
       (typeof input.capturedAt !== 'string' || input.capturedAt.length > 40 || !Number.isFinite(Date.parse(input.capturedAt)))) {
     fail('INVALID_IMAGE_METADATA', 'Image capture date is invalid.');
   }
-  const sha256 = await checksum(input.blob, cryptoProvider);
+  // Snapshot the immutable Blob reference before awaiting Web Crypto. The
+  // caller may replace input.blob while digest() is pending; storing that new
+  // Blob with the old digest would create a false integrity record.
+  const blob = input.blob;
+  const sha256 = await checksum(blob, cryptoProvider);
   const record = {
     id: input.id,
-    blob: input.blob,
-    mimeType: input.blob.type,
-    sizeBytes: input.blob.size,
+    blob,
+    mimeType: blob.type,
+    sizeBytes: blob.size,
     name: input.name || '',
     capturedAt: input.capturedAt || null,
     createdAt: new Date().toISOString(),
@@ -134,7 +139,109 @@ async function measureStorage(db) {
     sizeBytes: total.sizeBytes + (Number.isSafeInteger(record.sizeBytes) && record.sizeBytes >= 0 ? record.sizeBytes : 0)
   }), { count: 0, sizeBytes: 0 });
 }
-const api = Object.freeze({ STORE, SCHEMA_VERSION, DEFAULT_MAX_IMAGE_BYTES, putImage, getImage, listImages, measureStorage });
+
+function collectBlobReferences(value, storeName, references, seen) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) collectBlobReferences(item, storeName, references, seen);
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'blobId' && typeof child === 'string' && child.trim()) {
+      const entry = references.get(child) || { id: child, count: 0, stores: new Set() };
+      entry.count++;
+      entry.stores.add(storeName);
+      references.set(child, entry);
+    } else if (child && typeof child === 'object') {
+      collectBlobReferences(child, storeName, references, seen);
+    }
+  }
+}
+async function auditOrphanedImages(db) {
+  assertDatabase(db);
+  const storeNames = Array.from({ length: db.objectStoreNames.length }, (_, index) => db.objectStoreNames.item(index)).filter(name => name && name !== STORE);
+  if (!storeNames.length) fail('MEDIA_REFERENCE_STORES_UNAVAILABLE', 'No application data stores are available for a safe reference audit.');
+
+  // Walk one IndexedDB record at a time. getAll() would clone every state,
+  // snapshot and Blob payload into memory simultaneously on mobile devices.
+  const tx = db.transaction([...storeNames, STORE], 'readonly');
+  const done = transactionResult(tx);
+  const references = new Map();
+  const blobMetadata = [];
+  let blobCount = 0;
+
+  function scanStore(name, visit) {
+    return new Promise((resolve, reject) => {
+      let request;
+      try {
+        request = tx.objectStore(name).openCursor();
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      request.onerror = () => reject(request.error || new Error('IndexedDB cursor failed.'));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+        try {
+          visit(cursor.value);
+          cursor.continue();
+        } catch (error) {
+          reject(error);
+          try { tx.abort(); } catch (abortError) { /* transaction may already be inactive */ }
+        }
+      };
+    });
+  }
+
+  const scans = storeNames.map(name => scanStore(name, record => {
+    collectBlobReferences(record, name, references, new WeakSet());
+  }));
+  scans.push(scanStore(STORE, record => {
+    blobCount++;
+    if (record && typeof record.id === 'string') blobMetadata.push(metadataOf(record));
+  }));
+
+  await Promise.all([...scans, done]);
+
+  const blobIds = new Set(blobMetadata.map(record => record.id));
+  const orphaned = [];
+  const referenced = [];
+  for (const metadata of blobMetadata) {
+    const reference = references.get(metadata.id);
+    const item = {
+      ...metadata,
+      referenceCount: reference?.count || 0,
+      referencedBy: reference ? [...reference.stores].sort() : []
+    };
+    if (reference) referenced.push(item);
+    else orphaned.push(item);
+  }
+  const missingReferences = [...references.values()]
+    .filter(reference => !blobIds.has(reference.id))
+    .map(reference => ({ blobId: reference.id, referenceCount: reference.count, referencedBy: [...reference.stores].sort() }))
+    .sort((a, b) => a.blobId.localeCompare(b.blobId));
+  orphaned.sort((a, b) => a.id.localeCompare(b.id));
+  referenced.sort((a, b) => a.id.localeCompare(b.id));
+  return Object.freeze({
+    mode: 'read-only-audit',
+    readOnly: true,
+    deletionPerformed: false,
+    blobCount,
+    referencedCount: referenced.length,
+    orphanedCount: orphaned.length,
+    missingReferenceCount: missingReferences.length,
+    referenced,
+    orphaned,
+    missingReferences
+  });
+}
+
+const api = Object.freeze({ STORE, SCHEMA_VERSION, DEFAULT_MAX_IMAGE_BYTES, putImage, getImage, listImages, measureStorage, auditOrphanedImages });
 root.PasekaMediaStore = api;
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

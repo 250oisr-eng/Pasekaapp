@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+const shaSource=await readFile(new URL('../js/paseka-sha256.js',import.meta.url),'utf8');new Function(shaSource)();
 const source=await readFile(new URL('../js/paseka-media-migration-verifier.js',import.meta.url),'utf8');new Function(source)();
 const Verifier=globalThis.PasekaMediaMigrationVerifier;
 function openDb(name){const f=new IDBFactory();return new Promise((resolve,reject)=>{const q=f.open(name,7);q.onupgradeneeded=()=>{q.result.createObjectStore('media_blobs',{keyPath:'id'});q.result.createObjectStore('media_migration_journal',{keyPath:'id'})};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
@@ -16,6 +17,29 @@ test('preflight reports ready only after every copied blob and source checksum v
 test('preflight reports missing copies without modifying either store or source',async()=>{const db=await openDb('preflight-missing'),s=state();const result=await Verifier.verify(db,s,plan(),'m1',webcrypto);assert.equal(result.ready,false);assert.equal(result.problems[0].code,'COPY_MISSING');assert.equal(result.sourceChanged,false);db.close()});
 test('preflight detects changed legacy source after copy',async()=>{const db=await openDb('preflight-changed'),s=state();await seed(db,s);s.records[0].media[0].data=data([8,8,8]);const result=await Verifier.verify(db,s,plan(),'m1',webcrypto);assert.equal(result.ready,false);assert.ok(result.problems.some(x=>x.code==='SOURCE_CHECKSUM_MISMATCH'));assert.equal(result.sourceChanged,true);assert.equal(result.destinationCorrupted,false);db.close()});
 test('preflight detects corrupted destination bytes',async()=>{const db=await openDb('preflight-corrupt'),s=state();await seed(db,s);const tx=db.transaction('media_blobs','readwrite'),store=tx.objectStore('media_blobs'),items=await new Promise((resolve,reject)=>{const q=store.getAll();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});items[0].blob=new Blob([new Uint8Array([9,9])],{type:'image/jpeg'});store.put(items[0]);await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});const result=await Verifier.verify(db,s,plan(),'m1',webcrypto);assert.equal(result.ready,false);assert.ok(result.problems.some(x=>x.code==='METADATA_MISMATCH'||x.code==='BLOB_CHECKSUM_MISMATCH'));assert.equal(result.sourceChanged,false);assert.equal(result.destinationCorrupted,true);db.close()});
+test('preflight rejects unsupported image MIME types before decoding or hashing', async () => {
+  const db = await openDb('preflight-unsupported-mime');
+  const s = state();
+  s.records[0].media[0].data = 'data:image/svg+xml;base64,' + Buffer.from('<svg/>').toString('base64');
+  const result = await Verifier.verify(db, s, plan(), 'm1', webcrypto);
+  assert.equal(result.ready, false);
+  assert.ok(result.problems.some(x => x.code === 'SOURCE_UNSUPPORTED_MIME'));
+  assert.equal(result.verified, 0);
+  db.close();
+});
+
+test('preflight enforces the configured source image size limit before Base64 allocation', async () => {
+  const db = await openDb('preflight-size-limit');
+  const s = state();
+  const bytes = Buffer.alloc(128, 7);
+  s.records[0].media[0].data = data(bytes);
+  const result = await Verifier.verify(db, s, plan(), 'm1', webcrypto, { maxImageBytes: 64 });
+  assert.equal(result.ready, false);
+  assert.ok(result.problems.some(x => x.code === 'SOURCE_SIZE_LIMIT' && x.sizeBytes === 128));
+  assert.equal(result.verified, 0);
+  db.close();
+});
+
 test('preflight rejects invalid plans and migration IDs',async()=>{const db=await openDb('preflight-guards');await assert.rejects(Verifier.verify(db,state(),{},'m1',webcrypto),{code:'INVALID_MIGRATION_PLAN'});await assert.rejects(Verifier.verify(db,state(),plan(),' ',webcrypto),{code:'INVALID_MIGRATION_ID'});db.close()});
 
 test('preflight detects duplicate journal checkpoints for one candidate',async()=>{const db=await openDb('preflight-duplicate-journal'),s=state();await seed(db,s);const tx=db.transaction('media_migration_journal','readwrite'),store=tx.objectStore('media_migration_journal'),items=await new Promise((resolve,reject)=>{const q=store.getAll();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});store.add({...items[0],id:'duplicate-checkpoint'});await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});const result=await Verifier.verify(db,s,plan(),'m1',webcrypto);assert.equal(result.ready,false);assert.ok(result.problems.some(x=>x.code==='DUPLICATE_JOURNAL_ENTRIES'));db.close()});

@@ -193,7 +193,64 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   };
   let sessionCreated = false;
   try {
-    await putStagingRecord(db, session);
+    // Read and hash the live media outside IndexedDB transactions. Never keep a
+    // readwrite transaction alive across Blob I/O or asynchronous SHA-256.
+    const baselineReadTx = db.transaction('entrance_media', 'readonly');
+    const baselineReadDone = transactionDone(baselineReadTx);
+    const baselineRows = await requestValue(baselineReadTx.objectStore('entrance_media').getAll());
+    await baselineReadDone;
+    const baselineRecords = await Promise.all((baselineRows || []).map(async record => {
+      if (!record || !record.blob || typeof record.blob.slice !== 'function') {
+        fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob. The archive import was not staged.');
+      }
+      const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+      if (record.blobSha256 !== undefined &&
+          (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
+        fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum. The archive import was not staged.');
+      }
+      return { ...record, blobSha256: actualHash };
+    }));
+    session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRecords);
+
+    // Re-read under a short write lock. All checks and puts below are
+    // synchronous request-callback work; supported media writers persist their
+    // own SHA-256, so a concurrent content replacement is detected here.
+    const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
+    const baselineStore = baselineTx.objectStore('entrance_media');
+    const baselineRequest = baselineStore.getAll();
+    let baselineFailure = null;
+    baselineRequest.onsuccess = () => {
+      try {
+        const currentRows = baselineRequest.result || [];
+        const expectedById = new Map(baselineRecords.map(record => [record.id, record]));
+        if (currentRows.length !== baselineRecords.length ||
+            currentRows.some(record => !record || !expectedById.has(record.id))) {
+          fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was not staged.');
+        }
+        const normalizedRows = currentRows.map(record => {
+          const expected = expectedById.get(record.id);
+          if (record.blobSha256 !== undefined && record.blobSha256 !== expected.blobSha256) {
+            fail('RESTORE_MEDIA_CHANGED', 'A video changed while the archive was being prepared. The import was not staged.');
+          }
+          return { ...record, blobSha256: expected.blobSha256 };
+        });
+        if (mediaRecordsFingerprint(normalizedRows) !== session.baselineMediaFingerprint) {
+          fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was not staged.');
+        }
+        for (const record of normalizedRows) {
+          if (currentRows.find(current => current.id === record.id)?.blobSha256 === undefined) baselineStore.put(record);
+        }
+        baselineTx.objectStore(STAGING_STORE).add(session);
+      } catch (error) {
+        baselineFailure = error;
+        try { baselineTx.abort(); } catch (ignored) {}
+      }
+    };
+    try {
+      await transactionDone(baselineTx);
+    } catch (error) {
+      throw baselineFailure || error;
+    }
     sessionCreated = true;
     const stateManifestEntry = checked.manifest.entries.find(entry => entry.kind === 'state');
     if (!stateManifestEntry || !Array.isArray(stateManifestEntry.chunkSha256)) fail('STAGING_MANIFEST_MISMATCH', 'State entry checksum metadata is missing.');
@@ -227,7 +284,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     if (sessionCreated) {
       try {
         session.status = 'failed';
-        session.errorCode = String(error && error.code || 'STAGING_FAILED').slice(0, 80);
+        session.errorCode = String(error && (error.name && error.name !== 'Error' ? error.name : error.code) || 'STAGING_FAILED').slice(0, 80);
         session.errorMessage = String(error && error.message || 'Staging failed').slice(0, 500);
         await updateSession(db, session);
       } catch (ignored) {}
@@ -235,32 +292,40 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     throw error;
   }
 }
-function holdTransactionOpen(tx, store) {
-  let active = true;
-  const pulse = () => {
-    if (!active) return;
-    let request;
-    try { request = store.get('__paseka_archive_tx_keepalive__'); }
-    catch (error) { active = false; return; }
-    request.onsuccess = request.onerror = () => { if (active) pulse(); };
-  };
-  pulse();
-  return () => { active = false; };
-}
 function cloneState(value) {
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }
 function mediaRecordsFingerprint(records) {
-  const ordered = (records || []).slice().sort((a, b) =>
-    String(a?.id || '') < String(b?.id || '') ? -1 : String(a?.id || '') > String(b?.id || '') ? 1 : 0
-  );
-  return JSON.stringify(ordered, (key, value) => {
-    if (typeof Blob !== 'undefined' && value instanceof Blob) {
-      return { __blob: true, size: value.size, type: value.type };
+  // Versioned, explicit fields keep harmless schema additions from invalidating
+  // rollback. blobSha256 covers the actual media bytes and is produced before
+  // every supported write/import path.
+  const canonical = (records || []).map(record => {
+    if (!record || typeof record.id !== 'string' || !record.id) {
+      fail('MEDIA_FINGERPRINT_RECORD_INVALID', 'A video record has no stable ID.');
     }
-    return value;
-  });
+    const blob = record.blob;
+    return [
+      record.id,
+      typeof record.blobSha256 === 'string' ? record.blobSha256 : null,
+      typeof record.hiveId === 'string' ? record.hiveId : null,
+      record.orphanedHiveReference === true,
+      typeof record.capturedAt === 'string' ? record.capturedAt : null,
+      Number.isFinite(record.durationSec) ? record.durationSec : null,
+      Number.isFinite(record.width) ? record.width : null,
+      Number.isFinite(record.height) ? record.height : null,
+      Number.isFinite(record.bytes) ? record.bytes : (blob && Number.isFinite(blob.size) ? blob.size : null),
+      blob && Number.isFinite(blob.size) ? blob.size : null,
+      blob && typeof blob.type === 'string' ? blob.type : null
+    ];
+  }).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 3, canonical]);
+}
+async function sha256BlobHex(blob, cryptoProvider) {
+  if (!root.PasekaSha256 || typeof root.PasekaSha256.hashBlobHex !== 'function') {
+    fail('MEDIA_HASH_UNAVAILABLE', 'The incremental SHA-256 module is unavailable on this device.');
+  }
+  return root.PasekaSha256.hashBlobHex(blob);
 }
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
@@ -289,11 +354,12 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
     if (preparedValidation === false) fail('STATE_VALIDATION_FAILED', 'The migrated archive state failed validation.');
   }
   const importedHiveIds = new Set(Array.isArray(importedState.hives) ? importedState.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
-  const importedVideos = staged.videos.map(record => ({
+  const importedVideos = await Promise.all(staged.videos.map(async record => ({
     ...record.metadata,
     blob: record.blob,
+    blobSha256: await sha256BlobHex(record.blob, cryptoProvider),
     orphanedHiveReference: !importedHiveIds.has(record.metadata.hiveId)
-  }));
+  })));
   const rollbackSessionId = randomId(cryptoProvider);
   let tx, failure = null, result = null, settled = false;
 
@@ -351,6 +417,10 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (expectedIds.size !== contentRecords.length || actualIds.size !== expectedIds.size ||
               Array.from(expectedIds).some(id => !actualIds.has(id))) {
             fail('STAGING_RECORD_SET_MISMATCH', 'Staged entry set does not match the verified archive manifest.');
+          }
+          if (typeof session.baselineMediaFingerprint !== 'string' ||
+              mediaRecordsFingerprint(currentVideos) !== session.baselineMediaFingerprint) {
+            fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was cancelled to preserve newer videos. Start the import again after reviewing the video library.');
           }
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
 
@@ -466,10 +536,19 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (typeof knownHistory.importedMediaFingerprint !== 'string') {
     fail('ROLLBACK_MEDIA_BASELINE_MISSING', 'This import predates video change protection. Rollback is disabled to avoid deleting videos that may have been added later.');
   }
+  if (phaseAMedia.some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || ''))) {
+    fail('ROLLBACK_MEDIA_HASH_MISSING', 'One or more videos predate content hashing. Export them and create a fresh verified archive before rollback.');
+  }
+  for (const record of phaseAMedia) {
+    const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+    if (actualHash !== record.blobSha256) {
+      fail('ROLLBACK_MEDIA_CONTENT_CHANGED', 'A video file no longer matches its saved SHA-256 checksum. Rollback was cancelled to preserve the current library.');
+    }
+  }
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
-  const snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
+  let snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
   const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
       rollbackSession.stagedCount !== rollbackSession.totalEntries ||
@@ -481,6 +560,19 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (contentRecords.some(record => !['rollback_state', 'rollback_video'].includes(record.kind)) ||
       stateRecords.length > 1 || stateRecords.length + videoRecords.length !== rollbackSession.totalEntries) {
     fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot contains unexpected or duplicate entries.');
+  }
+
+  // Hash snapshot bytes during Phase A, including legacy records without a
+  // persisted checksum. Phase B repeats the hash under its write lock and
+  // compares against this in-memory baseline.
+  const phaseASnapshotHashes = new Map();
+  for (const item of videoRecords) {
+    if (!item.record?.blob) fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable Blob.');
+    const snapshotHash = await sha256BlobHex(item.record.blob, cryptoProvider);
+    if (item.record.blobSha256 && snapshotHash !== item.record.blobSha256) {
+      fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot no longer matches its saved SHA-256 checksum.');
+    }
+    phaseASnapshotHashes.set(item.id, snapshotHash);
   }
 
   let restoredState = null;
@@ -497,6 +589,28 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     if (restoredState.auditLog.length > 500) restoredState.auditLog = restoredState.auditLog.slice(-500);
     const validationResult = await validateState(restoredState);
     if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
+  }
+
+  // Re-read and re-hash snapshot media after all caller-supplied async
+  // validation. This closes the Phase A validation window without keeping a
+  // readwrite transaction alive across Blob I/O.
+  const finalSnapshotReadTx = db.transaction(STAGING_STORE, 'readonly');
+  const finalSnapshotReadDone = transactionDone(finalSnapshotReadTx);
+  const finalSnapshotRows = await requestValue(finalSnapshotReadTx.objectStore(STAGING_STORE).index('sessionId').getAll(rollbackSessionId));
+  await finalSnapshotReadDone;
+  snapshotRecords = (finalSnapshotRows || []).filter(record => record && record.sessionId === rollbackSessionId);
+  if (snapshotRecords.length !== rollbackSession.totalEntries + 1) {
+    fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
+  }
+  for (const item of snapshotRecords.filter(record => record?.kind === 'rollback_video')) {
+    const expectedSnapshotHash = phaseASnapshotHashes.get(item.id);
+    if (!item.record?.blob || !expectedSnapshotHash) {
+      fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable, verified Blob.');
+    }
+    const actualSnapshotHash = await sha256BlobHex(item.record.blob, cryptoProvider);
+    if (actualSnapshotHash !== expectedSnapshotHash) {
+      fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot changed after validation. Rollback was cancelled.');
+    }
   }
 
   const restoredVideos = [];
@@ -523,13 +637,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   const revertedRevisionId = restoredState?.meta?.revisionId || null;
 
   // Phase B: only IndexedDB requests and synchronous checks/mutations.
-  let tx, failure = null, result = null, settled = false;
+  let tx, failure = null, result = null, settled = false, stopKeepAlive = () => {};
   return new Promise((resolve, reject) => {
     const rejectOnce = error => {
       if (!settled) { settled = true; reject(error); }
     };
     const abortWith = error => {
       failure = error;
+      stopKeepAlive();
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
@@ -539,6 +654,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const media = tx.objectStore('entrance_media');
       const stagingStore = tx.objectStore(STAGING_STORE);
       const historyStore = tx.objectStore(HISTORY_STORE);
+      // Snapshot Blob bytes were verified in Phase A outside IndexedDB.
+      // Phase B is intentionally synchronous: only IDB request callbacks,
+      // metadata checks and mutations run while this write transaction is open.
       const reads = {
         currentState: main.get('state'),
         currentVideos: media.getAll(),
@@ -556,6 +674,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = values.rollbackRecords || [];
           const currentImportSession = values.importSession;
+          // The immutable Blob bytes were SHA-256 verified in Phase A. The
+          // snapshot row set and metadata fingerprint are rechecked here under
+          // the write lock; no asynchronous work is permitted in this phase.
+          for (const item of currentRecords.filter(record => record?.kind === 'rollback_video')) {
+            if (!item.record?.blob || !phaseASnapshotHashes.has(item.id)) {
+              fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable, verified Blob.');
+            }
+          }
           if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId ||
               history.importSessionId !== knownHistory.importSessionId) {
             fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
@@ -563,7 +689,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
             fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
           }
-          if (mediaRecordsFingerprint(values.currentVideos || []) !== knownHistory.importedMediaFingerprint) {
+          if ((values.currentVideos || []).some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || '')) ||
+              typeof history.importedMediaFingerprint !== 'string' ||
+              history.importedMediaFingerprint !== knownHistory.importedMediaFingerprint ||
+              mediaRecordsFingerprint(values.currentVideos || []) !== history.importedMediaFingerprint) {
             fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
           }
           if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
@@ -779,20 +908,19 @@ function discardArchiveRestoreSession(db, sessionId) {
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
-      // Read, validate and delete under one readwrite lock. A concurrent commit
-      // must either finish first (and be protected) or observe the cleanup.
-      tx = db.transaction(STAGING_STORE, 'readwrite');
+      // Validate ownership and delete under one write lock. If the session
+      // header was lost, only unreferenced orphan rows may be removed.
+      tx = db.transaction([STAGING_STORE, HISTORY_STORE], 'readwrite');
       const store = tx.objectStore(STAGING_STORE);
       const sessionRequest = store.get(sessionId);
       sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read the staged import session.'));
       sessionRequest.onsuccess = () => {
         const session = sessionRequest.result;
-        if (!session) { result = false; return; }
-        if (session.kind === 'rollback_session') {
+        if (session?.kind === 'rollback_session') {
           abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
           return;
         }
-        if (session.kind === 'session' && session.status === 'committed') {
+        if (session?.kind === 'session' && session.status === 'committed') {
           abortWith(Object.assign(new Error('A committed import is protected until its rollback is explicitly resolved.'), { code: 'COMMITTED_IMPORT_PROTECTED' }));
           return;
         }
@@ -800,6 +928,22 @@ function discardArchiveRestoreSession(db, sessionId) {
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
           const keys = keysRequest.result || [];
+          if (!session && keys.length) {
+            const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
+            historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
+            historyRequest.onsuccess = () => {
+              const referenced = (historyRequest.result || []).some(item =>
+                item.importSessionId === sessionId || item.rollbackSessionId === sessionId
+              );
+              if (referenced) {
+                abortWith(Object.assign(new Error('Orphaned staging records are still referenced by archive history and were preserved.'), { code: 'ORPHANED_STAGING_REFERENCED' }));
+                return;
+              }
+              for (const key of keys) store.delete(key);
+              result = keys.length > 0;
+            };
+            return;
+          }
           for (const key of keys) store.delete(key);
           result = keys.length > 0;
         };

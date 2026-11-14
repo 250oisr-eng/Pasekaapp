@@ -32,7 +32,7 @@ function decodeDataUrl(value){
  return {bytes,mimeType:match[1].toLowerCase()};
 }
 function hex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}
-async function sha(blob,cryptoProvider){if(!cryptoProvider?.subtle?.digest)fail('CRYPTO_UNAVAILABLE','SHA-256 is unavailable.');return hex(new Uint8Array(await cryptoProvider.subtle.digest('SHA-256',await blob.arrayBuffer())))}
+async function sha(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');return root.PasekaSha256.hashBlobHex(blob)}
 function blobMatches(blob,descriptor,migrationId,candidate){
  return !!blob&&blob.id===descriptor.blobId&&blob.migrationId===migrationId&&blob.sourceKey===sourceKey(candidate)&&blob.sha256===descriptor.sha256&&blob.sizeBytes===descriptor.sizeBytes&&blob.mimeType===descriptor.mimeType&&blob.blob?.size===descriptor.sizeBytes&&blob.blob?.type===descriptor.mimeType;
 }
@@ -48,7 +48,14 @@ async function switchOne(db,{candidate,migrationId,verifiedItem,expectedRevision
  ]);
  await readDone;
  if(existing){
-  if(existing.status==='committed'&&sameValue(locate(state,candidate),existing.committedMedia))return {status:'already_switched',journalId:id,revision:state?.meta?.revisionId||null};
+  if(existing.status==='committed'&&sameValue(locate(state,candidate),existing.committedMedia)){
+   const descriptor={blobId:existing.blobId,sha256:existing.sha256,sizeBytes:existing.committedMedia?.sizeBytes,mimeType:existing.committedMedia?.mimeType};
+   if(!blobMatches(blob,descriptor,migrationId,candidate))fail('DESTINATION_CORRUPTED','The committed photo Blob is missing or its metadata no longer matches.');
+   if(await sha(blob.blob,cryptoProvider)!==existing.sha256)fail('DESTINATION_CORRUPTED','The committed photo Blob content no longer matches its SHA-256 descriptor.');
+   const checkpoints=copyRows.filter(x=>x?.migrationId===migrationId&&x?.candidateId===candidate.id&&x?.sourceKey===sourceKey(candidate)&&x?.status==='completed'&&x?.blobId===existing.blobId&&x?.sha256===existing.sha256);
+   if(checkpoints.length!==1)fail('COPY_CHECKPOINT_INVALID','The committed photo no longer has exactly one matching copy checkpoint.');
+   return {status:'already_switched',journalId:id,revision:state?.meta?.revisionId||null};
+  }
   if(existing.status==='rolled_back')fail('REFERENCE_ALREADY_ROLLED_BACK','This reference-switch journal was already rolled back; use a new migration ID.');
   fail('REFERENCE_JOURNAL_CONFLICT','An existing reference-switch journal does not match the current photo.');
  }
@@ -59,6 +66,9 @@ async function switchOne(db,{candidate,migrationId,verifiedItem,expectedRevision
  const sourceSha=await sha(new Blob([decoded.bytes],{type:decoded.mimeType}),cryptoProvider);
  if(sourceSha!==verifiedItem.sha256||decoded.mimeType!==verifiedItem.mimeType||decoded.bytes.byteLength!==verifiedItem.sizeBytes)fail('SOURCE_CHANGED','The legacy photo no longer matches the verified copy.');
  if(!blobMatches(blob,verifiedItem,migrationId,candidate))fail('DESTINATION_CORRUPTED','The copied Blob does not match the verified descriptor.');
+ // Metadata alone is not proof of payload integrity: verify the actual bytes
+ // immediately before preparing the atomic reference switch.
+ if(await sha(blob.blob,cryptoProvider)!==verifiedItem.sha256)fail('DESTINATION_CORRUPTED','The copied Blob content does not match its SHA-256 descriptor.');
  const checkpoints=copyRows.filter(x=>x?.migrationId===migrationId&&x?.candidateId===candidate.id&&x?.sourceKey===sourceKey(candidate)&&x?.status==='completed'&&x?.blobId===verifiedItem.blobId&&x?.sha256===verifiedItem.sha256);
  if(checkpoints.length!==1)fail('COPY_CHECKPOINT_INVALID','Exactly one completed copy checkpoint is required.');
  const nextState=clone(state),nextMedia=locate(nextState,candidate);

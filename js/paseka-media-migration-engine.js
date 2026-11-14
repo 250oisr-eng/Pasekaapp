@@ -6,6 +6,7 @@ const DEFAULT_MAX_IMAGE_BYTES=25*1024*1024;
 function fail(code,message){const e=new Error(message||code);e.code=code;throw e}
 function hex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')}
 async function digest(bytes,cryptoProvider){if(!cryptoProvider?.subtle?.digest)fail('MEDIA_CRYPTO_UNAVAILABLE','SHA-256 is unavailable.');return hex(new Uint8Array(await cryptoProvider.subtle.digest('SHA-256',bytes)))}
+async function digestBlob(blob,cryptoProvider){if(!root.PasekaSha256?.hashBlobHex)fail('MEDIA_CRYPTO_UNAVAILABLE','Incremental SHA-256 is unavailable.');return root.PasekaSha256.hashBlobHex(blob)}
 function request(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('IndexedDB request failed.'))})}
 function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error||new Error('IndexedDB transaction failed.'));tx.onabort=()=>reject(tx.error||new Error('IndexedDB transaction aborted.'))})}
 function assertDb(db){if(!db?.objectStoreNames?.contains(BLOBS)||!db.objectStoreNames.contains(JOURNAL))fail('MIGRATION_STORE_UNAVAILABLE','The database does not contain the migration stores.')}
@@ -39,7 +40,7 @@ async function copyOne(db,state,candidate,migrationId,cryptoProvider,options={})
  const tx=db.transaction([BLOBS,JOURNAL],'readwrite'),done=txDone(tx),bs=tx.objectStore(BLOBS),js=tx.objectStore(JOURNAL);done.catch(()=>{});
  try{
   const [existingBlob,existingJournal]=await Promise.all([request(bs.get(record.id)),request(js.get(journal.id))]);
-  if(existingJournal&&existingBlob&&existingJournal.migrationId===migrationId&&existingBlob.migrationId===migrationId&&existingJournal.sha256===sha256&&existingBlob.sha256===sha256&&existingJournal.candidateId===candidate.id&&existingJournal.sourceKey===key&&existingBlob.sourceKey===key&&existingBlob.blob&&existingBlob.blob.size===existingBlob.sizeBytes&&existingBlob.blob.type===existingBlob.mimeType&&await digest(await existingBlob.blob.arrayBuffer(),cryptoProvider)===sha256){
+  if(existingJournal&&existingBlob&&existingJournal.migrationId===migrationId&&existingBlob.migrationId===migrationId&&existingJournal.sha256===sha256&&existingBlob.sha256===sha256&&existingJournal.candidateId===candidate.id&&existingJournal.sourceKey===key&&existingBlob.sourceKey===key&&existingBlob.blob&&existingBlob.blob.size===existingBlob.sizeBytes&&existingBlob.blob.type===existingBlob.mimeType&&await digestBlob(existingBlob.blob,cryptoProvider)===sha256){
    await done;return {status:'already_copied',blobId:record.id,sha256};
   }
   if(existingBlob||existingJournal)fail('MIGRATION_ID_CONFLICT','A destination ID already exists but does not match this migration; nothing was overwritten.');
@@ -53,8 +54,73 @@ async function copyBatch(db,state,plan,migrationId,cryptoProvider,options={}){
  const results=[];for(const candidate of plan.candidates.slice(0,limit)){try{results.push({candidateId:candidate.id,...await copyOne(db,state,candidate,migrationId,cryptoProvider,options)})}catch(error){results.push({candidateId:candidate.id,status:'error',code:error.code||'MIGRATION_FAILED',message:error.message});if(options.stopOnError!==false)break}}
  return {migrationId,processed:results.length,copied:results.filter(x=>x.status==='copied').length,alreadyCopied:results.filter(x=>x.status==='already_copied').length,errors:results.filter(x=>x.status==='error'),results};
 }
-async function getProgress(db,migrationId,cryptoProvider){assertDb(db);assertMigrationId(migrationId);const tx=db.transaction([BLOBS,JOURNAL],'readonly'),done=txDone(tx);const [journals,blobs]=await Promise.all([request(tx.objectStore(JOURNAL).getAll()),request(tx.objectStore(BLOBS).getAll())]);await done;const own=journals.filter(x=>x.migrationId===migrationId),ownedBlobs=blobs.filter(x=>x.migrationId===migrationId);let completed=0;for(const j of own){const b=ownedBlobs.find(x=>x.id===j.blobId);if(j.status==='completed'&&b&&b.sha256===j.sha256&&b.blob&&b.blob.size===b.sizeBytes&&b.blob.type===b.mimeType&&await digest(await b.blob.arrayBuffer(),cryptoProvider)===j.sha256)completed++}return {migrationId,completed,journalEntries:own.length,ownedBlobs:ownedBlobs.length,orphanedJournalEntries:own.length-completed}}
-async function rollback(db,migrationId){assertDb(db);assertMigrationId(migrationId);const tx=db.transaction([BLOBS,JOURNAL],'readwrite'),done=txDone(tx),bs=tx.objectStore(BLOBS),js=tx.objectStore(JOURNAL);const [blobs,journals]=await Promise.all([request(bs.getAll()),request(js.getAll())]);let removedBlobs=0,removedJournals=0;for(const b of blobs)if(b.migrationId===migrationId){bs.delete(b.id);removedBlobs++}for(const j of journals)if(j.migrationId===migrationId){js.delete(j.id);removedJournals++}await done;return {migrationId,removedBlobs,removedJournals,sourceChanged:false}}
+async function getProgress(db,migrationId,cryptoProvider){assertDb(db);assertMigrationId(migrationId);const tx=db.transaction([BLOBS,JOURNAL],'readonly'),done=txDone(tx);const [journals,blobs]=await Promise.all([request(tx.objectStore(JOURNAL).getAll()),request(tx.objectStore(BLOBS).getAll())]);await done;const own=journals.filter(x=>x.migrationId===migrationId),ownedBlobs=blobs.filter(x=>x.migrationId===migrationId);let completed=0;for(const j of own){const b=ownedBlobs.find(x=>x.id===j.blobId);if(j.status==='completed'&&b&&b.sha256===j.sha256&&b.blob&&b.blob.size===b.sizeBytes&&b.blob.type===b.mimeType&&await digestBlob(b.blob,cryptoProvider)===j.sha256)completed++}return {migrationId,completed,journalEntries:own.length,ownedBlobs:ownedBlobs.length,orphanedJournalEntries:own.length-completed}}
+async function rollback(db,migrationId){
+ assertDb(db);assertMigrationId(migrationId);
+ // A copied image may already be referenced by live state, a snapshot, or a
+ // reference-switch journal. Never delete a Blob merely because its copy
+ // checkpoint belongs to this migration.
+ const storeNames=Array.from({length:db.objectStoreNames.length},(_,i)=>db.objectStoreNames.item(i))
+  .filter(name=>name&&name!==BLOBS&&name!==JOURNAL);
+ const tx=db.transaction([...storeNames,BLOBS,JOURNAL],'readwrite'),done=txDone(tx);
+ const references=new Set();
+ function collect(value,seen){
+  if(!value||typeof value!=='object'||seen.has(value))return;
+  seen.add(value);
+  if(Array.isArray(value)){for(const item of value)collect(item,seen);return;}
+  for(const [name,child] of Object.entries(value)){
+   if(name==='blobId'&&typeof child==='string'&&child.trim())references.add(child);
+   else if(child&&typeof child==='object')collect(child,seen);
+  }
+ }
+ function scan(name){
+  return new Promise((resolve,reject)=>{
+   const request=tx.objectStore(name).openCursor();
+   request.onerror=()=>reject(request.error||new Error('IndexedDB cursor failed.'));
+   request.onsuccess=()=>{
+    const cursor=request.result;
+    if(!cursor){resolve();return;}
+    try{collect(cursor.value,new WeakSet());cursor.continue();}
+    catch(error){reject(error);try{tx.abort()}catch(_){}}
+   };
+  });
+ }
+ try{
+  await Promise.all(storeNames.map(scan));
+  let removedBlobs=0,protectedBlobs=0,removedJournals=0;
+  await new Promise((resolve,reject)=>{
+   const cursorRequest=tx.objectStore(BLOBS).openCursor();
+   cursorRequest.onerror=()=>reject(cursorRequest.error||new Error('Media Blob cursor failed.'));
+   cursorRequest.onsuccess=()=>{
+    const cursor=cursorRequest.result;
+    if(!cursor){resolve();return;}
+    const record=cursor.value;
+    if(record?.migrationId===migrationId){
+     if(references.has(record.id))protectedBlobs++;
+     else{cursor.delete();removedBlobs++;}
+    }
+    cursor.continue();
+   };
+  });
+  const journalStore=tx.objectStore(JOURNAL);
+  await new Promise((resolve,reject)=>{
+   const cursorRequest=journalStore.openCursor();
+   cursorRequest.onerror=()=>reject(cursorRequest.error||new Error('Migration journal cursor failed.'));
+   cursorRequest.onsuccess=()=>{
+    const cursor=cursorRequest.result;
+    if(!cursor){resolve();return;}
+    if(cursor.value?.migrationId===migrationId){cursor.delete();removedJournals++;}
+    cursor.continue();
+   };
+  });
+  await done;
+  return {migrationId,removedBlobs,protectedBlobs,removedJournals,sourceChanged:false};
+ }catch(error){
+  try{tx.abort()}catch(_){}
+  try{await done}catch(_){}
+  throw error;
+ }
+}
 const api=Object.freeze({JOURNAL,DEFAULT_MAX_IMAGE_BYTES,copyOne,copyBatch,getProgress,rollback});
 root.PasekaMediaMigrationEngine=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

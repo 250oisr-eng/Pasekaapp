@@ -14,6 +14,7 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'tests/**'
       - '.github/workflows/android-debug.yml'
 
 concurrency:

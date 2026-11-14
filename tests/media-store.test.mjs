@@ -4,7 +4,9 @@ import { IDBFactory } from 'fake-indexeddb';
 import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
+const shaSource = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
 const source = await readFile(new URL('../js/paseka-media-store.js', import.meta.url), 'utf8');
+new Function(shaSource)();
 new Function(source)();
 const Media = globalThis.PasekaMediaStore;
 
@@ -42,6 +44,33 @@ test('stores an image Blob with size, MIME and SHA-256 metadata and reads it bac
   assert.equal(stored.blob.size, 4);
   assert.equal(stored.blob.type, 'image/jpeg');
   assert.deepEqual([...new Uint8Array(await stored.blob.arrayBuffer())], [1, 2, 3, 4]);
+  db.close();
+});
+
+test('binds the checksum to the Blob captured before asynchronous hashing', async () => {
+  const db = await openDb('media-store-blob-snapshot');
+  let releaseDigest;
+  let digestStarted;
+  const started = new Promise(resolve => { digestStarted = resolve; });
+  const gate = new Promise(resolve => { releaseDigest = resolve; });
+  const originalHasher = globalThis.PasekaSha256;
+  globalThis.PasekaSha256 = {
+    ...originalHasher,
+    hashBlobHex: async (blob, options) => {
+      digestStarted();
+      await gate;
+      return originalHasher.hashBlobHex(blob, options);
+    }
+  };
+  const input = { id: 'snapshot-image', blob: image([1, 2, 3]) };
+  const saving = Media.putImage(db, input, webcrypto);
+  await started;
+  input.blob = image([9, 9, 9]);
+  releaseDigest();
+  await saving;
+  globalThis.PasekaSha256 = originalHasher;
+  const stored = await Media.getImage(db, 'snapshot-image', webcrypto);
+  assert.deepEqual([...new Uint8Array(await stored.blob.arrayBuffer())], [1, 2, 3]);
   db.close();
 });
 
@@ -107,5 +136,164 @@ test('fails clearly when the database has no media store', async () => {
 test('returns null for a missing image ID', async () => {
   const db = await openDb('media-store-missing-image');
   assert.equal(await Media.getImage(db, 'absent', webcrypto), null);
+  db.close();
+});
+
+
+test('orphan audit is read-only and protects blobs referenced by current state, snapshots and journals', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-orphan-audit', 1);
+    request.onupgradeneeded = () => {
+      const d = request.result;
+      d.createObjectStore('main');
+      d.createObjectStore('auto_snapshots', { keyPath: 'id' });
+      d.createObjectStore('media_migration_journal', { keyPath: 'id' });
+      d.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await Media.putImage(db, { id: 'used-current', blob: image([1]) }, webcrypto);
+  await Media.putImage(db, { id: 'used-snapshot', blob: image([2]) }, webcrypto);
+  await Media.putImage(db, { id: 'used-journal', blob: image([3]) }, webcrypto);
+  await Media.putImage(db, { id: 'orphan-photo', blob: image([4]) }, webcrypto);
+  const write = db.transaction(['main', 'auto_snapshots', 'media_migration_journal'], 'readwrite');
+  write.objectStore('main').put({ records: [{ media: [{ blobId: 'used-current', storage: 'indexeddb-blob-v1' }] }] }, 'state');
+  write.objectStore('auto_snapshots').put({ id: 'snapshot-1', state: { plantObservations: [{ media: [{ blobId: 'used-snapshot' }] }] } });
+  write.objectStore('media_migration_journal').put({ id: 'journal-1', blobId: 'used-journal' });
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.mode, 'read-only-audit');
+  assert.equal(report.readOnly, true);
+  assert.equal(report.deletionPerformed, false);
+  assert.deepEqual(report.referenced.map(item => item.id), ['used-current', 'used-journal', 'used-snapshot']);
+  assert.deepEqual(report.orphaned.map(item => item.id), ['orphan-photo']);
+  assert.deepEqual(report.missingReferences, []);
+  assert.equal((await Media.getImage(db, 'orphan-photo', webcrypto)).blob.size, 1);
+  assert.equal((await Media.getImage(db, 'used-current', webcrypto)).blob.size, 1);
+  db.close();
+});
+
+test('orphan audit cursor-scans large stores and returns metadata without Blob payloads', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-cursor-audit-large', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('auto_snapshots');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  await Media.putImage(db, { id: 'large-used', blob: image([1, 2, 3]) }, webcrypto);
+  await Media.putImage(db, { id: 'large-orphan', blob: image([4, 5, 6]) }, webcrypto);
+  const write = db.transaction(['main', 'auto_snapshots'], 'readwrite');
+  for (let index = 0; index < 1200; index++) {
+    write.objectStore(index % 2 ? 'main' : 'auto_snapshots')
+      .put({ nested: { media: [{ blobId: 'large-used' }] } }, `record-${index}`);
+  }
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.blobCount, 2);
+  assert.equal(report.referencedCount, 1);
+  assert.equal(report.orphanedCount, 1);
+  assert.equal(report.referenced[0].id, 'large-used');
+  assert.equal(report.referenced[0].referenceCount, 1200);
+  assert.deepEqual(report.referenced[0].referencedBy, ['auto_snapshots', 'main']);
+  assert.equal(report.orphaned[0].id, 'large-orphan');
+  assert.equal(Object.hasOwn(report.orphaned[0], 'blob'), false);
+  assert.equal(report.deletionPerformed, false);
+  db.close();
+});
+
+test('orphan audit reports dangling references and never classifies them as deletable blobs', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-dangling-audit', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const tx = db.transaction('main', 'readwrite');
+  tx.objectStore('main').put({ records: [{ media: [{ blobId: 'missing-photo' }] }] }, 'state');
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.orphanedCount, 0);
+  assert.deepEqual(report.missingReferences, [{ blobId: 'missing-photo', referenceCount: 1, referencedBy: ['main'] }]);
+  db.close();
+});
+
+
+test('orphan audit safely traverses cyclic records and counts each blob reference once', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-cyclic-audit', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  await Media.putImage(db, { id: 'cycle-photo', blob: image([7, 8]) }, webcrypto);
+  const cyclicRecord = { blobId: 'cycle-photo', nested: { blobId: 'cycle-photo' } };
+  cyclicRecord.self = cyclicRecord;
+  const write = db.transaction('main', 'readwrite');
+  write.objectStore('main').put(cyclicRecord, 'cyclic');
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+
+  const report = await Media.auditOrphanedImages(db);
+  assert.equal(report.referencedCount, 1);
+  assert.equal(report.orphanedCount, 0);
+  assert.equal(report.referenced[0].referenceCount, 2);
+  assert.deepEqual(report.referenced[0].referencedBy, ['main']);
+  db.close();
+});
+
+test('orphan audit rejects an aborted readonly transaction instead of returning a partial report', async () => {
+  const factory = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const request = factory.open('media-store-aborted-audit', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('media_blobs', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  const abortingDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      tx.abort();
+      return tx;
+    }
+  };
+  await assert.rejects(Media.auditOrphanedImages(abortingDb));
   db.close();
 });

@@ -1,4 +1,4 @@
-const CACHE = 'paseka-shell-v318';
+const CACHE = 'paseka-shell-v321';
 const CACHE_PREFIX = 'paseka-shell-';
 const FILES = [
   './',
@@ -19,9 +19,11 @@ const FILES = [
   './js/season-planning.js',
   './js/deadout-review.js',
   './js/paseka-archive.js',
+  './js/paseka-sha256.js',
   './js/paseka-archive-restore.js',
   './js/paseka-auto-snapshots.js',
   './js/paseka-media-store.js',
+  './js/paseka-media-renderer.js',
   './js/paseka-media-migration.js',
   './js/paseka-media-migration-engine.js',
   './js/paseka-media-migration-verifier.js',

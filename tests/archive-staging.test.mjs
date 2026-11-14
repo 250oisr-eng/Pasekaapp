@@ -5,7 +5,9 @@ import { webcrypto } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 const codecSource = await readFile(new URL('../js/paseka-archive.js', import.meta.url), 'utf8');
+const shaSource = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
 const restoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
+new Function(shaSource)();
 new Function(codecSource)();
 new Function(restoreSource)();
 const Archive = globalThis.PasekaArchive;
@@ -530,4 +532,173 @@ test('full archive export, staged import, atomic rollback round-trip preserves s
   assert.equal((await get(sourceDb, 'entrance_media', 'video-1')).blob.size, sourceVideo.blob.size);
   sourceDb.close();
   targetDb.close();
+});
+
+
+test('archive staging hashes legacy video Blob bytes outside IndexedDB write transactions', async () => {
+  const db = await openTestDb('paseka-stage-legacy-video-hash');
+  const legacyBlob = new Blob(['legacy video bytes'], { type: 'video/mp4' });
+  await put(db, 'entrance_media', {
+    id: 'legacy-video', hiveId: 'hive-old', bytes: legacyBlob.size, blob: legacyBlob
+  });
+  const archive = await makeArchive('backup-legacy-video-hash');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const saved = await get(db, 'entrance_media', 'legacy-video');
+  const expected = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await legacyBlob.arrayBuffer())),
+    byte => byte.toString(16).padStart(2, '0')).join('');
+  assert.equal(saved.blobSha256, expected);
+  assert.equal(saved.blob.size, legacyBlob.size);
+  assert.equal(staged.session.status, 'ready');
+  db.close();
+});
+
+test('archive staging rejects a legacy video whose persisted checksum disagrees with its Blob', async () => {
+  const db = await openTestDb('paseka-stage-legacy-video-hash-mismatch');
+  const blob = new Blob(['actual bytes'], { type: 'video/mp4' });
+  await put(db, 'entrance_media', {
+    id: 'tampered-video', hiveId: 'hive-old', bytes: blob.size, blob,
+    blobSha256: '0'.repeat(64)
+  });
+  const archive = await makeArchive('backup-legacy-video-hash-mismatch');
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'MEDIA_BASELINE_HASH_MISMATCH' }
+  );
+  assert.equal((await get(db, 'entrance_media', 'tampered-video')).blobSha256, '0'.repeat(64));
+  assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 0);
+  db.close();
+});
+
+
+test('archive staging does not open a write transaction while hashing legacy media', async () => {
+  const db = await openTestDb('paseka-stage-hash-outside-write');
+  const legacyBlob = new Blob(['legacy bytes'], { type: 'video/mp4' });
+  await put(db, 'entrance_media', { id: 'legacy-video', hiveId: 'hive-old', blob: legacyBlob });
+  const archive = await makeArchive('backup-hash-outside-write');
+  const modes = [];
+  const observedDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      modes.push(args[1] || 'readonly');
+      return db.transaction(...args);
+    }
+  };
+  const originalShaApi = globalThis.PasekaSha256;
+  const originalHash = originalShaApi.hashBlobHex;
+  let announceStarted;
+  let releaseHash;
+  const started = new Promise(resolve => { announceStarted = resolve; });
+  globalThis.PasekaSha256 = { ...originalShaApi, hashBlobHex: blob => {
+    announceStarted();
+    return new Promise((resolve, reject) => {
+      releaseHash = () => originalHash(blob).then(resolve, reject);
+    });
+  } };
+  try {
+    const operation = Restore.stageArchiveForRestore(observedDb, archive, webcrypto, Archive, () => true);
+    await started;
+    assert.ok(modes.length > 0);
+    assert.ok(modes.every(mode => mode === 'readonly'), 'no readwrite transaction may remain open during Blob hashing');
+    releaseHash();
+    const result = await operation;
+    assert.equal(result.session.status, 'ready');
+    assert.ok(modes.includes('readwrite'), 'a short write transaction is opened after hashing');
+  } finally {
+    globalThis.PasekaSha256 = originalShaApi;
+    db.close();
+  }
+});
+
+
+test('quota failure during media staging preserves live data and leaves a safely discardable failed session', async () => {
+  const db = await openTestDb('paseka-stage-quota-failure');
+  const liveState = {
+    meta: { schemaVersion: 12, revisionId: 'live-before-quota' },
+    hives: [{ id: 'live-hive', number: 7 }],
+    families: [], records: [{ id: 'live-record', note: 'must survive quota failure' }]
+  };
+  const liveBlob = new Blob(['user video must survive'], { type: 'video/mp4' });
+  const liveHash = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await liveBlob.arrayBuffer())),
+    byte => byte.toString(16).padStart(2, '0')).join('');
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'user-video-before-quota', hiveId: 'live-hive', blob: liveBlob,
+    blobSha256: liveHash, bytes: liveBlob.size, mimeType: 'video/mp4'
+  });
+
+  const archive = await makeArchive('backup-stage-quota-failure');
+  let injected = false;
+  const quotaDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      let injectedQuotaError = null;
+      return new Proxy(tx, {
+        get(target, property) {
+          if (property === 'error') return injectedQuotaError || target.error;
+          if (property === 'objectStore') {
+            return name => {
+              const store = target.objectStore(name);
+              if (name !== 'archive_staging') return store;
+              return new Proxy(store, {
+                get(storeTarget, method) {
+                  if (method === 'put') {
+                    return value => {
+                      if (!injected && value?.kind === 'video') {
+                        injected = true;
+                        injectedQuotaError = new DOMException('Injected storage quota exhaustion.', 'QuotaExceededError');
+                        target.abort();
+                        return null;
+                      }
+                      return storeTarget.put(value);
+                    };
+                  }
+                  const result = Reflect.get(storeTarget, method, storeTarget);
+                  return typeof result === 'function' ? result.bind(storeTarget) : result;
+                }
+              });
+            };
+          }
+          const result = Reflect.get(target, property, target);
+          return typeof result === 'function' ? result.bind(target) : result;
+        }
+      });
+    }
+  };
+
+  await assert.rejects(
+    Restore.stageArchiveForRestore(quotaDb, archive, webcrypto, Archive, () => true),
+    error => error && error.name === 'QuotaExceededError'
+  );
+  assert.equal(injected, true);
+
+  const [failedSession] = await Restore.listArchiveRestoreSessions(db);
+  assert.equal(failedSession.backupId, 'backup-stage-quota-failure');
+  assert.equal(failedSession.status, 'failed');
+  assert.equal(failedSession.errorCode, 'QuotaExceededError');
+  assert.equal(failedSession.stagedCount, 1);
+  assert.equal((await get(db, 'archive_staging', failedSession.sessionId + ':state')).kind, 'state');
+  assert.equal(await get(db, 'archive_staging', failedSession.sessionId + ':video:video-1'), undefined);
+
+  const afterFailureState = await get(db, 'main', 'state');
+  const afterFailureVideos = await getAll(db, 'entrance_media');
+  assert.equal(afterFailureState.meta.revisionId, 'live-before-quota');
+  assert.equal(afterFailureState.records[0].note, 'must survive quota failure');
+  assert.equal(afterFailureVideos.length, 1);
+  assert.equal(afterFailureVideos[0].id, 'user-video-before-quota');
+  assert.equal(afterFailureVideos[0].blobSha256, liveHash);
+  assert.equal(await afterFailureVideos[0].blob.text(), 'user video must survive');
+
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'INCOMPLETE_STAGING_EXISTS' }
+  );
+  assert.equal(await Restore.discardArchiveRestoreSession(db, failedSession.sessionId), true);
+
+  const retried = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  assert.equal(retried.session.status, 'ready');
+  assert.equal(retried.session.stagedCount, 2);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-quota');
+  assert.equal((await get(db, 'entrance_media', 'user-video-before-quota')).blobSha256, liveHash);
+  db.close();
 });

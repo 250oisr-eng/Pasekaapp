@@ -5,7 +5,10 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+const mediaReferenceSwitchSource = await readFile(new URL('../js/paseka-media-reference-switch.js', import.meta.url), 'utf8');
 const archiveRestoreSource = await readFile(new URL('../js/paseka-archive-restore.js', import.meta.url), 'utf8');
+const sha256Source = await readFile(new URL('../js/paseka-sha256.js', import.meta.url), 'utf8');
+new Function(sha256Source)();
 const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', import.meta.url), 'utf8'));
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
@@ -1721,7 +1724,7 @@ test('journal supports family filtering and inline attachment previews',()=>{
  assert.match(html,/id="journalFamilyFilter"/);
  const source=extractFunction('renderJournalRecords');
  assert.match(source,/familySelect/);
- assert.match(source,/mediaHtml\(r\.media\)/);
+ assert.match(source,/mediaHtml\(r\.media,true\)/);
  assert.match(source,/mediaNames/);
 });
 
@@ -2568,10 +2571,25 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
+test('journal and plant screens hydrate IndexedDB media and release object URLs before rerender', () => {
+  assert.ok(html.includes('PasekaMediaRenderer.hydrate(mediaHost,record.media||[],db,window.crypto)'));
+  assert.ok(html.includes('PasekaMediaRenderer.hydrate(card,item.media||[],db,window.crypto)'));
+  assert.ok(html.includes('PasekaMediaRenderer.releaseContainer(host)'));
+  assert.ok(html.includes('data-media-index'));
+  assert.ok(html.includes('PasekaMediaRenderer.releaseContainer(host);'));
+});
+
+test('media renderer is loaded after its store and cached for offline use', () => {
+  const storeIndex=html.indexOf('<script src="./js/paseka-media-store.js"></script>');
+  const rendererIndex=html.indexOf('<script src="./js/paseka-media-renderer.js"></script>');
+  assert.ok(storeIndex>=0&&rendererIndex>storeIndex);
+  assert.ok(serviceWorker.includes("'./js/paseka-media-renderer.js'"));
+});
+
 test('full archive export is available separately from the JSON-only backup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
-  assert.match(serviceWorker, /const CACHE\s*=\s*['"]paseka-shell-v318['"]/);
+  assert.match(serviceWorker, /const CACHE\s*=\s*['"]paseka-shell-v321['"]/);
   assert.ok(serviceWorker.includes("const CACHE_PREFIX = 'paseka-shell-'"));
   assert.ok(serviceWorker.includes("key.startsWith(CACHE_PREFIX) && key !== CACHE"));
   assert.ok(serviceWorker.includes("caches.match('./index.html')"));
@@ -2693,10 +2711,20 @@ test('IndexedDB v3 upgrades to v8 with archive staging, history, snapshots, imag
   deps.db.close();
 });
 
+test('incremental SHA-256 is loaded and cached before media integrity modules', () => {
+  const shaTag = '<script src="./js/paseka-sha256.js"></script>';
+  assert.ok(html.includes(shaTag));
+  assert.ok(serviceWorker.includes("'./js/paseka-sha256.js'"));
+  assert.ok(html.indexOf(shaTag) < html.indexOf('<script src="./js/paseka-archive-restore.js"></script>'));
+  assert.ok(html.indexOf(shaTag) < html.indexOf('<script src="./js/paseka-media-store.js"></script>'));
+  assert.ok(sha256Source.includes('const CHUNK_BYTES = 1024 * 1024'));
+  assert.ok(sha256Source.includes('class Sha256'));
+});
+
 test('archive staging manager is loaded and cached for offline startup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive-restore.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive-restore.js'"));
-  assert.match(serviceWorker, /const CACHE\s*=\s*['"]paseka-shell-v318['"]/);
+  assert.match(serviceWorker, /const CACHE\s*=\s*['"]paseka-shell-v321['"]/);
   assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
 });
 
@@ -2871,4 +2899,133 @@ test('entrance video list exposes imported videos whose hive reference is orphan
   await resolved();
   assert.match(resolvedHost.innerHTML, /Улей removed-hive/);
   assert.doesNotMatch(resolvedHost.innerHTML, /Улей из архива не найден/);
+});
+
+test('entrance video save hashes and stores the same Blob snapshot when caller mutates its record', async () => {
+  let releaseDigest, digestStarted;
+  const started = new Promise(resolve => { digestStarted = resolve; });
+  const gate = new Promise(resolve => { releaseDigest = resolve; });
+  const firstBlob = new Blob(['A'], { type: 'video/mp4' });
+  const replacementBlob = new Blob(['B'], { type: 'video/mp4' });
+  const record = { id: 'video-snapshot', blob: firstBlob, bytes: 1 };
+  let stored = null;
+  const tx = {
+    objectStore() { return { put(value) { stored = value; } }; }
+  };
+  const save = loadFunction('putEntranceVideo', {
+    db: { transaction() { return tx; } },
+    window: {
+      crypto: { subtle: { digest: async (_algorithm, bytes) => {
+        digestStarted();
+        await gate;
+        return new Uint8Array([new Uint8Array(bytes)[0]]).buffer;
+      } } }
+    }
+  })(record);
+  await started;
+  record.blob = replacementBlob;
+  record.bytes = 99;
+  releaseDigest();
+  await new Promise(resolve => setImmediate(resolve));
+  tx.oncomplete();
+  assert.equal(await save, true);
+  assert.equal(stored.blob, firstBlob);
+  assert.equal(stored.bytes, 1);
+  assert.equal(stored.blobSha256, '41');
+});
+
+
+test('photo reference switch revalidates Blob bytes before reporting an idempotent success', async () => {
+  const module = { exports: {} };
+  new Function('module', 'exports', mediaReferenceSwitchSource)(module, module.exports);
+  const { switchOne } = module.exports;
+  const factory = new IDBFactory();
+  const open = factory.open('paseka-reference-switch-idempotency', 1);
+  open.onupgradeneeded = () => {
+    const db = open.result;
+    db.createObjectStore('main');
+    db.createObjectStore('media_blobs', { keyPath: 'id' });
+    db.createObjectStore('media_migration_journal', { keyPath: 'id' });
+    db.createObjectStore('media_reference_journal', { keyPath: 'id' });
+  };
+  const db = await new Promise((resolve, reject) => {
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+  const bytes = new Uint8Array([1, 2, 3]);
+  const blob = new Blob([bytes], { type: 'image/png' });
+  const sha256 = Array.from(new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
+  const candidate = { id: 'candidate-1', collection: 'records', entityId: 'record-1', mediaIndex: 0 };
+  const migrationId = 'migration-1';
+  const sourceKey = 'records:record-1:0';
+  const verifiedItem = { blobId: 'blob-1', sha256, sizeBytes: bytes.length, mimeType: 'image/png' };
+  const state = {
+    meta: { revisionId: 'revision-1' },
+    records: [{ id: 'record-1', media: [{ data: 'data:image/png;base64,AQID', name: 'photo.png' }] }]
+  };
+  const tx = db.transaction(['main', 'media_blobs', 'media_migration_journal'], 'readwrite');
+  tx.objectStore('main').put(state, 'state');
+  tx.objectStore('media_blobs').put({
+    id: verifiedItem.blobId, blob, mimeType: verifiedItem.mimeType,
+    sizeBytes: verifiedItem.sizeBytes, sha256, migrationId, sourceKey
+  });
+  tx.objectStore('media_migration_journal').put({
+    id: 'copy-1', migrationId, candidateId: candidate.id, sourceKey,
+    blobId: verifiedItem.blobId, sha256, status: 'completed'
+  });
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  const request = (store, key) => new Promise((resolve, reject) => {
+    const r = store.get(key);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+  const first = await switchOne(db, {
+    candidate, migrationId, verifiedItem,
+    expectedRevision: 'revision-1', newRevision: 'revision-2'
+  }, globalThis.crypto);
+  assert.equal(first.status, 'switched');
+  const second = await switchOne(db, {
+    candidate, migrationId, verifiedItem,
+    expectedRevision: 'revision-1', newRevision: 'revision-3'
+  }, globalThis.crypto);
+  assert.equal(second.status, 'already_switched');
+  const corruptTx = db.transaction('media_blobs', 'readwrite');
+  const store = corruptTx.objectStore('media_blobs');
+  const stored = await request(store, verifiedItem.blobId);
+  store.put({ ...stored, blob: new Blob([new Uint8Array([9, 9, 9])], { type: 'image/png' }) });
+  await new Promise((resolve, reject) => {
+    corruptTx.oncomplete = resolve;
+    corruptTx.onerror = () => reject(corruptTx.error);
+    corruptTx.onabort = () => reject(corruptTx.error);
+  });
+  await assert.rejects(
+    switchOne(db, {
+      candidate, migrationId, verifiedItem,
+      expectedRevision: 'revision-2', newRevision: 'revision-4'
+    }, globalThis.crypto),
+    error => error.code === 'DESTINATION_CORRUPTED'
+  );
+  const finalTx = db.transaction('main', 'readonly');
+  const finalState = await request(finalTx.objectStore('main'), 'state');
+  await new Promise((resolve, reject) => {
+    finalTx.oncomplete = resolve;
+    finalTx.onerror = () => reject(finalTx.error);
+  });
+  assert.equal(finalState.meta.revisionId, 'revision-2');
+  assert.equal(finalState.records[0].media[0].data, 'data:image/png;base64,AQID');
+  db.close();
+});
+
+
+test('settings expose a read-only photo integrity audit without a delete action', () => {
+  assert.ok(html.includes('id="auditMediaStorageButton"'));
+  assert.ok(html.includes('onclick="auditMediaStorage()"'));
+  assert.ok(html.includes('PasekaMediaStore.auditOrphanedImages(db)'));
+  assert.ok(html.includes('id="mediaStorageAuditDetails"'));
+  assert.ok(html.includes('Ничего не удалено.'));
+  assert.ok(!html.includes('deleteOrphanedImages'));
 });
