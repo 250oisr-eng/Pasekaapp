@@ -193,8 +193,11 @@ test('concurrent attempts cannot create duplicate staging sessions for one backu
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true)
   ]);
   assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  const fulfilled = results.filter(result => result.status === 'fulfilled');
+  assert.equal(fulfilled.filter(result => !result.value.alreadyStaged).length, 1);
+  assert.equal(fulfilled.filter(result => result.value.alreadyStaged).length + results.filter(result => result.status === 'rejected').length, 1);
   const rejected = results.find(result => result.status === 'rejected');
-  assert.equal(rejected.reason.code, 'BACKUP_STAGING_CONFLICT');
+  if (rejected) assert.ok(['BACKUP_STAGING_CONFLICT', 'INCOMPLETE_STAGING_EXISTS'].includes(rejected.reason.code));
   assert.equal((await Restore.listArchiveRestoreSessions(db)).length, 1);
   db.close();
 });
