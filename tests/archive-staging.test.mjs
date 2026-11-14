@@ -715,3 +715,63 @@ test('quota failure during media staging survives database reopen and preserves 
   assert.equal((await get(db, 'entrance_media', 'user-video-before-quota')).blobSha256, liveHash);
   db.close();
 });
+
+
+test('concurrent tabs cannot create two staging sessions for the same backup', async () => {
+  const db = await openTestDb('paseka-stage-concurrent-tabs');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-concurrent-stage' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+
+  const archive = await makeArchive('backup-stage-concurrent-tabs');
+  let validationArrivals = 0;
+  let releaseValidation;
+  const validationGate = new Promise(resolve => { releaseValidation = resolve; });
+  const synchronizedArchiveApi = {
+    ...Archive,
+    async validateArchiveForRestore(...args) {
+      const checked = await Archive.validateArchiveForRestore(...args);
+      validationArrivals++;
+      if (validationArrivals === 2) releaseValidation();
+      await validationGate;
+      return checked;
+    }
+  };
+  const validateState = () => true;
+
+  const results = await Promise.allSettled([
+    Restore.stageArchiveForRestore(db, archive, webcrypto, synchronizedArchiveApi, validateState),
+    Restore.stageArchiveForRestore(db, archive, webcrypto, synchronizedArchiveApi, validateState)
+  ]);
+  const fulfilled = results.filter(result => result.status === 'fulfilled');
+  const rejected = results.filter(result => result.status === 'rejected');
+
+  assert.equal(validationArrivals, 2);
+  assert.equal(fulfilled.length + rejected.length, 2);
+  assert.ok(fulfilled.length >= 1, 'at least one tab must stage the archive');
+  assert.equal(fulfilled.filter(result => result.value.alreadyStaged === false).length, 1,
+    'exactly one tab may create the staging session');
+  if (rejected.length) {
+    assert.ok(
+      rejected[0].reason.code === 'BACKUP_STAGING_CONFLICT' ||
+      rejected[0].reason.code === 'INCOMPLETE_STAGING_EXISTS' ||
+      rejected[0].reason.name === 'ConstraintError',
+      'a rejected tab must receive a recognized safe conflict, got: ' + String(rejected[0].reason.code || rejected[0].reason.name || rejected[0].reason.message)
+    );
+  }
+  const sessionIds = new Set(fulfilled.map(result => result.value.session.sessionId));
+  assert.equal(sessionIds.size, 1, 'concurrent tabs must converge on the same staging session');
+
+  const sessions = await Restore.listArchiveRestoreSessions(db);
+  assert.equal(sessions.length, 1, 'only one session header may exist for the backup ID');
+  assert.equal(sessions[0].status, 'ready');
+  assert.equal(sessions[0].stagedCount, 2);
+  assert.equal(sessions[0].totalEntries, 2);
+  const staged = await Restore.getStagedArchive(db, sessions[0].sessionId, webcrypto, Archive, validateState);
+  assert.equal(staged.state.meta.revisionId, 'archive-revision');
+  assert.equal(staged.videos.length, 1);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-concurrent-stage');
+  const stagingRows = await getAll(db, 'archive_staging');
+  assert.equal(stagingRows.filter(row => row.kind === 'session').length, 1);
+  assert.equal(stagingRows.filter(row => row.kind !== 'session').length, 2);
+  db.close();
+});
