@@ -156,4 +156,4 @@ async function hashBlobHex(blob, options = {}) {
 
 root.PasekaSha256 = Object.freeze({ hashBlobHex, CHUNK_BYTES });
 if (typeof module !== 'undefined' && module.exports) module.exports = root.PasekaSha256;
-})(typeof globalThis !== 'undefined' ? globalThis : this);
+})(typeof window !== 'undefined' ? window : globalThis);
