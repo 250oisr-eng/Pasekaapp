@@ -333,6 +333,15 @@ test('atomic archive commit replaces state and entrance videos while preserving 
     Restore.discardArchiveRestoreSession(db, committed.rollbackSessionId),
     { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }
   );
+  const cleanup = await Restore.discardArchiveRollbackSnapshot(db, 'backup-atomic-commit');
+  assert.equal(cleanup.deletedRecords, 3);
+  const cleanedHistory = await get(db, 'archive_history', 'backup-atomic-commit');
+  assert.equal(cleanedHistory.rollbackSessionId, null);
+  assert.equal(cleanedHistory.rollbackAvailable, false);
+  await assert.rejects(
+    Restore.rollbackCommittedArchive(db, 'backup-atomic-commit', currentState.meta.revisionId, webcrypto, () => true),
+    { code: 'ROLLBACK_NOT_AVAILABLE' }
+  );
   db.close();
 });
 
