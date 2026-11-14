@@ -576,6 +576,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STARTUP_MARKER_KEY='paseka.everInitialized.v1';
 function validateJournalRecordDraft(draft,state,existingRecord=null){
  const errors=[];
  const realDate=value=>{
@@ -602,7 +603,6 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
  return {ok:errors.length===0,errors};
 }
-const STARTUP_MARKER_KEY='paseka.everInitialized.v1';
 function readStartupMarker(){try{return localStorage.getItem(STARTUP_MARKER_KEY)==='1'}catch(e){return null}}
 function markStartupInitialized(){try{localStorage.setItem(STARTUP_MARKER_KEY,'1');return true}catch(e){return false}}
 function classifyStartupState(mainState,backupState,previouslyUsed){
