@@ -2732,3 +2732,53 @@ test('full archive can be shared through the system file share sheet when suppor
   assert.equal(await shared.files[0].text(), 'paseka archive');
   assert.match(status.textContent, /Системное меню отправки закрыто/);
 });
+
+
+test('deadout review submit ignores repeated taps while the first save is pending', async () => {
+  let resolveSave;
+  let buildCalls = 0;
+  let saveCalls = 0;
+  let renderCalls = 0;
+  const savePromise = new Promise(resolve => { resolveSave = resolve; });
+  const button = { disabled: false };
+  const form = { querySelector: () => button, reset() {} };
+  const state = { hives: [{ id: 'hive-1', number: 1 }], deadoutReviews: [] };
+  const inputValues = {
+    deadoutHive: 'hive-1', deadoutObservedAt: '2026-11-14', deadoutLastAlive: '',
+    deadoutFood: 'unknown', deadoutCluster: 'unknown', deadoutMoisture: 'unknown',
+    deadoutBrood: 'unknown', deadoutCells: 'unknown', deadoutVarroa: 'unknown',
+    deadoutQueen: 'unknown', deadoutRodents: 'unknown', deadoutSeasonContext: '',
+    deadoutNotes: ''
+  };
+  const handler = loadFunction('saveDeadoutReview', {
+    window: {},
+    $: id => id === 'deadoutForm' ? form : { value: inputValues[id] || '' },
+    S: state,
+    pendingDeadoutMedia: [],
+    PasekaDeadout: {
+      buildDeadoutReviewDraft() {
+        buildCalls++;
+        return { id: 'review-1', hiveId: 'hive-1', observedAt: '2026-11-14' };
+      }
+    },
+    uid: () => 'review-1',
+    cloneApiaryState: () => ({ ...state, deadoutReviews: [...state.deadoutReviews] }),
+    logAudit() {},
+    async save() { saveCalls++; return savePromise; },
+    render() { renderCalls++; },
+    renderDeadoutModule() {},
+    today: () => '2026-11-14',
+    alert() {}
+  });
+  const first = handler({ preventDefault() {} });
+  assert.equal(button.disabled, true);
+  assert.equal(buildCalls, 1);
+  assert.equal(state.deadoutReviews.length, 1);
+  await handler({ preventDefault() {} });
+  assert.equal(buildCalls, 1);
+  assert.equal(saveCalls, 1);
+  resolveSave(true);
+  await first;
+  assert.equal(button.disabled, false);
+  assert.equal(handler && renderCalls, 0);
+});
