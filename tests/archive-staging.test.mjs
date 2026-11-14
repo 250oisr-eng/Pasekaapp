@@ -317,6 +317,8 @@ test('atomic archive commit replaces state and entrance videos while preserving 
   assert.equal(currentVideos[0].blob.size, 4);
   assert.equal(previousState.state.meta.revisionId, 'live-revision');
   assert.equal(history.status, 'committed');
+  assert.equal(history.videoCount, 1);
+  assert.equal(history.orphanedVideoCount, 0);
   assert.equal(history.rollbackSessionId, committed.rollbackSessionId);
   const historyList = await Restore.listArchiveImportHistory(db);
   assert.equal(historyList[0].backupId, 'backup-atomic-commit');
@@ -477,6 +479,9 @@ test('atomic archive commit marks videos whose hive reference is missing from th
   const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'live-revision', webcrypto, Archive, () => true);
   assert.equal(committed.importedVideoCount, 1);
   assert.equal(committed.orphanedVideoCount, 1);
+  const history = await get(db, 'archive_history', 'backup-orphan-video');
+  assert.equal(history.videoCount, 1);
+  assert.equal(history.orphanedVideoCount, 1);
   const importedVideo = await get(db, 'entrance_media', 'video-1');
   assert.equal(importedVideo.hiveId, 'hive-no-longer-present');
   assert.equal(importedVideo.orphanedHiveReference, true);
