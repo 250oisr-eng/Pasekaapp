@@ -278,6 +278,9 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             };
             historyStore.put(historyRecord);
             stagingStore.put({ ...session, status: 'committed', committedAt: now, importedRevisionId: state.meta.revisionId, rollbackSessionId });
+            for (const record of records) {
+              if (record.sessionId === sessionId && record.id !== sessionId) stagingStore.delete(record.id);
+            }
             result = { state, history: historyRecord, rollbackSessionId, previousVideoCount: currentVideos.length };
           } catch (error) {
             stopKeepAlive?.();
