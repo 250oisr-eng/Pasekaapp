@@ -13,8 +13,7 @@ new Function(restoreSource)();
 const Archive = globalThis.PasekaArchive;
 const Restore = globalThis.PasekaArchiveRestore;
 
-function openTestDb(name) {
-  const factory = new IDBFactory();
+function openTestDb(name, factory = new IDBFactory()) {
   return new Promise((resolve, reject) => {
     const request = factory.open(name, 1);
     request.onupgradeneeded = () => {
@@ -610,8 +609,9 @@ test('archive staging does not open a write transaction while hashing legacy med
 });
 
 
-test('quota failure during media staging preserves live data and leaves a safely discardable failed session', async () => {
-  const db = await openTestDb('paseka-stage-quota-failure');
+test('quota failure during media staging survives database reopen and preserves live data', async () => {
+  const factory = new IDBFactory();
+  let db = await openTestDb('paseka-stage-quota-failure', factory);
   const liveState = {
     meta: { schemaVersion: 12, revisionId: 'live-before-quota' },
     hives: [{ id: 'live-hive', number: 7 }],
@@ -688,6 +688,19 @@ test('quota failure during media staging preserves live data and leaves a safely
   assert.equal(afterFailureVideos[0].id, 'user-video-before-quota');
   assert.equal(afterFailureVideos[0].blobSha256, liveHash);
   assert.equal(await afterFailureVideos[0].blob.text(), 'user video must survive');
+
+  // Simulate the WebView database connection being closed and the app reopening.
+  // The same IndexedDB database must retain the failed session and partial rows.
+  db.close();
+  db = await openTestDb('paseka-stage-quota-failure', factory);
+  const [reopenedSession] = await Restore.listArchiveRestoreSessions(db);
+  assert.equal(reopenedSession.sessionId, failedSession.sessionId);
+  assert.equal(reopenedSession.status, 'failed');
+  assert.equal(reopenedSession.stagedCount, 1);
+  assert.equal((await get(db, 'archive_staging', reopenedSession.sessionId + ':state')).kind, 'state');
+  assert.equal(await get(db, 'archive_staging', reopenedSession.sessionId + ':video:video-1'), undefined);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-quota');
+  assert.equal(await (await get(db, 'entrance_media', 'user-video-before-quota')).blob.text(), 'user video must survive');
 
   await assert.rejects(
     Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
