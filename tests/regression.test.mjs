@@ -2571,11 +2571,16 @@ test('schema 11 migration creates an empty deadout section and preserves existin
 test('full archive export is available separately from the JSON-only backup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v311'"));
   assert.ok(html.includes('id="downloadFullArchiveButton"'));
   assert.ok(html.includes('onclick="downloadFullArchive()"'));
   assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
-  assert.ok(html.includes('Восстановление полного архива будет добавлено отдельно'));
+  assert.ok(html.includes('Восстановить полный архив'));
+  assert.ok(html.includes('Отдельные оригиналы видео летка в эту точку отката не входят.'));
+  assert.ok(!html.includes('полная копия предыдущего состояния, включая фотографии и видео'));
+  assert.ok(html.includes('id="fullArchiveFile"'));
+  assert.ok(html.includes('id="shareFullArchiveButton"'));
+  assert.ok(html.includes('function shareFullArchive()'));
   assert.ok(html.includes('Скачать архив'));
 });
 
@@ -2681,6 +2686,176 @@ test('IndexedDB v3 upgrades to v4 with dedicated archive staging and history sto
 test('archive staging manager is loaded and cached for offline startup', () => {
   assert.ok(html.includes('<script src="./js/paseka-archive-restore.js"></script>'));
   assert.ok(serviceWorker.includes("'./js/paseka-archive-restore.js'"));
-  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v309'"));
+  assert.ok(serviceWorker.includes("const CACHE='paseka-shell-v311'"));
   assert.ok(archiveRestoreSource.includes('stageArchiveForRestore'));
+});
+
+
+test('full archive restore UI requires staging, explicit confirmation, and offers rollback', () => {
+  assert.ok(html.includes('id="fullArchiveFile"'));
+  assert.ok(html.includes('onclick="prepareFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="commitFullArchiveRestore()"'));
+  assert.ok(html.includes('onclick="cancelFullArchiveRestore()"'));
+  assert.ok(html.includes('function validateFullArchiveImportState(state)'));
+  assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
+  assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
+  assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
+  assert.ok(html.includes('window.__pasekaPendingFullArchiveRestore = null;'));
+  assert.ok(html.includes("$('fullArchiveRestoreActions').hidden = true;"));
+  assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
+  assert.ok(html.includes('Удалить точку отката'));
+  assert.ok(html.includes('Точка отката хранит прежние видео и может занимать много места'));
+  assert.ok(html.includes('Эти видео сохранятся без привязки; после импорта их можно найти фильтром «Видео без найденного улья».'));
+  assert.ok(html.includes('Видео без найденного улья'));
+  assert.ok(html.includes('Фильтр видео летка'));
+  assert.ok(html.includes('title="Все видео, видео без найденного улья или видео выбранного улья"'));
+  assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  assert.ok(html.includes('function archiveRestoreErrorText(error)'));
+  assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
+  assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
+});
+
+
+test('full archive can be shared through the system file share sheet when supported', async () => {
+  const blob = new Blob(['paseka archive']);
+  let shared = null;
+  const status = { textContent: '' };
+  class MockFile extends Blob {
+    constructor(parts, name, options) { super(parts, options); this.name = name; }
+  }
+  const handler = loadFunction('shareFullArchive', {
+    window: { __pasekaFullArchiveBlob: blob },
+    navigator: {
+      canShare: payload => payload.files?.length === 1,
+      async share(payload) { shared = payload; }
+    },
+    File: MockFile,
+    today: () => '2026-11-14',
+    $: () => status
+  });
+  await handler();
+  assert.equal(shared.title, 'Полный архив пасеки');
+  assert.equal(shared.files[0].name, 'paseka-full-backup-2026-11-14.paseka');
+  assert.equal(await shared.files[0].text(), 'paseka archive');
+  assert.match(status.textContent, /Системное меню отправки закрыто/);
+});
+
+
+test('deadout review submit ignores repeated taps while the first save is pending', async () => {
+  let resolveSave;
+  let buildCalls = 0;
+  let saveCalls = 0;
+  let renderCalls = 0;
+  const savePromise = new Promise(resolve => { resolveSave = resolve; });
+  const button = { disabled: false };
+  const form = { querySelector: () => button, reset() {} };
+  const win = {};
+  const state = { hives: [{ id: 'hive-1', number: 1 }], deadoutReviews: [] };
+  const inputValues = {
+    deadoutHive: 'hive-1', deadoutObservedAt: '2026-11-14', deadoutLastAlive: '',
+    deadoutFood: 'unknown', deadoutCluster: 'unknown', deadoutMoisture: 'unknown',
+    deadoutBrood: 'unknown', deadoutCells: 'unknown', deadoutVarroa: 'unknown',
+    deadoutQueen: 'unknown', deadoutRodents: 'unknown', deadoutSeasonContext: '',
+    deadoutNotes: ''
+  };
+  const handler = loadFunction('saveDeadoutReview', {
+    window: win,
+    $: id => id === 'deadoutForm' ? form : { value: inputValues[id] || '' },
+    S: state,
+    pendingDeadoutMedia: [],
+    PasekaDeadout: {
+      buildDeadoutReviewDraft() {
+        buildCalls++;
+        return { id: 'review-1', hiveId: 'hive-1', observedAt: '2026-11-14' };
+      }
+    },
+    uid: () => 'review-1',
+    cloneApiaryState: () => ({ ...state, deadoutReviews: [...state.deadoutReviews] }),
+    logAudit() {},
+    async save() { saveCalls++; return savePromise; },
+    render() { renderCalls++; },
+    renderDeadoutModule() {},
+    today: () => '2026-11-14',
+    alert() {}
+  });
+  const first = handler({ preventDefault() {} });
+  assert.equal(button.disabled, true);
+  assert.equal(buildCalls, 1);
+  assert.equal(state.deadoutReviews.length, 1);
+  await handler({ preventDefault() {} });
+  assert.equal(buildCalls, 1);
+  assert.equal(saveCalls, 1);
+  resolveSave(true);
+  await first;
+  assert.equal(button.disabled, false);
+  assert.equal(renderCalls, 0);
+  assert.equal(win.__pasekaDeadoutSaveBusy, false);
+});
+
+
+test('deadout review save failure restores the previous state and releases the submit lock', async () => {
+  const button = { disabled: false };
+  const form = { querySelector: () => button, reset() {} };
+  const win = {};
+  const state = { hives: [{ id: 'hive-1', number: 1 }], deadoutReviews: [] };
+  const deps = {
+    window: win,
+    $: id => id === 'deadoutForm' ? form : { value: id === 'deadoutHive' ? 'hive-1' : id === 'deadoutObservedAt' ? '2026-11-14' : '' },
+    S: state,
+    pendingDeadoutMedia: [],
+    PasekaDeadout: { buildDeadoutReviewDraft: () => ({ id: 'review-failed', hiveId: 'hive-1', observedAt: '2026-11-14' }) },
+    uid: () => 'review-failed',
+    cloneApiaryState: () => ({ ...deps.S, deadoutReviews: [...deps.S.deadoutReviews] }),
+    logAudit() {},
+    async save() { return false; },
+    render() {},
+    renderDeadoutModule() {},
+    today: () => '2026-11-14',
+    alert() {}
+  };
+  const handler = loadFunction('saveDeadoutReview', deps);
+  await handler({ preventDefault() {} });
+  assert.equal(deps.S.deadoutReviews.length, 0);
+  assert.equal(button.disabled, false);
+  assert.equal(win.__pasekaDeadoutSaveBusy, false);
+});
+
+
+test('entrance video list exposes imported videos whose hive reference is orphaned', async () => {
+  const host = { innerHTML: '' };
+  const select = { value: '__orphaned__' };
+  const render = loadFunction('refreshEntranceVideos', {
+    $: id => id === 'entranceVideoList' ? host : select,
+    listEntranceVideos: async () => [{
+      id: 'orphan-video', hiveId: 'removed-hive', orphanedHiveReference: true,
+      capturedAt: '2026-11-14T09:00:00.000Z', durationSec: 30, width: 640, height: 480,
+      bytes: 12, status: 'waiting_for_server'
+    }],
+    S: { hives: [] },
+    safe: value => String(value ?? ''),
+    hname: id => 'Улей ' + id,
+    entranceBytes: () => '12 Б'
+  });
+  await render();
+  assert.match(host.innerHTML, /Улей из архива не найден/);
+  assert.match(host.innerHTML, /Сохранённый ID улья из архива: removed-hive/);
+  assert.match(host.innerHTML, /orphan-video/);
+
+  const resolvedHost = { innerHTML: '' };
+  select.value = 'removed-hive';
+  const resolved = loadFunction('refreshEntranceVideos', {
+    $: id => id === 'entranceVideoList' ? resolvedHost : select,
+    listEntranceVideos: async () => [{
+      id: 'orphan-video', hiveId: 'removed-hive', orphanedHiveReference: true,
+      capturedAt: '2026-11-14T09:00:00.000Z', durationSec: 30, width: 640, height: 480,
+      bytes: 12, status: 'waiting_for_server'
+    }],
+    S: { hives: [{ id: 'removed-hive' }] },
+    safe: value => String(value ?? ''),
+    hname: id => 'Улей ' + id,
+    entranceBytes: () => '12 Б'
+  });
+  await resolved();
+  assert.match(resolvedHost.innerHTML, /Улей removed-hive/);
+  assert.doesNotMatch(resolvedHost.innerHTML, /Улей из архива не найден/);
 });
