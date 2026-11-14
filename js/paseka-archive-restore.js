@@ -54,10 +54,16 @@ async function updateSession(db, session) {
   await putStagingRecord(db, session);
 }
 async function putStagingEntryAndUpdateSession(db, record, session) {
-  const nextSession = { ...session, stagedCount: session.stagedCount + 1 };
+  const nextEpoch = (Number.isSafeInteger(session.stagingEpoch) ? session.stagingEpoch : 0) + 1;
+  const nextSession = {
+    ...session,
+    stagedCount: session.stagedCount + 1,
+    stagingEpoch: nextEpoch
+  };
+  const versionedRecord = { ...record, stagingRevision: nextEpoch };
   const tx = db.transaction(STAGING_STORE, 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
-  store.put(record);
+  store.put(versionedRecord);
   store.put(nextSession);
   await transactionDone(tx);
   Object.assign(session, nextSession);
@@ -99,6 +105,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     manifest: checked.manifest,
     totalEntries: checked.videoEntries.length + 1,
     stagedCount: 0,
+    stagingEpoch: 0,
     orphanVideoIds: checked.orphanVideoIds.slice(),
     status: 'staging',
     errorCode: null,
