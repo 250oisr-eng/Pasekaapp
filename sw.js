@@ -1,4 +1,4 @@
-const CACHE = 'paseka-shell-v319';
+const CACHE = 'paseka-shell-v320';
 const CACHE_PREFIX = 'paseka-shell-';
 const FILES = [
   './',
