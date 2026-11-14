@@ -291,11 +291,15 @@ function mediaRecordsFingerprint(records) {
   return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 3, canonical]);
 }
 async function sha256BlobHex(blob, cryptoProvider) {
-  if (!blob || typeof blob.arrayBuffer !== 'function' || !cryptoProvider?.subtle?.digest) {
+  if (!root.PasekaSha256 || typeof root.PasekaSha256.hashBlobHex !== 'function') {
+    fail('MEDIA_HASH_UNAVAILABLE', 'The incremental SHA-256 module is unavailable on this device.');
+  }
+  try {
+    return await root.PasekaSha256.hashBlobHex(blob);
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
     fail('MEDIA_HASH_UNAVAILABLE', 'The video bytes cannot be hashed safely on this device.');
   }
-  const digest = await cryptoProvider.subtle.digest('SHA-256', await blob.arrayBuffer());
-  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
