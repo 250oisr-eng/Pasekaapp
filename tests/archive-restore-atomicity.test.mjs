@@ -333,7 +333,7 @@ test('archive staging captures a canonical video-library baseline atomically wit
   };
   const staged = await api.stageArchiveForRestore(db, new Blob(['archive']), cryptoProvider, archiveApi, async () => true);
   assert.equal(typeof staged.session.baselineMediaFingerprint, 'string');
-  assert.match(staged.session.baselineMediaFingerprint, /^\\["PASEKA-MEDIA-FINGERPRINT",2,/);
+  assert.equal(staged.session.baselineMediaFingerprint.startsWith('["PASEKA-MEDIA-FINGERPRINT",2,'), true);
   const read = db.transaction('archive_staging', 'readonly');
   const stored = await new Promise((resolve, reject) => {
     const q = read.objectStore('archive_staging').get(staged.session.id);
