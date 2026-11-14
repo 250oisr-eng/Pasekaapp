@@ -2565,3 +2565,12 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+test('full archive export is available separately from the JSON-only backup', () => {
+  assert.ok(html.includes('<script src="./js/paseka-archive.js"></script>'));
+  assert.ok(html.includes('id="downloadFullArchiveButton"'));
+  assert.ok(html.includes('onclick="downloadFullArchive()"'));
+  assert.ok(html.includes("PasekaArchive.exportArchiveFromDatabase(db,window.crypto)"));
+  assert.ok(html.includes('Восстановление полного архива будет добавлено отдельно'));
+  assert.ok(html.includes('Скачать архив'));
+});
