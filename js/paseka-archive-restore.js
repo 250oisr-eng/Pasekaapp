@@ -176,6 +176,7 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the staged state.');
   const videoEntries = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
   if (videoEntries.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
+  const hiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
   const videos = [];
   for (const record of videoRecords) {
     if (!record.blob || !record.metadata || record.blob.size !== record.size) fail('STAGING_VIDEO_SIZE_MISMATCH', 'A staged video is missing or has an invalid size.');
@@ -183,7 +184,6 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
     if (!entry || entry.path !== record.path || entry.size !== record.size || JSON.stringify(record.metadata) !== JSON.stringify(entry.metadata)) fail('STAGING_VIDEO_MANIFEST_MISMATCH', 'A staged video does not match its manifest entry.');
     const hashes = await archiveApi.hashBlobChunks(record.blob, cryptoProvider);
     if (JSON.stringify(hashes) !== JSON.stringify(entry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged video checksum does not match its manifest: ' + record.metadata.id);
-    const hiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
     videos.push({ ...record, orphanedHiveReference: !hiveIds.has(record.metadata.hiveId) });
   }
   return { session, state, videos: videos.sort((a, b) => String(a.path).localeCompare(String(b.path))) };
