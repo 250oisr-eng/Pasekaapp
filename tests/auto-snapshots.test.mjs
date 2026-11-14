@@ -133,3 +133,37 @@ test('enforces the total byte budget and retains the newest snapshot', async () 
   assert.ok(items[0].sizeBytes <= budget);
   db.close();
 });
+
+
+test('skips a snapshot larger than the total budget without deleting existing recovery points', async () => {
+  const db = await openDb('snapshot-total-budget-skip');
+  await put(db, 'main', fixture('main-1', 'current'), 'state');
+  const first = await Snapshots.writeSnapshot(db, fixture('rev-1', 'small'), 'main-1', webcrypto, { maxTotalBytes: 10000 });
+  assert.equal(first.written, true);
+  await put(db, 'main', fixture('main-2', 'current'), 'state');
+  const result = await Snapshots.writeSnapshot(db, fixture('rev-2', 'x'.repeat(500)), 'main-2', webcrypto, {
+    maxSnapshotBytes: 10000,
+    maxTotalBytes: first.snapshot.sizeBytes
+  });
+  assert.equal(result.written, false);
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, 'SNAPSHOT_TOTAL_BUDGET_EXCEEDED');
+  const items = await Snapshots.listSnapshots(db);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'rev-1');
+  db.close();
+});
+
+test('treats an unserializable legacy snapshot as oversized during rotation', async () => {
+  const db = await openDb('snapshot-invalid-legacy-size');
+  await put(db, 'main', fixture('main-1', 'current'), 'state');
+  const invalid = { id: 'legacy-bad', at: '2099-01-01T00:00:00.000Z', revisionId: 'legacy-bad',
+    checksum: 'invalid', state: { meta: { revisionId: 'legacy-bad' }, value: 1n } };
+  await put(db, 'auto_snapshots', invalid, invalid.id);
+  const result = await Snapshots.writeSnapshot(db, fixture('rev-1', 'small'), 'main-1', webcrypto, { maxTotalBytes: 10000 });
+  assert.equal(result.written, true);
+  const items = await Snapshots.listSnapshots(db);
+  assert.equal(items.some(item => item.id === 'legacy-bad'), false);
+  assert.ok(items.every(item => Number.isFinite(item.sizeBytes)));
+  db.close();
+});
