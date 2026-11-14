@@ -836,6 +836,17 @@ test('inspection parser accepts only explicit count values within physical frame
   assert.equal(invalid.fields.occupancy,undefined);
 });
 
+test('inspection form does not browser-block an unchanged historical count above current profile capacity',()=>{
+ const nodes={rhive:{value:'h1'},rtype:{value:'Осмотр'},occupancyLabel:{textContent:''},broodLabel:{textContent:''},drawnLabel:{textContent:''},roccupancy:{value:'8',max:'6',removeAttribute(name){if(name==='max')this.max=null}},rbrood:{value:'',max:'6',removeAttribute(name){if(name==='max')this.max=null}},rdrawn:{value:'1',max:'6',removeAttribute(name){if(name==='max')this.max=null}},capacityWarning:{style:{display:'block'},textContent:''}};
+ const update=loadFunction('updateJournalInspectionCapacity',{$:id=>nodes[id],journalBroodCapacity:()=>6});
+ update();
+ assert.equal(nodes.roccupancy.max,null);
+ assert.equal(nodes.rbrood.max,'6');
+ assert.equal(nodes.drawnLabel.textContent,'Свободных отстроенных рамок в гнезде (из 6)');
+ assert.equal(nodes.capacityWarning.style.display,'none');
+ nodes.rtype.value='Заметка';update();assert.equal(nodes.capacityWarning.style.display,'none');
+});
+
 test('inspection form exposes dynamic capacity and an explicit unknown-capacity warning',()=>{
  assert.ok(html.includes('id="capacityWarning"'));assert.ok(html.includes('function updateJournalInspectionCapacity()'));
  assert.ok(!html.includes('id="roccupancy" type="number" min="0" max="6"'));
