@@ -43,7 +43,7 @@ function sortNewestFirst(items) {
 }
 function storedSize(item) {
   if (Number.isSafeInteger(item?.sizeBytes) && item.sizeBytes >= 0) return item.sizeBytes;
-  try { return serializeState(item?.state).byteLength; } catch (error) { return 0; }
+  try { return serializeState(item?.state).byteLength; } catch (error) { return Number.POSITIVE_INFINITY; }
 }
 async function writeSnapshot(db, state, expectedRevision, cryptoProvider, options = {}) {
   assertDatabase(db);
@@ -56,6 +56,7 @@ async function writeSnapshot(db, state, expectedRevision, cryptoProvider, option
   const payload = serializeState(state);
   const sizeBytes = payload.byteLength;
   if (sizeBytes > maxSnapshotBytes) return { written: false, skipped: true, reason: 'SNAPSHOT_TOO_LARGE', sizeBytes, maxSnapshotBytes };
+  if (sizeBytes > maxTotalBytes) return { written: false, skipped: true, reason: 'SNAPSHOT_TOTAL_BUDGET_EXCEEDED', sizeBytes, maxTotalBytes };
   const checksum = await checksumBytes(payload, cryptoProvider);
   const snapshot = { id: revisionId, at: new Date().toISOString(), revisionId,
     schemaVersion: Number.isSafeInteger(state.meta?.schemaVersion) ? state.meta.schemaVersion : null,
