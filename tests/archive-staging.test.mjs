@@ -141,6 +141,56 @@ test('archive import stages verified state and video without touching live data'
   db.close();
 });
 
+test('orphaned staging rows are preserved when archive history still references the missing session header', async () => {
+  const db = await openTestDb('paseka-stage-orphan-referenced');
+  await put(db, 'main', { meta: { revisionId: 'live-orphan-guard' } }, 'state');
+  const archive = await makeArchive('backup-orphan-referenced');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const rowsBefore = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  assert.ok(rowsBefore.length > 1);
+  await put(db, 'archive_history', {
+    backupId: 'history-orphan-reference',
+    importSessionId: staged.session.sessionId
+  });
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('archive_staging', 'readwrite');
+    tx.objectStore('archive_staging').delete(staged.session.sessionId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  await assert.rejects(
+    Restore.discardArchiveRestoreSession(db, staged.session.sessionId),
+    { code: 'ORPHANED_STAGING_REFERENCED' }
+  );
+  const rowsAfter = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  assert.equal(rowsAfter.length, rowsBefore.length - 1);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-orphan-guard');
+  db.close();
+});
+
+test('unreferenced orphan staging rows can be discarded repeatedly without touching live data', async () => {
+  const db = await openTestDb('paseka-stage-orphan-unreferenced');
+  await put(db, 'main', { meta: { revisionId: 'live-orphan-cleanup' } }, 'state');
+  const archive = await makeArchive('backup-orphan-unreferenced');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const rowsBefore = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  assert.ok(rowsBefore.length > 1);
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('archive_staging', 'readwrite');
+    tx.objectStore('archive_staging').delete(staged.session.sessionId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  assert.equal(await Restore.discardArchiveRestoreSession(db, staged.session.sessionId), true);
+  assert.equal(await Restore.discardArchiveRestoreSession(db, staged.session.sessionId), false);
+  assert.equal((await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId).length, 0);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-orphan-cleanup');
+  db.close();
+});
+
+
 test('archive staging is idempotent for the same verified backup and manifest', async () => {
   const db = await openTestDb('paseka-stage-repeat');
   const archive = await makeArchive('backup-repeat-1');
