@@ -761,7 +761,7 @@ test('inspection parser does not infer absent values or accept counts outside 0�
 });
 
 test('expansion suggestions scale their thresholds and denominator to the hive brood capacity',()=>{
- const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8}}}],families:[],tasks:[]};let sequence=0;
+ const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8,boxKeys:['1']}}}],layouts:{h8:{mode:'summer',installedBoxes:['1']}},families:[],tasks:[]};let sequence=0;
  const suggest=loadFunction('createExpansionSuggestion',{S:state,uid:()=>String(++sequence),dateShift:(date,days)=>'2026-06-'+String(10+days).padStart(2,'0')});
  suggest({id:'r1',date:'2026-06-10',type:'Осмотр',hive:'h8',occupancy:7,broodFrames:4,freeDrawn:1});
  assert.equal(state.tasks.length,1);assert.match(state.tasks[0].note,/7 из 8 рамок/);assert.equal(state.tasks[0].basis.capacity,8);
