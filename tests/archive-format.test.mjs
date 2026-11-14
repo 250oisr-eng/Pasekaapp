@@ -109,6 +109,17 @@ test('Paseka archive rejects duplicate paths, traversal paths and oversized vide
   assert.throws(() => Archive.buildArchiveBlob(oversized, [original.state, original.video]), { code: 'INVALID_VIDEO_ENTRY' });
 });
 
+test('Paseka archive rejects duplicate video IDs and unsupported queue states', async () => {
+  const original = await fixture();
+  const duplicate = structuredClone(original.manifest);
+  duplicate.entries.push({ ...duplicate.entries[1], path: 'entrance-media/000002.blob', metadata: { ...duplicate.entries[1].metadata } });
+  assert.throws(() => Archive.buildArchiveBlob(duplicate, [original.state, original.video, original.video]), { code: 'DUPLICATE_VIDEO_ID' });
+
+  const badStatus = structuredClone(original.manifest);
+  badStatus.entries[1].metadata.status = 'unknown_state';
+  assert.throws(() => Archive.buildArchiveBlob(badStatus, [original.state, original.video]), { code: 'INVALID_VIDEO_METADATA' });
+});
+
 test('Paseka archive rejects metadata-size mismatch and malformed checksum lists', async () => {
   const original = await fixture();
   const badMetadata = structuredClone(original.manifest);
