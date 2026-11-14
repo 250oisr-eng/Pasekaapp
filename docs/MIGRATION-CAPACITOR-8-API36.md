@@ -64,9 +64,10 @@
 ## Открытые проверки
 
 - **ELF 16-КБ alignment LiteRT 2.3.2 проверен на собранном APK** в CI: libLiteRt.so и liblitert_jni.so для arm64-v8a, armeabi-v7a и x86_64; все PT_LOAD alignment >= 16 KB. Проверка zipalign -c -P 16 также прошла. Run: https://github.com/250oisr-eng/Pasekaapp/actions/runs/43563538377 ; artifact ID 14101516480.
-- Runtime-поведение на Android 10/15/16.
+- Runtime-поведение на Android 10/15/16: добавлен CI emulator smoke test (API 29/35/36), результат ожидается после запуска workflow.
 - Визуальная проверка edge-to-edge и системных inset на реальных устройствах.
 - Воспроизводимость npm зависимостей: lockfile ещё не создан.
+- Emulator smoke test проверяет установку, запуск процесса и отсутствие fatal crash в logcat; это не заменяет UI-тестирование и проверку физического устройства.
 
 ## Первичные источники
 
