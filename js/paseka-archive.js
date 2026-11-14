@@ -64,6 +64,9 @@ function validateVideoMetadata(metadata, size) {
   const statuses = ['waiting_for_server', 'uploading', 'uploaded', 'analyzing', 'completed', 'failed_retryable', 'failed_permanent'];
   if (metadata.status != null && !statuses.includes(metadata.status)) fail('INVALID_VIDEO_METADATA', 'Invalid video queue status.');
   if (metadata.retryCount != null && (!Number.isSafeInteger(metadata.retryCount) || metadata.retryCount < 0 || metadata.retryCount > 10000)) fail('INVALID_VIDEO_METADATA', 'Invalid retry count.');
+  for (const key of ['queueCreatedAt', 'lastAttemptAt', 'nextAttemptAt']) if (metadata[key] != null && (typeof metadata[key] !== 'string' || metadata[key].length > 40 || !Number.isFinite(Date.parse(metadata[key])))) fail('INVALID_VIDEO_METADATA', 'Invalid video queue timestamp.');
+  if (metadata.lastError != null && (typeof metadata.lastError !== 'string' || metadata.lastError.length > 500)) fail('INVALID_VIDEO_METADATA', 'Invalid video queue error.');
+  for (const key of ['metadataCheck', 'frameQualityCheck']) if (metadata[key] != null && !isObject(metadata[key])) fail('INVALID_VIDEO_METADATA', 'Invalid video quality metadata.');
 }
 function validateManifest(manifest, manifestLength, expectedFileSize, limits = LIMITS) {
   assertAllowedKeys(manifest, ['format', 'version', 'backupId', 'createdAt', 'schemaVersion', 'entries'], 'INVALID_MANIFEST');
