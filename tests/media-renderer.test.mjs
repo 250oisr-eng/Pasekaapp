@@ -103,3 +103,49 @@ test('safeLegacyImage rejects empty and oversized data URLs',()=>{
   assert.equal(Renderer.safeLegacyImage('data:image/jpeg;base64,AQID'),true);
   assert.equal(Renderer.safeLegacyImage('data:image/svg+xml;base64,PHN2Zz4='),false);
 });
+
+
+function fakeImageNode(index){
+  const attributes=new Map([['data-media-index',String(index)]]);
+  return {
+    src:'',alt:'',classList:{values:new Set(),add(value){this.values.add(value)}},
+    getAttribute(name){return attributes.get(name)??null},
+    removeAttribute(name){attributes.delete(name)},
+    hasAttribute(name){return attributes.has(name)}
+  };
+}
+function fakeContainer(nodes){
+  return {
+    querySelectorAll(selector){return selector==='img[data-media-index]'?nodes:nodes},
+    contains(node){return nodes.includes(node)}
+  };
+}
+
+test('hydrates Blob-backed images and releases their object URLs when the view is replaced',async()=>{
+  const blob=new Blob([new Uint8Array([4,5,6])],{type:'image/png'});
+  const urls=fakeUrls(),node=fakeImageNode(0),container=fakeContainer([node]);
+  const renderer=Renderer.create({mediaStore:mediaStore({blob}),urlApi:urls.api});
+  const count=await renderer.hydrate(container,[{storage:'indexeddb-blob-v1',blobId:'photo-1'}],{},null);
+  assert.equal(count,1);
+  assert.equal(node.src,'blob:test-1');
+  assert.equal(node.hasAttribute('data-media-index'),false);
+  assert.equal(renderer.activeObjectUrlCount,1);
+  assert.equal(renderer.releaseContainer(container),1);
+  assert.deepEqual(urls.revoked,['blob:test-1']);
+  assert.equal(renderer.activeObjectUrlCount,0);
+});
+
+test('releases a Blob URL when a pending hydration becomes stale',async()=>{
+  const blob=new Blob([new Uint8Array([8,9])],{type:'image/png'});
+  const urls=fakeUrls(),node=fakeImageNode(0),container=fakeContainer([node]);
+  let finishRead;
+  const delayedStore={getImage(){return new Promise(resolve=>{finishRead=()=>resolve({blob})})}};
+  const renderer=Renderer.create({mediaStore:delayedStore,urlApi:urls.api});
+  const pending=renderer.hydrate(container,[{storage:'indexeddb-blob-v1',blobId:'photo-late'}],{},null);
+  renderer.releaseContainer(container);
+  finishRead();
+  assert.equal(await pending,0);
+  assert.equal(node.src,'');
+  assert.deepEqual(urls.revoked,['blob:test-1']);
+  assert.equal(renderer.activeObjectUrlCount,0);
+});
