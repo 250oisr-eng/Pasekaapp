@@ -60,6 +60,11 @@ test('startup guard is checked before migration and first-run initialization req
  assert.match(html,/if\(startupStatus==='missing'\)throw new Error/);
  assert.match(html,/if\(startupStatus==='first_run'\|\|startupStatus==='unverified'\)/);
 });
+test('intentional full data deletion clears the prior-use startup marker',()=>{
+ assert.match(html,/function clearStartupMarker\\(\\)\\{try\\{localStorage\\.removeItem\\(STARTUP_MARKER_KEY\\)/);
+ assert.match(html,/await new Promise\\(\\(resolve,reject\\)=>\\{const req=indexedDB\\.deleteDatabase\\(DB\\)/);
+ assert.match(html,/clearStartupMarker\\(\\);\\s*alert\\('Все локальные данные приложения удалены/);
+});
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
