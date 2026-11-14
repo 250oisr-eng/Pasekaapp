@@ -220,6 +220,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             const manifestVideos = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
             if (manifestVideos.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
             if (records.length !== stateRecords.length + videoRecords.length + 1) fail('STAGING_CONTENT_MISSING', 'Staged archive contains unexpected records.');
+            const importedHiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
             for (const record of videoRecords) {
               const entry = manifestVideos.find(item => item.metadata?.id === record.metadata?.id);
               if (!record.blob || !record.metadata || !entry || entry.path !== record.path || entry.size !== record.size || record.blob.size !== record.size || JSON.stringify(record.metadata) !== JSON.stringify(entry.metadata)) {
@@ -264,7 +265,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             }
             main.put(state, 'state');
             media.clear();
-            for (const record of videoRecords) media.put({ ...record.metadata, blob: record.blob });
+            for (const record of videoRecords) media.put({ ...record.metadata, blob: record.blob, orphanedHiveReference: !importedHiveIds.has(record.metadata.hiveId) });
             const historyRecord = {
               backupId: session.backupId,
               fingerprint: session.fingerprint,
