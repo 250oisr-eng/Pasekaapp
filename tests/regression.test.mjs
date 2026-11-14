@@ -2700,6 +2700,8 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('PasekaArchiveRestore.stageArchiveForRestore('));
   assert.ok(html.includes('PasekaArchiveRestore.commitStagedArchive('));
   assert.ok(html.includes('PasekaArchiveRestore.rollbackCommittedArchive('));
+  assert.ok(html.includes('window.__pasekaPendingFullArchiveRestore = null;'));
+  assert.ok(html.includes("$('fullArchiveRestoreActions').hidden = true;"));
   assert.ok(html.includes('PasekaArchiveRestore.discardArchiveRollbackSnapshot('));
   assert.ok(html.includes('Удалить точку отката'));
   assert.ok(html.includes('Точка отката хранит прежние видео и может занимать много места'));
