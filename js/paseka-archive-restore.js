@@ -532,6 +532,19 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     fail('ROLLBACK_SNAPSHOT_INCOMPLETE', 'The rollback snapshot contains unexpected or duplicate entries.');
   }
 
+  // Hash snapshot bytes during Phase A, including legacy records without a
+  // persisted checksum. Phase B repeats the hash under its write lock and
+  // compares against this in-memory baseline.
+  const phaseASnapshotHashes = new Map();
+  for (const item of videoRecords) {
+    if (!item.record?.blob) fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable Blob.');
+    const snapshotHash = await sha256BlobHex(item.record.blob, cryptoProvider);
+    if (item.record.blobSha256 && snapshotHash !== item.record.blobSha256) {
+      fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot no longer matches its saved SHA-256 checksum.');
+    }
+    phaseASnapshotHashes.set(item.id, snapshotHash);
+  }
+
   let restoredState = null;
   if (stateRecords.length === 1) {
     const stateRecord = stateRecords[0];
@@ -614,12 +627,13 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           // same-size Blob replacement that retains the old checksum field.
           for (const item of currentRecords.filter(record => record?.kind === 'rollback_video')) {
             const snapshotVideo = item.record;
-            if (!snapshotVideo?.blob || !/^[a-f0-9]{64}$/.test(snapshotVideo.blobSha256 || '')) {
-              fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no valid content checksum.');
+            const expectedSnapshotHash = phaseASnapshotHashes.get(item.id);
+            if (!snapshotVideo?.blob || !expectedSnapshotHash) {
+              fail('ROLLBACK_SNAPSHOT_CONTENT_INVALID', 'A rollback video snapshot has no readable, verified Blob.');
             }
             const actualSnapshotHash = await sha256BlobHex(snapshotVideo.blob, cryptoProvider);
-            if (actualSnapshotHash !== snapshotVideo.blobSha256) {
-              fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot no longer matches its saved SHA-256 checksum. Rollback was cancelled.');
+            if (actualSnapshotHash !== expectedSnapshotHash) {
+              fail('ROLLBACK_SNAPSHOT_CONTENT_CHANGED', 'A rollback video snapshot changed after validation. Rollback was cancelled.');
             }
           }
           if (!history || history.status !== 'committed' || history.rollbackSessionId !== rollbackSessionId ||
