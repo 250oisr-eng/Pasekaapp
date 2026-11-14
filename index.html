@@ -3634,7 +3634,7 @@ async function rollbackFullArchiveImport(backupId) {
     autoBackupRecovered = false;
     try { autoBackupInfo = await readAutoBackup(); } catch (backupError) { autoBackupInfo = null; }
     render();
-    setFullArchiveRestoreStatus('Предыдущее состояние восстановлено. Видео летка: ' + result.restoredVideoCount + '.');
+    setFullArchiveRestoreStatus('Предыдущее состояние восстановлено. Использованная точка отката удалена. Видео летка возвращено: ' + result.restoredVideoCount + '.');
     await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
     setFullArchiveRestoreStatus('Отмена восстановления не выполнена: ' + archiveRestoreErrorText(error));
