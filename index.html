@@ -601,7 +601,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(draft?.type==='Осмотр'){
   for(const [field,label] of [['occupancy','занятых пчёлами рамок'],['broodFrames','рамок с расплодом'],['freeDrawn','свободных отстроенных рамок']]){
    const value=draft[field];
-   const capacity=journalBroodCapacity(draft.hive,state),unchangedLegacy=existingRecord&&existingRecord[field]===value&&Number.isInteger(value)&&value>=0;
+   const capacity=journalBroodCapacity(draft.hive,state),unchangedLegacy=existingRecord&&existingRecord.hive===draft.hive&&existingRecord[field]===value&&Number.isInteger(value)&&value>=0;
    if(value!==null&&value!==undefined&&(!Number.isInteger(value)||value<0||(capacity!==null&&value>capacity&&!unchangedLegacy)))errors.push({code:'journal_invalid_frame_count',field,message:'Количество «'+label+'» должно быть целым неотрицательным числом'+(capacity===null?' (вместимость профиля не указана).':' не более '+capacity+'.')});
   }
  }
