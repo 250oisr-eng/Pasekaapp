@@ -864,12 +864,30 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   if (session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
   if (!session.manifest || !Array.isArray(session.manifest.entries)) fail('STAGING_MANIFEST_MISSING', 'Staged archive manifest is missing.');
   if (session.manifest.backupId !== session.backupId || session.manifest.schemaVersion !== session.schemaVersion || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged session metadata does not match its manifest.');
+  const sessionRecords = records.filter(record => record.kind === 'session');
+  const contentRecords = records.filter(record => record.kind !== 'session');
+  const manifestStateEntries = session.manifest.entries.filter(entry => entry.kind === 'state');
+  const videoEntries = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
+  const manifestVideoIds = videoEntries.map(entry => entry.metadata && entry.metadata.id);
+  const manifestVideoPaths = videoEntries.map(entry => entry.path);
+  if (sessionRecords.length !== 1 || sessionRecords[0].id !== sessionId ||
+      contentRecords.length !== session.totalEntries ||
+      contentRecords.some(record => !['state', 'video'].includes(record.kind)) ||
+      manifestStateEntries.length !== 1 ||
+      manifestStateEntries.length + videoEntries.length !== session.manifest.entries.length ||
+      new Set(manifestVideoIds).size !== manifestVideoIds.length ||
+      manifestVideoIds.some(id => typeof id !== 'string' || !id) ||
+      new Set(manifestVideoPaths).size !== manifestVideoPaths.length) {
+    fail('STAGING_ENTRY_SET_INVALID', 'Staged entries do not form the exact set declared by the archive manifest.');
+  }
   const currentFingerprint = await manifestFingerprint(session.manifest, cryptoProvider);
   if (currentFingerprint !== session.fingerprint) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest fingerprint is invalid.');
-  const stateRecord = records.find(record => record.kind === 'state');
-  const videoRecords = records.filter(record => record.kind === 'video');
-  if (!stateRecord || !stateRecord.blob || videoRecords.length + 1 !== session.totalEntries) fail('STAGING_CONTENT_MISSING', 'Staged archive content is incomplete.');
-  const stateEntry = session.manifest.entries.find(entry => entry.kind === 'state');
+  const stateRecords = contentRecords.filter(record => record.kind === 'state');
+  const videoRecords = contentRecords.filter(record => record.kind === 'video');
+  if (stateRecords.length !== 1 || videoRecords.length !== videoEntries.length) fail('STAGING_CONTENT_MISSING', 'Staged archive content is incomplete.');
+  const stateRecord = stateRecords[0];
+  if (stateRecord.id !== sessionId + ':state' || !stateRecord.blob) fail('STAGING_ENTRY_SET_INVALID', 'Staged state entry identity is invalid.');
+  const stateEntry = manifestStateEntries[0];
   if (!stateEntry || stateRecord.blob.size !== stateEntry.size) fail('STAGING_STATE_SIZE_MISMATCH', 'Staged state size does not match its manifest.');
   const stateHashes = await archiveApi.hashBlobChunks(stateRecord.blob, cryptoProvider);
   if (JSON.stringify(stateHashes) !== JSON.stringify(stateEntry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged state checksum does not match its manifest.');
@@ -881,18 +899,24 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   if (state.meta?.schemaVersion !== session.schemaVersion) fail('STAGING_SCHEMA_MISMATCH', 'Staged state schema does not match its session.');
   const validationResult = await validateState(state);
   if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the staged state.');
-  const videoEntries = session.manifest.entries.filter(entry => entry.kind === 'entrance_video');
-  if (videoEntries.length !== videoRecords.length) fail('STAGING_CONTENT_MISSING', 'Staged video count does not match its manifest.');
   const hiveIds = new Set(Array.isArray(state.hives) ? state.hives.map(hive => hive && hive.id).filter(id => typeof id === 'string' && id) : []);
   const videos = [];
+  const matchedVideoIds = new Set();
   for (const record of videoRecords) {
     if (!record.blob || !record.metadata || record.blob.size !== record.size) fail('STAGING_VIDEO_SIZE_MISMATCH', 'A staged video is missing or has an invalid size.');
     const entry = videoEntries.find(item => item.metadata?.id === record.metadata.id);
-    if (!entry || entry.path !== record.path || entry.size !== record.size || JSON.stringify(record.metadata) !== JSON.stringify(entry.metadata)) fail('STAGING_VIDEO_MANIFEST_MISMATCH', 'A staged video does not match its manifest entry.');
+    if (!entry || matchedVideoIds.has(entry.metadata.id) ||
+        record.id !== sessionId + ':video:' + entry.metadata.id ||
+        entry.path !== record.path || entry.size !== record.size ||
+        JSON.stringify(record.metadata) !== JSON.stringify(entry.metadata)) {
+      fail('STAGING_VIDEO_MANIFEST_MISMATCH', 'A staged video does not map uniquely to its manifest entry.');
+    }
+    matchedVideoIds.add(entry.metadata.id);
     const hashes = await archiveApi.hashBlobChunks(record.blob, cryptoProvider);
     if (JSON.stringify(hashes) !== JSON.stringify(entry.chunkSha256)) fail('STAGING_CHECKSUM_MISMATCH', 'Staged video checksum does not match its manifest: ' + record.metadata.id);
     videos.push({ ...record, orphanedHiveReference: !hiveIds.has(record.metadata.hiveId) });
   }
+  if (matchedVideoIds.size !== videoEntries.length) fail('STAGING_VIDEO_MANIFEST_MISMATCH', 'One or more manifest videos are missing from staging.');
   return {
     session,
     state,
