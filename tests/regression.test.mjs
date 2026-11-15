@@ -2574,10 +2574,16 @@ test('hive deletion restores the complete in-memory state when persistence fails
  const confirmation=handler.indexOf("if(!confirm('Удалить '+hname(id)+'?");
  const snapshot=handler.indexOf('structuredClone(S)');
  const firstMutation=handler.indexOf('f.parentFamilySnapshot=');
- const save=handler.indexOf('const saved=await save()');
+ const save=handler.indexOf('try{saved=await save()}catch(error)');
  const rollback=handler.indexOf('S=rollbackState',save);
  assert.ok(confirmation>=0&&snapshot>confirmation,'rollback snapshot is prepared after explicit confirmation');
  assert.ok(firstMutation>snapshot,'snapshot precedes lineage and record mutation');
  assert.ok(save>firstMutation&&rollback>save,'failed persistence restores the snapshot');
- assert.match(handler,/if\(!saved\)\{const saveError=S\.meta\?\.saveError;S=rollbackState/);
+ assert.match(handler,/if\(!saved\)\{/);
+ const selectionSnapshot=handler.indexOf('const previousSelectedHiveId=selectedHiveId');
+ const selectionClear=handler.indexOf("if(selectedHiveId===id)selectedHiveId=''");
+ const selectionRestore='selectedHiveId=previousSelectedHiveId;activeJournalHive=previousActiveJournalHive';
+ assert.ok(selectionSnapshot>snapshot&&selectionSnapshot<selectionClear,'previous selection is captured before clearing a deleted hive');
+ assert.ok(handler.indexOf(selectionRestore,rollback)>0,'failed persistence restores selected hive and journal references');
+ assert.ok(handler.indexOf('catch(error){saveFailure=')>save,'unexpected save exceptions are converted into the rollback path');
 });
