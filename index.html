@@ -2771,12 +2771,13 @@ function layoutFor(hid){
  if(!Array.isArray(l.honeyBoxInstalled)){
   const flags=honeyKeys.map((key,i)=>l.honeyFrames[i].some(fr=>fr&&(fr.status&&fr.status!=='foundation'||fr.type&&fr.type!=='foundation'||fr.note)));
   const on=flags.some(Boolean);l.honeyBoxInstalled=profile?.honey?.installation==='paired'?honeyKeys.map(()=>on):flags;
- }else{
+ }else if(profile?.family!=='farrar'){
   l.honeyBoxInstalled=honeyKeys.map((key,i)=>Boolean(l.honeyBoxInstalled[i]));
   if(profile?.honey?.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=honeyKeys.map(()=>on)}
  }
- if(l.mode==='winter'&&!profile?.winter?.honeyAllowed)l.honeyBoxInstalled=honeyKeys.map(()=>false);
- l.honeyInstalled=l.honeyBoxInstalled.length>0&&l.honeyBoxInstalled.every(Boolean);
+ if(l.mode==='winter'&&!profile?.winter?.honeyAllowed&&profile?.family!=='farrar')l.honeyBoxInstalled=honeyKeys.map(()=>false);
+ if(profile?.family!=='farrar')l.honeyInstalled=l.honeyBoxInstalled.length>0&&l.honeyBoxInstalled.every(Boolean);
+ else if(l.honeyInstalled==null)l.honeyInstalled=l.honeyBoxInstalled.length>0&&l.honeyBoxInstalled.every(Boolean);
  for(let h=0;h<honeyKeys.length;h++){
   const key=honeyKeys[h],arr=l.honeyFrames[h];
   arr.forEach((fr,i)=>{
