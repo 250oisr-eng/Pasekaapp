@@ -83,7 +83,6 @@ function validateHiveState(s){
    if(!['CONNECTED','MESH_ISOLATED'].includes(isolation))add('SECTION_ISOLATION','Для секции '+(index+1)+' укажи CONNECTED или MESH_ISOLATED.');
    
   });
-  const completedOps=
   const sectionIndexes=sections.map(x=>x&&x.index);if(new Set(sectionIndexes).size!==3||sectionIndexes.some(x=>![1,2,3].includes(x)))add('SECTION_INDEX','Индексы секций должны быть уникальными: 1, 2 и 3.');
   const completedOps=new Set((Array.isArray(s.operations)?s.operations:[]).filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
   const lateSummer=completedOps.has('OP-09');
