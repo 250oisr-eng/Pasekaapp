@@ -646,6 +646,18 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     phaseASnapshotHashes.set(item.id, snapshotHash);
   }
 
+  // Fingerprint the first validated snapshot before running caller-supplied
+  // async validation. The second read below must match this exact metadata
+  // and Blob shape; otherwise a concurrent edit could make us restore stale
+  // in-memory metadata while silently accepting a changed stored snapshot.
+  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
+    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
+  ), (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
+    return value;
+  });
+  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
+
   let restoredState = null;
   if (stateRecords.length === 1) {
     const stateRecord = stateRecords[0];
@@ -661,18 +673,6 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     const validationResult = await validateState(restoredState);
     if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
   }
-
-  // Fingerprint the first validated snapshot before running caller-supplied
-  // async validation. The second read below must match this exact metadata
-  // and Blob shape; otherwise a concurrent edit could make us restore stale
-  // in-memory metadata while silently accepting a changed stored snapshot.
-  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
-    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
-  ), (key, value) => {
-    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
-    return value;
-  });
-  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
 
   // Re-read and re-hash snapshot media after all caller-supplied async
   // validation. This closes the Phase A validation window without keeping a
