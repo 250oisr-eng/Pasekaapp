@@ -1833,7 +1833,7 @@ test('Farrar winter finish refuses honey flags without silently clearing them',a
 test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
  const source=extractFunction('renderStructure');
  assert.doesNotMatch(source,/l\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\s*=/);
- assert.doesNotMatch(source,/layoutFor\s*\(/,'rendering must not invoke the mutating layout normalizer');
+ assert.match(source,/profile\?\.family==='farrar'\?S\.layouts\?\.\[hid\]:layoutFor\(hid\)/,'Farrar rendering must read raw layout while other profiles retain their existing path');
 });
 test('six-digit frame inventory is not part of the current model',()=>{
  const source=extractFunction('migrateState');
