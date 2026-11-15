@@ -152,6 +152,11 @@ test('sectional physical selection refuses honey bodies in brood positions',()=>
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_brood'));
  assert.equal(JSON.stringify(s),before);
 });
+test('sectional physical selection rejects a Farrar profile with a non-six brood count',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();s.hives[0].profile={...s.hives[0].profile,brood:{...s.hives[0].profile.brood,boxCount:5}};const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_section_layout_invalid'));
+ assert.equal(JSON.stringify(s),before);
+});
 test('sectional physical selection refuses a non-Farrar ready profile',()=>{
  const s=sixBodyFixture(),selection=sixBodySelection();s.hives[0].profile={...s.hives[0].profile,id:'ruta-template-v1',family:'ruta'};const before=JSON.stringify(s);
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_profile_unsupported'&&x.details.hiveId==='h1'));
