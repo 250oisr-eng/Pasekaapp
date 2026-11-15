@@ -1778,6 +1778,32 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
+test('Farrar layout access preserves malformed and extended persisted data without normalization',()=>{
+ const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'},winter:{honeyAllowed:false}};
+ const layout={mode:'winter',boxes:{1:{family:'',frames:[null,{frameId:'legacy-frame',location:'custom-location',history:'corrupt'}]}},honeyFrames:[[{frameId:'honey-1'}],[],[{frameId:'extra-honey-frame'}]],installedBoxes:{0:1,1:3},winterOrder:'1,3,4',honeyBoxInstalled:[true,false,true],corpusIds:['legacy-id'],customField:{keep:true}};
+ const state={layouts:{h1:layout},equipmentLabels:{bodies:{}}},before=JSON.stringify(state);
+ const access=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:()=>10,framePrefix:()=> 'generated-',uid:()=> 'generated-id'});
+ const result=access('h1');
+ assert.equal(result,layout);
+ assert.equal(JSON.stringify(state),before);
+});
+test('Farrar layout access does not replace a malformed existing root',()=>{
+ const profile={family:'farrar'},root=[{legacy:true}],state={layouts:{h1:root}};
+ const access=loadFunction('layoutFor',{S:state,profileForHive:()=>profile});
+ assert.equal(access('h1'),root);
+ assert.equal(JSON.stringify(state),JSON.stringify({layouts:{h1:[{legacy:true}]}}));
+});
+test('new Farrar hive still receives its initial layout when no saved layout exists',()=>{
+ const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'}};
+ const state={layouts:{},equipmentLabels:{bodies:{}}};
+ const access=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>String(key).startsWith('H')?10:6,framePrefix:key=>String(key),uid:()=> 'generated-id'});
+ const result=access('h1');
+ assert.equal(result,state.layouts.h1);
+ assert.deepEqual(result.installedBoxes,[]);
+ assert.equal(result.honeyFrames.length,2);
+ assert.equal(result.honeyFrames[0].length,10);
+ assert.equal(result.boxes['1'].frames.length,6);
+});
 test('Farrar layout access preserves conflicting paired honey flags in summer and winter',()=>{
  const normalize=loadFunction('layoutFor');
  const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'},winter:{honeyAllowed:false}};
