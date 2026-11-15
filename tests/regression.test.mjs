@@ -2584,7 +2584,10 @@ test('hive creation, hive edits and offshoot stage changes roll back when save f
  const selectionRestore='selectedHiveId=previousSelectedHiveId;activeJournalHive=previousActiveJournalHive';
  assert.ok(selectionSnapshot>0&&selectionSnapshot<selectionMutation,'previous UI selection is captured before selecting the new hive');
  assert.ok(create.indexOf(selectionRestore,create.indexOf('if(!saved)'))>0,'failed persistence restores both selected hive references');
- assert.ok(create.lastIndexOf(selectionRestore)>create.indexOf('catch(err)'), 'thrown persistence errors also restore both selected hive references');
+ const saveBoundary=create.indexOf('try{saved=await save()}catch(err){saveFailure=');
+ const successUi=create.indexOf("try{$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}");
+ assert.ok(saveBoundary>0&&successUi>saveBoundary,'post-save UI work is outside the persistence error boundary');
+ assert.ok(create.indexOf('S=rollbackState',successUi)<0,'post-commit UI failures must never roll back persisted hive creation');
  const stageStart=html.indexOf('async function markOffshootIndependent(id){');
  const stageEnd=html.indexOf('\nfunction ruPlural(',stageStart);
  assert.ok(stageStart>=0&&stageEnd>stageStart,'offshoot stage handler is present');
