@@ -2626,6 +2626,14 @@ test('sectional process UI creates a validated record without mutating hive equi
 });
 
 
+
+test('sectional process UI offers only hives whose profile confirms 180 mm frames',()=>{
+ const state={hives:[{id:'h1'},{id:'h2'}],sectionalTechProcesses:[]};
+ const elements={sectionalTechHive:{value:''},sectionalTechProcessList:{innerHTML:''},sectionalTechCount:{textContent:''},sectionalTechCreateButton:{disabled:false}};
+ const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:id=>'Улей '+id,getHiveProfile:hive=>({frame:{heightMm:hive.id==='h1'?180:195}}),sectionalTechProcessSavePending:false});
+ render();assert.match(elements.sectionalTechHive.innerHTML,/h1/);assert.doesNotMatch(elements.sectionalTechHive.innerHTML,/h2/);assert.match(elements.sectionalTechProcessList.innerHTML,/180 мм/);assert.equal(elements.sectionalTechCreateButton.disabled,false);
+});
+
 test('sectional process UI rejects a hive profile with a frame height other than 180 mm',async()=>{
  const state={hives:[{id:'h1',profileId:'wrong'}],sectionalTechProcesses:[],auditLog:[]};
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
