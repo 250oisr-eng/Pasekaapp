@@ -76,6 +76,8 @@ test('Worker request body reader accepts bounded UTF-8 and enforces actual byte 
   assert.equal(await readBoundedBody(request, 10), 'пчёлы');
   const oversized = new Request('https://worker.test', {method:'POST',body:'пчёлы!'});
   await assert.rejects(readBoundedBody(oversized, 10), error => error.code === 'BODY_TOO_LARGE');
+  const underreported = new Request('https://worker.test', {method:'POST',headers:{'content-length':'1'},body:'пчёлы!'});
+  await assert.rejects(readBoundedBody(underreported, 10), error => error.code === 'BODY_TOO_LARGE');
 });
 
 test('Worker request body reader rejects oversized declared lengths before reading', async () => {
