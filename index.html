@@ -2893,7 +2893,7 @@ function farrarAssemblyDisplayState(layout){
   const source=rawWinter.length?rawWinter:installed;
   if(!source.length)winterOrder=[1,3,4];
   else{
-   const seen=new Set(),selected=source.filter(n=>eligible.includes(n)&&!seen.has(n)&&seen.add(n));
+   const selected=[];for(const n of source)if(eligible.includes(n)&&!selected.includes(n))selected.push(n);
    winterOrder=[...selected,...eligible.filter(n=>!selected.includes(n))].slice(0,3);
    winterValid=source.length===3&&selected.length===3&&installed.length===3&&installed.every(n=>selected.includes(n))&&selected.every(n=>installed.includes(n));
   }
