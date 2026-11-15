@@ -2827,8 +2827,8 @@ function beginModeChange(mode){
  }else{
   const original=assemblyEditSnapshot?.hiveId===hiveId?assemblyEditSnapshot:null;
   const previousSummer=[...(l.assemblies||[])].reverse().find(a=>a.mode==='summer');
-  const boxes=original?.mode==='summer'?original.installedBoxes.slice():(previousSummer?.installedBoxes||l.installedBoxes||[]).slice();
-  const honey=original?.mode==='summer'?original.honeyBoxInstalled.slice():(previousSummer?.honeyBoxInstalled||[false,false]).slice();
+  const boxes=original?.mode==='summer'?(Array.isArray(original.installedBoxes)?original.installedBoxes.slice():[]):(Array.isArray(previousSummer?.installedBoxes)?previousSummer.installedBoxes.slice():Array.isArray(l.installedBoxes)?l.installedBoxes.slice():[]);
+  const honey=original?.mode==='summer'?(Array.isArray(original.honeyBoxInstalled)?original.honeyBoxInstalled.slice():[false,false]):(Array.isArray(previousSummer?.honeyBoxInstalled)?previousSummer.honeyBoxInstalled.slice():[false,false]);
   l.installedBoxes=boxes;l.winterOrder=[];l.honeyBoxInstalled=[Boolean(honey[0]&&honey[1]),Boolean(honey[0]&&honey[1])];l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);l.mode='summer';
  }
  $('modeTransition').style.display='none';renderStructure();
@@ -2937,6 +2937,7 @@ async function finishAssemblySetup(){
  if(l.mode==='winter'&&((l.winterOrder||[]).length!==3||new Set(l.winterOrder).size!==3||(l.winterOrder||[]).some(n=>![1,3,4,6].includes(n)))){
   alert('Для зимней комплектации выбери три разных корпуса из №1, 3, 4 и 6.');return;
  }
+ if(l.honeyBoxInstalled.length!==2){alert('Состояние пары медовых корпусов повреждено. Исправь его перед сохранением.');return}
  if(l.mode==='winter'&&(l.installedBoxes.length!==3||l.installedBoxes.some(n=>!l.winterOrder.includes(n)))){
   alert('Список установленных корпусов не совпадает с зимним порядком. Проверь комплектацию.');return;
  }
@@ -2953,6 +2954,7 @@ async function finishAssemblySetup(){
  if(assigned.some(n=>!chosen.includes(n))){
   alert('В сборке должны остаться корпуса с назначенными семьями: №'+assigned.filter(n=>!chosen.includes(n)).join(', №'));return;
  }
+ if(l.mode==='winter'&&l.honeyBoxInstalled.some(Boolean)){alert('В зимней сборке медовые корпуса запрещены. Сначала явно сними их отметки.');return}
  if(l.mode==='winter'){l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}
  const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:l.honeyBoxInstalled.slice()};
  const changed=before.mode!==after.mode||JSON.stringify(before.boxes)!==JSON.stringify(after.boxes)||JSON.stringify(before.winterOrder)!==JSON.stringify(after.winterOrder)||JSON.stringify(before.honeyBoxInstalled)!==JSON.stringify(after.honeyBoxInstalled);
