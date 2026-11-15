@@ -32,6 +32,7 @@ function extractFunction(name) {
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
+  if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   deps.window ||= appWindow;
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
