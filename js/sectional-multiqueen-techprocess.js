@@ -56,22 +56,44 @@ function validateHiveState(s){
  if(c.honeyBodiesCount!==undefined&&![2,4].includes(c.honeyBodiesCount))add('HONEY_BODIES_COUNT','Допустимо 2 или 4 медовых корпуса на весь улей.');
  if(c.additionalBottoms!==undefined&&(!Number.isInteger(c.additionalBottoms)||c.additionalBottoms<0||c.additionalBottoms>2))add('ADDITIONAL_BOTTOMS','Дополнительных доньев должно быть от 0 до 2.');
  if(s.phase&&!SPEC.phases.includes(s.phase))add('PHASE_UNKNOWN','Неизвестная сезонная фаза.');
- const divided=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','ALT_WINTERING','ALT_WINTERING_SPRING'].includes(s.phase),sections=Array.isArray(s.sections)?s.sections:[];
+ const sections=Array.isArray(s.sections)?s.sections:[],queens=Array.isArray(s.queens)?s.queens:sections.flatMap(x=>x&&x.queen?[x.queen]:[]),queenById=new Map(queens.filter(q=>q&&typeof q.id==='string'&&q.id.trim()).map(q=>[q.id,q]));
+ const divided=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','ALT_WINTERING','ALT_WINTERING_SPRING'].includes(s.phase);
  if(divided&&sections.length!==3)add('SECTION_COUNT','В разделённом состоянии должно быть ровно три секции.');
  if(divided&&sections.length===3){
+  const seenBodyIds=new Set(),seenQueenIds=new Set();
+  if(queens.length!==3)add('SECTION_QUEEN_COUNT','После разделения должны быть зарегистрированы ровно три матки.');
+  if(queenById.size!==queens.length)add('SECTION_QUEEN_ID_DUPLICATE','Идентификаторы маток должны быть уникальными.');
+  queens.forEach(q=>{if(!q||!['UNFERTILIZED','FERTILIZED'].includes(q.status))add('SECTION_QUEEN_STATUS','Статус каждой матки должен быть UNFERTILIZED или FERTILIZED.');});
+  sections.forEach((section,index)=>{
+   if(!section||typeof section!=='object'||Array.isArray(section)){add('SECTION_INVALID','Секция '+(index+1)+' имеет неверный формат.');return;}
+   if(!Array.isArray(section.bodyIds))add('SECTION_BODY_IDS','Для секции '+(index+1)+' не указан список физических корпусов.');
+   else{
+    if(!section.bodyIds.length)add('SECTION_BODY_IDS_EMPTY','Секция '+(index+1)+' не содержит корпусов.');
+    if(section.bodyIds.some(id=>typeof id!=='string'||!id.trim()))add('SECTION_BODY_ID_INVALID','Каждый корпус секции должен иметь непустой идентификатор.');
+    section.bodyIds.forEach(id=>{if(typeof id==='string'&&id.trim()){if(seenBodyIds.has(id))add('SECTION_BODY_DUPLICATE','Физический корпус '+id+' назначен более чем одной секции.');seenBodyIds.add(id);}});
+    if(s.phase!=='ALT_WINTERING'&&s.phase!=='ALT_WINTERING_SPRING'&&section.bodyIds.length!==2)add('OP04_BODY_COUNT','После OP-04 в каждой секции должно быть ровно два шестирамочных корпуса.');
+   }
+   if(typeof section.queenId!=='string'||!section.queenId.trim())add('SECTION_QUEEN_ID','Для секции '+(index+1)+' не указана матка.');
+   else{
+    if(seenQueenIds.has(section.queenId))add('SECTION_QUEEN_DUPLICATE','Одна матка не может быть назначена нескольким секциям.');
+    seenQueenIds.add(section.queenId);
+    if(!queenById.has(section.queenId))add('SECTION_QUEEN_REFERENCE','Матка секции '+(index+1)+' отсутствует в реестре маток.');
+   }
+   const isolation=section.isolation??s.isolation;
+   if(!['CONNECTED','MESH_ISOLATED'].includes(isolation))add('SECTION_ISOLATION','Для секции '+(index+1)+' укажи CONNECTED или MESH_ISOLATED.');
+   
+  });
+  const sectionIndexes=sections.map(x=>x&&x.index);if(new Set(sectionIndexes).size!==3||sectionIndexes.some(x=>![1,2,3].includes(x)))add('SECTION_INDEX','Индексы секций должны быть уникальными: 1, 2 и 3.');
   const completedOps=new Set((Array.isArray(s.operations)?s.operations:[]).filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
   const lateSummer=completedOps.has('OP-09');
   if(!completedOps.has('OP-06')&&!lateSummer){
-  const ids=sections.map(x=>x&&x.index);if(new Set(ids).size!==3||ids.some(x=>![1,2,3].includes(x)))add('SECTION_INDEX','Индексы секций должны быть уникальными: 1, 2 и 3.');
   SPEC.entranceAssignment.forEach(e=>{const x=sections.find(y=>y&&y.index===e.sectionIndex);if(!x)return;if(x.openEntrance!==e.openEntrance)add('R1_ENTRANCE_TYPE','Для секции '+e.sectionIndex+' предусмотрен леток '+e.openEntrance+'.');if(x.entranceState&&x.entranceState!==e.state)add('R1_ENTRANCE_STATE','Для летка '+e.openEntrance+' секции '+e.sectionIndex+' ожидается '+e.state+'.');});
   const types=sections.map(x=>x&&x.openEntrance).filter(Boolean);if(new Set(types).size!==3)add('R1_DUPLICATE_ENTRANCE','В трёх секциях не могут быть открыты одинаковые типы летков.');
   }
   if(lateSummer)sections.forEach(x=>{if(x&&x.openEntrance!=='ROUND_BOTTOM')add('OP09_ENTRANCE','После OP-09 в каждой секции должен быть открыт круглый леток.');if(x&&x.openEntrancePosition!=='LOWER_NEST_BODY')add('OP09_ENTRANCE_POSITION','Леток OP-09 должен находиться в нижнем гнездовом корпусе.');});
-  if(s.phase==='DIVIDED_3_SECTIONS')sections.forEach(x=>{if(x&&Array.isArray(x.bodyIds)&&x.bodyIds.length!==2)add('OP04_BODY_COUNT','После OP-04 в каждой секции должно быть ровно два гнездовых корпуса.');});
  }
- const queens=Array.isArray(s.queens)?s.queens:sections.flatMap(x=>x&&x.queen?[x.queen]:[]),unfert=queens.filter(x=>x&&x.status==='UNFERTILIZED');
- if(s.isolation==='CONNECTED'&&(queens.length!==3||unfert.length))add('R2_UNFERTILIZED_CONNECTED','Нельзя снимать изоляцию: должны быть зарегистрированы все три плодные матки.');
- if(s.isolation==='MESH_ISOLATED'){
+ const unfert=queens.filter(x=>x&&x.status==='UNFERTILIZED');
+ if(s.isolation==='MESH_ISOLATED'||sections.some(x=>(x?.isolation??s.isolation)==='MESH_ISOLATED')){
   const plugs=Array.isArray(s.meshPlugs)?s.meshPlugs:[];
   const required=Number.isInteger(s.requiredMeshPlugCount)&&s.requiredMeshPlugCount>=0?s.requiredMeshPlugCount:null;
   const installed=plugs.filter(p=>p&&p.installed===true&&p.position==='OVER_QUEEN_EXCLUDER'&&p.openingDiameterMm===50);
@@ -79,12 +101,26 @@ function validateHiveState(s){
   if(new Set(plugIds).size!==plugIds.length)add('R2_MESH_PLUG_DUPLICATE','Обнаружены повторяющиеся идентификаторы сетчатых заглушек.');
   if(required===null)add('R2_PLUG_COUNT_UNDEFINED','Для проверки заглушек укажи requiredMeshPlugCount: количество отверстий 50 мм во всех корпусах секций.');
   else if(installed.length<required)add('R2_MESH_PLUG_MISSING','Установлено заглушек '+installed.length+' из необходимых '+required+' для отверстий 50 мм.');
+  else if(installed.length>required)add('R2_MESH_PLUG_EXTRA','Установлено заглушек больше, чем отверстий 50 мм: '+installed.length+' вместо '+required+'.');
   if(!unfert.length)add('R2_ISOLATION_REVIEW','Все зарегистрированные матки плодные, но секции изолированы.','warning');
  }
- const done=new Set((Array.isArray(s.operations)?s.operations:[]).filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
+ const operationRows=Array.isArray(s.operations)?s.operations:[];
+ const done=new Set(operationRows.filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
+ const sectionIsolation=sections.map(x=>(x?.isolation??s.isolation));
+ const installedMeshPlugCount=(Array.isArray(s.meshPlugs)?s.meshPlugs:[]).filter(p=>p&&p.installed===true&&p.position==='OVER_QUEEN_EXCLUDER'&&p.openingDiameterMm===50).length;
+ if(done.has('OP-05')&&!done.has('OP-04'))add('OP05_PREREQUISITE','OP-05 нельзя выполнить до разделения OP-04.');
+ if(done.has('OP-05')&&!done.has('OP-06')&&sectionIsolation.some(x=>x!=='MESH_ISOLATED'))add('OP05_ISOLATION_STATE','После OP-05 все три секции должны быть изолированы металлическими сетчатыми заглушками.');
+ if(done.has('OP-06')){
+  if(!done.has('OP-05'))add('OP06_PREREQUISITE','OP-06 нельзя выполнить до OP-05.');
+  if(queens.length!==3||unfert.length)add('OP06_QUEEN_STATUS','OP-06 допустима только при наличии трёх зарегистрированных плодных маток.');
+  if(sectionIsolation.some(x=>x!=='CONNECTED'))add('OP06_ISOLATION_STATE','После OP-06 все три секции должны быть возвращены в состояние CONNECTED.');
+  if(installedMeshPlugCount>0)add('OP06_MESH_PLUGS_REMAIN','После OP-06 все металлические сетчатые заглушки должны быть сняты.');
+ }
+ if(done.has('OP-07')&&!done.has('OP-06'))add('OP07_PREREQUISITE','Медовые корпуса нельзя устанавливать до завершения OP-06.');
+ if(done.has('OP-08')&&!done.has('OP-07'))add('OP08_PREREQUISITE','Отбор мёда OP-08 возможен только после постановки медовых корпусов OP-07.');
  if(done.has('OP-11')&&done.has('OP-12'))add('R6_WINTERING_EXCLUSIVE','OP-11 и OP-12 взаимоисключающие.');
  if(done.has('OP-13')&&done.has('OP-14'))add('R6_ALT_SPRING_EXCLUSIVE','OP-13 и OP-14 — разные сценарии после альтернативной зимовки; одновременно выбирать их нельзя.');
- if(done.has('OP-06')&&(unfert.length||queens.length!==3))add('OP06_QUEEN_STATUS','OP-06 допустима только при наличии трёх зарегистрированных плодных маток.');
+
  if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)){
   if(s.queenExcluderBetweenNestAndHoney!==true)add('R4_QUEEN_EXCLUDER','Перед медовыми корпусами нужна геннеманская решётка над гнездом каждой секции.');
   if(s.honeyQueenExcluderCount!==undefined&&s.honeyQueenExcluderCount!==3)add('R4_QUEEN_EXCLUDER_COUNT','Над гнездом требуется по одной большой решётке на каждую из трёх секций (всего 3).');
