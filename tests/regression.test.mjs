@@ -2199,21 +2199,32 @@ test('IndexedDB open rejects a blocked upgrade and closes a late connection',asy
  assert.equal(deps.db,null);
 });
 
-test('IndexedDB versionchange waits for queued state saves before closing the old tab',async()=>{
+test('IndexedDB versionchange waits for queued state saves and asynchronous video writes',async()=>{
  const request={},alerts=[];
  const fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
  let releaseSave;
  const saveQueue=new Promise(resolve=>{releaseSave=resolve});
- const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}},saveQueue,alert:message=>alerts.push(message)};
+ const databaseOperationState={active:0,waiters:[]};
+ const begin=loadFunction('beginDatabaseOperation',{databaseOperationState});
+ const deps={
+  DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,
+  indexedDB:{open(){return request}},saveQueue,alert:message=>alerts.push(message),
+  waitForDatabaseOperations:loadFunction('waitForDatabaseOperations',{databaseOperationState}),
+  hasPendingDatabaseOperations:loadFunction('hasPendingDatabaseOperations',{databaseOperationState})
+ };
  const pending=loadFunction('openDB',deps)();
  request.result=fakeDb;request.onsuccess();
  await pending;
  assert.equal(deps.db,fakeDb);
+ const finishVideoWrite=begin();
  fakeDb.onversionchange();
  assert.equal(fakeDb.closed,undefined,'the old connection must remain open while queued saves drain');
  assert.equal(deps.db,fakeDb);
- assert.match(alerts[0],/Обновите страницу/);
+ assert.match(alerts[0],/текущих видео/);
  releaseSave();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(fakeDb.closed,undefined,'the connection must remain open while video hashing and persistence are pending');
+ finishVideoWrite();
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(fakeDb.closed,true);
  assert.equal(deps.db,null);
