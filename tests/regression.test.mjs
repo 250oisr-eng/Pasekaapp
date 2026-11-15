@@ -2737,7 +2737,6 @@ test('IndexedDB v3 upgrades to v9 with archive staging, history, snapshots, imag
     tx.objectStore('entrance_media').put({
       id: 'video-preserved',
       blob: new Blob(['existing video bytes'], { type: 'video/mp4' }),
-      blobSha256: 'a'.repeat(64)
     });
     tx.oncomplete = resolve;
     tx.onerror = () => reject(tx.error || new Error('Could not seed the version-3 database.'));
@@ -2763,7 +2762,7 @@ test('IndexedDB v3 upgrades to v9 with archive staging, history, snapshots, imag
     request.onerror = () => reject(request.error);
   });
   assert.equal(await preservedVideo.blob.text(), 'existing video bytes');
-  assert.equal(preservedVideo.blobSha256, 'a'.repeat(64));
+  assert.equal(preservedVideo.blobSha256, undefined, 'legacy media rows without a checksum must remain intact');
   assert.equal(deps.db.objectStoreNames.contains('archive_staging'), true);
   assert.equal(deps.db.objectStoreNames.contains('archive_history'), true);
   assert.equal(deps.db.objectStoreNames.contains('auto_snapshots'), true);
