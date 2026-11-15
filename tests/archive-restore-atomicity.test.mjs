@@ -570,6 +570,37 @@ test('rollback rechecks fresh history after Phase A validation', async () => {
   db.close();
 });
 
+test('rollback rechecks rollback snapshot ownership under the final write lock', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const cryptoProvider = testCryptoProvider();
+  const hasherGate = gatedHasher(1);
+  const pending = api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', cryptoProvider, async () => true);
+  await hasherGate.started;
+
+  const mutation = db.transaction('archive_staging', 'readwrite');
+  const store = mutation.objectStore('archive_staging');
+  const request = store.get('rollback-1');
+  request.onsuccess = () => store.put({ ...request.result, sourceBackupId: 'different-backup' });
+  await new Promise((resolve, reject) => {
+    mutation.oncomplete = resolve;
+    mutation.onabort = mutation.onerror = () => reject(mutation.error || new Error('rollback snapshot mutation failed'));
+  });
+  hasherGate.release();
+
+  await assert.rejects(pending, error => error.code === 'ROLLBACK_SNAPSHOT_CHANGED');
+  const verify = db.transaction(['main', 'archive_history', 'archive_staging'], 'readonly');
+  const [state, history, snapshot] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_history').get('backup-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get('rollback-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId, 'imported-revision');
+  assert.equal(history.status, 'committed');
+  assert.equal(snapshot.sourceBackupId, 'different-backup');
+  db.close();
+});
+
 test('only one of two concurrent rollbacks can consume the same snapshot', async () => {
   const db = await makeDatabase();
   await seedRollback(db);
