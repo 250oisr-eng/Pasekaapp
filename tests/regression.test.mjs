@@ -57,6 +57,22 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+test('openDB marks only a database created by this open as a fresh database',async()=>{
+ const factory=new IDBFactory();
+ const freshDeps={indexedDB:factory,DB:'fresh-database-detection',databaseCreatedDuringOpen:false,db:null};
+ await loadFunction('openDB',freshDeps)();
+ assert.equal(freshDeps.databaseCreatedDuringOpen,true);
+ freshDeps.db.close();
+ const request=factory.open('existing-database-detection',1);
+ request.onupgradeneeded=()=>request.result.createObjectStore('main');
+ const existingDb=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
+ existingDb.close();
+ const existingDeps={indexedDB:factory,DB:'existing-database-detection',databaseCreatedDuringOpen:false,db:null};
+ await loadFunction('openDB',existingDeps)();
+ assert.equal(existingDeps.databaseCreatedDuringOpen,false);
+ existingDeps.db.close();
+});
+
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
