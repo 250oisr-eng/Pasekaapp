@@ -632,13 +632,13 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes eleven clear navigation destinations and home AI entry points',()=>{
+test('hybrid workspace exposes twelve clear navigation destinations and home AI entry points',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
   const nav=html.slice(navStart,navEnd);
-  assert.equal((nav.match(/data-tab=/g)||[]).length,11);
-  for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
+  assert.equal((nav.match(/data-tab=/g)||[]).length,12);
+  for(const label of ['Обзор','Ульи','Лёток','Журнал','Техпроцесс','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
   assert.ok(html.includes('id="homeAIQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
@@ -1658,10 +1658,10 @@ test('profile assembly rejects removing a brood box that still owns a family',()
 });
 
 
-test('mobile navigation includes all eleven sections and is positioned as a safe-area-aware bottom bar',()=>{
+test('mobile navigation includes all twelve sections and is positioned as a safe-area-aware bottom bar',()=>{
  const nav=html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/);
  assert.ok(nav);
- assert.equal((nav[1].match(/data-tab=/g)||[]).length,11);
+ assert.equal((nav[1].match(/data-tab=/g)||[]).length,12);
  assert.match(html,/main>nav\[aria-label="Основные разделы"\][\s\S]*?position:fixed!important/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
 });
@@ -2608,6 +2608,64 @@ test('save includes sectional tech-process records in the persisted state and hi
  const save=loadFunction('save',deps);assert.equal(await save(),true);assert.deepEqual(persisted.sectionalTechProcesses,[record]);assert.deepEqual(persisted.snapshots.at(-1).sectionalTechProcesses,[record]);assert.equal(persisted.meta.schemaVersion,13);
 });
 
+
+
+test('sectional process UI creates a validated record without mutating hive equipment or families',async()=>{
+ const state={hives:[{id:'h1',number:1,profileId:'custom-180'}],families:[{id:'f1',hive:'h1'}],sectionalTechProcesses:[],auditLog:[],equipmentInventory:{bodies:{},events:[]}};
+ const originalHive=JSON.stringify(state.hives),originalFamilies=JSON.stringify(state.families),originalInventory=JSON.stringify(state.equipmentInventory);
+ const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechHoneyBodies:{value:'4'},sectionalTechWintering:{value:'COMBINED'},sectionalTechRemovableFeeder:{checked:true},sectionalTechBottoms:{value:'2'},sectionalTechFeedback:{textContent:''},sectionalTechCreateButton:{disabled:false}};
+ let saves=0;const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
+ const create=loadFunction('createSectionalTechProcess',deps);
+ assert.equal(await create(),true);assert.equal(saves,1);assert.equal(state.sectionalTechProcesses.length,1);
+ assert.equal(state.sectionalTechProcesses[0].state.phase,'PRE_DIVISION');
+ assert.equal(state.sectionalTechProcesses[0].state.config.frameHeightMm,180);
+ assert.equal(state.sectionalTechProcesses[0].state.config.honeyBodiesCount,4);
+ assert.equal(state.sectionalTechProcesses[0].state.config.hasRemovableFeeder,true);
+ assert.equal(JSON.stringify(state.hives),originalHive);assert.equal(JSON.stringify(state.families),originalFamilies);assert.equal(JSON.stringify(state.equipmentInventory),originalInventory);
+ assert.equal(state.auditLog[0].type,'sectional_tech_process_created');
+});
+
+
+
+test('sectional process UI offers only hives whose profile confirms 180 mm frames',()=>{
+ const state={hives:[{id:'h1'},{id:'h2'}],sectionalTechProcesses:[]};
+ const elements={sectionalTechHive:{value:''},sectionalTechProcessList:{innerHTML:''},sectionalTechCount:{textContent:''},sectionalTechCreateButton:{disabled:false}};
+ const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:id=>'Улей '+id,getHiveProfile:hive=>({frame:{heightMm:hive.id==='h1'?180:195}}),sectionalTechProcessSavePending:false});
+ render();assert.match(elements.sectionalTechHive.innerHTML,/h1/);assert.doesNotMatch(elements.sectionalTechHive.innerHTML,/h2/);assert.match(elements.sectionalTechProcessList.innerHTML,/180 мм/);assert.equal(elements.sectionalTechCreateButton.disabled,false);
+});
+
+test('sectional process UI rejects a hive profile with a frame height other than 180 mm',async()=>{
+ const state={hives:[{id:'h1',profileId:'wrong'}],sectionalTechProcesses:[],auditLog:[]};
+ const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
+ let saves=0;const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:195}}),alert(){}});
+ assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,0);assert.match(elements.sectionalTechFeedback.textContent,/180 мм/i);
+});
+
+test('sectional process UI prevents duplicate records for the same hive',async()=>{
+ const existing={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[existing],auditLog:[]};let saves=0;
+ const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
+ const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp2',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){}});
+ assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,1);
+});
+
+test('failed sectional process save keeps an exportable in-memory draft and exposes retry state',async()=>{
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[],auditLog:[]};
+ const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechHoneyBodies:{value:'2'},sectionalTechWintering:{value:'COMBINED'},sectionalTechRemovableFeeder:{checked:false},sectionalTechBottoms:{value:'2'},sectionalTechFeedback:{textContent:''},sectionalTechCreateButton:{disabled:false}};
+ const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>false,logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
+ const create=loadFunction('createSectionalTechProcess',deps);
+ assert.equal(await create(),false);assert.equal(state.sectionalTechProcesses.length,1);assert.equal(deps.sectionalTechProcessSavePending,true);
+ assert.match(elements.sectionalTechFeedback.textContent,/памяти страницы/i);
+});
+
+
+test('sectional process UI retries a previously failed save after validation',async()=>{
+ const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[record]};const elements={sectionalTechFeedback:{textContent:''}};
+ const deps={S:state,$:id=>elements[id],save:async()=>true,renderSectionalTechProcessModule(){},sectionalTechProcessSavePending:true};
+ const retry=loadFunction('retrySectionalTechProcessSave',deps);
+ assert.equal(await retry(),true);assert.equal(deps.sectionalTechProcessSavePending,false);assert.match(elements.sectionalTechFeedback.textContent,/сохранены/i);
+});
 
 test('schema 13 migration refuses a missing required registry before changing state',()=>{
  const state={meta:{schemaVersion:13},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};

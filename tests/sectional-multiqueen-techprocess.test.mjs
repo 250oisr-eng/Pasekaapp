@@ -13,7 +13,10 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v309/);
+  assert.match(sw, /paseka-shell-v311/);
+  assert.ok(html.includes('data-tab="techprocess"'));
+  assert.ok(html.includes('id="techprocess"'));
+  assert.ok(html.includes('function createSectionalTechProcess()'));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
@@ -167,4 +170,13 @@ test('stored tech-process records require a unique valid hive reference and supp
   assert.ok(api.validateStoredRecords([record, { ...record, id: 'tp2' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_DUPLICATE'));
   assert.ok(api.validateStoredRecords([{ ...record, hiveId: 'missing' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_MISSING'));
   assert.ok(api.validateStoredRecords([{ ...record, specVersion: '99.0.0' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_SPEC_VERSION'));
+});
+
+test('stored process configuration enforces the user-defined 180 mm frame height', () => {
+  const record = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' }, operations: [] } };
+  assert.equal(api.validateStoredRecords([record], [{ id: 'h1' }]).valid, true);
+  const wrongHeight = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, frameHeightMm: 195 } } }], [{ id: 'h1' }]);
+  assert.ok(wrongHeight.errors.some(x => x.code === 'TECH_RECORD_STATE_FRAME_HEIGHT'));
+  const wrongWintering = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, winteringMode: 'UNKNOWN' } } }], [{ id: 'h1' }]);
+  assert.ok(wrongWintering.errors.some(x => x.code === 'TECH_RECORD_STATE_WINTERING_MODE'));
 });
