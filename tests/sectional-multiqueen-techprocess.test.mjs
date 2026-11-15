@@ -108,8 +108,8 @@ test('R1 accepts exactly the configured three-section entrance assignment', () =
 
 test('R1 is released after OP-06 when sections are reconnected', () => {
   const result = api.validateHiveState(dividedState({
-    operations: [{ operationId: 'OP-06', status: 'DONE' }],
-    sections: [sectionFixture(1, { openEntrance: 'ROUND_BOTTOM' }), sectionFixture(2, { openEntrance: 'ROUND_BOTTOM' }), sectionFixture(3, { openEntrance: 'ROUND_BOTTOM' })]
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', isolation: 'CONNECTED' }))
   }));
   assert.equal(result.valid, true);
 });
