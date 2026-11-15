@@ -12,6 +12,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
+      - 'cloudflare/**'
       - 'tests/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
