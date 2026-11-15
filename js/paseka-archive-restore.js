@@ -662,6 +662,18 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     if (validationResult === false) fail('STATE_VALIDATION_FAILED', 'The application rejected the previous state during rollback.');
   }
 
+  // Fingerprint the first validated snapshot before running caller-supplied
+  // async validation. The second read below must match this exact metadata
+  // and Blob shape; otherwise a concurrent edit could make us restore stale
+  // in-memory metadata while silently accepting a changed stored snapshot.
+  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
+    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
+  ), (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
+    return value;
+  });
+  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
+
   // Re-read and re-hash snapshot media after all caller-supplied async
   // validation. This closes the Phase A validation window without keeping a
   // readwrite transaction alive across Blob I/O.
@@ -670,7 +682,8 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   const finalSnapshotRows = await requestValue(finalSnapshotReadTx.objectStore(STAGING_STORE).index('sessionId').getAll(rollbackSessionId));
   await finalSnapshotReadDone;
   snapshotRecords = (finalSnapshotRows || []).filter(record => record && record.sessionId === rollbackSessionId);
-  if (snapshotRecords.length !== rollbackSession.totalEntries + 1) {
+  if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
+      snapshotFingerprint(snapshotRecords) !== expectedSnapshotFingerprint) {
     fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
   }
   for (const item of snapshotRecords.filter(record => record?.kind === 'rollback_video')) {
@@ -695,15 +708,8 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     restoredVideos.push(record);
   }
 
-  // Recheck a deterministic representation in Phase B. Blob bytes are not
-  // re-hashed here; all snapshot mutations must use the atomic restore path.
-  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
-    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
-  ), (key, value) => {
-    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
-    return value;
-  });
-  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
+  // Recheck the same deterministic snapshot representation again under the
+  // final write lock. Blob bytes were SHA-256 checked immediately before it.
   const now = new Date().toISOString();
   const revertedRevisionId = restoredState?.meta?.revisionId || null;
 
