@@ -2737,7 +2737,11 @@ function frameArray(l,key,hid=selectedStructureHive()){const value=String(key),h
 function nextFrameId(l,key,hid=selectedStructureHive()){const value=String(key),honey=isHoneyBoxKey(value,hid),prefix=framePrefix(value,hid);let max=0;[...profileBroodKeys(hid),...profileHoneyKeys(hid)].forEach(k=>frameArray(l,k,hid).forEach(fr=>{const id=String(fr.frameId||'');if(id.startsWith(prefix)){const tail=honey?id.slice(prefix.length+1):id.slice(prefix.length);const n=Number(tail);if(Number.isFinite(n))max=Math.max(max,n)}}));return prefix+(honey?'-'+String(max+1).padStart(2,'0'):String(max+1))}
 function layoutFor(hid){
  S.layouts=S.layouts||{};
- const profile=profileForHive(hid),broodKeys=profile?.brood?.boxKeys?.map(String)||['1','2','3','4','5','6'],honeyKeys=profile?.honey?.boxKeys?.map(String)||['H1','H2'];
+ const profile=profileForHive(hid);
+ // Existing Farrar layouts are user data: never repair, truncate, or regenerate them during access.
+ // A missing key is initialized only for a newly-created hive; malformed existing roots are returned unchanged.
+ if(profile?.family==='farrar'&&Object.prototype.hasOwnProperty.call(S.layouts,hid))return S.layouts[hid];
+ const broodKeys=profile?.brood?.boxKeys?.map(String)||['1','2','3','4','5','6'],honeyKeys=profile?.honey?.boxKeys?.map(String)||['H1','H2'];
  if(!S.layouts[hid]||typeof S.layouts[hid]!=='object'||Array.isArray(S.layouts[hid]))S.layouts[hid]={boxes:{},honeyInstalled:false,honeyBoxInstalled:honeyKeys.map(()=>false),installedBoxes:[],winterOrder:[],mode:'summer'};
  const l=S.layouts[hid];
  S.equipmentLabels=S.equipmentLabels||{bodies:{}};S.equipmentLabels.bodies=S.equipmentLabels.bodies||{};
