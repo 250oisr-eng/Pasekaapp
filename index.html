@@ -607,7 +607,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/deadout-review.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
-function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[]};let sectionalTechProcessSavePending=false;const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function validateJournalRecordDraft(draft,state,existingRecord=null){
  const errors=[];
  const realDate=value=>{
@@ -1644,6 +1644,7 @@ function renderSectionalTechProcessModule(){
  else if(!records.length)list.innerHTML='<p class="muted">Карточек техпроцесса пока нет. Создание карточки не меняет физическую сборку улья.</p>';
  else list.innerHTML=records.map(record=>{const hive=S.hives.find(item=>item.id===record.hiveId),ops=Array.isArray(record.state?.operations)?record.state.operations:[],done=ops.filter(op=>op?.status==='DONE').length;return '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#ddd)"><div><b>'+safe(hive?hname(hive.id):'Улей не найден')+'</b><div class="muted">'+safe(sectionalTechProcessPhaseLabel(record.state?.phase))+' · рамки 180 мм · '+done+'/'+ops.length+' операций выполнено</div><small class="muted">Создано: '+safe(record.createdAt?new Date(record.createdAt).toLocaleDateString('ru-RU'):'дата не указана')+'</small></div><span class="pill">'+safe(record.specVersion||'версия неизвестна')+'</span></div>'}).join('');
  if(!available.length&&S.hives.length&&button)button.title='Для каждого улья уже создана карточка техпроцесса';
+ if(sectionalTechProcessSavePending)list.innerHTML+='<div class="card" role="status"><b>Есть несохранённые изменения</b><p class="muted">Последняя запись не подтверждена IndexedDB. Повтори сохранение или скачай JSON-архив в разделе «Ещё» до закрытия приложения.</p><button type="button" class="primary" onclick="retrySectionalTechProcessSave()">Повторить сохранение</button><button type="button" onclick="showTab(\'settings\')">Открыть резервное копирование</button></div>';
 }
 async function createSectionalTechProcess(){
  const hiveId=$('sectionalTechHive')?.value,phase=$('sectionalTechPhase')?.value,feedback=$('sectionalTechFeedback'),button=$('sectionalTechCreateButton');
@@ -1655,15 +1656,25 @@ async function createSectionalTechProcess(){
  const now=new Date().toISOString(),record={id:uid(),hiveId,specVersion:PasekaSectionalTechProcess.SPEC.version,createdAt:now,updatedAt:now,state:{phase,config:{honeyBodiesCount:Number($('sectionalTechHoneyBodies')?.value||2),winteringMode:$('sectionalTechWintering')?.value||'COMBINED',hasRemovableFeeder:!!$('sectionalTechRemovableFeeder')?.checked,additionalBottoms:Number($('sectionalTechBottoms')?.value??2),frameHeightMm:180},sections:[],queens:[],operations:[]}};
  const validation=PasekaSectionalTechProcess.validateStoredRecords([...S.sectionalTechProcesses,record],S.hives);
  if(!validation.valid){report('Проверка не пройдена: '+validation.errors.map(error=>error.code).join(', '));return false}
- S.sectionalTechProcesses=[...S.sectionalTechProcesses,record];logAudit('sectional_tech_process_created',{hiveId,techProcessId:record.id,phase});
+ S.sectionalTechProcesses=[...S.sectionalTechProcesses,record];logAudit('sectional_tech_process_created',{hiveId,techProcessId:record.id,phase});sectionalTechProcessSavePending=true;
  if(button)button.disabled=true;report('Сохраняем карточку…');
  try{
   const saved=await save();
-  if(saved){report('Карточка создана и сохранена. Физическая сборка и данные семей не изменялись.');renderSectionalTechProcessModule();return true}
+  if(saved){sectionalTechProcessSavePending=false;report('Карточка создана и сохранена. Физическая сборка и данные семей не изменялись.');renderSectionalTechProcessModule();return true}
   report('Сохранение не подтверждено. Карточка пока находится в памяти страницы; не закрывай приложение и скачай JSON-архив.');
   renderSectionalTechProcessModule();return false;
  }catch(error){report('Не удалось подтвердить сохранение: '+(error.message||error)+'. Карточка остаётся в памяти; скачай JSON-архив до закрытия приложения.');renderSectionalTechProcessModule();return false}
  finally{if(button)button.disabled=false}
+}
+async function retrySectionalTechProcessSave(){
+ const feedback=$('sectionalTechFeedback'),report=message=>{if(feedback)feedback.textContent=message};
+ const validation=PasekaSectionalTechProcess.validateStoredRecords(S.sectionalTechProcesses,S.hives);
+ if(!validation.valid){report('Сохранение остановлено: '+validation.errors.map(error=>error.code).join(', '));return false}
+ report('Повторно сохраняем карточку…');
+ const saved=await save();
+ if(saved){sectionalTechProcessSavePending=false;report('Данные сохранены в основной базе.');}
+ else report('Сохранение снова не подтверждено. Данные остаются в памяти; скачай JSON-архив.');
+ renderSectionalTechProcessModule();return !!saved;
 }
 function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',planning:'#e2eedf',techprocess:'#e6edf7',deadout:'#f3e4d9',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='planning')renderSeasonPlanning();if(tab==='techprocess')renderSectionalTechProcessModule();if(tab==='deadout')renderDeadoutModule();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(tab==='ai')initAIAuth()}
