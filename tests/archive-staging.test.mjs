@@ -554,6 +554,63 @@ test('atomic archive commit refuses a stale live revision without changing state
 });
 
 
+test('archive rollback restores a legacy video changed after commit preflight hashing', async () => {
+  const db = await openTestDb('paseka-legacy-media-commit-window');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-commit-window' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const oldBlob = new Blob(['legacy bytes'], { type: 'video/mp4' });
+  const oldVideo = {
+    id: 'legacy-live-video-window', hiveId: 'hive-old', capturedAt: '2026-11-14T09:00:00.000Z',
+    bytes: oldBlob.size, mimeType: oldBlob.type, blob: oldBlob
+  };
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-legacy-media-commit-window');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+
+  const originalSha = globalThis.PasekaSha256;
+  let releaseHash, notifyHash;
+  const hashStarted = new Promise(resolve => { notifyHash = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  globalThis.PasekaSha256 = {
+    ...originalSha,
+    hashBlobHex(blob) {
+      if (firstHash) {
+        firstHash = false;
+        notifyHash();
+        return hashGate.then(() => originalSha.hashBlobHex(blob));
+      }
+      return originalSha.hashBlobHex(blob);
+    }
+  };
+  let committed;
+  try {
+    const operation = Restore.commitStagedArchive(
+      db, staged.session.sessionId, 'live-before-commit-window', webcrypto, Archive, () => true
+    );
+    await hashStarted;
+    const latestBlob = new Blob(['LATEST bytes'], { type: 'video/mp4' });
+    assert.equal(latestBlob.size, oldBlob.size);
+    await put(db, 'entrance_media', { ...oldVideo, blob: latestBlob });
+    releaseHash();
+    committed = await operation;
+  } finally {
+    globalThis.PasekaSha256 = originalSha;
+    releaseHash?.();
+  }
+
+  assert.equal((await getAll(db, 'entrance_media')).some(video => video.id === oldVideo.id), false);
+  const rolledBack = await Restore.rollbackCommittedArchive(
+    db, 'backup-legacy-media-commit-window', committed.state.meta.revisionId, webcrypto, () => true
+  );
+  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
+  const restoredVideo = await get(db, 'entrance_media', oldVideo.id);
+  assert.ok(restoredVideo);
+  assert.equal(await restoredVideo.blob.text(), 'LATEST bytes', 'rollback must restore the exact Blob captured by the commit transaction');
+  assert.equal(restoredVideo.blobSha256, undefined, 'legacy metadata must not be fabricated during rollback');
+  db.close();
+});
+
 test('quota failure during atomic archive commit preserves live state, media, history and staged data', async () => {
   const db = await openTestDb('paseka-atomic-commit-quota');
   const liveState = {
