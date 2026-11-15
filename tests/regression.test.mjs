@@ -2029,6 +2029,39 @@ test('IndexedDB backup read does not publish a result before transaction complet
  await assert.rejects(pending,error=>error===failure);
  assert.equal(deps.autoBackupInfo,previousInfo);
 });
+test('IndexedDB main and backup reads resolve values only after transaction completion',async()=>{
+ for(const [name,store,key,value] of [
+  ['readMain','main','STORE',{meta:{revisionId:'main-rev'}}],
+  ['readAutoBackup','backup','BACKUP_STORE',{at:'backup-time',state:{value:'backup-state'}}]
+ ]){
+  const request={},tx={objectStore(){return{get(){return request}}}};
+  const deps={db:{transaction(){return tx}},STORE:'main',BACKUP_STORE:'backup',autoBackupInfo:null};
+  const read=loadFunction(name,deps);
+  let settled=false;
+  const pending=read().then(result=>{settled=true;return result});
+  request.result=value;request.onsuccess();
+  await Promise.resolve();
+  assert.equal(settled,false,name+' must wait for tx.oncomplete');
+  tx.oncomplete();
+  assert.deepEqual(await pending,name==='readMain'?value:value);
+  if(name==='readAutoBackup')assert.equal(deps.autoBackupInfo,value);
+ }
+});
+test('IndexedDB reads reject request errors, transaction errors, and transaction creation failures',async()=>{
+ for(const name of ['readMain','readAutoBackup']){
+  for(const failurePoint of ['request','transaction','creation']){
+   const failure=new Error(name+' '+failurePoint+' failure');
+   const request={error:failure},tx={error:failure,objectStore(){return{get(){return request}}}};
+   const deps={db:{transaction(){if(failurePoint==='creation')throw failure;return tx}},STORE:'main',BACKUP_STORE:'backup',autoBackupInfo:{trusted:true}};
+   const read=loadFunction(name,deps);
+   const pending=read();
+   if(failurePoint==='request')request.onerror();
+   if(failurePoint==='transaction')tx.onerror();
+   await assert.rejects(pending,error=>error===failure);
+   if(name==='readAutoBackup')assert.deepEqual(deps.autoBackupInfo,{trusted:true});
+  }
+ }
+});
 test('IndexedDB real API serializes competing revision writes and rejects the stale second writer',async()=>{
  const factory=new IDBFactory();
  const db=await openRealIndexedDb(factory,'revision-race-'+(++indexedDbTestSequence));
