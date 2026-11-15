@@ -2305,6 +2305,7 @@ function updateFamilyTransferTargets(){
  host.innerHTML=available.map(key=>'<option value="'+safe(key)+'">'+safe(frameLocationName(key,targetId))+'</option>').join('');
  if(!available.length)host.innerHTML='<option value="">Нет свободных установленных корпусов</option>';
 }
+function familyTransferFrameHistoryIsValid(frames){return Array.isArray(frames)&&frames.every(frame=>frame&&typeof frame==='object'&&(frame.history==null||Array.isArray(frame.history)))}
 async function confirmFamilyTransfer(e){
  e.preventDefault();
  const family=S.families.find(f=>f.id===transferringFamilyId),targetHiveId=$('transferTargetHive').value,targetNumber=String($('transferTargetBox').value||'');
@@ -2328,6 +2329,7 @@ async function confirmFamilyTransfer(e){
  if(!targetBox||!targetAvailable.includes(targetNumber))return alert('Выбранный корпус не установлен, запрещён профилем или уже занят другой семьёй. Выбери свободный допустимый корпус.');
  const sourceBox=source.data,frames=sourceBox.frames||[],targetFrames=targetBox.frames||[];
  if(!Array.isArray(frames)||!Array.isArray(targetFrames)||!frames.length||frames.length>frameCapacity(targetNumber,targetHiveId)||targetFrames.length>frameCapacity(source.box,source.hiveId)||frames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId)||targetFrames.some(fr=>!fr||typeof fr!=='object'||!fr.frameId))return alert('Не удалось проверить комплект рамок и их номера. Перемещение отменено.');
+ if(!familyTransferFrameHistoryIsValid(frames)||!familyTransferFrameHistoryIsValid(targetFrames))return alert('В истории одной или нескольких рамок обнаружено повреждение. Перемещение отменено; исходные данные не изменены.');
  if(new Set(frames.map(fr=>String(fr.frameId))).size!==frames.length||new Set(targetFrames.map(fr=>String(fr.frameId))).size!==targetFrames.length)return alert('В одном из корпусов обнаружены повторяющиеся номера рамок. Сначала исправь учёт; перенос отменён.');
  if(frames.some(fr=>fr.location!=null&&String(fr.location)!==String(source.box))||targetFrames.some(fr=>fr.location!=null&&String(fr.location)!==String(targetNumber)))return alert('Расположение одной или нескольких рамок не совпадает с корпусом. Сначала исправь учёт; перенос отменён.');
  const fromHiveId=family.hive,fromBox=source.box,familyName=family.name,movedFrames=frames.map(fr=>fr.frameId),displacedFrames=targetFrames.map(fr=>fr.frameId);
