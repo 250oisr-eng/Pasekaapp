@@ -10,6 +10,7 @@ on:
       - 'sw.js'
       - 'package.json'
       - 'package-lock.json'
+      - 'tests/**'
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
