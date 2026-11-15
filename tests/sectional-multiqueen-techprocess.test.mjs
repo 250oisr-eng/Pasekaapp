@@ -12,6 +12,7 @@ const api = windowRef.PasekaSectionalTechProcess;
 test('sectional tech-process model loads before the app and is cached offline', () => {
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
+  assert.ok(html.includes('sectionalTechProcesses:[]'));
   assert.match(sw, /paseka-shell-v309/);
 });
 
@@ -158,4 +159,12 @@ test('all entrances action is no longer treated as an R1 conflict after OP-06', 
   });
   assert.equal(result.valid, true);
   assert.equal(result.errors.some(x => x.code.startsWith('R1_')), false);
+});
+
+test('stored tech-process records require a unique valid hive reference and supported specification', () => {
+  const record = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [] } };
+  assert.equal(api.validateStoredRecords([record], [{ id: 'h1' }]).valid, true);
+  assert.ok(api.validateStoredRecords([record, { ...record, id: 'tp2' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_DUPLICATE'));
+  assert.ok(api.validateStoredRecords([{ ...record, hiveId: 'missing' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_MISSING'));
+  assert.ok(api.validateStoredRecords([{ ...record, specVersion: '99.0.0' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_SPEC_VERSION'));
 });

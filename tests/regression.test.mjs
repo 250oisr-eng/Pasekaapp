@@ -11,6 +11,7 @@ const equipmentInventorySource = await readFile(new URL('../js/equipment-invento
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
+const sectionalTechProcessSource = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
 const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
@@ -19,6 +20,7 @@ new Function('window', equipmentInventorySource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
+new Function('window', sectionalTechProcessSource)(appWindow);
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
   const match = re.exec(html);
@@ -39,6 +41,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
+  deps.PasekaSectionalTechProcess ||= appWindow.PasekaSectionalTechProcess;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
@@ -104,6 +107,7 @@ test('schema 6 backup requires queen registry arrays and validates their entries
 test('snapshot source contains queen registry and queen history',()=>{
  const save=extractFunction('save');
  assert.match(save,/queens:S\.queens,queenEvents:S\.queenEvents/);
+ assert.match(save,/sectionalTechProcesses:S\.sectionalTechProcesses/);
 });
 
 test('queen replacement keeps previous queen in history and links new queen to family',()=>{
@@ -1301,7 +1305,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:13}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:14}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -1802,10 +1806,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,13,'2']){
+ for(const version of [0,14,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===13?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===14?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1834,7 +1838,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,12);
+ assert.equal(state.meta.schemaVersion,13);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.ok(state.meta.deviceId);
@@ -2532,7 +2536,7 @@ test('Varroa journal is integrated as a phone-only offline section with migratio
  assert.match(html,/id="varroaHive"/);
  assert.match(html,/id="varroaType"/);
  assert.match(html,/PasekaVarroa\.buildVarroaObservation/);
- assert.match(html,/S\.meta\.schemaVersion=12/);
+ assert.match(html,/S\.meta\.schemaVersion=13/);
  assert.match(html,/varroaObservations/);
  assert.match(html,/PasekaVarroa\.inspectVarroaIntegrity/);
 });
@@ -2540,10 +2544,11 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,12);
+ assert.equal(state.meta.schemaVersion,13);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.deepEqual(state.deadoutReviews,[]);
+ assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.equal(migrate(),false);
 });
 
@@ -2555,13 +2560,76 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
  assert.match(html,/captureIncidentLocation\(\)/);
  assert.match(html,/PasekaIncident\.buildPesticideIncidentDraft/);
  assert.match(html,/PasekaIncident\.inspectPesticideIncidentIntegrity/);
- assert.match(html,/S\.meta\.schemaVersion=12/);
+ assert.match(html,/S\.meta\.schemaVersion=13/);
  assert.match(html,/pesticideIncidents/);
  assert.match(html,/deadoutReviews/);
  assert.match(html,/PasekaDeadout\.inspectDeadoutIntegrity/);
 });
+
+test('schema 12 migration adds an empty sectional tech-process registry without changing existing records',()=>{
+ const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[{id:'f1',hive:'h1'}],records:[{id:'r1',hive:'h1',type:'Осмотр'}],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[{id:'d1'}]};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ const before={hives:JSON.stringify(state.hives),families:JSON.stringify(state.families),records:JSON.stringify(state.records),deadoutReviews:JSON.stringify(state.deadoutReviews)};
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,13);
+ assert.deepEqual(state.sectionalTechProcesses,[]);
+ assert.equal(JSON.stringify(state.hives),before.hives);
+ assert.equal(JSON.stringify(state.families),before.families);
+ assert.equal(JSON.stringify(state.records),before.records);
+ assert.equal(JSON.stringify(state.deadoutReviews),before.deadoutReviews);
+ assert.equal(migrate(),false);
+});
+
+test('schema 12 migration preserves an existing valid sectional tech-process record',()=>{
+ const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[record]};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,13);
+ assert.deepEqual(state.sectionalTechProcesses,[record]);
+});
+
+test('schema 12 migration refuses a malformed sectional tech-process registry',()=>{
+ const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:'corrupt'};
+ const before=JSON.stringify(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.throws(()=>migrate(),/Техпроцессы не прошли предварительную проверку/i);
+ assert.equal(JSON.stringify(state),before);
+});
+
+test('save refuses a corrupt sectional tech-process registry without invoking persistence',async()=>{
+ let writes=0;const alerts=[];const deps={S:{hives:[{id:'h1'}],sectionalTechProcesses:'corrupt',meta:{}},saveQueue:Promise.resolve(),uid:()=> 'new-rev',persistSnapshot:async()=>{writes++;return true},render(){},alert:message=>alerts.push(message)};
+ const save=loadFunction('save',deps);assert.equal(await save(),false);assert.equal(writes,0);assert.equal(deps.S.sectionalTechProcesses,'corrupt');assert.equal(deps.S.meta.schemaVersion,undefined);assert.equal(alerts.length,1);
+});
+
+test('save includes sectional tech-process records in the persisted state and historical snapshot',async()=>{
+ let persisted=null;const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const deps={S:{hives:[{id:'h1'}],families:[],records:[],sectionalTechProcesses:[record],meta:{}},saveQueue:Promise.resolve(),uid:()=> 'new-rev',persistSnapshot:async value=>{persisted=value;return true},render(){},alert(){}};
+ const save=loadFunction('save',deps);assert.equal(await save(),true);assert.deepEqual(persisted.sectionalTechProcesses,[record]);assert.deepEqual(persisted.snapshots.at(-1).sectionalTechProcesses,[record]);assert.equal(persisted.meta.schemaVersion,13);
+});
+
+
+test('schema 13 migration refuses a missing required registry before changing state',()=>{
+ const state={meta:{schemaVersion:13},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};
+ const before=JSON.stringify(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.throws(()=>migrate(),/отсутствует обязательный реестр техпроцессов/i);
+ assert.equal(JSON.stringify(state),before);
+});
+
+test('schema 13 backup validation requires and verifies sectional tech-process records',()=>{
+ const validate=loadFunction('validateBackupState');
+ const base={...rawBackupFixture(),meta:{schemaVersion:13},sectionalTechProcesses:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};
+ assert.equal(validate(base),base);
+ assert.throws(()=>validate({...base,sectionalTechProcesses:undefined}),/sectionalTechProcesses/i);
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:12},sectionalTechProcesses:null}),/sectionalTechProcesses/i);
+ const valid={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ assert.equal(validate({...base,hives:[{id:'h1'}],sectionalTechProcesses:[valid],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]}).sectionalTechProcesses.length,1);
+ assert.throws(()=>validate({...base,hives:[{id:'h1'}],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[{...valid,hiveId:'missing'}]}),/TECH_RECORD_HIVE_MISSING/i);
+});
+
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,13);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
