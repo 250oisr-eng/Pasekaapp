@@ -29,6 +29,15 @@ function extractFunction(name) {
   const endMatch = next.exec(html);
   return html.slice(start, endMatch ? endMatch.index : html.indexOf('</script>', start));
 }
+test('fresh database initialization is allowed only for a newly created empty IndexedDB',()=>{
+ const canInitialize=loadFunction('canInitializeFreshDatabase');
+ assert.equal(canInitialize(true,undefined),true);
+ assert.equal(canInitialize(true,null),true);
+ assert.equal(canInitialize(false,undefined),false);
+ assert.equal(canInitialize(false,{meta:{schemaVersion:12}}),false);
+ assert.match(html,/if\(!loaded&&!canInitializeFreshDatabase\(databaseCreatedDuringOpen,loaded\)\)/);
+});
+
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
