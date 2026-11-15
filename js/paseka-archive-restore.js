@@ -242,9 +242,9 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     }));
     session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRecords);
 
-    // Re-read under a short write lock. All checks and puts below are
-    // synchronous request-callback work; supported media writers persist their
-    // own SHA-256, so a concurrent content replacement is detected here.
+    // Re-read under a short write lock, but never rewrite live media rows here.
+    // A legacy writer may not persist SHA-256; putting the earlier Blob back
+    // could overwrite a newer same-size replacement from another tab.
     const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
     const baselineRequest = baselineTx.objectStore('entrance_media').getAll();
     let baselineFailure = null;

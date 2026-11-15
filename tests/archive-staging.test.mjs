@@ -794,8 +794,6 @@ test('archive staging hashes legacy video without rewriting the live Blob record
   const archive = await makeArchive('backup-legacy-video-hash');
   const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
   const saved = await get(db, 'entrance_media', 'legacy-video');
-  const expected = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await legacyBlob.arrayBuffer())),
-    byte => byte.toString(16).padStart(2, '0')).join('');
   assert.equal(saved.blobSha256, undefined, 'staging must not rewrite a live legacy media row');
   assert.equal(await saved.blob.text(), await legacyBlob.text());
   assert.equal(staged.session.baselineMediaFingerprint.length > 0, true);
