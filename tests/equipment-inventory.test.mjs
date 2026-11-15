@@ -132,14 +132,14 @@ test('sectional physical selection rejects a layout/body mismatch and duplicate 
 });
 test('sectional physical selection rejects a brood position that is mapped but not installed',()=>{
  const s=sixBodyFixture(),selection=sixBodySelection();s.layouts.h1.installedBoxes=[2,3,4,5,6];const before=JSON.stringify(s);
- assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_installed'&&x.details.hiveId==='h2'&&x.details.boxKey==='1'));
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_installed'&&x.details.hiveId==='h1'&&x.details.boxKey==='1'));
  assert.equal(JSON.stringify(s),before);
 });
 test('sectional physical selection rejects unknown body specs and non-180mm frame profiles',()=>{
  const s=sixBodyFixture(),selection=sixBodySelection();delete s.equipmentInventory.bodies.b4.spec;s.hives[0].profile={...s.hives[0].profile,frame:{...s.hives[0].profile.frame,heightMm:195}};const before=JSON.stringify(s);
  const errors=I.inspectInstalledBroodSelection(s,selection);
  assert.ok(errors.some(x=>x.code==='sectional_selection_body_spec_missing'&&x.details.bodyId==='b4'));
- assert.ok(errors.some(x=>x.code==='sectional_selection_frame_height_unsupported'&&x.details.hiveId==='h3'));
+ assert.ok(errors.some(x=>x.code==='sectional_selection_frame_height_unsupported'&&x.details.hiveId==='h1'));
  assert.equal(JSON.stringify(s),before);
 });
 test('sectional physical selection requires exactly six entries and six unique positions',()=>{
