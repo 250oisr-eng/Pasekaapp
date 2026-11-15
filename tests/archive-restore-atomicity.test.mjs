@@ -328,6 +328,38 @@ async function seedRollback(db, { currentVideos = [] } = {}) {
   return importedVideo;
 }
 
+test('rollback refuses a snapshot whose source backup does not match archive history', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const mutate = db.transaction('archive_staging', 'readwrite');
+  const store = mutate.objectStore('archive_staging');
+  const request = store.get('rollback-1');
+  request.onsuccess = () => store.put({ ...request.result, sourceBackupId: 'different-backup' });
+  await new Promise((resolve, reject) => {
+    mutate.oncomplete = resolve;
+    mutate.onabort = mutate.onerror = () => reject(mutate.error || new Error('rollback snapshot mutation failed'));
+  });
+
+  await assert.rejects(
+    api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', testCryptoProvider(), async () => true),
+    error => error.code === 'ROLLBACK_SNAPSHOT_INVALID'
+  );
+
+  const verify = db.transaction(['main', 'entrance_media', 'archive_history', 'archive_staging'], 'readonly');
+  const [state, videos, history, snapshot] = await Promise.all([
+    new Promise((resolve, reject) => { const q = verify.objectStore('main').get('state'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('entrance_media').getAll(); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_history').get('backup-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); }),
+    new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get('rollback-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
+  ]);
+  assert.equal(state.meta.revisionId, 'imported-revision');
+  assert.equal(videos.length, 0);
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackSessionId, 'rollback-1');
+  assert.equal(snapshot.sourceBackupId, 'different-backup', 'the corrupt snapshot is preserved for diagnosis');
+  db.close();
+});
+
 test('rollback refuses to erase videos added after archive import', async () => {
   const db = await makeDatabase();
   const importedVideo = await seedRollback(db);
