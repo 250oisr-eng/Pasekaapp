@@ -2899,7 +2899,7 @@ function farrarAssemblyDisplayState(layout){
   }
   if(honey.some(Boolean)||!honeyPairValid)winterValid=false;
  }
- return {mode,installedBoxes:installed,honeyInstalled:honeyPairValid&&honey[0]===true,honeyPairValid,winterOrder,winterValid};
+ const honeyConflict=honey.some(Boolean)&&mode==='winter'||!honeyPairValid;return {mode,installedBoxes:installed,honeyInstalled:honeyPairValid&&honey[0]===true,honeyPairValid,honeyConflict,winterOrder,winterValid};
 }
 function renderStructure(){
  const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid),profile=profileForHive(hid);
@@ -2912,19 +2912,20 @@ function renderStructure(){
  if(l.mode==='summer'){
   $('hiveDiagram').innerHTML='<div class="hive-stage"><div><div class="summer-row-label">Верхний ряд · 4–6</div><div class="summer-box-row">'+[4,5,6].map(body).join('')+'</div></div><div><div class="summer-row-label">Нижний ряд · 1–3</div><div class="summer-box-row">'+[1,2,3].map(body).join('')+'</div></div></div>';
   const honeyOn=view.honeyInstalled;
-  $('honeyPair').innerHTML='<div class="honey-pair-control '+(honeyOn?'is-installed':'')+'"><div class="honey-pair-summary"><b>Медовые корпуса · 2 × 10 рамок</b><span class="muted">'+(honeyOn?'Оба корпуса установлены':'Оба корпуса сняты')+'</span></div>'+(editing?'<button class="primary honey-pair-toggle" type="button" data-action="toggle-honey-pair">'+(honeyOn?'Снять оба корпуса':'Установить оба корпуса')+'</button>':'')+'<div class="honey-pair-edit"><button type="button" '+(!honeyOn?'disabled':'')+' onclick="editBox(\'H1\')">Настроить рамки 1</button><button type="button" '+(!honeyOn?'disabled':'')+' onclick="editBox(\'H2\')">Настроить рамки 2</button></div></div>';
+  $('honeyPair').innerHTML='<div class="honey-pair-control '+(honeyOn?'is-installed':'')+'"><div class="honey-pair-summary"><b>Медовые корпуса · 2 × 10 рамок</b><span class="muted">'+(!view.honeyPairValid?'Состояние пары требует проверки':honeyOn?'Оба корпуса установлены':'Оба корпуса сняты')+'</span></div>'+(editing?'<button class="primary honey-pair-toggle" type="button" data-action="toggle-honey-pair">'+(honeyOn?'Снять оба корпуса':'Установить оба корпуса')+'</button>':'')+'<div class="honey-pair-edit"><button type="button" '+(!honeyOn?'disabled':'')+' onclick="editBox(\'H1\')">Настроить рамки 1</button><button type="button" '+(!honeyOn?'disabled':'')+' onclick="editBox(\'H2\')">Настроить рамки 2</button></div></div>';
  }else{
   $('honeyPair').innerHTML='';
   if(!view.winterValid&&!editing){
    $('hiveDiagram').innerHTML='<div class="card"><b>Зимняя комплектация требует проверки</b><p class="muted">Сохранённые позиции или состояние медовых корпусов не соответствуют зимним правилам. Данные не изменены. Нажми «Изменить», чтобы проверить и исправить комплектацию.</p></div>';
   }else{
    const order=view.winterOrder;
-   const warning=!view.winterValid?'<p class="muted">Сохранённая схема некорректна. Проверь три разные позиции: №1, 3, 4 или 6. Изменения будут сохранены только после нажатия «Готово».</p>':'';
+   const warning=!view.winterValid?'<p class="muted">Сохранённая схема некорректна. Проверь три разные позиции: №1, 3, 4 или 6. Изменения будут сохранены только после нажатия «Готово».</p>'+(view.honeyConflict?'<button type="button" onclick="clearFarrarWinterHoneyPair()">Снять отметки медовых корпусов</button>':''):'';
    $('hiveDiagram').innerHTML='<div class="winter-column">'+order.map((n,i)=>'<div class="winter-column-slot"><div class="winter-slot-head"><b>'+(i===0?'Верхний':i===1?'Средний':'Нижний')+' корпус</b>'+(editing?'<select aria-label="Выбрать корпус для позиции '+(i+1)+'" onchange="changeWinterSlot('+i+',this.value)">'+[1,3,4,6].map(k=>'<option value="'+k+'" '+(k===n?'selected':'')+' '+(order.includes(k)&&k!==n?'disabled':'')+'>Корпус №'+k+'</option>').join('')+'</select>':'')+'</div>'+body(n)+'</div>').join('')+'</div>'+warning+'<p class="muted">'+(editing?'В колонне ровно три корпуса. Выбери для каждой позиции один из шести существующих корпусов.':'Зимняя колонна: три установленных корпуса.')+'</p>';
   }
  }
  $('modeTransition').style.display='none';
 }
+function clearFarrarWinterHoneyPair(){const hiveId=selectedStructureHive(),l=layoutFor(hiveId);if(!l.setupEditing||l.mode!=='winter')return;if(!confirm('Снять отметки об установке обоих медовых корпусов в зимней комплектации?'))return;l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);l.honeyInstalled=false;renderStructure()}
 function changeWinterSlot(index,value){const l=layoutFor(selectedStructureHive()),order=farrarAssemblyDisplayState(l).winterOrder.slice(),n=Number(value);if(![1,3,4,6].includes(n)){alert('Для зимней колонны подходят только корпуса №1, 3, 4 и 6.');renderStructure();return}if(order.some((x,i)=>i!==index&&x===n)){alert('Каждый корпус можно выбрать только один раз.');renderStructure();return}order[index]=n;l.winterOrder=order;l.installedBoxes=order.slice();renderStructure()}
 async function finishAssemblySetup(){
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId),profile=profileForHive(hiveId);
