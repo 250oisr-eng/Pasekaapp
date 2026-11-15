@@ -103,3 +103,27 @@ test('existing empty primary database still recovers a valid automatic backup', 
   assert.equal(deps.autoBackupRecovered, true);
   deps.db.close();
 });
+
+
+test('existing empty database fails closed when automatic backup cannot be read', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  deps.readMain = async () => undefined;
+  deps.readAutoBackup = async () => { throw new Error('backup read failed'); };
+
+  await assert.rejects(load('read', deps)(), /backup read failed/);
+  assert.equal(load('canInitializeFreshDatabase', deps)(false, undefined), false);
+  deps.db.close();
+});
+
+test('a valid primary state is preferred without consulting automatic backup', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  const primaryState = { meta: { schemaVersion: 12 }, hives: [{ id: 'primary-hive' }] };
+  deps.readMain = async () => primaryState;
+  deps.readAutoBackup = async () => { throw new Error('must not read backup'); };
+
+  const loaded = await load('read', deps)();
+  assert.deepEqual(loaded, primaryState);
+  deps.db.close();
+});
