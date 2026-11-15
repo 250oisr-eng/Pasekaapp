@@ -2662,6 +2662,16 @@ test('failed sectional process save keeps an exportable in-memory draft and expo
 
 
 
+
+test('sectional process UI renders the 14 operation checklist and labels',()=>{
+ const operations=appWindow.PasekaSectionalTechProcess.SPEC.operations.map(operation=>({operationId:operation.id,status:'PENDING'}));
+ const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},operations}};
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[record]};
+ const elements={sectionalTechHive:{value:''},sectionalTechProcessList:{innerHTML:''},sectionalTechCount:{textContent:''},sectionalTechCreateButton:{disabled:false}};
+ const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:()=> 'Улей 1',getHiveProfile:()=>({frame:{heightMm:180}}),sectionalTechProcessSavePending:false});
+ render();assert.match(elements.sectionalTechProcessList.innerHTML,/Операции \(14\)/);assert.match(elements.sectionalTechProcessList.innerHTML,/OP-01/);assert.match(elements.sectionalTechProcessList.innerHTML,/Весеннее открытие летков/);
+});
+
 test('sectional process operation initialization is idempotent and audited',async()=>{
  const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
  const state={hives:[{id:'h1'}],sectionalTechProcesses:[record],auditLog:[]};const elements={sectionalTechFeedback:{textContent:''}};let saves=0;
