@@ -40,7 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
-  deps.journalBroodCapacity ||= (hiveId,state=deps.S) => { const hive=state?.hives?.find(item=>item?.id===hiveId); const profile=hive?.profile||(deps.getHiveProfile?deps.getHiveProfile(hive):(hive?.profileId?null:null)); const perBox=profile?.brood?.framesPerBox,layout=state?.layouts?.[hiveId]; if(!Number.isSafeInteger(perBox)||perBox<=0||!layout||!Array.isArray(layout.installedBoxes))return null; const keys=Array.isArray(profile.brood?.boxKeys)?profile.brood.boxKeys.map(String):[]; const installed=layout.mode==='winter'&&Array.isArray(layout.winterOrder)&&layout.winterOrder.length?layout.winterOrder:layout.installedBoxes; const count=new Set(installed.map(String).filter(key=>keys.includes(key))).size,capacity=count*perBox; return Number.isSafeInteger(capacity)&&capacity>0?capacity:null; };
+  deps.journalBroodCapacity ||= (hiveId,state=deps.S) => { const hive=state?.hives?.find(item=>item?.id===hiveId); const profile=hive?.profile||(deps.getHiveProfile?deps.getHiveProfile(hive):(hive?.profileId?null:null)); const perBox=profile?.brood?.framesPerBox,layout=state?.layouts?.[hiveId]; if(!Number.isSafeInteger(perBox)||perBox<=0||!layout||!Array.isArray(layout.installedBoxes))return null; const keys=Array.isArray(profile.brood?.boxKeys)?profile.brood.boxKeys.map(String):[]; const installed=layout.mode==='winter'?layout.winterOrder:layout.mode==='summer'?layout.installedBoxes:null; if(!Array.isArray(installed))return null; const count=new Set(installed.map(String).filter(key=>keys.includes(key))).size,capacity=count*perBox; return Number.isSafeInteger(capacity)&&capacity>0?capacity:null; };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -748,6 +748,15 @@ test('inspection parser leaves hedged and approximate observations unfilled',()=
   const uncertain=parse('Осмотрел семью, возможно матка обнаружена.');
   assert.equal(uncertain.type,'Осмотр');
   assert.equal(uncertain.fields.queen,undefined);
+});
+
+test('journal capacity treats an empty winter assembly as unknown instead of using summer boxes',()=>{
+ const profile={brood:{framesPerBox:8,boxKeys:['1','2']}};
+ const state={hives:[{id:'h1',profile}],layouts:{h1:{mode:'winter',installedBoxes:['1','2'],winterOrder:[]}}};
+ const capacity=loadFunction('journalBroodCapacity',{S:state,getHiveProfile:()=>profile});
+ assert.equal(capacity('h1'),null);
+ state.layouts.h1.winterOrder=['1'];
+ assert.equal(capacity('h1'),8);
 });
 
 test('inspection parser does not infer absent values or accept counts outside 0–6',()=>{
