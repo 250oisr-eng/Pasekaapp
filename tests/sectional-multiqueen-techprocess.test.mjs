@@ -39,10 +39,16 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v312/);
+  assert.match(sw, /paseka-shell-v313/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
+  assert.ok(html.includes('id="sectionalOperationDlg"'));
+  assert.ok(html.includes('function openSectionalOperationEditor('));
+  assert.ok(html.includes('function saveSectionalOperationEditor('));
+  assert.ok(html.includes('id="sectionalOperationFeedStart"'));
+  assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
+  assert.ok(html.includes('function toggleSectionalOperationFields('));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
@@ -297,4 +303,179 @@ test('stored OP-05 and OP-06 completion dates must match the user-defined window
   assert.ok(earlyOP06.errors.some(x => x.code === 'TECH_OP06_DATE_WINDOW'));
   const missingOP04Date = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-04' ? { ...op, completedAt: null } : op) } }], [{ id: 'h1' }]);
   assert.ok(missingOP04Date.errors.some(x => x.code === 'TECH_OP05_COMPLETION_DATE_REQUIRED'));
+});
+
+
+function operationRecord(stateOverrides = {}) {
+  const now = '2027-04-01T10:00:00.000Z';
+  return {
+    id: 'tp-operation-test',
+    hiveId: 'h1',
+    specVersion: api.SPEC.version,
+    createdAt: now,
+    updatedAt: now,
+    state: {
+      phase: 'PRE_DIVISION',
+      config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED', additionalBottoms: 0, hasRemovableFeeder: false },
+      sections: [],
+      queens: [],
+      operations: api.SPEC.operations.map(operation => ({ operationId: operation.id, status: 'PENDING' })),
+      ...stateOverrides
+    }
+  };
+}
+function validOp05State() {
+  return {
+    phase: 'DIVIDED_3_SECTIONS',
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'MESH_ISOLATED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'UNFERTILIZED' })),
+    requiredMeshPlugCount: 3,
+    meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
+    operations: api.SPEC.operations.map(operation => ({
+      operationId: operation.id,
+      status: operation.id === 'OP-04' ? 'DONE' : 'PENDING',
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {})
+    }))
+  };
+}
+function validOp06State() {
+  return {
+    phase: 'DIVIDED_3_SECTIONS',
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    requiredMeshPlugCount: 3,
+    meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: false, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
+    operations: api.SPEC.operations.map(operation => ({
+      operationId: operation.id,
+      status: ['OP-04', 'OP-05'].includes(operation.id) ? 'DONE' : 'PENDING',
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {}),
+      ...(operation.id === 'OP-05' ? { completedAt: '2027-05-18' } : {})
+    }))
+  };
+}
+
+test('operation transition marks a valid operation complete without mutating the original record', () => {
+  const record = operationRecord();
+  const original = JSON.stringify(record);
+  const result = api.transitionOperation(record, 'OP-01', {
+    status: 'DONE', completedAt: '2027-04-05', plannedAt: '', note: 'Летки открыты', updatedAt: '2027-04-05T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, true);
+  assert.equal(result.records[0].state.operations.find(item => item.operationId === 'OP-01').status, 'DONE');
+  assert.equal(result.records[0].state.operations.find(item => item.operationId === 'OP-01').completedAt, '2027-04-05');
+  assert.equal(JSON.stringify(record), original);
+});
+
+test('scheduled operation requires a real planned date and rejects impossible calendar dates', () => {
+  const record = operationRecord();
+  const missing = api.transitionOperation(record, 'OP-01', {
+    status: 'SCHEDULED', plannedAt: '', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(missing.valid, false);
+  assert.ok(missing.errors.some(error => error.code === 'OPERATION_PLANNED_DATE_REQUIRED'));
+  const impossible = api.transitionOperation(record, 'OP-01', {
+    status: 'SCHEDULED', plannedAt: '2027-02-30', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(impossible.valid, false);
+  assert.ok(impossible.errors.some(error => error.code === 'OPERATION_PLANNED_DATE_INVALID'));
+});
+
+test('mandatory operations cannot be skipped and failed or skipped operations require a reason', () => {
+  const record = operationRecord();
+  const mandatorySkip = api.transitionOperation(record, 'OP-01', {
+    status: 'SKIPPED', note: 'Не выполнялась', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(mandatorySkip.valid, false);
+  assert.ok(mandatorySkip.errors.some(error => error.code === 'OPERATION_SKIP_REQUIRED'));
+  const optionalWithoutReason = api.transitionOperation(record, 'OP-03', {
+    status: 'SKIPPED', note: '', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(optionalWithoutReason.valid, false);
+  assert.ok(optionalWithoutReason.errors.some(error => error.code === 'OPERATION_REASON_REQUIRED'));
+  const optionalWithReason = api.transitionOperation(record, 'OP-03', {
+    status: 'SKIPPED', note: 'По состоянию семьи не потребовалась', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(optionalWithReason.valid, true);
+});
+
+test('OP-05 completion enforces prerequisite and 8–11 day window from OP-04', () => {
+  const record = operationRecord(validOp05State());
+  const tooEarly = api.transitionOperation(record, 'OP-05', {
+    status: 'DONE', completedAt: '2027-05-17', updatedAt: '2027-05-17T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(tooEarly.valid, false);
+  assert.ok(tooEarly.errors.some(error => error.code === 'TECH_OP05_DATE_WINDOW'));
+  const valid = api.transitionOperation(record, 'OP-05', {
+    status: 'DONE', completedAt: '2027-05-18', updatedAt: '2027-05-18T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(valid.valid, true);
+});
+
+test('OP-06 completion requires three fertilized queens, connected sections, removed plugs and 20–21 days from OP-04', () => {
+  const record = operationRecord(validOp06State());
+  const tooLate = api.transitionOperation(record, 'OP-06', {
+    status: 'DONE', completedAt: '2027-06-01', updatedAt: '2027-06-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(tooLate.valid, false);
+  assert.ok(tooLate.errors.some(error => error.code === 'TECH_OP06_DATE_WINDOW'));
+  const valid = api.transitionOperation(record, 'OP-06', {
+    status: 'DONE', completedAt: '2027-05-30', updatedAt: '2027-05-30T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(valid.valid, true);
+});
+
+test('operation transition rejects duplicate operation rows and never mutates invalid state', () => {
+  const record = operationRecord();
+  record.state.operations.push({ operationId: 'OP-01', status: 'PENDING' });
+  const original = JSON.stringify(record);
+  const result = api.transitionOperation(record, 'OP-01', {
+    status: 'DONE', completedAt: '2027-04-05', updatedAt: '2027-04-05T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.code === 'OPERATION_REFERENCE_INVALID'));
+  assert.equal(JSON.stringify(record), original);
+});
+
+
+test('OP-02 cannot be completed without actual feeding dates, duration, syrup amount and 2:1 ratio', () => {
+  const record = operationRecord();
+  const missing = api.transitionOperation(record, 'OP-02', {
+    status: 'DONE', completedAt: '2027-04-12', updatedAt: '2027-04-12T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(missing.valid, false);
+  assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_FEEDING_DATES_REQUIRED'));
+  assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
+  assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
+});
+
+test('OP-02 accepts a recorded 12-day 2:1 syrup feeding in the specified daily amount range', () => {
+  const record = operationRecord();
+  const result = api.transitionOperation(record, 'OP-02', {
+    status: 'DONE',
+    completedAt: '2027-04-12',
+    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 },
+    updatedAt: '2027-04-12T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.records[0].state.operations.find(item => item.operationId === 'OP-02').feeding, {
+    startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1
+  });
+  assert.equal(record.state.operations.find(item => item.operationId === 'OP-02').status, 'PENDING');
+});
+
+test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup ratio and amount', () => {
+  const record = operationRecord();
+  const base = { status: 'DONE', completedAt: '2027-04-11', updatedAt: '2027-04-11T10:00:00.000Z' };
+  const short = api.transitionOperation(record, 'OP-02', {
+    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-11', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 }
+  }, [record], [{ id: 'h1' }]);
+  assert.ok(short.errors.some(error => error.code === 'TECH_OP02_DURATION'));
+  const wrongRatio = api.transitionOperation(record, 'OP-02', {
+    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 1, waterParts: 1 }
+  }, [record], [{ id: 'h1' }]);
+  assert.ok(wrongRatio.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
+  const wrongAmount = api.transitionOperation(record, 'OP-02', {
+    ...base, completedAt: '2027-04-12', feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 250, sugarParts: 2, waterParts: 1 }
+  }, [record], [{ id: 'h1' }]);
+  assert.ok(wrongAmount.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
 });
