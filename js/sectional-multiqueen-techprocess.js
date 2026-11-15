@@ -177,6 +177,19 @@ function validateStoredRecords(records,hives){
      if(op04?.status!=='DONE'||!start||!finish)add('TECH_OP06_COMPLETION_DATE_REQUIRED',{id:record.id});
      else{const days=dayDifference(start,finish);if(days<20||days>21)add('TECH_OP06_DATE_WINDOW',{id:record.id,days,expected:[20,21]});}
     }
+    const op02=operationById.get('OP-02');
+    if(op02?.status==='DONE'){
+     const feeding=op02.feeding&&typeof op02.feeding==='object'&&!Array.isArray(op02.feeding)?op02.feeding:null;
+     const feedStart=parseDate(feeding?.startDate),feedEnd=parseDate(feeding?.endDate);
+     if(!feedStart||!feedEnd)add('TECH_OP02_FEEDING_DATES_REQUIRED',{id:record.id});
+     else{
+      const duration=dayDifference(feedStart,feedEnd)+1;
+      if(feedEnd<feedStart||duration<12||duration>15)add('TECH_OP02_DURATION',{id:record.id,duration,expected:[12,15]});
+      if(op02.completedAt!==feeding.endDate)add('TECH_OP02_COMPLETION_DATE_MISMATCH',{id:record.id});
+     }
+     if(!Number.isFinite(feeding?.gramsPerColonyPerDay)||feeding.gramsPerColonyPerDay<100||feeding.gramsPerColonyPerDay>200)add('TECH_OP02_SYRUP_AMOUNT',{id:record.id,expected:[100,200]});
+     if(feeding?.sugarParts!==2||feeding?.waterParts!==1)add('TECH_OP02_SYRUP_RATIO',{id:record.id,expected:{sugar:2,water:1}});
+    }
    }
   }
   const result=validateHiveState(record.state);
@@ -217,6 +230,10 @@ function transitionOperation(record,operationId,draft,records,hives){
  target.plannedAt=plannedAt;
  target.completedAt=draft.status==='DONE'?completedAt:null;
  target.note=note||null;
+ if(operationId==='OP-02'&&draft.status==='DONE'){
+  const feeding=draft.feeding&&typeof draft.feeding==='object'&&!Array.isArray(draft.feeding)?draft.feeding:{};
+  target.feeding={startDate:feeding.startDate||null,endDate:feeding.endDate||null,gramsPerColonyPerDay:Number(feeding.gramsPerColonyPerDay),sugarParts:Number(feeding.sugarParts),waterParts:Number(feeding.waterParts)};
+ }else if(operationId==='OP-02')target.feeding=null;
  target.updatedAt=updatedAt;
  nextRecord.updatedAt=updatedAt;
  const nextRecords=records.map(item=>item&&item.id===record.id?nextRecord:item);
