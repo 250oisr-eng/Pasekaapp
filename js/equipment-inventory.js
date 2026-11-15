@@ -36,7 +36,7 @@ function inspectInstalledBroodSelection(state,selections,getProfile){
  for(let index=0;index<rows.length;index++){
   const row=rows[index],hiveId=typeof row?.hiveId==='string'?row.hiveId:'',boxKey=String(row?.boxKey??''),bodyId=typeof row?.bodyId==='string'?row.bodyId:'';
   if(!hiveId||!boxKey||!bodyId){errors.push({code:'sectional_selection_entry_invalid',details:{index}});continue}
-  const positionKey=hiveId+'\\u0000'+boxKey;
+  const positionKey=JSON.stringify([hiveId,boxKey]);
   if(seenBodies.has(bodyId))errors.push({code:'sectional_selection_body_duplicate',details:{bodyId,index}});
   else seenBodies.add(bodyId);
   if(seenPositions.has(positionKey))errors.push({code:'sectional_selection_position_duplicate',details:{hiveId,boxKey,index}});
