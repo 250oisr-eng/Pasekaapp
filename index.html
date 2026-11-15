@@ -2800,7 +2800,7 @@ function validateHiveProfile(profile,options={}){
  if(!positive(brood.boxCount))add('profile_brood_box_count_invalid');
  if(!positive(brood.framesPerBox))add('profile_brood_capacity_invalid');
  if(!Array.isArray(brood.boxKeys)||brood.boxKeys.length!==brood.boxCount||new Set(brood.boxKeys).size!==brood.boxKeys.length||brood.boxKeys.some(k=>typeof k!=='string'||!k.trim()))add('profile_brood_keys_invalid');
- if(!Number.isFinite(frame.heightMm)||frame.heightMm<=0)add('profile_frame_height_invalid');
+ if(!Number.isFinite(frame.heightMm)||frame.heightMm<=0)add('profile_frame_height_invalid');else if(frame.heightMm!==180)add('profile_frame_height_unsupported');
  if(!Number.isInteger(honey.boxCount)||honey.boxCount<0)add('profile_honey_box_count_invalid');
  if(honey.boxCount>0&&(!positive(honey.framesPerBox)||!Array.isArray(honey.boxKeys)||honey.boxKeys.length!==honey.boxCount||new Set(honey.boxKeys).size!==honey.boxKeys.length))add('profile_honey_capacity_invalid');
  if(!['paired','independent'].includes(honey.installation))add('profile_honey_installation_invalid');
