@@ -153,6 +153,21 @@ test('sectional physical selection refuses honey bodies in brood positions',()=>
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_brood'));
  assert.equal(JSON.stringify(s),before);
 });
+test('sectional physical selection requires exactly three sections with two brood bodies each',()=>{
+ const s=sixBodyFixture(),layout=JSON.parse(JSON.stringify(s.layouts.h3));
+ layout.corpusIds={...layout.corpusIds,'1':'b7','2':'b8',H1:'h7',H2:'h8'};
+ s.hives.push({id:'h4',profile:s.hives[0].profile});s.layouts.h4=layout;I.migrate(s,makeId,now);
+ const selection=[
+  {hiveId:'h1',boxKey:'1',bodyId:'b1'},{hiveId:'h1',boxKey:'2',bodyId:'b2'},
+  {hiveId:'h2',boxKey:'1',bodyId:'b3'},{hiveId:'h2',boxKey:'2',bodyId:'b4'},
+  {hiveId:'h3',boxKey:'1',bodyId:'b5'},{hiveId:'h4',boxKey:'1',bodyId:'b7'}
+ ];
+ const before=JSON.stringify(s),errors=I.inspectInstalledBroodSelection(s,selection);
+ assert.ok(errors.some(x=>x.code==='sectional_selection_hive_count'&&x.details.expected===3&&x.details.actual===4));
+ assert.ok(errors.some(x=>x.code==='sectional_selection_bodies_per_hive'&&x.details.hiveId==='h3'&&x.details.actual===1));
+ assert.ok(errors.some(x=>x.code==='sectional_selection_bodies_per_hive'&&x.details.hiveId==='h4'&&x.details.actual===1));
+ assert.equal(JSON.stringify(s),before);
+});
 test('sectional physical selection rejects an unknown body condition',()=>{
  const s=sixBodyFixture(),selection=sixBodySelection();s.equipmentInventory.bodies.b6.condition='mystery';const before=JSON.stringify(s);
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_body_condition_invalid'&&x.details.bodyId==='b6'));
