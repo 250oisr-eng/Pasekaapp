@@ -2579,6 +2579,12 @@ test('hive creation, hive edits and offshoot stage changes roll back when save f
  const create=html.slice(createStart,createEnd);
  assert.ok(create.indexOf('structuredClone(S)')<create.indexOf('S.hives.push(h)'));
  assert.match(create,/if\(!saved\)\{const saveError=S\.meta\?\.saveError;S=rollbackState/);
+ const selectionSnapshot=create.indexOf('const previousSelectedHiveId=selectedHiveId');
+ const selectionMutation=create.indexOf('selectedHiveId=h.id');
+ const selectionRestore='selectedHiveId=previousSelectedHiveId;activeJournalHive=previousActiveJournalHive';
+ assert.ok(selectionSnapshot>0&&selectionSnapshot<selectionMutation,'previous UI selection is captured before selecting the new hive');
+ assert.ok(create.indexOf(selectionRestore,create.indexOf('if(!saved)'))>0,'failed persistence restores both selected hive references');
+ assert.ok(create.lastIndexOf(selectionRestore)>create.indexOf('catch(err)'), 'thrown persistence errors also restore both selected hive references');
  const stageStart=html.indexOf('async function markOffshootIndependent(id){');
  const stageEnd=html.indexOf('\nfunction ruPlural(',stageStart);
  assert.ok(stageStart>=0&&stageEnd>stageStart,'offshoot stage handler is present');
