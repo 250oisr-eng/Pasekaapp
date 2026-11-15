@@ -56,7 +56,7 @@ function inspectInstalledBroodSelection(state,selections,getProfile){
   if(!body){errors.push({code:'sectional_selection_body_unregistered',details:{hiveId,boxKey,bodyId}});continue}
   if(body.id!==bodyId)errors.push({code:'sectional_selection_body_identity_mismatch',details:{bodyId,recordId:body.id??null}});
   if(body.kind!=='brood')errors.push({code:'sectional_selection_body_kind_mismatch',details:{hiveId,boxKey,bodyId,kind:body.kind??null}});
-  if(body.condition==='repair'||body.condition==='retired')errors.push({code:'sectional_selection_body_not_installable',details:{bodyId,condition:body.condition}});
+  if(!conditions.has(body.condition))errors.push({code:'sectional_selection_body_condition_invalid',details:{bodyId,condition:body.condition??null}});else if(body.condition==='repair'||body.condition==='retired')errors.push({code:'sectional_selection_body_not_installable',details:{bodyId,condition:body.condition}});
   const locations=locateAll(state,bodyId);
   if(locations.length!==1||locations[0]?.hiveId!==hiveId||locations[0]?.boxKey!==boxKey)errors.push({code:'sectional_selection_body_location_mismatch',details:{hiveId,boxKey,bodyId,locations}});
   if(!positionIsInstalled(state,hiveId,boxKey,profile))errors.push({code:'sectional_selection_position_not_installed',details:{hiveId,boxKey,bodyId}});
