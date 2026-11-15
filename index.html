@@ -3688,6 +3688,7 @@ async function commitFullArchiveRestore() {
   window.__pasekaRestoreBusy = true;
   const actions = $('fullArchiveRestoreActions');
   if (actions) actions.hidden = true;
+  let committed = false;
   try {
     await saveQueue;
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Восстановление остановлено.');
@@ -3701,6 +3702,9 @@ async function commitFullArchiveRestore() {
       db, window.__pasekaPendingFullArchiveRestore.sessionId, window.__pasekaPendingFullArchiveRestore.expectedRevision,
       window.crypto, PasekaArchive, validateFullArchiveImportState, prepareMigratedArchiveState
     );
+    // From this point the IndexedDB transaction has committed. Later UI failures
+    // must never be reported as a failed restore or offer a second import.
+    committed = true;
     S = result.state;
     lastPersistedRevision = S.meta?.revisionId || null;
     autoBackupRecovered = false;
@@ -3712,8 +3716,12 @@ async function commitFullArchiveRestore() {
     setFullArchiveRestoreStatus('Восстановление завершено. Видео: ' + result.importedVideoCount + ', без привязки к улью: ' + result.orphanedVideoCount + '. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
     await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
-    setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
-    if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
+    if (committed) {
+      setFullArchiveRestoreStatus('Архив уже восстановлен и сохранён. Не удалось полностью обновить интерфейс: ' + (error.message || error) + '. Перезагрузи страницу. Повторно импортировать архив не нужно.');
+    } else {
+      setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
+      if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
+    }
   } finally {
     window.__pasekaRestoreBusy = false;
   }

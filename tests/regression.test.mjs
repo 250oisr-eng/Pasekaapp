@@ -2751,6 +2751,12 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('id="entranceVideoList" aria-live="polite"'));
   assert.ok(html.includes('title="Все видео, видео без найденного улья или видео выбранного улья"'));
   assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  const commitUiStart = html.indexOf('async function commitFullArchiveRestore()');
+  const commitUiEnd = html.indexOf('\nasync function rollbackFullArchiveImport', commitUiStart);
+  const commitUi = html.slice(commitUiStart, commitUiEnd);
+  assert.match(commitUi, /let committed = false;/);
+  assert.match(commitUi, /PasekaArchiveRestore\.commitStagedArchive\([\s\S]*?\);\s*\/\/ From this point the IndexedDB transaction has committed[\s\S]*?committed = true;/);
+  assert.match(commitUi, /if \(committed\) \{[\s\S]*?Архив уже восстановлен и сохранён[\s\S]*?Повторно импортировать архив не нужно/);
   assert.ok(html.includes('function archiveRestoreErrorText(error)'));
   assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
   assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
