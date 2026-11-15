@@ -127,3 +127,38 @@ test('a valid primary state is preferred without consulting automatic backup', a
   assert.deepEqual(loaded, primaryState);
   deps.db.close();
 });
+
+
+test('upgrading an existing older database preserves its state and is not treated as first-run creation', async () => {
+  const indexedDB = new IDBFactory();
+  const deps = openDbDependencies(indexedDB);
+  const legacyState = { meta: { schemaVersion: 11, revisionId: 'legacy-revision' }, hives: [{ id: 'legacy-hive' }] };
+
+  const legacyRequest = indexedDB.open(deps.DB, 1);
+  const legacyDb = await new Promise((resolve, reject) => {
+    legacyRequest.onupgradeneeded = () => legacyRequest.result.createObjectStore('main');
+    legacyRequest.onsuccess = () => resolve(legacyRequest.result);
+    legacyRequest.onerror = () => reject(legacyRequest.error);
+  });
+  const write = legacyDb.transaction('main', 'readwrite');
+  write.objectStore('main').put(legacyState, 'state');
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+  legacyDb.close();
+
+  const createdDuringOpen = await load('openDB', deps)();
+  assert.equal(createdDuringOpen, false);
+  assert.equal(deps.db.version, 3);
+
+  const state = await new Promise((resolve, reject) => {
+    const request = deps.db.transaction('main', 'readonly').objectStore('main').get('state');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.deepEqual(state, legacyState);
+  assert.equal(load('canInitializeFreshDatabase', deps)(createdDuringOpen, state), false);
+  deps.db.close();
+});
