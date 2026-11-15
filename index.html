@@ -555,7 +555,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
  <div class="card">
   <h2 style="margin-top:0">Технологический процесс улья</h2>
   <p class="muted">Карточка отслеживает сезонный цикл секционного многоматочного улья. На первом этапе можно зарегистрировать исходную фазу и конфигурацию; операции разделения и перемещения оборудования будут добавляться отдельно.</p>
-  <p class="muted">Высота всех рамок фиксируется как 180 мм. Высота корпуса остаётся отдельным параметром профиля оборудования.</p>
+  <p class="muted">Высота всех рамок фиксируется как 180 мм. Перед созданием карточки профиль выбранного улья должен подтверждать 180 мм; высота корпуса остаётся отдельным параметром профиля оборудования.</p>
  </div>
  <div class="card">
   <h3 style="margin-top:0">Создать карточку процесса</h3>
@@ -1651,10 +1651,11 @@ async function createSectionalTechProcess(){
  const hiveId=$('sectionalTechHive')?.value,phase=$('sectionalTechPhase')?.value,feedback=$('sectionalTechFeedback'),button=$('sectionalTechCreateButton');
  const report=message=>{if(feedback)feedback.textContent=message};
  if(!hiveId||!phase){report('Выбери улей и текущую фазу.');return false}
- if(!S.hives.some(hive=>hive.id===hiveId)){report('Выбранный улей больше не найден. Обнови список.');return false}
+ const selectedHive=S.hives.find(hive=>hive.id===hiveId);if(!selectedHive){report('Выбранный улей больше не найден. Обнови список.');return false}
+ const selectedProfile=getHiveProfile(selectedHive);if(selectedProfile?.frame?.heightMm!==180){report('В профиле выбранного улья высота рамки не подтверждена как 180 мм. Исправь профиль оборудования перед созданием карточки.');return false}
  if(!Array.isArray(S.sectionalTechProcesses)){report('Реестр техпроцессов повреждён. Запись не создана; сначала сделай резервную копию.');return false}
  if(S.sectionalTechProcesses.some(record=>record?.hiveId===hiveId)){report('Для этого улья карточка техпроцесса уже существует.');renderSectionalTechProcessModule();return false}
- const now=new Date().toISOString(),record={id:uid(),hiveId,specVersion:PasekaSectionalTechProcess.SPEC.version,createdAt:now,updatedAt:now,state:{phase,config:{honeyBodiesCount:Number($('sectionalTechHoneyBodies')?.value||2),winteringMode:$('sectionalTechWintering')?.value||'COMBINED',hasRemovableFeeder:!!$('sectionalTechRemovableFeeder')?.checked,additionalBottoms:Number($('sectionalTechBottoms')?.value??2),frameHeightMm:180},sections:[],queens:[],operations:[]}};
+ const now=new Date().toISOString(),record={id:uid(),hiveId,hiveProfileId:selectedHive.profileId||selectedHive.profile?.id||null,specVersion:PasekaSectionalTechProcess.SPEC.version,createdAt:now,updatedAt:now,state:{phase,config:{honeyBodiesCount:Number($('sectionalTechHoneyBodies')?.value||2),winteringMode:$('sectionalTechWintering')?.value||'COMBINED',hasRemovableFeeder:!!$('sectionalTechRemovableFeeder')?.checked,additionalBottoms:Number($('sectionalTechBottoms')?.value??2),frameHeightMm:180},sections:[],queens:[],operations:[]}};
  const validation=PasekaSectionalTechProcess.validateStoredRecords([...S.sectionalTechProcesses,record],S.hives);
  if(!validation.valid){report('Проверка не пройдена: '+validation.errors.map(error=>error.code).join(', '));return false}
  S.sectionalTechProcesses=[...S.sectionalTechProcesses,record];logAudit('sectional_tech_process_created',{hiveId,techProcessId:record.id,phase});sectionalTechProcessSavePending=true;
