@@ -17,7 +17,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.1.0');
+  assert.equal(api.SPEC.version, '1.2.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
