@@ -2231,6 +2231,7 @@ async function deleteHive(id){
  const childCount=affectedChildren.length,recordCount=linkedRecords.length;
  if(!confirm('Удалить '+hname(id)+'? Его семьи, записи, задачи и данные корпусов будут удалены. Исторические ссылки других семей и записей на эти семьи сохранятся как архивные сведения. Продолжить?'))return;
  let rollbackState;try{rollbackState=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}catch(error){return alert('Не удалось подготовить безопасное удаление улья: '+(error.message||error))}
+ const previousSelectedHiveId=selectedHiveId,previousActiveJournalHive=activeJournalHive;
  const archivedAt=new Date().toISOString(),hiveNumber=h.number||null;
  const familySnapshots=new Map(deletedFamilies.map(f=>[f.id,{id:f.id,name:f.name||f.code||'Без названия',code:f.code||f.name||'Без названия',hiveId:id,hiveNumber,archivedAt,parentFamilyId:f.parentFamilyId||'',parentFamilySnapshot:f.parentFamilySnapshot||null}]));
  familySnapshots.forEach(snapshot=>{
@@ -2261,7 +2262,17 @@ async function deleteHive(id){
  logAudit('hive_deleted',{hiveId:id,hiveNumber,deletedFamilyCount:deletedFamilies.length,preservedLineageCount:childCount,preservedRecordLinkCount:recordCount,archivedFamilySnapshots:[...familySnapshots.values()]});
  if(selectedHiveId===id)selectedHiveId='';
  if(activeJournalHive===id)activeJournalHive='';
- const saved=await save();if(!saved){const saveError=S.meta?.saveError;S=rollbackState;if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError}render();alert('Удаление улья отменено: данные не удалось сохранить. Исходные семьи, записи и расположение восстановлены.'+(saveError?' Причина: '+saveError:''));return}showTab('hives');
+ let saved=false,saveFailure='';
+ try{saved=await save()}catch(error){saveFailure=error?.message||'Неизвестная ошибка сохранения'}
+ if(!saved){
+  const saveError=S.meta?.saveError,failure=saveError||saveFailure;
+  S=rollbackState;selectedHiveId=previousSelectedHiveId;activeJournalHive=previousActiveJournalHive;
+  if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError}
+  try{render()}catch(renderError){console.error('Не удалось обновить интерфейс после отмены удаления улья',renderError)}
+  alert('Удаление улья отменено: данные не удалось сохранить. Исходные семьи, записи и расположение восстановлены.'+(failure?' Причина: '+failure:''));
+  return;
+ }
+ showTab('hives');
 }
 function openNewHive(){const dlg=$('hiveDlg'),form=$('hiveForm');if(!dlg||!form){alert('Не удалось открыть создание улья: окно или форма не найдены.');return}try{$('hiveDialogTitle').textContent='Новый улей';form.reset();$('newHiveMode').value='summer';form.onsubmit=defaultHive;if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','')}catch(err){alert('Ошибка открытия окна создания улья: '+(err.message||err))}}
 function editHive(id){let h=S.hives.find(x=>x.id===id);if(!h)return;$('hiveDialogTitle').textContent=hname(id)+' · примечание';$('hiveDesc').value=h.desc||'';$('hiveDlg').showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.desc=$('hiveDesc').value;$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive;await save()}}
