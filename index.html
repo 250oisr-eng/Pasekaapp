@@ -2793,7 +2793,7 @@ function selectedStructureHive(){return selectedHiveId||S.hives[0]?.id||''}
 let pendingAssemblyMode=null,assemblyEditSnapshot=null;
 function beginModeChange(mode){
  const hiveId=selectedStructureHive(),profile=profileForHive(hiveId),l=profile?.family==='farrar'?S.layouts?.[hiveId]:layoutFor(hiveId);
- if(!l||typeof l!=='object'||Array.isArray(l)){alert('Комплектация улья недоступна.');return}
+ if(!l||typeof l!=='object'||Array.isArray(l)||!l.boxes||typeof l.boxes!=='object'||Array.isArray(l.boxes)){alert('Комплектация улья недоступна.');return}
  if(profile?.family!=='farrar'){
   if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
   if(!['summer','winter'].includes(mode)||(mode==='winter'&&!profile?.winter?.enabled)){alert('Зимняя сборка не настроена в этом профиле.');$('assemblyMode').value=l.mode||'summer';return}
@@ -2817,10 +2817,11 @@ function beginModeChange(mode){
  if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
  if(!['summer','winter'].includes(mode)){ $('assemblyMode').value=l.mode||'summer';return }
  if(mode==='winter'){
-  const blocked=[2,5].filter(n=>l.boxes[n].family);
+  const blocked=[2,5].filter(n=>l.boxes?.[n]?.family);
   if(blocked.length){alert('Зимой нельзя использовать центральные корпуса №2 и №5. Сначала перемести семьи из этих корпусов в допустимые №1, 3, 4 или 6.');$('assemblyMode').value=l.mode||'summer';return}
-  const base=assemblyEditSnapshot?.hiveId===hiveId?assemblyEditSnapshot:{mode:l.mode,installedBoxes:[...(l.installedBoxes||[])],winterOrder:[...(l.winterOrder||[])],honeyBoxInstalled:[...(l.honeyBoxInstalled||[false,false])]};
-  const current=base.mode==='summer'?base.installedBoxes.slice():(base.winterOrder.length===3?base.winterOrder.slice():base.installedBoxes.slice());
+  const base=assemblyEditSnapshot?.hiveId===hiveId?assemblyEditSnapshot:{mode:l.mode,installedBoxes:Array.isArray(l.installedBoxes)?l.installedBoxes.slice():[],winterOrder:Array.isArray(l.winterOrder)?l.winterOrder.slice():[],honeyBoxInstalled:Array.isArray(l.honeyBoxInstalled)?l.honeyBoxInstalled.slice():[false,false]};
+  const baseBoxes=Array.isArray(base.installedBoxes)?base.installedBoxes:[],baseWinter=Array.isArray(base.winterOrder)?base.winterOrder:[];
+  const current=base.mode==='summer'?baseBoxes.slice():(baseWinter.length===3?baseWinter.slice():baseBoxes.slice());
   const eligible=[1,3,4,6],seed=[...current.filter(n=>eligible.includes(n)),...eligible.filter(n=>!current.includes(n))].slice(0,3);
   l.winterOrder=seed;l.installedBoxes=seed.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false;l.mode='winter';
  }else{
@@ -2930,7 +2931,7 @@ function renderStructure(){
 function clearFarrarWinterHoneyPair(){const hiveId=selectedStructureHive(),l=S.layouts?.[hiveId];if(!l||typeof l!=='object'||Array.isArray(l))return;if(!l.setupEditing||l.mode!=='winter')return;if(!confirm('Снять отметки об установке обоих медовых корпусов в зимней комплектации?'))return;l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);l.honeyInstalled=false;renderStructure()}
 function changeWinterSlot(index,value){const l=S.layouts?.[selectedStructureHive()];if(!l||typeof l!=='object'||Array.isArray(l))return;const order=farrarAssemblyDisplayState(l).winterOrder.slice(),n=Number(value);if(![1,3,4,6].includes(n)){alert('Для зимней колонны подходят только корпуса №1, 3, 4 и 6.');renderStructure();return}if(order.some((x,i)=>i!==index&&x===n)){alert('Каждый корпус можно выбрать только один раз.');renderStructure();return}order[index]=n;l.winterOrder=order;l.installedBoxes=order.slice();renderStructure()}
 async function finishAssemblySetup(){
- const hiveId=selectedStructureHive(),profile=profileForHive(hiveId);if(profile&&profile.family!=='farrar'){const configured=layoutFor(hiveId);return finishProfileAssemblySetup(hiveId,configured,profile)}const l=S.layouts?.[hiveId];if(!l||typeof l!=='object'||Array.isArray(l)||!Array.isArray(l.installedBoxes)||!Array.isArray(l.winterOrder)||!Array.isArray(l.honeyBoxInstalled)){alert('Списки комплектации повреждены или отсутствуют. Сохранение отменено; сначала проверь целостность данных.');return}
+ const hiveId=selectedStructureHive(),profile=profileForHive(hiveId);if(profile&&profile.family!=='farrar'){const configured=layoutFor(hiveId);return finishProfileAssemblySetup(hiveId,configured,profile)}const l=S.layouts?.[hiveId];if(!l||typeof l!=='object'||Array.isArray(l)||!l.boxes||typeof l.boxes!=='object'||Array.isArray(l.boxes)||!Array.isArray(l.installedBoxes)||!Array.isArray(l.winterOrder)||!Array.isArray(l.honeyBoxInstalled)){alert('Списки комплектации повреждены или отсутствуют. Сохранение отменено; сначала проверь целостность данных.');return}
  const wasComplete=!!l.setupComplete;
  const before=assemblyEditSnapshot?.hiveId===hiveId?{mode:assemblyEditSnapshot.mode,boxes:assemblyEditSnapshot.installedBoxes.slice(),winterOrder:assemblyEditSnapshot.winterOrder.slice(),honeyBoxInstalled:assemblyEditSnapshot.honeyBoxInstalled.slice()}:{mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:(l.honeyBoxInstalled||[false,false]).slice()};
  if(l.mode==='winter'&&((l.winterOrder||[]).length!==3||new Set(l.winterOrder).size!==3||(l.winterOrder||[]).some(n=>![1,3,4,6].includes(n)))){
@@ -2948,7 +2949,7 @@ async function finishAssemblySetup(){
  if(l.mode==='summer'&&Boolean(l.honeyBoxInstalled[0])!==Boolean(l.honeyBoxInstalled[1])){
   alert('Медовые корпуса устанавливаются и снимаются только парой.');return;
  }
- const assigned=[1,2,3,4,5,6].filter(n=>l.boxes[n].family),chosen=l.mode==='winter'?l.winterOrder:l.installedBoxes;
+ const assigned=[1,2,3,4,5,6].filter(n=>l.boxes?.[n]?.family),chosen=l.mode==='winter'?l.winterOrder:l.installedBoxes;
  if(assigned.some(n=>!chosen.includes(n))){
   alert('В сборке должны остаться корпуса с назначенными семьями: №'+assigned.filter(n=>!chosen.includes(n)).join(', №'));return;
  }
