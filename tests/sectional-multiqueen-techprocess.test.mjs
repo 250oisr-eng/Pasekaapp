@@ -149,5 +149,6 @@ test('all entrances action is no longer treated as an R1 conflict after OP-06', 
     ],
     operationActions: ['OPEN_ALL_ENTRANCES']
   });
-  assert.equal(result.warnings.some(x => x.code === 'R1_OPEN_ALL_CONFLICT'), false);
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.some(x => x.code.startsWith('R1_')), false);
 });
