@@ -47,6 +47,7 @@ function inspectInstalledBroodSelection(state,selections,getProfile){
   const profile=getProfile?.(hiveId)||profileForState(state,hiveId);
   if(!profile){errors.push({code:'sectional_selection_profile_missing',details:{hiveId,boxKey,bodyId}});continue}
   if(profile.status&&profile.status!=='ready')errors.push({code:'sectional_selection_profile_not_ready',details:{hiveId,profileId:profile.id||null}});
+  if(profile.id!=='farrar-6x6-v1'||profile.family!=='farrar')errors.push({code:'sectional_selection_profile_unsupported',details:{hiveId,profileId:profile.id||null,family:profile.family||null}});
   if(Number(profile.frame?.heightMm)!==180)errors.push({code:'sectional_selection_frame_height_unsupported',details:{hiveId,profileId:profile.id||null,frameHeightMm:profile.frame?.heightMm??null}});
   const brood=(profile.brood?.boxKeys||[]).map(String);
   if(!brood.includes(boxKey)){errors.push({code:'sectional_selection_position_not_brood',details:{hiveId,boxKey,bodyId}});continue}
