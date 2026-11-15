@@ -2101,7 +2101,7 @@ test('IndexedDB automatic backup abort preserves the previous backup when the ne
 
 test('restore revision conflict preserves both the live state and previous automatic backup',async()=>{
  const factory=new IDBFactory();
- const db=await openRealIndexedDb(factory,'restore-revision-conflict-'+(++indexedDbTestSequence),true);
+ const db=await openRealIndexedDb(factory,'restore-revision-conflict-'+(++indexedDbTestSequence));
  try{
   const newerMain={meta:{revisionId:'newer-revision'},value:'concurrent-live-state'};
   const previousBackup={at:'2026-11-12T12:00:00.000Z',state:{meta:{revisionId:'older-backup'},value:'known-good-backup'}};
