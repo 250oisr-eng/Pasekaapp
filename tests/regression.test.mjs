@@ -2961,8 +2961,10 @@ test('entrance video save hashes and stores the same Blob snapshot when caller m
   const tx = {
     objectStore() { return { put(value) { stored = value; } }; }
   };
+  const databaseOperationState={active:0,waiters:[]};
   const save = loadFunction('putEntranceVideo', {
     db: { transaction() { return tx; } },
+    beginDatabaseOperation:loadFunction('beginDatabaseOperation',{databaseOperationState}),
     window: {
       crypto: { subtle: { digest: async (_algorithm, bytes) => {
         digestStarted();
