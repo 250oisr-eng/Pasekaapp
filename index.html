@@ -2792,7 +2792,8 @@ function layoutFor(hid){
 function selectedStructureHive(){return selectedHiveId||S.hives[0]?.id||''}
 let pendingAssemblyMode=null,assemblyEditSnapshot=null;
 function beginModeChange(mode){
- const hiveId=selectedStructureHive(),l=layoutFor(hiveId),profile=profileForHive(hiveId);
+ const hiveId=selectedStructureHive(),profile=profileForHive(hiveId),l=profile?.family==='farrar'?S.layouts?.[hiveId]:layoutFor(hiveId);
+ if(!l||typeof l!=='object'||Array.isArray(l)){alert('Комплектация улья недоступна.');return}
  if(profile?.family!=='farrar'){
   if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
   if(!['summer','winter'].includes(mode)||(mode==='winter'&&!profile?.winter?.enabled)){alert('Зимняя сборка не настроена в этом профиле.');$('assemblyMode').value=l.mode||'summer';return}
@@ -2832,14 +2833,14 @@ function beginModeChange(mode){
  $('modeTransition').style.display='none';renderStructure();
 }
 function editCurrentAssembly(){
- const hiveId=selectedStructureHive(),l=layoutFor(hiveId);if(l.setupEditing)return;
- assemblyEditSnapshot={hiveId,mode:l.mode||'summer',installedBoxes:[...(l.installedBoxes||[])],winterOrder:[...(l.winterOrder||[])],honeyBoxInstalled:[...(l.honeyBoxInstalled||[false,false])],honeyInstalled:!!l.honeyInstalled};
+ const hiveId=selectedStructureHive(),profile=profileForHive(hiveId),l=profile?.family==='farrar'?S.layouts?.[hiveId]:layoutFor(hiveId);if(!l||typeof l!=='object'||Array.isArray(l))return;if(l.setupEditing)return;
+ assemblyEditSnapshot={hiveId,mode:l.mode||'summer',installedBoxes:Array.isArray(l.installedBoxes)?l.installedBoxes.slice():l.installedBoxes,winterOrder:Array.isArray(l.winterOrder)?l.winterOrder.slice():l.winterOrder,honeyBoxInstalled:Array.isArray(l.honeyBoxInstalled)?l.honeyBoxInstalled.slice():l.honeyBoxInstalled,honeyInstalled:l.honeyInstalled};
  l.setupEditing=true;renderStructure();
 }
 function cancelModeChange(){
- const hiveId=selectedStructureHive(),l=layoutFor(hiveId);
+ const hiveId=selectedStructureHive(),profile=profileForHive(hiveId),l=profile?.family==='farrar'?S.layouts?.[hiveId]:layoutFor(hiveId);if(!l||typeof l!=='object'||Array.isArray(l))return;
  if(assemblyEditSnapshot?.hiveId===hiveId){
-  l.mode=assemblyEditSnapshot.mode;l.installedBoxes=assemblyEditSnapshot.installedBoxes.slice();l.winterOrder=assemblyEditSnapshot.winterOrder.slice();l.honeyBoxInstalled=assemblyEditSnapshot.honeyBoxInstalled.slice();l.honeyInstalled=assemblyEditSnapshot.honeyInstalled;
+  l.mode=assemblyEditSnapshot.mode;l.installedBoxes=Array.isArray(assemblyEditSnapshot.installedBoxes)?assemblyEditSnapshot.installedBoxes.slice():assemblyEditSnapshot.installedBoxes;l.winterOrder=Array.isArray(assemblyEditSnapshot.winterOrder)?assemblyEditSnapshot.winterOrder.slice():assemblyEditSnapshot.winterOrder;l.honeyBoxInstalled=Array.isArray(assemblyEditSnapshot.honeyBoxInstalled)?assemblyEditSnapshot.honeyBoxInstalled.slice():assemblyEditSnapshot.honeyBoxInstalled;l.honeyInstalled=assemblyEditSnapshot.honeyInstalled;
  }
  assemblyEditSnapshot=null;pendingAssemblyMode=null;l.setupEditing=false;$('modeTransition').style.display='none';$('assemblyMode').value=l.mode||'summer';renderStructure();
 }
@@ -2926,11 +2927,10 @@ function renderStructure(){
  }
  $('modeTransition').style.display='none';
 }
-function clearFarrarWinterHoneyPair(){const hiveId=selectedStructureHive(),l=layoutFor(hiveId);if(!l.setupEditing||l.mode!=='winter')return;if(!confirm('Снять отметки об установке обоих медовых корпусов в зимней комплектации?'))return;l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);l.honeyInstalled=false;renderStructure()}
-function changeWinterSlot(index,value){const l=layoutFor(selectedStructureHive()),order=farrarAssemblyDisplayState(l).winterOrder.slice(),n=Number(value);if(![1,3,4,6].includes(n)){alert('Для зимней колонны подходят только корпуса №1, 3, 4 и 6.');renderStructure();return}if(order.some((x,i)=>i!==index&&x===n)){alert('Каждый корпус можно выбрать только один раз.');renderStructure();return}order[index]=n;l.winterOrder=order;l.installedBoxes=order.slice();renderStructure()}
+function clearFarrarWinterHoneyPair(){const hiveId=selectedStructureHive(),l=S.layouts?.[hiveId];if(!l||typeof l!=='object'||Array.isArray(l))return;if(!l.setupEditing||l.mode!=='winter')return;if(!confirm('Снять отметки об установке обоих медовых корпусов в зимней комплектации?'))return;l.honeyBoxInstalled=profileHoneyKeys(hiveId).map(()=>false);l.honeyInstalled=false;renderStructure()}
+function changeWinterSlot(index,value){const l=S.layouts?.[selectedStructureHive()];if(!l||typeof l!=='object'||Array.isArray(l))return;const order=farrarAssemblyDisplayState(l).winterOrder.slice(),n=Number(value);if(![1,3,4,6].includes(n)){alert('Для зимней колонны подходят только корпуса №1, 3, 4 и 6.');renderStructure();return}if(order.some((x,i)=>i!==index&&x===n)){alert('Каждый корпус можно выбрать только один раз.');renderStructure();return}order[index]=n;l.winterOrder=order;l.installedBoxes=order.slice();renderStructure()}
 async function finishAssemblySetup(){
- const hiveId=selectedStructureHive(),l=layoutFor(hiveId),profile=profileForHive(hiveId);
- if(profile&&profile.family!=='farrar')return finishProfileAssemblySetup(hiveId,l,profile);
+ const hiveId=selectedStructureHive(),profile=profileForHive(hiveId);if(profile&&profile.family!=='farrar'){const configured=layoutFor(hiveId);return finishProfileAssemblySetup(hiveId,configured,profile)}const l=S.layouts?.[hiveId];if(!l||typeof l!=='object'||Array.isArray(l)||!Array.isArray(l.installedBoxes)||!Array.isArray(l.winterOrder)||!Array.isArray(l.honeyBoxInstalled)){alert('Списки комплектации повреждены или отсутствуют. Сохранение отменено; сначала проверь целостность данных.');return}
  const wasComplete=!!l.setupComplete;
  const before=assemblyEditSnapshot?.hiveId===hiveId?{mode:assemblyEditSnapshot.mode,boxes:assemblyEditSnapshot.installedBoxes.slice(),winterOrder:assemblyEditSnapshot.winterOrder.slice(),honeyBoxInstalled:assemblyEditSnapshot.honeyBoxInstalled.slice()}:{mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:(l.honeyBoxInstalled||[false,false]).slice()};
  if(l.mode==='winter'&&((l.winterOrder||[]).length!==3||new Set(l.winterOrder).size!==3||(l.winterOrder||[]).some(n=>![1,3,4,6].includes(n)))){
