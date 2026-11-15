@@ -1825,7 +1825,7 @@ test('Farrar assembly display rejects malformed persisted order containers witho
 test('Farrar winter finish refuses honey flags without silently clearing them',async()=>{
  const layout={mode:'winter',setupComplete:true,installedBoxes:[1,3,4],winterOrder:[1,3,4],honeyBoxInstalled:[true,true],boxes:{1:{family:'',frames:[]},2:{family:'',frames:[]},3:{family:'',frames:[]},4:{family:'',frames:[]},5:{family:'',frames:[]},6:{family:'',frames:[]}}};
  const before=JSON.stringify(layout),messages=[];
- const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),alert:message=>messages.push(message)});
+ const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:null,alert:message=>messages.push(message)});
  await finish();
  assert.equal(JSON.stringify(layout),before);
  assert.ok(messages.some(message=>message.includes('сначала явно сними')));
