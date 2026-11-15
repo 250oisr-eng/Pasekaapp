@@ -2571,7 +2571,7 @@ test('hive deletion restores the complete in-memory state when persistence fails
  const end=html.indexOf('\nfunction openNewHive()',start);
  assert.ok(start>=0&&end>start,'hive deletion handler is present');
  const handler=html.slice(start,end);
- const confirmation=handler.indexOf("if(!confirm('Удалить '+hname(id)?");
+ const confirmation=handler.indexOf("if(!confirm('Удалить '+hname(id)+'?");
  const snapshot=handler.indexOf('structuredClone(S)');
  const firstMutation=handler.indexOf('f.parentFamilySnapshot=');
  const save=handler.indexOf('const saved=await save()');
