@@ -1273,6 +1273,21 @@ test('persistSnapshot reports success when UI refresh fails after the main datab
  assert.match(alerts[0],/Данные пасеки сохранены/);
 });
 
+test('persistSnapshot preserves a warning when the automatic backup rejects a stale snapshot',async()=>{
+ const state={meta:{revisionId:'rev-2'}};
+ const deps={
+  S:state,lastPersistedRevision:'rev-1',autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'rev-1'}}),
+  writeAutoBackup:async()=>false,
+  render(){},updateStorageEstimate:()=>Promise.resolve(),alert:()=>{}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'the primary commit remains successful');
+ assert.equal(deps.lastPersistedRevision,'rev-2');
+ assert.match(state.meta.autoBackupError,/данные изменились параллельно/);
+ assert.match(deps.S.meta.autoBackupError,/данные изменились параллельно/);
+});
+
 test('persistSnapshot reports failure and keeps the previous revision when the main database transaction fails',async()=>{
  const state={meta:{revisionId:'rev-2'}};
  const alerts=[];
