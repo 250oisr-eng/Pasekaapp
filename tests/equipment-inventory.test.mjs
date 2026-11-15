@@ -135,3 +135,14 @@ test('physical corpus swap restores the snapshot when inventory history recordin
  assert.ok(guard<handler.indexOf('if(!await save())'),'persistence must not run after inventory transaction failure');
  assert.match(handler,/if\(!inventoryResult\.ok\)\{S=previous;render\(\);alert/);
 });
+
+
+test('stock installation preserves malformed frame history and aborts atomically',()=>{
+ const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ stock.frames=[{frameId:'frame-1',history:{corrupt:true}}];
+ const before=JSON.stringify(s);
+ const result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'transaction_failed');
+ assert.equal(JSON.stringify(s),before);
+});
