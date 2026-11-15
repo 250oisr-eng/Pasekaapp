@@ -153,3 +153,8 @@ test('sectional physical selection refuses honey bodies in brood positions',()=>
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_brood'));
  assert.equal(JSON.stringify(s),before);
 });
+test('sectional physical selection rejects an unknown body condition',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();s.equipmentInventory.bodies.b6.condition='mystery';const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_body_condition_invalid'&&x.details.bodyId==='b6'));
+ assert.equal(JSON.stringify(s),before);
+});
