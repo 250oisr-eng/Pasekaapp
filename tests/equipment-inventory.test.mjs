@@ -99,3 +99,62 @@ test('integrity inspection detects an empty corpus mapping without repairing or 
  assert.ok(errors.some(x=>x.code==='inventory_layout_body_id_missing'&&x.details.hiveId==='h1'&&x.details.boxKey==='1'));
  assert.equal(JSON.stringify(s),before);
 });
+
+function sixBodyFixture(){
+ const s=fixture(),p=s.hives[0].profile,layout=JSON.parse(JSON.stringify(s.layouts.h2));
+ layout.corpusIds={...layout.corpusIds,'1':'b5','2':'b6',H1:'h5',H2:'h6'};
+ s.hives.push({id:'h3',profile:p});s.layouts.h3=layout;
+ I.migrate(s,makeId,now);
+ return s;
+}
+function sixBodySelection(){
+ return [
+  {hiveId:'h1',boxKey:'1',bodyId:'b1'},{hiveId:'h1',boxKey:'2',bodyId:'b2'},
+  {hiveId:'h2',boxKey:'1',bodyId:'b3'},{hiveId:'h2',boxKey:'2',bodyId:'b4'},
+  {hiveId:'h3',boxKey:'1',bodyId:'b5'},{hiveId:'h3',boxKey:'2',bodyId:'b6'}
+ ];
+}
+test('validates six distinct installed physical brood bodies without changing apiary state',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection(),before=JSON.stringify(s);
+ assert.deepEqual(I.inspectInstalledBroodSelection(s,selection),[]);
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection rejects a missing inventory object and leaves state unchanged',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();delete s.equipmentInventory.bodies.b3;const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_body_unregistered'&&x.details.bodyId==='b3'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection rejects a layout/body mismatch and duplicate body assignment',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();selection[2].bodyId='b1';const before=JSON.stringify(s);
+ const errors=I.inspectInstalledBroodSelection(s,selection);
+ assert.ok(errors.some(x=>x.code==='sectional_selection_body_duplicate'));
+ assert.ok(errors.some(x=>x.code==='sectional_selection_layout_body_mismatch'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection rejects a brood position that is mapped but not installed',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();s.layouts.h2.installedBoxes=[2];const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_installed'&&x.details.hiveId==='h2'&&x.details.boxKey==='1'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection rejects unknown body specs and non-180mm frame profiles',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();delete s.equipmentInventory.bodies.b4.spec;s.hives[2].profile={...s.hives[2].profile,frame:{...s.hives[2].profile.frame,heightMm:195}};const before=JSON.stringify(s);
+ const errors=I.inspectInstalledBroodSelection(s,selection);
+ assert.ok(errors.some(x=>x.code==='sectional_selection_body_spec_missing'&&x.details.bodyId==='b4'));
+ assert.ok(errors.some(x=>x.code==='sectional_selection_frame_height_unsupported'&&x.details.hiveId==='h3'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection requires exactly six entries and six unique positions',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection().slice(0,5),before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_body_count'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection refuses honey bodies in brood positions',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();selection[0]={hiveId:'h1',boxKey:'H1',bodyId:'h1'};const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_brood'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection rejects an unknown body condition',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();s.equipmentInventory.bodies.b6.condition='mystery';const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_body_condition_invalid'&&x.details.bodyId==='b6'));
+ assert.equal(JSON.stringify(s),before);
+});
