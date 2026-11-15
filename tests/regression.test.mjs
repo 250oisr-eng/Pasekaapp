@@ -2669,3 +2669,10 @@ test('Cloudflare Worker Previews retain the Workers AI binding required by the w
  assert.equal(config.ai?.binding,'AI');
  assert.equal(config.previews?.ai?.binding,'AI');
 });
+
+
+test('equipment inventory honey stock rendering uses the inApiary scope variable',()=>{
+ const source=extractFunction('renderEquipmentInventory');
+ assert.match(source,/!inApiary&&body\.kind===\'honey\'/);
+ assert.doesNotMatch(source,/!inHive&&body\.kind===\'honey\'/);
+});
