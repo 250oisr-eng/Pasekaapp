@@ -1778,6 +1778,42 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
+test('Farrar assembly display derives a valid winter order without mutating stored layout',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'winter',installedBoxes:[4,1,6],winterOrder:[4,1,6],honeyBoxInstalled:[false,false]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.winterValid,true);
+ assert.deepEqual(view.winterOrder,[4,1,6]);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly display flags malformed winter state without silently repairing it',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'winter',installedBoxes:[1,2,3],winterOrder:[1,2,3],honeyBoxInstalled:[true,true]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.winterValid,false);
+ assert.deepEqual(view.winterOrder,[1,3,4]);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly display does not normalize a partially installed honey pair',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'summer',installedBoxes:[1,3],honeyBoxInstalled:[true,false]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.honeyPairValid,false);
+ assert.equal(view.honeyInstalled,false);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly display offers an initial winter selection without persisting it',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'winter',installedBoxes:[],winterOrder:[],honeyBoxInstalled:[false,false]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.winterValid,true);
+ assert.deepEqual(view.winterOrder,[1,3,4]);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
+ const source=extractFunction('renderStructure');
+ assert.doesNotMatch(source,/l\\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\\s*=/);
+});
 test('six-digit frame inventory is not part of the current model',()=>{
  const source=extractFunction('migrateState');
  assert.match(source,/delete frame\.inventoryNumber/);
