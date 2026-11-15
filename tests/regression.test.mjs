@@ -1998,6 +1998,37 @@ async function readIndexedDb(db,store,key) {
 }
 let indexedDbTestSequence=0;
 
+test('IndexedDB main read resolves only after the readonly transaction commits',async()=>{
+ const request={},tx={objectStore(){return{get(){return request}}},abort(){}};
+ const deps={db:{transaction(){return tx}},STORE:'main'};
+ const read=loadFunction('readMain',deps);
+ let settled=false;
+ const pending=read().then(value=>{settled=true;return value},error=>{settled=true;throw error});
+ request.result={meta:{revisionId:'rev-1'}};
+ request.onsuccess();
+ await Promise.resolve();
+ assert.equal(settled,false,'request success is not proof that the transaction committed');
+ const failure=new Error('simulated read transaction abort');
+ tx.error=failure;tx.onabort();
+ await assert.rejects(pending,error=>error===failure);
+});
+test('IndexedDB backup read does not publish a result before transaction completion',async()=>{
+ const request={},tx={objectStore(){return{get(){return request}}}};
+ const previousInfo={at:'old',state:{value:'old'}};
+ const deps={db:{transaction(){return tx}},BACKUP_STORE:'backup',autoBackupInfo:previousInfo};
+ const read=loadFunction('readAutoBackup',deps);
+ let settled=false;
+ const pending=read().then(value=>{settled=true;return value},error=>{settled=true;throw error});
+ request.result={at:'new',state:{value:'candidate'}};
+ request.onsuccess();
+ await Promise.resolve();
+ assert.equal(settled,false,'backup is accepted only after its readonly transaction commits');
+ assert.equal(deps.autoBackupInfo,previousInfo,'an aborted read must not replace trusted backup metadata');
+ const failure=new Error('simulated backup read abort');
+ tx.error=failure;tx.onabort();
+ await assert.rejects(pending,error=>error===failure);
+ assert.equal(deps.autoBackupInfo,previousInfo);
+});
 test('IndexedDB real API serializes competing revision writes and rejects the stale second writer',async()=>{
  const factory=new IDBFactory();
  const db=await openRealIndexedDb(factory,'revision-race-'+(++indexedDbTestSequence));
