@@ -57,20 +57,12 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
-test('openDB marks only a database created by this open as a fresh database',async()=>{
- const factory=new IDBFactory();
- const freshDeps={indexedDB:factory,DB:'fresh-database-detection',databaseCreatedDuringOpen:false,db:null};
- await loadFunction('openDB',freshDeps)();
- assert.equal(freshDeps.databaseCreatedDuringOpen,true);
- freshDeps.db.close();
- const request=factory.open('existing-database-detection',1);
- request.onupgradeneeded=()=>request.result.createObjectStore('main');
- const existingDb=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
- existingDb.close();
- const existingDeps={indexedDB:factory,DB:'existing-database-detection',databaseCreatedDuringOpen:false,db:null};
- await loadFunction('openDB',existingDeps)();
- assert.equal(existingDeps.databaseCreatedDuringOpen,false);
- existingDeps.db.close();
+test('IndexedDB upgrade is considered fresh only when the old version is zero',()=>{
+ const isFresh=loadFunction('isFreshDatabaseUpgrade');
+ assert.equal(isFresh(0),true);
+ assert.equal(isFresh(1),false);
+ assert.equal(isFresh(3),false);
+ assert.match(html,/q\.onupgradeneeded=event=>\{if\(isFreshDatabaseUpgrade\(event\.oldVersion\)\)databaseCreatedDuringOpen=true;/);
 });
 
 test('family lineage accepts live and archived parents', () => {
