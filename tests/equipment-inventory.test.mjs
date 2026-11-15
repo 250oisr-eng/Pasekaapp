@@ -102,7 +102,7 @@ test('integrity inspection detects an empty corpus mapping without repairing or 
 
 function sixBodyFixture(){
  const s=fixture(),h=s.hives[0],layout=s.layouts.h1;
- h.profile={...h.profile,brood:{...h.profile.brood,boxCount:6,boxKeys:['1','2','3','4','5','6']},layout:{rows:[['1','2','3'],['4','5','6']],sections:3}};
+ h.profile={...h.profile,family:'farrar',brood:{...h.profile.brood,boxCount:6,boxKeys:['1','2','3','4','5','6']},layout:{rows:[['1','2','3'],['4','5','6']],sections:3}};
  s.hives=[h];delete s.layouts.h2;
  layout.corpusIds={...layout.corpusIds,'3':'b3','4':'b4','5':'b5','6':'b6'};
  for(const key of ['3','4','5','6'])layout.boxes[key]={family:'',frames:[{frameId:'f'+key}]};
@@ -150,6 +150,11 @@ test('sectional physical selection requires exactly six entries and six unique p
 test('sectional physical selection refuses honey bodies in brood positions',()=>{
  const s=sixBodyFixture(),selection=sixBodySelection();selection[0]={hiveId:'h1',boxKey:'H1',bodyId:'h1'};const before=JSON.stringify(s);
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_position_not_brood'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('sectional physical selection refuses a non-Farrar ready profile',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection();s.hives[0].profile={...s.hives[0].profile,id:'ruta-template-v1',family:'ruta'};const before=JSON.stringify(s);
+ assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_profile_unsupported'&&x.details.hiveId==='h1'));
  assert.equal(JSON.stringify(s),before);
 });
 test('sectional physical selection represents three two-body sections inside one Farrar hive',()=>{
