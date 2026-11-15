@@ -2098,6 +2098,22 @@ test('IndexedDB automatic backup abort preserves the previous backup when the ne
 });
 
 
+
+test('restore revision conflict preserves both the live state and previous automatic backup',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'restore-revision-conflict-'+(++indexedDbTestSequence),true);
+ try{
+  const newerMain={meta:{revisionId:'newer-revision'},value:'concurrent-live-state'};
+  const previousBackup={at:'2026-11-12T12:00:00.000Z',state:{meta:{revisionId:'older-backup'},value:'known-good-backup'}};
+  await seedIndexedDb(db,[['main',newerMain,'state'],['backup',previousBackup,'previous']]);
+  const restore={meta:{revisionId:'restored-revision'},value:'must-not-overwrite-newer-state'};
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  await assert.rejects(write(restore,'stale-expected-revision'),error=>error?.name==='PasekaConflictError');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),newerMain,'revision conflict must preserve the concurrent primary state');
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),previousBackup,'revision conflict must preserve the previous verified backup');
+ }finally{db.close()}
+});
+
 test('JSON backup restore keeps current in-memory state when atomic database write fails',async()=>{
  const current={meta:{revisionId:'current-rev'},hives:[{id:'current-hive'}],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
  const restored={meta:{schemaVersion:2},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
