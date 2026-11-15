@@ -2231,6 +2231,30 @@ test('IndexedDB versionchange waits for queued state saves and asynchronous vide
 });
 
 
+test('putEntranceVideo keeps its database operation active across hashing and commit',async()=>{
+ const databaseOperationState={active:0,waiters:[]};
+ let releaseDigest,notifyDigest,storedRecord=null;
+ const digestStarted=new Promise(resolve=>{notifyDigest=resolve});
+ const digestGate=new Promise(resolve=>{releaseDigest=resolve});
+ const tx={objectStore:()=>({put(record){storedRecord=record}})};
+ const write=loadFunction('putEntranceVideo',{
+  db:{transaction(){return tx}},
+  window:{crypto:{subtle:{async digest(){notifyDigest();return digestGate}}}},
+  beginDatabaseOperation:loadFunction('beginDatabaseOperation',{databaseOperationState})
+ });
+ const operation=write({id:'video-pending',blob:new Blob(['video bytes'],{type:'video/mp4'})});
+ await digestStarted;
+ assert.equal(databaseOperationState.active,1,'the hashing phase must keep the database connection alive');
+ releaseDigest(new Uint8Array(32).buffer);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(storedRecord?.id,'video-pending');
+ assert.equal(storedRecord?.blobSha256,'00'.repeat(32));
+ assert.equal(databaseOperationState.active,1,'the write remains active until IndexedDB commits');
+ tx.oncomplete();
+ await operation;
+ assert.equal(databaseOperationState.active,0);
+});
+
 test('save reports snapshot preparation failures without throwing or queuing a partial save',async()=>{
  const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},snapshots:[]};
  const alerts=[];
