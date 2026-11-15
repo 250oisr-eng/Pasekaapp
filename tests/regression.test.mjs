@@ -2199,17 +2199,23 @@ test('IndexedDB open rejects a blocked upgrade and closes a late connection',asy
  assert.equal(deps.db,null);
 });
 
-test('IndexedDB connection closes on versionchange and tells the old tab to reload',async()=>{
+test('IndexedDB versionchange drains queued saves before closing and tells the old tab to reload',async()=>{
  const request={},alerts=[],fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
- const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}},alert:message=>alerts.push(message)};
+ let releaseSave;
+ const saveQueue=new Promise(resolve=>{releaseSave=resolve});
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}},saveQueue,alert:message=>alerts.push(message)};
  const pending=loadFunction('openDB',deps)();
  request.result=fakeDb;request.onsuccess();
  await pending;
  assert.equal(deps.db,fakeDb);
  fakeDb.onversionchange();
+ assert.equal(fakeDb.closed,undefined,'the connection must remain open while queued writes drain');
+ assert.equal(deps.db,fakeDb,'queued saves must retain access to the old connection');
+ assert.match(alerts[0],/Обновите страницу/);
+ releaseSave();
+ await new Promise(resolve=>setImmediate(resolve));
  assert.equal(fakeDb.closed,true);
  assert.equal(deps.db,null);
- assert.match(alerts[0],/Обновите страницу/);
 });
 
 test('opening database version 9 closes an older tab before enabling media writes',async()=>{
