@@ -91,6 +91,31 @@ function validateHiveState(s){
  if(s.phase==='ALT_WINTERING'&&Array.isArray(s.sections)&&s.sections.length===3){const counts=s.sections.map(x=>x&&x.bodyIds&&x.bodyIds.length);if(counts.some(x=>![1,2].includes(x))||counts.filter(x=>x===2).length!==1)add('ALT_WINTER_BODY_LAYOUT','При альтернативной зимовке одна семья занимает два корпуса, две другие — по одному.','warning');}
  return {valid:errors.length===0,errors,warnings};
 }
+function validateStoredRecords(records,hives){
+ const errors=[],add=(code,details)=>errors.push({code,details});
+ if(!Array.isArray(records))return {valid:false,errors:[{code:'TECH_RECORDS_NOT_ARRAY',details:null}]};
+ if(!Array.isArray(hives))return {valid:false,errors:[{code:'TECH_HIVE_LIST_NOT_ARRAY',details:null}]};
+ const hiveIds=new Set(hives.filter(h=>h&&typeof h.id==='string'&&h.id.trim()).map(h=>h.id));
+ const seenIds=new Set(),seenHives=new Set();
+ records.forEach((record,index)=>{
+  if(!record||typeof record!=='object'||Array.isArray(record)){add('TECH_RECORD_INVALID',{index});return;}
+  if(typeof record.id!=='string'||!record.id.trim()){add('TECH_RECORD_ID_INVALID',{index});return;}
+  if(seenIds.has(record.id))add('TECH_RECORD_ID_DUPLICATE',{id:record.id,index});
+  seenIds.add(record.id);
+  if(typeof record.hiveId!=='string'||!record.hiveId.trim()){add('TECH_RECORD_HIVE_INVALID',{id:record.id});return;}
+  if(!hiveIds.has(record.hiveId))add('TECH_RECORD_HIVE_MISSING',{id:record.id,hiveId:record.hiveId});
+  if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
+  seenHives.add(record.hiveId);
+  if(record.specVersion!==SPEC.version)add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
+  if(typeof record.createdAt!=='string'||!Number.isFinite(Date.parse(record.createdAt)))add('TECH_RECORD_CREATED_AT_INVALID',{id:record.id});
+  if(typeof record.updatedAt!=='string'||!Number.isFinite(Date.parse(record.updatedAt)))add('TECH_RECORD_UPDATED_AT_INVALID',{id:record.id});
+  if(!record.state||typeof record.state!=='object'||Array.isArray(record.state)){add('TECH_RECORD_STATE_INVALID',{id:record.id});return;}
+  if(!SPEC.phases.includes(record.state.phase))add('TECH_RECORD_PHASE_INVALID',{id:record.id,phase:record.state.phase??null});
+  const result=validateHiveState(record.state);
+  result.errors.forEach(error=>add('TECH_RECORD_STATE_'+error.code,{id:record.id,message:error.message}));
+ });
+ return {valid:errors.length===0,errors};
+}
 function getOperation(id){return SPEC.operations.find(x=>x.id===id)||null;}
-window.PasekaSectionalTechProcess=Object.freeze({SPEC,parseDate,shiftDate,buildOperationSchedule,validateHiveState,getOperation});
+window.PasekaSectionalTechProcess=Object.freeze({SPEC,parseDate,shiftDate,buildOperationSchedule,validateHiveState,validateStoredRecords,getOperation});
 })();
