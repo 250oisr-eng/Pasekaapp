@@ -66,7 +66,7 @@ function validateHiveState(s){
   if(s.phase==='DIVIDED_3_SECTIONS')sections.forEach(x=>{if(x&&Array.isArray(x.bodyIds)&&x.bodyIds.length!==2)add('OP04_BODY_COUNT','После OP-04 в каждой секции должно быть ровно два гнездовых корпуса.');});
  }
  const queens=Array.isArray(s.queens)?s.queens:sections.flatMap(x=>x&&x.queen?[x.queen]:[]),unfert=queens.filter(x=>x&&x.status==='UNFERTILIZED');
- if(s.isolation==='CONNECTED'&&unfert.length)add('R2_UNFERTILIZED_CONNECTED','Нельзя снимать изоляцию, пока остаётся хотя бы одна неплодная матка.');
+ if(s.isolation==='CONNECTED'&&(queens.length!==3||unfert.length))add('R2_UNFERTILIZED_CONNECTED','Нельзя снимать изоляцию: должны быть зарегистрированы все три плодные матки.');
  if(s.isolation==='MESH_ISOLATED'){
   const plugs=Array.isArray(s.meshPlugs)?s.meshPlugs:[];
   const required=Number.isInteger(s.requiredMeshPlugCount)&&s.requiredMeshPlugCount>=0?s.requiredMeshPlugCount:null;
