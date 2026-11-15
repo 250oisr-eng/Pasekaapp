@@ -602,7 +602,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(typeof draft?.hive!=='string'||!state?.hives?.some(hive=>hive?.id===draft.hive))errors.push({code:'journal_hive_missing',field:'hive',message:'Улей записи не найден.'});
  if(draft?.family){
   const family=state?.families?.find(item=>item?.id===draft.family);
-  const archivedLink=existingRecord?.family===draft.family&&existingRecord?.familySnapshotAtTime?.id===draft.family;
+  const archivedLink=existingRecord?.family===draft.family&&existingRecord?.hive===draft.hive&&existingRecord?.familySnapshotAtTime?.id===draft.family;
   if(!archivedLink&&(!family||family.hive!==draft.hive))errors.push({code:'journal_family_mismatch',field:'family',message:'Семья не принадлежит выбранному улью или больше не существует.'});
  }
  if(state?.records?.some(record=>record?.id===draft?.id&&record!==existingRecord))errors.push({code:'journal_duplicate_id',field:'id',message:'Идентификатор записи уже используется.'});
