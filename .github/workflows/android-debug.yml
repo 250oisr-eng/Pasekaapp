@@ -12,6 +12,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
+      # Regression-test-only changes must still exercise the Android packaging pipeline.
       - 'tests/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
