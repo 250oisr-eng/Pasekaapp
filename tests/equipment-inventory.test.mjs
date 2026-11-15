@@ -123,3 +123,15 @@ test('recordSwap rolls back the first body event when the second body journal is
  assert.equal(result.error,'transaction_failed');
  assert.equal(JSON.stringify(s),before);
 });
+
+test('physical corpus swap restores the snapshot when inventory history recording fails',()=>{
+ const start=html.indexOf('async function swapPhysicalCorpora(){'),end=html.indexOf('\nfunction corpusLabelCode',start);
+ assert.ok(start>=0&&end>start,'physical corpus swap handler is present');
+ const handler=html.slice(start,end),guard=handler.indexOf('if(!inventoryResult.ok)');
+ assert.match(handler,/const previous=cloneApiaryState\(\)/);
+ assert.match(handler,/const inventoryResult=PasekaInventory\.recordSwap/);
+ assert.ok(guard>0,'inventory transaction result is checked');
+ assert.ok(guard<handler.indexOf("logAudit('physical_corpora_swapped'"),'audit logging must follow successful inventory commit');
+ assert.ok(guard<handler.indexOf('if(!await save())'),'persistence must not run after inventory transaction failure');
+ assert.match(handler,/if\(!inventoryResult\.ok\)\{S=previous;render\(\);alert/);
+});
