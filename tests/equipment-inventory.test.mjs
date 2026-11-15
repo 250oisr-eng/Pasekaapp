@@ -163,7 +163,7 @@ test('sectional physical selection refuses a non-Farrar ready profile',()=>{
  assert.equal(JSON.stringify(s),before);
 });
 test('sectional physical selection resolves the default Farrar profile without an embedded profile object',()=>{
- const s=sixBodyFixture(),selection=sixBodySelection(),before=JSON.stringify(s);s.hives[0].profileId='farrar-6x6-v1';delete s.hives[0].profile;
+ const s=sixBodyFixture(),selection=sixBodySelection();s.hives[0].profileId='farrar-6x6-v1';delete s.hives[0].profile;const before=JSON.stringify(s);
  assert.deepEqual(I.inspectInstalledBroodSelection(s,selection),[]);
  assert.equal(JSON.stringify(s),before);
 });
