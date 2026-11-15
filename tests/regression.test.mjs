@@ -2654,8 +2654,13 @@ test('journal capacity sums the per-box capacity of physically installed brood b
  assert.equal(capacity('h1',state),18);
  state.layouts.h1.winterOrder=[1,3];
  assert.equal(capacity('h1',state),12);
- state.layouts.h1.installedBoxes=[];
+ // In winter mode, stale summer positions must never inflate the capacity.
  state.layouts.h1.winterOrder=[];
+ assert.equal(capacity('h1',state),null);
+ delete state.layouts.h1.winterOrder;
+ assert.equal(capacity('h1',state),null);
+ state.layouts.h1.mode='summer';
+ state.layouts.h1.installedBoxes=[];
  assert.equal(capacity('h1',state),null);
 });
 
