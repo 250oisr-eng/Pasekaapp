@@ -585,7 +585,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/paseka-media-reference-switch.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup',AUTO_SNAPSHOT_STORE='auto_snapshots';
-function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,autoSnapshotCount=0,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,autoSnapshotCount=0,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();const databaseOperationState={active:0,waiters:[]};let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function validateJournalRecordDraft(draft,state,existingRecord=null){
  const errors=[];
  const realDate=value=>{
@@ -612,7 +612,23 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
  return {ok:errors.length===0,errors};
 }
-function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,8)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'});if(!d.objectStoreNames.contains('archive_staging')){const staging=d.createObjectStore('archive_staging',{keyPath:'id'});staging.createIndex('sessionId','sessionId',{unique:false});staging.createIndex('kind','kind',{unique:false});staging.createIndex('backupId','backupId',{unique:true})}if(!d.objectStoreNames.contains('archive_history'))d.createObjectStore('archive_history',{keyPath:'backupId'});if(!d.objectStoreNames.contains(AUTO_SNAPSHOT_STORE))d.createObjectStore(AUTO_SNAPSHOT_STORE,{keyPath:'id'});if(!d.objectStoreNames.contains('media_blobs'))d.createObjectStore('media_blobs',{keyPath:'id'});if(!d.objectStoreNames.contains('media_migration_journal'))d.createObjectStore('media_migration_journal',{keyPath:'id'});if(!d.objectStoreNames.contains('media_reference_journal'))d.createObjectStore('media_reference_journal',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
+function beginDatabaseOperation(){
+ const state=databaseOperationState;
+ state.active++;
+ let released=false;
+ return ()=>{
+  if(released)return;
+  released=true;
+  state.active=Math.max(0,state.active-1);
+  if(state.active===0)for(const resolve of state.waiters.splice(0))resolve();
+ };
+}
+function waitForDatabaseOperations(){
+ if(databaseOperationState.active===0)return Promise.resolve();
+ return new Promise(resolve=>databaseOperationState.waiters.push(resolve));
+}
+function hasPendingDatabaseOperations(){return databaseOperationState.active>0}
+function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,9)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'});if(!d.objectStoreNames.contains('archive_staging')){const staging=d.createObjectStore('archive_staging',{keyPath:'id'});staging.createIndex('sessionId','sessionId',{unique:false});staging.createIndex('kind','kind',{unique:false});staging.createIndex('backupId','backupId',{unique:true})}if(!d.objectStoreNames.contains('archive_history'))d.createObjectStore('archive_history',{keyPath:'backupId'});if(!d.objectStoreNames.contains(AUTO_SNAPSHOT_STORE))d.createObjectStore(AUTO_SNAPSHOT_STORE,{keyPath:'id'});if(!d.objectStoreNames.contains('media_blobs'))d.createObjectStore('media_blobs',{keyPath:'id'});if(!d.objectStoreNames.contains('media_migration_journal'))d.createObjectStore('media_migration_journal',{keyPath:'id'});if(!d.objectStoreNames.contains('media_reference_journal'))d.createObjectStore('media_reference_journal',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{const connection=db;alert('Приложение обновлено в другой вкладке. Сохранение журнала и текущих видео завершится перед закрытием. Обновите страницу после этого.');const drain=async()=>{while(true){const pending=saveQueue;try{await pending}catch(e){}await waitForDatabaseOperations();if(pending===saveQueue&&!hasPendingDatabaseOperations())break}try{connection.close()}catch(e){}if(db===connection)db=null};drain()};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
 function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
 function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=async()=>{let legacy=q.result||null;try{autoSnapshotCount=(await PasekaAutoSnapshots.listSnapshots(db)).length}catch(e){autoSnapshotCount=0}if(legacy?.state){try{assertRawBackupIntegrity(validateBackupState(legacy.state))}catch(e){legacy=null}}try{const latest=await PasekaAutoSnapshots.getLatestValidSnapshot(db,window.crypto);const rotating=latest.snapshot?{at:latest.snapshot.at,state:latest.snapshot.state,source:'rotating',invalidCount:latest.invalidCount}:null;autoBackupInfo=rotating&&(!legacy||String(rotating.at)>String(legacy.at))?rotating:legacy;ok(autoBackupInfo)}catch(e){autoBackupInfo=legacy;ok(autoBackupInfo)}};q.onerror=()=>no(q.error)})}
 async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
@@ -1190,15 +1206,18 @@ function renderEquipmentReconciliation(){
 }
 
 async function putEntranceVideo(record){
- if(!record?.blob||typeof record.blob.arrayBuffer!=='function')throw new Error('Не удалось проверить содержимое видео перед сохранением.');
- if(!window.crypto?.subtle?.digest)throw new Error('На этом устройстве недоступна проверка целостности видео.');
- // Blob is immutable, but the caller's record object is not. Snapshot both
- // before awaiting SHA-256 so the stored bytes and checksum cannot diverge.
- const blob=record.blob,snapshot={...record,blob};
- const digest=await window.crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
- const blobSha256=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
- const verifiedRecord={...snapshot,blobSha256};
- return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(verifiedRecord)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
+ const finishOperation=beginDatabaseOperation();
+ try{
+  if(!record?.blob||typeof record.blob.arrayBuffer!=='function')throw new Error('Не удалось проверить содержимое видео перед сохранением.');
+  if(!window.crypto?.subtle?.digest)throw new Error('На этом устройстве недоступна проверка целостности видео.');
+  // Track the asynchronous hashing phase as well as the IndexedDB transaction.
+  // A versionchange must not close this connection between those two steps.
+  const blob=record.blob,snapshot={...record,blob};
+  const digest=await window.crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
+  const blobSha256=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+  const verifiedRecord={...snapshot,blobSha256};
+  return await new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(verifiedRecord)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
+ }finally{finishOperation()}
 }
 function listEntranceVideos(){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').getAll()}catch(e){no(e);return}q.onsuccess=()=>ok((q.result||[]).sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||''))));q.onerror=()=>no(q.error||new Error('Не удалось прочитать список видео'))});
@@ -1256,25 +1275,28 @@ async function inspectEntranceVideoFrameQuality(file){
 async function handleEntranceVideoFile(files){
  const file=files&&files[0],status=$('entranceVideoStatus'),hiveId=$('entranceHiveSelect')?.value||'';
  if(!file)return;
- if(!hiveId){if(status)status.textContent='Сначала выбери улей.';return alert('Сначала выбери улей, к которому относится видео.')}
- if(status)status.textContent='Проверяю параметры видео…';
- let metadata;
- try{metadata=await inspectEntranceVideoFile(file)}catch(error){if(status)status.textContent=error.message;return alert(error.message)}
- const check=PasekaEntranceAnalysis.assessVideoMetadata({...metadata,bytes:file.size,mimeType:file.type});
- if(!check.ok){const message=check.errors.map(x=>x.message).join('\n');if(status)status.textContent=message;return alert(message)}
- if(check.warnings.length)alert(check.warnings.map(x=>x.message).join('\n'));
- if(status)status.textContent='Проверяю резкость, освещение и изменение изображения по кадрам…';
- const frameQuality=await inspectEntranceVideoFrameQuality(file);
+ const finishOperation=beginDatabaseOperation();
  try{
-  const estimate=await navigator.storage?.estimate?.();
-  if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
- }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
- const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
- try{
-  await putEntranceVideo(record);
-  if(status)status.textContent='Видео сохранено в локальную очередь. Сервер анализа ещё не подключён, поэтому отправка и автоматическое удаление не выполняются. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
-  await refreshEntranceVideos();
- }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
+  if(!hiveId){if(status)status.textContent='Сначала выбери улей.';return alert('Сначала выбери улей, к которому относится видео.')}
+  if(status)status.textContent='Проверяю параметры видео…';
+  let metadata;
+  try{metadata=await inspectEntranceVideoFile(file)}catch(error){if(status)status.textContent=error.message;return alert(error.message)}
+  const check=PasekaEntranceAnalysis.assessVideoMetadata({...metadata,bytes:file.size,mimeType:file.type});
+  if(!check.ok){const message=check.errors.map(x=>x.message).join('\n');if(status)status.textContent=message;return alert(message)}
+  if(check.warnings.length)alert(check.warnings.map(x=>x.message).join('\n'));
+  if(status)status.textContent='Проверяю резкость, освещение и изменение изображения по кадрам…';
+  const frameQuality=await inspectEntranceVideoFrameQuality(file);
+  try{
+   const estimate=await navigator.storage?.estimate?.();
+   if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
+  }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
+  const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
+  try{
+   await putEntranceVideo(record);
+   if(status)status.textContent='Видео сохранено в локальную очередь. Сервер анализа ещё не подключён, поэтому отправка и автоматическое удаление не выполняются. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
+   await refreshEntranceVideos();
+  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
+ }finally{finishOperation()}
 }
 async function viewEntranceVideo(id){
  try{const item=await getEntranceVideo(id);if(!item?.blob)throw new Error('Файл видео не найден.');const video=$('entranceVideoPreview');if(!video)return;closeEntranceVideoPreview();entrancePreviewUrl=URL.createObjectURL(item.blob);video.src=entrancePreviewUrl;$('entranceVideoPreviewInfo').textContent=hname(item.hiveId)+' · '+new Date(item.capturedAt).toLocaleString('ru-RU')+' · '+Math.round(item.durationSec)+' с';$('entranceVideoPreviewDlg').showModal()}catch(error){alert(error.message||'Не удалось открыть видео')}
@@ -3523,6 +3545,19 @@ function setFullArchiveRestoreStatus(message) {
   if (status) status.textContent = message;
 }
 function archiveRestoreErrorText(error) {
+  if (error?.code === 'STAGING_FINALIZE_CHANGED') {
+    return 'Временная копия изменилась или её счётчики повреждены. Обнови список и повтори проверку. Рабочие данные не менялись.';
+  }
+  if (error?.code === 'STAGING_FINALIZE_NOT_ALLOWED' || error?.code === 'STAGING_SESSION_NOT_FOUND') {
+    return 'Временная копия уже изменилась или удалена в другом окне. Обнови список. Рабочие данные не менялись.';
+  }
+  if (error?.code === 'STAGING_LEGACY_SESSION') {
+    return 'Эта временная копия создана старой версией приложения и не может быть безопасно завершена. Удали её и подготовь архив заново.';
+  }
+  if (error?.code === 'STAGING_SESSION_INCOMPLETE' || error?.code === 'STAGING_ENTRY_SET_INVALID' ||
+      error?.code === 'STAGING_CONTENT_MISSING' || error?.code === 'STAGING_MANIFEST_MISMATCH') {
+    return 'Содержимое временной копии неполное или повреждено. Завершить подготовку нельзя. Рабочие данные не менялись.';
+  }
   if (error?.name === 'QuotaExceededError' || error?.code === 'QUOTA_EXCEEDED') {
     return 'Недостаточно свободного места для временной копии и точки отката. Рабочие данные не заменены. Освободи место и повтори.';
   }
@@ -3587,6 +3622,42 @@ async function prepareFullArchiveRestore() {
     if (button) button.disabled = false;
   }
 }
+
+async function finalizeFullArchiveStaging(sessionId, button) {
+  if (button?.disabled) return;
+  const originalText = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Проверяю…';
+  }
+
+  let finalized = false;
+  try {
+    setFullArchiveRestoreStatus('Повторно проверяю все данные временной копии. Рабочие данные не меняются…');
+    await PasekaArchiveRestore.finalizeStagedArchive(
+      db, sessionId, window.crypto, PasekaArchive, validateFullArchiveImportState
+    );
+    finalized = true;
+    setFullArchiveRestoreStatus('Временная копия полностью проверена и готова к просмотру и восстановлению.');
+  } catch (error) {
+    setFullArchiveRestoreStatus('Не удалось завершить подготовку: ' + archiveRestoreErrorText(error));
+  } finally {
+    if (button?.isConnected) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = originalText;
+    }
+  }
+
+  try {
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus(finalized
+      ? 'Подготовка завершена, но список временных копий не обновился. Обнови страницу, чтобы увидеть готовый архив.'
+      : 'Список временных копий не обновился. Обнови страницу; рабочие данные не менялись.');
+  }
+}
 async function resumeFullArchiveRestore(sessionId) {
   try {
     await saveQueue;
@@ -3639,6 +3710,7 @@ async function commitFullArchiveRestore() {
   window.__pasekaRestoreBusy = true;
   const actions = $('fullArchiveRestoreActions');
   if (actions) actions.hidden = true;
+  let committed = false;
   try {
     await saveQueue;
     if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Восстановление остановлено.');
@@ -3652,6 +3724,9 @@ async function commitFullArchiveRestore() {
       db, window.__pasekaPendingFullArchiveRestore.sessionId, window.__pasekaPendingFullArchiveRestore.expectedRevision,
       window.crypto, PasekaArchive, validateFullArchiveImportState, prepareMigratedArchiveState
     );
+    // From this point the IndexedDB transaction has committed. Later UI failures
+    // must never be reported as a failed restore or offer a second import.
+    committed = true;
     S = result.state;
     lastPersistedRevision = S.meta?.revisionId || null;
     autoBackupRecovered = false;
@@ -3663,8 +3738,12 @@ async function commitFullArchiveRestore() {
     setFullArchiveRestoreStatus('Восстановление завершено. Видео: ' + result.importedVideoCount + ', без привязки к улью: ' + result.orphanedVideoCount + '. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
     await renderArchiveImportHistory().catch(() => {});
   } catch (error) {
-    setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
-    if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
+    if (committed) {
+      setFullArchiveRestoreStatus('Архив уже восстановлен и сохранён. Не удалось полностью обновить интерфейс: ' + (error.message || error) + '. Перезагрузи страницу. Повторно импортировать архив не нужно.');
+    } else {
+      setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
+      if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
+    }
   } finally {
     window.__pasekaRestoreBusy = false;
   }
@@ -3735,6 +3814,27 @@ async function renderArchiveImportHistory() {
         ? 'Не хватило места для временной копии. Рабочие данные не изменены. Освободи место, удали эту временную копию и выбери архив повторно.'
         : 'Подготовка архива была прервана. Рабочие данные не изменены. Удали эту временную копию и повтори подготовку архива.';
       row.appendChild(failure);
+    }
+    const validStagingCounters =
+      Number.isSafeInteger(session.totalEntries) && session.totalEntries > 0 &&
+      Number.isSafeInteger(session.stagedCount) && session.stagedCount >= 0 &&
+      session.stagedCount <= session.totalEntries;
+    if (session.status === 'staging' && validStagingCounters && session.stagedCount === session.totalEntries) {
+      const finalize = document.createElement('button');
+      finalize.type = 'button';
+      finalize.textContent = 'Проверить и завершить подготовку';
+      finalize.addEventListener('click', () => finalizeFullArchiveStaging(session.sessionId, finalize));
+      row.appendChild(finalize);
+    } else if (session.status === 'staging' && !validStagingCounters) {
+      const invalid = document.createElement('p');
+      invalid.className = 'muted';
+      invalid.textContent = 'Сведения о подготовке временной копии повреждены или неполны. Завершать её нельзя. Рабочие данные не изменены. Проверь архив повторно; при необходимости удали эту временную копию и подготовь архив заново.';
+      row.appendChild(invalid);
+    } else if (session.status === 'staging') {
+      const incomplete = document.createElement('p');
+      incomplete.className = 'muted';
+      incomplete.textContent = 'Подготовка прервана до записи всех элементов. Эту временную копию нельзя завершить; удали её и выбери архив повторно.';
+      row.appendChild(incomplete);
     }
     if (session.status === 'ready') {
       const resume = document.createElement('button');

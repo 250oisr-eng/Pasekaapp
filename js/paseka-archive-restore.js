@@ -57,8 +57,20 @@ async function updateSession(db, session) {
   };
   request.onsuccess = () => {
     const currentSession = request.result;
-    if (!currentSession || currentSession.kind !== 'session' ||
-        !['staging', 'ready'].includes(currentSession.status)) {
+    if (!currentSession || currentSession.kind !== 'session') {
+      failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
+    // If explicit recovery finalized the same complete revision just before the
+    // original writer's final status update, treat that update as an idempotent
+    // success. Never let a stale failure path downgrade a ready session.
+    if (currentSession.status === 'ready' && session.status === 'ready' &&
+        currentSession.fingerprint === session.fingerprint &&
+        currentSession.stagingEpoch === session.stagingEpoch &&
+        currentSession.stagedCount === session.stagedCount &&
+        currentSession.totalEntries === session.totalEntries) return;
+    if (currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
       return;
@@ -84,7 +96,7 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
   sessionRequest.onsuccess = () => {
     const currentSession = sessionRequest.result;
     if (!currentSession || currentSession.kind !== 'session' ||
-        !['staging', 'ready'].includes(currentSession.status)) {
+        currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
       return;
@@ -230,12 +242,11 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     }));
     session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRecords);
 
-    // Re-read under a short write lock. All checks and puts below are
-    // synchronous request-callback work; supported media writers persist their
-    // own SHA-256, so a concurrent content replacement is detected here.
+    // Re-read under a short write lock, but never rewrite live media rows here.
+    // A legacy writer may not persist SHA-256; putting the earlier Blob back
+    // could overwrite a newer same-size replacement from another tab.
     const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
-    const baselineStore = baselineTx.objectStore('entrance_media');
-    const baselineRequest = baselineStore.getAll();
+    const baselineRequest = baselineTx.objectStore('entrance_media').getAll();
     let baselineFailure = null;
     baselineRequest.onsuccess = () => {
       try {
@@ -254,9 +265,6 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         });
         if (mediaRecordsFingerprint(normalizedRows) !== session.baselineMediaFingerprint) {
           fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was not staged.');
-        }
-        for (const record of normalizedRows) {
-          if (currentRows.find(current => current.id === record.id)?.blobSha256 === undefined) baselineStore.put(record);
         }
         const sessionAddRequest = baselineTx.objectStore(STAGING_STORE).add(session);
         sessionAddRequest.onerror = () => {
@@ -349,6 +357,27 @@ async function sha256BlobHex(blob, cryptoProvider) {
   }
   return root.PasekaSha256.hashBlobHex(blob);
 }
+async function hashLiveMediaBaseline(db, cryptoProvider) {
+  const tx = db.transaction('entrance_media', 'readonly');
+  const done = transactionDone(tx);
+  const rows = await requestValue(tx.objectStore('entrance_media').getAll());
+  await done;
+  const records = await Promise.all((rows || []).map(async record => {
+    if (!record || !record.blob || typeof record.blob.slice !== 'function') {
+      fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob.');
+    }
+    const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+    if (record.blobSha256 !== undefined &&
+        (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
+      fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum.');
+    }
+    return { ...record, blobSha256: actualHash };
+  }));
+  return {
+    fingerprint: mediaRecordsFingerprint(records),
+    hashes: new Map(records.map(record => [record.id, record.blobSha256]))
+  };
+}
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
   if (!db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('full_backup') || !db.objectStoreNames.contains('entrance_media')) {
@@ -359,6 +388,14 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
   // Phase A: all Blob reads, hashing, parsing and state validation happen before
   // opening the final write transaction. No non-IDB await is allowed in Phase B.
   const staged = await getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState);
+  // Re-hash the live library immediately before commit. Database version 9
+  // closes older tabs that may still write legacy media without checksums.
+  const phaseAMedia = await hashLiveMediaBaseline(db, cryptoProvider);
+  if (typeof staged.session.baselineMediaFingerprint !== 'string' ||
+      phaseAMedia.fingerprint !== staged.session.baselineMediaFingerprint) {
+    fail('RESTORE_MEDIA_CHANGED', 'The video library changed after archive preparation. The import was cancelled to preserve newer videos.');
+  }
+  const phaseAMediaHashes = phaseAMedia.hashes;
   let importedState = cloneState(staged.state);
   const now = new Date().toISOString();
   importedState.meta = { ...(importedState.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: now };
@@ -421,7 +458,8 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (values.history && values.history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
           if (values.history && values.history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
           if (!Number.isSafeInteger(session.stagingEpoch) || session.stagingEpoch < 0) fail('STAGING_LEGACY_SESSION', 'This staged import predates revision tracking. Discard it and import the archive again.');
-          if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
+          if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint ||
+              session.baselineMediaFingerprint !== staged.session.baselineMediaFingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
           const contentRecords = records.filter(record => record && record.sessionId === sessionId && record.kind !== 'session');
           const knownKinds = new Set(['state', 'video']);
           if (contentRecords.some(record => !knownKinds.has(record.kind))) fail('STAGING_KIND_UNKNOWN', 'Staged archive contains an unsupported entry type.');
@@ -440,9 +478,17 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
               Array.from(expectedIds).some(id => !actualIds.has(id))) {
             fail('STAGING_RECORD_SET_MISMATCH', 'Staged entry set does not match the verified archive manifest.');
           }
+          const normalizedCurrentVideos = currentVideos.map(record => {
+            const expectedHash = phaseAMediaHashes.get(record?.id);
+            if (typeof expectedHash !== 'string' ||
+                (record.blobSha256 !== undefined && record.blobSha256 !== expectedHash)) {
+              fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being committed. The import was cancelled to preserve newer videos.');
+            }
+            return { ...record, blobSha256: expectedHash };
+          });
           if (typeof session.baselineMediaFingerprint !== 'string' ||
-              mediaRecordsFingerprint(currentVideos) !== session.baselineMediaFingerprint) {
-            fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was cancelled to preserve newer videos. Start the import again after reviewing the video library.');
+              mediaRecordsFingerprint(normalizedCurrentVideos) !== session.baselineMediaFingerprint) {
+            fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being committed. The import was cancelled to preserve newer videos.');
           }
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
 
@@ -552,6 +598,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') {
     fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
   }
+  if (rollbackSession.sourceBackupId !== backupId) {
+    fail('ROLLBACK_SNAPSHOT_INVALID', 'The rollback snapshot belongs to a different archive and was preserved.');
+  }
   if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
     fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
   }
@@ -597,6 +646,18 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     phaseASnapshotHashes.set(item.id, snapshotHash);
   }
 
+  // Fingerprint the first validated snapshot before running caller-supplied
+  // async validation. The second read below must match this exact metadata
+  // and Blob shape; otherwise a concurrent edit could make us restore stale
+  // in-memory metadata while silently accepting a changed stored snapshot.
+  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
+    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
+  ), (key, value) => {
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
+    return value;
+  });
+  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
+
   let restoredState = null;
   if (stateRecords.length === 1) {
     const stateRecord = stateRecords[0];
@@ -621,7 +682,8 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   const finalSnapshotRows = await requestValue(finalSnapshotReadTx.objectStore(STAGING_STORE).index('sessionId').getAll(rollbackSessionId));
   await finalSnapshotReadDone;
   snapshotRecords = (finalSnapshotRows || []).filter(record => record && record.sessionId === rollbackSessionId);
-  if (snapshotRecords.length !== rollbackSession.totalEntries + 1) {
+  if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
+      snapshotFingerprint(snapshotRecords) !== expectedSnapshotFingerprint) {
     fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
   }
   for (const item of snapshotRecords.filter(record => record?.kind === 'rollback_video')) {
@@ -646,15 +708,8 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     restoredVideos.push(record);
   }
 
-  // Recheck a deterministic representation in Phase B. Blob bytes are not
-  // re-hashed here; all snapshot mutations must use the atomic restore path.
-  const snapshotFingerprint = list => JSON.stringify(list.slice().sort((a, b) =>
-    String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0
-  ), (key, value) => {
-    if (typeof Blob !== 'undefined' && value instanceof Blob) return { __blob: true, size: value.size, type: value.type };
-    return value;
-  });
-  const expectedSnapshotFingerprint = snapshotFingerprint(snapshotRecords);
+  // Recheck the same deterministic snapshot representation again under the
+  // final write lock. Blob bytes were SHA-256 checked immediately before it.
   const now = new Date().toISOString();
   const revertedRevisionId = restoredState?.meta?.revisionId || null;
 
@@ -718,7 +773,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
             fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
           }
           if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
-              currentRollbackSession.status !== 'ready' ||
+              currentRollbackSession.sourceBackupId !== backupId || currentRollbackSession.status !== 'ready' ||
               currentRollbackSession.totalEntries !== rollbackSession.totalEntries ||
               currentRollbackSession.stagedCount !== rollbackSession.stagedCount) {
             fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
@@ -867,7 +922,7 @@ async function listArchiveRestoreSessions(db) {
   await transactionDone(tx);
   return rows.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
-async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
+async function readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, allowStaging) {
   ensureStores(db);
   if (!archiveApi || typeof archiveApi.hashBlobChunks !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
   if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before restore.');
@@ -879,7 +934,7 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   ]);
   await transactionDone(tx);
   if (!session || session.kind !== 'session') fail('STAGING_SESSION_NOT_FOUND', 'Staged import session was not found.');
-  if (session.status !== 'ready' || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
+  if ((session.status !== 'ready' && !(allowStaging && session.status === 'staging')) || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
   if (!session.manifest || !Array.isArray(session.manifest.entries)) fail('STAGING_MANIFEST_MISSING', 'Staged archive manifest is missing.');
   if (session.manifest.backupId !== session.backupId || session.manifest.schemaVersion !== session.schemaVersion || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged session metadata does not match its manifest.');
   const sessionRecords = records.filter(record => record.kind === 'session');
@@ -900,6 +955,12 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
   }
   const currentFingerprint = await manifestFingerprint(session.manifest, cryptoProvider);
   if (currentFingerprint !== session.fingerprint) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest fingerprint is invalid.');
+  if (allowStaging && Number.isSafeInteger(session.stagingEpoch) && session.stagingEpoch >= 0) {
+    const revisions = contentRecords.map(record => record.stagingRevision);
+    if (new Set(revisions).size !== revisions.length || revisions.some(revision => revision > session.stagingEpoch)) {
+      fail('STAGING_FINGERPRINT_REVISION_INVALID', 'Staged entry revisions do not form a unique set within the session epoch.');
+    }
+  }
   const stateRecords = contentRecords.filter(record => record.kind === 'state');
   const videoRecords = contentRecords.filter(record => record.kind === 'video');
   if (stateRecords.length !== 1 || videoRecords.length !== videoEntries.length) fail('STAGING_CONTENT_MISSING', 'Staged archive content is incomplete.');
@@ -942,6 +1003,104 @@ async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, valid
     stagingMetadataFingerprint: stagingMetadataFingerprint(session, records)
   };
 }
+
+async function getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
+  return readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, false);
+}
+
+async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState) {
+  // Validate the complete manifest, state and every Blob outside a write transaction.
+  // The short transaction below then proves that the verified staging revision
+  // is still the exact revision being finalized.
+  const staged = await readStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState, true);
+  if (!Number.isSafeInteger(staged.session.stagingEpoch) || staged.session.stagingEpoch < 0) {
+    fail('STAGING_LEGACY_SESSION', 'Legacy staging sessions must be imported again.');
+  }
+  if (!Number.isSafeInteger(staged.session.stagedCount) ||
+      !Number.isSafeInteger(staged.session.totalEntries) ||
+      staged.session.totalEntries < 1 ||
+      staged.session.stagedCount !== staged.session.totalEntries) {
+    fail('STAGING_FINALIZE_CHANGED', 'Staging counters are invalid. The session remains unchanged.');
+  }
+  // Repeated requests are safe: validate the ready archive fully, then return
+  // its existing header without opening another write transaction.
+  if (staged.session.status === 'ready') return staged.session;
+  if (staged.session.status !== 'staging') {
+    fail('STAGING_FINALIZE_NOT_ALLOWED', 'Only an interrupted staging session can be finalized.');
+  }
+  const verifiedSession = staged.session;
+  const verifiedFingerprint = staged.stagingMetadataFingerprint;
+
+  return new Promise((resolve, reject) => {
+    let tx, failure = null, result = null, settled = false;
+    const rejectOnce = error => {
+      if (!settled) { settled = true; reject(error); }
+    };
+    const abortWith = error => {
+      failure = error;
+      try { tx.abort(); } catch (abortError) { rejectOnce(error); }
+    };
+    try {
+      tx = db.transaction(STAGING_STORE, 'readwrite');
+      const store = tx.objectStore(STAGING_STORE);
+      const sessionRequest = store.get(sessionId);
+      const recordsRequest = store.index('sessionId').getAll(sessionId);
+      const values = {};
+      let pending = 2;
+      const process = () => {
+        try {
+          const current = values.session;
+          const records = values.records || [];
+          if (!current || current.kind !== 'session' || !['staging', 'ready'].includes(current.status) ||
+              current.sessionId !== verifiedSession.sessionId ||
+              current.backupId !== verifiedSession.backupId ||
+              current.fingerprint !== verifiedSession.fingerprint ||
+              current.stagingEpoch !== verifiedSession.stagingEpoch ||
+              current.stagedCount !== verifiedSession.stagedCount ||
+              current.totalEntries !== verifiedSession.totalEntries ||
+              current.stagedCount !== current.totalEntries ||
+              records.length !== current.totalEntries + 1 ||
+              stagingMetadataFingerprint(current, records) !== verifiedFingerprint) {
+            fail('STAGING_FINALIZE_CHANGED', 'Staging data changed during verification. The session remains unchanged; verify it again.');
+          }
+          // Another finalizer may have completed the exact verified revision
+          // while this caller was hashing. Treat that concurrent completion as
+          // an idempotent success and preserve its original completion time.
+          if (current.status === 'ready') {
+            result = current;
+            return;
+          }
+          result = {
+            ...current,
+            status: 'ready',
+            completedAt: new Date().toISOString(),
+            errorCode: null,
+            errorMessage: null
+          };
+          store.put(result);
+        } catch (error) {
+          abortWith(error);
+        }
+      };
+      for (const [key, request] of [['session', sessionRequest], ['records', recordsRequest]]) {
+        request.onsuccess = () => {
+          values[key] = request.result;
+          pending--;
+          if (pending === 0) process();
+        };
+        request.onerror = () => abortWith(request.error || new Error('Could not recheck the staging session.'));
+      }
+      tx.oncomplete = () => {
+        if (!settled) { settled = true; resolve(result); }
+      };
+      tx.onabort = () => rejectOnce(failure || tx.error || new Error('Staging finalization transaction aborted.'));
+      tx.onerror = () => rejectOnce(failure || tx.error || new Error('Staging finalization transaction failed.'));
+    } catch (error) {
+      rejectOnce(error);
+    }
+  });
+}
+
 function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
   return new Promise((resolve, reject) => {
@@ -1017,6 +1176,6 @@ function discardArchiveRestoreSession(db, sessionId) {
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
   stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, discardArchiveRollbackSnapshot, listArchiveRestoreSessions, listArchiveImportHistory,
-  getStagedArchive, discardArchiveRestoreSession
+  getStagedArchive, finalizeStagedArchive, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -554,6 +554,139 @@ test('atomic archive commit refuses a stale live revision without changing state
 });
 
 
+test('archive rollback restores a legacy video changed after commit preflight hashing', async () => {
+  const db = await openTestDb('paseka-legacy-media-commit-window');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-commit-window' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const oldBlob = new Blob(['legacy bytes'], { type: 'video/mp4' });
+  const oldVideo = {
+    id: 'legacy-live-video-window', hiveId: 'hive-old', capturedAt: '2026-11-14T09:00:00.000Z',
+    bytes: oldBlob.size, mimeType: oldBlob.type, blob: oldBlob
+  };
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-legacy-media-commit-window');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+
+  const originalSha = globalThis.PasekaSha256;
+  let releaseHash, notifyHash;
+  const hashStarted = new Promise(resolve => { notifyHash = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  globalThis.PasekaSha256 = {
+    ...originalSha,
+    hashBlobHex(blob) {
+      if (firstHash) {
+        firstHash = false;
+        notifyHash();
+        return hashGate.then(() => originalSha.hashBlobHex(blob));
+      }
+      return originalSha.hashBlobHex(blob);
+    }
+  };
+  let committed;
+  try {
+    const operation = Restore.commitStagedArchive(
+      db, staged.session.sessionId, 'live-before-commit-window', webcrypto, Archive, () => true
+    );
+    await hashStarted;
+    const latestBlob = new Blob(['LATEST bytes'], { type: 'video/mp4' });
+    assert.equal(latestBlob.size, oldBlob.size);
+    await put(db, 'entrance_media', { ...oldVideo, blob: latestBlob });
+    releaseHash();
+    committed = await operation;
+  } finally {
+    globalThis.PasekaSha256 = originalSha;
+    releaseHash?.();
+  }
+
+  assert.equal((await getAll(db, 'entrance_media')).some(video => video.id === oldVideo.id), false);
+  const rolledBack = await Restore.rollbackCommittedArchive(
+    db, 'backup-legacy-media-commit-window', committed.state.meta.revisionId, webcrypto, () => true
+  );
+  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
+  const restoredVideo = await get(db, 'entrance_media', oldVideo.id);
+  assert.ok(restoredVideo);
+  assert.equal(await restoredVideo.blob.text(), 'LATEST bytes', 'rollback must restore the exact Blob captured by the commit transaction');
+  assert.equal(restoredVideo.blobSha256, undefined, 'legacy metadata must not be fabricated during rollback');
+  db.close();
+});
+
+test('quota failure during atomic archive commit preserves live state, media, history and staged data', async () => {
+  const db = await openTestDb('paseka-atomic-commit-quota');
+  const liveState = {
+    meta: { schemaVersion: 12, revisionId: 'live-before-commit-quota' },
+    hives: [{ id: 'live-hive', number: 4 }], families: [],
+    records: [{ id: 'live-record', note: 'must survive failed restore commit' }]
+  };
+  const liveBlob = new Blob(['original live entrance video'], { type: 'video/mp4' });
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'live-video-before-commit-quota', hiveId: 'live-hive', blob: liveBlob,
+    bytes: liveBlob.size, mimeType: 'video/mp4', capturedAt: '2026-11-14T10:00:00.000Z'
+  });
+
+  const archive = await makeArchive('backup-atomic-commit-quota');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  let injected = false;
+  const quotaDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      const stores = Array.isArray(args[0]) ? args[0] : [args[0]];
+      if (args[1] !== 'readwrite' || !stores.includes('main') ||
+          !stores.includes('entrance_media') || !stores.includes('archive_history')) return tx;
+      return new Proxy(tx, {
+        get(target, property) {
+          if (property === 'objectStore') {
+            return name => {
+              const store = target.objectStore(name);
+              if (name !== 'entrance_media') return store;
+              return new Proxy(store, {
+                get(storeTarget, method) {
+                  if (method === 'put') {
+                    return value => {
+                      if (!injected) {
+                        injected = true;
+                        throw new DOMException('Injected quota exhaustion during atomic restore.', 'QuotaExceededError');
+                      }
+                      return storeTarget.put(value);
+                    };
+                  }
+                  const result = Reflect.get(storeTarget, method, storeTarget);
+                  return typeof result === 'function' ? result.bind(storeTarget) : result;
+                }
+              });
+            };
+          }
+          const result = Reflect.get(target, property, target);
+          return typeof result === 'function' ? result.bind(target) : result;
+        }
+      });
+    }
+  };
+
+  await assert.rejects(
+    Restore.commitStagedArchive(quotaDb, staged.session.sessionId, 'live-before-commit-quota', webcrypto, Archive, () => true),
+    error => error && error.name === 'QuotaExceededError'
+  );
+  assert.equal(injected, true);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-commit-quota');
+  assert.equal((await get(db, 'main', 'state')).records[0].note, 'must survive failed restore commit');
+  const videos = await getAll(db, 'entrance_media');
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, 'live-video-before-commit-quota');
+  assert.equal(await videos[0].blob.text(), 'original live entrance video');
+  assert.equal(await get(db, 'full_backup', 'previous'), undefined);
+  assert.equal(await get(db, 'archive_history', 'backup-atomic-commit-quota'), undefined);
+  const retainedSession = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(retainedSession.status, 'ready');
+  assert.equal(retainedSession.stagedCount, retainedSession.totalEntries);
+  const retainedRows = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  assert.equal(retainedRows.length, retainedSession.totalEntries + 1);
+  assert.equal(retainedRows.some(row => row.kind === 'rollback_session'), false);
+  db.close();
+});
+
 test('atomic rollback restores previous state and videos and permits a later reimport', async () => {
   const db = await openTestDb('paseka-stage-atomic-rollback');
   const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [], auditLog: [] };
@@ -709,7 +842,7 @@ test('full archive export, staged import, atomic rollback round-trip preserves s
 });
 
 
-test('archive staging hashes legacy video Blob bytes outside IndexedDB write transactions', async () => {
+test('archive staging hashes legacy video without rewriting the live Blob record', async () => {
   const db = await openTestDb('paseka-stage-legacy-video-hash');
   const legacyBlob = new Blob(['legacy video bytes'], { type: 'video/mp4' });
   await put(db, 'entrance_media', {
@@ -718,11 +851,64 @@ test('archive staging hashes legacy video Blob bytes outside IndexedDB write tra
   const archive = await makeArchive('backup-legacy-video-hash');
   const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
   const saved = await get(db, 'entrance_media', 'legacy-video');
-  const expected = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await legacyBlob.arrayBuffer())),
-    byte => byte.toString(16).padStart(2, '0')).join('');
-  assert.equal(saved.blobSha256, expected);
-  assert.equal(saved.blob.size, legacyBlob.size);
+  assert.equal(saved.blobSha256, undefined, 'staging must not rewrite a live legacy media row');
+  assert.equal(await saved.blob.text(), await legacyBlob.text());
+  assert.equal(staged.session.baselineMediaFingerprint.length > 0, true);
   assert.equal(staged.session.status, 'ready');
+  db.close();
+});
+
+test('archive staging never overwrites a legacy video changed by another tab during hashing', async () => {
+  const db = await openTestDb('paseka-stage-legacy-media-race');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-legacy-media-race' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const oldBlob = new Blob(['legacy bytes'], { type: 'video/mp4' });
+  const oldVideo = {
+    id: 'legacy-live-video', hiveId: 'hive-old', capturedAt: '2026-11-14T09:00:00.000Z',
+    bytes: oldBlob.size, mimeType: oldBlob.type, blob: oldBlob
+  };
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-stage-legacy-media-race');
+  const originalSha = globalThis.PasekaSha256;
+  let releaseHash, notifyHash;
+  const hashStarted = new Promise(resolve => { notifyHash = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  globalThis.PasekaSha256 = {
+    ...originalSha,
+    hashBlobHex(blob) {
+      if (firstHash) {
+        firstHash = false;
+        notifyHash();
+        return hashGate.then(() => originalSha.hashBlobHex(blob));
+      }
+      return originalSha.hashBlobHex(blob);
+    }
+  };
+  let staged;
+  try {
+    const operation = Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+    await hashStarted;
+    const latestBlob = new Blob(['LATEST bytes'], { type: 'video/mp4' });
+    assert.equal(latestBlob.size, oldBlob.size, 'the concurrent replacement has identical size and MIME metadata');
+    await put(db, 'entrance_media', { ...oldVideo, blob: latestBlob });
+    releaseHash();
+    staged = await operation;
+  } finally {
+    globalThis.PasekaSha256 = originalSha;
+    releaseHash?.();
+  }
+
+  const liveVideo = await get(db, 'entrance_media', oldVideo.id);
+  assert.equal(await liveVideo.blob.text(), 'LATEST bytes', 'staging must not replace the newer live Blob with its earlier read');
+  assert.equal(liveVideo.blobSha256, undefined);
+  await assert.rejects(
+    Restore.commitStagedArchive(db, staged.session.sessionId, 'live-before-legacy-media-race', webcrypto, Archive, () => true),
+    { code: 'RESTORE_MEDIA_CHANGED' }
+  );
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-legacy-media-race');
+  assert.equal(await (await get(db, 'entrance_media', oldVideo.id)).blob.text(), 'LATEST bytes');
+  assert.equal(await get(db, 'archive_history', 'backup-stage-legacy-media-race'), undefined);
   db.close();
 });
 
@@ -1080,5 +1266,263 @@ test('concurrent discard during final staging progress cannot resurrect a delete
   assert.equal(await discardPromise, true);
   const remaining = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === expectedSessionId);
   assert.equal(remaining.length, 0, 'a completed discard must not be undone by a late session update');
+  db.close();
+});
+
+
+test('a fully persisted staging session can be explicitly verified and finalized after interruption', async () => {
+  const db = await openTestDb('paseka-stage-explicit-finalize');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-finalize' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const archive = await makeArchive('backup-explicit-finalize');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+
+  const interrupted = await get(db, 'archive_staging', staged.session.sessionId);
+  interrupted.status = 'staging';
+  delete interrupted.completedAt;
+  await put(db, 'archive_staging', interrupted);
+
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_SESSION_INCOMPLETE' }
+  );
+  // The public read API must not expose the internal interrupted-session mode.
+  await assert.rejects(
+    Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true, true),
+    { code: 'STAGING_SESSION_INCOMPLETE' }
+  );
+  await assert.rejects(
+    Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true),
+    { code: 'INCOMPLETE_STAGING_EXISTS' }
+  );
+
+  const finalized = await Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
+  assert.equal(finalized.status, 'ready');
+  assert.equal(finalized.stagedCount, finalized.totalEntries);
+  const repeatedFinalize = await Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
+  assert.equal(repeatedFinalize.status, 'ready');
+  assert.equal(repeatedFinalize.completedAt, finalized.completedAt, 'repeated finalization must not rewrite the ready session');
+  const verified = await Restore.getStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true);
+  assert.equal(verified.state.records[0].note, 'archive state');
+  assert.equal(verified.videos.length, 1);
+  const repeated = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  assert.equal(repeated.alreadyStaged, true);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-finalize');
+  db.close();
+});
+
+test('explicit staging finalization rejects duplicate or out-of-epoch entry revisions', async () => {
+  for (const mode of ['duplicate', 'beyond-epoch']) {
+    const db = await openTestDb('paseka-stage-finalize-invalid-revision-' + mode);
+    const archive = await makeArchive('backup-finalize-invalid-revision-' + mode);
+    const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+    const header = await get(db, 'archive_staging', staged.session.sessionId);
+    const stateEntry = await get(db, 'archive_staging', staged.session.sessionId + ':state');
+    const videoEntry = await get(db, 'archive_staging', staged.session.sessionId + ':video:video-1');
+    header.status = 'staging';
+    delete header.completedAt;
+    if (mode === 'duplicate') {
+      videoEntry.stagingRevision = stateEntry.stagingRevision;
+    } else {
+      header.stagingEpoch = stateEntry.stagingRevision;
+    }
+    await Promise.all([
+      put(db, 'archive_staging', header),
+      put(db, 'archive_staging', videoEntry)
+    ]);
+    await assert.rejects(
+      Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+      { code: 'STAGING_FINGERPRINT_REVISION_INVALID' }
+    );
+    assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).status, 'staging');
+    db.close();
+  }
+});
+
+test('explicit staging finalization rejects a legacy session without a valid staging epoch', async () => {
+  const db = await openTestDb('paseka-stage-finalize-legacy');
+  const archive = await makeArchive('backup-finalize-legacy');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  delete header.stagingEpoch;
+  await put(db, 'archive_staging', header);
+
+  await assert.rejects(
+    Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_LEGACY_SESSION' }
+  );
+  const preserved = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(preserved.status, 'staging');
+  assert.equal(preserved.stagingEpoch, undefined);
+  db.close();
+});
+
+test('explicit staging finalization refuses a missing content record and preserves the session', async () => {
+  const db = await openTestDb('paseka-stage-finalize-incomplete');
+  const archive = await makeArchive('backup-finalize-incomplete');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  await put(db, 'archive_staging', header);
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('archive_staging', 'readwrite');
+    tx.objectStore('archive_staging').delete(staged.session.sessionId + ':video:video-1');
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  await assert.rejects(
+    Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+    { code: 'STAGING_ENTRY_SET_INVALID' }
+  );
+  const preservedHeader = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(preservedHeader.status, 'staging');
+  assert.equal(preservedHeader.stagedCount, 2);
+  assert.ok(await get(db, 'archive_staging', staged.session.sessionId + ':state'));
+  assert.equal(await get(db, 'archive_staging', staged.session.sessionId + ':video:video-1'), undefined);
+  db.close();
+});
+
+test('explicit staging finalization aborts if a concurrent writer changes the verified revision', async () => {
+  const factory = new IDBFactory();
+  const db = await openTestDb('paseka-stage-finalize-write-race', factory);
+  const secondTabDb = await openTestDb('paseka-stage-finalize-write-race', factory);
+  const archive = await makeArchive('backup-finalize-write-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  await put(db, 'archive_staging', header);
+
+  let releaseHash, notifyHash;
+  const hashStarted = new Promise(resolve => { notifyHash = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  const gatedArchive = {
+    ...Archive,
+    async hashBlobChunks(...args) {
+      const result = await Archive.hashBlobChunks(...args);
+      if (firstHash) {
+        firstHash = false;
+        notifyHash();
+        await hashGate;
+      }
+      return result;
+    }
+  };
+  const finalize = Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, gatedArchive, () => true);
+  await hashStarted;
+
+  const stateEntryId = staged.session.sessionId + ':state';
+  const stateEntry = await get(secondTabDb, 'archive_staging', stateEntryId);
+  const currentHeader = await get(secondTabDb, 'archive_staging', staged.session.sessionId);
+  const nextEpoch = currentHeader.stagingEpoch + 1;
+  stateEntry.stagingRevision = nextEpoch;
+  currentHeader.stagingEpoch = nextEpoch;
+  await new Promise((resolve, reject) => {
+    const tx = secondTabDb.transaction('archive_staging', 'readwrite');
+    tx.objectStore('archive_staging').put(stateEntry);
+    tx.objectStore('archive_staging').put(currentHeader);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  releaseHash();
+
+  await assert.rejects(finalize, { code: 'STAGING_FINALIZE_CHANGED' });
+  assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).status, 'staging');
+  db.close();
+  secondTabDb.close();
+});
+
+
+test('concurrent finalizers converge on the same ready staging session', async () => {
+  const db = await openTestDb('paseka-stage-concurrent-finalize');
+  const archive = await makeArchive('backup-concurrent-finalize');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const header = await get(db, 'archive_staging', staged.session.sessionId);
+  header.status = 'staging';
+  delete header.completedAt;
+  await put(db, 'archive_staging', header);
+
+  let waiting = 0, releaseHash;
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let notifyBoth;
+  const bothHashing = new Promise(resolve => { notifyBoth = resolve; });
+  const gatedArchive = {
+    ...Archive,
+    async hashBlobChunks(...args) {
+      const result = await Archive.hashBlobChunks(...args);
+      if (waiting < 2) {
+        waiting++;
+        if (waiting === 2) notifyBoth();
+        await hashGate;
+      }
+      return result;
+    }
+  };
+
+  const first = Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, gatedArchive, () => true);
+  const second = Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, gatedArchive, () => true);
+  await bothHashing;
+  releaseHash();
+  const [a, b] = await Promise.all([first, second]);
+
+  assert.equal(a.status, 'ready');
+  assert.equal(b.status, 'ready');
+  assert.equal(a.completedAt, b.completedAt, 'both callers must observe the same committed finalization');
+  const stored = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(stored.status, 'ready');
+  assert.equal(stored.completedAt, a.completedAt);
+  db.close();
+});
+
+test('rollback rejects snapshot metadata changed during asynchronous state validation', async () => {
+  const db = await openTestDb('paseka-rollback-snapshot-metadata-race');
+  const liveState = {
+    meta: { schemaVersion: 12, revisionId: 'live-before-snapshot-metadata-race' },
+    hives: [], families: [], records: []
+  };
+  const oldBlob = new Blob(['original rollback video'], { type: 'video/mp4' });
+  const oldVideo = {
+    id: 'live-video-metadata-race', hiveId: 'original-hive',
+    capturedAt: '2026-11-15T08:00:00.000Z',
+    bytes: oldBlob.size, mimeType: oldBlob.type, blob: oldBlob
+  };
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-rollback-snapshot-metadata-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(
+    db, staged.session.sessionId, liveState.meta.revisionId, webcrypto, Archive, () => true
+  );
+  const snapshotId = committed.rollbackSessionId + ':video:' + oldVideo.id;
+  let injected = false;
+
+  await assert.rejects(
+    Restore.rollbackCommittedArchive(
+      db, 'backup-rollback-snapshot-metadata-race', committed.state.meta.revisionId,
+      webcrypto,
+      async () => {
+        const snapshot = await get(db, 'archive_staging', snapshotId);
+        assert.ok(snapshot, 'rollback snapshot must exist before validation');
+        snapshot.record = { ...snapshot.record, hiveId: 'tampered-hive' };
+        await put(db, 'archive_staging', snapshot);
+        injected = true;
+        return true;
+      }
+    ),
+    { code: 'ROLLBACK_SNAPSHOT_CHANGED' }
+  );
+
+  assert.equal(injected, true);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, committed.state.meta.revisionId);
+  assert.equal((await getAll(db, 'entrance_media')).length, committed.importedVideoCount);
+  const history = await get(db, 'archive_history', 'backup-rollback-snapshot-metadata-race');
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackAvailable, true);
+  const preservedSnapshot = await get(db, 'archive_staging', snapshotId);
+  assert.equal(preservedSnapshot.record.hiveId, 'tampered-hive', 'the suspect snapshot must remain available for diagnosis');
   db.close();
 });

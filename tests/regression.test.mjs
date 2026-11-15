@@ -2199,18 +2199,61 @@ test('IndexedDB open rejects a blocked upgrade and closes a late connection',asy
  assert.equal(deps.db,null);
 });
 
-test('IndexedDB connection closes on versionchange so another tab can upgrade',async()=>{
- const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
- const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}}};
+test('IndexedDB versionchange waits for queued state saves and asynchronous video writes',async()=>{
+ const request={},alerts=[];
+ const fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
+ let releaseSave;
+ const saveQueue=new Promise(resolve=>{releaseSave=resolve});
+ const databaseOperationState={active:0,waiters:[]};
+ const begin=loadFunction('beginDatabaseOperation',{databaseOperationState});
+ const deps={
+  DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,
+  indexedDB:{open(){return request}},saveQueue,alert:message=>alerts.push(message),
+  waitForDatabaseOperations:loadFunction('waitForDatabaseOperations',{databaseOperationState}),
+  hasPendingDatabaseOperations:loadFunction('hasPendingDatabaseOperations',{databaseOperationState})
+ };
  const pending=loadFunction('openDB',deps)();
  request.result=fakeDb;request.onsuccess();
  await pending;
  assert.equal(deps.db,fakeDb);
+ const finishVideoWrite=begin();
  fakeDb.onversionchange();
+ assert.equal(fakeDb.closed,undefined,'the old connection must remain open while queued saves drain');
+ assert.equal(deps.db,fakeDb);
+ assert.match(alerts[0],/текущих видео/);
+ releaseSave();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(fakeDb.closed,undefined,'the connection must remain open while video hashing and persistence are pending');
+ finishVideoWrite();
+ await new Promise(resolve=>setImmediate(resolve));
  assert.equal(fakeDb.closed,true);
  assert.equal(deps.db,null);
 });
 
+
+test('putEntranceVideo keeps its database operation active across hashing and commit',async()=>{
+ const databaseOperationState={active:0,waiters:[]};
+ let releaseDigest,notifyDigest,storedRecord=null;
+ const digestStarted=new Promise(resolve=>{notifyDigest=resolve});
+ const digestGate=new Promise(resolve=>{releaseDigest=resolve});
+ const tx={objectStore:()=>({put(record){storedRecord=record}})};
+ const write=loadFunction('putEntranceVideo',{
+  db:{transaction(){return tx}},
+  window:{crypto:{subtle:{async digest(){notifyDigest();return digestGate}}}},
+  beginDatabaseOperation:loadFunction('beginDatabaseOperation',{databaseOperationState})
+ });
+ const operation=write({id:'video-pending',blob:new Blob(['video bytes'],{type:'video/mp4'})});
+ await digestStarted;
+ assert.equal(databaseOperationState.active,1,'the hashing phase must keep the database connection alive');
+ releaseDigest(new Uint8Array(32).buffer);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(storedRecord?.id,'video-pending');
+ assert.equal(storedRecord?.blobSha256,'00'.repeat(32));
+ assert.equal(databaseOperationState.active,1,'the write remains active until IndexedDB commits');
+ tx.oncomplete();
+ await operation;
+ assert.equal(databaseOperationState.active,0);
+});
 
 test('save reports snapshot preparation failures without throwing or queuing a partial save',async()=>{
  const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},snapshots:[]};
@@ -2676,7 +2719,7 @@ test('full archive export handler blocks export when the latest save failed', as
 });
 
 
-test('IndexedDB v3 upgrades to v8 with archive staging, history, snapshots, image blobs and migration journal', async () => {
+test('IndexedDB v3 upgrades to v9 with archive staging, history, snapshots, image blobs and migration journal', async () => {
   const factory = new IDBFactory();
   const request = factory.open('paseka-upgrade-v3-v6', 3);
   request.onupgradeneeded = () => {
@@ -2688,13 +2731,38 @@ test('IndexedDB v3 upgrades to v8 with archive staging, history, snapshots, imag
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+  await new Promise((resolve, reject) => {
+    const tx = oldDb.transaction(['main', 'entrance_media'], 'readwrite');
+    tx.objectStore('main').put({ meta: { schemaVersion: 12, revisionId: 'preserve-v3-state' }, hives: [{ id: 'hive-preserved' }] }, 'state');
+    tx.objectStore('entrance_media').put({
+      id: 'video-preserved',
+      blob: new Blob(['existing video bytes'], { type: 'video/mp4' }),
+    });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('Could not seed the version-3 database.'));
+    tx.onabort = () => reject(tx.error || new Error('Version-3 database seed was aborted.'));
+  });
   oldDb.close();
   const deps = {
-    DB: 'paseka-upgrade-v3-v5', STORE: 'main', BACKUP_STORE: 'full_backup', AUTO_SNAPSHOT_STORE: 'auto_snapshots',
+    DB: 'paseka-upgrade-v3-v6', STORE: 'main', BACKUP_STORE: 'full_backup', AUTO_SNAPSHOT_STORE: 'auto_snapshots',
     db: null, indexedDB: factory
   };
   await loadFunction('openDB', deps)();
-  assert.equal(deps.db.version, 8);
+  assert.equal(deps.db.version, 9);
+  assert.equal((await new Promise((resolve, reject) => {
+    const tx = deps.db.transaction('main', 'readonly');
+    const request = tx.objectStore('main').get('state');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  })).meta.revisionId, 'preserve-v3-state');
+  const preservedVideo = await new Promise((resolve, reject) => {
+    const tx = deps.db.transaction('entrance_media', 'readonly');
+    const request = tx.objectStore('entrance_media').get('video-preserved');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(await preservedVideo.blob.text(), 'existing video bytes');
+  assert.equal(preservedVideo.blobSha256, undefined, 'legacy media rows without a checksum must remain intact');
   assert.equal(deps.db.objectStoreNames.contains('archive_staging'), true);
   assert.equal(deps.db.objectStoreNames.contains('archive_history'), true);
   assert.equal(deps.db.objectStoreNames.contains('auto_snapshots'), true);
@@ -2751,6 +2819,12 @@ test('full archive restore UI requires staging, explicit confirmation, and offer
   assert.ok(html.includes('id="entranceVideoList" aria-live="polite"'));
   assert.ok(html.includes('title="Все видео, видео без найденного улья или видео выбранного улья"'));
   assert.ok(html.includes('function prepareMigratedArchiveState(state)'));
+  const commitUiStart = html.indexOf('async function commitFullArchiveRestore()');
+  const commitUiEnd = html.indexOf('\nasync function rollbackFullArchiveImport', commitUiStart);
+  const commitUi = html.slice(commitUiStart, commitUiEnd);
+  assert.match(commitUi, /let committed = false;/);
+  assert.match(commitUi, /PasekaArchiveRestore\.commitStagedArchive\([\s\S]*?\);\s*\/\/ From this point the IndexedDB transaction has committed[\s\S]*?committed = true;/);
+  assert.match(commitUi, /if \(committed\) \{[\s\S]*?Архив уже восстановлен и сохранён[\s\S]*?Повторно импортировать архив не нужно/);
   assert.ok(html.includes('function archiveRestoreErrorText(error)'));
   assert.ok(html.includes('Недостаточно свободного места для временной копии и точки отката'));
   assert.ok(html.includes('if(tab===\'settings\')renderArchiveImportHistory()'));
@@ -2912,8 +2986,10 @@ test('entrance video save hashes and stores the same Blob snapshot when caller m
   const tx = {
     objectStore() { return { put(value) { stored = value; } }; }
   };
+  const databaseOperationState={active:0,waiters:[]};
   const save = loadFunction('putEntranceVideo', {
     db: { transaction() { return tx; } },
+    beginDatabaseOperation:loadFunction('beginDatabaseOperation',{databaseOperationState}),
     window: {
       crypto: { subtle: { digest: async (_algorithm, bytes) => {
         digestStarted();
@@ -2934,6 +3010,27 @@ test('entrance video save hashes and stores the same Blob snapshot when caller m
   assert.equal(stored.blobSha256, '41');
 });
 
+
+test('entrance video file processing holds the database open during asynchronous validation',async()=>{
+ const databaseOperationState={active:0,waiters:[]};
+ let releaseValidation,notifyValidation;
+ const validationStarted=new Promise(resolve=>{notifyValidation=resolve});
+ const validationGate=new Promise(resolve=>{releaseValidation=resolve});
+ const status={textContent:''},select={value:'hive-1'};
+ const handle=loadFunction('handleEntranceVideoFile',{
+  $:id=>id==='entranceVideoStatus'?status:select,
+  beginDatabaseOperation:loadFunction('beginDatabaseOperation',{databaseOperationState}),
+  inspectEntranceVideoFile:async()=>{notifyValidation();await validationGate;return {durationSec:2,width:640,height:480}},
+  PasekaEntranceAnalysis:{assessVideoMetadata:()=>({ok:false,errors:[{message:'invalid test video'}],warnings:[]})},
+  alert:()=>{}
+ });
+ const operation=handle([{size:8,type:'video/mp4',name:'test.mp4'}]);
+ await validationStarted;
+ assert.equal(databaseOperationState.active,1,'file validation must hold the connection before Blob hashing begins');
+ releaseValidation();
+ await operation;
+ assert.equal(databaseOperationState.active,0,'all early-return paths must release the operation lease');
+});
 
 test('photo reference switch revalidates Blob bytes before reporting an idempotent success', async () => {
   const module = { exports: {} };
