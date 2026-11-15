@@ -53,7 +53,7 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
   });
   assert.equal(state, undefined);
 
-  const canInitialize = load('canInitializeFreshDatabase', existingEmpty);
+  const canInitialize = load('canInitializeFreshDatabase', fresh);
   assert.equal(canInitialize(secondOpenCreatedDatabase, state), false);
   fresh.db.close();
 });
