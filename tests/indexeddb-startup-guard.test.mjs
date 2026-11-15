@@ -19,7 +19,7 @@ function load(name, deps) {
 }
 
 function openDbDependencies(indexedDB) {
-  return {
+  const deps = {
     indexedDB,
     DB: 'paseka-startup-guard-integration',
     STORE: 'main',
@@ -27,6 +27,8 @@ function openDbDependencies(indexedDB) {
     db: null,
     databaseCreatedDuringOpen: false
   };
+  deps.isFreshDatabaseUpgrade = load('isFreshDatabaseUpgrade', deps);
+  return deps;
 }
 
 test('openDB marks only a genuinely new IndexedDB database as fresh', async () => {
