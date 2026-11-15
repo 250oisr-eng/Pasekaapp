@@ -2621,6 +2621,8 @@ test('sectional process UI creates a validated record without mutating hive equi
  assert.equal(state.sectionalTechProcesses[0].state.config.frameHeightMm,180);
  assert.equal(state.sectionalTechProcesses[0].state.config.honeyBodiesCount,4);
  assert.equal(state.sectionalTechProcesses[0].state.config.hasRemovableFeeder,true);
+ assert.equal(state.sectionalTechProcesses[0].state.operations.length,14);
+ assert.ok(state.sectionalTechProcesses[0].state.operations.every(operation=>operation.status==='PENDING'));
  assert.equal(JSON.stringify(state.hives),originalHive);assert.equal(JSON.stringify(state.families),originalFamilies);assert.equal(JSON.stringify(state.equipmentInventory),originalInventory);
  assert.equal(state.auditLog[0].type,'sectional_tech_process_created');
 });
@@ -2658,6 +2660,26 @@ test('failed sectional process save keeps an exportable in-memory draft and expo
  assert.match(elements.sectionalTechFeedback.textContent,/памяти страницы/i);
 });
 
+
+
+
+test('sectional process UI renders the 14 operation checklist and labels',()=>{
+ const operations=appWindow.PasekaSectionalTechProcess.SPEC.operations.map(operation=>({operationId:operation.id,status:'PENDING'}));
+ const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},operations}};
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[record]};
+ const elements={sectionalTechHive:{value:''},sectionalTechProcessList:{innerHTML:''},sectionalTechCount:{textContent:''},sectionalTechCreateButton:{disabled:false}};
+ const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:()=> 'Улей 1',sectionalTechProcessPhaseLabel:()=> 'Подготовка к разделению',getHiveProfile:()=>({frame:{heightMm:180}}),sectionalTechProcessSavePending:false});
+ render();assert.match(elements.sectionalTechProcessList.innerHTML,/Операции \(14\)/);assert.match(elements.sectionalTechProcessList.innerHTML,/OP-01/);assert.match(elements.sectionalTechProcessList.innerHTML,/Весеннее открытие летков/);
+});
+
+test('sectional process operation initialization is idempotent and audited',async()=>{
+ const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[record],auditLog:[]};const elements={sectionalTechFeedback:{textContent:''}};let saves=0;
+ const deps={S:state,$:id=>elements[id],save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),renderSectionalTechProcessModule(){},sectionalTechProcessSavePending:false};
+ const initialize=loadFunction('initializeSectionalTechProcessOperations',deps);
+ assert.equal(await initialize('tp1'),true);assert.equal(record.state.operations.length,14);assert.ok(record.state.operations.every(operation=>operation.status==='PENDING'));assert.equal(saves,1);assert.equal(state.auditLog[0].type,'sectional_tech_process_operations_initialized');
+ assert.equal(await initialize('tp1'),false);assert.equal(saves,1);
+});
 
 test('sectional process UI retries a previously failed save after validation',async()=>{
  const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};

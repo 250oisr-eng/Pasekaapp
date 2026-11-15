@@ -9,11 +9,37 @@ const windowRef = {};
 new Function('window', source)(windowRef);
 const api = windowRef.PasekaSectionalTechProcess;
 
+const entranceDefaults = [
+  { openEntrance: 'FLAT_BOTTOM', entranceState: 'HALF_OPEN' },
+  { openEntrance: 'ROUND_TOP', entranceState: 'OPEN' },
+  { openEntrance: 'ROUND_BOTTOM', entranceState: 'OPEN' }
+];
+function sectionFixture(index, overrides = {}) {
+  return {
+    index,
+    bodyIds: [`body-${index}-a`, `body-${index}-b`],
+    queenId: `queen-${index}`,
+    isolation: 'CONNECTED',
+    ...entranceDefaults[index - 1],
+    ...overrides
+  };
+}
+function dividedState(overrides = {}) {
+  return {
+    phase: 'DIVIDED_3_SECTIONS',
+    sections: [sectionFixture(1), sectionFixture(2), sectionFixture(3)],
+    queens: [1, 2, 3].map(index => ({ id: `queen-${index}`, status: 'FERTILIZED' })),
+    operations: [],
+    ...overrides
+  };
+}
+
+
 test('sectional tech-process model loads before the app and is cached offline', () => {
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v311/);
+  assert.match(sw, /paseka-shell-v312/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
@@ -53,86 +79,98 @@ test('operation schedule computes the user-defined relative windows', () => {
   assert.deepEqual([byId['OP-13'].from, byId['OP-13'].to], ['2027-05-11', '2027-05-21']);
 });
 
+test('divided state requires two distinct nest bodies and one registered queen per section', () => {
+  const missingBody = api.validateHiveState(dividedState({
+    sections: [sectionFixture(1, { bodyIds: ['body-1-a'] }), sectionFixture(2), sectionFixture(3)]
+  }));
+  assert.ok(missingBody.errors.some(x => x.code === 'OP04_BODY_COUNT'));
+  const duplicateBody = api.validateHiveState(dividedState({
+    sections: [sectionFixture(1), sectionFixture(2, { bodyIds: ['body-1-a', 'body-2-b'] }), sectionFixture(3)]
+  }));
+  assert.ok(duplicateBody.errors.some(x => x.code === 'SECTION_BODY_DUPLICATE'));
+  const missingQueen = api.validateHiveState(dividedState({
+    sections: [sectionFixture(1, { queenId: 'missing-queen' }), sectionFixture(2), sectionFixture(3)]
+  }));
+  assert.ok(missingQueen.errors.some(x => x.code === 'SECTION_QUEEN_REFERENCE'));
+});
+test('each divided section must declare its isolation state', () => {
+  const result = api.validateHiveState(dividedState({
+    sections: [sectionFixture(1), sectionFixture(2, { isolation: undefined }), sectionFixture(3)]
+  }));
+  assert.ok(result.errors.some(x => x.code === 'SECTION_ISOLATION'));
+});
+
 test('R1 accepts exactly the configured three-section entrance assignment', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS',
-    sections: [
-      { index: 1, openEntrance: 'FLAT_BOTTOM', entranceState: 'HALF_OPEN' },
-      { index: 2, openEntrance: 'ROUND_TOP', entranceState: 'OPEN' },
-      { index: 3, openEntrance: 'ROUND_BOTTOM', entranceState: 'OPEN' }
-    ]
-  });
+  const result = api.validateHiveState(dividedState());
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
 });
 
 test('R1 is released after OP-06 when sections are reconnected', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED',
-    operations: [{ operationId: 'OP-06', status: 'DONE' }],
-    sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM' }, { index: 2, openEntrance: 'ROUND_BOTTOM' }, { index: 3, openEntrance: 'ROUND_BOTTOM' }],
-    queens: [{ status: 'FERTILIZED' }, { status: 'FERTILIZED' }, { status: 'FERTILIZED' }]
-  });
+  const result = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', isolation: 'CONNECTED' }))
+  }));
   assert.equal(result.valid, true);
 });
 
 test('OP-09 requires round bottom entrances in the lower nest bodies', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS', operations: [{ operationId: 'OP-09', status: 'DONE' }],
-    sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 2, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 3, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }]
-  });
+  const result = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-09', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }))
+  }));
   assert.equal(result.valid, true);
 });
 
 test('OP-09 rejects a round entrance installed above the lower nest body', () => {
-  const result = api.validateHiveState({
+  const result = api.validateHiveState(dividedState({
     phase: 'AUTUMN_PREP', operations: [{ operationId: 'OP-09', status: 'DONE' }],
-    sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'UPPER_NEST_BODY' }, { index: 2, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 3, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }]
-  });
+    sections: [sectionFixture(1, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'UPPER_NEST_BODY' }), sectionFixture(2, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }), sectionFixture(3, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' })]
+  }));
   assert.ok(result.errors.some(x => x.code === 'OP09_ENTRANCE_POSITION'));
 });
 
 test('R1 rejects duplicate or mismatched section entrance assignment', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS',
-    sections: [
-      { index: 1, openEntrance: 'ROUND_BOTTOM' },
-      { index: 2, openEntrance: 'ROUND_BOTTOM' },
-      { index: 3, openEntrance: 'ROUND_TOP' }
-    ]
-  });
+  const result = api.validateHiveState(dividedState({
+    sections: [sectionFixture(1, { openEntrance: 'ROUND_BOTTOM' }), sectionFixture(2, { openEntrance: 'ROUND_BOTTOM' }), sectionFixture(3, { openEntrance: 'ROUND_TOP' })]
+  }));
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(x => x.code === 'R1_ENTRANCE_TYPE'));
   assert.ok(result.errors.some(x => x.code === 'R1_DUPLICATE_ENTRANCE'));
 });
 
-test('R2 blocks reconnection when the queen registry is incomplete', () => {
-  const result = api.validateHiveState({ phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED', sections: [{ index: 1 }, { index: 2 }, { index: 3 }], queens: [{ status: 'FERTILIZED' }, { status: 'FERTILIZED' }] });
-  assert.ok(result.errors.some(x => x.code === 'R2_UNFERTILIZED_CONNECTED'));
+test('R2 blocks OP-06 when the queen registry is incomplete', () => {
+  const result = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [{ id: 'queen-1', status: 'FERTILIZED' }, { id: 'queen-2', status: 'FERTILIZED' }], meshPlugs: []
+  }));
+  assert.ok(result.errors.some(x => x.code === 'SECTION_QUEEN_COUNT'));
+  assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
 });
 
-test('R2 blocks reconnection while a queen is unfertilized', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED',
-    sections: [{ index: 1 }, { index: 2 }, { index: 3 }],
-    queens: [{ status: 'FERTILIZED' }, { status: 'UNFERTILIZED' }, { status: 'FERTILIZED' }]
-  });
-  assert.ok(result.errors.some(x => x.code === 'R2_UNFERTILIZED_CONNECTED'));
+test('R2 blocks OP-06 while any of the three queens is unfertilized', () => {
+  const result = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [{ id: 'queen-1', status: 'FERTILIZED' }, { id: 'queen-2', status: 'UNFERTILIZED' }, { id: 'queen-3', status: 'FERTILIZED' }], meshPlugs: []
+  }));
+  assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
 });
 
 test('R2 requires both metal mesh plugs over queen excluders', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS', isolation: 'MESH_ISOLATED',
-    sections: [{ index: 1 }, { index: 2 }, { index: 3 }],
-    queens: [{ status: 'UNFERTILIZED' }],
+  const result = api.validateHiveState(dividedState({
+    isolation: 'MESH_ISOLATED',
+    sections: [sectionFixture(1, { isolation: 'MESH_ISOLATED' }), sectionFixture(2, { isolation: 'MESH_ISOLATED' }), sectionFixture(3, { isolation: 'MESH_ISOLATED' })],
+    queens: [{ id: 'queen-1', status: 'UNFERTILIZED' }, { id: 'queen-2', status: 'FERTILIZED' }, { id: 'queen-3', status: 'FERTILIZED' }],
     requiredMeshPlugCount: 4,
     meshPlugs: Array.from({ length: 3 }, (_, index) => ({ id: 'plug-' + index, sectionId: 'section-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }))
-  });
+  }));
   assert.ok(result.errors.some(x => x.code === 'R2_MESH_PLUG_MISSING'));
 });
 
 test('R4 requires queen excluder before honey bodies', () => {
-  const result = api.validateHiveState({ phase: 'HONEY_BODIES_INSTALLED', sections: [{}, {}, {}] });
+  const result = api.validateHiveState(dividedState({ phase: 'HONEY_BODIES_INSTALLED' }));
   assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
 });
 
@@ -144,22 +182,17 @@ test('R6 rejects selecting both wintering methods', () => {
 });
 
 test('R7 requires two mesh diaphragms for alternative wintering', () => {
-  const result = api.validateHiveState({ phase: 'ALT_WINTERING', winteringMode: 'ALTERNATIVE_DIAPHRAGMS', diaphragms: [{ hasMesh: true }] });
+  const result = api.validateHiveState(dividedState({ phase: 'ALT_WINTERING', winteringMode: 'ALTERNATIVE_DIAPHRAGMS', diaphragms: [{ hasMesh: true }], sections: [sectionFixture(1, { bodyIds: ['body-1-a', 'body-1-b'], isolation: 'MESH_ISOLATED' }), sectionFixture(2, { bodyIds: ['body-2-a'], isolation: 'MESH_ISOLATED' }), sectionFixture(3, { bodyIds: ['body-3-a'], isolation: 'MESH_ISOLATED' })] }));
   assert.ok(result.errors.some(x => x.code === 'R7_DIAPHRAGMS'));
 });
 
 test('all entrances action is no longer treated as an R1 conflict after OP-06', () => {
-  const result = api.validateHiveState({
-    phase: 'DIVIDED_3_SECTIONS',
-    operations: [{ operationId: 'OP-06', status: 'DONE' }],
-    sections: [
-      { index: 1, openEntrance: 'ROUND_BOTTOM' },
-      { index: 2, openEntrance: 'ROUND_BOTTOM' },
-      { index: 3, openEntrance: 'ROUND_BOTTOM' }
-    ],
-    queens: [{ status: 'FERTILIZED' }, { status: 'FERTILIZED' }, { status: 'FERTILIZED' }],
+  const result = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', isolation: 'CONNECTED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })), meshPlugs: [],
     operationActions: ['OPEN_ALL_ENTRANCES']
-  });
+  }));
   assert.equal(result.valid, true);
   assert.equal(result.errors.some(x => x.code.startsWith('R1_')), false);
 });
@@ -179,4 +212,89 @@ test('stored process configuration enforces the user-defined 180 mm frame height
   assert.ok(wrongHeight.errors.some(x => x.code === 'TECH_RECORD_STATE_FRAME_HEIGHT'));
   const wrongWintering = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, winteringMode: 'UNKNOWN' } } }], [{ id: 'h1' }]);
   assert.ok(wrongWintering.errors.some(x => x.code === 'TECH_RECORD_STATE_WINTERING_MODE'));
+});
+
+
+test('connected worker passage before OP-05 does not require mated queens', () => {
+  const state = dividedState({
+    queens: [{ id: 'queen-1', status: 'UNFERTILIZED' }, { id: 'queen-2', status: 'UNFERTILIZED' }, { id: 'queen-3', status: 'UNFERTILIZED' }],
+    sections: [sectionFixture(1), sectionFixture(2), sectionFixture(3)]
+  });
+  assert.equal(api.validateHiveState(state).valid, true);
+});
+
+test('OP-06 requires OP-05, three fertilized queens, connected sections and removed plugs', () => {
+  const base = dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    requiredMeshPlugCount: 4,
+    meshPlugs: [{ id: 'p1', installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }]
+  });
+  assert.ok(api.validateHiveState(base).errors.some(x => x.code === 'OP06_MESH_PLUGS_REMAIN'));
+  const missingOP05 = api.validateHiveState({ ...base, operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }], meshPlugs: [] });
+  assert.ok(missingOP05.errors.some(x => x.code === 'OP06_PREREQUISITE'));
+});
+
+test('OP-05 and OP-06 cannot be marked complete with the wrong section isolation state', () => {
+  const state = dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }],
+    sections: [sectionFixture(1, { isolation: 'MESH_ISOLATED' }), sectionFixture(2), sectionFixture(3, { isolation: 'MESH_ISOLATED' })],
+    requiredMeshPlugCount: 4,
+    meshPlugs: Array.from({ length: 4 }, (_, i) => ({ id: 'p' + i, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }))
+  });
+  assert.ok(api.validateHiveState(state).errors.some(x => x.code === 'OP05_ISOLATION_STATE'));
+});
+
+test('OP-07 and OP-08 require the preceding operations', () => {
+  const result = api.validateHiveState(dividedState({ operations: [{ operationId: 'OP-07', status: 'DONE' }] }));
+  assert.ok(result.errors.some(x => x.code === 'OP07_PREREQUISITE'));
+  const missingOP07 = api.validateHiveState(dividedState({ operations: [{ operationId: 'OP-08', status: 'DONE' }] }));
+  assert.ok(missingOP07.errors.some(x => x.code === 'OP08_PREREQUISITE'));
+});
+
+test('mesh plug count rejects extras as well as missing plugs', () => {
+  const state = dividedState({
+    isolation: 'MESH_ISOLATED',
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'MESH_ISOLATED' })),
+    requiredMeshPlugCount: 2,
+    meshPlugs: Array.from({ length: 3 }, (_, i) => ({ id: 'p' + i, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }))
+  });
+  assert.ok(api.validateHiveState(state).errors.some(x => x.code === 'R2_MESH_PLUG_EXTRA'));
+});
+
+test('stored operation records reject unknown IDs, duplicate IDs and invalid statuses', () => {
+  const base = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [{ operationId: 'OP-01', status: 'PENDING' }] } };
+  assert.equal(api.validateStoredRecords([base], [{ id: 'h1' }]).valid, true);
+  const duplicate = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-01', status: 'PENDING' }, { operationId: 'OP-01', status: 'DONE' }] } }], [{ id: 'h1' }]);
+  assert.ok(duplicate.errors.some(x => x.code === 'TECH_OPERATION_DUPLICATE'));
+  const invalid = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-99', status: 'PENDING' }] } }], [{ id: 'h1' }]);
+  assert.ok(invalid.errors.some(x => x.code === 'TECH_OPERATION_UNKNOWN'));
+});
+
+
+test('stored OP-05 and OP-06 completion dates must match the user-defined windows', () => {
+  const base = {
+    id: 'tp-date', hiveId: 'h1', specVersion: '1.2.0',
+    createdAt: '2027-04-01T09:00:00.000Z', updatedAt: '2027-04-21T09:00:00.000Z',
+    state: {
+      phase: 'DIVIDED_3_SECTIONS',
+      config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' },
+      sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+      queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+      meshPlugs: [],
+      operations: [
+        { operationId: 'OP-04', status: 'DONE', completedAt: '2027-04-01' },
+        { operationId: 'OP-05', status: 'DONE', completedAt: '2027-04-10' },
+        { operationId: 'OP-06', status: 'DONE', completedAt: '2027-04-21' }
+      ]
+    }
+  };
+  assert.equal(api.validateStoredRecords([base], [{ id: 'h1' }]).valid, true);
+  const lateOP05 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-05' ? { ...op, completedAt: '2027-04-13' } : op) } }], [{ id: 'h1' }]);
+  assert.ok(lateOP05.errors.some(x => x.code === 'TECH_OP05_DATE_WINDOW'));
+  const earlyOP06 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-06' ? { ...op, completedAt: '2027-04-19' } : op) } }], [{ id: 'h1' }]);
+  assert.ok(earlyOP06.errors.some(x => x.code === 'TECH_OP06_DATE_WINDOW'));
+  const missingOP04Date = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-04' ? { ...op, completedAt: null } : op) } }], [{ id: 'h1' }]);
+  assert.ok(missingOP04Date.errors.some(x => x.code === 'TECH_OP05_COMPLETION_DATE_REQUIRED'));
 });
