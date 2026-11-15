@@ -68,7 +68,7 @@ function inspectInstalledBroodSelection(state,selections,getProfile){
  if(hiveIds.size!==1)errors.push({code:'sectional_selection_single_hive_required',details:{expected:1,actual:hiveIds.size}});
  if(hiveIds.size===1){
   const hiveId=[...hiveIds][0],profile=getProfile?.(hiveId)||profileForState(state,hiveId),brood=(profile?.brood?.boxKeys||[]).map(String),sectionLayout=profile?.layout,sectionRows=sectionLayout?.rows;
-  const validLayout=profile?.brood?.boxCount===6&&sectionLayout?.sections===3&&Array.isArray(sectionRows)&&sectionRows.length===2&&sectionRows.every(row=>Array.isArray(row)&&row.length===3);
+  const validLayout=profile?.brood?.boxCount===6&&profile?.brood?.framesPerBox===6&&sectionLayout?.sections===3&&Array.isArray(sectionRows)&&sectionRows.length===2&&sectionRows.every(row=>Array.isArray(row)&&row.length===3);
   const layoutKeys=validLayout?sectionRows.flat().map(String):[];
   if(!validLayout||layoutKeys.length!==6||new Set(layoutKeys).size!==6||brood.length!==6||brood.some(key=>!layoutKeys.includes(key))||layoutKeys.some(key=>!brood.includes(key))){
    errors.push({code:'sectional_selection_section_layout_invalid',details:{hiveId,expectedSections:3,expectedRows:2,expectedColumns:3}});
