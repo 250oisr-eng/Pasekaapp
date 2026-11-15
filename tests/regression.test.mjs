@@ -838,8 +838,8 @@ test('inspection parser accepts only explicit count values within physical frame
 
 test('inspection parser honors selected profile capacity for 8-frame and unknown-capacity hives',()=>{
  const parse=loadFunction('extractInspectionFieldsFromText');
- const eight=parse('Осмотр: занято 8 рамок, расплода на 7 рамках, свободных отстроенных рамок 8.',8);
- assert.deepEqual(eight.fields,{occupancy:8,broodFrames:7,freeDrawn:8});
+ const eight=parse('Осмотр: занято 8 рамок, расплода на 7 рамках, свободных отстроенных рамок 0.',8);
+ assert.deepEqual(eight.fields,{occupancy:8,broodFrames:7,freeDrawn:0});
  const over=parse('Осмотр: занято 9 рамок.',8);
  assert.equal(over.fields.occupancy,undefined);
  const unknown=parse('Осмотр: занято 10 рамок.',null);
@@ -992,10 +992,23 @@ test('journal draft validator accepts a complete and correctly linked inspection
 test('journal draft validator applies the selected hive brood capacity and leaves unknown capacity unbounded',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
  const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8,boxKeys:['1','2','3','4']}}},{id:'unknown',profileId:'missing-profile'}],layouts:{h8:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
- assert.equal(validate({id:'r8',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:7,freeDrawn:8},state).ok,true);
+ assert.equal(validate({id:'r8',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:7,freeDrawn:0},state).ok,true);
  const invalid=validate({id:'r9',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:9},state);
  assert.ok(invalid.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
  assert.equal(validate({id:'r10',date:'2026-11-15',type:'Осмотр',hive:'unknown',occupancy:10,broodFrames:9,freeDrawn:10},state).ok,true);
+});
+
+test('journal inspection metrics reject impossible overlapping frame counts',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:8,boxKeys:['1']}}}],layouts:{h1:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
+ const broodOver=validate({id:'r1',date:'2026-11-15',type:'Осмотр',hive:'h1',occupancy:6,broodFrames:7,freeDrawn:1},state);
+ assert.ok(broodOver.errors.some(error=>error.code==='journal_brood_exceeds_occupancy'));
+ const totalOver=validate({id:'r2',date:'2026-11-15',type:'Осмотр',hive:'h1',occupancy:7,broodFrames:5,freeDrawn:2},state);
+ assert.ok(totalOver.errors.some(error=>error.code==='journal_occupied_plus_free_exceeds_capacity'));
+ const valid=validate({id:'r3',date:'2026-11-15',type:'Осмотр',hive:'h1',occupancy:6,broodFrames:4,freeDrawn:2},state);
+ assert.equal(valid.ok,true);
+ const unknown=validate({id:'r4',date:'2026-11-15',type:'Осмотр',hive:'unknown',occupancy:5,broodFrames:6}, {hives:[{id:'unknown'}],families:[],records:[]});
+ assert.ok(unknown.errors.some(error=>error.code==='journal_brood_exceeds_occupancy'));
 });
 
 test('journal inspection metrics preserve unchanged historical values after profile capacity changes',()=>{
