@@ -66,7 +66,8 @@ test('R1 is released after OP-06 when sections are reconnected', () => {
   const result = api.validateHiveState({
     phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED',
     operations: [{ operationId: 'OP-06', status: 'DONE' }],
-    sections: [{ index: 1, openEntrance: 'FLAT_BOTTOM' }, { index: 2, openEntrance: 'ROUND_TOP' }, { index: 3, openEntrance: 'ROUND_BOTTOM' }]
+    sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM' }, { index: 2, openEntrance: 'ROUND_BOTTOM' }, { index: 3, openEntrance: 'ROUND_BOTTOM' }],
+    queens: [{ status: 'FERTILIZED' }, { status: 'FERTILIZED' }, { status: 'FERTILIZED' }]
   });
   assert.equal(result.valid, true);
 });
@@ -99,6 +100,11 @@ test('R1 rejects duplicate or mismatched section entrance assignment', () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(x => x.code === 'R1_ENTRANCE_TYPE'));
   assert.ok(result.errors.some(x => x.code === 'R1_DUPLICATE_ENTRANCE'));
+});
+
+test('R2 blocks reconnection when the queen registry is incomplete', () => {
+  const result = api.validateHiveState({ phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED', sections: [{ index: 1 }, { index: 2 }, { index: 3 }], queens: [{ status: 'FERTILIZED' }, { status: 'FERTILIZED' }] });
+  assert.ok(result.errors.some(x => x.code === 'R2_UNFERTILIZED_CONNECTED'));
 });
 
 test('R2 blocks reconnection while a queen is unfertilized', () => {
@@ -143,10 +149,11 @@ test('all entrances action is no longer treated as an R1 conflict after OP-06', 
     phase: 'DIVIDED_3_SECTIONS',
     operations: [{ operationId: 'OP-06', status: 'DONE' }],
     sections: [
-      { index: 1, openEntrance: 'FLAT_BOTTOM' },
-      { index: 2, openEntrance: 'ROUND_TOP' },
+      { index: 1, openEntrance: 'ROUND_BOTTOM' },
+      { index: 2, openEntrance: 'ROUND_BOTTOM' },
       { index: 3, openEntrance: 'ROUND_BOTTOM' }
     ],
+    queens: [{ status: 'FERTILIZED' }, { status: 'FERTILIZED' }, { status: 'FERTILIZED' }],
     operationActions: ['OPEN_ALL_ENTRANCES']
   });
   assert.equal(result.valid, true);
