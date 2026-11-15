@@ -2565,3 +2565,24 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+test('hive creation, hive edits and offshoot stage changes roll back when save fails',()=>{
+ const editStart=html.indexOf('function editHive(id){');
+ const editEnd=html.indexOf('\nasync function defaultHive(',editStart);
+ assert.ok(editStart>=0&&editEnd>editStart,'hive edit handler is present');
+ const edit=html.slice(editStart,editEnd);
+ assert.ok(edit.indexOf('structuredClone(S)')<edit.indexOf('h.desc=$('));
+ assert.match(edit,/if\(!await saveFamilyMutation\(previousState\)\)return/);
+ const createStart=html.indexOf('async function defaultHive(e){');
+ const createEnd=html.indexOf("\n$('hiveForm').onsubmit=defaultHive",createStart);
+ assert.ok(createStart>=0&&createEnd>createStart,'hive creation handler is present');
+ const create=html.slice(createStart,createEnd);
+ assert.ok(create.indexOf('structuredClone(S)')<create.indexOf('S.hives.push(h)'));
+ assert.match(create,/if\(!saved\)\{const saveError=S\.meta\?\.saveError;S=rollbackState/);
+ const stageStart=html.indexOf('async function markOffshootIndependent(id){');
+ const stageEnd=html.indexOf('\nfunction ruPlural(',stageStart);
+ assert.ok(stageStart>=0&&stageEnd>stageStart,'offshoot stage handler is present');
+ const stage=html.slice(stageStart,stageEnd);
+ assert.ok(stage.indexOf('structuredClone(S)')<stage.indexOf("f.stage='independent'"));
+ assert.match(stage,/await saveFamilyMutation\(previousState\)/);
+});
