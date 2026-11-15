@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.1.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.2.0',language:'ru',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
   nestBodiesPerSectionAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
