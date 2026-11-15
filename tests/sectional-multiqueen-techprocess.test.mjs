@@ -210,7 +210,7 @@ test('OP-06 requires OP-05, three fertilized queens, connected sections and remo
   });
   assert.ok(api.validateHiveState(base).errors.some(x => x.code === 'OP06_MESH_PLUGS_REMAIN'));
   const missingOP05 = api.validateHiveState({ ...base, operations: [{ operationId: 'OP-06', status: 'DONE' }], meshPlugs: [] });
-  assert.ok(api.validateHiveState(missingOP05).errors.some(x => x.code === 'OP06_PREREQUISITE'));
+  assert.ok(missingOP05.errors.some(x => x.code === 'OP06_PREREQUISITE'));
 });
 
 test('OP-05 and OP-06 cannot be marked complete with the wrong section isolation state', () => {
