@@ -1811,9 +1811,21 @@ test('Farrar assembly display offers an initial winter selection without persist
  assert.deepEqual(view.winterOrder,[1,3,4]);
  assert.equal(JSON.stringify(layout),before);
 });
+test('Farrar assembly display rejects malformed persisted order containers without mutating them',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ for(const layout of [
+  {mode:'winter',installedBoxes:[1,3,4],winterOrder:{0:1,1:3,2:4},honeyBoxInstalled:[false,false]},
+  {mode:'winter',installedBoxes:{0:1,1:3,2:4},winterOrder:[1,3,4],honeyBoxInstalled:[false,false]}
+ ]){
+  const before=JSON.stringify(layout),view=resolve(layout);
+  assert.equal(view.winterValid,false);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
 test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
  const source=extractFunction('renderStructure');
  assert.doesNotMatch(source,/l\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\s*=/);
+ assert.doesNotMatch(source,/layoutFor\s*\(/,'rendering must not invoke the mutating layout normalizer');
 });
 test('six-digit frame inventory is not part of the current model',()=>{
  const source=extractFunction('migrateState');
