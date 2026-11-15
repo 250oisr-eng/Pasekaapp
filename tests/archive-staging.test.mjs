@@ -1477,3 +1477,52 @@ test('concurrent finalizers converge on the same ready staging session', async (
   assert.equal(stored.completedAt, a.completedAt);
   db.close();
 });
+
+test('rollback rejects snapshot metadata changed during asynchronous state validation', async () => {
+  const db = await openTestDb('paseka-rollback-snapshot-metadata-race');
+  const liveState = {
+    meta: { schemaVersion: 12, revisionId: 'live-before-snapshot-metadata-race' },
+    hives: [], families: [], records: []
+  };
+  const oldBlob = new Blob(['original rollback video'], { type: 'video/mp4' });
+  const oldVideo = {
+    id: 'live-video-metadata-race', hiveId: 'original-hive',
+    capturedAt: '2026-11-15T08:00:00.000Z',
+    bytes: oldBlob.size, mimeType: oldBlob.type, blob: oldBlob
+  };
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-rollback-snapshot-metadata-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(
+    db, staged.session.sessionId, liveState.meta.revisionId, webcrypto, Archive, () => true
+  );
+  const snapshotId = committed.rollbackSessionId + ':video:' + oldVideo.id;
+  let injected = false;
+
+  await assert.rejects(
+    Restore.rollbackCommittedArchive(
+      db, 'backup-rollback-snapshot-metadata-race', committed.state.meta.revisionId,
+      webcrypto,
+      async () => {
+        const snapshot = await get(db, 'archive_staging', snapshotId);
+        assert.ok(snapshot, 'rollback snapshot must exist before validation');
+        snapshot.record = { ...snapshot.record, hiveId: 'tampered-hive' };
+        await put(db, 'archive_staging', snapshot);
+        injected = true;
+        return true;
+      }
+    ),
+    { code: 'ROLLBACK_SNAPSHOT_CHANGED' }
+  );
+
+  assert.equal(injected, true);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, committed.state.meta.revisionId);
+  assert.equal((await getAll(db, 'entrance_media')).length, committed.importedVideoCount);
+  const history = await get(db, 'archive_history', 'backup-rollback-snapshot-metadata-race');
+  assert.equal(history.status, 'committed');
+  assert.equal(history.rollbackAvailable, true);
+  const preservedSnapshot = await get(db, 'archive_staging', snapshotId);
+  assert.equal(preservedSnapshot.record.hiveId, 'tampered-hive', 'the suspect snapshot must remain available for diagnosis');
+  db.close();
+});
