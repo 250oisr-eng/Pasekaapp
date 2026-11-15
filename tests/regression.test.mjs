@@ -63,7 +63,7 @@ test('IndexedDB upgrade is considered fresh only when the old version is zero',(
  assert.equal(isFresh(0),true);
  assert.equal(isFresh(1),false);
  assert.equal(isFresh(3),false);
- assert.match(html,/q\.onupgradeneeded=event=>\{if\(isFreshDatabaseUpgrade\(event\.oldVersion\)\)databaseCreatedDuringOpen=true;/);
+ assert.match(html,/q\.onupgradeneeded=event=>\{if\(isFreshDatabaseUpgrade\(event\.oldVersion\)\)createdDuringOpen=true;/);
 });
 
 test('family lineage accepts live and archived parents', () => {
