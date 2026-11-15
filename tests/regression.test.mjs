@@ -327,7 +327,7 @@ test('batch frame move rejects winter forbidden boxes and stale plans',()=>{
 
 
 test('profile-driven frame moves support arbitrary keys, capacities and independent honey bodies',()=>{
- const profile={id:'custom-move-v1',schemaVersion:1,status:'ready',name:'Custom move fixture',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:3,boxKeys:['LOW','MID','UP']},honey:{boxCount:1,framesPerBox:4,boxKeys:['SUPER'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['LOW','UP'],forbiddenBoxKeys:['MID'],honeyAllowed:false}};
+ const profile={id:'custom-move-v1',schemaVersion:1,status:'ready',name:'Custom move fixture',family:'custom',frame:{heightMm:180},brood:{boxCount:3,framesPerBox:3,boxKeys:['LOW','MID','UP']},honey:{boxCount:1,framesPerBox:4,boxKeys:['SUPER'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['LOW','UP'],forbiddenBoxKeys:['MID'],honeyAllowed:false}};
  const make=(id,location)=>({frameId:id,labelCode:'ААА',location,originBox:location,type:'comb',status:'drawn',history:[]});
  const state={meta:{revisionId:'custom-rev-1'},hives:[{id:'custom-hive',number:7,profile}],families:[],records:[],tasks:[],layouts:{'custom-hive':{mode:'summer',installedBoxes:['LOW','MID','UP'],winterOrder:[],honeyBoxInstalled:[true],honeyFrames:[[make('H1','SUPER')]],boxes:{LOW:{family:'',frames:[make('F1','LOW')]},MID:{family:'',frames:[]},UP:{family:'',frames:[]}}}}};
  const plan=loadFunction('planFrameMoves'),apply=loadFunction('applyFrameMovePlan',{planFrameMoves:plan});
@@ -342,7 +342,7 @@ test('profile-driven frame moves support arbitrary keys, capacities and independ
  assert.equal(state.layouts['custom-hive'].boxes.LOW.frames[0].location,'LOW');
 });
 test('profile-driven frame moves enforce configured capacity and winter allowed keys',()=>{
- const profile={id:'custom-move-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:2,boxKeys:['LOW','MID','UP']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['LOW','UP'],forbiddenBoxKeys:['MID'],honeyAllowed:false}};
+ const profile={id:'custom-move-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:3,framesPerBox:2,boxKeys:['LOW','MID','UP']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['LOW','UP'],forbiddenBoxKeys:['MID'],honeyAllowed:false}};
  const make=(id,location)=>({frameId:id,location,history:[]});
  const state={meta:{revisionId:'winter-rev'},hives:[{id:'h',profile}],families:[],records:[],tasks:[],layouts:{h:{mode:'summer',installedBoxes:['LOW','MID','UP'],winterOrder:[],honeyBoxInstalled:[],honeyFrames:[],boxes:{LOW:{family:'',frames:[make('A','LOW')]},MID:{family:'',frames:[]},UP:{family:'',frames:[make('B','UP'),make('C','UP')]}}}}};
  const plan=loadFunction('planFrameMoves');
@@ -352,7 +352,7 @@ test('profile-driven frame moves enforce configured capacity and winter allowed 
  assert.ok(plan(state,[{hiveId:'h',frameId:'A',toBox:'MID'}]).errors.some(error=>error.code==='move_target_not_installed'));
 });
 test('profileId-backed frame moves resolve the selected profile catalog',()=>{
- const profile={id:'catalog-custom-v1',schemaVersion:1,status:'ready',name:'Catalog custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:2,boxKeys:['A','B']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
+ const profile={id:'catalog-custom-v1',schemaVersion:1,status:'ready',name:'Catalog custom',family:'custom',frame:{heightMm:180},brood:{boxCount:2,framesPerBox:2,boxKeys:['A','B']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
  const state={meta:{revisionId:'catalog-rev'},profileCatalog:{'catalog-custom-v1':profile},hives:[{id:'h',profileId:'catalog-custom-v1'}],families:[],records:[],tasks:[],layouts:{h:{mode:'summer',installedBoxes:['A','B'],honeyBoxInstalled:[],honeyFrames:[],boxes:{A:{family:'',frames:[{frameId:'X',location:'A',history:[]}]},B:{family:'',frames:[]}}}}};
  const result=loadFunction('planFrameMoves')(state,[{hiveId:'h',frameId:'X',toBox:'B'}]);
  assert.equal(result.ok,true,JSON.stringify(result.errors));
@@ -1531,10 +1531,21 @@ test('hive profile catalog resolves legacy hives to the preserved Farrar profile
 
 test('hive profile validator accepts a complete configurable construction',()=>{
   const validate=loadFunction('validateHiveProfile');
-  const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3']}};
+  const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',frame:{heightMm:180},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3']}};
   assert.deepEqual(validate(profile),{ok:true,errors:[]});
 });
 
+test('hive profiles accept only 180 mm frames while keeping box height independent',()=>{
+  const validate=loadFunction('validateHiveProfile');
+  const base={id:'standard-180',schemaVersion:1,status:'ready',name:'Standard 180',family:'custom',frame:{heightMm:180},brood:{boxCount:1,framesPerBox:6,boxHeightMm:195,boxKeys:['B1']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
+  assert.equal(validate(base).ok,true);
+  for(const heightMm of [145,195,230,300]){
+    const result=validate({...base,id:'legacy-'+heightMm,frame:{heightMm}});
+    assert.equal(result.ok,false);
+    assert.ok(result.errors.some(error=>error.code==='profile_frame_height_unsupported'),String(heightMm));
+  }
+});
+ 
 test('hive profile validator refuses incomplete Dadant and Ruta templates as active configurations',()=>{
   const validate=loadFunction('validateHiveProfile');
   for(const family of ['dadant','ruta']){
@@ -1551,6 +1562,7 @@ test('hive profile validator rejects mismatched capacities and winter references
   const result=validate(profile);
   assert.equal(result.ok,false);
   assert.ok(result.errors.some(x=>x.code==='profile_honey_installation_invalid'));
+  assert.ok(result.errors.some(x=>x.code==='profile_frame_height_unsupported'));
   assert.ok(result.errors.some(x=>x.code==='profile_winter_required_count_invalid'));
   assert.ok(result.errors.some(x=>x.code==='profile_winter_allowed_keys_invalid'));
 });
@@ -1559,13 +1571,13 @@ test('profile capabilities expose only validated physical parameters',()=>{
  const validate=loadFunction('validateHiveProfile');
  const clone=loadFunction('cloneHiveProfile');
  const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validate,cloneHiveProfile:clone});
- const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3'],honeyAllowed:false}};
+ const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3'],honeyAllowed:false}};
  const result=get(profile);
  assert.equal(result.ok,true);
  assert.deepEqual(result.broodKeys,['B1','B2','B3']);
  assert.equal(result.broodCapacity,10);
  assert.equal(result.honeyInstallation,'independent');
- assert.equal(result.frameHeightMm,230);
+ assert.equal(result.frameHeightMm,180);
 });
 
 test('profile assembly validation enforces profile-specific winter and honey rules',()=>{
@@ -1573,7 +1585,7 @@ test('profile assembly validation enforces profile-specific winter and honey rul
  const clone=loadFunction('cloneHiveProfile');
  const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
  const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
- const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3'],honeyAllowed:false}};
+ const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:3,framesPerBox:10,boxKeys:['B1','B2','B3']},honey:{boxCount:1,framesPerBox:10,boxKeys:['M1'],installation:'independent'},winter:{enabled:true,requiredBroodBoxes:2,allowedBoxKeys:['B1','B2'],forbiddenBoxKeys:['B3'],honeyAllowed:false}};
  assert.deepEqual(validate(profile,{mode:'winter',installedBoxes:['B1','B2'],winterOrder:['B1','B2'],honeyBoxInstalled:[false],honeyFrames:[[]]}),{ok:true,errors:[]});
  const invalid=validate(profile,{mode:'winter',installedBoxes:['B1','B3'],winterOrder:['B1','B3'],honeyBoxInstalled:[true]});
  assert.ok(invalid.errors.some(error=>error.code==='winter_box_not_allowed'));
@@ -1621,7 +1633,7 @@ test('frame move planner refuses profile templates that are not operational',()=
 });
 
 test('profile frame helpers use the selected hive capacities and custom honey keys',()=>{
- const profile={id:'custom-v1',status:'ready',schemaVersion:1,name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:8,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const profile={id:'custom-v1',status:'ready',schemaVersion:1,name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:8,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
  const profileForHive=()=>profile;
  const isHoney=loadFunction('isHoneyBoxKey',{profileHoneyKeys:()=>['M1']});
  const capacity=loadFunction('frameCapacity',{profileForHive,isHoneyBoxKey:isHoney});
@@ -1632,7 +1644,7 @@ test('profile frame helpers use the selected hive capacities and custom honey ke
 });
 
 test('layout initialization creates physical frame arrays from the selected profile',()=>{
- const profile={id:'custom-v1',status:'ready',schemaVersion:1,name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:8,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const profile={id:'custom-v1',status:'ready',schemaVersion:1,name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:8,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
  const state={layouts:{},hives:[{id:'h1'}]};
  const profileForHive=()=>profile;
  const frameCapacity=(key)=>key==='M1'?8:10;
@@ -1651,7 +1663,7 @@ test('profile assembly rejects removing a brood box that still owns a family',()
  const clone=loadFunction('cloneHiveProfile');
  const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
  const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
- const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
+ const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:2,framesPerBox:10,boxKeys:['B1','B2']},honey:{boxCount:0,framesPerBox:0,boxKeys:[],installation:'independent'},winter:{enabled:false}};
  const layout={mode:'summer',installedBoxes:['B2'],winterOrder:[],honeyBoxInstalled:[],boxes:{B1:{family:'family-1',frames:[]},B2:{family:'',frames:[]}},honeyFrames:[]};
  const result=validate(profile,layout);
  assert.ok(result.errors.some(error=>error.code==='family_box_not_installed'));
@@ -1711,7 +1723,7 @@ test('home miniatures render the installed boxes and honey boxes from each hive 
 });
 
 test('configured honey box arrays are initialized to their profile capacity',()=>{
- const profile={id:'test-profile',schemaVersion:1,status:'ready',name:'Test',family:'custom',frame:{heightMm:230},brood:{boxCount:1,framesPerBox:8,boxKeys:['B1']},honey:{boxCount:1,framesPerBox:7,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const profile={id:'test-profile',schemaVersion:1,status:'ready',name:'Test',family:'custom',frame:{heightMm:180},brood:{boxCount:1,framesPerBox:8,boxKeys:['B1']},honey:{boxCount:1,framesPerBox:7,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
  const state={layouts:{},hives:[{id:'h1'}]};
  const layout=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>key==='M1'?7:8,framePrefix:key=>key});
  const result=layout('h1');
@@ -2504,7 +2516,7 @@ test('profile assembly validates dynamic brood and honey frame registries',()=>{
  const clone=loadFunction('cloneHiveProfile');
  const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
  const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
- const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:230},brood:{boxCount:2,framesPerBox:2,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:1,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
+ const profile={id:'custom-v1',schemaVersion:1,status:'ready',name:'Custom',family:'custom',frame:{heightMm:180},brood:{boxCount:2,framesPerBox:2,boxKeys:['B1','B2']},honey:{boxCount:1,framesPerBox:1,boxKeys:['M1'],installation:'independent'},winter:{enabled:false}};
  const good={mode:'summer',installedBoxes:['B1','B2'],honeyBoxInstalled:[true],boxes:{B1:{family:'',frames:[{frameId:'f1',location:'B1',history:[]}]},B2:{family:'',frames:[{frameId:'f2',location:'B2',history:[]},{frameId:'f3',location:'B2',history:[]}]}},honeyFrames:[[{frameId:'f4',location:'M1',history:[]}]]};
  assert.deepEqual(validate(profile,good),{ok:true,errors:[]});
  const bad=structuredClone(good);
