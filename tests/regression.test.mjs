@@ -2565,3 +2565,19 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+test('hive deletion restores the complete in-memory state when persistence fails',()=>{
+ const start=html.indexOf('async function deleteHive(id){');
+ const end=html.indexOf('\nfunction openNewHive()',start);
+ assert.ok(start>=0&&end>start,'hive deletion handler is present');
+ const handler=html.slice(start,end);
+ const confirmation=handler.indexOf("if(!confirm('Удалить '+hname(id)?");
+ const snapshot=handler.indexOf('structuredClone(S)');
+ const firstMutation=handler.indexOf('f.parentFamilySnapshot=');
+ const save=handler.indexOf('const saved=await save()');
+ const rollback=handler.indexOf('S=rollbackState',save);
+ assert.ok(confirmation>=0&&snapshot>confirmation,'rollback snapshot is prepared after explicit confirmation');
+ assert.ok(firstMutation>snapshot,'snapshot precedes lineage and record mutation');
+ assert.ok(save>firstMutation&&rollback>save,'failed persistence restores the snapshot');
+ assert.match(handler,/if\(!saved\)\{const saveError=S\.meta\?\.saveError;S=rollbackState/);
+});
