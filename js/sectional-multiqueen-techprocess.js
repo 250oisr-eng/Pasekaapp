@@ -51,7 +51,7 @@ function validateHiveState(s){
  }
  const queens=Array.isArray(s.queens)?s.queens:sections.flatMap(x=>x&&x.queen?[x.queen]:[]),unfert=queens.filter(x=>x&&x.status==='UNFERTILIZED');
  if(s.isolation==='CONNECTED'&&unfert.length)add('R2_UNFERTILIZED_CONNECTED','Нельзя снимать полную изоляцию, пока остаётся хотя бы одна неплодная матка.');
- if(s.isolation==='MESH_ISOLATED'){const plugs=Array.isArray(s.meshPlugs)?s.meshPlugs:[];['LEFT','RIGHT'].forEach(side=>{if(!plugs.some(p=>p&&p.side===side&&p.installed===true&&p.position==='OVER_QUEEN_EXCLUDER'))add('R2_MESH_PLUG_MISSING','Нет металлической сетчатой заглушки поверх геннеманской решётки со стороны '+side+'.');});if(!unfert.length)add('R2_ISOLATION_REVIEW','Все зарегистрированные матки плодные, но секции изолированы.','warning');}
+ if(s.isolation==='MESH_ISOLATED'){const plugs=Array.isArray(s.meshPlugs)?s.meshPlugs:[];const installed=plugs.filter(p=>p&&p.installed===true&&p.position==='OVER_QUEEN_EXCLUDER');if(installed.length<4)add('R2_MESH_PLUG_MISSING','Для двух крайних корпусов и двух сторон требуются четыре металлические сетчатые заглушки поверх геннеманских решёток.');if(!unfert.length)add('R2_ISOLATION_REVIEW','Все зарегистрированные матки плодные, но секции изолированы.','warning');}
  const done=new Set((Array.isArray(s.operations)?s.operations:[]).filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
  if(done.has('OP-11')&&done.has('OP-12'))add('R6_WINTERING_EXCLUSIVE','OP-11 и OP-12 взаимоисключающие.');
  if(done.has('OP-13')&&done.has('OP-14'))add('R6_ALT_SPRING_EXCLUSIVE','OP-13 и OP-14 отмечены взаимоисключающими в графе зависимостей; выберите сценарий.');
