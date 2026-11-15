@@ -330,7 +330,7 @@ async function seedRollback(db, { currentVideos = [] } = {}) {
 
 test('rollback refuses a snapshot whose source backup does not match archive history', async () => {
   const db = await makeDatabase();
-  await seedRollback(db);
+  const importedVideo = await seedRollback(db);
   const mutate = db.transaction('archive_staging', 'readwrite');
   const store = mutate.objectStore('archive_staging');
   const request = store.get('rollback-1');
@@ -353,7 +353,7 @@ test('rollback refuses a snapshot whose source backup does not match archive his
     new Promise((resolve, reject) => { const q = verify.objectStore('archive_staging').get('rollback-1'); q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error); })
   ]);
   assert.equal(state.meta.revisionId, 'imported-revision');
-  assert.equal(videos.length, 0);
+  assert.deepEqual(videos.map(video => video.id), [importedVideo.id]);
   assert.equal(history.status, 'committed');
   assert.equal(history.rollbackSessionId, 'rollback-1');
   assert.equal(snapshot.sourceBackupId, 'different-backup', 'the corrupt snapshot is preserved for diagnosis');
