@@ -180,3 +180,12 @@ test('stored process configuration enforces the user-defined 180 mm frame height
   const wrongWintering = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, winteringMode: 'UNKNOWN' } } }], [{ id: 'h1' }]);
   assert.ok(wrongWintering.errors.some(x => x.code === 'TECH_RECORD_STATE_WINTERING_MODE'));
 });
+
+test('stored operation records reject unknown IDs, duplicate IDs and invalid statuses', () => {
+  const base = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [{ operationId: 'OP-01', status: 'PENDING' }] } };
+  assert.equal(api.validateStoredRecords([base], [{ id: 'h1' }]).valid, true);
+  const duplicate = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-01', status: 'PENDING' }, { operationId: 'OP-01', status: 'DONE' }] } }], [{ id: 'h1' }]);
+  assert.ok(duplicate.errors.some(x => x.code === 'TECH_OPERATION_DUPLICATE'));
+  const invalid = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-99', status: 'PENDING' }] } }], [{ id: 'h1' }]);
+  assert.ok(invalid.errors.some(x => x.code === 'TECH_OPERATION_UNKNOWN'));
+});
