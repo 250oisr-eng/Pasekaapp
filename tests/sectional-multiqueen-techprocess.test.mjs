@@ -46,6 +46,9 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('id="sectionalOperationDlg"'));
   assert.ok(html.includes('function openSectionalOperationEditor('));
   assert.ok(html.includes('function saveSectionalOperationEditor('));
+  assert.ok(html.includes('id="sectionalOperationFeedStart"'));
+  assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
+  assert.ok(html.includes('function toggleSectionalOperationFields('));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
@@ -431,4 +434,48 @@ test('operation transition rejects duplicate operation rows and never mutates in
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.code === 'OPERATION_REFERENCE_INVALID'));
   assert.equal(JSON.stringify(record), original);
+});
+
+
+test('OP-02 cannot be completed without actual feeding dates, duration, syrup amount and 2:1 ratio', () => {
+  const record = operationRecord();
+  const missing = api.transitionOperation(record, 'OP-02', {
+    status: 'DONE', completedAt: '2027-04-12', updatedAt: '2027-04-12T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(missing.valid, false);
+  assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_FEEDING_DATES_REQUIRED'));
+  assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
+  assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
+});
+
+test('OP-02 accepts a recorded 12-day 2:1 syrup feeding in the specified daily amount range', () => {
+  const record = operationRecord();
+  const result = api.transitionOperation(record, 'OP-02', {
+    status: 'DONE',
+    completedAt: '2027-04-12',
+    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 },
+    updatedAt: '2027-04-12T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.records[0].state.operations.find(item => item.operationId === 'OP-02').feeding, {
+    startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1
+  });
+  assert.equal(record.state.operations.find(item => item.operationId === 'OP-02').status, 'PENDING');
+});
+
+test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup ratio and amount', () => {
+  const record = operationRecord();
+  const base = { status: 'DONE', completedAt: '2027-04-11', updatedAt: '2027-04-11T10:00:00.000Z' };
+  const short = api.transitionOperation(record, 'OP-02', {
+    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-11', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 }
+  }, [record], [{ id: 'h1' }]);
+  assert.ok(short.errors.some(error => error.code === 'TECH_OP02_DURATION'));
+  const wrongRatio = api.transitionOperation(record, 'OP-02', {
+    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 1, waterParts: 1 }
+  }, [record], [{ id: 'h1' }]);
+  assert.ok(wrongRatio.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
+  const wrongAmount = api.transitionOperation(record, 'OP-02', {
+    ...base, completedAt: '2027-04-12', feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 250, sugarParts: 2, waterParts: 1 }
+  }, [record], [{ id: 'h1' }]);
+  assert.ok(wrongAmount.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
 });
