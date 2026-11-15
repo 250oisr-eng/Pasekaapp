@@ -579,10 +579,12 @@ function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id
 function journalBroodCapacity(hiveId,state=S){
  const hive=state?.hives?.find(item=>item?.id===hiveId);if(!hive)return null;
  const profile=getHiveProfile(hive),perBox=profile?.brood?.framesPerBox,layout=state?.layouts?.[hiveId];
- if(!Number.isSafeInteger(perBox)||perBox<=0||!layout||!Array.isArray(layout.installedBoxes))return null;
+ if(!Number.isSafeInteger(perBox)||perBox<=0||!layout)return null;
  const boxKeys=Array.isArray(profile.brood?.boxKeys)?profile.brood.boxKeys.map(String):[];
- const installed=layout.mode==='winter'&&Array.isArray(layout.winterOrder)&&layout.winterOrder.length
-  ?layout.winterOrder:layout.installedBoxes;
+ // The active assembly is authoritative. Never fall back to summer positions
+ // when a winter order is absent or empty.
+ const installed=layout.mode==='winter'?layout.winterOrder:layout.mode==='summer'?layout.installedBoxes:null;
+ if(!Array.isArray(installed))return null;
  const installedCount=new Set(installed.map(String).filter(key=>boxKeys.includes(key))).size;
  const capacity=installedCount*perBox;
  return Number.isSafeInteger(capacity)&&capacity>0?capacity:null;
