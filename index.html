@@ -692,8 +692,8 @@ async function persistSnapshot(state){
   try{
    const backupState=previous||state;
    const backupWritten=await writeAutoBackup(backupState,state.meta?.revisionId||null);
-   if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;}
-   delete state.meta.autoBackupError;
+   if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;}
+   else{state.meta.autoBackupError='Не удалось подтвердить актуальность резервной копии: данные изменились параллельно';}
   }catch(e){
    state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
   }
