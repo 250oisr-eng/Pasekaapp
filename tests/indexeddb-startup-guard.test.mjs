@@ -25,7 +25,6 @@ function openDbDependencies(indexedDB) {
     STORE: 'main',
     BACKUP_STORE: 'full_backup',
     db: null,
-    databaseCreatedDuringOpen: false
   };
   deps.isFreshDatabaseUpgrade = load('isFreshDatabaseUpgrade', deps);
   return deps;
@@ -35,15 +34,16 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
   const indexedDB = new IDBFactory();
 
   const fresh = openDbDependencies(indexedDB);
-  await load('openDB', fresh)();
-  assert.equal(fresh.databaseCreatedDuringOpen, true);
+  const open = load('openDB', fresh);
+  const firstOpenCreatedDatabase = await open();
+  assert.equal(firstOpenCreatedDatabase, true);
   assert.equal(fresh.db.version, 3);
   fresh.db.close();
 
-  const existingEmpty = openDbDependencies(indexedDB);
-  await load('openDB', existingEmpty)();
-  assert.equal(existingEmpty.databaseCreatedDuringOpen, false);
-  assert.equal(existingEmpty.db.version, 3);
+  // A retry in the same page must not inherit the first open's "fresh" result.
+  const secondOpenCreatedDatabase = await open();
+  assert.equal(secondOpenCreatedDatabase, false);
+  assert.equal(fresh.db.version, 3);
 
   const stateRequest = existingEmpty.db.transaction('main', 'readonly')
     .objectStore('main').get('state');
@@ -54,14 +54,14 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
   assert.equal(state, undefined);
 
   const canInitialize = load('canInitializeFreshDatabase', existingEmpty);
-  assert.equal(canInitialize(existingEmpty.databaseCreatedDuringOpen, state), false);
+  assert.equal(canInitialize(secondOpenCreatedDatabase, state), false);
   existingEmpty.db.close();
 });
 
 test('fresh empty database is eligible for first-run initialization', async () => {
   const deps = openDbDependencies(new IDBFactory());
-  await load('openDB', deps)();
+  const createdDatabase = await load('openDB', deps)();
   const canInitialize = load('canInitializeFreshDatabase', deps);
-  assert.equal(canInitialize(deps.databaseCreatedDuringOpen, undefined), true);
+  assert.equal(canInitialize(createdDatabase, undefined), true);
   deps.db.close();
 });
