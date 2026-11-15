@@ -65,3 +65,41 @@ test('fresh empty database is eligible for first-run initialization', async () =
   assert.equal(canInitialize(createdDatabase, undefined), true);
   deps.db.close();
 });
+
+
+test('existing empty database without automatic backup stays empty and is not first-run eligible', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  deps.autoBackupRecovered = false;
+  deps.autoBackupInfo = null;
+  deps.readMain = load('readMain', deps);
+  deps.readAutoBackup = load('readAutoBackup', deps);
+
+  const loaded = await load('read', deps)();
+  assert.equal(loaded, undefined);
+  assert.equal(load('canInitializeFreshDatabase', deps)(false, loaded), false);
+  deps.db.close();
+});
+
+test('existing empty primary database still recovers a valid automatic backup', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  const backupState = { meta: { schemaVersion: 12 }, hives: [{ id: 'hive-1' }] };
+  const transaction = deps.db.transaction('full_backup', 'readwrite');
+  transaction.objectStore('full_backup').put({ state: backupState }, 'previous');
+  await new Promise((resolve, reject) => {
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+
+  deps.autoBackupRecovered = false;
+  deps.autoBackupInfo = null;
+  deps.readMain = load('readMain', deps);
+  deps.readAutoBackup = load('readAutoBackup', deps);
+
+  const loaded = await load('read', deps)();
+  assert.deepEqual(loaded, backupState);
+  assert.equal(deps.autoBackupRecovered, true);
+  deps.db.close();
+});
