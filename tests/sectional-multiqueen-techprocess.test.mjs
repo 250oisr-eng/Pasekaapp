@@ -298,3 +298,134 @@ test('stored OP-05 and OP-06 completion dates must match the user-defined window
   const missingOP04Date = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-04' ? { ...op, completedAt: null } : op) } }], [{ id: 'h1' }]);
   assert.ok(missingOP04Date.errors.some(x => x.code === 'TECH_OP05_COMPLETION_DATE_REQUIRED'));
 });
+
+
+function operationRecord(stateOverrides = {}) {
+  const now = '2027-04-01T10:00:00.000Z';
+  return {
+    id: 'tp-operation-test',
+    hiveId: 'h1',
+    specVersion: api.SPEC.version,
+    createdAt: now,
+    updatedAt: now,
+    state: {
+      phase: 'PRE_DIVISION',
+      config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED', additionalBottoms: 0, hasRemovableFeeder: false },
+      sections: [],
+      queens: [],
+      operations: api.SPEC.operations.map(operation => ({ operationId: operation.id, status: 'PENDING' })),
+      ...stateOverrides
+    }
+  };
+}
+function validOp05State() {
+  return {
+    phase: 'DIVIDED_3_SECTIONS',
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'MESH_ISOLATED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'UNFERTILIZED' })),
+    requiredMeshPlugCount: 3,
+    meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
+    operations: api.SPEC.operations.map(operation => ({
+      operationId: operation.id,
+      status: operation.id === 'OP-04' ? 'DONE' : 'PENDING',
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {})
+    }))
+  };
+}
+function validOp06State() {
+  return {
+    phase: 'DIVIDED_3_SECTIONS',
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    requiredMeshPlugCount: 3,
+    meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: false, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
+    operations: api.SPEC.operations.map(operation => ({
+      operationId: operation.id,
+      status: ['OP-04', 'OP-05'].includes(operation.id) ? 'DONE' : 'PENDING',
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {}),
+      ...(operation.id === 'OP-05' ? { completedAt: '2027-05-18' } : {})
+    }))
+  };
+}
+
+test('operation transition marks a valid operation complete without mutating the original record', () => {
+  const record = operationRecord();
+  const original = JSON.stringify(record);
+  const result = api.transitionOperation(record, 'OP-01', {
+    status: 'DONE', completedAt: '2027-04-05', plannedAt: '', note: 'Летки открыты', updatedAt: '2027-04-05T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, true);
+  assert.equal(result.records[0].state.operations.find(item => item.operationId === 'OP-01').status, 'DONE');
+  assert.equal(result.records[0].state.operations.find(item => item.operationId === 'OP-01').completedAt, '2027-04-05');
+  assert.equal(JSON.stringify(record), original);
+});
+
+test('scheduled operation requires a real planned date and rejects impossible calendar dates', () => {
+  const record = operationRecord();
+  const missing = api.transitionOperation(record, 'OP-01', {
+    status: 'SCHEDULED', plannedAt: '', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(missing.valid, false);
+  assert.ok(missing.errors.some(error => error.code === 'OPERATION_PLANNED_DATE_REQUIRED'));
+  const impossible = api.transitionOperation(record, 'OP-01', {
+    status: 'SCHEDULED', plannedAt: '2027-02-30', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(impossible.valid, false);
+  assert.ok(impossible.errors.some(error => error.code === 'OPERATION_PLANNED_DATE_INVALID'));
+});
+
+test('mandatory operations cannot be skipped and failed or skipped operations require a reason', () => {
+  const record = operationRecord();
+  const mandatorySkip = api.transitionOperation(record, 'OP-01', {
+    status: 'SKIPPED', note: 'Не выполнялась', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(mandatorySkip.valid, false);
+  assert.ok(mandatorySkip.errors.some(error => error.code === 'OPERATION_SKIP_REQUIRED'));
+  const optionalWithoutReason = api.transitionOperation(record, 'OP-03', {
+    status: 'SKIPPED', note: '', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(optionalWithoutReason.valid, false);
+  assert.ok(optionalWithoutReason.errors.some(error => error.code === 'OPERATION_REASON_REQUIRED'));
+  const optionalWithReason = api.transitionOperation(record, 'OP-03', {
+    status: 'SKIPPED', note: 'По состоянию семьи не потребовалась', updatedAt: '2027-04-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(optionalWithReason.valid, true);
+});
+
+test('OP-05 completion enforces prerequisite and 8–11 day window from OP-04', () => {
+  const record = operationRecord(validOp05State());
+  const tooEarly = api.transitionOperation(record, 'OP-05', {
+    status: 'DONE', completedAt: '2027-05-17', updatedAt: '2027-05-17T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(tooEarly.valid, false);
+  assert.ok(tooEarly.errors.some(error => error.code === 'TECH_OP05_DATE_WINDOW'));
+  const valid = api.transitionOperation(record, 'OP-05', {
+    status: 'DONE', completedAt: '2027-05-18', updatedAt: '2027-05-18T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(valid.valid, true);
+});
+
+test('OP-06 completion requires three fertilized queens, connected sections, removed plugs and 20–21 days from OP-04', () => {
+  const record = operationRecord(validOp06State());
+  const tooLate = api.transitionOperation(record, 'OP-06', {
+    status: 'DONE', completedAt: '2027-06-01', updatedAt: '2027-06-01T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(tooLate.valid, false);
+  assert.ok(tooLate.errors.some(error => error.code === 'TECH_OP06_DATE_WINDOW'));
+  const valid = api.transitionOperation(record, 'OP-06', {
+    status: 'DONE', completedAt: '2027-05-30', updatedAt: '2027-05-30T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(valid.valid, true);
+});
+
+test('operation transition rejects duplicate operation rows and never mutates invalid state', () => {
+  const record = operationRecord();
+  record.state.operations.push({ operationId: 'OP-01', status: 'PENDING' });
+  const original = JSON.stringify(record);
+  const result = api.transitionOperation(record, 'OP-01', {
+    status: 'DONE', completedAt: '2027-04-05', updatedAt: '2027-04-05T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.code === 'OPERATION_REFERENCE_INVALID'));
+  assert.equal(JSON.stringify(record), original);
+});
