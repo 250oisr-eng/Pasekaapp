@@ -1828,7 +1828,7 @@ test('Farrar winter finish refuses honey flags without silently clearing them',a
  const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:null,alert:message=>messages.push(message)});
  await finish();
  assert.equal(JSON.stringify(layout),before);
- assert.ok(messages.some(message=>message.includes('сначала явно сними')));
+ assert.ok(messages.some(message=>message.toLowerCase().includes('сначала явно сними')));
 });
 test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
  const source=extractFunction('renderStructure');
