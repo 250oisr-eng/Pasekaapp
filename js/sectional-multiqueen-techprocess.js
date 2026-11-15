@@ -40,7 +40,7 @@ const SPEC=Object.freeze({
  'В OP-09 открывается круглый леток именно в нижнем гнездовом корпусе каждой секции; это сезонное правило не меняет весеннее/после-разделительное назначение летков R1.'
  ]
 });
-const DAY=86400000,DATE_RE=/^\\d{4}-\\d{2}-\\d{2}$/;
+const DAY=86400000,DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
 function parseDate(v){if(typeof v!=='string'||!DATE_RE.test(v))return null;const p=v.split('-').map(Number),d=new Date(Date.UTC(p[0],p[1]-1,p[2]));return d.getUTCFullYear()===p[0]&&d.getUTCMonth()===p[1]-1&&d.getUTCDate()===p[2]?d:null;}
 function fmt(d){return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
 function shiftDate(v,n){const d=parseDate(v);if(!d||!Number.isInteger(n))throw new Error('Укажи корректную дату и целое число дней.');return fmt(new Date(d.getTime()+n*DAY));}
