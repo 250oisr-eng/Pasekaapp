@@ -2565,3 +2565,24 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+test('family transfer rejects malformed frame history before mutating either hive',()=>{
+ const validate=loadFunction('familyTransferFrameHistoryIsValid');
+ assert.equal(validate([{frameId:'f1',history:[{action:'created'}]}]),true);
+ assert.equal(validate([{frameId:'f1',history:null}]),true);
+ assert.equal(validate([{frameId:'f1'}]),true);
+ assert.equal(validate([{frameId:'f1',history:{corrupt:true}}]),false);
+ assert.equal(validate([{frameId:'f1',history:'corrupt'}]),false);
+ assert.equal(validate(null),false);
+ const start=html.indexOf('async function confirmFamilyTransfer(e){');
+ const end=html.indexOf('function addFamily(',start);
+ assert.ok(start>=0&&end>start,'family transfer handler is present');
+ const handler=html.slice(start,end);
+ const guard=handler.indexOf('familyTransferFrameHistoryIsValid(frames)');
+ const snapshot=handler.indexOf('structuredClone(S)');
+ const firstMutation=handler.indexOf('sourceBox.frames=targetFrames');
+ assert.ok(guard>0,'frame history is validated');
+ assert.ok(snapshot>guard,'validation precedes rollback snapshot');
+ assert.ok(firstMutation>guard,'validation precedes any family or frame mutation');
+ assert.match(handler,/fr\.history=Array\.isArray\(fr\.history\)\?fr\.history:\[\]/);
+});
