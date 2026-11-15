@@ -357,27 +357,6 @@ async function sha256BlobHex(blob, cryptoProvider) {
   }
   return root.PasekaSha256.hashBlobHex(blob);
 }
-async function hashLiveMediaBaseline(db, cryptoProvider) {
-  const tx = db.transaction('entrance_media', 'readonly');
-  const done = transactionDone(tx);
-  const rows = await requestValue(tx.objectStore('entrance_media').getAll());
-  await done;
-  const records = await Promise.all((rows || []).map(async record => {
-    if (!record || !record.blob || typeof record.blob.slice !== 'function') {
-      fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob.');
-    }
-    const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
-    if (record.blobSha256 !== undefined &&
-        (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
-      fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum.');
-    }
-    return { ...record, blobSha256: actualHash };
-  }));
-  return {
-    fingerprint: mediaRecordsFingerprint(records),
-    hashes: new Map(records.map(record => [record.id, record.blobSha256]))
-  };
-}
 async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvider, archiveApi, validateState, prepareState) {
   ensureStores(db);
   if (!db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('full_backup') || !db.objectStoreNames.contains('entrance_media')) {
@@ -388,14 +367,9 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
   // Phase A: all Blob reads, hashing, parsing and state validation happen before
   // opening the final write transaction. No non-IDB await is allowed in Phase B.
   const staged = await getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState);
-  // Re-hash the live library immediately before commit. Legacy rows may not
-  // have a persisted checksum; never rewrite their Blob during staging.
-  const phaseAMedia = await hashLiveMediaBaseline(db, cryptoProvider);
-  if (typeof staged.session.baselineMediaFingerprint !== 'string' ||
-      phaseAMedia.fingerprint !== staged.session.baselineMediaFingerprint) {
-    fail('RESTORE_MEDIA_CHANGED', 'The video library changed after archive preparation. The import was cancelled to preserve newer videos.');
+  if (typeof staged.session.baselineMediaFingerprint !== 'string') {
+    fail('RESTORE_MEDIA_BASELINE_MISSING', 'The staged archive has no verified video-library baseline.');
   }
-  const phaseAMediaHashes = phaseAMedia.hashes;
   let importedState = cloneState(staged.state);
   const now = new Date().toISOString();
   importedState.meta = { ...(importedState.meta || {}), revisionId: randomId(cryptoProvider), updatedAt: now };
@@ -446,7 +420,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       };
       const values = {};
       let pending = Object.keys(reads).length;
-      const process = () => {
+      const process = currentMediaHashes => {
         try {
           const currentState = values.currentState || null;
           const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
@@ -479,12 +453,12 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             fail('STAGING_RECORD_SET_MISMATCH', 'Staged entry set does not match the verified archive manifest.');
           }
           const normalizedCurrentVideos = currentVideos.map(record => {
-            const expectedHash = phaseAMediaHashes.get(record?.id);
-            if (typeof expectedHash !== 'string' ||
-                (record.blobSha256 !== undefined && record.blobSha256 !== expectedHash)) {
+            const actualHash = currentMediaHashes.get(record?.id);
+            if (typeof actualHash !== 'string' ||
+                (record.blobSha256 !== undefined && record.blobSha256 !== actualHash)) {
               fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being committed. The import was cancelled to preserve newer videos.');
             }
-            return { ...record, blobSha256: expectedHash };
+            return { ...record, blobSha256: actualHash };
           });
           if (typeof session.baselineMediaFingerprint !== 'string' ||
               mediaRecordsFingerprint(normalizedCurrentVideos) !== session.baselineMediaFingerprint) {
@@ -555,7 +529,49 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         request.onsuccess = () => {
           values[key] = request.result;
           pending--;
-          if (pending === 0) process();
+          if (pending === 0) {
+            // Hash the exact media snapshot read by this readwrite transaction.
+            // Keep the transaction alive with harmless indexed reads until the
+            // asynchronous Blob hashing settles; other tabs' media writes wait
+            // behind this transaction and cannot slip between hash and commit.
+            let hashingSettled = false;
+            let hashingError = null;
+            let mediaHashes = null;
+            Promise.all(currentVideos.map(async record => {
+              if (!record || typeof record.id !== 'string' || !record.blob || typeof record.blob.slice !== 'function') {
+                fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob.');
+              }
+              const actualHash = await sha256BlobHex(record.blob, cryptoProvider);
+              if (record.blobSha256 !== undefined &&
+                  (typeof record.blobSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.blobSha256) || record.blobSha256 !== actualHash)) {
+                fail('MEDIA_BASELINE_HASH_MISMATCH', 'An existing entrance video does not match its saved SHA-256 checksum.');
+              }
+              return [record.id, actualHash];
+            })).then(entries => {
+              mediaHashes = new Map(entries);
+              hashingSettled = true;
+            }, error => {
+              hashingError = error;
+              hashingSettled = true;
+            });
+            const keepTransactionActive = () => {
+              if (hashingSettled) {
+                if (hashingError) abortWith(hashingError);
+                else process(mediaHashes);
+                return;
+              }
+              let keepAliveRequest;
+              try {
+                keepAliveRequest = media.get('__paseka_restore_hash_keepalive__');
+              } catch (error) {
+                abortWith(error);
+                return;
+              }
+              keepAliveRequest.onsuccess = keepTransactionActive;
+              keepAliveRequest.onerror = () => abortWith(keepAliveRequest.error || new Error('Could not keep the media verification transaction active.'));
+            };
+            keepTransactionActive();
+          }
         };
         request.onerror = () => abortWith(request.error || new Error('Could not read live or staged archive data.'));
       }
