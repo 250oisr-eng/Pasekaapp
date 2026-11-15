@@ -271,3 +271,30 @@ test('stored operation records reject unknown IDs, duplicate IDs and invalid sta
   const invalid = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-99', status: 'PENDING' }] } }], [{ id: 'h1' }]);
   assert.ok(invalid.errors.some(x => x.code === 'TECH_OPERATION_UNKNOWN'));
 });
+
+
+test('stored OP-05 and OP-06 completion dates must match the user-defined windows', () => {
+  const base = {
+    id: 'tp-date', hiveId: 'h1', specVersion: '1.2.0',
+    createdAt: '2027-04-01T09:00:00.000Z', updatedAt: '2027-04-21T09:00:00.000Z',
+    state: {
+      phase: 'DIVIDED_3_SECTIONS',
+      config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' },
+      sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+      queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+      meshPlugs: [],
+      operations: [
+        { operationId: 'OP-04', status: 'DONE', completedAt: '2027-04-01' },
+        { operationId: 'OP-05', status: 'DONE', completedAt: '2027-04-10' },
+        { operationId: 'OP-06', status: 'DONE', completedAt: '2027-04-21' }
+      ]
+    }
+  };
+  assert.equal(api.validateStoredRecords([base], [{ id: 'h1' }]).valid, true);
+  const lateOP05 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-05' ? { ...op, completedAt: '2027-04-13' } : op) } }], [{ id: 'h1' }]);
+  assert.ok(lateOP05.errors.some(x => x.code === 'TECH_OP05_DATE_WINDOW'));
+  const earlyOP06 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-06' ? { ...op, completedAt: '2027-04-19' } : op) } }], [{ id: 'h1' }]);
+  assert.ok(earlyOP06.errors.some(x => x.code === 'TECH_OP06_DATE_WINDOW'));
+  const missingOP04Date = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-04' ? { ...op, completedAt: null } : op) } }], [{ id: 'h1' }]);
+  assert.ok(missingOP04Date.errors.some(x => x.code === 'TECH_OP05_COMPLETION_DATE_REQUIRED'));
+});
