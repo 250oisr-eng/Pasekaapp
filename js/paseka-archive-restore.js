@@ -561,7 +561,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   ]);
   await transactionDone(readTx);
 
-  if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') {
+  if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.sourceBackupId !== backupId || rollbackSession.status !== 'ready') {
     fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
   }
   if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
@@ -730,7 +730,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
             fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
           }
           if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
-              currentRollbackSession.status !== 'ready' ||
+              currentRollbackSession.sourceBackupId !== backupId || currentRollbackSession.status !== 'ready' ||
               currentRollbackSession.totalEntries !== rollbackSession.totalEntries ||
               currentRollbackSession.stagedCount !== rollbackSession.stagedCount) {
             fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
