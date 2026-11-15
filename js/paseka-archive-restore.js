@@ -155,15 +155,9 @@ function stagingMetadataFingerprint(session, records) {
       return [record.id, record.kind, revision, size, chunks];
     })
     .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
-  const revisions = contentRecords.map(record => record[2]);
   if (contentRecords.length !== session.stagedCount ||
       new Set(contentRecords.map(record => record[0])).size !== contentRecords.length) {
     fail('STAGING_FINGERPRINT_SET_INVALID', 'Staged entry set does not match its session.');
-  }
-  if (new Set(revisions).size !== revisions.length ||
-      (Number.isSafeInteger(session.stagingEpoch) && session.stagingEpoch >= 0 &&
-        revisions.some(revision => revision > session.stagingEpoch))) {
-    fail('STAGING_FINGERPRINT_REVISION_INVALID', 'Staged entry revisions do not form a unique set within the session epoch.');
   }
   const canonical = JSON.stringify([
     'PASEKA-STAGING-FINGERPRINT',
@@ -955,6 +949,12 @@ async function readStagedArchive(db, sessionId, cryptoProvider, archiveApi, vali
   }
   const currentFingerprint = await manifestFingerprint(session.manifest, cryptoProvider);
   if (currentFingerprint !== session.fingerprint) fail('STAGING_MANIFEST_MISMATCH', 'Staged manifest fingerprint is invalid.');
+  if (allowStaging && Number.isSafeInteger(session.stagingEpoch) && session.stagingEpoch >= 0) {
+    const revisions = contentRecords.map(record => record.stagingRevision);
+    if (new Set(revisions).size !== revisions.length || revisions.some(revision => revision > session.stagingEpoch)) {
+      fail('STAGING_FINGERPRINT_REVISION_INVALID', 'Staged entry revisions do not form a unique set within the session epoch.');
+    }
+  }
   const stateRecords = contentRecords.filter(record => record.kind === 'state');
   const videoRecords = contentRecords.filter(record => record.kind === 'video');
   if (stateRecords.length !== 1 || videoRecords.length !== videoEntries.length) fail('STAGING_CONTENT_MISSING', 'Staged archive content is incomplete.');
