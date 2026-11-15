@@ -3011,6 +3011,27 @@ test('entrance video save hashes and stores the same Blob snapshot when caller m
 });
 
 
+test('entrance video file processing holds the database open during asynchronous validation',async()=>{
+ const databaseOperationState={active:0,waiters:[]};
+ let releaseValidation,notifyValidation;
+ const validationStarted=new Promise(resolve=>{notifyValidation=resolve});
+ const validationGate=new Promise(resolve=>{releaseValidation=resolve});
+ const status={textContent:''},select={value:'hive-1'};
+ const handle=loadFunction('handleEntranceVideoFile',{
+  $:id=>id==='entranceVideoStatus'?status:select,
+  beginDatabaseOperation:loadFunction('beginDatabaseOperation',{databaseOperationState}),
+  inspectEntranceVideoFile:async()=>{notifyValidation();await validationGate;return {durationSec:2,width:640,height:480}},
+  PasekaEntranceAnalysis:{assessVideoMetadata:()=>({ok:false,errors:[{message:'invalid test video'}],warnings:[]})},
+  alert:()=>{}
+ });
+ const operation=handle([{size:8,type:'video/mp4',name:'test.mp4'}]);
+ await validationStarted;
+ assert.equal(databaseOperationState.active,1,'file validation must hold the connection before Blob hashing begins');
+ releaseValidation();
+ await operation;
+ assert.equal(databaseOperationState.active,0,'all early-return paths must release the operation lease');
+});
+
 test('photo reference switch revalidates Blob bytes before reporting an idempotent success', async () => {
   const module = { exports: {} };
   new Function('module', 'exports', mediaReferenceSwitchSource)(module, module.exports);
