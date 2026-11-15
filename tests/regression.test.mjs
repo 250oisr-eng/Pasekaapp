@@ -2199,9 +2199,9 @@ test('IndexedDB open rejects a blocked upgrade and closes a late connection',asy
  assert.equal(deps.db,null);
 });
 
-test('IndexedDB connection closes on versionchange so another tab can upgrade',async()=>{
- const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
- const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}}};
+test('IndexedDB connection closes on versionchange and tells the old tab to reload',async()=>{
+ const request={},alerts=[],fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}},alert:message=>alerts.push(message)};
  const pending=loadFunction('openDB',deps)();
  request.result=fakeDb;request.onsuccess();
  await pending;
@@ -2209,6 +2209,32 @@ test('IndexedDB connection closes on versionchange so another tab can upgrade',a
  fakeDb.onversionchange();
  assert.equal(fakeDb.closed,true);
  assert.equal(deps.db,null);
+ assert.match(alerts[0],/Обновите страницу/);
+});
+
+test('opening database version 9 closes an older tab before enabling media writes',async()=>{
+ const factory=new IDBFactory();
+ const oldRequest=factory.open('paseka-media-version-fence',8);
+ oldRequest.onupgradeneeded=()=>{
+  oldRequest.result.createObjectStore('main');
+  oldRequest.result.createObjectStore('backup');
+  oldRequest.result.createObjectStore('entrance_media',{keyPath:'id'});
+ };
+ const oldDb=await new Promise((resolve,reject)=>{
+  oldRequest.onsuccess=()=>resolve(oldRequest.result);
+  oldRequest.onerror=()=>reject(oldRequest.error);
+ });
+ let oldTabClosed=false;
+ oldDb.onversionchange=()=>{oldTabClosed=true;oldDb.close()};
+ const deps={
+  DB:'paseka-media-version-fence',STORE:'main',BACKUP_STORE:'backup',
+  AUTO_SNAPSHOT_STORE:'auto_snapshots',db:null,indexedDB:factory,alert:()=>{}
+ };
+ await loadFunction('openDB',deps)();
+ assert.equal(oldTabClosed,true,'the previous app connection must close during the version upgrade');
+ assert.equal(deps.db.version,9);
+ assert.throws(()=>oldDb.transaction('entrance_media','readwrite'),{name:'InvalidStateError'});
+ deps.db.close();
 });
 
 
