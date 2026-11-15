@@ -185,5 +185,44 @@ function validateStoredRecords(records,hives){
  return {valid:errors.length===0,errors};
 }
 function getOperation(id){return SPEC.operations.find(x=>x.id===id)||null;}
-window.PasekaSectionalTechProcess=Object.freeze({SPEC,parseDate,shiftDate,buildOperationSchedule,validateHiveState,validateStoredRecords,getOperation});
+function transitionOperation(record,operationId,draft,records,hives){
+ const errors=[],add=(code,message)=>errors.push({code,message});
+ if(!record||typeof record!=='object'||Array.isArray(record)){add('OPERATION_RECORD_INVALID','Карточка техпроцесса не найдена или повреждена.');return {valid:false,errors};}
+ const definition=getOperation(operationId);
+ if(!definition){add('OPERATION_UNKNOWN','Неизвестная операция.');return {valid:false,errors};}
+ if(!draft||typeof draft!=='object'||Array.isArray(draft)){add('OPERATION_DRAFT_INVALID','Нет данных изменения операции.');return {valid:false,errors};}
+ const statuses=['PENDING','SCHEDULED','DONE','SKIPPED','FAILED'];
+ if(!statuses.includes(draft.status)){add('OPERATION_STATUS_INVALID','Недопустимый статус операции.');return {valid:false,errors};}
+ if(draft.status==='SKIPPED'&&!definition.optional){add('OPERATION_SKIP_REQUIRED','Обязательную операцию нельзя отметить как пропущенную.');return {valid:false,errors};}
+ const note=typeof draft.note==='string'?draft.note.trim():'';
+ if(note.length>1000){add('OPERATION_NOTE_TOO_LONG','Комментарий не должен превышать 1000 символов.');return {valid:false,errors};}
+ if((draft.status==='SKIPPED'||draft.status==='FAILED')&&!note){add('OPERATION_REASON_REQUIRED','Для пропущенной или невыполненной операции укажи причину.');return {valid:false,errors};}
+ const plannedAt=draft.plannedAt===''||draft.plannedAt==null?null:draft.plannedAt;
+ const completedAt=draft.completedAt===''||draft.completedAt==null?null:draft.completedAt;
+ if(plannedAt!==null&&!parseDate(plannedAt)){add('OPERATION_PLANNED_DATE_INVALID','Укажи существующую дату планирования.');return {valid:false,errors};}
+ if(draft.status==='SCHEDULED'&&!plannedAt){add('OPERATION_PLANNED_DATE_REQUIRED','Для запланированной операции укажи дату.');return {valid:false,errors};}
+ if(draft.status==='DONE'&&!parseDate(completedAt)){add('OPERATION_COMPLETION_DATE_REQUIRED','Для выполненной операции укажи фактическую дату выполнения.');return {valid:false,errors};}
+ const updatedAt=typeof draft.updatedAt==='string'&&Number.isFinite(Date.parse(draft.updatedAt))?draft.updatedAt:null;
+ if(!updatedAt){add('OPERATION_UPDATED_AT_INVALID','Не удалось подтвердить время изменения операции.');return {valid:false,errors};}
+ if(!Array.isArray(records)||!Array.isArray(hives)){add('OPERATION_CONTEXT_INVALID','Не удалось проверить связанные карточки и ульи.');return {valid:false,errors};}
+ const matches=records.filter(item=>item&&item.id===record.id);
+ if(matches.length!==1){add('OPERATION_RECORD_REFERENCE','Карточка должна однозначно присутствовать в реестре техпроцессов.');return {valid:false,errors};}
+ const operations=record.state&&Array.isArray(record.state.operations)?record.state.operations:null;
+ if(!operations){add('OPERATION_LIST_MISSING','Список операций не инициализирован.');return {valid:false,errors};}
+ const operationMatches=operations.filter(item=>item&&item.operationId===operationId);
+ if(operationMatches.length!==1){add('OPERATION_REFERENCE_INVALID','Операция должна присутствовать в списке ровно один раз.');return {valid:false,errors};}
+ const nextRecord=JSON.parse(JSON.stringify(record));
+ const target=nextRecord.state.operations.find(item=>item&&item.operationId===operationId);
+ target.status=draft.status;
+ target.plannedAt=plannedAt;
+ target.completedAt=draft.status==='DONE'?completedAt:null;
+ target.note=note||null;
+ target.updatedAt=updatedAt;
+ nextRecord.updatedAt=updatedAt;
+ const nextRecords=records.map(item=>item&&item.id===record.id?nextRecord:item);
+ const validation=validateStoredRecords(nextRecords,hives);
+ if(!validation.valid)return {valid:false,errors:validation.errors.map(item=>({code:item.code,message:item.details?.message||'Изменение нарушает правила технологического процесса.',details:item.details||null}))};
+ return {valid:true,errors:[],warnings:validateHiveState(nextRecord.state).warnings,record:nextRecord,records:nextRecords};
+}
+window.PasekaSectionalTechProcess=Object.freeze({SPEC,parseDate,shiftDate,buildOperationSchedule,validateHiveState,validateStoredRecords,transitionOperation,getOperation});
 })();
