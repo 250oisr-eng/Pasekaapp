@@ -590,7 +590,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <input type="hidden" id="sectionalOperationRecordId">
   <input type="hidden" id="sectionalOperationId">
   <label for="sectionalOperationStatus">Статус</label>
-  <select id="sectionalOperationStatus" required>
+  <select id="sectionalOperationStatus" required onchange="toggleSectionalOperationFields()">
    <option value="PENDING">Не начата</option>
    <option value="SCHEDULED">Запланирована</option>
    <option value="DONE">Выполнена</option>
@@ -601,6 +601,16 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <input id="sectionalOperationPlannedAt" type="date">
   <label for="sectionalOperationCompletedAt">Фактическая дата выполнения</label>
   <input id="sectionalOperationCompletedAt" type="date">
+  <div id="sectionalOperationFeedingFields" style="display:none;padding:10px;border:1px solid #dce4d9;border-radius:10px;background:#f7faf5">
+   <b>Фактическая весенняя подкормка OP-02</b>
+   <p class="muted">По технологии: сахарный сироп 2:1 (сахар:вода), 100–200 г на семью в сутки, 12–15 календарных дней.</p>
+   <label for="sectionalOperationFeedStart">Первый день подкормки</label>
+   <input id="sectionalOperationFeedStart" type="date">
+   <label for="sectionalOperationFeedEnd">Последний день подкормки</label>
+   <input id="sectionalOperationFeedEnd" type="date">
+   <label for="sectionalOperationFeedAmount">Количество сиропа на семью в сутки, г</label>
+   <input id="sectionalOperationFeedAmount" type="number" min="100" max="200" step="1" placeholder="100–200">
+  </div>
   <label for="sectionalOperationNote">Комментарий / причина</label>
   <textarea id="sectionalOperationNote" rows="3" maxlength="1000" placeholder="Что фактически сделано, что помешало или почему операция пропущена"></textarea>
   <p id="sectionalOperationFeedback" class="muted" role="status" aria-live="polite"></p>
@@ -1704,6 +1714,7 @@ async function initializeSectionalTechProcessOperations(recordId){
  logAudit('sectional_tech_process_operations_initialized',{hiveId:record.hiveId,techProcessId:record.id,operationCount:record.state.operations.length});sectionalTechProcessSavePending=true;report('Сохраняем список операций…');
  try{const saved=await save();if(saved){sectionalTechProcessSavePending=false;report('Список OP-01…OP-14 сохранён.');}else report('Сохранение не подтверждено. Список остаётся в памяти; скачай JSON-архив.');renderSectionalTechProcessModule();return !!saved}catch(error){report('Ошибка сохранения: '+(error.message||error)+'. Список остаётся в памяти; скачай JSON-архив.');renderSectionalTechProcessModule();return false}
 }
+function toggleSectionalOperationFields(){const host=$('sectionalOperationFeedingFields');if(host)host.style.display=$('sectionalOperationId')?.value==='OP-02'&&$('sectionalOperationStatus')?.value==='DONE'?'block':'none'}
 function openSectionalOperationEditor(recordId,operationId){
  const record=S.sectionalTechProcesses?.find(item=>item&&item.id===recordId),operation=record?.state?.operations?.find(item=>item&&item.operationId===operationId),definition=PasekaSectionalTechProcess.getOperation(operationId);
  if(!record||!operation||!definition)return alert('Карточка или операция не найдена. Обнови список.');
@@ -1713,6 +1724,7 @@ function openSectionalOperationEditor(recordId,operationId){
  $('sectionalOperationPlannedAt').value=operation.plannedAt||'';
  $('sectionalOperationCompletedAt').value=operation.completedAt||'';
  $('sectionalOperationNote').value=operation.note||'';
+ $('sectionalOperationFeedStart').value=operation.feeding?.startDate||'';$('sectionalOperationFeedEnd').value=operation.feeding?.endDate||'';$('sectionalOperationFeedAmount').value=operation.feeding?.gramsPerColonyPerDay??'';toggleSectionalOperationFields();
  $('sectionalOperationFeedback').textContent=definition.optional?'Операция необязательная. При пропуске укажи причину.':'Обязательная операция. Отметить её как пропущенную нельзя.';
  const dialog=$('sectionalOperationDlg');if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
 }
@@ -1721,7 +1733,7 @@ async function saveSectionalOperationEditor(event){
  const recordId=$('sectionalOperationRecordId').value,operationId=$('sectionalOperationId').value,record=S.sectionalTechProcesses?.find(item=>item&&item.id===recordId),feedback=$('sectionalOperationFeedback');
  const report=message=>{if(feedback)feedback.textContent=message};
  if(!record){report('Карточка техпроцесса не найдена.');return false}
- const draft={status:$('sectionalOperationStatus').value,plannedAt:$('sectionalOperationPlannedAt').value||null,completedAt:$('sectionalOperationCompletedAt').value||null,note:$('sectionalOperationNote').value,updatedAt:new Date().toISOString()};
+ const draft={status:$('sectionalOperationStatus').value,plannedAt:$('sectionalOperationPlannedAt').value||null,completedAt:$('sectionalOperationCompletedAt').value||null,note:$('sectionalOperationNote').value,feeding:{startDate:$('sectionalOperationFeedStart').value||null,endDate:$('sectionalOperationFeedEnd').value||null,gramsPerColonyPerDay:Number($('sectionalOperationFeedAmount').value),sugarParts:2,waterParts:1},updatedAt:new Date().toISOString()};
  const result=PasekaSectionalTechProcess.transitionOperation(record,operationId,draft,S.sectionalTechProcesses,S.hives);
  if(!result.valid){report('Изменение отклонено: '+result.errors.map(error=>error.code).join(', '));return false}
  const previous=cloneApiaryState();
