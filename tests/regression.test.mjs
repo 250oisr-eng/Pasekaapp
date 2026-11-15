@@ -2584,3 +2584,40 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+
+test('persistSnapshot reports an unconfirmed automatic backup without undoing a committed primary save', async () => {
+ const state={meta:{revisionId:'revision-2'}};
+ const deps={
+  S:{meta:{revisionId:'revision-2'}},
+  lastPersistedRevision:'revision-1',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>false,
+  render(){},
+  updateStorageEstimate(){}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'primary database commit remains successful');
+ assert.match(state.meta.autoBackupError,/изменились параллельно/);
+ assert.match(deps.S.meta.autoBackupError,/изменились параллельно/);
+ assert.equal(deps.lastPersistedRevision,'revision-2');
+});
+
+test('persistSnapshot preserves a quota warning when automatic backup storage is full', async () => {
+ const state={meta:{revisionId:'revision-3'}};
+ const quotaError=Object.assign(new Error('quota'),{name:'QuotaExceededError'});
+ const deps={
+  S:{meta:{revisionId:'revision-3'}},
+  lastPersistedRevision:'revision-2',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>null,
+  writeAutoBackup:async()=>{throw quotaError;},
+  render(){},
+  updateStorageEstimate(){}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'primary database commit remains successful');
+ assert.match(state.meta.autoBackupError,/Недостаточно места/);
+ assert.match(deps.S.meta.autoBackupError,/Недостаточно места/);
+});
