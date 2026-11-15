@@ -20,6 +20,8 @@ test('spec exposes 14 stable operations and three distinct entrance assignments'
   assert.equal(api.SPEC.version, '1.1.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
+  assert.equal(api.SPEC.frameHeightMm, 180);
+  assert.equal(api.SPEC.geometry.bodyHeightMm, 'PROFILE_DEFINED_SEPARATELY');
   assert.equal(api.getOperation('OP-02').syrupRatio.sugar, 2);
   assert.deepEqual(api.SPEC.entranceAssignment.map(x => x.openEntrance), ['FLAT_BOTTOM', 'ROUND_TOP', 'ROUND_BOTTOM']);
   assert.equal(api.getOperation('OP-12').optional, true);
@@ -63,6 +65,7 @@ test('R1 accepts exactly the configured three-section entrance assignment', () =
 test('R1 is released after OP-06 when sections are reconnected', () => {
   const result = api.validateHiveState({
     phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED',
+    operations: [{ operationId: 'OP-06', status: 'DONE' }],
     sections: [{ index: 1, openEntrance: 'FLAT_BOTTOM' }, { index: 2, openEntrance: 'ROUND_TOP' }, { index: 3, openEntrance: 'ROUND_BOTTOM' }]
   });
   assert.equal(result.valid, true);
@@ -74,6 +77,14 @@ test('OP-09 requires round bottom entrances in the lower nest bodies', () => {
     sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 2, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 3, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }]
   });
   assert.equal(result.valid, true);
+});
+
+test('OP-09 rejects a round entrance installed above the lower nest body', () => {
+  const result = api.validateHiveState({
+    phase: 'AUTUMN_PREP', operations: [{ operationId: 'OP-09', status: 'DONE' }],
+    sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'UPPER_NEST_BODY' }, { index: 2, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 3, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }]
+  });
+  assert.ok(result.errors.some(x => x.code === 'OP09_ENTRANCE_POSITION'));
 });
 
 test('R1 rejects duplicate or mismatched section entrance assignment', () => {
@@ -130,12 +141,13 @@ test('R7 requires two mesh diaphragms for alternative wintering', () => {
 test('all entrances action is no longer treated as an R1 conflict after OP-06', () => {
   const result = api.validateHiveState({
     phase: 'DIVIDED_3_SECTIONS',
+    operations: [{ operationId: 'OP-06', status: 'DONE' }],
     sections: [
       { index: 1, openEntrance: 'FLAT_BOTTOM' },
       { index: 2, openEntrance: 'ROUND_TOP' },
       { index: 3, openEntrance: 'ROUND_BOTTOM' }
     ],
-    operationActions: ['OPTIONAL_OPEN_ALL_ENTRANCES']
+    operationActions: ['OPEN_ALL_ENTRANCES']
   });
   assert.equal(result.warnings.some(x => x.code === 'R1_OPEN_ALL_CONFLICT'), false);
 });
