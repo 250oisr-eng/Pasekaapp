@@ -1043,7 +1043,7 @@ test('journal draft validator rejects missing hives and cross-hive family links'
 test('journal draft validator accepts an archived family link only while editing its original record',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
  const state={hives:[{id:'h1'}],families:[],records:[]};
- const archived={id:'r1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
+ const archived={id:'r1',hive:'h1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
  const draft={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
  assert.equal(validate(draft,state,archived).ok,true);
  assert.ok(validate({...draft,id:'r2'},state,null).errors.some(error=>error.code==='journal_family_mismatch'));
