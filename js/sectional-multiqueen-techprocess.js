@@ -163,6 +163,14 @@ function validateStoredRecords(records,hives){
      if(seenOperations.has(operation.operationId))add('TECH_OPERATION_DUPLICATE',{id:record.id,operationId:operation.operationId});
      seenOperations.add(operation.operationId);operationById.set(operation.operationId,operation);
      if(!['PENDING','SCHEDULED','DONE','SKIPPED','FAILED'].includes(operation.status))add('TECH_OPERATION_STATUS_INVALID',{id:record.id,operationId:operation.operationId,status:operation.status??null});
+     const definition=SPEC.operations.find(item=>item.id===operation.operationId);
+     const note=typeof operation.note==='string'?operation.note.trim():'';
+     if(operation.note!==undefined&&operation.note!==null&&typeof operation.note!=='string')add('TECH_OPERATION_NOTE_INVALID',{id:record.id,operationId:operation.operationId});
+     if(note.length>1000)add('TECH_OPERATION_NOTE_TOO_LONG',{id:record.id,operationId:operation.operationId});
+     if(operation.status==='SCHEDULED'&&!parseDate(operation.plannedAt))add('TECH_OPERATION_PLANNED_DATE_REQUIRED',{id:record.id,operationId:operation.operationId});
+     if(operation.status==='DONE'&&!operationDay(operation.completedAt))add('TECH_OPERATION_COMPLETION_DATE_REQUIRED',{id:record.id,operationId:operation.operationId});
+     if(operation.status==='SKIPPED'&&definition&&!definition.optional)add('TECH_OPERATION_SKIP_REQUIRED',{id:record.id,operationId:operation.operationId});
+     if((operation.status==='SKIPPED'||operation.status==='FAILED')&&!note)add('TECH_OPERATION_REASON_REQUIRED',{id:record.id,operationId:operation.operationId});
      if(operation.plannedAt!==undefined&&operation.plannedAt!==null&&!parseDate(operation.plannedAt))add('TECH_OPERATION_DATE_INVALID',{id:record.id,operationId:operation.operationId,field:'plannedAt'});
      if(operation.completedAt!==undefined&&operation.completedAt!==null&&!operationDay(operation.completedAt))add('TECH_OPERATION_DATE_INVALID',{id:record.id,operationId:operation.operationId,field:'completedAt'});
     });

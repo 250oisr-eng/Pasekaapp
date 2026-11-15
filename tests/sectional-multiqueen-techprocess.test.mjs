@@ -354,6 +354,30 @@ function validOp06State() {
   };
 }
 
+test('stored operation validation enforces required dates and reasons for every status', () => {
+  const base = operationRecord();
+  const check = (operationId, patch) => {
+    const record = structuredClone(base);
+    const operation = record.state.operations.find(item => item.operationId === operationId);
+    Object.assign(operation, patch);
+    return api.validateStoredRecords([record], [{ id: 'h1' }]);
+  };
+  assert.ok(check('OP-01', { status: 'SCHEDULED', plannedAt: null }).errors.some(x => x.code === 'TECH_OPERATION_PLANNED_DATE_REQUIRED'));
+  assert.ok(check('OP-01', { status: 'DONE', completedAt: null }).errors.some(x => x.code === 'TECH_OPERATION_COMPLETION_DATE_REQUIRED'));
+  assert.ok(check('OP-01', { status: 'SKIPPED', note: 'Причина' }).errors.some(x => x.code === 'TECH_OPERATION_SKIP_REQUIRED'));
+  assert.ok(check('OP-03', { status: 'SKIPPED', note: '' }).errors.some(x => x.code === 'TECH_OPERATION_REASON_REQUIRED'));
+  assert.ok(check('OP-03', { status: 'FAILED', note: '   ' }).errors.some(x => x.code === 'TECH_OPERATION_REASON_REQUIRED'));
+  assert.ok(check('OP-03', { status: 'FAILED', note: 'x'.repeat(1001) }).errors.some(x => x.code === 'TECH_OPERATION_NOTE_TOO_LONG'));
+  assert.ok(check('OP-03', { status: 'SCHEDULED', plannedAt: '2027-04-02' }).valid);
+  assert.ok(check('OP-03', { status: 'DONE', completedAt: '2027-04-02' }).valid);
+  assert.ok(check('OP-03', { status: 'SKIPPED', note: 'Не требуется по состоянию семьи' }).valid);
+});
+test('stored operation validation rejects a non-string note', () => {
+  const record = operationRecord();
+  record.state.operations.find(item => item.operationId === 'OP-03').note = { reason: 'bad' };
+  const result = api.validateStoredRecords([record], [{ id: 'h1' }]);
+  assert.ok(result.errors.some(x => x.code === 'TECH_OPERATION_NOTE_INVALID'));
+});
 test('operation transition marks a valid operation complete without mutating the original record', () => {
   const record = operationRecord();
   const original = JSON.stringify(record);
