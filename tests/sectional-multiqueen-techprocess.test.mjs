@@ -60,6 +60,22 @@ test('R1 accepts exactly the configured three-section entrance assignment', () =
   assert.deepEqual(result.errors, []);
 });
 
+test('R1 is released after OP-06 when sections are reconnected', () => {
+  const result = api.validateHiveState({
+    phase: 'DIVIDED_3_SECTIONS', isolation: 'CONNECTED',
+    sections: [{ index: 1, openEntrance: 'FLAT_BOTTOM' }, { index: 2, openEntrance: 'ROUND_TOP' }, { index: 3, openEntrance: 'ROUND_BOTTOM' }]
+  });
+  assert.equal(result.valid, true);
+});
+
+test('OP-09 requires round bottom entrances in the lower nest bodies', () => {
+  const result = api.validateHiveState({
+    phase: 'DIVIDED_3_SECTIONS', operations: [{ operationId: 'OP-09', status: 'DONE' }],
+    sections: [{ index: 1, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 2, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }, { index: 3, openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }]
+  });
+  assert.equal(result.valid, true);
+});
+
 test('R1 rejects duplicate or mismatched section entrance assignment', () => {
   const result = api.validateHiveState({
     phase: 'DIVIDED_3_SECTIONS',
@@ -111,7 +127,7 @@ test('R7 requires two mesh diaphragms for alternative wintering', () => {
   assert.ok(result.errors.some(x => x.code === 'R7_DIAPHRAGMS'));
 });
 
-test('unresolved all-entrances action is surfaced as a warning, not silently applied', () => {
+test('all entrances action is no longer treated as an R1 conflict after OP-06', () => {
   const result = api.validateHiveState({
     phase: 'DIVIDED_3_SECTIONS',
     sections: [
