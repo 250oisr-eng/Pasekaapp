@@ -1049,6 +1049,16 @@ test('journal draft validator accepts an archived family link only while editing
  assert.ok(validate({...draft,id:'r2'},state,null).errors.some(error=>error.code==='journal_family_mismatch'));
 });
 
+test('journal draft validator keeps archived family links bound to the original hive',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'},{id:'h2'}],families:[],records:[]};
+ const archived={id:'r1',hive:'h1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
+ const original={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
+ assert.equal(validate(original,state,archived).ok,true);
+ const reassigned=validate({...original,hive:'h2'},state,archived);
+ assert.ok(reassigned.errors.some(error=>error.code==='journal_family_mismatch'));
+});
+
 test('journal draft validator rejects duplicate record identifiers',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
  const state={hives:[{id:'h1'}],families:[],records:[{id:'existing'}]};
