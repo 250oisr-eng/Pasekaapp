@@ -2578,7 +2578,7 @@ test('hive creation, hive edits and offshoot stage changes roll back when save f
  assert.ok(createStart>=0&&createEnd>createStart,'hive creation handler is present');
  const create=html.slice(createStart,createEnd);
  assert.ok(create.indexOf('structuredClone(S)')<create.indexOf('S.hives.push(h)'));
- assert.match(create,/if\(!saved\)\{const saveError=S\.meta\?\.saveError;S=rollbackState/);
+ assert.match(create,/if\(!saved\)\{const saveError=S\.meta\?\.saveError,failure=saveError\|\|saveFailure;S=rollbackState/);
  const selectionSnapshot=create.indexOf('const previousSelectedHiveId=selectedHiveId');
  const selectionMutation=create.indexOf('selectedHiveId=h.id');
  const selectionRestore='selectedHiveId=previousSelectedHiveId;activeJournalHive=previousActiveJournalHive';
