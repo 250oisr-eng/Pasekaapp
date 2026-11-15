@@ -611,6 +611,15 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
    if(value!==null&&value!==undefined&&(!Number.isInteger(value)||value<0||(capacity!==null&&value>capacity&&!unchangedLegacy)))errors.push({code:'journal_invalid_frame_count',field,message:'Количество «'+label+'» должно быть целым неотрицательным числом'+(capacity===null?' (вместимость профиля не указана).':' не более '+capacity+'.')});
   }
  }
+ if(draft?.type==='Осмотр'){
+  const fields=['occupancy','broodFrames','freeDrawn'];
+  const unchangedLegacy=existingRecord?.type==='Осмотр'&&existingRecord.hive===draft.hive&&fields.every(field=>existingRecord[field]===draft[field]);
+  if(!unchangedLegacy){
+   const occupancy=draft.occupancy,broodFrames=draft.broodFrames,freeDrawn=draft.freeDrawn,capacity=journalBroodCapacity(draft.hive,state);
+   if(Number.isInteger(occupancy)&&Number.isInteger(broodFrames)&&broodFrames>occupancy)errors.push({code:'journal_brood_exceeds_occupancy',field:'broodFrames',message:'Рамок с расплодом не может быть больше числа рамок, занятых пчёлами.'});
+   if(capacity!==null&&Number.isInteger(occupancy)&&Number.isInteger(freeDrawn)&&occupancy+freeDrawn>capacity)errors.push({code:'journal_occupied_plus_free_exceeds_capacity',field:'freeDrawn',message:'Занятые пчёлами и свободные отстроенные рамки вместе превышают вместимость гнезда ('+capacity+').'});
+  }
+ }
  if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
  return {ok:errors.length===0,errors};
 }
