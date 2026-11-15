@@ -1311,6 +1311,34 @@ test('a fully persisted staging session can be explicitly verified and finalized
   db.close();
 });
 
+test('explicit staging finalization rejects duplicate or out-of-epoch entry revisions', async () => {
+  for (const mode of ['duplicate', 'beyond-epoch']) {
+    const db = await openTestDb('paseka-stage-finalize-invalid-revision-' + mode);
+    const archive = await makeArchive('backup-finalize-invalid-revision-' + mode);
+    const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+    const header = await get(db, 'archive_staging', staged.session.sessionId);
+    const stateEntry = await get(db, 'archive_staging', staged.session.sessionId + ':state');
+    const videoEntry = await get(db, 'archive_staging', staged.session.sessionId + ':video:video-1');
+    header.status = 'staging';
+    delete header.completedAt;
+    if (mode === 'duplicate') {
+      videoEntry.stagingRevision = stateEntry.stagingRevision;
+    } else {
+      header.stagingEpoch = stateEntry.stagingRevision;
+    }
+    await Promise.all([
+      put(db, 'archive_staging', header),
+      put(db, 'archive_staging', videoEntry)
+    ]);
+    await assert.rejects(
+      Restore.finalizeStagedArchive(db, staged.session.sessionId, webcrypto, Archive, () => true),
+      { code: 'STAGING_FINGERPRINT_REVISION_INVALID' }
+    );
+    assert.equal((await get(db, 'archive_staging', staged.session.sessionId)).status, 'staging');
+    db.close();
+  }
+});
+
 test('explicit staging finalization rejects a legacy session without a valid staging epoch', async () => {
   const db = await openTestDb('paseka-stage-finalize-legacy');
   const archive = await makeArchive('backup-finalize-legacy');
