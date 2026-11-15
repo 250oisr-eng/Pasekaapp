@@ -39,10 +39,13 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v312/);
+  assert.match(sw, /paseka-shell-v313/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
+  assert.ok(html.includes('id="sectionalOperationDlg"'));
+  assert.ok(html.includes('function openSectionalOperationEditor('));
+  assert.ok(html.includes('function saveSectionalOperationEditor('));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
