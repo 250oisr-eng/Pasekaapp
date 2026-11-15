@@ -45,7 +45,7 @@ async function verifyToken(token) {
 async function readBoundedBody(request, maxBytes) {
   const declaredLength = request.headers.get('content-length');
   if (declaredLength !== null) {
-    if (!/^\\d+$/.test(declaredLength)) {
+    if (!/^\d+$/.test(declaredLength)) {
       const error = new Error('Invalid Content-Length');
       error.code = 'INVALID_CONTENT_LENGTH';
       throw error;
