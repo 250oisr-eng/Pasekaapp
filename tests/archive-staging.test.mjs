@@ -785,7 +785,7 @@ test('full archive export, staged import, atomic rollback round-trip preserves s
 });
 
 
-test('archive staging hashes legacy video Blob bytes outside IndexedDB write transactions', async () => {
+test('archive staging hashes legacy video without rewriting the live Blob record', async () => {
   const db = await openTestDb('paseka-stage-legacy-video-hash');
   const legacyBlob = new Blob(['legacy video bytes'], { type: 'video/mp4' });
   await put(db, 'entrance_media', {
@@ -796,9 +796,64 @@ test('archive staging hashes legacy video Blob bytes outside IndexedDB write tra
   const saved = await get(db, 'entrance_media', 'legacy-video');
   const expected = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', await legacyBlob.arrayBuffer())),
     byte => byte.toString(16).padStart(2, '0')).join('');
-  assert.equal(saved.blobSha256, expected);
-  assert.equal(saved.blob.size, legacyBlob.size);
+  assert.equal(saved.blobSha256, undefined, 'staging must not rewrite a live legacy media row');
+  assert.equal(await saved.blob.text(), await legacyBlob.text());
+  assert.equal(staged.session.baselineMediaFingerprint.length > 0, true);
   assert.equal(staged.session.status, 'ready');
+  db.close();
+});
+
+test('archive staging never overwrites a legacy video changed by another tab during hashing', async () => {
+  const db = await openTestDb('paseka-stage-legacy-media-race');
+  const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-legacy-media-race' }, hives: [], families: [], records: [] };
+  await put(db, 'main', liveState, 'state');
+  const oldBlob = new Blob(['legacy bytes'], { type: 'video/mp4' });
+  const oldVideo = {
+    id: 'legacy-live-video', hiveId: 'hive-old', capturedAt: '2026-11-14T09:00:00.000Z',
+    bytes: oldBlob.size, mimeType: oldBlob.type, blob: oldBlob
+  };
+  await put(db, 'entrance_media', oldVideo);
+  const archive = await makeArchive('backup-stage-legacy-media-race');
+  const originalSha = globalThis.PasekaSha256;
+  let releaseHash, notifyHash;
+  const hashStarted = new Promise(resolve => { notifyHash = resolve; });
+  const hashGate = new Promise(resolve => { releaseHash = resolve; });
+  let firstHash = true;
+  globalThis.PasekaSha256 = {
+    ...originalSha,
+    hashBlobHex(blob) {
+      if (firstHash) {
+        firstHash = false;
+        notifyHash();
+        return hashGate.then(() => originalSha.hashBlobHex(blob));
+      }
+      return originalSha.hashBlobHex(blob);
+    }
+  };
+  let staged;
+  try {
+    const operation = Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+    await hashStarted;
+    const latestBlob = new Blob(['LATEST bytes'], { type: 'video/mp4' });
+    assert.equal(latestBlob.size, oldBlob.size, 'the concurrent replacement has identical size and MIME metadata');
+    await put(db, 'entrance_media', { ...oldVideo, blob: latestBlob });
+    releaseHash();
+    staged = await operation;
+  } finally {
+    globalThis.PasekaSha256 = originalSha;
+    releaseHash?.();
+  }
+
+  const liveVideo = await get(db, 'entrance_media', oldVideo.id);
+  assert.equal(await liveVideo.blob.text(), 'LATEST bytes', 'staging must not replace the newer live Blob with its earlier read');
+  assert.equal(liveVideo.blobSha256, undefined);
+  await assert.rejects(
+    Restore.commitStagedArchive(db, staged.session.sessionId, 'live-before-legacy-media-race', webcrypto, Archive, () => true),
+    { code: 'RESTORE_MEDIA_CHANGED' }
+  );
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-legacy-media-race');
+  assert.equal(await (await get(db, 'entrance_media', oldVideo.id)).blob.text(), 'LATEST bytes');
+  assert.equal(await get(db, 'archive_history', 'backup-stage-legacy-media-race'), undefined);
   db.close();
 });
 
