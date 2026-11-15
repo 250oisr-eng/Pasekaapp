@@ -612,6 +612,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
   }
  }
  if(draft?.type==='Осмотр'){
+  // Brood frames are a subset of bee-occupied frames; free drawn comb is a separate, unoccupied category.
   const fields=['occupancy','broodFrames','freeDrawn'];
   const unchangedLegacy=existingRecord?.type==='Осмотр'&&existingRecord.hive===draft.hive&&fields.every(field=>existingRecord[field]===draft[field]);
   if(!unchangedLegacy){
