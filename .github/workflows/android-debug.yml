@@ -12,6 +12,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
+      - 'tests/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - '.github/workflows/android-debug.yml'
