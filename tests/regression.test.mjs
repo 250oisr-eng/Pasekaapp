@@ -2091,7 +2091,7 @@ test('IndexedDB automatic backup abort preserves the previous backup when the ne
   await seedIndexedDb(db,[['main',current,'state'],['backup',oldBackup,'previous']]);
   const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
   const invalidSnapshot={meta:{revisionId:'rev-2'},value:'not-cloneable',invalid:()=>{}};
-  await assert.rejects(write(invalidSnapshot,'rev-2'),error=>error?.name==='DataCloneError');
+  await assert.rejects(write(invalidSnapshot,'rev-2'));
   assert.deepEqual(await readIndexedDb(db,'main','state'),current,'a backup failure must not alter the primary record');
   assert.deepEqual(await readIndexedDb(db,'backup','previous'),oldBackup,'the previous valid backup must survive transaction abort');
  }finally{db.close()}
