@@ -2645,3 +2645,9 @@ test('journal capacity sums the per-box capacity of physically installed brood b
  state.layouts.h1.winterOrder=[];
  assert.equal(capacity('h1',state),null);
 });
+
+test('Cloudflare Worker Previews retain the Workers AI binding required by the worker',async()=>{
+ const config=JSON.parse(await readFile(new URL('../cloudflare/wrangler.jsonc',import.meta.url),'utf8'));
+ assert.equal(config.ai?.binding,'AI');
+ assert.equal(config.previews?.ai?.binding,'AI');
+});
