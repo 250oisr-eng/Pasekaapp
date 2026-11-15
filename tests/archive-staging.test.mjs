@@ -554,6 +554,82 @@ test('atomic archive commit refuses a stale live revision without changing state
 });
 
 
+test('quota failure during atomic archive commit preserves live state, media, history and staged data', async () => {
+  const db = await openTestDb('paseka-atomic-commit-quota');
+  const liveState = {
+    meta: { schemaVersion: 12, revisionId: 'live-before-commit-quota' },
+    hives: [{ id: 'live-hive', number: 4 }], families: [],
+    records: [{ id: 'live-record', note: 'must survive failed restore commit' }]
+  };
+  const liveBlob = new Blob(['original live entrance video'], { type: 'video/mp4' });
+  await put(db, 'main', liveState, 'state');
+  await put(db, 'entrance_media', {
+    id: 'live-video-before-commit-quota', hiveId: 'live-hive', blob: liveBlob,
+    bytes: liveBlob.size, mimeType: 'video/mp4', capturedAt: '2026-11-14T10:00:00.000Z'
+  });
+
+  const archive = await makeArchive('backup-atomic-commit-quota');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  let injected = false;
+  const quotaDb = {
+    objectStoreNames: db.objectStoreNames,
+    transaction(...args) {
+      const tx = db.transaction(...args);
+      const stores = Array.isArray(args[0]) ? args[0] : [args[0]];
+      if (args[1] !== 'readwrite' || !stores.includes('main') ||
+          !stores.includes('entrance_media') || !stores.includes('archive_history')) return tx;
+      return new Proxy(tx, {
+        get(target, property) {
+          if (property === 'objectStore') {
+            return name => {
+              const store = target.objectStore(name);
+              if (name !== 'entrance_media') return store;
+              return new Proxy(store, {
+                get(storeTarget, method) {
+                  if (method === 'put') {
+                    return value => {
+                      if (!injected) {
+                        injected = true;
+                        throw new DOMException('Injected quota exhaustion during atomic restore.', 'QuotaExceededError');
+                      }
+                      return storeTarget.put(value);
+                    };
+                  }
+                  const result = Reflect.get(storeTarget, method, storeTarget);
+                  return typeof result === 'function' ? result.bind(storeTarget) : result;
+                }
+              });
+            };
+          }
+          const result = Reflect.get(target, property, target);
+          return typeof result === 'function' ? result.bind(target) : result;
+        }
+      });
+    }
+  };
+
+  await assert.rejects(
+    Restore.commitStagedArchive(quotaDb, staged.session.sessionId, 'live-before-commit-quota', webcrypto, Archive, () => true),
+    error => error && error.name === 'QuotaExceededError'
+  );
+  assert.equal(injected, true);
+  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-commit-quota');
+  assert.equal((await get(db, 'main', 'state')).records[0].note, 'must survive failed restore commit');
+  const videos = await getAll(db, 'entrance_media');
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, 'live-video-before-commit-quota');
+  assert.equal(await videos[0].blob.text(), 'original live entrance video');
+  assert.equal(await get(db, 'full_backup', 'previous'), undefined);
+  assert.equal(await get(db, 'archive_history', 'backup-atomic-commit-quota'), undefined);
+  const retainedSession = await get(db, 'archive_staging', staged.session.sessionId);
+  assert.equal(retainedSession.status, 'ready');
+  assert.equal(retainedSession.stagedCount, retainedSession.totalEntries);
+  const retainedRows = (await getAll(db, 'archive_staging')).filter(row => row.sessionId === staged.session.sessionId);
+  assert.equal(retainedRows.length, retainedSession.totalEntries + 1);
+  assert.equal(retainedRows.some(row => row.kind === 'rollback_session'), false);
+  db.close();
+});
+
 test('atomic rollback restores previous state and videos and permits a later reimport', async () => {
   const db = await openTestDb('paseka-stage-atomic-rollback');
   const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [], auditLog: [] };
