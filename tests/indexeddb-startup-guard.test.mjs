@@ -45,7 +45,7 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
   assert.equal(secondOpenCreatedDatabase, false);
   assert.equal(fresh.db.version, 3);
 
-  const stateRequest = existingEmpty.db.transaction('main', 'readonly')
+  const stateRequest = fresh.db.transaction('main', 'readonly')
     .objectStore('main').get('state');
   const state = await new Promise((resolve, reject) => {
     stateRequest.onsuccess = () => resolve(stateRequest.result);
@@ -55,7 +55,7 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
 
   const canInitialize = load('canInitializeFreshDatabase', existingEmpty);
   assert.equal(canInitialize(secondOpenCreatedDatabase, state), false);
-  existingEmpty.db.close();
+  fresh.db.close();
 });
 
 test('fresh empty database is eligible for first-run initialization', async () => {
