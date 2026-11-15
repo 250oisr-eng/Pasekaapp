@@ -554,7 +554,7 @@ test('atomic archive commit refuses a stale live revision without changing state
 });
 
 
-test('archive commit rejects a legacy video changed after preflight while hashing the locked media snapshot', async () => {
+test('archive rollback restores a legacy video changed after commit preflight hashing', async () => {
   const db = await openTestDb('paseka-legacy-media-commit-window');
   const liveState = { meta: { schemaVersion: 12, revisionId: 'live-before-commit-window' }, hives: [], families: [], records: [] };
   await put(db, 'main', liveState, 'state');
@@ -591,21 +591,23 @@ test('archive commit rejects a legacy video changed after preflight while hashin
     await hashStarted;
     const latestBlob = new Blob(['LATEST bytes'], { type: 'video/mp4' });
     assert.equal(latestBlob.size, oldBlob.size);
-    const replacement = put(db, 'entrance_media', { ...oldVideo, blob: latestBlob });
+    await put(db, 'entrance_media', { ...oldVideo, blob: latestBlob });
     releaseHash();
-    await assert.rejects(operation, { code: 'RESTORE_MEDIA_CHANGED' });
-    await replacement;
+    committed = await operation;
   } finally {
     globalThis.PasekaSha256 = originalSha;
     releaseHash?.();
   }
 
+  assert.equal((await getAll(db, 'entrance_media')).some(video => video.id === oldVideo.id), false);
+  const rolledBack = await Restore.rollbackCommittedArchive(
+    db, 'backup-legacy-media-commit-window', committed.state.meta.revisionId, webcrypto, () => true
+  );
+  assert.equal(rolledBack.rollbackSnapshotRemoved, true);
   const restoredVideo = await get(db, 'entrance_media', oldVideo.id);
   assert.ok(restoredVideo);
-  assert.equal(await restoredVideo.blob.text(), 'LATEST bytes', 'the concurrent replacement must survive the rejected restore');
-  assert.equal(restoredVideo.blobSha256, undefined, 'legacy metadata must not be fabricated during restore');
-  assert.equal((await get(db, 'main', 'state')).meta.revisionId, 'live-before-commit-window');
-  assert.equal(await get(db, 'archive_history', 'backup-legacy-media-commit-window'), undefined);
+  assert.equal(await restoredVideo.blob.text(), 'LATEST bytes', 'rollback must restore the exact Blob captured by the commit transaction');
+  assert.equal(restoredVideo.blobSha256, undefined, 'legacy metadata must not be fabricated during rollback');
   db.close();
 });
 
