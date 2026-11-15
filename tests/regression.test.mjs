@@ -2081,6 +2081,23 @@ test('IndexedDB real API updates automatic backup only for the matching main rev
  }finally{db.close()}
 });
 
+
+test('IndexedDB automatic backup abort preserves the previous backup when the new value cannot be cloned',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'auto-backup-abort-'+(++indexedDbTestSequence));
+ try{
+  const current={meta:{revisionId:'rev-2'},value:'current-main'};
+  const oldBackup={at:'2026-11-10T12:00:00.000Z',state:{meta:{revisionId:'rev-1'},value:'previous-valid-backup'}};
+  await seedIndexedDb(db,[['main',current,'state'],['backup',oldBackup,'previous']]);
+  const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const invalidSnapshot={meta:{revisionId:'rev-2'},value:'not-cloneable',invalid:()=>{}};
+  await assert.rejects(write(invalidSnapshot,'rev-2'),error=>error?.name==='DataCloneError');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),current,'a backup failure must not alter the primary record');
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),oldBackup,'the previous valid backup must survive transaction abort');
+ }finally{db.close()}
+});
+
+
 test('JSON backup restore keeps current in-memory state when atomic database write fails',async()=>{
  const current={meta:{revisionId:'current-rev'},hives:[{id:'current-hive'}],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
  const restored={meta:{schemaVersion:2},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
