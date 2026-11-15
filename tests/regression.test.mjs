@@ -1254,6 +1254,42 @@ test('automatic backup writes the exact previous state only when the main revisi
  assert.equal(putCount,1,'a stale snapshot must never replace the existing automatic backup');
  assert.deepEqual(backup.value.state,previous);
 });
+test('persistSnapshot reports success when UI refresh fails after the main database commit',async()=>{
+ const state={meta:{revisionId:'rev-2'}};
+ const alerts=[];
+ const deps={
+  S:state,lastPersistedRevision:'rev-1',autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'rev-1'}}),
+  writeAutoBackup:async()=>true,
+  render(){throw new Error('simulated render failure')},
+  updateStorageEstimate:()=>Promise.resolve(),
+  alert:message=>alerts.push(message)
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'a committed IndexedDB write must remain successful');
+ assert.equal(deps.lastPersistedRevision,'rev-2');
+ assert.equal(state.meta.saveError,undefined,'post-commit UI failure must not be reported as a storage failure');
+ assert.equal(alerts.length,1);
+ assert.match(alerts[0],/Данные пасеки сохранены/);
+});
+
+test('persistSnapshot reports failure and keeps the previous revision when the main database transaction fails',async()=>{
+ const state={meta:{revisionId:'rev-2'}};
+ const alerts=[];
+ const deps={
+  S:state,lastPersistedRevision:'rev-1',autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>{const error=new Error('simulated quota failure');error.name='QuotaExceededError';throw error},
+  writeAutoBackup:async()=>{throw new Error('backup must not run before main commit')},
+  render(){},updateStorageEstimate:()=>Promise.resolve(),
+  alert:message=>alerts.push(message)
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),false);
+ assert.equal(deps.lastPersistedRevision,'rev-1');
+ assert.match(state.meta.saveError,/Недостаточно места/);
+ assert.equal(alerts.length,1);
+});
+
 async function runAtomicRestore(expectedRevision='rev-1',backupFails=false){
  let mainState={meta:{revisionId:'rev-1'},value:'current'},backupState={state:{value:'older'}};
  const db={transaction(stores,mode){
