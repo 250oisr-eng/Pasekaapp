@@ -127,7 +127,8 @@ export default {
     if (!allowedRate(userId)) return json({error:'Слишком много запросов. Подожди минуту и попробуй снова.'},429,origin);
     let body;
     try {
-      const raw = await readBoundedBody(request, 90000);
+      const raw = await readBoundedBody(request, 270000);
+      if (raw.length > 90000) return json({error:'Слишком большой запрос. Сократи историю или данные журнала.'},413,origin);
       body = JSON.parse(raw);
     } catch (error) {
       if (error?.code === 'BODY_TOO_LARGE') return json({error:'Слишком большой запрос. Сократи историю или данные журнала.'},413,origin);
