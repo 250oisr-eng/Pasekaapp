@@ -36,7 +36,7 @@ test('fresh database initialization is allowed only for a newly created empty In
  assert.equal(canInitialize(false,undefined),false);
  assert.equal(canInitialize(false,{meta:{schemaVersion:12}}),false);
  assert.match(html,/if\(!loaded&&!canInitializeFreshDatabase\(databaseCreatedDuringOpen,loaded\)\)/);
- assert.match(html,/q\.onupgradeneeded=event=>\{if\(event\.oldVersion===0\)databaseCreatedDuringOpen=true;/);
+ assert.match(html,/q\.onupgradeneeded=event=>\{if\(isFreshDatabaseUpgrade\(event\.oldVersion\)\)databaseCreatedDuringOpen=true;/);
 });
 
 function loadFunction(name, globals = {}) {
