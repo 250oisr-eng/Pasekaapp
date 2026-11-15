@@ -2731,13 +2731,39 @@ test('IndexedDB v3 upgrades to v9 with archive staging, history, snapshots, imag
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+  await new Promise((resolve, reject) => {
+    const tx = oldDb.transaction(['main', 'entrance_media'], 'readwrite');
+    tx.objectStore('main').put({ meta: { schemaVersion: 12, revisionId: 'preserve-v3-state' }, hives: [{ id: 'hive-preserved' }] }, 'state');
+    tx.objectStore('entrance_media').put({
+      id: 'video-preserved',
+      blob: new Blob(['existing video bytes'], { type: 'video/mp4' }),
+      blobSha256: 'a'.repeat(64)
+    });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('Could not seed the version-3 database.'));
+    tx.onabort = () => reject(tx.error || new Error('Version-3 database seed was aborted.'));
+  });
   oldDb.close();
   const deps = {
-    DB: 'paseka-upgrade-v3-v5', STORE: 'main', BACKUP_STORE: 'full_backup', AUTO_SNAPSHOT_STORE: 'auto_snapshots',
+    DB: 'paseka-upgrade-v3-v6', STORE: 'main', BACKUP_STORE: 'full_backup', AUTO_SNAPSHOT_STORE: 'auto_snapshots',
     db: null, indexedDB: factory
   };
   await loadFunction('openDB', deps)();
   assert.equal(deps.db.version, 9);
+  assert.equal((await new Promise((resolve, reject) => {
+    const tx = deps.db.transaction('main', 'readonly');
+    const request = tx.objectStore('main').get('state');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  })).meta.revisionId, 'preserve-v3-state');
+  const preservedVideo = await new Promise((resolve, reject) => {
+    const tx = deps.db.transaction('entrance_media', 'readonly');
+    const request = tx.objectStore('entrance_media').get('video-preserved');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(await preservedVideo.blob.text(), 'existing video bytes');
+  assert.equal(preservedVideo.blobSha256, 'a'.repeat(64));
   assert.equal(deps.db.objectStoreNames.contains('archive_staging'), true);
   assert.equal(deps.db.objectStoreNames.contains('archive_history'), true);
   assert.equal(deps.db.objectStoreNames.contains('auto_snapshots'), true);
