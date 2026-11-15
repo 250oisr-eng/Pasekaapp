@@ -1597,7 +1597,7 @@ test('paired honey configuration rejects partial installation while independent 
  const clone=loadFunction('cloneHiveProfile');
  const get=loadFunction('getHiveProfileCapabilities',{validateHiveProfile:validateProfile,cloneHiveProfile:clone});
  const validate=loadFunction('validateHiveAssemblyProfile',{getHiveProfileCapabilities:get});
- const base={schemaVersion:1,status:'ready',name:'test',frame:{heightMm:195},brood:{boxCount:2,framesPerBox:6,boxKeys:['1','2']},winter:{enabled:false}};
+ const base={schemaVersion:1,status:'ready',name:'test',frame:{heightMm:180},brood:{boxCount:2,framesPerBox:6,boxKeys:['1','2']},winter:{enabled:false}};
  const paired={...base,id:'paired',honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'paired'}};
  const independent={...base,id:'independent',honey:{boxCount:2,framesPerBox:10,boxKeys:['H1','H2'],installation:'independent'}};
  const layout={mode:'summer',installedBoxes:['1'],honeyBoxInstalled:[true,false],honeyFrames:[[],[]]};
