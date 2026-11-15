@@ -162,6 +162,11 @@ test('sectional physical selection refuses a non-Farrar ready profile',()=>{
  assert.ok(I.inspectInstalledBroodSelection(s,selection).some(x=>x.code==='sectional_selection_profile_unsupported'&&x.details.hiveId==='h1'));
  assert.equal(JSON.stringify(s),before);
 });
+test('sectional physical selection resolves the default Farrar profile without an embedded profile object',()=>{
+ const s=sixBodyFixture(),selection=sixBodySelection(),before=JSON.stringify(s);s.hives[0].profileId='farrar-6x6-v1';delete s.hives[0].profile;
+ assert.deepEqual(I.inspectInstalledBroodSelection(s,selection),[]);
+ assert.equal(JSON.stringify(s),before);
+});
 test('sectional physical selection represents three two-body sections inside one Farrar hive',()=>{
  const s=sixBodyFixture(),selection=sixBodySelection(),before=JSON.stringify(s);
  assert.deepEqual(I.inspectInstalledBroodSelection(s,selection),[]);
