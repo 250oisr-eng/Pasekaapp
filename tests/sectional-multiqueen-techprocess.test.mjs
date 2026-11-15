@@ -16,7 +16,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
-  assert.equal(api.SPEC.operations.length, 14);
+  assert.equal(api.SPEC.operations.length, 14);\n  assert.equal(api.SPEC.version, '1.1.0');\n  assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);\n  assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);\n  assert.equal(api.getOperation('OP-02').syrupRatio.sugar, 2);
   assert.deepEqual(api.SPEC.entranceAssignment.map(x => x.openEntrance), ['FLAT_BOTTOM', 'ROUND_TOP', 'ROUND_BOTTOM']);
   assert.equal(api.getOperation('OP-12').optional, true);
   assert.equal(api.getOperation('OP-99'), null);
@@ -84,7 +84,7 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
     phase: 'DIVIDED_3_SECTIONS', isolation: 'MESH_ISOLATED',
     sections: [{ index: 1 }, { index: 2 }, { index: 3 }],
     queens: [{ status: 'UNFERTILIZED' }],
-    meshPlugs: Array.from({ length: 3 }, (_, index) => ({ id: 'plug-' + index, sectionId: 'section-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER' }))
+    requiredMeshPlugCount: 4,\n    meshPlugs: Array.from({ length: 3 }, (_, index) => ({ id: 'plug-' + index, sectionId: 'section-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }))
   });
   assert.ok(result.errors.some(x => x.code === 'R2_MESH_PLUG_MISSING'));
 });
@@ -116,5 +116,5 @@ test('unresolved all-entrances action is surfaced as a warning, not silently app
     ],
     operationActions: ['OPTIONAL_OPEN_ALL_ENTRANCES']
   });
-  assert.ok(result.warnings.some(x => x.code === 'R1_OPEN_ALL_CONFLICT'));
+  assert.equal(result.warnings.some(x => x.code === 'R1_OPEN_ALL_CONFLICT'), false);
 });
