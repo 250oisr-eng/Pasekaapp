@@ -1778,6 +1778,20 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
+test('Farrar layout access preserves conflicting paired honey flags in summer and winter',()=>{
+ const normalize=loadFunction('layoutFor');
+ const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'},winter:{honeyAllowed:false}};
+ for(const [mode,flags] of [['summer',[true,false]],['winter',[true,true]]]){
+  const frame=(id,location)=>({frameId:id,originBox:location,location,history:[]});
+  const boxes=Object.fromEntries(['1','2','3','4','5','6'].map(key=>[key,{family:'',frames:Array.from({length:6},(_,i)=>frame(key+'-'+i,key))}]));
+  const layout={mode,boxes,honeyFrames:[Array.from({length:10},(_,i)=>frame('H1-'+i,'H1')),Array.from({length:10},(_,i)=>frame('H2-'+i,'H2'))],installedBoxes:[1,3,4],winterOrder:[1,3,4],honeyBoxInstalled:flags.slice(),honeyInstalled:flags.every(Boolean),corpusIds:Object.fromEntries(['1','2','3','4','5','6','H1','H2'].map(key=>[key,'body-'+key]))};
+  const state={layouts:{h1:layout},equipmentLabels:{bodies:{}}},before=JSON.stringify(layout);
+  const layoutFor=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>String(key).startsWith('H')?10:6,framePrefix:key=>String(key),uid:()=> 'generated-id'});
+  const result=layoutFor('h1');
+  assert.deepEqual(result.honeyBoxInstalled,flags);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
 test('Farrar assembly display derives a valid winter order without mutating stored layout',()=>{
  const resolve=loadFunction('farrarAssemblyDisplayState');
  const layout={mode:'winter',installedBoxes:[4,1,6],winterOrder:[4,1,6],honeyBoxInstalled:[false,false]};
