@@ -1812,7 +1812,7 @@ test('Farrar assembly display offers an initial winter selection without persist
 });
 test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
  const source=extractFunction('renderStructure');
- assert.doesNotMatch(source,/l\\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\\s*=/);
+ assert.doesNotMatch(source,/l\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\s*=/);
 });
 test('six-digit frame inventory is not part of the current model',()=>{
  const source=extractFunction('migrateState');
