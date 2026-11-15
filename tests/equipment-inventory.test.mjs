@@ -113,3 +113,13 @@ test('legacy null body history is initialized when an inventory event is first r
  assert.ok(Array.isArray(saved.events));
  assert.equal(saved.events.at(-1).type,'details_updated');
 });
+
+test('recordSwap rolls back the first body event when the second body journal is corrupt',()=>{
+ const s=fixture();I.migrate(s,makeId,now);
+ s.equipmentInventory.bodies.b3.events={corrupt:true};
+ const before=JSON.stringify(s);
+ const result=I.recordSwap(s,{from:{hiveId:'h1',box:'1',corpusId:'b1'},to:{hiveId:'h2',box:'1'},swappedCorpusId:'b3'},now);
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'transaction_failed');
+ assert.equal(JSON.stringify(s),before);
+});
