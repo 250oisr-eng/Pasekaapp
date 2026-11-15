@@ -84,7 +84,7 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
     phase: 'DIVIDED_3_SECTIONS', isolation: 'MESH_ISOLATED',
     sections: [{ index: 1 }, { index: 2 }, { index: 3 }],
     queens: [{ status: 'UNFERTILIZED' }],
-    meshPlugs: [{ side: 'LEFT', installed: true, position: 'OVER_QUEEN_EXCLUDER' }]
+    meshPlugs: Array.from({ length: 3 }, (_, index) => ({ id: 'plug-' + index, sectionId: 'section-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER' }))
   });
   assert.ok(result.errors.some(x => x.code === 'R2_MESH_PLUG_MISSING'));
 });
