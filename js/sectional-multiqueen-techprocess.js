@@ -48,7 +48,11 @@ function buildOperationSchedule(a){const out=[];const add=(id,date,range,extra)=
 function validateHiveState(s){
  const errors=[],warnings=[],add=(code,message,level)=> (level==='warning'?warnings:errors).push({code,message});
  if(!s||typeof s!=='object'||Array.isArray(s))return {valid:false,errors:[{code:'STATE_INVALID',message:'Состояние улья должно быть объектом.'}],warnings};
- const c=s.config||{};
+ if(s.config!==undefined&&(!s.config||typeof s.config!=='object'||Array.isArray(s.config)))add('CONFIG_INVALID','Конфигурация техпроцесса должна быть объектом.');
+ const c=s.config&&typeof s.config==='object'&&!Array.isArray(s.config)?s.config:{};
+ if(c.frameHeightMm!==undefined&&c.frameHeightMm!==180)add('FRAME_HEIGHT','Для этой технологии высота рамок должна быть 180 мм.');
+ if(c.winteringMode!==undefined&&!['COMBINED','ALTERNATIVE_DIAPHRAGMS'].includes(c.winteringMode))add('WINTERING_MODE','Неизвестный способ зимовки в конфигурации.');
+ if(c.hasRemovableFeeder!==undefined&&typeof c.hasRemovableFeeder!=='boolean')add('FEEDER_CONFIG','Признак съёмной кормушки должен быть логическим значением.');
  if(c.honeyBodiesCount!==undefined&&![2,4].includes(c.honeyBodiesCount))add('HONEY_BODIES_COUNT','Допустимо 2 или 4 медовых корпуса на весь улей.');
  if(c.additionalBottoms!==undefined&&(!Number.isInteger(c.additionalBottoms)||c.additionalBottoms<0||c.additionalBottoms>2))add('ADDITIONAL_BOTTOMS','Дополнительных доньев должно быть от 0 до 2.');
  if(s.phase&&!SPEC.phases.includes(s.phase))add('PHASE_UNKNOWN','Неизвестная сезонная фаза.');
