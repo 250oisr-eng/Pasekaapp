@@ -2883,23 +2883,24 @@ async function finishProfileAssemblySetup(hid,l,profile){
  assemblyEditSnapshot=null;await save();renderStructure();
 }
 function farrarAssemblyDisplayState(layout){
- const eligible=[1,3,4,6],installed=Array.isArray(layout?.installedBoxes)?layout.installedBoxes.map(Number):[];
+ const eligible=[1,3,4,6],installedValid=layout?.installedBoxes==null||Array.isArray(layout.installedBoxes),winterOrderValid=layout?.winterOrder==null||Array.isArray(layout.winterOrder);
+ const installed=Array.isArray(layout?.installedBoxes)?layout.installedBoxes.map(Number):[];
  const rawWinter=Array.isArray(layout?.winterOrder)?layout.winterOrder.map(Number):[];
  const honeyRaw=layout?.honeyBoxInstalled,honey=Array.isArray(honeyRaw)?honeyRaw.map(Boolean):[false,false];
  const honeyPairValid=honeyRaw==null||(Array.isArray(honeyRaw)&&honeyRaw.length===2&&honey[0]===honey[1]);
  const mode=layout?.mode==='winter'?'winter':'summer';
- let winterOrder=[],winterValid=true;
+ let winterOrder=[],winterValid=installedValid&&winterOrderValid;
  if(mode==='winter'){
   const source=rawWinter.length?rawWinter:installed;
   if(!source.length)winterOrder=[1,3,4];
   else{
    const selected=[];for(const n of source)if(eligible.includes(n)&&!selected.includes(n))selected.push(n);
    winterOrder=[...selected,...eligible.filter(n=>!selected.includes(n))].slice(0,3);
-   winterValid=source.length===3&&selected.length===3&&installed.length===3&&installed.every(n=>selected.includes(n))&&selected.every(n=>installed.includes(n));
+   winterValid=installedValid&&winterOrderValid&&source.length===3&&selected.length===3&&installed.length===3&&installed.every(n=>selected.includes(n))&&selected.every(n=>installed.includes(n));
   }
   if(honey.some(Boolean)||!honeyPairValid)winterValid=false;
  }
- const honeyConflict=honey.some(Boolean)&&mode==='winter'||!honeyPairValid;return {mode,installedBoxes:installed,honeyInstalled:honeyPairValid&&honey[0]===true,honeyPairValid,honeyConflict,winterOrder,winterValid};
+ const honeyConflict=honey.some(Boolean)&&mode==='winter'||!honeyPairValid;return {mode,installedBoxes:installed,installedValid,honeyInstalled:honeyPairValid&&honey[0]===true,honeyPairValid,honeyConflict,winterOrder,winterValid};
 }
 function renderStructure(){
  const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=S.layouts?.[hid],profile=profileForHive(hid);if(!l||typeof l!=='object'||Array.isArray(l)||!l.boxes||typeof l.boxes!=='object'||Array.isArray(l.boxes)){$('hiveDiagram').innerHTML='<div class="card"><b>Комплектация недоступна для отображения</b><p class="muted">Структура сохранённых данных неполная. Данные не изменены; сначала выполни проверку целостности.</p></div>';$('honeyPair').innerHTML='';return}
