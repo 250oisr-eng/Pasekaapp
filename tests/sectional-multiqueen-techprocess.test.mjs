@@ -12,7 +12,7 @@ const api = windowRef.PasekaSectionalTechProcess;
 test('sectional tech-process model loads before the app and is cached offline', () => {
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
-  assert.match(sw, /paseka-shell-v308/);
+  assert.match(sw, /paseka-shell-v309/);
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
