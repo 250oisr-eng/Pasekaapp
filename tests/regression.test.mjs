@@ -2642,6 +2642,15 @@ test('failed sectional process save keeps an exportable in-memory draft and expo
  assert.match(elements.sectionalTechFeedback.textContent,/памяти страницы/i);
 });
 
+
+test('sectional process UI retries a previously failed save after validation',async()=>{
+ const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
+ const state={hives:[{id:'h1'}],sectionalTechProcesses:[record]};const elements={sectionalTechFeedback:{textContent:''}};
+ const deps={S:state,$:id=>elements[id],save:async()=>true,renderSectionalTechProcessModule(){},sectionalTechProcessSavePending:true};
+ const retry=loadFunction('retrySectionalTechProcessSave',deps);
+ assert.equal(await retry(),true);assert.equal(deps.sectionalTechProcessSavePending,false);assert.match(elements.sectionalTechFeedback.textContent,/сохранены/i);
+});
+
 test('schema 13 migration refuses a missing required registry before changing state',()=>{
  const state={meta:{schemaVersion:13},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};
  const before=JSON.stringify(state);
