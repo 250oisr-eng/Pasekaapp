@@ -1799,6 +1799,7 @@ test('Farrar assembly display does not normalize a partially installed honey pai
  const layout={mode:'summer',installedBoxes:[1,3],honeyBoxInstalled:[true,false]};
  const before=JSON.stringify(layout),view=resolve(layout);
  assert.equal(view.honeyPairValid,false);
+ assert.equal(view.honeyConflict,true);
  assert.equal(view.honeyInstalled,false);
  assert.equal(JSON.stringify(layout),before);
 });
