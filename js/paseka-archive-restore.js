@@ -561,8 +561,11 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   ]);
   await transactionDone(readTx);
 
-  if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.sourceBackupId !== backupId || rollbackSession.status !== 'ready') {
+  if (!rollbackSession || rollbackSession.kind !== 'rollback_session' || rollbackSession.status !== 'ready') {
     fail('ROLLBACK_SNAPSHOT_MISSING', 'The previous state and media rollback snapshot is unavailable.');
+  }
+  if (rollbackSession.sourceBackupId !== backupId) {
+    fail('ROLLBACK_SNAPSHOT_INVALID', 'The rollback snapshot belongs to a different archive and was preserved.');
   }
   if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
     fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
