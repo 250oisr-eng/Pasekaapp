@@ -2637,7 +2637,7 @@ test('sectional process UI prevents duplicate records for the same hive',async()
  const existing={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
  const state={hives:[{id:'h1'}],sectionalTechProcesses:[existing],auditLog:[]};let saves=0;
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
- const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp2',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},alert(){}});
+ const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp2',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){}});
  assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,1);
 });
 
