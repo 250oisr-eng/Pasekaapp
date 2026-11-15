@@ -2614,7 +2614,7 @@ test('sectional process UI creates a validated record without mutating hive equi
  const state={hives:[{id:'h1',number:1,profileId:'custom-180'}],families:[{id:'f1',hive:'h1'}],sectionalTechProcesses:[],auditLog:[],equipmentInventory:{bodies:{},events:[]}};
  const originalHive=JSON.stringify(state.hives),originalFamilies=JSON.stringify(state.families),originalInventory=JSON.stringify(state.equipmentInventory);
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechHoneyBodies:{value:'4'},sectionalTechWintering:{value:'COMBINED'},sectionalTechRemovableFeeder:{checked:true},sectionalTechBottoms:{value:'2'},sectionalTechFeedback:{textContent:''},sectionalTechCreateButton:{disabled:false}};
- let saves=0;const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),render(){},renderSectionalTechProcessModule(){},alert(){},sectionalTechProcessSavePending:false};
+ let saves=0;const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
  const create=loadFunction('createSectionalTechProcess',deps);
  assert.equal(await create(),true);assert.equal(saves,1);assert.equal(state.sectionalTechProcesses.length,1);
  assert.equal(state.sectionalTechProcesses[0].state.phase,'PRE_DIVISION');
@@ -2623,6 +2623,14 @@ test('sectional process UI creates a validated record without mutating hive equi
  assert.equal(state.sectionalTechProcesses[0].state.config.hasRemovableFeeder,true);
  assert.equal(JSON.stringify(state.hives),originalHive);assert.equal(JSON.stringify(state.families),originalFamilies);assert.equal(JSON.stringify(state.equipmentInventory),originalInventory);
  assert.equal(state.auditLog[0].type,'sectional_tech_process_created');
+});
+
+
+test('sectional process UI rejects a hive profile with a frame height other than 180 mm',async()=>{
+ const state={hives:[{id:'h1',profileId:'wrong'}],sectionalTechProcesses:[],auditLog:[]};
+ const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
+ let saves=0;const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:195}}),alert(){}});
+ assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,0);assert.match(elements.sectionalTechFeedback.textContent,/180 мм/i);
 });
 
 test('sectional process UI prevents duplicate records for the same hive',async()=>{
@@ -2636,7 +2644,7 @@ test('sectional process UI prevents duplicate records for the same hive',async()
 test('failed sectional process save keeps an exportable in-memory draft and exposes retry state',async()=>{
  const state={hives:[{id:'h1'}],sectionalTechProcesses:[],auditLog:[]};
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechHoneyBodies:{value:'2'},sectionalTechWintering:{value:'COMBINED'},sectionalTechRemovableFeeder:{checked:false},sectionalTechBottoms:{value:'2'},sectionalTechFeedback:{textContent:''},sectionalTechCreateButton:{disabled:false}};
- const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>false,logAudit(){},render(){},renderSectionalTechProcessModule(){},alert(){},sectionalTechProcessSavePending:false};
+ const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>false,logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
  const create=loadFunction('createSectionalTechProcess',deps);
  assert.equal(await create(),false);assert.equal(state.sectionalTechProcesses.length,1);assert.equal(deps.sectionalTechProcessSavePending,true);
  assert.match(elements.sectionalTechFeedback.textContent,/памяти страницы/i);
