@@ -3625,8 +3625,8 @@ function assertRawBackupIntegrity(state){
 async function restoreBackup(){
  const f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');
  try{
-  const o=JSON.parse(await f.text()),restored=assertRawBackupIntegrity(validateBackupState(o.state||o));
   const run=async()=>{
+   const o=JSON.parse(await f.text()),restored=assertRawBackupIntegrity(validateBackupState(o.state||o));
    if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
    const current=await readMain();
    const oldState=S;S=restored;
