@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.5.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.6.0',language:'ru',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
   nestBodiesPerSectionAtDivision:2,additionalBottomsAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
@@ -19,7 +19,7 @@ const SPEC=Object.freeze({
  {id:'OP-03',title:'Перестановка корпусов (верх ↔ низ)',optional:true,recommended:true,offsetFrom:'OP-04',offsetDays:[-7,-5]},
  {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2,additionalBottomsRequired:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
- {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
+ {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
  {id:'OP-07',title:'Постановка медовых корпусов',optional:false,queenExcludersPerSection:1,honeyBodiesScope:'WHOLE_HIVE'},
  {id:'OP-08',title:'Отбор мёда',optional:false,offsetFrom:'HONEY_FLOW_MAIN_START',offsetDays:[15,15],retryDays:7},
  {id:'OP-09',title:'Сокращение летков',optional:false,period:'Вторая половина августа',openEntrance:'ROUND_BOTTOM',entrancePosition:'LOWER_NEST_BODY'},
@@ -45,8 +45,8 @@ const DAY=86400000,DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
 function parseDate(v){if(typeof v!=='string'||!DATE_RE.test(v))return null;const p=v.split('-').map(Number),d=new Date(Date.UTC(p[0],p[1]-1,p[2]));return d.getUTCFullYear()===p[0]&&d.getUTCMonth()===p[1]-1&&d.getUTCDate()===p[2]?d:null;}
 function fmt(d){return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
 function shiftDate(v,n){const d=parseDate(v);if(!d||!Number.isInteger(n))throw new Error('Укажи корректную дату и целое число дней.');return fmt(new Date(d.getTime()+n*DAY));}
-function buildOperationSchedule(a){const out=[];const add=(id,date,range,extra)=>{if(date)out.push(Object.assign({operationId:id,from:shiftDate(fmt(date),range[0]),to:shiftDate(fmt(date),range[1])},extra||{}));};const d=parseDate(a&&a['OP-04']);add('OP-03',d,[-7,-5],{optional:true});add('OP-05',d,[8,11],{scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'});add('OP-06',d,[20,21],{condition:'ALL_THREE_QUEENS_FERTILIZED'});add('OP-08',parseDate(a&&a.HONEY_FLOW_MAIN_START),[15,15],{retryAfterDays:7});add('OP-13',parseDate(a&&a.FIRST_FLIGHT),[40,50],{optional:true});return out;}
-function validateHiveState(s){
+function buildOperationSchedule(a){const out=[];const add=(id,date,range,extra)=>{if(date)out.push(Object.assign({operationId:id,from:shiftDate(fmt(date),range[0]),to:shiftDate(fmt(date),range[1])},extra||{}));};const d=parseDate(a&&a['OP-04']);add('OP-03',d,[-7,-5],{optional:true});add('OP-05',d,[8,11],{scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'});add('OP-06',d,[20,21],{condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED'});add('OP-08',parseDate(a&&a.HONEY_FLOW_MAIN_START),[15,15],{retryAfterDays:7});add('OP-13',parseDate(a&&a.FIRST_FLIGHT),[40,50],{optional:true});return out;}
+function validateHiveState(s,options={}){
  const errors=[],warnings=[],add=(code,message,level)=> (level==='warning'?warnings:errors).push({code,message});
  if(!s||typeof s!=='object'||Array.isArray(s))return {valid:false,errors:[{code:'STATE_INVALID',message:'Состояние улья должно быть объектом.'}],warnings};
  if(s.config!==undefined&&(!s.config||typeof s.config!=='object'||Array.isArray(s.config)))add('CONFIG_INVALID','Конфигурация техпроцесса должна быть объектом.');
@@ -64,7 +64,7 @@ function validateHiveState(s){
   const seenBodyIds=new Set(),seenQueenIds=new Set();
   if(queens.length!==3)add('SECTION_QUEEN_COUNT','После разделения должны быть зарегистрированы ровно три матки.');
   if(queenById.size!==queens.length)add('SECTION_QUEEN_ID_DUPLICATE','Идентификаторы маток должны быть уникальными.');
-  queens.forEach(q=>{if(!q||!['UNFERTILIZED','FERTILIZED'].includes(q.status))add('SECTION_QUEEN_STATUS','Статус каждой матки должен быть UNFERTILIZED или FERTILIZED.');});
+  queens.forEach(q=>{if(!q||!['UNFERTILIZED','FERTILIZED'].includes(q.status))add('SECTION_QUEEN_STATUS','Статус каждой матки должен быть UNFERTILIZED или FERTILIZED.');if(q?.layingObserved!==undefined&&typeof q.layingObserved!=='boolean')add('SECTION_QUEEN_LAYING_OBSERVATION_INVALID','Признак наблюдения яйцекладки должен быть логическим значением.');});
   sections.forEach((section,index)=>{
    if(!section||typeof section!=='object'||Array.isArray(section)){add('SECTION_INVALID','Секция '+(index+1)+' имеет неверный формат.');return;}
    if(!Array.isArray(section.bodyIds))add('SECTION_BODY_IDS','Для секции '+(index+1)+' не указан список физических корпусов.');
@@ -143,6 +143,7 @@ function validateHiveState(s){
  if(done.has('OP-06')){
   if(!done.has('OP-05'))add('OP06_PREREQUISITE','OP-06 нельзя выполнить до OP-05.');
   if(queens.length!==3||unfert.length)add('OP06_QUEEN_STATUS','OP-06 допустима только при наличии трёх зарегистрированных плодных маток.');
+  if(options.requireLayingObservation===true&&queens.some(q=>q?.layingObserved!==true))add('OP06_EGG_LAYING_NOT_OBSERVED','OP-06 нельзя завершить, пока для каждой из трёх маток не подтверждено фактическое начало яйцекладки.');
   if(sectionIsolation.some(x=>x!=='CONNECTED'))add('OP06_ISOLATION_STATE','После OP-06 все три секции должны быть возвращены в состояние CONNECTED.');
   if(installedMeshPlugCount>0)add('OP06_MESH_PLUGS_REMAIN','После OP-06 все металлические сетчатые заглушки должны быть сняты.');
  }
@@ -195,7 +196,7 @@ function validateStoredRecords(records,hives){
   if(record.hiveProfileId!==SPEC.id||linkedProfileId!==SPEC.id)add('TECH_HIVE_PROFILE_MISMATCH',{id:record.id,hiveProfileId:record.hiveProfileId??null,linkedProfileId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
-  if(![SPEC.version,'1.4.0','1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
+  if(![SPEC.version,'1.5.0','1.4.0','1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
   if(typeof record.createdAt!=='string'||!Number.isFinite(Date.parse(record.createdAt)))add('TECH_RECORD_CREATED_AT_INVALID',{id:record.id});
   if(typeof record.updatedAt!=='string'||!Number.isFinite(Date.parse(record.updatedAt)))add('TECH_RECORD_UPDATED_AT_INVALID',{id:record.id});
   if(!record.state||typeof record.state!=='object'||Array.isArray(record.state)){add('TECH_RECORD_STATE_INVALID',{id:record.id});return;}
@@ -249,7 +250,7 @@ function validateStoredRecords(records,hives){
     }
    }
   }
-  const result=validateHiveState(record.state);
+  const result=validateHiveState(record.state,{requireLayingObservation:record.specVersion===SPEC.version||record.state.validationRulesVersion===SPEC.version});
   result.errors.forEach(error=>add('TECH_RECORD_STATE_'+error.code,{id:record.id,message:error.message}));
  });
  return {valid:errors.length===0,errors};
@@ -284,6 +285,7 @@ function transitionOperation(record,operationId,draft,records,hives){
  if(operationMatches.length!==1){add('OPERATION_REFERENCE_INVALID','Операция должна присутствовать в списке ровно один раз.');return {valid:false,errors};}
  const nextRecord=JSON.parse(JSON.stringify(record));
  const target=nextRecord.state.operations.find(item=>item&&item.operationId===operationId);
+ if(operationId==='OP-06'&&draft.status==='DONE')nextRecord.state.validationRulesVersion=SPEC.version;
  target.status=draft.status;
  target.plannedAt=plannedAt;
  target.completedAt=draft.status==='DONE'?completedAt:null;
