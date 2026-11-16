@@ -3560,6 +3560,27 @@ function validateRawBackupIntegrity(state){
 
  return {errors,errorCount:errors.length};
 }
+function validateAutomaticBackup(backup){
+ if(!backup||typeof backup!=='object'||!backup.state)throw new Error('Полная автокопия отсутствует или не содержит состояние');
+ const state=validateBackupState(backup.state);
+ assertRawBackupIntegrity(state);
+ return state;
+}
+async function ensureAutomaticBackup(state,existingBackup){
+ try{validateAutomaticBackup(existingBackup);return true}catch(validationError){}
+ try{
+  const written=await writeAutoBackup(state,state.meta?.revisionId||null);
+  if(!written)throw new Error('Основная база изменилась в другой вкладке. Автокопия не перезаписана.');
+  const refreshed=await readAutoBackup();
+  validateAutomaticBackup(refreshed);
+  if(state.meta)delete state.meta.autoBackupError;
+  return true;
+ }catch(error){
+  state.meta=state.meta||{};
+  state.meta.autoBackupError=error?.name==='QuotaExceededError'?'Недостаточно места для создания полной резервной копии':'Не удалось проверить или обновить полную резервную копию';
+  return false;
+ }
+}
 function assertRawBackupIntegrity(state){
  const result=validateRawBackupIntegrity(state);
  if(result.errorCount){const codes=[...new Set(result.errors.map(x=>x.code))].slice(0,6).join(', ');throw new Error('Архив не прошёл проверку исходных данных ('+result.errorCount+' ошибок: '+codes+'). Исходный архив не исправлялся; текущие данные сохранены.')}
@@ -3727,8 +3748,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   if(migrated||autoBackupRecovered){S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await writeMainIfUnchanged(S,startupExpectedRevision)}
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
-  const existingBackup=await readAutoBackup();
-  if(!existingBackup){try{await writeAutoBackup(S,S.meta?.revisionId||null);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию'}}
+  try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
