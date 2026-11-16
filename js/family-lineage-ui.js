@@ -176,6 +176,7 @@ function openConfirmDialog(state,eventId,doc) {
  dialog.dataset.eventId=String(eventId);
  const familySelect=dialog.querySelector('#familyLineageConfirmFamily');
  familySelect.replaceChildren();
+ const familyPlaceholder=node(doc,'option','', '— Выбери семью —');familyPlaceholder.value='';familyPlaceholder.disabled=true;familyPlaceholder.selected=true;familySelect.append(familyPlaceholder);
  for(const family of pending.familyOptions){
   const option=node(doc,'option','',family.familyName);
   option.value=family.familyId;
@@ -183,6 +184,7 @@ function openConfirmDialog(state,eventId,doc) {
  }
  const queenSelect=dialog.querySelector('#familyLineageConfirmQueen');
  queenSelect.replaceChildren();
+ const queenPlaceholder=node(doc,'option','', '— Выбери матку —');queenPlaceholder.value='';queenPlaceholder.disabled=true;queenPlaceholder.selected=true;queenSelect.append(queenPlaceholder);
  for(const candidate of pending.candidates){
   const option=node(doc,'option','',candidate.code||candidate.queenId);
   option.value=candidate.queenId;
