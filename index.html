@@ -832,7 +832,7 @@ function renderQueenRegistry(){
  }).join('');
 }
 function openQueenForm(familyId){
- const family=S.families.find(f=>f.id===familyId);if(!family)return alert('Семья не найдена');if(family.recordStatus==='historical')return alert('Это историческая запись. Для подтверждения матки выбери действующую семью.');
+ const family=S.families.find(f=>f.id===familyId);if(!family)return alert('Семья не найдена');if(family.recordStatus==='historical')return alert('Это историческая запись. Для подтверждения матки выбери действующую семью.');const lineageEvent=(S.familyEvents||[]).slice().reverse().find(event=>['split','merge'].includes(event?.type)&&event.resultFamilyIds?.includes(family.id)&&Array.isArray(event.candidateQueenIds)&&event.candidateQueenIds.length);if(lineageEvent&&family.queenIdentityStatus!=='identified'&&!family.currentQueenId)return alert('После разделения или объединения сначала требуется подтвердить фактическую идентичность матки из истории кандидатов. Этот экран пока не поддерживает выбор кандидата или регистрацию новой матки в такой семье.');
  const queen=(S.queens||[]).find(q=>q.id===family.currentQueenId);
  $('queenForm').reset();$('queenFamilyId').value=family.id;$('queenId').value=queen?.id||'';
  $('queenDialogTitle').textContent=queen?'Матка семьи '+family.name:'Регистрация матки · '+family.name;
@@ -1891,7 +1891,7 @@ function migrateQueenRegistry(state,makeId=()=>crypto.randomUUID(),timestamp=new
  return state;
 }
 function applyQueenChange(state,draft,makeId=()=>crypto.randomUUID()){
- const family=(state.families||[]).find(f=>f.id===draft.familyId);if(!family)throw new Error('Семья не найдена');if(family.recordStatus==='historical')throw new Error('Нельзя изменять матку исторической семьи как текущую.');
+ const family=(state.families||[]).find(f=>f.id===draft.familyId);if(!family)throw new Error('Семья не найдена');if(family.recordStatus==='historical')throw new Error('Нельзя изменять матку исторической семьи как текущую.');const lineageEvent=(state.familyEvents||[]).slice().reverse().find(event=>['split','merge'].includes(event?.type)&&event.resultFamilyIds?.includes(family.id)&&Array.isArray(event.candidateQueenIds)&&event.candidateQueenIds.length);if(lineageEvent&&family.queenIdentityStatus!=='identified'&&!family.currentQueenId)throw new Error('Идентичность матки после разделения или объединения требует отдельного подтверждения из lineage-кандидатов; регистрация новой матки через обычную форму заблокирована.');
  const code=String(draft.code||'').trim(),source=String(draft.source||'').trim(),notes=String(draft.notes||'').trim(),year=draft.year===''||draft.year==null?null:Number(draft.year),date=draft.date||null;
  if(code.length>80||source.length>160||notes.length>1000)throw new Error('Проверь длину сведений о матке');
  if(year!==null&&(!Number.isInteger(year)||year<1900||year>new Date().getFullYear()+1))throw new Error('Укажи корректный год вывода матки');

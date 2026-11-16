@@ -2953,3 +2953,12 @@ test('newly registered queen stores immutable origin family provenance',()=>{
  assert.equal(result.queen.originFamilyId,'split-child-1');
  assert.equal(state.families[0].queenIdentityStatus,'identified');
 });
+
+
+test('legacy queen form cannot invent a queen identity for an unresolved lineage result',()=>{
+ const apply=loadFunction('applyQueenChange');
+ const state={families:[{id:'child-1',hive:'h1',recordStatus:'active',queenIdentityStatus:'unresolved'}],queens:[{id:'q-candidate',familyId:'source',originFamilyId:'source',status:'unknown'}],queenEvents:[],familyEvents:[{id:'split-1',type:'split',sourceFamilyIds:['source'],resultFamilyIds:['child-1'],candidateQueenIds:['q-candidate'],occurredAt:'2026-04-01T10:00:00.000Z'}]};
+ assert.throws(()=>apply(state,{familyId:'child-1',code:'Q-FALSE',year:'2026'},()=> 'invented'),/lineage-кандидатов/i);
+ assert.equal(state.queens.length,1);
+ assert.equal(state.families[0].currentQueenId,undefined);
+});
