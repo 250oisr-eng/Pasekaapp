@@ -552,6 +552,32 @@ test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION
   assert.ok(op05.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
 });
 
+test('OP-04 requires explicit confirmation of two additional bottoms and preserves legacy records', () => {
+  const state = dividedState({
+    operations: api.SPEC.operations.map(operation => ({ operationId: operation.id, status: 'PENDING' }))
+  });
+  const record = operationRecord(state);
+  const missing = api.transitionOperation(record, 'OP-04', {
+    status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.equal(missing.valid, false);
+  assert.ok(missing.errors.some(error => error.code === 'OP04_ADDITIONAL_BOTTOMS_CONFIRMATION_REQUIRED'));
+
+  const confirmed = api.transitionOperation(record, 'OP-04', {
+    status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.equal(confirmed.valid, true);
+  assert.equal(confirmed.record.specVersion, '1.5.0');
+  assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
+
+  const legacy = structuredClone(record);
+  legacy.specVersion = '1.4.0';
+  const legacyOp04 = legacy.state.operations.find(operation => operation.operationId === 'OP-04');
+  legacyOp04.status = 'DONE';
+  legacyOp04.completedAt = '2027-05-10';
+  assert.equal(api.validateStoredRecords([legacy], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
+});
+
 test('R1 requires an explicit entrance state for every section', () => {
   const result = api.validateHiveState(dividedState({
     sections: [sectionFixture(1, { entranceState: undefined }), sectionFixture(2), sectionFixture(3)]
