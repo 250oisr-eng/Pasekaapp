@@ -8,6 +8,7 @@ const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', im
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
+const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
@@ -17,6 +18,7 @@ const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
+new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
@@ -38,6 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
+  deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
