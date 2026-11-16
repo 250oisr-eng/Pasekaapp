@@ -40,6 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
+  deps.journalBroodCapacity ||= (hiveId,state=deps.S) => { const hive=state?.hives?.find(item=>item?.id===hiveId); const profile=hive?.profile||(deps.getHiveProfile?deps.getHiveProfile(hive):(hive?.profileId?null:null)); const perBox=profile?.brood?.framesPerBox,layout=state?.layouts?.[hiveId]; if(!Number.isSafeInteger(perBox)||perBox<=0||!layout||!Array.isArray(layout.installedBoxes))return null; const keys=Array.isArray(profile.brood?.boxKeys)?profile.brood.boxKeys.map(String):[]; const installed=layout.mode==='winter'?layout.winterOrder:layout.mode==='summer'?layout.installedBoxes:null; if(!Array.isArray(installed))return null; const count=new Set(installed.map(String).filter(key=>keys.includes(key))).size,capacity=count*perBox; return Number.isSafeInteger(capacity)&&capacity>0?capacity:null; };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -749,6 +750,15 @@ test('inspection parser leaves hedged and approximate observations unfilled',()=
   assert.equal(uncertain.fields.queen,undefined);
 });
 
+test('journal capacity treats an empty winter assembly as unknown instead of using summer boxes',()=>{
+ const profile={brood:{framesPerBox:8,boxKeys:['1','2']}};
+ const state={hives:[{id:'h1',profile}],layouts:{h1:{mode:'winter',installedBoxes:['1','2'],winterOrder:[]}}};
+ const capacity=loadFunction('journalBroodCapacity',{S:state,getHiveProfile:()=>profile});
+ assert.equal(capacity('h1'),null);
+ state.layouts.h1.winterOrder=['1'];
+ assert.equal(capacity('h1'),8);
+});
+
 test('inspection parser does not infer absent values or accept counts outside 0–6',()=>{
   const parse=loadFunction('extractInspectionFieldsFromText');
   const result=parse('Осмотр: занято 7 рамок, расплод на 10 рамках, свободных отстроенных рамок — 8.');
@@ -757,6 +767,23 @@ test('inspection parser does not infer absent values or accept counts outside 0�
   const sparse=parse('Осмотрел семью. Состояние матки и расплода не оценивал.');
   assert.deepEqual(sparse.fields,{});
   assert.equal(sparse.type,'Осмотр');
+});
+
+test('expansion suggestions scale their thresholds and denominator to the hive brood capacity',()=>{
+ const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8,boxKeys:['1']}}}],layouts:{h8:{mode:'summer',installedBoxes:['1']}},families:[],tasks:[]};let sequence=0;
+ const suggest=loadFunction('createExpansionSuggestion',{S:state,uid:()=>String(++sequence),dateShift:(date,days)=>'2026-06-'+String(10+days).padStart(2,'0')});
+ suggest({id:'r1',date:'2026-06-10',type:'Осмотр',hive:'h8',occupancy:7,broodFrames:4,freeDrawn:1});
+ assert.equal(state.tasks.length,1);assert.match(state.tasks[0].note,/7 из 8 рамок/);assert.equal(state.tasks[0].basis.capacity,8);
+ state.tasks.length=0;suggest({id:'r2',date:'2026-06-10',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:6,freeDrawn:1});
+ assert.equal(state.tasks[0].date,'2026-06-11');
+});
+
+test('inspection parser reads multi-digit counts against the selected hive capacity',()=>{
+ const parse=loadFunction('extractInspectionFieldsFromText');
+ assert.deepEqual(parse('Осмотр: занято 8 рамок, расплод на 7 рамках, свободной суши 8.',8).fields,{occupancy:8,broodFrames:7,freeDrawn:8});
+ assert.equal(parse('Осмотр: занято 9 рамок.',8).fields.occupancy,undefined);
+ assert.equal(parse('Осмотр: занято 12 рамок.',12).fields.occupancy,12);
+ assert.equal(parse('Осмотр: занято 12 рамок.',null).fields.occupancy,12);
 });
 
 test('inspection parser recognizes queen cells by type without confusing them with swarm signs',()=>{
@@ -816,6 +843,34 @@ test('inspection parser accepts only explicit count values within physical frame
   }
   const invalid=parse('Осмотр: занято 7 рамок.');
   assert.equal(invalid.fields.occupancy,undefined);
+});
+
+test('inspection parser honors selected profile capacity for 8-frame and unknown-capacity hives',()=>{
+ const parse=loadFunction('extractInspectionFieldsFromText');
+ const eight=parse('Осмотр: занято 8 рамок, расплода на 7 рамках, свободных отстроенных рамок 0.',8);
+ assert.deepEqual(eight.fields,{occupancy:8,broodFrames:7,freeDrawn:0});
+ const over=parse('Осмотр: занято 9 рамок.',8);
+ assert.equal(over.fields.occupancy,undefined);
+ const unknown=parse('Осмотр: занято 10 рамок.',null);
+ assert.equal(unknown.fields.occupancy,10);
+});
+
+test('inspection form does not browser-block an unchanged historical count above current profile capacity',()=>{
+ const nodes={rhive:{value:'h1'},rtype:{value:'Осмотр'},occupancyLabel:{textContent:''},broodLabel:{textContent:''},drawnLabel:{textContent:''},roccupancy:{value:'8',max:'6',removeAttribute(name){if(name==='max')this.max=null}},rbrood:{value:'',max:'6',removeAttribute(name){if(name==='max')this.max=null}},rdrawn:{value:'1',max:'6',removeAttribute(name){if(name==='max')this.max=null}},capacityWarning:{style:{display:'block'},textContent:''}};
+ const update=loadFunction('updateJournalInspectionCapacity',{$:id=>nodes[id],journalBroodCapacity:()=>6});
+ update();
+ assert.equal(nodes.roccupancy.max,null);
+ assert.equal(nodes.rbrood.max,'6');
+ assert.equal(nodes.drawnLabel.textContent,'Свободных отстроенных рамок в гнезде (из 6)');
+ assert.equal(nodes.capacityWarning.style.display,'none');
+ nodes.rtype.value='Заметка';update();assert.equal(nodes.capacityWarning.style.display,'none');
+});
+
+test('inspection form exposes dynamic capacity and an explicit unknown-capacity warning',()=>{
+ assert.ok(html.includes('id="capacityWarning"'));assert.ok(html.includes('function updateJournalInspectionCapacity()'));
+ assert.ok(html.includes('Занято пчёлами рамок во всех установленных гнездовых корпусах'));
+ assert.ok(!html.includes('id="roccupancy" type="number" min="0" max="6"'));
+ assert.ok(!html.includes('id="rbrood" type="number" min="0" max="6"'));
 });
 
 test('journal draft from AI workspace maps explicit inspection values and keeps an editable source note',()=>{
@@ -943,6 +998,39 @@ test('journal draft validator accepts a complete and correctly linked inspection
  assert.deepEqual(result.errors,[]);
 });
 
+test('journal draft validator applies the selected hive brood capacity and leaves unknown capacity unbounded',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h8',profile:{brood:{framesPerBox:8,boxKeys:['1','2','3','4']}}},{id:'unknown',profileId:'missing-profile'}],layouts:{h8:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
+ assert.equal(validate({id:'r8',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:8,broodFrames:7,freeDrawn:0},state).ok,true);
+ const invalid=validate({id:'r9',date:'2026-11-15',type:'Осмотр',hive:'h8',occupancy:9},state);
+ assert.ok(invalid.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
+ assert.equal(validate({id:'r10',date:'2026-11-15',type:'Осмотр',hive:'unknown',occupancy:10,broodFrames:9,freeDrawn:10},state).ok,true);
+});
+
+test('journal inspection metrics reject impossible overlapping frame counts',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:8,boxKeys:['1']}}}],layouts:{h1:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
+ const broodOver=validate({id:'r1',date:'2026-11-15',type:'Осмотр',hive:'h1',occupancy:6,broodFrames:7,freeDrawn:1},state);
+ assert.ok(broodOver.errors.some(error=>error.code==='journal_brood_exceeds_occupancy'));
+ const totalOver=validate({id:'r2',date:'2026-11-15',type:'Осмотр',hive:'h1',occupancy:7,broodFrames:5,freeDrawn:2},state);
+ assert.ok(totalOver.errors.some(error=>error.code==='journal_occupied_plus_free_exceeds_capacity'));
+ const valid=validate({id:'r3',date:'2026-11-15',type:'Осмотр',hive:'h1',occupancy:6,broodFrames:4,freeDrawn:2},state);
+ assert.equal(valid.ok,true);
+ const unknown=validate({id:'r4',date:'2026-11-15',type:'Осмотр',hive:'unknown',occupancy:5,broodFrames:6}, {hives:[{id:'unknown'}],families:[],records:[]});
+ assert.ok(unknown.errors.some(error=>error.code==='journal_brood_exceeds_occupancy'));
+});
+
+test('journal inspection metrics preserve unchanged historical values after profile capacity changes',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1']}}}],layouts:{h1:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
+ const old={id:'r1',date:'2026-06-01',type:'Осмотр',hive:'h1',occupancy:8,broodFrames:7,freeDrawn:1};
+ assert.equal(validate({...old,text:'Дополнена заметка'},state,old).ok,true);
+ const changed=validate({...old,occupancy:7,text:'Дополнена заметка'},state,old);
+ assert.ok(changed.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
+ const moved=validate({...old,hive:'h2',text:'Перенос записи'}, {hives:[...state.hives,{id:'h2',profile:{brood:{framesPerBox:6,boxKeys:['1']}}}],layouts:{...state.layouts,h2:{mode:'summer',installedBoxes:['1']}},families:[],records:[]},old);
+ assert.ok(moved.errors.some(error=>error.code==='journal_invalid_frame_count'&&error.field==='occupancy'));
+});
+
 test('journal draft validator rejects impossible calendar dates and unsupported record types',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
  const state={hives:[{id:'h1'}],families:[],records:[]};
@@ -964,10 +1052,20 @@ test('journal draft validator rejects missing hives and cross-hive family links'
 test('journal draft validator accepts an archived family link only while editing its original record',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
  const state={hives:[{id:'h1'}],families:[],records:[]};
- const archived={id:'r1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
+ const archived={id:'r1',hive:'h1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
  const draft={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
  assert.equal(validate(draft,state,archived).ok,true);
  assert.ok(validate({...draft,id:'r2'},state,null).errors.some(error=>error.code==='journal_family_mismatch'));
+});
+
+test('journal draft validator keeps archived family links bound to the original hive',()=>{
+ const validate=loadFunction('validateJournalRecordDraft');
+ const state={hives:[{id:'h1'},{id:'h2'}],families:[],records:[]};
+ const archived={id:'r1',hive:'h1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
+ const original={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
+ assert.equal(validate(original,state,archived).ok,true);
+ const reassigned=validate({...original,hive:'h2'},state,archived);
+ assert.ok(reassigned.errors.some(error=>error.code==='journal_family_mismatch'));
 });
 
 test('journal draft validator rejects duplicate record identifiers',()=>{
@@ -980,7 +1078,7 @@ test('journal draft validator rejects duplicate record identifiers',()=>{
 
 test('journal inspection metrics must be whole numbers within the six-frame capacity',()=>{
  const validate=loadFunction('validateJournalRecordDraft');
- const state={hives:[{id:'h1'}],families:[],records:[]};
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1']}}}],layouts:{h1:{mode:'summer',installedBoxes:['1']}},families:[],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Осмотр',hive:'h1',family:'',occupancy:6.5,broodFrames:-1,freeDrawn:7},state);
  assert.equal(result.errors.filter(error=>error.code==='journal_invalid_frame_count').length,3);
 });
@@ -2564,4 +2662,37 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+});
+
+
+test('journal capacity sums the per-box capacity of physically installed brood boxes',()=>{
+ const capacity=loadFunction('journalBroodCapacity',{getHiveProfile:hive=>hive?.profile||null});
+ const state={hives:[{id:'h1',profile:{brood:{framesPerBox:6,boxKeys:['1','2','3','4','5','6']}}}],layouts:{h1:{mode:'summer',installedBoxes:[1,3,4]} }};
+ assert.equal(capacity('h1',state),18);
+ state.layouts.h1.mode='winter';state.layouts.h1.winterOrder=[1,3,4];
+ assert.equal(capacity('h1',state),18);
+ state.layouts.h1.winterOrder=[1,3];
+ assert.equal(capacity('h1',state),12);
+ // In winter mode, stale summer positions must never inflate the capacity.
+ state.layouts.h1.winterOrder=[];
+ assert.equal(capacity('h1',state),null);
+ delete state.layouts.h1.winterOrder;
+ assert.equal(capacity('h1',state),null);
+ state.layouts.h1.mode='summer';
+ state.layouts.h1.installedBoxes=[];
+ assert.equal(capacity('h1',state),null);
+});
+
+test('Cloudflare Worker Previews retain the Workers AI binding required by the worker',async()=>{
+ // Preview deployments must bind the same Workers AI service as the production Worker.
+ const config=JSON.parse(await readFile(new URL('../cloudflare/wrangler.jsonc',import.meta.url),'utf8'));
+ assert.equal(config.ai?.binding,'AI');
+ assert.equal(config.previews?.ai?.binding,'AI');
+});
+
+
+test('equipment inventory honey stock rendering uses the inApiary scope variable',()=>{
+ const source=extractFunction('renderEquipmentInventory');
+ assert.match(source,/!inApiary&&body\.kind===\'honey\'/);
+ assert.doesNotMatch(source,/!inHive&&body\.kind===\'honey\'/);
 });
