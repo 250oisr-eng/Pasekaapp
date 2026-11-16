@@ -132,6 +132,8 @@ function inspect(state) {
    const family=familyMap.get(event.familyId);
    if (!family) add('family_placement_event_family_missing',{eventId:event.id,familyId:event.familyId??null});
    if (!uniqueStrings(event.familyIds) || event.familyIds.length!==3 || !event.familyIds.includes(event.familyId)) add('family_placement_event_group_invalid',{eventId:event.id});
+   const groupIds=(Array.isArray(event.familyIds)?event.familyIds:[]).map(id=>familyMap.get(id)?.colonyGroupId);
+   if (groupIds.some(id=>!id)||new Set(groupIds).size!==1) add('family_placement_event_colony_group_mismatch',{eventId:event.id});
    if (!['middle','upper'].includes(event.from?.position) || event.to?.position!=='separate_bottom') add('family_placement_event_positions_invalid',{eventId:event.id});
    if (!uniqueStrings(event.from?.bodyIds) || event.from.bodyIds.length!==1 || !uniqueStrings(event.to?.bodyIds) || event.to.bodyIds.length!==2) add('family_placement_event_body_refs_invalid',{eventId:event.id});
    const bodyMap=state.equipmentInventory?.bodies||{};
@@ -322,7 +324,9 @@ function recordPlacementChanged(state, request, makeId, now) {
   if (!uniqueStrings(familyIds)||familyIds.length!==3) return {ok:false,error:'placement_family_group_invalid'};
   const families=familyIds.map(id=>draft.families.find(f=>f?.id===id));
   if (families.some(f=>!f||!isActive(f))) return {ok:false,error:'placement_family_missing_or_historical'};
+  if (families.some(f=>!f.currentQueenId||f.queenIdentityStatus==='unresolved')) return {ok:false,error:'placement_family_queen_not_identified'};
   if (new Set(families.map(f=>f.hive)).size!==1) return {ok:false,error:'placement_hive_mismatch'};
+  if (families.some(f=>!f.colonyGroupId)||new Set(families.map(f=>f.colonyGroupId)).size!==1) return {ok:false,error:'placement_colony_group_mismatch'};
   const family=families.find(row=>row.id===request?.familyId);
   if (!family || !['middle','upper'].includes(request?.from?.position)) return {ok:false,error:'placement_source_invalid'};
   if (request?.to?.position!=='separate_bottom') return {ok:false,error:'placement_target_invalid'};
@@ -407,6 +411,7 @@ function validateOperationEvidence(state, record, operationId) {
   }
  }
  if (operationId==='OP-13') {
+  if (!record.state.operations?.some(operation=>operation?.operationId==='OP-12'&&operation.status==='DONE')) add('OP13_ALTERNATIVE_WINTERING_PRECONDITION_REQUIRED',{techProcessId});
   const moves=matches('placement_changed').filter(event=>event.scenario==='ALT_WINTERING_SPRING');
   if (moves.length!==2) add('OP13_TWO_UPPER_FAMILY_MOVES_REQUIRED',{techProcessId});
   else {
@@ -432,6 +437,8 @@ function validateOperationEvidence(state, record, operationId) {
   }
  }
  if (operationId==='OP-14') {
+  if (!record.state.operations?.some(operation=>operation?.operationId==='OP-12'&&operation.status==='DONE')) add('OP14_ALTERNATIVE_WINTERING_PRECONDITION_REQUIRED',{techProcessId});
+  if (!record.state.operations?.some(operation=>operation?.operationId==='OP-13'&&operation.status==='DONE')) add('OP14_SPRING_RELOCATION_PRECONDITION_REQUIRED',{techProcessId});
   const placements=matches('placement_changed').filter(event=>event.scenario==='ALT_WINTERING_SPRING');
   const harvests=matches('early_honey_harvest_completed');
   const merges=matches('merge').filter(event=>event.scenario==='EARLY_HONEY'&&event.sourceFamilyIds?.length===3&&event.resultFamilyIds?.length===1);
@@ -443,7 +450,7 @@ function validateOperationEvidence(state, record, operationId) {
   if (placements.length===2&&harvests.length===1&&merges.length===1&&splits.length===1) {
    const harvest=harvests[0],merge=merges[0],split=splits[0];
    if (!sameSet(harvest.familyIds,merge.sourceFamilyIds)) add('OP14_HARVEST_MERGE_FAMILY_MISMATCH',{techProcessId});
-   if (placements.some(event=>!sameSet(event.familyIds,harvest.familyIds)) || new Set(placements.map(event=>event.familyId)).size!==2 || !['middle','upper'].every(position=>placements.some(event=>event.from?.position===position))) add('OP14_SPRING_PLACEMENT_FAMILY_MISMATCH',{techProcessId});
+   if (placements.some(event=>!sameSet(event.familyIds,harvest.familyIds)) || new Set(placements.map(event=>event.familyId)).size!==2 || !['middle','upper'].every(position=>placements.some(event=>event.from?.position===position)) || new Set(placements.map(event=>event.to?.bottomItemId)).size!==2) add('OP14_SPRING_PLACEMENT_FAMILY_MISMATCH',{techProcessId});
    if (placements.some(event=>Date.parse(event.occurredAt)>Date.parse(harvest.occurredAt))) add('OP14_PLACEMENT_AFTER_HARVEST',{techProcessId});
    if (!sameSet(split.sourceFamilyIds,merge.resultFamilyIds)) add('OP14_REPEAT_SPLIT_SOURCE_MISMATCH',{techProcessId});
    if (!sameSet(split.resultFamilyIds,sectionFamilyIds)) add('OP14_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
