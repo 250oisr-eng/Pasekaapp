@@ -2367,11 +2367,12 @@ test('IndexedDB real API aborts main restore when backup write fails',async()=>{
  const db=await openRealIndexedDb(factory,'atomic-restore-failure-'+(++indexedDbTestSequence),true);
  try{
   const previous={meta:{revisionId:'rev-1'},value:'must-survive'};
-  await seedIndexedDb(db,[['main',previous,'state']]);
+  const previousBackup={id:'previous',at:'2026-11-15T12:00:00.000Z',state:{meta:{revisionId:'rev-0'},value:'trusted-backup'}};
+  await seedIndexedDb(db,[['main',previous,'state'],['backup',previousBackup]]);
   const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
   await assert.rejects(write({meta:{revisionId:'rev-2'},value:'must-not-commit'},'rev-1'),error=>error?.name==='DataError');
   assert.deepEqual(await readIndexedDb(db,'main','state'),previous);
-  assert.equal(await readIndexedDb(db,'backup','previous'),undefined);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),previousBackup,'failed restore must preserve the previously trusted backup too');
  }finally{db.close()}
 });
 
@@ -2439,6 +2440,43 @@ test('JSON backup restore keeps current in-memory state when atomic database wri
  assert.equal(current.meta.revisionId,'current-rev');
  assert.equal(alerts.length,1);
  assert.match(alerts[0],/simulated IndexedDB transaction failure/);
+});
+
+test('manual backup restore reserves the persistence queue before waiting',async()=>{
+ let release;
+ const gate=new Promise(resolve=>{release=resolve});
+ const deps={
+  S:{meta:{revisionId:'current-rev'},auditLog:[]},
+  $:()=>({files:[{text:async()=>JSON.stringify({state:rawBackupFixture()})}]}),
+  saveQueue:gate,
+  validateBackupState:state=>state,
+  assertRawBackupIntegrity:state=>state,
+  confirm:()=>false,
+  alert:()=>{}
+ };
+ const restore=loadFunction('restoreBackup',deps);
+ const pending=restore();
+ assert.notEqual(deps.saveQueue,gate,'restore must reserve its place immediately instead of only awaiting a snapshot of the current queue');
+ release();
+ await pending;
+});
+
+test('automatic backup restore reserves the persistence queue before reading the backup',async()=>{
+ let release,reads=0;
+ const gate=new Promise(resolve=>{release=resolve});
+ const deps={
+  S:{meta:{revisionId:'current-rev'},auditLog:[]},
+  saveQueue:gate,
+  readAutoBackup:async()=>{reads++;return null},
+  alert:()=>{}
+ };
+ const restore=loadFunction('restoreAutoBackup',deps);
+ const pending=restore();
+ assert.notEqual(deps.saveQueue,gate,'automatic restore must reserve its place immediately');
+ assert.equal(reads,0,'backup reads must wait for earlier queued saves');
+ release();
+ await pending;
+ assert.equal(reads,1);
 });
 
 test('JSON backup restore rejects corrupt source before confirmation or database writes',async()=>{
