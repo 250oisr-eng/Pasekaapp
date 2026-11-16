@@ -6,8 +6,22 @@ test('honey bodies can be exchanged with same-type honey bodies',()=>{const s=fi
 test('brood and honey bodies cannot be exchanged',()=>{const s=fixture(),r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'H1'});assert.equal(r.ok,false);assert.equal(r.error.code,'incompatible_corpus')});
 test('a corpus carrying a family cannot be moved as a box-only operation',()=>{const s=fixture();s.layouts.h1.boxes['1'].family='family-1';const r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,false);assert.equal(r.error.code,'family_present');assert.equal(s.layouts.h1.corpusIds['1'],'body-a')});
 test('missing locations, same location and corrupt duplicate mappings are rejected',()=>{const s=fixture();assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h1',toBoxKey:'1'}).error.code,'same_location');assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'missing',toHiveId:'h2',toBoxKey:'2'}).error.code,'corpus_missing');s.layouts.h2.corpusIds['2']='body-a';assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'}).error.code,'duplicate_corpus_id')});
-test('UI loads the body module before app code and precaches it',()=>{assert.ok(html.indexOf('./js/equipment-bodies.js')<html.indexOf('<script>'));assert.ok(html.includes('swapPhysicalCorpora()'));assert.ok(html.includes('corpusMoveTo'));assert.ok(sw.includes('./js/equipment-bodies.js'));assert.match(sw,/paseka-shell-v\d+/)});
+test('UI loads the body module before app code and precaches it',()=>{assert.ok(html.indexOf('./js/equipment-bodies.js')<html.indexOf('<script>'));assert.ok(html.includes('swapPhysicalCorpora()'));assert.ok(html.includes('PasekaBodies.swapLocations(S,{fromHiveId,fromBoxKey,toHiveId:target.hiveId,toBoxKey:target.boxKey},today(),profileForHive)'));assert.ok(html.includes('corpusMoveTo'));assert.ok(sw.includes('./js/equipment-bodies.js'));assert.match(sw,/paseka-shell-v\d+/)});
 
 test('matching profile IDs are sufficient when profile objects are stored by reference',()=>{const s=fixture();for(const hive of s.hives){hive.profileId=hive.profile.id;delete hive.profile;}const r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,true)});
 
 test('physical body swap moves a stored body into an installed position without changing assembly slots',()=>{const s=fixture();s.layouts.h1.installedBoxes=['1'];s.layouts.h2.installedBoxes=[];const fromFrames=s.layouts.h1.boxes['1'].frames,toFrames=s.layouts.h2.boxes['2'].frames,r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,true);assert.equal(r.state.layouts.h1.corpusIds['1'],'body-b');assert.equal(r.state.layouts.h2.corpusIds['2'],'body-a');assert.equal(r.state.layouts.h1.boxes['1'].frames[0].frameId,toFrames[0].frameId);assert.equal(r.state.layouts.h1.boxes['1'].frames[0].history.at(-1).action,'corpus_transfer');assert.equal(r.state.layouts.h2.boxes['2'].frames[0].frameId,fromFrames[0].frameId);assert.equal(r.state.layouts.h2.boxes['2'].frames[0].history.at(-1).action,'corpus_transfer');assert.deepEqual(r.state.layouts.h1.installedBoxes,['1']);assert.deepEqual(r.state.layouts.h2.installedBoxes,[]) });
+
+
+test('profile resolver callback supports catalog profiles with four non-H1/H2 honey bodies',()=>{
+ const profile={id:'sectional-multiqueen-v1',frame:{widthMm:null,heightMm:180,topBarMm:null,bottomBarMm:null},brood:{framesPerBox:6,boxHeightMm:null,boxKeys:['S1-L','S1-U']},honey:{framesPerBox:10,boxHeightMm:null,boxKeys:['M1','M2','M3','M4']}};
+ const state={hives:[{id:'h1',profileId:profile.id},{id:'h2',profileId:profile.id}],layouts:{h1:{corpusIds:{M4:'body-a'},boxes:{},honeyFrames:[[],[],[],[{frameId:'frame-a',labelCode:'ААА',history:[]}]]},h2:{corpusIds:{M4:'body-b'},boxes:{},honeyFrames:[[],[],[],[{frameId:'frame-b',labelCode:'ААБ',history:[]}]]}},equipmentLabels:{bodies:{'body-a':'7М2','body-b':'7КМ'}}};
+ const result=swap(state,{fromHiveId:'h1',fromBoxKey:'M4',toHiveId:'h2',toBoxKey:'M4'},'2026-11-16',id=>id===profile.id?profile:null);
+ assert.equal(result.ok,true);assert.equal(result.state.layouts.h1.corpusIds.M4,'body-b');assert.equal(result.state.layouts.h2.corpusIds.M4,'body-a');assert.equal(result.state.layouts.h1.honeyFrames[3][0].frameId,'frame-b');assert.equal(result.state.layouts.h2.honeyFrames[3][0].frameId,'frame-a');
+});
+
+test('profile resolver fails closed when a profileId is unknown to the supplied catalog',()=>{
+ const state=fixture();for(const hive of state.hives){hive.profileId='unknown-profile';delete hive.profile;}
+ const result=swap(state,{fromHiveId:'h1',fromBoxKey:'H1',toHiveId:'h2',toBoxKey:'H1'},'2026-11-16',()=>null);
+ assert.equal(result.ok,false);assert.equal(result.error.code,'incompatible_corpus');
+});
