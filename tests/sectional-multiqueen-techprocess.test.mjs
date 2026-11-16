@@ -44,7 +44,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v318/);
+  assert.match(sw, /paseka-shell-v319/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
@@ -256,7 +256,21 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
 
 test('R4 requires queen excluder before honey bodies', () => {
   const result = api.validateHiveState(dividedState({ phase: 'HONEY_BODIES_INSTALLED' }));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+});
+
+
+test('R4 blocks OP-07 regardless of guessed two-or-three grid count', () => {
+  for (const count of [2, 3]) {
+    const result = api.validateHiveState(dividedState({
+      phase: 'HONEY_BODIES_INSTALLED',
+      queenExcluderBetweenNestAndHoney: true,
+      honeyQueenExcluderCount: count,
+      config: { honeyBodiesCount: 2 }
+    }));
+    assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+    assert.equal(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'), false);
+  }
 });
 
 test('R6 rejects selecting both wintering methods', () => {
@@ -682,8 +696,8 @@ test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', 
     meshPlugs: []
   }));
   assert.ok(result.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
   assert.ok(result.errors.some(x => x.code === 'R4_HONEY_BODY_COUNT'));
 });
 

@@ -7,7 +7,7 @@ const SPEC=Object.freeze({
   nestBodiesPerSectionAtDivision:2,additionalBottomsAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
   permanentQueenExcludersInTechnicalOpenings:true,queenExcluderLayersPerConnection:2,
   technicalOpeningBufferCorridorRequired:true,metalMeshPlugsPerTechnicalOpeningPerBody:1,
-  honeyQueenExcluders:'ONE_PER_SECTION_WHEN_HONEY_BODIES_INSTALLED',
+  honeyQueenExcluders:'UNCONFIRMED_SOURCE_CONFLICT',
   honeyBodiesCountScope:'WHOLE_HIVE',honeyBodiesExpansion:[2,4],
   syrupSugarParts:2,syrupWaterParts:1,syrupDailyGrams:[100,200],
   proteinFeedRule:'REFILL_AS_CONSUMED'
@@ -20,7 +20,7 @@ const SPEC=Object.freeze({
  {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2,additionalBottomsRequired:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
  {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
- {id:'OP-07',title:'Постановка медовых корпусов',optional:false,queenExcludersPerSection:1,honeyBodiesScope:'WHOLE_HIVE'},
+ {id:'OP-07',title:'Постановка медовых корпусов',optional:false,honeyQueenExcluderLayout:'UNCONFIRMED',honeyBodiesScope:'WHOLE_HIVE'},
  {id:'OP-08',title:'Отбор мёда',optional:false,offsetFrom:'HONEY_FLOW_MAIN_START',offsetDays:[15,15],retryDays:7},
  {id:'OP-09',title:'Сокращение летков',optional:false,period:'Вторая половина августа',openEntrance:'ROUND_BOTTOM',entrancePosition:'LOWER_NEST_BODY'},
  {id:'OP-10',title:'Осенняя подготовка',optional:false,period:'Середина–конец сентября'},
@@ -153,8 +153,7 @@ function validateHiveState(s,options={}){
  if(done.has('OP-14')&&c.honeyBodiesCount!==2)add('OP14_EARLY_HONEY_BODY_COUNT','В сценарии раннего медосбора по источнику устанавливаются только два медовых корпуса.');
  
  if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07')){
-  if(s.queenExcluderBetweenNestAndHoney!==true)add('R4_QUEEN_EXCLUDER','Перед медовыми корпусами нужна геннеманская решётка над гнездом каждой секции.');
-  if(s.honeyQueenExcluderCount!==3)add('R4_QUEEN_EXCLUDER_COUNT','Над гнездом требуется по одной большой решётке на каждую из трёх секций (всего 3).');
+  add('R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED','OP-07 заблокирована: исходный DOCX описывает две большие разделительные решётки, а текущая модель требует три. Необходимо подтвердить фактическое расположение решёток относительно трёх секций; число и схему нельзя предполагать.');
   if(![2,4].includes(c.honeyBodiesCount))add('R4_HONEY_BODY_COUNT','Для постановки медовых корпусов укажи подтверждённое общее количество: 2 или 4.');
  }
 
