@@ -630,7 +630,7 @@ test('OP-04 requires explicit confirmation of two additional bottoms and preserv
     status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(confirmed.valid, true);
-  assert.equal(confirmed.record.specVersion, '1.5.0');
+  assert.equal(confirmed.record.specVersion, '1.6.0');
   assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
 
   const currentUnconfirmed = structuredClone(record);
