@@ -2886,3 +2886,20 @@ test('JSON export and IndexedDB restore preserve R4 physical inventory',async()=
   assert.match(alerts[0],/Архив восстановлен/i);
  }finally{db.close()}
 });
+
+
+test('legacy schema 9 backup remains compatible without physical item registry fields',()=>{
+ const legacy={
+  meta:{schemaVersion:9},
+  hives:[],families:[],records:[],
+  plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],
+  queens:[],queenEvents:[],
+  equipmentInventory:{bodies:{},events:[]}
+ };
+ const before=JSON.stringify(legacy);
+ const validate=loadFunction('validateBackupState');
+ assert.equal(validate(legacy),legacy);
+ assert.equal(legacy.equipmentInventory.items,undefined);
+ assert.equal(legacy.equipmentInventory.itemEvents,undefined);
+ assert.equal(JSON.stringify(legacy),before,'legacy archive validation must not rewrite or synthesize item registry data');
+});
