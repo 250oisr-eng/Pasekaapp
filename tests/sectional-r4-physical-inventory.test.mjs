@@ -49,7 +49,10 @@ function fixture() {
       ],
       sections,
       queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
-      operations: [\n        { operationId: 'OP-04', status: 'DONE', completedAt: '2026-10-01', additionalBottomsInstalled: true },\n        { operationId: 'OP-05', status: 'DONE', completedAt: '2026-10-10' },\n        { operationId: 'OP-06', status: 'DONE', completedAt: '2026-10-21' },
+      operations: [
+        { operationId: 'OP-04', status: 'DONE', completedAt: '2026-10-01', additionalBottomsInstalled: true },
+        { operationId: 'OP-05', status: 'DONE', completedAt: '2026-10-10' },
+        { operationId: 'OP-06', status: 'DONE', completedAt: '2026-10-21' },
         { operationId: 'OP-07', status: 'PENDING' }
       ],
       meshPlugs: [],
