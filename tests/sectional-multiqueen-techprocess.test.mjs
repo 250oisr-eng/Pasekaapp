@@ -60,7 +60,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v320/);
+  assert.match(sw, /paseka-shell-v322/);
   assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
   assert.ok(sw.includes("'./js/equipment-items.js'"));
   assert.ok(html.includes('data-tab="techprocess"'));
@@ -82,6 +82,11 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('function toggleSectionalOperationFields('));
   assert.ok(html.includes('id="sectionalOperationOP04Fields"'));
   assert.ok(html.includes('id="sectionalOperationBottomsConfirmed"'));
+});
+
+test('OP-07 specification exposes the confirmed two-grid FULL/HALF layout', () => {
+  assert.equal(api.getOperation('OP-07').honeyQueenExcluderLayout, 'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER');
+  assert.equal(api.SPEC.geometry.honeyQueenExcluders, 'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER');
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {

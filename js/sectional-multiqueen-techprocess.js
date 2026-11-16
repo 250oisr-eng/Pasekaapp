@@ -20,7 +20,7 @@ const SPEC=Object.freeze({
  {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2,additionalBottomsRequired:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
  {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
- {id:'OP-07',title:'Постановка медовых корпусов',optional:false,honeyQueenExcluderLayout:'UNCONFIRMED',honeyBodiesScope:'WHOLE_HIVE'},
+ {id:'OP-07',title:'Постановка медовых корпусов',optional:false,honeyQueenExcluderLayout:'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER',honeyBodiesScope:'WHOLE_HIVE'},
  {id:'OP-08',title:'Отбор мёда',optional:false,offsetFrom:'HONEY_FLOW_MAIN_START',offsetDays:[15,15],retryDays:7},
  {id:'OP-09',title:'Сокращение летков',optional:false,period:'Вторая половина августа',openEntrance:'ROUND_BOTTOM',entrancePosition:'LOWER_NEST_BODY'},
  {id:'OP-10',title:'Осенняя подготовка',optional:false,period:'Середина–конец сентября'},
@@ -180,6 +180,10 @@ function validateHiveState(s,options={}){
   if(grids.length===2&&fullBodies.length===2&&halfBodies.length===2){
    if(new Set(fullBodies).size!==2)add('R4_EXCLUDER_FULL_OVERLAP','Две решётки должны полностью перекрывать разные крайние верхние корпуса.');
    if(halfBodies[0]!==halfBodies[1])add('R4_EXCLUDER_SHARED_CENTER','Половины двух решёток должны приходиться на один и тот же средний верхний корпус.');
+   const firstUpper=sections.find(section=>section?.index===1)?.upperBodyId;
+   const middleUpper=sections.find(section=>section?.index===2)?.upperBodyId;
+   const thirdUpper=sections.find(section=>section?.index===3)?.upperBodyId;
+   if(!new Set(fullBodies).has(firstUpper)||!new Set(fullBodies).has(thirdUpper)||halfBodies[0]!==middleUpper)add('R4_EXCLUDER_SECTION_ALIGNMENT','Полные части решёток должны приходиться на верхние корпуса секций 1 и 3, а обе половины — на верхний корпус секции 2.');
    if(new Set([...fullBodies,...halfBodies]).size!==3)add('R4_EXCLUDER_THREE_BODY_FOOTPRINT','Две решётки вместе должны покрывать ровно три верхних шестирамочных корпуса.');
   }
  }
@@ -202,7 +206,50 @@ function validateHiveState(s,options={}){
  }
  return {valid:errors.length===0,errors,warnings};
 }
-function validateStoredRecords(records,hives){
+function validatePhysicalR4(record,apiaryState,add){
+ const state=record?.state;
+ const operations=Array.isArray(state?.operations)?state.operations:[];
+ const needsR4=['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(state?.phase)||operations.some(x=>x?.operationId==='OP-07'&&x.status==='DONE');
+ if(!needsR4)return;
+ if(!apiaryState||typeof apiaryState!=='object'||Array.isArray(apiaryState)){
+  add('TECH_R4_PHYSICAL_CONTEXT_REQUIRED',{id:record.id});
+  return;
+ }
+ const layout=apiaryState.layouts?.[record.hiveId];
+ const layoutBodyIds=new Set(Object.values(layout?.corpusIds||{}));
+ const bodyInventory=apiaryState.equipmentInventory?.bodies;
+ const bodies=bodyInventory&&typeof bodyInventory==='object'&&!Array.isArray(bodyInventory)?bodyInventory:{};
+ for(const section of Array.isArray(state.sections)?state.sections:[]){
+  for(const bodyId of Array.isArray(section?.bodyIds)?section.bodyIds:[]){
+   if(!layoutBodyIds.has(bodyId))add('TECH_R4_SECTION_BODY_LAYOUT_MISSING',{id:record.id,bodyId});
+   if(!Object.prototype.hasOwnProperty.call(bodies,bodyId)||!bodies[bodyId]||bodies[bodyId].id!==bodyId)add('TECH_R4_SECTION_BODY_INVENTORY_MISSING',{id:record.id,bodyId});
+   else{
+    if(bodies[bodyId].kind!=='brood')add('TECH_R4_SECTION_BODY_KIND',{id:record.id,bodyId,kind:bodies[bodyId].kind??null});
+    if(bodies[bodyId].spec?.framesPerBox!==6)add('TECH_R4_SECTION_BODY_FRAME_CAPACITY',{id:record.id,bodyId,framesPerBox:bodies[bodyId].spec?.framesPerBox??null});
+    if(bodies[bodyId].spec?.profileId!==SPEC.id)add('TECH_R4_SECTION_BODY_PROFILE_MISMATCH',{id:record.id,bodyId,profileId:bodies[bodyId].spec?.profileId??null});
+   }
+  }
+ }
+ const items=apiaryState.equipmentInventory?.items;
+ const itemMap=items&&typeof items==='object'&&!Array.isArray(items)?items:{};
+ const grids=Array.isArray(state.honeyQueenExcluders)?state.honeyQueenExcluders:[];
+ const usedItemIds=new Set();
+ const footprintKey=value=>Array.isArray(value)?value.map(x=>x&&typeof x.bodyId==='string'&&typeof x.coverage==='string'?x.bodyId+'|'+x.coverage:'INVALID').sort().join(';'):'';
+ grids.forEach((grid,index)=>{
+  const itemId=typeof grid?.itemId==='string'?grid.itemId.trim():'';
+  if(!itemId){add('TECH_R4_ITEM_ID_REQUIRED',{id:record.id,index});return;}
+  if(usedItemIds.has(itemId)){add('TECH_R4_ITEM_DUPLICATE',{id:record.id,itemId});return;}
+  usedItemIds.add(itemId);
+  const item=itemMap[itemId];
+  if(!item||item.id!==itemId){add('TECH_R4_ITEM_MISSING',{id:record.id,itemId});return;}
+  if(item.kind!=='honeyQueenExcluder')add('TECH_R4_ITEM_KIND',{id:record.id,itemId,kind:item.kind??null});
+  if(item.condition!=='good')add('TECH_R4_ITEM_CONDITION',{id:record.id,itemId,condition:item.condition??null});
+  if(item.location?.type!=='hive')add('TECH_R4_ITEM_NOT_INSTALLED',{id:record.id,itemId});
+  else if(item.location.hiveId!==record.hiveId)add('TECH_R4_ITEM_HIVE_MISMATCH',{id:record.id,itemId,hiveId:item.location.hiveId??null});
+  if(footprintKey(item.location?.footprint)!==footprintKey(grid.coverage))add('TECH_R4_ITEM_FOOTPRINT_MISMATCH',{id:record.id,itemId});
+ });
+}
+function validateStoredRecords(records,hives,apiaryState){
  const errors=[],add=(code,details)=>errors.push({code,details});
  if(!Array.isArray(records))return {valid:false,errors:[{code:'TECH_RECORDS_NOT_ARRAY',details:null}]};
  if(!Array.isArray(hives))return {valid:false,errors:[{code:'TECH_HIVE_LIST_NOT_ARRAY',details:null}]};
@@ -278,11 +325,12 @@ function validateStoredRecords(records,hives){
   }
   const result=validateHiveState(record.state,{requireLayingObservation:record.specVersion===SPEC.version||record.state.validationRulesVersion===SPEC.version});
   result.errors.forEach(error=>add('TECH_RECORD_STATE_'+error.code,{id:record.id,message:error.message}));
+  validatePhysicalR4(record,apiaryState,add);
  });
  return {valid:errors.length===0,errors};
 }
 function getOperation(id){return SPEC.operations.find(x=>x.id===id)||null;}
-function transitionOperation(record,operationId,draft,records,hives){
+function transitionOperation(record,operationId,draft,records,hives,apiaryState){
  const errors=[],add=(code,message)=>errors.push({code,message});
  if(!record||typeof record!=='object'||Array.isArray(record)){add('OPERATION_RECORD_INVALID','Карточка техпроцесса не найдена или повреждена.');return {valid:false,errors};}
  const definition=getOperation(operationId);
@@ -328,7 +376,7 @@ function transitionOperation(record,operationId,draft,records,hives){
  target.updatedAt=updatedAt;
  nextRecord.updatedAt=updatedAt;
  const nextRecords=records.map(item=>item&&item.id===record.id?nextRecord:item);
- const validation=validateStoredRecords(nextRecords,hives);
+ const validation=validateStoredRecords(nextRecords,hives,apiaryState);
  if(!validation.valid)return {valid:false,errors:validation.errors.map(item=>({code:item.code,message:item.details?.message||'Изменение нарушает правила технологического процесса.',details:item.details||null}))};
  return {valid:true,errors:[],warnings:validateHiveState(nextRecord.state).warnings,record:nextRecord,records:nextRecords};
 }
