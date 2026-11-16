@@ -73,7 +73,7 @@ test('duplicate stack IDs are rejected',()=>{
 
 test('a technical connection must reference openings from both connected sections',()=>{
  const {record,apiary}=fixture();
- record.state.technicalConnections[0].openingIds=['opening-1','opening-3'];
+ record.state.technicalConnections[0].openingIds=['opening-1','opening-4'];
  const result=api.validate(record,apiary);
  assert.ok(result.errors.some(x=>x.code==='PHYSICAL_LAYOUT_CONNECTION_OPENINGS'));
 });
