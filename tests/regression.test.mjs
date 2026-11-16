@@ -1778,6 +1778,127 @@ test('Farrar column uses one 180 mm frame geometry in brood and honey boxes in e
 
 
 
+test('Farrar layout access preserves malformed and extended persisted data without normalization',()=>{
+ const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'},winter:{honeyAllowed:false}};
+ const layout={mode:'winter',boxes:{1:{family:'',frames:[null,{frameId:'legacy-frame',location:'custom-location',history:'corrupt'}]}},honeyFrames:[[{frameId:'honey-1'}],[],[{frameId:'extra-honey-frame'}]],installedBoxes:{0:1,1:3},winterOrder:'1,3,4',honeyBoxInstalled:[true,false,true],corpusIds:['legacy-id'],customField:{keep:true}};
+ const state={layouts:{h1:layout},equipmentLabels:{bodies:{}}},before=JSON.stringify(state);
+ const access=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:()=>10,framePrefix:()=> 'generated-',uid:()=> 'generated-id'});
+ const result=access('h1');
+ assert.equal(result,layout);
+ assert.equal(JSON.stringify(state),before);
+});
+test('Farrar layout access does not replace a malformed existing root',()=>{
+ const profile={family:'farrar'},root=[{legacy:true}],state={layouts:{h1:root}};
+ const access=loadFunction('layoutFor',{S:state,profileForHive:()=>profile});
+ assert.equal(access('h1'),root);
+ assert.equal(JSON.stringify(state),JSON.stringify({layouts:{h1:[{legacy:true}]}}));
+});
+test('new Farrar hive still receives its initial layout when no saved layout exists',()=>{
+ const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'}};
+ const state={layouts:{},equipmentLabels:{bodies:{}}};
+ const access=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>String(key).startsWith('H')?10:6,framePrefix:key=>String(key),uid:()=> 'generated-id'});
+ const result=access('h1');
+ assert.equal(result,state.layouts.h1);
+ assert.deepEqual(result.installedBoxes,[]);
+ assert.equal(result.honeyFrames.length,2);
+ assert.equal(result.honeyFrames[0].length,10);
+ assert.equal(result.boxes['1'].frames.length,6);
+});
+test('Farrar layout access preserves conflicting paired honey flags in summer and winter',()=>{
+ const normalize=loadFunction('layoutFor');
+ const profile={family:'farrar',brood:{boxKeys:['1','2','3','4','5','6'],framesPerBox:6},honey:{boxKeys:['H1','H2'],framesPerBox:10,installation:'paired'},winter:{honeyAllowed:false}};
+ for(const [mode,flags] of [['summer',[true,false]],['winter',[true,true]]]){
+  const frame=(id,location)=>({frameId:id,originBox:location,location,history:[]});
+  const boxes=Object.fromEntries(['1','2','3','4','5','6'].map(key=>[key,{family:'',frames:Array.from({length:6},(_,i)=>frame(key+'-'+i,key))}]));
+  const layout={mode,boxes,honeyFrames:[Array.from({length:10},(_,i)=>frame('H1-'+i,'H1')),Array.from({length:10},(_,i)=>frame('H2-'+i,'H2'))],installedBoxes:[1,3,4],winterOrder:[1,3,4],honeyBoxInstalled:flags.slice(),honeyInstalled:flags.every(Boolean),corpusIds:Object.fromEntries(['1','2','3','4','5','6','H1','H2'].map(key=>[key,'body-'+key]))};
+  const state={layouts:{h1:layout},equipmentLabels:{bodies:{}}},before=JSON.stringify(layout);
+  const layoutFor=loadFunction('layoutFor',{S:state,profileForHive:()=>profile,frameCapacity:key=>String(key).startsWith('H')?10:6,framePrefix:key=>String(key),uid:()=> 'generated-id'});
+  const result=layoutFor('h1');
+  assert.deepEqual(result.honeyBoxInstalled,flags);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
+test('Farrar assembly display derives a valid winter order without mutating stored layout',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'winter',installedBoxes:[4,1,6],winterOrder:[4,1,6],honeyBoxInstalled:[false,false]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.winterValid,true);
+ assert.deepEqual(view.winterOrder,[4,1,6]);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly display flags malformed winter state without silently repairing it',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'winter',installedBoxes:[1,2,3],winterOrder:[1,2,3],honeyBoxInstalled:[true,true]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.winterValid,false);
+ assert.deepEqual(view.winterOrder,[1,3,4]);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly display does not normalize a partially installed honey pair',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'summer',installedBoxes:[1,3],honeyBoxInstalled:[true,false]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.honeyPairValid,false);
+ assert.equal(view.honeyConflict,true);
+ assert.equal(view.honeyInstalled,false);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly display offers an initial winter selection but marks it unconfirmed',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ const layout={mode:'winter',installedBoxes:[],winterOrder:[],honeyBoxInstalled:[false,false]};
+ const before=JSON.stringify(layout),view=resolve(layout);
+ assert.equal(view.winterValid,false);
+ assert.deepEqual(view.winterOrder,[1,3,4]);
+ assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly edit refuses malformed saved lists without changing the layout',()=>{
+ const layout={mode:'summer',setupEditing:false,installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false],boxes:{}};
+ const before=JSON.stringify(layout),messages=[];
+ const edit=loadFunction('editCurrentAssembly',{S:{hives:[{id:'h1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),alert:message=>messages.push(message)});
+ edit();
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
+});
+test('Farrar mode change refuses malformed saved lists without changing the layout',()=>{
+ const layout={mode:'summer',setupEditing:true,installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false],boxes:{}};
+ const before=JSON.stringify(layout),messages=[];
+ const change=loadFunction('beginModeChange',{S:{hives:[{id:'h1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),alert:message=>messages.push(message),$:()=>({value:'summer'})});
+ change('winter');
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
+});
+test('Farrar assembly finish rejects a malformed edit snapshot without throwing or mutating layout',async()=>{
+ const layout={mode:'summer',setupComplete:true,installedBoxes:[1],winterOrder:[],honeyBoxInstalled:[false,false],boxes:{1:{family:'',frames:[]}}};
+ const before=JSON.stringify(layout),messages=[];
+ const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:{hiveId:'h1',installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false]},alert:message=>messages.push(message)});
+ await finish();
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
+});
+test('Farrar assembly display rejects malformed persisted order containers without mutating them',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ for(const layout of [
+  {mode:'winter',installedBoxes:[1,3,4],winterOrder:{0:1,1:3,2:4},honeyBoxInstalled:[false,false]},
+  {mode:'winter',installedBoxes:{0:1,1:3,2:4},winterOrder:[1,3,4],honeyBoxInstalled:[false,false]}
+ ]){
+  const before=JSON.stringify(layout),view=resolve(layout);
+  assert.equal(view.winterValid,false);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
+test('Farrar winter finish refuses honey flags without silently clearing them',async()=>{
+ const layout={mode:'winter',setupComplete:true,installedBoxes:[1,3,4],winterOrder:[1,3,4],honeyBoxInstalled:[true,true],boxes:{1:{family:'',frames:[]},2:{family:'',frames:[]},3:{family:'',frames:[]},4:{family:'',frames:[]},5:{family:'',frames:[]},6:{family:'',frames:[]}}};
+ const before=JSON.stringify(layout),messages=[];
+ const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:null,alert:message=>messages.push(message)});
+ await finish();
+ assert.equal(JSON.stringify(layout),before);
+ assert.ok(messages.some(message=>message.toLowerCase().includes('сначала явно сними')));
+});
+test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
+ const source=extractFunction('renderStructure');
+ assert.doesNotMatch(source,/l\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\s*=/);
+ assert.match(source,/profile\?\.family==='farrar'\?S\.layouts\?\.\[hid\]:layoutFor\(hid\)/,'Farrar rendering must read raw layout while other profiles retain their existing path');
+});
 test('six-digit frame inventory is not part of the current model',()=>{
  const source=extractFunction('migrateState');
  assert.match(source,/delete frame\.inventoryNumber/);
