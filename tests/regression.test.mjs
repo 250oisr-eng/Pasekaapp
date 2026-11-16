@@ -2394,6 +2394,26 @@ test('IndexedDB real API updates automatic backup only for the matching main rev
  }finally{db.close()}
 });
 
+test('automatic backup rejects synchronous objectStore put failures with the original error',async()=>{
+ const cloneError=new DOMException('uncloneable backup state','DataCloneError');
+ const request={};
+ let aborts=0;
+ const tx={
+  objectStore(name){
+   if(name==='main')return{get:()=>request};
+   return{put:()=>{throw cloneError}};
+  },
+  abort(){aborts++;queueMicrotask(()=>this.onabort?.())}
+ };
+ const db={transaction:()=>tx};
+ const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+ const pending=write({meta:{revisionId:'rev-1'},value:'snapshot'},'rev-1');
+ request.result={meta:{revisionId:'rev-1'},value:'current'};
+ assert.doesNotThrow(()=>request.onsuccess(),'a synchronous put exception must be caught inside the request handler');
+ assert.equal(aborts,1,'failed backup writes must abort their transaction');
+ await assert.rejects(pending,error=>error===cloneError,'the caller must receive the original serialization error');
+});
+
 test('JSON backup restore keeps current in-memory state when atomic database write fails',async()=>{
  const current={meta:{revisionId:'current-rev'},hives:[{id:'current-hive'}],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
  const restored={meta:{schemaVersion:2},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
