@@ -109,3 +109,10 @@ test('large excluder footprint survives JSON backup round-trip',()=>{
  assert.deepEqual(restored.equipmentInventory.items[item.id].location.footprint,footprint);
  assert.deepEqual(E.inspect(restored),[]);assert.deepEqual(E.validateReferences(restored),[]);
 });
+
+test('malformed imported footprint is reported without throwing during reference validation',()=>{
+ const s=fixture();s.hives=[{id:'h1'}];s.layouts.h1.corpusIds={A:'body-1'};
+ s.equipmentInventory.items={bad:{id:'bad',kind:'honeyQueenExcluder',condition:'good',location:{type:'hive',hiveId:'h1',footprint:[null,{bodyId:'body-1',coverage:'FULL'}]}}};
+ assert.ok(E.inspect(s).some(x=>x.code==='invalid_item_location'));
+ assert.ok(E.validateReferences(s).some(x=>x.code==='item_footprint_body_reference_missing'));
+});
