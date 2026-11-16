@@ -201,7 +201,7 @@ function applySplit(state, request, makeId, now) {
    ...(source.currentQueenId?[source.currentQueenId]:[]),
    ...(Array.isArray(previousMerge?.candidateQueenIds)?previousMerge.candidateQueenIds:[])
   ])];
-  if (request?.operationId==='OP-04' && !source.currentQueenId)
+  if (request?.operationId==='OP-04' && !source.currentQueenId && (!previousMerge || !Array.isArray(previousMerge.candidateQueenIds) || previousMerge.candidateQueenIds.length!==3))
    return {ok:false,error:'OP04_SOURCE_QUEEN_NOT_IDENTIFIED'};
   for (const queenId of candidateQueenIds) {
    const queen=draft.queens.find(q=>q?.id===queenId);
@@ -259,6 +259,9 @@ function applyMerge(state, request, makeId, now) {
   const created={...clone(result),recordStatus:'active',colonyGroupId,currentQueenId:null,queenIdentityStatus:'unresolved',queen:null};
   draft.families.push(created);
   const eventId=nextId(makeId,new Set([...used,colonyGroupId,result.id]));
+  if (!eventId) return {ok:false,error:'family_event_id_required'};
+  const used=new Set([...draft.families.map(f=>f?.id).filter(Boolean),...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
+  const eventId=nextId(makeId,used);
   if (!eventId) return {ok:false,error:'family_event_id_required'};
   const event={id:eventId,type:'merge',sourceFamilyIds:sourceIds,resultFamilyIds:[created.id],candidateQueenIds:queenIds,colonyGroupId,hiveId:sources[0].hive,operationId:request?.operationId||null,scenario:request?.scenario||null,techProcessId:request?.techProcessId||null,occurredAt:request?.occurredAt||at,createdAt:at};
   draft.familyEvents.push(event);
