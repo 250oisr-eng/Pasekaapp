@@ -8,6 +8,7 @@ const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', im
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
+const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
@@ -17,6 +18,7 @@ const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
+new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
@@ -38,6 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
+  deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -1804,6 +1807,33 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  });
  const result=validate();
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
+});
+test('runtime integrity validates physical accessory hive and body references',()=>{
+ const state={
+  hives:[{id:'h1',number:1}],families:[],records:[],tasks:[],extractions:[],
+  layouts:{h1:{mode:'summer',installedBoxes:[1],honeyBoxInstalled:[false,false],boxes:{1:{frames:[]}},honeyFrames:[[],[]]}},
+  equipmentInventory:{items:{
+   missingHive:{id:'missingHive',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'ghost',sectionId:'S1'}},
+   missingBody:{id:'missingBody',kind:'cover',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'ghost-body'}}
+  }}
+ };
+ const profile={id:'farrar-6x6-v1',family:'farrar'};
+ const validate=loadFunction('validateVirtualApiary',{
+  S:state,inspectFamilyLineage:()=>[],inspectTaskIntegrity:()=>[],
+  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]})
+ });
+ const result=validate();
+ assert.ok(result.errors.some(error=>error.code==='item_hive_reference_missing'));
+ assert.ok(result.errors.some(error=>error.code==='item_body_reference_missing'));
+});
+test('backup validation preserves legacy inventories and rejects corrupt accessory references',()=>{
+ const validate=loadFunction('validateBackupState');
+ const legacy={meta:{schemaVersion:9},hives:[{id:'h1'}],families:[],records:[],queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],equipmentInventory:{bodies:{},events:[]},layouts:{}};
+ assert.equal(validate(legacy),legacy);
+ const corrupted={...legacy,equipmentInventory:{bodies:{},events:[],items:{
+  bad:{id:'bad',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'missing',sectionId:'S1'}}
+ }}};
+ assert.throws(()=>validate(corrupted),/инвентарь физических принадлежностей/);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
  for(const version of [0,14,'2']){
