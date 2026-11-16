@@ -50,3 +50,16 @@ test('plastic and metal plugs cannot occupy the same physical opening',()=>{
  assert.equal(E.place(s,{itemId:metal.id,location},makeId,now).ok,true);
  assert.equal(E.place(s,{itemId:plastic.id,location},makeId,now).error,'opening_occupied');
 });
+
+test('accessory IDs cannot collide with an existing physical corpus ID',()=>{
+ const s=fixture(),result=E.register(s,{kind:'bottom',storageLocation:'Склад'},()=> 'body-1',now);
+ assert.equal(result.ok,false);assert.equal(result.error,'duplicate_item_id');
+ assert.equal(s.equipmentInventory,undefined);
+});
+test('JSON backup round-trip preserves accessory identity, location and history',()=>{
+ const s=fixture(),item=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now).item;
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},makeId,now).ok,true);
+ const restored=JSON.parse(JSON.stringify({app:'Paseka',state:s})).state;
+ assert.deepEqual(restored.equipmentInventory.items[item.id],s.equipmentInventory.items[item.id]);
+ assert.deepEqual(E.inspect(restored),[]);assert.deepEqual(E.validateReferences(restored),[]);
+});
