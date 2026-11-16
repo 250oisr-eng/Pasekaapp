@@ -10,7 +10,8 @@ function validate(record,apiaryState){
  if(!apiaryState||!hiveId||!layout||!layout.corpusIds){add('APIARY_CONTEXT_REQUIRED',{hiveId:hiveId||null});return {valid:false,errors};}
  const physical=state.physicalLayout;
  if(!physical||physical.version!==1||!MODES.has(physical.mode)||!Array.isArray(physical.stacks)){add('CONFIG_INVALID',{mode:physical?.mode||null});return {valid:false,errors};}
- const sections=Array.isArray(state.sections)?state.sections:[],sectionById=new Map(),bodyOwners=new Map(),openingById=new Map(),stackById=new Map();
+ const sections=Array.isArray(state.sections)?state.sections:[],sectionById=new Map(),bodyOwners=new Map(),openingById=new Map(),stackById=new Map(),familyOwners=new Set();
+ if(state.familyLineageVersion!==1)add('FAMILY_LINEAGE_VERSION_REQUIRED',{familyLineageVersion:state.familyLineageVersion??null});
  const opDone=id=>(Array.isArray(state.operations)?state.operations:[]).some(row=>row?.operationId===id&&row.status==='DONE');
  const mappedBody=(bodyId)=>Object.entries(layout.corpusIds||{}).filter(([,id])=>id===bodyId);
  const installedKeys=new Set((layout.mode==='winter'?(layout.winterOrder||[]):(layout.installedBoxes||[])).map(String));
@@ -26,6 +27,15 @@ function validate(record,apiaryState){
   if(typeof section.id!=='string'||!section.id.trim())add('SECTION_ID_REQUIRED',{index});
   else if(sectionById.has(section.id))add('SECTION_ID_DUPLICATE',{sectionId:section.id});
   else sectionById.set(section.id,section);
+  if(!section.familyId)add('SECTION_FAMILY_REQUIRED',{sectionId:section.id||null});
+  else if(familyOwners.has(section.familyId))add('FAMILY_ASSIGNED_TWICE',{familyId:section.familyId});
+  else familyOwners.add(section.familyId);
+  const family=(apiaryState.families||[]).find(row=>row?.id===section.familyId);
+  if(!family||family.hive!==hiveId||family.recordStatus==='historical')add('SECTION_FAMILY_REFERENCE',{sectionId:section.id||null,familyId:section.familyId||null});
+  else if(section.queenId){
+   const queen=(apiaryState.queens||[]).find(row=>row?.id===section.queenId);
+   if(family.currentQueenId!==section.queenId||family.queenIdentityStatus!=='identified'||!queen||queen.familyId!==family.id||queen.status!=='current')add('SECTION_QUEEN_REFERENCE',{sectionId:section.id||null,familyId:family.id,queenId:section.queenId});
+  }else if(family.currentQueenId||family.queenIdentityStatus!=='unresolved')add('SECTION_QUEEN_UNRESOLVED_STATE',{sectionId:section.id||null,familyId:family.id,currentQueenId:family.currentQueenId||null,queenIdentityStatus:family.queenIdentityStatus||null});
   if(!Array.isArray(section.bodyIds)||!section.bodyIds.length)add('SECTION_BODIES_REQUIRED',{sectionId:section.id||null});
   for(const bodyId of Array.isArray(section.bodyIds)?section.bodyIds:[]){
    if(typeof bodyId!=='string'||!bodyId.trim()){add('BODY_ID_INVALID',{sectionId:section.id||null});continue;}
