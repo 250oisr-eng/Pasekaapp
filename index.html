@@ -640,7 +640,12 @@ async function commitStartupState(state,expectedRevision,recoveredFromBackup){aw
 function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
 function writeMainIfUnchanged(state,expectedRevision){
  return new Promise((ok,no)=>{
-  let previous=null,conflict=null,t;
+  let previous=null,conflict=null,failure=null,t,settled=false;
+  const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось сохранить основную базу'))}};
+  const abortWithError=error=>{
+   failure=error||new Error('Не удалось записать основную базу');
+   try{t.abort()}catch(abortError){rejectOnce(failure)}
+  };
   try{
    t=db.transaction(STORE,'readwrite');
    const store=t.objectStore(STORE),q=store.get('state');
@@ -650,16 +655,16 @@ function writeMainIfUnchanged(state,expectedRevision){
     if(actual!==expectedRevision){
      conflict=new Error('Данные уже изменены в другой вкладке или на другом устройстве. Текущие изменения не записаны, чтобы не затереть более свежие данные.');
      conflict.name='PasekaConflictError';
-     try{t.abort()}catch(e){}
+     try{t.abort()}catch(e){rejectOnce(conflict)}
      return;
     }
-    store.put(state,'state');
+    try{store.put(state,'state')}catch(error){abortWithError(error)}
    };
-   q.onerror=()=>{try{t.abort()}catch(e){}};
-   t.oncomplete=()=>ok(previous);
-   t.onabort=()=>no(conflict||t.error||q.error||new Error('Сохранение прервано'));
-   t.onerror=()=>no(conflict||t.error||new Error('Ошибка транзакции сохранения'));
-  }catch(e){no(e)}
+   q.onerror=()=>abortWithError(q.error||new Error('Не удалось прочитать текущую базу перед сохранением'));
+   t.oncomplete=()=>{if(!settled){settled=true;ok(previous)}};
+   t.onabort=()=>rejectOnce(conflict||failure||t.error||q.error||new Error('Сохранение прервано'));
+   t.onerror=()=>rejectOnce(conflict||failure||t.error||new Error('Ошибка транзакции сохранения'));
+  }catch(error){rejectOnce(error)}
  });
 }
 function writeMainWithBackup(state,expectedRevision){
