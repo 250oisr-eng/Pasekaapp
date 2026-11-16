@@ -44,7 +44,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v315/);
+  assert.match(sw, /paseka-shell-v316/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
@@ -62,11 +62,13 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('sectionalTechProcesses,families'));
   assert.match(html, /Суточная норма сиропа на семью/);
   assert.ok(html.includes('function toggleSectionalOperationFields('));
+  assert.ok(html.includes('id="sectionalOperationOP04Fields"'));
+  assert.ok(html.includes('id="sectionalOperationBottomsConfirmed"'));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.4.0');
+  assert.equal(api.SPEC.version, '1.5.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -356,7 +358,7 @@ function validOp05State() {
     operations: api.SPEC.operations.map(operation => ({
       operationId: operation.id,
       status: operation.id === 'OP-04' ? 'DONE' : 'PENDING',
-      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {})
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10', additionalBottomsInstalled: true } : {})
     }))
   };
 }
@@ -534,7 +536,7 @@ test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup rati
 test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION', () => {
   const record = operationRecord();
   const op04 = api.transitionOperation(record, 'OP-04', {
-    status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
+    status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(op04.valid, false);
   assert.ok(op04.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
