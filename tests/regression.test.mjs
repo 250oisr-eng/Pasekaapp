@@ -2906,3 +2906,41 @@ test('legacy schema 9 backup remains compatible without physical item registry f
  assert.equal(legacy.equipmentInventory.itemEvents,undefined);
  assert.equal(JSON.stringify(legacy),before,'legacy archive validation must not rewrite or synthesize item registry data');
 });
+
+
+test('schema 13 migration adds only an empty family event ledger and does not invent lineage IDs',()=>{
+ const family={id:'legacy-family-1',hive:'h1',name:'Старая семья'};
+ const queen={id:'legacy-queen-1',familyId:'legacy-family-1',status:'current'};
+ const state={
+  meta:{schemaVersion:13,nextHiveNumber:2},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],
+  families:[family],queens:[queen],queenEvents:[],records:[],tasks:[],extractions:[],snapshots:[],
+  layouts:{h1:{boxes:{},honeyFrames:[]}},auditLog:[],aiMessages:[],plantCatalog:[],plantLocations:[],
+  plantObservations:[],plantAIQueue:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],
+  equipmentInventory:{bodies:{},events:[],items:{},itemEvents:[]},sectionalTechProcesses:[]
+ };
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema14-id',layoutFor:()=>({boxes:{},honeyFrames:[]}),frameArray:()=>[]});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,14);
+ assert.deepEqual(state.familyEvents,[]);
+ assert.deepEqual(state.families,[family]);
+ assert.deepEqual(state.queens,[queen]);
+ assert.equal(state.families[0].recordStatus,undefined);
+ assert.equal(state.families[0].colonyGroupId,undefined);
+ assert.equal(state.queens[0].originFamilyId,undefined);
+ assert.equal(migrate(),false);
+});
+
+test('schema 14 backup requires a valid family event ledger',()=>{
+ const validate=loadFunction('validateBackupState');
+ const base={
+  meta:{schemaVersion:14},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},
+  auditLog:[],aiMessages:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],
+  queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[],items:{},itemEvents:[]},
+  varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[],familyEvents:[]
+ };
+ assert.equal(validate(base),base);
+ const missing={...base};delete missing.familyEvents;
+ assert.throws(()=>validate(missing),/familyEvents/);
+ const broken={...base,familyEvents:[{id:'event-1',type:'merge',sourceFamilyIds:['missing-a','missing-b'],resultFamilyIds:['missing-result'],candidateQueenIds:[],occurredAt:'2026-10-01T10:00:00.000Z'}]};
+ assert.throws(()=>validate(broken),/история семей/i);
+});
