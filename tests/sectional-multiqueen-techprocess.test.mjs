@@ -126,6 +126,7 @@ test('R1 is released after OP-06 when sections are reconnected', () => {
 
 test('OP-09 requires round bottom entrances in the lower nest bodies', () => {
   const result = api.validateHiveState(dividedState({
+    phase: 'END_OF_SEASON',
     operations: [{ operationId: 'OP-09', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }))
   }));
