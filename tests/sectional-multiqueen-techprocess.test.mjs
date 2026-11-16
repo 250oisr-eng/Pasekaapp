@@ -294,6 +294,15 @@ test('R4 requires exactly two large excluders and explicit upper-body references
   assert.ok(noUpperIds.errors.some(x => x.code === 'R4_UPPER_NEST_BODY_REFERENCE'));
 });
 
+test('R4 rejects a valid three-body footprint assigned to the wrong section positions', () => {
+  const grids = [
+    { id: 'large-grid-left', coverage: [{ bodyId: 'body-2-b', coverage: 'FULL' }, { bodyId: 'body-1-b', coverage: 'HALF' }] },
+    { id: 'large-grid-right', coverage: [{ bodyId: 'body-1-b', coverage: 'HALF' }, { bodyId: 'body-3-b', coverage: 'FULL' }] }
+  ];
+  const result = api.validateHiveState(honeyReadyState({ honeyQueenExcluders: grids }));
+  assert.ok(result.errors.some(x => x.code === 'R4_EXCLUDER_SECTION_ALIGNMENT'));
+});
+
 test('R4 rejects excluder halves that do not share the same middle body', () => {
   const grids = honeyExcluderFixture();
   grids[1].coverage[0].bodyId = 'body-1-b';
