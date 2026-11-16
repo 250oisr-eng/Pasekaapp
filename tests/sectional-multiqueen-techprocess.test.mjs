@@ -274,7 +274,7 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
 
 test('R4 requires queen excluder before honey bodies', () => {
   const result = api.validateHiveState(dividedState({ phase: 'HONEY_BODIES_INSTALLED' }));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
 });
 
 
