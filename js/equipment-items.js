@@ -46,7 +46,8 @@ function registerUnsafe(state,request,makeId,now){
  if(!storageLocation||storageLocation.length>160||notes.length>500)return {ok:false,error:'invalid_details'};
  if(typeof makeId!=='function')return {ok:false,error:'id_generator_required'};
  const id=String(makeId()||'');
- if(!id||id.length>160||inv.items[id]||inv.bodies?.[id])return {ok:false,error:'duplicate_item_id'};
+ const corpusIdUsed=Object.values(state.layouts||{}).some(layout=>Object.values(layout?.corpusIds||{}).includes(id));
+ if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||corpusIdUsed)return {ok:false,error:'duplicate_item_id'};
  const time=now||new Date().toISOString();
  const item={id,kind,condition:'good',location:{type:'storage',label:storageLocation},notes,registeredAt:time,updatedAt:time,events:[]};
  inv.items[id]=item;addEvent(inv,item,'registered',{location:item.location},time,makeId);
