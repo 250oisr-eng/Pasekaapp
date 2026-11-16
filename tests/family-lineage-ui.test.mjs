@@ -35,21 +35,19 @@ test('overview counts active and historical families without changing source sta
  assert.deepEqual(source,before);
 });
 
-test('queen confirmation candidates are offered only to unresolved active result families and never duplicated',()=>{
+test('queen confirmation candidates are offered once for the unresolved result families of a split',()=>{
  const overview=ui.buildOverview(state());
  assert.equal(overview.pendingConfirmations.length,1);
- assert.equal(overview.pendingConfirmations[0].familyId,'f-a');
+ assert.deepEqual(overview.pendingConfirmations[0].familyOptions.map(x=>x.familyId),['f-a','f-c']);
  assert.deepEqual(overview.pendingConfirmations[0].candidates.map(x=>x.queenId),['q1']);
 });
 
 test('a candidate already assigned to another active family is not offered',()=>{
  const source=state();
- source.families.find(x=>x.id==='f-a').currentQueenId=null;
- source.families.find(x=>x.id==='f-a').queenIdentityStatus='unresolved';
  source.families.find(x=>x.id==='f-b').currentQueenId='q1';
  source.queens.find(x=>x.id==='q1').familyId='f-b';
  const overview=ui.buildOverview(source);
- assert.equal(overview.pendingConfirmations.some(x=>x.familyId==='f-a'),false);
+ assert.equal(overview.pendingConfirmations.length,0);
 });
 
 test('lineage event descriptions preserve source and result family relationships',()=>{
