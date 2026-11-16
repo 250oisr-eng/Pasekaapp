@@ -78,3 +78,24 @@ test('inventory search tokens include permanent frame codes carried by a physica
 
 test('integrity inspection detects a paired honey set split between hive and storage',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.equipmentInventory.bodies[pair.bodies[0].id].storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_split'));});
 test('integrity inspection detects a paired honey set installed across two hives',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.layouts.h2.corpusIds.H2=pair.bodies[1].id;s.layouts.h2.honeyFrames[1]=[];for(const body of pair.bodies)body.storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_location_mismatch'));});
+
+test('integrity inspection detects a layout reference to a missing physical inventory body without mutating state',()=>{
+ const s=fixture();I.migrate(s,makeId,now);delete s.equipmentInventory.bodies.b1;const before=JSON.stringify(s);
+ const errors=I.inspect(s,labels);
+ assert.ok(errors.some(x=>x.code==='inventory_layout_body_unregistered'&&x.details.hiveId==='h1'&&x.details.boxKey==='1'&&x.details.bodyId==='b1'));
+ assert.equal(JSON.stringify(s),before);
+});
+
+test('integrity inspection blocks an installed physical body whose specification is unknown',()=>{
+ const s=fixture();I.migrate(s,makeId,now);delete s.equipmentInventory.bodies.b1.spec;const before=JSON.stringify(s);
+ const errors=I.inspect(s,labels);
+ assert.ok(errors.some(x=>x.code==='inventory_body_spec_missing'&&x.details.bodyId==='b1'));
+ assert.equal(JSON.stringify(s),before);
+});
+
+test('integrity inspection detects an empty corpus mapping without repairing or generating an ID',()=>{
+ const s=fixture();I.migrate(s,makeId,now);s.layouts.h1.corpusIds['1']='';const before=JSON.stringify(s);
+ const errors=I.inspect(s,labels);
+ assert.ok(errors.some(x=>x.code==='inventory_layout_body_id_missing'&&x.details.hiveId==='h1'&&x.details.boxKey==='1'));
+ assert.equal(JSON.stringify(s),before);
+});
