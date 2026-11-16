@@ -1326,6 +1326,39 @@ test('startup repairs a malformed automatic backup from the already validated ma
  assert.equal(stored.state,current);
 });
 
+test('startup repairs a malformed backup through real IndexedDB without changing the main record',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'startup-backup-repair-'+(++indexedDbTestSequence));
+ try{
+  const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+  const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+  await seedIndexedDb(db,[['main',current,'state'],['backup',malformed,'previous']]);
+  const validateAutomaticBackup=automaticBackupValidatorForTests();
+  const writeAutoBackup=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  const ensure=loadFunction('ensureAutomaticBackup',{validateAutomaticBackup,writeAutoBackup,readAutoBackup});
+  assert.equal(await ensure(current,malformed),true);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),current);
+  assert.deepEqual((await readIndexedDb(db,'backup','previous')).state,current);
+ }finally{db.close()}
+});
+
+test('startup does not replace a malformed backup when real IndexedDB main revision is stale',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'startup-backup-stale-'+(++indexedDbTestSequence));
+ try{
+  const latest={meta:{revisionId:'latest-rev'},value:'newer-main'};
+  const stale={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'stale-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+  const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+  await seedIndexedDb(db,[['main',latest,'state'],['backup',malformed,'previous']]);
+  const validateAutomaticBackup=automaticBackupValidatorForTests();
+  const writeAutoBackup=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  const ensure=loadFunction('ensureAutomaticBackup',{validateAutomaticBackup,writeAutoBackup,readAutoBackup});
+  assert.equal(await ensure(stale,malformed),false);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),latest);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),malformed);
+ }finally{db.close()}
+});
+
 test('startup never overwrites an automatic backup when the main revision changed concurrently',async()=>{
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const current={...rawBackupFixture(),meta:{revisionId:'stale-rev'}};
