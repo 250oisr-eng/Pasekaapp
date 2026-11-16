@@ -2103,6 +2103,35 @@ test('IndexedDB real API reads reject a transaction aborted immediately after re
  }finally{db.close()}
 });
 
+test('startup read prefers a valid main state without touching the automatic backup',async()=>{
+ const main={meta:{revisionId:'main-rev'},value:'main'};
+ let backupReads=0;
+ const deps={readMain:async()=>main,readAutoBackup:async()=>{backupReads++;return null},autoBackupRecovered:false};
+ assert.equal(await loadFunction('read',deps)(),main);
+ assert.equal(backupReads,0);
+ assert.equal(deps.autoBackupRecovered,false);
+});
+
+test('startup read recovers from a missing main state using the automatic backup',async()=>{
+ const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,autoBackupRecovered:false};
+ assert.equal(await loadFunction('read',deps)(),backup.state);
+ assert.equal(deps.autoBackupRecovered,true);
+});
+
+test('startup read recovers from a failed main read when a backup is available',async()=>{
+ const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
+ const deps={readMain:async()=>{throw new Error('main transaction aborted')},readAutoBackup:async()=>backup,autoBackupRecovered:false};
+ assert.equal(await loadFunction('read',deps)(),backup.state);
+ assert.equal(deps.autoBackupRecovered,true);
+});
+
+test('startup read refuses to initialize empty data when both main and backup reads fail',async()=>{
+ const deps={readMain:async()=>{throw new Error('main read failed')},readAutoBackup:async()=>{throw new Error('backup read failed')},autoBackupRecovered:false};
+ await assert.rejects(loadFunction('read',deps)(),/backup read failed/i);
+ assert.equal(deps.autoBackupRecovered,false);
+});
+
 test('IndexedDB reads reject request errors, transaction errors, and transaction creation failures',async()=>{
  for(const name of ['readMain','readAutoBackup']){
   for(const failurePoint of ['request','transaction','creation']){
