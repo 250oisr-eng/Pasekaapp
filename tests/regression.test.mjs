@@ -2367,11 +2367,12 @@ test('IndexedDB real API aborts main restore when backup write fails',async()=>{
  const db=await openRealIndexedDb(factory,'atomic-restore-failure-'+(++indexedDbTestSequence),true);
  try{
   const previous={meta:{revisionId:'rev-1'},value:'must-survive'};
-  await seedIndexedDb(db,[['main',previous,'state']]);
+  const previousBackup={id:'previous',at:'2026-11-15T12:00:00.000Z',state:{meta:{revisionId:'rev-0'},value:'trusted-backup'}};
+  await seedIndexedDb(db,[['main',previous,'state'],['backup',previousBackup]]);
   const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
   await assert.rejects(write({meta:{revisionId:'rev-2'},value:'must-not-commit'},'rev-1'),error=>error?.name==='DataError');
   assert.deepEqual(await readIndexedDb(db,'main','state'),previous);
-  assert.equal(await readIndexedDb(db,'backup','previous'),undefined);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),previousBackup,'failed restore must preserve the previously trusted backup too');
  }finally{db.close()}
 });
 
