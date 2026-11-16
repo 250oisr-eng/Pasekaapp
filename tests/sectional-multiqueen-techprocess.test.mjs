@@ -165,7 +165,7 @@ test('R2 blocks OP-06 when the queen registry is incomplete', () => {
   const result = api.validateHiveState(dividedState({
     operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-    queens: [{ id: 'queen-1', status: 'FERTILIZED' }, { id: 'queen-2', status: 'FERTILIZED' }], meshPlugs: []
+    queens: [{ id: 'queen-1', status: 'FERTILIZED', layingObserved: true }, { id: 'queen-2', status: 'FERTILIZED', layingObserved: true }], meshPlugs: []
   }));
   assert.ok(result.errors.some(x => x.code === 'SECTION_QUEEN_COUNT'));
   assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
@@ -175,7 +175,7 @@ test('R2 blocks OP-06 while any of the three queens is unfertilized', () => {
   const result = api.validateHiveState(dividedState({
     operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-    queens: [{ id: 'queen-1', status: 'FERTILIZED' }, { id: 'queen-2', status: 'UNFERTILIZED' }, { id: 'queen-3', status: 'FERTILIZED' }], meshPlugs: []
+    queens: [{ id: 'queen-1', status: 'FERTILIZED', layingObserved: true }, { id: 'queen-2', status: 'UNFERTILIZED' }, { id: 'queen-3', status: 'FERTILIZED', layingObserved: true }], meshPlugs: []
   }));
   assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
 });
@@ -191,7 +191,7 @@ test('OP-06 requires observed egg laying for all three queens', () => {
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
     queens: [
       { id: 'queen-1', status: 'FERTILIZED', layingObserved: true },
-      { id: 'queen-2', status: 'FERTILIZED', layingObserved: false },
+      { id: 'queen-2', status: 'FERTILIZED', layingObserved: true, layingObserved: false },
       { id: 'queen-3', status: 'FERTILIZED', layingObserved: true }
     ],
     meshPlugs: []
@@ -212,7 +212,7 @@ test('OP-06 egg-laying rule is versioned and legacy records remain readable', ()
       { operationId: 'OP-06', status: 'DONE', completedAt: '2027-05-30' }
     ],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
     meshPlugs: []
   });
   const legacy = {
@@ -247,7 +247,7 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
   const result = api.validateHiveState(dividedState({
     isolation: 'MESH_ISOLATED',
     sections: [sectionFixture(1, { isolation: 'MESH_ISOLATED' }), sectionFixture(2, { isolation: 'MESH_ISOLATED' }), sectionFixture(3, { isolation: 'MESH_ISOLATED' })],
-    queens: [{ id: 'queen-1', status: 'UNFERTILIZED' }, { id: 'queen-2', status: 'FERTILIZED' }, { id: 'queen-3', status: 'FERTILIZED' }],
+    queens: [{ id: 'queen-1', status: 'UNFERTILIZED' }, { id: 'queen-2', status: 'FERTILIZED', layingObserved: true }, { id: 'queen-3', status: 'FERTILIZED', layingObserved: true }],
     requiredMeshPlugCount: 4,
     meshPlugs: Array.from({ length: 3 }, (_, index) => ({ id: 'plug-' + index, sectionId: 'section-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }))
   }));
@@ -275,7 +275,7 @@ test('all entrances action is no longer treated as an R1 conflict after OP-06', 
   const result = api.validateHiveState(dividedState({
     operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', isolation: 'CONNECTED' })),
-    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })), meshPlugs: [],
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })), meshPlugs: [],
     operationActions: ['OPEN_ALL_ENTRANCES']
   }));
   assert.equal(result.valid, true);
@@ -312,7 +312,7 @@ test('OP-06 requires OP-05, three fertilized queens, connected sections and remo
   const base = dividedState({
     operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
     requiredMeshPlugCount: 4,
     meshPlugs: [{ id: 'p1', installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }]
   });
@@ -370,7 +370,7 @@ test('stored OP-05 and OP-06 completion dates must match the user-defined window
         { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: true }
       ],
       sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-      queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+      queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
       meshPlugs: [],
       operations: [
         { operationId: 'OP-04', status: 'DONE', completedAt: '2027-04-01' },
@@ -433,7 +433,7 @@ function validOp06State() {
       { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: true }
     ],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
     requiredMeshPlugCount: 3,
     meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: false, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
     operations: api.SPEC.operations.map(operation => ({
@@ -677,7 +677,7 @@ test('R3 requires two inter-section connections with two excluders and a buffer 
 test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', () => {
   const result = api.validateHiveState(dividedState({
     operations: [{ operationId: 'OP-06', status: 'DONE' }, { operationId: 'OP-07', status: 'DONE' }],
-    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
     meshPlugs: []
   }));
