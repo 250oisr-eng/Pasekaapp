@@ -84,6 +84,11 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('id="sectionalOperationBottomsConfirmed"'));
 });
 
+test('OP-07 specification exposes the confirmed two-grid FULL/HALF layout', () => {
+  assert.equal(api.getOperation('OP-07').honeyQueenExcluderLayout, 'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER');
+  assert.equal(api.SPEC.geometry.honeyQueenExcluders, 'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER');
+});
+
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
   assert.equal(api.SPEC.version, '1.7.0');
