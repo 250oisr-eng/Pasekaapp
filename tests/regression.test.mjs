@@ -2311,6 +2311,40 @@ test('IndexedDB real API serializes competing revision writes and rejects the st
  }finally{db.close()}
 });
 
+test('IndexedDB synchronous primary put failure rejects instead of reporting a committed save',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'primary-put-sync-failure-'+(++indexedDbTestSequence));
+ try{
+  const previous={meta:{revisionId:'rev-1'},value:'must-survive'};
+  await seedIndexedDb(db,[['main',previous,'state']]);
+  const cloneError=new DOMException('uncloneable state','DataCloneError');
+  const failingDb={
+   transaction(...args){
+    const tx=db.transaction(...args);
+    return new Proxy(tx,{
+     get(target,property){
+      if(property==='objectStore')return name=>{
+       const store=target.objectStore(name);
+       return new Proxy(store,{
+        get(storeTarget,storeProperty){
+         if(storeProperty==='put')return()=>{throw cloneError};
+         const value=Reflect.get(storeTarget,storeProperty,storeTarget);
+         return typeof value==='function'?value.bind(storeTarget):value;
+        }
+       });
+      };
+      const value=Reflect.get(target,property,target);
+      return typeof value==='function'?value.bind(target):value;
+     }
+    });
+   }
+  };
+  const write=loadFunction('writeMainIfUnchanged',{db:failingDb,STORE:'main'});
+  await assert.rejects(write({meta:{revisionId:'rev-2'},value:'must-not-commit'},'rev-1'),error=>error.name==='DataCloneError');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),previous,'a synchronous put failure must never be reported as a successful save');
+ }finally{db.close()}
+});
+
 test('IndexedDB real API commits restored state and previous backup atomically',async()=>{
  const factory=new IDBFactory();
  const db=await openRealIndexedDb(factory,'atomic-restore-'+(++indexedDbTestSequence));
