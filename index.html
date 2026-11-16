@@ -611,6 +611,10 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
    <label id="sectionalOperationFeedAmountLabel" for="sectionalOperationFeedAmount">Суточная норма сиропа на семью, г (100–200)</label>
    <input id="sectionalOperationFeedAmount" type="number" min="100" max="200" step="1" placeholder="100–200">
   </div>
+  <div id="sectionalOperationOP04Fields" style="display:none;padding:10px;border:1px solid #dce4d9;border-radius:10px;background:#f7faf5">
+   <b>Фактическая конфигурация OP-04</b>
+   <label class="row" style="justify-content:flex-start;gap:8px;margin:8px 0"><input id="sectionalOperationBottomsConfirmed" type="checkbox" style="width:auto"> Подтверждаю: установлены два дополнительных дна (всего три)</label>
+  </div>
   <label for="sectionalOperationNote">Комментарий / причина</label>
   <textarea id="sectionalOperationNote" rows="3" maxlength="1000" placeholder="Что фактически сделано, что помешало или почему операция пропущена"></textarea>
   <p id="sectionalOperationFeedback" class="muted" role="status" aria-live="polite"></p>
@@ -1714,7 +1718,7 @@ async function initializeSectionalTechProcessOperations(recordId){
  logAudit('sectional_tech_process_operations_initialized',{hiveId:record.hiveId,techProcessId:record.id,operationCount:record.state.operations.length});sectionalTechProcessSavePending=true;report('Сохраняем список операций…');
  try{const saved=await save();if(saved){sectionalTechProcessSavePending=false;report('Список OP-01…OP-14 сохранён.');}else report('Сохранение не подтверждено. Список остаётся в памяти; скачай JSON-архив.');renderSectionalTechProcessModule();return !!saved}catch(error){report('Ошибка сохранения: '+(error.message||error)+'. Список остаётся в памяти; скачай JSON-архив.');renderSectionalTechProcessModule();return false}
 }
-function toggleSectionalOperationFields(){const host=$('sectionalOperationFeedingFields');if(host)host.style.display=$('sectionalOperationId')?.value==='OP-02'&&$('sectionalOperationStatus')?.value==='DONE'?'block':'none'}
+function toggleSectionalOperationFields(){const operationId=$('sectionalOperationId')?.value,done=$('sectionalOperationStatus')?.value==='DONE',feeding=$('sectionalOperationFeedingFields'),bottoms=$('sectionalOperationOP04Fields');if(feeding)feeding.style.display=operationId==='OP-02'&&done?'block':'none';if(bottoms)bottoms.style.display=operationId==='OP-04'&&done?'block':'none'}
 function openSectionalOperationEditor(recordId,operationId){
  const record=S.sectionalTechProcesses?.find(item=>item&&item.id===recordId),operation=record?.state?.operations?.find(item=>item&&item.operationId===operationId),definition=PasekaSectionalTechProcess.getOperation(operationId);
  if(!record||!operation||!definition)return alert('Карточка или операция не найдена. Обнови список.');
@@ -1723,7 +1727,7 @@ function openSectionalOperationEditor(recordId,operationId){
  $('sectionalOperationStatus').value=operation.status||'PENDING';
  $('sectionalOperationPlannedAt').value=operation.plannedAt||'';
  $('sectionalOperationCompletedAt').value=operation.completedAt||'';
- $('sectionalOperationNote').value=operation.note||'';
+ $('sectionalOperationNote').value=operation.note||'';$('sectionalOperationBottomsConfirmed').checked=operation.additionalBottomsInstalled===true;
  $('sectionalOperationFeedStart').value=operation.feeding?.startDate||'';$('sectionalOperationFeedEnd').value=operation.feeding?.endDate||'';$('sectionalOperationFeedAmount').value=operation.feeding?.gramsPerColonyPerDay??operation.feeding?.portionGrams??'';$('sectionalOperationFeedAmountLabel').textContent='Суточная норма сиропа на семью, г (100–200)';toggleSectionalOperationFields();
  $('sectionalOperationFeedback').textContent=definition.optional?'Операция необязательная. При пропуске укажи причину.':'Обязательная операция. Отметить её как пропущенную нельзя.';
  const dialog=$('sectionalOperationDlg');if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
@@ -1734,7 +1738,7 @@ async function saveSectionalOperationEditor(event){
  const report=message=>{if(feedback)feedback.textContent=message};
  if(!record){report('Карточка техпроцесса не найдена.');return false}
  const feeding={startDate:$('sectionalOperationFeedStart').value||null,endDate:$('sectionalOperationFeedEnd').value||null,gramsPerColonyPerDay:Number($('sectionalOperationFeedAmount').value),sugarParts:2,waterParts:1};
- const draft={status:$('sectionalOperationStatus').value,plannedAt:$('sectionalOperationPlannedAt').value||null,completedAt:$('sectionalOperationCompletedAt').value||null,note:$('sectionalOperationNote').value,feeding,updatedAt:new Date().toISOString()};
+ const draft={status:$('sectionalOperationStatus').value,plannedAt:$('sectionalOperationPlannedAt').value||null,completedAt:$('sectionalOperationCompletedAt').value||null,note:$('sectionalOperationNote').value,feeding,additionalBottomsInstalled:$('sectionalOperationBottomsConfirmed')?.checked===true,updatedAt:new Date().toISOString()};
  const result=PasekaSectionalTechProcess.transitionOperation(record,operationId,draft,S.sectionalTechProcesses,S.hives);
  if(!result.valid){report('Изменение отклонено: '+result.errors.map(error=>error.code).join(', '));return false}
  const previous=cloneApiaryState();

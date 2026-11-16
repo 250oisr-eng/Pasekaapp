@@ -44,7 +44,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v315/);
+  assert.match(sw, /paseka-shell-v316/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
@@ -62,11 +62,13 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('sectionalTechProcesses,families'));
   assert.match(html, /Суточная норма сиропа на семью/);
   assert.ok(html.includes('function toggleSectionalOperationFields('));
+  assert.ok(html.includes('id="sectionalOperationOP04Fields"'));
+  assert.ok(html.includes('id="sectionalOperationBottomsConfirmed"'));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.4.0');
+  assert.equal(api.SPEC.version, '1.5.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -356,7 +358,7 @@ function validOp05State() {
     operations: api.SPEC.operations.map(operation => ({
       operationId: operation.id,
       status: operation.id === 'OP-04' ? 'DONE' : 'PENDING',
-      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {})
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10', additionalBottomsInstalled: true } : {})
     }))
   };
 }
@@ -374,7 +376,7 @@ function validOp06State() {
     operations: api.SPEC.operations.map(operation => ({
       operationId: operation.id,
       status: ['OP-04', 'OP-05'].includes(operation.id) ? 'DONE' : 'PENDING',
-      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {}),
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10', additionalBottomsInstalled: true } : {}),
       ...(operation.id === 'OP-05' ? { completedAt: '2027-05-18' } : {})
     }))
   };
@@ -534,7 +536,7 @@ test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup rati
 test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION', () => {
   const record = operationRecord();
   const op04 = api.transitionOperation(record, 'OP-04', {
-    status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
+    status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(op04.valid, false);
   assert.ok(op04.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
@@ -548,6 +550,38 @@ test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION
   }, [withOp04], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(op05.valid, false);
   assert.ok(op05.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
+});
+
+test('OP-04 requires explicit confirmation of two additional bottoms and preserves legacy records', () => {
+  const state = dividedState({
+    operations: api.SPEC.operations.map(operation => ({ operationId: operation.id, status: 'PENDING' }))
+  });
+  const record = operationRecord(state);
+  const missing = api.transitionOperation(record, 'OP-04', {
+    status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.equal(missing.valid, false);
+  assert.ok(missing.errors.some(error => error.code === 'OP04_ADDITIONAL_BOTTOMS_CONFIRMATION_REQUIRED'));
+
+  const confirmed = api.transitionOperation(record, 'OP-04', {
+    status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.equal(confirmed.valid, true);
+  assert.equal(confirmed.record.specVersion, '1.5.0');
+  assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
+
+  const currentUnconfirmed = structuredClone(record);
+  currentUnconfirmed.state.operations.find(operation => operation.operationId === 'OP-04').status = 'DONE';
+  currentUnconfirmed.state.operations.find(operation => operation.operationId === 'OP-04').completedAt = '2027-05-10';
+  const invalidStored = api.validateStoredRecords([currentUnconfirmed], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.ok(invalidStored.errors.some(error => error.code === 'TECH_OP04_BOTTOMS_CONFIRMATION_REQUIRED'));
+
+  const legacy = structuredClone(record);
+  legacy.specVersion = '1.4.0';
+  const legacyOp04 = legacy.state.operations.find(operation => operation.operationId === 'OP-04');
+  legacyOp04.status = 'DONE';
+  legacyOp04.completedAt = '2027-05-10';
+  assert.equal(api.validateStoredRecords([legacy], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
 });
 
 test('R1 requires an explicit entrance state for every section', () => {

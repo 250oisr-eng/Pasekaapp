@@ -1,10 +1,10 @@
 (() => {
 'use strict';
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.4.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.5.0',language:'ru',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
-  nestBodiesPerSectionAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
+  nestBodiesPerSectionAtDivision:2,additionalBottomsAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
   permanentQueenExcludersInTechnicalOpenings:true,queenExcluderLayersPerConnection:2,
   technicalOpeningBufferCorridorRequired:true,metalMeshPlugsPerTechnicalOpeningPerBody:1,
   honeyQueenExcluders:'ONE_PER_SECTION_WHEN_HONEY_BODIES_INSTALLED',
@@ -17,7 +17,7 @@ const SPEC=Object.freeze({
  {id:'OP-01',title:'Весеннее открытие летков',optional:false},
  {id:'OP-02',title:'Весенняя подкормка',optional:false,durationDays:[12,15],syrupDailyGrams:[100,200],syrupRatio:{sugar:2,water:1},proteinFeed:'AS_CONSUMED'},
  {id:'OP-03',title:'Перестановка корпусов (верх ↔ низ)',optional:true,recommended:true,offsetFrom:'OP-04',offsetDays:[-7,-5]},
- {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2},
+ {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2,additionalBottomsRequired:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
  {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
  {id:'OP-07',title:'Постановка медовых корпусов',optional:false,queenExcludersPerSection:1,honeyBodiesScope:'WHOLE_HIVE'},
@@ -195,7 +195,7 @@ function validateStoredRecords(records,hives){
   if(record.hiveProfileId!==SPEC.id||linkedProfileId!==SPEC.id)add('TECH_HIVE_PROFILE_MISMATCH',{id:record.id,hiveProfileId:record.hiveProfileId??null,linkedProfileId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
-  if(![SPEC.version,'1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
+  if(![SPEC.version,'1.4.0','1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
   if(typeof record.createdAt!=='string'||!Number.isFinite(Date.parse(record.createdAt)))add('TECH_RECORD_CREATED_AT_INVALID',{id:record.id});
   if(typeof record.updatedAt!=='string'||!Number.isFinite(Date.parse(record.updatedAt)))add('TECH_RECORD_UPDATED_AT_INVALID',{id:record.id});
   if(!record.state||typeof record.state!=='object'||Array.isArray(record.state)){add('TECH_RECORD_STATE_INVALID',{id:record.id});return;}
@@ -222,6 +222,7 @@ function validateStoredRecords(records,hives){
      if(operation.completedAt!==undefined&&operation.completedAt!==null&&!operationDay(operation.completedAt))add('TECH_OPERATION_DATE_INVALID',{id:record.id,operationId:operation.operationId,field:'completedAt'});
     });
     const op04=operationById.get('OP-04'),op05=operationById.get('OP-05'),op06=operationById.get('OP-06');
+     if(op04?.status==='DONE'&&record.specVersion===SPEC.version&&op04.additionalBottomsInstalled!==true)add('TECH_OP04_BOTTOMS_CONFIRMATION_REQUIRED',{id:record.id});
     if(op05?.status==='DONE'){
      const start=operationDay(op04?.completedAt),finish=operationDay(op05.completedAt);
      if(op04?.status!=='DONE'||!start||!finish)add('TECH_OP05_COMPLETION_DATE_REQUIRED',{id:record.id});
@@ -271,6 +272,7 @@ function transitionOperation(record,operationId,draft,records,hives){
  if(plannedAt!==null&&!parseDate(plannedAt)){add('OPERATION_PLANNED_DATE_INVALID','Укажи существующую дату планирования.');return {valid:false,errors};}
  if(draft.status==='SCHEDULED'&&!plannedAt){add('OPERATION_PLANNED_DATE_REQUIRED','Для запланированной операции укажи дату.');return {valid:false,errors};}
  if(draft.status==='DONE'&&!parseDate(completedAt)){add('OPERATION_COMPLETION_DATE_REQUIRED','Для выполненной операции укажи фактическую дату выполнения.');return {valid:false,errors};}
+  if(operationId==='OP-04'&&draft.status==='DONE'&&draft.additionalBottomsInstalled!==true){add('OP04_ADDITIONAL_BOTTOMS_CONFIRMATION_REQUIRED','Подтверди фактическую установку двух дополнительных доньев (всего три).');return {valid:false,errors};}
  const updatedAt=typeof draft.updatedAt==='string'&&Number.isFinite(Date.parse(draft.updatedAt))?draft.updatedAt:null;
  if(!updatedAt){add('OPERATION_UPDATED_AT_INVALID','Не удалось подтвердить время изменения операции.');return {valid:false,errors};}
  if(!Array.isArray(records)||!Array.isArray(hives)){add('OPERATION_CONTEXT_INVALID','Не удалось проверить связанные карточки и ульи.');return {valid:false,errors};}
@@ -286,6 +288,10 @@ function transitionOperation(record,operationId,draft,records,hives){
  target.plannedAt=plannedAt;
  target.completedAt=draft.status==='DONE'?completedAt:null;
  target.note=note||null;
+  if(operationId==='OP-04'){
+   target.additionalBottomsInstalled=draft.status==='DONE'?true:false;
+   if(draft.status==='DONE')nextRecord.specVersion=SPEC.version;
+  }
  if(operationId==='OP-02'&&draft.status==='DONE'){
   const feeding=draft.feeding&&typeof draft.feeding==='object'&&!Array.isArray(draft.feeding)?draft.feeding:{};
   
