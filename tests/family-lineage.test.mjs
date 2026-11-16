@@ -191,3 +191,26 @@ test('queen reassignment records the immediately previous family while preservin
  assert.equal(state.queenEvents.at(-1).previousFamilyId,'first-2');
  assert.deepEqual(api.inspect(state),[]);
 });
+
+
+test('split cannot inject unrelated queen candidates or change an existing lineage group',()=>{
+ const state=baseState();
+ const injected=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',candidateQueenIds:['q2'],resultFamilies:children('safe-child')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(injected.ok,false);
+ assert.equal(injected.error,'split_candidate_queen_not_in_source_lineage');
+ assert.equal(state.families.length,3,'failed split must not mutate the source state');
+ const changedGroup=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',colonyGroupId:'other-group',resultFamilies:children('safe-child')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(changedGroup.ok,false);
+ assert.equal(changedGroup.error,'split_colony_group_change_forbidden');
+ assert.equal(state.families.length,3);
+});
+
+test('OP-04 and OP-14 split operations require exactly three result families',()=>{
+ for(const operationId of ['OP-04','OP-14']){
+  const state=baseState();
+  const result=api.applySplit(state,{sourceFamilyId:'f1',operationId,scenario:operationId==='OP-14'?'EARLY_HONEY':undefined,resultFamilies:[{id:'only-a',hive:'h1'},{id:'only-b',hive:'h1'}]},makeId,'2026-04-01T10:00:00.000Z');
+  assert.equal(result.ok,false);
+  assert.equal(result.error,'split_result_families_invalid');
+  assert.equal(state.families.length,3);
+ }
+});

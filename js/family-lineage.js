@@ -225,7 +225,7 @@ function applySplit(state, request, makeId, now) {
   if (!source || !isActive(source)) return {ok:false,error:'source_family_missing_or_historical'};
   if (source.box != null || Object.values(draft.layouts||{}).some(layout=>Object.values(layout?.boxes||{}).some(box=>box?.family===source.id)))
    return {ok:false,error:'source_family_has_legacy_physical_placement'};
-  if (children.length<2 || children.some(row=>!isObject(row)||typeof row.id!=='string'||!row.id.trim()))
+  if (children.length<2 || (['OP-04','OP-14'].includes(request?.operationId)&&children.length!==3) || children.some(row=>!isObject(row)||typeof row.id!=='string'||!row.id.trim()))
    return {ok:false,error:'split_result_families_invalid'};
   const existing=new Set(draft.families.map(f=>f?.id).filter(Boolean));
   const childIds=children.map(row=>row.id);
@@ -235,14 +235,18 @@ function applySplit(state, request, makeId, now) {
   if (children.some(row=>row.currentQueenId || row.queenId))
    return {ok:false,error:'split_result_queen_must_remain_unresolved'};
   const used=new Set([...existing,...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
-  const colonyGroupId=String(request?.colonyGroupId||source.colonyGroupId||nextId(makeId,used)||'');
+  if (source.colonyGroupId && request?.colonyGroupId && request.colonyGroupId!==source.colonyGroupId)
+   return {ok:false,error:'split_colony_group_change_forbidden'};
+  const colonyGroupId=String(source.colonyGroupId||request?.colonyGroupId||nextId(makeId,used)||'');
   if (!colonyGroupId || colonyGroupId.length>160) return {ok:false,error:'colony_group_id_required'};
   const previousMerge=draft.familyEvents.slice().reverse().find(event=>event?.type==='merge'&&event.resultFamilyIds?.includes(source.id));
-  const candidateQueenIds=[...new Set([
-   ...(Array.isArray(request?.candidateQueenIds)?request.candidateQueenIds:[]),
+  const knownCandidateQueenIds=[...new Set([
    ...(source.currentQueenId?[source.currentQueenId]:[]),
    ...(Array.isArray(previousMerge?.candidateQueenIds)?previousMerge.candidateQueenIds:[])
   ])];
+  if (Array.isArray(request?.candidateQueenIds) && request.candidateQueenIds.some(id=>!knownCandidateQueenIds.includes(id)))
+   return {ok:false,error:'split_candidate_queen_not_in_source_lineage'};
+  const candidateQueenIds=knownCandidateQueenIds;
   if (request?.operationId==='OP-04' && !source.currentQueenId && (!previousMerge || !Array.isArray(previousMerge.candidateQueenIds) || previousMerge.candidateQueenIds.length!==3))
    return {ok:false,error:'OP04_SOURCE_QUEEN_NOT_IDENTIFIED'};
   for (const queenId of candidateQueenIds) {
