@@ -136,7 +136,7 @@ function inspect(state) {
     if (!uniqueStrings(setup.upperBodyIds)||setup.upperBodyIds.length!==3) add('early_honey_upper_body_ids_invalid',{eventId:event.id});
     const bodyInventory=state.equipmentInventory?.bodies||{};
     const honeySnapshots=Array.isArray(setup.honeyBodySnapshots)?setup.honeyBodySnapshots:[];
-    if (honeySnapshots.length!==2) add('early_honey_body_snapshots_invalid',{eventId:event.id});
+    if (honeySnapshots.length!==2 || !uniqueStrings(honeySnapshots.map(snapshot=>snapshot?.bodyId)) || !uniqueStrings(setup.honeyBodyIds) || !honeySnapshots.every(snapshot=>setup.honeyBodyIds.includes(snapshot?.bodyId))) add('early_honey_body_snapshots_invalid',{eventId:event.id});
     for (const snapshot of honeySnapshots) {
      const body=bodyInventory[snapshot?.bodyId];
      if (!setup.honeyBodyIds?.includes(snapshot?.bodyId)||snapshot?.kind!=='honey'||snapshot?.condition!=='good'||snapshot?.framesPerBox!==10||snapshot?.profileId!=='sectional-multiqueen-v1'||snapshot?.hiveId!==event.hiveId||snapshot?.installed!==true)
@@ -145,7 +145,7 @@ function inspect(state) {
       add('early_honey_body_physical_reference_invalid',{eventId:event.id,bodyId:snapshot?.bodyId??null});
     }
     const excluderSnapshots=Array.isArray(setup.largeExcluderSnapshots)?setup.largeExcluderSnapshots:[];
-    if (excluderSnapshots.length!==2) add('early_honey_excluder_snapshots_invalid',{eventId:event.id});
+    if (excluderSnapshots.length!==2 || !uniqueStrings(excluderSnapshots.map(snapshot=>snapshot?.itemId)) || !uniqueStrings(setup.largeExcluderIds) || !excluderSnapshots.every(snapshot=>setup.largeExcluderIds.includes(snapshot?.itemId))) add('early_honey_excluder_snapshots_invalid',{eventId:event.id});
     const itemInventory=state.equipmentInventory?.items||{};
     const fullBodies=[],halfBodies=[];
     for (const snapshot of excluderSnapshots) {
