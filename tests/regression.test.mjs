@@ -2231,6 +2231,17 @@ test('startup refuses a malformed backup instead of loading it as recovered main
  assert.equal(deps.autoBackupRecovered,false,'invalid backup must never be marked as recovered');
 });
 
+test('backup integrity rejects contradictory hive, family, journal and task references',()=>{
+ const base={...rawBackupFixture(),hives:[{id:'hive-1',number:1}],families:[{id:'family-1',hive:'missing-hive',origin:'family',stage:'independent'}],records:[{id:'record-1',hive:'missing-hive',taskId:'missing-task'}],tasks:[{id:'task-1',hive:'hive-1',completedRecordId:'missing-record'}],extractions:[],layouts:{}};
+ const result=inspectRawBackup(base);
+ const codes=new Set(result.errors.map(error=>error.code));
+ assert.ok(codes.has('family_hive_missing'));
+ assert.ok(codes.has('record_hive_missing'));
+ assert.ok(codes.has('record_task_link_missing'));
+ assert.ok(codes.has('task_completion_record_missing'));
+ assert.throws(()=>automaticBackupValidatorForTests()({at:'logical-corruption',state:base}),/не прошёл проверку исходных данных/i);
+});
+
 test('startup recovery validates backup raw-data integrity before returning it',async()=>{
  const corrupted={...rawBackupFixture(),hives:[{id:'duplicate',number:1},{id:'duplicate',number:2}]};
  const backup={at:'corrupt',state:corrupted};
