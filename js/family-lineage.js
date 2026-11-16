@@ -258,8 +258,6 @@ function applyMerge(state, request, makeId, now) {
   }
   const created={...clone(result),recordStatus:'active',colonyGroupId,currentQueenId:null,queenIdentityStatus:'unresolved',queen:null};
   draft.families.push(created);
-  const eventId=nextId(makeId,new Set([...used,colonyGroupId,result.id]));
-  if (!eventId) return {ok:false,error:'family_event_id_required'};
   const used=new Set([...draft.families.map(f=>f?.id).filter(Boolean),...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
   const eventId=nextId(makeId,used);
   if (!eventId) return {ok:false,error:'family_event_id_required'};
