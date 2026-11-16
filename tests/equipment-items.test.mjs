@@ -80,3 +80,32 @@ test('items under repair can be moved to storage but retired items cannot be ins
  assert.equal(E.updateCondition(s,{itemId:item.id,condition:'retired'},makeId,now).ok,true);
  assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},makeId,now).error,'item_not_installable');
 });
+
+
+test('installs a large honey queen excluder only with a valid two-body FULL/HALF footprint',()=>{
+ const s=fixture();
+ s.layouts.h1.corpusIds={A:'body-1',B:'body-2',C:'body-3'};
+ const item=E.register(s,{kind:'honeyQueenExcluder',storageLocation:'Склад'},makeId,now).item;
+ const footprint=[{bodyId:'body-1',coverage:'FULL'},{bodyId:'body-2',coverage:'HALF'}];
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',footprint}},makeId,now).ok,true);
+ assert.deepEqual(s.equipmentInventory.items[item.id].location.footprint,footprint);
+ assert.deepEqual(E.validateReferences(s),[]);
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'missing',coverage:'FULL'},{bodyId:'body-2',coverage:'HALF'}]}},makeId,now).error,'footprint_body_reference_missing');
+});
+test('rejects malformed large-excluder footprint and prevents footprint on other accessory kinds',()=>{
+ const s=fixture();
+ s.layouts.h1.corpusIds={A:'body-1',B:'body-2'};
+ const grid=E.register(s,{kind:'honeyQueenExcluder',storageLocation:'Склад'},makeId,now).item;
+ assert.equal(E.place(s,{itemId:grid.id,location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'body-1',coverage:'FULL'},{bodyId:'body-1',coverage:'HALF'}]}},makeId,now).error,'invalid_footprint');
+ const cover=E.register(s,{kind:'cover',storageLocation:'Склад'},makeId,now).item;
+ assert.equal(E.place(s,{itemId:cover.id,location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'body-1',coverage:'FULL'},{bodyId:'body-2',coverage:'HALF'}]}},makeId,now).error,'invalid_location');
+});
+test('large excluder footprint survives JSON backup round-trip',()=>{
+ const s=fixture();s.layouts.h1.corpusIds={A:'body-1',B:'body-2'};
+ const item=E.register(s,{kind:'honeyQueenExcluder',storageLocation:'Склад'},makeId,now).item;
+ const footprint=[{bodyId:'body-1',coverage:'FULL'},{bodyId:'body-2',coverage:'HALF'}];
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',footprint}},makeId,now).ok,true);
+ const restored=JSON.parse(JSON.stringify(s));
+ assert.deepEqual(restored.equipmentInventory.items[item.id].location.footprint,footprint);
+ assert.deepEqual(E.inspect(restored),[]);assert.deepEqual(E.validateReferences(restored),[]);
+});
