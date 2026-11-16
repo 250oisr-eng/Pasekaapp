@@ -99,6 +99,7 @@ function inspect(state){
   if(item.events!=null&&(!Array.isArray(item.events)||!item.events.every(event=>event&&typeof event==='object'&&!Array.isArray(event))))errors.push({code:'invalid_item_events',details:{itemId:id}});
   const location=item.location;
   if(location?.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)){
+   if(!location.bodyId)errors.push({code:'item_body_reference_required',details:{itemId:id}});
    if(!location.openingId)errors.push({code:'item_opening_reference_required',details:{itemId:id}});
    else{const key=location.hiveId+'|'+location.openingId;if(occupiedOpenings.has(key))errors.push({code:'item_opening_occupied',details:{itemIds:[occupiedOpenings.get(key),id],openingId:location.openingId}});else occupiedOpenings.set(key,id)}
   }
