@@ -29,7 +29,7 @@ function dividedState(overrides = {}) {
   return {
     phase: 'DIVIDED_3_SECTIONS',
     sections: [sectionFixture(1), sectionFixture(2), sectionFixture(3)],
-    queens: [1, 2, 3].map(index => ({ id: `queen-${index}`, status: 'FERTILIZED' })),
+    queens: [1, 2, 3].map(index => ({ id: `queen-${index}`, status: 'FERTILIZED', layingObserved: true })),
     operations: [],
     technicalConnections: [
       { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 2, bufferCorridorPresent: true },
@@ -44,7 +44,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v317/);
+  assert.match(sw, /paseka-shell-v318/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
@@ -68,7 +68,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.5.0');
+  assert.equal(api.SPEC.version, '1.6.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -178,6 +178,69 @@ test('R2 blocks OP-06 while any of the three queens is unfertilized', () => {
     queens: [{ id: 'queen-1', status: 'FERTILIZED' }, { id: 'queen-2', status: 'UNFERTILIZED' }, { id: 'queen-3', status: 'FERTILIZED' }], meshPlugs: []
   }));
   assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
+});
+
+
+test('OP-06 requires observed egg laying for all three queens', () => {
+  const state = dividedState({
+    operations: [
+      { operationId: 'OP-04', status: 'DONE' },
+      { operationId: 'OP-05', status: 'DONE' },
+      { operationId: 'OP-06', status: 'DONE' }
+    ],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [
+      { id: 'queen-1', status: 'FERTILIZED', layingObserved: true },
+      { id: 'queen-2', status: 'FERTILIZED', layingObserved: false },
+      { id: 'queen-3', status: 'FERTILIZED', layingObserved: true }
+    ],
+    meshPlugs: []
+  });
+  const missingObservation = api.validateHiveState(state, { requireLayingObservation: true });
+  assert.ok(missingObservation.errors.some(x => x.code === 'OP06_EGG_LAYING_NOT_OBSERVED'));
+
+  state.queens[1].layingObserved = true;
+  const observed = api.validateHiveState(state, { requireLayingObservation: true });
+  assert.equal(observed.valid, true);
+});
+
+test('OP-06 egg-laying rule is versioned and legacy records remain readable', () => {
+  const state = dividedState({
+    operations: [
+      { operationId: 'OP-04', status: 'DONE', completedAt: '2027-05-10' },
+      { operationId: 'OP-05', status: 'DONE', completedAt: '2027-05-19' },
+      { operationId: 'OP-06', status: 'DONE', completedAt: '2027-05-30' }
+    ],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    meshPlugs: []
+  });
+  const legacy = {
+    id: 'tp-op06-legacy',
+    hiveId: 'h1',
+    hiveProfileId: 'sectional-multiqueen-v1',
+    specVersion: '1.5.0',
+    createdAt: '2027-05-01T10:00:00.000Z',
+    updatedAt: '2027-05-30T10:00:00.000Z',
+    state
+  };
+  const hive = [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }];
+  assert.equal(api.validateStoredRecords([legacy], hive).valid, true);
+
+  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.6.0' };
+  assert.ok(api.validateStoredRecords([current], hive).errors.some(x => x.code === 'TECH_RECORD_STATE_OP06_EGG_LAYING_NOT_OBSERVED'));
+
+  const pending = structuredClone(legacy);
+  pending.id = 'tp-op06-transition';
+  pending.state.operations[2].status = 'PENDING';
+  pending.state.operations[2].completedAt = undefined;
+  const transition = api.transitionOperation(pending, 'OP-06', {
+    status: 'DONE',
+    completedAt: '2027-05-30',
+    updatedAt: '2027-05-30T10:00:00.000Z'
+  }, [pending], hive);
+  assert.equal(transition.valid, false);
+  assert.ok(transition.errors.some(x => x.code === 'TECH_RECORD_STATE_OP06_EGG_LAYING_NOT_OBSERVED'));
 });
 
 test('R2 requires both metal mesh plugs over queen excluders', () => {
