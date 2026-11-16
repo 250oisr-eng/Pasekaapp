@@ -55,8 +55,9 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
   assert.ok(html.includes('id="sectionalOperationFeedAmountLabel"'));
   assert.ok(html.includes("sectional-multiqueen-v1"));
-  assert.ok(html.includes('id="newHiveProfile"'));
+  assert.ok(!html.includes('id="newHiveProfile"'));
   assert.ok(html.includes("getHiveProfile(hive)?.id==='sectional-multiqueen-v1'"));
+  assert.ok(html.includes("selectedProfile?.id!=='sectional-multiqueen-v1'"));
   assert.ok(html.includes('const sectionalTechProcesses='));
   assert.ok(html.includes('sectionalTechProcesses,families'));
   assert.match(html, /Разовая порция сиропа на семью/);
