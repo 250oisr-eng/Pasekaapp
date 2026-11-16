@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+const worker = await readFile(new URL('../cloudflare/worker.js', import.meta.url), 'utf8');
 const windowRef = {};
 new Function('window', source)(windowRef);
 const api = windowRef.PasekaSectionalTechProcess;
@@ -53,6 +54,11 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('id="sectionalOperationFeedStart"'));
   assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
   assert.ok(html.includes('id="sectionalOperationFeedAmountLabel"'));
+  assert.ok(html.includes("sectional-multiqueen-v1"));
+  assert.ok(html.includes('id="newHiveProfile"'));
+  assert.ok(html.includes("getHiveProfile(hive)?.id==='sectional-multiqueen-v1'"));
+  assert.ok(html.includes('const sectionalTechProcesses='));
+  assert.ok(html.includes('sectionalTechProcesses,families'));
   assert.match(html, /Разовая порция сиропа на семью/);
   assert.ok(html.includes('function toggleSectionalOperationFields('));
 });
@@ -653,4 +659,14 @@ test('stored sectional processes reject a Farrar profile even when frame height 
   assert.ok(wrongProfile.errors.some(x => x.code === 'TECH_HIVE_PROFILE_MISMATCH'));
   const correctProfile = api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(correctProfile.valid, true);
+});
+
+
+test('AI context and Worker keep Farrar rules isolated from the sectional profile', () => {
+  assert.ok(worker.includes('profileId=farrar-6x6-v1'));
+  assert.ok(worker.includes('const SECTIONAL_PROFILE_GUIDANCE'));
+  assert.ok(worker.includes("item?.hiveProfileId==='sectional-multiqueen-v1'"));
+  assert.ok(worker.includes('не переноси их на другие профили'));
+  assert.ok(html.includes("profileId:h.profileId||h.profile?.id||null"));
+  assert.ok(html.includes("hiveProfileId:record?.hiveProfileId||null"));
 });
