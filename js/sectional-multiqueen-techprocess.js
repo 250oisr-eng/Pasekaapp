@@ -226,6 +226,7 @@ function validatePhysicalR4(record,apiaryState,add){
    else{
     if(bodies[bodyId].kind!=='brood')add('TECH_R4_SECTION_BODY_KIND',{id:record.id,bodyId,kind:bodies[bodyId].kind??null});
     if(bodies[bodyId].spec?.framesPerBox!==6)add('TECH_R4_SECTION_BODY_FRAME_CAPACITY',{id:record.id,bodyId,framesPerBox:bodies[bodyId].spec?.framesPerBox??null});
+    if(bodies[bodyId].spec?.profileId!==SPEC.id)add('TECH_R4_SECTION_BODY_PROFILE_MISMATCH',{id:record.id,bodyId,profileId:bodies[bodyId].spec?.profileId??null});
    }
   }
  }
