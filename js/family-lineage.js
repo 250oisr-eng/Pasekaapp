@@ -84,6 +84,12 @@ function inspect(state) {
    add('family_split_shape_invalid',{eventId:event.id});
   if (event.type === 'merge' && (!Array.isArray(sourceIds) || sourceIds.length < 2 || !Array.isArray(resultIds) || resultIds.length !== 1))
    add('family_merge_shape_invalid',{eventId:event.id});
+  if (['split','merge'].includes(event.type) && event.colonyGroupId) {
+   for (const familyId of [...(Array.isArray(sourceIds)?sourceIds:[]),...(Array.isArray(resultIds)?resultIds:[])]) {
+    const family=familyMap.get(familyId);
+    if (family && family.colonyGroupId!==event.colonyGroupId) add('family_event_colony_group_mismatch',{eventId:event.id,familyId,colonyGroupId:event.colonyGroupId});
+   }
+  }
   if (event.type === 'alternative_wintering_configured') {
    if (!uniqueStrings(event.familyIds) || event.familyIds.length !== 3) add('alternative_wintering_families_invalid',{eventId:event.id});
    const winterGroups=(Array.isArray(event.familyIds)?event.familyIds:[]).map(id=>familyMap.get(id)?.colonyGroupId);
@@ -237,11 +243,9 @@ function applyMerge(state, request, makeId, now) {
   for (const queenId of queenIds) if (!draft.queens.some(q=>q?.id===queenId))
    return {ok:false,error:'merge_source_queen_missing',details:{queenId}};
   const groups=[...new Set(sources.map(f=>f.colonyGroupId).filter(Boolean))];
-  let colonyGroupId=request?.colonyGroupId|| (groups.length===1&&sources.every(f=>f.colonyGroupId===groups[0])?groups[0]:null);
-  const used=new Set([...draft.families.map(f=>f?.id).filter(Boolean),...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
-  if (!colonyGroupId && groups.length===0) colonyGroupId=nextId(makeId,used);
-  if (!colonyGroupId || typeof colonyGroupId!=='string' || colonyGroupId.length>160)
-   return {ok:false,error:'merge_colony_group_id_required'};
+  if (groups.length!==1 || sources.some(f=>f.colonyGroupId!==groups[0])) return {ok:false,error:'merge_source_colony_group_mismatch'};
+  const colonyGroupId=groups[0];
+  if (request?.colonyGroupId && request.colonyGroupId!==colonyGroupId) return {ok:false,error:'merge_colony_group_change_forbidden'};
   const at=now||new Date().toISOString();
   for (const source of sources) {
    const queen=draft.queens.find(q=>q.id===source.currentQueenId);
