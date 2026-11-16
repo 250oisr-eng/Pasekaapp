@@ -2944,3 +2944,12 @@ test('schema 14 backup requires a valid family event ledger',()=>{
  const broken={...base,familyEvents:[{id:'event-1',type:'merge',sourceFamilyIds:['missing-a','missing-b'],resultFamilyIds:['missing-result'],candidateQueenIds:[],occurredAt:'2026-10-01T10:00:00.000Z'}]};
  assert.throws(()=>validate(broken),/история семей/i);
 });
+
+
+test('newly registered queen stores immutable origin family provenance',()=>{
+ const apply=loadFunction('applyQueenChange');let n=0;const state={families:[{id:'split-child-1',hive:'h1'}],queens:[],queenEvents:[]};
+ const result=apply(state,{familyId:'split-child-1',code:'Q-NEW',year:'2026',date:null},()=> 'new-'+(++n));
+ assert.equal(result.queen.familyId,'split-child-1');
+ assert.equal(result.queen.originFamilyId,'split-child-1');
+ assert.equal(state.families[0].queenIdentityStatus,'identified');
+});

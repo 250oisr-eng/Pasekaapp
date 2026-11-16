@@ -347,7 +347,7 @@ function validateStoredRecords(records,hives,apiaryState){
   result.errors.forEach(error=>add('TECH_RECORD_STATE_'+error.code,{id:record.id,message:error.message}));
   if(apiaryState?.meta?.schemaVersion>=14&&(record.state.familyLineageVersion===1||record.specVersion===SPEC.version)){
    for(const operation of Array.isArray(record.state.operations)?record.state.operations:[]){
-    if(operation?.status==='DONE'&&['OP-04','OP-11','OP-12','OP-14'].includes(operation.operationId)){
+    if(operation?.status==='DONE'&&['OP-04','OP-11','OP-12','OP-13','OP-14'].includes(operation.operationId)){
      if(!apiaryState||!FamilyLineage){add('TECH_FAMILY_LINEAGE_CONTEXT_REQUIRED',{id:record.id,operationId:operation.operationId});continue;}
      FamilyLineage.validateOperationEvidence(apiaryState,record,operation.operationId).forEach(error=>add('TECH_'+error.code,{id:record.id,details:error.details}));
     }
@@ -386,7 +386,7 @@ function transitionOperation(record,operationId,draft,records,hives,apiaryState)
  const operationMatches=operations.filter(item=>item&&item.operationId===operationId);
  if(operationMatches.length!==1){add('OPERATION_REFERENCE_INVALID','Операция должна присутствовать в списке ровно один раз.');return {valid:false,errors};}
  const nextRecord=JSON.parse(JSON.stringify(record));
- if(draft.status==='DONE'&&apiaryState?.meta?.schemaVersion>=14&&['OP-04','OP-11','OP-12','OP-14'].includes(operationId))nextRecord.state.familyLineageVersion=1;
+ if(draft.status==='DONE'&&apiaryState?.meta?.schemaVersion>=14&&['OP-04','OP-11','OP-12','OP-13','OP-14'].includes(operationId))nextRecord.state.familyLineageVersion=1;
  const target=nextRecord.state.operations.find(item=>item&&item.operationId===operationId);
  if(operationId==='OP-06'&&draft.status==='DONE')nextRecord.state.validationRulesVersion=SPEC.version;
  target.status=draft.status;

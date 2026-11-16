@@ -957,3 +957,16 @@ test('AI context and Worker keep Farrar rules isolated from the sectional profil
   assert.ok(html.includes("profileId:h.profileId||h.profile?.id||null"));
   assert.ok(html.includes("hiveProfileId:record?.hiveProfileId||null"));
 });
+
+
+test('OP-13 cannot be marked DONE without two confirmed upper-family relocations',()=>{
+ const apiary={meta:{schemaVersion:14},families:[],queens:[],queenEvents:[],familyEvents:[],equipmentInventory:{items:{},bodies:{}}};
+ const record={id:'tech-op13-guard',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-04-01T10:00:00.000Z',updatedAt:'2026-04-20T10:00:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING_SPRING',config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS'},
+  sections:[1,2,3].map((index)=>sectionFixture(index,{familyId:'f'+index,bodyIds:index===1?['b1','b1b']:['b'+index],queenId:'q'+index,queenIdentityStatus:'identified',winteringPosition:index===1?'lower':index===2?'middle':'upper'})),
+  queens:[1,2,3].map(index=>({id:'q'+index,status:'FERTILIZED',layingObserved:true})),
+  operations:[{operationId:'OP-12',status:'DONE',completedAt:'2026-04-01'},{operationId:'OP-13',status:'DONE',completedAt:'2026-04-20'}]
+ }};
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.ok(result.errors.some(error=>error.code==='TECH_OP13_TWO_UPPER_FAMILY_MOVES_REQUIRED'));
+});
