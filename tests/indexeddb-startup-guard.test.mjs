@@ -72,7 +72,6 @@ test('existing empty database without automatic backup stays empty and is not fi
   await load('openDB', deps)();
   deps.autoBackupRecovered = false;
   deps.startupRecoveryPending = false;
-  deps.startupRecoveryPending = false;
   deps.autoBackupInfo = null;
   deps.readMain = load('readMain', deps);
   deps.readAutoBackup = load('readAutoBackup', deps);
@@ -211,4 +210,43 @@ test('successful startup recovery commit marks the backup as recovered only afte
   order.push('marked');
   assert.deepEqual(order, ['commit', 'marked']);
   assert.equal(deps.autoBackupRecovered, true);
+});
+
+test('startup recovery commit rejects a concurrent primary write and leaves its data intact', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  const concurrentState = { meta: { revisionId: 'newer-revision' }, value: 'concurrent-write' };
+  const backupState = { meta: { revisionId: 'backup-revision' }, value: 'backup' };
+  const seed = deps.db.transaction(['main', 'full_backup'], 'readwrite');
+  seed.objectStore('main').put(concurrentState, 'state');
+  seed.objectStore('full_backup').put({ state: backupState }, 'previous');
+  await new Promise((resolve, reject) => {
+    seed.oncomplete = resolve;
+    seed.onerror = () => reject(seed.error);
+    seed.onabort = () => reject(seed.error);
+  });
+
+  deps.autoBackupRecovered = false;
+  deps.writeMainIfUnchanged = load('writeMainIfUnchanged', deps);
+  const commit = load('commitStartupState', deps);
+  await assert.rejects(
+    commit({ meta: { revisionId: 'restored-revision' }, value: 'stale-backup' }, 'older-revision', true),
+    error => error.name === 'PasekaConflictError'
+  );
+  assert.equal(deps.autoBackupRecovered, false);
+
+  const read = deps.db.transaction(['main', 'full_backup'], 'readonly');
+  const mainRequest = read.objectStore('main').get('state');
+  const backupRequest = read.objectStore('full_backup').get('previous');
+  const result = await new Promise((resolve, reject) => {
+    let mainValue, backupValue;
+    mainRequest.onsuccess = () => { mainValue = mainRequest.result; };
+    backupRequest.onsuccess = () => { backupValue = backupRequest.result; };
+    read.oncomplete = () => resolve({ mainValue, backupValue });
+    read.onerror = () => reject(read.error);
+    read.onabort = () => reject(read.error);
+  });
+  assert.deepEqual(result.mainValue, concurrentState);
+  assert.deepEqual(result.backupValue, { state: backupState });
+  deps.db.close();
 });
