@@ -71,6 +71,7 @@ test('existing empty database without automatic backup stays empty and is not fi
   const deps = openDbDependencies(new IDBFactory());
   await load('openDB', deps)();
   deps.autoBackupRecovered = false;
+  deps.startupRecoveryPending = false;
   deps.autoBackupInfo = null;
   deps.readMain = load('readMain', deps);
   deps.readAutoBackup = load('readAutoBackup', deps);
@@ -163,4 +164,47 @@ test('upgrading an existing older database preserves its state and is not treate
   assert.deepEqual(state, legacyState);
   assert.equal(load('canInitializeFreshDatabase', deps)(createdDuringOpen, state), false);
   deps.db.close();
+});
+
+test('reading a valid automatic backup marks recovery pending but not committed', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  const backupState = { meta: { schemaVersion: 12 }, hives: [{ id: 'pending-hive' }] };
+  const transaction = deps.db.transaction('full_backup', 'readwrite');
+  transaction.objectStore('full_backup').put({ state: backupState }, 'previous');
+  await new Promise((resolve, reject) => {
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+  deps.autoBackupRecovered = false;
+  deps.startupRecoveryPending = false;
+  deps.readMain = async () => undefined;
+  deps.readAutoBackup = load('readAutoBackup', deps);
+  deps.validateAutomaticBackup = backup => backup.state;
+  assert.deepEqual(await load('read', deps)(), backupState);
+  assert.equal(deps.startupRecoveryPending, true);
+  assert.equal(deps.autoBackupRecovered, false);
+  deps.db.close();
+});
+
+test('failed startup recovery commit never marks the backup as recovered', async () => {
+  const deps = {
+    autoBackupRecovered: false,
+    writeMainIfUnchanged: async () => { throw new Error('transaction aborted'); }
+  };
+  await assert.rejects(load('commitStartupState', deps)({ meta: { revisionId: 'restore-rev' } }, null, true), /transaction aborted/);
+  assert.equal(deps.autoBackupRecovered, false);
+});
+
+test('successful startup recovery commit marks the backup as recovered only afterwards', async () => {
+  const order = [];
+  const deps = {
+    autoBackupRecovered: false,
+    writeMainIfUnchanged: async () => { order.push('commit'); }
+  };
+  await load('commitStartupState', deps)({ meta: { revisionId: 'restore-rev' } }, null, true);
+  order.push('marked');
+  assert.deepEqual(order, ['commit', 'marked']);
+  assert.equal(deps.autoBackupRecovered, true);
 });
