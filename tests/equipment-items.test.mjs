@@ -10,7 +10,7 @@ test('legacy inventory without accessory registry remains valid and unchanged on
 test('registers only explicitly supplied physical accessory in storage',()=>{const s=fixture(),r=E.register(s,{kind:'bottom',storageLocation:'Сарай · полка 2',notes:'Проверено'},makeId,now);assert.equal(r.ok,true);assert.equal(r.item.kind,'bottom');assert.deepEqual(r.item.location,{type:'storage',label:'Сарай · полка 2'});assert.equal(r.item.events[0].type,'registered');assert.deepEqual(E.inspect(s),[])});
 test('does not create items from a quantity or default template',()=>{const s=fixture();E.ensure(s);assert.deepEqual(s.equipmentInventory.items,{});assert.deepEqual(E.inspect(s),[])});
 test('invalid registration is atomic and does not alter existing data',()=>{const s=fixture(),before=JSON.stringify(s);const r=E.register(s,{kind:'bottom',storageLocation:''},makeId,now);assert.equal(r.ok,false);assert.equal(JSON.stringify(s),before)});
-test('places a metal mesh plug only against an existing hive opening reference',()=>{const s=fixture(),r=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now);assert.equal(r.ok,true);assert.equal(E.place(s,{itemId:r.item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1'}},makeId,now).error,'opening_reference_required');const placed=E.place(s,{itemId:r.item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},makeId,now);assert.equal(placed.ok,true);assert.equal(placed.item.location.openingId,'body-1:left');assert.deepEqual(E.validateReferences(s),[])});
+test('places a metal mesh plug only against an existing hive opening reference',()=>{const s=fixture(),r=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now);assert.equal(r.ok,true);assert.equal(E.place(s,{itemId:r.item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1'}},makeId,now).error,'body_and_opening_reference_required');const placed=E.place(s,{itemId:r.item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},makeId,now);assert.equal(placed.ok,true);assert.equal(placed.item.location.openingId,'body-1:left');assert.deepEqual(E.validateReferences(s),[])});
 test('rejects a missing hive or body reference without changing the item location',()=>{const s=fixture(),r=E.register(s,{kind:'cover',storageLocation:'Склад'},makeId,now),before=JSON.stringify(s);assert.equal(E.place(s,{itemId:r.item.id,location:{type:'hive',hiveId:'missing',sectionId:'S1'}},makeId,now).error,'hive_missing');assert.equal(JSON.stringify(s),before);assert.equal(E.place(s,{itemId:r.item.id,location:{type:'hive',hiveId:'h1',bodyId:'missing'}},makeId,now).error,'body_reference_missing');assert.equal(JSON.stringify(s),before)});
 test('prevents two plugs of the same kind occupying one technical opening',()=>{const s=fixture(),a=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now).item,b=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now).item,location={type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'};assert.equal(E.place(s,{itemId:a.id,location},makeId,now).ok,true);assert.equal(E.place(s,{itemId:b.id,location},makeId,now).error,'opening_occupied')});
 test('requires technical connection identity for permanent sectional excluders',()=>{const s=fixture(),item=E.register(s,{kind:'technicalQueenExcluder',storageLocation:'Склад'},makeId,now).item;assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',sectionId:'S1'}},makeId,now).error,'connection_reference_required');assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',connectionId:'C1'}},makeId,now).ok,true)});
@@ -34,11 +34,18 @@ test('import integrity rejects plugs without opening IDs and duplicate occupancy
   plugC:{id:'plugC',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}}
  };
  const errors=E.inspect(s);
- assert.ok(errors.some(x=>x.code==='item_opening_reference_required'&&x.details.itemId==='plugA'));
+ assert.ok(errors.some(x=>x.code==='item_body_and_opening_reference_required'&&x.details.itemId==='plugA'));
  assert.ok(errors.some(x=>x.code==='item_opening_occupied'));
 });
 test('import integrity rejects permanent technical excluders without a connection ID',()=>{
  const s=fixture();
  s.equipmentInventory.items={grid:{id:'grid',kind:'technicalQueenExcluder',condition:'good',location:{type:'hive',hiveId:'h1',sectionId:'S1'}}};
  assert.ok(E.inspect(s).some(x=>x.code==='item_connection_reference_required'));
+});
+
+test('plastic and metal plugs cannot occupy the same physical opening',()=>{
+ const s=fixture(),metal=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now).item,plastic=E.register(s,{kind:'plasticPlug',storageLocation:'Склад'},makeId,now).item;
+ const location={type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'};
+ assert.equal(E.place(s,{itemId:metal.id,location},makeId,now).ok,true);
+ assert.equal(E.place(s,{itemId:plastic.id,location},makeId,now).error,'opening_occupied');
 });
