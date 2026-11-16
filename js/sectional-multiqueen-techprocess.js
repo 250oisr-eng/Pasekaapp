@@ -20,7 +20,7 @@ const SPEC=Object.freeze({
  {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2,additionalBottomsRequired:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
  {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
- {id:'OP-07',title:'Постановка медовых корпусов',optional:false,honeyQueenExcluderLayout:'UNCONFIRMED',honeyBodiesScope:'WHOLE_HIVE'},
+ {id:'OP-07',title:'Постановка медовых корпусов',optional:false,honeyQueenExcluderLayout:'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER',honeyBodiesScope:'WHOLE_HIVE'},
  {id:'OP-08',title:'Отбор мёда',optional:false,offsetFrom:'HONEY_FLOW_MAIN_START',offsetDays:[15,15],retryDays:7},
  {id:'OP-09',title:'Сокращение летков',optional:false,period:'Вторая половина августа',openEntrance:'ROUND_BOTTOM',entrancePosition:'LOWER_NEST_BODY'},
  {id:'OP-10',title:'Осенняя подготовка',optional:false,period:'Середина–конец сентября'},
