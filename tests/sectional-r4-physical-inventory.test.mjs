@@ -29,9 +29,11 @@ function fixture() {
     openEntrance: ['FLAT_BOTTOM', 'ROUND_TOP', 'ROUND_BOTTOM'][index],
     entranceState: ['HALF_OPEN', 'OPEN', 'OPEN'][index]
   }));
+  const left = structuredClone(leftCoverage);
+  const right = structuredClone(rightCoverage);
   const grids = [
-    { id: 'logical-left', itemId: 'physical-left', coverage: leftCoverage },
-    { id: 'logical-right', itemId: 'physical-right', coverage: rightCoverage }
+    { id: 'logical-left', itemId: 'physical-left', coverage: left },
+    { id: 'logical-right', itemId: 'physical-right', coverage: right }
   ];
   const record = {
     id: 'tech-1',
@@ -65,11 +67,11 @@ function fixture() {
   const items = {
     'physical-left': {
       id: 'physical-left', kind: 'honeyQueenExcluder', condition: 'good',
-      location: { type: 'hive', hiveId: 'h1', footprint: leftCoverage }
+      location: { type: 'hive', hiveId: 'h1', footprint: structuredClone(left) }
     },
     'physical-right': {
       id: 'physical-right', kind: 'honeyQueenExcluder', condition: 'good',
-      location: { type: 'hive', hiveId: 'h1', footprint: rightCoverage }
+      location: { type: 'hive', hiveId: 'h1', footprint: structuredClone(right) }
     }
   };
   const apiary = {
