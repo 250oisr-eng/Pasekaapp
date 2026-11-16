@@ -29,7 +29,7 @@ function normalizeLocation(input,kind){
  const hiveId=String(input.hiveId||'').trim();
  if(!hiveId||hiveId.length>120)return null;
  const result={type:'hive',hiveId};
- for(const key of ['sectionId','bodyId','openingId','connectionId','positionLabel']){
+ for(const key of ['sectionId','stackId','bodyId','openingId','connectionId','positionLabel']){
   if(input[key]!=null){const value=String(input[key]).trim();if(!value||value.length>160)return null;result[key]=value;}
  }
  if(kind==='honeyQueenExcluder'){
@@ -46,7 +46,7 @@ function normalizeLocation(input,kind){
    result.footprint=normalized;
   }
  }else if(input.footprint!==undefined)return null;
- if(!['sectionId','bodyId','openingId','connectionId','positionLabel'].some(key=>result[key])&&!result.footprint)return null;
+ if(!['sectionId','stackId','bodyId','openingId','connectionId','positionLabel'].some(key=>result[key])&&!result.footprint)return null;
  return result;
 }
 function transact(state,fn){
@@ -75,6 +75,10 @@ function placeUnsafe(state,request,makeId,now){
  if(!location)return {ok:false,error:item.kind==='honeyQueenExcluder'?'invalid_footprint':'invalid_location'};
  if(location.type==='hive'&&(item.condition==='repair'||item.condition==='retired'))return {ok:false,error:'item_not_installable'};
  if(location.type==='hive'&&!state.hives?.some(h=>h?.id===location.hiveId))return {ok:false,error:'hive_missing'};
+ if(location.type==='hive'){
+  const referenceErrors=physicalReferenceErrors(state,item,location);
+  if(referenceErrors.length)return {ok:false,error:referenceErrors[0].code};
+ }
  if(location.type==='hive'&&location.bodyId){
   const bodyExists=Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===location.hiveId&&Object.values(layout?.corpusIds||{}).includes(location.bodyId));
   if(!bodyExists)return {ok:false,error:'body_reference_missing'};
@@ -127,6 +131,26 @@ function inspect(state){
  if(inv.itemEvents!=null&&(!Array.isArray(inv.itemEvents)||!inv.itemEvents.every(event=>event&&typeof event==='object'&&!Array.isArray(event))))errors.push({code:'invalid_equipment_item_events'});
  return errors;
 }
+function physicalReferenceErrors(state,item,location){
+ const process=(state?.sectionalTechProcesses||[]).find(row=>row?.hiveId===location?.hiveId&&row?.state?.physicalLayoutVersion===1);
+ if(!process)return [];
+ const ps=process.state||{},errors=[];
+ const sections=Array.isArray(ps.sections)?ps.sections:[];
+ const stacks=Array.isArray(ps.physicalLayout?.stacks)?ps.physicalLayout.stacks:[];
+ const openings=sections.flatMap(section=>(Array.isArray(section?.openings)?section.openings:[]).map(opening=>({...opening,sectionId:section.id})));
+ const connections=Array.isArray(ps.technicalConnections)?ps.technicalConnections:[];
+ if(location.sectionId&&!sections.some(section=>section?.id===location.sectionId))errors.push({code:'item_section_reference_missing',details:{itemId:item.id,sectionId:location.sectionId}});
+ if(location.stackId&&!stacks.some(stack=>stack?.id===location.stackId))errors.push({code:'item_stack_reference_missing',details:{itemId:item.id,stackId:location.stackId}});
+ if(location.openingId){
+  const opening=openings.find(row=>row?.id===location.openingId);
+  if(!opening)errors.push({code:'item_opening_reference_missing',details:{itemId:item.id,openingId:location.openingId}});
+  else if((location.sectionId&&opening.sectionId!==location.sectionId)||(location.bodyId&&opening.bodyId!==location.bodyId))errors.push({code:'item_opening_context_mismatch',details:{itemId:item.id,openingId:location.openingId,sectionId:location.sectionId||null,bodyId:location.bodyId||null}});
+ }
+ if(location.connectionId&&!connections.some(connection=>connection?.id===location.connectionId))errors.push({code:'item_connection_reference_missing',details:{itemId:item.id,connectionId:location.connectionId}});
+ if(item.kind==='bottom'&&!location.stackId)errors.push({code:'item_stack_reference_required',details:{itemId:item.id}});
+ if(['plasticPlug','metalMeshPlug'].includes(item.kind)&&(!location.sectionId||!location.openingId))errors.push({code:'item_section_and_opening_reference_required',details:{itemId:item.id}});
+ return errors;
+}
 function validateReferences(state){
  const errors=[],inv=state?.equipmentInventory;if(!inv?.items)return errors;
  for(const item of Object.values(inv.items)){
@@ -134,6 +158,7 @@ function validateReferences(state){
   const loc=item.location;
   if(!state.hives?.some(h=>h?.id===loc.hiveId))errors.push({code:'item_hive_reference_missing',details:{itemId:item.id,hiveId:loc.hiveId}});
   if(loc.bodyId&&!Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===loc.hiveId&&Object.values(layout?.corpusIds||{}).includes(loc.bodyId)))errors.push({code:'item_body_reference_missing',details:{itemId:item.id,bodyId:loc.bodyId}});
+  errors.push(...physicalReferenceErrors(state,item,loc));
   for(const part of Array.isArray(loc.footprint)?loc.footprint:[]){
    const bodyId=part&&typeof part.bodyId==='string'?part.bodyId:null;
    if(!bodyId||!Object.values(state.layouts?.[loc.hiveId]?.corpusIds||{}).includes(bodyId))errors.push({code:'item_footprint_body_reference_missing',details:{itemId:item.id,bodyId}});
