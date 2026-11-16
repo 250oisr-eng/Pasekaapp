@@ -20,7 +20,7 @@
 
 **Draft PR документации и статуса:** [#96 — add persistent project status checkpoint](https://github.com/250oisr-eng/Pasekaapp/pull/96), base `main`, не объединён. Он не содержит код R4; PR #99 намеренно основан на ветке PR #95.
 
-- PR #96 актуальный HEAD: `857a5f9affb63f02e64cad8cd399748c4f91076e`; compare с main: 65 ahead / 0 behind. GitHub metadata сообщает `mergeable=false` (причина через доступный интерфейс не раскрыта); CI runs для этого точного SHA отсутствуют.
+- PR #96 на момент последней полной проверки: HEAD `ea6c6708a4f3539cc7659c52e75a445df5489c87`; compare с main: 66 ahead / 0 behind. GitHub сначала вернул `mergeable=false`, после повторного обновления метаданных — `mergeable=true`. Для указанного SHA workflow runs отсутствуют; CI не подтверждён.
 
 **Порядок зависимостей:** PR #99 зависит от кодовой базы PR #95. PR #96 — отдельная документальная ветка от main. Не объединять PR автоматически и не менять их base без проверки diff.
 
