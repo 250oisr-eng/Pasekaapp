@@ -2581,8 +2581,8 @@ test('schema 12 migration adds an empty sectional tech-process registry without 
 });
 
 test('schema 12 migration preserves an existing valid sectional tech-process record',()=>{
- const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
- const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[record]};
+ const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'sectional-multiqueen-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[record]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
  assert.equal(state.meta.schemaVersion,13);
