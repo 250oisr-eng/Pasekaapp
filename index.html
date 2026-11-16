@@ -1108,8 +1108,53 @@ function renderEquipmentInventory(){
   return '<article class="card" data-frame-registry-row="1" data-search="'+safe(search)+'"><div class="row"><b>'+safe(code)+'</b><span class="pill">'+(frame.status==='retired'?'Списана':frame.status==='active'?'В учёте':safe(frame.status))+'</span></div><p class="muted">'+safe(place)+'</p><p class="muted">Технический ID: '+safe(frame.frameId||'не задан')+(frame.frameUid?' · UID: '+safe(frame.frameUid.slice(-8)):'')+'</p><p class="muted">'+safe(last)+'</p><details><summary>История рамки ('+frame.history.length+')</summary>'+(historyRows||'<p class="muted">История пока пуста.</p>')+'</details>'+(frame.status!=='retired'?'<button type="button" data-code="'+safe(frame.labelCode)+'" onclick="retireInventoryFrame(this.dataset.code)">Списать рамку</button>':'<p class="muted">Рамка списана '+safe(frame.retiredAt||'')+'. Код сохранён и повторно не используется.</p>')+'</article>';
  }).join('');
  host.innerHTML+='<section><h3>Проверка целостности реестра</h3><p>Маркированных рамок: <b>'+registryAudit.summary.labelled+'</b> · в ульях: '+registryAudit.summary.active+' · на складе: '+registryAudit.summary.stored+' · списано: '+registryAudit.summary.retired+'</p><p>Записей без постоянного кода: '+registryAudit.summary.withoutPermanentCode+' <span class="muted">(включают незаполненные шаблонные позиции; не считаются подтверждёнными физическими рамками)</span></p><p><b>Ошибок: '+registryAudit.summary.errors+' · предупреждений: '+registryAudit.summary.warnings+'</b></p>'+(auditRows?'<ul>'+auditRows+'</ul>':'<p class="muted">Внутренние проверки не обнаружили конфликтов кодов, UID и истории местоположений.</p>')+'<p class="muted">Сверка с пасекой выполняется вручную: сравни количество и коды реально осмотренных рамок с этим реестром. Приложение не может подтвердить физическое наличие рамки без осмотра.</p></section><section><h3>Реестр маркированных рамок ('+labelledFrames.length+')</h3><p class="muted">Здесь отображаются только рамки с постоянным кодом. Незамаркированные пустые позиции и шаблонные записи не выдаются за реальные рамки.</p><label for="frameRegistrySearch">Поиск рамки по коду, ID или местоположению</label><input id="frameRegistrySearch" type="search" maxlength="120" placeholder="Например, Р-7КМ" value="'+safe(frameRegistryFilterText)+'" oninput="filterFrameRegistry()"><p id="frameRegistryFilterResult" class="muted" aria-live="polite"></p>'+(frameRows||'<p class="muted">Пока нет рамок с постоянными кодами.</p>')+'</section>';
+ renderAccessoryInventorySection(host);
  filterEquipmentInventory();filterFrameRegistry();
 }
+
+function accessoryKindLabel(kind){
+ return ({bottom:'Дно',cover:'Крышка',feeder:'Потолочная кормушка',topRiser:'Подкрышник',plasticPlug:'Пластиковая заглушка',metalMeshPlug:'Металлическая сетчатая заглушка',technicalQueenExcluder:'Постоянная техническая геннемановская решётка',honeyQueenExcluder:'Большая разделительная решётка',meshDiaphragm:'Сетчатая диафрагма'})[kind]||'Неизвестная принадлежность';
+}
+function accessoryConditionLabel(value){return ({good:'Исправна',needs_repair:'Требует осмотра/ремонта',repair:'В ремонте',retired:'Списана'})[value]||'Неизвестное состояние'}
+function accessoryLocationLabel(item){
+ const loc=item?.location;if(!loc)return 'Местоположение не указано';
+ if(loc.type==='storage')return 'Склад · '+(loc.label||'место не указано');
+ if(loc.type==='hive')return hname(loc.hiveId)+(loc.sectionId?' · секция '+loc.sectionId:'')+(loc.bodyId?' · корпус '+loc.bodyId:'')+(loc.openingId?' · отверстие '+loc.openingId:'')+(loc.connectionId?' · соединение '+loc.connectionId:'')+(loc.positionLabel?' · '+loc.positionLabel:'');
+ return 'Неизвестное местоположение';
+}
+function renderAccessoryInventorySection(host){
+ const items=Object.values(S.equipmentInventory?.items||{}).filter(Boolean).sort((a,b)=>String(a.kind).localeCompare(String(b.kind),'ru')||String(a.id).localeCompare(String(b.id),'ru'));
+ const kinds=PasekaEquipmentItems.kinds.map(kind=>'<option value="'+safe(kind)+'">'+safe(accessoryKindLabel(kind))+'</option>').join('');
+ const rows=items.map(item=>{
+  const installed=item.location?.type==='hive',history=(item.events||[]).slice().reverse().slice(0,6).map(ev=>'<p class="muted">'+safe(ev.at?new Date(ev.at).toLocaleString('ru-RU'):'Дата неизвестна')+' · '+safe(ev.type==='registered'?'Зарегистрирована':ev.type==='moved'?'Перемещена':ev.type==='condition_changed'?'Изменено состояние':ev.type)+'</p>').join('');
+  const action=installed?'<button type="button" data-item-id="'+safe(item.id)+'" onclick="moveAccessoryToStorage(this.dataset.itemId)">Переместить на склад</button>':'<p class="muted">На складе. Установка в секцию/отверстие будет доступна после завершения физической схемы улья.</p>';
+  return '<article class="card" data-accessory-item="1"><div class="row"><b>'+safe(accessoryKindLabel(item.kind))+'</b><span class="pill">'+safe(accessoryConditionLabel(item.condition))+'</span></div><p class="muted">'+safe(item.id)+' · '+safe(accessoryLocationLabel(item))+'</p><label>Состояние</label><select id="accessory-condition-'+safe(item.id)+'"><option value="good" '+(item.condition==='good'?'selected':'')+'>Исправна</option><option value="needs_repair" '+(item.condition==='needs_repair'?'selected':'')+'>Требует осмотра/ремонта</option><option value="repair" '+(item.condition==='repair'?'selected':'')+'>В ремонте</option><option value="retired" '+(item.condition==='retired'?'selected':'')+'>Списана</option></select><button type="button" data-item-id="'+safe(item.id)+'" onclick="saveAccessoryCondition(this.dataset.itemId)">Сохранить состояние</button>'+action+(item.notes?'<p>'+safe(item.notes)+'</p>':'')+'<details><summary>История ('+(item.events||[]).length+')</summary>'+(history||'<p class="muted">История пока пуста.</p>')+'</details></article>';
+ }).join('');
+ const section='<section><h3>Физические принадлежности ('+items.length+')</h3><div class="card"><b>Добавить принадлежность на склад</b><p class="muted">Регистрируй каждый реально существующий предмет отдельно. Регистрация не означает установку в улей и не создаёт предметы автоматически. Назначение в секцию или техническое отверстие будет доступно после завершения и проверки физической модели.</p><label for="accessoryStockKind">Тип принадлежности</label><select id="accessoryStockKind">'+kinds+'</select><label for="accessoryStoragePlace">Место хранения</label><input id="accessoryStoragePlace" maxlength="160" placeholder="Например, сарай · полка 2"><label for="accessoryStockNotes">Примечание</label><textarea id="accessoryStockNotes" maxlength="500" rows="2" placeholder="Состояние, маркировка, особенности…"></textarea><button type="button" class="primary" onclick="registerAccessoryStock()">Зарегистрировать предмет</button></div>'+(rows||'<p class="muted">Принадлежности ещё не зарегистрированы. Никакие предметы не создаются автоматически.</p>')+'</section>';
+ host.insertAdjacentHTML('beforeend',section);
+}
+async function registerAccessoryStock(){
+ const kind=$('accessoryStockKind')?.value,storageLocation=$('accessoryStoragePlace')?.value.trim(),notes=$('accessoryStockNotes')?.value.trim()||'';
+ if(!kind||!storageLocation)return alert('Выбери тип предмета и укажи место хранения.');
+ const previous=cloneApiaryState(),now=new Date().toISOString(),result=PasekaEquipmentItems.register(S,{kind,storageLocation,notes},uid,now);
+ if(!result.ok){S=previous;return alert('Не удалось зарегистрировать принадлежность: '+result.error)}
+ logAudit('equipment_item_registered',{itemId:result.item.id,kind,storageLocation});
+ if(await saveInventoryChange(previous)){$('accessoryStoragePlace').value='';$('accessoryStockNotes').value=''}
+}
+async function saveAccessoryCondition(itemId){
+ const condition=$('accessory-condition-'+itemId)?.value,previous=cloneApiaryState(),result=PasekaEquipmentItems.updateCondition(S,{itemId,condition},uid,new Date().toISOString());
+ if(!result.ok){S=previous;return alert(({cannot_repair_installed:'Сначала перемести предмет со своего места в улье, затем отметь ремонт.',cannot_retire_installed:'Нельзя списать установленный предмет. Сначала зафиксируй его снятие.',item_missing:'Предмет не найден.'})[result.error]||'Не удалось изменить состояние: '+result.error)}
+ logAudit('equipment_item_condition_updated',{itemId,condition});
+ await saveInventoryChange(previous);
+}
+async function moveAccessoryToStorage(itemId){
+ const label=prompt('Укажи место хранения предмета:','Склад');if(label===null)return;if(!label.trim())return alert('Укажи место хранения.');
+ const previous=cloneApiaryState(),result=PasekaEquipmentItems.place(S,{itemId,location:{type:'storage',label:label.trim()}},uid,new Date().toISOString());
+ if(!result.ok){S=previous;return alert('Не удалось переместить принадлежность: '+result.error)}
+ logAudit('equipment_item_moved_to_storage',{itemId,storageLocation:label.trim()});
+ await saveInventoryChange(previous);
+}
+
 function cloneApiaryState(){return typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
 async function retireInventoryFrame(code){
  const reason=prompt('Укажи причину списания рамки (до 200 символов):');if(reason===null)return;
