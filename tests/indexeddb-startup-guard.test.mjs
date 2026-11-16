@@ -103,7 +103,8 @@ test('existing empty primary database still recovers a valid automatic backup', 
 
   const loaded = await load('read', deps)();
   assert.deepEqual(loaded, backupState);
-  assert.equal(deps.autoBackupRecovered, true);
+  assert.equal(deps.startupRecoveryPending, true);
+  assert.equal(deps.autoBackupRecovered, false);
   deps.db.close();
 });
 
