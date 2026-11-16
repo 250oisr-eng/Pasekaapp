@@ -1080,7 +1080,7 @@ function frameRegistryEventText(ev){
 function renderEquipmentInventory(){
  const host=$('equipmentInventoryContent'),summary=$('equipmentInventorySummary');if(!host||!summary)return;
  const bodies=Object.values(S.equipmentInventory?.bodies||{}).filter(Boolean),locations=bodies.map(b=>PasekaInventory.locateBody(S,b.id,profileForHive)),inHives=locations.filter(x=>x?.type==='hive').length,removed=locations.filter(x=>x?.type==='hive_uninstalled').length,stock=locations.filter(x=>x?.type==='storage').length,repair=bodies.filter(b=>['repair','needs_repair'].includes(b.condition)).length,frameTotal=bodies.reduce((sum,body,i)=>sum+inventoryBodyFrameCount(body,locations[i]),0);
- summary.textContent='Всего: '+bodies.length+' · установлены: '+inHives+' · сняты из сборки: '+removed+' · на складе: '+stock+' · требуют внимания: '+repair+' · рамок в учёте: '+frameTotal;
+ summary.textContent='Корпусов: '+bodies.length+' · установлены: '+inHives+' · сняты из сборки: '+removed+' · на складе: '+stock+' · требуют внимания: '+repair+' · рамок в учёте: '+frameTotal+' · принадлежностей: '+Object.keys(S.equipmentInventory?.items||{}).length;
  if(!host.isConnected)return;
  const hives=S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
  const rows=bodies.slice().sort((a,b)=>String(a.labelCode||'').localeCompare(String(b.labelCode||''),'ru')).map(body=>{
