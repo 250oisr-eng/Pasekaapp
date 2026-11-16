@@ -353,6 +353,8 @@ function validOp06State() {
   return {
     phase: 'DIVIDED_3_SECTIONS',
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    technicalConnections: [1, 2].map(index => ({ queenExcluderLayers: 2, bufferCorridorPresent: true })),
+    operationActions: ['OPEN_ALL_ENTRANCES'],
     queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
     requiredMeshPlugCount: 3,
     meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: false, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
