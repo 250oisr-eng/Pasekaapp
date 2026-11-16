@@ -161,3 +161,11 @@ test('inspection validates stored layout collections and rejects duplicate hive 
  assert.deepEqual(api.inspect({}),[]);
  assert.ok(api.inspect({sectionalPhysicalLayouts:{}}).some(x=>x.code==='sectional_physical_layouts_invalid'));
 });
+
+
+test('requires each section cover when no shared honey stack is installed',()=>{
+ const {layout,...state}=baseState();
+ delete layout.sections[1].coverId;
+ const codes=api.validate(layout,state).errors.map(x=>x.code);
+ assert.ok(codes.includes('section_accessory_id_required'));
+});

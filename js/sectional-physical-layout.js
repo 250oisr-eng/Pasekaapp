@@ -6,6 +6,7 @@ const MODES=Object.freeze({
  SINGLE_FAMILY:'SINGLE_FAMILY'
 });
 const positions={SIDE_BY_SIDE:['left','middle','right'],ALTERNATIVE_WINTERING_COLUMN:['lower','middle','upper'],SINGLE_FAMILY:['combined']};
+// broodBodyIds are ordered bottom-to-top; the final ID is the upper body used by the shared grids.
 const isObject=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const nonEmpty=value=>typeof value==='string'&&value.trim().length>0;
 const unique=values=>new Set(values).size===values.length;
@@ -98,6 +99,7 @@ function validate(layout,state){
   if(layout.mode===MODES.SIDE_BY_SIDE){
    checkAccessory(section.bottomId,'bottom',section.id,{sectionId:section.id});
    if(section.coverId)checkAccessory(section.coverId,'cover',section.id,{sectionId:section.id});
+   else if(layout.honeyStack==null)add('section_cover_required',{sectionId:section.id});
   }
  });
  if(layout.mode===MODES.SIDE_BY_SIDE||layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
