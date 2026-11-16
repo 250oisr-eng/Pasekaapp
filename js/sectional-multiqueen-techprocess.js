@@ -163,6 +163,7 @@ function validateHiveState(s,options={}){
  if(done.has('OP-08')&&!done.has('OP-07'))add('OP08_PREREQUISITE','Отбор мёда OP-08 возможен только после постановки медовых корпусов OP-07.');
  if(done.has('OP-11')&&done.has('OP-12'))add('R6_WINTERING_EXCLUSIVE','OP-11 и OP-12 взаимоисключающие.');
  if(done.has('OP-14')&&c.honeyBodiesCount!==2)add('OP14_EARLY_HONEY_BODY_COUNT','В сценарии раннего медосбора по источнику устанавливаются только два медовых корпуса.');
+ if(done.has('OP-14')&&(!s.earlyHoneySetup||typeof s.earlyHoneySetup!=='object'))add('OP14_PHYSICAL_SETUP_REQUIRED','Для OP-14 требуется сохранённый снимок двух медовых корпусов и двух больших решёток до их снятия.');
  
  if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07')){
   if(![2,4].includes(c.honeyBodiesCount))add('R4_HONEY_BODY_COUNT','Для постановки медовых корпусов укажи подтверждённое общее количество: 2 или 4.');
@@ -268,6 +269,7 @@ function validatePhysicalR4(record,apiaryState,add){
 }
 function validateStoredRecords(records,hives,apiaryState){
  const errors=[],add=(code,details)=>errors.push({code,details});
+ if(apiaryState?.meta?.schemaVersion>=14&&FamilyLineage){FamilyLineage.inspect(apiaryState).forEach(error=>add('TECH_FAMILY_LINEAGE_'+error.code,error.details));}
  if(!Array.isArray(records))return {valid:false,errors:[{code:'TECH_RECORDS_NOT_ARRAY',details:null}]};
  if(!Array.isArray(hives))return {valid:false,errors:[{code:'TECH_HIVE_LIST_NOT_ARRAY',details:null}]};
  const hiveIds=new Set(hives.filter(h=>h&&typeof h.id==='string'&&h.id.trim()).map(h=>h.id));
