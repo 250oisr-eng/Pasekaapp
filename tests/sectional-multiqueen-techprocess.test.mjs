@@ -528,7 +528,7 @@ test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION
     status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1' }]);
   assert.equal(op04.valid, false);
-  assert.ok(op04.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
+  assert.ok(op04.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
 
   const withOp04 = structuredClone(record);
   const op04Row = withOp04.state.operations.find(x => x.operationId === 'OP-04');
@@ -538,7 +538,7 @@ test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION
     status: 'DONE', completedAt: '2027-05-19', updatedAt: '2027-05-19T10:00:00.000Z'
   }, [withOp04], [{ id: 'h1' }]);
   assert.equal(op05.valid, false);
-  assert.ok(op05.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
+  assert.ok(op05.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
 });
 
 test('R1 requires an explicit entrance state for every section', () => {
@@ -575,7 +575,7 @@ test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', 
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
     meshPlugs: []
   }));
-  assert.ok(result.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
+  assert.ok(result.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
   assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
   assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
   assert.ok(result.errors.some(x => x.code === 'R4_HONEY_BODY_COUNT'));
