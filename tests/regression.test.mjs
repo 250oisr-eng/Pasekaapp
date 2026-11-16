@@ -1924,6 +1924,24 @@ test('Farrar winter finish refuses honey flags without silently clearing them',a
  assert.equal(JSON.stringify(layout),before);
  assert.ok(messages.some(message=>message.toLowerCase().includes('сначала явно сними')));
 });
+test('Farrar assembly finish rejects non-boolean summer honey flags without mutating saved state',async()=>{
+ for(const honeyBoxInstalled of [[1,1],['yes','yes'],[false,0],[true,false]]){
+  const layout={mode:'summer',setupComplete:true,installedBoxes:[1],winterOrder:[],honeyBoxInstalled,boxes:{1:{family:'',frames:[]}}};
+  const before=JSON.stringify(layout),messages=[];
+  const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:null,alert:message=>messages.push(message)});
+  await finish();
+  assert.equal(JSON.stringify(layout),before);
+  assert.equal(messages.length,1);
+ }
+});
+test('Farrar assembly finish rejects unknown mode without mutating saved state',async()=>{
+ const layout={mode:'damaged-mode',setupComplete:true,installedBoxes:[1],winterOrder:[],honeyBoxInstalled:[false,false],boxes:{1:{family:'',frames:[]}}};
+ const before=JSON.stringify(layout),messages=[];
+ const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:null,alert:message=>messages.push(message)});
+ await finish();
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
+});
 test('Farrar assembly renderer contains no direct writes to persisted assembly fields',()=>{
  const source=extractFunction('renderStructure');
  assert.doesNotMatch(source,/l\.(?:winterOrder|installedBoxes|honeyBoxInstalled|honeyInstalled)\s*=/);
