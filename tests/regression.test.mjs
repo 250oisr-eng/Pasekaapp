@@ -12,6 +12,7 @@ const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', 
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
+const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
 const sectionalTechProcessSource = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
 const appWindow = {};
@@ -22,6 +23,7 @@ new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
+new Function('window', familyLineageSource)(appWindow);
 new Function('window', sectionalTechProcessSource)(appWindow);
 function extractFunction(name) {
   const re = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(');
@@ -44,6 +46,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
+  deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
   deps.PasekaSectionalTechProcess ||= appWindow.PasekaSectionalTechProcess;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
@@ -1868,7 +1871,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,13);
+ assert.equal(state.meta.schemaVersion,14);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.ok(state.meta.deviceId);
@@ -2566,7 +2569,7 @@ test('Varroa journal is integrated as a phone-only offline section with migratio
  assert.match(html,/id="varroaHive"/);
  assert.match(html,/id="varroaType"/);
  assert.match(html,/PasekaVarroa\.buildVarroaObservation/);
- assert.match(html,/S\.meta\.schemaVersion=13/);
+ assert.match(html,/S\.meta\.schemaVersion=14/);
  assert.match(html,/varroaObservations/);
  assert.match(html,/PasekaVarroa\.inspectVarroaIntegrity/);
 });
@@ -2574,7 +2577,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,13);
+ assert.equal(state.meta.schemaVersion,14);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.deepEqual(state.deadoutReviews,[]);
@@ -2590,7 +2593,7 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
  assert.match(html,/captureIncidentLocation\(\)/);
  assert.match(html,/PasekaIncident\.buildPesticideIncidentDraft/);
  assert.match(html,/PasekaIncident\.inspectPesticideIncidentIntegrity/);
- assert.match(html,/S\.meta\.schemaVersion=13/);
+ assert.match(html,/S\.meta\.schemaVersion=14/);
  assert.match(html,/pesticideIncidents/);
  assert.match(html,/deadoutReviews/);
  assert.match(html,/PasekaDeadout\.inspectDeadoutIntegrity/);
@@ -2601,7 +2604,7 @@ test('schema 12 migration adds an empty sectional tech-process registry without 
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  const before={hives:JSON.stringify(state.hives),families:JSON.stringify(state.families),records:JSON.stringify(state.records),deadoutReviews:JSON.stringify(state.deadoutReviews)};
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,13);
+ assert.equal(state.meta.schemaVersion,14);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.equal(JSON.stringify(state.hives),before.hives);
  assert.equal(JSON.stringify(state.families),before.families);
@@ -2615,7 +2618,7 @@ test('schema 12 migration preserves an existing valid sectional tech-process rec
  const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'sectional-multiqueen-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[record]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,13);
+ assert.equal(state.meta.schemaVersion,14);
  assert.deepEqual(state.sectionalTechProcesses,[record]);
 });
 
@@ -2635,7 +2638,7 @@ test('save refuses a corrupt sectional tech-process registry without invoking pe
 test('save includes sectional tech-process records in the persisted state and historical snapshot',async()=>{
  let persisted=null;const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
  const deps={S:{hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],families:[],records:[],sectionalTechProcesses:[record],meta:{}},saveQueue:Promise.resolve(),uid:()=> 'new-rev',persistSnapshot:async value=>{persisted=value;return true},render(){},alert(){}};
- const save=loadFunction('save',deps);assert.equal(await save(),true);assert.deepEqual(persisted.sectionalTechProcesses,[record]);assert.deepEqual(persisted.snapshots.at(-1).sectionalTechProcesses,[record]);assert.equal(persisted.meta.schemaVersion,13);
+ const save=loadFunction('save',deps);assert.equal(await save(),true);assert.deepEqual(persisted.sectionalTechProcesses,[record]);assert.deepEqual(persisted.snapshots.at(-1).sectionalTechProcesses,[record]);assert.deepEqual(persisted.familyEvents,[]);assert.deepEqual(persisted.snapshots.at(-1).familyEvents,[]);assert.equal(persisted.meta.schemaVersion,14);
 });
 
 
@@ -2741,7 +2744,7 @@ test('schema 13 backup validation requires and verifies sectional tech-process r
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,13);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,14);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
 
