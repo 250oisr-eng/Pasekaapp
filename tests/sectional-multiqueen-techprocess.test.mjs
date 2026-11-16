@@ -487,7 +487,7 @@ test('operation transition rejects duplicate operation rows and never mutates in
 });
 
 
-test('OP-02 cannot be completed without actual feeding dates, duration, syrup portion and 2:1 ratio', () => {
+test('OP-02 cannot be completed without actual feeding dates, duration, daily syrup amount and 2:1 ratio', () => {
   const record = operationRecord();
   const missing = api.transitionOperation(record, 'OP-02', {
     status: 'DONE', completedAt: '2027-04-12', updatedAt: '2027-04-12T10:00:00.000Z'
@@ -498,17 +498,17 @@ test('OP-02 cannot be completed without actual feeding dates, duration, syrup po
   assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
 });
 
-test('OP-02 accepts a recorded 12-day 2:1 syrup feeding in the specified per-feeding portion range', () => {
+test('OP-02 accepts a recorded 12-day 2:1 syrup feeding in the specified daily amount range', () => {
   const record = operationRecord();
   const result = api.transitionOperation(record, 'OP-02', {
     status: 'DONE',
     completedAt: '2027-04-12',
-    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', portionGrams: 150, sugarParts: 2, waterParts: 1 },
+    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 },
     updatedAt: '2027-04-12T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(result.valid, true);
   assert.deepEqual(result.records[0].state.operations.find(item => item.operationId === 'OP-02').feeding, {
-    startDate: '2027-04-01', endDate: '2027-04-12', portionGrams: 150, sugarParts: 2, waterParts: 1
+    startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1
   });
   assert.equal(record.state.operations.find(item => item.operationId === 'OP-02').status, 'PENDING');
 });
@@ -517,15 +517,15 @@ test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup rati
   const record = operationRecord();
   const base = { status: 'DONE', completedAt: '2027-04-11', updatedAt: '2027-04-11T10:00:00.000Z' };
   const short = api.transitionOperation(record, 'OP-02', {
-    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-11', portionGrams: 150, sugarParts: 2, waterParts: 1 }
+    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-11', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 }
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(short.errors.some(error => error.code === 'TECH_OP02_DURATION'));
   const wrongRatio = api.transitionOperation(record, 'OP-02', {
-    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-12', portionGrams: 150, sugarParts: 1, waterParts: 1 }
+    ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 1, waterParts: 1 }
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(wrongRatio.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
   const wrongAmount = api.transitionOperation(record, 'OP-02', {
-    ...base, completedAt: '2027-04-12', feeding: { startDate: '2027-04-01', endDate: '2027-04-12', portionGrams: 250, sugarParts: 2, waterParts: 1 }
+    ...base, completedAt: '2027-04-12', feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 250, sugarParts: 2, waterParts: 1 }
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(wrongAmount.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
 });
@@ -615,13 +615,13 @@ test('R7 reads the alternative wintering mode from config and requires two mesh 
 });
 
 
-test('OP-02 preserves legacy daily amounts without treating them as per-feeding portions', () => {
+test('OP-02 migrates the old v1.3 field name to the daily norm', () => {
   const record = operationRecord();
-  record.specVersion = '1.2.0';
+  record.specVersion = '1.3.0';
   const result = api.transitionOperation(record, 'OP-02', {
     status: 'DONE',
     completedAt: '2027-04-12',
-    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 },
+    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', portionGrams: 150, sugarParts: 2, waterParts: 1 },
     updatedAt: '2027-04-12T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(result.valid, true);
