@@ -888,7 +888,30 @@ test('OP-13 spring relocation records two upper families on separate bottoms wit
 
 test('OP-14 completion requires the early harvest, temporary merge and repeat split lineage events',()=>{
  const lineage=windowRef.PasekaFamilyLineage;
- const apiary={meta:{schemaVersion:14},families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),queenEvents:[],familyEvents:[],layouts:{},equipmentInventory:{bodies:{b2:{id:'b2'},b2new:{id:'b2new'},b3:{id:'b3'},b3new:{id:'b3new'}},items:{d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-lower'}},d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-upper'}},bottom2:{id:'bottom2',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-middle'}},bottom3:{id:'bottom3',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-upper'}},'grid-left':{id:'grid-left',kind:'honeyQueenExcluder',condition:'good'},'grid-right':{id:'grid-right',kind:'honeyQueenExcluder',condition:'good'}}}}};
+ const apiary={
+  meta:{schemaVersion:14},
+  families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),
+  queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),
+  queenEvents:[],familyEvents:[],layouts:{},
+  equipmentInventory:{
+   bodies:{
+    b2:{id:'b2'},b2new:{id:'b2new'},b3:{id:'b3'},b3new:{id:'b3new'},
+    upper1:{id:'upper1',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},
+    upper2:{id:'upper2',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},
+    upper3:{id:'upper3',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},
+    honey1:{id:'honey1',kind:'honey',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:10}},
+    honey2:{id:'honey2',kind:'honey',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:10}}
+   },
+   items:{
+    d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-lower'}},
+    d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-upper'}},
+    bottom2:{id:'bottom2',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-middle'}},
+    bottom3:{id:'bottom3',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-upper'}},
+    'grid-left':{id:'grid-left',kind:'honeyQueenExcluder',condition:'good'},
+    'grid-right':{id:'grid-right',kind:'honeyQueenExcluder',condition:'good'}
+   }
+  }
+ };
  const makeId=(()=>{let n=0;return()=> 'lineage-'+(++n)})();
  const physicalSetup={honeyBodyIds:['honey1','honey2'],honeyBodySnapshots:[{bodyId:'honey1',kind:'honey',condition:'good',framesPerBox:10,profileId:api.SPEC.id,hiveId:'h1',installed:true},{bodyId:'honey2',kind:'honey',condition:'good',framesPerBox:10,profileId:api.SPEC.id,hiveId:'h1',installed:true}],largeExcluderIds:['grid-left','grid-right'],largeExcluderSnapshots:[{itemId:'grid-left',kind:'honeyQueenExcluder',condition:'good',hiveId:'h1',installed:true,footprint:[{bodyId:'upper1',coverage:'FULL'},{bodyId:'upper2',coverage:'HALF'}]},{itemId:'grid-right',kind:'honeyQueenExcluder',condition:'good',hiveId:'h1',installed:true,footprint:[{bodyId:'upper2',coverage:'HALF'},{bodyId:'upper3',coverage:'FULL'}]}],upperBodyIds:['upper1','upper2','upper3']};
  assert.equal(lineage.configureAlternativeWintering(apiary,{familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],techProcessId:'tech-14',layout:[{familyId:'f1',position:'lower',bodyCount:2},{familyId:'f2',position:'middle',bodyCount:1},{familyId:'f3',position:'upper',bodyCount:1}]},makeId,'2026-04-01T10:00:00.000Z').ok,true);
