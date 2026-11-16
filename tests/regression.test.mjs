@@ -1294,6 +1294,70 @@ test('atomic restore rolls back the main database when preserving the previous b
  await assert.rejects(fixture.write({meta:{revisionId:'rev-2'},value:'restored'},'rev-1'),/quota exceeded/i);
  assert.deepEqual(fixture.read(),before);
 });
+function automaticBackupValidatorForTests(){
+ const validateBackupState=loadFunction('validateBackupState');
+ const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity:state=>inspectRawBackup(state)});
+ return loadFunction('validateAutomaticBackup',{validateBackupState,assertRawBackupIntegrity});
+}
+test('automatic backup validation rejects malformed and structurally corrupted snapshots',()=>{
+ const validate=automaticBackupValidatorForTests();
+ assert.throws(()=>validate(null),/не содержит состояние/i);
+ assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:13}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ const corrupt={...rawBackupFixture(),hives:[{id:'same',number:1},{id:'same',number:2}]};
+ assert.throws(()=>validate({state:corrupt}),/не прошёл проверку исходных данных/i);
+ const valid={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'valid-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+ assert.equal(validate({at:'backup-time',state:valid}),valid);
+});
+
+test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+ const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ let writes=0,reads=0,stored=null;
+ const deps={
+  validateAutomaticBackup,
+  writeAutoBackup:async(state,revision)=>{writes++;assert.equal(state,current);assert.equal(revision,'main-rev');stored={at:'repaired',state};return true},
+  readAutoBackup:async()=>{reads++;return stored}
+ };
+ const ensure=loadFunction('ensureAutomaticBackup',deps);
+ assert.equal(await ensure(current,malformed),true);
+ assert.equal(writes,1);assert.equal(reads,1);
+ assert.equal(current.meta.autoBackupError,undefined);
+ assert.equal(stored.state,current);
+});
+
+test('startup never overwrites an automatic backup when the main revision changed concurrently',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{revisionId:'stale-rev'}};
+ const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ let reads=0,writes=0;
+ const ensure=loadFunction('ensureAutomaticBackup',{
+  validateAutomaticBackup,
+  writeAutoBackup:async()=>{writes++;return false},
+  readAutoBackup:async()=>{reads++;return null}
+ });
+ assert.equal(await ensure(current,malformed),false);
+ assert.equal(writes,1);assert.equal(reads,0);
+ assert.match(current.meta.autoBackupError,/не удалось проверить или обновить/i);
+});
+
+test('startup preserves the existing automatic backup when repairing it fails from quota exhaustion',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{revisionId:'main-rev'}};
+ const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const quotaError=Object.assign(new Error('quota'),{name:'QuotaExceededError'});
+ let reads=0;
+ const ensure=loadFunction('ensureAutomaticBackup',{
+  validateAutomaticBackup,
+  writeAutoBackup:async()=>{throw quotaError},
+  readAutoBackup:async()=>{reads++;return malformed}
+ });
+ assert.equal(await ensure(current,malformed),false);
+ assert.equal(reads,0);
+ assert.equal(current.meta.autoBackupError,'Недостаточно места для создания полной резервной копии');
+ assert.equal(malformed.state.meta.schemaVersion,13,'the invalid prior backup must not be mutated');
+});
+
 test('backup shape validator accepts a minimal valid empty apiary',()=>{
  const validate=loadFunction('validateBackupState');
  const state=rawBackupFixture();
