@@ -2892,3 +2892,22 @@ test('startup backup recovery refuses to overwrite a concurrent main write and p
   assert.deepEqual(await readIndexedDb(db,'backup','previous'),previousBackup);
  }finally{db.close()}
 });
+
+
+test('persistSnapshot reports a concurrent automatic-backup conflict instead of clearing the warning', async () => {
+ const state={meta:{revisionId:'revision-2'}};
+ const deps={
+  S:{meta:{revisionId:'revision-2'}},
+  lastPersistedRevision:'revision-1',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>false,
+  render(){},
+  updateStorageEstimate(){}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'the committed primary save remains successful');
+ assert.match(state.meta.autoBackupError,/изменились параллельно/);
+ assert.match(deps.S.meta.autoBackupError,/изменились параллельно/);
+ assert.equal(deps.lastPersistedRevision,'revision-2');
+});
