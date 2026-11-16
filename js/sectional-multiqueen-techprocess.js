@@ -19,7 +19,7 @@ const SPEC=Object.freeze({
  {id:'OP-03',title:'Перестановка корпусов (верх ↔ низ)',optional:true,recommended:true,offsetFrom:'OP-04',offsetDays:[-7,-5]},
  {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
- {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED',afterRemoval:'OPEN_ALL_ENTRANCES'},
+ {id:'OP-06',title:'Снятие металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[20,21],condition:'ALL_THREE_QUEENS_FERTILIZED',afterRemoval:'OPTIONAL_ENTRANCE_ADJUSTMENT'},
  {id:'OP-07',title:'Постановка медовых корпусов',optional:false,queenExcludersPerSection:1,honeyBodiesScope:'WHOLE_HIVE'},
  {id:'OP-08',title:'Отбор мёда',optional:false,offsetFrom:'HONEY_FLOW_MAIN_START',offsetDays:[15,15],retryDays:7},
  {id:'OP-09',title:'Сокращение летков',optional:false,period:'Вторая половина августа',openEntrance:'ROUND_BOTTOM',entrancePosition:'LOWER_NEST_BODY'},
@@ -85,9 +85,22 @@ function validateHiveState(s){
   });
   const sectionIndexes=sections.map(x=>x&&x.index);if(new Set(sectionIndexes).size!==3||sectionIndexes.some(x=>![1,2,3].includes(x)))add('SECTION_INDEX','Индексы секций должны быть уникальными: 1, 2 и 3.');
   const completedOps=new Set((Array.isArray(s.operations)?s.operations:[]).filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
+  if(completedOps.has('OP-04')){
+   const expectedConnections=[[1,2],[2,3]];
+   const connections=Array.isArray(s.technicalConnections)?s.technicalConnections:[];
+   if(connections.length!==2)add('R3_CONNECTION_COUNT','Для трёх секций должны быть описаны два межсекционных соединения.');
+   expectedConnections.forEach(([from,to])=>{
+    const connection=connections.find(x=>x&&x.fromSectionIndex===from&&x.toSectionIndex===to);
+    if(!connection){add('R3_CONNECTION_MISSING','Не описано техническое соединение секций '+from+' и '+to+'.');return;}
+    if(connection.queenExcluderLayers!==2)add('R3_QUEEN_EXCLUDER_LAYERS','Между секциями '+from+' и '+to+' должны быть две геннемановские решётки.');
+    if(connection.bufferCorridorPresent!==true)add('R3_BUFFER_CORRIDOR_MISSING','Между двумя геннемановскими решётками секций '+from+' и '+to+' должен быть подтверждён буферный коридор.');
+   });
+   const keys=connections.map(x=>x&&x.fromSectionIndex+'-'+x.toSectionIndex);
+   if(new Set(keys).size!==keys.length)add('R3_CONNECTION_DUPLICATE','Межсекционные соединения не должны повторяться.');
+  }
   const lateSummer=completedOps.has('OP-09');
   if(!completedOps.has('OP-06')&&!lateSummer){
-  SPEC.entranceAssignment.forEach(e=>{const x=sections.find(y=>y&&y.index===e.sectionIndex);if(!x)return;if(x.openEntrance!==e.openEntrance)add('R1_ENTRANCE_TYPE','Для секции '+e.sectionIndex+' предусмотрен леток '+e.openEntrance+'.');if(x.entranceState&&x.entranceState!==e.state)add('R1_ENTRANCE_STATE','Для летка '+e.openEntrance+' секции '+e.sectionIndex+' ожидается '+e.state+'.');});
+  SPEC.entranceAssignment.forEach(e=>{const x=sections.find(y=>y&&y.index===e.sectionIndex);if(!x)return;if(x.openEntrance!==e.openEntrance)add('R1_ENTRANCE_TYPE','Для секции '+e.sectionIndex+' предусмотрен леток '+e.openEntrance+'.');if(x.entranceState!==e.state)add('R1_ENTRANCE_STATE','Для летка '+e.openEntrance+' секции '+e.sectionIndex+' ожидается '+e.state+'.');});
   const types=sections.map(x=>x&&x.openEntrance).filter(Boolean);if(new Set(types).size!==3)add('R1_DUPLICATE_ENTRANCE','В трёх секциях не могут быть открыты одинаковые типы летков.');
   }
   if(lateSummer)sections.forEach(x=>{if(x&&x.openEntrance!=='ROUND_BOTTOM')add('OP09_ENTRANCE','После OP-09 в каждой секции должен быть открыт круглый леток.');if(x&&x.openEntrancePosition!=='LOWER_NEST_BODY')add('OP09_ENTRANCE_POSITION','Леток OP-09 должен находиться в нижнем гнездовом корпусе.');});
@@ -108,6 +121,22 @@ function validateHiveState(s){
  const done=new Set(operationRows.filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
  const sectionIsolation=sections.map(x=>(x?.isolation??s.isolation));
  const installedMeshPlugCount=(Array.isArray(s.meshPlugs)?s.meshPlugs:[]).filter(p=>p&&p.installed===true&&p.position==='OVER_QUEEN_EXCLUDER'&&p.openingDiameterMm===50).length;
+ const dividedPhases=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','ALT_WINTERING','ALT_WINTERING_SPRING'];
+ const allowedPhases={
+  'OP-04':dividedPhases,
+  'OP-05':dividedPhases,
+  'OP-06':dividedPhases,
+  'OP-07':['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'],
+  'OP-08':['HONEY_COLLECTION'],
+  'OP-09':['END_OF_SEASON','AUTUMN_PREP'],
+  'OP-10':['AUTUMN_PREP'],
+  'OP-11':['WINTER_ASSEMBLY'],
+  'OP-12':['ALT_WINTERING'],
+  'OP-13':['ALT_WINTERING_SPRING']
+ };
+ Object.entries(allowedPhases).forEach(([operationId,phases])=>{
+  if(done.has(operationId)&&!phases.includes(s.phase))add('OPERATION_PHASE_MISMATCH',operationId+' нельзя отметить выполненной в фазе '+String(s.phase||'не указана')+'. Допустимые фазы: '+phases.join(', ')+'.');
+ });
  if(done.has('OP-05')&&!done.has('OP-04'))add('OP05_PREREQUISITE','OP-05 нельзя выполнить до разделения OP-04.');
  if(done.has('OP-05')&&!done.has('OP-06')&&sectionIsolation.some(x=>x!=='MESH_ISOLATED'))add('OP05_ISOLATION_STATE','После OP-05 все три секции должны быть изолированы металлическими сетчатыми заглушками.');
  if(done.has('OP-06')){
@@ -121,14 +150,28 @@ function validateHiveState(s){
  if(done.has('OP-11')&&done.has('OP-12'))add('R6_WINTERING_EXCLUSIVE','OP-11 и OP-12 взаимоисключающие.');
  if(done.has('OP-13')&&done.has('OP-14'))add('R6_ALT_SPRING_EXCLUSIVE','OP-13 и OP-14 — разные сценарии после альтернативной зимовки; одновременно выбирать их нельзя.');
 
- if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)){
+ if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07')){
   if(s.queenExcluderBetweenNestAndHoney!==true)add('R4_QUEEN_EXCLUDER','Перед медовыми корпусами нужна геннеманская решётка над гнездом каждой секции.');
-  if(s.honeyQueenExcluderCount!==undefined&&s.honeyQueenExcluderCount!==3)add('R4_QUEEN_EXCLUDER_COUNT','Над гнездом требуется по одной большой решётке на каждую из трёх секций (всего 3).');
+  if(s.honeyQueenExcluderCount!==3)add('R4_QUEEN_EXCLUDER_COUNT','Над гнездом требуется по одной большой решётке на каждую из трёх секций (всего 3).');
+  if(![2,4].includes(c.honeyBodiesCount))add('R4_HONEY_BODY_COUNT','Для постановки медовых корпусов укажи подтверждённое общее количество: 2 или 4.');
  }
 
- if(s.winteringMode==='ALTERNATIVE_DIAPHRAGMS'&&s.phase==='ALT_WINTERING'&&(!Array.isArray(s.diaphragms)||s.diaphragms.length!==2||s.diaphragms.some(x=>!x||x.hasMesh!==true)))add('R7_DIAPHRAGMS','Для альтернативной зимовки нужны две сетчатые диафрагмы.');
- if(s.winteringMode&&!['COMBINED','ALTERNATIVE_DIAPHRAGMS'].includes(s.winteringMode))add('WINTERING_MODE','Неизвестный способ зимовки.');
- if(s.phase==='ALT_WINTERING'&&Array.isArray(s.sections)&&s.sections.length===3){const counts=s.sections.map(x=>x&&x.bodyIds&&x.bodyIds.length);if(counts.some(x=>![1,2].includes(x))||counts.filter(x=>x===2).length!==1)add('ALT_WINTER_BODY_LAYOUT','При альтернативной зимовке одна семья занимает два корпуса, две другие — по одному.','warning');}
+ const winteringMode=c.winteringMode??s.winteringMode;
+ if(c.winteringMode!==undefined&&s.winteringMode!==undefined&&c.winteringMode!==s.winteringMode)add('WINTERING_MODE_CONFLICT','Режим зимовки в config и корне состояния не совпадает.');
+ if(winteringMode&&!['COMBINED','ALTERNATIVE_DIAPHRAGMS'].includes(winteringMode))add('WINTERING_MODE','Неизвестный способ зимовки.');
+ if(s.phase==='WINTER_ASSEMBLY'||done.has('OP-11')){
+  if(s.winterNestBodies!==3)add('R5_WINTER_NEST_BODIES','Для основной зимовки требуется фактическая сборка одного гнезда на трёх корпусах.');
+  if(winteringMode!=='COMBINED')add('R5_WINTERING_MODE','Основная зимняя сборка требует выбранного режима COMBINED.');
+ }
+ if(s.phase==='ALT_WINTERING'||done.has('OP-12')){
+  if(winteringMode!=='ALTERNATIVE_DIAPHRAGMS')add('R7_WINTERING_MODE','Для альтернативной зимовки должен быть выбран режим ALTERNATIVE_DIAPHRAGMS.');
+  if(!Array.isArray(s.diaphragms)||s.diaphragms.length!==2||s.diaphragms.some(x=>!x||x.hasMesh!==true))add('R7_DIAPHRAGMS','Для альтернативной зимовки нужны две сетчатые диафрагмы.');
+  if(!Array.isArray(s.sections)||s.sections.length!==3){add('R7_SECTION_COUNT','Для альтернативной зимовки нужны три семьи.');}
+  else{
+   const counts=s.sections.map(x=>Array.isArray(x?.bodyIds)?x.bodyIds.length:0).sort((a,b)=>a-b);
+   if(counts.join(',')!=='1,1,2')add('ALT_WINTER_BODY_LAYOUT','При альтернативной зимовке одна семья занимает два корпуса, две другие — по одному.');
+  }
+ }
  return {valid:errors.length===0,errors,warnings};
 }
 function validateStoredRecords(records,hives){

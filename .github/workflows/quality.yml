@@ -13,6 +13,17 @@ on:
       - 'scripts/**'
       - 'tests/**'
       - '.github/workflows/quality.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/quality.yml'
 
 concurrency:
   group: quality-${{ github.ref }}
