@@ -180,6 +180,10 @@ function validateHiveState(s,options={}){
   if(grids.length===2&&fullBodies.length===2&&halfBodies.length===2){
    if(new Set(fullBodies).size!==2)add('R4_EXCLUDER_FULL_OVERLAP','Две решётки должны полностью перекрывать разные крайние верхние корпуса.');
    if(halfBodies[0]!==halfBodies[1])add('R4_EXCLUDER_SHARED_CENTER','Половины двух решёток должны приходиться на один и тот же средний верхний корпус.');
+   const firstUpper=sections.find(section=>section?.index===1)?.upperBodyId;
+   const middleUpper=sections.find(section=>section?.index===2)?.upperBodyId;
+   const thirdUpper=sections.find(section=>section?.index===3)?.upperBodyId;
+   if(!new Set(fullBodies).has(firstUpper)||!new Set(fullBodies).has(thirdUpper)||halfBodies[0]!==middleUpper)add('R4_EXCLUDER_SECTION_ALIGNMENT','Полные части решёток должны приходиться на верхние корпуса секций 1 и 3, а обе половины — на верхний корпус секции 2.');
    if(new Set([...fullBodies,...halfBodies]).size!==3)add('R4_EXCLUDER_THREE_BODY_FOOTPRINT','Две решётки вместе должны покрывать ровно три верхних шестирамочных корпуса.');
   }
  }
