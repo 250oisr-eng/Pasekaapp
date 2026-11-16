@@ -235,3 +235,14 @@ test('OP-11 and OP-14 merges require exactly three source families',()=>{
   assert.equal(state.families.length,3);
  }
 });
+
+test('queen identity confirmation rejects a candidate that is no longer marked unknown',()=>{
+ const state=baseState();
+ api.applyMerge(state,{sourceFamilyIds:['f1','f2','f3'],resultFamily:{id:'merged',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+ state.queens.find(q=>q.id==='q2').status='dead';
+ const before=structuredClone(state);
+ const result=api.confirmQueenIdentity(state,{familyId:'merged',queenId:'q2'},makeId,'2026-10-20T10:00:00.000Z');
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'identity_queen_not_unknown');
+ assert.deepEqual(state,before);
+});
