@@ -33,7 +33,7 @@ function getPendingConfirmations(state) {
   if (!sourceEvent) continue;
   const candidates = sourceEvent.candidateQueenIds
    .map(id => queens.find(queen => queen?.id === id))
-   .filter(queen => queen && !families.some(other =>
+   .filter(queen => queen && queen.status === 'unknown' && !families.some(other =>
     other?.id !== family.id && familyStatus(other) === 'active' && other.currentQueenId === queen.id
    ));
   if (!candidates.length) continue;
