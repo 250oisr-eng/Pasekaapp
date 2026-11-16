@@ -59,6 +59,8 @@ function honeyReadyState(overrides = {}) {
 
 
 test('sectional tech-process model loads before the app and is cached offline', () => {
+  assert.ok(html.includes('<script src="./js/family-lineage.js"></script>'));
+  assert.ok(sw.includes("'./js/family-lineage.js'"));
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
@@ -810,6 +812,68 @@ test('OP-13 spring development and OP-14 early honey are compatible; OP-14 uses 
   assert.equal(api.getOperation('OP-14').postHarvestCombineDelayDays, undefined);
   assert.match(api.getOperation('OP-14').temporaryMergeGuidance,/3–5 дней/);
   assert.equal(api.getOperation('OP-14').requiresConfirmedLineageCycle, true);
+});
+
+
+test('schema 14 refuses to complete OP-04 without a persisted family split event',()=>{
+ const state=dividedState({
+  familyLineageVersion:1,
+  sections:[1,2,3].map(index=>sectionFixture(index,{familyId:'new-'+index,queenIdentityStatus:'identified'})),
+  operations:api.SPEC.operations.map(operation=>({operationId:operation.id,status:'PENDING'}))
+ });
+ const record=operationRecord(state);
+ const result=api.transitionOperation(record,'OP-04',{
+  status:'DONE',completedAt:'2027-05-10',additionalBottomsInstalled:true,updatedAt:'2027-05-10T10:00:00.000Z'
+ },[record],[{id:'h1',profileId:api.SPEC.id}],{meta:{schemaVersion:14},families:[],queens:[],familyEvents:[]});
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(error=>error.code==='TECH_OP04_FAMILY_SPLIT_EVENT_REQUIRED'));
+});
+
+test('OP-12 completion requires family links and two referenced physical mesh diaphragms',()=>{
+ const lineage=windowRef.PasekaFamilyLineage;
+ const apiary={meta:{schemaVersion:14},families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),queenEvents:[],familyEvents:[],layouts:{},equipmentInventory:{items:{
+  d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'lower-middle'}},
+  d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'middle-upper'}}
+ }}};
+ const sections=[
+  sectionFixture(1,{familyId:'f1',winteringPosition:'lower',bodyIds:['b1','b2'],queenId:'q1',queenIdentityStatus:'identified'}),
+  sectionFixture(2,{familyId:'f2',winteringPosition:'middle',bodyIds:['b3'],queenId:'q2',queenIdentityStatus:'identified'}),
+  sectionFixture(3,{familyId:'f3',winteringPosition:'upper',bodyIds:['b4'],queenId:'q3',queenIdentityStatus:'identified'})
+ ];
+ const record={id:'tech-12',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-10-01T10:00:00.000Z',updatedAt:'2026-10-01T10:00:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING',config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS'},sections,
+  queens:[1,2,3].map(i=>({id:'q'+i,status:'FERTILIZED',layingObserved:true})),
+  diaphragms:[{itemId:'d1',hasMesh:true},{itemId:'d2',hasMesh:true}],
+  operations:[{operationId:'OP-12',status:'DONE',completedAt:'2026-10-01'}]
+ }};
+ const configured=lineage.configureAlternativeWintering(apiary,{
+  familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],techProcessId:'tech-12',
+  layout:[{familyId:'f1',position:'lower',bodyCount:2},{familyId:'f2',position:'middle',bodyCount:1},{familyId:'f3',position:'upper',bodyCount:1}]
+ },()=> 'event-12','2026-10-01T10:00:00.000Z');
+ assert.equal(configured.ok,true);
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+});
+
+test('OP-14 completion requires the early harvest, temporary merge and repeat split lineage events',()=>{
+ const lineage=windowRef.PasekaFamilyLineage;
+ const apiary={meta:{schemaVersion:14},families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),queenEvents:[],familyEvents:[],layouts:{},equipmentInventory:{items:{}}};
+ const makeId=(()=>{let n=0;return()=> 'lineage-'+(++n)})();
+ assert.equal(lineage.recordEarlyHoneyHarvest(apiary,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'},makeId,'2026-05-01T10:00:00.000Z').ok,true);
+ const merged=lineage.applyMerge(apiary,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',resultFamily:{id:'early-merge',hive:'h1'}},makeId,'2026-05-04T10:00:00.000Z');
+ assert.equal(merged.ok,true);
+ const split=lineage.applySplit(apiary,{sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',resultFamilies:[1,2,3].map(i=>({id:'after-'+i,hive:'h1'}))},makeId,'2026-05-10T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ const record={id:'tech-14',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-04-01T10:00:00.000Z',updatedAt:'2026-05-10T10:00:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING_SPRING',config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS',honeyBodiesCount:2},
+  sections:split.families.map((family,index)=>sectionFixture(index+1,{familyId:family.id,bodyIds:['body-'+index+'-a','body-'+index+'-b'],queenId:null,queenIdentityStatus:'unresolved'})),
+  queens:[],operations:[{operationId:'OP-14',status:'DONE',completedAt:'2026-05-10'}]
+ }};
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+ const withoutSplit={...apiary,familyEvents:apiary.familyEvents.filter(event=>event.type!=='split')};
+ const rejected=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],withoutSplit);
+ assert.ok(rejected.errors.some(error=>error.code==='TECH_OP14_REPEAT_SPLIT_EVENT_REQUIRED'));
 });
 
 
