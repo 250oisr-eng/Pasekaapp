@@ -14,7 +14,9 @@
 
 **Проверенный HEAD:** `81f9bdb4b648b3bafeef4f975795f7f948750ff5`.
 
-**Связанный Draft PR:** [#95 — validate R4 against physical accessory inventory](https://github.com/250oisr-eng/Pasekaapp/pull/95). Не объединён. PR #92–95 — зависимая последовательность; учитывать base/head и дублирующиеся проверки перед изменением порядка.
+**Связанный Draft PR разработки:** [#95 — validate R4 against physical accessory inventory](https://github.com/250oisr-eng/Pasekaapp/pull/95). Не объединён. PR #92–95 — зависимая последовательность; учитывать base/head и дублирующиеся проверки перед изменением порядка.
+
+**PR этой системы статуса:** [#96 — add persistent project status checkpoint](https://github.com/250oisr-eng/Pasekaapp/pull/96), Draft, base `main`, HEAD на момент создания `87766ed23155f9c225dd97986e03ce9c0cdc9cd9`. Не объединён.
 
 ## 2. Выполненные задачи
 
@@ -116,6 +118,9 @@ CI не подтверждает физическое Android-тестирова
 ## 10. История обновлений
 
 ### 2026-11-16 — Первоначальная фиксация PROJECT_STATUS
+
+- Изменение оформлено в Draft PR #96: https://github.com/250oisr-eng/Pasekaapp/pull/96.
+- Последний зафиксированный HEAD PR #96 на момент создания PR: `87766ed23155f9c225dd97986e03ce9c0cdc9cd9`.
 
 - Файл создан в корне репозитория в отдельной документальной ветке от `main`.
 - Начальный снимок сверён с PR #95, документами PR #90/#91 и GitHub Actions для SHA `81f9bdb4b648b3bafeef4f975795f7f948750ff5`.
