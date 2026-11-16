@@ -603,8 +603,36 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  return {ok:errors.length===0,errors};
 }
 function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
-function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
-function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
+function readMain(){
+ return new Promise((ok,no)=>{
+  let tx,request,value,settled=false;
+  const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось прочитать основную базу'))}};
+  try{
+   tx=db.transaction(STORE,'readonly');
+   request=tx.objectStore(STORE).get('state');
+   request.onsuccess=()=>{value=request.result};
+   request.onerror=()=>rejectOnce(request.error);
+   tx.oncomplete=()=>{if(!settled){settled=true;ok(value)}};
+   tx.onabort=()=>rejectOnce(tx.error||request.error||new Error('Чтение основной базы прервано'));
+   tx.onerror=()=>rejectOnce(tx.error||request.error||new Error('Ошибка чтения основной базы'));
+  }catch(error){rejectOnce(error)}
+ });
+}
+function readAutoBackup(){
+ return new Promise((ok,no)=>{
+  let tx,request,value,settled=false;
+  const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось прочитать автокопию'))}};
+  try{
+   tx=db.transaction(BACKUP_STORE,'readonly');
+   request=tx.objectStore(BACKUP_STORE).get('previous');
+   request.onsuccess=()=>{value=request.result||null};
+   request.onerror=()=>rejectOnce(request.error);
+   tx.oncomplete=()=>{if(!settled){settled=true;autoBackupInfo=value;ok(autoBackupInfo)}};
+   tx.onabort=()=>rejectOnce(tx.error||request.error||new Error('Чтение автокопии прервано'));
+   tx.onerror=()=>rejectOnce(tx.error||request.error||new Error('Ошибка чтения автокопии'));
+  }catch(error){rejectOnce(error)}
+ });
+}
 async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
 function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
 function writeMainIfUnchanged(state,expectedRevision){
