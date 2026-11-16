@@ -195,7 +195,7 @@ function validateStoredRecords(records,hives){
   if(record.hiveProfileId!==SPEC.id||linkedProfileId!==SPEC.id)add('TECH_HIVE_PROFILE_MISMATCH',{id:record.id,hiveProfileId:record.hiveProfileId??null,linkedProfileId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
-  if(![SPEC.version,'1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
+  if(![SPEC.version,'1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
   if(typeof record.createdAt!=='string'||!Number.isFinite(Date.parse(record.createdAt)))add('TECH_RECORD_CREATED_AT_INVALID',{id:record.id});
   if(typeof record.updatedAt!=='string'||!Number.isFinite(Date.parse(record.updatedAt)))add('TECH_RECORD_UPDATED_AT_INVALID',{id:record.id});
   if(!record.state||typeof record.state!=='object'||Array.isArray(record.state)){add('TECH_RECORD_STATE_INVALID',{id:record.id});return;}
