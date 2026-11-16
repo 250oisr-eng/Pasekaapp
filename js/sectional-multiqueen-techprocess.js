@@ -223,6 +223,10 @@ function validatePhysicalR4(record,apiaryState,add){
   for(const bodyId of Array.isArray(section?.bodyIds)?section.bodyIds:[]){
    if(!layoutBodyIds.has(bodyId))add('TECH_R4_SECTION_BODY_LAYOUT_MISSING',{id:record.id,bodyId});
    if(!Object.prototype.hasOwnProperty.call(bodies,bodyId)||!bodies[bodyId]||bodies[bodyId].id!==bodyId)add('TECH_R4_SECTION_BODY_INVENTORY_MISSING',{id:record.id,bodyId});
+   else{
+    if(bodies[bodyId].kind!=='brood')add('TECH_R4_SECTION_BODY_KIND',{id:record.id,bodyId,kind:bodies[bodyId].kind??null});
+    if(bodies[bodyId].spec?.framesPerBox!==6)add('TECH_R4_SECTION_BODY_FRAME_CAPACITY',{id:record.id,bodyId,framesPerBox:bodies[bodyId].spec?.framesPerBox??null});
+   }
   }
  }
  const items=apiaryState.equipmentInventory?.items;
