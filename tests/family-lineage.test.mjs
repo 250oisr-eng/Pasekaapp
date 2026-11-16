@@ -1,0 +1,146 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const source=await readFile(new URL('../js/family-lineage.js',import.meta.url),'utf8');
+const windowRef={};
+new Function('window',source)(windowRef);
+const api=windowRef.PasekaFamilyLineage;
+let sequence=0;
+const makeId=()=> 'generated-'+(++sequence);
+function baseState(){
+ const families=[1,2,3].map(i=>({id:'f'+i,hive:'h1',name:'26-'+i,recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'}));
+ const queens=[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current',code:'Q'+i}));
+ return {meta:{schemaVersion:14},hives:[{id:'h1'}],families,queens,queenEvents:[],familyEvents:[],layouts:{},equipmentInventory:{items:{}}};
+}
+function children(prefix='child'){
+ return [1,2,3].map(i=>({id:prefix+'-'+i,hive:'h1',name:prefix+' '+i}));
+}
+
+test('legacy records without familyEvents remain readable and are not assigned invented lineage',()=>{
+ const state={meta:{schemaVersion:13},families:[{id:'f1',hive:'h1'}],queens:[]};
+ assert.deepEqual(api.inspect(state),[]);
+ assert.equal(state.families[0].colonyGroupId,undefined);
+ assert.equal(state.families[0].recordStatus,undefined);
+ assert.equal(state.familyEvents,undefined);
+});
+
+test('OP-04 split preserves source family and queen history while creating three new unresolved family identities',()=>{
+ const state={...baseState(),families:[baseState().families[0]],queens:[baseState().queens[0]]};
+ const result=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:children('op04')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(result.ok,true);
+ assert.equal(state.families.length,4);
+ const source=state.families.find(x=>x.id==='f1');
+ assert.equal(source.recordStatus,'historical');
+ assert.equal(source.currentQueenId,null);
+ assert.equal(source.queenIdentityStatus,'unresolved');
+ assert.equal(state.queens[0].id,'q1');
+ assert.equal(state.queens[0].familyId,'f1');
+ assert.equal(state.queens[0].originFamilyId,'f1');
+ assert.equal(state.queens[0].status,'unknown');
+ const created=state.families.filter(x=>x.id.startsWith('op04-'));
+ assert.equal(created.length,3);
+ assert.ok(created.every(x=>x.recordStatus==='active'&&x.queenIdentityStatus==='unresolved'&&!x.currentQueenId));
+ assert.equal(new Set(created.map(x=>x.colonyGroupId)).size,1);
+ assert.equal(created[0].colonyGroupId,source.colonyGroupId);
+ assert.deepEqual(result.event.candidateQueenIds,['q1']);
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('merge creates a new account identity and preserves all queen candidates without selecting a survivor',()=>{
+ const state=baseState();
+ const result=api.applyMerge(state,{
+  sourceFamilyIds:['f1','f2','f3'],operationId:'OP-11',
+  resultFamily:{id:'winter-result',hive:'h1',name:'Зимующая семья'}
+ },makeId,'2026-10-15T10:00:00.000Z');
+ assert.equal(result.ok,true);
+ assert.equal(result.family.id,'winter-result');
+ assert.equal(result.family.currentQueenId,null);
+ assert.equal(result.family.queenIdentityStatus,'unresolved');
+ assert.equal(result.family.recordStatus,'active');
+ assert.deepEqual(result.event.candidateQueenIds,['q1','q2','q3']);
+ assert.equal('survivorFamilyId' in result.event,false);
+ assert.ok(state.families.filter(x=>['f1','f2','f3'].includes(x.id)).every(x=>x.recordStatus==='historical'&&!x.currentQueenId));
+ assert.ok(state.queens.every(q=>q.status==='unknown'));
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('queen identity can be confirmed only from the merge candidate list and keeps originFamilyId',()=>{
+ const state=baseState();
+ api.applyMerge(state,{sourceFamilyIds:['f1','f2','f3'],resultFamily:{id:'merged',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+ const invalid=api.confirmQueenIdentity(state,{familyId:'merged',queenId:'invented'},makeId,'2026-10-20T10:00:00.000Z');
+ assert.equal(invalid.ok,false);
+ const confirmed=api.confirmQueenIdentity(state,{familyId:'merged',queenId:'q2'},makeId,'2026-10-20T10:00:00.000Z');
+ assert.equal(confirmed.ok,true);
+ assert.equal(confirmed.family.currentQueenId,'q2');
+ assert.equal(confirmed.family.queenIdentityStatus,'identified');
+ assert.equal(confirmed.queen.familyId,'merged');
+ assert.equal(confirmed.queen.originFamilyId,'f2');
+ assert.equal(state.queenEvents[0].type,'identity_confirmed');
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('alternative wintering requires three independent families, two real installed mesh diaphragms and 2+1+1 layout',()=>{
+ const state=baseState();
+ state.equipmentInventory.items={
+  d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'between-lower-middle'}},
+  d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'between-middle-upper'}}
+ };
+ const result=api.configureAlternativeWintering(state,{
+  familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],
+  layout:[
+   {familyId:'f1',position:'lower',bodyCount:2},
+   {familyId:'f2',position:'middle',bodyCount:1},
+   {familyId:'f3',position:'upper',bodyCount:1}
+  ],techProcessId:'tech-12'
+ },makeId,'2026-10-01T10:00:00.000Z');
+ assert.equal(result.ok,true);
+ assert.equal(state.familyEvents[0].type,'alternative_wintering_configured');
+ assert.ok(state.families.every(x=>x.recordStatus==='active'));
+ assert.equal(state.familyEvents[0].familyIds.length,3);
+ assert.deepEqual(api.inspect(state),[]);
+ const bad=api.configureAlternativeWintering(state,{
+  familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','missing'],
+  layout:[{familyId:'f1',position:'lower',bodyCount:2},{familyId:'f2',position:'middle',bodyCount:1},{familyId:'f3',position:'upper',bodyCount:1}]
+ },makeId,'2026-10-02T10:00:00.000Z');
+ assert.equal(bad.ok,false);
+});
+
+test('OP-14 cannot be complete without harvest, temporary merge and repeat split events',()=>{
+ const state=baseState();
+ const record={id:'tech-14',hiveId:'h1',state:{sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
+ assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
+ const harvested=api.recordEarlyHoneyHarvest(state,{
+  familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,
+  honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
+  diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'
+ },makeId,'2026-05-01T10:00:00.000Z');
+ assert.equal(harvested.ok,true);
+ const merged=api.applyMerge(state,{
+  sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',
+  resultFamily:{id:'early-merge',hive:'h1'}
+ },makeId,'2026-05-04T10:00:00.000Z');
+ assert.equal(merged.ok,true);
+ const split=api.applySplit(state,{
+  sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',
+  resultFamilies:children('after-early-honey')
+ },makeId,'2026-05-10T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ record.state.sections=split.families.map((family,index)=>({familyId:family.id,index:index+1,queenIdentityStatus:'unresolved'}));
+ assert.deepEqual(api.validateOperationEvidence(state,record,'OP-14'),[]);
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('family event integrity rejects broken references, duplicate IDs and survivorFamilyId',()=>{
+ const state=baseState();
+ state.familyEvents=[
+  {id:'e1',type:'merge',sourceFamilyIds:['f1','missing'],resultFamilyIds:['f2'],candidateQueenIds:['q1'],occurredAt:'2026-10-01T10:00:00.000Z',survivorFamilyId:'f1'},
+  {id:'e1',type:'unknown',sourceFamilyIds:[],resultFamilyIds:[],occurredAt:'invalid'}
+ ];
+ const codes=api.inspect(state).map(x=>x.code);
+ assert.ok(codes.includes('family_event_id_duplicate'));
+ assert.ok(codes.includes('family_event_family_missing'));
+ assert.ok(codes.includes('forbidden_survivor_family_id'));
+ assert.ok(codes.includes('family_event_type_invalid'));
+ assert.ok(codes.includes('family_event_time_invalid'));
+});
