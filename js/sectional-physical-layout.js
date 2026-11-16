@@ -61,6 +61,7 @@ function validate(record,apiaryState){
   const stack=stacks[0];
   if(stack?.position!=='COLUMN'||!Array.isArray(stack?.sectionIds)||stack.sectionIds.length!==3)add('VERTICAL_COLUMN_STACK_INVALID',{stackId:stack?.id||null});
   const expected=[['lower',2],['middle',1],['upper',1]];
+  if(stack?.sectionIds?.map(id=>sectionById.get(id)?.winteringPosition).join(',')!=='lower,middle,upper')add('VERTICAL_COLUMN_ORDER',{sectionIds:stack?.sectionIds||[]});
   expected.forEach(([position,count])=>{
    const section=sections.find(row=>row?.winteringPosition===position);
    if(!section||(section.bodyIds||[]).length!==count)add('VERTICAL_COLUMN_SECTION_LAYOUT',{position,expectedBodyCount:count,actualBodyCount:section?.bodyIds?.length??0});
@@ -71,7 +72,7 @@ function validate(record,apiaryState){
   if(stack?.position!=='COLUMN'||!Array.isArray(stack?.sectionIds)||stack.sectionIds.length!==1||stack.sectionIds[0]!==section?.id)add('SINGLE_FAMILY_STACK_INVALID',{stackId:stack?.id||null});
   if(![3,4].includes(section?.bodyIds?.length||0))add('SINGLE_FAMILY_BODY_COUNT',{count:section?.bodyIds?.length??0,expected:[3,4]});
  }
- const coveredSections=[];
+ const coveredSections=[],usedBottomIds=new Set();
  for(const stack of stacks){
   if(!stack||typeof stack.id!=='string'||!stack.id.trim()){add('STACK_ID_REQUIRED');continue;}
   if(stackById.has(stack.id))add('STACK_ID_DUPLICATE',{stackId:stack.id});
@@ -80,6 +81,8 @@ function validate(record,apiaryState){
    if(!sectionById.has(sectionId))add('STACK_SECTION_MISSING',{stackId:stack.id,sectionId});
    coveredSections.push(sectionId);
   }
+  if(usedBottomIds.has(stack.bottomItemId))add('BOTTOM_REUSED',{itemId:stack.bottomItemId});
+  usedBottomIds.add(stack.bottomItemId);
   const bottom=item(stack.bottomItemId,'bottom',{stackId:stack.id});
   if(bottom&&(bottom.location?.type!=='hive'||bottom.location.hiveId!==hiveId||bottom.location.stackId!==stack.id))add('STACK_BOTTOM_LOCATION',{stackId:stack.id,itemId:stack.bottomItemId,location:bottom.location||null});
  }
@@ -88,12 +91,14 @@ function validate(record,apiaryState){
  if(physical.mode==='THREE_SIDE_BY_SIDE_SECTIONS'){
   const expected=[[1,2],[2,3]];
   if(connections.length!==2)add('CONNECTION_COUNT',{count:connections.length,expected:2});
-  const usedOpeningIds=new Set(),usedExcluderIds=new Set();
+  const usedOpeningIds=new Set(),usedExcluderIds=new Set(),usedConnectionIds=new Set();
   for(const [fromIndex,toIndex] of expected){
    const from=sections.find(x=>x?.index===fromIndex),to=sections.find(x=>x?.index===toIndex);
    const connection=connections.find(x=>x?.fromSectionIndex===fromIndex&&x?.toSectionIndex===toIndex);
    if(!from||!to||!connection){add('CONNECTION_MISSING',{fromIndex,toIndex});continue;}
    if(typeof connection.id!=='string'||!connection.id.trim())add('CONNECTION_ID_REQUIRED',{fromIndex,toIndex});
+   else if(usedConnectionIds.has(connection.id))add('CONNECTION_ID_DUPLICATE',{connectionId:connection.id});
+   else usedConnectionIds.add(connection.id);
    if(connection.fromSectionId!==from.id||connection.toSectionId!==to.id)add('CONNECTION_SECTION_REFERENCE',{connectionId:connection.id||null,fromSectionId:connection.fromSectionId||null,toSectionId:connection.toSectionId||null});
    if(connection.queenExcluderLayers!==2||connection.bufferCorridorPresent!==true)add('CONNECTION_GEOMETRY',{connectionId:connection.id||null,queenExcluderLayers:connection.queenExcluderLayers??null,bufferCorridorPresent:connection.bufferCorridorPresent??null});
    const openingIds=Array.isArray(connection.openingIds)?connection.openingIds:[];
@@ -108,6 +113,7 @@ function validate(record,apiaryState){
     if(excluder&&(excluder.location?.type!=='hive'||excluder.location.hiveId!==hiveId||excluder.location.connectionId!==connection.id))add('CONNECTION_EXCLUDER_LOCATION',{itemId:id,connectionId:connection.id||null,location:excluder.location||null});
    }
   }
+  for(const openingId of openingById.keys())if(!usedOpeningIds.has(openingId))add('OPENING_NOT_CONNECTED',{openingId});
  }
  const meshPlugs=Array.isArray(state.meshPlugs)?state.meshPlugs:[];
  const plugsByOpening=new Map(),usedPlugIds=new Set();
