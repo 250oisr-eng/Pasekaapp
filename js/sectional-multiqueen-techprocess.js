@@ -121,7 +121,7 @@ function validateHiveState(s){
  const done=new Set(operationRows.filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
  const sectionIsolation=sections.map(x=>(x?.isolation??s.isolation));
  const installedMeshPlugCount=(Array.isArray(s.meshPlugs)?s.meshPlugs:[]).filter(p=>p&&p.installed===true&&p.position==='OVER_QUEEN_EXCLUDER'&&p.openingDiameterMm===50).length;
- const dividedPhases=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','WINTER_ASSEMBLY','ALT_WINTERING','ALT_WINTERING_SPRING'];
+ const dividedPhases=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','ALT_WINTERING','ALT_WINTERING_SPRING'];
  const allowedPhases={
   'OP-04':dividedPhases,
   'OP-05':dividedPhases,
