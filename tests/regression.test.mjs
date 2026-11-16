@@ -1843,13 +1843,37 @@ test('Farrar assembly display does not normalize a partially installed honey pai
  assert.equal(view.honeyInstalled,false);
  assert.equal(JSON.stringify(layout),before);
 });
-test('Farrar assembly display offers an initial winter selection without persisting it',()=>{
+test('Farrar assembly display offers an initial winter selection but marks it unconfirmed',()=>{
  const resolve=loadFunction('farrarAssemblyDisplayState');
  const layout={mode:'winter',installedBoxes:[],winterOrder:[],honeyBoxInstalled:[false,false]};
  const before=JSON.stringify(layout),view=resolve(layout);
- assert.equal(view.winterValid,true);
+ assert.equal(view.winterValid,false);
  assert.deepEqual(view.winterOrder,[1,3,4]);
  assert.equal(JSON.stringify(layout),before);
+});
+test('Farrar assembly edit refuses malformed saved lists without changing the layout',()=>{
+ const layout={mode:'summer',setupEditing:false,installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false],boxes:{}};
+ const before=JSON.stringify(layout),messages=[];
+ const edit=loadFunction('editCurrentAssembly',{S:{hives:[{id:'h1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),alert:message=>messages.push(message)});
+ edit();
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
+});
+test('Farrar mode change refuses malformed saved lists without changing the layout',()=>{
+ const layout={mode:'summer',setupEditing:true,installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false],boxes:{}};
+ const before=JSON.stringify(layout),messages=[];
+ const change=loadFunction('beginModeChange',{S:{hives:[{id:'h1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),alert:message=>messages.push(message),$:()=>({value:'summer'})});
+ change('winter');
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
+});
+test('Farrar assembly finish rejects a malformed edit snapshot without throwing or mutating layout',async()=>{
+ const layout={mode:'summer',setupComplete:true,installedBoxes:[1],winterOrder:[],honeyBoxInstalled:[false,false],boxes:{1:{family:'',frames:[]}}};
+ const before=JSON.stringify(layout),messages=[];
+ const finish=loadFunction('finishAssemblySetup',{S:{hives:[{id:'h1',profileId:'farrar-6x6-v1'}],layouts:{h1:layout}},selectedStructureHive:()=> 'h1',profileForHive:()=>({family:'farrar'}),assemblyEditSnapshot:{hiveId:'h1',installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false]},alert:message=>messages.push(message)});
+ await finish();
+ assert.equal(JSON.stringify(layout),before);
+ assert.equal(messages.length,1);
 });
 test('Farrar assembly display rejects malformed persisted order containers without mutating them',()=>{
  const resolve=loadFunction('farrarAssemblyDisplayState');
