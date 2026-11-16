@@ -609,7 +609,7 @@ test('R7 reads the alternative wintering mode from config and requires two mesh 
 });
 
 
-test('OP-02 preserves legacy daily amounts without treating them as daily amount', () => {
+test('OP-02 preserves the daily syrup amount in version 1.2.0 records', () => {
   const record = operationRecord();
   record.specVersion = '1.2.0';
   const result = api.transitionOperation(record, 'OP-02', {
@@ -620,7 +620,7 @@ test('OP-02 preserves legacy daily amounts without treating them as daily amount
   }, [record], [{ id: 'h1' }]);
   assert.equal(result.valid, true);
   assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.gramsPerColonyPerDay, 150);
-  assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.gramsPerColonyPerDay, undefined);
+  assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.portionGrams, undefined);
 });
 
 test('OP-13 spring development and OP-14 early honey are compatible; OP-14 uses two honey bodies', () => {
