@@ -64,10 +64,10 @@ function placeUnsafe(state,request,makeId,now){
   const bodyExists=Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===location.hiveId&&Object.values(layout?.corpusIds||{}).includes(location.bodyId));
   if(!bodyExists)return {ok:false,error:'body_reference_missing'};
  }
- if(location.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)&&!location.openingId)return {ok:false,error:'opening_reference_required'};
+ if(location.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)&&(!location.bodyId||!location.openingId))return {ok:false,error:'body_and_opening_reference_required'};
  if(location.type==='hive'&&item.kind==='technicalQueenExcluder'&&!location.connectionId)return {ok:false,error:'connection_reference_required'};
  if(location.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)){
-  const conflict=Object.values(inv.items).some(other=>other.id!==item.id&&other.kind===item.kind&&other.location?.type==='hive'&&other.location.hiveId===location.hiveId&&other.location.openingId===location.openingId);
+  const conflict=Object.values(inv.items).some(other=>other.id!==item.id&&['plasticPlug','metalMeshPlug'].includes(other.kind)&&other.location?.type==='hive'&&other.location.hiveId===location.hiveId&&other.location.openingId===location.openingId);
   if(conflict)return {ok:false,error:'opening_occupied'};
  }
  const previous=item.location;item.location=location;item.updatedAt=now||new Date().toISOString();
@@ -100,7 +100,7 @@ function inspect(state){
   const location=item.location;
   if(location?.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)){
    if(!location.openingId)errors.push({code:'item_opening_reference_required',details:{itemId:id}});
-   else{const key=item.kind+'|'+location.hiveId+'|'+location.openingId;if(occupiedOpenings.has(key))errors.push({code:'item_opening_occupied',details:{itemIds:[occupiedOpenings.get(key),id],openingId:location.openingId}});else occupiedOpenings.set(key,id)}
+   else{const key=location.hiveId+'|'+location.openingId;if(occupiedOpenings.has(key))errors.push({code:'item_opening_occupied',details:{itemIds:[occupiedOpenings.get(key),id],openingId:location.openingId}});else occupiedOpenings.set(key,id)}
   }
   if(location?.type==='hive'&&item.kind==='technicalQueenExcluder'&&!location.connectionId)errors.push({code:'item_connection_reference_required',details:{itemId:id}});
  }
