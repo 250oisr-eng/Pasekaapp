@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../js/equipment-items.js',import.meta.url),'utf8');
+const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const win={};new Function('window',source)(win);const E=win.PasekaEquipmentItems;
 let next=0;const makeId=()=>`item-${++next}`;const now='2026-11-16T12:00:00.000Z';
 function fixture(){return {hives:[{id:'h1'}],layouts:{h1:{corpusIds:{A:'body-1'}}},equipmentInventory:{bodies:{'body-1':{id:'body-1',kind:'brood'}}}}}
@@ -16,3 +17,11 @@ test('requires technical connection identity for permanent sectional excluders',
 test('installed items cannot be marked for repair or retired',()=>{const s=fixture(),item=E.register(s,{kind:'cover',storageLocation:'Склад'},makeId,now).item;assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',sectionId:'S1'}},makeId,now).ok,true);assert.equal(E.updateCondition(s,{itemId:item.id,condition:'repair'},makeId,now).error,'cannot_repair_installed');assert.equal(E.updateCondition(s,{itemId:item.id,condition:'retired'},makeId,now).error,'cannot_retire_installed')});
 test('condition changes and movement retain an auditable history',()=>{const s=fixture(),item=E.register(s,{kind:'meshDiaphragm',storageLocation:'Склад'},makeId,now).item;assert.equal(E.updateCondition(s,{itemId:item.id,condition:'needs_repair'},makeId,now).ok,true);assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',sectionId:'S2'}},makeId,now).ok,true);assert.equal(E.place(s,{itemId:item.id,location:{type:'storage',label:'Ремонтная полка'}},makeId,now).ok,true);assert.deepEqual(item.events.map(x=>x.type),['registered']);assert.deepEqual(s.equipmentInventory.items[item.id].events.map(x=>x.type),['registered','condition_changed','moved','moved']);assert.deepEqual(E.inspect(s),[])});
 test('integrity inspection detects malformed records and missing references',()=>{const s=fixture();s.equipmentInventory.items={bad:{id:'wrong',kind:'unknown',condition:'broken',location:{type:'unknown'}}};assert.ok(E.inspect(s).some(x=>x.code==='invalid_item_identity'));const good={id:'good',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'ghost',sectionId:'S1'}};s.equipmentInventory.items.good=good;assert.ok(E.validateReferences(s).some(x=>x.code==='item_hive_reference_missing'))});
+
+test('accessory integrity participates in live apiary and backup validation',()=>{
+ assert.match(html,/PasekaEquipmentItems\.inspect\(S\)/);
+ assert.match(html,/PasekaEquipmentItems\.validateReferences\(S\)/);
+ assert.match(html,/PasekaEquipmentItems\.inspect\(state\)/);
+ assert.match(html,/PasekaEquipmentItems\.validateReferences\(state\)/);
+ assert.match(html,/if\(state\.equipmentInventory\?\.items!=null\)/);
+});
