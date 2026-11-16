@@ -181,7 +181,6 @@ test('reading a valid automatic backup marks recovery pending but not committed'
   });
   deps.autoBackupRecovered = false;
   deps.startupRecoveryPending = false;
-  deps.startupRecoveryPending = false;
   deps.readMain = async () => undefined;
   deps.readAutoBackup = load('readAutoBackup', deps);
   deps.validateAutomaticBackup = backup => backup.state;
@@ -194,22 +193,26 @@ test('reading a valid automatic backup marks recovery pending but not committed'
 test('failed startup recovery commit never marks the backup as recovered', async () => {
   const deps = {
     autoBackupRecovered: false,
+    startupRecoveryPending: true,
     writeMainIfUnchanged: async () => { throw new Error('transaction aborted'); }
   };
   await assert.rejects(load('commitStartupState', deps)({ meta: { revisionId: 'restore-rev' } }, null, true), /transaction aborted/);
   assert.equal(deps.autoBackupRecovered, false);
+  assert.equal(deps.startupRecoveryPending, true);
 });
 
 test('successful startup recovery commit marks the backup as recovered only afterwards', async () => {
   const order = [];
   const deps = {
     autoBackupRecovered: false,
+    startupRecoveryPending: true,
     writeMainIfUnchanged: async () => { order.push('commit'); }
   };
   await load('commitStartupState', deps)({ meta: { revisionId: 'restore-rev' } }, null, true);
   order.push('marked');
   assert.deepEqual(order, ['commit', 'marked']);
   assert.equal(deps.autoBackupRecovered, true);
+  assert.equal(deps.startupRecoveryPending, false);
 });
 
 test('startup recovery commit rejects a concurrent primary write and leaves its data intact', async () => {
