@@ -31,7 +31,7 @@ function validate(record,apiaryState){
   else if(familyOwners.has(section.familyId))add('FAMILY_ASSIGNED_TWICE',{familyId:section.familyId});
   else familyOwners.add(section.familyId);
   const family=(apiaryState.families||[]).find(row=>row?.id===section.familyId);
-  if(!family||family.hive!==hiveId||family.recordStatus==='historical')add('SECTION_FAMILY_REFERENCE',{sectionId:section.id||null,familyId:section.familyId||null});
+  if(!family||family.hive!==hiveId||family.recordStatus!=='active')add('SECTION_FAMILY_REFERENCE',{sectionId:section.id||null,familyId:section.familyId||null});
   else if(section.queenId){
    const queen=(apiaryState.queens||[]).find(row=>row?.id===section.queenId);
    if(family.currentQueenId!==section.queenId||family.queenIdentityStatus!=='identified'||!queen||queen.familyId!==family.id||queen.status!=='current')add('SECTION_QUEEN_REFERENCE',{sectionId:section.id||null,familyId:family.id,queenId:section.queenId});
