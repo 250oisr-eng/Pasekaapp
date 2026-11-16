@@ -29,7 +29,7 @@ function fixture(mode='THREE_SIDE_BY_SIDE_SECTIONS'){
  const bodies=Object.fromEntries(bodyIds.map(id=>[id,{id,kind:'brood',spec:{profileId:'sectional-multiqueen-v1',framesPerBox:6}}]));
  const corpusIds=Object.fromEntries(bodyIds.map((id,index)=>[String(index+1),id]));
  const state={
-  physicalLayoutVersion:1,physicalLayout:{version:1,mode,stacks},
+  physicalLayoutVersion:1,familyLineageVersion:1,physicalLayout:{version:1,mode,stacks},
   sections:mode==='SINGLE_STACK_ONE_FAMILY'?[{...sections[0],bodyIds:['body-1-a','body-1-b','body-2-a'],openings:[]}]:sections,
   operations:mode==='VERTICAL_COLUMN_THREE_FAMILIES'?[{operationId:'OP-12',status:'DONE'}]:[],
   technicalConnections:mode==='THREE_SIDE_BY_SIDE_SECTIONS'?[
@@ -98,4 +98,11 @@ test('a stack bottom must be a real bottom item placed on that stack',()=>{
  items['bottom-2'].location.stackId='missing-stack';
  const result=api.validate(record,apiary);
  assert.ok(result.errors.some(x=>x.code==='PHYSICAL_LAYOUT_STACK_BOTTOM_LOCATION'));
+});
+
+test('a physical section cannot point to a different or unresolved queen record',()=>{
+ const {record,apiary}=fixture();
+ record.state.sections[0].queenId='queen-2';
+ const result=api.validate(record,apiary);
+ assert.ok(result.errors.some(x=>x.code==='PHYSICAL_LAYOUT_SECTION_QUEEN_REFERENCE'));
 });
