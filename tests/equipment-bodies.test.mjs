@@ -16,7 +16,7 @@ test('physical body swap moves a stored body into an installed position without 
 test('profile resolver callback supports catalog profiles with four non-H1/H2 honey bodies',()=>{
  const profile={id:'sectional-multiqueen-v1',frame:{widthMm:null,heightMm:180,topBarMm:null,bottomBarMm:null},brood:{framesPerBox:6,boxHeightMm:null,boxKeys:['S1-L','S1-U']},honey:{framesPerBox:10,boxHeightMm:null,boxKeys:['M1','M2','M3','M4']}};
  const state={hives:[{id:'h1',profileId:profile.id},{id:'h2',profileId:profile.id}],layouts:{h1:{corpusIds:{M4:'body-a'},boxes:{},honeyFrames:[[],[],[],[{frameId:'frame-a',labelCode:'ААА',history:[]}]]},h2:{corpusIds:{M4:'body-b'},boxes:{},honeyFrames:[[],[],[],[{frameId:'frame-b',labelCode:'ААБ',history:[]}]]}},equipmentLabels:{bodies:{'body-a':'7М2','body-b':'7КМ'}}};
- const result=swap(state,{fromHiveId:'h1',fromBoxKey:'M4',toHiveId:'h2',toBoxKey:'M4'},'2026-11-16',id=>id===profile.id?profile:null);
+ const result=swap(state,{fromHiveId:'h1',fromBoxKey:'M4',toHiveId:'h2',toBoxKey:'M4'},'2026-11-16',id=>['h1','h2'].includes(id)?profile:null);
  assert.equal(result.ok,true);assert.equal(result.state.layouts.h1.corpusIds.M4,'body-b');assert.equal(result.state.layouts.h2.corpusIds.M4,'body-a');assert.equal(result.state.layouts.h1.honeyFrames[3][0].frameId,'frame-b');assert.equal(result.state.layouts.h2.honeyFrames[3][0].frameId,'frame-a');
 });
 
