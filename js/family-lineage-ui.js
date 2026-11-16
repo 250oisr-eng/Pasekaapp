@@ -23,7 +23,7 @@ function getPendingConfirmations(state) {
  const families = Array.isArray(state?.families) ? state.families : [];
  const queens = Array.isArray(state?.queens) ? state.queens : [];
  const events = Array.isArray(state?.familyEvents) ? state.familyEvents : [];
- const result = [];
+ const groups = new Map();
  for (const family of families) {
   if (!family || familyStatus(family) !== 'active' || family.currentQueenId || family.queenIdentityStatus !== 'unresolved') continue;
   const sourceEvent = events.slice().reverse().find(event =>
@@ -31,15 +31,19 @@ function getPendingConfirmations(state) {
    Array.isArray(event.candidateQueenIds) && event.candidateQueenIds.length
   );
   if (!sourceEvent) continue;
-  const candidates = sourceEvent.candidateQueenIds
-   .map(id => queens.find(queen => queen?.id === id))
-   .filter(queen => queen && queen.status === 'unknown' && !families.some(other =>
-    other?.id !== family.id && familyStatus(other) === 'active' && other.currentQueenId === queen.id
-   ));
-  if (!candidates.length) continue;
-  result.push({familyId:family.id,familyName:family.name||family.code||family.id,sourceEvent,candidates:candidates.map(queen=>({
-   queenId:queen.id,code:queen.code||null,originFamilyId:queen.originFamilyId||queen.familyId||null
-  }))});
+  const key=sourceEvent.id||sourceEvent;
+  if(!groups.has(key))groups.set(key,{sourceEvent,familyOptions:[]});
+  groups.get(key).familyOptions.push({familyId:family.id,familyName:family.name||family.code||family.id});
+ }
+ const result=[];
+ for(const group of groups.values()){
+  const candidates=group.sourceEvent.candidateQueenIds
+   .map(id=>queens.find(queen=>queen?.id===id))
+   .filter(queen=>queen&&queen.status==='unknown'&&!families.some(other=>
+    familyStatus(other)==='active'&&other.currentQueenId===queen.id
+   ))
+   .map(queen=>({queenId:queen.id,code:queen.code||null,originFamilyId:queen.originFamilyId||queen.familyId||null}));
+  if(candidates.length&&group.familyOptions.length)result.push({...group,candidates});
  }
  return result;
 }
@@ -109,12 +113,12 @@ function ensureConfirmDialog(doc) {
  if(confirmDialog&&confirmDialog.ownerDocument===doc)return confirmDialog;
  const dialog=node(doc,'dialog');dialog.id='familyLineageConfirmDialog';
  const title=node(doc,'h2','', 'Подтверждение матки');
- const explanation=node(doc,'p','muted','Выбирай только матку, которую фактически определил в этой семье. Если идентичность пока неизвестна, закрой окно: запись останется неопределённой.');
+ const explanation=node(doc,'p','muted','Выбирай только матку, которую фактически определил в одной из указанных семей. Если идентичность пока неизвестна, закрой окно: запись останется неопределённой.');
  const form=node(doc,'form');
- const familyLabel=node(doc,'label','', 'Семья');
- const familyText=node(doc,'p','');familyText.id='familyLineageConfirmFamily';
+ const familyLabel=node(doc,'label','', 'Семья, в которой фактически обнаружена матка');
+ const familySelect=node(doc,'select');familySelect.required=true;familySelect.id='familyLineageConfirmFamily';
  const queenLabel=node(doc,'label','', 'Фактически обнаруженная матка');
- const select=node(doc,'select');select.required=true;select.id='familyLineageConfirmQueen';
+ const queenSelect=node(doc,'select');queenSelect.required=true;queenSelect.id='familyLineageConfirmQueen';
  const dateLabel=node(doc,'label','', 'Дата фактического определения');
  const date=node(doc,'input');date.type='date';date.required=true;date.id='familyLineageConfirmDate';
  const feedback=node(doc,'p','muted');feedback.id='familyLineageConfirmFeedback';feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
@@ -122,18 +126,19 @@ function ensureConfirmDialog(doc) {
  const cancel=node(doc,'button','', 'Отмена');cancel.type='button';cancel.addEventListener('click',()=>dialog.close());
  const submit=node(doc,'button','primary','Подтвердить');submit.type='submit';
  actions.append(cancel,submit);
- form.append(familyLabel,familyText,queenLabel,select,dateLabel,date,feedback,actions);
+ form.append(familyLabel,familySelect,queenLabel,queenSelect,dateLabel,date,feedback,actions);
  form.addEventListener('submit',async event=>{
   event.preventDefault();
-  const familyId=dialog.dataset.familyId||'';
-  const queenId=select.value;
+  const familyId=familySelect.value||'';
+  const queenId=queenSelect.value||'';
   const actualDate=date.value;
   const status=dialog.querySelector('#familyLineageConfirmFeedback');
   if(!familyId||!queenId||!actualDate){status.textContent='Выбери семью, матку и фактическую дату.';return}
   if(typeof S==='undefined'||!Array.isArray(S.families)||!window.PasekaFamilyLineage){status.textContent='Модель семейной истории недоступна.';return}
-  const pending=getPendingConfirmations(S).find(row=>row.familyId===familyId);
+  const pending=getPendingConfirmations(S).find(row=>String(row.sourceEvent?.id||'')===dialog.dataset.eventId);
   const candidate=pending?.candidates.find(row=>row.queenId===queenId);
-  if(!pending||!candidate){status.textContent='Кандидат больше не доступен. Обнови экран и проверь историю.';return}
+  const familyOption=pending?.familyOptions.find(row=>row.familyId===familyId);
+  if(!pending||!candidate||!familyOption){status.textContent='Кандидат или семья больше не доступны. Обнови экран и проверь историю.';return}
   let previous;
   try{previous=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
   catch(error){status.textContent='Не удалось подготовить безопасную копию: '+(error.message||error);return}
@@ -164,18 +169,24 @@ function ensureConfirmDialog(doc) {
  confirmDialog=dialog;
  return dialog;
 }
-function openConfirmDialog(state,familyId,doc) {
- const pending=getPendingConfirmations(state).find(row=>row.familyId===familyId);
+function openConfirmDialog(state,eventId,doc) {
+ const pending=getPendingConfirmations(state).find(row=>String(row.sourceEvent?.id||'')===String(eventId));
  if(!pending)return false;
  const dialog=ensureConfirmDialog(doc);
- dialog.dataset.familyId=familyId;
- dialog.querySelector('#familyLineageConfirmFamily').textContent=pending.familyName;
- const select=dialog.querySelector('#familyLineageConfirmQueen');
- select.replaceChildren();
+ dialog.dataset.eventId=String(eventId);
+ const familySelect=dialog.querySelector('#familyLineageConfirmFamily');
+ familySelect.replaceChildren();
+ for(const family of pending.familyOptions){
+  const option=node(doc,'option','',family.familyName);
+  option.value=family.familyId;
+  familySelect.append(option);
+ }
+ const queenSelect=dialog.querySelector('#familyLineageConfirmQueen');
+ queenSelect.replaceChildren();
  for(const candidate of pending.candidates){
   const option=node(doc,'option','',candidate.code||candidate.queenId);
   option.value=candidate.queenId;
-  select.append(option);
+  queenSelect.append(option);
  }
  dialog.querySelector('#familyLineageConfirmDate').value='';
  dialog.querySelector('#familyLineageConfirmFeedback').textContent='';
@@ -203,10 +214,10 @@ function renderHistory(state,doc=typeof document!=='undefined'?document:null) {
   root.append(node(doc,'h3','', 'Матки-кандидаты'));
   for(const pending of overview.pendingConfirmations){
    const item=node(doc,'div','queen-registry-item');
-   item.append(node(doc,'b','',pending.familyName));
-   item.append(node(doc,'p','muted','Кандидаты: '+pending.candidates.map(candidate=>candidate.code||candidate.queenId).join(', ')));
-   const button=node(doc,'button','', 'Подтвердить фактически определённую матку');
-   button.type='button';button.addEventListener('click',()=>openConfirmDialog(state,pending.familyId,doc));
+   item.append(node(doc,'b','', 'Кандидаты: '+pending.candidates.map(candidate=>candidate.code||candidate.queenId).join(', ')));
+   item.append(node(doc,'p','muted','Возможные семьи: '+pending.familyOptions.map(family=>family.familyName).join(', ')));
+   const button=node(doc,'button','', 'Указать, в какой семье обнаружена матка');
+   button.type='button';button.addEventListener('click',()=>openConfirmDialog(state,pending.sourceEvent.id,doc));
    item.append(button);
    root.append(item);
   }
