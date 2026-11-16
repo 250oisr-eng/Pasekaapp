@@ -4,11 +4,13 @@ import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
 const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
+const physicalLayoutSource = await readFile(new URL('../js/sectional-physical-layout.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const worker = await readFile(new URL('../cloudflare/worker.js', import.meta.url), 'utf8');
 const windowRef = {};
 new Function('window', familyLineageSource)(windowRef);
+new Function('window', physicalLayoutSource)(windowRef);
 new Function('window', source)(windowRef);
 const api = windowRef.PasekaSectionalTechProcess;
 
@@ -66,7 +68,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/family-lineage-ui.js"></script>'));
   assert.ok(sw.includes("'./js/family-lineage-ui.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v324/);
+  assert.match(sw, /paseka-shell-v325/);
   assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
   assert.ok(sw.includes("'./js/equipment-items.js'"));
   assert.ok(html.includes('data-tab="techprocess"'));
@@ -971,4 +973,11 @@ test('OP-13 cannot be marked DONE without two confirmed upper-family relocations
  }};
  const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
  assert.ok(result.errors.some(error=>error.code==='TECH_OP13_TWO_UPPER_FAMILY_MOVES_REQUIRED'));
+});
+
+test('versioned physical layout validation is part of stored-record validation',()=>{
+ const now='2026-11-17T10:00:00.000Z';
+ const record={id:'tp-physical-version',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.8.0',createdAt:now,updatedAt:now,state:{phase:'WINTER',physicalLayoutVersion:2,operations:[]}};
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:'sectional-multiqueen-v1'}],{meta:{schemaVersion:13},layouts:{h1:{corpusIds:{}}},equipmentInventory:{items:{},bodies:{}}});
+ assert.ok(result.errors.some(error=>error.code==='TECH_PHYSICAL_LAYOUT_VERSION_UNSUPPORTED'));
 });
