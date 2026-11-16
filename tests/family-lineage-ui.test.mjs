@@ -64,3 +64,10 @@ test('event history is ordered newest first and uses recorded dates',()=>{
  assert.equal(overview.events[0].date,'2026-04-10T10:00:00.000Z');
  assert.equal(overview.events[1].operationId,'OP-04');
 });
+
+test('queen candidates with a resolved or terminal status are not offered',()=>{
+ const source=state();
+ source.queens.find(x=>x.id==='q1').status='dead';
+ const overview=ui.buildOverview(source);
+ assert.equal(overview.pendingConfirmations.length,0);
+});
