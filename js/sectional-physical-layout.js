@@ -198,6 +198,7 @@ function validateHoneyStack(stack,sections,state,layout,add,checkBody,checkAcces
  const left=sections.find(section=>section.position==='left'),middle=sections.find(section=>section.position==='middle'),right=sections.find(section=>section.position==='right');
  if(!left||!middle||!right)return;
  const upper=section=>Array.isArray(section.broodBodyIds)?section.broodBodyIds[section.broodBodyIds.length-1]:null;
+ // Confirmed by the beekeeper on 2026-11-17: the two large grids overlap the middle section by half.
  const expected={
   left:[{bodyId:upper(left),coverage:'FULL'},{bodyId:upper(middle),coverage:'HALF'}],
   right:[{bodyId:upper(middle),coverage:'HALF'},{bodyId:upper(right),coverage:'FULL'}]
