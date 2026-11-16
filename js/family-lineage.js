@@ -86,6 +86,8 @@ function inspect(state) {
    add('family_merge_shape_invalid',{eventId:event.id});
   if (event.type === 'alternative_wintering_configured') {
    if (!uniqueStrings(event.familyIds) || event.familyIds.length !== 3) add('alternative_wintering_families_invalid',{eventId:event.id});
+   const winterGroups=(Array.isArray(event.familyIds)?event.familyIds:[]).map(id=>familyMap.get(id)?.colonyGroupId);
+   if (winterGroups.some(id=>!id)||new Set(winterGroups).size!==1) add('alternative_wintering_colony_group_mismatch',{eventId:event.id});
    if (!uniqueStrings(event.diaphragmItemIds) || event.diaphragmItemIds.length !== 2) add('alternative_wintering_diaphragms_invalid',{eventId:event.id});
    if (!Array.isArray(event.layout) || event.layout.length !== 3) add('alternative_wintering_layout_invalid',{eventId:event.id});
    else {
@@ -295,6 +297,8 @@ function configureAlternativeWintering(state, request, makeId, now) {
   if (!uniqueStrings(itemIds)||itemIds.length!==2) return {ok:false,error:'alternative_wintering_diaphragm_ids_invalid'};
   const families=familyIds.map(id=>draft.families.find(f=>f?.id===id));
   if (families.some(f=>!f||!isActive(f))) return {ok:false,error:'alternative_wintering_family_missing_or_historical'};
+  if (families.some(f=>!f.currentQueenId||f.queenIdentityStatus==='unresolved')) return {ok:false,error:'alternative_wintering_queen_not_identified'};
+  if (families.some(f=>!f.colonyGroupId)||new Set(families.map(f=>f.colonyGroupId)).size!==1) return {ok:false,error:'alternative_wintering_colony_group_mismatch'};
   if (new Set(families.map(f=>f.hive)).size!==1) return {ok:false,error:'alternative_wintering_hive_mismatch'};
   const hiveId=families[0].hive;
   if (layout.length!==3 || POSITIONS.some(position=>layout.filter(row=>row?.position===position).length!==1))
@@ -356,6 +360,8 @@ function recordEarlyHoneyHarvest(state, request, makeId, now) {
   if (confirmations.some(key=>request?.[key]!==true)) return {ok:false,error:'early_honey_confirmations_required'};
   const families=familyIds.map(id=>draft.families.find(f=>f?.id===id));
   if (families.some(f=>!f||!isActive(f))) return {ok:false,error:'early_honey_family_missing_or_historical'};
+  if (families.some(f=>!f.currentQueenId||f.queenIdentityStatus==='unresolved')) return {ok:false,error:'early_honey_queen_not_identified'};
+  if (families.some(f=>!f.colonyGroupId)||new Set(families.map(f=>f.colonyGroupId)).size!==1) return {ok:false,error:'early_honey_colony_group_mismatch'};
   if (new Set(families.map(f=>f.hive)).size!==1) return {ok:false,error:'early_honey_hive_mismatch'};
   const at=now||new Date().toISOString(),eventId=nextId(makeId,new Set(draft.familyEvents.map(e=>e?.id).filter(Boolean)));
   if (!eventId) return {ok:false,error:'family_event_id_required'};
