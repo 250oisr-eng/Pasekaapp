@@ -128,6 +128,44 @@ function inspect(state) {
    if (![3,4].includes(event.nestBodiesAfterHarvest)) add('early_honey_nest_reduction_invalid',{eventId:event.id,value:event.nestBodiesAfterHarvest??null});
    for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[])
     if (!familyMap.has(familyId)) add('family_event_family_missing',{eventId:event.id,familyId});
+   const setup=event.physicalSetup;
+   if (!isObject(setup)) add('early_honey_physical_setup_missing',{eventId:event.id});
+   else {
+    if (!uniqueStrings(setup.honeyBodyIds)||setup.honeyBodyIds.length!==2) add('early_honey_body_ids_invalid',{eventId:event.id});
+    if (!uniqueStrings(setup.largeExcluderIds)||setup.largeExcluderIds.length!==2) add('early_honey_excluder_ids_invalid',{eventId:event.id});
+    if (!uniqueStrings(setup.upperBodyIds)||setup.upperBodyIds.length!==3) add('early_honey_upper_body_ids_invalid',{eventId:event.id});
+    const bodyInventory=state.equipmentInventory?.bodies||{};
+    const honeySnapshots=Array.isArray(setup.honeyBodySnapshots)?setup.honeyBodySnapshots:[];
+    if (honeySnapshots.length!==2) add('early_honey_body_snapshots_invalid',{eventId:event.id});
+    for (const snapshot of honeySnapshots) {
+     const body=bodyInventory[snapshot?.bodyId];
+     if (!setup.honeyBodyIds?.includes(snapshot?.bodyId)||snapshot?.kind!=='honey'||snapshot?.condition!=='good'||snapshot?.framesPerBox!==10||snapshot?.profileId!=='sectional-multiqueen-v1'||snapshot?.hiveId!==event.hiveId||snapshot?.installed!==true)
+      add('early_honey_body_snapshot_invalid',{eventId:event.id,bodyId:snapshot?.bodyId??null});
+     if (!body||body.id!==snapshot?.bodyId||body.kind!=='honey'||body.spec?.framesPerBox!==10||body.spec?.profileId!=='sectional-multiqueen-v1')
+      add('early_honey_body_physical_reference_invalid',{eventId:event.id,bodyId:snapshot?.bodyId??null});
+    }
+    const excluderSnapshots=Array.isArray(setup.largeExcluderSnapshots)?setup.largeExcluderSnapshots:[];
+    if (excluderSnapshots.length!==2) add('early_honey_excluder_snapshots_invalid',{eventId:event.id});
+    const itemInventory=state.equipmentInventory?.items||{};
+    const fullBodies=[],halfBodies=[];
+    for (const snapshot of excluderSnapshots) {
+     const item=itemInventory[snapshot?.itemId],coverage=Array.isArray(snapshot?.footprint)?snapshot.footprint:[];
+     if (!setup.largeExcluderIds?.includes(snapshot?.itemId)||snapshot?.kind!=='honeyQueenExcluder'||snapshot?.condition!=='good'||snapshot?.hiveId!==event.hiveId||snapshot?.installed!==true)
+      add('early_honey_excluder_snapshot_invalid',{eventId:event.id,itemId:snapshot?.itemId??null});
+     if (!item||item.id!==snapshot?.itemId||item.kind!=='honeyQueenExcluder')
+      add('early_honey_excluder_physical_reference_invalid',{eventId:event.id,itemId:snapshot?.itemId??null});
+     if (coverage.length!==2||coverage.filter(row=>row?.coverage==='FULL').length!==1||coverage.filter(row=>row?.coverage==='HALF').length!==1||new Set(coverage.map(row=>row?.bodyId)).size!==2)
+      add('early_honey_excluder_footprint_invalid',{eventId:event.id,itemId:snapshot?.itemId??null});
+     if (coverage.length===2) { fullBodies.push(coverage.find(row=>row.coverage==='FULL')?.bodyId); halfBodies.push(coverage.find(row=>row.coverage==='HALF')?.bodyId); }
+    }
+    if (fullBodies.length===2&&halfBodies.length===2&&(!new Set(fullBodies).has(setup.upperBodyIds?.[0])||!new Set(fullBodies).has(setup.upperBodyIds?.[2])||halfBodies[0]!==setup.upperBodyIds?.[1]||halfBodies[1]!==setup.upperBodyIds?.[1]))
+     add('early_honey_excluder_geometry_invalid',{eventId:event.id});
+    for (const bodyId of Array.isArray(setup.upperBodyIds)?setup.upperBodyIds:[]) {
+     const body=bodyInventory[bodyId];
+     if (!body||body.id!==bodyId||body.kind!=='brood'||body.spec?.framesPerBox!==6||body.spec?.profileId!=='sectional-multiqueen-v1')
+      add('early_honey_upper_body_reference_invalid',{eventId:event.id,bodyId});
+    }
+   }
   }
   if (event.type === 'queen_identity_confirmed') {
    const family = familyMap.get(event.familyId), queen = queenMap.get(event.queenId);
@@ -365,6 +403,7 @@ function recordEarlyHoneyHarvest(state, request, makeId, now) {
   if (![3,4].includes(request?.nestBodiesAfterHarvest)) return {ok:false,error:'early_honey_nest_bodies_invalid'};
   const confirmations=['honeyBodiesRemoved','largeExcludersRemoved','harvestConfirmed','diaphragmsRemoved','familiesOnSeparateBottoms'];
   if (confirmations.some(key=>request?.[key]!==true)) return {ok:false,error:'early_honey_confirmations_required'};
+  if (!isObject(request?.physicalSetup)) return {ok:false,error:'early_honey_physical_setup_required'};
   const families=familyIds.map(id=>draft.families.find(f=>f?.id===id));
   if (families.some(f=>!f||!isActive(f))) return {ok:false,error:'early_honey_family_missing_or_historical'};
   if (families.some(f=>!f.currentQueenId||f.queenIdentityStatus==='unresolved')) return {ok:false,error:'early_honey_queen_not_identified'};
@@ -372,7 +411,7 @@ function recordEarlyHoneyHarvest(state, request, makeId, now) {
   if (new Set(families.map(f=>f.hive)).size!==1) return {ok:false,error:'early_honey_hive_mismatch'};
   const at=now||new Date().toISOString(),eventId=nextId(makeId,new Set(draft.familyEvents.map(e=>e?.id).filter(Boolean)));
   if (!eventId) return {ok:false,error:'family_event_id_required'};
-  const event={id:eventId,type:'early_honey_harvest_completed',familyIds,nestBodiesAfterHarvest:request.nestBodiesAfterHarvest,...Object.fromEntries(confirmations.map(key=>[key,true])),hiveId:families[0].hive,operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:request?.techProcessId||null,occurredAt:request?.occurredAt||at,createdAt:at};
+  const event={id:eventId,type:'early_honey_harvest_completed',familyIds,nestBodiesAfterHarvest:request.nestBodiesAfterHarvest,physicalSetup:clone(request.physicalSetup),...Object.fromEntries(confirmations.map(key=>[key,true])),hiveId:families[0].hive,operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:request?.techProcessId||null,occurredAt:request?.occurredAt||at,createdAt:at};
   draft.familyEvents.push(event);
   return {ok:true,event};
  });
@@ -462,6 +501,7 @@ function validateOperationEvidence(state, record, operationId) {
   if (splits.length!==1) add('OP14_REPEAT_SPLIT_EVENT_REQUIRED',{techProcessId});
   if (placements.length===2&&harvests.length===1&&merges.length===1&&splits.length===1) {
    const harvest=harvests[0],merge=merges[0],split=splits[0];
+   if (!isObject(record.state.earlyHoneySetup) || JSON.stringify(record.state.earlyHoneySetup)!==JSON.stringify(harvest.physicalSetup)) add('OP14_PHYSICAL_SETUP_SNAPSHOT_MISMATCH',{techProcessId});
    if (!sameSet(harvest.familyIds,merge.sourceFamilyIds)) add('OP14_HARVEST_MERGE_FAMILY_MISMATCH',{techProcessId});
    if (placements.some(event=>!sameSet(event.familyIds,harvest.familyIds)) || new Set(placements.map(event=>event.familyId)).size!==2 || !['middle','upper'].every(position=>placements.some(event=>event.from?.position===position)) || new Set(placements.map(event=>event.to?.bottomItemId)).size!==2) add('OP14_SPRING_PLACEMENT_FAMILY_MISMATCH',{techProcessId});
    if (placements.some(event=>Date.parse(event.occurredAt)>Date.parse(harvest.occurredAt))) add('OP14_PLACEMENT_AFTER_HARVEST',{techProcessId});
