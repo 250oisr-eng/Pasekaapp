@@ -173,8 +173,10 @@ function inspect(state) {
    const family = familyMap.get(event.familyId), queen = queenMap.get(event.queenId);
    if (!family) add('queen_identity_family_missing',{eventId:event.id,familyId:event.familyId??null});
    if (!queen) add('queen_identity_queen_missing',{eventId:event.id,queenId:event.queenId??null});
-   if (family && family.currentQueenId !== event.queenId) add('queen_identity_family_link_mismatch',{eventId:event.id,familyId:family.id,queenId:event.queenId??null});
-   if (queen && queen.familyId !== event.familyId) add('queen_identity_queen_link_mismatch',{eventId:event.id,queenId:queen.id,familyId:event.familyId??null});
+   const eventTime=Date.parse(event.createdAt||event.occurredAt||'');
+   const superseded=state.familyEvents.some(other=>other?.id!==event.id&&Number.isFinite(Date.parse(other?.createdAt||''))&&Date.parse(other.createdAt)>eventTime&&((other.sourceFamilyIds||[]).includes(event.familyId)||(other.resultFamilyIds||[]).includes(event.familyId)||other.familyId===event.familyId))||state.queenEvents.some(other=>other?.familyId===event.familyId&&Number.isFinite(Date.parse(other?.createdAt||''))&&Date.parse(other.createdAt)>eventTime);
+   if (family && isActive(family) && family.currentQueenId !== event.queenId && !superseded) add('queen_identity_family_link_mismatch',{eventId:event.id,familyId:family.id,queenId:event.queenId??null});
+   if (family && isActive(family) && family.currentQueenId === event.queenId && queen && queen.familyId !== event.familyId) add('queen_identity_queen_link_mismatch',{eventId:event.id,queenId:queen.id,familyId:event.familyId??null});
   }
   if (event.type === 'placement_changed') {
    const family=familyMap.get(event.familyId);
