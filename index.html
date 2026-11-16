@@ -1891,7 +1891,7 @@ function migrateQueenRegistry(state,makeId=()=>crypto.randomUUID(),timestamp=new
  return state;
 }
 function applyQueenChange(state,draft,makeId=()=>crypto.randomUUID()){
- const family=(state.families||[]).find(f=>f.id===draft.familyId);if(!family)throw new Error('Семья не найдена');
+ const family=(state.families||[]).find(f=>f.id===draft.familyId);if(!family)throw new Error('Семья не найдена');if(family.recordStatus==='historical')throw new Error('Нельзя изменять матку исторической семьи как текущую.');
  const code=String(draft.code||'').trim(),source=String(draft.source||'').trim(),notes=String(draft.notes||'').trim(),year=draft.year===''||draft.year==null?null:Number(draft.year),date=draft.date||null;
  if(code.length>80||source.length>160||notes.length>1000)throw new Error('Проверь длину сведений о матке');
  if(year!==null&&(!Number.isInteger(year)||year<1900||year>new Date().getFullYear()+1))throw new Error('Укажи корректный год вывода матки');
@@ -1901,7 +1901,7 @@ function applyQueenChange(state,draft,makeId=()=>crypto.randomUUID()){
  const details={code:code||null,year,source:source||null,notes:notes||null};
  if(editing){Object.assign(current,details,{updatedAt:new Date().toISOString()});state.queenEvents.push({id:makeId(),type:'note',queenId:current.id,familyId:family.id,date,createdAt:new Date().toISOString(),notes:'Сведения о матке обновлены'});}
  else{if(current)current.status='replaced';const queen={id:makeId(),familyId:family.id,...details,status:'current',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};state.queens.push(queen);family.currentQueenId=queen.id;state.queenEvents.push({id:makeId(),type:current?'replaced':'introduced',queenId:queen.id,previousQueenId:current?.id||null,familyId:family.id,date,createdAt:new Date().toISOString(),notes:current?'Предыдущая матка отмечена как заменённая.':'Матка внесена в реестр.'});}
- family.queen=details;return {family,queen:state.queens.find(q=>q.id===family.currentQueenId),replaced:!editing&&!!current};
+ family.queenIdentityStatus='identified';family.queen=details;return {family,queen:state.queens.find(q=>q.id===family.currentQueenId),replaced:!editing&&!!current};
 }
 function inspectQueenRegistryIntegrity(state){
  const errors=[],families=new Map((Array.isArray(state?.families)?state.families:[]).filter(f=>f?.id).map(f=>[f.id,f])),queens=Array.isArray(state?.queens)?state.queens:[],events=Array.isArray(state?.queenEvents)?state.queenEvents:[];
@@ -2091,7 +2091,7 @@ function buildAIContext(){
  });
  const families=S.families.map(f=>{
   const hive=S.hives.find(h=>h.id===f.hive),l=hive?layoutFor(hive.id):null,physicalBox=l?[1,2,3,4,5,6].find(n=>l.boxes[n]?.family===f.id)||null:null;
-  return {id:f.id,code:f.code||f.name||'',name:f.name||f.code||'',hiveNumber:hive?.number||null,physicalBox,declaredBox:f.box??null,placementStatus:physicalBox?'placed':'not_assigned',breed:f.breed,origin:f.origin,parentFamilyCode:S.families.find(x=>x.id===f.parentFamilyId)?.code||S.families.find(x=>x.id===f.parentFamilyId)?.name||f.parentFamilySnapshot?.code||f.parentFamilySnapshot?.name||null,parentFamilyArchived:!!f.parentFamilySnapshot,parentFamilySnapshot:f.parentFamilySnapshot||null,stage:familyStage(f),stageLabel:familyStageLabel(f),establishedAt:f.establishedAt||null,queenYear:f.queenYear,notes:f.notes};
+  return {id:f.id,code:f.code||f.name||'',name:f.name||f.code||'',recordStatus:f.recordStatus||'active',colonyGroupId:f.colonyGroupId||null,queenIdentityStatus:f.queenIdentityStatus|| (f.currentQueenId?'identified':'unresolved'),hiveNumber:hive?.number||null,physicalBox,declaredBox:f.box??null,placementStatus:physicalBox?'placed':'not_assigned',breed:f.breed,origin:f.origin,parentFamilyCode:S.families.find(x=>x.id===f.parentFamilyId)?.code||S.families.find(x=>x.id===f.parentFamilyId)?.name||f.parentFamilySnapshot?.code||f.parentFamilySnapshot?.name||null,parentFamilyArchived:!!f.parentFamilySnapshot,parentFamilySnapshot:f.parentFamilySnapshot||null,stage:familyStage(f),stageLabel:familyStageLabel(f),establishedAt:f.establishedAt||null,queenYear:f.queenYear,notes:f.notes};
  });
  const records=S.records.filter(r=>!r.archivedAt).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).slice(-30).map(({media,...r})=>{
   const family=S.families.find(f=>f.id===r.family),hive=S.hives.find(h=>h.id===r.hive),familyHive=S.hives.find(h=>h.id===(r.familyHiveAtTime||r.hive));
