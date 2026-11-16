@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 const techSource = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
 const equipmentSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const techWindow = {};
 new Function('window', techSource)(techWindow);
 const api = techWindow.PasekaSectionalTechProcess;
@@ -187,6 +188,12 @@ test('legacy winter records remain valid without an accessory registry', () => {
     createdAt: now, updatedAt: now, state: { phase: 'WINTER', operations: [] }
   };
   assert.equal(api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
+});
+
+test('service worker cache version invalidates updated R4 modules for offline clients', () => {
+  assert.match(sw, /paseka-shell-v321/);
+  assert.match(sw, /\.\/js\/equipment-items\.js/);
+  assert.match(sw, /\.\/js\/sectional-multiqueen-techprocess\.js/);
 });
 
 test('backup, migration, save and operation transition pass the full apiary context to R4 validation', () => {
