@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.3.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.3.0',language:'ru',equipmentProfileId:'docx-three-section-multiqueen-v1',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
   nestBodiesPerSectionAtDivision:[1,2],nestBodiesPerSectionForHoney:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
@@ -154,7 +154,8 @@ function validateStoredRecords(records,hives){
  const errors=[],add=(code,details)=>errors.push({code,details});
  if(!Array.isArray(records))return {valid:false,errors:[{code:'TECH_RECORDS_NOT_ARRAY',details:null}]};
  if(!Array.isArray(hives))return {valid:false,errors:[{code:'TECH_HIVE_LIST_NOT_ARRAY',details:null}]};
- const hiveIds=new Set(hives.filter(h=>h&&typeof h.id==='string'&&h.id.trim()).map(h=>h.id));
+ const hiveById=new Map(hives.filter(h=>h&&typeof h.id==='string'&&h.id.trim()).map(h=>[h.id,h]));
+ const hiveIds=new Set(hiveById.keys());
  const seenIds=new Set(),seenHives=new Set();
  const operationDay=value=>typeof value==='string'?parseDate(value.slice(0,10)):null;
  const dayDifference=(from,to)=>Math.round((to.getTime()-from.getTime())/DAY);
@@ -165,6 +166,8 @@ function validateStoredRecords(records,hives){
   seenIds.add(record.id);
   if(typeof record.hiveId!=='string'||!record.hiveId.trim()){add('TECH_RECORD_HIVE_INVALID',{id:record.id});return;}
   if(!hiveIds.has(record.hiveId))add('TECH_RECORD_HIVE_MISSING',{id:record.id,hiveId:record.hiveId});
+  const linkedHive=hiveById.get(record.hiveId),actualProfileId=linkedHive?.profile?.id||linkedHive?.profileId||'farrar-6x6-v1';
+  if(record.hiveProfileId!==SPEC.equipmentProfileId||actualProfileId!==SPEC.equipmentProfileId)add('TECH_RECORD_PROFILE_MISMATCH',{id:record.id,expected:SPEC.equipmentProfileId,recordProfile:record.hiveProfileId??null,hiveProfile:actualProfileId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
   if(!['1.2.0',SPEC.version].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
