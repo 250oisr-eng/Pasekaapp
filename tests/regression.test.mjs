@@ -2231,6 +2231,24 @@ test('startup refuses a malformed backup instead of loading it as recovered main
  assert.equal(deps.autoBackupRecovered,false,'invalid backup must never be marked as recovered');
 });
 
+test('backup integrity rejects invalid permanent frame identities and labels',()=>{
+ const state={...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h2',number:2}],layouts:{
+  h1:{boxes:{1:{frames:[{frameId:'f1',frameUid:'same-uid',labelCode:'ААА'}]}}},
+  h2:{boxes:{1:{frames:[{frameId:'f2',frameUid:'same-uid',labelCode:'ААА'}]}}}
+ }};
+ const result=inspectRawBackup(state),codes=new Set(result.errors.map(error=>error.code));
+ assert.ok(codes.has('duplicate_frame_identity'));
+ assert.ok(codes.has('duplicate_frame_label_code'));
+ assert.throws(()=>automaticBackupValidatorForTests()({at:'duplicate-frame-labels',state}),/не прошёл проверку исходных данных/i);
+});
+
+test('backup integrity applies physical equipment inventory validation',()=>{
+ const state={...rawBackupFixture(),equipmentInventory:{bodies:{body-1:{id:'body-1',kind:'brood',condition:'good',storageLocation:'кладовая'}}},equipmentLabels:{bodies:{}}};
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='inventory_body_label_missing_or_invalid'));
+ assert.throws(()=>automaticBackupValidatorForTests()({at:'invalid-equipment-inventory',state}),/не прошёл проверку исходных данных/i);
+});
+
 test('backup integrity rejects contradictory hive, family, journal and task references',()=>{
  const base={...rawBackupFixture(),hives:[{id:'hive-1',number:1}],families:[{id:'family-1',hive:'missing-hive',origin:'family',stage:'independent'}],records:[{id:'record-1',hive:'missing-hive',taskId:'missing-task'}],tasks:[{id:'task-1',hive:'hive-1',completedRecordId:'missing-record'}],extractions:[],layouts:{}};
  const result=inspectRawBackup(base);
