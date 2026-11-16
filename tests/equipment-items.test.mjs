@@ -29,7 +29,7 @@ test('accessory integrity participates in live apiary and backup validation',()=
 test('import integrity rejects plugs without opening IDs and duplicate occupancy',()=>{
  const s=fixture();
  s.equipmentInventory.items={
-  plugA:{id:'plugA',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1'}},
+  plugA:{id:'plugA',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1'}},
   plugB:{id:'plugB',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},
   plugC:{id:'plugC',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}}
  };
