@@ -67,6 +67,9 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('<script src="./js/family-lineage-ui.js"></script>'));
   assert.ok(sw.includes("'./js/family-lineage-ui.js'"));
+  assert.ok(html.includes('<script src="./js/sectional-physical-layout.js"></script>'));
+  assert.ok(sw.includes("'./js/sectional-physical-layout.js'"));
+  assert.ok(html.indexOf('./js/sectional-physical-layout.js') < html.indexOf('./js/sectional-multiqueen-techprocess.js'));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
   assert.match(sw, /paseka-shell-v325/);
   assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
