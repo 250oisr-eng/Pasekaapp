@@ -1826,6 +1826,15 @@ test('runtime integrity validates physical accessory hive and body references',(
  assert.ok(result.errors.some(error=>error.code==='item_hive_reference_missing'));
  assert.ok(result.errors.some(error=>error.code==='item_body_reference_missing'));
 });
+test('backup validation preserves legacy inventories and rejects corrupt accessory references',()=>{
+ const validate=loadFunction('validateBackupState');
+ const legacy={meta:{schemaVersion:9},hives:[{id:'h1'}],families:[],records:[],queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],equipmentInventory:{bodies:{},events:[]},layouts:{}};
+ assert.equal(validate(legacy),legacy);
+ const corrupted={...legacy,equipmentInventory:{bodies:{},events:[],items:{
+  bad:{id:'bad',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'missing',sectionId:'S1'}}
+ }}};
+ assert.throws(()=>validate(corrupted),/инвентарь физических принадлежностей/);
+});
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
  for(const version of [0,14,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
