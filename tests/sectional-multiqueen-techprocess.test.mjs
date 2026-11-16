@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
+const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const worker = await readFile(new URL('../cloudflare/worker.js', import.meta.url), 'utf8');
 const windowRef = {};
+new Function('window', familyLineageSource)(windowRef);
 new Function('window', source)(windowRef);
 const api = windowRef.PasekaSectionalTechProcess;
 
@@ -91,7 +93,7 @@ test('OP-07 specification exposes the confirmed two-grid FULL/HALF layout', () =
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.7.0');
+  assert.equal(api.SPEC.version, '1.8.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -120,7 +122,9 @@ test('operation schedule computes the user-defined relative windows', () => {
   assert.deepEqual([byId['OP-05'].from, byId['OP-05'].to], ['2027-05-18', '2027-05-21']);
   assert.deepEqual([byId['OP-06'].from, byId['OP-06'].to], ['2027-05-30', '2027-05-31']);
   assert.deepEqual([byId['OP-08'].from, byId['OP-08'].to], ['2027-06-16', '2027-06-16']);
-  assert.deepEqual([byId['OP-13'].from, byId['OP-13'].to], ['2027-05-11', '2027-05-21']);
+  assert.equal(byId['OP-13'], undefined);
+  assert.equal(api.getOperation('OP-13').offsetDays, undefined);
+  assert.match(api.getOperation('OP-13').timingGuidance,/полутора месяцев/);
 });
 
 test('divided state requires two distinct nest bodies and one registered queen per section', () => {
@@ -691,7 +695,7 @@ test('OP-04 requires explicit confirmation of two additional bottoms and preserv
     status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(confirmed.valid, true);
-  assert.equal(confirmed.record.specVersion, '1.7.0');
+  assert.equal(confirmed.record.specVersion, '1.8.0');
   assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
 
   const currentUnconfirmed = structuredClone(record);
@@ -803,7 +807,9 @@ test('OP-13 spring development and OP-14 early honey are compatible; OP-14 uses 
   }));
   assert.ok(fourSupers.errors.some(x => x.code === 'OP14_EARLY_HONEY_BODY_COUNT'));
   assert.deepEqual(api.getOperation('OP-14').postHarvestNestBodies, [3, 4]);
-  assert.deepEqual(api.getOperation('OP-14').postHarvestCombineDelayDays, [3, 5]);
+  assert.equal(api.getOperation('OP-14').postHarvestCombineDelayDays, undefined);
+  assert.match(api.getOperation('OP-14').temporaryMergeGuidance,/3–5 дней/);
+  assert.equal(api.getOperation('OP-14').requiresConfirmedLineageCycle, true);
 });
 
 
