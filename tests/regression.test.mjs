@@ -2565,3 +2565,146 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+
+function r4PhysicalBackupFixture() {
+ const api=appWindow.PasekaSectionalTechProcess;
+ const bodyIds=[['body-1-a','body-1-b'],['body-2-a','body-2-b'],['body-3-a','body-3-b']];
+ const upper=bodyIds.map(ids=>ids[1]);
+ const left=[{bodyId:upper[0],coverage:'FULL'},{bodyId:upper[1],coverage:'HALF'}];
+ const right=[{bodyId:upper[1],coverage:'HALF'},{bodyId:upper[2],coverage:'FULL'}];
+ const sections=bodyIds.map((ids,index)=>({
+  index:index+1,bodyIds:ids,upperBodyId:ids[1],queenId:'queen-'+(index+1),
+  isolation:'CONNECTED',openEntrance:['FLAT_BOTTOM','ROUND_TOP','ROUND_BOTTOM'][index],
+  entranceState:['HALF_OPEN','OPEN','OPEN'][index]
+ }));
+ const record={
+  id:'tech-r4-backup',hiveId:'hive-r4',hiveProfileId:'sectional-multiqueen-v1',
+  specVersion:api.SPEC.version,createdAt:'2026-11-16T10:00:00.000Z',updatedAt:'2026-11-16T10:00:00.000Z',
+  state:{
+   phase:'HONEY_BODIES_INSTALLED',
+   config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},
+   technicalConnections:[
+    {fromSectionIndex:1,toSectionIndex:2,queenExcluderLayers:2,bufferCorridorPresent:true},
+    {fromSectionIndex:2,toSectionIndex:3,queenExcluderLayers:2,bufferCorridorPresent:true}
+   ],
+   sections,
+   queens:[1,2,3].map(index=>({id:'queen-'+index,status:'FERTILIZED',layingObserved:true})),
+   operations:[
+    {operationId:'OP-04',status:'DONE',completedAt:'2026-10-01',additionalBottomsInstalled:true},
+    {operationId:'OP-05',status:'DONE',completedAt:'2026-10-10'},
+    {operationId:'OP-06',status:'DONE',completedAt:'2026-10-21'},
+    {operationId:'OP-07',status:'PENDING'}
+   ],
+   meshPlugs:[],
+   honeyQueenExcluders:[
+    {id:'logical-left',itemId:'physical-left',coverage:structuredClone(left)},
+    {id:'logical-right',itemId:'physical-right',coverage:structuredClone(right)}
+   ]
+  }
+ };
+ const bodies=Object.fromEntries(bodyIds.flat().map(id=>[id,{
+  id,kind:'brood',condition:'good',
+  spec:{profileId:'sectional-multiqueen-v1',framesPerBox:6}
+ }]));
+ const items={
+  'physical-left':{
+   id:'physical-left',kind:'honeyQueenExcluder',condition:'good',
+   location:{type:'hive',hiveId:'hive-r4',footprint:structuredClone(left)},
+   registeredAt:'2026-11-01T10:00:00.000Z',updatedAt:'2026-11-01T10:00:00.000Z',
+   events:[{id:'event-left',itemId:'physical-left',type:'registered',at:'2026-11-01T10:00:00.000Z'}]
+  },
+  'physical-right':{
+   id:'physical-right',kind:'honeyQueenExcluder',condition:'good',
+   location:{type:'hive',hiveId:'hive-r4',footprint:structuredClone(right)},
+   registeredAt:'2026-11-01T10:00:00.000Z',updatedAt:'2026-11-01T10:00:00.000Z',
+   events:[{id:'event-right',itemId:'physical-right',type:'registered',at:'2026-11-01T10:00:00.000Z'}]
+  }
+ };
+ const corpusIds=Object.fromEntries(bodyIds.flat().map((id,index)=>['P'+index,id]));
+ return {
+  meta:{schemaVersion:13,revisionId:'archive-rev',updatedAt:'2026-11-16T10:00:00.000Z'},
+  hives:[{id:'hive-r4',number:1,profileId:'sectional-multiqueen-v1'}],
+  families:[],records:[],tasks:[],extractions:[],snapshots:[],auditLog:[],aiMessages:[],
+  queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],
+  varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],
+  layouts:{'hive-r4':{corpusIds}},
+  equipmentInventory:{bodies,events:[],items,itemEvents:[
+   {id:'event-left',itemId:'physical-left',type:'registered',at:'2026-11-01T10:00:00.000Z'},
+   {id:'event-right',itemId:'physical-right',type:'registered',at:'2026-11-01T10:00:00.000Z'}
+  ]},
+  sectionalTechProcesses:[record]
+ };
+}
+
+test('JSON export and IndexedDB restore preserve R4 physical inventory',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'r4-backup-roundtrip-'+(++indexedDbTestSequence));
+ try{
+  const archiveState=r4PhysicalBackupFixture();
+  const preRestore={meta:{schemaVersion:13,revisionId:'live-rev'},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},auditLog:[],aiMessages:[]};
+  await seedIndexedDb(db,[['main',preRestore,'state']]);
+
+  let exportedBlob=null;
+  const anchor={href:'',download:'',click(){},remove(){}};
+  const exportUrl={
+   createObjectURL(blob){exportedBlob=blob;return 'blob:r4-backup-test'},
+   revokeObjectURL(){}
+  };
+  const exportDocument={createElement(tag){assert.equal(tag,'a');return anchor},body:{appendChild(){}}};
+  await loadFunction('downloadBackup',{
+   S:archiveState,saveQueue:Promise.resolve(),URL:exportUrl,Blob:globalThis.Blob,
+   document:exportDocument,setTimeout:()=>{},today:()=> '2026-11-16'
+  })();
+  assert.ok(exportedBlob instanceof Blob,'downloadBackup must produce a JSON Blob');
+  assert.equal(anchor.download,'paseka-backup-2026-11-16.json');
+  const exported=JSON.parse(await exportedBlob.text());
+  assert.equal(exported.app,'Paseka');
+  assert.deepEqual(exported.state.equipmentInventory.items,archiveState.equipmentInventory.items);
+  assert.deepEqual(exported.state.sectionalTechProcesses[0].state.honeyQueenExcluders,archiveState.sectionalTechProcesses[0].state.honeyQueenExcluders);
+
+  const validateBackupState=loadFunction('validateBackupState');
+  const validateRawBackupIntegrity=loadFunction('validateRawBackupIntegrity',{
+   inspectFamilyLineage:loadFunction('inspectFamilyLineage'),
+   inspectTaskIntegrity:loadFunction('inspectTaskIntegrity'),
+   inspectPlantModuleIntegrity:loadFunction('inspectPlantModuleIntegrity')
+  });
+  const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity});
+  const corrupt=structuredClone(exported.state);
+  corrupt.equipmentInventory.items['physical-right'].location.footprint[0].bodyId='missing-body';
+  assert.throws(()=>validateBackupState(corrupt),/Повреждён инвентарь физических принадлежностей/);
+
+  const alerts=[];
+  const deps={
+   S:preRestore,db,STORE:'main',BACKUP_STORE:'backup',
+   $:()=>({files:[{text:async()=>JSON.stringify(exported)}]}),
+   confirm:()=>true,saveQueue:Promise.resolve(),
+   readMain:loadFunction('readMain',{db,STORE:'main'}),
+   validateBackupState,assertRawBackupIntegrity,
+   migrateState:()=>false,uid:()=> 'restored-revision',
+   logAudit(type){deps.S.auditLog.push({type})},
+   validateVirtualApiary:()=>({errorCount:0,errors:[]}),
+   writeMainWithBackup:loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'}),
+   lastPersistedRevision:null,autoBackupInfo:null,autoBackupRecovered:false,
+   render:()=>{},alert:message=>alerts.push(message)
+  };
+  await loadFunction('restoreBackup',deps)();
+
+  const saved=await readIndexedDb(db,'main','state');
+  const backup=await readIndexedDb(db,'backup','previous');
+  assert.equal(saved.meta.revisionId,'restored-revision');
+  assert.deepEqual(saved.equipmentInventory.items,archiveState.equipmentInventory.items);
+  assert.deepEqual(saved.equipmentInventory.itemEvents,archiveState.equipmentInventory.itemEvents);
+  assert.deepEqual(saved.equipmentInventory.bodies,archiveState.equipmentInventory.bodies);
+  assert.deepEqual(saved.sectionalTechProcesses[0].state.honeyQueenExcluders,archiveState.sectionalTechProcesses[0].state.honeyQueenExcluders);
+  assert.deepEqual(saved.equipmentInventory.items['physical-left'].location.footprint,archiveState.equipmentInventory.items['physical-left'].location.footprint);
+  assert.deepEqual(saved.equipmentInventory.items['physical-right'].location.footprint,archiveState.equipmentInventory.items['physical-right'].location.footprint);
+  assert.deepEqual(appWindow.PasekaEquipmentItems.validateReferences(saved),[]);
+  const tech=appWindow.PasekaSectionalTechProcess.validateStoredRecords(saved.sectionalTechProcesses,saved.hives,saved);
+  assert.equal(tech.valid,true,JSON.stringify(tech.errors));
+  assert.deepEqual(backup.state,preRestore,'the previous live database must remain available as the atomic restore backup');
+  assert.equal(saved.auditLog.at(-1).type,'backup_restored');
+  assert.equal(alerts.length,1);
+  assert.match(alerts[0],/Архив восстановлен/i);
+ }finally{db.close()}
+});
