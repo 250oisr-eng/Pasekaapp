@@ -207,7 +207,7 @@ function validateHiveState(s,options={}){
   if(s.winterNestBodies!==3)add('R5_WINTER_NEST_BODIES','Для основной зимовки требуется фактическая сборка одного гнезда на трёх корпусах.');
   if(winteringMode!=='COMBINED')add('R5_WINTERING_MODE','Основная зимняя сборка требует выбранного режима COMBINED.');
  }
- if((s.phase==='ALT_WINTERING'||done.has('OP-12'))&&!done.has('OP-14')){
+ if(s.phase==='ALT_WINTERING'){
   if(winteringMode!=='ALTERNATIVE_DIAPHRAGMS')add('R7_WINTERING_MODE','Для альтернативной зимовки должен быть выбран режим ALTERNATIVE_DIAPHRAGMS.');
   if(!Array.isArray(s.diaphragms)||s.diaphragms.length!==2||s.diaphragms.some(x=>!x||x.hasMesh!==true||(lineageModel&&(!x.itemId||typeof x.itemId!=='string'))))add('R7_DIAPHRAGMS','Для альтернативной зимовки нужны две реальные сетчатые диафрагмы с itemId.');
   if(!Array.isArray(s.sections)||s.sections.length!==3){add('R7_SECTION_COUNT','Для альтернативной зимовки нужны три семьи.');}
