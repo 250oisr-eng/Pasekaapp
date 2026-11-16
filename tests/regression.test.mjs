@@ -2861,3 +2861,33 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
+
+
+test('startup backup recovery refuses to overwrite a concurrent main write and preserves the backup',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'startup-recovery-race-'+(++indexedDbTestSequence));
+ try{
+  const previousBackup={at:'2026-11-15T12:00:00.000Z',state:{meta:{revisionId:'backup-rev'},value:'verified-backup'}};
+  await seedIndexedDb(db,[['backup',previousBackup,'previous']]);
+  const readMain=loadFunction('readMain',{db,STORE:'main'});
+  const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  const startupExpectedRevision=await readMain();
+  assert.equal(startupExpectedRevision,undefined);
+  const read=loadFunction('read',{
+   readMain,
+   readAutoBackup,
+   validateAutomaticBackup:backup=>backup.state,
+   autoBackupRecovered:false
+  });
+  const recovered=await read();
+  assert.deepEqual(recovered,previousBackup.state);
+  assert.equal(read.autoBackupRecovered,undefined,'recovery status belongs to the supplied startup dependencies');
+  const concurrent={meta:{revisionId:'concurrent-rev'},value:'newer-tab-state'};
+  await seedIndexedDb(db,[['main',concurrent,'state']]);
+  const recoveredForWrite={...recovered,meta:{...recovered.meta,revisionId:'recovered-rev'}};
+  const writeMain=loadFunction('writeMainIfUnchanged',{db,STORE:'main'});
+  await assert.rejects(writeMain(recoveredForWrite,null),error=>error?.name==='PasekaConflictError');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),concurrent);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),previousBackup);
+ }finally{db.close()}
+});
