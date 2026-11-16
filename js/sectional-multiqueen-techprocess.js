@@ -86,6 +86,12 @@ function validateHiveState(s){
    
   });
   const sectionIndexes=sections.map(x=>x&&x.index);if(new Set(sectionIndexes).size!==3||sectionIndexes.some(x=>![1,2,3].includes(x)))add('SECTION_INDEX','Индексы секций должны быть уникальными: 1, 2 и 3.');
+  const technicalConnections=Array.isArray(s.technicalConnections)?s.technicalConnections:[];
+  if(technicalConnections.length!==2)add('R3_CONNECTION_COUNT','Для трёх секций должны быть описаны два межсекционных технических соединения.');
+  technicalConnections.forEach((connection,index)=>{
+   if(!connection||connection.queenExcluderLayers!==2)add('R3_QUEEN_EXCLUDER_LAYERS','В соединении '+(index+1)+' должны быть указаны две постоянные геннемановские решётки.');
+   if(!connection||connection.bufferCorridorPresent!==true)add('R3_BUFFER_CORRIDOR','В соединении '+(index+1)+' должен быть подтверждён буферный коридор между решётками.');
+  });
   const completedOps=new Set((Array.isArray(s.operations)?s.operations:[]).filter(x=>x&&x.status==='DONE').map(x=>x.operationId));
   const lateSummer=completedOps.has('OP-09');
   if(!completedOps.has('OP-06')&&!lateSummer){
