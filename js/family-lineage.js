@@ -361,7 +361,8 @@ function validateOperationEvidence(state, record, operationId) {
    if (!laterEarlyHoneySplit && !sameSet(event.familyIds,sectionFamilyIds)) add('OP12_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
    if (event.diaphragmItemIds?.length!==2) add('OP12_TWO_PHYSICAL_DIAPHRAGMS_REQUIRED',{techProcessId});
    const stateDiaphragmIds=(record.state.diaphragms||[]).map(item=>item?.itemId).filter(Boolean);
-   if (!laterEarlyHoneySplit && !sameSet(event.diaphragmItemIds,stateDiaphragmIds)) add('OP12_DIAPHRAGM_REFERENCE_MISMATCH',{techProcessId});
+   if (record.state.phase==='ALT_WINTERING' && !sameSet(event.diaphragmItemIds,stateDiaphragmIds)) add('OP12_DIAPHRAGM_REFERENCE_MISMATCH',{techProcessId});
+   if (record.state.phase==='ALT_WINTERING' && event.layout.some(row=>!record.state.sections?.some(section=>section?.familyId===row.familyId&&section?.winteringPosition===row.position&&section?.bodyIds?.length===row.bodyCount))) add('OP12_STATE_LAYOUT_MISMATCH',{techProcessId});
    if (!Array.isArray(event.layout)||event.layout.length!==3||POSITIONS.some(position=>!event.layout.some(row=>row?.position===position&&row.bodyCount===(position==='lower'?2:1))))
     add('OP12_BODY_LAYOUT_REQUIRED',{techProcessId});
   }
