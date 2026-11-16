@@ -82,6 +82,25 @@ test('R4 accepts two physically registered and installed excluders with exact fo
   assert.equal(result.valid, true, JSON.stringify(result.errors));
 });
 
+test('R4 rejects physical grids assigned to the wrong section positions', () => {
+  const { record, apiary } = fixture();
+  const wrongLeft = [{ bodyId: upper[1], coverage: 'FULL' }, { bodyId: upper[0], coverage: 'HALF' }];
+  const wrongRight = [{ bodyId: upper[0], coverage: 'HALF' }, { bodyId: upper[2], coverage: 'FULL' }];
+  record.state.honeyQueenExcluders = [
+    { id: 'logical-left', itemId: 'physical-left', coverage: wrongLeft },
+    { id: 'logical-right', itemId: 'physical-right', coverage: wrongRight }
+  ];
+  apiary.equipmentInventory.items['physical-left'].location.footprint = wrongLeft;
+  apiary.equipmentInventory.items['physical-right'].location.footprint = wrongRight;
+  assert.ok(api.validateStoredRecords([record], apiary.hives, apiary).errors.some(x => x.code === 'TECH_RECORD_STATE_R4_EXCLUDER_SECTION_ALIGNMENT'));
+});
+
+test('R4 rejects reuse of one physical excluder for both logical grid records', () => {
+  const { record, apiary } = fixture();
+  record.state.honeyQueenExcluders[1].itemId = 'physical-left';
+  assert.ok(api.validateStoredRecords([record], apiary.hives, apiary).errors.some(x => x.code === 'TECH_R4_ITEM_DUPLICATE'));
+});
+
 test('R4 rejects missing physical excluder items', () => {
   const { record, apiary } = fixture();
   delete apiary.equipmentInventory.items['physical-right'];
