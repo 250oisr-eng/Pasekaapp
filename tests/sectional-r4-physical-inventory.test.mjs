@@ -56,7 +56,7 @@ function fixture() {
   };
   const allBodies = bodyIds.flat();
   const corpusIds = Object.fromEntries(allBodies.map((id, index) => ['P' + index, id]));
-  const bodies = Object.fromEntries(allBodies.map(id => [id, { id, kind: 'brood', condition: 'good' }]));
+  const bodies = Object.fromEntries(allBodies.map(id => [id, { id, kind: 'brood', condition: 'good', spec: { framesPerBox: 6 } }]));
   const items = {
     'physical-left': {
       id: 'physical-left', kind: 'honeyQueenExcluder', condition: 'good',
@@ -105,6 +105,15 @@ test('R4 rejects an excluder installed in another hive or on a different footpri
   const wrongFootprint = fixture();
   wrongFootprint.apiary.equipmentInventory.items['physical-left'].location.footprint[0].bodyId = 'body-1-a';
   assert.ok(api.validateStoredRecords([wrongFootprint.record], wrongFootprint.apiary.hives, wrongFootprint.apiary).errors.some(x => x.code === 'TECH_R4_ITEM_FOOTPRINT_MISMATCH'));
+});
+
+test('R4 rejects a registered sectional body with the wrong kind or frame capacity', () => {
+  const wrongKind = fixture();
+  wrongKind.apiary.equipmentInventory.bodies['body-1-a'].kind = 'honey';
+  assert.ok(api.validateStoredRecords([wrongKind.record], wrongKind.apiary.hives, wrongKind.apiary).errors.some(x => x.code === 'TECH_R4_SECTION_BODY_KIND'));
+  const wrongCapacity = fixture();
+  wrongCapacity.apiary.equipmentInventory.bodies['body-1-a'].spec.framesPerBox = 10;
+  assert.ok(api.validateStoredRecords([wrongCapacity.record], wrongCapacity.apiary.hives, wrongCapacity.apiary).errors.some(x => x.code === 'TECH_R4_SECTION_BODY_FRAME_CAPACITY'));
 });
 
 test('R4 requires every sectional body to exist in the real layout and body inventory', () => {
