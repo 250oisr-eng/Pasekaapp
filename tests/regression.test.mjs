@@ -2056,6 +2056,55 @@ test('IndexedDB real API reads main state and automatic backup after readonly tr
   assert.deepEqual(await readBackup(),backup);
  }finally{db.close()}
 });
+test('IndexedDB real API reads reject a transaction aborted immediately after request success',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'readonly-abort-'+(++indexedDbTestSequence));
+ try{
+  const main={meta:{revisionId:'main-rev'},value:'committed-main'};
+  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'committed-backup'}};
+  await seedIndexedDb(db,[['main',main,'state'],['backup',backup,'previous']]);
+  const abortingDb={
+   transaction(...args){
+    const tx=db.transaction(...args),objectStore=tx.objectStore.bind(tx);
+    tx.objectStore=name=>{
+     const store=objectStore(name);
+     return new Proxy(store,{
+      get(target,property){
+       if(property==='get')return(...getArgs)=>{
+        const request=target.get(...getArgs);
+        return new Proxy(request,{
+         set(requestTarget,key,value){
+          if(key==='onsuccess'){
+           requestTarget.onsuccess=function(event){
+            value.call(requestTarget,event);
+            tx.abort();
+           };
+           return true;
+          }
+          return Reflect.set(requestTarget,key,value,requestTarget);
+         }
+        });
+       };
+       const value=Reflect.get(target,property,target);
+       return typeof value==='function'?value.bind(target):value;
+      }
+     });
+    };
+    return tx;
+   }
+  };
+  const previousInfo={at:'trusted-old',state:{value:'trusted'}};
+  const readMain=loadFunction('readMain',{db:abortingDb,STORE:'main'});
+  const readBackup=loadFunction('readAutoBackup',{db:abortingDb,BACKUP_STORE:'backup',autoBackupInfo:previousInfo});
+  await assert.rejects(readMain(),error=>error instanceof Error,'main read must reject an actual transaction abort');
+  const backupDeps={db:abortingDb,BACKUP_STORE:'backup',autoBackupInfo:previousInfo};
+  const readBackupWithMetadata=loadFunction('readAutoBackup',backupDeps);
+  await assert.rejects(readBackupWithMetadata(),error=>error instanceof Error,'backup read must reject an actual transaction abort');
+  assert.equal(backupDeps.autoBackupInfo,previousInfo,'an aborted real transaction must not publish backup metadata');
+  void readBackup;
+ }finally{db.close()}
+});
+
 test('IndexedDB reads reject request errors, transaction errors, and transaction creation failures',async()=>{
  for(const name of ['readMain','readAutoBackup']){
   for(const failurePoint of ['request','transaction','creation']){
