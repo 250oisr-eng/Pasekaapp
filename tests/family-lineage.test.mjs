@@ -22,6 +22,12 @@ function addSpringMoves(state,techProcessId){
  assert.equal(api.recordPlacementChanged(state,{familyIds:['f1','f2','f3'],familyId:'f2',techProcessId,from:{position:'middle',bodyIds:['b2']},to:{position:'separate_bottom',bottomItemId:'bottom2',bodyIds:['b2','b2new']}},makeId,'2026-04-20T10:00:00.000Z').ok,true);
  assert.equal(api.recordPlacementChanged(state,{familyIds:['f1','f2','f3'],familyId:'f3',techProcessId,from:{position:'upper',bodyIds:['b3']},to:{position:'separate_bottom',bottomItemId:'bottom3',bodyIds:['b3','b3new']}},makeId,'2026-04-20T10:05:00.000Z').ok,true);
 }
+function addEarlyHoneyPhysicalSetup(state){
+ const profileId='sectional-multiqueen-v1';
+ Object.assign(state.equipmentInventory.bodies,{upper1:{id:'upper1',kind:'brood',condition:'good',spec:{profileId,framesPerBox:6}},upper2:{id:'upper2',kind:'brood',condition:'good',spec:{profileId,framesPerBox:6}},upper3:{id:'upper3',kind:'brood',condition:'good',spec:{profileId,framesPerBox:6}},honey1:{id:'honey1',kind:'honey',condition:'good',spec:{profileId,framesPerBox:10}},honey2:{id:'honey2',kind:'honey',condition:'good',spec:{profileId,framesPerBox:10}}});
+ Object.assign(state.equipmentInventory.items,{'grid-left':{id:'grid-left',kind:'honeyQueenExcluder',condition:'good'},'grid-right':{id:'grid-right',kind:'honeyQueenExcluder',condition:'good'}});
+ return {honeyBodyIds:['honey1','honey2'],honeyBodySnapshots:[{bodyId:'honey1',kind:'honey',condition:'good',framesPerBox:10,profileId,hiveId:'h1',installed:true},{bodyId:'honey2',kind:'honey',condition:'good',framesPerBox:10,profileId,hiveId:'h1',installed:true}],largeExcluderIds:['grid-left','grid-right'],largeExcluderSnapshots:[{itemId:'grid-left',kind:'honeyQueenExcluder',condition:'good',hiveId:'h1',installed:true,footprint:[{bodyId:'upper1',coverage:'FULL'},{bodyId:'upper2',coverage:'HALF'}]},{itemId:'grid-right',kind:'honeyQueenExcluder',condition:'good',hiveId:'h1',installed:true,footprint:[{bodyId:'upper2',coverage:'HALF'},{bodyId:'upper3',coverage:'FULL'}]}],upperBodyIds:['upper1','upper2','upper3']};
+}
 
 test('legacy records without familyEvents remain readable and are not assigned invented lineage',()=>{
  const state={meta:{schemaVersion:13},families:[{id:'f1',hive:'h1'}],queens:[]};
@@ -121,11 +127,13 @@ test('OP-13 records two upper-family relocations without merging the three famil
 });
 
 test('OP-14 cannot be complete without harvest, temporary merge and repeat split events',()=>{
- const state=baseState();addSpringMoves(state,'tech-14');
- const record={id:'tech-14',hiveId:'h1',state:{operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
+ const state=baseState();addSpringMoves(state,'tech-14');const physicalSetup=addEarlyHoneyPhysicalSetup(state);
+ const record={id:'tech-14',hiveId:'h1',state:{earlyHoneySetup:physicalSetup,operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
  assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
+ const missingPhysical=api.recordEarlyHoneyHarvest(state,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'},makeId,'2026-05-01T09:00:00.000Z');
+ assert.equal(missingPhysical.ok,false);
  const harvested=api.recordEarlyHoneyHarvest(state,{
-  familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,
+  familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,physicalSetup,
   honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
   diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'
  },makeId,'2026-05-01T10:00:00.000Z');
