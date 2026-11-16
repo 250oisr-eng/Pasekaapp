@@ -2043,6 +2043,19 @@ test('IndexedDB main and backup reads resolve values only after transaction comp
   if(name==='readAutoBackup')assert.equal(deps.autoBackupInfo,value);
  }
 });
+test('IndexedDB real API reads main state and automatic backup after readonly transaction completion',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'readonly-reads-'+(++indexedDbTestSequence));
+ try{
+  const main={meta:{revisionId:'main-rev'},value:'committed-main'};
+  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'committed-backup'}};
+  await seedIndexedDb(db,[['main',main,'state'],['backup',backup,'previous']]);
+  const readMain=loadFunction('readMain',{db,STORE:'main'});
+  const readBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  assert.deepEqual(await readMain(),main);
+  assert.deepEqual(await readBackup(),backup);
+ }finally{db.close()}
+});
 test('IndexedDB reads reject request errors, transaction errors, and transaction creation failures',async()=>{
  for(const name of ['readMain','readAutoBackup']){
   for(const failurePoint of ['request','transaction','creation']){
