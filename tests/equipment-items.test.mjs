@@ -23,7 +23,7 @@ test('accessory integrity participates in live apiary and backup validation',()=
  assert.match(html,/PasekaEquipmentItems\.validateReferences\(S\)/);
  assert.match(html,/PasekaEquipmentItems\.inspect\(state\)/);
  assert.match(html,/PasekaEquipmentItems\.validateReferences\(state\)/);
- assert.match(html,/if\(state\.equipmentInventory\?\.items!=null\)/);
+ assert.match(html,/if\(state\.equipmentInventory\?\.items!=null\|\|state\.equipmentInventory\?\.itemEvents!=null\)/);
 });
 
 test('import integrity rejects plugs without opening IDs and duplicate occupancy',()=>{
