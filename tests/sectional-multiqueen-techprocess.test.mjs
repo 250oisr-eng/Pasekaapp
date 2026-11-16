@@ -48,7 +48,7 @@ function honeyReadyState(overrides = {}) {
   return dividedState({
     phase: 'HONEY_BODIES_INSTALLED',
     config: { honeyBodiesCount: 2 },
-    operations: [{ operationId: 'OP-06', status: 'DONE' }],
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { upperBodyId: `body-${index}-b`, isolation: 'CONNECTED' })),
     honeyQueenExcluders: honeyExcluderFixture(),
     ...overrides
