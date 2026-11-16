@@ -2203,7 +2203,7 @@ test('IndexedDB real API reads reject a transaction aborted immediately after re
 test('startup read prefers a valid main state without touching the automatic backup',async()=>{
  const main={meta:{revisionId:'main-rev'},value:'main'};
  let backupReads=0;
- const deps={readMain:async()=>main,readAutoBackup:async()=>{backupReads++;return null},autoBackupRecovered:false};
+ const deps={readMain:async()=>main,readAutoBackup:async()=>{backupReads++;return null},validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
  assert.equal(await loadFunction('read',deps)(),main);
  assert.equal(backupReads,0);
  assert.equal(deps.autoBackupRecovered,false);
@@ -2211,16 +2211,32 @@ test('startup read prefers a valid main state without touching the automatic bac
 
 test('startup read recovers from a missing main state using the automatic backup',async()=>{
  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
- const deps={readMain:async()=>null,readAutoBackup:async()=>backup,autoBackupRecovered:false};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
  assert.equal(await loadFunction('read',deps)(),backup.state);
  assert.equal(deps.autoBackupRecovered,true);
 });
 
 test('startup read recovers from a failed main read when a backup is available',async()=>{
  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
- const deps={readMain:async()=>{throw new Error('main transaction aborted')},readAutoBackup:async()=>backup,autoBackupRecovered:false};
+ const deps={readMain:async()=>{throw new Error('main transaction aborted')},readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
  assert.equal(await loadFunction('read',deps)(),backup.state);
  assert.equal(deps.autoBackupRecovered,true);
+});
+
+test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
+ const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false};
+ await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ assert.equal(deps.autoBackupRecovered,false,'invalid backup must never be marked as recovered');
+});
+
+test('startup recovery validates backup raw-data integrity before returning it',async()=>{
+ const corrupted={...rawBackupFixture(),hives:[{id:'duplicate',number:1},{id:'duplicate',number:2}]};
+ const backup={at:'corrupt',state:corrupted};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:automaticBackupValidatorForTests(),autoBackupRecovered:false};
+ await assert.rejects(loadFunction('read',deps)(),/не прошёл проверку исходных данных/i);
+ assert.equal(deps.autoBackupRecovered,false);
 });
 
 test('startup read refuses to initialize empty data when both main and backup reads fail',async()=>{
