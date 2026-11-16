@@ -2441,6 +2441,43 @@ test('JSON backup restore keeps current in-memory state when atomic database wri
  assert.match(alerts[0],/simulated IndexedDB transaction failure/);
 });
 
+test('manual backup restore reserves the persistence queue before waiting',async()=>{
+ let release;
+ const gate=new Promise(resolve=>{release=resolve});
+ const deps={
+  S:{meta:{revisionId:'current-rev'},auditLog:[]},
+  $:()=>({files:[{text:async()=>JSON.stringify({state:rawBackupFixture()})}]}),
+  saveQueue:gate,
+  validateBackupState:state=>state,
+  assertRawBackupIntegrity:state=>state,
+  confirm:()=>false,
+  alert:()=>{}
+ };
+ const restore=loadFunction('restoreBackup',deps);
+ const pending=restore();
+ assert.notEqual(deps.saveQueue,gate,'restore must reserve its place immediately instead of only awaiting a snapshot of the current queue');
+ release();
+ await pending;
+});
+
+test('automatic backup restore reserves the persistence queue before reading the backup',async()=>{
+ let release,reads=0;
+ const gate=new Promise(resolve=>{release=resolve});
+ const deps={
+  S:{meta:{revisionId:'current-rev'},auditLog:[]},
+  saveQueue:gate,
+  readAutoBackup:async()=>{reads++;return null},
+  alert:()=>{}
+ };
+ const restore=loadFunction('restoreAutoBackup',deps);
+ const pending=restore();
+ assert.notEqual(deps.saveQueue,gate,'automatic restore must reserve its place immediately');
+ assert.equal(reads,0,'backup reads must wait for earlier queued saves');
+ release();
+ await pending;
+ assert.equal(reads,1);
+});
+
 test('JSON backup restore rejects corrupt source before confirmation or database writes',async()=>{
  const current={meta:{revisionId:'current-rev'},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{}};
  const corrupt={...rawBackupFixture(),hives:[{id:'duplicate',number:1},{id:'duplicate',number:2}]};
