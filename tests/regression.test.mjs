@@ -2243,7 +2243,7 @@ test('backup integrity rejects invalid permanent frame identities and labels',()
 });
 
 test('backup integrity applies physical equipment inventory validation',()=>{
- const state={...rawBackupFixture(),equipmentInventory:{bodies:{body-1:{id:'body-1',kind:'brood',condition:'good',storageLocation:'кладовая'}}},equipmentLabels:{bodies:{}}};
+ const state={...rawBackupFixture(),equipmentInventory:{bodies:{'body-1':{id:'body-1',kind:'brood',condition:'good',storageLocation:'кладовая'}}},equipmentLabels:{bodies:{}}};
  const result=inspectRawBackup(state);
  assert.ok(result.errors.some(error=>error.code==='inventory_body_label_missing_or_invalid'));
  assert.throws(()=>automaticBackupValidatorForTests()({at:'invalid-equipment-inventory',state}),/не прошёл проверку исходных данных/i);
