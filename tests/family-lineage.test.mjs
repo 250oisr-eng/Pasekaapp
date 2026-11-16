@@ -16,6 +16,12 @@ function baseState(){
 function children(prefix='child'){
  return [1,2,3].map(i=>({id:prefix+'-'+i,hive:'h1',name:prefix+' '+i}));
 }
+function addSpringMoves(state,techProcessId){
+ state.equipmentInventory.bodies={b2:{id:'b2'},b2new:{id:'b2new'},b3:{id:'b3'},b3new:{id:'b3new'}};
+ state.equipmentInventory.items={bottom2:{id:'bottom2',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'separate-bottom-2'}},bottom3:{id:'bottom3',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'separate-bottom-3'}}};
+ assert.equal(api.recordPlacementChanged(state,{familyIds:['f1','f2','f3'],familyId:'f2',techProcessId,from:{position:'middle',bodyIds:['b2']},to:{position:'separate_bottom',bottomItemId:'bottom2',bodyIds:['b2','b2new']}},makeId,'2026-04-20T10:00:00.000Z').ok,true);
+ assert.equal(api.recordPlacementChanged(state,{familyIds:['f1','f2','f3'],familyId:'f3',techProcessId,from:{position:'upper',bodyIds:['b3']},to:{position:'separate_bottom',bottomItemId:'bottom3',bodyIds:['b3','b3new']}},makeId,'2026-04-20T10:05:00.000Z').ok,true);
+}
 
 test('legacy records without familyEvents remain readable and are not assigned invented lineage',()=>{
  const state={meta:{schemaVersion:13},families:[{id:'f1',hive:'h1'}],queens:[]};
@@ -106,9 +112,17 @@ test('alternative wintering requires three independent families, two real instal
  assert.equal(bad.ok,false);
 });
 
+test('OP-13 records two upper-family relocations without merging the three families',()=>{
+ const state=baseState();addSpringMoves(state,'tech-13');
+ const record={id:'tech-13',hiveId:'h1',state:{operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'}],sections:[{familyId:'f1',winteringPosition:'lower',bodyIds:['b1','b1new']},{familyId:'f2',winteringPosition:'separate_bottom',bodyIds:['b2','b2new']},{familyId:'f3',winteringPosition:'separate_bottom',bodyIds:['b3','b3new']}]}};
+ assert.deepEqual(api.validateOperationEvidence(state,record,'OP-13'),[]);
+ assert.ok(state.families.every(f=>f.recordStatus==='active'&&f.currentQueenId));
+ assert.deepEqual(api.inspect(state),[]);
+});
+
 test('OP-14 cannot be complete without harvest, temporary merge and repeat split events',()=>{
- const state=baseState();
- const record={id:'tech-14',hiveId:'h1',state:{sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
+ const state=baseState();addSpringMoves(state,'tech-14');
+ const record={id:'tech-14',hiveId:'h1',state:{operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
  assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
  const harvested=api.recordEarlyHoneyHarvest(state,{
   familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,
