@@ -62,7 +62,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v322/);
+  assert.match(sw, /paseka-shell-v323/);
   assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
   assert.ok(sw.includes("'./js/equipment-items.js'"));
   assert.ok(html.includes('data-tab="techprocess"'));
@@ -254,7 +254,7 @@ test('OP-06 egg-laying rule is versioned and legacy records remain readable', ()
   const hive = [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }];
   assert.equal(api.validateStoredRecords([legacy], hive).valid, true);
 
-  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.7.0' };
+  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.8.0' };
   assert.ok(api.validateStoredRecords([current], hive).errors.some(x => x.code === 'TECH_RECORD_STATE_OP06_EGG_LAYING_NOT_OBSERVED'));
 
   const pending = structuredClone(legacy);
