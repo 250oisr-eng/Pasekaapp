@@ -439,7 +439,7 @@ function validateOperationEvidence(state, record, operationId) {
  if (operationId==='OP-14') {
   if (!record.state.operations?.some(operation=>operation?.operationId==='OP-12'&&operation.status==='DONE')) add('OP14_ALTERNATIVE_WINTERING_PRECONDITION_REQUIRED',{techProcessId});
   if (!record.state.operations?.some(operation=>operation?.operationId==='OP-13'&&operation.status==='DONE')) add('OP14_SPRING_RELOCATION_PRECONDITION_REQUIRED',{techProcessId});
-  const placements=matches('placement_changed').filter(event=>event.scenario==='ALT_WINTERING_SPRING');
+  const placements=events.filter(event=>event?.type==='placement_changed'&&event.operationId==='OP-13'&&event.techProcessId===techProcessId&&(!hiveId||event.hiveId===hiveId)&&event.scenario==='ALT_WINTERING_SPRING');
   const harvests=matches('early_honey_harvest_completed');
   const merges=matches('merge').filter(event=>event.scenario==='EARLY_HONEY'&&event.sourceFamilyIds?.length===3&&event.resultFamilyIds?.length===1);
   const splits=matches('split').filter(event=>event.scenario==='EARLY_HONEY'&&event.sourceFamilyIds?.length===1&&event.resultFamilyIds?.length===3);
