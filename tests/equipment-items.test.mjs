@@ -63,3 +63,20 @@ test('JSON backup round-trip preserves accessory identity, location and history'
  assert.deepEqual(restored.equipmentInventory.items[item.id],s.equipmentInventory.items[item.id]);
  assert.deepEqual(E.inspect(restored),[]);assert.deepEqual(E.validateReferences(restored),[]);
 });
+
+test('storage UI exposes explicit accessory registration without implying hive installation',()=>{
+ assert.match(html,/function renderAccessoryInventorySection\(host\)/);
+ assert.match(html,/function registerAccessoryStock\(\)/);
+ assert.match(html,/PasekaEquipmentItems\.register\(S/);
+ assert.match(html,/Назначение в секцию или техническое отверстие будет доступно после завершения и проверки физической модели/);
+ assert.doesNotMatch(html,/Установить принадлежность/);
+});
+test('items under repair can be moved to storage but retired items cannot be installed',()=>{
+ const s=fixture(),item=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now).item;
+ assert.equal(E.updateCondition(s,{itemId:item.id,condition:'needs_repair'},makeId,now).ok,true);
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},makeId,now).ok,true);
+ assert.equal(E.updateCondition(s,{itemId:item.id,condition:'repair'},makeId,now).error,'cannot_repair_installed');
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'storage',label:'Ремонтная полка'}},makeId,now).ok,true);
+ assert.equal(E.updateCondition(s,{itemId:item.id,condition:'retired'},makeId,now).ok,true);
+ assert.equal(E.place(s,{itemId:item.id,location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},makeId,now).error,'item_not_installable');
+});
