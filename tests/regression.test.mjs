@@ -1808,6 +1808,24 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  const result=validate();
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
+test('runtime integrity validates physical accessory hive and body references',()=>{
+ const state={
+  hives:[{id:'h1',number:1}],families:[],records:[],tasks:[],extractions:[],
+  layouts:{h1:{mode:'summer',installedBoxes:[1],honeyBoxInstalled:[false,false],boxes:{1:{frames:[]}},honeyFrames:[[],[]]}},
+  equipmentInventory:{items:{
+   missingHive:{id:'missingHive',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'ghost',sectionId:'S1'}},
+   missingBody:{id:'missingBody',kind:'cover',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'ghost-body'}}
+  }}
+ };
+ const profile={id:'farrar-6x6-v1',family:'farrar'};
+ const validate=loadFunction('validateVirtualApiary',{
+  S:state,inspectFamilyLineage:()=>[],inspectTaskIntegrity:()=>[],
+  getHiveProfile:()=>profile,validateHiveProfile:()=>({ok:true,errors:[]})
+ });
+ const result=validate();
+ assert.ok(result.errors.some(error=>error.code==='item_hive_reference_missing'));
+ assert.ok(result.errors.some(error=>error.code==='item_body_reference_missing'));
+});
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
  for(const version of [0,14,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
