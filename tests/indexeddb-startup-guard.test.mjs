@@ -72,6 +72,7 @@ test('existing empty database without automatic backup stays empty and is not fi
   await load('openDB', deps)();
   deps.autoBackupRecovered = false;
   deps.startupRecoveryPending = false;
+  deps.startupRecoveryPending = false;
   deps.autoBackupInfo = null;
   deps.readMain = load('readMain', deps);
   deps.readAutoBackup = load('readAutoBackup', deps);
@@ -96,6 +97,7 @@ test('existing empty primary database still recovers a valid automatic backup', 
   });
 
   deps.autoBackupRecovered = false;
+  deps.startupRecoveryPending = false;
   deps.autoBackupInfo = null;
   deps.readMain = load('readMain', deps);
   deps.readAutoBackup = load('readAutoBackup', deps);
@@ -179,6 +181,7 @@ test('reading a valid automatic backup marks recovery pending but not committed'
     transaction.onabort = () => reject(transaction.error);
   });
   deps.autoBackupRecovered = false;
+  deps.startupRecoveryPending = false;
   deps.startupRecoveryPending = false;
   deps.readMain = async () => undefined;
   deps.readAutoBackup = load('readAutoBackup', deps);
