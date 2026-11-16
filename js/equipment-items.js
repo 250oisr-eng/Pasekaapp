@@ -133,7 +133,8 @@ function validateReferences(state){
   if(!state.hives?.some(h=>h?.id===loc.hiveId))errors.push({code:'item_hive_reference_missing',details:{itemId:item.id,hiveId:loc.hiveId}});
   if(loc.bodyId&&!Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===loc.hiveId&&Object.values(layout?.corpusIds||{}).includes(loc.bodyId)))errors.push({code:'item_body_reference_missing',details:{itemId:item.id,bodyId:loc.bodyId}});
   for(const part of Array.isArray(loc.footprint)?loc.footprint:[]){
-   if(!Object.values(state.layouts?.[loc.hiveId]?.corpusIds||{}).includes(part.bodyId))errors.push({code:'item_footprint_body_reference_missing',details:{itemId:item.id,bodyId:part.bodyId}});
+   const bodyId=part&&typeof part.bodyId==='string'?part.bodyId:null;
+   if(!bodyId||!Object.values(state.layouts?.[loc.hiveId]?.corpusIds||{}).includes(bodyId))errors.push({code:'item_footprint_body_reference_missing',details:{itemId:item.id,bodyId}});
   }
  }
  return errors;
