@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
+const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const worker = await readFile(new URL('../cloudflare/worker.js', import.meta.url), 'utf8');
 const windowRef = {};
+new Function('window', familyLineageSource)(windowRef);
 new Function('window', source)(windowRef);
 const api = windowRef.PasekaSectionalTechProcess;
 
@@ -57,10 +59,12 @@ function honeyReadyState(overrides = {}) {
 
 
 test('sectional tech-process model loads before the app and is cached offline', () => {
+  assert.ok(html.includes('<script src="./js/family-lineage.js"></script>'));
+  assert.ok(sw.includes("'./js/family-lineage.js'"));
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v322/);
+  assert.match(sw, /paseka-shell-v323/);
   assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
   assert.ok(sw.includes("'./js/equipment-items.js'"));
   assert.ok(html.includes('data-tab="techprocess"'));
@@ -91,7 +95,7 @@ test('OP-07 specification exposes the confirmed two-grid FULL/HALF layout', () =
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.7.0');
+  assert.equal(api.SPEC.version, '1.8.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -120,7 +124,9 @@ test('operation schedule computes the user-defined relative windows', () => {
   assert.deepEqual([byId['OP-05'].from, byId['OP-05'].to], ['2027-05-18', '2027-05-21']);
   assert.deepEqual([byId['OP-06'].from, byId['OP-06'].to], ['2027-05-30', '2027-05-31']);
   assert.deepEqual([byId['OP-08'].from, byId['OP-08'].to], ['2027-06-16', '2027-06-16']);
-  assert.deepEqual([byId['OP-13'].from, byId['OP-13'].to], ['2027-05-11', '2027-05-21']);
+  assert.equal(byId['OP-13'], undefined);
+  assert.equal(api.getOperation('OP-13').offsetDays, undefined);
+  assert.match(api.getOperation('OP-13').timingGuidance,/полутора месяцев/);
 });
 
 test('divided state requires two distinct nest bodies and one registered queen per section', () => {
@@ -250,7 +256,7 @@ test('OP-06 egg-laying rule is versioned and legacy records remain readable', ()
   const hive = [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }];
   assert.equal(api.validateStoredRecords([legacy], hive).valid, true);
 
-  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.7.0' };
+  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.8.0' };
   assert.ok(api.validateStoredRecords([current], hive).errors.some(x => x.code === 'TECH_RECORD_STATE_OP06_EGG_LAYING_NOT_OBSERVED'));
 
   const pending = structuredClone(legacy);
@@ -691,7 +697,7 @@ test('OP-04 requires explicit confirmation of two additional bottoms and preserv
     status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(confirmed.valid, true);
-  assert.equal(confirmed.record.specVersion, '1.7.0');
+  assert.equal(confirmed.record.specVersion, '1.8.0');
   assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
 
   const currentUnconfirmed = structuredClone(record);
@@ -803,7 +809,129 @@ test('OP-13 spring development and OP-14 early honey are compatible; OP-14 uses 
   }));
   assert.ok(fourSupers.errors.some(x => x.code === 'OP14_EARLY_HONEY_BODY_COUNT'));
   assert.deepEqual(api.getOperation('OP-14').postHarvestNestBodies, [3, 4]);
-  assert.deepEqual(api.getOperation('OP-14').postHarvestCombineDelayDays, [3, 5]);
+  assert.equal(api.getOperation('OP-14').postHarvestCombineDelayDays, undefined);
+  assert.match(api.getOperation('OP-14').temporaryMergeGuidance,/3–5 дней/);
+  assert.equal(api.getOperation('OP-14').requiresConfirmedLineageCycle, true);
+});
+
+
+test('schema 14 refuses to complete OP-04 without a persisted family split event',()=>{
+ const state=dividedState({
+  familyLineageVersion:1,
+  sections:[1,2,3].map(index=>sectionFixture(index,{familyId:'new-'+index,queenIdentityStatus:'identified'})),
+  operations:api.SPEC.operations.map(operation=>({operationId:operation.id,status:'PENDING'}))
+ });
+ const record=operationRecord(state);
+ const result=api.transitionOperation(record,'OP-04',{
+  status:'DONE',completedAt:'2027-05-10',additionalBottomsInstalled:true,updatedAt:'2027-05-10T10:00:00.000Z'
+ },[record],[{id:'h1',profileId:api.SPEC.id}],{meta:{schemaVersion:14},families:[],queens:[],familyEvents:[]});
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(error=>error.code==='TECH_OP04_FAMILY_SPLIT_EVENT_REQUIRED'));
+});
+
+test('OP-12 completion requires family links and two referenced physical mesh diaphragms',()=>{
+ const lineage=windowRef.PasekaFamilyLineage;
+ const apiary={meta:{schemaVersion:14},families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),queenEvents:[],familyEvents:[],layouts:{},equipmentInventory:{items:{
+  d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'lower-middle'}},
+  d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'middle-upper'}}
+ }}};
+ const sections=[
+  sectionFixture(1,{familyId:'f1',winteringPosition:'lower',bodyIds:['b1','b2'],queenId:'q1',queenIdentityStatus:'identified'}),
+  sectionFixture(2,{familyId:'f2',winteringPosition:'middle',bodyIds:['b3'],queenId:'q2',queenIdentityStatus:'identified'}),
+  sectionFixture(3,{familyId:'f3',winteringPosition:'upper',bodyIds:['b4'],queenId:'q3',queenIdentityStatus:'identified'})
+ ];
+ const record={id:'tech-12',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-10-01T10:00:00.000Z',updatedAt:'2026-10-01T10:00:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING',config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS'},sections,
+  queens:[1,2,3].map(i=>({id:'q'+i,status:'FERTILIZED',layingObserved:true})),
+  diaphragms:[{itemId:'d1',hasMesh:true},{itemId:'d2',hasMesh:true}],
+  operations:[{operationId:'OP-12',status:'DONE',completedAt:'2026-10-01'}]
+ }};
+ const configured=lineage.configureAlternativeWintering(apiary,{
+  familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],techProcessId:'tech-12',
+  layout:[{familyId:'f1',position:'lower',bodyCount:2},{familyId:'f2',position:'middle',bodyCount:1},{familyId:'f3',position:'upper',bodyCount:1}]
+ },()=> 'event-12','2026-10-01T10:00:00.000Z');
+ assert.equal(configured.ok,true);
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+});
+
+test('OP-13 spring relocation records two upper families on separate bottoms without merging families',()=>{
+ const lineage=windowRef.PasekaFamilyLineage;
+ const apiary={meta:{schemaVersion:14},families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),queenEvents:[],familyEvents:[],layouts:{},equipmentInventory:{
+  bodies:{b2:{id:'b2'},b2new:{id:'b2new'},b3:{id:'b3'},b3new:{id:'b3new'},upper1:{id:'upper1',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},upper2:{id:'upper2',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},upper3:{id:'upper3',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},honey1:{id:'honey1',kind:'honey',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:10}},honey2:{id:'honey2',kind:'honey',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:10}}},
+  items:{
+   d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-lower'}},
+   d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-upper'}},
+   bottom2:{id:'bottom2',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-middle'}},
+   bottom3:{id:'bottom3',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-upper'}}
+  }
+ }};
+ let id=0;const makeId=()=> 'spring-'+(++id);
+ assert.equal(lineage.configureAlternativeWintering(apiary,{familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],techProcessId:'tech-13',layout:[{familyId:'f1',position:'lower',bodyCount:2},{familyId:'f2',position:'middle',bodyCount:1},{familyId:'f3',position:'upper',bodyCount:1}]},makeId,'2026-04-01T10:00:00.000Z').ok,true);
+ assert.equal(lineage.recordPlacementChanged(apiary,{familyIds:['f1','f2','f3'],familyId:'f2',techProcessId:'tech-13',from:{position:'middle',bodyIds:['b2']},to:{position:'separate_bottom',bottomItemId:'bottom2',bodyIds:['b2','b2new']}},makeId,'2026-04-20T10:00:00.000Z').ok,true);
+ assert.equal(lineage.recordPlacementChanged(apiary,{familyIds:['f1','f2','f3'],familyId:'f3',techProcessId:'tech-13',from:{position:'upper',bodyIds:['b3']},to:{position:'separate_bottom',bottomItemId:'bottom3',bodyIds:['b3','b3new']}},makeId,'2026-04-20T10:05:00.000Z').ok,true);
+ const record={id:'tech-13',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-03-01T10:00:00.000Z',updatedAt:'2026-04-20T10:05:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING_SPRING',config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS'},
+  sections:[
+   sectionFixture(1,{familyId:'f1',winteringPosition:'lower',bodyIds:['b1','b1new'],queenId:'q1',queenIdentityStatus:'identified'}),
+   sectionFixture(2,{familyId:'f2',winteringPosition:'separate_bottom',bodyIds:['b2','b2new'],queenId:'q2',queenIdentityStatus:'identified'}),
+   sectionFixture(3,{familyId:'f3',winteringPosition:'separate_bottom',bodyIds:['b3','b3new'],queenId:'q3',queenIdentityStatus:'identified'})
+  ],
+  queens:[1,2,3].map(i=>({id:'q'+i,status:'FERTILIZED',layingObserved:true})),diaphragms:[],
+  operations:[{operationId:'OP-12',status:'DONE',completedAt:'2026-04-01'},{operationId:'OP-13',status:'DONE',completedAt:'2026-04-20'}]
+ }};
+ assert.deepEqual(lineage.inspect(apiary),[]);
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+});
+
+
+test('OP-14 completion requires the early harvest, temporary merge and repeat split lineage events',()=>{
+ const lineage=windowRef.PasekaFamilyLineage;
+ const apiary={
+  meta:{schemaVersion:14},
+  families:[1,2,3].map(i=>({id:'f'+i,hive:'h1',recordStatus:'active',colonyGroupId:'group-1',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),
+  queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})),
+  queenEvents:[],familyEvents:[],layouts:{},
+  equipmentInventory:{
+   bodies:{
+    b2:{id:'b2'},b2new:{id:'b2new'},b3:{id:'b3'},b3new:{id:'b3new'},
+    upper1:{id:'upper1',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},
+    upper2:{id:'upper2',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},
+    upper3:{id:'upper3',kind:'brood',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:6}},
+    honey1:{id:'honey1',kind:'honey',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:10}},
+    honey2:{id:'honey2',kind:'honey',condition:'good',spec:{profileId:api.SPEC.id,framesPerBox:10}}
+   },
+   items:{
+    d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-lower'}},
+    d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'grid-upper'}},
+    bottom2:{id:'bottom2',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-middle'}},
+    bottom3:{id:'bottom3',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'bottom-upper'}},
+    'grid-left':{id:'grid-left',kind:'honeyQueenExcluder',condition:'good'},
+    'grid-right':{id:'grid-right',kind:'honeyQueenExcluder',condition:'good'}
+   }
+  }
+ };
+ const makeId=(()=>{let n=0;return()=> 'lineage-'+(++n)})();
+ const physicalSetup={honeyBodyIds:['honey1','honey2'],honeyBodySnapshots:[{bodyId:'honey1',kind:'honey',condition:'good',framesPerBox:10,profileId:api.SPEC.id,hiveId:'h1',installed:true},{bodyId:'honey2',kind:'honey',condition:'good',framesPerBox:10,profileId:api.SPEC.id,hiveId:'h1',installed:true}],largeExcluderIds:['grid-left','grid-right'],largeExcluderSnapshots:[{itemId:'grid-left',kind:'honeyQueenExcluder',condition:'good',hiveId:'h1',installed:true,footprint:[{bodyId:'upper1',coverage:'FULL'},{bodyId:'upper2',coverage:'HALF'}]},{itemId:'grid-right',kind:'honeyQueenExcluder',condition:'good',hiveId:'h1',installed:true,footprint:[{bodyId:'upper2',coverage:'HALF'},{bodyId:'upper3',coverage:'FULL'}]}],upperBodyIds:['upper1','upper2','upper3']};
+ assert.equal(lineage.configureAlternativeWintering(apiary,{familyIds:['f1','f2','f3'],diaphragmItemIds:['d1','d2'],techProcessId:'tech-14',layout:[{familyId:'f1',position:'lower',bodyCount:2},{familyId:'f2',position:'middle',bodyCount:1},{familyId:'f3',position:'upper',bodyCount:1}]},makeId,'2026-04-01T10:00:00.000Z').ok,true);
+ assert.equal(lineage.recordPlacementChanged(apiary,{familyIds:['f1','f2','f3'],familyId:'f2',techProcessId:'tech-14',from:{position:'middle',bodyIds:['b2']},to:{position:'separate_bottom',bottomItemId:'bottom2',bodyIds:['b2','b2new']}},makeId,'2026-04-20T10:00:00.000Z').ok,true);
+ assert.equal(lineage.recordPlacementChanged(apiary,{familyIds:['f1','f2','f3'],familyId:'f3',techProcessId:'tech-14',from:{position:'upper',bodyIds:['b3']},to:{position:'separate_bottom',bottomItemId:'bottom3',bodyIds:['b3','b3new']}},makeId,'2026-04-20T10:05:00.000Z').ok,true);
+ assert.equal(lineage.recordEarlyHoneyHarvest(apiary,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,physicalSetup,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'},makeId,'2026-05-01T10:00:00.000Z').ok,true);
+ const merged=lineage.applyMerge(apiary,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',resultFamily:{id:'early-merge',hive:'h1'}},makeId,'2026-05-04T10:00:00.000Z');
+ assert.equal(merged.ok,true);
+ const split=lineage.applySplit(apiary,{sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',resultFamilies:[1,2,3].map(i=>({id:'after-'+i,hive:'h1'}))},makeId,'2026-05-10T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ const record={id:'tech-14',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-04-01T10:00:00.000Z',updatedAt:'2026-05-10T10:00:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING_SPRING',earlyHoneySetup:physicalSetup,config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS',honeyBodiesCount:2},
+  sections:split.families.map((family,index)=>sectionFixture(index+1,{familyId:family.id,bodyIds:['body-'+index+'-a','body-'+index+'-b'],queenId:null,queenIdentityStatus:'unresolved'})),
+  queens:[],operations:[{operationId:'OP-12',status:'DONE',completedAt:'2026-04-01'},{operationId:'OP-13',status:'DONE',completedAt:'2026-04-20'},{operationId:'OP-14',status:'DONE',completedAt:'2026-05-10'}]
+ }};
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+ const withoutSplit={...apiary,familyEvents:apiary.familyEvents.filter(event=>event.type!=='split')};
+ const rejected=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],withoutSplit);
+ assert.ok(rejected.errors.some(error=>error.code==='TECH_OP14_REPEAT_SPLIT_EVENT_REQUIRED'));
 });
 
 
@@ -828,4 +956,17 @@ test('AI context and Worker keep Farrar rules isolated from the sectional profil
   assert.ok(worker.includes('не переноси их на другие профили'));
   assert.ok(html.includes("profileId:h.profileId||h.profile?.id||null"));
   assert.ok(html.includes("hiveProfileId:record?.hiveProfileId||null"));
+});
+
+
+test('OP-13 cannot be marked DONE without two confirmed upper-family relocations',()=>{
+ const apiary={meta:{schemaVersion:14},families:[],queens:[],queenEvents:[],familyEvents:[],equipmentInventory:{items:{},bodies:{}}};
+ const record={id:'tech-op13-guard',hiveId:'h1',hiveProfileId:api.SPEC.id,specVersion:api.SPEC.version,createdAt:'2026-04-01T10:00:00.000Z',updatedAt:'2026-04-20T10:00:00.000Z',state:{
+  familyLineageVersion:1,phase:'ALT_WINTERING_SPRING',config:{winteringMode:'ALTERNATIVE_DIAPHRAGMS'},
+  sections:[1,2,3].map((index)=>sectionFixture(index,{familyId:'f'+index,bodyIds:index===1?['b1','b1b']:['b'+index],queenId:'q'+index,queenIdentityStatus:'identified',winteringPosition:index===1?'lower':index===2?'middle':'upper'})),
+  queens:[1,2,3].map(index=>({id:'q'+index,status:'FERTILIZED',layingObserved:true})),
+  operations:[{operationId:'OP-12',status:'DONE',completedAt:'2026-04-01'},{operationId:'OP-13',status:'DONE',completedAt:'2026-04-20'}]
+ }};
+ const result=api.validateStoredRecords([record],[{id:'h1',profileId:api.SPEC.id}],apiary);
+ assert.ok(result.errors.some(error=>error.code==='TECH_OP13_TWO_UPPER_FAMILY_MOVES_REQUIRED'));
 });

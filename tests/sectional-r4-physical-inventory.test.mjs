@@ -191,7 +191,7 @@ test('legacy winter records remain valid without an accessory registry', () => {
 });
 
 test('service worker cache version invalidates updated R4 modules for offline clients', () => {
-  assert.match(sw, /paseka-shell-v322/);
+  assert.match(sw, /paseka-shell-v323/);
   assert.match(sw, /\.\/js\/equipment-items\.js/);
   assert.match(sw, /\.\/js\/sectional-multiqueen-techprocess\.js/);
 });
