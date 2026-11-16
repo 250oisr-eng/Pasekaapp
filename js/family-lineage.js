@@ -271,6 +271,7 @@ function confirmQueenIdentity(state, request, makeId, now) {
   const queen=draft.queens.find(q=>q?.id===request?.queenId);
   if (!family || !isActive(family)) return {ok:false,error:'identity_family_missing_or_historical'};
   if (!queen) return {ok:false,error:'identity_queen_missing'};
+  if (family.currentQueenId && family.currentQueenId!==queen.id) return {ok:false,error:'identity_family_already_has_queen'};
   if (draft.families.some(f=>f?.id!==family.id&&isActive(f)&&f.currentQueenId===queen.id))
    return {ok:false,error:'identity_queen_already_assigned'};
   const sourceEvent=draft.familyEvents.slice().reverse().find(event=>event?.resultFamilyIds?.includes(family.id)&&Array.isArray(event.candidateQueenIds));
@@ -279,16 +280,17 @@ function confirmQueenIdentity(state, request, makeId, now) {
   const at=now||new Date().toISOString(),used=new Set([...draft.familyEvents.map(e=>e?.id).filter(Boolean),...draft.queenEvents.map(e=>e?.id).filter(Boolean)]);
   const eventId=nextId(makeId,used),queenEventId=nextId(makeId,new Set([...used,eventId]));
   if (!eventId || !queenEventId) return {ok:false,error:'family_event_id_required'};
-  queen.originFamilyId=queen.originFamilyId||queen.familyId;
+  const previousFamilyId=queen.familyId;
+  queen.originFamilyId=queen.originFamilyId||previousFamilyId;
   queen.familyId=family.id;
   queen.status='current';
   queen.updatedAt=at;
   family.currentQueenId=queen.id;
   family.queenIdentityStatus='identified';
   family.queen={code:queen.code||null,year:queen.year??null,source:queen.source||null,notes:queen.notes||null};
-  const event={id:eventId,type:'queen_identity_confirmed',sourceFamilyIds:[],resultFamilyIds:[family.id],candidateQueenIds:[queen.id],familyId:family.id,queenId:queen.id,operationId:request?.operationId||null,scenario:request?.scenario||null,techProcessId:request?.techProcessId||null,hiveId:family.hive,occurredAt:request?.occurredAt||at,createdAt:at};
+  const event={id:eventId,type:'queen_identity_confirmed',sourceFamilyIds:[],resultFamilyIds:[family.id],candidateQueenIds:[queen.id],familyId:family.id,queenId:queen.id,previousFamilyId,operationId:request?.operationId||null,scenario:request?.scenario||null,techProcessId:request?.techProcessId||null,hiveId:family.hive,occurredAt:request?.occurredAt||at,createdAt:at};
   draft.familyEvents.push(event);
-  draft.queenEvents.push({id:queenEventId,type:'identity_confirmed',queenId:queen.id,familyId:family.id,previousFamilyId:queen.originFamilyId,date:request?.date||null,createdAt:at,notes:'Идентичность матки подтверждена пчеловодом.'});
+  draft.queenEvents.push({id:queenEventId,type:'identity_confirmed',queenId:queen.id,familyId:family.id,previousFamilyId,date:request?.date||null,createdAt:at,notes:'Идентичность матки подтверждена пчеловодом.'});
   return {ok:true,family,queen,event};
  });
 }
