@@ -191,7 +191,7 @@ function validateStoredRecords(records,hives){
   if(typeof record.hiveId!=='string'||!record.hiveId.trim()){add('TECH_RECORD_HIVE_INVALID',{id:record.id});return;}
   if(!hiveIds.has(record.hiveId))add('TECH_RECORD_HIVE_MISSING',{id:record.id,hiveId:record.hiveId});
   const linkedHive=hives.find(h=>h&&h.id===record.hiveId);
-  const linkedProfileId=linkedHive?.profileId||linkedHive?.profile?.id||null;
+  const linkedProfileId=linkedHive?.profile?.id||linkedHive?.profileId||null;
   if(record.hiveProfileId!==SPEC.id||linkedProfileId!==SPEC.id)add('TECH_HIVE_PROFILE_MISMATCH',{id:record.id,hiveProfileId:record.hiveProfileId??null,linkedProfileId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
