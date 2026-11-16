@@ -1294,6 +1294,103 @@ test('atomic restore rolls back the main database when preserving the previous b
  await assert.rejects(fixture.write({meta:{revisionId:'rev-2'},value:'restored'},'rev-1'),/quota exceeded/i);
  assert.deepEqual(fixture.read(),before);
 });
+function automaticBackupValidatorForTests(){
+ const validateBackupState=loadFunction('validateBackupState');
+ const assertRawBackupIntegrity=loadFunction('assertRawBackupIntegrity',{validateRawBackupIntegrity:state=>inspectRawBackup(state)});
+ return loadFunction('validateAutomaticBackup',{validateBackupState,assertRawBackupIntegrity});
+}
+test('automatic backup validation rejects malformed and structurally corrupted snapshots',()=>{
+ const validate=automaticBackupValidatorForTests();
+ assert.throws(()=>validate(null),/не содержит состояние/i);
+ assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:13}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ const corrupt={...rawBackupFixture(),hives:[{id:'same',number:1},{id:'same',number:2}]};
+ assert.throws(()=>validate({state:corrupt}),/не прошёл проверку исходных данных/i);
+ const valid={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'valid-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+ assert.equal(validate({at:'backup-time',state:valid}),valid);
+});
+
+test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+ const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ let writes=0,reads=0,stored=null;
+ const deps={
+  validateAutomaticBackup,
+  writeAutoBackup:async(state,revision)=>{writes++;assert.equal(state,current);assert.equal(revision,'main-rev');stored={at:'repaired',state};return true},
+  readAutoBackup:async()=>{reads++;return stored}
+ };
+ const ensure=loadFunction('ensureAutomaticBackup',deps);
+ assert.equal(await ensure(current,malformed),true);
+ assert.equal(writes,1);assert.equal(reads,1);
+ assert.equal(current.meta.autoBackupError,undefined);
+ assert.equal(stored.state,current);
+});
+
+test('startup repairs a malformed backup through real IndexedDB without changing the main record',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'startup-backup-repair-'+(++indexedDbTestSequence));
+ try{
+  const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+  const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+  await seedIndexedDb(db,[['main',current,'state'],['backup',malformed,'previous']]);
+  const validateAutomaticBackup=automaticBackupValidatorForTests();
+  const writeAutoBackup=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  const ensure=loadFunction('ensureAutomaticBackup',{validateAutomaticBackup,writeAutoBackup,readAutoBackup});
+  assert.equal(await ensure(current,malformed),true);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),current);
+  assert.deepEqual((await readIndexedDb(db,'backup','previous')).state,current);
+ }finally{db.close()}
+});
+
+test('startup does not replace a malformed backup when real IndexedDB main revision is stale',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'startup-backup-stale-'+(++indexedDbTestSequence));
+ try{
+  const latest={meta:{revisionId:'latest-rev'},value:'newer-main'};
+  const stale={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'stale-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+  const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+  await seedIndexedDb(db,[['main',latest,'state'],['backup',malformed,'previous']]);
+  const validateAutomaticBackup=automaticBackupValidatorForTests();
+  const writeAutoBackup=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  const ensure=loadFunction('ensureAutomaticBackup',{validateAutomaticBackup,writeAutoBackup,readAutoBackup});
+  assert.equal(await ensure(stale,malformed),false);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),latest);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),malformed);
+ }finally{db.close()}
+});
+
+test('startup never overwrites an automatic backup when the main revision changed concurrently',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{revisionId:'stale-rev'}};
+ const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ let reads=0,writes=0;
+ const ensure=loadFunction('ensureAutomaticBackup',{
+  validateAutomaticBackup,
+  writeAutoBackup:async()=>{writes++;return false},
+  readAutoBackup:async()=>{reads++;return null}
+ });
+ assert.equal(await ensure(current,malformed),false);
+ assert.equal(writes,1);assert.equal(reads,0);
+ assert.match(current.meta.autoBackupError,/не удалось проверить или обновить/i);
+});
+
+test('startup preserves the existing automatic backup when repairing it fails from quota exhaustion',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{revisionId:'main-rev'}};
+ const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const quotaError=Object.assign(new Error('quota'),{name:'QuotaExceededError'});
+ let reads=0;
+ const ensure=loadFunction('ensureAutomaticBackup',{
+  validateAutomaticBackup,
+  writeAutoBackup:async()=>{throw quotaError},
+  readAutoBackup:async()=>{reads++;return malformed}
+ });
+ assert.equal(await ensure(current,malformed),false);
+ assert.equal(reads,0);
+ assert.equal(current.meta.autoBackupError,'Недостаточно места для создания полной резервной копии');
+ assert.equal(malformed.state.meta.schemaVersion,13,'the invalid prior backup must not be mutated');
+});
+
 test('backup shape validator accepts a minimal valid empty apiary',()=>{
  const validate=loadFunction('validateBackupState');
  const state=rawBackupFixture();
@@ -1994,6 +2091,205 @@ async function readIndexedDb(db,store,key) {
 }
 let indexedDbTestSequence=0;
 
+test('IndexedDB main read resolves only after the readonly transaction commits',async()=>{
+ const request={},tx={objectStore(){return{get(){return request}}},abort(){}};
+ const deps={db:{transaction(){return tx}},STORE:'main'};
+ const read=loadFunction('readMain',deps);
+ let settled=false;
+ const pending=read().then(value=>{settled=true;return value},error=>{settled=true;throw error});
+ request.result={meta:{revisionId:'rev-1'}};
+ request.onsuccess();
+ await Promise.resolve();
+ assert.equal(settled,false,'request success is not proof that the transaction committed');
+ const failure=new Error('simulated read transaction abort');
+ tx.error=failure;tx.onabort();
+ await assert.rejects(pending,error=>error===failure);
+});
+test('IndexedDB backup read does not publish a result before transaction completion',async()=>{
+ const request={},tx={objectStore(){return{get(){return request}}}};
+ const previousInfo={at:'old',state:{value:'old'}};
+ const deps={db:{transaction(){return tx}},BACKUP_STORE:'backup',autoBackupInfo:previousInfo};
+ const read=loadFunction('readAutoBackup',deps);
+ let settled=false;
+ const pending=read().then(value=>{settled=true;return value},error=>{settled=true;throw error});
+ request.result={at:'new',state:{value:'candidate'}};
+ request.onsuccess();
+ await Promise.resolve();
+ assert.equal(settled,false,'backup is accepted only after its readonly transaction commits');
+ assert.equal(deps.autoBackupInfo,previousInfo,'an aborted read must not replace trusted backup metadata');
+ const failure=new Error('simulated backup read abort');
+ tx.error=failure;tx.onabort();
+ await assert.rejects(pending,error=>error===failure);
+ assert.equal(deps.autoBackupInfo,previousInfo);
+});
+test('IndexedDB main and backup reads resolve values only after transaction completion',async()=>{
+ for(const [name,value] of [
+  ['readMain',{meta:{revisionId:'main-rev'}}],
+  ['readAutoBackup',{at:'backup-time',state:{value:'backup-state'}}]
+ ]){
+  const request={},tx={objectStore(){return{get(){return request}}}};
+  const deps={db:{transaction(){return tx}},STORE:'main',BACKUP_STORE:'backup',autoBackupInfo:null};
+  const read=loadFunction(name,deps);
+  let settled=false;
+  const pending=read().then(result=>{settled=true;return result});
+  request.result=value;request.onsuccess();
+  await Promise.resolve();
+  assert.equal(settled,false,name+' must wait for tx.oncomplete');
+  tx.oncomplete();
+  assert.deepEqual(await pending,value);
+  if(name==='readAutoBackup')assert.equal(deps.autoBackupInfo,value);
+ }
+});
+test('IndexedDB real API reads main state and automatic backup after readonly transaction completion',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'readonly-reads-'+(++indexedDbTestSequence));
+ try{
+  const main={meta:{revisionId:'main-rev'},value:'committed-main'};
+  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'committed-backup'}};
+  await seedIndexedDb(db,[['main',main,'state'],['backup',backup,'previous']]);
+  const readMain=loadFunction('readMain',{db,STORE:'main'});
+  const readBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  assert.deepEqual(await readMain(),main);
+  assert.deepEqual(await readBackup(),backup);
+ }finally{db.close()}
+});
+test('IndexedDB real API reads reject a transaction aborted immediately after request success',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'readonly-abort-'+(++indexedDbTestSequence));
+ try{
+  const main={meta:{revisionId:'main-rev'},value:'committed-main'};
+  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'committed-backup'}};
+  await seedIndexedDb(db,[['main',main,'state'],['backup',backup,'previous']]);
+  const abortingDb={
+   transaction(...args){
+    const tx=db.transaction(...args),objectStore=tx.objectStore.bind(tx);
+    tx.objectStore=name=>{
+     const store=objectStore(name);
+     return new Proxy(store,{
+      get(target,property){
+       if(property==='get')return(...getArgs)=>{
+        const request=target.get(...getArgs);
+        return new Proxy(request,{
+         set(requestTarget,key,value){
+          if(key==='onsuccess'){
+           requestTarget.onsuccess=function(event){
+            value.call(requestTarget,event);
+            tx.abort();
+           };
+           return true;
+          }
+          return Reflect.set(requestTarget,key,value,requestTarget);
+         }
+        });
+       };
+       const value=Reflect.get(target,property,target);
+       return typeof value==='function'?value.bind(target):value;
+      }
+     });
+    };
+    return tx;
+   }
+  };
+  const previousInfo={at:'trusted-old',state:{value:'trusted'}};
+  const readMain=loadFunction('readMain',{db:abortingDb,STORE:'main'});
+  await assert.rejects(readMain(),error=>error instanceof Error,'main read must reject an actual transaction abort');
+  const backupDeps={db:abortingDb,BACKUP_STORE:'backup',autoBackupInfo:previousInfo};
+  const readBackup=loadFunction('readAutoBackup',backupDeps);
+  await assert.rejects(readBackup(),error=>error instanceof Error,'backup read must reject an actual transaction abort');
+  assert.equal(backupDeps.autoBackupInfo,previousInfo,'an aborted real transaction must not publish backup metadata');
+ }finally{db.close()}
+});
+
+test('startup read prefers a valid main state without touching the automatic backup',async()=>{
+ const main={meta:{revisionId:'main-rev'},value:'main'};
+ let backupReads=0;
+ const deps={readMain:async()=>main,readAutoBackup:async()=>{backupReads++;return null},validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
+ assert.equal(await loadFunction('read',deps)(),main);
+ assert.equal(backupReads,0);
+ assert.equal(deps.autoBackupRecovered,false);
+});
+
+test('startup read recovers from a missing main state using the automatic backup',async()=>{
+ const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
+ assert.equal(await loadFunction('read',deps)(),backup.state);
+ assert.equal(deps.autoBackupRecovered,true);
+});
+
+test('startup read recovers from a failed main read when a backup is available',async()=>{
+ const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
+ const deps={readMain:async()=>{throw new Error('main transaction aborted')},readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
+ assert.equal(await loadFunction('read',deps)(),backup.state);
+ assert.equal(deps.autoBackupRecovered,true);
+});
+
+test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
+ const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false};
+ await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ assert.equal(deps.autoBackupRecovered,false,'invalid backup must never be marked as recovered');
+});
+
+test('backup integrity rejects invalid permanent frame identities and labels',()=>{
+ const state={...rawBackupFixture(),hives:[{id:'h1',number:1},{id:'h2',number:2}],layouts:{
+  h1:{boxes:{1:{frames:[{frameId:'f1',frameUid:'same-uid',labelCode:'ААА'}]}}},
+  h2:{boxes:{1:{frames:[{frameId:'f2',frameUid:'same-uid',labelCode:'ААА'}]}}}
+ }};
+ const result=inspectRawBackup(state),codes=new Set(result.errors.map(error=>error.code));
+ assert.ok(codes.has('duplicate_frame_identity'));
+ assert.ok(codes.has('duplicate_frame_label_code'));
+ assert.throws(()=>automaticBackupValidatorForTests()({at:'duplicate-frame-labels',state}),/не прошёл проверку исходных данных/i);
+});
+
+test('backup integrity applies physical equipment inventory validation',()=>{
+ const state={...rawBackupFixture(),equipmentInventory:{bodies:{'body-1':{id:'body-1',kind:'brood',condition:'good',storageLocation:'кладовая'}}},equipmentLabels:{bodies:{}}};
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='inventory_body_label_missing_or_invalid'));
+ assert.throws(()=>automaticBackupValidatorForTests()({at:'invalid-equipment-inventory',state}),/не прошёл проверку исходных данных/i);
+});
+
+test('backup integrity rejects contradictory hive, family, journal and task references',()=>{
+ const base={...rawBackupFixture(),hives:[{id:'hive-1',number:1}],families:[{id:'family-1',hive:'missing-hive',origin:'family',stage:'independent'}],records:[{id:'record-1',hive:'missing-hive',taskId:'missing-task'}],tasks:[{id:'task-1',hive:'hive-1',completedRecordId:'missing-record'}],extractions:[],layouts:{}};
+ const result=inspectRawBackup(base);
+ const codes=new Set(result.errors.map(error=>error.code));
+ assert.ok(codes.has('family_hive_missing'));
+ assert.ok(codes.has('record_hive_missing'));
+ assert.ok(codes.has('record_task_link_missing'));
+ assert.ok(codes.has('task_completion_record_missing'));
+ assert.throws(()=>automaticBackupValidatorForTests()({at:'logical-corruption',state:base}),/не прошёл проверку исходных данных/i);
+});
+
+test('startup recovery validates backup raw-data integrity before returning it',async()=>{
+ const corrupted={...rawBackupFixture(),hives:[{id:'duplicate',number:1},{id:'duplicate',number:2}]};
+ const backup={at:'corrupt',state:corrupted};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:automaticBackupValidatorForTests(),autoBackupRecovered:false};
+ await assert.rejects(loadFunction('read',deps)(),/не прошёл проверку исходных данных/i);
+ assert.equal(deps.autoBackupRecovered,false);
+});
+
+test('startup read refuses to initialize empty data when both main and backup reads fail',async()=>{
+ const deps={readMain:async()=>{throw new Error('main read failed')},readAutoBackup:async()=>{throw new Error('backup read failed')},autoBackupRecovered:false};
+ await assert.rejects(loadFunction('read',deps)(),/backup read failed/i);
+ assert.equal(deps.autoBackupRecovered,false);
+});
+
+test('IndexedDB reads reject request errors, transaction errors, and transaction creation failures',async()=>{
+ for(const name of ['readMain','readAutoBackup']){
+  for(const failurePoint of ['request','transaction','creation']){
+   const failure=new Error(name+' '+failurePoint+' failure');
+   const request={error:failure},tx={error:failure,objectStore(){return{get(){return request}}}};
+   const deps={db:{transaction(){if(failurePoint==='creation')throw failure;return tx}},STORE:'main',BACKUP_STORE:'backup',autoBackupInfo:{trusted:true}};
+   const read=loadFunction(name,deps);
+   const pending=read();
+   if(failurePoint==='request')request.onerror();
+   if(failurePoint==='transaction')tx.onerror();
+   await assert.rejects(pending,error=>error===failure);
+   if(name==='readAutoBackup')assert.deepEqual(deps.autoBackupInfo,{trusted:true});
+  }
+ }
+});
+
 test('IndexedDB real API serializes competing revision writes and rejects the stale second writer',async()=>{
  const factory=new IDBFactory();
  const db=await openRealIndexedDb(factory,'revision-race-'+(++indexedDbTestSequence));
@@ -2564,4 +2860,54 @@ test('schema 11 migration creates an empty deadout section and preserves existin
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+});
+
+
+test('startup backup recovery refuses to overwrite a concurrent main write and preserves the backup',async()=>{
+ const factory=new IDBFactory();
+ const db=await openRealIndexedDb(factory,'startup-recovery-race-'+(++indexedDbTestSequence));
+ try{
+  const previousBackup={at:'2026-11-15T12:00:00.000Z',state:{meta:{revisionId:'backup-rev'},value:'verified-backup'}};
+  await seedIndexedDb(db,[['backup',previousBackup,'previous']]);
+  const readMain=loadFunction('readMain',{db,STORE:'main'});
+  const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
+  const startupExpectedRevision=await readMain();
+  assert.equal(startupExpectedRevision,undefined);
+  const startupDeps={
+   readMain,
+   readAutoBackup,
+   validateAutomaticBackup:backup=>backup.state,
+   autoBackupRecovered:false
+  };
+  const read=loadFunction('read',startupDeps);
+  const recovered=await read();
+  assert.deepEqual(recovered,previousBackup.state);
+  assert.equal(startupDeps.autoBackupRecovered,true);
+  const concurrent={meta:{revisionId:'concurrent-rev'},value:'newer-tab-state'};
+  await seedIndexedDb(db,[['main',concurrent,'state']]);
+  const recoveredForWrite={...recovered,meta:{...recovered.meta,revisionId:'recovered-rev'}};
+  const writeMain=loadFunction('writeMainIfUnchanged',{db,STORE:'main'});
+  await assert.rejects(writeMain(recoveredForWrite,null),error=>error?.name==='PasekaConflictError');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),concurrent);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),previousBackup);
+ }finally{db.close()}
+});
+
+
+test('persistSnapshot reports a concurrent automatic-backup conflict instead of clearing the warning', async () => {
+ const state={meta:{revisionId:'revision-2'}};
+ const deps={
+  S:{meta:{revisionId:'revision-2'}},
+  lastPersistedRevision:'revision-1',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>false,
+  render(){},
+  updateStorageEstimate(){}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'the committed primary save remains successful');
+ assert.match(state.meta.autoBackupError,/изменились параллельно/);
+ assert.match(deps.S.meta.autoBackupError,/изменились параллельно/);
+ assert.equal(deps.lastPersistedRevision,'revision-2');
 });

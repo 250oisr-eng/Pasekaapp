@@ -602,10 +602,40 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
  if(draft?.type==='Обработка'&&draft.treatmentCheck&&!realDate(draft.treatmentCheck))errors.push({code:'journal_invalid_treatment_check_date',field:'treatmentCheck',message:'Дата контрольной проверки после обработки указана неверно.'});
  return {ok:errors.length===0,errors};
 }
-function openDB(){return new Promise((ok,no)=>{let settled=false,q;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=()=>{const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok()};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
-function readMain(){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get('state');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)})}
-function readAutoBackup(){return new Promise((ok,no)=>{let t=db.transaction(BACKUP_STORE,'readonly'),q=t.objectStore(BACKUP_STORE).get('previous');q.onsuccess=()=>{autoBackupInfo=q.result||null;ok(autoBackupInfo)};q.onerror=()=>no(q.error)})}
-async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
+function isFreshDatabaseUpgrade(oldVersion){return oldVersion===0}
+function canInitializeFreshDatabase(databaseCreated,loadedState){return databaseCreated===true&&loadedState==null}
+function openDB(){return new Promise((ok,no)=>{let settled=false,q;/* Freshness belongs to this open attempt; retries must start false. */let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
+function readMain(){
+ return new Promise((ok,no)=>{
+  let tx,request,value,settled=false;
+  const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось прочитать основную базу'))}};
+  try{
+   tx=db.transaction(STORE,'readonly');
+   request=tx.objectStore(STORE).get('state');
+   request.onsuccess=()=>{value=request.result};
+   request.onerror=()=>rejectOnce(request.error);
+   tx.oncomplete=()=>{if(!settled){settled=true;ok(value)}};
+   tx.onabort=()=>rejectOnce(tx.error||request.error||new Error('Чтение основной базы прервано'));
+   tx.onerror=()=>rejectOnce(tx.error||request.error||new Error('Ошибка чтения основной базы'));
+  }catch(error){rejectOnce(error)}
+ });
+}
+function readAutoBackup(){
+ return new Promise((ok,no)=>{
+  let tx,request,value,settled=false;
+  const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось прочитать автокопию'))}};
+  try{
+   tx=db.transaction(BACKUP_STORE,'readonly');
+   request=tx.objectStore(BACKUP_STORE).get('previous');
+   request.onsuccess=()=>{value=request.result||null};
+   request.onerror=()=>rejectOnce(request.error);
+   tx.oncomplete=()=>{if(!settled){settled=true;autoBackupInfo=value;ok(autoBackupInfo)}};
+   tx.onabort=()=>rejectOnce(tx.error||request.error||new Error('Чтение автокопии прервано'));
+   tx.onerror=()=>rejectOnce(tx.error||request.error||new Error('Ошибка чтения автокопии'));
+  }catch(error){rejectOnce(error)}
+ });
+}
+async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){validateAutomaticBackup(backup);autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
 function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
 function writeMainIfUnchanged(state,expectedRevision){
  return new Promise((ok,no)=>{
@@ -690,8 +720,8 @@ async function persistSnapshot(state){
   try{
    const backupState=previous||state;
    const backupWritten=await writeAutoBackup(backupState,state.meta?.revisionId||null);
-   if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;}
-   delete state.meta.autoBackupError;
+   if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;}
+   else{state.meta.autoBackupError='Не удалось подтвердить актуальность резервной копии: данные изменились параллельно';}
   }catch(e){
    state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
   }
@@ -3418,6 +3448,8 @@ function validateRawBackupIntegrity(state){
  const errors=[],familyRows=Array.isArray(state.families)?state.families:[],families=new Map(familyRows.filter(f=>f?.id).map(f=>[f.id,f]));
  const add=(code,details)=>errors.push({code,details});
  const validDate=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const [year,month,day]=value.split('-').map(Number),date=new Date(Date.UTC(year,month-1,day));return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day};
+ PasekaLabels.inspectLabelIntegrity(state).forEach(error=>add(error.code,error.details));
+ PasekaInventory.inspect(state,PasekaLabels,profileForHive).forEach(error=>add(error.code,error.details));
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  inspectQueenRegistryIntegrity(state).forEach(error=>add(error.code,error.details));
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
@@ -3531,6 +3563,27 @@ function validateRawBackupIntegrity(state){
  inspectPlantModuleIntegrity(state).forEach(error=>errors.push(error));
 
  return {errors,errorCount:errors.length};
+}
+function validateAutomaticBackup(backup){
+ if(!backup||typeof backup!=='object'||!backup.state)throw new Error('Полная автокопия отсутствует или не содержит состояние');
+ const state=validateBackupState(backup.state);
+ assertRawBackupIntegrity(state);
+ return state;
+}
+async function ensureAutomaticBackup(state,existingBackup){
+ try{validateAutomaticBackup(existingBackup);return true}catch(validationError){}
+ try{
+  const written=await writeAutoBackup(state,state.meta?.revisionId||null);
+  if(!written)throw new Error('Основная база изменилась в другой вкладке. Автокопия не перезаписана.');
+  const refreshed=await readAutoBackup();
+  validateAutomaticBackup(refreshed);
+  if(state.meta)delete state.meta.autoBackupError;
+  return true;
+ }catch(error){
+  state.meta=state.meta||{};
+  state.meta.autoBackupError=error?.name==='QuotaExceededError'?'Недостаточно места для создания полной резервной копии':'Не удалось проверить или обновить полную резервную копию';
+  return false;
+ }
 }
 function assertRawBackupIntegrity(state){
  const result=validateRawBackupIntegrity(state);
@@ -3667,10 +3720,11 @@ async function requestStoragePersistence(){try{if(!navigator.storage||!navigator
 async function updateStorageEstimate(){const host=$('storageUsage');if(!host)return;try{if(!navigator.storage?.estimate){host.textContent='Оценка занятого места браузером недоступна.';return}const e=await navigator.storage.estimate();storageEstimate=e;if(!Number.isFinite(e.usage)||!Number.isFinite(e.quota)||e.quota<=0){host.textContent='Браузер не предоставил оценку объёма хранилища.';return}const mb=n=>Math.round(n/1024/1024*10)/10,free=Math.max(0,e.quota-e.usage),pct=Math.round(e.usage/e.quota*100);host.textContent='Занято приложениями этого сайта: '+mb(e.usage)+' МБ из '+mb(e.quota)+' МБ · свободно примерно '+mb(free)+' МБ'+(pct>=85?' · мало свободного места':'')+'. Оценка приблизительная.';host.style.color=pct>=85?'#a33':''}catch(e){host.textContent='Не удалось получить оценку хранилища.'}}
 (async()=>{
  try{
-  await openDB();await requestStoragePersistence();
+  const databaseCreatedDuringOpen=await openDB();await requestStoragePersistence();
   let startupMain=null;try{startupMain=await readMain()}catch(e){}
   const startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
+  if(!loaded&&!canInitializeFreshDatabase(databaseCreatedDuringOpen,loaded))throw new Error('Обнаружена существующая локальная база без основной записи и полной автокопии. Автоматическая инициализация остановлена, чтобы не скрыть возможную потерю данных. Не очищай хранилище; сначала проверь резервный JSON-архив.');
   if(loaded){
    try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
    catch(primaryError){
@@ -3699,8 +3753,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   if(migrated||autoBackupRecovered){S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await writeMainIfUnchanged(S,startupExpectedRevision)}
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
-  const existingBackup=await readAutoBackup();
-  if(!existingBackup){try{await writeAutoBackup(S,S.meta?.revisionId||null);autoBackupInfo=await readAutoBackup()}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось создать полную резервную копию'}}
+  try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
