@@ -59,7 +59,7 @@ function validateHiveState(s,options={}){
  if(c.additionalBottoms!==undefined&&(!Number.isInteger(c.additionalBottoms)||c.additionalBottoms<0||c.additionalBottoms>2))add('ADDITIONAL_BOTTOMS','Дополнительных доньев должно быть от 0 до 2.');
  if(s.phase&&!SPEC.phases.includes(s.phase))add('PHASE_UNKNOWN','Неизвестная сезонная фаза.');
  const sections=Array.isArray(s.sections)?s.sections:[],queens=Array.isArray(s.queens)?s.queens:sections.flatMap(x=>x&&x.queen?[x.queen]:[]),queenById=new Map(queens.filter(q=>q&&typeof q.id==='string'&&q.id.trim()).map(q=>[q.id,q]));
- const lineageModel=s.familyLineageVersion===1;
+ const lineageModel=s.familyLineageVersion===1||options.lineageModel===true;
  const lineageDone=new Set((Array.isArray(s.operations)?s.operations:[]).filter(operation=>operation&&operation.status==='DONE').map(operation=>operation.operationId));
  const unresolvedQueensAllowed=lineageModel&&((lineageDone.has('OP-04')&&!lineageDone.has('OP-06'))||lineageDone.has('OP-14'));
  const divided=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','ALT_WINTERING','ALT_WINTERING_SPRING'].includes(s.phase);
@@ -340,9 +340,9 @@ function validateStoredRecords(records,hives,apiaryState){
     }
    }
   }
-  const result=validateHiveState(record.state,{requireLayingObservation:record.specVersion===SPEC.version||record.state.validationRulesVersion===SPEC.version,apiaryState,hiveId:record.hiveId});
+  const result=validateHiveState(record.state,{requireLayingObservation:record.specVersion===SPEC.version||record.state.validationRulesVersion===SPEC.version,apiaryState,hiveId:record.hiveId,lineageModel:record.state.familyLineageVersion===1});
   result.errors.forEach(error=>add('TECH_RECORD_STATE_'+error.code,{id:record.id,message:error.message}));
-  if(record.state.familyLineageVersion===1){
+  if(apiaryState?.meta?.schemaVersion>=14&&(record.state.familyLineageVersion===1||record.specVersion===SPEC.version)){
    for(const operation of Array.isArray(record.state.operations)?record.state.operations:[]){
     if(operation?.status==='DONE'&&['OP-04','OP-11','OP-12','OP-14'].includes(operation.operationId)){
      if(!apiaryState||!FamilyLineage){add('TECH_FAMILY_LINEAGE_CONTEXT_REQUIRED',{id:record.id,operationId:operation.operationId});continue;}
