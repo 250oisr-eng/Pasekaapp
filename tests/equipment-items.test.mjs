@@ -116,3 +116,10 @@ test('malformed imported footprint is reported without throwing during reference
  assert.ok(E.inspect(s).some(x=>x.code==='invalid_item_location'));
  assert.ok(E.validateReferences(s).some(x=>x.code==='item_footprint_body_reference_missing'));
 });
+
+test('legacy installed honey excluder with a single body reference remains readable',()=>{
+ const s=fixture();s.hives=[{id:'h1'}];s.layouts.h1.corpusIds={A:'body-1'};
+ s.equipmentInventory.items={legacy:{id:'legacy',kind:'honeyQueenExcluder',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1'}}};
+ assert.deepEqual(E.inspect(s),[]);
+ assert.deepEqual(E.validateReferences(s),[]);
+});
