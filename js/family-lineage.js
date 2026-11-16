@@ -104,19 +104,14 @@ function inspect(state) {
     if (!item || item.id !== itemId) add('alternative_wintering_diaphragm_missing',{eventId:event.id,itemId});
     else {
      if (item.kind !== 'meshDiaphragm') add('alternative_wintering_diaphragm_kind_invalid',{eventId:event.id,itemId,kind:item.kind??null});
-     if (item.condition !== 'good') add('alternative_wintering_diaphragm_condition_invalid',{eventId:event.id,itemId,condition:item.condition??null});
-     if (item.location?.type !== 'hive' || item.location?.hiveId !== event.hiveId || !item.location?.positionLabel)
-      add('alternative_wintering_diaphragm_not_installed',{eventId:event.id,itemId});
     }
    }
-   const labels=(Array.isArray(event.diaphragmItemIds)?event.diaphragmItemIds:[]).map(id=>itemMap?.[id]?.location?.positionLabel).filter(Boolean);
+   const snapshots=Array.isArray(event.diaphragmSnapshots)?event.diaphragmSnapshots:[];
+   if (snapshots.length!==2 || snapshots.some(snapshot=>!event.diaphragmItemIds?.includes(snapshot?.itemId)||snapshot?.kind!=='meshDiaphragm'||snapshot?.condition!=='good'||snapshot?.hiveId!==event.hiveId||!snapshot?.positionLabel)) add('alternative_wintering_diaphragm_snapshot_invalid',{eventId:event.id});
+   const labels=snapshots.map(snapshot=>snapshot.positionLabel).filter(Boolean);
    if (labels.length===2 && new Set(labels).size!==2) add('alternative_wintering_diaphragm_position_duplicate',{eventId:event.id});
-   for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[]) {
-    const family=familyMap.get(familyId);
-    if (!family) continue;
-    if (!isActive(family)) add('alternative_wintering_family_not_active',{eventId:event.id,familyId});
-    if (event.hiveId && family.hive !== event.hiveId) add('alternative_wintering_family_hive_mismatch',{eventId:event.id,familyId});
-   }
+   for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[])
+    if (!familyMap.has(familyId)) add('family_event_family_missing',{eventId:event.id,familyId});
   }
   if (event.type === 'early_honey_harvest_completed') {
    if (!uniqueStrings(event.familyIds) || event.familyIds.length !== 3) add('early_honey_family_ids_invalid',{eventId:event.id});
@@ -303,7 +298,8 @@ function configureAlternativeWintering(state, request, makeId, now) {
   const at=now||new Date().toISOString(),used=new Set([...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
   const eventId=nextId(makeId,used);
   if (!eventId) return {ok:false,error:'family_event_id_required'};
-  const event={id:eventId,type:'alternative_wintering_configured',familyIds,diaphragmItemIds:itemIds,layout:clone(layout),hiveId,operationId:'OP-12',techProcessId:request?.techProcessId||null,occurredAt:request?.occurredAt||at,createdAt:at};
+  const diaphragmSnapshots=items.map((item,index)=>({itemId:itemIds[index],kind:item.kind,condition:item.condition,hiveId,positionLabel:item.location.positionLabel}));
+  const event={id:eventId,type:'alternative_wintering_configured',familyIds,diaphragmItemIds:itemIds,diaphragmSnapshots,layout:clone(layout),hiveId,operationId:'OP-12',techProcessId:request?.techProcessId||null,occurredAt:request?.occurredAt||at,createdAt:at};
   draft.familyEvents.push(event);
   return {ok:true,event};
  });
@@ -338,10 +334,10 @@ function validateOperationEvidence(state, record, operationId) {
   if (splits.length!==1) add('OP04_FAMILY_SPLIT_EVENT_REQUIRED',{techProcessId});
   else {
    const event=splits[0],source=state.families.find(f=>f?.id===event.sourceFamilyIds[0]);
-   if (!sameSet(event.resultFamilyIds,sectionFamilyIds)) add('OP04_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
+   if (!['OP-11','OP-14'].some(id=>record.state.operations?.some(operation=>operation?.operationId===id&&operation.status==='DONE')) && !sameSet(event.resultFamilyIds,sectionFamilyIds)) add('OP04_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
    if (!source||familyStatus(source)!=='historical') add('OP04_SOURCE_FAMILY_NOT_HISTORICAL',{sourceFamilyId:event.sourceFamilyIds[0]});
    if (event.candidateQueenIds?.length<1) add('OP04_ORIGINAL_QUEEN_CANDIDATE_MISSING',{techProcessId});
-   if (event.resultFamilyIds.some(id=>!isActive(state.families.find(f=>f?.id===id)))) add('OP04_RESULT_FAMILY_NOT_ACTIVE',{techProcessId});
+   
   }
  }
  if (operationId==='OP-11') {
@@ -350,7 +346,7 @@ function validateOperationEvidence(state, record, operationId) {
   else {
    const event=merges[0],result=state.families.find(f=>f?.id===event.resultFamilyIds[0]);
    if (event.candidateQueenIds?.length!==3) add('OP11_QUEEN_CANDIDATES_REQUIRED',{techProcessId});
-   if (!result||result.currentQueenId||result.queenIdentityStatus!=='unresolved'||!isActive(result))
+   if (!result||result.currentQueenId||result.queenIdentityStatus!=='unresolved')
     add('OP11_RESULT_QUEEN_MUST_REMAIN_UNKNOWN',{resultFamilyId:event.resultFamilyIds[0]});
    if (event.sourceFamilyIds.some(id=>isActive(state.families.find(f=>f?.id===id))))
     add('OP11_SOURCE_FAMILIES_MUST_BE_HISTORICAL',{techProcessId});
@@ -361,9 +357,11 @@ function validateOperationEvidence(state, record, operationId) {
   if (rows.length!==1) add('OP12_ALTERNATIVE_WINTERING_EVENT_REQUIRED',{techProcessId});
   else {
    const event=rows[0];
-   if (!sameSet(event.familyIds,sectionFamilyIds)) add('OP12_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
-   if (event.familyIds?.some(id=>!isActive(state.families.find(f=>f?.id===id)))) add('OP12_FAMILIES_MUST_REMAIN_ACTIVE',{techProcessId});
+   const laterEarlyHoneySplit=record.state.operations?.some(operation=>operation?.operationId==='OP-14'&&operation.status==='DONE');
+   if (!laterEarlyHoneySplit && !sameSet(event.familyIds,sectionFamilyIds)) add('OP12_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
    if (event.diaphragmItemIds?.length!==2) add('OP12_TWO_PHYSICAL_DIAPHRAGMS_REQUIRED',{techProcessId});
+   const stateDiaphragmIds=(record.state.diaphragms||[]).map(item=>item?.itemId).filter(Boolean);
+   if (!laterEarlyHoneySplit && !sameSet(event.diaphragmItemIds,stateDiaphragmIds)) add('OP12_DIAPHRAGM_REFERENCE_MISMATCH',{techProcessId});
    if (!Array.isArray(event.layout)||event.layout.length!==3||POSITIONS.some(position=>!event.layout.some(row=>row?.position===position&&row.bodyCount===(position==='lower'?2:1))))
     add('OP12_BODY_LAYOUT_REQUIRED',{techProcessId});
   }
@@ -380,6 +378,7 @@ function validateOperationEvidence(state, record, operationId) {
    if (!sameSet(harvest.familyIds,merge.sourceFamilyIds)) add('OP14_HARVEST_MERGE_FAMILY_MISMATCH',{techProcessId});
    if (!sameSet(split.sourceFamilyIds,merge.resultFamilyIds)) add('OP14_REPEAT_SPLIT_SOURCE_MISMATCH',{techProcessId});
    if (!sameSet(split.resultFamilyIds,sectionFamilyIds)) add('OP14_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
+   if (split.resultFamilyIds.some(id=>!isActive(state.families.find(f=>f?.id===id)))) add('OP14_RESULT_FAMILIES_NOT_ACTIVE',{techProcessId});
    if (Date.parse(harvest.occurredAt)>Date.parse(merge.occurredAt)||Date.parse(merge.occurredAt)>Date.parse(split.occurredAt))
     add('OP14_EVENT_ORDER_INVALID',{techProcessId});
    const merged=state.families.find(f=>f?.id===merge.resultFamilyIds[0]);
