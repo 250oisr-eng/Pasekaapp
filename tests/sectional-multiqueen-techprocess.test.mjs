@@ -30,6 +30,10 @@ function dividedState(overrides = {}) {
     sections: [sectionFixture(1), sectionFixture(2), sectionFixture(3)],
     queens: [1, 2, 3].map(index => ({ id: `queen-${index}`, status: 'FERTILIZED' })),
     operations: [],
+    technicalConnections: [
+      { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 2, bufferCorridorPresent: true },
+      { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: true }
+    ],
     ...overrides
   };
 }
@@ -286,6 +290,10 @@ test('stored OP-05 and OP-06 completion dates must match the user-defined window
     state: {
       phase: 'DIVIDED_3_SECTIONS',
       config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' },
+      technicalConnections: [
+        { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 2, bufferCorridorPresent: true },
+        { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: true }
+      ],
       sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
       queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
       meshPlugs: [],
@@ -327,6 +335,10 @@ function operationRecord(stateOverrides = {}) {
 function validOp05State() {
   return {
     phase: 'DIVIDED_3_SECTIONS',
+    technicalConnections: [
+      { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 2, bufferCorridorPresent: true },
+      { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: true }
+    ],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'MESH_ISOLATED' })),
     queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'UNFERTILIZED' })),
     requiredMeshPlugCount: 3,
@@ -341,6 +353,10 @@ function validOp05State() {
 function validOp06State() {
   return {
     phase: 'DIVIDED_3_SECTIONS',
+    technicalConnections: [
+      { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 2, bufferCorridorPresent: true },
+      { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: true }
+    ],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
     queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
     requiredMeshPlugCount: 3,
@@ -502,4 +518,88 @@ test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup rati
     ...base, completedAt: '2027-04-12', feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 250, sugarParts: 2, waterParts: 1 }
   }, [record], [{ id: 'h1' }]);
   assert.ok(wrongAmount.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
+});
+
+
+test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION', () => {
+  const record = operationRecord();
+  const op04 = api.transitionOperation(record, 'OP-04', {
+    status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(op04.valid, false);
+  assert.ok(op04.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
+
+  const withOp04 = structuredClone(record);
+  const op04Row = withOp04.state.operations.find(x => x.operationId === 'OP-04');
+  op04Row.status = 'DONE';
+  op04Row.completedAt = '2027-05-10';
+  const op05 = api.transitionOperation(withOp04, 'OP-05', {
+    status: 'DONE', completedAt: '2027-05-19', updatedAt: '2027-05-19T10:00:00.000Z'
+  }, [withOp04], [{ id: 'h1' }]);
+  assert.equal(op05.valid, false);
+  assert.ok(op05.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
+});
+
+test('R1 requires an explicit entrance state for every section', () => {
+  const result = api.validateHiveState(dividedState({
+    sections: [sectionFixture(1, { entranceState: undefined }), sectionFixture(2), sectionFixture(3)]
+  }));
+  assert.ok(result.errors.some(x => x.code === 'R1_ENTRANCE_STATE'));
+});
+
+test('R3 requires two inter-section connections with two excluders and a buffer corridor', () => {
+  const missing = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }],
+    technicalConnections: [
+      { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 2, bufferCorridorPresent: true },
+      { fromSectionIndex: 2, toSectionIndex: 3, queenExcluderLayers: 2, bufferCorridorPresent: false }
+    ]
+  }));
+  assert.ok(missing.errors.some(x => x.code === 'R3_BUFFER_CORRIDOR_MISSING'));
+
+  const incomplete = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-04', status: 'DONE' }],
+    technicalConnections: [
+      { fromSectionIndex: 1, toSectionIndex: 2, queenExcluderLayers: 1, bufferCorridorPresent: true }
+    ]
+  }));
+  assert.ok(incomplete.errors.some(x => x.code === 'R3_CONNECTION_COUNT'));
+  assert.ok(incomplete.errors.some(x => x.code === 'R3_CONNECTION_MISSING'));
+});
+
+test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', () => {
+  const result = api.validateHiveState(dividedState({
+    operations: [{ operationId: 'OP-06', status: 'DONE' }, { operationId: 'OP-07', status: 'DONE' }],
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    meshPlugs: []
+  }));
+  assert.ok(result.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
+  assert.ok(result.errors.some(x => x.code === 'R4_HONEY_BODY_COUNT'));
+});
+
+test('R5 requires a three-body combined winter nest', () => {
+  const result = api.validateHiveState({
+    phase: 'WINTER_ASSEMBLY',
+    config: { winteringMode: 'COMBINED' },
+    operations: [{ operationId: 'OP-11', status: 'DONE' }]
+  });
+  assert.ok(result.errors.some(x => x.code === 'R5_WINTER_NEST_BODIES'));
+});
+
+test('R7 reads the alternative wintering mode from config and requires two mesh diaphragms', () => {
+  const result = api.validateHiveState(dividedState({
+    phase: 'ALT_WINTERING',
+    config: { winteringMode: 'ALTERNATIVE_DIAPHRAGMS' },
+    sections: [
+      sectionFixture(1, { bodyIds: ['body-1-a', 'body-1-b'] }),
+      sectionFixture(2, { bodyIds: ['body-2-a'] }),
+      sectionFixture(3, { bodyIds: ['body-3-a'] })
+    ]
+  }));
+  assert.ok(result.errors.some(x => x.code === 'R7_DIAPHRAGMS'));
+  assert.equal(result.errors.some(x => x.code === 'R7_WINTERING_MODE'), false);
+  assert.equal(result.errors.some(x => x.code === 'ALT_WINTER_BODY_LAYOUT'), false);
 });
