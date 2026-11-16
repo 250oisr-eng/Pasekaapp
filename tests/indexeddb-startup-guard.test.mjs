@@ -74,6 +74,7 @@ test('existing empty database without automatic backup stays empty and is not fi
   deps.autoBackupInfo = null;
   deps.readMain = load('readMain', deps);
   deps.readAutoBackup = load('readAutoBackup', deps);
+  deps.validateAutomaticBackup = backup => backup.state;
 
   const loaded = await load('read', deps)();
   assert.equal(loaded, undefined);
