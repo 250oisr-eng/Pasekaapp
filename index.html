@@ -2821,6 +2821,7 @@ function beginModeChange(mode){
  }
  if(!l.setupEditing){$('assemblyMode').value=l.mode||'summer';return}
  if(!['summer','winter'].includes(mode)){ $('assemblyMode').value=l.mode||'summer';return }
+ if(!Array.isArray(l.installedBoxes)||!Array.isArray(l.winterOrder)||!Array.isArray(l.honeyBoxInstalled)||l.honeyBoxInstalled.length!==2){alert('Списки комплектации повреждены или отсутствуют. Переключение режима отменено; сначала проверь целостность данных.');$('assemblyMode').value=l.mode||'summer';return}
  if(mode==='winter'){
   const blocked=[2,5].filter(n=>l.boxes?.[n]?.family);
   if(blocked.length){alert('Зимой нельзя использовать центральные корпуса №2 и №5. Сначала перемести семьи из этих корпусов в допустимые №1, 3, 4 или 6.');$('assemblyMode').value=l.mode||'summer';return}
@@ -2840,6 +2841,7 @@ function beginModeChange(mode){
 }
 function editCurrentAssembly(){
  const hiveId=selectedStructureHive(),profile=profileForHive(hiveId),l=profile?.family==='farrar'?S.layouts?.[hiveId]:layoutFor(hiveId);if(!l||typeof l!=='object'||Array.isArray(l))return;if(l.setupEditing)return;
+ if(profile?.family==='farrar'&&(!Array.isArray(l.installedBoxes)||!Array.isArray(l.winterOrder)||!Array.isArray(l.honeyBoxInstalled)||l.honeyBoxInstalled.length!==2)){alert('Списки комплектации повреждены или отсутствуют. Редактирование отменено; сначала проверь целостность данных.');return}
  assemblyEditSnapshot={hiveId,mode:l.mode||'summer',installedBoxes:Array.isArray(l.installedBoxes)?l.installedBoxes.slice():l.installedBoxes,winterOrder:Array.isArray(l.winterOrder)?l.winterOrder.slice():l.winterOrder,honeyBoxInstalled:Array.isArray(l.honeyBoxInstalled)?l.honeyBoxInstalled.slice():l.honeyBoxInstalled,honeyInstalled:l.honeyInstalled};
  l.setupEditing=true;renderStructure();
 }
@@ -2899,7 +2901,7 @@ function farrarAssemblyDisplayState(layout){
  let winterOrder=[],winterValid=installedValid&&winterOrderValid;
  if(mode==='winter'){
   const source=rawWinter.length?rawWinter:installed;
-  if(!source.length)winterOrder=[1,3,4];
+  if(!source.length){winterOrder=[1,3,4];winterValid=false}
   else{
    const selected=[];for(const n of source)if(eligible.includes(n)&&!selected.includes(n))selected.push(n);
    winterOrder=[...selected,...eligible.filter(n=>!selected.includes(n))].slice(0,3);
