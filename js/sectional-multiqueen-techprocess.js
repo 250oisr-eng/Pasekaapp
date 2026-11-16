@@ -1,7 +1,8 @@
 (() => {
 'use strict';
+const FamilyLineage=window.PasekaFamilyLineage;
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.7.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.8.0',language:'ru',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
   nestBodiesPerSectionAtDivision:2,additionalBottomsAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
@@ -26,8 +27,8 @@ const SPEC=Object.freeze({
  {id:'OP-10',title:'Осенняя подготовка',optional:false,period:'Середина–конец сентября'},
  {id:'OP-11',title:'Сборка гнезда на зиму: объединение',optional:false,exclusiveGroup:'wintering',winterNestBodies:3},
  {id:'OP-12',title:'Альтернативная зимовка: сохранение 3 семей',optional:true,exclusiveGroup:'wintering',diaphragms:2,sectionBodies:[2,1,1]},
- {id:'OP-13',title:'Весеннее развитие после альтернативной зимовки',optional:true,offsetFrom:'FIRST_FLIGHT',offsetDays:[40,50]},
- {id:'OP-14',title:'Ранний медосбор и возврат к летнему циклу',optional:true,honeyBodiesCount:2,postHarvestNestBodies:[3,4],postHarvestCombineDelayDays:[3,5],afterCompletion:'REMOVE_HONEY_BODIES_AND_QUEEN_EXCLUDERS; REDUCE_NEST_TO_3_OR_4_BODIES; COMBINE_FAMILIES; AFTER_3_TO_5_DAYS_REPEAT_DIVISION'}
+ {id:'OP-13',title:'Весеннее развитие после альтернативной зимовки',optional:true,timingGuidance:'Около полутора месяцев после первого облёта; ориентир, не автоматическая дата.'},
+ {id:'OP-14',title:'Ранний медосбор и возврат к летнему циклу',optional:true,honeyBodiesCount:2,postHarvestNestBodies:[3,4],temporaryMergeGuidance:'Через 3–5 дней подтверждается фактическое объединение; повторное разделение выполняется через несколько дней.',requiresConfirmedLineageCycle:true,afterCompletion:'REMOVE_HONEY_BODIES_AND_QUEEN_EXCLUDERS; REDUCE_NEST_TO_3_OR_4_BODIES; CONFIRM_TEMPORARY_MERGE; AFTER_SEVERAL_DAYS_REPEAT_DIVISION'}
  ],
  entranceAssignment:[
  {sectionIndex:1,openEntrance:'FLAT_BOTTOM',state:'HALF_OPEN'},
@@ -45,7 +46,7 @@ const DAY=86400000,DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
 function parseDate(v){if(typeof v!=='string'||!DATE_RE.test(v))return null;const p=v.split('-').map(Number),d=new Date(Date.UTC(p[0],p[1]-1,p[2]));return d.getUTCFullYear()===p[0]&&d.getUTCMonth()===p[1]-1&&d.getUTCDate()===p[2]?d:null;}
 function fmt(d){return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
 function shiftDate(v,n){const d=parseDate(v);if(!d||!Number.isInteger(n))throw new Error('Укажи корректную дату и целое число дней.');return fmt(new Date(d.getTime()+n*DAY));}
-function buildOperationSchedule(a){const out=[];const add=(id,date,range,extra)=>{if(date)out.push(Object.assign({operationId:id,from:shiftDate(fmt(date),range[0]),to:shiftDate(fmt(date),range[1])},extra||{}));};const d=parseDate(a&&a['OP-04']);add('OP-03',d,[-7,-5],{optional:true});add('OP-05',d,[8,11],{scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'});add('OP-06',d,[20,21],{condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED'});add('OP-08',parseDate(a&&a.HONEY_FLOW_MAIN_START),[15,15],{retryAfterDays:7});add('OP-13',parseDate(a&&a.FIRST_FLIGHT),[40,50],{optional:true});return out;}
+function buildOperationSchedule(a){const out=[];const add=(id,date,range,extra)=>{if(date)out.push(Object.assign({operationId:id,from:shiftDate(fmt(date),range[0]),to:shiftDate(fmt(date),range[1])},extra||{}));};const d=parseDate(a&&a['OP-04']);add('OP-03',d,[-7,-5],{optional:true});add('OP-05',d,[8,11],{scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'});add('OP-06',d,[20,21],{condition:'ALL_THREE_QUEENS_FERTILIZED_AND_LAYING_OBSERVED'});add('OP-08',parseDate(a&&a.HONEY_FLOW_MAIN_START),[15,15],{retryAfterDays:7});return out;}
 function validateHiveState(s,options={}){
  const errors=[],warnings=[],add=(code,message,level)=> (level==='warning'?warnings:errors).push({code,message});
  if(!s||typeof s!=='object'||Array.isArray(s))return {valid:false,errors:[{code:'STATE_INVALID',message:'Состояние улья должно быть объектом.'}],warnings};
@@ -58,11 +59,14 @@ function validateHiveState(s,options={}){
  if(c.additionalBottoms!==undefined&&(!Number.isInteger(c.additionalBottoms)||c.additionalBottoms<0||c.additionalBottoms>2))add('ADDITIONAL_BOTTOMS','Дополнительных доньев должно быть от 0 до 2.');
  if(s.phase&&!SPEC.phases.includes(s.phase))add('PHASE_UNKNOWN','Неизвестная сезонная фаза.');
  const sections=Array.isArray(s.sections)?s.sections:[],queens=Array.isArray(s.queens)?s.queens:sections.flatMap(x=>x&&x.queen?[x.queen]:[]),queenById=new Map(queens.filter(q=>q&&typeof q.id==='string'&&q.id.trim()).map(q=>[q.id,q]));
+ const lineageModel=s.familyLineageVersion===1;
+ const lineageDone=new Set((Array.isArray(s.operations)?s.operations:[]).filter(operation=>operation&&operation.status==='DONE').map(operation=>operation.operationId));
+ const unresolvedQueensAllowed=lineageModel&&((lineageDone.has('OP-04')&&!lineageDone.has('OP-06'))||lineageDone.has('OP-14'));
  const divided=['DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','ALT_WINTERING','ALT_WINTERING_SPRING'].includes(s.phase);
  if(divided&&sections.length!==3)add('SECTION_COUNT','В разделённом состоянии должно быть ровно три секции.');
  if(divided&&sections.length===3){
-  const seenBodyIds=new Set(),seenQueenIds=new Set();
-  if(queens.length!==3)add('SECTION_QUEEN_COUNT','После разделения должны быть зарегистрированы ровно три матки.');
+  const seenBodyIds=new Set(),seenQueenIds=new Set(),seenFamilyIds=new Set();
+  if(lineageModel?queens.length>3:queens.length!==3)add('SECTION_QUEEN_COUNT',lineageModel?'В реестре не может быть больше трёх маток для трёх секций.':'После разделения должны быть зарегистрированы ровно три матки.');
   if(queenById.size!==queens.length)add('SECTION_QUEEN_ID_DUPLICATE','Идентификаторы маток должны быть уникальными.');
   queens.forEach(q=>{if(!q||!['UNFERTILIZED','FERTILIZED'].includes(q.status))add('SECTION_QUEEN_STATUS','Статус каждой матки должен быть UNFERTILIZED или FERTILIZED.');if(q?.layingObserved!==undefined&&typeof q.layingObserved!=='boolean')add('SECTION_QUEEN_LAYING_OBSERVATION_INVALID','Признак наблюдения яйцекладки должен быть логическим значением.');});
   sections.forEach((section,index)=>{
@@ -74,8 +78,15 @@ function validateHiveState(s,options={}){
     section.bodyIds.forEach(id=>{if(typeof id==='string'&&id.trim()){if(seenBodyIds.has(id))add('SECTION_BODY_DUPLICATE','Физический корпус '+id+' назначен более чем одной секции.');seenBodyIds.add(id);}});
     if(s.phase!=='ALT_WINTERING'&&s.phase!=='ALT_WINTERING_SPRING'&&section.bodyIds.length!==2)add('OP04_BODY_COUNT','После OP-04 в каждой секции должно быть ровно два шестирамочных корпуса.');
    }
-   if(typeof section.queenId!=='string'||!section.queenId.trim())add('SECTION_QUEEN_ID','Для секции '+(index+1)+' не указана матка.');
-   else{
+   if(lineageModel){
+    if(typeof section.familyId!=='string'||!section.familyId.trim())add('SECTION_FAMILY_ID_REQUIRED','Для секции '+(index+1)+' укажи реальный familyId.');
+    else if(seenFamilyIds.has(section.familyId))add('SECTION_FAMILY_DUPLICATE','Одна семья не может быть назначена нескольким секциям.');
+    else seenFamilyIds.add(section.familyId);
+   }
+   if(typeof section.queenId!=='string'||!section.queenId.trim()){
+    if(!(unresolvedQueensAllowed&&section.queenIdentityStatus==='unresolved'))add('SECTION_QUEEN_ID','Для секции '+(index+1)+' укажи матку или явно отметь её идентичность как unresolved.');
+   }else{
+    if(lineageModel&&section.queenIdentityStatus!=='identified')add('SECTION_QUEEN_IDENTITY_STATUS','Для указанной матки секции '+(index+1)+' требуется статус identified.');
     if(seenQueenIds.has(section.queenId))add('SECTION_QUEEN_DUPLICATE','Одна матка не может быть назначена нескольким секциям.');
     seenQueenIds.add(section.queenId);
     if(!queenById.has(section.queenId))add('SECTION_QUEEN_REFERENCE','Матка секции '+(index+1)+' отсутствует в реестре маток.');
@@ -132,15 +143,16 @@ function validateHiveState(s,options={}){
   'OP-09':['END_OF_SEASON','AUTUMN_PREP'],
   'OP-10':['AUTUMN_PREP'],
   'OP-11':['WINTER_ASSEMBLY'],
-  'OP-12':['ALT_WINTERING'],
-  'OP-13':['ALT_WINTERING_SPRING']
+  'OP-12':['ALT_WINTERING','ALT_WINTERING_SPRING'],
+  'OP-13':['ALT_WINTERING_SPRING'],
+  'OP-14':['ALT_WINTERING_SPRING']
  };
  Object.entries(allowedPhases).forEach(([operationId,phases])=>{
   if(done.has(operationId)&&!phases.includes(s.phase))add('OPERATION_PHASE_MISMATCH',operationId+' нельзя отметить выполненной в фазе '+String(s.phase||'не указана')+'. Допустимые фазы: '+phases.join(', ')+'.');
  });
  if(done.has('OP-05')&&!done.has('OP-04'))add('OP05_PREREQUISITE','OP-05 нельзя выполнить до разделения OP-04.');
  if(done.has('OP-05')&&!done.has('OP-06')&&sectionIsolation.some(x=>x!=='MESH_ISOLATED'))add('OP05_ISOLATION_STATE','После OP-05 все три секции должны быть изолированы металлическими сетчатыми заглушками.');
- if(done.has('OP-06')){
+ if(done.has('OP-06')&&!done.has('OP-11')&&!done.has('OP-14')){
   if(!done.has('OP-05'))add('OP06_PREREQUISITE','OP-06 нельзя выполнить до OP-05.');
   if(queens.length!==3||unfert.length)add('OP06_QUEEN_STATUS','OP-06 допустима только при наличии трёх зарегистрированных плодных маток.');
   if(options.requireLayingObservation===true&&queens.some(q=>q?.layingObserved!==true))add('OP06_EGG_LAYING_NOT_OBSERVED','OP-06 нельзя завершить, пока для каждой из трёх маток не подтверждено фактическое начало яйцекладки.');
@@ -195,13 +207,18 @@ function validateHiveState(s,options={}){
   if(s.winterNestBodies!==3)add('R5_WINTER_NEST_BODIES','Для основной зимовки требуется фактическая сборка одного гнезда на трёх корпусах.');
   if(winteringMode!=='COMBINED')add('R5_WINTERING_MODE','Основная зимняя сборка требует выбранного режима COMBINED.');
  }
- if(s.phase==='ALT_WINTERING'||done.has('OP-12')){
+ if((s.phase==='ALT_WINTERING'||done.has('OP-12'))&&!done.has('OP-14')){
   if(winteringMode!=='ALTERNATIVE_DIAPHRAGMS')add('R7_WINTERING_MODE','Для альтернативной зимовки должен быть выбран режим ALTERNATIVE_DIAPHRAGMS.');
-  if(!Array.isArray(s.diaphragms)||s.diaphragms.length!==2||s.diaphragms.some(x=>!x||x.hasMesh!==true))add('R7_DIAPHRAGMS','Для альтернативной зимовки нужны две сетчатые диафрагмы.');
+  if(!Array.isArray(s.diaphragms)||s.diaphragms.length!==2||s.diaphragms.some(x=>!x||x.hasMesh!==true||(lineageModel&&(!x.itemId||typeof x.itemId!=='string'))))add('R7_DIAPHRAGMS','Для альтернативной зимовки нужны две реальные сетчатые диафрагмы с itemId.');
   if(!Array.isArray(s.sections)||s.sections.length!==3){add('R7_SECTION_COUNT','Для альтернативной зимовки нужны три семьи.');}
   else{
    const counts=s.sections.map(x=>Array.isArray(x?.bodyIds)?x.bodyIds.length:0).sort((a,b)=>a-b);
    if(counts.join(',')!=='1,1,2')add('ALT_WINTER_BODY_LAYOUT','При альтернативной зимовке одна семья занимает два корпуса, две другие — по одному.');
+   if(lineageModel){
+    const positions=s.sections.map(section=>section?.winteringPosition);
+    if(['lower','middle','upper'].some(position=>positions.filter(value=>value===position).length!==1))add('ALT_WINTER_POSITION_REQUIRED','Для каждой семьи укажи фактическую позицию lower, middle или upper.');
+    s.sections.forEach(section=>{const expected=section?.winteringPosition==='lower'?2:1;if(!section?.familyId||section.bodyIds?.length!==expected)add('ALT_WINTER_FAMILY_BODY_LINK','Расположение семьи и количество её корпусов не согласованы.');if(section?.queenIdentityStatus!=='identified'||!section?.queenId)add('ALT_WINTER_QUEEN_IDENTITY_REQUIRED','В альтернативную зимовку каждая самостоятельная семья должна входить с идентифицированной маткой.');});
+   }
   }
  }
  return {valid:errors.length===0,errors,warnings};
@@ -269,7 +286,7 @@ function validateStoredRecords(records,hives,apiaryState){
   if(record.hiveProfileId!==SPEC.id||linkedProfileId!==SPEC.id)add('TECH_HIVE_PROFILE_MISMATCH',{id:record.id,hiveProfileId:record.hiveProfileId??null,linkedProfileId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
-  if(![SPEC.version,'1.6.0','1.5.0','1.4.0','1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
+  if(![SPEC.version,'1.7.0','1.6.0','1.5.0','1.4.0','1.3.0','1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
   if(typeof record.createdAt!=='string'||!Number.isFinite(Date.parse(record.createdAt)))add('TECH_RECORD_CREATED_AT_INVALID',{id:record.id});
   if(typeof record.updatedAt!=='string'||!Number.isFinite(Date.parse(record.updatedAt)))add('TECH_RECORD_UPDATED_AT_INVALID',{id:record.id});
   if(!record.state||typeof record.state!=='object'||Array.isArray(record.state)){add('TECH_RECORD_STATE_INVALID',{id:record.id});return;}
@@ -323,8 +340,16 @@ function validateStoredRecords(records,hives,apiaryState){
     }
    }
   }
-  const result=validateHiveState(record.state,{requireLayingObservation:record.specVersion===SPEC.version||record.state.validationRulesVersion===SPEC.version});
+  const result=validateHiveState(record.state,{requireLayingObservation:record.specVersion===SPEC.version||record.state.validationRulesVersion===SPEC.version,apiaryState,hiveId:record.hiveId});
   result.errors.forEach(error=>add('TECH_RECORD_STATE_'+error.code,{id:record.id,message:error.message}));
+  if(record.state.familyLineageVersion===1){
+   for(const operation of Array.isArray(record.state.operations)?record.state.operations:[]){
+    if(operation?.status==='DONE'&&['OP-04','OP-11','OP-12','OP-14'].includes(operation.operationId)){
+     if(!apiaryState||!FamilyLineage){add('TECH_FAMILY_LINEAGE_CONTEXT_REQUIRED',{id:record.id,operationId:operation.operationId});continue;}
+     FamilyLineage.validateOperationEvidence(apiaryState,record,operation.operationId).forEach(error=>add('TECH_'+error.code,{id:record.id,details:error.details}));
+    }
+   }
+  }
   validatePhysicalR4(record,apiaryState,add);
  });
  return {valid:errors.length===0,errors};
@@ -358,6 +383,7 @@ function transitionOperation(record,operationId,draft,records,hives,apiaryState)
  const operationMatches=operations.filter(item=>item&&item.operationId===operationId);
  if(operationMatches.length!==1){add('OPERATION_REFERENCE_INVALID','Операция должна присутствовать в списке ровно один раз.');return {valid:false,errors};}
  const nextRecord=JSON.parse(JSON.stringify(record));
+ if(draft.status==='DONE'&&apiaryState?.meta?.schemaVersion>=14&&['OP-04','OP-11','OP-12','OP-14'].includes(operationId))nextRecord.state.familyLineageVersion=1;
  const target=nextRecord.state.operations.find(item=>item&&item.operationId===operationId);
  if(operationId==='OP-06'&&draft.status==='DONE')nextRecord.state.validationRulesVersion=SPEC.version;
  target.status=draft.status;
