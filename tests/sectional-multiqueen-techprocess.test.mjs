@@ -376,7 +376,7 @@ function validOp06State() {
     operations: api.SPEC.operations.map(operation => ({
       operationId: operation.id,
       status: ['OP-04', 'OP-05'].includes(operation.id) ? 'DONE' : 'PENDING',
-      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10' } : {}),
+      ...(operation.id === 'OP-04' ? { completedAt: '2027-05-10', additionalBottomsInstalled: true } : {}),
       ...(operation.id === 'OP-05' ? { completedAt: '2027-05-18' } : {})
     }))
   };
