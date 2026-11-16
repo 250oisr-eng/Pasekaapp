@@ -9,13 +9,13 @@ const SPEC=Object.freeze({
   technicalOpeningBufferCorridorRequired:true,metalMeshPlugsPerTechnicalOpeningPerBody:1,
   honeyQueenExcluders:'ONE_PER_SECTION_WHEN_HONEY_BODIES_INSTALLED',
   honeyBodiesCountScope:'WHOLE_HIVE',honeyBodiesExpansion:[2,4],
-  syrupSugarParts:2,syrupWaterParts:1,syrupPortionGrams:[100,200],
+  syrupSugarParts:2,syrupWaterParts:1,syrupGramsPerDayPerColony:[100,200],
   proteinFeedRule:'REFILL_AS_CONSUMED'
  }),
  phases:['WINTER','POST_WINTER','SPRING_DEVELOPMENT','PRE_DIVISION','DIVIDED_3_SECTIONS','HONEY_BODIES_INSTALLED','HONEY_COLLECTION','END_OF_SEASON','AUTUMN_PREP','WINTER_ASSEMBLY','ALT_WINTERING','ALT_WINTERING_SPRING'],
  operations:[
  {id:'OP-01',title:'Весеннее открытие летков',optional:false},
- {id:'OP-02',title:'Весенняя подкормка',optional:false,durationDays:[12,15],syrupPortionGrams:[100,200],syrupRatio:{sugar:2,water:1},proteinFeed:'AS_CONSUMED'},
+ {id:'OP-02',title:'Весенняя подкормка',optional:false,durationDays:[12,15],syrupGramsPerDayPerColony:[100,200],syrupRatio:{sugar:2,water:1},proteinFeed:'AS_CONSUMED'},
  {id:'OP-03',title:'Перестановка корпусов (верх ↔ низ)',optional:true,recommended:true,offsetFrom:'OP-04',offsetDays:[-7,-5]},
  {id:'OP-04',title:'Разделение улья на 3 секции',optional:false,nestBodiesPerSection:2},
  {id:'OP-05',title:'Установка металлических сетчатых заглушек',optional:false,offsetFrom:'OP-04',offsetDays:[8,11],openingDiameterMm:50,scope:'EVERY_TECHNICAL_OPENING_IN_EVERY_BODY'},
@@ -238,8 +238,8 @@ function validateStoredRecords(records,hives){
       if(feedEnd<feedStart||duration<12||duration>15)add('TECH_OP02_DURATION',{id:record.id,duration,expected:[12,15]});
       if(op02.completedAt!==feeding.endDate)add('TECH_OP02_COMPLETION_DATE_MISMATCH',{id:record.id});
      }
-     const feedingAmount=record.specVersion==='1.2.0'?feeding?.gramsPerColonyPerDay:feeding?.portionGrams;
-     if(!Number.isFinite(feedingAmount)||feedingAmount<100||feedingAmount>200)add('TECH_OP02_SYRUP_AMOUNT',{id:record.id,expected:[100,200],field:record.specVersion==='1.2.0'?'gramsPerColonyPerDay':'portionGrams'});
+     const feedingAmount=feeding?.gramsPerColonyPerDay;
+     if(!Number.isFinite(feedingAmount)||feedingAmount<100||feedingAmount>200)add('TECH_OP02_SYRUP_AMOUNT',{id:record.id,expected:[100,200],field:'gramsPerColonyPerDay'});
      if(feeding?.sugarParts!==2||feeding?.waterParts!==1)add('TECH_OP02_SYRUP_RATIO',{id:record.id,expected:{sugar:2,water:1}});
     }
    }
@@ -284,8 +284,7 @@ function transitionOperation(record,operationId,draft,records,hives){
  target.note=note||null;
  if(operationId==='OP-02'&&draft.status==='DONE'){
   const feeding=draft.feeding&&typeof draft.feeding==='object'&&!Array.isArray(draft.feeding)?draft.feeding:{};
-  const legacyFeeding=record.specVersion==='1.2.0';
-  target.feeding={startDate:feeding.startDate||null,endDate:feeding.endDate||null,...(legacyFeeding?{gramsPerColonyPerDay:Number(feeding.gramsPerColonyPerDay)}:{portionGrams:Number(feeding.portionGrams)}),sugarParts:Number(feeding.sugarParts),waterParts:Number(feeding.waterParts)};
+  target.feeding={startDate:feeding.startDate||null,endDate:feeding.endDate||null,gramsPerColonyPerDay:Number(feeding.gramsPerColonyPerDay),sugarParts:Number(feeding.sugarParts),waterParts:Number(feeding.waterParts)};
  }else if(operationId==='OP-02')target.feeding=null;
  target.updatedAt=updatedAt;
  nextRecord.updatedAt=updatedAt;
