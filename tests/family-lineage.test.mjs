@@ -158,3 +158,28 @@ test('family event integrity rejects broken references, duplicate IDs and surviv
  assert.ok(codes.includes('family_event_type_invalid'));
  assert.ok(codes.includes('family_event_time_invalid'));
 });
+
+test('queen reassignment records the immediately previous family while preserving original provenance across repeated cycles',()=>{
+ const state=baseState();
+ const firstMerge=api.applyMerge(state,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-11',resultFamily:{id:'merge-1',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+ assert.equal(firstMerge.ok,true);
+ const firstSplit=api.applySplit(state,{sourceFamilyId:'merge-1',operationId:'OP-04',resultFamilies:children('first')},makeId,'2027-04-01T10:00:00.000Z');
+ assert.equal(firstSplit.ok,true);
+ assert.equal(api.confirmQueenIdentity(state,{familyId:'first-2',queenId:'q2'},makeId,'2027-04-10T10:00:00.000Z').ok,true);
+ state.queens.push({id:'q1-next',familyId:'first-1',status:'current',originFamilyId:'f1'});
+ state.queens.push({id:'q3-next',familyId:'first-3',status:'current',originFamilyId:'f3'});
+ state.families.find(f=>f.id==='first-1').currentQueenId='q1-next';
+ state.families.find(f=>f.id==='first-1').queenIdentityStatus='identified';
+ state.families.find(f=>f.id==='first-3').currentQueenId='q3-next';
+ state.families.find(f=>f.id==='first-3').queenIdentityStatus='identified';
+ const secondMerge=api.applyMerge(state,{sourceFamilyIds:['first-1','first-2','first-3'],operationId:'OP-11',resultFamily:{id:'merge-2',hive:'h1'}},makeId,'2027-10-15T10:00:00.000Z');
+ assert.equal(secondMerge.ok,true);
+ const secondSplit=api.applySplit(state,{sourceFamilyId:'merge-2',operationId:'OP-04',resultFamilies:children('second')},makeId,'2028-04-01T10:00:00.000Z');
+ assert.equal(secondSplit.ok,true);
+ const confirmed=api.confirmQueenIdentity(state,{familyId:'second-2',queenId:'q2'},makeId,'2028-04-10T10:00:00.000Z');
+ assert.equal(confirmed.ok,true);
+ assert.equal(confirmed.queen.originFamilyId,'f2');
+ assert.equal(confirmed.queen.familyId,'second-2');
+ assert.equal(state.queenEvents.at(-1).previousFamilyId,'first-2');
+ assert.deepEqual(api.inspect(state),[]);
+});
