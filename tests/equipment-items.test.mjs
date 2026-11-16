@@ -52,9 +52,9 @@ test('plastic and metal plugs cannot occupy the same physical opening',()=>{
 });
 
 test('accessory IDs cannot collide with an existing physical corpus ID',()=>{
- const s=fixture(),result=E.register(s,{kind:'bottom',storageLocation:'Склад'},()=> 'body-1',now);
+ const s=fixture(),before=JSON.stringify(s),result=E.register(s,{kind:'bottom',storageLocation:'Склад'},()=> 'body-1',now);
  assert.equal(result.ok,false);assert.equal(result.error,'duplicate_item_id');
- assert.equal(s.equipmentInventory,undefined);
+ assert.equal(JSON.stringify(s),before);
 });
 test('JSON backup round-trip preserves accessory identity, location and history',()=>{
  const s=fixture(),item=E.register(s,{kind:'metalMeshPlug',storageLocation:'Склад'},makeId,now).item;
