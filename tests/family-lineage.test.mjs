@@ -214,3 +214,24 @@ test('OP-04 and OP-14 split operations require exactly three result families',()
   assert.equal(state.families.length,3);
  }
 });
+
+
+test('new split lineage group cannot collide with an unrelated existing group',()=>{
+ const state=baseState();
+ state.families[0].colonyGroupId=undefined;
+ state.families[1].colonyGroupId='already-used';
+ const result=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',colonyGroupId:'already-used',resultFamilies:children('collision-child')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'split_colony_group_already_in_use');
+ assert.equal(state.families.length,3);
+});
+
+test('OP-11 and OP-14 merges require exactly three source families',()=>{
+ for(const operationId of ['OP-11','OP-14']){
+  const state=baseState();
+  const result=api.applyMerge(state,{sourceFamilyIds:['f1','f2'],operationId,scenario:operationId==='OP-14'?'EARLY_HONEY':undefined,resultFamily:{id:'bad-merge-'+operationId,hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+  assert.equal(result.ok,false);
+  assert.equal(result.error,'merge_source_families_invalid');
+  assert.equal(state.families.length,3);
+ }
+});

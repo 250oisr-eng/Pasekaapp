@@ -237,7 +237,9 @@ function applySplit(state, request, makeId, now) {
   const used=new Set([...existing,...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean)]);
   if (source.colonyGroupId && request?.colonyGroupId && request.colonyGroupId!==source.colonyGroupId)
    return {ok:false,error:'split_colony_group_change_forbidden'};
-  const colonyGroupId=String(source.colonyGroupId||request?.colonyGroupId||nextId(makeId,used)||'');
+  const lineageGroupIds=new Set(draft.families.map(f=>f?.colonyGroupId).filter(Boolean));
+  const colonyGroupId=String(source.colonyGroupId||request?.colonyGroupId||nextId(makeId,new Set([...used,...lineageGroupIds]))||'');
+  if (!source.colonyGroupId && lineageGroupIds.has(colonyGroupId)) return {ok:false,error:'split_colony_group_already_in_use'};
   if (!colonyGroupId || colonyGroupId.length>160) return {ok:false,error:'colony_group_id_required'};
   const previousMerge=draft.familyEvents.slice().reverse().find(event=>event?.type==='merge'&&event.resultFamilyIds?.includes(source.id));
   const knownCandidateQueenIds=[...new Set([
@@ -272,7 +274,7 @@ function applySplit(state, request, makeId, now) {
 function applyMerge(state, request, makeId, now) {
  return transact(state, draft => {
   const sourceIds=Array.isArray(request?.sourceFamilyIds)?request.sourceFamilyIds:[];
-  if (sourceIds.length<2 || !uniqueStrings(sourceIds)) return {ok:false,error:'merge_source_families_invalid'};
+  if (sourceIds.length<2 || !uniqueStrings(sourceIds) || (['OP-11','OP-14'].includes(request?.operationId)&&sourceIds.length!==3)) return {ok:false,error:'merge_source_families_invalid'};
   const sources=sourceIds.map(id=>draft.families.find(f=>f?.id===id));
   if (sources.some(f=>!f||!isActive(f))) return {ok:false,error:'merge_source_family_missing_or_historical'};
   if (new Set(sources.map(f=>f.hive)).size!==1) return {ok:false,error:'merge_source_hive_mismatch'};
