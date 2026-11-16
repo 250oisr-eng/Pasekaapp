@@ -1851,6 +1851,36 @@ test('Farrar assembly display offers an initial winter selection but marks it un
  assert.deepEqual(view.winterOrder,[1,3,4]);
  assert.equal(JSON.stringify(layout),before);
 });
+test('Farrar assembly display rejects an unknown persisted mode without choosing summer or winter',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ for(const mode of ['unknown','',null,0]){
+  const layout={mode,installedBoxes:[1,3],winterOrder:[],honeyBoxInstalled:[false,false]};
+  const before=JSON.stringify(layout),view=resolve(layout);
+  assert.equal(view.modeValid,false);
+  assert.equal(view.mode,null);
+  assert.equal(view.winterValid,false);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
+test('Farrar assembly display rejects coerced or duplicate persisted box identifiers',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ for(const installedBoxes of [['1',3],[1,1],[1,7],[1.5,3],{0:1,1:3}]){
+  const layout={mode:'summer',installedBoxes,winterOrder:[],honeyBoxInstalled:[false,false]};
+  const before=JSON.stringify(layout),view=resolve(layout);
+  assert.equal(view.installedValid,false);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
+test('Farrar assembly display rejects malformed honey flags instead of coercing them',()=>{
+ const resolve=loadFunction('farrarAssemblyDisplayState');
+ for(const honeyBoxInstalled of [[1,0],[true],[false,false,false],'false,false']){
+  const layout={mode:'summer',installedBoxes:[1,3],winterOrder:[],honeyBoxInstalled};
+  const before=JSON.stringify(layout),view=resolve(layout);
+  assert.equal(view.honeyPairValid,false);
+  assert.equal(view.honeyConflict,true);
+  assert.equal(JSON.stringify(layout),before);
+ }
+});
 test('Farrar assembly edit refuses malformed saved lists without changing the layout',()=>{
  const layout={mode:'summer',setupEditing:false,installedBoxes:{0:1},winterOrder:[],honeyBoxInstalled:[false,false],boxes:{}};
  const before=JSON.stringify(layout),messages=[];
