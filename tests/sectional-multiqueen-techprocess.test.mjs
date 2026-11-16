@@ -191,7 +191,7 @@ test('OP-06 requires observed egg laying for all three queens', () => {
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
     queens: [
       { id: 'queen-1', status: 'FERTILIZED', layingObserved: true },
-      { id: 'queen-2', status: 'FERTILIZED', layingObserved: true, layingObserved: false },
+      { id: 'queen-2', status: 'FERTILIZED', layingObserved: false },
       { id: 'queen-3', status: 'FERTILIZED', layingObserved: true }
     ],
     meshPlugs: []
