@@ -106,3 +106,19 @@ test('a physical section cannot point to a different or unresolved queen record'
  const result=api.validate(record,apiary);
  assert.ok(result.errors.some(x=>x.code==='PHYSICAL_LAYOUT_SECTION_QUEEN_REFERENCE'));
 });
+
+test('a merged single family remains one physical column on one bottom',()=>{
+ const {record,apiary}=fixture('SINGLE_STACK_ONE_FAMILY');
+ const result=api.validate(record,apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+});
+
+test('an unresolved queen remains explicitly unassigned to its family section',()=>{
+ const {record,apiary}=fixture();
+ record.state.sections[1].queenId=null;
+ apiary.families[1].currentQueenId=null;
+ apiary.families[1].queenIdentityStatus='unresolved';
+ apiary.queens[1].status='unknown';
+ const result=api.validate(record,apiary);
+ assert.equal(result.valid,true,JSON.stringify(result.errors));
+});
