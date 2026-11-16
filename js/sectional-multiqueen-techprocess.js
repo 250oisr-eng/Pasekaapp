@@ -1,13 +1,13 @@
 (() => {
 'use strict';
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.6.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.7.0',language:'ru',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
   nestBodiesPerSectionAtDivision:2,additionalBottomsAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
   permanentQueenExcludersInTechnicalOpenings:true,queenExcluderLayersPerConnection:2,
   technicalOpeningBufferCorridorRequired:true,metalMeshPlugsPerTechnicalOpeningPerBody:1,
-  honeyQueenExcluders:'UNCONFIRMED_SOURCE_CONFLICT',
+  honeyQueenExcluders:'TWO_FULL_OUTER_AND_TWO_HALF_SHARED_CENTER',
   honeyBodiesCountScope:'WHOLE_HIVE',honeyBodiesExpansion:[2,4],
   syrupSugarParts:2,syrupWaterParts:1,syrupDailyGrams:[100,200],
   proteinFeedRule:'REFILL_AS_CONSUMED'
@@ -153,8 +153,35 @@ function validateHiveState(s,options={}){
  if(done.has('OP-14')&&c.honeyBodiesCount!==2)add('OP14_EARLY_HONEY_BODY_COUNT','В сценарии раннего медосбора по источнику устанавливаются только два медовых корпуса.');
  
  if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07')){
-  add('R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED','OP-07 заблокирована: исходный DOCX описывает две большие разделительные решётки, а текущая модель требует три. Необходимо подтвердить фактическое расположение решёток относительно трёх секций; число и схему нельзя предполагать.');
   if(![2,4].includes(c.honeyBodiesCount))add('R4_HONEY_BODY_COUNT','Для постановки медовых корпусов укажи подтверждённое общее количество: 2 или 4.');
+  const grids=Array.isArray(s.honeyQueenExcluders)?s.honeyQueenExcluders:[];
+  if(grids.length!==2)add('R4_QUEEN_EXCLUDER_COUNT','Для этой конструкции нужны ровно две большие разделительные решётки.');
+  const upperBodyIds=new Set();
+  sections.forEach((section,index)=>{
+   if(!section||typeof section.upperBodyId!=='string'||!section.upperBodyId.trim()||!Array.isArray(section.bodyIds)||!section.bodyIds.includes(section.upperBodyId)){
+    add('R4_UPPER_NEST_BODY_REFERENCE','Для секции '+(index+1)+' укажи upperBodyId — ID верхнего шестирамочного корпуса из bodyIds.');
+   }else upperBodyIds.add(section.upperBodyId);
+  });
+  if(sections.length===3&&upperBodyIds.size!==3)add('R4_UPPER_NEST_BODY_DUPLICATE','Верхние шестирамочные корпуса трёх секций должны иметь разные ID.');
+  const gridIds=new Set(),fullBodies=[],halfBodies=[];
+  grids.forEach((grid,index)=>{
+   if(!grid||typeof grid!=='object'||Array.isArray(grid)){add('R4_EXCLUDER_INVALID','Большая решётка '+(index+1)+' имеет неверный формат.');return;}
+   if(typeof grid.id!=='string'||!grid.id.trim()||gridIds.has(grid.id))add('R4_EXCLUDER_ID','У каждой большой решётки должен быть уникальный непустой ID.');
+   else gridIds.add(grid.id);
+   const coverage=Array.isArray(grid.coverage)?grid.coverage:[];
+   if(coverage.length!==2||coverage.some(x=>!x||typeof x.bodyId!=='string'||!['FULL','HALF'].includes(x.coverage))||coverage.filter(x=>x.coverage==='FULL').length!==1||coverage.filter(x=>x.coverage==='HALF').length!==1||new Set(coverage.map(x=>x.bodyId)).size!==2){
+    add('R4_EXCLUDER_FOOTPRINT','Каждая большая решётка должна перекрывать ровно два разных верхних корпуса: один FULL и один HALF.');
+    return;
+   }
+   const full=coverage.find(x=>x.coverage==='FULL').bodyId,half=coverage.find(x=>x.coverage==='HALF').bodyId;
+   if(!upperBodyIds.has(full)||!upperBodyIds.has(half))add('R4_EXCLUDER_BODY_REFERENCE','Решётка должна ссылаться только на верхние шестирамочные корпуса трёх секций.');
+   fullBodies.push(full);halfBodies.push(half);
+  });
+  if(grids.length===2&&fullBodies.length===2&&halfBodies.length===2){
+   if(new Set(fullBodies).size!==2)add('R4_EXCLUDER_FULL_OVERLAP','Две решётки должны полностью перекрывать разные крайние верхние корпуса.');
+   if(halfBodies[0]!==halfBodies[1])add('R4_EXCLUDER_SHARED_CENTER','Половины двух решёток должны приходиться на один и тот же средний верхний корпус.');
+   if(new Set([...fullBodies,...halfBodies]).size!==3)add('R4_EXCLUDER_THREE_BODY_FOOTPRINT','Две решётки вместе должны покрывать ровно три верхних шестирамочных корпуса.');
+  }
  }
 
  const winteringMode=c.winteringMode??s.winteringMode;

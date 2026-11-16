@@ -38,6 +38,22 @@ function dividedState(overrides = {}) {
     ...overrides
   };
 }
+function honeyExcluderFixture() {
+  return [
+    { id: 'large-grid-left', coverage: [{ bodyId: 'body-1-b', coverage: 'FULL' }, { bodyId: 'body-2-b', coverage: 'HALF' }] },
+    { id: 'large-grid-right', coverage: [{ bodyId: 'body-2-b', coverage: 'HALF' }, { bodyId: 'body-3-b', coverage: 'FULL' }] }
+  ];
+}
+function honeyReadyState(overrides = {}) {
+  return dividedState({
+    phase: 'HONEY_BODIES_INSTALLED',
+    config: { honeyBodiesCount: 2 },
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
+    sections: [1, 2, 3].map(index => sectionFixture(index, { upperBodyId: `body-${index}-b`, isolation: 'CONNECTED' })),
+    honeyQueenExcluders: honeyExcluderFixture(),
+    ...overrides
+  });
+}
 
 
 test('sectional tech-process model loads before the app and is cached offline', () => {
@@ -70,7 +86,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.6.0');
+  assert.equal(api.SPEC.version, '1.7.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -229,7 +245,7 @@ test('OP-06 egg-laying rule is versioned and legacy records remain readable', ()
   const hive = [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }];
   assert.equal(api.validateStoredRecords([legacy], hive).valid, true);
 
-  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.6.0' };
+  const current = { ...legacy, id: 'tp-op06-current', specVersion: '1.7.0' };
   assert.ok(api.validateStoredRecords([current], hive).errors.some(x => x.code === 'TECH_RECORD_STATE_OP06_EGG_LAYING_NOT_OBSERVED'));
 
   const pending = structuredClone(legacy);
@@ -258,21 +274,43 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
 
 test('R4 requires queen excluder before honey bodies', () => {
   const result = api.validateHiveState(dividedState({ phase: 'HONEY_BODIES_INSTALLED' }));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
 });
 
 
-test('R4 blocks OP-07 regardless of guessed two-or-three grid count', () => {
-  for (const count of [2, 3]) {
-    const result = api.validateHiveState(dividedState({
-      phase: 'HONEY_BODIES_INSTALLED',
-      queenExcluderBetweenNestAndHoney: true,
-      honeyQueenExcluderCount: count,
-      config: { honeyBodiesCount: 2 }
-    }));
-    assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
-    assert.equal(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'), false);
-  }
+test('R4 accepts two large excluders whose half-footprints meet on the middle upper nest body', () => {
+  const result = api.validateHiveState(honeyReadyState());
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.errors, []);
+});
+
+test('R4 requires exactly two large excluders and explicit upper-body references', () => {
+  const missing = api.validateHiveState(honeyReadyState({ honeyQueenExcluders: [honeyExcluderFixture()[0]] }));
+  assert.ok(missing.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
+
+  const noUpperIds = api.validateHiveState(honeyReadyState({
+    sections: [1, 2, 3].map(index => sectionFixture(index))
+  }));
+  assert.ok(noUpperIds.errors.some(x => x.code === 'R4_UPPER_NEST_BODY_REFERENCE'));
+});
+
+test('R4 rejects excluder halves that do not share the same middle body', () => {
+  const grids = honeyExcluderFixture();
+  grids[1].coverage[0].bodyId = 'body-1-b';
+  const result = api.validateHiveState(honeyReadyState({ honeyQueenExcluders: grids }));
+  assert.ok(result.errors.some(x => x.code === 'R4_EXCLUDER_SHARED_CENTER'));
+});
+
+test('R4 rejects duplicate full coverage and references outside the three upper bodies', () => {
+  const duplicateFull = honeyExcluderFixture();
+  duplicateFull[1].coverage[1].bodyId = 'body-1-b';
+  const first = api.validateHiveState(honeyReadyState({ honeyQueenExcluders: duplicateFull }));
+  assert.ok(first.errors.some(x => x.code === 'R4_EXCLUDER_FULL_OVERLAP'));
+
+  const outside = honeyExcluderFixture();
+  outside[0].coverage[0].bodyId = 'not-an-upper-body';
+  const second = api.validateHiveState(honeyReadyState({ honeyQueenExcluders: outside }));
+  assert.ok(second.errors.some(x => x.code === 'R4_EXCLUDER_BODY_REFERENCE'));
 });
 
 test('R6 rejects selecting both wintering methods', () => {
@@ -646,7 +684,7 @@ test('OP-04 requires explicit confirmation of two additional bottoms and preserv
     status: 'DONE', completedAt: '2027-05-10', additionalBottomsInstalled: true, updatedAt: '2027-05-10T10:00:00.000Z'
   }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(confirmed.valid, true);
-  assert.equal(confirmed.record.specVersion, '1.6.0');
+  assert.equal(confirmed.record.specVersion, '1.7.0');
   assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
 
   const currentUnconfirmed = structuredClone(record);
@@ -698,8 +736,8 @@ test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', 
     meshPlugs: []
   }));
   assert.ok(result.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
+  assert.ok(result.errors.some(x => x.code === 'R4_UPPER_NEST_BODY_REFERENCE'));
   assert.ok(result.errors.some(x => x.code === 'R4_HONEY_BODY_COUNT'));
 });
 
