@@ -57,9 +57,9 @@ function register(state,request,makeId,now){return transact(state,draft=>registe
 function placeUnsafe(state,request,makeId,now){
  const inv=ensure(state),item=inv.items[String(request?.itemId||'')];
  if(!item)return {ok:false,error:'item_missing'};
- if(item.condition==='repair'||item.condition==='retired')return {ok:false,error:'item_not_installable'};
  const location=normalizeLocation(request?.location);
  if(!location)return {ok:false,error:'invalid_location'};
+ if(location.type==='hive'&&(item.condition==='repair'||item.condition==='retired'))return {ok:false,error:'item_not_installable'};
  if(location.type==='hive'&&!state.hives?.some(h=>h?.id===location.hiveId))return {ok:false,error:'hive_missing'};
  if(location.type==='hive'&&location.bodyId){
   const bodyExists=Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===location.hiveId&&Object.values(layout?.corpusIds||{}).includes(location.bodyId));
