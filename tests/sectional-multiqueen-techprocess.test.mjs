@@ -696,7 +696,7 @@ test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', 
     meshPlugs: []
   }));
   assert.ok(result.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
   assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
   assert.ok(result.errors.some(x => x.code === 'R4_HONEY_BODY_COUNT'));
 });
