@@ -128,8 +128,20 @@ function inspect(state) {
    if (family && family.currentQueenId !== event.queenId) add('queen_identity_family_link_mismatch',{eventId:event.id,familyId:family.id,queenId:event.queenId??null});
    if (queen && queen.familyId !== event.familyId) add('queen_identity_queen_link_mismatch',{eventId:event.id,queenId:queen.id,familyId:event.familyId??null});
   }
-  if (event.type === 'placement_changed' && (!event.familyId || !familyMap.has(event.familyId)))
-   add('family_placement_event_family_missing',{eventId:event.id,familyId:event.familyId??null});
+  if (event.type === 'placement_changed') {
+   const family=familyMap.get(event.familyId);
+   if (!family) add('family_placement_event_family_missing',{eventId:event.id,familyId:event.familyId??null});
+   if (!uniqueStrings(event.familyIds) || event.familyIds.length!==3 || !event.familyIds.includes(event.familyId)) add('family_placement_event_group_invalid',{eventId:event.id});
+   if (!['middle','upper'].includes(event.from?.position) || event.to?.position!=='separate_bottom') add('family_placement_event_positions_invalid',{eventId:event.id});
+   if (!uniqueStrings(event.from?.bodyIds) || event.from.bodyIds.length!==1 || !uniqueStrings(event.to?.bodyIds) || event.to.bodyIds.length!==2) add('family_placement_event_body_refs_invalid',{eventId:event.id});
+   const bodyMap=state.equipmentInventory?.bodies||{};
+   for (const bodyId of [...(Array.isArray(event.from?.bodyIds)?event.from.bodyIds:[]),...(Array.isArray(event.to?.bodyIds)?event.to.bodyIds:[])]) if (!bodyMap[bodyId] || bodyMap[bodyId].id!==bodyId) add('family_placement_event_body_missing',{eventId:event.id,bodyId});
+   const itemMap=state.equipmentInventory?.items||{},bottom=itemMap[event.to?.bottomItemId];
+   if (!bottom || bottom.id!==event.to?.bottomItemId || bottom.kind!=='bottom') add('family_placement_event_bottom_missing',{eventId:event.id,bottomItemId:event.to?.bottomItemId??null});
+   const snapshot=event.bottomSnapshot;
+   if (!snapshot || snapshot.itemId!==event.to?.bottomItemId || snapshot.kind!=='bottom' || snapshot.condition!=='good' || snapshot.hiveId!==event.hiveId || !snapshot.positionLabel) add('family_placement_event_bottom_snapshot_invalid',{eventId:event.id});
+   for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[]) if (!familyMap.has(familyId)) add('family_event_family_missing',{eventId:event.id,familyId});
+  }
  }
  return errors;
 }
@@ -304,6 +316,33 @@ function configureAlternativeWintering(state, request, makeId, now) {
   return {ok:true,event};
  });
 }
+function recordPlacementChanged(state, request, makeId, now) {
+ return transact(state, draft => {
+  const familyIds=Array.isArray(request?.familyIds)?request.familyIds:[];
+  if (!uniqueStrings(familyIds)||familyIds.length!==3) return {ok:false,error:'placement_family_group_invalid'};
+  const families=familyIds.map(id=>draft.families.find(f=>f?.id===id));
+  if (families.some(f=>!f||!isActive(f))) return {ok:false,error:'placement_family_missing_or_historical'};
+  if (new Set(families.map(f=>f.hive)).size!==1) return {ok:false,error:'placement_hive_mismatch'};
+  const family=families.find(row=>row.id===request?.familyId);
+  if (!family || !['middle','upper'].includes(request?.from?.position)) return {ok:false,error:'placement_source_invalid'};
+  if (request?.to?.position!=='separate_bottom') return {ok:false,error:'placement_target_invalid'};
+  const fromBodyIds=Array.isArray(request?.from?.bodyIds)?request.from.bodyIds:[];
+  const toBodyIds=Array.isArray(request?.to?.bodyIds)?request.to.bodyIds:[];
+  if (!uniqueStrings(fromBodyIds)||fromBodyIds.length!==1||!uniqueStrings(toBodyIds)||toBodyIds.length!==2)
+   return {ok:false,error:'placement_body_references_invalid'};
+  const bodyMap=draft.equipmentInventory?.bodies||{};
+  if ([...fromBodyIds,...toBodyIds].some(id=>!bodyMap[id]||bodyMap[id].id!==id))
+   return {ok:false,error:'placement_body_reference_missing'};
+  const bottom=draft.equipmentInventory?.items?.[request?.to?.bottomItemId];
+  if (!bottom||bottom.kind!=='bottom'||bottom.condition!=='good'||bottom.location?.type!=='hive'||bottom.location?.hiveId!==family.hive||!bottom.location?.positionLabel)
+   return {ok:false,error:'placement_bottom_not_installed'};
+  const at=now||new Date().toISOString(),eventId=nextId(makeId,new Set(draft.familyEvents.map(e=>e?.id).filter(Boolean)));
+  if (!eventId) return {ok:false,error:'family_event_id_required'};
+  const event={id:eventId,type:'placement_changed',familyId:family.id,familyIds,hiveId:family.hive,operationId:'OP-13',scenario:'ALT_WINTERING_SPRING',techProcessId:request?.techProcessId||null,from:{position:request.from.position,bodyIds:fromBodyIds},to:{position:'separate_bottom',bottomItemId:bottom.id,bodyIds:toBodyIds},bottomSnapshot:{itemId:bottom.id,kind:bottom.kind,condition:bottom.condition,hiveId:family.hive,positionLabel:bottom.location.positionLabel},occurredAt:request?.occurredAt||at,createdAt:at};
+  draft.familyEvents.push(event);
+  return {ok:true,event};
+ });
+}
 function recordEarlyHoneyHarvest(state, request, makeId, now) {
  return transact(state, draft => {
   const familyIds=Array.isArray(request?.familyIds)?request.familyIds:[];
@@ -367,16 +406,45 @@ function validateOperationEvidence(state, record, operationId) {
     add('OP12_BODY_LAYOUT_REQUIRED',{techProcessId});
   }
  }
+ if (operationId==='OP-13') {
+  const moves=matches('placement_changed').filter(event=>event.scenario==='ALT_WINTERING_SPRING');
+  if (moves.length!==2) add('OP13_TWO_UPPER_FAMILY_MOVES_REQUIRED',{techProcessId});
+  else {
+   const movedIds=moves.map(event=>event.familyId),fromPositions=moves.map(event=>event.from?.position);
+   if (new Set(movedIds).size!==2 || !['middle','upper'].every(position=>fromPositions.includes(position))) add('OP13_MIDDLE_AND_UPPER_MOVES_REQUIRED',{techProcessId});
+   if (new Set(moves.map(event=>event.to?.bottomItemId)).size!==2) add('OP13_SEPARATE_BOTTOMS_REQUIRED',{techProcessId});
+   const familyGroupIds=moves[0].familyIds;
+   if (moves.some(event=>!sameSet(event.familyIds,familyGroupIds))) add('OP13_FAMILY_GROUP_MISMATCH',{techProcessId});
+   const laterEarlyHoney=record.state.operations?.some(operation=>operation?.operationId==='OP-14'&&operation.status==='DONE');
+   if (!laterEarlyHoney) {
+    if (!sameSet(familyGroupIds,sectionFamilyIds)) add('OP13_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
+    for (const familyId of familyGroupIds) {
+     const family=state.families.find(row=>row?.id===familyId);
+     if (!family || !isActive(family) || !family.currentQueenId || family.queenIdentityStatus==='unresolved') add('OP13_FAMILIES_MUST_REMAIN_INDEPENDENT',{familyId});
+    }
+    const lower=sections.find(section=>section?.familyId&&familyGroupIds.includes(section.familyId)&&section.winteringPosition==='lower');
+    if (!lower || lower.bodyIds?.length<2) add('OP13_STRONG_LOWER_FAMILY_REMAINS',{techProcessId});
+    for (const move of moves) {
+     const section=sections.find(row=>row?.familyId===move.familyId);
+     if (!section || section.winteringPosition!=='separate_bottom' || section.bodyIds?.length!==2) add('OP13_SEPARATE_BOTTOM_STATE_MISMATCH',{familyId:move.familyId});
+    }
+   }
+  }
+ }
  if (operationId==='OP-14') {
+  const placements=matches('placement_changed').filter(event=>event.scenario==='ALT_WINTERING_SPRING');
   const harvests=matches('early_honey_harvest_completed');
   const merges=matches('merge').filter(event=>event.scenario==='EARLY_HONEY'&&event.sourceFamilyIds?.length===3&&event.resultFamilyIds?.length===1);
   const splits=matches('split').filter(event=>event.scenario==='EARLY_HONEY'&&event.sourceFamilyIds?.length===1&&event.resultFamilyIds?.length===3);
+  if (placements.length!==2) add('OP14_SPRING_PLACEMENT_EVENTS_REQUIRED',{techProcessId});
   if (harvests.length!==1) add('OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED',{techProcessId});
   if (merges.length!==1) add('OP14_TEMPORARY_MERGE_EVENT_REQUIRED',{techProcessId});
   if (splits.length!==1) add('OP14_REPEAT_SPLIT_EVENT_REQUIRED',{techProcessId});
-  if (harvests.length===1&&merges.length===1&&splits.length===1) {
+  if (placements.length===2&&harvests.length===1&&merges.length===1&&splits.length===1) {
    const harvest=harvests[0],merge=merges[0],split=splits[0];
    if (!sameSet(harvest.familyIds,merge.sourceFamilyIds)) add('OP14_HARVEST_MERGE_FAMILY_MISMATCH',{techProcessId});
+   if (placements.some(event=>!sameSet(event.familyIds,harvest.familyIds)) || new Set(placements.map(event=>event.familyId)).size!==2 || !['middle','upper'].every(position=>placements.some(event=>event.from?.position===position))) add('OP14_SPRING_PLACEMENT_FAMILY_MISMATCH',{techProcessId});
+   if (placements.some(event=>Date.parse(event.occurredAt)>Date.parse(harvest.occurredAt))) add('OP14_PLACEMENT_AFTER_HARVEST',{techProcessId});
    if (!sameSet(split.sourceFamilyIds,merge.resultFamilyIds)) add('OP14_REPEAT_SPLIT_SOURCE_MISMATCH',{techProcessId});
    if (!sameSet(split.resultFamilyIds,sectionFamilyIds)) add('OP14_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
    if (split.resultFamilyIds.some(id=>!isActive(state.families.find(f=>f?.id===id)))) add('OP14_RESULT_FAMILIES_NOT_ACTIVE',{techProcessId});
@@ -391,6 +459,6 @@ function validateOperationEvidence(state, record, operationId) {
 }
 window.PasekaFamilyLineage=Object.freeze({
  EVENT_TYPES,inspect,isActive,familyStatus,applySplit,applyMerge,confirmQueenIdentity,
- configureAlternativeWintering,recordEarlyHoneyHarvest,validateOperationEvidence
+ configureAlternativeWintering,recordPlacementChanged,recordEarlyHoneyHarvest,validateOperationEvidence
 });
 })();
