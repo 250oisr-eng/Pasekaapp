@@ -25,3 +25,20 @@ test('accessory integrity participates in live apiary and backup validation',()=
  assert.match(html,/PasekaEquipmentItems\.validateReferences\(state\)/);
  assert.match(html,/if\(state\.equipmentInventory\?\.items!=null\)/);
 });
+
+test('import integrity rejects plugs without opening IDs and duplicate occupancy',()=>{
+ const s=fixture();
+ s.equipmentInventory.items={
+  plugA:{id:'plugA',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1'}},
+  plugB:{id:'plugB',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}},
+  plugC:{id:'plugC',kind:'metalMeshPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'body-1',openingId:'body-1:left'}}
+ };
+ const errors=E.inspect(s);
+ assert.ok(errors.some(x=>x.code==='item_opening_reference_required'&&x.details.itemId==='plugA'));
+ assert.ok(errors.some(x=>x.code==='item_opening_occupied'));
+});
+test('import integrity rejects permanent technical excluders without a connection ID',()=>{
+ const s=fixture();
+ s.equipmentInventory.items={grid:{id:'grid',kind:'technicalQueenExcluder',condition:'good',location:{type:'hive',hiveId:'h1',sectionId:'S1'}}};
+ assert.ok(E.inspect(s).some(x=>x.code==='item_connection_reference_required'));
+});
