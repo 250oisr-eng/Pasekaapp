@@ -90,14 +90,21 @@ function updateCondition(state,request,makeId,now){
 function inspect(state){
  const errors=[],inv=state?.equipmentInventory;if(!inv)return errors;
  if(inv.items!=null&&(typeof inv.items!=='object'||Array.isArray(inv.items))){errors.push({code:'invalid_equipment_items'});return errors}
+ const occupiedOpenings=new Map();
  for(const [id,item] of Object.entries(inv.items||{})){
   if(!item||typeof item!=='object'||Array.isArray(item)||item.id!==id){errors.push({code:'invalid_item_identity',details:{itemId:id}});continue}
   if(!kinds.has(item.kind))errors.push({code:'invalid_item_kind',details:{itemId:id,kind:item.kind}});
   if(!conditions.has(item.condition))errors.push({code:'invalid_item_condition',details:{itemId:id,condition:item.condition}});
   if(!normalizeLocation(item.location))errors.push({code:'invalid_item_location',details:{itemId:id}});
-  if(item.events!=null&&!Array.isArray(item.events))errors.push({code:'invalid_item_events',details:{itemId:id}});
+  if(item.events!=null&&(!Array.isArray(item.events)||!item.events.every(event=>event&&typeof event==='object'&&!Array.isArray(event))))errors.push({code:'invalid_item_events',details:{itemId:id}});
+  const location=item.location;
+  if(location?.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)){
+   if(!location.openingId)errors.push({code:'item_opening_reference_required',details:{itemId:id}});
+   else{const key=item.kind+'|'+location.hiveId+'|'+location.openingId;if(occupiedOpenings.has(key))errors.push({code:'item_opening_occupied',details:{itemIds:[occupiedOpenings.get(key),id],openingId:location.openingId}});else occupiedOpenings.set(key,id)}
+  }
+  if(location?.type==='hive'&&item.kind==='technicalQueenExcluder'&&!location.connectionId)errors.push({code:'item_connection_reference_required',details:{itemId:id}});
  }
- if(inv.itemEvents!=null&&!Array.isArray(inv.itemEvents))errors.push({code:'invalid_equipment_item_events'});
+ if(inv.itemEvents!=null&&(!Array.isArray(inv.itemEvents)||!inv.itemEvents.every(event=>event&&typeof event==='object'&&!Array.isArray(event))))errors.push({code:'invalid_equipment_item_events'});
  return errors;
 }
 function validateReferences(state){
