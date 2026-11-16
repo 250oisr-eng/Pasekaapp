@@ -320,6 +320,7 @@ function confirmQueenIdentity(state, request, makeId, now) {
   const queen=draft.queens.find(q=>q?.id===request?.queenId);
   if (!family || !isActive(family)) return {ok:false,error:'identity_family_missing_or_historical'};
   if (!queen) return {ok:false,error:'identity_queen_missing'};
+   if (queen.status !== 'unknown') return {ok:false,error:'identity_queen_not_unknown'};
   if (family.currentQueenId && family.currentQueenId!==queen.id) return {ok:false,error:'identity_family_already_has_queen'};
   if (draft.families.some(f=>f?.id!==family.id&&isActive(f)&&f.currentQueenId===queen.id))
    return {ok:false,error:'identity_queen_already_assigned'};
