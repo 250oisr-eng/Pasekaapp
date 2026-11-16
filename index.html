@@ -677,7 +677,7 @@ function assertBackupNotFromNewerSchema(backup){
 }
 function writeMainWithBackup(state,expectedRevision){
  return new Promise((ok,no)=>{
-  let previous=null,previousBackup=null,conflict=null,failure=null,tx,settled=false,mainReady=false,backupReady=false;
+  let previous=null,previousBackup=null,conflict=null,failure=null,tx,mainStore=null,backupStore=null,settled=false,mainReady=false,backupReady=false;
   const rejectOnce=error=>{if(!settled){settled=true;no(error)}};
   const abortWithError=error=>{failure=error||new Error('Не удалось сохранить текущие данные перед восстановлением');try{tx.abort()}catch(abortError){rejectOnce(failure)}};
   const commitIfReady=()=>{
@@ -690,14 +690,14 @@ function writeMainWithBackup(state,expectedRevision){
    }
    try{
     assertBackupNotFromNewerSchema(previousBackup);
-    main.put(state,'state');
-    if(previous)backup.put({at:new Date().toISOString(),state:previous},'previous');
+    mainStore.put(state,'state');
+    if(previous)backupStore.put({at:new Date().toISOString(),state:previous},'previous');
    }catch(e){abortWithError(e)}
   };
   try{
    tx=db.transaction([STORE,BACKUP_STORE],'readwrite');
-   const main=tx.objectStore(STORE),backup=tx.objectStore(BACKUP_STORE);
-   const q=main.get('state'),backupRequest=backup.get('previous');
+   mainStore=tx.objectStore(STORE);backupStore=tx.objectStore(BACKUP_STORE);
+   const q=mainStore.get('state'),backupRequest=backupStore.get('previous');
    q.onsuccess=()=>{previous=q.result||null;mainReady=true;commitIfReady()};
    backupRequest.onsuccess=()=>{previousBackup=backupRequest.result||null;backupReady=true;commitIfReady()};
    q.onerror=()=>abortWithError(q.error||new Error('Не удалось прочитать текущую базу перед восстановлением'));
@@ -710,7 +710,7 @@ function writeMainWithBackup(state,expectedRevision){
 }
 function writeAutoBackup(state,expectedRevision){
  return new Promise((ok,no)=>{
-  let tx,written=false,failure=null,settled=false,q,backupRequest,current=null,previousBackup=null,mainReady=false,backupReady=false;
+  let tx,written=false,failure=null,settled=false,q,backupRequest,mainStore=null,backupStore=null,current=null,previousBackup=null,mainReady=false,backupReady=false;
   const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось обновить автокопию'))}};
   const abortWithError=error=>{
    failure=error||new Error('Не удалось записать автоматическую резервную копию');
@@ -721,14 +721,14 @@ function writeAutoBackup(state,expectedRevision){
    if((current?.meta?.revisionId||null)!==expectedRevision)return;
    try{
     assertBackupNotFromNewerSchema(previousBackup);
-    backup.put({at:new Date().toISOString(),state},'previous');
+    backupStore.put({at:new Date().toISOString(),state},'previous');
     written=true;
    }catch(error){abortWithError(error)}
   };
   try{
    tx=db.transaction([STORE,BACKUP_STORE],'readwrite');
-   const main=tx.objectStore(STORE),backup=tx.objectStore(BACKUP_STORE);
-   q=main.get('state');backupRequest=backup.get('previous');
+   mainStore=tx.objectStore(STORE);backupStore=tx.objectStore(BACKUP_STORE);
+   q=mainStore.get('state');backupRequest=backupStore.get('previous');
    q.onsuccess=()=>{current=q.result||null;mainReady=true;writeIfReady()};
    backupRequest.onsuccess=()=>{previousBackup=backupRequest.result||null;backupReady=true;writeIfReady()};
    q.onerror=()=>abortWithError(q.error||new Error('Не удалось проверить ревизию основной базы перед обновлением автокопии'));

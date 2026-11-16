@@ -1419,7 +1419,7 @@ test('startup preserves the existing automatic backup when repairing it fails fr
  assert.equal(await ensure(current,malformed),false);
  assert.equal(reads,0);
  assert.equal(current.meta.autoBackupError,'Недостаточно места для создания полной резервной копии');
- assert.equal(malformed.state.meta.schemaVersion,13,'the invalid prior backup must not be mutated');
+ assert.equal(malformed.state.meta.schemaVersion,12,'the invalid prior backup must not be mutated');
 });
 
 test('backup shape validator accepts a minimal valid empty apiary',()=>{
