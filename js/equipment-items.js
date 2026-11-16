@@ -33,16 +33,18 @@ function normalizeLocation(input,kind){
   if(input[key]!=null){const value=String(input[key]).trim();if(!value||value.length>160)return null;result[key]=value;}
  }
  if(kind==='honeyQueenExcluder'){
-  const footprint=input.footprint;
-  if(!Array.isArray(footprint)||footprint.length!==2||result.bodyId||result.sectionId||result.openingId||result.connectionId)return null;
-  const normalized=footprint.map(part=>{
-   if(!part||typeof part!=='object'||Array.isArray(part))return null;
-   const bodyId=String(part.bodyId||'').trim(),coverage=part.coverage;
-   if(!bodyId||bodyId.length>160||!['FULL','HALF'].includes(coverage))return null;
-   return {bodyId,coverage};
-  });
-  if(normalized.some(x=>!x)||new Set(normalized.map(x=>x.bodyId)).size!==2||normalized.filter(x=>x.coverage==='FULL').length!==1||normalized.filter(x=>x.coverage==='HALF').length!==1)return null;
-  result.footprint=normalized;
+  if(input.footprint!==undefined){
+   const footprint=input.footprint;
+   if(!Array.isArray(footprint)||footprint.length!==2||result.bodyId||result.sectionId||result.openingId||result.connectionId)return null;
+   const normalized=footprint.map(part=>{
+    if(!part||typeof part!=='object'||Array.isArray(part))return null;
+    const bodyId=String(part.bodyId||'').trim(),coverage=part.coverage;
+    if(!bodyId||bodyId.length>160||!['FULL','HALF'].includes(coverage))return null;
+    return {bodyId,coverage};
+   });
+   if(normalized.some(x=>!x)||new Set(normalized.map(x=>x.bodyId)).size!==2||normalized.filter(x=>x.coverage==='FULL').length!==1||normalized.filter(x=>x.coverage==='HALF').length!==1)return null;
+   result.footprint=normalized;
+  }
  }else if(input.footprint!==undefined)return null;
  if(!['sectionId','bodyId','openingId','connectionId','positionLabel'].some(key=>result[key])&&!result.footprint)return null;
  return result;
