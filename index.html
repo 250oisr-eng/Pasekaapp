@@ -575,7 +575,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/deadout-review.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
-function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function validateJournalRecordDraft(draft,state,existingRecord=null){
  const errors=[];
  const realDate=value=>{
@@ -635,7 +635,8 @@ function readAutoBackup(){
   }catch(error){rejectOnce(error)}
  });
 }
-async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){validateAutomaticBackup(backup);autoBackupRecovered=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
+async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){validateAutomaticBackup(backup);startupRecoveryPending=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
+async function commitStartupState(state,expectedRevision,recoveredFromBackup){await writeMainIfUnchanged(state,expectedRevision);if(recoveredFromBackup)autoBackupRecovered=true}
 function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
 function writeMainIfUnchanged(state,expectedRevision){
  return new Promise((ok,no)=>{
@@ -3731,17 +3732,17 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
     if(primaryError?.code==='UNSUPPORTED_SCHEMA_VERSION')throw primaryError;
     const backup=await readAutoBackup();
     if(!backup||!backup.state)throw new Error('Основная база повреждена, а пригодной автокопии нет: '+primaryError.message);
-    S=assertRawBackupIntegrity(validateBackupState(backup.state));autoBackupRecovered=true;
+    S=assertRawBackupIntegrity(validateBackupState(backup.state));startupRecoveryPending=true;
    }
   }
   let migrated=migrateState();
   let startupIntegrity=validateVirtualApiary();
   if(startupIntegrity.errorCount){
-   if(autoBackupRecovered)throw new Error('Полная автокопия не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок). Основная база не перезаписывалась.');
+   if(startupRecoveryPending)throw new Error('Полная автокопия не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок). Основная база не перезаписывалась.');
    const backup=await readAutoBackup();
    if(!backup||!backup.state)throw new Error('Основная база не прошла проверку модели ('+startupIntegrity.errorCount+' ошибок), а пригодной автокопии нет. Данные не перезаписывались.');
    S=assertRawBackupIntegrity(validateBackupState(backup.state));
-   autoBackupRecovered=true;
+   startupRecoveryPending=true;
    migrated=migrateState();
    startupIntegrity=validateVirtualApiary();
    if(startupIntegrity.errorCount){
@@ -3750,7 +3751,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
    }
   }
   if(!S.meta.revisionId){S.meta=S.meta||{};S.meta.revisionId=uid();migrated=true}
-  if(migrated||autoBackupRecovered){S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await writeMainIfUnchanged(S,startupExpectedRevision)}
+  if(migrated||startupRecoveryPending){S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await commitStartupState(S,startupExpectedRevision,startupRecoveryPending)}
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
