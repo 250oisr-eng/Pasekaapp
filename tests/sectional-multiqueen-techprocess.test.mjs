@@ -342,6 +342,8 @@ test('stored tech-process records require a unique valid hive reference and supp
   assert.ok(api.validateStoredRecords([record, { ...record, id: 'tp2' }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_DUPLICATE'));
   assert.ok(api.validateStoredRecords([{ ...record, hiveId: 'missing' }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_MISSING'));
   assert.ok(api.validateStoredRecords([{ ...record, specVersion: '99.0.0' }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).errors.some(x => x.code === 'TECH_RECORD_SPEC_VERSION'));
+  const previousMinor = { ...record, id: 'tp-1-6', specVersion: '1.6.0' };
+  assert.equal(api.validateStoredRecords([previousMinor], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
 });
 
 test('stored process configuration enforces the user-defined 180 mm frame height', () => {
