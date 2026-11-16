@@ -354,6 +354,11 @@ function validateStoredRecords(records,hives,apiaryState){
    }
   }
   validatePhysicalR4(record,apiaryState,add);
+  if(record.state.physicalLayoutVersion!==undefined&&record.state.physicalLayoutVersion!==null){
+   const physicalLayout=window.PasekaSectionalPhysicalLayout;
+   if(!physicalLayout)add('TECH_PHYSICAL_LAYOUT_VALIDATOR_MISSING',{id:record.id});
+   else physicalLayout.validate(record,apiaryState).errors.forEach(error=>add('TECH_'+error.code,{id:record.id,details:error.details}));
+  }
  });
  return {valid:errors.length===0,errors};
 }
