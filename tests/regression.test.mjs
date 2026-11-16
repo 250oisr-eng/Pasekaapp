@@ -2873,15 +2873,16 @@ test('startup backup recovery refuses to overwrite a concurrent main write and p
   const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'backup',autoBackupInfo:null});
   const startupExpectedRevision=await readMain();
   assert.equal(startupExpectedRevision,undefined);
-  const read=loadFunction('read',{
+  const startupDeps={
    readMain,
    readAutoBackup,
    validateAutomaticBackup:backup=>backup.state,
    autoBackupRecovered:false
-  });
+  };
+  const read=loadFunction('read',startupDeps);
   const recovered=await read();
   assert.deepEqual(recovered,previousBackup.state);
-  assert.equal(read.autoBackupRecovered,undefined,'recovery status belongs to the supplied startup dependencies');
+  assert.equal(startupDeps.autoBackupRecovered,true);
   const concurrent={meta:{revisionId:'concurrent-rev'},value:'newer-tab-state'};
   await seedIndexedDb(db,[['main',concurrent,'state']]);
   const recoveredForWrite={...recovered,meta:{...recovered.meta,revisionId:'recovered-rev'}};
