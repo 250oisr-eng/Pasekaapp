@@ -167,5 +167,5 @@ test('requires each section cover when no shared honey stack is installed',()=>{
  const {layout,...state}=baseState();
  delete layout.sections[1].coverId;
  const codes=api.validate(layout,state).errors.map(x=>x.code);
- assert.ok(codes.includes('section_accessory_id_required'));
+ assert.ok(codes.includes('section_cover_required'));
 });
