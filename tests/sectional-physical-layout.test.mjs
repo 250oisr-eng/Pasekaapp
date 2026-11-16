@@ -169,3 +169,25 @@ test('requires each section cover when no shared honey stack is installed',()=>{
  const codes=api.validate(layout,state).errors.map(x=>x.code);
  assert.ok(codes.includes('section_cover_required'));
 });
+
+
+test('early honey configuration requires two brood bodies in each of the three sections',()=>{
+ const {layout,...state}=baseState();
+ addHoneyStack(state,layout,'early',2);
+ layout.sections[0].broodBodyIds.push('b1-3');
+ const codes=api.validate(layout,state).errors.map(x=>x.code);
+ assert.ok(codes.includes('early_honey_section_body_count_invalid'));
+});
+
+test('winter closure plugs must reference a body physically assigned to the combined family',()=>{
+ const state=baseState();
+ const layout={id:'combined-layout',schemaVersion:1,hiveId:'h1',profileId:api.PROFILE_ID,mode:api.MODES.SINGLE_FAMILY,purpose:'primary_wintering',
+  sections:[{id:'combined',familyId:'f1',position:'combined',broodBodyIds:['b1-1','b1-2','b1-3'],bottomId:'winter-bottom',coverId:'winter-cover'}],
+  closuresConfirmed:true,closedOpenings:[{itemId:'plug-1',bodyId:'b2-1',openingId:'wrong-opening'}]
+ };
+ state.equipmentInventory.items['winter-bottom']={id:'winter-bottom',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',sectionId:'combined'}};
+ state.equipmentInventory.items['winter-cover']={id:'winter-cover',kind:'cover',condition:'good',location:{type:'hive',hiveId:'h1',sectionId:'combined'}};
+ state.equipmentInventory.items['plug-1']={id:'plug-1',kind:'plasticPlug',condition:'good',location:{type:'hive',hiveId:'h1',bodyId:'b2-1',openingId:'wrong-opening'}};
+ const codes=api.validate(layout,state).errors.map(x=>x.code);
+ assert.ok(codes.includes('winter_plug_body_not_in_section'));
+});

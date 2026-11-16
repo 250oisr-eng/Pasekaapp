@@ -127,7 +127,7 @@ function validate(layout,state){
   if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,state,layout,add,checkBody,checkAccessory);
   if(layout.temporaryQueenIsolation!=null){
    if(!Array.isArray(layout.temporaryQueenIsolation))add('temporary_queen_isolation_invalid');
-   else layout.temporaryQueenIsolation.forEach(plug=>{if(!isObject(plug)){add('temporary_queen_plug_invalid');return}if(!nonEmpty(plug.bodyId)||!nonEmpty(plug.openingId))add('temporary_queen_plug_opening_required');checkAccessory(plug.itemId,'metalMeshPlug',plug.sectionId||null,{bodyId:plug.bodyId,openingId:plug.openingId})});
+   else layout.temporaryQueenIsolation.forEach(plug=>{if(!isObject(plug)){add('temporary_queen_plug_invalid');return}if(!nonEmpty(plug.bodyId)||!nonEmpty(plug.openingId))add('temporary_queen_plug_opening_required');const owner=plug.sectionId?sectionById.get(plug.sectionId):sections.find(section=>section?.broodBodyIds?.includes(plug.bodyId));if(!owner?.broodBodyIds?.includes(plug.bodyId))add('temporary_queen_plug_body_not_in_section',{sectionId:plug.sectionId??null,bodyId:plug.bodyId??null});checkAccessory(plug.itemId,'metalMeshPlug',plug.sectionId||null,{bodyId:plug.bodyId,openingId:plug.openingId})});
   }
  }else if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
   const column=layout.column;
@@ -164,6 +164,7 @@ function validate(layout,state){
    for(const closure of closures){
     if(!isObject(closure)){add('winter_plug_record_invalid');continue}
     if(!nonEmpty(closure.bodyId)||!nonEmpty(closure.openingId))add('winter_plug_opening_required');
+    if(!section?.broodBodyIds?.includes(closure.bodyId))add('winter_plug_body_not_in_section',{bodyId:closure.bodyId??null});
     checkAccessory(closure.itemId,'plasticPlug',section?.id||null,{bodyId:closure.bodyId,openingId:closure.openingId});
    }
   }
@@ -183,6 +184,7 @@ function validateHoneyStack(stack,sections,state,layout,add,checkBody,checkAcces
  const bodyIds=Array.isArray(stack.bodyIds)?stack.bodyIds:[];
  if(!Array.isArray(stack.bodyIds)||![2,4].includes(bodyIds.length))add('honey_stack_body_count_invalid',{expected:'2 or 4',actual:bodyIds.length});
  if(stack.purpose==='early'&&bodyIds.length!==2)add('early_honey_requires_two_bodies',{actual:bodyIds.length});
+ if(stack.purpose==='early'&&sections.some(section=>!Array.isArray(section?.broodBodyIds)||section.broodBodyIds.length!==2))add('early_honey_section_body_count_invalid');
  const pairCounts=new Map();
  bodyIds.forEach(id=>{
   const body=checkBody(id,'honey','shared-honey-stack');
