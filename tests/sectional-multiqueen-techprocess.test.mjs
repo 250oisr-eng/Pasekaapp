@@ -125,7 +125,7 @@ test('R1 is released after OP-06 when sections are reconnected', () => {
 
 test('OP-09 requires round bottom entrances in the lower nest bodies', () => {
   const result = api.validateHiveState(dividedState({
-    operations: [{ operationId: 'OP-09', status: 'DONE' }],
+    operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-09', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }))
   }));
   assert.equal(result.valid, true);
@@ -133,7 +133,7 @@ test('OP-09 requires round bottom entrances in the lower nest bodies', () => {
 
 test('OP-09 rejects a round entrance installed above the lower nest body', () => {
   const result = api.validateHiveState(dividedState({
-    phase: 'AUTUMN_PREP', operations: [{ operationId: 'OP-09', status: 'DONE' }],
+    phase: 'AUTUMN_PREP', operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-09', status: 'DONE' }],
     sections: [sectionFixture(1, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'UPPER_NEST_BODY' }), sectionFixture(2, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' }), sectionFixture(3, { openEntrance: 'ROUND_BOTTOM', openEntrancePosition: 'LOWER_NEST_BODY' })]
   }));
   assert.ok(result.errors.some(x => x.code === 'OP09_ENTRANCE_POSITION'));
@@ -154,7 +154,7 @@ test('R2 blocks OP-06 when the queen registry is incomplete', () => {
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
     queens: [{ id: 'queen-1', status: 'FERTILIZED' }, { id: 'queen-2', status: 'FERTILIZED' }], meshPlugs: []
   }));
-  assert.ok(result.errors.some(x => x.code === 'SECTION_QUEEN_COUNT'));
+  assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
   assert.ok(result.errors.some(x => x.code === 'OP06_QUEEN_STATUS'));
 });
 
@@ -236,7 +236,9 @@ test('OP-06 requires OP-05, three fertilized queens, connected sections and remo
   const base = dividedState({
     operations: [{ operationId: 'OP-04', status: 'DONE' }, { operationId: 'OP-05', status: 'DONE' }, { operationId: 'OP-06', status: 'DONE' }],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
+    technicalConnections: [1, 2].map(index => ({ queenExcluderLayers: 2, bufferCorridorPresent: true })),
     queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+    operationActions: ['OPEN_ALL_ENTRANCES'],
     operationActions: ['OPEN_ALL_ENTRANCES'],
     requiredMeshPlugCount: 4,
     meshPlugs: [{ id: 'p1', installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 }]
@@ -294,6 +296,8 @@ test('stored OP-05 and OP-06 completion dates must match the user-defined window
       config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' },
       sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
       queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
+      technicalConnections: [1, 2].map(index => ({ queenExcluderLayers: 2, bufferCorridorPresent: true })),
+      operationActions: ['OPEN_ALL_ENTRANCES'],
       meshPlugs: [],
       operations: [
         { operationId: 'OP-04', status: 'DONE', completedAt: '2027-04-01' },
@@ -334,6 +338,7 @@ function validOp05State() {
   return {
     phase: 'DIVIDED_3_SECTIONS',
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'MESH_ISOLATED' })),
+    technicalConnections: [1, 2].map(index => ({ queenExcluderLayers: 2, bufferCorridorPresent: true })),
     queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'UNFERTILIZED' })),
     requiredMeshPlugCount: 3,
     meshPlugs: [1, 2, 3].map(index => ({ id: 'plug-' + index, installed: true, position: 'OVER_QUEEN_EXCLUDER', openingDiameterMm: 50 })),
