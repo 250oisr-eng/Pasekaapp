@@ -163,9 +163,9 @@ function validateHiveState(s,options={}){
  if(done.has('OP-08')&&!done.has('OP-07'))add('OP08_PREREQUISITE','Отбор мёда OP-08 возможен только после постановки медовых корпусов OP-07.');
  if(done.has('OP-11')&&done.has('OP-12'))add('R6_WINTERING_EXCLUSIVE','OP-11 и OP-12 взаимоисключающие.');
  if(done.has('OP-14')&&c.honeyBodiesCount!==2)add('OP14_EARLY_HONEY_BODY_COUNT','В сценарии раннего медосбора по источнику устанавливаются только два медовых корпуса.');
- if(done.has('OP-14')&&(!s.earlyHoneySetup||typeof s.earlyHoneySetup!=='object'))add('OP14_PHYSICAL_SETUP_REQUIRED','Для OP-14 требуется сохранённый снимок двух медовых корпусов и двух больших решёток до их снятия.');
+ if(lineageModel&&done.has('OP-14')&&(!s.earlyHoneySetup||typeof s.earlyHoneySetup!=='object'))add('OP14_PHYSICAL_SETUP_REQUIRED','Для OP-14 требуется сохранённый снимок двух медовых корпусов и двух больших решёток до их снятия.');
  
- if((['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07'))&&!done.has('OP-14')){
+ if((['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07'))&&!(lineageModel&&done.has('OP-14'))){
   if(![2,4].includes(c.honeyBodiesCount))add('R4_HONEY_BODY_COUNT','Для постановки медовых корпусов укажи подтверждённое общее количество: 2 или 4.');
   const grids=Array.isArray(s.honeyQueenExcluders)?s.honeyQueenExcluders:[];
   if(grids.length!==2)add('R4_QUEEN_EXCLUDER_COUNT','Для этой конструкции нужны ровно две большие разделительные решётки.');
@@ -227,7 +227,7 @@ function validateHiveState(s,options={}){
 function validatePhysicalR4(record,apiaryState,add){
  const state=record?.state;
  const operations=Array.isArray(state?.operations)?state.operations:[];
- if(operations.some(operation=>operation?.operationId==='OP-14'&&operation.status==='DONE'))return;
+ if(operations.some(operation=>operation?.operationId==='OP-14'&&operation.status==='DONE')&&(state.familyLineageVersion===1||record.specVersion===SPEC.version))return;
  const needsR4=['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(state?.phase)||operations.some(x=>x?.operationId==='OP-07'&&x.status==='DONE');
  if(!needsR4)return;
  if(!apiaryState||typeof apiaryState!=='object'||Array.isArray(apiaryState)){
