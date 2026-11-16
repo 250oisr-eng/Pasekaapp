@@ -20,7 +20,7 @@ function addEvent(inv,item,type,details,at,makeId){
  item.events.push(event);if(item.events.length>300)item.events=item.events.slice(-300);
  inv.itemEvents.push(event);if(inv.itemEvents.length>1000)inv.itemEvents=inv.itemEvents.slice(-1000);
 }
-function normalizeLocation(input){
+function normalizeLocation(input,kind){
  if(!input||typeof input!=='object'||Array.isArray(input)||!locationTypes.has(input.type))return null;
  if(input.type==='storage'){
   const label=String(input.label||'').trim();
@@ -32,7 +32,19 @@ function normalizeLocation(input){
  for(const key of ['sectionId','bodyId','openingId','connectionId','positionLabel']){
   if(input[key]!=null){const value=String(input[key]).trim();if(!value||value.length>160)return null;result[key]=value;}
  }
- if(!['sectionId','bodyId','openingId','connectionId','positionLabel'].some(key=>result[key]))return null;
+ if(kind==='honeyQueenExcluder'){
+  const footprint=input.footprint;
+  if(!Array.isArray(footprint)||footprint.length!==2||result.bodyId||result.sectionId||result.openingId||result.connectionId)return null;
+  const normalized=footprint.map(part=>{
+   if(!part||typeof part!=='object'||Array.isArray(part))return null;
+   const bodyId=String(part.bodyId||'').trim(),coverage=part.coverage;
+   if(!bodyId||bodyId.length>160||!['FULL','HALF'].includes(coverage))return null;
+   return {bodyId,coverage};
+  });
+  if(normalized.some(x=>!x)||new Set(normalized.map(x=>x.bodyId)).size!==2||normalized.filter(x=>x.coverage==='FULL').length!==1||normalized.filter(x=>x.coverage==='HALF').length!==1)return null;
+  result.footprint=normalized;
+ }else if(input.footprint!==undefined)return null;
+ if(!['sectionId','bodyId','openingId','connectionId','positionLabel'].some(key=>result[key])&&!result.footprint)return null;
  return result;
 }
 function transact(state,fn){
@@ -57,13 +69,17 @@ function register(state,request,makeId,now){return transact(state,draft=>registe
 function placeUnsafe(state,request,makeId,now){
  const inv=ensure(state),item=inv.items[String(request?.itemId||'')];
  if(!item)return {ok:false,error:'item_missing'};
- const location=normalizeLocation(request?.location);
- if(!location)return {ok:false,error:'invalid_location'};
+ const location=normalizeLocation(request?.location,item.kind);
+ if(!location)return {ok:false,error:item.kind==='honeyQueenExcluder'?'invalid_footprint':'invalid_location'};
  if(location.type==='hive'&&(item.condition==='repair'||item.condition==='retired'))return {ok:false,error:'item_not_installable'};
  if(location.type==='hive'&&!state.hives?.some(h=>h?.id===location.hiveId))return {ok:false,error:'hive_missing'};
  if(location.type==='hive'&&location.bodyId){
   const bodyExists=Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===location.hiveId&&Object.values(layout?.corpusIds||{}).includes(location.bodyId));
   if(!bodyExists)return {ok:false,error:'body_reference_missing'};
+ }
+ if(location.type==='hive'&&Array.isArray(location.footprint)){
+  const bodyIds=new Set(Object.values(state.layouts?.[location.hiveId]?.corpusIds||{}));
+  if(location.footprint.some(part=>!bodyIds.has(part.bodyId)))return {ok:false,error:'footprint_body_reference_missing'};
  }
  if(location.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)&&(!location.bodyId||!location.openingId))return {ok:false,error:'body_and_opening_reference_required'};
  if(location.type==='hive'&&item.kind==='technicalQueenExcluder'&&!location.connectionId)return {ok:false,error:'connection_reference_required'};
@@ -96,7 +112,7 @@ function inspect(state){
   if(!item||typeof item!=='object'||Array.isArray(item)||item.id!==id){errors.push({code:'invalid_item_identity',details:{itemId:id}});continue}
   if(!kinds.has(item.kind))errors.push({code:'invalid_item_kind',details:{itemId:id,kind:item.kind}});
   if(!conditions.has(item.condition))errors.push({code:'invalid_item_condition',details:{itemId:id,condition:item.condition}});
-  if(!normalizeLocation(item.location))errors.push({code:'invalid_item_location',details:{itemId:id}});
+  if(!normalizeLocation(item.location,item.kind))errors.push({code:'invalid_item_location',details:{itemId:id}});
   if(item.events!=null&&(!Array.isArray(item.events)||!item.events.every(event=>event&&typeof event==='object'&&!Array.isArray(event))))errors.push({code:'invalid_item_events',details:{itemId:id}});
   const location=item.location;
   if(location?.type==='hive'&&['plasticPlug','metalMeshPlug'].includes(item.kind)){
@@ -116,6 +132,9 @@ function validateReferences(state){
   const loc=item.location;
   if(!state.hives?.some(h=>h?.id===loc.hiveId))errors.push({code:'item_hive_reference_missing',details:{itemId:item.id,hiveId:loc.hiveId}});
   if(loc.bodyId&&!Object.entries(state.layouts||{}).some(([hiveId,layout])=>hiveId===loc.hiveId&&Object.values(layout?.corpusIds||{}).includes(loc.bodyId)))errors.push({code:'item_body_reference_missing',details:{itemId:item.id,bodyId:loc.bodyId}});
+  for(const part of Array.isArray(loc.footprint)?loc.footprint:[]){
+   if(!Object.values(state.layouts?.[loc.hiveId]?.corpusIds||{}).includes(part.bodyId))errors.push({code:'item_footprint_body_reference_missing',details:{itemId:item.id,bodyId:part.bodyId}});
+  }
  }
  return errors;
 }
