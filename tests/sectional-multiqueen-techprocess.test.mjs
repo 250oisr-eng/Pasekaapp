@@ -570,6 +570,12 @@ test('OP-04 requires explicit confirmation of two additional bottoms and preserv
   assert.equal(confirmed.record.specVersion, '1.5.0');
   assert.equal(confirmed.record.state.operations.find(operation => operation.operationId === 'OP-04').additionalBottomsInstalled, true);
 
+  const currentUnconfirmed = structuredClone(record);
+  currentUnconfirmed.state.operations.find(operation => operation.operationId === 'OP-04').status = 'DONE';
+  currentUnconfirmed.state.operations.find(operation => operation.operationId === 'OP-04').completedAt = '2027-05-10';
+  const invalidStored = api.validateStoredRecords([currentUnconfirmed], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.ok(invalidStored.errors.some(error => error.code === 'TECH_OP04_BOTTOMS_CONFIRMATION_REQUIRED'));
+
   const legacy = structuredClone(record);
   legacy.specVersion = '1.4.0';
   const legacyOp04 = legacy.state.operations.find(operation => operation.operationId === 'OP-04');
