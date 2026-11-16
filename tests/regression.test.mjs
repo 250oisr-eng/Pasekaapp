@@ -2095,13 +2095,11 @@ test('IndexedDB real API reads reject a transaction aborted immediately after re
   };
   const previousInfo={at:'trusted-old',state:{value:'trusted'}};
   const readMain=loadFunction('readMain',{db:abortingDb,STORE:'main'});
-  const readBackup=loadFunction('readAutoBackup',{db:abortingDb,BACKUP_STORE:'backup',autoBackupInfo:previousInfo});
   await assert.rejects(readMain(),error=>error instanceof Error,'main read must reject an actual transaction abort');
   const backupDeps={db:abortingDb,BACKUP_STORE:'backup',autoBackupInfo:previousInfo};
-  const readBackupWithMetadata=loadFunction('readAutoBackup',backupDeps);
-  await assert.rejects(readBackupWithMetadata(),error=>error instanceof Error,'backup read must reject an actual transaction abort');
+  const readBackup=loadFunction('readAutoBackup',backupDeps);
+  await assert.rejects(readBackup(),error=>error instanceof Error,'backup read must reject an actual transaction abort');
   assert.equal(backupDeps.autoBackupInfo,previousInfo,'an aborted real transaction must not publish backup metadata');
-  void readBackup;
  }finally{db.close()}
 });
 
