@@ -61,7 +61,7 @@ function fixture() {
   };
   const allBodies = bodyIds.flat();
   const corpusIds = Object.fromEntries(allBodies.map((id, index) => ['P' + index, id]));
-  const bodies = Object.fromEntries(allBodies.map(id => [id, { id, kind: 'brood', condition: 'good', spec: { framesPerBox: 6 } }]));
+  const bodies = Object.fromEntries(allBodies.map(id => [id, { id, kind: 'brood', condition: 'good', spec: { profileId: 'sectional-multiqueen-v1', framesPerBox: 6 } }]));
   const items = {
     'physical-left': {
       id: 'physical-left', kind: 'honeyQueenExcluder', condition: 'good',
@@ -129,6 +129,12 @@ test('R4 rejects an excluder installed in another hive or on a different footpri
   const wrongFootprint = fixture();
   wrongFootprint.apiary.equipmentInventory.items['physical-left'].location.footprint[0].bodyId = 'body-1-a';
   assert.ok(api.validateStoredRecords([wrongFootprint.record], wrongFootprint.apiary.hives, wrongFootprint.apiary).errors.some(x => x.code === 'TECH_R4_ITEM_FOOTPRINT_MISMATCH'));
+});
+
+test('R4 rejects brood bodies registered under a different hive profile', () => {
+  const wrongProfile = fixture();
+  wrongProfile.apiary.equipmentInventory.bodies['body-1-a'].spec.profileId = 'farrar-6x6-v1';
+  assert.ok(api.validateStoredRecords([wrongProfile.record], wrongProfile.apiary.hives, wrongProfile.apiary).errors.some(x => x.code === 'TECH_R4_SECTION_BODY_PROFILE_MISMATCH'));
 });
 
 test('R4 rejects a registered sectional body with the wrong kind or frame capacity', () => {
