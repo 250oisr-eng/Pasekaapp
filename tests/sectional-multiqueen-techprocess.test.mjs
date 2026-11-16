@@ -45,6 +45,8 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
   assert.match(sw, /paseka-shell-v320/);
+  assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
+  assert.ok(sw.includes("'./js/equipment-items.js'"));
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
