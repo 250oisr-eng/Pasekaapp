@@ -98,6 +98,7 @@ test('existing empty primary database still recovers a valid automatic backup', 
   deps.autoBackupInfo = null;
   deps.readMain = load('readMain', deps);
   deps.readAutoBackup = load('readAutoBackup', deps);
+  deps.validateAutomaticBackup = backup => backup.state;
 
   const loaded = await load('read', deps)();
   assert.deepEqual(loaded, backupState);
