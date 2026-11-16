@@ -128,6 +128,8 @@ function inspect(state) {
    if (![3,4].includes(event.nestBodiesAfterHarvest)) add('early_honey_nest_reduction_invalid',{eventId:event.id,value:event.nestBodiesAfterHarvest??null});
    for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[])
     if (!familyMap.has(familyId)) add('family_event_family_missing',{eventId:event.id,familyId});
+   const harvestGroups=(Array.isArray(event.familyIds)?event.familyIds:[]).map(id=>familyMap.get(id)?.colonyGroupId);
+   if (harvestGroups.some(id=>!id)||new Set(harvestGroups).size!==1) add('early_honey_colony_group_mismatch',{eventId:event.id});
    const setup=event.physicalSetup;
    if (!isObject(setup)) add('early_honey_physical_setup_missing',{eventId:event.id});
    else {
