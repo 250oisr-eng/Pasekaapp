@@ -40,6 +40,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
+  if (name === 'writeMainWithBackup' || name === 'writeAutoBackup') deps.assertBackupNotFromNewerSchema ||= loadFunction('assertBackupNotFromNewerSchema');
   if (name !== 'migrateQueenRegistry' && name !== 'inspectQueenRegistryIntegrity') {
     deps.migrateQueenRegistry ||= loadFunction('migrateQueenRegistry');
     deps.inspectQueenRegistryIntegrity ||= loadFunction('inspectQueenRegistryIntegrity');
@@ -1195,6 +1196,13 @@ test('AI task apply rejects stale/tampered plans and generated duplicate IDs ato
 function rawBackupFixture(){
  return {hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{}};
 }
+function malformedSchema12Backup(){
+ const state={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'invalid-backup'},hives:[{id:'duplicate-hive',number:1},{id:'duplicate-hive',number:2}],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+ return {at:'old',state};
+}
+function futureSchemaBackup(){
+ return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+}
 function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
  const inspectTaskIntegrity=loadFunction('inspectTaskIntegrity');
@@ -1239,33 +1247,39 @@ test('main database write rejects a stale revision without overwriting newer sta
  assert.equal(stored.value,'newer');
 });
 test('automatic backup writes the exact previous state only when the main revision matches',async()=>{
- let current={meta:{revisionId:'rev-2'},value:'current'},backup=null,putCount=0;
- const db={transaction(stores,mode){
-  assert.deepEqual(stores,['main','backup']);assert.equal(mode,'readwrite');
-  let wrote=false;
-  const tx={objectStore(name){return name==='main'?{get(){const request={};queueMicrotask(()=>{request.result=structuredClone(current);request.onsuccess?.();if(!wrote)tx.oncomplete?.()});return request}}:{put(value,key){wrote=true;putCount++;backup={value:structuredClone(value),key};queueMicrotask(()=>tx.oncomplete?.())}}}};
-  return tx;
+ let current={meta:{revisionId:'rev-2'},value:'current'},backupRecord=null,putCount=0,readCount=0,wrote=false;
+ const tx={objectStore(name){
+  if(name==='main')return{get(){const request={};queueMicrotask(()=>{request.result=structuredClone(current);request.onsuccess?.();readCount++;if(readCount===2&&!wrote)queueMicrotask(()=>tx.oncomplete?.())});return request}};
+  return{
+   get(){const request={};queueMicrotask(()=>{request.result=backupRecord?structuredClone(backupRecord.value):null;request.onsuccess?.();readCount++;if(readCount===2&&!wrote)queueMicrotask(()=>tx.oncomplete?.())});return request},
+   put(value,key){wrote=true;putCount++;backupRecord={value:structuredClone(value),key};queueMicrotask(()=>tx.oncomplete?.())}
+  };
  }};
+ const db={transaction(stores,mode){assert.deepEqual(stores,['main','backup']);assert.equal(mode,'readwrite');readCount=0;wrote=false;return tx}};
  const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
  const previous={meta:{revisionId:'rev-1'},value:'previous'};
  assert.equal(await write(previous,'rev-2'),true);
- assert.equal(putCount,1);assert.equal(backup.key,'previous');assert.deepEqual(backup.value.state,previous);
+ assert.equal(putCount,1);assert.equal(backupRecord.key,'previous');assert.deepEqual(backupRecord.value.state,previous);
  assert.equal(await write({value:'stale'},'rev-1'),false);
  assert.equal(putCount,1,'a stale snapshot must never replace the existing automatic backup');
- assert.deepEqual(backup.value.state,previous);
+ assert.deepEqual(backupRecord.value.state,previous);
 });
 async function runAtomicRestore(expectedRevision='rev-1',backupFails=false){
  let mainState={meta:{revisionId:'rev-1'},value:'current'},backupState={state:{value:'older'}};
  const db={transaction(stores,mode){
   assert.deepEqual(stores,['main','backup']);assert.equal(mode,'readwrite');
-  let stagedMain=null,stagedBackup=null,aborted=false;
+  let stagedMain=null,stagedBackup=null,aborted=false,reads=0;
+  const finishRead=()=>{reads++;if(reads===2)queueMicrotask(()=>{if(!aborted){if(stagedMain!==null)mainState=stagedMain;if(stagedBackup!==null)backupState=stagedBackup;tx.oncomplete?.()}})};
   const tx={error:null,
    objectStore(name){
     if(name==='main')return{
-     get(){const request={};queueMicrotask(()=>{request.result=structuredClone(mainState);request.onsuccess?.();queueMicrotask(()=>{if(!aborted){if(stagedMain!==null)mainState=stagedMain;if(stagedBackup!==null)backupState=stagedBackup;tx.oncomplete?.()}})});return request},
+     get(){const request={};queueMicrotask(()=>{request.result=structuredClone(mainState);request.onsuccess?.();finishRead()});return request},
      put(value){stagedMain=structuredClone(value)}
     };
-    return{put(value,key){if(backupFails)throw new Error('quota exceeded');stagedBackup={value:structuredClone(value),key}}};
+    return{
+     get(){const request={};queueMicrotask(()=>{request.result=structuredClone(backupState);request.onsuccess?.();finishRead()});return request},
+     put(value,key){if(backupFails)throw new Error('quota exceeded');stagedBackup={value:structuredClone(value),key}}
+    };
    },
    abort(){aborted=true;queueMicrotask(()=>tx.onabort?.())}
   };
@@ -1309,10 +1323,27 @@ test('automatic backup validation rejects malformed and structurally corrupted s
  assert.equal(validate({at:'backup-time',state:valid}),valid);
 });
 
+test('startup preserves an automatic backup from a newer schema without attempting repair',async()=>{
+ const validateAutomaticBackup=automaticBackupValidatorForTests();
+ const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
+ const future=futureSchemaBackup();
+ let writes=0,reads=0;
+ const ensure=loadFunction('ensureAutomaticBackup',{
+  validateAutomaticBackup,
+  writeAutoBackup:async()=>{writes++;return true},
+  readAutoBackup:async()=>{reads++;return null}
+ });
+ assert.equal(await ensure(current,future),false);
+ assert.equal(writes,0,'a future-schema backup must never be silently replaced');
+ assert.equal(reads,0);
+ assert.match(current.meta.autoBackupError,/более новой версией приложения/i);
+ assert.equal(future.state.meta.schemaVersion,13);
+});
+
 test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
- const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const malformed=malformedSchema12Backup();
  let writes=0,reads=0,stored=null;
  const deps={
   validateAutomaticBackup,
@@ -1330,7 +1361,7 @@ test('startup repairs a malformed backup through real IndexedDB without changing
  const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'startup-backup-repair-'+(++indexedDbTestSequence));
  try{
   const current={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'main-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
-  const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+  const malformed=malformedSchema12Backup();
   await seedIndexedDb(db,[['main',current,'state'],['backup',malformed,'previous']]);
   const validateAutomaticBackup=automaticBackupValidatorForTests();
   const writeAutoBackup=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
@@ -1347,7 +1378,7 @@ test('startup does not replace a malformed backup when real IndexedDB main revis
  try{
   const latest={meta:{revisionId:'latest-rev'},value:'newer-main'};
   const stale={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'stale-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
-  const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+  const malformed=malformedSchema12Backup();
   await seedIndexedDb(db,[['main',latest,'state'],['backup',malformed,'previous']]);
   const validateAutomaticBackup=automaticBackupValidatorForTests();
   const writeAutoBackup=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
@@ -1362,7 +1393,7 @@ test('startup does not replace a malformed backup when real IndexedDB main revis
 test('startup never overwrites an automatic backup when the main revision changed concurrently',async()=>{
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const current={...rawBackupFixture(),meta:{revisionId:'stale-rev'}};
- const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const malformed=malformedSchema12Backup();
  let reads=0,writes=0;
  const ensure=loadFunction('ensureAutomaticBackup',{
   validateAutomaticBackup,
@@ -1377,7 +1408,7 @@ test('startup never overwrites an automatic backup when the main revision change
 test('startup preserves the existing automatic backup when repairing it fails from quota exhaustion',async()=>{
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const current={...rawBackupFixture(),meta:{revisionId:'main-rev'}};
- const malformed={at:'old',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const malformed=malformedSchema12Backup();
  const quotaError=Object.assign(new Error('quota'),{name:'QuotaExceededError'});
  let reads=0;
  const ensure=loadFunction('ensureAutomaticBackup',{
@@ -2395,14 +2426,40 @@ test('IndexedDB real API updates automatic backup only for the matching main rev
  }finally{db.close()}
 });
 
+test('automatic backup writer preserves a snapshot from a newer schema',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'future-auto-backup-'+(++indexedDbTestSequence));
+ try{
+  const current={meta:{schemaVersion:12,revisionId:'rev-1'},value:'current'};
+  const future=futureSchemaBackup();
+  await seedIndexedDb(db,[['main',current,'state'],['backup',future,'previous']]);
+  const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  await assert.rejects(write({meta:{schemaVersion:12,revisionId:'rev-1'},value:'new-save'},'rev-1'),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION_BACKUP');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),current);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),future);
+ }finally{db.close()}
+});
+
+test('atomic restore refuses to replace an automatic backup from a newer schema',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'future-restore-backup-'+(++indexedDbTestSequence));
+ try{
+  const current={meta:{schemaVersion:12,revisionId:'rev-1'},value:'current'};
+  const future=futureSchemaBackup();
+  await seedIndexedDb(db,[['main',current,'state'],['backup',future,'previous']]);
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  await assert.rejects(write({meta:{schemaVersion:12,revisionId:'rev-2'},value:'restored'},'rev-1'),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION_BACKUP');
+  assert.deepEqual(await readIndexedDb(db,'main','state'),current);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),future);
+ }finally{db.close()}
+});
+
 test('automatic backup rejects synchronous objectStore put failures with the original error',async()=>{
  const cloneError=new DOMException('uncloneable backup state','DataCloneError');
- const request={};
+ const request={},backupRequest={};
  let aborts=0;
  const tx={
   objectStore(name){
    if(name==='main')return{get:()=>request};
-   return{put:()=>{throw cloneError}};
+   return{get:()=>backupRequest,put:()=>{throw cloneError}};
   },
   abort(){aborts++;queueMicrotask(()=>this.onabort?.())}
  };
@@ -2410,7 +2467,9 @@ test('automatic backup rejects synchronous objectStore put failures with the ori
  const write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
  const pending=write({meta:{revisionId:'rev-1'},value:'snapshot'},'rev-1');
  request.result={meta:{revisionId:'rev-1'},value:'current'};
- assert.doesNotThrow(()=>request.onsuccess(),'a synchronous put exception must be caught inside the request handler');
+ backupRequest.result=null;
+ assert.doesNotThrow(()=>request.onsuccess(),'main read callback must not throw');
+ assert.doesNotThrow(()=>backupRequest.onsuccess(),'backup read callback must catch synchronous put failure');
  assert.equal(aborts,1,'failed backup writes must abort their transaction');
  await assert.rejects(pending,error=>error===cloneError,'the caller must receive the original serialization error');
 });

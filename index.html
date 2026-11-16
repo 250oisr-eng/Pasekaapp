@@ -667,57 +667,75 @@ function writeMainIfUnchanged(state,expectedRevision){
   }catch(error){rejectOnce(error)}
  });
 }
+function assertBackupNotFromNewerSchema(backup){
+ const version=Number(backup?.state?.meta?.schemaVersion);
+ if(Number.isFinite(version)&&version>12){
+  const error=new Error('Автокопия создана более новой версией приложения (схема '+version+'). Она сохранена без изменений. Обнови приложение перед восстановлением.');
+  error.code='UNSUPPORTED_SCHEMA_VERSION_BACKUP';
+  throw error;
+ }
+}
 function writeMainWithBackup(state,expectedRevision){
  return new Promise((ok,no)=>{
-  let previous=null,conflict=null,failure=null,tx,settled=false;
+  let previous=null,previousBackup=null,conflict=null,failure=null,tx,settled=false,mainReady=false,backupReady=false;
   const rejectOnce=error=>{if(!settled){settled=true;no(error)}};
+  const abortWithError=error=>{failure=error||new Error('Не удалось сохранить текущие данные перед восстановлением');try{tx.abort()}catch(abortError){rejectOnce(failure)}};
+  const commitIfReady=()=>{
+   if(!mainReady||!backupReady||settled)return;
+   if((previous?.meta?.revisionId||null)!==expectedRevision){
+    conflict=new Error('Данные уже изменены в другой вкладке или на другом устройстве. Восстановление отменено, чтобы не затереть более свежие данные.');
+    conflict.name='PasekaConflictError';
+    try{tx.abort()}catch(e){rejectOnce(conflict)}
+    return;
+   }
+   try{
+    assertBackupNotFromNewerSchema(previousBackup);
+    main.put(state,'state');
+    if(previous)backup.put({at:new Date().toISOString(),state:previous},'previous');
+   }catch(e){abortWithError(e)}
+  };
   try{
    tx=db.transaction([STORE,BACKUP_STORE],'readwrite');
-   const main=tx.objectStore(STORE),backup=tx.objectStore(BACKUP_STORE),q=main.get('state');
-   q.onsuccess=()=>{
-    previous=q.result||null;
-    if((previous?.meta?.revisionId||null)!==expectedRevision){
-     conflict=new Error('Данные уже изменены в другой вкладке или на другом устройстве. Восстановление отменено, чтобы не затереть более свежие данные.');
-     conflict.name='PasekaConflictError';
-     try{tx.abort()}catch(e){rejectOnce(conflict)}
-     return;
-    }
-    try{
-     main.put(state,'state');
-     if(previous)backup.put({at:new Date().toISOString(),state:previous},'previous');
-    }catch(e){failure=e;try{tx.abort()}catch(abortError){rejectOnce(failure)}}
-   };
-   q.onerror=()=>{failure=q.error||new Error('Не удалось прочитать текущую базу перед восстановлением');try{tx.abort()}catch(e){rejectOnce(failure)}};
+   const main=tx.objectStore(STORE),backup=tx.objectStore(BACKUP_STORE);
+   const q=main.get('state'),backupRequest=backup.get('previous');
+   q.onsuccess=()=>{previous=q.result||null;mainReady=true;commitIfReady()};
+   backupRequest.onsuccess=()=>{previousBackup=backupRequest.result||null;backupReady=true;commitIfReady()};
+   q.onerror=()=>abortWithError(q.error||new Error('Не удалось прочитать текущую базу перед восстановлением'));
+   backupRequest.onerror=()=>abortWithError(backupRequest.error||new Error('Не удалось проверить существующую автокопию перед восстановлением'));
    tx.oncomplete=()=>{if(!settled){settled=true;ok(previous)}};
-   tx.onabort=()=>rejectOnce(conflict||failure||tx.error||q.error||new Error('Атомарное восстановление прервано'));
-   tx.onerror=()=>rejectOnce(conflict||failure||tx.error||new Error('Ошибка атомарного восстановления'));
+   tx.onabort=()=>rejectOnce(conflict||failure||tx.error||q.error||backupRequest.error||new Error('Атомарное восстановление прервано'));
+   tx.onerror=()=>rejectOnce(conflict||failure||tx.error||q.error||backupRequest.error||new Error('Ошибка атомарного восстановления'));
   }catch(e){rejectOnce(e)}
  });
 }
 function writeAutoBackup(state,expectedRevision){
  return new Promise((ok,no)=>{
-  let tx,written=false,failure=null,settled=false,q;
+  let tx,written=false,failure=null,settled=false,q,backupRequest,current=null,previousBackup=null,mainReady=false,backupReady=false;
   const rejectOnce=error=>{if(!settled){settled=true;no(error||new Error('Не удалось обновить автокопию'))}};
   const abortWithError=error=>{
    failure=error||new Error('Не удалось записать автоматическую резервную копию');
    try{tx.abort()}catch(abortError){rejectOnce(failure)}
   };
+  const writeIfReady=()=>{
+   if(!mainReady||!backupReady||settled)return;
+   if((current?.meta?.revisionId||null)!==expectedRevision)return;
+   try{
+    assertBackupNotFromNewerSchema(previousBackup);
+    backup.put({at:new Date().toISOString(),state},'previous');
+    written=true;
+   }catch(error){abortWithError(error)}
+  };
   try{
    tx=db.transaction([STORE,BACKUP_STORE],'readwrite');
    const main=tx.objectStore(STORE),backup=tx.objectStore(BACKUP_STORE);
-   q=main.get('state');
-   q.onsuccess=()=>{
-    const current=q.result||null;
-    if((current?.meta?.revisionId||null)!==expectedRevision)return;
-    try{
-     backup.put({at:new Date().toISOString(),state},'previous');
-     written=true;
-    }catch(error){abortWithError(error)}
-   };
+   q=main.get('state');backupRequest=backup.get('previous');
+   q.onsuccess=()=>{current=q.result||null;mainReady=true;writeIfReady()};
+   backupRequest.onsuccess=()=>{previousBackup=backupRequest.result||null;backupReady=true;writeIfReady()};
    q.onerror=()=>abortWithError(q.error||new Error('Не удалось проверить ревизию основной базы перед обновлением автокопии'));
+   backupRequest.onerror=()=>abortWithError(backupRequest.error||new Error('Не удалось прочитать существующую автокопию перед обновлением'));
    tx.oncomplete=()=>{if(!settled){settled=true;ok(written)}};
-   tx.onerror=()=>rejectOnce(failure||tx.error||new Error('Не удалось обновить автокопию'));
-   tx.onabort=()=>rejectOnce(failure||tx.error||q.error||new Error('Обновление автокопии прервано'));
+   tx.onerror=()=>rejectOnce(failure||tx.error||q.error||backupRequest.error||new Error('Не удалось обновить автокопию'));
+   tx.onabort=()=>rejectOnce(failure||tx.error||q.error||backupRequest.error||new Error('Обновление автокопии прервано'));
   }catch(error){rejectOnce(error)}
  });
 }
@@ -757,7 +775,7 @@ async function persistSnapshot(state){
    if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;}
    else{state.meta.autoBackupError='Не удалось подтвердить актуальность резервной копии: данные изменились параллельно';}
   }catch(e){
-   state.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
+   state.meta.autoBackupError=e?.code==='UNSUPPORTED_SCHEMA_VERSION_BACKUP'?e.message:e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
   }
   if(S.meta?.revisionId===state.meta?.revisionId){
    delete S.meta.saveError;
@@ -3605,7 +3623,13 @@ function validateAutomaticBackup(backup){
  return state;
 }
 async function ensureAutomaticBackup(state,existingBackup){
- try{validateAutomaticBackup(existingBackup);return true}catch(validationError){}
+ try{validateAutomaticBackup(existingBackup);return true}catch(validationError){
+  if(validationError?.code==='UNSUPPORTED_SCHEMA_VERSION'){
+   state.meta=state.meta||{};
+   state.meta.autoBackupError=validationError.message+' Автокопия сохранена без изменений.';
+   return false;
+  }
+ }
  try{
   const written=await writeAutoBackup(state,state.meta?.revisionId||null);
   if(!written)throw new Error('Основная база изменилась в другой вкладке. Автокопия не перезаписана.');
@@ -3615,7 +3639,7 @@ async function ensureAutomaticBackup(state,existingBackup){
   return true;
  }catch(error){
   state.meta=state.meta||{};
-  state.meta.autoBackupError=error?.name==='QuotaExceededError'?'Недостаточно места для создания полной резервной копии':'Не удалось проверить или обновить полную резервную копию';
+  state.meta.autoBackupError=error?.code==='UNSUPPORTED_SCHEMA_VERSION_BACKUP'?error.message:error?.name==='QuotaExceededError'?'Недостаточно места для создания полной резервной копии':'Не удалось проверить или обновить полную резервную копию';
   return false;
  }
 }
