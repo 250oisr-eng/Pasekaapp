@@ -1,0 +1,17 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace "ru.paseka.beedetector"
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+    }
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+    // Standalone LiteRT runtime: bundled in the APK; no Google Play services dependency.
+    implementation 'com.google.ai.edge.litert:litert:2.3.2'
+}
