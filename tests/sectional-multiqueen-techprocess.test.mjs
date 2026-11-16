@@ -212,7 +212,7 @@ test('OP-06 egg-laying rule is versioned and legacy records remain readable', ()
       { operationId: 'OP-06', status: 'DONE', completedAt: '2027-05-30' }
     ],
     sections: [1, 2, 3].map(index => sectionFixture(index, { isolation: 'CONNECTED' })),
-    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED', layingObserved: true })),
+    queens: [1, 2, 3].map(index => ({ id: 'queen-' + index, status: 'FERTILIZED' })),
     meshPlugs: []
   });
   const legacy = {
