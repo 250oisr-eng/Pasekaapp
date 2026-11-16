@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const SPEC=Object.freeze({
- id:'sectional-multiqueen-v1',version:'1.2.0',language:'ru',
+ id:'sectional-multiqueen-v1',version:'1.3.0',language:'ru',
  sectionsAtDivision:3,nestFrames:6,honeyFrames:10,frameHeightMm:180,honeyBodiesDefault:2,honeyBodiesMax:4,
  geometry:Object.freeze({
   nestBodiesPerSectionAtDivision:2,frameHeightMm:180,bodyHeightMm:'PROFILE_DEFINED_SEPARATELY',technicalOpeningDiameterMm:50,
@@ -27,7 +27,7 @@ const SPEC=Object.freeze({
  {id:'OP-11',title:'Сборка гнезда на зиму: объединение',optional:false,exclusiveGroup:'wintering',winterNestBodies:3},
  {id:'OP-12',title:'Альтернативная зимовка: сохранение 3 семей',optional:true,exclusiveGroup:'wintering',diaphragms:2,sectionBodies:[2,1,1]},
  {id:'OP-13',title:'Весеннее развитие после альтернативной зимовки',optional:true,offsetFrom:'FIRST_FLIGHT',offsetDays:[40,50]},
- {id:'OP-14',title:'Получение раннего мёда',optional:true,exclusiveGroup:'altSpring',afterCompletion:'WINTER_ASSEMBLY_THEN_STANDARD_DIVISION'}
+ {id:'OP-14',title:'Ранний медосбор и возврат к летнему циклу',optional:true,honeyBodiesCount:2,postHarvestNestBodies:[3,4],postHarvestCombineDelayDays:[3,5],afterCompletion:'REMOVE_HONEY_BODIES_AND_QUEEN_EXCLUDERS; REDUCE_NEST_TO_3_OR_4_BODIES; COMBINE_FAMILIES; AFTER_3_TO_5_DAYS_REPEAT_DIVISION'}
  ],
  entranceAssignment:[
  {sectionIndex:1,openEntrance:'FLAT_BOTTOM',state:'HALF_OPEN'},
@@ -148,8 +148,8 @@ function validateHiveState(s){
  if(done.has('OP-07')&&!done.has('OP-06'))add('OP07_PREREQUISITE','Медовые корпуса нельзя устанавливать до завершения OP-06.');
  if(done.has('OP-08')&&!done.has('OP-07'))add('OP08_PREREQUISITE','Отбор мёда OP-08 возможен только после постановки медовых корпусов OP-07.');
  if(done.has('OP-11')&&done.has('OP-12'))add('R6_WINTERING_EXCLUSIVE','OP-11 и OP-12 взаимоисключающие.');
- if(done.has('OP-13')&&done.has('OP-14'))add('R6_ALT_SPRING_EXCLUSIVE','OP-13 и OP-14 — разные сценарии после альтернативной зимовки; одновременно выбирать их нельзя.');
-
+ if(done.has('OP-14')&&c.honeyBodiesCount!==2)add('OP14_EARLY_HONEY_BODY_COUNT','В сценарии раннего медосбора по источнику устанавливаются только два медовых корпуса.');
+ 
  if(['HONEY_BODIES_INSTALLED','HONEY_COLLECTION'].includes(s.phase)||done.has('OP-07')){
   if(s.queenExcluderBetweenNestAndHoney!==true)add('R4_QUEEN_EXCLUDER','Перед медовыми корпусами нужна геннеманская решётка над гнездом каждой секции.');
   if(s.honeyQueenExcluderCount!==3)add('R4_QUEEN_EXCLUDER_COUNT','Над гнездом требуется по одной большой решётке на каждую из трёх секций (всего 3).');
@@ -191,7 +191,7 @@ function validateStoredRecords(records,hives){
   if(!hiveIds.has(record.hiveId))add('TECH_RECORD_HIVE_MISSING',{id:record.id,hiveId:record.hiveId});
   if(seenHives.has(record.hiveId))add('TECH_RECORD_HIVE_DUPLICATE',{hiveId:record.hiveId});
   seenHives.add(record.hiveId);
-  if(record.specVersion!==SPEC.version)add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
+  if(![SPEC.version,'1.2.0'].includes(record.specVersion))add('TECH_RECORD_SPEC_VERSION',{id:record.id,specVersion:record.specVersion??null});
   if(typeof record.createdAt!=='string'||!Number.isFinite(Date.parse(record.createdAt)))add('TECH_RECORD_CREATED_AT_INVALID',{id:record.id});
   if(typeof record.updatedAt!=='string'||!Number.isFinite(Date.parse(record.updatedAt)))add('TECH_RECORD_UPDATED_AT_INVALID',{id:record.id});
   if(!record.state||typeof record.state!=='object'||Array.isArray(record.state)){add('TECH_RECORD_STATE_INVALID',{id:record.id});return;}
@@ -238,7 +238,8 @@ function validateStoredRecords(records,hives){
       if(feedEnd<feedStart||duration<12||duration>15)add('TECH_OP02_DURATION',{id:record.id,duration,expected:[12,15]});
       if(op02.completedAt!==feeding.endDate)add('TECH_OP02_COMPLETION_DATE_MISMATCH',{id:record.id});
      }
-     if(!Number.isFinite(feeding?.gramsPerColonyPerDay)||feeding.gramsPerColonyPerDay<100||feeding.gramsPerColonyPerDay>200)add('TECH_OP02_SYRUP_AMOUNT',{id:record.id,expected:[100,200]});
+     const feedingAmount=feeding?.gramsPerColonyPerDay;
+     if(!Number.isFinite(feedingAmount)||feedingAmount<100||feedingAmount>200)add('TECH_OP02_SYRUP_AMOUNT',{id:record.id,expected:[100,200],field:'gramsPerColonyPerDay'});
      if(feeding?.sugarParts!==2||feeding?.waterParts!==1)add('TECH_OP02_SYRUP_RATIO',{id:record.id,expected:{sugar:2,water:1}});
     }
    }

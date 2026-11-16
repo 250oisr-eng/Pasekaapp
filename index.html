@@ -608,7 +608,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
    <input id="sectionalOperationFeedStart" type="date">
    <label for="sectionalOperationFeedEnd">Последний день подкормки</label>
    <input id="sectionalOperationFeedEnd" type="date">
-   <label for="sectionalOperationFeedAmount">Количество сиропа на семью в сутки, г</label>
+   <label for="sectionalOperationFeedAmount">Суточное количество сиропа на семью, г (100–200)</label>
    <input id="sectionalOperationFeedAmount" type="number" min="100" max="200" step="1" placeholder="100–200">
   </div>
   <label for="sectionalOperationNote">Комментарий / причина</label>
@@ -1733,7 +1733,8 @@ async function saveSectionalOperationEditor(event){
  const recordId=$('sectionalOperationRecordId').value,operationId=$('sectionalOperationId').value,record=S.sectionalTechProcesses?.find(item=>item&&item.id===recordId),feedback=$('sectionalOperationFeedback');
  const report=message=>{if(feedback)feedback.textContent=message};
  if(!record){report('Карточка техпроцесса не найдена.');return false}
- const draft={status:$('sectionalOperationStatus').value,plannedAt:$('sectionalOperationPlannedAt').value||null,completedAt:$('sectionalOperationCompletedAt').value||null,note:$('sectionalOperationNote').value,feeding:{startDate:$('sectionalOperationFeedStart').value||null,endDate:$('sectionalOperationFeedEnd').value||null,gramsPerColonyPerDay:Number($('sectionalOperationFeedAmount').value),sugarParts:2,waterParts:1},updatedAt:new Date().toISOString()};
+ const feeding={startDate:$('sectionalOperationFeedStart').value||null,endDate:$('sectionalOperationFeedEnd').value||null,gramsPerColonyPerDay:Number($('sectionalOperationFeedAmount').value),sugarParts:2,waterParts:1};
+ const draft={status:$('sectionalOperationStatus').value,plannedAt:$('sectionalOperationPlannedAt').value||null,completedAt:$('sectionalOperationCompletedAt').value||null,note:$('sectionalOperationNote').value,feeding,updatedAt:new Date().toISOString()};
  const result=PasekaSectionalTechProcess.transitionOperation(record,operationId,draft,S.sectionalTechProcesses,S.hives);
  if(!result.valid){report('Изменение отклонено: '+result.errors.map(error=>error.code).join(', '));return false}
  const previous=cloneApiaryState();

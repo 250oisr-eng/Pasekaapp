@@ -52,12 +52,15 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('function saveSectionalOperationEditor('));
   assert.ok(html.includes('id="sectionalOperationFeedStart"'));
   assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
+  assert.ok(html.includes('Суточное количество сиропа на семью'));
+  assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
+  assert.match(html, /Суточное количество сиропа на семью/);
   assert.ok(html.includes('function toggleSectionalOperationFields('));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.2.0');
+  assert.equal(api.SPEC.version, '1.3.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -478,7 +481,7 @@ test('operation transition rejects duplicate operation rows and never mutates in
 });
 
 
-test('OP-02 cannot be completed without actual feeding dates, duration, syrup amount and 2:1 ratio', () => {
+test('OP-02 cannot be completed without actual feeding dates, duration, daily syrup amount and 2:1 ratio', () => {
   const record = operationRecord();
   const missing = api.transitionOperation(record, 'OP-02', {
     status: 'DONE', completedAt: '2027-04-12', updatedAt: '2027-04-12T10:00:00.000Z'
@@ -603,4 +606,38 @@ test('R7 reads the alternative wintering mode from config and requires two mesh 
   assert.ok(result.errors.some(x => x.code === 'R7_DIAPHRAGMS'));
   assert.equal(result.errors.some(x => x.code === 'R7_WINTERING_MODE'), false);
   assert.equal(result.errors.some(x => x.code === 'ALT_WINTER_BODY_LAYOUT'), false);
+});
+
+
+test('OP-02 preserves the daily syrup amount in version 1.2.0 records', () => {
+  const record = operationRecord();
+  record.specVersion = '1.2.0';
+  const result = api.transitionOperation(record, 'OP-02', {
+    status: 'DONE',
+    completedAt: '2027-04-12',
+    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 },
+    updatedAt: '2027-04-12T10:00:00.000Z'
+  }, [record], [{ id: 'h1' }]);
+  assert.equal(result.valid, true);
+  assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.gramsPerColonyPerDay, 150);
+  assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.portionGrams, undefined);
+});
+
+test('OP-13 spring development and OP-14 early honey are compatible; OP-14 uses two honey bodies', () => {
+  const valid = api.validateHiveState(dividedState({
+    phase: 'ALT_WINTERING_SPRING',
+    config: { honeyBodiesCount: 2, winteringMode: 'ALTERNATIVE_DIAPHRAGMS' },
+    operations: [{ operationId: 'OP-13', status: 'DONE' }, { operationId: 'OP-14', status: 'DONE' }]
+  }));
+  assert.equal(valid.errors.some(x => x.code === 'R6_ALT_SPRING_EXCLUSIVE'), false);
+  assert.equal(valid.errors.some(x => x.code === 'OP14_EARLY_HONEY_BODY_COUNT'), false);
+
+  const fourSupers = api.validateHiveState(dividedState({
+    phase: 'ALT_WINTERING_SPRING',
+    config: { honeyBodiesCount: 4, winteringMode: 'ALTERNATIVE_DIAPHRAGMS' },
+    operations: [{ operationId: 'OP-14', status: 'DONE' }]
+  }));
+  assert.ok(fourSupers.errors.some(x => x.code === 'OP14_EARLY_HONEY_BODY_COUNT'));
+  assert.deepEqual(api.getOperation('OP-14').postHarvestNestBodies, [3, 4]);
+  assert.deepEqual(api.getOperation('OP-14').postHarvestCombineDelayDays, [3, 5]);
 });
