@@ -2203,7 +2203,7 @@ test('IndexedDB real API reads reject a transaction aborted immediately after re
 test('startup read prefers a valid main state without touching the automatic backup',async()=>{
  const main={meta:{revisionId:'main-rev'},value:'main'};
  let backupReads=0;
- const deps={readMain:async()=>main,readAutoBackup:async()=>{backupReads++;return null},validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
+ const deps={readMain:async()=>main,readAutoBackup:async()=>{backupReads++;return null},validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false,startupRecoveryPending:false};
  assert.equal(await loadFunction('read',deps)(),main);
  assert.equal(backupReads,0);
  assert.equal(deps.autoBackupRecovered,false);
@@ -2211,22 +2211,24 @@ test('startup read prefers a valid main state without touching the automatic bac
 
 test('startup read recovers from a missing main state using the automatic backup',async()=>{
  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
- const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false,startupRecoveryPending:false};
  assert.equal(await loadFunction('read',deps)(),backup.state);
- assert.equal(deps.autoBackupRecovered,true);
+ assert.equal(deps.startupRecoveryPending,true);
+ assert.equal(deps.autoBackupRecovered,false);
 });
 
 test('startup read recovers from a failed main read when a backup is available',async()=>{
  const backup={at:'backup-time',state:{meta:{revisionId:'backup-rev'},value:'backup'}};
- const deps={readMain:async()=>{throw new Error('main transaction aborted')},readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false};
+ const deps={readMain:async()=>{throw new Error('main transaction aborted')},readAutoBackup:async()=>backup,validateAutomaticBackup:backup=>backup.state,autoBackupRecovered:false,startupRecoveryPending:false};
  assert.equal(await loadFunction('read',deps)(),backup.state);
- assert.equal(deps.autoBackupRecovered,true);
+ assert.equal(deps.startupRecoveryPending,true);
+ assert.equal(deps.autoBackupRecovered,false);
 });
 
 test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
  const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
  const validateAutomaticBackup=automaticBackupValidatorForTests();
- const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
  assert.equal(deps.autoBackupRecovered,false,'invalid backup must never be marked as recovered');
 });
@@ -2263,13 +2265,13 @@ test('backup integrity rejects contradictory hive, family, journal and task refe
 test('startup recovery validates backup raw-data integrity before returning it',async()=>{
  const corrupted={...rawBackupFixture(),hives:[{id:'duplicate',number:1},{id:'duplicate',number:2}]};
  const backup={at:'corrupt',state:corrupted};
- const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:automaticBackupValidatorForTests(),autoBackupRecovered:false};
+ const deps={readMain:async()=>null,readAutoBackup:async()=>backup,validateAutomaticBackup:automaticBackupValidatorForTests(),autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),/не прошёл проверку исходных данных/i);
  assert.equal(deps.autoBackupRecovered,false);
 });
 
 test('startup read refuses to initialize empty data when both main and backup reads fail',async()=>{
- const deps={readMain:async()=>{throw new Error('main read failed')},readAutoBackup:async()=>{throw new Error('backup read failed')},autoBackupRecovered:false};
+ const deps={readMain:async()=>{throw new Error('main read failed')},readAutoBackup:async()=>{throw new Error('backup read failed')},autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),/backup read failed/i);
  assert.equal(deps.autoBackupRecovered,false);
 });
@@ -2877,12 +2879,14 @@ test('startup backup recovery refuses to overwrite a concurrent main write and p
    readMain,
    readAutoBackup,
    validateAutomaticBackup:backup=>backup.state,
-   autoBackupRecovered:false
+   autoBackupRecovered:false,
+   startupRecoveryPending:false
   };
   const read=loadFunction('read',startupDeps);
   const recovered=await read();
   assert.deepEqual(recovered,previousBackup.state);
-  assert.equal(startupDeps.autoBackupRecovered,true);
+  assert.equal(startupDeps.startupRecoveryPending,true);
+  assert.equal(startupDeps.autoBackupRecovered,false);
   const concurrent={meta:{revisionId:'concurrent-rev'},value:'newer-tab-state'};
   await seedIndexedDb(db,[['main',concurrent,'state']]);
   const recoveredForWrite={...recovered,meta:{...recovered.meta,revisionId:'recovered-rev'}};
