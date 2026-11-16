@@ -2581,8 +2581,8 @@ test('schema 12 migration adds an empty sectional tech-process registry without 
 });
 
 test('schema 12 migration preserves an existing valid sectional tech-process record',()=>{
- const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
- const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[record]};
+ const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const state={meta:{schemaVersion:12},hives:[{id:'h1',number:1,profileId:'sectional-multiqueen-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[record]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'tech-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
  assert.equal(state.meta.schemaVersion,13);
@@ -2603,18 +2603,18 @@ test('save refuses a corrupt sectional tech-process registry without invoking pe
 });
 
 test('save includes sectional tech-process records in the persisted state and historical snapshot',async()=>{
- let persisted=null;const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
- const deps={S:{hives:[{id:'h1'}],families:[],records:[],sectionalTechProcesses:[record],meta:{}},saveQueue:Promise.resolve(),uid:()=> 'new-rev',persistSnapshot:async value=>{persisted=value;return true},render(){},alert(){}};
+ let persisted=null;const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const deps={S:{hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],families:[],records:[],sectionalTechProcesses:[record],meta:{}},saveQueue:Promise.resolve(),uid:()=> 'new-rev',persistSnapshot:async value=>{persisted=value;return true},render(){},alert(){}};
  const save=loadFunction('save',deps);assert.equal(await save(),true);assert.deepEqual(persisted.sectionalTechProcesses,[record]);assert.deepEqual(persisted.snapshots.at(-1).sectionalTechProcesses,[record]);assert.equal(persisted.meta.schemaVersion,13);
 });
 
 
 
 test('sectional process UI creates a validated record without mutating hive equipment or families',async()=>{
- const state={hives:[{id:'h1',number:1,profileId:'custom-180'}],families:[{id:'f1',hive:'h1'}],sectionalTechProcesses:[],auditLog:[],equipmentInventory:{bodies:{},events:[]}};
+ const state={hives:[{id:'h1',number:1,profileId:'sectional-multiqueen-v1'}],families:[{id:'f1',hive:'h1'}],sectionalTechProcesses:[],auditLog:[],equipmentInventory:{bodies:{},events:[]}};
  const originalHive=JSON.stringify(state.hives),originalFamilies=JSON.stringify(state.families),originalInventory=JSON.stringify(state.equipmentInventory);
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechHoneyBodies:{value:'4'},sectionalTechWintering:{value:'COMBINED'},sectionalTechRemovableFeeder:{checked:true},sectionalTechBottoms:{value:'2'},sectionalTechFeedback:{textContent:''},sectionalTechCreateButton:{disabled:false}};
- let saves=0;const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
+ let saves=0;const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({id:'sectional-multiqueen-v1',supportsSectionalMultiqueen:true,frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
  const create=loadFunction('createSectionalTechProcess',deps);
  assert.equal(await create(),true);assert.equal(saves,1);assert.equal(state.sectionalTechProcesses.length,1);
  assert.equal(state.sectionalTechProcesses[0].state.phase,'PRE_DIVISION');
@@ -2629,32 +2629,32 @@ test('sectional process UI creates a validated record without mutating hive equi
 
 
 
-test('sectional process UI offers only hives whose profile confirms 180 mm frames',()=>{
- const state={hives:[{id:'h1'},{id:'h2'}],sectionalTechProcesses:[]};
+test('sectional process UI offers only a dedicated sectional hive profile',()=>{
+ const state={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'},{id:'h2',profileId:'farrar-6x6-v1'}],sectionalTechProcesses:[]};
  const elements={sectionalTechHive:{value:''},sectionalTechProcessList:{innerHTML:''},sectionalTechCount:{textContent:''},sectionalTechCreateButton:{disabled:false}};
- const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:id=>'Улей '+id,getHiveProfile:hive=>({frame:{heightMm:hive.id==='h1'?180:195}}),sectionalTechProcessSavePending:false});
- render();assert.match(elements.sectionalTechHive.innerHTML,/h1/);assert.doesNotMatch(elements.sectionalTechHive.innerHTML,/h2/);assert.match(elements.sectionalTechProcessList.innerHTML,/180 мм/);assert.equal(elements.sectionalTechCreateButton.disabled,false);
+ const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:id=>'Улей '+id,getHiveProfile:hive=>hive.profileId==='sectional-multiqueen-v1'?{id:'sectional-multiqueen-v1',supportsSectionalMultiqueen:true,frame:{heightMm:180}}:{id:'farrar-6x6-v1',frame:{heightMm:180}},sectionalTechProcessSavePending:false});
+ render();assert.match(elements.sectionalTechHive.innerHTML,/h1/);assert.doesNotMatch(elements.sectionalTechHive.innerHTML,/h2/);assert.match(elements.sectionalTechProcessList.innerHTML,/Секционный многоматочный/);assert.equal(elements.sectionalTechCreateButton.disabled,false);
 });
 
-test('sectional process UI rejects a hive profile with a frame height other than 180 mm',async()=>{
- const state={hives:[{id:'h1',profileId:'wrong'}],sectionalTechProcesses:[],auditLog:[]};
+test('sectional process UI rejects Farrar even when its frame height is 180 mm',async()=>{
+ const state={hives:[{id:'h1',profileId:'farrar-6x6-v1'}],sectionalTechProcesses:[],auditLog:[]};
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
- let saves=0;const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:195}}),alert(){}});
- assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,0);assert.match(elements.sectionalTechFeedback.textContent,/180 мм/i);
+ let saves=0;const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({id:'farrar-6x6-v1',frame:{heightMm:180}}),alert(){}});
+ assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,0);assert.match(elements.sectionalTechFeedback.textContent,/отдельный профиль/i);
 });
 
 test('sectional process UI prevents duplicate records for the same hive',async()=>{
- const existing={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
- const state={hives:[{id:'h1'}],sectionalTechProcesses:[existing],auditLog:[]};let saves=0;
+ const existing={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ const state={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[existing],auditLog:[]};let saves=0;
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechFeedback:{textContent:''}};
- const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp2',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){}});
+ const create=loadFunction('createSectionalTechProcess',{S:state,$:id=>elements[id],uid:()=> 'tp2',save:async()=>{saves++;return true},logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({id:'sectional-multiqueen-v1',supportsSectionalMultiqueen:true,frame:{heightMm:180}}),alert(){}});
  assert.equal(await create(),false);assert.equal(saves,0);assert.equal(state.sectionalTechProcesses.length,1);
 });
 
 test('failed sectional process save keeps an exportable in-memory draft and exposes retry state',async()=>{
- const state={hives:[{id:'h1'}],sectionalTechProcesses:[],auditLog:[]};
+ const state={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[],auditLog:[]};
  const elements={sectionalTechHive:{value:'h1'},sectionalTechPhase:{value:'PRE_DIVISION'},sectionalTechHoneyBodies:{value:'2'},sectionalTechWintering:{value:'COMBINED'},sectionalTechRemovableFeeder:{checked:false},sectionalTechBottoms:{value:'2'},sectionalTechFeedback:{textContent:''},sectionalTechCreateButton:{disabled:false}};
- const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>false,logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
+ const deps={S:state,$:id=>elements[id],uid:()=> 'tp1',save:async()=>false,logAudit(){},render(){},renderSectionalTechProcessModule(){},getHiveProfile:()=>({id:'sectional-multiqueen-v1',supportsSectionalMultiqueen:true,frame:{heightMm:180}}),alert(){},sectionalTechProcessSavePending:false};
  const create=loadFunction('createSectionalTechProcess',deps);
  assert.equal(await create(),false);assert.equal(state.sectionalTechProcesses.length,1);assert.equal(deps.sectionalTechProcessSavePending,true);
  assert.match(elements.sectionalTechFeedback.textContent,/памяти страницы/i);
@@ -2665,16 +2665,16 @@ test('failed sectional process save keeps an exportable in-memory draft and expo
 
 test('sectional process UI renders the 14 operation checklist and labels',()=>{
  const operations=appWindow.PasekaSectionalTechProcess.SPEC.operations.map(operation=>({operationId:operation.id,status:'PENDING'}));
- const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},operations}};
- const state={hives:[{id:'h1'}],sectionalTechProcesses:[record]};
+ const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},operations}};
+ const state={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[record]};
  const elements={sectionalTechHive:{value:''},sectionalTechProcessList:{innerHTML:''},sectionalTechCount:{textContent:''},sectionalTechCreateButton:{disabled:false}};
- const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:()=> 'Улей 1',sectionalTechProcessPhaseLabel:()=> 'Подготовка к разделению',getHiveProfile:()=>({frame:{heightMm:180}}),sectionalTechProcessSavePending:false});
+ const render=loadFunction('renderSectionalTechProcessModule',{S:state,$:id=>elements[id],safe:value=>String(value),hname:()=> 'Улей 1',sectionalTechProcessPhaseLabel:()=> 'Подготовка к разделению',getHiveProfile:()=>({id:'sectional-multiqueen-v1',supportsSectionalMultiqueen:true,frame:{heightMm:180}}),sectionalTechProcessSavePending:false});
  render();assert.match(elements.sectionalTechProcessList.innerHTML,/Операции \(14\)/);assert.match(elements.sectionalTechProcessList.innerHTML,/OP-01/);assert.match(elements.sectionalTechProcessList.innerHTML,/Весеннее открытие летков/);
 });
 
 test('sectional process operation initialization is idempotent and audited',async()=>{
- const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
- const state={hives:[{id:'h1'}],sectionalTechProcesses:[record],auditLog:[]};const elements={sectionalTechFeedback:{textContent:''}};let saves=0;
+ const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
+ const state={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[record],auditLog:[]};const elements={sectionalTechFeedback:{textContent:''}};let saves=0;
  const deps={S:state,$:id=>elements[id],save:async()=>{saves++;return true},logAudit:(type,details)=>state.auditLog.push({type,...details}),renderSectionalTechProcessModule(){},sectionalTechProcessSavePending:false};
  const initialize=loadFunction('initializeSectionalTechProcessOperations',deps);
  assert.equal(await initialize('tp1'),true);assert.equal(record.state.operations.length,14);assert.ok(record.state.operations.every(operation=>operation.status==='PENDING'));assert.equal(saves,1);assert.equal(state.auditLog[0].type,'sectional_tech_process_operations_initialized');
@@ -2682,8 +2682,8 @@ test('sectional process operation initialization is idempotent and audited',asyn
 });
 
 test('sectional process UI retries a previously failed save after validation',async()=>{
- const record={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
- const state={hives:[{id:'h1'}],sectionalTechProcesses:[record]};const elements={sectionalTechFeedback:{textContent:''}};
+ const record={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'PRE_DIVISION',config:{frameHeightMm:180,honeyBodiesCount:2,winteringMode:'COMBINED'},sections:[],queens:[],operations:[]}};
+ const state={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[record]};const elements={sectionalTechFeedback:{textContent:''}};
  const deps={S:state,$:id=>elements[id],save:async()=>true,renderSectionalTechProcessModule(){},sectionalTechProcessSavePending:true};
  const retry=loadFunction('retrySectionalTechProcessSave',deps);
  assert.equal(await retry(),true);assert.equal(deps.sectionalTechProcessSavePending,false);assert.match(elements.sectionalTechFeedback.textContent,/сохранены/i);
@@ -2703,9 +2703,9 @@ test('schema 13 backup validation requires and verifies sectional tech-process r
  assert.equal(validate(base),base);
  assert.throws(()=>validate({...base,sectionalTechProcesses:undefined}),/sectionalTechProcesses/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:12},sectionalTechProcesses:null}),/sectionalTechProcesses/i);
- const valid={id:'tp1',hiveId:'h1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
- assert.equal(validate({...base,hives:[{id:'h1'}],sectionalTechProcesses:[valid],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]}).sectionalTechProcesses.length,1);
- assert.throws(()=>validate({...base,hives:[{id:'h1'}],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[{...valid,hiveId:'missing'}]}),/TECH_RECORD_HIVE_MISSING/i);
+ const valid={id:'tp1',hiveId:'h1',hiveProfileId:'sectional-multiqueen-v1',specVersion:'1.2.0',createdAt:'2026-11-15T10:00:00.000Z',updatedAt:'2026-11-15T10:00:00.000Z',state:{phase:'WINTER',operations:[]}};
+ assert.equal(validate({...base,hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[valid],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[]}).sectionalTechProcesses.length,1);
+ assert.throws(()=>validate({...base,hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],sectionalTechProcesses:[{...valid,hiveId:'missing'}]}),/TECH_RECORD_HIVE_MISSING/i);
 });
 
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{

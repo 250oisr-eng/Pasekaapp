@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../js/sectional-multiqueen-techprocess.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+const worker = await readFile(new URL('../cloudflare/worker.js', import.meta.url), 'utf8');
 const windowRef = {};
 new Function('window', source)(windowRef);
 const api = windowRef.PasekaSectionalTechProcess;
@@ -43,7 +44,7 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('<script src="./js/sectional-multiqueen-techprocess.js"></script>'));
   assert.ok(sw.includes("'./js/sectional-multiqueen-techprocess.js'"));
   assert.ok(html.includes('sectionalTechProcesses:[]'));
-  assert.match(sw, /paseka-shell-v314/);
+  assert.match(sw, /paseka-shell-v315/);
   assert.ok(html.includes('data-tab="techprocess"'));
   assert.ok(html.includes('id="techprocess"'));
   assert.ok(html.includes('function createSectionalTechProcess()'));
@@ -52,12 +53,20 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes('function saveSectionalOperationEditor('));
   assert.ok(html.includes('id="sectionalOperationFeedStart"'));
   assert.ok(html.includes('id="sectionalOperationFeedAmount"'));
+  assert.ok(html.includes('id="sectionalOperationFeedAmountLabel"'));
+  assert.ok(html.includes("sectional-multiqueen-v1"));
+  assert.ok(!html.includes('id="newHiveProfile"'));
+  assert.ok(html.includes("getHiveProfile(hive)?.id==='sectional-multiqueen-v1'"));
+  assert.ok(html.includes("selectedProfile?.id!=='sectional-multiqueen-v1'"));
+  assert.ok(html.includes('const sectionalTechProcesses='));
+  assert.ok(html.includes('sectionalTechProcesses,families'));
+  assert.match(html, /Суточная норма сиропа на семью/);
   assert.ok(html.includes('function toggleSectionalOperationFields('));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.2.0');
+  assert.equal(api.SPEC.version, '1.4.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
@@ -209,19 +218,19 @@ test('all entrances action is no longer treated as an R1 conflict after OP-06', 
 });
 
 test('stored tech-process records require a unique valid hive reference and supported specification', () => {
-  const record = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [] } };
-  assert.equal(api.validateStoredRecords([record], [{ id: 'h1' }]).valid, true);
-  assert.ok(api.validateStoredRecords([record, { ...record, id: 'tp2' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_DUPLICATE'));
-  assert.ok(api.validateStoredRecords([{ ...record, hiveId: 'missing' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_MISSING'));
-  assert.ok(api.validateStoredRecords([{ ...record, specVersion: '99.0.0' }], [{ id: 'h1' }]).errors.some(x => x.code === 'TECH_RECORD_SPEC_VERSION'));
+  const record = { id: 'tp1', hiveId: 'h1', hiveProfileId: 'sectional-multiqueen-v1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [] } };
+  assert.equal(api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
+  assert.ok(api.validateStoredRecords([record, { ...record, id: 'tp2' }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_DUPLICATE'));
+  assert.ok(api.validateStoredRecords([{ ...record, hiveId: 'missing' }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).errors.some(x => x.code === 'TECH_RECORD_HIVE_MISSING'));
+  assert.ok(api.validateStoredRecords([{ ...record, specVersion: '99.0.0' }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).errors.some(x => x.code === 'TECH_RECORD_SPEC_VERSION'));
 });
 
 test('stored process configuration enforces the user-defined 180 mm frame height', () => {
-  const record = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' }, operations: [] } };
-  assert.equal(api.validateStoredRecords([record], [{ id: 'h1' }]).valid, true);
-  const wrongHeight = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, frameHeightMm: 195 } } }], [{ id: 'h1' }]);
+  const record = { id: 'tp1', hiveId: 'h1', hiveProfileId: 'sectional-multiqueen-v1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', config: { frameHeightMm: 180, honeyBodiesCount: 2, winteringMode: 'COMBINED' }, operations: [] } };
+  assert.equal(api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
+  const wrongHeight = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, frameHeightMm: 195 } } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(wrongHeight.errors.some(x => x.code === 'TECH_RECORD_STATE_FRAME_HEIGHT'));
-  const wrongWintering = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, winteringMode: 'UNKNOWN' } } }], [{ id: 'h1' }]);
+  const wrongWintering = api.validateStoredRecords([{ ...record, state: { ...record.state, config: { ...record.state.config, winteringMode: 'UNKNOWN' } } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(wrongWintering.errors.some(x => x.code === 'TECH_RECORD_STATE_WINTERING_MODE'));
 });
 
@@ -275,18 +284,18 @@ test('mesh plug count rejects extras as well as missing plugs', () => {
 });
 
 test('stored operation records reject unknown IDs, duplicate IDs and invalid statuses', () => {
-  const base = { id: 'tp1', hiveId: 'h1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [{ operationId: 'OP-01', status: 'PENDING' }] } };
-  assert.equal(api.validateStoredRecords([base], [{ id: 'h1' }]).valid, true);
-  const duplicate = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-01', status: 'PENDING' }, { operationId: 'OP-01', status: 'DONE' }] } }], [{ id: 'h1' }]);
+  const base = { id: 'tp1', hiveId: 'h1', hiveProfileId: 'sectional-multiqueen-v1', specVersion: '1.2.0', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', state: { phase: 'WINTER', operations: [{ operationId: 'OP-01', status: 'PENDING' }] } };
+  assert.equal(api.validateStoredRecords([base], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
+  const duplicate = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-01', status: 'PENDING' }, { operationId: 'OP-01', status: 'DONE' }] } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(duplicate.errors.some(x => x.code === 'TECH_OPERATION_DUPLICATE'));
-  const invalid = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-99', status: 'PENDING' }] } }], [{ id: 'h1' }]);
+  const invalid = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: [{ operationId: 'OP-99', status: 'PENDING' }] } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(invalid.errors.some(x => x.code === 'TECH_OPERATION_UNKNOWN'));
 });
 
 
 test('stored OP-05 and OP-06 completion dates must match the user-defined windows', () => {
   const base = {
-    id: 'tp-date', hiveId: 'h1', specVersion: '1.2.0',
+    id: 'tp-date', hiveId: 'h1', hiveProfileId: 'sectional-multiqueen-v1', specVersion: '1.2.0',
     createdAt: '2027-04-01T09:00:00.000Z', updatedAt: '2027-04-21T09:00:00.000Z',
     state: {
       phase: 'DIVIDED_3_SECTIONS',
@@ -305,12 +314,12 @@ test('stored OP-05 and OP-06 completion dates must match the user-defined window
       ]
     }
   };
-  assert.equal(api.validateStoredRecords([base], [{ id: 'h1' }]).valid, true);
-  const lateOP05 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-05' ? { ...op, completedAt: '2027-04-13' } : op) } }], [{ id: 'h1' }]);
+  assert.equal(api.validateStoredRecords([base], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]).valid, true);
+  const lateOP05 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-05' ? { ...op, completedAt: '2027-04-13' } : op) } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(lateOP05.errors.some(x => x.code === 'TECH_OP05_DATE_WINDOW'));
-  const earlyOP06 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-06' ? { ...op, completedAt: '2027-04-19' } : op) } }], [{ id: 'h1' }]);
+  const earlyOP06 = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-06' ? { ...op, completedAt: '2027-04-19' } : op) } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(earlyOP06.errors.some(x => x.code === 'TECH_OP06_DATE_WINDOW'));
-  const missingOP04Date = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-04' ? { ...op, completedAt: null } : op) } }], [{ id: 'h1' }]);
+  const missingOP04Date = api.validateStoredRecords([{ ...base, state: { ...base.state, operations: base.state.operations.map(op => op.operationId === 'OP-04' ? { ...op, completedAt: null } : op) } }], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(missingOP04Date.errors.some(x => x.code === 'TECH_OP05_COMPLETION_DATE_REQUIRED'));
 });
 
@@ -319,7 +328,7 @@ function operationRecord(stateOverrides = {}) {
   const now = '2027-04-01T10:00:00.000Z';
   return {
     id: 'tp-operation-test',
-    hiveId: 'h1',
+    hiveId: 'h1', hiveProfileId: 'sectional-multiqueen-v1',
     specVersion: api.SPEC.version,
     createdAt: now,
     updatedAt: now,
@@ -377,7 +386,7 @@ test('stored operation validation enforces required dates and reasons for every 
     const record = structuredClone(base);
     const operation = record.state.operations.find(item => item.operationId === operationId);
     Object.assign(operation, patch);
-    return api.validateStoredRecords([record], [{ id: 'h1' }]);
+    return api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   };
   assert.ok(check('OP-01', { status: 'SCHEDULED', plannedAt: null }).errors.some(x => x.code === 'TECH_OPERATION_PLANNED_DATE_REQUIRED'));
   assert.ok(check('OP-01', { status: 'DONE', completedAt: null }).errors.some(x => x.code === 'TECH_OPERATION_COMPLETION_DATE_REQUIRED'));
@@ -392,7 +401,7 @@ test('stored operation validation enforces required dates and reasons for every 
 test('stored operation validation rejects a non-string note', () => {
   const record = operationRecord();
   record.state.operations.find(item => item.operationId === 'OP-03').note = { reason: 'bad' };
-  const result = api.validateStoredRecords([record], [{ id: 'h1' }]);
+  const result = api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(result.errors.some(x => x.code === 'TECH_OPERATION_NOTE_INVALID'));
 });
 test('operation transition marks a valid operation complete without mutating the original record', () => {
@@ -400,7 +409,7 @@ test('operation transition marks a valid operation complete without mutating the
   const original = JSON.stringify(record);
   const result = api.transitionOperation(record, 'OP-01', {
     status: 'DONE', completedAt: '2027-04-05', plannedAt: '', note: 'Летки открыты', updatedAt: '2027-04-05T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(result.valid, true);
   assert.equal(result.records[0].state.operations.find(item => item.operationId === 'OP-01').status, 'DONE');
   assert.equal(result.records[0].state.operations.find(item => item.operationId === 'OP-01').completedAt, '2027-04-05');
@@ -411,12 +420,12 @@ test('scheduled operation requires a real planned date and rejects impossible ca
   const record = operationRecord();
   const missing = api.transitionOperation(record, 'OP-01', {
     status: 'SCHEDULED', plannedAt: '', updatedAt: '2027-04-01T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(missing.valid, false);
   assert.ok(missing.errors.some(error => error.code === 'OPERATION_PLANNED_DATE_REQUIRED'));
   const impossible = api.transitionOperation(record, 'OP-01', {
     status: 'SCHEDULED', plannedAt: '2027-02-30', updatedAt: '2027-04-01T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(impossible.valid, false);
   assert.ok(impossible.errors.some(error => error.code === 'OPERATION_PLANNED_DATE_INVALID'));
 });
@@ -425,17 +434,17 @@ test('mandatory operations cannot be skipped and failed or skipped operations re
   const record = operationRecord();
   const mandatorySkip = api.transitionOperation(record, 'OP-01', {
     status: 'SKIPPED', note: 'Не выполнялась', updatedAt: '2027-04-01T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(mandatorySkip.valid, false);
   assert.ok(mandatorySkip.errors.some(error => error.code === 'OPERATION_SKIP_REQUIRED'));
   const optionalWithoutReason = api.transitionOperation(record, 'OP-03', {
     status: 'SKIPPED', note: '', updatedAt: '2027-04-01T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(optionalWithoutReason.valid, false);
   assert.ok(optionalWithoutReason.errors.some(error => error.code === 'OPERATION_REASON_REQUIRED'));
   const optionalWithReason = api.transitionOperation(record, 'OP-03', {
     status: 'SKIPPED', note: 'По состоянию семьи не потребовалась', updatedAt: '2027-04-01T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(optionalWithReason.valid, true);
 });
 
@@ -443,12 +452,12 @@ test('OP-05 completion enforces prerequisite and 8–11 day window from OP-04', 
   const record = operationRecord(validOp05State());
   const tooEarly = api.transitionOperation(record, 'OP-05', {
     status: 'DONE', completedAt: '2027-05-17', updatedAt: '2027-05-17T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(tooEarly.valid, false);
   assert.ok(tooEarly.errors.some(error => error.code === 'TECH_OP05_DATE_WINDOW'));
   const valid = api.transitionOperation(record, 'OP-05', {
     status: 'DONE', completedAt: '2027-05-18', updatedAt: '2027-05-18T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(valid.valid, true);
 });
 
@@ -456,12 +465,12 @@ test('OP-06 completion requires three fertilized queens, connected sections, rem
   const record = operationRecord(validOp06State());
   const tooLate = api.transitionOperation(record, 'OP-06', {
     status: 'DONE', completedAt: '2027-06-01', updatedAt: '2027-06-01T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(tooLate.valid, false);
   assert.ok(tooLate.errors.some(error => error.code === 'TECH_OP06_DATE_WINDOW'));
   const valid = api.transitionOperation(record, 'OP-06', {
     status: 'DONE', completedAt: '2027-05-30', updatedAt: '2027-05-30T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(valid.valid, true);
 });
 
@@ -471,18 +480,18 @@ test('operation transition rejects duplicate operation rows and never mutates in
   const original = JSON.stringify(record);
   const result = api.transitionOperation(record, 'OP-01', {
     status: 'DONE', completedAt: '2027-04-05', updatedAt: '2027-04-05T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.code === 'OPERATION_REFERENCE_INVALID'));
   assert.equal(JSON.stringify(record), original);
 });
 
 
-test('OP-02 cannot be completed without actual feeding dates, duration, syrup amount and 2:1 ratio', () => {
+test('OP-02 cannot be completed without actual feeding dates, duration, daily syrup amount and 2:1 ratio', () => {
   const record = operationRecord();
   const missing = api.transitionOperation(record, 'OP-02', {
     status: 'DONE', completedAt: '2027-04-12', updatedAt: '2027-04-12T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(missing.valid, false);
   assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_FEEDING_DATES_REQUIRED'));
   assert.ok(missing.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
@@ -496,7 +505,7 @@ test('OP-02 accepts a recorded 12-day 2:1 syrup feeding in the specified daily a
     completedAt: '2027-04-12',
     feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 },
     updatedAt: '2027-04-12T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(result.valid, true);
   assert.deepEqual(result.records[0].state.operations.find(item => item.operationId === 'OP-02').feeding, {
     startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1
@@ -509,15 +518,15 @@ test('OP-02 rejects duration outside 12–15 calendar days, incorrect syrup rati
   const base = { status: 'DONE', completedAt: '2027-04-11', updatedAt: '2027-04-11T10:00:00.000Z' };
   const short = api.transitionOperation(record, 'OP-02', {
     ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-11', gramsPerColonyPerDay: 150, sugarParts: 2, waterParts: 1 }
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(short.errors.some(error => error.code === 'TECH_OP02_DURATION'));
   const wrongRatio = api.transitionOperation(record, 'OP-02', {
     ...base, feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 150, sugarParts: 1, waterParts: 1 }
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(wrongRatio.errors.some(error => error.code === 'TECH_OP02_SYRUP_RATIO'));
   const wrongAmount = api.transitionOperation(record, 'OP-02', {
     ...base, completedAt: '2027-04-12', feeding: { startDate: '2027-04-01', endDate: '2027-04-12', gramsPerColonyPerDay: 250, sugarParts: 2, waterParts: 1 }
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.ok(wrongAmount.errors.some(error => error.code === 'TECH_OP02_SYRUP_AMOUNT'));
 });
 
@@ -526,7 +535,7 @@ test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION
   const record = operationRecord();
   const op04 = api.transitionOperation(record, 'OP-04', {
     status: 'DONE', completedAt: '2027-05-10', updatedAt: '2027-05-10T10:00:00.000Z'
-  }, [record], [{ id: 'h1' }]);
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(op04.valid, false);
   assert.ok(op04.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
 
@@ -536,7 +545,7 @@ test('OP-04 and OP-05 cannot be completed while the process remains PRE_DIVISION
   op04Row.completedAt = '2027-05-10';
   const op05 = api.transitionOperation(withOp04, 'OP-05', {
     status: 'DONE', completedAt: '2027-05-19', updatedAt: '2027-05-19T10:00:00.000Z'
-  }, [withOp04], [{ id: 'h1' }]);
+  }, [withOp04], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
   assert.equal(op05.valid, false);
   assert.ok(op05.errors.some(x => x.code === 'TECH_RECORD_STATE_OPERATION_PHASE_MISMATCH'));
 });
@@ -603,4 +612,62 @@ test('R7 reads the alternative wintering mode from config and requires two mesh 
   assert.ok(result.errors.some(x => x.code === 'R7_DIAPHRAGMS'));
   assert.equal(result.errors.some(x => x.code === 'R7_WINTERING_MODE'), false);
   assert.equal(result.errors.some(x => x.code === 'ALT_WINTER_BODY_LAYOUT'), false);
+});
+
+
+test('OP-02 migrates the old v1.3 field name to the daily norm', () => {
+  const record = operationRecord();
+  record.specVersion = '1.3.0';
+  const result = api.transitionOperation(record, 'OP-02', {
+    status: 'DONE',
+    completedAt: '2027-04-12',
+    feeding: { startDate: '2027-04-01', endDate: '2027-04-12', portionGrams: 150, sugarParts: 2, waterParts: 1 },
+    updatedAt: '2027-04-12T10:00:00.000Z'
+  }, [record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.equal(result.valid, true);
+  assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.gramsPerColonyPerDay, 150);
+  assert.equal(result.records[0].state.operations.find(x => x.operationId === 'OP-02').feeding.portionGrams, undefined);
+});
+
+test('OP-13 spring development and OP-14 early honey are compatible; OP-14 uses two honey bodies', () => {
+  const valid = api.validateHiveState(dividedState({
+    phase: 'ALT_WINTERING_SPRING',
+    config: { honeyBodiesCount: 2, winteringMode: 'ALTERNATIVE_DIAPHRAGMS' },
+    operations: [{ operationId: 'OP-13', status: 'DONE' }, { operationId: 'OP-14', status: 'DONE' }]
+  }));
+  assert.equal(valid.errors.some(x => x.code === 'R6_ALT_SPRING_EXCLUSIVE'), false);
+  assert.equal(valid.errors.some(x => x.code === 'OP14_EARLY_HONEY_BODY_COUNT'), false);
+
+  const fourSupers = api.validateHiveState(dividedState({
+    phase: 'ALT_WINTERING_SPRING',
+    config: { honeyBodiesCount: 4, winteringMode: 'ALTERNATIVE_DIAPHRAGMS' },
+    operations: [{ operationId: 'OP-14', status: 'DONE' }]
+  }));
+  assert.ok(fourSupers.errors.some(x => x.code === 'OP14_EARLY_HONEY_BODY_COUNT'));
+  assert.deepEqual(api.getOperation('OP-14').postHarvestNestBodies, [3, 4]);
+  assert.deepEqual(api.getOperation('OP-14').postHarvestCombineDelayDays, [3, 5]);
+});
+
+
+test('stored sectional processes reject a Farrar profile even when frame height is 180 mm', () => {
+  const record = {
+    id: 'tp-profile', hiveId: 'h1', hiveProfileId: 'sectional-multiqueen-v1',
+    specVersion: api.SPEC.version,
+    createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z',
+    state: { phase: 'WINTER', config: { frameHeightMm: 180 }, operations: [] }
+  };
+  const wrongProfile = api.validateStoredRecords([record], [{ id: 'h1', profileId: 'farrar-6x6-v1', frame: { heightMm: 180 } }]);
+  assert.ok(wrongProfile.errors.some(x => x.code === 'TECH_HIVE_PROFILE_MISMATCH'));
+  const correctProfile = api.validateStoredRecords([record], [{ id: 'h1', profileId: 'sectional-multiqueen-v1' }]);
+  assert.equal(correctProfile.valid, true);
+});
+
+
+test('AI context and Worker keep Farrar rules isolated from the sectional profile', () => {
+  assert.ok(worker.includes('profileId=farrar-6x6-v1'));
+  assert.ok(worker.includes('const SECTIONAL_PROFILE_GUIDANCE'));
+  assert.ok(worker.includes("item?.hiveProfileId==='sectional-multiqueen-v1'"));
+  assert.ok(worker.includes('не переноси их на другие профили'));
+  assert.ok(html.includes("profileId:h.profileId||h.profile?.id||null"));
+  assert.ok(html.includes("hiveProfileId:record?.hiveProfileId||null"));
 });
