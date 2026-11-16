@@ -6,5 +6,10 @@
   "ai": {
     "binding": "AI"
   },
+  "previews": {
+    "ai": {
+      "binding": "AI"
+    }
+  },
   "workers_dev": true
 }
