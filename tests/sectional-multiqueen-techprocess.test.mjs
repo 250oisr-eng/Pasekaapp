@@ -60,13 +60,13 @@ test('sectional tech-process model loads before the app and is cached offline', 
   assert.ok(html.includes("selectedProfile?.id!=='sectional-multiqueen-v1'"));
   assert.ok(html.includes('const sectionalTechProcesses='));
   assert.ok(html.includes('sectionalTechProcesses,families'));
-  assert.match(html, /Разовая порция сиропа на семью/);
+  assert.match(html, /Суточная норма сиропа на семью/);
   assert.ok(html.includes('function toggleSectionalOperationFields('));
 });
 
 test('spec exposes 14 stable operations and three distinct entrance assignments', () => {
   assert.equal(api.SPEC.operations.length, 14);
-  assert.equal(api.SPEC.version, '1.3.0');
+  assert.equal(api.SPEC.version, '1.4.0');
   assert.equal(api.SPEC.geometry.technicalOpeningDiameterMm, 50);
   assert.equal(api.SPEC.geometry.nestBodiesPerSectionAtDivision, 2);
   assert.equal(api.SPEC.frameHeightMm, 180);
