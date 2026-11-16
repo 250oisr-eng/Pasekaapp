@@ -256,7 +256,21 @@ test('R2 requires both metal mesh plugs over queen excluders', () => {
 
 test('R4 requires queen excluder before honey bodies', () => {
   const result = api.validateHiveState(dividedState({ phase: 'HONEY_BODIES_INSTALLED' }));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+});
+
+
+test('R4 blocks OP-07 regardless of guessed two-or-three grid count', () => {
+  for (const count of [2, 3]) {
+    const result = api.validateHiveState(dividedState({
+      phase: 'HONEY_BODIES_INSTALLED',
+      queenExcluderBetweenNestAndHoney: true,
+      honeyQueenExcluderCount: count,
+      config: { honeyBodiesCount: 2 }
+    }));
+    assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
+    assert.equal(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'), false);
+  }
 });
 
 test('R6 rejects selecting both wintering methods', () => {
@@ -683,7 +697,7 @@ test('R4 is enforced when OP-07 is marked DONE even if phase was not advanced', 
   }));
   assert.ok(result.errors.some(x => x.code === 'OPERATION_PHASE_MISMATCH'));
   assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER'));
-  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_COUNT'));
+  assert.ok(result.errors.some(x => x.code === 'R4_QUEEN_EXCLUDER_LAYOUT_UNCONFIRMED'));
   assert.ok(result.errors.some(x => x.code === 'R4_HONEY_BODY_COUNT'));
 });
 
