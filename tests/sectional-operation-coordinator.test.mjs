@@ -187,12 +187,12 @@ function prepareOP05Fixture(){
 function op05Request(prepared,overrides={}){
  return {userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-25T10:00:00.000Z',layout:prepared.layout,itemMoves:prepared.itemMoves,...overrides};
 }
-function prepareOP06Queens(state){
+function prepareOP06Queens(state,deps){
  const split=state.familyEvents.find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.techProcessId==='tp-h1');
  for(const [index,familyId] of ['f1','f2','f3'].entries()){
-  const identity=Lineage.confirmQueenIdentity(state,{familyId,newQueen:{originType:'emergency_reared',code:'young-'+(index+1)},operationId:'OP-04',techProcessId:'tp-h1',occurredAt:'2026-12-06T08:00:00.000Z'},makeId,'2026-12-06T08:00:00.000Z');
+  const identity=Lineage.confirmQueenIdentity(state,{familyId,newQueen:{originType:'emergency_reared',code:'young-'+(index+1)},operationId:'OP-04',techProcessId:'tp-h1',occurredAt:'2026-12-06T08:00:00.000Z'},deps.makeId,'2026-12-06T08:00:00.000Z');
   assert.equal(identity.ok,true,JSON.stringify(identity));
-  const observation=Lineage.recordQueenLayingObserved(state,{familyId,techProcessId:'tp-h1',splitEventId:split.id,userConfirmed:true,occurredAt:'2026-12-07T09:00:00.000Z'},makeId,'2026-12-07T09:30:00.000Z');
+  const observation=Lineage.recordQueenLayingObserved(state,{familyId,techProcessId:'tp-h1',splitEventId:split.id,userConfirmed:true,occurredAt:'2026-12-07T09:00:00.000Z'},deps.makeId,'2026-12-07T09:30:00.000Z');
   assert.equal(observation.ok,true,JSON.stringify(observation));
  }
 }
@@ -488,7 +488,7 @@ test('append-only queen laying observation requires a current identified queen a
 test('OP-06 removes all eight real mesh plugs atomically after 20 days and three dated laying observations',()=>{
  const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
  assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state);
+ prepareOP06Queens(fixture.state,deps);
  const request=op06Request(prepared);
  const result=Coordinator.completeOP06(fixture.state,request,deps);
  assert.equal(result.ok,true,JSON.stringify(result.details||result));
@@ -510,7 +510,7 @@ test('OP-06 can record that optional OP-05 was skipped only with explicit absenc
  const fixture=makeFixture(),deps=dependencies();
  const started=Coordinator.completeOP04(fixture.state,request(fixture),deps);
  assert.equal(started.ok,true,JSON.stringify(started));
- prepareOP06Queens(fixture.state);
+ prepareOP06Queens(fixture.state,deps);
  const prepared={fixture};
  const result=Coordinator.completeOP06(fixture.state,{userConfirmed:true,noPlugsInstalledConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout:structuredClone(fixture.state.sectionalLayouts[0]),itemMoves:[]},deps);
  assert.equal(result.ok,true,JSON.stringify(result.details||result));
@@ -522,14 +522,14 @@ test('OP-06 can record that optional OP-05 was skipped only with explicit absenc
 test('OP-06 rejects missing queen laying evidence, wrong day and partial plug removal without mutation',()=>{
  const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
  assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state);
+ prepareOP06Queens(fixture.state,deps);
  const request=op06Request(prepared);
  fixture.state.queenEvents=fixture.state.queenEvents.filter(event=>!(event.type==='laying_observed'&&event.familyId==='f3'));
  let before=structuredClone(fixture.state);
  let result=Coordinator.completeOP06(fixture.state,request,deps);
  assert.equal(result.ok,false);assert.equal(result.error,'op06_queen_laying_observation_required');
  assert.deepEqual(fixture.state,before);
- prepareOP06Queens(fixture.state);
+ prepareOP06Queens(fixture.state,deps);
  const wrongDay={...op06Request(prepared),occurredAt:'2026-12-06T10:00:00.000Z'};
  before=structuredClone(fixture.state);
  result=Coordinator.completeOP06(fixture.state,wrongDay,deps);
@@ -544,7 +544,7 @@ test('OP-06 rejects missing queen laying evidence, wrong day and partial plug re
 test('OP-06 rolls back every removal when a later equipment move fails',()=>{
  const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
  assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state);
+ prepareOP06Queens(fixture.state,deps);
  const before=structuredClone(fixture.state);
  let moves=0;
  const equipment={...Items,place:(state,request,makeId,now)=>{moves++;if(moves===4)return {ok:false,error:'forced_failure'};return Items.place(state,request,makeId,now)}};
