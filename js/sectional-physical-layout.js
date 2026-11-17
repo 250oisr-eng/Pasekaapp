@@ -85,9 +85,9 @@ function validate(layout,state){
    if(!['identified','unresolved'].includes(family.queenIdentityStatus))add('section_family_queen_identity_status_required',{familyId:family.id,status:family.queenIdentityStatus??null});
    if(family.queenIdentityStatus==='identified'){
     const queen=queenMap.get(family.currentQueenId);
-    if(!nonEmpty(family.currentQueenId)||section.queenId!==family.currentQueenId)add('section_family_queen_reference_mismatch',{familyId:family.id,sectionQueenId:section.queenId??null,currentQueenId:family.currentQueenId??null});
+    if(!nonEmpty(family.currentQueenId))add('section_family_current_queen_missing',{familyId:family.id});
     if(!queen||queen.familyId!==family.id||queen.status!=='current')add('section_family_current_queen_invalid',{familyId:family.id,queenId:family.currentQueenId??null});
-   }else if(family.currentQueenId||section.queenId)add('section_family_unresolved_queen_has_identity',{familyId:family.id,currentQueenId:family.currentQueenId??null,sectionQueenId:section.queenId??null});
+   }else if(family.currentQueenId)add('section_family_unresolved_queen_has_identity',{familyId:family.id,currentQueenId:family.currentQueenId??null});
   }
   const count=Array.isArray(section.broodBodyIds)?section.broodBodyIds.length:null;
   if(!Array.isArray(section.broodBodyIds))add('section_brood_bodies_required',{sectionId:section.id??null});
