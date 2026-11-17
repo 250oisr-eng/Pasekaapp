@@ -37,6 +37,7 @@ function extractFunction(name) {
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
+  if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   deps.window ||= appWindow;
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
@@ -3361,4 +3362,65 @@ test('defaultHive keeps a committed hive when post-save UI refresh fails',async(
  assert.equal(deps.selectedHiveId,'new-hive');
  assert.equal(deps.activeJournalHive,'new-hive');
  assert.match(deps.alerts[0],/Улей сохранён/);
+});
+
+
+test('family transfer frame history validator accepts only arrays of event objects or null',()=>{
+ const validate=loadFunction('familyTransferFrameHistoryIsValid');
+ assert.equal(validate([{frameId:'f1',history:[{action:'created'}]}]),true);
+ assert.equal(validate([{frameId:'f1',history:null}]),true);
+ assert.equal(validate([{frameId:'f1'}]),true);
+ assert.equal(validate([{frameId:'f1',history:[]}]),true);
+ assert.equal(validate([{frameId:'f1',history:{corrupt:true}}]),false);
+ assert.equal(validate([{frameId:'f1',history:'corrupt'}]),false);
+ assert.equal(validate([{frameId:'f1',history:[null]}]),false);
+ assert.equal(validate([{frameId:'f1',history:['corrupt']}]),false);
+ assert.equal(validate([{frameId:'f1',history:[[]]}]),false);
+ assert.equal(validate([{frameId:'f1',history:[]} , []]),false);
+ assert.equal(validate(null),false);
+});
+
+function createFamilyTransferHistoryFixture(sourceHistory,targetHistory){
+ const sourceBox={family:'f1',frames:[{frameId:'frame-1',location:'A',...(sourceHistory===undefined?{}:{history:structuredClone(sourceHistory)})}]};
+ const targetBox={family:'',frames:[{frameId:'frame-2',location:'B',...(targetHistory===undefined?{}:{history:structuredClone(targetHistory)})}]};
+ const sourceLayout={boxes:{A:sourceBox}},targetLayout={boxes:{B:targetBox}};
+ const initial={hives:[{id:'h1'},{id:'h2'}],families:[{id:'f1',hive:'h1',box:'A',name:'Family 1',origin:'family'}],records:[],layouts:{h1:sourceLayout,h2:targetLayout}};
+ let snapshotCalls=0,saveCalls=0,confirmCalls=0,auditCalls=0;
+ const fields={transferTargetHive:{value:'h2'},transferTargetBox:{value:'B'}};
+ const deps={
+  S:initial,
+  transferringFamilyId:'f1',
+  selectedHiveId:'h1',
+  activeJournalHive:'h1',
+  $:id=>fields[id],
+  layoutFor:id=>id==='h1'?sourceLayout:targetLayout,
+  familyTransferBoxKeys:profile=>profile.hiveId==='h1'?['A']:['B'],
+  profileForHive:id=>({hiveId:id}),
+  validateHiveProfile:()=>({ok:true,errors:[]}),
+  familyTransferTargets:()=>['B'],
+  findFamilyBox:()=>({hiveId:'h1',box:'A',layout:sourceLayout,data:sourceBox}),
+  frameCapacity:()=>10,
+  confirm:()=>{confirmCalls++;return true},
+  alert:message=>{deps.alerts.push(message)},
+  alerts:[],
+  structuredClone:value=>{snapshotCalls++;return structuredClone(value)},
+  save:async()=>{saveCalls++;return true},
+  logAudit:()=>{auditCalls++},
+  render(){},
+  showTab(){}
+ };
+ deps.familyTransferFrameHistoryIsValid=loadFunction('familyTransferFrameHistoryIsValid');
+ return {deps,initial,get counters(){return {snapshotCalls,saveCalls,confirmCalls,auditCalls}}};
+}
+
+test('family transfer rejects malformed history in either box before snapshot, confirmation and mutation',async()=>{
+ for(const side of ['source','target']){
+  const fixture=createFamilyTransferHistoryFixture(side==='source'?{corrupt:true}:[],side==='target'?'corrupt':[]);
+  const before=structuredClone(fixture.initial);
+  const transfer=loadFunction('confirmFamilyTransfer',fixture.deps);
+  await transfer({preventDefault(){}});
+  assert.deepEqual(fixture.deps.S,before);
+  assert.deepEqual(fixture.counters,{snapshotCalls:0,saveCalls:0,confirmCalls:0,auditCalls:0});
+  assert.match(fixture.deps.alerts[0],/истории одной или нескольких рамок обнаружено повреждение/);
+ }
 });
