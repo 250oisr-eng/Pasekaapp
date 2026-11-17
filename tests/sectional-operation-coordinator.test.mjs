@@ -586,6 +586,19 @@ test('OP-06 rolls back every removal when a later equipment move fails',()=>{
 });
 
 
+function installOP05AfterHoneyStage(prepared){
+ const {fixture,deps}=prepared,state=fixture.state,layout=structuredClone(state.sectionalLayouts[0]);
+ const openings=layout.technicalConnections.flatMap(connection=>connection.openings),itemMoves=[];
+ layout.temporaryQueenIsolation=openings.map((opening,index)=>{
+  const itemId='temporary-plug-'+(index+1);
+  state.equipmentInventory.items[itemId]=item(itemId,'metalMeshPlug',{type:'storage',label:'Склад'});
+  itemMoves.push({itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}});
+  return {itemId,bodyId:opening.bodyId,openingId:opening.openingId};
+ });
+ const result=Coordinator.completeOP05(state,{userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-25T10:00:00.000Z',layout,itemMoves},deps);
+ return result;
+}
+
 test('OP-07 atomically installs two large FULL/HALF excluders and one complete honey-body pair',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
@@ -650,3 +663,32 @@ test('OP-07 after OP-06 requires completed mesh removal, while alternate source 
  assert.equal(result.ok,false);assert.equal(result.error,'op07_requires_completed_op06');
  assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack,undefined);
 });
+test('OP-05 and OP-06 remain valid after OP-07 has installed honey bodies and large excluders',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const op07=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(op07.ok,true,JSON.stringify(op07.details||op07));
+ const op05=installOP05AfterHoneyStage(prepared);
+ assert.equal(op05.ok,true,JSON.stringify(op05.details||op05));
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.excluders.length,2);
+ prepareOP06Queens(fixture.state,deps);
+ const oldLayout=fixture.state.sectionalLayouts[0],layout=structuredClone(oldLayout);
+ layout.temporaryQueenIsolation=[];
+ const itemMoves=oldLayout.temporaryQueenIsolation.map(plug=>({itemId:plug.itemId,location:{type:'storage',label:'Склад'}}));
+ const op06=Coordinator.completeOP06(fixture.state,{userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout,itemMoves},deps);
+ assert.equal(op06.ok,true,JSON.stringify(op06.details||op06));
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.bodyIds.length,2);
+ assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,0);
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-07 supports the source sequence after OP-06 and preserves the completed OP-06 evidence',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ prepareOP06Queens(fixture.state,deps);
+ const op06=Coordinator.completeOP06(fixture.state,{userConfirmed:true,noPlugsInstalledConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout:structuredClone(fixture.state.sectionalLayouts[0]),itemMoves:[]},deps);
+ assert.equal(op06.ok,true,JSON.stringify(op06.details||op06));
+ const op07=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:'AFTER_OP06',occurredAt:'2026-12-07T10:30:00.000Z'}),deps);
+ assert.equal(op07.ok,true,JSON.stringify(op07.details||op07));
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-06').status,'DONE');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
