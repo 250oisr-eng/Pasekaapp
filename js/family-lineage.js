@@ -252,7 +252,7 @@ function applySplit(state, request, makeId, now) {
   const children=Array.isArray(request?.resultFamilies)?request.resultFamilies:[];
   if (!source || !isActive(source)) return {ok:false,error:'source_family_missing_or_historical'};
   if (familyHasPhysicalPlacement(draft,source))
-   return {ok:false,error:'source_family_has_legacy_physical_placement'};
+   return {ok:false,error:'source_family_has_physical_placement'};
   if (children.length<2 || (['OP-04','OP-14'].includes(request?.operationId)&&children.length!==3) || children.some(row=>!isObject(row)||typeof row.id!=='string'||!row.id.trim()))
    return {ok:false,error:'split_result_families_invalid'};
   const existing=new Set(draft.families.map(f=>f?.id).filter(Boolean));
@@ -307,7 +307,7 @@ function applyMerge(state, request, makeId, now) {
   if (sources.some(f=>!f||!isActive(f))) return {ok:false,error:'merge_source_family_missing_or_historical'};
   if (new Set(sources.map(f=>f.hive)).size!==1) return {ok:false,error:'merge_source_hive_mismatch'};
   if (sources.some(f=>familyHasPhysicalPlacement(draft,f)))
-   return {ok:false,error:'merge_source_family_has_legacy_physical_placement'};
+   return {ok:false,error:'merge_source_family_has_physical_placement'};
   const result=request?.resultFamily;
   if (!isObject(result)||typeof result.id!=='string'||!result.id.trim()||draft.families.some(f=>f?.id===result.id))
    return {ok:false,error:'merge_result_family_invalid'};
@@ -362,7 +362,7 @@ function confirmQueenIdentity(state, request, makeId, now) {
    for (const [key,max] of [['code',80],['source',120],['notes',500]]) {
     if (details[key]!=null&&(typeof details[key]!=='string'||details[key].length>max)) return {ok:false,error:'new_queen_details_invalid',details:{field:key}};
    }
-   if (details.year!=null&&!['string','number'].includes(typeof details.year)) return {ok:false,error:'new_queen_details_invalid',details:{field:'year'}};
+   if (details.year!=null&&(!['string','number'].includes(typeof details.year)||(typeof details.year==='number'&&!Number.isFinite(details.year)))) return {ok:false,error:'new_queen_details_invalid',details:{field:'year'}};
    const defaultOriginFamilyId=originType==='emergency_reared'?(sourceEvent.sourceFamilyIds||[])[0]||null:null;
    const originFamilyId=details.originFamilyId??defaultOriginFamilyId;
    if (originFamilyId!=null&&!draft.families.some(row=>row?.id===originFamilyId)) return {ok:false,error:'new_queen_origin_family_missing'};
@@ -383,7 +383,7 @@ function confirmQueenIdentity(state, request, makeId, now) {
   }
   if (draft.families.some(f=>f?.id!==family.id&&isActive(f)&&f.currentQueenId===queen.id))
    return {ok:false,error:'identity_queen_already_assigned'};
-  const at=now||new Date().toISOString(),used=new Set([...draft.familyEvents.map(e=>e?.id).filter(Boolean),...draft.queenEvents.map(e=>e?.id).filter(Boolean)]);
+  const at=now||new Date().toISOString(),used=new Set([...draft.families.map(f=>f?.id).filter(Boolean),...draft.queens.map(q=>q?.id).filter(Boolean),...draft.familyEvents.map(e=>e?.id).filter(Boolean),...draft.queenEvents.map(e=>e?.id).filter(Boolean)]);
   const eventId=nextId(makeId,used),queenEventId=nextId(makeId,new Set([...used,eventId]));
   if (!eventId||!queenEventId) return {ok:false,error:'family_event_id_required'};
   const previousFamilyId=queen.familyId??null;
