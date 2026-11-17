@@ -500,7 +500,7 @@ test('OP-06 removes all eight real mesh plugs atomically after 20 days and three
  for(const plug of op06.evidence.removedPlugs){
   const item=fixture.state.equipmentInventory.items[plug.itemId];
   assert.deepEqual(item.location,{type:'storage',label:'Склад'});
-  assert.equal(item.events.at(-1).type,'moved');
+  assert.equal(item.events.at(-1).type,'moved_to_storage');
  }
  assert.equal(fixture.state.auditLog.at(-1).operationId,'OP-06');
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
