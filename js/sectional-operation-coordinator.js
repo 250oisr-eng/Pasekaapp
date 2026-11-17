@@ -283,17 +283,36 @@ function inspect(state,deps={}){
    if(!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(op07.evidence?.timingMode))add('sectional_tech_process_op07_timing_mode_invalid',{id:record.id});
    if(op07.evidence?.timingMode==='WITH_SECOND_ROW'&&op07.evidence?.daysAfterSecondRow!==0)add('sectional_tech_process_op07_immediate_timing_invalid',{id:record.id});
    if(op07.evidence?.timingMode==='APPROX_12_DAYS_AFTER_SECOND_ROW'&&!(op07.evidence?.daysAfterSecondRow>0))add('sectional_tech_process_op07_delayed_timing_invalid',{id:record.id});
-   const expectedRemoved=rows(op07.evidence?.removedStackAccessories).map(row=>row?.itemId).sort();
-   const removedEvidence=rows(op07.evidence?.itemMovementEventIds);
-   if(expectedRemoved.length!==6||removedEvidence.length!==8)add('sectional_tech_process_op07_movement_evidence_count_invalid',{id:record.id});
+   const removedAccessories=rows(op07.evidence?.removedStackAccessories),expectedRemoved=removedAccessories.map(row=>row?.itemId).sort();
+   const excluderIds=rows(op07.evidence?.excluderItemIds).slice().sort(),removedEvidence=rows(op07.evidence?.itemMovementEventIds);
+   const expectedMovementIds=[...expectedRemoved,...excluderIds].sort();
+   const evidenceIds=removedEvidence.map(row=>row?.itemId).sort(),eventIds=removedEvidence.map(row=>row?.eventId);
+   const accessoryKinds=new Map(),stackAccessoryCounts=new Map(),stackIds=new Set(rows(layout?.stacks).map(row=>row?.id));
+   for(const row of removedAccessories){
+    const item=state.equipmentInventory?.items?.[row?.itemId];
+    const count=accessoryKinds.get(row?.kind)||0;accessoryKinds.set(row?.kind,count+1);
+    if(!nonEmpty(row?.itemId)||!['cover','topRiser'].includes(row?.kind)||!item||item.kind!==row.kind||item.location?.type!=='storage')add('sectional_tech_process_op07_removed_accessory_invalid',{id:record.id,itemId:row?.itemId??null,kind:row?.kind??null});
+   }
+   if(expectedRemoved.length!==6||new Set(expectedRemoved).size!==6||accessoryKinds.get('cover')!==3||accessoryKinds.get('topRiser')!==3||excluderIds.length!==2||new Set(excluderIds).size!==2||JSON.stringify(expectedMovementIds)!==JSON.stringify(evidenceIds)||removedEvidence.length!==8||new Set(eventIds).size!==8||eventIds.some(id=>!nonEmpty(id)))add('sectional_tech_process_op07_movement_evidence_count_invalid',{id:record.id});
+   const layoutTargets=newLayoutTargets(layout).targets;
    for(const evidence of removedEvidence){
     const item=state.equipmentInventory?.items?.[evidence?.itemId],event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===evidence?.itemId);
-    if(!item||!event||!globalEvent||event.at!==op07.completedAt)add('sectional_tech_process_op07_item_movement_evidence_invalid',{id:record.id,itemId:evidence?.itemId??null});
+    const accessory=removedAccessories.find(row=>row?.itemId===evidence?.itemId),target=layoutTargets.get(evidence?.itemId);
+    let valid=!!item&&!!event&&!!globalEvent&&event.at===op07.completedAt&&JSON.stringify(event)===JSON.stringify(globalEvent);
+    if(accessory){
+     const stackId=event?.from?.stackId,counts=stackAccessoryCounts.get(stackId)||{cover:0,topRiser:0};
+     if(accessory.kind==='cover')counts.cover++;if(accessory.kind==='topRiser')counts.topRiser++;stackAccessoryCounts.set(stackId,counts);
+     valid=valid&&item.kind===accessory.kind&&item.location?.type==='storage'&&event.type==='moved_to_storage'&&event.from?.type==='hive'&&event.from?.hiveId===record.hiveId&&stackIds.has(stackId)&&event.to?.type==='storage'&&nonEmpty(event.to?.label);
+    }else{
+     valid=valid&&excluderIds.includes(evidence?.itemId)&&item.kind==='honeyQueenExcluder'&&target?.type==='hive'&&item.location?.type==='hive'&&sameLocation(item.location,target)&&event.type==='moved'&&event.from?.type==='storage'&&event.to?.type==='hive'&&sameLocation(event.to,target);
+    }
+    if(!valid)add('sectional_tech_process_op07_item_movement_evidence_invalid',{id:record.id,itemId:evidence?.itemId??null});
    }
+   if(stackAccessoryCounts.size!==3||[...stackIds].some(stackId=>{const count=stackAccessoryCounts.get(stackId);return !count||count.cover!==1||count.topRiser!==1}))add('sectional_tech_process_op07_stack_accessory_history_invalid',{id:record.id});
    const honeyBodies=rows(honey?.bodyIds);
    for(const bodyId of honeyBodies){
-    const body=state.equipmentInventory?.bodies?.[bodyId],event=rows(state.equipmentInventory?.events).find(row=>row?.bodyId===bodyId&&row?.operationId==='OP-07'&&row?.type==='sectional_body_placed'&&row?.at===op07.completedAt);
-    if(!body||body.kind!=='honey'||!event)add('sectional_tech_process_op07_honey_body_history_invalid',{id:record.id,bodyId});
+    const body=state.equipmentInventory?.bodies?.[bodyId],bodyEvent=rows(body?.events).find(row=>row?.operationId==='OP-07'&&row?.type==='placed'&&row?.at===op07.completedAt),event=rows(state.equipmentInventory?.events).find(row=>row?.bodyId===bodyId&&row?.operationId==='OP-07'&&row?.type==='sectional_body_placed'&&row?.at===op07.completedAt);
+    if(!body||body.kind!=='honey'||!bodyEvent||bodyEvent.from?.type!=='storage'||bodyEvent.to?.bodyRole!=='honey'||!event||event.from?.type!=='storage'||event.to?.bodyRole!=='honey'||JSON.stringify(bodyEvent.from)!==JSON.stringify(event.from)||JSON.stringify(bodyEvent.to)!==JSON.stringify(event.to))add('sectional_tech_process_op07_honey_body_history_invalid',{id:record.id,bodyId});
    }
    if(op07.evidence?.timingMode==='AFTER_OP06'){
     const completedOp06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
