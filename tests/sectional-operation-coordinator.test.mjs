@@ -30,6 +30,13 @@ function item(id,kind,location){
 function body(id,index,storageLocation=''){
  return {id,kind:'brood',condition:'good',spec:{profileId:PROFILE,framesPerBox:6},...(storageLocation?{storageLocation}:{}),labelCode:codes[index]};
 }
+function honeyFrames(bodyId){
+ return Array.from({length:10},(_,index)=>({
+  frameId:bodyId+'-frame-'+(index+1),
+  combType:[3,6].includes(index)?'wax_foundation':'drawn_comb',
+  history:[]
+ }));
+}
 function makeFixture(){
  const bodies=Object.fromEntries(['b1','b2','b3','b4','b5','b6'].map((id,index)=>[id,body(id,index,index>=3?'Склад':'' )]));
  const items={
@@ -208,7 +215,7 @@ function prepareOP07Fixture(){
  if(!started.ok)throw new Error('OP-04 fixture setup failed: '+JSON.stringify(started));
  const bodyIds=['honey1','honey2'];
  for(const [index,id] of bodyIds.entries()){
-  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[]};
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
   fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
  }
  fixture.state.equipmentInventory.items['ex-left']=item('ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
@@ -608,6 +615,8 @@ test('OP-07 atomically installs two large FULL/HALF excluders and one complete h
  assert.equal(op07.evidence.timingMode,'WITH_SECOND_ROW');
  assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2']);
  assert.equal(fixture.state.sectionalLayouts[0].honeyStack.excluders.length,2);
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.framesByBody.honey1.length,10);
+ assert.equal(Labels.listLabelledFrames(fixture.state).length,0);
  for(const id of ['ex-left','ex-right']){
   const excluder=fixture.state.equipmentInventory.items[id];
   assert.equal(excluder.location.type,'hive');
@@ -626,6 +635,37 @@ test('OP-07 atomically installs two large FULL/HALF excluders and one complete h
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 
+test('OP-07 requires early honey foundation frames to be separated by drawn comb, at most two per body',()=>{
+ const cases=[
+  {name:'three foundation frames in one body',mutate:frames=>{frames[1].combType='wax_foundation';frames[3].combType='wax_foundation';frames[5].combType='wax_foundation'},code:'wax_foundation_limit_exceeded'},
+  {name:'adjacent foundation frames',mutate:frames=>{frames[3].combType='wax_foundation';frames[4].combType='wax_foundation'},code:'wax_foundation_must_be_between_drawn_comb'},
+  {name:'foundation at the edge',mutate:frames=>{frames[0].combType='wax_foundation'},code:'wax_foundation_must_be_between_drawn_comb'},
+  {name:'unclassified frame',mutate:frames=>{delete frames[2].combType},code:'frame_comb_type_missing_or_invalid'}
+ ];
+ for(const scenario of cases){
+  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+  scenario.mutate(fixture.state.equipmentInventory.bodies.honey1.frames);
+  const before=structuredClone(fixture.state);
+  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+  assert.equal(result.ok,false,scenario.name);
+  assert.equal(result.error,'op07_early_honey_frame_composition_invalid',scenario.name);
+  assert.ok(result.details.errors.some(error=>error.code===scenario.code),scenario.name);
+  assert.deepEqual(fixture.state,before,scenario.name+' must roll back without mutations');
+ }
+});
+test('OP-07 permits up to two separated foundation frames in each honey body independently',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ const composition=fixture.state.sectionalLayouts[0].honeyStack.framesByBody;
+ assert.equal(composition.honey1.filter(frame=>frame.combType==='wax_foundation').length,2);
+ assert.equal(composition.honey2.filter(frame=>frame.combType==='wax_foundation').length,2);
+ assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,0);
+ assert.equal(fixture.state.equipmentInventory.bodies.honey2.frames.length,0);
+ assert.equal(composition.honey1[3].history.at(-1).action,'corpus_from_storage');
+ assert.equal(composition.honey1[3].history.at(-1).to.box,'honey:honey1');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
 test('OP-07 distinguishes same-day second-row installation from the approximate 12-day alternative',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
  const immediate=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-18T10:00:00.000Z',timingMode:'WITH_SECOND_ROW'}),deps);
@@ -757,7 +797,7 @@ test('OP-04 staged first-row to second-row sequence composes with OP-05, OP-06 a
 
  const honeyBodyIds=['staged-honey-1','staged-honey-2'];
  for(const [index,id] of honeyBodyIds.entries()){
-  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'staged-honey-pair',storageLocation:'Склад',events:[]};
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'staged-honey-pair',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
   fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
  }
  fixture.state.equipmentInventory.items['staged-ex-left']=item('staged-ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
