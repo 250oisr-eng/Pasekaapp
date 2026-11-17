@@ -226,6 +226,31 @@ test('OP-14 early-honey sequence accepts the two single-body families at any ver
  }
 });
 
+test('split refuses a queen linked to a different family without mutating lineage',()=>{
+ const state=baseState();state.queens.find(q=>q.id==='q1').familyId='f2';
+ const before=JSON.stringify(state);
+ const result=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:children('bad-queen-link')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(result.ok,false);assert.equal(result.error,'split_source_queen_link_mismatch');
+ assert.equal(JSON.stringify(state),before);
+});
+
+test('merge refuses a source queen linked to another family without mutating lineage',()=>{
+ const state=baseState();state.queens.find(q=>q.id==='q2').familyId='f1';
+ const before=JSON.stringify(state);
+ const result=api.applyMerge(state,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-11',resultFamily:{id:'bad-merge-link',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+ assert.equal(result.ok,false);assert.equal(result.error,'merge_source_queen_link_mismatch');
+ assert.equal(JSON.stringify(state),before);
+});
+
+test('replaced or removed queens cannot remain assigned to active families',()=>{
+ for(const status of ['replaced','removed']){
+  const state=baseState();state.queens.find(q=>q.id==='q1').status=status;
+  assert.ok(api.inspect(state).some(error=>error.code==='inactive_queen_assigned_to_active_family'));
+  const result=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:children('inactive-'+status)},makeId,'2026-04-01T10:00:00.000Z');
+  assert.equal(result.ok,false);assert.equal(result.error,'split_source_queen_inactive');
+ }
+});
+
 test('family event integrity rejects broken references, duplicate IDs and survivorFamilyId',()=>{
  const state=baseState();
  state.familyEvents=[
