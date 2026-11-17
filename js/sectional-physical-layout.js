@@ -260,8 +260,8 @@ function validateHoneyStack(stack,sections,add,checkBody,checkItem,state){
   if(frames.length>10)add('honey_stack_frame_capacity_exceeded',{bodyId,maximum:10,actual:frames.length});
   if(frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))add('honey_stack_frame_record_invalid',{bodyId});
   if(stack.purpose==='early'){
-   if(frames.length!==10)add('early_honey_frame_count_invalid',{bodyId,expected:10,actual:frames.length});
-   if(frames.some(frame=>!isObject(frame)||!['drawn_comb','wax_foundation'].includes(frame.combType)))add('early_honey_frame_comb_type_invalid',{bodyId});
+   if(!frames.length||frames.some(frame=>!isObject(frame)||!['drawn_comb','wax_foundation'].includes(frame.combType)))add('early_honey_frame_comb_type_invalid',{bodyId});
+   if(!frames.some(frame=>frame?.combType==='drawn_comb'))add('early_honey_drawn_comb_required',{bodyId});
    const foundation=frames.map((frame,index)=>frame?.combType==='wax_foundation'?index:-1).filter(index=>index>=0);
    if(foundation.length>2)add('early_honey_wax_foundation_limit_exceeded',{bodyId,maximum:2,actual:foundation.length});
    for(const index of foundation)if(index===0||index===frames.length-1||frames[index-1]?.combType!=='drawn_comb'||frames[index+1]?.combType!=='drawn_comb')
