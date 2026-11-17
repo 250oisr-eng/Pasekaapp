@@ -3162,3 +3162,23 @@ test('persistSnapshot preserves the future-schema backup warning after a success
  assert.equal(state.meta.autoBackupError,futureBackupError.message);
  assert.equal(deps.S.meta.autoBackupError,futureBackupError.message);
 });
+
+
+test('persistSnapshot remains successful when storage estimate refresh rejects after commit',async()=>{
+ const state={meta:{revisionId:'revision-2'}};
+ let estimateCalls=0;
+ const deps={
+  S:state,
+  lastPersistedRevision:'revision-1',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>true,
+  render(){},
+  updateStorageEstimate:async()=>{estimateCalls++;throw new Error('simulated storage estimate failure')}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'post-commit storage diagnostics must not report a failed save');
+ assert.equal(deps.lastPersistedRevision,'revision-2');
+ assert.equal(state.meta.saveError,undefined);
+ assert.equal(estimateCalls,1);
+});
