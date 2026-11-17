@@ -152,6 +152,7 @@ test('accepts the confirmed first OP-04 row with three separate bottoms, top ris
  }
  const refs={o1:'b1',o2:'b3',o3:'b3',o4:'b5'};
  for(const connection of layout.technicalConnections)connection.openings=connection.openings.filter(opening=>Object.hasOwn(refs,opening.openingId));
+ for(const id of ['gl3','gl4','gr3','gr4'])state.equipmentInventory.items[id].location={type:'storage',label:'Склад'};
  for(const connection of layout.technicalConnections)for(const opening of connection.openings){
   opening.bodyId=refs[opening.openingId];
   state.equipmentInventory.items[opening.itemId].location.bodyId=opening.bodyId;
