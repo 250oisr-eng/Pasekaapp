@@ -188,7 +188,7 @@ test('OP-04 second-row transition atomically installs three bodies and completes
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'DONE');
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].completedAt,'2026-11-17T11:00:00.000Z');
  assert.equal(fixture.state.auditLog.at(-1).type,'sectional_operation_completed');
- assert.equal(fixture.state.equipmentInventory.events.filter(row=>row.type==='sectional_body_placed').length,3);
+ assert.equal(fixture.state.equipmentInventory.events.filter(row=>row.type==='sectional_body_placed').length,6,'three bodies placed in each of the two row stages');
  assert.ok(['b2','b4','b6'].every(id=>fixture.state.equipmentInventory.bodies[id].storageLocation===undefined));
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
