@@ -144,7 +144,9 @@ function appendEvent(inv,item,type,details,at,makeId,used){
  if(!Array.isArray(item.events)||!Array.isArray(inv.itemEvents))return {ok:false,error:'invalid_item_event_journal'};
  const eventId=nextUniqueId(makeId,used);
  if(!eventId)return {ok:false,error:'duplicate_or_invalid_event_id'};
- const event={id:eventId,itemId:item.id,type,at:at||new Date().toISOString(),...details};
+ const timestamp=at||new Date().toISOString();
+ if(!Number.isFinite(Date.parse(timestamp)))return {ok:false,error:'invalid_event_timestamp'};
+ const event={id:eventId,itemId:item.id,type,at:timestamp,...details};
  item.events.push(event);inv.itemEvents.push(event);
  return {ok:true,event};
 }
@@ -155,12 +157,14 @@ function transact(state,fn){
  commit(state,draft);return result;
 }
 function registerUnsafe(state,request,makeId,now){
- const inv=ensure(state),kind=request?.kind,storageLocation=String(request?.storageLocation||'').trim(),notes=String(request?.notes||'').trim();
+ const inv=ensure(state),kind=request?.kind,storageLocation=typeof request?.storageLocation==='string'?request.storageLocation.trim():'',label=typeof request?.label==='string'?request.label.trim():'',notes=typeof request?.notes==='string'?request.notes.trim():'';
  if(!kinds.has(kind))return {ok:false,error:'invalid_item_kind'};
- if(!storageLocation||storageLocation.length>160||notes.length>500)return {ok:false,error:'invalid_details'};
+ if(!storageLocation||storageLocation.length>160||label.length>80||notes.length>500)return {ok:false,error:'invalid_details'};
  const used=allKnownIds(state),id=nextUniqueId(makeId,used);
  if(!id)return {ok:false,error:'duplicate_or_invalid_item_id'};
- const item={id,kind,condition:'good',location:{type:'storage',label:storageLocation},notes,registeredAt:now||new Date().toISOString(),updatedAt:now||new Date().toISOString(),events:[]};
+ const timestamp=now||new Date().toISOString();
+ if(!Number.isFinite(Date.parse(timestamp)))return {ok:false,error:'invalid_event_timestamp'};
+ const item={id,kind,label,condition:'good',location:{type:'storage',label:storageLocation},notes,registeredAt:timestamp,updatedAt:timestamp,events:[]};
  inv.items[id]=item;
  const event=appendEvent(inv,item,'registered',{location:item.location},item.registeredAt,makeId,used);
  if(!event.ok)return event;
@@ -212,6 +216,9 @@ function inspect(state){
   if(!isObject(item)||item.id!==id){errors.push({code:'invalid_item_identity',details:{itemId:id}});continue}
   if(!kinds.has(item.kind))errors.push({code:'invalid_item_kind',details:{itemId:id,kind:item.kind}});
   if(!conditions.has(item.condition))errors.push({code:'invalid_item_condition',details:{itemId:id,condition:item.condition}});
+  if(typeof item.label!=='string'||item.label.length>80)errors.push({code:'invalid_item_label',details:{itemId:id}});
+  if(typeof item.notes!=='string'||item.notes.length>500)errors.push({code:'invalid_item_notes',details:{itemId:id}});
+  if(!Number.isFinite(Date.parse(item.registeredAt))||!Number.isFinite(Date.parse(item.updatedAt)))errors.push({code:'invalid_item_timestamp',details:{itemId:id}});
   if(!normalizeLocation(item.location,item.kind))errors.push({code:'invalid_item_location',details:{itemId:id}});
   if(!Array.isArray(item.events)){errors.push({code:'invalid_item_events',details:{itemId:id}});continue}
   for(const event of item.events){
@@ -227,7 +234,7 @@ function inspect(state){
    else if(plugKinds.has(item.kind)){key='plug|'+loc.hiveId+'|'+loc.bodyId+'|'+loc.openingId}
    else if(item.kind==='meshDiaphragm')key='diaphragm|'+loc.hiveId+'|'+loc.stackId+'|'+loc.positionLabel;
    else if(stackKinds.has(item.kind))key='stack|'+loc.hiveId+'|'+item.kind+'|'+loc.stackId;
-   else if(item.kind==='honeyQueenExcluder')key='honey|'+loc.hiveId+'|'+loc.footprint.map(part=>part.bodyId+':'+part.coverage).sort().join('|');
+   else if(item.kind==='honeyQueenExcluder'&&Array.isArray(loc.footprint))key='honey|'+loc.hiveId+'|'+loc.footprint.map(part=>part.bodyId+':'+part.coverage).sort().join('|');
    if(key){if(occupied.has(key))errors.push({code:'duplicate_item_placement',details:{itemIds:[occupied.get(key),id]}});else occupied.set(key,id)}
   }
  }
