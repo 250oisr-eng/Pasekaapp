@@ -215,7 +215,7 @@ function validate(layout,state){
   checkItem(closure.itemId,'plasticPlug',{bodyId:closure.bodyId,openingId:closure.openingId});
  }
  if(layout.mode===MODES.SINGLE_FAMILY&&layout.purpose==='primary_wintering')for(const id of openingById.keys())if(!closedIds.has(id))add('winter_plastic_plug_missing',{openingId:id});
- const referencedKinds=new Set(['bottom','cover','technicalQueenExcluder','honeyQueenExcluder','metalMeshPlug','plasticPlug','meshDiaphragm']);
+ const referencedKinds=new Set(['bottom','cover','honeyQueenExcluder','metalMeshPlug','plasticPlug','meshDiaphragm']);
  for(const item of Object.values(items)){
   if(!isObject(item)||item.location?.type!=='hive'||item.location.hiveId!==layout.hiveId||!referencedKinds.has(item.kind))continue;
   if(!usedItems.has(item.id))add('section_accessory_unreferenced',{itemId:item.id,kind:item.kind});
