@@ -217,15 +217,14 @@ function inspect(state,deps={}){
    if(validDate(op05.completedAt)&&validDate(operation?.completedAt)&&Date.parse(op05.completedAt)<Date.parse(operation.completedAt))add('sectional_tech_process_op05_precedes_op04_completion',{id:record.id});
    if(op05.evidence?.layoutId!==statePart.layoutId)add('sectional_tech_process_op05_layout_evidence_mismatch',{id:record.id});
    if(op05.evidence?.standLevelConfirmed!==true)add('sectional_tech_process_op05_level_stand_confirmation_missing',{id:record.id});
+   const historicalPlugs=op06?rows(op06.evidence?.removedPlugs):installedPlugs;
    const layoutAtOP05=op06?{...layout,temporaryQueenIsolation:historicalPlugs}:layout;
    const coverageErrors=deps.PasekaSectionalPhysicalLayout?.validateTemporaryQueenIsolationCoverage?.(layoutAtOP05)||[{code:'temporary_queen_coverage_validator_missing'}];
    for(const error of coverageErrors)add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
-   const op06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
-   const historicalPlugs=op06?rows(op06.evidence?.removedPlugs):installedPlugs;
    const itemIds=historicalPlugs.map(row=>row?.itemId).sort(),openingIds=historicalPlugs.map(row=>row?.openingId).sort();
    if(JSON.stringify(itemIds)!==JSON.stringify(rows(op05.evidence?.installedItemIds).slice().sort())||JSON.stringify(openingIds)!==JSON.stringify(rows(op05.evidence?.openingIds).slice().sort()))add('sectional_tech_process_op05_evidence_mismatch',{id:record.id});
    const movementEvidence=rows(op05.evidence?.itemMovementEventIds);
-   if(movementEvidence.length!==installedPlugs.length)add('sectional_tech_process_op05_movement_evidence_count_invalid',{id:record.id});
+   if(movementEvidence.length!==historicalPlugs.length)add('sectional_tech_process_op05_movement_evidence_count_invalid',{id:record.id});
    for(const plug of installedPlugs){
     const evidence=movementEvidence.find(row=>row?.itemId===plug?.itemId),item=state.equipmentInventory?.items?.[plug?.itemId];
     const event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===plug?.itemId);
