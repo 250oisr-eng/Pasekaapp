@@ -267,6 +267,12 @@ test('merge requires every source queen to be confirmed current',()=>{
  assert.equal(JSON.stringify(state),before);
 });
 
+test('unimplemented optional offshoot branch is not accepted as a valid lineage event',()=>{
+ const state=baseState();
+ state.familyEvents=[{id:'offshoot-1',type:'offshoot_created',occurredAt:'2026-10-01T10:00:00.000Z',sourceFamilyIds:['f1'],resultFamilyIds:['f2']}];
+ assert.ok(api.inspect(state).some(error=>error.code==='family_event_type_invalid'));
+});
+
 test('family event integrity rejects broken references, duplicate IDs and survivorFamilyId',()=>{
  const state=baseState();
  state.familyEvents=[
