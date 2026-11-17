@@ -98,24 +98,30 @@ function collectEventIds(state){
   for(const row of rows(list))if(nonEmpty(row?.id))used.add(row.id);
  }
  for(const item of Object.values(state?.equipmentInventory?.items||{}))for(const event of rows(item?.events))if(nonEmpty(event?.id))used.add(event.id);
+ for(const body of Object.values(state?.equipmentInventory?.bodies||{}))for(const frame of rows(body?.frames))for(const event of rows(frame?.history))if(nonEmpty(event?.id))used.add(event.id);
+ for(const record of Object.values(state?.equipmentInventory?.retiredFrames||{})){const frame=record?.frame||record;for(const event of rows(frame?.history))if(nonEmpty(event?.id))used.add(event.id)}
  return used;
 }
 function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,makeId,operationId='OP-04'){
  const inventory=state?.equipmentInventory;
  if(!isObject(inventory)||!Array.isArray(inventory.events))return {ok:false,error:'equipment_body_event_journal_invalid'};
+ if(typeof makeId!=='function'||typeof window.PasekaLabels?.appendFrameEvent!=='function')return {ok:false,error:'frame_history_api_missing'};
  const oldLocations=bodyLocationMap(oldLayout),newLocations=bodyLocationMap(newLayout);
  const bodyIds=new Set([...oldLocations.keys(),...newLocations.keys()]);
  const used=collectEventIds(state);
+ const frameBox=(bodyId,location)=>location.bodyRole==='honey'?'honey:'+bodyId:'brood:'+location.position+':'+bodyId;
  for(const bodyId of bodyIds){
   const body=inventory.bodies?.[bodyId];
   if(!isObject(body))return {ok:false,error:'equipment_body_missing_for_history',details:{bodyId}};
   if(body.events!=null&&!Array.isArray(body.events))return {ok:false,error:'equipment_body_event_journal_invalid',details:{bodyId}};
   if(body.events==null)body.events=[];
-  const from=oldLocations.get(bodyId)||{type:'storage',label:body.storageLocation||null};
-  const to=newLocations.get(bodyId)||{type:'storage',label:storageById.get(bodyId)||null};
-  if(oldLocations.has(bodyId)&&newLocations.has(bodyId)&&JSON.stringify(from)===JSON.stringify(to))continue;
-  if(!newLocations.has(bodyId)&&!storageById.has(bodyId))return {ok:false,error:'equipment_body_storage_move_missing',details:{bodyId}};
-  const installed=newLocations.has(bodyId);
+  if(body.frames!=null&&!Array.isArray(body.frames))return {ok:false,error:'equipment_body_frame_registry_invalid',details:{bodyId}};
+  const oldLocation=oldLocations.get(bodyId),newLocation=newLocations.get(bodyId);
+  const from=oldLocation||{type:'storage',label:body.storageLocation||null};
+  const to=newLocation||{type:'storage',label:storageById.get(bodyId)||null};
+  if(oldLocation&&newLocation&&JSON.stringify(from)===JSON.stringify(to))continue;
+  if(!newLocation&&!storageById.has(bodyId))return {ok:false,error:'equipment_body_storage_move_missing',details:{bodyId}};
+  const installed=!!newLocation;
   const bodyEventId=nextUniqueId(makeId,used);
   if(!bodyEventId)return {ok:false,error:'equipment_body_event_id_unavailable',details:{bodyId}};
   body.events.push({id:bodyEventId,type:installed?'placed':'moved_to_storage',at,operationId,from:clone(from),to:clone(to)});
@@ -123,6 +129,17 @@ function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,make
   const eventId=nextUniqueId(makeId,used);
   if(!eventId)return {ok:false,error:'equipment_body_event_id_unavailable',details:{bodyId}};
   inventory.events.push({id:eventId,type:installed?'sectional_body_placed':'sectional_body_moved_to_storage',at,bodyId,operationId,from:clone(from),to:clone(to)});
+  for(const frame of rows(body.frames)){
+   if(!isObject(frame))return {ok:false,error:'equipment_body_frame_invalid',details:{bodyId}};
+   if(frame.history!=null&&!Array.isArray(frame.history))return {ok:false,error:'equipment_body_frame_history_invalid',details:{bodyId,frameId:frame.frameId??null}};
+   const action=!oldLocation?'corpus_from_storage':!newLocation?'corpus_to_storage':'corpus_transfer';
+   const frameFrom=oldLocation?{hiveId:oldLocation.hiveId,box:frameBox(bodyId,oldLocation)}:{storageLocation:body.storageLocation||'Склад'};
+   const frameTo=newLocation?{hiveId:newLocation.hiveId,box:frameBox(bodyId,newLocation)}:{storageLocation:storageById.get(bodyId)};
+   const frameEventId=nextUniqueId(makeId,used);
+   if(!frameEventId)return {ok:false,error:'frame_history_event_id_unavailable',details:{bodyId,frameId:frame.frameId??null}};
+   try{window.PasekaLabels.appendFrameEvent(frame,action,{from:frameFrom,to:frameTo,operationId},at,frameEventId)}
+   catch(error){return {ok:false,error:'frame_history_append_failed',details:{bodyId,frameId:frame.frameId??null,message:error?.message||String(error)}}}
+  }
  }
  return {ok:true};
 }
@@ -718,14 +735,7 @@ function completeOP07(state,request,deps={}){
  draft.sectionalLayouts.push(clone(nextLayout));
  const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId,'OP-07');
  if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
- for(const bodyId of bodyIds){
-  const body=draft.equipmentInventory.bodies[bodyId],frames=rows(body.frames);
-  for(let index=0;index<frames.length;index++){
-   const frame=frames[index];frame.history=Array.isArray(frame.history)?frame.history:[];
-   deps.PasekaLabels.appendFrameEvent(frame,'corpus_from_storage',{from:{storageLocation:body.storageLocation||'Склад'},to:{hiveId:request.hiveId,box:'honey:'+bodyId},operationId:'OP-07'},request.occurredAt);
-  }
-  delete body.storageLocation;
- }
+ for(const bodyId of bodyIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
  for(const move of itemPlan.moves){
   const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
   if(!result?.ok)return fail('op07_equipment_move_rejected',{itemId:move.itemId,cause:result?.error??null,details:result?.details??null});
