@@ -6,6 +6,12 @@ const isObject=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const rows=value=>Array.isArray(value)?value:[];
 const nonEmpty=value=>typeof value==='string'&&value.trim().length>0;
 const validDate=value=>typeof value==='string'&&Number.isFinite(Date.parse(value));
+function timestampIsFuture(value,deps={}){
+ let nowValue;
+ try{nowValue=typeof deps.now==='function'?deps.now():Date.now()}catch{return true}
+ const nowMs=typeof nowValue==='number'?nowValue:Date.parse(nowValue);
+ return !Number.isFinite(nowMs)||Date.parse(value)>nowMs;
+}
 function calendarDayDifference(later,earlier){
  if(!validDate(later)||!validDate(earlier))return null;
  const laterDay=Date.parse(later.slice(0,10)+'T00:00:00.000Z'),earlierDay=Date.parse(earlier.slice(0,10)+'T00:00:00.000Z');
@@ -358,6 +364,7 @@ function completeOP04(state,request,deps={}){
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.sourceFamilyId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
  if(typeof deps.makeId!=='function')return fail('id_generator_required');
  const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
  for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
@@ -441,6 +448,7 @@ function completeOP04SecondRow(state,request,deps={}){
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
  if(typeof deps.makeId!=='function')return fail('id_generator_required');
  const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
  for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
@@ -524,6 +532,7 @@ function completeOP05(state,request,deps={}){
  if(request.standLevelConfirmed!==true)return fail('op05_level_stand_confirmation_required');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
  if(typeof deps.makeId!=='function')return fail('id_generator_required');
  const required=['PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
  for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
@@ -584,6 +593,7 @@ function completeOP06(state,request,deps={}){
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
  if(typeof deps.makeId!=='function')return fail('id_generator_required');
  const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
  for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
@@ -675,6 +685,7 @@ function completeOP07(state,request,deps={}){
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
  if(!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(request.timingMode))return fail('op07_timing_mode_required');
  if(typeof deps.makeId!=='function')return fail('id_generator_required');
  const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
