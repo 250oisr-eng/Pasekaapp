@@ -613,6 +613,16 @@ test('OP-07 atomically installs two large FULL/HALF excluders and one complete h
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 
+test('OP-07 distinguishes same-day second-row installation from the approximate 12-day alternative',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
+ const immediate=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-18T10:00:00.000Z',timingMode:'WITH_SECOND_ROW'}),deps);
+ assert.equal(immediate.ok,false);assert.equal(immediate.error,'op07_with_second_row_must_be_same_day');
+ assert.deepEqual(fixture.state,before);
+ const delayed=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-29T10:00:00.000Z',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'}),deps);
+ assert.equal(delayed.ok,true,JSON.stringify(delayed.details||delayed));
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.daysAfterSecondRow,12);
+});
+
 test('OP-07 requires an explicit timing variant and a complete pair of honey bodies',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
  let result=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:null}),deps);
