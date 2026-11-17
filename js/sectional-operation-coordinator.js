@@ -722,7 +722,7 @@ function completeOP07(state,request,deps={}){
   const body=draft.equipmentInventory.bodies[bodyId],frames=rows(body.frames);
   for(let index=0;index<frames.length;index++){
    const frame=frames[index];frame.history=Array.isArray(frame.history)?frame.history:[];
-   frame.history.push({date:request.occurredAt.slice(0,10),action:'corpus_from_storage',from:{storageLocation:body.storageLocation||'Склад'},to:{hiveId:request.hiveId,box:'honey:'+bodyId}});
+   deps.PasekaLabels.appendFrameEvent(frame,'corpus_from_storage',{from:{storageLocation:body.storageLocation||'Склад'},to:{hiveId:request.hiveId,box:'honey:'+bodyId},operationId:'OP-07'},request.occurredAt);
   }
   delete body.storageLocation;
  }
