@@ -20,7 +20,7 @@
 - В PR #142 устранён конфликт с этим правилом: `applySplit()` больше не отклоняет OP-04 при пустом списке кандидатов; `validateOperationEvidence()` также не требует `candidateQueenIds`.
 - Добавлен регрессионный тест: split проходит при `currentQueenId=null`, `queenIdentityStatus='unresolved'`, без записей маток и с `candidateQueenIds: []`; evidence validation и `inspect()` проходят.
 - Это не является подтверждением отсутствия матки. Отсутствие после облёта по-прежнему фиксируется отдельным явным событием `queen_absence_confirmed`; нельзя выводить его из пустого списка кандидатов.
-- Исправление проверено на code SHA `8ffa50ca0372636cff2dd9cb31bf9a472f710cd3`: Actions run [#44070430242](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44070430242) — **519/519 tests passed, 0 failed**, Prepare web assets success, Android Debug APK `BUILD SUCCESSFUL`, artifact upload success. После этого code SHA добавлены только документационные commits; PR #142 HEAD `1d3106b696e1f88ce3af2855c727aa4515cc67bc`. PR #142 остаётся Draft/open; runtime, IndexedDB, backup и production не подключались/не изменялись.
+- Code SHA `aa6677d5657a06bdd0a4cf86fd487f0513090223`: Fast quality checks **519/519 tests passed, 0 failed** (run #44073955261); Android Debug APK build и artifact upload — **success** (run #44073962087). `occurredAt` обязателен, не подставляется из `createdAt`, будущая дата отклоняется. После code SHA добавлены только документационные commits. PR #142 остаётся Draft/open; runtime, IndexedDB, backup и production не подключались/не изменялись.
 
 ## 2. Текущий активный этап — PR #142 (ещё не завершён)
 
