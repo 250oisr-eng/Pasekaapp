@@ -17,7 +17,9 @@ function makeItem(id,kind,location){
 }
 function honeyFrames(id){return Array.from({length:10},(_,index)=>({frameId:id+'-frame-'+(index+1),combType:'drawn_comb',history:[]}));}
 function makeBody(id,kind='brood'){
- return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10},...(kind==='honey'?{frames:honeyFrames(id)}:{})};
+ const capacity=kind==='brood'?6:10;
+ const frames=kind==='honey'?honeyFrames(id):Array.from({length:capacity},(_,index)=>({frameId:id+'-frame-'+(index+1),history:[]}));
+ return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:capacity},frames};
 }
 function baseFamilies(){
  return [
