@@ -16,6 +16,20 @@ on:
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - '.github/workflows/android-debug.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'tests/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'android/**'
+      - 'scripts/prepare-web.mjs'
+      - 'scripts/patch-android-gradle.mjs'
+      - '.github/workflows/android-debug.yml'
 
 concurrency:
   group: android-${{ github.ref }}
