@@ -195,9 +195,12 @@ function inspect(state){
   if(!conditions.has(item.condition))errors.push({code:'invalid_item_condition',details:{itemId:id,condition:item.condition}});
   if(!normalizeLocation(item.location,item.kind))errors.push({code:'invalid_item_location',details:{itemId:id}});
   if(!Array.isArray(item.events))errors.push({code:'invalid_item_events',details:{itemId:id}});
-  else for(const event of item.events){
+  else {
+   if(!item.events.length||item.events[0]?.type!=='registered')errors.push({code:'item_registration_event_required',details:{itemId:id}});
+   for(const event of item.events){
    if(!isObject(event)||event.itemId!==id||!nonEmpty(event.id)||!eventTypes.has(event.type)||!Number.isFinite(Date.parse(event.at||'')))errors.push({code:'invalid_item_event',details:{itemId:id}});
    else if(!globalById.has(event.id)||globalById.get(event.id).itemId!==id)errors.push({code:'item_event_global_mismatch',details:{itemId:id,eventId:event.id}});
+   }
   }
   const location=item.location;
   if(location?.type==='hive'&&['repair','retired'].includes(item.condition))errors.push({code:'unusable_item_installed',details:{itemId:id,condition:item.condition}});
