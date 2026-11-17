@@ -219,6 +219,7 @@ test('OP-04 second-row transition atomically installs three bodies and completes
  assert.equal(result.ok,true,JSON.stringify(result.details||result));
  assert.equal(fixture.state.sectionalLayouts[0].broodRows,2);
  assert.deepEqual(fixture.state.sectionalLayouts[0].sections.map(row=>row.broodBodyIds.length),[2,2,2]);
+ for(const [itemId,bodyId,openingId] of [['grid1','b1','o1'],['grid2','b3','o2'],['grid3','b3','o3'],['grid4','b5','o4'],['grid5','b2','o5'],['grid6','b4','o6'],['grid7','b4','o7'],['grid8','b6','o8']])assert.deepEqual(fixture.state.equipmentInventory.items[itemId].location,{type:'hive',hiveId:'h1',bodyId,openingId});
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'DONE');
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].completedAt,'2026-11-17T11:00:00.000Z');
  assert.equal(fixture.state.auditLog.at(-1).type,'sectional_operation_completed');
