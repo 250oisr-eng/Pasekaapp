@@ -1,6 +1,7 @@
 (()=>{'use strict';
 const kinds=new Set(['bottom','cover','feeder','topRiser','plasticPlug','metalMeshPlug','technicalQueenExcluder','honeyQueenExcluder','meshDiaphragm']);
 const conditions=new Set(['good','needs_repair','repair','retired']);
+const eventTypes=new Set(['registered','moved','condition_changed']);
 const plugKinds=new Set(['plasticPlug','metalMeshPlug']);
 const openingKinds=new Set(['plasticPlug','metalMeshPlug','technicalQueenExcluder']);
 const isObject=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
@@ -117,12 +118,8 @@ function addEvent(inv,item,type,details,at,makeId){
  if(!id||id.length>160||used.has(id)||inv.items[id]||inv.bodies?.[id])return {ok:false,error:'duplicate_or_invalid_item_event_id'};
  const event={id,itemId:item.id,type,at:at||new Date().toISOString(),...details};
  item.events=Array.isArray(item.events)?item.events:[];
- item.events.push(event);if(item.events.length>300)item.events=item.events.slice(-300);
+ item.events.push(event);
  inv.itemEvents.push(clone(event));
- if(inv.itemEvents.length>1000){
-  const removed=inv.itemEvents.splice(0,inv.itemEvents.length-1000),removedIds=new Set(removed.map(row=>row?.id).filter(Boolean));
-  for(const stored of Object.values(inv.items))if(Array.isArray(stored?.events))stored.events=stored.events.filter(row=>!removedIds.has(row?.id));
- }
  return {ok:true,event};
 }
 function registerUnsafe(state,request,makeId,now){
@@ -133,7 +130,7 @@ function registerUnsafe(state,request,makeId,now){
  const id=String(makeId()||'');
  const layoutBodyIds=(Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[]).flatMap(layout=>layoutBodyIds(layout));
  const legacyBodyIds=Object.values(state.layouts||{}).flatMap(layout=>Object.values(layout?.corpusIds||{}));
- if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||allEventIds(inv).has(id)||legacyBodyIds.includes(id)||layoutBodyIds.includes(id))return {ok:false,error:'duplicate_item_id'};
+ if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||allEventIds(inv).has(id)||legacyBodyIds.includes(id)||layoutBodyIds.includes(id)||(Array.isArray(state.sectionalLayouts)&&state.sectionalLayouts.some(layout=>layout?.id===id)))return {ok:false,error:'duplicate_item_id'};
  const time=now||new Date().toISOString(),item={id,kind,condition:'good',location:{type:'storage',label:storageLocation},notes,registeredAt:time,updatedAt:time,events:[]};
  inv.items[id]=item;
  const event=addEvent(inv,item,'registered',{location:item.location},time,makeId);
@@ -184,7 +181,7 @@ function inspect(state){
  const items=isObject(inv.items)?inv.items:{},globalEvents=Array.isArray(inv.itemEvents)?inv.itemEvents:[];
  const globalById=new Map(),seenEventIds=new Set(),occupiedOpenings=new Map();
  for(const event of globalEvents){
-  if(!isObject(event)||!nonEmpty(event.id)||!nonEmpty(event.itemId)||!nonEmpty(event.type)||!Number.isFinite(Date.parse(event.at||''))){errors.push({code:'invalid_equipment_item_event'});continue}
+  if(!isObject(event)||!nonEmpty(event.id)||!nonEmpty(event.itemId)||!eventTypes.has(event.type)||!Number.isFinite(Date.parse(event.at||''))){errors.push({code:'invalid_equipment_item_event'});continue}
   if(seenEventIds.has(event.id))errors.push({code:'duplicate_equipment_item_event_id',details:{eventId:event.id}});
   if(items[event.id]||inv.bodies?.[event.id])errors.push({code:'equipment_item_event_id_collision',details:{eventId:event.id}});
   seenEventIds.add(event.id);globalById.set(event.id,event);
@@ -197,10 +194,11 @@ function inspect(state){
   if(!normalizeLocation(item.location,item.kind))errors.push({code:'invalid_item_location',details:{itemId:id}});
   if(!Array.isArray(item.events))errors.push({code:'invalid_item_events',details:{itemId:id}});
   else for(const event of item.events){
-   if(!isObject(event)||event.itemId!==id||!nonEmpty(event.id))errors.push({code:'invalid_item_event',details:{itemId:id}});
+   if(!isObject(event)||event.itemId!==id||!nonEmpty(event.id)||!eventTypes.has(event.type)||!Number.isFinite(Date.parse(event.at||'')))errors.push({code:'invalid_item_event',details:{itemId:id}});
    else if(!globalById.has(event.id)||globalById.get(event.id).itemId!==id)errors.push({code:'item_event_global_mismatch',details:{itemId:id,eventId:event.id}});
   }
   const location=item.location;
+  if(location?.type==='hive'&&['repair','retired'].includes(item.condition))errors.push({code:'unusable_item_installed',details:{itemId:id,condition:item.condition}});
   if(location?.type==='hive'&&plugKinds.has(item.kind)&&location.bodyId&&location.openingId){
    const key=location.hiveId+'|'+location.bodyId+'|'+location.openingId;
    if(occupiedOpenings.has(key))errors.push({code:'item_opening_occupied',details:{itemIds:[occupiedOpenings.get(key),id],bodyId:location.bodyId,openingId:location.openingId}});
