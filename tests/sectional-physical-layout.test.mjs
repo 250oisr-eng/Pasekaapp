@@ -39,7 +39,7 @@ function sideBySide(){
  const sections=[
   {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
   {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
-  {id:'s-right',position:'right',familyId:'f3',queenId:null,broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b6',diameterMm:50}]}
+  {id:'s-right',position:'right',familyId:'f3',broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b6',diameterMm:50}]}
  ];
  const layout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,
@@ -79,9 +79,9 @@ function alternativeWintering(twoBodyPosition='lower'){
  }
  layout.mode=Layout.MODES.ALTERNATIVE_WINTERING_COLUMN;
  layout.sections=[
-  {id:'s-lower',position:'lower',familyId:'f1',queenId:'q1',broodBodyIds:idsByPosition.lower,upperBroodBodyId:idsByPosition.lower.at(-1),openings:[]},
-  {id:'s-middle',position:'middle',familyId:'f2',queenId:null,broodBodyIds:idsByPosition.middle,upperBroodBodyId:idsByPosition.middle.at(-1),openings:[]},
-  {id:'s-upper',position:'upper',familyId:'f3',queenId:null,broodBodyIds:idsByPosition.upper,upperBroodBodyId:idsByPosition.upper.at(-1),openings:[]}
+  {id:'s-lower',position:'lower',familyId:'f1',broodBodyIds:idsByPosition.lower,upperBroodBodyId:idsByPosition.lower.at(-1),openings:[]},
+  {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:idsByPosition.middle,upperBroodBodyId:idsByPosition.middle.at(-1),openings:[]},
+  {id:'s-upper',position:'upper',familyId:'f3',broodBodyIds:idsByPosition.upper,upperBroodBodyId:idsByPosition.upper.at(-1),openings:[]}
  ];
  layout.stacks=[{id:'column',position:'column',sectionIds:['s-lower','s-middle','s-upper'],bottomItemId:'bc',boundaries:['lower-middle','middle-upper']}];
  layout.technicalConnections=[];
@@ -105,7 +105,7 @@ function singleFamily(purpose='primary_wintering',count=3){
  const bodyIds=['b1','b2','b3','b4'].slice(0,count);
  const layout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SINGLE_FAMILY,purpose,
-  sections:[{id:'s-combined',position:'combined',familyId:'f1',queenId:'q1',broodBodyIds:bodyIds,upperBroodBodyId:bodyIds.at(-1),openings}],
+  sections:[{id:'s-combined',position:'combined',familyId:'f1',broodBodyIds:bodyIds,upperBroodBodyId:bodyIds.at(-1),openings}],
   stacks:[{id:'combined',position:'combined',sectionIds:['s-combined'],bottomItemId:'bottom'}],
   technicalConnections:[],meshDiaphragms:[],temporaryQueenIsolation:[],closedOpenings:[]
  };
