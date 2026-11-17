@@ -35,7 +35,9 @@ function makeFixture(){
  const items={
   bottom1:item('bottom1','bottom',{type:'hive',hiveId:'h1',stackId:'combined'}),
   p1:item('p1','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'}),
-  p2:item('p2','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o2'}),
+  p2:item('p2','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o3'}),
+  p3:item('p3','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o4'}),
+  p4:item('p4','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b1',openingId:'o1'}),
   bottom2:item('bottom2','bottom',{type:'storage',label:'Склад'}),
   bottom3:item('bottom3','bottom',{type:'storage',label:'Склад'}),
   cover1:item('cover1','cover',{type:'storage',label:'Склад'}),
@@ -52,11 +54,11 @@ function makeFixture(){
  const sourceLayout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SINGLE_FAMILY,purpose:'primary_wintering',closuresConfirmed:true,
   sections:[{id:'s-combined',position:'combined',familyId:'f0',broodBodyIds:['b1','b2','b3'],upperBroodBodyId:'b3',openings:[
-   {id:'o1',bodyId:'b2',diameterMm:50},{id:'o2',bodyId:'b3',diameterMm:50}
+   {id:'o1',bodyId:'b1',diameterMm:50},{id:'o2',bodyId:'b2',diameterMm:50},{id:'o3',bodyId:'b2',diameterMm:50},{id:'o4',bodyId:'b3',diameterMm:50}
   ]}],
   stacks:[{id:'combined',position:'combined',sectionIds:['s-combined'],bottomItemId:'bottom1'}],
   technicalConnections:[],meshDiaphragms:[],temporaryQueenIsolation:[],
-  closedOpenings:[{itemId:'p1',bodyId:'b2',openingId:'o1'},{itemId:'p2',bodyId:'b3',openingId:'o2'}]
+  closedOpenings:[{itemId:'p4',bodyId:'b1',openingId:'o1'},{itemId:'p1',bodyId:'b2',openingId:'o2'},{itemId:'p2',bodyId:'b2',openingId:'o3'},{itemId:'p3',bodyId:'b3',openingId:'o4'}]
  };
  const state={
   meta:{schemaVersion:15},hives:[{id:'h1',profileId:PROFILE}],
@@ -105,7 +107,9 @@ function makeFixture(){
   ['grid3',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o3'}],
   ['grid4',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o4'}],
   ['p1',{type:'storage',label:'Склад'}],
-  ['p2',{type:'storage',label:'Склад'}]
+  ['p2',{type:'storage',label:'Склад'}],
+  ['p3',{type:'storage',label:'Склад'}],
+  ['p4',{type:'storage',label:'Склад'}]
  ].map(([itemId,location])=>({itemId,location}));
  return {state,layout,itemMoves};
 }
@@ -149,6 +153,8 @@ test('OP-04 commits family split, physical layout, equipment moves and operation
  assert.equal(fixture.state.auditLog[0].familyEventId,fixture.state.familyEvents[0].id);
  assert.equal(fixture.state.equipmentInventory.items.p1.location.type,'storage');
  assert.equal(fixture.state.equipmentInventory.items.p2.location.type,'storage');
+ assert.equal(fixture.state.equipmentInventory.items.p3.location.type,'storage');
+ assert.equal(fixture.state.equipmentInventory.items.p4.location.type,'storage');
  assert.equal(fixture.state.equipmentInventory.items.grid1.location.openingId,'o1');
  for(const id of ['b4','b5','b6'])assert.equal(fixture.state.equipmentInventory.bodies[id].storageLocation,undefined);
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
