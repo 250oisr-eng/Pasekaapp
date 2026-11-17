@@ -216,6 +216,7 @@ test('legacy inventory migration does not guess a sectional body type from a lab
 test('inventory UI distinguishes sectional body locations and unknown frame accounting',()=>{
  assert.match(html,/value="sectional"/);
  assert.match(html,/loc\?\.type==='sectional'/);
+ assert.match(html,/loc\?\.type==='sectional'\?hname\(loc\.hiveId\)/);
  assert.match(html,/рамки секционных корпусов пока не учитываются/);
  assert.match(html,/sectionalLocked\?'disabled title="Местоположение определяется физической секционной раскладкой"':'/);
  assert.match(html,/sectionalLocked&&body.condition==='good'\?'disabled title=/);
