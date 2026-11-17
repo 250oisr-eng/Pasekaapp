@@ -1963,6 +1963,14 @@ test('malformed familyEvents abort migration before any legacy state is changed'
  assert.deepEqual(state,before);
 });
 
+test('schema 14 migration rejects a missing event journal before touching other state',()=>{
+ const state={meta:{schemaVersion:14},hives:[{id:'h1',number:0}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'unused'});
+ assert.throws(()=>migrate(),/схеме 14 отсутствует корректный журнал/);
+ assert.deepEqual(state,before);
+});
+
 test('schema 14 migration creates an empty family event journal without changing legacy family identities',()=>{
  const state={meta:{schemaVersion:12},hives:[],families:[{id:'f1',hive:'h1',name:'Семья'}],queens:[],queenEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
  const beforeFamily=structuredClone(state.families[0]);
