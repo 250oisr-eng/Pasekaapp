@@ -260,7 +260,7 @@ function inspect(state,deps={}){
    for(const plug of removed){
     const item=state.equipmentInventory?.items?.[plug.itemId],evidence=rows(op06.evidence?.itemMovementEventIds).find(row=>row?.itemId===plug.itemId);
     const event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===plug.itemId);
-    if(!item||item.kind!=='metalMeshPlug'||item.location?.type!=='storage'||!event||!globalEvent||event.type!=='moved'||event.at!==op06.completedAt||event.from?.type!=='hive'||event.to?.type!=='storage')add('sectional_tech_process_op06_plug_removal_evidence_invalid',{id:record.id,itemId:plug.itemId??null});
+    if(!item||item.kind!=='metalMeshPlug'||item.location?.type!=='storage'||!event||!globalEvent||event.type!=='moved_to_storage'||event.at!==op06.completedAt||event.from?.type!=='hive'||event.to?.type!=='storage')add('sectional_tech_process_op06_plug_removal_evidence_invalid',{id:record.id,itemId:plug.itemId??null});
    }
    if(removed.length!==rows(op06.evidence?.itemMovementEventIds).length)add('sectional_tech_process_op06_movement_evidence_count_invalid',{id:record.id});
    if(rows(layout?.temporaryQueenIsolation).length)add('sectional_tech_process_op06_plugs_still_installed',{id:record.id});
