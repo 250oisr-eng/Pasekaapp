@@ -217,6 +217,8 @@ test('inventory UI distinguishes sectional body locations and unknown frame acco
  assert.match(html,/value="sectional"/);
  assert.match(html,/loc\?\.type==='sectional'/);
  assert.match(html,/рамки секционных корпусов пока не учитываются/);
+ assert.match(html,/sectionalLocked\?'disabled title="Местоположение определяется физической секционной раскладкой"':'/);
+ assert.match(html,/sectionalLocked&&body.condition==='good'\?'disabled title=/);
  const match=html.match(/function inventoryBodyFrameCount\(body,loc\)\{[\s\S]*?\n\}/);assert.ok(match);
  const count=new Function('frameArray','layoutFor',`${match[0]};return inventoryBodyFrameCount;`)((layout,key)=>layout[key],id=>({1:[1,2,3]}));
  assert.equal(count({frames:[1,2]},{type:'sectional'}),null);
