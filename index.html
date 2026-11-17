@@ -829,7 +829,8 @@ async function markOffshootIndependent(id){
  const from=familyStage(f);f.stage='independent';f.establishedAt=today();
  logAudit('family_stage_changed',{hiveId:f.hive,familyId:f.id,familyName:f.name,origin:f.origin,from,to:f.stage,establishedAt:f.establishedAt});
  await saveFamilyMutation(previousState);
-}function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
+}
+function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
 function nextFamilyCode(){const yy=String(new Date().getFullYear()).slice(-2);let max=0;for(const f of S.families||[]){const m=String(f.name||'').match(/^(\d{2})-(\d+)$/);if(m&&m[1]===yy)max=Math.max(max,Number(m[2])||0);if(Number(f.familyYear)===2000+Number(yy))max=Math.max(max,Number(f.familySequence)||0)}return yy+'-'+(max+1)}
 function hname(id){const h=S.hives.find(x=>x.id===id);return h?'Улей '+(h.number||S.hives.indexOf(h)+1):'Улей'}
 function card(h){
@@ -2415,7 +2416,8 @@ function editHive(id){
   try{$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive}
   catch(error){console.error('Примечание улья сохранено, но диалог не удалось обновить',error);try{alert('Изменение сохранено. Перезагрузи приложение, если экран не обновился.')}catch(alertError){console.error('Не удалось показать сообщение об обновлении',alertError)}}
  };
-}async function defaultHive(e){
+}
+async function defaultHive(e){
  e.preventDefault();
  const previousSelectedHiveId=selectedHiveId,previousActiveJournalHive=activeJournalHive;
  let rollbackState;
@@ -2439,7 +2441,8 @@ function editHive(id){
  }
  try{$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}
  catch(error){console.error('Улей сохранён, но интерфейс не удалось обновить',error);try{alert('Улей сохранён. Интерфейс не удалось обновить; перезагрузи приложение. Не повторяй создание улья.')}catch(alertError){console.error('Не удалось показать сообщение об обновлении интерфейса',alertError)}}
-}$('hiveForm').onsubmit=defaultHive;
+}
+$('hiveForm').onsubmit=defaultHive;
 function syncFamilyOrigin(){const isOffshoot=$('familyOrigin').value==='offshoot',wrap=$('familyParentWrap'),parent=$('familyParent');wrap.style.display=isOffshoot?'block':'none';parent.required=isOffshoot;if(!isOffshoot)parent.value=''}
 let transferringFamilyId='';
 function familyLineageWouldCycle(familyId,parentFamilyId){
