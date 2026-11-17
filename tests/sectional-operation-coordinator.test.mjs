@@ -246,6 +246,7 @@ test('OP-04 commits family split, physical layout, equipment moves and operation
  assert.equal(fixture.state.familyEvents[0].techProcessId,'tp-h1');
  assert.equal(fixture.state.sectionalTechProcesses.length,1);
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'DONE');
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].startedAt,NOW,'direct two-row completion must retain the division start date for OP-05 timing');
  assert.equal(fixture.state.equipmentInventory.events.length,6,'every physical brood-body placement must be recorded');
  assert.equal(Object.values(fixture.state.equipmentInventory.bodies).filter(row=>row.events?.some(event=>event.type==='placed'&&event.operationId==='OP-04')).length,6);
  assert.equal(fixture.state.auditLog.length,1);
