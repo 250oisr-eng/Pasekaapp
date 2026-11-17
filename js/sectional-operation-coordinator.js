@@ -219,7 +219,9 @@ function inspect(state,deps={}){
    if(op05.evidence?.standLevelConfirmed!==true)add('sectional_tech_process_op05_level_stand_confirmation_missing',{id:record.id});
    const coverageErrors=deps.PasekaSectionalPhysicalLayout?.validateTemporaryQueenIsolationCoverage?.(layout)||[{code:'temporary_queen_coverage_validator_missing'}];
    for(const error of coverageErrors)add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
-   const itemIds=installedPlugs.map(row=>row?.itemId).sort(),openingIds=installedPlugs.map(row=>row?.openingId).sort();
+   const op06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
+   const historicalPlugs=op06?rows(op06.evidence?.removedPlugs):installedPlugs;
+   const itemIds=historicalPlugs.map(row=>row?.itemId).sort(),openingIds=historicalPlugs.map(row=>row?.openingId).sort();
    if(JSON.stringify(itemIds)!==JSON.stringify(rows(op05.evidence?.installedItemIds).slice().sort())||JSON.stringify(openingIds)!==JSON.stringify(rows(op05.evidence?.openingIds).slice().sort()))add('sectional_tech_process_op05_evidence_mismatch',{id:record.id});
    const movementEvidence=rows(op05.evidence?.itemMovementEventIds);
    if(movementEvidence.length!==installedPlugs.length)add('sectional_tech_process_op05_movement_evidence_count_invalid',{id:record.id});
@@ -231,6 +233,35 @@ function inspect(state,deps={}){
    }
    const days=calendarDayDifference(op05.completedAt,operation?.startedAt);
    if(days==null||days<8||days>11||op05.evidence?.daysAfterDivision!==days)add('sectional_tech_process_op05_timing_invalid',{id:record.id,daysAfterDivision:days,evidenceDays:op05.evidence?.daysAfterDivision??null});
+  }
+  const op06Rows=operations.filter(row=>row?.operationId==='OP-06'),op06=op06Rows[0];
+  if(op06Rows.length>1)add('sectional_tech_process_op06_duplicate',{id:record.id,count:op06Rows.length});
+  if(op06Rows.length===1){
+   if(!completed||op06.status!=='DONE'||!validDate(op06.completedAt))add('sectional_tech_process_op06_status_invalid',{id:record.id});
+   if(validDate(op06.completedAt)&&validDate(operation?.startedAt)){
+    const days=calendarDayDifference(op06.completedAt,operation.startedAt);
+    if(days!==20&&days!==21)add('sectional_tech_process_op06_timing_invalid',{id:record.id,days});
+    if(op06.evidence?.daysAfterDivision!==days)add('sectional_tech_process_op06_timing_evidence_mismatch',{id:record.id,days});
+   }
+   const families=sections.map(section=>state.families?.find(row=>row?.id===section.familyId));
+   const splitId=operation?.evidence?.familyEventId;
+   for(const family of families){
+    const queen=state.queens?.find(row=>row?.id===family?.currentQueenId);
+    const observed=rows(state.queenEvents).some(event=>event?.type==='laying_observed'&&event.userConfirmed===true&&event.familyId===family?.id&&event.queenId===queen?.id&&event.splitEventId===splitId&&event.techProcessId===record.id&&validDate(event.occurredAt)&&Date.parse(event.occurredAt)<=Date.parse(op06.completedAt));
+    if(!family||family.recordStatus==='historical'||family.queenIdentityStatus!=='identified'||!queen||queen.status!=='current'||queen.familyId!==family.id||!observed)add('sectional_tech_process_op06_queen_laying_evidence_missing',{id:record.id,familyId:family?.id??null});
+   }
+   const removed=rows(op06.evidence?.removedPlugs),removedIds=removed.map(row=>row?.itemId).sort();
+   if(JSON.stringify(removedIds)!==JSON.stringify(rows(op06.evidence?.removedItemIds).slice().sort()))add('sectional_tech_process_op06_removed_plug_evidence_mismatch',{id:record.id});
+   if(removed.length!==0&&removed.length!==8)add('sectional_tech_process_op06_removed_plug_count_invalid',{id:record.id,count:removed.length});
+   if(removed.length===0&&op06.evidence?.noPlugsInstalledConfirmed!==true)add('sectional_tech_process_op06_no_plugs_confirmation_missing',{id:record.id});
+   if(removed.length>0&&op06.evidence?.noPlugsInstalledConfirmed===true)add('sectional_tech_process_op06_conflicting_plug_evidence',{id:record.id});
+   for(const plug of removed){
+    const item=state.equipmentInventory?.items?.[plug.itemId],evidence=rows(op06.evidence?.itemMovementEventIds).find(row=>row?.itemId===plug.itemId);
+    const event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===plug.itemId);
+    if(!item||item.kind!=='metalMeshPlug'||item.location?.type!=='storage'||!event||!globalEvent||event.type!=='moved'||event.at!==op06.completedAt||event.from?.type!=='hive'||event.to?.type!=='storage')add('sectional_tech_process_op06_plug_removal_evidence_invalid',{id:record.id,itemId:plug.itemId??null});
+   }
+   if(removed.length!==rows(op06.evidence?.itemMovementEventIds).length)add('sectional_tech_process_op06_movement_evidence_count_invalid',{id:record.id});
+   if(rows(layout?.temporaryQueenIsolation).length)add('sectional_tech_process_op06_plugs_still_installed',{id:record.id});
   }
   if(deps.PasekaFamilyLineage?.validateOperationEvidence&&op04.length===1&&(pending||completed)){
    for(const error of deps.PasekaFamilyLineage.validateOperationEvidence(state,record,'OP-04'))add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
@@ -464,5 +495,78 @@ function completeOP05(state,request,deps={}){
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===nextRecord.id),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
 }
-window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05});
+function completeOP06(state,request,deps={}){
+ const fail=(error,details)=>({ok:false,error,details:details??null});
+ if(!isObject(state)||!isObject(request))return fail('invalid_request');
+ if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
+ if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(typeof deps.makeId!=='function')return fail('id_generator_required');
+ const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
+ for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
+ if(typeof deps.PasekaFamilyLineage.inspect!=='function'||typeof deps.PasekaSectionalPhysicalLayout.inspect!=='function'||typeof deps.PasekaSectionalPhysicalLayout.validateTemporaryQueenIsolationCoverage!=='function'||typeof deps.PasekaEquipmentItems.place!=='function'||typeof deps.PasekaEquipmentItems.inspect!=='function'||typeof deps.PasekaEquipmentItems.validateReferences!=='function'||typeof deps.PasekaInventory.inspect!=='function')return fail('dependency_api_incomplete');
+ if(!Array.isArray(state.sectionalTechProcesses)||Number(state.meta?.schemaVersion||0)<15)return fail('sectional_tech_process_schema_not_ready');
+ const record=rows(state.sectionalTechProcesses).find(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId);
+ if(!record)return fail('op06_tech_process_missing');
+ const operations=rows(record.state?.operations),op04=operations.find(row=>row?.operationId==='OP-04');
+ if(op04?.status!=='DONE'||record.state?.rowStage!==2)return fail('op06_requires_completed_op04');
+ if(!validDate(op04.startedAt)||!validDate(op04.completedAt)||Date.parse(request.occurredAt)<Date.parse(op04.completedAt))return fail('op06_precedes_op04_completion');
+ if(operations.some(row=>row?.operationId==='OP-06'))return fail('op06_already_recorded');
+ const daysAfterDivision=calendarDayDifference(request.occurredAt,op04.startedAt);
+ if(daysAfterDivision!==20&&daysAfterDivision!==21)return fail('op06_outside_source_window',{daysAfterDivision,requiredDayRange:[20,21]});
+ const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
+ if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
+ const sourceLayouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(sourceLayouts.length!==1)return fail('op06_current_layout_missing');
+ const oldLayout=sourceLayouts[0],nextLayout=request.layout;
+ if(oldLayout.id!==record.state.layoutId||oldLayout.mode!=='SIDE_BY_SIDE'||(oldLayout.broodRows??2)!==2)return fail('op06_completed_two_row_layout_required');
+ if(!isObject(nextLayout)||nextLayout.id!==oldLayout.id||nextLayout.hiveId!==request.hiveId||nextLayout.profileId!==PROFILE_ID||nextLayout.mode!=='SIDE_BY_SIDE'||(nextLayout.broodRows??2)!==2)return fail('op06_target_layout_invalid');
+ const withoutPlugs=layout=>{const copy=clone(layout);delete copy.temporaryQueenIsolation;return copy};
+ if(JSON.stringify(withoutPlugs(nextLayout))!==JSON.stringify(withoutPlugs(oldLayout)))return fail('op06_must_not_change_other_physical_layout');
+ const installed=rows(oldLayout.temporaryQueenIsolation),targetPlugs=rows(nextLayout.temporaryQueenIsolation);
+ if(targetPlugs.length)return fail('op06_target_must_remove_all_temporary_plugs');
+ if(installed.length!==0&&installed.length!==8)return fail('op06_partial_mesh_plug_installation_invalid',{count:installed.length});
+ const op05=operations.find(row=>row?.operationId==='OP-05');
+ if(installed.length===8){
+  if(!op05||op05.status!=='DONE')return fail('op06_installed_plugs_require_op05_evidence');
+  const coverageErrors=deps.PasekaSectionalPhysicalLayout.validateTemporaryQueenIsolationCoverage(oldLayout);
+  if(coverageErrors.length)return fail('op06_installed_plug_coverage_invalid',coverageErrors);
+ }else if(op05||installed.length!==0)return fail('op06_op05_absence_not_confirmed');
+ const splitEvent=rows(state.familyEvents).find(event=>event?.id===op04.evidence?.familyEventId&&event.type==='split'&&event.operationId==='OP-04'&&event.techProcessId===record.id);
+ if(!splitEvent||splitEvent.resultFamilyIds?.length!==3)return fail('op06_split_event_missing');
+ for(const section of rows(record.state.sections)){
+  const family=rows(state.families).find(row=>row?.id===section.familyId);
+  if(!family||family.recordStatus==='historical'||family.hive!==request.hiveId||family.queenIdentityStatus!=='identified'||!family.currentQueenId)return fail('op06_three_identified_queens_required',{familyId:section.familyId});
+  const queen=rows(state.queens).find(row=>row?.id===family.currentQueenId);
+  if(!queen||queen.status!=='current'||queen.familyId!==family.id)return fail('op06_current_queen_invalid',{familyId:family.id,queenId:family.currentQueenId});
+  const observations=rows(state.queenEvents).filter(event=>event?.type==='laying_observed'&&event.userConfirmed===true&&event.familyId===family.id&&event.queenId===queen.id&&event.splitEventId===splitEvent.id&&event.techProcessId===record.id&&event.hiveId===request.hiveId&&validDate(event.occurredAt)&&Date.parse(event.occurredAt)<=Date.parse(request.occurredAt));
+  if(!observations.length)return fail('op06_queen_laying_observation_required',{familyId:family.id,queenId:queen.id});
+ }
+ const itemMoves=installed.map(plug=>({itemId:plug.itemId,location:{type:'storage',label:request.storageLabel||'Склад'}}));
+ const itemPlan=planItemMoves(state,oldLayout,nextLayout,request.itemMoves??itemMoves);
+ if(itemPlan.errors.length)return fail('op06_equipment_move_plan_invalid',itemPlan.errors);
+ const expectedIds=installed.map(plug=>plug.itemId).sort(),providedIds=itemPlan.moves.map(move=>move.itemId).sort();
+ if(JSON.stringify(expectedIds)!==JSON.stringify(providedIds))return fail('op06_all_plugs_must_be_removed');
+ const initialErrors=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
+ if(initialErrors.length)return fail('op06_initial_state_invalid',initialErrors);
+ let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
+ draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
+ draft.sectionalLayouts.push(clone(nextLayout));
+ for(const move of itemPlan.moves){
+  const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
+  if(!result?.ok)return fail('op06_equipment_move_rejected',{itemId:move.itemId,cause:result?.error??null,details:result?.details??null});
+ }
+ const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
+ const removed=installed.map(row=>({itemId:row.itemId,bodyId:row.bodyId,openingId:row.openingId})).sort((a,b)=>a.itemId.localeCompare(b.itemId));
+ const itemMovementEventIds=removed.map(plug=>({itemId:plug.itemId,eventId:rows(draft.equipmentInventory?.items?.[plug.itemId]?.events).at(-1)?.id??null}));
+ nextRecord.state.operations.push({operationId:'OP-06',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,daysAfterDivision,removedPlugs:removed,removedItemIds:removed.map(row=>row.itemId),noPlugsInstalledConfirmed:removed.length===0,itemMovementEventIds}});
+ nextRecord.updatedAt=request.occurredAt;
+ const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
+ if(validationErrors.length)return fail('op06_transaction_validation_failed',validationErrors);
+ const audit=appendStageOperationAudit(draft,nextRecord,'OP-06',deps.makeId);
+ if(!audit.ok)return fail(audit.error,audit.details);
+ commit(state,draft);
+ return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
+}
+window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06});
 })();
