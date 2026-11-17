@@ -2549,7 +2549,7 @@ async function confirmFamilyTransfer(e){
 }
 function addFamily(id){$('familyForm').reset();$('familyId').value='';$('familyDialogTitle').textContent='Новая семья';$('familyHive').value=id;$('familyName').value=nextFamilyCode();$('familyParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(f=>f.hive===id).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('');syncFamilyOrigin();$('familyDlg').showModal()}
 function editFamily(id){const f=S.families.find(item=>item.id===id);if(!f)return alert('Семья не найдена');$('familyForm').reset();$('familyId').value=f.id;$('familyDialogTitle').textContent='Данные семьи '+(f.name||'');$('familyHive').value=f.hive;$('familyName').value=f.name||f.code||'';$('familyOrigin').value=f.origin||'family';$('familyParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(item=>item.id!==f.id).map(item=>'<option value="'+item.id+'">'+safe(item.name||item.code||'Семья')+' · '+safe(hname(item.hive))+'</option>').join('');$('familyParent').value=f.parentFamilyId||'';$('breed').value=f.breed||'Неизвестная';$('familyLine').value=f.line||'';$('queenCode').value=f.queen?.code||'';$('queenYear').value=f.queen?.year??'';$('queenSource').value=f.queen?.source||'';$('queenNotes').value=f.queen?.notes||'';syncFamilyOrigin();$('familyDlg').showModal()}
-async async function saveFamilyMutation(previousState){
+async function saveFamilyMutation(previousState){
  let saved=false,saveFailure='';
  try{saved=await save()}catch(error){saveFailure=error?.message||'Неизвестная ошибка сохранения'}
  if(saved)return true;
