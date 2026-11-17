@@ -113,6 +113,7 @@ function validateLocationReferences(state,item,location){
  }
  if(location.footprint){
   for(const part of location.footprint){
+   if(!isObject(part)){add('item_footprint_part_invalid');continue}
    const body=inv.bodies?.[part.bodyId];
    if(!body)add('item_footprint_body_missing',{bodyId:part.bodyId});
    else if(body.kind!=='brood')add('item_footprint_body_kind_mismatch',{bodyId:part.bodyId,kind:body.kind});
