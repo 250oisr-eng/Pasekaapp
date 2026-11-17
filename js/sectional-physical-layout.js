@@ -30,6 +30,9 @@ function validate(layout,state){
  const expectedPositions=layout.mode===MODES.SIDE_BY_SIDE?['left','middle','right']:layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN?['lower','middle','upper']:['combined'];
  if(!Array.isArray(layout.sections)||sections.length!==expectedPositions.length)add('sectional_layout_section_count',{mode:layout.mode,expected:expectedPositions.length,actual:Array.isArray(layout.sections)?sections.length:null});
  if(!Array.isArray(layout.stacks))add('sectional_layout_stacks_required');
+ for(const key of ['technicalConnections','meshDiaphragms','temporaryQueenIsolation','closedOpenings']){
+  if(layout[key]!=null&&!Array.isArray(layout[key]))add('sectional_layout_array_invalid',{field:key});
+ }
  const sectionById=new Map(),sectionByPosition=new Map(),openingById=new Map(),usedFamilies=new Set(),usedBodies=new Set(),usedItems=new Set(),usedOpenings=new Set();
  const checkBody=(bodyId,kind,owner)=>{
   if(!nonEmpty(bodyId)){add('section_body_id_required',{owner,kind});return null}
