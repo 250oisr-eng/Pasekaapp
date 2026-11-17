@@ -96,6 +96,7 @@ function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,make
   if(body.events==null)body.events=[];
   const from=oldLocations.get(bodyId)||{type:'storage',label:body.storageLocation||null};
   const to=newLocations.get(bodyId)||{type:'storage',label:storageById.get(bodyId)||null};
+  if(oldLocations.has(bodyId)&&newLocations.has(bodyId)&&JSON.stringify(from)===JSON.stringify(to))continue;
   if(!newLocations.has(bodyId)&&!storageById.has(bodyId))return {ok:false,error:'equipment_body_storage_move_missing',details:{bodyId}};
   const installed=newLocations.has(bodyId);
   body.events.push({type:installed?'placed':'moved_to_storage',at,operationId:'OP-04',from:clone(from),to:clone(to)});
@@ -112,7 +113,9 @@ function appendOperationAudit(state,record,event,makeId){
  if(!Array.isArray(state.auditLog))return {ok:false,error:'audit_log_invalid'};
  const used=collectEventIds(state),id=nextUniqueId(makeId,used);
  if(!id)return {ok:false,error:'audit_event_id_unavailable'};
- state.auditLog.push({id,type:'sectional_operation_completed',at:record.state.operations[0].completedAt,operationId:'OP-04',hiveId:record.hiveId,techProcessId:record.id,sourceFamilyId:event.sourceFamilyIds[0],resultFamilyIds:event.resultFamilyIds.slice(),familyEventId:event.id,layoutId:record.state.layoutId});
+ const operation=rows(record.state.operations).find(row=>row?.operationId==='OP-04');
+ const pending=operation?.status==='IN_PROGRESS';
+ state.auditLog.push({id,type:pending?'sectional_operation_started':'sectional_operation_completed',at:pending?operation.startedAt:operation.completedAt,operationId:'OP-04',hiveId:record.hiveId,techProcessId:record.id,sourceFamilyId:event.sourceFamilyIds[0],resultFamilyIds:event.resultFamilyIds.slice(),familyEventId:event.id,layoutId:record.state.layoutId});
  if(state.auditLog.length>500)state.auditLog=state.auditLog.slice(-500);
  return {ok:true};
 }
@@ -182,10 +185,12 @@ function inspect(state,deps={}){
      add('sectional_tech_process_section_mismatch',{id:record.id,sectionId:section?.sectionId??null});
    }
   }
-  const operations=rows(statePart.operations),op04=operations.filter(row=>row?.operationId==='OP-04');
-  if(op04.length!==1||op04[0]?.status!=='DONE'||!validDate(op04[0]?.completedAt))
-   add('sectional_tech_process_op04_not_completed',{id:record.id});
-  if(deps.PasekaFamilyLineage?.validateOperationEvidence&&op04.length===1&&op04[0]?.status==='DONE'){
+  const operations=rows(statePart.operations),op04=operations.filter(row=>row?.operationId==='OP-04'),stageRows=layout?.broodRows??2;
+  const operation=op04[0];
+  const pending=op04.length===1&&operation?.status==='IN_PROGRESS'&&stageRows===1&&validDate(operation.startedAt)&&operation.completedAt==null;
+  const completed=op04.length===1&&operation?.status==='DONE'&&stageRows===2&&validDate(operation.completedAt);
+  if(!pending&&!completed)add('sectional_tech_process_op04_stage_invalid',{id:record.id,stageRows,status:operation?.status??null});
+  if(deps.PasekaFamilyLineage?.validateOperationEvidence&&op04.length===1&&(pending||completed)){
    for(const error of deps.PasekaFamilyLineage.validateOperationEvidence(state,record,'OP-04'))add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
   }
  }
@@ -223,7 +228,8 @@ function completeOP04(state,request,deps={}){
   return fail('split_result_families_invalid');
  if(new Set(rows(nextLayout.sections).map(row=>row?.familyId)).size!==3||rows(nextLayout.sections).some(row=>!childIds.includes(row?.familyId)))
   return fail('target_section_family_mapping_invalid');
- if(rows(nextLayout.sections).some(section=>rows(section?.broodBodyIds).length!==2))return fail('target_section_body_count_invalid');
+ const targetBroodRows=nextLayout.broodRows??2;
+ if(![1,2].includes(targetBroodRows)||rows(nextLayout.sections).some(section=>rows(section?.broodBodyIds).length!==targetBroodRows))return fail('target_section_body_count_invalid');
  if(state.sectionalTechProcesses.some(row=>row?.hiveId===request.hiveId||row?.id===request.techProcessId))return fail('tech_process_already_exists');
  const initialErrors=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
  if(initialErrors.length)return fail('op04_initial_state_invalid',initialErrors);
@@ -251,9 +257,9 @@ function completeOP04(state,request,deps={}){
   id:request.techProcessId,hiveId:request.hiveId,profileId:PROFILE_ID,modelVersion:MODEL_VERSION,
   createdAt:request.occurredAt,updatedAt:request.occurredAt,
   state:{
-   phase:'DIVIDED_3_SECTIONS',layoutId:nextLayout.id,sourceFamilyId:source.id,isolationStatus:'CONNECTED',
+   phase:'DIVIDED_3_SECTIONS',layoutId:nextLayout.id,sourceFamilyId:source.id,isolationStatus:'CONNECTED',rowStage:targetBroodRows,
    sections:rows(nextLayout.sections).map(section=>({sectionId:section.id,position:section.position,familyId:section.familyId,bodyIds:section.broodBodyIds.slice(),upperBodyId:section.upperBroodBodyId})),
-   operations:[{operationId:'OP-04',status:'DONE',completedAt:request.occurredAt,evidence:{familyEventId:split.event.id,layoutId:nextLayout.id}}]
+   operations:[{operationId:'OP-04',status:targetBroodRows===2?'DONE':'IN_PROGRESS',...(targetBroodRows===2?{completedAt:request.occurredAt}:{startedAt:request.occurredAt,completedAt:null}),evidence:{familyEventId:split.event.id,layoutId:nextLayout.id}}]
   }
  };
  draft.sectionalTechProcesses.push(record);
@@ -272,5 +278,87 @@ function completeOP04(state,request,deps={}){
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===record.id),event:state.familyEvents.find(row=>row?.id===split.event.id)};
 }
-window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04});
+
+function completeOP04SecondRow(state,request,deps={}){
+ const fail=(error,details)=>({ok:false,error,details:details??null});
+ if(!isObject(state)||!isObject(request))return fail('invalid_request');
+ if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
+ if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(typeof deps.makeId!=='function')return fail('id_generator_required');
+ const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
+ for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
+ if(typeof deps.PasekaFamilyLineage.validateOperationEvidence!=='function'||typeof deps.PasekaFamilyLineage.inspect!=='function'||typeof deps.PasekaSectionalPhysicalLayout.inspect!=='function'||typeof deps.PasekaEquipmentItems.place!=='function'||typeof deps.PasekaEquipmentItems.inspect!=='function'||typeof deps.PasekaEquipmentItems.validateReferences!=='function'||typeof deps.PasekaInventory.inspect!=='function')return fail('dependency_api_incomplete');
+ const records=rows(state.sectionalTechProcesses),record=records.find(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId);
+ if(!record)return fail('op04_tech_process_missing');
+ const operation=rows(record.state?.operations).find(row=>row?.operationId==='OP-04');
+ if(operation?.status!=='IN_PROGRESS'||record.state?.rowStage!==1)return fail('op04_second_row_not_pending');
+ const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
+ if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
+ const sourceLayouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(sourceLayouts.length!==1)return fail('op04_current_layout_missing');
+ const oldLayout=sourceLayouts[0],nextLayout=request.layout;
+ if(oldLayout.id!==record.state.layoutId||oldLayout.mode!=='SIDE_BY_SIDE'||(oldLayout.broodRows??2)!==1)return fail('op04_first_row_layout_required');
+ if(!isObject(nextLayout)||nextLayout.id!==oldLayout.id||nextLayout.hiveId!==request.hiveId||nextLayout.profileId!==PROFILE_ID||nextLayout.mode!=='SIDE_BY_SIDE'||(nextLayout.broodRows??2)!==2)return fail('op04_second_row_layout_invalid');
+ if(rows(nextLayout.sections).length!==3||rows(nextLayout.stacks).length!==3||rows(nextLayout.technicalConnections).length!==2)return fail('target_layout_shape_invalid');
+ if(rows(nextLayout.temporaryQueenIsolation).length||rows(nextLayout.closedOpenings).length||rows(nextLayout.meshDiaphragms).length||nextLayout.honeyStack)return fail('op04_target_contains_later_stage_equipment');
+ const oldSections=rows(oldLayout.sections),newSections=rows(nextLayout.sections);
+ const addedBodyIds=[];
+ for(const oldSection of oldSections){
+  const next=newSections.find(row=>row?.id===oldSection?.id);
+  if(!next||next.familyId!==oldSection.familyId||next.position!==oldSection.position)return fail('op04_second_row_section_identity_mismatch',{sectionId:oldSection?.id??null});
+  const previous=rows(oldSection.broodBodyIds),current=rows(next.broodBodyIds);
+  if(previous.length!==1||current.length!==2||!current.includes(previous[0]))return fail('op04_second_row_body_extension_invalid',{sectionId:oldSection.id,previous,current});
+  addedBodyIds.push(...current.filter(id=>!previous.includes(id)));
+ }
+ const suppliedAdded=rows(request.addedBodyIds);
+ if(addedBodyIds.length!==3||new Set(addedBodyIds).size!==3||suppliedAdded.length!==3||new Set(suppliedAdded).size!==3||addedBodyIds.some(id=>!suppliedAdded.includes(id))||suppliedAdded.some(id=>!addedBodyIds.includes(id)))return fail('op04_second_row_added_bodies_mismatch',{expected:addedBodyIds,provided:suppliedAdded});
+ for(const bodyId of addedBodyIds){
+  const body=state.equipmentInventory?.bodies?.[bodyId];
+  if(!isObject(body)||body.kind!=='brood'||body.condition!=='good'||body.spec?.profileId!==PROFILE_ID||body.spec?.framesPerBox!==6||!nonEmpty(body.storageLocation))return fail('op04_second_row_body_not_in_storage',{bodyId});
+ }
+ const familyIds=rows(record.state.sections).map(row=>row?.familyId);
+ if(new Set(newSections.map(row=>row?.familyId)).size!==3||newSections.some(row=>!familyIds.includes(row?.familyId)))return fail('target_section_family_mapping_invalid');
+ const initialErrors=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
+ if(initialErrors.length)return fail('op04_second_row_initial_state_invalid',initialErrors);
+ const bodyPlan=planBodyMoves(state,oldLayout,nextLayout,[]);
+ if(bodyPlan.errors.length)return fail('body_move_plan_invalid',bodyPlan.errors);
+ const itemPlan=planItemMoves(state,oldLayout,nextLayout,request.itemMoves);
+ if(itemPlan.errors.length)return fail('equipment_move_plan_invalid',itemPlan.errors);
+ let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
+ draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
+ draft.sectionalLayouts.push(clone(nextLayout));
+ const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,new Map(),request.occurredAt,deps.makeId);
+ if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
+ for(const bodyId of addedBodyIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
+ for(const move of itemPlan.moves){
+  const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
+  if(!result?.ok)return fail('equipment_move_rejected',{itemId:move.itemId,cause:result?.error??null,details:result?.details??null});
+ }
+ const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
+ nextRecord.state.rowStage=2;
+ nextRecord.state.sections=newSections.map(section=>({sectionId:section.id,position:section.position,familyId:section.familyId,bodyIds:section.broodBodyIds.slice(),upperBodyId:section.upperBroodBodyId}));
+ const nextOperation=rows(nextRecord.state.operations).find(row=>row?.operationId==='OP-04');
+ nextOperation.status='DONE';
+ nextOperation.completedAt=request.occurredAt;
+ nextOperation.evidence={...(nextOperation.evidence||{}),secondRowBodyIds:addedBodyIds.slice(),secondRowAt:request.occurredAt};
+ nextRecord.updatedAt=request.occurredAt;
+ const validationErrors=[
+  ...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),
+  ...deps.PasekaEquipmentItems.inspect(draft),
+  ...deps.PasekaEquipmentItems.validateReferences(draft),
+  ...deps.PasekaSectionalPhysicalLayout.inspect(draft),
+  ...deps.PasekaFamilyLineage.inspect(draft),
+  ...deps.PasekaFamilyLineage.validateOperationEvidence(draft,nextRecord,'OP-04'),
+  ...inspect(draft,deps)
+ ];
+ if(validationErrors.length)return fail('op04_second_row_transaction_validation_failed',validationErrors);
+ const splitEvent=draft.familyEvents.find(event=>event?.id===nextOperation.evidence?.familyEventId);
+ if(!splitEvent)return fail('op04_family_split_event_missing');
+ const audit=appendOperationAudit(draft,nextRecord,splitEvent,deps.makeId);
+ if(!audit.ok)return fail(audit.error,audit.details);
+ commit(state,draft);
+ return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===nextRecord.id),event:state.familyEvents.find(row=>row?.id===splitEvent.id)};
+}
+window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow});
 })();
