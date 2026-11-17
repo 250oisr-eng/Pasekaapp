@@ -474,7 +474,8 @@ function confirmQueenAbsence(state, request, makeId, now) {
    return {ok:false,error:'queen_absence_tech_process_mismatch'};
   if (request?.notes!=null&&(typeof request.notes!=='string'||request.notes.length>500))
    return {ok:false,error:'queen_absence_notes_invalid'};
-  const at=now||new Date().toISOString(),occurredAt=request?.occurredAt||at;
+  const at=now||new Date().toISOString(),occurredAt=request?.occurredAt;
+  if (occurredAt==null) return {ok:false,error:'queen_absence_time_required'};
   if (!validTime(occurredAt)) return {ok:false,error:'queen_absence_time_invalid'};
   if (validTime(splitEvent.occurredAt)&&Date.parse(occurredAt)<Date.parse(splitEvent.occurredAt))
    return {ok:false,error:'queen_absence_precedes_split'};
