@@ -540,7 +540,7 @@ function validateOperationEvidence(state, record, operationId) {
  if (operationId==='OP-13') {
   if (!record.state.operations?.some(operation=>operation?.operationId==='OP-12'&&operation.status==='DONE')) add('OP13_ALTERNATIVE_WINTERING_PRECONDITION_REQUIRED',{techProcessId});
   const moves=matches('placement_changed').filter(event=>event.scenario==='ALT_WINTERING_SPRING');
-  const winterEvents=matches('alternative_wintering_configured');
+  const winterEvents=events.filter(event=>event?.type==='alternative_wintering_configured'&&event.operationId==='OP-12'&&event.techProcessId===techProcessId&&(!hiveId||event.hiveId===hiveId));
   const winterLayout=winterEvents.length===1&&Array.isArray(winterEvents[0].layout)?winterEvents[0].layout:[];
   const singleBodyRows=winterLayout.filter(row=>row?.bodyCount===1),twoBodyRows=winterLayout.filter(row=>row?.bodyCount===2);
   if (moves.length!==2) add('OP13_TWO_SINGLE_BODY_FAMILY_MOVES_REQUIRED',{techProcessId});
@@ -587,7 +587,10 @@ function validateOperationEvidence(state, record, operationId) {
    const harvest=harvests[0],merge=merges[0],split=splits[0];
    if (!isObject(record.state.earlyHoneySetup) || JSON.stringify(record.state.earlyHoneySetup)!==JSON.stringify(harvest.physicalSetup)) add('OP14_PHYSICAL_SETUP_SNAPSHOT_MISMATCH',{techProcessId});
    if (!sameSet(harvest.familyIds,merge.sourceFamilyIds)) add('OP14_HARVEST_MERGE_FAMILY_MISMATCH',{techProcessId});
-   if (placements.some(event=>!sameSet(event.familyIds,harvest.familyIds)) || new Set(placements.map(event=>event.familyId)).size!==2 || !['middle','upper'].every(position=>placements.some(event=>event.from?.position===position)) || new Set(placements.map(event=>event.to?.bottomItemId)).size!==2) add('OP14_SPRING_PLACEMENT_FAMILY_MISMATCH',{techProcessId});
+   const winterEvent=events.find(event=>event?.type==='alternative_wintering_configured'&&event.operationId==='OP-12'&&event.techProcessId===techProcessId&&(!hiveId||event.hiveId===hiveId));
+   const expectedSingleBodyIds=(winterEvent?.layout||[]).filter(row=>row?.bodyCount===1).map(row=>row.familyId);
+   const movedSingleBodyIds=placements.map(event=>event.familyId);
+   if (placements.some(event=>!sameSet(event.familyIds,harvest.familyIds)) || new Set(movedSingleBodyIds).size!==2 || !sameSet(movedSingleBodyIds,expectedSingleBodyIds) || placements.some(event=>!expectedSingleBodyIds.includes(event.familyId)||event.from?.position!==winterEvent?.layout?.find(row=>row.familyId===event.familyId)?.position) || new Set(placements.map(event=>event.to?.bottomItemId)).size!==2) add('OP14_SPRING_PLACEMENT_FAMILY_MISMATCH',{techProcessId});
    if (placements.some(event=>Date.parse(event.occurredAt)>Date.parse(harvest.occurredAt))) add('OP14_PLACEMENT_AFTER_HARVEST',{techProcessId});
    if (!sameSet(split.sourceFamilyIds,merge.resultFamilyIds)) add('OP14_REPEAT_SPLIT_SOURCE_MISMATCH',{techProcessId});
    if (!sameSet(split.resultFamilyIds,sectionFamilyIds)) add('OP14_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
