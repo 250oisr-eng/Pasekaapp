@@ -9,9 +9,37 @@ function transact(state,operation){let draft;try{draft=cloneState(state)}catch(e
 function keysFor(state,hiveId,override){const p=profileForState(state,hiveId,override)||{},brood=(p.brood?.boxKeys||[]).map(String),honey=(p.honey?.boxKeys||[]).map(String);return {brood,honey,profile:p}}
 function specFor(profile,kind){const section=profile?.[kind]||{},frame=profile?.frame||{};return {profileId:profile?.id||null,kind,framesPerBox:Number(section.framesPerBox)||null,boxHeightMm:Number(section.boxHeightMm)||null,frame:{widthMm:frame.widthMm??null,heightMm:frame.heightMm??null,topBarMm:frame.topBarMm??null,bottomBarMm:frame.bottomBarMm??null}}}
 function compatibleSpec(spec,profile,kind){if(!spec||spec.kind!==kind||!profile)return false;const target=specFor(profile,kind);if(spec.framesPerBox!==target.framesPerBox||spec.boxHeightMm!==target.boxHeightMm)return false;const keys=['widthMm','heightMm','topBarMm','bottomBarMm'];return keys.every(k=>(spec.frame?.[k]??null)===(target.frame?.[k]??null))}
-function locateAll(state,id){const found=[];for(const [hiveId,l] of Object.entries(state.layouts||{}))for(const [boxKey,corpusId] of Object.entries(l?.corpusIds||{}))if(corpusId===id)found.push({type:'hive',hiveId,boxKey});return found}
+function locateAll(state,id){
+ const found=[];
+ for(const [hiveId,l] of Object.entries(state.layouts||{})){
+  for(const [boxKey,corpusId] of Object.entries(l?.corpusIds||{}))if(corpusId===id)found.push({type:'hive',hiveId,boxKey});
+ }
+ for(const layout of Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[]){
+  const hiveId=layout?.hiveId;
+  for(const section of Array.isArray(layout?.sections)?layout.sections:[]){
+   for(const bodyId of Array.isArray(section?.broodBodyIds)?section.broodBodyIds:[]){
+    if(bodyId===id)found.push({type:'sectional',hiveId,layoutId:layout.id||null,sectionId:section.id||null,sectionPosition:section.position||null,bodyRole:'brood',isUpper:bodyId===section.upperBroodBodyId});
+   }
+  }
+  for(const bodyId of Array.isArray(layout?.honeyStack?.bodyIds)?layout.honeyStack.bodyIds:[]){
+   if(bodyId===id)found.push({type:'sectional',hiveId,layoutId:layout.id||null,sectionId:null,sectionPosition:'shared-honey',bodyRole:'honey',honeyPurpose:layout.honeyStack.purpose||null});
+  }
+ }
+ return found;
+}
 function positionIsInstalled(state,hiveId,boxKey,profile){const layout=state.layouts?.[hiveId],{honey}=keysFor(state,hiveId,profile),key=String(boxKey);if(honey.includes(key)){const i=honey.indexOf(key);return Boolean(layout?.honeyBoxInstalled?.[i])}const installed=(layout?.mode==='winter'?(layout.winterOrder||[]):(layout?.installedBoxes||[])).map(String);return installed.includes(key)}
-function locateBody(state,id,getProfile){const rows=locateAll(state,id);if(rows.length===1){const row=rows[0],profile=getProfile?.(row.hiveId)||profileForState(state,row.hiveId);return profile&&!positionIsInstalled(state,row.hiveId,row.boxKey,profile)?{...row,type:'hive_uninstalled'}:row}if(rows.length>1)return {type:'error',code:'duplicate_mapping',locations:rows};const body=state.equipmentInventory?.bodies?.[id];return body?{type:'storage',place:body.storageLocation||'Место хранения не указано'}:null}
+function locateBody(state,id,getProfile){
+ const rows=locateAll(state,id);
+ if(rows.length===1){
+  const row=rows[0];
+  if(row.type==='sectional')return row;
+  const profile=getProfile?.(row.hiveId)||profileForState(state,row.hiveId);
+  return profile&&!positionIsInstalled(state,row.hiveId,row.boxKey,profile)?{...row,type:'hive_uninstalled'}:row;
+ }
+ if(rows.length>1)return {type:'error',code:'duplicate_mapping',locations:rows};
+ const body=state.equipmentInventory?.bodies?.[id];
+ return body?{type:'storage',place:body.storageLocation||'Место хранения не указано'}:null;
+}
 function framesAt(state,hiveId,key,kind,profile){const l=state.layouts?.[hiveId];if(kind==='honey'){const {honey}=keysFor(state,hiveId,profile);return l?.honeyFrames?.[honey.indexOf(key)]}return l?.boxes?.[key]?.frames}
 function setFrames(state,hiveId,key,kind,frames,profile){const l=state.layouts[hiveId];if(kind==='honey'){const {honey}=keysFor(state,hiveId,profile);l.honeyFrames[honey.indexOf(key)]=frames}else l.boxes[key].frames=frames}
 function addEvent(state,type,details,at){const inv=ensure(state),event={id:(window.crypto?.randomUUID?.()||'evt-'+Date.now()+'-'+Math.random()),type,at:at||new Date().toISOString(),...details};inv.events.push(event);if(inv.events.length>1000)inv.events=inv.events.slice(-1000);return event}
@@ -50,15 +78,16 @@ function updateDetailsUnsafe(state,bodyId,patch,now,getProfile){
  if(body.events!=null&&!Array.isArray(body.events))return {ok:false,error:'invalid_body_event_journal'};
  const notes=String(patch?.notes??body.notes??''),storageLocation=String(patch?.storageLocation??body.storageLocation??'');
  if(notes.length>500||storageLocation.length>120)return {ok:false,error:'invalid_details'};
- const loc=locateBody(state,bodyId,getProfile);
+ const loc=locateBody(state,bodyId,getProfile),installed=loc?.type==='hive'||loc?.type==='sectional';
  if(patch?.condition!=null){
   if(!conditions.has(patch.condition))return {ok:false,error:'invalid_condition'};
-  if(patch.condition==='retired'&&loc?.type==='hive')return {ok:false,error:'cannot_retire_installed'};
-  if(patch.condition==='repair'&&loc?.type==='hive')return {ok:false,error:'cannot_repair_installed'};
+  if(patch.condition==='retired'&&installed)return {ok:false,error:'cannot_retire_installed'};
+  if(patch.condition==='repair'&&installed)return {ok:false,error:'cannot_repair_installed'};
+  if(loc?.type==='sectional'&&patch.condition!=='good')return {ok:false,error:'sectional_body_not_usable'};
  }
  const before=body.condition;
  if(loc?.type==='storage'&&!storageLocation)return {ok:false,error:'invalid_details'};
- body.notes=notes;body.storageLocation=loc?.type==='hive'?'':storageLocation;
+ body.notes=notes;body.storageLocation=installed?'':storageLocation;
  if(patch?.condition!=null)body.condition=patch.condition;
  body.updatedAt=now||new Date().toISOString();
  recordEvent(body,'details_updated',{fromCondition:before,toCondition:body.condition},now);
@@ -66,8 +95,118 @@ function updateDetailsUnsafe(state,bodyId,patch,now,getProfile){
  return {ok:true,body};
 }
 function updateDetails(state,bodyId,patch,now,getProfile){return transact(state,draft=>updateDetailsUnsafe(draft,bodyId,patch,now,getProfile))}
-function inspect(state,labels,getProfile){const errors=[],inv=state?.equipmentInventory;if(!inv)return errors;const bodies=inv.bodies||{},ids=new Set(),codes=new Map();for(const [id,b] of Object.entries(bodies)){if(!b||typeof b!=='object'||b.id!==id){errors.push({code:'invalid_inventory_body_identity',details:{bodyId:id}});continue}if(ids.has(id))errors.push({code:'duplicate_inventory_body_id',details:{bodyId:id}});ids.add(id);if(!validKinds.has(b.kind))errors.push({code:'invalid_inventory_body_kind',details:{bodyId:id,kind:b.kind}});if(!conditions.has(b.condition))errors.push({code:'invalid_inventory_body_condition',details:{bodyId:id,condition:b.condition}});const raw=state.equipmentLabels?.bodies?.[id],code=labels.normalizeCode(raw,'body');if(!code||code!==raw)errors.push({code:'inventory_body_label_missing_or_invalid',details:{bodyId:id,labelCode:raw||null}});else if(b.labelCode&&b.labelCode!==raw)errors.push({code:'inventory_body_label_mismatch',details:{bodyId:id,labelCode:raw,recordLabelCode:b.labelCode}});else if(codes.has(code)&&codes.get(code)!==id)errors.push({code:'duplicate_inventory_body_label',details:{labelCode:code,bodyIds:[codes.get(code),id]}});else codes.set(code,id);const locations=locateAll(state,id);if(locations.length>1)errors.push({code:'inventory_body_duplicate_location',details:{bodyId:id,locations}});if(locations.length===1){const profile=getProfile?.(locations[0].hiveId)||keysFor(state,locations[0].hiveId).profile,expectedKind=keysFor(state,locations[0].hiveId,profile).honey.includes(locations[0].boxKey)?'honey':'brood';if(expectedKind!==b.kind)errors.push({code:'inventory_body_kind_location_mismatch',details:{bodyId:id,kind:b.kind,expectedKind,location:locations[0]}});if(b.spec&&!compatibleSpec(b.spec,profile,b.kind))errors.push({code:'inventory_body_dimensions_mismatch',details:{bodyId:id,profileId:profile?.id||null}})}if(!locations.length&&!String(b.storageLocation||'').trim())errors.push({code:'inventory_body_storage_missing',details:{bodyId:id}});if(locations.length&&b.storageLocation&&locateBody(state,id,getProfile)?.type!=='hive_uninstalled')errors.push({code:'inventory_body_location_conflict',details:{bodyId:id,storageLocation:b.storageLocation}});if(b.pairId&&b.kind!=='honey')errors.push({code:'inventory_pair_non_honey',details:{bodyId:id,pairId:b.pairId}});if(b.frames!=null&&!Array.isArray(b.frames))errors.push({code:'inventory_frames_invalid',details:{bodyId:id}})}const pairs=new Map();for(const b of Object.values(bodies))if(b?.pairId){if(!pairs.has(b.pairId))pairs.set(b.pairId,[]);pairs.get(b.pairId).push(b)}for(const [pairId,items] of pairs){if(items.length!==2||items.some(x=>x.kind!=='honey')){errors.push({code:'inventory_pair_invalid',details:{pairId,bodyIds:items.map(x=>x.id)}});continue}const locations=items.map(body=>locateAll(state,body.id));const installed=locations.map(rows=>rows.length===1);if(installed.some(Boolean)&&!installed.every(Boolean)){errors.push({code:'inventory_pair_split',details:{pairId,bodyIds:items.map(x=>x.id),locations}});continue}if(installed.every(Boolean)){const hiveIds=locations.map(rows=>rows[0].hiveId),boxKeys=locations.map(rows=>rows[0].boxKey);const {honey}=keysFor(state,hiveIds[0],getProfile?.(hiveIds[0]));if(hiveIds[0]!==hiveIds[1]||honey.length!==2||!honey.every(key=>boxKeys.includes(key))){errors.push({code:'inventory_pair_location_mismatch',details:{pairId,bodyIds:items.map(x=>x.id),locations}})}}}return errors}
-function migrateUnsafe(state,makeId,now,getProfile,labels){const inv=ensure(state),labelApi=labels||window.PasekaLabels;for(const hive of state.hives||[]){const profile=getProfile?.(hive.id)||profileForState(state,hive.id);if(!profile||profile.status==='template')continue;const {brood,honey}=keysFor(state,hive.id,profile),layout=state.layouts?.[hive.id];if(!layout?.corpusIds)continue;for(const boxKey of [...brood,...honey]){if(!layout.corpusIds[boxKey])continue;const result=registerAtPositionUnsafe(state,{hiveId:hive.id,boxKey,profile},labelApi,makeId,now);if(!result.ok)throw new Error('Не удалось перенести физический корпус '+hive.number+'/'+boxKey+' в инвентарь: '+result.error)}}for(const [id,code] of Object.entries(state.equipmentLabels?.bodies||{})){if(inv.bodies[id])continue;const locations=locateAll(state,id);if(locations.length!==1)continue;const profile=getProfile?.(locations[0].hiveId)||profileForState(state,locations[0].hiveId),kind=keysFor(state,locations[0].hiveId,profile).honey.includes(locations[0].boxKey)?'honey':'brood';const body=makeBody(state,id,kind,now,{source:'schema_migration'});body.labelCode=code;body.spec=profile?specFor(profile,kind):null;body.migrated=true;recordEvent(body,'legacy_imported',{location:locations[0]},now)}return state}
+function inspect(state,labels,getProfile){
+ const errors=[],inv=state?.equipmentInventory;
+ if(!inv)return errors;
+ const bodies=inv.bodies||{},ids=new Set(),codes=new Map();
+ const sectionalLayouts=Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[];
+ for(const [id,b] of Object.entries(bodies)){
+  if(!b||typeof b!=='object'||b.id!==id){errors.push({code:'invalid_inventory_body_identity',details:{bodyId:id}});continue}
+  if(ids.has(id))errors.push({code:'duplicate_inventory_body_id',details:{bodyId:id}});
+  ids.add(id);
+  if(!validKinds.has(b.kind))errors.push({code:'invalid_inventory_body_kind',details:{bodyId:id,kind:b.kind}});
+  if(!conditions.has(b.condition))errors.push({code:'invalid_inventory_body_condition',details:{bodyId:id,condition:b.condition}});
+  const raw=state.equipmentLabels?.bodies?.[id],code=labels.normalizeCode(raw,'body');
+  if(!code||code!==raw)errors.push({code:'inventory_body_label_missing_or_invalid',details:{bodyId:id,labelCode:raw||null}});
+  else if(b.labelCode&&b.labelCode!==raw)errors.push({code:'inventory_body_label_mismatch',details:{bodyId:id,labelCode:raw,recordLabelCode:b.labelCode}});
+  else if(codes.has(code)&&codes.get(code)!==id)errors.push({code:'duplicate_inventory_body_label',details:{labelCode:code,bodyIds:[codes.get(code),id]}});
+  else codes.set(code,id);
+  const locations=locateAll(state,id);
+  if(locations.length>1)errors.push({code:'inventory_body_duplicate_location',details:{bodyId:id,locations}});
+  if(locations.length===1){
+   const location=locations[0];
+   if(location.type==='sectional'){
+    const layout=sectionalLayouts.find(row=>row?.id===location.layoutId&&row?.hiveId===location.hiveId);
+    const expectedKind=location.bodyRole,capacity=expectedKind==='brood'?6:10;
+    if(expectedKind!==b.kind)errors.push({code:'inventory_body_kind_location_mismatch',details:{bodyId:id,kind:b.kind,expectedKind,location}});
+    if(b.condition!=='good')errors.push({code:'sectional_body_not_usable',details:{bodyId:id,condition:b.condition}});
+    if(!layout||b.spec?.profileId!==layout.profileId)errors.push({code:'inventory_body_dimensions_mismatch',details:{bodyId:id,profileId:b.spec?.profileId??null,layoutProfileId:layout?.profileId??null}});
+    if(b.spec?.framesPerBox!==capacity)errors.push({code:'inventory_body_dimensions_mismatch',details:{bodyId:id,framesPerBox:b.spec?.framesPerBox??null,expectedFramesPerBox:capacity}});
+   }else{
+    const profile=getProfile?.(location.hiveId)||keysFor(state,location.hiveId).profile;
+    const expectedKind=keysFor(state,location.hiveId,profile).honey.includes(location.boxKey)?'honey':'brood';
+    if(expectedKind!==b.kind)errors.push({code:'inventory_body_kind_location_mismatch',details:{bodyId:id,kind:b.kind,expectedKind,location}});
+    if(b.spec&&!compatibleSpec(b.spec,profile,b.kind))errors.push({code:'inventory_body_dimensions_mismatch',details:{bodyId:id,profileId:profile?.id||null}});
+   }
+  }
+  if(!locations.length&&!String(b.storageLocation||'').trim())errors.push({code:'inventory_body_storage_missing',details:{bodyId:id}});
+  if(locations.length&&b.storageLocation&&locateBody(state,id,getProfile)?.type!=='hive_uninstalled')errors.push({code:'inventory_body_location_conflict',details:{bodyId:id,storageLocation:b.storageLocation}});
+  if(b.pairId&&b.kind!=='honey')errors.push({code:'inventory_pair_non_honey',details:{bodyId:id,pairId:b.pairId}});
+  if(b.frames!=null&&!Array.isArray(b.frames))errors.push({code:'inventory_frames_invalid',details:{bodyId:id}});
+ }
+ for(const layout of sectionalLayouts){
+  const honeyIds=Array.isArray(layout?.honeyStack?.bodyIds)?layout.honeyStack.bodyIds:[];
+  if(!honeyIds.length)continue;
+  const groups=new Map();
+  for(const bodyId of honeyIds){
+   const body=bodies[bodyId];
+   if(!body||body.kind!=='honey'||!body.pairId){
+    errors.push({code:'sectional_honey_pair_required',details:{layoutId:layout.id??null,bodyId}});
+    continue;
+   }
+   if(!groups.has(body.pairId))groups.set(body.pairId,[]);
+   groups.get(body.pairId).push(bodyId);
+  }
+  for(const [pairId,bodyIds] of groups)if(bodyIds.length!==2)errors.push({code:'sectional_honey_pair_invalid',details:{layoutId:layout.id??null,pairId,bodyIds}});
+ }
+ const pairs=new Map();
+ for(const b of Object.values(bodies))if(b?.pairId){
+  if(!pairs.has(b.pairId))pairs.set(b.pairId,[]);
+  pairs.get(b.pairId).push(b);
+ }
+ for(const [pairId,items] of pairs){
+  if(items.length!==2||items.some(x=>x.kind!=='honey')){
+   errors.push({code:'inventory_pair_invalid',details:{pairId,bodyIds:items.map(x=>x.id)}});
+   continue;
+  }
+  const locations=items.map(body=>locateAll(state,body.id)),installed=locations.map(rows=>rows.length===1);
+  if(installed.some(Boolean)&&!installed.every(Boolean)){
+   errors.push({code:'inventory_pair_split',details:{pairId,bodyIds:items.map(x=>x.id),locations}});
+   continue;
+  }
+  if(installed.every(Boolean)){
+   const first=locations[0][0],second=locations[1][0];
+   if(first.type==='sectional'||second.type==='sectional'){
+    const layout=sectionalLayouts.find(row=>row?.id===first.layoutId&&row?.hiveId===first.hiveId);
+    const honeyIds=Array.isArray(layout?.honeyStack?.bodyIds)?layout.honeyStack.bodyIds:[];
+    if(first.type!=='sectional'||second.type!=='sectional'||first.layoutId!==second.layoutId||first.hiveId!==second.hiveId||first.bodyRole!=='honey'||second.bodyRole!=='honey'||!honeyIds.includes(items[0].id)||!honeyIds.includes(items[1].id))
+     errors.push({code:'inventory_pair_location_mismatch',details:{pairId,bodyIds:items.map(x=>x.id),locations}});
+   }else{
+    const hiveIds=locations.map(rows=>rows[0].hiveId),boxKeys=locations.map(rows=>rows[0].boxKey),{honey}=keysFor(state,hiveIds[0],getProfile?.(hiveIds[0]));
+    if(hiveIds[0]!==hiveIds[1]||honey.length!==2||!honey.every(key=>boxKeys.includes(key)))
+     errors.push({code:'inventory_pair_location_mismatch',details:{pairId,bodyIds:items.map(x=>x.id),locations}});
+   }
+  }
+ }
+ return errors;
+}
+function migrateUnsafe(state,makeId,now,getProfile,labels){
+ const inv=ensure(state),labelApi=labels||window.PasekaLabels;
+ for(const hive of state.hives||[]){
+  const profile=getProfile?.(hive.id)||profileForState(state,hive.id);
+  if(!profile||profile.status==='template')continue;
+  const {brood,honey}=keysFor(state,hive.id,profile),layout=state.layouts?.[hive.id];
+  if(!layout?.corpusIds)continue;
+  for(const boxKey of [...brood,...honey]){
+   if(!layout.corpusIds[boxKey])continue;
+   const result=registerAtPositionUnsafe(state,{hiveId:hive.id,boxKey,profile},labelApi,makeId,now);
+   if(!result.ok)throw new Error('Не удалось перенести физический корпус '+hive.number+'/'+boxKey+' в инвентарь: '+result.error);
+  }
+ }
+ for(const [id,code] of Object.entries(state.equipmentLabels?.bodies||{})){
+  if(inv.bodies[id])continue;
+  const locations=locateAll(state,id);
+  // Legacy migration may infer a body kind only from a legacy hive position.
+  // A sectional reference requires an explicitly registered physical body record.
+  if(locations.length!==1||locations[0].type!=='hive')continue;
+  const profile=getProfile?.(locations[0].hiveId)||profileForState(state,locations[0].hiveId);
+  const kind=keysFor(state,locations[0].hiveId,profile).honey.includes(locations[0].boxKey)?'honey':'brood';
+  const body=makeBody(state,id,kind,now,{source:'schema_migration'});
+  body.labelCode=code;body.spec=profile?specFor(profile,kind):null;body.migrated=true;
+  recordEvent(body,'legacy_imported',{location:locations[0]},now);
+ }
+ return state;
+}
 function createStockBody(state,request,labels,makeId,now){return transact(state,draft=>createStockBodyUnsafe(draft,request,labels,makeId,now))}
 function createStockHoneyPair(state,request,labels,makeId,now){return transact(state,draft=>createStockHoneyPairUnsafe(draft,request,labels,makeId,now))}
 function installStockBody(state,request,labels,now){return transact(state,draft=>installStockBodyUnsafe(draft,request,labels,now))}
