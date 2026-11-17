@@ -139,7 +139,6 @@ function firstRowFixture(){
  const bodyByOpening={o1:'b1',o2:'b3',o3:'b3',o4:'b5'};
  for(const connection of fixture.layout.technicalConnections)for(const opening of connection.openings){
   opening.bodyId=bodyByOpening[opening.openingId];
-  fixture.state.equipmentInventory.items[opening.itemId].location.bodyId=opening.bodyId;
  }
  fixture.itemMoves=fixture.itemMoves.map(move=>{
   const bodyId=bodyByOpening[move.location?.openingId];
