@@ -1954,6 +1954,15 @@ test('schema migration refuses unsupported future or malformed versions without 
   assert.equal(JSON.stringify(state),before);
  }
 });
+
+test('malformed familyEvents abort migration before any legacy state is changed',()=>{
+ const state={meta:{schemaVersion:12},hives:[{id:'h1'}],families:[{name:'Legacy'}],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],familyEvents:{invalid:true}};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state});
+ assert.throws(()=>migrate(),/Повреждён журнал событий семей/);
+ assert.deepEqual(state,before);
+});
+
 test('schema 14 migration creates an empty family event journal without changing legacy family identities',()=>{
  const state={meta:{schemaVersion:12},hives:[],families:[{id:'f1',hive:'h1',name:'Семья'}],queens:[],queenEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
  const beforeFamily=structuredClone(state.families[0]);
@@ -3589,6 +3598,25 @@ test('save includes sectionalLayouts in historical snapshots without changing sc
  assert.deepEqual(saved.familyEvents,[]);
  assert.deepEqual(saved.snapshots[0].familyEvents,[]);
  assert.deepEqual(saved.snapshots[0].sectionalLayouts,[layout]);
+});
+
+
+test('save preserves real family lineage events in root state and snapshot history',async()=>{
+ const state={meta:{schemaVersion:14},hives:[{id:'h1'}],families:[{id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',currentQueenId:null,queenIdentityStatus:'unresolved'}],queens:[],queenEvents:[],familyEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{}};
+ const split=appWindow.PasekaFamilyLineage.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:[1,2,3].map(i=>({id:'child-'+i,hive:'h1'}))},()=> 'event-'+Math.random(),'2026-04-01T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ const expected=structuredClone(state.familyEvents);
+ let persisted=null;
+ const save=loadFunction('save',{
+  S:state,uid:()=> 'revision-lineage',saveQueue:Promise.resolve(),
+  PasekaInventory:{inspect:()=>[]},PasekaEquipmentItems:{inspect:()=>[],validateReferences:()=>[]},
+  PasekaSectionalPhysicalLayout:{inspect:()=>[]},
+  persistSnapshot:async snapshot=>{persisted=structuredClone(snapshot);return true},render:()=>{},alert:()=>{}
+ });
+ assert.equal(await save(),true);
+ assert.deepEqual(persisted.familyEvents,expected);
+ assert.deepEqual(persisted.snapshots[0].familyEvents,expected);
+ assert.deepEqual(state.familyEvents,expected);
 });
 
 test('backup validation accepts legacy family history but requires and validates schema 14 events',()=>{
