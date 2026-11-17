@@ -3,7 +3,7 @@
 
 const EVENT_TYPES = Object.freeze([
  'split','merge','alternative_wintering_configured','placement_changed',
- 'queen_identity_confirmed','queen_absence_confirmed','queen_laying_observed','early_honey_harvest_completed'
+ 'queen_identity_confirmed','queen_absence_confirmed','early_honey_harvest_completed'
 ]);
 const POSITIONS = Object.freeze(['lower','middle','upper']);
 const clone = value => typeof structuredClone === 'function'
