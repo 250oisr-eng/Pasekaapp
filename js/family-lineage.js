@@ -200,6 +200,8 @@ function inspect(state) {
    if (event.outcome!=='not_returned_from_mating_flight') add('queen_absence_outcome_invalid',{eventId:event.id,outcome:event.outcome??null});
    if (event.userConfirmed!==true) add('queen_absence_user_confirmation_required',{eventId:event.id});
    if (event.queenId!=null) add('queen_absence_must_not_assign_queen_id',{eventId:event.id,queenId:event.queenId});
+   if (!Array.isArray(event.candidateQueenIds)||event.candidateQueenIds.length!==0)
+    add('queen_absence_candidate_queens_forbidden',{eventId:event.id});
    if (!Array.isArray(event.resultFamilyIds)||event.resultFamilyIds.length!==1||event.resultFamilyIds[0]!==event.familyId)
     add('queen_absence_result_family_invalid',{eventId:event.id});
    if (family&&event.hiveId!==family.hive) add('queen_absence_hive_mismatch',{eventId:event.id,familyId:family.id});
@@ -214,8 +216,10 @@ function inspect(state) {
    if (duplicates.length!==1) add('queen_absence_duplicate_confirmation',{eventId:event.id,familyId:event.familyId,splitEventId:event.splitEventId});
    const resolutions=events.filter(row=>row?.type==='queen_identity_confirmed'&&row.resolvesAbsenceEventId===event.id);
    if (resolutions.length>1) add('queen_absence_multiple_resolutions',{eventId:event.id});
-   if (family&&isActive(family)&&family.currentQueenId&&resolutions.length!==1)
-    add('queen_absence_active_queen_requires_resolution',{eventId:event.id,familyId:family.id,queenId:family.currentQueenId});
+   if (family&&isActive(family)&&resolutions.length===0&&(family.currentQueenId||family.queenIdentityStatus!=='unresolved'))
+    add('queen_absence_active_family_state_requires_resolution',{eventId:event.id,familyId:family.id,queenId:family.currentQueenId??null,queenIdentityStatus:family.queenIdentityStatus??null});
+   if (family&&isActive(family)&&resolutions.length===1&&family.queenIdentityStatus!=='identified')
+    add('queen_absence_resolution_state_mismatch',{eventId:event.id,familyId:family.id,queenIdentityStatus:family.queenIdentityStatus??null});
   }
   if (event.type === 'queen_identity_confirmed') {
    const family = familyMap.get(event.familyId), queen = queenMap.get(event.queenId);
@@ -228,7 +232,7 @@ function inspect(state) {
   }
    if (event.resolvesAbsenceEventId!=null) {
     const absenceEvent=events.find(row=>row?.id===event.resolvesAbsenceEventId);
-    if (!absenceEvent||absenceEvent.type!=='queen_absence_confirmed'||absenceEvent.familyId!==event.familyId||events.indexOf(absenceEvent)>=events.indexOf(event))
+    if (event.type!=='queen_identity_confirmed'||!absenceEvent||absenceEvent.type!=='queen_absence_confirmed'||absenceEvent.familyId!==event.familyId||events.indexOf(absenceEvent)>=events.indexOf(event))
      add('queen_identity_absence_resolution_invalid',{eventId:event.id,absenceEventId:event.resolvesAbsenceEventId,familyId:event.familyId??null});
    }
   if (event.type === 'placement_changed') {
@@ -499,12 +503,12 @@ function getQueenPresenceStatus(state, familyId) {
  const queens=Array.isArray(state.queens)?state.queens:[];
  const events=Array.isArray(state.familyEvents)?state.familyEvents:[];
  const queen=queens.find(row=>row?.id===family.currentQueenId);
- if (family.queenIdentityStatus==='identified'&&family.currentQueenId&&queen?.familyId===family.id&&isCurrentQueen(queen))
-  return 'confirmed_present';
  const splitEvent=events.slice().reverse().find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.resultFamilyIds?.includes(familyId));
  const absenceEvent=events.slice().reverse().find(event=>event?.type==='queen_absence_confirmed'&&event.userConfirmed===true&&event.outcome==='not_returned_from_mating_flight'&&event.familyId===familyId&&event.splitEventId===splitEvent?.id);
- if (absenceEvent&&!events.some(event=>event?.type==='queen_identity_confirmed'&&event.resolvesAbsenceEventId===absenceEvent.id))
-  return 'confirmed_absent';
+ const resolved=absenceEvent&&events.some(event=>event?.type==='queen_identity_confirmed'&&event.resolvesAbsenceEventId===absenceEvent.id);
+ if (absenceEvent&&!resolved) return family.currentQueenId?'inconsistent':'confirmed_absent';
+ if (family.queenIdentityStatus==='identified'&&family.currentQueenId&&queen?.familyId===family.id&&isCurrentQueen(queen))
+  return 'confirmed_present';
  return 'unresolved';
 }
 function configureAlternativeWintering(state, request, makeId, now) {
