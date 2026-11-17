@@ -633,8 +633,9 @@ function completeOP06(state,request,deps={}){
 }
 function earlyHoneyFrameCompositionErrors(frames){
  const errors=[],list=rows(frames);
- if(list.length!==10)return [{code:'frame_count_invalid',expected:10,actual:list.length}];
- if(list.some(frame=>!isObject(frame)||!['drawn_comb','wax_foundation'].includes(frame.combType)))return [{code:'frame_comb_type_missing_or_invalid'}];
+ if(list.length>10)return [{code:'frame_capacity_exceeded',maximum:10,actual:list.length}];
+ if(!list.length||list.some(frame=>!isObject(frame)||!['drawn_comb','wax_foundation'].includes(frame.combType)))return [{code:'frame_comb_type_missing_or_invalid'}];
+ if(!list.some(frame=>frame.combType==='drawn_comb'))return [{code:'at_least_one_drawn_comb_required'}];
  const foundation=list.map((frame,index)=>frame.combType==='wax_foundation'?index:-1).filter(index=>index>=0);
  if(foundation.length>2)errors.push({code:'wax_foundation_limit_exceeded',maximum:2,actual:foundation.length});
  for(const index of foundation){
