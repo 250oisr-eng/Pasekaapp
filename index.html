@@ -743,7 +743,7 @@ function writeAutoBackup(state,expectedRevision){
 }
 async function save(){
  const run=async()=>{
- S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];if(S.familyEvents==null)S.familyEvents=[];
+ S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];if(S.familyEvents==null&&Number(S.meta.schemaVersion||0)<14)S.familyEvents=[];
  S.varroaObservations=S.varroaObservations||[];S.pesticideIncidents=S.pesticideIncidents||[];S.deadoutReviews=S.deadoutReviews||[];
  const physicalLayoutErrors=[...PasekaInventory.inspect(S,PasekaLabels,profileForHive),...PasekaEquipmentItems.inspect(S),...PasekaEquipmentItems.validateReferences(S),...PasekaSectionalPhysicalLayout.inspect(S),...PasekaFamilyLineage.inspect(S)];
  if(physicalLayoutErrors.length){S.meta.saveError='Данные пасеки, физическая раскладка или родословная семей повреждены; сохранение остановлено';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Исходные данные не перезаписаны.');return false;}
