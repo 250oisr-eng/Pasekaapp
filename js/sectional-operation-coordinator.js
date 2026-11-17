@@ -55,7 +55,7 @@ function planBodyMoves(state,oldLayout,newLayout,suppliedMoves){
  for(const id of newIds){
   if(!bodies[id])errors.push({code:'operation_target_body_missing',details:{bodyId:id}});
   for(const [hiveId,layout] of Object.entries(state.layouts||{})){
-   if(Object.values(layout?.boxes||{}).some(box=>box?.bodyId===id||box?.id===id))errors.push({code:'operation_target_body_in_legacy_layout',{bodyId:id,hiveId}});
+   if(Object.entries(layout?.boxes||{}).some(([boxId,box])=>boxId===id||box?.bodyId===id||box?.id===id))errors.push({code:'operation_target_body_in_legacy_layout',details:{bodyId:id,hiveId}});
   }
  }
  for(const id of required)if(!bodies[id])errors.push({code:'operation_old_body_missing',details:{bodyId:id}});
