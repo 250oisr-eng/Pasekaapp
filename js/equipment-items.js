@@ -118,7 +118,11 @@ function addEvent(inv,item,type,details,at,makeId){
  const event={id,itemId:item.id,type,at:at||new Date().toISOString(),...details};
  item.events=Array.isArray(item.events)?item.events:[];
  item.events.push(event);if(item.events.length>300)item.events=item.events.slice(-300);
- inv.itemEvents.push(clone(event));if(inv.itemEvents.length>1000)inv.itemEvents=inv.itemEvents.slice(-1000);
+ inv.itemEvents.push(clone(event));
+ if(inv.itemEvents.length>1000){
+  const removed=inv.itemEvents.splice(0,inv.itemEvents.length-1000),removedIds=new Set(removed.map(row=>row?.id).filter(Boolean));
+  for(const stored of Object.values(inv.items))if(Array.isArray(stored?.events))stored.events=stored.events.filter(row=>!removedIds.has(row?.id));
+ }
  return {ok:true,event};
 }
 function registerUnsafe(state,request,makeId,now){
@@ -129,7 +133,7 @@ function registerUnsafe(state,request,makeId,now){
  const id=String(makeId()||'');
  const layoutBodyIds=(Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[]).flatMap(layout=>layoutBodyIds(layout));
  const legacyBodyIds=Object.values(state.layouts||{}).flatMap(layout=>Object.values(layout?.corpusIds||{}));
- if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||legacyBodyIds.includes(id)||layoutBodyIds.includes(id))return {ok:false,error:'duplicate_item_id'};
+ if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||allEventIds(inv).has(id)||legacyBodyIds.includes(id)||layoutBodyIds.includes(id))return {ok:false,error:'duplicate_item_id'};
  const time=now||new Date().toISOString(),item={id,kind,condition:'good',location:{type:'storage',label:storageLocation},notes,registeredAt:time,updatedAt:time,events:[]};
  inv.items[id]=item;
  const event=addEvent(inv,item,'registered',{location:item.location},time,makeId);
@@ -172,6 +176,7 @@ function updateCondition(state,request,makeId,now){
 }
 function inspect(state){
  const errors=[],inv=state?.equipmentInventory;
+ if(state?.sectionalLayouts!=null&&!Array.isArray(state.sectionalLayouts))errors.push({code:'invalid_sectional_layout_collection'});
  if(!inv)return errors;
  if(!isObject(inv)){errors.push({code:'invalid_equipment_inventory'});return errors}
  if(inv.items!=null&&!isObject(inv.items)){errors.push({code:'invalid_equipment_items'});return errors}
@@ -181,6 +186,7 @@ function inspect(state){
  for(const event of globalEvents){
   if(!isObject(event)||!nonEmpty(event.id)||!nonEmpty(event.itemId)||!nonEmpty(event.type)||!Number.isFinite(Date.parse(event.at||''))){errors.push({code:'invalid_equipment_item_event'});continue}
   if(seenEventIds.has(event.id))errors.push({code:'duplicate_equipment_item_event_id',details:{eventId:event.id}});
+  if(items[event.id]||inv.bodies?.[event.id])errors.push({code:'equipment_item_event_id_collision',details:{eventId:event.id}});
   seenEventIds.add(event.id);globalById.set(event.id,event);
   if(!items[event.itemId])errors.push({code:'orphan_equipment_item_event',details:{eventId:event.id,itemId:event.itemId}});
  }
