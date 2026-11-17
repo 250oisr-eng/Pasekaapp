@@ -104,7 +104,11 @@ function validateLocationReferences(state,item,location){
  if(location.bodyId){
   const body=inv.bodies?.[location.bodyId];
   if(!body)add('item_body_reference_missing',{bodyId:location.bodyId});
-  else if(body.kind!=='brood')add('item_body_kind_mismatch',{bodyId:location.bodyId,kind:body.kind});
+  else {
+   if(body.kind!=='brood')add('item_body_kind_mismatch',{bodyId:location.bodyId,kind:body.kind});
+   if(body.spec?.profileId&&layout.profileId&&body.spec.profileId!==layout.profileId)add('item_body_profile_mismatch',{bodyId:location.bodyId,profileId:body.spec.profileId,layoutProfileId:layout.profileId});
+   if(body.spec?.framesPerBox!=null&&body.spec.framesPerBox!==6)add('item_body_frame_capacity_mismatch',{bodyId:location.bodyId,framesPerBox:body.spec.framesPerBox});
+  }
   if(!layoutContainsBody(layout,location.bodyId))add('item_body_layout_reference_missing',{bodyId:location.bodyId});
  }
  if(location.openingId){
@@ -117,7 +121,12 @@ function validateLocationReferences(state,item,location){
    if(!isObject(part)){add('item_footprint_part_invalid');continue}
    const body=inv.bodies?.[part.bodyId];
    if(!body)add('item_footprint_body_missing',{bodyId:part.bodyId});
-   else if(body.kind!=='brood')add('item_footprint_body_kind_mismatch',{bodyId:part.bodyId,kind:body.kind});
+   else {
+    if(body.kind!=='brood')add('item_footprint_body_kind_mismatch',{bodyId:part.bodyId,kind:body.kind});
+    if(body.spec?.profileId&&layout.profileId&&body.spec.profileId!==layout.profileId)add('item_footprint_body_profile_mismatch',{bodyId:part.bodyId,profileId:body.spec.profileId,layoutProfileId:layout.profileId});
+    if(body.spec?.framesPerBox!=null&&body.spec.framesPerBox!==6)add('item_footprint_body_frame_capacity_mismatch',{bodyId:part.bodyId,framesPerBox:body.spec.framesPerBox});
+   }
+   if(!layoutContainsBody(layout,part.bodyId))add('item_footprint_body_layout_missing',{bodyId:part.bodyId});
    if(!getSections(layout).some(section=>section?.upperBroodBodyId===part.bodyId))add('item_footprint_upper_body_reference_missing',{bodyId:part.bodyId});
   }
  }
@@ -138,8 +147,9 @@ function placementConflicts(state,item,location){
   if(stackKinds.has(item.kind)&&other.kind===item.kind&&other.location.stackId===location.stackId)add('stack_accessory_occupied',other);
   if(item.kind==='honeyQueenExcluder'&&other.kind==='honeyQueenExcluder'){
    const a=location.footprint.map(part=>part.bodyId+':'+part.coverage).sort().join('|');
-   const b=(other.location.footprint||[]).map(part=>part.bodyId+':'+part.coverage).sort().join('|');
-   if(a===b)add('honey_excluder_footprint_occupied',other);
+   const otherFootprint=Array.isArray(other.location.footprint)?other.location.footprint.filter(part=>isObject(part)&&part.bodyId&&part.coverage):[];
+   const b=otherFootprint.map(part=>part.bodyId+':'+part.coverage).sort().join('|');
+   if(b&&a===b)add('honey_excluder_footprint_occupied',other);
   }
  }
  return errors;
