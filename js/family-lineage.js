@@ -496,12 +496,14 @@ function getQueenPresenceStatus(state, familyId) {
  const family=(Array.isArray(state.families)?state.families:[]).find(row=>row?.id===familyId);
  if (!family) return null;
  if (!isActive(family)) return 'historical';
- const queen=(Array.isArray(state.queens)?state.queens:[]).find(row=>row?.id===family.currentQueenId);
+ const queens=Array.isArray(state.queens)?state.queens:[];
+ const events=Array.isArray(state.familyEvents)?state.familyEvents:[];
+ const queen=queens.find(row=>row?.id===family.currentQueenId);
  if (family.queenIdentityStatus==='identified'&&family.currentQueenId&&queen?.familyId===family.id&&isCurrentQueen(queen))
   return 'confirmed_present';
- const splitEvent=(Array.isArray(state.familyEvents)?state.familyEvents:[]).slice().reverse().find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.resultFamilyIds?.includes(familyId));
- const absenceEvent=(Array.isArray(state.familyEvents)?state.familyEvents:[]).slice().reverse().find(event=>event?.type==='queen_absence_confirmed'&&event.familyId===familyId&&event.splitEventId===splitEvent?.id);
- if (absenceEvent&&!(state.familyEvents||[]).some(event=>event?.type==='queen_identity_confirmed'&&event.resolvesAbsenceEventId===absenceEvent.id))
+ const splitEvent=events.slice().reverse().find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.resultFamilyIds?.includes(familyId));
+ const absenceEvent=events.slice().reverse().find(event=>event?.type==='queen_absence_confirmed'&&event.userConfirmed===true&&event.outcome==='not_returned_from_mating_flight'&&event.familyId===familyId&&event.splitEventId===splitEvent?.id);
+ if (absenceEvent&&!events.some(event=>event?.type==='queen_identity_confirmed'&&event.resolvesAbsenceEventId===absenceEvent.id))
   return 'confirmed_absent';
  return 'unresolved';
 }
