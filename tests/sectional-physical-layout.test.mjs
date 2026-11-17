@@ -192,6 +192,18 @@ test('primary single-family wintering requires one plastic plug for every declar
  assert.ok(Layout.inspect(state).some(error=>error.code==='winter_plastic_plug_coverage_invalid'));
 });
 
+test('primary wintering requires explicit user confirmation of technical-opening closure',()=>{
+ const {state,layout}=singleFamily();
+ layout.closuresConfirmed=false;
+ assert.ok(Layout.inspect(state).some(error=>error.code==='winter_technical_openings_closure_confirmation_required'));
+});
+
+test('each active technical connection requires two distinct opening references',()=>{
+ const {state,layout}=sideBySide();
+ layout.technicalConnections[0].openings.pop();
+ assert.ok(Layout.inspect(state).some(error=>error.code==='technical_connection_opening_count_invalid'));
+});
+
 test('single-family layout accepts three or four brood bodies without inventing extra bodies',()=>{
  assert.deepEqual(validateAll(singleFamily('early_honey_merge',3).state),[]);
  assert.deepEqual(validateAll(singleFamily('early_honey_merge',4).state),[]);
