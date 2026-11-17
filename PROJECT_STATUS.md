@@ -20,7 +20,7 @@
 - Добавлено событие queen_absence_confirmed, связанное с конкретной дочерней семьёй и её OP-04 split event; явное userConfirmed: true; queenId запрещён.
 - Добавлен вычисляемый getQueenPresenceStatus() без нового persisted field и миграции.
 - Позднее queen_identity_confirmed разрешает событие через resolvesAbsenceEventId, сохраняя историю.
-- Добавлено 7 regression tests. CI ожидается после обновления PR; до успешного Actions run на точном HEAD тесты не считаются пройденными.
+- Добавлено 8 regression tests. CI ожидается после обновления PR; до успешного Actions run на точном HEAD тесты не считаются пройденными.
 - Изменённые файлы PR #142: js/family-lineage.js, tests/family-lineage.test.mjs, docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md, docs/ПЛАН-РАЗРАБОТКИ.md, docs/СОСТОЯНИЕ-ПРОЕКТА.md, docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md, docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md, docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md, docs/ТЗ-ТЕХПРОЦЕССА.md, PROJECT_STATUS.md.
 - Модуль остаётся изолированным и не подключён к runtime/UI/SW. OP-06 не завершается автоматически в reduced two-queen branch.
 - IndexedDB version 3, app schemaVersion 12, backup format, миграции и пользовательские данные не менялись.
@@ -151,7 +151,7 @@
 | 2026-11-17 | PR #139 | Создан корневой PROJECT_STATUS.md; правила чтения и обновления закреплены в AGENTS.md, PROJECT-CONTROL.md и ПРАВИЛА-РАЗРАБОТКИ.md; merge 0cfb2632… |
 | 2026-11-17 | PR #140 | Факт интеграции журнала внесён в состояние, журнал и передачу между чатами; merge 562c3a77… |
 | 2026-11-17 | PR #141 | Обновлена контрольная точка PROJECT_STATUS после PR #140; merge 20e7737d… |
-| 2026-11-17 | PR #142 | В работе: queen_absence_confirmed, вычисляемый статус и 7 тестов; CI/merge ожидаются |
+| 2026-11-17 | PR #142 | В работе: queen_absence_confirmed, вычисляемый статус и 8 тестов; CI/merge ожидаются |
 | 2026-11-17 | Текущая сверка | Lovable найден, но статус out_of_credits; SHA не совпадает с подтверждённым GitHub main |
 
 ## 11. Правила обновления этого файла
