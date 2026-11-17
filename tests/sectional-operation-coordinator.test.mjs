@@ -33,6 +33,7 @@ function body(id,index,storageLocation=''){
 function honeyFrames(bodyId){
  return Array.from({length:10},(_,index)=>({
   frameId:bodyId+'-frame-'+(index+1),
+  ...(bodyId==='honey1'&&index===0?{labelCode:'ААА'}:{}),
   combType:[3,6].includes(index)?'wax_foundation':'drawn_comb',
   history:[]
  }));
@@ -615,8 +616,11 @@ test('OP-07 atomically installs two large FULL/HALF excluders and one complete h
  assert.equal(op07.evidence.timingMode,'WITH_SECOND_ROW');
  assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2']);
  assert.equal(fixture.state.sectionalLayouts[0].honeyStack.excluders.length,2);
- assert.equal(fixture.state.sectionalLayouts[0].honeyStack.framesByBody.honey1.length,10);
- assert.equal(Labels.listLabelledFrames(fixture.state).length,0);
+ assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,10);
+ const labelledHoneyFrame=Labels.listLabelledFrames(fixture.state);
+ assert.equal(labelledHoneyFrame.length,1);
+ assert.equal(labelledHoneyFrame[0].locationType,'hive');
+ assert.equal(labelledHoneyFrame[0].box,'honey:honey1');
  for(const id of ['ex-left','ex-right']){
   const excluder=fixture.state.equipmentInventory.items[id];
   assert.equal(excluder.location.type,'hive');
@@ -657,13 +661,11 @@ test('OP-07 permits up to two separated foundation frames in each honey body ind
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
  assert.equal(result.ok,true,JSON.stringify(result.details||result));
- const composition=fixture.state.sectionalLayouts[0].honeyStack.framesByBody;
- assert.equal(composition.honey1.filter(frame=>frame.combType==='wax_foundation').length,2);
- assert.equal(composition.honey2.filter(frame=>frame.combType==='wax_foundation').length,2);
- assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,0);
- assert.equal(fixture.state.equipmentInventory.bodies.honey2.frames.length,0);
- assert.equal(composition.honey1[3].history.at(-1).action,'corpus_from_storage');
- assert.equal(composition.honey1[3].history.at(-1).to.box,'honey:honey1');
+ const composition=fixture.state.equipmentInventory.bodies;
+ assert.equal(composition.honey1.frames.filter(frame=>frame.combType==='wax_foundation').length,2);
+ assert.equal(composition.honey2.frames.filter(frame=>frame.combType==='wax_foundation').length,2);
+ assert.equal(composition.honey1.frames[3].history.at(-1).action,'corpus_from_storage');
+ assert.equal(composition.honey1.frames[3].history.at(-1).to.box,'honey:honey1');
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 test('OP-07 distinguishes same-day second-row installation from the approximate 12-day alternative',()=>{
