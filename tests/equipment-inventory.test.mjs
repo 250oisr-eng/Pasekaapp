@@ -135,3 +135,89 @@ test('installing a replacement body rejects a corrupt outgoing body journal with
  const before=JSON.stringify(s),result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
  assert.equal(result.ok,false);assert.equal(result.error,'invalid_body_event_journal');assert.equal(JSON.stringify(s),before);
 });
+
+
+function sectionalFixture(honeyCount=2){
+ const state=fixture(),honeyIds=Array.from({length:honeyCount},(_,index)=>'sh'+(index+1));
+ state.sectionalLayouts=[{
+  schemaVersion:1,id:'sectional-layout-1',hiveId:'h1',profileId:'sectional-multiqueen-v1',mode:'SIDE_BY_SIDE',
+  sections:[
+   {id:'section-left',position:'left',familyId:'family-left',broodBodyIds:['sb1','sb2'],upperBroodBodyId:'sb2'},
+   {id:'section-middle',position:'middle',familyId:'family-middle',broodBodyIds:['sb3','sb4'],upperBroodBodyId:'sb4'},
+   {id:'section-right',position:'right',familyId:'family-right',broodBodyIds:['sb5','sb6'],upperBroodBodyId:'sb6'}
+  ],
+  honeyStack:{purpose:'main',bodyIds:honeyIds,excluders:[]}
+ }];
+ state.equipmentInventory={bodies:{},events:[]};
+ const ids=['sb1','sb2','sb3','sb4','sb5','sb6',...honeyIds];
+ const codes=['ААА','ААБ','ААГ','ААД','ААЕ','ААЖ','ААК','ААЛ','ААМ','ААН'];
+ ids.forEach((id,index)=>{
+  const kind=id.startsWith('sh')?'honey':'brood',pairId=kind==='honey'?(index<8?'honey-pair-1':'honey-pair-2'):null,code=codes[index];
+  state.equipmentLabels.bodies[id]=code;
+  state.equipmentInventory.bodies[id]={
+   id,kind,condition:'good',storageLocation:'',notes:'',pairId,labelCode:code,
+   registeredAt:now,updatedAt:now,events:[],frames:[],
+   spec:{profileId:'sectional-multiqueen-v1',kind,framesPerBox:kind==='brood'?6:10,boxHeightMm:null,frame:{widthMm:null,heightMm:180,topBarMm:null,bottomBarMm:null}}
+  };
+ });
+ return state;
+}
+
+test('sectional layout references are derived as installed physical body locations',()=>{
+ const s=sectionalFixture();
+ assert.equal(I.locateAll(s,'sb2')[0].type,'sectional');
+ assert.equal(I.locateBody(s,'sb2').sectionPosition,'left');
+ assert.equal(I.locateBody(s,'sh1').bodyRole,'honey');
+ assert.deepEqual(I.inspect(s,labels),[]);
+});
+
+test('sectional body inventory rejects a simultaneous storage location',()=>{
+ const s=sectionalFixture();
+ s.equipmentInventory.bodies.sb1.storageLocation='Сарай · полка 1';
+ assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_body_location_conflict'&&x.details.bodyId==='sb1'));
+});
+
+test('sectional body inventory detects a body also mapped in a legacy layout',()=>{
+ const s=sectionalFixture();
+ s.layouts.h1.corpusIds['3']='sb1';
+ assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_body_duplicate_location'&&x.details.bodyId==='sb1'));
+});
+
+test('sectional honey stack requires complete two-body pairs',()=>{
+ const s=sectionalFixture();
+ s.equipmentInventory.bodies.sh2.pairId=null;
+ assert.ok(I.inspect(s,labels).some(x=>x.code==='sectional_honey_pair_required'&&x.details.bodyId==='sh2'));
+});
+
+test('sectional honey stack supports four bodies as two distinct physical pairs',()=>{
+ const s=sectionalFixture(4);
+ assert.deepEqual(I.inspect(s,labels),[]);
+});
+
+test('installed sectional bodies cannot be marked for repair or retirement',()=>{
+ const s=sectionalFixture(),before=JSON.stringify(s);
+ const repair=I.updateDetails(s,'sb1',{condition:'repair'},now);
+ assert.equal(repair.ok,false);assert.equal(repair.error,'cannot_repair_installed');
+ assert.equal(JSON.stringify(s),before);
+ const retired=I.updateDetails(s,'sb1',{condition:'retired'},now);
+ assert.equal(retired.ok,false);assert.equal(retired.error,'cannot_retire_installed');
+ assert.equal(JSON.stringify(s),before);
+});
+
+test('legacy inventory migration does not guess a sectional body type from a label alone',()=>{
+ const s=fixture();
+ s.sectionalLayouts=[{id:'sectional-layout-1',hiveId:'h1',sections:[{id:'left',position:'left',broodBodyIds:['sectional-body-1']}]}];
+ s.equipmentLabels.bodies['sectional-body-1']='ААА';
+ I.migrate(s,makeId,now);
+ assert.equal(s.equipmentInventory.bodies['sectional-body-1'],undefined);
+ assert.equal(s.equipmentLabels.bodies['sectional-body-1'],'ААА');
+});
+
+test('inventory UI distinguishes sectional body locations and unknown frame accounting',()=>{
+ assert.match(html,/value="sectional"/);
+ assert.match(html,/loc\?\.type==='sectional'/);
+ assert.match(html,/рамки секционных корпусов пока не учитываются/);
+ const match=html.match(/function inventoryBodyFrameCount\(body,loc\)\{[\s\S]*?\n\}/);assert.ok(match);
+ const count=new Function('frameArray','layoutFor',`${match[0]};return inventoryBodyFrameCount;`)((layout,key)=>layout[key],id=>({1:[1,2,3]}));
+ assert.equal(count({frames:[1,2]},{type:'sectional'}),null);
+});
