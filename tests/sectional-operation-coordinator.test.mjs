@@ -692,3 +692,27 @@ test('OP-07 supports the source sequence after OP-06 and preserves the completed
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 
+
+
+test('OP-07 inspector verifies exact equipment movement identities and directions',()=>{
+ const makeCompleted=()=>{
+  const prepared=prepareOP07Fixture(),result=Coordinator.completeOP07(prepared.fixture.state,op07Request(prepared),prepared.deps);
+  assert.equal(result.ok,true,JSON.stringify(result.details||result));
+  return prepared;
+ };
+ const wrongEvent=makeCompleted(),wrongState=wrongEvent.fixture.state;
+ const evidence=wrongState.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.itemMovementEventIds;
+ evidence[0].eventId=evidence[1].eventId;
+ assert.ok(Coordinator.inspect(wrongState,wrongEvent.deps).some(error=>error.code==='sectional_tech_process_op07_item_movement_evidence_invalid'));
+
+ const wrongDirection=makeCompleted(),directionState=wrongDirection.fixture.state;
+ const directionEvidence=directionState.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.itemMovementEventIds[0];
+ const directionItem=directionState.equipmentInventory.items[directionEvidence.itemId];
+ directionItem.events.find(event=>event.id===directionEvidence.eventId).type='moved';
+ assert.ok(Coordinator.inspect(directionState,wrongDirection.deps).some(error=>error.code==='sectional_tech_process_op07_item_movement_evidence_invalid'));
+
+ const missingBodyHistory=makeCompleted(),bodyState=missingBodyHistory.fixture.state;
+ const honeyBody=bodyState.equipmentInventory.bodies.honey1;
+ honeyBody.events=honeyBody.events.filter(event=>event.operationId!=='OP-07');
+ assert.ok(Coordinator.inspect(bodyState,missingBodyHistory.deps).some(error=>error.code==='sectional_tech_process_op07_honey_body_history_invalid'));
+});
