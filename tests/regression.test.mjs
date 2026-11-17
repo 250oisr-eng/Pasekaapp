@@ -3601,6 +3601,21 @@ test('save includes sectionalLayouts in historical snapshots without changing sc
 });
 
 
+test('save refuses a missing familyEvents collection in schema 14 instead of silently repairing it',async()=>{
+ const state={meta:{schemaVersion:14,revisionId:'before'},hives:[],families:[],queens:[],queenEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{}};
+ let persisted=false;
+ const save=loadFunction('save',{
+  S:state,uid:()=> 'after',saveQueue:Promise.resolve(),
+  PasekaInventory:{inspect:()=>[]},PasekaEquipmentItems:{inspect:()=>[],validateReferences:()=>[]},PasekaSectionalPhysicalLayout:{inspect:()=>[]},
+  persistSnapshot:async()=>{persisted=true;return true},render:()=>{},alert:()=>{}
+ });
+ assert.equal(await save(),false);
+ assert.equal(persisted,false);
+ assert.equal(state.familyEvents,undefined);
+ assert.equal(state.meta.revisionId,'before');
+ assert.match(state.meta.saveError,/родословная семей/);
+});
+
 test('save preserves real family lineage events in root state and snapshot history',async()=>{
  const state={meta:{schemaVersion:14},hives:[{id:'h1'}],families:[{id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',currentQueenId:null,queenIdentityStatus:'unresolved'}],queens:[],queenEvents:[],familyEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{}};
  let eventSequence=0;
