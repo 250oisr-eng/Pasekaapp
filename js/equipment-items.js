@@ -58,9 +58,11 @@ function normalizeFootprint(input){
 function normalizeLocation(input,kind){
  if(!isObject(input)||!['storage','hive'].includes(input.type))return null;
  if(input.type==='storage'){
+  if(Object.keys(input).some(key=>!['type','label'].includes(key)))return null;
   const label=String(input.label||'').trim();
   return label&&label.length<=160?{type:'storage',label}:null;
  }
+ if(Object.keys(input).some(key=>!['type','hiveId','stackId','bodyId','openingId','positionLabel','footprint'].includes(key)))return null;
  const hiveId=String(input.hiveId||'').trim();
  if(!hiveId||hiveId.length>120)return null;
  const result={type:'hive',hiveId};
@@ -211,6 +213,7 @@ function inspect(state){
  const errors=[],inv=state?.equipmentInventory;if(!inv)return errors;
  if(inv.items!=null&&!isObject(inv.items)){errors.push({code:'invalid_equipment_items'});return errors}
  if(inv.itemEvents!=null&&!Array.isArray(inv.itemEvents)){errors.push({code:'invalid_equipment_item_events'});return errors}
+ if(Object.keys(inv.items||{}).length&&!Array.isArray(inv.itemEvents)){errors.push({code:'equipment_item_global_journal_missing'});return errors}
  const globalEvents=Array.isArray(inv.itemEvents)?inv.itemEvents:null,usedEventIds=new Set(),itemEventIds=new Set(),occupied=new Map();
  for(const [id,item] of Object.entries(inv.items||{})){
   if(!isObject(item)||item.id!==id){errors.push({code:'invalid_item_identity',details:{itemId:id}});continue}
@@ -234,7 +237,7 @@ function inspect(state){
    else if(plugKinds.has(item.kind)){key='plug|'+loc.hiveId+'|'+loc.bodyId+'|'+loc.openingId}
    else if(item.kind==='meshDiaphragm')key='diaphragm|'+loc.hiveId+'|'+loc.stackId+'|'+loc.positionLabel;
    else if(stackKinds.has(item.kind))key='stack|'+loc.hiveId+'|'+item.kind+'|'+loc.stackId;
-   else if(item.kind==='honeyQueenExcluder'&&Array.isArray(loc.footprint))key='honey|'+loc.hiveId+'|'+loc.footprint.map(part=>part.bodyId+':'+part.coverage).sort().join('|');
+   else if(item.kind==='honeyQueenExcluder'&&Array.isArray(loc.footprint)&&loc.footprint.every(part=>isObject(part)&&part.bodyId&&part.coverage))key='honey|'+loc.hiveId+'|'+loc.footprint.map(part=>part.bodyId+':'+part.coverage).sort().join('|');
    if(key){if(occupied.has(key))errors.push({code:'duplicate_item_placement',details:{itemIds:[occupied.get(key),id]}});else occupied.set(key,id)}
   }
  }
