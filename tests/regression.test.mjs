@@ -1336,7 +1336,7 @@ function automaticBackupValidatorForTests(){
 test('automatic backup validation rejects malformed and structurally corrupted snapshots',()=>{
  const validate=automaticBackupValidatorForTests();
  assert.throws(()=>validate(null),/не содержит состояние/i);
- assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:15}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:16}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
  const corrupt={...rawBackupFixture(),hives:[{id:'same',number:1},{id:'same',number:2}]};
  assert.throws(()=>validate({state:corrupt}),/не прошёл проверку исходных данных/i);
  const valid={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'valid-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
@@ -2329,7 +2329,7 @@ test('startup read recovers from a failed main read when a backup is available',
 });
 
 test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
- const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:15}}};
+ const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:16}}};
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
@@ -3123,7 +3123,7 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,14);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,15);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
 
@@ -3681,7 +3681,7 @@ test('schema 14 backups remain compatible while schema 15 requires sectionalTech
  assert.throws(()=>validate(missing),/sectionalTechProcesses/);
  const valid={...missing,sectionalTechProcesses:[]};
  assert.equal(validate(valid),valid);
- assert.throws(()=>validate({...valid,sectionalTechProcesses:[null]}),/Повреждённые элементы/);
+ assert.throws(()=>validate({...valid,sectionalTechProcesses:[null]}),/повреждённые элементы/i);
 });
 
 test('raw backup integrity rejects malformed sectional operation records in schema 15',()=>{
