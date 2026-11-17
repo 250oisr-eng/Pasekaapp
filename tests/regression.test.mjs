@@ -8,6 +8,7 @@ const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', im
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
+const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
@@ -16,6 +17,7 @@ const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
+new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
@@ -3423,4 +3425,52 @@ test('family transfer rejects malformed history in either box before snapshot, c
   assert.deepEqual(fixture.counters,{snapshotCalls:0,saveCalls:0,confirmCalls:0,auditCalls:0});
   assert.match(fixture.deps.alerts[0],/истории одной или нескольких рамок обнаружено повреждение/);
  }
+});
+
+
+function physicalCorpusSwapFixture(fromHistory,toHistory){
+ const profile={id:'shared-profile',frame:{heightMm:180,widthMm:300,topBarMm:20,bottomBarMm:10},brood:{framesPerBox:6,boxHeightMm:195,boxKeys:['1']},honey:{boxKeys:[]}};
+ const frame=(frameId,history)=>({frameId,...(history===undefined?{}:{history:structuredClone(history)})});
+ return {
+  hives:[{id:'h1',profile},{id:'h2',profile}],
+  layouts:{
+   h1:{corpusIds:{1:'b1'},boxes:{1:{family:'',frames:[frame('f1',fromHistory)]}}},
+   h2:{corpusIds:{1:'b2'},boxes:{1:{family:'',frames:[frame('f2',toHistory)]}}}
+  }
+ };
+}
+
+test('physical corpus swap rejects malformed frame history on either side without mutating state',()=>{
+ for(const side of ['source','target']){
+  const state=physicalCorpusSwapFixture(side==='source'?{corrupt:true}:[],side==='target'?'corrupt':[]);
+  const before=structuredClone(state);
+  const result=appWindow.PasekaBodies.swapLocations(state,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'1'},'2026-11-17');
+  assert.equal(result.ok,false);
+  assert.equal(result.error.code,'invalid_frame_history');
+  assert.deepEqual(state,before);
+ }
+});
+
+test('physical corpus swap preserves legacy null or missing frame history and appends transfer events',()=>{
+ const state=physicalCorpusSwapFixture(null,undefined);
+ const result=appWindow.PasekaBodies.swapLocations(state,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'1'},'2026-11-17');
+ assert.equal(result.ok,true);
+ const movedFrom=result.state.layouts.h2.boxes['1'].frames[0];
+ const movedTo=result.state.layouts.h1.boxes['1'].frames[0];
+ assert.equal(movedFrom.history.at(-1).action,'corpus_transfer');
+ assert.equal(movedTo.history.at(-1).action,'corpus_transfer');
+ assert.equal(state.layouts.h1.boxes['1'].frames[0].history,null,'input state remains unchanged because swap returns a draft');
+});
+
+test('physical corpus swap checks inventory history result before audit and persistence',()=>{
+ const start=html.indexOf('async function swapPhysicalCorpora(){'),end=html.indexOf('\nfunction corpusLabelCode',start);
+ assert.ok(start>=0&&end>start,'physical corpus swap handler is present');
+ const handler=html.slice(start,end),guard=handler.indexOf('if(!inventoryResult.ok)');
+ assert.match(handler,/const previous=cloneApiaryState\(\)/);
+ assert.match(handler,/const inventoryResult=PasekaInventory\.recordSwap/);
+ assert.ok(guard>0,'inventory transaction result is checked');
+ assert.ok(guard<handler.indexOf("logAudit('physical_corpora_swapped'"),'audit logging must follow successful inventory commit');
+ assert.ok(guard<handler.indexOf('if(!await save())'),'persistence must not run after inventory transaction failure');
+ assert.match(handler,/invalid_frame_history:/);
+ assert.match(handler,/if\(!inventoryResult\.ok\)\{S=previous;render\(\);/);
 });
