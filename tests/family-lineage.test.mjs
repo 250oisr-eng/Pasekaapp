@@ -88,6 +88,21 @@ test('OP-04 split preserves source family and queen history while creating three
  assert.deepEqual(api.inspect(state),[]);
 });
 
+test('OP-04 split does not require finding or identifying the original queen',()=>{
+ const original=baseState().families[0];
+ original.currentQueenId=null;
+ original.queenIdentityStatus='unresolved';
+ const state={...baseState(),families:[original],queens:[]};
+ const result=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',techProcessId:'op04-no-queen',resultFamilies:children('op04-no-queen')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.event.candidateQueenIds,[]);
+ assert.equal(state.families.find(x=>x.id==='f1').recordStatus,'historical');
+ assert.ok(state.families.filter(x=>x.id.startsWith('op04-no-queen-')).every(x=>x.queenIdentityStatus==='unresolved'&&!x.currentQueenId));
+ const record={id:'op04-no-queen',hiveId:'h1',state:{sections:result.families.map(family=>({familyId:family.id}))}};
+ assert.deepEqual(api.validateOperationEvidence(state,record,'OP-04'),[]);
+ assert.deepEqual(api.inspect(state),[]);
+});
+
 test('merge creates a new account identity and preserves all queen candidates without selecting a survivor',()=>{
  const state=baseState();
  const result=api.applyMerge(state,{
