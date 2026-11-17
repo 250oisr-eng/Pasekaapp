@@ -168,6 +168,13 @@ test('alternative wintering accepts [2,1,1] with the two-body family in any vert
  }
 });
 
+test('allows a technical grid to remain in a recorded opening when no inter-family connection is active',()=>{
+ const {state,layout}=alternativeWintering('lower');
+ layout.sections[0].openings=[{id:'o-winter',bodyId:'b2',diameterMm:50}];
+ state.equipmentInventory.items.grid=makeItem('grid','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o-winter'});
+ assert.deepEqual(validateAll(state),[]);
+});
+
 test('alternative wintering rejects distributions other than [2,1,1] and requires two distinct diaphragms',()=>{
  const distribution=alternativeWintering('lower');
  distribution.layout.sections[1].broodBodyIds.push('b3');
