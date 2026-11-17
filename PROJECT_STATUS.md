@@ -1,3 +1,17 @@
+## Контрольная точка — 2026-11-17: PR #146 merged; core family lineage runtime integrated
+
+- Актуальный main SHA: `a1798b0bc47f8f4642c42ac4ab363a98cc1c3e59` — merge commit PR #146. PR #145 и PR #146 объединены.
+- PR #146 интегрировал `js/family-lineage.js` в runtime, root `familyEvents`, migration app schema 12→14, lineage validation в startup/save/raw backup, snapshot history, backup compatibility и Service Worker v312.
+- На точном code/test SHA `ffbf931453868208460e59d274e09d6c557b8297` GitHub Actions run #44084558765: **545/545 tests passed**, 0 failed; Android Debug APK build/upload — **success**. Artifact #14329575117, 3,387,913 bytes, SHA-256 `c71c7bbd74e26b0c750d33776fd401bf3afde22811fe7da258cc49916446a4cb`, expiry 2026-12-01.
+- Для merge commit `a1798b0bc47f8f4642c42ac4ab363a98cc1c3e59` отдельные workflow runs/combined status не представлены. Успешные проверки относятся к точному code/test SHA `ffbf931453868208460e59d274e09d6c557b8297`, не к merge commit.
+- IndexedDB object-store version остаётся 3. Прикладная схема 14: legacy schema 1–12 мигрирует добавлением пустого журнала; schema13 поддерживается как переходная; schema14 требует корректный `familyEvents`. Повреждённый существующий журнал или отсутствующий журнал schema14 блокирует миграцию до изменения состояния. Save gate также не восстанавливает отсутствующий журнал schema14 автоматически.
+- Исторические семьи/матки и неизвестные разделения не реконструируются. Новая модель lineage проверяется, но UI и OP coordinator пока не подключены.
+- Следующий приоритет: спроектировать и реализовать отдельный атомарный coordinator OP-04/05/06 (clone-and-commit/rollback) поверх lineage + sectional layout + inventory + audit. Сначала OP-04, затем OP-05, затем OP-06. До этого не активировать профиль секционного улья и не добавлять UI.
+- Открытые старые PR #101/#104 (lineage), #87 (queen laying / OP-06), #105/#106 (sectional layout) и PR #54–58 не объединять напрямую: провести selective diff audit относительно main. PR #145/#146 merged; PR #143/#144 superseded.
+- Уточнение по DOCX: описан продуктивный сценарий с двумя матками, если одна из трёх не вернулась, и необязательный перенос двух рамок с яйцами из семьи с исходной маткой в два других отсека (P28–P33). Однако точное правило снятия сетчатых заглушек для reduced two-queen branch в источнике не определено; этот переход должен оставаться fail-closed до отдельного решения.
+
+---
+
 ## Контрольная точка — 2026-11-17: PR #145 интегрирован; lineage runtime в PR #146
 
 - Актуальный GitHub main: `d73d9523c1c566624ac372ef768f0253aa8faee6` — merge commit PR #145. PR #145 закрыт слиянием; физический ownership bridge, sectional inventory invariants и подтверждение двух больших решёток теперь входят в main.
@@ -14,7 +28,7 @@
 # PROJECT_STATUS — Пасека 2.0
 
 > Главный оперативный журнал состояния разработки и точка восстановления после обрыва связи.
-> Последняя сверка: **2026-11-17, после merge PR #142 и подготовки независимой от stacked PR #143/#144 ветки физической модели**.
+> Последняя сверка: **2026-11-17, после merge PR #146; lineage runtime подключён, OP coordinator следующий**.
 > Источник фактического состояния: GitHub main, PR и Actions. Переписка ChatGPT не заменяет этот файл.
 
 
