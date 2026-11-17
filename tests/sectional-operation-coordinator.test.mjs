@@ -297,8 +297,12 @@ test('OP-04 second-row transition rolls back when a technical accessory move fai
  assert.deepEqual(fixture.state,before);
 });
 
-test('OP-04 commits family split, physical layout, equipment moves and operation evidence atomically',()=>{
+test('OP-04 commits family split, physical layout, equipment moves, frame history and operation evidence atomically',()=>{
  const fixture=makeFixture(),deps=dependencies();
+ for(const [bodyId,bodyRecord] of Object.entries(fixture.state.equipmentInventory.bodies)){
+  bodyRecord.frames=Array.from({length:6},(_,index)=>({frameId:bodyId+'-frame-'+(index+1),history:[]}));
+  for(const frame of bodyRecord.frames)Labels.assignFrameCode(fixture.state,frame);
+ }
  const before=structuredClone(fixture.state);
  const result=Coordinator.completeOP04(fixture.state,request(fixture),deps);
  assert.equal(result.ok,true,JSON.stringify(result.details||result));
@@ -316,6 +320,17 @@ test('OP-04 commits family split, physical layout, equipment moves and operation
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].startedAt,NOW,'direct two-row completion must retain the division start date for OP-05 timing');
  assert.equal(fixture.state.equipmentInventory.events.length,6,'every physical brood-body placement must be recorded');assert.ok(fixture.state.equipmentInventory.events.every(event=>event.id&&event.at===NOW));assert.ok(Object.values(fixture.state.equipmentInventory.bodies).filter(row=>row.events?.some(event=>event.operationId==='OP-04')).every(row=>row.events.some(event=>event.id&&event.at===NOW)));
  assert.equal(Object.values(fixture.state.equipmentInventory.bodies).filter(row=>row.events?.some(event=>event.type==='placed'&&event.operationId==='OP-04')).length,6);
+ for(const [bodyId,bodyRecord] of Object.entries(fixture.state.equipmentInventory.bodies)){
+  const expectedPosition={b1:'left',b2:'left',b3:'middle',b4:'middle',b5:'right',b6:'right'}[bodyId];
+  assert.equal(bodyRecord.frames.length,6);
+  for(const frame of bodyRecord.frames){
+   assert.equal(frame.history.length,1,'each frame movement must be recorded exactly once');
+   const event=frame.history[0];
+   assert.equal(event.operationId,'OP-04');
+   assert.equal(event.action,bodyId==='b4'||bodyId==='b5'||bodyId==='b6'?'corpus_from_storage':'corpus_transfer');
+   assert.deepEqual(event.to,{hiveId:'h1',box:'brood:'+expectedPosition+':'+bodyId});
+  }
+ }
  assert.equal(fixture.state.auditLog.length,1);
  assert.equal(fixture.state.auditLog[0].type,'sectional_operation_completed');
  assert.equal(fixture.state.auditLog[0].familyEventId,fixture.state.familyEvents[0].id);
