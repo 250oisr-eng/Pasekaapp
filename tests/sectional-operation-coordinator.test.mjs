@@ -418,3 +418,15 @@ test('OP-05 requires explicit confirmation that the stand is level',()=>{
  assert.equal(result.ok,false);assert.equal(result.error,'op05_level_stand_confirmation_required');
  assert.deepEqual(prepared.fixture.state,before);
 });
+
+
+test('OP-05 inspection requires durable movement evidence for every installed mesh plug',()=>{
+ const prepared=prepareOP05Fixture();
+ assert.equal(Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),prepared.deps).ok,true);
+ const plug=prepared.fixture.state.sectionalLayouts[0].temporaryQueenIsolation[0];
+ const item=prepared.fixture.state.equipmentInventory.items[plug.itemId];
+ const eventId=item.events.at(-1).id;
+ item.events=item.events.filter(event=>event.id!==eventId);
+ prepared.fixture.state.equipmentInventory.itemEvents=prepared.fixture.state.equipmentInventory.itemEvents.filter(event=>event.id!==eventId);
+ assert.ok(Coordinator.inspect(prepared.fixture.state,prepared.deps).some(error=>error.code==='sectional_tech_process_op05_movement_evidence_invalid'));
+});
