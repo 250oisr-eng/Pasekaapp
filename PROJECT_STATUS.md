@@ -21,9 +21,9 @@
 - userConfirmed: true — доменное предусловие, не аутентификация; при будущей UI-интеграции флаг выставляется только прямым подтверждением пчеловода, не ИИ.
 - Добавлен вычисляемый getQueenPresenceStatus() без нового persisted field и миграции.
 - Позднее queen_identity_confirmed разрешает событие через resolvesAbsenceEventId, сохраняя историю.
-- Проверка кода на точном HEAD 15e99f05672d441d0fe478fd186b0b96567a37a9: GitHub Actions run [#44044984584](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44044984584) завершён success; 518/518 tests passed, 0 failed; Prepare web assets, Android Debug APK build и artifact upload — success.
-- Артефакт #14311196916, 3 385 772 bytes, SHA-256 c89aa6233a0435674d9ed36cf59c614d698966a75741d690c5d119cee5cf43a9; срок хранения до 2026-12-01 08:15:12 UTC.
-- После проверенного code HEAD 15e99f0 в PR меняется только документация/PROJECT_STATUS.md; прикладной код и тесты не менялись. PR #142 остаётся открытым Draft и не объединён.
+- Проверка на точном актуальном PR HEAD fce2800582179eee477f7d134ec3582966f3bc42: GitHub Actions run [#44045360296](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44045360296) завершён success; 518/518 tests passed, 0 failed; Prepare web assets, Android Debug APK build и artifact upload — success.
+- Артефакт #14311631113, 3 385 772 bytes, SHA-256 d116eff5612fb69bfa7d9718a0a5fbc0fdf9ef51127d0bff983b5f5525539ca7; срок хранения до 2026-12-01 08:17:36 UTC.
+- Предыдущий code HEAD 15e99f05672d441d0fe478fd186b0b96567a37a9 также прошёл run #44044984584: 518/518 tests, Android Debug APK build/upload success. После code HEAD 15e99f0 менялись только документация и PROJECT_STATUS.md; код и тесты не менялись. PR #142 остаётся открытым Draft и не объединён.
 - Изменённые файлы PR #142: js/family-lineage.js, tests/family-lineage.test.mjs, docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md, docs/ПЛАН-РАЗРАБОТКИ.md, docs/СОСТОЯНИЕ-ПРОЕКТА.md, docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md, docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md, docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md, docs/ТЗ-ТЕХПРОЦЕССА.md, PROJECT_STATUS.md.
 - Модуль остаётся изолированным и не подключён к runtime/UI/SW. OP-06 не завершается автоматически в reduced two-queen branch.
 - IndexedDB version 3, app schemaVersion 12, backup format, миграции и пользовательские данные не менялись.
@@ -155,7 +155,7 @@
 | 2026-11-17 | PR #139 | Создан корневой PROJECT_STATUS.md; правила чтения и обновления закреплены в AGENTS.md, PROJECT-CONTROL.md и ПРАВИЛА-РАЗРАБОТКИ.md; merge 0cfb2632… |
 | 2026-11-17 | PR #140 | Факт интеграции журнала внесён в состояние, журнал и передачу между чатами; merge 562c3a77… |
 | 2026-11-17 | PR #141 | Обновлена контрольная точка PROJECT_STATUS после PR #140; merge 20e7737d… |
-| 2026-11-17 | PR #142 | В работе: queen_absence_confirmed и 8 тестов; CI run #44044984584 на code HEAD 15e99f0 — 518/518, APK build/upload success; merge ещё не выполнен |
+| 2026-11-17 | PR #142 | В работе: queen_absence_confirmed и 8 тестов; CI run #44045360296 на HEAD fce2800 — 518/518, APK build/upload success; merge ещё не выполнен |
 | 2026-11-17 | Текущая сверка | Lovable найден, но статус out_of_credits; SHA не совпадает с подтверждённым GitHub main |
 
 ## 11. Правила обновления этого файла
