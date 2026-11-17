@@ -235,6 +235,12 @@ test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early
  assert.ok(Layout.inspect(state).some(error=>error.code==='section_accessory_footprint_mismatch'));
 });
 
+test('rejects malformed optional physical-layout collections instead of silently ignoring them',()=>{
+ const {state,layout}=sideBySide();
+ layout.meshDiaphragms={bad:true};
+ assert.ok(Layout.inspect(state).some(error=>error.code==='sectional_layout_array_invalid'&&error.details.field==='meshDiaphragms'));
+});
+
 test('legacy states without sectional layouts remain valid and are not rewritten',()=>{
  const state={hives:[{id:'old'}],families:[],equipmentInventory:{bodies:{},items:{},itemEvents:[]}};
  const before=JSON.stringify(state);
