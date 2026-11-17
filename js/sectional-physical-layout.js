@@ -109,6 +109,13 @@ function validate(layout,state){
    if(!section.broodBodyIds?.includes(opening.bodyId))add('section_opening_body_mismatch',{sectionId:section.id??null,openingId:opening.id??null,bodyId:opening.bodyId??null});
    if(opening.diameterMm!==50)add('section_opening_diameter_invalid',{sectionId:section.id??null,openingId:opening.id??null,diameterMm:opening.diameterMm??null,expected:50});
   }
+  if(layout.mode===MODES.SIDE_BY_SIDE&&Array.isArray(section.broodBodyIds)&&Array.isArray(section.openings)){
+   const expectedPerBody=section.position==='middle'?2:1;
+   for(const bodyId of section.broodBodyIds){
+    const actual=section.openings.filter(opening=>opening?.bodyId===bodyId).length;
+    if(actual!==expectedPerBody)add('section_opening_body_coverage_invalid',{sectionId:section.id??null,bodyId,expected:expectedPerBody,actual});
+   }
+  }
  });
  const groups=new Set([...usedFamilies].map(id=>familyMap.get(id)?.colonyGroupId).filter(Boolean));
  if(usedFamilies.size>1&&groups.size!==1)add('section_colony_group_mismatch',{colonyGroupIds:[...groups]});
@@ -161,22 +168,28 @@ function validate(layout,state){
    else if(connectionIds.has(connection.id))add('technical_connection_id_duplicate',{connectionId:connection.id});
    connectionIds.add(connection.id);
    if(connection.bufferCorridorPresent!==true)add('technical_connection_buffer_required',{connectionId:connection.id??null});
-   const refs=rows(connection.openings),linkedSections=new Set();
-   if(refs.length!==2)add('technical_connection_opening_count_invalid',{connectionId:connection.id??null,expected:2,actual:Array.isArray(connection.openings)?refs.length:null});
+   const refs=rows(connection.openings),rowCount=layout.broodRows??2,expectedRefs=rowCount*2,bodyRefs=new Map([[from?.id,new Set()],[to?.id,new Set()]]);
+   if(refs.length!==expectedRefs)add('technical_connection_opening_count_invalid',{connectionId:connection.id??null,expected:expectedRefs,actual:Array.isArray(connection.openings)?refs.length:null});
    for(const ref of refs){
     if(!isObject(ref)){add('technical_connection_opening_invalid',{connectionId:connection.id??null});continue}
-    if(![from?.id,to?.id].includes(ref.sectionId)||linkedSections.has(ref.sectionId))add('technical_connection_section_reference_invalid',{connectionId:connection.id??null,sectionId:ref.sectionId??null});
-    linkedSections.add(ref.sectionId);
+    if(!bodyRefs.has(ref.sectionId))add('technical_connection_section_reference_invalid',{connectionId:connection.id??null,sectionId:ref.sectionId??null});
+    const sectionBodyRefs=bodyRefs.get(ref.sectionId);
+    if(sectionBodyRefs?.has(ref.bodyId))add('technical_connection_body_reference_duplicate',{connectionId:connection.id??null,sectionId:ref.sectionId??null,bodyId:ref.bodyId??null});
+    sectionBodyRefs?.add(ref.bodyId);
     const opening=openingById.get(ref.openingId);
     if(!opening||opening.sectionId!==ref.sectionId||opening.bodyId!==ref.bodyId)add('technical_connection_opening_reference_invalid',{connectionId:connection.id??null,openingId:ref.openingId??null,bodyId:ref.bodyId??null,sectionId:ref.sectionId??null});
     if(usedOpenings.has(ref.openingId))add('technical_connection_opening_reused',{openingId:ref.openingId??null});
     usedOpenings.add(ref.openingId);
     checkItem(ref.itemId,'technicalQueenExcluder',{bodyId:ref.bodyId,openingId:ref.openingId});
    }
-   if(linkedSections.size!==2)add('technical_connection_section_coverage_invalid',{connectionId:connection.id??null});
+   for(const section of [from,to]){
+    const actual=bodyRefs.get(section?.id)||new Set(),expectedBodies=rows(section?.broodBodyIds);
+    if(actual.size!==rowCount||expectedBodies.some(bodyId=>!actual.has(bodyId)))add('technical_connection_body_coverage_invalid',{connectionId:connection.id??null,sectionId:section?.id??null,expectedBodyIds:expectedBodies,actualBodyIds:[...actual]});
+   }
    seenPairs.add(fromPosition+'>'+toPosition);
   }
   if(seenPairs.size!==2)add('technical_connection_coverage_incomplete',{pairs:[...seenPairs]});
+  for(const openingId of openingById.keys())if(!usedOpenings.has(openingId))add('technical_opening_unlinked',{openingId});
   if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,add,checkBody,checkItem);
  }else{
   if(rows(layout.technicalConnections).length)add('technical_connections_forbidden_for_layout_mode',{mode:layout.mode});
