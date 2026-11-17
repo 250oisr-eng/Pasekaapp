@@ -136,7 +136,7 @@
 
 ## 7. Текущая незавершённая задача
 
-**После проверки PR #144 закрыть source-to-model blockers перед OP-04/05/06: неизвестная исходная матка при split, явное подтверждение яйцекладки, полное покрытие временными сетчатыми заглушками, ссылки topRiser/feeder и интеграция familyEvents в runtime/save/backup/snapshot. Затем — атомарный coordinator с rollback.**
+**Завершить и проверить физические инварианты PR #144 (topRiser/cover, одна фактическая feeder location, снятие пластиковых заглушек и полное покрытие OP-05), затем закрыть OP-06 egg-laying evidence и интеграцию familyEvents в runtime/save/backup/snapshot/restore/SW. После этого — атомарный coordinator с rollback.**
 
 Событие queen absence реализовано в PR #142 и прошло CI на его HEAD, но PR остаётся Draft и не входит в main. Атомарный переход OP-04/05/06 ещё не реализован. UI не начинать до определения транзакционной границы и rollback.
 
