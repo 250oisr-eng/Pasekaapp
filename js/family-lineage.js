@@ -13,6 +13,7 @@ const uniqueStrings = values => Array.isArray(values) && values.every(x => typeo
 const validTime = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
 const familyStatus = family => family?.recordStatus === 'historical' ? 'historical' : 'active';
 const isActive = family => familyStatus(family) === 'active';
+const isCurrentQueen = queen => queen?.status === 'current';
 const INACTIVE_QUEEN_STATUSES = new Set(['dead','retired','lost','culled','replaced','removed']);
 const commit = (target, draft) => {
  for (const key of Object.keys(target)) if (!(key in draft)) delete target[key];
@@ -67,7 +68,7 @@ function inspect(state) {
    if (!queen) add('family_current_queen_missing',{familyId:family.id,queenId:family.currentQueenId});
    else {
     if (queen.familyId!==family.id) add('family_current_queen_link_mismatch',{familyId:family.id,queenId:queen.id,queenFamilyId:queen.familyId??null});
-    if (INACTIVE_QUEEN_STATUSES.has(queen.status)) add('inactive_queen_assigned_to_active_family',{familyId:family.id,queenId:queen.id,status:queen.status});
+    if (!isCurrentQueen(queen)) add('inactive_queen_assigned_to_active_family',{familyId:family.id,queenId:queen.id,status:queen.status??null});
    }
    if (activeQueenOwners.has(family.currentQueenId)) add('queen_assigned_to_multiple_active_families',{queenId:family.currentQueenId,familyIds:[activeQueenOwners.get(family.currentQueenId),family.id]});
    else activeQueenOwners.set(family.currentQueenId,family.id);
@@ -267,8 +268,9 @@ function applySplit(state, request, makeId, now) {
   if (source.currentQueenId) {
    const sourceQueen=draft.queens.find(q=>q?.id===source.currentQueenId);
    if (!sourceQueen) return {ok:false,error:'split_source_queen_missing'};
+   if (source.queenIdentityStatus!=='identified') return {ok:false,error:'split_source_queen_unconfirmed'};
    if (sourceQueen.familyId!==source.id) return {ok:false,error:'split_source_queen_link_mismatch'};
-   if (INACTIVE_QUEEN_STATUSES.has(sourceQueen.status)) return {ok:false,error:'split_source_queen_inactive'};
+   if (!isCurrentQueen(sourceQueen)) return {ok:false,error:'split_source_queen_inactive'};
   }
   if (source.colonyGroupId && request?.colonyGroupId && request.colonyGroupId!==source.colonyGroupId)
    return {ok:false,error:'split_colony_group_change_forbidden'};
@@ -326,8 +328,9 @@ function applyMerge(state, request, makeId, now) {
   for (let index=0;index<queenIds.length;index++) {
    const queen=draft.queens.find(q=>q?.id===queenIds[index]);
    if (!queen) return {ok:false,error:'merge_source_queen_missing',details:{queenId:queenIds[index]}};
+   if (sources[index].queenIdentityStatus!=='identified') return {ok:false,error:'merge_source_queen_unconfirmed',details:{familyId:sources[index].id,queenId:queen.id}};
    if (queen.familyId!==sources[index].id) return {ok:false,error:'merge_source_queen_link_mismatch',details:{familyId:sources[index].id,queenId:queen.id}};
-   if (INACTIVE_QUEEN_STATUSES.has(queen.status)) return {ok:false,error:'merge_source_queen_inactive',details:{familyId:sources[index].id,queenId:queen.id,status:queen.status}};
+   if (!isCurrentQueen(queen)) return {ok:false,error:'merge_source_queen_inactive',details:{familyId:sources[index].id,queenId:queen.id,status:queen.status??null}};
   }
   const groups=[...new Set(sources.map(f=>f.colonyGroupId).filter(Boolean))];
   if (groups.length!==1 || sources.some(f=>f.colonyGroupId!==groups[0])) return {ok:false,error:'merge_source_colony_group_mismatch'};
