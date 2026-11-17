@@ -237,10 +237,10 @@ function completeOP04(state,request,deps={}){
  },deps.makeId,request.occurredAt);
  if(!split?.ok)return fail('family_split_rejected',{cause:split?.error??null,details:split?.details??null});
  draft.sectionalLayouts.push(clone(nextLayout));
- for(const id of bodyPlan.newIds)delete draft.equipmentInventory.bodies[id].storageLocation;
- for(const [id,location] of bodyPlan.storageById)draft.equipmentInventory.bodies[id].storageLocation=location;
  const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId);
  if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
+ for(const id of bodyPlan.newIds)delete draft.equipmentInventory.bodies[id].storageLocation;
+ for(const [id,location] of bodyPlan.storageById)draft.equipmentInventory.bodies[id].storageLocation=location;
  for(const move of plan.moves){
   const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
   if(!result?.ok)return fail('equipment_move_rejected',{itemId:move.itemId,cause:result?.error??null,details:result?.details??null});
