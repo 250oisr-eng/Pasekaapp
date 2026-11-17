@@ -24,6 +24,11 @@ function extractFunction(name) {
   const match = re.exec(html);
   assert.ok(match, 'Function not found: ' + name);
   const start = match.index;
+  if (name === 'defaultHive') {
+    const end = html.indexOf("\n$('hiveForm').onsubmit=defaultHive;", start);
+    assert.ok(end > start, 'defaultHive form binding follows the handler');
+    return html.slice(start, end);
+  }
   const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
   next.lastIndex = match.index + match[0].length;
   const endMatch = next.exec(html);
