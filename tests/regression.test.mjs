@@ -8,6 +8,7 @@ const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', im
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
+const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -17,6 +18,7 @@ const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
+new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -44,6 +46,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
+  deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -3473,4 +3476,34 @@ test('physical corpus swap checks inventory history result before audit and pers
  assert.ok(guard<handler.indexOf('if(!await save())'),'persistence must not run after inventory transaction failure');
  assert.match(handler,/invalid_frame_history:/);
  assert.match(handler,/if\(!inventoryResult\.ok\)\{S=previous;render\(\);/);
+});
+
+
+test('runtime integrity validates accessory registry and physical references',()=>{
+ const htmlSource=html;
+ assert.match(htmlSource,/PasekaEquipmentItems\.inspect\(S\)/);
+ assert.match(htmlSource,/PasekaEquipmentItems\.validateReferences\(S\)/);
+ assert.match(htmlSource,/PasekaEquipmentItems\.inspect\(state\)/);
+ assert.match(htmlSource,/PasekaEquipmentItems\.validateReferences\(state\)/);
+});
+
+test('backup validation keeps legacy accessory-free backups compatible and rejects corrupt item references',()=>{
+ const validate=loadFunction('validateBackupState');
+ const legacy={
+  meta:{schemaVersion:12},hives:[{id:'h1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],auditLog:[],aiMessages:[],
+  plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],
+  queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]},layouts:{}
+ };
+ assert.equal(validate(legacy),legacy);
+ const corrupt=structuredClone(legacy);
+ corrupt.equipmentInventory.items={bad:{id:'bad',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'missing',sectionId:'S1'},events:[]}};
+ corrupt.equipmentInventory.itemEvents=[];
+ assert.throws(()=>validate(corrupt),/инвентарь физических принадлежностей/);
+});
+
+test('service worker pre-caches the accessory registry under a new shell cache version',async()=>{
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.match(html,/\.\/js\/equipment-items\.js/);
+ assert.match(sw,/\.\/js\/equipment-items\.js/);
+ assert.match(sw,/paseka-shell-v308/);
 });
