@@ -710,8 +710,8 @@ function completeOP07(state,request,deps={}){
  const framesByBody={};
  for(const bodyId of bodyIds){
   const body=state.equipmentInventory.bodies[bodyId],frames=rows(body.frames);
-  if(body.frames!=null&&!Array.isArray(body.frames))return fail('op07_honey_frame_inventory_invalid',{bodyId});
-  if(frames.length>10)return fail('op07_honey_frame_capacity_exceeded',{bodyId,maximum:10,actual:frames.length});
+  if(!Array.isArray(body.frames))return fail('op07_honey_frame_inventory_invalid',{bodyId});
+  if(frames.length!==10)return fail('op07_honey_frame_capacity_mismatch',{bodyId,expected:10,actual:frames.length});
   if(frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))return fail('op07_honey_frame_record_invalid',{bodyId});
   if(honey.purpose==='early'){
    const compositionErrors=earlyHoneyFrameCompositionErrors(frames);
