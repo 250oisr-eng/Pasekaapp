@@ -766,32 +766,55 @@ async function save(){
  const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});return pending
 }
 async function persistSnapshot(state){
+ let previous;
  try{
-  const previous=await writeMainIfUnchanged(state,lastPersistedRevision);
-  lastPersistedRevision=state.meta?.revisionId||null;
-  try{
-   const backupState=previous||state;
-   const backupWritten=await writeAutoBackup(backupState,state.meta?.revisionId||null);
-   if(backupWritten){autoBackupInfo={at:new Date().toISOString()};state.meta.autoBackupAt=autoBackupInfo.at;delete state.meta.autoBackupError;}
-   else{state.meta.autoBackupError='Не удалось подтвердить актуальность резервной копии: данные изменились параллельно';}
-  }catch(e){
-   state.meta.autoBackupError=e?.code==='UNSUPPORTED_SCHEMA_VERSION_BACKUP'?e.message:e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось обновить полную резервную копию';
-  }
-  if(S.meta?.revisionId===state.meta?.revisionId){
-   delete S.meta.saveError;
-   if(state.meta.autoBackupError)S.meta.autoBackupError=state.meta.autoBackupError;
-   else delete S.meta.autoBackupError;
-   if(state.meta.autoBackupAt)S.meta.autoBackupAt=state.meta.autoBackupAt;
-  }
-  render();updateStorageEstimate();return true;
+  previous=await writeMainIfUnchanged(state,lastPersistedRevision);
  }catch(e){
   const conflict=e?.name==='PasekaConflictError';
   state.meta.saveError=conflict?e.message:e&&e.name==='QuotaExceededError'?'Недостаточно места для сохранения основной базы':'Не удалось сохранить основную базу';
   if(S.meta?.revisionId===state.meta?.revisionId)S.meta.saveError=state.meta.saveError;
-  render();
-  alert('ВНИМАНИЕ: '+state.meta.saveError+(conflict?' Открой приложение заново, чтобы загрузить актуальное состояние. Перед этим скачай JSON-архив текущих несохранённых изменений.':' Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.'));
+  try{render()}catch(refreshError){console.error('Не удалось обновить интерфейс после отказа сохранения',refreshError)}
+  try{alert('ВНИМАНИЕ: '+state.meta.saveError+(conflict?' Открой приложение заново, чтобы загрузить актуальное состояние. Перед этим скачай JSON-архив текущих несохранённых изменений.':' Последние изменения пока находятся только в памяти страницы. Не закрывай приложение; скачай JSON-архив, если данные ещё доступны.'))}catch(alertError){console.error('Не удалось показать сообщение об ошибке сохранения',alertError)}
   return false;
  }
+ // Основная транзакция IndexedDB уже зафиксирована. Ошибки резервной копии
+ // или обновления интерфейса не должны превращать успешную запись в отказ.
+ lastPersistedRevision=state.meta?.revisionId||null;
+ try{
+  const backupState=previous||state;
+  const backupWritten=await writeAutoBackup(backupState,state.meta?.revisionId||null);
+  if(backupWritten){
+   autoBackupInfo={at:new Date().toISOString()};
+   state.meta.autoBackupAt=autoBackupInfo.at;
+   delete state.meta.autoBackupError;
+  }else{
+   state.meta.autoBackupError='Не удалось подтвердить актуальность резервной копии: данные изменились параллельно';
+  }
+ }catch(e){
+  state.meta.autoBackupError=e?.code==='UNSUPPORTED_SCHEMA_VERSION_BACKUP'
+   ?e.message
+   :e&&e.name==='QuotaExceededError'
+    ?'Недостаточно места для полной резервной копии'
+    :'Не удалось обновить полную резервную копию';
+ }
+ if(S.meta?.revisionId===state.meta?.revisionId){
+  delete S.meta.saveError;
+  if(state.meta.autoBackupError)S.meta.autoBackupError=state.meta.autoBackupError;
+  else delete S.meta.autoBackupError;
+  if(state.meta.autoBackupAt)S.meta.autoBackupAt=state.meta.autoBackupAt;
+ }
+ try{
+  render();
+ }catch(error){
+  console.error('Данные пасеки сохранены, но интерфейс не удалось обновить',error);
+  try{alert('Данные пасеки сохранены. Интерфейс не удалось обновить; перезагрузи приложение. Не повторяй сохранение этой операции.')}catch(alertError){console.error('Не удалось показать сообщение об обновлении интерфейса',alertError)}
+ }
+ try{
+  await updateStorageEstimate();
+ }catch(error){
+  console.error('Не удалось обновить оценку хранилища',error);
+ }
+ return true;
 }
 function familyStage(f){return f?.stage||(f?.origin==='offshoot'?'developing':'independent')}
 function familyStageLabel(f){const stage=familyStage(f);return stage==='developing'?'Отводок · развивается':stage==='independent'?'Самостоятельная семья':'Состояние не определено'}
