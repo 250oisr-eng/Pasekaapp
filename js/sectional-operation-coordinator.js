@@ -16,7 +16,9 @@ function commit(target,draft){for(const key of Object.keys(target))delete target
 function sameLocation(a,b){
  if(!isObject(a)||!isObject(b))return false;
  const keys=['type','hiveId','stackId','bodyId','openingId','positionLabel','label'];
- return keys.every(key=>(a[key]??null)===(b[key]??null));
+ const sameBase=keys.every(key=>(a[key]??null)===(b[key]??null));
+ const footprint=value=>Array.isArray(value)?value.map(row=>row?.bodyId+':'+row?.coverage).sort().join('|'):null;
+ return sameBase&&footprint(a.footprint)===footprint(b.footprint);
 }
 function addTarget(map,itemId,location,errors,source){
  if(!nonEmpty(itemId)){errors.push({code:'operation_item_reference_missing',details:{source}});return}
@@ -36,6 +38,12 @@ function newLayoutTargets(layout){
  for(const plug of rows(layout?.temporaryQueenIsolation)){
   addTarget(targets,plug?.itemId,{type:'hive',hiveId:layout.hiveId,bodyId:plug?.bodyId,openingId:plug?.openingId},errors,'temporaryQueenIsolation');
  }
+ const sections=rows(layout?.sections),left=sections.find(row=>row?.position==='left'),middle=sections.find(row=>row?.position==='middle'),right=sections.find(row=>row?.position==='right');
+ const upper=section=>section?.upperBroodBodyId||null;
+ for(const row of rows(layout?.honeyStack?.excluders)){
+  const footprint=row?.side==='left'?[{bodyId:upper(left),coverage:'FULL'},{bodyId:upper(middle),coverage:'HALF'}]:row?.side==='right'?[{bodyId:upper(middle),coverage:'HALF'},{bodyId:upper(right),coverage:'FULL'}]:null;
+  addTarget(targets,row?.itemId,{type:'hive',hiveId:layout.hiveId,footprint},errors,'honeyStack.excluder');
+ }
  return {targets,errors};
 }
 function layoutItemIds(layout){
@@ -50,8 +58,8 @@ function layoutItemIds(layout){
 }
 function planBodyMoves(state,oldLayout,newLayout,suppliedMoves){
  const errors=[],bodies=state?.equipmentInventory?.bodies||{};
- const oldIds=new Set(rows(oldLayout?.sections).flatMap(section=>rows(section?.broodBodyIds)));
- const newIds=new Set(rows(newLayout?.sections).flatMap(section=>rows(section?.broodBodyIds)));
+ const oldIds=new Set([...rows(oldLayout?.sections).flatMap(section=>rows(section?.broodBodyIds)),...rows(oldLayout?.honeyStack?.bodyIds)]);
+ const newIds=new Set([...rows(newLayout?.sections).flatMap(section=>rows(section?.broodBodyIds)),...rows(newLayout?.honeyStack?.bodyIds)]);
  const required=new Set([...oldIds].filter(id=>!newIds.has(id)));
  const supplied=rows(suppliedMoves),seen=new Set(),storageById=new Map();
  for(const row of supplied){
@@ -72,8 +80,9 @@ function planBodyMoves(state,oldLayout,newLayout,suppliedMoves){
 function bodyLocationMap(layout){
  const locations=new Map();
  for(const section of rows(layout?.sections))for(const bodyId of rows(section?.broodBodyIds)){
-  locations.set(bodyId,{type:'sectional',hiveId:layout.hiveId,layoutId:layout.id,sectionId:section.id,position:section.position});
+  locations.set(bodyId,{type:'sectional',hiveId:layout.hiveId,layoutId:layout.id,bodyRole:'brood',sectionId:section.id,position:section.position});
  }
+ for(const bodyId of rows(layout?.honeyStack?.bodyIds))locations.set(bodyId,{type:'sectional',hiveId:layout.hiveId,layoutId:layout.id,bodyRole:'honey',position:'shared-honey-stack'});
  return locations;
 }
 function nextUniqueId(makeId,used){
@@ -91,7 +100,7 @@ function collectEventIds(state){
  for(const item of Object.values(state?.equipmentInventory?.items||{}))for(const event of rows(item?.events))if(nonEmpty(event?.id))used.add(event.id);
  return used;
 }
-function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,makeId){
+function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,makeId,operationId='OP-04'){
  const inventory=state?.equipmentInventory;
  if(!isObject(inventory)||!Array.isArray(inventory.events))return {ok:false,error:'equipment_body_event_journal_invalid'};
  const oldLocations=bodyLocationMap(oldLayout),newLocations=bodyLocationMap(newLayout);
@@ -107,12 +116,12 @@ function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,make
   if(oldLocations.has(bodyId)&&newLocations.has(bodyId)&&JSON.stringify(from)===JSON.stringify(to))continue;
   if(!newLocations.has(bodyId)&&!storageById.has(bodyId))return {ok:false,error:'equipment_body_storage_move_missing',details:{bodyId}};
   const installed=newLocations.has(bodyId);
-  body.events.push({type:installed?'placed':'moved_to_storage',at,operationId:'OP-04',from:clone(from),to:clone(to)});
+  body.events.push({type:installed?'placed':'moved_to_storage',at,operationId,from:clone(from),to:clone(to)});
   if(body.events.length>300)body.events=body.events.slice(-300);
   body.updatedAt=at;
   const eventId=nextUniqueId(makeId,used);
   if(!eventId)return {ok:false,error:'equipment_body_event_id_unavailable',details:{bodyId}};
-  inventory.events.push({id:eventId,type:installed?'sectional_body_placed':'sectional_body_moved_to_storage',at,bodyId,operationId:'OP-04',from:clone(from),to:clone(to)});
+  inventory.events.push({id:eventId,type:installed?'sectional_body_placed':'sectional_body_moved_to_storage',at,bodyId,operationId,from:clone(from),to:clone(to)});
   if(inventory.events.length>1000)inventory.events=inventory.events.slice(-1000);
  }
  return {ok:true};
