@@ -368,8 +368,8 @@ test('OP-04 allows user-confirmed creation of the two emergency queen records af
  assert.equal(first.queen.originType,'emergency_reared');
  assert.equal(second.queen.originFamilyId,'f1');
  assert.ok(state.families.filter(f=>f.id.startsWith('spring-')).every(f=>f.queenIdentityStatus==='identified'&&f.currentQueenId));
- assert.ok(state.familyEvents.find(e=>e.type==='split').candidateQueenIds.includes(first.queen.id));
- assert.ok(state.familyEvents.find(e=>e.type==='split').candidateQueenIds.includes(second.queen.id));
+ assert.ok(!state.familyEvents.find(e=>e.type==='split').candidateQueenIds.includes(first.queen.id));
+ assert.ok(!state.familyEvents.find(e=>e.type==='split').candidateQueenIds.includes(second.queen.id));
  assert.deepEqual(api.inspect(state),[]);
 });
 
@@ -396,4 +396,49 @@ test('split and merge refuse to change lineage while the family remains in a sec
  const mergeState=baseState();mergeState.sectionalLayouts={h1:{sections:[{familyId:'f1',bodyIds:['b1']}]}};const before=JSON.stringify(mergeState);
  const merge=api.applyMerge(mergeState,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-11',resultFamily:{id:'placed-merge',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
  assert.equal(merge.ok,false);assert.equal(merge.error,'merge_source_family_has_physical_placement');assert.equal(JSON.stringify(mergeState),before);
+});
+
+
+test('a newly reared queen is local to its confirmed family and cannot be assigned to a split sibling',()=>{
+ const state={...baseState(),families:[baseState().families[0]],queens:[baseState().queens[0]]};
+ const split=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:children('local')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ const created=api.confirmQueenIdentity(state,{familyId:'local-1',newQueen:{originType:'emergency_reared'}},makeId,'2026-04-22T10:00:00.000Z');
+ assert.equal(created.ok,true);
+ assert.ok(!split.event.candidateQueenIds.includes(created.queen.id));
+ const sibling=api.confirmQueenIdentity(state,{familyId:'local-2',queenId:created.queen.id},makeId,'2026-04-22T10:05:00.000Z');
+ assert.equal(sibling.ok,false);
+ assert.equal(sibling.error,'identity_queen_not_candidate');
+ assert.equal(state.families.find(f=>f.id==='local-2').currentQueenId,null);
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('split preserves retired merge candidates and exposes only surviving queens to child families',()=>{
+ const state=baseState();
+ const merged=api.applyMerge(state,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-11',resultFamily:{id:'winter-merged',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+ assert.equal(merged.ok,true);
+ state.queens.find(q=>q.id==='q3').status='retired';
+ const split=api.applySplit(state,{sourceFamilyId:'winter-merged',operationId:'OP-04',resultFamilies:children('survivors')},makeId,'2027-04-01T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ assert.deepEqual(split.event.candidateQueenIds,['q1','q2']);
+ assert.equal(state.queens.find(q=>q.id==='q3').status,'retired');
+ const retired=api.confirmQueenIdentity(state,{familyId:'survivors-3',queenId:'q3'},makeId,'2027-04-22T10:00:00.000Z');
+ assert.equal(retired.ok,false);
+ assert.equal(retired.error,'identity_queen_not_candidate');
+ assert.deepEqual(api.inspect(state),[]);
+});
+
+test('OP-13 placement must retain the existing single brood body and add one separate body',()=>{
+ const state=baseState(),info=addSpringMoves(state,'body-retention');
+ state.familyEvents=state.familyEvents.filter(event=>event.type!=='placement_changed');
+ const row=info.layout.find(item=>item.bodyCount===1),bodyIds=info.bodyIdsByFamily[row.familyId];
+ state.equipmentInventory.bodies.replacement={id:'replacement'};
+ const invalid=api.recordPlacementChanged(state,{
+  familyIds:['f1','f2','f3'],familyId:row.familyId,techProcessId:'body-retention',
+  from:{position:row.position,bodyIds:[bodyIds[0]]},
+  to:{position:'separate_bottom',bottomItemId:'bottom-'+row.familyId,bodyIds:['replacement',bodyIds[1]]}
+ },makeId,'2026-04-20T10:00:00.000Z');
+ assert.equal(invalid.ok,false);
+ assert.equal(invalid.error,'placement_existing_body_not_preserved');
+ assert.equal(state.familyEvents.some(event=>event.type==='placement_changed'),false);
 });
