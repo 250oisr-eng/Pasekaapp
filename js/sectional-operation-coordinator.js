@@ -254,8 +254,10 @@ function inspect(state,deps={}){
    const removed=rows(op06.evidence?.removedPlugs),removedIds=removed.map(row=>row?.itemId).sort();
    if(JSON.stringify(removedIds)!==JSON.stringify(rows(op06.evidence?.removedItemIds).slice().sort()))add('sectional_tech_process_op06_removed_plug_evidence_mismatch',{id:record.id});
    if(removed.length!==0&&removed.length!==8)add('sectional_tech_process_op06_removed_plug_count_invalid',{id:record.id,count:removed.length});
+   if(op06.evidence?.layoutId!==statePart.layoutId)add('sectional_tech_process_op06_layout_evidence_mismatch',{id:record.id});
    if(removed.length===0&&op06.evidence?.noPlugsInstalledConfirmed!==true)add('sectional_tech_process_op06_no_plugs_confirmation_missing',{id:record.id});
-   if(removed.length>0&&op06.evidence?.noPlugsInstalledConfirmed===true)add('sectional_tech_process_op06_conflicting_plug_evidence',{id:record.id});
+   if(removed.length===0&&op05Rows.length!==0)add('sectional_tech_process_op06_no_plugs_conflicts_with_op05',{id:record.id});
+   if(removed.length>0&&(op06.evidence?.noPlugsInstalledConfirmed===true||op05Rows.length!==1))add('sectional_tech_process_op06_conflicting_plug_evidence',{id:record.id});
    for(const plug of removed){
     const item=state.equipmentInventory?.items?.[plug.itemId],evidence=rows(op06.evidence?.itemMovementEventIds).find(row=>row?.itemId===plug.itemId);
     const event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===plug.itemId);
