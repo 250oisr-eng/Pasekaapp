@@ -8,7 +8,7 @@
 - Предыдущий Android workflow run #44100572474 прошёл 570/570 tests и APK build/upload, но он проверял прежнюю четырёхотверстную модель и не подтверждает текущую геометрию. Текущий branch HEAD после исправления двухрядной модели: `d2d5b1961dc567d1776f314e0acf449d2ca5de3a`; CI на актуальном HEAD ожидается. Не считать OP-05 проверенной до нового успешного run.
 - PR #149 остаётся Draft и основан на PR #148 (base SHA `27cb4de3f8bf8848475aa9877bb84affb7a51a83`). PR #148 остаётся Draft. Main SHA `d8fd021a3a6ab4ed9613dbd558205bdf24e96be0` не менялась.
 - IndexedDB, schemaVersion, backup format, пользовательские данные, production и UI не менялись; профиль не активирован.
-- PR #149 остаётся Draft, основан на PR #148; mergeable=true, behind_by=0. PR #148 Android workflow run #44097595158 также завершился success. Main `d8fd021a...` не менялась. Следующий шаг: аудит OP-06 и интеграционных зависимостей; не переносить старую спецификацию PR #87 без исправления optional OP-05 и физического coordinator. Reduced two-queen ветвь OP-06 остаётся fail-closed.
+- PR #149 остаётся Draft, основан на PR #148; mergeable=true, behind_by=0. PR #148 Android workflow run #44097595158 завершился success. Main `d8fd021a...` не менялась. Следующий шаг: проверить CI на актуальном восьмиотверстном состоянии. Затем продолжить аудит OP-06 по новому разделу в `docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md`; reduced two-queen ветвь остаётся fail-closed.
 ---
 
 ## Контрольная точка — 2026-11-17: атомарный OP-04 теперь поддерживает оба ряда
