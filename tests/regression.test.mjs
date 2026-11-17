@@ -3499,7 +3499,10 @@ test('backup validation keeps legacy accessory-free backups compatible and rejec
  let id=0;
  const registered=appWindow.PasekaEquipmentItems.register(corrupt,{kind:'bottom',storageLocation:'Склад'},()=> 'backup-item-'+(++id),'2026-11-17T08:00:00.000Z');
  assert.equal(registered.ok,true);
- corrupt.equipmentInventory.items[registered.item.id].location={type:'hive',hiveId:'missing',sectionId:'S1'};
+ const stored=corrupt.equipmentInventory.items[registered.item.id];
+ stored.location={type:'hive',hiveId:'missing',sectionId:'S1'};
+ stored.events[0].location=structuredClone(stored.location);
+ corrupt.equipmentInventory.itemEvents[0].location=structuredClone(stored.location);
  assert.throws(()=>validate(corrupt),/инвентарь физических принадлежностей/);
 });
 
