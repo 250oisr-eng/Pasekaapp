@@ -279,21 +279,26 @@ function applySplit(state, request, makeId, now) {
   if (!source.colonyGroupId && lineageGroupIds.has(colonyGroupId)) return {ok:false,error:'split_colony_group_already_in_use'};
   if (!colonyGroupId || colonyGroupId.length>160) return {ok:false,error:'colony_group_id_required'};
   const previousMerge=draft.familyEvents.slice().reverse().find(event=>event?.type==='merge'&&event.resultFamilyIds?.includes(source.id));
-  const knownCandidateQueenIds=[...new Set([
+  const lineageCandidateQueenIds=[...new Set([
    ...(source.currentQueenId?[source.currentQueenId]:[]),
    ...(Array.isArray(previousMerge?.candidateQueenIds)?previousMerge.candidateQueenIds:[])
   ])];
-  if (Array.isArray(request?.candidateQueenIds) && request.candidateQueenIds.some(id=>!knownCandidateQueenIds.includes(id)))
+  const candidateQueenIds=lineageCandidateQueenIds.filter(queenId=>{
+   const queen=draft.queens.find(q=>q?.id===queenId);
+   return queen && !INACTIVE_QUEEN_STATUSES.has(queen.status);
+  });
+  if (Array.isArray(request?.candidateQueenIds) && request.candidateQueenIds.some(id=>!candidateQueenIds.includes(id)))
    return {ok:false,error:'split_candidate_queen_not_in_source_lineage'};
-  const candidateQueenIds=knownCandidateQueenIds;
-  if (request?.operationId==='OP-04' && !source.currentQueenId && (!previousMerge || !Array.isArray(previousMerge.candidateQueenIds) || previousMerge.candidateQueenIds.length!==3))
+  if (request?.operationId==='OP-04' && !source.currentQueenId && candidateQueenIds.length<1)
    return {ok:false,error:'OP04_SOURCE_QUEEN_NOT_IDENTIFIED'};
   for (const queenId of candidateQueenIds) {
    const queen=draft.queens.find(q=>q?.id===queenId);
    if (!queen) return {ok:false,error:'split_candidate_queen_missing',details:{queenId}};
-   queen.originFamilyId=queen.originFamilyId||queen.familyId;
-   queen.status='unknown';
-   queen.updatedAt=now||new Date().toISOString();
+   if (source.currentQueenId===queenId) {
+    queen.originFamilyId=queen.originFamilyId||queen.familyId;
+    queen.status='unknown';
+    queen.updatedAt=now||new Date().toISOString();
+   }
   }
   source.recordStatus='historical';
   source.colonyGroupId=colonyGroupId;
@@ -386,7 +391,8 @@ function confirmQueenIdentity(state, request, makeId, now) {
    if (!queenId) return {ok:false,error:'queen_id_required'};
    queen={id:queenId,familyId:null,originFamilyId,originType,status:'unknown',code:details.code?.trim()||null,year:details.year??null,source:details.source?.trim()||null,notes:details.notes?.trim()||null,createdAt:at,updatedAt:at};
    draft.queens.push(queen);
-   sourceEvent.candidateQueenIds=[...new Set([...(sourceEvent.candidateQueenIds||[]),queenId])];
+   // A newly reared queen belongs only to this confirmed family.
+   // Keep the shared split-event candidate list limited to queens already in the source lineage.
    createdDuringConfirmation=true;
   } else {
    queen=draft.queens.find(q=>q?.id===request?.queenId);
@@ -471,6 +477,8 @@ function recordPlacementChanged(state, request, makeId, now) {
   const toBodyIds=Array.isArray(request?.to?.bodyIds)?request.to.bodyIds:[];
   if (!uniqueStrings(fromBodyIds)||fromBodyIds.length!==1||!uniqueStrings(toBodyIds)||toBodyIds.length!==2)
    return {ok:false,error:'placement_body_references_invalid'};
+  if (!toBodyIds.includes(fromBodyIds[0]))
+   return {ok:false,error:'placement_existing_body_not_preserved'};
   const bodyMap=draft.equipmentInventory?.bodies||{};
   if ([...fromBodyIds,...toBodyIds].some(id=>!bodyMap[id]||bodyMap[id].id!==id))
    return {ok:false,error:'placement_body_reference_missing'};
