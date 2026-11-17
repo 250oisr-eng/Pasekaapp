@@ -3517,7 +3517,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v309/);
+ assert.match(sw,/paseka-shell-v311/);
 });
 
 
@@ -3567,7 +3567,16 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v309/);
+  assert.match(source,/paseka-shell-v311/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
  });
+});
+
+
+test('save integrity gate validates physical body inventory before persisting',()=>{
+ const start=html.indexOf('async function save()'),end=html.indexOf('async function persistSnapshot',start);
+ assert.ok(start>=0&&end>start);
+ const saveSource=html.slice(start,end);
+ assert.match(saveSource,/PasekaInventory\.inspect\(S,PasekaLabels,profileForHive\)/);
+ assert.match(saveSource,/if\(physicalLayoutErrors\.length\)/);
 });
