@@ -336,15 +336,15 @@ test('OP-05 atomically installs one real metal mesh plug in every technical open
  assert.equal(op05.completedAt,'2026-11-25T10:00:00.000Z');
  assert.equal(op05.evidence.daysAfterDivision,8);
  assert.equal(op05.evidence.standLevelConfirmed,true);
- assert.deepEqual(op05.evidence.openingIds,['o1','o2','o3','o4']);
- assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,4);
+ assert.deepEqual(op05.evidence.openingIds,['o1','o2','o3','o4','o5','o6','o7','o8']);
+ assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,8);
  for(const plug of fixture.state.sectionalLayouts[0].temporaryQueenIsolation){
   const item=fixture.state.equipmentInventory.items[plug.itemId];
   assert.deepEqual(item.location,{type:'hive',hiveId:'h1',bodyId:plug.bodyId,openingId:plug.openingId});
   assert.equal(item.events.at(-1).type,'moved');
  }
  assert.equal(fixture.state.auditLog.at(-1).operationId,'OP-05');
- assert.equal(fixture.state.auditLog.at(-1).installedItemIds.length,4);
+ assert.equal(fixture.state.auditLog.at(-1).installedItemIds.length,8);
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 
