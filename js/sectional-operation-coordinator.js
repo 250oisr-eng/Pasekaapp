@@ -208,7 +208,7 @@ function inspect(state,deps={}){
   const pending=op04.length===1&&operation?.status==='IN_PROGRESS'&&stageRows===1&&statePart.rowStage===1&&validDate(operation.startedAt)&&operation.completedAt==null;
   const completed=op04.length===1&&operation?.status==='DONE'&&stageRows===2&&(statePart.rowStage==null||statePart.rowStage===2)&&validDate(operation.completedAt);
   if(!pending&&!completed)add('sectional_tech_process_op04_stage_invalid',{id:record.id,stageRows,status:operation?.status??null});
-  const op05Rows=operations.filter(row=>row?.operationId==='OP-05'),op05=op05Rows[0],installedPlugs=rows(layout?.temporaryQueenIsolation);
+  const op05Rows=operations.filter(row=>row?.operationId==='OP-05'),op05=op05Rows[0],installedPlugs=rows(layout?.temporaryQueenIsolation),op06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
   if(op05Rows.length>1)add('sectional_tech_process_op05_duplicate',{id:record.id,count:op05Rows.length});
   if(op05Rows.length===0&&installedPlugs.length)add('sectional_tech_process_op05_layout_without_operation',{id:record.id});
   if(op05Rows.length===1){
@@ -235,7 +235,7 @@ function inspect(state,deps={}){
    const days=calendarDayDifference(op05.completedAt,operation?.startedAt);
    if(days==null||days<8||days>11||op05.evidence?.daysAfterDivision!==days)add('sectional_tech_process_op05_timing_invalid',{id:record.id,daysAfterDivision:days,evidenceDays:op05.evidence?.daysAfterDivision??null});
   }
-  const op06Rows=operations.filter(row=>row?.operationId==='OP-06'),op06=op06Rows[0];
+  const op06Rows=operations.filter(row=>row?.operationId==='OP-06');
   if(op06Rows.length>1)add('sectional_tech_process_op06_duplicate',{id:record.id,count:op06Rows.length});
   if(op06Rows.length===1){
    if(!completed||op06.status!=='DONE'||!validDate(op06.completedAt))add('sectional_tech_process_op06_status_invalid',{id:record.id});
