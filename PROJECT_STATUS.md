@@ -18,6 +18,7 @@
 
 - PR [#142](https://github.com/250oisr-eng/Pasekaapp/pull/142) открыт от main SHA 20e7737d1586a190349d62c243a593bf39cb9689; branch feat/queen-absence-confirmation-event-2026-11-17.
 - Добавлено событие queen_absence_confirmed, связанное с конкретной дочерней семьёй и её OP-04 split event; явное userConfirmed: true; queenId запрещён.
+- userConfirmed: true — доменное предусловие, не аутентификация; при будущей UI-интеграции флаг выставляется только прямым подтверждением пчеловода, не ИИ.
 - Добавлен вычисляемый getQueenPresenceStatus() без нового persisted field и миграции.
 - Позднее queen_identity_confirmed разрешает событие через resolvesAbsenceEventId, сохраняя историю.
 - Добавлено 8 regression tests. CI ожидается после обновления PR; до успешного Actions run на точном HEAD тесты не считаются пройденными.
