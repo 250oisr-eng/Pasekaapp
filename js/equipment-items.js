@@ -123,14 +123,15 @@ function addEvent(inv,item,type,details,at,makeId){
  return {ok:true,event};
 }
 function registerUnsafe(state,request,makeId,now){
+ if(state.sectionalLayouts!=null&&!Array.isArray(state.sectionalLayouts))return {ok:false,error:'invalid_sectional_layout_collection'};
  const inv=ensure(state),kind=request?.kind,storageLocation=String(request?.storageLocation||'').trim(),notes=String(request?.notes||'').trim();
  if(!kinds.has(kind))return {ok:false,error:'invalid_item_kind'};
  if(!storageLocation||storageLocation.length>160||notes.length>500)return {ok:false,error:'invalid_details'};
  if(typeof makeId!=='function')return {ok:false,error:'id_generator_required'};
  const id=String(makeId()||'');
- const layoutBodyIds=(Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[]).flatMap(layout=>layoutBodyIds(layout));
+ const sectionalBodyIds=(Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[]).flatMap(layout=>layoutBodyIds(layout));
  const legacyBodyIds=Object.values(state.layouts||{}).flatMap(layout=>Object.values(layout?.corpusIds||{}));
- if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||allEventIds(inv).has(id)||legacyBodyIds.includes(id)||layoutBodyIds.includes(id)||(Array.isArray(state.sectionalLayouts)&&state.sectionalLayouts.some(layout=>layout?.id===id)))return {ok:false,error:'duplicate_item_id'};
+ if(!id||id.length>160||inv.items[id]||inv.bodies?.[id]||allEventIds(inv).has(id)||legacyBodyIds.includes(id)||sectionalBodyIds.includes(id)||(Array.isArray(state.sectionalLayouts)&&state.sectionalLayouts.some(layout=>layout?.id===id)))return {ok:false,error:'duplicate_item_id'};
  const time=now||new Date().toISOString(),item={id,kind,condition:'good',location:{type:'storage',label:storageLocation},notes,registeredAt:time,updatedAt:time,events:[]};
  inv.items[id]=item;
  const event=addEvent(inv,item,'registered',{location:item.location},time,makeId);
@@ -186,6 +187,7 @@ function inspect(state){
   if(items[event.id]||inv.bodies?.[event.id])errors.push({code:'equipment_item_event_id_collision',details:{eventId:event.id}});
   seenEventIds.add(event.id);globalById.set(event.id,event);
   if(!items[event.itemId])errors.push({code:'orphan_equipment_item_event',details:{eventId:event.id,itemId:event.itemId}});
+  else if(!Array.isArray(items[event.itemId].events)||!items[event.itemId].events.some(row=>row?.id===event.id))errors.push({code:'item_event_global_mismatch',details:{itemId:event.itemId,eventId:event.id}});
  }
  for(const [id,item] of Object.entries(items)){
   if(!isObject(item)||item.id!==id){errors.push({code:'invalid_item_identity',details:{itemId:id}});continue}
