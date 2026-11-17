@@ -214,6 +214,8 @@ function inspect(state,deps={}){
   if(op05Rows.length===1){
    if(!completed)add('sectional_tech_process_op05_requires_completed_op04',{id:record.id});
    if(op05.status!=='DONE'||!validDate(op05.completedAt))add('sectional_tech_process_op05_status_invalid',{id:record.id,status:op05.status??null});
+   if(validDate(op05.completedAt)&&validDate(operation?.completedAt)&&Date.parse(op05.completedAt)<Date.parse(operation.completedAt))add('sectional_tech_process_op05_precedes_op04_completion',{id:record.id});
+   if(op05.evidence?.layoutId!==statePart.layoutId)add('sectional_tech_process_op05_layout_evidence_mismatch',{id:record.id});
    const coverageErrors=deps.PasekaSectionalPhysicalLayout?.validateTemporaryQueenIsolationCoverage?.(layout)||[{code:'temporary_queen_coverage_validator_missing'}];
    for(const error of coverageErrors)add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
    const itemIds=installedPlugs.map(row=>row?.itemId).sort(),openingIds=installedPlugs.map(row=>row?.openingId).sort();
@@ -407,6 +409,7 @@ function completeOP05(state,request,deps={}){
  if(!record)return fail('op05_tech_process_missing');
  const op04=rows(record.state?.operations).find(row=>row?.operationId==='OP-04');
  if(op04?.status!=='DONE'||record.state?.rowStage!==2)return fail('op05_requires_completed_op04');
+ if(!validDate(op04.completedAt)||Date.parse(request.occurredAt)<Date.parse(op04.completedAt))return fail('op05_precedes_op04_completion');
  if(rows(record.state.operations).some(row=>row?.operationId==='OP-05'))return fail('op05_already_recorded');
  const daysAfterDivision=calendarDayDifference(request.occurredAt,op04.startedAt);
  if(daysAfterDivision==null||daysAfterDivision<8||daysAfterDivision>11)return fail('op05_outside_source_window',{daysAfterDivision,requiredDayRange:[8,11]});
