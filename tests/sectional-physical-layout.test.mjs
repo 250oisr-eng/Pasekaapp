@@ -1,0 +1,262 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const layoutSource=await readFile(new URL('../js/sectional-physical-layout.js',import.meta.url),'utf8');
+const equipmentSource=await readFile(new URL('../js/equipment-items.js',import.meta.url),'utf8');
+const appWindow={};
+new Function('window',equipmentSource)(appWindow);
+new Function('window',layoutSource)(appWindow);
+const Layout=appWindow.PasekaSectionalPhysicalLayout;
+const Equipment=appWindow.PasekaEquipmentItems;
+const PROFILE='sectional-multiqueen-v1';
+const NOW='2026-11-17T08:00:00.000Z';
+
+function makeItem(id,kind,location){
+ return {id,kind,label:id,condition:'good',location,notes:'',registeredAt:NOW,updatedAt:NOW,events:[]};
+}
+function makeBody(id,kind='brood'){
+ return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10}};
+}
+function baseFamilies(){
+ return [
+  {id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'identified',currentQueenId:'q1'},
+  {id:'f2',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'unresolved',currentQueenId:null},
+  {id:'f3',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'unresolved',currentQueenId:null}
+ ];
+}
+function sideBySide(){
+ const bodies=Object.fromEntries(['b1','b2','b3','b4','b5','b6'].map(id=>[id,makeBody(id)]));
+ const items={
+  bl:makeItem('bl','bottom',{type:'hive',hiveId:'h1',stackId:'sl'}),
+  bm:makeItem('bm','bottom',{type:'hive',hiveId:'h1',stackId:'sm'}),
+  br:makeItem('br','bottom',{type:'hive',hiveId:'h1',stackId:'sr'}),
+  gl1:makeItem('gl1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'}),
+  gl2:makeItem('gl2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o2'}),
+  gr1:makeItem('gr1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o3'}),
+  gr2:makeItem('gr2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o4'})
+ };
+ const sections=[
+  {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
+  {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
+  {id:'s-right',position:'right',familyId:'f3',broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b6',diameterMm:50}]}
+ ];
+ const layout={
+  schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,
+  sections,
+  stacks:[
+   {id:'sl',position:'left',sectionIds:['s-left'],bottomItemId:'bl'},
+   {id:'sm',position:'middle',sectionIds:['s-middle'],bottomItemId:'bm'},
+   {id:'sr',position:'right',sectionIds:['s-right'],bottomItemId:'br'}
+  ],
+  technicalConnections:[
+   {id:'c-lm',fromSectionId:'s-left',toSectionId:'s-middle',bufferCorridorPresent:true,openings:[
+    {sectionId:'s-left',bodyId:'b2',openingId:'o1',itemId:'gl1'},
+    {sectionId:'s-middle',bodyId:'b4',openingId:'o2',itemId:'gl2'}
+   ]},
+   {id:'c-mr',fromSectionId:'s-middle',toSectionId:'s-right',bufferCorridorPresent:true,openings:[
+    {sectionId:'s-middle',bodyId:'b4',openingId:'o3',itemId:'gr1'},
+    {sectionId:'s-right',bodyId:'b6',openingId:'o4',itemId:'gr2'}
+   ]}
+  ],
+  meshDiaphragms:[],temporaryQueenIsolation:[],closedOpenings:[]
+ };
+ const state={
+  hives:[{id:'h1',profileId:PROFILE}],families:baseFamilies(),
+  queens:[{id:'q1',familyId:'f1',status:'current'}],
+  equipmentInventory:{bodies,items,itemEvents:[]},sectionalLayouts:[layout],layouts:{}
+ };
+ return {state,layout};
+}
+function alternativeWintering(twoBodyPosition='lower'){
+ const base=sideBySide(),{state,layout}=base;
+ const idsByPosition={lower:['b1','b2'],middle:['b3'],upper:['b4']};
+ if(twoBodyPosition!=='lower'){
+  const all=['b1','b2','b3','b4'];
+  const counts={lower:1,middle:1,upper:1};counts[twoBodyPosition]=2;
+  let cursor=0;
+  for(const position of ['lower','middle','upper'])idsByPosition[position]=all.slice(cursor,cursor+counts[position]),cursor+=counts[position];
+ }
+ layout.mode=Layout.MODES.ALTERNATIVE_WINTERING_COLUMN;
+ layout.sections=[
+  {id:'s-lower',position:'lower',familyId:'f1',broodBodyIds:idsByPosition.lower,upperBroodBodyId:idsByPosition.lower.at(-1),openings:[]},
+  {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:idsByPosition.middle,upperBroodBodyId:idsByPosition.middle.at(-1),openings:[]},
+  {id:'s-upper',position:'upper',familyId:'f3',broodBodyIds:idsByPosition.upper,upperBroodBodyId:idsByPosition.upper.at(-1),openings:[]}
+ ];
+ layout.stacks=[{id:'column',position:'column',sectionIds:['s-lower','s-middle','s-upper'],bottomItemId:'bc',boundaries:['lower-middle','middle-upper']}];
+ layout.technicalConnections=[];
+ layout.temporaryQueenIsolation=[];
+ layout.closedOpenings=[];
+ layout.meshDiaphragms=[
+  {itemId:'d1',positionLabel:'lower-middle'},
+  {itemId:'d2',positionLabel:'middle-upper'}
+ ];
+ state.equipmentInventory.items={
+  bc:makeItem('bc','bottom',{type:'hive',hiveId:'h1',stackId:'column'}),
+  d1:makeItem('d1','meshDiaphragm',{type:'hive',hiveId:'h1',stackId:'column',positionLabel:'lower-middle'}),
+  d2:makeItem('d2','meshDiaphragm',{type:'hive',hiveId:'h1',stackId:'column',positionLabel:'middle-upper'})
+ };
+ return {state,layout};
+}
+function singleFamily(purpose='primary_wintering',count=3){
+ const bodies=Object.fromEntries(['b1','b2','b3','b4'].map(id=>[id,makeBody(id)]));
+ const openings=[{id:'o1',bodyId:'b2',diameterMm:50},{id:'o2',bodyId:'b3',diameterMm:50}];
+ const family={id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'identified',currentQueenId:'q1'};
+ const bodyIds=['b1','b2','b3','b4'].slice(0,count);
+ const layout={
+  schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SINGLE_FAMILY,purpose,
+  sections:[{id:'s-combined',position:'combined',familyId:'f1',broodBodyIds:bodyIds,upperBroodBodyId:bodyIds.at(-1),openings}],
+  stacks:[{id:'combined',position:'combined',sectionIds:['s-combined'],bottomItemId:'bottom'}],
+  technicalConnections:[],meshDiaphragms:[],temporaryQueenIsolation:[],closedOpenings:[]
+ };
+ const items={bottom:makeItem('bottom','bottom',{type:'hive',hiveId:'h1',stackId:'combined'})};
+ if(purpose==='primary_wintering'){
+  layout.closuresConfirmed=true;
+  layout.closedOpenings=[
+   {itemId:'p1',bodyId:'b2',openingId:'o1'},
+   {itemId:'p2',bodyId:'b3',openingId:'o2'}
+  ];
+  items.p1=makeItem('p1','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'});
+  items.p2=makeItem('p2','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o2'});
+ }
+ return {layout,state:{hives:[{id:'h1',profileId:PROFILE}],families:[family],queens:[{id:'q1',familyId:'f1',status:'current'}],equipmentInventory:{bodies,items,itemEvents:[]},sectionalLayouts:[layout],layouts:{}}};
+}
+function validateAll(state){
+ const errors=[...Layout.inspect(state),...Equipment.inspect(state),...Equipment.validateReferences(state)];
+ return errors;
+}
+
+test('accepts three side-by-side sections with explicit bodies, openings, bottoms and two technical connections',()=>{
+ const {state}=sideBySide(),before=JSON.stringify(state);
+ assert.deepEqual(validateAll(state),[]);
+ assert.equal(JSON.stringify(state),before,'validation must not mutate the physical state');
+});
+
+test('rejects a missing explicit upper body instead of inferring the last array element',()=>{
+ const {state,layout}=sideBySide();
+ delete layout.sections[1].upperBroodBodyId;
+ assert.ok(Layout.inspect(state).some(error=>error.code==='section_upper_body_reference_required'));
+});
+
+test('rejects duplicate brood-body ownership and legacy layout overlap',()=>{
+ const duplicate=sideBySide();
+ duplicate.layout.sections[1].broodBodyIds[0]='b2';
+ assert.ok(Layout.inspect(duplicate.state).some(error=>error.code==='section_body_duplicate'));
+ const legacy=sideBySide();
+ legacy.state.layouts.h1={corpusIds:{A:'b2'}};
+ assert.ok(Layout.inspect(legacy.state).some(error=>error.code==='section_body_also_in_legacy_layout'));
+});
+
+test('requires a common colony group and valid queen identity references',()=>{
+ const group=sideBySide();group.state.families[2].colonyGroupId='other';
+ assert.ok(Layout.inspect(group.state).some(error=>error.code==='section_colony_group_mismatch'));
+ const queen=sideBySide();queen.state.families[0].currentQueenId='missing';
+ assert.ok(Layout.inspect(queen.state).some(error=>error.code==='section_family_current_queen_invalid'));
+});
+
+test('technical connections require the two actual openings and the buffer corridor',()=>{
+ const buffer=sideBySide();buffer.layout.technicalConnections[0].bufferCorridorPresent=false;
+ assert.ok(Layout.inspect(buffer.state).some(error=>error.code==='technical_connection_buffer_required'));
+ const opening=sideBySide();opening.layout.technicalConnections[0].openings[1].openingId='missing';
+ assert.ok(Layout.inspect(opening.state).some(error=>error.code==='technical_connection_opening_reference_invalid'));
+});
+
+test('alternative wintering accepts [2,1,1] with the two-body family in any vertical position',()=>{
+ for(const position of ['lower','middle','upper']){
+  const {state}=alternativeWintering(position);
+  assert.deepEqual(validateAll(state),[],position);
+ }
+});
+
+test('allows a technical grid to remain in a recorded opening when no inter-family connection is active',()=>{
+ const {state,layout}=alternativeWintering('lower');
+ layout.sections[0].openings=[{id:'o-winter',bodyId:'b2',diameterMm:50}];
+ state.equipmentInventory.items.grid=makeItem('grid','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o-winter'});
+ assert.deepEqual(validateAll(state),[]);
+});
+
+test('alternative wintering rejects distributions other than [2,1,1] and requires two distinct diaphragms',()=>{
+ const distribution=alternativeWintering('lower');
+ distribution.layout.sections[1].broodBodyIds.push('b3');
+ assert.ok(Layout.inspect(distribution.state).some(error=>error.code==='wintering_body_distribution_invalid'));
+ const diaphragms=alternativeWintering('lower');
+ diaphragms.layout.meshDiaphragms[1].positionLabel='lower-middle';
+ assert.ok(Layout.inspect(diaphragms.state).some(error=>error.code==='wintering_mesh_diaphragm_position_invalid'));
+});
+
+test('primary single-family wintering requires one plastic plug for every declared technical opening',()=>{
+ const {state,layout}=singleFamily();
+ assert.deepEqual(validateAll(state),[]);
+ layout.closedOpenings.pop();
+ delete state.equipmentInventory.items.p2;
+ assert.ok(Layout.inspect(state).some(error=>error.code==='winter_plastic_plug_coverage_invalid'));
+});
+
+test('primary wintering requires explicit user confirmation of technical-opening closure',()=>{
+ const {state,layout}=singleFamily();
+ layout.closuresConfirmed=false;
+ assert.ok(Layout.inspect(state).some(error=>error.code==='winter_technical_openings_closure_confirmation_required'));
+});
+
+test('each active technical connection requires two distinct opening references',()=>{
+ const {state,layout}=sideBySide();
+ layout.technicalConnections[0].openings.pop();
+ assert.ok(Layout.inspect(state).some(error=>error.code==='technical_connection_opening_count_invalid'));
+});
+
+test('single-family layout accepts three or four brood bodies without inventing extra bodies',()=>{
+ assert.deepEqual(validateAll(singleFamily('early_honey_merge',3).state),[]);
+ assert.deepEqual(validateAll(singleFamily('early_honey_merge',4).state),[]);
+});
+
+test('R4 accepts exactly two large excluders with FULL/HALF footprints on explicit upper bodies',()=>{
+ const {state,layout}=sideBySide();
+ state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
+ state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
+ const left=[{bodyId:'b2',coverage:'FULL'},{bodyId:'b4',coverage:'HALF'}];
+ const right=[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}];
+ state.equipmentInventory.items.hl=makeItem('hl','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:left});
+ state.equipmentInventory.items.hr=makeItem('hr','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:right});
+ layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2'],excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
+ assert.deepEqual(validateAll(state),[]);
+});
+
+test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early four-body stack',()=>{
+ const {state,layout}=sideBySide();
+ state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
+ state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
+ state.equipmentInventory.bodies.hb3=makeBody('hb3','honey');
+ state.equipmentInventory.bodies.hb4=makeBody('hb4','honey');
+ const wrong=[{bodyId:'b4',coverage:'FULL'},{bodyId:'b2',coverage:'HALF'}];
+ state.equipmentInventory.items.hl=makeItem('hl','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:wrong});
+ state.equipmentInventory.items.hr=makeItem('hr','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]});
+ layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2','hb3','hb4'],excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
+ assert.ok(Layout.inspect(state).some(error=>error.code==='honey_stack_body_count_invalid'));
+ assert.ok(Layout.inspect(state).some(error=>error.code==='section_accessory_footprint_mismatch'));
+});
+
+test('rejects malformed optional physical-layout collections instead of silently ignoring them',()=>{
+ const {state,layout}=sideBySide();
+ layout.meshDiaphragms={bad:true};
+ assert.ok(Layout.inspect(state).some(error=>error.code==='sectional_layout_array_invalid'&&error.details.field==='meshDiaphragms'));
+});
+
+test('legacy states without sectional layouts remain valid and are not rewritten',()=>{
+ const state={hives:[{id:'old'}],families:[],equipmentInventory:{bodies:{},items:{},itemEvents:[]}};
+ const before=JSON.stringify(state);
+ assert.deepEqual(Layout.inspect(state),[]);
+ assert.equal(JSON.stringify(state),before);
+});
+
+test('rejects duplicate layout identity and duplicate physical item references across layouts',()=>{
+ const first=sideBySide();
+ const second=sideBySide();
+ second.layout.id='layout-2';
+ second.layout.hiveId='h2';
+ second.state.hives.push({id:'h2',profileId:PROFILE});
+ second.state.sectionalLayouts=[first.layout,second.layout];
+ second.state.equipmentInventory=first.state.equipmentInventory;
+ second.state.families=first.state.families;
+ second.state.queens=first.state.queens;
+ assert.ok(Layout.inspect(second.state).some(error=>error.code==='sectional_layout_item_reused'));
+});

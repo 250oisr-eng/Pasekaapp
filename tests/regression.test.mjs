@@ -9,6 +9,7 @@ const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.met
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
 const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
+const sectionalPhysicalLayoutSource = await readFile(new URL('../js/sectional-physical-layout.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -19,6 +20,7 @@ new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
 new Function('window', equipmentItemsSource)(appWindow);
+new Function('window', sectionalPhysicalLayoutSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -47,6 +49,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
   deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
+  deps.PasekaSectionalPhysicalLayout ||= appWindow.PasekaSectionalPhysicalLayout;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -3514,5 +3517,57 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v308/);
+ assert.match(sw,/paseka-shell-v309/);
+});
+
+
+test('save fails closed when a sectional physical layout is invalid',async()=>{
+ const state={meta:{revisionId:'old'},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},sectionalLayouts:[{id:'broken'}]};
+ let persisted=false;const alerts=[];
+ const save=loadFunction('save',{
+  S:state,uid:()=> 'new-revision',saveQueue:Promise.resolve(),
+  PasekaSectionalPhysicalLayout:{inspect:()=>[{code:'sectional_layout_invalid'}]},
+  persistSnapshot:async()=>{persisted=true;return true},render:()=>{},alert:message=>alerts.push(message)
+ });
+ assert.equal(await save(),false);
+ assert.equal(persisted,false);
+ assert.equal(state.meta.revisionId,'old');
+ assert.match(state.meta.saveError,/физическая раскладка/);
+ assert.equal(alerts.length,1);
+});
+
+test('save includes sectionalLayouts in historical snapshots without changing schema version',async()=>{
+ const layout={id:'layout-1',hiveId:'h1'};
+ const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},sectionalLayouts:[layout]};
+ let saved=null;
+ const save=loadFunction('save',{
+  S:state,uid:()=> 'revision-1',saveQueue:Promise.resolve(),
+  PasekaSectionalPhysicalLayout:{inspect:()=>[]},
+  persistSnapshot:async snapshot=>{saved=structuredClone(snapshot);return true},
+  render:()=>{},alert:()=>{}
+ });
+ assert.equal(await save(),true);
+ assert.equal(saved.meta.schemaVersion,12);
+ assert.deepEqual(saved.snapshots[0].sectionalLayouts,[layout]);
+});
+
+test('backup validation preserves legacy states and rejects malformed sectionalLayouts',()=>{
+ const validate=loadFunction('validateBackupState');
+ const base={meta:{schemaVersion:6},hives:[],families:[],records:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[]};
+ assert.equal(validate(base),base,'legacy backups without sectionalLayouts remain compatible');
+ assert.throws(()=>validate({...base,sectionalLayouts:{bad:true}}),/физическая раскладка секционного улья/);
+});
+
+test('raw backup integrity reports malformed sectional physical layout records',()=>{
+ const state={hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],auditLog:[],aiMessages:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],layouts:{},equipmentInventory:{bodies:{},events:[]},sectionalLayouts:'invalid'};
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='sectional_layouts_not_array'));
+});
+
+test('service worker caches the sectional layout validator and increments its shell version',()=>{
+ const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
+ return sw.then(source=>{
+  assert.match(source,/paseka-shell-v309/);
+  assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
+ });
 });

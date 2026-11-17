@@ -569,6 +569,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/hive-model.js"></script>
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
+<script src="./js/sectional-physical-layout.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
@@ -743,14 +744,17 @@ function writeAutoBackup(state,expectedRevision){
 async function save(){
  const run=async()=>{
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];
- S.varroaObservations=S.varroaObservations||[];S.pesticideIncidents=S.pesticideIncidents||[];S.deadoutReviews=S.deadoutReviews||[];S.meta.schemaVersion=12;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
+ S.varroaObservations=S.varroaObservations||[];S.pesticideIncidents=S.pesticideIncidents||[];S.deadoutReviews=S.deadoutReviews||[];
+ const physicalLayoutErrors=[...PasekaEquipmentItems.inspect(S),...PasekaEquipmentItems.validateReferences(S),...PasekaSectionalPhysicalLayout.inspect(S)];
+ if(physicalLayoutErrors.length){S.meta.saveError='Инвентарь или физическая раскладка секционного улья повреждены; сохранение остановлено';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Исходные данные не перезаписаны.');return false;}
+ S.meta.schemaVersion=12;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
  let snapshot;
  try{
   const lightRecords=S.records.map(({media,...r})=>r);
   const lightPlantObservations=(S.plantObservations||[]).map(({media,...observation})=>observation);
   const lightPesticideIncidents=(S.pesticideIncidents||[]).map(({media,...incident})=>incident);
   const lightDeadoutReviews=(S.deadoutReviews||[]).map(({media,...review})=>review);
-  const historical={hives:S.hives,families:S.families,queens:S.queens,queenEvents:S.queenEvents,equipmentInventory:S.equipmentInventory,records:lightRecords,plantObservations:lightPlantObservations,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks,varroaObservations:S.varroaObservations,pesticideIncidents:lightPesticideIncidents,deadoutReviews:lightDeadoutReviews};
+  const historical={hives:S.hives,families:S.families,queens:S.queens,queenEvents:S.queenEvents,equipmentInventory:S.equipmentInventory,sectionalLayouts:S.sectionalLayouts||[],records:lightRecords,plantObservations:lightPlantObservations,layouts:S.layouts||{},extractions:S.extractions,tasks:S.tasks,varroaObservations:S.varroaObservations,pesticideIncidents:lightPesticideIncidents,deadoutReviews:lightDeadoutReviews};
   const frozenHistorical=typeof structuredClone==='function'?structuredClone(historical):JSON.parse(JSON.stringify(historical));
   const nextSnapshots=[...(S.snapshots||[]),{at:new Date().toISOString(),...frozenHistorical}].slice(-12);
   const stateForSave={...S,snapshots:nextSnapshots};
@@ -1852,6 +1856,7 @@ function validateVirtualApiary(){
  PasekaInventory.inspect(S,PasekaLabels,profileForHive).forEach(error=>add(errors,error.code,error.details));
  PasekaEquipmentItems.inspect(S).forEach(error=>add(errors,error.code,error.details));
  PasekaEquipmentItems.validateReferences(S).forEach(error=>add(errors,error.code,error.details));
+ PasekaSectionalPhysicalLayout.inspect(S).forEach(error=>add(errors,error.code,error.details));
  inspectTaskIntegrity(S.tasks).forEach(error=>add(errors,error.code,error.details));
  for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add(errors,'invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add(errors,'duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)}
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.stage!=null&&!['developing','independent'].includes(family.stage))add(errors,'invalid_family_stage',{familyId:family.id,stage:family.stage});if(family.origin!=='offshoot'&&family.stage==='developing')add(errors,'invalid_non_offshoot_stage',{familyId:family.id,origin:family.origin,stage:family.stage});if(family.stage==='independent'&&family.origin==='offshoot'&&family.establishedAt!=null&&!/^\d{4}-\d{2}-\d{2}$/.test(family.establishedAt))add(errors,'invalid_family_established_date',{familyId:family.id,date:family.establishedAt});}
@@ -3613,6 +3618,7 @@ function validateBackupState(state){
   const accessoryErrors=[...PasekaEquipmentItems.inspect(state),...PasekaEquipmentItems.validateReferences(state)];
   if(accessoryErrors.length)throw new Error('В архиве повреждён инвентарь физических принадлежностей');
  }
+ if(PasekaSectionalPhysicalLayout.inspect(state).length)throw new Error('В архиве повреждена физическая раскладка секционного улья');
  return state;
 }
 
@@ -3624,6 +3630,7 @@ function validateRawBackupIntegrity(state){
  PasekaInventory.inspect(state,PasekaLabels,profileForHive).forEach(error=>add(error.code,error.details));
  PasekaEquipmentItems.inspect(state).forEach(error=>add(error.code,error.details));
  PasekaEquipmentItems.validateReferences(state).forEach(error=>add(error.code,error.details));
+ PasekaSectionalPhysicalLayout.inspect(state).forEach(error=>add(error.code,error.details));
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  inspectQueenRegistryIntegrity(state).forEach(error=>add(error.code,error.details));
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
