@@ -745,7 +745,7 @@ async function save(){
  const run=async()=>{
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];if(S.familyEvents==null&&Number(S.meta.schemaVersion||0)<14)S.familyEvents=[];if(S.sectionalTechProcesses==null&&Number(S.meta.schemaVersion||0)<15)S.sectionalTechProcesses=[];
  S.varroaObservations=S.varroaObservations||[];S.pesticideIncidents=S.pesticideIncidents||[];S.deadoutReviews=S.deadoutReviews||[];
- const physicalLayoutErrors=[...PasekaInventory.inspect(S,PasekaLabels,profileForHive),...PasekaLabels.auditFrameRegistry(S).issues.filter(issue=>issue.severity==='error').map(issue=>({code:issue.code,details:issue.details})),...PasekaEquipmentItems.inspect(S),...PasekaEquipmentItems.validateReferences(S),...PasekaSectionalPhysicalLayout.inspect(S),...PasekaFamilyLineage.inspect(S),...PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage})];
+ const physicalLayoutErrors=[...PasekaInventory.inspect(S,PasekaLabels,profileForHive),...PasekaLabels.auditFrameRegistry(S).issues.filter(issue=>issue.severity==='error').map(issue=>({code:issue.code,details:issue.details})),...PasekaEquipmentItems.inspect(S),...PasekaEquipmentItems.validateReferences(S),...PasekaSectionalPhysicalLayout.inspect(S),...PasekaFamilyLineage.inspect(S),...PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage,PasekaSectionalPhysicalLayout})];
  if(physicalLayoutErrors.length){S.meta.saveError='Данные пасеки, физическая раскладка или родословная семей повреждены; сохранение остановлено';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Исходные данные не перезаписаны.');return false;}
  S.meta.schemaVersion=15;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
  let snapshot;
@@ -1859,7 +1859,7 @@ function validateVirtualApiary(){
  const add=(list,code,details)=>list.push({code,details});
  inspectFamilyLineage(S.families).forEach(error=>add(errors,error.code,error.details));
  PasekaFamilyLineage.inspect(S).forEach(error=>add(errors,error.code,error.details));
- PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage}).forEach(error=>add(errors,error.code,error.details));
+ PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage,PasekaSectionalPhysicalLayout}).forEach(error=>add(errors,error.code,error.details));
 
  inspectQueenRegistryIntegrity(S).forEach(error=>add(errors,error.code,error.details));
  PasekaLabels.inspectLabelIntegrity(S).forEach(error=>add(errors,error.code,error.details));
@@ -3648,7 +3648,7 @@ function validateRawBackupIntegrity(state){
  PasekaSectionalPhysicalLayout.inspect(state).forEach(error=>add(error.code,error.details));
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  PasekaFamilyLineage.inspect(state).forEach(error=>add(error.code,error.details));
- PasekaSectionalOperationCoordinator.inspect(state,{PasekaFamilyLineage}).forEach(error=>add(error.code,error.details));
+ PasekaSectionalOperationCoordinator.inspect(state,{PasekaFamilyLineage,PasekaSectionalPhysicalLayout}).forEach(error=>add(error.code,error.details));
  inspectQueenRegistryIntegrity(state).forEach(error=>add(error.code,error.details));
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
  PasekaVarroa.inspectVarroaIntegrity(state).forEach(error=>add(error.code,error.details));
