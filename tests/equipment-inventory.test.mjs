@@ -221,3 +221,18 @@ test('inventory UI distinguishes sectional body locations and unknown frame acco
  const count=new Function('frameArray','layoutFor',`${match[0]};return inventoryBodyFrameCount;`)((layout,key)=>layout[key],id=>({1:[1,2,3]}));
  assert.equal(count({frames:[1,2]},{type:'sectional'}),null);
 });
+
+
+test('sectional honey pair cannot be distributed across different layouts',()=>{
+ const s=sectionalFixture();
+ s.sectionalLayouts[0].honeyStack.bodyIds=['sh1'];
+ s.sectionalLayouts.push({id:'sectional-layout-2',hiveId:'h2',profileId:'sectional-multiqueen-v1',sections:[],honeyStack:{purpose:'main',bodyIds:['sh2'],excluders:[]}});
+ assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_location_mismatch'));
+});
+
+test('sectional inventory rejects a body condition incompatible with its physical layout',()=>{
+ const s=sectionalFixture();
+ s.equipmentInventory.bodies.sb1.condition='needs_repair';
+ assert.ok(I.inspect(s,labels).some(x=>x.code==='sectional_body_not_usable'&&x.details.bodyId==='sb1'));
+ assert.equal(I.updateDetails(s,'sb2',{condition:'needs_repair'},now).error,'sectional_body_not_usable');
+});
