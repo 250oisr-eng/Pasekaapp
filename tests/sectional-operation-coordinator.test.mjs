@@ -202,6 +202,32 @@ function op06Request(prepared,overrides={}){
  const itemMoves=oldLayout.temporaryQueenIsolation.map(plug=>({itemId:plug.itemId,location:{type:'storage',label:'Склад'}}));
  return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout,itemMoves,...overrides};
 }
+function prepareOP07Fixture(){
+ const fixture=makeFixture(),deps=dependencies();
+ const started=Coordinator.completeOP04(fixture.state,request(fixture),deps);
+ if(!started.ok)throw new Error('OP-04 fixture setup failed: '+JSON.stringify(started));
+ const bodyIds=['honey1','honey2'];
+ for(const [index,id] of bodyIds.entries()){
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[]};
+  fixture.state.equipmentLabels.bodies[id]=index===0?'ААИ':'ААК';
+ }
+ fixture.state.equipmentInventory.items['ex-left']=item('ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
+ fixture.state.equipmentInventory.items['ex-right']=item('ex-right','honeyQueenExcluder',{type:'storage',label:'Склад'});
+ const oldLayout=fixture.state.sectionalLayouts[0],layout=structuredClone(oldLayout);
+ for(const stack of layout.stacks){delete stack.coverItemId;delete stack.topRiserItemId}
+ layout.honeyStack={purpose:'early',bodyIds,excluders:[{side:'left',itemId:'ex-left'},{side:'right',itemId:'ex-right'}]};
+ const itemMoves=[];
+ for(const stack of oldLayout.stacks){
+  itemMoves.push({itemId:stack.coverItemId,location:{type:'storage',label:'Склад'}});
+  itemMoves.push({itemId:stack.topRiserItemId,location:{type:'storage',label:'Склад'}});
+ }
+ itemMoves.push({itemId:'ex-left',location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'b2',coverage:'FULL'},{bodyId:'b4',coverage:'HALF'}]}});
+ itemMoves.push({itemId:'ex-right',location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]}});
+ return {fixture,deps,layout,itemMoves};
+}
+function op07Request(prepared,overrides={}){
+ return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:NOW,timingMode:'WITH_SECOND_ROW',layout:prepared.layout,itemMoves:prepared.itemMoves,bodyStorageMoves:[],...overrides};
+}
 
 test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
  const fixture=firstRowFixture(),deps=dependencies(),req=request(fixture);
@@ -557,4 +583,60 @@ test('OP-06 rolls back every removal when a later equipment move fails',()=>{
  const result=Coordinator.completeOP06(fixture.state,op06Request(prepared),dependencies({PasekaEquipmentItems:equipment}));
  assert.equal(result.ok,false);assert.equal(result.error,'op06_equipment_move_rejected');
  assert.deepEqual(fixture.state,before);
+});
+
+
+test('OP-07 atomically installs two large FULL/HALF excluders and one complete honey-body pair',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ const record=fixture.state.sectionalTechProcesses[0],op07=record.state.operations.find(row=>row.operationId==='OP-07');
+ assert.equal(op07.status,'DONE');
+ assert.equal(op07.evidence.timingMode,'WITH_SECOND_ROW');
+ assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2']);
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.excluders.length,2);
+ for(const id of ['ex-left','ex-right']){
+  const excluder=fixture.state.equipmentInventory.items[id];
+  assert.equal(excluder.location.type,'hive');
+  assert.equal(excluder.events.at(-1).type,'moved');
+ }
+ for(const id of ['honey1','honey2']){
+  const body=fixture.state.equipmentInventory.bodies[id];
+  assert.equal(body.storageLocation,undefined);
+  assert.ok(body.events.some(event=>event.operationId==='OP-07'&&event.type==='placed'));
+ }
+ for(const stack of fixture.state.sectionalLayouts[0].stacks){
+  assert.equal(stack.coverItemId,undefined);
+  assert.equal(stack.topRiserItemId,undefined);
+ }
+ assert.equal(fixture.state.auditLog.at(-1).operationId,'OP-07');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-07 requires an explicit timing variant and a complete pair of honey bodies',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
+ let result=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:null}),deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_timing_mode_required');
+ assert.deepEqual(fixture.state,before);
+ fixture.state.equipmentInventory.bodies.honey2.pairId='different-pair';
+ const invalid=structuredClone(fixture.state);
+ result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_honey_bodies_must_be_complete_pairs');
+ assert.deepEqual(fixture.state,invalid);
+});
+
+test('OP-07 rolls back body and accessory movements if an excluder move fails',()=>{
+ const prepared=prepareOP07Fixture(),{fixture}=prepared,before=structuredClone(fixture.state);
+ let moves=0;
+ const equipment={...Items,place:(state,request,makeId,now)=>{moves++;if(moves===8)return {ok:false,error:'forced_failure'};return Items.place(state,request,makeId,now)}};
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),dependencies({PasekaEquipmentItems:equipment}));
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_equipment_move_rejected');
+ assert.deepEqual(fixture.state,before);
+});
+
+test('OP-07 after OP-06 requires completed mesh removal, while alternate source timing modes may precede OP-06',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:'AFTER_OP06'}),deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_requires_completed_op06');
+ assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack,undefined);
 });
