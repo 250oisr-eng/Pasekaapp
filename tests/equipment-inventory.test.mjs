@@ -78,3 +78,59 @@ test('inventory search tokens include permanent frame codes carried by a physica
 
 test('integrity inspection detects a paired honey set split between hive and storage',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.equipmentInventory.bodies[pair.bodies[0].id].storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_split'));});
 test('integrity inspection detects a paired honey set installed across two hives',()=>{const s=fixture(),pair=I.createStockHoneyPair(s,{storageLocation:'Сарай',profile:s.hives[0].profile},labels,makeId,now);s.layouts.h1.corpusIds.H1=pair.bodies[0].id;s.layouts.h1.honeyFrames[0]=[];s.layouts.h2.corpusIds.H2=pair.bodies[1].id;s.layouts.h2.honeyFrames[1]=[];for(const body of pair.bodies)body.storageLocation='';assert.ok(I.inspect(s,labels).some(x=>x.code==='inventory_pair_location_mismatch'));});
+
+
+test('updateDetails preserves a body with a corrupt per-body event journal',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Исходная запись'},labels,makeId,now).body;
+ body.events={corrupt:true};
+ const before=JSON.stringify(s);
+ const r=I.updateDetails(s,body.id,{notes:'Изменено',storageLocation:'Новый склад',condition:'needs_repair'},'2026-11-14T12:00:00.000Z');
+ assert.equal(r.ok,false);assert.equal(r.error,'invalid_body_event_journal');assert.equal(JSON.stringify(s),before);
+});
+
+test('updateDetails is atomic when the shared event journal is corrupt',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Исходная запись'},labels,makeId,now).body;
+ s.equipmentInventory.events={corrupt:true};
+ const before=JSON.stringify(s),r=I.updateDetails(s,body.id,{notes:'Изменено',storageLocation:'Новый склад',condition:'needs_repair'},'2026-11-14T12:00:00.000Z');
+ assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
+
+test('recordSwap rejects a corrupt per-body journal without partially moving either corpus',()=>{
+ const s=fixture();I.migrate(s,makeId,now);s.equipmentInventory.bodies.b1.events={corrupt:true};
+ const before=JSON.stringify(s),r=I.recordSwap(s,{from:{hiveId:'h1',box:'1',corpusId:'b1'},to:{hiveId:'h2',box:'1'},swappedCorpusId:'b3'},now);
+ assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
+
+test('stock installation is atomic when the incoming body journal is corrupt',()=>{
+ const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ stock.events={corrupt:true};const before=JSON.stringify(s);
+ const r=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
+ assert.equal(r.ok,false);assert.equal(r.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
+
+test('legacy null body history is initialized when an inventory event is first recorded',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай',notes:'Старая запись'},labels,makeId,now).body;
+ body.events=null;
+ const r=I.updateDetails(s,body.id,{notes:'Обновлено'},now),saved=s.equipmentInventory.bodies[body.id];
+ assert.equal(r.ok,true);assert.ok(Array.isArray(saved.events));assert.equal(saved.events.at(-1).type,'details_updated');
+});
+
+test('recordSwap rolls back the first body event when the second body journal is corrupt',()=>{
+ const s=fixture();I.migrate(s,makeId,now);s.equipmentInventory.bodies.b3.events={corrupt:true};
+ const before=JSON.stringify(s),result=I.recordSwap(s,{from:{hiveId:'h1',box:'1',corpusId:'b1'},to:{hiveId:'h2',box:'1'},swappedCorpusId:'b3'},now);
+ assert.equal(result.ok,false);assert.equal(result.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
+
+test('stock installation preserves malformed frame history and aborts atomically',()=>{
+ const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ stock.frames=[{frameId:'frame-1',history:{corrupt:true}}];
+ const before=JSON.stringify(s),result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
+ assert.equal(result.ok,false);assert.equal(result.error,'transaction_failed');assert.equal(JSON.stringify(s),before);
+});
+
+test('installing a replacement body rejects a corrupt outgoing body journal without mutation',()=>{
+ const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ s.equipmentInventory.bodies.b1.events={corrupt:true};
+ const before=JSON.stringify(s),result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
+ assert.equal(result.ok,false);assert.equal(result.error,'invalid_body_event_journal');assert.equal(JSON.stringify(s),before);
+});
