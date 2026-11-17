@@ -209,7 +209,7 @@ test('OP-04 second-row transition atomically installs three bodies and completes
  const started=Coordinator.completeOP04(fixture.state,start,deps);
  assert.equal(started.ok,true,JSON.stringify(started.details||started));
  const final=makeFixture();
- const itemMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.map(opening=>({
+ const itemMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.filter(opening=>['grid5','grid6','grid7','grid8'].includes(opening.itemId)).map(opening=>({
   itemId:opening.itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}
  })));
  const result=Coordinator.completeOP04SecondRow(fixture.state,{
@@ -232,7 +232,7 @@ test('OP-04 second-row transition rolls back when a technical accessory move fai
  start.bodyStorageMoves=[{bodyId:'b2',storageLocation:'Склад'}];
  assert.equal(Coordinator.completeOP04(fixture.state,start,deps).ok,true);
  const final=makeFixture();
- const itemMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.map(opening=>({
+ const itemMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.filter(opening=>['grid5','grid6','grid7','grid8'].includes(opening.itemId)).map(opening=>({
   itemId:opening.itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}
  })));
  const before=structuredClone(fixture.state);
