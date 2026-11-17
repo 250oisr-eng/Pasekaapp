@@ -98,7 +98,10 @@ function updateDetails(state,bodyId,patch,now,getProfile){return transact(state,
 function inspect(state,labels,getProfile){
  const errors=[],inv=state?.equipmentInventory;
  if(!inv)return errors;
- const bodies=inv.bodies||{},ids=new Set(),codes=new Map();
+ const bodies=inv.bodies||{},ids=new Set(),codes=new Map(),eventIds=new Map();
+ const checkEvent=(event,source)=>{if(!event||typeof event!=='object'||Array.isArray(event)){errors.push({code:'invalid_equipment_event',details:{source}});return}if(typeof event.id!=='string'||!event.id.trim()){errors.push({code:'equipment_event_id_missing',details:{source,type:event.type||null}});return}if(eventIds.has(event.id))errors.push({code:'duplicate_equipment_event_id',details:{eventId:event.id,first:eventIds.get(event.id),duplicate:source}});else eventIds.set(event.id,source)};
+ if(inv.events!=null&&!Array.isArray(inv.events))errors.push({code:'invalid_equipment_global_event_journal'});
+ for(const [index,event] of (Array.isArray(inv.events)?inv.events:[]).entries())checkEvent(event,{journal:'global',index});
  const sectionalLayouts=Array.isArray(state.sectionalLayouts)?state.sectionalLayouts:[];
  for(const [id,b] of Object.entries(bodies)){
   if(!b||typeof b!=='object'||b.id!==id){errors.push({code:'invalid_inventory_body_identity',details:{bodyId:id}});continue}
@@ -132,7 +135,7 @@ function inspect(state,labels,getProfile){
   if(!locations.length&&!String(b.storageLocation||'').trim())errors.push({code:'inventory_body_storage_missing',details:{bodyId:id}});
   if(locations.length&&b.storageLocation&&locateBody(state,id,getProfile)?.type!=='hive_uninstalled')errors.push({code:'inventory_body_location_conflict',details:{bodyId:id,storageLocation:b.storageLocation}});
   if(b.pairId&&b.kind!=='honey')errors.push({code:'inventory_pair_non_honey',details:{bodyId:id,pairId:b.pairId}});
-  if(b.frames!=null&&!Array.isArray(b.frames))errors.push({code:'inventory_frames_invalid',details:{bodyId:id}});
+  if(b.frames!=null&&!Array.isArray(b.frames))errors.push({code:'inventory_frames_invalid',details:{bodyId:id}});if(b.events!=null&&!Array.isArray(b.events))errors.push({code:'invalid_body_event_journal',details:{bodyId:id}});else for(const [index,event] of (Array.isArray(b.events)?b.events:[]).entries())checkEvent(event,{journal:'body',bodyId:id,index});
  }
  for(const layout of sectionalLayouts){
   const honeyIds=Array.isArray(layout?.honeyStack?.bodyIds)?layout.honeyStack.bodyIds:[];
