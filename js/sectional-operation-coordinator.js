@@ -301,7 +301,7 @@ function completeOP04(state,request,deps={}){
   state:{
    phase:'DIVIDED_3_SECTIONS',layoutId:nextLayout.id,sourceFamilyId:source.id,isolationStatus:'CONNECTED',rowStage:targetBroodRows,
    sections:rows(nextLayout.sections).map(section=>({sectionId:section.id,position:section.position,familyId:section.familyId,bodyIds:section.broodBodyIds.slice(),upperBodyId:section.upperBroodBodyId})),
-   operations:[{operationId:'OP-04',status:targetBroodRows===2?'DONE':'IN_PROGRESS',...(targetBroodRows===2?{completedAt:request.occurredAt}:{startedAt:request.occurredAt,completedAt:null}),evidence:{familyEventId:split.event.id,layoutId:nextLayout.id}}]
+   operations:[{operationId:'OP-04',status:targetBroodRows===2?'DONE':'IN_PROGRESS',startedAt:request.occurredAt,...(targetBroodRows===2?{completedAt:request.occurredAt}:{completedAt:null}),evidence:{familyEventId:split.event.id,layoutId:nextLayout.id}}]
   }
  };
  draft.sectionalTechProcesses.push(record);
