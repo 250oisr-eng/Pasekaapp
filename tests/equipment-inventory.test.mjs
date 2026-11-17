@@ -129,7 +129,8 @@ test('stock installation preserves malformed frame history and aborts atomically
 });
 
 test('installing a replacement body rejects a corrupt outgoing body journal without mutation',()=>{
- const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ const s=fixture();I.migrate(s,makeId,now);
+ const stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
  s.equipmentInventory.bodies.b1.events={corrupt:true};
  const before=JSON.stringify(s),result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
  assert.equal(result.ok,false);assert.equal(result.error,'invalid_body_event_journal');assert.equal(JSON.stringify(s),before);
