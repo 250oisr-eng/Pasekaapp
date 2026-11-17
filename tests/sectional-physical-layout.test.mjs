@@ -302,8 +302,19 @@ test('single-family layout accepts three or four brood bodies without inventing 
  assert.deepEqual(validateAll(singleFamily('early_honey_merge',4).state),[]);
 });
 
+function removeHoneyStageAccessories(state,layout){
+ for(const stack of layout.stacks){
+  for(const key of ['coverItemId','topRiserItemId']){
+   const itemId=stack[key];
+   if(itemId&&state.equipmentInventory.items[itemId])state.equipmentInventory.items[itemId].location={type:'storage',label:'Склад'};
+   delete stack[key];
+  }
+ }
+}
+
 test('R4 accepts exactly two large excluders with FULL/HALF footprints on explicit upper bodies',()=>{
  const {state,layout}=sideBySide();
+ removeHoneyStageAccessories(state,layout);
  state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
  state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
  const left=[{bodyId:'b2',coverage:'FULL'},{bodyId:'b4',coverage:'HALF'}];
@@ -316,6 +327,7 @@ test('R4 accepts exactly two large excluders with FULL/HALF footprints on explic
 
 test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early four-body stack',()=>{
  const {state,layout}=sideBySide();
+ removeHoneyStageAccessories(state,layout);
  state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
  state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
  state.equipmentInventory.bodies.hb3=makeBody('hb3','honey');
