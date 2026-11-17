@@ -187,7 +187,7 @@ function inspect(state){
   if(items[event.id]||inv.bodies?.[event.id])errors.push({code:'equipment_item_event_id_collision',details:{eventId:event.id}});
   seenEventIds.add(event.id);globalById.set(event.id,event);
   if(!items[event.itemId])errors.push({code:'orphan_equipment_item_event',details:{eventId:event.id,itemId:event.itemId}});
-  else if(!Array.isArray(items[event.itemId].events)||!items[event.itemId].events.some(row=>row?.id===event.id))errors.push({code:'item_event_global_mismatch',details:{itemId:event.itemId,eventId:event.id}});
+  else if(!isObject(items[event.itemId])||!Array.isArray(items[event.itemId].events)||!items[event.itemId].events.some(row=>row?.id===event.id))errors.push({code:'item_event_global_mismatch',details:{itemId:event.itemId,eventId:event.id}});
  }
  for(const [id,item] of Object.entries(items)){
   if(!isObject(item)||item.id!==id){errors.push({code:'invalid_item_identity',details:{itemId:id}});continue}
@@ -198,9 +198,15 @@ function inspect(state){
   else {
    if(!item.events.length||item.events[0]?.type!=='registered')errors.push({code:'item_registration_event_required',details:{itemId:id}});
    for(const event of item.events){
-   if(!isObject(event)||event.itemId!==id||!nonEmpty(event.id)||!eventTypes.has(event.type)||!Number.isFinite(Date.parse(event.at||'')))errors.push({code:'invalid_item_event',details:{itemId:id}});
-   else if(!globalById.has(event.id)||globalById.get(event.id).itemId!==id)errors.push({code:'item_event_global_mismatch',details:{itemId:id,eventId:event.id}});
+    if(!isObject(event)||event.itemId!==id||!nonEmpty(event.id)||!eventTypes.has(event.type)||!Number.isFinite(Date.parse(event.at||'')))errors.push({code:'invalid_item_event',details:{itemId:id}});
+    else if(!globalById.has(event.id)||globalById.get(event.id).itemId!==id)errors.push({code:'item_event_global_mismatch',details:{itemId:id,eventId:event.id}});
    }
+   const registered=item.events[0];
+   const lastLocationEvent=[...item.events].reverse().find(event=>event.type==='moved')||registered;
+   const expectedLocation=lastLocationEvent?.type==='moved'?lastLocationEvent.to:lastLocationEvent?.location;
+   if(expectedLocation&&JSON.stringify(item.location)!==JSON.stringify(expectedLocation))errors.push({code:'item_location_history_mismatch',details:{itemId:id}});
+   const lastConditionEvent=[...item.events].reverse().find(event=>event.type==='condition_changed');
+   if((lastConditionEvent?.to||'good')!==item.condition)errors.push({code:'item_condition_history_mismatch',details:{itemId:id,condition:item.condition}});
   }
   const location=item.location;
   if(location?.type==='hive'&&['repair','retired'].includes(item.condition))errors.push({code:'unusable_item_installed',details:{itemId:id,condition:item.condition}});
