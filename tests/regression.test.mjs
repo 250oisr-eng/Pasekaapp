@@ -1997,6 +1997,26 @@ test('schema 13 transitional backups migrate without dropping an existing family
  assert.deepEqual(state.familyEvents,[event]);
 });
 
+test('schema 14 migration preserves a pre-existing sectional tech-process collection',()=>{
+ const process={id:'preexisting-process',hiveId:'h1',state:{operations:[]}};
+ const state={meta:{schemaVersion:14},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[process],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const before=structuredClone(state.sectionalTechProcesses);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,15);
+ assert.deepEqual(state.sectionalTechProcesses,before);
+ assert.equal(migrate(),false);
+});
+
+test('schema 14 migration rejects malformed pre-existing sectional tech-process data without replacing it',()=>{
+ const malformed={not:'an array'};
+ const state={meta:{schemaVersion:14},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:malformed,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'unused'});
+ assert.throws(()=>migrate(),/Повреждён реестр технологических процессов/);
+ assert.deepEqual(state,before);
+});
+
 test('migration refuses malformed pre-existing family event data without replacing it',()=>{
  const malformed={not:'an array'};
  const state={meta:{schemaVersion:12},hives:[],families:[],queens:[],queenEvents:[],familyEvents:malformed,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
