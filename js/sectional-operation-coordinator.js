@@ -221,6 +221,14 @@ function inspect(state,deps={}){
    for(const error of coverageErrors)add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
    const itemIds=installedPlugs.map(row=>row?.itemId).sort(),openingIds=installedPlugs.map(row=>row?.openingId).sort();
    if(JSON.stringify(itemIds)!==JSON.stringify(rows(op05.evidence?.installedItemIds).slice().sort())||JSON.stringify(openingIds)!==JSON.stringify(rows(op05.evidence?.openingIds).slice().sort()))add('sectional_tech_process_op05_evidence_mismatch',{id:record.id});
+   const movementEvidence=rows(op05.evidence?.itemMovementEventIds);
+   if(movementEvidence.length!==installedPlugs.length)add('sectional_tech_process_op05_movement_evidence_count_invalid',{id:record.id});
+   for(const plug of installedPlugs){
+    const evidence=movementEvidence.find(row=>row?.itemId===plug?.itemId),item=state.equipmentInventory?.items?.[plug?.itemId];
+    const event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===plug?.itemId);
+    const target={type:'hive',hiveId:record.hiveId,bodyId:plug?.bodyId,openingId:plug?.openingId};
+    if(!evidence||!event||!globalEvent||event.type!=='moved'||event.at!==op05.completedAt||event.from?.type!=='storage'||!sameLocation(event.to,target))add('sectional_tech_process_op05_movement_evidence_invalid',{id:record.id,itemId:plug?.itemId??null});
+   }
    const days=calendarDayDifference(op05.completedAt,operation?.startedAt);
    if(days==null||days<8||days>11||op05.evidence?.daysAfterDivision!==days)add('sectional_tech_process_op05_timing_invalid',{id:record.id,daysAfterDivision:days,evidenceDays:op05.evidence?.daysAfterDivision??null});
   }
@@ -446,7 +454,8 @@ function completeOP05(state,request,deps={}){
  }
  const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
  const installed=rows(nextLayout.temporaryQueenIsolation);
- nextRecord.state.operations.push({operationId:'OP-05',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,standLevelConfirmed:true,installedItemIds:installed.map(row=>row.itemId).sort(),openingIds:installed.map(row=>row.openingId).sort(),daysAfterDivision}});
+ const itemMovementEventIds=installed.map(plug=>({itemId:plug.itemId,eventId:rows(draft.equipmentInventory?.items?.[plug.itemId]?.events).at(-1)?.id??null})).sort((a,b)=>a.itemId.localeCompare(b.itemId));
+ nextRecord.state.operations.push({operationId:'OP-05',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,standLevelConfirmed:true,installedItemIds:installed.map(row=>row.itemId).sort(),openingIds:installed.map(row=>row.openingId).sort(),itemMovementEventIds,daysAfterDivision}});
  nextRecord.updatedAt=request.occurredAt;
  const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...inspect(draft,deps)];
  if(validationErrors.length)return fail('op05_transaction_validation_failed',validationErrors);
