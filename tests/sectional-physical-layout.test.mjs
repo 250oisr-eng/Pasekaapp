@@ -18,6 +18,9 @@ function makeItem(id,kind,location){
 function makeBody(id,kind='brood'){
  return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10}};
 }
+function honeyFrames(id){
+ return Array.from({length:10},(_,index)=>({frameId:id+'-frame-'+(index+1),combType:'drawn_comb',history:[]}));
+}
 function baseFamilies(){
  return [
   {id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'identified',currentQueenId:'q1'},
@@ -321,7 +324,7 @@ test('R4 accepts exactly two large excluders with FULL/HALF footprints on explic
  const right=[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}];
  state.equipmentInventory.items.hl=makeItem('hl','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:left});
  state.equipmentInventory.items.hr=makeItem('hr','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:right});
- layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2'],excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
+ layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2'],framesByBody:{hb1:honeyFrames('hb1'),hb2:honeyFrames('hb2')},excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
  assert.deepEqual(validateAll(state),[]);
 });
 
@@ -335,7 +338,7 @@ test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early
  const wrong=[{bodyId:'b4',coverage:'FULL'},{bodyId:'b2',coverage:'HALF'}];
  state.equipmentInventory.items.hl=makeItem('hl','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:wrong});
  state.equipmentInventory.items.hr=makeItem('hr','honeyQueenExcluder',{type:'hive',hiveId:'h1',footprint:[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]});
- layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2','hb3','hb4'],excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
+ layout.honeyStack={purpose:'early',bodyIds:['hb1','hb2','hb3','hb4'],framesByBody:{hb1:honeyFrames('hb1'),hb2:honeyFrames('hb2'),hb3:honeyFrames('hb3'),hb4:honeyFrames('hb4')},excluders:[{side:'left',itemId:'hl'},{side:'right',itemId:'hr'}]};
  assert.ok(Layout.inspect(state).some(error=>error.code==='honey_stack_body_count_invalid'));
  assert.ok(Layout.inspect(state).some(error=>error.code==='section_accessory_footprint_mismatch'));
 });
