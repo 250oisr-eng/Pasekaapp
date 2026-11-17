@@ -73,6 +73,7 @@ function normalizeLocation(input,kind){
   const footprint=normalizeFootprint(input.footprint);
   if(!footprint||result.stackId||result.bodyId||result.openingId||result.positionLabel)return null;
   result.footprint=footprint;
+  return result;
  }else if(input.footprint!==undefined)return null;
  if(plugKinds.has(kind)||kind==='technicalQueenExcluder'){
   if(!result.bodyId||!result.openingId||result.stackId||result.positionLabel)return null;
