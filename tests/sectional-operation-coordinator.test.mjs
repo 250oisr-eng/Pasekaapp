@@ -314,7 +314,7 @@ test('OP-04 commits family split, physical layout, equipment moves and operation
  assert.equal(fixture.state.sectionalTechProcesses.length,1);
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'DONE');
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].startedAt,NOW,'direct two-row completion must retain the division start date for OP-05 timing');
- assert.equal(fixture.state.equipmentInventory.events.length,6,'every physical brood-body placement must be recorded');
+ assert.equal(fixture.state.equipmentInventory.events.length,6,'every physical brood-body placement must be recorded');assert.ok(fixture.state.equipmentInventory.events.every(event=>event.id&&event.at===NOW));assert.ok(Object.values(fixture.state.equipmentInventory.bodies).filter(row=>row.events?.some(event=>event.operationId==='OP-04')).every(row=>row.events.some(event=>event.id&&event.at===NOW)));
  assert.equal(Object.values(fixture.state.equipmentInventory.bodies).filter(row=>row.events?.some(event=>event.type==='placed'&&event.operationId==='OP-04')).length,6);
  assert.equal(fixture.state.auditLog.length,1);
  assert.equal(fixture.state.auditLog[0].type,'sectional_operation_completed');
@@ -673,7 +673,7 @@ test('OP-07 permits up to two separated foundation frames in each honey body ind
  assert.equal(composition.honey1.frames.filter(frame=>frame.combType==='wax_foundation').length,2);
  assert.equal(composition.honey2.frames.filter(frame=>frame.combType==='wax_foundation').length,2);
  assert.equal(composition.honey1.frames[3].history.at(-1).action,'corpus_from_storage');
- assert.equal(composition.honey1.frames[3].history.at(-1).to.box,'honey:honey1');
+ assert.equal(composition.honey1.frames[3].history.at(-1).to.box,'honey:honey1');assert.ok(composition.honey1.frames[3].history.at(-1).id);assert.equal(composition.honey1.frames[3].history.at(-1).at,NOW);
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 test('OP-07 distinguishes same-day second-row installation from the approximate 12-day alternative',()=>{
