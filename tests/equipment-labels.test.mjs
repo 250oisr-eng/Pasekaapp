@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
 const src=await readFile(new URL('../js/equipment-labels.js',import.meta.url),'utf8'),html=await readFile(new URL('../index.html',import.meta.url),'utf8'),sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');const win={};new Function('window',src)(win);const L=win.PasekaLabels;
-test('module loads before app and is precached',()=>{const i=html.indexOf('<script src="./js/equipment-labels.js"></script>');assert.ok(i>=0&&html.indexOf('<script>',i)>i);assert.match(sw,/paseka-shell-v\d+/);assert.ok(sw.includes('./js/equipment-labels.js'));assert.ok(html.includes('existingSchema>15')&&html.includes('from<9'));assert.match(html,/PasekaLabels\.migrateFrameUids\(S\)/)});
+test('module loads before app and is precached',()=>{const i=html.indexOf('<script src="./js/equipment-labels.js"></script>');assert.ok(i>=0&&html.indexOf('<script>',i)>i);assert.match(sw,/paseka-shell-v\d+/);assert.ok(sw.includes('./js/equipment-labels.js'));assert.ok(html.includes('existingSchema>16')&&html.includes('from<9'));assert.match(html,/PasekaLabels\.migrateEquipmentIdentities\(S\)/)});
 test('alphabet capacity is 27,000 unique symbols',()=>{assert.equal([...L.ALPHABET].length,30);assert.equal(new Set([...L.ALPHABET]).size,30);assert.equal(L.CAPACITY,27000);for(const c of ['З','В','О','И','0','1','3','8'])assert.ok(!L.ALPHABET.includes(c))});
 test('normalization handles prefixes and ambiguity',()=>{assert.equal(L.normalizeCode('Р-7КМ','frame'),'7КМ');assert.equal(L.normalizeCode('7 км','frame'),'7КМ');assert.equal(L.formatLabelCode('body','7м2'),'К-7М2');assert.equal(L.normalizeCode('ЗЗЗ','frame'),null)});
 test('frame and body namespaces generate independently',()=>{const s={meta:{},layouts:{},equipmentLabels:{bodies:{}}},a={},b={};assert.equal(L.assignFrameCode(s,a),'ААА');assert.equal(L.assignFrameCode(s,b),'ААБ');assert.equal(L.assignBodyCode(s,'c1'),'ААА')});
@@ -29,3 +29,17 @@ test('frame retirement requires a reason and does not mutate the frame on invali
 test('integrity detects duplicate permanent UIDs even when technical frame IDs are absent',()=>{const s={layouts:{a:{boxes:{1:{frames:[{frameUid:'physical-uid'}]}},honeyFrames:[]},b:{boxes:{2:{frames:[{frameUid:'physical-uid'}]}},honeyFrames:[]}}};const errors=L.inspectLabelIntegrity(s);assert.equal(errors.length,1);assert.equal(errors[0].code,'duplicate_frame_identity');assert.equal(errors[0].details.frameUid,'physical-uid')});
 test('frame registry audit reports missing UID and counts labelled, stored, retired and unlabelled entries',()=>{const s={layouts:{h:{boxes:{1:{frames:[{frameId:'a',labelCode:'7КМ'},{frameId:'empty'}]}},honeyFrames:[]}},equipmentInventory:{bodies:{stock:{frames:[{frameId:'b',labelCode:'7КН',frameUid:'uid-b'}]}},retiredFrames:{'7КР':{id:'7КР',labelCode:'7КР',retiredAt:'2026-11-13',reason:'Сломана',previousLocation:{type:'hive',hiveId:'h',box:'1'},frame:{frameId:'c',labelCode:'7КР',frameUid:'uid-c',lifecycle:'retired',retiredAt:'2026-11-13',history:[{action:'retired'}]}}}}};const audit=L.auditFrameRegistry(s);assert.deepEqual(audit.summary,{labelled:3,active:1,stored:1,retired:1,withoutPermanentCode:1,errors:0,warnings:1});assert.ok(audit.issues.some(x=>x.code==='missing_frame_uid'))});
 test('frame registry audit flags a current location that conflicts with the last movement event',()=>{const s={layouts:{h:{boxes:{1:{frames:[{frameId:'a',labelCode:'7КМ',frameUid:'uid-a',history:[{date:'2026-11-13',action:'family_transfer',from:{hiveId:'a',box:'1'},to:{hiveId:'b',box:'2'}}]}]}},honeyFrames:[]}}};const audit=L.auditFrameRegistry(s);assert.ok(audit.issues.some(x=>x.code==='frame_history_location_mismatch'));assert.equal(audit.summary.warnings,1)});
+
+test('equipment identity migration assigns permanent labels and UIDs to every active, stored and sectional object',()=>{
+ const s={meta:{},layouts:{h:{corpusIds:{1:'body-1'},boxes:{1:{frames:[{frameId:'f1'}]}},honeyFrames:[[{frameId:'fh1'}]]}},sectionalLayouts:[{sections:[{broodBodyIds:['body-2']}],honeyStack:{bodyIds:['body-3']}}],equipmentInventory:{bodies:{'body-1':{id:'body-1',frames:[]},'body-2':{id:'body-2',frames:[]},'body-3':{id:'body-3',frames:[{frameId:'stored-1'}]}}}};
+ const first=L.migrateEquipmentIdentities(s);
+ assert.deepEqual(first,{frames:3,bodies:3});
+ const all=[s.layouts.h.boxes[1].frames[0],s.layouts.h.honeyFrames[0][0],s.equipmentInventory.bodies['body-3'].frames[0]];
+ assert.ok(all.every(frame=>frame.labelCode&&typeof frame.frameUid==='string'&&frame.frameUid));
+ assert.equal(new Set(all.map(frame=>frame.labelCode)).size,3);
+ assert.equal(new Set(all.map(frame=>frame.frameUid)).size,3);
+ assert.equal(new Set(Object.values(s.equipmentLabels.bodies)).size,3);
+ assert.ok(s.equipmentInventory.bodies['body-1'].labelCode);
+ assert.deepEqual(L.migrateEquipmentIdentities(s),{frames:0,bodies:0});
+ assert.deepEqual(L.inspectLabelIntegrity(s),[]);
+});
