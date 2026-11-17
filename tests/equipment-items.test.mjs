@@ -226,3 +226,15 @@ test('malformed honey footprint is reported without throwing during inspection',
  assert.ok(E.inspect(state).some(error=>error.code==='invalid_item_location'));
  assert.ok(E.validateReferences(state).some(error=>error.code==='item_footprint_part_invalid'));
 });
+
+test('rejects accessory references to a body with the wrong profile or frame capacity',()=>{
+ const state=fixture();state.equipmentInventory.bodies.b2.spec.profileId='farrar-6x6-v1';
+ const item=register(state,'technicalQueenExcluder');
+ const result=place(state,item.item.id,{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'});
+ assert.equal(result.error,'physical_reference_invalid');
+ assert.ok(result.details.some(error=>error.code==='item_body_profile_mismatch'));
+ const state2=fixture();state2.equipmentInventory.bodies.b2.spec.framesPerBox=10;
+ const item2=register(state2,'technicalQueenExcluder');
+ const result2=place(state2,item2.item.id,{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'});
+ assert.ok(result2.details.some(error=>error.code==='item_body_frame_capacity_mismatch'));
+});
