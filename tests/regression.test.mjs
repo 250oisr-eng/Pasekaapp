@@ -3276,6 +3276,7 @@ function createFamilyMutationFixture(saveBehavior){
  const initial={meta:{schemaVersion:12,revisionId:'revision-1'},hives:[{id:'h1',number:1,desc:'Old note'}],families:[{id:'f1',hive:'h1',name:'26-1',origin:'offshoot',stage:'developing'}],layouts:{}};
  const deps={S:structuredClone(initial),renderCalls:0,alerts:[],logEvents:[],tabs:[],render(){deps.renderCalls++},alert(message){deps.alerts.push(message)},logAudit(type,payload){deps.S.auditLog=[...(deps.S.auditLog||[]),{type,payload}]},confirm:()=>true,today:()=> '2026-11-17',hname:()=> 'Улей 1',uid:()=> 'new-hive',showTab(tab){deps.tabs.push(tab)}};
  deps.save=async()=>saveBehavior(deps);
+ deps.familyStage=loadFunction('familyStage',deps);
  deps.saveFamilyMutation=loadFunction('saveFamilyMutation',deps);
  return {deps,initial};
 }
