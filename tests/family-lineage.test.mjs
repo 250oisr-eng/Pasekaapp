@@ -507,6 +507,13 @@ test('queen absence confirmation requires explicit user confirmation and never a
  assert.equal(missingOccurredAt.ok,false);
  assert.equal(missingOccurredAt.error,'queen_absence_time_required');
  assert.deepEqual(state,before);
+ const futureOccurredAt=api.confirmQueenAbsence(state,{
+  familyId:'absence-guard-2',splitEventId:split.event.id,userConfirmed:true,
+  occurredAt:'2026-04-21T10:00:00.000Z'
+ },makeId,'2026-04-20T10:00:00.000Z');
+ assert.equal(futureOccurredAt.ok,false);
+ assert.equal(futureOccurredAt.error,'queen_absence_time_in_future');
+ assert.deepEqual(state,before);
  const inventedIdentity=api.confirmQueenAbsence(state,{
   familyId:'absence-guard-2',splitEventId:split.event.id,userConfirmed:true,queenId:'q1'
  },makeId,'2026-04-20T10:00:00.000Z');
