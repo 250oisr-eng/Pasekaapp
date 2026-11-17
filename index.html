@@ -568,6 +568,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/voice-session.js"></script>
 <script src="./js/hive-model.js"></script>
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
+<script src="./js/equipment-items.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
@@ -1849,6 +1850,8 @@ function validateVirtualApiary(){
  inspectQueenRegistryIntegrity(S).forEach(error=>add(errors,error.code,error.details));
  PasekaLabels.inspectLabelIntegrity(S).forEach(error=>add(errors,error.code,error.details));
  PasekaInventory.inspect(S,PasekaLabels,profileForHive).forEach(error=>add(errors,error.code,error.details));
+ PasekaEquipmentItems.inspect(S).forEach(error=>add(errors,error.code,error.details));
+ PasekaEquipmentItems.validateReferences(S).forEach(error=>add(errors,error.code,error.details));
  inspectTaskIntegrity(S.tasks).forEach(error=>add(errors,error.code,error.details));
  for(const hive of S.hives){if(!hive?.id){add(errors,'invalid_hive_identity',{hiveNumber:hive?.number??null});continue}if(hiveIds.has(hive.id))add(errors,'duplicate_hive_id',{hiveId:hive.id,hiveNumber:hive.number});hiveIds.add(hive.id);const number=Number(hive.number);if(!Number.isInteger(number)||number<1)add(errors,'invalid_hive_number',{hiveId:hive.id,hiveNumber:hive.number??null});else if(hiveNumbers.has(number))add(errors,'duplicate_hive_number',{hiveId:hive.id,hiveNumber:number});else hiveNumbers.add(number)}
  for(const family of S.families){if(!family||typeof family!=='object'||!family.id){add(errors,'invalid_family_identity',{familyId:family?.id||null});continue}if(familyIds.has(family.id))add(errors,'duplicate_family_id',{familyId:family.id,familyCode:family.code||family.name||''});familyIds.add(family.id);if(family.stage!=null&&!['developing','independent'].includes(family.stage))add(errors,'invalid_family_stage',{familyId:family.id,stage:family.stage});if(family.origin!=='offshoot'&&family.stage==='developing')add(errors,'invalid_non_offshoot_stage',{familyId:family.id,origin:family.origin,stage:family.stage});if(family.stage==='independent'&&family.origin==='offshoot'&&family.establishedAt!=null&&!/^\d{4}-\d{2}-\d{2}$/.test(family.establishedAt))add(errors,'invalid_family_established_date',{familyId:family.id,date:family.establishedAt});}
@@ -3606,6 +3609,10 @@ function validateBackupState(state){
  for(const record of state.records)if(record.media!=null&&(!Array.isArray(record.media)||!record.media.every(isObject)))throw new Error('Повреждён список вложений записи журнала');
  if(state.extractions&&!state.extractions.every(x=>isObject(x)&&(x.items==null||(Array.isArray(x.items)&&x.items.every(isObject)))))throw new Error('Повреждён раздел откачки мёда');
  if(state.layouts)for(const layout of Object.values(state.layouts)){if(!isObject(layout))throw new Error('Повреждены данные сборки улья');if(layout.boxes!=null&&(!isObject(layout.boxes)||Object.values(layout.boxes).some(box=>!isObject(box)||(box.frames!=null&&(!Array.isArray(box.frames)||!box.frames.every(isObject))))))throw new Error('Повреждены гнездовые корпуса');if(layout.honeyFrames!=null&&(!Array.isArray(layout.honeyFrames)||!layout.honeyFrames.every(frames=>Array.isArray(frames)&&frames.every(isObject))))throw new Error('Повреждены медовые рамки');if(layout.honeyBoxInstalled!=null&&!Array.isArray(layout.honeyBoxInstalled))throw new Error('Повреждено состояние медовых корпусов');if(layout.installedBoxes!=null&&!Array.isArray(layout.installedBoxes))throw new Error('Повреждён список установленных корпусов');if(layout.winterOrder!=null&&!Array.isArray(layout.winterOrder))throw new Error('Повреждён порядок зимней колонны')}
+ if(state.equipmentInventory?.items!=null||state.equipmentInventory?.itemEvents!=null){
+  const accessoryErrors=[...PasekaEquipmentItems.inspect(state),...PasekaEquipmentItems.validateReferences(state)];
+  if(accessoryErrors.length)throw new Error('В архиве повреждён инвентарь физических принадлежностей');
+ }
  return state;
 }
 
@@ -3615,6 +3622,8 @@ function validateRawBackupIntegrity(state){
  const validDate=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const [year,month,day]=value.split('-').map(Number),date=new Date(Date.UTC(year,month-1,day));return date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day};
  PasekaLabels.inspectLabelIntegrity(state).forEach(error=>add(error.code,error.details));
  PasekaInventory.inspect(state,PasekaLabels,profileForHive).forEach(error=>add(error.code,error.details));
+ PasekaEquipmentItems.inspect(state).forEach(error=>add(error.code,error.details));
+ PasekaEquipmentItems.validateReferences(state).forEach(error=>add(error.code,error.details));
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  inspectQueenRegistryIntegrity(state).forEach(error=>add(error.code,error.details));
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
