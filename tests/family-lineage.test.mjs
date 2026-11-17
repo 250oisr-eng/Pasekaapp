@@ -329,6 +329,9 @@ test('queen confirmation rejects retired queens and does not create new queens w
  state.queens.find(q=>q.id==='q1').status='retired';
  const retired=api.confirmQueenIdentity(state,{familyId:'retired-1',queenId:'q1'},makeId,'2026-04-22T10:00:00.000Z');
  assert.equal(retired.ok,false);assert.equal(retired.error,'identity_queen_inactive');
+ const unlinked=state.families.find(f=>f.id==='f2');
+ unlinked.currentQueenId=null;unlinked.queenIdentityStatus='unresolved';
+ state.queens.find(q=>q.id==='q2').status='unknown';
  const noSplit=api.confirmQueenIdentity(state,{familyId:'f2',newQueen:{originType:'emergency_reared'}},makeId,'2026-04-22T10:05:00.000Z');
  assert.equal(noSplit.ok,false);assert.equal(noSplit.error,'identity_lineage_event_missing');
  assert.deepEqual(api.inspect(state),[]);
