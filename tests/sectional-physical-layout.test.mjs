@@ -168,6 +168,7 @@ test('OP-05 coverage helper requires actual openings before checking plugs',()=>
  const {layout}=sideBySide();
  layout.technicalConnections=[];
  assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_expected_openings_missing'));
+ assert.deepEqual(Layout.validateTemporaryQueenIsolationCoverage({...layout,mode:Layout.MODES.SINGLE_FAMILY}),[{code:'temporary_queen_coverage_requires_side_by_side',details:{}}]);
 });
 
 test('OP-05 coverage helper requires exactly one mesh plug for every actual technical opening',()=>{
