@@ -216,6 +216,7 @@ function inspect(state,deps={}){
    if(op05.status!=='DONE'||!validDate(op05.completedAt))add('sectional_tech_process_op05_status_invalid',{id:record.id,status:op05.status??null});
    if(validDate(op05.completedAt)&&validDate(operation?.completedAt)&&Date.parse(op05.completedAt)<Date.parse(operation.completedAt))add('sectional_tech_process_op05_precedes_op04_completion',{id:record.id});
    if(op05.evidence?.layoutId!==statePart.layoutId)add('sectional_tech_process_op05_layout_evidence_mismatch',{id:record.id});
+   if(op05.evidence?.standLevelConfirmed!==true)add('sectional_tech_process_op05_level_stand_confirmation_missing',{id:record.id});
    const coverageErrors=deps.PasekaSectionalPhysicalLayout?.validateTemporaryQueenIsolationCoverage?.(layout)||[{code:'temporary_queen_coverage_validator_missing'}];
    for(const error of coverageErrors)add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
    const itemIds=installedPlugs.map(row=>row?.itemId).sort(),openingIds=installedPlugs.map(row=>row?.openingId).sort();
@@ -398,6 +399,7 @@ function completeOP05(state,request,deps={}){
  const fail=(error,details)=>({ok:false,error,details:details??null});
  if(!isObject(state)||!isObject(request))return fail('invalid_request');
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ if(request.standLevelConfirmed!==true)return fail('op05_level_stand_confirmation_required');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
  if(typeof deps.makeId!=='function')return fail('id_generator_required');
@@ -444,7 +446,7 @@ function completeOP05(state,request,deps={}){
  }
  const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
  const installed=rows(nextLayout.temporaryQueenIsolation);
- nextRecord.state.operations.push({operationId:'OP-05',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,installedItemIds:installed.map(row=>row.itemId).sort(),openingIds:installed.map(row=>row.openingId).sort(),daysAfterDivision}});
+ nextRecord.state.operations.push({operationId:'OP-05',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,standLevelConfirmed:true,installedItemIds:installed.map(row=>row.itemId).sort(),openingIds:installed.map(row=>row.openingId).sort(),daysAfterDivision}});
  nextRecord.updatedAt=request.occurredAt;
  const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...inspect(draft,deps)];
  if(validationErrors.length)return fail('op05_transaction_validation_failed',validationErrors);
