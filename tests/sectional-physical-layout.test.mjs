@@ -19,9 +19,6 @@ function honeyFrames(id){return Array.from({length:10},(_,index)=>({frameId:id+'
 function makeBody(id,kind='brood'){
  return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10},...(kind==='honey'?{frames:honeyFrames(id)}:{})};
 }
-function honeyFrames(id){
- return Array.from({length:10},(_,index)=>({frameId:id+'-frame-'+(index+1),combType:'drawn_comb',history:[]}));
-}
 function baseFamilies(){
  return [
   {id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'identified',currentQueenId:'q1'},
