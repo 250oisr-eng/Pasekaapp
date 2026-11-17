@@ -818,8 +818,18 @@ async function persistSnapshot(state){
 }
 function familyStage(f){return f?.stage||(f?.origin==='offshoot'?'developing':'independent')}
 function familyStageLabel(f){const stage=familyStage(f);return stage==='developing'?'Отводок · развивается':stage==='independent'?'Самостоятельная семья':'Состояние не определено'}
-async function markOffshootIndependent(id){const f=S.families.find(x=>x.id===id);if(!f||f.origin!=='offshoot')return alert('Перевести можно только семью с происхождением «отводок».');if(familyStage(f)==='independent')return alert('Эта семья уже отмечена как самостоятельная.');if(!confirm('Подтвердить, что отводок фактически стал самостоятельной семьёй? Происхождение «отводок» и родословная сохранятся.'))return;const from=familyStage(f);f.stage='independent';f.establishedAt=today();logAudit('family_stage_changed',{hiveId:f.hive,familyId:f.id,familyName:f.name,origin:f.origin,from,to:f.stage,establishedAt:f.establishedAt});await save();}
-function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
+async function markOffshootIndependent(id){
+ const f=S.families.find(x=>x.id===id);
+ if(!f||f.origin!=='offshoot')return alert('Перевести можно только семью с происхождением «отводок».');
+ if(familyStage(f)==='independent')return alert('Эта семья уже отмечена как самостоятельная.');
+ if(!confirm('Подтвердить, что отводок фактически стал самостоятельной семьёй? Происхождение «отводок» и родословная сохранятся.'))return;
+ let previousState;
+ try{previousState=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+ catch(error){return alert('Не удалось подготовить безопасное изменение семьи: '+(error.message||error))}
+ const from=familyStage(f);f.stage='independent';f.establishedAt=today();
+ logAudit('family_stage_changed',{hiveId:f.hive,familyId:f.id,familyName:f.name,origin:f.origin,from,to:f.stage,establishedAt:f.establishedAt});
+ await saveFamilyMutation(previousState);
+}function ruPlural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many}
 function nextFamilyCode(){const yy=String(new Date().getFullYear()).slice(-2);let max=0;for(const f of S.families||[]){const m=String(f.name||'').match(/^(\d{2})-(\d+)$/);if(m&&m[1]===yy)max=Math.max(max,Number(m[2])||0);if(Number(f.familyYear)===2000+Number(yy))max=Math.max(max,Number(f.familySequence)||0)}return yy+'-'+(max+1)}
 function hname(id){const h=S.hives.find(x=>x.id===id);return h?'Улей '+(h.number||S.hives.indexOf(h)+1):'Улей'}
 function card(h){
@@ -2390,9 +2400,46 @@ async function deleteHive(id){
  }
 }
 function openNewHive(){const dlg=$('hiveDlg'),form=$('hiveForm');if(!dlg||!form){alert('Не удалось открыть создание улья: окно или форма не найдены.');return}try{$('hiveDialogTitle').textContent='Новый улей';form.reset();$('newHiveMode').value='summer';form.onsubmit=defaultHive;if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','')}catch(err){alert('Ошибка открытия окна создания улья: '+(err.message||err))}}
-function editHive(id){let h=S.hives.find(x=>x.id===id);if(!h)return;$('hiveDialogTitle').textContent=hname(id)+' · примечание';$('hiveDesc').value=h.desc||'';$('hiveDlg').showModal();$('hiveForm').onsubmit=async e=>{e.preventDefault();h.desc=$('hiveDesc').value;$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive;await save()}}
-async function defaultHive(e){e.preventDefault();S.meta=S.meta||{};const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));const h={id:uid(),number,desc:$('hiveDesc').value,profileId:'farrar-6x6-v1'};S.meta.nextHiveNumber=number+1;S.hives.push(h);const l=layoutFor(h.id);l.mode=$('newHiveMode').value;l.setupComplete=false;l.setupEditing=true;l.installedBoxes=[];l.honeyBoxInstalled=[false,false];l.winterOrder=[];selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';try{await save();$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}catch(err){alert('Не удалось сохранить улей: '+(err.message||err))}}
-$('hiveForm').onsubmit=defaultHive;
+function editHive(id){
+ let h=S.hives.find(x=>x.id===id);if(!h)return;
+ $('hiveDialogTitle').textContent=hname(id)+' · примечание';
+ $('hiveDesc').value=h.desc||'';
+ $('hiveDlg').showModal();
+ $('hiveForm').onsubmit=async e=>{
+  e.preventDefault();
+  let previousState;
+  try{previousState=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+  catch(error){return alert('Не удалось подготовить безопасное изменение улья: '+(error.message||error))}
+  h.desc=$('hiveDesc').value;
+  if(!await saveFamilyMutation(previousState))return;
+  try{$('hiveDlg').close();$('hiveForm').onsubmit=defaultHive}
+  catch(error){console.error('Примечание улья сохранено, но диалог не удалось обновить',error);try{alert('Изменение сохранено. Перезагрузи приложение, если экран не обновился.')}catch(alertError){console.error('Не удалось показать сообщение об обновлении',alertError)}}
+ };
+}async function defaultHive(e){
+ e.preventDefault();
+ const previousSelectedHiveId=selectedHiveId,previousActiveJournalHive=activeJournalHive;
+ let rollbackState;
+ try{rollbackState=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}
+ catch(error){return alert('Не удалось подготовить безопасное создание улья: '+(error.message||error))}
+ S.meta=S.meta||{};
+ const number=Math.max(Number(S.meta.nextHiveNumber)||1,...S.hives.map(h=>(Number(h.number)||0)+1));
+ const h={id:uid(),number,desc:$('hiveDesc').value,profileId:'farrar-6x6-v1'};
+ S.meta.nextHiveNumber=number+1;S.hives.push(h);
+ const l=layoutFor(h.id);l.mode=$('newHiveMode').value;l.setupComplete=false;l.setupEditing=true;l.installedBoxes=[];l.honeyBoxInstalled=[false,false];l.winterOrder=[];
+ selectedHiveId=h.id;activeJournalHive=h.id;$('hiveDialogTitle').textContent='Новый улей';
+ let saved=false,saveFailure='';
+ try{saved=await save()}catch(error){saveFailure=error?.message||'Неизвестная ошибка сохранения'}
+ if(!saved){
+  const saveError=S.meta?.saveError,failure=saveError||saveFailure;
+  S=rollbackState;selectedHiveId=previousSelectedHiveId;activeJournalHive=previousActiveJournalHive;
+  if(saveError){S.meta=S.meta||{};S.meta.saveError=saveError}
+  try{render()}catch(renderError){console.error('Не удалось обновить интерфейс после отмены создания улья',renderError)}
+  try{alert('Создание улья отменено: данные не удалось сохранить. Исходное состояние восстановлено.'+(failure?' Причина: '+failure:''))}catch(alertError){console.error('Не удалось показать сообщение об отмене создания улья',alertError)}
+  return;
+ }
+ try{$('hiveDlg').close();$('hiveForm').reset();showTab('hiveDetail')}
+ catch(error){console.error('Улей сохранён, но интерфейс не удалось обновить',error);try{alert('Улей сохранён. Интерфейс не удалось обновить; перезагрузи приложение. Не повторяй создание улья.')}catch(alertError){console.error('Не удалось показать сообщение об обновлении интерфейса',alertError)}}
+}$('hiveForm').onsubmit=defaultHive;
 function syncFamilyOrigin(){const isOffshoot=$('familyOrigin').value==='offshoot',wrap=$('familyParentWrap'),parent=$('familyParent');wrap.style.display=isOffshoot?'block':'none';parent.required=isOffshoot;if(!isOffshoot)parent.value=''}
 let transferringFamilyId='';
 function familyLineageWouldCycle(familyId,parentFamilyId){
@@ -2502,7 +2549,18 @@ async function confirmFamilyTransfer(e){
 }
 function addFamily(id){$('familyForm').reset();$('familyId').value='';$('familyDialogTitle').textContent='Новая семья';$('familyHive').value=id;$('familyName').value=nextFamilyCode();$('familyParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(f=>f.hive===id).map(f=>'<option value="'+f.id+'">'+safe(f.name)+'</option>').join('');syncFamilyOrigin();$('familyDlg').showModal()}
 function editFamily(id){const f=S.families.find(item=>item.id===id);if(!f)return alert('Семья не найдена');$('familyForm').reset();$('familyId').value=f.id;$('familyDialogTitle').textContent='Данные семьи '+(f.name||'');$('familyHive').value=f.hive;$('familyName').value=f.name||f.code||'';$('familyOrigin').value=f.origin||'family';$('familyParent').innerHTML='<option value="">Выбери исходную семью</option>'+S.families.filter(item=>item.id!==f.id).map(item=>'<option value="'+item.id+'">'+safe(item.name||item.code||'Семья')+' · '+safe(hname(item.hive))+'</option>').join('');$('familyParent').value=f.parentFamilyId||'';$('breed').value=f.breed||'Неизвестная';$('familyLine').value=f.line||'';$('queenCode').value=f.queen?.code||'';$('queenYear').value=f.queen?.year??'';$('queenSource').value=f.queen?.source||'';$('queenNotes').value=f.queen?.notes||'';syncFamilyOrigin();$('familyDlg').showModal()}
-async function saveFamilyMutation(previousState){const saved=await save();if(saved)return true;const message=S.meta?.saveError||'Изменения семьи не сохранены';S=previousState;S.meta=S.meta||{};S.meta.saveError=message;render();return false}
+async async function saveFamilyMutation(previousState){
+ let saved=false,saveFailure='';
+ try{saved=await save()}catch(error){saveFailure=error?.message||'Неизвестная ошибка сохранения'}
+ if(saved)return true;
+ const message=S.meta?.saveError||saveFailure||'Изменения семьи не сохранены';
+ S=previousState;S.meta=S.meta||{};S.meta.saveError=message;
+ try{render()}catch(error){console.error('Не удалось обновить интерфейс после отмены изменения',error)}
+ if(saveFailure){
+  try{alert('Изменения отменены: '+message)}catch(alertError){console.error('Не удалось показать сообщение об отмене изменения',alertError)}
+ }
+ return false;
+}
 function familyMutationBoundary(){}
 $('familyForm').onsubmit=async e=>{e.preventDefault();const editingId=$('familyId').value,hive=$('familyHive').value,origin=$('familyOrigin').value,parentFamilyId=origin==='offshoot'?$('familyParent').value:'';if(!S.hives.some(h=>h.id===hive))return alert('Сначала выбери существующий улей');if(!origin)return alert('Укажи происхождение семьи');let parent=null;if(origin==='offshoot'){parent=S.families.find(f=>f.id===parentFamilyId&&(editingId||f.hive===hive));if(!parent)return alert('Выбери существующую исходную семью');if(editingId&&familyLineageWouldCycle(editingId,parentFamilyId))return alert('Нельзя назначить потомка исходной семьёй: это создаст цикл в родословной');}const breed=String($('breed').value||'Неизвестная').trim(),line=String($('familyLine').value||'').trim(),queenCode=String($('queenCode').value||'').trim(),queenYear=$('queenYear').value===''?null:Number($('queenYear').value),queenSource=String($('queenSource').value||'').trim(),queenNotes=String($('queenNotes').value||'').trim();if(breed.length>100||line.length>120||queenCode.length>80||queenSource.length>160||queenNotes.length>1000)return alert('Проверь длину сведений о породе и матке');if(queenYear!==null&&(!Number.isInteger(queenYear)||queenYear<1900||queenYear>new Date().getFullYear()+1))return alert('Укажи корректный год вывода матки');const queen=queenCode||queenYear!==null||queenSource||queenNotes?{code:queenCode||null,year:queenYear,source:queenSource||null,notes:queenNotes||null}:null;let previousState;try{previousState=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S))}catch(error){return alert('Не удалось подготовить безопасное изменение семьи: '+(error.message||error))}if(editingId){const family=S.families.find(f=>f.id===editingId);if(!family)return alert('Семья не найдена');const before={breed:family.breed||null,line:family.line||null,queen:family.queen||null,origin:family.origin||null,parentFamilyId:family.parentFamilyId||null};const previousOrigin=family.origin;family.breed=breed;family.line=line||null;family.queen=queen;family.origin=origin;family.parentFamilyId=parentFamilyId||null;if(origin!=='offshoot'){family.parentFamilyId=null;family.stage='independent';delete family.establishedAt}else if(previousOrigin!=='offshoot'){family.stage='developing';delete family.establishedAt}logAudit('family_provenance_updated',{hiveId:family.hive,familyId:family.id,familyName:family.name,before,after:{breed,line:family.line,queen,origin,parentFamilyId:family.parentFamilyId}})}else{const code=nextFamilyCode(),year=new Date().getFullYear(),sequence=Number(code.split('-')[1]),family={id:uid(),hive,name:code,familyYear:year,familySequence:sequence,breed,line:line||null,queen,origin,parentFamilyId:parentFamilyId||null,stage:origin==='offshoot'?'developing':'independent'};S.families.push(family);logAudit('family_created',{hiveId:hive,familyId:family.id,familyName:code,origin,parentFamilyId:parentFamilyId||null,box:null})}if(await saveFamilyMutation(previousState))$('familyDlg').close()}
 function prepareRecordForm(){pendingRecordMedia=[];$('mediaPreview').innerHTML='';$('existingMedia').innerHTML='';$('rmedia').value='';$('capturePhoto').value='';$('captureVideo').value='';$('rhive').disabled=false;$('rhive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('rhive').onchange=fillFamilies}
