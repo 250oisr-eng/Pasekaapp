@@ -143,6 +143,20 @@ function validateAll(state){
  return errors;
 }
 
+test('rejects an installed brood body with fewer frames than its capacity',()=>{
+ const {state}=sideBySide();
+ state.equipmentInventory.bodies.b1.frames.pop();
+ const errors=Layout.inspect(state);
+ assert.ok(errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='b1'&&error.details.expected===6&&error.details.actual===5));
+});
+
+test('rejects an installed brood body with more frames than its capacity',()=>{
+ const {state}=sideBySide();
+ state.equipmentInventory.bodies.b1.frames.push({frameId:'b1-extra-frame',history:[]});
+ const errors=Layout.inspect(state);
+ assert.ok(errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='b1'&&error.details.expected===6&&error.details.actual===7));
+});
+
 test('accepts the confirmed first OP-04 row with three separate bottoms, top risers and covers',()=>{
  const {state,layout}=sideBySide();
  layout.broodRows=1;
