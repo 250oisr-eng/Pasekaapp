@@ -313,3 +313,15 @@ test('rejects duplicate layout identity and duplicate physical item references a
  second.state.queens=first.state.queens;
  assert.ok(Layout.inspect(second.state).some(error=>error.code==='sectional_layout_item_reused'));
 });
+
+
+test('OP-05 coverage helper is pure and derives its expected set from the actual layout',()=>{
+ const {layout}=sideBySide();
+ const openingRefs=layout.technicalConnections.flatMap(connection=>connection.openings);
+ layout.temporaryQueenIsolation=openingRefs.map((ref,index)=>({bodyId:ref.bodyId,openingId:ref.openingId,itemId:'mesh-'+index}));
+ const before=JSON.stringify(layout);
+ assert.deepEqual(Layout.validateTemporaryQueenIsolationCoverage(layout),[]);
+ assert.equal(JSON.stringify(layout),before);
+ layout.technicalConnections[0].openings[0].openingId='opening-renamed';
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_plug_coverage_missing'&&error.details.openingId==='opening-renamed'));
+});
