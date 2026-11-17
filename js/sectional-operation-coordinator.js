@@ -254,7 +254,7 @@ function inspect(state,deps={}){
    if(JSON.stringify(itemIds)!==JSON.stringify(rows(op05.evidence?.installedItemIds).slice().sort())||JSON.stringify(openingIds)!==JSON.stringify(rows(op05.evidence?.openingIds).slice().sort()))add('sectional_tech_process_op05_evidence_mismatch',{id:record.id});
    const movementEvidence=rows(op05.evidence?.itemMovementEventIds);
    if(movementEvidence.length!==historicalPlugs.length)add('sectional_tech_process_op05_movement_evidence_count_invalid',{id:record.id});
-   for(const plug of installedPlugs){
+   for(const plug of historicalPlugs){
     const evidence=movementEvidence.find(row=>row?.itemId===plug?.itemId),item=state.equipmentInventory?.items?.[plug?.itemId];
     const event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===plug?.itemId);
     const target={type:'hive',hiveId:record.hiveId,bodyId:plug?.bodyId,openingId:plug?.openingId};
