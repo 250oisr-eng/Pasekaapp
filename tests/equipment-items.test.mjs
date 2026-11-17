@@ -146,11 +146,11 @@ test('duplicate event IDs make a write fail without mutating existing data',()=>
  assert.equal(result.error,'duplicate_or_invalid_item_event_id');
  assert.equal(JSON.stringify(state),before);
 });
-test('bounded event journals remain internally consistent after long use',()=>{
+test('full accessory audit history is preserved after more than one thousand events',()=>{
  const state=fixture(),item=E.register(state,{kind:'feeder',storageLocation:'Склад'},makeId,now).item;
  for(let i=0;i<1005;i++)assert.equal(E.updateCondition(state,{itemId:item.id,condition:i%2?'good':'needs_repair'},makeId,now).ok,true);
- assert.equal(state.equipmentInventory.itemEvents.length,1000);
- assert.ok(state.equipmentInventory.items[item.id].events.length<=300);
+ assert.equal(state.equipmentInventory.itemEvents.length,1006);
+ assert.equal(state.equipmentInventory.items[item.id].events.length,1006);
  assert.deepEqual(E.inspect(state),[]);
 });
 test('item registry module is loaded by the app and cached for offline use',()=>{
