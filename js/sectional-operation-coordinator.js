@@ -102,10 +102,10 @@ function collectEventIds(state){
  for(const record of Object.values(state?.equipmentInventory?.retiredFrames||{})){const frame=record?.frame||record;for(const event of rows(frame?.history))if(nonEmpty(event?.id))used.add(event.id)}
  return used;
 }
-function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,makeId,operationId='OP-04'){
+function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,makeId,operationId='OP-04',labels){
  const inventory=state?.equipmentInventory;
  if(!isObject(inventory)||!Array.isArray(inventory.events))return {ok:false,error:'equipment_body_event_journal_invalid'};
- if(typeof makeId!=='function'||typeof window.PasekaLabels?.appendFrameEvent!=='function')return {ok:false,error:'frame_history_api_missing'};
+ if(typeof makeId!=='function'||typeof labels?.appendFrameEvent!=='function')return {ok:false,error:'frame_history_api_missing'};
  const oldLocations=bodyLocationMap(oldLayout),newLocations=bodyLocationMap(newLayout);
  const bodyIds=new Set([...oldLocations.keys(),...newLocations.keys()]);
  const used=collectEventIds(state);
@@ -137,7 +137,7 @@ function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,make
    const frameTo=newLocation?{hiveId:newLocation.hiveId,box:frameBox(bodyId,newLocation)}:{storageLocation:storageById.get(bodyId)};
    const frameEventId=nextUniqueId(makeId,used);
    if(!frameEventId)return {ok:false,error:'frame_history_event_id_unavailable',details:{bodyId,frameId:frame.frameId??null}};
-   try{window.PasekaLabels.appendFrameEvent(frame,action,{from:frameFrom,to:frameTo,operationId},at,frameEventId)}
+   try{labels.appendFrameEvent(frame,action,{from:frameFrom,to:frameTo,operationId},at,frameEventId)}
    catch(error){return {ok:false,error:'frame_history_append_failed',details:{bodyId,frameId:frame.frameId??null,message:error?.message||String(error)}}}
   }
  }
@@ -398,7 +398,7 @@ function completeOP04(state,request,deps={}){
  },deps.makeId,request.occurredAt);
  if(!split?.ok)return fail('family_split_rejected',{cause:split?.error??null,details:split?.details??null});
  draft.sectionalLayouts.push(clone(nextLayout));
- const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId);
+ const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId,'OP-04',deps.PasekaLabels);
  if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
  for(const id of bodyPlan.newIds)delete draft.equipmentInventory.bodies[id].storageLocation;
  for(const [id,location] of bodyPlan.storageById)draft.equipmentInventory.bodies[id].storageLocation=location;
@@ -482,7 +482,7 @@ function completeOP04SecondRow(state,request,deps={}){
  let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
  draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
  draft.sectionalLayouts.push(clone(nextLayout));
- const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,new Map(),request.occurredAt,deps.makeId);
+ const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,new Map(),request.occurredAt,deps.makeId,'OP-04',deps.PasekaLabels);
  if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
  for(const bodyId of addedBodyIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
  for(const move of itemPlan.moves){
@@ -733,7 +733,7 @@ function completeOP07(state,request,deps={}){
  let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
  draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
  draft.sectionalLayouts.push(clone(nextLayout));
- const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId,'OP-07');
+ const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId,'OP-07',deps.PasekaLabels);
  if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
  for(const bodyId of bodyIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
  for(const move of itemPlan.moves){
