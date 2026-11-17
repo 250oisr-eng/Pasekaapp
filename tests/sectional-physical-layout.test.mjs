@@ -164,6 +164,12 @@ test('side-by-side mode rejects remaining plastic plugs after OP-04 setup',()=>{
  assert.ok(Layout.inspect(state).some(error=>error.code==='side_by_side_plastic_plugs_must_be_removed'));
 });
 
+test('OP-05 coverage helper requires actual openings before checking plugs',()=>{
+ const {layout}=sideBySide();
+ layout.technicalConnections=[];
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_expected_openings_missing'));
+});
+
 test('OP-05 coverage helper requires exactly one mesh plug for every actual technical opening',()=>{
  const {layout}=sideBySide();
  const openingRefs=layout.technicalConnections.flatMap(connection=>connection.openings);
