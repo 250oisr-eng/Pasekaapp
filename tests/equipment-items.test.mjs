@@ -156,3 +156,22 @@ test('full accessory audit history is preserved after more than one thousand eve
 test('item registry module is loaded by the app and cached for offline use',()=>{
  assert.ok(html.includes('<script src="./js/equipment-items.js"></script>'));
 });
+
+
+test('inspection detects a current location or condition that contradicts its audit trail',()=>{
+ const state=fixture(),item=E.register(state,{kind:'bottom',storageLocation:'Склад'},makeId,now).item;
+ item.location={type:'hive',hiveId:'h1',sectionId:'S1'};
+ assert.ok(E.inspect(state).some(error=>error.code==='item_location_history_mismatch'));
+ item.location={type:'storage',label:'Склад'};
+ item.condition='retired';
+ assert.ok(E.inspect(state).some(error=>error.code==='item_condition_history_mismatch'));
+});
+
+test('inspection requires a registration event and a global event journal',()=>{
+ const state=fixture();
+ state.equipmentInventory.items={manual:{id:'manual',kind:'cover',condition:'good',location:{type:'storage',label:'Склад'},events:[]}};
+ state.equipmentInventory.itemEvents=[];
+ assert.ok(E.inspect(state).some(error=>error.code==='item_registration_event_required'));
+ delete state.equipmentInventory.itemEvents;
+ assert.ok(E.inspect(state).some(error=>error.code==='equipment_item_event_journal_required'));
+});
