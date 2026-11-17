@@ -574,3 +574,22 @@ test('queen presence status distinguishes historical, unresolved, confirmed abse
  assert.equal(api.getQueenPresenceStatus(state,'absence-status-1'),'historical');
  assert.equal(api.getQueenPresenceStatus(state,'missing-family'),null);
 });
+
+
+test('queen absence event integrity rejects candidate queens, foreign resolution links and conflicting current queen state',()=>{
+ const {state,split}=createOP04StateForQueenAbsence('absence-integrity');
+ const result=api.confirmQueenAbsence(state,{
+  familyId:'absence-integrity-2',splitEventId:split.event.id,userConfirmed:true
+ },makeId,'2026-04-20T10:00:00.000Z');
+ assert.equal(result.ok,true);
+ const event=result.event;
+ event.candidateQueenIds=['q1'];
+ assert.ok(api.inspect(state).some(error=>error.code==='queen_absence_candidate_queens_forbidden'));
+ event.candidateQueenIds=[];
+ state.familyEvents[0].resolvesAbsenceEventId=event.id;
+ assert.ok(api.inspect(state).some(error=>error.code==='queen_identity_absence_resolution_invalid'));
+ delete state.familyEvents[0].resolvesAbsenceEventId;
+ result.family.currentQueenId='q1';
+ assert.equal(api.getQueenPresenceStatus(state,'absence-integrity-2'),'inconsistent');
+ assert.ok(api.inspect(state).some(error=>error.code==='queen_absence_active_family_state_requires_resolution'));
+});
