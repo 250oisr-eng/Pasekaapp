@@ -108,7 +108,7 @@ function inspect(state,labels,getProfile){
   const raw=state.equipmentLabels?.bodies?.[id],code=labels.normalizeCode(raw,'body');
   if(!code||code!==raw)errors.push({code:'inventory_body_label_missing_or_invalid',details:{bodyId:id,labelCode:raw||null}});
   else if(b.labelCode&&b.labelCode!==raw)errors.push({code:'inventory_body_label_mismatch',details:{bodyId:id,labelCode:raw,recordLabelCode:b.labelCode}});
-  else if(codes.has(code)&&codes.get(code)!==id)errors.push({code:'duplicate_inventory_body_label',details:{labelCode:code,bodyIds:[codes.get(code),id]});
+  else if(codes.has(code)&&codes.get(code)!==id)errors.push({code:'duplicate_inventory_body_label',details:{labelCode:code,bodyIds:[codes.get(code),id]}});
   else codes.set(code,id);
   const locations=locateAll(state,id);
   if(locations.length>1)errors.push({code:'inventory_body_duplicate_location',details:{bodyId:id,locations}});
