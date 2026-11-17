@@ -243,20 +243,20 @@ test('sectional inventory rejects a body condition incompatible with its physica
 test('corpus and global equipment movement journals are append-only and carry event IDs',()=>{
  const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
  for(let i=0;i<305;i++)assert.equal(I.updateDetails(s,body.id,{notes:'Обновление '+i},now).ok,true);
- assert.equal(body.events.length,306);
+ const saved=s.equipmentInventory.bodies[body.id];assert.equal(saved.events.length,306);
  assert.equal(s.equipmentInventory.events.length,306);
- assert.ok(body.events.every(event=>typeof event.id==='string'&&event.id));
- assert.equal(new Set(body.events.map(event=>event.id)).size,body.events.length);
+ assert.ok(saved.events.every(event=>typeof event.id==='string'&&event.id));
+ assert.equal(new Set(saved.events.map(event=>event.id)).size,saved.events.length);
 });
 test('frame movement appends a timestamped identified event without truncating older history',()=>{
  const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
  const frame=s.layouts.h1.boxes['1'].frames[0];frame.history=Array.from({length:305},(_,i)=>({id:'old-'+i,action:'legacy_event',date:'2026-01-01'}));
  const result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
  assert.equal(result.ok,true);
- assert.equal(frame.history.length,306);
- assert.equal(frame.history.at(-1).action,'corpus_to_storage');
- assert.equal(frame.history.at(-1).at,now);
- assert.ok(frame.history.at(-1).id);
+ const movedFrame=s.equipmentInventory.bodies.b1.frames[0];assert.equal(movedFrame.history.length,306);
+ assert.equal(movedFrame.history.at(-1).action,'corpus_to_storage');
+ assert.equal(movedFrame.history.at(-1).at,now);
+ assert.ok(movedFrame.history.at(-1).id);
 });
 
 test('inventory migration backfills unique IDs without changing existing movement dates',()=>{
