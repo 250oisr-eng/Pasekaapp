@@ -143,6 +143,26 @@ function validateAll(state){
  return errors;
 }
 
+test('does not require a stored body outside the physical layout to be fully framed',()=>{
+ const {state}=sideBySide();
+ const stored=makeBody('stored-body');
+ stored.storageLocation='Склад';
+ stored.frames.pop();
+ state.equipmentInventory.bodies['stored-body']=stored;
+ const errors=Layout.inspect(state);
+ assert.ok(!errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='stored-body'));
+});
+
+test('rejects an installed honey body with fewer frames than its capacity',()=>{
+ const {state,layout}=sideBySide();
+ state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
+ state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
+ state.equipmentInventory.bodies.hb1.frames.pop();
+ layout.honeyStack={purpose:'main',bodyIds:['hb1','hb2'],excluders:[]};
+ const errors=Layout.inspect(state);
+ assert.ok(errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='hb1'&&error.details.expected===10&&error.details.actual===9));
+});
+
 test('rejects an installed brood body with fewer frames than its capacity',()=>{
  const {state}=sideBySide();
  state.equipmentInventory.bodies.b1.frames.pop();
