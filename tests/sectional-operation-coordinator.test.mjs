@@ -69,7 +69,7 @@ function makeFixture(){
   equipmentInventory:{bodies,items,events:[],itemEvents:[]}
  };
  const layout={
-  schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,
+  schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,broodRows:2,
   sections:[
    {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
    {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
@@ -129,6 +129,17 @@ function request(fixture){
   layout:fixture.layout,itemMoves:fixture.itemMoves,bodyStorageMoves:[]
  };
 }
+
+test('OP-04 final completion rejects the staged one-row layout',()=>{
+ const fixture=makeFixture(),req=request(fixture);
+ req.layout.broodRows=1;
+ req.layout.sections=req.layout.sections.map(section=>({...section,broodBodyIds:[section.broodBodyIds[0]],upperBroodBodyId:section.broodBodyIds[0]}));
+ const before=structuredClone(fixture.state);
+ const result=Coordinator.completeOP04(fixture.state,req,dependencies());
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'target_section_body_count_invalid');
+ assert.deepEqual(fixture.state,before);
+});
 
 test('OP-04 commits family split, physical layout, equipment moves and operation evidence atomically',()=>{
  const fixture=makeFixture(),deps=dependencies();
