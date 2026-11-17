@@ -49,7 +49,11 @@ function makeFixture(){
   grid1:item('grid1','technicalQueenExcluder',{type:'storage',label:'Склад'}),
   grid2:item('grid2','technicalQueenExcluder',{type:'storage',label:'Склад'}),
   grid3:item('grid3','technicalQueenExcluder',{type:'storage',label:'Склад'}),
-  grid4:item('grid4','technicalQueenExcluder',{type:'storage',label:'Склад'})
+  grid4:item('grid4','technicalQueenExcluder',{type:'storage',label:'Склад'}),
+  mesh1:item('mesh1','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh2:item('mesh2','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh3:item('mesh3','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh4:item('mesh4','metalMeshPlug',{type:'storage',label:'Склад'})
  };
  const sourceLayout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SINGLE_FAMILY,purpose:'primary_wintering',closuresConfirmed:true,
@@ -152,6 +156,19 @@ function request(fixture){
   resultFamilies:[{id:'f1',hive:'h1',name:'Левая секция'},{id:'f2',hive:'h1',name:'Средняя секция'},{id:'f3',hive:'h1',name:'Правая секция'}],
   layout:fixture.layout,itemMoves:fixture.itemMoves,bodyStorageMoves:[]
  };
+}
+function prepareOP05Fixture(){
+ const fixture=makeFixture(),deps=dependencies();
+ const started=Coordinator.completeOP04(fixture.state,request(fixture),deps);
+ if(!started.ok)throw new Error('OP-04 fixture setup failed: '+JSON.stringify(started));
+ const layout=structuredClone(fixture.state.sectionalLayouts[0]);
+ const openings=layout.technicalConnections.flatMap(connection=>connection.openings);
+ layout.temporaryQueenIsolation=openings.map((opening,index)=>({bodyId:opening.bodyId,openingId:opening.openingId,itemId:'mesh'+(index+1)}));
+ const itemMoves=layout.temporaryQueenIsolation.map(plug=>({itemId:plug.itemId,location:{type:'hive',hiveId:'h1',bodyId:plug.bodyId,openingId:plug.openingId}}));
+ return {fixture,deps,layout,itemMoves};
+}
+function op05Request(prepared,overrides={}){
+ return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-25T10:00:00.000Z',layout:prepared.layout,itemMoves:prepared.itemMoves,...overrides};
 }
 
 test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
@@ -289,4 +306,78 @@ test('OP-04 can split an unresolved source family without creating a synthetic q
  assert.equal(fixture.state.queens.length,0);
  assert.deepEqual(fixture.state.familyEvents[0].candidateQueenIds,[]);
  assert.ok(fixture.state.families.filter(row=>row.recordStatus==='active').every(row=>row.queenIdentityStatus==='unresolved'));
+});
+
+
+test('OP-05 atomically installs one real metal mesh plug in every technical opening',()=>{
+ const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP05(fixture.state,op05Request(prepared),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ const record=fixture.state.sectionalTechProcesses[0],op05=record.state.operations.find(row=>row.operationId==='OP-05');
+ assert.equal(op05.status,'DONE');
+ assert.equal(op05.completedAt,'2026-11-25T10:00:00.000Z');
+ assert.equal(op05.evidence.daysAfterDivision,8);
+ assert.deepEqual(op05.evidence.openingIds,['o1','o2','o3','o4']);
+ assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,4);
+ for(const plug of fixture.state.sectionalLayouts[0].temporaryQueenIsolation){
+  const item=fixture.state.equipmentInventory.items[plug.itemId];
+  assert.deepEqual(item.location,{type:'hive',hiveId:'h1',bodyId:plug.bodyId,openingId:plug.openingId});
+  assert.equal(item.events.at(-1).type,'moved');
+ }
+ assert.equal(fixture.state.auditLog.at(-1).operationId,'OP-05');
+ assert.equal(fixture.state.auditLog.at(-1).installedItemIds.length,4);
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-05 requires explicit confirmation and leaves all state unchanged otherwise',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared,{userConfirmed:false}),prepared.deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'user_confirmation_required');
+ assert.deepEqual(prepared.fixture.state,before);
+});
+
+test('OP-05 rejects incomplete, duplicate and extra mesh plug coverage without mutation',()=>{
+ for(const mutate of [
+  layout=>layout.temporaryQueenIsolation.pop(),
+  layout=>layout.temporaryQueenIsolation.push({...layout.temporaryQueenIsolation[0],itemId:'mesh-extra'}),
+  layout=>layout.temporaryQueenIsolation.push({bodyId:'b2',openingId:'unknown',itemId:'mesh-extra'})
+ ]){
+  const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+  mutate(prepared.layout);
+  const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),prepared.deps);
+  assert.equal(result.ok,false);
+  assert.equal(result.error,'op05_mesh_plug_coverage_invalid');
+  assert.deepEqual(prepared.fixture.state,before);
+ }
+});
+
+test('OP-05 rolls back every mesh plug move if a later placement fails',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ let moves=0;
+ const equipment={...Items,place:(state,request,makeId,now)=>{moves++;if(moves===3)return {ok:false,error:'forced_failure'};return Items.place(state,request,makeId,now)}};
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),dependencies({PasekaEquipmentItems:equipment}));
+ assert.equal(result.ok,false);assert.equal(result.error,'op05_equipment_move_rejected');
+ assert.deepEqual(prepared.fixture.state,before);
+});
+
+test('OP-05 only accepts the source window from day 8 through day 11 after division',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared,{occurredAt:'2026-11-29T10:00:00.000Z'}),prepared.deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op05_outside_source_window');
+ assert.deepEqual(prepared.fixture.state,before);
+});
+
+test('OP-05 cannot change the physical layout while installing temporary plugs',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ prepared.layout.sections[0].broodBodyIds=['b3','b2'];
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),prepared.deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op05_must_not_change_existing_physical_layout');
+ assert.deepEqual(prepared.fixture.state,before);
+});
+
+test('OP-05 inspection rejects a recorded operation whose mesh plug coverage is later damaged',()=>{
+ const prepared=prepareOP05Fixture();
+ assert.equal(Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),prepared.deps).ok,true);
+ prepared.fixture.state.sectionalLayouts[0].temporaryQueenIsolation.pop();
+ assert.ok(Coordinator.inspect(prepared.fixture.state,prepared.deps).some(error=>error.code==='sectional_tech_process_temporary_queen_plug_coverage_missing'));
 });
