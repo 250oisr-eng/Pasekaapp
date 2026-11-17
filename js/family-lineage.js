@@ -3,7 +3,7 @@
 
 const EVENT_TYPES = Object.freeze([
  'split','merge','alternative_wintering_configured','placement_changed',
- 'queen_identity_confirmed','early_honey_harvest_completed'
+ 'queen_identity_confirmed','queen_absence_confirmed','early_honey_harvest_completed'
 ]);
 const POSITIONS = Object.freeze(['lower','middle','upper']);
 const clone = value => typeof structuredClone === 'function'
@@ -189,6 +189,34 @@ function inspect(state) {
     }
    }
   }
+  if (event.type === 'queen_absence_confirmed') {
+   const family=familyMap.get(event.familyId);
+   const splitEvent=events.find(row=>row?.id===event.splitEventId);
+   const priorSplit=events.slice(0,events.indexOf(event)).reverse().find(row=>row?.type==='split'&&row.resultFamilyIds?.includes(event.familyId));
+   if (!family) add('queen_absence_family_missing',{eventId:event.id,familyId:event.familyId??null});
+   if (!splitEvent||splitEvent.type!=='split'||splitEvent.operationId!=='OP-04'||!splitEvent.resultFamilyIds?.includes(event.familyId)||priorSplit?.id!==splitEvent.id)
+    add('queen_absence_split_event_invalid',{eventId:event.id,splitEventId:event.splitEventId??null,familyId:event.familyId??null});
+   if (event.operationId!=='OP-04') add('queen_absence_operation_invalid',{eventId:event.id,operationId:event.operationId??null});
+   if (event.outcome!=='not_returned_from_mating_flight') add('queen_absence_outcome_invalid',{eventId:event.id,outcome:event.outcome??null});
+   if (event.userConfirmed!==true) add('queen_absence_user_confirmation_required',{eventId:event.id});
+   if (event.queenId!=null) add('queen_absence_must_not_assign_queen_id',{eventId:event.id,queenId:event.queenId});
+   if (!Array.isArray(event.resultFamilyIds)||event.resultFamilyIds.length!==1||event.resultFamilyIds[0]!==event.familyId)
+    add('queen_absence_result_family_invalid',{eventId:event.id});
+   if (family&&event.hiveId!==family.hive) add('queen_absence_hive_mismatch',{eventId:event.id,familyId:family.id});
+   if (splitEvent&&event.hiveId!==splitEvent.hiveId) add('queen_absence_split_hive_mismatch',{eventId:event.id,splitEventId:splitEvent.id});
+   if (splitEvent&&(event.techProcessId??null)!==(splitEvent.techProcessId??null))
+    add('queen_absence_tech_process_mismatch',{eventId:event.id,splitEventId:splitEvent.id});
+   if (event.notes!=null&&(typeof event.notes!=='string'||event.notes.length>500))
+    add('queen_absence_notes_invalid',{eventId:event.id});
+   if (splitEvent&&validTime(event.occurredAt)&&validTime(splitEvent.occurredAt)&&Date.parse(event.occurredAt)<Date.parse(splitEvent.occurredAt))
+    add('queen_absence_precedes_split',{eventId:event.id,splitEventId:splitEvent.id});
+   const duplicates=events.filter(row=>row?.type==='queen_absence_confirmed'&&row.familyId===event.familyId&&row.splitEventId===event.splitEventId);
+   if (duplicates.length!==1) add('queen_absence_duplicate_confirmation',{eventId:event.id,familyId:event.familyId,splitEventId:event.splitEventId});
+   const resolutions=events.filter(row=>row?.type==='queen_identity_confirmed'&&row.resolvesAbsenceEventId===event.id);
+   if (resolutions.length>1) add('queen_absence_multiple_resolutions',{eventId:event.id});
+   if (family&&isActive(family)&&family.currentQueenId&&resolutions.length!==1)
+    add('queen_absence_active_queen_requires_resolution',{eventId:event.id,familyId:family.id,queenId:family.currentQueenId});
+  }
   if (event.type === 'queen_identity_confirmed') {
    const family = familyMap.get(event.familyId), queen = queenMap.get(event.queenId);
    if (!family) add('queen_identity_family_missing',{eventId:event.id,familyId:event.familyId??null});
@@ -198,6 +226,11 @@ function inspect(state) {
    if (family && isActive(family) && family.currentQueenId !== event.queenId && !superseded) add('queen_identity_family_link_mismatch',{eventId:event.id,familyId:family.id,queenId:event.queenId??null});
    if (family && isActive(family) && family.currentQueenId === event.queenId && queen && queen.familyId !== event.familyId) add('queen_identity_queen_link_mismatch',{eventId:event.id,queenId:queen.id,familyId:event.familyId??null});
   }
+   if (event.resolvesAbsenceEventId!=null) {
+    const absenceEvent=events.find(row=>row?.id===event.resolvesAbsenceEventId);
+    if (!absenceEvent||absenceEvent.type!=='queen_absence_confirmed'||absenceEvent.familyId!==event.familyId||events.indexOf(absenceEvent)>=events.indexOf(event))
+     add('queen_identity_absence_resolution_invalid',{eventId:event.id,absenceEventId:event.resolvesAbsenceEventId,familyId:event.familyId??null});
+   }
   if (event.type === 'placement_changed') {
    const family=familyMap.get(event.familyId);
    if (!family) add('family_placement_event_family_missing',{eventId:event.id,familyId:event.familyId??null});
@@ -370,6 +403,9 @@ function confirmQueenIdentity(state, request, makeId, now) {
    (event?.type==='split'||event?.type==='merge')&&event.resultFamilyIds?.includes(family.id)&&Array.isArray(event.candidateQueenIds)
   );
   if (!sourceEvent) return {ok:false,error:'identity_lineage_event_missing'};
+  const unresolvedAbsenceEvent=sourceEvent.type==='split'
+   ?draft.familyEvents.slice().reverse().find(event=>event?.type==='queen_absence_confirmed'&&event.familyId===family.id&&event.splitEventId===sourceEvent.id&&!draft.familyEvents.some(other=>other?.type==='queen_identity_confirmed'&&other.resolvesAbsenceEventId===event.id))
+   :null;
   let queen=null,createdDuringConfirmation=false;
   if (request?.newQueen!=null) {
    if (request.queenId) return {ok:false,error:'identity_request_ambiguous'};
@@ -414,11 +450,60 @@ function confirmQueenIdentity(state, request, makeId, now) {
   family.currentQueenId=queen.id;
   family.queenIdentityStatus='identified';
   family.queen={code:queen.code||null,year:queen.year??null,source:queen.source||null,notes:queen.notes||null,originType:queen.originType||null};
-  const event={id:eventId,type:'queen_identity_confirmed',sourceFamilyIds:[],resultFamilyIds:[family.id],candidateQueenIds:[queen.id],familyId:family.id,queenId:queen.id,previousFamilyId,originType:queen.originType||null,createdDuringConfirmation,operationId:request?.operationId||null,scenario:request?.scenario||null,techProcessId:request?.techProcessId||null,hiveId:family.hive,occurredAt:request?.occurredAt||at,createdAt:at};
+  const event={id:eventId,type:'queen_identity_confirmed',sourceFamilyIds:[],resultFamilyIds:[family.id],candidateQueenIds:[queen.id],familyId:family.id,queenId:queen.id,previousFamilyId,originType:queen.originType||null,createdDuringConfirmation,...(unresolvedAbsenceEvent?{resolvesAbsenceEventId:unresolvedAbsenceEvent.id}:{}),operationId:request?.operationId||null,scenario:request?.scenario||null,techProcessId:request?.techProcessId||null,hiveId:family.hive,occurredAt:request?.occurredAt||at,createdAt:at};
   draft.familyEvents.push(event);
   draft.queenEvents.push({id:queenEventId,type:'identity_confirmed',queenId:queen.id,familyId:family.id,previousFamilyId,originType:queen.originType||null,createdDuringConfirmation,date:request?.date||null,createdAt:at,notes:'Идентичность матки подтверждена пчеловодом.'});
   return {ok:true,family,queen,event,createdDuringConfirmation};
  });
+}
+function confirmQueenAbsence(state, request, makeId, now) {
+ return transact(state, draft => {
+  const family=draft.families.find(row=>row?.id===request?.familyId);
+  if (!family||!isActive(family)) return {ok:false,error:'queen_absence_family_missing_or_historical'};
+  if (request?.userConfirmed!==true) return {ok:false,error:'queen_absence_user_confirmation_required'};
+  if (family.currentQueenId||family.queenIdentityStatus!=='unresolved')
+   return {ok:false,error:'queen_absence_family_not_unresolved'};
+  if (request?.queenId!=null) return {ok:false,error:'queen_absence_queen_identity_must_remain_unknown'};
+  const splitEvent=draft.familyEvents.slice().reverse().find(event=>event?.type==='split'&&event.resultFamilyIds?.includes(family.id));
+  if (!splitEvent||splitEvent.id!==request?.splitEventId||splitEvent.operationId!=='OP-04')
+   return {ok:false,error:'queen_absence_OP04_split_event_required'};
+  if (splitEvent.hiveId!==family.hive) return {ok:false,error:'queen_absence_hive_mismatch'};
+  if (request?.techProcessId!=null&&(request.techProcessId??null)!==(splitEvent.techProcessId??null))
+   return {ok:false,error:'queen_absence_tech_process_mismatch'};
+  if (request?.notes!=null&&(typeof request.notes!=='string'||request.notes.length>500))
+   return {ok:false,error:'queen_absence_notes_invalid'};
+  const at=now||new Date().toISOString(),occurredAt=request?.occurredAt||at;
+  if (!validTime(occurredAt)) return {ok:false,error:'queen_absence_time_invalid'};
+  if (validTime(splitEvent.occurredAt)&&Date.parse(occurredAt)<Date.parse(splitEvent.occurredAt))
+   return {ok:false,error:'queen_absence_precedes_split'};
+  if (draft.familyEvents.some(event=>event?.type==='queen_absence_confirmed'&&event.familyId===family.id&&event.splitEventId===splitEvent.id))
+   return {ok:false,error:'queen_absence_already_confirmed'};
+  const used=new Set([...draft.families.map(row=>row?.id).filter(Boolean),...draft.queens.map(row=>row?.id).filter(Boolean),...draft.familyEvents.map(row=>row?.id).filter(Boolean),...draft.queenEvents.map(row=>row?.id).filter(Boolean)]);
+  const eventId=nextId(makeId,used);
+  if (!eventId) return {ok:false,error:'family_event_id_required'};
+  const event={
+   id:eventId,type:'queen_absence_confirmed',sourceFamilyIds:[],resultFamilyIds:[family.id],candidateQueenIds:[],
+   familyId:family.id,splitEventId:splitEvent.id,outcome:'not_returned_from_mating_flight',userConfirmed:true,
+   operationId:'OP-04',scenario:splitEvent.scenario||null,techProcessId:splitEvent.techProcessId||null,
+   hiveId:family.hive,occurredAt,createdAt:at,notes:request?.notes?.trim()||null
+  };
+  draft.familyEvents.push(event);
+  return {ok:true,family,event};
+ });
+}
+function getQueenPresenceStatus(state, familyId) {
+ if (!isObject(state)) return null;
+ const family=(Array.isArray(state.families)?state.families:[]).find(row=>row?.id===familyId);
+ if (!family) return null;
+ if (!isActive(family)) return 'historical';
+ const queen=(Array.isArray(state.queens)?state.queens:[]).find(row=>row?.id===family.currentQueenId);
+ if (family.queenIdentityStatus==='identified'&&family.currentQueenId&&queen?.familyId===family.id&&isCurrentQueen(queen))
+  return 'confirmed_present';
+ const splitEvent=(Array.isArray(state.familyEvents)?state.familyEvents:[]).slice().reverse().find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.resultFamilyIds?.includes(familyId));
+ const absenceEvent=(Array.isArray(state.familyEvents)?state.familyEvents:[]).slice().reverse().find(event=>event?.type==='queen_absence_confirmed'&&event.familyId===familyId&&event.splitEventId===splitEvent?.id);
+ if (absenceEvent&&!(state.familyEvents||[]).some(event=>event?.type==='queen_identity_confirmed'&&event.resolvesAbsenceEventId===absenceEvent.id))
+  return 'confirmed_absent';
+ return 'unresolved';
 }
 function configureAlternativeWintering(state, request, makeId, now) {
  return transact(state, draft => {
@@ -627,7 +712,7 @@ function validateOperationEvidence(state, record, operationId) {
  return errors;
 }
 window.PasekaFamilyLineage=Object.freeze({
- EVENT_TYPES,inspect,isActive,familyStatus,applySplit,applyMerge,confirmQueenIdentity,
+ EVENT_TYPES,inspect,isActive,familyStatus,applySplit,applyMerge,confirmQueenIdentity,confirmQueenAbsence,getQueenPresenceStatus,
  configureAlternativeWintering,recordPlacementChanged,recordEarlyHoneyHarvest,validateOperationEvidence
 });
 })();
