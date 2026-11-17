@@ -50,10 +50,18 @@ function makeFixture(){
   grid2:item('grid2','technicalQueenExcluder',{type:'storage',label:'Склад'}),
   grid3:item('grid3','technicalQueenExcluder',{type:'storage',label:'Склад'}),
   grid4:item('grid4','technicalQueenExcluder',{type:'storage',label:'Склад'}),
+  grid5:item('grid5','technicalQueenExcluder',{type:'storage',label:'Склад'}),
+  grid6:item('grid6','technicalQueenExcluder',{type:'storage',label:'Склад'}),
+  grid7:item('grid7','technicalQueenExcluder',{type:'storage',label:'Склад'}),
+  grid8:item('grid8','technicalQueenExcluder',{type:'storage',label:'Склад'}),
   mesh1:item('mesh1','metalMeshPlug',{type:'storage',label:'Склад'}),
   mesh2:item('mesh2','metalMeshPlug',{type:'storage',label:'Склад'}),
   mesh3:item('mesh3','metalMeshPlug',{type:'storage',label:'Склад'}),
-  mesh4:item('mesh4','metalMeshPlug',{type:'storage',label:'Склад'})
+  mesh4:item('mesh4','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh5:item('mesh5','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh6:item('mesh6','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh7:item('mesh7','metalMeshPlug',{type:'storage',label:'Склад'}),
+  mesh8:item('mesh8','metalMeshPlug',{type:'storage',label:'Склад'})
  };
  const sourceLayout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SINGLE_FAMILY,purpose:'primary_wintering',closuresConfirmed:true,
