@@ -501,6 +501,12 @@ test('queen absence confirmation requires explicit user confirmation and never a
  assert.equal(missingConfirmation.ok,false);
  assert.equal(missingConfirmation.error,'queen_absence_user_confirmation_required');
  assert.deepEqual(state,before);
+ const missingOccurredAt=api.confirmQueenAbsence(state,{
+  familyId:'absence-guard-2',splitEventId:split.event.id,userConfirmed:true
+ },makeId,'2026-04-20T10:00:00.000Z');
+ assert.equal(missingOccurredAt.ok,false);
+ assert.equal(missingOccurredAt.error,'queen_absence_time_required');
+ assert.deepEqual(state,before);
  const inventedIdentity=api.confirmQueenAbsence(state,{
   familyId:'absence-guard-2',splitEventId:split.event.id,userConfirmed:true,queenId:'q1'
  },makeId,'2026-04-20T10:00:00.000Z');
@@ -538,11 +544,13 @@ test('queen absence confirmation is unique per family and OP-04 split and cannot
  assert.equal(beforeSplit.ok,false);
  assert.equal(beforeSplit.error,'queen_absence_precedes_split');
  const first=api.confirmQueenAbsence(state,{
-  familyId:'absence-unique-1',splitEventId:split.event.id,userConfirmed:true
+  familyId:'absence-unique-1',splitEventId:split.event.id,userConfirmed:true,
+  occurredAt:'2026-04-20T10:00:00.000Z'
  },makeId,'2026-04-20T10:00:00.000Z');
  assert.equal(first.ok,true);
  const duplicate=api.confirmQueenAbsence(state,{
-  familyId:'absence-unique-1',splitEventId:split.event.id,userConfirmed:true
+  familyId:'absence-unique-1',splitEventId:split.event.id,userConfirmed:true,
+  occurredAt:'2026-04-20T10:00:00.000Z'
  },makeId,'2026-04-20T10:01:00.000Z');
  assert.equal(duplicate.ok,false);
  assert.equal(duplicate.error,'queen_absence_already_confirmed');
@@ -569,7 +577,8 @@ test('later user confirmation of a queen resolves but does not delete the queen 
 test('lineage integrity rejects a queen absence event without its user-confirmation flag',()=>{
  const {state,split}=createOP04StateForQueenAbsence('absence-invalid');
  const result=api.confirmQueenAbsence(state,{
-  familyId:'absence-invalid-3',splitEventId:split.event.id,userConfirmed:true
+  familyId:'absence-invalid-3',splitEventId:split.event.id,userConfirmed:true,
+  occurredAt:'2026-04-20T10:00:00.000Z'
  },makeId,'2026-04-20T10:00:00.000Z');
  assert.equal(result.ok,true);
  const event=state.familyEvents.find(row=>row.type==='queen_absence_confirmed');
@@ -581,7 +590,8 @@ test('queen presence status distinguishes historical, unresolved, confirmed abse
  const {state,split}=createOP04StateForQueenAbsence('absence-status');
  assert.equal(api.getQueenPresenceStatus(state,'absence-status-1'),'unresolved');
  const absence=api.confirmQueenAbsence(state,{
-  familyId:'absence-status-1',splitEventId:split.event.id,userConfirmed:true
+  familyId:'absence-status-1',splitEventId:split.event.id,userConfirmed:true,
+  occurredAt:'2026-04-20T10:00:00.000Z'
  },makeId,'2026-04-20T10:00:00.000Z');
  assert.equal(absence.ok,true);
  assert.equal(api.getQueenPresenceStatus(state,'absence-status-1'),'confirmed_absent');
@@ -594,7 +604,8 @@ test('queen presence status distinguishes historical, unresolved, confirmed abse
 test('queen absence event integrity rejects candidate queens, foreign resolution links and conflicting current queen state',()=>{
  const {state,split}=createOP04StateForQueenAbsence('absence-integrity');
  const result=api.confirmQueenAbsence(state,{
-  familyId:'absence-integrity-2',splitEventId:split.event.id,userConfirmed:true
+  familyId:'absence-integrity-2',splitEventId:split.event.id,userConfirmed:true,
+  occurredAt:'2026-04-20T10:00:00.000Z'
  },makeId,'2026-04-20T10:00:00.000Z');
  assert.equal(result.ok,true);
  const event=result.event;
