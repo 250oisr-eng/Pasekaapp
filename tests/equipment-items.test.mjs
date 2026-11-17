@@ -208,3 +208,20 @@ test('rejects duplicate and orphaned global item events',()=>{
  state2.equipmentInventory.itemEvents[0].itemId='missing';
  assert.ok(E.inspect(state2).some(error=>error.code==='invalid_equipment_item_event'));
 });
+
+test('technical grid references an opening directly and rejects a guessed connection-layer count',()=>{
+ assert.equal(E.normalizeLocation({type:'hive',hiveId:'h1',connectionId:'left-middle'},'technicalQueenExcluder'),null);
+ assert.deepEqual(E.normalizeLocation({type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'},'technicalQueenExcluder'),{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'});
+});
+
+test('requires a global event journal whenever accessory items exist',()=>{
+ const state=fixture(),item=register(state,'cover');
+ delete state.equipmentInventory.itemEvents;
+ assert.ok(E.inspect(state).some(error=>error.code==='equipment_item_global_journal_missing'));
+});
+
+test('malformed honey footprint is reported without throwing during inspection',()=>{
+ const state=fixture(),item=register(state,'honeyQueenExcluder');
+ state.equipmentInventory.items[item.item.id].location={type:'hive',hiveId:'h1',footprint:[null,{bodyId:'b4',coverage:'HALF'}]};
+ assert.ok(E.inspect(state).some(error=>error.code==='invalid_item_location'));
+});
