@@ -326,8 +326,6 @@ function applySplit(state, request, makeId, now) {
   });
   if (Array.isArray(request?.candidateQueenIds) && request.candidateQueenIds.some(id=>!candidateQueenIds.includes(id)))
    return {ok:false,error:'split_candidate_queen_not_in_source_lineage'};
-  if (request?.operationId==='OP-04' && !source.currentQueenId && candidateQueenIds.length<1)
-   return {ok:false,error:'OP04_SOURCE_QUEEN_NOT_IDENTIFIED'};
   for (const queenId of candidateQueenIds) {
    const queen=draft.queens.find(q=>q?.id===queenId);
    if (!queen) return {ok:false,error:'split_candidate_queen_missing',details:{queenId}};
@@ -618,7 +616,6 @@ function validateOperationEvidence(state, record, operationId) {
    const event=splits[0],source=state.families.find(f=>f?.id===event.sourceFamilyIds[0]);
    if (!['OP-11','OP-14'].some(id=>record.state.operations?.some(operation=>operation?.operationId===id&&operation.status==='DONE')) && !sameSet(event.resultFamilyIds,sectionFamilyIds)) add('OP04_SECTION_FAMILY_LINK_MISMATCH',{techProcessId});
    if (!source||familyStatus(source)!=='historical') add('OP04_SOURCE_FAMILY_NOT_HISTORICAL',{sourceFamilyId:event.sourceFamilyIds[0]});
-   if (event.candidateQueenIds?.length<1) add('OP04_ORIGINAL_QUEEN_CANDIDATE_MISSING',{techProcessId});
    
   }
  }
