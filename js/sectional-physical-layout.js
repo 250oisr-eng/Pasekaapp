@@ -211,8 +211,21 @@ function validate(layout,state){
     checkItem(closure.itemId,'plasticPlug',{bodyId:closure.bodyId,openingId:closure.openingId});
    }
    for(const id of openingById.keys())if(!closedIds.has(id))add('winter_plastic_plug_missing',{openingId:id});
-  }else if(rows(layout.closedOpenings).length)add('unexpected_closed_openings',{count:rows(layout.closedOpenings).length});
- }else if(rows(layout.closedOpenings).length)add('closed_openings_forbidden_for_layout_mode',{mode:layout.mode});
+  }
+ }
+ const closed=rows(layout.closedOpenings),closedIds=new Set(),closedItems=new Set();
+ if(layout.mode===MODES.SINGLE_FAMILY&&layout.purpose==='primary_wintering'&&closed.length!==openingById.size)add('winter_plastic_plug_coverage_invalid',{expected:openingById.size,actual:Array.isArray(layout.closedOpenings)?closed.length:null});
+ for(const closure of closed){
+  if(!isObject(closure)){add('closed_opening_invalid');continue}
+  if(closedIds.has(closure.openingId))add('closed_opening_duplicate',{openingId:closure.openingId??null});
+  closedIds.add(closure.openingId);
+  if(closedItems.has(closure.itemId))add('closed_opening_plug_reused',{itemId:closure.itemId??null});
+  closedItems.add(closure.itemId);
+  const opening=openingById.get(closure.openingId);
+  if(!opening||opening.bodyId!==closure.bodyId)add('closed_opening_reference_invalid',{bodyId:closure.bodyId??null,openingId:closure.openingId??null});
+  checkItem(closure.itemId,'plasticPlug',{bodyId:closure.bodyId,openingId:closure.openingId});
+ }
+ if(layout.mode===MODES.SINGLE_FAMILY&&layout.purpose==='primary_wintering')for(const id of openingById.keys())if(!closedIds.has(id))add('winter_plastic_plug_missing',{openingId:id});
  const referencedKinds=new Set(['bottom','cover','technicalQueenExcluder','honeyQueenExcluder','metalMeshPlug','plasticPlug','meshDiaphragm']);
  for(const item of Object.values(items)){
   if(!isObject(item)||item.location?.type!=='hive'||item.location.hiveId!==layout.hiveId||!referencedKinds.has(item.kind))continue;
