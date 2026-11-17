@@ -573,6 +573,19 @@ test('OP-06 removes all eight real mesh plugs atomically after 20 days and three
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 
+test('OP-05 installation movement evidence remains validated after OP-06 removes the mesh plugs',()=>{
+ const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
+ assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
+ prepareOP06Queens(fixture.state,deps);
+ const removed=Coordinator.completeOP06(fixture.state,op06Request(prepared),deps);
+ assert.equal(removed.ok,true,JSON.stringify(removed.details||removed));
+ const op05=fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-05');
+ const evidence=op05.evidence.itemMovementEventIds[0],item=fixture.state.equipmentInventory.items[evidence.itemId];
+ item.events=item.events.filter(event=>event.id!==evidence.eventId);
+ fixture.state.equipmentInventory.itemEvents=fixture.state.equipmentInventory.itemEvents.filter(event=>event.id!==evidence.eventId);
+ assert.ok(Coordinator.inspect(fixture.state,deps).some(error=>error.code==='sectional_tech_process_op05_movement_evidence_invalid'&&error.details.itemId===evidence.itemId));
+});
+
 test('OP-06 can record that optional OP-05 was skipped only with explicit absence confirmation',()=>{
  const fixture=makeFixture(),deps=dependencies();
  const started=Coordinator.completeOP04(fixture.state,request(fixture),deps);
