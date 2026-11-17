@@ -506,9 +506,9 @@ function getQueenPresenceStatus(state, familyId) {
  const splitEvent=events.slice().reverse().find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.resultFamilyIds?.includes(familyId));
  const absenceEvent=events.slice().reverse().find(event=>event?.type==='queen_absence_confirmed'&&event.userConfirmed===true&&event.outcome==='not_returned_from_mating_flight'&&event.familyId===familyId&&event.splitEventId===splitEvent?.id);
  const resolved=absenceEvent&&events.some(event=>event?.type==='queen_identity_confirmed'&&event.resolvesAbsenceEventId===absenceEvent.id);
- if (absenceEvent&&!resolved) return family.currentQueenId?'inconsistent':'confirmed_absent';
- if (family.queenIdentityStatus==='identified'&&family.currentQueenId&&queen?.familyId===family.id&&isCurrentQueen(queen))
-  return 'confirmed_present';
+ const validCurrent=family.queenIdentityStatus==='identified'&&family.currentQueenId&&queen?.familyId===family.id&&isCurrentQueen(queen);
+ if (absenceEvent&&!resolved) return family.currentQueenId||family.queenIdentityStatus!=='unresolved'?'inconsistent':'confirmed_absent';
+ if (family.currentQueenId||family.queenIdentityStatus==='identified') return validCurrent?'confirmed_present':'inconsistent';
  return 'unresolved';
 }
 function configureAlternativeWintering(state, request, makeId, now) {
