@@ -3103,3 +3103,82 @@ test('persistSnapshot reports a concurrent automatic-backup conflict instead of 
  assert.match(deps.S.meta.autoBackupError,/изменились параллельно/);
  assert.equal(deps.lastPersistedRevision,'revision-2');
 });
+
+
+test('persistSnapshot reports success when UI refresh fails after the main database commit',async()=>{
+ const state={meta:{revisionId:'revision-2'}};
+ const alerts=[];
+ const deps={
+  S:state,
+  lastPersistedRevision:'revision-1',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>true,
+  render(){throw new Error('simulated render failure')},
+  updateStorageEstimate:async()=>{},
+  alert:message=>alerts.push(message)
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'a committed IndexedDB write must remain successful');
+ assert.equal(deps.lastPersistedRevision,'revision-2');
+ assert.equal(state.meta.saveError,undefined,'post-commit UI failure must not be reported as a storage failure');
+ assert.equal(alerts.length,1);
+ assert.match(alerts[0],/Данные пасеки сохранены/);
+});
+
+test('persistSnapshot reports failure when the main transaction fails even if failure UI also throws',async()=>{
+ const state={meta:{revisionId:'revision-2'}};
+ const alerts=[];
+ const quotaError=Object.assign(new Error('simulated quota failure'),{name:'QuotaExceededError'});
+ const deps={
+  S:state,
+  lastPersistedRevision:'revision-1',
+  writeMainIfUnchanged:async()=>{throw quotaError},
+  writeAutoBackup:async()=>{throw new Error('backup must not run before the main commit')},
+  render(){throw new Error('simulated render failure')},
+  updateStorageEstimate:async()=>{},
+  alert:message=>alerts.push(message)
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),false);
+ assert.equal(deps.lastPersistedRevision,'revision-1');
+ assert.match(state.meta.saveError,/Недостаточно места/);
+ assert.equal(alerts.length,1);
+});
+
+test('persistSnapshot preserves the future-schema backup warning after a successful primary commit',async()=>{
+ const state={meta:{revisionId:'revision-2'}};
+ const futureBackupError=Object.assign(new Error('Автокопия создана более новой версией приложения. Она сохранена без изменений.'),{code:'UNSUPPORTED_SCHEMA_VERSION_BACKUP'});
+ const deps={
+  S:state,
+  lastPersistedRevision:'revision-1',
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>{throw futureBackupError},
+  render(){},
+  updateStorageEstimate:async()=>{}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true);
+ assert.equal(state.meta.autoBackupError,futureBackupError.message);
+ assert.equal(deps.S.meta.autoBackupError,futureBackupError.message);
+});
+
+
+test('persistSnapshot remains successful when storage estimate refresh rejects after commit',async()=>{
+ const state={meta:{revisionId:'revision-2'}};
+ let estimateCalls=0;
+ const deps={
+  S:state,
+  lastPersistedRevision:'revision-1',
+  autoBackupInfo:null,
+  writeMainIfUnchanged:async()=>({meta:{revisionId:'revision-1'}}),
+  writeAutoBackup:async()=>true,
+  render(){},
+  updateStorageEstimate:async()=>{estimateCalls++;throw new Error('simulated storage estimate failure')}
+ };
+ const persist=loadFunction('persistSnapshot',deps);
+ assert.equal(await persist(state),true,'post-commit storage diagnostics must not report a failed save');
+ assert.equal(deps.lastPersistedRevision,'revision-2');
+ assert.equal(state.meta.saveError,undefined);
+ assert.equal(estimateCalls,1);
+});
