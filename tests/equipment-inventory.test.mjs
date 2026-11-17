@@ -262,12 +262,13 @@ test('frame movement appends a timestamped identified event without truncating o
 test('inventory migration backfills unique IDs without changing existing movement dates',()=>{
  const s=fixture();s.equipmentInventory={bodies:{x:{id:'x',kind:'brood',condition:'good',events:[{type:'moved_to_storage',at:now,storageLocation:'Сарай'}],frames:[]}},events:[{type:'registered_at_hive',at:now,bodyId:'x'}]};
  I.migrate(s,makeId,now);
- const body=s.equipmentInventory.bodies.x;
+ const body=s.equipmentInventory.bodies.x,global=s.equipmentInventory.events.find(event=>event.bodyId==='x');
  assert.ok(body.events[0].id);assert.equal(body.events[0].at,now);
- assert.ok(s.equipmentInventory.events[0].id);assert.equal(s.equipmentInventory.events[0].at,now);
- assert.notEqual(body.events[0].id,s.equipmentInventory.events[0].id);
+ assert.ok(global.id);assert.equal(global.at,now);
+ assert.notEqual(body.events[0].id,global.id);
+ const globalCount=s.equipmentInventory.events.length;
  I.migrate(s,makeId,now);
- assert.equal(body.events.length,1);assert.equal(s.equipmentInventory.events.length,1);
+ assert.equal(s.equipmentInventory.bodies.x.events.length,1);assert.equal(s.equipmentInventory.events.length,globalCount);
 });
 
 test('inventory integrity rejects missing or duplicate IDs in corpus movement journals',()=>{
