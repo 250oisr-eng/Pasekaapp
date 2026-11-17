@@ -274,6 +274,30 @@ function inspect(state,deps={}){
    if(removed.length!==rows(op06.evidence?.itemMovementEventIds).length)add('sectional_tech_process_op06_movement_evidence_count_invalid',{id:record.id});
    if(rows(layout?.temporaryQueenIsolation).length)add('sectional_tech_process_op06_plugs_still_installed',{id:record.id});
   }
+  const op07Rows=operations.filter(row=>row?.operationId==='OP-07'),op07=op07Rows[0];
+  if(op07Rows.length>1)add('sectional_tech_process_op07_duplicate',{id:record.id,count:op07Rows.length});
+  if(op07Rows.length===1){
+   if(!completed||op07.status!=='DONE'||!validDate(op07.completedAt))add('sectional_tech_process_op07_status_invalid',{id:record.id});
+   const honey=layout?.honeyStack,bodyIds=rows(honey?.bodyIds).slice().sort(),excluders=rows(honey?.excluders);
+   if(!honey||JSON.stringify(bodyIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds).slice().sort())||JSON.stringify(excluders.map(row=>row?.itemId).sort())!==JSON.stringify(rows(op07.evidence?.excluderItemIds).slice().sort()))add('sectional_tech_process_op07_layout_evidence_mismatch',{id:record.id});
+   if(!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(op07.evidence?.timingMode))add('sectional_tech_process_op07_timing_mode_invalid',{id:record.id});
+   const expectedRemoved=rows(op07.evidence?.removedStackAccessories).map(row=>row?.itemId).sort();
+   const removedEvidence=rows(op07.evidence?.itemMovementEventIds);
+   if(expectedRemoved.length!==6||removedEvidence.length!==8)add('sectional_tech_process_op07_movement_evidence_count_invalid',{id:record.id});
+   for(const evidence of removedEvidence){
+    const item=state.equipmentInventory?.items?.[evidence?.itemId],event=rows(item?.events).find(row=>row?.id===evidence?.eventId),globalEvent=rows(state.equipmentInventory?.itemEvents).find(row=>row?.id===evidence?.eventId&&row?.itemId===evidence?.itemId);
+    if(!item||!event||!globalEvent||event.at!==op07.completedAt)add('sectional_tech_process_op07_item_movement_evidence_invalid',{id:record.id,itemId:evidence?.itemId??null});
+   }
+   const honeyBodies=rows(honey?.bodyIds);
+   for(const bodyId of honeyBodies){
+    const body=state.equipmentInventory?.bodies?.[bodyId],event=rows(state.equipmentInventory?.events).find(row=>row?.bodyId===bodyId&&row?.operationId==='OP-07'&&row?.type==='sectional_body_placed'&&row?.at===op07.completedAt);
+    if(!body||body.kind!=='honey'||!event)add('sectional_tech_process_op07_honey_body_history_invalid',{id:record.id,bodyId});
+   }
+   if(op07.evidence?.timingMode==='AFTER_OP06'){
+    const completedOp06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
+    if(!completedOp06||Date.parse(op07.completedAt)<Date.parse(completedOp06.completedAt))add('sectional_tech_process_op07_op06_dependency_invalid',{id:record.id});
+   }
+  }
   if(deps.PasekaFamilyLineage?.validateOperationEvidence&&op04.length===1&&(pending||completed)){
    for(const error of deps.PasekaFamilyLineage.validateOperationEvidence(state,record,'OP-04'))add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
   }
@@ -579,5 +603,79 @@ function completeOP06(state,request,deps={}){
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
 }
-window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06});
+function completeOP07(state,request,deps={}){
+ const fail=(error,details)=>({ok:false,error,details:details??null});
+ if(!isObject(state)||!isObject(request))return fail('invalid_request');
+ if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
+ if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(request.timingMode))return fail('op07_timing_mode_required');
+ if(typeof deps.makeId!=='function')return fail('id_generator_required');
+ const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
+ for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
+ if(typeof deps.PasekaFamilyLineage.inspect!=='function'||typeof deps.PasekaSectionalPhysicalLayout.inspect!=='function'||typeof deps.PasekaEquipmentItems.place!=='function'||typeof deps.PasekaEquipmentItems.inspect!=='function'||typeof deps.PasekaEquipmentItems.validateReferences!=='function'||typeof deps.PasekaInventory.inspect!=='function')return fail('dependency_api_incomplete');
+ if(!Array.isArray(state.sectionalTechProcesses)||Number(state.meta?.schemaVersion||0)<15)return fail('sectional_tech_process_schema_not_ready');
+ const record=rows(state.sectionalTechProcesses).find(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId);
+ if(!record)return fail('op07_tech_process_missing');
+ const operations=rows(record.state?.operations),op04=operations.find(row=>row?.operationId==='OP-04'),op06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
+ if(op04?.status!=='DONE'||record.state?.rowStage!==2)return fail('op07_requires_completed_op04');
+ if(operations.some(row=>row?.operationId==='OP-07'))return fail('op07_already_recorded');
+ if(!validDate(op04.completedAt)||Date.parse(request.occurredAt)<Date.parse(op04.completedAt))return fail('op07_precedes_op04_completion');
+ if(request.timingMode==='AFTER_OP06'&&(!op06||!validDate(op06.completedAt)||Date.parse(request.occurredAt)<Date.parse(op06.completedAt)))return fail('op07_requires_completed_op06');
+ const secondRowAt=op04.evidence?.secondRowAt||op04.completedAt;
+ if(!validDate(secondRowAt)||Date.parse(request.occurredAt)<Date.parse(secondRowAt))return fail('op07_precedes_second_row');
+ const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
+ if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
+ const layouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(layouts.length!==1)return fail('op07_current_layout_missing');
+ const oldLayout=layouts[0],nextLayout=request.layout;
+ if(oldLayout.id!==record.state.layoutId||oldLayout.mode!=='SIDE_BY_SIDE'||(oldLayout.broodRows??2)!==2)return fail('op07_completed_two_row_layout_required');
+ if(!isObject(nextLayout)||nextLayout.id!==oldLayout.id||nextLayout.hiveId!==request.hiveId||nextLayout.profileId!==PROFILE_ID||nextLayout.mode!=='SIDE_BY_SIDE'||(nextLayout.broodRows??2)!==2||!isObject(nextLayout.honeyStack))return fail('op07_target_layout_invalid');
+ const normalizeBase=layout=>{const copy=clone(layout);delete copy.honeyStack;for(const stack of rows(copy.stacks)){delete stack.coverItemId;delete stack.topRiserItemId}return copy};
+ if(JSON.stringify(normalizeBase(oldLayout))!==JSON.stringify(normalizeBase(nextLayout)))return fail('op07_must_not_change_unrelated_physical_layout');
+ for(const stack of rows(nextLayout.stacks))if(stack.coverItemId||stack.topRiserItemId)return fail('op07_stack_covers_and_top_risers_must_be_removed',{stackId:stack.id});
+ const honey=nextLayout.honeyStack,bodyIds=rows(honey.bodyIds),excluders=rows(honey.excluders);
+ if(!['early','main'].includes(honey.purpose)||![2,4].includes(bodyIds.length)||(honey.purpose==='early'&&bodyIds.length!==2)||new Set(bodyIds).size!==bodyIds.length)return fail('op07_honey_body_configuration_invalid',{purpose:honey.purpose??null,bodyIds});
+ if(excluders.length!==2||new Set(excluders.map(row=>row?.side)).size!==2||!['left','right'].every(side=>excluders.some(row=>row?.side===side)))return fail('op07_two_large_excluders_required');
+ if(rows(oldLayout.temporaryQueenIsolation).length!==rows(nextLayout.temporaryQueenIsolation).length||rows(oldLayout.temporaryQueenIsolation).some(old=>!rows(nextLayout.temporaryQueenIsolation).some(row=>row?.itemId===old.itemId&&row?.openingId===old.openingId&&row?.bodyId===old.bodyId)))return fail('op07_temporary_isolation_must_be_preserved');
+ for(const bodyId of bodyIds){
+  const body=state.equipmentInventory?.bodies?.[bodyId];
+  if(!body||body.kind!=='honey'||body.condition!=='good'||body.spec?.profileId!==PROFILE_ID||body.spec?.framesPerBox!==10||!nonEmpty(body.storageLocation)||!nonEmpty(body.pairId))return fail('op07_honey_body_not_available_in_storage',{bodyId});
+ }
+ const pairCounts=new Map();for(const bodyId of bodyIds){const pairId=state.equipmentInventory.bodies[bodyId].pairId;pairCounts.set(pairId,(pairCounts.get(pairId)||0)+1)}
+ if([...pairCounts.values()].some(count=>count!==2)||pairCounts.size!==bodyIds.length/2)return fail('op07_honey_bodies_must_be_complete_pairs');
+ for(const row of excluders){
+  const item=state.equipmentInventory?.items?.[row?.itemId];
+  if(!item||item.kind!=='honeyQueenExcluder'||item.condition!=='good'||item.location?.type!=='storage')return fail('op07_large_excluder_not_available_in_storage',{itemId:row?.itemId??null});
+ }
+ const initialErrors=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
+ if(initialErrors.length)return fail('op07_initial_state_invalid',initialErrors);
+ const bodyPlan=planBodyMoves(state,oldLayout,nextLayout,request.bodyStorageMoves||[]);
+ if(bodyPlan.errors.length)return fail('op07_body_move_plan_invalid',bodyPlan.errors);
+ const itemPlan=planItemMoves(state,oldLayout,nextLayout,request.itemMoves);
+ if(itemPlan.errors.length)return fail('op07_equipment_move_plan_invalid',itemPlan.errors);
+ let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
+ draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
+ draft.sectionalLayouts.push(clone(nextLayout));
+ const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId,'OP-07');
+ if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
+ for(const bodyId of bodyIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
+ for(const move of itemPlan.moves){
+  const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
+  if(!result?.ok)return fail('op07_equipment_move_rejected',{itemId:move.itemId,cause:result?.error??null,details:result?.details??null});
+ }
+ const movementIds=itemPlan.moves.map(move=>({itemId:move.itemId,eventId:rows(draft.equipmentInventory?.items?.[move.itemId]?.events).at(-1)?.id??null}));
+ const removedStackAccessories=rows(oldLayout.stacks).flatMap(stack=>[{itemId:stack.coverItemId,kind:'cover'},{itemId:stack.topRiserItemId,kind:'topRiser'}]).filter(row=>nonEmpty(row.itemId));
+ const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
+ const daysAfterSecondRow=calendarDayDifference(request.occurredAt,secondRowAt);
+ nextRecord.state.operations.push({operationId:'OP-07',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,timingMode:request.timingMode,secondRowAt,daysAfterSecondRow,honeyPurpose:honey.purpose,honeyBodyIds:bodyIds.slice(),excluderItemIds:excluders.map(row=>row.itemId).sort(),removedStackAccessories,itemMovementEventIds:movementIds}});
+ nextRecord.updatedAt=request.occurredAt;
+ const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
+ if(validationErrors.length)return fail('op07_transaction_validation_failed',validationErrors);
+ const audit=appendStageOperationAudit(draft,nextRecord,'OP-07',deps.makeId);
+ if(!audit.ok)return fail(audit.error,audit.details);
+ commit(state,draft);
+ return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
+}
+window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07});
 })();
