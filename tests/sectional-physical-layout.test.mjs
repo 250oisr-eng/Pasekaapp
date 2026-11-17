@@ -37,8 +37,8 @@ function sideBySide(){
   gr2:makeItem('gr2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o4'})
  };
  const sections=[
-  {id:'s-left',position:'left',familyId:'f1',queenId:'q1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
-  {id:'s-middle',position:'middle',familyId:'f2',queenId:null,broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
+  {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
+  {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
   {id:'s-right',position:'right',familyId:'f3',queenId:null,broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b6',diameterMm:50}]}
  ];
  const layout={
@@ -150,8 +150,8 @@ test('rejects duplicate brood-body ownership and legacy layout overlap',()=>{
 test('requires a common colony group and valid queen identity references',()=>{
  const group=sideBySide();group.state.families[2].colonyGroupId='other';
  assert.ok(Layout.inspect(group.state).some(error=>error.code==='section_colony_group_mismatch'));
- const queen=sideBySide();queen.layout.sections[0].queenId='missing';
- assert.ok(Layout.inspect(queen.state).some(error=>error.code==='section_family_queen_reference_mismatch'));
+ const queen=sideBySide();queen.state.families[0].currentQueenId='missing';
+ assert.ok(Layout.inspect(queen.state).some(error=>error.code==='section_family_current_queen_invalid'));
 });
 
 test('technical connections require the two actual openings and the buffer corridor',()=>{
