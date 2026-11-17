@@ -64,7 +64,7 @@ function makeFixture(){
   queens:[{id:'q0',familyId:'f0',status:'current'}],queenEvents:[],familyEvents:[],
   sectionalTechProcesses:[],sectionalLayouts:[sourceLayout],layouts:{},
   equipmentLabels:{bodies:Object.fromEntries(['b1','b2','b3','b4','b5','b6'].map((id,index)=>[id,codes[index]]))},
-  equipmentInventory:{bodies,items,itemEvents:[]}
+  equipmentInventory:{bodies,items,events:[],itemEvents:[]}
  };
  const layout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,
