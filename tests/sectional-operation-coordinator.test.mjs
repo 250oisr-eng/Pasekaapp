@@ -209,7 +209,7 @@ function prepareOP07Fixture(){
  const bodyIds=['honey1','honey2'];
  for(const [index,id] of bodyIds.entries()){
   fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[]};
-  fixture.state.equipmentLabels.bodies[id]=index===0?'ААИ':'ААК';
+  fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
  }
  fixture.state.equipmentInventory.items['ex-left']=item('ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
  fixture.state.equipmentInventory.items['ex-right']=item('ex-right','honeyQueenExcluder',{type:'storage',label:'Склад'});
