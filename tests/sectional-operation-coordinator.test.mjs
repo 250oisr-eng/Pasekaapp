@@ -168,7 +168,7 @@ function prepareOP05Fixture(){
  return {fixture,deps,layout,itemMoves};
 }
 function op05Request(prepared,overrides={}){
- return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-25T10:00:00.000Z',layout:prepared.layout,itemMoves:prepared.itemMoves,...overrides};
+ return {userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-25T10:00:00.000Z',layout:prepared.layout,itemMoves:prepared.itemMoves,...overrides};
 }
 
 test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
@@ -317,6 +317,7 @@ test('OP-05 atomically installs one real metal mesh plug in every technical open
  assert.equal(op05.status,'DONE');
  assert.equal(op05.completedAt,'2026-11-25T10:00:00.000Z');
  assert.equal(op05.evidence.daysAfterDivision,8);
+ assert.equal(op05.evidence.standLevelConfirmed,true);
  assert.deepEqual(op05.evidence.openingIds,['o1','o2','o3','o4']);
  assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,4);
  for(const plug of fixture.state.sectionalLayouts[0].temporaryQueenIsolation){
@@ -408,4 +409,12 @@ test('OP-05 accepts the final day of the documented 8–11 day window',()=>{
  const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared,{occurredAt:'2026-11-28T10:00:00.000Z'}),prepared.deps);
  assert.equal(result.ok,true,JSON.stringify(result.details||result));
  assert.equal(prepared.fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-05').evidence.daysAfterDivision,11);
+});
+
+
+test('OP-05 requires explicit confirmation that the stand is level',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared,{standLevelConfirmed:false}),prepared.deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op05_level_stand_confirmation_required');
+ assert.deepEqual(prepared.fixture.state,before);
 });
