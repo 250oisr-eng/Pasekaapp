@@ -7,7 +7,7 @@
 - PR #149 branch HEAD: `9fc3cd1af4be12bacfe389991e18a77e161ea5ad`; code/test SHA: `74233b5cd72b3573ee82960fd54752827d6b1390`. Предыдущий CI выявил отсутствие `startedAt` при прямом завершении OP-04; исправление и регрессионная проверка добавлены. Android workflow run [#44100572474](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44100572474) на HEAD `9fc3cd1...` завершился **success**: 570/570 тестов, Android Debug APK build и upload — success. Artifact #14336550662, 3,399,577 bytes, SHA-256 `fbfeb8f7b0ce19cf7310a11c610c47132cd23e1f20d60b67f1a34c0e67ac628e`.
 - PR #149 остаётся Draft и основан на PR #148 (base SHA `27cb4de3f8bf8848475aa9877bb84affb7a51a83`). PR #148 остаётся Draft. Main SHA `d8fd021a3a6ab4ed9613dbd558205bdf24e96be0` не менялась.
 - IndexedDB, schemaVersion, backup format, пользовательские данные, production и UI не менялись; профиль не активирован.
-- Следующий шаг: добиться запуска CI для PR #149, проверить все результаты на актуальном code/test SHA `74233b5...`, исправить обнаруженные ошибки. Только после проверки переходить к аудиту OP-06; reduced two-queen ветвь OP-06 остаётся fail-closed.
+- PR #149 остаётся Draft, основан на PR #148; mergeable=true, behind_by=0. PR #148 Android workflow run #44097595158 также завершился success. Main `d8fd021a...` не менялась. Следующий шаг: аудит OP-06 и интеграционных зависимостей; не переносить старую спецификацию PR #87 без исправления optional OP-05 и физического coordinator. Reduced two-queen ветвь OP-06 остаётся fail-closed.
 ---
 
 ## Контрольная точка — 2026-11-17: атомарный OP-04 теперь поддерживает оба ряда
