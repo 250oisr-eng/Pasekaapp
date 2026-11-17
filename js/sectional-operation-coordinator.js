@@ -217,7 +217,8 @@ function inspect(state,deps={}){
    if(validDate(op05.completedAt)&&validDate(operation?.completedAt)&&Date.parse(op05.completedAt)<Date.parse(operation.completedAt))add('sectional_tech_process_op05_precedes_op04_completion',{id:record.id});
    if(op05.evidence?.layoutId!==statePart.layoutId)add('sectional_tech_process_op05_layout_evidence_mismatch',{id:record.id});
    if(op05.evidence?.standLevelConfirmed!==true)add('sectional_tech_process_op05_level_stand_confirmation_missing',{id:record.id});
-   const coverageErrors=deps.PasekaSectionalPhysicalLayout?.validateTemporaryQueenIsolationCoverage?.(layout)||[{code:'temporary_queen_coverage_validator_missing'}];
+   const layoutAtOP05=op06?{...layout,temporaryQueenIsolation:historicalPlugs}:layout;
+   const coverageErrors=deps.PasekaSectionalPhysicalLayout?.validateTemporaryQueenIsolationCoverage?.(layoutAtOP05)||[{code:'temporary_queen_coverage_validator_missing'}];
    for(const error of coverageErrors)add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
    const op06=operations.find(row=>row?.operationId==='OP-06'&&row.status==='DONE');
    const historicalPlugs=op06?rows(op06.evidence?.removedPlugs):installedPlugs;
