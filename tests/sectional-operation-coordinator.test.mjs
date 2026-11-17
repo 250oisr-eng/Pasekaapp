@@ -147,6 +147,7 @@ function dependencies(overrides={}){
   PasekaLabels:Labels,PasekaInventory:Inventory,PasekaEquipmentItems:Items,
   PasekaSectionalPhysicalLayout:Layout,PasekaFamilyLineage:Lineage,
   makeId:()=> 'evt-'+(++sequence),
+  now:()=>Date.parse('2026-12-31T23:59:59.999Z'),
   ...overrides
  };
 }
@@ -236,6 +237,19 @@ function prepareOP07Fixture(){
 function op07Request(prepared,overrides={}){
  return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:NOW,timingMode:'WITH_SECOND_ROW',layout:prepared.layout,itemMoves:prepared.itemMoves,bodyStorageMoves:[],...overrides};
 }
+
+test('all sectional operation completion APIs reject future-dated events',()=>{
+ const deps={now:()=>Date.parse('2026-11-17T10:00:00.000Z')};
+ const future='2026-11-17T10:00:01.000Z';
+ const cases=[
+  ()=>Coordinator.completeOP04({}, {userConfirmed:true,hiveId:'h1',sourceFamilyId:'f0',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP04SecondRow({}, {userConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP05({}, {userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP06({}, {userConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP07({}, {userConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future,timingMode:'AFTER_OP06'},deps)
+ ];
+ for(const run of cases)assert.equal(run().error,'operation_timestamp_in_future');
+});
 
 test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
  const fixture=firstRowFixture(),deps=dependencies(),req=request(fixture);
