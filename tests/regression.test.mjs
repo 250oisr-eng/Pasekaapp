@@ -3517,7 +3517,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v308/);
+ assert.match(sw,/paseka-shell-v309/);
 });
 
 
@@ -3560,8 +3560,8 @@ test('backup validation preserves legacy states and rejects malformed sectionalL
 
 test('raw backup integrity reports malformed sectional physical layout records',()=>{
  const state={hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],auditLog:[],aiMessages:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],layouts:{},equipmentInventory:{bodies:{},events:[]},sectionalLayouts:'invalid'};
- const errors=inspectRawBackup(state);
- assert.ok(errors.some(error=>error.code==='sectional_layouts_not_array'));
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='sectional_layouts_not_array'));
 });
 
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
