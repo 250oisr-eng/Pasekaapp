@@ -477,6 +477,7 @@ function confirmQueenAbsence(state, request, makeId, now) {
   const at=now||new Date().toISOString(),occurredAt=request?.occurredAt;
   if (occurredAt==null) return {ok:false,error:'queen_absence_time_required'};
   if (!validTime(occurredAt)) return {ok:false,error:'queen_absence_time_invalid'};
+  if (Date.parse(occurredAt)>Date.parse(at)) return {ok:false,error:'queen_absence_time_in_future'};
   if (validTime(splitEvent.occurredAt)&&Date.parse(occurredAt)<Date.parse(splitEvent.occurredAt))
    return {ok:false,error:'queen_absence_precedes_split'};
   if (draft.familyEvents.some(event=>event?.type==='queen_absence_confirmed'&&event.familyId===family.id&&event.splitEventId===splitEvent.id))
