@@ -187,8 +187,8 @@ function inspect(state,deps={}){
   }
   const operations=rows(statePart.operations),op04=operations.filter(row=>row?.operationId==='OP-04'),stageRows=layout?.broodRows??2;
   const operation=op04[0];
-  const pending=op04.length===1&&operation?.status==='IN_PROGRESS'&&stageRows===1&&validDate(operation.startedAt)&&operation.completedAt==null;
-  const completed=op04.length===1&&operation?.status==='DONE'&&stageRows===2&&validDate(operation.completedAt);
+  const pending=op04.length===1&&operation?.status==='IN_PROGRESS'&&stageRows===1&&statePart.rowStage===1&&validDate(operation.startedAt)&&operation.completedAt==null;
+  const completed=op04.length===1&&operation?.status==='DONE'&&stageRows===2&&(statePart.rowStage==null||statePart.rowStage===2)&&validDate(operation.completedAt);
   if(!pending&&!completed)add('sectional_tech_process_op04_stage_invalid',{id:record.id,stageRows,status:operation?.status??null});
   if(deps.PasekaFamilyLineage?.validateOperationEvidence&&op04.length===1&&(pending||completed)){
    for(const error of deps.PasekaFamilyLineage.validateOperationEvidence(state,record,'OP-04'))add('sectional_tech_process_'+error.code,{id:record.id,details:error.details??null});
@@ -293,6 +293,7 @@ function completeOP04SecondRow(state,request,deps={}){
  if(!record)return fail('op04_tech_process_missing');
  const operation=rows(record.state?.operations).find(row=>row?.operationId==='OP-04');
  if(operation?.status!=='IN_PROGRESS'||record.state?.rowStage!==1)return fail('op04_second_row_not_pending');
+ if(!validDate(operation.startedAt)||Date.parse(request.occurredAt)<Date.parse(operation.startedAt))return fail('op04_second_row_precedes_first_row');
  const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
  if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
  const sourceLayouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
