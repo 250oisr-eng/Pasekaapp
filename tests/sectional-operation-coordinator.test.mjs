@@ -122,6 +122,31 @@ function dependencies(overrides={}){
   ...overrides
  };
 }
+function firstRowFixture(){
+ const fixture=makeFixture();
+ fixture.layout.broodRows=1;
+ const bodiesByPosition={left:'b1',middle:'b3',right:'b5'};
+ const openingsByPosition={
+  left:[{id:'o1',bodyId:'b1',diameterMm:50}],
+  middle:[{id:'o2',bodyId:'b3',diameterMm:50},{id:'o3',bodyId:'b3',diameterMm:50}],
+  right:[{id:'o4',bodyId:'b5',diameterMm:50}]
+ };
+ for(const section of fixture.layout.sections){
+  section.broodBodyIds=[bodiesByPosition[section.position]];
+  section.upperBroodBodyId=bodiesByPosition[section.position];
+  section.openings=openingsByPosition[section.position];
+ }
+ const bodyByOpening={o1:'b1',o2:'b3',o3:'b3',o4:'b5'};
+ for(const connection of fixture.layout.technicalConnections)for(const opening of connection.openings){
+  opening.bodyId=bodyByOpening[opening.openingId];
+  fixture.state.equipmentInventory.items[opening.itemId].location.bodyId=opening.bodyId;
+ }
+ fixture.itemMoves=fixture.itemMoves.map(move=>{
+  const bodyId=bodyByOpening[move.location?.openingId];
+  return bodyId?{...move,location:{...move.location,bodyId}}:move;
+ });
+ return fixture;
+}
 function request(fixture){
  return {
   userConfirmed:true,hiveId:'h1',sourceFamilyId:'f0',techProcessId:'tp-h1',occurredAt:NOW,
@@ -130,14 +155,62 @@ function request(fixture){
  };
 }
 
-test('OP-04 final completion rejects the staged one-row layout',()=>{
- const fixture=makeFixture(),req=request(fixture);
- req.layout.broodRows=1;
- req.layout.sections=req.layout.sections.map(section=>({...section,broodBodyIds:[section.broodBodyIds[0]],upperBroodBodyId:section.broodBodyIds[0]}));
+test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
+ const fixture=firstRowFixture(),deps=dependencies(),req=request(fixture);
+ req.bodyStorageMoves=[{bodyId:'b2',storageLocation:'Склад'}];
+ const result=Coordinator.completeOP04(fixture.state,req,deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.equal(fixture.state.sectionalLayouts[0].broodRows,1);
+ assert.deepEqual(fixture.state.sectionalLayouts[0].sections.map(row=>row.broodBodyIds.length),[1,1,1]);
+ assert.equal(fixture.state.sectionalLayouts[0].stacks.length,3);
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'IN_PROGRESS');
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].completedAt,null);
+ assert.equal(fixture.state.auditLog[0].type,'sectional_operation_started');
+ assert.equal(fixture.state.equipmentInventory.bodies.b2.storageLocation,'Склад');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-04 second-row transition atomically installs three bodies and completes the operation',()=>{
+ const fixture=firstRowFixture(),deps=dependencies(),start=request(fixture);
+ start.bodyStorageMoves=[{bodyId:'b2',storageLocation:'Склад'}];
+ const started=Coordinator.completeOP04(fixture.state,start,deps);
+ assert.equal(started.ok,true,JSON.stringify(started.details||started));
+ const final=makeFixture();
+ const itemMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.map(opening=>({
+  itemId:opening.itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}
+ })));
+ const result=Coordinator.completeOP04SecondRow(fixture.state,{
+  userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-17T11:00:00.000Z',
+  layout:final.layout,addedBodyIds:['b2','b4','b6'],itemMoves
+ },deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.equal(fixture.state.sectionalLayouts[0].broodRows,2);
+ assert.deepEqual(fixture.state.sectionalLayouts[0].sections.map(row=>row.broodBodyIds.length),[2,2,2]);
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'DONE');
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].completedAt,'2026-11-17T11:00:00.000Z');
+ assert.equal(fixture.state.auditLog.at(-1).type,'sectional_operation_completed');
+ assert.equal(fixture.state.equipmentInventory.events.filter(row=>row.type==='sectional_body_placed').length,3);
+ assert.ok(['b2','b4','b6'].every(id=>fixture.state.equipmentInventory.bodies[id].storageLocation===undefined));
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-04 second-row transition rolls back when a technical accessory move fails',()=>{
+ const fixture=firstRowFixture(),deps=dependencies(),start=request(fixture);
+ start.bodyStorageMoves=[{bodyId:'b2',storageLocation:'Склад'}];
+ assert.equal(Coordinator.completeOP04(fixture.state,start,deps).ok,true);
+ const final=makeFixture();
+ const itemMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.map(opening=>({
+  itemId:opening.itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}
+ })));
  const before=structuredClone(fixture.state);
- const result=Coordinator.completeOP04(fixture.state,req,dependencies());
+ let moves=0;
+ const equipment={...Items,place:(state,req,makeId,now)=>{moves++;if(moves===2)return {ok:false,error:'forced_failure'};return Items.place(state,req,makeId,now)}};
+ const result=Coordinator.completeOP04SecondRow(fixture.state,{
+  userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-17T11:00:00.000Z',
+  layout:final.layout,addedBodyIds:['b2','b4','b6'],itemMoves
+ },dependencies({PasekaEquipmentItems:equipment}));
  assert.equal(result.ok,false);
- assert.equal(result.error,'target_section_body_count_invalid');
+ assert.equal(result.error,'equipment_move_rejected');
  assert.deepEqual(fixture.state,before);
 });
 
