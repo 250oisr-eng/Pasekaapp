@@ -18,6 +18,8 @@ function validate(layout,state){
  if(!nonEmpty(layout.hiveId))add('sectional_layout_hive_required');
  if(layout.profileId!==PROFILE_ID)add('sectional_layout_profile_mismatch',{profileId:layout.profileId??null});
  if(!Object.values(MODES).includes(layout.mode))add('sectional_layout_mode_invalid',{mode:layout.mode??null});
+ if(layout.mode===MODES.SIDE_BY_SIDE&&layout.broodRows!=null&&![1,2].includes(layout.broodRows))add('section_brood_rows_invalid',{actual:layout.broodRows});
+ if(layout.mode!==MODES.SIDE_BY_SIDE&&layout.broodRows!=null)add('section_brood_rows_not_applicable',{mode:layout.mode});
  const hive=rows(state.hives).find(row=>row?.id===layout.hiveId);
  if(!hive)add('sectional_layout_hive_missing',{hiveId:layout.hiveId??null});
  else if(hive.profileId!==PROFILE_ID&&hive.profile?.id!==PROFILE_ID)add('sectional_layout_attached_to_other_profile',{hiveProfileId:hive.profileId??hive.profile?.id??null});
@@ -92,7 +94,7 @@ function validate(layout,state){
   const count=Array.isArray(section.broodBodyIds)?section.broodBodyIds.length:null;
   if(!Array.isArray(section.broodBodyIds))add('section_brood_bodies_required',{sectionId:section.id??null});
   else{
-   if(layout.mode===MODES.SIDE_BY_SIDE&&count!==2)add('section_brood_body_count_invalid',{sectionId:section.id,expected:2,actual:count});
+   if(layout.mode===MODES.SIDE_BY_SIDE&&count!==(layout.broodRows??2))add('section_brood_body_count_invalid',{sectionId:section.id,expected:layout.broodRows??2,actual:count});
    if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN&&![1,2].includes(count))add('section_wintering_body_count_invalid',{sectionId:section.id,expected:'1 or 2',actual:count});
    if(layout.mode===MODES.SINGLE_FAMILY&&![3,4].includes(count))add('section_combined_body_count_invalid',{sectionId:section.id,expected:'3 or 4',actual:count});
    section.broodBodyIds.forEach(id=>checkBody(id,'brood',section.id));
