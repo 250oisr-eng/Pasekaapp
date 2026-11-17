@@ -28,7 +28,7 @@ function item(id,kind,location){
  return {id,kind,label:id,condition:'good',location,notes:'',registeredAt:NOW,updatedAt:NOW,events:[]};
 }
 function body(id,index,storageLocation=''){
- return {id,kind:'brood',condition:'good',spec:{profileId:PROFILE,framesPerBox:6},...(storageLocation?{storageLocation}:{}),labelCode:codes[index]};
+ return {id,kind:'brood',condition:'good',spec:{profileId:PROFILE,framesPerBox:6},frames:Array.from({length:6},(_,frameIndex)=>({frameId:id+'-frame-'+(frameIndex+1),history:[]})),...(storageLocation?{storageLocation}:{}),labelCode:codes[index]};
 }
 function honeyFrames(bodyId){
  return Array.from({length:10},(_,index)=>({
