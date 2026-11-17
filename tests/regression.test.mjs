@@ -3265,3 +3265,94 @@ test('hive deletion cancelled by user leaves state untouched and never calls sav
  assert.equal(deps.activeJournalHive,'h1');
  assert.deepEqual(deps.tabs,[]);
 });
+
+
+function createFamilyMutationFixture(saveBehavior){
+ const initial={meta:{schemaVersion:12,revisionId:'revision-1'},hives:[{id:'h1',number:1,desc:'Old note'}],families:[{id:'f1',hive:'h1',name:'26-1',origin:'offshoot',stage:'developing'}],layouts:{}};
+ const deps={S:structuredClone(initial),renderCalls:0,alerts:[],logEvents:[],tabs:[],render(){deps.renderCalls++},alert(message){deps.alerts.push(message)},logAudit(type,payload){deps.logEvents.push({type,payload})},confirm:()=>true,today:()=> '2026-11-17',hname:()=> 'Улей 1',uid:()=> 'new-hive',showTab(tab){deps.tabs.push(tab)}};
+ deps.save=async()=>saveBehavior(deps);
+ deps.saveFamilyMutation=loadFunction('saveFamilyMutation',deps);
+ return {deps,initial};
+}
+
+test('saveFamilyMutation rolls back on false and survives a render failure',async()=>{
+ const {deps,initial}=createFamilyMutationFixture(async d=>{d.S.meta.saveError='quota';return false});
+ const previous=structuredClone(initial);deps.S.families[0].stage='independent';
+ deps.render=()=>{throw new Error('simulated render failure')};
+ const saveMutation=loadFunction('saveFamilyMutation',deps);
+ assert.equal(await saveMutation(previous),false);
+ const expected=structuredClone(previous);expected.meta.saveError='quota';
+ assert.deepEqual(deps.S,expected);
+});
+
+test('saveFamilyMutation catches unexpected save exceptions and restores the snapshot',async()=>{
+ const {deps,initial}=createFamilyMutationFixture(async()=>{throw new Error('simulated save exception')});
+ deps.S.families[0].stage='independent';
+ const previous=structuredClone(initial);
+ const saveMutation=loadFunction('saveFamilyMutation',deps);
+ assert.equal(await saveMutation(previous),false);
+ const expected=structuredClone(previous);expected.meta.saveError='simulated save exception';
+ assert.deepEqual(deps.S,expected);
+ assert.match(deps.alerts[0],/Изменения отменены/);
+});
+
+test('markOffshootIndependent restores the family when persistence fails',async()=>{
+ const {deps}=createFamilyMutationFixture(async d=>{d.S.meta.saveError='quota';return false});
+ const change=loadFunction('markOffshootIndependent',deps);
+ await change('f1');
+ assert.equal(deps.S.families[0].stage,'developing');
+ assert.equal(deps.S.families[0].establishedAt,undefined);
+ assert.equal(deps.S.meta.saveError,'quota');
+ assert.equal(deps.logEvents.length,0,'failed family changes and audit events are both rolled back');
+});
+
+test('editHive keeps the original note and dialog open when persistence fails',async()=>{
+ const {deps}=createFamilyMutationFixture(async d=>{d.S.meta.saveError='quota';return false});
+ let showCalls=0,closeCalls=0;
+ const fields={
+  hiveDialogTitle:{textContent:''},
+  hiveDesc:{value:''},
+  hiveDlg:{showModal(){showCalls++},close(){closeCalls++}},
+  hiveForm:{onsubmit:null,reset(){}}
+ };
+ deps.$=id=>fields[id];
+ deps.defaultHive=()=>{};
+ const edit=loadFunction('editHive',deps);
+ edit('h1');
+ assert.equal(showCalls,1);
+ fields.hiveDesc.value='New note';
+ await fields.hiveForm.onsubmit({preventDefault(){}});
+ assert.equal(deps.S.hives[0].desc,'Old note');
+ assert.equal(closeCalls,0);
+});
+
+test('defaultHive restores the entire state and previous selection when persistence fails',async()=>{
+ const {deps,initial}=createFamilyMutationFixture(async d=>{d.S.meta.saveError='quota';return false});
+ deps.selectedHiveId='h1';deps.activeJournalHive='h1';
+ const fields={hiveDesc:{value:'New hive'},newHiveMode:{value:'summer'},hiveDialogTitle:{textContent:''},hiveDlg:{close(){}},hiveForm:{reset(){}}};
+ deps.$=id=>fields[id];
+ deps.layoutFor=id=>{deps.S.layouts[id]={boxes:{},mode:'',setupComplete:false,setupEditing:false,installedBoxes:[],honeyBoxInstalled:[false,false],winterOrder:[]};return deps.S.layouts[id]};
+ const create=loadFunction('defaultHive',deps);
+ await create({preventDefault(){}});
+ const expected=structuredClone(initial);expected.meta.saveError='quota';
+ assert.deepEqual(deps.S,expected);
+ assert.equal(deps.selectedHiveId,'h1');
+ assert.equal(deps.activeJournalHive,'h1');
+ assert.deepEqual(deps.tabs,[]);
+ assert.equal(deps.alerts.length,1);
+});
+
+test('defaultHive keeps a committed hive when post-save UI refresh fails',async()=>{
+ const {deps}=createFamilyMutationFixture(async()=>true);
+ deps.selectedHiveId='h1';deps.activeJournalHive='h1';
+ const fields={hiveDesc:{value:'New hive'},newHiveMode:{value:'summer'},hiveDialogTitle:{textContent:''},hiveDlg:{close(){throw new Error('simulated close failure')}},hiveForm:{reset(){}}};
+ deps.$=id=>fields[id];
+ deps.layoutFor=id=>{deps.S.layouts[id]={boxes:{},mode:'',setupComplete:false,setupEditing:false,installedBoxes:[],honeyBoxInstalled:[false,false],winterOrder:[]};return deps.S.layouts[id]};
+ const create=loadFunction('defaultHive',deps);
+ await create({preventDefault(){}});
+ assert.equal(deps.S.hives.length,2);
+ assert.equal(deps.S.hives[1].id,'new-hive');
+ assert.equal(deps.selectedHiveId,'new-hive');
+ assert.equal(deps.activeJournalHive,'new-hive');
+ assert.match(deps.alerts[0],/Улей сохранён/);
+});
