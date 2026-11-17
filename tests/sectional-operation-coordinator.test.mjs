@@ -118,10 +118,14 @@ function makeFixture(){
   ['riser1',{type:'hive',hiveId:'h1',stackId:'sl'}],
   ['riser2',{type:'hive',hiveId:'h1',stackId:'sm'}],
   ['riser3',{type:'hive',hiveId:'h1',stackId:'sr'}],
-  ['grid1',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'}],
-  ['grid2',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o2'}],
-  ['grid3',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o3'}],
-  ['grid4',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o4'}],
+  ['grid1',{type:'hive',hiveId:'h1',bodyId:'b1',openingId:'o1'}],
+  ['grid2',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o2'}],
+  ['grid3',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o3'}],
+  ['grid4',{type:'hive',hiveId:'h1',bodyId:'b5',openingId:'o4'}],
+  ['grid5',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o5'}],
+  ['grid6',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o6'}],
+  ['grid7',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o7'}],
+  ['grid8',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o8'}],
   ['p1',{type:'storage',label:'Склад'}],
   ['p2',{type:'storage',label:'Склад'}],
   ['p3',{type:'storage',label:'Склад'}],
@@ -153,10 +157,11 @@ function firstRowFixture(){
   section.openings=openingsByPosition[section.position];
  }
  const bodyByOpening={o1:'b1',o2:'b3',o3:'b3',o4:'b5'};
+ for(const connection of fixture.layout.technicalConnections)connection.openings=connection.openings.filter(opening=>Object.hasOwn(bodyByOpening,opening.openingId));
  for(const connection of fixture.layout.technicalConnections)for(const opening of connection.openings){
   opening.bodyId=bodyByOpening[opening.openingId];
  }
- fixture.itemMoves=fixture.itemMoves.map(move=>{
+ fixture.itemMoves=fixture.itemMoves.filter(move=>!['grid5','grid6','grid7','grid8'].includes(move.itemId)).map(move=>{
   const bodyId=bodyByOpening[move.location?.openingId];
   return bodyId?{...move,location:{...move.location,bodyId}}:move;
  });
