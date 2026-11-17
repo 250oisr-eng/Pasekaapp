@@ -3673,6 +3673,23 @@ test('raw backup integrity validates lineage events without inventing missing ev
  assert.ok(inspectRawBackup(current).errors.some(error=>error.code==='family_event_type_invalid'));
 });
 
+test('schema 14 backups remain compatible while schema 15 requires sectionalTechProcesses',()=>{
+ const validate=loadFunction('validateBackupState');
+ const required={...rawBackupFixture(),meta:{schemaVersion:14},familyEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]}};
+ assert.equal(validate(required),required);
+ const missing={...required,meta:{schemaVersion:15}};
+ assert.throws(()=>validate(missing),/sectionalTechProcesses/);
+ const valid={...missing,sectionalTechProcesses:[]};
+ assert.equal(validate(valid),valid);
+ assert.throws(()=>validate({...valid,sectionalTechProcesses:[null]}),/Повреждённые элементы/);
+});
+
+test('raw backup integrity rejects malformed sectional operation records in schema 15',()=>{
+ const state={...rawBackupFixture(),meta:{schemaVersion:15},familyEvents:[],sectionalTechProcesses:[{id:'bad',hiveId:'missing'}]};
+ const result=inspectRawBackup(state);
+ assert.ok(result.errors.some(error=>error.code==='sectional_tech_process_hive_missing'));
+});
+
 test('backup validation preserves legacy states and rejects malformed sectionalLayouts',()=>{
  const validate=loadFunction('validateBackupState');
  const base={meta:{schemaVersion:6},hives:[],families:[],records:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[]};
