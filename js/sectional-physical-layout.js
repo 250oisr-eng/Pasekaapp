@@ -254,6 +254,7 @@ function validateTemporaryQueenIsolationCoverage(layout){
  const errors=[];
  if(!isObject(layout)||layout.mode!==MODES.SIDE_BY_SIDE)return [{code:'temporary_queen_coverage_requires_side_by_side',details:{}}];
  const expected=rows(layout.technicalConnections).flatMap(connection=>rows(connection?.openings)).map(opening=>opening?.openingId).filter(nonEmpty);
+ if(!expected.length)errors.push({code:'temporary_queen_expected_openings_missing',details:{}});
  const plugs=rows(layout.temporaryQueenIsolation),counts=new Map();
  for(const plug of plugs)if(nonEmpty(plug?.openingId))counts.set(plug.openingId,(counts.get(plug.openingId)||0)+1);
  for(const openingId of expected){const count=counts.get(openingId)||0;if(count===0)errors.push({code:'temporary_queen_plug_coverage_missing',details:{openingId}});else if(count>1)errors.push({code:'temporary_queen_plug_coverage_duplicate',details:{openingId,count}})}
