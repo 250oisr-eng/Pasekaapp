@@ -98,7 +98,10 @@ function collectEventIds(state){
   for(const row of rows(list))if(nonEmpty(row?.id))used.add(row.id);
  }
  for(const item of Object.values(state?.equipmentInventory?.items||{}))for(const event of rows(item?.events))if(nonEmpty(event?.id))used.add(event.id);
- for(const body of Object.values(state?.equipmentInventory?.bodies||{}))for(const frame of rows(body?.frames))for(const event of rows(frame?.history))if(nonEmpty(event?.id))used.add(event.id);
+ for(const body of Object.values(state?.equipmentInventory?.bodies||{})){
+  for(const event of rows(body?.events))if(nonEmpty(event?.id))used.add(event.id);
+  for(const frame of rows(body?.frames))for(const event of rows(frame?.history))if(nonEmpty(event?.id))used.add(event.id);
+ }
  for(const record of Object.values(state?.equipmentInventory?.retiredFrames||{})){const frame=record?.frame||record;for(const event of rows(frame?.history))if(nonEmpty(event?.id))used.add(event.id)}
  return used;
 }
