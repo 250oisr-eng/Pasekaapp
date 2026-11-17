@@ -297,6 +297,24 @@ test('OP-04 second-row transition rolls back when a technical accessory move fai
  assert.deepEqual(fixture.state,before);
 });
 
+test('OP-04 reserves IDs already used by corpus-level event journals',()=>{
+ const fixture=makeFixture(),deps=dependencies();
+ fixture.state.equipmentInventory.bodies.b1.events=[{id:'evt-2',type:'legacy_event',at:NOW}];
+ const result=Coordinator.completeOP04(fixture.state,request(fixture),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.equal(fixture.state.equipmentInventory.bodies.b1.events[0].id,'evt-2');
+ const ids=[
+  ...fixture.state.familyEvents.map(event=>event.id),
+  ...fixture.state.auditLog.map(event=>event.id),
+  ...fixture.state.equipmentInventory.events.map(event=>event.id),
+  ...Object.values(fixture.state.equipmentInventory.bodies).flatMap(body=>[
+   ...(body.events||[]).map(event=>event.id),
+   ...(body.frames||[]).flatMap(frame=>(frame.history||[]).map(event=>event.id))
+  ])
+ ];
+ assert.equal(new Set(ids).size,ids.length,'all event IDs across family, body, inventory and frame journals must be unique');
+});
+
 test('OP-04 commits family split, physical layout, equipment moves, frame history and operation evidence atomically',()=>{
  const fixture=makeFixture(),deps=dependencies();
  for(const [bodyId,bodyRecord] of Object.entries(fixture.state.equipmentInventory.bodies)){
