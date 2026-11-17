@@ -3182,3 +3182,86 @@ test('persistSnapshot remains successful when storage estimate refresh rejects a
  assert.equal(state.meta.saveError,undefined);
  assert.equal(estimateCalls,1);
 });
+
+function createHiveDeletionFixture(saveBehavior,confirmed=true){
+ const initial={
+  meta:{revisionId:'revision-1',schemaVersion:12},
+  hives:[{id:'h1',number:1},{id:'h2',number:2}],
+  families:[{id:'f1',hive:'h1',name:'Family 1'},{id:'f2',hive:'h2',name:'Child',parentFamilyId:'f1'}],
+  records:[{id:'r1',hive:'h2',family:'f1'},{id:'r2',hive:'h1',family:'f1'}],
+  tasks:[{id:'t1',hive:'h1'},{id:'t2',hive:'h2'}],
+  extractions:[{id:'e1',items:[{hiveId:'h1'},{hiveId:'h2'}]}],
+  layouts:{h1:{boxes:{b1:{family:'f1'}}},h2:{boxes:{b2:{parentFamilyId:'f1'}}}}
+ };
+ const deps={
+  S:structuredClone(initial),
+  selectedHiveId:'h1',
+  activeJournalHive:'h1',
+  confirm:()=>confirmed,
+  hname:()=> 'Улей 1',
+  logAudit:(type,payload)=>{deps.audit={type,payload}},
+  renderCalls:0,
+  render(){deps.renderCalls++},
+  alerts:[],
+  alert(message){deps.alerts.push(message)},
+  tabs:[],
+  showTab(tab){deps.tabs.push(tab)}
+ };
+ deps.save=async()=>saveBehavior(deps);
+ return {deps,initial};
+}
+
+test('hive deletion restores all affected state and UI selections when primary save returns false',async()=>{
+ const {deps,initial}=createHiveDeletionFixture(async d=>{d.S.meta.saveError='Не удалось сохранить основную базу';return false});
+ const remove=loadFunction('deleteHive',deps);
+ await remove('h1');
+ const expected=structuredClone(initial);expected.meta.saveError='Не удалось сохранить основную базу';
+ assert.deepEqual(deps.S,expected,'all hive, family, record, task, extraction, layout and audit changes must roll back');
+ assert.equal(deps.selectedHiveId,'h1');
+ assert.equal(deps.activeJournalHive,'h1');
+ assert.equal(deps.renderCalls,1);
+ assert.match(deps.alerts[0],/Удаление улья отменено/);
+ assert.deepEqual(deps.tabs,[]);
+});
+
+test('hive deletion restores state when save throws before a confirmed commit',async()=>{
+ const {deps,initial}=createHiveDeletionFixture(async()=>{throw new Error('simulated save exception')});
+ const remove=loadFunction('deleteHive',deps);
+ await remove('h1');
+ assert.deepEqual(deps.S,initial);
+ assert.equal(deps.selectedHiveId,'h1');
+ assert.equal(deps.activeJournalHive,'h1');
+ assert.match(deps.alerts[0],/simulated save exception/);
+ assert.deepEqual(deps.tabs,[]);
+});
+
+test('hive deletion proceeds only after save succeeds and does not roll back after commit',async()=>{
+ const {deps}=createHiveDeletionFixture(async()=>true);
+ const remove=loadFunction('deleteHive',deps);
+ await remove('h1');
+ assert.deepEqual(deps.S.hives,[{id:'h2',number:2}]);
+ assert.deepEqual(deps.S.families.map(f=>f.id),['f2']);
+ assert.equal(deps.S.families[0].parentFamilySnapshot.id,'f1');
+ assert.equal(deps.S.records.length,1);
+ assert.equal(deps.S.records[0].familySnapshotAtTime.id,'f1');
+ assert.deepEqual(deps.S.tasks,[{id:'t2',hive:'h2'}]);
+ assert.deepEqual(deps.S.extractions,[{id:'e1',items:[{hiveId:'h2'}]}]);
+ assert.equal(deps.S.layouts.h1,undefined);
+ assert.equal(deps.S.layouts.h2.boxes.b2.parentFamilySnapshot.id,'f1');
+ assert.equal(deps.selectedHiveId,'');
+ assert.equal(deps.activeJournalHive,'');
+ assert.deepEqual(deps.tabs,['hives']);
+ assert.equal(deps.alerts.length,0);
+});
+
+test('hive deletion cancelled by user leaves state untouched and never calls save',async()=>{
+ let saveCalls=0;
+ const {deps,initial}=createHiveDeletionFixture(async()=>{saveCalls++;return true},false);
+ const remove=loadFunction('deleteHive',deps);
+ await remove('h1');
+ assert.deepEqual(deps.S,initial);
+ assert.equal(saveCalls,0);
+ assert.equal(deps.selectedHiveId,'h1');
+ assert.equal(deps.activeJournalHive,'h1');
+ assert.deepEqual(deps.tabs,[]);
+});
