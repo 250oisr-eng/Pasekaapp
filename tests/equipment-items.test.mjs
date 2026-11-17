@@ -224,4 +224,5 @@ test('malformed honey footprint is reported without throwing during inspection',
  const state=fixture(),item=register(state,'honeyQueenExcluder');
  state.equipmentInventory.items[item.item.id].location={type:'hive',hiveId:'h1',footprint:[null,{bodyId:'b4',coverage:'HALF'}]};
  assert.ok(E.inspect(state).some(error=>error.code==='invalid_item_location'));
+ assert.ok(E.validateReferences(state).some(error=>error.code==='item_footprint_part_invalid'));
 });
