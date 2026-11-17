@@ -193,7 +193,7 @@ function validate(layout,state){
   }
   if(seenPairs.size!==2)add('technical_connection_coverage_incomplete',{pairs:[...seenPairs]});
   for(const openingId of openingById.keys())if(!usedOpenings.has(openingId))add('technical_opening_unlinked',{openingId});
-  if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,add,checkBody,checkItem);
+  if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,add,checkBody,checkItem,state);
  }else{
   if(rows(layout.technicalConnections).length)add('technical_connections_forbidden_for_layout_mode',{mode:layout.mode});
   if(layout.honeyStack!=null)add('honey_stack_forbidden_for_layout_mode',{mode:layout.mode});
@@ -248,13 +248,33 @@ function validate(layout,state){
  }
  return {valid:errors.length===0,errors};
 }
-function validateHoneyStack(stack,sections,add,checkBody,checkItem){
+function validateHoneyStack(stack,sections,add,checkBody,checkItem,state){
  if(!isObject(stack)){add('honey_stack_invalid');return}
  if(!['early','main'].includes(stack.purpose))add('honey_stack_purpose_invalid',{purpose:stack.purpose??null});
  const bodyIds=rows(stack.bodyIds);
  if(![2,4].includes(bodyIds.length)||(stack.purpose==='early'&&bodyIds.length!==2))add('honey_stack_body_count_invalid',{expected:stack.purpose==='early'?2:'2 or 4',actual:bodyIds.length});
  if(new Set(bodyIds).size!==bodyIds.length)add('honey_stack_body_duplicate',{bodyIds});
  bodyIds.forEach(id=>checkBody(id,'honey','shared-honey-stack'));
+ const framesByBody=stack.framesByBody;
+ if(!isObject(framesByBody))add('honey_stack_frame_inventory_required');
+ else{
+  const keys=Object.keys(framesByBody).sort(),expectedKeys=bodyIds.slice().sort();
+  if(JSON.stringify(keys)!==JSON.stringify(expectedKeys))add('honey_stack_frame_inventory_body_mismatch',{expected:expectedKeys,actual:keys});
+  for(const bodyId of bodyIds){
+   const frames=framesByBody[bodyId];
+   if(!Array.isArray(frames)) {add('honey_stack_frames_invalid',{bodyId});continue}
+   if(frames.length>10)add('honey_stack_frame_capacity_exceeded',{bodyId,maximum:10,actual:frames.length});
+   if(frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))add('honey_stack_frame_record_invalid',{bodyId});
+   if(stack.purpose==='early'){
+    if(frames.length!==10)add('early_honey_frame_count_invalid',{bodyId,expected:10,actual:frames.length});
+    if(frames.some(frame=>!isObject(frame)||!['drawn_comb','wax_foundation'].includes(frame.combType)))add('early_honey_frame_comb_type_invalid',{bodyId});
+    const foundation=frames.map((frame,index)=>frame?.combType==='wax_foundation'?index:-1).filter(index=>index>=0);
+    if(foundation.length>2)add('early_honey_wax_foundation_limit_exceeded',{bodyId,maximum:2,actual:foundation.length});
+    for(const index of foundation)if(index===0||index===frames.length-1||frames[index-1]?.combType!=='drawn_comb'||frames[index+1]?.combType!=='drawn_comb')
+     add('early_honey_wax_foundation_not_between_drawn_comb',{bodyId,position:index+1});
+   }
+  }
+ }
  const excluders=rows(stack.excluders);
  if(excluders.length!==2)add('large_excluder_count_invalid',{expected:2,actual:Array.isArray(stack.excluders)?excluders.length:null});
  const bySide=new Map(excluders.filter(isObject).map(row=>[row.side,row]));
