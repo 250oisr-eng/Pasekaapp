@@ -251,6 +251,22 @@ test('replaced or removed queens cannot remain assigned to active families',()=>
  }
 });
 
+test('split refuses an unresolved family even when a queen ID is present',()=>{
+ const state=baseState();state.families[0].queenIdentityStatus='unresolved';
+ const before=JSON.stringify(state);
+ const result=api.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:children('unconfirmed-split')},makeId,'2026-04-01T10:00:00.000Z');
+ assert.equal(result.ok,false);assert.equal(result.error,'split_source_queen_unconfirmed');
+ assert.equal(JSON.stringify(state),before);
+});
+
+test('merge requires every source queen to be confirmed current',()=>{
+ const state=baseState();state.queens.find(q=>q.id==='q2').status='unknown';
+ const before=JSON.stringify(state);
+ const result=api.applyMerge(state,{sourceFamilyIds:['f1','f2','f3'],operationId:'OP-11',resultFamily:{id:'unconfirmed-merge',hive:'h1'}},makeId,'2026-10-15T10:00:00.000Z');
+ assert.equal(result.ok,false);assert.equal(result.error,'merge_source_queen_inactive');
+ assert.equal(JSON.stringify(state),before);
+});
+
 test('family event integrity rejects broken references, duplicate IDs and survivorFamilyId',()=>{
  const state=baseState();
  state.familyEvents=[
