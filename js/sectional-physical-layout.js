@@ -142,11 +142,14 @@ function validate(layout,state){
   coveredSections.push(...sectionIds);
   if(!nonEmpty(stack.bottomItemId))add('section_stack_bottom_required',{stackId:stack.id??null});
   else checkItem(stack.bottomItemId,'bottom',{stackId:stack.id});
-  if(layout.mode===MODES.SIDE_BY_SIDE){
+  if(layout.mode===MODES.SIDE_BY_SIDE&&layout.honeyStack==null){
    if(!nonEmpty(stack.coverItemId))add('section_stack_cover_required',{stackId:stack.id??null});
    else checkItem(stack.coverItemId,'cover',{stackId:stack.id});
    if(!nonEmpty(stack.topRiserItemId))add('section_stack_top_riser_required',{stackId:stack.id??null});
    else checkItem(stack.topRiserItemId,'topRiser',{stackId:stack.id});
+  }else if(layout.mode===MODES.SIDE_BY_SIDE){
+   if(stack.coverItemId)add('honey_stage_cover_must_be_removed',{stackId:stack.id??null,itemId:stack.coverItemId});
+   if(stack.topRiserItemId)add('honey_stage_top_riser_must_be_removed',{stackId:stack.id??null,itemId:stack.topRiserItemId});
   }else if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
   if(stack.feederItemId)checkItem(stack.feederItemId,'feeder',{stackId:stack.id});
   if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
