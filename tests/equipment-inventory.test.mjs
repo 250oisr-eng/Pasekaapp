@@ -239,3 +239,15 @@ test('sectional inventory rejects a body condition incompatible with its physica
  assert.ok(I.inspect(s,labels).some(x=>x.code==='sectional_body_not_usable'&&x.details.bodyId==='sb1'));
  assert.equal(I.updateDetails(s,'sb2',{condition:'needs_repair'},now).error,'sectional_body_not_usable');
 });
+
+test('per-body and global equipment movement histories are append-only beyond 1000 events',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ for(let i=0;i<1005;i++){
+  const result=I.updateDetails(s,body.id,{notes:'запись '+i},new Date(Date.parse(now)+i*1000).toISOString());
+  assert.equal(result.ok,true);
+ }
+ assert.ok(body.events.length>1000);
+ assert.ok(s.equipmentInventory.events.length>1000);
+ assert.equal(body.events.at(-1).type,'details_updated');
+ assert.equal(s.equipmentInventory.events.at(-1).type,'body_details_updated');
+});
