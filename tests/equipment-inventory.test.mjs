@@ -269,3 +269,13 @@ test('inventory migration backfills unique IDs without changing existing movemen
  I.migrate(s,makeId,now);
  assert.equal(body.events.length,1);assert.equal(s.equipmentInventory.events.length,1);
 });
+
+test('inventory integrity rejects missing or duplicate IDs in corpus movement journals',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ delete s.equipmentInventory.bodies[body.id].events[0].id;
+ assert.ok(I.inspect(s,labels).some(error=>error.code==='equipment_event_id_missing'));
+ I.migrate(s,makeId,now);
+ const saved=s.equipmentInventory.bodies[body.id],global=s.equipmentInventory.events[0];
+ global.id=saved.events[0].id;
+ assert.ok(I.inspect(s,labels).some(error=>error.code==='duplicate_equipment_event_id'));
+});
