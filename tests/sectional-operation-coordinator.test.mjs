@@ -477,11 +477,11 @@ test('append-only queen laying observation requires a current identified queen a
  assert.equal(rejected.ok,false);
  assert.equal(rejected.error,'queen_laying_user_confirmation_required');
  assert.deepEqual(fixture.state,before);
- const result=Lineage.recordQueenLayingObserved(fixture.state,{familyId:'f1',techProcessId:'tp-h1',splitEventId:split.id,userConfirmed:true,occurredAt:'2026-12-07T09:00:00.000Z'},makeId,'2026-12-07T09:30:00.000Z');
+ const result=Lineage.recordQueenLayingObserved(fixture.state,{familyId:'f1',techProcessId:'tp-h1',splitEventId:split.id,userConfirmed:true,occurredAt:'2026-12-07T09:00:00.000Z'},prepared.deps.makeId,'2026-12-07T09:30:00.000Z');
  assert.equal(result.ok,true,JSON.stringify(result));
  assert.equal(fixture.state.queenEvents.at(-1).type,'laying_observed');
  assert.equal(fixture.state.queenEvents.at(-1).queenId,identity.queen.id);
- assert.equal(fixture.state.families.find(row=>row.id==='f1').currentQueenId,family.currentQueenId);
+ assert.equal(fixture.state.families.find(row=>row.id==='f1').currentQueenId,identity.queen.id);
  assert.deepEqual(Lineage.inspect(fixture.state),[]);
 });
 
