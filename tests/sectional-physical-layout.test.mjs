@@ -31,6 +31,12 @@ function sideBySide(){
   bl:makeItem('bl','bottom',{type:'hive',hiveId:'h1',stackId:'sl'}),
   bm:makeItem('bm','bottom',{type:'hive',hiveId:'h1',stackId:'sm'}),
   br:makeItem('br','bottom',{type:'hive',hiveId:'h1',stackId:'sr'}),
+  cl:makeItem('cl','cover',{type:'hive',hiveId:'h1',stackId:'sl'}),
+  cm:makeItem('cm','cover',{type:'hive',hiveId:'h1',stackId:'sm'}),
+  cr:makeItem('cr','cover',{type:'hive',hiveId:'h1',stackId:'sr'}),
+  tl:makeItem('tl','topRiser',{type:'hive',hiveId:'h1',stackId:'sl'}),
+  tm:makeItem('tm','topRiser',{type:'hive',hiveId:'h1',stackId:'sm'}),
+  tr:makeItem('tr','topRiser',{type:'hive',hiveId:'h1',stackId:'sr'}),
   gl1:makeItem('gl1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'}),
   gl2:makeItem('gl2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o2'}),
   gr1:makeItem('gr1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o3'}),
@@ -45,9 +51,9 @@ function sideBySide(){
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,
   sections,
   stacks:[
-   {id:'sl',position:'left',sectionIds:['s-left'],bottomItemId:'bl'},
-   {id:'sm',position:'middle',sectionIds:['s-middle'],bottomItemId:'bm'},
-   {id:'sr',position:'right',sectionIds:['s-right'],bottomItemId:'br'}
+   {id:'sl',position:'left',sectionIds:['s-left'],bottomItemId:'bl',coverItemId:'cl',topRiserItemId:'tl'},
+   {id:'sm',position:'middle',sectionIds:['s-middle'],bottomItemId:'bm',coverItemId:'cm',topRiserItemId:'tm'},
+   {id:'sr',position:'right',sectionIds:['s-right'],bottomItemId:'br',coverItemId:'cr',topRiserItemId:'tr'}
   ],
   technicalConnections:[
    {id:'c-lm',fromSectionId:'s-left',toSectionId:'s-middle',bufferCorridorPresent:true,openings:[
@@ -130,6 +136,53 @@ test('accepts three side-by-side sections with explicit bodies, openings, bottom
  const {state}=sideBySide(),before=JSON.stringify(state);
  assert.deepEqual(validateAll(state),[]);
  assert.equal(JSON.stringify(state),before,'validation must not mutate the physical state');
+});
+
+test('side-by-side layout requires one real cover and top riser for every stack',()=>{
+ const missingCover=sideBySide();
+ delete missingCover.layout.stacks[0].coverItemId;
+ assert.ok(Layout.inspect(missingCover.state).some(error=>error.code==='section_stack_cover_required'));
+ const missingTopRiser=sideBySide();
+ delete missingTopRiser.layout.stacks[1].topRiserItemId;
+ assert.ok(Layout.inspect(missingTopRiser.state).some(error=>error.code==='section_stack_top_riser_required'));
+});
+
+test('side-by-side layout allows at most one installed ceiling feeder without assuming its stack',()=>{
+ const {state,layout}=sideBySide();
+ state.equipmentInventory.items.feederMiddle=makeItem('feederMiddle','feeder',{type:'hive',hiveId:'h1',stackId:'sm'});
+ layout.stacks[1].feederItemId='feederMiddle';
+ assert.deepEqual(validateAll(state),[]);
+ state.equipmentInventory.items.feederRight=makeItem('feederRight','feeder',{type:'hive',hiveId:'h1',stackId:'sr'});
+ layout.stacks[2].feederItemId='feederRight';
+ assert.ok(Layout.inspect(state).some(error=>error.code==='section_stack_feeder_count_invalid'));
+});
+
+test('side-by-side mode rejects remaining plastic plugs after OP-04 setup',()=>{
+ const {state,layout}=sideBySide();
+ state.equipmentInventory.items.plastic=makeItem('plastic','plasticPlug',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'});
+ layout.closedOpenings=[{bodyId:'b2',openingId:'o1',itemId:'plastic'}];
+ assert.ok(Layout.inspect(state).some(error=>error.code==='side_by_side_plastic_plugs_must_be_removed'));
+});
+
+test('OP-05 coverage helper requires actual openings before checking plugs',()=>{
+ const {layout}=sideBySide();
+ layout.technicalConnections=[];
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_expected_openings_missing'));
+ assert.deepEqual(Layout.validateTemporaryQueenIsolationCoverage({...layout,mode:Layout.MODES.SINGLE_FAMILY}),[{code:'temporary_queen_coverage_requires_side_by_side',details:{}}]);
+});
+
+test('OP-05 coverage helper requires exactly one mesh plug for every actual technical opening',()=>{
+ const {layout}=sideBySide();
+ const openingRefs=layout.technicalConnections.flatMap(connection=>connection.openings);
+ layout.temporaryQueenIsolation=openingRefs.map((ref,index)=>({bodyId:ref.bodyId,openingId:ref.openingId,itemId:'mesh-'+index}));
+ assert.deepEqual(Layout.validateTemporaryQueenIsolationCoverage(layout),[]);
+ layout.temporaryQueenIsolation.pop();
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_plug_coverage_missing'));
+ layout.temporaryQueenIsolation.push({...openingRefs[0],itemId:'mesh-duplicate'});
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_plug_coverage_duplicate'));
+ layout.temporaryQueenIsolation=openingRefs.map((ref,index)=>({bodyId:ref.bodyId,openingId:ref.openingId,itemId:'mesh-'+index}));
+ layout.temporaryQueenIsolation.push({bodyId:'unknown-body',openingId:'unknown-opening',itemId:'mesh-extra'});
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_plug_coverage_extra'));
 });
 
 test('rejects a missing explicit upper body instead of inferring the last array element',()=>{
@@ -259,4 +312,16 @@ test('rejects duplicate layout identity and duplicate physical item references a
  second.state.families=first.state.families;
  second.state.queens=first.state.queens;
  assert.ok(Layout.inspect(second.state).some(error=>error.code==='sectional_layout_item_reused'));
+});
+
+
+test('OP-05 coverage helper is pure and derives its expected set from the actual layout',()=>{
+ const {layout}=sideBySide();
+ const openingRefs=layout.technicalConnections.flatMap(connection=>connection.openings);
+ layout.temporaryQueenIsolation=openingRefs.map((ref,index)=>({bodyId:ref.bodyId,openingId:ref.openingId,itemId:'mesh-'+index}));
+ const before=JSON.stringify(layout);
+ assert.deepEqual(Layout.validateTemporaryQueenIsolationCoverage(layout),[]);
+ assert.equal(JSON.stringify(layout),before);
+ layout.technicalConnections[0].openings[0].openingId='opening-renamed';
+ assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_plug_coverage_missing'&&error.details.openingId==='opening-renamed'));
 });
