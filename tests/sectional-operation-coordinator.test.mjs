@@ -62,7 +62,7 @@ function makeFixture(){
   meta:{schemaVersion:15},hives:[{id:'h1',profileId:PROFILE}],
   families:[{id:'f0',hive:'h1',recordStatus:'active',colonyGroupId:'g1',queenIdentityStatus:'identified',currentQueenId:'q0'}],
   queens:[{id:'q0',familyId:'f0',status:'current'}],queenEvents:[],familyEvents:[],
-  sectionalTechProcesses:[],sectionalLayouts:[sourceLayout],layouts:{},
+  sectionalTechProcesses:[],sectionalLayouts:[sourceLayout],layouts:{},auditLog:[],
   equipmentLabels:{bodies:Object.fromEntries(['b1','b2','b3','b4','b5','b6'].map((id,index)=>[id,codes[index]]))},
   equipmentInventory:{bodies,items,events:[],itemEvents:[]}
  };
@@ -142,6 +142,11 @@ test('OP-04 commits family split, physical layout, equipment moves and operation
  assert.equal(fixture.state.familyEvents[0].techProcessId,'tp-h1');
  assert.equal(fixture.state.sectionalTechProcesses.length,1);
  assert.equal(fixture.state.sectionalTechProcesses[0].state.operations[0].status,'DONE');
+ assert.equal(fixture.state.equipmentInventory.events.length,6,'every physical brood-body placement must be recorded');
+ assert.equal(Object.values(fixture.state.equipmentInventory.bodies).filter(row=>row.events?.some(event=>event.type==='placed'&&event.operationId==='OP-04')).length,6);
+ assert.equal(fixture.state.auditLog.length,1);
+ assert.equal(fixture.state.auditLog[0].type,'sectional_operation_completed');
+ assert.equal(fixture.state.auditLog[0].familyEventId,fixture.state.familyEvents[0].id);
  assert.equal(fixture.state.equipmentInventory.items.p1.location.type,'storage');
  assert.equal(fixture.state.equipmentInventory.items.p2.location.type,'storage');
  assert.equal(fixture.state.equipmentInventory.items.grid1.location.openingId,'o1');
@@ -164,6 +169,14 @@ test('OP-04 rolls back all draft changes if an equipment move fails midway',()=>
  const equipment={...Items,place:(state,req,makeId,now)=>{moves++;if(moves===3)return {ok:false,error:'forced_failure'};return Items.place(state,req,makeId,now)}};
  const result=Coordinator.completeOP04(fixture.state,request(fixture),dependencies({PasekaEquipmentItems:equipment}));
  assert.equal(result.ok,false);assert.equal(result.error,'equipment_move_rejected');
+ assert.deepEqual(fixture.state,before);
+});
+
+test('OP-04 refuses to proceed when the physical-body movement journal is malformed',()=>{
+ const fixture=makeFixture();fixture.state.equipmentInventory.events=null;
+ const before=structuredClone(fixture.state);
+ const result=Coordinator.completeOP04(fixture.state,request(fixture),dependencies());
+ assert.equal(result.ok,false);assert.equal(result.error,'equipment_body_event_journal_invalid');
  assert.deepEqual(fixture.state,before);
 });
 
