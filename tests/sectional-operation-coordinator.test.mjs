@@ -83,9 +83,9 @@ function makeFixture(){
  const layout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,broodRows:2,
   sections:[
-   {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
-   {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
-   {id:'s-right',position:'right',familyId:'f3',broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b6',diameterMm:50}]}
+   {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b1',diameterMm:50},{id:'o5',bodyId:'b2',diameterMm:50}]},
+   {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b3',diameterMm:50},{id:'o3',bodyId:'b3',diameterMm:50},{id:'o6',bodyId:'b4',diameterMm:50},{id:'o7',bodyId:'b4',diameterMm:50}]},
+   {id:'s-right',position:'right',familyId:'f3',broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b5',diameterMm:50},{id:'o8',bodyId:'b6',diameterMm:50}]}
   ],
   stacks:[
    {id:'sl',position:'left',sectionIds:['s-left'],bottomItemId:'bottom1',coverItemId:'cover1',topRiserItemId:'riser1'},
@@ -94,12 +94,16 @@ function makeFixture(){
   ],
   technicalConnections:[
    {id:'c-lm',fromSectionId:'s-left',toSectionId:'s-middle',bufferCorridorPresent:true,openings:[
-    {sectionId:'s-left',bodyId:'b2',openingId:'o1',itemId:'grid1'},
-    {sectionId:'s-middle',bodyId:'b4',openingId:'o2',itemId:'grid2'}
+    {sectionId:'s-left',bodyId:'b1',openingId:'o1',itemId:'grid1'},
+    {sectionId:'s-middle',bodyId:'b3',openingId:'o2',itemId:'grid2'},
+    {sectionId:'s-left',bodyId:'b2',openingId:'o5',itemId:'grid5'},
+    {sectionId:'s-middle',bodyId:'b4',openingId:'o6',itemId:'grid6'}
    ]},
    {id:'c-mr',fromSectionId:'s-middle',toSectionId:'s-right',bufferCorridorPresent:true,openings:[
-    {sectionId:'s-middle',bodyId:'b4',openingId:'o3',itemId:'grid3'},
-    {sectionId:'s-right',bodyId:'b6',openingId:'o4',itemId:'grid4'}
+    {sectionId:'s-middle',bodyId:'b3',openingId:'o3',itemId:'grid3'},
+    {sectionId:'s-right',bodyId:'b5',openingId:'o4',itemId:'grid4'},
+    {sectionId:'s-middle',bodyId:'b4',openingId:'o7',itemId:'grid7'},
+    {sectionId:'s-right',bodyId:'b6',openingId:'o8',itemId:'grid8'}
    ]}
   ],
   meshDiaphragms:[],temporaryQueenIsolation:[],closedOpenings:[]
