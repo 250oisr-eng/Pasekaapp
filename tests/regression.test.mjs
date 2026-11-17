@@ -3269,7 +3269,7 @@ test('hive deletion cancelled by user leaves state untouched and never calls sav
 
 function createFamilyMutationFixture(saveBehavior){
  const initial={meta:{schemaVersion:12,revisionId:'revision-1'},hives:[{id:'h1',number:1,desc:'Old note'}],families:[{id:'f1',hive:'h1',name:'26-1',origin:'offshoot',stage:'developing'}],layouts:{}};
- const deps={S:structuredClone(initial),renderCalls:0,alerts:[],logEvents:[],tabs:[],render(){deps.renderCalls++},alert(message){deps.alerts.push(message)},logAudit(type,payload){deps.logEvents.push({type,payload})},confirm:()=>true,today:()=> '2026-11-17',hname:()=> 'Улей 1',uid:()=> 'new-hive',showTab(tab){deps.tabs.push(tab)}};
+ const deps={S:structuredClone(initial),renderCalls:0,alerts:[],logEvents:[],tabs:[],render(){deps.renderCalls++},alert(message){deps.alerts.push(message)},logAudit(type,payload){deps.S.auditLog=[...(deps.S.auditLog||[]),{type,payload}]},confirm:()=>true,today:()=> '2026-11-17',hname:()=> 'Улей 1',uid:()=> 'new-hive',showTab(tab){deps.tabs.push(tab)}};
  deps.save=async()=>saveBehavior(deps);
  deps.saveFamilyMutation=loadFunction('saveFamilyMutation',deps);
  return {deps,initial};
@@ -3303,7 +3303,7 @@ test('markOffshootIndependent restores the family when persistence fails',async(
  assert.equal(deps.S.families[0].stage,'developing');
  assert.equal(deps.S.families[0].establishedAt,undefined);
  assert.equal(deps.S.meta.saveError,'quota');
- assert.equal(deps.logEvents.length,0,'failed family changes and audit events are both rolled back');
+ assert.equal(deps.S.auditLog,undefined,'failed family changes and audit events are both rolled back');
 });
 
 test('editHive keeps the original note and dialog open when persistence fails',async()=>{
