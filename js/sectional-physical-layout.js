@@ -166,19 +166,18 @@ function validate(layout,state){
   }
   if(seenPairs.size!==2)add('technical_connection_coverage_incomplete',{pairs:[...seenPairs]});
   if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,add,checkBody,checkItem);
-  if(layout.temporaryQueenIsolation!=null){
-   if(!Array.isArray(layout.temporaryQueenIsolation))add('temporary_queen_isolation_invalid');
-   else layout.temporaryQueenIsolation.forEach(plug=>{
-    if(!isObject(plug)){add('temporary_queen_plug_invalid');return}
-    const opening=openingById.get(plug.openingId);
-    if(!opening||opening.bodyId!==plug.bodyId)add('temporary_queen_plug_opening_invalid',{bodyId:plug.bodyId??null,openingId:plug.openingId??null});
-    checkItem(plug.itemId,'metalMeshPlug',{bodyId:plug.bodyId,openingId:plug.openingId});
-   });
-  }
  }else{
   if(rows(layout.technicalConnections).length)add('technical_connections_forbidden_for_layout_mode',{mode:layout.mode});
   if(layout.honeyStack!=null)add('honey_stack_forbidden_for_layout_mode',{mode:layout.mode});
-  if(rows(layout.temporaryQueenIsolation).length)add('temporary_queen_isolation_forbidden_for_layout_mode',{mode:layout.mode});
+ }
+ if(layout.temporaryQueenIsolation!=null){
+  if(!Array.isArray(layout.temporaryQueenIsolation))add('temporary_queen_isolation_invalid');
+  else layout.temporaryQueenIsolation.forEach(plug=>{
+   if(!isObject(plug)){add('temporary_queen_plug_invalid');return}
+   const opening=openingById.get(plug.openingId);
+   if(!opening||opening.bodyId!==plug.bodyId)add('temporary_queen_plug_opening_invalid',{bodyId:plug.bodyId??null,openingId:plug.openingId??null});
+   checkItem(plug.itemId,'metalMeshPlug',{bodyId:plug.bodyId,openingId:plug.openingId});
+  });
  }
  if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
   const stack=stacks[0],diaphragms=rows(layout.meshDiaphragms);
@@ -250,7 +249,7 @@ function inspect(state){
   if(layout?.hiveId){if(seenHives.has(layout.hiveId))errors.push({code:'sectional_layout_hive_duplicate',details:{hiveId:layout.hiveId,index}});seenHives.add(layout.hiveId)}
   const bodyIds=[...rows(layout?.sections).flatMap(section=>rows(section?.broodBodyIds)),...rows(layout?.honeyStack?.bodyIds)];
   for(const id of bodyIds){if(bodyOwners.has(id))errors.push({code:'sectional_layout_body_reused',details:{bodyId:id,layoutIds:[bodyOwners.get(id),layout?.id??null]}});else bodyOwners.set(id,layout?.id??null)}
-  const itemIds=[...rows(layout?.stacks).flatMap(stack=>[stack?.bottomItemId,stack?.coverItemId].filter(Boolean)),...rows(layout?.technicalConnections).flatMap(connection=>rows(connection?.openings).map(row=>row?.itemId)),...rows(layout?.meshPlugs).map(row=>row?.itemId),...rows(layout?.meshDiaphragms).map(row=>row?.itemId),...rows(layout?.closedOpenings).map(row=>row?.itemId),...rows(layout?.honeyStack?.excluders).map(row=>row?.itemId)].filter(Boolean);
+  const itemIds=[...rows(layout?.stacks).flatMap(stack=>[stack?.bottomItemId,stack?.coverItemId].filter(Boolean)),...rows(layout?.technicalConnections).flatMap(connection=>rows(connection?.openings).map(row=>row?.itemId)),...rows(layout?.temporaryQueenIsolation).map(row=>row?.itemId),...rows(layout?.meshDiaphragms).map(row=>row?.itemId),...rows(layout?.closedOpenings).map(row=>row?.itemId),...rows(layout?.honeyStack?.excluders).map(row=>row?.itemId)].filter(Boolean);
   for(const id of itemIds){if(itemOwners.has(id))errors.push({code:'sectional_layout_item_reused',details:{itemId:id,layoutIds:[itemOwners.get(id),layout?.id??null]}});else itemOwners.set(id,layout?.id??null)}
  });
  return errors;
