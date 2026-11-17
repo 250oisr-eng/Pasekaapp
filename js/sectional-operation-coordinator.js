@@ -40,6 +40,27 @@ function layoutItemIds(layout){
  for(const row of rows(layout?.honeyStack?.excluders))if(row?.itemId)ids.push(row.itemId);
  return ids;
 }
+function planBodyMoves(state,oldLayout,newLayout,suppliedMoves){
+ const errors=[],bodies=state?.equipmentInventory?.bodies||{};
+ const oldIds=new Set(rows(oldLayout?.sections).flatMap(section=>rows(section?.broodBodyIds)));
+ const newIds=new Set(rows(newLayout?.sections).flatMap(section=>rows(section?.broodBodyIds)));
+ const required=new Set([...oldIds].filter(id=>!newIds.has(id)));
+ const supplied=rows(suppliedMoves),seen=new Set(),storageById=new Map();
+ for(const row of supplied){
+  const id=String(row?.bodyId||''),location=String(row?.storageLocation||'').trim();
+  if(!id||seen.has(id)||!required.has(id)||!location||location.length>160){errors.push({code:'operation_body_storage_move_invalid',details:{bodyId:id||null}});continue}
+  seen.add(id);storageById.set(id,location);
+ }
+ for(const id of required)if(!seen.has(id))errors.push({code:'operation_body_storage_move_required',details:{bodyId:id}});
+ for(const id of newIds){
+  if(!bodies[id])errors.push({code:'operation_target_body_missing',details:{bodyId:id}});
+  for(const [hiveId,layout] of Object.entries(state.layouts||{})){
+   if(Object.values(layout?.boxes||{}).some(box=>box?.bodyId===id||box?.id===id))errors.push({code:'operation_target_body_in_legacy_layout',{bodyId:id,hiveId}});
+  }
+ }
+ for(const id of required)if(!bodies[id])errors.push({code:'operation_old_body_missing',details:{bodyId:id}});
+ return {errors,storageById,newIds,required};
+}
 function planItemMoves(state,oldLayout,newLayout,suppliedMoves){
  const errors=[],inv=state?.equipmentInventory||{},items=inv.items||{};
  const {targets,errors:targetErrors}=newLayoutTargets(newLayout);errors.push(...targetErrors);
@@ -148,10 +169,16 @@ function completeOP04(state,request,deps={}){
   return fail('target_section_family_mapping_invalid');
  if(rows(nextLayout.sections).some(section=>rows(section?.broodBodyIds).length!==2))return fail('target_section_body_count_invalid');
  if(state.sectionalTechProcesses.some(row=>row?.hiveId===request.hiveId||row?.id===request.techProcessId))return fail('tech_process_already_exists');
+ const initialErrors=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
+ if(initialErrors.length)return fail('op04_initial_state_invalid',initialErrors);
+ const bodyPlan=planBodyMoves(state,oldLayout,nextLayout,request.bodyStorageMoves);
+ if(bodyPlan.errors.length)return fail('body_move_plan_invalid',bodyPlan.errors);
  const plan=planItemMoves(state,oldLayout,nextLayout,request.itemMoves);
  if(plan.errors.length)return fail('equipment_move_plan_invalid',plan.errors);
  let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
  draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
+ for(const id of bodyPlan.newIds)delete draft.equipmentInventory.bodies[id].storageLocation;
+ for(const [id,location] of bodyPlan.storageById)draft.equipmentInventory.bodies[id].storageLocation=location;
  const split=deps.PasekaFamilyLineage.applySplit(draft,{
   sourceFamilyId:request.sourceFamilyId,resultFamilies:children,operationId:'OP-04',techProcessId:request.techProcessId,
   occurredAt:request.occurredAt,scenario:'THREE_SECTION_SIDE_BY_SIDE'
