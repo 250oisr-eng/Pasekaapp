@@ -200,17 +200,6 @@ function validate(layout,state){
   if(!['primary_wintering','early_honey_merge'].includes(layout.purpose))add('single_family_purpose_invalid',{purpose:layout.purpose??null});
   if(layout.purpose==='primary_wintering'){
    if(layout.closuresConfirmed!==true)add('winter_technical_openings_closure_confirmation_required');
-   const closures=rows(layout.closedOpenings),closedIds=new Set();
-   if(closures.length!==openingById.size)add('winter_plastic_plug_coverage_invalid',{expected:openingById.size,actual:Array.isArray(layout.closedOpenings)?closures.length:null});
-   for(const closure of closures){
-    if(!isObject(closure)){add('winter_plug_record_invalid');continue}
-    if(closedIds.has(closure.openingId))add('winter_plug_opening_duplicate',{openingId:closure.openingId??null});
-    closedIds.add(closure.openingId);
-    const opening=openingById.get(closure.openingId);
-    if(!opening||opening.bodyId!==closure.bodyId)add('winter_plug_opening_reference_invalid',{bodyId:closure.bodyId??null,openingId:closure.openingId??null});
-    checkItem(closure.itemId,'plasticPlug',{bodyId:closure.bodyId,openingId:closure.openingId});
-   }
-   for(const id of openingById.keys())if(!closedIds.has(id))add('winter_plastic_plug_missing',{openingId:id});
   }
  }
  const closed=rows(layout.closedOpenings),closedIds=new Set(),closedItems=new Set();
