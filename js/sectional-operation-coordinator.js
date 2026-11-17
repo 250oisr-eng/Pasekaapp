@@ -61,6 +61,59 @@ function planBodyMoves(state,oldLayout,newLayout,suppliedMoves){
  for(const id of required)if(!bodies[id])errors.push({code:'operation_old_body_missing',details:{bodyId:id}});
  return {errors,storageById,newIds,required};
 }
+function bodyLocationMap(layout){
+ const locations=new Map();
+ for(const section of rows(layout?.sections))for(const bodyId of rows(section?.broodBodyIds)){
+  locations.set(bodyId,{type:'sectional',hiveId:layout.hiveId,layoutId:layout.id,sectionId:section.id,position:section.position});
+ }
+ return locations;
+}
+function nextUniqueId(makeId,used){
+ for(let attempt=0;attempt<100;attempt++){
+  const id=makeId();
+  if(nonEmpty(id)&&!used.has(id)){used.add(id);return id;}
+ }
+ return null;
+}
+function collectEventIds(state){
+ const used=new Set();
+ for(const list of [state?.auditLog,state?.familyEvents,state?.queenEvents,state?.equipmentInventory?.events,state?.equipmentInventory?.itemEvents]){
+  for(const row of rows(list))if(nonEmpty(row?.id))used.add(row.id);
+ }
+ for(const item of Object.values(state?.equipmentInventory?.items||{}))for(const event of rows(item?.events))if(nonEmpty(event?.id))used.add(event.id);
+ return used;
+}
+function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,makeId){
+ const inventory=state?.equipmentInventory;
+ if(!isObject(inventory)||!Array.isArray(inventory.events))return {ok:false,error:'equipment_body_event_journal_invalid'};
+ const oldLocations=bodyLocationMap(oldLayout),newLocations=bodyLocationMap(newLayout);
+ const bodyIds=new Set([...oldLocations.keys(),...newLocations.keys()]);
+ const used=collectEventIds(state);
+ for(const bodyId of bodyIds){
+  const body=inventory.bodies?.[bodyId];
+  if(!isObject(body))return {ok:false,error:'equipment_body_missing_for_history',details:{bodyId}};
+  if(body.events!=null&&!Array.isArray(body.events))return {ok:false,error:'equipment_body_event_journal_invalid',details:{bodyId}};
+  if(body.events==null)body.events=[];
+  const from=oldLocations.get(bodyId)||{type:'storage',label:body.storageLocation||null};
+  const to=newLocations.get(bodyId)||{type:'storage',label:storageById.get(bodyId)||null};
+  if(!newLocations.has(bodyId)&&!storageById.has(bodyId))return {ok:false,error:'equipment_body_storage_move_missing',details:{bodyId}};
+  const installed=newLocations.has(bodyId);
+  body.events.push({type:installed?'placed':'moved_to_storage',at,operationId:'OP-04',from:clone(from),to:clone(to)});
+  body.updatedAt=at;
+  const eventId=nextUniqueId(makeId,used);
+  if(!eventId)return {ok:false,error:'equipment_body_event_id_unavailable',details:{bodyId}};
+  inventory.events.push({id:eventId,type:installed?'sectional_body_placed':'sectional_body_moved_to_storage',at,bodyId,operationId:'OP-04',from:clone(from),to:clone(to)});
+ }
+ return {ok:true};
+}
+function appendOperationAudit(state,record,event,makeId){
+ if(!Array.isArray(state.auditLog))return {ok:false,error:'audit_log_invalid'};
+ const used=collectEventIds(state),id=nextUniqueId(makeId,used);
+ if(!id)return {ok:false,error:'audit_event_id_unavailable'};
+ state.auditLog.push({id,type:'sectional_operation_completed',at:record.state.operations[0].completedAt,operationId:'OP-04',hiveId:record.hiveId,techProcessId:record.id,sourceFamilyId:event.sourceFamilyIds[0],resultFamilyIds:event.resultFamilyIds.slice(),familyEventId:event.id,layoutId:record.state.layoutId});
+ if(state.auditLog.length>500)state.auditLog=state.auditLog.slice(-500);
+ return {ok:true};
+}
 function planItemMoves(state,oldLayout,newLayout,suppliedMoves){
  const errors=[],inv=state?.equipmentInventory||{},items=inv.items||{};
  const {targets,errors:targetErrors}=newLayoutTargets(newLayout);errors.push(...targetErrors);
@@ -178,14 +231,16 @@ function completeOP04(state,request,deps={}){
  if(plan.errors.length)return fail('equipment_move_plan_invalid',plan.errors);
  let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
  draft.sectionalLayouts=rows(draft.sectionalLayouts).filter(row=>row?.id!==oldLayout.id);
- for(const id of bodyPlan.newIds)delete draft.equipmentInventory.bodies[id].storageLocation;
- for(const [id,location] of bodyPlan.storageById)draft.equipmentInventory.bodies[id].storageLocation=location;
  const split=deps.PasekaFamilyLineage.applySplit(draft,{
   sourceFamilyId:request.sourceFamilyId,resultFamilies:children,operationId:'OP-04',techProcessId:request.techProcessId,
   occurredAt:request.occurredAt,scenario:'THREE_SECTION_SIDE_BY_SIDE'
  },deps.makeId,request.occurredAt);
  if(!split?.ok)return fail('family_split_rejected',{cause:split?.error??null,details:split?.details??null});
  draft.sectionalLayouts.push(clone(nextLayout));
+ for(const id of bodyPlan.newIds)delete draft.equipmentInventory.bodies[id].storageLocation;
+ for(const [id,location] of bodyPlan.storageById)draft.equipmentInventory.bodies[id].storageLocation=location;
+ const bodyHistory=appendBodyMovementHistory(draft,oldLayout,nextLayout,bodyPlan.storageById,request.occurredAt,deps.makeId);
+ if(!bodyHistory.ok)return fail(bodyHistory.error,bodyHistory.details);
  for(const move of plan.moves){
   const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
   if(!result?.ok)return fail('equipment_move_rejected',{itemId:move.itemId,cause:result?.error??null,details:result?.details??null});
@@ -210,6 +265,8 @@ function completeOP04(state,request,deps={}){
   ...inspect(draft,deps)
  ];
  if(validationErrors.length)return fail('op04_transaction_validation_failed',validationErrors);
+ const audit=appendOperationAudit(draft,record,split.event,deps.makeId);
+ if(!audit.ok)return fail(audit.error,audit.details);
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===record.id),event:state.familyEvents.find(row=>row?.id===split.event.id)};
 }
