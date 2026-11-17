@@ -8,6 +8,7 @@ const manifest = JSON.parse(await readFile(new URL('../manifest.webmanifest', im
 const hiveModelSource = await readFile(new URL('../js/hive-model.js', import.meta.url), 'utf8');
 const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js', import.meta.url), 'utf8');
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
+const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -17,6 +18,7 @@ const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
+new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -44,6 +46,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
+  deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -3473,4 +3476,43 @@ test('physical corpus swap checks inventory history result before audit and pers
  assert.ok(guard<handler.indexOf('if(!await save())'),'persistence must not run after inventory transaction failure');
  assert.match(handler,/invalid_frame_history:/);
  assert.match(handler,/if\(!inventoryResult\.ok\)\{S=previous;render\(\);/);
+});
+
+
+test('runtime integrity validates accessory inventory and sectional references',()=>{
+ assert.match(html,/PasekaEquipmentItems\.inspect\(S\)/);
+ assert.match(html,/PasekaEquipmentItems\.validateReferences\(S\)/);
+ assert.match(html,/PasekaEquipmentItems\.inspect\(state\)/);
+ assert.match(html,/PasekaEquipmentItems\.validateReferences\(state\)/);
+});
+
+test('backup validation preserves old accessory-free archives and rejects broken accessory layout references',()=>{
+ const validate=loadFunction('validateBackupState');
+ const legacy={
+  meta:{schemaVersion:12},hives:[{id:'h1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],auditLog:[],aiMessages:[],
+  plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],
+  queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]},layouts:{}
+ };
+ assert.equal(validate(legacy),legacy);
+ const corrupt=structuredClone(legacy);
+ corrupt.equipmentInventory.bodies.b1={id:'b1',kind:'brood',condition:'good',spec:{framesPerBox:6,profileId:'sectional-multiqueen-v1'}};
+ corrupt.sectionalLayouts=[{
+  id:'layout-1',hiveId:'h1',profileId:'sectional-multiqueen-v1',
+  sections:[{id:'section-1',position:'left',familyId:'f1',broodBodyIds:['b1'],upperBroodBodyId:'b1',openings:[]}],
+  stacks:[{id:'stack-1',sectionIds:['section-1'],boundaries:[]}]
+ }];
+ let id=0;
+ const registered=appWindow.PasekaEquipmentItems.register(corrupt,{kind:'bottom',label:'Test bottom',storageLocation:'Склад'},()=> 'backup-item-'+(++id),'2026-11-17T08:00:00.000Z');
+ assert.equal(registered.ok,true);
+ const placed=appWindow.PasekaEquipmentItems.place(corrupt,{itemId:registered.item.id,location:{type:'hive',hiveId:'h1',stackId:'stack-1'}},()=> 'backup-event-'+(++id),'2026-11-17T08:05:00.000Z');
+ assert.equal(placed.ok,true);
+ delete corrupt.sectionalLayouts;
+ assert.throws(()=>validate(corrupt),/инвентарь физических принадлежностей/);
+});
+
+test('service worker caches accessory inventory module for offline operation',async()=>{
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.match(html,/\.\/js\/equipment-items\.js/);
+ assert.match(sw,/\.\/js\/equipment-items\.js/);
+ assert.match(sw,/paseka-shell-v308/);
 });
