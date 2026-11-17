@@ -3571,3 +3571,12 @@ test('service worker caches the sectional layout validator and increments its sh
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
  });
 });
+
+
+test('save integrity gate validates physical body inventory before persisting',()=>{
+ const start=html.indexOf('async function save()'),end=html.indexOf('async function persistSnapshot',start);
+ assert.ok(start>=0&&end>start);
+ const saveSource=html.slice(start,end);
+ assert.match(saveSource,/PasekaInventory\.inspect\(S,PasekaLabels,profileForHive\)/);
+ assert.match(saveSource,/if\(physicalLayoutErrors\.length\)/);
+});
