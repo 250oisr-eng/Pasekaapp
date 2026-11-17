@@ -672,13 +672,15 @@ test('OP-07 requires early honey foundation frames to be separated by drawn comb
   assert.deepEqual(fixture.state,before,scenario.name+' must roll back without mutations');
  }
 });
-test('OP-07 does not require a full honey body when actual frame count is lower than capacity',()=>{
+test('OP-07 rejects an incomplete honey body and rolls back all changes',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
  fixture.state.equipmentInventory.bodies.honey1.frames.pop();
+ const before=structuredClone(fixture.state);
  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
- assert.equal(result.ok,true,JSON.stringify(result.details||result));
- assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,9);
- assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'op07_honey_frame_capacity_mismatch');
+ assert.deepEqual(result.details,{bodyId:'honey1',expected:10,actual:9});
+ assert.deepEqual(fixture.state,before);
 });
 test('OP-07 permits up to two separated foundation frames in each honey body independently',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
