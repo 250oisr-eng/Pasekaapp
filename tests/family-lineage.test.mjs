@@ -195,31 +195,35 @@ test('OP-13 refuses to move the two-body family from the alternative wintering c
  assert.equal(result.error,'placement_source_not_single_body_family');
 });
 
-test('OP-14 cannot be complete without harvest, temporary merge and repeat split events',()=>{
- const state=baseState();addSpringMoves(state,'tech-14');const physicalSetup=addEarlyHoneyPhysicalSetup(state);
- const record={id:'tech-14',hiveId:'h1',state:{earlyHoneySetup:physicalSetup,operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
- assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
- const missingPhysical=api.recordEarlyHoneyHarvest(state,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'},makeId,'2026-05-01T09:00:00.000Z');
- assert.equal(missingPhysical.ok,false);
- const harvested=api.recordEarlyHoneyHarvest(state,{
-  familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,physicalSetup,
-  honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
-  diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId:'tech-14'
- },makeId,'2026-05-01T10:00:00.000Z');
- assert.equal(harvested.ok,true);
- const merged=api.applyMerge(state,{
-  sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',
-  resultFamily:{id:'early-merge',hive:'h1'}
- },makeId,'2026-05-04T10:00:00.000Z');
- assert.equal(merged.ok,true);
- const split=api.applySplit(state,{
-  sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId:'tech-14',
-  resultFamilies:children('after-early-honey')
- },makeId,'2026-05-10T10:00:00.000Z');
- assert.equal(split.ok,true);
- record.state.sections=split.families.map((family,index)=>({familyId:family.id,index:index+1,queenIdentityStatus:'unresolved'}));
- assert.deepEqual(api.validateOperationEvidence(state,record,'OP-14'),[]);
- assert.deepEqual(api.inspect(state),[]);
+test('OP-14 early-honey sequence accepts the two single-body families at any vertical positions',()=>{
+ for(const strongPosition of ['lower','middle','upper']){
+  const state=baseState(),techProcessId='tech-14-'+strongPosition;
+  addSpringMoves(state,techProcessId,strongPosition);
+  const physicalSetup=addEarlyHoneyPhysicalSetup(state);
+  const record={id:techProcessId,hiveId:'h1',state:{earlyHoneySetup:physicalSetup,operations:[{operationId:'OP-12',status:'DONE'},{operationId:'OP-13',status:'DONE'},{operationId:'OP-14',status:'DONE'}],sections:children('section').map((x,i)=>({...x,familyId:x.id,index:i+1}))}};
+  assert.ok(api.validateOperationEvidence(state,record,'OP-14').some(x=>x.code==='OP14_EARLY_HONEY_HARVEST_CONFIRMATION_REQUIRED'));
+  const missingPhysical=api.recordEarlyHoneyHarvest(state,{familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId},makeId,'2026-05-01T09:00:00.000Z');
+  assert.equal(missingPhysical.ok,false);
+  const harvested=api.recordEarlyHoneyHarvest(state,{
+   familyIds:['f1','f2','f3'],nestBodiesAfterHarvest:3,physicalSetup,
+   honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
+   diaphragmsRemoved:true,familiesOnSeparateBottoms:true,techProcessId
+  },makeId,'2026-05-01T10:00:00.000Z');
+  assert.equal(harvested.ok,true);
+  const merged=api.applyMerge(state,{
+   sourceFamilyIds:['f1','f2','f3'],operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId,
+   resultFamily:{id:'early-merge',hive:'h1'}
+  },makeId,'2026-05-04T10:00:00.000Z');
+  assert.equal(merged.ok,true);
+  const split=api.applySplit(state,{
+   sourceFamilyId:'early-merge',operationId:'OP-14',scenario:'EARLY_HONEY',techProcessId,
+   resultFamilies:children('after-'+strongPosition)
+  },makeId,'2026-05-10T10:00:00.000Z');
+  assert.equal(split.ok,true);
+  record.state.sections=split.families.map((family,index)=>({familyId:family.id,index:index+1,queenIdentityStatus:'unresolved'}));
+  assert.deepEqual(api.validateOperationEvidence(state,record,'OP-14'),[],strongPosition);
+  assert.deepEqual(api.inspect(state),[],strongPosition);
+ }
 });
 
 test('family event integrity rejects broken references, duplicate IDs and survivorFamilyId',()=>{
