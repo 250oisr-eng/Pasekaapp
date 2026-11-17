@@ -83,6 +83,7 @@ function updateDetailsUnsafe(state,bodyId,patch,now,getProfile){
   if(!conditions.has(patch.condition))return {ok:false,error:'invalid_condition'};
   if(patch.condition==='retired'&&installed)return {ok:false,error:'cannot_retire_installed'};
   if(patch.condition==='repair'&&installed)return {ok:false,error:'cannot_repair_installed'};
+  if(loc?.type==='sectional'&&patch.condition!=='good')return {ok:false,error:'sectional_body_not_usable'};
  }
  const before=body.condition;
  if(loc?.type==='storage'&&!storageLocation)return {ok:false,error:'invalid_details'};
@@ -118,6 +119,7 @@ function inspect(state,labels,getProfile){
     const layout=sectionalLayouts.find(row=>row?.id===location.layoutId&&row?.hiveId===location.hiveId);
     const expectedKind=location.bodyRole,capacity=expectedKind==='brood'?6:10;
     if(expectedKind!==b.kind)errors.push({code:'inventory_body_kind_location_mismatch',details:{bodyId:id,kind:b.kind,expectedKind,location}});
+    if(b.condition!=='good')errors.push({code:'sectional_body_not_usable',details:{bodyId:id,condition:b.condition}});
     if(!layout||b.spec?.profileId!==layout.profileId)errors.push({code:'inventory_body_dimensions_mismatch',details:{bodyId:id,profileId:b.spec?.profileId??null,layoutProfileId:layout?.profileId??null}});
     if(b.spec?.framesPerBox!==capacity)errors.push({code:'inventory_body_dimensions_mismatch',details:{bodyId:id,framesPerBox:b.spec?.framesPerBox??null,expectedFramesPerBox:capacity}});
    }else{
