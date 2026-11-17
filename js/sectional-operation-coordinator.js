@@ -99,10 +99,12 @@ function appendBodyMovementHistory(state,oldLayout,newLayout,storageById,at,make
   if(!newLocations.has(bodyId)&&!storageById.has(bodyId))return {ok:false,error:'equipment_body_storage_move_missing',details:{bodyId}};
   const installed=newLocations.has(bodyId);
   body.events.push({type:installed?'placed':'moved_to_storage',at,operationId:'OP-04',from:clone(from),to:clone(to)});
+  if(body.events.length>300)body.events=body.events.slice(-300);
   body.updatedAt=at;
   const eventId=nextUniqueId(makeId,used);
   if(!eventId)return {ok:false,error:'equipment_body_event_id_unavailable',details:{bodyId}};
   inventory.events.push({id:eventId,type:installed?'sectional_body_placed':'sectional_body_moved_to_storage',at,bodyId,operationId:'OP-04',from:clone(from),to:clone(to)});
+  if(inventory.events.length>1000)inventory.events=inventory.events.slice(-1000);
  }
  return {ok:true};
 }
