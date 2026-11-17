@@ -381,3 +381,31 @@ test('OP-05 inspection rejects a recorded operation whose mesh plug coverage is 
  prepared.fixture.state.sectionalLayouts[0].temporaryQueenIsolation.pop();
  assert.ok(Coordinator.inspect(prepared.fixture.state,prepared.deps).some(error=>error.code==='sectional_tech_process_temporary_queen_plug_coverage_missing'));
 });
+
+
+test('OP-05 cannot precede the actual completion timestamp of OP-04',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ prepared.fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-04').completedAt='2026-11-26T10:00:00.000Z';
+ const invalidBefore=structuredClone(prepared.fixture.state);
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),prepared.deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op05_precedes_op04_completion');
+ assert.deepEqual(prepared.fixture.state,invalidBefore);
+ assert.notDeepEqual(before,invalidBefore);
+});
+
+test('OP-05 requires each real mesh plug to exist in usable storage',()=>{
+ const prepared=prepareOP05Fixture(),before=structuredClone(prepared.fixture.state);
+ delete prepared.fixture.state.equipmentInventory.items.mesh2;
+ const invalidBefore=structuredClone(prepared.fixture.state);
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared),prepared.deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op05_mesh_plug_not_available_in_storage');
+ assert.deepEqual(prepared.fixture.state,invalidBefore);
+ assert.notDeepEqual(before,invalidBefore);
+});
+
+test('OP-05 accepts the final day of the documented 8–11 day window',()=>{
+ const prepared=prepareOP05Fixture();
+ const result=Coordinator.completeOP05(prepared.fixture.state,op05Request(prepared,{occurredAt:'2026-11-28T10:00:00.000Z'}),prepared.deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.equal(prepared.fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-05').evidence.daysAfterDivision,11);
+});
