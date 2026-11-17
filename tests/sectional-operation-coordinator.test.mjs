@@ -470,10 +470,10 @@ test('append-only queen laying observation requires a current identified queen a
  const prepared=prepareOP05Fixture(),{fixture}=prepared;
  const split=fixture.state.familyEvents.find(event=>event?.type==='split'&&event.operationId==='OP-04');
  const family=fixture.state.families.find(row=>row.id==='f1');
- const identity=Lineage.confirmQueenIdentity(fixture.state,{familyId:'f1',newQueen:{originType:'emergency_reared'},operationId:'OP-04',techProcessId:'tp-h1',occurredAt:'2026-12-06T08:00:00.000Z'},makeId,'2026-12-06T08:00:00.000Z');
+ const identity=Lineage.confirmQueenIdentity(fixture.state,{familyId:'f1',newQueen:{originType:'emergency_reared'},operationId:'OP-04',techProcessId:'tp-h1',occurredAt:'2026-12-06T08:00:00.000Z'},prepared.deps.makeId,'2026-12-06T08:00:00.000Z');
  assert.equal(identity.ok,true);
  const before=structuredClone(fixture.state);
- const rejected=Lineage.recordQueenLayingObserved(fixture.state,{familyId:'f1',techProcessId:'tp-h1',splitEventId:split.id,userConfirmed:false,occurredAt:'2026-12-07T09:00:00.000Z'},makeId,'2026-12-07T09:30:00.000Z');
+ const rejected=Lineage.recordQueenLayingObserved(fixture.state,{familyId:'f1',techProcessId:'tp-h1',splitEventId:split.id,userConfirmed:false,occurredAt:'2026-12-07T09:00:00.000Z'},prepared.deps.makeId,'2026-12-07T09:30:00.000Z');
  assert.equal(rejected.ok,false);
  assert.equal(rejected.error,'queen_laying_user_confirmation_required');
  assert.deepEqual(fixture.state,before);
@@ -520,25 +520,31 @@ test('OP-06 can record that optional OP-05 was skipped only with explicit absenc
 });
 
 test('OP-06 rejects missing queen laying evidence, wrong day and partial plug removal without mutation',()=>{
- const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
- assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
- prepareOP06Queens(fixture.state,deps);
- const request=op06Request(prepared);
- fixture.state.queenEvents=fixture.state.queenEvents.filter(event=>!(event.type==='laying_observed'&&event.familyId==='f3'));
- let before=structuredClone(fixture.state);
- let result=Coordinator.completeOP06(fixture.state,request,deps);
+ const missing=prepareOP05Fixture(),{fixture:missingFixture,deps:missingDeps}=missing;
+ assert.equal(Coordinator.completeOP05(missingFixture.state,op05Request(missing),missingDeps).ok,true);
+ prepareOP06Queens(missingFixture.state,missingDeps);
+ missingFixture.state.queenEvents=missingFixture.state.queenEvents.filter(event=>!(event.type==='laying_observed'&&event.familyId==='f3'));
+ let before=structuredClone(missingFixture.state);
+ let result=Coordinator.completeOP06(missingFixture.state,op06Request(missing),missingDeps);
  assert.equal(result.ok,false);assert.equal(result.error,'op06_queen_laying_observation_required');
- assert.deepEqual(fixture.state,before);
- prepareOP06Queens(fixture.state,deps);
- const wrongDay={...op06Request(prepared),occurredAt:'2026-12-06T10:00:00.000Z'};
- before=structuredClone(fixture.state);
- result=Coordinator.completeOP06(fixture.state,wrongDay,deps);
+ assert.deepEqual(missingFixture.state,before);
+
+ const wrong=prepareOP05Fixture(),{fixture:wrongFixture,deps:wrongDeps}=wrong;
+ assert.equal(Coordinator.completeOP05(wrongFixture.state,op05Request(wrong),wrongDeps).ok,true);
+ prepareOP06Queens(wrongFixture.state,wrongDeps);
+ before=structuredClone(wrongFixture.state);
+ result=Coordinator.completeOP06(wrongFixture.state,op06Request(wrong,{occurredAt:'2026-12-06T10:00:00.000Z'}),wrongDeps);
  assert.equal(result.ok,false);assert.equal(result.error,'op06_outside_source_window');
- assert.deepEqual(fixture.state,before);
- const partial=structuredClone(prepared.fixture.state.sectionalLayouts[0]);
- partial.temporaryQueenIsolation.pop();
- result=Coordinator.completeOP06(fixture.state,{...op06Request(prepared),layout:{...partial,temporaryQueenIsolation:[]}},deps);
- assert.equal(result.ok,false);
+ assert.deepEqual(wrongFixture.state,before);
+
+ const partial=prepareOP05Fixture(),{fixture:partialFixture,deps:partialDeps}=partial;
+ assert.equal(Coordinator.completeOP05(partialFixture.state,op05Request(partial),partialDeps).ok,true);
+ prepareOP06Queens(partialFixture.state,partialDeps);
+ partialFixture.state.sectionalLayouts[0].temporaryQueenIsolation.pop();
+ before=structuredClone(partialFixture.state);
+ result=Coordinator.completeOP06(partialFixture.state,op06Request(partial),partialDeps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op06_partial_mesh_plug_installation_invalid');
+ assert.deepEqual(partialFixture.state,before);
 });
 
 test('OP-06 rolls back every removal when a later equipment move fails',()=>{
