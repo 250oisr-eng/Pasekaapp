@@ -314,8 +314,11 @@ function inspect(state,deps={}){
     }
    }
    if(!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(op07.evidence?.timingMode))add('sectional_tech_process_op07_timing_mode_invalid',{id:record.id});
-   if(op07.evidence?.timingMode==='WITH_SECOND_ROW'&&op07.evidence?.daysAfterSecondRow!==0)add('sectional_tech_process_op07_immediate_timing_invalid',{id:record.id});
-   if(op07.evidence?.timingMode==='APPROX_12_DAYS_AFTER_SECOND_ROW'&&!(op07.evidence?.daysAfterSecondRow>0))add('sectional_tech_process_op07_delayed_timing_invalid',{id:record.id});
+   const secondRowAt=operation?.evidence?.secondRowAt||operation?.completedAt;
+   const actualDaysAfterSecondRow=calendarDayDifference(op07.completedAt,secondRowAt);
+   if(actualDaysAfterSecondRow==null||op07.evidence?.daysAfterSecondRow!==actualDaysAfterSecondRow)add('sectional_tech_process_op07_timing_evidence_mismatch',{id:record.id,actualDaysAfterSecondRow,evidenceDays:op07.evidence?.daysAfterSecondRow??null});
+   if(op07.evidence?.timingMode==='WITH_SECOND_ROW'&&actualDaysAfterSecondRow!==0)add('sectional_tech_process_op07_immediate_timing_invalid',{id:record.id,actualDaysAfterSecondRow});
+   if(op07.evidence?.timingMode==='APPROX_12_DAYS_AFTER_SECOND_ROW'&&(actualDaysAfterSecondRow==null||actualDaysAfterSecondRow<12||actualDaysAfterSecondRow>15))add('sectional_tech_process_op07_delayed_timing_invalid',{id:record.id,actualDaysAfterSecondRow,minimum:12,maximum:15});
    const removedAccessories=rows(op07.evidence?.removedStackAccessories),expectedRemoved=removedAccessories.map(row=>row?.itemId).sort();
    const excluderIds=rows(op07.evidence?.excluderItemIds).slice().sort(),removedEvidence=rows(op07.evidence?.itemMovementEventIds);
    const expectedMovementIds=[...expectedRemoved,...excluderIds].sort();
@@ -759,7 +762,7 @@ function completeOP07(state,request,deps={}){
  const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
  const daysAfterSecondRow=calendarDayDifference(request.occurredAt,secondRowAt);
  if(request.timingMode==='WITH_SECOND_ROW'&&daysAfterSecondRow!==0)return fail('op07_with_second_row_must_be_same_day',{daysAfterSecondRow});
- if(request.timingMode==='APPROX_12_DAYS_AFTER_SECOND_ROW'&&!(daysAfterSecondRow>0))return fail('op07_delayed_timing_must_follow_second_row',{daysAfterSecondRow});
+ if(request.timingMode==='APPROX_12_DAYS_AFTER_SECOND_ROW'&&(daysAfterSecondRow==null||daysAfterSecondRow<12||daysAfterSecondRow>15))return fail('op07_delayed_timing_outside_12_15_day_window',{daysAfterSecondRow,minimum:12,maximum:15});
  nextRecord.state.operations.push({operationId:'OP-07',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,timingMode:request.timingMode,secondRowAt,daysAfterSecondRow,honeyPurpose:honey.purpose,honeyBodyIds:bodyIds.slice(),frameComposition:honeyFrameCompositionEvidence(framesByBody),excluderItemIds:excluders.map(row=>row.itemId).sort(),removedStackAccessories,itemMovementEventIds:movementIds}});
  nextRecord.updatedAt=request.occurredAt;
  const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
