@@ -181,7 +181,10 @@ function inspect(state,labels,getProfile){
  return errors;
 }
 function migrateUnsafe(state,makeId,now,getProfile,labels){
- const inv=ensure(state),labelApi=labels||window.PasekaLabels;
+ const inv=ensure(state),labelApi=labels||window.PasekaLabels,usedEventIds=new Set();
+ const nextEventId=()=>{for(let attempt=0;attempt<100;attempt++){const id=makeId?.();if(typeof id==='string'&&id&&!usedEventIds.has(id)){usedEventIds.add(id);return id}}throw new Error('Не удалось назначить уникальный ID записи истории оборудования')};
+ for(const event of inv.events){if(!event||typeof event!=='object'||Array.isArray(event))throw new Error('Повреждён общий журнал перемещений оборудования');if(event.id){if(usedEventIds.has(event.id))throw new Error('Повторяется ID события в истории оборудования');usedEventIds.add(event.id)}else event.id=nextEventId()}
+ for(const [bodyId,body] of Object.entries(inv.bodies)){if(!body||typeof body!=='object')throw new Error('Повреждена запись корпуса '+bodyId);if(body.events!=null&&!Array.isArray(body.events))throw new Error('Повреждён журнал корпуса '+bodyId);if(Array.isArray(body.events))for(const event of body.events){if(!event||typeof event!=='object'||Array.isArray(event))throw new Error('Повреждена запись истории корпуса '+bodyId);if(event.id){if(usedEventIds.has(event.id))throw new Error('Повторяется ID события корпуса '+bodyId);usedEventIds.add(event.id)}else event.id=nextEventId()}}
  for(const hive of state.hives||[]){
   const profile=getProfile?.(hive.id)||profileForState(state,hive.id);
   if(!profile||profile.status==='template')continue;
