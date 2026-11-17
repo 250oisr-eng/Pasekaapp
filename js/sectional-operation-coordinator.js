@@ -531,7 +531,7 @@ function completeOP06(state,request,deps={}){
   if(!op05||op05.status!=='DONE')return fail('op06_installed_plugs_require_op05_evidence');
   const coverageErrors=deps.PasekaSectionalPhysicalLayout.validateTemporaryQueenIsolationCoverage(oldLayout);
   if(coverageErrors.length)return fail('op06_installed_plug_coverage_invalid',coverageErrors);
- }else if(op05||installed.length!==0)return fail('op06_op05_absence_not_confirmed');
+ }else if(op05||installed.length!==0||request.noPlugsInstalledConfirmed!==true)return fail('op06_op05_absence_not_confirmed');
  const splitEvent=rows(state.familyEvents).find(event=>event?.id===op04.evidence?.familyEventId&&event.type==='split'&&event.operationId==='OP-04'&&event.techProcessId===record.id);
  if(!splitEvent||splitEvent.resultFamilyIds?.length!==3)return fail('op06_split_event_missing');
  for(const section of rows(record.state.sections)){
