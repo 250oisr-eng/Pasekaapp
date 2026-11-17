@@ -3603,7 +3603,8 @@ test('save includes sectionalLayouts in historical snapshots without changing sc
 
 test('save preserves real family lineage events in root state and snapshot history',async()=>{
  const state={meta:{schemaVersion:14},hives:[{id:'h1'}],families:[{id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',currentQueenId:null,queenIdentityStatus:'unresolved'}],queens:[],queenEvents:[],familyEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{}};
- const split=appWindow.PasekaFamilyLineage.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:[1,2,3].map(i=>({id:'child-'+i,hive:'h1'}))},()=> 'event-'+Math.random(),'2026-04-01T10:00:00.000Z');
+ let eventSequence=0;
+ const split=appWindow.PasekaFamilyLineage.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:[1,2,3].map(i=>({id:'child-'+i,hive:'h1'}))},()=> 'event-'+(++eventSequence),'2026-04-01T10:00:00.000Z');
  assert.equal(split.ok,true);
  const expected=structuredClone(state.familyEvents);
  let persisted=null;
