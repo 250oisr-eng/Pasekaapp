@@ -1,3 +1,16 @@
+## Контрольная точка — 2026-11-17: PR #145 интегрирован; lineage runtime в PR #146
+
+- Актуальный GitHub main: `d73d9523c1c566624ac372ef768f0253aa8faee6` — merge commit PR #145. PR #145 закрыт слиянием; физический ownership bridge, sectional inventory invariants и подтверждение двух больших решёток теперь входят в main.
+- Проверенный кодовый SHA PR #145: `7975abb6cd2084d8eee003e325b3e05cbebaf0f7`; Fast quality checks **536/536 tests passed** (run #44081137150), Android Debug APK build/upload **success** (run #44081137033). После code SHA были только документационные коммиты. Для merge commit `d73d9523c1c566624ac372ef768f0253aa8faee6` GitHub Actions workflow runs и combined status не представлены; это не записывается как успешный CI на merge SHA.
+- Следующий технический блок выполняется в Draft PR [#146](https://github.com/250oisr-eng/Pasekaapp/pull/146), ветка `feat/family-events-runtime-integration-2026-11-17`, base `d73d9523c1c566624ac372ef768f0253aa8faee6`, текущий HEAD `19bc270b4f726201e1c18432190092ee552fe235`.
+- PR #146 подключает `js/family-lineage.js` к runtime, добавляет `familyEvents`, additive migration прикладной схемы 12→14, lineage integrity в startup/save/raw-backup validation, сохранение событий в snapshot history, совместимость старых backup и Service Worker cache v312.
+- IndexedDB object-store version остаётся 3. Схема 13 принимается как переходная: если массив событий уже присутствует, он сохраняется; если отсутствует, создаётся пустой массив. Для схемы 14 массив обязателен. Некорректный существующий массив не заменяется и должен блокировать миграцию до изменения других данных.
+- PR #146 проверяется. Android workflow run #44083460821 на HEAD `19bc270b4f726201e1c18432190092ee552fe235` был запущен; на момент записи выполнялся. Результат тестов/сборки пока не подтверждён. Не считать отсутствие отдельного combined status прохождением проверок.
+- UI, coordinator OP-04/05/06, активация профиля секционного улья, реальные операции, production и публикация не выполняются этим PR.
+- Следующий шаг: дождаться и разобрать CI PR #146 на актуальном HEAD; исправить выявленные ошибки, затем проверить документацию и полную обратную совместимость backup/snapshot.
+
+---
+
 # PROJECT_STATUS — Пасека 2.0
 
 > Главный оперативный журнал состояния разработки и точка восстановления после обрыва связи.

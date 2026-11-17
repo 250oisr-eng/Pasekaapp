@@ -10,6 +10,7 @@ const equipmentLabelsSource = await readFile(new URL('../js/equipment-labels.js'
 const equipmentInventorySource = await readFile(new URL('../js/equipment-inventory.js', import.meta.url), 'utf8');
 const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const sectionalPhysicalLayoutSource = await readFile(new URL('../js/sectional-physical-layout.js', import.meta.url), 'utf8');
+const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -21,6 +22,7 @@ new Function('window', equipmentLabelsSource)(appWindow);
 new Function('window', equipmentInventorySource)(appWindow);
 new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', sectionalPhysicalLayoutSource)(appWindow);
+new Function('window', familyLineageSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -50,6 +52,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaInventory ||= appWindow.PasekaInventory;
   deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaSectionalPhysicalLayout ||= appWindow.PasekaSectionalPhysicalLayout;
+  deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -1215,7 +1218,7 @@ function malformedSchema12Backup(){
  return {at:'old',state};
 }
 function futureSchemaBackup(){
- return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:15}}};
 }
 function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
@@ -1330,7 +1333,7 @@ function automaticBackupValidatorForTests(){
 test('automatic backup validation rejects malformed and structurally corrupted snapshots',()=>{
  const validate=automaticBackupValidatorForTests();
  assert.throws(()=>validate(null),/не содержит состояние/i);
- assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:13}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:15}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
  const corrupt={...rawBackupFixture(),hives:[{id:'same',number:1},{id:'same',number:2}]};
  assert.throws(()=>validate({state:corrupt}),/не прошёл проверку исходных данных/i);
  const valid={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'valid-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
@@ -1351,7 +1354,7 @@ test('startup preserves an automatic backup from a newer schema without attempti
  assert.equal(writes,0,'a future-schema backup must never be silently replaced');
  assert.equal(reads,0);
  assert.match(current.meta.autoBackupError,/более новой версией приложения/i);
- assert.equal(future.state.meta.schemaVersion,13);
+ assert.equal(future.state.meta.schemaVersion,15);
 });
 
 test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
@@ -1443,7 +1446,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:13}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:15}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -1944,13 +1947,61 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,13,'2']){
+ for(const version of [0,15,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===13?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===15?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
+
+test('malformed familyEvents abort migration before any legacy state is changed',()=>{
+ const state={meta:{schemaVersion:12},hives:[{id:'h1'}],families:[{name:'Legacy'}],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],familyEvents:{invalid:true}};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state});
+ assert.throws(()=>migrate(),/Повреждён журнал событий семей/);
+ assert.deepEqual(state,before);
+});
+
+test('schema 14 migration rejects a missing event journal before touching other state',()=>{
+ const state={meta:{schemaVersion:14},hives:[{id:'h1',number:0}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'unused'});
+ assert.throws(()=>migrate(),/схеме 14 отсутствует корректный журнал/);
+ assert.deepEqual(state,before);
+});
+
+test('schema 14 migration creates an empty family event journal without changing legacy family identities',()=>{
+ const state={meta:{schemaVersion:12},hives:[],families:[{id:'f1',hive:'h1',name:'Семья'}],queens:[],queenEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const beforeFamily=structuredClone(state.families[0]);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,14);
+ assert.deepEqual(state.familyEvents,[]);
+ assert.deepEqual(state.families[0],beforeFamily);
+ assert.ok(state.auditLog.some(event=>event.type==='schema_migration'&&event.to===14));
+ assert.equal(migrate(),false);
+});
+
+test('schema 13 transitional backups migrate without dropping an existing family event array',()=>{
+ const event={id:'event-1',type:'queen_absence_confirmed',occurredAt:'2026-11-17T09:00:00.000Z'};
+ const state={meta:{schemaVersion:13},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[event],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,14);
+ assert.deepEqual(state.familyEvents,[event]);
+});
+
+test('migration refuses malformed pre-existing family event data without replacing it',()=>{
+ const malformed={not:'an array'};
+ const state={meta:{schemaVersion:12},hives:[],families:[],queens:[],queenEvents:[],familyEvents:malformed,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state});
+ assert.throws(()=>migrate(),/Повреждён журнал событий семей/);
+ assert.deepEqual(state.familyEvents,malformed);
+ assert.equal(state.meta.schemaVersion,before.meta.schemaVersion);
+});
+
 test('schema migration preserves physical frame IDs and adds stable metadata exactly once',()=>{
  const state={
   meta:{schemaVersion:1},
@@ -1976,7 +2027,8 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,12);
+ assert.equal(state.meta.schemaVersion,14);
+ assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.ok(state.meta.deviceId);
@@ -2271,7 +2323,7 @@ test('startup read recovers from a failed main read when a backup is available',
 });
 
 test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
- const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:13}}};
+ const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:15}}};
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
@@ -3040,7 +3092,8 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,12);
+ assert.equal(state.meta.schemaVersion,14);
+ assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.varroaObservations,[]);
  assert.deepEqual(state.pesticideIncidents,[]);
  assert.deepEqual(state.deadoutReviews,[]);
@@ -3063,7 +3116,7 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,12);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,14);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
 
@@ -3487,6 +3540,8 @@ test('runtime integrity validates accessory inventory and sectional references',
  assert.match(html,/PasekaEquipmentItems\.validateReferences\(S\)/);
  assert.match(html,/PasekaEquipmentItems\.inspect\(state\)/);
  assert.match(html,/PasekaEquipmentItems\.validateReferences\(state\)/);
+ assert.match(html,/PasekaFamilyLineage\.inspect\(S\)/);
+ assert.match(html,/PasekaFamilyLineage\.inspect\(state\)/);
 });
 
 test('backup validation preserves old accessory-free archives and rejects broken accessory layout references',()=>{
@@ -3517,7 +3572,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v311/);
+ assert.match(sw,/paseka-shell-v312/);
 });
 
 
@@ -3547,8 +3602,65 @@ test('save includes sectionalLayouts in historical snapshots without changing sc
   render:()=>{},alert:()=>{}
  });
  assert.equal(await save(),true);
- assert.equal(saved.meta.schemaVersion,12);
+ assert.equal(saved.meta.schemaVersion,14);
+ assert.deepEqual(saved.familyEvents,[]);
+ assert.deepEqual(saved.snapshots[0].familyEvents,[]);
  assert.deepEqual(saved.snapshots[0].sectionalLayouts,[layout]);
+});
+
+
+test('save refuses a missing familyEvents collection in schema 14 instead of silently repairing it',async()=>{
+ const state={meta:{schemaVersion:14,revisionId:'before'},hives:[],families:[],queens:[],queenEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{}};
+ let persisted=false;
+ const save=loadFunction('save',{
+  S:state,uid:()=> 'after',saveQueue:Promise.resolve(),
+  PasekaInventory:{inspect:()=>[]},PasekaEquipmentItems:{inspect:()=>[],validateReferences:()=>[]},PasekaSectionalPhysicalLayout:{inspect:()=>[]},
+  persistSnapshot:async()=>{persisted=true;return true},render:()=>{},alert:()=>{}
+ });
+ assert.equal(await save(),false);
+ assert.equal(persisted,false);
+ assert.equal(state.familyEvents,undefined);
+ assert.equal(state.meta.revisionId,'before');
+ assert.match(state.meta.saveError,/родословная семей/);
+});
+
+test('save preserves real family lineage events in root state and snapshot history',async()=>{
+ const state={meta:{schemaVersion:14},hives:[{id:'h1'}],families:[{id:'f1',hive:'h1',recordStatus:'active',colonyGroupId:'g1',currentQueenId:null,queenIdentityStatus:'unresolved'}],queens:[],queenEvents:[],familyEvents:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{}};
+ let eventSequence=0;
+ const split=appWindow.PasekaFamilyLineage.applySplit(state,{sourceFamilyId:'f1',operationId:'OP-04',resultFamilies:[1,2,3].map(i=>({id:'child-'+i,hive:'h1'}))},()=> 'event-'+(++eventSequence),'2026-04-01T10:00:00.000Z');
+ assert.equal(split.ok,true);
+ const expected=structuredClone(state.familyEvents);
+ let persisted=null;
+ const save=loadFunction('save',{
+  S:state,uid:()=> 'revision-lineage',saveQueue:Promise.resolve(),
+  PasekaInventory:{inspect:()=>[]},PasekaEquipmentItems:{inspect:()=>[],validateReferences:()=>[]},
+  PasekaSectionalPhysicalLayout:{inspect:()=>[]},
+  persistSnapshot:async snapshot=>{persisted=structuredClone(snapshot);return true},render:()=>{},alert:()=>{}
+ });
+ assert.equal(await save(),true);
+ assert.deepEqual(persisted.familyEvents,expected);
+ assert.deepEqual(persisted.snapshots[0].familyEvents,expected);
+ assert.deepEqual(state.familyEvents,expected);
+});
+
+test('backup validation accepts legacy family history but requires and validates schema 14 events',()=>{
+ const validate=loadFunction('validateBackupState');
+ const requiredLegacy={plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]}};
+ const legacy={...rawBackupFixture(),...requiredLegacy,meta:{schemaVersion:12}};
+ assert.equal(validate(legacy),legacy);
+ const missing={...legacy,meta:{schemaVersion:14}};
+ assert.throws(()=>validate(missing),/familyEvents/);
+ const valid={...legacy,meta:{schemaVersion:14},familyEvents:[]};
+ assert.equal(validate(valid),valid);
+ assert.throws(()=>validate({...valid,familyEvents:[null]}),/повреждённые элементы/);
+ assert.throws(()=>validate({...valid,snapshots:[{at:'2026-11-17',familyEvents:{bad:true}}]}),/история событий семей/);
+});
+
+test('raw backup integrity validates lineage events without inventing missing events in legacy schemas',()=>{
+ const legacy={...rawBackupFixture(),meta:{schemaVersion:12}};
+ assert.deepEqual(inspectRawBackup(legacy).errors.filter(error=>error.code.startsWith('family_event_')),[]);
+ const current={...rawBackupFixture(),meta:{schemaVersion:14},familyEvents:[{id:'bad-event',type:'unknown',occurredAt:'2026-11-17T10:00:00.000Z'}]};
+ assert.ok(inspectRawBackup(current).errors.some(error=>error.code==='family_event_type_invalid'));
 });
 
 test('backup validation preserves legacy states and rejects malformed sectionalLayouts',()=>{
@@ -3567,8 +3679,9 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v311/);
+  assert.match(source,/paseka-shell-v312/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
+  assert.match(source,/\.\/js\/family-lineage\.js/);
  });
 });
 
