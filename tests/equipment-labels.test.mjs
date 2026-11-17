@@ -51,7 +51,7 @@ function makeLayoutFor(state){
 test('new hive layout initialization assigns permanent frame codes and UIDs before save',()=>{
  const state={layouts:{},equipmentLabels:{bodies:{}},meta:{}};
  const layoutFor=makeLayoutFor(state);
- layoutFor('new-hive');
+ const layout=layoutFor('new-hive');
  const frames=[...Object.values(layout.boxes||{}),...(layout.honeyFrames||[]).map(frames=>({frames}))].flatMap(box=>box.frames||[]);
  assert.equal(frames.length,56);
  assert.ok(frames.every(frame=>frame.labelCode&&frame.frameUid&&Array.isArray(frame.history)));
