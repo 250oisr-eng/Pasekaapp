@@ -1090,7 +1090,7 @@ function inventoryEventDetails(ev){
 function inventoryLocationLabel(body){
  const loc=PasekaInventory.locateBody(S,body.id,profileForHive);
  if(loc?.type==='hive')return hname(loc.hiveId)+' · '+frameLocationName(loc.boxKey,loc.hiveId);
- if(loc?.type==='sectional')return hname(loc.hiveId)+' · секция '+(loc.sectionPosition||'без позиции')+' · '+(loc.bodyRole==='honey'?'медовый':'гнездовой')+' корпус';
+ if(loc?.type==='sectional')return hname(loc.hiveId)+' · '+(loc.bodyRole==='honey'?'общий медовый ярус':'секция '+(loc.sectionPosition||'без позиции'))+' · '+(loc.bodyRole==='honey'?'медовый':'гнездовой')+' корпус';
  if(loc?.type==='hive_uninstalled')return 'Снят из сборки · '+hname(loc.hiveId)+' · '+frameLocationName(loc.boxKey,loc.hiveId)+(body.storageLocation?' · хранение: '+body.storageLocation:'');
  if(loc?.type==='storage')return 'Склад · '+loc.place;
  return 'Ошибка привязки';
