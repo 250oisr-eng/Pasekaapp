@@ -280,10 +280,10 @@ function inspect(state,deps={}){
    if(!completed||op07.status!=='DONE'||!validDate(op07.completedAt))add('sectional_tech_process_op07_status_invalid',{id:record.id});
    const honey=layout?.honeyStack,bodyIds=rows(honey?.bodyIds).slice().sort(),excluders=rows(honey?.excluders);
    if(!honey||JSON.stringify(bodyIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds).slice().sort())||JSON.stringify(excluders.map(row=>row?.itemId).sort())!==JSON.stringify(rows(op07.evidence?.excluderItemIds).slice().sort()))add('sectional_tech_process_op07_layout_evidence_mismatch',{id:record.id});
-   if(honey&&JSON.stringify(honeyFrameCompositionEvidence(honey.framesByBody))!==JSON.stringify(op07.evidence?.frameComposition))add('sectional_tech_process_op07_frame_composition_evidence_invalid',{id:record.id});
+   if(honey&&JSON.stringify(honeyFrameCompositionEvidence(Object.fromEntries(rows(honey.bodyIds).map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]))))!==JSON.stringify(op07.evidence?.frameComposition))add('sectional_tech_process_op07_frame_composition_evidence_invalid',{id:record.id});
    if(honey?.purpose==='early'){
     for(const bodyId of rows(honey.bodyIds)){
-     const frameErrors=earlyHoneyFrameCompositionErrors(honey.framesByBody?.[bodyId]);
+     const frameErrors=earlyHoneyFrameCompositionErrors(state.equipmentInventory?.bodies?.[bodyId]?.frames);
      if(frameErrors.length)add('sectional_tech_process_op07_early_honey_frame_composition_invalid',{id:record.id,bodyId,errors:frameErrors});
     }
    }
@@ -701,7 +701,7 @@ function completeOP07(state,request,deps={}){
   }
   framesByBody[bodyId]=clone(frames);
  }
- nextLayout.honeyStack.framesByBody=framesByBody;
+
  for(const row of excluders){
   const item=state.equipmentInventory?.items?.[row?.itemId];
   if(!item||item.kind!=='honeyQueenExcluder'||item.condition!=='good'||item.location?.type!=='storage')return fail('op07_large_excluder_not_available_in_storage',{itemId:row?.itemId??null});
@@ -723,7 +723,7 @@ function completeOP07(state,request,deps={}){
    const frame=frames[index];frame.history=Array.isArray(frame.history)?frame.history:[];
    frame.history.push({date:request.occurredAt.slice(0,10),action:'corpus_from_storage',from:{storageLocation:body.storageLocation||'Склад'},to:{hiveId:request.hiveId,box:'honey:'+bodyId}});
   }
-  body.frames=[];delete body.storageLocation;
+  delete body.storageLocation;
  }
  for(const move of itemPlan.moves){
   const result=deps.PasekaEquipmentItems.place(draft,{itemId:move.itemId,location:move.location},deps.makeId,request.occurredAt);
