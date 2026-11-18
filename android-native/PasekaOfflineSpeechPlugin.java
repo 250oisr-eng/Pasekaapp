@@ -258,6 +258,10 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
     }
 
     private void downloadAndInstallModel(PluginCall call, Network wifiNetwork) {
+        if (speechService != null) {
+            call.reject("Сначала останови голосовой сеанс.", "VOICE_SESSION_ACTIVE");
+            return;
+        }
         File files = getContext().getFilesDir();
         File archive = new File(files, MODEL_VERSION + ".zip.part");
         File staging = new File(files, MODEL_VERSION + ".staging");
