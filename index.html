@@ -570,7 +570,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
 <script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script>
-<script src="./js/entrance-analysis.js"></script>
+<script src="./js/media-lifecycle.js"></script><script src="./js/media-job-store.js"></script><script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
 <script src="./js/season-planning.js"></script>
@@ -606,7 +606,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
 }
 function isFreshDatabaseUpgrade(oldVersion){return oldVersion===0}
 function canInitializeFreshDatabase(databaseCreated,loadedState){return databaseCreated===true&&loadedState==null}
-function openDB(){return new Promise((ok,no)=>{let settled=false,q;/* Freshness belongs to this open attempt; retries must start false. */let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
+function openDB(){return new Promise((ok,no)=>{let settled=false,q;/* Freshness belongs to this open attempt; retries must start false. */let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,4)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'});PasekaMediaJobStore.ensureStore(d)};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
 function readMain(){
  return new Promise((ok,no)=>{
   let tx,request,value,settled=false;
