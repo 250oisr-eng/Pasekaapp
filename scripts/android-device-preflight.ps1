@@ -9,7 +9,7 @@ function Get-AdbDeviceRecords {
             $records += [pscustomobject]@{ Serial = $Matches.serial; State = $Matches.state }
         }
     }
-    return ,$records
+    return $records
 }
 function Get-PropertyValue {
     param([string]$Output)
