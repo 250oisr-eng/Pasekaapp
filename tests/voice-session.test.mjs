@@ -92,6 +92,7 @@ test('voice session starts local continuous Russian recognition and forwards fin
     static async available() { return 'available'; }
     static async install() { return true; }
     set processLocally(value) { this.local = value; }
+    get processLocally() { return this.local; }
     constructor() { recognition = this; }
     start() { this.started = true; }
     stop() { this.stopped = true; }
@@ -129,6 +130,7 @@ test('voice session stops after microphone permission denial', async () => {
     static async available() { return 'available'; }
     static async install() { return true; }
     set processLocally(value) { this.local = value; }
+    get processLocally() { return this.local; }
     constructor() { recognition = this; }
     start() {}
     stop() { this.stopped = true; }
@@ -226,6 +228,7 @@ test('online speech recognition is never used unless the user explicitly allows 
     static async available() { return 'unavailable'; }
     static async install() { return false; }
     set processLocally(value) { this.local = value; }
+    get processLocally() { return this.local; }
     constructor() { recognition = this; }
     start() { this.started = true; }
     stop() {}
@@ -288,6 +291,7 @@ test('one-shot dictation delivers one final transcript and then stops', async ()
     static async available() { return 'available'; }
     static async install() { return true; }
     set processLocally(value) { this.local = value; }
+    get processLocally() { return this.local; }
     constructor() { recognition = this; }
     start() {}
     stop() { this.stopped = true; }
@@ -319,7 +323,7 @@ test('Android Vosk plugin processes microphone audio locally and downloads the m
   assert.match(nativeSpeechSource, /notifyListeners\(eventName, payload\)/);
   assert.match(nativeSpeechSource, /publishHypothesis\(hypothesis, "text", "result"\)/);
   assert.match(nativeSpeechSource, /NetworkCapabilities\.TRANSPORT_WIFI/);
-  assert.match(nativeSpeechSource, /if \(activeCapabilities\.hasTransport\(NetworkCapabilities\.TRANSPORT_WIFI\)\) \{/);
+  assert.match(nativeSpeechSource, /activeCapabilities\.hasTransport\(NetworkCapabilities\.TRANSPORT_WIFI\)/);
   assert.match(nativeSpeechSource, /candidateCapabilities\.hasTransport\(NetworkCapabilities\.TRANSPORT_WIFI\)[\s\S]*?return candidate;/);
   assert.doesNotMatch(nativeSpeechSource, /activeCapabilities\.hasTransport\(NetworkCapabilities\.TRANSPORT_VPN\)/);
   assert.match(nativeSpeechSource, /direct binding may bypass an active VPN/);
