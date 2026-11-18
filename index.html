@@ -1506,7 +1506,7 @@ async function handleEntranceVideoFile(files){
  const id=uid(),retainOriginal=$('entranceRetainOriginal')?.checked!==false;
  try{
   await mediaJobRepository().enqueue({id,kind:'video',blob:file,name:String(file.name||'video').slice(0,120),mimeType:file.type||'video/unknown',hiveId,capturedAt:new Date().toISOString(),retainOriginal,captureMetadata:{durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,frameQualityStatus:frameQuality.status}});
-  if(status)status.textContent='Видео сохранено в локальную очередь на этом устройстве. Сетевой передачи и автоматического удаления нет. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
+  if(status)status.textContent='Видео сохранено в локальную очередь на этом устройстве. Для анализа после отдельного нажатия отправляются только выбранные кадры; оригинал остаётся локально. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. ИИ-анализ выполняется по кадрам, а не по непрерывному видеопотоку.';
   await refreshEntranceVideos();
  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
 }
