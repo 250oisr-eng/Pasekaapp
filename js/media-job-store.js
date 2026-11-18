@@ -40,7 +40,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
    hiveId:input.hiveId||null,familyId:input.familyId||null,recordId:input.recordId||null,
    capturedAt:input.capturedAt||at,createdAt:at,updatedAt:at,
    originalRef:'media-job:'+id,status:'queued',retryCount:0,
-   retainOriginal:input.retainOriginal===true,lastError:null,
+   retainOriginal:input.retainOriginal!==false,lastError:null,
    result:null,resultId:null,resultValidated:false,resultPersistedAt:null
   };
   const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
@@ -88,6 +88,27 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   if(timestamp(details.nextAttemptAt))safeDetails.nextAttemptAt=details.nextAttemptAt;
   if(details.retainOriginal===true)safeDetails.retainOriginal=true;
   return transitionInternal(id,next,safeDetails);
+ }
+
+ async function setRetainOriginal(id,retainOriginal){
+  if(!text(id)||typeof retainOriginal!=='boolean')throw new TypeError('Требуется явный выбор сохранения оригинала');
+  const current=await get(id);
+  if(!current)throw new Error('Задание медиа не найдено');
+  if(['completed_retained','completed_deleted'].includes(current.status))
+   throw new Error('Для завершённого задания решение о сохранении уже зафиксировано');
+  if(retainOriginal===false&&['result_persisted','cleanup_pending'].includes(current.status)&&
+     !lifecycle.hasVerifiedResultBackup(current))
+   throw new Error('Нельзя разрешить очистку до подтверждения резервной копии');
+  const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME),request=store.get(id);
+  request.onsuccess=()=>{
+   const latest=request.result;
+   if(!latest||latest.status!==current.status||latest.updatedAt!==current.updatedAt||
+      (retainOriginal===false&&['result_persisted','cleanup_pending'].includes(latest.status)&&!lifecycle.hasVerifiedResultBackup(latest))){
+    try{tx.abort()}catch{}return;
+   }
+   try{store.put({...latest,retainOriginal,updatedAt:now()})}catch(error){try{tx.abort()}catch{}}
+  };
+  await done;return get(id);
  }
 
  async function receiveResult(id,result){
@@ -206,7 +227,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return results;
  }
 
- return Object.freeze({enqueue,get,list,transition,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
+ return Object.freeze({enqueue,get,list,transition,setRetainOriginal,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
 }
 
 root.PasekaMediaJobStore=Object.freeze({STORE_NAME,ensureStore,createMediaJobStore});

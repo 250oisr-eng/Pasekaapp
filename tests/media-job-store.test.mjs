@@ -52,7 +52,7 @@ test('enqueue stores original Blob and metadata durably across database reopen',
  const env=await createDb();
  try{
   const job=await env.repo.enqueue(queued());
-  assert.equal(job.status,'queued');assert.equal(job.bytes,blob().size);assert.equal(job.hiveId,'hive-1');
+  assert.equal(job.status,'queued');assert.equal(job.bytes,blob().size);assert.equal(job.hiveId,'hive-1');assert.equal(job.retainOriginal,true,'originals are retained unless the user explicitly opts out');
   const before=await env.repo.get('job-1');assert.equal(await before.blob.text(),'bees-at-entrance');
   env.db.close();
   env.db=await openDatabase(env.factory,env.name,1);
@@ -124,7 +124,7 @@ test('original cannot be removed before result persistence and explicit cleanup 
 test('cleanup removes only the original Blob and keeps the persisted analysis result',async()=>{
  const env=await createDb();
  try{
-  await env.repo.enqueue(queued());
+  await env.repo.enqueue({...queued(),retainOriginal:false});
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>value?.observations?.length===1});
@@ -226,7 +226,7 @@ test('user retention choice prevents original cleanup',async()=>{
 test('cleanup pending jobs can be resumed after reopening the database',async()=>{
  const env=await createDb();
  try{
-  await env.repo.enqueue(queued());
+  await env.repo.enqueue({...queued(),retainOriginal:false});
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
@@ -284,5 +284,20 @@ test('public status transitions cannot overwrite or clear original Blob referenc
   assert.equal(current.bytes,blob().size);
   assert.equal(current.originalRef,'media-job:job-1');
   assert.equal(await current.blob.text(),'bees-at-entrance');
+ }finally{env.db.close()}
+});
+
+test('original retention defaults to true and opting out after persistence requires verified backup evidence',async()=>{
+ const env=await createDb();
+ try{
+  const job=await env.repo.enqueue(queued());assert.equal(job.retainOriginal,true);
+  await env.repo.transition('job-1','analyzing');await env.repo.receiveResult('job-1',{observations:[]});
+  await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
+  await assert.rejects(env.repo.setRetainOriginal('job-1',false),/подтверждения резервной копии/);
+  const backup={state:{meta:{revisionId:'backup-revision-1'}}},tx=env.db.transaction('full_backup','readwrite');tx.objectStore('full_backup').put(backup,'previous');
+  await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:async()=>true});
+  const optedOut=await env.repo.setRetainOriginal('job-1',false);assert.equal(optedOut.retainOriginal,false);
+  const pending=await env.repo.scheduleCleanup('job-1');assert.equal(pending.status,'cleanup_pending');
  }finally{env.db.close()}
 });
