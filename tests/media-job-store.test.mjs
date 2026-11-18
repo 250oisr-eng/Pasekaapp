@@ -32,13 +32,16 @@ const queued=()=>({id:'job-1',kind:'image',blob:blob(),name:'frame.jpg',hiveId:'
 test('upgrade creates a dedicated media_jobs store and indexes without touching existing stores',async()=>{
  const factory=new IDBFactory(),name='media-upgrade-'+(++sequence);
  const v3=await openDatabase(factory,name,3,d=>{d.createObjectStore('main');d.createObjectStore('full_backup');d.createObjectStore('entrance_media',{keyPath:'id'});});
- await new Promise((resolve,reject)=>{const tx=v3.transaction(['main','full_backup','entrance_media'],'readwrite');tx.objectStore('main').put({value:'kept'},'state');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+ await new Promise((resolve,reject)=>{const tx=v3.transaction(['main','full_backup','entrance_media'],'readwrite');tx.objectStore('main').put({value:'kept'},'state');tx.objectStore('entrance_media').put({id:'legacy-video',blob:new Blob(['legacy-video']),status:'waiting_for_server'});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
  v3.close();
  const v4=await openDatabase(factory,name,4,d=>Media.ensureStore(d));
  assert.deepEqual([...v4.objectStoreNames].sort(),['entrance_media','full_backup','main','media_jobs']);
  const tx=v4.transaction(['main','media_jobs'],'readonly');
  const existing=await new Promise((resolve,reject)=>{const q=tx.objectStore('main').get('state');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
  assert.deepEqual(existing,{value:'kept'});
+ const legacyRequest=tx.objectStore('entrance_media').get('legacy-video');
+ const legacy=await new Promise((resolve,reject)=>{legacyRequest.onsuccess=()=>resolve(legacyRequest.result);legacyRequest.onerror=()=>reject(legacyRequest.error)});
+ assert.equal(await legacy.blob.text(),'legacy-video','v3 entrance media must remain byte-for-byte available after upgrade');
  assert.deepEqual([...tx.objectStore('media_jobs').indexNames].sort(),['capturedAt','hiveId','recordId','status']);
  v4.close();
 });
