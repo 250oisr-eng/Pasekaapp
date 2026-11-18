@@ -9,8 +9,9 @@ test('full .paseka archive modules are loaded in dependency order and cached for
   const sha = html.indexOf('<script src="./js/paseka-sha256.js"></script>');
   const codec = html.indexOf('<script src="./js/paseka-archive.js"></script>');
   const restore = html.indexOf('<script src="./js/paseka-archive-restore.js"></script>');
-  assert.ok(sha >= 0 && codec > sha && restore > codec);
-  for (const path of ['paseka-sha256.js', 'paseka-archive.js', 'paseka-archive-restore.js']) {
+  const androidDownload = html.indexOf('<script src="./js/paseka-android-download.js"></script>');
+  assert.ok(sha >= 0 && codec > sha && restore > codec && androidDownload > restore);
+  for (const path of ['paseka-sha256.js', 'paseka-archive.js', 'paseka-archive-restore.js', 'paseka-android-download.js']) {
     assert.ok(serviceWorker.includes("'./js/" + path + "'"), path + ' must be available offline');
   }
   assert.match(serviceWorker, /paseka-shell-v316/);
@@ -48,6 +49,17 @@ test('full archive export releases stale blobs and retains a new Blob only when 
   const sharer = html.slice(shareStart, shareEnd);
   assert.match(sharer, /\$\('fullArchiveStatus'\)/);
   assert.doesNotMatch(sharer, /setFullArchiveRestoreStatus/);
+});
+
+test('Android full archive export writes through the native Downloads bridge and only reports success after completion', () => {
+  const start = html.indexOf('async function downloadFullArchive()');
+  const end = html.indexOf('async function shareFullArchive()', start);
+  const exporter = html.slice(start, end);
+  assert.match(exporter, /PasekaAndroidDownload\.saveToAndroidDownloads/);
+  assert.ok(exporter.indexOf('await PasekaAndroidDownload.saveToAndroidDownloads') < exporter.indexOf("Архив сохранён в «Загрузки\/Пасека»"));
+  assert.match(exporter, /Полный архив не сохранён/);
+  assert.match(exporter, /Проверь загрузки браузера/);
+  assert.match(exporter, /isNativePlatform/);
 });
 
 test('JSON backup is clearly distinguished from the full archive that contains entrance videos', () => {
