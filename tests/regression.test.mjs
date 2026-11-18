@@ -68,6 +68,51 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+
+// Cloudflare Worker request bodies are bounded by UTF-8 bytes before JSON parsing.
+const workerSource = await readFile(new URL('../cloudflare/worker.js', import.meta.url), 'utf8');
+function extractWorkerFunction(source, name) {
+  const match = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(').exec(source);
+  assert.ok(match, 'Worker function not found: ' + name);
+  const start = match.index;
+  const open = source.indexOf('{', start);
+  let depth = 0, quote = '', escaped = false, lineComment = false, blockComment = false;
+  for (let i = open; i < source.length; i++) {
+    const c = source[i], next = source[i + 1];
+    if (lineComment) { if (c === '\\n') lineComment = false; continue; }
+    if (blockComment) { if (c === '*' && next === '/') { blockComment = false; i++; } continue; }
+    if (quote) { if (escaped) escaped = false; else if (c === '\\\\') escaped = true; else if (c === quote) quote = ''; continue; }
+    if (c === '/' && next === '/') { lineComment = true; i++; continue; }
+    if (c === '/' && next === '*') { blockComment = true; i++; continue; }
+    if (c === "'" || c === '"' || c === '`') { quote = c; continue; }
+    if (c === '{') depth++;
+    if (c === '}' && --depth === 0) return source.slice(start, i + 1);
+  }
+  throw new Error('Unterminated Worker function: ' + name);
+}
+const readBoundedBody = new Function('return (' + extractWorkerFunction(workerSource, 'readBoundedBody') + ');')();
+
+test('Worker request body reader accepts bounded UTF-8 and enforces actual byte length', async () => {
+  const request = new Request('https://worker.test', {method:'POST',body:'пчёлы'});
+  assert.equal(await readBoundedBody(request, 10), 'пчёлы');
+  const oversized = new Request('https://worker.test', {method:'POST',body:'пчёлы!'});
+  await assert.rejects(readBoundedBody(oversized, 10), error => error.code === 'BODY_TOO_LARGE');
+  const underreported = new Request('https://worker.test', {method:'POST',headers:{'content-length':'1'},body:'пчёлы!'});
+  await assert.rejects(readBoundedBody(underreported, 10), error => error.code === 'BODY_TOO_LARGE');
+});
+
+test('Worker request body reader rejects oversized declared lengths before reading', async () => {
+  const request = new Request('https://worker.test', {method:'POST',headers:{'content-length':'90001'},body:'{}'});
+  await assert.rejects(readBoundedBody(request, 90000), error => error.code === 'BODY_TOO_LARGE');
+});
+
+test('Worker request body reader rejects invalid UTF-8 and malformed Content-Length', async () => {
+  const invalidUtf8 = new Request('https://worker.test', {method:'POST',body:new Uint8Array([0xc3,0x28])});
+  await assert.rejects(readBoundedBody(invalidUtf8, 10), TypeError);
+  const invalidLength = new Request('https://worker.test', {method:'POST',headers:{'content-length':'-1'},body:'{}'});
+  await assert.rejects(readBoundedBody(invalidLength, 10), error => error.code === 'INVALID_CONTENT_LENGTH');
+});
+
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
