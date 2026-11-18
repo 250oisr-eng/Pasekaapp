@@ -5,9 +5,11 @@ import { readFile } from 'node:fs/promises';
 
 const lifecycleSource=await readFile(new URL('../js/media-lifecycle.js',import.meta.url),'utf8');
 const storeSource=await readFile(new URL('../js/media-job-store.js',import.meta.url),'utf8');
+const resultsSource=await readFile(new URL('../js/media-analysis-results.js',import.meta.url),'utf8');
 const scope={};
 new Function('window',lifecycleSource)(scope);
 new Function('window',storeSource)(scope);
+new Function('window',resultsSource)(scope);
 const Media=scope.PasekaMediaJobStore;
 const fixedNow=()=> '2026-11-18T10:00:00.000Z';
 let sequence=0;
@@ -191,9 +193,9 @@ test('backup result is reverified in the final IndexedDB transaction even if rev
   await put(valid);
   await env.repo.confirmResultBackup('job-1',{
    backupRevisionId:'stable-revision',
-   verifyBackup:({job,backupRecord})=>scope.PasekaMediaAnalysisResults
-    ? scope.PasekaMediaAnalysisResults.verifyBackup({job,backupRecord,backupRevisionId:'stable-revision'})
-    : backupRecord.state.mediaAnalysisResults.some(row=>row.id===job.resultId&&row.jobId===job.id)
+   verifyBackup:({job,backupRecord})=>scope.PasekaMediaAnalysisResults.verifyBackup({
+    job,backupRecord,backupRevisionId:'stable-revision'
+   })
   });
   await env.repo.scheduleCleanup('job-1');
   await assert.rejects(env.repo.cleanup('job-1',{verifyBackup:replaceWithMissingResult}));
