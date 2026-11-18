@@ -63,7 +63,8 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
   updated.retainedAt=now;
  }
  if(next==='completed_deleted'){
-  if(job.status!=='cleanup_pending'||!validTimestamp(details.originalDeletedAt)||details.originalDeleted!==true)
+  if(job.status!=='cleanup_pending'||!hasVerifiedResultBackup(job)||
+     !validTimestamp(details.originalDeletedAt)||details.originalDeleted!==true)
    return {ok:false,reason:'original_deletion_not_confirmed'};
   updated.originalDeletedAt=details.originalDeletedAt;
  }
