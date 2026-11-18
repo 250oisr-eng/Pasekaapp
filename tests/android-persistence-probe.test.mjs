@@ -8,7 +8,7 @@ test('injects the diagnostic flag and script into generated Android test assets'
   const result = injectAndroidPersistenceProbe(source);
   assert.ok(result.indexOf('window.__PASEKA_TEST_BUILD__ = true') < result.indexOf('android-persistence-probe.js'));
   assert.ok(result.indexOf('android-persistence-probe.js') < result.indexOf('</body>'));
-  assert.equal((result.match(/android-persistence-probe\\.js/g) || []).length, 1);
+  assert.equal((result.match(/android-persistence-probe[.]js/g) || []).length, 1);
 });
 
 test('refuses duplicate injection and malformed generated HTML', () => {
@@ -25,9 +25,9 @@ test('production source index does not load the Android-only persistence probe',
 
 test('runtime probe is guarded and uses the regular save, read and backup paths', async () => {
   const source = await readFile(new URL('../js/android-persistence-probe.js', import.meta.url), 'utf8');
-  assert.match(source, /window\\.__PASEKA_TEST_BUILD__ !== true/);
-  assert.match(source, /await save\\(\\)/);
-  assert.match(source, /await readMain\\(\\)/);
-  assert.match(source, /await writeAutoBackup\\(S/);
+  assert.ok(source.includes('window.__PASEKA_TEST_BUILD__ !== true'));
+  assert.ok(source.includes('await save()'));
+  assert.ok(source.includes('await readMain()'));
+  assert.ok(source.includes('await writeAutoBackup(S'));
   assert.match(source, /androidPersistenceProbe/);
 });
