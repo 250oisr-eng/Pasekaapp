@@ -69,7 +69,7 @@ public final class PasekaArchiveDownloadBridge {
     public synchronized String beginFile(String displayName, String mimeType) {
         try {
             String safeName = displayName == null ? "" : displayName.replaceAll("[^a-zA-Z0-9._-]", "_");
-            if (!safeName.matches("paseka-full-backup-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.paseka")) {
+            if (!safeName.matches("paseka-full-backup-[0-9]{4}-[0-9]{2}-[0-9]{2}[.]paseka")) {
                 throw new IllegalArgumentException("Недопустимое имя файла архива");
             }
             if (!MIME.equals(mimeType)) throw new IllegalArgumentException("Недопустимый тип архива");
