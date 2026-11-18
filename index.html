@@ -513,11 +513,16 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   </div>
   <div id="aiSignedIn" style="display:none">
    <div class="row"><span id="aiUserLabel" class="muted"></span><button type="button" onclick="signOutAI()">Выйти</button></div>
-   <div class="ai-voice-panel"><div class="row"><div><b>Свободные руки</b><div class="muted">Голосовой диалог с ИИ во время осмотра</div></div><button type="button" class="primary" id="aiVoiceSessionButton" onclick="toggleApiaryVoiceSession()">🎙 Начать сеанс</button></div><div id="apiaryVoiceStatus" class="ai-voice-status" role="status" aria-live="polite">Сеанс выключен. Запусти его перед тем, как надеть перчатки.</div><p class="muted">Скажи «Пасека, слушай», затем вопрос или команду. Для операции ИИ сначала покажет план; скажи «Пасека, слушай, подтверждаю» только после проверки. Для остановки скажи «Заверши голосовой режим». Экран приложения должен оставаться открытым. Распознавание выполняет браузер/система и может требовать интернет.</p></div>
+   <div class="ai-voice-panel">
+    <div class="row"><div><b>Свободные руки</b><div class="muted">Голосовой диалог во время осмотра; локальное распознавание в приоритете</div></div><button type="button" class="primary" id="aiVoiceSessionButton" onclick="toggleApiaryVoiceSession()">🎙 Начать сеанс</button></div>
+    <div class="row" style="align-items:flex-start"><button type="button" id="aiVoiceOfflineModelButton" onclick="prepareApiaryOfflineSpeech()">Установить офлайн-модель (~45 МБ, около 300 МБ RAM)</button><label class="muted" style="display:flex;align-items:flex-start;gap:8px;max-width:420px"><input id="aiVoiceOnlineConsent" type="checkbox">Разрешить онлайн-распознавание, если локальное недоступно. Тогда аудио может передаваться внешней службе.</label></div>
+    <div id="apiaryVoiceStatus" class="ai-voice-status" role="status" aria-live="polite">Для Android установи русскую офлайн-модель по Wi-Fi. На компьютере используй локальную модель браузера, если она поддерживается.</div>
+    <p class="muted">По умолчанию аудио обрабатывается локально. В установленном Android APK используется Vosk; модель загружается только по явному нажатию через физическую Wi-Fi сеть; при активном VPN прямое соединение может его обходить. Если источник недоступен, загрузка завершится без мобильных данных. На совместимом настольном браузере используется его локальная модель. Онлайн-распознавание выключено по умолчанию. Скажи «Пасека, слушай», затем команду. Для операции ИИ сначала покажет план; подтверждение выполняется только после проверки. При уходе приложения в фон микрофон отключается. ИИ-запросы требуют интернета; локальные команды подготовки записи могут работать офлайн. Экран приложения должен оставаться открытым во время голосового сеанса.</p>
+   </div>
    <div class="ai-capabilities"><div><b>Анализирует</b><span>семьи, рамки, журнал и задачи</span></div><div><b>Предлагает</b><span>планы и уточняющие вопросы</span></div><div><b>Выполняет</b><span>только после твоего подтверждения</span></div></div><div class="ai-prompt-heading">Быстрые запросы</div><div class="ai-prompt-chips"><button type="button" onclick="useAIPrompt('Проанализируй состояние пасеки по журналу и покажи, где не хватает данных.')">Общий анализ</button><button type="button" onclick="useAIPrompt('Какие семьи и отводки требуют внимания? Обоснуй по записям.')">Семьи и отводки</button><button type="button" onclick="useAIPrompt('Составь план ближайших работ по имеющимся задачам и данным.')">План работ</button><button type="button" onclick="useAIPrompt('Помоги подготовить перемещение рамок. Сначала уточни недостающие данные.')">Перемещение рамок</button></div><div id="aiMessages" class="ai-messages"></div>
    <label for="aiQuestion">Задай вопрос или опиши действие</label><textarea id="aiQuestion" rows="3" placeholder="Например: какие семьи требуют внимания по последним осмотрам?"></textarea>
    <div class="row ai-input-actions"><button class="primary" id="aiSendButton" type="button" onclick="sendAIQuestion()">Отправить</button><button type="button" id="aiVoiceButton" onclick="startAIVoiceInput(this)">🎙 Диктовать</button><button type="button" onclick="clearAIHistory()">Очистить диалог</button></div>
-   <p class="muted">При разовой диктовке распознавание выполняет браузер или устройство; аудио может обрабатываться внешним сервисом. В ИИ отправляется только распознанный текст после нажатия «Отправить». В режиме «Свободные руки» распознанная фраза отправляется ИИ автоматически после ключевой команды.</p>
+   <p class="muted">Разовая диктовка использует тот же локальный провайдер. Онлайн-распознавание возможно только при включённом флажке выше. В ИИ отправляется распознанный текст, а не аудио; для ответа ИИ требуется интернет.</p>
    <p class="muted">Вместе с вопросом ИИ получит текстовую сводку журнала, семей, рамок и перемещений. Фото и видео пока не передаются.</p>
   </div>
  </div>
@@ -1929,7 +1934,6 @@ function goBack(){if(history.state&&history.state.pasekaTab)history.back();else 
 const AI_AUTH_URL='https://ep-lively-field-b97xerkf.neonauth.c-7.eu-central-1.aws.neon.tech/paseka/auth';
 const AI_FUNCTION_URL='https://pasekaapp.250oisr.workers.dev/';
 let aiAuthClient=null,aiAuthUser=null,aiAuthError='',aiBusy=false,aiInitPromise=null;
-let aiRecognition=null;
 const apiaryVoiceSession=window.PasekaVoiceSession.createApiaryVoiceSession({
  windowRef:window,
  getElement:$,
@@ -1938,6 +1942,8 @@ const apiaryVoiceSession=window.PasekaVoiceSession.createApiaryVoiceSession({
  getUtterance:window.SpeechSynthesisUtterance,
  setTimer:(callback,delay)=>setTimeout(callback,delay)
 });
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&apiaryVoiceSession.state.active)apiaryVoiceSession.stop('Приложение ушло в фон. Голосовой сеанс остановлен.');});
+window.addEventListener('pagehide',()=>{if(apiaryVoiceSession.state.active)apiaryVoiceSession.stop('Приложение закрывается. Микрофон отключён.');});
 async function initAIAuth(){
  if(aiInitPromise)return aiInitPromise;
  aiInitPromise=(async()=>{
@@ -2425,31 +2431,41 @@ async function handleApiaryVoiceTranscript(transcript){
 }
 function toggleApiaryVoiceSession(){
  if(apiaryVoiceSession.state.active){stopApiaryVoiceSession();return}
- if(!confirm('Запустить голосовой сеанс? Пока он активен, приложение будет слушать микрофон на открытом экране. Распознавание может выполняться внешней службой и требовать интернет. Аудиозаписи приложение не сохраняет.'))return;
- apiaryVoiceSession.start();
+ const allowOnline=$('aiVoiceOnlineConsent')?.checked===true;
+ const notice=allowOnline
+  ?'Запустить голосовой сеанс? Сначала будет проверено локальное распознавание; если оно недоступно, разрешён онлайн-режим, при котором аудио может передаваться внешней службе. Аудиозаписи приложение не сохраняет.'
+  :'Запустить голосовой сеанс только с локальным распознаванием? Если офлайн-модель не установлена или устройство её не поддерживает, сеанс не запустится. Аудио не будет отправляться внешнему сервису.';
+ if(!confirm(notice))return;
+ apiaryVoiceSession.start({allowOnline});
+}
+
+async function prepareApiaryOfflineSpeech(){
+ const button=$('aiVoiceOfflineModelButton');
+ if(!button)return;
+ const original='Установить офлайн-модель (~45 МБ, около 300 МБ RAM)';
+ button.disabled=true;button.textContent='Подготовка…';
+ try{
+  const ready=await apiaryVoiceSession.prepareOffline();
+  button.textContent=ready?'Офлайн-модель установлена':original;
+ }catch(error){
+  apiaryVoiceSession.status('Не удалось установить офлайн-модель: '+(error.message||error));
+  button.textContent=original;
+ }finally{button.disabled=false}
 }
 
 function startAIVoiceInput(button){
- if(aiBusy||aiRecognition)return;
- const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!Speech)return alert('В этом браузере нет встроенного распознавания речи. Можно продолжить вводить текст вручную.');
- if(!confirm('Запустить диктовку? Распознавание выполняет браузер или устройство; в зависимости от настроек аудио может передаваться внешнему сервису распознавания. В приложение попадёт только текст, и он не будет отправлен ИИ без отдельного нажатия «Отправить».'))return;
- const recognition=new Speech();aiRecognition=recognition;
- recognition.lang='ru-RU';recognition.interimResults=false;recognition.maxAlternatives=1;
+ if(aiBusy||apiaryVoiceSession.state.active)return;
+ const allowOnline=$('aiVoiceOnlineConsent')?.checked===true;
+ const notice=allowOnline
+  ?'Запустить диктовку? При отсутствии локальной модели разрешён онлайн-режим; аудио может передаваться внешней службе. В ИИ будет отправлен только распознанный текст после отдельного нажатия «Отправить».'
+  :'Запустить диктовку только локально? Если локальное распознавание недоступно, диктовка не начнётся. Аудио не будет отправляться внешнему сервису.';
+ if(!confirm(notice))return;
  button.disabled=true;button.textContent='Слушаю…';
- recognition.onresult=event=>{
-  const transcript=Array.from(event.results||[]).map(result=>result[0]?.transcript||'').join(' ').trim();
+ const started=apiaryVoiceSession.startOneShot(transcript=>{
   const field=$('aiQuestion');
   if(transcript&&field){field.value=(field.value.trim()?field.value.trim()+' ':'')+transcript;field.focus()}
- };
- recognition.onerror=event=>{
-  if(event.error!=='no-speech'&&event.error!=='aborted')alert('Не удалось распознать речь: '+event.error+'. Проверь разрешение на микрофон или введи текст вручную.');
- };
- recognition.onend=()=>{
-  button.disabled=false;button.textContent='🎙 Диктовать';
-  if(aiRecognition===recognition)aiRecognition=null;
- };
- try{recognition.start()}catch(error){aiRecognition=null;button.disabled=false;button.textContent='🎙 Диктовать';alert('Не удалось запустить микрофон: '+(error.message||error))}
+ },{allowOnline,onFinish:()=>{button.disabled=false;button.textContent='🎙 Диктовать'}});
+ if(!started){button.disabled=false;button.textContent='🎙 Диктовать';}
 }
 function askAIFromHome(question){
  const source=$('homeAIQuestion'),value=String(question??source?.value??'').trim();

@@ -709,7 +709,7 @@ test('voice dictation appends Russian transcript to the draft without sending it
   const field={value:'Проверь семьи',focus(){}};
   function FakeRecognition(){this.start=()=>{started=true;this.onresult({results:[[{transcript:'и отводки'}]]});this.onend()}}
   const button={disabled:false,textContent:'🎙 Диктовать'};
-  const recognitionState={aiBusy:false,aiRecognition:null};
+  const recognitionState={aiBusy:false,aiRecognition:null,apiaryVoiceSession:{state:{active:false},startOneShot(callback,options){started=true;callback('и отводки');options.onFinish?.();return true}}};
   const dictate=loadFunction('startAIVoiceInput',{
     window:{SpeechRecognition:FakeRecognition},
     confirm:()=>true,
@@ -725,16 +725,19 @@ test('voice dictation appends Russian transcript to the draft without sending it
   assert.deepEqual(alerts,[]);
 });
 
-test('voice dictation explains unsupported browsers and does not start silently',()=>{
-  let warning='',confirmed=false;
+test('voice dictation uses the shared session provider and resets controls when it cannot start',()=>{
+  let confirmed=false,starts=0;
+  const button={disabled:false,textContent:'🎙 Диктовать'};
   const dictate=loadFunction('startAIVoiceInput',{
-    window:{},aiBusy:false,aiRecognition:null,
+    aiBusy:false,apiaryVoiceSession:{state:{active:false},startOneShot(){starts++;return false}},
     confirm:()=>{confirmed=true;return true},
-    alert:message=>{warning=message}
+    $:()=>null
   });
-  dictate({disabled:false,textContent:'🎙 Диктовать'});
-  assert.match(warning,/нет встроенного распознавания речи/);
-  assert.equal(confirmed,false);
+  dictate(button);
+  assert.equal(confirmed,true);
+  assert.equal(starts,1);
+  assert.equal(button.disabled,false);
+  assert.equal(button.textContent,'🎙 Диктовать');
 });
 
 test('AI panel discloses speech-recognition privacy and keeps explicit send control',()=>{
@@ -3603,7 +3606,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v317/);
+ assert.match(sw,/paseka-shell-v318/);
  assert.match(sw,/\.\/js\/media-ai-client\.js/);
 });
 
@@ -3730,7 +3733,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v317/);
+  assert.match(source,/paseka-shell-v318/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
