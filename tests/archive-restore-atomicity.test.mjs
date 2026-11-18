@@ -445,6 +445,53 @@ test('archive staging captures a canonical video-library baseline atomically wit
 });
 
 
+test('rollback adds a verified SHA-256 when restoring a legacy video without a saved hash', async () => {
+  const db = await makeDatabase();
+  await seedRollback(db);
+  const previousBlob = new Blob(['previous'], { type: 'video/mp4' });
+  const tx = db.transaction('archive_staging', 'readwrite');
+  const store = tx.objectStore('archive_staging');
+  const sessionRequest = store.get('rollback-1');
+  sessionRequest.onsuccess = () => {
+    store.put({ ...sessionRequest.result, totalEntries: 2, stagedCount: 2 });
+    store.put({
+      id: 'rollback-1:video:previous-video',
+      sessionId: 'rollback-1',
+      kind: 'rollback_video',
+      originalId: 'previous-video',
+      record: {
+        id: 'previous-video',
+        hiveId: 'old-hive',
+        capturedAt: '2026-11-13T10:00:00.000Z',
+        durationSec: 1,
+        width: 16,
+        height: 16,
+        bytes: previousBlob.size,
+        mimeType: 'video/mp4',
+        name: 'previous.mp4',
+        blob: previousBlob
+      }
+    });
+  };
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('legacy rollback video seed failed'));
+  });
+
+  const result = await api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', testCryptoProvider(), async () => true);
+  assert.equal(result.restoredVideoCount, 1);
+  const verify = db.transaction('entrance_media', 'readonly');
+  const videos = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('entrance_media').getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, 'previous-video');
+  assert.equal(videos[0].blobSha256, createHash('sha256').update(Buffer.from('previous')).digest('hex'));
+  db.close();
+});
+
 test('rollback rejects same-size same-type video byte replacement', async () => {
   const db = await makeDatabase();
   const importedVideo = await seedRollback(db);
