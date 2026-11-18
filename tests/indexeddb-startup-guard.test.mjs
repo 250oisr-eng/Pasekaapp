@@ -37,13 +37,13 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
   const open = load('openDB', fresh);
   const firstOpenCreatedDatabase = await open();
   assert.equal(firstOpenCreatedDatabase, true);
-  assert.equal(fresh.db.version, 3);
+  assert.equal(fresh.db.version, 4);
   fresh.db.close();
 
   // A retry in the same page must not inherit the first open's "fresh" result.
   const secondOpenCreatedDatabase = await open();
   assert.equal(secondOpenCreatedDatabase, false);
-  assert.equal(fresh.db.version, 3);
+  assert.equal(fresh.db.version, 4);
 
   const stateRequest = fresh.db.transaction('main', 'readonly')
     .objectStore('main').get('state');
