@@ -39,7 +39,8 @@ test('entrance video capture uses the temporary media job store with validated m
   assert.match(handler, /mediaJobRepository\(\)\.enqueue\(\{id,kind:'video',blob:file/);
   assert.match(handler, /captureMetadata:\{durationSec:metadata\.durationSec,width:metadata\.width,height:metadata\.height,frameQualityStatus:frameQuality\.status\}/);
   assert.match(handler, /отправляются только выбранные кадры/);
-  assert.doesNotMatch(handler, /\\bfetch\\s*\\(|AI_FUNCTION_URL/);
+  assert.equal(handler.includes('fetch('),false);
+  assert.equal(handler.includes('AI_FUNCTION_URL'),false);
   assert.doesNotMatch(handler, /putEntranceVideo\(/);
 });
 
