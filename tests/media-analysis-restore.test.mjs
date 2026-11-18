@@ -47,7 +47,7 @@ test('automatic backup writer and restore preserve the exact media analysis resu
   const current=emptyState(),previous=emptyState(),latest=stateWithResult('roundtrip');
   current.meta.revisionId='current-revision';previous.meta.revisionId='previous-revision';
   await seed(db,current,previous);
-  const write=load('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'full_backup'});
+  const write=load('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'full_backup',assertBackupNotFromNewerSchema:load('assertBackupNotFromNewerSchema',{})});
   assert.equal(await write(previous,'current-revision',latest.mediaAnalysisResults),true);
   const generated=await get(db,'full_backup','previous');
   assert.equal(generated.state.meta.revisionId,'previous-revision');
