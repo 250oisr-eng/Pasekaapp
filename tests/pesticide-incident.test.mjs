@@ -16,6 +16,21 @@ test('whole-apiary scope snapshots all existing hive IDs; unknown scope remains 
  const all=build({...base,scope:'whole_apiary',hiveIds:[]});assert.deepEqual(all.affectedHiveIds,['h1','h2']);
  const unknown=build({...base,scope:'unknown',hiveIds:[]});assert.deepEqual(unknown.affectedHiveIds,[]);
 });
+test('GPS accuracy and capture time are validated and normalized with coordinates',()=>{
+ const captured='2026-08-12T14:30:15.123Z';
+ const row=build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'18',gpsCapturedAt:captured});
+ assert.equal(row.locationAccuracyM,18);assert.equal(row.gpsCapturedAt,captured);
+ assert.equal(build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:''}).gpsCapturedAt,null);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'-1'}),/точность GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'18.5'}),/точность GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',locationAccuracyM:'100001'}),/точность GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'yesterday'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-02-30T14:30:15.000Z'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+99:00'}),/время фиксации GPS/i);
+ assert.equal(api.validGpsTimestamp('2026-08-12T14:30:15+14:00'),true);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+14:01'}),/время фиксации GPS/i);
+ assert.throws(()=>build({...base,latitude:'53.1',longitude:'45.2',gpsCapturedAt:'2026-08-12T14:30:15+23:59'}),/время фиксации GPS/i);
+});
 test('incident validates date, scope, hive selection, dead count and coordinates',()=>{
  assert.throws(()=>build({...base,observedAt:'2026-02-30T12:00'}),/дату и время/i);
  assert.throws(()=>build({...base,sampleCollectedAt:'2026-02-30T12:00'}),/время отбора пробы/i);
@@ -38,6 +53,8 @@ test('integrity preserves incident references to archived hive snapshots and det
  assert.ok(errors.includes('pesticide_incident_duplicate_id'));
  const corrupt=api.inspectPesticideIncidentIntegrity({meta:{schemaVersion:11},hives:[],pesticideIncidents:[{...row,affectedHiveSnapshots:[],latitude:99,causationStatus:'confirmed'}]}).map(x=>x.code);
  assert.ok(corrupt.includes('pesticide_incident_hive_missing'));assert.ok(corrupt.includes('pesticide_incident_invalid_coordinates'));assert.ok(corrupt.includes('pesticide_incident_causation_overstated'));
+ const badGps=api.inspectPesticideIncidentIntegrity({meta:{schemaVersion:11},hives:[],pesticideIncidents:[{...row,locationAccuracyM:-4,gpsCapturedAt:'yesterday'}]}).map(x=>x.code);
+ assert.ok(badGps.includes('pesticide_incident_invalid_gps_accuracy'));assert.ok(badGps.includes('pesticide_incident_invalid_gps_timestamp'));
 });
 test('incident summary reports counts without estimating cause',()=>{
  const rows=[build(base),build({...base,scope:'unknown',hiveIds:[],sampleId:'S-1'})];
