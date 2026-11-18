@@ -388,7 +388,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
   // Phase A: all Blob reads, hashing, parsing and state validation happen before
   // opening the final write transaction. No non-IDB await is allowed in Phase B.
   const staged = await getStagedArchive(db, sessionId, cryptoProvider, archiveApi, validateState);
-  // Re-hash the live library immediately before commit. Database version 9
+  // Re-hash the live library immediately before commit. Database version 5
   // closes older tabs that may still write legacy media without checksums.
   const phaseAMedia = await hashLiveMediaBaseline(db, cryptoProvider);
   if (typeof staged.session.baselineMediaFingerprint !== 'string' ||
