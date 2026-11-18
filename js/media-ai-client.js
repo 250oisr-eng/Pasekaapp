@@ -98,9 +98,33 @@ async function prepareVideo(blob,options={}){
  }
 }
 
+function buildContext(full,job){
+ if(!full||!Array.isArray(full.hives)||!Array.isArray(full.families)||!Array.isArray(full.latestJournalRecords)||!Array.isArray(full.tasks))
+  throw new TypeError('Недостаточно данных для контекста выбранного улья');
+ const integrity=full.modelIntegrity;
+ if(!integrity||!['ok','warnings'].includes(integrity.status))
+  throw new Error('Целостность данных пасеки не подтверждена. Визуальный анализ остановлен.');
+ if(!job||typeof job.hiveId!=='string'||!job.hiveId.trim())
+  throw new TypeError('Для медиа-задания не указан улей');
+ const hive=full.hives.find(item=>item?.id===job.hiveId);
+ if(!hive)throw new Error('Улей задания больше не существует. Выбери актуальный улей и создай новое задание.');
+ if(hive.constructionProfile?.id!=='farrar-6x6-v1'||hive.constructionProfile?.status!=='ready')
+  throw new Error('Визуальный анализ пока не настроен для профиля этого улья. Оригинал остаётся локально.');
+ const familyIds=new Set(full.families.filter(family=>family?.hiveNumber===hive.number).map(family=>family.id));
+ return {
+  modelIntegrity:{status:integrity.status,errorCount:Number(integrity.errorCount)||0,warningCount:Number(integrity.warningCount)||0},
+  apiary:full.apiary,
+  selectedHive:hive,
+  families:full.families.filter(family=>family?.hiveNumber===hive.number),
+  latestJournalRecords:full.latestJournalRecords.filter(record=>record?.hive===job.hiveId||familyIds.has(record?.family)),
+  tasks:full.tasks.filter(task=>task?.hive===job.hiveId)
+ };
+}
+
 root.PasekaMediaAIClient=Object.freeze({
  prepareImage,
  prepareVideo,
+ buildContext,
  sampleTimes,
  limits:Object.freeze({maxImageBytes:MAX_IMAGE_BYTES,maxVideoFrameBytes:MAX_VIDEO_FRAME_BYTES,videoFrameCount:VIDEO_FRAME_COUNT})
 });
