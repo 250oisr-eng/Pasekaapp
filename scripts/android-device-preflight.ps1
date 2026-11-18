@@ -51,7 +51,7 @@ function Find-AdbExecutable {
     foreach ($candidate in $candidates) {
         if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
     }
-    throw 'ADB не найден. Установите Android SDK Platform-Tools или добавьте adb.exe в PATH. Скрипт ничего не устанавливает.'
+    throw 'ADB not found. Install Android SDK Platform-Tools or add adb.exe to PATH. This script does not install anything.'
 }
 $AdbPath = Find-AdbExecutable
 function Invoke-Adb {
@@ -66,10 +66,10 @@ function Invoke-Adb {
 $deviceOutput = Invoke-Adb -Arguments @('devices', '-l')
 $devices = @(Get-AdbDeviceRecords -Output $deviceOutput)
 if ($devices.Count -ne 1) {
-    throw "Требуется ровно одно обнаруженное Android-устройство; найдено: $($devices.Count). Отключите лишние устройства и повторите. Никакие устройства не изменены."
+    throw "Exactly one Android device must be detected; found: $($devices.Count). Disconnect extra devices and retry. No device was changed."
 }
 if ($devices[0].State -ne 'device') {
-    throw "ADB устройство не авторизовано (состояние: $($devices[0].State)). Подтвердите отладку на телефоне; скрипт не пытается обходить подтверждение."
+    throw "ADB device is not authorized (state: $($devices[0].State)). Confirm debugging on the phone; this script does not bypass confirmation."
 }
 $properties = [ordered]@{
     model = Get-PropertyValue (Invoke-Adb -Arguments @('shell', 'getprop', 'ro.product.model'))
@@ -132,10 +132,10 @@ $outputDirectory = Join-Path $ProjectRoot ('.local-test-results\android-prefligh
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 $reportPath = Join-Path $outputDirectory 'report.json'
 $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reportPath -Encoding UTF8
-Write-Output "Результат: $($report.result)"
+Write-Output "Result: $($report.result)"
 Write-Output "Android: $($properties.androidVersion), SDK $($properties.androidSdk)"
 Write-Output "Chrome: $($report.software.chromeVersion); WebView: $($report.software.webViewVersion)"
-Write-Output "Отчёт: $reportPath"
+Write-Output "Report: $reportPath"
 if (-not $modelMatches) {
-    throw 'Обнаружено не ожидаемое устройство. Данные телефона не изменены; проверьте report.json.'
+    throw 'Unexpected device detected. The phone was not changed; inspect report.json.'
 }
