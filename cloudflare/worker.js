@@ -113,7 +113,7 @@ export default {
       messages=[{role:'system',content:SYSTEM+'\n\nДАННЫЕ ПАСЕКИ:\n'+context},...history,{role:'user',content:question}];
     }
     try {
-      const result = await env.AI.run(MODEL,{messages,max_tokens:900,temperature:0.25,chat_template_kwargs:{enable_thinking:false}});
+      const result = await env.AI.run(MODEL,{messages,max_tokens:900,temperature:0.25,chat_template_kwargs:{enable_thinking:false}},media?{rejectIfBusy:true}:{});
       function extractText(value) {
         if (typeof value === 'string') return value.trim();
         if (Array.isArray(value)) return value.map(item => {
