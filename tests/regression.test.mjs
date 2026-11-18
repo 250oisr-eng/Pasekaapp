@@ -11,7 +11,7 @@ const equipmentInventorySource = await readFile(new URL('../js/equipment-invento
 const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const sectionalPhysicalLayoutSource = await readFile(new URL('../js/sectional-physical-layout.js', import.meta.url), 'utf8');
 const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
-const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
+const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');\nconst mediaAnalysisResultsSource = await readFile(new URL('../js/media-analysis-results.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -24,7 +24,7 @@ new Function('window', equipmentInventorySource)(appWindow);
 new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', sectionalPhysicalLayoutSource)(appWindow);
 new Function('window', familyLineageSource)(appWindow);
-new Function('window', sectionalOperationCoordinatorSource)(appWindow);
+new Function('window', sectionalOperationCoordinatorSource)(appWindow);\nnew Function('window', mediaAnalysisResultsSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -55,7 +55,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaSectionalPhysicalLayout ||= appWindow.PasekaSectionalPhysicalLayout;
   deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
-  deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
+  deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;\n  deps.PasekaMediaAnalysisResults ||= appWindow.PasekaMediaAnalysisResults;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -1979,7 +1979,7 @@ test('schema 14 migration creates an empty family event journal without changing
  const beforeFamily=structuredClone(state.families[0]);
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.families[0],beforeFamily);
@@ -1992,7 +1992,7 @@ test('schema 13 transitional backups migrate without dropping an existing family
  const state={meta:{schemaVersion:13},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[event],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[event]);
 });
@@ -2003,7 +2003,7 @@ test('schema 14 migration preserves a pre-existing sectional tech-process collec
  const before=structuredClone(state.sectionalTechProcesses);
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,before);
  assert.equal(migrate(),false);
 });
@@ -2052,7 +2052,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.varroaObservations,[]);
@@ -3118,7 +3118,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.varroaObservations,[]);
@@ -3143,7 +3143,7 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,15);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,16);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
 
@@ -3747,3 +3747,11 @@ test('save integrity gate validates physical body inventory before persisting',(
  assert.match(saveSource,/PasekaInventory\.inspect\(S,PasekaLabels,profileForHive\)/);
  assert.match(saveSource,/if\(physicalLayoutErrors\.length\)/);
 });
+
+test('schema 15 migration preserves existing media analysis results and initializes schema 16',()=>{const previous=[{id:'result-old',jobId:'job-old',kind:'image',capturedAt:'2026-11-17T10:00:00.000Z',createdAt:'2026-11-17T10:01:00.000Z',originalRef:'media-job:job-old',result:{observations:[{label:'bee'}]}}],state={meta:{schemaVersion:15},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],mediaAnalysisResults:previous,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},migrate=loadFunction('migrateState',{S:state,uid:()=> 'migration-id'});assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,16);assert.deepEqual(state.mediaAnalysisResults,previous);assert.equal(migrate(),false)});
+test('schema 15 migration initializes an empty media analysis result register',()=>{const state={meta:{schemaVersion:15},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},migrate=loadFunction('migrateState',{S:state,uid:()=> 'migration-id'});assert.equal(migrate(),true);assert.deepEqual(state.mediaAnalysisResults,[]);assert.equal(state.meta.schemaVersion,16)});
+test('schema 16 migration refuses malformed media result records without replacing source data',()=>{const malformed=[{id:'bad',jobId:'job',kind:'image',capturedAt:'bad',createdAt:'bad',originalRef:'media-job:job',result:{}}],state={meta:{schemaVersion:16},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],mediaAnalysisResults:malformed,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},before=structuredClone(state);assert.throws(()=>loadFunction('migrateState',{S:state})(),/Повреждён реестр результатов анализа медиа/);assert.deepEqual(state,before)});
+test('schema 15 JSON backups remain compatible while schema 16 requires valid media results',()=>{const validate=loadFunction('validateBackupState'),legacy={...rawBackupFixture(),meta:{schemaVersion:15},familyEvents:[],sectionalTechProcesses:[]};assert.equal(validate(legacy),legacy);const missing={...legacy,meta:{schemaVersion:16}};assert.throws(()=>validate(missing),/mediaAnalysisResults/);const valid={...missing,mediaAnalysisResults:[]};assert.equal(validate(valid),valid);assert.throws(()=>validate({...valid,mediaAnalysisResults:[{id:'bad'}]}),/результатов анализа медиа/)});
+test('automatic backup keeps previous revision while merging latest media analysis results',async()=>{const factory=new IDBFactory(),name='media-result-backup-'+(++indexedDbTestSequence),request=factory.open(name,1);const db=await new Promise((resolve,reject)=>{request.onupgradeneeded=()=>{request.result.createObjectStore('main');request.result.createObjectStore('full_backup')};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});try{const previous={meta:{schemaVersion:16,revisionId:'previous-revision'},hives:[{id:'h1'}],mediaAnalysisResults:[]},current={meta:{schemaVersion:16,revisionId:'current-revision'},hives:[{id:'h1'}]},seed=db.transaction(['main','full_backup'],'readwrite');seed.objectStore('main').put(current,'state');seed.objectStore('full_backup').put({state:previous},'previous');await new Promise((resolve,reject)=>{seed.oncomplete=resolve;seed.onerror=()=>reject(seed.error);seed.onabort=()=>reject(seed.error)});const latest=[{id:'result-1',jobId:'job-1',kind:'image',capturedAt:'2026-11-18T10:00:00.000Z',createdAt:'2026-11-18T10:01:00.000Z',originalRef:'media-job:job-1',result:{observations:[]}}],write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'full_backup'});assert.equal(await write(previous,'current-revision',latest),true);const tx=db.transaction('full_backup','readonly'),saved=await new Promise((resolve,reject)=>{const q=tx.objectStore('full_backup').get('previous');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});assert.equal(saved.state.meta.revisionId,'previous-revision');assert.deepEqual(saved.state.hives,previous.hives);assert.deepEqual(saved.state.mediaAnalysisResults,latest);assert.equal(Object.hasOwn(saved.state,'blob'),false)}finally{db.close()}});
+test('persistSnapshot passes current media results into previous-state auto backup',async()=>{const results=[{id:'result-1',jobId:'job-1',kind:'image',capturedAt:'2026-11-18T10:00:00.000Z',createdAt:'2026-11-18T10:01:00.000Z',originalRef:'media-job:job-1',result:{observations:[]}}],snapshot={meta:{revisionId:'new-revision'},mediaAnalysisResults:results};let args=null;const deps={S:{meta:{revisionId:'new-revision'}},lastPersistedRevision:'old-revision',autoBackupInfo:null,writeMainIfUnchanged:async()=>({meta:{revisionId:'previous-revision'}}),writeAutoBackup:async(...values)=>{args=values;return true},render:()=>{}};assert.equal(await loadFunction('persistSnapshot',deps)(snapshot),true);assert.deepEqual(args[2],results)});
+test('media result persistence and verifier are wired into the app without archiving source Blobs',()=>{assert.match(html,/function persistMediaAnalysisResult\\(jobId\\)/);assert.match(html,/PasekaMediaAnalysisResults\\.upsertResult/);assert.match(html,/function verifyMediaAnalysisResultBackup/);assert.match(html,/writeAutoBackup\\(backupState,state\\.meta\\?\\.revisionId\\|\\|null,state\\.mediaAnalysisResults\\)/);assert.match(html,/JSON\\.stringify\\(\\{app:'Paseka',state:S\\}/)});
