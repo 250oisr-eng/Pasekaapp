@@ -367,9 +367,94 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 @media (orientation:landscape) and (min-width:560px) and (max-width:899px){main{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))!important}.fab{bottom:calc(124px + env(safe-area-inset-bottom,0px))!important}}
 
 @media(min-width:900px){main>nav[aria-label="Основные разделы"]{grid-template-columns:repeat(10,minmax(0,1fr))!important}}
+
+/* Honeycomb navigation: the AI action occupies the true center slot. */
+main>nav[aria-label="Основные разделы"]{
+  position:fixed!important;top:auto!important;bottom:0!important;left:50%!important;
+  transform:translateX(-50%);width:min(100%,440px);max-width:100%;
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-rows:repeat(3,56px);gap:2px;
+  padding:9px 7px calc(9px + env(safe-area-inset-bottom,0px))!important;
+  margin:0;background:rgba(248,248,243,.98);border-top:1px solid #dce2d8;
+  box-shadow:0 -5px 18px #263b2b12;backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);border-radius:14px 14px 0 0;
+  z-index:30;overflow:visible!important;
+}
+main>nav[aria-label="Основные разделы"] button{
+  grid-row:auto;grid-column:auto;display:flex;align-items:center;justify-content:center;
+  width:100%;height:56px;min-height:56px;min-width:0;padding:5px 2px!important;
+  border:1px solid #d6dfd2;border-radius:0;
+  clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
+  background:#e8eee5;color:#294a34;font-size:clamp(10px,2.8vw,12px);
+  line-height:1.1;font-weight:750;text-align:center;white-space:normal;
+  overflow-wrap:anywhere;word-break:normal;box-shadow:none;filter:drop-shadow(0 2px 2px #1c33251a);
+}
+main>nav[aria-label="Основные разделы"] button.active{
+  background:#315d3c;color:#fff;border-color:#315d3c;
+  filter:drop-shadow(0 3px 3px #1c332544);
+}
+main>nav[aria-label="Основные разделы"] button[data-tab="home"]{grid-row:1;grid-column:2}
+main>nav[aria-label="Основные разделы"] button[data-tab="hives"]{grid-row:1;grid-column:3}
+main>nav[aria-label="Основные разделы"] button[data-tab="entrance"]{grid-row:1;grid-column:4}
+main>nav[aria-label="Основные разделы"] button[data-tab="journal"]{grid-row:2;grid-column:1}
+main>nav[aria-label="Основные разделы"] button[data-tab="settings"]{grid-row:2;grid-column:2}
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
+  grid-row:2;grid-column:3;width:64px;height:60px;min-height:60px;justify-self:center;align-self:center;
+  padding:4px!important;border:2px solid #f1d99c;
+  background:radial-gradient(circle at 32% 24%,#557d59 0%,#315d3c 45%,#1b3929 100%);
+  color:#fff;font-weight:850;filter:drop-shadow(0 4px 5px #142d1d55);
+}
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"].active{
+  filter:drop-shadow(0 0 5px #e9d18a90) drop-shadow(0 4px 5px #142d1d55);
+}
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-symbol{font-size:22px;line-height:1;color:#ffe6a5}
+main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-label{font-size:10px;line-height:1.1;letter-spacing:.4px}
+main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:2;grid-column:4}
+main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]{grid-row:2;grid-column:5}
+main>nav[aria-label="Основные разделы"] button[data-tab="incidents"]{grid-row:3;grid-column:2}
+main>nav[aria-label="Основные разделы"] button[data-tab="planning"]{grid-row:3;grid-column:3}
+main>nav[aria-label="Основные разделы"] button[data-tab="deadout"]{grid-row:3;grid-column:4}
+main{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))!important}
+.fab{bottom:calc(210px + env(safe-area-inset-bottom,0px))!important}
+@media(min-width:700px){
+  main>nav[aria-label="Основные разделы"]{
+    width:min(100%,1120px);grid-template-columns:repeat(11,minmax(0,1fr))!important;
+    grid-template-rows:64px;gap:4px;padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px))!important;
+  }
+  main>nav[aria-label="Основные разделы"] button{
+    grid-row:1!important;grid-column:auto!important;width:100%;height:60px;min-height:60px;
+    font-size:clamp(9px,1.15vw,12px);padding:5px 2px!important;
+  }
+  main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
+    grid-column:6!important;width:68px;height:64px;min-height:64px;justify-self:center;align-self:center;
+  }
+  main{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))!important}
+  .fab{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}
+}
+@media (orientation:landscape) and (max-height:520px) and (min-width:560px) and (max-width:699px){
+  main>nav[aria-label="Основные разделы"]{
+    width:100%;grid-template-columns:repeat(11,minmax(0,1fr))!important;
+    grid-template-rows:52px;gap:2px;padding:4px 5px calc(4px + env(safe-area-inset-bottom,0px))!important;
+  }
+  main>nav[aria-label="Основные разделы"] button{
+    grid-row:1!important;grid-column:auto!important;height:48px;min-height:48px;font-size:9px;
+  }
+  main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{grid-column:6!important;width:52px;height:50px;min-height:50px}
+  main{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))!important}
+  .fab{bottom:calc(54px + env(safe-area-inset-bottom,0px))!important}
+}
+@media(max-width:340px){
+  main>nav[aria-label="Основные разделы"]{gap:1px;padding-left:4px!important;padding-right:4px!important}
+  main>nav[aria-label="Основные разделы"] button{font-size:9px}
+  main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{width:58px;height:56px;min-height:56px}
+}
+@media(prefers-reduced-motion:reduce){
+  main>nav[aria-label="Основные разделы"] button{transition:none!important;animation:none!important}
+}
+
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><div class="home-brand-title">Пасека</div><div class="home-brand-subtitle">Управление · журнал · ИИ-помощник</div></div><button type="button" class="home-ai-shortcut" onclick="showTab('ai')">Спросить ИИ <span aria-hidden="true">↗</span></button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
-<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="planning">План</button><button data-tab="deadout">Потери</button><button data-tab="settings">Ещё</button></nav>
+<main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="settings">Ещё</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="planning">План</button><button data-tab="deadout">Потери</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
