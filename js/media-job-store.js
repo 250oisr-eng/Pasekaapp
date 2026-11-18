@@ -10,7 +10,7 @@ const object=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
 function ensureStore(database){
  if(!database||!database.objectStoreNames||typeof database.createObjectStore!=='function')
   throw new TypeError('Требуется IndexedDB database в upgrade transaction');
- if(database.objectStoreNames.contains(STORE_NAME))return database.transaction?.objectStore?.(STORE_NAME)||null;
+ if(database.objectStoreNames.contains(STORE_NAME))return null;
  const store=database.createObjectStore(STORE_NAME,{keyPath:'id'});
  store.createIndex('status','status',{unique:false});
  store.createIndex('hiveId','hiveId',{unique:false});
