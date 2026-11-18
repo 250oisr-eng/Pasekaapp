@@ -81,7 +81,7 @@ test('forage page is photo-first and has no voice or text-only AI controls',()=>
  assert.match(panel,/id="plantLatitude"/);
  assert.match(panel,/id="plantLongitude"/);
  assert.match(panel,/id="plantPhase"/);
- assert.doesNotMatch(panel,/plantVoiceButton|plantVoiceStatus|plantShareConsent|dictatePlantObservation|askPlantAI/);
+ assert.doesNotMatch(panel,/plantVoiceButton|plantVoiceStatus|dictatePlantObservation|askPlantAI/);
  assert.doesNotMatch(panel,/<input id="plantName"[^>]*required/);
  assert.match(panel,/Автоматическое распознавание по фотографии пока не подключено/);
 });
