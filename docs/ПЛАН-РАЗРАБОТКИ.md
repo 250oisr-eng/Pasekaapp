@@ -1,3 +1,15 @@
+## Контрольная точка — исправление сохранения полного архива на Android (2026-11-18)
+
+- По физическому тесту пользователя на OnePlus выяснено: архив формировался (UI показывал 1 видео летка, 2.6 МБ), но файл не появлялся. Причина в прежнем UI-коде: он создавал `blob:` URL, нажимал скрытую HTML-ссылку и сразу сообщал об успехе, не подтверждая, что Android WebView сохранил файл.
+- Добавлен Android native Downloads bridge: generated Capacitor `MainActivity` регистрирует ограниченный JS interface, который потоково пишет файл блоками по 256 KiB через MediaStore в публичную папку `Downloads/Пасека`. Используются `IS_PENDING` до успешного завершения и удаление незавершённого файла при ошибке. Временные и пользовательские записи IndexedDB не затрагиваются.
+- Android UI теперь сообщает об успехе только после того, как native bridge закрыл поток и снял `IS_PENDING`. При ошибке показывает конкретное сообщение. В обычном браузере остаётся download-link fallback.
+- Добавлены: `js/paseka-android-download.js`, `scripts/prepare-android-archive-download.mjs`, `tests/android-archive-download.test.mjs`; обновлены `index.html`, `sw.js`, Android CI workflows и UI tests.
+- Первый Android build выявил ошибку экранирования регулярного выражения в Java; исправлена. Финальный code/test SHA: `661ea9ad602bacdee3ab096a668fcbc56b167ec2`.
+- Fast Quality Checks #44388526905: **728/728 tests, 0 failures**.
+- Android build #44388526739 на том же SHA: Gradle Debug APK build/upload — success. Артефакт `paseka-debug-apk` ID `14465919073`, SHA-256 ZIP `d29002a7435fd99ccce7c8fb8b23f1006a40ded3e7bbf1977e2b8938700f026d`. Это сборка с production package ID `ru.paseka.journal`; **не устанавливать её на устройство для тестирования**.
+- Требуется новая изолированная APK с отдельным package ID для физической проверки сохранения в Downloads. После неё проверить фактическое появление файла и размер, затем открытие архива вне приложения. Восстановление и rollback пока не запускать.
+- PR #168 остаётся Draft; main не менялась, merge/deployment не выполнялись.
+
 ## Контрольная точка — подготовлена изолированная APK для проверки полного архива на OnePlus (2026-11-18)
 
 - Для физической проверки PR #168 создан отдельный test-only Draft PR #174, ветка `test/full-archive-android-isolated-2026-11-18`, stacked поверх PR #168. Его workflow не меняет production appId: создаёт пакет `ru.paseka.journal.archive.test` только в CI workspace и проверяет application ID в готовом APK через Android `aapt`.
