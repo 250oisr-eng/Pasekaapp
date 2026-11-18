@@ -76,7 +76,7 @@ test('Workers AI vision path sends prepared image_url frames and forbids command
  assert.match(source,/type:'image_url',image_url:\{url:frame\.dataUrl\}/);
  assert.match(source,/MEDIA_SYSTEM/);
  assert.match(source,/rejectIfBusy:true/);
- assert.match(source,/env\.MEDIA_AI_ENABLED !== 'true'/);
+ assert.match(source,/!isMediaAIEnabled\(env\)/);
  assert.match(source,/Не создавай блоки \[\[PASEKA_COMMAND_JSON\]\]/);
  assert.match(source,/mediaMeta\?\{media:mediaMeta\}/);
  assert.match(source,/raw\.length > 2000000/);
