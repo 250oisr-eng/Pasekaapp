@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Use a fresh package ID so test2 remains installed with its local IndexedDB data during device validation.
 export const ARCHIVE_TEST_APP_ID = 'ru.paseka.journal.archive.test3';
 export const ARCHIVE_TEST_APP_NAME = 'Пасека — архив тест 3';
 
