@@ -31,7 +31,7 @@ export function patchMainActivitySource(source) {
 }
 
 export function createArchiveDownloadBridgeSource(packageName) {
-  if (!/^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(packageName)) {
+  if (!/^[A-Za-z_$][A-Za-z0-9_$]*([.][A-Za-z_$][A-Za-z0-9_$]*)*$/.test(packageName)) {
     throw new Error('Invalid Android package name.');
   }
   return `package ${packageName};
@@ -153,7 +153,7 @@ async function main() {
   const configPath = resolve(root, process.argv[2] || 'capacitor.config.json');
   const config = JSON.parse(await readFile(configPath, 'utf8'));
   const packageName = config.appId;
-  if (!packageName || !/^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(packageName)) {
+  if (!packageName || !/^[A-Za-z_$][A-Za-z0-9_$]*([.][A-Za-z_$][A-Za-z0-9_$]*)*$/.test(packageName)) {
     throw new Error('Invalid capacitor appId; refusing to patch Android source.');
   }
   const javaPath = resolve(root, 'android/app/src/main/java', ...packageName.split('.'), 'MainActivity.java');
