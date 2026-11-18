@@ -380,7 +380,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
  <div class="card home-recent-card"><b>Последние события</b><div id="recent" class="muted">Записей пока нет.</div></div>
 </section>
 <section id="forage" class="panel">
- <div class="card forage-intro"><div class="row"><div><h2 style="margin:0">База медоносов</h2><div class="muted">Фотографии растений, геолокация и наблюдения за цветением</div></div><span class="pill">Локальная база</span></div><p class="muted">Добавляй фотографии растений. Наблюдения сначала сохраняются локально; после подключения синхронизации их можно предложить в общую базу. Публикация возможна только после проверки, точные GPS-координаты остаются приватными.</p></div>
+ <div class="card forage-intro"><div class="row"><div><h2 style="margin:0">База медоносов</h2><div class="muted">Фотографии растений, геолокация и наблюдения за цветением</div></div><span class="pill">Локальная база</span></div><p class="muted">Добавляй фотографии растений. Наблюдения сначала сохраняются локально; после подключения синхронизации их можно предложить в общую базу. Перед подключением синхронизации отдельно проверим защиту точных GPS-координат и модерацию.</p></div>
  <div class="card"><h3 style="margin-top:0">Новое наблюдение</h3><form id="plantObservationForm" onsubmit="savePlantObservation(event)">
   <input id="plantEditingId" type="hidden" value="">
   <label for="plantPhotoCamera">Сфотографировать цветок или растение</label><input id="plantPhotoCamera" type="file" accept="image/*" capture="environment" onchange="handlePlantPhotoFiles(this.files);this.value='';">
@@ -393,7 +393,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <label for="plantLocation">Место или участок (необязательно)</label><input id="plantLocation" maxlength="160" placeholder="Например: луг за пасекой, сад">
   <div class="row forage-actions"><button type="button" onclick="capturePlantLocation()">Определить координаты по GPS</button><button type="button" onclick="clearPlantLocation()">Убрать координаты</button></div>
   <div id="plantGpsStatus" class="muted">GPS определяется только после твоего нажатия и разрешения Android/браузера. Координаты сохраняются вместе с наблюдением.</div>
-  <label class="plant-share-consent"><input id="plantShareConsent" type="checkbox"><span>Разрешаю предложить это наблюдение и фотографии для общей базы после подключения синхронизации. Точные GPS-координаты останутся приватными; публикация возможна только после модерации.</span></label>
+  <label class="plant-share-consent"><input id="plantShareConsent" type="checkbox"><span>Разрешаю предложить это наблюдение и фотографии для общей базы после подключения синхронизации. Сейчас данные не отправляются; до подключения синхронизации проверим защиту точных GPS-координат и модерацию.</span></label>
   <input id="plantLatitude" type="hidden"><input id="plantLongitude" type="hidden"><input id="plantLocationAccuracy" type="hidden">
   <label for="plantAbundance">Обилие растений (необязательно)</label><select id="plantAbundance"><option value="unknown">Не оценивал</option><option value="rare">Единичные растения</option><option value="scattered">Встречается местами</option><option value="common">Много</option><option value="mass">Очень много / массив</option></select>
   <label for="plantBeeVisits">Посещение пчёлами (необязательно)</label><select id="plantBeeVisits"><option value="not_checked">Не проверял</option><option value="observed">Видел посещение пчёлами</option><option value="not_observed">Не наблюдал пчёл</option></select>
