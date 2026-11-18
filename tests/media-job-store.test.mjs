@@ -175,3 +175,16 @@ test('list filters by status, hive and journal record',async()=>{
   assert.equal((await env.repo.list({status:'queued'})).length,2);
  }finally{env.db.close()}
 });
+
+
+test('application upgrades to IndexedDB v4 and loads lifecycle modules before startup',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.match(html,/indexedDB\.open\(DB,4\)/);
+ assert.match(html,/PasekaMediaJobStore\.ensureStore\(d\)/);
+ assert.ok(html.indexOf('media-lifecycle.js')<html.indexOf('media-job-store.js'));
+ assert.ok(html.indexOf('media-job-store.js')<html.indexOf('entrance-analysis.js'));
+ assert.match(sw,/paseka-shell-v314/);
+ assert.match(sw,/\.\/js\/media-lifecycle\.js/);
+ assert.match(sw,/\.\/js\/media-job-store\.js/);
+});
