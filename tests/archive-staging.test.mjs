@@ -738,6 +738,77 @@ test('atomic rollback restores previous state and videos and permits a later rei
   db.close();
 });
 
+test('atomic rollback refuses journal changes made after import and preserves newer entries', async () => {
+  const db = await openTestDb('paseka-stage-rollback-journal-changed');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [{ id: 'old-record' }] };
+  await put(db, 'main', oldState, 'state');
+  const archive = await makeArchive('backup-rollback-journal-changed');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'before-import', webcrypto, Archive, () => true);
+
+  const newerState = {
+    ...committed.state,
+    meta: { ...committed.state.meta, revisionId: 'after-import' },
+    records: [...committed.state.records, { id: 'new-record', note: 'created after import' }]
+  };
+  await put(db, 'main', newerState, 'state');
+
+  await assert.rejects(
+    Restore.rollbackCommittedArchive(db, 'backup-rollback-journal-changed', 'after-import', webcrypto, () => true),
+    { code: 'ROLLBACK_STATE_CHANGED' }
+  );
+  const currentState = await get(db, 'main', 'state');
+  assert.equal(currentState.meta.revisionId, 'after-import');
+  assert.equal(currentState.records.some(record => record.id === 'new-record'), true);
+  assert.equal((await get(db, 'archive_history', 'backup-rollback-journal-changed')).status, 'committed');
+  assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId)).status, 'ready');
+  db.close();
+});
+
+
+test('atomic rollback rechecks journal revision in the final write transaction', async () => {
+  const db = await openTestDb('paseka-stage-rollback-journal-race');
+  const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [] };
+  await put(db, 'main', oldState, 'state');
+  const archive = await makeArchive('backup-rollback-journal-race');
+  const staged = await Restore.stageArchiveForRestore(db, archive, webcrypto, Archive, () => true);
+  const committed = await Restore.commitStagedArchive(db, staged.session.sessionId, 'before-import', webcrypto, Archive, () => true);
+
+  let validationStarted;
+  let releaseValidation;
+  const started = new Promise(resolve => { validationStarted = resolve; });
+  const release = new Promise(resolve => { releaseValidation = resolve; });
+  const pendingRollback = Restore.rollbackCommittedArchive(
+    db,
+    'backup-rollback-journal-race',
+    committed.state.meta.revisionId,
+    webcrypto,
+    async () => {
+      validationStarted();
+      await release;
+      return true;
+    }
+  );
+  await started;
+
+  const newerState = {
+    ...committed.state,
+    meta: { ...committed.state.meta, revisionId: 'after-import-race' },
+    records: [...committed.state.records, { id: 'raced-record', note: 'created during rollback validation' }]
+  };
+  await put(db, 'main', newerState, 'state');
+  releaseValidation();
+
+  await assert.rejects(pendingRollback, { code: 'ROLLBACK_STATE_CHANGED' });
+  const currentState = await get(db, 'main', 'state');
+  assert.equal(currentState.meta.revisionId, 'after-import-race');
+  assert.equal(currentState.records.some(record => record.id === 'raced-record'), true);
+  assert.equal((await get(db, 'archive_history', 'backup-rollback-journal-race')).status, 'committed');
+  assert.equal((await get(db, 'archive_staging', committed.rollbackSessionId)).status, 'ready');
+  db.close();
+});
+
+
 test('atomic rollback refuses a stale revision and preserves the imported state', async () => {
   const db = await openTestDb('paseka-stage-stale-rollback');
   const oldState = { meta: { schemaVersion: 12, revisionId: 'before-import' }, hives: [], families: [], records: [] };
