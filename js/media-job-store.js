@@ -144,7 +144,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
     try{tx.abort()}catch{}
     return;
    }
-   const at=now(),updated={...latest,resultBackupRevisionId,resultBackupVerifiedAt:at,updatedAt:at};
+   const at=now(),updated={...latest,resultBackupRevisionId:backupRevisionId,resultBackupVerifiedAt:at,updatedAt:at};
    try{store.put(updated)}catch(error){try{tx.abort()}catch{}}
   };
   request.onsuccess=()=>{latest=request.result;jobReady=true;commit()};
