@@ -73,10 +73,10 @@ test('only a validated persisted result can authorize cleanup',()=>{
   resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
  },'2026-11-18T10:03:00.000Z');
  assert.equal(persisted.ok,true);
- assert.equal(Media.canDeleteMediaOriginal(persisted.job),true);
+ assert.equal(Media.canDeleteMediaOriginal(persisted.job),false,'deletion is not authorized until cleanup is explicitly scheduled');
  const cleanup=Media.transitionMediaJob(persisted.job,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
  assert.equal(cleanup.ok,true);
- assert.equal(Media.canDeleteMediaOriginal(cleanup.job),false,'cleanup must be scheduled once, not repeatedly authorized as a new request');
+ assert.equal(Media.canDeleteMediaOriginal(cleanup.job),true,'the idempotent cleanup worker may resume after restart');
 });
 
 test('user choice to retain original blocks cleanup',()=>{
