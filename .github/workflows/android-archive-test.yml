@@ -119,7 +119,7 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.test2'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.test3'"
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then
             echo "Production package ID unexpectedly found in isolated APK" >&2
             exit 1
