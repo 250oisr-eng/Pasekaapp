@@ -41,15 +41,14 @@ export async function prepareAndroidProject({
   ];
   const applicationIndex = manifest.indexOf('<application');
   if (applicationIndex < 0) throw new Error('AndroidManifest.xml has no application element');
-  let permissionChanged = false;
-  for (const permission of permissions) {
+  const missingPermissions = permissions.filter(permission => {
     const permissionName = permission.match(/android:name="([^"]+)"/)[1];
-    if (!manifest.includes(permissionName)) {
-      manifest = manifest.slice(0, applicationIndex) + permission + '\\n    ' + manifest.slice(applicationIndex);
-      permissionChanged = true;
-    }
+    return !manifest.includes(permissionName);
+  });
+  if (missingPermissions.length) {
+    manifest = manifest.slice(0, applicationIndex) + missingPermissions.join('\\n    ') + '\\n    ' + manifest.slice(applicationIndex);
+    await writeFile(manifestPath, manifest);
   }
-  if (permissionChanged) await writeFile(manifestPath, manifest);
 
   let mainActivity = await readFile(mainActivityPath, 'utf8');
   const pluginImport = `import ${appId}.plugins.PasekaOfflineSpeechPlugin;`;
