@@ -248,7 +248,7 @@ test('native Vosk provider is preferred and recognized text is forwarded without
     async addListener(name, callback) { listeners[name] = callback; return { remove() {} }; },
     async getStatus() { calls.push('status'); return { modelInstalled: true }; },
     async start() { calls.push('start'); },
-    async stop() { calls.push('stop'); }
+    async stop() { calls.push('stop'); listeners.result({ text: 'Последняя фраза перед остановкой' }); }
   };
   class BrowserSpeech {
     constructor() { throw new Error('browser speech must not be used'); }
@@ -265,6 +265,7 @@ test('native Vosk provider is preferred and recognized text is forwarded without
   session.stop();
   await new Promise(resolve => setImmediate(resolve));
   assert.ok(calls.includes('stop'));
+  assert.deepEqual(forwarded, ['Пасека, слушай', 'Последняя фраза перед остановкой']);
 });
 
 test('offline model installation uses the native plugin only after an explicit request', async () => {
