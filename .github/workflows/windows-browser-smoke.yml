@@ -1,0 +1,55 @@
+name: Windows browser smoke test
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'scripts/local-browser-smoke.mjs'
+      - 'tests/local-browser-smoke.test.mjs'
+      - '.github/workflows/windows-browser-smoke.yml'
+  push:
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'scripts/local-browser-smoke.mjs'
+      - 'tests/local-browser-smoke.test.mjs'
+      - '.github/workflows/windows-browser-smoke.yml'
+
+concurrency:
+  group: windows-browser-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run local browser runner unit tests
+        run: node --test tests/local-browser-smoke.test.mjs
+      - name: Run isolated Chrome smoke test
+        run: npm run test:browser:local
+      - name: Upload smoke report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-browser-smoke-report
+          path: .local-test-results/
+          if-no-files-found: warn
+          retention-days: 7
+          include-hidden-files: true

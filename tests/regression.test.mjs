@@ -18,6 +18,7 @@ const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.me
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
+const voiceSessionSource = await readFile(new URL('../js/voice-session.js', import.meta.url), 'utf8');
 const appWindow = {};
 new Function('window', hiveModelSource)(appWindow);
 new Function('window', equipmentLabelsSource)(appWindow);
@@ -71,39 +72,43 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
-test('plant dictation uses the shared offline-first session and restores controls on finish',()=>{
- let callback,options,starts=0;
- const button={disabled:false,textContent:'🎙 Диктовать'};
- const field={value:'Утром видел',focus(){this.focused=true}};
- const source={value:'text'},status={textContent:''},consent={checked:false};
- const session={state:{active:false},startOneShot(onTranscript,config){starts++;callback=onTranscript;options=config;return true}};
- const deps={apiaryVoiceSession:session,plantRecognition:null,
-  $:id=>({plantVoiceButton:button,plantVoiceStatus:status,plantNote:field,plantInputSource:source,aiVoiceOnlineConsent:consent}[id]||null),
-  confirm:()=>true};
- const dictate=loadFunction('dictatePlantObservation',deps);
- dictate();
- assert.equal(starts,1);
- assert.equal(options.allowOnline,false,'online recognition must remain opt-in');
- assert.equal(button.disabled,true);
- assert.equal(button.textContent,'Слушаю…');
- options.onStatus('Распознавание выполняется локально');
- assert.match(status.textContent,/локально/);
- callback('зацвёл белый клевер');
- assert.equal(field.value,'Утром видел зацвёл белый клевер');
- assert.equal(source.value,'voice');
- options.onFinish();
- assert.equal(deps.plantRecognition,null);
- assert.equal(button.disabled,false);
- assert.equal(button.textContent,'🎙 Диктовать');
+test('forage page is photo-first and has no voice or text-only AI controls',()=>{
+ const panel=html.match(/<section id="forage" class="panel">[\s\S]*?<\/section>/)?.[0]||'';
+ assert.ok(panel,'forage panel must exist');
+ assert.match(panel,/id="plantPhotoCamera"/);
+ assert.match(panel,/id="plantPhotoGallery"/);
+ assert.match(panel,/id="plantCatalogList"/);
+ assert.match(panel,/id="plantLatitude"/);
+ assert.match(panel,/id="plantLongitude"/);
+ assert.match(panel,/id="plantPhase"/);
+ assert.doesNotMatch(panel,/plantVoiceButton|plantVoiceStatus|dictatePlantObservation|askPlantAI/);
+ assert.doesNotMatch(panel,/<input id="plantName"[^>]*required/);
+ assert.match(panel,/Автоматическое распознавание по фотографии пока не подключено/);
 });
-test('plant dictation reports when the shared voice session already uses the microphone',()=>{
- const button={disabled:false,textContent:'🎙 Диктовать'},status={textContent:''};
- const session={state:{active:true},startOneShot(){throw new Error('must not start')}};
- const dictate=loadFunction('dictatePlantObservation',{apiaryVoiceSession:session,plantRecognition:null,
-  $:id=>({plantVoiceButton:button,plantVoiceStatus:status}[id]||null),confirm:()=>true});
- dictate();
- assert.match(status.textContent,/уже используется/);
- assert.equal(button.disabled,false);
+
+test('photo-only forage observation is stored as unidentified until a plant name is confirmed',()=>{
+ const build=loadFunction('buildPlantObservationDraft');
+ let nextId=0;
+ const result=build({
+  plantName:'',observedAt:'2026-11-18',phase:'mass',abundance:'unknown',beeVisits:'not_checked',
+  media:[{kind:'image',name:'flower.jpg',type:'image/jpeg',data:'data:image/jpeg;base64,AAAA'}],
+  latitude:'53.123456',longitude:'44.654321',locationAccuracy:'12',source:'text'
+ },[],()=> 'plant-test-'+(++nextId),'2026-11-18T08:00:00.000Z');
+ assert.equal(result.plant,null);
+ assert.equal(result.observation.plantId,null);
+ assert.equal(result.observation.plantName,'Растение по фотографии — требуется определение');
+ assert.equal(result.observation.confidence,'photo_unidentified');
+ assert.equal(result.observation.phase,'mass');
+ assert.equal(result.observation.latitude,53.123456);
+ assert.equal(result.observation.longitude,44.654321);
+ assert.equal(result.observation.media.length,1);
+ assert.equal(result.observation.shareConsent,false);
+});
+
+test('new voice recognition does not persist audio recordings',()=>{
+ const source=voiceSessionSource;
+ assert.doesNotMatch(source,/MediaRecorder|indexedDB|localStorage|createObjectStore/);
+ assert.match(source,/SpeechRecognition|PasekaOfflineSpeechPlugin/);
 });
 
 test('family lineage accepts live and archived parents', () => {
@@ -3641,7 +3646,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v319/);
+ assert.match(sw,/paseka-shell-v320/);
  assert.match(sw,/\.\/js\/media-ai-client\.js/);
 });
 
@@ -3768,7 +3773,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v319/);
+  assert.match(source,/paseka-shell-v320/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
