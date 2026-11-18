@@ -73,7 +73,7 @@ function loadFunction(name, globals = {}) {
 }
 
 test('forage page is photo-first and has no voice or text-only AI controls',()=>{
- const panel=html.match(/<section id="forage" class="panel">[\\s\\S]*?<\\/section>/)?.[0]||'';
+ const panel=html.match(/<section id="forage" class="panel">[\s\S]*?<\/section>/)?.[0]||'';
  assert.ok(panel,'forage panel must exist');
  assert.match(panel,/id="plantPhotoCamera"/);
  assert.match(panel,/id="plantPhotoGallery"/);
