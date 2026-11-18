@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const PRODUCTION_APP_ID = 'ru.paseka.journal';
-export const TEST_APP_ID = 'ru.paseka.journal.test';
-export const TEST_APP_NAME = 'Пасека — тест';
+export const TEST_APP_ID = 'ru.paseka.journal.test.persistence2';
+export const TEST_APP_NAME = 'Пасека — тест 2';
 
 export function createIsolatedTestConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
@@ -18,7 +18,7 @@ export function createIsolatedTestConfig(config) {
 
 export function assertIsolatedTestApplicationId(gradleSource) {
   if (typeof gradleSource !== 'string' || !/applicationId\s+["']ru\.paseka\.journal\.test["']/.test(gradleSource)) {
-    throw new Error('Generated Android applicationId is not the isolated test id ru.paseka.journal.test');
+    throw new Error('Generated Android applicationId is not the isolated test id ru.paseka.journal.test.persistence2');
   }
   if (/applicationId\s+["']ru\.paseka\.journal["']/.test(gradleSource)) {
     throw new Error('Generated Android applicationId unexpectedly matches the production id');
