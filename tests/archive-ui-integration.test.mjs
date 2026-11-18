@@ -83,3 +83,9 @@ test('rollback UI requires explicit confirmation and refuses a stale in-memory v
   assert.match(rollback, /live\.meta\?\.revisionId[\s\S]*?S\.meta\?\.revisionId/);
   assert.match(rollback, /window\.__pasekaRestoreBusy/);
 });
+
+
+test('archive modules are loaded as separate script elements without literal escape text', async () => {
+  assert.match(html, /<script src="\.\/js\/deadout-review\.js"><\/script>\s*<script src="\.\/js\/paseka-sha256\.js"><\/script>\s*<script src="\.\/js\/paseka-archive\.js"><\/script>\s*<script src="\.\/js\/paseka-archive-restore\.js"><\/script>/);
+  assert.doesNotMatch(html, /<\/script>\\\\n<script/);
+});
