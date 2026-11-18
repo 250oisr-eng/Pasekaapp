@@ -266,13 +266,25 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
     private Network getWifiNetwork() {
         ConnectivityManager manager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         if (manager == null) return null;
-        Network network = manager.getActiveNetwork();
-        if (network == null) return null;
-        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
-        if (capabilities == null
-            || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            || !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return null;
-        return network;
+        Network active = manager.getActiveNetwork();
+        if (active == null) return null;
+        NetworkCapabilities activeCapabilities = manager.getNetworkCapabilities(active);
+        if (activeCapabilities == null || !activeCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return null;
+        if (activeCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return active;
+
+        // Keep a VPN route when it is layered over an available Wi-Fi network.
+        if (activeCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+            for (Network candidate : manager.getAllNetworks()) {
+                if (candidate.equals(active)) continue;
+                NetworkCapabilities candidateCapabilities = manager.getNetworkCapabilities(candidate);
+                if (candidateCapabilities != null
+                    && candidateCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && candidateCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                    return active;
+                }
+            }
+        }
+        return null;
     }
 
     private void downloadAndInstallModel(PluginCall call, Network wifiNetwork) {
