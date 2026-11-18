@@ -1,3 +1,12 @@
+## Контрольная точка — Android ADB preflight на Windows (2026-11-18)
+
+- Актуальный main SHA на начало этапа: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
+- Существующая Windows Chrome smoke-инфраструктура находится в Draft PR #163 (ветка `test/local-windows-browser-smoke-2026-11-18`), а не в main. На SHA `ee1e07cb3061a45fa5aec8d63b2f0fbafbe0b3bd` Windows workflow #44303507857 и Android workflow #44303508004 завершились success. В проектных записях уже зафиксированы локальный запуск Windows smoke-теста пользователем и базовая физическая приёмка Android/офлайн на OnePlus; эти проверки не заменяют новые тесты.
+- Создана ветка `test/android-adb-preflight-2026-11-18` от PR #163 HEAD `ee1e07cb3061a45fa5aec8d63b2f0fbafbe0b3bd`. Добавлен read-only PowerShell preflight `scripts/android-device-preflight.ps1`, команда `npm run test:android:preflight` и запуск self-test в Windows workflow.
+- Preflight требует ровно одно авторизованное ADB-устройство и сверяет NE2213. Собирает только модель/device/SKU, Android/build/security patch, батарею, экран, версии Chrome/WebView/Пасека. Не сохраняет serial; не устанавливает APK, не меняет данные/настройки/сеть, не снимает экран и не собирает logcat.
+- На момент этой записи Windows CI для новой ветки ещё не завершён. Не объявлять проверку успешной до получения workflow на точном итоговом SHA.
+- Следующий шаг: завершить CI и Draft PR; затем пользователь один раз запускает read-only preflight на ПК с подключённым OnePlus. Автоматическую установку/управление приложением отложить до отдельной тестовой сборки с уникальным applicationId и изолированным хранилищем.
+
 ## Физическая приёмка Android — установка, запуск, навигация и офлайн (2026-11-18)
 
 - Пользователь подтвердил на OnePlus 10 Pro 5G (NE2213, Android 16 / OxygenOS 16): APK установился, ярлык появился, главный экран открылся штатно.
