@@ -62,14 +62,14 @@ jobs:
           const variablesPath = 'android/variables.gradle';
           let variables = await readFile(variablesPath, 'utf8');
           for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
-            const pattern = new RegExp('(^\\\\s*' + key + '\\\\s*=\\\\s*)\\\\d+', 'm');
+            const pattern = new RegExp('(^\\s*' + key + '\\s*=\\s*)\\d+', 'm');
             if (!pattern.test(variables)) throw new Error('Unknown Android SDK configuration: ' + key);
             variables = variables.replace(pattern, '$1' + value);
           }
           await writeFile(variablesPath, variables);
           const gradle = await readFile('android/app/build.gradle', 'utf8');
           assertIsolatedTestApplicationId(gradle);
-          if (!/minSdkVersion\\s+35/.test(variables)) throw new Error('Android minimum API must remain 35');
+          if (!/minSdkVersion\s+35/.test(variables)) throw new Error('Android minimum API must remain 35');
           console.log('Verified test applicationId ru.paseka.journal.test and Android minSdk 35');
           NODE
       - name: Build isolated debug APK
