@@ -108,6 +108,10 @@ test('cleanup completion requires an explicit confirmed deletion timestamp',()=>
  assert.equal(blocked.ok,false);
  const backedUp={...persisted,resultBackupRevisionId:'backup-rev-1',resultBackupVerifiedAt:'2026-11-18T10:03:30.000Z'};
  const cleanup=Media.transitionMediaJob(backedUp,'cleanup_pending',{},'2026-11-18T10:04:00.000Z').job;
+ const forged={...cleanup};delete forged.resultBackupRevisionId;delete forged.resultBackupVerifiedAt;
+ assert.equal(Media.transitionMediaJob(forged,'completed_deleted',{
+  originalDeleted:true,originalDeletedAt:'2026-11-18T10:05:00.000Z'
+ },'2026-11-18T10:05:00.000Z').ok,false,'the final deletion transition also requires backup proof');
  assert.equal(Media.transitionMediaJob(cleanup,'completed_deleted',{},'2026-11-18T10:05:00.000Z').ok,false);
  const deleted=Media.transitionMediaJob(cleanup,'completed_deleted',{
   originalDeleted:true,originalDeletedAt:'2026-11-18T10:05:00.000Z'
