@@ -773,9 +773,6 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
               history.importSessionId !== knownHistory.importSessionId) {
             fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
           }
-          if ((currentState?.meta?.revisionId || null) !== expectedRevision) {
-            fail('RESTORE_CONFLICT', 'The live database changed after the import. Rollback was cancelled to avoid overwriting newer work.');
-          }
           if ((values.currentVideos || []).some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || '')) ||
               typeof history.importedMediaFingerprint !== 'string' ||
               history.importedMediaFingerprint !== knownHistory.importedMediaFingerprint ||
@@ -795,6 +792,9 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           if (typeof currentImportSession.importedRevisionId !== 'string' || !currentImportSession.importedRevisionId ||
               (currentState?.meta?.revisionId ?? null) !== currentImportSession.importedRevisionId) {
             fail('ROLLBACK_STATE_CHANGED', 'The journal changed after this archive was imported. Rollback was cancelled to preserve newer journal entries.');
+          }
+          if ((currentState?.meta?.revisionId ?? null) !== expectedRevision) {
+            fail('RESTORE_CONFLICT', 'The live database changed during rollback. Refresh the data and review the current state before retrying.');
           }
           if (currentRecords.length !== snapshotRecords.length ||
               snapshotFingerprint(currentRecords) !== expectedSnapshotFingerprint) {
