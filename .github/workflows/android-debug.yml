@@ -31,6 +31,8 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/prepare-android.mjs'
+      - 'android-native/**'
       - '.github/workflows/android-debug.yml'
 
 concurrency:
