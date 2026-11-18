@@ -1415,6 +1415,7 @@ function renderEquipmentReconciliation(){
 }
 
 function mediaJobRepository(){return PasekaMediaJobStore.createMediaJobStore({db,lifecycle:PasekaMediaLifecycle})}
+let legacyMediaMigrationResult=null;
 function putEntranceVideo(record){
  return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(record)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
 }
@@ -4155,7 +4156,9 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
+  try{legacyMediaMigrationResult=await mediaJobRepository().migrateLegacyEntranceVideos()}catch(error){legacyMediaMigrationResult={error:String(error?.message||error)}}
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
+  const mediaStatus=$('entranceVideoStatus');if(mediaStatus&&legacyMediaMigrationResult?.migrated)mediaStatus.textContent='Старые видеозаписи перенесены в общую локальную очередь: '+legacyMediaMigrationResult.migrated+'. Оригиналы сохранены; анализ и удаление выполняются по новым правилам.';else if(mediaStatus&&legacyMediaMigrationResult?.error)mediaStatus.textContent='Не удалось перенести старые видеозаписи. Старое хранилище не очищено: '+legacyMediaMigrationResult.error;
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});

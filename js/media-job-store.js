@@ -63,6 +63,56 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return {...job};
  }
 
+ async function migrateLegacyEntranceVideos(){
+  const at=now();
+  if(!timestamp(at))throw new TypeError('Некорректное время миграции медиа');
+  const tx=db.transaction(['entrance_media',STORE_NAME],'readwrite'),done=transactionDone(tx);
+  const legacyStore=tx.objectStore('entrance_media'),jobsStore=tx.objectStore(STORE_NAME);
+  const cursorRequest=legacyStore.openCursor();
+  const summary={migrated:0,alreadyMigrated:0,skipped:[]};
+  cursorRequest.onsuccess=()=>{
+   const cursor=cursorRequest.result;
+   if(!cursor)return;
+   const record=cursor.value,id=record?.id;
+   const validBlob=record?.blob&&Number.isFinite(record.blob.size)&&record.blob.size>0&&typeof record.blob.arrayBuffer==='function';
+   if(!text(id)||id.length>180||!text(record?.hiveId)||!timestamp(record?.capturedAt)||!validBlob){
+    summary.skipped.push({id:text(id)?id:null,reason:'invalid_legacy_video_record'});
+    cursor.continue();return;
+   }
+   const jobId='legacy-entrance-'+id,lookup=jobsStore.get(jobId);
+   lookup.onsuccess=()=>{
+    if(lookup.result){
+     if(lookup.result.legacySourceId===id)summary.alreadyMigrated++;
+     else summary.skipped.push({id,reason:'media_job_id_collision'});
+     cursor.continue();return;
+    }
+    const captureMetadata={};
+    if(Number.isFinite(record.durationSec)&&record.durationSec>0)captureMetadata.durationSec=record.durationSec;
+    if(Number.isInteger(record.width)&&record.width>0&&Number.isInteger(record.height)&&record.height>0){
+     captureMetadata.width=record.width;captureMetadata.height=record.height;
+    }
+    const frameStatus=record.frameQualityCheck?.status;
+    captureMetadata.frameQualityStatus=['good','limited','poor','unknown'].includes(frameStatus)?frameStatus:'unknown';
+    const legacyMetadata={...record};delete legacyMetadata.blob;
+    const createdAt=timestamp(record.queueCreatedAt)?record.queueCreatedAt:record.capturedAt;
+    const job={
+     id:jobId,kind:'video',blob:record.blob,name:String(record.name||'legacy-video').slice(0,160),
+     mimeType:String(record.mimeType||record.blob.type||'video/unknown').slice(0,120),bytes:record.blob.size,
+     hiveId:record.hiveId,familyId:null,recordId:null,capturedAt:record.capturedAt,
+     createdAt,updatedAt:at,originalRef:'media-job:'+jobId,status:'queued',retryCount:0,
+     retainOriginal:true,captureMetadata,lastError:null,result:null,resultId:null,
+     resultValidated:false,resultPersistedAt:null,legacySourceId:id,legacyMetadata
+    };
+    jobsStore.add(job);
+    legacyStore.delete(id);
+    summary.migrated++;
+    cursor.continue();
+   };
+  };
+  await done;
+  return {...summary,skippedCount:summary.skipped.length};
+ }
+
  async function get(id){
   const tx=db.transaction(STORE_NAME,'readonly'),done=transactionDone(tx);
   const request=tx.objectStore(STORE_NAME).get(id);
@@ -288,7 +338,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return results;
  }
 
- return Object.freeze({enqueue,get,list,transition,claimForAnalysis,recoverExpiredAnalyses,setRetainOriginal,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
+ return Object.freeze({enqueue,migrateLegacyEntranceVideos,get,list,transition,claimForAnalysis,recoverExpiredAnalyses,setRetainOriginal,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
 }
 
 root.PasekaMediaJobStore=Object.freeze({STORE_NAME,ensureStore,createMediaJobStore});
