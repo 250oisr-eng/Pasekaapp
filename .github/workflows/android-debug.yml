@@ -15,6 +15,7 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/prepare-android-archive-download.mjs'
       - '.github/workflows/android-debug.yml'
   pull_request:
     paths:
@@ -92,6 +93,8 @@ jobs:
         run: npx cap add android
       - name: Sync Android project
         run: npx cap sync android
+      - name: Install native archive Downloads bridge
+        run: node scripts/prepare-android-archive-download.mjs
       - name: Use Android 15-compatible Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
       - name: Require Android 15 or newer
