@@ -12,9 +12,14 @@ export function injectAndroidPersistenceProbe(html) {
   if (closingBody < 0 || normalized.indexOf('</body>') !== closingBody) {
     throw new Error('Generated web index must contain exactly one closing body tag');
   }
+  const settingsMatches = html.match(/<section\b[^>]*\bid=["']settings["'][^>]*>/gi) || [];
+  if (settingsMatches.length !== 1) {
+    throw new Error('Generated web index must contain exactly one settings panel');
+  }
   const injection = [
     '<script>window.__PASEKA_TEST_BUILD__ = true;</script>',
-    '<script src="./js/android-persistence-probe.js"></script>'
+    '<script>(function(){var s=document.getElementById("settings");if(!s)throw new Error("Settings panel is missing from isolated Android test assets");var n=document.createElement("div");n.id="androidPersistenceProbeFallback";n.className="card";n.setAttribute("role","status");n.textContent="Диагностический модуль сохранения загружается. Если это сообщение не исчезло, проверка сохранения не запускалась.";s.appendChild(n);})();</script>',
+    '<script src="./js/android-persistence-probe.js" onerror="var n=document.getElementById(\'androidPersistenceProbeFallback\');if(n){n.textContent=\'Ошибка загрузки диагностического модуля. Сохранение не проверялось.\';}"></script>'
   ].join('\n') + '\n';
   return html.slice(0, closingBody) + injection + html.slice(closingBody);
 }
