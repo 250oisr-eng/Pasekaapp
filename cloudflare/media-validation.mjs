@@ -1,5 +1,5 @@
 const MAX_MEDIA_FRAME_CHARS=470000;
-const MAX_MEDIA_TOTAL_CHARS=2500000;
+const MAX_MEDIA_TOTAL_CHARS=1800000;
 const SUPPORTED_MEDIA_PROFILE_IDS=new Set(['farrar-6x6-v1']);
 function isPlainObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value);}
 export function validateMediaInput(media,context){
