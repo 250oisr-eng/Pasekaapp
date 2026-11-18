@@ -133,3 +133,18 @@ test('missing retention decision cannot authorize original cleanup',()=>{
  assert.equal(Media.transitionMediaJob(undecided,'cleanup_pending',{},'2026-11-18T10:04:00.000Z').ok,false);
  assert.equal(Media.canDeleteMediaOriginal({...undecided,status:'cleanup_pending'}),false);
 });
+
+
+test('analysis leases are removed when an attempt ends',()=>{
+ const started=Media.transitionMediaJob(base(),'analyzing',{
+  analysisOwner:'tab-a',analysisLeaseUntil:'2026-11-18T10:10:00.000Z'
+ },'2026-11-18T10:01:00.000Z').job;
+ const received=Media.transitionMediaJob(started,'result_received',{result:{answer:'visible'}},'2026-11-18T10:02:00.000Z');
+ assert.equal(received.ok,true);
+ assert.equal(received.job.analysisOwner,undefined);
+ assert.equal(received.job.analysisLeaseUntil,undefined);
+ const failed=Media.transitionMediaJob(started,'failed_retryable',{lastError:'offline'},'2026-11-18T10:03:00.000Z');
+ assert.equal(failed.ok,true);
+ assert.equal(failed.job.analysisOwner,undefined);
+ assert.equal(failed.job.analysisLeaseUntil,undefined);
+});
