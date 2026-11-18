@@ -488,16 +488,19 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 </section>
 <section id="ai" class="panel">
  <div class="card ai-console-card"><div class="ai-hero"><div class="ai-hero-orb" aria-hidden="true"><span>✦</span></div><div class="ai-hero-copy"><div class="ai-eyebrow">ПАСЕКА · ИНТЕЛЛЕКТУАЛЬНЫЙ ПОМОЩНИК</div><h2 style="margin:2px 0">ИИ-помощник</h2><span class="ai-hero-subtitle">Консультации по данным твоей пасеки</span></div><span class="ai-hero-tag">AI</span></div>
-  <p class="muted">ИИ получает только текстовые сведения из журнала и текущую схему ульев, когда ты отправляешь вопрос. Фото и видео можно сохранить в локальную очередь, но передача на анализ пока не подключена. Ответы — рекомендации для проверки, а не замена осмотру.</p>
+  <p class="muted">ИИ получает текстовые сведения только по твоему запросу. При нажатии «Анализировать» в Cloudflare Workers AI отправляются подготовленная JPEG-копия фотографии или выбранные кадры видео и ограниченный контекст выбранного улья: профиль, связанные семьи, записи, задачи и общие настройки пасеки. Исходный файл и журналы других ульев не отправляются. Без интернета можно сохранить очередь, но анализ выполняется только онлайн. Ответ — подсказка, а не диагноз и не замена осмотру.</p>
   <div class="card" id="mediaAnalysisCaptureCard">
    <b>Фото для последующего анализа</b>
    <p class="muted">Выбери улей и сфотографируй рамку, пчёл или другой объект наблюдения. Файл сохранится только на этом устройстве; сейчас он не отправляется ИИ.</p>
    <label for="mediaAnalysisHiveSelect">Улей</label><select id="mediaAnalysisHiveSelect"><option value="">— Выбери улей —</option></select>
    <label for="mediaAnalysisPhotoInput">Сфотографировать или выбрать фото</label>
    <input id="mediaAnalysisPhotoInput" type="file" accept="image/*" capture="environment" onchange="handleMediaAnalysisPhoto(this.files);this.value='';">
+   <label for="mediaAnalysisQuestion">Что проверить по фото или видео (необязательно)</label>
+   <textarea id="mediaAnalysisQuestion" rows="2" maxlength="1000" placeholder="Например: что можно достоверно увидеть на этой рамке?"></textarea>
    <label><input id="mediaAnalysisRetainOriginal" type="checkbox" checked> Сохранить оригинал после анализа</label>
-   <div id="mediaAnalysisPhotoStatus" class="muted" role="status" aria-live="polite">Фото будет храниться локально до отдельного решения об удалении.</div>
+   <div id="mediaAnalysisPhotoStatus" class="muted" role="status" aria-live="polite">Фото и видео сохраняются локально. Для анализа нужен интернет и вход в ИИ.</div>
    <div id="mediaAnalysisJobList"></div>
+   <div id="mediaAnalysisResultList"></div>
   </div>
   <div id="aiAuthStatus" class="muted">Проверяем подключение…</div>
   <div class="card" id="aiJournalDraftCard"><b>Подготовить запись журнала</b><p class="muted">Опиши наблюдение или выполненную работу. Текст попадёт в черновик заметки; выбери дату, улей, семью и тип события в форме. ИИ не анализирует и не отправляет это описание.</p><label for="aiJournalHiveSelect">К какому улью относится событие?</label><select id="aiJournalHiveSelect"><option value="">— Выбери улей —</option></select><label for="aiJournalDraftInput">Описание события</label><textarea id="aiJournalDraftInput" rows="3" placeholder="Например: осмотрел семью, заметил первые яйца, корм не добавлял…"></textarea><button type="button" class="primary" onclick="prepareJournalDraftFromAI()">Открыть черновик журнала</button></div>
@@ -582,7 +585,8 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
 <script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script>
-<script src="./js/media-analysis-results.js"></script><script src="./js/media-lifecycle.js"></script><script src="./js/media-job-store.js"></script><script src="./js/entrance-analysis.js"></script>
+<script src="./js/media-analysis-results.js"></script><script src="./js/media-lifecycle.js"></script><script src="./js/media-job-store.js"></script>
+<script src="./js/media-ai-client.js"></script><script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
 <script src="./js/season-planning.js"></script>
@@ -769,6 +773,76 @@ async function persistMediaAnalysisResult(jobId){
  return repository.get(jobId);
 }
 function verifyMediaAnalysisResultBackup({job,backupRecord,backupRevisionId}={}){return PasekaMediaAnalysisResults.verifyBackup({job,backupRecord,backupRevisionId});}
+async function mediaAIAuthToken(){
+ if(!aiAuthClient||!aiAuthUser){await initAIAuth();if(!aiAuthClient||!aiAuthUser)throw new Error('Для анализа войди в учётную запись ИИ.')}
+ let accessToken='';
+ const sessionResult=await aiAuthClient.getSession({fetchOptions:{onSuccess:(ctx)=>{accessToken=ctx.response.headers.get('set-auth-jwt')||''}}});
+ if(sessionResult.error)throw new Error(sessionResult.error.message||'Не удалось проверить сеанс');
+ accessToken=accessToken||sessionResult.data?.session?.token||'';
+ if(!accessToken)throw new Error('Neon Auth не вернул токен доступа. Проверь подключение и войди повторно.');
+ return accessToken;
+}
+function buildMediaAIContext(job){
+ return PasekaMediaAIClient.buildContext(buildAIContext(),job);
+}
+async function saveMediaAnalysisResult(jobId){
+ try{
+  const repository=mediaJobRepository(),job=await repository.get(jobId);
+  if(!job||!['result_received','result_persisted'].includes(job.status))throw new Error('Результат пока не готов к сохранению.');
+  const status=$('mediaAnalysisPhotoStatus');if(status)status.textContent='Сохраняю результат и проверяю резервную копию…';
+  await persistMediaAnalysisResult(jobId);
+  if(status)status.textContent='Результат сохранён и подтверждён в резервной копии. Оригинал не удалён.';
+ }catch(error){const status=$('mediaAnalysisPhotoStatus');if(status)status.textContent='Результат не потерян: '+(error.message||error)+'. Оригинал сохранён.';else alert(error.message||'Не удалось сохранить результат')}
+ await refreshMediaAnalysisJobs();
+}
+async function analyzeMediaJob(jobId){
+ if(mediaAnalysisBusyJobId)return;
+ const repository=mediaJobRepository(),status=$('mediaAnalysisPhotoStatus');
+ let ownerId=null;
+ mediaAnalysisBusyJobId=jobId;
+ try{
+  const job=await repository.get(jobId);
+  if(!job)throw new Error('Задание медиа не найдено.');
+  if(job.status==='result_received'||job.status==='result_persisted'){await saveMediaAnalysisResult(jobId);return}
+  if(!['queued','failed_retryable'].includes(job.status))throw new Error('Задание нельзя запустить из текущего состояния: '+job.status);
+  const context=buildMediaAIContext(job);ownerId=uid();
+  await repository.claimForAnalysis(jobId,{ownerId,leaseMs:300000});
+  if(status)status.textContent='Подготавливаю кадры на этом устройстве…';
+  await refreshMediaAnalysisJobs();
+  const prepared=job.kind==='image'?await PasekaMediaAIClient.prepareImage(job.blob):await PasekaMediaAIClient.prepareVideo(job.blob,{count:5});
+  const token=await mediaAIAuthToken();
+  const question=String($('mediaAnalysisQuestion')?.value||'').trim().slice(0,1000);
+  const media={kind:prepared.kind,frames:prepared.frames.map(frame=>({timeSec:frame.timeSec,dataUrl:frame.dataUrl}))};
+  if(prepared.kind==='video')media.durationSec=prepared.durationSec;
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),120000);
+  let response,data;
+  try{
+   response=await fetch(AI_FUNCTION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token},body:JSON.stringify({question,context,media}),signal:controller.signal});
+   data=await response.json().catch(()=>({}));
+  }finally{clearTimeout(timeout)}
+  if(!response.ok){const error=new Error(data.error||'Ошибка сервера ИИ ('+response.status+')');error.status=response.status;throw error}
+  if(typeof data.answer!=='string'||!data.answer.trim())throw new Error('Модель не вернула текстовый результат.');
+  await repository.receiveResult(jobId,{
+   answer:data.answer.slice(0,12000),provider:String(data.provider||'Cloudflare Workers AI'),model:String(data.model||''),
+   mediaKind:prepared.kind,frameCount:prepared.frames.length,frameTimes:prepared.frames.map(frame=>frame.timeSec).filter(Number.isFinite),
+   analyzedAt:new Date().toISOString(),promptVersion:1
+  });
+  if(status)status.textContent='ИИ вернул результат. Сохраняю его в журнал и резервную копию…';
+  try{await persistMediaAnalysisResult(jobId);if(status)status.textContent='Результат сохранён и подтверждён в резервной копии. Оригинал не удалён.'}
+  catch(error){if(status)status.textContent='Результат получен, но сохранение/проверка копии не завершены: '+(error.message||error)+'. Оригинал сохранён.'}
+ }catch(error){
+  const current=await repository.get(jobId).catch(()=>null);
+  if(current?.status==='analyzing'&&ownerId&&current.analysisOwner===ownerId){
+   const next=[400,409,413].includes(error.status)?'failed_permanent':'failed_retryable';
+   await repository.transition(jobId,next,{lastError:String(error.message||error).slice(0,500)}).catch(()=>{});
+  }
+  if(status)status.textContent='Анализ не завершён: '+(error.name==='AbortError'?'истекло время ожидания':error.message||error)+'. Оригинал остался на устройстве.';
+ }finally{
+  mediaAnalysisBusyJobId=null;
+  await refreshMediaAnalysisJobs();
+ }
+}
+let mediaAnalysisBusyJobId=null;
 async function confirmMediaAnalysisResultBackup(jobId){
  const repository=PasekaMediaJobStore.createMediaJobStore({db,lifecycle:PasekaMediaLifecycle});
  const backup=await readAutoBackup(),backupRevisionId=backup?.state?.meta?.revisionId;
@@ -1372,7 +1446,7 @@ async function refreshEntranceVideos(){
    const status=labels[x.status]||'Состояние не определено',duration=Number.isFinite(x.durationSec)?Math.round(x.durationSec)+' с':'длительность не определена',dimensions=x.width&&x.height?x.width+'×'+x.height:'размер не определён';
    const quality=x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено';
    const canRemove=job?['result_persisted','cleanup_pending'].includes(x.status)&&!!x.resultBackupRevisionId&&!!x.resultBackupVerifiedAt:x.status!=='deleted';
-   return '<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+safe(status)+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+duration+' · '+dimensions+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(quality)+'. Видео не отправляется в сеть; распознавание пчёл пока не подключено.</div><div class="row" style="margin-top:8px">'+(x.status!=='completed_deleted'?'<button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button>':'<span class="muted">Исходник удалён</span>')+''+(canRemove?'<button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить оригинал</button>':job?'<span class="muted">Удаление — только после результата и подтверждённой копии</span>':'<button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button>')+'</div></article>';
+   return '<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+safe(status)+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+duration+' · '+dimensions+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(quality)+'. Видео сохранено локально; для анализа кадры отправляются отдельно после твоего нажатия в разделе ИИ.</div><div class="row" style="margin-top:8px">'+(x.status!=='completed_deleted'?'<button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button>':'<span class="muted">Исходник удалён</span>')+''+(canRemove?'<button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить оригинал</button>':job?'<span class="muted">Удаление — только после результата и подтверждённой копии</span>':'<button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button>')+'</div></article>';
   }).join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
@@ -1418,7 +1492,7 @@ async function handleEntranceVideoFile(files){
  const id=uid(),retainOriginal=$('entranceRetainOriginal')?.checked!==false;
  try{
   await mediaJobRepository().enqueue({id,kind:'video',blob:file,name:String(file.name||'video').slice(0,120),mimeType:file.type||'video/unknown',hiveId,capturedAt:new Date().toISOString(),retainOriginal,captureMetadata:{durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,frameQualityStatus:frameQuality.status}});
-  if(status)status.textContent='Видео сохранено в локальную очередь на этом устройстве. Сетевой передачи и автоматического удаления нет. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
+  if(status)status.textContent='Видео сохранено в локальную очередь на этом устройстве. Для анализа после отдельного нажатия отправляются только выбранные кадры; оригинал остаётся локально. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. ИИ-анализ выполняется по кадрам, а не по непрерывному видеопотоку.';
   await refreshEntranceVideos();
  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
 }
@@ -1454,15 +1528,33 @@ async function removeEntranceVideo(id){
 async function refreshMediaAnalysisJobs(){
  const host=$('mediaAnalysisJobList');if(!host)return;
  try{
-  const jobs=await mediaJobRepository().list();
-  const labels={queued:'В очереди · локально',analyzing:'Анализируется',failed_retryable:'Ошибка · можно повторить',failed_permanent:'Требуется проверка',result_received:'Результат получен · не сохранён',result_persisted:'Результат сохранён',cleanup_pending:'Ожидает удаления',completed_retained:'Оригинал сохранён',completed_deleted:'Оригинал удалён'};
+  const repository=mediaJobRepository();
+  await repository.recoverExpiredAnalyses();
+  const jobs=await repository.list();
+  const labels={queued:'В очереди · локально',analyzing:'Анализируется',failed_retryable:'Ошибка · можно повторить',failed_permanent:'Требуется проверка',result_received:'Результат получен · требуется сохранение',result_persisted:'Результат сохранён',cleanup_pending:'Ожидает удаления',completed_retained:'Оригинал сохранён',completed_deleted:'Оригинал удалён'};
   host.innerHTML=jobs.length?'<div class="muted" style="margin-top:10px">Локальная очередь · '+jobs.length+'</div>'+jobs.map(job=>{
    const view=job.kind==='image'?'viewMediaAnalysisPhoto':'viewEntranceVideo';
    const canRemove=['result_persisted','cleanup_pending'].includes(job.status)&&!!job.resultBackupRevisionId&&!!job.resultBackupVerifiedAt;
-   return '<div class="task-item"><b>'+(job.kind==='image'?'Фото':'Видео')+'</b> · '+safe(hname(job.hiveId))+' · '+safe(labels[job.status]||job.status)+'<div class="muted">'+safe(new Date(job.capturedAt).toLocaleString('ru-RU'))+' · '+entranceBytes(job.bytes)+' · '+(job.retainOriginal?'оригинал сохраняется':'удаление разрешено после результата и backup')+'</div><div class="row" style="margin-top:6px">'+(job.status!=='completed_deleted'?'<button type="button" onclick="'+view+'(\''+safe(job.id)+'\')">Просмотреть</button>':'<span class="muted">Исходник удалён</span>')+''+(canRemove?'<button type="button" onclick="removeMediaJobOriginal(\''+safe(job.id)+'\')">Удалить оригинал</button>':'<span class="muted">Удаление заблокировано до результата и подтверждённой копии</span>')+'</div></div>';
+   const canAnalyze=['queued','failed_retryable'].includes(job.status);
+   const canPersist=job.status==='result_received'||job.status==='result_persisted'&&(!job.resultBackupRevisionId||!job.resultBackupVerifiedAt);
+   const action=canAnalyze?'<button type="button" onclick="analyzeMediaJob(\''+safe(job.id)+'\')">'+(job.status==='failed_retryable'?'Повторить анализ':'Анализировать')+'</button>':canPersist?'<button type="button" onclick="saveMediaAnalysisResult(\''+safe(job.id)+'\')">'+(job.status==='result_received'?'Сохранить результат':'Проверить резервную копию')+'</button>':'';
+   const errorText=job.lastError?'<p class="muted">'+safe(job.lastError)+'</p>':'';
+   const resultText=typeof job.result?.answer==='string'?'<details style="margin-top:6px"><summary>Результат анализа</summary><p>'+safe(job.result.answer).replace(/\n/g,'<br>')+'</p></details>':'';
+   return '<div class="task-item"><b>'+(job.kind==='image'?'Фото':'Видео')+'</b> · '+safe(hname(job.hiveId))+' · '+safe(labels[job.status]||job.status)+'<div class="muted">'+safe(new Date(job.capturedAt).toLocaleString('ru-RU'))+' · '+entranceBytes(job.bytes)+' · '+(job.retainOriginal?'оригинал сохраняется':'удаление возможно только после backup')+'</div><div class="row" style="margin-top:6px">'+(job.status!=='completed_deleted'?'<button type="button" onclick="'+view+'(\''+safe(job.id)+'\')">Просмотреть</button>':'<span class="muted">Исходник удалён</span>')+action+(canRemove?'<button type="button" onclick="removeMediaJobOriginal(\''+safe(job.id)+'\')">Удалить оригинал</button>':'')+'</div>'+errorText+resultText+(job.status==='analyzing'?'<p class="muted">Задание занято до окончания запроса или истечения блокировки. При обрыве его можно будет повторить после восстановления очереди.</p>':'')+(job.status==='result_persisted'&&!canRemove?'<p class="muted">Результат сохранён, но резервная копия ещё не подтверждена. Оригинал не удаляется.</p>':'')+'</div>';
   }).join(''):'<p class="muted">Очередь пока пуста.</p>';
+  renderMediaAnalysisResults();
  }catch(error){host.textContent='Не удалось прочитать локальную очередь: '+(error.message||error)}
 }
+function renderMediaAnalysisResults(){
+ const host=$('mediaAnalysisResultList');if(!host)return;
+ const rows=(Array.isArray(S.mediaAnalysisResults)?S.mediaAnalysisResults:[]).slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,20);
+ host.innerHTML=rows.length?'<h4 style="margin:14px 0 6px">Сохранённые результаты анализа</h4>'+rows.map(row=>{
+  const answer=typeof row.result?.answer==='string'?row.result.answer:'Результат сохранён в архиве, но его текстовый формат неизвестен.';
+  const provider=[row.result?.provider,row.result?.model].filter(Boolean).join(' · ');
+  return '<details class="task-item"><summary><b>'+(row.kind==='image'?'Фото':'Видео')+'</b> · '+safe(hname(row.hiveId))+' · '+safe(new Date(row.createdAt).toLocaleString('ru-RU'))+'</summary><p>'+safe(answer).replace(/\n/g,'<br>')+'</p><div class="muted">'+safe(provider)+'</div></details>';
+ }).join(''):'';
+}
+
 let mediaPhotoPreviewUrl=null;
 async function viewMediaAnalysisPhoto(id){
  try{const job=await mediaJobRepository().get(id);if(!job||job.kind!=='image'||!job.blob)throw new Error('Исходная фотография недоступна.');const image=$('mediaAnalysisPhotoPreview');if(!image)return;cleanupMediaAnalysisPhotoPreview();mediaPhotoPreviewUrl=URL.createObjectURL(job.blob);image.src=mediaPhotoPreviewUrl;$('mediaAnalysisPhotoPreviewInfo').textContent=hname(job.hiveId)+' · '+new Date(job.capturedAt).toLocaleString('ru-RU');$('mediaAnalysisPhotoPreviewDlg').showModal()}catch(error){alert(error.message||'Не удалось открыть фотографию')}
@@ -1483,7 +1575,7 @@ async function handleMediaAnalysisPhoto(files){
    throw new Error('Недостаточно свободного места для безопасного сохранения фотографии.');
   const id=uid(),retainOriginal=$('mediaAnalysisRetainOriginal')?.checked!==false;
   await mediaJobRepository().enqueue({id,kind:'image',blob:file,name:String(file.name||'photo').slice(0,160),mimeType:file.type,hiveId,capturedAt:new Date().toISOString(),retainOriginal});
-  if(status)status.textContent='Фото сохранено локально. Передача на анализ не подключена; файл не отправлялся в сеть.';
+  if(status)status.textContent='Фото сохранено локально. Нажми «Анализировать» в очереди; оригинал не отправляется напрямую.';
   await refreshMediaAnalysisJobs();
  }catch(error){if(status)status.textContent='Не удалось сохранить фото: '+(error.message||error);alert(error.message||'Не удалось сохранить фото')}
 }

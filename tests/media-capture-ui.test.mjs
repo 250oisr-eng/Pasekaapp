@@ -20,7 +20,10 @@ function extractFunction(name) {
 test('AI screen exposes local photo capture and defaults to retaining the original', () => {
   assert.match(html, /id="mediaAnalysisPhotoInput" type="file" accept="image\/\*" capture="environment"/);
   assert.match(html, /id="mediaAnalysisRetainOriginal" type="checkbox" checked/);
-  assert.match(html, /Файл сохранится только на этом устройстве; сейчас он не отправляется ИИ/);
+  assert.match(html, /подготовленная JPEG-копия фотографии или выбранные кадры видео и ограниченный контекст выбранного улья/);
+  assert.match(html, /журналы других ульев не отправляются/);
+  assert.match(html, /id="mediaAnalysisQuestion"/);
+  assert.match(html, /id="mediaAnalysisResultList"/);
   assert.match(html, /id="mediaAnalysisJobList"/);
 });
 
@@ -28,7 +31,7 @@ test('photo capture creates a local image job and does not call a network transp
   const handler = extractFunction('handleMediaAnalysisPhoto');
   assert.match(handler, /mediaJobRepository\(\)\.enqueue\(\{id,kind:'image',blob:file/);
   assert.match(handler, /navigator\.storage\?\.estimate/);
-  assert.match(handler, /Передача на анализ не подключена; файл не отправлялся в сеть/);
+  assert.match(handler, /Фото сохранено локально\. Нажми «Анализировать»/);
   assert.doesNotMatch(handler, /\bfetch\s*\(|XMLHttpRequest|AI_FUNCTION_URL/);
 });
 
@@ -36,7 +39,9 @@ test('entrance video capture uses the temporary media job store with validated m
   const handler = extractFunction('handleEntranceVideoFile');
   assert.match(handler, /mediaJobRepository\(\)\.enqueue\(\{id,kind:'video',blob:file/);
   assert.match(handler, /captureMetadata:\{durationSec:metadata\.durationSec,width:metadata\.width,height:metadata\.height,frameQualityStatus:frameQuality\.status\}/);
-  assert.match(handler, /Сетевой передачи и автоматического удаления нет/);
+  assert.match(handler, /отправляются только выбранные кадры/);
+  assert.equal(handler.includes('fetch('),false);
+  assert.equal(handler.includes('AI_FUNCTION_URL'),false);
   assert.doesNotMatch(handler, /putEntranceVideo\(/);
 });
 
@@ -70,4 +75,31 @@ test('AI tab restores the local queue after navigation without automatic cleanup
   const paintTab = extractFunction('paintTab');
   assert.match(paintTab, /if\(tab==='ai'\)refreshMediaAnalysisJobs\(\)/);
   assert.doesNotMatch(paintTab, /resumeCleanup|\.cleanup\(/);
+});
+
+
+test('media analysis uses the local frame preparer, an IndexedDB lease and explicit result persistence',()=>{
+  const handler=extractFunction('analyzeMediaJob');
+  assert.match(handler,/PasekaMediaAIClient\.prepareImage/);
+  assert.match(handler,/PasekaMediaAIClient\.prepareVideo/);
+  assert.match(handler,/claimForAnalysis\(jobId/);
+  assert.match(handler,/AI_FUNCTION_URL/);
+  assert.match(handler,/repository\.receiveResult\(jobId/);
+  assert.match(handler,/persistMediaAnalysisResult\(jobId/);
+  assert.doesNotMatch(handler,/repository\.cleanup\(/);
+});
+
+test('media queue recovers expired analysis leases and exposes a retry action',()=>{
+  const queue=extractFunction('refreshMediaAnalysisJobs');
+  assert.match(queue,/recoverExpiredAnalyses\(\)/);
+  assert.match(queue,/analyzeMediaJob/);
+  assert.match(queue,/saveMediaAnalysisResult/);
+  assert.match(queue,/job\.lastError/);
+});
+
+test('persisted media results render from the primary app state, independently of original Blobs',()=>{
+  const render=extractFunction('renderMediaAnalysisResults');
+  assert.match(render,/S\.mediaAnalysisResults/);
+  assert.match(render,/row\.result\?\.answer/);
+  assert.doesNotMatch(render,/mediaJobRepository|\.blob/);
 });

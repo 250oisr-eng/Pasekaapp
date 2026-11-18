@@ -46,6 +46,10 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
   updated.lastError=null;
   updated.nextAttemptAt=null;
  }
+ if(['result_received','failed_retryable','failed_permanent'].includes(next)){
+  delete updated.analysisOwner;
+  delete updated.analysisLeaseUntil;
+ }
  if(next==='result_persisted'){
   if(updated.resultValidated!==true||!hasText(updated.resultId)||!validTimestamp(updated.resultPersistedAt))
    return {ok:false,reason:'persisted_result_required'};

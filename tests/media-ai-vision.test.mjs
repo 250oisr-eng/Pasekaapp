@@ -1,0 +1,125 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { validateMediaInput, isMediaAIEnabled } from '../cloudflare/media-validation.mjs';
+import { readFile } from 'node:fs/promises';
+
+await import('../js/media-ai-client.js');
+const MediaAI=globalThis.PasekaMediaAIClient;
+const context=()=>({
+ modelIntegrity:{status:'ok',errorCount:0,warningCount:0},
+ selectedHive:{id:'hive-1',constructionProfile:{id:'farrar-6x6-v1',status:'ready'}}
+});
+const jpeg='data:image/jpeg;base64,AAAA';
+const image=()=>({kind:'image',frames:[{timeSec:null,dataUrl:jpeg}]});
+const video=()=>({kind:'video',durationSec:60,frames:[
+ {timeSec:10,dataUrl:jpeg},{timeSec:20,dataUrl:jpeg},{timeSec:30,dataUrl:jpeg}
+]});
+
+test('vision media validator accepts one JPEG image with a ready supported hive profile',()=>{
+ const result=validateMediaInput(image(),context());
+ assert.equal(result.ok,true);
+ assert.equal(result.frames.length,1);
+});
+
+test('vision media validator accepts a bounded video sample with increasing timestamps',()=>{
+ const result=validateMediaInput(video(),context());
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.frames.map(frame=>frame.timeSec),[10,20,30]);
+});
+
+test('vision media validator rejects unsupported hive profiles instead of mixing technologies',()=>{
+ const data=context();data.selectedHive.constructionProfile={id:'sectional-multi-queen-v1',status:'ready'};
+ const result=validateMediaInput(image(),data);
+ assert.equal(result.ok,false);
+ assert.equal(result.status,409);
+});
+
+test('vision media validator requires a confirmed model-integrity status',()=>{
+ const data=context();data.modelIntegrity.status='errors';
+ assert.equal(validateMediaInput(image(),data).ok,false);
+ assert.equal(validateMediaInput(image(),{selectedHive:data.selectedHive}).ok,false);
+});
+
+test('vision media validator rejects remote URLs, non-JPEG data and malformed base64',()=>{
+ for(const dataUrl of ['https://example.com/image.jpg','data:image/png;base64,AAAA','data:image/jpeg;base64,!!!']){
+  assert.equal(validateMediaInput({kind:'image',frames:[{dataUrl}]},context()).ok,false);
+ }
+});
+
+test('vision media validator enforces frame count, frame size and video timestamps',()=>{
+ assert.equal(validateMediaInput({kind:'image',frames:[]},context()).ok,false);
+ assert.equal(validateMediaInput({kind:'video',durationSec:60,frames:[{timeSec:1,dataUrl:jpeg}]},context()).ok,false);
+ const tooLarge='data:image/jpeg;base64,'+'A'.repeat(470001);
+ assert.equal(validateMediaInput({kind:'image',frames:[{dataUrl:tooLarge}]},context()).ok,false);
+ const duplicateTimes={...video(),frames:[{timeSec:10,dataUrl:jpeg},{timeSec:10,dataUrl:jpeg},{timeSec:30,dataUrl:jpeg}]};
+ assert.equal(validateMediaInput(duplicateTimes,context()).ok,false);
+ const outOfRange={...video(),durationSec:19};
+ assert.equal(validateMediaInput(outOfRange,context()).ok,false);
+});
+
+test('browser media client samples video at evenly spaced interior timestamps',()=>{
+ assert.deepEqual(MediaAI.sampleTimes(60,5),[10,20,30,40,50]);
+ assert.deepEqual(MediaAI.sampleTimes(30,3),[7.5,15,22.5]);
+});
+
+test('browser media client rejects invalid sample parameters and exposes bounded payload limits',()=>{
+ assert.throws(()=>MediaAI.sampleTimes(0,5),/Некорректные параметры/);
+ assert.throws(()=>MediaAI.sampleTimes(60,2),/Некорректные параметры/);
+ assert.ok(MediaAI.limits.maxImageBytes<350*1024);
+ assert.ok(MediaAI.limits.maxVideoFrameBytes<300*1024);
+ assert.equal(MediaAI.limits.videoFrameCount,5);
+});
+
+test('Workers AI vision path sends prepared image_url frames and forbids command execution',async()=>{
+ const source=await readFile(new URL('../cloudflare/worker.js',import.meta.url),'utf8');
+ assert.match(source,/const MODEL = '@cf\/google\/gemma-4-26b-a4b-it'/);
+ assert.match(source,/type:'image_url',image_url:\{url:frame\.dataUrl\}/);
+ assert.match(source,/MEDIA_SYSTEM/);
+ assert.match(source,/rejectIfBusy:true/);
+ assert.match(source,/!isMediaAIEnabled\(env\)/);
+ assert.match(source,/Не создавай блоки \[\[PASEKA_COMMAND_JSON\]\]/);
+ assert.match(source,/mediaMeta\?\{media:mediaMeta\}/);
+ assert.match(source,/raw\.length > 2000000/);
+ assert.match(source,/if\(media&&serializedContext\.length>contextLimit\)/);
+});
+
+test('media AI is disabled unless the free-plan gate is explicitly enabled',()=>{
+ assert.equal(isMediaAIEnabled({}),false);
+ assert.equal(isMediaAIEnabled({MEDIA_AI_ENABLED:'false'}),false);
+ assert.equal(isMediaAIEnabled({MEDIA_AI_ENABLED:'true'}),true);
+});
+
+test('Wrangler keeps visual analysis disabled by default until account billing is verified',async()=>{
+ const config=await readFile(new URL('../cloudflare/wrangler.jsonc',import.meta.url),'utf8');
+ assert.match(config,/"MEDIA_AI_ENABLED"\s*:\s*"false"/);
+});
+
+test('media context includes only the selected hive and strips global integrity issue details',()=>{
+ const full={
+  modelIntegrity:{status:'warnings',errorCount:0,warningCount:2,errors:[],warnings:[{code:'other_hive_warning',details:{hiveId:'private-hive'}}]},
+  apiary:{hiveConstruction:'Farrar'},
+  hives:[
+   {id:'hive-1',number:1,constructionProfile:{id:'farrar-6x6-v1',status:'ready'}},
+   {id:'hive-2',number:2,constructionProfile:{id:'farrar-6x6-v1',status:'ready'}}
+  ],
+  families:[{id:'family-1',hiveNumber:1},{id:'family-2',hiveNumber:2}],
+  latestJournalRecords:[{id:'record-1',hive:'hive-1',family:'family-1'},{id:'record-2',hive:'hive-2',family:'family-2'}],
+  tasks:[{id:'task-1',hive:'hive-1'},{id:'task-2',hive:'hive-2'}]
+ };
+ const result=MediaAI.buildContext(full,{hiveId:'hive-1'});
+ assert.equal(result.selectedHive.id,'hive-1');
+ assert.deepEqual(result.families.map(row=>row.id),['family-1']);
+ assert.deepEqual(result.latestJournalRecords.map(row=>row.id),['record-1']);
+ assert.deepEqual(result.tasks.map(row=>row.id),['task-1']);
+ assert.deepEqual(result.modelIntegrity,{status:'warnings',errorCount:0,warningCount:2});
+ assert.equal(JSON.stringify(result).includes('private-hive'),false);
+ assert.equal('hives' in result,false);
+});
+
+test('media context fails closed for missing integrity status and unsupported profiles',()=>{
+ const full={modelIntegrity:{status:'errors',errorCount:1,warningCount:0},hives:[{id:'hive-1',number:1,constructionProfile:{id:'farrar-6x6-v1',status:'ready'}}],families:[],latestJournalRecords:[],tasks:[]};
+ assert.throws(()=>MediaAI.buildContext(full,{hiveId:'hive-1'}),/Целостность данных/);
+ full.modelIntegrity={status:'ok',errorCount:0,warningCount:0};
+ full.hives[0].constructionProfile={id:'sectional-multiqueen-v1',status:'ready'};
+ assert.throws(()=>MediaAI.buildContext(full,{hiveId:'hive-1'}),/не настроен/);
+});
