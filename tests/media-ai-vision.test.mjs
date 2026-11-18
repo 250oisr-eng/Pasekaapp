@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateMediaInput } from '../cloudflare/media-validation.mjs';
+import { validateMediaInput, isMediaAIEnabled } from '../cloudflare/media-validation.mjs';
 import { readFile } from 'node:fs/promises';
 
 await import('../js/media-ai-client.js');
@@ -81,4 +81,10 @@ test('Workers AI vision path sends prepared image_url frames and forbids command
  assert.match(source,/mediaMeta\?\{media:mediaMeta\}/);
  assert.match(source,/raw\.length > 2000000/);
  assert.match(source,/if\(media&&serializedContext\.length>contextLimit\)/);
+});
+
+test('media AI is disabled unless the free-plan gate is explicitly enabled',()=>{
+ assert.equal(isMediaAIEnabled({}),false);
+ assert.equal(isMediaAIEnabled({MEDIA_AI_ENABLED:'false'}),false);
+ assert.equal(isMediaAIEnabled({MEDIA_AI_ENABLED:'true'}),true);
 });
