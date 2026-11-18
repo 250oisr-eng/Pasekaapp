@@ -31,8 +31,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -59,6 +61,7 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
     private volatile Model model;
     private volatile Recognizer recognizer;
     private volatile SpeechService speechService;
+    private volatile CountDownLatch finalResultLatch;
 
     private File modelDirectory() {
         return new File(getContext().getFilesDir(), MODEL_VERSION);
@@ -144,6 +147,7 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
                 loadedModel = new Model(modelDirectory().getAbsolutePath());
                 loadedRecognizer = new Recognizer(loadedModel, (float) SAMPLE_RATE);
                 loadedService = new SpeechService(loadedRecognizer, (float) SAMPLE_RATE);
+                finalResultLatch = new CountDownLatch(1);
                 model = loadedModel;
                 recognizer = loadedRecognizer;
                 speechService = loadedService;
@@ -161,7 +165,12 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
 
                     @Override
                     public void onFinalResult(String hypothesis) {
-                        publishHypothesis(hypothesis, "text", "result");
+                        try {
+                            publishHypothesis(hypothesis, "text", "result");
+                        } finally {
+                            CountDownLatch latch = finalResultLatch;
+                            if (latch != null) latch.countDown();
+                        }
                     }
 
                     @Override
@@ -169,6 +178,8 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
                         JSObject payload = new JSObject();
                         payload.put("message", error == null ? "Ошибка распознавания" : String.valueOf(error.getMessage()));
                         notifyListeners("error", payload);
+                        CountDownLatch latch = finalResultLatch;
+                        if (latch != null) latch.countDown();
                         executor.execute(PasekaOfflineSpeechPlugin.this::stopInternal);
                     }
 
@@ -199,6 +210,7 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
                 model = null;
                 recognizer = null;
                 speechService = null;
+                finalResultLatch = null;
                 call.reject("Не удалось запустить офлайн-распознавание: " + error.getMessage(), "VOICE_START_FAILED", error);
             }
         });
@@ -231,8 +243,14 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
         speechService = null;
         if (service != null) {
             try { service.stop(); } catch (Exception ignored) {}
+            CountDownLatch latch = finalResultLatch;
+            if (latch != null) {
+                try { latch.await(750, TimeUnit.MILLISECONDS); }
+                catch (InterruptedException error) { Thread.currentThread().interrupt(); }
+            }
             try { service.shutdown(); } catch (Exception ignored) {}
         }
+        finalResultLatch = null;
         Recognizer currentRecognizer = recognizer;
         recognizer = null;
         if (currentRecognizer != null) {
