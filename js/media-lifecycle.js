@@ -47,7 +47,7 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
   updated.nextAttemptAt=null;
  }
  if(next==='result_persisted'){
-  if(!hasText(updated.resultId)||!validTimestamp(updated.resultPersistedAt))
+  if(updated.resultValidated!==true||!hasText(updated.resultId)||!validTimestamp(updated.resultPersistedAt))
    return {ok:false,reason:'persisted_result_required'};
   if(!hasText(updated.originalRef))
    return {ok:false,reason:'original_reference_required'};
@@ -72,7 +72,7 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
 
 function canDeleteMediaOriginal(job){
  return !!job&&job.status==='cleanup_pending'&&
-  hasText(job.resultId)&&validTimestamp(job.resultPersistedAt)&&
+  job.resultValidated===true&&hasText(job.resultId)&&validTimestamp(job.resultPersistedAt)&&
   hasText(job.originalRef)&&job.retainOriginal!==true;
 }
 
