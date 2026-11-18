@@ -105,8 +105,8 @@ SHA-256 здесь подтверждает целостность payload от�
 - `js/paseka-sha256.js` реализует потоковую SHA-256 для проверки staged Blob.
 - `js/paseka-archive-restore.js` реализует persistent staging, повторную проверку, атомарный commit, rollback, историю и очистку.
 - UI полного экспорта/восстановления интегрирован в настройки приложения в Draft PR #168.
-- IndexedDB object-store version 4 добавляет только `archive_staging` и `archive_history`; существующие `main`, `full_backup`, `entrance_media` сохраняются. App schemaVersion остаётся 15.
-- Service Worker v314 кеширует все три модуля. Регрессионный набор покрывает формат, экспорт, staging, cleanup, atomicity, SHA-256, UI/offline и upgrade v3→v4.
+- IndexedDB object-store version 4 добавила только `archive_staging` и `archive_history`; существующие `main`, `full_backup`, `entrance_media` сохраняются. Затем версия 5 используется как барьер `versionchange`, чтобы старые вкладки закрыли соединения до атомарного восстановления. В v5 новые stores, индексы и преобразование пользовательских записей не добавляются. App schemaVersion остаётся 15.
+- Service Worker v315 кеширует все три модуля. Регрессионный набор покрывает формат, экспорт, staging, cleanup, atomicity, SHA-256, UI/offline и upgrades v3→v4→v5.
 - Реальная проверка сохранения/открытия архива вне приложения на физическом Android остаётся release gate.
 
 ## Экспортный адаптер
@@ -142,7 +142,7 @@ SHA-256 здесь подтверждает целостность payload от�
 
 ## Постоянная временная область импорта
 
-IndexedDB object-store version 4 добавляет два store:
+IndexedDB object-store version 4 добавила два store; версия 5 не меняет структуру, а инициирует `versionchange` для закрытия старых подключений:
 - `archive_staging` — проверенное состояние и видео до восстановления;
 - `archive_history` — зарезервированная история уже выполненных импортов.
 
