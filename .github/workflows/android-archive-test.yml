@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node -e "const c=require('./capacitor.config.json'); if(c.appId!=='ru.paseka.journal.archive.test') throw new Error('Unexpected archive test package ID: '+c.appId); if(c.appName!=='Пасека — архив тест') throw new Error('Unexpected archive test app name');"
+          node -e "const c=require('./capacitor.config.json'); if(c.appId!=='ru.paseka.journal.archive.test2') throw new Error('Unexpected archive test package ID: '+c.appId); if(c.appName!=='Пасека — архив тест 2') throw new Error('Unexpected archive test app name');"
       - name: Prepare web assets
         run: npm run web:prepare
       - name: Generate Android project
@@ -119,7 +119,7 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.test'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.test2'"
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then
             echo "Production package ID unexpectedly found in isolated APK" >&2
             exit 1
