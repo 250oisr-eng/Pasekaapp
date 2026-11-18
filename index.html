@@ -812,13 +812,14 @@ async function saveMediaAnalysisResult(jobId){
 async function analyzeMediaJob(jobId){
  if(mediaAnalysisBusyJobId)return;
  const repository=mediaJobRepository(),status=$('mediaAnalysisPhotoStatus');
+ let ownerId=null;
  mediaAnalysisBusyJobId=jobId;
  try{
   const job=await repository.get(jobId);
   if(!job)throw new Error('Задание медиа не найдено.');
   if(job.status==='result_received'||job.status==='result_persisted'){await saveMediaAnalysisResult(jobId);return}
   if(!['queued','failed_retryable'].includes(job.status))throw new Error('Задание нельзя запустить из текущего состояния: '+job.status);
-  const context=buildMediaAIContext(job),ownerId=uid();
+  const context=buildMediaAIContext(job);ownerId=uid();
   await repository.claimForAnalysis(jobId,{ownerId,leaseMs:300000});
   if(status)status.textContent='Подготавливаю кадры на этом устройстве…';
   await refreshMediaAnalysisJobs();
@@ -845,7 +846,7 @@ async function analyzeMediaJob(jobId){
   catch(error){if(status)status.textContent='Результат получен, но сохранение/проверка копии не завершены: '+(error.message||error)+'. Оригинал сохранён.'}
  }catch(error){
   const current=await repository.get(jobId).catch(()=>null);
-  if(current?.status==='analyzing'){
+  if(current?.status==='analyzing'&&ownerId&&current.analysisOwner===ownerId){
    const next=[400,409,413].includes(error.status)?'failed_permanent':'failed_retryable';
    await repository.transition(jobId,next,{lastError:String(error.message||error).slice(0,500)}).catch(()=>{});
   }
