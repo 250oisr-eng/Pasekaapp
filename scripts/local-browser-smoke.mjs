@@ -470,6 +470,7 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
             if (!element.getClientRects().length || element.closest('nav')) continue;
             const style = getComputedStyle(element);
             if (style.position === 'fixed') continue;
+            if (element.matches('.ai-hero')) continue; // Its decorative pseudo-element is intentionally clipped by overflow:hidden.
             if (style.overflowX !== 'auto' && style.overflowX !== 'scroll' &&
                 !(style.overflowX === 'hidden' && style.textOverflow === 'ellipsis') &&
                 element.clientWidth > 0 && element.scrollWidth > element.clientWidth + 2) {
