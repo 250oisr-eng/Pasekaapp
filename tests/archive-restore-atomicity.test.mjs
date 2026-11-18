@@ -312,7 +312,7 @@ async function seedRollback(db, { currentVideos = [] } = {}) {
   const staging = tx.objectStore('archive_staging');
   staging.put({ id: 'rollback-1', sessionId: 'rollback-1', kind: 'rollback_session', sourceBackupId: 'backup-1', status: 'ready', totalEntries: 1, stagedCount: 1 });
   staging.put({ id: 'rollback-1:state', sessionId: 'rollback-1', kind: 'rollback_state', state: { meta: { revisionId: 'old-revision' }, hives: [], auditLog: [] } });
-  staging.put({ id: 'import-1', sessionId: 'import-1', kind: 'session', backupId: 'backup-1', status: 'committed' });
+  staging.put({ id: 'import-1', sessionId: 'import-1', kind: 'session', backupId: 'backup-1', status: 'committed', importedRevisionId: 'imported-revision' });
   tx.objectStore('archive_history').put({
     backupId: 'backup-1',
     fingerprint: 'archive-fingerprint',
