@@ -752,10 +752,17 @@ async function persistMediaAnalysisResult(jobId){
  const record=PasekaMediaAnalysisResults.createResultRecord(job,{id:resultId,createdAt:existing?.createdAt||new Date().toISOString()}),previous=S,next=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S));
  next.mediaAnalysisResults=PasekaMediaAnalysisResults.upsertResult(next.mediaAnalysisResults||[],record);S=next;let saved=false;try{saved=await save()}catch(error){S=previous;try{render()}catch{}throw error}
  if(!saved){const failure=S.meta?.saveError||'Не удалось сохранить результат анализа';S=previous;S.meta=S.meta||{};S.meta.saveError=failure;try{render()}catch{}throw new Error(failure)}
- const current=await repository.get(jobId);if(current?.status==='result_persisted'&&current.resultId===record.id)return current;
- return repository.persistResult(jobId,{resultId:record.id,validateResult:PasekaMediaAnalysisResults.isValidResultPayload});
+ const current=await repository.get(jobId);let persisted;if(current?.status==='result_persisted'&&current.resultId===record.id)persisted=current;else persisted=await repository.persistResult(jobId,{resultId:record.id,validateResult:PasekaMediaAnalysisResults.isValidResultPayload});
+ await confirmMediaAnalysisResultBackup(jobId);
+ return repository.get(jobId);
 }
 function verifyMediaAnalysisResultBackup({job,backupRecord,backupRevisionId}={}){return PasekaMediaAnalysisResults.verifyBackup({job,backupRecord,backupRevisionId});}
+async function confirmMediaAnalysisResultBackup(jobId){
+ const repository=PasekaMediaJobStore.createMediaJobStore({db,lifecycle:PasekaMediaLifecycle});
+ const backup=await readAutoBackup(),backupRevisionId=backup?.state?.meta?.revisionId;
+ if(!backup?.state||!backupRevisionId)throw new Error('Полная автокопия с ревизией отсутствует; оригинал сохранён');
+ return repository.confirmResultBackup(jobId,{backupRevisionId,verifyBackup:({job,backupRecord,backupRevisionId})=>verifyMediaAnalysisResultBackup({job,backupRecord,backupRevisionId})});
+}
 async function save(){
  const run=async()=>{
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];if(S.familyEvents==null&&Number(S.meta.schemaVersion||0)<14)S.familyEvents=[];if(S.sectionalTechProcesses==null&&Number(S.meta.schemaVersion||0)<15)S.sectionalTechProcesses=[];
