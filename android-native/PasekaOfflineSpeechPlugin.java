@@ -313,6 +313,7 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("User-Agent", "Paseka-Offline-Speech/1.0");
             int response = connection.getResponseCode();
+            if (!"https".equalsIgnoreCase(connection.getURL().getProtocol())) throw new IOException("Загрузка модели разрешена только по HTTPS");
             if (response < 200 || response >= 300) throw new IOException("Сервер модели вернул HTTP " + response);
             long declaredLength = connection.getContentLengthLong();
             if (declaredLength > MAX_ARCHIVE_BYTES) throw new IOException("Размер архива превышает безопасный предел");
@@ -340,6 +341,7 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
                 output.flush();
             }
             if (received == 0) throw new IOException("Сервер вернул пустой архив");
+            if (declaredLength > 0 && received != declaredLength) throw new IOException("Загрузка архива завершилась не полностью");
 
             extractArchive(archive, staging);
             File extractedModel = findModelRoot(staging);
