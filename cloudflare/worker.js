@@ -78,7 +78,7 @@ export default {
     let body,raw;
     try {
       raw = await request.text();
-      if (raw.length > 2800000) return json({error:'Медиа-запрос превышает безопасный размер. Исходный файл сохранён локально.'},413,origin);
+      if (raw.length > 2000000) return json({error:'Медиа-запрос превышает безопасный размер. Исходный файл сохранён локально.'},413,origin);
       body = JSON.parse(raw);
     } catch { return json({error:'Некорректный JSON запроса.'},400,origin); }
     const media = body.media == null ? null : body.media;
