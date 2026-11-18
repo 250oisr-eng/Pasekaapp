@@ -750,7 +750,7 @@ async function persistMediaAnalysisResult(jobId){
  const existing=(S.mediaAnalysisResults||[]).find(row=>row?.jobId===job.id),resultId=existing?.id||job.resultId||'media-result:'+job.id;
  if(job.status==='result_persisted'&&job.resultId!==resultId)throw new Error('Идентификатор сохранённого результата задания не совпадает с реестром');
  const record=PasekaMediaAnalysisResults.createResultRecord(job,{id:resultId,createdAt:existing?.createdAt||new Date().toISOString()}),previous=S,next=typeof structuredClone==='function'?structuredClone(S):JSON.parse(JSON.stringify(S));
- next.mediaAnalysisResults=PasekaMediaAnalysisResults.upsertResult(next.mediaAnalysisResults||[],record);S=next;const saved=await save();
+ next.mediaAnalysisResults=PasekaMediaAnalysisResults.upsertResult(next.mediaAnalysisResults||[],record);S=next;let saved=false;try{saved=await save()}catch(error){S=previous;try{render()}catch{}throw error}
  if(!saved){const failure=S.meta?.saveError||'Не удалось сохранить результат анализа';S=previous;S.meta=S.meta||{};S.meta.saveError=failure;try{render()}catch{}throw new Error(failure)}
  const current=await repository.get(jobId);if(current?.status==='result_persisted'&&current.resultId===record.id)return current;
  return repository.persistResult(jobId,{resultId:record.id,validateResult:PasekaMediaAnalysisResults.isValidResultPayload});
