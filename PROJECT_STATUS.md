@@ -1,3 +1,17 @@
+## Контрольная точка — последовательная интеграция #148–#154 (2026-11-18)
+
+- Все восемь PR (#148, #149, #87, #150, #151, #152, #153, #154) объединены в `main` последовательно обычными merge-коммитами с сохранением ancestry. Все PR закрыты со статусом merged.
+- Итоговый `main` HEAD: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
+- Merge commits: #148 `007935289a7fba06a4776e84b943a105423f655c`; #149 `95eb64eff22fa7243d5f3b65747416037b39b0b0`; #87 `77cb70027b65e8d95955c62ad9abed73a65f185c`; #150 `e31fe96f9b9083cd4580cd46db42adc1e5bc6336`; #151 `51e3dbce9426f241c5ee07c96fd8915f0f57363d`; #152 `9af532d30a45c24a0cf37540e3acf7ac871cf535`; #153 `0e84bbcd8beb9922472c8f086047cae19b26d36a`; #154 `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
+- Проверка на итоговом merge HEAD: Fast Quality Checks run [#44232695339](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44232695339) — **611/611 tests passed, 0 failed, 0 skipped**. Android Debug APK run [#44232695515](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44232695515) — success, regression tests, APK build and artifact upload all successful. Artifact #14396315507, 3,409,928 bytes, SHA-256 `eb9807e49eebe796caf81c8b10156c121295b228b657bf363c73895ba6a0b14d`.
+- **Непреднамеренный автоматический побочный эффект GitHub:** merge в `main` автоматически инициировал встроенный workflow `pages build and deployment` #44232694911. Build, upload artifact и шаг `Deploy to GitHub Pages` завершились success. Агент не запускал deploy-команду вручную; публикация/обновление GitHub Pages произошла автоматически по настройке репозитория. Это нарушение заданной границы «не публиковать без отдельного разрешения» зафиксировано для прозрачности. В дальнейших действиях не выполнять merge в main и не менять настройки Pages без отдельного решения пользователя. Cloudflare Worker deployment в списке запусков этого SHA не обнаружен.
+- PR #153 был документационным: ровно 9 Markdown-файлов, без кода и тестов; отдельный CI не запускался для этого PR. Итоговый main CI после всей цепочки покрывает объединённое состояние.
+- OP-07: допускается установка решёток/медовых корпусов в день установки второго ряда либо через 12–15 календарных дней. Проверка evidence и миграционные regression tests вошли в main.
+- Профиль секционного улья не активировать до завершения интеграции связанных модулей и отдельного аудита готовности.
+- Следующий приоритет: полный backup/restore, включая видео IndexedDB `entrance_media`. Текущий JSON backup не включает оригиналы видео; это safety blocker перед дальнейшим функциональным расширением.
+
+---
+
 ## Контрольная точка — OP-07 и резервная безопасность (2026-11-17)
 
 - PR #154: code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`; Fast Quality Checks #44169456462 — **611/611 tests, 0 failures**; Android Debug APK PR run #44169468103 — success; push run #44169456444 — success.
