@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node -e "const c=require('./capacitor.config.json'); if(c.appId!=='ru.paseka.journal.archive.test2') throw new Error('Unexpected archive test package ID: '+c.appId); if(c.appName!=='Пасека — архив тест 2') throw new Error('Unexpected archive test app name');"
+          node -e "const c=require('./capacitor.config.json'); if(c.appId!=='ru.paseka.journal.archive.test3') throw new Error('Unexpected archive test package ID: '+c.appId); if(c.appName!=='Пасека — архив тест 3') throw new Error('Unexpected archive test app name');"
       - name: Prepare web assets
         run: npm run web:prepare
       - name: Generate Android project
