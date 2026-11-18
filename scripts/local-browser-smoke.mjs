@@ -237,7 +237,9 @@ async function connectDevTools(webSocketUrl) {
   if (typeof globalThis.WebSocket !== 'function') {
     throw new Error('Для автоматического управления Chrome нужен Node.js 20.10+ (рекомендуется Node.js 22 LTS), где доступен WebSocket.');
   }
-  const socket = new WebSocket(webSocketUrl);
+  const endpoint = new URL(webSocketUrl);
+  endpoint.hostname = '127.0.0.1';
+  const socket = new WebSocket(endpoint);
   await new Promise((resolveOpen, rejectOpen) => {
     socket.addEventListener('open', resolveOpen, { once: true });
     socket.addEventListener('error', () => rejectOpen(new Error('Не удалось подключиться к Chrome DevTools')), { once: true });
