@@ -182,7 +182,8 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
    if(!latest||latest.status!=='cleanup_pending'||latest.resultId!==current.resultId||
       latest.resultPersistedAt!==current.resultPersistedAt||latest.updatedAt!==current.updatedAt||
       latest.resultBackupRevisionId!==backupRevisionId||
-      latestBackup?.state?.meta?.revisionId!==backupRevisionId){
+      latestBackup?.state?.meta?.revisionId!==backupRevisionId||
+      verifyBackup({job:safeJob,backupRecord:latestBackup,backupRevisionId})!==true){
     try{tx.abort()}catch{}
     return;
    }
