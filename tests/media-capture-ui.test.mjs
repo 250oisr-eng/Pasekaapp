@@ -103,3 +103,12 @@ test('persisted media results render from the primary app state, independently o
   assert.match(render,/row\.result\?\.answer/);
   assert.doesNotMatch(render,/mediaJobRepository|\.blob/);
 });
+
+test('startup migrates legacy entrance videos only after state validation and automatic backup check',()=>{
+ const backupCheck=html.indexOf('ensureAutomaticBackup(S,existingBackup)');
+ const migration=html.indexOf('migrateLegacyEntranceVideos()');
+ const firstRender=html.indexOf('selectedHiveId=S.hives[0]?.id||\'\';activeJournalHive=selectedHiveId;render()');
+ assert.ok(backupCheck>=0&&migration>backupCheck&&firstRender>migration);
+ assert.match(html,/catch\(error\)\{legacyMediaMigrationResult=\{error:String\(error\?\.message\|\|error\)\}\}/);
+ assert.match(html,/Старые видеозаписи перенесены в общую локальную очередь/);
+});
