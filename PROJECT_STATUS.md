@@ -1,3 +1,14 @@
+## Корректировка Android persistence probe — PR #173 (2026-11-18)
+
+- Пользователь сообщил, что в разделе «Ещё» диагностической карточки нет. Это означает, что физическая проверка сохранения не запускалась; состояние IndexedDB после перезапуска пока не установлено.
+- Анализ прежнего CI выявил недостаток проверок: команда внедрения probe завершалась успешно, но pipeline не проверял наличие скрипта в синхронизированных Android assets и внутри итогового APK. Это подтверждённый пробел контроля, но не доказательство единственной причины отсутствия карточки на устройстве.
+- Исправлен injector: он проверяет наличие ровно одной панели `settings`, добавляет видимый fallback-индикатор и сообщение об ошибке загрузки. Runtime probe скрывает fallback только после успешного создания диагностической карточки.
+- Добавлен `scripts/verify-android-persistence-probe-assets.mjs`. CI проверяет assets после Capacitor sync и повторно извлекает/проверяет `index.html` и `js/android-persistence-probe.js` непосредственно из собранного APK до загрузки артефакта.
+- Code/test SHA: `720f98679277e3789d937369852fb6640479a5d8`. Isolated Android workflow #44378040271 — success: **709/709 tests**, Android 15+ / test package assertions, Gradle Debug APK, проверка файлов внутри APK и upload — success. Обычный Android workflow #44378040123 — success. Windows smoke workflow #44378040144: первый запуск завершился тайм-аутом старта Chrome DevTools; повторный запуск того же job завершился success.
+- Новый артефакт `paseka-android-isolated-test-apk`: ID `14461982642`, 17 654 441 bytes, ZIP SHA-256 `b1fcc25820a437c82ddf3f3f6355932a643c368cd5b1526eb5fb69329b801c7b`; хранение до 2026-11-25 19:14:01 UTC. Workflow: https://github.com/250oisr-eng/Pasekaapp/actions/runs/44378040271
+- PR #173 остаётся Draft, stacked поверх PR #172; main SHA `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменён. Пользовательские данные, production и PWA не затронуты.
+- Следующий шаг: установить новый APK поверх существующего тестового приложения, не удаляя приложение и не очищая данные; открыть «Ещё» и сообщить, видна ли полноценная карточка или fallback-сообщение. Только после появления полноценной карточки запускать запись маркера.
+
 ## Контрольная точка — безопасная проверка сохранения Android, PR #173 (2026-11-18)
 
 - PR #173 открыт как Draft поверх PR #172: https://github.com/250oisr-eng/Pasekaapp/pull/173. Ветка `test/android-indexeddb-persistence-probe-2026-11-18`. Проверенный code/test SHA: `a0b08736e6ec57304d44f8dd0c96de4d924b3eb4`.
