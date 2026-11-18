@@ -144,7 +144,16 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   assert.equal(proof.resultBackupRevisionId,'backup-revision-1');
   assert.ok(proof.resultBackupVerifiedAt);
   await env.repo.scheduleCleanup('job-1');
-  const completed=await env.repo.cleanup('job-1');
+  const overwrite=env.db.transaction('full_backup','readwrite');
+  overwrite.objectStore('full_backup').put({state:{meta:{revisionId:'newer-backup'}}},'previous');
+  await new Promise((resolve,reject)=>{overwrite.oncomplete=resolve;overwrite.onerror=()=>reject(overwrite.error);overwrite.onabort=()=>reject(overwrite.error)});
+  await assert.rejects(env.repo.cleanup('job-1',{verifyBackup:async()=>true}),/больше не доступна/);
+  assert.ok(await (await env.repo.get('job-1')).blob,'the original must survive if the verified backup was replaced');
+  const restore=env.db.transaction('full_backup','readwrite');restore.objectStore('full_backup').put(backupRecord,'previous');
+  await new Promise((resolve,reject)=>{restore.oncomplete=resolve;restore.onerror=()=>reject(restore.error);restore.onabort=()=>reject(restore.error)});
+  const verifyBackup=async ({job,backupRecord:archive})=>archive.state.mediaAnalysisResults.some(row=>
+   row.jobId===job.id&&row.id===job.resultId&&JSON.stringify(row.result)===JSON.stringify(job.result));
+  const completed=await env.repo.cleanup('job-1',{verifyBackup});
   assert.equal(completed.status,'completed_deleted');
   assert.equal(Object.hasOwn(completed,'blob'),false);
   assert.deepEqual(completed.result,{observations:[{label:'bee'}]});
@@ -184,7 +193,9 @@ test('cleanup pending jobs can be resumed after reopening the database',async()=
   env.db.close();
   env.db=await openDatabase(env.factory,env.name,1);
   env.repo=Media.createMediaJobStore({db:env.db,lifecycle:scope.PasekaMediaLifecycle,now:fixedNow});
-  const resumed=await env.repo.resumeCleanup();
+  const resumed=await env.repo.resumeCleanup({verifyBackup:async ({job,backupRecord:archive})=>
+   archive.state.mediaAnalysisResults.some(row=>row.jobId===job.id&&row.id===job.resultId&&
+    JSON.stringify(row.result)===JSON.stringify(job.result))});
   assert.equal(resumed.length,1);
   assert.equal(resumed[0].status,'completed_deleted');
   assert.equal(Object.hasOwn(resumed[0],'blob'),false);
