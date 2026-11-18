@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateMediaInput } from '../cloudflare/media-validation.mjs';
+import { readFile } from 'node:fs/promises';
 
 await import('../js/media-ai-client.js');
 const MediaAI=globalThis.PasekaMediaAIClient;
@@ -67,4 +68,15 @@ test('browser media client rejects invalid sample parameters and exposes bounded
  assert.ok(MediaAI.limits.maxImageBytes<350*1024);
  assert.ok(MediaAI.limits.maxVideoFrameBytes<300*1024);
  assert.equal(MediaAI.limits.videoFrameCount,5);
+});
+
+test('Workers AI vision path sends prepared image_url frames and forbids command execution',async()=>{
+ const source=await readFile(new URL('../cloudflare/worker.js',import.meta.url),'utf8');
+ assert.match(source,/const MODEL = '@cf\/google\/gemma-4-26b-a4b-it'/);
+ assert.match(source,/type:'image_url',image_url:\{url:frame\.dataUrl\}/);
+ assert.match(source,/MEDIA_SYSTEM/);
+ assert.match(source,/Не создавай блоки \[\[PASEKA_COMMAND_JSON\]\]/);
+ assert.match(source,/mediaMeta\?\{media:mediaMeta\}/);
+ assert.match(source,/raw\.length > 2800000/);
+ assert.match(source,/if\(media&&serializedContext\.length>contextLimit\)/);
 });
