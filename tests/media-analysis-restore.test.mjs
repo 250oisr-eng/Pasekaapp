@@ -42,6 +42,38 @@ test('manual JSON restore preserves media analysis results and backs up the repl
   assert.equal(main.meta.revisionId,'restored-revision-1');
  }finally{db.close()}
 });
+test('automatic backup writer and restore preserve the exact media analysis result end to end',async()=>{
+ const db=await makeDb();try{
+  const current=emptyState(),previous=emptyState(),latest=stateWithResult('roundtrip');
+  current.meta.revisionId='current-revision';previous.meta.revisionId='previous-revision';
+  await seed(db,current,previous);
+  const write=load('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'full_backup'});
+  assert.equal(await write(previous,'current-revision',latest.mediaAnalysisResults),true);
+  const generated=await get(db,'full_backup','previous');
+  assert.equal(generated.state.meta.revisionId,'previous-revision');
+  assert.deepEqual(generated.state.mediaAnalysisResults,latest.mediaAnalysisResults);
+  const deps=restoreDeps(db,current,{text:async()=>''});
+  await load('restoreAutoBackup',deps)();
+  const restored=await get(db,'main','state');
+  assert.deepEqual(restored.mediaAnalysisResults,latest.mediaAnalysisResults);
+  const replaced=await get(db,'full_backup','previous');
+  assert.equal(replaced.state.meta.revisionId,'current-revision');
+  assert.deepEqual(replaced.state.mediaAnalysisResults,[]);
+ }finally{db.close()}
+});
+test('manual JSON export includes media analysis results without exporting temporary Blob data',async()=>{
+ const state=stateWithResult('manual-export');let exportedBlob=null;
+ const anchor={click(){},remove(){},href:'',download:''};
+ const deps={saveQueue:Promise.resolve(),S:state,URL:{
+  createObjectURL:value=>{exportedBlob=value;return 'blob:media-backup'},
+  revokeObjectURL:()=>{}
+ },Blob,document:{createElement:()=>anchor,body:{appendChild:()=>{}}},today:()=> '2026-11-18',setTimeout:callback=>callback()};
+ await load('downloadBackup',deps)();
+ assert.ok(exportedBlob);assert.equal(anchor.download,'paseka-backup-2026-11-18.json');
+ const archive=JSON.parse(await exportedBlob.text());
+ assert.deepEqual(archive.state.mediaAnalysisResults,state.mediaAnalysisResults);
+ assert.equal(JSON.stringify(archive).includes('Blob'),false);
+});
 test('automatic backup restore preserves media analysis results and snapshots the replaced state',async()=>{
  const db=await makeDb();try{
   const current=stateWithResult('before'),backupState=stateWithResult('from-auto-backup');await seed(db,current,backupState);
