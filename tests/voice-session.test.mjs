@@ -7,6 +7,9 @@ const parserSource = await readFile(new URL('../js/voice-command-parser.js', imp
 const sessionSource = await readFile(new URL('../js/voice-session.js', import.meta.url), 'utf8');
 const serviceWorker = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 const webPrepareScript = await readFile(new URL('../scripts/prepare-web.mjs', import.meta.url), 'utf8');
+const nativeSpeechSource = await readFile(new URL('../android-native/PasekaOfflineSpeechPlugin.java', import.meta.url), 'utf8');
+const androidPrepareSource = await readFile(new URL('../scripts/prepare-android.mjs', import.meta.url), 'utf8');
+const androidWorkflow = await readFile(new URL('../.github/workflows/android-debug.yml', import.meta.url), 'utf8');
 
 function loadVoiceParser() {
   return new Function(parserSource + '\nreturn parseApiaryVoiceCommand;')();
@@ -296,4 +299,27 @@ test('one-shot dictation delivers one final transcript and then stops', async ()
   assert.deepEqual(finished, [true]);
   assert.equal(session.state.active, false);
   assert.equal(recognition.stopped, true);
+});
+
+
+test('voice UI defaults to local recognition and requires explicit consent for online fallback', () => {
+  assert.match(html, /id="aiVoiceOfflineModelButton"/);
+  assert.match(html, /id="aiVoiceOnlineConsent" type="checkbox"/);
+  assert.match(html, /apiaryVoiceSession\\.start\\(\\{allowOnline\\}\\)/);
+  assert.match(html, /apiaryVoiceSession\\.startOneShot/);
+  assert.match(html, /apiaryVoiceSession\\.prepareOffline\\(\\)/);
+  assert.match(html, /document\\.addEventListener\\('visibilitychange'/);
+  assert.match(html, /Онлайн-распознавание выключено по умолчанию/);
+  assert.doesNotMatch(html, /let aiRecognition=null/);
+});
+
+test('Android Vosk plugin processes microphone audio locally and downloads the model only over Wi-Fi', () => {
+  assert.match(nativeSpeechSource, /new SpeechService\\(loadedRecognizer, \\(float\\) SAMPLE_RATE\\)/);
+  assert.match(nativeSpeechSource, /notifyListeners\\("result"/);
+  assert.match(nativeSpeechSource, /NetworkCapabilities\\.TRANSPORT_WIFI/);
+  assert.match(nativeSpeechSource, /wifiNetwork\\.openConnection\\(new URL\\(MODEL_URL\\)\\)/);
+  assert.match(nativeSpeechSource, /MODEL_VERSION = "vosk-model-small-ru-0\\.22"/);
+  assert.doesNotMatch(nativeSpeechSource, /https?:\\/\\/[^\\s"]+\\/.*audio|uploadAudio|sendAudio/);
+  assert.match(androidPrepareSource, /com\\.alphacephei:vosk-android:0\\.3\\.75/);
+  assert.match(androidWorkflow, /node scripts\\/prepare-android\\.mjs/);
 });
