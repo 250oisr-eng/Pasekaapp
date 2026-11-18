@@ -1,3 +1,12 @@
+## Контрольная точка — подготовлена изолированная APK для проверки полного архива на OnePlus (2026-11-18)
+
+- Для физической проверки PR #168 создан отдельный test-only Draft PR #174, ветка `test/full-archive-android-isolated-2026-11-18`, stacked поверх PR #168. Его workflow не меняет production appId: создаёт пакет `ru.paseka.journal.archive.test` только в CI workspace и проверяет application ID в готовом APK через Android `aapt`.
+- Isolated archive workflow #44384033966 на SHA `9a688ba9746f781921f605eb6ba34a05607ad0c4`: **726/726 tests, 0 failures**, Android Debug APK build и package ID assertion — success.
+- Artifact `paseka-archive-isolated-test-apk`, ID `14466525052`, ZIP SHA-256 `fee50ea2c5be4c1b07d86d524282f55d26c06fbc4946d69d876e8aed23e2eed1`, expires 2026-12-02 19:49:34 UTC. Workflow: https://github.com/250oisr-eng/Pasekaapp/actions/runs/44384033966
+- Package ID в APK подтверждён: `ru.paseka.journal.archive.test`; production package `ru.paseka.journal` не используется. Приложение устанавливается отдельно от рабочей и прежней тестовой версий.
+- Основной PR #168: последний code/test SHA `b0be11442083c2a3cc639d22b6bfee1b6910282f`; Fast Quality #44383207248 и Android #44383207220 прошли **723/723 tests**, APK build/upload success. Последующие коммиты в PR #168 — документационные и workflow-only.
+- Физический тест экспорта, открытия файла вне приложения, восстановления и rollback на тестовых данных ещё не выполнен. Не использовать рабочее приложение или пользовательскую базу. Не сливать PR #168/#174 и не публиковать приложение.
+
 ## Обновление — IndexedDB v5 и регрессионные тесты (2026-11-18)
 
 - Исправлено расхождение: приложение открывает IndexedDB версии 5; переход v4→v5 не создаёт stores и не преобразует пользовательские записи, но инициирует `versionchange`, чтобы старые вкладки закрыли подключения перед восстановлением.
