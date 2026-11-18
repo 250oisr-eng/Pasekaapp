@@ -578,6 +578,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/paseka-sha256.js"></script>
 <script src="./js/paseka-archive.js"></script>
 <script src="./js/paseka-archive-restore.js"></script>
+<script src="./js/paseka-android-download.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -3625,11 +3626,13 @@ async function downloadFullArchive(){
   if(S.meta?.saveError)throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения; архив не создан.');
   if(!db)throw new Error('Локальная база ещё не открыта.');
   if(!window.PasekaArchive?.exportArchiveFromDatabase)throw new Error('Модуль полного архива не загружен. Обнови приложение и повтори попытку.');
+  if(!window.PasekaAndroidDownload?.saveToAndroidDownloads)throw new Error('Модуль сохранения архива не загружен. Обнови приложение и повтори попытку.');
   const result=await PasekaArchive.exportArchiveFromDatabase(db,window.crypto);
+  const filename='paseka-full-backup-'+today()+'.paseka';
   const shareButton = $('shareFullArchiveButton');
   if (shareButton) {
    try {
-    const shareFile = new File([result.blob], 'paseka-full-backup-' + today() + '.paseka', { type: 'application/vnd.paseka.archive' });
+    const shareFile = new File([result.blob], filename, { type: 'application/vnd.paseka.archive' });
     const canShareArchive = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] }));
     shareButton.hidden = !canShareArchive;
     window.__pasekaFullArchiveBlob = canShareArchive ? result.blob : null;
@@ -3638,19 +3641,27 @@ async function downloadFullArchive(){
     window.__pasekaFullArchiveBlob = null;
    }
   }
-  const url=URL.createObjectURL(result.blob),anchor=document.createElement('a');
-  anchor.href=url;anchor.download='paseka-full-backup-'+today()+'.paseka';
-  document.body.appendChild(anchor);anchor.click();anchor.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),30000);
-  if(status)status.textContent='Полный архив подготовлен: '+result.summary.videoCount+' видео летка · '+entranceBytes(result.summary.archiveBytes)+'. Оригиналы остались в локальной базе.';
+  const isAndroidApp = !!(window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'android');
+  if (isAndroidApp) {
+   if(status)status.textContent='Архив сформирован. Сохраняю в папку «Загрузки/Пасека»…';
+   const uri=await PasekaAndroidDownload.saveToAndroidDownloads(result.blob,filename,(done,total)=>{
+    if(status)status.textContent='Сохраняю архив на устройство: '+done+' из '+total+' блоков…';
+   });
+   if(status)status.textContent='Архив сохранён в «Загрузки/Пасека». Файл: '+filename+'. Оригиналы остались в локальной базе.';
+  } else {
+   const url=URL.createObjectURL(result.blob),anchor=document.createElement('a');
+   anchor.href=url;anchor.download=filename;
+   document.body.appendChild(anchor);anchor.click();anchor.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   if(status)status.textContent='Архив сформирован и передан браузеру для скачивания: '+result.summary.videoCount+' видео летка · '+entranceBytes(result.summary.archiveBytes)+'. Проверь загрузки браузера.';
+  }
  }catch(error){
-  if(status)status.textContent='Полный архив не создан: '+(error?.message||error);
-  alert('Не удалось создать полный архив. '+(error?.message||error));
+  if(status)status.textContent='Полный архив не сохранён: '+(error?.message||error);
+  alert('Не удалось сохранить полный архив. '+(error?.message||error));
  }finally{
   if(button)button.disabled=false;
  }
 }
-
 
 
 async function shareFullArchive() {
