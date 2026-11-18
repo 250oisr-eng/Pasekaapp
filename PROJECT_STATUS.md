@@ -1,7 +1,16 @@
+## Уточнение статуса проверок — code/test SHA и документационный HEAD (2026-11-18)
+
+- Последний SHA, на котором изменялись код и тесты PR #168: `3436c621c5de175259a0cf112feeaba84984bd5d`. На нём Fast Quality Checks #44331728300 и Android PR workflow #44331737784 прошли: 721/721 tests; Debug APK build/upload success, artifact 14439701927.
+- После этих проверок добавлен отдельный documentation-only checkpoint. Не смешивать code/test SHA с текущим PR HEAD; актуальный PR HEAD всегда сверять через GitHub перед продолжением.
+- Для документационного HEAD `333922a9da8d3b4a94dbb28ae0470466433349ae` GitHub запустил повторный Android PR workflow #44332204313. До завершения этого run не объявлять именно этот HEAD полностью проверенным.
+- PR #168 остаётся Draft. Merge, publish и production deployment не выполнялись.
+
+---
+
 ## Контрольная точка — PR #168: контроль целостности видео и CI (2026-11-18)
 
 - GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
-- Draft PR #168: `feat/full-media-backup-restore-main-2026-11-18`, HEAD `3436c621c5de175259a0cf112feeaba84984bd5d`, открыт, mergeable=true. Main не менялась.
+- Draft PR #168: latest verified code/test SHA `3436c621c5de175259a0cf112feeaba84984bd5d`; subsequent commits are documentation-only., открыт, mergeable=true. Main не менялась.
 - Fast Quality Checks #44331728300 на точном HEAD: **721/721 tests, 0 failures**.
 - Android PR workflow #44331737784 на том же HEAD: **721/721 tests**, Debug APK build и upload успешны. Artifact `paseka-debug-apk`, ID `14439701927`, размер 3,446,730 bytes; SHA-256 ZIP-артефакта `d44c47515bc61599b5fdc3f93e6ac13287031a9da0e1a4acd4f662470d39b3fd`.
 - Дополнительная защита: новые видео сохраняются с вычисленным SHA-256; при rollback для восстановленного legacy-видео записывается только что проверенная контрольная сумма. Добавлены тесты для same-size replacement и восстановления legacy media.
