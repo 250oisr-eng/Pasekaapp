@@ -36,7 +36,7 @@ test('upgrade creates a dedicated media_jobs store and indexes without touching 
  v3.close();
  const v4=await openDatabase(factory,name,4,d=>Media.ensureStore(d));
  assert.deepEqual([...v4.objectStoreNames].sort(),['entrance_media','full_backup','main','media_jobs']);
- const tx=v4.transaction(['main','media_jobs'],'readonly');
+ const tx=v4.transaction(['main','media_jobs','entrance_media'],'readonly');
  const existing=await new Promise((resolve,reject)=>{const q=tx.objectStore('main').get('state');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
  assert.deepEqual(existing,{value:'kept'});
  const legacyRequest=tx.objectStore('entrance_media').get('legacy-video');
