@@ -137,7 +137,7 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   }),/не подтверждён/);
   const proof=await env.repo.confirmResultBackup('job-1',{
    backupRevisionId:'backup-revision-1',
-   verifyBackup:async ({job,backupRecord:archive})=>job.resultId==='result-1'&&
+   verifyBackup:({job,backupRecord:archive})=>job.resultId==='result-1'&&
     archive.state.mediaAnalysisResults.some(row=>row.jobId===job.id&&row.id===job.resultId&&
      JSON.stringify(row.result)===JSON.stringify(job.result))
   });
@@ -147,11 +147,11 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   const overwrite=env.db.transaction('full_backup','readwrite');
   overwrite.objectStore('full_backup').put({state:{meta:{revisionId:'newer-backup'}}},'previous');
   await new Promise((resolve,reject)=>{overwrite.oncomplete=resolve;overwrite.onerror=()=>reject(overwrite.error);overwrite.onabort=()=>reject(overwrite.error)});
-  await assert.rejects(env.repo.cleanup('job-1',{verifyBackup:async()=>true}),/больше не доступна/);
+  await assert.rejects(env.repo.cleanup('job-1',{verifyBackup:()=>true}),/больше не доступна/);
   assert.ok(await (await env.repo.get('job-1')).blob,'the original must survive if the verified backup was replaced');
   const restore=env.db.transaction('full_backup','readwrite');restore.objectStore('full_backup').put(backupRecord,'previous');
   await new Promise((resolve,reject)=>{restore.oncomplete=resolve;restore.onerror=()=>reject(restore.error);restore.onabort=()=>reject(restore.error)});
-  const verifyBackup=async ({job,backupRecord:archive})=>archive.state.mediaAnalysisResults.some(row=>
+  const verifyBackup=({job,backupRecord:archive})=>archive.state.mediaAnalysisResults.some(row=>
    row.jobId===job.id&&row.id===job.resultId&&JSON.stringify(row.result)===JSON.stringify(job.result));
   const completed=await env.repo.cleanup('job-1',{verifyBackup});
   assert.equal(completed.status,'completed_deleted');
@@ -159,6 +159,51 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   assert.deepEqual(completed.result,{observations:[{label:'bee'}]});
   assert.equal(completed.originalDeleted,true);
   assert.equal((await env.repo.cleanup('job-1')).status,'completed_deleted');
+ }finally{env.db.close()}
+});
+
+test('backup result is reverified in the final IndexedDB transaction even if revision ID is unchanged',async()=>{
+ const env=await createDb();
+ const put=async value=>{
+  const tx=env.db.transaction('full_backup','readwrite');
+  tx.objectStore('full_backup').put(value,'previous');
+  await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+ };
+ try{
+  await env.repo.enqueue(queued());
+  await env.repo.transition('job-1','analyzing');
+  await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
+  await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
+  const valid={state:{meta:{revisionId:'stable-revision'},mediaAnalysisResults:[{
+   id:'result-1',jobId:'job-1',kind:'image',hiveId:'hive-1',familyId:'family-1',recordId:'record-1',
+   capturedAt:'2026-11-18T09:55:00.000Z',originalRef:'media-job:job-1',
+   result:{observations:[{label:'bee'}]},createdAt:'2026-11-18T10:00:00.000Z'
+  }]}};
+  await put(valid);
+  const replaceWithMissingResult=async()=>{
+   await put({state:{meta:{revisionId:'stable-revision'},mediaAnalysisResults:[]}});
+   return true;
+  };
+  await assert.rejects(env.repo.confirmResultBackup('job-1',{
+   backupRevisionId:'stable-revision',verifyBackup:replaceWithMissingResult
+  }));
+  assert.ok((await env.repo.get('job-1')).blob,'confirmation race must not alter original');
+  await put(valid);
+  await env.repo.confirmResultBackup('job-1',{
+   backupRevisionId:'stable-revision',
+   verifyBackup:({job,backupRecord})=>scope.PasekaMediaAnalysisResults
+    ? scope.PasekaMediaAnalysisResults.verifyBackup({job,backupRecord,backupRevisionId:'stable-revision'})
+    : backupRecord.state.mediaAnalysisResults.some(row=>row.id===job.resultId&&row.jobId===job.id)
+  });
+  await env.repo.scheduleCleanup('job-1');
+  await assert.rejects(env.repo.cleanup('job-1',{verifyBackup:replaceWithMissingResult}));
+  assert.ok((await env.repo.get('job-1')).blob,'cleanup race must not delete original');
+  await put(valid);
+  const cleaned=await env.repo.cleanup('job-1',{verifyBackup:({job,backupRecord})=>
+   backupRecord.state.mediaAnalysisResults.some(row=>row.id===job.resultId&&row.jobId===job.id&&
+    JSON.stringify(row.result)===JSON.stringify(job.result))});
+  assert.equal(cleaned.status,'completed_deleted');
+  assert.equal(Object.hasOwn(cleaned,'blob'),false);
  }finally{env.db.close()}
 });
 
@@ -188,12 +233,12 @@ test('cleanup pending jobs can be resumed after reopening the database',async()=
   }]}};
   const seed=env.db.transaction('full_backup','readwrite');seed.objectStore('full_backup').put(backupRecord,'previous');
   await new Promise((resolve,reject)=>{seed.oncomplete=resolve;seed.onerror=()=>reject(seed.error);seed.onabort=()=>reject(seed.error)});
-  await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:async()=>true});
+  await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:()=>true});
   await env.repo.scheduleCleanup('job-1');
   env.db.close();
   env.db=await openDatabase(env.factory,env.name,1);
   env.repo=Media.createMediaJobStore({db:env.db,lifecycle:scope.PasekaMediaLifecycle,now:fixedNow});
-  const resumed=await env.repo.resumeCleanup({verifyBackup:async ({job,backupRecord:archive})=>
+  const resumed=await env.repo.resumeCleanup({verifyBackup:({job,backupRecord:archive})=>
    archive.state.mediaAnalysisResults.some(row=>row.jobId===job.id&&row.id===job.resultId&&
     JSON.stringify(row.result)===JSON.stringify(job.result))});
   assert.equal(resumed.length,1);
