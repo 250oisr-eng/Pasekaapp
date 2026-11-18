@@ -19,7 +19,8 @@ test('generated Android project receives Vosk plugin, permissions and registrati
 
   try {
     const first = await prepareAndroidProject({ projectDir, appId: 'ru.paseka.journal', pluginSourcePath });
-    assert.equal(first.dependencyAdded, true);
+    assert.equal(first.voskDependencyAdded, true);
+    assert.equal(first.jnaDependencyAdded, true);
     assert.equal(first.microphonePermission, true);
     assert.equal(first.networkStatePermission, true);
     assert.equal(first.internetPermission, true);
@@ -29,7 +30,8 @@ test('generated Android project receives Vosk plugin, permissions and registrati
     const manifest = await readFile(path.join(appRoot, 'src', 'main', 'AndroidManifest.xml'), 'utf8');
     const activity = await readFile(path.join(packageRoot, 'MainActivity.java'), 'utf8');
     const plugin = await readFile(path.join(packageRoot, 'plugins', 'PasekaOfflineSpeechPlugin.java'), 'utf8');
-    assert.equal((gradle.match(/com\.alphacephei:vosk-android:0\.3\.75/g) || []).length, 1);
+    assert.equal((gradle.match(/com\.alphacephei:vosk-android:0\.3\.75@aar/g) || []).length, 1);
+    assert.equal((gradle.match(/net\.java\.dev\.jna:jna:5\.18\.1@aar/g) || []).length, 1);
     assert.equal((manifest.match(/android\.permission\.RECORD_AUDIO/g) || []).length, 1);
     assert.equal((manifest.match(/android\.permission\.ACCESS_NETWORK_STATE/g) || []).length, 1);
     assert.equal((manifest.match(/android\.permission\.INTERNET/g) || []).length, 1);
