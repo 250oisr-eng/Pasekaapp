@@ -783,21 +783,7 @@ async function mediaAIAuthToken(){
  return accessToken;
 }
 function buildMediaAIContext(job){
- const full=buildAIContext(),hive=full.hives.find(item=>item.id===job.hiveId);
- if(!hive)throw new Error('Улей задания больше не существует. Выбери актуальный улей и создай новое задание.');
- if(hive.constructionProfile?.id!=='farrar-6x6-v1'||hive.constructionProfile?.status!=='ready')
-  throw new Error('Визуальный анализ пока не настроен для профиля этого улья. Оригинал остаётся локально.');
- if(full.modelIntegrity?.status==='errors')
-  throw new Error('В структуре данных пасеки есть ошибки. Исправь их перед анализом.');
- const familyIds=new Set(full.families.filter(family=>family.hiveNumber===hive.number).map(family=>family.id));
- return {
-  modelIntegrity:full.modelIntegrity,
-  apiary:full.apiary,
-  selectedHive:hive,
-  families:full.families.filter(family=>family.hiveNumber===hive.number),
-  latestJournalRecords:full.latestJournalRecords.filter(record=>record.hive===job.hiveId||familyIds.has(record.family)),
-  tasks:full.tasks.filter(task=>task.hive===job.hiveId)
- };
+ return PasekaMediaAIClient.buildContext(buildAIContext(),job);
 }
 async function saveMediaAnalysisResult(jobId){
  try{
