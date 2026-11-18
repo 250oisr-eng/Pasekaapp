@@ -2,7 +2,7 @@
 'use strict';
 
 const MAX_IMAGE_BYTES=340*1024;
-const MAX_VIDEO_FRAME_BYTES=280*1024;
+const MAX_VIDEO_FRAME_BYTES=200*1024;
 const VIDEO_FRAME_COUNT=5;
 
 function finite(value){return Number.isFinite(value);}
@@ -77,7 +77,7 @@ async function prepareVideo(blob,options={}){
  if(typeof document==='undefined'||typeof URL==='undefined'||typeof URL.createObjectURL!=='function')throw new Error('Браузер не поддерживает подготовку кадров видео');
  const count=Number.isInteger(options.count)?Math.max(3,Math.min(5,options.count)):VIDEO_FRAME_COUNT;
  const objectUrl=URL.createObjectURL(blob),video=document.createElement('video');
- video.preload='auto';video.muted=true;video.playsInline=true;
+ video.preload='metadata';video.muted=true;video.playsInline=true;
  try{
   const metadataReady=waitFor(video,'loadedmetadata','error',20000);video.src=objectUrl;await metadataReady;
   if(!finite(video.duration)||video.duration<20||video.duration>90)throw new Error('Длительность видео должна быть от 20 до 90 секунд');
