@@ -53,7 +53,7 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
    return {ok:false,reason:'original_reference_required'};
  }
  if(next==='cleanup_pending'){
-  if(!hasPersistedResult(updated)||!hasVerifiedResultBackup(updated)||updated.retainOriginal===true)
+  if(!hasPersistedResult(updated)||!hasVerifiedResultBackup(updated)||updated.retainOriginal!==false)
    return {ok:false,reason:'cleanup_preconditions_not_met'};
   updated.cleanupRequestedAt=now;
  }
@@ -81,7 +81,7 @@ function hasVerifiedResultBackup(job){
 }
 
 function canDeleteMediaOriginal(job){
- return !!job&&job.status==='cleanup_pending'&&hasPersistedResult(job)&&hasVerifiedResultBackup(job)&&job.retainOriginal!==true;
+ return !!job&&job.status==='cleanup_pending'&&hasPersistedResult(job)&&hasVerifiedResultBackup(job)&&job.retainOriginal===false;
 }
 
 function canStartMediaAnalysis(job){
