@@ -75,8 +75,9 @@ test('Workers AI vision path sends prepared image_url frames and forbids command
  assert.match(source,/const MODEL = '@cf\/google\/gemma-4-26b-a4b-it'/);
  assert.match(source,/type:'image_url',image_url:\{url:frame\.dataUrl\}/);
  assert.match(source,/MEDIA_SYSTEM/);
+ assert.match(source,/rejectIfBusy:true/);
  assert.match(source,/Не создавай блоки \[\[PASEKA_COMMAND_JSON\]\]/);
  assert.match(source,/mediaMeta\?\{media:mediaMeta\}/);
- assert.match(source,/raw\.length > 2800000/);
+ assert.match(source,/raw\.length > 2000000/);
  assert.match(source,/if\(media&&serializedContext\.length>contextLimit\)/);
 });
