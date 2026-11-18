@@ -20,7 +20,8 @@ function extractFunction(name) {
 test('AI screen exposes local photo capture and defaults to retaining the original', () => {
   assert.match(html, /id="mediaAnalysisPhotoInput" type="file" accept="image\/\*" capture="environment"/);
   assert.match(html, /id="mediaAnalysisRetainOriginal" type="checkbox" checked/);
-  assert.match(html, /подготовленная JPEG-копия фотографии или выбранные кадры видео отправляются в Cloudflare Workers AI/);
+  assert.match(html, /подготовленная JPEG-копия фотографии или выбранные кадры видео и ограниченный контекст выбранного улья/);
+  assert.match(html, /журналы других ульев не отправляются/);
   assert.match(html, /id="mediaAnalysisQuestion"/);
   assert.match(html, /id="mediaAnalysisResultList"/);
   assert.match(html, /id="mediaAnalysisJobList"/);
@@ -93,6 +94,7 @@ test('media queue recovers expired analysis leases and exposes a retry action',(
   assert.match(queue,/recoverExpiredAnalyses\(\)/);
   assert.match(queue,/analyzeMediaJob/);
   assert.match(queue,/saveMediaAnalysisResult/);
+  assert.match(queue,/job\.lastError/);
 });
 
 test('persisted media results render from the primary app state, independently of original Blobs',()=>{
