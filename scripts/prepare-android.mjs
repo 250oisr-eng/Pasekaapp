@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,15 +26,21 @@ export async function prepareAndroidProject({
   const pluginDirectory = path.join(sourceRoot, 'plugins');
   const pluginPath = path.join(pluginDirectory, 'PasekaOfflineSpeechPlugin.java');
 
-  let gradle = await readFile(gradlePath, 'utf8');
+  const [gradleOriginal, manifestOriginal, activityOriginal, pluginTemplate] = await Promise.all([
+    readFile(gradlePath, 'utf8'),
+    readFile(manifestPath, 'utf8'),
+    readFile(mainActivityPath, 'utf8'),
+    readFile(pluginSourcePath, 'utf8')
+  ]);
+
+  let gradle = gradleOriginal;
   const dependency = "    implementation 'com.alphacephei:vosk-android:0.3.75'";
   if (!gradle.includes('com.alphacephei:vosk-android')) {
     if (!/dependencies\s*\{/.test(gradle)) throw new Error('Android app dependencies block was not found');
     gradle = gradle.replace(/dependencies\s*\{/, match => match + '\n' + dependency);
-    await writeFile(gradlePath, gradle);
   }
 
-  let manifest = await readFile(manifestPath, 'utf8');
+  let manifest = manifestOriginal;
   const permissions = [
     '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
     '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />'
@@ -47,16 +53,17 @@ export async function prepareAndroidProject({
   });
   if (missingPermissions.length) {
     manifest = manifest.slice(0, applicationIndex) + missingPermissions.join('\n    ') + '\n    ' + manifest.slice(applicationIndex);
-    await writeFile(manifestPath, manifest);
   }
 
-  let mainActivity = await readFile(mainActivityPath, 'utf8');
-  const pluginImport = `import ${appId}.plugins.PasekaOfflineSpeechPlugin;`;
+  let mainActivity = activityOriginal;
+  if (!mainActivity.includes('extends BridgeActivity')) throw new Error('MainActivity must extend Capacitor BridgeActivity');
+  const packageMatch = mainActivity.match(/^package\s+([^;]+);/m);
+  if (!packageMatch || packageMatch[1].trim() !== appId) throw new Error('MainActivity package does not match capacitor.config.json appId');
+  const pluginImport = 'import ' + appId + '.plugins.PasekaOfflineSpeechPlugin;';
   if (!mainActivity.includes(pluginImport)) {
-    const packageMatch = mainActivity.match(/^package\s+[^;]+;/m);
-    if (!packageMatch) throw new Error('MainActivity.java package declaration was not found');
     const insertAt = packageMatch.index + packageMatch[0].length;
-    mainActivity = mainActivity.slice(0, insertAt) + `\n\nimport android.os.Bundle;\n${pluginImport}` + mainActivity.slice(insertAt);
+    const bundleImport = mainActivity.includes('import android.os.Bundle;') ? '' : '\nimport android.os.Bundle;';
+    mainActivity = mainActivity.slice(0, insertAt) + '\n\n' + pluginImport + bundleImport + mainActivity.slice(insertAt);
   }
   if (!mainActivity.includes('PasekaOfflineSpeechPlugin.class')) {
     const superCall = 'super.onCreate(savedInstanceState);';
@@ -67,17 +74,17 @@ export async function prepareAndroidProject({
       const classOpen = mainActivity.indexOf('{', classStart);
       const classClose = mainActivity.lastIndexOf('}');
       if (classStart < 0 || classOpen < 0 || classClose <= classOpen) throw new Error('Unsupported generated MainActivity.java template');
-      const method = `\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(PasekaOfflineSpeechPlugin.class);\n        super.onCreate(savedInstanceState);\n    }\n`;
+      const method = '\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(PasekaOfflineSpeechPlugin.class);\n        super.onCreate(savedInstanceState);\n    }\n';
       mainActivity = mainActivity.slice(0, classOpen + 1) + method + mainActivity.slice(classClose);
     }
-    await writeFile(mainActivityPath, mainActivity);
   }
 
-  const pluginTemplate = await readFile(pluginSourcePath, 'utf8');
-  const pluginSource = pluginTemplate.replace(/^package\s+[^;]+;/m, `package ${appId}.plugins;`);
+  const pluginSource = pluginTemplate.replace(/^package\s+[^;]+;/m, 'package ' + appId + '.plugins;');
   await mkdir(pluginDirectory, { recursive: true });
-  await copyFile(pluginSourcePath, pluginPath);
-  if (pluginSource !== pluginTemplate) await writeFile(pluginPath, pluginSource);
+  if (gradle !== gradleOriginal) await writeFile(gradlePath, gradle);
+  if (manifest !== manifestOriginal) await writeFile(manifestPath, manifest);
+  if (mainActivity !== activityOriginal) await writeFile(mainActivityPath, mainActivity);
+  await writeFile(pluginPath, pluginSource);
 
   return {
     appId,
