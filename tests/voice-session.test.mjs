@@ -318,6 +318,19 @@ test('voice UI defaults to local recognition and requires explicit consent for o
   assert.doesNotMatch(html, /let aiRecognition=null/);
 });
 
+test('offline voice controls are visible before AI authentication and journal drafts stay local', () => {
+  const offlineControls = html.indexOf('id="aiVoiceOfflineModelButton"');
+  const signedOut = html.indexOf('<div id="aiSignedOut"');
+  const signedIn = html.indexOf('<div id="aiSignedIn"');
+  const voicePanel = html.indexOf('<div class="ai-voice-panel">');
+  assert.ok(offlineControls >= 0 && signedOut > offlineControls);
+  assert.ok(signedIn > voicePanel);
+  assert.match(html, /Локальная офлайн-модель и голосовая подготовка черновиков доступны без аккаунта/);
+  assert.match(html, /Войди или создай аккаунт, чтобы пользоваться ИИ/);
+  assert.match(extractFunction('handleApiaryVoiceTranscript'), /parsed\.type==='journal_draft'/);
+  assert.match(extractFunction('handleApiaryVoiceTranscript'), /записи не сохранена|запись не сохранена|сохрани вручную/);
+});
+
 test('Android Vosk plugin processes microphone audio locally and downloads the model only over Wi-Fi', () => {
   assert.match(nativeSpeechSource, /new SpeechService\(loadedRecognizer, \(float\) SAMPLE_RATE\)/);
   assert.match(nativeSpeechSource, /notifyListeners\(eventName, payload\)/);
