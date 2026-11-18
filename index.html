@@ -723,7 +723,8 @@ function writeAutoBackup(state,expectedRevision,latestMediaAnalysisResults){
    if((current?.meta?.revisionId||null)!==expectedRevision)return;
    try{
     assertBackupNotFromNewerSchema(previousBackup);
-    const backupState=Array.isArray(latestMediaAnalysisResults)?{...state,mediaAnalysisResults:latestMediaAnalysisResults}:state;\n    backupStore.put({at:new Date().toISOString(),state:backupState},'previous');
+    const backupState=Array.isArray(latestMediaAnalysisResults)?{...state,mediaAnalysisResults:latestMediaAnalysisResults}:state;
+    backupStore.put({at:new Date().toISOString(),state:backupState},'previous');
     written=true;
    }catch(error){abortWithError(error)}
   };
