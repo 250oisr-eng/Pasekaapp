@@ -6,12 +6,12 @@
 - Добавлен переносимый `.paseka`: единый readonly snapshot `main` + `entrance_media`; state JSON и отдельные оригиналы видео; SHA-256 по блокам 1 MiB; ограничение путей/размеров/метаданных; импорт сначала в persistent staging; атомарная замена только после явного подтверждения; rollback прежнего state и видео с revision guard.
 - IndexedDB object-store version 3→4: добавляются только `archive_staging` и `archive_history` с индексами. Существующие `main`, `full_backup`, `entrance_media` сохраняются; app schemaVersion не меняется; преобразования пользовательских записей при upgrade нет.
 - JSON/automatic backup по-прежнему не содержат отдельные оригиналы видео. Подписи интерфейса уточнены, чтобы не называть JSON полной мультимедийной копией. Полный архив остаётся локальным: внешние сервисы, загрузка на сервер и платные зависимости не добавлены.
-- Добавлены тесты формата, экспорта, SHA-256, staging, cleanup, atomicity, UI/offline и upgrade v3→v4 с сохранением существующих данных. На текущем PR HEAD проверки ещё ожидаются; CI старого PR #40 не считать доказательством совместимости с main.
+- Добавлены тесты формата, экспорта, SHA-256, staging, cleanup, atomicity, UI/offline и upgrade v3→v4 с сохранением существующих данных. Fast Quality Checks #44322389285 на SHA `6851bbc397674d2fdbe3a3819ab04cc0c7217a0b`: 715/715 tests, 0 failures. Android PR workflow #44322813466 на SHA `aa643661dda9568d510925d23fe637c3e4dad792`: 715/715 tests, Debug APK build/upload success; artifact `paseka-debug-apk`, ID `14434304932`, 3,446,524 bytes, expires 2026-12-02. Старый CI PR #40 не использовался как доказательство совместимости с main.
 - Lovable `Apiary Family Atlas`: опубликован, последний commit `2196e3fd478fbb58810d6a78317c0ddd056dfdef`, агент `needs_attention / out_of_credits`; синхронизация с GitHub main не подтверждена.
 - Не выполнялись merge, публикация, production deployment, изменение production DB или операции с пользовательскими данными. Физическое Android-тестирование сохранения/открытия .paseka вне приложения остаётся отдельным release gate.
 
 ### Следующий шаг
-Дождаться Fast Quality Checks и Android Debug APK на точном HEAD PR #168. Исправить все ошибки; затем повторно проверить upgrade v3→v4, archive round-trip, конкурирующее изменение видео, прерванный staging, commit/rollback и совместимость старых JSON backup. Не объединять PR без отдельного разрешения.
+Следующий шаг: физически проверить на Android скачивание и открытие `.paseka`, затем провести review PR #168. GitHub показывает 12 commits ahead / 0 behind и mergeable=true; PR остаётся Draft. Не объединять без отдельного разрешения.
  
 ---
 
