@@ -13,7 +13,7 @@ export async function prepareAndroidProject({
     const config = JSON.parse(await readFile(path.join(root, 'capacitor.config.json'), 'utf8'));
     appId = config.appId;
   }
-  if (typeof appId !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(appId)) {
+  if (typeof appId !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(appId)) {
     throw new Error('Invalid Capacitor appId; refusing to patch an unknown Android package');
   }
 
@@ -29,8 +29,8 @@ export async function prepareAndroidProject({
   let gradle = await readFile(gradlePath, 'utf8');
   const dependency = "    implementation 'com.alphacephei:vosk-android:0.3.75'";
   if (!gradle.includes('com.alphacephei:vosk-android')) {
-    if (!/dependencies\\s*\\{/.test(gradle)) throw new Error('Android app dependencies block was not found');
-    gradle = gradle.replace(/dependencies\\s*\\{/, match => match + '\\n' + dependency);
+    if (!/dependencies\s*\{/.test(gradle)) throw new Error('Android app dependencies block was not found');
+    gradle = gradle.replace(/dependencies\s*\{/, match => match + '\n' + dependency);
     await writeFile(gradlePath, gradle);
   }
 
@@ -53,28 +53,28 @@ export async function prepareAndroidProject({
   let mainActivity = await readFile(mainActivityPath, 'utf8');
   const pluginImport = `import ${appId}.plugins.PasekaOfflineSpeechPlugin;`;
   if (!mainActivity.includes(pluginImport)) {
-    const packageMatch = mainActivity.match(/^package\\s+[^;]+;/m);
+    const packageMatch = mainActivity.match(/^package\s+[^;]+;/m);
     if (!packageMatch) throw new Error('MainActivity.java package declaration was not found');
     const insertAt = packageMatch.index + packageMatch[0].length;
-    mainActivity = mainActivity.slice(0, insertAt) + `\\n\\nimport android.os.Bundle;\\n${pluginImport}` + mainActivity.slice(insertAt);
+    mainActivity = mainActivity.slice(0, insertAt) + `\n\nimport android.os.Bundle;\n${pluginImport}` + mainActivity.slice(insertAt);
   }
   if (!mainActivity.includes('PasekaOfflineSpeechPlugin.class')) {
     const superCall = 'super.onCreate(savedInstanceState);';
     if (mainActivity.includes(superCall)) {
-      mainActivity = mainActivity.replace(superCall, 'registerPlugin(PasekaOfflineSpeechPlugin.class);\\n        ' + superCall);
+      mainActivity = mainActivity.replace(superCall, 'registerPlugin(PasekaOfflineSpeechPlugin.class);\n        ' + superCall);
     } else {
       const classStart = mainActivity.indexOf('class MainActivity');
       const classOpen = mainActivity.indexOf('{', classStart);
       const classClose = mainActivity.lastIndexOf('}');
       if (classStart < 0 || classOpen < 0 || classClose <= classOpen) throw new Error('Unsupported generated MainActivity.java template');
-      const method = `\\n    @Override\\n    public void onCreate(Bundle savedInstanceState) {\\n        registerPlugin(PasekaOfflineSpeechPlugin.class);\\n        super.onCreate(savedInstanceState);\\n    }\\n`;
+      const method = `\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(PasekaOfflineSpeechPlugin.class);\n        super.onCreate(savedInstanceState);\n    }\n`;
       mainActivity = mainActivity.slice(0, classOpen + 1) + method + mainActivity.slice(classClose);
     }
     await writeFile(mainActivityPath, mainActivity);
   }
 
   const pluginTemplate = await readFile(pluginSourcePath, 'utf8');
-  const pluginSource = pluginTemplate.replace(/^package\\s+[^;]+;/m, `package ${appId}.plugins;`);
+  const pluginSource = pluginTemplate.replace(/^package\s+[^;]+;/m, `package ${appId}.plugins;`);
   await mkdir(pluginDirectory, { recursive: true });
   await copyFile(pluginSourcePath, pluginPath);
   if (pluginSource !== pluginTemplate) await writeFile(pluginPath, pluginSource);
