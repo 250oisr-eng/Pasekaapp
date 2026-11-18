@@ -17,7 +17,7 @@ test('full .paseka archive modules are loaded in dependency order and cached for
 });
 
 test('IndexedDB v4 adds archive staging and history without replacing existing stores', () => {
-  assert.match(html, /indexedDB\.open\(DB,4\)/);
+  assert.match(html, /indexedDB\.open\(DB,5\)/);
   assert.match(html, /createObjectStore\('archive_staging',\{keyPath:'id'\}\)/);
   assert.match(html, /createIndex\('sessionId','sessionId',\{unique:false\}\)/);
   assert.match(html, /createIndex\('kind','kind',\{unique:false\}\)/);
