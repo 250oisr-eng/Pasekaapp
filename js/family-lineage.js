@@ -255,6 +255,26 @@ function inspect(state) {
    for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[]) if (!familyMap.has(familyId)) add('family_event_family_missing',{eventId:event.id,familyId});
   }
  }
+ // Append-only queen-laying observations are stored separately from mutable queen identity fields.
+ const queenEventIds=new Set();
+ for(const event of Array.isArray(state.queenEvents)?state.queenEvents:[]){
+  if(!isObject(event)||typeof event.id!=='string'||!event.id.trim()){add('queen_event_identity_invalid',{eventId:event?.id??null});continue}
+  if(queenEventIds.has(event.id))add('queen_event_id_duplicate',{eventId:event.id});
+  queenEventIds.add(event.id);
+  if(event.type==='laying_observed'){
+   const family=familyMap.get(event.familyId),queen=queenMap.get(event.queenId);
+   const splitEvent=events.find(row=>row?.id===event.splitEventId);
+   const identityEvent=events.find(row=>row?.type==='queen_identity_confirmed'&&row.familyId===event.familyId&&row.queenId===event.queenId);
+   if(!family||!isActive(family))add('queen_laying_family_missing_or_historical',{eventId:event.id});
+   if(!queen||queen.familyId!==event.familyId||family?.currentQueenId!==event.queenId||family?.queenIdentityStatus!=='identified'||!isCurrentQueen(queen))add('queen_laying_identity_not_current',{eventId:event.id});
+   if(!splitEvent||splitEvent.type!=='split'||splitEvent.operationId!=='OP-04'||splitEvent.techProcessId!==event.techProcessId||splitEvent.hiveId!==event.hiveId||!splitEvent.resultFamilyIds?.includes(event.familyId))add('queen_laying_split_event_invalid',{eventId:event.id});
+   if(!identityEvent||Date.parse(identityEvent.occurredAt)>Date.parse(event.occurredAt))add('queen_laying_identity_evidence_missing',{eventId:event.id});
+   if(!validTime(event.occurredAt)||!validTime(event.createdAt))add('queen_laying_time_invalid',{eventId:event.id});
+   if(splitEvent&&validTime(event.occurredAt)&&validTime(splitEvent.occurredAt)&&Date.parse(event.occurredAt)<Date.parse(splitEvent.occurredAt))add('queen_laying_precedes_split',{eventId:event.id});
+   if(event.userConfirmed!==true)add('queen_laying_user_confirmation_required',{eventId:event.id});
+   if(event.notes!=null&&(typeof event.notes!=='string'||event.notes.length>500))add('queen_laying_notes_invalid',{eventId:event.id});
+  }
+ }
  return errors;
 }
 function nextId(makeId, used) {
@@ -511,6 +531,30 @@ function getQueenPresenceStatus(state, familyId) {
  if (family.currentQueenId||family.queenIdentityStatus==='identified') return validCurrent?'confirmed_present':'inconsistent';
  return 'unresolved';
 }
+function recordQueenLayingObserved(state, request, makeId, now) {
+ return transact(state,draft=>{
+  if(request?.userConfirmed!==true)return {ok:false,error:'queen_laying_user_confirmation_required'};
+  const family=draft.families.find(row=>row?.id===request?.familyId);
+  if(!family||!isActive(family))return {ok:false,error:'queen_laying_family_missing_or_historical'};
+  if(!family.currentQueenId||family.queenIdentityStatus!=='identified')return {ok:false,error:'queen_laying_current_queen_unidentified'};
+  const queen=draft.queens.find(row=>row?.id===family.currentQueenId);
+  if(!queen||queen.familyId!==family.id||!isCurrentQueen(queen))return {ok:false,error:'queen_laying_current_queen_invalid'};
+  const splitEvent=draft.familyEvents.slice().reverse().find(event=>event?.type==='split'&&event.operationId==='OP-04'&&event.techProcessId===request?.techProcessId&&event.hiveId===family.hive&&event.resultFamilyIds?.includes(family.id));
+  if(!splitEvent||splitEvent.id!==request?.splitEventId)return {ok:false,error:'queen_laying_op04_split_event_required'};
+  const occurredAt=request?.occurredAt;
+  if(!validTime(occurredAt))return {ok:false,error:'queen_laying_observation_time_required'};
+  const at=now||new Date().toISOString();
+  if(Date.parse(occurredAt)>Date.parse(at))return {ok:false,error:'queen_laying_observation_in_future'};
+  if(Date.parse(occurredAt)<Date.parse(splitEvent.occurredAt))return {ok:false,error:'queen_laying_observation_precedes_split'};
+  if(request?.notes!=null&&(typeof request.notes!=='string'||request.notes.length>500))return {ok:false,error:'queen_laying_notes_invalid'};
+  const used=new Set([...draft.families.map(row=>row?.id).filter(Boolean),...draft.queens.map(row=>row?.id).filter(Boolean),...draft.familyEvents.map(row=>row?.id).filter(Boolean),...draft.queenEvents.map(row=>row?.id).filter(Boolean)]);
+  const id=nextId(makeId,used);
+  if(!id)return {ok:false,error:'queen_laying_event_id_required'};
+  const event={id,type:'laying_observed',queenId:queen.id,familyId:family.id,splitEventId:splitEvent.id,techProcessId:request.techProcessId,hiveId:family.hive,userConfirmed:true,occurredAt,createdAt:at,notes:request?.notes?.trim()||null};
+  draft.queenEvents.push(event);
+  return {ok:true,event,family,queen};
+ });
+}
 function configureAlternativeWintering(state, request, makeId, now) {
  return transact(state, draft => {
   const familyIds=Array.isArray(request?.familyIds)?request.familyIds:[];
@@ -717,7 +761,7 @@ function validateOperationEvidence(state, record, operationId) {
  return errors;
 }
 window.PasekaFamilyLineage=Object.freeze({
- EVENT_TYPES,inspect,isActive,familyStatus,applySplit,applyMerge,confirmQueenIdentity,confirmQueenAbsence,getQueenPresenceStatus,
+ EVENT_TYPES,inspect,isActive,familyStatus,applySplit,applyMerge,confirmQueenIdentity,confirmQueenAbsence,recordQueenLayingObserved,getQueenPresenceStatus,
  configureAlternativeWintering,recordPlacementChanged,recordEarlyHoneyHarvest,validateOperationEvidence
 });
 })();
