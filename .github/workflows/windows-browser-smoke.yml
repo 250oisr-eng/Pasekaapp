@@ -9,6 +9,7 @@ on:
       - 'sw.js'
       - 'package.json'
       - 'scripts/local-browser-smoke.mjs'
+      - 'scripts/android-device-preflight.ps1'
       - 'tests/local-browser-smoke.test.mjs'
       - '.github/workflows/windows-browser-smoke.yml'
   push:
@@ -42,6 +43,8 @@ jobs:
           node-version: 22
       - name: Run local browser runner unit tests
         run: node --test tests/local-browser-smoke.test.mjs
+      - name: Run Android ADB preflight parser self-tests
+        run: npm run test:android:preflight
       - name: Run isolated Chrome smoke test
         run: npm run test:browser:local
       - name: Upload smoke report and screenshots
