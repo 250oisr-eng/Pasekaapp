@@ -34,13 +34,27 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   if(input.hiveId!=null&&!text(input.hiveId))throw new TypeError('Некорректная связь с ульем');
   if(input.familyId!=null&&!text(input.familyId))throw new TypeError('Некорректная связь с семьёй');
   if(input.recordId!=null&&!text(input.recordId))throw new TypeError('Некорректная связь с записью журнала');
+  let captureMetadata=null;
+  if(input.captureMetadata!=null){
+   const raw=input.captureMetadata,allowed=['durationSec','width','height','frameQualityStatus'];
+   if(!object(raw)||Object.keys(raw).some(key=>!allowed.includes(key)))
+    throw new TypeError('Некорректные метаданные исходного медиа');
+   captureMetadata={};
+   if(raw.durationSec!=null){if(!Number.isFinite(raw.durationSec)||raw.durationSec<=0)throw new TypeError('Некорректная длительность видео');captureMetadata.durationSec=raw.durationSec;}
+   if((raw.width==null)!==(raw.height==null)||raw.width!=null&&(!Number.isInteger(raw.width)||raw.width<=0||!Number.isInteger(raw.height)||raw.height<=0))
+    throw new TypeError('Некорректное разрешение исходного медиа');
+   if(raw.width!=null){captureMetadata.width=raw.width;captureMetadata.height=raw.height;}
+   if(raw.frameQualityStatus!=null&&!['good','limited','poor','unknown'].includes(raw.frameQualityStatus))
+    throw new TypeError('Некорректная оценка качества исходного медиа');
+   if(raw.frameQualityStatus!=null)captureMetadata.frameQualityStatus=raw.frameQualityStatus;
+  }
   const job={
    id,kind:input.kind,blob:input.blob,name:String(input.name||'').slice(0,160),
    mimeType:String(input.mimeType||input.blob.type||'').slice(0,120),bytes:input.blob.size,
    hiveId:input.hiveId||null,familyId:input.familyId||null,recordId:input.recordId||null,
    capturedAt:input.capturedAt||at,createdAt:at,updatedAt:at,
    originalRef:'media-job:'+id,status:'queued',retryCount:0,
-   retainOriginal:input.retainOriginal!==false,lastError:null,
+   retainOriginal:input.retainOriginal!==false,captureMetadata,lastError:null,
    result:null,resultId:null,resultValidated:false,resultPersistedAt:null
   };
   const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
