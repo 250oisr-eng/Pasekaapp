@@ -86,7 +86,10 @@ export default {
     const question = typeof body.question === 'string' ? body.question.trim().slice(0,4000) : '';
     if (!media && !question) return json({error:'Напиши вопрос для ИИ.'},400,origin);
     const contextObject = body.context && typeof body.context === 'object' && !Array.isArray(body.context) ? body.context : {};
-    const context = JSON.stringify(contextObject).slice(0,media?18000:24000);
+    const serializedContext=JSON.stringify(contextObject);
+    const contextLimit=media?18000:24000;
+    if(media&&serializedContext.length>contextLimit)return json({error:'Контекст выбранного улья слишком велик для безопасного запроса. Сократи историю или записи и повтори анализ.'},413,origin);
+    const context=serializedContext.slice(0,contextLimit);
     const history = !media && Array.isArray(body.history) ? body.history.slice(-8).map(m=>({role:m?.role==='assistant'?'assistant':'user',content:String(m?.content||'').slice(0,2500)})) : [];
     let messages;
     let mediaMeta=null;
