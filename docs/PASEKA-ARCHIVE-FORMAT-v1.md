@@ -1,3 +1,15 @@
+## Контрольная точка — защита rollback и актуальная изолированная APK (2026-11-19)
+
+- В синхронизированную из PR #168 реализацию добавлена защита от потери записей: rollback допускается только пока текущая revision совпадает с `importedRevisionId`, сохранённой при commit импорта. Проверка выполняется в Phase A и повторно в финальной IndexedDB readwrite-транзакции. Если журнал изменился после импорта или во время проверки rollback, операция блокируется; новые записи и rollback snapshot сохраняются.
+- Добавлены два регрессионных теста на изменение журнала до rollback и во время асинхронной проверки. UI объясняет отказ `ROLLBACK_STATE_CHANGED`.
+- Workflow isolated APK ограничен тестовой веткой. В PR #168 он корректно skipped (#44398558803), а в PR #174 запускается.
+- Проверенный HEAD этой тестовой ветки: `0e7bf0722de45a23b67a529a451d98849506819a`. Результаты: **733/733 tests passed, 0 failures**; standard Android Debug build #44398564428 — success; isolated Android APK #44398564375 — success; Gradle build, package ID assertion и upload — success.
+- Артефакт `paseka-archive-isolated-test-apk`, ID `14472093088`, размер 3,451,679 bytes, ZIP SHA-256 `35b11cd016a4bd0226c4d967ba2fba7b1ed783b341f5b6b398aeee82b537b352`, expires 2026-12-02 21:11:52 UTC. Package ID `ru.paseka.journal.archive.test2`; production package ID отсутствует. [Workflow / artifact](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44398564375).
+- Физический preflight на OnePlus 10 Pro 5G ранее прошёл успешно; рабочие данные не менялись. Commit и rollback на телефоне не выполнялись. Не нажимать «Заменить данные архивом» до отдельного безопасного плана испытания.
+- PR #174 остаётся Draft и stacked поверх PR #168. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не менялась; merge/deployment не выполнялись.
+
+---
+
 # Формат переносимого архива «Пасека» v1
 
 Статус: реализовано в Draft PR #168. Последний проверенный code/test SHA `52e587aa1f3e24c3f0de7aa221a8323d4cc7af51`: Fast Quality Checks и Android PR workflow прошли 722/722 regression tests; Debug APK build/upload успешны (artifact 14439657825, ZIP SHA-256 31658a873bc27fa4fabf127ba843c0f393b5e208ad321f2bb0f7595bbc2ed55b). Ожидаются независимый code review и физическая проверка встроенного Android preflight/restore; до них не считать готовым к выпуску.
