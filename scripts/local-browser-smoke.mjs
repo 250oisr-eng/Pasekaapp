@@ -349,7 +349,8 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
     await mkdir(outputDir, { recursive: true });
 
     const args = [
-      ...(process.platform === 'linux' ? ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage'] : []),
+      ...(process.env.CI === 'true' || process.platform === 'linux' ? ['--headless=new'] : []),
+      ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
       '--host-resolver-rules=MAP paseka.test 127.0.0.1',
       '--remote-debugging-port=0',
       '--remote-debugging-address=127.0.0.1',
