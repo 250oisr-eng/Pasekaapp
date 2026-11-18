@@ -745,7 +745,7 @@ async function save(){
  const run=async()=>{
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];if(S.familyEvents==null&&Number(S.meta.schemaVersion||0)<14)S.familyEvents=[];if(S.sectionalTechProcesses==null&&Number(S.meta.schemaVersion||0)<15)S.sectionalTechProcesses=[];
  S.varroaObservations=S.varroaObservations||[];S.pesticideIncidents=S.pesticideIncidents||[];S.deadoutReviews=S.deadoutReviews||[];
- const physicalLayoutErrors=[...PasekaInventory.inspect(S,PasekaLabels,profileForHive),...PasekaLabels.auditFrameRegistry(S).issues.filter(issue=>issue.severity==='error').map(issue=>({code:issue.code,details:issue.details})),...PasekaEquipmentItems.inspect(S),...PasekaEquipmentItems.validateReferences(S),...PasekaSectionalPhysicalLayout.inspect(S),...PasekaFamilyLineage.inspect(S),...PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage})];
+ const physicalLayoutErrors=[...PasekaInventory.inspect(S,PasekaLabels,profileForHive),...PasekaLabels.auditFrameRegistry(S).issues.filter(issue=>issue.severity==='error').map(issue=>({code:issue.code,details:issue.details})),...PasekaEquipmentItems.inspect(S),...PasekaEquipmentItems.validateReferences(S),...PasekaSectionalPhysicalLayout.inspect(S),...PasekaFamilyLineage.inspect(S),...PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage,PasekaSectionalPhysicalLayout})];
  if(physicalLayoutErrors.length){S.meta.saveError='Данные пасеки, физическая раскладка или родословная семей повреждены; сохранение остановлено';render();alert('ВНИМАНИЕ: '+S.meta.saveError+'. Исходные данные не перезаписаны.');return false;}
  S.meta.schemaVersion=15;S.meta.updatedAt=new Date().toISOString();S.meta.revisionId=uid();delete S.meta.saveError;
  let snapshot;
@@ -1859,7 +1859,7 @@ function validateVirtualApiary(){
  const add=(list,code,details)=>list.push({code,details});
  inspectFamilyLineage(S.families).forEach(error=>add(errors,error.code,error.details));
  PasekaFamilyLineage.inspect(S).forEach(error=>add(errors,error.code,error.details));
- PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage}).forEach(error=>add(errors,error.code,error.details));
+ PasekaSectionalOperationCoordinator.inspect(S,{PasekaFamilyLineage,PasekaSectionalPhysicalLayout}).forEach(error=>add(errors,error.code,error.details));
 
  inspectQueenRegistryIntegrity(S).forEach(error=>add(errors,error.code,error.details));
  PasekaLabels.inspectLabelIntegrity(S).forEach(error=>add(errors,error.code,error.details));
@@ -2954,25 +2954,26 @@ function layoutFor(hid){
  if(!S.layouts[hid]||typeof S.layouts[hid]!=='object'||Array.isArray(S.layouts[hid]))S.layouts[hid]={boxes:{},honeyInstalled:false,honeyBoxInstalled:honeyKeys.map(()=>false),installedBoxes:[],winterOrder:[],mode:'summer'};
  const l=S.layouts[hid];
  S.equipmentLabels=S.equipmentLabels||{bodies:{}};S.equipmentLabels.bodies=S.equipmentLabels.bodies||{};
- if(!l.boxes||typeof l.boxes!=='object'||Array.isArray(l.boxes))l.boxes={};
+ if(l.boxes==null)l.boxes={};else if(typeof l.boxes!=='object'||Array.isArray(l.boxes))throw new Error('Повреждён реестр корпусов улья '+hid+'; исходные данные не изменены.');
  if(!['summer','winter'].includes(l.mode))l.mode='summer';
  const makeBroodFrames=key=>Array.from({length:frameCapacity(key,hid)},(_,i)=>({frameId:framePrefix(key,hid)+String(i+1),originBox:String(key),location:String(key),type:'foundation',status:'foundation',history:[]}));
- if(!Array.isArray(l.honeyFrames))l.honeyFrames=honeyKeys.map(()=>[]);
+ if(l.honeyFrames==null)l.honeyFrames=honeyKeys.map(()=>[]);else if(!Array.isArray(l.honeyFrames))throw new Error('Повреждён реестр медовых рамок улья '+hid+'; исходные данные не изменены.');
  while(l.honeyFrames.length<honeyKeys.length)l.honeyFrames.push([]);
  l.honeyFrames=l.honeyFrames.slice(0,honeyKeys.length);
  for(let i=0;i<honeyKeys.length;i++){
-  if(!Array.isArray(l.honeyFrames[i]))l.honeyFrames[i]=[];
+  if(l.honeyFrames[i]==null)l.honeyFrames[i]=[];else if(!Array.isArray(l.honeyFrames[i]))throw new Error('Повреждён список рамок медового корпуса '+key+'; исходные данные не изменены.');
   const key=honeyKeys[i],frames=l.honeyFrames[i],capacity=frameCapacity(key,hid);
   while(frames.length<capacity)frames.push({frameId:framePrefix(key,hid)+'-'+String(frames.length+1).padStart(2,'0'),originBox:key,location:key,type:'foundation',status:'foundation',history:[]});
  }
  for(const key of broodKeys){
-  if(!l.boxes[key]||typeof l.boxes[key]!=='object'||Array.isArray(l.boxes[key]))l.boxes[key]={family:'',frames:makeBroodFrames(key)};
-  if(!Array.isArray(l.boxes[key].frames))l.boxes[key].frames=makeBroodFrames(key);
+  if(l.boxes[key]==null)l.boxes[key]={family:'',frames:makeBroodFrames(key)};else if(typeof l.boxes[key]!=='object'||Array.isArray(l.boxes[key]))throw new Error('Повреждена запись гнездового корпуса '+key+'; исходные данные не изменены.');
+  if(l.boxes[key].frames==null)l.boxes[key].frames=makeBroodFrames(key);else if(!Array.isArray(l.boxes[key].frames))throw new Error('Повреждён список рамок гнездового корпуса '+key+'; исходные данные не изменены.');
   l.boxes[key].frames.forEach((fr,i)=>{
-   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.boxes[key].frames[i]={frameId:framePrefix(key,hid)+String(i+1),originBox:String(key),location:String(key),type:'foundation',status:'foundation',history:[]};
+   if(!fr||typeof fr!=='object'||Array.isArray(fr))throw new Error('Повреждена запись рамки в гнездовом корпусе '+key+'; исходные данные не изменены.');
    if(!fr.frameId)fr.frameId=framePrefix(key,hid)+String(i+1);
    fr.originBox=fr.originBox||String(key);fr.location=String(key);
-   if(!Array.isArray(fr.history))fr.history=[];
+   if(fr.history==null)fr.history=[];else if(!Array.isArray(fr.history))throw new Error('Повреждена история рамки '+fr.frameId+'; исходные данные не изменены.');
+   PasekaLabels.assignFrameCode(S,fr);
   });
  }
  if(!Array.isArray(l.installedBoxes)){
@@ -2993,10 +2994,11 @@ function layoutFor(hid){
  for(let h=0;h<honeyKeys.length;h++){
   const key=honeyKeys[h],arr=l.honeyFrames[h];
   arr.forEach((fr,i)=>{
-   if(!fr||typeof fr!=='object'||Array.isArray(fr))fr=l.honeyFrames[h][i]={frameId:framePrefix(key,hid)+'-'+String(i+1).padStart(2,'0'),originBox:key,location:key,type:'foundation',status:'foundation',history:[]};
+   if(!fr||typeof fr!=='object'||Array.isArray(fr))throw new Error('Повреждена запись рамки в медовом корпусе '+key+'; исходные данные не изменены.');
    if(!fr.frameId)fr.frameId=framePrefix(key,hid)+'-'+String(i+1).padStart(2,'0');
    fr.originBox=fr.originBox||key;fr.location=key;
-   if(!Array.isArray(fr.history))fr.history=[];
+   if(fr.history==null)fr.history=[];else if(!Array.isArray(fr.history))throw new Error('Повреждена история рамки '+fr.frameId+'; исходные данные не изменены.');
+   PasekaLabels.assignFrameCode(S,fr);
   });
  }
 
@@ -3646,7 +3648,7 @@ function validateRawBackupIntegrity(state){
  PasekaSectionalPhysicalLayout.inspect(state).forEach(error=>add(error.code,error.details));
  inspectFamilyLineage(familyRows).forEach(error=>add(error.code,error.details));
  PasekaFamilyLineage.inspect(state).forEach(error=>add(error.code,error.details));
- PasekaSectionalOperationCoordinator.inspect(state,{PasekaFamilyLineage}).forEach(error=>add(error.code,error.details));
+ PasekaSectionalOperationCoordinator.inspect(state,{PasekaFamilyLineage,PasekaSectionalPhysicalLayout}).forEach(error=>add(error.code,error.details));
  inspectQueenRegistryIntegrity(state).forEach(error=>add(error.code,error.details));
  inspectTaskIntegrity(state.tasks).forEach(error=>add(error.code,error.details));
  PasekaVarroa.inspectVarroaIntegrity(state).forEach(error=>add(error.code,error.details));

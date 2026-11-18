@@ -37,3 +37,30 @@ test('frame registry audit flags a current location that conflicts with the last
 
 
 test('frame registry resolves installed sectional brood frames to their owning hive and section',()=>{const s={sectionalLayouts:[{id:'layout-1',hiveId:'sectional-hive',sections:[{id:'section-left',position:'left',broodBodyIds:['brood-body-1']},{id:'section-middle',position:'middle',broodBodyIds:['brood-body-2']},{id:'section-right',position:'right',broodBodyIds:['brood-body-3']}]}],equipmentInventory:{bodies:{'brood-body-1':{frames:[{frameId:'f1',labelCode:'7КМ',frameUid:'uid-f1',history:[]}]}}}};const rows=L.listLabelledFrames(s);assert.equal(rows.length,1);assert.equal(rows[0].locationType,'hive');assert.equal(rows[0].hiveId,'sectional-hive');assert.equal(rows[0].box,'brood:left:brood-body-1');assert.equal(rows[0].bodyId,'brood-body-1');assert.equal(L.auditFrameRegistry(s).summary.errors,0)});
+
+
+function makeLayoutFor(state){
+ const start=html.indexOf('function layoutFor(hid){'),end=html.indexOf('\nfunction selectedStructureHive()',start);
+ assert.ok(start>=0&&end>start,'layoutFor must remain extractable for regression testing');
+ const source=html.slice(start,end);
+ let sequence=0;
+ return new Function('S','profileForHive','frameCapacity','framePrefix','uid','PasekaLabels',source+';return layoutFor;')(
+  state,()=>null,key=>String(key).startsWith('H')?10:6,(key,hiveId)=>String(hiveId)+'-'+String(key)+'-',()=> 'body-'+(++sequence),L
+ );
+}
+test('new hive layout initialization assigns permanent frame codes and UIDs before save',()=>{
+ const state={layouts:{},equipmentLabels:{bodies:{}},meta:{}};
+ const layoutFor=makeLayoutFor(state);
+ const layout=layoutFor('new-hive');
+ const frames=[...Object.values(layout.boxes||{}),...(layout.honeyFrames||[]).map(frames=>({frames}))].flatMap(box=>box.frames||[]);
+ assert.equal(frames.length,56);
+ assert.ok(frames.every(frame=>frame.labelCode&&frame.frameUid&&Array.isArray(frame.history)));
+ assert.equal(L.auditFrameRegistry(state).summary.errors,0);
+});
+test('layout initialization does not overwrite malformed frame history',()=>{
+ const damaged={frameId:'damaged-1',history:{not:'an array'}};
+ const state={layouts:{h:{boxes:{1:{frames:[damaged]}},honeyFrames:[]}},equipmentLabels:{bodies:{}},meta:{}};
+ const layoutFor=makeLayoutFor(state);
+ assert.throws(()=>layoutFor('h'),/Повреждена история рамки/);
+ assert.deepEqual(damaged.history,{not:'an array'});
+});

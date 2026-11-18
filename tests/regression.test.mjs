@@ -3714,6 +3714,12 @@ test('service worker caches the sectional layout validator and increments its sh
 });
 
 
+test('all application integrity gates pass the physical layout validator to sectional operation inspection',()=>{
+ const calls=html.split('\n').filter(line=>line.includes('PasekaSectionalOperationCoordinator.inspect('));
+ assert.equal(calls.length,3,'save, virtual-apiary and raw-backup integrity gates must all inspect sectional operations');
+ assert.ok(calls.every(call=>call.includes('PasekaFamilyLineage')&&call.includes('PasekaSectionalPhysicalLayout')),'every inspection call must receive both required domain validators');
+});
+
 test('save integrity gate validates physical body inventory before persisting',()=>{
  const start=html.indexOf('async function save()'),end=html.indexOf('async function persistSnapshot',start);
  assert.ok(start>=0&&end>start);

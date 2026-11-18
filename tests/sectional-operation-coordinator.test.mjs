@@ -28,7 +28,7 @@ function item(id,kind,location){
  return {id,kind,label:id,condition:'good',location,notes:'',registeredAt:NOW,updatedAt:NOW,events:[]};
 }
 function body(id,index,storageLocation=''){
- return {id,kind:'brood',condition:'good',spec:{profileId:PROFILE,framesPerBox:6},...(storageLocation?{storageLocation}:{}),labelCode:codes[index]};
+ return {id,kind:'brood',condition:'good',spec:{profileId:PROFILE,framesPerBox:6},frames:Array.from({length:6},(_,frameIndex)=>({frameId:id+'-frame-'+(frameIndex+1),history:[]})),...(storageLocation?{storageLocation}:{}),labelCode:codes[index]};
 }
 function honeyFrames(bodyId){
  return Array.from({length:10},(_,index)=>({
@@ -147,6 +147,7 @@ function dependencies(overrides={}){
   PasekaLabels:Labels,PasekaInventory:Inventory,PasekaEquipmentItems:Items,
   PasekaSectionalPhysicalLayout:Layout,PasekaFamilyLineage:Lineage,
   makeId:()=> 'evt-'+(++sequence),
+  now:()=>Date.parse('2026-12-31T23:59:59.999Z'),
   ...overrides
  };
 }
@@ -237,6 +238,19 @@ function op07Request(prepared,overrides={}){
  return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:NOW,timingMode:'WITH_SECOND_ROW',layout:prepared.layout,itemMoves:prepared.itemMoves,bodyStorageMoves:[],...overrides};
 }
 
+test('all sectional operation completion APIs reject future-dated events',()=>{
+ const deps={now:()=>Date.parse('2026-11-17T10:00:00.000Z')};
+ const future='2026-11-17T10:00:01.000Z';
+ const cases=[
+  ()=>Coordinator.completeOP04({}, {userConfirmed:true,hiveId:'h1',sourceFamilyId:'f0',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP04SecondRow({}, {userConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP05({}, {userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP06({}, {userConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future},deps),
+  ()=>Coordinator.completeOP07({}, {userConfirmed:true,hiveId:'h1',techProcessId:'tp',occurredAt:future,timingMode:'AFTER_OP06'},deps)
+ ];
+ for(const run of cases)assert.equal(run().error,'operation_timestamp_in_future');
+});
+
 test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
  const fixture=firstRowFixture(),deps=dependencies(),req=request(fixture);
  req.bodyStorageMoves=[{bodyId:'b2',storageLocation:'Склад'}];
@@ -295,6 +309,24 @@ test('OP-04 second-row transition rolls back when a technical accessory move fai
  assert.equal(result.ok,false);
  assert.equal(result.error,'equipment_move_rejected');
  assert.deepEqual(fixture.state,before);
+});
+
+test('OP-04 reserves IDs already used by corpus-level event journals',()=>{
+ const fixture=makeFixture(),deps=dependencies();
+ fixture.state.equipmentInventory.bodies.b1.events=[{id:'evt-2',type:'legacy_event',at:NOW}];
+ const result=Coordinator.completeOP04(fixture.state,request(fixture),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.equal(fixture.state.equipmentInventory.bodies.b1.events[0].id,'evt-2');
+ const ids=[
+  ...fixture.state.familyEvents.map(event=>event.id),
+  ...fixture.state.auditLog.map(event=>event.id),
+  ...fixture.state.equipmentInventory.events.map(event=>event.id),
+  ...Object.values(fixture.state.equipmentInventory.bodies).flatMap(body=>[
+   ...(body.events||[]).map(event=>event.id),
+   ...(body.frames||[]).flatMap(frame=>(frame.history||[]).map(event=>event.id))
+  ])
+ ];
+ assert.equal(new Set(ids).size,ids.length,'all event IDs across family, body, inventory and frame journals must be unique');
 });
 
 test('OP-04 commits family split, physical layout, equipment moves, frame history and operation evidence atomically',()=>{
@@ -555,6 +587,19 @@ test('OP-06 removes all eight real mesh plugs atomically after 20 days and three
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
 
+test('OP-05 installation movement evidence remains validated after OP-06 removes the mesh plugs',()=>{
+ const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
+ assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
+ prepareOP06Queens(fixture.state,deps);
+ const removed=Coordinator.completeOP06(fixture.state,op06Request(prepared),deps);
+ assert.equal(removed.ok,true,JSON.stringify(removed.details||removed));
+ const op05=fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-05');
+ const evidence=op05.evidence.itemMovementEventIds[0],item=fixture.state.equipmentInventory.items[evidence.itemId];
+ item.events=item.events.filter(event=>event.id!==evidence.eventId);
+ fixture.state.equipmentInventory.itemEvents=fixture.state.equipmentInventory.itemEvents.filter(event=>event.id!==evidence.eventId);
+ assert.ok(Coordinator.inspect(fixture.state,deps).some(error=>error.code==='sectional_tech_process_op05_movement_evidence_invalid'&&error.details.itemId===evidence.itemId));
+});
+
 test('OP-06 can record that optional OP-05 was skipped only with explicit absence confirmation',()=>{
  const fixture=makeFixture(),deps=dependencies();
  const started=Coordinator.completeOP04(fixture.state,request(fixture),deps);
@@ -672,13 +717,15 @@ test('OP-07 requires early honey foundation frames to be separated by drawn comb
   assert.deepEqual(fixture.state,before,scenario.name+' must roll back without mutations');
  }
 });
-test('OP-07 does not require a full honey body when actual frame count is lower than capacity',()=>{
+test('OP-07 rejects an incomplete honey body and rolls back all changes',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
  fixture.state.equipmentInventory.bodies.honey1.frames.pop();
+ const before=structuredClone(fixture.state);
  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
- assert.equal(result.ok,true,JSON.stringify(result.details||result));
- assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,9);
- assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'op07_honey_frame_capacity_mismatch');
+ assert.deepEqual(result.details,{bodyId:'honey1',expected:10,actual:9});
+ assert.deepEqual(fixture.state,before);
 });
 test('OP-07 permits up to two separated foundation frames in each honey body independently',()=>{
  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;

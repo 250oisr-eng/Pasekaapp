@@ -17,7 +17,9 @@ function makeItem(id,kind,location){
 }
 function honeyFrames(id){return Array.from({length:10},(_,index)=>({frameId:id+'-frame-'+(index+1),combType:'drawn_comb',history:[]}));}
 function makeBody(id,kind='brood'){
- return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10},...(kind==='honey'?{frames:honeyFrames(id)}:{})};
+ const capacity=kind==='brood'?6:10;
+ const frames=kind==='honey'?honeyFrames(id):Array.from({length:capacity},(_,index)=>({frameId:id+'-frame-'+(index+1),history:[]}));
+ return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:capacity},frames};
 }
 function baseFamilies(){
  return [
@@ -140,6 +142,40 @@ function validateAll(state){
  const errors=[...Layout.inspect(state),...Equipment.inspect(state),...Equipment.validateReferences(state)];
  return errors;
 }
+
+test('does not require a stored body outside the physical layout to be fully framed',()=>{
+ const {state}=sideBySide();
+ const stored=makeBody('stored-body');
+ stored.storageLocation='Склад';
+ stored.frames.pop();
+ state.equipmentInventory.bodies['stored-body']=stored;
+ const errors=Layout.inspect(state);
+ assert.ok(!errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='stored-body'));
+});
+
+test('rejects an installed honey body with fewer frames than its capacity',()=>{
+ const {state,layout}=sideBySide();
+ state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
+ state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
+ state.equipmentInventory.bodies.hb1.frames.pop();
+ layout.honeyStack={purpose:'main',bodyIds:['hb1','hb2'],excluders:[]};
+ const errors=Layout.inspect(state);
+ assert.ok(errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='hb1'&&error.details.expected===10&&error.details.actual===9));
+});
+
+test('rejects an installed brood body with fewer frames than its capacity',()=>{
+ const {state}=sideBySide();
+ state.equipmentInventory.bodies.b1.frames.pop();
+ const errors=Layout.inspect(state);
+ assert.ok(errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='b1'&&error.details.expected===6&&error.details.actual===5));
+});
+
+test('rejects an installed brood body with more frames than its capacity',()=>{
+ const {state}=sideBySide();
+ state.equipmentInventory.bodies.b1.frames.push({frameId:'b1-extra-frame',history:[]});
+ const errors=Layout.inspect(state);
+ assert.ok(errors.some(error=>error.code==='section_body_frame_capacity_mismatch'&&error.details.bodyId==='b1'&&error.details.expected===6&&error.details.actual===7));
+});
 
 test('accepts the confirmed first OP-04 row with three separate bottoms, top risers and covers',()=>{
  const {state,layout}=sideBySide();

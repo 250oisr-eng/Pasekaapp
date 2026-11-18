@@ -47,6 +47,9 @@ function validate(layout,state){
   const capacity=kind==='brood'?6:10;
   if(body.spec?.profileId!==PROFILE_ID)add('section_body_profile_mismatch',{bodyId,profileId:body.spec?.profileId??null});
   if(body.spec?.framesPerBox!==capacity)add('section_body_capacity_mismatch',{bodyId,kind,expected:capacity,actual:body.spec?.framesPerBox??null});
+  if(!Array.isArray(body.frames))add('section_body_frame_inventory_invalid',{bodyId,kind});
+  else if(body.frames.length!==capacity)add('section_body_frame_capacity_mismatch',{bodyId,kind,expected:capacity,actual:body.frames.length});
+  for(const [position,frame] of (Array.isArray(body.frames)?body.frames:[]).entries())if(!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history))add('section_body_frame_record_invalid',{bodyId,position:position+1});
   for(const [legacyHiveId,legacyLayout] of Object.entries(isObject(state.layouts)?state.layouts:{})){
    if(Object.values(isObject(legacyLayout?.corpusIds)?legacyLayout.corpusIds:{}).includes(bodyId))add('section_body_also_in_legacy_layout',{bodyId,legacyHiveId});
   }
