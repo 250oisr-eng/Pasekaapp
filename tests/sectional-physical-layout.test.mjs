@@ -37,15 +37,19 @@ function sideBySide(){
   tl:makeItem('tl','topRiser',{type:'hive',hiveId:'h1',stackId:'sl'}),
   tm:makeItem('tm','topRiser',{type:'hive',hiveId:'h1',stackId:'sm'}),
   tr:makeItem('tr','topRiser',{type:'hive',hiveId:'h1',stackId:'sr'}),
-  gl1:makeItem('gl1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o1'}),
-  gl2:makeItem('gl2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o2'}),
-  gr1:makeItem('gr1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o3'}),
-  gr2:makeItem('gr2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o4'})
+  gl1:makeItem('gl1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b1',openingId:'o1'}),
+  gl2:makeItem('gl2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o2'}),
+  gl3:makeItem('gl3','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b2',openingId:'o5'}),
+  gl4:makeItem('gl4','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o6'}),
+  gr1:makeItem('gr1','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b3',openingId:'o3'}),
+  gr2:makeItem('gr2','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b5',openingId:'o4'}),
+  gr3:makeItem('gr3','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b4',openingId:'o7'}),
+  gr4:makeItem('gr4','technicalQueenExcluder',{type:'hive',hiveId:'h1',bodyId:'b6',openingId:'o8'})
  };
  const sections=[
-  {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b2',diameterMm:50}]},
-  {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b4',diameterMm:50},{id:'o3',bodyId:'b4',diameterMm:50}]},
-  {id:'s-right',position:'right',familyId:'f3',broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b6',diameterMm:50}]}
+  {id:'s-left',position:'left',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2',openings:[{id:'o1',bodyId:'b1',diameterMm:50},{id:'o5',bodyId:'b2',diameterMm:50}]},
+  {id:'s-middle',position:'middle',familyId:'f2',broodBodyIds:['b3','b4'],upperBroodBodyId:'b4',openings:[{id:'o2',bodyId:'b3',diameterMm:50},{id:'o3',bodyId:'b3',diameterMm:50},{id:'o6',bodyId:'b4',diameterMm:50},{id:'o7',bodyId:'b4',diameterMm:50}]},
+  {id:'s-right',position:'right',familyId:'f3',broodBodyIds:['b5','b6'],upperBroodBodyId:'b6',openings:[{id:'o4',bodyId:'b5',diameterMm:50},{id:'o8',bodyId:'b6',diameterMm:50}]}
  ];
  const layout={
   schemaVersion:1,id:'layout-h1',hiveId:'h1',profileId:PROFILE,mode:Layout.MODES.SIDE_BY_SIDE,
@@ -57,12 +61,16 @@ function sideBySide(){
   ],
   technicalConnections:[
    {id:'c-lm',fromSectionId:'s-left',toSectionId:'s-middle',bufferCorridorPresent:true,openings:[
-    {sectionId:'s-left',bodyId:'b2',openingId:'o1',itemId:'gl1'},
-    {sectionId:'s-middle',bodyId:'b4',openingId:'o2',itemId:'gl2'}
+    {sectionId:'s-left',bodyId:'b1',openingId:'o1',itemId:'gl1'},
+    {sectionId:'s-middle',bodyId:'b3',openingId:'o2',itemId:'gl2'},
+    {sectionId:'s-left',bodyId:'b2',openingId:'o5',itemId:'gl3'},
+    {sectionId:'s-middle',bodyId:'b4',openingId:'o6',itemId:'gl4'}
    ]},
    {id:'c-mr',fromSectionId:'s-middle',toSectionId:'s-right',bufferCorridorPresent:true,openings:[
-    {sectionId:'s-middle',bodyId:'b4',openingId:'o3',itemId:'gr1'},
-    {sectionId:'s-right',bodyId:'b6',openingId:'o4',itemId:'gr2'}
+    {sectionId:'s-middle',bodyId:'b3',openingId:'o3',itemId:'gr1'},
+    {sectionId:'s-right',bodyId:'b5',openingId:'o4',itemId:'gr2'},
+    {sectionId:'s-middle',bodyId:'b4',openingId:'o7',itemId:'gr3'},
+    {sectionId:'s-right',bodyId:'b6',openingId:'o8',itemId:'gr4'}
    ]}
   ],
   meshDiaphragms:[],temporaryQueenIsolation:[],closedOpenings:[]
@@ -143,6 +151,8 @@ test('accepts the confirmed first OP-04 row with three separate bottoms, top ris
   section.openings=openingByPosition[section.position];
  }
  const refs={o1:'b1',o2:'b3',o3:'b3',o4:'b5'};
+ for(const connection of layout.technicalConnections)connection.openings=connection.openings.filter(opening=>Object.hasOwn(refs,opening.openingId));
+ for(const id of ['gl3','gl4','gr3','gr4'])state.equipmentInventory.items[id].location={type:'storage',label:'Склад'};
  for(const connection of layout.technicalConnections)for(const opening of connection.openings){
   opening.bodyId=refs[opening.openingId];
   state.equipmentInventory.items[opening.itemId].location.bodyId=opening.bodyId;
@@ -237,7 +247,7 @@ test('requires a common colony group and valid queen identity references',()=>{
  assert.ok(Layout.inspect(queen.state).some(error=>error.code==='section_family_current_queen_invalid'));
 });
 
-test('technical connections require the two actual openings and the buffer corridor',()=>{
+test('technical connections require every brood-row opening and the buffer corridor',()=>{
  const buffer=sideBySide();buffer.layout.technicalConnections[0].bufferCorridorPresent=false;
  assert.ok(Layout.inspect(buffer.state).some(error=>error.code==='technical_connection_buffer_required'));
  const opening=sideBySide();opening.layout.technicalConnections[0].openings[1].openingId='missing';
@@ -354,4 +364,23 @@ test('OP-05 coverage helper is pure and derives its expected set from the actual
  assert.equal(JSON.stringify(layout),before);
  layout.technicalConnections[0].openings[0].openingId='opening-renamed';
  assert.ok(Layout.validateTemporaryQueenIsolationCoverage(layout).some(error=>error.code==='temporary_queen_plug_coverage_missing'&&error.details.openingId==='opening-renamed'));
+});
+
+
+test('two-row SIDE_BY_SIDE requires one opening per body in each outer section and two per body in the middle',()=>{
+ const {state,layout}=sideBySide();
+ assert.deepEqual(layout.sections.map(section=>section.openings.length),[2,4,2]);
+ assert.deepEqual(layout.technicalConnections.map(connection=>connection.openings.length),[4,4]);
+ const missingLower=sideBySide();
+ missingLower.layout.sections[0].openings=missingLower.layout.sections[0].openings.filter(opening=>opening.bodyId!=='b1');
+ missingLower.layout.technicalConnections[0].openings=missingLower.layout.technicalConnections[0].openings.filter(opening=>opening.openingId!=='o1');
+ assert.ok(Layout.inspect(missingLower.state).some(error=>error.code==='section_opening_body_coverage_invalid'));
+ assert.ok(Layout.inspect(missingLower.state).some(error=>error.code==='technical_connection_opening_count_invalid'));
+});
+
+test('every actual section opening must be linked to exactly one active technical connection',()=>{
+ const {state,layout}=sideBySide();
+ layout.sections[0].openings.push({id:'unlinked',bodyId:'b1',diameterMm:50});
+ assert.ok(Layout.inspect(state).some(error=>error.code==='section_opening_body_coverage_invalid'));
+ assert.ok(Layout.inspect(state).some(error=>error.code==='technical_opening_unlinked'));
 });
