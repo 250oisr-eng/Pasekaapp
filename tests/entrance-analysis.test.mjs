@@ -150,7 +150,7 @@ test('entrance anomaly baseline never triggers with fewer than five comparable o
 
 test('entrance archive UI does not submit local video or blobs to a remote endpoint', () => {
   const archiveSection=html.slice(html.indexOf('data-tab="entrance"'));
-  assert.match(archiveSection,/local_only|waiting_for_server/);
+  assert.match(archiveSection,/media_jobs|queued/);
   assert.match(archiveSection,/inspectEntranceVideoFrameQuality/);
   assert.match(archiveSection,/frameQualityCheck/);
   assert.match(archiveSection,/Распознавание пчёл ещё не подключено/);

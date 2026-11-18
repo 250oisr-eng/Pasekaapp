@@ -33,7 +33,7 @@ async function setup(){
 test('entrance video screen lists and previews legacy and new media_jobs videos without moving old records',async()=>{
  const {db,repo}=await setup();
  try{
-  const deps={db},list=loadFunction('listEntranceVideos',deps),get=loadFunction('getEntranceVideo',deps);
+  const deps={db};deps.entranceMediaJobs=loadFunction('entranceMediaJobs',deps);const list=loadFunction('listEntranceVideos',deps),get=loadFunction('getEntranceVideo',deps);
   const rows=await list();
   assert.deepEqual(rows.map(x=>x.id),['new-video','legacy-video']);
   assert.equal(rows[0].sourceStore,'media_jobs');assert.equal(rows[0].durationSec,61);assert.equal(rows[0].width,1920);
@@ -46,9 +46,9 @@ test('entrance video screen lists and previews legacy and new media_jobs videos 
 test('entrance screen refuses legacy delete action for a media_jobs original',async()=>{
  const {db}=await setup();
  try{
-  let message='';const deps={db,confirm:()=>true,alert:value=>{message=value},refreshEntranceVideos:async()=>{}};
+  let message='';const deps={db,confirm:()=>true,alert:value=>{message=value},refreshEntranceVideos:async()=>{}};deps.entranceMediaJobs=loadFunction('entranceMediaJobs',deps);
   await loadFunction('removeEntranceVideo',deps)('new-video');
   assert.match(message,/защищённой временной очереди/);
-  assert.equal(await (await loadFunction('getEntranceVideo',{db})('new-video')).blob.text(),'new-original');
+  const readDeps={db};readDeps.entranceMediaJobs=loadFunction('entranceMediaJobs',readDeps);assert.equal(await (await loadFunction('getEntranceVideo',readDeps)('new-video')).blob.text(),'new-original');
  }finally{db.close()}
 });
