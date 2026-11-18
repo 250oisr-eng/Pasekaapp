@@ -35,6 +35,21 @@ test('new entrance videos persist their verified SHA-256 before IndexedDB write'
   assert.match(writer, /put\(storedRecord\)/);
 });
 
+test('full archive export releases stale blobs and retains a new Blob only when system sharing is supported', () => {
+  const start = html.indexOf('async function downloadFullArchive()');
+  const end = html.indexOf('async function shareFullArchive()', start);
+  const exporter = html.slice(start, end);
+  assert.match(exporter, /window\.__pasekaFullArchiveBlob=null/);
+  assert.ok(exporter.indexOf('window.__pasekaFullArchiveBlob=null') < exporter.indexOf('exportArchiveFromDatabase'));
+  assert.match(exporter, /window\.__pasekaFullArchiveBlob = canShareArchive \? result\.blob : null/);
+  assert.match(exporter, /shareButton\.hidden = !canShareArchive/);
+  const shareStart = html.indexOf('async function shareFullArchive()');
+  const shareEnd = html.indexOf('function validateFullArchiveImportState', shareStart);
+  const sharer = html.slice(shareStart, shareEnd);
+  assert.match(sharer, /\$\('fullArchiveStatus'\)/);
+  assert.doesNotMatch(sharer, /setFullArchiveRestoreStatus/);
+});
+
 test('JSON backup is clearly distinguished from the full archive that contains entrance videos', () => {
   assert.match(html, /не включает отдельные оригиналы видео летка/);
   assert.match(html, /id="downloadFullArchiveButton"/);

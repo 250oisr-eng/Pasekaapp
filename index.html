@@ -3617,19 +3617,26 @@ async function downloadFullArchive(){
  if(button?.disabled)return;
  if(button)button.disabled=true;
  if(status)status.textContent='Сохраняю изменения и готовлю полный архив…';
+ window.__pasekaFullArchiveBlob=null;
+ const previousShareButton=$('shareFullArchiveButton');
+ if(previousShareButton)previousShareButton.hidden=true;
  try{
   await saveQueue;
   if(S.meta?.saveError)throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения; архив не создан.');
   if(!db)throw new Error('Локальная база ещё не открыта.');
   if(!window.PasekaArchive?.exportArchiveFromDatabase)throw new Error('Модуль полного архива не загружен. Обнови приложение и повтори попытку.');
   const result=await PasekaArchive.exportArchiveFromDatabase(db,window.crypto);
-  window.__pasekaFullArchiveBlob = result.blob;
   const shareButton = $('shareFullArchiveButton');
   if (shareButton) {
    try {
     const shareFile = new File([result.blob], 'paseka-full-backup-' + today() + '.paseka', { type: 'application/vnd.paseka.archive' });
-    shareButton.hidden = !(navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] }));
-   } catch (shareCheckError) { shareButton.hidden = true; }
+    const canShareArchive = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] }));
+    shareButton.hidden = !canShareArchive;
+    window.__pasekaFullArchiveBlob = canShareArchive ? result.blob : null;
+   } catch (shareCheckError) {
+    shareButton.hidden = true;
+    window.__pasekaFullArchiveBlob = null;
+   }
   }
   const url=URL.createObjectURL(result.blob),anchor=document.createElement('a');
   anchor.href=url;anchor.download='paseka-full-backup-'+today()+'.paseka';
@@ -3648,9 +3655,10 @@ async function downloadFullArchive(){
 
 async function shareFullArchive() {
   const blob = window.__pasekaFullArchiveBlob;
-  if (!blob) { setFullArchiveRestoreStatus('Сначала сформируй полный архив.'); return; }
+  if (!blob) { const status = $('fullArchiveStatus'); if (status) status.textContent = 'Сначала сформируй полный архив.'; return; }
   if (!navigator.share || !navigator.canShare) {
-    setFullArchiveRestoreStatus('Системная отправка файлов не поддерживается. Используй скачивание архива.');
+    const status = $('fullArchiveStatus');
+    if (status) status.textContent = 'Системная отправка файлов не поддерживается. Используй скачивание архива.';
     return;
   }
   try {
