@@ -515,7 +515,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
    <div class="row"><span id="aiUserLabel" class="muted"></span><button type="button" onclick="signOutAI()">Выйти</button></div>
    <div class="ai-voice-panel">
     <div class="row"><div><b>Свободные руки</b><div class="muted">Голосовой диалог во время осмотра; локальное распознавание в приоритете</div></div><button type="button" class="primary" id="aiVoiceSessionButton" onclick="toggleApiaryVoiceSession()">🎙 Начать сеанс</button></div>
-    <div class="row" style="align-items:flex-start"><button type="button" id="aiVoiceOfflineModelButton" onclick="prepareApiaryOfflineSpeech()">Установить офлайн-модель (~45 МБ)</button><label class="muted" style="display:flex;align-items:flex-start;gap:8px;max-width:420px"><input id="aiVoiceOnlineConsent" type="checkbox">Разрешить онлайн-распознавание, если локальное недоступно. Тогда аудио может передаваться внешней службе.</label></div>
+    <div class="row" style="align-items:flex-start"><button type="button" id="aiVoiceOfflineModelButton" onclick="prepareApiaryOfflineSpeech()">Установить офлайн-модель (~45 МБ, около 300 МБ RAM)</button><label class="muted" style="display:flex;align-items:flex-start;gap:8px;max-width:420px"><input id="aiVoiceOnlineConsent" type="checkbox">Разрешить онлайн-распознавание, если локальное недоступно. Тогда аудио может передаваться внешней службе.</label></div>
     <div id="apiaryVoiceStatus" class="ai-voice-status" role="status" aria-live="polite">Для Android установи русскую офлайн-модель по Wi-Fi. На компьютере используй локальную модель браузера, если она поддерживается.</div>
     <p class="muted">По умолчанию аудио обрабатывается локально. На Android используется Vosk; модель загружается только по явному нажатию и только через Wi-Fi. На совместимом настольном браузере используется его локальная модель. Онлайн-распознавание выключено по умолчанию. Скажи «Пасека, слушай», затем команду. Для операции ИИ сначала покажет план; подтверждение выполняется только после проверки. При уходе приложения в фон микрофон отключается. ИИ-запросы требуют интернета; локальные команды подготовки записи могут работать офлайн.</p>
    </div>
@@ -2442,7 +2442,7 @@ function toggleApiaryVoiceSession(){
 async function prepareApiaryOfflineSpeech(){
  const button=$('aiVoiceOfflineModelButton');
  if(!button)return;
- const original='Установить офлайн-модель (~45 МБ)';
+ const original='Установить офлайн-модель (~45 МБ, около 300 МБ RAM)';
  button.disabled=true;button.textContent='Подготовка…';
  try{
   const ready=await apiaryVoiceSession.prepareOffline();
