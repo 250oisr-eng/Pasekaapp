@@ -82,6 +82,7 @@ export default {
       body = JSON.parse(raw);
     } catch { return json({error:'Некорректный JSON запроса.'},400,origin); }
     const media = body.media == null ? null : body.media;
+    if (media && env.MEDIA_AI_ENABLED !== 'true') return json({error:'Визуальный анализ отключён до подтверждения бесплатного тарифа Cloudflare. Оригинал остаётся локально.'},503,origin);
     if (!media && raw.length > 90000) return json({error:'Слишком большой текстовый запрос. Сократи историю или данные журнала.'},413,origin);
     const question = typeof body.question === 'string' ? body.question.trim().slice(0,4000) : '';
     if (!media && !question) return json({error:'Напиши вопрос для ИИ.'},400,origin);
