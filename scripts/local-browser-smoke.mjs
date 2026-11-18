@@ -450,7 +450,7 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
         mobile: width <= 560
       });
       for (const tab of NAV_TABS) {
-        const expression = '(() => { const button = document.querySelector(\\'nav[aria-label="Основные разделы"] button[data-tab="' + tab.id + '"]\\'); if (!button) return { found: false, activePanel: null }; button.click(); return { found: true, activePanel: document.querySelector(".panel.active")?.id || null }; })()';
+        const expression = '(() => { const button = document.querySelector(\'nav[aria-label="Основные разделы"] button[data-tab="' + tab.id + '"]\\'); if (!button) return { found: false, activePanel: null }; button.click(); return { found: true, activePanel: document.querySelector(".panel.active")?.id || null }; })()';
         const result = await evaluate(devtools, expression);
         const navigationPassed = result.found && result.activePanel === tab.id;
         report.checks.push({
