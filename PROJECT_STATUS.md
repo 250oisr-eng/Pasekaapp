@@ -11,7 +11,7 @@
 - Не выполнялись merge, публикация, production deployment, изменение production DB или операции с пользовательскими данными. Физическое Android-тестирование сохранения/открытия .paseka вне приложения остаётся отдельным release gate.
 
 ### Следующий шаг
-Следующий шаг: физически проверить на Android скачивание и открытие `.paseka`, затем провести review PR #168. GitHub показывает 12 commits ahead / 0 behind и mergeable=true; PR остаётся Draft. Последний Android workflow на точном HEAD завершён успешно; отдельный Fast Quality run на docs-only HEAD не запускался, но тот же code/test SHA проверен 715/715. Не объединять без отдельного разрешения.
+Следующий шаг: независимый code review всего PR #168 и подготовка физической проверки Android: скачать .paseka, сохранить вне приложения, выбрать этот файл и выполнить тестовое восстановление на отдельном/пустом тестовом профиле без пользовательских данных. Текущий HEAD a5dfbda620feed2b9188bf82ddc3a62cb8ab21d9, main 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7; PR #168 Draft, 12 commits ahead / 0 behind, mergeable=true. Android и quality workflows прошли на точном code/test HEAD. Lovable latest commit 2196e3fd478fbb58810d6a78317c0ddd056dfdef не совпадает с веткой PR; синхронизация не подтверждена. Не объединять без отдельного разрешения.
  
 ---
 
