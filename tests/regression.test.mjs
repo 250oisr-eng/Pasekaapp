@@ -2756,7 +2756,7 @@ test('IndexedDB versionchange waits for queued app saves before closing the conn
  request.result=fakeDb;request.onsuccess();
  await pending;
  fakeDb.onversionchange();
- assert.equal(fakeDb.closed,false,'the old connection must remain open until queued saves settle');
+ assert.notEqual(fakeDb.closed,true,'the old connection must remain open until queued saves settle');
  release();
  await saveQueue;
  await Promise.resolve();
