@@ -585,13 +585,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
     fail('ROLLBACK_NOT_AVAILABLE', 'There is no committed archive import with an available rollback snapshot.');
   }
   const rollbackSessionId = knownHistory.rollbackSessionId;
-  const readTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readonly');
+  const readTx = db.transaction([STAGING_STORE, 'entrance_media', 'main'], 'readonly');
   const readStore = readTx.objectStore(STAGING_STORE);
-  const [rollbackSession, records, importSession, phaseAMedia] = await Promise.all([
+  const [rollbackSession, records, importSession, phaseAMedia, currentState] = await Promise.all([
     requestValue(readStore.get(rollbackSessionId)),
     requestValue(readStore.index('sessionId').getAll(rollbackSessionId)),
     requestValue(readStore.get(knownHistory.importSessionId)),
-    requestValue(readTx.objectStore('entrance_media').getAll())
+    requestValue(readTx.objectStore('entrance_media').getAll()),
+    requestValue(readTx.objectStore('main').get('state'))
   ]);
   await transactionDone(readTx);
 
@@ -603,6 +604,15 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   }
   if (!importSession || importSession.kind !== 'session' || importSession.status !== 'committed' || importSession.backupId !== backupId) {
     fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+  }
+  if (typeof importSession.importedRevisionId !== 'string' || !importSession.importedRevisionId) {
+    fail('ROLLBACK_IMPORT_REVISION_MISSING', 'The committed import revision could not be verified. Rollback was cancelled to preserve the current journal.');
+  }
+  if ((currentState?.meta?.revisionId ?? null) !== importSession.importedRevisionId) {
+    fail('ROLLBACK_STATE_CHANGED', 'The journal changed after this archive was imported. Rollback was cancelled to preserve newer journal entries.');
+  }
+  if ((currentState?.meta?.revisionId ?? null) !== expectedRevision) {
+    fail('RESTORE_CONFLICT', 'The live database changed during rollback preparation. Refresh the data and review the current state before retrying.');
   }
   if (typeof knownHistory.importedMediaFingerprint !== 'string') {
     fail('ROLLBACK_MEDIA_BASELINE_MISSING', 'This import predates video change protection. Rollback is disabled to avoid deleting videos that may have been added later.');
@@ -781,6 +791,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           if (!currentImportSession || currentImportSession.kind !== 'session' ||
               currentImportSession.status !== 'committed' || currentImportSession.backupId !== backupId) {
             fail('ROLLBACK_IMPORT_SESSION_MISSING', 'The committed import session could not be verified.');
+          }
+          if (typeof currentImportSession.importedRevisionId !== 'string' || !currentImportSession.importedRevisionId ||
+              (currentState?.meta?.revisionId ?? null) !== currentImportSession.importedRevisionId) {
+            fail('ROLLBACK_STATE_CHANGED', 'The journal changed after this archive was imported. Rollback was cancelled to preserve newer journal entries.');
           }
           if (currentRecords.length !== snapshotRecords.length ||
               snapshotFingerprint(currentRecords) !== expectedSnapshotFingerprint) {
