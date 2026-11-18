@@ -71,6 +71,30 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+test('plant dictation immediately restores its button after a not-allowed error',()=>{
+ let recognition,alertMessage='';
+ function FakeRecognition(){recognition=this;this.start=()=>{this.started=true}}
+ const button={disabled:false,textContent:'🎙 Диктовать'};
+ const field={value:'',focus(){this.focused=true}};
+ const inputSource={value:'text'};
+ const deps={window:{SpeechRecognition:FakeRecognition},plantRecognition:null,
+  $:id=>({plantVoiceButton:button,plantNote:field,plantInputSource:inputSource}[id]||null),
+  confirm:()=>true,alert:message=>{alertMessage=message}};
+ const dictate=loadFunction('dictatePlantObservation',deps);
+ dictate();
+ assert.equal(recognition.started,true);
+ assert.equal(button.disabled,true);
+ assert.equal(button.textContent,'Слушаю…');
+ recognition.onerror({error:'not-allowed'});
+ assert.equal(deps.plantRecognition,null);
+ assert.equal(button.disabled,false);
+ assert.equal(button.textContent,'🎙 Диктовать');
+ assert.match(alertMessage,/разрешение сайта/);
+ recognition.onend();
+ assert.equal(button.disabled,false,'a later end event must remain harmless');
+ assert.equal(button.textContent,'🎙 Диктовать');
+});
+
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
