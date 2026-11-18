@@ -76,7 +76,7 @@
           setTimer(() => {
             stoppingNative = false;
             suppressNativeStopFinal = false;
-          }, 0);
+          }, 200);
         });
       }
       provider = 'none';
@@ -246,7 +246,10 @@
     }
 
     async function start(options = {}) {
-      if (active) return false;
+      if (active || stoppingNative) {
+        status('Дождись завершения остановки микрофона и повтори попытку.');
+        return false;
+      }
       active = true;
       allowOnlineFallback = options.allowOnline === true;
       oneShotMode = false;
@@ -258,7 +261,7 @@
     }
 
     function startOneShot(callback, options = {}) {
-      if (active || typeof callback !== 'function') return false;
+      if (active || stoppingNative || typeof callback !== 'function') return false;
       oneShotMode = true;
       oneShotCallback = callback;
       oneShotFinish = options.onFinish || null;
@@ -270,8 +273,8 @@
     }
 
     async function prepareOffline() {
-      if (active) {
-        status('Сначала заверши текущий голосовой сеанс.');
+      if (active || stoppingNative) {
+        status('Сначала заверши текущий голосовой сеанс и дождись остановки микрофона.');
         return false;
       }
       const native = getNativePlugin();
