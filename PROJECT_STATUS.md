@@ -713,3 +713,12 @@ Draft PR #162 создан поверх #161. Проверить CI на акт�
 - CI для PR #172 ожидается; до получения результата не передавать APK на установку.
 - Следующий шаг: проверить unit tests и Android Debug APK workflow на точном актуальном HEAD PR #172; при успехе скачать артефакт, сверить SHA-256 и package ID, затем дать пользователю минимальные инструкции для ручной установки изолированной тестовой сборки.
 - Не выполнять merge PR, release, публикацию или production deployment.
+
+
+## Контрольная точка — изолированная Android test APK собрана (2026-11-18)
+
+- PR #172 Draft: https://github.com/250oisr-eng/Pasekaapp/pull/172; branch `test/isolated-android-apk-2026-11-18`; code/test SHA `eba978744840914946d4e283debf59566b923d23`; base PR #171. PR открыт, не merged.
+- Android workflow `Build isolated Android test APK`, run #44364467308, завершился `success` на точном SHA. Job #135014372259: все шаги успешны, включая 704 регрессионных теста, проверку `applicationId=ru.paseka.journal.test`, `minSdkVersion=35`, `assembleDebug` и upload artifact.
+- Artifact `paseka-android-isolated-test-apk`, ID `14456323622`, 17,651,309 bytes; ZIP SHA-256 `3390e42103a6efa17a7cdc167df0fb2ad7e79ef5ce5873c641ae17a27fc948cb`; expires 2026-11-25T17:59:41Z. APK внутри `app-debug.apk`, 49,401,136 bytes; SHA-256 `cb67ea00c30b5aeb03fc17998a2b61ab3c6963ca4ad7d98353335aa117a65ae2`.
+- CI assertion проверила тестовый applicationId и minSdk до сборки; Gradle `BUILD SUCCESSFUL`. APK скачан и ZIP-структура проверена. Самостоятельное чтение бинарного AndroidManifest и установка на устройство ещё не выполнялись.
+- Следующий шаг: пользователь устанавливает только этот отдельный тестовый APK на OnePlus; затем проверить запуск, навигацию и синтетические записи в отдельном sandbox. Не использовать реальные данные пасеки. Не очищать данные и не менять рабочие установки.
