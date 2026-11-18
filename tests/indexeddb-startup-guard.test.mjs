@@ -156,7 +156,7 @@ test('upgrading an existing older database preserves its state and is not treate
 
   const createdDuringOpen = await load('openDB', deps)();
   assert.equal(createdDuringOpen, false);
-  assert.equal(deps.db.version, 3);
+  assert.equal(deps.db.version, 4);
 
   const state = await new Promise((resolve, reject) => {
     const request = deps.db.transaction('main', 'readonly').objectStore('main').get('state');
@@ -251,5 +251,58 @@ test('startup recovery commit rejects a concurrent primary write and leaves its 
   });
   assert.deepEqual(result.mainValue, concurrentState);
   assert.deepEqual(result.backupValue, { state: backupState });
+  deps.db.close();
+});
+
+
+test('upgrading an existing v3 database to v4 preserves journal, automatic backup and entrance video while adding archive stores', async () => {
+  const indexedDB = new IDBFactory();
+  const deps = openDbDependencies(indexedDB);
+  const legacyState = { meta: { schemaVersion: 15, revisionId: 'v3-revision' }, hives: [{ id: 'v3-hive' }] };
+  const legacyBackup = { at: '2026-11-18T08:00:00.000Z', state: legacyState };
+  const video = { id: 'v3-video', hiveId: 'v3-hive', blob: new Blob([new Uint8Array([1, 2, 3])], { type: 'video/mp4' }) };
+
+  const legacyRequest = indexedDB.open(deps.DB, 3);
+  const legacyDb = await new Promise((resolve, reject) => {
+    legacyRequest.onupgradeneeded = () => {
+      legacyRequest.result.createObjectStore('main');
+      legacyRequest.result.createObjectStore('full_backup');
+      legacyRequest.result.createObjectStore('entrance_media', { keyPath: 'id' });
+    };
+    legacyRequest.onsuccess = () => resolve(legacyRequest.result);
+    legacyRequest.onerror = () => reject(legacyRequest.error);
+  });
+  const seed = legacyDb.transaction(['main', 'full_backup', 'entrance_media'], 'readwrite');
+  seed.objectStore('main').put(legacyState, 'state');
+  seed.objectStore('full_backup').put(legacyBackup, 'previous');
+  seed.objectStore('entrance_media').put(video);
+  await new Promise((resolve, reject) => {
+    seed.oncomplete = resolve;
+    seed.onerror = () => reject(seed.error);
+    seed.onabort = () => reject(seed.error);
+  });
+  legacyDb.close();
+
+  const createdDuringOpen = await load('openDB', deps)();
+  assert.equal(createdDuringOpen, false, 'an upgrade must not be treated as first-run initialization');
+  assert.equal(deps.db.version, 4);
+  for (const store of ['main', 'full_backup', 'entrance_media', 'archive_staging', 'archive_history']) {
+    assert.equal(deps.db.objectStoreNames.contains(store), true, store + ' must exist after upgrade');
+  }
+
+  const staging = deps.db.transaction('archive_staging', 'readonly').objectStore('archive_staging');
+  for (const index of ['sessionId', 'kind', 'backupId']) assert.equal(staging.indexNames.contains(index), true, index + ' index must exist');
+
+  const verify = deps.db.transaction(['main', 'full_backup', 'entrance_media'], 'readonly');
+  const values = await Promise.all([
+    new Promise((resolve, reject) => { const q=verify.objectStore('main').get('state'); q.onsuccess=()=>resolve(q.result); q.onerror=()=>reject(q.error); }),
+    new Promise((resolve, reject) => { const q=verify.objectStore('full_backup').get('previous'); q.onsuccess=()=>resolve(q.result); q.onerror=()=>reject(q.error); }),
+    new Promise((resolve, reject) => { const q=verify.objectStore('entrance_media').get('v3-video'); q.onsuccess=()=>resolve(q.result); q.onerror=()=>reject(q.error); })
+  ]);
+  await new Promise((resolve, reject) => { verify.oncomplete=resolve; verify.onerror=()=>reject(verify.error); verify.onabort=()=>reject(verify.error); });
+  assert.deepEqual(values[0], legacyState);
+  assert.deepEqual(values[1], legacyBackup);
+  assert.equal(values[2].hiveId, 'v3-hive');
+  assert.equal(values[2].blob.size, 3);
   deps.db.close();
 });
