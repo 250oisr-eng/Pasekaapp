@@ -6,7 +6,8 @@ const [html,mediaSource]=await Promise.all([
  readFile(new URL('../index.html',import.meta.url),'utf8'),
  readFile(new URL('../js/media-analysis-results.js',import.meta.url),'utf8')
 ]);
-const scope={};new Function('window',mediaSource)(scope);\nconst [hiveSource,labelSource,itemSource,layoutSource]=await Promise.all([readFile(new URL('../js/hive-model.js',import.meta.url),'utf8'),readFile(new URL('../js/equipment-labels.js',import.meta.url),'utf8'),readFile(new URL('../js/equipment-items.js',import.meta.url),'utf8'),readFile(new URL('../js/sectional-physical-layout.js',import.meta.url),'utf8')]);new Function('window',hiveSource)(scope);new Function('window',labelSource)(scope);new Function('window',itemSource)(scope);new Function('window',layoutSource)(scope);
+const scope={};new Function('window',mediaSource)(scope);
+const [hiveSource,labelSource,itemSource,layoutSource]=await Promise.all([readFile(new URL('../js/hive-model.js',import.meta.url),'utf8'),readFile(new URL('../js/equipment-labels.js',import.meta.url),'utf8'),readFile(new URL('../js/equipment-items.js',import.meta.url),'utf8'),readFile(new URL('../js/sectional-physical-layout.js',import.meta.url),'utf8')]);new Function('window',hiveSource)(scope);new Function('window',labelSource)(scope);new Function('window',itemSource)(scope);new Function('window',layoutSource)(scope);
 function extract(name){
  const re=new RegExp('(?:async\\s+)?function\\s+'+name+'\\s*\\('),match=re.exec(html);
  assert.ok(match,'missing '+name);
