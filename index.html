@@ -399,7 +399,8 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <label class="plant-share-consent"><input id="plantShareConsent" type="checkbox"> Разрешаю предложить это наблюдение и фотографии для общей базы после подключения синхронизации. До проверки они не будут опубликованы.</label>
   <input id="plantInputSource" type="hidden" value="text">
   <div class="row forage-actions"><button type="button" id="plantVoiceButton" onclick="dictatePlantObservation()">🎙 Диктовать</button><button type="button" onclick="askPlantAI()">Обсудить с ИИ</button></div>
-  <div class="muted">Диктовка использует распознавание речи браузера или Android. Перед запуском будет предупреждение: в зависимости от устройства аудио может обрабатываться внешним сервисом. Запись звука не сохраняется — в поле попадёт распознанный текст.</div>
+  <div id="plantVoiceStatus" class="muted" role="status" aria-live="polite">По умолчанию используется локальное распознавание. Онлайн-режим доступен только при отдельном согласии в разделе «ИИ».</div>
+  <div class="muted">Аудиозапись не сохраняется. В наблюдение попадёт только распознанный текст; перед сохранением проверь его.</div>
   <div class="row forage-submit"><button class="primary" id="plantSaveButton" type="submit">Сохранить наблюдение</button><button type="button" onclick="resetPlantObservationForm()">Очистить форму</button></div>
  </form></div>
  <div class="card"><div class="row"><h3 style="margin:0">Наблюдения</h3><span class="muted" id="plantObservationCount">0</span></div><div id="plantObservationsList" class="plant-observation-list"></div></div>
@@ -4122,12 +4123,27 @@ async function savePlantObservation(event){
  }catch(error){S=previous;alert(error.message||'Не удалось подготовить наблюдение.');return false}
 }
 function dictatePlantObservation(){
- if(plantRecognition)return;const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Speech){alert('В этом браузере нет встроенного распознавания речи. Введи наблюдение текстом или используй голосовой ввод клавиатуры Android.');return}
- if(!confirm('Начать диктовку? В зависимости от браузера и настроек аудио может обрабатываться внешним сервисом распознавания. В приложение попадёт только распознанный текст; запись звука не сохраняется.'))return;
- const button=$('plantVoiceButton'),recognition=new Speech();plantRecognition=recognition;recognition.lang='ru-RU';recognition.interimResults=false;recognition.maxAlternatives=1;button.disabled=true;button.textContent='Слушаю…';
- recognition.onresult=event=>{const text=Array.from(event.results||[]).map(r=>r[0]?.transcript||'').join(' ').trim();if(text){const field=$('plantNote');field.value=(field.value.trim()?field.value.trim()+' ':'')+text;$('plantInputSource').value='voice';field.focus()}};
- recognition.onerror=event=>{if(event.error!=='no-speech'&&event.error!=='aborted')alert('Не удалось распознать речь: '+event.error+'. Можно ввести текст вручную.');};
- recognition.onend=()=>{button.disabled=false;button.textContent='🎙 Диктовать';if(plantRecognition===recognition)plantRecognition=null};try{recognition.start()}catch(error){plantRecognition=null;button.disabled=false;button.textContent='🎙 Диктовать';alert('Не удалось запустить микрофон: '+(error.message||error))}
+ if(plantRecognition)return;
+ const button=$('plantVoiceButton'),status=$('plantVoiceStatus'),field=$('plantNote'),source=$('plantInputSource');
+ if(!apiaryVoiceSession||typeof apiaryVoiceSession.startOneShot!=='function'){if(status)status.textContent='Голосовой модуль недоступен. Введи наблюдение текстом.';return}
+ if(apiaryVoiceSession.state.active){if(status)status.textContent='Микрофон уже используется голосовым сеансом. Заверши его и повтори.';return}
+ if(!confirm('Начать диктовку? По умолчанию используется локальное распознавание. Онлайн-обработка аудио возможна только при отдельном согласии в разделе «ИИ». Запись звука не сохраняется.'))return;
+ const reset=()=>{if(plantRecognition===apiaryVoiceSession)plantRecognition=null;if(button){button.disabled=false;button.textContent='🎙 Диктовать'}};
+ const allowOnline=$('aiVoiceOnlineConsent')?.checked===true;
+ if(button){button.disabled=true;button.textContent='Слушаю…'}
+ if(status)status.textContent='Подготавливаю локальное распознавание…';
+ plantRecognition=apiaryVoiceSession;
+ let started=false;
+ try{
+  started=apiaryVoiceSession.startOneShot(text=>{if(!text)return;field.value=(field.value.trim()?field.value.trim()+' ':'')+text;source.value='voice';field.focus()},{
+   allowOnline,
+   onStatus:message=>{if(status)status.textContent=message},
+   onFinish:reset
+  });
+ }catch(error){
+  reset();if(status)status.textContent='Не удалось запустить диктовку: '+(error.message||error);return;
+ }
+ if(!started){reset();if(status)status.textContent='Микрофон уже используется. Заверши текущий голосовой сеанс и повтори.'}
 }
 function askPlantAI(){
  const rawName=$('plantName').value.trim(),name=rawName==='Растение по фотографии — требуется определение'?'':rawName,note=$('plantNote').value.trim(),date=$('plantObservedAt').value,phase=$('plantPhase').selectedOptions[0]?.textContent||'не уточнена',location=$('plantLocation').value.trim();if(!name&&!note)return alert(pendingPlantMedia.length?'Фотографии пока не передаются в ИИ. Фото сохраняется в наблюдении; распознавание по изображению будет подключено отдельным этапом.':'Сначала укажи растение или опиши наблюдение.');

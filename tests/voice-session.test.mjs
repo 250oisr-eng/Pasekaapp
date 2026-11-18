@@ -307,6 +307,33 @@ test('one-shot dictation delivers one final transcript and then stops', async ()
 });
 
 
+test('one-shot dictation forwards local-provider errors to its caller before finishing', async () => {
+  let recognition;
+  const statuses = [], finished = [];
+  class MockRecognition {
+    static async available() { return 'available'; }
+    static async install() { return true; }
+    set processLocally(value) { this.local = value; }
+    get processLocally() { return this.local; }
+    constructor() { recognition = this; }
+    start() {}
+    stop() { this.stopped = true; }
+  }
+  const session = loadVoiceSession({ SpeechRecognition: MockRecognition }, {
+    onStatus: () => {}
+  });
+  assert.equal(session.startOneShot(() => {}, {
+    onStatus: message => statuses.push(message),
+    onFinish: () => finished.push(true)
+  }), true);
+  await new Promise(resolve => setImmediate(resolve));
+  recognition.onerror({ error: 'not-allowed' });
+  assert.ok(statuses.some(message => /локально/.test(message)));
+  assert.ok(statuses.some(message => /Нет разрешения на микрофон/.test(message)));
+  assert.deepEqual(finished, [true]);
+  assert.equal(session.state.active, false);
+});
+
 test('voice UI defaults to local recognition and requires explicit consent for online fallback', () => {
   assert.match(html, /id="aiVoiceOfflineModelButton"/);
   assert.match(html, /id="aiVoiceOnlineConsent" type="checkbox"/);

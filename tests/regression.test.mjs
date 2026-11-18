@@ -71,6 +71,41 @@ function loadFunction(name, globals = {}) {
   return new Function('deps', 'with (deps) { return (' + source + '); }')(deps);
 }
 
+test('plant dictation uses the shared offline-first session and restores controls on finish',()=>{
+ let callback,options,starts=0;
+ const button={disabled:false,textContent:'🎙 Диктовать'};
+ const field={value:'Утром видел',focus(){this.focused=true}};
+ const source={value:'text'},status={textContent:''},consent={checked:false};
+ const session={state:{active:false},startOneShot(onTranscript,config){starts++;callback=onTranscript;options=config;return true}};
+ const deps={apiaryVoiceSession:session,plantRecognition:null,
+  $:id=>({plantVoiceButton:button,plantVoiceStatus:status,plantNote:field,plantInputSource:source,aiVoiceOnlineConsent:consent}[id]||null),
+  confirm:()=>true};
+ const dictate=loadFunction('dictatePlantObservation',deps);
+ dictate();
+ assert.equal(starts,1);
+ assert.equal(options.allowOnline,false,'online recognition must remain opt-in');
+ assert.equal(button.disabled,true);
+ assert.equal(button.textContent,'Слушаю…');
+ options.onStatus('Распознавание выполняется локально');
+ assert.match(status.textContent,/локально/);
+ callback('зацвёл белый клевер');
+ assert.equal(field.value,'Утром видел зацвёл белый клевер');
+ assert.equal(source.value,'voice');
+ options.onFinish();
+ assert.equal(deps.plantRecognition,null);
+ assert.equal(button.disabled,false);
+ assert.equal(button.textContent,'🎙 Диктовать');
+});
+test('plant dictation reports when the shared voice session already uses the microphone',()=>{
+ const button={disabled:false,textContent:'🎙 Диктовать'},status={textContent:''};
+ const session={state:{active:true},startOneShot(){throw new Error('must not start')}};
+ const dictate=loadFunction('dictatePlantObservation',{apiaryVoiceSession:session,plantRecognition:null,
+  $:id=>({plantVoiceButton:button,plantVoiceStatus:status}[id]||null),confirm:()=>true});
+ dictate();
+ assert.match(status.textContent,/уже используется/);
+ assert.equal(button.disabled,false);
+});
+
 test('family lineage accepts live and archived parents', () => {
   const inspect = loadFunction('inspectFamilyLineage');
   assert.deepEqual(inspect([{id:'p',origin:'swarm'},{id:'c',origin:'offshoot',parentFamilyId:'p'}]), []);
@@ -742,7 +777,7 @@ test('voice dictation uses the shared session provider and resets controls when 
 
 test('AI panel discloses speech-recognition privacy and keeps explicit send control',()=>{
   assert.ok(html.includes('id="aiVoiceButton"'));
-  assert.ok(html.includes('аудио может обрабатываться внешним сервисом'));
+  assert.ok(html.includes('аудио может передаваться внешней службе'));
   assert.ok(html.includes('id="aiSendButton"'));
 });
 
@@ -3606,7 +3641,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v318/);
+ assert.match(sw,/paseka-shell-v319/);
  assert.match(sw,/\.\/js\/media-ai-client\.js/);
 });
 
@@ -3733,7 +3768,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v318/);
+  assert.match(source,/paseka-shell-v319/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
