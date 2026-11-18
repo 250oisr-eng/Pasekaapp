@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
-const source=await readFile(new URL('../js/equipment-inventory.js',import.meta.url),'utf8'),html=await readFile(new URL('../index.html',import.meta.url),'utf8'),sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');const win={crypto:{randomUUID:()=> 'event-id'},PasekaLabels:{assignBodyCode:(s,id)=>{s.equipmentLabels??={bodies:{}};s.equipmentLabels.bodies??={};if(s.equipmentLabels.bodies[id])return s.equipmentLabels.bodies[id];const used=new Set(Object.values(s.equipmentLabels.bodies));let i=0,code;do{code=['ААА','ААБ','ААГ','ААД','ААЕ','ААЖ','ААК','ААЛ','ААМ','ААН','ААП','ААР','ААС','ААТ','ААУ','ААФ','ААХ','ААЦ','ААЧ','ААШ','ААЩ','ААЭ','ААЮ','ААЯ','АА2','АА4','АА5','АА6','АА7','АА9'][i++]}while(used.has(code));s.equipmentLabels.bodies[id]=code;return code},normalizeCode:(v)=>v&&/^[А-Я0-9]{3}$/.test(v)?v:null}};new Function('window',source)(win);const I=win.PasekaInventory;
+const source=await readFile(new URL('../js/equipment-inventory.js',import.meta.url),'utf8'),html=await readFile(new URL('../index.html',import.meta.url),'utf8'),sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');const win={crypto:{randomUUID:(()=>{let n=0;return()=> 'event-id-'+(++n)})()},PasekaLabels:{assignBodyCode:(s,id)=>{s.equipmentLabels??={bodies:{}};s.equipmentLabels.bodies??={};if(s.equipmentLabels.bodies[id])return s.equipmentLabels.bodies[id];const used=new Set(Object.values(s.equipmentLabels.bodies));let i=0,code;do{code=['ААА','ААБ','ААГ','ААД','ААЕ','ААЖ','ААК','ААЛ','ААМ','ААН','ААП','ААР','ААС','ААТ','ААУ','ААФ','ААХ','ААЦ','ААЧ','ААШ','ААЩ','ААЭ','ААЮ','ААЯ','АА2','АА4','АА5','АА6','АА7','АА9'][i++]}while(used.has(code));s.equipmentLabels.bodies[id]=code;return code},normalizeCode:(v)=>v&&/^[А-Я0-9]{3}$/.test(v)?v:null,appendFrameEvent:(frame,action,details,at)=>{frame.history??=[];const event={id:'frame-event-'+makeId(),at:at||now,date:String(at||now).slice(0,10),action,...details};frame.history.push(event);return event}}};new Function('window',source)(win);const I=win.PasekaInventory;
 const makeId=(()=>{let n=0;return()=> 'id-'+(++n)})();const labels=win.PasekaLabels,now='2026-11-13T10:00:00.000Z';
 function fixture(){const p={id:'farrar-6x6-v1',frame:{heightMm:180},brood:{boxKeys:['1','2'],framesPerBox:6,boxHeightMm:195},honey:{boxCount:2,boxKeys:['H1','H2'],framesPerBox:10,boxHeightMm:195,installation:'paired'}};return {hives:[{id:'h1',profile:p},{id:'h2',profile:p}],layouts:{h1:{corpusIds:{1:'b1',2:'b2',H1:'h1',H2:'h2'},boxes:{1:{family:'',frames:[{frameId:'f1',labelCode:'ААА'}]},2:{family:'',frames:[{frameId:'f2'}]}},honeyFrames:[[{frameId:'fh1'}],[{frameId:'fh2'}]],honeyBoxInstalled:[true,true],installedBoxes:[1,2]},h2:{corpusIds:{1:'b3',2:'b4',H1:'h3',H2:'h4'},boxes:{1:{family:'',frames:[{frameId:'f3'}]},2:{family:'',frames:[]}},honeyFrames:[[],[]],honeyBoxInstalled:[false,false],installedBoxes:[1,2]}},equipmentLabels:{bodies:{}}}}
 test('registers an existing body with a permanent code and derived hive location',()=>{const s=fixture(),r=I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,makeId,now);assert.equal(r.ok,true);assert.equal(r.body.kind,'brood');assert.equal(I.locateBody(s,'b1').hiveId,'h1');assert.equal(I.registerAtPosition(s,{hiveId:'h1',boxKey:'1',profile:s.hives[0].profile},labels,makeId,now).existing,true)});
@@ -238,4 +238,45 @@ test('sectional inventory rejects a body condition incompatible with its physica
  s.equipmentInventory.bodies.sb1.condition='needs_repair';
  assert.ok(I.inspect(s,labels).some(x=>x.code==='sectional_body_not_usable'&&x.details.bodyId==='sb1'));
  assert.equal(I.updateDetails(s,'sb2',{condition:'needs_repair'},now).error,'sectional_body_not_usable');
+});
+
+test('corpus and global equipment movement journals are append-only and carry event IDs',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ for(let i=0;i<305;i++)assert.equal(I.updateDetails(s,body.id,{notes:'Обновление '+i},now).ok,true);
+ const saved=s.equipmentInventory.bodies[body.id];assert.equal(saved.events.length,306);
+ assert.equal(s.equipmentInventory.events.length,306);
+ assert.ok(saved.events.every(event=>typeof event.id==='string'&&event.id));
+ assert.equal(new Set(saved.events.map(event=>event.id)).size,saved.events.length);
+});
+test('frame movement appends a timestamped identified event without truncating older history',()=>{
+ const s=fixture(),stock=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ const frame=s.layouts.h1.boxes['1'].frames[0];frame.history=Array.from({length:305},(_,i)=>({id:'old-'+i,action:'legacy_event',date:'2026-01-01'}));
+ const result=I.installStockBody(s,{bodyId:stock.id,hiveId:'h1',boxKey:'1',profile:s.hives[0].profile,storageLocation:'Склад'},labels,now);
+ assert.equal(result.ok,true);
+ const movedFrame=s.equipmentInventory.bodies.b1.frames[0];assert.equal(movedFrame.history.length,306);
+ assert.equal(movedFrame.history.at(-1).action,'corpus_to_storage');
+ assert.equal(movedFrame.history.at(-1).at,now);
+ assert.ok(movedFrame.history.at(-1).id);
+});
+
+test('inventory migration backfills unique IDs without changing existing movement dates',()=>{
+ const s=fixture();s.equipmentInventory={bodies:{x:{id:'x',kind:'brood',condition:'good',events:[{type:'moved_to_storage',at:now,storageLocation:'Сарай'}],frames:[]}},events:[{type:'registered_at_hive',at:now,bodyId:'x'}]};
+ I.migrate(s,makeId,now);
+ const body=s.equipmentInventory.bodies.x,global=s.equipmentInventory.events.find(event=>event.bodyId==='x');
+ assert.ok(body.events[0].id);assert.equal(body.events[0].at,now);
+ assert.ok(global.id);assert.equal(global.at,now);
+ assert.notEqual(body.events[0].id,global.id);
+ const globalCount=s.equipmentInventory.events.length;
+ I.migrate(s,makeId,now);
+ assert.equal(s.equipmentInventory.bodies.x.events.length,1);assert.equal(s.equipmentInventory.events.length,globalCount);
+});
+
+test('inventory integrity rejects missing or duplicate IDs in corpus movement journals',()=>{
+ const s=fixture(),body=I.createStockBody(s,{kind:'brood',profile:s.hives[0].profile,storageLocation:'Сарай'},labels,makeId,now).body;
+ delete s.equipmentInventory.bodies[body.id].events[0].id;
+ assert.ok(I.inspect(s,labels).some(error=>error.code==='equipment_event_id_missing'));
+ I.migrate(s,makeId,now);
+ const saved=s.equipmentInventory.bodies[body.id],global=s.equipmentInventory.events[0];
+ global.id=saved.events[0].id;
+ assert.ok(I.inspect(s,labels).some(error=>error.code==='duplicate_equipment_event_id'));
 });
