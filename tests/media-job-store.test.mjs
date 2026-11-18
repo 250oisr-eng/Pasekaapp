@@ -90,10 +90,10 @@ test('result is persisted only when the caller validator accepts it',async()=>{
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
   await assert.rejects(env.repo.persistResult('job-1',{
-   resultId:'result-1',resultValidated:true,validateResult:()=>false
+   resultId:'result-1',validateResult:()=>false
   }));
   const saved=await env.repo.persistResult('job-1',{
-   resultId:'result-1',resultValidated:true,validateResult:value=>Array.isArray(value?.observations)&&value.observations.length===1
+   resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)&&value.observations.length===1
   });
   assert.equal(saved.status,'result_persisted');
   assert.equal(saved.resultValidated,true);
@@ -122,7 +122,7 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   await env.repo.enqueue(queued());
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
-  await env.repo.persistResult('job-1',{resultId:'result-1',resultValidated:true,validateResult:value=>value?.observations?.length===1});
+  await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>value?.observations?.length===1});
   await env.repo.scheduleCleanup('job-1');
   const completed=await env.repo.cleanup('job-1');
   assert.equal(completed.status,'completed_deleted');
@@ -139,7 +139,7 @@ test('user retention choice prevents original cleanup',async()=>{
   await env.repo.enqueue({...queued(),retainOriginal:true});
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[]});
-  await env.repo.persistResult('job-1',{resultId:'result-1',resultValidated:true,validateResult:value=>Array.isArray(value?.observations)});
+  await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
   const retained=await env.repo.transition('job-1','completed_retained',{retainOriginal:true});
   assert.equal(retained.status,'completed_retained');
   assert.ok(await retained.blob.text());
@@ -153,7 +153,7 @@ test('cleanup pending jobs can be resumed after reopening the database',async()=
   await env.repo.enqueue(queued());
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[]});
-  await env.repo.persistResult('job-1',{resultId:'result-1',resultValidated:true,validateResult:value=>Array.isArray(value?.observations)});
+  await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
   await env.repo.scheduleCleanup('job-1');
   env.db.close();
   env.db=await openDatabase(env.factory,env.name,1);
@@ -187,4 +187,18 @@ test('application upgrades to IndexedDB v4 and loads lifecycle modules before st
  assert.match(sw,/paseka-shell-v314/);
  assert.match(sw,/\.\/js\/media-lifecycle\.js/);
  assert.match(sw,/\.\/js\/media-job-store\.js/);
+});
+
+
+test('public status transitions cannot overwrite or clear original Blob references',async()=>{
+ const env=await createDb();
+ try{
+  await env.repo.enqueue(queued());
+  await env.repo.transition('job-1','analyzing',{blob:null,originalRef:null,kind:'video',bytes:0});
+  const current=await env.repo.get('job-1');
+  assert.equal(current.kind,'image');
+  assert.equal(current.bytes,blob().size);
+  assert.equal(current.originalRef,'media-job:job-1');
+  assert.equal(await current.blob.text(),'bees-at-entrance');
+ }finally{env.db.close()}
 });
