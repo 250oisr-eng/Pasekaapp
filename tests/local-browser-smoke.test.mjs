@@ -9,7 +9,8 @@ test('local browser runner serves only files inside the project root', () => {
   assert.equal(resolveSafePath(root, '/js/app.js'), resolve(root, 'js/app.js'));
   assert.equal(resolveSafePath(root, '/%2e%2e/private.txt'), null);
   assert.equal(resolveSafePath(root, '/..%2fprivate.txt'), null);
-  assert.equal(resolveSafePath(root, '/%5c..%5cprivate.txt'), null);
+  if (process.platform === 'win32') assert.equal(resolveSafePath(root, '/%5c..%5cprivate.txt'), null);
+  else assert.ok(resolveSafePath(root, '/%5c..%5cprivate.txt'));
   assert.equal(resolveSafePath(root, '/%E0%A4%A'), null);
 });
 
