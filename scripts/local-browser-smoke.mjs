@@ -56,6 +56,11 @@ export function resolveSafePath(root, pathname) {
   return candidate;
 }
 
+export function isAllowedAppPath(relativePath) {
+  const normalized = relativePath.split(sep).join('/');
+  return ['index.html', 'manifest.webmanifest', 'sw.js'].includes(normalized) || /^(js|icons)\//.test(normalized);
+}
+
 export function isAllowedLocalUrl(candidate, localOrigin) {
   try {
     return new URL(candidate).origin === localOrigin;
@@ -113,6 +118,11 @@ async function startStaticServer(root) {
       if (info.isDirectory()) {
         actual = await realpath(join(actual, 'index.html'));
         info = await stat(actual);
+      }
+      const relativeFile = relative(rootPath, actual).split(sep).join('/');
+      if (!isAllowedAppPath(relativeFile)) {
+        response.writeHead(404).end('Not found');
+        return;
       }
       if (!info.isFile()) {
         response.writeHead(404).end('Not found');
@@ -382,6 +392,9 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
     });
 
     await devtools.send('Page.enable');
+    await devtools.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: "Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { register: () => Promise.resolve({ update: () => Promise.resolve() }) } });"
+    });
     await devtools.send('Runtime.enable');
     await devtools.send('Network.enable');
     await devtools.send('Network.setBypassServiceWorker', { bypass: true });
