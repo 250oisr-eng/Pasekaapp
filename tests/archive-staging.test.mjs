@@ -607,7 +607,7 @@ test('archive rollback restores a legacy video changed after commit preflight ha
   const restoredVideo = await get(db, 'entrance_media', oldVideo.id);
   assert.ok(restoredVideo);
   assert.equal(await restoredVideo.blob.text(), 'LATEST bytes', 'rollback must restore the exact Blob captured by the commit transaction');
-  assert.equal(restoredVideo.blobSha256, undefined, 'legacy metadata must not be fabricated during rollback');
+  assert.equal(restoredVideo.blobSha256, await globalThis.PasekaSha256.hashBlobHex(restoredVideo.blob), 'rollback must persist a verified checksum for the restored legacy Blob');
   db.close();
 });
 
