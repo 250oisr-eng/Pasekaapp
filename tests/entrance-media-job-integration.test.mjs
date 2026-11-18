@@ -11,7 +11,7 @@ const [html,lifecycleSource,storeSource]=await Promise.all([
 function extract(name){
  const re=new RegExp('(?:async\\s+)?function\\s+'+name+'\\s*\\('),match=re.exec(html);
  assert.ok(match,'missing app function '+name);
- const next=/\\n(?:async\\s+)?function\\s+[A-Za-z_$][\\w$]*\\s*\\(/g;next.lastIndex=match.index+match[0].length;
+ const next=/\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;next.lastIndex=match.index+match[0].length;
  const end=next.exec(html);return html.slice(match.index,end?end.index:html.indexOf('</script>',match.index));
 }
 const scope={};new Function('window',lifecycleSource)(scope);new Function('window',storeSource)(scope);
