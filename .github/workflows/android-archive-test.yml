@@ -22,7 +22,7 @@ on:
       - '.github/workflows/android-archive-test.yml'
 
 concurrency:
-  group: archive-test-android-${{ github.ref }}
+  group: archive-test-android-v2-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
