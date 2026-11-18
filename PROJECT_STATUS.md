@@ -1,3 +1,20 @@
+## Контрольная точка — PR #168: полный архив медиа и атомарное восстановление (2026-11-18)
+
+- Актуальный GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. PR #154 действительно merged; merge commit совпадает с этим SHA. PR #154 code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`: 611/611 tests, Android Debug APK success; это проверки PR HEAD, а не отдельные workflow на merge SHA.
+- Новый Draft PR #168 основан непосредственно на main, без отставания на момент создания. Текущий branch: `feat/full-media-backup-restore-main-2026-11-18`. Старая цепочка PR #9–#40 целиком не сливалась.
+- Перенесены отдельные архивные модули codec, SHA-256, staging и atomic restore/rollback из проверяемой старой ветки #40; код интегрирован поверх актуального main. Старый CI #40 на SHA `52f43ed29d7037401c04526938f5230b5f7f675c` не заменяет проверку новой базы.
+- Добавлен переносимый `.paseka`: единый readonly snapshot `main` + `entrance_media`; state JSON и отдельные оригиналы видео; SHA-256 по блокам 1 MiB; ограничение путей/размеров/метаданных; импорт сначала в persistent staging; атомарная замена только после явного подтверждения; rollback прежнего state и видео с revision guard.
+- IndexedDB object-store version 3→4: добавляются только `archive_staging` и `archive_history` с индексами. Существующие `main`, `full_backup`, `entrance_media` сохраняются; app schemaVersion не меняется; преобразования пользовательских записей при upgrade нет.
+- JSON/automatic backup по-прежнему не содержат отдельные оригиналы видео. Подписи интерфейса уточнены, чтобы не называть JSON полной мультимедийной копией. Полный архив остаётся локальным: внешние сервисы, загрузка на сервер и платные зависимости не добавлены.
+- Добавлены тесты формата, экспорта, SHA-256, staging, cleanup, atomicity, UI/offline и upgrade v3→v4 с сохранением существующих данных. На текущем PR HEAD проверки ещё ожидаются; CI старого PR #40 не считать доказательством совместимости с main.
+- Lovable `Apiary Family Atlas`: опубликован, последний commit `2196e3fd478fbb58810d6a78317c0ddd056dfdef`, агент `needs_attention / out_of_credits`; синхронизация с GitHub main не подтверждена.
+- Не выполнялись merge, публикация, production deployment, изменение production DB или операции с пользовательскими данными. Физическое Android-тестирование сохранения/открытия .paseka вне приложения остаётся отдельным release gate.
+
+### Следующий шаг
+Дождаться Fast Quality Checks и Android Debug APK на точном HEAD PR #168. Исправить все ошибки; затем повторно проверить upgrade v3→v4, archive round-trip, конкурирующее изменение видео, прерванный staging, commit/rollback и совместимость старых JSON backup. Не объединять PR без отдельного разрешения.
+ 
+---
+
 ## Контрольная точка — OP-07 и резервная безопасность (2026-11-17)
 
 - PR #154: code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`; Fast Quality Checks #44169456462 — **611/611 tests, 0 failures**; Android Debug APK PR run #44169468103 — success; push run #44169456444 — success.
