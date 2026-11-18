@@ -1,3 +1,12 @@
+## Контрольная точка — физическая Android-приёмка: запуск и навигация (2026-11-18)
+
+- Пользователь подтвердил на установленной изолированной тестовой сборке Android: приложение открылось без ошибок и зависаний; все вкладки нижней навигации работают.
+- Проверенный тестовый APK собран workflow #44364467308 на code/test SHA `eba978744840914946d4e283debf59566b923d23`. CI: 704 regression tests; подтверждены `applicationId=ru.paseka.journal.test`, `minSdkVersion=35`, Gradle Debug APK и artifact upload — success.
+- Изолированный package ID не совпадает с рабочим `ru.paseka.journal`; Android использует отдельный sandbox. Это проверка установки/запуска/навигации, а не сохранения данных или функциональности отдельных устройств.
+- Физически не проверены: создание/сохранение тестовой записи, повторное открытие сохранённой записи, камера, микрофон, офлайн-распознавание речи, миграции и полный backup/restore.
+- PR #172 остаётся Draft и не объединён; PR #171/#163 остаются зависимыми Draft. Main, production и реальные данные не менялись; публикация/deployment не выполнялись.
+- Следующий шаг: проверить безопасное сохранение и повторное чтение одной явно синтетической записи в изолированном тестовом sandbox. До начала убедиться, что пользователь видит именно тестовую копию; не создавать ульи/семьи/маток и не затрагивать реальные данные. После этого отдельно перейти к голосу/медиа и полному архиву.
+
 ## Контрольная точка — Android ADB preflight на Windows (2026-11-18)
 
 - Актуальный main SHA на начало этапа: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
@@ -700,3 +709,25 @@
 
 ### Следующий шаг
 Draft PR #162 создан поверх #161. Проверить CI на актуальном HEAD, устранить все ошибки и затем провести физические испытания локального распознавания. До них считать функцию экспериментальной.
+
+## Контрольная точка — изолированная Android test APK (2026-11-18)
+
+- Пользователь сообщил, что приложение «Пасека» удалено с OnePlus; это не разрешение на очистку телефона или удаление других данных.
+- Read-only ADB preflight фактически выполнен пользователем на OnePlus NE2213: device_preflight_passed; Android 16 / SDK 36; Chrome 157.0.8103.78; WebView 159.0.8154.4; сборка BP2A.250605.015; security patch 2026-06-01; батарея 70%; экран 1440×3216; физическая плотность 480 dpi, override 640 dpi. Полный отчёт передан текстом; serial не записан.
+- PR #171 остаётся Draft, открыт, не объединён; HEAD 2fb7956f5faedc1cd7df3cc768bdef68d38bb4f6; CI runs #44339586378 (Android) и #44339586362 (Windows) — success на этом точном SHA.
+- Создан Draft PR #172 поверх #171: ветка test/isolated-android-apk-2026-11-18, HEAD 9ef7b21fc0d071ba64b281df636cbbd4223b7475.
+- Добавлен отдельный CI workflow .github/workflows/android-test-debug.yml, который меняет applicationId только в рабочей копии CI на ru.paseka.journal.test, проверяет generated Gradle applicationId и собирает отдельный Debug APK. Исходный capacitor.config.json и production package ID ru.paseka.journal в репозитории не меняются.
+- Добавлены scripts/prepare-android-test-config.mjs и tests/android-test-config.test.mjs: тестовый appId создаётся только из ожидаемого production ID; неизвестная конфигурация отклоняется; проверяется отсутствие совпадения с production package.
+- Workflow не устанавливает APK на телефон. Физическая установка, запуск, UI/ADB automation и тестовые данные ещё не выполнялись.
+- CI для PR #172 ожидается; до получения результата не передавать APK на установку.
+- Следующий шаг: проверить unit tests и Android Debug APK workflow на точном актуальном HEAD PR #172; при успехе скачать артефакт, сверить SHA-256 и package ID, затем дать пользователю минимальные инструкции для ручной установки изолированной тестовой сборки.
+- Не выполнять merge PR, release, публикацию или production deployment.
+
+
+## Контрольная точка — изолированная Android test APK собрана (2026-11-18)
+
+- PR #172 Draft: https://github.com/250oisr-eng/Pasekaapp/pull/172; branch `test/isolated-android-apk-2026-11-18`; code/test SHA `eba978744840914946d4e283debf59566b923d23`; base PR #171. PR открыт, не merged.
+- Android workflow `Build isolated Android test APK`, run #44364467308, завершился `success` на точном SHA. Job #135014372259: все шаги успешны, включая 704 регрессионных теста, проверку `applicationId=ru.paseka.journal.test`, `minSdkVersion=35`, `assembleDebug` и upload artifact.
+- Artifact `paseka-android-isolated-test-apk`, ID `14456323622`, 17,651,309 bytes; ZIP SHA-256 `3390e42103a6efa17a7cdc167df0fb2ad7e79ef5ce5873c641ae17a27fc948cb`; expires 2026-11-25T17:59:41Z. APK внутри `app-debug.apk`, 49,401,136 bytes; SHA-256 `cb67ea00c30b5aeb03fc17998a2b61ab3c6963ca4ad7d98353335aa117a65ae2`.
+- CI assertion проверила тестовый applicationId и minSdk до сборки; Gradle `BUILD SUCCESSFUL`. APK скачан и ZIP-структура проверена. Самостоятельное чтение бинарного AndroidManifest и установка на устройство ещё не выполнялись.
+- Следующий шаг: пользователь устанавливает только этот отдельный тестовый APK на OnePlus; затем проверить запуск, навигацию и синтетические записи в отдельном sandbox. Не использовать реальные данные пасеки. Не очищать данные и не менять рабочие установки.
