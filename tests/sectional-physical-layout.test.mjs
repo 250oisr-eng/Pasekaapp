@@ -132,6 +132,36 @@ function validateAll(state){
  return errors;
 }
 
+test('accepts the confirmed first OP-04 row with three separate bottoms, top risers and covers',()=>{
+ const {state,layout}=sideBySide();
+ layout.broodRows=1;
+ const bodyByPosition={left:'b1',middle:'b3',right:'b5'};
+ const openingByPosition={left:[{id:'o1',bodyId:'b1',diameterMm:50}],middle:[{id:'o2',bodyId:'b3',diameterMm:50},{id:'o3',bodyId:'b3',diameterMm:50}],right:[{id:'o4',bodyId:'b5',diameterMm:50}]};
+ for(const section of layout.sections){
+  section.broodBodyIds=[bodyByPosition[section.position]];
+  section.upperBroodBodyId=bodyByPosition[section.position];
+  section.openings=openingByPosition[section.position];
+ }
+ const refs={o1:'b1',o2:'b3',o3:'b3',o4:'b5'};
+ for(const connection of layout.technicalConnections)for(const opening of connection.openings){
+  opening.bodyId=refs[opening.openingId];
+  state.equipmentInventory.items[opening.itemId].location.bodyId=opening.bodyId;
+ }
+ assert.deepEqual(validateAll(state),[]);
+ assert.equal(layout.stacks.length,3);
+ assert.equal(layout.stacks.filter(row=>row.bottomItemId).length,3);
+ assert.equal(layout.stacks.filter(row=>row.topRiserItemId).length,3);
+ assert.equal(layout.stacks.filter(row=>row.coverItemId).length,3);
+});
+
+test('one-row SIDE_BY_SIDE rejects sections with inconsistent body counts',()=>{
+ const {state,layout}=sideBySide();
+ layout.broodRows=1;
+ layout.sections[1].broodBodyIds=['b3','b4'];
+ layout.sections[1].upperBroodBodyId='b4';
+ assert.ok(Layout.inspect(state).some(error=>error.code==='section_brood_body_count_invalid'));
+});
+
 test('accepts three side-by-side sections with explicit bodies, openings, bottoms and two technical connections',()=>{
  const {state}=sideBySide(),before=JSON.stringify(state);
  assert.deepEqual(validateAll(state),[]);
