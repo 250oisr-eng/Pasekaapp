@@ -11,7 +11,7 @@ test('local browser runner serves only files inside the project root', () => {
   assert.equal(resolveSafePath(root, '/..%2fprivate.txt'), null);
   if (process.platform === 'win32') assert.equal(resolveSafePath(root, '/%5c..%5cprivate.txt'), null);
   else assert.ok(resolveSafePath(root, '/%5c..%5cprivate.txt'));
-  assert.equal(resolveSafePath(root, '/%E0%A4%A'), null);
+  assert.equal(resolveSafePath(root, '/bad%ZZ'), null);
 });
 
 test('browser runner permits network requests only to its exact loopback origin', () => {
