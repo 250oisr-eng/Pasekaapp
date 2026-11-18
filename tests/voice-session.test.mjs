@@ -327,7 +327,7 @@ test('Android Vosk plugin processes microphone audio locally and downloads the m
   assert.match(nativeSpeechSource, /candidateCapabilities\.hasTransport\(NetworkCapabilities\.TRANSPORT_WIFI\)[\s\S]*?return candidate;/);
   assert.doesNotMatch(nativeSpeechSource, /activeCapabilities\.hasTransport\(NetworkCapabilities\.TRANSPORT_VPN\)/);
   assert.match(nativeSpeechSource, /direct binding may bypass an active VPN/);
-  assert.match(voiceSessionSource, /при активном VPN может обходить его/);
+  assert.match(sessionSource, /при активном VPN может обходить его/);
   assert.match(html, /прямое соединение может его обходить/);
   assert.match(nativeSpeechSource, /wifiNetwork\.openConnection\(new URL\(MODEL_URL\)\)/);
   assert.match(nativeSpeechSource, /MODEL_VERSION = "vosk-model-small-ru-0\.22"/);
