@@ -93,3 +93,33 @@ test('Wrangler keeps visual analysis disabled by default until account billing i
  const config=await readFile(new URL('../cloudflare/wrangler.jsonc',import.meta.url),'utf8');
  assert.match(config,/"MEDIA_AI_ENABLED"\s*:\s*"false"/);
 });
+
+test('media context includes only the selected hive and strips global integrity issue details',()=>{
+ const full={
+  modelIntegrity:{status:'warnings',errorCount:0,warningCount:2,errors:[],warnings:[{code:'other_hive_warning',details:{hiveId:'private-hive'}}]},
+  apiary:{hiveConstruction:'Farrar'},
+  hives:[
+   {id:'hive-1',number:1,constructionProfile:{id:'farrar-6x6-v1',status:'ready'}},
+   {id:'hive-2',number:2,constructionProfile:{id:'farrar-6x6-v1',status:'ready'}}
+  ],
+  families:[{id:'family-1',hiveNumber:1},{id:'family-2',hiveNumber:2}],
+  latestJournalRecords:[{id:'record-1',hive:'hive-1',family:'family-1'},{id:'record-2',hive:'hive-2',family:'family-2'}],
+  tasks:[{id:'task-1',hive:'hive-1'},{id:'task-2',hive:'hive-2'}]
+ };
+ const result=MediaAI.buildContext(full,{hiveId:'hive-1'});
+ assert.equal(result.selectedHive.id,'hive-1');
+ assert.deepEqual(result.families.map(row=>row.id),['family-1']);
+ assert.deepEqual(result.latestJournalRecords.map(row=>row.id),['record-1']);
+ assert.deepEqual(result.tasks.map(row=>row.id),['task-1']);
+ assert.deepEqual(result.modelIntegrity,{status:'warnings',errorCount:0,warningCount:2});
+ assert.equal(JSON.stringify(result).includes('private-hive'),false);
+ assert.equal('hives' in result,false);
+});
+
+test('media context fails closed for missing integrity status and unsupported profiles',()=>{
+ const full={modelIntegrity:{status:'errors',errorCount:1,warningCount:0},hives:[{id:'hive-1',number:1,constructionProfile:{id:'farrar-6x6-v1',status:'ready'}}],families:[],latestJournalRecords:[],tasks:[]};
+ assert.throws(()=>MediaAI.buildContext(full,{hiveId:'hive-1'}),/Целостность данных/);
+ full.modelIntegrity={status:'ok',errorCount:0,warningCount:0};
+ full.hives[0].constructionProfile={id:'sectional-multiqueen-v1',status:'ready'};
+ assert.throws(()=>MediaAI.buildContext(full,{hiveId:'hive-1'}),/не настроен/);
+});
