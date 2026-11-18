@@ -39,3 +39,5 @@ export function validateMediaInput(media,context){
   if(total>MAX_MEDIA_TOTAL_CHARS)return {ok:false,error:'Общий размер кадров превышает безопасный лимит.'};
   return {ok:true,frames};
 }
+
+export function isMediaAIEnabled(env){return env?.MEDIA_AI_ENABLED==='true';}
