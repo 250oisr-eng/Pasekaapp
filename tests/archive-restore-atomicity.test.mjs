@@ -883,6 +883,83 @@ test('archive commit preserves videos added after staging and rejects the stale 
 });
 
 
+test('archive commit rejects same-size media replacement after Phase A hashing', async () => {
+  const db = await makeDatabase();
+  const originalBlob = new Blob(['original'], { type: 'video/mp4' });
+  const originalHash = createHash('sha256').update(Buffer.from('original')).digest('hex');
+  const mediaTx = db.transaction('entrance_media', 'readwrite');
+  mediaTx.objectStore('entrance_media').put({
+    id: 'stable-video-id',
+    hiveId: 'hive-1',
+    capturedAt: '2026-11-14T08:00:00.000Z',
+    durationSec: 1,
+    width: 16,
+    height: 16,
+    bytes: originalBlob.size,
+    mimeType: 'video/mp4',
+    name: 'original.mp4',
+    blob: originalBlob,
+    blobSha256: originalHash
+  });
+  await new Promise((resolve, reject) => {
+    mediaTx.oncomplete = resolve;
+    mediaTx.onabort = mediaTx.onerror = () => reject(mediaTx.error || new Error('media seed failed'));
+  });
+
+  const { staged, archiveApi, cryptoProvider } = await stageMinimalArchive(db);
+  const validationStarted = deferred();
+  const releaseValidation = deferred();
+  let validationCalls = 0;
+  const validateState = async () => {
+    validationCalls++;
+    if (validationCalls === 2) {
+      validationStarted.resolve();
+      await releaseValidation.promise;
+    }
+    return true;
+  };
+  const pending = api.commitStagedArchive(
+    db, staged.session.id, null, cryptoProvider, archiveApi, validateState
+  );
+  await validationStarted.promise;
+
+  const replacementBlob = new Blob(['replaced'], { type: 'video/mp4' });
+  const replacementHash = createHash('sha256').update(Buffer.from('replaced')).digest('hex');
+  const replaceTx = db.transaction('entrance_media', 'readwrite');
+  replaceTx.objectStore('entrance_media').put({
+    id: 'stable-video-id',
+    hiveId: 'hive-1',
+    capturedAt: '2026-11-14T08:00:00.000Z',
+    durationSec: 1,
+    width: 16,
+    height: 16,
+    bytes: replacementBlob.size,
+    mimeType: 'video/mp4',
+    name: 'original.mp4',
+    blob: replacementBlob,
+    blobSha256: replacementHash
+  });
+  await new Promise((resolve, reject) => {
+    replaceTx.oncomplete = resolve;
+    replaceTx.onabort = replaceTx.onerror = () => reject(replaceTx.error || new Error('media replacement failed'));
+  });
+  releaseValidation.resolve();
+
+  await assert.rejects(
+    pending,
+    error => error.code === 'RESTORE_MEDIA_CHANGED'
+  );
+  const verify = db.transaction('entrance_media', 'readonly');
+  const videos = await new Promise((resolve, reject) => {
+    const request = verify.objectStore('entrance_media').getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(videos.length, 1);
+  assert.equal(await videos[0].blob.text(), 'replaced');
+  db.close();
+});
+
 test('archive commit rejects staging metadata changed during Phase A validation', async () => {
   const db = await makeDatabase();
   const started = deferred();
