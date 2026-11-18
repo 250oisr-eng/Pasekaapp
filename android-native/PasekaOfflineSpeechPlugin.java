@@ -269,19 +269,22 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
         Network active = manager.getActiveNetwork();
         if (active == null) return null;
         NetworkCapabilities activeCapabilities = manager.getNetworkCapabilities(active);
-        if (activeCapabilities == null || !activeCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return null;
-        if (activeCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return active;
+        if (activeCapabilities != null
+            && activeCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            && activeCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            return active;
+        }
 
-        // Keep a VPN route when it is layered over an available Wi-Fi network.
-        if (activeCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-            for (Network candidate : manager.getAllNetworks()) {
-                if (candidate.equals(active)) continue;
-                NetworkCapabilities candidateCapabilities = manager.getNetworkCapabilities(candidate);
-                if (candidateCapabilities != null
-                    && candidateCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    && candidateCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                    return active;
-                }
+        // Bind to the actual Wi-Fi transport, never to a VPN virtual network whose
+        // upstream may be cellular. This direct binding may bypass an active VPN;
+        // if the model host is unreachable without VPN, fail instead of using mobile data.
+        for (Network candidate : manager.getAllNetworks()) {
+            if (candidate.equals(active)) continue;
+            NetworkCapabilities candidateCapabilities = manager.getNetworkCapabilities(candidate);
+            if (candidateCapabilities != null
+                && candidateCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                && candidateCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                return candidate;
             }
         }
         return null;
