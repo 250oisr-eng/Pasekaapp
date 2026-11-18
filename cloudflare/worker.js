@@ -76,7 +76,7 @@ function validateMediaInput(media,context){
   for(const frame of frames){
     if(!isPlainObject(frame)||typeof frame.dataUrl!=='string'||frame.dataUrl.length>MAX_MEDIA_FRAME_CHARS)
       return {ok:false,error:'Кадр отсутствует или превышает допустимый размер.'};
-    const match=frame.dataUrl.match(/^data:image\\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/);
+    const match=frame.dataUrl.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/);
     if(!match||match[1].length%4!==0)
       return {ok:false,error:'Кадр имеет неподдерживаемый формат. Требуется JPEG base64.'};
     const padding=match[1].endsWith('==')?2:match[1].endsWith('=')?1:0;
