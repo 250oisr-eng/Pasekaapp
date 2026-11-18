@@ -7,7 +7,8 @@ test('test config gets a distinct Android application id and preserves other Cap
   const testConfig = createIsolatedTestConfig(production);
   assert.equal(testConfig.appId, TEST_APP_ID);
   assert.notEqual(testConfig.appId, production.appId);
-  assert.equal(testConfig.appName, 'Пасека — тест');
+  assert.notEqual(testConfig.appId, 'ru.paseka.journal.test');
+  assert.equal(testConfig.appName, 'Пасека — тест 2');
   assert.equal(testConfig.webDir, production.webDir);
   assert.deepEqual(testConfig.android, production.android);
   assert.equal(production.appId, PRODUCTION_APP_ID);
@@ -19,6 +20,6 @@ test('test config refuses an unknown or already modified app id', () => {
 });
 
 test('generated Gradle project must use only the isolated test application id', () => {
-  assert.equal(assertIsolatedTestApplicationId('defaultConfig { applicationId "ru.paseka.journal.test" }'), true);
+  assert.equal(assertIsolatedTestApplicationId('defaultConfig { applicationId "ru.paseka.journal.test.persistence2" }'), true);
   assert.throws(() => assertIsolatedTestApplicationId('defaultConfig { applicationId "ru.paseka.journal" }'), /not the isolated test id/);
 });

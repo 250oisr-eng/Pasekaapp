@@ -6,6 +6,9 @@ on:
     paths:
       - 'capacitor.config.json'
       - 'scripts/prepare-android-test-config.mjs'
+      - 'scripts/enable-android-persistence-probe.mjs'
+      - 'js/android-persistence-probe.js'
+      - 'tests/android-persistence-probe.test.mjs'
       - 'scripts/prepare-android.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - 'tests/android-test-config.test.mjs'
@@ -59,6 +62,8 @@ jobs:
         run: npm test
       - name: Prepare web assets
         run: npm run web:prepare
+      - name: Enable test-only IndexedDB persistence probe
+        run: node scripts/enable-android-persistence-probe.mjs
       - name: Switch CI workspace to isolated test application id
         run: node scripts/prepare-android-test-config.mjs
       - name: Generate Android project
@@ -67,6 +72,8 @@ jobs:
         run: node scripts/prepare-android.mjs
       - name: Sync Android project
         run: npx cap sync android
+      - name: Verify test-only probe in synced Android assets
+        run: node scripts/verify-android-persistence-probe-assets.mjs
       - name: Patch Android Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
       - name: Enforce Android 15 minimum and isolated application id
@@ -87,10 +94,18 @@ jobs:
           const gradle = await readFile('android/app/build.gradle', 'utf8');
           assertIsolatedTestApplicationId(gradle);
           if (!/minSdkVersion\s*=\s*35/.test(variables)) throw new Error('Android minimum API must remain 35');
-          console.log('Verified test applicationId ru.paseka.journal.test and Android minSdk 35');
+          console.log('Verified test applicationId ru.paseka.journal.test.persistence2 and Android minSdk 35');
           NODE
       - name: Build isolated debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify diagnostic assets inside final APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          unzip -p "$APK" assets/public/index.html > "$RUNNER_TEMP/paseka-test-index.html"
+          unzip -p "$APK" assets/public/js/android-persistence-probe.js > "$RUNNER_TEMP/paseka-test-probe.js"
+          node scripts/verify-android-persistence-probe-assets.mjs "$RUNNER_TEMP/paseka-test-index.html" "$RUNNER_TEMP/paseka-test-probe.js"
       - name: Upload isolated test APK
         uses: actions/upload-artifact@v4
         with:
