@@ -391,11 +391,23 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
         report.browserErrors.push({ type: 'console.error', message: message || 'console.error called' });
       }
     });
+    const networkRequestUrls = new Map();
+    devtools.on('Network.requestWillBeSent', event => {
+      networkRequestUrls.set(event.requestId, event.request.url);
+    });
     devtools.on('Network.responseReceived', event => {
       if (isAllowedLocalUrl(event.response.url, staticServer.origin) && event.response.status >= 400) {
         report.localHttpErrors.push({ url: new URL(event.response.url).pathname, status: event.response.status });
       }
     });
+    devtools.on('Network.loadingFailed', event => {
+      const requestUrl = networkRequestUrls.get(event.requestId);
+      if (requestUrl && isAllowedLocalUrl(requestUrl, staticServer.origin)) {
+        report.localHttpErrors.push({ url: new URL(requestUrl).pathname, error: event.errorText || 'Network request failed' });
+      }
+      networkRequestUrls.delete(event.requestId);
+    });
+    devtools.on('Network.loadingFinished', event => networkRequestUrls.delete(event.requestId));
 
     await devtools.send('Page.enable');
     await devtools.send('Page.addScriptToEvaluateOnNewDocument', {
