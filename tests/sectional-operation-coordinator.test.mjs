@@ -738,14 +738,33 @@ test('OP-07 permits up to two separated foundation frames in each honey body ind
  assert.equal(composition.honey1.frames[3].history.at(-1).to.box,'honey:honey1');assert.ok(composition.honey1.frames[3].history.at(-1).id);assert.equal(composition.honey1.frames[3].history.at(-1).at,NOW);
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
 });
-test('OP-07 distinguishes same-day second-row installation from the approximate 12-day alternative',()=>{
- const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
- const immediate=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-18T10:00:00.000Z',timingMode:'WITH_SECOND_ROW'}),deps);
- assert.equal(immediate.ok,false);assert.equal(immediate.error,'op07_with_second_row_must_be_same_day');
- assert.deepEqual(fixture.state,before);
- const delayed=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-29T10:00:00.000Z',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'}),deps);
- assert.equal(delayed.ok,true,JSON.stringify(delayed.details||delayed));
- assert.equal(fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.daysAfterSecondRow,12);
+test('OP-07 allows installation with the second row or 12-15 calendar days later only',()=>{
+ const accepted=[
+  {occurredAt:'2026-11-17T10:00:00.000Z',timingMode:'WITH_SECOND_ROW',days:0},
+  {occurredAt:'2026-11-29T10:00:00.000Z',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW',days:12},
+  {occurredAt:'2026-12-02T10:00:00.000Z',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW',days:15}
+ ];
+ for(const scenario of accepted){
+  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared,scenario),deps);
+  assert.equal(result.ok,true,JSON.stringify(result.details||result));
+  const evidence=fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence;
+  assert.equal(evidence.daysAfterSecondRow,scenario.days);
+  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+ }
+ for(const [occurredAt,days] of [['2026-11-28T10:00:00.000Z',11],['2026-12-03T10:00:00.000Z',16]]){
+  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
+  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt,timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'}),deps);
+  assert.equal(result.ok,false);
+  assert.equal(result.error,'op07_delayed_timing_outside_12_15_day_window');
+  assert.equal(result.details.daysAfterSecondRow,days);
+  assert.deepEqual(fixture.state,before);
+ }
+ const tampered=prepareOP07Fixture(),{fixture,deps}=tampered;
+ const completed=Coordinator.completeOP07(fixture.state,op07Request(tampered,{occurredAt:'2026-11-29T10:00:00.000Z',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'}),deps);
+ assert.equal(completed.ok,true,JSON.stringify(completed.details||completed));
+ fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.daysAfterSecondRow=11;
+ assert.ok(Coordinator.inspect(fixture.state,deps).some(error=>error.code==='sectional_tech_process_op07_timing_evidence_mismatch'));
 });
 
 test('OP-07 requires an explicit timing variant and a complete pair of honey bodies',()=>{
