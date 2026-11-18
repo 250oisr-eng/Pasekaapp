@@ -221,7 +221,7 @@ test('application upgrades to IndexedDB v4 and loads lifecycle modules before st
  assert.match(html,/PasekaMediaJobStore\.ensureStore\(d\)/);
  assert.ok(html.indexOf('media-lifecycle.js')<html.indexOf('media-job-store.js'));
  assert.ok(html.indexOf('media-job-store.js')<html.indexOf('entrance-analysis.js'));
- assert.match(sw,/paseka-shell-v314/);
+ assert.match(sw,/paseka-shell-v315/);
  assert.match(sw,/\.\/js\/media-lifecycle\.js/);
  assert.match(sw,/\.\/js\/media-job-store\.js/);
 });

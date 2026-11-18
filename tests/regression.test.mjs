@@ -11,7 +11,8 @@ const equipmentInventorySource = await readFile(new URL('../js/equipment-invento
 const equipmentItemsSource = await readFile(new URL('../js/equipment-items.js', import.meta.url), 'utf8');
 const sectionalPhysicalLayoutSource = await readFile(new URL('../js/sectional-physical-layout.js', import.meta.url), 'utf8');
 const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
-const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');\nconst mediaAnalysisResultsSource = await readFile(new URL('../js/media-analysis-results.js', import.meta.url), 'utf8');
+const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
+const mediaAnalysisResultsSource = await readFile(new URL('../js/media-analysis-results.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -24,7 +25,8 @@ new Function('window', equipmentInventorySource)(appWindow);
 new Function('window', equipmentItemsSource)(appWindow);
 new Function('window', sectionalPhysicalLayoutSource)(appWindow);
 new Function('window', familyLineageSource)(appWindow);
-new Function('window', sectionalOperationCoordinatorSource)(appWindow);\nnew Function('window', mediaAnalysisResultsSource)(appWindow);
+new Function('window', sectionalOperationCoordinatorSource)(appWindow);
+new Function('window', mediaAnalysisResultsSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -55,7 +57,8 @@ function loadFunction(name, globals = {}) {
   deps.PasekaEquipmentItems ||= appWindow.PasekaEquipmentItems;
   deps.PasekaSectionalPhysicalLayout ||= appWindow.PasekaSectionalPhysicalLayout;
   deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
-  deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;\n  deps.PasekaMediaAnalysisResults ||= appWindow.PasekaMediaAnalysisResults;
+  deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
+  deps.PasekaMediaAnalysisResults ||= appWindow.PasekaMediaAnalysisResults;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -1221,7 +1224,7 @@ function malformedSchema12Backup(){
  return {at:'old',state};
 }
 function futureSchemaBackup(){
- return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:16}}};
+ return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:17}}};
 }
 function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
@@ -1336,7 +1339,7 @@ function automaticBackupValidatorForTests(){
 test('automatic backup validation rejects malformed and structurally corrupted snapshots',()=>{
  const validate=automaticBackupValidatorForTests();
  assert.throws(()=>validate(null),/не содержит состояние/i);
- assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:16}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:17}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
  const corrupt={...rawBackupFixture(),hives:[{id:'same',number:1},{id:'same',number:2}]};
  assert.throws(()=>validate({state:corrupt}),/не прошёл проверку исходных данных/i);
  const valid={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'valid-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
@@ -1357,7 +1360,7 @@ test('startup preserves an automatic backup from a newer schema without attempti
  assert.equal(writes,0,'a future-schema backup must never be silently replaced');
  assert.equal(reads,0);
  assert.match(current.meta.autoBackupError,/более новой версией приложения/i);
- assert.equal(future.state.meta.schemaVersion,16);
+ assert.equal(future.state.meta.schemaVersion,17);
 });
 
 test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
@@ -1449,7 +1452,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:16}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:17}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -2349,7 +2352,7 @@ test('startup read recovers from a failed main read when a backup is available',
 });
 
 test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
- const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:16}}};
+ const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:17}}};
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
@@ -3600,7 +3603,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v314/);
+ assert.match(sw,/paseka-shell-v315/);
 });
 
 
@@ -3726,7 +3729,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v314/);
+  assert.match(source,/paseka-shell-v315/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
@@ -3750,7 +3753,7 @@ test('save integrity gate validates physical body inventory before persisting',(
 
 test('schema 15 migration preserves existing media analysis results and initializes schema 16',()=>{const previous=[{id:'result-old',jobId:'job-old',kind:'image',capturedAt:'2026-11-17T10:00:00.000Z',createdAt:'2026-11-17T10:01:00.000Z',originalRef:'media-job:job-old',result:{observations:[{label:'bee'}]}}],state={meta:{schemaVersion:15},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],mediaAnalysisResults:previous,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},migrate=loadFunction('migrateState',{S:state,uid:()=> 'migration-id'});assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,16);assert.deepEqual(state.mediaAnalysisResults,previous);assert.equal(migrate(),false)});
 test('schema 15 migration initializes an empty media analysis result register',()=>{const state={meta:{schemaVersion:15},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},migrate=loadFunction('migrateState',{S:state,uid:()=> 'migration-id'});assert.equal(migrate(),true);assert.deepEqual(state.mediaAnalysisResults,[]);assert.equal(state.meta.schemaVersion,16)});
-test('schema 16 migration refuses malformed media result records without replacing source data',()=>{const malformed=[{id:'bad',jobId:'job',kind:'image',capturedAt:'bad',createdAt:'bad',originalRef:'media-job:job',result:{}}],state={meta:{schemaVersion:16},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],mediaAnalysisResults:malformed,records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},before=structuredClone(state);assert.throws(()=>loadFunction('migrateState',{S:state})(),/Повреждён реестр результатов анализа медиа/);assert.deepEqual(state,before)});
+test('schema 16 migration rejects a malformed media result register without replacing source data',()=>{const state={meta:{schemaVersion:16},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],mediaAnalysisResults:{broken:true},records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]},before=structuredClone(state);assert.throws(()=>loadFunction('migrateState',{S:state})(),/Повреждён реестр результатов анализа медиа/);assert.deepEqual(state,before)});
 test('schema 15 JSON backups remain compatible while schema 16 requires valid media results',()=>{const validate=loadFunction('validateBackupState'),legacy={...rawBackupFixture(),meta:{schemaVersion:15},familyEvents:[],sectionalTechProcesses:[]};assert.equal(validate(legacy),legacy);const missing={...legacy,meta:{schemaVersion:16}};assert.throws(()=>validate(missing),/mediaAnalysisResults/);const valid={...missing,mediaAnalysisResults:[]};assert.equal(validate(valid),valid);assert.throws(()=>validate({...valid,mediaAnalysisResults:[{id:'bad'}]}),/результатов анализа медиа/)});
 test('automatic backup keeps previous revision while merging latest media analysis results',async()=>{const factory=new IDBFactory(),name='media-result-backup-'+(++indexedDbTestSequence),request=factory.open(name,1);const db=await new Promise((resolve,reject)=>{request.onupgradeneeded=()=>{request.result.createObjectStore('main');request.result.createObjectStore('full_backup')};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});try{const previous={meta:{schemaVersion:16,revisionId:'previous-revision'},hives:[{id:'h1'}],mediaAnalysisResults:[]},current={meta:{schemaVersion:16,revisionId:'current-revision'},hives:[{id:'h1'}]},seed=db.transaction(['main','full_backup'],'readwrite');seed.objectStore('main').put(current,'state');seed.objectStore('full_backup').put({state:previous},'previous');await new Promise((resolve,reject)=>{seed.oncomplete=resolve;seed.onerror=()=>reject(seed.error);seed.onabort=()=>reject(seed.error)});const latest=[{id:'result-1',jobId:'job-1',kind:'image',capturedAt:'2026-11-18T10:00:00.000Z',createdAt:'2026-11-18T10:01:00.000Z',originalRef:'media-job:job-1',result:{observations:[]}}],write=loadFunction('writeAutoBackup',{db,STORE:'main',BACKUP_STORE:'full_backup'});assert.equal(await write(previous,'current-revision',latest),true);const tx=db.transaction('full_backup','readonly'),saved=await new Promise((resolve,reject)=>{const q=tx.objectStore('full_backup').get('previous');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});assert.equal(saved.state.meta.revisionId,'previous-revision');assert.deepEqual(saved.state.hives,previous.hives);assert.deepEqual(saved.state.mediaAnalysisResults,latest);assert.equal(Object.hasOwn(saved.state,'blob'),false)}finally{db.close()}});
 test('persistSnapshot passes current media results into previous-state auto backup',async()=>{const results=[{id:'result-1',jobId:'job-1',kind:'image',capturedAt:'2026-11-18T10:00:00.000Z',createdAt:'2026-11-18T10:01:00.000Z',originalRef:'media-job:job-1',result:{observations:[]}}],snapshot={meta:{revisionId:'new-revision'},mediaAnalysisResults:results};let args=null;const deps={S:{meta:{revisionId:'new-revision'}},lastPersistedRevision:'old-revision',autoBackupInfo:null,writeMainIfUnchanged:async()=>({meta:{revisionId:'previous-revision'}}),writeAutoBackup:async(...values)=>{args=values;return true},render:()=>{}};assert.equal(await loadFunction('persistSnapshot',deps)(snapshot),true);assert.deepEqual(args[2],results)});
