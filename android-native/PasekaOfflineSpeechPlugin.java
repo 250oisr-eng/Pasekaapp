@@ -89,11 +89,12 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
             call.reject("Сначала останови голосовой сеанс.", "VOICE_SESSION_ACTIVE");
             return;
         }
-        if (!isWifiConnected()) {
-            call.reject("Для загрузки офлайн-модели подключись к Wi-Fi. Аудио при распознавании не отправляется.", "WIFI_REQUIRED");
+        Network wifiNetwork = getWifiNetwork();
+        if (wifiNetwork == null) {
+            call.reject("Для загрузки офлайн-модели подключись к Wi-Fi. Мобильный трафик не используется.", "WIFI_REQUIRED");
             return;
         }
-        executor.execute(() -> downloadAndInstallModel(call));
+        executor.execute(() -> downloadAndInstallModel(call, wifiNetwork));
     }
 
     @PluginMethod
@@ -244,18 +245,19 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
         }
     }
 
-    private boolean isWifiConnected() {
+    private Network getWifiNetwork() {
         ConnectivityManager manager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (manager == null) return false;
+        if (manager == null) return null;
         Network network = manager.getActiveNetwork();
-        if (network == null) return false;
+        if (network == null) return null;
         NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
-        return capabilities != null
-            && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+        if (capabilities == null
+            || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            || !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return null;
+        return network;
     }
 
-    private void downloadAndInstallModel(PluginCall call) {
+    private void downloadAndInstallModel(PluginCall call, Network wifiNetwork) {
         File files = getContext().getFilesDir();
         File archive = new File(files, MODEL_VERSION + ".zip.part");
         File staging = new File(files, MODEL_VERSION + ".staging");
@@ -271,7 +273,7 @@ public class PasekaOfflineSpeechPlugin extends Plugin {
             deleteRecursively(staging);
             if (archive.exists() && !archive.delete()) throw new IOException("Не удалось удалить временный архив");
 
-            connection = (HttpURLConnection) new URL(MODEL_URL).openConnection();
+            connection = (HttpURLConnection) wifiNetwork.openConnection(new URL(MODEL_URL));
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(30000);
             connection.setInstanceFollowRedirects(true);
