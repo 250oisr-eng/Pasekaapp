@@ -63,6 +63,29 @@ test('enqueue stores original Blob and metadata durably across database reopen',
  }finally{env.db.close()}
 });
 
+test('video capture metadata is validated and survives database reopen',async()=>{
+ const env=await createDb();
+ try{
+  const job=await env.repo.enqueue({...queued(),id:'video-1',kind:'video',name:'entrance.mp4',
+   blob:new Blob(['entrance-video'],{type:'video/mp4'}),mimeType:'video/mp4',
+   captureMetadata:{durationSec:60,width:1920,height:1080,frameQualityStatus:'good'}});
+  assert.deepEqual(job.captureMetadata,{durationSec:60,width:1920,height:1080,frameQualityStatus:'good'});
+  env.db.close();env.db=await openDatabase(env.factory,env.name,1);
+  env.repo=Media.createMediaJobStore({db:env.db,lifecycle:scope.PasekaMediaLifecycle,now:fixedNow});
+  const restored=await env.repo.get('video-1');
+  assert.deepEqual(restored.captureMetadata,job.captureMetadata);
+  assert.equal(await restored.blob.text(),'entrance-video');
+ }finally{env.db.close()}
+});
+test('capture metadata rejects invalid dimensions, duration and quality status',async()=>{
+ const env=await createDb();
+ try{
+  await assert.rejects(env.repo.enqueue({...queued(),captureMetadata:{width:0,height:1080}}),/разрешение/);
+  await assert.rejects(env.repo.enqueue({...queued(),id:'bad-duration',captureMetadata:{durationSec:0}}),/длительность/);
+  await assert.rejects(env.repo.enqueue({...queued(),id:'bad-quality',captureMetadata:{frameQualityStatus:'excellent'}}),/качества/);
+ }finally{env.db.close()}
+});
+
 test('enqueue rejects invalid media and duplicate identifiers without overwriting the original',async()=>{
  const env=await createDb();
  try{
