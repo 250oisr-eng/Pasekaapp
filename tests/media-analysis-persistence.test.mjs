@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { readFile } from 'node:fs/promises';
+
 const [html,lifecycleSource,storeSource,resultSource]=await Promise.all([
  readFile(new URL('../index.html',import.meta.url),'utf8'),
  readFile(new URL('../js/media-lifecycle.js',import.meta.url),'utf8'),
@@ -15,6 +16,8 @@ function extract(name){
  const end=next.exec(html);return html.slice(match.index,end?end.index:html.indexOf('</script>',match.index));
 }
 const scope={};new Function('window',lifecycleSource)(scope);new Function('window',storeSource)(scope);new Function('window',resultSource)(scope);
+function loadFunction(name,deps={}){deps.PasekaMediaJobStore||=scope.PasekaMediaJobStore;deps.PasekaMediaLifecycle||=scope.PasekaMediaLifecycle;deps.PasekaMediaAnalysisResults||=scope.PasekaMediaAnalysisResults;return new Function('deps','with(deps){return ('+extract(name)+');}')(deps)}
+function makePersist(deps){return loadFunction('persistMediaAnalysisResult',deps)}
 let dbSequence=0;
 async function setup(){
  const factory=new IDBFactory(),request=factory.open('media-persist-'+(++dbSequence),1);
@@ -24,30 +27,48 @@ async function setup(){
  await repo.transition('job-1','analyzing');await repo.receiveResult('job-1',{observations:[{label:'bee',count:2}]});
  return {db,repo};
 }
-function makePersist(deps){return new Function('deps','with(deps){return ('+extract('persistMediaAnalysisResult')+');}')(deps)}
-test('app persistence stores result in S before marking the media job persisted and retains the original Blob',async()=>{
+function backupDependencies(db){
+ const readAutoBackup=loadFunction('readAutoBackup',{db,BACKUP_STORE:'full_backup',autoBackupInfo:null});
+ const verifyMediaAnalysisResultBackup=loadFunction('verifyMediaAnalysisResultBackup');
+ const confirmMediaAnalysisResultBackup=loadFunction('confirmMediaAnalysisResultBackup',{
+  db,BACKUP_STORE:'full_backup',PasekaMediaJobStore:scope.PasekaMediaJobStore,
+  PasekaMediaLifecycle:scope.PasekaMediaLifecycle,PasekaMediaAnalysisResults:scope.PasekaMediaAnalysisResults,
+  readAutoBackup,verifyMediaAnalysisResultBackup
+ });
+ return {readAutoBackup,verifyMediaAnalysisResultBackup,confirmMediaAnalysisResultBackup};
+}
+test('app persists the result in S, confirms exact auto backup and retains the original Blob',async()=>{
  const env=await setup();try{
   let saves=0,durable=null;
-  const deps={db:env.db,S:{meta:{},mediaAnalysisResults:[]},PasekaMediaJobStore:scope.PasekaMediaJobStore,PasekaMediaLifecycle:scope.PasekaMediaLifecycle,PasekaMediaAnalysisResults:scope.PasekaMediaAnalysisResults,BACKUP_STORE:'full_backup',readAutoBackup:loadFunction('readAutoBackup',{db:env.db,BACKUP_STORE:'full_backup'}),confirmMediaAnalysisResultBackup:loadFunction('confirmMediaAnalysisResultBackup',{db:env.db,BACKUP_STORE:'full_backup',PasekaMediaJobStore:scope.PasekaMediaJobStore,PasekaMediaLifecycle:scope.PasekaMediaLifecycle,PasekaMediaAnalysisResults:scope.PasekaMediaAnalysisResults,readAutoBackup:loadFunction('readAutoBackup',{db:env.db,BACKUP_STORE:'full_backup'})}),save:async()=>{saves++;durable=structuredClone(deps.S);durable.meta.revisionId='backup-rev';const tx=env.db.transaction('full_backup','readwrite');tx.objectStore('full_backup').put({state:durable},'previous');await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});return true},render:()=>{}};
+  const backup=backupDependencies(env.db);
+  const deps={db:env.db,BACKUP_STORE:'full_backup',S:{meta:{revisionId:'main-rev'},mediaAnalysisResults:[]},
+   PasekaMediaJobStore:scope.PasekaMediaJobStore,PasekaMediaLifecycle:scope.PasekaMediaLifecycle,
+   PasekaMediaAnalysisResults:scope.PasekaMediaAnalysisResults,...backup,
+   save:async()=>{saves++;durable=structuredClone(deps.S);durable.meta.revisionId='backup-rev';
+    const tx=env.db.transaction('full_backup','readwrite');tx.objectStore('full_backup').put({state:durable},'previous');
+    await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});return true;
+   },render:()=>{}
+  };
   const persist=makePersist(deps),job=await persist('job-1');
-  assert.equal(job.status,'result_persisted');assert.equal(job.resultId,'media-result:job-1');assert.equal(job.resultBackupRevisionId,'backup-rev');assert.ok(job.resultBackupVerifiedAt);
+  assert.equal(job.status,'result_persisted');assert.equal(job.resultId,'media-result:job-1');
+  assert.equal(job.resultBackupRevisionId,'backup-rev');assert.ok(job.resultBackupVerifiedAt);
   assert.equal(deps.S.mediaAnalysisResults.length,1);assert.deepEqual(durable.mediaAnalysisResults,deps.S.mediaAnalysisResults);
-  assert.equal(deps.S.mediaAnalysisResults[0].originalRef,'media-job:job-1');assert.equal(await (await env.repo.get('job-1')).blob.text(),'original-frame');
-  await persist('job-1');assert.equal(deps.S.mediaAnalysisResults.length,1,'retry must not duplicate the result');assert.equal(saves,2);assert.equal((await env.repo.get('job-1')).status,'result_persisted');
+  assert.equal(deps.S.mediaAnalysisResults[0].originalRef,'media-job:job-1');
+  assert.equal(await (await env.repo.get('job-1')).blob.text(),'original-frame');
+  await persist('job-1');assert.equal(deps.S.mediaAnalysisResults.length,1,'retry must not duplicate the result');
+  assert.equal(saves,2);assert.equal((await env.repo.get('job-1')).status,'result_persisted');
  }finally{env.db.close()}
 });
 test('failed state persistence rolls back the result register and leaves the media job retryable',async()=>{
  const env=await setup();try{
-  const original={meta:{},mediaAnalysisResults:[]};
-  const deps={db:env.db,S:original,PasekaMediaJobStore:scope.PasekaMediaJobStore,PasekaMediaLifecycle:scope.PasekaMediaLifecycle,PasekaMediaAnalysisResults:scope.PasekaMediaAnalysisResults,save:async()=>false,render:()=>{}};
+  const original={meta:{},mediaAnalysisResults:[]},deps={db:env.db,S:original,save:async()=>false,render:()=>{}};
   await assert.rejects(makePersist(deps)('job-1'),/Не удалось сохранить результат анализа/);
   assert.deepEqual(deps.S.mediaAnalysisResults,[]);assert.equal((await env.repo.get('job-1')).status,'result_received');
  }finally{env.db.close()}
 });
 test('save exception rolls back in-memory result changes without changing the media job',async()=>{
  const env=await setup();try{
-  const original={meta:{},mediaAnalysisResults:[]},failure=new Error('storage exception');
-  const deps={db:env.db,S:original,PasekaMediaJobStore:scope.PasekaMediaJobStore,PasekaMediaLifecycle:scope.PasekaMediaLifecycle,PasekaMediaAnalysisResults:scope.PasekaMediaAnalysisResults,save:async()=>{throw failure},render:()=>{}};
+  const original={meta:{},mediaAnalysisResults:[]},failure=new Error('storage exception'),deps={db:env.db,S:original,save:async()=>{throw failure},render:()=>{}};
   await assert.rejects(makePersist(deps)('job-1'),error=>error===failure);
   assert.deepEqual(deps.S.mediaAnalysisResults,[]);assert.equal((await env.repo.get('job-1')).status,'result_received');
  }finally{env.db.close()}
