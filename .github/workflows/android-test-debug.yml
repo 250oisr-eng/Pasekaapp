@@ -72,6 +72,8 @@ jobs:
         run: node scripts/prepare-android.mjs
       - name: Sync Android project
         run: npx cap sync android
+      - name: Verify test-only probe in synced Android assets
+        run: node scripts/verify-android-persistence-probe-assets.mjs
       - name: Patch Android Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
       - name: Enforce Android 15 minimum and isolated application id
@@ -96,6 +98,14 @@ jobs:
           NODE
       - name: Build isolated debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify diagnostic assets inside final APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          unzip -p "$APK" assets/public/index.html > "$RUNNER_TEMP/paseka-test-index.html"
+          unzip -p "$APK" assets/public/js/android-persistence-probe.js > "$RUNNER_TEMP/paseka-test-probe.js"
+          node scripts/verify-android-persistence-probe-assets.mjs "$RUNNER_TEMP/paseka-test-index.html" "$RUNNER_TEMP/paseka-test-probe.js"
       - name: Upload isolated test APK
         uses: actions/upload-artifact@v4
         with:
