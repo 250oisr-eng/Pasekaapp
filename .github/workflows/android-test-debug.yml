@@ -6,6 +6,9 @@ on:
     paths:
       - 'capacitor.config.json'
       - 'scripts/prepare-android-test-config.mjs'
+      - 'scripts/enable-android-persistence-probe.mjs'
+      - 'js/android-persistence-probe.js'
+      - 'tests/android-persistence-probe.test.mjs'
       - 'scripts/prepare-android.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - 'tests/android-test-config.test.mjs'
@@ -59,6 +62,8 @@ jobs:
         run: npm test
       - name: Prepare web assets
         run: npm run web:prepare
+      - name: Enable test-only IndexedDB persistence probe
+        run: node scripts/enable-android-persistence-probe.mjs
       - name: Switch CI workspace to isolated test application id
         run: node scripts/prepare-android-test-config.mjs
       - name: Generate Android project
