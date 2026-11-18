@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { NAV_TABS, isAllowedAppPath, isAllowedLocalUrl, resolveSafePath } from '../scripts/local-browser-smoke.mjs';
+import { NAV_TABS, isAllowedAppPath, isAllowedLocalUrl, normalizeDevToolsUrl, resolveSafePath } from '../scripts/local-browser-smoke.mjs';
 
 test('local browser runner serves only files inside the project root', () => {
   const root = resolve('C:/paseka/project');
@@ -42,4 +42,11 @@ test('local server exposes only the application runtime files', () => {
   assert.equal(isAllowedAppPath('package.json'), false);
   assert.equal(isAllowedAppPath('PROJECT_STATUS.md'), false);
   assert.equal(isAllowedAppPath('docs/ПАСПОРТ-ПРОЕКТА.md'), false);
+});
+
+test('DevTools websocket is pinned to the loopback IPv4 endpoint', () => {
+  assert.equal(
+    normalizeDevToolsUrl('ws://localhost:9222/devtools/page/abc'),
+    'ws://127.0.0.1:9222/devtools/page/abc'
+  );
 });
