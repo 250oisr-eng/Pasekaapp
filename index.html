@@ -565,7 +565,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 </section>
 <section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится одна копия предыдущего состояния. В неё входят вложения записей и сохранённые результаты анализа медиа. Временные исходники очереди и отдельное видео летка в копию не включаются. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. В него входят вложения записей и сохранённые результаты анализа медиа. Временные исходники очереди и отдельное видео летка не включаются.</p><button class="primary" onclick="downloadBackup()">Скачать архив</button><label>Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Безвозвратно удаляет все ульи, семьи, рамки, записи журнала, задачи и локальные резервные снимки на этом устройстве. Перед удалением скачай архив.</p><button type="button" style="background:#a83225;color:white" onclick="deleteAllData()">Удалить все данные</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
 </main>
-<dialog id="entranceVideoPreviewDlg" style="width:min(96vw,760px)" onclose="cleanupEntranceVideoPreview()"><h2>Видео летка</h2><video id="entranceVideoPreview" controls playsinline style="width:100%;max-height:65vh;background:#111;border-radius:12px"></video><p class="muted" id="entranceVideoPreviewInfo"></p><button type="button" onclick="closeEntranceVideoPreview()">Закрыть</button></dialog>
+<dialog id="entranceVideoPreviewDlg" style="width:min(96vw,760px)" onclose="cleanupEntranceVideoPreview()"><h2>Видео летка</h2><video id="entranceVideoPreview" controls playsinline style="width:100%;max-height:65vh;background:#111;border-radius:12px"></video><p class="muted" id="entranceVideoPreviewInfo"></p><button type="button" onclick="closeEntranceVideoPreview()">Закрыть</button></dialog><dialog id="mediaAnalysisPhotoPreviewDlg" style="width:min(96vw,760px)" onclose="cleanupMediaAnalysisPhotoPreview()"><h2>Фото для анализа</h2><img id="mediaAnalysisPhotoPreview" alt="Локальная фотография" style="display:block;width:100%;max-height:70vh;object-fit:contain;border-radius:10px"><p class="muted" id="mediaAnalysisPhotoPreviewInfo"></p><button type="button" onclick="$('mediaAnalysisPhotoPreviewDlg').close()">Закрыть</button></dialog>
 <dialog id="familyTransferDlg"><h2>Перемещение семьи</h2><form id="familyTransferForm"><input type="hidden" id="transferFamilyId"><p id="transferFamilyInfo" class="muted"></p><label>В какой улей переместить</label><select id="transferTargetHive" required onchange="updateFamilyTransferTargets()"></select><label>Свободный установленный корпус</label><select id="transferTargetBox" required></select><p class="media-note">Вместе с семьёй переместятся все её рамки. Физические корпуса остаются на своих местах: рамки обменяются с рамками выбранного свободного корпуса назначения.</p><div class="row"><button type="button" onclick="$('familyTransferDlg').close()">Отмена</button><button class="primary">Переместить семью и рамки</button></div></form></dialog>
 <dialog id="hiveDlg"><h2 id="hiveDialogTitle">Новый улей</h2><form id="hiveForm"><label>Первоначальная комплектация</label><select id="newHiveMode"><option value="summer">Летняя</option><option value="winter">Зимняя</option></select><label>Примечание об улье (необязательно)</label><textarea id="hiveDesc" placeholder="Например, особенности размещения или обслуживания"></textarea><button class="primary">Создать и настроить корпуса</button><button type="button" onclick="hiveDlg.close()">Отмена</button></form></dialog>
 <dialog id="familyDlg"><h2 id="familyDialogTitle">Новая семья</h2><form id="familyForm"><input type="hidden" id="familyHive"><input type="hidden" id="familyId"><label>Код семьи (формируется автоматически)</label><input id="familyName" readonly required><label>Как появилась семья</label><select id="familyOrigin" required onchange="syncFamilyOrigin()"><option value="">Выбери происхождение</option><option value="package">Пчелопакет</option><option value="swarm">Рой</option><option value="family">Готовая семья</option><option value="offshoot">Отводок</option></select><div id="familyParentWrap" style="display:none"><label>От какой семьи сделан отводок</label><select id="familyParent"><option value="">Выбери исходную семью</option></select></div><label>Порода (можно указать любую)</label><input id="breed" list="breedOptions" maxlength="100" placeholder="Например, карника, бакфаст или местная"><datalist id="breedOptions"><option value="Карпатка"></option><option value="Карника"></option><option value="Бакфаст"></option><option value="Среднерусская"></option><option value="Итальянская"></option><option value="Серая горная кавказская"></option><option value="Местная / помесная"></option><option value="Неизвестная"></option></datalist><label>Линия / селекционная группа (необязательно)</label><input id="familyLine" maxlength="120" placeholder="Название линии или номер"><label>Матка: индивидуальный номер (необязательно)</label><input id="queenCode" maxlength="80" placeholder="Например, Q-2026-014"><label>Год вывода матки</label><input id="queenYear" type="number" min="1900" max="2100" placeholder="Год"><label>Происхождение матки / поставщик</label><input id="queenSource" maxlength="160" placeholder="Питомник, заводчик, собственный вывод"><label>Примечание о происхождении</label><textarea id="queenNotes" maxlength="1000" placeholder="Покупка, родословная, сведения о родителях и спаривании"></textarea><button class="primary">Сохранить</button><button type="button" onclick="$('familyDlg').close()">Отмена</button></form></dialog>
@@ -1428,25 +1428,27 @@ async function viewEntranceVideo(id){
 let entrancePreviewUrl=null;
 function cleanupEntranceVideoPreview(){const video=$('entranceVideoPreview');if(video){video.pause();video.removeAttribute('src');video.load()}if(entrancePreviewUrl){URL.revokeObjectURL(entrancePreviewUrl);entrancePreviewUrl=null}}
 function closeEntranceVideoPreview(){const dialog=$('entranceVideoPreviewDlg');if(dialog?.open)dialog.close();cleanupEntranceVideoPreview()}
+async function removeMediaJobOriginal(id){
+ const repository=mediaJobRepository(),job=await repository.get(id);
+ if(!job||!['result_persisted','cleanup_pending'].includes(job.status)||!job.resultBackupRevisionId||!job.resultBackupVerifiedAt)
+  throw new Error('Удаление исходника доступно только после сохранения результата и подтверждения точной резервной копии. Оригинал не изменён.');
+ const kind=job.kind==='image'?'фотографии':'видео';
+ if(!confirm('Удалить оригинал '+kind+' с этого устройства? Результат анализа останется в журнале и резервной копии. Это действие нельзя отменить.'))return;
+ if(job.status==='result_persisted'){
+  if(job.retainOriginal===true)await repository.setRetainOriginal(id,false);
+  await repository.scheduleCleanup(id);
+ }
+ const verifyBackup=({job:current,backupRecord,backupRevisionId})=>verifyMediaAnalysisResultBackup({job:current,backupRecord,backupRevisionId});
+ const completed=await repository.cleanup(id,{verifyBackup});
+ if(completed.status!=='completed_deleted')throw new Error('Оригинал не удалён: финальная проверка резервной копии не пройдена.');
+ await refreshMediaAnalysisJobs();await refreshEntranceVideos();
+}
 async function removeEntranceVideo(id){
  try{
-  const repository=mediaJobRepository(),job=await repository.get(id);
-  if(job){
-   if(!['result_persisted','cleanup_pending'].includes(job.status)||!job.resultBackupRevisionId||!job.resultBackupVerifiedAt)
-    throw new Error('Удаление исходника доступно только после сохранения результата и подтверждения точной резервной копии. Оригинал не изменён.');
-   if(!confirm('Удалить оригинал видео с этого устройства? Результат анализа останется в журнале и резервной копии. Это действие нельзя отменить.'))return;
-   if(job.status==='result_persisted'){
-    if(job.retainOriginal===true)await repository.setRetainOriginal(id,false);
-    await repository.scheduleCleanup(id);
-   }
-   const verifyBackup=({job:current,backupRecord,backupRevisionId})=>verifyMediaAnalysisResultBackup({job:current,backupRecord,backupRevisionId});
-   const completed=await repository.cleanup(id,{verifyBackup});
-   if(completed.status!=='completed_deleted')throw new Error('Оригинал не удалён: финальная проверка резервной копии не пройдена.');
-  }else{
-   if(!confirm('Удалить старую видеозапись с этого устройства? Это действие нельзя отменить.'))return;
-   await deleteEntranceVideoBlob(id);
-  }
-  await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Операция с оригиналом завершена.';
+  const job=await mediaJobRepository().get(id);
+  if(job){await removeMediaJobOriginal(id);const status=$('entranceVideoStatus');if(status)status.textContent='Оригинал видео удалён после проверки резервной копии.';return}
+  if(!confirm('Удалить старую видеозапись с этого устройства? Это действие нельзя отменить.'))return;
+  await deleteEntranceVideoBlob(id);await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Старая видеозапись удалена с устройства.';
  }catch(error){alert(error.message||'Не удалось удалить видео')}
 }
 async function refreshMediaAnalysisJobs(){
@@ -1454,8 +1456,20 @@ async function refreshMediaAnalysisJobs(){
  try{
   const jobs=await mediaJobRepository().list();
   const labels={queued:'В очереди · локально',analyzing:'Анализируется',failed_retryable:'Ошибка · можно повторить',failed_permanent:'Требуется проверка',result_received:'Результат получен · не сохранён',result_persisted:'Результат сохранён',cleanup_pending:'Ожидает удаления',completed_retained:'Оригинал сохранён',completed_deleted:'Оригинал удалён'};
-  host.innerHTML=jobs.length?'<div class="muted" style="margin-top:10px">Локальная очередь · '+jobs.length+'</div>'+jobs.map(job=>'<div class="task-item"><b>'+(job.kind==='image'?'Фото':'Видео')+'</b> · '+safe(hname(job.hiveId))+' · '+safe(labels[job.status]||job.status)+'<div class="muted">'+safe(new Date(job.capturedAt).toLocaleString('ru-RU'))+' · '+entranceBytes(job.bytes)+' · '+(job.retainOriginal?'оригинал сохраняется':'удаление возможно после результата и backup')+'</div></div>').join(''):'<p class="muted">Очередь пока пуста.</p>';
+  host.innerHTML=jobs.length?'<div class="muted" style="margin-top:10px">Локальная очередь · '+jobs.length+'</div>'+jobs.map(job=>{
+   const view=job.kind==='image'?'viewMediaAnalysisPhoto':'viewEntranceVideo';
+   const canRemove=['result_persisted','cleanup_pending'].includes(job.status)&&!!job.resultBackupRevisionId&&!!job.resultBackupVerifiedAt;
+   return '<div class="task-item"><b>'+(job.kind==='image'?'Фото':'Видео')+'</b> · '+safe(hname(job.hiveId))+' · '+safe(labels[job.status]||job.status)+'<div class="muted">'+safe(new Date(job.capturedAt).toLocaleString('ru-RU'))+' · '+entranceBytes(job.bytes)+' · '+(job.retainOriginal?'оригинал сохраняется':'удаление разрешено после результата и backup')+'</div><div class="row" style="margin-top:6px"><button type="button" onclick="'+view+'(\''+safe(job.id)+'\')">Просмотреть</button>'+(canRemove?'<button type="button" onclick="removeMediaJobOriginal(\''+safe(job.id)+'\')">Удалить оригинал</button>':'<span class="muted">Удаление заблокировано до результата и подтверждённой копии</span>')+'</div></div>';
+  }).join(''):'<p class="muted">Очередь пока пуста.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальную очередь: '+(error.message||error)}
+}
+let mediaPhotoPreviewUrl=null;
+async function viewMediaAnalysisPhoto(id){
+ try{const job=await mediaJobRepository().get(id);if(!job||job.kind!=='image'||!job.blob)throw new Error('Исходная фотография недоступна.');const image=$('mediaAnalysisPhotoPreview');if(!image)return;cleanupMediaAnalysisPhotoPreview();mediaPhotoPreviewUrl=URL.createObjectURL(job.blob);image.src=mediaPhotoPreviewUrl;$('mediaAnalysisPhotoPreviewInfo').textContent=hname(job.hiveId)+' · '+new Date(job.capturedAt).toLocaleString('ru-RU');$('mediaAnalysisPhotoPreviewDlg').showModal()}catch(error){alert(error.message||'Не удалось открыть фотографию')}
+}
+function cleanupMediaAnalysisPhotoPreview(){
+ const image=$('mediaAnalysisPhotoPreview');if(image){image.removeAttribute('src')}
+ if(mediaPhotoPreviewUrl){URL.revokeObjectURL(mediaPhotoPreviewUrl);mediaPhotoPreviewUrl=null}
 }
 async function handleMediaAnalysisPhoto(files){
  const file=files&&files[0],status=$('mediaAnalysisPhotoStatus'),hiveId=$('mediaAnalysisHiveSelect')?.value||'';
