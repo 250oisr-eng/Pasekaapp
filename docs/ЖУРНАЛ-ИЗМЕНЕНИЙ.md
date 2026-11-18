@@ -17,8 +17,6 @@
 
 ---
 
----
-
 ## Контрольная точка — транзакционная перепроверка backup и round-trip результатов медиа (2026-11-18)
 
 - Рабочая ветка `feat/media-job-indexeddb-store-2026-11-18`, Draft PR #158 поверх Draft PR #157. Проверенный code/test HEAD: `c649483e6449ca26521dd48a23b6fbd841ffb606`. `main` остаётся `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; merge/deployment не выполнялись.
