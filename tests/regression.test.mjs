@@ -3604,6 +3604,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/paseka-shell-v316/);
+ assert.match(sw,/\.\/js\/media-ai-client\.js/);
 });
 
 
@@ -3733,6 +3734,7 @@ test('service worker caches the sectional layout validator and increments its sh
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
+  assert.match(source,/\.\/js\/media-ai-client\.js/);
  });
 });
 
