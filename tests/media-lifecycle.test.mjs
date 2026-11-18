@@ -85,7 +85,7 @@ test('user choice to retain original blocks cleanup',()=>{
   'result_received',{},'2026-11-18T10:02:00.000Z'
  ).job;
  const persisted=Media.transitionMediaJob(received,'result_persisted',{
-  resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
+  resultValidated:true,resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
  },'2026-11-18T10:03:00.000Z').job;
  const retained=Media.transitionMediaJob(persisted,'completed_retained',{retainOriginal:true},'2026-11-18T10:04:00.000Z');
  assert.equal(retained.ok,true);
@@ -98,7 +98,7 @@ test('cleanup completion requires an explicit confirmed deletion timestamp',()=>
   'result_received',{},'2026-11-18T10:02:00.000Z'
  ).job;
  const persisted=Media.transitionMediaJob(received,'result_persisted',{
-  resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
+  resultValidated:true,resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
  },'2026-11-18T10:03:00.000Z').job;
  const cleanup=Media.transitionMediaJob(persisted,'cleanup_pending',{},'2026-11-18T10:04:00.000Z').job;
  assert.equal(Media.transitionMediaJob(cleanup,'completed_deleted',{},'2026-11-18T10:05:00.000Z').ok,false);
