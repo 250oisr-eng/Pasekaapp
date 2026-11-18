@@ -13,18 +13,14 @@ export function createIsolatedTestConfig(config) {
   if (config.appId !== PRODUCTION_APP_ID) {
     throw new Error('Unexpected production appId; refusing to derive a test package from an unknown application');
   }
-  return {
-    ...config,
-    appId: TEST_APP_ID,
-    appName: TEST_APP_NAME
-  };
+  return { ...config, appId: TEST_APP_ID, appName: TEST_APP_NAME };
 }
 
 export function assertIsolatedTestApplicationId(gradleSource) {
-  if (typeof gradleSource !== 'string' || !/applicationId\\s+["']ru\\.paseka\\.journal\\.test["']/.test(gradleSource)) {
+  if (typeof gradleSource !== 'string' || !/applicationId\s+["']ru\.paseka\.journal\.test["']/.test(gradleSource)) {
     throw new Error('Generated Android applicationId is not the isolated test id ru.paseka.journal.test');
   }
-  if (/applicationId\\s+["']ru\\.paseka\\.journal["']/.test(gradleSource)) {
+  if (/applicationId\s+["']ru\.paseka\.journal["']/.test(gradleSource)) {
     throw new Error('Generated Android applicationId unexpectedly matches the production id');
   }
   return true;
@@ -35,7 +31,7 @@ async function main() {
   const configPath = path.join(root, 'capacitor.config.json');
   const config = JSON.parse(await readFile(configPath, 'utf8'));
   const isolated = createIsolatedTestConfig(config);
-  await writeFile(configPath, JSON.stringify(isolated, null, 2) + '\\n', 'utf8');
+  await writeFile(configPath, JSON.stringify(isolated, null, 2) + '\n', 'utf8');
   console.log('Configured isolated Android test package:', isolated.appId);
 }
 
