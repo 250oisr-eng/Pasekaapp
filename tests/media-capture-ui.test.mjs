@@ -20,7 +20,7 @@ function extractFunction(name) {
 test('AI screen exposes local photo capture and defaults to retaining the original', () => {
   assert.match(html, /id="mediaAnalysisPhotoInput" type="file" accept="image\/\*" capture="environment"/);
   assert.match(html, /id="mediaAnalysisRetainOriginal" type="checkbox" checked/);
-  assert.match(html, /Фото и видео можно анализировать онлайн через Cloudflare Workers AI/);
+  assert.match(html, /подготовленная JPEG-копия фотографии или выбранные кадры видео отправляются в Cloudflare Workers AI/);
   assert.match(html, /id="mediaAnalysisQuestion"/);
   assert.match(html, /id="mediaAnalysisResultList"/);
   assert.match(html, /id="mediaAnalysisJobList"/);
