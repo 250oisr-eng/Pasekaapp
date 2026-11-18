@@ -4124,10 +4124,12 @@ async function savePlantObservation(event){
 function dictatePlantObservation(){
  if(plantRecognition)return;const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Speech){alert('В этом браузере нет встроенного распознавания речи. Введи наблюдение текстом или используй голосовой ввод клавиатуры Android.');return}
  if(!confirm('Начать диктовку? В зависимости от браузера и настроек аудио может обрабатываться внешним сервисом распознавания. В приложение попадёт только распознанный текст; запись звука не сохраняется.'))return;
- const button=$('plantVoiceButton'),recognition=new Speech();plantRecognition=recognition;recognition.lang='ru-RU';recognition.interimResults=false;recognition.maxAlternatives=1;button.disabled=true;button.textContent='Слушаю…';
+ const button=$('plantVoiceButton'),recognition=new Speech();
+ const finish=()=>{if(plantRecognition!==recognition)return;plantRecognition=null;if(button){button.disabled=false;button.textContent='🎙 Диктовать'}};
+ plantRecognition=recognition;recognition.lang='ru-RU';recognition.interimResults=false;recognition.maxAlternatives=1;if(button){button.disabled=true;button.textContent='Слушаю…'}
  recognition.onresult=event=>{const text=Array.from(event.results||[]).map(r=>r[0]?.transcript||'').join(' ').trim();if(text){const field=$('plantNote');field.value=(field.value.trim()?field.value.trim()+' ':'')+text;$('plantInputSource').value='voice';field.focus()}};
- recognition.onerror=event=>{if(event.error!=='no-speech'&&event.error!=='aborted')alert('Не удалось распознать речь: '+event.error+'. Можно ввести текст вручную.');};
- recognition.onend=()=>{button.disabled=false;button.textContent='🎙 Диктовать';if(plantRecognition===recognition)plantRecognition=null};try{recognition.start()}catch(error){plantRecognition=null;button.disabled=false;button.textContent='🎙 Диктовать';alert('Не удалось запустить микрофон: '+(error.message||error))}
+ recognition.onerror=event=>{finish();if(event.error!=='no-speech'&&event.error!=='aborted'){const detail=event.error==='not-allowed'?'Браузер отказал в доступе к микрофону или службе распознавания. Проверь разрешение сайта и доступ Chrome к микрофону в Windows.':'Не удалось распознать речь: '+event.error;alert(detail+'. Можно ввести текст вручную.')}};
+ recognition.onend=finish;try{recognition.start()}catch(error){finish();alert('Не удалось запустить микрофон: '+(error.message||error))}
 }
 function askPlantAI(){
  const rawName=$('plantName').value.trim(),name=rawName==='Растение по фотографии — требуется определение'?'':rawName,note=$('plantNote').value.trim(),date=$('plantObservedAt').value,phase=$('plantPhase').selectedOptions[0]?.textContent||'не уточнена',location=$('plantLocation').value.trim();if(!name&&!note)return alert(pendingPlantMedia.length?'Фотографии пока не передаются в ИИ. Фото сохраняется в наблюдении; распознавание по изображению будет подключено отдельным этапом.':'Сначала укажи растение или опиши наблюдение.');
