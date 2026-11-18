@@ -123,24 +123,32 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   if(!current||current.status!=='result_persisted'||current.resultValidated!==true||
      !text(current.resultId)||!timestamp(current.resultPersistedAt)||!text(current.originalRef))
    throw new Error('Сначала необходимо сохранить и проверить результат анализа');
-  const verificationResult=await verifyBackup({
-   jobId:current.id,resultId:current.resultId,result:current.result,
-   originalRef:current.originalRef,backupRevisionId
-  });
+  const backupReadTx=db.transaction('full_backup','readonly'),backupReadDone=transactionDone(backupReadTx);
+  const backupReadRequest=backupReadTx.objectStore('full_backup').get('previous');
+  const backupRecord=await requestValue(backupReadRequest);await backupReadDone;
+  if(!backupRecord?.state||backupRecord.state.meta?.revisionId!==backupRevisionId)
+   throw new Error('Резервная копия отсутствует или её ревизия не совпадает; оригинал сохранён');
+  const safeJob={...current};delete safeJob.blob;
+  const verificationResult=await verifyBackup({job:safeJob,backupRecord,backupRevisionId});
   if(verificationResult!==true)
    throw new Error('Результат анализа не подтверждён в резервной копии; оригинал сохранён');
-  const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
-  const request=store.get(id);
-  request.onsuccess=()=>{
-   const latest=request.result;
+  const tx=db.transaction([STORE_NAME,'full_backup'],'readwrite'),done=transactionDone(tx);
+  const store=tx.objectStore(STORE_NAME),backupStore=tx.objectStore('full_backup');
+  const request=store.get(id),backupRequest=backupStore.get('previous');
+  let jobReady=false,backupReady=false,latest=null,latestBackup=null;
+  const commit=()=>{
+   if(!jobReady||!backupReady)return;
    if(!latest||latest.status!=='result_persisted'||latest.resultId!==current.resultId||
-      latest.resultPersistedAt!==current.resultPersistedAt||latest.updatedAt!==current.updatedAt){
+      latest.resultPersistedAt!==current.resultPersistedAt||latest.updatedAt!==current.updatedAt||
+      latestBackup?.state?.meta?.revisionId!==backupRevisionId){
     try{tx.abort()}catch{}
     return;
    }
-   const at=now(),updated={...latest,resultBackupRevisionId, resultBackupVerifiedAt:at,updatedAt:at};
+   const at=now(),updated={...latest,resultBackupRevisionId,resultBackupVerifiedAt:at,updatedAt:at};
    try{store.put(updated)}catch(error){try{tx.abort()}catch{}}
   };
+  request.onsuccess=()=>{latest=request.result;jobReady=true;commit()};
+  backupRequest.onsuccess=()=>{latestBackup=backupRequest.result;backupReady=true;commit()};
   await done;
   return get(id);
  }
