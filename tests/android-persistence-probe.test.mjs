@@ -39,7 +39,7 @@ test('runtime probe is guarded, upgrades the visible fallback and uses regular p
 });
 
 test('packaged assets verifier rejects a missing settings panel or runtime script', () => {
-  const html = '<section id="settings"></section><script>window.__PASEKA_TEST_BUILD__ = true;</script><div id="androidPersistenceProbeFallback"></div><script src="./js/android-persistence-probe.js"></script>';
+  const html = '<section id="settings"></section><script>window.__PASEKA_TEST_BUILD__ = true;</script><div id="androidPersistenceProbeFallback"></div><script src="./js/android-persistence-probe.js" onerror="document.getElementById(\'androidPersistenceProbeFallback\')"></script>';
   const runtime = "(function(){ const markerKey = 'androidPersistenceProbe'; settings.appendChild(panel); })();";
   assert.equal(assertAndroidPersistenceProbeAssets(html, runtime), true);
   assert.throws(() => assertAndroidPersistenceProbeAssets(html.replace('android-persistence-probe.js', 'missing.js'), runtime), /script reference/);
