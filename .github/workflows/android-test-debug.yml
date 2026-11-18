@@ -1,0 +1,83 @@
+name: Build isolated Android test APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'capacitor.config.json'
+      - 'scripts/prepare-android-test-config.mjs'
+      - 'scripts/prepare-android.mjs'
+      - 'scripts/patch-android-gradle.mjs'
+      - 'tests/android-test-config.test.mjs'
+      - 'android-native/**'
+      - 'index.html'
+      - 'js/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android-test-debug.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-isolated-test-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run application regression and isolated-config tests
+        run: npm test
+      - name: Prepare web assets
+        run: npm run web:prepare
+      - name: Switch CI workspace to isolated test application id
+        run: node scripts/prepare-android-test-config.mjs
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Prepare native offline speech plugin
+        run: node scripts/prepare-android.mjs
+      - name: Sync Android project
+        run: npx cap sync android
+      - name: Patch Android Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Enforce Android 15 minimum and isolated application id
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises';
+          import { assertIsolatedTestApplicationId } from './scripts/prepare-android-test-config.mjs';
+          const variablesPath = 'android/variables.gradle';
+          let variables = await readFile(variablesPath, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp('(^\\\\s*' + key + '\\\\s*=\\\\s*)\\\\d+', 'm');
+            if (!pattern.test(variables)) throw new Error('Unknown Android SDK configuration: ' + key);
+            variables = variables.replace(pattern, '$1' + value);
+          }
+          await writeFile(variablesPath, variables);
+          const gradle = await readFile('android/app/build.gradle', 'utf8');
+          assertIsolatedTestApplicationId(gradle);
+          if (!/minSdkVersion\\s+35/.test(variables)) throw new Error('Android minimum API must remain 35');
+          console.log('Verified test applicationId ru.paseka.journal.test and Android minSdk 35');
+          NODE
+      - name: Build isolated debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Upload isolated test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-android-isolated-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
