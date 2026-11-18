@@ -1,3 +1,16 @@
+## Контрольная точка — PR #168: контроль целостности видео и CI (2026-11-18)
+
+- GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
+- Draft PR #168: `feat/full-media-backup-restore-main-2026-11-18`, HEAD `3436c621c5de175259a0cf112feeaba84984bd5d`, открыт, mergeable=true. Main не менялась.
+- Fast Quality Checks #44331728300 на точном HEAD: **721/721 tests, 0 failures**.
+- Android PR workflow #44331737784 на том же HEAD: **721/721 tests**, Debug APK build и upload успешны. Artifact `paseka-debug-apk`, ID `14439701927`, размер 3,446,730 bytes; SHA-256 ZIP-артефакта `d44c47515bc61599b5fdc3f93e6ac13287031a9da0e1a4acd4f662470d39b3fd`.
+- Дополнительная защита: новые видео сохраняются с вычисленным SHA-256; при rollback для восстановленного legacy-видео записывается только что проверенная контрольная сумма. Добавлены тесты для same-size replacement и восстановления legacy media.
+- PR #169 остаётся Draft и зависит от #168. Его HEAD `308b2f02ba218eef0f10197a7c5c97d2bd592c17` основан на прежнем #168 HEAD `cee7f51ce55490507ed6dea51939139b974d46c8`; сравнение с текущим #168 HEAD показывает diverged: 12 ahead / 6 behind. После завершения #168 требуется безопасно перенести навигационные изменения на актуальную базу, не теряя их.
+- Не проверялись физическое скачивание/открытие .paseka и восстановление на реальном Android-устройстве. PR остаётся Draft; merge, publish и production deployment не выполнялись.
+- Следующий этап: независимый code review PR #168; затем физический Android smoke test на тестовых данных; после этого синхронизировать зависимый PR #169.
+
+---
+
 ## Контрольная точка — PR #168: полный архив медиа и атомарное восстановление (2026-11-18)
 
 - Актуальный GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. PR #154 действительно merged; merge commit совпадает с этим SHA. PR #154 code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`: 611/611 tests, Android Debug APK success; это проверки PR HEAD, а не отдельные workflow на merge SHA.
