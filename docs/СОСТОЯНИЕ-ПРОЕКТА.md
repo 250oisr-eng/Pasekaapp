@@ -2,7 +2,7 @@
 
 - Пользователь подтвердил создание локального автоматического тестировщика вместо удалённого управления компьютером.
 - Draft PR #163 открыт: https://github.com/250oisr-eng/Pasekaapp/pull/163. Он основан на Draft PR #162 (base SHA 92695db7b0d723b26596e45033fd74b89e088f5e) и остаётся отдельным Draft; merge не выполнялся.
-- Проверенный code/test SHA: 99b7a73cb1495616f33b9214e6886298fba64d8f. Последующие изменения в PR на момент этой записи отсутствуют; CI проверял этот точный SHA.
+- Проверенный code/test SHA: 99b7a73cb1495616f33b9214e6886298fba64d8f. Последующие коммиты после этого SHA затронули только документацию; код и тестовый сценарий не менялись. CI проверял этот точный code/test SHA.
 - Реализован scripts/local-browser-smoke.mjs и команда npm run test:browser:local. Chrome открывается с временным профилем; HTTP-сервер слушает только 127.0.0.1; приложение получает отдельный тестовый hostname, принудительно разрешаемый в loopback; внешние запросы блокируются до отправки. Сервер выдаёт только index, manifest, service worker script (registration stubbed), js и icons. Обычный Chrome-профиль и реальные данные пасеки не используются.
 - Windows workflow #44284780611: **успешно**. Unit tests: 6/6; browser smoke: **13/13** (старт, 11 разделов, reload); 0 JavaScript/console errors; 0 локальных HTTP errors. Один внешний host (esm.sh) был заблокирован до отправки запроса. Артефакт отчёта и пяти снимков: windows-browser-smoke-report, artifact ID 14419280134.
 - Android workflow #44284780636: **успешно**. Полный npm test прошёл; подготовка Android-проекта, sync, Android 15 compatibility check и debug APK build/upload прошли. APK artifact ID 14418896492. Это CI-сборка, не установка и не физическая приёмка на телефоне.
