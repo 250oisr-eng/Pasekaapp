@@ -32,7 +32,7 @@ function writeFixture(db, state, videos = []) {
 }
 function stateFixture() {
   return {
-    meta: { schemaVersion: 12, revisionId: 'revision-1' },
+    meta: { schemaVersion: 15, revisionId: 'revision-1' },
     hives: [{ id: 'hive-1', number: 1 }],
     families: [],
     records: [{ id: 'record-1', media: ['data:image/jpeg;base64,AA=='] }],
@@ -62,7 +62,7 @@ test('full archive export reads state and entrance videos from one IndexedDB rea
   const parsed = await Archive.parseArchiveBlob(result.blob);
   assert.equal(result.summary.videoCount, 2);
   assert.equal(parsed.manifest.backupId, 'export-test-1');
-  assert.equal(parsed.manifest.schemaVersion, 12);
+  assert.equal(parsed.manifest.schemaVersion, 15);
   assert.deepEqual(parsed.entries.map(entry => entry.path), [
     'state.json',
     'entrance-media/000001.blob',
@@ -107,7 +107,7 @@ test('full archive export refuses a missing state or unsupported saved schema', 
   emptyDb.close();
 
   const db = await openTestDb('paseka-export-future-schema');
-  await writeFixture(db, { meta: { schemaVersion: 13 }, hives: [] });
+  await writeFixture(db, { meta: { schemaVersion: 16 }, hives: [] });
   await assert.rejects(
     Archive.exportArchiveFromDatabase(db, webcrypto),
     { code: 'UNSUPPORTED_STATE_SCHEMA' }
