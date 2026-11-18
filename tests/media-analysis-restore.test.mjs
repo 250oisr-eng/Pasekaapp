@@ -36,7 +36,7 @@ test('manual JSON restore preserves media analysis results and backs up the repl
   const file={text:async()=>JSON.stringify({app:'Paseka',state:incoming})},deps=restoreDeps(db,current,file);
   await load('restoreBackup',deps)();
   const main=await get(db,'main','state'),backup=await get(db,'full_backup','previous');
-  assert.equal(main.mediaAnalysisResults[0].id,'from-json');
+  assert.equal(main.mediaAnalysisResults[0].id,'from-json',deps.alerts.join(' | '));
   assert.equal(backup.state.mediaAnalysisResults[0].id,'before');
   assert.equal(main.meta.revisionId,'restored-revision-1');
  }finally{db.close()}
@@ -47,7 +47,7 @@ test('automatic backup restore preserves media analysis results and snapshots th
   const deps=restoreDeps(db,current,{text:async()=>''});
   await load('restoreAutoBackup',deps)();
   const main=await get(db,'main','state'),backup=await get(db,'full_backup','previous');
-  assert.equal(main.mediaAnalysisResults[0].id,'from-auto-backup');
+  assert.equal(main.mediaAnalysisResults[0].id,'from-auto-backup',deps.alerts.join(' | '));
   assert.equal(backup.state.mediaAnalysisResults[0].id,'before');
   assert.equal(main.meta.revisionId,'restored-revision-1');
  }finally{db.close()}
