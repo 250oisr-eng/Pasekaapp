@@ -74,9 +74,13 @@ test('only a validated persisted result can authorize cleanup',()=>{
  },'2026-11-18T10:03:00.000Z');
  assert.equal(persisted.ok,true);
  assert.equal(Media.canDeleteMediaOriginal(persisted.job),false,'deletion is not authorized until cleanup is explicitly scheduled');
- const cleanup=Media.transitionMediaJob(persisted.job,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
+ const blocked=Media.transitionMediaJob(persisted.job,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
+ assert.equal(blocked.ok,false,'a persisted result without verified backup must not authorize deletion');
+ const backedUp={...persisted.job,resultBackupRevisionId:'backup-rev-1',resultBackupVerifiedAt:'2026-11-18T10:03:30.000Z'};
+ assert.equal(Media.hasVerifiedResultBackup(backedUp),true);
+ const cleanup=Media.transitionMediaJob(backedUp,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
  assert.equal(cleanup.ok,true);
- assert.equal(Media.canDeleteMediaOriginal(cleanup.job),true,'the idempotent cleanup worker may resume after restart');
+ assert.equal(Media.canDeleteMediaOriginal(cleanup.job),true,'the idempotent cleanup worker may resume after restart only after backup verification');
 });
 
 test('user choice to retain original blocks cleanup',()=>{
