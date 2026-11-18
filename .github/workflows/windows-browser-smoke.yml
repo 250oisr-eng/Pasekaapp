@@ -20,6 +20,7 @@ on:
       - 'sw.js'
       - 'package.json'
       - 'scripts/local-browser-smoke.mjs'
+      - 'scripts/android-device-preflight.ps1'
       - 'tests/local-browser-smoke.test.mjs'
       - '.github/workflows/windows-browser-smoke.yml'
 
