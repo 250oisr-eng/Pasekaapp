@@ -174,7 +174,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return results;
  }
 
- return Object.freeze({enqueue,get,list,transition,receiveResult,persistResult,scheduleCleanup,cleanup,resumeCleanup});
+ return Object.freeze({enqueue,get,list,transition,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
 }
 
 root.PasekaMediaJobStore=Object.freeze({STORE_NAME,ensureStore,createMediaJobStore});
