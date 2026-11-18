@@ -23,7 +23,7 @@ function openDatabase(factory,name,version,onUpgrade){
 }
 async function createDb(){
  const factory=new IDBFactory(),name='media-job-test-'+(++sequence);
- const db=await openDatabase(factory,name,1,database=>Media.ensureStore(database));
+ const db=await openDatabase(factory,name,1,database=>{database.createObjectStore('full_backup');Media.ensureStore(database)});
  return {factory,name,db,repo:Media.createMediaJobStore({db,lifecycle:scope.PasekaMediaLifecycle,now:fixedNow})};
 }
 const blob=()=>new Blob(['bees-at-entrance'],{type:'image/jpeg'});
@@ -127,12 +127,19 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>value?.observations?.length===1});
   await assert.rejects(env.repo.scheduleCleanup('job-1'));
+  const backupRecord={state:{meta:{revisionId:'backup-revision-1'},mediaAnalysisResults:[{
+   id:'result-1',jobId:'job-1',result:{observations:[{label:'bee'}]}
+  }]}};
+  const seed=env.db.transaction('full_backup','readwrite');seed.objectStore('full_backup').put(backupRecord,'previous');
+  await new Promise((resolve,reject)=>{seed.oncomplete=resolve;seed.onerror=()=>reject(seed.error);seed.onabort=()=>reject(seed.error)});
   await assert.rejects(env.repo.confirmResultBackup('job-1',{
    backupRevisionId:'backup-revision-1',verifyBackup:async()=>false
   }),/не подтверждён/);
   const proof=await env.repo.confirmResultBackup('job-1',{
    backupRevisionId:'backup-revision-1',
-   verifyBackup:async evidence=>evidence.resultId==='result-1'&&evidence.result?.observations?.length===1
+   verifyBackup:async ({job,backupRecord:archive})=>job.resultId==='result-1'&&
+    archive.state.mediaAnalysisResults.some(row=>row.jobId===job.id&&row.id===job.resultId&&
+     JSON.stringify(row.result)===JSON.stringify(job.result))
   });
   assert.equal(proof.resultBackupRevisionId,'backup-revision-1');
   assert.ok(proof.resultBackupVerifiedAt);
@@ -167,6 +174,11 @@ test('cleanup pending jobs can be resumed after reopening the database',async()=
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
+  const backupRecord={state:{meta:{revisionId:'backup-revision-1'},mediaAnalysisResults:[{
+   id:'result-1',jobId:'job-1',result:{observations:[]}
+  }]}};
+  const seed=env.db.transaction('full_backup','readwrite');seed.objectStore('full_backup').put(backupRecord,'previous');
+  await new Promise((resolve,reject)=>{seed.oncomplete=resolve;seed.onerror=()=>reject(seed.error);seed.onabort=()=>reject(seed.error)});
   await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:async()=>true});
   await env.repo.scheduleCleanup('job-1');
   env.db.close();
