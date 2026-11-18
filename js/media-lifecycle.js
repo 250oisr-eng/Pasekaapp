@@ -71,7 +71,7 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
 }
 
 function canDeleteMediaOriginal(job){
- return !!job&&job.status==='result_persisted'&&
+ return !!job&&job.status==='cleanup_pending'&&
   hasText(job.resultId)&&validTimestamp(job.resultPersistedAt)&&
   hasText(job.originalRef)&&job.retainOriginal!==true;
 }
