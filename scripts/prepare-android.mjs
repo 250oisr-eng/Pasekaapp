@@ -43,7 +43,8 @@ export async function prepareAndroidProject({
   let manifest = manifestOriginal;
   const permissions = [
     '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
-    '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />'
+    '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+    '<uses-permission android:name="android.permission.INTERNET" />'
   ];
   const applicationIndex = manifest.indexOf('<application');
   if (applicationIndex < 0) throw new Error('AndroidManifest.xml has no application element');
