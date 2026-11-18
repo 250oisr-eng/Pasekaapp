@@ -17,7 +17,7 @@ export function createIsolatedTestConfig(config) {
 }
 
 export function assertIsolatedTestApplicationId(gradleSource) {
-  if (typeof gradleSource !== 'string' || !/applicationId\s+["']ru\.paseka\.journal\.test["']/.test(gradleSource)) {
+  if (typeof gradleSource !== 'string' || !/applicationId\s+["']ru\.paseka\.journal\.test\.persistence2["']/.test(gradleSource)) {
     throw new Error('Generated Android applicationId is not the isolated test id ru.paseka.journal.test.persistence2');
   }
   if (/applicationId\s+["']ru\.paseka\.journal["']/.test(gradleSource)) {
