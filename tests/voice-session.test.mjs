@@ -306,21 +306,28 @@ test('one-shot dictation delivers one final transcript and then stops', async ()
 test('voice UI defaults to local recognition and requires explicit consent for online fallback', () => {
   assert.match(html, /id="aiVoiceOfflineModelButton"/);
   assert.match(html, /id="aiVoiceOnlineConsent" type="checkbox"/);
-  assert.match(html, /apiaryVoiceSession\\.start\\(\\{allowOnline\\}\\)/);
-  assert.match(html, /apiaryVoiceSession\\.startOneShot/);
-  assert.match(html, /apiaryVoiceSession\\.prepareOffline\\(\\)/);
-  assert.match(html, /document\\.addEventListener\\('visibilitychange'/);
+  assert.match(html, /apiaryVoiceSession\.start\(\{allowOnline\}\)/);
+  assert.match(html, /apiaryVoiceSession\.startOneShot/);
+  assert.match(html, /apiaryVoiceSession\.prepareOffline\(\)/);
+  assert.match(html, /document\.addEventListener\('visibilitychange'/);
   assert.match(html, /Онлайн-распознавание выключено по умолчанию/);
   assert.doesNotMatch(html, /let aiRecognition=null/);
 });
 
 test('Android Vosk plugin processes microphone audio locally and downloads the model only over Wi-Fi', () => {
-  assert.match(nativeSpeechSource, /new SpeechService\\(loadedRecognizer, \\(float\\) SAMPLE_RATE\\)/);
-  assert.match(nativeSpeechSource, /notifyListeners\\("result"/);
-  assert.match(nativeSpeechSource, /NetworkCapabilities\\.TRANSPORT_WIFI/);
-  assert.match(nativeSpeechSource, /wifiNetwork\\.openConnection\\(new URL\\(MODEL_URL\\)\\)/);
-  assert.match(nativeSpeechSource, /MODEL_VERSION = "vosk-model-small-ru-0\\.22"/);
-  assert.doesNotMatch(nativeSpeechSource, /https?:\\/\\/[^\\s"]+\\/.*audio|uploadAudio|sendAudio/);
-  assert.match(androidPrepareSource, /com\\.alphacephei:vosk-android:0\\.3\\.75/);
-  assert.match(androidWorkflow, /node scripts\\/prepare-android\\.mjs/);
+  assert.match(nativeSpeechSource, /new SpeechService\(loadedRecognizer, \(float\) SAMPLE_RATE\)/);
+  assert.match(nativeSpeechSource, /notifyListeners\(eventName, payload\)/);
+  assert.match(nativeSpeechSource, /publishHypothesis\(hypothesis, "text", "result"\)/);
+  assert.match(nativeSpeechSource, /NetworkCapabilities\.TRANSPORT_WIFI/);
+  assert.match(nativeSpeechSource, /NetworkCapabilities\.TRANSPORT_VPN/);
+  assert.match(nativeSpeechSource, /wifiNetwork\.openConnection\(new URL\(MODEL_URL\)\)/);
+  assert.match(nativeSpeechSource, /MODEL_VERSION = "vosk-model-small-ru-0\.22"/);
+  assert.match(nativeSpeechSource, /received != declaredLength/);
+  assert.match(nativeSpeechSource, /MAX_ARCHIVE_BYTES = 100L/);
+  assert.match(nativeSpeechSource, /MAX_EXTRACTED_BYTES = 250L/);
+  assert.match(nativeSpeechSource, /canonical\.startsWith\(root\)/);
+  assert.match(nativeSpeechSource, /latch\.await\(750, TimeUnit\.MILLISECONDS\)/);
+  assert.doesNotMatch(nativeSpeechSource, /https?:\/\/[^\s"]+\/.*audio|uploadAudio|sendAudio/);
+  assert.match(androidPrepareSource, /com\.alphacephei:vosk-android:0\.3\.75/);
+  assert.match(androidWorkflow, /node scripts\/prepare-android\.mjs/);
 });
