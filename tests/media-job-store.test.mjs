@@ -172,7 +172,7 @@ test('backup result is reverified in the final IndexedDB transaction even if rev
   await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
  };
  try{
-  await env.repo.enqueue(queued());
+  await env.repo.enqueue({...queued(),retainOriginal:false});
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
@@ -296,7 +296,7 @@ test('original retention defaults to true and opting out after persistence requi
   await assert.rejects(env.repo.setRetainOriginal('job-1',false),/подтверждения резервной копии/);
   const backup={state:{meta:{revisionId:'backup-revision-1'}}},tx=env.db.transaction('full_backup','readwrite');tx.objectStore('full_backup').put(backup,'previous');
   await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
-  await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:async()=>true});
+  await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:()=>true});
   const optedOut=await env.repo.setRetainOriginal('job-1',false);assert.equal(optedOut.retainOriginal,false);
   const pending=await env.repo.scheduleCleanup('job-1');assert.equal(pending.status,'cleanup_pending');
  }finally{env.db.close()}
