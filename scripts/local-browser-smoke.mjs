@@ -138,7 +138,7 @@ async function startStaticServer(root) {
   const address = server.address();
   return {
     server,
-    origin: 'http://127.0.0.1:' + address.port,
+    origin: 'http://paseka.test:' + address.port,
     close: () => new Promise(resolveClose => server.close(resolveClose))
   };
 }
@@ -328,6 +328,8 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
     await mkdir(outputDir, { recursive: true });
 
     const args = [
+      ...(process.platform === 'linux' ? ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage'] : []),
+      '--host-resolver-rules=MAP paseka.test 127.0.0.1',
       '--remote-debugging-port=0',
       '--remote-debugging-address=127.0.0.1',
       '--remote-allow-origins=*',
