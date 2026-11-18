@@ -94,7 +94,7 @@ jobs:
           const gradle = await readFile('android/app/build.gradle', 'utf8');
           assertIsolatedTestApplicationId(gradle);
           if (!/minSdkVersion\s*=\s*35/.test(variables)) throw new Error('Android minimum API must remain 35');
-          console.log('Verified test applicationId ru.paseka.journal.test and Android minSdk 35');
+          console.log('Verified test applicationId ru.paseka.journal.test.persistence2 and Android minSdk 35');
           NODE
       - name: Build isolated debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
