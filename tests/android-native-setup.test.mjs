@@ -12,10 +12,10 @@ test('generated Android project receives Vosk plugin, permissions and registrati
   const packageRoot = path.join(appRoot, 'src', 'main', 'java', 'ru', 'paseka', 'journal');
   const pluginSourcePath = path.join(root, 'PasekaOfflineSpeechPlugin.java');
   await mkdir(packageRoot, { recursive: true });
-  await writeFile(path.join(appRoot, 'build.gradle'), 'plugins { id \'com.android.application\' }\\ndependencies {\\n    implementation project(\':capacitor-android\')\\n}\\n');
-  await writeFile(path.join(appRoot, 'src', 'main', 'AndroidManifest.xml'), '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\\n    <application android:label="Paseka"></application>\\n</manifest>\\n');
-  await writeFile(path.join(packageRoot, 'MainActivity.java'), 'package ru.paseka.journal;\\n\\nimport com.getcapacitor.BridgeActivity;\\n\\npublic class MainActivity extends BridgeActivity {}\\n');
-  await writeFile(pluginSourcePath, 'package ru.paseka.journal.plugins;\\npublic class PasekaOfflineSpeechPlugin {}\\n');
+  await writeFile(path.join(appRoot, 'build.gradle'), 'plugins { id \'com.android.application\' }\ndependencies {\n    implementation project(\':capacitor-android\')\n}\n');
+  await writeFile(path.join(appRoot, 'src', 'main', 'AndroidManifest.xml'), '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <application android:label="Paseka"></application>\n</manifest>\n');
+  await writeFile(path.join(packageRoot, 'MainActivity.java'), 'package ru.paseka.journal;\n\nimport com.getcapacitor.BridgeActivity;\n\npublic class MainActivity extends BridgeActivity {}\n');
+  await writeFile(pluginSourcePath, 'package ru.paseka.journal.plugins;\npublic class PasekaOfflineSpeechPlugin {}\n');
 
   try {
     const first = await prepareAndroidProject({ projectDir, appId: 'ru.paseka.journal', pluginSourcePath });
@@ -28,12 +28,12 @@ test('generated Android project receives Vosk plugin, permissions and registrati
     const manifest = await readFile(path.join(appRoot, 'src', 'main', 'AndroidManifest.xml'), 'utf8');
     const activity = await readFile(path.join(packageRoot, 'MainActivity.java'), 'utf8');
     const plugin = await readFile(path.join(packageRoot, 'plugins', 'PasekaOfflineSpeechPlugin.java'), 'utf8');
-    assert.equal((gradle.match(/com\\.alphacephei:vosk-android:0\\.3\\.75/g) || []).length, 1);
-    assert.equal((manifest.match(/android\\.permission\\.RECORD_AUDIO/g) || []).length, 1);
-    assert.equal((manifest.match(/android\\.permission\\.ACCESS_NETWORK_STATE/g) || []).length, 1);
-    assert.equal((activity.match(/registerPlugin\\(PasekaOfflineSpeechPlugin\\.class\\)/g) || []).length, 1);
-    assert.match(activity, /import ru\\.paseka\\.journal\\.plugins\\.PasekaOfflineSpeechPlugin;/);
-    assert.match(plugin, /package ru\\.paseka\\.journal\\.plugins;/);
+    assert.equal((gradle.match(/com\.alphacephei:vosk-android:0\.3\.75/g) || []).length, 1);
+    assert.equal((manifest.match(/android\.permission\.RECORD_AUDIO/g) || []).length, 1);
+    assert.equal((manifest.match(/android\.permission\.ACCESS_NETWORK_STATE/g) || []).length, 1);
+    assert.equal((activity.match(/registerPlugin\(PasekaOfflineSpeechPlugin\.class\)/g) || []).length, 1);
+    assert.match(activity, /import ru\.paseka\.journal\.plugins\.PasekaOfflineSpeechPlugin;/);
+    assert.match(plugin, /package ru\.paseka\.journal\.plugins;/);
 
     await prepareAndroidProject({ projectDir, appId: 'ru.paseka.journal', pluginSourcePath });
     const gradleAfter = await readFile(path.join(appRoot, 'build.gradle'), 'utf8');
