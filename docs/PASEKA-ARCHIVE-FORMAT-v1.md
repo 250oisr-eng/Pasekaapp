@@ -2,7 +2,7 @@
 
 Откат полного архива разрешён только пока текущая revision журнала совпадает с `importedRevisionId`, записанной при commit этого импорта. Проверка выполняется до асинхронной валидации rollback snapshot и повторно внутри финальной IndexedDB readwrite-транзакции. Если после импорта были сохранены новые записи, откат блокируется; текущие данные и rollback snapshot сохраняются. Сверка только с revision, переданной UI, не является достаточной защитой.
 
-Добавлены регрессионные тесты для изменения журнала до rollback и во время асинхронной проверки. На PR #168 code/test SHA `e323ee7136e2d5377696c10eb10587aa5b29fa9b` — 730/730 tests; на синхронизированной тестовой ветке PR #174 SHA `b116b93792289ed5bb69f408d98741b151a8cc3f` — 733/733 tests. Полная свежая изолированная Android APK-сборка на текущем HEAD ещё выполняется; физический commit/rollback на OnePlus не проводился.
+Добавлены регрессионные тесты для изменения журнала до rollback и во время асинхронной проверки. На PR #168 workflow #44398558415 — 730/730 tests, Android Debug build/upload success; на синхронизированной тестовой ветке PR #174 workflow #44398564375 — 733/733 tests, isolated Android Gradle build, package ID assertion и upload success. Artifact ID `14472093088`, ZIP SHA-256 `35b11cd016a4bd0226c4d967ba2fba7b1ed783b341f5b6b398aeee82b537b352`. Физический commit/rollback на OnePlus не проводился.
 
 ---
 
