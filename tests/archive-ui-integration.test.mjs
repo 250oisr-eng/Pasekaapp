@@ -25,6 +25,16 @@ test('IndexedDB v4 adds archive staging and history without replacing existing s
   assert.match(html, /createObjectStore\('archive_history',\{keyPath:'backupId'\}\)/);
 });
 
+test('new entrance videos persist their verified SHA-256 before IndexedDB write', () => {
+  const start = html.indexOf('async function putEntranceVideo(record){');
+  const end = html.indexOf('function listEntranceVideos(){', start);
+  const writer = html.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.ok(writer.indexOf('PasekaSha256.hashBlobHex(record.blob)') < writer.indexOf("transaction('entrance_media','readwrite')"));
+  assert.match(writer, /const storedRecord=\{\.\.\.record,blobSha256\}/);
+  assert.match(writer, /put\(storedRecord\)/);
+});
+
 test('JSON backup is clearly distinguished from the full archive that contains entrance videos', () => {
   assert.match(html, /не включает отдельные оригиналы видео летка/);
   assert.match(html, /id="downloadFullArchiveButton"/);
