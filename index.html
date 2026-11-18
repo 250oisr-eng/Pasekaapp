@@ -488,7 +488,17 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 </section>
 <section id="ai" class="panel">
  <div class="card ai-console-card"><div class="ai-hero"><div class="ai-hero-orb" aria-hidden="true"><span>✦</span></div><div class="ai-hero-copy"><div class="ai-eyebrow">ПАСЕКА · ИНТЕЛЛЕКТУАЛЬНЫЙ ПОМОЩНИК</div><h2 style="margin:2px 0">ИИ-помощник</h2><span class="ai-hero-subtitle">Консультации по данным твоей пасеки</span></div><span class="ai-hero-tag">AI</span></div>
-  <p class="muted">ИИ получает только текстовые сведения из журнала и текущую схему ульев, когда ты отправляешь вопрос. Фото и видео пока не передаются. Ответы — рекомендации для проверки, а не замена осмотру.</p>
+  <p class="muted">ИИ получает только текстовые сведения из журнала и текущую схему ульев, когда ты отправляешь вопрос. Фото и видео можно сохранить в локальную очередь, но передача на анализ пока не подключена. Ответы — рекомендации для проверки, а не замена осмотру.</p>
+  <div class="card" id="mediaAnalysisCaptureCard">
+   <b>Фото для последующего анализа</b>
+   <p class="muted">Выбери улей и сфотографируй рамку, пчёл или другой объект наблюдения. Файл сохранится только на этом устройстве; сейчас он не отправляется ИИ.</p>
+   <label for="mediaAnalysisHiveSelect">Улей</label><select id="mediaAnalysisHiveSelect"><option value="">— Выбери улей —</option></select>
+   <label for="mediaAnalysisPhotoInput">Сфотографировать или выбрать фото</label>
+   <input id="mediaAnalysisPhotoInput" type="file" accept="image/*" capture="environment" onchange="handleMediaAnalysisPhoto(this.files);this.value='';">
+   <label><input id="mediaAnalysisRetainOriginal" type="checkbox" checked> Сохранить оригинал после анализа</label>
+   <div id="mediaAnalysisPhotoStatus" class="muted" role="status" aria-live="polite">Фото будет храниться локально до отдельного решения об удалении.</div>
+   <div id="mediaAnalysisJobList"></div>
+  </div>
   <div id="aiAuthStatus" class="muted">Проверяем подключение…</div>
   <div class="card" id="aiJournalDraftCard"><b>Подготовить запись журнала</b><p class="muted">Опиши наблюдение или выполненную работу. Текст попадёт в черновик заметки; выбери дату, улей, семью и тип события в форме. ИИ не анализирует и не отправляет это описание.</p><label for="aiJournalHiveSelect">К какому улью относится событие?</label><select id="aiJournalHiveSelect"><option value="">— Выбери улей —</option></select><label for="aiJournalDraftInput">Описание события</label><textarea id="aiJournalDraftInput" rows="3" placeholder="Например: осмотрел семью, заметил первые яйца, корм не добавлял…"></textarea><button type="button" class="primary" onclick="prepareJournalDraftFromAI()">Открыть черновик журнала</button></div>
   <div id="aiSignedOut" style="display:none">
@@ -527,6 +537,8 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   </div>
   <label for="entranceVideoInput">Снять видео или выбрать готовую запись</label>
   <input id="entranceVideoInput" type="file" accept="video/*" capture="environment" onchange="handleEntranceVideoFile(this.files);this.value='';">
+  <label><input id="entranceRetainOriginal" type="checkbox" checked> Сохранить оригинал после анализа</label>
+  <p class="muted">Оригинал по умолчанию остаётся на устройстве. Снять флажок можно, если после сохранения результата и резервной копии ты планируешь удалить исходник. Само удаление потребует отдельного подтверждения.</p>
   <div id="entranceVideoStatus" class="muted" aria-live="polite">Выбери улей, затем сними видео или выбери файл из галереи.</div>
  </div>
  <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Записи ставятся в локальную очередь. Сервер анализа ещё не подключён: передача и автоматическое удаление пока отключены.</div><div id="entranceVideoList"></div></div>
@@ -1328,11 +1340,14 @@ function renderEquipmentReconciliation(){
  }).join('')||'<p class="muted">Осмотры ещё не записывались.</p>';
 }
 
+function mediaJobRepository(){return PasekaMediaJobStore.createMediaJobStore({db,lifecycle:PasekaMediaLifecycle})}
 function putEntranceVideo(record){
  return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(record)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
 }
-function listEntranceVideos(){
- return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').getAll()}catch(e){no(e);return}q.onsuccess=()=>ok((q.result||[]).sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||''))));q.onerror=()=>no(q.error||new Error('Не удалось прочитать список видео'))});
+async function listEntranceVideos(){
+ const legacy=await new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').getAll()}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>no(q.error||new Error('Не удалось прочитать старые видеозаписи'))});
+ const jobs=await mediaJobRepository().list(),videos=jobs.filter(job=>job.kind==='video').map(job=>({...job,storageType:'media_job',durationSec:job.captureMetadata?.durationSec,width:job.captureMetadata?.width,height:job.captureMetadata?.height,frameQualityCheck:{status:job.captureMetadata?.frameQualityStatus||'unknown'}}));
+ return [...legacy.map(item=>({...item,storageType:'legacy'})),...videos].sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||'')));
 }
 function getEntranceVideo(id){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').get(id)}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error||new Error('Не удалось открыть видео'))});
@@ -1352,7 +1367,13 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  host.innerHTML=filtered.length?filtered.map(x=>{
+   const job=x.storageType==='media_job',labels={queued:'В очереди · локально',analyzing:'Анализируется',failed_retryable:'Ошибка · можно повторить',failed_permanent:'Требуется проверка',result_received:'Результат получен · не сохранён',result_persisted:'Результат сохранён',cleanup_pending:'Ожидает удаления',completed_retained:'Оригинал сохранён',completed_deleted:'Оригинал удалён',completed:'Анализ завершён',waiting_for_server:'В очереди · локально'};
+   const status=labels[x.status]||'Состояние не определено',duration=Number.isFinite(x.durationSec)?Math.round(x.durationSec)+' с':'длительность не определена',dimensions=x.width&&x.height?x.width+'×'+x.height:'размер не определён';
+   const quality=x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено';
+   const canRemove=job?['result_persisted','cleanup_pending'].includes(x.status)&&!!x.resultBackupRevisionId&&!!x.resultBackupVerifiedAt:x.status!=='deleted';
+   return '<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+safe(status)+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+duration+' · '+dimensions+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(quality)+'. Видео не отправляется в сеть; распознавание пчёл пока не подключено.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button>'+(canRemove?'<button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить оригинал</button>':job?'<span class="muted">Удаление — только после результата и подтверждённой копии</span>':'<button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button>')+'</div></article>';
+  }).join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
@@ -1394,22 +1415,63 @@ async function handleEntranceVideoFile(files){
   const estimate=await navigator.storage?.estimate?.();
   if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
  }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
- const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
+ const id=uid(),retainOriginal=$('entranceRetainOriginal')?.checked!==false;
  try{
-  await putEntranceVideo(record);
-  if(status)status.textContent='Видео сохранено в локальную очередь. Сервер анализа ещё не подключён, поэтому отправка и автоматическое удаление не выполняются. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
+  await mediaJobRepository().enqueue({id,kind:'video',blob:file,name:String(file.name||'video').slice(0,120),mimeType:file.type||'video/unknown',hiveId,capturedAt:new Date().toISOString(),retainOriginal,captureMetadata:{durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,frameQualityStatus:frameQuality.status}});
+  if(status)status.textContent='Видео сохранено в локальную очередь на этом устройстве. Сетевой передачи и автоматического удаления нет. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
   await refreshEntranceVideos();
  }catch(error){if(status)status.textContent='Не удалось сохранить видео: '+(error.message||error);alert('Видео не сохранено. Проверь свободное место в телефоне. '+(error.message||''))}
 }
 async function viewEntranceVideo(id){
- try{const item=await getEntranceVideo(id);if(!item?.blob)throw new Error('Файл видео не найден.');const video=$('entranceVideoPreview');if(!video)return;closeEntranceVideoPreview();entrancePreviewUrl=URL.createObjectURL(item.blob);video.src=entrancePreviewUrl;$('entranceVideoPreviewInfo').textContent=hname(item.hiveId)+' · '+new Date(item.capturedAt).toLocaleString('ru-RU')+' · '+Math.round(item.durationSec)+' с';$('entranceVideoPreviewDlg').showModal()}catch(error){alert(error.message||'Не удалось открыть видео')}
+ try{const job=await mediaJobRepository().get(id),item=job||await getEntranceVideo(id);if(!item?.blob)throw new Error('Файл видео не найден.');const video=$('entranceVideoPreview');if(!video)return;closeEntranceVideoPreview();entrancePreviewUrl=URL.createObjectURL(item.blob);video.src=entrancePreviewUrl;const duration=job?.captureMetadata?.durationSec??item.durationSec;$('entranceVideoPreviewInfo').textContent=hname(item.hiveId)+' · '+new Date(item.capturedAt).toLocaleString('ru-RU')+(Number.isFinite(duration)?' · '+Math.round(duration)+' с':'');$('entranceVideoPreviewDlg').showModal()}catch(error){alert(error.message||'Не удалось открыть видео')}
 }
 let entrancePreviewUrl=null;
 function cleanupEntranceVideoPreview(){const video=$('entranceVideoPreview');if(video){video.pause();video.removeAttribute('src');video.load()}if(entrancePreviewUrl){URL.revokeObjectURL(entrancePreviewUrl);entrancePreviewUrl=null}}
 function closeEntranceVideoPreview(){const dialog=$('entranceVideoPreviewDlg');if(dialog?.open)dialog.close();cleanupEntranceVideoPreview()}
 async function removeEntranceVideo(id){
- if(!confirm('Удалить оригинал видео с этого устройства? Это действие нельзя отменить.'))return;
- try{await deleteEntranceVideoBlob(id);await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Видео удалено с устройства.'}catch(error){alert(error.message||'Не удалось удалить видео')}
+ try{
+  const repository=mediaJobRepository(),job=await repository.get(id);
+  if(job){
+   if(!['result_persisted','cleanup_pending'].includes(job.status)||!job.resultBackupRevisionId||!job.resultBackupVerifiedAt)
+    throw new Error('Удаление исходника доступно только после сохранения результата и подтверждения точной резервной копии. Оригинал не изменён.');
+   if(!confirm('Удалить оригинал видео с этого устройства? Результат анализа останется в журнале и резервной копии. Это действие нельзя отменить.'))return;
+   if(job.status==='result_persisted'){
+    if(job.retainOriginal===true)await repository.setRetainOriginal(id,false);
+    await repository.scheduleCleanup(id);
+   }
+   const verifyBackup=({job:current,backupRecord,backupRevisionId})=>verifyMediaAnalysisResultBackup({job:current,backupRecord,backupRevisionId});
+   const completed=await repository.cleanup(id,{verifyBackup});
+   if(completed.status!=='completed_deleted')throw new Error('Оригинал не удалён: финальная проверка резервной копии не пройдена.');
+  }else{
+   if(!confirm('Удалить старую видеозапись с этого устройства? Это действие нельзя отменить.'))return;
+   await deleteEntranceVideoBlob(id);
+  }
+  await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Операция с оригиналом завершена.';
+ }catch(error){alert(error.message||'Не удалось удалить видео')}
+}
+async function refreshMediaAnalysisJobs(){
+ const host=$('mediaAnalysisJobList');if(!host)return;
+ try{
+  const jobs=await mediaJobRepository().list();
+  const labels={queued:'В очереди · локально',analyzing:'Анализируется',failed_retryable:'Ошибка · можно повторить',failed_permanent:'Требуется проверка',result_received:'Результат получен · не сохранён',result_persisted:'Результат сохранён',cleanup_pending:'Ожидает удаления',completed_retained:'Оригинал сохранён',completed_deleted:'Оригинал удалён'};
+  host.innerHTML=jobs.length?'<div class="muted" style="margin-top:10px">Локальная очередь · '+jobs.length+'</div>'+jobs.map(job=>'<div class="task-item"><b>'+(job.kind==='image'?'Фото':'Видео')+'</b> · '+safe(hname(job.hiveId))+' · '+safe(labels[job.status]||job.status)+'<div class="muted">'+safe(new Date(job.capturedAt).toLocaleString('ru-RU'))+' · '+entranceBytes(job.bytes)+' · '+(job.retainOriginal?'оригинал сохраняется':'удаление возможно после результата и backup')+'</div></div>').join(''):'<p class="muted">Очередь пока пуста.</p>';
+ }catch(error){host.textContent='Не удалось прочитать локальную очередь: '+(error.message||error)}
+}
+async function handleMediaAnalysisPhoto(files){
+ const file=files&&files[0],status=$('mediaAnalysisPhotoStatus'),hiveId=$('mediaAnalysisHiveSelect')?.value||'';
+ if(!file)return;
+ if(!hiveId){if(status)status.textContent='Сначала выбери улей.';return alert('Сначала выбери улей, к которому относится фотография.')}
+ if(!String(file.type||'').startsWith('image/')||!Number.isFinite(file.size)||file.size<=0){if(status)status.textContent='Файл не распознан как фотография.';return alert('Выбери корректный файл изображения.')}
+ if(status)status.textContent='Проверяю свободное место…';
+ try{
+  const estimate=await navigator.storage?.estimate?.();
+  if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)
+   throw new Error('Недостаточно свободного места для безопасного сохранения фотографии.');
+  const id=uid(),retainOriginal=$('mediaAnalysisRetainOriginal')?.checked!==false;
+  await mediaJobRepository().enqueue({id,kind:'image',blob:file,name:String(file.name||'photo').slice(0,160),mimeType:file.type,hiveId,capturedAt:new Date().toISOString(),retainOriginal});
+  if(status)status.textContent='Фото сохранено локально. Передача на анализ не подключена; файл не отправлялся в сеть.';
+  await refreshMediaAnalysisJobs();
+ }catch(error){if(status)status.textContent='Не удалось сохранить фото: '+(error.message||error);alert(error.message||'Не удалось сохранить фото')}
 }
 function toggleVarroaFields(){const board=$('varroaType')?.value==='sticky_board';$('varroaAdultFields').hidden=board;$('varroaBoardFields').hidden=!board}
 function renderVarroaModule(){
@@ -1553,6 +1615,7 @@ function render(){
  renderHiveDirectory();renderPlantModule();renderVarroaModule();renderPesticideIncidentModule();renderDeadoutModule();renderQueenRegistry();renderEquipmentInventory();
  renderEquipmentReconciliation();
  const aiHive=$('aiJournalHiveSelect');if(aiHive){const previous=aiHive.value;aiHive.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');aiHive.value=S.hives.some(h=>h.id===previous)?previous:'';}
+ const mediaHive=$('mediaAnalysisHiveSelect');if(mediaHive){const previous=mediaHive.value;mediaHive.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');mediaHive.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:'');}
  S.extractions=S.extractions||[];if(!S.hives.some(h=>h.id===selectedHiveId))selectedHiveId=S.hives[0]?.id||'';
  $('selectedHivePanel').style.display=selectedHiveId?'block':'none';
  if(selectedHiveId){const h=S.hives.find(x=>x.id===selectedHiveId);$('selectedHiveTitle').textContent=hname(h.id);renderHiveHeaderSummary(h);$('selectedFamilies').innerHTML=S.families.filter(f=>f.hive===selectedHiveId).map(f=>'<div class="row" style="justify-content:space-between;gap:6px;margin:5px 0;flex-wrap:wrap"><span class="pill">🐝 '+safe(f.name)+' · '+safe(f.breed==='Другая'?f.custom:(f.breed||'Порода не указана'))+(f.line?' · '+safe(f.line):'')+(f.queen?.code?' · матка '+safe(f.queen.code):'')+' · '+safe(familyStageLabel(f))+'</span><span class="row" style="gap:4px">'+(f.origin==='offshoot'&&familyStage(f)!=='independent'?'<button type="button" onclick="markOffshootIndependent(\''+f.id+'\')">Стала самостоятельной</button>':'')+'<button type="button" onclick="editFamily(\''+f.id+'\')">Данные</button><button type="button" onclick="openQueenForm(\''+f.id+'\')">Матка</button><button type="button" onclick="openFamilyTransfer(\''+f.id+'\')">Переместить</button></span></div>').join('')||'<div class="muted">Семьи ещё не добавлены.</div>'}renderFamilyHealthSummary();
@@ -1752,7 +1815,7 @@ function createExpansionSuggestion(record){
 }
 function toggleOccupancy(){const on=$('rtype').value==='Осмотр',treat=$('rtype').value==='Обработка',feeding=$('rtype').value==='Подкормка';['occupancyLabel','roccupancy','broodLabel','rbrood','drawnLabel','rdrawn','expansionHint'].forEach(id=>$(id).style.display=on?'block':'none');$('queenFields').style.display=on?'block':'none';$('treatmentFields').style.display=treat?'block':'none';$('feedingFields').style.display=feeding?'block':'none';if(!on){$('roccupancy').value='';$('rbrood').value='';$('rdrawn').value=''}}
 function selectJournalHive(id){activeJournalHive=id;render()}
-function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',planning:'#e2eedf',deadout:'#f3e4d9',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='planning')renderSeasonPlanning();if(tab==='deadout')renderDeadoutModule();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
+function paintTab(tab){if(!document.getElementById(tab))tab='home';document.body.dataset.page=tab;const summary=$('hiveHeaderSummary');if(summary)summary.style.display=tab==='hiveDetail'&&selectedHiveId?'block':'none';const stats=document.querySelector('header .stats');if(stats)stats.style.display=tab==='home'?'flex':'none';const pageColors={home:'#fff0b8',hives:'#dcecff',hiveDetail:'#dcefe5',entrance:'#e5f0d9',journal:'#f5e2d5',ai:'#e6e0f2',planning:'#e2eedf',deadout:'#f3e4d9',settings:'#e9e1f5'};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',pageColors[tab]||pageColors.home);if(tab==='hiveDetail'&&selectedHiveId){renderStructure();$('selectedHivePanel').style.display='block'}if(tab==='entrance')renderEntranceModule();if(tab==='ai')refreshMediaAnalysisJobs();if(tab==='planning')renderSeasonPlanning();if(tab==='deadout')renderDeadoutModule();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab||tab==='hiveDetail'&&x.dataset.tab==='hives'));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===tab));$('backBar').style.display=tab==='home'?'none':'flex'}
 function showTab(tab,push=true){const current=document.querySelector('.panel.active')?.id||'home';if(push&&current!==tab)history.pushState({pasekaTab:tab},'', '#'+tab);paintTab(tab);if(tab==='ai')initAIAuth()}
 function goBack(){if(history.state&&history.state.pasekaTab)history.back();else showTab('home',false)}
 
