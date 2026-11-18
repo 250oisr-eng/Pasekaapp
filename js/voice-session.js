@@ -16,6 +16,8 @@
     let starting = false;
     let nativePlugin = null;
     let nativeListening = false;
+    let stoppingNative = false;
+    let suppressNativeStopFinal = false;
     let nativeListenersPromise = null;
     let oneShotMode = false;
     let oneShotCallback = null;
@@ -56,7 +58,7 @@
       }
     }
 
-    function stop(message = null) {
+    function stop(message = null, options = {}) {
       active = false;
       starting = false;
       clearArmed();
@@ -68,7 +70,14 @@
       if (nativeListening && nativePlugin) {
         const current = nativePlugin;
         nativeListening = false;
-        Promise.resolve(current.stop()).catch(() => {});
+        stoppingNative = true;
+        suppressNativeStopFinal = options.preserveFinal === false;
+        Promise.resolve(current.stop()).catch(() => {}).finally(() => {
+          setTimer(() => {
+            stoppingNative = false;
+            suppressNativeStopFinal = false;
+          }, 0);
+        });
       }
       provider = 'none';
       if (windowRef.speechSynthesis) windowRef.speechSynthesis.cancel();
@@ -80,7 +89,7 @@
     }
 
     function deliverTranscript(value) {
-      if (!active) return;
+      if (!active && !(stoppingNative && !suppressNativeStopFinal)) return;
       const transcript = String(value || '').trim();
       if (!transcript) return;
       if (oneShotMode) {
@@ -90,7 +99,7 @@
         try {
           if (typeof callback === 'function') callback(transcript);
         } finally {
-          stop('Диктовка завершена. Текст добавлен в поле ввода.');
+          stop('Диктовка завершена. Текст добавлен в поле ввода.', { preserveFinal: false });
         }
         return;
       }
