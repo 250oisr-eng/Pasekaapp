@@ -92,6 +92,7 @@ export async function prepareAndroidProject({
     dependencyAdded: gradle.includes('com.alphacephei:vosk-android:0.3.75'),
     microphonePermission: manifest.includes('android.permission.RECORD_AUDIO'),
     networkStatePermission: manifest.includes('android.permission.ACCESS_NETWORK_STATE'),
+    internetPermission: manifest.includes('android.permission.INTERNET'),
     pluginRegistered: mainActivity.includes('PasekaOfflineSpeechPlugin.class'),
     pluginPath
   };
