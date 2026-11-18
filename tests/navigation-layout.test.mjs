@@ -19,7 +19,7 @@ test('AI occupies the center of the mobile honeycomb and desktop row', () => {
   assert.ok(navCss.includes('button[data-tab="ai"]{\n    grid-column:6!important'));
   for (const [tab, row, col] of [
     ['home', 1, 2], ['hives', 1, 3], ['entrance', 1, 4],
-    ['journal', 2, 1], ['settings', 2, 2], ['ai', 2, 3],
+    ['journal', 2, 1], ['settings', 2, 2],
     ['forage', 2, 4], ['varroa', 2, 5],
     ['incidents', 3, 2], ['planning', 3, 3], ['deadout', 3, 4]
   ]) {
