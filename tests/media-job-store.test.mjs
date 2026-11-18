@@ -295,7 +295,7 @@ test('media job preserves JSON metadata used by the local capture screen',async(
   assert.deepEqual(job.metadata,metadata);
   const loaded=await env.repo.get('job-1');assert.deepEqual(loaded.metadata,metadata);
   assert.equal(await loaded.blob.text(),'bees-at-entrance');
-  await assert.rejects(env.repo.enqueue({...queued(),id:'bad-metadata',metadata:new Blob(['x'])}),/Метаданные медиа должны быть объектом/);
+  await assert.rejects(env.repo.enqueue({...queued(),id:'bad-metadata',metadata:[]}),/Метаданные медиа должны быть объектом/);
  }finally{env.db.close()}
 });
 
