@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { NAV_TABS, isAllowedAppPath, isAllowedLocalUrl, normalizeDevToolsUrl, resolveSafePath } from '../scripts/local-browser-smoke.mjs';
+import { NAV_TABS, isAllowedAppPath, isAllowedLocalUrl, localRequestPath, normalizeDevToolsUrl, resolveSafePath } from '../scripts/local-browser-smoke.mjs';
 
 test('local browser runner serves only files inside the project root', () => {
   const root = resolve('C:/paseka/project');
@@ -49,4 +49,10 @@ test('DevTools websocket is pinned to the loopback IPv4 endpoint', () => {
     normalizeDevToolsUrl('ws://localhost:9222/devtools/page/abc'),
     'ws://127.0.0.1:9222/devtools/page/abc'
   );
+});
+
+test('network failure details include only local resource paths', () => {
+  const origin = 'http://paseka.test:43127';
+  assert.equal(localRequestPath(origin + '/js/app.js', origin), '/js/app.js');
+  assert.equal(localRequestPath('https://example.com/private', origin), null);
 });
