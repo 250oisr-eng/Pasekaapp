@@ -47,3 +47,39 @@ test('full archive restore validates state and integrity before staging, then ex
 test('interrupted archive staging and import history are shown again after app startup', () => {
   assert.match(html, /renderArchiveImportHistory\(\)\.catch\(\(\)=>\{\}\)/);
 });
+
+
+test('restore UI requires a stable saved revision, explicit confirmation and offers a safe cancel path', async () => {
+  const prepareStart = html.indexOf('async function prepareFullArchiveRestore()');
+  const prepareEnd = html.indexOf('async function finalizeFullArchiveStaging(', prepareStart);
+  const prepare = html.slice(prepareStart, prepareEnd);
+  assert.ok(prepare.indexOf('await saveQueue') < prepare.indexOf('const live = await readMain()'));
+  assert.match(prepare, /S\.meta\?\.saveError/);
+  assert.match(prepare, /expectedRevision !== \(S\.meta\?\.revisionId \?\? null\)/);
+  assert.match(prepare, /window\.__pasekaPendingFullArchiveRestore = \{ sessionId: staged\.session\.sessionId, expectedRevision \}/);
+
+  const commitStart = html.indexOf('async function commitFullArchiveRestore()');
+  const commitEnd = html.indexOf('async function rollbackFullArchiveImport(', commitStart);
+  const commit = html.slice(commitStart, commitEnd);
+  assert.ok(commit.indexOf("if (!confirm(") < commit.indexOf('PasekaArchiveRestore.commitStagedArchive'));
+  assert.match(commit, /window\.__pasekaRestoreBusy/);
+  assert.match(commit, /live\?\.meta\?\.revisionId[\s\S]*?S\.meta\?\.revisionId/);
+  assert.match(commit, /if \(committed\)[\s\S]*?Повторно импортировать архив не нужно/);
+
+  const cancelStart = html.indexOf('async function cancelFullArchiveRestore()');
+  const cancelEnd = html.indexOf('async function prepareMigratedArchiveState(', cancelStart);
+  const cancel = html.slice(cancelStart, cancelEnd);
+  assert.match(cancel, /discardArchiveRestoreSession/);
+  assert.match(cancel, /fullArchiveRestorePreview/);
+  assert.match(cancel, /fullArchiveRestoreActions/);
+  assert.match(html, /onclick="cancelFullArchiveRestore\(\)"/);
+});
+
+test('rollback UI requires explicit confirmation and refuses a stale in-memory view', async () => {
+  const start = html.indexOf('async function rollbackFullArchiveImport(');
+  const end = html.indexOf('async function discardFullArchiveRollbackSnapshot(', start);
+  const rollback = html.slice(start, end);
+  assert.ok(rollback.indexOf('if (!confirm(') < rollback.indexOf('PasekaArchiveRestore.rollbackCommittedArchive'));
+  assert.match(rollback, /live\.meta\?\.revisionId[\s\S]*?S\.meta\?\.revisionId/);
+  assert.match(rollback, /window\.__pasekaRestoreBusy/);
+});
