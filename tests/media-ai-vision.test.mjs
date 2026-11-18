@@ -88,3 +88,8 @@ test('media AI is disabled unless the free-plan gate is explicitly enabled',()=>
  assert.equal(isMediaAIEnabled({MEDIA_AI_ENABLED:'false'}),false);
  assert.equal(isMediaAIEnabled({MEDIA_AI_ENABLED:'true'}),true);
 });
+
+test('Wrangler keeps visual analysis disabled by default until account billing is verified',async()=>{
+ const config=await readFile(new URL('../cloudflare/wrangler.jsonc',import.meta.url),'utf8');
+ assert.match(config,/"MEDIA_AI_ENABLED"\s*:\s*"false"/);
+});
