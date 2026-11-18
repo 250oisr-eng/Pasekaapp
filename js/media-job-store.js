@@ -67,7 +67,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
    .sort((a,b)=>String(b.capturedAt).localeCompare(String(a.capturedAt)));
  }
 
- async function transition(id,next,details={}){
+ async function transitionInternal(id,next,details={}){
   const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
   const request=store.get(id);
   request.onsuccess=()=>{
@@ -81,14 +81,23 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return get(id);
  }
 
- async function receiveResult(id,result){
-  if(!object(result))throw new TypeError('Результат анализа должен быть объектом');
-  return transition(id,'result_received',{result});
+ async function transition(id,next,details={}){
+  if(!object(details))throw new TypeError('Некорректные параметры перехода');
+  const safeDetails={};
+  if(typeof details.lastError==='string')safeDetails.lastError=details.lastError;
+  if(timestamp(details.nextAttemptAt))safeDetails.nextAttemptAt=details.nextAttemptAt;
+  if(details.retainOriginal===true)safeDetails.retainOriginal=true;
+  return transitionInternal(id,next,safeDetails);
  }
 
- async function persistResult(id,{resultId,resultValidated,validateResult}={}){
-  if(!text(resultId)||typeof validateResult!=='function'||resultValidated!==true)
-   throw new TypeError('Для сохранения результата требуется явная успешная локальная проверка');
+ async function receiveResult(id,result){
+  if(!object(result))throw new TypeError('Результат анализа должен быть объектом');
+  return transitionInternal(id,'result_received',{result});
+ }
+
+ async function persistResult(id,{resultId,validateResult}={}){
+  if(!text(resultId)||typeof validateResult!=='function')
+   throw new TypeError('Для сохранения результата требуется функция локальной проверки');
   const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
   const request=store.get(id);
   request.onsuccess=()=>{
@@ -108,7 +117,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
  }
 
  async function scheduleCleanup(id){
-  return transition(id,'cleanup_pending',{});
+  return transitionInternal(id,'cleanup_pending',{});
  }
 
  async function cleanup(id){
