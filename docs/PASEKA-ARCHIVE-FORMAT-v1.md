@@ -1,6 +1,6 @@
 # Формат переносимого архива «Пасека» v1
 
-Статус: реализовано и проверено в Draft PR #168: latest verified code/test SHA `3436c621c5de175259a0cf112feeaba84984bd5d`; subsequent commits are documentation-only. Fast Quality Checks и Android PR workflow прошли: 721/721 regression tests, Debug APK build/upload success (artifact 14439701927). Ожидаются независимый code review и физическая проверка Android-файлового сценария; до них не считать готовым к выпуску.
+Статус: реализовано в Draft PR #168. Последний проверенный code/test SHA `3436c621c5de175259a0cf112feeaba84984bd5d`: Fast Quality Checks и Android PR workflow прошли 721/721 regression tests; Debug APK build/upload успешны (artifact 14439701927). Последующие изменения — только документация. Ожидаются независимый code review и физическая проверка Android-файлового сценария; до них не считать готовым к выпуску.
 
 ## Контрольные суммы записей видео
 
