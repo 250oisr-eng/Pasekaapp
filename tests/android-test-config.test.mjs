@@ -7,7 +7,7 @@ test('test config gets a distinct Android application id and preserves other Cap
   const testConfig = createIsolatedTestConfig(production);
   assert.equal(testConfig.appId, TEST_APP_ID);
   assert.notEqual(testConfig.appId, production.appId);
-  assert.equal(testConfig.appName, 'Пасека — тест');
+  assert.equal(testConfig.appName, 'Пасека — тест 2');
   assert.equal(testConfig.webDir, production.webDir);
   assert.deepEqual(testConfig.android, production.android);
   assert.equal(production.appId, PRODUCTION_APP_ID);
