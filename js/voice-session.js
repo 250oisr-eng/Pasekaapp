@@ -181,7 +181,7 @@
     }
 
     async function startRecognition(forceOnline = false) {
-      if (!active || speaking || recognition || nativeListening || starting) return;
+      if (!active || speaking || recognition || nativeListening || starting || stoppingNative) return;
       starting = true;
       try {
         if (!forceOnline) {
@@ -326,7 +326,14 @@
       }
       if (nativeListening && nativePlugin) {
         nativeListening = false;
-        Promise.resolve(nativePlugin.stop()).catch(() => {});
+        stoppingNative = true;
+        suppressNativeStopFinal = true;
+        Promise.resolve(nativePlugin.stop()).catch(() => {}).finally(() => {
+          setTimer(() => {
+            stoppingNative = false;
+            suppressNativeStopFinal = false;
+          }, 200);
+        });
       }
       windowRef.speechSynthesis.cancel();
       const utterance = new Utterance(text);
