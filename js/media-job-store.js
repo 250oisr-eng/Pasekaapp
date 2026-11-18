@@ -157,28 +157,50 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return transitionInternal(id,'cleanup_pending',{});
  }
 
- async function cleanup(id){
-  const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
-  const request=store.get(id);
-  request.onsuccess=()=>{
-   const current=request.result;
-   if(!current){try{tx.abort()}catch{}return}
-   if(current.status==='completed_deleted')return;
-   if(!lifecycle.canDeleteMediaOriginal(current)){try{tx.abort()}catch{}return}
-   const at=now(),changed=lifecycle.transitionMediaJob(current,'completed_deleted',{
+ async function cleanup(id,{verifyBackup}={}){
+  if(!text(id))throw new TypeError('Не указан идентификатор задания');
+  const current=await get(id);
+  if(!current)throw new Error('Задание медиа не найдено');
+  if(current.status==='completed_deleted')return current;
+  if(typeof verifyBackup!=='function')throw new TypeError('Для очистки требуется повторная проверка резервной копии');
+  if(!lifecycle.canDeleteMediaOriginal(current))throw new Error('Очистка не разрешена до подтверждения результата и резервной копии');
+  const backupReadTx=db.transaction('full_backup','readonly'),backupReadDone=transactionDone(backupReadTx);
+  const backupRecord=await requestValue(backupReadTx.objectStore('full_backup').get('previous'));await backupReadDone;
+  const backupRevisionId=current.resultBackupRevisionId;
+  if(!backupRecord?.state||backupRecord.state.meta?.revisionId!==backupRevisionId)
+   throw new Error('Подтверждённая резервная копия больше не доступна; оригинал сохранён');
+  const safeJob={...current};delete safeJob.blob;
+  if(await verifyBackup({job:safeJob,backupRecord,backupRevisionId})!==true)
+   throw new Error('Результат больше не подтверждается резервной копией; оригинал сохранён');
+  const tx=db.transaction([STORE_NAME,'full_backup'],'readwrite'),done=transactionDone(tx);
+  const store=tx.objectStore(STORE_NAME),backupStore=tx.objectStore('full_backup');
+  const request=store.get(id),backupRequest=backupStore.get('previous');
+  let jobReady=false,backupReady=false,latest=null,latestBackup=null;
+  const commit=()=>{
+   if(!jobReady||!backupReady)return;
+   if(!latest||latest.status!=='cleanup_pending'||latest.resultId!==current.resultId||
+      latest.resultPersistedAt!==current.resultPersistedAt||latest.updatedAt!==current.updatedAt||
+      latest.resultBackupRevisionId!==backupRevisionId||
+      latestBackup?.state?.meta?.revisionId!==backupRevisionId){
+    try{tx.abort()}catch{}
+    return;
+   }
+   const at=now(),changed=lifecycle.transitionMediaJob(latest,'completed_deleted',{
     originalDeleted:true,originalDeletedAt:at,blob:null
    },at);
    if(!changed.ok){try{tx.abort()}catch{}return}
    delete changed.job.blob;
    try{store.put(changed.job)}catch(error){try{tx.abort()}catch{}}
   };
+  request.onsuccess=()=>{latest=request.result;jobReady=true;commit()};
+  backupRequest.onsuccess=()=>{latestBackup=backupRequest.result;backupReady=true;commit()};
   await done;
   return get(id);
  }
 
- async function resumeCleanup(){
+ async function resumeCleanup({verifyBackup}={}){
   const pending=await list({status:'cleanup_pending'}),results=[];
-  for(const job of pending){try{results.push(await cleanup(job.id))}catch(error){results.push({id:job.id,error:String(error?.message||error)})}}
+  for(const job of pending){try{results.push(await cleanup(job.id,{verifyBackup}))}catch(error){results.push({id:job.id,error:String(error?.message||error)})}}
   return results;
  }
 
