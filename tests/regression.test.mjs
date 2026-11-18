@@ -2747,18 +2747,24 @@ test('IndexedDB connection closes on versionchange so another tab can upgrade',a
  assert.equal(deps.db,null);
 });
 
-test('IndexedDB versionchange waits for queued app saves before closing the connection',async()=>{
- let release;
- const saveQueue=new Promise(resolve=>{release=resolve});
+test('IndexedDB versionchange drains queued app saves before closing the connection',async()=>{
+ let releaseFirst,releaseSecond;
+ const firstSave=new Promise(resolve=>{releaseFirst=resolve});
+ const secondSave=new Promise(resolve=>{releaseSecond=resolve});
  const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
- const deps={DB:'paseka-test-drain',STORE:'main',BACKUP_STORE:'backup',db:null,saveQueue,indexedDB:{open(){return request}}};
+ const deps={DB:'paseka-test-drain',STORE:'main',BACKUP_STORE:'backup',db:null,saveQueue:firstSave,indexedDB:{open(){return request}}};
  const pending=loadFunction('openDB',deps)();
  request.result=fakeDb;request.onsuccess();
  await pending;
  fakeDb.onversionchange();
- assert.notEqual(fakeDb.closed,true,'the old connection must remain open until queued saves settle');
- release();
- await saveQueue;
+ deps.saveQueue=secondSave;
+ assert.notEqual(fakeDb.closed,true,'the old connection must remain open while queued saves are pending');
+ releaseFirst();
+ await firstSave;
+ await Promise.resolve();
+ assert.notEqual(fakeDb.closed,true,'a save queued while draining must also finish before close');
+ releaseSecond();
+ await secondSave;
  await Promise.resolve();
  assert.equal(fakeDb.closed,true);
  assert.equal(deps.db,null);
