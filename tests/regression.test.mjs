@@ -725,16 +725,19 @@ test('voice dictation appends Russian transcript to the draft without sending it
   assert.deepEqual(alerts,[]);
 });
 
-test('voice dictation explains unsupported browsers and does not start silently',()=>{
-  let warning='',confirmed=false;
+test('voice dictation uses the shared session provider and resets controls when it cannot start',()=>{
+  let confirmed=false,starts=0;
+  const button={disabled:false,textContent:'🎙 Диктовать'};
   const dictate=loadFunction('startAIVoiceInput',{
-    window:{},aiBusy:false,aiRecognition:null,
+    aiBusy:false,apiaryVoiceSession:{state:{active:false},startOneShot(){starts++;return false}},
     confirm:()=>{confirmed=true;return true},
-    alert:message=>{warning=message}
+    $:()=>null
   });
-  dictate({disabled:false,textContent:'🎙 Диктовать'});
-  assert.match(warning,/нет встроенного распознавания речи/);
-  assert.equal(confirmed,false);
+  dictate(button);
+  assert.equal(confirmed,true);
+  assert.equal(starts,1);
+  assert.equal(button.disabled,false);
+  assert.equal(button.textContent,'🎙 Диктовать');
 });
 
 test('AI panel discloses speech-recognition privacy and keeps explicit send control',()=>{
