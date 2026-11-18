@@ -705,7 +705,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       fail('ROLLBACK_VIDEO_INVALID', 'The previous video list contains an invalid or duplicate ID.');
     }
     seenIds.add(record.id);
-    restoredVideos.push(record);
+    restoredVideos.push({ ...record, blobSha256: phaseASnapshotHashes.get(item.id) });
   }
 
   // Recheck the same deterministic snapshot representation again under the
