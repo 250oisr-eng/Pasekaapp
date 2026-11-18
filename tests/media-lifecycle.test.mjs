@@ -6,7 +6,7 @@ const source=await readFile(new URL('../js/media-lifecycle.js',import.meta.url),
 const scope={};
 new Function('window',source)(scope);
 const Media=scope.PasekaMediaLifecycle;
-const base=()=>({id:'job-1',kind:'image',hiveId:'hive-1',originalRef:'blob:job-1',status:'queued',retryCount:0,retainOriginal:false,createdAt:'2026-11-18T10:00:00.000Z'});
+const base=()=>({id:'job-1',kind:'image',hiveId:'hive-1',originalRef:'blob:job-1',status:'queued',retryCount:0,retainOriginal:true,createdAt:'2026-11-18T10:00:00.000Z'});
 
 test('media lifecycle exports a closed set of states and queue eligibility',()=>{
  assert.equal(Media.MEDIA_JOB_STATES.length,9);
@@ -74,9 +74,13 @@ test('only a validated persisted result can authorize cleanup',()=>{
  },'2026-11-18T10:03:00.000Z');
  assert.equal(persisted.ok,true);
  assert.equal(Media.canDeleteMediaOriginal(persisted.job),false,'deletion is not authorized until cleanup is explicitly scheduled');
- const cleanup=Media.transitionMediaJob(persisted.job,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
+ const blocked=Media.transitionMediaJob(persisted.job,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
+ assert.equal(blocked.ok,false,'a persisted result without verified backup must not authorize deletion');
+ const backedUp={...persisted.job,retainOriginal:false,resultBackupRevisionId:'backup-rev-1',resultBackupVerifiedAt:'2026-11-18T10:03:30.000Z'};
+ assert.equal(Media.hasVerifiedResultBackup(backedUp),true);
+ const cleanup=Media.transitionMediaJob(backedUp,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
  assert.equal(cleanup.ok,true);
- assert.equal(Media.canDeleteMediaOriginal(cleanup.job),true,'the idempotent cleanup worker may resume after restart');
+ assert.equal(Media.canDeleteMediaOriginal(cleanup.job),true,'the idempotent cleanup worker may resume after restart only after backup verification');
 });
 
 test('user choice to retain original blocks cleanup',()=>{
@@ -100,7 +104,14 @@ test('cleanup completion requires an explicit confirmed deletion timestamp',()=>
  const persisted=Media.transitionMediaJob(received,'result_persisted',{
   resultValidated:true,resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
  },'2026-11-18T10:03:00.000Z').job;
- const cleanup=Media.transitionMediaJob(persisted,'cleanup_pending',{},'2026-11-18T10:04:00.000Z').job;
+ const blocked=Media.transitionMediaJob(persisted,'cleanup_pending',{},'2026-11-18T10:04:00.000Z');
+ assert.equal(blocked.ok,false);
+ const backedUp={...persisted,retainOriginal:false,resultBackupRevisionId:'backup-rev-1',resultBackupVerifiedAt:'2026-11-18T10:03:30.000Z'};
+ const cleanup=Media.transitionMediaJob(backedUp,'cleanup_pending',{},'2026-11-18T10:04:00.000Z').job;
+ const forged={...cleanup};delete forged.resultBackupRevisionId;delete forged.resultBackupVerifiedAt;
+ assert.equal(Media.transitionMediaJob(forged,'completed_deleted',{
+  originalDeleted:true,originalDeletedAt:'2026-11-18T10:05:00.000Z'
+ },'2026-11-18T10:05:00.000Z').ok,false,'the final deletion transition also requires backup proof');
  assert.equal(Media.transitionMediaJob(cleanup,'completed_deleted',{},'2026-11-18T10:05:00.000Z').ok,false);
  const deleted=Media.transitionMediaJob(cleanup,'completed_deleted',{
   originalDeleted:true,originalDeletedAt:'2026-11-18T10:05:00.000Z'
@@ -113,4 +124,12 @@ test('illegal transitions, invalid dates and missing states fail closed',()=>{
  assert.equal(Media.transitionMediaJob(base(),'completed_deleted',{},'2026-11-18T10:01:00.000Z').reason,'transition_not_allowed');
  assert.equal(Media.transitionMediaJob(base(),'analyzing',{},'not-a-date').reason,'invalid_transition_details');
  assert.equal(Media.transitionMediaJob(null,'analyzing').reason,'invalid_state');
+});
+
+test('missing retention decision cannot authorize original cleanup',()=>{
+ const received=Media.transitionMediaJob(Media.transitionMediaJob(base(),'analyzing',{},'2026-11-18T10:01:00.000Z').job,'result_received',{},'2026-11-18T10:02:00.000Z').job;
+ const persisted=Media.transitionMediaJob(received,'result_persisted',{resultValidated:true,resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'},'2026-11-18T10:03:00.000Z').job;
+ const undecided={...persisted,retainOriginal:undefined,resultBackupRevisionId:'backup-rev-1',resultBackupVerifiedAt:'2026-11-18T10:03:30.000Z'};
+ assert.equal(Media.transitionMediaJob(undecided,'cleanup_pending',{},'2026-11-18T10:04:00.000Z').ok,false);
+ assert.equal(Media.canDeleteMediaOriginal({...undecided,status:'cleanup_pending'}),false);
 });

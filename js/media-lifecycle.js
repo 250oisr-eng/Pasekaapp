@@ -25,7 +25,7 @@ function validTimestamp(value){return typeof value==='string'&&Number.isFinite(D
 
 /**
  * Pure state transition for a locally persisted media-analysis job.
- * Blob bytes live in a separate IndexedDB store; this record contains only a stable blob key.
+ * The temporary Blob is stored in the dedicated media_jobs object store, outside the main app-state store.
  * The caller must persist the returned job in the same transaction as any associated state change.
  */
 function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
@@ -53,7 +53,7 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
    return {ok:false,reason:'original_reference_required'};
  }
  if(next==='cleanup_pending'){
-  if(!hasPersistedResult(updated)||updated.retainOriginal===true)
+  if(!hasPersistedResult(updated)||!hasVerifiedResultBackup(updated)||updated.retainOriginal!==false)
    return {ok:false,reason:'cleanup_preconditions_not_met'};
   updated.cleanupRequestedAt=now;
  }
@@ -63,7 +63,8 @@ function transitionMediaJob(job,next,details={},now=new Date().toISOString()){
   updated.retainedAt=now;
  }
  if(next==='completed_deleted'){
-  if(job.status!=='cleanup_pending'||!validTimestamp(details.originalDeletedAt)||details.originalDeleted!==true)
+  if(job.status!=='cleanup_pending'||!hasVerifiedResultBackup(job)||
+     !validTimestamp(details.originalDeletedAt)||details.originalDeleted!==true)
    return {ok:false,reason:'original_deletion_not_confirmed'};
   updated.originalDeletedAt=details.originalDeletedAt;
  }
@@ -75,8 +76,12 @@ function hasPersistedResult(job){
   validTimestamp(job.resultPersistedAt)&&hasText(job.originalRef);
 }
 
+function hasVerifiedResultBackup(job){
+ return !!job&&hasText(job.resultBackupRevisionId)&&validTimestamp(job.resultBackupVerifiedAt);
+}
+
 function canDeleteMediaOriginal(job){
- return !!job&&job.status==='cleanup_pending'&&hasPersistedResult(job)&&job.retainOriginal!==true;
+ return !!job&&job.status==='cleanup_pending'&&hasPersistedResult(job)&&hasVerifiedResultBackup(job)&&job.retainOriginal===false;
 }
 
 function canStartMediaAnalysis(job){
@@ -86,6 +91,7 @@ function canStartMediaAnalysis(job){
 root.PasekaMediaLifecycle=Object.freeze({
  MEDIA_JOB_STATES,
  transitionMediaJob,
+ hasVerifiedResultBackup,
  canDeleteMediaOriginal,
  canStartMediaAnalysis
 });

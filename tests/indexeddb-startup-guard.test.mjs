@@ -4,6 +4,9 @@ import { IDBFactory } from 'fake-indexeddb';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const mediaStoreSource = await readFile(new URL('../js/media-job-store.js', import.meta.url), 'utf8');
+const mediaStoreScope = {};
+new Function('window', mediaStoreSource)(mediaStoreScope);
 
 function extractFunction(name) {
   const match = new RegExp('(?:async\\s+)?function\\s+' + name + '\\s*\\(').exec(html);
@@ -25,6 +28,7 @@ function openDbDependencies(indexedDB) {
     STORE: 'main',
     BACKUP_STORE: 'full_backup',
     db: null,
+    PasekaMediaJobStore: mediaStoreScope.PasekaMediaJobStore,
   };
   deps.isFreshDatabaseUpgrade = load('isFreshDatabaseUpgrade', deps);
   return deps;
@@ -37,13 +41,13 @@ test('openDB marks only a genuinely new IndexedDB database as fresh', async () =
   const open = load('openDB', fresh);
   const firstOpenCreatedDatabase = await open();
   assert.equal(firstOpenCreatedDatabase, true);
-  assert.equal(fresh.db.version, 3);
+  assert.equal(fresh.db.version, 4);
   fresh.db.close();
 
   // A retry in the same page must not inherit the first open's "fresh" result.
   const secondOpenCreatedDatabase = await open();
   assert.equal(secondOpenCreatedDatabase, false);
-  assert.equal(fresh.db.version, 3);
+  assert.equal(fresh.db.version, 4);
 
   const stateRequest = fresh.db.transaction('main', 'readonly')
     .objectStore('main').get('state');
@@ -156,7 +160,7 @@ test('upgrading an existing older database preserves its state and is not treate
 
   const createdDuringOpen = await load('openDB', deps)();
   assert.equal(createdDuringOpen, false);
-  assert.equal(deps.db.version, 3);
+  assert.equal(deps.db.version, 4);
 
   const state = await new Promise((resolve, reject) => {
     const request = deps.db.transaction('main', 'readonly').objectStore('main').get('state');

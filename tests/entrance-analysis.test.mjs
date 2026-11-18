@@ -91,7 +91,7 @@ const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 test('entrance video archive is available offline and stores blobs separately from the main state', () => {
   assert.match(html, /data-tab="entrance"/);
   assert.match(html, /id="entranceVideoInput"[^>]*capture="environment"/);
-  assert.match(html, /indexedDB\.open\(DB,3\)/);
+  assert.match(html, /indexedDB\.open\(DB,4\)/);
   assert.match(html, /createObjectStore\('entrance_media',\{keyPath:'id'\}\)/);
   assert.match(html, /transaction\('entrance_media','readwrite'\)/);
   assert.match(html, /Техническая оценка кадров/);
@@ -150,7 +150,7 @@ test('entrance anomaly baseline never triggers with fewer than five comparable o
 
 test('entrance archive UI does not submit local video or blobs to a remote endpoint', () => {
   const archiveSection=html.slice(html.indexOf('data-tab="entrance"'));
-  assert.match(archiveSection,/local_only|waiting_for_server/);
+  assert.match(archiveSection,/media_jobs|queued/);
   assert.match(archiveSection,/inspectEntranceVideoFrameQuality/);
   assert.match(archiveSection,/frameQualityCheck/);
   assert.match(archiveSection,/Распознавание пчёл ещё не подключено/);
