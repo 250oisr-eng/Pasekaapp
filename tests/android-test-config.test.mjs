@@ -19,6 +19,6 @@ test('test config refuses an unknown or already modified app id', () => {
 });
 
 test('generated Gradle project must use only the isolated test application id', () => {
-  assert.equal(assertIsolatedTestApplicationId('defaultConfig { applicationId "ru.paseka.journal.test" }'), true);
+  assert.equal(assertIsolatedTestApplicationId('defaultConfig { applicationId "ru.paseka.journal.test.persistence2" }'), true);
   assert.throws(() => assertIsolatedTestApplicationId('defaultConfig { applicationId "ru.paseka.journal" }'), /not the isolated test id/);
 });
