@@ -34,10 +34,16 @@ export async function prepareAndroidProject({
   ]);
 
   let gradle = gradleOriginal;
-  const dependency = "    implementation 'com.alphacephei:vosk-android:0.3.75'";
-  if (!gradle.includes('com.alphacephei:vosk-android')) {
+  const dependencies = [
+    "implementation 'com.alphacephei:vosk-android:0.3.75@aar'",
+    "implementation 'net.java.dev.jna:jna:5.18.1@aar'"
+  ];
+  gradle = gradle.replace(/implementation ['"]com\.alphacephei:vosk-android:0\.3\.75['"]/, dependencies[0]);
+  gradle = gradle.replace(/implementation ['"]net\.java\.dev\.jna:jna:5\.18\.1['"]/, dependencies[1]);
+  const missingDependencies = dependencies.filter(dependency => !gradle.includes(dependency));
+  if (missingDependencies.length) {
     if (!/dependencies\s*\{/.test(gradle)) throw new Error('Android app dependencies block was not found');
-    gradle = gradle.replace(/dependencies\s*\{/, match => match + '\n' + dependency);
+    gradle = gradle.replace(/dependencies\s*\{/, match => match + '\n    ' + missingDependencies.join('\n    '));
   }
 
   let manifest = manifestOriginal;
@@ -89,7 +95,8 @@ export async function prepareAndroidProject({
 
   return {
     appId,
-    dependencyAdded: gradle.includes('com.alphacephei:vosk-android:0.3.75'),
+    voskDependencyAdded: gradle.includes('com.alphacephei:vosk-android:0.3.75@aar'),
+    jnaDependencyAdded: gradle.includes('net.java.dev.jna:jna:5.18.1@aar'),
     microphonePermission: manifest.includes('android.permission.RECORD_AUDIO'),
     networkStatePermission: manifest.includes('android.permission.ACCESS_NETWORK_STATE'),
     internetPermission: manifest.includes('android.permission.INTERNET'),
