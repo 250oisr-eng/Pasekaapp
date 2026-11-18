@@ -477,3 +477,13 @@
 - Модуль подключён в index.html и Service Worker cache v314. UI захвата фото/видео и текущие видео летка пока не переключены на новый repository; это следующий интеграционный этап.
 - Исправлены тексты резервного копирования: inline-вложения существующих записей включаются в текущий JSON/state backup; отдельные исходники очереди анализа и видео летка в них не входят. Новые media job results пока не интегрированы в экспорт/восстановление.
 - Main остаётся `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; пользовательские данные/production не менялись. Следующий этап — интеграция новых фото из журнала и UI очереди с безопасным сохранением результата и backup результата.
+
+
+## Проверка PR #158 — 2026-11-18
+
+- Проверенный code/test SHA: `1f3aba9a524811c5976c23eba3453194f379b506`.
+- Fast Quality Checks #44239853215: **633 passed, 0 failed, 0 skipped**.
+- Android Debug APK #44239853319: success; regression tests, web preparation, Capacitor sync, Android Gradle build and artifact upload all successful.
+- Artifact #14398264988, 3,415,239 bytes; uploaded artifact ZIP SHA-256 `4f1aa52ac18e796aa2c83bae8eb442e64e13a357dfe7af5d39f0e5a390658f85`.
+- В ходе первого запуска CI найдены и исправлены устаревшие тестовые ожидания IndexedDB v3 и Service Worker v313; также startup-guard fixtures теперь используют реальный ensureStore. Финальный запуск выше успешен на точном code/test SHA.
+- После этого checkpoint в PR добавляются только документы; код и тесты не меняются. Физическое Android-устройство не тестировалось.
