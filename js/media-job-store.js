@@ -189,6 +189,53 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return get(id);
  }
 
+ async function claimForAnalysis(id,{ownerId,leaseMs=300000}={}){
+  if(!text(id)||!text(ownerId)||!Number.isInteger(leaseMs)||leaseMs<30000||leaseMs>600000)
+   throw new TypeError('Для запуска анализа требуется владелец и срок блокировки от 30 до 600 секунд');
+  const at=now(),atMs=Date.parse(at),leaseUntil=new Date(atMs+leaseMs).toISOString();
+  const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),objectStore=tx.objectStore(STORE_NAME);
+  const request=objectStore.get(id);let reason='';
+  request.onsuccess=()=>{
+   const current=request.result;
+   if(!current){reason='Задание медиа не найдено';try{tx.abort()}catch{}return}
+   let source=current;
+   if(current.status==='analyzing'){
+    const expiry=Date.parse(current.analysisLeaseUntil||'');
+    if(Number.isFinite(expiry)&&expiry>atMs){reason='Это задание уже анализируется в другой вкладке';try{tx.abort()}catch{}return}
+    const recovered=lifecycle.transitionMediaJob(current,'failed_retryable',{lastError:'Предыдущая попытка анализа прервана; можно повторить'},at);
+    if(!recovered.ok){reason='Не удалось восстановить прерванный анализ';try{tx.abort()}catch{}return}
+    source=recovered.job;
+   }
+   if(!['queued','failed_retryable'].includes(source.status)){
+    reason='Задание нельзя запустить из текущего состояния: '+source.status;try{tx.abort()}catch{}return;
+   }
+   const changed=lifecycle.transitionMediaJob(source,'analyzing',{analysisOwner:ownerId,analysisLeaseUntil:leaseUntil},at);
+   if(!changed.ok){reason='Не удалось захватить задание для анализа';try{tx.abort()}catch{}return}
+   try{objectStore.put(changed.job)}catch(error){reason=error?.message||'Не удалось сохранить блокировку';try{tx.abort()}catch{}}
+  };
+  try{await done}catch(error){if(reason)throw new Error(reason);throw error}
+  return get(id);
+ }
+
+ async function recoverExpiredAnalyses(){
+  const pending=await list({status:'analyzing'}),recovered=[];
+  for(const job of pending){
+   const expiry=Date.parse(job.analysisLeaseUntil||'');
+   if(Number.isFinite(expiry)&&expiry>Date.now())continue;
+   const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),objectStore=tx.objectStore(STORE_NAME),request=objectStore.get(job.id);
+   let changed=false;
+   request.onsuccess=()=>{
+    const latest=request.result,latestExpiry=Date.parse(latest?.analysisLeaseUntil||'');
+    if(!latest||latest.status!=='analyzing'||Number.isFinite(latestExpiry)&&latestExpiry>Date.now()){try{tx.abort()}catch{}return}
+    const result=lifecycle.transitionMediaJob(latest,'failed_retryable',{lastError:'Предыдущая попытка анализа прервана; можно повторить'},now());
+    if(!result.ok){try{tx.abort()}catch{}return}
+    try{objectStore.put(result.job);changed=true}catch{try{tx.abort()}catch{}}
+   };
+   try{await done;if(changed)recovered.push(job.id)}catch{}
+  }
+  return recovered;
+ }
+
  async function scheduleCleanup(id){
   return transitionInternal(id,'cleanup_pending',{});
  }
@@ -241,7 +288,7 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return results;
  }
 
- return Object.freeze({enqueue,get,list,transition,setRetainOriginal,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
+ return Object.freeze({enqueue,get,list,transition,claimForAnalysis,recoverExpiredAnalyses,setRetainOriginal,receiveResult,persistResult,confirmResultBackup,scheduleCleanup,cleanup,resumeCleanup});
 }
 
 root.PasekaMediaJobStore=Object.freeze({STORE_NAME,ensureStore,createMediaJobStore});
