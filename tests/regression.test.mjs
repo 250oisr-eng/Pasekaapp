@@ -2747,6 +2747,24 @@ test('IndexedDB connection closes on versionchange so another tab can upgrade',a
  assert.equal(deps.db,null);
 });
 
+test('IndexedDB versionchange waits for queued app saves before closing the connection',async()=>{
+ let release;
+ const saveQueue=new Promise(resolve=>{release=resolve});
+ const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
+ const deps={DB:'paseka-test-drain',STORE:'main',BACKUP_STORE:'backup',db:null,saveQueue,indexedDB:{open(){return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;request.onsuccess();
+ await pending;
+ fakeDb.onversionchange();
+ assert.equal(fakeDb.closed,false,'the old connection must remain open until queued saves settle');
+ release();
+ await saveQueue;
+ await Promise.resolve();
+ assert.equal(fakeDb.closed,true);
+ assert.equal(deps.db,null);
+});
+
+
 
 test('save reports snapshot preparation failures without throwing or queuing a partial save',async()=>{
  const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},snapshots:[]};
