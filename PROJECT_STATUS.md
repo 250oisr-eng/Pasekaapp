@@ -700,3 +700,16 @@
 
 ### Следующий шаг
 Draft PR #162 создан поверх #161. Проверить CI на актуальном HEAD, устранить все ошибки и затем провести физические испытания локального распознавания. До них считать функцию экспериментальной.
+
+## Контрольная точка — изолированная Android test APK (2026-11-18)
+
+- Пользователь сообщил, что приложение «Пасека» удалено с OnePlus; это не разрешение на очистку телефона или удаление других данных.
+- Read-only ADB preflight фактически выполнен пользователем на OnePlus NE2213: device_preflight_passed; Android 16 / SDK 36; Chrome 157.0.8103.78; WebView 159.0.8154.4; сборка BP2A.250605.015; security patch 2026-06-01; батарея 70%; экран 1440×3216; физическая плотность 480 dpi, override 640 dpi. Полный отчёт передан текстом; serial не записан.
+- PR #171 остаётся Draft, открыт, не объединён; HEAD 2fb7956f5faedc1cd7df3cc768bdef68d38bb4f6; CI runs #44339586378 (Android) и #44339586362 (Windows) — success на этом точном SHA.
+- Создан Draft PR #172 поверх #171: ветка test/isolated-android-apk-2026-11-18, HEAD 9ef7b21fc0d071ba64b281df636cbbd4223b7475.
+- Добавлен отдельный CI workflow .github/workflows/android-test-debug.yml, который меняет applicationId только в рабочей копии CI на ru.paseka.journal.test, проверяет generated Gradle applicationId и собирает отдельный Debug APK. Исходный capacitor.config.json и production package ID ru.paseka.journal в репозитории не меняются.
+- Добавлены scripts/prepare-android-test-config.mjs и tests/android-test-config.test.mjs: тестовый appId создаётся только из ожидаемого production ID; неизвестная конфигурация отклоняется; проверяется отсутствие совпадения с production package.
+- Workflow не устанавливает APK на телефон. Физическая установка, запуск, UI/ADB automation и тестовые данные ещё не выполнялись.
+- CI для PR #172 ожидается; до получения результата не передавать APK на установку.
+- Следующий шаг: проверить unit tests и Android Debug APK workflow на точном актуальном HEAD PR #172; при успехе скачать артефакт, сверить SHA-256 и package ID, затем дать пользователю минимальные инструкции для ручной установки изолированной тестовой сборки.
+- Не выполнять merge PR, release, публикацию или production deployment.
