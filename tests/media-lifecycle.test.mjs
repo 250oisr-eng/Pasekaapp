@@ -70,7 +70,7 @@ test('only a validated persisted result can authorize cleanup',()=>{
   'result_received',{},'2026-11-18T10:02:00.000Z'
  ).job;
  const persisted=Media.transitionMediaJob(received,'result_persisted',{
-  resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
+  resultValidated:true,resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'
  },'2026-11-18T10:03:00.000Z');
  assert.equal(persisted.ok,true);
  assert.equal(Media.canDeleteMediaOriginal(persisted.job),false,'deletion is not authorized until cleanup is explicitly scheduled');
