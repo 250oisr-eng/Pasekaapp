@@ -116,6 +116,35 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   return get(id);
  }
 
+ async function confirmResultBackup(id,{backupRevisionId,verifyBackup}={}){
+  if(!text(id)||!text(backupRevisionId)||typeof verifyBackup!=='function')
+   throw new TypeError('Для подтверждения резервной копии требуются её ревизия и функция проверки');
+  const current=await get(id);
+  if(!current||current.status!=='result_persisted'||current.resultValidated!==true||
+     !text(current.resultId)||!timestamp(current.resultPersistedAt)||!text(current.originalRef))
+   throw new Error('Сначала необходимо сохранить и проверить результат анализа');
+  const verificationResult=await verifyBackup({
+   jobId:current.id,resultId:current.resultId,result:current.result,
+   originalRef:current.originalRef,backupRevisionId
+  });
+  if(verificationResult!==true)
+   throw new Error('Результат анализа не подтверждён в резервной копии; оригинал сохранён');
+  const tx=db.transaction(STORE_NAME,'readwrite'),done=transactionDone(tx),store=tx.objectStore(STORE_NAME);
+  const request=store.get(id);
+  request.onsuccess=()=>{
+   const latest=request.result;
+   if(!latest||latest.status!=='result_persisted'||latest.resultId!==current.resultId||
+      latest.resultPersistedAt!==current.resultPersistedAt||latest.updatedAt!==current.updatedAt){
+    try{tx.abort()}catch{}
+    return;
+   }
+   const at=now(),updated={...latest,resultBackupRevisionId, resultBackupVerifiedAt:at,updatedAt:at};
+   try{store.put(updated)}catch(error){try{tx.abort()}catch{}}
+  };
+  await done;
+  return get(id);
+ }
+
  async function scheduleCleanup(id){
   return transitionInternal(id,'cleanup_pending',{});
  }
