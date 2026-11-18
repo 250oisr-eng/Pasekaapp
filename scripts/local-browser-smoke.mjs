@@ -61,6 +61,11 @@ export function isAllowedAppPath(relativePath) {
   return ['index.html', 'manifest.webmanifest', 'sw.js'].includes(normalized) || /^(js|icons)\//.test(normalized);
 }
 
+export function localRequestPath(candidate, localOrigin) {
+  if (!isAllowedLocalUrl(candidate, localOrigin)) return null;
+  return new URL(candidate).pathname;
+}
+
 export function normalizeDevToolsUrl(webSocketUrl) {
   const endpoint = new URL(webSocketUrl);
   endpoint.hostname = '127.0.0.1';
@@ -397,13 +402,13 @@ export async function runLocalBrowserSmoke({ root = PROJECT_ROOT } = {}) {
     });
     devtools.on('Network.responseReceived', event => {
       if (isAllowedLocalUrl(event.response.url, staticServer.origin) && event.response.status >= 400) {
-        report.localHttpErrors.push({ url: new URL(event.response.url).pathname, status: event.response.status });
+        report.localHttpErrors.push({ url: localRequestPath(event.response.url, staticServer.origin), status: event.response.status });
       }
     });
     devtools.on('Network.loadingFailed', event => {
       const requestUrl = networkRequestUrls.get(event.requestId);
       if (requestUrl && isAllowedLocalUrl(requestUrl, staticServer.origin)) {
-        report.localHttpErrors.push({ url: new URL(requestUrl).pathname, error: event.errorText || 'Network request failed' });
+        report.localHttpErrors.push({ url: localRequestPath(requestUrl, staticServer.origin), error: event.errorText || 'Network request failed' });
       }
       networkRequestUrls.delete(event.requestId);
     });
