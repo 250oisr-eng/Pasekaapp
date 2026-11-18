@@ -46,7 +46,7 @@ export async function prepareAndroidProject({
     return !manifest.includes(permissionName);
   });
   if (missingPermissions.length) {
-    manifest = manifest.slice(0, applicationIndex) + missingPermissions.join('\\n    ') + '\\n    ' + manifest.slice(applicationIndex);
+    manifest = manifest.slice(0, applicationIndex) + missingPermissions.join('\n    ') + '\n    ' + manifest.slice(applicationIndex);
     await writeFile(manifestPath, manifest);
   }
 
