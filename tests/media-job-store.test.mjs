@@ -290,8 +290,10 @@ test('application upgrades to IndexedDB v4 and loads lifecycle modules before st
  assert.match(html,/indexedDB\.open\(DB,4\)/);
  assert.match(html,/PasekaMediaJobStore\.ensureStore\(d\)/);
  assert.ok(html.indexOf('media-lifecycle.js')<html.indexOf('media-job-store.js'));
- assert.ok(html.indexOf('media-job-store.js')<html.indexOf('entrance-analysis.js'));
- assert.match(sw,/paseka-shell-v315/);
+ assert.ok(html.indexOf('media-job-store.js')<html.indexOf('media-ai-client.js'));
+ assert.ok(html.indexOf('media-ai-client.js')<html.indexOf('entrance-analysis.js'));
+ assert.match(sw,/\.\/js\/media-ai-client\.js/);
+ assert.match(sw,/paseka-shell-v316/);
  assert.match(sw,/\.\/js\/media-lifecycle\.js/);
  assert.match(sw,/\.\/js\/media-job-store\.js/);
 });
@@ -322,5 +324,41 @@ test('original retention defaults to true and opting out after persistence requi
   await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:()=>true});
   const optedOut=await env.repo.setRetainOriginal('job-1',false);assert.equal(optedOut.retainOriginal,false);
   const pending=await env.repo.scheduleCleanup('job-1');assert.equal(pending.status,'cleanup_pending');
+ }finally{env.db.close()}
+});
+
+
+test('analysis lease is atomic across tabs and blocks a second concurrent claimant',async()=>{
+ const env=await createDb();
+ env.repo=Media.createMediaJobStore({db:env.db,lifecycle:scope.PasekaMediaLifecycle,now:()=>new Date().toISOString()});
+ try{
+  await env.repo.enqueue(queued());
+  const claimed=await env.repo.claimForAnalysis('job-1',{ownerId:'tab-a',leaseMs:300000});
+  assert.equal(claimed.status,'analyzing');
+  assert.equal(claimed.analysisOwner,'tab-a');
+  assert.ok(Date.parse(claimed.analysisLeaseUntil)>Date.now());
+  await assert.rejects(env.repo.claimForAnalysis('job-1',{ownerId:'tab-b',leaseMs:300000}),/другой вкладке/);
+  const current=await env.repo.get('job-1');
+  assert.equal(current.analysisOwner,'tab-a');
+  assert.equal(await current.blob.text(),'bees-at-entrance');
+ }finally{env.db.close()}
+});
+
+test('expired analysis leases recover to retryable and can be claimed again',async()=>{
+ const env=await createDb();
+ env.repo=Media.createMediaJobStore({db:env.db,lifecycle:scope.PasekaMediaLifecycle,now:()=>new Date().toISOString()});
+ try{
+  await env.repo.enqueue(queued());
+  const tx=env.db.transaction('media_jobs','readwrite'),store=tx.objectStore('media_jobs'),request=store.get('job-1');
+  request.onsuccess=()=>store.put({...request.result,status:'analyzing',analysisOwner:'old-tab',analysisLeaseUntil:new Date(Date.now()-1000).toISOString()});
+  await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+  assert.deepEqual(await env.repo.recoverExpiredAnalyses(),['job-1']);
+  const recovered=await env.repo.get('job-1');
+  assert.equal(recovered.status,'failed_retryable');
+  assert.equal(recovered.analysisOwner,undefined);
+  assert.equal(recovered.analysisLeaseUntil,undefined);
+  const claimed=await env.repo.claimForAnalysis('job-1',{ownerId:'new-tab',leaseMs:300000});
+  assert.equal(claimed.status,'analyzing');
+  assert.equal(claimed.analysisOwner,'new-tab');
  }finally{env.db.close()}
 });
