@@ -2,8 +2,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const ARCHIVE_TEST_APP_ID = 'ru.paseka.journal.archive.test2';
-export const ARCHIVE_TEST_APP_NAME = 'Пасека — архив тест 2';
+export const ARCHIVE_TEST_APP_ID = 'ru.paseka.journal.archive.test3';
+export const ARCHIVE_TEST_APP_NAME = 'Пасека — архив тест 3';
 
 export function createArchiveTestConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
