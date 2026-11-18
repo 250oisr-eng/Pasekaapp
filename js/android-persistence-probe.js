@@ -1,7 +1,11 @@
 (function () {
   'use strict';
   // This script is injected only into the isolated Android test APK.
-  if (typeof window === 'undefined' || window.__PASEKA_TEST_BUILD__ !== true) return;
+  const fallback = document.getElementById('androidPersistenceProbeFallback');
+  if (typeof window === 'undefined' || window.__PASEKA_TEST_BUILD__ !== true) {
+    if (fallback) fallback.textContent = 'Тестовый режим не подтверждён. Сохранение не проверялось.';
+    return;
+  }
 
   const markerKey = 'androidPersistenceProbe';
   let ready = false;
@@ -10,7 +14,11 @@
   let messageOverride = '';
 
   const settings = document.getElementById('settings');
-  if (!settings) return;
+  if (!settings) {
+    if (fallback) fallback.textContent = 'Панель «Ещё» не найдена. Сохранение не проверялось.';
+    return;
+  }
+  if (document.getElementById('androidPersistenceProbe')) return;
 
   const panel = document.createElement('div');
   panel.id = 'androidPersistenceProbe';
@@ -25,6 +33,7 @@
     '<button type="button" id="androidPersistenceProbeClear" hidden>Удалить тестовую отметку</button>'
   ].join('');
   settings.appendChild(panel);
+  if (fallback) fallback.hidden = true;
 
   const status = panel.querySelector('#androidPersistenceProbeStatus');
   const createButton = panel.querySelector('#androidPersistenceProbeCreate');
