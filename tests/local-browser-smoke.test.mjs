@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { NAV_TABS, isAllowedLocalUrl, resolveSafePath } from '../scripts/local-browser-smoke.mjs';
+import { NAV_TABS, isAllowedAppPath, isAllowedLocalUrl, resolveSafePath } from '../scripts/local-browser-smoke.mjs';
 
 test('local browser runner serves only files inside the project root', () => {
   const root = resolve('C:/paseka/project');
@@ -31,4 +31,15 @@ test('navigation smoke suite covers every primary application section once', () 
     'home', 'hives', 'entrance', 'journal', 'ai', 'forage',
     'varroa', 'incidents', 'planning', 'deadout', 'settings'
   ]);
+});
+
+test('local server exposes only the application runtime files', () => {
+  assert.equal(isAllowedAppPath('index.html'), true);
+  assert.equal(isAllowedAppPath('manifest.webmanifest'), true);
+  assert.equal(isAllowedAppPath('sw.js'), true);
+  assert.equal(isAllowedAppPath('js/voice-session.js'), true);
+  assert.equal(isAllowedAppPath('icons/paseka.svg'), true);
+  assert.equal(isAllowedAppPath('package.json'), false);
+  assert.equal(isAllowedAppPath('PROJECT_STATUS.md'), false);
+  assert.equal(isAllowedAppPath('docs/ПАСПОРТ-ПРОЕКТА.md'), false);
 });
