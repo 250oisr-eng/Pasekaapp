@@ -68,25 +68,23 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   if(!timestamp(at))throw new TypeError('Некорректное время миграции медиа');
   const tx=db.transaction(['entrance_media',STORE_NAME],'readwrite'),done=transactionDone(tx);
   const legacyStore=tx.objectStore('entrance_media'),jobsStore=tx.objectStore(STORE_NAME);
-  const legacyRequest=legacyStore.getAll(),jobsRequest=jobsStore.getAll();
+  const cursorRequest=legacyStore.openCursor();
   const summary={migrated:0,alreadyMigrated:0,skipped:[]};
-  let legacyReady=false,jobsReady=false,legacyRows=[],jobsRows=[];
-  const apply=()=>{
-   if(!legacyReady||!jobsReady)return;
-   const migratedSources=new Set(jobsRows.map(job=>job?.legacySourceId).filter(text));
-   const jobIds=new Set(jobsRows.map(job=>job?.id).filter(text));
-   for(const record of legacyRows){
-    if(text(record?.id)&&migratedSources.has(record.id)){summary.alreadyMigrated++;continue}
-    const id=record?.id;
-    const validBlob=record?.blob&&Number.isFinite(record.blob.size)&&record.blob.size>0&&typeof record.blob.arrayBuffer==='function';
-    if(!text(id)||id.length>180||!text(record?.hiveId)||!timestamp(record?.capturedAt)||!validBlob){
-     summary.skipped.push({id:text(id)?id:null,reason:'invalid_legacy_video_record'});
-     continue;
-    }
-    const jobId='legacy-entrance-'+id;
-    if(jobIds.has(jobId)){
-     summary.skipped.push({id,reason:'media_job_id_collision'});
-     continue;
+  cursorRequest.onsuccess=()=>{
+   const cursor=cursorRequest.result;
+   if(!cursor)return;
+   const record=cursor.value,id=record?.id;
+   const validBlob=record?.blob&&Number.isFinite(record.blob.size)&&record.blob.size>0&&typeof record.blob.arrayBuffer==='function';
+   if(!text(id)||id.length>180||!text(record?.hiveId)||!timestamp(record?.capturedAt)||!validBlob){
+    summary.skipped.push({id:text(id)?id:null,reason:'invalid_legacy_video_record'});
+    cursor.continue();return;
+   }
+   const jobId='legacy-entrance-'+id,lookup=jobsStore.get(jobId);
+   lookup.onsuccess=()=>{
+    if(lookup.result){
+     if(lookup.result.legacySourceId===id)summary.alreadyMigrated++;
+     else summary.skipped.push({id,reason:'media_job_id_collision'});
+     cursor.continue();return;
     }
     const captureMetadata={};
     if(Number.isFinite(record.durationSec)&&record.durationSec>0)captureMetadata.durationSec=record.durationSec;
@@ -107,11 +105,10 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
     };
     jobsStore.add(job);
     legacyStore.delete(id);
-    jobIds.add(jobId);migratedSources.add(id);summary.migrated++;
-   }
+    summary.migrated++;
+    cursor.continue();
+   };
   };
-  legacyRequest.onsuccess=()=>{legacyRows=legacyRequest.result||[];legacyReady=true;apply()};
-  jobsRequest.onsuccess=()=>{jobsRows=jobsRequest.result||[];jobsReady=true;apply()};
   await done;
   return {...summary,skippedCount:summary.skipped.length};
  }
