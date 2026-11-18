@@ -59,7 +59,7 @@ test('result_persisted requires a result ID, timestamp and original reference',(
  );
  const withoutRef={...received,originalRef:null};
  assert.deepEqual(
-  Media.transitionMediaJob(withoutRef,'result_persisted',{resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'},'2026-11-18T10:03:00.000Z'),
+  Media.transitionMediaJob(withoutRef,'result_persisted',{resultValidated:true,resultId:'result-1',resultPersistedAt:'2026-11-18T10:03:00.000Z'},'2026-11-18T10:03:00.000Z'),
   {ok:false,reason:'original_reference_required'}
  );
 });
