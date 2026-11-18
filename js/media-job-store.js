@@ -34,8 +34,10 @@ function createMediaJobStore({db,lifecycle=root.PasekaMediaLifecycle,now=()=>new
   if(input.hiveId!=null&&!text(input.hiveId))throw new TypeError('Некорректная связь с ульем');
   if(input.familyId!=null&&!text(input.familyId))throw new TypeError('Некорректная связь с семьёй');
   if(input.recordId!=null&&!text(input.recordId))throw new TypeError('Некорректная связь с записью журнала');
+  let metadata=null;
+  if(input.metadata!=null){if(!object(input.metadata))throw new TypeError('Метаданные медиа должны быть объектом');try{metadata=JSON.parse(JSON.stringify(input.metadata))}catch{throw new TypeError('Метаданные медиа должны содержать только JSON-значения')}}
   const job={
-   id,kind:input.kind,blob:input.blob,name:String(input.name||'').slice(0,160),
+   id,kind:input.kind,blob:input.blob,metadata,name:String(input.name||'').slice(0,160),
    mimeType:String(input.mimeType||input.blob.type||'').slice(0,120),bytes:input.blob.size,
    hiveId:input.hiveId||null,familyId:input.familyId||null,recordId:input.recordId||null,
    capturedAt:input.capturedAt||at,createdAt:at,updatedAt:at,

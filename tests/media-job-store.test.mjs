@@ -287,7 +287,7 @@ test('public status transitions cannot overwrite or clear original Blob referenc
  }finally{env.db.close()}
 });
 
-test('original retention defaults to true and opting out after persistence requires verified backup evidence',async()=>{
+test('media job preserves JSON metadata used by the local capture screen',async()=>{\n const env=await createDb();\n try{\n  const metadata={durationSec:61.5,width:1920,height:1080,frameQualityCheck:{status:'good',sampleCount:5}};\n  const job=await env.repo.enqueue({...queued(),kind:'video',metadata});\n  assert.deepEqual(job.metadata,metadata);\n  const loaded=await env.repo.get('job-1');assert.deepEqual(loaded.metadata,metadata);\n  assert.equal(await loaded.blob.text(),'bees-at-entrance');\n  await assert.rejects(env.repo.enqueue({...queued(),id:'bad-metadata',metadata:new Blob(['x'])}),/Метаданные медиа должны быть объектом/);\n }finally{env.db.close()}\n});\n\ntest('original retention defaults to true and opting out after persistence requires verified backup evidence',async()=>{
  const env=await createDb();
  try{
   const job=await env.repo.enqueue(queued());assert.equal(job.retainOriginal,true);
