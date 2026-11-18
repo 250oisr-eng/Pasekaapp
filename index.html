@@ -3664,7 +3664,8 @@ async function shareFullArchive() {
   try {
     const file = new File([blob], 'paseka-full-backup-' + today() + '.paseka', { type: 'application/vnd.paseka.archive' });
     if (!navigator.canShare({ files: [file] })) {
-      setFullArchiveRestoreStatus('Этот браузер не может отправить файл такого размера. Используй скачивание архива.');
+      const status = $('fullArchiveStatus');
+      if (status) status.textContent = 'Этот браузер не может отправить файл такого размера. Используй скачивание архива.';
       return;
     }
     await navigator.share({ files: [file], title: 'Полный архив пасеки', text: 'Резервная копия журнала пасеки.' });
