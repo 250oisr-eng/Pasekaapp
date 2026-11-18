@@ -22,9 +22,15 @@
     let oneShotMode = false;
     let oneShotCallback = null;
     let oneShotFinish = null;
+    let oneShotStatus = null;
 
     function status(message) {
-      if (typeof onStatus === 'function') onStatus(message);
+      if (typeof onStatus === 'function') {
+        try { onStatus(message); } catch (error) {}
+      }
+      if (typeof oneShotStatus === 'function') {
+        try { oneShotStatus(message); } catch (error) {}
+      }
     }
 
     function getSpeechConstructor() {
@@ -52,6 +58,7 @@
       const finish = oneShotFinish;
       oneShotFinish = null;
       oneShotCallback = null;
+      oneShotStatus = null;
       oneShotMode = false;
       if (typeof finish === 'function') {
         try { finish(); } catch (error) {}
@@ -265,6 +272,7 @@
       oneShotMode = true;
       oneShotCallback = callback;
       oneShotFinish = options.onFinish || null;
+      oneShotStatus = typeof options.onStatus === 'function' ? options.onStatus : null;
       allowOnlineFallback = options.allowOnline === true;
       active = true;
       clearArmed();
