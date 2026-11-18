@@ -15,8 +15,9 @@ const NOW='2026-11-17T08:00:00.000Z';
 function makeItem(id,kind,location){
  return {id,kind,label:id,condition:'good',location,notes:'',registeredAt:NOW,updatedAt:NOW,events:[]};
 }
+function honeyFrames(id){return Array.from({length:10},(_,index)=>({frameId:id+'-frame-'+(index+1),combType:'drawn_comb',history:[]}));}
 function makeBody(id,kind='brood'){
- return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10}};
+ return {id,kind,condition:'good',spec:{profileId:PROFILE,framesPerBox:kind==='brood'?6:10},...(kind==='honey'?{frames:honeyFrames(id)}:{})};
 }
 function baseFamilies(){
  return [
@@ -302,8 +303,19 @@ test('single-family layout accepts three or four brood bodies without inventing 
  assert.deepEqual(validateAll(singleFamily('early_honey_merge',4).state),[]);
 });
 
+function removeHoneyStageAccessories(state,layout){
+ for(const stack of layout.stacks){
+  for(const key of ['coverItemId','topRiserItemId']){
+   const itemId=stack[key];
+   if(itemId&&state.equipmentInventory.items[itemId])state.equipmentInventory.items[itemId].location={type:'storage',label:'Склад'};
+   delete stack[key];
+  }
+ }
+}
+
 test('R4 accepts exactly two large excluders with FULL/HALF footprints on explicit upper bodies',()=>{
  const {state,layout}=sideBySide();
+ removeHoneyStageAccessories(state,layout);
  state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
  state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
  const left=[{bodyId:'b2',coverage:'FULL'},{bodyId:'b4',coverage:'HALF'}];
@@ -316,6 +328,7 @@ test('R4 accepts exactly two large excluders with FULL/HALF footprints on explic
 
 test('R4 rejects incorrect FULL/HALF section assignment and an unsupported early four-body stack',()=>{
  const {state,layout}=sideBySide();
+ removeHoneyStageAccessories(state,layout);
  state.equipmentInventory.bodies.hb1=makeBody('hb1','honey');
  state.equipmentInventory.bodies.hb2=makeBody('hb2','honey');
  state.equipmentInventory.bodies.hb3=makeBody('hb3','honey');

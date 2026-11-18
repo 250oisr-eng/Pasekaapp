@@ -142,11 +142,14 @@ function validate(layout,state){
   coveredSections.push(...sectionIds);
   if(!nonEmpty(stack.bottomItemId))add('section_stack_bottom_required',{stackId:stack.id??null});
   else checkItem(stack.bottomItemId,'bottom',{stackId:stack.id});
-  if(layout.mode===MODES.SIDE_BY_SIDE){
+  if(layout.mode===MODES.SIDE_BY_SIDE&&layout.honeyStack==null){
    if(!nonEmpty(stack.coverItemId))add('section_stack_cover_required',{stackId:stack.id??null});
    else checkItem(stack.coverItemId,'cover',{stackId:stack.id});
    if(!nonEmpty(stack.topRiserItemId))add('section_stack_top_riser_required',{stackId:stack.id??null});
    else checkItem(stack.topRiserItemId,'topRiser',{stackId:stack.id});
+  }else if(layout.mode===MODES.SIDE_BY_SIDE){
+   if(stack.coverItemId)add('honey_stage_cover_must_be_removed',{stackId:stack.id??null,itemId:stack.coverItemId});
+   if(stack.topRiserItemId)add('honey_stage_top_riser_must_be_removed',{stackId:stack.id??null,itemId:stack.topRiserItemId});
   }else if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
   if(stack.feederItemId)checkItem(stack.feederItemId,'feeder',{stackId:stack.id});
   if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
@@ -190,7 +193,7 @@ function validate(layout,state){
   }
   if(seenPairs.size!==2)add('technical_connection_coverage_incomplete',{pairs:[...seenPairs]});
   for(const openingId of openingById.keys())if(!usedOpenings.has(openingId))add('technical_opening_unlinked',{openingId});
-  if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,add,checkBody,checkItem);
+  if(layout.honeyStack!=null)validateHoneyStack(layout.honeyStack,sections,add,checkBody,checkItem,state);
  }else{
   if(rows(layout.technicalConnections).length)add('technical_connections_forbidden_for_layout_mode',{mode:layout.mode});
   if(layout.honeyStack!=null)add('honey_stack_forbidden_for_layout_mode',{mode:layout.mode});
@@ -245,13 +248,26 @@ function validate(layout,state){
  }
  return {valid:errors.length===0,errors};
 }
-function validateHoneyStack(stack,sections,add,checkBody,checkItem){
+function validateHoneyStack(stack,sections,add,checkBody,checkItem,state){
  if(!isObject(stack)){add('honey_stack_invalid');return}
  if(!['early','main'].includes(stack.purpose))add('honey_stack_purpose_invalid',{purpose:stack.purpose??null});
  const bodyIds=rows(stack.bodyIds);
  if(![2,4].includes(bodyIds.length)||(stack.purpose==='early'&&bodyIds.length!==2))add('honey_stack_body_count_invalid',{expected:stack.purpose==='early'?2:'2 or 4',actual:bodyIds.length});
  if(new Set(bodyIds).size!==bodyIds.length)add('honey_stack_body_duplicate',{bodyIds});
  bodyIds.forEach(id=>checkBody(id,'honey','shared-honey-stack'));
+ for(const bodyId of bodyIds){
+  const frames=rows(state?.equipmentInventory?.bodies?.[bodyId]?.frames);
+  if(frames.length>10)add('honey_stack_frame_capacity_exceeded',{bodyId,maximum:10,actual:frames.length});
+  if(frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))add('honey_stack_frame_record_invalid',{bodyId});
+  if(stack.purpose==='early'){
+   if(!frames.length||frames.some(frame=>!isObject(frame)||!['drawn_comb','wax_foundation'].includes(frame.combType)))add('early_honey_frame_comb_type_invalid',{bodyId});
+   if(!frames.some(frame=>frame?.combType==='drawn_comb'))add('early_honey_drawn_comb_required',{bodyId});
+   const foundation=frames.map((frame,index)=>frame?.combType==='wax_foundation'?index:-1).filter(index=>index>=0);
+   if(foundation.length>2)add('early_honey_wax_foundation_limit_exceeded',{bodyId,maximum:2,actual:foundation.length});
+   for(const index of foundation)if(index===0||index===frames.length-1||frames[index-1]?.combType!=='drawn_comb'||frames[index+1]?.combType!=='drawn_comb')
+    add('early_honey_wax_foundation_not_between_drawn_comb',{bodyId,position:index+1});
+  }
+ }
  const excluders=rows(stack.excluders);
  if(excluders.length!==2)add('large_excluder_count_invalid',{expected:2,actual:Array.isArray(stack.excluders)?excluders.length:null});
  const bySide=new Map(excluders.filter(isObject).map(row=>[row.side,row]));

@@ -30,6 +30,14 @@ function item(id,kind,location){
 function body(id,index,storageLocation=''){
  return {id,kind:'brood',condition:'good',spec:{profileId:PROFILE,framesPerBox:6},...(storageLocation?{storageLocation}:{}),labelCode:codes[index]};
 }
+function honeyFrames(bodyId){
+ return Array.from({length:10},(_,index)=>({
+  frameId:bodyId+'-frame-'+(index+1),
+  ...(bodyId==='honey1'&&index===0?{labelCode:'ААА'}:{}),
+  combType:[3,6].includes(index)?'wax_foundation':'drawn_comb',
+  history:[]
+ }));
+}
 function makeFixture(){
  const bodies=Object.fromEntries(['b1','b2','b3','b4','b5','b6'].map((id,index)=>[id,body(id,index,index>=3?'Склад':'' )]));
  const items={
@@ -201,6 +209,32 @@ function op06Request(prepared,overrides={}){
  layout.temporaryQueenIsolation=[];
  const itemMoves=oldLayout.temporaryQueenIsolation.map(plug=>({itemId:plug.itemId,location:{type:'storage',label:'Склад'}}));
  return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout,itemMoves,...overrides};
+}
+function prepareOP07Fixture(){
+ const fixture=makeFixture(),deps=dependencies();
+ const started=Coordinator.completeOP04(fixture.state,request(fixture),deps);
+ if(!started.ok)throw new Error('OP-04 fixture setup failed: '+JSON.stringify(started));
+ const bodyIds=['honey1','honey2'];
+ for(const [index,id] of bodyIds.entries()){
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'honey-pair-1',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+  fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
+ }
+ fixture.state.equipmentInventory.items['ex-left']=item('ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
+ fixture.state.equipmentInventory.items['ex-right']=item('ex-right','honeyQueenExcluder',{type:'storage',label:'Склад'});
+ const oldLayout=fixture.state.sectionalLayouts[0],layout=structuredClone(oldLayout);
+ for(const stack of layout.stacks){delete stack.coverItemId;delete stack.topRiserItemId}
+ layout.honeyStack={purpose:'early',bodyIds,excluders:[{side:'left',itemId:'ex-left'},{side:'right',itemId:'ex-right'}]};
+ const itemMoves=[];
+ for(const stack of oldLayout.stacks){
+  itemMoves.push({itemId:stack.coverItemId,location:{type:'storage',label:'Склад'}});
+  itemMoves.push({itemId:stack.topRiserItemId,location:{type:'storage',label:'Склад'}});
+ }
+ itemMoves.push({itemId:'ex-left',location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'b2',coverage:'FULL'},{bodyId:'b4',coverage:'HALF'}]}});
+ itemMoves.push({itemId:'ex-right',location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]}});
+ return {fixture,deps,layout,itemMoves};
+}
+function op07Request(prepared,overrides={}){
+ return {userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:NOW,timingMode:'WITH_SECOND_ROW',layout:prepared.layout,itemMoves:prepared.itemMoves,bodyStorageMoves:[],...overrides};
 }
 
 test('OP-04 starts in the confirmed one-row state without marking the operation complete',()=>{
@@ -557,4 +591,242 @@ test('OP-06 rolls back every removal when a later equipment move fails',()=>{
  const result=Coordinator.completeOP06(fixture.state,op06Request(prepared),dependencies({PasekaEquipmentItems:equipment}));
  assert.equal(result.ok,false);assert.equal(result.error,'op06_equipment_move_rejected');
  assert.deepEqual(fixture.state,before);
+});
+
+
+function installOP05AfterHoneyStage(prepared){
+ const {fixture,deps}=prepared,state=fixture.state,layout=structuredClone(state.sectionalLayouts[0]);
+ const openings=layout.technicalConnections.flatMap(connection=>connection.openings),itemMoves=[];
+ layout.temporaryQueenIsolation=openings.map((opening,index)=>{
+  const itemId='temporary-plug-'+(index+1);
+  state.equipmentInventory.items[itemId]=item(itemId,'metalMeshPlug',{type:'storage',label:'Склад'});
+  itemMoves.push({itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}});
+  return {itemId,bodyId:opening.bodyId,openingId:opening.openingId};
+ });
+ const result=Coordinator.completeOP05(state,{userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-25T10:00:00.000Z',layout,itemMoves},deps);
+ return result;
+}
+
+test('OP-07 atomically installs two large FULL/HALF excluders and one complete honey-body pair',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ const record=fixture.state.sectionalTechProcesses[0],op07=record.state.operations.find(row=>row.operationId==='OP-07');
+ assert.equal(op07.status,'DONE');
+ assert.equal(op07.evidence.timingMode,'WITH_SECOND_ROW');
+ assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2']);
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.excluders.length,2);
+ assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,10);
+ const labelledHoneyFrame=Labels.listLabelledFrames(fixture.state);
+ assert.equal(labelledHoneyFrame.length,1);
+ assert.equal(labelledHoneyFrame[0].locationType,'hive');
+ assert.equal(labelledHoneyFrame[0].box,'honey:honey1');
+ for(const id of ['ex-left','ex-right']){
+  const excluder=fixture.state.equipmentInventory.items[id];
+  assert.equal(excluder.location.type,'hive');
+  assert.equal(excluder.events.at(-1).type,'moved');
+ }
+ for(const id of ['honey1','honey2']){
+  const body=fixture.state.equipmentInventory.bodies[id];
+  assert.equal(body.storageLocation,undefined);
+  assert.ok(body.events.some(event=>event.operationId==='OP-07'&&event.type==='placed'));
+ }
+ for(const stack of fixture.state.sectionalLayouts[0].stacks){
+  assert.equal(stack.coverItemId,undefined);
+  assert.equal(stack.topRiserItemId,undefined);
+ }
+ assert.equal(fixture.state.auditLog.at(-1).operationId,'OP-07');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-07 requires early honey foundation frames to be separated by drawn comb, at most two per body',()=>{
+ const cases=[
+  {name:'three foundation frames in one body',mutate:frames=>{frames[1].combType='wax_foundation';frames[3].combType='wax_foundation';frames[5].combType='wax_foundation'},code:'wax_foundation_limit_exceeded'},
+  {name:'adjacent foundation frames',mutate:frames=>{frames[3].combType='wax_foundation';frames[4].combType='wax_foundation'},code:'wax_foundation_must_be_between_drawn_comb'},
+  {name:'foundation at the edge',mutate:frames=>{frames[0].combType='wax_foundation'},code:'wax_foundation_must_be_between_drawn_comb'},
+  {name:'unclassified frame',mutate:frames=>{delete frames[2].combType},code:'frame_comb_type_missing_or_invalid'}
+ ];
+ for(const scenario of cases){
+  const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+  scenario.mutate(fixture.state.equipmentInventory.bodies.honey1.frames);
+  const before=structuredClone(fixture.state);
+  const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+  assert.equal(result.ok,false,scenario.name);
+  assert.equal(result.error,'op07_early_honey_frame_composition_invalid',scenario.name);
+  assert.ok(result.details.errors.some(error=>error.code===scenario.code),scenario.name);
+  assert.deepEqual(fixture.state,before,scenario.name+' must roll back without mutations');
+ }
+});
+test('OP-07 does not require a full honey body when actual frame count is lower than capacity',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ fixture.state.equipmentInventory.bodies.honey1.frames.pop();
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.equal(fixture.state.equipmentInventory.bodies.honey1.frames.length,9);
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+test('OP-07 permits up to two separated foundation frames in each honey body independently',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ const composition=fixture.state.equipmentInventory.bodies;
+ assert.equal(composition.honey1.frames.filter(frame=>frame.combType==='wax_foundation').length,2);
+ assert.equal(composition.honey2.frames.filter(frame=>frame.combType==='wax_foundation').length,2);
+ assert.equal(composition.honey1.frames[3].history.at(-1).action,'corpus_from_storage');
+ assert.equal(composition.honey1.frames[3].history.at(-1).to.box,'honey:honey1');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+test('OP-07 distinguishes same-day second-row installation from the approximate 12-day alternative',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
+ const immediate=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-18T10:00:00.000Z',timingMode:'WITH_SECOND_ROW'}),deps);
+ assert.equal(immediate.ok,false);assert.equal(immediate.error,'op07_with_second_row_must_be_same_day');
+ assert.deepEqual(fixture.state,before);
+ const delayed=Coordinator.completeOP07(fixture.state,op07Request(prepared,{occurredAt:'2026-11-29T10:00:00.000Z',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'}),deps);
+ assert.equal(delayed.ok,true,JSON.stringify(delayed.details||delayed));
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.daysAfterSecondRow,12);
+});
+
+test('OP-07 requires an explicit timing variant and a complete pair of honey bodies',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared,before=structuredClone(fixture.state);
+ let result=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:null}),deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_timing_mode_required');
+ assert.deepEqual(fixture.state,before);
+ fixture.state.equipmentInventory.bodies.honey2.pairId='different-pair';
+ const invalid=structuredClone(fixture.state);
+ result=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_honey_bodies_must_be_complete_pairs');
+ assert.deepEqual(fixture.state,invalid);
+});
+
+test('OP-07 rolls back body and accessory movements if an excluder move fails',()=>{
+ const prepared=prepareOP07Fixture(),{fixture}=prepared,before=structuredClone(fixture.state);
+ let moves=0;
+ const equipment={...Items,place:(state,request,makeId,now)=>{moves++;if(moves===8)return {ok:false,error:'forced_failure'};return Items.place(state,request,makeId,now)}};
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared),dependencies({PasekaEquipmentItems:equipment}));
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_equipment_move_rejected');
+ assert.deepEqual(fixture.state,before);
+});
+
+test('OP-07 after OP-06 requires completed mesh removal, while alternate source timing modes may precede OP-06',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const result=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:'AFTER_OP06'}),deps);
+ assert.equal(result.ok,false);assert.equal(result.error,'op07_requires_completed_op06');
+ assert.deepEqual(fixture.state.sectionalLayouts[0].honeyStack,undefined);
+});
+test('OP-05 and OP-06 remain valid after OP-07 has installed honey bodies and large excluders',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ const op07=Coordinator.completeOP07(fixture.state,op07Request(prepared),deps);
+ assert.equal(op07.ok,true,JSON.stringify(op07.details||op07));
+ const op05=installOP05AfterHoneyStage(prepared);
+ assert.equal(op05.ok,true,JSON.stringify(op05.details||op05));
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.excluders.length,2);
+ prepareOP06Queens(fixture.state,deps);
+ const oldLayout=fixture.state.sectionalLayouts[0],layout=structuredClone(oldLayout);
+ layout.temporaryQueenIsolation=[];
+ const itemMoves=oldLayout.temporaryQueenIsolation.map(plug=>({itemId:plug.itemId,location:{type:'storage',label:'Склад'}}));
+ const op06=Coordinator.completeOP06(fixture.state,{userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout,itemMoves},deps);
+ assert.equal(op06.ok,true,JSON.stringify(op06.details||op06));
+ assert.equal(fixture.state.sectionalLayouts[0].honeyStack.bodyIds.length,2);
+ assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,0);
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+test('OP-07 supports the source sequence after OP-06 and preserves the completed OP-06 evidence',()=>{
+ const prepared=prepareOP07Fixture(),{fixture,deps}=prepared;
+ prepareOP06Queens(fixture.state,deps);
+ const op06=Coordinator.completeOP06(fixture.state,{userConfirmed:true,noPlugsInstalledConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',layout:structuredClone(fixture.state.sectionalLayouts[0]),itemMoves:[]},deps);
+ assert.equal(op06.ok,true,JSON.stringify(op06.details||op06));
+ const op07=Coordinator.completeOP07(fixture.state,op07Request(prepared,{timingMode:'AFTER_OP06',occurredAt:'2026-12-07T10:30:00.000Z'}),deps);
+ assert.equal(op07.ok,true,JSON.stringify(op07.details||op07));
+ assert.equal(fixture.state.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-06').status,'DONE');
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+
+
+
+test('OP-07 inspector verifies exact equipment movement identities and directions',()=>{
+ const makeCompleted=()=>{
+  const prepared=prepareOP07Fixture(),result=Coordinator.completeOP07(prepared.fixture.state,op07Request(prepared),prepared.deps);
+  assert.equal(result.ok,true,JSON.stringify(result.details||result));
+  return prepared;
+ };
+ const wrongEvent=makeCompleted(),wrongState=wrongEvent.fixture.state;
+ const evidence=wrongState.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.itemMovementEventIds;
+ evidence[0].eventId=evidence[1].eventId;
+ assert.ok(Coordinator.inspect(wrongState,wrongEvent.deps).some(error=>error.code==='sectional_tech_process_op07_item_movement_evidence_invalid'));
+
+ const wrongDirection=makeCompleted(),directionState=wrongDirection.fixture.state;
+ const directionEvidence=directionState.sectionalTechProcesses[0].state.operations.find(row=>row.operationId==='OP-07').evidence.itemMovementEventIds[0];
+ const directionItem=directionState.equipmentInventory.items[directionEvidence.itemId];
+ directionItem.events.find(event=>event.id===directionEvidence.eventId).type='moved';
+ assert.ok(Coordinator.inspect(directionState,wrongDirection.deps).some(error=>error.code==='sectional_tech_process_op07_item_movement_evidence_invalid'));
+
+ const missingBodyHistory=makeCompleted(),bodyState=missingBodyHistory.fixture.state;
+ const honeyBody=bodyState.equipmentInventory.bodies.honey1;
+ honeyBody.events=honeyBody.events.filter(event=>event.operationId!=='OP-07');
+ assert.ok(Coordinator.inspect(bodyState,missingBodyHistory.deps).some(error=>error.code==='sectional_tech_process_op07_honey_body_history_invalid'));
+});
+
+
+test('OP-04 staged first-row to second-row sequence composes with OP-05, OP-06 and OP-07',()=>{
+ const fixture=firstRowFixture(),deps=dependencies(),start=request(fixture);
+ start.bodyStorageMoves=[{bodyId:'b2',storageLocation:'Склад'}];
+ const started=Coordinator.completeOP04(fixture.state,start,deps);
+ assert.equal(started.ok,true,JSON.stringify(started.details||started));
+ const final=makeFixture(),secondRowMoves=final.layout.technicalConnections.flatMap(connection=>connection.openings.filter(opening=>['grid5','grid6','grid7','grid8'].includes(opening.itemId)).map(opening=>({
+  itemId:opening.itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}
+ })));
+ const secondRow=Coordinator.completeOP04SecondRow(fixture.state,{
+  userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-11-18T10:00:00.000Z',
+  layout:final.layout,addedBodyIds:['b2','b4','b6'],itemMoves:secondRowMoves
+ },deps);
+ assert.equal(secondRow.ok,true,JSON.stringify(secondRow.details||secondRow));
+
+ const layout=structuredClone(fixture.state.sectionalLayouts[0]),itemMoves=[];
+ layout.temporaryQueenIsolation=layout.technicalConnections.flatMap(connection=>connection.openings).map((opening,index)=>{
+  const itemId='staged-mesh-'+(index+1);
+  fixture.state.equipmentInventory.items[itemId]=item(itemId,'metalMeshPlug',{type:'storage',label:'Склад'});
+  itemMoves.push({itemId,location:{type:'hive',hiveId:'h1',bodyId:opening.bodyId,openingId:opening.openingId}});
+  return {itemId,bodyId:opening.bodyId,openingId:opening.openingId};
+ });
+ const op05=Coordinator.completeOP05(fixture.state,{
+  userConfirmed:true,standLevelConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',
+  occurredAt:'2026-11-25T10:00:00.000Z',layout,itemMoves
+ },deps);
+ assert.equal(op05.ok,true,JSON.stringify(op05.details||op05));
+
+ prepareOP06Queens(fixture.state,deps);
+ const beforeRemoval=fixture.state.sectionalLayouts[0],op06Layout=structuredClone(beforeRemoval);
+ op06Layout.temporaryQueenIsolation=[];
+ const removalMoves=beforeRemoval.temporaryQueenIsolation.map(plug=>({itemId:plug.itemId,location:{type:'storage',label:'Склад'}}));
+ const op06=Coordinator.completeOP06(fixture.state,{
+  userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:00:00.000Z',
+  layout:op06Layout,itemMoves:removalMoves
+ },deps);
+ assert.equal(op06.ok,true,JSON.stringify(op06.details||op06));
+
+ const honeyBodyIds=['staged-honey-1','staged-honey-2'];
+ for(const [index,id] of honeyBodyIds.entries()){
+  fixture.state.equipmentInventory.bodies[id]={id,kind:'honey',condition:'good',spec:{profileId:PROFILE,framesPerBox:10},pairId:'staged-honey-pair',storageLocation:'Склад',events:[],frames:honeyFrames(id)};
+  fixture.state.equipmentLabels.bodies[id]=index===0?'ААХ':'ААЦ';
+ }
+ fixture.state.equipmentInventory.items['staged-ex-left']=item('staged-ex-left','honeyQueenExcluder',{type:'storage',label:'Склад'});
+ fixture.state.equipmentInventory.items['staged-ex-right']=item('staged-ex-right','honeyQueenExcluder',{type:'storage',label:'Склад'});
+ const honeyLayout=structuredClone(fixture.state.sectionalLayouts[0]);
+ for(const stack of honeyLayout.stacks){delete stack.coverItemId;delete stack.topRiserItemId}
+ honeyLayout.honeyStack={purpose:'early',bodyIds:honeyBodyIds,excluders:[{side:'left',itemId:'staged-ex-left'},{side:'right',itemId:'staged-ex-right'}]};
+ const honeyMoves=[];
+ for(const stack of beforeRemoval.stacks){
+  honeyMoves.push({itemId:stack.coverItemId,location:{type:'storage',label:'Склад'}});
+  honeyMoves.push({itemId:stack.topRiserItemId,location:{type:'storage',label:'Склад'}});
+ }
+ honeyMoves.push({itemId:'staged-ex-left',location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'b2',coverage:'FULL'},{bodyId:'b4',coverage:'HALF'}]}});
+ honeyMoves.push({itemId:'staged-ex-right',location:{type:'hive',hiveId:'h1',footprint:[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]}});
+ const op07=Coordinator.completeOP07(fixture.state,{
+  userConfirmed:true,hiveId:'h1',techProcessId:'tp-h1',occurredAt:'2026-12-07T10:30:00.000Z',
+  timingMode:'AFTER_OP06',layout:honeyLayout,itemMoves:honeyMoves,bodyStorageMoves:[]
+ },deps);
+ assert.equal(op07.ok,true,JSON.stringify(op07.details||op07));
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+ assert.deepEqual(fixture.state.sectionalTechProcesses[0].state.operations.map(row=>row.operationId),['OP-04','OP-05','OP-06','OP-07']);
 });
