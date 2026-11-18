@@ -362,3 +362,67 @@ test('expired analysis leases recover to retryable and can be claimed again',asy
   assert.equal(claimed.analysisOwner,'new-tab');
  }finally{env.db.close()}
 });
+
+test('legacy entrance videos move atomically into media_jobs with Blob and provenance preserved',async()=>{
+ const factory=new IDBFactory(),name='legacy-media-migration-'+(++sequence);
+ const db=await openDatabase(factory,name,4,database=>{
+  database.createObjectStore('full_backup');
+  database.createObjectStore('entrance_media',{keyPath:'id'});
+  Media.ensureStore(database);
+ });
+ const sourceBlob=new Blob(['legacy-entrance-video-bytes'],{type:'video/mp4'});
+ const source={
+  id:'legacy-1',hiveId:'hive-1',capturedAt:'2026-11-17T08:30:00.000Z',
+  queueCreatedAt:'2026-11-17T08:31:00.000Z',durationSec:42,width:1280,height:720,
+  bytes:sourceBlob.size,mimeType:'video/mp4',name:'entrance.mp4',status:'waiting_for_server',
+  retryCount:2,metadataCheck:{ok:true,warnings:[]},frameQualityCheck:{status:'good',score:0.91},blob:sourceBlob
+ };
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').add(source);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('seed aborted'));
+ });
+ const repo=Media.createMediaJobStore({db,lifecycle:scope.PasekaMediaLifecycle,now:fixedNow});
+ const result=await repo.migrateLegacyEntranceVideos();
+ assert.equal(result.migrated,1);assert.equal(result.skippedCount,0);
+ const job=await repo.get('legacy-entrance-legacy-1');
+ assert.equal(job.kind,'video');assert.equal(job.status,'queued');assert.equal(job.retainOriginal,true);
+ assert.equal(job.hiveId,'hive-1');assert.equal(job.capturedAt,source.capturedAt);
+ assert.equal(job.captureMetadata.durationSec,42);assert.equal(job.captureMetadata.width,1280);
+ assert.equal(job.captureMetadata.height,720);assert.equal(job.captureMetadata.frameQualityStatus,'good');
+ assert.equal(job.legacySourceId,'legacy-1');assert.equal(job.legacyMetadata.metadataCheck.ok,true);
+ assert.deepEqual([...new Uint8Array(await job.blob.arrayBuffer())],[...new Uint8Array(await sourceBlob.arrayBuffer())]);
+ const remaining=await new Promise((resolve,reject)=>{
+  const tx=db.transaction('entrance_media','readonly'),q=tx.objectStore('entrance_media').getAll();
+  q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);
+ });
+ assert.equal(remaining.length,0);
+ const repeated=await repo.migrateLegacyEntranceVideos();
+ assert.equal(repeated.migrated,0);assert.equal(repeated.skippedCount,0);
+ db.close();
+});
+
+test('legacy media migration leaves malformed records and colliding jobs untouched',async()=>{
+ const factory=new IDBFactory(),name='legacy-media-safety-'+(++sequence);
+ const db=await openDatabase(factory,name,4,database=>{
+  database.createObjectStore('full_backup');
+  database.createObjectStore('entrance_media',{keyPath:'id'});
+  Media.ensureStore(database);
+ });
+ const goodBlob=new Blob(['legacy'],{type:'video/mp4'});
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(['entrance_media','media_jobs'],'readwrite');
+  tx.objectStore('entrance_media').add({id:'bad-date',hiveId:'hive-1',capturedAt:'not-a-date',blob:goodBlob});
+  tx.objectStore('entrance_media').add({id:'collision',hiveId:'hive-1',capturedAt:'2026-11-17T08:30:00.000Z',blob:goodBlob});
+  tx.objectStore('media_jobs').add({id:'legacy-entrance-collision',kind:'video',status:'queued',blob:goodBlob});
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+ const repo=Media.createMediaJobStore({db,lifecycle:scope.PasekaMediaLifecycle,now:fixedNow});
+ const result=await repo.migrateLegacyEntranceVideos();
+ assert.equal(result.migrated,0);assert.equal(result.skippedCount,2);
+ const remaining=await new Promise((resolve,reject)=>{
+  const tx=db.transaction('entrance_media','readonly'),q=tx.objectStore('entrance_media').getAll();
+  q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);
+ });
+ assert.deepEqual(remaining.map(row=>row.id).sort(),['bad-date','collision']);
+ db.close();
+});
