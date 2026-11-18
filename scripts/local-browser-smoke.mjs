@@ -272,7 +272,7 @@ async function evaluate(devtools, expression) {
 
 async function waitForDocument(devtools) {
   await waitFor(async () => (await evaluate(devtools, 'document.readyState')) === 'complete', 'загрузки страницы');
-  await waitFor(async () => Boolean(await evaluate(devtools, 'Boolean(document.querySelector("nav[aria-label=\\"Основные разделы\\"]"))')), 'инициализации навигации');
+  await waitFor(async () => Boolean(await evaluate(devtools, "Boolean(document.querySelector('nav[aria-label=\"Основные разделы\"]'))")), 'инициализации навигации');
   await delay(500);
 }
 
