@@ -126,6 +126,16 @@ test('cleanup removes only the original Blob and keeps the persisted analysis re
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[{label:'bee'}]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>value?.observations?.length===1});
+  await assert.rejects(env.repo.scheduleCleanup('job-1'));
+  await assert.rejects(env.repo.confirmResultBackup('job-1',{
+   backupRevisionId:'backup-revision-1',verifyBackup:async()=>false
+  }),/не подтверждён/);
+  const proof=await env.repo.confirmResultBackup('job-1',{
+   backupRevisionId:'backup-revision-1',
+   verifyBackup:async evidence=>evidence.resultId==='result-1'&&evidence.result?.observations?.length===1
+  });
+  assert.equal(proof.resultBackupRevisionId,'backup-revision-1');
+  assert.ok(proof.resultBackupVerifiedAt);
   await env.repo.scheduleCleanup('job-1');
   const completed=await env.repo.cleanup('job-1');
   assert.equal(completed.status,'completed_deleted');
@@ -157,6 +167,7 @@ test('cleanup pending jobs can be resumed after reopening the database',async()=
   await env.repo.transition('job-1','analyzing');
   await env.repo.receiveResult('job-1',{observations:[]});
   await env.repo.persistResult('job-1',{resultId:'result-1',validateResult:value=>Array.isArray(value?.observations)});
+  await env.repo.confirmResultBackup('job-1',{backupRevisionId:'backup-revision-1',verifyBackup:async()=>true});
   await env.repo.scheduleCleanup('job-1');
   env.db.close();
   env.db=await openDatabase(env.factory,env.name,1);
