@@ -709,7 +709,7 @@ test('voice dictation appends Russian transcript to the draft without sending it
   const field={value:'Проверь семьи',focus(){}};
   function FakeRecognition(){this.start=()=>{started=true;this.onresult({results:[[{transcript:'и отводки'}]]});this.onend()}}
   const button={disabled:false,textContent:'🎙 Диктовать'};
-  const recognitionState={aiBusy:false,aiRecognition:null};
+  const recognitionState={aiBusy:false,aiRecognition:null,apiaryVoiceSession:{state:{active:false},startOneShot(callback,options){started=true;callback('и отводки');options.onFinish?.();return true}}};
   const dictate=loadFunction('startAIVoiceInput',{
     window:{SpeechRecognition:FakeRecognition},
     confirm:()=>true,
