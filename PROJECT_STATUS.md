@@ -1,3 +1,11 @@
+## Проверенный CI — компактная главная (2026-11-19)
+
+- **Code/test SHA:** `7c8cc0ecf61ba26fad871732b850620fc53e9f3f`.
+- **Fast Quality:** [#44532881217](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44532881217) — SUCCESS, **618/618**, 0 failures, включая два регрессионных теста компактной главной/задач.
+- **Android Debug APK:** [#44532881028](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44532881028) — SUCCESS на том же code/test SHA; второй запуск #44532891463 — cancelled и не засчитывается.
+- **Read-only UI audit:** [#44532861857](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44532861857) — SUCCESS, 4/4 профиля (360, 390, landscape 800, desktop 1280), 0 JS errors и 0 overflow. Его exact SHA `b55e8d6e196db48e5953fbc9ac8a7850a33d7a57` содержит текущий HTML, но не последний статический `tests/home-overview-layout.test.mjs` (поэтому не приписывать browser run к SHA `7c8cc0e`).
+- Чистые документационные коммиты позже code SHA не проверены тем же UI CI. Draft PR #187, никаких merge/deploy/production/data modifications. Следующее: изолированная проверка физической геометрии рамок/корпусов и визуальная приёмка на OnePlus.
+
 ## UX 2026-11-19 — компактная главная без потери данных
 
 - Продолжена задача Draft PR #187 на отдельной ветке `test/free-ui-browser-audit-2026-11-19`, не меняя main, DEVICE-TEST #186, координацию #188, production и пользовательские записи.
