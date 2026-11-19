@@ -94,6 +94,37 @@ try {
       }));
       row.layout = initial;
       if (initial.navButtons < 7) throw new Error('Primary navigation is missing expected sections');
+      if (initial.navButtons !== 11) throw new Error('Honeycomb navigation must contain exactly 11 destinations');
+      row.honeycombLayout = await page.locator('nav[aria-label="Основные разделы"]').evaluate(nav => {
+        const buttons = [...nav.querySelectorAll('button[data-tab]')];
+        return buttons.map(button => ({
+          tab: button.dataset.tab,
+          row: getComputedStyle(button).gridRowStart,
+          column: getComputedStyle(button).gridColumnStart,
+          width: Math.round(button.getBoundingClientRect().width),
+          height: Math.round(button.getBoundingClientRect().height)
+        }));
+      });
+      const mobileHoneycomb = profile.width < 700 && !(
+        profile.width >= 560 && profile.height <= 520
+      );
+      const expectedRows = mobileHoneycomb ? [3, 5, 3] : [11];
+      const actualRows = Object.entries(
+        row.honeycombLayout.reduce((acc, item) => {
+          acc[item.row] = (acc[item.row] || 0) + 1; return acc;
+        }, {})
+      ).sort((a,b)=>Number(a[0])-Number(b[0])).map(entry=>entry[1]);
+      const aiCell = row.honeycombLayout.find(item=>item.tab==='ai');
+      if (JSON.stringify(actualRows) !== JSON.stringify(expectedRows) ||
+          !aiCell || aiCell.row !== (mobileHoneycomb ? '2' : '1') ||
+          aiCell.column !== (mobileHoneycomb ? '3' : '6')) {
+        throw new Error('Unexpected honeycomb grid geometry: '+JSON.stringify({actualRows,aiCell,expectedRows}));
+      }
+      if (row.honeycombLayout.some(item=>item.width < 44 || item.height < 44)) {
+        throw new Error('Honeycomb navigation touch target is below 44x44 CSS pixels');
+      }
+      row.steps.push('honeycomb-layout');
+
 
       // Scan only the empty, local home screen. We record known a11y issues
       // for review, without treating an untriaged legacy finding as a release gate.
