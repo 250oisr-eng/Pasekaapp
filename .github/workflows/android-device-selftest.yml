@@ -10,6 +10,7 @@ on:
       - fix/win11-report-polling-2026-11-19
       - test/pr194-win11-manual-archive-2026-11-19
       - test/pr194-native-negative-paths-2026-11-19
+      - test/manual-android-offline-archive-2026-11-19
   workflow_dispatch:
 
 concurrency:
@@ -170,7 +171,7 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk device-kit/paseka-device-test.apk
           sha256sum device-kit/paseka-device-test.apk | awk '{print $1}' > device-kit/paseka-device-test.sha256
           printf '%s\n' "$PASEKA_TEST_PACKAGE" > device-kit/device-package.txt
-          cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/Run-Local-Scheduled.ps1 scripts/windows/Register-Local-Scheduled.ps1 scripts/windows/START-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
+          cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/Run-Local-Scheduled.ps1 scripts/windows/Register-Local-Scheduled.ps1 scripts/windows/START-TESTS.cmd scripts/windows/START-OFFLINE-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
           curl --retry 3 --fail --location --silent --show-error \
             https://dl.google.com/android/repository/platform-tools-latest-windows.zip -o "$RUNNER_TEMP/platform-tools-windows.zip"
           unzip -q "$RUNNER_TEMP/platform-tools-windows.zip" -d device-kit/

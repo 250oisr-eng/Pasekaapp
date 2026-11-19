@@ -160,6 +160,28 @@ test('device test runner has valid JavaScript and uses only isolated IndexedDB n
   assert.doesNotMatch(source, /indexedDB\.deleteDatabase\s*\(/);
 });
 
+test('offline mode is explicit, read-only, and limited to isolated APK', async () => {
+  const generator = await readFile(new URL('../scripts/prepare-device-selftest.mjs', import.meta.url), 'utf8');
+  const java = createTestBridgeSource();
+  const script = await readFile(new URL('./device-selftest.js', import.meta.url), 'utf8');
+  const ps = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
+  const batch = await readFile(new URL('../scripts/windows/START-OFFLINE-TESTS.cmd', import.meta.url), 'utf8');
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  assert.match(generator, /android.permission.ACCESS_NETWORK_STATE/);
+  assert.match(java, /offlineRequested/);
+  assert.match(java, /isNetworkOffline/);
+  assert.match(java, /NET_CAPABILITY_INTERNET/);
+  assert.doesNotMatch(java, /setWifiEnabled|setMobileDataEnabled|CHANGE_NETWORK_STATE/);
+  assert.match(script, /offline_network_disabled_before_archive/);
+  assert.match(script, /offline_network_disabled_after_restart/);
+  assert.match(script, /manual-offline/);
+  assert.match(ps, /^\uFEFFparam\(\[switch\]\$Offline\)/);
+  assert.equal(ps.split("'--ez', 'paseka_require_offline'").length - 1, 2);
+  assert.match(ps, /Count -ne 11/);
+  assert.match(batch, /-Offline/);
+  assert.match(yaml, /START-OFFLINE-TESTS[.]cmd/);
+});
+
 test('Windows launcher cannot clear packages or use the production application ID', async () => {
   const ps = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
   assert.match(ps, /device-package\.txt/);

@@ -10,6 +10,7 @@ const PREFIX = 'paseka-device-selftest-';
 const TARGET = PREFIX + 'target-' + runId;
 const MARKER = PREFIX + 'phase-' + runId;
 const checks = [];
+const offlineMode = typeof bridge.offlineRequested === 'function' && bridge.offlineRequested() === true;
 const testTime = '2026-11-19T12:00:00.000Z';
 let previewHtml = '';
 
@@ -141,10 +142,13 @@ function drawPanel() {
 function report(phase) {
   const payload = JSON.stringify({
     format: 'paseka-device-test-v1', runId, phase,
+    mode: offlineMode ? 'manual-offline' : 'normal',
     pass: checks.length > 0 && checks.every(item => item.result === 'PASS'),
     checks, completedAt: new Date().toISOString(),
     scope: 'isolated-android-package-and-test-only-indexeddb',
-    notVerified: ['native-file-picker', 'offline-network-transport', 'manual-visual-legibility']
+    notVerified: offlineMode
+      ? ['native-file-picker', 'manual-visual-legibility']
+      : ['native-file-picker', 'offline-network-transport', 'manual-visual-legibility']
   });
   bridge.report(payload);
 }
@@ -166,6 +170,13 @@ function whenBooted() {
   });
 }
 async function phaseOne() {
+  if (offlineMode) {
+    await check('offline_network_disabled_before_archive', async () => {
+      assert(typeof bridge.isNetworkOffline === 'function' && bridge.isNetworkOffline() === true,
+        'Android still has a network with INTERNET capability; turn off Wi-Fi and mobile data');
+    });
+    assert(checks[checks.length - 1].result === 'PASS', 'Offline prerequisite failed: refusing archive operations');
+  }
   await check('app_startup_and_webview', async () => {
     assert(!!db && !!lastPersistedRevision, 'Main application did not start');
     assert(!!crypto.subtle, 'WebCrypto SHA-256 is unavailable');
@@ -304,6 +315,13 @@ async function phaseOne() {
 }
 async function phaseTwo(marker) {
   checks.push(...marker.checks);
+  if (offlineMode) {
+    await check('offline_network_disabled_after_restart', async () => {
+      assert(typeof bridge.isNetworkOffline === 'function' && bridge.isNetworkOffline() === true,
+        'Network reconnected before restart persistence verification');
+    });
+    assert(checks[checks.length - 1].result === 'PASS', 'Offline prerequisite failed after restart');
+  }
   await check('real_android_restart_persists_indexeddb', async () => {
     const target = await openTestDB(TARGET);
     try {

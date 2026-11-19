@@ -1,4 +1,5 @@
-﻿Set-StrictMode -Version Latest
+﻿param([switch]$Offline)
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $OutputEncoding = [Console]::OutputEncoding
@@ -112,7 +113,8 @@ try {
   Write-Host 'Используется только отдельный тестовый пакет, без доступа к основной базе.'
   Write-Host 'USB имеет приоритет. Wi-Fi разрешён только для заранее сопряжённого адреса.'
   [void](Invoke-ADB -Arguments @('start-server'))
-  $WifiEndpoint = [string]$env:PASEKA_ADB_WIFI_ENDPOINT
+  # Manual offline verification requires physical USB, never Wireless ADB.
+  $WifiEndpoint = $(if ($Offline) { '' } else { [string]$env:PASEKA_ADB_WIFI_ENDPOINT })
   if ($WifiEndpoint -and !(Test-PrivateWifiEndpoint -Endpoint $WifiEndpoint)) {
     throw 'Недопустимый адрес Wi-Fi ADB. Требуется частный IPv4:порт (например, 192.168.1.20:37123).'
   }
@@ -149,10 +151,13 @@ try {
   Write-Host 'Запуск проверок WebView, журнала Varroa и архива...'
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
-    '--es', 'paseka_run_id', $RunId))
+    '--es', 'paseka_run_id', $RunId, '--ez', 'paseka_require_offline', $(if ($Offline) { 'true' } else { 'false' })))
   $TestAppLaunched = $true
   $StageOne = Wait-Report -Serial $Serial -Phases @('awaiting_restart', 'complete') -TimeoutSec 150
   Capture-TestScreen -Serial $Serial -Label 'before-restart'
+  if ($Offline -and ($StageOne.mode -ne 'manual-offline' -or @($StageOne.checks).Count -ne 8)) {
+    throw 'Offline phase one must show 8/8 checks and native offline mode.'
+  }
   if ($StageOne.phase -ne 'awaiting_restart') {
     $FinalReport = $StageOne
     throw 'Тестовый модуль завершился аварийно до контрольного перезапуска.'
@@ -161,9 +166,15 @@ try {
   Write-Host 'Проверка сохранности после настоящей остановки и повторного запуска приложения...'
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
-    '--es', 'paseka_run_id', $RunId))
+    '--es', 'paseka_run_id', $RunId, '--ez', 'paseka_require_offline', $(if ($Offline) { 'true' } else { 'false' })))
   $FinalReport = Wait-Report -Serial $Serial -Phases @('complete') -TimeoutSec 90
   Capture-TestScreen -Serial $Serial -Label 'after-restart'
+  if ($Offline -and ($FinalReport.mode -ne 'manual-offline' -or @($FinalReport.checks).Count -ne 11)) {
+    throw 'Offline final report must show 11/11 checks and native offline mode.'
+  }
+  if (!$Offline -and ($FinalReport.mode -ne 'normal' -or @($FinalReport.checks).Count -ne 9)) {
+    throw 'Normal final report must show 9/9 checks.'
+  }
   if (!$FinalReport.pass) { throw 'Одна или несколько проверок завершились неуспешно. Детали в отчёте.' }
 } catch {
   $Fatal = $_.Exception.Message
@@ -176,12 +187,17 @@ try {
   $summary = [ordered]@{
     format = 'paseka-windows-test-report-v1'
     status = $(if (!$Fatal -and $null -ne $FinalReport -and $FinalReport.pass) { 'PASS' } else { 'FAIL' })
+    mode = $(if ($Offline) { 'manual-offline' } else { 'normal' })
     runId = $RunId
     testedPackage = $Package
     error = $Fatal
     phaseOne = $StageOne
     final = $FinalReport
-    limits = @('Native file picker NOT tested; Downloads file verification is reported separately', 'Network offline NOT tested', 'Human screen legibility NOT tested')
+    limits = $(if ($Offline) {
+      @('Native file picker NOT tested', 'Network absence checked by Android native capabilities; not a production app test', 'Human screen legibility NOT tested')
+    } else {
+      @('Native file picker NOT tested; Downloads file verification is reported separately', 'Network offline NOT tested', 'Human screen legibility NOT tested')
+    })
   }
   $out = Join-Path $ReportDir 'report.json'
   $summary | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $out -Encoding UTF8
