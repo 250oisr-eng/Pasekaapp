@@ -33,7 +33,7 @@ function Assert-ApprovedKit {
       if ($report.format -eq 'paseka-windows-test-report-v1' -and
           $report.testedPackage -ceq $package -and $report.status -eq 'PASS' -and
           $report.final.phase -eq 'complete' -and $report.final.pass -eq $true -and
-          @($report.final.checks).Count -eq 8 -and
+          @($report.final.checks).Count -eq 9 -and
           @($report.final.checks | Where-Object { $_.result -ne 'PASS' }).Count -eq 0) {
         $approved = $true
         break
@@ -42,7 +42,7 @@ function Assert-ApprovedKit {
       # Malformed old report cannot authorize a test run.
     }
   }
-  if (!$approved) { throw 'No matching 8/8 manual PASS for this isolated package. Run START-TESTS.cmd first.' }
+  if (!$approved) { throw 'No matching 9/9 manual PASS for this isolated package. Run START-TESTS.cmd first.' }
   return $package
 }
 
