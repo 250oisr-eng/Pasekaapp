@@ -91,6 +91,18 @@ test('device bridge preserves production archive Downloads bridge in isolated Ma
   assert.ok(reportBridge.startsWith('package ' + PACKAGE_ID + ';'), 'native report bridge must use the same test-only package');
   assert.match(reportBridge, /paseka-device-report\.json/);
   assert.match(reportBridge, /verifyAndRemoveTestDownload/);
+  // A real OnePlus report found a rejected MediaStore file. Diagnose the exact
+  // ownership constraint without weakening or bypassing verified deletion.
+  assert.match(reportBridge, /ERR_TEST_NAME/);
+  assert.match(reportBridge, /ERR_TEST_MIME/);
+  assert.match(reportBridge, /ERR_TEST_FOLDER/);
+  assert.doesNotMatch(reportBridge, /ERR_NOT_TEST_ARCHIVE/);
+  const nameGuard = reportBridge.indexOf('ERR_TEST_NAME');
+  const mimeGuard = reportBridge.indexOf('ERR_TEST_MIME');
+  const folderGuard = reportBridge.indexOf('ERR_TEST_FOLDER');
+  const deleteCall = reportBridge.indexOf('resolver.delete(uri, null, null)');
+  assert.ok(nameGuard > 0 && nameGuard < mimeGuard && mimeGuard < folderGuard && folderGuard < deleteCall,
+    'All rejected MediaStore metadata must be checked before any test-only cleanup');
   assert.match(reportBridge, /MessageDigest\.getInstance\("SHA-256"\)/);
   assert.match(reportBridge, /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/);
   assert.match(reportBridge, /return resolver\.delete\(uri, null, null\) == 1/);
