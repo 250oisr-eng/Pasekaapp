@@ -89,7 +89,7 @@ jobs:
           for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
             const pattern = new RegExp('^\\s*' + key + '\\s*=\\s*\\d+', 'm');
             if (!pattern.test(source)) throw new Error(`Missing ${key}; refusing unsafe Android build`);
-            source = source.replace(pattern, `$1${value}`);
+            source = source.replace(pattern, match => match.replace(/\\d+$/, String(value)));
           }
           fs.writeFileSync(path, source);
           NODE
