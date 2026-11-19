@@ -200,26 +200,33 @@ function Sanitize-Report([string]$Path) {
       Fail 'PASS does not match expected test phases and check counts.'
     }
   }
-  $lines = @(
-    '<!-- paseka-test-agent:' + $runId + ' -->',
-    '**Ручной тест Пасека / ' + $status + '**',
-    '',
-    '- Режим: ' + $mode,
-    '- Test-only Android: ' + $identity.Package,
-    '- CI SHA: ' + $identity.Sha,
-    '- ID запуска: ' + $runId,
-    '- Проверок до перезапуска: ' + @($pre | Where-Object { $_.Result -ceq 'PASS' }).Count + '/' + $pre.Count,
-    '- Проверок после перезапуска: ' + @($post | Where-Object { $_.Result -ceq 'PASS' }).Count + '/' + $post.Count,
-    '- Источник: локальный Windows 11 + USB/ADB, не CI и не production',
-    '',
-    '| Проверка | Результат |',
-    '|---|---|'
-  )
-  foreach ($check in $post) { $lines += ('| ' + $check.Name + ' | ' + $check.Result + ' |') }
-  $lines += ''
-  $lines += 'Исходный JSON, детали ошибок, скриншоты и пользовательские данные **не передавались**.'
-  if ($status -eq 'FAIL') { $lines += 'Диагностика FAIL доступна только в локальной папке reports.' }
-  return [PSCustomObject]@{ Id=$runId; Body=($lines -join [Environment]::NewLine) }
+  # Build markdown line-by-line. Comma/expression precedence in PS5.1
+  # previously collapsed the marker and summary into one malformed line.
+  $prePass = @($pre | Where-Object { $_.Result -ceq 'PASS' }).Count
+  $postPass = @($post | Where-Object { $_.Result -ceq 'PASS' }).Count
+  $lines = New-Object 'System.Collections.Generic.List[string]'
+  $lines.Add('<!-- paseka-test-agent:' + $runId + ' -->')
+  $lines.Add('**Ручной тест Пасека / ' + $status + '**')
+  $lines.Add('')
+  $lines.Add('- Режим: ' + $mode)
+  $lines.Add('- Test-only Android: ' + $identity.Package)
+  $lines.Add('- CI SHA: ' + $identity.Sha)
+  $lines.Add('- ID запуска: ' + $runId)
+  $lines.Add('- Проверок до перезапуска: ' + $prePass + '/' + $pre.Count)
+  $lines.Add('- Проверок после перезапуска: ' + $postPass + '/' + $post.Count)
+  $lines.Add('- Источник: локальный Windows 11 + USB/ADB, не CI и не production')
+  $lines.Add('')
+  $lines.Add('| Проверка | Результат |')
+  $lines.Add('|---|---|')
+  foreach ($check in $post) {
+    $lines.Add('| ' + $check.Name + ' | ' + $check.Result + ' |')
+  }
+  $lines.Add('')
+  $lines.Add('Исходный JSON, детали ошибок, скриншоты и пользовательские данные **не передавались**.')
+  if ($status -eq 'FAIL') {
+    $lines.Add('Диагностика FAIL доступна только в локальной папке reports.')
+  }
+  return [PSCustomObject]@{ Id = $runId; Body = [string]::Join([Environment]::NewLine, $lines.ToArray()) }
 }
 function Page-ContainsMarker([object[]]$Comments, [string]$Marker) {
   foreach ($comment in $Comments) {
