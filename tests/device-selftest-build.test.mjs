@@ -2,8 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
-  PACKAGE_ID, TEST_SCRIPT, isolatedConfig, injectTestScript, instrumentMainActivity, createTestBridgeSource
+  PACKAGE_ID, TEST_SCRIPT, isolatedConfig, injectTestScript, instrumentMainActivity, createTestBridgeSource, validateTestPackageId
 } from '../scripts/prepare-device-selftest.mjs';
+
+test('per-workflow Android test package names are isolated and validated', () => {
+  assert.equal(validateTestPackageId('ru.paseka.journal.device.r44511116464a1'),
+    'ru.paseka.journal.device.r44511116464a1');
+  assert.equal(validateTestPackageId('ru.paseka.journal.device.r44511116464a2'),
+    'ru.paseka.journal.device.r44511116464a2');
+  for (const unsafe of [
+    'ru.paseka.journal', 'ru.paseka.journal.device.test',
+    'ru.paseka.journal.device.r44511116464a0',
+    'ru.paseka.journal.device.r44511116464a1;rm',
+    'com.other.app', '../test', '', null
+  ]) {
+    assert.throws(() => validateTestPackageId(unsafe), /Unsafe or missing/);
+  }
+});
+
+test('workflow packages the build-specific package manifest beside the APK', async () => {
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  assert.match(yaml, /PASEKA_TEST_PACKAGE:/);
+  assert.match(yaml, /github\.run_id/);
+  assert.match(yaml, /github\.run_attempt/);
+  assert.match(yaml, /device-package\.txt/);
+  assert.match(yaml, /c\.appId!==process\.env\.PASEKA_TEST_PACKAGE/);
+});
 
 test('device test configurator refuses unknown or already isolated production app ids', () => {
   assert.throws(() => isolatedConfig({ appId: 'unknown.package' }), /Refusing/);
@@ -27,7 +51,7 @@ test('device runner is injected only once after application bootstrap script', a
 });
 
 test('device bridge preserves production archive Downloads bridge in isolated MainActivity', () => {
-  const generated = 'package ru.paseka.journal.device.test;\n' +
+  const generated = 'package ' + PACKAGE_ID + ';\n' +
     'public class MainActivity extends BridgeActivity {\n' +
     '  void onCreate() { getBridge().getWebView().addJavascriptInterface(' +
     'new PasekaArchiveDownloadBridge(this),\n' +
@@ -38,13 +62,14 @@ test('device bridge preserves production archive Downloads bridge in isolated Ma
   assert.match(java, /PasekaArchiveDownload/);
   assert.match(java, /PasekaDeviceTestBridge/);
   const reportBridge = createTestBridgeSource();
+  assert.ok(reportBridge.startsWith('package ' + PACKAGE_ID + ';'), 'native report bridge must use the same test-only package');
   assert.match(reportBridge, /paseka-device-report\.json/);
   assert.match(reportBridge, /verifyAndRemoveTestDownload/);
   assert.match(reportBridge, /MessageDigest\.getInstance\("SHA-256"\)/);
   assert.match(reportBridge, /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/);
   assert.match(reportBridge, /return resolver\.delete\(uri, null, null\) == 1/);
   assert.throws(() => instrumentMainActivity(generated.replace(
-    'ru.paseka.journal.device.test', 'ru.paseka.journal')), /Refusing/);
+    PACKAGE_ID, 'ru.paseka.journal')), /Refusing/);
   assert.throws(() => instrumentMainActivity(generated.replace(
     'new PasekaArchiveDownloadBridge(this)', 'new SomethingElse(this)')), /Refusing/);
   assert.throws(() => instrumentMainActivity(java), /already injected/);
@@ -63,7 +88,10 @@ test('device test runner has valid JavaScript and uses only isolated IndexedDB n
 
 test('Windows launcher cannot clear packages or use the production application ID', async () => {
   const ps = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
-  assert.match(ps, /\$Package = 'ru\.paseka\.journal\.device\.test'/);
+  assert.match(ps, /device-package\.txt/);
+  assert.match(ps, /ru\\\.paseka\\\.journal\\\.device\\\.r/);
+  assert.match(ps, /\$Package = \(Get-Content/);
+  assert.doesNotMatch(ps, /\$Package = 'ru\.paseka\.journal'/);
   assert.match(ps, /Get-FileHash.*SHA256/);
   assert.match(ps, /run-as \$Package cat files\/paseka-device-report\.json/);
   assert.match(ps, /force-stop/);
