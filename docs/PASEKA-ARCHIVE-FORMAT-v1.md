@@ -1,3 +1,11 @@
+## Совместимость app schema 16 — журнал обработок Varroa (2026-11-19)
+
+Контейнер `.paseka` сохраняет `state.json` как полный снимок приложения. Начиная с PR #176, app schema 16 включает отдельный массив `varroaTreatments`. Полный archive exporter должен принимать schema 16; это ограничение исправлено в `js/paseka-archive.js`. При восстановлении штатный `validateBackupState` требует `varroaTreatments` для schema ≥16, проверяет тип массива и целостность событий через доменный валидатор. Версии схемы выше поддерживаемой (сейчас 16) отклоняются до commit. Объектная версия IndexedDB архива отдельно управляется PR #168 и не повышается из-за этой app schema миграции.
+
+Физическая проверка Varroa UI/offline завершена по подтверждению пользователя. Физический export/preflight/commit/rollback архива, содержащего schema 16 и `varroaTreatments`, ещё не выполнен; требуется отдельная изолированная проверка.
+
+---
+
 ## Проверка исправления UI истории — 2026-11-19
 
 На точном HEAD PR #168 `13137de26c6e756c144c84adde2851712c661775` workflow #44467107603 завершился успешно: 731/731 regression tests, 0 failures; Android Debug APK build и upload успешны. В прогон включён `tests/archive-restore-history-ui.test.mjs`, проверяющий fallback на `sourceBackupId`. Артефакт #14502782884 — обычная APK с production package ID, не предназначена для физической изолированной проверки. Физическая проверка исправленного renderer после rollback на test4 остаётся обязательной.
