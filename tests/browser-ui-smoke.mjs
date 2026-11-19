@@ -176,7 +176,7 @@ try {
           const chips=[...strip.children].map(el=>el.getBoundingClientRect());
           const row={
             count,
-            columns:getComputedStyle(strip).gridTemplateColumns.trim().split(/\\s+/).length,
+            columns:getComputedStyle(strip).gridTemplateColumns.trim().split(/\s+/).length,
             withinBox:chips.every(chip=>chip.left>=outer.left-1 && chip.right<=outer.right+1 &&
               chip.top>=stripRect.top-1 && chip.bottom<=stripRect.bottom+1),
             singleRow:chips.every(chip=>Math.abs(chip.top-chips[0].top)<1),
