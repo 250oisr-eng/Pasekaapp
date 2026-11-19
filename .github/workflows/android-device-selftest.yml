@@ -5,6 +5,7 @@ on:
     branches:
       - test/win11-device-automation-2026-11-19
       - test/win11-native-downloads-2026-11-19
+      - test/win11-signature-safe-2026-11-19
   workflow_dispatch:
 
 concurrency:
@@ -18,6 +19,10 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    env:
+      # A new package for each Actions run/attempt avoids a signature mismatch
+      # when GitHub generates a fresh Android debug signing key.
+      PASEKA_TEST_PACKAGE: ru.paseka.journal.device.r${{ github.run_id }}a${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,7 +63,7 @@ jobs:
       - name: Enforce isolated package
         run: |
           node scripts/prepare-device-selftest.mjs config
-          node -e "const c=require('./capacitor.config.json');if(c.appId!=='ru.paseka.journal.device.test')process.exit(1)"
+          node -e "const c=require('./capacitor.config.json');if(c.appId!==process.env.PASEKA_TEST_PACKAGE)throw new Error('Unsafe test APK package ID')"
       - name: Prepare device-test web assets
         run: |
           npm run web:prepare
@@ -94,10 +99,11 @@ jobs:
       - name: Inject isolated test report bridge
         run: |
           node scripts/prepare-device-selftest.mjs android
-          grep -Fq 'PasekaDeviceTestBridge' android/app/src/main/java/ru/paseka/journal/device/test/MainActivity.java
-          grep -Fq 'PasekaArchiveDownloadBridge' android/app/src/main/java/ru/paseka/journal/device/test/MainActivity.java
-          test -s android/app/src/main/java/ru/paseka/journal/device/test/PasekaDeviceTestBridge.java
-          grep -Fq 'verifyAndRemoveTestDownload' android/app/src/main/java/ru/paseka/journal/device/test/PasekaDeviceTestBridge.java
+          JAVA_DIR="android/app/src/main/java/$(printf '%s' "$PASEKA_TEST_PACKAGE" | tr '.' '/')"
+          grep -Fq 'PasekaDeviceTestBridge' "$JAVA_DIR/MainActivity.java"
+          grep -Fq 'PasekaArchiveDownloadBridge' "$JAVA_DIR/MainActivity.java"
+          test -s "$JAVA_DIR/PasekaDeviceTestBridge.java"
+          grep -Fq 'verifyAndRemoveTestDownload' "$JAVA_DIR/PasekaDeviceTestBridge.java"
       - name: Build isolated debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Verify APK package
@@ -106,7 +112,7 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.device.test'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='$PASEKA_TEST_PACKAGE'"
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then
             echo "Production ID detected in isolated APK" >&2
             exit 1
@@ -118,12 +124,14 @@ jobs:
           mkdir -p device-kit
           cp android/app/build/outputs/apk/debug/app-debug.apk device-kit/paseka-device-test.apk
           sha256sum device-kit/paseka-device-test.apk | awk '{print $1}' > device-kit/paseka-device-test.sha256
+          printf '%s\n' "$PASEKA_TEST_PACKAGE" > device-kit/device-package.txt
           cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/START-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
           curl --retry 3 --fail --location --silent --show-error \
             https://dl.google.com/android/repository/platform-tools-latest-windows.zip -o "$RUNNER_TEMP/platform-tools-windows.zip"
           unzip -q "$RUNNER_TEMP/platform-tools-windows.zip" -d device-kit/
           test -s device-kit/platform-tools/adb.exe
           test -s device-kit/platform-tools/AdbWinApi.dll
+          test -s device-kit/device-package.txt
           test -s device-kit/START-TESTS.cmd
       - name: Upload portable Windows and Android physical test kit
         uses: actions/upload-artifact@v4
