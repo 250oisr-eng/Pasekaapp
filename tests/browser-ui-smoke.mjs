@@ -137,10 +137,25 @@ try {
         .analyze();
       row.hiveDialogViolations = minimalViolations(dialogAudit);
       row.hiveDialogIncompleteCount = dialogAudit.incomplete.length;
+      if (row.hiveDialogViolations.length) {
+        throw new Error('New Hive dialog axe violations: '+row.hiveDialogViolations.map(v=>v.id).join(','));
+      }
+      const labels = await page.locator('#hiveDlg').evaluate(dialog => ({
+        named:dialog.getAttribute('aria-labelledby')==='hiveDialogTitle',
+        mode:document.querySelector('#newHiveMode')?.labels?.[0]?.textContent?.trim()||'',
+        notes:document.querySelector('#hiveDesc')?.labels?.[0]?.textContent?.trim()||''
+      }));
+      if (!labels.named || labels.mode!=='Первоначальная комплектация' ||
+          labels.notes!=='Примечание об улье (необязательно)') {
+        throw new Error('New Hive dialog controls are not programmatically labelled');
+      }
       row.hiveDialogTouchTargets = await page.locator('#hiveDlg button').evaluateAll(buttons =>
         buttons.map(btn => ({label:btn.textContent.trim().slice(0,80),
           width:Math.round(btn.getBoundingClientRect().width),
           height:Math.round(btn.getBoundingClientRect().height)})));
+      if (row.hiveDialogTouchTargets.some(t=>t.width<44||t.height<44)) {
+        throw new Error('New Hive dialog touch targets under 44x44 CSS px');
+      }
       await page.screenshot({path:resolve(reportDir,profile.id+'-new-hive-dialog.png'),fullPage:true});
       await page.keyboard.press('Escape');
       await hiveDialog.waitFor({state:'hidden',timeout:10000});
