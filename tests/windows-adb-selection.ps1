@@ -32,6 +32,8 @@ if "%PASEKA_FAKE_MODE%"=="both" (
  echo 192.168.1.42:37123 device
 )
 if "%PASEKA_FAKE_MODE%"=="wifi" echo 192.168.1.42:37123 device
+if "%PASEKA_FAKE_MODE%"=="emulator" echo emulator-5554 device
+if "%PASEKA_FAKE_MODE%"=="mdns" echo adb-oneplus._adb-tls-connect._tcp device
 if "%PASEKA_FAKE_MODE%"=="two-usb" (
  echo R52NUSB123 device
  echo R52NUSB456 device
@@ -46,6 +48,10 @@ try {
   if ((Find-TestDevice '192.168.1.42:37123') -cne '192.168.1.42:37123') { throw 'Explicitly paired Wi-Fi not selected' }
   if (Find-TestDevice '') { throw 'Wi-Fi without opt-in must not be selected' }
   if (Find-TestDevice '192.168.1.99:37123') { throw 'Unmatched Wi-Fi endpoint selected' }
+  foreach ($mode in @('emulator', 'mdns')) {
+    $env:PASEKA_FAKE_MODE = $mode
+    if (Find-TestDevice '') { throw ('Unsafe auto-selection of ' + $mode) }
+  }
   $env:PASEKA_FAKE_MODE = 'two-usb'
   $refused = $false
   try { $null = Find-TestDevice '192.168.1.42:37123' } catch { $refused = $true }
