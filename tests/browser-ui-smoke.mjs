@@ -181,8 +181,7 @@ try {
             singleRow:chips.every(chip=>Math.abs(chip.top-chips[0].top)<1),
             minTouchWidth:chips.every(chip=>chip.width>=24.5),
             containedScroll:getComputedStyle(strip).overflowX==='auto' &&
-              (strip.scrollWidth<=strip.clientWidth+1 ||
-                strip.scrollWidth>strip.clientWidth+1)
+              strip.scrollWidth>=strip.clientWidth
           };
           results.push(row);
           host.remove();
