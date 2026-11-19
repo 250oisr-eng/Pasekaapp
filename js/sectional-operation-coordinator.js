@@ -772,5 +772,47 @@ function completeOP07(state,request,deps={}){
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
 }
-window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07});
+// Read-only candidate check for the optional main-harvest second honey pair.
+// This is NOT a completion API, physical operation, or authorization to mutate.
+// The separate committed operation must still validate revisions, movements,
+// history, backups and the complete state before changing any records.
+function inspectSecondHoneyPairCandidate(state,request){
+ const errors=[],add=(code,details={})=>errors.push({code,details});
+ if(!isObject(state)||!isObject(request))return [{code:'second_pair_invalid_request',details:{}}];
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return [{code:'second_pair_identifiers_required',details:{}}];
+ if(Number(state.meta?.schemaVersion||0)<15||!Array.isArray(state.sectionalTechProcesses))add('second_pair_schema_not_ready');
+ const hiveRows=rows(state.hives).filter(hive=>hive?.id===request.hiveId);
+ if(hiveRows.length!==1||hiveRows[0]?.profileId!==PROFILE_ID)add('second_pair_requires_sectional_hive');
+ const processRows=rows(state.sectionalTechProcesses).filter(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId);
+ if(processRows.length!==1)add('second_pair_process_missing_or_ambiguous');
+ const process=processRows[0],op07Rows=rows(process?.state?.operations).filter(row=>row?.operationId==='OP-07'),op07=op07Rows[0];
+ if(op07Rows.length!==1||op07?.status!=='DONE'||!validDate(op07?.completedAt))add('second_pair_requires_completed_op07');
+ const layouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(layouts.length!==1)add('second_pair_layout_missing_or_ambiguous');
+ const layout=layouts[0],stack=layout?.honeyStack,oldIds=rows(stack?.bodyIds);
+ if(layout?.profileId!==PROFILE_ID||layout?.mode!=='SIDE_BY_SIDE'||stack?.purpose!=='main'||oldIds.length!==2||new Set(oldIds).size!==2||layout?.id!==process?.state?.layoutId)add('second_pair_requires_initial_main_honey_pair');
+ if(op07&&JSON.stringify(oldIds.slice().sort())!==JSON.stringify(rows(op07.evidence?.honeyBodyIds).slice().sort()))add('second_pair_original_op07_bodies_changed');
+ const existingFrames=Object.fromEntries(oldIds.map(id=>[id,rows(state.equipmentInventory?.bodies?.[id]?.frames)]));
+ if(op07&&JSON.stringify(honeyFrameCompositionEvidence(existingFrames))!==JSON.stringify(op07.evidence?.frameComposition))add('second_pair_original_op07_frames_changed');
+ const inventory=state.equipmentInventory?.bodies||{},oldPairIds=oldIds.map(id=>inventory[id]?.pairId);
+ if(oldPairIds.some(id=>!nonEmpty(id))||oldPairIds[0]!==oldPairIds[1])add('second_pair_original_pair_invalid');
+ const candidates=request.bodyIds;
+ if(!Array.isArray(candidates)||candidates.length!==2||candidates.some(id=>!nonEmpty(id))||new Set(candidates).size!==2){
+  add('second_pair_two_distinct_body_ids_required');
+ }else{
+  const pairIds=[];
+  for(const bodyId of candidates){
+   const body=inventory[bodyId];pairIds.push(body?.pairId);
+   if(oldIds.includes(bodyId))add('second_pair_body_already_installed',{bodyId});
+   if(!isObject(body)||body.id!==bodyId||body.kind!=='honey'||body.condition!=='good'||body.spec?.profileId!==PROFILE_ID||body.spec?.framesPerBox!==10||!nonEmpty(body.storageLocation)||!nonEmpty(body.pairId))add('second_pair_body_unavailable',{bodyId});
+   if(!Array.isArray(body?.frames)||body.frames.length!==10||body.frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))add('second_pair_frame_inventory_invalid',{bodyId});
+   const reused=rows(state.sectionalLayouts).some(row=>rows(row?.sections).some(section=>rows(section?.broodBodyIds).includes(bodyId))||rows(row?.honeyStack?.bodyIds).includes(bodyId));
+   if(reused)add('second_pair_body_already_in_layout',{bodyId});
+  }
+  if(!nonEmpty(pairIds[0])||pairIds[0]!==pairIds[1]||oldPairIds.includes(pairIds[0]))add('second_pair_inventory_pair_mismatch');
+ }
+ if(inspect(state).length)add('second_pair_existing_tech_process_invalid');
+ return errors;
+}
+window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07,inspectSecondHoneyPairCandidate});
 })();
