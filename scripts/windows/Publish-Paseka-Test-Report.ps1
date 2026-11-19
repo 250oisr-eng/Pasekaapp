@@ -196,6 +196,7 @@ function Sanitize-Report([string]$Path) {
       (Field $final 'phase') -cne 'complete' -or
       (Field $phaseOne 'pass') -cne $true -or (Field $final 'pass') -cne $true -or
       $pre.Count -ne $expectedPre -or $post.Count -ne $expectedPost -or
+      @($pre | Where-Object { $_.Result -cne 'PASS' }).Count -gt 0 -or
       @($post | Where-Object { $_.Result -cne 'PASS' }).Count -gt 0) {
       Fail 'PASS does not match expected test phases and check counts.'
     }
