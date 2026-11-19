@@ -40,6 +40,21 @@ test('Windows CI explicitly tests native stderr and retry on PowerShell 5.1', as
   assert.doesNotMatch(testScript, /adb\.exe|pm clear|uninstall/);
 });
 
+test('Windows ADB selection has opt-in private Wi-Fi, USB priority and native PowerShell regression', async () => {
+  const ps = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  const regression = await readFile(new URL('./windows-adb-selection.ps1', import.meta.url), 'utf8');
+  assert.match(ps, /function Test-PrivateWifiEndpoint/);
+  assert.match(ps, /function Find-TestDevice/);
+  assert.match(ps, /PASEKA_ADB_WIFI_ENDPOINT/);
+  assert.match(ps, /\$usb\.Count -eq 1/);
+  assert.match(ps, /connected -ccontains \$WifiEndpoint/);
+  assert.doesNotMatch(ps, /& \$Adb tcpip|Invoke-ADB[^\n]*tcpip/);
+  assert.match(regression, /two-usb/);
+  assert.match(regression, /Find-TestDevice ''/);
+  assert.match(yaml, /windows-adb-selection\.ps1/);
+});
+
 test('device test configurator refuses unknown or already isolated production app ids', () => {
   assert.throws(() => isolatedConfig({ appId: 'unknown.package' }), /Refusing/);
   assert.throws(() => isolatedConfig({ appId: PACKAGE_ID }), /Refusing/);
