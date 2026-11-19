@@ -348,6 +348,7 @@ try {
     } catch(error) {
       row.status='FAIL';
       row.error=String(error?.message||error).slice(0,1200);
+      console.error('UI_AUDIT_FAILURE '+profile.id+' '+row.error);
       failed=true;
       try { await page.screenshot({path:resolve(reportDir,profile.id+'-failure.png'),fullPage:true}); } catch {}
     } finally { await context.close(); }
