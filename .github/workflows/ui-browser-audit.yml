@@ -10,6 +10,8 @@ on:
       - 'js/**'
       - 'scripts/**'
       - 'tests/browser-ui-smoke.mjs'
+      - 'tests/navigation-layout.test.mjs'
+      - 'tests/regression.test.mjs'
       - '.github/workflows/ui-browser-audit.yml'
 
 concurrency:
