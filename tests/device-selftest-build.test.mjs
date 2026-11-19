@@ -92,6 +92,11 @@ test('Windows launcher cannot clear packages or use the production application I
   assert.match(ps, /ru\\\.paseka\\\.journal\\\.device\\\.r/);
   assert.match(ps, /\$Package = \(Get-Content/);
   assert.doesNotMatch(ps, /\$Package = 'ru\.paseka\.journal'/);
+  assert.ok(ps.startsWith('\uFEFF'), 'Windows PowerShell 5.1 must receive UTF-8 BOM');
+  assert.equal(ps.split('function Invoke-ADB').length - 1, 1, 'launcher must not contain a duplicated script');
+  assert.equal(ps.split("$Adb = Join-Path").length - 1, 1, 'ADB initialization must occur once');
+  assert.equal(ps.split("$PackagePath = Join-Path").length - 1, 1, 'package selection must occur once');
+  assert.match(ps, /\[0-9\]\{0,3\}\$'\) \{/);
   assert.match(ps, /Get-FileHash.*SHA256/);
   assert.match(ps, /run-as \$Package cat files\/paseka-device-report\.json/);
   assert.match(ps, /force-stop/);
