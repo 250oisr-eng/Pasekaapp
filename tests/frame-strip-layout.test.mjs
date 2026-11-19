@@ -17,3 +17,13 @@ test('CSS binds frame count on all three existing brood-frame renderers', () => 
   assert.ok(html.includes('width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden'));
   assert.ok(!html.includes('grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;margin-top:5px}'));
 });
+
+test('interactive frame chips can be activated with Enter and Space without triggering parent navigation',()=>{
+  const start=html.indexOf('function frameChip(');
+  const end=html.indexOf('function openFrameFromDiagram(',start);
+  assert.ok(start>=0&&end>start);
+  const markup=html.slice(start,end);
+  for (const token of ['role="button"','tabindex="0"','onkeydown="if(event.key===', 'Enter', 'event.preventDefault()', 'event.stopPropagation()', 'openFrameFromDiagram']) {
+    assert.ok(markup.includes(token),'frame-chip keyboard support missing '+token);
+  }
+});
