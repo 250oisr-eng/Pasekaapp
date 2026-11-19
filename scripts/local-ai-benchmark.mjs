@@ -2,7 +2,7 @@
 // Explicitly invoked, sequential, local-only benchmark of synthetic cases.
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { reviewFixture, validateModel, validateFixture } from './local-ai-review.mjs';
 
 const CASES = resolve(dirname(fileURLToPath(import.meta.url)), '../tests/fixtures/local-ai-benchmark.json');
