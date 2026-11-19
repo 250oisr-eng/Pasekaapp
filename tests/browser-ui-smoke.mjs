@@ -152,6 +152,47 @@ try {
         throw new Error('Honeycomb navigation touch target is below 44x44 CSS pixels');
       }
       row.steps.push('honeycomb-layout');
+      // Disposable geometry fixture: measure real CSS without creating a hive
+      // record, changing IndexedDB or bypassing the domain validator.
+      row.frameStripGeometry = await page.evaluate(() => {
+        const results=[];
+        for (const count of [6,10]) {
+          const host=document.createElement('div');
+          host.className='box-unit';
+          host.style.cssText='position:fixed;top:-1000px;left:0;width:120px;box-sizing:border-box;visibility:hidden';
+          const strip=document.createElement('div');
+          strip.className='frame-strip';
+          strip.style.setProperty('--frame-count',String(count));
+          for (let i=0;i<count;i++) {
+            const chip=document.createElement('span');
+            chip.className='frame-chip';
+            chip.textContent=String(i+1);
+            strip.appendChild(chip);
+          }
+          host.appendChild(strip);
+          document.body.appendChild(host);
+          const outer=host.getBoundingClientRect();
+          const stripRect=strip.getBoundingClientRect();
+          const chips=[...strip.children].map(el=>el.getBoundingClientRect());
+          const row={
+            count,
+            columns:getComputedStyle(strip).gridTemplateColumns.trim().split(/\\s+/).length,
+            withinBox:chips.every(chip=>chip.left>=outer.left-1 && chip.right<=outer.right+1 &&
+              chip.top>=stripRect.top-1 && chip.bottom<=stripRect.bottom+1),
+            singleRow:chips.every(chip=>Math.abs(chip.top-chips[0].top)<1),
+            overflow:strip.scrollWidth>strip.clientWidth+1
+          };
+          results.push(row);
+          host.remove();
+        }
+        return results;
+      });
+      if (row.frameStripGeometry.some(x=>x.columns!==x.count || !x.withinBox || !x.singleRow || x.overflow)) {
+        throw new Error('Frame-strip CSS does not keep all six/ten frames inside one body: '+
+          JSON.stringify(row.frameStripGeometry));
+      }
+      row.steps.push('frame-strip-6-and-10-geometry');
+
 
 
       // Scan only the empty, local home screen. We record known a11y issues
