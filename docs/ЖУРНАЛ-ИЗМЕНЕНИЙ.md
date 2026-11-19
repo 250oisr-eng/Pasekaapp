@@ -1,3 +1,15 @@
+## 2026-11-19 — опциональная ручная офлайн-проверка полного архива через Win11/USB
+
+- После физического `report(7).json` 9/9 PASS из PR #196 подготовлена отдельная stacked test-only ветка `test/manual-android-offline-archive-2026-11-19` от документационного HEAD PR #196 `6054826cccf819561d411a71b9716426b0d40b68`. Основной код архива и IndexedDB не изменены.
+- `scripts/prepare-device-selftest.mjs` генерирует test-only Java bridge с `offlineRequested()` и fail-closed `isNetworkOffline()` через Android ConnectivityManager, проверяющим **все доступные сети** на `NET_CAPABILITY_INTERNET`. Разрешение `ACCESS_NETWORK_STATE` добавляется только в генерируемую изолированную APK, никогда в рабочую production-установку. Ни Wi-Fi, ни мобильные данные скрипты не переключают.
+- `tests/device-selftest.js` выполняет два дополнительных native offline checks: до synthetic archive export/preflight/commit/rollback и после настоящего Android restart. Если сеть обнаружена или ConnectivityManager недоступен, сценарий останавливается FAIL до критического этапа. Отдельный optional mode `manual-offline`: **8/8 до рестарта, 11/11 после**; стандартные ручные 9/9 остаются без изменений.
+- `scripts/windows/Run-Paseka-Tests.ps1 -Offline` передаёт безопасный Intent flag через ADB, требует USB transport (игнорирует Wi-Fi endpoint), не меняет сеть на телефоне. Добавлен `scripts/windows/START-OFFLINE-TESTS.cmd` в ZIP; оператор должен вручную выключить Wi-Fi/мобильные данные и подключить USB. `START-TESTS.cmd` не изменён. Никакого Windows Task Scheduler и никаких автоматических задач.
+- Тесты исходника и документация проверяют изолированный Java network API, наличие explicit offline флага дважды (до и после рестарта), отчётные счётчики, отсутствие сетевых управляющих API и наличие offline launcher в package workflow.
+- Offline-only physical 11/11, а также системный native picker — **ещё не выполнены**. Предыдущий физический 9/9 сохраняет силу только для своей test-only APK. Следующий шаг: Android CI на точном SHA + Windows PowerShell 5.1; затем при успехе новый ZIP и добровольное ручное выключение сети на OnePlus для отдельного физического запуска. Сетевой тест не равен проверке системного выбора файла.
+- Без merge, изменения main, publication/deploy, реальных записей, резервных копий и офлайн-кеша production. 
+
+---
+
 ## 2026-11-19 — подтверждён физический OnePlus 9/9 PASS, PR #196
 
 - Пользователь прислал `report(7).json` и `before-restart(3).png`. Проверены JSON `format=paseka-windows-test-report-v1`, `status=PASS`, `error=""`, `runId=475ff5d763624f348c07`, `testedPackage=ru.paseka.journal.device.r44598762090a1`. Этап 1: `awaiting_restart`, **7/7 PASS**, включая новый `native_downloads_reject_incomplete_and_oversize`. Этап 2: `complete`, **9/9 PASS**, включая `real_android_restart_persists_indexeddb` и `real_card_renderer_after_restart`. Один runId на обеих фазах. Скриншот показывает 7/7 до рестарта; post-restart подтверждён отчётом, не скриншотом.
