@@ -14,7 +14,7 @@ if (!(Test-Path -LiteralPath $Runner)) { throw 'Missing local scheduler runner.'
 # saved passwords, a hosted runner, downloads, network telemetry or auto-upgrade.
 if (!$Install) {
   Write-Host ('PREVIEW ONLY: local daily task ' + $TaskName + ' at ' + $DailyAt)
-  Write-Host 'To register after the SAME kit produces a manual 8/8 PASS:'
+  Write-Host 'To register after the SAME kit produces a manual 9/9 PASS:'
   Write-Host ('.\Register-Local-Scheduled.ps1 -DailyAt ' + $DailyAt + ' -Install')
   exit 0
 }
