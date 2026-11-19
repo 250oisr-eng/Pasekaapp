@@ -113,7 +113,8 @@ try {
   Write-Host 'Используется только отдельный тестовый пакет, без доступа к основной базе.'
   Write-Host 'USB имеет приоритет. Wi-Fi разрешён только для заранее сопряжённого адреса.'
   [void](Invoke-ADB -Arguments @('start-server'))
-  $WifiEndpoint = [string]$env:PASEKA_ADB_WIFI_ENDPOINT
+  # Manual offline verification requires physical USB, never Wireless ADB.
+  $WifiEndpoint = $(if ($Offline) { '' } else { [string]$env:PASEKA_ADB_WIFI_ENDPOINT })
   if ($WifiEndpoint -and !(Test-PrivateWifiEndpoint -Endpoint $WifiEndpoint)) {
     throw 'Недопустимый адрес Wi-Fi ADB. Требуется частный IPv4:порт (например, 192.168.1.20:37123).'
   }
