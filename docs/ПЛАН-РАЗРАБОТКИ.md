@@ -1,3 +1,14 @@
+## 2026-11-19 — итог CI для PR #196 (точный кодовый SHA, manual Android 9/9 ещё ожидается)
+
+- **Финальный code/test HEAD**: `2cfb0ac6d0fa7b788bedaf2def6a5810488ecd28`. [Windows 11 + Android kit #44597829170](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44597829170), **attempt 2** — completed/**success**. Windows PowerShell 5.1 validation completed/success; Node regression **761/761 PASS, 0 fail**, isolated Gradle debug APK compile, package AAPT identity verification, archive bridge injection and ZIP upload completed/success.
+- **Первый attempt 1 завершился failure** на Gradle dependency download из-за HTTP **429 Too Many Requests от repo.maven.apache.org**, при этом Windows и Node tests прошли. Failed jobs были перезапущены штатной командой GitHub; attempt 2 успешен. Первую ошибку не считать дефектом логики, но сохранять в истории для аудита инфраструктуры.
+- Проверенный AAPT package: `ru.paseka.journal.device.r44597829170a2` (run attempt 2, НЕ старый a1); ZIP artifact [#14566252908](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44597829170/artifacts/14566252908), `paseka-win11-android-selftest-kit`, 11,830,205 bytes, digest `sha256:48e63981acdeeaa0009ab37eb65b22753a2dfe3c7dbcc34341879801dff81dfd`, срок до **2026-12-03 19:28 UTC**.
+- [Build Android APK #44597858029](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44597858029) тоже completed/success на том же HEAD. [Build isolated archive test APK #44597858035](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44597858035) **skipped** — отдельного покрытия от него нет.
+- Результаты GitHub **не являются физическим 9/9**: для нового ZIP нужен ручной USB запуск `START-TESTS.cmd` на Windows 11 с OnePlus и новый `reports/.../report.json`. Ожидается 7/7 до Android restart и **9/9 final**. Прежние отчёты 8/8 принадлежат другой APK и не засчитываются.
+- После этого кодового SHA новые изменения должны быть только документационными; на них нельзя автоматически переносить статус CI. Не запускать Task Scheduler, не устанавливать APK поверх `ru.paseka.journal`, не удалять чужие файлы из Downloads. Native file picker/offline и физическая инъекция `openOutputStream` по-прежнему вне охвата.
+
+---
+
 ## 2026-11-19 — отдельная физическая проверка отказов MediaStore (следующая после PR #195)
 
 - Подтверждённый предыдущий этап: PR #195, test-only APK `ru.paseka.journal.device.r44596186324a1`, физический `report(6).json`: 6/6 до перезапуска и 8/8 после него. Это НЕ проверка новых негативных сценариев.
