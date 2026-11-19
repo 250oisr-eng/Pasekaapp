@@ -192,10 +192,10 @@ test('manual local agent is packaged only in isolated kit and never starts a sch
   assert.match(yaml, /windows-local-agent\.ps1/);
   assert.match(yaml, /Publish-Paseka-Test-Report\.ps1/);
   assert.match(testRunner, /AgentRunId/);
-  assert.match(runner, /Invoke-Paseka-Test-Agent/);
+  assert.match(runner, /Publish-Paseka-Test-Report/);
   assert.match(uploader, /ConvertFrom-SecureString/);
   assert.match(uploader, /ZeroFreeBSTR/);
-  assert.match(uploader, /issues\/198\/comments/);
+  assert.match(uploader, /\$IssueNumber = 198/);
   assert.match(uploader, /paseka-device-test\.sha256/);
   assert.match(uploader, /Test-only Android/);
   assert.match(mock, /PRIVATE-APIARY-DATA-NEVER-SEND/);
