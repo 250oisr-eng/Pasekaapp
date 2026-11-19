@@ -96,6 +96,11 @@ try {
           await page.locator('nav button[data-tab="ai"]').count() !== 1) {
         throw new Error('Home must have one central AI entry and a journal quick action');
       }
+      if (await page.locator('#apiaryStatus').innerText().then(text=>text.includes('ошибки модели')) ||
+          await page.locator('#modelDiagnosticsIndicator').count() !== 1 ||
+          await page.locator('#modelDiagnosticsList').count() !== 1) {
+        throw new Error('Integrity diagnostics must have a dedicated More panel, not a home statistic');
+      }
       row.steps.push('home-loaded');
       const initial = await page.evaluate(() => ({
         width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,
@@ -156,6 +161,14 @@ try {
         throw new Error('Apiary status labels have insufficient contrast: '+badStatusLabels.length);
       }
 
+      await page.locator('nav button[data-tab="settings"]').click();
+      await page.locator('section#settings.panel.active #modelDiagnostics').waitFor({state:'visible',timeout:15000});
+      if (await page.locator('#currentSectionTitle').innerText() !== 'Ещё') {
+        throw new Error('Diagnostics page has incorrect active-section title');
+      }
+      row.steps.push('model-diagnostics-in-more');
+      await page.locator('nav button[data-tab="home"]').click();
+      await page.locator('section#home.panel.active').waitFor({state:'visible',timeout:15000});
       await page.locator('nav button[data-tab="hives"]').click();
       await page.locator('section#hives.panel.active').waitFor({state:'visible',timeout:15000});
       if (await page.locator('nav button[data-tab="hives"][aria-current="page"]').count() !== 1 ||
