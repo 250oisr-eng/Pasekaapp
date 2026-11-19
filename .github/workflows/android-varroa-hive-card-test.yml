@@ -64,7 +64,7 @@ jobs:
           if (config.appId !== 'ru.paseka.journal') throw new Error('Unexpected source package ID; refusing isolated build');
           config.appId = 'ru.paseka.journal.varroa.hivecard.test';
           config.appName = 'Пасека — тест карточки Varroa';
-          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\\n');
+          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
           const check = JSON.parse(fs.readFileSync(path, 'utf8'));
           if (check.appId !== 'ru.paseka.journal.varroa.hivecard.test') throw new Error('Isolated package ID was not applied');
           NODE
