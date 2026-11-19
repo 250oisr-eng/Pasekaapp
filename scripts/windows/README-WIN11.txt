@@ -148,14 +148,14 @@ package ID устанавливается рядом и не трогает уж
   - В комплект добавлены Run-Local-Scheduled.ps1 и
     Register-Local-Scheduled.ps1. Они НЕ создают задачу автоматически.
   - Для каждого нового ZIP сначала обязательно выполнить обычный
-    ручной START-TESTS.cmd и получить 8/8 PASS в его собственной папке
+    ручной START-TESTS.cmd и получить 9/9 PASS в его собственной папке
     reports. Нельзя использовать отчёт от другого APK/package.
   - Run-Local-Scheduled.ps1 по умолчанию только проверяет комплект:
       powershell.exe -NoProfile -ExecutionPolicy Bypass -File
         .\Run-Local-Scheduled.ps1
     При успехе: DRY RUN; Android не затрагивается.
   - Он проверяет идентификатор test-only APK, SHA-256 локального APK
-    и ранее сохранённый 8/8 PASS именно для этого пакета.
+    и ранее сохранённый 9/9 PASS именно для этого пакета.
     При отсутствии/изменении APK или отчёта запуск блокируется.
   - Для настоящего повтора уже установленного тестового приложения:
       powershell.exe -NoProfile -ExecutionPolicy Bypass -File
