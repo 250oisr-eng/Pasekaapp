@@ -68,7 +68,7 @@ try {
   await mkdir(reportDir,{ recursive:true });
   await new Promise((res,rej) => { server.once('error',rej); server.listen(0,'127.0.0.1',res); });
   const url = 'http://127.0.0.1:' + server.address().port + '/';
-  browser = await chromium.launch({headless:true});
+  browser = await chromium.launch({channel:'chrome',headless:true});
   for (const profile of profiles) {
     const row = {profile:profile.id,viewport:{width:profile.width,height:profile.height},steps:[],violations:[],pageErrors:[]};
     report.pages.push(row);
