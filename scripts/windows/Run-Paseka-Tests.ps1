@@ -1,4 +1,4 @@
-﻿param([switch]$Offline)
+﻿param([switch]$Offline, [string]$AgentRunId = '')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
@@ -24,7 +24,17 @@ $ChecksumPath = Join-Path $PSScriptRoot 'paseka-device-test.sha256'
 $Reports = Join-Path $PSScriptRoot 'reports'
 $RunId = [guid]::NewGuid().ToString('N')
 $RunId = $RunId.Substring(0, 20)
-$ReportDir = Join-Path $Reports (Get-Date -Format 'yyyyMMdd-HHmmss')
+if ($AgentRunId -and $AgentRunId -cnotmatch '^[a-f0-9]{32}$') {
+  throw 'Unsafe agent report run identifier.'
+}
+$ReportDir = $(if ($AgentRunId) {
+  Join-Path $Reports ('agent-' + $AgentRunId)
+} else {
+  Join-Path $Reports (Get-Date -Format 'yyyyMMdd-HHmmss')
+})
+if ($AgentRunId -and (Test-Path -LiteralPath $ReportDir)) {
+  throw 'Report directory already exists. No overwrite allowed.'
+}
 $StageOne = $null
 $FinalReport = $null
 $Fatal = ''

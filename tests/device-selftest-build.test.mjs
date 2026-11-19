@@ -175,11 +175,32 @@ test('offline mode is explicit, read-only, and limited to isolated APK', async (
   assert.match(script, /offline_network_disabled_before_archive/);
   assert.match(script, /offline_network_disabled_after_restart/);
   assert.match(script, /manual-offline/);
-  assert.match(ps, /^\uFEFFparam\(\[switch\]\$Offline\)/);
+  assert.match(ps, /^\uFEFFparam\(\[switch\]\$Offline, \[string\]\$AgentRunId = ''\)/);
   assert.equal(ps.split("'--ez', 'paseka_require_offline'").length - 1, 2);
   assert.match(ps, /Count -ne 11/);
   assert.match(batch, /-Offline/);
   assert.match(yaml, /START-OFFLINE-TESTS[.]cmd/);
+});
+
+test('manual local agent is packaged only in isolated kit and never starts a schedule', async () => {
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  const runner = await readFile(new URL('../scripts/windows/Invoke-Paseka-Test-Agent.ps1', import.meta.url), 'utf8');
+  const uploader = await readFile(new URL('../scripts/windows/Publish-Paseka-Test-Report.ps1', import.meta.url), 'utf8');
+  const testRunner = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
+  const mock = await readFile(new URL('./windows-local-agent.ps1', import.meta.url), 'utf8');
+  assert.match(yaml, /device-build-sha\.txt/);
+  assert.match(yaml, /windows-local-agent\.ps1/);
+  assert.match(yaml, /Publish-Paseka-Test-Report\.ps1/);
+  assert.match(testRunner, /AgentRunId/);
+  assert.match(runner, /Publish-Paseka-Test-Report/);
+  assert.match(uploader, /ConvertFrom-SecureString/);
+  assert.match(uploader, /ZeroFreeBSTR/);
+  assert.match(uploader, /\$IssueNumber = 198/);
+  assert.match(uploader, /paseka-device-test\.sha256/);
+  assert.match(uploader, /Test-only Android/);
+  assert.match(mock, /PRIVATE-APIARY-DATA-NEVER-SEND/);
+  assert.doesNotMatch(runner, /Register-ScheduledTask|Invoke-Expression|pm clear|uninstall/);
+  assert.doesNotMatch(uploader, /Start-Process|Invoke-Expression|Register-ScheduledTask|Upload-File|multipart\/form-data/);
 });
 
 test('Windows launcher cannot clear packages or use the production application ID', async () => {
