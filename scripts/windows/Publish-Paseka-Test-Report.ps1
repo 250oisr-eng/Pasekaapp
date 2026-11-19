@@ -1,5 +1,5 @@
 ﻿param(
-  [ValidateSet('Configure','Upload','RetryPending','DryRun')]
+  [ValidateSet('Configure','Upload','RetryPending','DryRun','SelfTest')]
   [string]$Action = 'Upload',
   [string]$ReportPath = ''
 )
@@ -172,16 +172,52 @@ function Sanitize-Report([string]$Path) {
   if ($status -eq 'FAIL') { $lines += 'Диагностика FAIL доступна только в локальной папке reports.' }
   return [PSCustomObject]@{ Id=$runId; Body=($lines -join [Environment]::NewLine) }
 }
+function Page-ContainsMarker([object[]]$Comments, [string]$Marker) {
+  foreach ($comment in $Comments) {
+    # Windows PowerShell 5.1 may materialize an empty REST list as a null
+    # element in @(...). Never access .body on a null under StrictMode.
+    if ($null -eq $comment) { continue }
+    $bodyProperty = $comment.PSObject.Properties['body']
+    if ($null -eq $bodyProperty -or $null -eq $bodyProperty.Value -or
+        $bodyProperty.Value -isnot [string]) {
+      Fail 'Invalid GitHub comments response; refusing duplicate-unsafe upload.'
+    }
+    if ($bodyProperty.Value.Contains($Marker)) { return $true }
+  }
+  return $false
+}
 function Marker-Exists([string]$Marker,$Headers) {
   $baseUrl = 'https://api.github.com/repos/' + $Repository + '/issues/' + $IssueNumber + '/comments'
   for ($page=1; $page -le 100; $page++) {
-    $comments = @(Gh-Request -Method 'Get' -Url ($baseUrl + '?per_page=100&page=' + $page) -Headers $Headers)
-    foreach ($comment in $comments) {
-      if ([string]$comment.body -like ('*' + $Marker + '*')) { return $true }
-    }
+    $result = Gh-Request -Method 'Get' -Url ($baseUrl + '?per_page=100&page=' + $page) -Headers $Headers
+    $comments = @($result | Where-Object { $null -ne $_ })
+    if (Page-ContainsMarker -Comments $comments -Marker $Marker) { return $true }
     if ($comments.Count -lt 100) { return $false }
   }
   Fail 'GitHub comment pagination limit reached: cannot safely prevent duplicates.'
+}
+function Test-CommentPagination {
+  $marker = '<!-- paseka-test-agent:1234567890abcdefabcd -->'
+  if (Page-ContainsMarker -Comments @($null) -Marker $marker) {
+    Fail 'SelfTest: empty/null GitHub comments page was reported as a match.'
+  }
+  if (Page-ContainsMarker -Comments @() -Marker $marker) {
+    Fail 'SelfTest: empty GitHub comments page was reported as a match.'
+  }
+  if (!(Page-ContainsMarker -Comments @([PSCustomObject]@{ body = $marker }) -Marker $marker)) {
+    Fail 'SelfTest: matching GitHub comment was not detected.'
+  }
+  if (Page-ContainsMarker -Comments @([PSCustomObject]@{ body = 'unrelated comment' }) -Marker $marker) {
+    Fail 'SelfTest: unrelated GitHub comment was reported as a match.'
+  }
+  $refused = $false
+  try {
+    [void](Page-ContainsMarker -Comments @([PSCustomObject]@{ id = 12 }) -Marker $marker)
+  } catch {
+    $refused = $_.Exception.Message -like '*Invalid GitHub comments response*'
+  }
+  if (!$refused) { Fail 'SelfTest: malformed GitHub comment was not rejected.' }
+  Write-Host 'PASS: empty, null, matching, unrelated and malformed GitHub comments handled safely.'
 }
 function Send-Pending {
   if (!(Test-Path -LiteralPath $PendingDir)) { Write-Host 'No pending results.'; return }
@@ -211,6 +247,7 @@ function Send-Pending {
   }
 }
 try {
+  if ($Action -eq 'SelfTest') { Test-CommentPagination; exit 0 }
   if ($Action -eq 'Configure') { Configure-Token; exit 0 }
   if ($Action -eq 'RetryPending') { Send-Pending; exit 0 }
   if ([string]::IsNullOrWhiteSpace($ReportPath)) { Fail 'ReportPath is required.' }
