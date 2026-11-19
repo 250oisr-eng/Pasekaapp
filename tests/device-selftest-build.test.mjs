@@ -21,7 +21,7 @@ test('device runner is injected only once after application bootstrap script', a
   const output = injectTestScript(html);
   assert.equal(html.includes(TEST_SCRIPT), false, 'production HTML must never embed the test harness');
   assert.equal(output.split(TEST_SCRIPT).length - 1, 1);
-  assert.ok(output.lastIndexOf(TEST_SCRIPT) > output.lastIndexOf('</script>'));
+  assert.ok(output.lastIndexOf(TEST_SCRIPT) > html.lastIndexOf('</script>'));
   assert.throws(() => injectTestScript(output), /already injected/);
   assert.throws(() => injectTestScript('<body></body></body>'), /exact closing body/);
 });
