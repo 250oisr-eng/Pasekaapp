@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: Qwen3 4B успешно сформировала настоящий native tool call через Ollama
+
+- Пользователь повторил локальный `POST /api/chat` с `model=qwen3:4b`, `tools=[calculator]`, `think=false`, `stream=false`, `temperature=0`, `num_predict=512`. Вывод: `ToolCalls=1` с исправленным подсчётом, `FinishReason=stop`, `GeneratedTokens=389`. Содержимое `$r.message.tool_calls` показало полноценный объект `function.name=calculator`, `arguments={a:42,b:17}` и `id=call_dm42ei2v`. Никакая функция физически не запускалась, изменения файлов не происходили.
+- Особенность: `message.content` содержал длинное рассуждение, включая `</think>`, хотя `think=false`; модель выполнила tool-call, но текстовый формат нестабилен. **Это подтверждает native tool calling через Ollama**, а не полноценную совместимость OpenCode и не качество аудита кода.
+- Следующая проверка: в отдельно созданной пользователем папке `OpenCode-Synthetic-Pilot`, не меняя старые V1 `permission` deny, зарегистрировать вторую модель `qwen3:4b` в `provider.ollama.models`, проверить `opencode.cmd models ollama`, затем сделать один `opencode.cmd run --format json --model ollama/qwen3:4b` на `synthetic.js` с SHA256 before/after и анализом реального tool-result event. При попытке shell/edit отказать. Не использовать реальные файлы Пасеки.
+- Предыдущий `qwen2.5-coder:7b` в OpenCode печатал текстовый JSON вместо native read tool event. Qwen3 — первый подтверждённый tool caller только на API-уровне. Безопасность и результативность всего агента не подтверждены.
+- Draft PR #189 исходный SHA `1dff00ec23b0de8bd9131a6b499cfede85f46a8c`; CI `Build Android APK:in_progress/null`. Новые документационные коммиты требуют отдельной CI проверки. Без merge, deployment, production или изменений данных.
+
+---
+
 ## Контрольная точка — 2026-11-19: исправлена ошибка счётчика PowerShell при диагностике Ollama tool_calls
 
 - Пользователь вызвал `/api/chat` со структурированным `tools` calculator для `qwen2.5-coder:7b` и `qwen3:4b`. Скрипт выводил `ToolCalls=1` для обоих, но считал `@($r.message.tool_calls).Count`, что при `$null` даёт ложный 1. Ни один `$r.message.tool_calls | ConvertTo-Json` не напечатался, так что структурных вызовов в показанных ответах **нет**.
