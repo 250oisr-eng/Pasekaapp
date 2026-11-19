@@ -26,7 +26,8 @@ test('fixed local endpoint; unverified findings',async()=>{
     assert.equal(url,'http://127.0.0.1:11434/api/generate');
     assert.equal(options.method,'POST');
     assert.equal(JSON.parse(options.body).stream,false);
-    return {ok:true,text:async()=>JSON.stringify({response:'{"findings":[]}',done_reason:'stop',eval_count:100,eval_duration:2000000000,total_duration:2800000000})};
+    assert.equal(JSON.parse(options.body).format,'json');
+    return {ok:true,text:async()=>JSON.stringify({response:'{"findings":[],"testSuggestions":[]}',done_reason:'stop',eval_count:100,eval_duration:2000000000,total_duration:2800000000})};
   }});
   assert.equal(calls,1);
   assert.equal(result.status,'unverified-model-suggestions');
@@ -42,5 +43,7 @@ test('fails closed on offline service and malformed reply',async()=>{
   await assert.rejects(reviewFixture({fixture,model:'deepseek-r1:7b',request:async()=>({ok:true,text:async()=>JSON.stringify({thinking:'some reasoning',response:'',done_reason:'length'})})}),/No final answer/);
   await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>JSON.stringify({response:'Partial answer...',done_reason:'length'})})}),/truncated/);
   await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>JSON.stringify({response:'Looks good'})})}),/completion not confirmed/);
+  await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>JSON.stringify({response:'not JSON',done_reason:'stop'})})}),/not valid JSON/);
+  await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>JSON.stringify({response:'{"findings":[]}',done_reason:'stop'})})}),/invalid review schema/);
   await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>'bad'})}),/Malformed/);
 });
