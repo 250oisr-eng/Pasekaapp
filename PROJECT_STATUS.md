@@ -1,3 +1,15 @@
+## Контрольная точка — физическая проверка Varroa и совместимость полного архива (2026-11-19)
+
+- Пользователь подтвердил успешное выполнение всех семи пунктов физической проверки журнала Varroa на отдельном Android-приложении. UI, блокировки подтверждения/будущей даты, история и сохранение после перезапуска офлайн подтверждены пользователем.
+- В интеграционном аудите найден дефект: `js/paseka-archive.js` ограничивал экспорт схемой 15, хотя журнал Varroa повышает app schema до 16. Исправлено: полный архив принимает schema 16; schema 17+ по-прежнему отклоняется.
+- Добавлен регрессионный тест `tests/archive-export.test.mjs`: экспорт schema 16 с `varroaTreatments`, проверка содержимого `state.json` и preflight чтения архива; проверка неподдерживаемой schema 17 сохранена.
+- Проверки на code/test SHA `f3a346e3ebd4b27c78e4ebdcd47b0e813b2d5b1b`: Fast quality checks #44477890337 — **741/741 tests passed, 0 failures**; Android Debug APK #44477890428 — success, artifact #14506518539, SHA-256 `3cb7d37638c294e04b8c1c8598f83482fd1706b4a2419881f4a87dd7f619d896`; Android Debug APK PR run #44477903201 — success, artifact #14507306363, SHA-256 `8b94b548f411a1c22d676e5488b686c6ed4827be39d4b7152ff09884a6f5e50f`. Оба APK имеют стандартный package ID; не предназначены для установки на телефон.
+- Изолированная Varroa APK PR #177 (package `ru.paseka.journal.varroa.test`) прошла физическую проверку пользователя, но содержит предыдущую версию archive export ceiling; физическая проверка archive schema 16 export/restore ещё не выполнена.
+- PR #176 остаётся Draft и stacked поверх PR #168; PR #177 — test-only. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменялась; merge, production и реальные данные не затронуты.
+- Следующий шаг: отдельная изолированная Android-проверка `.paseka` export/preflight/commit/rollback с тестовым набором, включающим `varroaTreatments`; не использовать рабочую базу. После этого завершить интеграционный аудит.
+
+---
+
 ## Контрольная точка — журнал обработок Varroa и изолированная Android-проверка (2026-11-19)
 
 - Функциональная реализация: Draft PR #176, ветка feat/varroa-treatment-log-2026-11-19; проверенный code/test SHA `ae7421a27aeed368724bf942aaab2cecd7266d9a`.
