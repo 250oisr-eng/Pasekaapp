@@ -122,6 +122,32 @@ try {
         throw new Error('Only hives navigation item should be aria-current=page');
       }
       row.steps.push('hives-navigation');
+      // Open and dismiss the real New Hive dialog without submitting its form.
+      // The browser profile is disposable; no fake hive or family is created.
+      const hiveCountBefore = await page.locator('#hiveDirectoryCount').innerText();
+      await page.locator('button[data-action="open-new-hive"]').click();
+      const hiveDialog = page.locator('#hiveDlg');
+      await hiveDialog.waitFor({state:'visible',timeout:10000});
+      if (await page.locator('#hiveDialogTitle').innerText() !== 'Новый улей') {
+        throw new Error('New Hive dialog title is incorrect');
+      }
+      const dialogAudit = await new AxeBuilder({page})
+        .include('#hiveDlg')
+        .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa'])
+        .analyze();
+      row.hiveDialogViolations = minimalViolations(dialogAudit);
+      row.hiveDialogIncompleteCount = dialogAudit.incomplete.length;
+      row.hiveDialogTouchTargets = await page.locator('#hiveDlg button').evaluateAll(buttons =>
+        buttons.map(btn => ({label:btn.textContent.trim().slice(0,80),
+          width:Math.round(btn.getBoundingClientRect().width),
+          height:Math.round(btn.getBoundingClientRect().height)})));
+      await page.screenshot({path:resolve(reportDir,profile.id+'-new-hive-dialog.png'),fullPage:true});
+      await page.keyboard.press('Escape');
+      await hiveDialog.waitFor({state:'hidden',timeout:10000});
+      if (await page.locator('#hiveDirectoryCount').innerText() !== hiveCountBefore) {
+        throw new Error('Dismissing New Hive dialog unexpectedly modified the hive directory');
+      }
+      row.steps.push('new-hive-dialog-open-dismiss-no-save');
       await page.locator('nav button[data-tab="journal"]').click();
       await page.locator('section#journal.panel.active').waitFor({state:'visible',timeout:15000});
       if (await page.locator('nav button[data-tab="journal"][aria-current="page"]').count() !== 1 ||
@@ -142,6 +168,8 @@ try {
     } finally { await context.close(); }
     console.log(profile.id+': '+row.status+' nav='+row.steps.join(',')+' axe='+row.violations.map(v=>v.id+'('+v.impact+')').join(',')+' overflowPx='+((row.layout?.scrollWidth||0)-(row.layout?.width||0))+' pageErrors='+row.pageErrors.length);
     if (row.violations.length) console.log('AXE_NODES '+profile.id+' '+JSON.stringify(row.violations.map(v=>({rule:v.id,nodes:v.nodes.slice(0,6).map(n=>({target:n.target,issue:String(n.failureSummary||'').slice(0,170)}))}))));
+    if (row.hiveDialogViolations?.length) console.log('HIVE_DIALOG_AXE '+profile.id+' '+JSON.stringify(row.hiveDialogViolations.map(v=>({rule:v.id,impact:v.impact,nodes:v.nodes.slice(0,5).map(n=>({target:n.target,issue:String(n.failureSummary||'').slice(0,180)}))}))));
+    if (row.hiveDialogTouchTargets?.length) console.log('HIVE_DIALOG_TOUCH '+profile.id+' '+JSON.stringify(row.hiveDialogTouchTargets));
   }
 } catch(error) {
   failed=true;
