@@ -20,50 +20,23 @@ export function injectTestScript(html) {
 }
 
 export function instrumentMainActivity(source) {
-  const match = source.match(/^\s*package\s+([a-zA-Z0-9_.]+)\s*;/m);
-  if (!match || match[1] !== PACKAGE_ID || !source.includes('extends BridgeActivity')) {
-    throw new Error('Refusing to instrument unexpected MainActivity');
+  const pkg = source.match(/^\s*package\s+([a-zA-Z0-9_.]+)\s*;/m);
+  if (!pkg || pkg[1] !== PACKAGE_ID || !source.includes('extends BridgeActivity') ||
+      !source.includes('new PasekaArchiveDownloadBridge(this)')) {
+    throw new Error('Refusing to instrument MainActivity without the production Downloads bridge');
   }
-  // The bridge exists ONLY in the isolated, non-production debug package.
-  return `package ${PACKAGE_ID};
-
-import android.os.Bundle;
-import android.webkit.JavascriptInterface;
-import com.getcapacitor.BridgeActivity;
-import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
-
-public class MainActivity extends BridgeActivity {
-  @Override
-  public void onCreate(Bundle state) {
-    super.onCreate(state);
-    if (getBridge() == null || getBridge().getWebView() == null) {
-      throw new IllegalStateException("Capacitor WebView is unavailable for device self-test");
-    }
-    getBridge().getWebView().addJavascriptInterface(new DeviceSelfTestBridge(), "PasekaDeviceTestBridge");
+  if (source.includes('PasekaDeviceTestBridge')) throw new Error('Test bridge already injected');
+  const marker = '"PasekaArchiveDownload"\n        );';
+  if (source.split(marker).length !== 2) {
+    throw new Error('Unexpected native Downloads bridge declaration in MainActivity');
   }
-
-  public final class DeviceSelfTestBridge {
-    @JavascriptInterface
-    public String runId() {
-      String id = getIntent() == null ? null : getIntent().getStringExtra("paseka_run_id");
-      return id != null && id.matches("[A-Za-z0-9-]{1,64}") ? id : "";
-    }
-
-    @JavascriptInterface
-    public void report(String json) {
-      String id = runId();
-      if (id.isEmpty() || json == null || json.length() > 100000 ||
-          !json.contains("\\\"runId\\\":\\\"" + id + "\\\"")) return;
-      try (FileOutputStream output = openFileOutput("paseka-device-report.json", MODE_PRIVATE)) {
-        output.write(json.getBytes(StandardCharsets.UTF_8));
-      } catch (Exception exception) {
-        android.util.Log.e("PasekaDeviceTest", "Unable to save test report", exception);
-      }
-    }
-  }
+  return source.replace(marker,
+    marker + '\n        getBridge().getWebView().addJavascriptInterface(' +
+    'new PasekaDeviceTestBridge(this), "PasekaDeviceTestBridge");');
 }
-`;
+
+export function createTestBridgeSource() {
+  return "package ru.paseka.journal.device.test;\n\nimport android.app.Activity;\nimport android.content.ContentResolver;\nimport android.database.Cursor;\nimport android.net.Uri;\nimport android.os.Environment;\nimport android.provider.MediaStore;\nimport android.webkit.JavascriptInterface;\nimport java.io.FileOutputStream;\nimport java.io.InputStream;\nimport java.nio.charset.StandardCharsets;\nimport java.security.MessageDigest;\nimport java.util.Locale;\n\npublic final class PasekaDeviceTestBridge {\n  private final Activity activity;\n  private static final String ARCHIVE_MIME = \"application/vnd.paseka.archive\";\n\n  public PasekaDeviceTestBridge(Activity activity) { this.activity = activity; }\n\n  @JavascriptInterface\n  public String runId() {\n    String id = activity.getIntent() == null ? null\n      : activity.getIntent().getStringExtra(\"paseka_run_id\");\n    return id != null && id.matches(\"[a-f0-9]{20}\") ? id : \"\";\n  }\n\n  @JavascriptInterface\n  public String testDownloadName() {\n    String id = runId();\n    if (id.isEmpty()) return \"\";\n    int seed = Integer.parseInt(id.substring(0, 4), 16);\n    return String.format(Locale.US, \"paseka-full-backup-%04d-%02d-%02d.paseka\",\n      2080 + seed % 20, 1 + (seed / 20) % 12, 1 + (seed / 240) % 28);\n  }\n\n  @JavascriptInterface\n  public void report(String json) {\n    String id = runId();\n    if (id.isEmpty() || json == null || json.length() > 100000 ||\n        !json.contains(\"\\\"runId\\\":\\\"\" + id + \"\\\"\")) return;\n    try (FileOutputStream output = activity.openFileOutput(\"paseka-device-report.json\", Activity.MODE_PRIVATE)) {\n      output.write(json.getBytes(StandardCharsets.UTF_8));\n    } catch (Exception exception) {\n      android.util.Log.e(\"PasekaDeviceTest\", \"Unable to save report\", exception);\n    }\n  }\n\n  // TEST-ONLY CLEANUP: only an archive written under a run-specific future\n  // date in Downloads/Пасека, with exactly matching MIME, size and SHA-256,\n  // is eligible for deletion. Never accepts arbitrary user data for deletion.\n  @JavascriptInterface\n  public String verifyAndRemoveTestDownload(String uriText, String sha256, long expectedBytes) {\n    if (runId().isEmpty() || uriText == null || sha256 == null ||\n        !sha256.matches(\"[a-f0-9]{64}\") || expectedBytes < 32 ||\n        expectedBytes > 128L * 1024 * 1024) return \"ERR_INPUT\";\n    String prefix = MediaStore.Downloads.EXTERNAL_CONTENT_URI.toString() + \"/\";\n    if (!uriText.startsWith(prefix)) return \"ERR_URI\";\n    Uri uri = Uri.parse(uriText);\n    ContentResolver resolver = activity.getContentResolver();\n    String[] columns = {\n      MediaStore.MediaColumns.DISPLAY_NAME,\n      MediaStore.MediaColumns.MIME_TYPE,\n      MediaStore.MediaColumns.RELATIVE_PATH\n    };\n    try {\n      try (Cursor cursor = resolver.query(uri, columns, null, null, null)) {\n        if (cursor == null || !cursor.moveToFirst()) return \"ERR_METADATA\";\n        String name = cursor.getString(0);\n        String mime = cursor.getString(1);\n        String folder = cursor.getString(2);\n        if (!testDownloadName().equals(name) || !ARCHIVE_MIME.equals(mime) ||\n            folder == null || !folder.startsWith(Environment.DIRECTORY_DOWNLOADS + \"/Пасека/\")) {\n          return \"ERR_NOT_TEST_ARCHIVE\";\n        }\n      }\n      MessageDigest digest = MessageDigest.getInstance(\"SHA-256\");\n      long total = 0;\n      try (InputStream input = resolver.openInputStream(uri)) {\n        if (input == null) return \"ERR_READ\";\n        byte[] buffer = new byte[8192];\n        int count;\n        while ((count = input.read(buffer)) != -1) {\n          total += count;\n          if (total > expectedBytes) return \"ERR_SIZE\";\n          digest.update(buffer, 0, count);\n        }\n      }\n      if (total != expectedBytes) return \"ERR_SIZE\";\n      byte[] hash = digest.digest();\n      StringBuilder hex = new StringBuilder(hash.length * 2);\n      for (byte value : hash) hex.append(String.format(Locale.US, \"%02x\", value & 0xff));\n      if (!sha256.equals(hex.toString())) return \"ERR_HASH\";\n      return resolver.delete(uri, null, null) == 1 ? \"OK\" : \"ERR_DELETE\";\n    } catch (Exception exception) {\n      android.util.Log.e(\"PasekaDeviceTest\", \"Download verification failed\", exception);\n      return \"ERR_IO\";\n    }\n  }\n}\n";
 }
 
 export async function prepareDeviceTest(mode, root = process.cwd()) {
@@ -88,6 +61,7 @@ export async function prepareDeviceTest(mode, root = process.cwd()) {
     const activityPath = join(folder, ...packages, 'MainActivity.java');
     const source = await readFile(activityPath, 'utf8');
     await writeFile(activityPath, instrumentMainActivity(source));
+    await writeFile(join(folder, ...packages, 'PasekaDeviceTestBridge.java'), createTestBridgeSource());
     return;
   }
   throw new Error('Expected config, web or android mode');
