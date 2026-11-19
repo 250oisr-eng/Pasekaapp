@@ -135,7 +135,7 @@ try {
   }
   if ($env:PASEKA_SCHEDULED_NO_INSTALL -eq '1') {
     # Local scheduler may run ONLY the already installed isolated APK.
-    # It never upgrades, reinstalls, uninstalls or clears applications.
+    # It never upgrades, replaces, removes or clears applications.
     Write-Host ('Проверка уже установленного отдельного test APK: ' + $Package)
   } else {
     Write-Host ('ADB-устройство ' + $Serial + '. Установка отдельной тестовой APK: ' + $Package)
