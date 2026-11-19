@@ -1,0 +1,48 @@
+name: Free local mobile UI audit (read-only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/free-ui-browser-audit-2026-11-19
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'scripts/**'
+      - 'tests/browser-ui-smoke.mjs'
+      - '.github/workflows/ui-browser-audit.yml'
+
+concurrency:
+  group: free-local-ui-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source only
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project's existing dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install pinned open-source browser audit tools without modifying package files
+        run: npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.65.1 @axe-core/playwright@4.14.0
+      - name: Install Chromium for headless smoke test
+        run: npx playwright install --with-deps chromium
+      - name: Run local-only read-only UI navigation, viewport and accessibility smoke
+        run: node tests/browser-ui-smoke.mjs
+      - name: Preserve local empty-screen screenshots and axe report (success or failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-local-ui-audit
+          path: test-results/ui-audit/
+          if-no-files-found: warn
+          retention-days: 7
