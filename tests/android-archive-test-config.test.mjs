@@ -15,8 +15,8 @@ test('archive test configuration uses a unique package and label without mutatin
     android: { allowMixedContent: false }
   };
   const isolated = createArchiveTestConfig(production);
-  assert.equal(ARCHIVE_TEST_APP_ID, 'ru.paseka.journal.archive.test3');
-  assert.equal(ARCHIVE_TEST_APP_NAME, 'Пасека — архив тест 3');
+  assert.equal(ARCHIVE_TEST_APP_ID, 'ru.paseka.journal.archive.test4');
+  assert.equal(ARCHIVE_TEST_APP_NAME, 'Пасека — архив тест 4');
   assert.equal(isolated.appId, ARCHIVE_TEST_APP_ID);
   assert.equal(isolated.appName, ARCHIVE_TEST_APP_NAME);
   assert.equal(isolated.webDir, production.webDir);
