@@ -220,6 +220,47 @@ try {
           JSON.stringify(row.frameChipKeyboard));
       }
       row.steps.push('frame-chip-keyboard');
+      // Render a card using the app's own card(h) function with only a local
+      // synthetic DOM fixture. Temporarily replace read-only lookup functions;
+      // do not insert any hive, family, frame, or task into application state.
+      row.hiveDirectoryKeyboard = await page.evaluate(() => {
+        const names=['openHive','layoutFor','getHiveProfile','profileBroodKeys','profileHoneyKeys'];
+        const originals=Object.fromEntries(names.map(name=>[name,window[name]]));
+        const host=document.createElement('div');
+        let activations=0, bubbles=0;
+        try {
+          window.openHive=()=>{activations++};
+          window.layoutFor=()=>({mode:'summer',installedBoxes:[],honeyBoxInstalled:[]});
+          window.getHiveProfile=()=>({name:'Synthetic keyboard fixture',layout:{rows:[]}});
+          window.profileBroodKeys=()=>[];
+          window.profileHoneyKeys=()=>[];
+          host.innerHTML=window.card({id:'synthetic-keyboard-only'});
+          document.body.appendChild(host);
+          const focusable=host.querySelector('.hive-row-main');
+          if (!focusable) throw new Error('App did not render a hive directory card');
+          host.addEventListener('keydown',()=>{bubbles++});
+          const keyResults=[];
+          for (const key of ['Enter',' ','Escape']) {
+            const event=new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true});
+            focusable.dispatchEvent(event);
+            keyResults.push({key,prevented:event.defaultPrevented});
+          }
+          focusable.click();
+          return {activations,bubbles,keyResults,role:focusable.getAttribute('role'),
+            focusable:focusable.getAttribute('tabindex')==='0'};
+        } finally {
+          host.remove();
+          for (const name of names) window[name]=originals[name];
+        }
+      });
+      const hiveKeys=row.hiveDirectoryKeyboard;
+      if (hiveKeys.activations!==3 || hiveKeys.bubbles!==1 ||
+          hiveKeys.role!=='button' || !hiveKeys.focusable ||
+          !hiveKeys.keyResults[0].prevented || !hiveKeys.keyResults[1].prevented ||
+          hiveKeys.keyResults[2].prevented) {
+        throw new Error('Hive directory keyboard activation is inconsistent: '+JSON.stringify(hiveKeys));
+      }
+      row.steps.push('hive-directory-keyboard-synthetic-dom');
 
 
 
