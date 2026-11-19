@@ -30,7 +30,7 @@ try {
     status = 'PASS'
     testedPackage = $pkg
     final = @{ phase = 'complete'; pass = $true; checks = @(
-      1..8 | ForEach-Object { @{ name = ('test-' + $_); result = 'PASS' } }
+      1..9 | ForEach-Object { @{ name = ('test-' + $_); result = 'PASS' } }
     ) }
   } | ConvertTo-Json -Depth 8
   Set-Content -LiteralPath (Join-Path $dir 'reports\manual\report.json') -Value $report
