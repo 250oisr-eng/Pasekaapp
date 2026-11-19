@@ -64,3 +64,13 @@ test('treatment log module is loaded before app and cached for offline use',asyn
  assert.ok(html.indexOf('./js/varroa-treatment-log.js')<html.indexOf('<script>'));
  assert.ok(sw.includes('./js/varroa-treatment-log.js'));
 });
+
+test('latest treatment helper returns only the newest confirmed valid treatment for the selected hive',()=>{
+ const older=make({hiveId:'h1',occurredAt:'2026-11-17T08:30:00.000Z',userConfirmed:true});
+ const newest=make({hiveId:'h1',occurredAt:'2026-11-19T08:30:00.000Z',userConfirmed:true});
+ const otherHive=make({hiveId:'h2',occurredAt:'2026-11-20T08:30:00.000Z',userConfirmed:true});
+ const unconfirmed={...newest,id:'unconfirmed',occurredAt:'2026-11-21T08:30:00.000Z',userConfirmed:false};
+ assert.equal(api.latestTreatmentForHive([older,newest,otherHive,unconfirmed],'h1').id,newest.id);
+ assert.equal(api.latestTreatmentForHive([older,newest],'missing'),null);
+ assert.equal(api.latestTreatmentForHive([older,newest],''),null);
+});
