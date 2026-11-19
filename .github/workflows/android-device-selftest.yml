@@ -52,6 +52,9 @@ jobs:
       - name: Simulate native ADB missing report then retry on Windows PowerShell 5.1
         shell: powershell
         run: .\tests\windows-report-polling.ps1
+      - name: Verify USB and paired Wi-Fi selection on Windows PowerShell 5.1
+        shell: powershell
+        run: .\tests\windows-adb-selection.ps1
   build:
     needs: validate-windows-script
     runs-on: ubuntu-24.04
