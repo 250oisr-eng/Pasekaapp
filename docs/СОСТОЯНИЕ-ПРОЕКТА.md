@@ -1,3 +1,12 @@
+## Подтверждение CI — окончательная UX-контрольная точка 2026-11-19
+
+- Кодовый SHA `cc1f2555e25c8ed7044d85348a96c395084d7e82`.
+- [Fast Quality #44531636149](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44531636149): **SUCCESS**, 615/615 тестов, 0 failures.
+- [Free local mobile UI audit #44531636271](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44531636271): **SUCCESS**, четыре профиля (phone-360, phone-390, landscape-800, desktop-1280) PASS, ноль JavaScript page errors, ноль горизонтального overflow. Проверены honeycomb 3–5–3/desktop, динамический заголовок, один ИИ-вход, quick journal, диагностика «Ещё», read-only журнал/план и создание улья без сохранения.
+- [Android APK #44531636211](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44531636211): **SUCCESS** на том же SHA; дополнительный Android запуск #44531648461 — SUCCESS. Это CI Debug APK, не физический UI-тест на OnePlus.
+- После code/test SHA в PR #187 добавлялась только документация, в том числе этот checkpoint. Документационный HEAD может не иметь аналогичных проверок, и этот факт нельзя скрывать. Ветку main не изменяли; PR Draft, merge/deploy нет.
+- Открыто: физическая визуальная приемка на OnePlus, расхождение исходного «2 ряда» с 3–5–3, дальнейшая компактность главной и физическая модель четырёх медовых корпусов; автоматический Windows Task Scheduler не создан.
+
 ## UI-UX 2026-11-19 — единственная ИИ-точка входа и диагностика модели в «Ещё»
 
 - В этом чате продолжены оба направления после передачи устройства (DEVICE-TEST #186) и UI (#187). Не переустанавливать test APK и не регистрировать Windows Task Scheduler без участия пользователя.
