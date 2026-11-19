@@ -146,7 +146,7 @@ test('native beginFile cleans orphaned MediaStore rows if opening the output str
   assert.match(begin, /Uri pendingUri = null;/);
   assert.match(begin, /OutputStream pendingOutput = null;/);
   assert.match(begin, /pendingUri = context[.]getContentResolver[(][)][.]insert[(]/);
-  assert.match(begin, /pendingOutput = context[.]getContentResolver[(][)][.]openOutputStream[(]pendingUri, "w"[(][)]/);
+  assert.match(begin, /pendingOutput = context[.]getContentResolver[(][)][.]openOutputStream[(]pendingUri, "w"[)]/);
   assert.match(begin, /if [(]pendingOutput == null[)] throw new IllegalStateException/);
   assert.match(begin, /catch [(]Exception error[)]/);
   assert.match(begin, /if [(]pendingOutput != null[)] [{][\s\S]*pendingOutput[.]close[(][)]/);
