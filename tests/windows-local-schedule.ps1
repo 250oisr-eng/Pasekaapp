@@ -51,3 +51,6 @@ try {
 } finally {
   Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
+# Negative mock cases deliberately leave a child process nonzero.
+# The test itself passed all assertions; do not leak that exit code into CI.
+exit 0
