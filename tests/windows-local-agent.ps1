@@ -51,12 +51,16 @@ try {
   $publisher = Join-Path $dir 'Publish-Paseka-Test-Report.ps1'
   $selfTest = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action SelfTest | Out-String)
   if ($LASTEXITCODE -ne 0 -or $selfTest -notmatch 'empty, null, matching, unrelated and malformed' -or
-      $selfTest -notmatch 'outgoing GitHub JSON payload validates locally') {
+      $selfTest -notmatch 'outgoing GitHub JSON payload validates locally' -or
+      $selfTest -notmatch 'UTF8 no-BOM pending summary and Cyrillic GitHub JSON round-trip') {
     throw 'GitHub empty-comment regression SelfTest failed.'
   }
   $safe = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action DryRun -ReportPath $path | Out-String)
   if ($LASTEXITCODE -ne 0 -or $safe -notmatch '9/9' -or $safe -notmatch 'paseka-test-agent:1234567890abcdefabcd') {
     throw 'Valid synthetic 9/9 report was not safely formatted.'
+  }
+  if ($safe -notmatch '(?m)^<!-- paseka-test-agent:[a-f0-9]{20} -->\r?\n\*\*Ручной тест Пасека / PASS\*\*') {
+    throw 'GitHub issue markdown has no line break between hidden dedup marker and readable title.'
   }
   if ($safe -match 'PRIVATE-APIARY-DATA-NEVER-SEND' -or $safe -match 'durationMs|error.*PRIVATE') {
     throw 'Sensitive raw report field leaked into public summary.'
