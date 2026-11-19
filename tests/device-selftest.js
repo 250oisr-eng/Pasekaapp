@@ -199,6 +199,46 @@ async function phaseOne() {
         'Rollback history is not marked reverted');
     } finally { target.close(); }
   });
+  await check('native_downloads_reject_incomplete_and_oversize', async () => {
+    const native = window.PasekaArchiveDownload;
+    assert(native?.beginFile && native?.appendChunk && native?.finishFile &&
+      native?.cancelFile, 'Native Downloads bridge is incomplete');
+    assert(typeof bridge.testDownloadName === 'function' &&
+      typeof bridge.countOwnTestDownloadRows === 'function',
+      'Run-scoped read-only Android MediaStore probe unavailable');
+    const name = String(bridge.testDownloadName() || '');
+    assert(/^paseka-full-backup-20[8-9][0-9]-[0-1][0-9]-[0-3][0-9]\.paseka$/.test(name),
+      'Unsafe test archive name');
+    const mime = 'application/vnd.paseka.archive';
+    const rows = () => bridge.countOwnTestDownloadRows();
+    assert(rows() === 0, 'Test file already exists before negative-path tests');
+    for (const size of [0, -1]) {
+      assert(!native.beginFile(name, mime, size), 'Invalid expected size opened a native session');
+      assert(rows() === 0, 'Invalid expected size created a MediaStore entry');
+    }
+    // Partial write succeeds, but finishFile must reject it and delete the
+    // pending row. Never expose a truncated file through Downloads.
+    const partial = native.beginFile(name, mime, 10);
+    assert(!!partial, 'Failed to open run-owned partial test session');
+    try {
+      assert(native.appendChunk(partial, btoa('abc')), 'Short block must be accepted');
+      assert(!native.finishFile(partial), 'Truncated archive was published');
+      assert(rows() === 0, 'Truncated archive left a test-owned Downloads row');
+    } finally {
+      native.cancelFile(partial);
+    }
+    // A block larger than the declared archive must be rejected, and
+    // explicit cancellation must clean up the test-owned pending entry.
+    const oversized = native.beginFile(name, mime, 4);
+    assert(!!oversized, 'Failed to open run-owned oversize test session');
+    try {
+      assert(!native.appendChunk(oversized, btoa('abcdef')),
+        'Oversized block was accepted');
+    } finally {
+      native.cancelFile(oversized);
+    }
+    assert(rows() === 0, 'Oversize/cancel left a test-owned Downloads row');
+  });
   await check('native_downloads_archive_hash_and_cleanup', async () => {
     assert(built?.blob instanceof Blob, 'A verified test archive is required');
     assert(window.PasekaAndroidDownload?.saveToAndroidDownloads, 'Native Downloads wrapper unavailable');
