@@ -64,7 +64,7 @@ jobs:
           if (config.appId !== 'ru.paseka.journal') throw new Error('Unexpected source package ID; refusing isolated build');
           config.appId = 'ru.paseka.journal.varroa.hivecard.test';
           config.appName = 'Пасека — тест карточки Varroa';
-          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\\n');
           const check = JSON.parse(fs.readFileSync(path, 'utf8'));
           if (check.appId !== 'ru.paseka.journal.varroa.hivecard.test') throw new Error('Isolated package ID was not applied');
           NODE
@@ -86,10 +86,13 @@ jobs:
           const fs = require('node:fs');
           const path = 'android/variables.gradle';
           let source = fs.readFileSync(path, 'utf8');
-          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
-            const pattern = new RegExp('^\\s*' + key + '\\s*=\\s*\\d+', 'm');
+          const required = { minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 };
+          for (const [key, value] of Object.entries(required)) {
+            const pattern = new RegExp('^(\\\\s*' + key + '\\\\s*=\\\\s*)\\\\d+', 'm');
             if (!pattern.test(source)) throw new Error(`Missing ${key}; refusing unsafe Android build`);
-            source = source.replace(pattern, match => match.replace(/\\d+$/, String(value)));
+            source = source.replace(pattern, (_match, prefix) => prefix + value);
+            const verified = new RegExp('^\\\\s*' + key + '\\\\s*=\\\\s*' + value + '\\\\s*$', 'm');
+            if (!verified.test(source)) throw new Error(`Failed to enforce ${key}=${value}`);
           }
           fs.writeFileSync(path, source);
           NODE
