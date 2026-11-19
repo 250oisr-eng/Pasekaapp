@@ -1,3 +1,12 @@
+## Контрольная точка — 2026-11-19: сравнение установленной Qwen2.5-Coder 7B
+
+- После внедрения строгого complete+JSON+metrics бенчмарка расширен фиксированный локальный allowlist модели `qwen2.5-coder:7b` в `scripts/local-ai-review.mjs`. Ранее пользователь подтвердил установку и ряд локальных испытаний Qwen2.5-Coder 7B; модель допускается **только** в ручной synthetic benchmark, но не к критическим изменениям.
+- В `tests/local-ai-review.test.mjs` добавлены positive case `qwen2.5-coder:7b` и запрет `qwen2.5-coder:cloud`. Общее ограничение бенчмарка остаётся 1–2 модели на один последовательный запуск, без parallel GPU нагрузок, cloud fallback, секретов, пользовательских данных и автоисправлений.
+- На Windows пользователя после проверки CI можно сравнить `node scripts/local-ai-benchmark.mjs --models qwen3:4b,qwen2.5-coder:7b` на одинаковых четырёх synthetic задачах; вывод JSON — непроверенная рекомендация, не оценка качества и не основание для merge.
+- Код затронут только development-only scripts/tests/docs. Результат целевых Node tests и GitHub CI на актуальном HEAD пока не подтверждён.
+
+---
+
 ## Контрольная точка — 2026-11-19: строгий протокол synthetic local AI benchmark
 
 - В Draft PR #189 доработаны `scripts/local-ai-review.mjs` и `scripts/local-ai-benchmark.mjs`: принимается только `done_reason=stop` с непустым финальным ответом в строгом JSON `{findings:[{severity,evidence,suggestion}],testSuggestions:[string]}`; ответ `length`, неизвестное завершение, не-JSON или неверная схема отклоняются fail-closed. Запрос Ollama содержит `format:'json'`.
