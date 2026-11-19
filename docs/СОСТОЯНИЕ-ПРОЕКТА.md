@@ -1,3 +1,13 @@
+## 2026-11-19 — повторная отправка сохранённого отчёта: ошибка поля body в локальном PS5.1
+
+- Пользователь сообщил `REPORT UPLOAD NOT CONFIRMED: Unsafe GitHub comment payload: missing string body.` после запуска `RETRY-REPORT-UPLOAD.cmd`. Отказ был **локальным до HTTP POST**, поэтому на основании данного сообщения GitHub не получал новый комментарий. Обезличенная очередь и исходный физический Android PASS-отчёт по прежнему тестовому пакету остаются на ПК.
+- Предыдущая защита выполняла вторичный `ConvertFrom-Json` с доступом к `PSObject.Properties['body']`; реальный pending summary этой проверкой ошибочно отклонялся. Код исправлен **без ослабления проверки источника очереди**: `New-CommentJson` принимает только строку, начинающуюся с `<!-- paseka-test-agent:<20 hex> -->`, проверяет совпадение marker с filename, длину до 8000, затем единожды сериализует PSCustomObject `{body: string}`. HTTP POST принимает сериализованное содержимое с ограничением размера; не интерпретирует его повторно. Негативные условия fail closed. Локальный SelfTest проверяет JSON round-trip и отказ от постороннего marker; внешних сетевых запросов в SelfTest нет.
+- Рабочий **кодовый SHA `95622292446dcaa60cb92a5ebda1e2b80d4a0b63`**. Win PS5.1 проверки #44611084695 validate-windows-script **success**, fast quality #44611084647 **success**. Изолированная Android сборка на этом SHA проверяется отдельно; незавершённый статус не считать успехом. Промежуточный неуспешный SHA `962dad3127ac2d7608ee27948a791aeadd90cd12` имел синтаксическое повреждение при программной вставке и **не использовать**.
+- Следующий шаг: в уже существующей распакованной папке пользователя заменить только `Publish-Paseka-Test-Report.ps1` версией с code SHA `95622292446dcaa60cb92a5ebda1e2b80d4a0b63` и запустить `RETRY-REPORT-UPLOAD.cmd` **однократно**. APK, USB, телефон, `device-package.txt`, токен, pending и reports не трогать. Если GitHub снова вернёт 422, безопасная HTTP-классификация остаётся в загрузчике; сообщать только эту строку.
+- GitHub issue #198 остаётся единственным приемником обезличенных синтетических комментариев. Draft PR #199 не сливать, Task Scheduler/автозапуск не включать, main/production не менять.
+
+---
+
 ## 2026-11-19 — Local GitHub report upload: payload check rejected pending summary
 
 - User ran `RETRY-REPORT-UPLOAD.cmd` after the HTTP 422 diagnostics update. This time the local uploader refused its own queued comment with `Unsafe GitHub comment payload; upload blocked`. **No GitHub request was made at this stage**; physical Android run remains a local PASS and pending anonymized report is preserved. Do not delete or modify the queue, original report, APK, device metadata, DPAPI token or production data. GitHub issue #198 still had zero comments at observation.
