@@ -1,3 +1,14 @@
+## Контрольная точка — новый OnePlus 8/8 PASS и реальный Win11 DRY RUN (2026-11-19)
+
+- Пользователь представил `report(5).json` с результатом `status=PASS`, `runId=a75070c120bf40819172`, test-only package `ru.paseka.journal.device.r44528651797a1` из CI run `44528651797` (проверенный code SHA `6dd3004623b9d5c8dd77aa829d3b258164790c0f`). `phaseOne.pass=true` (6/6 checks), `final.pass=true` (8/8 checks), `error` пустой. Подтверждены штатный запуск/WebView, тестовые карточки, backup export/preflight/commit/rollback, native Downloads archive SHA/cleanup, Varroa guards, real Android restart IndexedDB, card renderer после restart.
+- Представлен `before-restart(1).png`: экран показывает 6/6 PASS до рестарта; после-restart screenshot для этого запуска не получен, итоговые 8/8 подтверждены JSON-отчётом.
+- Windows 11 пользователь реально выполнил без `-Run` `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\Run-Local-Scheduled.ps1`. Достоверный вывод: `DRY RUN: approved local kit for ru.paseka.journal.device.r44528651797a1` и `No ADB commands, installs or scheduled tasks were executed.`. Это подтверждает разрешающие проверки уже установленного комплекта и отсутствие действий DRY RUN, **но не физическую работоспособность повторного планового `-Run` или созданной задачи Windows**.
+- Границы: тест только isolated-android-package-and-test-only-indexeddb; по-прежнему не проверены native-file-picker, offline-network-transport, manual-visual-legibility и отдельный Wi-Fi transport. USB/Wi-Fi явно не записывается в report.json.
+- **Следующий необходимый выбор:** пользовательское локальное время `HH:mm` и согласие на регистрацию `Paseka-Local-Android-Selftest`. Без этого не создавать Windows Task Scheduler; скрипт по умолчанию даёт preview. При включении нужен физически подключённый авторизованный USB, интерактивная сессия Windows и уже установленная test-only APK. Отчёты остаются локальными, нет скачивания APK или изменения production.
+- Документационная фиксация в существующем Draft PR #186, никаких слияний, production deployment и действий с реальной базой пасеки.
+
+---
+
 ## Контрольная точка — Windows scheduler CI подтверждён (2026-11-19)
 
 - **Точный проверенный кодовый HEAD**: `6dd3004623b9d5c8dd77aa829d3b258164790c0f` в существующем Draft PR #186. [Windows11 + isolated APK workflow #44528651797](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44528651797) — **SUCCESS**: Windows PowerShell 5.1 parser, мок-тест чтения Android-отчёта, USB/Wi-Fi mock, **Run-Local-Scheduled / Register-Local-Scheduled approval & preview mock**, все Node regression tests, сборка isolated Android APK и Windows ZIP.
