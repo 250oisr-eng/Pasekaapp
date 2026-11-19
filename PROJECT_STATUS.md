@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: сравнительные фикстуры AI code review
+
+- В Draft PR #189 добавлен отдельный последовательный benchmark на четырёх синтетических примерах: defect removal absent ID, non-atomic transfer, unsafe migration, negative control.
+- Новые файлы: `scripts/local-ai-benchmark.mjs`, `tests/local-ai-benchmark.test.mjs`, `tests/fixtures/local-ai-benchmark.json`; без изменений приложения, архивов, UI, IndexedDB, технологических операций и workflow.
+- Вызовы только к локальному Ollama через existing read-only pilot; не более двух моделей по очереди. Отчёт `scored:false`, замечания вручную проверяются, отказ локального сервиса регистрируется, платного fallback нет.
+- На данном этапе реальные Qwen/DeepSeek на ПК пользователя не запускались; запуск новых тестов и CI на финальном HEAD ещё требует проверки.
+- Следующий шаг: локально воспроизвести набор тестов на точном коде, проверить CI на exact SHA; далее — пользовательская установка и реальные испытания моделей.
+
+---
+
 ## Контрольная точка — 2026-11-19: повторный аудит AI review PR #189
 
 - PR #189 Draft: изолированный local-only Ollama pilot, основан на `main` `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. Изменения только в необязательных scripts/tests/docs.
