@@ -67,6 +67,8 @@ public final class PasekaArchiveDownloadBridge {
 
     @JavascriptInterface
     public synchronized String beginFile(String displayName, String mimeType) {
+        Uri pendingUri = null;
+        OutputStream pendingOutput = null;
         try {
             String safeName = displayName == null ? "" : displayName.replaceAll("[^a-zA-Z0-9._-]", "_");
             if (!safeName.matches("paseka-full-backup-[0-9]{4}-[0-9]{2}-[0-9]{2}[.]paseka")) {
@@ -78,18 +80,23 @@ public final class PasekaArchiveDownloadBridge {
             values.put(MediaStore.MediaColumns.MIME_TYPE, MIME);
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Пасека");
             values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-            Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) throw new IllegalStateException("Android не создал файл в папке загрузок");
-            OutputStream output = context.getContentResolver().openOutputStream(uri, "w");
-            if (output == null) {
-                context.getContentResolver().delete(uri, null, null);
-                throw new IllegalStateException("Не удалось открыть файл для записи");
-            }
+            pendingUri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (pendingUri == null) throw new IllegalStateException("Android не создал файл в папке загрузок");
+            pendingOutput = context.getContentResolver().openOutputStream(pendingUri, "w");
+            if (pendingOutput == null) throw new IllegalStateException("Не удалось открыть файл для записи");
             String id = UUID.randomUUID().toString();
-            sessions.put(id, new Session(uri, output));
+            sessions.put(id, new Session(pendingUri, pendingOutput));
             lastError = "";
             return id;
         } catch (Exception error) {
+            // Inserting a pending MediaStore row may succeed even when opening
+            // its output stream throws. Do not leave an orphaned Downloads item.
+            if (pendingOutput != null) {
+                try { pendingOutput.close(); } catch (Exception ignored) {}
+            }
+            if (pendingUri != null) {
+                try { context.getContentResolver().delete(pendingUri, null, null); } catch (Exception ignored) {}
+            }
             lastError = error.getMessage() == null ? error.toString() : error.getMessage();
             return "";
         }
