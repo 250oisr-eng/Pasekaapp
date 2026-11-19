@@ -11,12 +11,13 @@ test('four synthetic cases, two models, strictly sequential and results untruste
       assert.equal(fixture.source,'synthetic');
       assert.ok(['qwen3:4b','deepseek-r1:7b'].includes(model));
       await Promise.resolve();active--;
-      return {findingsText:'Review only'};
+      return {status:'unverified-model-suggestions',finishReason:'stop',findingsText:'Review only',tokens:100,tokensPerSecond:25,totalDurationMs:4000};
     }
   });
   assert.equal(maxActive,1);
   assert.equal(report.runs.length,8);
   assert.equal(report.scored,false);
+  assert.deepEqual(report.summary.map(x=>[x.attempted,x.completedUnverified,x.failed,x.meanTokensPerSecond,x.qualityScore]),[[4,4,0,25,null],[4,4,0,25,null]]);
   assert.ok(report.runs.every(x=>x.status==='unverified' && x.durationMs>=0));
   assert.deepEqual(report.runs.map(x=>x.model),[...Array(4).fill('qwen3:4b'),...Array(4).fill('deepseek-r1:7b')]);
 });
@@ -33,4 +34,17 @@ test('offline model failures are recorded without silent success',async()=>{
   const report=await benchmark({models:['qwen3:4b'],cases,review:async()=>{throw new Error('Ollama offline');}});
   assert.equal(report.runs.length,4);
   assert.ok(report.runs.every(x=>x.status==='failed' && /offline/.test(x.error)));
+});
+
+test('partial and unconfirmed results cannot be accepted as completed review',async()=>{
+  const report=await benchmark({models:['qwen3:4b'],cases,review:async({fixture})=>({
+    status:'unverified-model-suggestions',finishReason:fixture.id==='a'?'length':'stop',
+    findingsText:fixture.id==='b'?'':'partial/uncertain'
+  })});
+  assert.equal(report.summary[0].completedUnverified,2);
+  assert.equal(report.summary[0].failed,2);
+  assert.equal(report.summary[0].qualityScore,null);
+  assert.equal(report.summary[0].meanTokensPerSecond,null);
+  assert.equal(report.runs[0].status,'failed');
+  assert.equal(report.runs[1].status,'failed');
 });
