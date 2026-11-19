@@ -1,3 +1,14 @@
+## Контрольная точка — USB/Wi-Fi CI подтверждён (2026-11-19)
+
+- Проверен точный HEAD `f9049fceb0beceea9d7da40d8f20bf48b30672f8` существующего Draft PR #186.
+- [Windows 11 + isolated Android kit run #44522050363](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44522050363): **success**. Windows PowerShell 5.1 parse, missing-report retry, mock USB/Wi-Fi selection, Node regression suite, isolated APK build, AAPT package verification and ZIP artifact upload завершились успешно.
+- [Android APK PR run #44522060897](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44522060897) на том же SHA: **success**. Изолированный archive workflow skip по path filter — это не успешный тест архива.
+- Артефакт `paseka-win11-android-selftest-kit`, ID `14527759850`, 11,676,452 bytes, до 2026-12-03 12:16:32 UTC. Сборка не равна физическому тесту.
+- Следующий блокер — первоначальное разрешение USB-отладки на OnePlus Android 15+, однократное безопасное Wireless debugging pairing, запуск реальной test-only APK и получение отчёта. **Пока физический запуск не завершён, не включать постоянный Windows scheduler, автоматическую загрузку отчётов и непроверенные обновления APK.**
+- Main, production, реальные данные, merge и deployment не изменялись. Следующий шаг — физический прогон с этим артефактом, затем решение о расширении локальной автоматизации.
+
+---
+
 ## Дополнение к контрольной точке Android (2026-11-19)
 
 - После первичной сборки выявлена ошибка формирования обновлённого PowerShell-файла; скрипт пересобран из чистой базовой версии PR #185, возвращены PR #186 retry чтения отчёта и failure screenshot; структурно проверено ровно по одному объявлению Invoke-ADB/Read-DeviceReport/Find-TestDevice и UTF-8 BOM.
