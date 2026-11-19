@@ -45,7 +45,19 @@ export async function reviewFixture({fixture, model, request=fetch, timeoutMs=60
   if (typeof payload.response !== 'string' || Buffer.byteLength(payload.response,'utf8') > 12000) throw new Error('Invalid model response');
   if (!payload.response.trim()) throw new Error('No final answer from model (thinking-only or token limit); no findings accepted');
   if (payload.done_reason === 'length') throw new Error('Model answer was truncated by token limit; no findings accepted');
-  return {status:'unverified-model-suggestions',model:id,task:safe.task,findingsText:payload.response};
+  if (payload.done_reason !== 'stop') throw new Error('Model completion not confirmed (done_reason must be stop); no findings accepted');
+  // These are measurements, not evidence that any finding is correct.
+  const metric = key => Number.isFinite(payload[key]) && payload[key] >= 0 ? payload[key] : null;
+  const evalCount = metric('eval_count');
+  const evalDurationNs = metric('eval_duration');
+  return {
+    status:'unverified-model-suggestions', model:id,task:safe.task,
+    findingsText:payload.response, finishReason:payload.done_reason,
+    tokens:evalCount,
+    tokensPerSecond:evalCount !== null && evalDurationNs > 0
+      ? Math.round(evalCount * 1e10 / evalDurationNs) / 10 : null,
+    totalDurationMs:metric('total_duration') === null ? null : Math.round(payload.total_duration / 1e6)
+  };
 }
 async function main() {
   const args=process.argv.slice(2);
