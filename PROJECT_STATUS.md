@@ -1,3 +1,15 @@
+## Контрольная точка — физический OnePlus 8/8 PASS (2026-11-19)
+
+- Получены три пользовательских артефакта: `report(4).json`, `before-restart.png`, `after-restart.png`. Итог **PASS**, runId `cc7ba1ae3a5f434cacb9`, изолированный пакет `ru.paseka.journal.device.r44526817635a1`; это соответствует ZIP GitHub Actions run **44526817635** и проверенному CI SHA `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`.
+- **8/8 итоговых checks PASS**: WebView/startup; тестовые карточки; archive export/preflight/commit/rollback; **native Downloads archive SHA-256/length/cleanup**; отбрасывание неподтверждённой Varroa обработки; защита revision rollback; сохранность IndexedDB после настоящего force-stop/start; повторная отрисовка карточек.
+- Обе фазы отчёта (`awaiting_restart` и `complete`) имеют `pass=true`; error пустой. Пользовательские снимки показывают 6/6 перед перезапуском и 8/8 после. На них видны неудобные переносы длинных названий проверок и слабый контраст светлых элементов системного статус-бара; это отдельный UI backlog, не основание отрицать функциональный PASS.
+- **Границы**: проверялся isolated-android-package-and-test-only-indexeddb; фактическое значение MediaStore MIME не измерялось, но конкретная тестовая проверка имени/папки/владельца/хеша/размера и cleanup вернула PASS. Не проверялись native file picker, offline network transport, читаемость рабочего приложения. Не подтверждён канал (USB или Wi-Fi) по JSON.
+- До включения локального планировщика Windows остаётся отдельно проверить Wi-Fi pairing/transport при необходимости, сетевой offline сценарий, проверку отчётов/управление версиями тестового ZIP и защиту от выполнения непроверенных PR. Внедрение scheduler и автоотправка отчётов пока **не выполнены**.
+- Код не менялся с проверенного CI `f79c8c9c...`; новая запись — документация в существующем Draft PR #186. Никаких merge, production deployment, изменений main или пользовательских данных.
+- **Следующий шаг:** закрыть подготовительный физический этап, перейти к отдельному проектированию безопасного локального Windows Task Scheduler и недеструктивных offline/Wi-Fi tests, не объявляя их уже пройденными.
+
+---
+
 ## Контрольная точка — OnePlus MIME fallback: CI успешен (2026-11-19)
 
 - После физического `report(3).json` (7/8, `ERR_TEST_MIME`) в Draft PR #186 доработан только test-only Android MediaStore bridge: допускается `application/vnd.paseka.archive` или ровно `application/octet-stream`, плюс обязательная проверка `OWNER_PACKAGE_NAME == activity.getPackageName()` перед удалением. Реальный MIME OnePlus неизвестен; `application/octet-stream` — ограниченная гипотеза, не наблюдённое значение.
