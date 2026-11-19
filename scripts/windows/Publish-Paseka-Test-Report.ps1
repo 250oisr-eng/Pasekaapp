@@ -69,23 +69,11 @@ function Gh-Request([string]$Method, [string]$Url, $Headers, [string]$Body = '')
   $args = @{ Method = $Method; Uri = $Url; Headers = $Headers; TimeoutSec = 30 }
   if ($Method -eq 'Post') {
     $args.ContentType = 'application/json; charset=utf-8'
-    # The summary is already validated at the queue boundary. Do not use
-    # the generic Field helper here: PowerShell's pipeline output may unwrap
-    # the JSON string in PS5.1. Validate the object property explicitly.
-    $parsed = $null
-    try { $parsed = ConvertFrom-Json -InputObject $Body } catch { Fail 'Invalid outgoing GitHub JSON.' }
-    if ($null -eq $parsed -or $parsed -isnot [PSCustomObject]) {
-      Fail 'Unsafe GitHub comment payload: invalid JSON object.'
-    }
-    $prop = $parsed.PSObject.Properties['body']
-    if ($null -eq $prop -or $null -eq $prop.Value -or $prop.Value -isnot [string]) {
-      Fail 'Unsafe GitHub comment payload: missing string body.'
-    }
-    $commentText = [string]$prop.Value
-    if ([string]::IsNullOrWhiteSpace($commentText) -or
-        $commentText.Length -gt 8000 -or
-        !$commentText.StartsWith('<!-- paseka-test-agent:')) {
-      Fail 'Unsafe GitHub comment payload: invalid marker or length.'
+    # GitHub POST accepts a JSON string, already built from the verified
+    # synthetic-only pending comment by New-CommentJson. Avoid a second
+    # ConvertFrom-Json pass (PS 5.1 pipeline shape varies on real reports).
+    if ([string]::IsNullOrWhiteSpace($Body) -or $Body.Length -gt 12000) {
+      Fail 'Invalid outgoing GitHub JSON size.'
     }
     $args.Body = [Text.Encoding]::UTF8.GetBytes($Body)
   }
@@ -259,31 +247,19 @@ function Marker-Exists([string]$Marker,$Headers) {
   Fail 'GitHub comment pagination limit reached: cannot safely prevent duplicates.'
 }
 function Test-OutgoingComment {
-  $sample = '<!-- paseka-test-agent:1234567890abcdefabcd -->' + [Environment]::NewLine + '**Ручной тест Пасека / PASS**'
-  $payload = @{ body = $sample } | ConvertTo-Json -Compress
-  # Use the same non-network validation as production POST.
-  $parsed = ConvertFrom-Json -InputObject $payload
-  $prop = $parsed.PSObject.Properties['body']
-  if ($null -eq $prop -or $prop.Value -isnot [string] -or
-      !$prop.Value.StartsWith('<!-- paseka-test-agent:')) {
-    Fail 'SelfTest: serialized issue comment body rejected.'
+  $id = '1234567890abcdefabcd'
+  $sample = '<!-- paseka-test-agent:' + $id + ' -->' + [Environment]::NewLine + '**Ручной тест Пасека / PASS**'
+  $json = New-CommentJson -CommentText $sample -RunId $id
+  $parsed = ConvertFrom-Json -InputObject $json
+  if ($null -eq $parsed -or $null -eq $parsed.PSObject.Properties['body'] -or
+      [string]$parsed.body -cne $sample) {
+    Fail 'SelfTest: queued synthetic comment serialization roundtrip failed.'
   }
-  $header = @{ Authorization = 'Bearer mock-token-not-for-network' }
-  $valid = $false
-  try {
-    [void](Gh-Request -Method 'Post' -Url 'https://127.0.0.1:1/testing-offline-only' -Headers $header -Body $payload)
-  } catch {
-    # Validation must pass and only then attempt an unreachable local URL.
-    $valid = $_.Exception.Message -notmatch 'Unsafe GitHub comment payload|Invalid outgoing GitHub JSON'
+  $refused = $false
+  try { [void](New-CommentJson -CommentText 'unrelated' -RunId $id) } catch {
+    $refused = $_.Exception.Message -like '*Invalid anonymized queued test comment*'
   }
-  if (!$valid) { Fail 'SelfTest: outgoing normal comment rejected by local validator.' }
-  $invalid = $false
-  try {
-    [void](Gh-Request -Method 'Post' -Url 'https://127.0.0.1:1/testing-offline-only' -Headers $header -Body '{"body":"not-a-test-comment"}')
-  } catch {
-    $invalid = $_.Exception.Message -match 'invalid marker or length'
-  }
-  if (!$invalid) { Fail 'SelfTest: unrelated comment was not rejected.' }
+  if (!$refused) { Fail 'SelfTest: unrelated comment was not rejected.' }
   Write-Host 'PASS: outgoing GitHub JSON payload validates locally and rejects unsafe marker.'
 }
 function Test-CommentPagination {
@@ -315,6 +291,67 @@ function Test-CommentPagination {
   }
   if (!$refused) { Fail 'SelfTest: malformed GitHub comment was not rejected.' }
   Write-Host 'PASS: empty, null, matching, unrelated and malformed GitHub comments handled safely.'
+}
+function New-CommentJson([string]$CommentText, [string]$RunId) {
+  if ($RunId -cnotmatch '^[a-f0-9]{20}  if (!(Test-Path -LiteralPath $PendingDir)) { Write-Host 'No pending results.'; return }
+  $files = @(Get-ChildItem -LiteralPath $PendingDir -Filter '*.txt' -File | Sort-Object Name)
+  if ($files.Count -eq 0) { Write-Host 'No pending results.'; return }
+  $headers = Auth-Headers
+  $url = 'https://api.github.com/repos/' + $Repository + '/issues/' + $IssueNumber + '/comments'
+  foreach ($file in $files) {
+    $id = [IO.Path]::GetFileNameWithoutExtension($file.Name)
+    if ($id -cnotmatch '^[a-f0-9]{20}$') { Fail 'Unsafe pending filename.' }
+    $body = Get-Content -LiteralPath $file.FullName -Raw
+    $marker = '<!-- paseka-test-agent:' + $id + ' -->'
+    if (!$body.StartsWith($marker)) { Fail 'Pending report marker mismatch.' }
+    if ($body.Length -gt 8000) { Fail 'Pending summary too large.' }
+    if (Marker-Exists -Marker $marker -Headers $headers) {
+      Remove-Item -LiteralPath $file.FullName -Force
+      Write-Host ('Already published: ' + $id)
+      continue
+    }
+    $payload = New-CommentJson -CommentText $body -RunId $id
+    $response = Gh-Request -Method 'Post' -Url $url -Headers $headers -Body $payload
+    if ([string]$response.html_url -notlike 'https://github.com/250oisr-eng/Pasekaapp/issues/198*') {
+      Fail 'Unexpected GitHub response; pending result retained.'
+    }
+    Remove-Item -LiteralPath $file.FullName -Force
+    Write-Host ('Uploaded synthetic summary: ' + $response.html_url)
+  }
+}
+try {
+  if ($Action -eq 'SelfTest') { Test-CommentPagination; Test-OutgoingComment; exit 0 }
+  if ($Action -eq 'Configure') { Configure-Token; exit 0 }
+  if ($Action -eq 'RetryPending') { Send-Pending; exit 0 }
+  if ([string]::IsNullOrWhiteSpace($ReportPath)) { Fail 'ReportPath is required.' }
+  $sanitized = Sanitize-Report -Path $ReportPath
+  if ($Action -eq 'DryRun') {
+    Write-Output $sanitized.Body
+    exit 0
+  }
+  [void](New-Item -Path $PendingDir -ItemType Directory -Force)
+  $out = Join-Path $PendingDir ($sanitized.Id + '.txt')
+  if (Test-Path -LiteralPath $out) { Fail 'Same report already pending. Use RetryPending to avoid duplicates.' }
+  [IO.File]::WriteAllText($out, $sanitized.Body, (New-Object Text.UTF8Encoding($false)))
+  Write-Host 'Sanitized report saved locally. Sending to GitHub issue #198...'
+  Send-Pending
+} catch {
+  Write-Host ('REPORT UPLOAD NOT CONFIRMED: ' + $_.Exception.Message) -ForegroundColor Red
+  Write-Host 'Local report is preserved; retry with RETRY-REPORT-UPLOAD.cmd.'
+  exit 1
+}
+) { Fail 'Invalid queued test run ID.' }
+  $marker = '<!-- paseka-test-agent:' + $RunId + ' -->'
+  if ([string]::IsNullOrWhiteSpace($CommentText) -or
+      !$CommentText.StartsWith($marker) -or $CommentText.Length -gt 8000) {
+    Fail 'Invalid anonymized queued test comment.'
+  }
+  # Serialize the validated string as a single field, not an object array.
+  $payload = ConvertTo-Json -InputObject ([PSCustomObject]@{ body = $CommentText }) -Compress -Depth 3
+  if ([string]::IsNullOrWhiteSpace($payload) -or $payload.Length -gt 12000) {
+    Fail 'Invalid serialized GitHub issue comment.'
+  }
+  return [string]$payload
 }
 function Send-Pending {
   if (!(Test-Path -LiteralPath $PendingDir)) { Write-Host 'No pending results.'; return }
