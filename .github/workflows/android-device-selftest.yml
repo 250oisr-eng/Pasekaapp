@@ -55,6 +55,9 @@ jobs:
       - name: Verify USB and paired Wi-Fi selection on Windows PowerShell 5.1
         shell: powershell
         run: .\tests\windows-adb-selection.ps1
+      - name: Verify local scheduled runner is opt-in and rejects unapproved kits
+        shell: powershell
+        run: .\tests\windows-local-schedule.ps1
   build:
     needs: validate-windows-script
     runs-on: ubuntu-24.04
@@ -165,7 +168,7 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk device-kit/paseka-device-test.apk
           sha256sum device-kit/paseka-device-test.apk | awk '{print $1}' > device-kit/paseka-device-test.sha256
           printf '%s\n' "$PASEKA_TEST_PACKAGE" > device-kit/device-package.txt
-          cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/START-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
+          cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/Run-Local-Scheduled.ps1 scripts/windows/Register-Local-Scheduled.ps1 scripts/windows/START-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
           curl --retry 3 --fail --location --silent --show-error \
             https://dl.google.com/android/repository/platform-tools-latest-windows.zip -o "$RUNNER_TEMP/platform-tools-windows.zip"
           unzip -q "$RUNNER_TEMP/platform-tools-windows.zip" -d device-kit/
