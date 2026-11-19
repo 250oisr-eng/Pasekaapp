@@ -1,3 +1,134 @@
+## Контрольная точка — новый OnePlus 8/8 PASS и реальный Win11 DRY RUN (2026-11-19)
+
+- Пользователь представил `report(5).json` с результатом `status=PASS`, `runId=a75070c120bf40819172`, test-only package `ru.paseka.journal.device.r44528651797a1` из CI run `44528651797` (проверенный code SHA `6dd3004623b9d5c8dd77aa829d3b258164790c0f`). `phaseOne.pass=true` (6/6 checks), `final.pass=true` (8/8 checks), `error` пустой. Подтверждены штатный запуск/WebView, тестовые карточки, backup export/preflight/commit/rollback, native Downloads archive SHA/cleanup, Varroa guards, real Android restart IndexedDB, card renderer после restart.
+- Представлен `before-restart(1).png`: экран показывает 6/6 PASS до рестарта; после-restart screenshot для этого запуска не получен, итоговые 8/8 подтверждены JSON-отчётом.
+- Windows 11 пользователь реально выполнил без `-Run` `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\Run-Local-Scheduled.ps1`. Достоверный вывод: `DRY RUN: approved local kit for ru.paseka.journal.device.r44528651797a1` и `No ADB commands, installs or scheduled tasks were executed.`. Это подтверждает разрешающие проверки уже установленного комплекта и отсутствие действий DRY RUN, **но не физическую работоспособность повторного планового `-Run` или созданной задачи Windows**.
+- Границы: тест только isolated-android-package-and-test-only-indexeddb; по-прежнему не проверены native-file-picker, offline-network-transport, manual-visual-legibility и отдельный Wi-Fi transport. USB/Wi-Fi явно не записывается в report.json.
+- **Следующий необходимый выбор:** пользовательское локальное время `HH:mm` и согласие на регистрацию `Paseka-Local-Android-Selftest`. Без этого не создавать Windows Task Scheduler; скрипт по умолчанию даёт preview. При включении нужен физически подключённый авторизованный USB, интерактивная сессия Windows и уже установленная test-only APK. Отчёты остаются локальными, нет скачивания APK или изменения production.
+- Документационная фиксация в существующем Draft PR #186, никаких слияний, production deployment и действий с реальной базой пасеки.
+
+---
+
+## Контрольная точка — Windows scheduler CI подтверждён (2026-11-19)
+
+- **Точный проверенный кодовый HEAD**: `6dd3004623b9d5c8dd77aa829d3b258164790c0f` в существующем Draft PR #186. [Windows11 + isolated APK workflow #44528651797](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44528651797) — **SUCCESS**: Windows PowerShell 5.1 parser, мок-тест чтения Android-отчёта, USB/Wi-Fi mock, **Run-Local-Scheduled / Register-Local-Scheduled approval & preview mock**, все Node regression tests, сборка isolated Android APK и Windows ZIP.
+- Другие workflow на том же SHA: Fast quality checks #44528651740 **SUCCESS**, Android APK #44528651622 и #44528663422 **SUCCESS**, independent isolated archive workflow #44528663201 **SKIPPED**. Нельзя выдавать SKIPPED за PASS.
+- ZIP artifact `paseka-win11-android-selftest-kit` **ID 14531304135**, 11,682,099 bytes, expires `2026-12-03 12:59:00 UTC`. Включает `Run-Local-Scheduled.ps1`, `Register-Local-Scheduled.ps1`, старые runner и START-TESTS.cmd, официальный ADB, уникальную test-only APK.
+- Проверка нового scheduler-скрипта на настоящем ПК и физический результат **этой новой APK** ещё не получены. Предыдущий подтверждённый физический 8/8 PASS относится к test APK из run #44526817635 (другой package/signing key). По безопасности новая сборка сначала требует собственный ручной 8/8 PASS в папке reports, только затем возможен -Run и opt-in -Install.
+- **Задание Windows не создавалось**: не выбрано время; регистрация требует явного `-DailyAt HH:mm -Install` пользователя, не входит в CI. Нет auto-install/auto-update, auto-download, upload diagnostics, elevated privileges или работы с production. В плановом запуске USB-only и уже установленный тестовый package; Wi-Fi остаётся ручным.
+- **Следующий шаг:** выполнить на Windows 11 ручной `START-TESTS.cmd` с артефактом 14531304135 и получить новый 8/8 PASS, затем проверить dry-run; после этого выбрать время и отдельно включить task по явному решению пользователя. Не merge/deploy/main/production.
+
+---
+
+## Этап — Windows 11 локальный автозапуск подготовлен, но не активирован (2026-11-19)
+
+- Основание: пользовательский физический OnePlus test-only PASS 8/8, package `ru.paseka.journal.device.r44526817635a1`, run `cc7ba1ae3a5f434cacb9`, CI checked SHA `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`.
+- Существующий Draft PR #186 расширен **только тестовой инфраструктурой**. `Run-Paseka-Tests.ps1` получил флаг окружения `PASEKA_SCHEDULED_NO_INSTALL=1`: тогда пропускает ADB install и требует уже установленный уникальный test-only package; обычный ручной `START-TESTS.cmd` сохраняет прежнее поведение.
+- Новый `scripts/windows/Run-Local-Scheduled.ps1` по умолчанию выполняет только dry-run без ADB; `-Run` разрешён лишь после проверки локального APK SHA-256 и 8/8 PASS из той же папки reports для **того же** package ID. Плановое подключение ограничено USB; Wi-Fi endpoint не наследуется, не скачиваются новые APK или скрипты, нет автоотправки отчётов.
+- `scripts/windows/Register-Local-Scheduled.ps1`: безопасный preview по `-DailyAt HH:mm`; реальная регистрация Windows Task Scheduler только после отдельного ключа `-Install` и доказанного 8/8 PASS; текущий интерактивный пользователь, без повышения прав, не заменяет существующую задачу. В проекте не выбран пользовательский час и на его Windows ничего не установлено.
+- `tests/windows-local-schedule.ps1` запускает мок-тест PS 5.1 без телефона и регистрации задач; Node regression закрепляет условия, workflow проверяет и копирует оба скрипта в portable ZIP. README расширен. **CI после этих изменений ещё не подтверждён**, физический scheduler ещё не проверен; ни одно scheduled задание не активировалось.
+- **Следующий шаг:** получить CI exact HEAD; при ошибках исправить. Затем ручной smoke-test нового ZIP с 8/8 PASS и dry-run. Точное расписание и включение task оставить отдельным решением пользователя после проверки. Main, production, базы, пользовательские файлы, merge не трогать.
+
+---
+
+## Контрольная точка — физический OnePlus 8/8 PASS (2026-11-19)
+
+- Получены три пользовательских артефакта: `report(4).json`, `before-restart.png`, `after-restart.png`. Итог **PASS**, runId `cc7ba1ae3a5f434cacb9`, изолированный пакет `ru.paseka.journal.device.r44526817635a1`; это соответствует ZIP GitHub Actions run **44526817635** и проверенному CI SHA `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`.
+- **8/8 итоговых checks PASS**: WebView/startup; тестовые карточки; archive export/preflight/commit/rollback; **native Downloads archive SHA-256/length/cleanup**; отбрасывание неподтверждённой Varroa обработки; защита revision rollback; сохранность IndexedDB после настоящего force-stop/start; повторная отрисовка карточек.
+- Обе фазы отчёта (`awaiting_restart` и `complete`) имеют `pass=true`; error пустой. Пользовательские снимки показывают 6/6 перед перезапуском и 8/8 после. На них видны неудобные переносы длинных названий проверок и слабый контраст светлых элементов системного статус-бара; это отдельный UI backlog, не основание отрицать функциональный PASS.
+- **Границы**: проверялся isolated-android-package-and-test-only-indexeddb; фактическое значение MediaStore MIME не измерялось, но конкретная тестовая проверка имени/папки/владельца/хеша/размера и cleanup вернула PASS. Не проверялись native file picker, offline network transport, читаемость рабочего приложения. Не подтверждён канал (USB или Wi-Fi) по JSON.
+- До включения локального планировщика Windows остаётся отдельно проверить Wi-Fi pairing/transport при необходимости, сетевой offline сценарий, проверку отчётов/управление версиями тестового ZIP и защиту от выполнения непроверенных PR. Внедрение scheduler и автоотправка отчётов пока **не выполнены**.
+- Код не менялся с проверенного CI `f79c8c9c...`; новая запись — документация в существующем Draft PR #186. Никаких merge, production deployment, изменений main или пользовательских данных.
+- **Следующий шаг:** закрыть подготовительный физический этап, перейти к отдельному проектированию безопасного локального Windows Task Scheduler и недеструктивных offline/Wi-Fi tests, не объявляя их уже пройденными.
+
+---
+
+## Контрольная точка — OnePlus MIME fallback: CI успешен (2026-11-19)
+
+- После физического `report(3).json` (7/8, `ERR_TEST_MIME`) в Draft PR #186 доработан только test-only Android MediaStore bridge: допускается `application/vnd.paseka.archive` или ровно `application/octet-stream`, плюс обязательная проверка `OWNER_PACKAGE_NAME == activity.getPackageName()` перед удалением. Реальный MIME OnePlus неизвестен; `application/octet-stream` — ограниченная гипотеза, не наблюдённое значение.
+- **Проверенный точный HEAD:** `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`. [Windows + isolated Android kit workflow #44526817635](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44526817635) — **SUCCESS**, Windows PS 5.1 parse/ADB tests, Node regressions, isolated APK build, package check, ZIP upload. [Android APK workflow #44526822579](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44526822579) — **SUCCESS**; archive workflow #44526822608 — **SKIPPED**.
+- ZIP `paseka-win11-android-selftest-kit`, GitHub artifact ID `14532865511`, 11,677,387 bytes, expires `2026-12-03 12:47:17 UTC`. Эта APK на физическом устройстве пока не проверена.
+- **Следующий шаг:** выполнить новый физический тест только этого комплекта на OnePlus Android 15+ с USB (Wi-Fi допустим после ручного pairing), предоставить `report.json`. Не объявлять PASS без фактического отчёта, не удалять предыдущие тестовые файлы вручную и не включать планировщик до подтверждённого safe cleanup. Production/main/merge/deployment не затронуты.
+
+---
+
+## Контрольная точка — отчёт (3), Android MIME (2026-11-19)
+
+- Пользователь прислал физический `report(3).json`: `status=FAIL`, `runId=f2ff998fdb344a128e40`, test-only package `ru.paseka.journal.device.r44525367280a1`, **7/8 PASS**, только `native_downloads_archive_hash_and_cleanup` возвращает **`ERR_TEST_MIME`**; отчёт не содержит фактическое значение MIME. Все архивные/Varroa/IndexedDB restart checks PASS.
+- Источник Android `MediaStore.MediaColumns.MIME_TYPE` — вычисляемое read-only поле, часто на основе расширения. Для неизвестного `.paseka` правдоподобен `application/octet-stream`, но **это не подтверждённое значение на OnePlus**. Официальная документация: https://developer.android.com/reference/android/provider/MediaStore.MediaColumns.
+- Минимальное изменение **только в test-only Java bridge**, генератор `scripts/prepare-device-selftest.mjs`: сохраняется точный MIME `application/vnd.paseka.archive` и дополнительно допускается **только** `application/octet-stream`; добавлено обязательное сравнение `OWNER_PACKAGE_NAME` с `activity.getPackageName()` (при null/недоступности — `ERR_TEST_OWNER`, удаление запрещено). Все проверки точного run-specific имени, каталога, Android URI, размера и SHA-256 обязательны до удаления. Production archive bridge и реальные записи не изменены.
+- В `tests/device-selftest-build.test.mjs` закреплены допустимое MIME-исключение, guard владельца и порядок проверок до удаления. Повторная реальная проверка ещё нужна; данные остаются неизменными. Кодовые изменения `fd1bc0b`, `4503787`, `a27da01` (полный точный HEAD сверить в GitHub).
+- **Следующий шаг:** подтверждение CI на новом HEAD и повторный физический OnePlus-прогон через отдельный ZIP. Не объявлять физический PASS и не включать scheduler до отчёта. Не удалять предыдущие тестовые файлы вручную, не трогать данные/production/main и не merge.
+
+---
+
+## Контрольная точка — диагностический Android ZIP готов (2026-11-19)
+
+- По физическому OnePlus отчёту с 7/8 PASS и `ERR_NOT_TEST_ARCHIVE` подготовлена только fail-closed детализация отказа на `ERR_TEST_NAME`, `ERR_TEST_MIME` и `ERR_TEST_FOLDER`. Проверки имени, MIME, папки, SHA-256, длины и право удаления **не ослаблены**; production и база не изменены.
+- **Точный проверенный HEAD:** `a36202f7f0f2f5b1b19d7a70a34f214ff701f00f` (кодовый коммит `b29de5afb62106e386033525cf79faab2520655b`, затем только документация).
+- [Windows 11 и изолированная APK: GitHub Actions #44525367280](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44525367280) — **success**: PowerShell 5.1 parser; missing-report retry; mock USB/Wi-Fi selector; Node regression; Android test-only APK, package validation, ZIP upload.
+- [Android APK PR CI #44525378927](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44525378927) — **success**; отдельный archive workflow #44525379279 — **skipped**, не проверка.
+- Артефакт `paseka-win11-android-selftest-kit`, ID `14530045688`, 11,676,493 bytes, expires `2026-12-03 12:37:44 UTC`. Реальный запуск этой диагностической APK **ещё не выполнен**.
+- **Следующий единственный шаг:** выполнить изолированный физический прогон этого ZIP с OnePlus Android 15+; получить `report.json`. В случае `ERR_TEST_NAME/MIME/FOLDER` определить несовпадающий metadata guard, не меняя правил удаления до подтверждения причины. Если останется тестовый архив в Downloads/Пасека, не удалять другие файлы.
+- Нет нового реального подтверждения Wi-Fi; прежний физический отчёт не фиксировал transport. Не включать Windows scheduler / автоотправку диагностик до подтверждённого безопасного физического цикла. Main, merge, production, user data не трогать.
+
+---
+
+## Контрольная точка — физический OnePlus: 7/8, диагностика Downloads (2026-11-19)
+
+- Пользователь прислал физический Windows/Android отчёт `report(2).json`, runId `ece1565a58ef4684a386`, package `ru.paseka.journal.device.r44522050363a1` (точная сборка #44522050363). Общий итог **FAIL**: семь из восьми итоговых проверок PASS; единственный FAIL `native_downloads_archive_hash_and_cleanup` с `ERR_NOT_TEST_ARCHIVE`.
+- PASS: WebView startup, карточки ульев, archive export/preflight/commit/rollback, reject unconfirmed Varroa event, revision guard, real Android restart IndexedDB и повторная отрисовка. Это исключительно тестовая база и APK; production-данные не участвовали.
+- Native test bridge возвращал общий `ERR_NOT_TEST_ARCHIVE` при несоответствии ровно одного из трёх признаков MediaStore: имени тестового файла, MIME или каталога. **Причина пока не определена**: нет исходных metadata. Удаление такого файла запрещено; возможно остался отдельный test-only архив в Downloads/Пасека, не удалять другие файлы.
+- Текущая безопасная правка в существующем Draft PR #186 заменяет общую ошибку отдельными `ERR_TEST_NAME`, `ERR_TEST_MIME`, `ERR_TEST_FOLDER` при сохранении всех трёх строгих проверок до SHA-256 и удаления; добавлен регрессионный guard их порядка. Никакого ослабления правил и никаких изменений production. Кодовый SHA `b29de5afb62106e386033525cf79faab2520655b`; CI на этом коде пока не подтверждён.
+- **Следующий шаг:** проверить CI на точном SHA, затем новый изолированный физический запуск для определения ошибочного metadata-поля. До получения такого результата не разрешать удаление по ослабленной проверке и не включать автоматический scheduler.
+
+---
+
+## Контрольная точка — USB/Wi-Fi CI подтверждён (2026-11-19)
+
+- Проверен точный HEAD `f9049fceb0beceea9d7da40d8f20bf48b30672f8` существующего Draft PR #186.
+- [Windows 11 + isolated Android kit run #44522050363](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44522050363): **success**. Windows PowerShell 5.1 parse, missing-report retry, mock USB/Wi-Fi selection, Node regression suite, isolated APK build, AAPT package verification and ZIP artifact upload завершились успешно.
+- [Android APK PR run #44522060897](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44522060897) на том же SHA: **success**. Изолированный archive workflow skip по path filter — это не успешный тест архива.
+- Артефакт `paseka-win11-android-selftest-kit`, ID `14527759850`, 11,676,452 bytes, до 2026-12-03 12:16:32 UTC. Сборка не равна физическому тесту.
+- Следующий блокер — первоначальное разрешение USB-отладки на OnePlus Android 15+, однократное безопасное Wireless debugging pairing, запуск реальной test-only APK и получение отчёта. **Пока физический запуск не завершён, не включать постоянный Windows scheduler, автоматическую загрузку отчётов и непроверенные обновления APK.**
+- Main, production, реальные данные, merge и deployment не изменялись. Следующий шаг — физический прогон с этим артефактом, затем решение о расширении локальной автоматизации.
+
+---
+
+## Дополнение к контрольной точке Android (2026-11-19)
+
+- После первичной сборки выявлена ошибка формирования обновлённого PowerShell-файла; скрипт пересобран из чистой базовой версии PR #185, возвращены PR #186 retry чтения отчёта и failure screenshot; структурно проверено ровно по одному объявлению Invoke-ADB/Read-DeviceReport/Find-TestDevice и UTF-8 BOM.
+- Дополнительная защита: USB-автовыбор разрешён только для алфавитно-цифровых serial, исключая mDNS Wi-Fi и emulator serial. Добавлены негативные сценарии в Windows mock test.
+- Точный новый code/test HEAD: `9d889cc14aacedbfb9a1f73915e31aed6a2d20c6`. CI на нём пока не подтверждён (не заявлять PASS). Старые результаты относятся к более ранним SHA.
+- Следующий шаг: CI на точном актуальном HEAD (и исправления при ошибках), затем физический OnePlus прогон. Подключение и локальный автозапуск по расписанию не настроены; main/production/база не изменены.
+
+---
+
+## Контрольная точка — Windows 11 + OnePlus USB/Wi-Fi (2026-11-19)
+
+- Пользователь подтвердил Windows 11, OnePlus 10 Pro 5G, Android 15+, USB как основной способ и Wi-Fi как резервный.
+- Работа продолжается в существующем Draft PR #186, ветка `fix/win11-report-polling-2026-11-19`, поверх PR #185; конкурирующий PR не создаётся.
+- В `scripts/windows/Run-Paseka-Tests.ps1` добавлен fail-closed выбор USB/заранее сопряжённого Wi-Fi: разрешён только явно указанный частный IPv4:порт через `PASEKA_ADB_WIFI_ENDPOINT`; USB приоритетен; при нескольких USB остановка. Никакого автоматического включения TCP/IP debugging, удаления пакетов или доступа к production-данным.
+- `tests/windows-adb-selection.ps1` проверяет выбор устройства настоящим Windows PowerShell 5.1 с mock ADB, без Android; CI workflow включает тест. `tests/device-selftest-build.test.mjs` содержит регрессионные guards. `scripts/windows/README-WIN11.txt` описывает ручное первоначальное сопряжение.
+- Кодовый HEAD после восстановления PR #186 report polling: `42292b887c82c7778fd27cca535801cd989aa860`. Статус его CI требует отдельной проверки; не утверждать PASS до завершения. Предыдущий кодовый SHA `a734537c081a60791d0b2708525c0ca4818562b5` имел 753/753 PASS, но это не проверка нового Wi-Fi кода.
+- Реальный OnePlus в этой сессии не подключался. Физический новый USB/Wi-Fi прогон и автономный Windows runner ещё не выполнены; тестовый пакет и данные реальной пасеки не затронуты. Main, production и merge не менялись.
+- **Следующий шаг:** дождаться точного CI для нового HEAD, исправить ошибки при их наличии; затем выполнить однократное локальное USB-разрешение и Wireless debugging pairing на устройстве перед безопасным автоматическим расписанием.
+
+---
+
+## Контрольная точка — исправлен преждевременный FAIL при ожидании Android-отчёта на Win11 (2026-11-19)
+
+- Пользователь приложил `report(1).json`: `status: FAIL`, `runId: c386c2d5c4ff43a086da`, `testedPackage: ru.paseka.journal.device.r44519287088a1`, `error: cat: files/paseka-device-report.json: No such file or directory`; `phaseOne: null`, `final: null`. Консоль показывает, что test-only APK успешно установлена, Intent запуска отправлен, но скрипт остановился **при первом чтении ещё отсутствующего отчёта**, не запустив подтверждённых функциональных проверок. Ранее подтверждённый физический 7/7 PASS сохраняет свой отдельный статус.
+- Причина: PowerShell 5.1 в `Read-DeviceReport` при глобальном `$ErrorActionPreference='Stop'` превращал stderr внешней команды `adb shell run-as ... cat` в terminating error, даже при перенаправлении `2>$null`. Отсутствие файла до завершения WebView-тестов — нормальное, ожидаемое состояние. Предыдущий Wait-Report предусматривал повторение каждые 2 секунды, но не успевал повторять.
+- Создан Draft PR #186: https://github.com/250oisr-eng/Pasekaapp/pull/186, branch `fix/win11-report-polling-2026-11-19`, base #185 → #184 → #183 → #182 → #181 → #179 → #176 → #168. В `scripts/windows/Run-Paseka-Tests.ps1` только функция чтения отчёта временно использует локальное `$ErrorActionPreference='Continue'`, возвращает null при отсутствующем файле / ошибке JSON / ненулевом коде и не меняет общую строгую политику Stop для других ADB-команд. При сбое после запуска test-only APK дополнительно сохраняет `failure.png` для диагностики.
+- Добавлен реальный Windows PowerShell 5.1 интеграционный тест `tests/windows-report-polling.ps1` с fake `.cmd` ADB: отсутствие отчёта + native stderr, доступный JSON, задержанный JSON после повтора; проверка, что глобальная политика ошибок не изменяется. Workflow `.github/workflows/android-device-selftest.yml` требует этот тест **до** сборки и выдачи ZIP. Node regression test также проверяет эти ограничения.
+- **Code/test SHA `a734537c081a60791d0b2708525c0ca4818562b5`**: Fast quality checks [#44520631325](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44520631325) — **753/753 PASS, 0 FAIL**; Windows/Android isolated kit [#44520631354](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44520631354) — **success**, настоящая Windows PowerShell 5.1 syntax + native stderr retry **PASS**, Node 753/753, Android Debug APK + AAPT package check `ru.paseka.journal.device.r44520631354a1`, ZIP upload **success**. Android APK workflow #44520693492 — success; isolated archive workflow #44520693541 — skipped по path filter ожидаемо.
+- Artifact `paseka-win11-android-selftest-kit`, ID `14527738260`, 11,674,984 bytes, ZIP SHA-256 `6132d538ed99ccb8d9b6ef07c12de0083c32212ab120299e884bf73299334660`; доступен до **2026-12-03 12:07:25 UTC**. Использовать новый распакованный архив в отдельной папке; старые APK и данные не удалять.
+- Новый физический прогон этого ZIP **ещё не выполнен**. Следующий шаг: получить `report.json` от новой версии, ожидаемые **8/8 PASS**, включая native Downloads. При задержке/проблеме с WebView сценарий ждёт до таймаута и сохраняет `failure.png`; запросить эти два файла для следующей диагностики. Системный file picker, офлайн-сеть и читаемость интерфейса всё ещё не подтверждены.
+- Main остаётся `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. Ни merge, ни publication, production deploy, изменения основной схемы/базы или удаления пользовательских данных не проводилось.
+
+---
+
 ## Контрольная точка — исправлен ParserError Windows PowerShell 5.1 в физическом тест-комплекте (2026-11-19)
 
 - Пользователь выполнил повторный запуск изолированного Win11/Android ZIP и получил **ParserError до запуска любой Android-команды**. Сообщение указывало на `platform-tools\\adb.exe`, повтор синтаксиса около строки 210 и незавершённый литерал. Проверка содержимого `scripts/windows/Run-Paseka-Tests.ps1` на HEAD PR #184 подтвердила: при предыдущей модификации скрипта произошло дублирование значительной части тела (~13,717 символов вместо исходных ~6,781) и обрыв шаблона `$Package -cnotmatch`. **Это дефект только test-only Windows-скрипта, а не приложения «Пасека» или Android**; прежний подтверждённый тестовый отчёт 7/7 PASS остаётся актуальным в своих границах.

@@ -29,6 +29,55 @@ test('workflow packages the build-specific package manifest beside the APK', asy
   assert.match(yaml, /c\.appId!==process\.env\.PASEKA_TEST_PACKAGE/);
 });
 
+test('Windows CI explicitly tests native stderr and retry on PowerShell 5.1', async () => {
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  const testScript = await readFile(new URL('./windows-report-polling.ps1', import.meta.url), 'utf8');
+  assert.match(yaml, /Simulate native ADB missing report then retry/);
+  assert.match(yaml, /windows-report-polling\.ps1/);
+  assert.match(testScript, /fake-adb\.cmd/);
+  assert.match(testScript, /No such file or directory/);
+  assert.match(testScript, /Wait-Report/);
+  assert.doesNotMatch(testScript, /adb\.exe|pm clear|uninstall/);
+});
+
+test('Windows ADB selection has opt-in private Wi-Fi, USB priority and native PowerShell regression', async () => {
+  const ps = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  const regression = await readFile(new URL('./windows-adb-selection.ps1', import.meta.url), 'utf8');
+  assert.match(ps, /function Test-PrivateWifiEndpoint/);
+  assert.match(ps, /function Find-TestDevice/);
+  assert.match(ps, /PASEKA_ADB_WIFI_ENDPOINT/);
+  assert.match(ps, /\$usb\.Count -eq 1/);
+  assert.match(ps, /connected -ccontains \$WifiEndpoint/);
+  assert.doesNotMatch(ps, /& \$Adb tcpip|Invoke-ADB[^\n]*tcpip/);
+  assert.match(regression, /two-usb/);
+  assert.match(regression, /Find-TestDevice ''/);
+  assert.match(yaml, /windows-adb-selection\.ps1/);
+});
+
+test('local scheduled Android runner is opt-in, gated and never installs a test APK', async () => {
+  const script = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
+  const wrapper = await readFile(new URL('../scripts/windows/Run-Local-Scheduled.ps1', import.meta.url), 'utf8');
+  const registration = await readFile(new URL('../scripts/windows/Register-Local-Scheduled.ps1', import.meta.url), 'utf8');
+  const mockTest = await readFile(new URL('./windows-local-schedule.ps1', import.meta.url), 'utf8');
+  const workflow = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  assert.match(script, /PASEKA_SCHEDULED_NO_INSTALL/);
+  assert.match(script, /if \(\$env:PASEKA_SCHEDULED_NO_INSTALL -eq '1'\)/);
+  assert.match(wrapper, /param\(\[switch\]\$Run\)/);
+  assert.match(wrapper, /Get-FileHash/);
+  assert.match(wrapper, /report\.final\.pass -eq \$true/);
+  assert.match(wrapper, /@\(\$report\.final\.checks\)\.Count -eq 8/);
+  assert.match(wrapper, /PASEKA_SCHEDULED_NO_INSTALL = '1'/);
+  assert.match(wrapper, /PASEKA_ADB_WIFI_ENDPOINT = ''/);
+  assert.doesNotMatch(wrapper, /adb install|adb tcpip|uninstall|pm clear|Invoke-WebRequest|Start-BitsTransfer/);
+  assert.match(registration, /\[switch\]\$Install/);
+  assert.match(registration, /-LogonType Interactive -RunLevel Limited/);
+  assert.match(registration, /Task already exists/);
+  assert.match(mockTest, /hash mismatch|APK hash mismatch/);
+  assert.match(workflow, /windows-local-schedule\.ps1/);
+  assert.match(workflow, /Run-Local-Scheduled\.ps1 scripts\/windows\/Register-Local-Scheduled\.ps1/);
+});
+
 test('device test configurator refuses unknown or already isolated production app ids', () => {
   assert.throws(() => isolatedConfig({ appId: 'unknown.package' }), /Refusing/);
   assert.throws(() => isolatedConfig({ appId: PACKAGE_ID }), /Refusing/);
@@ -65,6 +114,25 @@ test('device bridge preserves production archive Downloads bridge in isolated Ma
   assert.ok(reportBridge.startsWith('package ' + PACKAGE_ID + ';'), 'native report bridge must use the same test-only package');
   assert.match(reportBridge, /paseka-device-report\.json/);
   assert.match(reportBridge, /verifyAndRemoveTestDownload/);
+  // A real OnePlus report found a rejected MediaStore file. Diagnose the exact
+  // ownership constraint without weakening or bypassing verified deletion.
+  assert.match(reportBridge, /ERR_TEST_NAME/);
+  assert.match(reportBridge, /ERR_TEST_MIME/);
+  assert.match(reportBridge, /ERR_TEST_FOLDER/);
+  // Some Android MediaStore versions compute unknown .paseka MIME as generic
+  // binary. Do not allow an arbitrary value; require test APK ownership.
+  assert.match(reportBridge, /application\/octet-stream/);
+  assert.match(reportBridge, /MediaStore\.MediaColumns\.OWNER_PACKAGE_NAME/);
+  assert.match(reportBridge, /activity\.getPackageName\(\)\.equals\(owner\)/);
+  assert.match(reportBridge, /ERR_TEST_OWNER/);
+  assert.doesNotMatch(reportBridge, /ERR_NOT_TEST_ARCHIVE/);
+  const nameGuard = reportBridge.indexOf('ERR_TEST_NAME');
+  const mimeGuard = reportBridge.indexOf('ERR_TEST_MIME');
+  const folderGuard = reportBridge.indexOf('ERR_TEST_FOLDER');
+  const ownerGuard = reportBridge.indexOf('ERR_TEST_OWNER');
+  const deleteCall = reportBridge.indexOf('resolver.delete(uri, null, null)');
+  assert.ok(nameGuard > 0 && nameGuard < mimeGuard && mimeGuard < folderGuard && folderGuard < ownerGuard && ownerGuard < deleteCall,
+    'All rejected MediaStore metadata must be checked before any test-only cleanup');
   assert.match(reportBridge, /MessageDigest\.getInstance\("SHA-256"\)/);
   assert.match(reportBridge, /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/);
   assert.match(reportBridge, /return resolver\.delete\(uri, null, null\) == 1/);
@@ -97,6 +165,10 @@ test('Windows launcher cannot clear packages or use the production application I
   assert.equal(ps.split("$Adb = Join-Path").length - 1, 1, 'ADB initialization must occur once');
   assert.equal(ps.split("$PackagePath = Join-Path").length - 1, 1, 'package selection must occur once');
   assert.match(ps, /\[0-9\]\{0,3\}\$'\) \{/);
+  assert.match(ps, /native stderr as an ErrorRecord/);
+  assert.match(ps, /\$ErrorActionPreference = 'Continue'/);
+  assert.match(ps, /\$LASTEXITCODE -ne 0 -or !\$lines/);
+  assert.match(ps, /Capture-TestScreen -Serial \$Serial -Label 'failure'/);
   assert.match(ps, /Get-FileHash.*SHA256/);
   assert.match(ps, /run-as \$Package cat files\/paseka-device-report\.json/);
   assert.match(ps, /force-stop/);
