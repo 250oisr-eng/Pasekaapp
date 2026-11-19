@@ -14,7 +14,7 @@
 1. Владелец Windows-компьютера проверяет наличие Node.js и устанавливает OpenCode **только с официального сайта** (например, документированным `npm install -g opencode-ai`). ChatGPT не может установить программу на удалённом ПК.
 2. Создаёт отдельную папку вне репозитория, например `C:\Users\<user>\OpenCode-Synthetic-Pilot`, содержащую **только искусственные** JS-функции и `opencode.json`.
 3. Не клонирует в эту папку реальную пасеку, документы, IndexedDB, backup, токены или `.env`; не подключает облачные аккаунты и не выполняет `/connect`.
-4. Пример конфигурации **для отдельной папки** (не помещать в корень Pasekaapp и не добавлять в PR как активный `opencode.json`):
+4. **ВАЖНО: OpenCode 1.19.6 / текущий V2 формат:** в актуальной документации используются `permissions` (массив правил), `shell` и `subagent`. Старый вариант `permission`/`bash`/`task` нельзя считать корректной конфигурацией нового агента. В изолированной синтетической папке подготовить `opencode.json`:
 
 ```json
 {
@@ -22,25 +22,26 @@
   "model": "ollama/qwen2.5-coder:7b",
   "enabled_providers": ["ollama"],
   "autoupdate": false,
-  "permission": {
-    "*": "deny",
-    "read": {
-      "*": "allow",
-      "*.env": "deny",
-      "*.env.*": "deny"
-    },
-    "list": "allow",
-    "glob": "allow",
-    "grep": "allow",
-    "edit": "deny",
-    "bash": "deny",
-    "task": "deny",
-    "external_directory": "deny",
-    "webfetch": "deny",
-    "websearch": "deny"
-  }
+  "permissions": [
+    {"action":"shell","resource":"*","effect":"deny"},
+    {"action":"edit","resource":"*","effect":"deny"},
+    {"action":"subagent","resource":"*","effect":"deny"},
+    {"action":"external_directory","resource":"*","effect":"deny"},
+    {"action":"webfetch","resource":"*","effect":"deny"},
+    {"action":"websearch","resource":"*","effect":"deny"},
+    {"action":"execute","resource":"*","effect":"deny"},
+    {"action":"read","resource":"*","effect":"allow"},
+    {"action":"glob","resource":"*","effect":"allow"},
+    {"action":"grep","resource":"*","effect":"allow"}
+  ],
+  "policies": [
+    {"action":"provider.use","resource":"*","effect":"deny"},
+    {"action":"provider.use","resource":"ollama","effect":"allow"}
+  ]
 }
 ```
+
+Ссылки на актуальную документацию: https://opencode.ai/docs/permissions/ , https://opencode.ai/docs/policies/ , https://opencode.ai/docs/models/ . Использовать именно `opencode.json` вне реального репозитория. Перед тестированием проверить, что OpenCode принял конфигурацию, не открыл облачный провайдер, не разрешил `shell` и `edit`. Если приложение выдаёт ошибку схемы, прекратить проверку; **не отключать запреты ради запуска**.
 
 5. Перед каждым запуском проверить содержимое `opencode.json`; учитывать, что конфигурации OpenCode **сливаются** из разных уровней. Локальная настройка не является защитной песочницей ОС; для реальной конфиденциальности использовать изолированное окружение/отдельную учётную запись и только синтетические данные.
 6. Запустить `opencode` **из синтетической папки** без `--auto`. Убедиться, что выбран локальный провайдер Ollama, без облачных провайдеров.
