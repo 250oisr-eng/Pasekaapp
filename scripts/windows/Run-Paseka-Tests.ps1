@@ -27,6 +27,7 @@ $ReportDir = Join-Path $Reports (Get-Date -Format 'yyyyMMdd-HHmmss')
 $StageOne = $null
 $FinalReport = $null
 $Fatal = ''
+$TestAppLaunched = $false
 
 function Invoke-ADB {
   param([string[]]$Arguments)
@@ -36,9 +37,18 @@ function Invoke-ADB {
 }
 function Read-DeviceReport {
   param([string]$Serial)
-  $lines = & $Adb -s $Serial shell run-as $Package cat files/paseka-device-report.json 2>$null
-  if ($LASTEXITCODE -ne 0) { return $null }
-  try { return (($lines -join "`n") | ConvertFrom-Json) } catch { return $null }
+  # The report is normally absent for the first few polls. Windows PowerShell
+  # 5.1 treats redirected native stderr as an ErrorRecord; under the caller's
+  # global Stop policy this would abort the entire test before a retry.
+  # Scope Continue to this read-only probe. Keep Stop everywhere else.
+  $ErrorActionPreference = 'Continue'
+  try {
+    $lines = & $Adb -s $Serial shell run-as $Package cat files/paseka-device-report.json 2>$null
+    if ($LASTEXITCODE -ne 0 -or !$lines) { return $null }
+    return (($lines -join "`n") | ConvertFrom-Json)
+  } catch {
+    return $null
+  }
 }
 function Wait-Report {
   param([string]$Serial, [string[]]$Phases, [int]$TimeoutSec)
@@ -105,6 +115,7 @@ try {
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
     '--es', 'paseka_run_id', $RunId))
+  $TestAppLaunched = $true
   $StageOne = Wait-Report -Serial $Serial -Phases @('awaiting_restart', 'complete') -TimeoutSec 150
   Capture-TestScreen -Serial $Serial -Label 'before-restart'
   if ($StageOne.phase -ne 'awaiting_restart') {
@@ -121,6 +132,11 @@ try {
   if (!$FinalReport.pass) { throw 'Одна или несколько проверок завершились неуспешно. Детали в отчёте.' }
 } catch {
   $Fatal = $_.Exception.Message
+  if ($TestAppLaunched) {
+    # Capture only after this run has launched the isolated test package.
+    # A missing report can indicate a WebView startup issue, not a test failure.
+    Capture-TestScreen -Serial $Serial -Label 'failure'
+  }
 } finally {
   [void](New-Item -ItemType Directory -Force -Path $ReportDir)
   $summary = [ordered]@{
