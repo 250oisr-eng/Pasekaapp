@@ -300,13 +300,33 @@ function inspect(state,deps={}){
    if(removed.length!==rows(op06.evidence?.itemMovementEventIds).length)add('sectional_tech_process_op06_movement_evidence_count_invalid',{id:record.id});
    if(rows(layout?.temporaryQueenIsolation).length)add('sectional_tech_process_op06_plugs_still_installed',{id:record.id});
   }
+  const lateRows=operations.filter(row=>row?.operationId==='OP-07-HONEY-PAIR-ADD'),late=lateRows[0];
+  if(lateRows.length>1)add('sectional_late_honey_pair_duplicate',{id:record.id,count:lateRows.length});
+  if(late&&!operations.some(row=>row?.operationId==='OP-07'))add('sectional_late_honey_pair_op07_missing',{id:record.id});
   const op07Rows=operations.filter(row=>row?.operationId==='OP-07'),op07=op07Rows[0];
   if(op07Rows.length>1)add('sectional_tech_process_op07_duplicate',{id:record.id,count:op07Rows.length});
   if(op07Rows.length===1){
    if(!completed||op07.status!=='DONE'||!validDate(op07.completedAt))add('sectional_tech_process_op07_status_invalid',{id:record.id});
    const honey=layout?.honeyStack,bodyIds=rows(honey?.bodyIds).slice().sort(),excluders=rows(honey?.excluders);
-   if(!honey||JSON.stringify(bodyIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds).slice().sort())||JSON.stringify(excluders.map(row=>row?.itemId).sort())!==JSON.stringify(rows(op07.evidence?.excluderItemIds).slice().sort()))add('sectional_tech_process_op07_layout_evidence_mismatch',{id:record.id});
-   if(honey&&JSON.stringify(honeyFrameCompositionEvidence(Object.fromEntries(rows(honey.bodyIds).map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]))))!==JSON.stringify(op07.evidence?.frameComposition))add('sectional_tech_process_op07_frame_composition_evidence_invalid',{id:record.id});
+   const initialHoneyIds=rows(op07.evidence?.honeyBodyIds);
+   const addedHoneyIds=late?rows(late.evidence?.addedBodyIds):[];
+   const expectedHoneyIds=late?[...initialHoneyIds,...addedHoneyIds]:initialHoneyIds;
+   if(!honey||JSON.stringify(bodyIds)!==JSON.stringify(expectedHoneyIds.slice().sort())||JSON.stringify(excluders.map(row=>row?.itemId).sort())!==JSON.stringify(rows(op07.evidence?.excluderItemIds).slice().sort()))add('sectional_tech_process_op07_layout_evidence_mismatch',{id:record.id});
+   if(honey&&JSON.stringify(honeyFrameCompositionEvidence(Object.fromEntries(initialHoneyIds.map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]))))!==JSON.stringify(op07.evidence?.frameComposition))add('sectional_tech_process_op07_frame_composition_evidence_invalid',{id:record.id});
+   if(late){
+    if(late.status!=='DONE'||!validDate(late.completedAt)||Date.parse(late.completedAt)<Date.parse(op07.completedAt))add('sectional_late_honey_pair_timestamp_invalid',{id:record.id});
+    if(honey?.purpose!=='main'||op07.evidence?.honeyPurpose!=='main'||initialHoneyIds.length!==2||addedHoneyIds.length!==2||bodyIds.length!==4||new Set(expectedHoneyIds).size!==4||JSON.stringify(rows(late.evidence?.previousBodyIds))!==JSON.stringify(initialHoneyIds)||JSON.stringify(rows(late.evidence?.honeyBodyIds))!==JSON.stringify(rows(honey?.bodyIds)))add('sectional_late_honey_pair_evidence_invalid',{id:record.id});
+    const addedFrames=Object.fromEntries(addedHoneyIds.map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]));
+    if(JSON.stringify(honeyFrameCompositionEvidence(addedFrames))!==JSON.stringify(late.evidence?.frameComposition))add('sectional_late_honey_pair_frame_composition_invalid',{id:record.id});
+    const pairIds=addedHoneyIds.map(id=>state.equipmentInventory?.bodies?.[id]?.pairId);
+    if(!pairIds.every(nonEmpty)||pairIds[0]!==pairIds[1]||initialHoneyIds.some(id=>state.equipmentInventory?.bodies?.[id]?.pairId===pairIds[0]))add('sectional_late_honey_pair_inventory_pair_invalid',{id:record.id});
+    for(const bodyId of addedHoneyIds){
+     const body=state.equipmentInventory?.bodies?.[bodyId];
+     const local=rows(body?.events).filter(event=>event?.operationId==='OP-07-HONEY-PAIR-ADD'&&event?.type==='placed'&&event?.at===late.completedAt);
+     const global=rows(state.equipmentInventory?.events).filter(event=>event?.bodyId===bodyId&&event?.operationId==='OP-07-HONEY-PAIR-ADD'&&event?.type==='sectional_body_placed'&&event?.at===late.completedAt);
+     if(local.length!==1||global.length!==1||local[0]?.from?.type!=='storage'||local[0]?.to?.bodyRole!=='honey'||JSON.stringify(local[0]?.from)!==JSON.stringify(global[0]?.from)||JSON.stringify(local[0]?.to)!==JSON.stringify(global[0]?.to))add('sectional_late_honey_pair_body_history_invalid',{id:record.id,bodyId});
+    }
+   }
    if(honey?.purpose==='early'){
     for(const bodyId of rows(honey.bodyIds)){
      const frameErrors=earlyHoneyFrameCompositionErrors(state.equipmentInventory?.bodies?.[bodyId]?.frames);
@@ -345,7 +365,7 @@ function inspect(state,deps={}){
     if(!valid)add('sectional_tech_process_op07_item_movement_evidence_invalid',{id:record.id,itemId:evidence?.itemId??null});
    }
    if(stackAccessoryCounts.size!==3||[...stackIds].some(stackId=>{const count=stackAccessoryCounts.get(stackId);return !count||count.cover!==1||count.topRiser!==1}))add('sectional_tech_process_op07_stack_accessory_history_invalid',{id:record.id});
-   const honeyBodies=rows(honey?.bodyIds);
+   const honeyBodies=initialHoneyIds;
    for(const bodyId of honeyBodies){
     const body=state.equipmentInventory?.bodies?.[bodyId],bodyEvent=rows(body?.events).find(row=>row?.operationId==='OP-07'&&row?.type==='placed'&&row?.at===op07.completedAt),event=rows(state.equipmentInventory?.events).find(row=>row?.bodyId===bodyId&&row?.operationId==='OP-07'&&row?.type==='sectional_body_placed'&&row?.at===op07.completedAt);
     if(!body||body.kind!=='honey'||!bodyEvent||bodyEvent.from?.type!=='storage'||bodyEvent.to?.bodyRole!=='honey'||!event||event.from?.type!=='storage'||event.to?.bodyRole!=='honey'||JSON.stringify(bodyEvent.from)!==JSON.stringify(event.from)||JSON.stringify(bodyEvent.to)!==JSON.stringify(event.to))add('sectional_tech_process_op07_honey_body_history_invalid',{id:record.id,bodyId});
@@ -772,5 +792,72 @@ function completeOP07(state,request,deps={}){
  commit(state,draft);
  return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===nextLayout.id)};
 }
-window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07});
+
+// Source P37: during the main nectar flow, a second COMPLETE honey pair
+// may be installed after the initial two. This is a separate confirmed
+// transaction: OP-07's original evidence is never rewritten.
+function completeOP07AdditionalHoneyPair(state,request,deps={}){
+ const fail=(error,details)=>({ok:false,error,details:details??null});
+ if(!isObject(state)||!isObject(request))return fail('invalid_request');
+ if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ // The UI must submit the revision it reviewed before confirmation. Legacy
+ // schema-15 fixtures may have no revision yet; do not assign one here.
+ const storedRevision=state.meta?.revisionId;
+ if(nonEmpty(storedRevision)&&request.expectedRevisionId!==storedRevision)return fail('late_honey_pair_state_revision_changed');
+ if(request.expectedRevisionId!=null&&request.expectedRevisionId!==storedRevision)return fail('late_honey_pair_state_revision_changed');
+ if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
+ if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
+ if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
+ if(typeof deps.makeId!=='function')return fail('id_generator_required');
+ const required=['PasekaFamilyLineage','PasekaSectionalPhysicalLayout','PasekaEquipmentItems','PasekaInventory','PasekaLabels'];
+ for(const key of required)if(!deps[key])return fail('dependency_missing',{dependency:key});
+ if(typeof deps.PasekaFamilyLineage.inspect!=='function'||typeof deps.PasekaSectionalPhysicalLayout.inspect!=='function'||typeof deps.PasekaEquipmentItems.inspect!=='function'||typeof deps.PasekaEquipmentItems.validateReferences!=='function'||typeof deps.PasekaInventory.inspect!=='function'||typeof deps.PasekaLabels.appendFrameEvent!=='function')return fail('dependency_api_incomplete');
+ if(!Array.isArray(state.sectionalTechProcesses)||Number(state.meta?.schemaVersion||0)<15)return fail('sectional_tech_process_schema_not_ready');
+ if(rows(request.bodyStorageMoves).length||rows(request.itemMoves).length||request.layout!=null)return fail('late_honey_pair_unrelated_changes_forbidden');
+ const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
+ if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
+ const record=rows(state.sectionalTechProcesses).find(row=>row?.id===request.techProcessId&&row?.hiveId===request.hiveId);
+ if(!record)return fail('late_honey_pair_process_missing');
+ const operations=rows(record.state?.operations),op07=operations.find(row=>row?.operationId==='OP-07');
+ if(!op07||op07.status!=='DONE'||!validDate(op07.completedAt))return fail('late_honey_pair_requires_completed_op07');
+ if(operations.some(row=>row?.operationId==='OP-07-HONEY-PAIR-ADD'))return fail('late_honey_pair_already_recorded');
+ if(Date.parse(request.occurredAt)<Date.parse(op07.completedAt))return fail('late_honey_pair_precedes_op07');
+ const layouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
+ if(layouts.length!==1)return fail('late_honey_pair_layout_missing');
+ const oldLayout=layouts[0],honey=oldLayout?.honeyStack,oldIds=rows(honey?.bodyIds);
+ if(oldLayout?.id!==record.state?.layoutId||oldLayout?.profileId!==PROFILE_ID||oldLayout?.mode!=='SIDE_BY_SIDE'||(oldLayout.broodRows??2)!==2||honey?.purpose!=='main'||op07.evidence?.honeyPurpose!=='main'||oldIds.length!==2||JSON.stringify(oldIds)!==JSON.stringify(rows(op07.evidence?.honeyBodyIds)))return fail('late_honey_pair_main_two_body_layout_required');
+ if(!Array.isArray(request.addedBodyIds)||request.addedBodyIds.length!==2||request.addedBodyIds.some(id=>!nonEmpty(id))||new Set(request.addedBodyIds).size!==2||request.addedBodyIds.some(id=>oldIds.includes(id)))return fail('late_honey_pair_exactly_two_new_bodies_required');
+ const addedIds=request.addedBodyIds.slice(),inventory=state.equipmentInventory?.bodies||{};
+ const pairIds=addedIds.map(id=>inventory[id]?.pairId);
+ if(!pairIds.every(nonEmpty)||pairIds[0]!==pairIds[1]||oldIds.some(id=>inventory[id]?.pairId===pairIds[0]))return fail('late_honey_pair_same_unused_pair_required');
+ for(const bodyId of addedIds){
+  const body=inventory[bodyId],frames=body?.frames;
+  if(!isObject(body)||body.kind!=='honey'||body.condition!=='good'||body.spec?.profileId!==PROFILE_ID||body.spec?.framesPerBox!==10||!nonEmpty(body.storageLocation))return fail('late_honey_pair_body_unavailable_in_storage',{bodyId});
+  if(!Array.isArray(frames)||frames.length!==10||frames.some(frame=>!isObject(frame)||frame.history!=null&&!Array.isArray(frame.history)))return fail('late_honey_pair_frame_inventory_invalid',{bodyId});
+  if(rows(state.sectionalLayouts).some(layout=>rows(layout?.honeyStack?.bodyIds).includes(bodyId)||rows(layout?.sections).some(section=>rows(section?.broodBodyIds).includes(bodyId))))return fail('late_honey_pair_body_already_used',{bodyId});
+  for(const legacy of Object.values(state.layouts||{}))if(Object.values(legacy?.boxes||{}).some(box=>box?.bodyId===bodyId||box?.id===bodyId))return fail('late_honey_pair_legacy_body_in_use',{bodyId});
+ }
+ const before=[...deps.PasekaInventory.inspect(state,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(state),...deps.PasekaEquipmentItems.validateReferences(state),...deps.PasekaSectionalPhysicalLayout.inspect(state),...deps.PasekaFamilyLineage.inspect(state),...inspect(state,deps)];
+ if(before.length)return fail('late_honey_pair_initial_state_invalid',before);
+ let draft;try{draft=clone(state)}catch(error){return fail('clone_failed',{message:error.message})}
+ const nextLayout=draft.sectionalLayouts.find(row=>row?.id===oldLayout.id);
+ nextLayout.honeyStack.bodyIds.push(...addedIds);
+ const history=appendBodyMovementHistory(draft,oldLayout,nextLayout,new Map(),request.occurredAt,deps.makeId,'OP-07-HONEY-PAIR-ADD',deps.PasekaLabels);
+ if(!history.ok)return fail(history.error,history.details);
+ for(const bodyId of addedIds)delete draft.equipmentInventory.bodies[bodyId].storageLocation;
+ const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
+ nextRecord.state.operations.push({operationId:'OP-07-HONEY-PAIR-ADD',status:'DONE',completedAt:request.occurredAt,evidence:{
+  previousBodyIds:oldIds.slice(),addedBodyIds:addedIds.slice(),honeyBodyIds:nextLayout.honeyStack.bodyIds.slice(),
+  frameComposition:honeyFrameCompositionEvidence(Object.fromEntries(addedIds.map(id=>[id,draft.equipmentInventory.bodies[id].frames])))
+ }});
+ nextRecord.updatedAt=request.occurredAt;
+ const after=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
+ if(after.length)return fail('late_honey_pair_transaction_validation_failed',after);
+ const audit=appendStageOperationAudit(draft,nextRecord,'OP-07-HONEY-PAIR-ADD',deps.makeId);
+ if(!audit.ok)return fail(audit.error,audit.details);
+ commit(state,draft);
+ return {ok:true,record:state.sectionalTechProcesses.find(row=>row?.id===request.techProcessId),layout:state.sectionalLayouts.find(row=>row?.id===oldLayout.id)};
+}
+
+window.PasekaSectionalOperationCoordinator=Object.freeze({PROFILE_ID,MODEL_VERSION,inspect,completeOP04,completeOP04SecondRow,completeOP05,completeOP06,completeOP07,completeOP07AdditionalHoneyPair});
 })();

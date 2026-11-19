@@ -86,3 +86,63 @@ test('non-paired custom profiles are unaffected', () => {
   profile.honey.installation = 'independent';
   assert.equal(check(profile, [false, true, false, false]).ok, true);
 });
+
+function applyProfileHoneySelection(profile, choices, current=[false, false, false, false]) {
+  const begin = html.indexOf('function applyProfileAssemblySelection()');
+  const end = html.indexOf('async function finishProfileAssemblySetup(', begin);
+  assert.ok(begin > 0 && end > begin, 'profile assembly UI handler exists');
+  const layout={mode:'summer',installedBoxes:['B1'],honeyBoxInstalled:current.slice()};
+  const alerts=[];
+  let renders=0;
+  const selected = new Set(profile.honey.boxKeys.filter((key,i)=>choices[i]));
+  const apply = new Function('selectedStructureHive','layoutFor','profileForHive','profileHoneyKeys',
+    'document','alert','renderStructure',html.slice(begin,end)+'\nreturn applyProfileAssemblySelection;')(
+    ()=>'test-hive',()=>layout,()=>profile,()=>profile.honey.boxKeys,
+    {querySelectorAll:()=>[],querySelector:selector=>{
+      const match=selector.match(/data-profile-honey="([^"]+)"/);
+      return match && selected.has(match[1])?{checked:true}:null;
+    }},
+    text=>alerts.push(text),()=>{renders++}
+  );
+  apply();
+  return {layout,alerts,renders};
+}
+
+test('four-body profile UI preserves first complete pair and both pairs',()=>{
+ const profile=makeProfile(4);
+ for(const chosen of [
+   [false,false,false,false],
+   [true,true,false,false],
+   [true,true,true,true]
+ ]) {
+   const result=applyProfileHoneySelection(profile,chosen);
+   assert.deepEqual(result.layout.honeyBoxInstalled,chosen);
+   assert.equal(result.alerts.length,0);
+   assert.equal(result.renders,1);
+ }
+});
+
+test('four-body profile UI rejects incomplete or reversed pairs without modifying layout',()=>{
+ const profile=makeProfile(4);
+ for(const chosen of [
+  [true,false,false,false],
+  [true,true,true,false],
+  [false,false,true,true],
+  [true,false,true,false],
+  [true,true,false,true]
+ ]) {
+  const existing=[true,true,false,false];
+  const result=applyProfileHoneySelection(profile,chosen,existing);
+  assert.deepEqual(result.layout.honeyBoxInstalled,existing,chosen.join(','));
+  assert.deepEqual(result.layout.installedBoxes,['B1'],'unrelated brood selection must remain unchanged');
+  assert.equal(result.alerts.length,1);
+  assert.equal(result.renders,0);
+ }
+});
+
+test('legacy two-body paired profile keeps existing all-or-none selection behavior',()=>{
+ const profile=makeProfile(2);
+ const result=applyProfileHoneySelection(profile,[true,false],[true,true]);
+ assert.deepEqual(result.layout.honeyBoxInstalled,[false,false]);
+ assert.equal(result.renders,1);
+});
