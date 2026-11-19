@@ -7,6 +7,7 @@ on:
       - test/win11-native-downloads-2026-11-19
       - test/win11-signature-safe-2026-11-19
       - fix/win11-powershell-parse-2026-11-19
+      - fix/win11-report-polling-2026-11-19
   workflow_dispatch:
 
 concurrency:
@@ -48,6 +49,9 @@ jobs:
             throw 'Launcher missing the isolated APK manifest or checksum guard.'
           }
           Write-Host 'Windows PowerShell 5.1: launcher syntax, UTF-8 BOM and single-script structure OK'
+      - name: Simulate native ADB missing report then retry on Windows PowerShell 5.1
+        shell: powershell
+        run: .\tests\windows-report-polling.ps1
   build:
     needs: validate-windows-script
     runs-on: ubuntu-24.04
