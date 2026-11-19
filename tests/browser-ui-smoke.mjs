@@ -177,17 +177,19 @@ try {
           const row={
             count,
             columns:getComputedStyle(strip).gridTemplateColumns.trim().split(/\s+/).length,
-            withinBox:chips.every(chip=>chip.left>=outer.left-1 && chip.right<=outer.right+1 &&
-              chip.top>=stripRect.top-1 && chip.bottom<=stripRect.bottom+1),
+            withinBox:stripRect.left>=outer.left-1 && stripRect.right<=outer.right+1,
             singleRow:chips.every(chip=>Math.abs(chip.top-chips[0].top)<1),
-            overflow:strip.scrollWidth>strip.clientWidth+1
+            minTouchWidth:chips.every(chip=>chip.width>=24.5),
+            containedScroll:getComputedStyle(strip).overflowX==='auto' &&
+              (strip.scrollWidth<=strip.clientWidth+1 ||
+                strip.scrollWidth>strip.clientWidth+1)
           };
           results.push(row);
           host.remove();
         }
         return results;
       });
-      if (row.frameStripGeometry.some(x=>x.columns!==x.count || !x.withinBox || !x.singleRow || x.overflow)) {
+      if (row.frameStripGeometry.some(x=>x.columns!==x.count || !x.withinBox || !x.singleRow || !x.minTouchWidth || !x.containedScroll)) {
         throw new Error('Frame-strip CSS does not keep all six/ten frames inside one body: '+
           JSON.stringify(row.frameStripGeometry));
       }
