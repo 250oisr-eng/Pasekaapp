@@ -1,3 +1,14 @@
+## 2026-11-19 — физический OnePlus PASS по объединённой test-only ветке PR #195
+
+- Получен пользовательский `report(6).json` и скриншот `before-restart(2).png`. Тестовый package `ru.paseka.journal.device.r44596186324a1`, runId `f984b6f8bc86441b9026`; `phaseOne` = `awaiting_restart`, **6/6 PASS**, `final` = `complete`, **8/8 PASS**, error пуст. Оба этапа имеют один runId и отмечены как `isolated-android-package-and-test-only-indexeddb`. На скриншоте видны шесть зелёных проверок до перезапуска; post-restart результат подтверждается JSON, не этим скриншотом.
+- Сопоставлено с GitHub Actions [Win11 + Android selftest #44596186324](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44596186324), точный тестовый commit `868f8b34d099404fb4361cc7c74c03935a74d078`: `validate-windows-script` и `build` — completed/success, включая Windows PowerShell 5.1, `npm test`, сборку isolated APK и ZIP upload. Artifact ID `14565926717`, имя `paseka-win11-android-selftest-kit`, срок до 2026-12-03 19:16 UTC. Обычный Android workflow [#44596220000](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44596220000) на том же SHA тоже completed/success. Изолированный архивный workflow #44596219809 — skipped (не считать выполненной проверкой).
+- Test-only APK содержит побайтно идентичные исходному PR #194 три файла (`js/paseka-android-download.js`, `scripts/prepare-android-archive-download.mjs`, `tests/android-archive-download.test.mjs`); подтверждённый набор тестов проверяет положительный путь `native_downloads_archive_hash_and_cleanup`, export/preflight/commit/rollback, guard against unconfirmed treatment, revision guard, фактический restart/IndexedDB и карточки. **Отдельной физической инъекции неполной записи/ошибок `beginFile`/MediaStore этот отчёт не демонстрирует**; negative coverage остаётся mock/source-contract и CI.
+- Не проверены `native-file-picker`, `offline-network-transport`, полная визуальная читаемость экрана. На предоставленном снимке длинные технические идентификаторы тестов переносятся на следующие строки, status bar белая на светлом фоне — потенциальный UX-недочёт тестовой оболочки; не блокировать положительные функциональные 8/8 этим наблюдением, не приписывать полную визуальную приёмку.
+- Решение пользователя: Windows автоматизация остаётся **ручной**. Никаких Task Scheduler jobs, `-Install`, `-Run`, production, пользовательских записей, merge или deploy. Результат не делает PR #194 или весь архивный стек готовыми к production.
+- Следующий приоритет: независимый negative-path тест Native MediaStore для неполной передачи и ошибок создания/записи с гарантированной очисткой только собственного test URI; затем native picker и офлайн-проверка в отдельном тестовом сценарии. Эти ворота release пока открыты.
+
+---
+
 ## 2026-11-19 — подготовка ручной Win11/OnePlus проверки PR #194
 
 - Решение пользователя: оставить Windows/ADB тестирование **только ручным**, не регистрировать Task Scheduler и не запускать scheduled `-Run`.
