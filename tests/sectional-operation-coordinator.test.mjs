@@ -1016,3 +1016,17 @@ test('late honey evidence and physical body history are validated on read-back',
   assert.notDeepEqual(Coordinator.inspect(altered,prepared.deps),[],'tampering must be detectable');
  }
 });
+
+test('late honey pair survives JSON backup-style roundtrip without schema migration',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ const originalOp07=structuredClone(state.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07'));
+ const result=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ const restored=JSON.parse(JSON.stringify({app:'Paseka',state})).state;
+ assert.equal(restored.meta.schemaVersion,state.meta.schemaVersion);
+ assert.deepEqual(restored.sectionalTechProcesses[0].state.operations.find(x=>x.operationId==='OP-07'),originalOp07);
+ assert.deepEqual(restored.sectionalLayouts[0].honeyStack.bodyIds,['honey1','honey2','honey3','honey4']);
+ assert.deepEqual(Coordinator.inspect(restored,prepared.deps),[]);
+ assert.deepEqual(Layout.inspect(restored),[]);
+ assert.deepEqual(Inventory.inspect(restored,Labels,prepared.deps.profileForHive),[]);
+});
