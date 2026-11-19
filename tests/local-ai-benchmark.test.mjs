@@ -26,6 +26,7 @@ test('invalid benchmark input fails closed before model requests',async()=>{
   await assert.rejects(benchmark({models:['qwen3:4b'],cases:[...cases.slice(0,3),{...cases[0]}],review}),/repeated/);
   await assert.rejects(benchmark({models:['qwen3:4b'],cases:[...cases.slice(0,3),{...cases[3],context:'password=supersecretpassword'}],review}),/secret/);
   await assert.rejects(benchmark({models:['bad model'],cases,review}),/model/);
+  await assert.rejects(benchmark({models:['qwen3:cloud'],cases,review}),/model/);
   assert.equal(called,false);
 });
 test('offline model failures are recorded without silent success',async()=>{
