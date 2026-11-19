@@ -144,7 +144,7 @@ function report(phase) {
     pass: checks.length > 0 && checks.every(item => item.result === 'PASS'),
     checks, completedAt: new Date().toISOString(),
     scope: 'isolated-android-package-and-test-only-indexeddb',
-    notVerified: ['native-download-file-picker', 'offline-network-transport', 'manual-visual-legibility']
+    notVerified: ['native-file-picker', 'offline-network-transport', 'manual-visual-legibility']
   });
   bridge.report(payload);
 }
@@ -198,6 +198,22 @@ async function phaseOne() {
       assert((await getItem(target, 'archive_history', 'positive-' + runId)).status === 'reverted',
         'Rollback history is not marked reverted');
     } finally { target.close(); }
+  });
+  await check('native_downloads_archive_hash_and_cleanup', async () => {
+    assert(built?.blob instanceof Blob, 'A verified test archive is required');
+    assert(window.PasekaAndroidDownload?.saveToAndroidDownloads, 'Native Downloads wrapper unavailable');
+    assert(window.PasekaArchiveDownload?.beginFile, 'Native Android Downloads bridge is absent');
+    assert(typeof bridge.testDownloadName === 'function' &&
+      typeof bridge.verifyAndRemoveTestDownload === 'function', 'Test-only native file verifier unavailable');
+    const filename = String(bridge.testDownloadName() || '');
+    assert(/^paseka-full-backup-20[8-9][0-9]-[0-1][0-9]-[0-3][0-9]\\.paseka$/.test(filename),
+      'Test archive filename was not safely generated');
+    const checksum = await crypto.subtle.digest('SHA-256', await built.blob.arrayBuffer());
+    const sha256 = Array.from(new Uint8Array(checksum), byte => byte.toString(16).padStart(2, '0')).join('');
+    const uri = await window.PasekaAndroidDownload.saveToAndroidDownloads(built.blob, filename);
+    assert(typeof uri === 'string' && uri.startsWith('content://media/'), 'Native bridge did not produce a Downloads URI');
+    const verified = bridge.verifyAndRemoveTestDownload(uri, sha256, built.blob.size);
+    assert(verified === 'OK', 'Test-only Downloads integrity/cleanup failed: ' + String(verified));
   });
   await check('archive_rejects_unconfirmed_treatment', async () => {
     const badEvent = { ...treatment('bad-event', '2026-11-18T08:30:00.000Z'), userConfirmed: false };
