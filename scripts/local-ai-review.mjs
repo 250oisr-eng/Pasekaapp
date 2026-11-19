@@ -44,6 +44,7 @@ export async function reviewFixture({fixture, model, request=fetch, timeoutMs=60
   let payload; try { payload=JSON.parse(raw); } catch { throw new Error('Malformed Ollama JSON'); }
   if (typeof payload.response !== 'string' || Buffer.byteLength(payload.response,'utf8') > 12000) throw new Error('Invalid model response');
   if (!payload.response.trim()) throw new Error('No final answer from model (thinking-only or token limit); no findings accepted');
+  if (payload.done_reason === 'length') throw new Error('Model answer was truncated by token limit; no findings accepted');
   return {status:'unverified-model-suggestions',model:id,task:safe.task,findingsText:payload.response};
 }
 async function main() {
