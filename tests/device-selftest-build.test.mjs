@@ -55,6 +55,29 @@ test('Windows ADB selection has opt-in private Wi-Fi, USB priority and native Po
   assert.match(yaml, /windows-adb-selection\.ps1/);
 });
 
+test('local scheduled Android runner is opt-in, gated and never installs a test APK', async () => {
+  const script = await readFile(new URL('../scripts/windows/Run-Paseka-Tests.ps1', import.meta.url), 'utf8');
+  const wrapper = await readFile(new URL('../scripts/windows/Run-Local-Scheduled.ps1', import.meta.url), 'utf8');
+  const registration = await readFile(new URL('../scripts/windows/Register-Local-Scheduled.ps1', import.meta.url), 'utf8');
+  const mockTest = await readFile(new URL('./windows-local-schedule.ps1', import.meta.url), 'utf8');
+  const workflow = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  assert.match(script, /PASEKA_SCHEDULED_NO_INSTALL/);
+  assert.match(script, /if \(\$env:PASEKA_SCHEDULED_NO_INSTALL -eq '1'\)/);
+  assert.match(wrapper, /param\(\[switch\]\$Run\)/);
+  assert.match(wrapper, /Get-FileHash/);
+  assert.match(wrapper, /report\.final\.pass -eq \$true/);
+  assert.match(wrapper, /@\(\$report\.final\.checks\)\.Count -eq 8/);
+  assert.match(wrapper, /PASEKA_SCHEDULED_NO_INSTALL = '1'/);
+  assert.match(wrapper, /PASEKA_ADB_WIFI_ENDPOINT = ''/);
+  assert.doesNotMatch(wrapper, /adb install|adb tcpip|uninstall|pm clear|Invoke-WebRequest|Start-BitsTransfer/);
+  assert.match(registration, /\[switch\]\$Install/);
+  assert.match(registration, /-LogonType Interactive -RunLevel Limited/);
+  assert.match(registration, /Task already exists/);
+  assert.match(mockTest, /hash mismatch|APK hash mismatch/);
+  assert.match(workflow, /windows-local-schedule\.ps1/);
+  assert.match(workflow, /Run-Local-Scheduled\.ps1 scripts\/windows\/Register-Local-Scheduled\.ps1/);
+});
+
 test('device test configurator refuses unknown or already isolated production app ids', () => {
   assert.throws(() => isolatedConfig({ appId: 'unknown.package' }), /Refusing/);
   assert.throws(() => isolatedConfig({ appId: PACKAGE_ID }), /Refusing/);
