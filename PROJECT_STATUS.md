@@ -1,3 +1,14 @@
+## Этап — Windows 11 локальный автозапуск подготовлен, но не активирован (2026-11-19)
+
+- Основание: пользовательский физический OnePlus test-only PASS 8/8, package `ru.paseka.journal.device.r44526817635a1`, run `cc7ba1ae3a5f434cacb9`, CI checked SHA `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`.
+- Существующий Draft PR #186 расширен **только тестовой инфраструктурой**. `Run-Paseka-Tests.ps1` получил флаг окружения `PASEKA_SCHEDULED_NO_INSTALL=1`: тогда пропускает ADB install и требует уже установленный уникальный test-only package; обычный ручной `START-TESTS.cmd` сохраняет прежнее поведение.
+- Новый `scripts/windows/Run-Local-Scheduled.ps1` по умолчанию выполняет только dry-run без ADB; `-Run` разрешён лишь после проверки локального APK SHA-256 и 8/8 PASS из той же папки reports для **того же** package ID. Плановое подключение ограничено USB; Wi-Fi endpoint не наследуется, не скачиваются новые APK или скрипты, нет автоотправки отчётов.
+- `scripts/windows/Register-Local-Scheduled.ps1`: безопасный preview по `-DailyAt HH:mm`; реальная регистрация Windows Task Scheduler только после отдельного ключа `-Install` и доказанного 8/8 PASS; текущий интерактивный пользователь, без повышения прав, не заменяет существующую задачу. В проекте не выбран пользовательский час и на его Windows ничего не установлено.
+- `tests/windows-local-schedule.ps1` запускает мок-тест PS 5.1 без телефона и регистрации задач; Node regression закрепляет условия, workflow проверяет и копирует оба скрипта в portable ZIP. README расширен. **CI после этих изменений ещё не подтверждён**, физический scheduler ещё не проверен; ни одно scheduled задание не активировалось.
+- **Следующий шаг:** получить CI exact HEAD; при ошибках исправить. Затем ручной smoke-test нового ZIP с 8/8 PASS и dry-run. Точное расписание и включение task оставить отдельным решением пользователя после проверки. Main, production, базы, пользовательские файлы, merge не трогать.
+
+---
+
 ## Контрольная точка — физический OnePlus 8/8 PASS (2026-11-19)
 
 - Получены три пользовательских артефакта: `report(4).json`, `before-restart.png`, `after-restart.png`. Итог **PASS**, runId `cc7ba1ae3a5f434cacb9`, изолированный пакет `ru.paseka.journal.device.r44526817635a1`; это соответствует ZIP GitHub Actions run **44526817635** и проверенному CI SHA `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`.
