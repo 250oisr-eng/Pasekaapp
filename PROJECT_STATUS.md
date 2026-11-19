@@ -1,3 +1,23 @@
+## Контрольная точка — 2026-11-19: PR #194 прошёл CI по коду и тестам
+
+- Открыт [Draft PR #194](https://github.com/250oisr-eng/Pasekaapp/pull/194), stacked base #193→#192→#190→#168, **без merge**.
+- **Проверенный code/test SHA:** `30a94f6e2bba3405a2c7bc3f7677ad336c51f49e`. [GitHub Actions #44594372606](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44594372606): `Build Android APK completed/success`. Лог job #135808590112: **737/737 tests, 0 failures**, Gradle Debug APK build и upload — completed/success.
+- Отдельный workflow `Build isolated archive test APK` #44594372355: `completed/skipped`, не считать успешной физической или изолированной Android-проверкой.
+- Исправление проверяет точную сумму записанных чанков и ожидаемый `blob.size` перед публикацией файла; тесты включают вызов JS→Java с размером и source-contract. Android Java компилируется, но реальная целостность сохранённого файла и SHA-256 в Android Downloads не проверены.
+- После этого документационного checkpoint HEAD SHA изменится; **CI на нём пока отдельно не подтверждён**. Следующее: проверить финальный HEAD CI и только в изолированной Android-среде подтвердить Downloads/media bytes/import/rollback/offline. Production/real data не изменялись.
+
+---
+
+## Контрольная точка — 2026-11-19: подтверждение точного объёма Android-архива при сохранении
+
+- На основании независимого аудита `PasekaArchiveDownloadBridge` выявлен ещё один риск: прежний `finishFile()` публиковал `MediaStore` файл по завершении сессии, **не проверяя**, что нативный модуль получил все байты исходного Blob. Этот guard нужен в нативном слое независимо от корректности JS-loop и наличия `finishFile()` URI.
+- В новой stacked ветке `fix/android-archive-byte-count-2026-11-19` поверх точного HEAD Draft PR #193 `e1f697ea221d2d4d374396d90d5db042e99f48c2`: JS `saveToAndroidDownloads` передаёт `blob.size` третьим параметром `beginFile`. Генератор Java требует `expectedBytes > 0` **до** вставки MediaStore, хранит `writtenBytes`, запрещает пустые / выходящие за оставшийся объём блоки и публикует файл только при `writtenBytes === expectedBytes`. При несовпадении закрывает поток, удаляет pending URI и возвращает ошибку. Для успешной передачи байтов формат, путь и результат URI остаются прежними.
+- В `tests/android-archive-download.test.mjs` успешный JS roundtrip теперь проверяет точный `expectedBytes`; новый source-contract regression проверяет ограничения в Java `beginFile/appendChunk/finishFile`, их порядок и очистку. **Это не физическое исполнение Java** и не сверка файловой системы: для сохранённых байтов требуются испытания на устройстве и SHA-256, release gates B–D остаются открытыми.
+- Не изменены IndexedDB, схема/формат `.paseka`, история, миграции, восстановление и production. Нет слияний или работы с реальными пользовательскими данными.
+- Следующий обязательный этап — GitHub CI на итоговом SHA, включая 737+ тестов и сборку Java, затем изолированное устройство Android для сохранения, сверки размеров/хешей и безопасного import/rollback на тестовых данных. Не объявлять CI успешным до отдельного подтверждения на SHA.
+
+---
+
 ## Контрольная точка — 2026-11-19: нативная очистка MediaStore проверена в CI
 
 - Draft PR [#193](https://github.com/250oisr-eng/Pasekaapp/pull/193), stacked base #192 → #190 → #168. **Проверенный точный code/test SHA:** `032697e2c46f7b0e94184a05bf9c10edced69bd1`.

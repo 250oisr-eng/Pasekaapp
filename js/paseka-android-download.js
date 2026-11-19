@@ -31,7 +31,7 @@
       throw new Error('Android-модуль сохранения файлов не подключён. Обнови тестовую сборку.');
     }
 
-    const sessionId = bridge.beginFile(filename, MIME);
+    const sessionId = bridge.beginFile(filename, MIME, blob.size);
     if (!sessionId) {
       throw new Error(bridge.getLastError?.() || 'Android не смог создать файл в папке «Загрузки/Пасека».');
     }

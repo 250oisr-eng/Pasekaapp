@@ -77,7 +77,8 @@ test('Android download actually encodes all chunks and reports success only afte
   const data = Buffer.alloc(300000, 42);
   const chunks = [], events = [], progress = [];
   const helper = await loadAndroidDownloadHelper({
-    beginFile(filename, mime) {
+    beginFile(filename, mime, expectedBytes) {
+      assert.equal(expectedBytes, data.length);
       events.push('begin');
       assert.match(filename, /[.]paseka$/);
       assert.equal(mime, 'application/vnd.paseka.archive');
@@ -155,4 +156,25 @@ test('native beginFile cleans orphaned MediaStore rows if opening the output str
     begin.indexOf('openOutputStream(pendingUri, "w")') < begin.indexOf('sessions.put(id,'),
     'never retain a native session before the output stream is open'
   );
+});
+
+
+test('Android bridge rejects incomplete, empty and oversized native writes before publishing', () => {
+  const source = createArchiveDownloadBridgeSource('ru.paseka.journal');
+  const begin = source.split('public synchronized String beginFile(')[1]?.split('@JavascriptInterface')[0];
+  const append = source.split('public synchronized boolean appendChunk(')[1]?.split('@JavascriptInterface')[0];
+  const finish = source.split('public synchronized String finishFile(')[1]?.split('@JavascriptInterface')[0];
+  assert.ok(begin && append && finish, 'all native phases must be present');
+  assert.ok(begin.startsWith('String displayName, String mimeType, long expectedBytes)'));
+  assert.ok(begin.includes('if (expectedBytes <= 0)'));
+  assert.ok(begin.indexOf('if (expectedBytes <= 0)') < begin.indexOf('getContentResolver().insert('));
+  assert.ok(begin.includes('new Session(pendingUri, pendingOutput, expectedBytes)'));
+  assert.ok(source.includes('final long expectedBytes;'));
+  assert.ok(source.includes('long writtenBytes;'));
+  assert.ok(append.includes('bytes.length == 0 || bytes.length > session.expectedBytes - session.writtenBytes'));
+  assert.ok(append.indexOf('session.output.write(bytes);') < append.indexOf('session.writtenBytes += bytes.length;'));
+  assert.ok(finish.includes('if (session.writtenBytes != session.expectedBytes)'));
+  assert.ok(finish.indexOf('if (session.writtenBytes != session.expectedBytes)') < finish.indexOf('MediaStore.MediaColumns.IS_PENDING, 0'));
+  assert.ok(finish.includes('session.output.close();'));
+  assert.ok(finish.includes('getContentResolver().delete(session.uri, null, null)'));
 });
