@@ -11,7 +11,9 @@ for (const filename of [
   'paseka-sha256.js',
   'paseka-archive.js',
   'paseka-archive-restore.js',
-  'varroa-treatment-log.js'
+  'varroa-treatment-log.js',
+  'equipment-items.js',
+  'sectional-physical-layout.js'
 ]) {
   const code = await readFile(new URL('../js/' + filename, import.meta.url), 'utf8');
   new Function('window', code)(scope);
@@ -19,6 +21,17 @@ for (const filename of [
 const Archive = scope.PasekaArchive;
 const Restore = scope.PasekaArchiveRestore;
 const Treatment = scope.PasekaVarroaTreatmentLog;
+const appHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const validatorStart = appHtml.indexOf('function validateBackupState(state){');
+const validatorEnd = appHtml.indexOf('\nfunction validateRawBackupIntegrity(state)', validatorStart);
+assert.ok(validatorStart >= 0 && validatorEnd > validatorStart, 'production backup validator must be discoverable');
+const validateBackupState = new Function('deps',
+  'with (deps) { return (' + appHtml.slice(validatorStart, validatorEnd).trim() + '); }'
+)({
+  PasekaEquipmentItems: scope.PasekaEquipmentItems,
+  PasekaSectionalPhysicalLayout: scope.PasekaSectionalPhysicalLayout,
+  PasekaVarroaTreatmentLog: Treatment
+});
 
 function openDatabase(factory, name) {
   return new Promise((resolve, reject) => {
@@ -84,11 +97,9 @@ function stateFixture(revisionId, treatmentRows) {
   };
 }
 function validateTreatmentState(state) {
-  if (state?.meta?.schemaVersion !== 16 || !Array.isArray(state.varroaTreatments)) {
-    throw new Error('Schema 16 requires a Varroa treatment journal');
-  }
-  const problems = Treatment.inspectTreatmentIntegrity(state);
-  if (problems.length) throw new Error('Varroa treatment integrity: ' + problems.map(p => p.code).join(', '));
+  // Exercise the real application backup validator, including the Varroa
+  // integrity gate and unrelated schema/layout/accessory checks.
+  validateBackupState(state);
   return true;
 }
 async function makeArchive(sourceState, backupId) {
@@ -154,7 +165,7 @@ test('unconfirmed treatment inside a checksummed schema 16 archive is rejected b
 
   await assert.rejects(
     Restore.stageArchiveForRestore(db, built.blob, webcrypto, Archive, validateTreatmentState),
-    /varroa_treatment_unconfirmed/
+    /журнал обработок Varroa/i
   );
   assert.deepEqual(await readState(db), original);
   assert.equal((await readHistory(db, 'varroa-invalid-event')), undefined);
