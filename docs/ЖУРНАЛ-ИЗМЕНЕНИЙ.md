@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: подтверждён OpenCode V1, исправлена ошибочная V2 настройка
+
+- Пользователь: Node `v26.13.1`, npm `11.20.0`; `npm.cmd install -g opencode-ai` → added 3 packages, warning о неисполненном `postinstall`; `opencode.cmd --version` → `1.19.6`. `opencode.cmd models ollama` завершился **ошибкой конфигурации**, дословно: `V2 permissions are not supported by OpenCode V1. Use V1 "permission" rules or run opencode2.`
+- Исправлен ранее ошибочный пример в `docs/OPEN-CODE-READONLY-ПИЛОТ-2026-11-19.md`: для фактически установленного OpenCode V1 применяется `permission` (singular), `"*":"deny"` с явным разрешением только read/glob/grep, `external_directory:"deny"`, исключения на чтение `.env`. Убраны несовместимые `permissions` и недоказанные `policies` V2.
+- В папке `C:\Users\n12D8\OpenCode-Synthetic-Pilot` пользователь создал только `opencode.json` и `synthetic.js`. Конфигурация V1 на его ПК **ещё не запущена и не проверена**, провайдер Ollama в OpenCode **ещё не подтверждён**. Нельзя считать агента готовым к реальному репозиторию; запрещены cloud, edit, shell, external path, пользовательские данные.
+- Источник схемы V1/V2: https://opencode.ai/docs/migrate-v1/ . Прежнее утверждение, будто V2 формат обязателен для OpenCode 1.19.6, признано ошибочным.
+- PR #189 остаётся Draft, код приложения и данные не менялись. На новом SHA CI ещё не подтверждён. Следующий шаг: осторожно заменить только изолированный `opencode.json` на V1 и повторить `opencode.cmd models ollama`.
+
+---
+
 ## Контрольная точка — 2026-11-19: OpenCode 1.19.6 установлен на Windows; V2 схема исправлена
 
 - Пользователь подтвердил `opencode.cmd --version` → `1.19.6` после установки через `npm.cmd` (PowerShell ранее блокировал `npm.ps1`).
