@@ -1,3 +1,12 @@
+## Контрольная точка — OnePlus MIME fallback: CI успешен (2026-11-19)
+
+- После физического `report(3).json` (7/8, `ERR_TEST_MIME`) в Draft PR #186 доработан только test-only Android MediaStore bridge: допускается `application/vnd.paseka.archive` или ровно `application/octet-stream`, плюс обязательная проверка `OWNER_PACKAGE_NAME == activity.getPackageName()` перед удалением. Реальный MIME OnePlus неизвестен; `application/octet-stream` — ограниченная гипотеза, не наблюдённое значение.
+- **Проверенный точный HEAD:** `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`. [Windows + isolated Android kit workflow #44526817635](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44526817635) — **SUCCESS**, Windows PS 5.1 parse/ADB tests, Node regressions, isolated APK build, package check, ZIP upload. [Android APK workflow #44526822579](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44526822579) — **SUCCESS**; archive workflow #44526822608 — **SKIPPED**.
+- ZIP `paseka-win11-android-selftest-kit`, GitHub artifact ID `14532865511`, 11,677,387 bytes, expires `2026-12-03 12:47:17 UTC`. Эта APK на физическом устройстве пока не проверена.
+- **Следующий шаг:** выполнить новый физический тест только этого комплекта на OnePlus Android 15+ с USB (Wi-Fi допустим после ручного pairing), предоставить `report.json`. Не объявлять PASS без фактического отчёта, не удалять предыдущие тестовые файлы вручную и не включать планировщик до подтверждённого safe cleanup. Production/main/merge/deployment не затронуты.
+
+---
+
 ## Контрольная точка — отчёт (3), Android MIME (2026-11-19)
 
 - Пользователь прислал физический `report(3).json`: `status=FAIL`, `runId=f2ff998fdb344a128e40`, test-only package `ru.paseka.journal.device.r44525367280a1`, **7/8 PASS**, только `native_downloads_archive_hash_and_cleanup` возвращает **`ERR_TEST_MIME`**; отчёт не содержит фактическое значение MIME. Все архивные/Varroa/IndexedDB restart checks PASS.
