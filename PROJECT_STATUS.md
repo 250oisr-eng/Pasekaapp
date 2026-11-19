@@ -1,3 +1,14 @@
+## Новая изолированная APK test4 для проверки исправления истории (2026-11-19)
+
+- Предыдущую APK test3 не предлагаем устанавливать поверх существующей установки: подпись debug APK между CI-сборками может отличаться, а переустановка/удаление test3 не требуется и не должно рисковать локальными данными.
+- Для физической проверки исправления `Архив undefined` подготовлена отдельная установка test4: package ID `ru.paseka.journal.archive.test4`, название «Пасека — архив тест 4». Test2 и test3 остаются отдельными, нетронутыми приложениями.
+- Кодовое изменение UI прошло CI на SHA `2dfb9a6f3a2a263c930f2337ec2476eb20d4f67e`: **734/734 tests passed, 0 failures**, Gradle Debug APK build success, `aapt` подтвердил package ID test3, production ID отсутствует. Artifact ID `14499070845`, size 3,451,719 bytes, SHA-256 `ae0f97ce427b560e1e864d2588783f6e14b9899ab23f89e798970c1d7f45f7dd`, expires 2026-12-03 04:25:35 UTC.
+- Test4 workflow now targets package ID/app name test4 and reruns the complete test suite and isolated APK checks. CI result pending.
+- Physical test after build: install test4 alongside test2/test3; export a fresh archive from test2; in test4 perform preflight, commit and rollback only in this empty isolated test4 instance. Verify that reverted history shows the actual archive ID, not `undefined`. Do not uninstall or clear data from test2/test3.
+- PR #174 remains Draft. No merge, production change or deployment.
+
+---
+
 ## Физический rollback test3 и исправление истории — 2026-11-19
 
 - Пользователь подтвердил успешный rollback в изолированном приложении «Пасека — архив тест 3»: UI сообщил «Предыдущее состояние восстановлено. Использованная точка отката удалена».
