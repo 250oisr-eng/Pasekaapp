@@ -96,12 +96,19 @@ test('device bridge preserves production archive Downloads bridge in isolated Ma
   assert.match(reportBridge, /ERR_TEST_NAME/);
   assert.match(reportBridge, /ERR_TEST_MIME/);
   assert.match(reportBridge, /ERR_TEST_FOLDER/);
+  // Some Android MediaStore versions compute unknown .paseka MIME as generic
+  // binary. Do not allow an arbitrary value; require test APK ownership.
+  assert.match(reportBridge, /application\\/octet-stream/);
+  assert.match(reportBridge, /MediaStore\\.MediaColumns\\.OWNER_PACKAGE_NAME/);
+  assert.match(reportBridge, /activity\\.getPackageName\\(\\)\\.equals\\(owner\\)/);
+  assert.match(reportBridge, /ERR_TEST_OWNER/);
   assert.doesNotMatch(reportBridge, /ERR_NOT_TEST_ARCHIVE/);
   const nameGuard = reportBridge.indexOf('ERR_TEST_NAME');
   const mimeGuard = reportBridge.indexOf('ERR_TEST_MIME');
   const folderGuard = reportBridge.indexOf('ERR_TEST_FOLDER');
+  const ownerGuard = reportBridge.indexOf('ERR_TEST_OWNER');
   const deleteCall = reportBridge.indexOf('resolver.delete(uri, null, null)');
-  assert.ok(nameGuard > 0 && nameGuard < mimeGuard && mimeGuard < folderGuard && folderGuard < deleteCall,
+  assert.ok(nameGuard > 0 && nameGuard < mimeGuard && mimeGuard < folderGuard && folderGuard < ownerGuard && ownerGuard < deleteCall,
     'All rejected MediaStore metadata must be checked before any test-only cleanup');
   assert.match(reportBridge, /MessageDigest\.getInstance\("SHA-256"\)/);
   assert.match(reportBridge, /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/);
