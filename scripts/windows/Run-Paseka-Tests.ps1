@@ -1,4 +1,5 @@
-﻿Set-StrictMode -Version Latest
+﻿param([switch]$Offline)
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $OutputEncoding = [Console]::OutputEncoding
@@ -149,10 +150,13 @@ try {
   Write-Host 'Запуск проверок WebView, журнала Varroa и архива...'
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
-    '--es', 'paseka_run_id', $RunId))
+    '--es', 'paseka_run_id', $RunId, '--ez', 'paseka_require_offline', $(if ($Offline) { 'true' } else { 'false' })))
   $TestAppLaunched = $true
   $StageOne = Wait-Report -Serial $Serial -Phases @('awaiting_restart', 'complete') -TimeoutSec 150
   Capture-TestScreen -Serial $Serial -Label 'before-restart'
+  if ($Offline -and ($StageOne.mode -ne 'manual-offline' -or @($StageOne.checks).Count -ne 8)) {
+    throw 'Offline phase one must show 8/8 checks and native offline mode.'
+  }
   if ($StageOne.phase -ne 'awaiting_restart') {
     $FinalReport = $StageOne
     throw 'Тестовый модуль завершился аварийно до контрольного перезапуска.'
@@ -161,9 +165,15 @@ try {
   Write-Host 'Проверка сохранности после настоящей остановки и повторного запуска приложения...'
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
-    '--es', 'paseka_run_id', $RunId))
+    '--es', 'paseka_run_id', $RunId, '--ez', 'paseka_require_offline', $(if ($Offline) { 'true' } else { 'false' })))
   $FinalReport = Wait-Report -Serial $Serial -Phases @('complete') -TimeoutSec 90
   Capture-TestScreen -Serial $Serial -Label 'after-restart'
+  if ($Offline -and ($FinalReport.mode -ne 'manual-offline' -or @($FinalReport.checks).Count -ne 11)) {
+    throw 'Offline final report must show 11/11 checks and native offline mode.'
+  }
+  if (!$Offline -and ($FinalReport.mode -ne 'normal' -or @($FinalReport.checks).Count -ne 9)) {
+    throw 'Normal final report must show 9/9 checks.'
+  }
   if (!$FinalReport.pass) { throw 'Одна или несколько проверок завершились неуспешно. Детали в отчёте.' }
 } catch {
   $Fatal = $_.Exception.Message
@@ -176,6 +186,7 @@ try {
   $summary = [ordered]@{
     format = 'paseka-windows-test-report-v1'
     status = $(if (!$Fatal -and $null -ne $FinalReport -and $FinalReport.pass) { 'PASS' } else { 'FAIL' })
+    mode = $(if ($Offline) { 'manual-offline' } else { 'normal' })
     runId = $RunId
     testedPackage = $Package
     error = $Fatal
