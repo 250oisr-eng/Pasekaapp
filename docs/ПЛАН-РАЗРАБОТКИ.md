@@ -1,3 +1,12 @@
+## Контрольная точка — PR #197: изолированная Windows/Android офлайн-сборка проверена CI (2026-11-19)
+
+- **Точный code+docs SHA:** `2181e56faeca7cd56ffb00ae92b12054a14fd526`. [Win11 isolated device kit #44600658795](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44600658795) **completed/success**, attempt 1: PowerShell 5.1 mock/parse/USB selection, Node **762/762 PASS, 0 fail**, Java/Gradle `BUILD SUCCESSFUL`, AAPT package verification, ZIP uploaded. Ранее ожидавший workflow #44600648843 на промежуточном SHA завершился **cancelled**, не success. Обычный [Android workflow #44600682379](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44600682379) completed/success, archive-only #44600682172 skipped.
+- Подтверждённый физически устанавливаемый изолированный package: `ru.paseka.journal.device.r44600658795a1`; ZIP artifact [#14569440075](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44600658795/artifacts/14569440075) `paseka-win11-android-selftest-kit`, 11,832,219 bytes, `sha256:2372233a2cd6efa9b892b9fc40232c146eb7b57dda1e445677334598867fa94c`, срок до **2026-12-03 19:47 UTC**.
+- Для реального офлайн-испытания пользователь вручную отключает Wi-Fi и мобильные данные на OnePlus, подключает разрешённый USB и запускает **только** `START-OFFLINE-TESTS.cmd`. Скрипты НЕ меняют сеть, не используют беспроводной ADB, не удаляют пользовательские архивы и не запускают расписание. Android ConnectivityManager обязан подтвердить отсутствие доступной сети с INTERNET capability до/после перезапуска; отчёт `mode=manual-offline`, ожидается **8/8 phaseOne, 11/11 final**.
+- Стандартный `START-TESTS.cmd` не меняет предыдущую приёмку 9/9. Реальный офлайн-отчёт ещё НЕ получен; кодовая проверка CI не означает физическое подтверждение. Системный file picker и аварийная инъекция openOutputStream исключения не проверены. Тестовые фикстуры пока не дают доказательства переноса реальных видеороликов. Production/Main нетронуты; PR Draft. После этого checkpoint HEAD изменится docs-only и должен отдельно проверяться при необходимости.
+
+---
+
 ## 2026-11-19 — опциональная ручная офлайн-проверка полного архива через Win11/USB
 
 - После физического `report(7).json` 9/9 PASS из PR #196 подготовлена отдельная stacked test-only ветка `test/manual-android-offline-archive-2026-11-19` от документационного HEAD PR #196 `6054826cccf819561d411a71b9716426b0d40b68`. Основной код архива и IndexedDB не изменены.
