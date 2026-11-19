@@ -59,7 +59,7 @@ try {
   $report.testedPackage = 'ru.paseka.journal'
   $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
   $rejected = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action DryRun -ReportPath $path | Out-String)
-  if ($LASTEXITCODE -eq 0 -or $rejected -notmatch 'refusing') { throw 'Production package was not rejected.' }
+  if ($LASTEXITCODE -eq 0 -or $rejected -notmatch 'Report is not for this isolated APK') { throw 'Production package was not rejected.' }
   $report.testedPackage = 'ru.paseka.journal.device.r44602022835a1'
   $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
   Set-Content -LiteralPath (Join-Path $dir 'paseka-device-test.sha256') -Value ('f' * 64)
