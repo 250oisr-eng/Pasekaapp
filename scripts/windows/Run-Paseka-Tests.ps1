@@ -119,7 +119,7 @@ try {
     error = $Fatal
     phaseOne = $StageOne
     final = $FinalReport
-    limits = @('Native Downloads/file picker NOT tested', 'Network offline NOT tested', 'Human screen legibility NOT tested')
+    limits = @('Native file picker NOT tested; Downloads file verification is reported separately', 'Network offline NOT tested', 'Human screen legibility NOT tested')
   }
   $out = Join-Path $ReportDir 'report.json'
   $summary | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $out -Encoding UTF8

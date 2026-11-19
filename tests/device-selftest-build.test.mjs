@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
-  PACKAGE_ID, TEST_SCRIPT, isolatedConfig, injectTestScript, instrumentMainActivity
+  PACKAGE_ID, TEST_SCRIPT, isolatedConfig, injectTestScript, instrumentMainActivity, createTestBridgeSource
 } from '../scripts/prepare-device-selftest.mjs';
 
 test('device test configurator refuses unknown or already isolated production app ids', () => {
@@ -26,15 +26,28 @@ test('device runner is injected only once after application bootstrap script', a
   assert.throws(() => injectTestScript('<body></body></body>'), /exact closing body/);
 });
 
-test('device reporter Java bridge can only instrument the expected isolated package', () => {
-  const generated = 'package ru.paseka.journal.device.test;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity {}';
+test('device bridge preserves production archive Downloads bridge in isolated MainActivity', () => {
+  const generated = 'package ru.paseka.journal.device.test;\n' +
+    'public class MainActivity extends BridgeActivity {\n' +
+    '  void onCreate() { getBridge().getWebView().addJavascriptInterface(' +
+    'new PasekaArchiveDownloadBridge(this),\n' +
+    '            "PasekaArchiveDownload"\n        ); }\n}';
   const java = instrumentMainActivity(generated);
-  assert.match(java, /getBridge\(\)\.getWebView\(\)\.addJavascriptInterface/);
-  assert.match(java, /paseka-device-report\.json/);
-  assert.match(java, /getIntent\(\)\.getStringExtra\("paseka_run_id"\)/);
-  assert.match(java, /runId\(\)/);
+  assert.match(java, /new PasekaArchiveDownloadBridge\(this\)/);
+  assert.match(java, /new PasekaDeviceTestBridge\(this\)/);
+  assert.match(java, /PasekaArchiveDownload/);
+  assert.match(java, /PasekaDeviceTestBridge/);
+  const reportBridge = createTestBridgeSource();
+  assert.match(reportBridge, /paseka-device-report\.json/);
+  assert.match(reportBridge, /verifyAndRemoveTestDownload/);
+  assert.match(reportBridge, /MessageDigest\.getInstance\("SHA-256"\)/);
+  assert.match(reportBridge, /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/);
+  assert.match(reportBridge, /return resolver\.delete\(uri, null, null\) == 1/);
   assert.throws(() => instrumentMainActivity(generated.replace(
     'ru.paseka.journal.device.test', 'ru.paseka.journal')), /Refusing/);
+  assert.throws(() => instrumentMainActivity(generated.replace(
+    'new PasekaArchiveDownloadBridge(this)', 'new SomethingElse(this)')), /Refusing/);
+  assert.throws(() => instrumentMainActivity(java), /already injected/);
 });
 
 test('device test runner has valid JavaScript and uses only isolated IndexedDB names', async () => {
@@ -42,6 +55,7 @@ test('device test runner has valid JavaScript and uses only isolated IndexedDB n
   assert.doesNotThrow(() => new Function(source));
   assert.match(source, /paseka-device-selftest-/);
   assert.match(source, /archive_revision_guard_preserves_new_treatment/);
+  assert.match(source, /native_downloads_archive_hash_and_cleanup/);
   assert.match(source, /real_android_restart_persists_indexeddb/);
   assert.match(source, /S = saved/);
   assert.doesNotMatch(source, /indexedDB\.deleteDatabase\s*\(/);

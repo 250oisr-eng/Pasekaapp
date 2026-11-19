@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - test/win11-device-automation-2026-11-19
+      - test/win11-native-downloads-2026-11-19
   workflow_dispatch:
 
 concurrency:
@@ -94,6 +95,9 @@ jobs:
         run: |
           node scripts/prepare-device-selftest.mjs android
           grep -Fq 'PasekaDeviceTestBridge' android/app/src/main/java/ru/paseka/journal/device/test/MainActivity.java
+          grep -Fq 'PasekaArchiveDownloadBridge' android/app/src/main/java/ru/paseka/journal/device/test/MainActivity.java
+          test -s android/app/src/main/java/ru/paseka/journal/device/test/PasekaDeviceTestBridge.java
+          grep -Fq 'verifyAndRemoveTestDownload' android/app/src/main/java/ru/paseka/journal/device/test/PasekaDeviceTestBridge.java
       - name: Build isolated debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Verify APK package
