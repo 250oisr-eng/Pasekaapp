@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: исправлен orphan MediaStore при ошибке открытия Android OutputStream
+
+- Независимый статический аудит кода `scripts/prepare-android-archive-download.mjs` (генератор нативного `PasekaArchiveDownloadBridge.java`) выявил конкретный путь ошибки: `beginFile()` создавал `MediaStore.Downloads` запись `IS_PENDING=1`, а если `openOutputStream(uri, "w")` выбрасывал исключение, общий `catch` возвращал ошибку, **не удаляя уже созданный pending URI**. При `null` ответе stream удалялся, но при exception оставался сиротой.
+- В новой stacked ветке `fix/android-mediastore-begin-cleanup-2026-11-19` от точного HEAD Draft PR #192 (`38c3258e0c0de72ca0f6744f0daba2faaf611fdb`) `beginFile()` хранит промежуточные `pendingUri`/`pendingOutput`, при любом `Exception` закрывает частично созданный поток и удаляет pending URI, а затем возвращает ошибку. При успехе работа с сессией остаётся прежней. Формат `.paseka`, IndexedDB, hash, commit/rollback и продакшен не менялись.
+- В `tests/android-archive-download.test.mjs` добавлен регрессионный тест контракта **сгенерированного Java source**, проверяющий наличие `pendingUri`, cleanup в `catch` и то, что сессия сохраняется только после открытия потока. Это не инструментирование Android ContentResolver в runtime, поэтому физическое поведение пока не подтверждено. Android compiler/build и полные тесты должны пройти на точном итоговом SHA.
+- Предыдущее исправление #192 на SHA `38c3258e0c0de72ca0f6744f0daba2faaf611fdb`: `Build Android APK` completed/success, 735/735 тестов и APK upload; isolated archive workflow skipped.
+- Следующее: открыть Draft PR поверх #192, проверить CI на точном SHA, затем оставшиеся MediaStore failure-paths и физический Android export на **искусственных** данных. Запрет merge/production и удалений пользовательских данных сохраняется.
+
+---
+
 ## Контрольная точка — 2026-11-19: отказ пустому Android-архиву и исполняемые JS-тесты
 
 - После read-only анализа существующего PR #168 обнаружен отказоустойчивый дефект: `saveToAndroidDownloads()` при пустом/некорректном Blob мог открыть нативную сессию и вызвать `finishFile` без единого `appendChunk`, что потенциально выдаёт URI пустого файла как успешный полный архив.
