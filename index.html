@@ -3966,7 +3966,7 @@ async function renderArchiveImportHistory() {
     const row = document.createElement('div');
     row.className = 'muted';
     const description = document.createElement('p');
-    description.textContent = 'Архив ' + session.backupId + ' · ' + session.status + ' · подготовлено элементов: ' + session.stagedCount + '/' + session.totalEntries;
+    description.textContent = 'Архив ' + (session.backupId || session.sourceBackupId || 'идентификатор не сохранён') + ' · ' + session.status + ' · подготовлено элементов: ' + session.stagedCount + '/' + session.totalEntries;
     row.appendChild(description);
     if (session.status === 'failed') {
       const failure = document.createElement('p');
