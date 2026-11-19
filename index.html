@@ -455,14 +455,19 @@ main{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))!important}
 }
 
 
+/* Compact first-screen overview: keep the virtual-data caveat available on demand. */
+#home>.home-intro-card summary{font-weight:700;cursor:pointer;line-height:1.4}
+#home>.home-intro-card[open] .muted{margin-top:8px}
+#home>#homeHivePreviewCount{margin-top:4px}
+#home .home-hives-card #homeHivePreviewCount:not(:empty){margin-top:7px;font-size:12px}
 </style></head><body>
 <header class="home-header"><div class="home-brand"><div><h1 id="currentSectionTitle" class="home-brand-title" aria-live="polite" style="margin:0">Обзор</h1></div><button id="modelDiagnosticsIndicator" type="button" style="display:none" aria-label="Технические проблемы модели пасеки" onclick="showTab('settings');document.getElementById('modelDiagnostics')?.scrollIntoView({block:'start'})">⚠</button></div><div id="hiveHeaderSummary" class="hive-header-summary" style="display:none"></div></header>
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button class="active" data-tab="home" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="hives">Ульи</button><button data-tab="entrance">Лёток</button><button data-tab="journal">Журнал</button><button data-tab="settings">Ещё</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><span class="nav-ai-symbol" aria-hidden="true">✦</span><span class="nav-ai-label">ИИ</span></button><button data-tab="forage">Медоносы</button><button data-tab="varroa">Клещ</button><button data-tab="incidents">Инцидент</button><button data-tab="planning">План</button><button data-tab="deadout">Потери</button></nav>
 <section id="home" class="panel active">
- <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
+ <details class="card home-intro-card" style="border-left:4px solid #547b5d"><summary>Виртуальная модель пасеки — данные не подтверждают наличие живых пчёл</summary><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></details>
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
  <div class="card apiary-status-card"><div class="row" style="gap:8px;flex-wrap:wrap"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span><button type="button" onclick="newRecord()" aria-label="Записать событие в журнал">＋ Записать событие</button></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
- <div class="card home-hives-card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Управление →</button></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
+ <div class="card home-hives-card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Все ульи →</button></div><div id="homeHivePreviewCount" class="muted" aria-live="polite"></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
  <div class="card home-tasks-card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog()">＋ Запланировать</button></div><div id="homeAlerts"></div><div id="homeTasks"></div></div>
  <div class="card home-recent-card"><b>Последние события</b><div id="recent" class="muted">Записей пока нет.</div></div>
 </section>
@@ -1701,7 +1706,8 @@ function validateTaskCompletion(state,taskId,date,recordId){
 }
 function renderHome(){
  S.tasks=S.tasks||[];renderApiaryStatus();
- $('homeHives').innerHTML=S.hives.map(h=>{
+ const homeHivePreviewLimit=3;
+ $('homeHives').innerHTML=S.hives.slice(0,homeHivePreviewLimit).map(h=>{
   const l=layoutFor(h.id),profile=getHiveProfile(h),families=S.families.filter(f=>f.hive===h.id).length;
   const broodKeys=profileBroodKeys(h.id),honeyKeys=profileHoneyKeys(h.id),winter=l.mode==='winter';
   const order=(winter?(l.winterOrder||[]):l.installedBoxes||[]).map(String).filter(key=>broodKeys.includes(key));
@@ -1720,6 +1726,7 @@ function renderHome(){
   const visual='<div class="mini-hive '+(winter?'winter':'summer')+'" aria-label="Схема фактической сборки улья">'+(honeyRows?'<div class="mini-honey-stack">'+honeyRows+'</div>':'')+body+'</div>';
   return '<div class="home-hive" role="button" tabindex="0" aria-label="Открыть '+safe(hname(h.id))+'" onclick="openHive(&quot;'+safe(h.id)+'&quot;)"><div class="row"><b>'+safe(hname(h.id))+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="muted home-hive-profile">'+safe(profile?.name||'Профиль не указан')+'</div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' '+ruPlural(families,'семья','семьи','семей')+(pending.length?' · '+pending.length+' '+ruPlural(pending.length,'задача','задачи','задач'):'')+(urgent?' · Есть просрочка':'')+'</div></div>';
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
+ const homeHiveCount=$('homeHivePreviewCount');if(homeHiveCount)homeHiveCount.textContent=S.hives.length>homeHivePreviewLimit?'Показаны '+homeHivePreviewLimit+' из '+S.hives.length+' · все ульи в разделе «Ульи»':'';
  const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31')));
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
  $('homeAlerts').innerHTML=overdue.length?'<div class="card home-alert"><b>⚠ Просрочено: '+overdue.length+'</b>'+overdue.map(t=>taskMarkup(t)).join('')+'</div>':'';
