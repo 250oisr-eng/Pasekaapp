@@ -1,0 +1,115 @@
+name: Build isolated Varroa test APK
+
+on:
+  push:
+    branches:
+      - test/varroa-treatment-android-isolated-2026-11-19
+
+concurrency:
+  group: varroa-test-android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android command-line tools and SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install Android SDK packages
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run full regression suite
+        run: npm test
+      - name: Verify and isolate Android application ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'capacitor.config.json';
+          const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (config.appId !== 'ru.paseka.journal') throw new Error('Unexpected source package ID; refusing isolated build');
+          config.appId = 'ru.paseka.journal.varroa.test';
+          config.appName = 'Пасека — тест Varroa';
+          fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
+          const check = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (check.appId !== 'ru.paseka.journal.varroa.test') throw new Error('Isolated package ID was not applied');
+          NODE
+      - name: Prepare web assets
+        run: npm run web:prepare
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Sync Android project
+        run: npx cap sync android
+      - name: Install native archive Downloads bridge
+        run: node scripts/prepare-android-archive-download.mjs
+      - name: Patch Android Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Require Android 15 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'android/variables.gradle';
+          let source = fs.readFileSync(path, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp('^\\s*' + key + '\\s*=\\s*\\d+', 'm');
+            if (!pattern.test(source)) throw new Error(`Missing ${key}; refusing unsafe Android build`);
+            source = source.replace(pattern, match => match.replace(/\\d+$/, String(value)));
+          }
+          fs.writeFileSync(path, source);
+          NODE
+      - name: Build isolated debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify package ID inside APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.varroa.test'"
+          if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then
+            echo "Production package ID unexpectedly found in isolated APK" >&2
+            exit 1
+          fi
+      - name: Upload isolated Varroa test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-varroa-isolated-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
