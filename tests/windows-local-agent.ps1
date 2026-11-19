@@ -65,6 +65,16 @@ try {
   if ($safe -match 'PRIVATE-APIARY-DATA-NEVER-SEND' -or $safe -match 'durationMs|error.*PRIVATE') {
     throw 'Sensitive raw report field leaked into public summary.'
   }
+  # A self-contradictory report must never publish PASS when the first phase
+  # contains a failed check despite final 9/9 and phaseOne.pass=true.
+  $report.phaseOne.checks[0].result = 'FAIL'
+  $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
+  $rejected = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action DryRun -ReportPath $path | Out-String)
+  if ($LASTEXITCODE -eq 0 -or $rejected -notmatch 'PASS does not match expected test phases') {
+    throw 'Contradictory pre-restart FAIL was incorrectly published as PASS.'
+  }
+  $report.phaseOne.checks[0].result = 'PASS'
+  $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
   $report.testedPackage = 'ru.paseka.journal'
   $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
   $rejected = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action DryRun -ReportPath $path | Out-String)
