@@ -25,6 +25,13 @@ test('archive test configuration uses a unique package and label without mutatin
   assert.equal(production.appName, 'Пасека');
 });
 
+test('archive test configuration rejects an already-isolated package', () => {
+  assert.throws(
+    () => createArchiveTestConfig({ appId: ARCHIVE_TEST_APP_ID, appName: ARCHIVE_TEST_APP_NAME }),
+    /already active/
+  );
+});
+
 test('archive test configuration fails closed for an unexpected package ID', () => {
   assert.throws(
     () => createArchiveTestConfig({ appId: 'ru.paseka.journal.test', appName: 'Пасека — тест' }),
