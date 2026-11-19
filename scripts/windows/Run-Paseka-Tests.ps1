@@ -17,9 +17,9 @@ $FinalReport = $null
 $Fatal = ''
 
 function Invoke-ADB {
-  param([string[]]$Args)
-  $text = & $Adb @Args
-  if ($LASTEXITCODE -ne 0) { throw ('ADB command failed: ' + ($Args -join ' ')) }
+  param([string[]]$Arguments)
+  $text = & $Adb @Arguments
+  if ($LASTEXITCODE -ne 0) { throw ('ADB command failed: ' + ($Arguments -join ' ')) }
   return $text
 }
 function Read-DeviceReport {
@@ -45,8 +45,8 @@ function Capture-TestScreen {
   $name = 'paseka_test_' + $RunId + '_' + $Label + '.png'
   $remote = '/sdcard/' + $name
   try {
-    [void](Invoke-ADB @('-s', $Serial, 'shell', 'screencap', '-p', $remote))
-    [void](Invoke-ADB @('-s', $Serial, 'pull', $remote, (Join-Path $ReportDir ($Label + '.png'))))
+    [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'screencap', '-p', $remote))
+    [void](Invoke-ADB -Arguments @('-s', $Serial, 'pull', $remote, (Join-Path $ReportDir ($Label + '.png'))))
   } catch {
     Write-Host ('Снимок экрана недоступен: ' + $_.Exception.Message)
   } finally {
@@ -66,7 +66,7 @@ try {
   Write-Host 'Пасека: автоматические испытания на Android'
   Write-Host 'Используется только отдельный тестовый пакет, без доступа к основной базе.'
   Write-Host 'Подключите телефон по USB. На телефоне подтвердите разрешение отладки, если появится запрос.'
-  [void](Invoke-ADB @('start-server'))
+  [void](Invoke-ADB -Arguments @('start-server'))
   $Serial = ''
   for ($attempt = 0; $attempt -lt 30; $attempt++) {
     $deviceText = & $Adb devices
@@ -78,20 +78,20 @@ try {
     Start-Sleep -Seconds 2
   }
   if (!$Serial) { throw 'Устройство не обнаружено или USB-отладка не разрешена. Проверьте драйвер и разрешение на телефоне.' }
-  $sdk = [int]((Invoke-ADB @('-s', $Serial, 'shell', 'getprop', 'ro.build.version.sdk') | Select-Object -First 1).Trim())
+  $sdk = [int]((Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'getprop', 'ro.build.version.sdk') | Select-Object -First 1).Trim())
   if ($sdk -lt 35) {
     throw ('На телефоне Android SDK ' + $sdk + '. Изолированная APK требует Android 15 (SDK 35) или новее.')
   }
   Write-Host 'USB-соединение установлено. Установка проверенной тестовой APK...'
-  $install = (Invoke-ADB @('-s', $Serial, 'install', '-r', $Apk) | Out-String).Trim()
+  $install = (Invoke-ADB -Arguments @('-s', $Serial, 'install', '-r', $Apk) | Out-String).Trim()
   if ($install -notmatch 'Success') { throw ('ADB не подтвердил установку: ' + $install) }
-  $pkgPath = (Invoke-ADB @('-s', $Serial, 'shell', 'pm', 'path', $Package) | Out-String)
+  $pkgPath = (Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'pm', 'path', $Package) | Out-String)
   if ($pkgPath -notmatch 'package:') { throw 'После установки тестовый пакет не обнаружен.' }
 
   # Test run IDs avoid clearing any app data, including previous test-only data.
   Write-Host 'Запуск проверок WebView, журнала Varroa и архива...'
-  [void](Invoke-ADB @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
-  [void](Invoke-ADB @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
+  [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
+  [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
     '--es', 'paseka_run_id', $RunId))
   $StageOne = Wait-Report -Serial $Serial -Phases @('awaiting_restart', 'complete') -TimeoutSec 150
   Capture-TestScreen -Serial $Serial -Label 'before-restart'
@@ -101,8 +101,8 @@ try {
   }
 
   Write-Host 'Проверка сохранности после настоящей остановки и повторного запуска приложения...'
-  [void](Invoke-ADB @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
-  [void](Invoke-ADB @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
+  [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
+  [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
     '--es', 'paseka_run_id', $RunId))
   $FinalReport = Wait-Report -Serial $Serial -Phases @('complete') -TimeoutSec 90
   Capture-TestScreen -Serial $Serial -Label 'after-restart'
