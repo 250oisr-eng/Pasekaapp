@@ -1,3 +1,11 @@
+## Контрольная точка — 2026-11-19: провайдер Ollama отсутствует в OpenCode V1
+
+- Пользователь выполнил `opencode.cmd models ollama` после исправления схемы V1; результат: `Error: Provider not found: ollama`. Ранее `ollama list` подтвердил пять установленных моделей, включая `qwen2.5-coder:7b`.
+- В официальной инструкции Ollama для OpenCode V1 подтверждён обязательный explicit `provider.ollama` с `npm:@ai-sdk/openai-compatible`, локальным `options.baseURL:http://127.0.0.1:11434/v1` и явным списком `models`. Попытка опираться на автообнаружение, описанное в документации OpenCode V2, для установленной V1 была ошибочной.
+- `docs/OPEN-CODE-READONLY-ПИЛОТ-2026-11-19.md` обновлён: добавить только `provider` в изолированную `opencode.json`, не ослабляя deny-by-default `permission`. Реальное подключение OpenCode к Ollama и действительность запретов **ещё не проверены**; приложению, реальному репозиторию и пользовательским данным доступа не давать.
+- Текущая работа — документация Draft PR #189; нет merge/production, изменений кода приложения или реальных данных. CI на новом SHA требует проверки.
+
+---
 ## Контрольная точка — 2026-11-19: подтверждён OpenCode V1, исправлена ошибочная V2 настройка
 
 - Пользователь: Node `v26.13.1`, npm `11.20.0`; `npm.cmd install -g opencode-ai` → added 3 packages, warning о неисполненном `postinstall`; `opencode.cmd --version` → `1.19.6`. `opencode.cmd models ollama` завершился **ошибкой конфигурации**, дословно: `V2 permissions are not supported by OpenCode V1. Use V1 "permission" rules or run opencode2.`
