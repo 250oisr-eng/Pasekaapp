@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: PR #194 прошёл CI по коду и тестам
+
+- Открыт [Draft PR #194](https://github.com/250oisr-eng/Pasekaapp/pull/194), stacked base #193→#192→#190→#168, **без merge**.
+- **Проверенный code/test SHA:** `30a94f6e2bba3405a2c7bc3f7677ad336c51f49e`. [GitHub Actions #44594372606](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44594372606): `Build Android APK completed/success`. Лог job #135808590112: **737/737 tests, 0 failures**, Gradle Debug APK build и upload — completed/success.
+- Отдельный workflow `Build isolated archive test APK` #44594372355: `completed/skipped`, не считать успешной физической или изолированной Android-проверкой.
+- Исправление проверяет точную сумму записанных чанков и ожидаемый `blob.size` перед публикацией файла; тесты включают вызов JS→Java с размером и source-contract. Android Java компилируется, но реальная целостность сохранённого файла и SHA-256 в Android Downloads не проверены.
+- После этого документационного checkpoint HEAD SHA изменится; **CI на нём пока отдельно не подтверждён**. Следующее: проверить финальный HEAD CI и только в изолированной Android-среде подтвердить Downloads/media bytes/import/rollback/offline. Production/real data не изменялись.
+
+---
+
 ## Контрольная точка — 2026-11-19: подтверждение точного объёма Android-архива при сохранении
 
 - На основании независимого аудита `PasekaArchiveDownloadBridge` выявлен ещё один риск: прежний `finishFile()` публиковал `MediaStore` файл по завершении сессии, **не проверяя**, что нативный модуль получил все байты исходного Blob. Этот guard нужен в нативном слое независимо от корректности JS-loop и наличия `finishFile()` URI.
