@@ -3093,7 +3093,22 @@ function applyProfileAssemblySelection(){
  const hid=selectedStructureHive(),l=layoutFor(hid),profile=profileForHive(hid),winter=l.mode==='winter';
  const checked=[...document.querySelectorAll('[data-profile-brood]:checked')].map(el=>el.getAttribute('data-profile-brood'));
  if(winter){l.winterOrder=checked;l.installedBoxes=checked.slice();l.honeyBoxInstalled=profileHoneyKeys(hid).map(()=>false)}
- else{l.installedBoxes=checked;l.honeyBoxInstalled=profileHoneyKeys(hid).map(key=>!!document.querySelector('[data-profile-honey="'+key+'"]:checked'));if(profile.honey.installation==='paired'&&l.honeyBoxInstalled.some(Boolean)){const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=profileHoneyKeys(hid).map(()=>on)}}
+ else{
+  const honeyKeys=profileHoneyKeys(hid),selectedHoney=honeyKeys.map(key=>!!document.querySelector('[data-profile-honey="'+key+'"]:checked'));
+  // Main-flow four-body profiles permit the complete first pair before the
+  // second pair. Do not silently turn a partially selected pair into removal.
+  if(profile.honey.installation==='paired'&&honeyKeys.length===4){
+   const firstComplete=selectedHoney[0]===selectedHoney[1],secondComplete=selectedHoney[2]===selectedHoney[3];
+   if(!firstComplete||!secondComplete||(selectedHoney[2]&&!selectedHoney[0])){
+    alert('Медовые корпуса устанавливаются парами: сначала первая пара, затем вторая. Комплектация не изменена.');
+    return;
+   }
+  }
+  l.installedBoxes=checked;l.honeyBoxInstalled=selectedHoney;
+  if(profile.honey.installation==='paired'&&honeyKeys.length!==4&&l.honeyBoxInstalled.some(Boolean)){
+   const on=l.honeyBoxInstalled.every(Boolean);l.honeyBoxInstalled=honeyKeys.map(()=>on);
+  }
+ }
  renderStructure();
 }
 async function finishProfileAssemblySetup(hid,l,profile){
