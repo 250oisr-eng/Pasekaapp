@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: OpenCode JSON events подтверждают отсутствие native tool call
+
+- Пользователь выполнил `opencode.cmd run --format json --model ollama/qwen2.5-coder:7b` в отдельном синтетическом каталоге. События: `step_start`, затем исключительно `text` (`{"name": "read", "arguments": {"filePath": "synthetic.js"}}`), затем `step_finish` с `reason:"stop"`, `tokens.total=2605`, `input=24`, `output=18`, `cache.read=2563`. Реального tool-call event не было.
+- `FileUnchanged=True`, `Events=3`. Вывод: модель печатает имитацию tool-call, `read` не выполнен; автоматический анализ файлов **не пройден**, невредимость других файлов/сетей этим фактом не доказана.
+- Внешняя проверка: issue Ollama https://github.com/ollama/ollama/issues/19524 от 2026-11-04 описывает **совпадающий симптом** у `qwen2.5-coder:7b` (JSON функции в `message.content` вместо `message.tool_calls`). Комментарии отмечают, что `OLLAMA_GO_TEMPLATE=false` помогал `qwen3:8b`, но **не** `qwen2.5-coder:7b` в проверке автора; поэтому не рекомендовать изменение глобальной настройки Ollama как безопасно подтверждённое исправление.
+- Следующий минимальный диагностический шаг: прямой локальный `POST http://127.0.0.1:11434/api/chat` со структурным `tools`, `stream:false` на уже установленных `qwen2.5-coder:7b` и `qwen3:4b`; сравнить `message.tool_calls` с `message.content`, без выполнения каких-либо инструментов и без файлового доступа. Если у Qwen3 проходит — затем по отдельности проверить OpenCode только на синтетическом каталоге после явного объявления модели в `provider.ollama.models`.
+- Обновление документационное, PR #189 Draft; исходный SHA `b868338643518bc48c775b5d6b6027ed777a9183`, CI `Build Android APK:in_progress/null`. Приложение, main, реальные данные не затронуты.
+
+---
+
 ## Контрольная точка — 2026-11-19: первый фактический запуск OpenCode V1 на synthetic.js
 
 - Пользователь в `C:\Users\n12D8\OpenCode-Synthetic-Pilot` запустил `opencode.cmd run --model ollama/qwen2.5-coder:7b` с заданием использовать read tool для `synthetic.js`, объяснить `splice(-1,1)` и предложить regression test.
