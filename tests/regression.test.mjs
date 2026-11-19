@@ -14,6 +14,7 @@ const familyLineageSource = await readFile(new URL('../js/family-lineage.js', im
 const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
+const varroaTreatmentSource = await readFile(new URL('../js/varroa-treatment-log.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
@@ -27,6 +28,7 @@ new Function('window', familyLineageSource)(appWindow);
 new Function('window', sectionalOperationCoordinatorSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
+new Function('window', varroaTreatmentSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
 function extractFunction(name) {
@@ -57,6 +59,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
   deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
+  deps.PasekaVarroaTreatmentLog ||= appWindow.PasekaVarroaTreatmentLog;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
@@ -1221,7 +1224,7 @@ function malformedSchema12Backup(){
  return {at:'old',state};
 }
 function futureSchemaBackup(){
- return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:16}}};
+ return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:17}}};
 }
 function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
@@ -1979,7 +1982,7 @@ test('schema 14 migration creates an empty family event journal without changing
  const beforeFamily=structuredClone(state.families[0]);
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.families[0],beforeFamily);
@@ -3654,7 +3657,7 @@ test('save includes sectionalLayouts in historical snapshots without changing sc
   render:()=>{},alert:()=>{}
  });
  assert.equal(await save(),true);
- assert.equal(saved.meta.schemaVersion,15);
+ assert.equal(saved.meta.schemaVersion,16);
  assert.deepEqual(saved.familyEvents,[]);
  assert.deepEqual(saved.snapshots[0].familyEvents,[]);
  assert.deepEqual(saved.sectionalTechProcesses,[]);
@@ -3726,6 +3729,37 @@ test('schema 14 backups remain compatible while schema 15 requires sectionalTech
  const valid={...missing,sectionalTechProcesses:[]};
  assert.equal(validate(valid),valid);
  assert.throws(()=>validate({...valid,sectionalTechProcesses:[null]}),/повреждённые элементы/i);
+});
+
+
+test('schema 15 migration adds an empty treatment journal without changing existing Varroa observations',()=>{
+ const observation={id:'observation-legacy',type:'sticky_board',hiveId:'h1',date:'2026-08-01',mitesCount:2,exposureHours:24,mitesPer24h:2,notes:''};
+ const state={meta:{schemaVersion:15},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],varroaObservations:[observation]};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-16-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,16);
+ assert.deepEqual(state.varroaTreatments,[]);
+ assert.deepEqual(state.varroaObservations,[observation]);
+ assert.ok(state.auditLog.some(event=>event.type==='schema_migration'&&event.from===15&&event.to===16));
+ assert.equal(migrate(),false);
+});
+
+test('schema 16 migration rejects malformed treatment journal without replacing user data',()=>{
+ const malformed={keep:'this'};
+ const state={meta:{schemaVersion:16},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],familyEvents:[],sectionalTechProcesses:[],varroaTreatments:malformed};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'unused'});
+ assert.throws(()=>migrate(),/Повреждён журнал обработок Varroa/);
+ assert.deepEqual(state,before);
+});
+
+test('schema 16 backup requires a treatment journal and rejects malformed treatment entries',()=>{
+ const validate=loadFunction('validateBackupState');
+ const base={...rawBackupFixture(),meta:{schemaVersion:16},familyEvents:[],sectionalTechProcesses:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]}};
+ assert.throws(()=>validate(base),/varroaTreatments/);
+ const valid={...base,varroaTreatments:[]};
+ assert.equal(validate(valid),valid);
+ assert.throws(()=>validate({...valid,varroaTreatments:[null]}),/повреждённые элементы/i);
 });
 
 test('raw backup integrity rejects malformed sectional operation records in schema 15',()=>{
