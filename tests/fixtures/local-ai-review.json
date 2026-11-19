@@ -1,0 +1,5 @@
+{
+  "source": "synthetic",
+  "task": "Find bug and regression test",
+  "context": "function removeItem(items,id) { const i=items.findIndex(x=>x.id===id); items.splice(i,1); return items; } // absent ID wrongly deletes final item"
+}

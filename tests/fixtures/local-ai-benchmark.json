@@ -1,0 +1,30 @@
+[
+  {
+    "id": "missing-id",
+    "source": "synthetic",
+    "task": "Find the logic bug, explain impact and propose a negative regression test",
+    "context": "function removeItem(items,id) { const i=items.findIndex(x=>x.id===id); items.splice(i,1); return items; }",
+    "expectedIssue": "splice(-1,1) deletes last item when ID does not exist"
+  },
+  {
+    "id": "rollback",
+    "source": "synthetic",
+    "task": "Find atomicity and rollback defects. Propose failure-path tests",
+    "context": "async function transfer(store, from, to, item) { await store.remove(from,item); await store.add(to,item); }",
+    "expectedIssue": "failed add leaves item removed without transaction or rollback"
+  },
+  {
+    "id": "migration",
+    "source": "synthetic",
+    "task": "Find migration safety defects and tests for old records",
+    "context": "function migrate(old) { return { version: 2, records: old.records.map(r => ({id:r.id,label:r.label.trim()})) }; }",
+    "expectedIssue": "old records may have absent label; trim throws and migration lacks validation"
+  },
+  {
+    "id": "clean",
+    "source": "synthetic",
+    "task": "Review for actual logic bugs; avoid unsupported claims",
+    "context": "function removeItem(items,id) { return items.filter(x=>x.id!==id); }",
+    "expectedIssue": "none known; negative control"
+  }
+]
