@@ -1,3 +1,24 @@
+## Контрольная точка — 2026-11-19: нативная очистка MediaStore проверена в CI
+
+- Draft PR [#193](https://github.com/250oisr-eng/Pasekaapp/pull/193), stacked base #192 → #190 → #168. **Проверенный точный code/test SHA:** `032697e2c46f7b0e94184a05bf9c10edced69bd1`.
+- GitHub Actions [Build Android APK run #44593071353](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44593071353): `completed/success`. Логи job #135803985730: **736/736 tests, 0 failed**, Android Gradle Debug APK build `success`, upload `success`. [Build isolated archive test APK run #44593071139](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44593071139) — `completed/skipped`, не успех.
+- Первый прогон на SHA `a6442e2e407be499db61ed14521162e9d369af31` завершился **failure**: новый регрессионный тест ошибочно ожидал лишнюю пару скобок в Java `openOutputStream` через regex, хотя генерируемый код был правильным. Исправлен только matcher теста; после этого полный прогон успешен. Ошибку не скрывать.
+- Исправление: если после вставки pending MediaStore URI создание Java `OutputStream` завершается исключением, `beginFile()` теперь в `catch` закрывает доступный поток и удаляет pending запись. В обычном успешном сценарии порядок сохранения и возврат URI прежние. Тест — структурный контроль сгенерированного Java; Android build подтверждает компиляцию, **не** физическое удаление сбойной MediaStore записи на телефоне.
+- Документационные коммиты после code/test SHA не меняют код/тесты; для их нового HEAD фиксировать CI как отдельную непроверенную величину. Без Android device execution, merge, production или реальных данных.
+- Следующий приоритет: обеспечить физическую проверку Android Downloads на отдельной искусственной базе, проверить размеры/хеши созданного `.paseka`, затем изолированные import/rollback/offline scenarios. До этого release gates B–D остаются открытыми.
+
+---
+
+## Контрольная точка — 2026-11-19: исправлен orphan MediaStore при ошибке открытия Android OutputStream
+
+- Независимый статический аудит кода `scripts/prepare-android-archive-download.mjs` (генератор нативного `PasekaArchiveDownloadBridge.java`) выявил конкретный путь ошибки: `beginFile()` создавал `MediaStore.Downloads` запись `IS_PENDING=1`, а если `openOutputStream(uri, "w")` выбрасывал исключение, общий `catch` возвращал ошибку, **не удаляя уже созданный pending URI**. При `null` ответе stream удалялся, но при exception оставался сиротой.
+- В новой stacked ветке `fix/android-mediastore-begin-cleanup-2026-11-19` от точного HEAD Draft PR #192 (`38c3258e0c0de72ca0f6744f0daba2faaf611fdb`) `beginFile()` хранит промежуточные `pendingUri`/`pendingOutput`, при любом `Exception` закрывает частично созданный поток и удаляет pending URI, а затем возвращает ошибку. При успехе работа с сессией остаётся прежней. Формат `.paseka`, IndexedDB, hash, commit/rollback и продакшен не менялись.
+- В `tests/android-archive-download.test.mjs` добавлен регрессионный тест контракта **сгенерированного Java source**, проверяющий наличие `pendingUri`, cleanup в `catch` и то, что сессия сохраняется только после открытия потока. Это не инструментирование Android ContentResolver в runtime, поэтому физическое поведение пока не подтверждено. Android compiler/build и полные тесты должны пройти на точном итоговом SHA.
+- Предыдущее исправление #192 на SHA `38c3258e0c0de72ca0f6744f0daba2faaf611fdb`: `Build Android APK` completed/success, 735/735 тестов и APK upload; isolated archive workflow skipped.
+- Следующее: открыть Draft PR поверх #192, проверить CI на точном SHA, затем оставшиеся MediaStore failure-paths и физический Android export на **искусственных** данных. Запрет merge/production и удалений пользовательских данных сохраняется.
+
+---
+
 ## Контрольная точка — 2026-11-19: отказ пустому Android-архиву и исполняемые JS-тесты
 
 - После read-only анализа существующего PR #168 обнаружен отказоустойчивый дефект: `saveToAndroidDownloads()` при пустом/некорректном Blob мог открыть нативную сессию и вызвать `finishFile` без единого `appendChunk`, что потенциально выдаёт URI пустого файла как успешный полный архив.
