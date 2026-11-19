@@ -130,7 +130,7 @@ try {
       failed=true;
       try { await page.screenshot({path:resolve(reportDir,profile.id+'-failure.png'),fullPage:true}); } catch {}
     } finally { await context.close(); }
-    console.log(profile.id+': '+row.status+' nav='+row.steps.join(',')+' axe='+row.violations.length);
+    console.log(profile.id+': '+row.status+' nav='+row.steps.join(',')+' axe='+row.violations.map(v=>v.id+'('+v.impact+')').join(',')+' pageErrors='+row.pageErrors.length);
   }
 } catch(error) {
   failed=true;
