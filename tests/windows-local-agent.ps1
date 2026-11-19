@@ -50,7 +50,8 @@ try {
   $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
   $publisher = Join-Path $dir 'Publish-Paseka-Test-Report.ps1'
   $selfTest = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action SelfTest | Out-String)
-  if ($LASTEXITCODE -ne 0 -or $selfTest -notmatch 'empty, null, matching, unrelated and malformed') {
+  if ($LASTEXITCODE -ne 0 -or $selfTest -notmatch 'empty, null, matching, unrelated and malformed' -or
+      $selfTest -notmatch 'outgoing GitHub JSON payload validates locally') {
     throw 'GitHub empty-comment regression SelfTest failed.'
   }
   $safe = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action DryRun -ReportPath $path | Out-String)
