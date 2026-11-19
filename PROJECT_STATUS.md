@@ -1,12 +1,14 @@
 ## Контрольная точка — журнал обработок Varroa и изолированная Android-проверка (2026-11-19)
 
-- Функциональная реализация: Draft PR #176, ветка feat/varroa-treatment-log-2026-11-19, code/test SHA ae7421a27aeed368724bf942aaab2cecd7266d9a.
-- Fast quality checks #44474930398: 741/741 tests, 0 failures. Android Debug APK #44474938730: build/upload success на том же SHA; artifact ID 14506310191, ZIP SHA-256 a15a96b0a2b8e4f8d79036854e63cc7cfc611fdd8e516c1390ae6443e3eb57f1.
-- Модель отделяет varroaTreatments от varroaObservations; метод — сублиматор щавелевой кислоты, подтверждён пользователем. Не добавлены доза, интервалы, температурные условия, подготовка и меры безопасности.
+- Функциональная реализация: Draft PR #176, ветка feat/varroa-treatment-log-2026-11-19; проверенный code/test SHA `ae7421a27aeed368724bf942aaab2cecd7266d9a`.
+- Fast quality checks #44474930398: 741/741 tests, 0 failures. Android Debug APK #44474938730: build/upload success на том же SHA.
+- Модель отделяет varroaTreatments от varroaObservations; метод — сублиматор щавелевой кислоты, подтверждён пользователем. Доза, интервалы, температурные условия, подготовка и меры безопасности не добавлены.
 - App schema 15→16; старые наблюдения сохраняются; treatment events включены в snapshots, backup/archive validation и offline cache. Запись требует подтверждения фактического выполнения.
-- Изолированная проверка: Draft PR #177, package ID ru.paseka.journal.varroa.test. Первый workflow run #44475806948 выявил ошибку экранирования регулярного выражения в тестовом workflow; исправление внесено в ветку. Повторный run #44475954877 на SHA b8b10b8e5f57935ca8cae28190357b2dfa089ef1 выполняется; сборка APK и package assertion пока не подтверждены.
-- PR #176 остаётся stacked поверх PR #168; #177 — test-only, не предназначен для слияния. Main 8144ec8 не изменялась; production и пользовательские данные не затрагивались.
-- Следующий шаг: завершить CI изолированной сборки, затем физически проверить форму и историю в отдельной установке. До физического теста не объявлять интерфейс подтверждённым.
+- Изолированная Android-сборка: Draft PR #177, workflow #44476267580, SHA `b949518e3163b02e45f715e9fa04681332b0171e` — success. Все 18 build steps завершились успешно, включая полный regression suite и проверку package ID внутри APK.
+- Артефакт `paseka-varroa-isolated-test-apk`, ID `14505654409`, 3,681,597 bytes, SHA-256 `c28b11f3e63f56424b3f5685e2ceb6b39820cecebdd328b98c2096058948c678`, expires 2026-12-03 07:02:11 UTC. Package ID: `ru.paseka.journal.varroa.test`.
+- Физическая проверка на OnePlus 10 Pro 5G ещё не выполнена. До неё UI и сохранение офлайн не считать подтверждёнными.
+- PR #176 остаётся stacked поверх PR #168; #177 — test-only, не предназначен для слияния. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменялась; production и пользовательские данные не затрагивались.
+- Следующий шаг: пользователь устанавливает только изолированный APK и проверяет регистрацию/историю, блокировки, перезапуск и сохранность офлайн. После физической проверки — интеграционный аудит backup/restore/rollback для varroaTreatments.
 
 ---
 
