@@ -46,7 +46,7 @@ function Find-TestDevice {
   $connected = @($deviceText | ForEach-Object {
     if ($_ -match '^([^\s]+)\s+device\s*$') { $Matches[1] }
   })
-  $usb = @($connected | Where-Object { $_ -notmatch ':' })
+  $usb = @($connected | Where-Object { $_ -match '^[A-Za-z0-9]+$' })
   if ($usb.Count -gt 1) { throw 'More than one USB Android device: refusing to select automatically.' }
   if ($usb.Count -eq 1) { return $usb[0] }
   if ($WifiEndpoint -and ($connected -ccontains $WifiEndpoint)) { return $WifiEndpoint }
