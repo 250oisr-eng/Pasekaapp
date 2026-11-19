@@ -1,3 +1,14 @@
+## Контрольная точка — Windows scheduler CI подтверждён (2026-11-19)
+
+- **Точный проверенный кодовый HEAD**: `6dd3004623b9d5c8dd77aa829d3b258164790c0f` в существующем Draft PR #186. [Windows11 + isolated APK workflow #44528651797](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44528651797) — **SUCCESS**: Windows PowerShell 5.1 parser, мок-тест чтения Android-отчёта, USB/Wi-Fi mock, **Run-Local-Scheduled / Register-Local-Scheduled approval & preview mock**, все Node regression tests, сборка isolated Android APK и Windows ZIP.
+- Другие workflow на том же SHA: Fast quality checks #44528651740 **SUCCESS**, Android APK #44528651622 и #44528663422 **SUCCESS**, independent isolated archive workflow #44528663201 **SKIPPED**. Нельзя выдавать SKIPPED за PASS.
+- ZIP artifact `paseka-win11-android-selftest-kit` **ID 14531304135**, 11,682,099 bytes, expires `2026-12-03 12:59:00 UTC`. Включает `Run-Local-Scheduled.ps1`, `Register-Local-Scheduled.ps1`, старые runner и START-TESTS.cmd, официальный ADB, уникальную test-only APK.
+- Проверка нового scheduler-скрипта на настоящем ПК и физический результат **этой новой APK** ещё не получены. Предыдущий подтверждённый физический 8/8 PASS относится к test APK из run #44526817635 (другой package/signing key). По безопасности новая сборка сначала требует собственный ручной 8/8 PASS в папке reports, только затем возможен -Run и opt-in -Install.
+- **Задание Windows не создавалось**: не выбрано время; регистрация требует явного `-DailyAt HH:mm -Install` пользователя, не входит в CI. Нет auto-install/auto-update, auto-download, upload diagnostics, elevated privileges или работы с production. В плановом запуске USB-only и уже установленный тестовый package; Wi-Fi остаётся ручным.
+- **Следующий шаг:** выполнить на Windows 11 ручной `START-TESTS.cmd` с артефактом 14531304135 и получить новый 8/8 PASS, затем проверить dry-run; после этого выбрать время и отдельно включить task по явному решению пользователя. Не merge/deploy/main/production.
+
+---
+
 ## Этап — Windows 11 локальный автозапуск подготовлен, но не активирован (2026-11-19)
 
 - Основание: пользовательский физический OnePlus test-only PASS 8/8, package `ru.paseka.journal.device.r44526817635a1`, run `cc7ba1ae3a5f434cacb9`, CI checked SHA `f79c8c9c2386f3c8ac8a682f012e8383bca1eff1`.
