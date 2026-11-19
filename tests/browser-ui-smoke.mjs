@@ -193,6 +193,34 @@ try {
           JSON.stringify(row.frameStripGeometry));
       }
       row.steps.push('frame-strip-6-and-10-geometry');
+      // Exercise the actual generated frame-chip handler with a temporary
+      // element and a stubbed opener; no hive/editor state is changed.
+      row.frameChipKeyboard = await page.evaluate(() => {
+        const original=window.openFrameFromDiagram;
+        let activations=0;
+        const host=document.createElement('div');
+        try {
+          window.openFrameFromDiagram=()=>{activations++};
+          host.innerHTML=window.frameChip({status:'foundation'},'1',0);
+          document.body.appendChild(host);
+          const chip=host.querySelector('.frame-chip');
+          if (!chip) throw new Error('The test frame chip did not render');
+          for (const key of ['Enter',' ','Escape']) {
+            chip.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}));
+          }
+          chip.click();
+          return {activations,hasAccessibleRole:chip.getAttribute('role')==='button'};
+        } finally {
+          host.remove();
+          window.openFrameFromDiagram=original;
+        }
+      });
+      if (row.frameChipKeyboard.activations !== 3 || !row.frameChipKeyboard.hasAccessibleRole) {
+        throw new Error('Frame chip keyboard/click activation is inconsistent: '+
+          JSON.stringify(row.frameChipKeyboard));
+      }
+      row.steps.push('frame-chip-keyboard');
+
 
 
 
