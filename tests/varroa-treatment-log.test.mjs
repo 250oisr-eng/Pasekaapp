@@ -25,7 +25,7 @@ test('creates only a manually confirmed treatment fact with the user-confirmed m
 
 test('rejects planned, unconfirmed, future-dated and malformed treatment entries',()=>{
  assert.throws(()=>make({hiveId:'h1',occurredAt:'2026-11-18T08:30:00.000Z'}),/действительно выполнена/i);
- assert.throws(()=>make({hiveId:'h1',occurredAt:'2026-11-18T08:30:00.000Z',userConfirmed:true}),/будущем/i);
+ assert.throws(()=>make({hiveId:'h1',occurredAt:'2026-11-20T08:30:00.000Z',userConfirmed:true}),/будущем/i);
  assert.throws(()=>make({hiveId:'h1',occurredAt:'not-a-date',userConfirmed:true}),/корректные дату/i);
  assert.throws(()=>make({hiveId:'gone',occurredAt:'2026-11-18T08:30:00.000Z',userConfirmed:true}),/существующий улей/i);
 });
@@ -68,7 +68,7 @@ test('treatment log module is loaded before app and cached for offline use',asyn
 test('latest treatment helper returns only the newest confirmed valid treatment for the selected hive',()=>{
  const older=make({hiveId:'h1',occurredAt:'2026-11-17T08:30:00.000Z',userConfirmed:true});
  const newest=make({hiveId:'h1',occurredAt:'2026-11-19T08:30:00.000Z',userConfirmed:true});
- const otherHive=make({hiveId:'h2',occurredAt:'2026-11-20T08:30:00.000Z',userConfirmed:true});
+ const otherHive=make({hiveId:'h2',occurredAt:'2026-11-18T08:30:00.000Z',userConfirmed:true});
  const unconfirmed={...newest,id:'unconfirmed',occurredAt:'2026-11-18T09:30:00.000Z',userConfirmed:false};
  assert.equal(api.latestTreatmentForHive([older,newest,otherHive,unconfirmed],'h1').id,newest.id);
  assert.equal(api.latestTreatmentForHive([older,newest],'missing'),null);
