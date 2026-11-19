@@ -1,3 +1,15 @@
+## Контрольная точка — интеграционный аудит Varroa schema 16 и полного архива (2026-11-19)
+
+- Создан Draft PR #181: https://github.com/250oisr-eng/Pasekaapp/pull/181, branch `test/varroa-archive-roundtrip-2026-11-19`, base PR #179 → #176 → #168. Главная ветка `main`: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
+- В `tests/varroa-archive-integration.test.mjs` добавлены три сквозных сценария для app schema 16 с реальными `PasekaArchive`, `PasekaArchiveRestore`, доменной проверкой Varroa и производственным структурным валидатором `validateBackupState`. Используется только `fake-indexeddb` и фикстуры; пользовательские данные не затронуты.
+- Проверены: экспорт .paseka → preflight → staging без изменения live state → атомарный commit → чтение после повторного открытия IndexedDB → rollback к прежней истории; отказ staging при `userConfirmed=false` в архиве с корректной контрольной суммой; отказ rollback при новой подтверждённой обработке с сохранением новой записи и recovery snapshot.
+- Code/test SHA: `579bdfa6d6e5e0cf1891903a9b4bf19574488a16`. Fast quality checks #44507462252: **745/745 tests passed, 0 failures**. Android workflow #44507462228 и PR workflow #44507472768 были в работе при этой контрольной записи; отдельно сверить завершение и результат на точном SHA. Isolated archive workflow #44507472719 skipped по path filter (ожидаемо).
+- В рабочем коде нет изменений: не менялись `index.html`, доменные модули, формат архива, IndexedDB schema, Service Worker, Android package ID и production. Новый PR строго test-only.
+- **Не подтверждено на физическом устройстве:** UI последней обработки в PR #180 и полный archive schema 16 import/rollback. Не выдавать тесты за физическую проверку. Ничего не merge и не deploy.
+- Следующий шаг: зафиксировать результаты Android workflow на точном test SHA и закончить интеграционную матрицу совместимости; физические UX/архивные проверки остаются отдельными пользовательскими контрольными точками.
+
+---
+
 ## Контрольная точка — изолированная Android-проверка карточки Varroa (2026-11-19)
 
 - Для UX-изменения PR #179 подготовлена отдельная test-only APK в Draft PR #180: https://github.com/250oisr-eng/Pasekaapp/pull/180.
