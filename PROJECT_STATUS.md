@@ -1,3 +1,26 @@
+## Контрольная точка — изолированная Android-проверка карточки Varroa (2026-11-19)
+
+- Для UX-изменения PR #179 подготовлена отдельная test-only APK в Draft PR #180: https://github.com/250oisr-eng/Pasekaapp/pull/180.
+- Workflow #44505448168 завершился success на точном test-only HEAD `1605fce812efd19d9f92f8c48f667d68fa5e13e8`: **742/742 tests passed, 0 failures**, Android Debug APK build и проверка package ID внутри APK успешны.
+- В APK подтверждён package ID `ru.paseka.journal.varroa.hivecard.test`; production package ID отсутствует.
+- Artifact #14520170370: `paseka-varroa-hive-card-isolated-test-apk`, 3,454,667 bytes; SHA-256 ZIP `ed678f4d58a436d2cf62e99583b9085b0d84980708518051d79940e587d1bd1`; срок хранения до 2026-12-03 10:26:27 UTC.
+- Исправлен test workflow: подтверждена фактическая установка Android SDK levels и проверяется итоговая конфигурация; устранена ошибка записи JSON-конфигурации Capacitor. Проверка относится к test-only workflow, функциональный код PR #179 не менялся.
+- **Физическая проверка UX ещё не выполнена.** Требуется проверить наличие даты/метода для улья с обработкой, отсутствие строки для улья без обработки, выбор последнего события, сохранение после перезапуска и офлайн.
+- PR #180 остаётся test-only Draft; PR #179 — функциональный Draft, stacked поверх #176 → #168. Main остаётся `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; merge, публикация и production deployment не выполнялись.
+
+---
+
+## Контрольная точка — последняя обработка Varroa в списке ульев (2026-11-19)
+
+- Draft PR #179: https://github.com/250oisr-eng/Pasekaapp/pull/179; branch `feat/varroa-last-treatment-hive-card-2026-11-19`; code/test SHA `465b6c216bd8f62586aa41e6873784f3a93721df`.
+- В доменный модуль добавлен `latestTreatmentForHive()`: выбирает последнее подтверждённое событие поддерживаемого метода с корректной датой только для указанного улья. В строке улья отображается дата и метод «Сублиматор щавелевой кислоты»; при отсутствии события дополнительная строка не появляется.
+- Новая схема данных, миграции, IndexedDB object-store version, backup/archive format и Service Worker cache не менялись. История остаётся append-only; записи не изменяются.
+- Android workflow #44485196425 на точном SHA завершён успешно: 742/742 тестов, 0 failures; Android Debug APK build/upload success. Отдельный archive workflow #44485196514 пропущен ожидаемо (path filter).
+- Следующий этап — изолированная test-only APK с package ID `ru.paseka.journal.varroa.hivecard.test` для физической проверки отображения в списке, отсутствия строки без события, выбора последней обработки, перезапуска и offline.
+- PR #179 остаётся Draft и stacked поверх PR #176 → #168. Main и production не изменялись; merge/deploy не выполнялись. Физическая проверка этой UX-правки пока не подтверждена.
+
+---
+
 ## Контрольная точка — физическая проверка Varroa и совместимость полного архива (2026-11-19)
 
 - Пользователь подтвердил успешное выполнение всех семи пунктов физической проверки журнала Varroa на отдельном Android-приложении. UI, блокировки подтверждения/будущей даты, история и сохранение после перезапуска офлайн подтверждены пользователем.
