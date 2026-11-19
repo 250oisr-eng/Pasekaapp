@@ -90,6 +90,12 @@ try {
           await page.locator('header .home-ai-shortcut').count() !== 0) {
         throw new Error('Home header must show the active section without duplicate AI shortcut');
       }
+      if (await page.locator('section#home .home-ai-card').count() !== 0 ||
+          await page.locator('section#home #homeAIQuestion').count() !== 0 ||
+          await page.locator('section#home .apiary-status-card button[onclick="newRecord()"]').count() !== 1 ||
+          await page.locator('nav button[data-tab="ai"]').count() !== 1) {
+        throw new Error('Home must have one central AI entry and a journal quick action');
+      }
       row.steps.push('home-loaded');
       const initial = await page.evaluate(() => ({
         width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,
