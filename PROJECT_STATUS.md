@@ -148,7 +148,6 @@
 - Изменены: `index.html`, `js/paseka-archive-restore.js`, `tests/indexeddb-startup-guard.test.mjs`, `tests/archive-ui-integration.test.mjs`, `sw.js`.
 - Новый code/test SHA: `be18ddb151ee0ff86cff28296512c899ad95a8a8`. Fast Quality Checks #44382917507 и Android workflow #44382917325 выполняются; результаты ещё не подтверждены.
 - PR #168 остаётся Draft. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменена. До CI и проверки конфликта PR не считать этап завершённым.
-
 ## Контрольная точка — PR #168: полный архив и проверка целостности (2026-11-18)
 
 - Main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
@@ -297,8 +296,7 @@
 
 ## Контрольная точка — 2026-11-17: идентификация и история оборудования
 
-- PR #151 Draft. Код/тесты SHA: `9677657799af28f5caaa6ee242c3f7186e694003`; полный регрессионный набор: **598/598 passed**, 0 failed (run #44144631787). Android Debug APK build/upload успешны (run #44144644403).
-- Документационный HEAD PR #151: `aef79c41c87a14a0cbe8b51616bf9942398186fd`; Android build check #44145100531 и Cloudflare preview check завершились успешно. Preview не является production deployment.
+- PR #151 Draft. Код/тесты SHA: `9677657799af28f5caaa6ee242c3f7186e694003`; полный регрессионный набор: **598/598 passed**, 0 failed (run #44144631787). Android Debug APK build/upload успешны (run #44144644403).- Документационный HEAD PR #151: `aef79c41c87a14a0cbe8b51616bf9942398186fd`; Android build check #44145100531 и Cloudflare preview check завершились успешно. Preview не является production deployment.
 - Реализованы постоянные коды и UID всех фактических рамок, миграция ID старых событий, проверка дубликатов, единый обработчик истории перемещений и append-only журналы рамок/корпусов без обрезания 300/1000 событий.
 - Пользователь подтвердил: каждый корпус и каждая рамка имеют постоянную идентификацию; любое перемещение сохраняется в истории.
 - Полная вместимость корпусов и порамочный учёт содержимого пока не реализованы; следующий этап остаётся заблокирован до уточнения технологического исключения ниже.
@@ -448,7 +446,6 @@
 ---
 
 ## Контрольная точка — 2026-11-17: PR #146 merged; core family lineage runtime integrated
-
 - Актуальный main SHA: `a1798b0bc47f8f4642c42ac4ab363a98cc1c3e59` — merge commit PR #146. PR #145 и PR #146 объединены.
 - PR #146 интегрировал `js/family-lineage.js` в runtime, root `familyEvents`, migration app schema 12→14, lineage validation в startup/save/raw backup, snapshot history, backup compatibility и Service Worker v312.
 - На точном code/test SHA `ffbf931453868208460e59d274e09d6c557b8297` GitHub Actions run #44084558765: **545/545 tests passed**, 0 failed; Android Debug APK build/upload — **success**. Artifact #14329575117, 3,387,913 bytes, SHA-256 `c71c7bbd74e26b0c750d33776fd401bf3afde22811fe7da258cc49916446a4cb`, expiry 2026-12-01.
@@ -597,8 +594,7 @@
 - Пользовательские данные не изменялись.
 - Production database и production deployment в рамках PR #134/#136/#137/#138/#139 не изменялись.
 - Новый профиль секционного улья **не активирован**.
-- UI создания/редактирования физической раскладки и реальные физические перемещения не добавлены.
-- Технологические переходы OP-04/05/06 не синхронизированы атомарно с lineage, layout, inventory, audit и techprocess.
+- UI создания/редактирования физической раскладки и реальные физические перемещения не добавлены.- Технологические переходы OP-04/05/06 не синхронизированы атомарно с lineage, layout, inventory, audit и techprocess.
 
 ## 6. Известные проблемы и открытые ограничения
 
@@ -693,3 +689,12 @@
 - Test3 предназначена для отдельной установки рядом с test2. Не удалять test2, не очищать его данные и не переустанавливать поверх него.
 - Следующий физический этап на OnePlus 10 Pro 5G: установить test3 рядом с test2; в test2 создать свежий полный архив .paseka; в test3 выбрать этот архив и выполнить только «Проверить архив и подготовить». Перед commit сверить сводку preflight. Не нажимать «Заменить данные архивом» до отдельного согласования.
 - Физический commit и rollback по-прежнему не проверены. PR #168 и #174 остаются Draft; main, production DB и production deployment не затронуты.
+
+## Test4 APK успешно собрана и проверена — 2026-11-19
+
+- Изолированный workflow [#44470697908](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44470697908) завершился **success** на точном SHA `56924c2e5daffa66578220e16226672341876a25`, ветка `test/full-archive-android-isolated-2026-11-18`.
+- Regression tests, изолированная Capacitor-конфигурация, Android 15 Gradle Debug APK build, проверка package ID внутри APK через `aapt` и artifact upload — все шаги успешны.
+- Package ID: `ru.paseka.journal.archive.test4`; имя приложения: «Пасека — архив тест 4». Проверка package ID прошла; production ID `ru.paseka.journal` не допускается workflow.
+- Artifact `paseka-archive-isolated-test-apk`, ID `14503938858`, размер 3,451,723 bytes, SHA-256 ZIP `f115b6991e4c5dfc510671ede8b998d433ab6f31e59dad1d33197367bfb70d82`, срок хранения до 2026-12-03 06:16:06 UTC.
+- Следующий физический шаг на OnePlus 10 Pro 5G: установить test4 рядом с test2/test3, не удаляя и не очищая старые установки. В test2 создать свежий полный архив .paseka; в test4 выбрать его и выполнить preflight, затем контролируемый commit и rollback только в чистом test4, после чего проверить ID архива в истории rollback. Если на test4 уже есть какие-либо нужные записи, остановиться и не выполнять commit.
+- PR #174 остаётся test-only Draft; PR #168 остаётся Draft. Main не менялась; merge, публикация и production deployment не выполнялись.
