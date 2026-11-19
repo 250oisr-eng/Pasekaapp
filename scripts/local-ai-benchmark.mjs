@@ -22,16 +22,35 @@ export async function benchmark({ models, cases, review = reviewFixture, clock =
     const start = clock();
     try {
       const result = await review({ fixture: item, model });
+      if (result?.status !== 'unverified-model-suggestions' || result.finishReason !== 'stop' ||
+          typeof result.findingsText !== 'string' || !result.findingsText.trim()) {
+        throw new Error('Missing complete final review; rejected');
+      }
       runs.push({ model, caseId: item.id, durationMs: Math.max(0,clock()-start),
-        status: 'unverified', findingsText: result.findingsText });
+        status: 'unverified', completion: 'stop',
+        tokens: result.tokens ?? null, tokensPerSecond: result.tokensPerSecond ?? null,
+        modelDurationMs: result.totalDurationMs ?? null, findingsText: result.findingsText });
     } catch (error) {
       runs.push({ model, caseId: item.id, durationMs: Math.max(0,clock()-start),
         status: 'failed', error: String(error?.message ?? 'Unknown local failure').slice(0,200) });
     }
   }
+  const summary = ids.map(model => {
+    const modelRuns = runs.filter(run => run.model === model);
+    const measuredSpeeds = modelRuns.map(run => run.tokensPerSecond).filter(x => Number.isFinite(x) && x > 0);
+    return {
+      model, attempted: modelRuns.length,
+      completedUnverified: modelRuns.filter(run => run.status === 'unverified').length,
+      failed: modelRuns.filter(run => run.status === 'failed').length,
+      elapsedMs: modelRuns.reduce((total,run) => total + run.durationMs,0),
+      meanTokensPerSecond: measuredSpeeds.length
+        ? Math.round(measuredSpeeds.reduce((a,b)=>a+b,0) * 10 / measuredSpeeds.length)/10 : null,
+      qualityScore: null
+    };
+  });
   return { kind: 'synthetic-local-model-comparison', scored: false,
-    note: 'Manually compare findings to the expected defects in the benchmark fixture; model output is untrusted.',
-    runs };
+    note: 'Completion is not correctness. Human must check defect detection, false positives, unsafe fixes and regression tests against the synthetic fixtures. Incomplete output counts as failed.',
+    summary, runs };
 }
 async function main() {
   if (process.argv.length !== 4 || process.argv[2] !== '--models') throw new Error('Usage: node scripts/local-ai-benchmark.mjs --models qwen3:4b,deepseek-r1:7b');
