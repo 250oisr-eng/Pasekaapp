@@ -6,7 +6,7 @@ $OutputEncoding = [Console]::OutputEncoding
 # Only the separate debug package is installed, launched and force-stopped.
 # Every CI build has its own isolated package and signing key.
 # Read the package name from the matching build artifact; never clear or
-# uninstall any existing Android application to resolve signature mismatch.
+# replace any existing Android application to resolve signature mismatch.
 $PackagePath = Join-Path $PSScriptRoot 'device-package.txt'
 if (!(Test-Path -LiteralPath $PackagePath)) {
   Write-Host 'Missing device-package.txt: installation aborted without device changes.' -ForegroundColor Red
