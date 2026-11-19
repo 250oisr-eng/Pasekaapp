@@ -43,3 +43,13 @@ test('initial current-page state remains accessible after navigation port', () =
   assert.match(nav, /data-tab="home"[^>]*aria-current="page"/);
   assert.match(nav, /data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"/);
 });
+
+test('hive cards on overview and in directory support keyboard activation', () => {
+  const directory = html.match(/return '<div class="hive-row"[\s\S]*?function renderHiveHeaderSummary/)?.[0] || '';
+  const overview = html.match(/return '<div class="home-hive"[\s\S]*?const homeHiveCount/)?.[0] || '';
+  for (const [name, source] of [['directory', directory], ['overview', overview]]) {
+    assert.match(source, /role="button" tabindex="0"/, name + ' must expose keyboard focus');
+    assert.match(source, /onkeydown="if\(event\.key===\\'Enter\\'\|\|event\.key===\\' \\'\)/, name + ' must handle Enter and Space');
+    assert.match(source, /event\.preventDefault\(\);event\.stopPropagation\(\);openHive\(/, name + ' must prevent scrolling and activate only once');
+  }
+});
