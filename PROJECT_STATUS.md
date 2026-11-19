@@ -1,3 +1,13 @@
+## Контрольная точка — физический OnePlus: 7/8, диагностика Downloads (2026-11-19)
+
+- Пользователь прислал физический Windows/Android отчёт `report(2).json`, runId `ece1565a58ef4684a386`, package `ru.paseka.journal.device.r44522050363a1` (точная сборка #44522050363). Общий итог **FAIL**: семь из восьми итоговых проверок PASS; единственный FAIL `native_downloads_archive_hash_and_cleanup` с `ERR_NOT_TEST_ARCHIVE`.
+- PASS: WebView startup, карточки ульев, archive export/preflight/commit/rollback, reject unconfirmed Varroa event, revision guard, real Android restart IndexedDB и повторная отрисовка. Это исключительно тестовая база и APK; production-данные не участвовали.
+- Native test bridge возвращал общий `ERR_NOT_TEST_ARCHIVE` при несоответствии ровно одного из трёх признаков MediaStore: имени тестового файла, MIME или каталога. **Причина пока не определена**: нет исходных metadata. Удаление такого файла запрещено; возможно остался отдельный test-only архив в Downloads/Пасека, не удалять другие файлы.
+- Текущая безопасная правка в существующем Draft PR #186 заменяет общую ошибку отдельными `ERR_TEST_NAME`, `ERR_TEST_MIME`, `ERR_TEST_FOLDER` при сохранении всех трёх строгих проверок до SHA-256 и удаления; добавлен регрессионный guard их порядка. Никакого ослабления правил и никаких изменений production. Кодовый SHA `b29de5afb62106e386033525cf79faab2520655b`; CI на этом коде пока не подтверждён.
+- **Следующий шаг:** проверить CI на точном SHA, затем новый изолированный физический запуск для определения ошибочного metadata-поля. До получения такого результата не разрешать удаление по ослабленной проверке и не включать автоматический scheduler.
+
+---
+
 ## Контрольная точка — USB/Wi-Fi CI подтверждён (2026-11-19)
 
 - Проверен точный HEAD `f9049fceb0beceea9d7da40d8f20bf48b30672f8` существующего Draft PR #186.
