@@ -1360,7 +1360,7 @@ test('startup preserves an automatic backup from a newer schema without attempti
  assert.equal(writes,0,'a future-schema backup must never be silently replaced');
  assert.equal(reads,0);
  assert.match(current.meta.autoBackupError,/более новой версией приложения/i);
- assert.equal(future.state.meta.schemaVersion,16);
+ assert.equal(future.state.meta.schemaVersion,17);
 });
 
 test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
