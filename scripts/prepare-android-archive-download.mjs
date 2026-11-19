@@ -58,7 +58,14 @@ public final class PasekaArchiveDownloadBridge {
     private static final class Session {
         final Uri uri;
         final OutputStream output;
-        Session(Uri uri, OutputStream output) { this.uri = uri; this.output = output; }
+        final long expectedBytes;
+        long writtenBytes;
+        Session(Uri uri, OutputStream output, long expectedBytes) {
+            this.uri = uri;
+            this.output = output;
+            this.expectedBytes = expectedBytes;
+            this.writtenBytes = 0;
+        }
     }
 
     public PasekaArchiveDownloadBridge(Context context) {
@@ -66,30 +73,38 @@ public final class PasekaArchiveDownloadBridge {
     }
 
     @JavascriptInterface
-    public synchronized String beginFile(String displayName, String mimeType) {
+    public synchronized String beginFile(String displayName, String mimeType, long expectedBytes) {
+        Uri pendingUri = null;
+        OutputStream pendingOutput = null;
         try {
             String safeName = displayName == null ? "" : displayName.replaceAll("[^a-zA-Z0-9._-]", "_");
             if (!safeName.matches("paseka-full-backup-[0-9]{4}-[0-9]{2}-[0-9]{2}[.]paseka")) {
                 throw new IllegalArgumentException("Недопустимое имя файла архива");
             }
             if (!MIME.equals(mimeType)) throw new IllegalArgumentException("Недопустимый тип архива");
+            if (expectedBytes <= 0) throw new IllegalArgumentException("Размер архива должен быть положительным");
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeName);
             values.put(MediaStore.MediaColumns.MIME_TYPE, MIME);
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Пасека");
             values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-            Uri uri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) throw new IllegalStateException("Android не создал файл в папке загрузок");
-            OutputStream output = context.getContentResolver().openOutputStream(uri, "w");
-            if (output == null) {
-                context.getContentResolver().delete(uri, null, null);
-                throw new IllegalStateException("Не удалось открыть файл для записи");
-            }
+            pendingUri = context.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (pendingUri == null) throw new IllegalStateException("Android не создал файл в папке загрузок");
+            pendingOutput = context.getContentResolver().openOutputStream(pendingUri, "w");
+            if (pendingOutput == null) throw new IllegalStateException("Не удалось открыть файл для записи");
             String id = UUID.randomUUID().toString();
-            sessions.put(id, new Session(uri, output));
+            sessions.put(id, new Session(pendingUri, pendingOutput, expectedBytes));
             lastError = "";
             return id;
         } catch (Exception error) {
+            // Inserting a pending MediaStore row may succeed even when opening
+            // its output stream throws. Do not leave an orphaned Downloads item.
+            if (pendingOutput != null) {
+                try { pendingOutput.close(); } catch (Exception ignored) {}
+            }
+            if (pendingUri != null) {
+                try { context.getContentResolver().delete(pendingUri, null, null); } catch (Exception ignored) {}
+            }
             lastError = error.getMessage() == null ? error.toString() : error.getMessage();
             return "";
         }
@@ -102,7 +117,11 @@ public final class PasekaArchiveDownloadBridge {
             if (session == null) throw new IllegalStateException("Сеанс записи файла не найден");
             if (base64 == null || base64.length() > 400000) throw new IllegalArgumentException("Недопустимый размер блока архива");
             byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+            if (bytes.length == 0 || bytes.length > session.expectedBytes - session.writtenBytes) {
+                throw new IllegalArgumentException("Объём записываемых данных превышает размер архива или блок пуст");
+            }
             session.output.write(bytes);
+            session.writtenBytes += bytes.length;
             lastError = "";
             return true;
         } catch (Exception error) {
@@ -119,6 +138,9 @@ public final class PasekaArchiveDownloadBridge {
             return "";
         }
         try {
+            if (session.writtenBytes != session.expectedBytes) {
+                throw new IllegalStateException("Архив записан не полностью");
+            }
             session.output.flush();
             session.output.close();
             ContentValues values = new ContentValues();
@@ -128,6 +150,7 @@ public final class PasekaArchiveDownloadBridge {
             lastError = "";
             return session.uri.toString();
         } catch (Exception error) {
+            try { session.output.close(); } catch (Exception ignored) {}
             try { context.getContentResolver().delete(session.uri, null, null); } catch (Exception ignored) {}
             lastError = error.getMessage() == null ? error.toString() : error.getMessage();
             return "";
