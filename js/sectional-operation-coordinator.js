@@ -791,6 +791,7 @@ function inspectSecondHoneyPairCandidate(state,request){
  if(layouts.length!==1)add('second_pair_layout_missing_or_ambiguous');
  const layout=layouts[0],stack=layout?.honeyStack,oldIds=rows(stack?.bodyIds);
  if(layout?.profileId!==PROFILE_ID||layout?.mode!=='SIDE_BY_SIDE'||stack?.purpose!=='main'||oldIds.length!==2||new Set(oldIds).size!==2||layout?.id!==process?.state?.layoutId)add('second_pair_requires_initial_main_honey_pair');
+ if(op07&&op07.evidence?.honeyPurpose!=='main')add('second_pair_original_op07_not_main');
  if(op07&&JSON.stringify(oldIds.slice().sort())!==JSON.stringify(rows(op07.evidence?.honeyBodyIds).slice().sort()))add('second_pair_original_op07_bodies_changed');
  const existingFrames=Object.fromEntries(oldIds.map(id=>[id,rows(state.equipmentInventory?.bodies?.[id]?.frames)]));
  if(op07&&JSON.stringify(honeyFrameCompositionEvidence(existingFrames))!==JSON.stringify(op07.evidence?.frameComposition))add('second_pair_original_op07_frames_changed');
