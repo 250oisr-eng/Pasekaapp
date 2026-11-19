@@ -1,4 +1,5 @@
 name: Build isolated archive test APK
+# Operational trigger: keep test4 build runnable from this test-only branch via push.
 
 on:
   workflow_dispatch:
