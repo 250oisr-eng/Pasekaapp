@@ -6,6 +6,7 @@ on:
       - test/win11-device-automation-2026-11-19
       - test/win11-native-downloads-2026-11-19
       - test/win11-signature-safe-2026-11-19
+      - fix/win11-powershell-parse-2026-11-19
   workflow_dispatch:
 
 concurrency:
@@ -16,7 +17,39 @@ permissions:
   contents: read
 
 jobs:
+  validate-windows-script:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Parse launcher with Windows PowerShell 5.1 before packaging
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($PSVersionTable.PSVersion.Major -ne 5) { throw 'Expected Windows PowerShell 5.1' }
+          $path = Join-Path $env:GITHUB_WORKSPACE 'scripts\windows\Run-Paseka-Tests.ps1'
+          $bytes = [System.IO.File]::ReadAllBytes($path)
+          if ($bytes.Length -lt 3 -or $bytes[0] -ne 239 -or $bytes[1] -ne 187 -or $bytes[2] -ne 191) {
+            throw 'Windows PowerShell 5.1 requires a UTF-8 BOM for Cyrillic messages.'
+          }
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Host $_.ToString() }
+            throw 'Windows PowerShell 5.1 syntax validation failed.'
+          }
+          $source = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+          if (($source -split 'function Invoke-ADB').Count -ne 2) {
+            throw 'Launcher was duplicated during code generation.'
+          }
+          if ($source -notmatch 'device-package\.txt' -or $source -notmatch 'Get-FileHash') {
+            throw 'Launcher missing the isolated APK manifest or checksum guard.'
+          }
+          Write-Host 'Windows PowerShell 5.1: launcher syntax, UTF-8 BOM and single-script structure OK'
   build:
+    needs: validate-windows-script
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
