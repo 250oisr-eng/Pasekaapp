@@ -104,6 +104,16 @@ try {
         row.violations = minimalViolations(results);
         row.incompleteCount = results.incomplete.length;
       } catch(error) { row.axeError=String(error.message||error); }
+      if (row.axeError) throw new Error('axe-core audit failed: '+row.axeError);
+      // The legacy axe backlog remains informational, but a proven, repaired
+      // contrast regression in the status tiles now blocks this UI smoke.
+      const badStatusLabels = row.violations
+        .filter(v=>v.id==='color-contrast')
+        .flatMap(v=>v.nodes)
+        .filter(n=>n.target.some(sel=>String(sel).includes('.apiary-stat')));
+      if (badStatusLabels.length) {
+        throw new Error('Apiary status labels have insufficient contrast: '+badStatusLabels.length);
+      }
 
       await page.locator('nav button[data-tab="hives"]').click();
       await page.locator('section#hives.panel.active').waitFor({state:'visible',timeout:15000});
@@ -130,7 +140,7 @@ try {
       failed=true;
       try { await page.screenshot({path:resolve(reportDir,profile.id+'-failure.png'),fullPage:true}); } catch {}
     } finally { await context.close(); }
-    console.log(profile.id+': '+row.status+' nav='+row.steps.join(',')+' axe='+row.violations.map(v=>v.id+'('+v.impact+')').join(',')+' pageErrors='+row.pageErrors.length);
+    console.log(profile.id+': '+row.status+' nav='+row.steps.join(',')+' axe='+row.violations.map(v=>v.id+'('+v.impact+')').join(',')+' overflowPx='+((row.layout?.scrollWidth||0)-(row.layout?.width||0))+' pageErrors='+row.pageErrors.length);
     if (row.violations.length) console.log('AXE_NODES '+profile.id+' '+JSON.stringify(row.violations.map(v=>({rule:v.id,nodes:v.nodes.slice(0,6).map(n=>({target:n.target,issue:String(n.failureSummary||'').slice(0,170)}))}))));
   }
 } catch(error) {
