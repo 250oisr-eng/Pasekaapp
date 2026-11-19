@@ -3113,10 +3113,32 @@ function applyProfileAssemblySelection(){
 }
 async function finishProfileAssemblySetup(hid,l,profile){
  const validation=validateHiveAssemblyProfile(profile,l);
- if(!validation.ok){alert('Комплектация не прошла проверку: '+validation.errors.map(x=>x.code).join(', '));return}
- const wasComplete=!!l.setupComplete;l.setupComplete=true;l.setupEditing=false;
+ if(!validation.ok){alert('Комплектация не прошла проверку: '+validation.errors.map(x=>x.code).join(', '));return false}
+ // Keep the selected configuration editable until IndexedDB confirms it was
+ // saved. A failed write must not leave a completed assembly or false audit.
+ const wasComplete=!!l.setupComplete,wasEditing=!!l.setupEditing;
+ const previousMeta=structuredClone(S.meta||{}),previousSnapshots=S.snapshots;
+ l.setupComplete=true;l.setupEditing=false;
  logAudit(wasComplete?'assembly_changed':'assembly_configured',{hiveId:hid,profileId:profile.id,mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:(l.honeyBoxInstalled||[]).slice()});
- assemblyEditSnapshot=null;await save();renderStructure();
+ const auditId=S.auditLog?.at(-1)?.id;
+ let saved=false,saveFailure=null;
+ try{saved=await save()}catch(error){saveFailure=error}
+ if(saved!==true){
+  l.setupComplete=wasComplete;l.setupEditing=wasEditing;
+  if(auditId)S.auditLog=S.auditLog.filter(entry=>entry.id!==auditId);
+  const saveError=S.meta?.saveError;
+  S.meta=previousMeta;
+  if(saveError)S.meta.saveError=saveError;
+  S.snapshots=previousSnapshots;
+  try{renderStructure()}catch(error){console.error('Не удалось обновить комплектацию после отказа сохранения',error)}
+  if(saveFailure){
+   console.error('Не удалось сохранить комплектацию улья',saveFailure);
+   alert('Не удалось сохранить комплектацию. Выбранные корпуса оставлены для повторной попытки. Не закрывай приложение без резервной копии.');
+  }
+  return false;
+ }
+ assemblyEditSnapshot=null;renderStructure();
+ return true;
 }
 function renderStructure(){
  const hid=selectedStructureHive();if(!hid||!$('hiveDiagram'))return;const l=layoutFor(hid),profile=profileForHive(hid);
