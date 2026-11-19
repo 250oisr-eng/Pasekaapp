@@ -12,6 +12,8 @@ test('secret tripwires and model allowlist',()=>{
     assert.throws(()=>validateFixture({...fixture,context}),/secret/);
   assert.equal(validateModel('qwen3:4b'),'qwen3:4b');
   assert.throws(()=>validateModel('x --execute'),/model/);
+  assert.throws(()=>validateFixture({...fixture,task:'password=supersecretpassword'}),/secret/);
+  assert.throws(()=>validateFixture({...fixture,task:'й'.repeat(300)}),/Invalid task/);
 });
 test('fixed local endpoint; unverified findings',async()=>{
   let calls=0;
