@@ -1,3 +1,13 @@
+## Контрольная точка — 2026-11-19: очистка неиспользуемых моделей Ollama на Windows
+
+- Пользователь выполнил ранее предложенный блок очистки. `ollama rm` вернул `deleted` для `deepseek-r1:7b`, `gemma3:4b`, `phi4-mini:latest`, `qwen2.5-coder:7b`; `ollama list` после очистки показал **только** `qwen3:4b` (2.5 GB). Потенциально высвобождено до 15.3 GB, не проверено фактическое место на диске и общие слои.
+- Выявлены две ошибки ранее предоставленного скрипта: проверка `if ((ollama list) -notmatch "qwen3:4b")` неверна для массивов строк и дала ложное отсутствие Qwen3; вызов `opencode.cmd models ollama` производился из домашнего каталога `C:\Users\n12D8`, а не из `OpenCode-Synthetic-Pilot`, что **вероятно** вызвало `Provider not found: ollama` несмотря на рабочую конфигурацию в pilot. Проверить снова только после `Set-Location $dir`, без переустановки.
+- Также PowerShell `throw` при построчной вставке останавливает лишь конкретную команду/блок, но не все последующие вставленные вручную команды; поэтому удаления произошли после ошибок. Ошибки скрипта признаны, не рекомендовать повторные удаления, не полагаться на подобное sequencing. Ошибка `failed to get console mode for stderr` при `ollama stop` не помешала фактическому `ollama rm`.
+- В `OpenCode-Synthetic-Pilot\opencode.json` пользователь сохранил backup и переключил `model` на `ollama/qwen3:4b`, удалил регистрацию qwen2.5-coder. Актуальный `opencode.cmd models ollama` **из правильного каталога** пока не проверен. Основная ветка, реальный репозиторий, данные не затронуты.
+- Следующий шаг — проверить Qwen3 и разрешения, `Set-Location` в synthetic directory и `opencode.cmd models ollama`; при ошибке не запускать агент, проверить только локальный `opencode.json` и локальный Ollama API. Новых моделей не скачивать и не удалять.
+- PR #189 Draft, HEAD до документации `715dead0ab0d92796561bff9205076234cc99292`, CI `Build Android APK:completed/success`; SHA документов поменяется, новые проверки CI не считать пройденными.
+
+---
 ## Контрольная точка — 2026-11-19: OpenCode/Qwen3 — проверка синтетического переноса с риском потери данных
 
 - Пользователь создал `synthetic-transfer.js` в изолированной `OpenCode-Synthetic-Pilot`: `await store.remove(from,item)` → `await store.add(to,item)`. Запустил `opencode.cmd run --format json --model ollama/qwen3:4b` с требованием read-only анализа, проверки Promise ошибок и двух regression tests.
