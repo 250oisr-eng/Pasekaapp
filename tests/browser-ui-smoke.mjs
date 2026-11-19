@@ -101,6 +101,19 @@ try {
           await page.locator('#modelDiagnosticsList').count() !== 1) {
         throw new Error('Integrity diagnostics must have a dedicated More panel, not a home statistic');
       }
+      const overview = await page.locator('section#home .home-intro-card').evaluate(details => ({
+        expandable: details.tagName === 'DETAILS',
+        startsCollapsed: !details.open,
+        summary: details.querySelector('summary')?.textContent?.trim() || '',
+        fullCaveat: details.textContent.includes('Все ульи, семьи, рамки')
+      }));
+      if (!overview.expandable || !overview.startsCollapsed || !overview.fullCaveat ||
+          !overview.summary.includes('Виртуальная модель пасеки') ||
+          await page.locator('section#home #homeHivePreviewCount').count() !== 1 ||
+          await page.locator('section#home .home-hives-card button[onclick="showTab(\'hives\')"]').count() !== 1) {
+        throw new Error('Compact home overview must preserve an expandable caveat and All Hives route');
+      }
+      row.steps.push('compact-home-overview');
       row.steps.push('home-loaded');
       const initial = await page.evaluate(() => ({
         width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,
