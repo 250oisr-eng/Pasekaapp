@@ -25,7 +25,7 @@ export function validateFixture(value) {
   return { task: value.task, context: value.context };
 }
 export function validateModel(model) {
-  if (!MODEL_RE.test(model ?? '')) throw new Error('Invalid Ollama model');
+  if (!ALLOWED_LOCAL_MODELS.has(model)) throw new Error('Invalid Ollama model: only approved local tags are allowed');
   return model;
 }
 export function buildPrompt({task, context}) {
