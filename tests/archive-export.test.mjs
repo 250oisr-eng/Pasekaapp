@@ -30,14 +30,20 @@ function writeFixture(db, state, videos = []) {
     tx.onabort = () => reject(tx.error);
   });
 }
-function stateFixture() {
-  return {
-    meta: { schemaVersion: 15, revisionId: 'revision-1' },
+function stateFixture(schemaVersion = 15) {
+  const state = {
+    meta: { schemaVersion, revisionId: 'revision-1' },
     hives: [{ id: 'hive-1', number: 1 }],
     families: [],
     records: [{ id: 'record-1', media: ['data:image/jpeg;base64,AA=='] }],
     snapshots: []
   };
+  if (schemaVersion >= 16) state.varroaTreatments = [{
+    id: 'treatment-1', hiveId: 'hive-1', hiveNumberAtTime: 1, hiveLabelAtTime: 'Улей №1',
+    method: 'oxalic_acid_sublimator', occurredAt: '2026-11-13T08:30:00.000Z',
+    createdAt: '2026-11-13T09:00:00.000Z', source: 'manual', userConfirmed: true
+  }];
+  return state;
 }
 function videoFixture(id, hiveId, bytes, capturedAt) {
   const blob = new Blob([bytes], { type: 'video/mp4' });
@@ -53,7 +59,7 @@ test('full archive export reads state and entrance videos from one IndexedDB rea
   const db = await openTestDb('paseka-export-consistent');
   const first = videoFixture('video-1', 'hive-1', new Uint8Array([1, 2, 3]), '2026-11-14T09:00:00.000Z');
   const second = videoFixture('video-2', 'hive-1', new Uint8Array([4, 5, 6, 7]), '2026-11-14T10:00:00.000Z');
-  await writeFixture(db, stateFixture(), [second, first]);
+  await writeFixture(db, stateFixture(16), [second, first]);
 
   const result = await Archive.exportArchiveFromDatabase(db, webcrypto, {
     backupId: 'export-test-1',
@@ -62,7 +68,7 @@ test('full archive export reads state and entrance videos from one IndexedDB rea
   const parsed = await Archive.parseArchiveBlob(result.blob);
   assert.equal(result.summary.videoCount, 2);
   assert.equal(parsed.manifest.backupId, 'export-test-1');
-  assert.equal(parsed.manifest.schemaVersion, 15);
+  assert.equal(parsed.manifest.schemaVersion, 16);
   assert.deepEqual(parsed.entries.map(entry => entry.path), [
     'state.json',
     'entrance-media/000001.blob',
@@ -74,6 +80,13 @@ test('full archive export reads state and entrance videos from one IndexedDB rea
   assert.equal(stateWrapper.app, 'Paseka');
   assert.equal(stateWrapper.state.hives[0].id, 'hive-1');
   assert.deepEqual(stateWrapper.state.records[0].media, ['data:image/jpeg;base64,AA==']);
+  assert.deepEqual(stateWrapper.state.varroaTreatments, stateFixture(16).varroaTreatments);
+  const restored = await Archive.validateArchiveForRestore(result.blob, webcrypto, state => {
+    assert.equal(state.meta.schemaVersion, 16);
+    assert.deepEqual(state.varroaTreatments, stateFixture(16).varroaTreatments);
+    return true;
+  });
+  assert.deepEqual(restored.state.varroaTreatments, stateFixture(16).varroaTreatments);
   assert.equal(parsed.entries[1].metadata.id, 'video-1');
   assert.equal(parsed.entries[2].metadata.id, 'video-2');
   assert.deepEqual(
@@ -107,7 +120,7 @@ test('full archive export refuses a missing state or unsupported saved schema', 
   emptyDb.close();
 
   const db = await openTestDb('paseka-export-future-schema');
-  await writeFixture(db, { meta: { schemaVersion: 16 }, hives: [] });
+  await writeFixture(db, { meta: { schemaVersion: 17 }, hives: [] });
   await assert.rejects(
     Archive.exportArchiveFromDatabase(db, webcrypto),
     { code: 'UNSUPPORTED_STATE_SCHEMA' }
