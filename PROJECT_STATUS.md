@@ -1,3 +1,12 @@
+## Контрольная точка — 2026-11-19: исправлена ошибка счётчика PowerShell при диагностике Ollama tool_calls
+
+- Пользователь вызвал `/api/chat` со структурированным `tools` calculator для `qwen2.5-coder:7b` и `qwen3:4b`. Скрипт выводил `ToolCalls=1` для обоих, но считал `@($r.message.tool_calls).Count`, что при `$null` даёт ложный 1. Ни один `$r.message.tool_calls | ConvertTo-Json` не напечатался, так что структурных вызовов в показанных ответах **нет**.
+- `qwen2.5-coder:7b`: `message.content=` JSON-строка `{"name":"calculator","arguments":{"a":42,"b":17}}`, `done_reason=stop`, tool_calls не продемонстрированы. `qwen3:4b`: пустой `content`, `done_reason=length`, tool_calls не продемонстрированы. Последний — **неполный ответ**, а не доказательство принципиального отсутствия поддержки.
+- Схожий свежий публичный дефект Ollama #19524 (https://github.com/ollama/ollama/issues/19524), 2026-11-04, описывает те же симптомы; там обход `OLLAMA_GO_TEMPLATE=false` помогал Qwen3 8B, но не Qwen2.5-Coder 7B. Не менять глобальные параметры Ollama на основании чужого workaround.
+- Следующий шаг: повторить прямой запрос **только к Qwen3 4B** с `think:false` и увеличенным `num_predict` (напр. 512), считать вызовы `if ($null -ne $r.message.tool_calls) { @($r.message.tool_calls).Count } else {0}`, печатать полный `message` и `done_reason`. Не выполнять tool-call; не давать файловых прав. Если Qwen3 пройдёт, потом отдельно проверить OpenCode на синтетическом файле.
+- Ограничения прежние: только read-only synthetic, без production/main/реальных данных. PR #189 Draft, исходный SHA `ae0b490348ab292c7b5c93051c27301f6d0eb65e`; CI `Build Android APK:completed/success`.
+
+---
 ## Контрольная точка — 2026-11-19: OpenCode JSON events подтверждают отсутствие native tool call
 
 - Пользователь выполнил `opencode.cmd run --format json --model ollama/qwen2.5-coder:7b` в отдельном синтетическом каталоге. События: `step_start`, затем исключительно `text` (`{"name": "read", "arguments": {"filePath": "synthetic.js"}}`), затем `step_finish` с `reason:"stop"`, `tokens.total=2605`, `input=24`, `output=18`, `cache.read=2563`. Реального tool-call event не было.
