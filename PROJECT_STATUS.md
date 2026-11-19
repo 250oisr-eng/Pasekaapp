@@ -1,3 +1,14 @@
+## 2026-11-19 — Local GitHub report upload: payload check rejected pending summary
+
+- User ran `RETRY-REPORT-UPLOAD.cmd` after the HTTP 422 diagnostics update. This time the local uploader refused its own queued comment with `Unsafe GitHub comment payload; upload blocked`. **No GitHub request was made at this stage**; physical Android run remains a local PASS and pending anonymized report is preserved. Do not delete or modify the queue, original report, APK, device metadata, DPAPI token or production data. GitHub issue #198 still had zero comments at observation.
+- Refined `scripts/windows/Publish-Paseka-Test-Report.ps1`: outgoing JSON `body` now checked by explicit PSObject property access after `ConvertFrom-Json -InputObject`, with distinct fail-closed error categories (invalid object, missing body, invalid marker/length), avoiding reliance on ambiguous pipeline wrapper. Kept validation of 8 KB limit, marker prefix, token isolation, duplicate handling and safe HTTP 422 diagnostics.
+- Added test-mode outgoing serialization/validation for a representative synthetic comment, including the rejection of an unrelated marker, and regression assertion in `tests/windows-local-agent.ps1`. Tests do not post to GitHub or expose private data.
+- Code SHA `05fe84f17054e2359c9db8cb571fed5b53b84e12`: Windows PowerShell 5.1 validation job and fast quality suite **success**; isolated kit build #44610029072 pending/in progress at recording and must be reported separately. The earlier intermediate build failures/cancellations are not successes.
+- Recover on the **same user's original kit** by replacing only its `Publish-Paseka-Test-Report.ps1` from this exact SHA, then running `RETRY-REPORT-UPLOAD.cmd` once. **Do not download a new test APK**: its new package would be incompatible with the preserved report. If the same failure persists, retain the queue and use distinct error category to pinpoint actual pending formatting before another retry.
+- Draft PR #199; no main modification, scheduled background task, public raw data, merge or production deployment.
+
+---
+
 ## 2026-11-19 — GitHub issue #198 upload 422: safe diagnostic update
 
 - User ran `RETRY-REPORT-UPLOAD.cmd` after fixing previous empty-comment StrictMode error. The local report and sanitized pending summary remain intact; GitHub rejected the POST with **HTTP 422 Unprocessable Entity**. No claim of successful upload; GitHub issue #198 was confirmed **open, unlocked, with zero comments**.
