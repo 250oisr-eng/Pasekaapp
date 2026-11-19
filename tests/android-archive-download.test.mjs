@@ -79,7 +79,7 @@ test('Android download actually encodes all chunks and reports success only afte
   const helper = await loadAndroidDownloadHelper({
     beginFile(filename, mime) {
       events.push('begin');
-      assert.match(filename, /\\.paseka$/);
+      assert.match(filename, /[.]paseka$/);
       assert.equal(mime, 'application/vnd.paseka.archive');
       return 'session-id';
     },
