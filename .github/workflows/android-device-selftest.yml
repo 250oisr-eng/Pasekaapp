@@ -11,6 +11,7 @@ on:
       - test/pr194-win11-manual-archive-2026-11-19
       - test/pr194-native-negative-paths-2026-11-19
       - test/manual-android-offline-archive-2026-11-19
+      - test/win11-manual-agent-report-2026-11-19
   workflow_dispatch:
 
 concurrency:
@@ -61,6 +62,9 @@ jobs:
       - name: Verify local scheduled runner is opt-in and rejects unapproved kits
         shell: powershell
         run: .\tests\windows-local-schedule.ps1
+      - name: Verify manual Windows report agent, privacy guards and APK identity
+        shell: powershell
+        run: .\tests\windows-local-agent.ps1
   build:
     needs: validate-windows-script
     runs-on: ubuntu-24.04
@@ -171,7 +175,12 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk device-kit/paseka-device-test.apk
           sha256sum device-kit/paseka-device-test.apk | awk '{print $1}' > device-kit/paseka-device-test.sha256
           printf '%s\n' "$PASEKA_TEST_PACKAGE" > device-kit/device-package.txt
+          printf '%s\n' "$GITHUB_SHA" > device-kit/device-build-sha.txt
           cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/Run-Local-Scheduled.ps1 scripts/windows/Register-Local-Scheduled.ps1 scripts/windows/START-TESTS.cmd scripts/windows/START-OFFLINE-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
+          cp scripts/windows/Invoke-Paseka-Test-Agent.ps1 scripts/windows/Publish-Paseka-Test-Report.ps1 scripts/windows/SETUP-REPORT-UPLOAD.cmd scripts/windows/START-AGENT-TESTS.cmd scripts/windows/START-AGENT-OFFLINE.cmd scripts/windows/RETRY-REPORT-UPLOAD.cmd device-kit/
+          test -s device-kit/device-build-sha.txt
+          test -s device-kit/Publish-Paseka-Test-Report.ps1
+          test -s device-kit/START-AGENT-TESTS.cmd
           curl --retry 3 --fail --location --silent --show-error \
             https://dl.google.com/android/repository/platform-tools-latest-windows.zip -o "$RUNNER_TEMP/platform-tools-windows.zip"
           unzip -q "$RUNNER_TEMP/platform-tools-windows.zip" -d device-kit/
