@@ -193,7 +193,11 @@ try {
     error = $Fatal
     phaseOne = $StageOne
     final = $FinalReport
-    limits = @('Native file picker NOT tested; Downloads file verification is reported separately', 'Network offline NOT tested', 'Human screen legibility NOT tested')
+    limits = $(if ($Offline) {
+      @('Native file picker NOT tested', 'Network absence checked by Android native capabilities; not a production app test', 'Human screen legibility NOT tested')
+    } else {
+      @('Native file picker NOT tested; Downloads file verification is reported separately', 'Network offline NOT tested', 'Human screen legibility NOT tested')
+    })
   }
   $out = Join-Path $ReportDir 'report.json'
   $summary | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $out -Encoding UTF8
