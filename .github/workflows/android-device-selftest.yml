@@ -8,6 +8,7 @@ on:
       - test/win11-signature-safe-2026-11-19
       - fix/win11-powershell-parse-2026-11-19
       - fix/win11-report-polling-2026-11-19
+      - test/pr194-win11-manual-archive-2026-11-19
   workflow_dispatch:
 
 concurrency:
