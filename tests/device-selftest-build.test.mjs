@@ -27,22 +27,22 @@ test('device runner is injected only once after application bootstrap script', a
 });
 
 test('device bridge preserves production archive Downloads bridge in isolated MainActivity', () => {
-  const generated = 'package ru.paseka.journal.device.test;\\n' +
-    'public class MainActivity extends BridgeActivity {\\n' +
+  const generated = 'package ru.paseka.journal.device.test;\n' +
+    'public class MainActivity extends BridgeActivity {\n' +
     '  void onCreate() { getBridge().getWebView().addJavascriptInterface(' +
-    'new PasekaArchiveDownloadBridge(this),\\n' +
-    '            "PasekaArchiveDownload"\\n        ); }\\n}';
+    'new PasekaArchiveDownloadBridge(this),\n' +
+    '            "PasekaArchiveDownload"\n        ); }\n}';
   const java = instrumentMainActivity(generated);
-  assert.match(java, /new PasekaArchiveDownloadBridge\\(this\\)/);
-  assert.match(java, /new PasekaDeviceTestBridge\\(this\\)/);
+  assert.match(java, /new PasekaArchiveDownloadBridge\(this\)/);
+  assert.match(java, /new PasekaDeviceTestBridge\(this\)/);
   assert.match(java, /PasekaArchiveDownload/);
   assert.match(java, /PasekaDeviceTestBridge/);
   const reportBridge = createTestBridgeSource();
-  assert.match(reportBridge, /paseka-device-report\\.json/);
+  assert.match(reportBridge, /paseka-device-report\.json/);
   assert.match(reportBridge, /verifyAndRemoveTestDownload/);
-  assert.match(reportBridge, /MessageDigest\\.getInstance\\("SHA-256"\\)/);
-  assert.match(reportBridge, /MediaStore\\.Downloads\\.EXTERNAL_CONTENT_URI/);
-  assert.match(reportBridge, /return resolver\\.delete\\(uri, null, null\\) == 1/);
+  assert.match(reportBridge, /MessageDigest\.getInstance\("SHA-256"\)/);
+  assert.match(reportBridge, /MediaStore\.Downloads\.EXTERNAL_CONTENT_URI/);
+  assert.match(reportBridge, /return resolver\.delete\(uri, null, null\) == 1/);
   assert.throws(() => instrumentMainActivity(generated.replace(
     'ru.paseka.journal.device.test', 'ru.paseka.journal')), /Refusing/);
   assert.throws(() => instrumentMainActivity(generated.replace(
@@ -54,7 +54,8 @@ test('device test runner has valid JavaScript and uses only isolated IndexedDB n
   const source = await readFile(new URL('./device-selftest.js', import.meta.url), 'utf8');
   assert.doesNotThrow(() => new Function(source));
   assert.match(source, /paseka-device-selftest-/);
-  assert.match(source, /archive_revision_guard_preserves_new_treatment/);\n  assert.match(source, /native_downloads_archive_hash_and_cleanup/);
+  assert.match(source, /archive_revision_guard_preserves_new_treatment/);
+  assert.match(source, /native_downloads_archive_hash_and_cleanup/);
   assert.match(source, /real_android_restart_persists_indexeddb/);
   assert.match(source, /S = saved/);
   assert.doesNotMatch(source, /indexedDB\.deleteDatabase\s*\(/);
