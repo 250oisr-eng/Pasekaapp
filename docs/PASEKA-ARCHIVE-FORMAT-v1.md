@@ -1,3 +1,9 @@
+## Проверка исправления UI истории — 2026-11-19
+
+На точном HEAD PR #168 `13137de26c6e756c144c84adde2851712c661775` workflow #44467107603 завершился успешно: 731/731 regression tests, 0 failures; Android Debug APK build и upload успешны. В прогон включён `tests/archive-restore-history-ui.test.mjs`, проверяющий fallback на `sourceBackupId`. Артефакт #14502782884 — обычная APK с production package ID, не предназначена для физической изолированной проверки. Физическая проверка исправленного renderer после rollback на test4 остаётся обязательной.
+
+---
+
 ## Контрольная точка — revision guard для rollback (2026-11-19)
 
 Откат полного архива разрешён только пока текущая revision журнала совпадает с `importedRevisionId`, записанной при commit этого импорта. Проверка выполняется до асинхронной валидации rollback snapshot и повторно внутри финальной IndexedDB readwrite-транзакции. Если после импорта были сохранены новые записи, откат блокируется; текущие данные и rollback snapshot сохраняются. Сверка только с revision, переданной UI, не является достаточной защитой.
