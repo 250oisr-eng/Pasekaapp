@@ -55,7 +55,11 @@ function summarizeTreatments(rows,hiveId){
  const selected=(Array.isArray(rows)?rows:[]).filter(row=>row&&(!hiveId||row.hiveId===hiveId)).slice().sort((a,b)=>String(b.occurredAt).localeCompare(String(a.occurredAt))||String(b.createdAt).localeCompare(String(a.createdAt)));
  return {total:selected.length,events:selected};
 }
-const api={VERSION:'varroa-treatment-log-v1',METHOD,METHOD_LABEL:'Сублиматор щавелевой кислоты',buildTreatmentEvent,inspectTreatmentIntegrity,summarizeTreatments,validTimestamp};
+function latestTreatmentForHive(rows,hiveId){
+ if(typeof hiveId!=='string'||!hiveId)return null;
+ return summarizeTreatments(rows,hiveId).events.find(row=>row.userConfirmed===true&&row.method===METHOD&&validTimestamp(row.occurredAt))||null;
+}
+const api={VERSION:'varroa-treatment-log-v1',METHOD,METHOD_LABEL:'Сублиматор щавелевой кислоты',buildTreatmentEvent,inspectTreatmentIntegrity,summarizeTreatments,latestTreatmentForHive,validTimestamp};
 root.PasekaVarroaTreatmentLog=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
