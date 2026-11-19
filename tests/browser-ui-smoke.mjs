@@ -170,6 +170,43 @@ try {
         throw new Error('Only journal navigation item should be aria-current=page');
       }
       row.steps.push('journal-navigation');
+      // Read-only inspection of the empty journal and planning screens.
+      // On a fresh profile, New Record requires a real hive: never create one to unlock the form.
+      const journalAudit = await new AxeBuilder({page})
+        .include('#journal').withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+      row.journalViolations = minimalViolations(journalAudit);
+      row.journalIncompleteCount = journalAudit.incomplete.length;
+      row.journalEmpty = await page.locator('#journal').evaluate(section => ({
+        overflowPx: Math.max(0,section.scrollWidth - section.clientWidth),
+        hasSearch: !!section.querySelector('#journalSearch'),
+        hasDateFilter: !!section.querySelector('#journalDateFilter'),
+        hasRecordButton: !!section.querySelector('button[onclick="newRecord()"]')
+      }));
+      if (!row.journalEmpty.hasSearch || !row.journalEmpty.hasDateFilter || !row.journalEmpty.hasRecordButton) {
+        throw new Error('Journal read-only controls are missing');
+      }
+      await page.screenshot({path:resolve(reportDir,profile.id+'-empty-journal.png'),fullPage:true});
+      row.steps.push('journal-read-only-audit');
+      await page.locator('nav button[data-tab="planning"]').click();
+      await page.locator('section#planning.panel.active').waitFor({state:'visible',timeout:15000});
+      if (await page.locator('nav button[data-tab="planning"][aria-current="page"]').count() !== 1 ||
+          await page.locator('nav button[aria-current="page"]').count() !== 1) {
+        throw new Error('Only planning navigation item should be aria-current=page');
+      }
+      const planningAudit = await new AxeBuilder({page})
+        .include('#planning').withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+      row.planningViolations = minimalViolations(planningAudit);
+      row.planningIncompleteCount = planningAudit.incomplete.length;
+      row.planningEmpty = await page.locator('#planning').evaluate(section => ({
+        overflowPx: Math.max(0,section.scrollWidth - section.clientWidth),
+        hasFloweringDate: !!section.querySelector('#nectarFloweringDate'),
+        hasInspectionDate: !!section.querySelector('#inspectionLastDate')
+      }));
+      if (!row.planningEmpty.hasFloweringDate || !row.planningEmpty.hasInspectionDate) {
+        throw new Error('Planning read-only date controls are missing');
+      }
+      await page.screenshot({path:resolve(reportDir,profile.id+'-empty-planning.png'),fullPage:true});
+      row.steps.push('planning-read-only-audit');
       await page.locator('nav button[data-tab="home"]').click();
       await page.locator('section#home.panel.active').waitFor({state:'visible',timeout:15000});
       row.steps.push('return-home');
