@@ -1,3 +1,17 @@
+## Контрольная точка — CI исправления истории rollback (2026-11-19)
+
+- Актуальный GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, не изменён.
+- Основной Draft PR #168: HEAD `13137de26c6e756c144c84adde2851712c661775`, base main, `mergeable=true`.
+- Исправление renderer истории в `index.html` использует `backupId || sourceBackupId`; регрессионный тест `tests/archive-restore-history-ui.test.mjs` входит в PR #168.
+- Android workflow #44467107603 на точном HEAD #168 завершился `success`: **731/731 tests passed, 0 failures**, Capacitor sync, Gradle Debug APK build и artifact upload — success. Job ID `135369261478`.
+- Artifact `paseka-debug-apk`, ID `14502782884`, size 3,451,620 bytes, ZIP SHA-256 `37e5378b362e4850685c727a69baaa7ea9d66458d7276ee6b0c1f74cbc32e139`, expires 2026-12-03. Это обычная Debug APK; не использовать для установки на телефон вместо изолированной test4.
+- Физический commit/rollback ранее подтверждён на изолированной test3. Проверка исправленного отображения после rollback на test4 ещё не завершена.
+- PR #174: HEAD `82afa8e4feaa9ebdabd4bf99ca7671a0b91fc842`, Draft, `mergeable=false`, base PR #168 на старом SHA `c7199c61f7161fc4b542e35d77f9318310939c37`. Ветку не сливать; она используется только для изолированной сборки. Триггер CI после обновления test4-теста ожидается.
+- Lovable project `8193a703-9f20-4dc8-9460-8d93225ea25f`: `needs_attention / out_of_credits`, latest commit `2196e3fd478fbb58810d6a78317c0ddd056dfdef`; этот SHA не найден в GitHub Pasekaapp, синхронизация с репозиторием не подтверждена.
+- Следующий шаг: подтвердить изолированный workflow и артефакт с package ID `ru.paseka.journal.archive.test4`; затем физически проверить отображение исходного backup ID после rollback. Test2/test3 и их данные не удалять. Не выполнять merge, публикацию или production deployment.
+
+---
+
 ## Контрольная точка — исправление истории отменённого импорта архива (2026-11-19)
 
 - После физического испытания commit/rollback на OnePlus 10 Pro 5G обнаружено, что отменённая staging-сессия хранит исходный идентификатор архива в `sourceBackupId`, тогда как renderer читал только `backupId` и показывал `Архив undefined`.
