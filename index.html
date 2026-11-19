@@ -2916,7 +2916,13 @@ function validateHiveAssemblyProfile(profile,layout){
  if(!Array.isArray(layout.honeyFrames)||layout.honeyFrames.length!==honeyKeys.length)add('honey_frames_count_mismatch');
  const honeyFrames=Array.isArray(layout.honeyFrames)?layout.honeyFrames:[];
  honeyKeys.forEach((key,index)=>{if(honeyFrames[index]!=null)inspectFrames(honeyFrames[index],key,'honey',profile.honey.framesPerBox)});
- if(capabilities.honeyInstallation==='paired'&&honey.length&&honey.some(Boolean)&&!honey.every(Boolean))add('honey_pair_mismatch');
+ if(capabilities.honeyInstallation==='paired'&&honey.length){
+  // Four-body main-harvest configurations allow the first complete pair
+  // before the second. The existing two-body profile retains all-or-none.
+  const pairs=honeyKeys.length===4&&honey.length===4?[honey.slice(0,2),honey.slice(2,4)]:[honey];
+  if(pairs.some(pair=>pair.some(value=>value!==pair[0]))||
+     (pairs.length===2&&pairs[1][0]&&!pairs[0][0]))add('honey_pair_mismatch');
+ }
  if(layout.mode==='winter'){
   const winter=capabilities.winter||{};
   if(!winter.enabled)add('winter_not_supported');
