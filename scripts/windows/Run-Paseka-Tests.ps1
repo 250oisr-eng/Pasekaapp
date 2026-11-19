@@ -27,6 +27,7 @@ $ReportDir = Join-Path $Reports (Get-Date -Format 'yyyyMMdd-HHmmss')
 $StageOne = $null
 $FinalReport = $null
 $Fatal = ''
+$TestAppLaunched = $false
 
 # Only previously paired Android Wireless debugging is permitted.
 # The optional PASEKA_ADB_WIFI_ENDPOINT must contain an explicit private IPv4:port.
@@ -143,6 +144,7 @@ try {
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'force-stop', $Package))
   [void](Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'am', 'start', '-n', ($Package + '/.MainActivity'),
     '--es', 'paseka_run_id', $RunId))
+  $TestAppLaunched = $true
   $StageOne = Wait-Report -Serial $Serial -Phases @('awaiting_restart', 'complete') -TimeoutSec 150
   Capture-TestScreen -Serial $Serial -Label 'before-restart'
   if ($StageOne.phase -ne 'awaiting_restart') {
@@ -159,6 +161,10 @@ try {
   if (!$FinalReport.pass) { throw 'Одна или несколько проверок завершились неуспешно. Детали в отчёте.' }
 } catch {
   $Fatal = $_.Exception.Message
+  if ($TestAppLaunched) {
+    # Capture only after launching the isolated test package.
+    Capture-TestScreen -Serial $Serial -Label 'failure'
+  }
 } finally {
   [void](New-Item -ItemType Directory -Force -Path $ReportDir)
   $summary = [ordered]@{
