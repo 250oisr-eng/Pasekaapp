@@ -79,6 +79,17 @@ export async function prepareDeviceTest(mode, root = process.cwd()) {
     const source = await readFile(activityPath, 'utf8');
     await writeFile(activityPath, instrumentMainActivity(source));
     await writeFile(join(folder, ...packages, 'PasekaDeviceTestBridge.java'), createTestBridgeSource());
+    // Isolated test APK only: permission to READ connectivity state; no
+    // permission to change device network settings or read user archives.
+    const manifestPath = join(root, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
+    const manifest = await readFile(manifestPath, 'utf8');
+    if (!manifest.includes('<application') || !manifest.includes('<manifest')) {
+      throw new Error('Unknown AndroidManifest: refusing to patch offline test permission');
+    }
+    if (!manifest.includes('android.permission.ACCESS_NETWORK_STATE')) {
+      await writeFile(manifestPath, manifest.replace('<application',
+        '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <application'));
+    }
     return;
   }
   throw new Error('Expected config, web or android mode');
