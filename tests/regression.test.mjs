@@ -3746,7 +3746,7 @@ test('schema 15 migration adds an empty treatment journal without changing exist
 
 test('schema 16 migration rejects malformed treatment journal without replacing user data',()=>{
  const malformed={keep:'this'};
- const state={meta:{schemaVersion:17},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],familyEvents:[],sectionalTechProcesses:[],varroaTreatments:malformed};
+ const state={meta:{schemaVersion:16},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],familyEvents:[],sectionalTechProcesses:[],varroaTreatments:malformed};
  const before=structuredClone(state);
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'unused'});
  assert.throws(()=>migrate(),/журнал обработок Varroa/);
@@ -3755,7 +3755,7 @@ test('schema 16 migration rejects malformed treatment journal without replacing 
 
 test('schema 16 backup requires a treatment journal and rejects malformed treatment entries',()=>{
  const validate=loadFunction('validateBackupState');
- const base={...rawBackupFixture(),meta:{schemaVersion:17},familyEvents:[],sectionalTechProcesses:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]}};
+ const base={...rawBackupFixture(),meta:{schemaVersion:16},familyEvents:[],sectionalTechProcesses:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]}};
  assert.throws(()=>validate(base),/varroaTreatments/);
  const valid={...base,varroaTreatments:[]};
  assert.equal(validate(valid),valid);
