@@ -36,6 +36,23 @@
 }
 ```
 
+**Подтверждённый следующий блокер пользователя:** после перехода к V1 конфигурации `opencode.cmd models ollama` ответил `Error: Provider not found: ollama`. Это означает, что провайдер не зарегистрирован в локальной OpenCode V1 конфигурации; `ollama list` отдельно показал все пять установленных моделей. В отличие от OpenCode V2, в V1 провайдер необходимо объявить явно через `provider` (singular), `npm:"@ai-sdk/openai-compatible"`, `options.baseURL:"http://127.0.0.1:11434/v1"` и `models` с ключом `qwen2.5-coder:7b`. Официальная инструкция: https://github.com/ollama/ollama/blob/main/docs/integrations/opencode.mdx ; разница V1/V2: https://opencode.ai/docs/migrate-v1 .
+
+Дополнительный V1-фрагмент, который нужно **добавить** в изолированный `opencode.json` (не затрагивая `permission`):
+
+```json
+"provider": {
+  "ollama": {
+    "npm": "@ai-sdk/openai-compatible",
+    "name": "Local Ollama",
+    "options": {"baseURL": "http://127.0.0.1:11434/v1"},
+    "models": {"qwen2.5-coder:7b": {"name": "Qwen2.5-Coder 7B"}}
+  }
+}
+```
+
+Проверка повторным `opencode.cmd models ollama` **ещё не подтверждена**. Не активировать агент/не ослаблять deny rules до подтверждения локального провайдера.
+
 Запрет по умолчанию оставляет `bash`, `edit`, `task`, `webfetch`, `websearch` и прочие действия заблокированными. Поле V2 `policies` удалено из примера: нет подтверждения поддержки в OpenCode V1. Не использовать `--auto`. При новой ошибке схемы остановиться и проверить документацию установленного бинарника, не отключать ограничения.
 
 Официальная таблица различий V1/V2: https://opencode.ai/docs/migrate-v1/ . Для V1 применяется `permission`, V2 использует `permissions`.
