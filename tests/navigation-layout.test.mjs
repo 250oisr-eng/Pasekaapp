@@ -53,3 +53,10 @@ test('hive cards on overview and in directory support keyboard activation', () =
     assert.match(source, /event\.preventDefault\(\);event\.stopPropagation\(\);openHive\(/, name + ' must prevent scrolling and activate only once');
   }
 });
+
+test('hive directory open and delete controls identify the affected hive', () => {
+  const directory = html.match(/return '<div class="hive-row"[\s\S]*?function renderHiveHeaderSummary/)?.[0] || '';
+  assert.match(directory, /<button class="primary" aria-label="Открыть '\+safe\(hname\(h\.id\)\)\+'/);
+  assert.match(directory, /<button aria-label="Удалить '\+safe\(hname\(h\.id\)\)\+'/);
+  assert.match(directory, /onclick="deleteHive\(this\.parentElement\.dataset\.hiveId\)"/);
+});
