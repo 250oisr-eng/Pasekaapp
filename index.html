@@ -1663,7 +1663,7 @@ function renderApiaryStatus(){
  if(integrity.warnings.length)diagnosticsParts.push('<div class="apiary-attention-group"><b>Предупреждения виртуальной модели ('+integrity.warningCount+')</b>'+integrity.warnings.map(x=>'<div class="apiary-attention-row"><span>'+safe(integrityNames[x.code]||x.code)+'</span><span>'+safe(x.details?.familyCode||'')+'</span></div>').join('')+'</div>');
  const diagnostics=$('modelDiagnosticsList');if(diagnostics)diagnostics.innerHTML=diagnosticsParts.join('')||'<div class="muted">Технических ошибок и предупреждений не обнаружено.</div>';
  const indicator=$('modelDiagnosticsIndicator');if(indicator){const count=integrity.errorCount+integrity.warningCount;indicator.style.display=count?'inline-flex':'none';indicator.textContent='⚠ '+count;indicator.setAttribute('aria-label','Технические проблемы модели: '+integrity.errorCount+' ошибок, '+integrity.warningCount+' предупреждений. Открыть диагностику');}
- attention.innerHTML=parts.join('')||'<div class="muted">По виртуальным данным нет отмеченных сигналов и нарушений структуры.</div>';
+ attention.innerHTML=parts.join('')||'<div class="muted">По последним осмотрам нет отмеченных сигналов. Техническая диагностика находится в разделе «Ещё».</div>';
  $('apiaryStatusDate').textContent=today();
 }
 function validateTaskDraft(draft,state,existingTask=null){
