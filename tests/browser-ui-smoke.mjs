@@ -86,6 +86,10 @@ try {
       if (homeCurrent !== 1 || await page.locator('nav button[data-tab="home"][aria-current="page"]').count() !== 1) {
         throw new Error('The home tab must be the sole aria-current=page navigation item');
       }
+      if (await page.locator('#currentSectionTitle').innerText() !== 'Обзор' ||
+          await page.locator('header .home-ai-shortcut').count() !== 0) {
+        throw new Error('Home header must show the active section without duplicate AI shortcut');
+      }
       row.steps.push('home-loaded');
       const initial = await page.evaluate(() => ({
         width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,
@@ -152,6 +156,9 @@ try {
           await page.locator('nav button[aria-current="page"]').count() !== 1) {
         throw new Error('Only hives navigation item should be aria-current=page');
       }
+      if (await page.locator('#currentSectionTitle').innerText() !== 'Ульи') {
+        throw new Error('Header title is not synchronized with Hives navigation');
+      }
       row.steps.push('hives-navigation');
       // Open and dismiss the real New Hive dialog without submitting its form.
       // The browser profile is disposable; no fake hive or family is created.
@@ -199,6 +206,9 @@ try {
       if (await page.locator('nav button[data-tab="journal"][aria-current="page"]').count() !== 1 ||
           await page.locator('nav button[aria-current="page"]').count() !== 1) {
         throw new Error('Only journal navigation item should be aria-current=page');
+      }
+      if (await page.locator('#currentSectionTitle').innerText() !== 'Журнал') {
+        throw new Error('Header title is not synchronized with Journal navigation');
       }
       row.steps.push('journal-navigation');
       // Read-only inspection of the empty journal and planning screens.
@@ -253,6 +263,9 @@ try {
         throw new Error('Planning read-only date controls are missing');
       }
       await page.screenshot({path:resolve(reportDir,profile.id+'-empty-planning.png'),fullPage:true});
+      if (await page.locator('#currentSectionTitle').innerText() !== 'План') {
+        throw new Error('Header title is not synchronized with Planning navigation');
+      }
       row.steps.push('planning-read-only-audit');
       await page.locator('nav button[data-tab="home"]').click();
       await page.locator('section#home.panel.active').waitFor({state:'visible',timeout:15000});
