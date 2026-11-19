@@ -800,6 +800,11 @@ function completeOP07AdditionalHoneyPair(state,request,deps={}){
  const fail=(error,details)=>({ok:false,error,details:details??null});
  if(!isObject(state)||!isObject(request))return fail('invalid_request');
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ // The UI must submit the revision it reviewed before confirmation. Legacy
+ // schema-15 fixtures may have no revision yet; do not assign one here.
+ const storedRevision=state.meta?.revisionId;
+ if(nonEmpty(storedRevision)&&request.expectedRevisionId!==storedRevision)return fail('late_honey_pair_state_revision_changed');
+ if(request.expectedRevisionId!=null&&request.expectedRevisionId!==storedRevision)return fail('late_honey_pair_state_revision_changed');
  if(!nonEmpty(request.hiveId)||!nonEmpty(request.techProcessId))return fail('required_identifiers_missing');
  if(!validDate(request.occurredAt))return fail('invalid_operation_timestamp');
  if(timestampIsFuture(request.occurredAt,deps))return fail('operation_timestamp_in_future');
