@@ -29,6 +29,17 @@ test('workflow packages the build-specific package manifest beside the APK', asy
   assert.match(yaml, /c\.appId!==process\.env\.PASEKA_TEST_PACKAGE/);
 });
 
+test('Windows CI explicitly tests native stderr and retry on PowerShell 5.1', async () => {
+  const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url), 'utf8');
+  const testScript = await readFile(new URL('./windows-report-polling.ps1', import.meta.url), 'utf8');
+  assert.match(yaml, /Simulate native ADB missing report then retry/);
+  assert.match(yaml, /windows-report-polling\.ps1/);
+  assert.match(testScript, /fake-adb\.cmd/);
+  assert.match(testScript, /No such file or directory/);
+  assert.match(testScript, /Wait-Report/);
+  assert.doesNotMatch(testScript, /adb\.exe|pm clear|uninstall/);
+});
+
 test('device test configurator refuses unknown or already isolated production app ids', () => {
   assert.throws(() => isolatedConfig({ appId: 'unknown.package' }), /Refusing/);
   assert.throws(() => isolatedConfig({ appId: PACKAGE_ID }), /Refusing/);
@@ -97,6 +108,10 @@ test('Windows launcher cannot clear packages or use the production application I
   assert.equal(ps.split("$Adb = Join-Path").length - 1, 1, 'ADB initialization must occur once');
   assert.equal(ps.split("$PackagePath = Join-Path").length - 1, 1, 'package selection must occur once');
   assert.match(ps, /\[0-9\]\{0,3\}\$'\) \{/);
+  assert.match(ps, /native stderr as an ErrorRecord/);
+  assert.match(ps, /\$ErrorActionPreference = 'Continue'/);
+  assert.match(ps, /\$LASTEXITCODE -ne 0 -or !\$lines/);
+  assert.match(ps, /Capture-TestScreen -Serial \$Serial -Label 'failure'/);
   assert.match(ps, /Get-FileHash.*SHA256/);
   assert.match(ps, /run-as \$Package cat files\/paseka-device-report\.json/);
   assert.match(ps, /force-stop/);
