@@ -88,10 +88,10 @@ jobs:
           let source = fs.readFileSync(path, 'utf8');
           const required = { minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 };
           for (const [key, value] of Object.entries(required)) {
-            const pattern = new RegExp('^(\\\\s*' + key + '\\\\s*=\\\\s*)\\\\d+', 'm');
+            const pattern = new RegExp('^(\\s*' + key + '\\s*=\\s*)\\d+', 'm');
             if (!pattern.test(source)) throw new Error(`Missing ${key}; refusing unsafe Android build`);
             source = source.replace(pattern, (_match, prefix) => prefix + value);
-            const verified = new RegExp('^\\\\s*' + key + '\\\\s*=\\\\s*' + value + '\\\\s*$', 'm');
+            const verified = new RegExp('^\\s*' + key + '\\s*=\\s*' + value + '\\s*$', 'm');
             if (!verified.test(source)) throw new Error(`Failed to enforce ${key}=${value}`);
           }
           fs.writeFileSync(path, source);
