@@ -1,3 +1,15 @@
+## Контрольная точка — test4 workflow требует ручного запуска (2026-11-19)
+
+- PR #174 HEAD: `82afa8e4feaa9ebdabd4bf99ca7671a0b91fc842`; Draft, base PR #168 на SHA `c7199c61f7161fc4b542e35d77f9318310939c37`, GitHub показывает `mergeable=false` (ветка diverged от текущего base).
+- Проверены одинаковые версии `index.html` и `js/paseka-archive-restore.js` в PR #168 и PR #174: renderer fallback `sourceBackupId` и revision guard совпадают. В PR #174 присутствует тест renderer истории.
+- Isolated workflow в ветке настроен на package ID `ru.paseka.journal.archive.test4`, имя «Пасека — архив тест 4»; скрипт и тест конфигурации проверяют этот ID.
+- В `scripts/prepare-archive-test-config.mjs` исправлен порядок fail-closed проверок: уже изолированный appId отклоняется целевой ошибкой; добавлен regression test.
+- На HEAD `82afa8e4feaa9ebdabd4bf99ca7671a0b91fc842` новый CI run через доступный GitHub connector не обнаружен. Успешный artifact #14499070845 относится к предыдущей test3 сборке; не считать его test4.
+- Следующий шаг: вручную запустить GitHub Actions workflow «Build isolated archive test APK» на ветке `test/full-archive-android-isolated-2026-11-18`, дождаться полного успеха, проверить `aapt` assertion и artifact. Только после этого предлагать установку test4 на OnePlus.
+- PR #174 остаётся test-only Draft; не сливать, не удалять test2/test3 и их данные.
+
+---
+
 ## Новая изолированная APK test4 для проверки исправления истории (2026-11-19)
 
 - Предыдущую APK test3 не предлагаем устанавливать поверх существующей установки: подпись debug APK между CI-сборками может отличаться, а переустановка/удаление test3 не требуется и не должно рисковать локальными данными.
