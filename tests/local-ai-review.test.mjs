@@ -12,6 +12,10 @@ test('secret tripwires and model allowlist',()=>{
     assert.throws(()=>validateFixture({...fixture,context}),/secret/);
   assert.equal(validateModel('qwen3:4b'),'qwen3:4b');
   assert.throws(()=>validateModel('x --execute'),/model/);
+  assert.throws(()=>validateModel('qwen3:cloud'),/model/);
+  assert.throws(()=>validateModel('some-model:cloud'),/model/);
+  assert.throws(()=>validateModel('qwen3:latest'),/model/);
+  assert.equal(validateModel('deepseek-r1:7b'),'deepseek-r1:7b');
   assert.throws(()=>validateFixture({...fixture,task:'password=supersecretpassword'}),/secret/);
   assert.throws(()=>validateFixture({...fixture,task:'й'.repeat(300)}),/Invalid task/);
 });
