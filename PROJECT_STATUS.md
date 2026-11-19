@@ -1,3 +1,12 @@
+## Проверка CI исправления публикации PASS — 2026-11-20
+
+- На точном SHA `7160e0cf060b5ca9acb429d850ca3984e3194464` [Build Android APK #44614534185](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44614534185) завершился **completed/success**: regression tests, Android Gradle debug APK и Upload APK прошли успешно (по шагам GitHub Actions). Отдельный [Build isolated archive test APK #44614534256](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44614534256) — **completed/skipped**, не выдавать за успех.
+- Данный CI-SHA включает исправление `Sanitize-Report` и негативный PS5.1 mock. Он **не** является физическим тестом нового Windows-скрипта. Сведения о предыдущем реальном отчёте 9/9 остаются отдельными.
+- Перед новым ручным запуском заменить только `scripts/windows/Publish-Paseka-Test-Report.ps1` из проверенного SHA `7160e0cf060b5ca9acb429d850ca3984e3194464` в прежней папке локального агента; дождаться подтверждения замены. Старую ссылку `bbf7d1d5...` не использовать.
+- Документационное обновление создаёт следующий HEAD, которому нельзя автоматически приписывать эти CI-проверки; code/test SHA остаётся указан выше. Запрещены merge, production deployment и Task Scheduler.
+
+---
+
 ## Контрольная точка — проверка достоверности публичного PASS (2026-11-20)
 
 - В Draft PR #199 устранён дефект в `scripts/windows/Publish-Paseka-Test-Report.ps1`: при `status=PASS` теперь проверяется отсутствие `FAIL` и в первой фазе до перезапуска, и в итоговой фазе. Ранее проверялся список результатов только итоговой фазы, несмотря на проверку количества элементов первой.
