@@ -49,6 +49,10 @@ try {
   $path = Join-Path $dir 'reports\agent-mock\report.json'
   $report | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
   $publisher = Join-Path $dir 'Publish-Paseka-Test-Report.ps1'
+  $selfTest = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action SelfTest | Out-String)
+  if ($LASTEXITCODE -ne 0 -or $selfTest -notmatch 'empty, null, matching, unrelated and malformed') {
+    throw 'GitHub empty-comment regression SelfTest failed.'
+  }
   $safe = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action DryRun -ReportPath $path | Out-String)
   if ($LASTEXITCODE -ne 0 -or $safe -notmatch '9/9' -or $safe -notmatch 'paseka-test-agent:1234567890abcdefabcd') {
     throw 'Valid synthetic 9/9 report was not safely formatted.'
