@@ -137,3 +137,22 @@ test('Android download cancels the pending native file if finishFile fails', asy
   );
   assert.deepEqual(events, ['begin','chunk','finish-failed','cancel']);
 });
+
+
+test('native beginFile cleans orphaned MediaStore rows if opening the output stream throws', () => {
+  const source = createArchiveDownloadBridgeSource('ru.paseka.journal');
+  const begin = source.split('public synchronized String beginFile(')[1]?.split('@JavascriptInterface')[0];
+  assert.ok(begin, 'beginFile source must be present');
+  assert.match(begin, /Uri pendingUri = null;/);
+  assert.match(begin, /OutputStream pendingOutput = null;/);
+  assert.match(begin, /pendingUri = context[.]getContentResolver[(][)][.]insert[(]/);
+  assert.match(begin, /pendingOutput = context[.]getContentResolver[(][)][.]openOutputStream[(]pendingUri, "w"[(][)]/);
+  assert.match(begin, /if [(]pendingOutput == null[)] throw new IllegalStateException/);
+  assert.match(begin, /catch [(]Exception error[)]/);
+  assert.match(begin, /if [(]pendingOutput != null[)] [{][\s\S]*pendingOutput[.]close[(][)]/);
+  assert.match(begin, /if [(]pendingUri != null[)] [{][\s\S]*getContentResolver[(][)][.]delete[(]pendingUri, null, null[)]/);
+  assert.ok(
+    begin.indexOf('openOutputStream(pendingUri, "w")') < begin.indexOf('sessions.put(id,'),
+    'never retain a native session before the output stream is open'
+  );
+});
