@@ -82,6 +82,10 @@ try {
       await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
       await page.waitForFunction(() => typeof window.showTab === 'function' && document.querySelector('nav button[data-tab="hives"]'),null,{timeout:30000});
       await page.locator('section#home.panel.active').waitFor({state:'visible',timeout:30000});
+      const homeCurrent = await page.locator('nav button[aria-current="page"]').count();
+      if (homeCurrent !== 1 || await page.locator('nav button[data-tab="home"][aria-current="page"]').count() !== 1) {
+        throw new Error('The home tab must be the sole aria-current=page navigation item');
+      }
       row.steps.push('home-loaded');
       const initial = await page.evaluate(() => ({
         width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,
@@ -103,9 +107,17 @@ try {
 
       await page.locator('nav button[data-tab="hives"]').click();
       await page.locator('section#hives.panel.active').waitFor({state:'visible',timeout:15000});
+      if (await page.locator('nav button[data-tab="hives"][aria-current="page"]').count() !== 1 ||
+          await page.locator('nav button[aria-current="page"]').count() !== 1) {
+        throw new Error('Only hives navigation item should be aria-current=page');
+      }
       row.steps.push('hives-navigation');
       await page.locator('nav button[data-tab="journal"]').click();
       await page.locator('section#journal.panel.active').waitFor({state:'visible',timeout:15000});
+      if (await page.locator('nav button[data-tab="journal"][aria-current="page"]').count() !== 1 ||
+          await page.locator('nav button[aria-current="page"]').count() !== 1) {
+        throw new Error('Only journal navigation item should be aria-current=page');
+      }
       row.steps.push('journal-navigation');
       await page.locator('nav button[data-tab="home"]').click();
       await page.locator('section#home.panel.active').waitFor({state:'visible',timeout:15000});
