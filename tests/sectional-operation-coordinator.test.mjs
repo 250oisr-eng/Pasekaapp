@@ -958,6 +958,7 @@ test('second-pair inspector rejects incomplete/duplicate/wrong inventory pair bo
 test('second-pair inspector refuses early harvest and missing/changed OP-07 evidence',()=>{
  const cases=[
   {name:'early',change:state=>state.sectionalLayouts[0].honeyStack.purpose='early',error:'second_pair_requires_initial_main_honey_pair'},
+  {name:'original OP-07 was early',change:state=>state.sectionalTechProcesses[0].state.operations.find(op=>op.operationId==='OP-07').evidence.honeyPurpose='early',error:'second_pair_original_op07_not_main'},
   {name:'OP-07 removed',change:state=>state.sectionalTechProcesses[0].state.operations.splice(-1),error:'second_pair_requires_completed_op07'},
   {name:'first pair changed',change:state=>state.sectionalLayouts[0].honeyStack.bodyIds[0]='honey3',error:'second_pair_original_op07_bodies_changed'},
   {name:'original evidence changed',change:state=>state.sectionalTechProcesses[0].state.operations.find(op=>op.operationId==='OP-07').evidence.honeyBodyIds=['honey3','honey4'],error:'second_pair_original_op07_bodies_changed'},
