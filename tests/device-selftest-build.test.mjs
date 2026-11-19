@@ -175,7 +175,7 @@ test('offline mode is explicit, read-only, and limited to isolated APK', async (
   assert.match(script, /offline_network_disabled_before_archive/);
   assert.match(script, /offline_network_disabled_after_restart/);
   assert.match(script, /manual-offline/);
-  assert.match(ps, /^\uFEFFparam\(\[switch\]\$Offline\)/);
+  assert.match(ps, /^\uFEFFparam\(\[switch\]\$Offline, \[string\]\$AgentRunId = ''\)/);
   assert.equal(ps.split("'--ez', 'paseka_require_offline'").length - 1, 2);
   assert.match(ps, /Count -ne 11/);
   assert.match(batch, /-Offline/);
