@@ -1030,3 +1030,27 @@ test('late honey pair survives JSON backup-style roundtrip without schema migrat
  assert.deepEqual(Layout.inspect(restored),[]);
  assert.deepEqual(Inventory.inspect(restored,Labels,prepared.deps.profileForHive),[]);
 });
+
+test('late honey pair rejects stale save revision, requiring revision present at confirmation',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ state.meta.revisionId='revision-current';
+ const before=structuredClone(state);
+ for (const expectedRevisionId of [undefined,'revision-stale','']) {
+  const result=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest({expectedRevisionId}),prepared.deps);
+  assert.equal(result.error,'late_honey_pair_state_revision_changed');
+  assert.deepEqual(state,before,'stale revision must not mutate state');
+ }
+ const current=Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest({expectedRevisionId:'revision-current'}),prepared.deps);
+ assert.equal(current.ok,true,JSON.stringify(current));
+ assert.deepEqual(Coordinator.inspect(state,prepared.deps),[]);
+});
+
+test('late honey pair handles legacy states without revision and rejects invented tokens',()=>{
+ const prepared=preparedMainHoneyForLatePair(),state=prepared.fixture.state;
+ delete state.meta.revisionId;
+ const before=structuredClone(state);
+ assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest({expectedRevisionId:'unverified'}),prepared.deps).error,
+  'late_honey_pair_state_revision_changed');
+ assert.deepEqual(state,before);
+ assert.equal(Coordinator.completeOP07AdditionalHoneyPair(state,lateHoneyRequest(),prepared.deps).ok,true);
+});
