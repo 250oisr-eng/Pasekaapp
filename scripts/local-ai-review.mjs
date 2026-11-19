@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const ENDPOINT = 'http://127.0.0.1:11434/api/generate';
 export const MAX_CONTEXT = 12000;
-const ALLOWED_LOCAL_MODELS = new Set(['qwen3:4b', 'deepseek-r1:7b']);
+const ALLOWED_LOCAL_MODELS = new Set(['qwen3:4b', 'qwen2.5-coder:7b', 'deepseek-r1:7b']);
 const SENSITIVE = [
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/i,
   /(?:github_pat_|ghp_|gho_|ghu_|ghs_)[a-zA-Z0-9_]{12,}/,
