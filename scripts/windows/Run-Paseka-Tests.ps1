@@ -59,9 +59,18 @@ function Invoke-ADB {
 }
 function Read-DeviceReport {
   param([string]$Serial)
-  $lines = & $Adb -s $Serial shell run-as $Package cat files/paseka-device-report.json 2>$null
-  if ($LASTEXITCODE -ne 0) { return $null }
-  try { return (($lines -join "`n") | ConvertFrom-Json) } catch { return $null }
+  # The report is normally absent for the first few polls. Windows PowerShell
+  # 5.1 treats redirected native stderr as an ErrorRecord; under the caller's
+  # global Stop policy this would abort the entire test before a retry.
+  # Scope Continue to this read-only probe. Keep Stop everywhere else.
+  $ErrorActionPreference = 'Continue'
+  try {
+    $lines = & $Adb -s $Serial shell run-as $Package cat files/paseka-device-report.json 2>$null
+    if ($LASTEXITCODE -ne 0 -or !$lines) { return $null }
+    return (($lines -join "`n") | ConvertFrom-Json)
+  } catch {
+    return $null
+  }
 }
 function Wait-Report {
   param([string]$Serial, [string[]]$Phases, [int]$TimeoutSec)
