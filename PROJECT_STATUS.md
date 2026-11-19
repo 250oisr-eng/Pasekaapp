@@ -1,3 +1,15 @@
+## Контрольная точка — диагностический Android ZIP готов (2026-11-19)
+
+- По физическому OnePlus отчёту с 7/8 PASS и `ERR_NOT_TEST_ARCHIVE` подготовлена только fail-closed детализация отказа на `ERR_TEST_NAME`, `ERR_TEST_MIME` и `ERR_TEST_FOLDER`. Проверки имени, MIME, папки, SHA-256, длины и право удаления **не ослаблены**; production и база не изменены.
+- **Точный проверенный HEAD:** `a36202f7f0f2f5b1b19d7a70a34f214ff701f00f` (кодовый коммит `b29de5afb62106e386033525cf79faab2520655b`, затем только документация).
+- [Windows 11 и изолированная APK: GitHub Actions #44525367280](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44525367280) — **success**: PowerShell 5.1 parser; missing-report retry; mock USB/Wi-Fi selector; Node regression; Android test-only APK, package validation, ZIP upload.
+- [Android APK PR CI #44525378927](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44525378927) — **success**; отдельный archive workflow #44525379279 — **skipped**, не проверка.
+- Артефакт `paseka-win11-android-selftest-kit`, ID `14530045688`, 11,676,493 bytes, expires `2026-12-03 12:37:44 UTC`. Реальный запуск этой диагностической APK **ещё не выполнен**.
+- **Следующий единственный шаг:** выполнить изолированный физический прогон этого ZIP с OnePlus Android 15+; получить `report.json`. В случае `ERR_TEST_NAME/MIME/FOLDER` определить несовпадающий metadata guard, не меняя правил удаления до подтверждения причины. Если останется тестовый архив в Downloads/Пасека, не удалять другие файлы.
+- Нет нового реального подтверждения Wi-Fi; прежний физический отчёт не фиксировал transport. Не включать Windows scheduler / автоотправку диагностик до подтверждённого безопасного физического цикла. Main, merge, production, user data не трогать.
+
+---
+
 ## Контрольная точка — физический OnePlus: 7/8, диагностика Downloads (2026-11-19)
 
 - Пользователь прислал физический Windows/Android отчёт `report(2).json`, runId `ece1565a58ef4684a386`, package `ru.paseka.journal.device.r44522050363a1` (точная сборка #44522050363). Общий итог **FAIL**: семь из восьми итоговых проверок PASS; единственный FAIL `native_downloads_archive_hash_and_cleanup` с `ERR_NOT_TEST_ARCHIVE`.
