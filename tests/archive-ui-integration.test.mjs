@@ -14,7 +14,7 @@ test('full .paseka archive modules are loaded in dependency order and cached for
   for (const path of ['paseka-sha256.js', 'paseka-archive.js', 'paseka-archive-restore.js', 'paseka-android-download.js']) {
     assert.ok(serviceWorker.includes("'./js/" + path + "'"), path + ' must be available offline');
   }
-  assert.match(serviceWorker, /paseka-shell-v316/);
+  assert.match(serviceWorker, /paseka-shell-v317/);
 });
 
 test('IndexedDB v4 adds archive staging and history without replacing existing stores', () => {

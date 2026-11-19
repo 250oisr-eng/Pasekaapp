@@ -1,145 +1,73 @@
-## Контрольная точка — CI исправления истории rollback (2026-11-19)
+## Контрольная точка — физическая проверка Varroa и совместимость полного архива (2026-11-19)
 
-- Актуальный GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, не изменён.
-- Основной Draft PR #168: HEAD `13137de26c6e756c144c84adde2851712c661775`, base main, `mergeable=true`.
-- Исправление renderer истории в `index.html` использует `backupId || sourceBackupId`; регрессионный тест `tests/archive-restore-history-ui.test.mjs` входит в PR #168.
-- Android workflow #44467107603 на точном HEAD #168 завершился `success`: **731/731 tests passed, 0 failures**, Capacitor sync, Gradle Debug APK build и artifact upload — success. Job ID `135369261478`.
-- Artifact `paseka-debug-apk`, ID `14502782884`, size 3,451,620 bytes, ZIP SHA-256 `37e5378b362e4850685c727a69baaa7ea9d66458d7276ee6b0c1f74cbc32e139`, expires 2026-12-03. Это обычная Debug APK; не использовать для установки на телефон вместо изолированной test4.
-- Физический commit/rollback ранее подтверждён на изолированной test3. Проверка исправленного отображения после rollback на test4 ещё не завершена.
-- PR #174: HEAD `82afa8e4feaa9ebdabd4bf99ca7671a0b91fc842`, Draft, `mergeable=false`, base PR #168 на старом SHA `c7199c61f7161fc4b542e35d77f9318310939c37`. Ветку не сливать; она используется только для изолированной сборки. Триггер CI после обновления test4-теста ожидается.
-- Lovable project `8193a703-9f20-4dc8-9460-8d93225ea25f`: `needs_attention / out_of_credits`, latest commit `2196e3fd478fbb58810d6a78317c0ddd056dfdef`; этот SHA не найден в GitHub Pasekaapp, синхронизация с репозиторием не подтверждена.
-- Следующий шаг: подтвердить изолированный workflow и артефакт с package ID `ru.paseka.journal.archive.test4`; затем физически проверить отображение исходного backup ID после rollback. Test2/test3 и их данные не удалять. Не выполнять merge, публикацию или production deployment.
+- Пользователь подтвердил успешное выполнение всех семи пунктов физической проверки журнала Varroa на отдельном Android-приложении. UI, блокировки подтверждения/будущей даты, история и сохранение после перезапуска офлайн подтверждены пользователем.
+- В интеграционном аудите найден дефект: `js/paseka-archive.js` ограничивал экспорт схемой 15, хотя журнал Varroa повышает app schema до 16. Исправлено: полный архив принимает schema 16; schema 17+ по-прежнему отклоняется.
+- Добавлен регрессионный тест `tests/archive-export.test.mjs`: экспорт schema 16 с `varroaTreatments`, проверка содержимого `state.json` и preflight чтения архива; проверка неподдерживаемой schema 17 сохранена.
+- Проверки на code/test SHA `f3a346e3ebd4b27c78e4ebdcd47b0e813b2d5b1b`: Fast quality checks #44477890337 — **741/741 tests passed, 0 failures**; Android Debug APK #44477890428 — success, artifact #14506518539, SHA-256 `3cb7d37638c294e04b8c1c8598f83482fd1706b4a2419881f4a87dd7f619d896`; Android Debug APK PR run #44477903201 — success, artifact #14507306363, SHA-256 `8b94b548f411a1c22d676e5488b686c6ed4827be39d4b7152ff09884a6f5e50f`. Оба APK имеют стандартный package ID; не предназначены для установки на телефон.
+- Изолированная Varroa APK PR #177 (package `ru.paseka.journal.varroa.test`) прошла физическую проверку пользователя, но содержит предыдущую версию archive export ceiling; физическая проверка archive schema 16 export/restore ещё не выполнена.
+- PR #176 остаётся Draft и stacked поверх PR #168; PR #177 — test-only. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменялась; merge, production и реальные данные не затронуты.
+- Следующий шаг: отдельная изолированная Android-проверка `.paseka` export/preflight/commit/rollback с тестовым набором, включающим `varroaTreatments`; не использовать рабочую базу. После этого завершить интеграционный аудит.
 
 ---
 
-## Контрольная точка — исправление истории отменённого импорта архива (2026-11-19)
+## Контрольная точка — журнал обработок Varroa и изолированная Android-проверка (2026-11-19)
 
-- После физического испытания commit/rollback на OnePlus 10 Pro 5G обнаружено, что отменённая staging-сессия хранит исходный идентификатор архива в `sourceBackupId`, тогда как renderer читал только `backupId` и показывал `Архив undefined`.
-- Исправлено в `index.html`: отображение истории использует `backupId`, затем `sourceBackupId`, и только при отсутствии обоих — явный текст «идентификатор не сохранён».
-- Добавлен `tests/archive-restore-history-ui.test.mjs`, проверяющий отображение исходного ID после rollback.
-- Перенос исправления выполнен непосредственно в основной feature PR #168, а не оставлен только в test-only PR #174. Коммиты исправления: `a84b6afbe32cd28b77e0ed437079317944fca600` и `d4cc8a9b26344cc0cb11bd5a190f1cc11a28b0d0`.
-- CI после последнего изменения ожидается; до его завершения не считать исправление проверенным. PR #168 остаётся Draft, main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменялась.
-- Физически подтверждены экспорт, preflight/staging, commit и rollback на изолированной test3; новые данные тестового приложения восстановлены. Test2/test3 сохраняются. Test4 предназначен для повторной проверки исправленной истории; не использовать рабочее приложение и не удалять тестовые установки.
-
----
-
-## Контрольная точка — защита новых записей от потери при откате архива (2026-11-19)
-
-- Read-only аудит выявил опасный пробел: прежний rollback проверял соответствие переданной вызывающим кодом revision текущей базе, но не сравнивал текущую revision с revision, созданной самим commit импорта. Поэтому после импорта новые записи журнала могли быть затёрты при откате.
-- Исправление в `js/paseka-archive-restore.js`: Phase A проверяет, что текущая revision совпадает с `importedRevisionId` сохранённой committed import session; Phase B повторяет эту проверку внутри финальной readwrite-транзакции. Проверка в Phase B закрывает гонку, когда журнал изменяется во время асинхронной проверки rollback snapshot.
-- При несовпадении возврат блокируется с кодом `ROLLBACK_STATE_CHANGED`; журнал, видео, история импорта и rollback snapshot остаются без изменений. UI сообщает, что новые записи сохранены и отмена заблокирована.
-- Добавлены два регрессионных сценария: журнал изменён после импорта до вызова rollback; журнал изменён во время асинхронной проверки перед финальной транзакцией. Фикстура atomicity-тестов теперь содержит committed `importedRevisionId`.
-- Дополнительно исправлен запуск isolated APK workflow: он выполняется только для pull request из ветки `test/full-archive-android-isolated-2026-11-18`; в PR #168 этот test-only workflow пропускается. Предыдущий запуск #44398348034 ошибочно упал на отсутствующем в PR #168 test-only script, хотя regression tests прошли 730/730; после gate новый запуск #44398558803 корректно skipped.
-- На code/test commit PR #168 `e323ee7136e2d5377696c10eb10587aa5b29fa9b`: **730/730 tests passed, 0 failures**, Android Debug build/upload workflow #44398347933 — success. На синхронизированной тестовой ветке PR #174 commit `b116b93792289ed5bb69f408d98741b151a8cc3f`: **733/733 tests passed, 0 failures**, обычная Android Debug build/upload #44398375948 — success.
-- После настройки workflow gate: PR #168 isolated workflow #44398558803 — skipped (ожидаемо); PR #168 standard Android build #44398558415 — success, 730/730 tests; PR #174 standard Android build #44398564428 — success, 733/733 tests; PR #174 isolated APK workflow #44398564375 — success, 733/733 tests, Gradle build, package ID assertion и upload. Artifact `paseka-archive-isolated-test-apk`, ID `14472093088`, размер 3,451,679 bytes, ZIP SHA-256 `35b11cd016a4bd0226c4d967ba2fba7b1ed783b341f5b6b398aeee82b537b352`, expires 2026-12-02 21:11:52 UTC; package ID `ru.paseka.journal.archive.test2`.
-- Физическая проверка preflight на OnePlus 10 Pro 5G ранее завершена успешно; пользовательские рабочие данные не менялись. Commit/rollback на телефоне ещё не выполнялись.
-- PR #168 и #174 остаются Draft; main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не менялась. Merge, публикация и production deployment не выполнялись.
+- Функциональная реализация: Draft PR #176, ветка feat/varroa-treatment-log-2026-11-19; проверенный code/test SHA `ae7421a27aeed368724bf942aaab2cecd7266d9a`.
+- Fast quality checks #44474930398: 741/741 tests, 0 failures. Android Debug APK #44474938730: build/upload success на том же SHA.
+- Модель отделяет varroaTreatments от varroaObservations; метод — сублиматор щавелевой кислоты, подтверждён пользователем. Доза, интервалы, температурные условия, подготовка и меры безопасности не добавлены.
+- App schema 15→16; старые наблюдения сохраняются; treatment events включены в snapshots, backup/archive validation и offline cache. Запись требует подтверждения фактического выполнения.
+- Изолированная Android-сборка: Draft PR #177, workflow #44476267580, SHA `b949518e3163b02e45f715e9fa04681332b0171e` — success. Все 18 build steps завершились успешно, включая полный regression suite и проверку package ID внутри APK.
+- Артефакт `paseka-varroa-isolated-test-apk`, ID `14505654409`, 3,681,597 bytes, SHA-256 `c28b11f3e63f56424b3f5685e2ceb6b39820cecebdd328b98c2096058948c678`, expires 2026-12-03 07:02:11 UTC. Package ID: `ru.paseka.journal.varroa.test`.
+- Физическая проверка на OnePlus 10 Pro 5G ещё не выполнена. До неё UI и сохранение офлайн не считать подтверждёнными.
+- PR #176 остаётся stacked поверх PR #168; #177 — test-only, не предназначен для слияния. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменялась; production и пользовательские данные не затрагивались.
+- Следующий шаг: пользователь устанавливает только изолированный APK и проверяет регистрацию/историю, блокировки, перезапуск и сохранность офлайн. После физической проверки — интеграционный аудит backup/restore/rollback для varroaTreatments.
 
 ---
 
-## Контрольная точка — изолированная APK с исправленным Android-сохранением готова (2026-11-18)
+## Дополнение о текущей разработке — 2026-11-19
 
-- Изолированный test-only PR #174 пересобран поверх PR #168, package ID: `ru.paseka.journal.archive.test2`, имя: «Пасека — архив тест 2». Предыдущее тестовое приложение остаётся отдельным и не затрагивается.
-- Workflow #44389963111 на SHA `fd370ff3c89a34b4d218cfc3c6cfb06001cb7677`: **731/731 tests**, Android Gradle build, проверка package ID через `aapt` и upload — success.
-- Artifact `paseka-archive-isolated-test-apk`, ID `14469105084`, SHA-256 ZIP `16008c7168df0b4e28364b3e0a61012f45c7c147fe3991d334a7636a0c7c7a48`, expires 2026-12-02 20:21:56 UTC. В APK непосредственно подтверждён package ID `ru.paseka.journal.archive.test2`; production ID отсутствует.
-- В APK включён native MediaStore Downloads bridge; путь сохранения: `Downloads/Пасека`. CI подтверждает компиляцию и изоляцию, но не физическую запись файла на OnePlus.
-- Для повторного теста нужно установить новую APK как отдельное приложение, создать тестовый улей (его имя присваивается автоматически), записать видео летка (оно сохраняется автоматически) и проверить, что файл появляется в `Загрузки/Пасека`. Старое тестовое приложение не удалять.
-- После физической проверки скачать архив, проверить открытие файла вне приложения. Не запускать восстановление/rollback до подтверждения экспорта и проверки файла.
-- PR #168 и #174 остаются Draft; main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не менялась.
-
-## Контрольная точка — исправление сохранения полного архива на Android (2026-11-18)
-
-- По физическому тесту пользователя на OnePlus выяснено: архив формировался (UI показывал 1 видео летка, 2.6 МБ), но файл не появлялся. Причина в прежнем UI-коде: он создавал `blob:` URL, нажимал скрытую HTML-ссылку и сразу сообщал об успехе, не подтверждая, что Android WebView сохранил файл.
-- Добавлен Android native Downloads bridge: generated Capacitor `MainActivity` регистрирует ограниченный JS interface, который потоково пишет файл блоками по 256 KiB через MediaStore в публичную папку `Downloads/Пасека`. Используются `IS_PENDING` до успешного завершения и удаление незавершённого файла при ошибке. Временные и пользовательские записи IndexedDB не затрагиваются.
-- Android UI теперь сообщает об успехе только после того, как native bridge закрыл поток и снял `IS_PENDING`. При ошибке показывает конкретное сообщение. В обычном браузере остаётся download-link fallback.
-- Добавлены: `js/paseka-android-download.js`, `scripts/prepare-android-archive-download.mjs`, `tests/android-archive-download.test.mjs`; обновлены `index.html`, `sw.js`, Android CI workflows и UI tests.
-- Первый Android build выявил ошибку экранирования регулярного выражения в Java; исправлена. Финальный code/test SHA: `661ea9ad602bacdee3ab096a668fcbc56b167ec2`.
-- Fast Quality Checks #44388526905: **728/728 tests, 0 failures**.
-- Android build #44388526739 на том же SHA: Gradle Debug APK build/upload — success. Артефакт `paseka-debug-apk` ID `14465919073`, SHA-256 ZIP `d29002a7435fd99ccce7c8fb8b23f1006a40ded3e7bbf1977e2b8938700f026d`. Это сборка с production package ID `ru.paseka.journal`; **не устанавливать её на устройство для тестирования**.
-- Требуется новая изолированная APK с отдельным package ID для физической проверки сохранения в Downloads. После неё проверить фактическое появление файла и размер, затем открытие архива вне приложения. Восстановление и rollback пока не запускать.
-- PR #168 остаётся Draft; main не менялась, merge/deployment не выполнялись.
-
-## Контрольная точка — подготовлена изолированная APK для проверки полного архива на OnePlus (2026-11-18)
-
-- Для физической проверки PR #168 создан отдельный test-only Draft PR #174, ветка `test/full-archive-android-isolated-2026-11-18`, stacked поверх PR #168. Его workflow не меняет production appId: создаёт пакет `ru.paseka.journal.archive.test` только в CI workspace и проверяет application ID в готовом APK через Android `aapt`.
-- Isolated archive workflow #44384033966 на SHA `9a688ba9746f781921f605eb6ba34a05607ad0c4`: **726/726 tests, 0 failures**, Android Debug APK build и package ID assertion — success.
-- Artifact `paseka-archive-isolated-test-apk`, ID `14466525052`, ZIP SHA-256 `fee50ea2c5be4c1b07d86d524282f55d26c06fbc4946d69d876e8aed23e2eed1`, expires 2026-12-02 19:49:34 UTC. Workflow: https://github.com/250oisr-eng/Pasekaapp/actions/runs/44384033966
-- Package ID в APK подтверждён: `ru.paseka.journal.archive.test`; production package `ru.paseka.journal` не используется. Приложение устанавливается отдельно от рабочей и прежней тестовой версий.
-- Основной PR #168: последний code/test SHA `b0be11442083c2a3cc639d22b6bfee1b6910282f`; Fast Quality #44383207248 и Android #44383207220 прошли **723/723 tests**, APK build/upload success. Последующие коммиты в PR #168 — документационные и workflow-only.
-- Физический тест экспорта, открытия файла вне приложения, восстановления и rollback на тестовых данных ещё не выполнен. Не использовать рабочее приложение или пользовательскую базу. Не сливать PR #168/#174 и не публиковать приложение.
-
-## Обновление — IndexedDB v5 и регрессионные тесты (2026-11-18)
-
-- Исправлено расхождение: приложение открывает IndexedDB версии 5; переход v4→v5 не создаёт stores и не преобразует пользовательские записи, но инициирует `versionchange`, чтобы старые вкладки закрыли подключения перед восстановлением.
-- Добавлен тест v4→v5 с проверкой `main/state`, `full_backup/previous`, Blob в `entrance_media`, archive staging/history stores и сохранения legacy-видео без скрытой перезаписи. Обновлены проверки версии UI/видеомодуля и Service Worker cache v315.
-- Итоговый code/test SHA: `b0be11442083c2a3cc639d22b6bfee1b6910282f`.
-- Fast Quality Checks #44383207248 на этом SHA: **723/723 tests, 0 failures**.
-- Android workflow #44383207220 на том же SHA: regression tests и подготовка web/Capacitor/Android прошли; Gradle APK build/upload ещё выполнялись на момент записи.
-- Предыдущий промежуточный SHA `be18ddb151ee0ff86cff28296512c899ad95a8a8` имел 4 ожидаемо устаревших тестовых assertions (DB v4 и cache v314); все четыре исправлены. Не считать этот промежуточный прогон итоговым.
-- Документация архива обновлена: IndexedDB v4 — добавление staging/history; v5 — versionchange barrier без структурной миграции; app schemaVersion остаётся 15.
-- PR #168 остаётся Draft; main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не менялась. Физический Android экспорт/импорт ещё не проверен.
-
-## Контрольная точка — защита от старых вкладок при восстановлении архива (2026-11-18)
-
-- В аудите найдено несоответствие: комментарий в `commitStagedArchive` ссылался на закрытие старых вкладок повышением IndexedDB до v9, но приложение фактически открывало БД версии 4. Следовательно, вкладки старого кода могли остаться открытыми; защита от конкурентной legacy-записи видео не соответствовала комментарию.
-- Исправление: IndexedDB object-store version повышена с 4 до 5. Новых object stores, индексов, преобразования записей или изменения app `schemaVersion=15` нет. Цель повышения — вызвать стандартное событие `versionchange`, чтобы старые подключения закрылись до восстановления; обработчик приложения дожидается очереди сохранения.
-- Добавлен регрессионный тест upgrade v4→v5: проверяет сохранность `main/state`, `full_backup/previous`, оригинального Blob в `entrance_media`, всех staging/history stores и отсутствие принудительной перезаписи legacy-видео.
-- Обновлён тест UI на IndexedDB v5 и Service Worker cache v315, чтобы офлайн-клиент получил обновлённый HTML.
-- Изменены: `index.html`, `js/paseka-archive-restore.js`, `tests/indexeddb-startup-guard.test.mjs`, `tests/archive-ui-integration.test.mjs`, `sw.js`.
-- Новый code/test SHA: `be18ddb151ee0ff86cff28296512c899ad95a8a8`. Fast Quality Checks #44382917507 и Android workflow #44382917325 выполняются; результаты ещё не подтверждены.
-- PR #168 остаётся Draft. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не изменена. До CI и проверки конфликта PR не считать этап завершённым.
-
-## Контрольная точка — PR #168: полный архив и проверка целостности (2026-11-18)
-
-- Main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
-- PR #168 остаётся Draft на ветке `feat/full-media-backup-restore-main-2026-11-18`. Последний проверенный code/test SHA: `52e587aa1f3e24c3f0de7aa221a8323d4cc7af51`.
-- Fast Quality Checks #44333118570 на точном SHA: **722/722 tests, 0 failures**.
-- Android PR workflow #44333131328 на том же SHA: **722/722 tests**, Debug APK build/upload success. Artifact ID `14439657825`, размер 3,446,813 bytes; ZIP SHA-256 `31658a873bc27fa4fabf127ba843c0f393b5e208ad321f2bb0f7595bbc2ed55b`.
-- Защита данных: новые видео сохраняются с SHA-256; rollback восстанавливает legacy-видео с заново проверенной суммой; импорт проверяет revision, staged content, видео и выполняет замену атомарно.
-- Защита экспорта: предыдущий Blob архива сбрасывается при каждом новом экспорте; Blob удерживается только если браузер поддерживает отправку файла; сообщения о fallback выводятся в статус экспорта.
-- PR #169 остаётся Draft и зависит от #168; его ветка основана на более старом HEAD #168 и требует синхронизации после завершения текущего этапа.
-- Не выполнены физическое скачивание/открытие/восстановление .paseka на Android. CI APK не заменяет проверку Android WebView/SAF.
-- Merge, publish, production deployment и операции с пользовательскими данными не выполнялись.
+Начата реализация отдельного журнала фактически выполненных обработок Varroa в Draft PR #176:
+- PR #176: https://github.com/250oisr-eng/Pasekaapp/pull/176
+- Ветка feat/varroa-treatment-log-2026-11-19, HEAD ae7421a27aeed368724bf942aaab2cecd7266d9a.
+- PR #176 stacked поверх PR #168 и не может безопасно рассматриваться независимо от него; оба PR остаются Draft.
+- Fast quality checks run #44474930398: success, 741/741 тестов, 0 failures на указанном HEAD.
+- Android Debug APK run #44474938730: success на том же SHA; artifact ID 14506310191, SHA256 a15a96b0a2b8e4f8d79036854e63cc7cfc611fdd8e516c1390ae6443e3eb57f1, срок хранения до 2026-12-03 06:49:59 UTC.
+- Это CI-проверка, а не физический тест. APK не предназначен для установки поверх основного приложения; отдельная физическая проверка пока не выполнялась.
+- Реализация использует app schema 16 и отдельный varroaTreatments. Никакие дозы, интервалы, температура или меры безопасности не добавлены.
+- PR #176 не merged; main и production не изменялись.
 
 ---
 
-## Уточнение статуса проверок — code/test SHA и документационный HEAD (2026-11-18)
+# Актуальное состояние проекта — 2026-11-19
 
-- Последний SHA, на котором изменялись код и тесты PR #168: `3436c621c5de175259a0cf112feeaba84984bd5d`. На нём Fast Quality Checks #44331728300 и Android PR workflow #44331737784 прошли: 721/721 tests; Debug APK build/upload success, artifact 14439701927.
-- После этих проверок добавлен отдельный documentation-only checkpoint. Не смешивать code/test SHA с текущим PR HEAD; актуальный PR HEAD всегда сверять через GitHub перед продолжением.
-- После code/test SHA `3436c621c5de175259a0cf112feeaba84984bd5d` добавлены только документационные коммиты. Android workflow #44332204313 запускался на промежуточном documentation-only HEAD; он не меняет результат code/test проверок на `3436c621c5de175259a0cf112feeaba84984bd5d`.
-- PR #168 остаётся Draft. Merge, publish и production deployment не выполнялись.
+## Проверенная точка GitHub
 
----
+- main SHA: 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7 (branch endpoint).
+- Цепочка технологических операций фактически объединена: PR #148 → #149 → #87 → #150 → #151 → #152 → #153 → #154. Merge commits: 007935289a7fba06a4776e84b943a105423f655c, 95eb64eff22fa7243d5f3b65747416037b39b0b0, 77cb70027b65e8d95955c62ad9abed73a65f185c, e31fe96f9b9083cd4580cd46db42adc1e5bc6336, 51e3dbce9426f241c5ee07c96fd8915f0f57363d, 9af532d30a45c24a0cf37540e3acf7ac871cf535, 0e84bbcd8beb9922472c8f086047cae19b26d36a, 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7.
+- Для SHA 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7 GitHub Actions: Fast quality checks #44232695339 — success; Android Debug APK #44232695515 — success; Pages workflow #44232694911 — success. Commit status API отдельно не содержит status contexts. Результаты относятся только к указанному SHA.
+- PR #168 остаётся open/Draft, base main, HEAD 7e53e3ded0c4ce133b6326d540bfc07036c12d97; полный архив .paseka и atomic restore ещё не интегрированы в main.
+- PR #174 остаётся open/Draft, test-only ветка для Android archive validation; mergeable=false и не предназначен для слияния. Физическая проверка на OnePlus завершена по ранее записанному протоколу.
+- PR #142 уже merged; событие queen_absence_confirmed присутствует в main.
+- Lovable project 8193a703-9f20-4dc8-9460-8d93225ea25f остаётся needs_attention / out_of_credits; latest Lovable SHA не синхронизирован с GitHub main. Платные функции не использовать.
 
-## Контрольная точка — PR #168: контроль целостности видео и CI (2026-11-18)
+## Технологическое состояние
 
-- GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.
-- PR #168 открыт, Draft, mergeable=true. Последний проверенный code/test SHA: `3436c621c5de175259a0cf112feeaba84984bd5d`; последующие изменения после него — только документация. Main не менялась.
-- Fast Quality Checks #44331728300 на точном HEAD: **721/721 tests, 0 failures**.
-- Android PR workflow #44331737784 на том же HEAD: **721/721 tests**, Debug APK build и upload успешны. Artifact `paseka-debug-apk`, ID `14439701927`, размер 3,446,730 bytes; SHA-256 ZIP-артефакта `d44c47515bc61599b5fdc3f93e6ac13287031a9da0e1a4acd4f662470d39b3fd`.
-- Дополнительная защита: новые видео сохраняются с вычисленным SHA-256; при rollback для восстановленного legacy-видео записывается только что проверенная контрольная сумма. Добавлены тесты для same-size replacement и восстановления legacy media.
-- PR #169 остаётся Draft и зависит от #168. Его HEAD `308b2f02ba218eef0f10197a7c5c97d2bd592c17` основан на прежнем #168 HEAD `cee7f51ce55490507ed6dea51939139b974d46c8`; сравнение с текущим #168 HEAD показывает diverged: 12 ahead / 6 behind. После завершения #168 требуется безопасно перенести навигационные изменения на актуальную базу, не теряя их.
-- Не проверялись физическое скачивание/открытие .paseka и восстановление на реальном Android-устройстве. PR остаётся Draft; merge, publish и production deployment не выполнялись.
-- Следующий этап: независимый code review PR #168; затем физический Android smoke test на тестовых данных; после этого синхронизировать зависимый PR #169.
+- OP-04, OP-05, OP-06 и OP-07 реализованы в доменном coordinator и интегрированы в main; sectionalTechProcesses присутствует, migration app schema 14→15 добавляет реестр процессов. Индексированная БД object-store version для этих изменений не повышалась.
+- OP-04: staged split с первым и вторым рядом; операции атомарно связывают lineage, физическую раскладку, инвентарь, techprocess и audit.
+- OP-05: необязательная рекомендуемая установка сетчатых заглушек, с фактическим покрытием технических отверстий и историей оборудования.
+- OP-06: снятие заглушек через 20–21 день от исходного разделения при подтверждённой яйцекладке трёх идентифицированных маток. Reduced two-queen branch остаётся fail-closed: событие отсутствия матки не разрешает снятие сеток.
+- OP-07: сроки установки решёток/медовых корпусов — вместе со вторым рядом либо через 12–15 календарных дней; отдельный AFTER_OP06 не смешивается с этими вариантами.
+- Профиль секционного улья не активировать до завершения общего аудита всех связанных модулей и UX; наличие доменных операций не доказывает готовность полного пользовательского процесса.
+- Известные остатки: позднее добавление второй пары медовых корпусов по DOCX P37 не реализовано; порамочная история наблюдений содержимого — отдельная задача.
 
----
+## Следующий главный приоритет
 
-## Контрольная точка — PR #168: полный архив медиа и атомарное восстановление (2026-11-18)
+Подготовить отдельный журнал фактически выполненных обработок Varroa. В main уже есть varroaObservations для мониторинга, но нет varroaTreatments или эквивалентного реестра лечения. Метод — сублиматор щавелевой кислоты — подтверждён пользователем; доза, режим, число/интервалы, температура и меры безопасности неизвестны и не должны автозаполняться. Сначала спроектировать минимальную модель и её совместимость с schema 15, backup/restore, offline и audit; запись создавать только после явного подтверждения фактически выполненной обработки.
 
-- Актуальный GitHub main: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. PR #154 действительно merged; merge commit совпадает с этим SHA. PR #154 code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`: 611/611 tests, Android Debug APK success; это проверки PR HEAD, а не отдельные workflow на merge SHA.
-- Новый Draft PR #168 основан непосредственно на main, без отставания на момент создания. Текущий branch: `feat/full-media-backup-restore-main-2026-11-18`. Старая цепочка PR #9–#40 целиком не сливалась.
-- Перенесены отдельные архивные модули codec, SHA-256, staging и atomic restore/rollback из проверяемой старой ветки #40; код интегрирован поверх актуального main. Старый CI #40 на SHA `52f43ed29d7037401c04526938f5230b5f7f675c` не заменяет проверку новой базы.
-- Добавлен переносимый `.paseka`: единый readonly snapshot `main` + `entrance_media`; state JSON и отдельные оригиналы видео; SHA-256 по блокам 1 MiB; ограничение путей/размеров/метаданных; импорт сначала в persistent staging; атомарная замена только после явного подтверждения; rollback прежнего state и видео с revision guard.
-- IndexedDB object-store version 3→4: добавляются только `archive_staging` и `archive_history` с индексами. Существующие `main`, `full_backup`, `entrance_media` сохраняются; app schemaVersion не меняется; преобразования пользовательских записей при upgrade нет.
-- JSON/automatic backup по-прежнему не содержат отдельные оригиналы видео. Подписи интерфейса уточнены, чтобы не называть JSON полной мультимедийной копией. Полный архив остаётся локальным: внешние сервисы, загрузка на сервер и платные зависимости не добавлены.
-- Добавлены тесты формата, экспорта, SHA-256, staging, cleanup, atomicity, UI/offline и upgrade v3→v4 с сохранением существующих данных. Fast Quality Checks #44322389285 на SHA `6851bbc397674d2fdbe3a3819ab04cc0c7217a0b`: 715/715 tests, 0 failures. Android PR workflow #44325832906 на точном текущем HEAD `4386d3b38a1c31303e5f9b19ad3ce7cf51f1bb20`: 715/715 tests, 0 failures; Android Debug APK build/upload success; artifact `paseka-debug-apk`, ID `14436487643`, 3,446,523 bytes. Fast Quality Checks #44322389285 на code/test SHA `6851bbc397674d2fdbe3a3819ab04cc0c7217a0b`: 715/715, 0 failures. На промежуточном Android run #44322813466 также были успешны 715/715 и сборка APK. Старый CI PR #40 не использовался как доказательство совместимости с main.
-- Lovable `Apiary Family Atlas`: опубликован, последний commit `2196e3fd478fbb58810d6a78317c0ddd056dfdef`, агент `needs_attention / out_of_credits`; синхронизация с GitHub main не подтверждена.
-- Не выполнялись merge, публикация, production deployment, изменение production DB или операции с пользовательскими данными. Физическое Android-тестирование сохранения/открытия .paseka вне приложения остаётся отдельным release gate.
+## Границы безопасности
 
-### Следующий шаг
-Следующий шаг: независимый code review всего PR #168 и подготовка физической проверки Android: скачать .paseka, сохранить вне приложения, выбрать этот файл и выполнить тестовое восстановление на отдельном/пустом тестовом профиле без пользовательских данных. Текущий HEAD a5dfbda620feed2b9188bf82ddc3a62cb8ab21d9, main 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7; PR #168 Draft, 12 commits ahead / 0 behind, mergeable=true. Android и quality workflows прошли на точном code/test HEAD. Lovable latest commit 2196e3fd478fbb58810d6a78317c0ddd056dfdef не совпадает с веткой PR; синхронизация не подтверждена. Не объединять без отдельного разрешения.
- 
+PR #168/#174 и прочие открытые Draft PR не сливать автоматически. Не изменять production, не публиковать приложение и не запускать deployment. Не выполнять физические операции и не создавать записи реальной пасеки в тестах.
+
 ---
 
 ## Контрольная точка — OP-07 и резервная безопасность (2026-11-17)

@@ -234,7 +234,7 @@ function createBackupId(cryptoProvider) {
 async function exportArchiveFromDatabase(db, cryptoProvider, options = {}) {
   const snapshot = await readConsistentDatabaseSnapshot(db);
   const stateVersion = snapshot.state.meta && snapshot.state.meta.schemaVersion;
-  if (!Number.isSafeInteger(stateVersion) || stateVersion < 1 || stateVersion > 15) {
+  if (!Number.isSafeInteger(stateVersion) || stateVersion < 1 || stateVersion > 16) {
     fail('UNSUPPORTED_STATE_SCHEMA', 'The saved Paseka state has an unsupported schema version.');
   }
   const stateBlob = new Blob([JSON.stringify({ app: 'Paseka', state: snapshot.state })], { type: 'application/json' });

@@ -14,6 +14,7 @@ const familyLineageSource = await readFile(new URL('../js/family-lineage.js', im
 const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
+const varroaTreatmentSource = await readFile(new URL('../js/varroa-treatment-log.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
 const deadoutSource = await readFile(new URL('../js/deadout-review.js', import.meta.url), 'utf8');
 const voiceParserSource = await readFile(new URL('../js/voice-command-parser.js', import.meta.url), 'utf8');
@@ -27,6 +28,7 @@ new Function('window', familyLineageSource)(appWindow);
 new Function('window', sectionalOperationCoordinatorSource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
+new Function('window', varroaTreatmentSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
 new Function('window', deadoutSource)(appWindow);
 function extractFunction(name) {
@@ -57,6 +59,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
   deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
+  deps.PasekaVarroaTreatmentLog ||= appWindow.PasekaVarroaTreatmentLog;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
   deps.profileForHive ||= (hiveId) => { const hive=deps.S?.hives?.find(item=>item?.id===hiveId); return hive?.profile || (deps.getHiveProfile ? deps.getHiveProfile(hive) : null); };
@@ -1221,7 +1224,7 @@ function malformedSchema12Backup(){
  return {at:'old',state};
 }
 function futureSchemaBackup(){
- return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:16}}};
+ return {at:'future',state:{...rawBackupFixture(),meta:{schemaVersion:17}}};
 }
 function inspectRawBackup(state){
  const inspectFamilyLineage=loadFunction('inspectFamilyLineage');
@@ -1336,7 +1339,7 @@ function automaticBackupValidatorForTests(){
 test('automatic backup validation rejects malformed and structurally corrupted snapshots',()=>{
  const validate=automaticBackupValidatorForTests();
  assert.throws(()=>validate(null),/не содержит состояние/i);
- assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:16}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
+ assert.throws(()=>validate({state:{...rawBackupFixture(),meta:{schemaVersion:17}}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
  const corrupt={...rawBackupFixture(),hives:[{id:'same',number:1},{id:'same',number:2}]};
  assert.throws(()=>validate({state:corrupt}),/не прошёл проверку исходных данных/i);
  const valid={...rawBackupFixture(),meta:{schemaVersion:12,revisionId:'valid-rev'},varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],equipmentInventory:{bodies:{},events:[]},queens:[],queenEvents:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]};
@@ -1357,7 +1360,7 @@ test('startup preserves an automatic backup from a newer schema without attempti
  assert.equal(writes,0,'a future-schema backup must never be silently replaced');
  assert.equal(reads,0);
  assert.match(current.meta.autoBackupError,/более новой версией приложения/i);
- assert.equal(future.state.meta.schemaVersion,16);
+ assert.equal(future.state.meta.schemaVersion,17);
 });
 
 test('startup repairs a malformed automatic backup from the already validated main state',async()=>{
@@ -1449,7 +1452,7 @@ test('backup shape validator accepts a minimal valid empty apiary',()=>{
 });
 test('backup shape validator rejects unsupported future schema versions without migration',()=>{
  const validate=loadFunction('validateBackupState');
- assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:16}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
+ assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:17}}),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION'&&/более новой версией приложения/i.test(error.message));
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:0}}),/версия схемы/i);
  assert.throws(()=>validate({...rawBackupFixture(),meta:{schemaVersion:'2'}}),/версия схемы/i);
  assert.equal(validate({...rawBackupFixture(),meta:{schemaVersion:5},plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[]}).meta.schemaVersion,5);
@@ -1950,10 +1953,10 @@ test('runtime integrity allows the same local frame ID in different hives',()=>{
  assert.equal(result.errors.some(error=>error.code==='duplicate_frame_id'),false);
 });
 test('schema migration refuses unsupported future or malformed versions without modifying the database state',()=>{
- for(const version of [0,16,'2']){
+ for(const version of [0,17,'2']){
   const state={meta:{schemaVersion:version},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
   const before=JSON.stringify(state),migrate=loadFunction('migrateState',{S:state});
-  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===16?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
+  assert.throws(()=>migrate(),error=>/Неподдерживаемая версия схемы данных/.test(error.message)&&(version===17?error.code==='UNSUPPORTED_SCHEMA_VERSION':!error.code));
   assert.equal(JSON.stringify(state),before);
  }
 });
@@ -1979,7 +1982,7 @@ test('schema 14 migration creates an empty family event journal without changing
  const beforeFamily=structuredClone(state.families[0]);
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.families[0],beforeFamily);
@@ -1992,7 +1995,7 @@ test('schema 13 transitional backups migrate without dropping an existing family
  const state={meta:{schemaVersion:13},hives:[],families:[],queens:[],queenEvents:[],familyEvents:[event],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[event]);
 });
@@ -2003,7 +2006,7 @@ test('schema 14 migration preserves a pre-existing sectional tech-process collec
  const before=structuredClone(state.sectionalTechProcesses);
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-migration-id'});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,before);
  assert.equal(migrate(),false);
 });
@@ -2052,7 +2055,7 @@ test('schema migration preserves physical frame IDs and adds stable metadata exa
  let sequence=0;
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'generated-'+(++sequence),layoutFor,frameArray});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.varroaObservations,[]);
@@ -2349,7 +2352,7 @@ test('startup read recovers from a failed main read when a backup is available',
 });
 
 test('startup refuses a malformed backup instead of loading it as recovered main data',async()=>{
- const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:16}}};
+ const malformed={at:'corrupt',state:{...rawBackupFixture(),meta:{schemaVersion:17}}};
  const validateAutomaticBackup=automaticBackupValidatorForTests();
  const deps={readMain:async()=>null,readAutoBackup:async()=>malformed,validateAutomaticBackup,autoBackupRecovered:false,startupRecoveryPending:false};
  await assert.rejects(loadFunction('read',deps)(),error=>error.code==='UNSUPPORTED_SCHEMA_VERSION');
@@ -3142,7 +3145,7 @@ test('schema 9 migration creates an empty Varroa section and does not alter exis
  const state={meta:{schemaVersion:9},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]}};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'varroa-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
  assert.equal(migrate(),true);
- assert.equal(state.meta.schemaVersion,15);
+ assert.equal(state.meta.schemaVersion,16);
  assert.deepEqual(state.sectionalTechProcesses,[]);
  assert.deepEqual(state.familyEvents,[]);
  assert.deepEqual(state.varroaObservations,[]);
@@ -3167,7 +3170,7 @@ test('pesticide incident dossier is integrated with smartphone capture, local st
 test('schema 11 migration creates an empty deadout section and preserves existing incident and Varroa records',()=>{
  const state={meta:{schemaVersion:11},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],equipmentLabels:{bodies:{}},equipmentInventory:{bodies:{},events:[]},varroaObservations:[{id:'v1'}],pesticideIncidents:[{id:'p1'}]};
  const migrate=loadFunction('migrateState',{S:state,uid:()=> 'incident-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
- assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,15);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
+ assert.equal(migrate(),true);assert.equal(state.meta.schemaVersion,16);assert.deepEqual(state.deadoutReviews,[]);assert.deepEqual(state.pesticideIncidents,[{id:'p1'}]);assert.deepEqual(state.varroaObservations,[{id:'v1'}]);assert.equal(migrate(),false);
 });
 
 
@@ -3624,7 +3627,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v316/);
+ assert.match(sw,/paseka-shell-v317/);
 });
 
 
@@ -3654,7 +3657,7 @@ test('save includes sectionalLayouts in historical snapshots without changing sc
   render:()=>{},alert:()=>{}
  });
  assert.equal(await save(),true);
- assert.equal(saved.meta.schemaVersion,15);
+ assert.equal(saved.meta.schemaVersion,16);
  assert.deepEqual(saved.familyEvents,[]);
  assert.deepEqual(saved.snapshots[0].familyEvents,[]);
  assert.deepEqual(saved.sectionalTechProcesses,[]);
@@ -3728,6 +3731,37 @@ test('schema 14 backups remain compatible while schema 15 requires sectionalTech
  assert.throws(()=>validate({...valid,sectionalTechProcesses:[null]}),/повреждённые элементы/i);
 });
 
+
+test('schema 15 migration adds an empty treatment journal without changing existing Varroa observations',()=>{
+ const observation={id:'observation-legacy',type:'sticky_board',hiveId:'h1',date:'2026-08-01',mitesCount:2,exposureHours:24,mitesPer24h:2,notes:''};
+ const state={meta:{schemaVersion:15},hives:[{id:'h1',number:1,profileId:'farrar-6x6-v1'}],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],queens:[],queenEvents:[],familyEvents:[],sectionalTechProcesses:[],varroaObservations:[observation]};
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'schema-16-migration-id',layoutFor:()=>({}),frameArray:()=>[]});
+ assert.equal(migrate(),true);
+ assert.equal(state.meta.schemaVersion,16);
+ assert.deepEqual(state.varroaTreatments,[]);
+ assert.deepEqual(state.varroaObservations,[observation]);
+ assert.ok(state.auditLog.some(event=>event.type==='schema_migration'&&event.from===15&&event.to===16));
+ assert.equal(migrate(),false);
+});
+
+test('schema 16 migration rejects malformed treatment journal without replacing user data',()=>{
+ const malformed={keep:'this'};
+ const state={meta:{schemaVersion:16},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[],familyEvents:[],sectionalTechProcesses:[],varroaTreatments:malformed};
+ const before=structuredClone(state);
+ const migrate=loadFunction('migrateState',{S:state,uid:()=> 'unused'});
+ assert.throws(()=>migrate(),/журнал обработок Varroa/);
+ assert.deepEqual(state,before);
+});
+
+test('schema 16 backup requires a treatment journal and rejects malformed treatment entries',()=>{
+ const validate=loadFunction('validateBackupState');
+ const base={...rawBackupFixture(),meta:{schemaVersion:16},familyEvents:[],sectionalTechProcesses:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],plantCatalog:[],plantLocations:[],plantObservations:[],plantAIQueue:[],queens:[],queenEvents:[],equipmentInventory:{bodies:{},events:[]}};
+ assert.throws(()=>validate(base),/varroaTreatments/);
+ const valid={...base,varroaTreatments:[]};
+ assert.equal(validate(valid),valid);
+ assert.throws(()=>validate({...valid,varroaTreatments:[null]}),/повреждённые элементы/i);
+});
+
 test('raw backup integrity rejects malformed sectional operation records in schema 15',()=>{
  const state={...rawBackupFixture(),meta:{schemaVersion:15},familyEvents:[],sectionalTechProcesses:[{id:'bad',hiveId:'missing'}]};
  const result=inspectRawBackup(state);
@@ -3750,7 +3784,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v316/);
+  assert.match(source,/paseka-shell-v317/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
