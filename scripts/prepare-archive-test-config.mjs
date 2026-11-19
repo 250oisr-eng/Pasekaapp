@@ -10,11 +10,11 @@ export function createArchiveTestConfig(config) {
   if (!config || typeof config !== 'object' || Array.isArray(config)) {
     throw new TypeError('Capacitor configuration must be an object.');
   }
-  if (config.appId !== 'ru.paseka.journal') {
-    throw new Error('Refusing to derive an isolated archive test APK from an unexpected application ID.');
-  }
   if (config.appId === ARCHIVE_TEST_APP_ID) {
     throw new Error('Archive test package ID is already active.');
+  }
+  if (config.appId !== 'ru.paseka.journal') {
+    throw new Error('Refusing to derive an isolated archive test APK from an unexpected application ID.');
   }
   return {
     ...config,
