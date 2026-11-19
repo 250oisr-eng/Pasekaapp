@@ -36,5 +36,6 @@ test('fails closed on offline service and malformed reply',async()=>{
   await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:false,status:503})}),/no cloud fallback/);
   await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>JSON.stringify({})})}),/Invalid model response/);
   await assert.rejects(reviewFixture({fixture,model:'deepseek-r1:7b',request:async()=>({ok:true,text:async()=>JSON.stringify({thinking:'some reasoning',response:'',done_reason:'length'})})}),/No final answer/);
+  await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>JSON.stringify({response:'Partial answer...',done_reason:'length'})})}),/truncated/);
   await assert.rejects(reviewFixture({fixture,model:'qwen3:4b',request:async()=>({ok:true,text:async()=>'bad'})}),/Malformed/);
 });
