@@ -206,7 +206,7 @@ async function phaseOne() {
     assert(typeof bridge.testDownloadName === 'function' &&
       typeof bridge.verifyAndRemoveTestDownload === 'function', 'Test-only native file verifier unavailable');
     const filename = String(bridge.testDownloadName() || '');
-    assert(/^paseka-full-backup-20[8-9][0-9]-[0-1][0-9]-[0-3][0-9]\\.paseka$/.test(filename),
+    assert(/^paseka-full-backup-20[8-9][0-9]-[0-1][0-9]-[0-3][0-9]\.paseka$/.test(filename),
       'Test archive filename was not safely generated');
     const checksum = await crypto.subtle.digest('SHA-256', await built.blob.arrayBuffer());
     const sha256 = Array.from(new Uint8Array(checksum), byte => byte.toString(16).padStart(2, '0')).join('');
