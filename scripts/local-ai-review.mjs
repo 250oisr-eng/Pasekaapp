@@ -20,7 +20,8 @@ export function validateFixture(value) {
   if (typeof value.context !== 'string' || !value.context.trim()) throw new Error('Missing context');
   if (Buffer.byteLength(value.context, 'utf8') > MAX_CONTEXT) throw new Error('Context exceeds 12000 bytes');
   if (SENSITIVE.some(pattern => pattern.test(value.context))) throw new Error('Potential secret: blocked');
-  if (typeof value.task !== 'string' || !value.task.trim() || value.task.length > 500) throw new Error('Invalid task');
+  if (typeof value.task !== 'string' || !value.task.trim() || Buffer.byteLength(value.task, 'utf8') > 500) throw new Error('Invalid task');
+  if (SENSITIVE.some(pattern => pattern.test(value.task))) throw new Error('Potential secret in task: blocked');
   return { task: value.task, context: value.context };
 }
 export function validateModel(model) {
