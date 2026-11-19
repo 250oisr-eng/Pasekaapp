@@ -1,0 +1,130 @@
+name: Build isolated Windows 11 + Android device test kit
+
+on:
+  push:
+    branches:
+      - test/win11-device-automation-2026-11-19
+  workflow_dispatch:
+
+concurrency:
+  group: paseka-win11-device-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate or install Android command-line tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install Android SDK packages
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run regression suite including device-build safety tests
+        run: npm test
+      - name: Enforce isolated package
+        run: |
+          node scripts/prepare-device-selftest.mjs config
+          node -e "const c=require('./capacitor.config.json');if(c.appId!=='ru.paseka.journal.device.test')process.exit(1)"
+      - name: Prepare device-test web assets
+        run: |
+          npm run web:prepare
+          node scripts/prepare-device-selftest.mjs web
+          grep -Fq '<script src="./js/device-selftest.js"></script>' www/index.html
+          test -s www/js/device-selftest.js
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Sync Android project
+        run: npx cap sync android
+      - name: Install native archive Downloads bridge
+        run: node scripts/prepare-android-archive-download.mjs
+      - name: Patch Android Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Enforce Android 15 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'android/variables.gradle';
+          let source = fs.readFileSync(path, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp('^(\\s*' + key + '\\s*=\\s*)\\d+', 'm');
+            if (!pattern.test(source)) throw new Error('Missing ' + key);
+            source = source.replace(pattern, (_match, prefix) => prefix + value);
+            if (!(new RegExp('^\\s*' + key + '\\s*=\\s*' + value + '\\s*$', 'm')).test(source)) {
+              throw new Error('Could not require ' + key + '=' + value);
+            }
+          }
+          fs.writeFileSync(path, source);
+          NODE
+      - name: Inject isolated test report bridge
+        run: |
+          node scripts/prepare-device-selftest.mjs android
+          grep -Fq 'PasekaDeviceTestBridge' android/app/src/main/java/ru/paseka/journal/device/test/MainActivity.java
+      - name: Build isolated debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify APK package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.device.test'"
+          if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then
+            echo "Production ID detected in isolated APK" >&2
+            exit 1
+          fi
+      - name: Assemble self-contained Windows 11 kit with official ADB
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p device-kit
+          cp android/app/build/outputs/apk/debug/app-debug.apk device-kit/paseka-device-test.apk
+          sha256sum device-kit/paseka-device-test.apk | awk '{print $1}' > device-kit/paseka-device-test.sha256
+          cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/START-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
+          curl --retry 3 --fail --location --silent --show-error \
+            https://dl.google.com/android/repository/platform-tools-latest-windows.zip -o "$RUNNER_TEMP/platform-tools-windows.zip"
+          unzip -q "$RUNNER_TEMP/platform-tools-windows.zip" -d device-kit/
+          test -s device-kit/platform-tools/adb.exe
+          test -s device-kit/platform-tools/AdbWinApi.dll
+          test -s device-kit/START-TESTS.cmd
+      - name: Upload portable Windows and Android physical test kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-win11-android-selftest-kit
+          path: device-kit/
+          if-no-files-found: error
+          retention-days: 14
