@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -79,6 +79,7 @@ export async function prepareDeviceTest(mode, root = process.cwd()) {
     const htmlPath = join(root, 'www', 'index.html');
     const html = await readFile(htmlPath, 'utf8');
     await writeFile(htmlPath, injectTestScript(html));
+    await copyFile(join(root, 'tests', 'device-selftest.js'), join(root, 'www', 'js', 'device-selftest.js'));
     return;
   }
   if (mode === 'android') {
