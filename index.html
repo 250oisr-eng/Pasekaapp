@@ -48,7 +48,7 @@ dialog input,dialog select,dialog textarea{min-width:0;max-width:100%;box-sizing
 .box-unit{border:2px solid #aeb8ad;border-radius:9px;padding:6px 4px;margin:5px 0;background:#fff;cursor:pointer}
 .box-unit.filled{border-color:var(--family-color,#4d8c60);background:color-mix(in srgb,var(--family-color,#4d8c60) 10%,white)}
 .box-unit strong{display:block;font-size:12px;text-align:center}
-.frame-strip{display:grid;grid-template-columns:repeat(var(--frame-count,6),minmax(0,1fr));gap:2px;margin-top:5px;min-width:0;max-width:100%}
+.frame-strip{display:grid;grid-template-columns:repeat(var(--frame-count,6),minmax(25px,1fr));gap:2px;margin-top:5px;min-width:0;width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-inline:contain;scrollbar-width:thin}
 .frame-chip{cursor:pointer;height:24px;min-width:0;overflow:hidden;font-size:7px;border:1px solid #aab2a8;border-radius:3px;background:#e7c66c;color:#4c4226;font-size:9px;font-weight:800;display:grid;place-items:center}
 .frame-chip.wax{background:#f0d987}.frame-chip.partial{background:repeating-linear-gradient(135deg,#d7b76c 0 4px,#f5e5b8 4px 8px)}.frame-chip.damaged{background:#d99a91;color:#542b25}.frame-chip.discard{background:#777;color:#fff}.frame-chip.empty{background:#f4f4f0;color:#999}
 .honey-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
