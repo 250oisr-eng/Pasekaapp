@@ -66,7 +66,7 @@ test('local scheduled Android runner is opt-in, gated and never installs a test 
   assert.match(wrapper, /param\(\[switch\]\$Run\)/);
   assert.match(wrapper, /Get-FileHash/);
   assert.match(wrapper, /report\.final\.pass -eq \$true/);
-  assert.match(wrapper, /@\(\$report\.final\.checks\)\.Count -eq 8/);
+  assert.match(wrapper, /@\(\$report\.final\.checks\)\.Count -eq 9/);
   assert.match(wrapper, /PASEKA_SCHEDULED_NO_INSTALL = '1'/);
   assert.match(wrapper, /PASEKA_ADB_WIFI_ENDPOINT = ''/);
   assert.doesNotMatch(wrapper, /adb install|adb tcpip|uninstall|pm clear|Invoke-WebRequest|Start-BitsTransfer/);
@@ -114,6 +114,8 @@ test('device bridge preserves production archive Downloads bridge in isolated Ma
   assert.ok(reportBridge.startsWith('package ' + PACKAGE_ID + ';'), 'native report bridge must use the same test-only package');
   assert.match(reportBridge, /paseka-device-report\.json/);
   assert.match(reportBridge, /verifyAndRemoveTestDownload/);
+  assert.match(reportBridge, /countOwnTestDownloadRows/);
+  assert.match(reportBridge, /MediaStore\.MediaColumns\.DISPLAY_NAME \+ "=\?"/);
   // A real OnePlus report found a rejected MediaStore file. Diagnose the exact
   // ownership constraint without weakening or bypassing verified deletion.
   assert.match(reportBridge, /ERR_TEST_NAME/);
@@ -149,6 +151,10 @@ test('device test runner has valid JavaScript and uses only isolated IndexedDB n
   assert.match(source, /paseka-device-selftest-/);
   assert.match(source, /archive_revision_guard_preserves_new_treatment/);
   assert.match(source, /native_downloads_archive_hash_and_cleanup/);
+  assert.match(source, /native_downloads_reject_incomplete_and_oversize/);
+  assert.match(source, /countOwnTestDownloadRows/);
+  assert.match(source, /Truncated archive was published/);
+  assert.match(source, /Oversized block was accepted/);
   assert.match(source, /real_android_restart_persists_indexeddb/);
   assert.match(source, /S = saved/);
   assert.doesNotMatch(source, /indexedDB\.deleteDatabase\s*\(/);
