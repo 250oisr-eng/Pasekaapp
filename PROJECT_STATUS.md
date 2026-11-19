@@ -1,3 +1,11 @@
+## Подтверждённый CI checkpoint — UI-UX 2026-11-19
+- Exact code/test SHA `c5bb8ba1c6f03a71485e26c423dd96816878ee01`.
+- [Free local mobile UI audit #44528773579](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44528773579): **SUCCESS** на кодовом SHA. Логи: 4/4 профиля PASS (360×780, 390×844, 800×390, 1280×800), во всех 0 page JS errors, 0 viewport horizontal overflow, проверки пустых Журнала/Плана и подписей #recordDlg выполнены. Это эмуляция Chrome, не физический Android и не тест сохранения журнала.
+- [Fast quality checks #44528773789](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44528773789): **SUCCESS** на том же SHA.
+- [Android build workflow #44528773766](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44528773766): на момент фиксации **in_progress**; отдельная проверка для документационного HEAD также может запускаться. Отменённые прогоны не считать PASS.
+- Browser-artifact `paseka-local-ui-audit` ID `14531269113`. Axe анализ пустых экранов записан в отчёт; SUCCESS не равен полной WCAG-приёмке. PR #187 Draft, merge/deploy запрещены.
+- Следующий этап: изучить подробные axe findings из `report.json`, при необходимости минимальное исправление и повторный CI.
+
 ## 2026-11-19 — UI-UX #187: доступность формы журнала
 - В `index.html` диалог `#recordDlg` получил `aria-labelledby=recordTitle`; связаны подписи с 26 полями (26 исправлений `label for`). Статическая сверка HTML: 25 обычных input/select/textarea — все с label. Видеофайлы/фото остаются штатными input[type=file] без изменения логики загрузки.
 - В `tests/browser-ui-smoke.mjs` добавлен read-only контроль программных имён полей без открытия диалога, так как при пустой базе новый журнал требует существующий улей.
