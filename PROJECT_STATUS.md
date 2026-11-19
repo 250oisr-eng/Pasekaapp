@@ -649,3 +649,14 @@
 - Следующий шаг: проверить сериализацию `.paseka` в PR #168, сигнатуру/структуру ZIP и соответствие Android-экспорту; затем определить безопасный способ read-only проверки на OnePlus без установки несовместимого приложения.
 - PR #168 и #174 остаются Draft; merge, публикация и production deployment не выполнялись. Эта запись документирует наблюдение устройства, а не подтверждает успешность/неуспешность восстановления.
 
+
+
+## 2026-11-19 — test3 APK собрана и проверена
+
+- Изолированный Android workflow #85 / run ID 44400447818 завершился success на точном SHA d1ea09a10fc075d9f88152a60547dd72b70b290c.
+- Regression tests, подготовка Capacitor-конфигурации, native MediaStore bridge, Gradle Debug APK build, проверка APK через aapt и upload — все шаги успешны.
+- APK содержит package ID ru.paseka.journal.archive.test3; production package ID ru.paseka.journal не обнаружен. Название: «Пасека — архив тест 3».
+- Artifact paseka-archive-isolated-test-apk, ID 14472179712, размер 3,451,685 bytes, ZIP SHA-256 aa870713a21c21b11dd12b1b452121ae062a691264b2bb676816e43518cfe2d6, срок хранения до 2026-12-02 21:22:07 UTC. https://github.com/250oisr-eng/Pasekaapp/actions/runs/44400447818
+- Test3 предназначена для отдельной установки рядом с test2. Не удалять test2, не очищать его данные и не переустанавливать поверх него.
+- Следующий физический этап на OnePlus 10 Pro 5G: установить test3 рядом с test2; в test2 создать свежий полный архив .paseka; в test3 выбрать этот архив и выполнить только «Проверить архив и подготовить». Перед commit сверить сводку preflight. Не нажимать «Заменить данные архивом» до отдельного согласования.
+- Физический commit и rollback по-прежнему не проверены. PR #168 и #174 остаются Draft; main, production DB и production deployment не затронуты.
