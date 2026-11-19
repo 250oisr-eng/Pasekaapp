@@ -649,7 +649,7 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes eleven clear navigation destinations and home AI entry points',()=>{
+test('hybrid workspace preserves eleven navigation destinations and a single central AI entry',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
@@ -657,7 +657,14 @@ test('hybrid workspace exposes eleven clear navigation destinations and home AI 
   assert.equal((nav.match(/data-tab=/g)||[]).length,11);
   for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
-  assert.ok(html.includes('id="homeAIQuestion"'));
+  const homeStart=html.indexOf('<section id="home"');
+  const homeEnd=html.indexOf('</section>',homeStart);
+  const home=html.slice(homeStart,homeEnd);
+  assert.ok(homeStart>=0&&homeEnd>homeStart);
+  assert.ok(!home.includes('id="homeAIQuestion"'),'duplicate AI prompt is removed from home');
+  assert.ok(!home.includes('class="card home-ai-card"'),'home no longer duplicates the AI screen');
+  assert.ok(home.includes('onclick="newRecord()"'),'journal quick action remains on home');
+  assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1,'AI has one primary navigation entry');
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));
 });
