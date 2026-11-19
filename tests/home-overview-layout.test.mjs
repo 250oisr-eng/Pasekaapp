@@ -24,3 +24,14 @@ test('home previews at most three hives and keeps full list available in hives s
   assert.match(home,/onclick="showTab\('hives'\)"[^>]*>Все ульи/);
   assert.match(html,/<section id="hives" class="panel">/);
 });
+
+test('secondary tasks remain reachable while urgent and today tasks are never collapsed',()=>{
+  assert.match(render,/const compactTaskList=\(items,limit\)=>/);
+  assert.match(render,/items\.slice\(0,limit\)\.map\(taskMarkup\)/);
+  assert.match(render,/remaining\.map\(taskMarkup\)/);
+  assert.match(render,/<details class="home-more-tasks">/);
+  assert.match(render,/overdue\.map\(t=>taskMarkup\(t\)\)/);
+  assert.match(render,/todayTasks\.map\(taskMarkup\)/);
+  assert.match(render,/compactTaskList\(suggested,3\)/);
+  assert.match(render,/compactTaskList\(future,3\)/);
+});
