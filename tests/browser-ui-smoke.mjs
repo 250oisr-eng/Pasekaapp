@@ -186,6 +186,22 @@ try {
         throw new Error('Journal read-only controls are missing');
       }
       await page.screenshot({path:resolve(reportDir,profile.id+'-empty-journal.png'),fullPage:true});
+      // The real Record dialog requires an existing hive to open. Validate its
+      // accessible names in the DOM without bypassing that domain safeguard.
+      row.recordFormLabels = await page.locator('#recordDlg').evaluate(dialog => {
+        const controls = [...dialog.querySelectorAll('input:not([type="hidden"]):not([type="file"]), select, textarea, input#rmedia')];
+        return {
+          dialogName: dialog.getAttribute('aria-labelledby') === 'recordTitle',
+          controls: controls.map(control => ({
+            id: control.id,
+            label: control.labels?.[0]?.textContent?.trim() || ''
+          }))
+        };
+      });
+      const unnamedRecordControls = row.recordFormLabels.controls.filter(item => !item.label);
+      if (!row.recordFormLabels.dialogName || unnamedRecordControls.length) {
+        throw new Error('Record dialog has unlabelled controls: '+unnamedRecordControls.map(x=>x.id).join(','));
+      }
       row.steps.push('journal-read-only-audit');
       await page.locator('nav button[data-tab="planning"]').click();
       await page.locator('section#planning.panel.active').waitFor({state:'visible',timeout:15000});
