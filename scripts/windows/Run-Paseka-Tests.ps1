@@ -133,11 +133,17 @@ try {
   if ($sdk -lt 35) {
     throw ('На телефоне Android SDK ' + $sdk + '. Изолированная APK требует Android 15 (SDK 35) или новее.')
   }
-  Write-Host ('ADB-устройство ' + $Serial + '. Установка отдельной тестовой APK: ' + $Package)
-  $install = (Invoke-ADB -Arguments @('-s', $Serial, 'install', '-r', $Apk) | Out-String).Trim()
-  if ($install -notmatch 'Success') { throw ('ADB не подтвердил установку: ' + $install) }
+  if ($env:PASEKA_SCHEDULED_NO_INSTALL -eq '1') {
+    # Local scheduler may run ONLY the already installed isolated APK.
+    # It never upgrades, reinstalls, uninstalls or clears applications.
+    Write-Host ('Проверка уже установленного отдельного test APK: ' + $Package)
+  } else {
+    Write-Host ('ADB-устройство ' + $Serial + '. Установка отдельной тестовой APK: ' + $Package)
+    $install = (Invoke-ADB -Arguments @('-s', $Serial, 'install', '-r', $Apk) | Out-String).Trim()
+    if ($install -notmatch 'Success') { throw ('ADB не подтвердил установку: ' + $install) }
+  }
   $pkgPath = (Invoke-ADB -Arguments @('-s', $Serial, 'shell', 'pm', 'path', $Package) | Out-String)
-  if ($pkgPath -notmatch 'package:') { throw 'После установки тестовый пакет не обнаружен.' }
+  if ($pkgPath -notmatch 'package:') { throw 'Тестовый пакет не установлен. Выполните первый ручной START-TESTS.cmd, не используйте scheduler для установки.' }
 
   # Test run IDs avoid clearing any app data, including previous test-only data.
   Write-Host 'Запуск проверок WebView, журнала Varroa и архива...'
