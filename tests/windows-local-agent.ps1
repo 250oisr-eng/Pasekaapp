@@ -85,3 +85,6 @@ try {
 } finally {
   Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# Explicitly reset the native child exit code after expected FAIL-path assertions.
+exit 0
