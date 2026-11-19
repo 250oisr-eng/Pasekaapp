@@ -98,9 +98,9 @@ test('device bridge preserves production archive Downloads bridge in isolated Ma
   assert.match(reportBridge, /ERR_TEST_FOLDER/);
   // Some Android MediaStore versions compute unknown .paseka MIME as generic
   // binary. Do not allow an arbitrary value; require test APK ownership.
-  assert.match(reportBridge, /application\\/octet-stream/);
-  assert.match(reportBridge, /MediaStore\\.MediaColumns\\.OWNER_PACKAGE_NAME/);
-  assert.match(reportBridge, /activity\\.getPackageName\\(\\)\\.equals\\(owner\\)/);
+  assert.match(reportBridge, /application\/octet-stream/);
+  assert.match(reportBridge, /MediaStore\.MediaColumns\.OWNER_PACKAGE_NAME/);
+  assert.match(reportBridge, /activity\.getPackageName\(\)\.equals\(owner\)/);
   assert.match(reportBridge, /ERR_TEST_OWNER/);
   assert.doesNotMatch(reportBridge, /ERR_NOT_TEST_ARCHIVE/);
   const nameGuard = reportBridge.indexOf('ERR_TEST_NAME');
