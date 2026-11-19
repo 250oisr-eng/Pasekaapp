@@ -302,6 +302,28 @@ function New-CommentJson([string]$CommentText, [string]$RunId) {
   }
   return [string]$payload
 }
+function Read-PendingComment([string]$Path) {
+  # Pending summaries are UTF-8 WITHOUT BOM. Windows PowerShell 5.1 otherwise
+  # decodes BOM-less files as the current Windows ANSI code page.
+  return Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+}
+function Test-PendingUtf8 {
+  $id = '1234567890abcdefabcd'
+  $testPath = Join-Path ([IO.Path]::GetTempPath()) ('paseka-agent-utf8-' + [guid]::NewGuid().ToString('N') + '.txt')
+  $sample = '<!-- paseka-test-agent:' + $id + ' -->' + [Environment]::NewLine +
+    '**Ручной тест Пасека / PASS**' + [Environment]::NewLine + 'Проверок после перезапуска: 9/9'
+  try {
+    [IO.File]::WriteAllText($testPath, $sample, (New-Object Text.UTF8Encoding($false)))
+    $decoded = Read-PendingComment -Path $testPath
+    if ($decoded -cne $sample) { Fail 'SelfTest: pending UTF8 without BOM was not decoded exactly.' }
+    $json = New-CommentJson -CommentText $decoded -RunId $id
+    $parsed = ConvertFrom-Json -InputObject $json
+    if ([string]$parsed.body -cne $sample) { Fail 'SelfTest: UTF8 was not preserved in outgoing GitHub JSON.' }
+  } finally {
+    Remove-Item -LiteralPath $testPath -Force -ErrorAction SilentlyContinue
+  }
+  Write-Host 'PASS: Windows PS5.1 UTF8 no-BOM pending summary and Cyrillic GitHub JSON round-trip.'
+}
 function Send-Pending {
   if (!(Test-Path -LiteralPath $PendingDir)) { Write-Host 'No pending results.'; return }
   $files = @(Get-ChildItem -LiteralPath $PendingDir -Filter '*.txt' -File | Sort-Object Name)
@@ -311,7 +333,7 @@ function Send-Pending {
   foreach ($file in $files) {
     $id = [IO.Path]::GetFileNameWithoutExtension($file.Name)
     if ($id -cnotmatch '^[a-f0-9]{20}$') { Fail 'Unsafe pending filename.' }
-    $body = Get-Content -LiteralPath $file.FullName -Raw
+    $body = Read-PendingComment -Path $file.FullName
     $marker = '<!-- paseka-test-agent:' + $id + ' -->'
     if (!$body.StartsWith($marker)) { Fail 'Pending report marker mismatch.' }
     if ($body.Length -gt 8000) { Fail 'Pending summary too large.' }
@@ -330,7 +352,7 @@ function Send-Pending {
   }
 }
 try {
-  if ($Action -eq 'SelfTest') { Test-CommentPagination; Test-OutgoingComment; exit 0 }
+  if ($Action -eq 'SelfTest') { Test-CommentPagination; Test-OutgoingComment; Test-PendingUtf8; exit 0 }
   if ($Action -eq 'Configure') { Configure-Token; exit 0 }
   if ($Action -eq 'RetryPending') { Send-Pending; exit 0 }
   if ([string]::IsNullOrWhiteSpace($ReportPath)) { Fail 'ReportPath is required.' }
