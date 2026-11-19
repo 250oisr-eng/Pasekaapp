@@ -1,3 +1,14 @@
+## 2026-11-19 — GitHub issue #198 upload 422: safe diagnostic update
+
+- User ran `RETRY-REPORT-UPLOAD.cmd` after fixing previous empty-comment StrictMode error. The local report and sanitized pending summary remain intact; GitHub rejected the POST with **HTTP 422 Unprocessable Entity**. No claim of successful upload; GitHub issue #198 was confirmed **open, unlocked, with zero comments**.
+- HTTP 422 is ambiguous (GitHub: validation error or anti-spam/abuse protection). Without the response validation body it is **not possible to attribute 422 to token scope, body formatting or rate-limiting**. Do not rotate/reveal token or re-run Android based on a guess.
+- Test-only uploader `scripts/windows/Publish-Paseka-Test-Report.ps1` now validates outgoing JSON `body` before POST and, when HTTP errors occur, prints **only** allowlisted HTTP status, category and validation field/code. Arbitrary API message, user data, token, raw report, file paths and entire response are not printed. `SelfTest` covers 422 field invalid, anti-spam category and private-message non-disclosure. Preserve fail-closed duplicate guard and local pending queue.
+- Code SHA `21b03bde6bded17f59d1e4fb39f6271974575131`; Windows PowerShell 5.1 validation and quality CI **success** on this SHA. Isolated Android APK workflow #44609144729 is checked separately; do not claim success until finished.
+- Safe next step: replace **only** `Publish-Paseka-Test-Report.ps1` within the original user's kit `ru.paseka.journal.device.r44604951938a2` with this fixed SHA and run `RETRY-REPORT-UPLOAD.cmd` once. Report the new sanitized `GitHub HTTP 422; category=...; errors=...` line. No phone/ADB re-test, no new token, no moving reports, no production or main changes.
+- Remains Draft PR #199, Task Scheduler disabled, no auto-run and no merge/deployment.
+
+---
+
 ## 2026-11-19 — устранение отказа публикации отчёта первого физического запуска агента
 
 - Получен консольный вывод пользователя: ручной test-only USB/ADB run package `ru.paseka.journal.device.r44604951938a2` завершился **PASS**, сохранён `reports/agent-7809b7d751b3473885371aa942f9456b/report.json`; шаг публикации в GitHub issue #198 завершился **ошибкой** `The property 'body' cannot be found on this object`. Это не подтверждение 9/9: консольный PASS подтверждает общий успех, но без повторного чтения JSON не назначать отдельные технические результаты. GitHub issue #198 на момент проверки не содержал комментариев, публикация не состоялась. Локальная pending-копия обезличенной сводки сохранена агентом.
