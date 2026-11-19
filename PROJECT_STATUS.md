@@ -1,3 +1,13 @@
+## Контрольная точка — отчёт (3), Android MIME (2026-11-19)
+
+- Пользователь прислал физический `report(3).json`: `status=FAIL`, `runId=f2ff998fdb344a128e40`, test-only package `ru.paseka.journal.device.r44525367280a1`, **7/8 PASS**, только `native_downloads_archive_hash_and_cleanup` возвращает **`ERR_TEST_MIME`**; отчёт не содержит фактическое значение MIME. Все архивные/Varroa/IndexedDB restart checks PASS.
+- Источник Android `MediaStore.MediaColumns.MIME_TYPE` — вычисляемое read-only поле, часто на основе расширения. Для неизвестного `.paseka` правдоподобен `application/octet-stream`, но **это не подтверждённое значение на OnePlus**. Официальная документация: https://developer.android.com/reference/android/provider/MediaStore.MediaColumns.
+- Минимальное изменение **только в test-only Java bridge**, генератор `scripts/prepare-device-selftest.mjs`: сохраняется точный MIME `application/vnd.paseka.archive` и дополнительно допускается **только** `application/octet-stream`; добавлено обязательное сравнение `OWNER_PACKAGE_NAME` с `activity.getPackageName()` (при null/недоступности — `ERR_TEST_OWNER`, удаление запрещено). Все проверки точного run-specific имени, каталога, Android URI, размера и SHA-256 обязательны до удаления. Production archive bridge и реальные записи не изменены.
+- В `tests/device-selftest-build.test.mjs` закреплены допустимое MIME-исключение, guard владельца и порядок проверок до удаления. Повторная реальная проверка ещё нужна; данные остаются неизменными. Кодовые изменения `fd1bc0b`, `4503787`, `a27da01` (полный точный HEAD сверить в GitHub).
+- **Следующий шаг:** подтверждение CI на новом HEAD и повторный физический OnePlus-прогон через отдельный ZIP. Не объявлять физический PASS и не включать scheduler до отчёта. Не удалять предыдущие тестовые файлы вручную, не трогать данные/production/main и не merge.
+
+---
+
 ## Контрольная точка — диагностический Android ZIP готов (2026-11-19)
 
 - По физическому OnePlus отчёту с 7/8 PASS и `ERR_NOT_TEST_ARCHIVE` подготовлена только fail-closed детализация отказа на `ERR_TEST_NAME`, `ERR_TEST_MIME` и `ERR_TEST_FOLDER`. Проверки имени, MIME, папки, SHA-256, длины и право удаления **не ослаблены**; production и база не изменены.
