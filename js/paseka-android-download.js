@@ -19,6 +19,12 @@
   }
 
   async function saveToAndroidDownloads(blob, filename, onProgress) {
+    // An empty or invalid payload must not create a public Downloads entry.
+    // Never report a zero-byte file as a successfully saved full archive.
+    if (!blob || !Number.isSafeInteger(blob.size) || blob.size < 1 ||
+        typeof blob.slice !== 'function') {
+      throw new Error('Полный архив пуст или повреждён. Сохранение отменено.');
+    }
     const bridge = global.PasekaArchiveDownload;
     if (!bridge || typeof bridge.beginFile !== 'function' ||
         typeof bridge.appendChunk !== 'function' || typeof bridge.finishFile !== 'function') {
