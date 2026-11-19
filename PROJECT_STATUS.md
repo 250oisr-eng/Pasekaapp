@@ -1,3 +1,14 @@
+## Контрольная точка — 2026-11-19: OpenCode + Qwen3 4B выполнили полный read-tool цикл на синтетическом JS
+
+- Пользователь добавил `qwen3:4b` в V1 `provider.ollama.models` изолированной `C:\Users\n12D8\OpenCode-Synthetic-Pilot`; `opencode.cmd models ollama` показал обе модели (`qwen2.5-coder:7b`, `qwen3:4b`).
+- В `opencode.cmd run --format json --model ollama/qwen3:4b` зарегистрировано **реальное событие `tool_use`**, `tool=read`, `status=completed`, вход `filePath=synthetic.js`, результат — точные 5 строк существующей синтетической функции. Вторая модельная итерация дала ответ `Bug: Splice removes last element when item not found; Fix: Return items if i===-1`. Вызов действительно исполнен, в отличие от предыдущей Qwen2.5-Coder.
+- После запуска пользователь проверил SHA256 `synthetic.js`: `FileUnchanged=True`. Это **только контроль одного файла**, а не доказательство системной изоляции или всех ограничений. Не давать доступ к настоящему репозиторию и данным.
+- Неудачное качество регрессионного теста: ответ модели `removeItem(items, nonExistentId) === items` проверяет только ссылку на возвращённый мутируемый массив; проходит даже если `splice(-1,1)` ошибочно удалил последний элемент. Нужен независимый expected snapshot элементов и проверка их неизменности. Поэтому инструментальная совместимость успешна, а самостоятельная качественная правка/тестирование **не допущены**.
+- Дальше: синтетическая модель неатомарного переноса `remove`→`add` с требованием критического failure-path теста и контролем фактических read tool events. Никаких дополнительных разрешений (`bash`, `edit`) и массового доступа к реальному репозиторию.
+- Исходный HEAD Draft PR #189 `1e54e357bd0c834f536424c18528a33c1e9c917a`, CI `Build Android APK:completed/success`; обновление документов изменит SHA. Основная ветка, production, реальные данные не изменены.
+
+---
+
 ## Контрольная точка — 2026-11-19: Qwen3 4B успешно сформировала настоящий native tool call через Ollama
 
 - Пользователь повторил локальный `POST /api/chat` с `model=qwen3:4b`, `tools=[calculator]`, `think=false`, `stream=false`, `temperature=0`, `num_predict=512`. Вывод: `ToolCalls=1` с исправленным подсчётом, `FinishReason=stop`, `GeneratedTokens=389`. Содержимое `$r.message.tool_calls` показало полноценный объект `function.name=calculator`, `arguments={a:42,b:17}` и `id=call_dm42ei2v`. Никакая функция физически не запускалась, изменения файлов не происходили.
