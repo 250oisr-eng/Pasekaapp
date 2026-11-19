@@ -1,3 +1,15 @@
+## 2026-11-19 — подготовка ручной Win11/OnePlus проверки PR #194
+
+- Решение пользователя: оставить Windows/ADB тестирование **только ручным**, не регистрировать Task Scheduler и не запускать scheduled `-Run`.
+- Создана независимая **test-only** ветка `test/pr194-win11-manual-archive-2026-11-19` от HEAD Draft PR #186 `f7395b32194d807982742661f32afd6164df121a` с готовым изолированным Windows 11/Android тестовым комплектом.
+- Три файла перенесены из **точного HEAD PR #194** `9a53a8fea63798ecc6825735840e07407fbc4fbf` без изменений содержимого: `js/paseka-android-download.js` (blob `4ef28f76`), `scripts/prepare-android-archive-download.mjs` (blob `d026b190`) и `tests/android-archive-download.test.mjs` (blob `d68a4afd`). Существующие сценарии тестового приложения сохраняются.
+- Обновлён только trigger `.github/workflows/android-device-selftest.yml` для новой тестовой ветки; `workflow_dispatch` сохранён. В ней собирается отдельный APK с уникальным `ru.paseka.journal.device.r<run-id>a<attempt>` и ZIP для ручного запуска `START-TESTS.cmd` на Windows. Никакой scheduler не активируется.
+- Обычный архивный PR #194 остаётся отдельным Draft, его собственные GitHub CI на HEAD `9a53a8fe` — 737/737 и Android сборка success; **они не проверяют физически этот новый комбинированный тестовый комплект**. Для нового SHA тестовой ветки необходимы отдельные GitHub Actions (Windows PS 5.1 mock + npm tests + Android build + artifact), затем **новый** физический report 8/8 PASS на OnePlus из того же ZIP. Старые reports не переносятся.
+- Тесты работают только с синтетическим изолированным пакетом и его данными. Native picker, offline transport и реальные архивы не считаются проверенными автоматически. Слияние PR, publication/deploy, изменения `main`, production, реальной базы и резервных копий не выполнялись.
+- Следующий шаг: сверить CI на **точном финальном SHA** новой ветки. Если есть ZIP — передать пользователю ссылку на artifact и однократную инструкцию ручного запуска USB; исследовать `report.json` и только затем фиксировать физический результат.
+
+---
+
 ## Контрольная точка — новый OnePlus 8/8 PASS и реальный Win11 DRY RUN (2026-11-19)
 
 - Пользователь представил `report(5).json` с результатом `status=PASS`, `runId=a75070c120bf40819172`, test-only package `ru.paseka.journal.device.r44528651797a1` из CI run `44528651797` (проверенный code SHA `6dd3004623b9d5c8dd77aa829d3b258164790c0f`). `phaseOne.pass=true` (6/6 checks), `final.pass=true` (8/8 checks), `error` пустой. Подтверждены штатный запуск/WebView, тестовые карточки, backup export/preflight/commit/rollback, native Downloads archive SHA/cleanup, Varroa guards, real Android restart IndexedDB, card renderer после restart.
