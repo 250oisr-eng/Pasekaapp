@@ -69,13 +69,23 @@ function Gh-Request([string]$Method, [string]$Url, $Headers, [string]$Body = '')
   $args = @{ Method = $Method; Uri = $Url; Headers = $Headers; TimeoutSec = 30 }
   if ($Method -eq 'Post') {
     $args.ContentType = 'application/json; charset=utf-8'
+    # The summary is already validated at the queue boundary. Do not use
+    # the generic Field helper here: PowerShell's pipeline output may unwrap
+    # the JSON string in PS5.1. Validate the object property explicitly.
     $parsed = $null
-    try { $parsed = $Body | ConvertFrom-Json } catch { Fail 'Invalid outgoing GitHub JSON.' }
-    $text = Field $parsed 'body'
-    if ($null -eq $parsed -or $text -isnot [string] -or
-        [string]::IsNullOrWhiteSpace($text) -or $text.Length -gt 8000 -or
-        !$text.StartsWith('<!-- paseka-test-agent:')) {
-      Fail 'Unsafe GitHub comment payload; upload blocked.'
+    try { $parsed = ConvertFrom-Json -InputObject $Body } catch { Fail 'Invalid outgoing GitHub JSON.' }
+    if ($null -eq $parsed -or $parsed -isnot [PSCustomObject]) {
+      Fail 'Unsafe GitHub comment payload: invalid JSON object.'
+    }
+    $prop = $parsed.PSObject.Properties['body']
+    if ($null -eq $prop -or $null -eq $prop.Value -or $prop.Value -isnot [string]) {
+      Fail 'Unsafe GitHub comment payload: missing string body.'
+    }
+    $commentText = [string]$prop.Value
+    if ([string]::IsNullOrWhiteSpace($commentText) -or
+        $commentText.Length -gt 8000 -or
+        !$commentText.StartsWith('<!-- paseka-test-agent:')) {
+      Fail 'Unsafe GitHub comment payload: invalid marker or length.'
     }
     $args.Body = [Text.Encoding]::UTF8.GetBytes($Body)
   }
@@ -248,6 +258,34 @@ function Marker-Exists([string]$Marker,$Headers) {
   }
   Fail 'GitHub comment pagination limit reached: cannot safely prevent duplicates.'
 }
+function Test-OutgoingComment {
+  $sample = '<!-- paseka-test-agent:1234567890abcdefabcd -->' + [Environment]::NewLine + '**Ручной тест Пасека / PASS**'
+  $payload = @{ body = $sample } | ConvertTo-Json -Compress
+  # Use the same non-network validation as production POST.
+  $parsed = ConvertFrom-Json -InputObject $payload
+  $prop = $parsed.PSObject.Properties['body']
+  if ($null -eq $prop -or $prop.Value -isnot [string] -or
+      !$prop.Value.StartsWith('<!-- paseka-test-agent:')) {
+    Fail 'SelfTest: serialized issue comment body rejected.'
+  }
+  $header = @{ Authorization = 'Bearer mock-token-not-for-network' }
+  $valid = $false
+  try {
+    [void](Gh-Request -Method 'Post' -Url 'https://127.0.0.1:1/testing-offline-only' -Headers $header -Body $payload)
+  } catch {
+    # Validation must pass and only then attempt an unreachable local URL.
+    $valid = $_.Exception.Message -notmatch 'Unsafe GitHub comment payload|Invalid outgoing GitHub JSON'
+  }
+  if (!$valid) { Fail 'SelfTest: outgoing normal comment rejected by local validator.' }
+  $invalid = $false
+  try {
+    [void](Gh-Request -Method 'Post' -Url 'https://127.0.0.1:1/testing-offline-only' -Headers $header -Body '{"body":"not-a-test-comment"}')
+  } catch {
+    $invalid = $_.Exception.Message -match 'invalid marker or length'
+  }
+  if (!$invalid) { Fail 'SelfTest: unrelated comment was not rejected.' }
+  Write-Host 'PASS: outgoing GitHub JSON payload validates locally and rejects unsafe marker.'
+}
 function Test-CommentPagination {
   $validation = GitHub-ErrorSummary -Status 422 -Json '{"message":"Validation Failed","errors":[{"resource":"IssueComment","field":"body","code":"invalid"}]}'
   if ($validation -notmatch 'category=validation; errors=body:invalid') { Fail 'SelfTest: validation error classification failed.' }
@@ -306,7 +344,7 @@ function Send-Pending {
   }
 }
 try {
-  if ($Action -eq 'SelfTest') { Test-CommentPagination; exit 0 }
+  if ($Action -eq 'SelfTest') { Test-CommentPagination; Test-OutgoingComment; exit 0 }
   if ($Action -eq 'Configure') { Configure-Token; exit 0 }
   if ($Action -eq 'RetryPending') { Send-Pending; exit 0 }
   if ([string]::IsNullOrWhiteSpace($ReportPath)) { Fail 'ReportPath is required.' }
