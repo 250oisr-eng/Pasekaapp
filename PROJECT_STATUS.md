@@ -1,3 +1,13 @@
+## Проверка CI: pinned entrance add с обязательным abort (2026-11-20)
+
+- Точный кодовый/test SHA 3bce3f1528e0866711c88e5e70fd4ec1b6a3dd8c: Android Build workflow #44699253786 **completed/success**. В build job успешны Run regression tests, Build debug APK и Upload APK. Изолированный Build isolated archive test APK #44699253789 **skipped**, не считать успешной отдельной проверкой.
+- Draft PR #235: https://github.com/250oisr-eng/Pasekaapp/pull/235. Все добавленные test-only транзакции **всегда abort**, ни один пользовательский оригинал/ledger/state/backup не записан или удалён; не подключено к UI.
+- Проверка в реальном Android test APK и на физическом телефоне НЕ выполнялась. В Lovable найден существующий проект Apiary Family Atlas; этот этап не изменял его код и настройки публикации.
+- Следующий инженерный приоритет: тестовая полная атомарная транзакция состояния и признанной истории с защищённым rollback snapshot, чтобы будущий commit использовал именно удержанные verified archive Blob. Пока нет полноценного согласования record_media, всех копий и удаления после распознавания, запуск live и cleanup запрещены.
+- Последующие docs-only SHA требуют отдельной проверки CI; code/test успех относится только к 3bce3f1528e0866711c88e5e70fd4ec1b6a3dd8c.
+
+---
+
 ## Контрольная точка — PASEKA02: репетиция IDB add с обязательным abort (2026-11-20)
 
 - Проверенный предшественник Draft #234: code/test SHA 36c990974f9f13dcb2af4d13163787c254d72c51, Android workflow #44698877760 completed/success, isolated archive APK #44698877638 skipped. После него только docs-only commits; основной стек #230–234 остаётся Draft.
