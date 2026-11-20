@@ -1,3 +1,27 @@
+## Итог автономной серии #253–#258, точные проверки (2026-11-20)
+
+| Draft | Code/test SHA, подтверждённый CI | Main Android workflow | Статус |
+|---|---|---|---|
+| #253 model artifact SHA | 9c87ff1bb188554e819f9f42609aff7451b7256d | #44711962772 | completed/success |
+| #254 detection precision/recall | 75204645625eccff236a2d46577e0c0bd82f25a6 | #44712204688 | completed/success |
+| #255 calibrated crossing | 3153f5defc073d077ce7fb1d1c7d7f5f2e4828b8 | #44712378396 | completed/success |
+| #256 temporal coverage | c326890df2be126b6acb468f2d19bdd6e7926bb4 | #44712876838 | completed/success |
+| #257 private camera stage | af39162ca8b7d61af245fd0c733fb351e84d1b75 | #44712840871 | completed/success |
+| #258 camera lifecycle errors | 7ec1eb3aa9962548e7471042e6063961e8766ec2 | #44713156358 | completed/success |
+
+- Все перечисленные main Android CI выполнили regression tests, Debug APK build и Upload APK. Все соответствующие isolated archive APK workflows **skipped**, не являются тестом. Некоторые последующие docs-only SHA не имели отдельного workflow: не переносить проверку на них автоматически.
+- Первый CI #256 (#44712554823) failure 1035/1036 test-only float assertion; исправлено в #256 и #257 без изменения runtime.
+- **Границы:** все шесть PR Draft, у них зависимые base branches; no merge, production, user data changes. Ни одна новая модель не активирована, in-app camera staging не подключена к UI/SW, физический Android тест не выполнялся, старые и новые видео не удалены. Вынесенный в GitHub `best.pt` honeybee model candidate имеет неустановленную лицензию весов; датасетная лицензия не достаточна. Реальная accuracy/tracking не подтверждены, поэтому нельзя подключать `completed`, source-bound ledger и cleanup.
+- Следующая безопасная задача: подтвердить веса/лицензию подходящего honeybee detector и Android ONNX inference на реальном видео; затем проверка provenance и всех копий, durable recognition, отдельное контролируемое удаление. Перед **следующим физическим Android тестом** напомнить пользователю заменить тестовый файл на компьютере.
+
+---
+## Этап — fail-closed окончание MediaRecorder при ошибке и потере onstop (2026-11-20)
+
+- Зависимая ветка `fix/video-private-camera-lifecycle-2026-11-20` поверх Draft #257. В неактивном модуле камеры исправлены зависания `completed`: при ошибке, invalid chunks, capture timeout или отсутствии `onstop` процесс теперь возвращает явную ошибку, закрывает camera tracks и очищает таймеры. Watchdog явного stop 5 секунд.
+- `tests/video-private-camera.test.mjs` дополнен отказом при не приходящем событии остановки, `onerror` и inactive recorder. Документ `docs/VIDEO-PRIVATE-CAMERA-LIFECYCLE.md`. Code/test SHA `7b40d89c1a4a32f312694e5ae12f94a5687597a8`, `2c1bf34a9f4aaad36a44f72e7f692dbd6196b443`; CI нового HEAD ещё не подтверждён.
+- UI не загружает модуль; камера на реальном Android не запускалась; нет удаления/модели/production.
+
+---
 ## Исправление тестового floating-point ожидания PR #257 (2026-11-20)
 
 - Первый CI #256 Android #44712554823 failure: 1035/1036 тестов прошли; единственный test-only дефект был в строгом сравнении `0.3-0.2>0.1`. Изменено ожидание на `Math.abs(gap-0.1)<1e-9`, без изменения production runtime, source identity и delete guard.

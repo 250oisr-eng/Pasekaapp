@@ -56,3 +56,48 @@ test('private capture is not wired to UI and contains no file/MediaStore/network
  assert.doesNotMatch(sw,/video-private-camera\.js/);
  assert.doesNotMatch(src,/\bfetch\s*\(|\bXMLHttpRequest\b|\bindexedDB\b|\.transaction\s*\(|\bMediaStore\b/);
 });
+
+test('recorder error settles immediately and releases the camera even without stop event',async()=>{
+ let stops=0,instance;
+ class Broken{
+  static isTypeSupported(){return true}
+  constructor(){this.state='inactive';this.mimeType='video/webm';instance=this}
+  start(){this.state='recording'}
+  stop(){this.state='inactive'} // deliberately no onstop callback
+ }
+ const mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop(){stops++}}]})};
+ const session=await start({mediaDevices,MediaRecorder:Broken});
+ assert.equal(session.ok,true);
+ instance.onerror?.(new Error('device disconnected'));
+ const result=await session.completed;
+ assert.equal(result.reason,'recorder_failed');
+ assert.equal(stops,1);
+ assert.equal(result.cleanupAuthorized,false);
+});
+test('a browser that silently omits stop event is bounded by watchdog',async()=>{
+ let stops=0;
+ class Silent{
+  static isTypeSupported(){return true}
+  constructor(){this.state='inactive'}
+  start(){this.state='recording'}
+  stop(){this.state='inactive'}
+ }
+ const mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop(){stops++}}]})};
+ const session=await start({mediaDevices,MediaRecorder:Silent,stopGraceMs:10});
+ const result=await session.stop();
+ assert.equal(result.reason,'recorder_stop_timeout');
+ assert.equal(stops,1);
+});
+test('inactive recorder without final event cannot leave stop() pending forever',async()=>{
+ let inst,stops=0;
+ class Inactive{
+  static isTypeSupported(){return true}
+  constructor(){inst=this;this.state='inactive'}
+  start(){this.state='recording'}
+  stop(){this.state='inactive'}
+ }
+ const session=await start({MediaRecorder:Inactive,mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop(){stops++}}]})}});
+ inst.state='inactive';const result=await session.stop();
+ assert.equal(result.reason,'recorder_inactive_without_stop');
+ assert.equal(stops,1);
+});

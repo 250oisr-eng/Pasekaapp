@@ -12,11 +12,12 @@ async function startPrivateCapture(options={}){
  const Recorder=options.MediaRecorder||root.MediaRecorder;
  if(!md||typeof md.getUserMedia!=='function'||typeof Recorder!=='function')
   return failure('camera_unavailable');
- let stream,recorder,timeout;const chunks=[];let bytes=0,reason=null,settled=false,resolveDone;
+ let stream,recorder,timeout,stopWatchdog;const chunks=[];let bytes=0,reason=null,settled=false,resolveDone;
  const completed=new Promise(resolve=>{resolveDone=resolve});
  const finish=result=>{
   if(settled)return;settled=true;
   if(timeout)clearTimeout(timeout);
+  if(stopWatchdog)clearTimeout(stopWatchdog);
   release(stream);
   chunks.length=0;
   resolveDone(result);
@@ -30,13 +31,13 @@ async function startPrivateCapture(options={}){
   recorder=new Recorder(stream,{mimeType:supported});
   recorder.ondataavailable=event=>{
    if(settled||!event?.data||!Number.isSafeInteger(event.data.size)||event.data.size<0){
-    reason='recorded_chunk_invalid';try{recorder.stop()}catch{};return;
+    reason='recorded_chunk_invalid';try{recorder.stop()}catch{};finish(failure(reason));return;
    }
    bytes+=event.data.size;
-   if(bytes>MAX_BYTES){reason='recording_size_limit';try{recorder.stop()}catch{};return}
+   if(bytes>MAX_BYTES){reason='recording_size_limit';try{recorder.stop()}catch{};finish(failure(reason));return}
    if(event.data.size>0)chunks.push(event.data);
   };
-  recorder.onerror=()=>{reason='recorder_failed';try{recorder.stop()}catch{finish(failure(reason))}};
+  recorder.onerror=()=>{reason='recorder_failed';try{recorder.stop()}catch{};finish(failure(reason))};
   recorder.onstop=()=>{
    if(reason)return finish(failure(reason));
    if(bytes<=0)return finish(failure('empty_recording'));
@@ -47,9 +48,16 @@ async function startPrivateCapture(options={}){
     recognitionSucceeded:false,cleanupAuthorized:false});
   };
   recorder.start(1000);
-  timeout=setTimeout(()=>{if(!settled){reason='capture_timeout';try{recorder.stop()}catch{finish(failure(reason))}}},90000);
+  timeout=setTimeout(()=>{if(!settled){reason='capture_timeout';try{recorder.stop()}catch{};finish(failure(reason))}},90000);
   const stop=()=>{
-   if(!settled&&recorder.state!=='inactive')try{recorder.stop()}catch{finish(failure('stop_failed'))}
+   if(!settled){
+    if(recorder.state==='inactive')finish(failure('recorder_inactive_without_stop'));
+    else{
+     try{recorder.stop()}catch{finish(failure('stop_failed'))}
+     if(!settled){const grace=Number.isInteger(options.stopGraceMs)&&options.stopGraceMs>=10&&options.stopGraceMs<=5000?options.stopGraceMs:5000;
+      stopWatchdog=setTimeout(()=>finish(failure('recorder_stop_timeout')),grace)}
+    }
+   }
    return completed;
   };
   return {ok:true,stage:'recording_in_memory',stop,completed,captureSource:'in_app_media_recorder',
