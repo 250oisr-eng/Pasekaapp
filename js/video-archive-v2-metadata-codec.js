@@ -1,7 +1,7 @@
 (function(root) {
 'use strict';
 // Standalone v2 prototype: state + verified recognition ledger, with opt-in
-// pending entrance-media Blob transport. Embedded journal video is unsupported.
+// pending entrance-media and verified journal-media Blob transport (opt-in adapter).
 // Never use this module as deletion authorization or live restore implementation.
 const MAGIC = 'PASEKA02';
 const FORMAT = 'paseka-archive';
@@ -64,11 +64,14 @@ function checkManifest(manifest, actualSize, manifestLength) {
  const entries=manifest.entries.map((item,i)=>{
   if (i >= 2) {
    const n=i-1;
+   const isEntrance=item.kind==='entrance_video'&&item.source==='entrance_media';
+   const isRecord=item.kind==='record_video'&&item.source==='record_media';
+   const expectedPath=(isEntrance?'pending-entrance/':'pending-record/')+String(n).padStart(6,'0')+'.blob';
    if (!allowed(item,['kind','path','size','sha256','mimeType','source','videoId','sourceSha256','sourceBytes']) ||
-       item.kind!=='entrance_video' || item.path!=='pending-entrance/'+String(n).padStart(6,'0')+'.blob' ||
-       item.source!=='entrance_media' || typeof item.videoId!=='string' || item.videoId.length<1 ||
+       !(isEntrance||isRecord) || item.path!==expectedPath ||
+       typeof item.videoId!=='string' || item.videoId.length<1 ||
        item.videoId.length>200 || /\s/.test(item.videoId) ||
-       item.sourceBytes!==item.size || !Number.isSafeInteger(item.size)||item.size<1||item.size>MAX_VIDEO ||
+       item.sourceBytes!==item.size || !Number.isSafeInteger(item.size)||item.size<1||item.size>(isRecord?16*1024*1024:MAX_VIDEO) ||
        typeof item.mimeType!=='string'||!/^video\/[a-z0-9.+-]+$/i.test(item.mimeType) ||
        !/^[a-f0-9]{64}$/.test(item.sourceSha256||'') || item.sha256!==item.sourceSha256)
     fail('V2_VIDEO_ENTRY_INVALID');
@@ -90,33 +93,43 @@ function decodeJson(bytes, code) {
  try {return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}
  catch (_) {fail(code);}
 }
-async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVideos=[]},cryptoProvider,guard,shaModule) {
+async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVideos=[]},cryptoProvider,guard,shaModule,recordAdapter) {
  if (!Array.isArray(pendingVideos)||pendingVideos.length>MAX_PENDING) fail('V2_VIDEO_COUNT_LIMIT');
+ let archiveState=state;
+ if (recordAdapter) {
+  if (typeof recordAdapter.preparePendingRecordMedia!=='function') fail('V2_RECORD_ADAPTER_UNAVAILABLE');
+  const prepared=await recordAdapter.preparePendingRecordMedia(state,ledger,guard,shaModule);
+  archiveState=prepared.state;
+  pendingVideos=[...pendingVideos,...prepared.pendingVideos];
+ }
+ if (pendingVideos.length>MAX_PENDING) fail('V2_VIDEO_COUNT_LIMIT');
  const metadata=pendingVideos.map((video)=>{
   if (!obj(video)||!obj(video.blob)||typeof video.blob.slice!=='function' ||
       !Number.isSafeInteger(video.blob.size)||video.blob.size<1||video.blob.size>MAX_VIDEO ||
-      video.source!=='entrance_media'||video.sourceBytes!==video.blob.size||
+      !['entrance_media','record_media'].includes(video.source)||video.sourceBytes!==video.blob.size||
+      (video.source==='record_media'&&video.blob.size>16*1024*1024)||
       typeof video.mimeType!=='string'||!/^video\/[a-z0-9.+-]+$/i.test(video.mimeType))
    fail('V2_VIDEO_UNSUPPORTED');
   return {source:video.source,videoId:video.videoId,
    sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes};
  });
- stateAndLedger(state,ledger,guard,metadata);
+ stateAndLedger(archiveState,ledger,guard,metadata);
  if (pendingVideos.length && typeof shaModule?.hashBlobHex!=='function') fail('V2_STREAMING_HASH_REQUIRED');
  if (typeof backupId!=='string'||!backupId.trim()||backupId.length>128||
      typeof createdAt!=='string'||!Number.isFinite(Date.parse(createdAt))) fail('V2_METADATA_INVALID');
  let stateBytes, ledgerBytes;
- try {stateBytes=textBytes({app:'Paseka',state});ledgerBytes=textBytes(ledger);}
+ try {stateBytes=textBytes({app:'Paseka',state:archiveState});ledgerBytes=textBytes(ledger);}
  catch (_) {fail('V2_JSON_SERIALIZATION_FAILED');}
  if (stateBytes.length<2||stateBytes.length>MAX_STATE||ledgerBytes.length<2||ledgerBytes.length>MAX_LEDGER) fail('V2_PAYLOAD_SIZE_LIMIT');
- const manifest={format:FORMAT,version:VERSION,backupId,createdAt,schemaVersion:state.meta.schemaVersion,entries:[
+ const manifest={format:FORMAT,version:VERSION,backupId,createdAt,schemaVersion:archiveState.meta.schemaVersion,entries:[
   {kind:'state',path:'state.json',size:stateBytes.length,sha256:await hash(stateBytes,cryptoProvider),mimeType:'application/json'},
   {kind:'recognition_ledger',path:'recognition-ledger.json',size:ledgerBytes.length,sha256:await hash(ledgerBytes,cryptoProvider),mimeType:'application/json'}
  ]};
  for (const [index,video] of pendingVideos.entries()) {
   const actualHash=await shaModule.hashBlobHex(video.blob);
   if (actualHash!==video.sourceSha256) fail('V2_VIDEO_SOURCE_HASH_MISMATCH');
-  manifest.entries.push({kind:'entrance_video',path:'pending-entrance/'+String(index+1).padStart(6,'0')+'.blob',
+  manifest.entries.push({kind:video.source==='record_media'?'record_video':'entrance_video',
+   path:(video.source==='record_media'?'pending-record/':'pending-entrance/')+String(index+1).padStart(6,'0')+'.blob',
    size:video.sourceBytes,sha256:actualHash,mimeType:video.mimeType,source:'entrance_media',
    videoId:video.videoId,sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes});
  }
@@ -129,7 +142,7 @@ async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVide
  new DataView(header.buffer).setUint32(8,manifestBytes.length,true);
  return new Blob([header,manifestBytes,stateBytes,ledgerBytes,...pendingVideos.map(v=>v.blob)],{type:'application/vnd.paseka.archive'});
 }
-async function inspectMetadataArchive(blob,cryptoProvider,guard,shaModule) {
+async function inspectMetadataArchive(blob,cryptoProvider,guard,shaModule,recordAdapter) {
  if (!blob||typeof blob.slice!=='function'||!Number.isSafeInteger(blob.size)||blob.size<HEADER||blob.size>MAX_ARCHIVE) fail('V2_ARCHIVE_SIZE_LIMIT');
  const head=new Uint8Array(await blob.slice(0,HEADER).arrayBuffer());
  if (new TextDecoder().decode(head.subarray(0,8))!==MAGIC) fail('V2_MAGIC_MISMATCH');
@@ -161,10 +174,20 @@ async function inspectMetadataArchive(blob,cryptoProvider,guard,shaModule) {
   videos.push({source:entry.source,videoId:entry.videoId,sourceSha256:entry.sourceSha256,
    sourceBytes:entry.sourceBytes,mimeType:entry.mimeType,blob:videoBlob});
  }
+ let decodedState=wrapper.state;
+ const recordVideos=videos.filter(item=>item.source==='record_media');
+ if (recordVideos.length) {
+  if (typeof recordAdapter?.rehydratePendingRecordMedia!=='function') fail('V2_RECORD_ADAPTER_UNAVAILABLE');
+  const restored=await recordAdapter.rehydratePendingRecordMedia(wrapper.state,ledger,recordVideos,guard,shaModule);
+  decodedState=restored.state;
+ } else if (Array.isArray(wrapper.state.records) &&
+   wrapper.state.records.some(rec=>Array.isArray(rec?.media)&&rec.media.some(item=>item?.archivePendingVideoV2))) {
+  fail('V2_RECORD_ENTRY_MISSING');
+ }
  // Return decoded metadata for read-only inspection. This object is not a
  // staging or commit ticket: no transaction, current-state or writer checks.
  return {format:FORMAT,version:VERSION,backupId:manifest.backupId,
-  state:wrapper.state,ledger,pendingVideos:videos,archiveSafe:false,restoreAuthorized:false};
+  state:decodedState,ledger,pendingVideos:videos,archiveSafe:false,restoreAuthorized:false};
 }
 root.PasekaVideoArchiveV2MetadataCodec=Object.freeze({buildMetadataArchive,inspectMetadataArchive});
 })(typeof window!=='undefined'?window:globalThis);
