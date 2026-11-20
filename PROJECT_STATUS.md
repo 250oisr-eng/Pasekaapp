@@ -1,3 +1,9 @@
+## CI Draft #248 — точный проверенный SHA (2026-11-20)
+
+- Code/test/docs SHA `1c00bd864dd4c474970af5b3b7c176e22e8e74de`: [Android #44710169905](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710169905) **completed/success** (регрессионные тесты, Debug APK build, Upload APK); [isolated #44710169955](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710169955) **skipped**. Android physical test не проводился.
+- Блок не активирует реальное AI распознавание, не завершает видеозаписи, не удаляет исходники. Поздние docs-only commits после проверенного SHA не считать автоматически проверенными.
+
+---
 ## CI #248 — исправлен ложный запрет in-memory Set.add (2026-11-20)
 
 - Первый HEAD `0803b91559fa36484c8e4563d7b582c3e60a0ee4`: Android #44709983851 **failure**, 1004/1005 regression tests passed, APK skipped. Тест ограничения сетевых/DB операций ошибочно счёл `Set.add()` вызовом IndexedDB `.add`.
