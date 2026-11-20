@@ -1,3 +1,62 @@
+## Контрольная точка — PASEKA02: оба recovery snapshot проходят проверку (2026-11-20)
+
+- Продолжен существующий Draft PR #230. Исправлен только изолированный metadata-only inspectMetadataRecovery: прежде чем возвращать committed/reverted, проверяет корректную форму records и отсутствие непроверенных видео в обоих сохранённых snapshot — beforeState и afterState, включая неактивный.
+- Проверка reverted требует валидный revertedRevisionId, отличный от обеих исторических ревизий, и точное совпадение с текущим состоянием. При расхождении — manual_review_required, без записей.
+- Код SHA e445ce1e9bb896adbb0e1dbc0d6e3dbe430762c6; тест SHA f718ad280366fa043f7ab6295b646d575e13d1b9. Негативные тесты охватывают скрытые оригиналы в неактивном снимке, повреждённые records и повторно использованную или неверную rollback revision.
+- Предыдущий итоговый HEAD 40a13a57d56f0d6079b0d9e0ff49a03ee6c5428b: Android workflow #44694864424 completed/success, isolated archive workflow #44694864506 skipped. Этот результат не доказывает новый SHA.
+- Следующее: подтверждение CI и аудит pending-media staging, без live restore и удаления. Ветка Draft, нет merge или production.
+
+---
+
+## Контрольная точка — обнаружение скрытых оригиналов при recovery (2026-11-20)
+
+- В Draft PR #230 изолированный readonly inspector теперь проверяет форму records и запрещает скрытые исходные видео в текущем state (data:video, data:application/octet-stream, blob:), прежде чем присвоить not_imported или committed. Такие данные требуют manual_review_required; автоматическое удаление и восстановление не запускаются.
+- Код commit 9dfdf0efa4c59e8b2895755473d09137e5dfdf04, регрессионные тесты commit ab3a7e1b48be6137ee15845ca566a1db9262a2ec. Проверки CI на новые SHA пока не подтверждены. Предыдущий code/test SHA 9aacbe124fffcd3012f3334d5544c6df14ca0f4d: Android workflow #44694728452 cancelled, isolated APK #44694728364 skipped; оба не считаются успехом.
+- Следующий приоритет: подтверждение актуального CI и аудит передачи pending оригиналов в PASEKA02 с гарантией сохранности до распознавания. Live-интеграция, cleanup, merge и production исключены.
+
+---
+
+## Контрольная точка — metadata-only rollback и baseline recovery (2026-11-20)
+
+- В Draft PR #230 исправлен rollbackMetadataOnly: история должна принадлежать ожидаемому backup ID; previousRevisionId и importedRevisionId совпадают с версиями снимков beforeState/afterState, различаются и содержат корректный archiveSha256. Любая ошибка прерывает общую readwrite транзакцию до записи; backup/history и пользовательский state сохраняются.
+- inspectMetadataRecovery возвращает manual_review_required вместо not_imported, если в локальном state без архивной истории отсутствует валидная schemaVersion=15 или revisionId. Режим диагностики остаётся readonly.
+- Код: commit 40d06794c5048c626ad505ead4febd90f7083061; регрессионные тесты: commit 9aacbe124fffcd3012f3334d5544c6df14ca0f4d.
+- На предыдущем docs HEAD 3d093175f458d484f7bc47eb16f99bc33cc96a13 Android workflow #44693025279 completed/success, в job успешны Run regression tests и Build debug APK; isolated APK workflow #44693025295 skipped. Эти результаты НЕ относятся к новым code/test SHA.
+- Следующий шаг: проверить CI для итогового SHA; аудит staged-переноса видео без подключения live UI и без cleanup. Merge, публикация, удаление оригиналов запрещены.
+
+---
+
+## Контрольная точка — усилена проверка целостности recovery v2 (2026-11-20)
+
+- В том же Draft PR #230 диагностическая `inspectMetadataRecovery` дополнительно сверяет backup ID, SHA-256, schemaVersion и ревизии `beforeState`/`afterState` с `archive_history`; при расхождении возвращает `manual_review_required` и не исправляет данные автоматически.
+- Добавлены отрицательные тесты на повреждение полей истории и snapshot; `readonly` режим диагностики сохранён. Код SHA `47e68d28da2867c8c2a66a881822dd24d6747dbe`, последний тест SHA `b71be63cdbb8a6c95c31981926dfd39c8bc14367`.
+- CI итогового SHA ещё требует отдельной проверки. Нет восстановления видео, включения live UI, удаления оригиналов, merge или production deployment.
+- Следующая задача: проверить результаты точного SHA и продолжить независимую проверку архивирования pending originals, не включать cleanup до доказательства сохранения каждой управляемой копии.
+
+---
+
+## Контрольная точка — recovery v2 только для чтения (2026-11-20)
+
+- Продолжена существующая Draft-цепочка архивирования, PR #230, ветка `feat/video-archive-v2-metadata-atomic-restore-2026-11-20`. Новых параллельных PR не создано.
+- Исправлено: `inspectMetadataRecovery` ранее открывал `readwrite` на пяти защищённых IndexedDB stores, несмотря на статус диагностической операции. Теперь применяется строго `readonly`; атомарные `commitMetadataOnly` / `rollbackMetadataOnly` остаются `readwrite`.
+- Добавлен регрессионный тест на отказ диагностической операции от права записи и сохранение всех пяти stores в согласованном чтении.
+- SHA кода `7c8c07f68e3b3ef7335ae84fdebb0ff3635814ee`; SHA теста `53a41383f9c00314e380fb057c93401a1b40c269`. На SHA теста Android и isolated archive workflows зарегистрированы, но на момент проверки не завершены; успешные проверки НЕ заявляются.
+- Блокеры: полноценный импорт/откат видео PASEKA02, сохранение всех оригиналов до распознавания, удаление только после подтверждения на всех управляемых носителях, физический Android тест; работающий UI не подключён. `archiveSafe=false`, `cleanupAuthorized=false`.
+- Следующая задача: дождаться и проверить CI именно на новом итоговом SHA и продолжить аудит защиты staged видео без live-включения и удаления.
+
+---
+
+## Большая контрольная точка — изолированный атомарный импорт/откат PASEKA02 без видеовложений (2026-11-20)
+
+- Проверено, что последний PR #226 (SHA `ebe63a1abf3935355d8779af0b159415793f8d1e`) прошёл Android Build, кодовый SHA `30dbf9254e9f9dc8ef739a2e0bd1d859dae2d2b7` прошёл Fast Quality. Отдельная UI/Windows цепочка #227–229 завершила CI, включая сборку Windows+Android ZIP на SHA `f113870dca9c98615f0ddc307941cef05aff982b`; в `main` ничего не сливалось.
+- Новая зависимая архивная ветка `feat/video-archive-v2-metadata-atomic-restore-2026-11-20` создана поверх #226. Реализован `js/video-archive-v2-metadata-atomic.js` — **изолированный и не подключённый к приложению** атомарный импорт/откат только для полностью безопасного подмножества PASEKA02: schemaVersion=15, без pending video и иных исходных видео, без существующих staging/history/full_backup, с неизменным полным recognition ledger.
+- Реальный файл перед транзакцией проходит PASEKA02 decoder, SHA-256 и синхронную валидацию; под общей `readwrite` блокировкой пяти stores (`main`, `entrance_media`, `archive_staging`, `archive_history`, `full_backup`) повторно проверяются revisions, ledger и отсутствие защищённых копий. В одной транзакции создаются previous state/ledger, after state, history и новый state. Никаких `delete`, `clear` или возврата оригиналов.
+- Атомарный rollback сравнивает **полный** текущий state с imported snapshot (не только revision), проверяет ledger, защищённые записи и сохраняет snapshot и history после отката. Изменение журнала/маток/семей, новое видео/распознавание или чужой backup после импорта блокируют откат без потери данных. `inspectMetadataRecovery` классифицирует `not_imported`/`committed`/`reverted`/`manual_review_required` и **не выполняет recovery автоматически**.
+- Добавлена матрица регрессий в `tests/video-archive-v2-metadata-atomic.test.mjs`; документация `docs/VIDEO-ARCHIVE-V2-METADATA-ATOMIC.md`. На кодовом SHA `b4e5d90102840c67a7c3017fa76993a2c27bb66a` Fast quality #44691504851 **success**; Android на финальном docs SHA проверить отдельно.
+- Это НЕ live restore PASEKA02 и не разрешение на cleanup/миграции/production. Следующая большая задача — staged обработка незавершённых видео, интеграция видеоцепочки, подготовка полной автоматической безопасной модели backup+rollback; после этого отдельный Android тест.
+
+---
+
 ## Крупный этап — сквозной безопасный dry-run восстановления PASEKA02 и защита full_backup (2026-11-20)
 
 - Ветка `feat/video-archive-v2-end-to-end-dry-run-2026-11-20` поверх Draft PR #225. Создан `js/video-archive-v2-restore-dry-run.js`: принимает **реальный Blob архива** `PASEKA02`, использует проверенный codec для манифеста, state, ledger, видео летка и журнала, затем read-only DB preflight и финальную проверку ledger под **отменяемой** общей readwrite-блокировкой. Возвращает только отчёт с SHA-256 архива, количеством видео и историей, без права на запись.

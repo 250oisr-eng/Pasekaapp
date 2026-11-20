@@ -23,6 +23,10 @@
 
 Текущий изолированный сквозной `PASEKA02` dry-run проверяет исходный файл до чтения базы, а полный SHA-256 архива до заключительной readwrite-проверки; последняя транзакция намеренно abort и не предоставляет разрешения на восстановление. Полная последовательность и ограничения: `docs/VIDEO-ARCHIVE-V2-RESTORE-READINESS.md`.
 
+## Дополнение: изолированная metadata-only транзакционная модель (2026-11-20)
+
+`js/video-archive-v2-metadata-atomic.js` обеспечивает узкий проверяемый тестовый path: PASEKA02 без видеовложений, только schema 15, неизменный ledger, пять stores в одной readwrite-транзакции, сохранение snapshot для отката и чтение состояния после рестарта. Реальные pending-видео, старые archive snapshots, новые ledger и все другие небезопасные условия блокируются. Это не live-restore, не migration и не допуск к автоматическому удалению. Подробности: `docs/VIDEO-ARCHIVE-V2-METADATA-ATOMIC.md`.
+
 ## Export / stage / commit / rollback
 
 **Export:** читать state, ledger, entrance_media в согласованном readonly IndexedDB snapshot; журналовые вложения брать из того же state. Проверять bytes, content hash и identities до готовности файла. Если распознавание/источник изменился после snapshot, не выдавать архив, сохраняющий уже обработанный оригинал.
