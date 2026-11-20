@@ -21,7 +21,7 @@ test('existing two storage paths remain distinguishable and no unimplemented del
  assert.match(html,/pendingRecordMedia\.push\(item\)/);
  assert.match(html,/Автоудаление ещё не подключено|автоудаление ещё не подключено/);
  assert.match(html,/Сервер анализа ещё не подключён/);
- assert.match(html,/автоматическое удаление ещё не работает/);
+ assert.match(html,/автоматическое удаление пока не работает/);
  assert.match(html,/Видео добавлено для временного хранения до распознавания/);
 });
 
