@@ -1,3 +1,13 @@
+## Контрольная точка — metadata-only rollback и baseline recovery (2026-11-20)
+
+- В Draft PR #230 исправлен rollbackMetadataOnly: история должна принадлежать ожидаемому backup ID; previousRevisionId и importedRevisionId совпадают с версиями снимков beforeState/afterState, различаются и содержат корректный archiveSha256. Любая ошибка прерывает общую readwrite транзакцию до записи; backup/history и пользовательский state сохраняются.
+- inspectMetadataRecovery возвращает manual_review_required вместо not_imported, если в локальном state без архивной истории отсутствует валидная schemaVersion=15 или revisionId. Режим диагностики остаётся readonly.
+- Код: commit 40d06794c5048c626ad505ead4febd90f7083061; регрессионные тесты: commit 9aacbe124fffcd3012f3334d5544c6df14ca0f4d.
+- На предыдущем docs HEAD 3d093175f458d484f7bc47eb16f99bc33cc96a13 Android workflow #44693025279 completed/success, в job успешны Run regression tests и Build debug APK; isolated APK workflow #44693025295 skipped. Эти результаты НЕ относятся к новым code/test SHA.
+- Следующий шаг: проверить CI для итогового SHA; аудит staged-переноса видео без подключения live UI и без cleanup. Merge, публикация, удаление оригиналов запрещены.
+
+---
+
 ## Контрольная точка — усилена проверка целостности recovery v2 (2026-11-20)
 
 - В том же Draft PR #230 диагностическая `inspectMetadataRecovery` дополнительно сверяет backup ID, SHA-256, schemaVersion и ревизии `beforeState`/`afterState` с `archive_history`; при расхождении возвращает `manual_review_required` и не исправляет данные автоматически.
