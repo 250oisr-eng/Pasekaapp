@@ -249,3 +249,23 @@ test('rollback never deletes archive history or backup even if extra protected c
  assert.ok(await read(db,'full_backup','older'));
  db.close();
 });
+
+test('state validator must not mutate incoming state or a rollback snapshot',async()=>{
+ const db=await setup(),file=await archive();
+ const dirty=options({validateState:v=>{v.hives.push({id:'mutated'});return true;}});
+ await fail(commit(db,file,dirty),'V2_ATOMIC_STATE_INVALID');
+ assert.deepEqual(await read(db,'main','state'),state());
+ assert.equal(await read(db,'full_backup','v2:test-backup'),undefined);
+ db.close();
+});
+test('hidden video source URI in journal note is rejected even when not at start',async()=>{
+ const db=await setup(),file=await archive();
+ const tx=db.transaction('main','readwrite');
+ const current=state();
+ current.records=[{id:'r',notes:'unknown binary data:video/mp4;base64,AA=='}];
+ tx.objectStore('main').put(current,'state');await done(tx);
+ await fail(commit(db,file),'V2_ATOMIC_UNVERIFIED_ORIGINAL');
+ assert.equal((await read(db,'main','state')).records.length,1);
+ assert.equal(await read(db,'full_backup','v2:test-backup'),undefined);
+ db.close();
+});
