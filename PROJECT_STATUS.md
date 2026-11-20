@@ -1,3 +1,12 @@
+## Контрольная точка — проверка v2 restore под отменяемой readwrite-блокировкой (2026-11-20)
+
+- Создана зависимая ветка `feat/video-archive-v2-commit-lock-guard-2026-11-20` поверх Draft PR #224. Новый изолированный `js/video-archive-v2-commit-lock-guard.js` открывает **одну readwrite-транзакцию** над `main`, `entrance_media`, `archive_staging`, `archive_history`, читает живой ledger/state, ключи входных видео, количество staging/history и **синхронно внутри transaction callback** выполняет restore ledger gate.
+- Даже если проверка успешна, транзакция намеренно **abort**; никакие `put`/`delete` не выполняются, write-авторизация не выдаётся. При обнаружении любой staging/history записи или несовпадении текущего ledger — fail closed. Это подтверждение механизма проверки на момент блокировки, **не реализация commit**.
+- `tests/video-archive-v2-commit-lock-guard.test.mjs`: проверка единой readwrite-транзакции и её обязательного abort, гонок writer до/после неё, непрерывности истории, сохранности staging/history, отсутствующего ledger и store. CI точного SHA проверить.
+- Следующий этап: безопасный staging+атомарный commit/rollback с включением текущего ledger и всех protected stores; миграционная совместимость и физический Android тест. Пока `archiveSafe=false`, `restoreAuthorized=false`, автоделение видео запрещено; `main` и пользовательские данные не менялись.
+
+---
+
 ## Контрольная точка — единая read-only проверка protected stores перед v2 restore (2026-11-20)
 
 - Поверх PR #223 создана отдельная Draft-ветка `feat/video-archive-v2-restore-db-preflight-2026-11-20`. Изолированный `js/video-archive-v2-restore-db-preflight.js` читает в одной readonly IndexedDB-транзакции `main/state`, `main/video_recognition_ledger_v1`, ключи `entrance_media`, количество `archive_staging` и `archive_history`; затем вызывает чистый v2 ledger restore gate PR #223. Blob не выгружаются целиком.
