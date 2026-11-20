@@ -1,3 +1,11 @@
+## Этап — fail-closed legacy deletion helper и локальные временные кадры (2026-11-20)
+
+- Поверх Draft #245 создана ветка `fix/video-preprocessing-failclosed-2026-11-20`. В `js/entrance-analysis.js` неавторитетный helper `canDeleteVideoOriginal` теперь всегда отказывает; отдельный `deleteEntranceVideoBlob` по-прежнему блокирован. Исправлена регрессия в `tests/entrance-analysis.test.mjs`.
+- Новый `js/entrance-frame-preparation.js` выполняет SHA/size/source ID preflight и локально декодирует 2–4 JPEG кадров из Blob в памяти, очищает object URL/canvas, не делает сеть/IDB/UI, никогда не выдаёт `recognitionSucceeded` или `cleanupAuthorized`. Это **staging-only**, не видеоаналитика и не интеграция распознавания.
+- `tests/entrance-frame-preparation.test.mjs`: offline mock decoder, SHA mismatch, invalid source, abort, JPEG, cleanup, no network, no production load. Документ `docs/VIDEO-FRAME-PREPARATION-STAGING.md`. Последние code/test SHA: `b24df08e8180f9010ee6cf3e4e9f470c723ccfe4`, `0ae28bec72c664685b305b29126cb675aa12b01a`, `2bb0514966c8d7c7cee2265654ada7bfb0bf41f4`, `0eaccafc096bb8c12ec47c789e6c8aff8f51d257`.
+- CI на новом HEAD ещё не подтверждён. Следующий шаг: открыть зависимый Draft PR и проверить полный Android workflow и regressions; затем лишь проектировать/проверять реальное video→inference→ledger. `main`, production, реальные видео не менялись.
+
+---
 ## CI PR #245 — UI не выдаёт статус очереди за распознавание (2026-11-20)
 
 - Проверенный code/test SHA `4a937900ec140c10624db5a04f92fe51c28cefed`; [GitHub Android workflow #44707836309](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707836309) **completed/success**: regression, Debug APK build, Upload APK успешно. [Isolated archive APK #44707836696](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707836696) **skipped**.
