@@ -12,6 +12,11 @@ def audit_entries(entries):
     photos=[e["name"] for e in entries if e["name"].lower().endswith((".jpg",".jpeg"))]
     xmls=[e["name"] for e in entries if e["name"].lower().endswith(".xml")]
     xmls.sort(key=str.casefold)
+    extension_counts={}
+    for entry in entries:
+        name=entry["name"]
+        ext=("."+name.rsplit(".",1)[-1].lower()) if "." in name else "(none)"
+        extension_counts[ext]=extension_counts.get(ext,0)+1
     names={e["name"].casefold() for e in entries}
     missing=[]
     ambiguous=[]
@@ -33,9 +38,14 @@ def audit_entries(entries):
         p=xmls[i]
         stem=p[:-4]
         hits=[k for k in ((stem+".jpg").casefold(),(stem+".jpeg").casefold()) if k in names]
-        selected.append({"index":i,"xml":p,"matchingJpegEntries":len(hits)})
+        selected.append({"index":i,"xml":p,"matchingJpegEntries":len(hits),
+                         "otherImageExtensionsPresent":[suffix for suffix in (".png",".bmp",".tif",".tiff",".webp")
+                                                         if (stem+suffix).casefold() in names]})
     return {
         "ok":True,
+        "extensionCounts":extension_counts,
+        "unmatchedXmlWithPngCount":sum((p[:-4]+".png").casefold() in names for p in missing),
+        "unmatchedXmlWithOtherImageCount":sum(any((p[:-4]+suffix).casefold() in names for suffix in (".png",".bmp",".tiff",".tif",".webp")) for p in missing),
         "stage":"public_zip_filename_catalog_only",
         "entries":len(entries),
         "vocCount":len(xmls),
