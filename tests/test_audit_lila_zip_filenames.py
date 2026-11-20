@@ -49,6 +49,16 @@ class FilenameAuditTests(unittest.TestCase):
         self.assertEqual(r["xmlWithAmbiguousJpegCount"],1)
         self.assertEqual(r["ambiguousXmlExamples"],["hive/A1.xml"])
 
+    def test_png_partner_is_reported_without_false_jpeg_pair(self):
+        files=[item(f"hive/A{i}.xml") for i in range(5)]
+        files.extend(item(f"hive/A{i}.jpg") for i in range(4))
+        files.append(item("hive/A4.png"))
+        r=audit_entries(files)
+        self.assertEqual(r["extensionCounts"][".png"],1)
+        self.assertEqual(r["unmatchedXmlWithPngCount"],1)
+        self.assertEqual(r["xmlWithoutExactJpegCount"],1)
+        self.assertEqual(r["fiveSelectedXmlEntries"][-1]["otherImageExtensionsPresent"],[".png"])
+
     def test_returned_examples_are_bounded(self):
         files=[item(f"hive/A{i:03d}.xml") for i in range(30)]
         r=audit_entries(files)
