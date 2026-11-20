@@ -1,3 +1,11 @@
+## Контрольная точка — обнаружение скрытых оригиналов при recovery (2026-11-20)
+
+- В Draft PR #230 изолированный readonly inspector теперь проверяет форму records и запрещает скрытые исходные видео в текущем state (data:video, data:application/octet-stream, blob:), прежде чем присвоить not_imported или committed. Такие данные требуют manual_review_required; автоматическое удаление и восстановление не запускаются.
+- Код commit 9dfdf0efa4c59e8b2895755473d09137e5dfdf04, регрессионные тесты commit ab3a7e1b48be6137ee15845ca566a1db9262a2ec. Проверки CI на новые SHA пока не подтверждены. Предыдущий code/test SHA 9aacbe124fffcd3012f3334d5544c6df14ca0f4d: Android workflow #44694728452 cancelled, isolated APK #44694728364 skipped; оба не считаются успехом.
+- Следующий приоритет: подтверждение актуального CI и аудит передачи pending оригиналов в PASEKA02 с гарантией сохранности до распознавания. Live-интеграция, cleanup, merge и production исключены.
+
+---
+
 ## Контрольная точка — metadata-only rollback и baseline recovery (2026-11-20)
 
 - В Draft PR #230 исправлен rollbackMetadataOnly: история должна принадлежать ожидаемому backup ID; previousRevisionId и importedRevisionId совпадают с версиями снимков beforeState/afterState, различаются и содержат корректный archiveSha256. Любая ошибка прерывает общую readwrite транзакцию до записи; backup/history и пользовательский state сохраняются.
