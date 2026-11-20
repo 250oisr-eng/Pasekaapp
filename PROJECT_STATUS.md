@@ -1,3 +1,12 @@
+## 2026-11-20 — составной read-only provenance gate без обхода COCO/manifest
+
+- Родительский Draft #280, итоговый SHA `53f8b83fa3c9b6c53e0b8b564e3c69eb3b4414e0`: Android #44742087683 **completed/success** (regressions, Debug APK build/upload); isolated #44742087281 skipped.
+- Отдельная ветка `test/video-joined-provenance-gate-2026-11-20` поверх #280: `tools/inspect-local-source-bundle.mjs` обязательно объединяет сначала COCO/manifest SHA/group consistency, затем реальное read-only хеширование staging-видео. Добавлены `tests/inspect-local-source-bundle.test.mjs` (8 синтетических случаев), `docs/VIDEO-JOINED-LOCAL-PROVENANCE-GATE.md`.
+- Все `unassigned` возвращают заблокированный результат без чтения файлов. Для корректного structure+file hash результаты не подтверждают ни реальные frame→recording происхождение, ни лицензию, ни independence, ни обучение/Android inference/cleanup: все authorized/verified флаги false. Main/production/IndexedDB/private media не изменены.
+- Требуется exact HEAD CI нового PR; далее — аудит прав и независимое документальное подтверждение связи реальных кадров с исходным видео, прежде чем train/validate/test.
+
+---
+
 ## 2026-11-20 — PR #280: реальные source SHA проверены тестами, исправлена фикстура
 
 - Начальный HEAD `8e1ed24b17600f76aeb6d839b7870f1e6773dc45`: Android workflow #44741716932 **failure** — 1132/1133 tests, единственное падение: тест ожидал mismatch size, но `original` и `modified` имели одинаковую длину и корректно давали `source_hash_mismatch`. APK в этом запуске не собирался.
