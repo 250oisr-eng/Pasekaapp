@@ -37,3 +37,4 @@ try {
   if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force }
 }
 Write-Host 'PASS: PowerShell 5.1 saved-report launcher rejects zero/multiple reports, no raw upload, no file deletion.'
+exit 0
