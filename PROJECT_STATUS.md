@@ -1,3 +1,11 @@
+## Проверенный CI — staging локальных кадров и fail-closed delete helper (2026-11-20)
+
+- Draft #246 проверен на code/test/docs SHA `9ca75dfd17bbddc53ff4f5aff0031f917c666b6f`: [Android #44708736344](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44708736344) **completed/success** (regression tests, Build Debug APK, Upload APK); [isolated APK #44708736326](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44708736326) **completed/skipped**. Physical Android не проверен.
+- Препроцессор не подключён в UI, не выполняет распознавание и не даёт право на удаление; баг legacy `canDeleteVideoOriginal` исправлен безусловным fail-closed.
+- Следующий этап — безопасный контракт взаимодействия с реальным распознавателем. Текущий текстовый Worker не годится как доказательство распознавания кадров. Без подтверждённого бесплатного provider, тестов Android и source-bound ledger не включать `completed` или удаление.
+- Новые документационные коммиты после code SHA проверяются отдельно; никакого merge/production/живых оригиналов.
+
+---
 ## Этап — fail-closed legacy deletion helper и локальные временные кадры (2026-11-20)
 
 - Поверх Draft #245 создана ветка `fix/video-preprocessing-failclosed-2026-11-20`. В `js/entrance-analysis.js` неавторитетный helper `canDeleteVideoOriginal` теперь всегда отказывает; отдельный `deleteEntranceVideoBlob` по-прежнему блокирован. Исправлена регрессия в `tests/entrance-analysis.test.mjs`.
