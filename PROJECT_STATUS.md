@@ -1,3 +1,12 @@
+## Итог: Draft #275 PNG-aware COCO, проверенный кодовый SHA (2026-11-20)
+
+- Draft #275 `fix/video-voc-png-unassigned-coco-2026-11-20`: код/тесты/документация SHA `d56b0fe48eb531da3a0d0615dd903d1ed002092c`, Android workflow [#44738077642](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44738077642) **completed/success** (Node + Python regression suite, debug APK build/upload); isolated #44738077741 **skipped**. Отдельного теста на реальном физическом Android не было.
+- Исправлена обработка `tools/convert_bee_voc_unassigned.py` для PNG+JPEG изображений с XML, PNG signature/IHDR/CRC, dimensions и SHA исходных image bytes; добавлены негативные tests (12 тестов конвертера). На действительном LILA каталоге `4993 XML = 3752 JPEG +1241 PNG`, но **полный архив и все изображения не скачаны**, реальные метки не проверены независимо.
+- Всё остаётся `unassigned`, source-video/hive group IDs и законный независимый train/test не подтверждены. Сохранена блокировка `trainingAuthorized`, распознавания/cleanup. Нет реальной обученной модели, ONNX и Android hardware inference.
+- После этой записи новый docs-only HEAD требует самостоятельной CI сверки; не переносить success прежнего SHA автоматически. Следующая главная задача: найти подтверждённый provenance для исходных видео и прав/атрибуций, затем воспроизводимое легальное обучение детектора и реальную оценку. Все PR Draft, main/production/user video originals без изменений.
+
+---
+
 ## Контрольная точка — исправлен VOC→COCO для 1241 реальных PNG LILA (2026-11-20)
 
 - Parent Draft #274 code SHA `211264fa58ff808a94150def4150bea2f42d845e`: public 5-pair workflow #44737529123 **completed/success** (8/8 Python tests, реальная 5-парная sample включая PNG 200x200), Android #44737529117 **completed/success**, isolated #44737529155 **skipped**. После документальных коммитов HEAD #274 изменился, новые CI сверять самостоятельно. Real ZIP catalog: 4993 XML, 3752 JPG и 1241 PNG, все без-JPEG XML соответствуют PNG.
