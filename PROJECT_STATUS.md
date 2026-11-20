@@ -1,3 +1,10 @@
+## Этап — закрытая in-app camera recording вместо неконтролируемого picker (2026-11-20)
+
+- На базе Draft #256 создана `feat/video-private-camera-staging-2026-11-20`: неактивный `js/video-private-camera.js`, тесты и документ `docs/VIDEO-PRIVATE-CAMERA-STAGING.md`. По явному вызову API запрашивает getUserMedia без аудио, использует MediaRecorder, возвращает Blob **только в памяти**. UI не подключён, поэтому реальные права камеры и съёмка не запрашиваются.
+- В тестах: release stream tracks, empty/permission denial/unsupported MIME, отсутствие Gallery/MediaStore/сети/IDB. Даже successful Blob имеет `externalCopiesVerified:false`, `recognitionSucceeded:false`, `cleanupAuthorized:false`. Никаких источников оригиналов и пользовательских записей не меняет.
+- Следующее: Draft PR и exact CI; затем физический тест camera Android и связывание с source SHA/ledger через отдельный согласованный UI и без автоудаления.
+
+---
 ## Этап — временная полнота tracking evidence (2026-11-20)
 
 - На базе #255 добавлен test-only `js/video-temporal-coverage.js`: без явно заданной policy `maxGapSec/minObservations`, достаточной частоты наблюдений и стабильных track IDs нельзя формально оценить даже временную полноту. Разрозненные кадры в 15/30/45 секунде из минутного видео не подтверждают одной и той же пчелы.
