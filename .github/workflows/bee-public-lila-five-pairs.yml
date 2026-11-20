@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'tools/sample_lila_five_pairs.py'
+      - 'tools/audit_lila_zip_filenames.py'
+      - 'tests/test_audit_lila_zip_filenames.py'
       - 'tools/sample_lila_voc_range.py'
       - 'tests/test_sample_lila_five_pairs.py'
       - 'tests/public-lila-five-pairs.test.mjs'
@@ -17,5 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate bounded five-pair remote sampling with offline ZIP fixtures
         run: python3 -m unittest discover -s tests -p 'test_sample_lila_five_pairs.py' -v
+      - name: Audit real public central catalog JPEG/XML pairing
+        run: python3 tools/audit_lila_zip_filenames.py
       - name: Validate five real public LILA VOC and JPEG pairs with 24 MiB budget
         run: python3 tools/sample_lila_five_pairs.py
