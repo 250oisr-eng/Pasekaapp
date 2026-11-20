@@ -1,3 +1,13 @@
+## Контрольная точка — PASEKA01 legacy-видеокопии в инвентаризации (2026-11-20)
+
+- Исходный Draft PR #238 HEAD c9d667080d768b3dba8acfb0e56018cde8bf8cc8: Android workflow #44702366437 **completed/success** (регрессионные тесты, debug APK, upload), отдельный isolated archive APK #44702366449 **skipped**. Ветка #238 остаётся Draft, main/production не менялись.
+- Проверен реальный код v1 js/paseka-archive-restore.js: `archive_staging` содержит `kind='video'` с `metadata.id`, `blob`, `size`, `chunkSha256`; `kind='rollback_video'` хранит `record.blob`; `kind='rollback_state'` содержит `state`; `kind='state'` хранит непрозрачный JSON Blob, а `full_backup.previous` хранит `{at,state}`.
+- В зависимой ветке fix/video-archive-v2-legacy-copy-coverage-2026-11-20 расширен только изолированный readonly `js/video-archive-v2-copy-inventory.js`: теперь известные legacy `video` и `rollback_video` учитываются как оригиналы `entrance_media`, архивные `rollback_state` и `full_backup.previous.state` проверяются на journal video Data URL, непрозрачный state Blob явно блокирует полноту инвентаризации. Chunk SHA старого архива **не** считается полным SHA источника.
+- Добавлены регрессии `tests/video-archive-v2-copy-inventory.test.mjs`: legacy copies, recognized tombstone с rollback copy, неизвестные payload, historical state и v2 before/after snapshots. Новый код SHA d408da8e3367c9f8f7518ed00a10d1d523c0dabf, тест SHA cba0c88ded5545f5f0581d94f48bc7b739a87f0e. CI новых SHA ещё не подтверждён.
+- Во всех вариантах cleanupAuthorized=false, auditComplete=false, externalCopiesVerified=false. Новое изменение не затрагивает live UI, Android bridge, IndexedDB migrations и пользовательские данные. Следующий шаг: GitHub CI, затем исследование фактических capture/recognition paths и Android MediaStore без активации удаления.
+
+---
+
 ## Проверен CI — инвентаризация копий PASEKA02 (2026-11-20)
 
 - Draft PR #238 на точном SHA 4aece72275b4075dbbae557df502c57c14ab1d1f: Android Build #44702184802 **completed/success**, шаги Run regression tests, Build debug APK, Upload APK успешны. Изолированный archive APK run #44702184782 **skipped**, не отдельный успешно пройденный тест.
