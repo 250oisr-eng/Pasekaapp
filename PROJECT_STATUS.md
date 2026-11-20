@@ -1,3 +1,11 @@
+## Этап — сквозной staging-only local video observation pipeline (2026-11-20)
+
+- На базе Draft #248 создана ветка `feat/video-observation-pipeline-2026-11-20`: `js/video-observation-pipeline.js` соединяет только два неактивных модуля `PasekaEntranceFramePreparation` и `PasekaVideoModelEvidence` через **внешне внедряемый, ещё не существующий** on-device adapter. Нет UI, службы модели, сети, записи в базу или удаления.
+- Перед вызовом adapter и **после** асинхронного inference заново проверяются source video ID/SHA/bytes; mismatch/abort/failed inference возвращают отказ. Валидация модели возвращает исключительно `untrusted_observation_draft`, `recognitionSucceeded:false`, `cleanupAuthorized:false`; data URLs не попадают в result.
+- `tests/video-observation-pipeline.test.mjs` проверяет mock positive staging, fake chat, cloud adapter, source mutation during async, abort/error и отсутствие network/DB/browser activation. Контракт `docs/VIDEO-OBSERVATION-PIPELINE-STAGING.md`. Последние code/test SHA: `a8f0e792a6f51f9f18fa63fdde6c56099139ecdc`, `4fe42f366a54b145dc364f9ee226d864143c843d`. CI этого этапа отдельно проверить.
+- Никакой поставленной/подтверждённой модели пчёл пока нет, физический Android не проверен. Сохраняется запрет удаления оригиналов.
+
+---
 ## CI #248 — исправлен ложный запрет in-memory Set.add (2026-11-20)
 
 - Первый HEAD `0803b91559fa36484c8e4563d7b582c3e60a0ee4`: Android #44709983851 **failure**, 1004/1005 regression tests passed, APK skipped. Тест ограничения сетевых/DB операций ошибочно счёл `Set.add()` вызовом IndexedDB `.add`.
