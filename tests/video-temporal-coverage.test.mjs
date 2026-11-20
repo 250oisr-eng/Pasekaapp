@@ -9,7 +9,7 @@ const policy={maxGapSec:0.2,minObservations:3};
 test('continuous synthetic observations are an unverified candidate, never proof of bee identity',()=>{
  const r=audit(observations,policy);
  assert.equal(r.ok,true);assert.equal(r.stage,'unverified_temporal_coverage');
- assert.equal(r.maxObservedGapSec>0.1,true);
+ assert.ok(Math.abs(r.maxObservedGapSec-0.1)<1e-9);
  assert.equal(r.identityVerified,false);assert.equal(r.cleanupAuthorized,false);
  assert.equal(r.recognitionSucceeded,false);
 });
