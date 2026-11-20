@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Five deterministic public VOC/JPEG pair audits over ZIP HTTP Range, without full download."""
+"""Five deterministic public VOC/JPEG-or-PNG pair audits via bounded ZIP HTTP Range."""
 import hashlib
 import json
 import sys
@@ -7,11 +7,11 @@ from pathlib import PurePosixPath
 from xml.etree import ElementTree as ET
 from sample_lila_voc_range import (
     BoundedRanges, SampleRejected, inspect_directory, sample_member,
-    parse_voc, jpeg_header_dimensions, MAX_XML,
+    parse_voc, image_header_dimensions, MAX_XML,
 )
 
 PAIR_COUNT=5
-MAX_JPEG_SAMPLE=3*1024*1024
+MAX_IMAGE_SAMPLE=3*1024*1024
 NETWORK_BUDGET=24*1024*1024
 
 
@@ -27,27 +27,28 @@ def evaluate_sample(reader,xml_entry,lookup):
     data=parse_voc(original)
     expected=PurePosixPath(xml_entry["name"])
     stem=str(expected)[:-4]
-    partners=[lookup[k] for k in ((stem+".jpg").casefold(),(stem+".jpeg").casefold()) if k in lookup]
+    partners=[lookup[k] for k in ((stem+extension).casefold() for extension in (".jpg",".jpeg",".png")) if k in lookup]
     if len(partners)!=1:
-        raise SampleRejected("jpeg_pair_missing_or_ambiguous")
+        raise SampleRejected("image_pair_missing_or_ambiguous")
     partner=partners[0]
-    # A filename field, if present, must agree with the actual paired JPEG.
+    # A filename field, if present, must agree with the actual paired image.
     try:
         declared=ET.fromstring(original).findtext("filename")
     except ET.ParseError as exc:
         raise SampleRejected("voc_xml_invalid") from exc
     if declared and PurePosixPath(declared.replace("\\","/")).name.casefold()!=PurePosixPath(partner["name"]).name.casefold():
         raise SampleRejected("voc_filename_mismatch")
-    jpeg=sample_member(reader,partner,MAX_JPEG_SAMPLE)
-    width,height=jpeg_header_dimensions(jpeg)
+    image=sample_member(reader,partner,MAX_IMAGE_SAMPLE)
+    width,height=image_header_dimensions(image,partner["name"])
     if (width,height)!=(data["width"],data["height"]):
-        raise SampleRejected("jpeg_voc_dimensions_mismatch")
+        raise SampleRejected("image_voc_dimensions_mismatch")
     return {
         "vocName":xml_entry["name"],
-        "jpegName":partner["name"],
+        "imageName":partner["name"],
+        "imageFormat":partner["name"].rsplit(".",1)[-1].lower(),
         "vocSha256":hashlib.sha256(original).hexdigest(),
-        "jpegSha256":hashlib.sha256(jpeg).hexdigest(),
-        "jpegBytes":len(jpeg),
+        "imageSha256":hashlib.sha256(image).hexdigest(),
+        "imageBytes":len(image),
         "width":width,"height":height,
         "objectsByClass":data["objectsByClass"],
     }
@@ -77,7 +78,7 @@ def inspect_representative_pairs(opener=None):
         "rangeBytesFetched":reader.used,
         "sourceVideoIdentityVerified":False,
         "independentTrainTestSplitAvailable":False,
-        "jpegFullyDecoded":False,
+        "imageFullyDecoded":False,
         "entireArchiveDownloaded":False,
         "entireArchiveShaVerified":False,
         "licenseVerified":False,
