@@ -1,0 +1,28 @@
+name: Stage bounded original Mendeley v6 CSV (public, no artifacts)
+on:
+  pull_request:
+    paths:
+      - 'tools/stage_mendeley_v6_public_csv.py'
+      - 'tests/test_stage_mendeley_v6_public_csv.py'
+      - 'tests/fixtures/mendeley-v6-one-pinned-public-pair.csv'
+      - '.github/workflows/stage-mendeley-v6-public-csv.yml'
+permissions:
+  contents: read
+jobs:
+  csv-verified-sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install fixed free image decoder only in isolated CI
+        run: python -m pip install --disable-pip-version-check --no-deps Pillow==12.0.0
+      - name: Run 13 offline negative/security tests and two-group synthetic COCO conversion
+        run: python -m unittest discover -s tests -p 'test_stage_mendeley_v6_public_csv.py' -v
+      - name: Real Mendeley v6 SHA-pinned CSV input to temporary unassigned COCO (no image artifact)
+        run: |
+          python tools/stage_mendeley_v6_public_csv.py tests/fixtures/mendeley-v6-one-pinned-public-pair.csv --output-coco "${RUNNER_TEMP}/verified-unassigned-coco.json"
+          python -c "import json,os,pathlib; p=pathlib.Path(os.environ['RUNNER_TEMP'])/'verified-unassigned-coco.json'; d=json.loads(p.read_text()); assert len(d['images'])==1 and len(d['annotations'])==7 and d['info']['split']=='unassigned' and d['info']['trainingAuthorized']==False; print('real_local_unassigned_coco_verified_no_split_or_train')"
+          rm -- "${RUNNER_TEMP}/verified-unassigned-coco.json"
