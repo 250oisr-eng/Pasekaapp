@@ -120,7 +120,7 @@ test('fully reverted historical import can still clean up its own unneeded stagi
  const db=await openTestDb('paseka-cleanup-history-reverted-safe');
  const sessionId='session-after-rollback';
  await seedSession(db,sessionId,'reverted');
- await put(db,'archive_history',{backupId:'history-reverted',status:'reverted',
+ await put(db,'archive_history',{backupId:'backup-'+sessionId,status:'reverted',
   importSessionId:sessionId,rollbackSessionId:null,rollbackAvailable:false});
  assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),true);
  assert.equal((await readRows(db,sessionId)).length,0);
@@ -169,5 +169,28 @@ test('cleanup fails closed for staging state stored under a video key',async()=>
  await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
   {code:'STAGING_CLEANUP_KIND_INVALID'});
  assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
+
+test('reverted archive with conflicting backup identity cannot be discarded',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-backup-conflict');
+ const sessionId='session-reverted-collided';
+ await seedSession(db,sessionId,'reverted');
+ await put(db,'archive_history',{backupId:'different-backup',status:'reverted',
+  importSessionId:sessionId,rollbackSessionId:null,rollbackAvailable:false});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_HISTORY_REFERENCED'});
+ assert.equal((await readRows(db,sessionId)).length,2);
+ db.close();
+});
+test('corrupt staging sessionId cannot be used to discard records from another session',async()=>{
+ const db=await openTestDb('paseka-cleanup-header-identity-mismatch');
+ const sessionId='session-header-inconsistent';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:sessionId,sessionId:'different-session',
+  kind:'session',backupId:'backup-'+sessionId,status:'failed'});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_SESSION_INVALID'});
+ assert.ok((await readRows(db,sessionId)).some(row=>row.id===sessionId+':state'));
  db.close();
 });
