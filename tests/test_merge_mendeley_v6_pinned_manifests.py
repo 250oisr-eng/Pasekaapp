@@ -97,6 +97,12 @@ class MergeMendeleyInventoryTests(unittest.TestCase):
             with self.assertRaisesRegex(InventoryRejected,"sha256_pins_required"):
                 build_metadata_inventory([row])
 
+    def test_bad_pin_format_rejected_even_from_direct_python_call(self):
+        r = rows(1)
+        r[0]["image_sha256"] = "Z" * 64
+        with self.assertRaisesRegex(InventoryRejected,"sha256_pins_malformed"):
+            build_metadata_inventory(r)
+
     def test_duplicate_identical_filename_across_chunks_rejected(self):
         r=rows(1)[0]
         other={**r,"image_url":url(99),"label_url":url(100),
