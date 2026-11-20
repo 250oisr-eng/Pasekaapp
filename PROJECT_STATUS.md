@@ -1,3 +1,10 @@
+## Проверенный CI — pinned PASEKA02 source (2026-11-20)
+
+- PR #234 код/тесты SHA 36c990974f9f13dcb2af4d13163787c254d72c51: Android workflow #44698877760 **completed/success** (regression tests, debug APK, upload); isolated archive APK workflow #44698877638 **skipped**. Это не физическое тестирование телефона.
+- Подтверждён изолированный алгоритм получения неизменяемых SHA-проверенных архивных Blob без выдачи caller write/delete capability. Same-size staging substitution по-прежнему доказанный риск и явно возвращается stagedBytesLocked=false.
+- Следующее ограниченное доказательство: тестовый запуск настоящих IndexedDB add-запросов из тех же удержанных Blob под финальным readwrite lock, с обязательным abort независимо от успеха; ни один байт не должен попасть в durable live state.
+
+---
 ## Контрольная точка — неизменяемые источники PASEKA02 вместо mutable staged Blob (2026-11-20)
 
 - Актуальная проверенная исходная цепочка: Draft #230 → #231 → #232 → #233. PR #233 HEAD 52d02d7ab84d741882ebf6d3059fb9f605c51ee5: Android workflow #44697729527 completed/success, isolated archive APK #44697729499 skipped. Нет merge/production/Android физического теста.
