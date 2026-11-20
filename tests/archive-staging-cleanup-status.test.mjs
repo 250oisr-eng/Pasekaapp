@@ -225,3 +225,13 @@ test('invalid cleanup session identifiers are rejected before database modificat
  assert.equal((await readRows(db,'session-protected')).length,2);
  db.close();
 });
+
+test('retrying cleanup with no staged rows remains an idempotent no-op despite old history',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-no-rows');
+ const sessionId='already-discarded-session';
+ await put(db,'archive_history',{backupId:'previous-import',status:'committed',
+  importSessionId:sessionId,rollbackAvailable:true});
+ assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),false);
+ assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),false);
+ db.close();
+});
