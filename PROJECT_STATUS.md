@@ -1,3 +1,22 @@
+## Контрольная точка — LILA: все 4993 XML имеют JPEG или PNG, пять реальных пар проверены (2026-11-20)
+
+- Research run #44737529123 на code/test SHA `211264fa58ff808a94150def4150bea2f42d845e` **completed/success**, 8/8 Python тестов, 5 реальных JPG/PNG+VOC пар, Range только 3579721 bytes. GitHub ZIP catalog run #44737260472 подтвердил 9986 entries: **4993 XML, 3752 JPG, 1241 PNG**. Ранее 1241 «missing JPEG» оказались одноимёнными PNG. Недопустимо автоматически считать этот набор только JPEG.
+- Реальные пять пар: JPEG 2560×1920 bee 6; JPEG 80×168 без bbox; JPEG 2560×1440 bee 4; PNG 200×200 без bbox; JPEG 180×300 pollen 2. Поддержка PNG added via signature/IHDR/CRC; JPEG SOF validation. Это **не** full-image decode и не подтверждение независимости съёмок, не случайная статистически репрезентативная выборка.
+- Модуль `tools/sample_lila_five_pairs.py`, `tools/audit_lila_zip_filenames.py`, Python+Node tests, bounded 24MiB research CI, документ `docs/VIDEO-LILA-FIVE-PAIR-SAMPLING.md`. Initial research run #44736918356 failure выявил filetype mismatch; следующий #44737443932 failure выявил устаревший ключ теста, исправленный без ослабления runtime; #44737529123 success.
+- Следующая функциональная задача: **PNG-aware локальный Pascal VOC→unassigned COCO** с отрицательными тестами PNG signature/CRC, JPEG и PNG парой, unknown classes, no train/test/cleanup; отдельная Draft после этого PR. Нельзя делать naive split по именам или использовать crop как full entrance frame без ground truth.
+- Android CI на точном кодовом SHA и итоговом документальном HEAD сверить отдельно; не переносить успех research на Android. Никакого ML training/ONNX/hardware inference, original video deletion или main/production изменений.
+
+---
+
+## Контрольная точка — выборочная проверка пяти настоящих LILA ZIP JPEG/VOC пар (2026-11-20)
+
+- Parent Draft #273 SHA `79d652d5c15f659a64e236330d8e12c08d2697b5`: Android workflow #44734275672 **completed/success**, isolated #44734275645 **skipped**. Родительский `tools/convert_bee_voc_unassigned.py` остаётся тестируемой офлайн-подготовкой одного COCO `unassigned`, без недостоверных train/test.
+- Текущая отдельная ветка `test/video-lila-stratified-sample-2026-11-20` поверх #273: `tools/sample_lila_five_pairs.py`, расширен `BoundedRanges` в `tools/sample_lila_voc_range.py` для строгого явного byte budget <=24MiB; шесть Python fixture tests и Node bridge; отдельный GitHub research workflow `.github/workflows/bee-public-lila-five-pairs.yml`. Выбор 5 разнесённых в отсортированном ZIP каталоге реальных XML/JPG пар, валидация CRC, SHA, имен, размеров, классов. Источниковые видео, даты, ульи этим не удостоверяются; `trainingAuthorized=false`, `cleanupAuthorized=false`.
+- `docs/VIDEO-LILA-FIVE-PAIR-SAMPLING.md` фиксирует ограничения доказательств. Новые CI и фактическую доступность этих пяти пар проверить только на точном HEAD нового Draft, не переносить успех #273.
+- Full dataset и модели нет, обучение YOLOX/ONNX/Android hardware inference не выполнялись; live user originals, main и production не затрагивались. Следующий шаг: сверить actual CI + sampled labels, затем искать достоверный группирующий provenance исходной съёмки; без него независимый split не создавать.
+
+---
+
 ## Итог кода VOC→COCO #273 и точный Android CI (2026-11-20)
 
 - Draft PR #273 code/test/docs SHA `96943c6174cac472868a51ec0acafafe50619227`: Android workflow [#44734022815](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44734022815) **completed/success**, включая общие Node/Python регрессионные тесты, debug APK сборку и загрузку; isolated #44734022821 **skipped**. Это проверка тестового конвертера, не реального обучения модели и не физического Android inference.
