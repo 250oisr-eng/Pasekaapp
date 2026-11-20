@@ -206,3 +206,18 @@ test('a changed journal data URL between hashing and commit cancels evidence per
   assert.equal((await ledger.readRecognitionLedger(db)).entries.length,0);
  }finally{root.PasekaSha256=prior;db.close()}
 });
+
+test('entrance capture rejects an ID collision instead of overwriting hashed original bytes',async()=>{
+ const {db}=await fixture();
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const begin=html.indexOf('function putEntranceVideo(record){');
+ const end=html.indexOf('function listEntranceVideos(){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const putEntranceVideo=new Function('db',html.slice(begin,end)+';return putEntranceVideo;')(db);
+ const original=await get(db,'entrance_media','v1');
+ await assert.rejects(putEntranceVideo({...original,blob:new Blob(['other'],{type:'video/mp4'})}));
+ const preserved=await get(db,'entrance_media','v1');
+ assert.equal(preserved.blobSha256,sourceHash);
+ assert.equal(await root.PasekaSha256.hashBlobHex(preserved.blob),sourceHash);
+ db.close();
+});
