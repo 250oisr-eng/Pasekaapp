@@ -138,3 +138,40 @@ test('real writeMainWithBackup aborts atomically if recognition exists after UI 
  assert.equal(backup,undefined);
  db.close();
 });
+
+test('manual JSON export blocks recognized video history before creating an archive',async()=>{
+ const db=await fixture(local);
+ const alerts=[];let clicked=0;
+ const start=html.indexOf('async function downloadBackup(){');
+ const source=html.slice(start,html.indexOf('function validateBackupState(',start));
+ const deps={
+  S:{meta:{},records:[{media:[{kind:'video',videoId:'v1',data:'binary'}]}]},
+  saveQueue:Promise.resolve(),db,
+  window:{PasekaVideoArchiveSafety:safety},PasekaVideoArchiveSafety:safety,
+  alert:value=>alerts.push(value),confirm:()=>true,
+  URL:{createObjectURL:()=>{clicked++;return 'blob:test'},revokeObjectURL:()=>{}},
+  document:{createElement:()=>({click(){clicked++},remove(){}}),body:{appendChild:()=>{}}},
+  Blob,today:()=> '2026-11-20',setTimeout:()=>{}
+ };
+ const fn=new Function(...Object.keys(deps),source+';return downloadBackup;')(...Object.values(deps));
+ assert.equal(await fn(),false);
+ assert.equal(clicked,0);assert.match(alerts[0],/JSON-архив не создан/);
+ db.close();
+});
+test('manual JSON export remains available before any completed video recognition',async()=>{
+ const db=await fixture(undefined);
+ let clicks=0;const urls=[];
+ const start=html.indexOf('async function downloadBackup(){');
+ const source=html.slice(start,html.indexOf('function validateBackupState(',start));
+ const deps={
+  S:{meta:{},records:[]},saveQueue:Promise.resolve(),db,
+  window:{PasekaVideoArchiveSafety:safety},PasekaVideoArchiveSafety:safety,
+  alert:()=>{throw new Error('unexpected alert')},confirm:()=>true,
+  URL:{createObjectURL:()=>{urls.push('created');return 'blob:test'},revokeObjectURL:()=>{}},
+  document:{createElement:()=>({click(){clicks++},remove(){}}),body:{appendChild:()=>{}}},
+  Blob,today:()=> '2026-11-20',setTimeout:()=>{}
+ };
+ const fn=new Function(...Object.keys(deps),source+';return downloadBackup;')(...Object.values(deps));
+ await fn();
+ assert.equal(clicks,1);assert.equal(urls.length,1);db.close();
+});
