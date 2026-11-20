@@ -1,7 +1,7 @@
 (function(root) {
 'use strict';
-// Standalone v2 prototype: state + verified recognition ledger only.
-// Pending video binaries and state-embedded video Data URLs are NOT supported.
+// Standalone v2 prototype: state + verified recognition ledger, with opt-in
+// pending entrance-media Blob transport. Embedded journal video is unsupported.
 // Never use this module as deletion authorization or live restore implementation.
 const MAGIC = 'PASEKA02';
 const FORMAT = 'paseka-archive';
@@ -10,7 +10,10 @@ const HEADER = 12;
 const MAX_MANIFEST = 64 * 1024;
 const MAX_STATE = 16 * 1024 * 1024;
 const MAX_LEDGER = 4 * 1024 * 1024;
-const MAX_ARCHIVE = HEADER + MAX_MANIFEST + MAX_STATE + MAX_LEDGER;
+const MAX_VIDEO = 250 * 1024 * 1024;
+const MAX_ARCHIVE = 512 * 1024 * 1024;
+const MAX_PENDING = 128;
+const MAX_ENTRIES = MAX_PENDING + 2;
 const obj = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 function fail(code) { const e = new Error(code); e.code = code; throw e; }
 function allowed(value, keys) { return obj(value) && Object.keys(value).every(key => keys.includes(key)); }
@@ -33,12 +36,11 @@ function assertNoVideoData(value, depth=0, seen=new Set()) {
  for (const item of Array.isArray(value)?value:Object.values(value)) assertNoVideoData(item,depth+1,seen);
  seen.delete(value);
 }
-function stateAndLedger(state, ledger, guard) {
+function stateAndLedger(state, ledger, guard, pendingVideos = []) {
  if (!obj(state)||!obj(state.meta)||!Number.isSafeInteger(state.meta.schemaVersion)||state.meta.schemaVersion<1) fail('V2_STATE_INVALID');
  if (!guard||typeof guard.checkCandidateVideoPayloads!=='function') fail('V2_GUARD_MISSING');
- // An empty candidate video list is deliberate: pending originals must be
- // handled by a later, independently tested v2 video transport implementation.
- guard.checkCandidateVideoPayloads(ledger,[]);
+ // Candidate entrance videos must be absent from the recognition ledger.
+ guard.checkCandidateVideoPayloads(ledger,pendingVideos);
  assertNoVideoData(state);
  // Embedded journal media must be explicitly classified. A video payload
  // without a recognized data:video prefix is still a binary until proven otherwise.
@@ -56,15 +58,27 @@ function checkManifest(manifest, actualSize, manifestLength) {
      typeof manifest.backupId!=='string'||!manifest.backupId.trim()||manifest.backupId.length>128||
      typeof manifest.createdAt!=='string'||!Number.isFinite(Date.parse(manifest.createdAt))||
      !Number.isSafeInteger(manifest.schemaVersion)||manifest.schemaVersion<1||
-     !Array.isArray(manifest.entries)||manifest.entries.length!==2) fail('V2_MANIFEST_INVALID');
+     !Array.isArray(manifest.entries)||manifest.entries.length<2||manifest.entries.length>MAX_ENTRIES) fail('V2_MANIFEST_INVALID');
  const configs=[['state','state.json',MAX_STATE],['recognition_ledger','recognition-ledger.json',MAX_LEDGER]];
  let offset=HEADER+manifestLength;
  const entries=manifest.entries.map((item,i)=>{
-  const [kind,path,maxSize]=configs[i];
-  if (!allowed(item,['kind','path','size','sha256','mimeType'])||
-      item.kind!==kind||item.path!==path||item.mimeType!=='application/json'||
-      !Number.isSafeInteger(item.size)||item.size<2||item.size>maxSize||
-      typeof item.sha256!=='string'||!/^[0-9a-f]{64}$/.test(item.sha256)) fail('V2_ENTRY_INVALID');
+  if (i >= 2) {
+   const n=i-1;
+   if (!allowed(item,['kind','path','size','sha256','mimeType','source','videoId','sourceSha256','sourceBytes']) ||
+       item.kind!=='entrance_video' || item.path!=='pending-entrance/'+String(n).padStart(6,'0')+'.blob' ||
+       item.source!=='entrance_media' || typeof item.videoId!=='string' || item.videoId.length<1 ||
+       item.videoId.length>200 || /\s/.test(item.videoId) ||
+       item.sourceBytes!==item.size || !Number.isSafeInteger(item.size)||item.size<1||item.size>MAX_VIDEO ||
+       typeof item.mimeType!=='string'||!/^video\/[a-z0-9.+-]+$/i.test(item.mimeType) ||
+       !/^[a-f0-9]{64}$/.test(item.sourceSha256||'') || item.sha256!==item.sourceSha256)
+    fail('V2_VIDEO_ENTRY_INVALID');
+  } else {
+   const [kind,path,maxSize]=configs[i];
+   if (!allowed(item,['kind','path','size','sha256','mimeType'])||
+       item.kind!==kind||item.path!==path||item.mimeType!=='application/json'||
+       !Number.isSafeInteger(item.size)||item.size<2||item.size>maxSize||
+       typeof item.sha256!=='string'||!/^[0-9a-f]{64}$/.test(item.sha256)) fail('V2_ENTRY_INVALID');
+  }
   const result={...item,offset,end:offset+item.size};
   offset=result.end;
   return result;
@@ -76,8 +90,19 @@ function decodeJson(bytes, code) {
  try {return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}
  catch (_) {fail(code);}
 }
-async function buildMetadataArchive({state,ledger,backupId,createdAt},cryptoProvider,guard) {
- stateAndLedger(state,ledger,guard);
+async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVideos=[]},cryptoProvider,guard,shaModule) {
+ if (!Array.isArray(pendingVideos)||pendingVideos.length>MAX_PENDING) fail('V2_VIDEO_COUNT_LIMIT');
+ const metadata=pendingVideos.map((video)=>{
+  if (!obj(video)||!obj(video.blob)||typeof video.blob.slice!=='function' ||
+      !Number.isSafeInteger(video.blob.size)||video.blob.size<1||video.blob.size>MAX_VIDEO ||
+      video.source!=='entrance_media'||video.sourceBytes!==video.blob.size||
+      typeof video.mimeType!=='string'||!/^video\/[a-z0-9.+-]+$/i.test(video.mimeType))
+   fail('V2_VIDEO_UNSUPPORTED');
+  return {source:video.source,videoId:video.videoId,
+   sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes};
+ });
+ stateAndLedger(state,ledger,guard,metadata);
+ if (pendingVideos.length && typeof shaModule?.hashBlobHex!=='function') fail('V2_STREAMING_HASH_REQUIRED');
  if (typeof backupId!=='string'||!backupId.trim()||backupId.length>128||
      typeof createdAt!=='string'||!Number.isFinite(Date.parse(createdAt))) fail('V2_METADATA_INVALID');
  let stateBytes, ledgerBytes;
@@ -88,16 +113,23 @@ async function buildMetadataArchive({state,ledger,backupId,createdAt},cryptoProv
   {kind:'state',path:'state.json',size:stateBytes.length,sha256:await hash(stateBytes,cryptoProvider),mimeType:'application/json'},
   {kind:'recognition_ledger',path:'recognition-ledger.json',size:ledgerBytes.length,sha256:await hash(ledgerBytes,cryptoProvider),mimeType:'application/json'}
  ]};
+ for (const [index,video] of pendingVideos.entries()) {
+  const actualHash=await shaModule.hashBlobHex(video.blob);
+  if (actualHash!==video.sourceSha256) fail('V2_VIDEO_SOURCE_HASH_MISMATCH');
+  manifest.entries.push({kind:'entrance_video',path:'pending-entrance/'+String(index+1).padStart(6,'0')+'.blob',
+   size:video.sourceBytes,sha256:actualHash,mimeType:video.mimeType,source:'entrance_media',
+   videoId:video.videoId,sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes});
+ }
  const manifestBytes=textBytes(manifest);
  if (manifestBytes.length>MAX_MANIFEST) fail('V2_MANIFEST_SIZE_LIMIT');
- const total=HEADER+manifestBytes.length+stateBytes.length+ledgerBytes.length;
+ const total=HEADER+manifestBytes.length+stateBytes.length+ledgerBytes.length+pendingVideos.reduce((n,v)=>n+v.blob.size,0);
  checkManifest(manifest,total,manifestBytes.length);
  const header=new Uint8Array(HEADER);
  header.set(new TextEncoder().encode(MAGIC));
  new DataView(header.buffer).setUint32(8,manifestBytes.length,true);
- return new Blob([header,manifestBytes,stateBytes,ledgerBytes],{type:'application/vnd.paseka.archive'});
+ return new Blob([header,manifestBytes,stateBytes,ledgerBytes,...pendingVideos.map(v=>v.blob)],{type:'application/vnd.paseka.archive'});
 }
-async function inspectMetadataArchive(blob,cryptoProvider,guard) {
+async function inspectMetadataArchive(blob,cryptoProvider,guard,shaModule) {
  if (!blob||typeof blob.slice!=='function'||!Number.isSafeInteger(blob.size)||blob.size<HEADER||blob.size>MAX_ARCHIVE) fail('V2_ARCHIVE_SIZE_LIMIT');
  const head=new Uint8Array(await blob.slice(0,HEADER).arrayBuffer());
  if (new TextDecoder().decode(head.subarray(0,8))!==MAGIC) fail('V2_MAGIC_MISMATCH');
@@ -106,7 +138,7 @@ async function inspectMetadataArchive(blob,cryptoProvider,guard) {
  const manifest=decodeJson(new Uint8Array(await blob.slice(HEADER,HEADER+manifestLength).arrayBuffer()),'V2_MANIFEST_JSON_INVALID');
  const entries=checkManifest(manifest,blob.size,manifestLength);
  const decoded=[];
- for (const entry of entries) {
+ for (const entry of entries.slice(0,2)) {
   const bytes=new Uint8Array(await blob.slice(entry.offset,entry.end).arrayBuffer());
   if (await hash(bytes,cryptoProvider)!==entry.sha256) fail('V2_PAYLOAD_HASH_MISMATCH');
   decoded.push(decodeJson(bytes,'V2_PAYLOAD_JSON_INVALID'));
@@ -114,11 +146,25 @@ async function inspectMetadataArchive(blob,cryptoProvider,guard) {
  const [wrapper,ledger]=decoded;
  if (!allowed(wrapper,['app','state'])||wrapper.app!=='Paseka'||!obj(wrapper.state)||
      wrapper.state.meta?.schemaVersion!==manifest.schemaVersion) fail('V2_STATE_WRAPPER_INVALID');
- stateAndLedger(wrapper.state,ledger,guard);
+ const videoEntries=entries.slice(2);
+ const metadata=videoEntries.map(v=>({source:v.source,videoId:v.videoId,
+  sourceSha256:v.sourceSha256,sourceBytes:v.sourceBytes}));
+ stateAndLedger(wrapper.state,ledger,guard,metadata);
+ if (videoEntries.length && typeof shaModule?.hashBlobHex!=='function') fail('V2_STREAMING_HASH_REQUIRED');
+ // Hash each source Blob independently. Read the data lazily, never load a
+ // full video into ArrayBuffer for verification.
+ const videos=[];
+ for (const entry of videoEntries) {
+  const videoBlob=blob.slice(entry.offset,entry.end,entry.mimeType);
+  if (await shaModule.hashBlobHex(videoBlob)!==entry.sha256)
+   fail('V2_VIDEO_SOURCE_HASH_MISMATCH');
+  videos.push({source:entry.source,videoId:entry.videoId,sourceSha256:entry.sourceSha256,
+   sourceBytes:entry.sourceBytes,mimeType:entry.mimeType,blob:videoBlob});
+ }
  // Return decoded metadata for read-only inspection. This object is not a
  // staging or commit ticket: no transaction, current-state or writer checks.
  return {format:FORMAT,version:VERSION,backupId:manifest.backupId,
-  state:wrapper.state,ledger,archiveSafe:false,restoreAuthorized:false};
+  state:wrapper.state,ledger,pendingVideos:videos,archiveSafe:false,restoreAuthorized:false};
 }
 root.PasekaVideoArchiveV2MetadataCodec=Object.freeze({buildMetadataArchive,inspectMetadataArchive});
 })(typeof window!=='undefined'?window:globalThis);

@@ -5,9 +5,11 @@ import { webcrypto } from 'node:crypto';
 
 const guardSource=await readFile(new URL('../js/video-archive-v2-guard.js',import.meta.url),'utf8');
 const codecSource=await readFile(new URL('../js/video-archive-v2-metadata-codec.js',import.meta.url),'utf8');
+const shaSource=await readFile(new URL('../js/paseka-sha256.js',import.meta.url),'utf8');
 const root={};
 new Function('window',guardSource)(root);
 new Function('window',codecSource)(root);
+new Function('window',shaSource)(root);
 const api=root.PasekaVideoArchiveV2MetadataCodec;
 const guard=root.PasekaVideoArchiveV2Guard;
 const state=()=>({meta:{schemaVersion:15,revisionId:'rev'},hives:[{id:'h1'}],records:[]});
@@ -16,8 +18,8 @@ const entry=()=>({source:'entrance_media',videoId:'original1',resultId:'result1'
  recognizedAt:'2026-11-20T00:00:00Z',result:{observations:['леток']}});
 const args=()=>({state:state(),ledger:{version:1,entries:[entry()]},
  backupId:'test-archive',createdAt:'2026-11-20T00:00:00Z'});
-const build=x=>api.buildMetadataArchive(x,webcrypto,guard);
-const parse=x=>api.inspectMetadataArchive(x,webcrypto,guard);
+const build=x=>api.buildMetadataArchive(x,webcrypto,guard,root.PasekaSha256);
+const parse=x=>api.inspectMetadataArchive(x,webcrypto,guard,root.PasekaSha256);
 const rejects=(p,code)=>assert.rejects(p,e=>e.code===code);
 const fromParts=async(blob,modify)=>{
  const bytes=new Uint8Array(await blob.arrayBuffer());
@@ -105,5 +107,66 @@ test('opaque Blob or non-finite numeric state cannot be silently serialized as v
 test('journal video with unrecognized data encoding is fail-closed',async()=>{
  const input=args();
  input.state.records=[{id:'r',media:[{type:'video',data:'raw-unknown-encoding'}]}];
+ await rejects(build(input),'V2_STATE_EMBEDDED_VIDEO');
+});
+
+test('pending entrance video survives isolated roundtrip with verified exact bytes',async()=>{
+ const blob=new Blob([new Uint8Array([0,1,2,3,255])],{type:'video/mp4'});
+ const digest=await root.PasekaSha256.hashBlobHex(blob);
+ const input=args();
+ input.pendingVideos=[{source:'entrance_media',videoId:'pending-1',sourceSha256:digest,
+  sourceBytes:blob.size,mimeType:'video/mp4',blob}];
+ const result=await parse(await build(input));
+ assert.equal(result.pendingVideos.length,1);
+ assert.equal(result.pendingVideos[0].videoId,'pending-1');
+ assert.deepEqual(new Uint8Array(await result.pendingVideos[0].blob.arrayBuffer()),
+  new Uint8Array(await blob.arrayBuffer()));
+ assert.deepEqual(result.ledger,input.ledger);
+ assert.equal(result.restoreAuthorized,false);
+ assert.equal(result.archiveSafe,false);
+});
+
+test('recognized entrance video cannot be serialized as pending original',async()=>{
+ const blob=new Blob([new Uint8Array([1,2,3])],{type:'video/mp4'});
+ const input=args();
+ input.pendingVideos=[{source:'entrance_media',videoId:'original1',sourceSha256:await root.PasekaSha256.hashBlobHex(blob),
+ sourceBytes:blob.size,mimeType:'video/mp4',blob}];
+ await rejects(build(input),'V2_RECOGNIZED_ORIGINAL_INCLUDED');
+});
+
+test('source SHA mismatch, wrong metadata size and duplicated identities fail closed',async()=>{
+ const blob=new Blob([new Uint8Array([1,2,3])],{type:'video/mp4'});
+ const digest=await root.PasekaSha256.hashBlobHex(blob);
+ const input=args();
+ input.pendingVideos=[{source:'entrance_media',videoId:'pending-1',sourceSha256:'b'.repeat(64),
+ sourceBytes:blob.size,mimeType:'video/mp4',blob}];
+ await rejects(build(input),'V2_VIDEO_SOURCE_HASH_MISMATCH');
+ input.pendingVideos[0].sourceSha256=digest;
+ input.pendingVideos[0].sourceBytes=blob.size+1;
+ await rejects(build(input),'V2_VIDEO_UNSUPPORTED');
+ input.pendingVideos[0].sourceBytes=blob.size;
+ input.pendingVideos.push({...input.pendingVideos[0]});
+ await rejects(build(input),'V2_PAYLOAD_DUPLICATE');
+});
+
+test('bit-flipped pending video is detected before returning reconstructed Blob',async()=>{
+ const original=new Blob([new Uint8Array([42,43,44,45])],{type:'video/mp4'});
+ const input=args();
+ input.pendingVideos=[{source:'entrance_media',videoId:'pending-1',
+ sourceSha256:await root.PasekaSha256.hashBlobHex(original),sourceBytes:original.size,
+ mimeType:'video/mp4',blob:original}];
+ const packed=await build(input);
+ const damaged=await fromParts(packed,b=>{b[b.length-1]^=1;});
+ await rejects(parse(damaged),'V2_VIDEO_SOURCE_HASH_MISMATCH');
+});
+
+test('journal media and unknown blob kind remain blocked pending dedicated v2 support',async()=>{
+ const blob=new Blob(['contents'],{type:'video/mp4'});
+ const input=args();
+ input.pendingVideos=[{source:'record_media',videoId:'j1',sourceSha256:await root.PasekaSha256.hashBlobHex(blob),
+ sourceBytes:blob.size,mimeType:'video/mp4',blob}];
+ await rejects(build(input),'V2_VIDEO_UNSUPPORTED');
+ input.pendingVideos=[];
+ input.state.records=[{id:'r',media:[{type:'video',data:'opaque-binary'}]}];
  await rejects(build(input),'V2_STATE_EMBEDDED_VIDEO');
 });
