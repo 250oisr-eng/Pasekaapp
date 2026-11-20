@@ -1171,12 +1171,20 @@ async function inspectStagingRecognitionCopies(db) {
     requestValue(tx.objectStore(HISTORY_STORE).getAll())
   ]);
   await done;
-  if (ledger == null) return { ok: true, status: 'no_recognition_history', sessions: [], matchedCopies: 0 };
+  const empty = { sessions: [], matchedCopies: 0, orphanedMatchedCopies: 0, unclassifiedVideoKeyCount: 0 };
+  if (ledger == null) return { ok: true, status: 'no_recognition_history', ...empty };
   if (!ledger || typeof ledger !== 'object' || ledger.version !== 1 || !Array.isArray(ledger.entries) ||
       ledger.entries.some(entry => !entry || typeof entry.videoId !== 'string' || !entry.videoId ||
         !['entrance_media', 'record_media'].includes(entry.source) ||
-        typeof entry.resultId !== 'string' || !entry.resultId)) {
-    return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', sessions: [], matchedCopies: 0 };
+        typeof entry.resultId !== 'string' || !entry.resultId ||
+        !['blocked_archive_safety', 'delete_required', 'deleted'].includes(entry.cleanupState))) {
+    return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', ...empty };
+  }
+  const identities = new Set();
+  for (const entry of ledger.entries) {
+    const id = entry.source + ':' + entry.videoId;
+    if (identities.has(id)) return { ok: false, reason: 'VIDEO_LEDGER_DUPLICATE_IDENTITY', ...empty };
+    identities.add(id);
   }
   const recognized = new Set(ledger.entries
     .filter(entry => entry.source === 'entrance_media')
@@ -1189,28 +1197,51 @@ async function inspectStagingRecognitionCopies(db) {
     if (entry && typeof entry.importSessionId === 'string') references.add(entry.importSessionId);
     if (entry && typeof entry.rollbackSessionId === 'string') references.add(entry.rollbackSessionId);
   }
-  let matchedCopies = 0;
-  const conflicts = [];
+  const headers = new Map();
   for (const session of sessions || []) {
-    if (!session || session.kind !== 'session' || typeof session.sessionId !== 'string') continue;
-    const prefix = session.sessionId + ':video:';
-    const copies = (videoKeys || []).filter(key => typeof key === 'string' && key.startsWith(prefix))
-      .map(key => key.slice(prefix.length));
+    if (session && session.kind === 'session' && typeof session.sessionId === 'string' && session.sessionId) {
+      headers.set(session.sessionId, session);
+    }
+  }
+  // Enumerate primary keys only; reading video Blob objects would duplicate
+  // large payloads in memory. Include orphaned staging rows without headers.
+  const bySession = new Map();
+  let unclassifiedVideoKeyCount = 0;
+  for (const key of videoKeys || []) {
+    if (typeof key !== 'string') { unclassifiedVideoKeyCount++; continue; }
+    const delimiter = key.indexOf(':video:');
+    if (delimiter <= 0 || delimiter + 7 >= key.length) { unclassifiedVideoKeyCount++; continue; }
+    const sessionId = key.slice(0, delimiter);
+    const videoId = key.slice(delimiter + 7);
+    if (!bySession.has(sessionId)) bySession.set(sessionId, []);
+    bySession.get(sessionId).push(videoId);
+  }
+  const conflicts = [];
+  let matchedCopies = 0, orphanedMatchedCopies = 0;
+  for (const [sessionId, copies] of bySession) {
     const matches = copies.filter(id => recognized.has(id));
     if (!matches.length) continue;
+    const header = headers.get(sessionId);
     matchedCopies += matches.length;
+    if (!header) orphanedMatchedCopies += matches.length;
     conflicts.push({
-      sessionId: session.sessionId,
-      status: session.status,
+      sessionId,
+      status: header ? header.status : 'orphaned_header',
+      missingSessionHeader: !header,
       videoCopyCount: copies.length,
       recognizedCopies: matches.length,
       tombstonedCopies: matches.filter(id => tombstoned.has(id)).length,
-      protectedByArchiveHistory: references.has(session.sessionId),
+      protectedByArchiveHistory: references.has(sessionId),
+      identityVerifiedByBytes: false,
       action: 'manual_review_required'
     });
   }
-  return { ok: true, status: conflicts.length ? 'staged_recognition_copies_detected' : 'no_staged_recognition_copies',
-    sessions: conflicts, matchedCopies };
+  return {
+    ok: true,
+    status: conflicts.length ? 'staged_recognition_copies_detected' : 'no_staged_recognition_copies',
+    sessions: conflicts, matchedCopies, orphanedMatchedCopies, unclassifiedVideoKeyCount,
+    requiresManualReview: conflicts.length > 0 || unclassifiedVideoKeyCount > 0
+  };
 }
 
 function discardArchiveRestoreSession(db, sessionId) {
