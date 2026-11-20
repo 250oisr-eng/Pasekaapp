@@ -1,5 +1,7 @@
 import sys
 import unittest
+import zlib
+import struct
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
 sys.path.insert(0,str(Path(__file__).resolve().parent))
@@ -8,12 +10,17 @@ from sample_lila_voc_range import SampleRejected
 from test_sample_lila_voc_range import FakeOpener,archive,XML,JPEG
 
 
+
+PNG_IHDR=b"IHDR"+struct.pack(">IIBBBBB",100,80,8,6,0,0,0)
+PNG=(b"\x89PNG\r\n\x1a\n"+b"\x00\x00\x00\x0d"+PNG_IHDR+
+     struct.pack(">I",zlib.crc32(PNG_IHDR)))
+
 def fixture():
     contents=[]
     for i in range(6):
         stem=f"ML-Data/Hive_{i:02d}"
         contents.append((stem+".xml",XML))
-        contents.append((stem+".jpg",JPEG))
+        contents.append((stem+".png",PNG) if i==3 else (stem+".jpg",JPEG))
     return archive(contents)
 
 
@@ -36,7 +43,7 @@ class FivePairsTests(unittest.TestCase):
             self.assertEqual(x["width"],100)
             self.assertEqual(x["height"],80)
             self.assertEqual(x["objectsByClass"],{"bee":1})
-            self.assertEqual(len(x["jpegSha256"]),64)
+            self.assertEqual(len(x["imageSha256"]),64)
         for key in ("sourceVideoIdentityVerified","independentTrainTestSplitAvailable",
                     "jpegFullyDecoded","entireArchiveDownloaded","entireArchiveShaVerified",
                     "licenseVerified","trainingAuthorized","modelApproved",
@@ -49,7 +56,7 @@ class FivePairsTests(unittest.TestCase):
             stem=f"images/test_{i:02d}"
             entries.append((stem+".xml",XML))
             if i!=3:entries.append((stem+".jpg",JPEG))
-        with self.assertRaisesRegex(SampleRejected,"jpeg_pair_missing"):
+        with self.assertRaisesRegex(SampleRejected,"image_pair_missing"):
             inspect_representative_pairs(FakeOpener(archive(entries)))
 
     def test_wrong_jpeg_size_rejected_for_any_sample(self):
@@ -58,7 +65,7 @@ class FivePairsTests(unittest.TestCase):
         for i in range(5):
             stem=f"images/test_{i:02d}"
             entries.extend([(stem+".xml",XML),(stem+".jpg",bad if i==2 else JPEG)])
-        with self.assertRaisesRegex(SampleRejected,"jpeg_voc_dimensions_mismatch"):
+        with self.assertRaisesRegex(SampleRejected,"image_voc_dimensions_mismatch"):
             inspect_representative_pairs(FakeOpener(archive(entries)))
 
     def test_unsafe_pascal_filename_field_rejected(self):
@@ -68,6 +75,25 @@ class FivePairsTests(unittest.TestCase):
             stem=f"images/test_{i:02d}"
             entries.extend([(stem+".xml",xml if i==0 else XML),(stem+".jpg",JPEG)])
         with self.assertRaisesRegex(SampleRejected,"voc_filename_mismatch"):
+            inspect_representative_pairs(FakeOpener(archive(entries)))
+
+
+    def test_png_ihdr_corruption_fails_closed(self):
+        bad=PNG[:-1]+bytes([PNG[-1]^0xff])
+        entries=[]
+        for i in range(5):
+            stem=f"images/test_{i:02d}"
+            entries.extend([(stem+".xml",XML),(stem+".png",bad if i==3 else PNG)])
+        with self.assertRaisesRegex(SampleRejected,"png_ihdr_crc_invalid"):
+            inspect_representative_pairs(FakeOpener(archive(entries)))
+
+    def test_png_and_jpeg_same_stem_is_ambiguous(self):
+        entries=[]
+        for i in range(5):
+            stem=f"images/test_{i:02d}"
+            entries.extend([(stem+".xml",XML),(stem+".jpg",JPEG)])
+        entries.append(("images/test_03.png",PNG))
+        with self.assertRaisesRegex(SampleRejected,"image_pair_missing_or_ambiguous"):
             inspect_representative_pairs(FakeOpener(archive(entries)))
 
     def test_http_200_for_any_range_not_read(self):
