@@ -1,3 +1,11 @@
+## Результат CI для Draft #262–263 — 2026-11-20
+
+- PR #262 code/test/docs SHA `1ca916dde3268d56408c2430963f9f6462ebb7e9`, workflow [#44717764727](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44717764727) — **completed/success** (regression, Android debug APK build/upload). Isolated #44717764700 — **skipped**.
+- PR #263 code/test/docs SHA `a1572a89eda53671059cc7d681e327a821007b85`, workflow [#44717871041](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44717871041) — **completed/success** (regression, Android debug APK build/upload). Isolated #44717871044 — **skipped**.
+- Следующий docs-only commit меняет журнал, а не проверенный код. Не утверждать, что новый docs HEAD уже имеет собственный успешный CI. Веса и реальные Android hardware inference не внедрены; delete остаётся заблокированным.
+
+---
+
 ## Контрольная точка — модель отчёта Android inference (2026-11-20)
 
 - Поверх Draft #262 подготовлен изолированный модуль `js/android-inference-evidence.js`, тесты `tests/android-inference-evidence.test.mjs` и протокол `docs/VIDEO-ANDROID-PHYSICAL-TEST-PROTOCOL.md`. Требуются модель SHA/версия, Android/System WebView, офлайн-испытание и независимый dataset SHA, latency, TP/FP/FN; отчёт остаётся `physicalTestVerified=false` при любых пользовательских полях.
