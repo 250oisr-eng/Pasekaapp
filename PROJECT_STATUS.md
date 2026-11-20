@@ -1,3 +1,10 @@
+## Этап — геометрическая оценка пересечения летка без ложного recognition (2026-11-20)
+
+- Поверх #254 создана ветка `feat/video-entrance-crossing-evidence-2026-11-20`: `js/video-crossing-evidence.js` и unit tests. Без явной калибровки линии, её стороны inside/outside и временно монотонных наблюдений направление не определяется. При неоднозначности (несколько пересечений, точка на границе) — unknown/fail-closed.
+- Даже строгое одиночное пересечение на фикстуре — `untrusted_calibrated_crossing`, `directionVerified:false`, `recognitionSucceeded:false`, `cleanupAuthorized:false`. Реальный bee tracker и пользовательская калибровка не подключены. `docs/VIDEO-ENTRANCE-CROSSING-EVIDENCE.md`.
+- Новый CI exact SHA требуется. Никаких user files, UI, IDB или production changes.
+
+---
 ## Этап — offline измеритель precision/recall по размеченным кадрам (2026-11-20)
 
 - На базе Draft #253 создана рабочая ветка `feat/video-detector-benchmark-metrics-2026-11-20`: `js/video-detector-benchmark.js`, `tests/video-detector-benchmark.test.mjs`, `docs/VIDEO-DETECTOR-BENCHMARK.md`.
