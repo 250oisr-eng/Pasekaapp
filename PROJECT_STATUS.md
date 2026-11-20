@@ -1,3 +1,9 @@
+## CI #248 — исправлен ложный запрет in-memory Set.add (2026-11-20)
+
+- Первый HEAD `0803b91559fa36484c8e4563d7b582c3e60a0ee4`: Android #44709983851 **failure**, 1004/1005 regression tests passed, APK skipped. Тест ограничения сетевых/DB операций ошибочно счёл `Set.add()` вызовом IndexedDB `.add`.
+- Исправлен только тест `tests/video-model-evidence.test.mjs`, SHA `cbb096c1b51b2b6068922b885791c6f3df3dec60`: он теперь явно ищет fetch/XMLHttpRequest/indexedDB/transaction/objectStore/localStorage/sendBeacon. Код модуля не менялся. CI нового SHA требуется отдельно.
+
+---
 ## Этап — валидация недоверенного результата модели видео (2026-11-20)
 
 - После проверенного Draft #247 открывается ветка `feat/video-model-evidence-contract-2026-11-20`: test-only `js/video-model-evidence.js`, `tests/video-model-evidence.test.mjs`, `docs/VIDEO-INFERENCE-PROVIDER-EVALUATION.md`.
