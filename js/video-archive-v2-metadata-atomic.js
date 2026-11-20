@@ -58,12 +58,12 @@ function abortTx(tx,err,record){
  record.error=err;
  try{tx.abort();}catch(_){record.reject(err);}
 }
-function runLocked(db,reads,process) {
+function runLocked(db,reads,process,mode='readwrite') {
  return new Promise((resolve,reject)=>{
   let tx,settled=false,result,record={error:null,reject(error){if(!settled){settled=true;reject(error);}}};
   try{
    requireDb(db);
-   tx=db.transaction(STORES,'readwrite');
+   tx=db.transaction(STORES,mode);
    const pending={},values={};
    for(const [name,read] of Object.entries(reads)){
     const req=read(tx);
@@ -213,7 +213,7 @@ function inspectMetadataRecovery(db,backupId,deps){
   return {backupId,status,requiresManualReview:status==='manual_review_required',
    liveDataModified:false,archiveSafe:false,restoreAuthorized:false,
    cleanupAuthorized:false};
- });
+ },'readonly');
 }
 root.PasekaVideoArchiveV2MetadataAtomic=Object.freeze({
  commitMetadataOnly,rollbackMetadataOnly,inspectMetadataRecovery
