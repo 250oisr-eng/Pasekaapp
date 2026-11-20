@@ -1,5 +1,7 @@
 import json
 import sys
+import zlib
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +10,9 @@ from convert_bee_voc_unassigned import ConversionRejected, build_unassigned, pub
 
 JPEG=(b"\xff\xd8"+b"\xff\xe0\x00\x04AB"+
       b"\xff\xc0\x00\x0b\x08\x00\x50\x00\x64\x01\x01\x11\x00"+b"\xff\xd9")
+PNG_IHDR=b"IHDR"+struct.pack(">IIBBBBB",100,80,8,6,0,0,0)
+PNG=(b"\x89PNG\r\n\x1a\n"+b"\x00\x00\x00\x0d"+PNG_IHDR+
+     struct.pack(">I",zlib.crc32(PNG_IHDR)))
 XML=b"""<annotation><filename>bee.jpg</filename>
 <size><width>100</width><height>80</height></size>
 <object><name>bee</name><bndbox><xmin>10</xmin><ymin>20</ymin>
@@ -44,6 +49,41 @@ class ConvertVocTests(unittest.TestCase):
         self.assertEqual(json.loads(out.read_text())["info"]["split"],"unassigned")
         with self.assertRaisesRegex(ConversionRejected,"output_already_exists"):
             publish_unassigned(self.root,out)
+
+
+    def test_valid_png_and_voc_without_objects_are_preserved_as_unassigned(self):
+        (self.root/"bee.jpg").unlink()
+        (self.root/"bee.png").write_bytes(PNG)
+        xml=b"""<annotation><filename>bee.png</filename>
+<size><width>100</width><height>80</height></size></annotation>"""
+        (self.root/"bee.xml").write_bytes(xml)
+        r=build_unassigned(self.root)
+        self.assertEqual(r["images"][0]["file_name"],"bee.png")
+        self.assertEqual(r["images"][0]["width"],100)
+        self.assertEqual(r["images"][0]["height"],80)
+        self.assertEqual(r["annotations"],[])
+        self.assertEqual(r["info"]["split"],"unassigned")
+        self.assertFalse(r["info"]["trainingAuthorized"])
+
+    def test_corrupt_png_ihdr_crc_is_rejected(self):
+        (self.root/"bee.jpg").unlink()
+        (self.root/"bee.png").write_bytes(PNG[:-1]+bytes([PNG[-1]^0xff]))
+        (self.root/"bee.xml").write_bytes(XML.replace(b"bee.jpg",b"bee.png"))
+        with self.assertRaisesRegex(ConversionRejected,"image_header_invalid"):
+            build_unassigned(self.root)
+
+    def test_jpg_png_simultaneously_is_ambiguous(self):
+        (self.root/"bee.png").write_bytes(PNG)
+        with self.assertRaises(ConversionRejected):
+            build_unassigned(self.root)
+
+    def test_png_voc_dimension_mismatch_is_rejected(self):
+        (self.root/"bee.jpg").unlink()
+        (self.root/"bee.png").write_bytes(PNG)
+        xml=XML.replace(b"bee.jpg",b"bee.png").replace(b"<height>80</height>",b"<height>79</height>")
+        (self.root/"bee.xml").write_bytes(xml)
+        with self.assertRaisesRegex(ConversionRejected,"xml_jpeg_dimensions_mismatch"):
+            build_unassigned(self.root)
 
     def test_unknown_object_class_rejected_not_dropped(self):
         bad=XML.replace(b"<name>bee</name>",b"<name>wasp</name>")
