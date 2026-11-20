@@ -33,7 +33,9 @@ async function makeDatabase(factory = new IDBFactory()) {
 async function seed(db, session) {
   const tx = db.transaction('archive_staging', 'readwrite');
   const store = tx.objectStore('archive_staging');
-  store.put(session);
+  store.put(session.kind === 'session' ? {
+    backupId: 'fixture-backup-' + session.id, ...session
+  } : session);
   store.put({ id: session.id + ':state', sessionId: session.id, kind: 'state', blob: new Blob(['state']) });
   await new Promise((resolve, reject) => {
     tx.oncomplete = resolve;
