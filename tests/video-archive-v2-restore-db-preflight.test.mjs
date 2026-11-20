@@ -24,6 +24,7 @@ async function setup(){
   db.createObjectStore('entrance_media',{keyPath:'id'});
   db.createObjectStore('archive_staging',{keyPath:'id'});
   db.createObjectStore('archive_history',{keyPath:'backupId'});
+  db.createObjectStore('full_backup');
  };
  const db=await new Promise((resolve,reject)=>{
   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
@@ -43,7 +44,7 @@ test('live preflight uses one readonly transaction across all protected stores w
   calls.push(args);return db.transaction(...args);
  }};
  const outcome=await inspect(tracked);
- assert.deepEqual(calls,[[['main','entrance_media','archive_staging','archive_history'],'readonly']]);
+ assert.deepEqual(calls,[[['main','entrance_media','archive_staging','archive_history','full_backup'],'readonly']]);
  assert.equal(outcome.historyPreserved,1);
  assert.equal(outcome.liveEntranceKeyCount,1);
  assert.equal(outcome.preflightPassed,true);
