@@ -1,3 +1,11 @@
+## Этап — валидация недоверенного результата модели видео (2026-11-20)
+
+- После проверенного Draft #247 открывается ветка `feat/video-model-evidence-contract-2026-11-20`: test-only `js/video-model-evidence.js`, `tests/video-model-evidence.test.mjs`, `docs/VIDEO-INFERENCE-PROVIDER-EVALUATION.md`.
+- Не доверять текстовому Worker, JSON без source SHA, дублированным трекам, неподтверждённой модели. Контракт выдаёт только `untrusted_observation_draft`, `reviewRequired:true`, `recognitionSucceeded:false`, `cleanupAuthorized:false` даже при формально валидном payload. Нет реального detection, AI подключения, сети, изменения базы/видео.
+- По актуальным официальным документациям технический кандидат — ONNX Runtime Web WASM, но без весов, проверки модели, лицензии и Android benchmark выбор не активирован. MediaPipe возможно, Ultralytics AGPL требует соблюдения условий; бесплатные introductory credits не подходят.
+- Следующий шаг — Draft PR и CI точного HEAD; затем отдельная валидация model readiness/параметров provider, без превращения draft в распознанный результат.
+
+---
 ## Проверенный CI — защита переходов очереди видео (2026-11-20)
 
 - Draft #247: исправленный code/test SHA `95c9eb7e313f0377b016984e793f07083c6d01be`, документальный PR HEAD после фиксации первого CI `811a20fcd61bd6ae20f594fe5ca0c071f8392351`. На HEAD [Android #44709298158](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44709298158) **completed/success**: Run regression tests, Build debug APK, Upload APK successful. [Isolated APK #44709298159](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44709298159) **completed/skipped**.
