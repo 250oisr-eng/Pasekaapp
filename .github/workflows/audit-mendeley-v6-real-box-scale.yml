@@ -1,0 +1,49 @@
+name: Audit measured Mendeley v6 bee box pixel scales (no model)
+on:
+  pull_request:
+    paths:
+      - 'tools/audit_mendeley_v6_real_box_scale.py'
+      - 'tests/test_audit_mendeley_v6_real_box_scale.py'
+      - 'tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv'
+      - '.github/workflows/audit-mendeley-v6-real-box-scale.yml'
+permissions:
+  contents: read
+jobs:
+  real-label-geometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install free Pillow only for imported URL validator
+        run: python -m pip install --disable-pip-version-check --no-deps Pillow==12.0.0
+      - name: Eleven offline regression tests
+        run: python -m unittest discover -s tests -p 'test_audit_mendeley_v6_real_box_scale.py' -v
+      - name: Check actual pinned labels and compare bbox sizes at 640 960 1280
+        run: |
+          python tools/audit_mendeley_v6_real_box_scale.py tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv | tee "${RUNNER_TEMP}/real-box-geometry.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          d = json.loads((Path(os.environ["RUNNER_TEMP"]) / "real-box-geometry.json").read_text())
+          assert d["verifiedLabelFiles"] == 16
+          assert d["verifiedImageFilesThisRun"] == 0
+          assert d["imageHashPinsInManifestOnly"] == 16
+          assert d["beeBoxes"] == 113
+          assert len(d["perPublishedHiveCollection"]) == 8
+          assert sum(g["beeBoxes"] for g in d["perPublishedHiveCollection"].values()) == 113
+          assert [x["squareInputPx"] for x in d["projectedUnwarpedLetterboxInputs"]] == [640,960,1280]
+          for k in ("sourceVideoSessionIndependenceVerified","individualTrackIdentityKnown",
+                    "trainingAuthorized","detectorQualityMeasured",
+                    "androidInferenceVerified","recognitionSucceeded","cleanupAuthorized"):
+              assert d[k] is False, k
+          for x in d["projectedUnwarpedLetterboxInputs"]:
+              assert x["smallestBoxDimension"]["count"] == 113
+              assert all(0 <= n <= 113 for n in x["boxCountWithMinSideBelow"].values())
+          print("ORIGINAL_113_BEE_BOX_RESOLUTION_DIAGNOSTIC_VERIFIED_NO_TRAINING")
+          PY
+      - name: Remove transient report
+        if: always()
+        run: rm -f -- "${RUNNER_TEMP}/real-box-geometry.json"
