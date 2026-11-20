@@ -1,3 +1,14 @@
+## Контрольная точка — повторная проверка SHA staging originals (2026-11-20)
+
+- В зависимой ветке feat/video-archive-v2-staging-integrity-2026-11-20 подготовлен отдельный модуль js/video-archive-v2-staging-verify.js. Он принимает реальный PASEKA02, заново проверяет архивный SHA, читает ровно пять protected stores общей readonly транзакцией, сверяет header/history и точный список staged исходников, затем **повторно хэширует байты каждого уже сохранённого staged Blob**.
+- После SHA-фазы повторно сравнивает live state, ledger, entrance keys и staged metadata под единой readwrite транзакцией, которая всегда abort. Никакого put/delete/restore. Результат всегда byteIntegrityLocked=false, requiresAtomicCommitCheck=true, restoreAuthorized=false, cleanupAuthorized=false и archiveSafe=false.
+- Известное ограничение: подмена Blob того же размера и MIME после SHA, но до final write-lock, не определяется одним metadata fingerprint. Эту проверку нельзя считать разрешением на import/cleanup до отдельного immutable/write-fence протокола.
+- Добавлены tests/video-archive-v2-staging-verify.test.mjs: оба вида видео, real-file SHA, same-size corruption, отсутствующий staged original, writer race, конфликт журнала распознавания, чужой full_backup, отсутствие store, сохранность. Синтаксис JS и тестов проверен, полный CI итогового SHA ещё не подтверждён.
+- Документ контракта: docs/VIDEO-ARCHIVE-V2-STAGING-VERIFY.md. База Draft #232: code/test SHA 8f98505a9fde38dea489576fcb8de600e8a94db1, workflow #44697058894 success; isolated archive #44697058856 skipped. Этот CI не подтверждает код нового PR.
+- Следующая задача: получить точный CI и устранить дефекты, затем спроектировать writer-fence staged Blob/реальную атомарную интеграцию с ledger и полным rollback. Main, production, пользовательские записи и удаление видео не изменяются.
+
+---
+
 ## CI изолированного PASEKA02 staging — 2026-11-20
 
 - Точный SHA `8f98505a9fde38dea489576fcb8de600e8a94db1`: Android workflow #44697058894 — completed/success (Run regression tests, Build debug APK, Upload APK). Отдельный Build isolated archive test APK #44697058856 — skipped.
