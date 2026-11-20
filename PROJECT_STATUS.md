@@ -1,3 +1,12 @@
+## Контрольная точка — перенос необработанных летковых видео в изолированном v2 (2026-11-20)
+
+- Поверх Draft PR #217 создана ветка `feat/video-archive-v2-pending-entrance-2026-11-20`. `js/video-archive-v2-metadata-codec.js` расширен: разрешены **только** явно переданные `pendingVideos` из `entrance_media`, не имеющие результата распознавания в переданном ledger. Бинарные Blob переносятся отдельно от state, контроль целых исходных SHA-256 выполняется потоковым `PasekaSha256.hashBlobHex` при записи и при чтении.
+- Результат read-only анализа возвращает Blob ожидающих распознавания видео, но всегда `restoreAuthorized=false` и `archiveSafe=false`; он не служит разрешением на удаление и не меняет IndexedDB.
+- `record_media` Data URL, существующий runtime и конкурентные обновления источника не интегрированы: экспорт с журналовым видео продолжает безопасно отказываться. Не считаем этот кодек полноценной заменой backup. Предусмотрены тесты roundtrip, corruption/hash/tombstone/duplicate, неправильного размера и неподдерживаемого источника.
+- CI на итоговом SHA требует отдельной проверки. Следующий этап: полное согласование record_media, подтверждённые источники SHA и snapshot/revision, staged commit/rollback, Android; никакого merge/production/delete.
+
+---
+
 ## Контрольная точка — v2 metadata-only codec (2026-11-20)
 
 - Создана зависимая ветка `feat/video-archive-v2-metadata-codec-2026-11-20` поверх PR #216. Отдельный изолированный `js/video-archive-v2-metadata-codec.js` создаёт и валидирует файл с сигнатурой `PASEKA02`, JSON state и целым ledger, проверяя SHA-256, размеры и структуру. Старый `.paseka` v1 не менялся.
