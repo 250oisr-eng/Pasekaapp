@@ -1,3 +1,12 @@
+## Контрольная точка — read-only ZIP central directory + Pascal VOC sample (2026-11-20)
+
+- Parent Draft #271 SHA `ea2c690d16d02bf6376991cfcc8cca13e554c32b`: public LILA header #44732672991 **completed/success** (реальные 64 bytes, HTTP 206, ZIP magic, 2 076 021 293 bytes reported), Android #44732672760 **completed/success**, isolated #44732672727 **skipped**. Образец заголовка не доказывает целостность архива или условия лицензии.
+- Новая последовательная Draft ветка `test/video-lila-voc-range-sample-2026-11-20` добавила `tools/sample_lila_voc_range.py`, 7 Python unit tests, Node bridge в регрессионный suite, исследовательский `.github/workflows/bee-public-lila-voc-sample.yml` и `docs/VIDEO-LILA-VOC-RANGE-SAMPLE.md`. Читает хвост ZIP, центральный каталог и максимум одну небольшую VOC XML, сеть ≤4 MiB; при HTTP 200 тело не читается, общий ZIP/JPG не скачивается. Требует exact CI SHA.
+- При реальном успехе появится подтверждённый образец структуры Pascal VOC; это не обучение, не проверка лицензии archive files и не модель. Все `licenseVerified/trainingAuthorized/modelApproved/recognitionSucceeded/cleanupAuthorized=false`.
+- Следующая задача: CI GitHub на exact HEAD; оценить фактические VOC dimensions/categories, затем отдельный безопасный VOC→COCO импорт для лицензированных реальных изображений. Сохранять original video до доказанного распознавания и all-copy safety. main/production/user data не трогать.
+
+---
+
 ## Контрольная точка — альтернатива Mendeley: прямой public LILA ZIP Range (2026-11-20)
 
 - Parent Draft #270 code/test SHA `17e37c5c5febe70d175ed2310746803c7ca989f0`: Android workflow #44732273370 **completed/success** (регрессионные тесты и debug APK), separate isolated #44732273395 **skipped**. Отдельный research CI #44732273439 **completed/failure**: offline tests **8/8 passed**, запрос к Mendeley public REST без OAuth вернул **HTTP 401**. Не считать research CI успешным и не использовать токен/обход контроля доступа.
