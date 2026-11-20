@@ -1,3 +1,10 @@
+## Этап — аудит свободных bee detection моделей (2026-11-20)
+
+- На базе Draft #251 создана docs-only ветка `docs/video-bee-model-license-candidate-audit-2026-11-20` с `docs/VIDEO-BEE-MODEL-CANDIDATE-AUDIT.md`. Проверены BEE24, научный датасет detection/direction, MIT-код stingless bee, Hive-Cam, Gratheon/BeeAlarmed, ограничения Ultralytics и лицензия runtime ONNX Web.
+- Подтверждённой легально доступной Android-совместимой pretrained моделью с готовым bee detection+tracking и направлением летка эти источники пока **не являются**. Не подключать чужой код/weights без source/license/accuracy. Никаких download, платных зависимостей, изменения user data, production.
+- Следующее: отдельные датасетные/licensing и Android benchmarking проверки перед on-device inference. Сейчас cleanup blocked.
+
+---
 ## CI Draft #251 — external Android copies remain unknown (2026-11-20)
 
 - Code/test/docs SHA `7089f978e58422345cb06f5d2ae039cf0e0cb916`: [Android #44710841243](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710841243) **completed/success** (regressions, Debug APK build/upload); [isolated #44710841400](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710841400) **skipped**. Не подтверждён физический Android Camera/Gallery behavior.
