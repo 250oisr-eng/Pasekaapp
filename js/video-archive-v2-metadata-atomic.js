@@ -158,14 +158,20 @@ function rollbackMetadataOnly(db,options,deps){
    fail('V2_ATOMIC_ROLLBACK_PROTECTED_CHANGED');
   const h=v.history,s=v.snapshot;
   if(!obj(h)||h.kind!=='v2_metadata_only'||h.status!=='committed'||
+    h.backupId!==options.backupId||
     h.importedRevisionId!==options.expectedRevision||
     h.rollbackKey!=='v2:'+options.backupId||
-    !obj(s)||s.kind!=='v2_metadata_only_rollback'||s.backupId!==h.backupId||
+    !obj(s)||s.kind!=='v2_metadata_only_rollback'||s.backupId!==options.backupId||
+    !/^[a-f0-9]{64}$/.test(h.archiveSha256)||
     h.archiveSha256!==s.archiveSha256)
    fail('V2_ATOMIC_ROLLBACK_HISTORY_CHANGED');
   validateState(v.state,options.validateState);
   validateState(s.beforeState,options.validateState);
   validateState(s.afterState,options.validateState);
+  if(h.previousRevisionId!==s.beforeState.meta.revisionId||
+     h.importedRevisionId!==s.afterState.meta.revisionId||
+     h.previousRevisionId===h.importedRevisionId)
+   fail('V2_ATOMIC_ROLLBACK_HISTORY_CHANGED');
   if(v.state.meta.revisionId!==options.expectedRevision||
      stableJson(v.state)!==stableJson(s.afterState))
    fail('V2_ATOMIC_ROLLBACK_REVISION_CHANGED');
@@ -196,7 +202,10 @@ function inspectMetadataRecovery(db,backupId,deps){
     obj(v.state)&&obj(v.ledger)){
    try{
     deps.guard.validateRecognitionLedgerForV2(v.ledger);
-    if(!v.history&&!v.snapshot&&v.historyCount===0&&v.backupCount===0)status='not_imported';
+    if(!v.history&&!v.snapshot&&v.historyCount===0&&v.backupCount===0){
+     if(obj(v.state.meta)&&v.state.meta.schemaVersion===15&&
+        validId(v.state.meta.revisionId))status='not_imported';
+    }
     else if(obj(v.history)&&obj(v.snapshot)&&v.historyCount===1&&v.backupCount===1&&
       v.snapshot.backupId===backupId&&v.history.backupId===backupId&&
       v.history.rollbackKey==='v2:'+backupId&&
