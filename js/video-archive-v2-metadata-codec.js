@@ -1,7 +1,7 @@
 (function(root) {
 'use strict';
-// Standalone v2 prototype: state + verified recognition ledger only.
-// Pending video binaries and state-embedded video Data URLs are NOT supported.
+// Standalone v2 prototype: state + verified recognition ledger, with opt-in
+// pending entrance-media Blob transport. Embedded journal video is unsupported.
 // Never use this module as deletion authorization or live restore implementation.
 const MAGIC = 'PASEKA02';
 const FORMAT = 'paseka-archive';
@@ -39,8 +39,7 @@ function assertNoVideoData(value, depth=0, seen=new Set()) {
 function stateAndLedger(state, ledger, guard, pendingVideos = []) {
  if (!obj(state)||!obj(state.meta)||!Number.isSafeInteger(state.meta.schemaVersion)||state.meta.schemaVersion<1) fail('V2_STATE_INVALID');
  if (!guard||typeof guard.checkCandidateVideoPayloads!=='function') fail('V2_GUARD_MISSING');
- // An empty candidate video list is deliberate: pending originals must be
- // handled by a later, independently tested v2 video transport implementation.
+ // Candidate entrance videos must be absent from the recognition ledger.
  guard.checkCandidateVideoPayloads(ledger,pendingVideos);
  assertNoVideoData(state);
  // Embedded journal media must be explicitly classified. A video payload
