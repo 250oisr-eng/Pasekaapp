@@ -1,3 +1,11 @@
+## 2026-11-20 — CI нового Mendeley v6 importer: exact code HEAD success
+
+- Draft PR #283 code/test+docs SHA `b19a22346420975e5fe6c07ccb9f616b07d0e9aa`: Android workflow [#44744618460](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44744618460) **completed/success** (Python Mendeley YOLO synthetic cases через Node, общая регрессия, Debug APK build/upload); isolated #44744618463 **skipped**, не success. После обновления оперативного журнала HEAD меняется, его CI нужно проверять отдельно.
+- Исходный Mendeley v6 dataset `10.17632/8gb9r2yhfc.6` — публичная карточка CC BY 4.0, но API требует авторизацию (401), а альтернативный автоматизированный браузер оказался платным/недоступным: **платные лимиты не использовались и не подключались**. Реальные файлы / labels / исходные video SHA не скачаны и не проверены. Ни обучение, ни ONNX, ни физическое Android распознавание не состоялись.
+- Главный следующий шаг: бесплатно и законно получить проверяемый реальный data archive/list, скорректировать локальные пути только по реальным байтам, затем независимый split по подтверждённым улейным видеосессиям и benchmark. Разрешение на удаление originals остаётся false.
+
+---
+
 ## 2026-11-20 — переход к основному detector dataset: Mendeley v6, восемь ульев
 
 - Родительский Draft #282 exact SHA `543b22a7e8b304ac4f517ef1d618a3b486363639`: Android #44743618873 **completed/success** (регрессии, debug APK, upload); isolated #44743618926 **skipped**. Проверка не подтверждает реальный inference.
