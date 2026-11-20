@@ -47,7 +47,7 @@ function stateAndLedger(state, ledger, guard, pendingVideos = []) {
  if (Array.isArray(state.records)) for (const record of state.records) {
   if (Array.isArray(record?.media)) for (const media of record.media) {
    const type = String(media?.type || media?.mimeType || '');
-   if ((type==='video'||type.startsWith('video/')) && media?.data != null)
+   if ((media?.kind==='video'||type==='video'||type.startsWith('video/')) && media?.data != null)
     fail('V2_STATE_EMBEDDED_VIDEO');
   }
  }
