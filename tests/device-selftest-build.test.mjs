@@ -224,3 +224,13 @@ test('Windows launcher cannot clear packages or use the production application I
   assert.doesNotMatch(ps, /pm clear/);
   assert.doesNotMatch(ps, /uninstall/);
 });
+
+test('physical Android screenshot regression: isolated panel wraps long check IDs and does not truncate hive details', async () => {
+  const script = await readFile(new URL('./device-selftest.js', import.meta.url), 'utf8');
+  assert.match(script, /selftest-results\{min-width:0;max-width:100%;overflow-wrap:anywhere/);
+  assert.match(script, /selftest-check\{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere/);
+  assert.match(script, /selftest-cards \.hive-row-main \.muted\{white-space:normal;overflow:visible;text-overflow:clip/);
+  assert.match(script, /previewHtml = '<div class="selftest-cards">/);
+  assert.match(script, /node\.style\.overflowX = 'hidden'/);
+  assert.doesNotThrow(() => new Function(script), 'isolated JS must parse on device');
+});
