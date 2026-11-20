@@ -25,8 +25,11 @@ function transitionVideoQueue(record,next,details={}){
  if(next==='failed_retryable'||next==='failed_permanent')updated.lastError=String(details.lastError||'Неизвестная ошибка').slice(0,500);
  return {ok:true,record:updated};
 }
-function canDeleteVideoOriginal(record){
- return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
+function canDeleteVideoOriginal(_record){
+ // A queue flag, server response and persisted-result flag cannot prove all-copy
+ // cleanup safety, external Android provenance or a committed tombstone.
+ // Keep the legacy helper for callers, but never grant deletion permission.
+ return false;
 }
 function assessVideoMetadata(input={}){
  const errors=[],warnings=[];
