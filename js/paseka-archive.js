@@ -187,9 +187,18 @@ async function verifyArchive(blob, parsed, cryptoProvider) {
   for (const entry of parsed.entries) await verifyArchiveEntry(blob, entry, cryptoProvider);
   return true;
 }
+function assertLegacyArchiveRecognitionLedger(value) {
+  if (value == null) return;
+  if (!isObject(value) || value.version !== 1 || !Array.isArray(value.entries)) {
+    fail('VIDEO_LEDGER_UNVERIFIED', 'Recognition history is unreadable. The legacy archive export is blocked.');
+  }
+  if (value.entries.length) {
+    fail('VIDEO_LEDGER_NOT_ARCHIVED', 'This archive version cannot preserve recognized video history. Export was blocked.');
+  }
+}
 function readConsistentDatabaseSnapshot(db) {
   return new Promise((resolve, reject) => {
-    let tx, stateRequest, videosRequest, state, videos, settled = false;
+    let tx, stateRequest, videosRequest, ledgerRequest, state, videos, ledger, settled = false;
     const rejectOnce = error => { if (!settled) { settled = true; reject(error); } };
     try {
       if (!db || !db.objectStoreNames || !db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('entrance_media')) {
@@ -198,10 +207,13 @@ function readConsistentDatabaseSnapshot(db) {
       tx = db.transaction(['main', 'entrance_media'], 'readonly');
       stateRequest = tx.objectStore('main').get('state');
       videosRequest = tx.objectStore('entrance_media').getAll();
+      ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
       stateRequest.onsuccess = () => { state = stateRequest.result || null; };
       videosRequest.onsuccess = () => { videos = Array.isArray(videosRequest.result) ? videosRequest.result : []; };
+      ledgerRequest.onsuccess = () => { ledger = ledgerRequest.result; };
       stateRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(stateRequest.error || error); } };
       videosRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(videosRequest.error || error); } };
+      ledgerRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(ledgerRequest.error || error); } };
       tx.oncomplete = () => {
         if (settled) return;
         settled = true;
@@ -209,6 +221,8 @@ function readConsistentDatabaseSnapshot(db) {
           reject(new Error('Основное состояние пасеки не найдено. Экспорт отменён.'));
           return;
         }
+        try { assertLegacyArchiveRecognitionLedger(ledger); }
+        catch (error) { reject(error); return; }
         resolve({ state, videos });
       };
       tx.onabort = () => rejectOnce(tx.error || stateRequest.error || videosRequest.error || new Error('Чтение согласованной копии базы прервано.'));
