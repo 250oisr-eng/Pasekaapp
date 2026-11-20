@@ -82,3 +82,12 @@ test('journal metadata conflict rejects without constructing a file',async()=>{
  input.state.records[0].media[1].sourceBytes=4;
  await rejects(build(input),'V2_RECORD_SOURCE_HASH_MISMATCH');
 });
+
+test('caller cannot inject raw record_media Blob without source-linked adapter',async()=>{
+ const input=args();
+ const original=new Blob([new Uint8Array([1,2,3])],{type:'video/mp4'});
+ input.pendingVideos=[{source:'record_media',videoId:'other',sourceSha256:sourceSha,
+ sourceBytes:original.size,mimeType:'video/mp4',blob:original}];
+ await rejects(build(input),'V2_VIDEO_UNSUPPORTED');
+ await rejects(build(input,false),'V2_VIDEO_UNSUPPORTED');
+});
