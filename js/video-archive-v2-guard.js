@@ -16,6 +16,7 @@ function assertStructuredResult(value, depth = 0, seen = new Set()) {
     return;
   }
   if (typeof value !== 'object' || seen.has(value) || !(Array.isArray(value) || obj(value))) fail('V2_RESULT_INVALID');
+  if (!Array.isArray(value) && Object.getPrototypeOf(value)!==Object.prototype && Object.getPrototypeOf(value)!==null) fail('V2_RESULT_INVALID');
   seen.add(value);
   if (Array.isArray(value)) value.forEach(item => assertStructuredResult(item, depth + 1, seen));
   else for (const [key, item] of Object.entries(value)) {
@@ -25,13 +26,17 @@ function assertStructuredResult(value, depth = 0, seen = new Set()) {
   seen.delete(value);
 }
 function validateRecognitionLedgerForV2(ledger) {
-  if (!obj(ledger) || ledger.version !== 1 || !Array.isArray(ledger.entries) || ledger.entries.length > 100000) fail('V2_LEDGER_INVALID');
+  if (!obj(ledger) || Object.getPrototypeOf(ledger)!==Object.prototype && Object.getPrototypeOf(ledger)!==null ||
+      Object.keys(ledger).some(key=>!['version','entries'].includes(key)) ||
+      ledger.version !== 1 || !Array.isArray(ledger.entries) || ledger.entries.length > 100000) fail('V2_LEDGER_INVALID');
   const identities = new Set();
   const resultIds = new Set();
   const deleted = new Set();
   let encodedBytes = 0;
   for (const entry of ledger.entries) {
-    if (!obj(entry) || !sources.has(entry.source) || !id(entry.videoId) || !id(entry.resultId) ||
+    if (!obj(entry) || Object.getPrototypeOf(entry)!==Object.prototype && Object.getPrototypeOf(entry)!==null ||
+        Object.keys(entry).some(key=>!['source','videoId','resultId','recognizedAt','stateRevisionId','result','sourceSha256','sourceBytes','sourceEvidenceVersion','sourceHashVerifiedAt','cleanupState'].includes(key)) ||
+        !sources.has(entry.source) || !id(entry.videoId) || !id(entry.resultId) ||
         !statuses.has(entry.cleanupState) || !sha(entry.sourceSha256) ||
         !Number.isSafeInteger(entry.sourceBytes) || entry.sourceBytes <= 0 ||
         entry.sourceEvidenceVersion !== 1 ||
