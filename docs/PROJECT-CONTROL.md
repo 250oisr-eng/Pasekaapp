@@ -1,3 +1,7 @@
+## 2026-11-20 — 16 исходных кадров Mendeley v6 с реальными SHA
+
+- `VIDEO-MENDELEY-V6-16-REAL-PAIR-AUDIT.md` — исходный CSV пользователя SHA, восемь оригинальных групп x две JPG/YOLO пары, live CI 16 JPEG full decode/113 bee bbox, самостоятельные SHA pins всех 32 файлов, пробел source-video independence и следующий законный реальный training stage.
+
 ## 2026-11-20 — CSV-пакет оригинальных ссылок Mendeley v6
 
 - `VIDEO-MENDELEY-V6-BOUNDED-CSV-STAGING.md` — безопасный до 16 paired JPG+YOLO public-files CSV stage, 13 synthetic regressions и реальный CI одной пары, ограничения storage/URL/SHA/full decode, статус независимости ulейных записей и дальнейший реальный training data step.
