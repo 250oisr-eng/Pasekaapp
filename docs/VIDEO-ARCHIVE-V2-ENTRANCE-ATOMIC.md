@@ -33,3 +33,7 @@
 - Этот модуль не подключён к `index.html`, Service Worker, Android bridge и production. Никаких пользовательских записей он не затрагивал.
 
 Полный сценарий video restore остаётся **не допущенным к использованию**. Merge/production и автоматический cleanup запрещены.
+
+## Дополнение о зависимом тестовом quarantine rollback (2026-11-20)
+
+В отдельном Draft PR #237 появился изолированный js/video-archive-v2-entrance-quarantine-rollback.js, ограниченно возвращающий прежнее состояние и атомарно перемещающий текущие Blob в защищённый full_backup.quarantinedMedia. Это не разрешённый пользовательский rollback/cleanup и не изменяет статус original commit в #236 как committed_rollback_blocked до отдельного вызова нового тестового модуля. После quarantine операция обозначается reverted_quarantined_unverified, без доказательства SHA на момент writer lock, и никогда не удаляет физические видеобайты. Подробности в docs/VIDEO-ARCHIVE-V2-QUARANTINE-ROLLBACK.md.
