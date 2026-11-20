@@ -1,3 +1,21 @@
+## Проверка итогов Draft #267–#268 (2026-11-20)
+
+- Draft #267 exact SHA `29b4eef274431e4931b212cb70b026cc1da2ba6e`: Android workflow #44730598362 **completed/success** (регрессии, debug APK build/upload); isolated #44730598371 **skipped**. Это относится к новому self-contained COCO export и не доказывает качества датасета/модели.
+- Draft #268 docs-only SHA `d1f417d94f64c8f8b49c852b13b354f05eee8925`: на момент сверки **нет workflow runs**; не считать это успешным CI. Дальнейшие docs commits требуют отдельной сверки SHA.
+- Практический блокер: до сих пор нет скачанного и проверенного в рабочей среде Mendeley v5/v6 архива и фактической лицензии файлов; обученная модель, ONNX и Android physical inference не существуют. Следующее — secure offline import фактических публичных файлов и обучение без непроверенных base weights.
+- Все PR Draft, main/production/user videos нетронуты, cleanup заблокирован.
+
+---
+
+## Контрольная точка — v6 tracking data для леткового распознавания (2026-11-20)
+
+- Исследована публичная карточка https://data.mendeley.com/datasets/compare/8gb9r2yhfc. Версия v6 (DOI 10.17632/8gb9r2yhfc.6) помимо bbox detection/pose имеет 17 162 размеченных треков на 21 946 кадрах и behavior labels, заявлена CC BY 4.0. В отдельной Draft docs-ветке после #267 добавлен `docs/VIDEO-MENDELEY-DATA-V6-TRACKING-AUDIT.md` с задачами detection/tracking, версиями, схемами и ограничениями.
+- Не смешивать dataset license CC BY 4.0 и article CC BY-NC-ND, не считать YOLOv8 checkpoint доступным. Оригиналы архивов и разрешения на файлы требуют проверки. Нет реальных файлов датасета, модели, physical Android inference или cleanup.
+- #267 исправляет упаковку самодостаточного COCO набора; его Android CI проверять на точном SHA. Документальный этап не даёт права на исполнение модели.
+- `main`/production/live видео остаются нетронутыми.
+
+---
+
 ## Контрольная точка — исправление критичного COCO export (2026-11-20)
 
 - На базе Draft #266 (`87122acc0974232d71fc30d2620edd222ffc5fe0`, Android #44728661206 **success**, isolated #44728661247 **skipped**) создана отдельная ветка `fix/video-coco-self-contained-2026-11-20`.
