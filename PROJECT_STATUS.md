@@ -1,3 +1,12 @@
+## Проверен CI — инвентаризация копий PASEKA02 (2026-11-20)
+
+- Draft PR #238 на точном SHA 4aece72275b4075dbbae557df502c57c14ab1d1f: Android Build #44702184802 **completed/success**, шаги Run regression tests, Build debug APK, Upload APK успешны. Изолированный archive APK run #44702184782 **skipped**, не отдельный успешно пройденный тест.
+- Проверка охватывает новый test-only readonly inventory с simulated IndexedDB; физическая проверка Android/Gallery/Downloads не проводилась, legacy backup форматы требуют дополнительного аудита. Cleanup остаётся всегда запрещённым.
+- Следующий приоритет — сверка конкретных runtime-модулей capture, recognition и storage и регистрация создания/возможных внешних видео-копий до обсуждения удаления.
+- Последующие docs-only SHA требуют отдельной CI-сверки. Main, production и пользовательская база не менялись.
+
+---
+
 ## Контрольная точка — инвентаризация управляемых копий PASEKA02 (2026-11-20)
 
 - Предыдущий Draft PR #237 HEAD 8a6ab3543c48697170acb838cd19540d46654f76: Android workflow #44701483418 completed/success (регрессии, APK build и upload); isolated archive APK #44701483368 skipped. Main/production не изменялись; #230–237 остаются Draft.
