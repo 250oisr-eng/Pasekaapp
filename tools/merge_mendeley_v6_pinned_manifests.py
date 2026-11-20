@@ -7,7 +7,7 @@ NOT re-download or rehash the source image/label bytes. A complete *count* of
 7200 frames is not proof of license, provenance, independence or correctness.
 """
 import argparse
-import hashlib
+import re
 import json
 import os
 import tempfile
@@ -21,6 +21,7 @@ from stage_mendeley_v6_public_csv import (
 
 MAX_CHUNKS = 500  # up to 8000 rows; duplicate/incomplete guards still apply
 MAX_ROWS = sum(GROUP_COUNTS.values())
+SHA_256_HEX = re.compile(r'[0-9a-f]{64}\Z')
 
 
 class InventoryRejected(ValueError):
@@ -61,6 +62,8 @@ def build_metadata_inventory(rows):
         imgsha, labsha = row.get("image_sha256"), row.get("label_sha256")
         if not imgsha or not labsha:
             raise InventoryRejected("sha256_pins_required")
+        if not SHA_256_HEX.fullmatch(imgsha) or not SHA_256_HEX.fullmatch(labsha):
+            raise InventoryRejected("sha256_pins_malformed")
         key = (group, image.casefold())
         if key in keys:
             raise InventoryRejected("same_frame_repeated_across_csv_chunks")
