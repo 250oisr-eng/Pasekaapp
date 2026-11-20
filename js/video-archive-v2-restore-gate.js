@@ -95,5 +95,52 @@ function checkRestoreLedgerCandidate(currentLedger,incoming,guard){
   requiresAtomicCommitCheck:true
  };
 }
-root.PasekaVideoArchiveV2RestoreGate=Object.freeze({checkRestoreLedgerCandidate});
+// Fail-closed live pending identity audit. Read-only preflight and the final
+// aborted write-lock check MUST both call this synchronous function. It only
+// compares identities; it does not authorize merging, replacing or deletion.
+function checkLivePendingMediaIdentity(liveState,liveEntranceKeys,incoming){
+ if(!object(liveState)||!Array.isArray(liveState.records)||
+    !Array.isArray(liveEntranceKeys)||!object(incoming)||
+    !Array.isArray(incoming.pendingVideos))
+  fail('V2_RESTORE_LIVE_MEDIA_CONTEXT_INVALID');
+ const candidates=incoming.pendingVideos;
+ if(candidates.length===0)return {pendingIdentityChecked:0,liveRecordVideoCount:0};
+ const incomingEntrance=new Set(),incomingRecord=new Set();
+ for(const video of candidates){
+  if(!object(video)||!validId(video.videoId)||
+     !['entrance_media','record_media'].includes(video.source))
+   fail('V2_RESTORE_PENDING_VIDEO_INVALID');
+  (video.source==='entrance_media'?incomingEntrance:incomingRecord).add(video.videoId);
+ }
+ // A video with the same key may contain different bytes and must never
+ // overwrite an existing unrecognized original, even if its SHA looks equal.
+ for(const key of liveEntranceKeys){
+  if(typeof key!=='string'||!validId(key))
+   fail('V2_RESTORE_LIVE_ENTRANCE_KEY_INVALID');
+  if(incomingEntrance.has(key))fail('V2_RESTORE_LIVE_ENTRANCE_ID_COLLISION');
+ }
+ let liveRecordVideoCount=0;
+ for(const record of liveState.records){
+  if(!object(record))fail('V2_RESTORE_LIVE_RECORD_INVALID');
+  if(record.media==null)continue;
+  if(!Array.isArray(record.media))fail('V2_RESTORE_LIVE_MEDIA_INVALID');
+  for(const media of record.media){
+   if(!object(media))fail('V2_RESTORE_LIVE_MEDIA_INVALID');
+   const hasVideoData=typeof media.data==='string'&&
+     /^(?:data:(?:video\\/|application\\/octet-stream)|blob:)/i.test(media.data);
+   if(!videoLike(media)&&!hasVideoData)continue;
+   liveRecordVideoCount++;
+   if(!validId(media.videoId)){
+    // Unidentified originals cannot be safely reconciled with a restored
+    // record, including a legacy journal attachment with no stable ID.
+    if(media.data!=null)fail('V2_RESTORE_LIVE_RECORD_ID_UNKNOWN');
+    continue;
+   }
+   if(incomingRecord.has(media.videoId))
+    fail('V2_RESTORE_LIVE_RECORD_ID_COLLISION');
+  }
+ }
+ return {pendingIdentityChecked:candidates.length,liveRecordVideoCount};
+}
+root.PasekaVideoArchiveV2RestoreGate=Object.freeze({checkRestoreLedgerCandidate,checkLivePendingMediaIdentity});
 })(typeof window!=='undefined'?window:globalThis);
