@@ -126,8 +126,10 @@ function checkLivePendingMediaIdentity(liveState,liveEntranceKeys,incoming){
   if(!Array.isArray(record.media))fail('V2_RESTORE_LIVE_MEDIA_INVALID');
   for(const media of record.media){
    if(!object(media))fail('V2_RESTORE_LIVE_MEDIA_INVALID');
-   const hasVideoData=typeof media.data==='string'&&
-     /^(?:data:(?:video\\/|application\\/octet-stream)|blob:)/i.test(media.data);
+   const dataPrefix=typeof media.data==='string'?media.data.toLowerCase():'';
+   const hasVideoData=dataPrefix.startsWith('data:video/')||
+     dataPrefix.startsWith('data:application/octet-stream')||
+     dataPrefix.startsWith('blob:');
    if(!videoLike(media)&&!hasVideoData)continue;
    liveRecordVideoCount++;
    if(!validId(media.videoId)){
