@@ -1,3 +1,12 @@
+## Контрольная точка — v6 tracking data для леткового распознавания (2026-11-20)
+
+- Исследована публичная карточка https://data.mendeley.com/datasets/compare/8gb9r2yhfc. Версия v6 (DOI 10.17632/8gb9r2yhfc.6) помимо bbox detection/pose имеет 17 162 размеченных треков на 21 946 кадрах и behavior labels, заявлена CC BY 4.0. В отдельной Draft docs-ветке после #267 добавлен `docs/VIDEO-MENDELEY-DATA-V6-TRACKING-AUDIT.md` с задачами detection/tracking, версиями, схемами и ограничениями.
+- Не смешивать dataset license CC BY 4.0 и article CC BY-NC-ND, не считать YOLOv8 checkpoint доступным. Оригиналы архивов и разрешения на файлы требуют проверки. Нет реальных файлов датасета, модели, physical Android inference или cleanup.
+- #267 исправляет упаковку самодостаточного COCO набора; его Android CI проверять на точном SHA. Документальный этап не даёт права на исполнение модели.
+- `main`/production/live видео остаются нетронутыми.
+
+---
+
 ## Контрольная точка — исправление критичного COCO export (2026-11-20)
 
 - На базе Draft #266 (`87122acc0974232d71fc30d2620edd222ffc5fe0`, Android #44728661206 **success**, isolated #44728661247 **skipped**) создана отдельная ветка `fix/video-coco-self-contained-2026-11-20`.
