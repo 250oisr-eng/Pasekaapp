@@ -1,3 +1,12 @@
+## 2026-11-20 — основной этап Mendeley v6: проверены реальные ответы API, требуется исходный образец
+
+- Родительский Draft #283 final HEAD `a256f63af289864f4dc3924eb9d805b29c58d66f`: Android #44744928807 **completed/success** (регрессии и Debug APK), isolated #44744928737 **skipped**. Ни обучение, ни физический Android inference ещё не выполнены.
+- В новом Draft #284 на code SHA `16440cb7587830d59e9788261e5ee67372926c9e`: бесплатный metadata-only GitHub workflow [#44745796484](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44745796484) **completed/success** по 11 mocked regression tests и 6 HTTP GET; все 6 публичных metadata API Mendeley v6 реально ответили **401**. Этот `success` НЕ означает успешного доступа к данным. ZIP, JPEG, TXT, MP4 не скачаны; защищённые или платные механизмы не обходились.
+- Документирован `docs/VIDEO-MENDELEY-V6-ACCESS-AUDIT.md`: официальный original v6 и CC BY 4.0 отделены от Roboflow зеркала v5 с переработкой/аугментациями и потенциальным train/test leakage. Следующий необходимый вход: пользователь скачивает через браузер исходный `detection` и присылает минимальный ZIP с 2–3 image+YOLO TXT парами вместе с именами каталогов, либо screenshot ошибки доступа. Без настоящих байтов нельзя утверждать, что importer проверен на v6 или что можно приступать к настоящему обучению.
+- Дальше: сверить фактический layout/имена, настроить importer, проверить права/атрибуцию и video session independence, затем grouped holdout, лицензированное обучение, ONNX offline Android и реальное отслеживание crossing. `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`; main/production/пользовательские видео не изменены.
+
+---
+
 ## 2026-11-20 — CI нового Mendeley v6 importer: exact code HEAD success
 
 - Draft PR #283 code/test+docs SHA `b19a22346420975e5fe6c07ccb9f616b07d0e9aa`: Android workflow [#44744618460](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44744618460) **completed/success** (Python Mendeley YOLO synthetic cases через Node, общая регрессия, Debug APK build/upload); isolated #44744618463 **skipped**, не success. После обновления оперативного журнала HEAD меняется, его CI нужно проверять отдельно.
