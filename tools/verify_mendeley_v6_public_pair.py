@@ -105,8 +105,8 @@ def verify_bytes(jpg, label, require_pinned_source=False):
         (labels / PAIRS[1][0]).write_bytes(label)
         result = build_unassigned(root)
     if (len(result["images"]) != 1 or
-        len(result["annotations"]) != (EXPECTED_BEE_BOXES if require_pinned_source else len(result["annotations"])) or
         len(result["annotations"]) < 1 or
+        (require_pinned_source and len(result["annotations"]) != EXPECTED_BEE_BOXES) or
         result["images"][0]["width"] != EXPECTED_WIDTH or
         result["images"][0]["height"] != EXPECTED_HEIGHT):
         raise RealPairRejected("unexpected_real_pair_shape")
