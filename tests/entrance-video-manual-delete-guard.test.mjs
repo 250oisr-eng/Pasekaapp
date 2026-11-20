@@ -59,3 +59,14 @@ test('existing video capture and preview workflows remain wired',()=>{
  assert.match(html,/function listEntranceVideos\(\)/);
  assert.match(html,/async function refreshEntranceVideos\(\)/);
 });
+
+test('a bare completed queue flag never masquerades as confirmed video recognition',()=>{
+ const start=html.indexOf('async function refreshEntranceVideos(){');
+ const end=html.indexOf('async function inspectEntranceVideoFile(',start);
+ assert.ok(start>=0&&end>start);
+ const render=html.slice(start,end);
+ assert.match(render,/x\.status==='completed'\?'Результат распознавания не подтверждён'/);
+ assert.doesNotMatch(render,/x\.status==='completed'\?'Анализ завершён'/);
+ assert.match(render,/Сервер анализа пока не подключён/);
+ assert.match(render,/Удаление заблокировано/);
+});
