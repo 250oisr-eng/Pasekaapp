@@ -70,6 +70,13 @@ function assertProtected(v,incoming,opt,fileHash,d){
  if(!obj(v.ledger)||!Array.isArray(v.liveKeys)||v.liveKeys.length!==0||
     !Array.isArray(v.staged)||v.backups!==0||v.historyCount!==1)
   fail('V2_ENTRANCE_PROTECTED_CONTEXT_CHANGED');
+ // The experiment may change only the revision and add previously absent
+ // entrance originals. Replacing live state data would lose journal writes
+ // made after staging, including those that reused the same revision ID.
+ const unchanged={...incoming.state,meta:{
+  ...incoming.state.meta,revisionId:opt.expectedRevision}};
+ if(exact(v.state)!==exact(unchanged))
+  fail('V2_ENTRANCE_STATE_CHANGE_FORBIDDEN');
  d.guard.validateRecognitionLedgerForV2(v.ledger);
  d.gate.checkRestoreLedgerCandidate(v.ledger,incoming,d.guard);
  d.gate.checkLivePendingMediaIdentity(v.state,v.liveKeys,incoming);
