@@ -5,7 +5,7 @@ $tokens = $null
 $errors = $null
 [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors) | Out-Null
 if ($errors.Count -gt 0) { throw 'Upload-Saved-Report syntax failed in PowerShell 5.1.' }
-foreach ($required in @('Publish-Paseka-Test-Report.ps1', "-Action Upload", "Filter 'report.json'", 'Multiple report.json files', 'Sanitized')) {
+foreach ($required in @('Publish-Paseka-Test-Report.ps1', "-Action Upload", "Filter 'report.json'", 'Multiple report.json files', 'sanitized')) {
   if (!$source.Contains($required)) { throw ('Missing safe saved-report upload guard: ' + $required) }
 }
 if ($source -match 'Invoke-RestMethod|Invoke-WebRequest|Remove-Item|Content.*Get-Content|Send-') {
