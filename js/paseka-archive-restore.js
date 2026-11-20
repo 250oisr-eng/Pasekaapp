@@ -57,7 +57,7 @@ async function findSessionByBackupId(db, backupId) {
 }
 async function updateSession(db, session) {
   const sessionId = session.sessionId || session.id;
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
   let failure = null;
   const request = store.get(sessionId);
@@ -83,6 +83,15 @@ async function updateSession(db, session) {
     if (currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
+      return;
+    }
+    if (session.status === 'ready') {
+      const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
+      ledgerRequest.onerror = () => { failure = ledgerRequest.error || new Error('Could not read recognition ledger during staging finalization.'); try { tx.abort(); } catch (ignored) {} };
+      ledgerRequest.onsuccess = () => {
+        try { assertLegacyArchiveRecognitionLedger(ledgerRequest.result); store.put({ ...currentSession, ...session }); }
+        catch (error) { failure = error; try { tx.abort(); } catch (ignored) {} }
+      };
       return;
     }
     store.put({ ...currentSession, ...session });
@@ -1072,8 +1081,7 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
   }
   // Repeated requests are safe: validate the ready archive fully, then return
   // its existing header without opening another write transaction.
-  if (staged.session.status === 'ready') return staged.session;
-  if (staged.session.status !== 'staging') {
+  if (staged.session.status !== 'staging' && staged.session.status !== 'ready') {
     fail('STAGING_FINALIZE_NOT_ALLOWED', 'Only an interrupted staging session can be finalized.');
   }
   const verifiedSession = staged.session;
@@ -1089,14 +1097,16 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
-      tx = db.transaction(STAGING_STORE, 'readwrite');
+      tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
       const store = tx.objectStore(STAGING_STORE);
       const sessionRequest = store.get(sessionId);
       const recordsRequest = store.index('sessionId').getAll(sessionId);
+      const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
       const values = {};
-      let pending = 2;
+      let pending = 3;
       const process = () => {
         try {
+          assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const current = values.session;
           const records = values.records || [];
           if (!current || current.kind !== 'session' || !['staging', 'ready'].includes(current.status) ||
@@ -1130,7 +1140,7 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
           abortWith(error);
         }
       };
-      for (const [key, request] of [['session', sessionRequest], ['records', recordsRequest]]) {
+      for (const [key, request] of [['session', sessionRequest], ['records', recordsRequest], ['recognitionLedger', ledgerRequest]]) {
         request.onsuccess = () => {
           values[key] = request.result;
           pending--;
