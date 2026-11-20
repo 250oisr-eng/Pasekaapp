@@ -213,8 +213,8 @@ test('each staged blob and its stagedCount are committed in the same readwrite t
   assert.equal(result.session.stagedCount, 3);
   assert.equal(result.session.stagingEpoch, 3);
   assert.deepEqual(progress, [2, 3]);
-  // Session creation, three atomic entry+counter writes, and final ready status.
-  assert.deepEqual(tracked.modes, ['readonly', 'readonly', 'readonly', 'readwrite', 'readwrite', 'readwrite', 'readwrite', 'readwrite']);
+  // Two recognition-ledger preflight reads precede baseline/session creation; three atomic entry+counter writes and final ready status remain unchanged.
+  assert.deepEqual(tracked.modes, ['readonly', 'readonly', 'readonly', 'readonly', 'readonly', 'readwrite', 'readwrite', 'readwrite', 'readwrite', 'readwrite']);
 
   const verify = db.transaction('archive_staging', 'readonly');
   const stored = await new Promise((resolve, reject) => {
