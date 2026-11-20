@@ -1,3 +1,14 @@
+## Большая контрольная точка — изолированный атомарный импорт/откат PASEKA02 без видеовложений (2026-11-20)
+
+- Проверено, что последний PR #226 (SHA `ebe63a1abf3935355d8779af0b159415793f8d1e`) прошёл Android Build, кодовый SHA `30dbf9254e9f9dc8ef739a2e0bd1d859dae2d2b7` прошёл Fast Quality. Отдельная UI/Windows цепочка #227–229 завершила CI, включая сборку Windows+Android ZIP на SHA `f113870dca9c98615f0ddc307941cef05aff982b`; в `main` ничего не сливалось.
+- Новая зависимая архивная ветка `feat/video-archive-v2-metadata-atomic-restore-2026-11-20` создана поверх #226. Реализован `js/video-archive-v2-metadata-atomic.js` — **изолированный и не подключённый к приложению** атомарный импорт/откат только для полностью безопасного подмножества PASEKA02: schemaVersion=15, без pending video и иных исходных видео, без существующих staging/history/full_backup, с неизменным полным recognition ledger.
+- Реальный файл перед транзакцией проходит PASEKA02 decoder, SHA-256 и синхронную валидацию; под общей `readwrite` блокировкой пяти stores (`main`, `entrance_media`, `archive_staging`, `archive_history`, `full_backup`) повторно проверяются revisions, ledger и отсутствие защищённых копий. В одной транзакции создаются previous state/ledger, after state, history и новый state. Никаких `delete`, `clear` или возврата оригиналов.
+- Атомарный rollback сравнивает **полный** текущий state с imported snapshot (не только revision), проверяет ledger, защищённые записи и сохраняет snapshot и history после отката. Изменение журнала/маток/семей, новое видео/распознавание или чужой backup после импорта блокируют откат без потери данных. `inspectMetadataRecovery` классифицирует `not_imported`/`committed`/`reverted`/`manual_review_required` и **не выполняет recovery автоматически**.
+- Добавлена матрица регрессий в `tests/video-archive-v2-metadata-atomic.test.mjs`; документация `docs/VIDEO-ARCHIVE-V2-METADATA-ATOMIC.md`. На кодовом SHA `b4e5d90102840c67a7c3017fa76993a2c27bb66a` Fast quality #44691504851 **success**; Android на финальном docs SHA проверить отдельно.
+- Это НЕ live restore PASEKA02 и не разрешение на cleanup/миграции/production. Следующая большая задача — staged обработка незавершённых видео, интеграция видеоцепочки, подготовка полной автоматической безопасной модели backup+rollback; после этого отдельный Android тест.
+
+---
+
 ## Крупный этап — сквозной безопасный dry-run восстановления PASEKA02 и защита full_backup (2026-11-20)
 
 - Ветка `feat/video-archive-v2-end-to-end-dry-run-2026-11-20` поверх Draft PR #225. Создан `js/video-archive-v2-restore-dry-run.js`: принимает **реальный Blob архива** `PASEKA02`, использует проверенный codec для манифеста, state, ledger, видео летка и журнала, затем read-only DB preflight и финальную проверку ledger под **отменяемой** общей readwrite-блокировкой. Возвращает только отчёт с SHA-256 архива, количеством видео и историей, без права на запись.
