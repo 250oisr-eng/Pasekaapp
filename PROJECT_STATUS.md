@@ -1,3 +1,12 @@
+## Контрольная точка — безопасный provenance gate весов (2026-11-20)
+
+- Сверено: PR #260 SHA `8b1ad6906e02e923fe11072c648844c02f07182c` workflow #44715065889 **completed/success**, isolated #44715065942 **skipped**. Сборка/тесты относятся только к этому SHA.
+- Новая ветка `test/video-model-license-provenance-gate-2026-11-20` поверх Draft #260: `js/video-model-provenance-gate.js`, отрицательные тесты и `docs/VIDEO-MODEL-PROVENANCE-REVIEW.md`. Gate проверяет только полноту декларации источников весов, upstream, датасета, SHA, задач и ссылок на лицензии; любой результат остаётся `provenance_review_required` с `licenseVerified=false`, `canRunInference=false` и `cleanupAuthorized=false`.
+- Кандидат maryammeda/Apiarist содержит Apache-2.0 card, но обучен от yolov8s.pt и стороннего Roboflow dataset; отдельно проверить лицензирование базовых весов, датасета и derivative checkpoint. Кандидат mattnudi пока не имеет подтверждённого права распространения весов. Ни один не одобрен и не импортирован.
+- Следующий шаг: CI на точном SHA новой Draft ветки; затем независимая проверка source/license конкретного checkpoint, реальная Android ONNX/WASM performance и quality. Никаких изменений main, production или оригиналов.
+
+---
+
 ## Контрольная точка — проверка #260 и аудит весов (2026-11-20)
 
 - PR #259 exact SHA `9f9124c3c0e48e042c74ef3c23f7673018bb25e0`: Android workflow #44714109608 **completed/success** (regression, debug APK build/upload), isolated #44714109686 **skipped**.
