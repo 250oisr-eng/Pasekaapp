@@ -1,3 +1,9 @@
+## 2026-11-20 — добавлена обязательная атрибуция оригинального Mendeley v6 в COCO
+
+- В `tools/prepare_mendeley_v6_yolo_unassigned.py` расширено только исследовательское поле `info`: `sourceCreator=Tomyslav Sledevic`, DOI, source URL, CC BY 4.0 URL и `modificationNotice` о YOLO→COCO преобразовании. Не меняет group/box logic, train/test, app runtime, storage или video retention. Добавлены проверки полей в существующие COCO regression tests и в новые 13 CSV tests. Результат проверить на exact final SHA, включая Android regression CI и real JPG/TXT stage.
+
+---
+
 ## 2026-11-20 — проверен пакетный оригинальный Mendeley v6 CSV→COCO без архива 7,21 ГБ
 
 - Родительский Draft #285 SHA `bd4d4592f2973503130ba1bef9719c140aca8eb3`: real JPG+YOLO #44750045961 **completed/success**, Android APK #44750045958 **completed/success**, isolated archive #44750045874 **skipped**.
