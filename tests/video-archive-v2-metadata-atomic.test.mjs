@@ -392,3 +392,54 @@ test('recovery inspector rejects embedded video originals and missing records wi
   db.close();
  }
 });
+
+test('recovery refuses a corrupted inactive snapshot, including hidden original media',async()=>{
+ for(const variant of ['hidden-before','hidden-after','missing-before-records']){
+  const db=await setup();
+  await commit(db,await archive());
+  await rollback(db);
+  const tx=db.transaction('full_backup','readwrite');
+  const store=tx.objectStore('full_backup');
+  const snapshot=await new Promise((resolve,reject)=>{
+   const req=store.get('v2:test-backup');
+   req.onsuccess=()=>resolve(req.result);
+   req.onerror=()=>reject(req.error);
+  });
+  if(variant==='hidden-before')
+   snapshot.beforeState.records=[{id:'video',notes:'blob:local-original'}];
+  if(variant==='hidden-after')
+   snapshot.afterState.records=[{id:'video',data:'data:video/mp4;base64,AQID'}];
+  if(variant==='missing-before-records')snapshot.beforeState.records=undefined;
+  store.put(snapshot,'v2:test-backup');
+  await done(tx);
+  const result=await api.inspectMetadataRecovery(db,'test-backup',deps);
+  assert.equal(result.status,'manual_review_required',variant);
+  assert.equal(result.cleanupAuthorized,false);
+  assert.equal((await read(db,'archive_history','test-backup')).status,'reverted');
+  assert.ok(await read(db,'full_backup','v2:test-backup'));
+  db.close();
+ }
+});
+test('recovery refuses a reused or malformed rollback revision without mutating history',async()=>{
+ for(const revision of ['initial','imported','invalid revision']){
+  const db=await setup();
+  await commit(db,await archive());
+  await rollback(db);
+  const tx=db.transaction(['main','archive_history'],'readwrite');
+  const request=tx.objectStore('archive_history').get('test-backup');
+  const h=await new Promise((resolve,reject)=>{
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+  });
+  h.revertedRevisionId=revision;
+  tx.objectStore('archive_history').put(h);
+  const current=state(revision);
+  tx.objectStore('main').put(current,'state');
+  await done(tx);
+  const result=await api.inspectMetadataRecovery(db,'test-backup',deps);
+  assert.equal(result.status,'manual_review_required',revision);
+  assert.deepEqual(await read(db,'main','state'),current);
+  assert.ok(await read(db,'full_backup','v2:test-backup'));
+  db.close();
+ }
+});
