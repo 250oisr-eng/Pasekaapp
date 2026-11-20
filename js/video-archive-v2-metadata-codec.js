@@ -95,6 +95,9 @@ function decodeJson(bytes, code) {
 }
 async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVideos=[]},cryptoProvider,guard,shaModule,recordAdapter) {
  if (!Array.isArray(pendingVideos)||pendingVideos.length>MAX_PENDING) fail('V2_VIDEO_COUNT_LIMIT');
+ // Caller-supplied journal Blob cannot bypass source Data URL evidence checks.
+ // Only the dedicated adapter may create record_media entries.
+ if (pendingVideos.some(video=>video?.source!=='entrance_media')) fail('V2_VIDEO_UNSUPPORTED');
  let archiveState=state;
  if (recordAdapter) {
   if (typeof recordAdapter.preparePendingRecordMedia!=='function') fail('V2_RECORD_ADAPTER_UNAVAILABLE');
