@@ -1,3 +1,12 @@
+## Контрольная точка — контракт распознавания/очистки видео (2026-11-20)
+
+- На основе Draft #241 создан отдельный docs-only блок: `docs/VIDEO-RECOGNITION-CLEANUP-STATE-CONTRACT.md`. Определены fail-closed состояния pending/in-progress/recognized_durable/cleanup_blocked/cleanup_committed, необходимые доказательства SHA/ledger, учёт внутренних и внешних Android копий, атомарность и запрет resurrection при restore.
+- Текущий код **не удаляет** видео после распознавания; распознаватель ещё не подключён в этой цепочке. Контракт ничего не разблокирует, не меняет состояние пользователя, не выдаёт archiveSafe или cleanupAuthorized.
+- Перед программным этапом требуется сверить несоединённый ledger стек #213, внедрить только durable recognition без удаления и проверить CI/Android. Основной стек #230–241 остаётся Draft. main, production и реальные оригиналы без изменений.
+- Документационные изменения текущей ветки не объявлять CI-verified без workflow на точном HEAD.
+
+---
+
 ## Проверенный CI — защита леткового оригинала от преждевременного удаления (2026-11-20)
 
 - Draft PR #241: code/test SHA deb588ce20e5929610050a01b465455e302ed837. Android workflow #44705595782 **completed/success**: Run regression tests, Build debug APK, Upload APK успешны; isolated archive APK #44705595821 **skipped**.
