@@ -19,7 +19,7 @@ function stableJson(v) {
 function noOriginals(value,depth=0,seen=new Set()){
  if(depth>48)fail('V2_ATOMIC_UNVERIFIED_ORIGINAL');
  if(typeof value==='string'){
-  if(/(?:^data:(?:video\/|application\/octet-stream)|^blob:)/i.test(value))
+  if(/(?:data:(?:video\/|application\/octet-stream)|blob:)/i.test(value))
    fail('V2_ATOMIC_UNVERIFIED_ORIGINAL');
   return;
  }
@@ -36,10 +36,12 @@ function validateState(state,validator){
  if(!obj(state)||!obj(state.meta)||state.meta.schemaVersion!==15||!validId(state.meta.revisionId))
   fail('V2_ATOMIC_SCHEMA_UNSUPPORTED');
  if(!Array.isArray(state.records))fail('V2_ATOMIC_STATE_INVALID');
- noOriginals(state);stableJson(state);
+ noOriginals(state);
+ const beforeValidation=stableJson(state);
  if(typeof validator!=='function')fail('V2_ATOMIC_VALIDATOR_REQUIRED');
  const valid=validator(state);
- if(valid===false||valid==null||typeof valid?.then==='function')fail('V2_ATOMIC_STATE_INVALID');
+ if(valid===false||valid==null||typeof valid?.then==='function'||stableJson(state)!==beforeValidation)
+  fail('V2_ATOMIC_STATE_INVALID');
 }
 function requireDb(db){
  if(!db?.objectStoreNames||STORES.some(name=>!db.objectStoreNames.contains(name)))
