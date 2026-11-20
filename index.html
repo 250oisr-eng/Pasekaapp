@@ -215,6 +215,16 @@ nav button{white-space:nowrap;word-break:keep-all;overflow:hidden;text-overflow:
 .hive-row-main{min-width:0;overflow:hidden}
 .hive-row-main>*{min-width:0;max-width:100%}
 .hive-row-main .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Phone: keep the full hive profile, colony count and last-treatment date.
+   Buttons move below the summary, avoiding horizontal clipping. Desktop stays compact. */
+@media(max-width:600px){
+ .hive-row{align-items:flex-start}
+ .hive-row-main{flex:1 1 100%;overflow:visible}
+ .hive-mini-status{align-items:flex-start}
+ .hive-mini-status .muted,.hive-row-main .hive-treatment-summary{
+  white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere
+ }
+}
 .transition-choice{align-items:center;min-width:0;line-height:1.25}
 .transition-choice input{flex:0 0 auto}
 .frame-editor button{white-space:normal;word-break:normal;overflow-wrap:normal;min-width:0}

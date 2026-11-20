@@ -234,3 +234,14 @@ test('physical Android screenshot regression: isolated panel wraps long check ID
   assert.match(script, /node\.style\.overflowX = 'hidden'/);
   assert.doesNotThrow(() => new Function(script), 'isolated JS must parse on device');
 });
+
+test('real hive-card details are not clipped on phone but desktop truncation remains available', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /@media\(max-width:600px\)\{\s*\.hive-row\{align-items:flex-start\}/);
+  assert.match(html, /\.hive-row-main\{flex:1 1 100%;overflow:visible\}/);
+  assert.match(html, /\.hive-mini-status \.muted,\.hive-row-main \.hive-treatment-summary\{/);
+  assert.match(html, /white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere/);
+  assert.match(html, /\.hive-row-main \.muted\{white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/);
+  assert.match(html, /hive-treatment-summary/);
+  assert.match(html, /Последняя обработка:/);
+});
