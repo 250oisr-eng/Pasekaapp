@@ -156,6 +156,49 @@ async function hashBlobHex(blob, options = {}) {
   return hasher.digest();
 }
 
-root.PasekaSha256 = Object.freeze({ hashBlobHex, CHUNK_BYTES });
+// FileReader video attachments use base64 Data URLs in records[].media.
+// Hash decoded bytes, not the MIME header or encoded text. Never decode a
+// whole phone video at once: each chunk decodes at most ~192 KiB.
+async function hashVideoDataUrlHex(dataUrl, options = {}) {
+  if (typeof dataUrl !== 'string' || !/^data:(?:video\/[a-z0-9.+-]+|application\/octet-stream);base64,/i.test(dataUrl)) {
+    const error = new Error('A base64 video Data URL is required.');
+    error.code = 'SHA256_VIDEO_DATA_URL_INVALID';
+    throw error;
+  }
+  const encoded = dataUrl.slice(dataUrl.indexOf(',') + 1);
+  if (!encoded || encoded.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) {
+    const error = new Error('Invalid base64 video encoding.');
+    error.code = 'SHA256_VIDEO_BASE64_INVALID';
+    throw error;
+  }
+  const maxBase64Chars = 256 * 1024; // multiple of four
+  const hasher = new Sha256();
+  let bytes = 0;
+  for (let offset = 0; offset < encoded.length; offset += maxBase64Chars) {
+    if (options.signal?.aborted) throw abortError();
+    const chunk = encoded.slice(offset, offset + maxBase64Chars);
+    let decoded;
+    try { decoded = atob(chunk); }
+    catch (error) {
+      const failure = new Error('Invalid video base64 payload.');
+      failure.code = 'SHA256_VIDEO_BASE64_INVALID';
+      throw failure;
+    }
+    const part = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) part[i] = decoded.charCodeAt(i);
+    hasher.update(part);
+    bytes += part.length;
+    if (offset + maxBase64Chars < encoded.length) await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  if (options.signal?.aborted) throw abortError();
+  if (bytes <= 0) {
+    const error = new Error('An empty video has no valid source evidence.');
+    error.code = 'SHA256_VIDEO_EMPTY';
+    throw error;
+  }
+  return { sha256: hasher.digest(), bytes };
+}
+
+root.PasekaSha256 = Object.freeze({ hashBlobHex, hashVideoDataUrlHex, CHUNK_BYTES });
 if (typeof module !== 'undefined' && module.exports) module.exports = root.PasekaSha256;
 })(typeof window !== 'undefined' ? window : globalThis);
