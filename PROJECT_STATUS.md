@@ -1,3 +1,15 @@
+## Контрольная точка — PASEKA02 entrance-only atomic commit (2026-11-20)
+
+- Проверен предыдущий Draft #235: итоговый HEAD 3a5739067140e633da1ad2c624932f8761e73792, Android run #44699480313 completed/success (regression/build/upload), isolated archive APK #44699480300 skipped. Main фактический SHA 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7; ветки #230–#235 остаются Draft и не слиты.
+- В зависимой ветке feat/video-archive-v2-entrance-atomic-commit-2026-11-20 создан изолированный js/video-archive-v2-entrance-atomic.js. Это первое **настоящее, но только тестовое** атомарное добавление pending Blob из verified PASEKA02 с сохранением state, истории и snapshot в одной readwrite-транзакции пяти stores. Blob берётся из повторно хэшированного исходного архива, НЕ повторно читаемого изменяемого staging.
+- Контракт узкий: только entrance_media, никакого record_media, прежняя живaя видеотека обязана быть пустой, прежний full_backup отсутствует, staged session+history согласованы, входящий ledger/tombstones идентичны локальным. Разрешено изменение live state **только revisionId**: любые новые записи, даже без увеличения revision, блокируют операцию.
+- Protected snapshot сохраняется в full_backup, history получает статус committed_rollback_blocked. Автоматический откат видео и удаление остаются ЗАБЛОКИРОВАНЫ. Readonly inspector после рестарта сообщает только committed_media_unverified, а не безопасность byte/restore/delete.
+- tests/video-archive-v2-entrance-atomic.test.mjs добавлен с негативными регрессиями: сохранение ledger, учёт новых записей, concurrent recognition, подмена staged Blob, rollback snapshot, атомарное прерывание при ошибке IDB.add, конфликт видео, защита чужих бэкапов, restart и повреждение истории.
+- Контракт docs/VIDEO-ARCHIVE-V2-ENTRANCE-ATOMIC.md. Начальный код commit 5f0039e1bb0ea0f42eca3a3c768b08e88e2a61ec и дополнительное state protection  aa24ff962d212db8307a710ef0849c6755bd5f95; тесты commit 78d035a7f9a133362a2aab4118cb15f0b78200bf. JS-синтаксис проверен; CI точного нового SHA пока НЕ подтверждён.
+- Следующий приоритет: проверить CI и исправить реальные ошибки; затем отдельная модель безопасного rollback с сохранением ledger/tombstones и всех оригиналов. Никаких merges, live UI, production и физического удаления видео.
+
+---
+
 ## Проверка CI: pinned entrance add с обязательным abort (2026-11-20)
 
 - Точный кодовый/test SHA 3bce3f1528e0866711c88e5e70fd4ec1b6a3dd8c: Android Build workflow #44699253786 **completed/success**. В build job успешны Run regression tests, Build debug APK и Upload APK. Изолированный Build isolated archive test APK #44699253789 **skipped**, не считать успешной отдельной проверкой.
