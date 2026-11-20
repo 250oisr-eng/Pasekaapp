@@ -194,9 +194,17 @@ async function manifestFingerprint(manifest, cryptoProvider) {
   const digest = await cryptoProvider.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
+async function assertLegacyArchiveStageAllowed(db) {
+  const tx = db.transaction('main', 'readonly');
+  const completed = transactionDone(tx);
+  const ledger = await requestValue(tx.objectStore('main').get('video_recognition_ledger_v1'));
+  await completed;
+  assertLegacyArchiveRecognitionLedger(ledger);
+}
 async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveApi, validateState, options = {}) {
   ensureStores(db);
   if (!archiveApi || typeof archiveApi.validateArchiveForRestore !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
+  await assertLegacyArchiveStageAllowed(db);
   const checked = await archiveApi.validateArchiveForRestore(archiveBlob, cryptoProvider, validateState);
   const fingerprint = await manifestFingerprint(checked.manifest, cryptoProvider);
   const history = await getHistory(db, checked.backupId);
@@ -235,6 +243,8 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   try {
     // Read and hash the live media outside IndexedDB transactions. Never keep a
     // readwrite transaction alive across Blob I/O or asynchronous SHA-256.
+    // Recheck after asynchronous archive validation and before any staging writes.
+    await assertLegacyArchiveStageAllowed(db);
     const baselineReadTx = db.transaction('entrance_media', 'readonly');
     const baselineReadDone = transactionDone(baselineReadTx);
     const baselineRows = await requestValue(baselineReadTx.objectStore('entrance_media').getAll());
