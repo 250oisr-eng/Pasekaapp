@@ -1262,11 +1262,35 @@ function discardArchiveRestoreSession(db, sessionId) {
             abortWith(Object.assign(new Error('Unexpected staged record key; cleanup was cancelled.'), { code: 'STAGING_CLEANUP_KEYS_INVALID' }));
             return;
           }
-          // Check archive_history even when a session header exists. Its status
-          // can be corrupted independently of committed import references.
-          const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
-          historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
-          historyRequest.onsuccess = () => {
+          // Read only secondary-index keys, never Blob values. A record with
+          // an unexpected kind must not be discarded just because its indexed
+          // sessionId or primary-key prefix looks like staging content.
+          const kinds = new Map();
+          const index = store.index('kind');
+          let kindsPending = 3;
+          for (const kind of ['session', 'state', 'video']) {
+            const kindRequest = index.getAllKeys(kind);
+            kindRequest.onerror = () => abortWith(kindRequest.error || new Error('Could not verify staged record kinds.'));
+            kindRequest.onsuccess = () => {
+              for (const key of kindRequest.result || []) kinds.set(key, kind);
+              if (--kindsPending === 0) verifyHistory();
+            };
+          }
+          const verifyHistory = () => {
+            const invalid = keys.some(key => kinds.get(key) !== (
+              key === sessionId ? 'session' : key === sessionId + ':state' ? 'state' : 'video'
+            ));
+            if (invalid) {
+              abortWith(Object.assign(new Error('Staged record kind or ownership is invalid; records were preserved.'), {
+                code: 'STAGING_CLEANUP_KIND_INVALID'
+              }));
+              return;
+            }
+            // Check archive_history even when a session header exists. Its
+            // status can be corrupted independently of import references.
+            const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
+            historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
+            historyRequest.onsuccess = () => {
             const references = (historyRequest.result || []).filter(item => item &&
               (item.importSessionId === sessionId || item.rollbackSessionId === sessionId));
             const protectedReference = references.some(item => {
@@ -1283,8 +1307,9 @@ function discardArchiveRestoreSession(db, sessionId) {
               }));
               return;
             }
-            for (const key of keys) store.delete(key);
-            result = keys.length > 0;
+              for (const key of keys) store.delete(key);
+              result = keys.length > 0;
+            };
           };
         };
       };
