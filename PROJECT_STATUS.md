@@ -1,3 +1,23 @@
+## CI Draft #248 — точный проверенный SHA (2026-11-20)
+
+- Code/test/docs SHA `1c00bd864dd4c474970af5b3b7c176e22e8e74de`: [Android #44710169905](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710169905) **completed/success** (регрессионные тесты, Debug APK build, Upload APK); [isolated #44710169955](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710169955) **skipped**. Android physical test не проводился.
+- Блок не активирует реальное AI распознавание, не завершает видеозаписи, не удаляет исходники. Поздние docs-only commits после проверенного SHA не считать автоматически проверенными.
+
+---
+## CI #248 — исправлен ложный запрет in-memory Set.add (2026-11-20)
+
+- Первый HEAD `0803b91559fa36484c8e4563d7b582c3e60a0ee4`: Android #44709983851 **failure**, 1004/1005 regression tests passed, APK skipped. Тест ограничения сетевых/DB операций ошибочно счёл `Set.add()` вызовом IndexedDB `.add`.
+- Исправлен только тест `tests/video-model-evidence.test.mjs`, SHA `cbb096c1b51b2b6068922b885791c6f3df3dec60`: он теперь явно ищет fetch/XMLHttpRequest/indexedDB/transaction/objectStore/localStorage/sendBeacon. Код модуля не менялся. CI нового SHA требуется отдельно.
+
+---
+## Этап — валидация недоверенного результата модели видео (2026-11-20)
+
+- После проверенного Draft #247 открывается ветка `feat/video-model-evidence-contract-2026-11-20`: test-only `js/video-model-evidence.js`, `tests/video-model-evidence.test.mjs`, `docs/VIDEO-INFERENCE-PROVIDER-EVALUATION.md`.
+- Не доверять текстовому Worker, JSON без source SHA, дублированным трекам, неподтверждённой модели. Контракт выдаёт только `untrusted_observation_draft`, `reviewRequired:true`, `recognitionSucceeded:false`, `cleanupAuthorized:false` даже при формально валидном payload. Нет реального detection, AI подключения, сети, изменения базы/видео.
+- По актуальным официальным документациям технический кандидат — ONNX Runtime Web WASM, но без весов, проверки модели, лицензии и Android benchmark выбор не активирован. MediaPipe возможно, Ultralytics AGPL требует соблюдения условий; бесплатные introductory credits не подходят.
+- Следующий шаг — Draft PR и CI точного HEAD; затем отдельная валидация model readiness/параметров provider, без превращения draft в распознанный результат.
+
+---
 ## Проверенный CI — защита переходов очереди видео (2026-11-20)
 
 - Draft #247: исправленный code/test SHA `95c9eb7e313f0377b016984e793f07083c6d01be`, документальный PR HEAD после фиксации первого CI `811a20fcd61bd6ae20f594fe5ca0c071f8392351`. На HEAD [Android #44709298158](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44709298158) **completed/success**: Run regression tests, Build debug APK, Upload APK successful. [Isolated APK #44709298159](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44709298159) **completed/skipped**.
