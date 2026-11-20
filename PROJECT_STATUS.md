@@ -1,3 +1,25 @@
+## CI изолированного PASEKA02 staging — 2026-11-20
+
+- Точный SHA `8f98505a9fde38dea489576fcb8de600e8a94db1`: Android workflow #44697058894 — completed/success (Run regression tests, Build debug APK, Upload APK). Отдельный Build isolated archive test APK #44697058856 — skipped.
+- Draft PR #232: https://github.com/250oisr-eng/Pasekaapp/pull/232; код только stage-only, без live-импорта, удаления, восстановления и изменения main.
+- Поскольку `protected_unverified` не доказывает повторно SHA stored Blob, следующий приоритет — read-only verification сохранённых staging copies с защитой от конкурентных изменений, не выдающая разрешения на commit или cleanup.
+- Проверки относятся только к указанному SHA; физический Android тест не проводился.
+
+---
+
+## Контрольная точка — PASEKA02: атомарный тестовый staging нераспознанных видео (2026-11-20)
+
+- На базе проверенного SHA цепочки Draft PR #231 создана зависимая ветка feat/video-archive-v2-pending-stage-2026-11-20. Цель — защищённое сохранение уже SHA-проверенных pending originals в тестовый staging, без live-импорта или удаления.
+- Новый изолированный js/video-archive-v2-pending-stage.js использует настоящий PASEKA02 codec для проверки Blob и SHA каждого видео, отдельно проверяет SHA архива и всех видео до DB write. Единой readwrite транзакцией по main, entrance_media, archive_staging, archive_history, full_backup проверяет exact revision, ledger, ID collision, пустоту защищённых stores и записывает только header + исходные Blob + history. Main/state, ledger, entrance_media и full_backup не меняются.
+- Реальная schema archive_staging содержит unique backupId index; только header несёт backupId, видеоentries — sessionId и составные source+videoId keys. Протокол совместим без изменения версии IndexedDB.
+- Read-only inspectPendingStaging сообщает protected_unverified (копии есть, повторный SHA НЕ доказан) либо manual_review_required при повреждении header/history; не выдаёт restore/cleanup authorization.
+- Тесты tests/video-archive-v2-pending-stage.test.mjs покрывают реальные entrance и record_video, защиту предыдущих backup, исходного Blob, записи ledger во время проверки, повторный staging, осиротевшие копии и некорректный архив. Подключения к live UI нет.
+- Отдельный контракт docs/VIDEO-ARCHIVE-V2-PENDING-STAGING.md. Первичный code SHA f47d77a0e63b73c6e7d90156e39ff1716c9fb3ce и test SHA 6e79432aa4724f7e574ede9aca1f02e1ded532aa. Код прошёл синтаксический V8 parse, но полный CI ещё не подтверждён.
+- База PR #231: code/test SHA c8ddefcaf47443a0c5b03c907e2811dc1912f3ae прошёл Android run #44696499993: regression, build APK, upload success. Isolated archive APK run #44696499782 skipped.
+- Следующий приоритет: проверить SHA-специфический CI этой ветки и исправить тесты/ошибки; затем отдельный rehash staging content + writer-serialized recheck до рассмотрения реального commit. Merge, production, удаление видео запрещены.
+
+---
+
 ## Проверка CI защитной цепочки PR #231 — 2026-11-20
 
 - Точный SHA `c8ddefcaf47443a0c5b03c907e2811dc1912f3ae`: Android workflow #44696499993 **completed/success**. В job успешны **Run regression tests**, **Build debug APK** и **Upload APK**. Отдельный `Build isolated archive test APK` workflow #44696499782 имеет `skipped` (не считать проверенным).

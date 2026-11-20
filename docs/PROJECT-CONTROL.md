@@ -20,6 +20,7 @@
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
 | VIDEO-ARCHIVE-V2-CONTRACT.md | Проект (не реализация) формата полного архива с ledger/tombstones и fail-closed восстановлением |
 | VIDEO-ARCHIVE-V2-RESTORE-READINESS.md | Карта защищённых IndexedDB stores, результаты сквозного v2 dry-run и блокеры будущего stage/commit/rollback |
+| VIDEO-ARCHIVE-V2-PENDING-STAGING.md | Изолированный атомарный staging проверенных pending originals без права на restore, rollback или cleanup |
 | VIDEO-ARCHIVE-V2-PENDING-IDENTITY.md | Отдельный fail-closed gate против коллизий новых pending originals с локальными видео до и под aborted write-lock |
 | VIDEO-ARCHIVE-V2-METADATA-ATOMIC.md | Изолированный строгий атомарный импорт/откат PASEKA02 без видео и без имеющихся protected backups, ручная диагностика recovery |
 | ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md | Протокол восстановления контекста в новом чате |
