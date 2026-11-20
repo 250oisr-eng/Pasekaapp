@@ -270,3 +270,30 @@ test('v2 rollback beforeState and afterState with journal payload are counted',a
  assert.equal(r.cleanupAuthorized,false);
  db.close();
 });
+
+test('real legacy journal-capture shape without videoId remains counted and unmatchable',async()=>{
+ // The current index.html recordForm stores {kind,type,name,data} without
+ // sourceSha256/videoId: inventory must not mistake this for zero originals.
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'observation',media:[{
+   kind:'video',name:'field.mp4',type:'video/mp4',
+   data:'data:video/mp4;base64,YWJj'
+  }]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,1);
+ assert.equal(report.distinctIdentities,0);
+ assert.equal(report.copies[0].identity,null);
+ assert.equal(report.copies[0].store,'main/state.records.media');
+ assert.ok(report.issues.includes('unidentified_copy'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(JSON.stringify(report).includes('YWJj'),false);
+ db.close();
+});
+test('unidentified entrance original remains counted even without matching ledger identity',async()=>{
+ const db=await setup({entrance:[{id:'v2-without-trustworthy-id',blob:blob()}]});
+ const result=await audit(db,guard);
+ assert.equal(result.copyCount,1);
+ assert.ok(result.issues.includes('copy_evidence_missing'));
+ assert.equal(result.cleanupAuthorized,false);
+ db.close();
+});
