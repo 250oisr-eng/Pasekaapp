@@ -1,3 +1,18 @@
+## CI PR #244 проверен на точном SHA (2026-11-20)
+
+- Code/test/docs SHA `abcd5d3a34446a151a7400e415661f9f9d8b73d9`: [Android workflow #44707536300](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707536300) **completed/success**: regression tests, Build debug APK и Upload APK success. [Isolated archive #44707536160](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707536160) **skipped**.
+- Строгая валидация ledger read-back и duplicate identity проверена в регрессионном наборе. На физическом Android устройстве не проверялась, автоудаление не включено.
+- Следующий приоритет — убрать неподтверждённое UI-сообщение `Анализ завершён` по одному `entrance_media.status='completed'` без подтверждённого ledger. Исправление только индикации, не включать обработку и delete.
+
+---
+## Контрольная точка — строгая fail-closed проверка read-back распознавания (2026-11-20)
+
+- Новый зависимый этап поверх Draft #243 в ветке `fix/video-ledger-read-integrity-2026-11-20`: `js/video-recognition-ledger.js` теперь валидирует целиком каждый persisted entry (источник, videoId, resultId, stateRevisionId, timestamps, digest, размер, evidenceVersion, cleanupState, JSON result), запрещает дубли identity и использует одинаковый guard при чтении и перед записью.
+- Отсутствующий ledger возвращает `{ok:false,reason:'ledger_missing',entries:[]}`, а не ошибочно подтверждённый пустой реестр. Повреждение возвращает `ledger_corrupt` без раскрытия потенциально подменённых записей и без модификаций исходников.
+- Добавлены тесты отсутствующей записи, повреждённых digest/размера/status/result/timestamps, duplicate и сохранности Blob. Code SHA `8067270989d8a32973574a4938a5e09f42eff09c`, tests SHA `0e8aab280a8860e95e957e3d62a6445b483a3c3e` — **новая проверка CI ещё не подтверждена**.
+- Нет UI, AI интеграции, включения удаления, миграций, production. Следующий шаг — точный CI; затем audit реальных AI endpoint и запрет фиктивного `completed` до интеграции.
+
+---
 ## Проверенный CI PR #243 — test-only ledger и защита от ID collision (2026-11-20)
 
 - Исправленный code/test SHA `3e3c51372f26ce1544fa2e23cf359d5a31eb1fb4`: Android workflow [#44707175152](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707175152) **completed/success**; regression tests, debug APK build и upload прошли. Isolated archive APK [#44707175241](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707175241) **skipped**, не считать успешным тестом.

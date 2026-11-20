@@ -21,6 +21,27 @@ function validateResult(result){
  if(!inspect(result,0))return false;
  try{return JSON.stringify(result).length<=16384}catch{return false}
 }
+function validateLedger(ledger){
+ if(!isObject(ledger)||ledger.version!==1||!Array.isArray(ledger.entries))return false;
+ const seen=new Set();
+ for(const entry of ledger.entries){
+  if(!isObject(entry)||!idOk(entry.videoId)||!idOk(entry.resultId)||
+     !['entrance_media','record_media'].includes(entry.source)||
+     !idOk(entry.stateRevisionId)||!idOk(entry.recognizedAt)||
+     !Number.isFinite(Date.parse(entry.recognizedAt))||
+     !idOk(entry.sourceHashVerifiedAt)||
+     !Number.isFinite(Date.parse(entry.sourceHashVerifiedAt))||
+     typeof entry.sourceSha256!=='string'||!/^[a-f0-9]{64}$/.test(entry.sourceSha256)||
+     !Number.isSafeInteger(entry.sourceBytes)||entry.sourceBytes<1||
+     entry.sourceEvidenceVersion!==1||
+     entry.cleanupState!=='blocked_archive_safety'||
+     !validateResult(entry.result))return false;
+  const identity=entry.source+':'+entry.videoId;
+  if(seen.has(identity))return false;
+  seen.add(identity);
+ }
+ return true;
+}
 function verifyRequest(input){
  if(!isObject(input)||!idOk(input.videoId)||!idOk(input.resultId)||
  !['entrance_media','record_media'].includes(input.source)||
@@ -138,9 +159,7 @@ function commitRecognitionResult(db,input,proof){
       return fail('source_changed_after_hash');
     }
     const ledger=ledgerRequest.result||{version:1,entries:[]};
-    if(!isObject(ledger)||ledger.version!==1||!Array.isArray(ledger.entries)||
-       ledger.entries.some(entry=>!isObject(entry)||!idOk(entry.videoId)||!idOk(entry.resultId)||!['entrance_media','record_media'].includes(entry.source)))
-     return fail('ledger_corrupt');
+    if(!validateLedger(ledger))return fail('ledger_corrupt');
     const prior=ledger.entries.find(entry=>entry.videoId===input.videoId&&entry.source===input.source);
     if(prior){
      if(prior.resultId!==input.resultId||JSON.stringify(prior.result)!==JSON.stringify(input.result)||
@@ -176,12 +195,14 @@ function readRecognitionLedger(db){
   try{
    tx=db.transaction('main','readonly');
    request=tx.objectStore('main').get(KEY);
-   request.onsuccess=()=>{ledger=request.result||{version:1,entries:[]}};
-   tx.oncomplete=()=>resolve(ledger&&ledger.version===1&&Array.isArray(ledger.entries)?
-    {ok:true,entries:ledger.entries}:{ok:false,reason:'ledger_corrupt'});
+   request.onsuccess=()=>{ledger=request.result};
+   request.onerror=()=>{try{tx.abort()}catch(_){}};
+   tx.oncomplete=()=>resolve(ledger===undefined?
+    {ok:false,reason:'ledger_missing',entries:[]}:
+    validateLedger(ledger)?{ok:true,entries:ledger.entries}:{ok:false,reason:'ledger_corrupt',entries:[]});
    tx.onabort=()=>resolve({ok:false,reason:'read_aborted'});
   }catch{resolve({ok:false,reason:'transaction_unavailable'})}
  });
 }
-root.PasekaVideoRecognitionLedger=Object.freeze({KEY,validateResult,recordRecognitionResult,readRecognitionLedger,verifyOriginalBytes});
+root.PasekaVideoRecognitionLedger=Object.freeze({KEY,validateResult,validateLedger,recordRecognitionResult,readRecognitionLedger,verifyOriginalBytes});
 })(typeof window!=='undefined'?window:globalThis);

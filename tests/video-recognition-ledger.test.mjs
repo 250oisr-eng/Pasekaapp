@@ -221,3 +221,44 @@ test('entrance capture rejects an ID collision instead of overwriting hashed ori
  assert.equal(await root.PasekaSha256.hashBlobHex(preserved.blob),sourceHash);
  db.close();
 });
+
+test('missing ledger is explicitly blocked rather than reported as verified empty history',async()=>{
+ const {db}=await fixture();
+ const status=await ledger.readRecognitionLedger(db);
+ assert.equal(status.ok,false);
+ assert.equal(status.reason,'ledger_missing');
+ assert.deepEqual(status.entries,[]);
+ assert.ok((await get(db,'entrance_media','v1')).blob);
+ db.close();
+});
+
+test('persisted recognition history rejects tampered entries and duplicated source identities',async()=>{
+ const {db}=await fixture();
+ const recorded=await ledger.recordRecognitionResult(db,base);
+ assert.equal(recorded.ok,true);
+ const clean=await get(db,'main',ledger.KEY),entry=clean.entries[0];
+ const invalid=[
+  {...entry,sourceSha256:'f'.repeat(64).slice(1)},
+  {...entry,sourceBytes:0},
+  {...entry,result:{data:'data:video/mp4;base64,AAAA'}},
+  {...entry,cleanupState:'deleted'},
+  {...entry,sourceEvidenceVersion:0},
+  {...entry,recognizedAt:'invalid-time'},
+  {...entry,stateRevisionId:''}
+ ];
+ for(const altered of invalid){
+  await put(db,'main',ledger.KEY,{version:1,entries:[altered]});
+  const reader=await ledger.readRecognitionLedger(db);
+  assert.equal(reader.ok,false,JSON.stringify(altered).slice(0,100));
+  assert.equal(reader.reason,'ledger_corrupt');
+  const write=await ledger.recordRecognitionResult(db,{...base,videoId:'v1',resultId:'other-result'});
+  assert.equal(write.ok,false);
+  assert.equal(write.reason,'ledger_corrupt');
+ }
+ await put(db,'main',ledger.KEY,{version:1,entries:[entry,{...entry,resultId:'duplicate'}]});
+ assert.equal((await ledger.readRecognitionLedger(db)).reason,'ledger_corrupt');
+ await put(db,'main',ledger.KEY,clean);
+ assert.equal((await ledger.readRecognitionLedger(db)).ok,true);
+ assert.ok((await get(db,'entrance_media','v1')).blob);
+ db.close();
+});
