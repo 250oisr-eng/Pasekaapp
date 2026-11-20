@@ -1,3 +1,12 @@
+## 2026-11-20 — staging-only проверка реальных байтов исходных видеозаписей
+
+- Проверен родительский Draft PR #279: `e9013c1a67650720c605c0a503afdc85cc4eb4db` Android #44740891761 **completed/success** (регрессионные тесты, debug APK build и upload); архивный #44740892010 skipped. Новая независимая ветка поверх #279: `test/video-physical-source-sha-verification-2026-11-20`.
+- Добавлены `tools/verify-local-source-recordings.mjs`, `tests/verify-local-source-recordings.test.mjs` (14 синтетических offline regression cases) и `docs/VIDEO-LOCAL-SOURCE-RECORDING-HASH-AUDIT.md`. Явно предоставленные staging-файлы открываются только read-only, ограниченный потоковый SHA256, запрет symlink/path escape/дублей. Файлы камеры/пользовательской пасеки не используются.
+- `localBytesMatchDeclarations` **не** удостоверяет связь кадров с исходной видеосессией или лицензию. `sourceIdentityVerified`, `licenseVerified`, `trainingAuthorized`, `modelApproved`, `recognitionSucceeded`, `cleanupAuthorized` остаются false. Никакого удаления оригиналов.
+- Требуется CI на точном HEAD нового Draft и аудит подлинного frame→recording mapping, прежде чем разрешать обучение. `main`, production, IndexedDB, реальные видео не изменены.
+
+---
+
 ## 2026-11-20 — SHA исходной записи обязателен для назначения train/test
 
 - На основе Draft #278 создана независимая ветка `test/video-source-recording-sha-holdout-2026-11-20`. Изменены `tools/inspect-source-session-manifest.mjs` и `tests/source-session-manifest.test.mjs` (добавлено 6 негативных/позитивных случаев, всего 20).
