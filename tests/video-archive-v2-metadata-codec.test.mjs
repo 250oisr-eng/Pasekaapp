@@ -93,3 +93,17 @@ test('fails closed without guard or crypto, and empty recognition history remain
  assert.deepEqual(result.ledger.entries,[]);
  assert.equal(result.restoreAuthorized,false);
 });
+
+test('opaque Blob or non-finite numeric state cannot be silently serialized as valid archive',async()=>{
+ const input=args();
+ input.state.records=[{id:'r',media:[{id:'m',data:new Blob(['original'])}]}];
+ await rejects(build(input),'V2_STATE_INVALID');
+ input.state.records=[{value:Infinity}];
+ await rejects(build(input),'V2_STATE_INVALID');
+});
+
+test('journal video with unrecognized data encoding is fail-closed',async()=>{
+ const input=args();
+ input.state.records=[{id:'r',media:[{type:'video',data:'raw-unknown-encoding'}]}];
+ await rejects(build(input),'V2_STATE_EMBEDDED_VIDEO');
+});
