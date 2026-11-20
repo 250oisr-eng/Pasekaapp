@@ -14,7 +14,7 @@ test('full .paseka archive modules are loaded in dependency order and cached for
   for (const path of ['paseka-sha256.js', 'paseka-archive.js', 'paseka-archive-restore.js', 'paseka-android-download.js']) {
     assert.ok(serviceWorker.includes("'./js/" + path + "'"), path + ' must be available offline');
   }
-  assert.match(serviceWorker, /paseka-shell-v316/);
+  assert.match(serviceWorker, /paseka-shell-v317/);
 });
 
 test('IndexedDB v4 adds archive staging and history without replacing existing stores', () => {
@@ -123,6 +123,6 @@ test('rollback UI requires explicit confirmation and refuses a stale in-memory v
 
 
 test('archive modules are loaded as separate script elements without literal escape text', async () => {
-  assert.match(html, /<script src="\.\/js\/deadout-review\.js"><\/script>\s*<script src="\.\/js\/paseka-sha256\.js"><\/script>\s*<script src="\.\/js\/paseka-archive\.js"><\/script>\s*<script src="\.\/js\/paseka-archive-restore\.js"><\/script>/);
+  assert.match(html, /<script src="\.\/js\/deadout-review\.js"><\/script>\s*<script src="\.\/js\/paseka-sha256\.js"><\/script>\s*<script src="\.\/js\/journal-video-source\.js"><\/script>\s*<script src="\.\/js\/paseka-archive\.js"><\/script>\s*<script src="\.\/js\/paseka-archive-restore\.js"><\/script>/);
   assert.doesNotMatch(html, /<\/script>\\n<script/);
 });

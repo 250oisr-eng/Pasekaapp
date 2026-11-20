@@ -1,3 +1,24 @@
+## Проверен CI — new journal video source SHA/ID (2026-11-20)
+
+- Draft PR #240: https://github.com/250oisr-eng/Pasekaapp/pull/240. Код и исправленные регрессии SHA `03c620231fd990123914011c9733858b034363e7`. Android workflow #44704005222 **completed/success**: Run regression tests, Build debug APK, Upload APK прошли. Isolated archive APK workflow #44704005147 **skipped**.
+- Ранее SHA ef3e35b6ba81519473f15c248df054d00bea732a завершился **failure**: четыре старых теста ожидали v316 cache и старую последовательность скриптов. Исправлены tests/archive-ui-integration.test.mjs и tests/regression.test.mjs, не скрывая ошибки. На исправленном коде CI success.
+- Два реальных пути создания новых journal videos получают стабильный ID и SHA-256 Blob/Data URL; old journal media не мигрируются. Offline shell v317 и Android www scripts включают новый модуль.
+- Физическая Android проверка камеры, галереи, офлайн ввода и сохранности после рестарта не выполнялась. Автоматическое распознавание и удаление видео не реализованы. CI относится именно к исправленному SHA, последующие docs-only commits требуют собственного статуса.
+- Следующий приоритет: guarded recognition ledger + Android внешние copies и безопасный запрет преждевременного удаления; никакого live cleanup, merge или production.
+
+---
+
+## Контрольная точка — новые видео журнала получают устойчивую идентичность (2026-11-20)
+
+- Предыдущий Draft PR #239 `fix/video-archive-v2-legacy-copy-coverage-2026-11-20`: итоговый HEAD 373830645c128c7703632502b9428ded957db3d2, Android workflow #44703389103 completed/success, isolated APK #44703389078 skipped. Ручное удаление видео в действующем UI является отдельным выявленным риском, не изменено.
+- Следующий приоритет — source identity именно в реальном capture workflow. Создана зависимая ветка `feat/journal-video-v2-source-evidence-2026-11-20` поверх #239. Новый модуль `js/journal-video-source.js` готовит новые журнальные видео: устойчивый `videoId`, `sourceSha256` по исходному Blob, `sourceBytes`, `sourceEvidenceVersion:1` и Data URL, SHA которого проверяется отдельно и совпадает с исходником. Ошибка или отсутствие SHA не допускает создания медиа.
+- `index.html`: `addCapturedVideo` и file-picker путь `recordForm` используют общий SHA-validated preparer. Редактирование старых записей сохраняет прежние media без миграции, а старые без ID по-прежнему блокируют автоматический PASEKA02 import/cleanup.
+- `sw.js`: offline cache `paseka-shell-v317` с новым js; `scripts/prepare-web.mjs` уже рекурсивно копирует `js` в Android www. Новые tests/journal-video-source.test.mjs используют настоящие SHA и record-media adapter и проверяют несовместимые legacy records, ошибки FileReader/hash, оба UI пути, offline cache.
+- Код SHA d539eb6aa1060dfb4d1b142e481b850ce5a0e389, UI SHA fe86d6addccc6774c226dc8109a306d6a4aa47fd, cache SHA 976a8b279f584e11f07a36ff0561e271df82daf4, test SHA 02fef6fcfd830d27f4f27aa9ba976a5a806511c4. Контракт docs/JOURNAL-VIDEO-SOURCE-EVIDENCE.md.
+- CI актуального SHA на момент записи не подтверждён. Следующий шаг — создать Draft PR и проверить regression + Android build по HEAD; при ошибке исправить. Никаких live deletions, changes main, production или merge; физическая проверка Android камеры ещё не проведена.
+
+---
+
 ## CI проверен — реальные legacy PASEKA01 + capture UI (2026-11-20)
 
 - Код/тесты/документация на SHA `70e8781c2a4a98cdfc0e060902d41f34172804bc`: Android workflow #44703165651 **completed/success**, regression tests, debug APK, upload успешны. Изолированный archive test APK #44703165708 **skipped**.
