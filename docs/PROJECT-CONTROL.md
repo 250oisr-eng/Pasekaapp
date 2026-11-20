@@ -20,6 +20,7 @@
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
 | VIDEO-ARCHIVE-V2-CONTRACT.md | Проект (не реализация) формата полного архива с ledger/tombstones и fail-closed восстановлением |
 | VIDEO-ARCHIVE-V2-RESTORE-READINESS.md | Карта защищённых IndexedDB stores, результаты сквозного v2 dry-run и блокеры будущего stage/commit/rollback |
+| VIDEO-ARCHIVE-V2-ENTRANCE-ATOMIC.md | Тестовый атомарный входной PASEKA02 entrance-only commit с protected rollback snapshot, но без права на rollback/cleanup |
 | VIDEO-ARCHIVE-V2-ABORTED-ADD.md | Реальные тестовые IDB add-запросы с проверенными archive Blob под обязательным abort; нет durable записи |
 | VIDEO-ARCHIVE-V2-PINNED-SOURCE.md | Изолированная репетиция работы с неизменяемыми SHA-проверенными архивными Blob-срезами без права на commit/delete |
 | VIDEO-ARCHIVE-V2-STAGING-VERIFY.md | Повторная SHA-проверка staged оригиналов с отменяемой write-lock; не является разрешением на restore/delete |
