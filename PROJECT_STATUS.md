@@ -1,3 +1,12 @@
+## Контрольная точка — Android WASM prerequisites (2026-11-20)
+
+- Поверх Draft #258 создана отдельная тестовая ветка `test/video-android-wasm-capability-2026-11-20`. Добавлен изолированный `js/android-wasm-capability-probe.js` и отрицательные тесты `tests/android-wasm-capability-probe.test.mjs`: read-only WASM validation, опциональные параметры CPU/RAM/worker; отказ при отсутствии WASM. Любой результат **не означает** модель, разрешение лицензии, успешное распознавание или право удаления оригинала.
+- Probe не подключён к `index.html`/SW, не открывает камеру, не читает видео, не выполняет inference, не использует сеть или IndexedDB. Источник/веса honeybee detector пока не подтверждены, физический Android benchmark не проведён.
+- Следующий шаг: выполнить CI на точном SHA этого Draft PR, затем проверить licensed weights и реальные Android inference latency/memory/accuracy; до доказательства результата никакой ledger-completed или cleanup.
+- `main`, production и пользовательские видео не изменены. Merge/deployment не разрешены.
+
+---
+
 ## Итог автономной серии #253–#258, точные проверки (2026-11-20)
 
 | Draft | Code/test SHA, подтверждённый CI | Main Android workflow | Статус |
