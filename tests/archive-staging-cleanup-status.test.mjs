@@ -13,6 +13,7 @@ function openTestDb(name) {
     request.onupgradeneeded = () => {
       const staging = request.result.createObjectStore('archive_staging', { keyPath: 'id' });
       staging.createIndex('sessionId', 'sessionId', { unique: false });
+      staging.createIndex('kind', 'kind', { unique: false });
       request.result.createObjectStore('archive_history', { keyPath: 'backupId' });
     };
     request.onsuccess = () => resolve(request.result);
@@ -144,6 +145,29 @@ test('cleanup refuses indexed entries whose actual primary key belongs to anothe
   kind:'video',blob:new Blob(['must remain'])});
  await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
   {code:'STAGING_CLEANUP_KEYS_INVALID'});
+ assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
+
+test('cleanup refuses a rollback snapshot row disguised with the target session ID',async()=>{
+ const db=await openTestDb('paseka-cleanup-rollback-row-disguised');
+ const sessionId='session-has-foreign-kind';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:sessionId+':video:danger',
+  sessionId,kind:'rollback_video',blob:new Blob(['protected video bytes'])});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_CLEANUP_KIND_INVALID'});
+ assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
+test('cleanup fails closed for staging state stored under a video key',async()=>{
+ const db=await openTestDb('paseka-cleanup-kind-mismatch');
+ const sessionId='session-kind-mismatch';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:sessionId+':video:mismatch',
+  sessionId,kind:'state',blob:new Blob(['ambiguous state'])});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_CLEANUP_KIND_INVALID'});
  assert.equal((await readRows(db,sessionId)).length,3);
  db.close();
 });
