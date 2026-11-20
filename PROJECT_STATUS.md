@@ -1,3 +1,12 @@
+## 2026-11-20 — аудит ссылок и замены файлов staging source video
+
+- Родительский Draft #281 на SHA `e6ee7022b504fe85cdefee621d3c2c5da95da65b`: Android workflow #44742584138 **completed/success** (регрессия, Debug APK, upload); isolated #44742584105 skipped. Это не тест реальной модели и не подтверждение происхождения кадров.
+- На отдельной ветке `fix/video-source-file-links-race-2026-11-20` усилен `tools/verify-local-source-recordings.mjs`: запрет symlink-корня, hardlink-видеофайлов, NUL в пути, повторная сверка dev/inode/mtime/ctime/link-count/path после read-only хеширования. Добавлено 4 synthetic regression tests.
+- Это защита controlled staging, а не атомарный файловый snapshot. Права на исходные видео и достоверная связь кадр→исходная запись не подтверждены. Флаги train/model/recognition/cleanup всё ещё false. Нет доступа к пользовательской медиатеке, изменений IndexedDB, production, main или слияния.
+- До завершения задачи: CI на точном SHA нового Draft. Затем независимое происхождение кадров, лицензии, реальное обучение и физическая проверка Android.
+
+---
+
 ## 2026-11-20 — составной read-only provenance gate без обхода COCO/manifest
 
 - Родительский Draft #280, итоговый SHA `53f8b83fa3c9b6c53e0b8b564e3c69eb3b4414e0`: Android #44742087683 **completed/success** (regressions, Debug APK build/upload); isolated #44742087281 skipped.
