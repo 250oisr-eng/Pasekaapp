@@ -1,3 +1,10 @@
+## Этап — происхождение внешних Android видео копий (2026-11-20)
+
+- Поверх Draft #250 создана ветка `fix/video-external-copy-provenance-2026-11-20`. В новых записях леткового видео добавлено только поле `captureProvenance:{source:'file_input_or_external_camera',externalCopyState:'unknown',verifiedAt:null}`. Android File Input не доказывает отсутствие копий Camera/Gallery/MediaStore. Старые записи и IndexedDB schema не меняются.
+- UI после сохранения и в списке предупреждает о потенциальных внешних копиях, не обещает их автоматического удаления. Direct delete API остаётся заблокированным.
+- `tests/video-external-copy-provenance.test.mjs`, `docs/VIDEO-ANDROID-EXTERNAL-COPY-PROVENANCE.md`. Новый CI требуется отдельно; не менять реальные файлы/копии.
+
+---
 ## Этап — сквозные safety-инварианты между видео модулями (2026-11-20)
 
 - Следующая зависимая ветка `test/video-end-to-end-safety-invariants-2026-11-20` поверх staging pipeline #249. Добавлен `tests/video-end-to-end-safety-invariants.test.mjs`: целостная проверка запрета fake-completed, direct delete, подмены queue original, возвращаемых прав untrusted draft, отсутствия staging модулей в UI/PWA.
