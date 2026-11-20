@@ -75,12 +75,12 @@ async function updateSession(db, session) {
     // If explicit recovery finalized the same complete revision just before the
     // original writer's final status update, treat that update as an idempotent
     // success. Never let a stale failure path downgrade a ready session.
-    if (currentSession.status === 'ready' && session.status === 'ready' &&
+    const identicalReady = currentSession.status === 'ready' && session.status === 'ready' &&
         currentSession.fingerprint === session.fingerprint &&
         currentSession.stagingEpoch === session.stagingEpoch &&
         currentSession.stagedCount === session.stagedCount &&
-        currentSession.totalEntries === session.totalEntries) return;
-    if (currentSession.status !== 'staging') {
+        currentSession.totalEntries === session.totalEntries;
+    if (!identicalReady && currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
       return;
@@ -89,7 +89,7 @@ async function updateSession(db, session) {
       const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
       ledgerRequest.onerror = () => { failure = ledgerRequest.error || new Error('Could not read recognition ledger during staging finalization.'); try { tx.abort(); } catch (ignored) {} };
       ledgerRequest.onsuccess = () => {
-        try { assertLegacyArchiveRecognitionLedger(ledgerRequest.result); store.put({ ...currentSession, ...session }); }
+        try { assertLegacyArchiveRecognitionLedger(ledgerRequest.result); if (!identicalReady) store.put({ ...currentSession, ...session }); }
         catch (error) { failure = error; try { tx.abort(); } catch (ignored) {} }
       };
       return;
