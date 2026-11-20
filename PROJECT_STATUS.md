@@ -1,3 +1,10 @@
+## Этап — fail-closed окончание MediaRecorder при ошибке и потере onstop (2026-11-20)
+
+- Зависимая ветка `fix/video-private-camera-lifecycle-2026-11-20` поверх Draft #257. В неактивном модуле камеры исправлены зависания `completed`: при ошибке, invalid chunks, capture timeout или отсутствии `onstop` процесс теперь возвращает явную ошибку, закрывает camera tracks и очищает таймеры. Watchdog явного stop 5 секунд.
+- `tests/video-private-camera.test.mjs` дополнен отказом при не приходящем событии остановки, `onerror` и inactive recorder. Документ `docs/VIDEO-PRIVATE-CAMERA-LIFECYCLE.md`. Code/test SHA `7b40d89c1a4a32f312694e5ae12f94a5687597a8`, `2c1bf34a9f4aaad36a44f72e7f692dbd6196b443`; CI нового HEAD ещё не подтверждён.
+- UI не загружает модуль; камера на реальном Android не запускалась; нет удаления/модели/production.
+
+---
 ## Исправление тестового floating-point ожидания PR #257 (2026-11-20)
 
 - Первый CI #256 Android #44712554823 failure: 1035/1036 тестов прошли; единственный test-only дефект был в строгом сравнении `0.3-0.2>0.1`. Изменено ожидание на `Math.abs(gap-0.1)<1e-9`, без изменения production runtime, source identity и delete guard.
