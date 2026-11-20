@@ -130,3 +130,44 @@ test('full_backup is protected by same readwrite lock and survives abort',async(
  });
  assert.equal(saved.blob.size,18);db.close();
 });
+
+
+test('pending video collision introduced by a queued writer is rejected under aborted write lock',async()=>{
+ const db=await setup();
+ const writer=db.transaction('entrance_media','readwrite');
+ writer.objectStore('entrance_media').put({id:'new-import',blob:new Blob(['must survive'])});
+ const incomingCandidate={...incoming(),pendingVideos:[
+  {source:'entrance_media',videoId:'new-import',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]};
+ const promise=call(db,incomingCandidate);
+ await transactionDone(writer);
+ await rejects(promise,'V2_RESTORE_LIVE_ENTRANCE_ID_COLLISION');
+ const get=db.transaction('entrance_media','readonly').objectStore('entrance_media').get('new-import');
+ const saved=await new Promise((res,rej)=>{get.onsuccess=()=>res(get.result);get.onerror=()=>rej(get.error);});
+ assert.equal(saved.blob.size,12);
+ db.close();
+});
+test('lock gate rejects journal ID collision without writing archive or history',async()=>{
+ const db=await setup();
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'current'},records:[{id:'visit',
+  media:[{kind:'video',videoId:'journal-id',data:null}]}]},'state');
+ await transactionDone(tx);
+ const archive={...incoming(),state:{...incoming().state,records:[{id:'copy',
+  media:[{kind:'video',videoId:'journal-id',data:'data:video/mp4;base64,YWJj',
+   sourceSha256:'b'.repeat(64),sourceBytes:3}]}]},pendingVideos:[
+  {source:'record_media',videoId:'journal-id',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]};
+ await rejects(call(db,archive),'V2_RESTORE_LIVE_RECORD_ID_COLLISION');
+ const q=db.transaction('archive_history','readonly').objectStore('archive_history').count();
+ const count=await new Promise((res,rej)=>{q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
+ assert.equal(count,0);db.close();
+});
+test('no pending video retains prior aborted writer-lock diagnostic behavior',async()=>{
+ const db=await setup();
+ const result=await call(db);
+ assert.equal(result.pendingIdentityChecked,0);
+ assert.equal(result.restoreAuthorized,false);
+ assert.equal(result.transactionAborted,true);
+ db.close();
+});
