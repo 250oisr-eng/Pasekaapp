@@ -1,3 +1,12 @@
+## Контрольная точка — публичный ZIP-архив: реальная integrity проверка (2026-11-20)
+
+- PR #268 docs-only head `9aabaeb35892cd042bfe5a88cdde68f155a879b1` оставался Draft, workflow runs на точном SHA не обнаружены. Следующая отдельная ветка `test/video-public-archive-integrity-2026-11-20` поверх #268.
+- Прямой доступ к public Mendeley Data API из текущей среды не сработал (DNS/недоступность веб-JSON); фактические архивы v5/v6 не скачаны и реальные LICENSE/README в них не изучены. API официально поддерживает metadata/files/zip endpoints, но это ещё не доказательство получения архива.
+- Реализован read-only offline ZIP inspector `tools/inspect_bee_archive.py`: SHA-256 архива и каждого файла, поиск имён лицензий, отклонение traversal/symlink/duplicate/zip bomb/large/corrupt без извлечения. `tests/test_inspect_bee_archive.py` — локальные 6/6 пройдены; `tests/public-archive-inspection.test.mjs` включает Python suite в общее `npm test`. `docs/VIDEO-PUBLIC-ARCHIVE-INTEGRITY.md` задаёт ограничения и порядок проверки.
+- Инструмент не подтверждает лицензии автоматически, не предоставляет весов, не обучает модель и не запускает Android inference. CI нового Draft должен быть подтверждён на exact SHA. Нет изменений main/production/пользовательских видео/cleanup.
+
+---
+
 ## Проверка итогов Draft #267–#268 (2026-11-20)
 
 - Draft #267 exact SHA `29b4eef274431e4931b212cb70b026cc1da2ba6e`: Android workflow #44730598362 **completed/success** (регрессии, debug APK build/upload); isolated #44730598371 **skipped**. Это относится к новому self-contained COCO export и не доказывает качества датасета/модели.
