@@ -23,5 +23,34 @@ function authorizeOriginalCleanup(video,receipt){
  return {ok:true,videoId:video.id,source:video.source,resultId:receipt.resultId,
          action:'cleanup_required',note:'Authorization only; no binary has been deleted.'};
 }
-root.PasekaVideoRetentionGuard=Object.freeze({SOURCES,authorizeOriginalCleanup});
+
+function inspectManagedVideoCopies(videoId, mainState, autoBackup){
+ if(!isId(videoId))return {ok:false,reason:'invalid_video_identity',copies:[],ambiguous:[]};
+ const copies=[],ambiguous=[];
+ function scanMedia(items,location){
+  if(!Array.isArray(items))return;
+  items.forEach((item,index)=>{
+   if(!item||item.kind!=='video')return;
+   const where=location+'.media['+index+']';
+   if(item.videoId===videoId||item.id===videoId)copies.push(where);
+   else if(!isId(item.videoId)&&!isId(item.id)&&item.data)ambiguous.push(where);
+  });
+ }
+ function scanState(state,prefix){
+  if(!state||typeof state!=='object')return;
+  if(Array.isArray(state.records))state.records.forEach((rec,i)=>scanMedia(rec&&rec.media,prefix+'.records['+i+']'));
+  if(Array.isArray(state.snapshots))state.snapshots.forEach((snapshot,i)=>{
+   const nested=snapshot&&(snapshot.state||snapshot.data);
+   if(nested&&typeof nested==='object'&&Array.isArray(nested.records))
+    nested.records.forEach((rec,j)=>scanMedia(rec&&rec.media,prefix+'.snapshots['+i+'].records['+j+']'));
+  });
+ }
+ scanState(mainState,'main');
+ if(autoBackup&&typeof autoBackup==='object')scanState(autoBackup.state||autoBackup,'autoBackup');
+ return {ok:copies.length===0&&ambiguous.length===0,
+  reason:copies.length?'original_copies_present':ambiguous.length?'unidentified_legacy_videos':null,
+  copies,ambiguous};
+}
+
+root.PasekaVideoRetentionGuard=Object.freeze({SOURCES,authorizeOriginalCleanup,inspectManagedVideoCopies});
 })(typeof window!=='undefined'?window:globalThis);
