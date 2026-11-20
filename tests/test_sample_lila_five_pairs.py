@@ -45,7 +45,7 @@ class FivePairsTests(unittest.TestCase):
             self.assertEqual(x["objectsByClass"],{"bee":1})
             self.assertEqual(len(x["imageSha256"]),64)
         for key in ("sourceVideoIdentityVerified","independentTrainTestSplitAvailable",
-                    "jpegFullyDecoded","entireArchiveDownloaded","entireArchiveShaVerified",
+                    "imageFullyDecoded","entireArchiveDownloaded","entireArchiveShaVerified",
                     "licenseVerified","trainingAuthorized","modelApproved",
                     "recognitionSucceeded","cleanupAuthorized"):
             self.assertFalse(report[key])
