@@ -31,7 +31,7 @@ test('multiple recordings are all checked and originals remain intact',async()=>
  assert.deepEqual(await readFile(join(root,'two.mp4')),b);
 }));
 test('rejects tampered video bytes',async()=>fixture(async(root)=>{
- const a=Buffer.from('original'),b=Buffer.from('modified');
+ const a=Buffer.from('original'),b=Buffer.from('modified-with-extra-bytes');
  await writeFile(join(root,'video.mp4'),b);
  await rejects(verifyLocalSourceRecordings(manifest(record(hash(a))),root,[entry(a)]),'source_size_invalid');
 }));
