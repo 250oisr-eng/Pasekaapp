@@ -570,6 +570,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
 <script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script>
+<script src="./js/paseka-sha256.js"></script>
 <script src="./js/video-archive-safety.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
@@ -1378,8 +1379,11 @@ async function handleEntranceVideoFile(files){
   const estimate=await navigator.storage?.estimate?.();
   if(estimate&&Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&estimate.quota-estimate.usage<file.size*1.15)throw new Error('Недостаточно свободного места для безопасного сохранения видео. Освободи место или выбери более короткую запись.');
  }catch(error){if(status)status.textContent=error.message;return alert(error.message)}
- const id=uid(),record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blob:file};
+ const id=uid();
  try{
+  if(status)status.textContent='Вычисляю SHA-256 исходного видео…';
+  const blobSha256=await PasekaSha256.hashBlobHex(file);
+  const record={id,hiveId,capturedAt:new Date().toISOString(),durationSec:metadata.durationSec,width:metadata.width,height:metadata.height,bytes:file.size,mimeType:file.type||'video/unknown',name:String(file.name||'video').slice(0,120),status:'waiting_for_server',queueCreatedAt:new Date().toISOString(),retryCount:0,lastAttemptAt:null,nextAttemptAt:null,lastError:null,metadataCheck:check,frameQualityCheck:frameQuality,blobSha256,blob:file};
   await putEntranceVideo(record);
   if(status)status.textContent='Видео сохранено в локальную очередь. Сервер анализа ещё не подключён, поэтому отправка и автоматическое удаление не выполняются. Техническая оценка кадров: '+(frameQuality.status==='good'?'хорошее качество':frameQuality.status==='limited'?'ограниченное качество':frameQuality.status==='poor'?'плохое качество':'не определено')+'. Полноценного распознавания пчёл пока нет.';
   await refreshEntranceVideos();
@@ -2738,7 +2742,8 @@ async function addCapturedVideo(file){
  try{
   const duration=await getVideoDuration(file);
   if(duration>40){alert('Видео длится '+duration.toFixed(1)+' сек. Максимальная длительность — 40 секунд. Выбери или сними более короткий ролик.');return}
-  const item={kind:'video',videoId:uid(),name:file.name||'Видео осмотра.mp4',type:videoTypeFor(file),data:await fileData(file)};
+  const sourceSha256=await PasekaSha256.hashBlobHex(file);
+  const item={kind:'video',videoId:uid(),name:file.name||'Видео осмотра.mp4',type:videoTypeFor(file),sourceSha256,sourceBytes:file.size,data:await fileData(file)};
   pendingRecordMedia.push(item);
   const v=document.createElement('video');v.controls=true;v.preload='metadata';v.playsInline=true;v.src=item.data;$('mediaPreview').appendChild(v);
   const note=document.createElement('div');note.className='media-note';note.textContent='Видео добавлено для временного хранения до распознавания (автоудаление ещё не подключено) · '+(file.size/1024/1024).toFixed(1)+' МБ';$('mediaPreview').appendChild(note);
@@ -2792,7 +2797,7 @@ $('recordForm').onsubmit=async e=>{
    else if(f.type.startsWith('video/')||/\.(mp4|m4v|mov|webm|3gp)$/i.test(f.name)){
     const duration=await getVideoDuration(f);
     if(duration>40){alert('Видео «'+f.name+'» длится '+duration.toFixed(1)+' сек. Максимум — 40 секунд. Запись не сохранена.');return}
-    media.push({kind:'video',videoId:uid(),name:f.name,type:videoTypeFor(f),data:await fileData(f)});
+    media.push({kind:'video',videoId:uid(),name:f.name,type:videoTypeFor(f),sourceSha256:await PasekaSha256.hashBlobHex(f),sourceBytes:f.size,data:await fileData(f)});
    }
   }
  }catch(err){alert('Не удалось прочитать вложение: '+(err?.message||err)+'. Запись не сохранена, форма оставлена открытой.');return}
