@@ -64,5 +64,25 @@ function inspectExportRisk(ledger,archiveCarriesLedger){
   return {ok:false,reason:'recognition_history_not_in_archive'};
  return {ok:true,reason:null};
 }
-root.PasekaVideoArchiveSafety=Object.freeze({validLedger,collectOriginals,inspectRestoreRisk,inspectExportRisk});
+
+function assertLegacyRestoreSafe(db){
+ return new Promise((resolve,reject)=>{
+  let tx,request,value;
+  try{
+   tx=db.transaction('main','readonly');
+   request=tx.objectStore('main').get('video_recognition_ledger_v1');
+   request.onsuccess=()=>{value=request.result};
+   request.onerror=()=>reject(request.error||new Error('VIDEO_LEDGER_READ_FAILED'));
+   tx.oncomplete=()=>{
+    if(value==null)return resolve(true);
+    if(!validLedger(value))return reject(new Error('VIDEO_LEDGER_CORRUPT_RESTORE_BLOCKED'));
+    if(value.entries.length>0)return reject(new Error('VIDEO_RECOGNITION_HISTORY_RESTORE_BLOCKED'));
+    resolve(true);
+   };
+   tx.onabort=()=>reject(tx.error||new Error('VIDEO_LEDGER_READ_ABORTED'));
+  }catch(error){reject(error)}
+ });
+}
+
+root.PasekaVideoArchiveSafety=Object.freeze({validLedger,collectOriginals,inspectRestoreRisk,inspectExportRisk,assertLegacyRestoreSafe});
 })(typeof window!=='undefined'?window:globalThis);
