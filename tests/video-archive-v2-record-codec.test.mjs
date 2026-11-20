@@ -91,3 +91,10 @@ test('caller cannot inject raw record_media Blob without source-linked adapter',
  await rejects(build(input),'V2_VIDEO_UNSUPPORTED');
  await rejects(build(input,false),'V2_VIDEO_UNSUPPORTED');
 });
+
+test('legacy kind=video with opaque encoding is rejected without adapter',async()=>{
+ const input=args();
+ input.state.records[0].media[1].data='legacy-unknown-encoded-video';
+ await rejects(build(input,false),'V2_STATE_EMBEDDED_VIDEO');
+ await rejects(build(input),'V2_RECORD_DATA_URL_INVALID');
+});
