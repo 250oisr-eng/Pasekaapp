@@ -1,3 +1,19 @@
+## Усиление: SHA-256 исходной видеозаписи (2026-11-20)
+
+Для любой строки с `split=train|validation|test` теперь обязательно поле `sourceRecordingSha256` — **64 строчных hex-символа** для исходного видео. У `unassigned` оно строго `null`. Это обратимо для staging-манифестов: старые записи без поля остаются допустимыми только как `unassigned` после явного добавления `null`; старые *назначенные* записи без hash теперь fail-closed, намеренно.
+
+Валидатор отклоняет:
+- одну `sourceSessionId`, которая указывает на разные `sourceRecordingSha256`;
+- один `sourceRecordingSha256` под различными session IDs (даже внутри одного split);
+- один и тот же source video hash между разными split, даже если видео переименовали;
+- отсутствие/битый hash исходного видео и недопустимое присвоение hash записи `unassigned`.
+
+Пример **исключительно синтетической** записи: `{imageSha256: "aaa…(64)", split:"train", sourceSessionId:"video-01", sourceRecordingSha256:"bbb…(64)", evidence:{uri:"https://example.org/manifest",description:"Asserted source video mapping"}}`.
+
+`declaredRecordingHashes` считает только уникальные **заявленные** записи. Даже одинаковые хеши в двух записях могут быть произвольно подставленными пользователем: инструмент *не читает и не хеширует реальные видеобайты*, не открывает URI, не удостоверяет provenance и не создаёт разрешённый split. Все `Verified/Authorized/Approved` остаются false. Ни пользовательские видео, ни каталог файлов не изменяются.
+
+Дополнительный контекст: работа 2026 года по Apis mellifera у летка описывает 11 независимых семей в исходных тренировочных видеосессиях, 1003 исходных изображений и 22529 bbox (https://pmc.ncbi.nlm.nih.gov/articles/PMC13607679/). Это исследовательский кандидат; статья не доказывает доступность файлов, их лицензию или реальные SHA. Не переносить результаты напрямую на устройство.
+
 # Source-session manifest inspector — staging only
 
 Дата: 2026-11-20. Граница: offline Node.js инструмент проверки **структуры объявленных** сведений; не доверенная верификация происхождения кадров.
@@ -14,6 +30,7 @@
       "imageSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "split": "unassigned",
       "sourceSessionId": null,
+      "sourceRecordingSha256": null,
       "evidence": null
     }
   ]
