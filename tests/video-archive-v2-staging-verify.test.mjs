@@ -333,3 +333,139 @@ test('pinned-source rehearsal refuses any verifier that claims permission to res
  assert.equal(await count(db,'entrance_media'),0);
  db.close();
 });
+
+const rehearsePinnedAdds=root.PasekaVideoArchiveV2PinnedSource.rehearsePinnedEntranceAddsAbort;
+test('real entrance-media add requests succeed inside a transaction that always aborts',async()=>{
+ const {db,file}=await staged();
+ const report=await rehearsePinnedAdds(db,file,opts(),pinnedDeps());
+ assert.equal(report.abortedAddRequestCount,1);
+ assert.equal(report.finalTransactionAborted,true);
+ assert.equal(report.pinnedArchiveByteSourceVerified,true);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.stagedBytesLocked,false);
+ assert.equal(await count(db,'entrance_media'),0,'no inserted video may persist after abort');
+ assert.equal(await count(db,'archive_staging'),2);
+ assert.equal(await count(db,'archive_history'),1);
+ assert.deepEqual(await get(db,'main','state'),state());
+ db.close();
+});
+test('aborted add uses verified archive Blob, not same-size replaced staging Blob',async()=>{
+ const {db,file}=await staged(),captured=[];
+ const d=pinnedDeps();
+ const realCodec=d.codec.inspectMetadataArchive;
+ let passes=0;
+ d.codec={...d.codec,inspectMetadataArchive:async(...args)=>{
+  const result=await realCodec(...args);
+  if(++passes===2){
+   const key='v2pending:v2-recheck:entrance_media:video-one';
+   const saved=await get(db,'archive_staging',key);
+   const tx=db.transaction('archive_staging','readwrite');
+   tx.objectStore('archive_staging').put({...saved,
+    blob:new Blob(['xyz'],{type:'video/mp4'})});
+   await done(tx);
+  }
+  return result;
+ }};
+ const tracked={
+  objectStoreNames:db.objectStoreNames,
+  transaction(names,mode){
+   const tx=db.transaction(names,mode);
+   if(mode!=='readwrite')return tx;
+   return new Proxy(tx,{
+    get(target,key){
+     if(key==='objectStore')return name=>{
+      const store=target.objectStore(name);
+      if(name!=='entrance_media')return store;
+      return new Proxy(store,{
+       get(source,method){
+        if(method==='add')return row=>{
+         captured.push(row);return source.add(row);
+        };
+        const original=Reflect.get(source,method,source);
+        return typeof original==='function'?original.bind(source):original;
+       }
+      });
+     };
+     const original=Reflect.get(target,key,target);
+     return typeof original==='function'?original.bind(target):original;
+    },
+    set(target,key,value){return Reflect.set(target,key,value,target);}
+   });
+  }
+ };
+ const result=await rehearsePinnedAdds(tracked,file,opts(),d);
+ assert.equal(result.abortedAddRequestCount,1);
+ assert.equal(captured.length,1,'a real IndexedDB add request must be issued');
+ assert.equal(captured[0].id,'video-one');
+ const verified=await root.PasekaSha256.hashBlobHex(new Blob(['abc'],{type:'video/mp4'}));
+ assert.equal(await root.PasekaSha256.hashBlobHex(captured[0].blob),verified);
+ const persisted=await get(db,'archive_staging',
+  'v2pending:v2-recheck:entrance_media:video-one');
+ assert.notEqual(await root.PasekaSha256.hashBlobHex(persisted.blob),verified);
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(result.cleanupAuthorized,false);
+ db.close();
+});
+test('journal videos cannot be written into entrance_media by abort-only rehearsal',async()=>{
+ const {db,file}=await staged(true);
+ await rejects(rehearsePinnedAdds(db,file,opts(),pinnedDeps()),
+  'V2_PIN_WRITE_ENTRANCE_ONLY');
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_staging'),2);
+ db.close();
+});
+test('new entrance ID race before lock prevents even tentative add',async()=>{
+ const {db,file}=await staged();
+ const d=pinnedDeps(),original=d.sha.hashBlobHex;let hashes=0;
+ d.sha={...d.sha,hashBlobHex:async blob=>{
+  const digest=await original(blob);
+  if(++hashes===6){
+   const tx=db.transaction('entrance_media','readwrite');
+   tx.objectStore('entrance_media').add({
+    id:'video-one',blob:new Blob(['new independent original'])
+   });
+   await done(tx);
+  }
+  return digest;
+ }};
+ await rejects(rehearsePinnedAdds(db,file,opts(),d),
+  'V2_RESTORE_LIVE_ENTRANCE_ID_COLLISION');
+ assert.equal((await get(db,'entrance_media','video-one')).blob.size,24);
+ assert.equal(await count(db,'archive_staging'),2);
+ assert.equal(await count(db,'archive_history'),1);
+ db.close();
+});
+test('unexpected IDB add failure never commits any verified video',async()=>{
+ const {db,file}=await staged();
+ const tracked={
+  objectStoreNames:db.objectStoreNames,
+  transaction(stores,mode){
+   const tx=db.transaction(stores,mode);
+   if(mode!=='readwrite')return tx;
+   return new Proxy(tx,{
+    get(target,key){
+     if(key==='objectStore')return name=>{
+      const store=target.objectStore(name);
+      if(name!=='entrance_media')return store;
+      return new Proxy(store,{
+       get(source,method){
+        if(method==='add')return ()=>{throw new Error('simulated write failure');};
+        const value=Reflect.get(source,method,source);
+        return typeof value==='function'?value.bind(source):value;
+       }
+      });
+     };
+     const val=Reflect.get(target,key,target);
+     return typeof val==='function'?val.bind(target):val;
+    },
+    set(target,key,value){return Reflect.set(target,key,value,target);}
+   });
+  }
+ };
+ await assert.rejects(rehearsePinnedAdds(tracked,file,opts(),pinnedDeps()),
+  /simulated write failure/);
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_staging'),2);
+ db.close();
+});

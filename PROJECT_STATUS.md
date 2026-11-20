@@ -1,3 +1,24 @@
+## Проверка CI: pinned entrance add с обязательным abort (2026-11-20)
+
+- Точный кодовый/test SHA 3bce3f1528e0866711c88e5e70fd4ec1b6a3dd8c: Android Build workflow #44699253786 **completed/success**. В build job успешны Run regression tests, Build debug APK и Upload APK. Изолированный Build isolated archive test APK #44699253789 **skipped**, не считать успешной отдельной проверкой.
+- Draft PR #235: https://github.com/250oisr-eng/Pasekaapp/pull/235. Все добавленные test-only транзакции **всегда abort**, ни один пользовательский оригинал/ledger/state/backup не записан или удалён; не подключено к UI.
+- Проверка в реальном Android test APK и на физическом телефоне НЕ выполнялась. В Lovable найден существующий проект Apiary Family Atlas; этот этап не изменял его код и настройки публикации.
+- Следующий инженерный приоритет: тестовая полная атомарная транзакция состояния и признанной истории с защищённым rollback snapshot, чтобы будущий commit использовал именно удержанные verified archive Blob. Пока нет полноценного согласования record_media, всех копий и удаления после распознавания, запуск live и cleanup запрещены.
+- Последующие docs-only SHA требуют отдельной проверки CI; code/test успех относится только к 3bce3f1528e0866711c88e5e70fd4ec1b6a3dd8c.
+
+---
+
+## Контрольная точка — PASEKA02: репетиция IDB add с обязательным abort (2026-11-20)
+
+- Проверенный предшественник Draft #234: code/test SHA 36c990974f9f13dcb2af4d13163787c254d72c51, Android workflow #44698877760 completed/success, isolated archive APK #44698877638 skipped. После него только docs-only commits; основной стек #230–234 остаётся Draft.
+- Новая зависимая ветка feat/video-archive-v2-pinned-add-abort-2026-11-20 поверх #234. Js/video-archive-v2-pinned-source.js теперь имеет тестовый метод rehearsePinnedEntranceAddsAbort: после повторной проверки реального PASEKA02 и SHA **удерживает те же immutable Blob** и в единой readwrite транзакции пяти stores сначала проверяет state/ledger/staging/history/entrance IDs, затем подаёт настоящие `entrance_media.add` (без put), ждёт завершения запросов и **всегда tx.abort**.
+- `record_media` этим методом не восстанавливается, только entrance_media; при коллизии видео, неизвестных source ID, ошибке add или изменении ledger транзакция целиком отменяется. Никакой durable записи в main, media, staging, history, full_backup.
+- tests/video-archive-v2-staging-verify.test.mjs дополнен проверками add-success-with-abort, same-size staged Blob tamper с interception add (доказано использование архивного Blob), journal video blocked, конкурентной записи video ID и искусственного add failure. Код SHA 46094204c4220c2bef9d10a1a92a88f70010cc1f, тест SHA 899239ca9f499d4d66981cfc526c865ce54d2631.
+- Контракт docs/VIDEO-ARCHIVE-V2-ABORTED-ADD.md. На момент фиксации GitHub CI этого нового SHA ещё не подтверждён; Android физически не тестировался. Нет live integration, мержа PR, production и удаления оригиналов.
+- Следующее: проверить CI итогового SHA и исправить реальные сбои. Затем — только отдельная тестовая реализация полноценного защищённого rollback + recognition ledger union, без удаления видео и без использования непроверенных staging байтов.
+
+---
+
 ## Проверенный CI — pinned PASEKA02 source (2026-11-20)
 
 - PR #234 код/тесты SHA 36c990974f9f13dcb2af4d13163787c254d72c51: Android workflow #44698877760 **completed/success** (regression tests, debug APK, upload); isolated archive APK workflow #44698877638 **skipped**. Это не физическое тестирование телефона.
