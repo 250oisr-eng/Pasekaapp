@@ -1,3 +1,9 @@
+## CI Draft #249 — точный проверенный SHA (2026-11-20)
+
+- Code/test/docs SHA `4abaefe0edead7acbf3c8521a12cfef03ec36769`: [Android #44710388330](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710388330) **completed/success** (регрессионные тесты, Debug APK build, Upload APK); [isolated #44710388415](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710388415) **skipped**. Android physical test не проводился.
+- Блок не активирует реальное AI распознавание, не завершает видеозаписи, не удаляет исходники. Поздние docs-only commits после проверенного SHA не считать автоматически проверенными.
+
+---
 ## Этап — сквозной staging-only local video observation pipeline (2026-11-20)
 
 - На базе Draft #248 создана ветка `feat/video-observation-pipeline-2026-11-20`: `js/video-observation-pipeline.js` соединяет только два неактивных модуля `PasekaEntranceFramePreparation` и `PasekaVideoModelEvidence` через **внешне внедряемый, ещё не существующий** on-device adapter. Нет UI, службы модели, сети, записи в базу или удаления.
