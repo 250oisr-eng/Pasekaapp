@@ -18,6 +18,7 @@
 | АУДИТ-PR-54-58-2026-11-16.md | Подтверждённые дефекты, воспроизведение, риски и план исправлений PR #54–58 |
 | СОСТОЯНИЕ-ПРОЕКТА.md | Актуальное состояние, SHA, PR, ограничения и следующий шаг |
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
+| VIDEO-INFERENCE-PROVIDER-EVALUATION.md | Варианты бесплатного offline runtime, ограничения лицензии и staging-only observation draft |
 | VIDEO-ARCHIVE-V2-CONTRACT.md | Проект (не реализация) формата полного архива с ledger/tombstones и fail-closed восстановлением |
 | VIDEO-ARCHIVE-V2-RESTORE-READINESS.md | Карта защищённых IndexedDB stores, результаты сквозного v2 dry-run и блокеры будущего stage/commit/rollback |
 | ENTRANCE-VIDEO-DELETE-GUARD.md | Безусловный запрет ручного удаления леткового оригинала до проверенного распознавания и all-copy cleanup |
