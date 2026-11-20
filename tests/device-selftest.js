@@ -117,7 +117,7 @@ function renderCardPreview() {
     assert(current && current.textContent.includes('19.11.2026'), 'Latest Varroa treatment date is missing');
     assert(current.textContent.includes(PasekaVarroaTreatmentLog.METHOD_LABEL), 'Varroa treatment method is missing');
     assert(!rows[1].querySelector('.hive-treatment-summary'), 'Hive without treatment has unexpected summary');
-    previewHtml = '<div style="margin:10px 0"><b>Карточки из настоящего интерфейса:</b></div>' + first + second;
+    previewHtml = '<div class="selftest-cards"><div style="margin:10px 0"><b>Карточки из настоящего интерфейса:</b></div>' + first + second + '</div>';
   } finally {
     S = saved; // The real app's in-memory data and IndexedDB are never changed.
   }
@@ -130,11 +130,23 @@ function drawPanel() {
     node.style.cssText = 'position:fixed;inset:0;z-index:2147483647;overflow:auto;background:#f4f3ed;color:#202820;padding:18px;font:15px/1.45 system-ui;box-sizing:border-box';
     document.body.appendChild(node);
   }
+  // Screenshot regression: unbroken machine-check names must wrap within
+  // the phone viewport; test preview must not hide real hive details.
+  // Styles are scoped to this isolated test panel, not production UI.
+  node.style.overflowX = 'hidden';
+  const style = '<style>' +
+    '#paseka-device-selftest-panel .selftest-results{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}' +
+    '#paseka-device-selftest-panel .selftest-check{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word;margin:6px 0}' +
+    '#paseka-device-selftest-panel .selftest-cards{min-width:0;max-width:100%;overflow-wrap:anywhere}' +
+    '#paseka-device-selftest-panel .selftest-cards .hive-row{max-width:100%;flex-wrap:wrap}' +
+    '#paseka-device-selftest-panel .selftest-cards .hive-row-main{min-width:0;flex:1 1 100%}' +
+    '#paseka-device-selftest-panel .selftest-cards .hive-row-main .muted{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}' +
+    '</style>';
   const passed = checks.filter(x => x.result === 'PASS').length;
-  node.innerHTML = '<h2 style="margin:0 0 8px">Пасека · испытание на телефоне</h2>' +
+  node.innerHTML = style + '<h2 style="margin:0 0 8px">Пасека · испытание на телефоне</h2>' +
     '<p>Только фиктивные данные · '+passed+' из '+checks.length+' проверок пройдено</p>' +
-    '<div style="padding:8px;background:white;border-radius:8px">' +
-    checks.map(x => '<div style="margin:4px 0">'+(x.result === 'PASS' ? '✅' : '❌')+' '+
+    '<div class="selftest-results" style="padding:8px;background:white;border-radius:8px">' +
+    checks.map(x => '<div class="selftest-check">'+(x.result === 'PASS' ? '✅' : '❌')+' '+
       String(x.name).replace(/[&<>]/g, '')+(x.error?' — '+x.error.replace(/[&<>]/g, ''):'')+'</div>').join('')+'</div>' +
     previewHtml +
     '<p style="font-size:12px">Тестовая APK отдельна от основного приложения. Отчёт сохранён локально.</p>';

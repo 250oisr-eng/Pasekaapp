@@ -1,3 +1,12 @@
+## Контрольная точка — реальный Android 9/9 PASS и исправление мобильного тестового экрана (2026-11-20)
+
+- Пользователь предоставил `report(9).json` из `ru.paseka.journal.device.r44604951938a2`: `status=PASS`, `phaseOne=7/7 PASS` и `final=9/9 PASS` после перезапуска. Скриншоты `before-restart(5).png` и `after-restart(1).png` показывают одинаковый визуальный недостаток: технические имена тестов с подчёркиваниями выходят за край белой панели; в тестовом preview карточек ульев текст профиля и сведения о последней обработке обрезаны. Это проверка **старой изолированной тестовой APK**, не PR #226 или рабочей пасеки. Не проверялись native file picker, offline transport, субъективная читаемость.
+- Ветка `fix/device-selftest-mobile-readable-results-2026-11-20` создана **от отдельной цепочки PR #199**, а не от архивного PR #226: неисправность относится только к `tests/device-selftest.js`. Панель результатов получает scoped CSS `overflow-wrap:anywhere`, `word-break:break-word`, `min-width:0`, а тестовые карточки preview показывают текст без `white-space:nowrap` / ellipsis. Производственный интерфейс не затронут и правила размещения корпусов не менялись.
+- Добавлена регрессия `tests/device-selftest-build.test.mjs` для мобильного переноса и синтаксиса изолированного JS. Проверить Fast quality и Android workflows на SHA этой ветки. Новая физическая проверка будет нужна только когда тестовый APK следующего этапа будет собран; повторение прежнего 9/9 без новых функций не требуется.
+- Ветка Draft, без merge, production и изменений пользовательских данных. Реальный безопасный импорт PASEKA02 по-прежнему не активирован.
+
+---
+
 ## Проверка CI исправления публикации PASS — 2026-11-20
 
 - На точном SHA `7160e0cf060b5ca9acb429d850ca3984e3194464` [Build Android APK #44614534185](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44614534185) завершился **completed/success**: regression tests, Android Gradle debug APK и Upload APK прошли успешно (по шагам GitHub Actions). Отдельный [Build isolated archive test APK #44614534256](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44614534256) — **completed/skipped**, не выдавать за успех.
