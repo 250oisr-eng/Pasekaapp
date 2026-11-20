@@ -1,3 +1,13 @@
+## CI проверен — реальные legacy PASEKA01 + capture UI (2026-11-20)
+
+- Код/тесты/документация на SHA `70e8781c2a4a98cdfc0e060902d41f34172804bc`: Android workflow #44703165651 **completed/success**, regression tests, debug APK, upload успешны. Изолированный archive test APK #44703165708 **skipped**.
+- Новый зависимый Draft PR #239: https://github.com/250oisr-eng/Pasekaapp/pull/239. Учитываются PASEKA01 `video`, `rollback_video`, `rollback_state`, `full_backup.previous.state` и реальный legacy journal capture без videoId, который теперь считает копию как identity:null/unidentified_copy. Никаких действий с original Blob или пользовательской базой нет.
+- Реальный `index.html` имеет путь ручного удаления леткового оригинала без ledger-условия; риск отмечен, но runtime не изменялся. Не смешивать пользовательский запрос на подтверждённое распознавание с прежней кнопкой ручного удаления.
+- Текущая инвентаризация всегда `cleanupAuthorized=false` и `auditComplete=false`. Следующий этап — безопасно согласовать runtime capture и recognition ledger, а также Android внешние копии, прежде чем разрабатывать удаление после распознавания.
+- Success относится к указанному SHA. Поздний docs-only commit при появлении будет иметь отдельный CI. Main, production, опубликованное приложение и физические устройства не изменены.
+
+---
+
 ## Сверка реального capture UI и исправление подсчёта копий без ID (2026-11-20)
 
 - Прямой аудит `index.html`: летковые видео записываются `handleEntranceVideoFile → putEntranceVideo` в `entrance_media` с SHA-256; сервер распознавания ещё не подключён. В live UI присутствует `removeEntranceVideo → deleteEntranceVideoBlob` с подтверждением пользователя, **без проверки успешного распознавания**. До отдельного разрешённого изменения этот пользовательский путь является риском преждевременного удаления и не относится к автоматической безопасной очистке.
