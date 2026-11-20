@@ -27,7 +27,7 @@ jobs:
       - name: Verify original 16 public image-label pairs, all 8 groups, no train/test or binaries retained
         run: |
           python tools/stage_mendeley_v6_public_csv.py \
-            tests/fixtures/mendeley-v6-user-16-pairs.csv \
+            tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv \
             --output-coco "${RUNNER_TEMP}/user-16-unassigned-coco.json" | tee "${RUNNER_TEMP}/user-16-manifest-report.json"
           python - <<'PY'
           import collections
@@ -43,7 +43,7 @@ jobs:
                       "_bee_20230711b", "_bee_20230711c"}
           assert set(groups) == expected and all(n == 2 for n in groups.values()), groups
           assert report["images"] == len(coco["images"]) == 16, report
-          assert report["annotations"] == len(coco["annotations"]), report
+          assert report["annotations"] == len(coco["annotations"]) == 113, report
           assert report["allOriginalJpegsFullyDecoded"] is True
           for flag in ("sourceVideoSessionIdsVerified", "independentHoldoutVerified",
                        "completeDatasetVerified", "trainingAuthorized",
@@ -58,10 +58,13 @@ jobs:
           assert first["labelSha256"] == "ab25e4c0d29898983b78cc8241271ca4a66095332c32c8f0d29aab68d32f68d5"
           unique = {f["imageSha256"] for f in report["files"]}
           assert len(unique) == 16
+          image_to_group = {im["id"]: im["hiveCollectionFolder"] for im in coco["images"]}
+          box_counts = collections.Counter(image_to_group[a["image_id"]] for a in coco["annotations"])
           print("REAL_16_V6_PAIRS_VERIFIED",
                 json.dumps({"groups": dict(sorted(groups.items())),
                             "images": len(coco["images"]),
                             "annotations": len(coco["annotations"]),
+                            "beeBoxesByGroup": dict(sorted(box_counts.items())),
                             "allFullDecoded": True,
                             "trainingAuthorized": False,
                             "cleanupAuthorized": False}))
