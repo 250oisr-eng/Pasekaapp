@@ -1679,3 +1679,71 @@ test('staging audit of an untouched legacy database is safe and empty',async()=>
  assert.equal(audit.ok,true);assert.equal(audit.matchedCopies,0);
  db.close();
 });
+
+test('staging recognition audit includes orphaned original copies after their session header vanished',async()=>{
+ const db=await openTestDb('paseka-audit-orphaned-recognized-video');
+ const archive=await makeArchive('backup-audit-orphaned-recognized-video');
+ const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+ const key=staged.session.sessionId+':video:video-1';
+ const before=await get(db,'archive_staging',key);
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('archive_staging','readwrite');
+  tx.objectStore('archive_staging').delete(staged.session.sessionId);
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
+ });
+ const ledger={version:1,entries:[{videoId:'video-1',source:'entrance_media',
+  resultId:'success-result',cleanupState:'deleted'}]};
+ await put(db,'main',ledger,'video_recognition_ledger_v1');
+ const audit=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audit.ok,true);
+ assert.equal(audit.matchedCopies,1);
+ assert.equal(audit.orphanedMatchedCopies,1);
+ assert.equal(audit.sessions[0].missingSessionHeader,true);
+ assert.equal(audit.sessions[0].status,'orphaned_header');
+ assert.equal(audit.sessions[0].identityVerifiedByBytes,false);
+ assert.equal(audit.sessions[0].action,'manual_review_required');
+ assert.equal(audit.requiresManualReview,true);
+ assert.deepEqual(await get(db,'archive_staging',key),before);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger);
+ db.close();
+});
+test('staging recognition audit marks orphaned copies referenced by archive history',async()=>{
+ const db=await openTestDb('paseka-audit-history-linked-orphan');
+ const archive=await makeArchive('backup-audit-history-linked-orphan');
+ const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('archive_staging','readwrite');
+  tx.objectStore('archive_staging').delete(staged.session.sessionId);
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
+ });
+ await put(db,'archive_history',{backupId:'history-audit',
+  status:'committed',importSessionId:staged.session.sessionId});
+ await put(db,'main',{version:1,entries:[{videoId:'video-1',source:'entrance_media',
+  resultId:'verified',cleanupState:'blocked_archive_safety'}]},'video_recognition_ledger_v1');
+ const audit=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audit.sessions[0].protectedByArchiveHistory,true);
+ assert.equal(audit.sessions[0].missingSessionHeader,true);
+ assert.equal(audit.sessions[0].tombstonedCopies,0);
+ db.close();
+});
+test('staging recognition audit refuses duplicate ledger identities',async()=>{
+ const db=await openTestDb('paseka-audit-duplicate-ledger-id');
+ const row={videoId:'same',source:'entrance_media',resultId:'r1',cleanupState:'deleted'};
+ await put(db,'main',{version:1,entries:[row,{...row,resultId:'r2'}]},'video_recognition_ledger_v1');
+ const audit=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audit.ok,false);
+ assert.equal(audit.reason,'VIDEO_LEDGER_DUPLICATE_IDENTITY');
+ db.close();
+});
+test('staging recognition audit flags malformed video keys rather than declaring all copies safe',async()=>{
+ const db=await openTestDb('paseka-audit-invalid-video-key');
+ await put(db,'archive_staging',{id:'unexpected-video-key',sessionId:'odd',kind:'video',
+  blob:new Blob(['private copied video'])});
+ await put(db,'main',{version:1,entries:[]},'video_recognition_ledger_v1');
+ const audit=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audit.ok,true);
+ assert.equal(audit.unclassifiedVideoKeyCount,1);
+ assert.equal(audit.requiresManualReview,true);
+ assert.ok(await get(db,'archive_staging','unexpected-video-key'));
+ db.close();
+});

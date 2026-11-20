@@ -1,3 +1,34 @@
+## Дополнение к PR #212 — аудит осиротевших видеокопий (2026-11-20)
+
+- Исправлен `inspectStagingRecognitionCopies(db)` в `js/paseka-archive-restore.js`: прежде он рассматривал только видеокопии staging, для которых сохранился `kind=session` header. Теперь только по индексным **ключам**, без загрузки Blob в память, проверяются и видеокопии с потерянным заголовком. Такие копии получают `status='orphaned_header'`, `missingSessionHeader=true` и `action='manual_review_required'`.
+- В отчёт добавлены `orphanedMatchedCopies`, `unclassifiedVideoKeyCount`, `requiresManualReview` и явное `identityVerifiedByBytes=false`. Один `videoId` без доказательства идентичности SHA-256 **не даёт права удаления**. Ссылки из `archive_history` остаются помеченными как защищённые. Дубли идентичностей ledger и неподдерживаемые cleanup-состояния приводят к fail-closed ошибке.
+- В `tests/archive-staging.test.mjs` добавлены регрессии на удалённый header с сохранённым staged Blob, orphan с архивной историей, duplicate ledger identity и неподдающиеся классификации ключи. Проверяется, что отчёт не меняет временные записи и ledger.
+- Кодовый SHA `cf4d71aa254e9dc49656e41f681f98aca962c35c`: [полный регрессионный job #44672535903](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44672535903) **completed/success**. Android CI на кодовом и итоговом документационном SHA проверять отдельно.
+- Автоматическая очистка, привязка результата к хэшу исходного видео и транспорт `ledger/tombstone` в переносимом архиве остаются блокерами. PR #212 Draft, main/production/физические архивы/данные не менялись и не удалялись.
+
+---
+
+## Дополнение к PR #212 — повторная очистка без записей (2026-11-20)
+
+- `discardArchiveRestoreSession` после чтения индексных ключей возвращает `false`, если staging-сессия уже пуста; операция **ничего не удаляет** и не ошибается лишь из-за сохранившейся в `archive_history` ссылки. Если хоть одна запись есть, полные проверки ownership/kind/history продолжают действовать в единой readwrite-транзакции.
+- Добавлен регрессионный тест `tests/archive-staging-cleanup-status.test.mjs` на двукратный повтор пустой очистки при наличии старой ссылки из истории.
+- Кодовый SHA `6a699d3c10ca43658a5554a52f0b8017837ce4b6`: [complete regression #44672319861](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44672319861) **completed/success**; Android CI и проверка итогового документационного SHA требуют отдельного подтверждения.
+- Автоудаление после распознавания не подключено. Основной оставшийся блокер: `video_recognition_ledger_v1` не содержит подтверждённой привязки к хэшу байтов, а `.paseka` v1 не сохраняет ledger/tombstone; поэтому автоматическая очистка остаточных staged-копий не разрешена.
+
+---
+
+## Контрольная точка — защита истории при очистке archive_staging (2026-11-20)
+
+- Создан зависимый Draft PR #212 поверх #211: ветка `fix/archive-staging-history-protection-2026-11-20`. `main`, production, реальные пользовательские записи и архивы не изменялись.
+- Исправлен `discardArchiveRestoreSession` в `js/paseka-archive-restore.js`: прежняя реализация проверяла `archive_history` только для staging без заголовка; теперь ссылка на импорт или rollback проверяется **для каждого случая** в одной IndexedDB readwrite-транзакции с возможной очисткой. Статусы `failed`/`ready`/`staging` не обходят защиту истории. Завершённый `reverted` импорт допускает прежнюю явную очистку лишь при `status=reverted` в истории, `rollbackAvailable=false`, отсутствии ссылки на rollback session и точном `backupId`.
+- Добавлена fail-closed проверка `sessionId`, заголовка `session.sessionId/backupId`, всех primary keys и соответствующего `kind` по вторичным индексам **без чтения видео Blob**. Неизвестные/перепутанные записи, включая `rollback_video` в чужой сессии, не удаляются; отсутствие индекса `kind` приводит к безопасному отказу.
+- Новые регрессии в `tests/archive-staging-cleanup-status.test.mjs`: защита ссылки history даже при повреждённом статусе, корректный полностью завершённый rollback, конфликт `backupId`, cross-session key, подмена `kind`, старый IndexedDB без обязательного индекса и неправильный sessionId. `tests/archive-restore-atomicity.test.mjs`: синтетический header приведён к действительной форме с `backupId` (защитный код не ослаблен).
+- Кодовый SHA `dfa7957cf111a0b055f2122e0cb5b5de81a5d50f`: [complete regression #44672101794](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44672101794) **completed/success**. Android CI на этом SHA проверять отдельно; документационный HEAD потребует собственного CI.
+- **Что не сделано:** автоматическое удаление видео после распознавания, проверка идентичности байтов для staging-копий, транспорт ledger/tombstone в `.paseka` и физическая Android-проверка. Новый код усиливает существующую ручную очистку; без полноценного протокола он не является разрешением удалить оригинал или резервную копию. `main` не менялась, PR Draft, merge/deployment отсутствуют.
+- Следующий этап: безопасный недеструктивный план идентификации staged-копий по подтверждённому результату и хэшу содержимого; только после согласования архивного формата и восстановления — проверенная селективная очистка с retry и регрессионными сценариями после обрыва.
+
+---
+
 ## Контрольная точка — предотвращение повторной готовности staging и аудит остаточных видео (2026-11-20)
 
 - Создан зависимый Draft PR #211 поверх #210, отдельная ветка `fix/archive-staging-finalize-ledger-2026-11-20`. Основная ветка `main` не менялась.

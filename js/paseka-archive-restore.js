@@ -1171,12 +1171,20 @@ async function inspectStagingRecognitionCopies(db) {
     requestValue(tx.objectStore(HISTORY_STORE).getAll())
   ]);
   await done;
-  if (ledger == null) return { ok: true, status: 'no_recognition_history', sessions: [], matchedCopies: 0 };
+  const empty = { sessions: [], matchedCopies: 0, orphanedMatchedCopies: 0, unclassifiedVideoKeyCount: 0 };
+  if (ledger == null) return { ok: true, status: 'no_recognition_history', ...empty };
   if (!ledger || typeof ledger !== 'object' || ledger.version !== 1 || !Array.isArray(ledger.entries) ||
       ledger.entries.some(entry => !entry || typeof entry.videoId !== 'string' || !entry.videoId ||
         !['entrance_media', 'record_media'].includes(entry.source) ||
-        typeof entry.resultId !== 'string' || !entry.resultId)) {
-    return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', sessions: [], matchedCopies: 0 };
+        typeof entry.resultId !== 'string' || !entry.resultId ||
+        !['blocked_archive_safety', 'delete_required', 'deleted'].includes(entry.cleanupState))) {
+    return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', ...empty };
+  }
+  const identities = new Set();
+  for (const entry of ledger.entries) {
+    const id = entry.source + ':' + entry.videoId;
+    if (identities.has(id)) return { ok: false, reason: 'VIDEO_LEDGER_DUPLICATE_IDENTITY', ...empty };
+    identities.add(id);
   }
   const recognized = new Set(ledger.entries
     .filter(entry => entry.source === 'entrance_media')
@@ -1189,32 +1197,58 @@ async function inspectStagingRecognitionCopies(db) {
     if (entry && typeof entry.importSessionId === 'string') references.add(entry.importSessionId);
     if (entry && typeof entry.rollbackSessionId === 'string') references.add(entry.rollbackSessionId);
   }
-  let matchedCopies = 0;
-  const conflicts = [];
+  const headers = new Map();
   for (const session of sessions || []) {
-    if (!session || session.kind !== 'session' || typeof session.sessionId !== 'string') continue;
-    const prefix = session.sessionId + ':video:';
-    const copies = (videoKeys || []).filter(key => typeof key === 'string' && key.startsWith(prefix))
-      .map(key => key.slice(prefix.length));
+    if (session && session.kind === 'session' && typeof session.sessionId === 'string' && session.sessionId) {
+      headers.set(session.sessionId, session);
+    }
+  }
+  // Enumerate primary keys only; reading video Blob objects would duplicate
+  // large payloads in memory. Include orphaned staging rows without headers.
+  const bySession = new Map();
+  let unclassifiedVideoKeyCount = 0;
+  for (const key of videoKeys || []) {
+    if (typeof key !== 'string') { unclassifiedVideoKeyCount++; continue; }
+    const delimiter = key.indexOf(':video:');
+    if (delimiter <= 0 || delimiter + 7 >= key.length) { unclassifiedVideoKeyCount++; continue; }
+    const sessionId = key.slice(0, delimiter);
+    const videoId = key.slice(delimiter + 7);
+    if (!bySession.has(sessionId)) bySession.set(sessionId, []);
+    bySession.get(sessionId).push(videoId);
+  }
+  const conflicts = [];
+  let matchedCopies = 0, orphanedMatchedCopies = 0;
+  for (const [sessionId, copies] of bySession) {
     const matches = copies.filter(id => recognized.has(id));
     if (!matches.length) continue;
+    const header = headers.get(sessionId);
     matchedCopies += matches.length;
+    if (!header) orphanedMatchedCopies += matches.length;
     conflicts.push({
-      sessionId: session.sessionId,
-      status: session.status,
+      sessionId,
+      status: header ? header.status : 'orphaned_header',
+      missingSessionHeader: !header,
       videoCopyCount: copies.length,
       recognizedCopies: matches.length,
       tombstonedCopies: matches.filter(id => tombstoned.has(id)).length,
-      protectedByArchiveHistory: references.has(session.sessionId),
+      protectedByArchiveHistory: references.has(sessionId),
+      identityVerifiedByBytes: false,
       action: 'manual_review_required'
     });
   }
-  return { ok: true, status: conflicts.length ? 'staged_recognition_copies_detected' : 'no_staged_recognition_copies',
-    sessions: conflicts, matchedCopies };
+  return {
+    ok: true,
+    status: conflicts.length ? 'staged_recognition_copies_detected' : 'no_staged_recognition_copies',
+    sessions: conflicts, matchedCopies, orphanedMatchedCopies, unclassifiedVideoKeyCount,
+    requiresManualReview: conflicts.length > 0 || unclassifiedVideoKeyCount > 0
+  };
 }
 
 function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
+  if (typeof sessionId !== 'string' || !sessionId || sessionId.length > 200) {
+    fail('STAGING_SESSION_INVALID', 'A non-empty, bounded staging session ID is required for cleanup.');
+  }
   return new Promise((resolve, reject) => {
     let tx, failure = null, result = false, settled = false;
     const rejectOnce = error => {
@@ -1237,8 +1271,9 @@ function discardArchiveRestoreSession(db, sessionId) {
           abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
           return;
         }
-        if (session && session.kind !== 'session') {
-          abortWith(Object.assign(new Error('The staging session header is invalid; staged records were preserved.'), { code: 'STAGING_SESSION_INVALID' }));
+        if (session && (session.kind !== 'session' || session.sessionId !== sessionId ||
+            typeof session.backupId !== 'string' || !session.backupId)) {
+          abortWith(Object.assign(new Error('The staging session header identity is invalid; records were preserved.'), { code: 'STAGING_SESSION_INVALID' }));
           return;
         }
         if (session?.kind === 'session' && session.status === 'committed') {
@@ -1254,24 +1289,74 @@ function discardArchiveRestoreSession(db, sessionId) {
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
           const keys = keysRequest.result || [];
-          if (!session && keys.length) {
+          // Repeated cleanup with no remaining rows is a harmless no-op, even
+          // when historical records still name this already-discarded session.
+          if (!keys.length) { result = false; return; }
+          // Never delete a rollback row, unknown entry type, or a key outside
+          // this exact session even if its indexed sessionId was corrupted.
+          const validKey = key => typeof key === 'string' &&
+            (key === sessionId || key === sessionId + ':state' || key.startsWith(sessionId + ':video:'));
+          if (keys.some(key => !validKey(key))) {
+            abortWith(Object.assign(new Error('Unexpected staged record key; cleanup was cancelled.'), { code: 'STAGING_CLEANUP_KEYS_INVALID' }));
+            return;
+          }
+          // Read only secondary-index keys, never Blob values. A record with
+          // an unexpected kind must not be discarded just because its indexed
+          // sessionId or primary-key prefix looks like staging content.
+          const kinds = new Map();
+          let index;
+          try { index = store.index('kind'); }
+          catch (error) {
+            abortWith(Object.assign(new Error('Staged record-kind index is unavailable; cleanup was cancelled.'), {
+              code: 'STAGING_CLEANUP_INDEX_MISSING'
+            }));
+            return;
+          }
+          let kindsPending = 3;
+          for (const kind of ['session', 'state', 'video']) {
+            const kindRequest = index.getAllKeys(kind);
+            kindRequest.onerror = () => abortWith(kindRequest.error || new Error('Could not verify staged record kinds.'));
+            kindRequest.onsuccess = () => {
+              for (const key of kindRequest.result || []) kinds.set(key, kind);
+              if (--kindsPending === 0) verifyHistory();
+            };
+          }
+          const verifyHistory = () => {
+            const invalid = keys.some(key => kinds.get(key) !== (
+              key === sessionId ? 'session' : key === sessionId + ':state' ? 'state' : 'video'
+            ));
+            if (invalid) {
+              abortWith(Object.assign(new Error('Staged record kind or ownership is invalid; records were preserved.'), {
+                code: 'STAGING_CLEANUP_KIND_INVALID'
+              }));
+              return;
+            }
+            // Check archive_history even when a session header exists. Its
+            // status can be corrupted independently of import references.
             const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
             historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
             historyRequest.onsuccess = () => {
-              const referenced = (historyRequest.result || []).some(item =>
-                item.importSessionId === sessionId || item.rollbackSessionId === sessionId
-              );
-              if (referenced) {
-                abortWith(Object.assign(new Error('Orphaned staging records are still referenced by archive history and were preserved.'), { code: 'ORPHANED_STAGING_REFERENCED' }));
-                return;
-              }
+            const references = (historyRequest.result || []).filter(item => item &&
+              (item.importSessionId === sessionId || item.rollbackSessionId === sessionId));
+            const protectedReference = references.some(item => {
+              // Reverted imports may discard their now-unneeded import staging,
+              // but only after rollback has been explicitly marked complete.
+              return !session || session.status !== 'reverted' ||
+                item.importSessionId !== sessionId ||
+                item.rollbackSessionId === sessionId ||
+                item.status !== 'reverted' || item.rollbackAvailable !== false ||
+                item.backupId !== session.backupId;
+            });
+            if (protectedReference) {
+              abortWith(Object.assign(new Error('Staged records are referenced by archive history and were preserved.'), {
+                code: session ? 'STAGING_HISTORY_REFERENCED' : 'ORPHANED_STAGING_REFERENCED'
+              }));
+              return;
+            }
               for (const key of keys) store.delete(key);
               result = keys.length > 0;
             };
-            return;
-          }
-          for (const key of keys) store.delete(key);
-          result = keys.length > 0;
+          };
         };
       };
       tx.oncomplete = () => {

@@ -13,6 +13,7 @@ function openTestDb(name) {
     request.onupgradeneeded = () => {
       const staging = request.result.createObjectStore('archive_staging', { keyPath: 'id' });
       staging.createIndex('sessionId', 'sessionId', { unique: false });
+      staging.createIndex('kind', 'kind', { unique: false });
       request.result.createObjectStore('archive_history', { keyPath: 'backupId' });
     };
     request.onsuccess = () => resolve(request.result);
@@ -80,4 +81,157 @@ test('cleanup still removes a known reverted import session', async () => {
   });
   assert.equal(rows.length, 0);
   db.close();
+});
+
+function readRows(db,sessionId){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('archive_staging','readonly');
+  const request=tx.objectStore('archive_staging').index('sessionId').getAll(sessionId);
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+}
+test('history-linked session cannot be discarded after its status was corrupted to failed',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-linked-failed');
+ const sessionId='session-history-failed';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_history',{backupId:'history-linked',status:'committed',
+  importSessionId:sessionId,rollbackAvailable:true});
+ const before=await readRows(db,sessionId);
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_HISTORY_REFERENCED'});
+ assert.deepEqual(await readRows(db,sessionId),before);
+ db.close();
+});
+test('history-linked ready or reverted staging stays protected when rollback is still available',async()=>{
+ for(const status of ['ready','reverted']){
+  const db=await openTestDb('paseka-cleanup-history-available-'+status);
+  const sessionId='session-history-'+status;
+  await seedSession(db,sessionId,status);
+  await put(db,'archive_history',{backupId:'history-'+status,status:'committed',
+   importSessionId:sessionId,rollbackAvailable:true});
+  await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+   {code:'STAGING_HISTORY_REFERENCED'});
+  assert.equal((await readRows(db,sessionId)).length,2);
+  db.close();
+ }
+});
+test('fully reverted historical import can still clean up its own unneeded staging',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-reverted-safe');
+ const sessionId='session-after-rollback';
+ await seedSession(db,sessionId,'reverted');
+ await put(db,'archive_history',{backupId:'backup-'+sessionId,status:'reverted',
+  importSessionId:sessionId,rollbackSessionId:null,rollbackAvailable:false});
+ assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),true);
+ assert.equal((await readRows(db,sessionId)).length,0);
+ db.close();
+});
+test('reverted session with inconsistent rollback metadata is preserved',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-reverted-inconsistent');
+ const sessionId='session-reverted-inconsistent';
+ await seedSession(db,sessionId,'reverted');
+ await put(db,'archive_history',{backupId:'bad-history',status:'reverted',
+  importSessionId:sessionId,rollbackSessionId:'rollback-not-resolved',rollbackAvailable:true});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_HISTORY_REFERENCED'});
+ assert.equal((await readRows(db,sessionId)).length,2);
+ db.close();
+});
+test('cleanup refuses indexed entries whose actual primary key belongs to another session',async()=>{
+ const db=await openTestDb('paseka-cleanup-crosslinked-record');
+ const sessionId='session-crosslinked';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:'foreign-staging:video:bad-link',sessionId,
+  kind:'video',blob:new Blob(['must remain'])});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_CLEANUP_KEYS_INVALID'});
+ assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
+
+test('cleanup refuses a rollback snapshot row disguised with the target session ID',async()=>{
+ const db=await openTestDb('paseka-cleanup-rollback-row-disguised');
+ const sessionId='session-has-foreign-kind';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:sessionId+':video:danger',
+  sessionId,kind:'rollback_video',blob:new Blob(['protected video bytes'])});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_CLEANUP_KIND_INVALID'});
+ assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
+test('cleanup fails closed for staging state stored under a video key',async()=>{
+ const db=await openTestDb('paseka-cleanup-kind-mismatch');
+ const sessionId='session-kind-mismatch';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:sessionId+':video:mismatch',
+  sessionId,kind:'state',blob:new Blob(['ambiguous state'])});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_CLEANUP_KIND_INVALID'});
+ assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
+
+test('reverted archive with conflicting backup identity cannot be discarded',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-backup-conflict');
+ const sessionId='session-reverted-collided';
+ await seedSession(db,sessionId,'reverted');
+ await put(db,'archive_history',{backupId:'different-backup',status:'reverted',
+  importSessionId:sessionId,rollbackSessionId:null,rollbackAvailable:false});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_HISTORY_REFERENCED'});
+ assert.equal((await readRows(db,sessionId)).length,2);
+ db.close();
+});
+test('corrupt staging sessionId cannot be used to discard records from another session',async()=>{
+ const db=await openTestDb('paseka-cleanup-header-identity-mismatch');
+ const sessionId='session-header-inconsistent';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:sessionId,sessionId:'different-session',
+  kind:'session',backupId:'backup-'+sessionId,status:'failed'});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_SESSION_INVALID'});
+ assert.ok((await readRows(db,sessionId)).some(row=>row.id===sessionId+':state'));
+ db.close();
+});
+
+test('missing legacy kind index blocks cleanup instead of hanging or deleting data',async()=>{
+ const db=await new Promise((resolve,reject)=>{
+  const request=new IDBFactory().open('paseka-cleanup-missing-kind-index',1);
+  request.onupgradeneeded=()=>{
+   const staging=request.result.createObjectStore('archive_staging',{keyPath:'id'});
+   staging.createIndex('sessionId','sessionId');
+   request.result.createObjectStore('archive_history',{keyPath:'backupId'});
+  };
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+ await seedSession(db,'session-legacy-kind','failed');
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,'session-legacy-kind'),
+  {code:'STAGING_CLEANUP_INDEX_MISSING'});
+ const tx=db.transaction('archive_staging','readonly'),request=tx.objectStore('archive_staging').get('session-legacy-kind:state');
+ assert.ok(await new Promise((resolve,reject)=>{
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ }));
+ db.close();
+});
+test('invalid cleanup session identifiers are rejected before database modification',async()=>{
+ const db=await openTestDb('paseka-cleanup-invalid-sessionid');
+ await seedSession(db,'session-protected','failed');
+ for(const id of ['',null,'x'.repeat(201)]){
+  assert.throws(()=>Restore.discardArchiveRestoreSession(db,id),{code:'STAGING_SESSION_INVALID'});
+ }
+ assert.equal((await readRows(db,'session-protected')).length,2);
+ db.close();
+});
+
+test('retrying cleanup with no staged rows remains an idempotent no-op despite old history',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-no-rows');
+ const sessionId='already-discarded-session';
+ await put(db,'archive_history',{backupId:'previous-import',status:'committed',
+  importSessionId:sessionId,rollbackAvailable:true});
+ assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),false);
+ assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),false);
+ db.close();
 });
