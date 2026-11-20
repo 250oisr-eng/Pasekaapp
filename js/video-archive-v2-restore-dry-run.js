@@ -56,6 +56,7 @@ async function inspectRestoreDryRun(db,file,dependencies){
   liveSchemaVersion:locked.liveSchemaVersion,
   protectedStagingCount:locked.stagingCount,
   protectedHistoryCount:locked.historyCount,
+  protectedBackupCount:locked.backupCount,
   preflightPassed:true,lockedInspectionPassed:true,
   archiveSafe:false,restoreAuthorized:false,
   requiresAtomicCommitCheck:true,requiresRecoveryPlan:true
