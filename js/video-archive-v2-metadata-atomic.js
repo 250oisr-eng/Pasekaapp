@@ -223,11 +223,21 @@ function inspectMetadataRecovery(db,backupId,deps){
       v.history.previousRevisionId===v.snapshot.beforeState.meta.revisionId&&
       v.history.importedRevisionId===v.snapshot.afterState.meta.revisionId&&
       v.history.previousRevisionId!==v.history.importedRevisionId&&
-      v.state.meta?.schemaVersion===15&&
+      v.state.meta?.schemaVersion===15&&validId(v.state.meta?.revisionId)&&
       stableJson(v.ledger)===stableJson(v.snapshot.beforeLedger)){
+     // Both snapshots are protected records: reject an unverified original or
+     // invalid records even if the currently active state is clean.
+     if(!Array.isArray(v.snapshot.beforeState.records)||
+        !Array.isArray(v.snapshot.afterState.records))
+      fail('V2_ATOMIC_RECOVERY_SNAPSHOT_INVALID');
+     noOriginals(v.snapshot.beforeState);
+     noOriginals(v.snapshot.afterState);
      if(v.history.status==='committed'&&stableJson(v.state)===stableJson(v.snapshot.afterState))
       status='committed';
-     if(v.history.status==='reverted'&&v.state.meta?.revisionId===v.history.revertedRevisionId&&
+     if(v.history.status==='reverted'&&validId(v.history.revertedRevisionId)&&
+        v.history.revertedRevisionId!==v.history.importedRevisionId&&
+        v.history.revertedRevisionId!==v.history.previousRevisionId&&
+        v.state.meta?.revisionId===v.history.revertedRevisionId&&
         stableJson({...v.state,meta:{...v.state.meta,revisionId:v.snapshot.beforeState.meta.revisionId}})===
           stableJson(v.snapshot.beforeState))status='reverted';
     }
