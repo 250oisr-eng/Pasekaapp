@@ -198,9 +198,19 @@ function inspectMetadataRecovery(db,backupId,deps){
     deps.guard.validateRecognitionLedgerForV2(v.ledger);
     if(!v.history&&!v.snapshot&&v.historyCount===0&&v.backupCount===0)status='not_imported';
     else if(obj(v.history)&&obj(v.snapshot)&&v.historyCount===1&&v.backupCount===1&&
-      v.snapshot.backupId===backupId&&v.history.rollbackKey==='v2:'+backupId&&
+      v.snapshot.backupId===backupId&&v.history.backupId===backupId&&
+      v.history.rollbackKey==='v2:'+backupId&&
       v.snapshot.kind==='v2_metadata_only_rollback'&&v.history.kind==='v2_metadata_only'&&
+      /^[a-f0-9]{64}$/.test(v.history.archiveSha256)&&
       v.history.archiveSha256===v.snapshot.archiveSha256&&
+      obj(v.snapshot.beforeState?.meta)&&v.snapshot.beforeState.meta.schemaVersion===15&&
+      validId(v.snapshot.beforeState.meta.revisionId)&&
+      obj(v.snapshot.afterState?.meta)&&v.snapshot.afterState.meta.schemaVersion===15&&
+      validId(v.snapshot.afterState.meta.revisionId)&&
+      v.history.previousRevisionId===v.snapshot.beforeState.meta.revisionId&&
+      v.history.importedRevisionId===v.snapshot.afterState.meta.revisionId&&
+      v.history.previousRevisionId!==v.history.importedRevisionId&&
+      v.state.meta?.schemaVersion===15&&
       stableJson(v.ledger)===stableJson(v.snapshot.beforeLedger)){
      if(v.history.status==='committed'&&stableJson(v.state)===stableJson(v.snapshot.afterState))
       status='committed';
