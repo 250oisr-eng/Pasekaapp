@@ -269,3 +269,25 @@ test('hidden video source URI in journal note is rejected even when not at start
  assert.equal(await read(db,'full_backup','v2:test-backup'),undefined);
  db.close();
 });
+
+test('recovery inspector takes a readonly transaction and cannot acquire a write lock',async()=>{
+ const db=await setup();
+ const observed=[];
+ const proxy={
+  objectStoreNames:db.objectStoreNames,
+  transaction(names,mode){
+   observed.push({names:[...names],mode});
+   if(mode!=='readonly')throw new Error('recovery must never request write access');
+   return db.transaction(names,mode);
+  }
+ };
+ const initial=await api.inspectMetadataRecovery(proxy,'test-backup',deps);
+ assert.equal(initial.status,'not_imported');
+ assert.equal(observed.length,1);
+ assert.equal(observed[0].mode,'readonly');
+ assert.deepEqual(observed[0].names,
+  ['main','entrance_media','archive_staging','archive_history','full_backup']);
+ assert.deepEqual(await read(db,'main','state'),state());
+ assert.equal(await read(db,'archive_history','test-backup'),undefined);
+ db.close();
+});
