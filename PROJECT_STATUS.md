@@ -1,3 +1,12 @@
+## Контрольная точка — защита независимости тестового датасета (2026-11-20)
+
+- Проверен Draft #263 exact SHA `201585cb6d90b0916d5862c463142d09fede1b73`: Android #44718074995 **completed/success** (тесты, debug APK, upload), isolated #44718074969 **skipped**.
+- Отдельная ветка `test/video-dataset-split-isolation-2026-11-20` создана поверх #263. Новый staging-only `js/video-dataset-isolation.js`, 5 тестов `tests/video-dataset-isolation.test.mjs` и `docs/VIDEO-DATASET-SPLIT-ISOLATION.md` предотвращают exact-SHA cross-split leakage train/validation/test, проверяют ID и наличие наборов. Локальные изолированные 5/5 тестов прошли; общий Android CI нового SHA проверять отдельно.
+- Ограничение: близкие кадры и исходные ролики не идентифицируются по одному SHA, поэтому независимость evaluation не подтверждается. Настоящий детектор, лицензия весов, Android physical inference, ledger recognition и cleanup остаются не выполнены. Следующее: сопоставить лицензированный detector и реальные размеченные данные; Android тест без удаления original.
+- Нет merge, production, изменения `main` или пользовательских данных.
+
+---
+
 ## Результат CI для Draft #262–263 — 2026-11-20
 
 - PR #262 code/test/docs SHA `1ca916dde3268d56408c2430963f9f6462ebb7e9`, workflow [#44717764727](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44717764727) — **completed/success** (regression, Android debug APK build/upload). Isolated #44717764700 — **skipped**.
