@@ -1,3 +1,11 @@
+## Итог кода VOC→COCO #273 и точный Android CI (2026-11-20)
+
+- Draft PR #273 code/test/docs SHA `96943c6174cac472868a51ec0acafafe50619227`: Android workflow [#44734022815](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44734022815) **completed/success**, включая общие Node/Python регрессионные тесты, debug APK сборку и загрузку; isolated #44734022821 **skipped**. Это проверка тестового конвертера, не реального обучения модели и не физического Android inference.
+- `tools/convert_bee_voc_unassigned.py` + 8 Python тестов/Node bridge завершены. Выход COCO специально помечен `unassigned`: нельзя утверждать train/validation/test без реальных исходных видео/hive/session identities. Никакие JPG пользователей или production данные не использованы, удаление запрещено.
+- После этого документационного коммита HEAD изменится; нельзя переносить CI success кодового SHA на новый docs HEAD без отдельной проверки. Следующая задача: подтверждение final HEAD CI, затем фактическое происхождение/атрибуция полного LILA архива и независимое разделение данных, только затем YOLOX from-scratch/ONNX/Android.
+
+---
+
 ## Контрольная точка — локальный VOC→COCO без фиктивных train/test splits (2026-11-20)
 
 - Parent Draft #272 final docs HEAD `b974d10c7baef9da91d8ff7a9c60a7872ebdf966`: public VOC+JPEG sample #44733560807 **completed/success** (действительная пара `ML-Data/Chueried_HempBox_1.xml`/jpg, 5 bee, 1920x1080), Android build #44733560908 **completed/success**, isolated #44733561124 **skipped**.
