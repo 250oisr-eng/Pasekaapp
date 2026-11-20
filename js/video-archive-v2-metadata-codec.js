@@ -72,7 +72,7 @@ function checkManifest(manifest, actualSize, manifestLength) {
        typeof item.videoId!=='string' || item.videoId.length<1 ||
        item.videoId.length>200 || /\s/.test(item.videoId) ||
        item.sourceBytes!==item.size || !Number.isSafeInteger(item.size)||item.size<1||item.size>(isRecord?16*1024*1024:MAX_VIDEO) ||
-       typeof item.mimeType!=='string'||!/^video\/[a-z0-9.+-]+$/i.test(item.mimeType) ||
+       typeof item.mimeType!=='string'||!(/^(?:video\/[a-z0-9.+-]+|application\/octet-stream)$/i).test(item.mimeType) ||
        !/^[a-f0-9]{64}$/.test(item.sourceSha256||'') || item.sha256!==item.sourceSha256)
     fail('V2_VIDEO_ENTRY_INVALID');
   } else {
@@ -108,7 +108,7 @@ async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVide
       !Number.isSafeInteger(video.blob.size)||video.blob.size<1||video.blob.size>MAX_VIDEO ||
       !['entrance_media','record_media'].includes(video.source)||video.sourceBytes!==video.blob.size||
       (video.source==='record_media'&&video.blob.size>16*1024*1024)||
-      typeof video.mimeType!=='string'||!/^video\/[a-z0-9.+-]+$/i.test(video.mimeType))
+      typeof video.mimeType!=='string'||!(/^(?:video\/[a-z0-9.+-]+|application\/octet-stream)$/i).test(video.mimeType))
    fail('V2_VIDEO_UNSUPPORTED');
   return {source:video.source,videoId:video.videoId,
    sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes};
@@ -130,7 +130,7 @@ async function buildMetadataArchive({state,ledger,backupId,createdAt,pendingVide
   if (actualHash!==video.sourceSha256) fail('V2_VIDEO_SOURCE_HASH_MISMATCH');
   manifest.entries.push({kind:video.source==='record_media'?'record_video':'entrance_video',
    path:(video.source==='record_media'?'pending-record/':'pending-entrance/')+String(index+1).padStart(6,'0')+'.blob',
-   size:video.sourceBytes,sha256:actualHash,mimeType:video.mimeType,source:'entrance_media',
+   size:video.sourceBytes,sha256:actualHash,mimeType:video.mimeType,source:video.source,
    videoId:video.videoId,sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes});
  }
  const manifestBytes=textBytes(manifest);
