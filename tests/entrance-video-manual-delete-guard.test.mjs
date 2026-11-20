@@ -9,7 +9,10 @@ const extract=(name,next)=>{
  return html.slice(start,end);
 };
 const writer=extract('deleteEntranceVideoBlob','function entranceBytes(');
-const caller=extract('removeEntranceVideo','function toggleVarroaFields(');
+const callerStart=html.indexOf('async function removeEntranceVideo(');
+const callerEnd=html.indexOf('function toggleVarroaFields(',callerStart);
+assert.ok(callerStart>=0&&callerEnd>callerStart);
+const caller=html.slice(callerStart,callerEnd);
 const readOnlyModule=(db)=>{
  const fn=new Function('db','Promise',writer+';return deleteEntranceVideoBlob;');
  return fn(db,Promise);
