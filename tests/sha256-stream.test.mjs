@@ -168,3 +168,11 @@ test('journal base64 hash honours abort before reading source',async()=>{
  const controller=new AbortController();controller.abort();
  await assert.rejects(globalThis.PasekaSha256.hashVideoDataUrlHex('data:video/mp4;base64,YWJj',{signal:controller.signal}),{name:'AbortError'});
 });
+
+test('Android camera with unknown MIME can still verify octet-stream Data URL byte identity',async()=>{
+ const bytes=Buffer.from('android-video-payload');
+ const value='data:application/octet-stream;base64,'+bytes.toString('base64');
+ const digest=await globalThis.PasekaSha256.hashVideoDataUrlHex(value);
+ assert.equal(digest.bytes,bytes.length);
+ assert.equal(digest.sha256,referenceHash(bytes));
+});
