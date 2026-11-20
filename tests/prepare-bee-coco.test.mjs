@@ -47,7 +47,10 @@ test('offline preparation checks actual file hashes and creates separate COCO JS
   const out=join(tmp,'out');await prepareDataset({manifestPath:mp,datasetRoot:root,outputDir:out});
   const train=JSON.parse(await readFile(join(out,'train.json'),'utf8'));
   assert.equal(train.annotations.length,1);assert.equal(train.images.length,1);
-  await assert.rejects(prepareDataset({manifestPath:mp,datasetRoot:root,outputDir:out}));
+  assert.equal(await readFile(join(out,train.images[0].file_name),'utf8'),'A');
+  assert.equal(await readFile(join(out,'images','b.jpg'),'utf8'),'B');
+  assert.equal(await readFile(join(root,'images','a.jpg'),'utf8'),'A');
+  await assert.rejects(prepareDataset({manifestPath:mp,datasetRoot:root,outputDir:out}),/output_already_exists/);
  }finally{await rm(tmp,{recursive:true,force:true})}
 });
 test('file digest mismatch blocks output',async()=>{
@@ -59,4 +62,37 @@ test('file digest mismatch blocks output',async()=>{
   await assert.rejects(prepareDataset({manifestPath:mp,datasetRoot:root,
    outputDir:join(tmp,'out')}),/image_digest_mismatch/);
  }finally{await rm(tmp,{recursive:true,force:true})}
+});
+
+test('invalid image hash does not publish partial annotations',async()=>{
+ const tmp=await mkdtemp(join(tmpdir(),'bee-coco-'));
+ try{
+  const root=join(tmp,'dataset');await mkdir(join(root,'images'),{recursive:true});
+  const m=manifest();
+  for(const [i,x] of m.images.entries())await writeFile(join(root,x.path),'ABC'[i]);
+  const mp=join(tmp,'manifest.json');await writeFile(mp,JSON.stringify(m));
+  m.images[2].imageSha256=sha('DIFFERENT');
+  await writeFile(mp,JSON.stringify(m));
+  const out=join(tmp,'out');
+  await assert.rejects(prepareDataset({manifestPath:mp,datasetRoot:root,outputDir:out}),/image_digest_mismatch/);
+  await assert.rejects(readFile(join(out,'train.json')));
+  const {readdir}=await import('node:fs/promises');
+  assert.equal((await readdir(tmp)).some(x=>x.startsWith('.bee-coco-stage-')),false);
+ }finally{await rm(tmp,{recursive:true,force:true})}
+});
+test('output cannot overlap input dataset or an ancestor',async()=>{
+ const tmp=await mkdtemp(join(tmpdir(),'bee-coco-'));
+ try{
+  const root=join(tmp,'dataset');await mkdir(join(root,'images'),{recursive:true});
+  const m=manifest();for(const [i,x] of m.images.entries())await writeFile(join(root,x.path),'ABC'[i]);
+  const mp=join(tmp,'manifest.json');await writeFile(mp,JSON.stringify(m));
+  await assert.rejects(prepareDataset({manifestPath:mp,datasetRoot:root,
+   outputDir:join(root,'out')}),/output_overlaps_dataset/);
+  await assert.rejects(prepareDataset({manifestPath:mp,datasetRoot:root,
+   outputDir:tmp}),/output_overlaps_dataset/);
+ }finally{await rm(tmp,{recursive:true,force:true})}
+});
+test('duplicate output-relative image paths rejected before copy',()=>{
+ const m=manifest();m.images[1].path=m.images[0].path;
+ assert.throws(()=>validateManifest(m),/duplicate_image/);
 });
