@@ -20,6 +20,7 @@
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
 | VIDEO-ARCHIVE-V2-CONTRACT.md | Проект (не реализация) формата полного архива с ledger/tombstones и fail-closed восстановлением |
 | VIDEO-ARCHIVE-V2-RESTORE-READINESS.md | Карта защищённых IndexedDB stores, результаты сквозного v2 dry-run и блокеры будущего stage/commit/rollback |
+| VIDEO-ARCHIVE-V2-METADATA-ATOMIC.md | Изолированный строгий атомарный импорт/откат PASEKA02 без видео и без имеющихся protected backups, ручная диагностика recovery |
 | ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md | Протокол восстановления контекста в новом чате |
 
 ## Главный журнал состояния — PROJECT_STATUS.md
