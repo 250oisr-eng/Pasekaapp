@@ -33,7 +33,8 @@ test('new entrance videos persist their verified SHA-256 before IndexedDB write'
   assert.ok(start >= 0 && end > start);
   assert.ok(writer.indexOf('PasekaSha256.hashBlobHex(record.blob)') < writer.indexOf("transaction('entrance_media','readwrite')"));
   assert.match(writer, /const storedRecord=\{\.\.\.record,blobSha256\}/);
-  assert.match(writer, /put\(storedRecord\)/);
+  assert.match(writer, /\.add\(storedRecord\)/);
+  assert.doesNotMatch(writer, /\.put\(storedRecord\)/);
 });
 
 test('full archive export releases stale blobs and retains a new Blob only when system sharing is supported', () => {
