@@ -117,3 +117,16 @@ test('incoming missing current recognized result fails before exposing a write a
  await rejects(call(db,changed),'V2_RESTORE_LEDGER_HISTORY_LOST');
  db.close();
 });
+
+test('full_backup is protected by same readwrite lock and survives abort',async()=>{
+ const db=await setup(),tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({blob:new Blob(['old saved original'])},'previous');
+ await transactionDone(tx);
+ await rejects(call(db),'V2_COMMIT_EXISTING_ARCHIVE_HISTORY');
+ const verify=db.transaction('full_backup','readonly');
+ const saved=await new Promise((resolve,reject)=>{
+  const r=verify.objectStore('full_backup').get('previous');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ assert.equal(saved.blob.size,18);db.close();
+});
