@@ -39,6 +39,10 @@ class MendeleyV6Tests(unittest.TestCase):
     def test_one_group_yolo_converts_to_unassigned_coco_with_published_folder(self):
         result = build_unassigned(self.root)
         self.assertEqual(result["info"]["sourceDoi"], "10.17632/8gb9r2yhfc.6")
+        self.assertEqual(result["info"]["sourceCreator"], "Tomyslav Sledevic")
+        self.assertEqual(result["info"]["sourceLicense"], "CC BY 4.0")
+        self.assertEqual(result["info"]["sourceLicenseUrl"], "https://creativecommons.org/licenses/by/4.0/")
+        self.assertIn("YOLO normalized boxes", result["info"]["modificationNotice"])
         self.assertEqual(result["info"]["split"], "unassigned")
         self.assertFalse(result["info"]["completeAgainstPublication"])
         self.assertFalse(result["info"]["trainingAuthorized"])

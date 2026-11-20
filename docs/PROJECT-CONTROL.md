@@ -1,3 +1,7 @@
+## 2026-11-20 — CSV-пакет оригинальных ссылок Mendeley v6
+
+- `VIDEO-MENDELEY-V6-BOUNDED-CSV-STAGING.md` — безопасный до 16 paired JPG+YOLO public-files CSV stage, 13 synthetic regressions и реальный CI одной пары, ограничения storage/URL/SHA/full decode, статус независимости ulейных записей и дальнейший реальный training data step.
+
 ## 2026-11-20 — первая реальная Mendeley v6 пара для будущего обучения
 
 - `VIDEO-MENDELEY-V6-REAL-PAIR-VERIFICATION.md` — подлинные публичные URL JPEG/TXT, measured actual SHA+sizes, 1920×1080, 7 YOLO bee boxes, успешный COCO unassigned importer, SHA-pinned live GitHub CI и следующий grouped independent dataset step.

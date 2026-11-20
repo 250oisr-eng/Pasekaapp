@@ -89,7 +89,13 @@ def build_unassigned(detection_root):
     result = {
         "info": {
             "description": "Mendeley 8gb9r2yhfc v6: LOCAL YOLO detection inventory; NOT TRAINING READY",
-            "sourceDoi": DOI, "split": "unassigned", "trainingAuthorized": False,
+            "sourceDoi": DOI,
+            "sourceDatasetUrl": "https://data.mendeley.com/datasets/8gb9r2yhfc/6",
+            "sourceCreator": "Tomyslav Sledevic",
+            "sourceLicense": "CC BY 4.0",
+            "sourceLicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+            "modificationNotice": "Original YOLO normalized boxes converted to COCO pixel boxes; source JPG bytes unchanged.",
+            "split": "unassigned", "trainingAuthorized": False,
             "sourceVideosVerified": False, "licenseFileRightsAudited": False,
             "completeAgainstPublication": False
         },
