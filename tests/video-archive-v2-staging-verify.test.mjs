@@ -142,9 +142,10 @@ test('missing staged copy and orphan history block verification without deletion
  db.close();
 });
 test('new recognition result after staging blocks verifier, keeping protected original',async()=>{
- const {db,file}=await staged(),tx=db.transaction('main','readwrite');
+ const {db,file}=await staged();
  const pendingSha=(await get(db,'archive_staging',
   'v2pending:v2-recheck:entrance_media:video-one')).sourceSha256;
+ const tx=db.transaction('main','readwrite');
  tx.objectStore('main').put({version:1,entries:[{
   source:'entrance_media',videoId:'video-one',resultId:'recognized-1',
   sourceSha256:pendingSha,sourceBytes:3,sourceEvidenceVersion:1,
@@ -163,8 +164,8 @@ test('writer changes staged metadata during async digest and final gate rejects'
  d.sha={...d.sha,hashBlobHex:async blob=>{
   const digest=await hashOriginal(blob);
   if(++calls===3){
-   const tx=db.transaction('archive_history','readwrite');
    const history=await get(db,'archive_history','v2-recheck');
+   const tx=db.transaction('archive_history','readwrite');
    tx.objectStore('archive_history').put({...history,status:'changed-during-hash'});
    await done(tx);
   }
