@@ -20,6 +20,7 @@
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
 | VIDEO-ARCHIVE-V2-CONTRACT.md | Проект (не реализация) формата полного архива с ledger/tombstones и fail-closed восстановлением |
 | VIDEO-ARCHIVE-V2-RESTORE-READINESS.md | Карта защищённых IndexedDB stores, результаты сквозного v2 dry-run и блокеры будущего stage/commit/rollback |
+| JOURNAL-VIDEO-SOURCE-EVIDENCE.md | Стабильные ID, SHA и размер новых журналовых видео без миграции старых записей; PWA offline и тесты |
 | VIDEO-ARCHIVE-V2-COPY-INVENTORY.md | Readonly инвентаризация копий видео в protected stores; cleanup всегда запрещён |
 | VIDEO-ARCHIVE-V2-QUARANTINE-ROLLBACK.md | Изолированный атомарный откат entrance-only с перемещением Blob в protected quarantine и запретом cleanup |
 | VIDEO-ARCHIVE-V2-ENTRANCE-ATOMIC.md | Тестовый атомарный входной PASEKA02 entrance-only commit с protected rollback snapshot, но без права на rollback/cleanup |
