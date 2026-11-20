@@ -38,6 +38,7 @@ async function setup(){
   db.createObjectStore('entrance_media',{keyPath:'id'});
   db.createObjectStore('archive_staging',{keyPath:'id'});
   db.createObjectStore('archive_history',{keyPath:'backupId'});
+  db.createObjectStore('full_backup');
  };
  const db=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
  const tx=db.transaction('main','readwrite');
