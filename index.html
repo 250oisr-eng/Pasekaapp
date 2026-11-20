@@ -570,6 +570,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
 <script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script>
+<script src="./js/video-archive-safety.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
@@ -3842,6 +3843,8 @@ async function restoreBackup(){
  try{
   const run=async()=>{
    const o=JSON.parse(await f.text()),restored=assertRawBackupIntegrity(validateBackupState(o.state||o));
+   if(!window.PasekaVideoArchiveSafety?.assertLegacyRestoreSafe)throw new Error('Проверка безопасности восстановления видео не загружена.');
+   await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db);
    if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
    const current=await readMain();
    const oldState=S;S=restored;
@@ -3856,6 +3859,8 @@ async function restoreAutoBackup(){
   const run=async()=>{
    const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
    const restored=assertRawBackupIntegrity(validateBackupState(backup.state));
+   if(!window.PasekaVideoArchiveSafety?.assertLegacyRestoreSafe)throw new Error('Проверка безопасности восстановления видео не загружена.');
+   await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db);
    if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
    const current=await readMain();
    const oldState=S;S=restored;
