@@ -1,3 +1,13 @@
+## Контрольная точка — one-click отправка сохранённого Android отчёта из плоского Windows ZIP (2026-11-20)
+
+- Предыдущая инструкция пользователю ошибочно ссылалась на `scripts/windows` внутри распакованного `paseka-win11-android-selftest-kit`. Фактическая упаковка workflow `.github/workflows/android-device-selftest.yml` **копирует скрипты в корень ZIP**. Пользователь подтвердил наличие `reports/report.json` и двух скриншотов, физическая старая APK дала 9/9 PASS, новый Android-тест не требуется только ради передачи отчёта.
+- Создана ветка `fix/win11-selftest-saved-report-oneclick-2026-11-20` поверх UI Draft PR #228. `scripts/windows/UPLOAD-SAVED-REPORT.cmd` и `Upload-Saved-Report.ps1` запускаются в корне ZIP, находят **ровно один** `reports/**/report.json`, автоматически **не выбирают** из нескольких и делегируют проверку формата, изолированного package, санитизацию и GitHub Issue #198 действующему `Publish-Paseka-Test-Report.ps1`. Нет прямого HTTP или чтения сырых полей в wrapper, нет отправки скриншотов, нет удаления пользовательских файлов.
+- CI workflow включает оба файла в корень тестового ZIP и запускает отдельный `tests/windows-upload-saved-report.ps1` на Windows PowerShell 5.1: парсинг скрипта, 0 или 2 отчёта — отказ без токена/сети и без удаления; `tests/device-selftest-build.test.mjs` проверяет packaging/guards. `scripts/windows/README-WIN11.txt` обновлён.
+- `RETRY-REPORT-UPLOAD.cmd` прежним образом работает только с очередью pending. Тестовый отчёт, уже полученный в чате, **не нужно обязательно отправлять в GitHub**; новый запуск используется только при намеренном клике пользователя. Тестовый пакет и production не изменены, новые CI SHA проверить отдельно.
+- PR Draft, автоматическое удаление видео/архив PASEKA02/merge/production отсутствуют.
+
+---
+
 ## Контрольная точка — реальные карточки ульев на узком Android экране (2026-11-20)
 
 - Поверх Draft PR #227 создана ветка `fix/hive-card-mobile-full-details-2026-11-20`, продолжающая отдельную цепочку тестового Android интерфейса и реальных карточек улья. Физические скриншоты `before-restart(5).png` / `after-restart(1).png` показывают `…` на профиле улья и последней обработке.

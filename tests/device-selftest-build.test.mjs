@@ -245,3 +245,17 @@ test('real hive-card details are not clipped on phone but desktop truncation rem
   assert.match(html, /hive-treatment-summary/);
   assert.match(html, /Последняя обработка:/);
 });
+
+test('Windows ZIP ships safe one-click uploader in flat kit root, not scripts/windows', async () => {
+ const yaml = await readFile(new URL('../.github/workflows/android-device-selftest.yml', import.meta.url),'utf8');
+ const launcher = await readFile(new URL('../scripts/windows/Upload-Saved-Report.ps1', import.meta.url),'utf8');
+ const cmd = await readFile(new URL('../scripts/windows/UPLOAD-SAVED-REPORT.cmd', import.meta.url),'utf8');
+ assert.match(yaml,/cp scripts\/windows\/Invoke-Paseka-Test-Agent\.ps1[^\n]*Upload-Saved-Report\.ps1 device-kit\//);
+ assert.match(yaml,/test -s device-kit\/UPLOAD-SAVED-REPORT\.cmd/);
+ assert.match(yaml,/tests\\windows-upload-saved-report\.ps1/);
+ assert.match(cmd,/%~dp0Upload-Saved-Report\.ps1/);
+ assert.match(launcher,/Filter 'report\.json' -File -Recurse/);
+ assert.match(launcher,/\$reportsFound\.Count -gt 1/);
+ assert.match(launcher,/-Action Upload -ReportPath \$report\.FullName/);
+ assert.doesNotMatch(launcher,/Invoke-RestMethod|Invoke-WebRequest|Remove-Item/);
+});

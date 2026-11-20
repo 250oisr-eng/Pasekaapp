@@ -12,6 +12,7 @@ on:
       - test/pr194-native-negative-paths-2026-11-19
       - test/manual-android-offline-archive-2026-11-19
       - test/win11-manual-agent-report-2026-11-19
+      - fix/win11-selftest-saved-report-oneclick-2026-11-20
   workflow_dispatch:
 
 concurrency:
@@ -65,6 +66,9 @@ jobs:
       - name: Verify manual Windows report agent, privacy guards and APK identity
         shell: powershell
         run: .\tests\windows-local-agent.ps1
+      - name: Verify saved report upload launcher on Windows PowerShell 5.1
+        shell: powershell
+        run: .\tests\windows-upload-saved-report.ps1
   build:
     needs: validate-windows-script
     runs-on: ubuntu-24.04
@@ -177,9 +181,11 @@ jobs:
           printf '%s\n' "$PASEKA_TEST_PACKAGE" > device-kit/device-package.txt
           printf '%s\n' "$GITHUB_SHA" > device-kit/device-build-sha.txt
           cp scripts/windows/Run-Paseka-Tests.ps1 scripts/windows/Run-Local-Scheduled.ps1 scripts/windows/Register-Local-Scheduled.ps1 scripts/windows/START-TESTS.cmd scripts/windows/START-OFFLINE-TESTS.cmd scripts/windows/README-WIN11.txt device-kit/
-          cp scripts/windows/Invoke-Paseka-Test-Agent.ps1 scripts/windows/Publish-Paseka-Test-Report.ps1 scripts/windows/SETUP-REPORT-UPLOAD.cmd scripts/windows/START-AGENT-TESTS.cmd scripts/windows/START-AGENT-OFFLINE.cmd scripts/windows/RETRY-REPORT-UPLOAD.cmd device-kit/
+          cp scripts/windows/Invoke-Paseka-Test-Agent.ps1 scripts/windows/Publish-Paseka-Test-Report.ps1 scripts/windows/SETUP-REPORT-UPLOAD.cmd scripts/windows/START-AGENT-TESTS.cmd scripts/windows/START-AGENT-OFFLINE.cmd scripts/windows/RETRY-REPORT-UPLOAD.cmd scripts/windows/UPLOAD-SAVED-REPORT.cmd scripts/windows/Upload-Saved-Report.ps1 device-kit/
           test -s device-kit/device-build-sha.txt
           test -s device-kit/Publish-Paseka-Test-Report.ps1
+          test -s device-kit/UPLOAD-SAVED-REPORT.cmd
+          test -s device-kit/Upload-Saved-Report.ps1
           test -s device-kit/START-AGENT-TESTS.cmd
           curl --retry 3 --fail --location --silent --show-error \
             https://dl.google.com/android/repository/platform-tools-latest-windows.zip -o "$RUNNER_TEMP/platform-tools-windows.zip"
