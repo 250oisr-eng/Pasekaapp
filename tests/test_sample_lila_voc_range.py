@@ -96,8 +96,9 @@ class LilaSampleTests(unittest.TestCase):
         source=FakeOpener(archive())
         reader=BoundedRanges(source)
         reader.head_size()
+        reader.used=MAX_NETWORK  # synthetic budget exhaustion, valid range
         with self.assertRaisesRegex(SampleRejected,"range_budget_exceeded"):
-            reader.get(0,MAX_NETWORK)
+            reader.get(0,63)
         self.assertEqual(source.calls,["HEAD"])
 
     def test_invalid_archive_missing_eocd(self):
