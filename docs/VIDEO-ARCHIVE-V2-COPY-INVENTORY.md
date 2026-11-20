@@ -33,3 +33,19 @@
 ## Следующая задача
 
 Сверить аудит с реальными модулями capture/recognition и Android внешними файлами, дополнить известные форматы full_backup и распознаваемые источники строго по действующей схеме, затем тестировать строго fail-closed жизненный цикл обработки. **Никаких автоматических удалений, merge, production или физического изменения пользовательских файлов** до полной проверки.
+
+## Дополнение: структура настоящего PASEKA01 (20.11.2026)
+
+В `js/paseka-archive-restore.js` подтверждены формы `archive_staging.kind='video'` (`blob`, `metadata.id`, `size`, `chunkSha256[]`) и `kind='rollback_video'` (`originalId`, `record.blob`). Это **две самостоятельные защищённые копии**. Ранее общий `unknown_staging_payload` не отражал их количество. Теперь readonly-аудит добавляет оба экземпляра с source `entrance_media`. Chunk hashes **не** являются проверенным полным SHA-256 источника, поэтому вывод остаётся неопределённым.
+
+Legacy `kind='rollback_state'` содержит объект state и может хранить журнальные оригиналы `records[].media` Data URL. `kind='state'` содержит непрозрачный JSON Blob с возможными теми же оригиналами и помечается `opaque_legacy_state_blob`: содержимое не расшифровывается автоматически. `full_backup.previous` имеет форму `{at,state}`; его records media тоже учитываются. Кроме того, для v2 rollback snapshots смотрятся `beforeState` и `afterState`.
+
+Это изменение только **учёта**, не права на очистку: `cleanupAuthorized=false` даже при согласованной истории, внешний Android/Gallery/Downloads и SHA-контроль копий не выполнены. Опасный статус `deleted` при наличии копии остаётся блокирующим.
+
+## Прямая сверка capture UI (20.11.2026)
+
+В `index.html` проверено: летковый `handleEntranceVideoFile()` сохраняет объект через `putEntranceVideo()`, который вычисляет SHA `record.blob` перед `entrance_media.put`. Никакого подтверждённого анализа и автоматической очистки пока нет. При этом `removeEntranceVideo()` и `deleteEntranceVideoBlob()` позволяют вручную удалить оригинал через UI без проверки ledger, хотя история распознавания ещё не создана. Это **открытый риск защиты оригиналов**, но в данном read-only PR поведение UI не меняется.
+
+Журналовый `recordForm` создаёт `{kind:'video', name, type, data:DataURL}` без гарантированных `videoId`, `sourceSha256`, `sourceBytes`. Такие legacy оригиналы теперь остаются **в числителе `copyCount`**, но `identity:null`/ `unidentified_copy` и не могут быть автоматически сопоставлены с результатом распознавания или удалены. Для исправления runtime нужны миграция записей, сохранение несовместимых старых Data URL и отдельные регрессии.
+
+Следующий блокер — безопасное согласование этих фактических capture paths с будущим ledger/tombstones и внешними Android MediaStore/Gallery файлами. Этот аудит не даёт права на удаление.

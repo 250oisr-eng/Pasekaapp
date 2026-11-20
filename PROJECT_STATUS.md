@@ -1,3 +1,32 @@
+## CI проверен — реальные legacy PASEKA01 + capture UI (2026-11-20)
+
+- Код/тесты/документация на SHA `70e8781c2a4a98cdfc0e060902d41f34172804bc`: Android workflow #44703165651 **completed/success**, regression tests, debug APK, upload успешны. Изолированный archive test APK #44703165708 **skipped**.
+- Новый зависимый Draft PR #239: https://github.com/250oisr-eng/Pasekaapp/pull/239. Учитываются PASEKA01 `video`, `rollback_video`, `rollback_state`, `full_backup.previous.state` и реальный legacy journal capture без videoId, который теперь считает копию как identity:null/unidentified_copy. Никаких действий с original Blob или пользовательской базой нет.
+- Реальный `index.html` имеет путь ручного удаления леткового оригинала без ledger-условия; риск отмечен, но runtime не изменялся. Не смешивать пользовательский запрос на подтверждённое распознавание с прежней кнопкой ручного удаления.
+- Текущая инвентаризация всегда `cleanupAuthorized=false` и `auditComplete=false`. Следующий этап — безопасно согласовать runtime capture и recognition ledger, а также Android внешние копии, прежде чем разрабатывать удаление после распознавания.
+- Success относится к указанному SHA. Поздний docs-only commit при появлении будет иметь отдельный CI. Main, production, опубликованное приложение и физические устройства не изменены.
+
+---
+
+## Сверка реального capture UI и исправление подсчёта копий без ID (2026-11-20)
+
+- Прямой аудит `index.html`: летковые видео записываются `handleEntranceVideoFile → putEntranceVideo` в `entrance_media` с SHA-256; сервер распознавания ещё не подключён. В live UI присутствует `removeEntranceVideo → deleteEntranceVideoBlob` с подтверждением пользователя, **без проверки успешного распознавания**. До отдельного разрешённого изменения этот пользовательский путь является риском преждевременного удаления и не относится к автоматической безопасной очистке.
+- Видео журналов через `recordForm` сохраняются как `{kind:'video',name,type,data:DataURL}` **без гарантированного videoId, sourceSha256, sourceBytes**; их невозможно безопасно сопоставлять с ledger по identity. Новое исправление инвентаризации всегда считает такую запись как `copy` с `identity:null` и `unidentified_copy`, а не пропускает её.
+- В тесты добавлен точный legacy journal capture fixture. Code SHA 32d2230aac6d7f50c7310f450a278b57d1aa88b9; test SHA eb85507b2426fb7319d0e66bfc03b6925392ceb8. Полный CI актуального SHA проверяется отдельно.
+- Не изменялся `index.html`, ручное удаление **не вызывалось**, никаких пользовательских файлов/данных не затрагивали. Приоритет: заблокировать преждевременное удаление при согласованном изменении live video lifecycle, после обоснованной матрицы совместимости.
+
+---
+
+## Контрольная точка — PASEKA01 legacy-видеокопии в инвентаризации (2026-11-20)
+
+- Исходный Draft PR #238 HEAD c9d667080d768b3dba8acfb0e56018cde8bf8cc8: Android workflow #44702366437 **completed/success** (регрессионные тесты, debug APK, upload), отдельный isolated archive APK #44702366449 **skipped**. Ветка #238 остаётся Draft, main/production не менялись.
+- Проверен реальный код v1 js/paseka-archive-restore.js: `archive_staging` содержит `kind='video'` с `metadata.id`, `blob`, `size`, `chunkSha256`; `kind='rollback_video'` хранит `record.blob`; `kind='rollback_state'` содержит `state`; `kind='state'` хранит непрозрачный JSON Blob, а `full_backup.previous` хранит `{at,state}`.
+- В зависимой ветке fix/video-archive-v2-legacy-copy-coverage-2026-11-20 расширен только изолированный readonly `js/video-archive-v2-copy-inventory.js`: теперь известные legacy `video` и `rollback_video` учитываются как оригиналы `entrance_media`, архивные `rollback_state` и `full_backup.previous.state` проверяются на journal video Data URL, непрозрачный state Blob явно блокирует полноту инвентаризации. Chunk SHA старого архива **не** считается полным SHA источника.
+- Добавлены регрессии `tests/video-archive-v2-copy-inventory.test.mjs`: legacy copies, recognized tombstone с rollback copy, неизвестные payload, historical state и v2 before/after snapshots. Новый код SHA d408da8e3367c9f8f7518ed00a10d1d523c0dabf, тест SHA cba0c88ded5545f5f0581d94f48bc7b739a87f0e. CI новых SHA ещё не подтверждён.
+- Во всех вариантах cleanupAuthorized=false, auditComplete=false, externalCopiesVerified=false. Новое изменение не затрагивает live UI, Android bridge, IndexedDB migrations и пользовательские данные. Следующий шаг: GitHub CI, затем исследование фактических capture/recognition paths и Android MediaStore без активации удаления.
+
+---
+
 ## Проверен CI — инвентаризация копий PASEKA02 (2026-11-20)
 
 - Draft PR #238 на точном SHA 4aece72275b4075dbbae557df502c57c14ab1d1f: Android Build #44702184802 **completed/success**, шаги Run regression tests, Build debug APK, Upload APK успешны. Изолированный archive APK run #44702184782 **skipped**, не отдельный успешно пройденный тест.

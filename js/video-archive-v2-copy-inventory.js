@@ -40,7 +40,12 @@ function inspectSnapshot(v,guard){
  const issue=name=>issues.add(name);
  const add=(store,source,id,sha,bytes,blob)=>{
   if(!['entrance_media','record_media'].includes(source)||!key(id)){
-   issue('unidentified_copy');return;
+   // Preserve the copy count even when a legacy capture path did not assign
+   // a stable ID. This copy is intentionally unmatchable to recognition.
+   issue('unidentified_copy');
+   copies.push({store,identity:null,source:source||null,videoId:null,
+    sha256:null,bytes:null,actualBlobSize:Number.isSafeInteger(blob?.size)?blob.size:null});
+   return;
   }
   if(sha!=null&&!hex(sha))issue('invalid_copy_evidence');
   if(bytes!=null&&(!Number.isSafeInteger(bytes)||bytes<1))issue('invalid_copy_evidence');
@@ -57,22 +62,27 @@ function inspectSnapshot(v,guard){
   guard.validateRecognitionLedgerForV2(v.ledger);
   for(const e of v.ledger.entries)recognition.set(sourceKey(e.source,e.videoId),e.cleanupState);
  }catch(_){issue('ledger_invalid');}
- if(!object(v.state)||!Array.isArray(v.state.records))issue('state_unknown');
- else for(const record of v.state.records){
-  if(!object(record)){issue('record_unknown');continue;}
-  if(record.media==null)continue;
-  if(!Array.isArray(record.media)){issue('record_media_unknown');continue;}
-  for(const m of record.media){
-   if(!object(m)){issue('record_media_unknown');continue;}
-   const video=m.kind==='video'||m.type==='video'||typeof m.type==='string'&&m.type.startsWith('video/')||
-    typeof m.mimeType==='string'&&m.mimeType.startsWith('video/')||videoUri(m.data);
-   if(!video)continue;
-   if(m.data!=null){
-    if(!videoUri(m.data)){issue('record_video_payload_unknown');continue;}
-    add('main/state.records.media','record_media',m.videoId,m.sourceSha256,m.sourceBytes,null);
-   }else if(!key(m.videoId))issue('record_video_id_missing');
+ const scanState=(state,store)=>{
+  if(!object(state)||!Array.isArray(state.records)){issue('state_unknown');return;}
+  for(const record of state.records){
+   if(!object(record)){issue('record_unknown');continue;}
+   if(record.media==null)continue;
+   if(!Array.isArray(record.media)){issue('record_media_unknown');continue;}
+   for(const m of record.media){
+    if(!object(m)){issue('record_media_unknown');continue;}
+    const video=m.kind==='video'||m.type==='video'||
+     typeof m.type==='string'&&m.type.startsWith('video/')||
+     typeof m.mimeType==='string'&&m.mimeType.startsWith('video/')||
+     videoUri(m.data);
+    if(!video)continue;
+    if(m.data!=null){
+     if(!videoUri(m.data)){issue('record_video_payload_unknown');continue;}
+     add(store,'record_media',m.videoId,m.sourceSha256,m.sourceBytes,null);
+    }else if(!key(m.videoId))issue('record_video_id_missing');
+   }
   }
- }
+ };
+ scanState(v.state,'main/state.records.media');
  if(!Array.isArray(v.entrance))issue('entrance_unknown');
  else for(const item of v.entrance){
   if(!object(item)){issue('entrance_record_unknown');continue;}
@@ -86,12 +96,38 @@ function inspectSnapshot(v,guard){
   if(row.kind==='v2_pending_original'){
    if(row.blob==null){issue('staging_video_missing');continue;}
    add('archive_staging',row.source,row.videoId,row.sourceSha256,row.sourceBytes,row.blob);
+  }else if(row.kind==='video'){
+   // Legacy PASEKA01 staging: sessionId:video:<id>, metadata.id and
+   // chunkSha256[]; chunk hashes are NOT equivalent to a full-video SHA.
+   if(row.blob==null||!object(row.metadata)){issue('staging_video_missing');continue;}
+   add('archive_staging.legacy_video','entrance_media',row.metadata.id,
+    null,row.size,row.blob);
+   issue('legacy_video_chunks_unverified');
+  }else if(row.kind==='rollback_video'){
+   // Legacy rollback stores an entire entrance_media record, not row.blob.
+   if(!object(row.record)||row.record.blob==null){
+    issue('rollback_video_unknown');continue;
+   }
+   add('archive_staging.rollback_video','entrance_media',
+    row.originalId??row.record.id,
+    row.record.blobSha256??row.record.sourceSha256,
+    row.record.bytes??row.record.sourceBytes,row.record.blob);
+   issue('legacy_rollback_requires_review');
+  }else if(row.kind==='rollback_state'){
+   if(row.state!=null)scanState(row.state,'archive_staging.rollback_state');
+   else issue('rollback_state_unknown');
+  }else if(row.kind==='state'){
+   // PASEKA01 state is stored as an opaque JSON Blob. It may contain
+   // journal-video Data URLs; until decoded and validated, count as unknown.
+   if(row.blob!=null)issue('opaque_legacy_state_blob');
+   else issue('staging_state_unknown');
+  }else if(row.kind==='session'||row.kind==='rollback_session'){
+   if(row.blob!=null||row.data!=null)issue('unknown_staging_payload');
   }else if(row.blob!=null||row.data!=null)issue('unknown_staging_payload');
   else if(row.kind!=='v2_pending_session')issue('unknown_staging_record');
  }
- // Any full_backup entry may contain arbitrary legacy objects, blobs or
- // encoded originals. Known quarantine copies are listed, but no other
- // protected snapshot can be certified safe without a format-specific parser.
+ // PASEKA01 full_backup.previous={at,state}. Scan its historical journal
+ // state rather than losing archived record-media copies in a generic issue.
  if(!Array.isArray(v.backups))issue('backup_unknown');
  else for(const backup of v.backups){
   if(!object(backup)){issue('unknown_backup_format');continue;}
@@ -102,11 +138,18 @@ function inspectSnapshot(v,guard){
      entry.blobSha256,entry.bytes,entry.blob);
    }
   }
-  if(!['v2_entrance_only_rollback_unverified',
-      'v2_entrance_quarantine_rollback_snapshot'].includes(backup.kind))
-   issue('unknown_backup_format');
-  if(backup.kind==='v2_entrance_quarantine_rollback_snapshot'&&
-     !Array.isArray(backup.quarantinedMedia))issue('quarantine_unknown');
+  if(backup.kind==='v2_entrance_only_rollback_unverified'||
+     backup.kind==='v2_entrance_quarantine_rollback_snapshot'){
+   if(backup.beforeState!=null)scanState(backup.beforeState,'full_backup.beforeState');
+   else issue('backup_snapshot_state_unknown');
+   if(backup.afterState!=null)scanState(backup.afterState,'full_backup.afterState');
+   else issue('backup_snapshot_state_unknown');
+   if(backup.kind==='v2_entrance_quarantine_rollback_snapshot'&&
+      !Array.isArray(backup.quarantinedMedia))issue('quarantine_unknown');
+  }else if(Object.prototype.hasOwnProperty.call(backup,'state')){
+   scanState(backup.state,'full_backup.legacy_state');
+   issue('legacy_full_backup_requires_review');
+  }else issue('unknown_backup_format');
  }
  if(!Array.isArray(v.history))issue('history_unknown');
  else for(const record of v.history){

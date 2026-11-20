@@ -170,3 +170,130 @@ test('read error does not silently produce permission or modify anything',async(
  assert.equal(state.meta.revisionId,'r1');
  db.close();
 });
+
+test('legacy PASEKA01 staged video and rollback_video are both tracked as protected originals',async()=>{
+ const old=live('legacy-v');
+ const db=await setup({
+  staging:[
+   {id:'legacy-session',sessionId:'legacy-session',kind:'session',
+    backupId:'legacy-archive',status:'committed'},
+   {id:'legacy-session:video:legacy-v',sessionId:'legacy-session',
+    kind:'video',metadata:{id:'legacy-v'},size:3,
+    chunkSha256:[digest],blob:blob()},
+   {id:'rollback-session',sessionId:'rollback-session',
+    kind:'rollback_session',sourceBackupId:'legacy-archive'},
+   {id:'rollback-session:video:legacy-v',sessionId:'rollback-session',
+    kind:'rollback_video',originalId:'legacy-v',record:old}
+  ],
+  history:[{backupId:'legacy-archive',status:'committed',
+   importSessionId:'legacy-session',rollbackSessionId:'rollback-session'}]
+ });
+ const r=await audit(db,guard);
+ assert.equal(r.copyCount,2);
+ assert.ok(r.copies.some(c=>c.store==='archive_staging.legacy_video'&&
+  c.videoId==='legacy-v'));
+ assert.ok(r.copies.some(c=>c.store==='archive_staging.rollback_video'&&
+  c.videoId==='legacy-v'));
+ assert.ok(r.issues.includes('legacy_video_chunks_unverified'));
+ assert.ok(r.issues.includes('legacy_rollback_requires_review'));
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('legacy full_backup.previous.state and rollback_state count historical journal originals',async()=>{
+ const historical={meta:{schemaVersion:15,revisionId:'historical'},records:[{
+  id:'record-historical',media:[{
+   kind:'video',videoId:'journal-archived',
+   data:'data:video/mp4;base64,YWJj',sourceSha256:digest,sourceBytes:3
+  }]
+ }]};
+ const db=await setup({
+  backups:[['previous',{at:'2026-11-20T00:00:00Z',state:historical}]],
+  staging:[{id:'rollback:state',sessionId:'rollback',kind:'rollback_state',state:historical}]
+ });
+ const r=await audit(db,guard);
+ assert.equal(r.copyCount,2);
+ assert.ok(r.copies.some(c=>c.store==='full_backup.legacy_state'&&
+  c.identity==='record_media:journal-archived'));
+ assert.ok(r.copies.some(c=>c.store==='archive_staging.rollback_state'&&
+  c.identity==='record_media:journal-archived'));
+ assert.ok(r.issues.includes('legacy_full_backup_requires_review'));
+ assert.equal(JSON.stringify(r).includes('YWJj'),false);
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('opaque legacy state Blob is explicitly unverified, never treated as an empty backup',async()=>{
+ const db=await setup({staging:[{
+  id:'stage:state',sessionId:'stage',kind:'state',
+  size:36,blob:new Blob(['{"records":[{"media":["hidden"]}]}'],{type:'application/json'})
+ }]});
+ const r=await audit(db,guard);
+ assert.ok(r.issues.includes('opaque_legacy_state_blob'));
+ assert.equal(r.auditComplete,false);
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('recognized deleted tombstone still detects a PASEKA01 rollback_video copy',async()=>{
+ const db=await setup({ledger:ledger('deleted'),staging:[{
+  id:'rb:video:v1',sessionId:'rb',kind:'rollback_video',
+  originalId:'v1',record:live('v1')
+ }]});
+ const r=await audit(db,guard);
+ assert.equal(r.copyCount,1);
+ assert.ok(r.issues.includes('deleted_tombstone_has_copy'));
+ assert.ok(r.issues.includes('recognized_original_still_present'));
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('legacy rollback with missing original Blob is incomplete, not a safe empty copy',async()=>{
+ const db=await setup({staging:[{
+  id:'rb:video:v1',sessionId:'rb',kind:'rollback_video',
+  originalId:'v1',record:{id:'v1',blobSha256:digest}
+ }]});
+ const r=await audit(db,guard);
+ assert.ok(r.issues.includes('rollback_video_unknown'));
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('v2 rollback beforeState and afterState with journal payload are counted',async()=>{
+ const historical={meta:{schemaVersion:15,revisionId:'reverted'},records:[{
+  id:'historical',media:[{kind:'video',videoId:'vrec',
+   data:'data:video/mp4;base64,YWJj',sourceSha256:digest,sourceBytes:3}]
+ }]};
+ const db=await setup({backups:[['v2entrance:backup',{
+  kind:'v2_entrance_only_rollback_unverified',
+  beforeState:historical,afterState:historical
+ }]]});
+ const r=await audit(db,guard);
+ assert.equal(r.copyCount,2);
+ assert.ok(r.copies.some(c=>c.store==='full_backup.beforeState'));
+ assert.ok(r.copies.some(c=>c.store==='full_backup.afterState'));
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+
+test('real legacy journal-capture shape without videoId remains counted and unmatchable',async()=>{
+ // The current index.html recordForm stores {kind,type,name,data} without
+ // sourceSha256/videoId: inventory must not mistake this for zero originals.
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'observation',media:[{
+   kind:'video',name:'field.mp4',type:'video/mp4',
+   data:'data:video/mp4;base64,YWJj'
+  }]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,1);
+ assert.equal(report.distinctIdentities,0);
+ assert.equal(report.copies[0].identity,null);
+ assert.equal(report.copies[0].store,'main/state.records.media');
+ assert.ok(report.issues.includes('unidentified_copy'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(JSON.stringify(report).includes('YWJj'),false);
+ db.close();
+});
+test('unidentified entrance original remains counted even without matching ledger identity',async()=>{
+ const db=await setup({entrance:[{id:'v2-without-trustworthy-id',blob:blob()}]});
+ const result=await audit(db,guard);
+ assert.equal(result.copyCount,1);
+ assert.ok(result.issues.includes('copy_evidence_missing'));
+ assert.equal(result.cleanupAuthorized,false);
+ db.close();
+});
