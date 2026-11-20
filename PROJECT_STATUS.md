@@ -1,3 +1,27 @@
+## Проверенный CI PR #243 — test-only ledger и защита от ID collision (2026-11-20)
+
+- Исправленный code/test SHA `3e3c51372f26ce1544fa2e23cf359d5a31eb1fb4`: Android workflow [#44707175152](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707175152) **completed/success**; regression tests, debug APK build и upload прошли. Isolated archive APK [#44707175241](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707175241) **skipped**, не считать успешным тестом.
+- Предыдущий SHA `dfd5de3f1928850cb5fee1a94d3bdb3a01bfa5a5` [#44706938052](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44706938052): 988/989 passed, один старый тест требовал `put(storedRecord)` вместо безопасного `add(storedRecord)`. Исправлен только этот тест, введено явное отрицательное ожидание на `put`.
+- Следующий приоритет — строгая fail-closed проверка уже сохранённых ledger записей перед будущей интеграцией UI; затем реальный источник распознавания. Нет auto-delete, merge, production, изменений пользовательских видео.
+- Последующие docs-only коммиты не объявлять проверенными CI без отдельной проверки; code/test SHA указан выше.
+
+---
+## Контрольная точка — исправление CI и коллизий леткового видео (2026-11-20)
+
+- Первый Android CI Draft #243 на SHA `3f6a0dfa092ee2d845d8922e16895351fa733f11`, run #44706715461: **failure**, 988 passed / 1 failed; Android build/upload были skipped. Единственный failing test извлекал `async function putEntranceVideo` начиная с `function`, вызывая SyntaxError при `await`.
+- При анализе обнаружена реальная уязвимость: текущий `index.html` сохранял исходник через `entrance_media.put(storedRecord)`, что позволяло перезаписать видео при одинаковом ID. Изменена одна операция на `add(storedRecord)` (commit `53af9aecab221e236db1d1eb2e83ce83e326f126`); регрессионный тест исполняет настоящую async-функцию с SHA-модулем (commit `a86f8f2126cb3088209bf49a692a3bfd43c7f6f2`).
+- Повторные тесты и Android CI для нового HEAD ещё требуют проверки. Оригиналы пользователей не менялись; автоматическое удаление, UI интеграция ledger и production запрещены.
+
+---
+## Этап — test-only durable ledger распознавания видео (2026-11-20)
+
+- После docs-only Draft #242 создана зависимая ветка `feat/video-recognition-durable-ledger-2026-11-20`. Перенесены из несоединённой экспериментальной ветки без merge: `js/video-recognition-ledger.js` и `tests/video-recognition-ledger.test.mjs`; отдельный контракт `docs/VIDEO-RECOGNITION-DURABLE-LEDGER.md`.
+- Функция проверяет SHA-256 исходного видео и state revision, записывает результат в `main/video_recognition_ledger_v1`, при любом успешном результате оставляет `cleanupState=blocked_archive_safety`. Никаких вызовов UI, удаления Blob, схемных миграций или живых операций.
+- Открытый риск: метаданные Blob можно подменить несогласованным writer при сохранении прежнего SHA/size после хэширования, а внешние Android/архивные копии ещё не проверены. Запрет удаления #241 сохраняется. CI этого нового HEAD пока не подтверждён; следующий шаг — проверки GitHub на точном SHA, затем интеграция распознавателя отдельным шагом.
+- Merge, production, публикация и изменение пользовательских видео не выполнялись.
+
+---
+
 ## Контрольная точка — контракт распознавания/очистки видео (2026-11-20)
 
 - На основе Draft #241 создан отдельный docs-only блок: `docs/VIDEO-RECOGNITION-CLEANUP-STATE-CONTRACT.md`. Определены fail-closed состояния pending/in-progress/recognized_durable/cleanup_blocked/cleanup_committed, необходимые доказательства SHA/ledger, учёт внутренних и внешних Android копий, атомарность и запрет resurrection при restore.
