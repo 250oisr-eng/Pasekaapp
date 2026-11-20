@@ -1,3 +1,11 @@
+## 2026-11-20 — новые открытые альтернативы для видеодетекции: права и species gate
+
+- Родительский Draft #277 tested final head `d4ce6d2147f8c03dd7bd558b1588f10bfcaa53fe`: Android #44740273262 **completed/success** (регрессионные тесты, сборка Debug APK); isolated #44740273459 **skipped**. Сборка — не доказательство ML/Android inference.
+- Документальная ветка поверх #277: `docs/VIDEO-OPEN-BEE-DATASET-CANDIDATES-2026-11-20.md`. Researchdata.edu.au описывает Monash Australian Native Bee dataset с CC BY 4.0 (3277 детекционных кадров, 16 видеоклипов; Tetragonula carbonaria, не Apis mellifera) и Honeybee video tracking data с CC BY 4.0 (медоносные пчёлы на цветах, не вход в улей). Права на конкретные файлы/веса и source-session SHA манифесты не проверены; ни один набор не утверждён для обучения.
+- Следующий шаг: первичные DOI страницы/actual license и исходная связь каждого кадра с видеозаписью. До подтверждения целевого Apis mellifera летка и Android offline оценки `modelApproved=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. No main, user media, production, merge.
+
+---
+
 ## Проверка CI точного SHA #277 и права BEE24 (2026-11-20)
 
 - Проверен code+docs SHA `f779b7fc93d7a5b11e6ce92114bd1f8dde224d1a`: Android workflow #44739831967 **completed/success** — регрессионный тестовый шаг, сборка Debug APK успешно; isolated #44739831958 **skipped**. Это доказательство сборки, не Android inference или подтверждение лицензии; после нового документального коммита требуется отдельная сверка нового HEAD.
