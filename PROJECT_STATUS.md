@@ -1,3 +1,12 @@
+## Проверка CI защитной цепочки PR #231 — 2026-11-20
+
+- Точный SHA `c8ddefcaf47443a0c5b03c907e2811dc1912f3ae`: Android workflow #44696499993 **completed/success**. В job успешны **Run regression tests**, **Build debug APK** и **Upload APK**. Отдельный `Build isolated archive test APK` workflow #44696499782 имеет `skipped` (не считать проверенным).
+- Проверена чистая последовательность stacked PR #230 → #231; нового live импортёра и удаления видео нет. Физическое тестирование APK не проводилось.
+- Дата/вывод CI относится к указанному SHA, а не автоматически к последующим документационным commits.
+- Следующая задача — отдельная проработка защищённого staging pending original видеозаписей, атомарного предварительного контракта и crash recovery; не запускать live restore или cleanup до полной проверки.
+
+---
+
 ## Контрольная точка — PR #231: межисточниковые ID и гонка журнала (2026-11-20)
 
 - Draft PR #231 открыт поверх #230: https://github.com/250oisr-eng/Pasekaapp/pull/231.
