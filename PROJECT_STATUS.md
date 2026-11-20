@@ -1,3 +1,13 @@
+## Контрольная точка — PASEKA02: оба recovery snapshot проходят проверку (2026-11-20)
+
+- Продолжен существующий Draft PR #230. Исправлен только изолированный metadata-only inspectMetadataRecovery: прежде чем возвращать committed/reverted, проверяет корректную форму records и отсутствие непроверенных видео в обоих сохранённых snapshot — beforeState и afterState, включая неактивный.
+- Проверка reverted требует валидный revertedRevisionId, отличный от обеих исторических ревизий, и точное совпадение с текущим состоянием. При расхождении — manual_review_required, без записей.
+- Код SHA e445ce1e9bb896adbb0e1dbc0d6e3dbe430762c6; тест SHA f718ad280366fa043f7ab6295b646d575e13d1b9. Негативные тесты охватывают скрытые оригиналы в неактивном снимке, повреждённые records и повторно использованную или неверную rollback revision.
+- Предыдущий итоговый HEAD 40a13a57d56f0d6079b0d9e0ff49a03ee6c5428b: Android workflow #44694864424 completed/success, isolated archive workflow #44694864506 skipped. Этот результат не доказывает новый SHA.
+- Следующее: подтверждение CI и аудит pending-media staging, без live restore и удаления. Ветка Draft, нет merge или production.
+
+---
+
 ## Контрольная точка — обнаружение скрытых оригиналов при recovery (2026-11-20)
 
 - В Draft PR #230 изолированный readonly inspector теперь проверяет форму records и запрещает скрытые исходные видео в текущем state (data:video, data:application/octet-stream, blob:), прежде чем присвоить not_imported или committed. Такие данные требуют manual_review_required; автоматическое удаление и восстановление не запускаются.
