@@ -1,3 +1,9 @@
+## Этап — сквозные safety-инварианты между видео модулями (2026-11-20)
+
+- Следующая зависимая ветка `test/video-end-to-end-safety-invariants-2026-11-20` поверх staging pipeline #249. Добавлен `tests/video-end-to-end-safety-invariants.test.mjs`: целостная проверка запрета fake-completed, direct delete, подмены queue original, возвращаемых прав untrusted draft, отсутствия staging модулей в UI/PWA.
+- Документ `docs/VIDEO-END-TO-END-SAFETY-INVARIANTS.md`. Это тестирование API и безопасности, не аппаратное end-to-end и не распознавание. Новый CI ещё не подтверждён; main, production, live originals untouched.
+
+---
 ## Этап — сквозной staging-only local video observation pipeline (2026-11-20)
 
 - На базе Draft #248 создана ветка `feat/video-observation-pipeline-2026-11-20`: `js/video-observation-pipeline.js` соединяет только два неактивных модуля `PasekaEntranceFramePreparation` и `PasekaVideoModelEvidence` через **внешне внедряемый, ещё не существующий** on-device adapter. Нет UI, службы модели, сети, записи в базу или удаления.
