@@ -1,3 +1,10 @@
+## CI Draft #251 — external Android copies remain unknown (2026-11-20)
+
+- Code/test/docs SHA `7089f978e58422345cb06f5d2ae039cf0e0cb916`: [Android #44710841243](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710841243) **completed/success** (regressions, Debug APK build/upload); [isolated #44710841400](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710841400) **skipped**. Не подтверждён физический Android Camera/Gallery behavior.
+- Новые видео через File Input получают explicit unknown externalCopyState; никакой автоматической очистки/миграции. Последующие docs-only commits требуют отдельной проверки SHA при необходимости.
+- Главный незавершённый технический блок: безопасный бесплатный bee detection model+tracking, модельные веса и лицензия, реальная accuracy на летке, source-bound durable recognition, пользовательская проверка результата, Android ownership и all-copy cleanup. Пока удаления нет.
+
+---
 ## Этап — происхождение внешних Android видео копий (2026-11-20)
 
 - Поверх Draft #250 создана ветка `fix/video-external-copy-provenance-2026-11-20`. В новых записях леткового видео добавлено только поле `captureProvenance:{source:'file_input_or_external_camera',externalCopyState:'unknown',verifiedAt:null}`. Android File Input не доказывает отсутствие копий Camera/Gallery/MediaStore. Старые записи и IndexedDB schema не меняются.
