@@ -1,3 +1,10 @@
+## Этап — offline измеритель precision/recall по размеченным кадрам (2026-11-20)
+
+- На базе Draft #253 создана рабочая ветка `feat/video-detector-benchmark-metrics-2026-11-20`: `js/video-detector-benchmark.js`, `tests/video-detector-benchmark.test.mjs`, `docs/VIDEO-DETECTOR-BENCHMARK.md`.
+- Изолированная one-to-one IoU оценка TP/FP/FN, precision и recall per class. Не подменяет `null` на точность 100%, не вычисляет mAP, не оценивает tracking или направление, не активирует модель и выдаёт `modelValidated:false` и `cleanupAuthorized:false` даже на perfect synthetic fixture.
+- Требуются GitHub CI и реальный independent holdout licensed dataset для meaningful benchmark. Нет AI model, network, IndexedDB, live video, deletion или migration.
+
+---
 ## Этап — model artifact preflight по SHA-256 (2026-11-20)
 
 - На базе Draft #252 создана отдельная ветка `feat/video-model-artifact-integrity-2026-11-20`: `js/video-model-artifact.js`, `tests/video-model-artifact.test.mjs`, `docs/VIDEO-MODEL-ARTIFACT-INTEGRITY.md`.

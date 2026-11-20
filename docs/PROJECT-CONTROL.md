@@ -18,6 +18,7 @@
 | АУДИТ-PR-54-58-2026-11-16.md | Подтверждённые дефекты, воспроизведение, риски и план исправлений PR #54–58 |
 | СОСТОЯНИЕ-ПРОЕКТА.md | Актуальное состояние, SHA, PR, ограничения и следующий шаг |
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
+| VIDEO-DETECTOR-BENCHMARK.md | Staging-only IoU/precision/recall тест, не подтверждение реальной модели или качества треков |
 | VIDEO-MODEL-ARTIFACT-INTEGRITY.md | Локальный SHA preflight весов модели, запрет считать хэш доказательством лицензии или готового inference |
 | VIDEO-BEE-MODEL-CANDIDATE-AUDIT.md | Сравнение bee detection/tracking моделей и датасетов, лицензий и readiness gate без загрузки весов |
 | VIDEO-ANDROID-EXTERNAL-COPY-PROVENANCE.md | File input Android Camera/Gallery provenance unknown, нет права внешнего удаления |
