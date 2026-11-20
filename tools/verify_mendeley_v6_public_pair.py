@@ -22,6 +22,11 @@ MIRROR_HOSTS = frozenset((
 EXPECTED_GROUP = "_bee_20230609a"
 EXPECTED_WIDTH = 1920
 EXPECTED_HEIGHT = 1080
+# Observed from actual public v6 source bytes, GitHub Actions #44749236895.
+# These are source-file integrity pins, NOT evidence of source recording provenance.
+EXPECTED_IMAGE_SHA256 = "dcccf2db87e3f964870cfd84a65ad0ba9e81e992194b8f2fa18c16107fea41f3"
+EXPECTED_LABEL_SHA256 = "ab25e4c0d29898983b78cc8241271ca4a66095332c32c8f0d29aab68d32f68d5"
+EXPECTED_BEE_BOXES = 7
 
 
 class RealPairRejected(ValueError):
@@ -75,7 +80,12 @@ def bounded_public_read(url, cap, opener=None):
     return data
 
 
-def verify_bytes(jpg, label):
+def verify_bytes(jpg, label, require_pinned_source=False):
+    if require_pinned_source and (
+        hashlib.sha256(jpg).hexdigest() != EXPECTED_IMAGE_SHA256 or
+        hashlib.sha256(label).hexdigest() != EXPECTED_LABEL_SHA256
+    ):
+        raise RealPairRejected("public_source_sha_changed")
     if not jpg.startswith(b"\xff\xd8"):
         raise RealPairRejected("invalid_jpeg_signature")
     try:
@@ -94,7 +104,9 @@ def verify_bytes(jpg, label):
         (images / PAIRS[0][0]).write_bytes(jpg)
         (labels / PAIRS[1][0]).write_bytes(label)
         result = build_unassigned(root)
-    if (len(result["images"]) != 1 or len(result["annotations"]) < 1 or
+    if (len(result["images"]) != 1 or
+        len(result["annotations"]) != (EXPECTED_BEE_BOXES if require_pinned_source else len(result["annotations"])) or
+        len(result["annotations"]) < 1 or
         result["images"][0]["width"] != EXPECTED_WIDTH or
         result["images"][0]["height"] != EXPECTED_HEIGHT):
         raise RealPairRejected("unexpected_real_pair_shape")
@@ -127,7 +139,7 @@ def main():
     try:
         jpg = bounded_public_read(PAIRS[0][1], PAIRS[0][2])
         label = bounded_public_read(PAIRS[1][1], PAIRS[1][2])
-        print(json.dumps(verify_bytes(jpg, label), indent=2))
+        print(json.dumps(verify_bytes(jpg, label, require_pinned_source=True), indent=2))
         return 0
     except (RealPairRejected, MendeleyRejected) as exc:
         print(json.dumps({"ok": False, "reason": str(exc),
