@@ -180,7 +180,40 @@ function rollbackMetadataOnly(db,options,deps){
    archiveSafe:false,cleanupAuthorized:false};
  });
 }
+// Read-only crash/restart inspector. Do not auto-repair, finish or delete
+// an ambiguous snapshot. Return a diagnostic only after checking all stores.
+function inspectMetadataRecovery(db,backupId,deps){
+ if(!validId(backupId)||typeof deps?.guard?.validateRecognitionLedgerForV2!=='function')
+  return Promise.reject(Object.assign(new Error('V2_ATOMIC_RECOVERY_OPTIONS_INVALID'),{code:'V2_ATOMIC_RECOVERY_OPTIONS_INVALID'}));
+ const reads={...baseReads(),
+  history:tx=>tx.objectStore('archive_history').get(backupId),
+  snapshot:tx=>tx.objectStore('full_backup').get('v2:'+backupId)};
+ return runLocked(db,reads,(_tx,v)=>{
+  let status='manual_review_required';
+  if(v.staged===0&&Array.isArray(v.videoKeys)&&v.videoKeys.length===0&&
+    obj(v.state)&&obj(v.ledger)){
+   try{
+    deps.guard.validateRecognitionLedgerForV2(v.ledger);
+    if(!v.history&&!v.snapshot&&v.historyCount===0&&v.backupCount===0)status='not_imported';
+    else if(obj(v.history)&&obj(v.snapshot)&&v.historyCount===1&&v.backupCount===1&&
+      v.snapshot.backupId===backupId&&v.history.rollbackKey==='v2:'+backupId&&
+      v.snapshot.kind==='v2_metadata_only_rollback'&&v.history.kind==='v2_metadata_only'&&
+      v.history.archiveSha256===v.snapshot.archiveSha256&&
+      stableJson(v.ledger)===stableJson(v.snapshot.beforeLedger)){
+     if(v.history.status==='committed'&&stableJson(v.state)===stableJson(v.snapshot.afterState))
+      status='committed';
+     if(v.history.status==='reverted'&&v.state.meta?.revisionId===v.history.revertedRevisionId&&
+        stableJson({...v.state,meta:{...v.state.meta,revisionId:v.snapshot.beforeState.meta.revisionId}})===
+          stableJson(v.snapshot.beforeState))status='reverted';
+    }
+   }catch(_){status='manual_review_required';}
+  }
+  return {backupId,status,requiresManualReview:status==='manual_review_required',
+   liveDataModified:false,archiveSafe:false,restoreAuthorized:false,
+   cleanupAuthorized:false};
+ });
+}
 root.PasekaVideoArchiveV2MetadataAtomic=Object.freeze({
- commitMetadataOnly,rollbackMetadataOnly
+ commitMetadataOnly,rollbackMetadataOnly,inspectMetadataRecovery
 });
 })(typeof window!=='undefined'?window:globalThis);
