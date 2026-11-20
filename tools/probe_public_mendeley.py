@@ -3,6 +3,8 @@
 import argparse
 import json
 import re
+import socket
+import ssl
 import sys
 from urllib.parse import urlencode
 from urllib.request import Request, HTTPRedirectHandler, build_opener
@@ -48,8 +50,16 @@ def fetch_json(endpoint, opener=None):
         parsed = json.loads(payload)
     except MetadataUnavailable:
         raise
-    except (HTTPError, URLError, OSError, ValueError, UnicodeDecodeError) as exc:
-        raise MetadataUnavailable("public_metadata_request_failed") from exc
+    except HTTPError as exc:
+        raise MetadataUnavailable(f"public_api_http_{exc.code}") from exc
+    except URLError as exc:
+        if isinstance(exc.reason, socket.gaierror):
+            raise MetadataUnavailable("public_api_dns_unavailable") from exc
+        if isinstance(exc.reason, (ssl.SSLError, ssl.SSLCertVerificationError)):
+            raise MetadataUnavailable("public_api_tls_unavailable") from exc
+        raise MetadataUnavailable("public_api_transport_unavailable") from exc
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
+        raise MetadataUnavailable("public_api_response_invalid") from exc
     if not isinstance(parsed, (dict, list)):
         raise MetadataUnavailable("invalid_json_root")
     return parsed
