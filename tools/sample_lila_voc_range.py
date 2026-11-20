@@ -16,6 +16,7 @@ MAX_ARCHIVE = 10 * 1024 * 1024 * 1024
 MAX_NETWORK = 4 * 1024 * 1024
 MAX_CENTRAL = 3 * 1024 * 1024
 MAX_XML = 128 * 1024
+MAX_JPEG = 2 * 1024 * 1024
 MAX_ENTRIES = 20000
 RANGE = re.compile(r"^bytes ([0-9]+)-([0-9]+)/([0-9]+)$")
 LICENSE = re.compile(r"(?:^|/)(?:license|licence|copying|notice|readme|attribution)(?:\.[^/]*)?$",re.I)
@@ -135,8 +136,8 @@ def inspect_directory(reader):
     return items
 
 
-def sample_member(reader,entry):
-    if not 0<entry["uncompressed"]<=MAX_XML or not 0<entry["compressed"]<=MAX_XML:
+def sample_member(reader,entry,limit=MAX_XML):
+    if not 0<entry["uncompressed"]<=limit or not 0<entry["compressed"]<=limit:
         raise SampleRejected("sample_member_too_large")
     base=entry["offset"]
     header=reader.get(base,base+29)
@@ -152,11 +153,11 @@ def sample_member(reader,entry):
         data=packed
     else:
         dec=zlib.decompressobj(-15)
-        data=dec.decompress(packed,MAX_XML+1)
+        data=dec.decompress(packed,limit+1)
         if not dec.eof or dec.unconsumed_tail:
             raise SampleRejected("xml_decompression_invalid")
         data+=dec.flush()
-    if len(data)!=entry["uncompressed"] or len(data)>MAX_XML or zlib.crc32(data)!=entry["crc"]:
+    if len(data)!=entry["uncompressed"] or len(data)>limit or zlib.crc32(data)!=entry["crc"]:
         raise SampleRejected("xml_crc_or_size_invalid")
     return data
 
@@ -188,10 +189,48 @@ def parse_voc(xml):
     return {"width":width,"height":height,"objectsByClass":counts}
 
 
+
+
+def jpeg_header_dimensions(raw):
+    # JPEG SOF dimensions only: this does NOT prove a fully decodable image.
+    if len(raw)<16 or raw[:2]!=b"\xff\xd8":
+        raise SampleRejected("jpeg_magic_invalid")
+    i=2
+    sof={0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf}
+    while i+3<len(raw):
+        if raw[i]!=0xff:
+            raise SampleRejected("jpeg_marker_invalid")
+        while i<len(raw) and raw[i]==0xff:
+            i+=1
+        if i>=len(raw):
+            break
+        marker=raw[i];i+=1
+        if marker==0x01 or marker==0xd8 or 0xd0<=marker<=0xd7:
+            continue
+        if i+2>len(raw):
+            break
+        n=int.from_bytes(raw[i:i+2],"big")
+        if n<2 or i+n>len(raw):
+            raise SampleRejected("jpeg_segment_invalid")
+        if marker in sof:
+            if n<8:
+                raise SampleRejected("jpeg_sof_invalid")
+            height=int.from_bytes(raw[i+3:i+5],"big")
+            width=int.from_bytes(raw[i+5:i+7],"big")
+            if not 0<width<=20000 or not 0<height<=20000:
+                raise SampleRejected("jpeg_dimensions_invalid")
+            return width,height
+        if marker==0xda:
+            break
+        i+=n
+    raise SampleRejected("jpeg_sof_missing")
+
+
 def inspect_public(opener=None):
     reader=BoundedRanges(opener)
     entries=inspect_directory(reader)
     docs=[e["name"] for e in entries if LICENSE.search(e["name"])]
+    lookup={e["name"].casefold():e for e in entries}
     candidates=[e for e in entries if e["name"].lower().endswith(".xml")
                 and 0<e["compressed"]<=MAX_XML and 0<e["uncompressed"]<=MAX_XML]
     last=None
@@ -199,10 +238,21 @@ def inspect_public(opener=None):
         try:
             original=sample_member(reader,item)
             data=parse_voc(original)
-            return {"ok":True,"stage":"public_voc_sample_only",
+            stem=item["name"][:-4]
+            partner=lookup.get((stem+".jpg").casefold()) or lookup.get((stem+".jpeg").casefold())
+            if partner is None:
+                raise SampleRejected("jpeg_pair_missing")
+            photo=sample_member(reader,partner,MAX_JPEG)
+            jpeg_width,jpeg_height=jpeg_header_dimensions(photo)
+            if jpeg_width!=data["width"] or jpeg_height!=data["height"]:
+                raise SampleRejected("jpeg_voc_dimensions_mismatch")
+            return {"ok":True,"stage":"public_voc_jpeg_pair_sample_only",
                     "zipEntries":len(entries),"xmlCandidateCount":len(candidates),
                     "licenseDocumentPaths":docs[:30],"sampleXmlName":item["name"],
                     "sampleXmlSha256":hashlib.sha256(original).hexdigest(),
+                    "sampleJpegName":partner["name"],
+                    "sampleJpegSha256":hashlib.sha256(photo).hexdigest(),
+                    "sampleJpegBytes":len(photo),"jpegHeaderDimensionsMatch":True,
                     "sample":data,"bytesFetchedByRange":reader.used,
                     "archiveDownloaded":False,"archiveHashVerified":False,
                     "archiveLicensesRead":False,"licenseVerified":False,
