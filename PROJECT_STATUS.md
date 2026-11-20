@@ -1,3 +1,12 @@
+## CI изолированного PASEKA02 staging — 2026-11-20
+
+- Точный SHA `8f98505a9fde38dea489576fcb8de600e8a94db1`: Android workflow #44697058894 — completed/success (Run regression tests, Build debug APK, Upload APK). Отдельный Build isolated archive test APK #44697058856 — skipped.
+- Draft PR #232: https://github.com/250oisr-eng/Pasekaapp/pull/232; код только stage-only, без live-импорта, удаления, восстановления и изменения main.
+- Поскольку `protected_unverified` не доказывает повторно SHA stored Blob, следующий приоритет — read-only verification сохранённых staging copies с защитой от конкурентных изменений, не выдающая разрешения на commit или cleanup.
+- Проверки относятся только к указанному SHA; физический Android тест не проводился.
+
+---
+
 ## Контрольная точка — PASEKA02: атомарный тестовый staging нераспознанных видео (2026-11-20)
 
 - На базе проверенного SHA цепочки Draft PR #231 создана зависимая ветка feat/video-archive-v2-pending-stage-2026-11-20. Цель — защищённое сохранение уже SHA-проверенных pending originals в тестовый staging, без live-импорта или удаления.
