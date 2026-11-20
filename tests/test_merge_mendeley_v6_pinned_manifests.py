@@ -167,6 +167,63 @@ class MergeMendeleyInventoryTests(unittest.TestCase):
             publish_new_inventory(inv,output)
         self.assertEqual(json.loads(output.read_text())["inventoryPairs"],16)
 
+    def test_work_registry_first_pass_geometry_and_coverage(self):
+        fixtures = Path(__file__).resolve().parent / "fixtures"
+        chunks = sorted((fixtures / "mendeley-v6-work-96").glob("*.csv"))
+        self.assertEqual(len(chunks), 5)
+        manifests = [fixtures / "mendeley-v6-user-16-pairs-pinned.csv", *chunks]
+        inventory = build_metadata_inventory(load_manifest_chunks(manifests))
+        self.assertEqual(inventory["inventoryPairs"], 93)
+        self.assertEqual(inventory["missingPairsRelativeToPublication"], 7107)
+        coverage = inventory["publishedGroupCounts"]
+        self.assertEqual(len(coverage), 8)
+        with (fixtures / "mendeley-v6-work-rejected.csv").open() as source:
+            rejected = list(csv.DictReader(source))
+        accepted = {entry["filename"] for entry in inventory["files"]}
+        self.assertEqual(len(rejected) + len(accepted), 96)
+        self.assertTrue(all(row["reason"] == "bbox_out_of_image" for row in rejected))
+        self.assertTrue(accepted.isdisjoint(row["image_filename"] for row in rejected))
+        from collections import Counter
+        exclusions = Counter(row["hive_group"] for row in rejected)
+        for group in coverage:
+            self.assertEqual(group["inventoryPairs"] + exclusions[group["hiveCollectionFolder"]], 12)
+        for flag in ("allRecordingBytesAndFrameProvenanceVerified",
+                     "independentHiveAndSessionHoldoutVerified", "trainValTestSplitCreated",
+                     "trainingAuthorized", "recognitionSucceeded", "cleanupAuthorized"):
+            self.assertIs(inventory[flag], False, flag)
+
+    def test_work_replay_covers_every_source_and_preserves_pins(self):
+        fixtures = Path(__file__).resolve().parent / "fixtures"
+        manifests = [fixtures / "mendeley-v6-user-16-pairs-pinned.csv",
+                     *sorted((fixtures / "mendeley-v6-work-96").glob("*.csv")),
+                     fixtures / "mendeley-v6-work-rejected.csv"]
+        expected = {}
+        for manifest in manifests:
+            with manifest.open() as source:
+                for row in csv.DictReader(source):
+                    expected[row["image_filename"]] = row
+        with (fixtures / "mendeley-v6-work-replay.csv").open() as source:
+            replay = list(csv.DictReader(source))
+        self.assertEqual(len(replay), 96)
+        self.assertEqual({row["image_filename"] for row in replay}, set(expected))
+        for row in replay:
+            statuses = []
+            for kind in ("image", "label"):
+                pin = expected[row["image_filename"]][kind + "_sha256"]
+                self.assertEqual(row[kind + "_expected_sha256"], pin)
+                observed = row[kind + "_observed_sha256"]
+                reads = (row[kind + "_read"], row[kind + "_retry"])
+                if (observed and observed != pin) or "False" in reads:
+                    status = "mismatch"
+                elif "True" in reads:
+                    status = "matched"
+                else:
+                    status = "unconfirmed"
+                self.assertEqual(row[kind + "_status"], status)
+                statuses.append(status)
+            pair = next((s for s in ("mismatch", "unconfirmed") if s in statuses), "matched")
+            self.assertEqual(row["pair_status"], pair)
+
     def test_chunk_count_limit_and_empty_list_rejected(self):
         for n in (0,MAX_CHUNKS+1):
             with self.assertRaisesRegex(InventoryRejected,"manifest_chunk_count_invalid"):

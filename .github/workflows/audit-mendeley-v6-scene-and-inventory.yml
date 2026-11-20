@@ -10,6 +10,9 @@ on:
       - 'tests/test_audit_mendeley_v6_original_scene_similarity.py'
       - 'tests/test_merge_mendeley_v6_pinned_manifests.py'
       - 'tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv'
+      - 'tests/fixtures/mendeley-v6-work-96/*.csv'
+      - 'tests/fixtures/mendeley-v6-work-rejected.csv'
+      - 'tests/fixtures/mendeley-v6-work-replay.csv'
       - '.github/workflows/audit-mendeley-v6-scene-and-inventory.yml'
 permissions:
   contents: read
@@ -34,7 +37,10 @@ jobs:
         run: |
           python tools/audit_mendeley_v6_original_scene_similarity.py \
             tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv \
-            > "${RUNNER_TEMP}/real-scene.json"
+            > "${RUNNER_TEMP}/real-scene.json" || {
+              cat "${RUNNER_TEMP}/real-scene.json" >&2
+              exit 1
+            }
           python - <<'PY'
           import json,os
           from pathlib import Path
