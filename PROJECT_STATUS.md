@@ -1,3 +1,14 @@
+## Крупный этап — сквозной безопасный dry-run восстановления PASEKA02 и защита full_backup (2026-11-20)
+
+- Ветка `feat/video-archive-v2-end-to-end-dry-run-2026-11-20` поверх Draft PR #225. Создан `js/video-archive-v2-restore-dry-run.js`: принимает **реальный Blob архива** `PASEKA02`, использует проверенный codec для манифеста, state, ledger, видео летка и журнала, затем read-only DB preflight и финальную проверку ledger под **отменяемой** общей readwrite-блокировкой. Возвращает только отчёт с SHA-256 архива, количеством видео и историей, без права на запись.
+- Выявлен недоучтённый защищённый store **`full_backup`**: рабочий `js/paseka-archive-restore.js` использует его для предыдущего состояния при v1 restore. Исправлены `js/video-archive-v2-restore-db-preflight.js` и `js/video-archive-v2-commit-lock-guard.js`: теперь все `main`, `entrance_media`, `archive_staging`, `archive_history`, `full_backup` участвуют в одном чтении / write-lock. Любая запись `full_backup` блокирует v2 restore, защищённые данные не меняются и не удаляются.
+- Исправлена TOCTOU-последовательность: полный SHA-256 файла вычисляется **до** заключительной проверки под write-lock, а не после. Добавлена регрессия на новое распознавание во время вычисления отпечатка.
+- `tests/video-archive-v2-restore-dry-run.test.mjs`: полный тест `PASEKA02` с обоими типами видео, SHA-256, отказом на v1/corruption, потерей ledger, гонкой распознавания, защитой staging и full_backup, неизвестной схемой и отказом зависимостей. Обновлены тесты двух ранее созданных guard-модулей. `docs/VIDEO-ARCHIVE-V2-RESTORE-READINESS.md` содержит карту всех защищённых stores, угроз и план следующего этапа.
+- **Fast quality checks success** на кодовом SHA `30dbf9254e9f9dc8ef739a2e0bd1d859dae2d2b7`, run #44688101339. Android CI и итоговый docs HEAD отдельно проверить. Нет действующего v2 импорта, staging/rollback commit или удаления, `restoreAuthorized=false`, `archiveSafe=false`. Все PR Draft, `main` и production не изменены.
+- Следующее: атомарный и полностью обратимый v2 stage/commit/rollback, согласование видео и архивных веток, защита всех persistent копий после распознавания и физический Android тест. Нельзя включать автоматическое удаление на основании dry-run.
+
+---
+
 ## Контрольная точка — проверка v2 restore под отменяемой readwrite-блокировкой (2026-11-20)
 
 - Создана зависимая ветка `feat/video-archive-v2-commit-lock-guard-2026-11-20` поверх Draft PR #224. Новый изолированный `js/video-archive-v2-commit-lock-guard.js` открывает **одну readwrite-транзакцию** над `main`, `entrance_media`, `archive_staging`, `archive_history`, читает живой ledger/state, ключи входных видео, количество staging/history и **синхронно внутри transaction callback** выполняет restore ledger gate.
