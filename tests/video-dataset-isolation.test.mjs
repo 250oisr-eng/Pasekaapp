@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const code=await readFile(new URL('../js/video-dataset-isolation.js',import.meta.url),'utf8');
 const root={};new Function('window',code)(root);const inspect=root.PasekaVideoDatasetIsolation.inspect;
-const item=(id,split,digit)=>({id,split,imageSha256:digit.repeat(64),annotationSha256:'f'.repeat(64)});
+const item=(id,split,digit)=>({id,split,sourceVideoId:'source-'+split,imageSha256:digit.repeat(64),annotationSha256:'f'.repeat(64)});
 const fixture=()=>({datasetId:'bee-entrance',datasetVersion:'v1',items:[item('a','train','a'),item('b','validation','b'),item('c','test','c')]});
 test('distinct declared splits pass hygiene but never constitute independent validation',()=>{
  const r=inspect(fixture());assert.equal(r.ok,true);
@@ -17,6 +17,15 @@ test('same image bytes across splits rejected, even with different IDs and annot
  const f=fixture();f.items[2].imageSha256=f.items[0].imageSha256;
  f.items[2].annotationSha256='e'.repeat(64);
  assert.equal(inspect(f).reason,'cross_split_image_leakage');
+});
+test('different frames from same source video across partitions are rejected',()=>{
+ const f=fixture();f.items[2].sourceVideoId=f.items[0].sourceVideoId;
+ assert.notEqual(f.items[2].imageSha256,f.items[0].imageSha256);
+ assert.equal(inspect(f).reason,'cross_split_source_video_leakage');
+});
+test('missing source-video identity fails closed',()=>{
+ const f=fixture();delete f.items[1].sourceVideoId;
+ assert.equal(inspect(f).reason,'item_invalid');
 });
 test('duplicate image bytes inside split and duplicate IDs rejected',()=>{
  let f=fixture();f.items.push(item('d','train','a'));
