@@ -10,7 +10,7 @@ test('read-only Mendeley metadata probe has a passing offline Python regression 
  });
  assert.equal(x.error,undefined,String(x.error));
  assert.equal(x.status,0,x.stderr||x.stdout);
- assert.match(x.stderr,/Ran 6 tests/);
+ assert.match(x.stderr,/Ran 8 tests/);
 });
 test('metadata probe never activates application features or downloads archives',async()=>{
  const code=await readFile(new URL('../tools/probe_public_mendeley.py',import.meta.url),'utf8');
