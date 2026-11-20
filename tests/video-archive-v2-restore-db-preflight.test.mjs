@@ -24,6 +24,7 @@ async function setup(){
   db.createObjectStore('entrance_media',{keyPath:'id'});
   db.createObjectStore('archive_staging',{keyPath:'id'});
   db.createObjectStore('archive_history',{keyPath:'backupId'});
+  db.createObjectStore('full_backup');
  };
  const db=await new Promise((resolve,reject)=>{
   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
@@ -43,7 +44,7 @@ test('live preflight uses one readonly transaction across all protected stores w
   calls.push(args);return db.transaction(...args);
  }};
  const outcome=await inspect(tracked);
- assert.deepEqual(calls,[[['main','entrance_media','archive_staging','archive_history'],'readonly']]);
+ assert.deepEqual(calls,[[['main','entrance_media','archive_staging','archive_history','full_backup'],'readonly']]);
  assert.equal(outcome.historyPreserved,1);
  assert.equal(outcome.liveEntranceKeyCount,1);
  assert.equal(outcome.preflightPassed,true);
@@ -93,5 +94,24 @@ test('live state must exist and be schema-aware',async()=>{
  const db=await setup();const tx=db.transaction('main','readwrite');
  tx.objectStore('main').put({meta:{schemaVersion:'unknown'}},'state');await done(tx);
  await rejects(inspect(db),'V2_RESTORE_LIVE_STATE_INVALID');
+ db.close();
+});
+
+test('full_backup may hide original snapshots and must block readonly restore without cleanup',async()=>{
+ const db=await setup(),tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({at:'2026-11-20',blob:new Blob(['historical original'])},'previous');
+ await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
+ const check=db.transaction('full_backup','readonly');
+ const saved=await new Promise((resolve,reject)=>{
+  const r=check.objectStore('full_backup').get('previous');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ assert.equal(saved.blob.size,19);db.close();
+});
+test('missing full_backup store fails closed before opening a transaction',async()=>{
+ const db=await setup();
+ const object={objectStoreNames:{contains:store=>store!=='full_backup'},transaction(){throw Error('should not open');}};
+ await rejects(inspect(object),'V2_RESTORE_PROTECTED_STORES_MISSING');
  db.close();
 });

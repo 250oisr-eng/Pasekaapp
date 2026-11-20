@@ -23,6 +23,7 @@ async function setup(){
   req.result.createObjectStore('entrance_media',{keyPath:'id'});
   req.result.createObjectStore('archive_staging',{keyPath:'id'});
   req.result.createObjectStore('archive_history',{keyPath:'backupId'});
+  req.result.createObjectStore('full_backup');
  };
  const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
  const tx=db.transaction(['main','entrance_media'],'readwrite');
@@ -42,7 +43,7 @@ test('gate uses one readwrite transaction across all protected stores, always ab
  }};
  const result=await call(tracked);
  assert.equal(calls.length,1);
- assert.deepEqual(calls[0].stores,['main','entrance_media','archive_staging','archive_history']);
+ assert.deepEqual(calls[0].stores,['main','entrance_media','archive_staging','archive_history','full_backup']);
  assert.equal(calls[0].mode,'readwrite');
  assert.equal(result.lockValidated,true);
  assert.equal(result.transactionAborted,true);
@@ -115,4 +116,17 @@ test('incoming missing current recognized result fails before exposing a write a
  const changed=incoming();changed.ledger={version:1,entries:[]};
  await rejects(call(db,changed),'V2_RESTORE_LEDGER_HISTORY_LOST');
  db.close();
+});
+
+test('full_backup is protected by same readwrite lock and survives abort',async()=>{
+ const db=await setup(),tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({blob:new Blob(['old saved original'])},'previous');
+ await transactionDone(tx);
+ await rejects(call(db),'V2_COMMIT_EXISTING_ARCHIVE_HISTORY');
+ const verify=db.transaction('full_backup','readonly');
+ const saved=await new Promise((resolve,reject)=>{
+  const r=verify.objectStore('full_backup').get('previous');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ assert.equal(saved.blob.size,18);db.close();
 });
