@@ -1,0 +1,104 @@
+(function(root){
+'use strict';
+// Staging-only. A completed recognition must be persisted before any cleanup is considered.
+// Does not delete video, change the existing 'state' entry or approve backup safety.
+const KEY='video_recognition_ledger_v1';
+const idOk=value=>typeof value==='string'&&value.length>0&&value.length<=200&&!/\s/.test(value);
+const isObject=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+function validateResult(result){
+ if(!isObject(result))return false;
+ const seen=new Set();
+ function inspect(value,depth){
+  if(depth>12)return false;
+  if(value===null||typeof value==='boolean'||typeof value==='number'&&Number.isFinite(value))return true;
+  if(typeof value==='string')return !/^data:(?:video|application\/octet-stream)/i.test(value);
+  if(typeof value!=='object'||seen.has(value)||!Array.isArray(value)&&!isObject(value))return false;
+  seen.add(value);
+  const ok=Array.isArray(value)?value.every(item=>inspect(item,depth+1)):
+   Object.entries(value).every(([key,item])=>!['data','blob','file','binary','media','base64','original'].includes(key.toLowerCase())&&inspect(item,depth+1));
+  seen.delete(value);return ok;
+ }
+ if(!inspect(result,0))return false;
+ try{return JSON.stringify(result).length<=16384}catch{return false}
+}
+function verifyRequest(input){
+ if(!isObject(input)||!idOk(input.videoId)||!idOk(input.resultId)||
+ !['entrance_media','record_media'].includes(input.source)||
+ !idOk(input.expectedStateRevisionId)||!idOk(input.recognizedAt)||
+ input.recognitionStatus!=='completed'||input.recognitionSucceeded!==true||
+ !validateResult(input.result))return false;
+ return Number.isFinite(Date.parse(input.recognizedAt));
+}
+function recordRecognitionResult(db,input){
+ if(!verifyRequest(input))return Promise.resolve({ok:false,reason:'invalid_recognition_evidence'});
+ return new Promise(resolve=>{
+  let tx,main,mediaRequest,ledgerRequest,stateRequest,finished=false,planned=null;
+  const finish=value=>{if(!finished){finished=true;resolve(value)}};
+  const fail=reason=>{planned={ok:false,reason};try{tx.abort()}catch{finish(planned)}};
+  try{
+   tx=db.transaction(input.source==='entrance_media'?['main','entrance_media']:['main'],'readwrite');
+   main=tx.objectStore('main');
+   stateRequest=main.get('state');
+   ledgerRequest=main.get(KEY);
+   if(input.source==='entrance_media')mediaRequest=tx.objectStore('entrance_media').get(input.videoId);
+   let ready=0,needed=mediaRequest?3:2;
+   function check(){
+    if(++ready!==needed)return;
+    const state=stateRequest.result;
+    if(!isObject(state)||!isObject(state.meta)||state.meta.revisionId!==input.expectedStateRevisionId)
+     return fail('state_revision_changed');
+    let video;
+    if(input.source==='entrance_media'){
+     video=mediaRequest.result;
+     if(!video||video.id!==input.videoId||!video.blob)return fail('source_video_missing');
+    }else{
+     const found=(Array.isArray(state.records)?state.records:[]).flatMap(record=>
+      Array.isArray(record&&record.media)?record.media.filter(item=>item&&item.kind==='video'&&(item.id===input.videoId||item.videoId===input.videoId)):[]
+     );
+     if(found.length!==1||!found[0].data)return fail('journal_video_missing_or_ambiguous');
+    }
+    const ledger=ledgerRequest.result||{version:1,entries:[]};
+    if(!isObject(ledger)||ledger.version!==1||!Array.isArray(ledger.entries)||
+       ledger.entries.some(entry=>!isObject(entry)||!idOk(entry.videoId)||!idOk(entry.resultId)||!['entrance_media','record_media'].includes(entry.source)))
+     return fail('ledger_corrupt');
+    const prior=ledger.entries.find(entry=>entry.videoId===input.videoId&&entry.source===input.source);
+    if(prior){
+     if(prior.resultId!==input.resultId||JSON.stringify(prior.result)!==JSON.stringify(input.result))
+      return fail('conflicting_recognition_result');
+     planned={ok:true,idempotent:true,videoId:input.videoId,source:input.source,resultId:prior.resultId,
+      resultPersisted:true,cleanupState:prior.cleanupState};
+     return;
+    }
+    const entry={videoId:input.videoId,source:input.source,resultId:input.resultId,recognizedAt:input.recognizedAt,
+     stateRevisionId:input.expectedStateRevisionId,result:input.result,
+     cleanupState:'blocked_archive_safety'};
+    try{main.put({version:1,entries:[...ledger.entries,entry]},KEY);
+     planned={ok:true,idempotent:false,videoId:input.videoId,source:input.source,resultId:input.resultId,
+      resultPersisted:true,cleanupState:'blocked_archive_safety'};
+    }catch{return fail('ledger_write_failed')}
+   }
+   stateRequest.onsuccess=check;ledgerRequest.onsuccess=check;if(mediaRequest)mediaRequest.onsuccess=check;
+   stateRequest.onerror=()=>fail('state_read_failed');
+   ledgerRequest.onerror=()=>fail('ledger_read_failed');
+   if(mediaRequest)mediaRequest.onerror=()=>fail('media_read_failed');
+   tx.oncomplete=()=>finish(planned||{ok:false,reason:'no_commit_plan'});
+   tx.onabort=()=>finish(planned&&planned.ok===false?planned:{ok:false,reason:'transaction_aborted'});
+   tx.onerror=()=>{}; // transaction abort is the authoritative failure callback
+  }catch{finish({ok:false,reason:'transaction_unavailable'})}
+ });
+}
+function readRecognitionLedger(db){
+ return new Promise(resolve=>{
+  let tx,request,ledger;
+  try{
+   tx=db.transaction('main','readonly');
+   request=tx.objectStore('main').get(KEY);
+   request.onsuccess=()=>{ledger=request.result||{version:1,entries:[]}};
+   tx.oncomplete=()=>resolve(ledger&&ledger.version===1&&Array.isArray(ledger.entries)?
+    {ok:true,entries:ledger.entries}:{ok:false,reason:'ledger_corrupt'});
+   tx.onabort=()=>resolve({ok:false,reason:'read_aborted'});
+  }catch{resolve({ok:false,reason:'transaction_unavailable'})}
+ });
+}
+root.PasekaVideoRecognitionLedger=Object.freeze({KEY,validateResult,recordRecognitionResult,readRecognitionLedger});
+})(typeof window!=='undefined'?window:globalThis);
