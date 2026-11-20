@@ -1,3 +1,12 @@
+## Контрольная точка — локальный VOC→COCO без фиктивных train/test splits (2026-11-20)
+
+- Parent Draft #272 final docs HEAD `b974d10c7baef9da91d8ff7a9c60a7872ebdf966`: public VOC+JPEG sample #44733560807 **completed/success** (действительная пара `ML-Data/Chueried_HempBox_1.xml`/jpg, 5 bee, 1920x1080), Android build #44733560908 **completed/success**, isolated #44733561124 **skipped**.
+- Создана последовательная ветка `feat/video-voc-to-unassigned-coco-2026-11-20` поверх #272. Новый `tools/convert_bee_voc_unassigned.py` и восемь Python unit tests + Node bridge: read-only локальные Pascal VOC/JPEG пары, JPEG SOF размеры, sha256 настоящих JPEG, строгие bbox/known labels bee/pollen, запрет symlink и частичных/повторных данных. Результат один `COCO unassigned` JSON с `trainingAuthorized=false`, без неизвестных source video ID, train/validation/test не создаются. Нет скачивания 2GB ZIP, модели, сети или записей пасеки. Документ `docs/VIDEO-LILA-VOC-UNASSIGNED-COCO.md`.
+- Ознакомились с официальным текстом CDLA-Permissive-1.0 (https://cdla.dev/permissive-1-0/): computational use разрешён, публикация данных требует сохранения attribution, указания лицензии, notices of modification. Источник LILA заявляет эту лицензию, но права всех исходных файлов/достоверность атрибуции ещё не прошли индивидуальный аудит; обучение/redistribution не одобрять автоматически.
+- Новый exact HEAD требует CI. Следующее — unit/Android CI, затем фактическое source video/hive provenance для независимых splits и только после этого обучение. `cleanupAuthorized=false`, main/production/user video untouched.
+
+---
+
 ## Контрольная точка — настоящая парная LILA JPEG/VOC проверена (2026-11-20)
 
 - PR #272 code/test SHA `d708583c01c99d0979caaa9c530d1dbefe3cd72e`: отдельный research workflow #44733392890 **completed/success**, в нём **10/10 Python tests passed**, GCP Range sample real JPEG/XML: ZIP 9986 entries, 4993 XML, `ML-Data/Chueried_HempBox_1.xml` с 5 размеченными пчёлами, парный `ML-Data/Chueried_HempBox_1.jpg` 1158291 bytes, размеры совпадают 1920×1080 по JPEG SOF и XML. Общий Range-трафик 2126445 bytes, никакого full 2GB архива. SHA XML `eb405f671bc546d8d1cc16f9e97a108896a7984570dd11f01c71f42d30601879`, SHA JPEG `f5e80e1d95d230de30efe6b2fd4a0eaa9338f4c248f1c8d0baa55c028803cb6d`.
