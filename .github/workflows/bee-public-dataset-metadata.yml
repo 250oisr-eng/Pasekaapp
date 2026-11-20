@@ -1,0 +1,20 @@
+name: Bee public dataset metadata (research only)
+on:
+  pull_request:
+    paths:
+      - 'tools/probe_public_mendeley.py'
+      - 'tests/test_probe_public_mendeley.py'
+      - 'tests/public-mendeley-metadata.test.mjs'
+      - '.github/workflows/bee-public-dataset-metadata.yml'
+permissions:
+  contents: read
+jobs:
+  public-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline metadata parser regressions
+        run: python3 -m unittest discover -s tests -p 'test_probe_public_mendeley.py' -v
+      - name: Query official Mendeley API metadata, no archives
+        run: python3 tools/probe_public_mendeley.py
