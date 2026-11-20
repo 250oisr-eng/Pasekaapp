@@ -1,3 +1,13 @@
+## Контрольная точка — исправление критичного COCO export (2026-11-20)
+
+- На базе Draft #266 (`87122acc0974232d71fc30d2620edd222ffc5fe0`, Android #44728661206 **success**, isolated #44728661247 **skipped**) создана отдельная ветка `fix/video-coco-self-contained-2026-11-20`.
+- Найден дефект: инструмент выдавал COCO JSON с `images/...`, но сами файлы изображений в output не размещал. Исправлено: сначала SHA-проверка реальных source bytes, затем подготовка staging package, копирование изображений с SHA-повторной сверкой после копирования, запись train/validation/test JSON, публикация целой папки, а при неуспехе очистка исключительно временной генерируемой staging папки. Существующий output не перезаписывается, оригиналы не модифицируются.
+- Добавлены регрессионные тесты на self-contained package, incomplete staging, запрет перезаписи, path overlap и duplicate paths. Полный CI нового SHA необходим; предыдущий успех #266 не переносить автоматически.
+- Датасет Mendeley v5 имеет публичную карточку CC BY 4.0 / 7200 кадров и отдельную статью CC BY-NC-ND; права именно archive files перед training требуют независимого просмотра. Ни один dataset не скачан, обучение YOLOX, ONNX, Android physical inference/recognition/cleanup не проводились.
+- Main, production и пользовательские оригиналы не изменялись.
+
+---
+
 ## Контрольная точка — локальный YOLO-to-COCO tool (2026-11-20)
 
 - PR #265 остаётся Draft; на его точном SHA `eaa667452da762fcc0c96dc1b68e0cc3348dda38` workflow runs при проверке не найдены (это не успех). На основе #265 создана отдельная ветка `feat/video-offline-coco-preparation-2026-11-20`.
