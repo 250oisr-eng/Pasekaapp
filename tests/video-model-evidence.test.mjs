@@ -50,5 +50,5 @@ test('module is isolated: no UI load, Worker access, network, database or origin
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.doesNotMatch(html,/script src="\.\/js\/video-model-evidence\.js"/);
  assert.doesNotMatch(sw,/video-model-evidence\.js/);
- assert.doesNotMatch(raw,/\bfetch\s*\(|\.transaction\s*\(|\.delete\s*\(|\.put\s*\(|\.add\s*\(/);
+ assert.doesNotMatch(raw,/\bfetch\s*\(|\bXMLHttpRequest\b|\.transaction\s*\(|\.objectStore\s*\(|\bindexedDB\b|\blocalStorage\b|\bsendBeacon\s*\(/);
 });
