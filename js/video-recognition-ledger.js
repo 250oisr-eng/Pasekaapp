@@ -27,10 +27,84 @@ function verifyRequest(input){
  !idOk(input.expectedStateRevisionId)||!idOk(input.recognizedAt)||
  input.recognitionStatus!=='completed'||input.recognitionSucceeded!==true||
  !validateResult(input.result))return false;
- return Number.isFinite(Date.parse(input.recognizedAt));
+ return Number.isFinite(Date.parse(input.recognizedAt))&&
+  typeof input.processedSourceSha256==='string'&&/^[a-f0-9]{64}$/.test(input.processedSourceSha256)&&
+  Number.isSafeInteger(input.processedSourceBytes)&&input.processedSourceBytes>0;
 }
-function recordRecognitionResult(db,input){
- if(!verifyRequest(input))return Promise.resolve({ok:false,reason:'invalid_recognition_evidence'});
+
+// Read the original before hashing. Blob I/O must run after the IndexedDB
+// readonly transaction completes: keeping a transaction open while awaiting
+// digest would cause TransactionInactiveError in browsers.
+function readOriginalSnapshot(db,input) {
+ return new Promise(resolve=>{
+  let tx,mainRequest,mediaRequest,state;
+  try {
+   tx=db.transaction(input.source==='entrance_media'?['main','entrance_media']:['main'],'readonly');
+   mainRequest=tx.objectStore('main').get('state');
+   if(input.source==='entrance_media')mediaRequest=tx.objectStore('entrance_media').get(input.videoId);
+   mainRequest.onsuccess=()=>{state=mainRequest.result};
+   tx.oncomplete=()=>resolve({ok:true,state,media:mediaRequest?.result});
+   tx.onabort=()=>resolve({ok:false,reason:'source_read_aborted'});
+   tx.onerror=()=>{};
+  }catch {resolve({ok:false,reason:'source_read_unavailable'})}
+ });
+}
+function findJournalVideo(state,id){
+ return (Array.isArray(state?.records)?state.records:[]).flatMap(record=>
+  Array.isArray(record?.media)?record.media.filter(item=>item&&item.kind==='video'&&
+    (item.id===id||item.videoId===id)):[]
+ );
+}
+async function verifyOriginalBytes(db,input){
+ const snapshot=await readOriginalSnapshot(db,input);
+ if(!snapshot.ok)return snapshot;
+ if(!isObject(snapshot.state?.meta)||
+    snapshot.state.meta.revisionId!==input.expectedStateRevisionId)
+  return {ok:false,reason:'state_revision_changed'};
+ const hashing=root.PasekaSha256;
+ if(!hashing||typeof hashing.hashBlobHex!=='function'||
+    typeof hashing.hashVideoDataUrlHex!=='function')
+  return {ok:false,reason:'source_hash_module_unavailable'};
+ try{
+  if(input.source==='entrance_media'){
+   const record=snapshot.media;
+   if(!record||record.id!==input.videoId||!record.blob)
+    return {ok:false,reason:'source_video_missing'};
+   if(!Number.isSafeInteger(record.bytes)||record.bytes<=0||
+      record.blob.size!==record.bytes||
+      record.blobSha256!==input.processedSourceSha256||
+      record.bytes!==input.processedSourceBytes)
+    return {ok:false,reason:'source_hash_metadata_mismatch'};
+   const digest=await hashing.hashBlobHex(record.blob);
+   if(digest!==input.processedSourceSha256)
+    return {ok:false,reason:'source_bytes_hash_mismatch'};
+   return {ok:true,sha256:digest,bytes:record.bytes,
+     sourceCapturedAt:record.capturedAt||null};
+  }
+  const found=findJournalVideo(snapshot.state,input.videoId);
+  if(found.length!==1||typeof found[0].data!=='string')
+   return {ok:false,reason:'journal_video_missing_or_ambiguous'};
+  const item=found[0];
+  if(item.sourceSha256!==input.processedSourceSha256||
+     item.sourceBytes!==input.processedSourceBytes)
+   return {ok:false,reason:'source_hash_metadata_mismatch'};
+  const digest=await hashing.hashVideoDataUrlHex(item.data);
+  if(digest.sha256!==input.processedSourceSha256||digest.bytes!==input.processedSourceBytes)
+   return {ok:false,reason:'source_bytes_hash_mismatch'};
+  // The value comparison in the commit transaction catches journal media
+  // rewritten with the same metadata while digesting. No binary is put into
+  // the recognition ledger.
+  return {ok:true,sha256:digest.sha256,bytes:digest.bytes,dataUrl:item.data};
+ }catch{return {ok:false,reason:'source_hash_verification_failed'}}
+}
+
+async function recordRecognitionResult(db,input){
+ if(!verifyRequest(input))return {ok:false,reason:'invalid_recognition_evidence'};
+ const proof=await verifyOriginalBytes(db,input);
+ if(!proof.ok)return proof;
+ return commitRecognitionResult(db,input,proof);
+}
+function commitRecognitionResult(db,input,proof){
  return new Promise(resolve=>{
   let tx,main,mediaRequest,ledgerRequest,stateRequest,finished=false,planned=null;
   const finish=value=>{if(!finished){finished=true;resolve(value)}};
@@ -51,11 +125,17 @@ function recordRecognitionResult(db,input){
     if(input.source==='entrance_media'){
      video=mediaRequest.result;
      if(!video||video.id!==input.videoId||!video.blob)return fail('source_video_missing');
+     if(video.blobSha256!==proof.sha256||video.bytes!==proof.bytes||
+        video.blob.size!==proof.bytes||
+        (video.capturedAt||null)!==proof.sourceCapturedAt)
+      return fail('source_changed_after_hash');
     }else{
-     const found=(Array.isArray(state.records)?state.records:[]).flatMap(record=>
-      Array.isArray(record&&record.media)?record.media.filter(item=>item&&item.kind==='video'&&(item.id===input.videoId||item.videoId===input.videoId)):[]
-     );
+     const found=findJournalVideo(state,input.videoId);
      if(found.length!==1||!found[0].data)return fail('journal_video_missing_or_ambiguous');
+     if(found[0].sourceSha256!==proof.sha256||
+        found[0].sourceBytes!==proof.bytes||
+        found[0].data!==proof.dataUrl)
+      return fail('source_changed_after_hash');
     }
     const ledger=ledgerRequest.result||{version:1,entries:[]};
     if(!isObject(ledger)||ledger.version!==1||!Array.isArray(ledger.entries)||
@@ -63,7 +143,8 @@ function recordRecognitionResult(db,input){
      return fail('ledger_corrupt');
     const prior=ledger.entries.find(entry=>entry.videoId===input.videoId&&entry.source===input.source);
     if(prior){
-     if(prior.resultId!==input.resultId||JSON.stringify(prior.result)!==JSON.stringify(input.result))
+     if(prior.resultId!==input.resultId||JSON.stringify(prior.result)!==JSON.stringify(input.result)||
+       prior.sourceSha256!==proof.sha256||prior.sourceBytes!==proof.bytes)
       return fail('conflicting_recognition_result');
      planned={ok:true,idempotent:true,videoId:input.videoId,source:input.source,resultId:prior.resultId,
       resultPersisted:true,cleanupState:prior.cleanupState};
@@ -71,6 +152,8 @@ function recordRecognitionResult(db,input){
     }
     const entry={videoId:input.videoId,source:input.source,resultId:input.resultId,recognizedAt:input.recognizedAt,
      stateRevisionId:input.expectedStateRevisionId,result:input.result,
+     sourceSha256:proof.sha256,sourceBytes:proof.bytes,
+     sourceEvidenceVersion:1,sourceHashVerifiedAt:new Date().toISOString(),
      cleanupState:'blocked_archive_safety'};
     try{main.put({version:1,entries:[...ledger.entries,entry]},KEY);
      planned={ok:true,idempotent:false,videoId:input.videoId,source:input.source,resultId:input.resultId,
@@ -100,5 +183,5 @@ function readRecognitionLedger(db){
   }catch{resolve({ok:false,reason:'transaction_unavailable'})}
  });
 }
-root.PasekaVideoRecognitionLedger=Object.freeze({KEY,validateResult,recordRecognitionResult,readRecognitionLedger});
+root.PasekaVideoRecognitionLedger=Object.freeze({KEY,validateResult,recordRecognitionResult,readRecognitionLedger,verifyOriginalBytes});
 })(typeof window!=='undefined'?window:globalThis);
