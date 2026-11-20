@@ -201,6 +201,10 @@ function inspectMetadataRecovery(db,backupId,deps){
   if(v.staged===0&&Array.isArray(v.videoKeys)&&v.videoKeys.length===0&&
     obj(v.state)&&obj(v.ledger)){
    try{
+    // Recovery diagnostics must not declare a binary-bearing or malformed
+    // live state healthy even if a snapshot or its history agrees with it.
+    if(!Array.isArray(v.state.records))fail('V2_ATOMIC_STATE_INVALID');
+    noOriginals(v.state);
     deps.guard.validateRecognitionLedgerForV2(v.ledger);
     if(!v.history&&!v.snapshot&&v.historyCount===0&&v.backupCount===0){
      if(obj(v.state.meta)&&v.state.meta.schemaVersion===15&&
