@@ -2571,6 +2571,9 @@ test('JSON backup restore keeps current in-memory state when atomic database wri
  const restored={meta:{schemaVersion:2},hives:[],families:[],records:[],tasks:[],extractions:[],snapshots:[],layouts:{},auditLog:[],aiMessages:[]};
  const alerts=[];
  const deps={
+ window:{PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true}},
+ PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true},
+  db:{},
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
   confirm:()=>true,
@@ -2674,6 +2677,8 @@ test('JSON backup restore integrates with real IndexedDB and preserves the exact
   await seedIndexedDb(db,[['main',previous,'state']]);
   const alerts=[];
   const deps={
+  window:{PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true}},
+  PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true},
    S:previous,
    db,STORE:'main',BACKUP_STORE:'backup',
    $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
@@ -2803,6 +2808,9 @@ test('save queued behind backup restore snapshots the restored state, not stale 
  const gate=new Promise(resolve=>{release=resolve});
  const persisted=[];
  const deps={
+ window:{PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true}},
+ PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true},
+  db:{},
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
   confirm:()=>true,

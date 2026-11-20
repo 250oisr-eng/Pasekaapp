@@ -570,6 +570,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/equipment-labels.js"></script><script src="./js/equipment-reconciliation.js"></script><script src="./js/equipment-reconciliation-voice.js"></script><script src="./js/equipment-bodies.js"></script><script src="./js/equipment-inventory.js"></script>
 <script src="./js/equipment-items.js"></script>
 <script src="./js/sectional-physical-layout.js"></script><script src="./js/family-lineage.js"></script><script src="./js/sectional-operation-coordinator.js"></script>
+<script src="./js/video-archive-safety.js"></script>
 <script src="./js/entrance-analysis.js"></script>
 <script src="./js/varroa-monitor.js"></script>
 <script src="./js/pesticide-incident.js"></script>
@@ -677,13 +678,16 @@ function assertBackupNotFromNewerSchema(backup){
   throw error;
  }
 }
-function writeMainWithBackup(state,expectedRevision){
+function writeMainWithBackup(state,expectedRevision,requireEmptyVideoRecognitionLedger=false){
  return new Promise((ok,no)=>{
-  let previous=null,previousBackup=null,conflict=null,failure=null,tx,mainStore=null,backupStore=null,settled=false,mainReady=false,backupReady=false;
+  let previous=null,previousBackup=null,conflict=null,failure=null,tx,mainStore=null,backupStore=null,settled=false,mainReady=false,backupReady=false,videoLedgerReady=false,videoLedger=null;
   const rejectOnce=error=>{if(!settled){settled=true;no(error)}};
   const abortWithError=error=>{failure=error||new Error('Не удалось сохранить текущие данные перед восстановлением');try{tx.abort()}catch(abortError){rejectOnce(failure)}};
   const commitIfReady=()=>{
-   if(!mainReady||!backupReady||settled)return;
+   if(!mainReady||!backupReady||(requireEmptyVideoRecognitionLedger&&!videoLedgerReady)||settled)return;
+   if(requireEmptyVideoRecognitionLedger&&videoLedger!=null){
+    if(!window.PasekaVideoArchiveSafety?.validLedger?.(videoLedger)||videoLedger.entries.length>0){abortWithError(new Error('История распознавания изменилась во время восстановления. Операция остановлена.'));return}
+   }
    if((previous?.meta?.revisionId||null)!==expectedRevision){
     conflict=new Error('Данные уже изменены в другой вкладке или на другом устройстве. Восстановление отменено, чтобы не затереть более свежие данные.');
     conflict.name='PasekaConflictError';
@@ -700,8 +704,10 @@ function writeMainWithBackup(state,expectedRevision){
    tx=db.transaction([STORE,BACKUP_STORE],'readwrite');
    mainStore=tx.objectStore(STORE);backupStore=tx.objectStore(BACKUP_STORE);
    const q=mainStore.get('state'),backupRequest=backupStore.get('previous');
+   const videoLedgerRequest=requireEmptyVideoRecognitionLedger?mainStore.get('video_recognition_ledger_v1'):null;
    q.onsuccess=()=>{previous=q.result||null;mainReady=true;commitIfReady()};
    backupRequest.onsuccess=()=>{previousBackup=backupRequest.result||null;backupReady=true;commitIfReady()};
+   if(videoLedgerRequest){videoLedgerRequest.onsuccess=()=>{videoLedger=videoLedgerRequest.result||null;videoLedgerReady=true;commitIfReady()};videoLedgerRequest.onerror=()=>abortWithError(videoLedgerRequest.error||new Error('Не удалось проверить журнал распознавания в транзакции восстановления'))}
    q.onerror=()=>abortWithError(q.error||new Error('Не удалось прочитать текущую базу перед восстановлением'));
    backupRequest.onerror=()=>abortWithError(backupRequest.error||new Error('Не удалось проверить существующую автокопию перед восстановлением'));
    tx.oncomplete=()=>{if(!settled){settled=true;ok(previous)}};
@@ -3647,7 +3653,7 @@ async function confirmHoneyReturn(){
  return true;
 }
 
-async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+async function downloadBackup(){await saveQueue;try{if(!window.PasekaVideoArchiveSafety?.assertLegacyRestoreSafe)throw new Error('Проверка сохранности видео недоступна');await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db)}catch(error){alert('JSON-архив не создан: история распознавания видео не может быть сохранена в старом формате. '+(error?.message||error));return false}if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function validateBackupState(state){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
@@ -3842,10 +3848,12 @@ async function restoreBackup(){
  try{
   const run=async()=>{
    const o=JSON.parse(await f.text()),restored=assertRawBackupIntegrity(validateBackupState(o.state||o));
+   if(!window.PasekaVideoArchiveSafety?.assertLegacyRestoreSafe)throw new Error('Проверка безопасности восстановления видео не загружена.');
+   await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db);
    if(!confirm('Заменить текущие данные архивом? Перед заменой текущие данные сохранятся в полной автокопии.'))return;
    const current=await readMain();
    const oldState=S;S=restored;
-   try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo={at:new Date().toISOString()};}catch(e){S=oldState;throw e}
+   try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null,true);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo={at:new Date().toISOString()};}catch(e){S=oldState;throw e}
    autoBackupRecovered=false;render();alert('Архив восстановлен. Текущее состояние до восстановления сохранено в автокопии.');
   };
   const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});await pending;
@@ -3856,10 +3864,12 @@ async function restoreAutoBackup(){
   const run=async()=>{
    const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
    const restored=assertRawBackupIntegrity(validateBackupState(backup.state));
+   if(!window.PasekaVideoArchiveSafety?.assertLegacyRestoreSafe)throw new Error('Проверка безопасности восстановления видео не загружена.');
+   await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db);
    if(!confirm('Восстановить предыдущее полное состояние, включая фотографии и видео? Текущие данные будут сохранены в резервной копии.'))return;
    const current=await readMain();
    const oldState=S;S=restored;
-   try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo={at:new Date().toISOString()};}catch(e){S=oldState;throw e}
+   try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'automatic'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null,true);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo={at:new Date().toISOString()};}catch(e){S=oldState;throw e}
    autoBackupRecovered=false;render();alert('Предыдущая полная автокопия восстановлена.');
   };
   const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});await pending;
