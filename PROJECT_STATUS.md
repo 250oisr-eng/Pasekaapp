@@ -1,3 +1,25 @@
+## Проверенный CI — PASEKA02 защищённый rollback в карантин (2026-11-20)
+
+- Draft PR #237: https://github.com/250oisr-eng/Pasekaapp/pull/237. Точный code/test SHA b9adda64aa98508b04202506cb1bbc7bdb5ab1e6, Android workflow #44701259981 completed/success; Run regression tests, Build debug APK и Upload APK пройдены. Изолированный archive test APK workflow #44701259955 skipped, не считается успешной отдельной проверкой.
+- CI доказывает только поведение изолированного fake-indexeddb тестового сценария. Физический Android test не проведён; в runtime PWA/Android новый модуль не загружается.
+- Подтверждены отказ при новом распознавании, новых записях с прежней revision, changed importedRevisionId, изменении Blob/hash, неизвестных оригиналах; сценарии atomic move/quarantine, crash readonly и error delete/abort. Положительный статус quarantine не разрешает очистку: byteIntegrityLocked=false, cleanupAuthorized=false, все copies сохранены.
+- Следующий главный приоритет: независимая инвентаризация всех управляемых копий pending/recognized videos, staged/backup/quarantine/entrance/record_media и fail-closed cleanup-blocker, без удаления. Затем согласование real video-recognition workflow и физические Android испытания. Merge/production по-прежнему запрещены.
+- Вышеописанный success относится к указанному SHA; последующие docs-only commits требуют отдельной сверки.
+
+---
+
+## Контрольная точка — PASEKA02 entrance quarantine rollback (2026-11-20)
+
+- Положительная CI-проверка предшественника Draft PR #236 code/test SHA 579fa1b7e9847f070318c08b224108030669ff8b: Android workflow #44700669872 completed/success (regression, APK build/upload). Изолированный archive APK #44700669941 skipped. Далее в #236 добавлены docs-only commits.
+- В новой зависимой ветке feat/video-archive-v2-entrance-quarantine-rollback-2026-11-20 разработан **изолированный** js/video-archive-v2-entrance-quarantine-rollback.js. Только для ранее успешно выполненного test-only entrance commit с status committed_rollback_blocked допускается защищённый откат: сначала readonly проверка истории, history.importedRevisionId и текущей revision/state/ledger/media, затем асинхронный SHA видео, затем повторная проверка всех пяти stores под общей readwrite транзакцией.
+- При выполнении rollback фактические Blob **атомарно сохраняются в full_backup.quarantinedMedia** перед удалением ссылок из entrance_media в **той же** транзакции. Main/state возвращается с новой revision; recognition ledger и staged originals остаются без изменений. Любой отказ read, write, delete или конфликт приводит к abort с сохранением всех данных.
+- Никакой video byte не уничтожается. После успешного отката history.status=reverted_quarantined_unverified, byteIntegrityLocked=false, rollbackAuthorized=false, restoreAuthorized=false, cleanupAuthorized=false; readonly inspector после restart возвращает только осторожную диагностику. Само наличие quarantined Media не подтверждает SHA-целостность на момент транзакции.
+- tests/video-archive-v2-entrance-quarantine-rollback.test.mjs добавлены: успешное перемещение Blob с сохранением SHA, recognized tombstones, restart, повтор rollback, новое распознавание/наблюдение при той же revision, altered importedRevisionId, corrupted Blob, конкрурентный writer, same-size byte swap во время SHA, atomic failure при delete.
+- Код SHA 0db0a6b5699ed3b4094f0da4291c3399732ba65b; тест SHA 6f849c7d6e6bc66d2d7a2c138e16e6d2f9dfbf37; контракт docs/VIDEO-ARCHIVE-V2-QUARANTINE-ROLLBACK.md. Полный CI именно нового SHA пока НЕ подтверждён.
+- Следующая задача: открыть Draft PR и проверить CI; затем аудировать полное сохранение stage/full_backup и cleanup-барьеры для уже распознанных originals. Нет runtime UI, merge, production, физических Android-тестов или удаления пользовательских данных.
+
+---
+
 ## Проверенный GitHub CI — test-only PASEKA02 entrance commit (2026-11-20)
 
 - Для точного SHA **579fa1b7e9847f070318c08b224108030669ff8b** Android workflow #44700669872 завершён **completed/success**: Run regression tests, Build debug APK, Upload APK — успешны. Отдельный Build isolated archive test APK #44700669941 — skipped, не успех отдельной проверки.
