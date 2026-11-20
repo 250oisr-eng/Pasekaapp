@@ -33,3 +33,11 @@
 ## Следующая задача
 
 Сверить аудит с реальными модулями capture/recognition и Android внешними файлами, дополнить известные форматы full_backup и распознаваемые источники строго по действующей схеме, затем тестировать строго fail-closed жизненный цикл обработки. **Никаких автоматических удалений, merge, production или физического изменения пользовательских файлов** до полной проверки.
+
+## Дополнение: структура настоящего PASEKA01 (20.11.2026)
+
+В `js/paseka-archive-restore.js` подтверждены формы `archive_staging.kind='video'` (`blob`, `metadata.id`, `size`, `chunkSha256[]`) и `kind='rollback_video'` (`originalId`, `record.blob`). Это **две самостоятельные защищённые копии**. Ранее общий `unknown_staging_payload` не отражал их количество. Теперь readonly-аудит добавляет оба экземпляра с source `entrance_media`. Chunk hashes **не** являются проверенным полным SHA-256 источника, поэтому вывод остаётся неопределённым.
+
+Legacy `kind='rollback_state'` содержит объект state и может хранить журнальные оригиналы `records[].media` Data URL. `kind='state'` содержит непрозрачный JSON Blob с возможными теми же оригиналами и помечается `opaque_legacy_state_blob`: содержимое не расшифровывается автоматически. `full_backup.previous` имеет форму `{at,state}`; его records media тоже учитываются. Кроме того, для v2 rollback snapshots смотрятся `beforeState` и `afterState`.
+
+Это изменение только **учёта**, не права на очистку: `cleanupAuthorized=false` даже при согласованной истории, внешний Android/Gallery/Downloads и SHA-контроль копий не выполнены. Опасный статус `deleted` при наличии копии остаётся блокирующим.
