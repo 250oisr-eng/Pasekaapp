@@ -1,3 +1,7 @@
+## 2026-11-20 — реальные размеры YOLO пчёл перед выбором детектора
+
+- `VIDEO-MENDELEY-V6-REAL-BOX-GEOMETRY.md` — измеренная геометрия 113 original bee bbox из 16 SHA-pinned v6 TXT, табличные данные letterbox 640/960/1280, маленькие объекты, источник 50 fps video frames, различение геометрии и несуществующих model metrics, план независимого benchmark.
+
 ## 2026-11-20 — 16 исходных кадров Mendeley v6 с реальными SHA
 
 - `VIDEO-MENDELEY-V6-16-REAL-PAIR-AUDIT.md` — исходный CSV пользователя SHA, восемь оригинальных групп x две JPG/YOLO пары, live CI 16 JPEG full decode/113 bee bbox, самостоятельные SHA pins всех 32 файлов, пробел source-video independence и следующий законный реальный training stage.
