@@ -331,3 +331,45 @@ test('restart inspector rejects altered snapshot revision without changing or re
  assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
  db.close();
 });
+
+test('rollback rejects corrupted previous revision and archive hash without touching live state',async()=>{
+ for(const [field,bad] of [
+  ['previousRevisionId','unrelated-previous'],
+  ['importedRevisionId','unrelated-import'],
+  ['archiveSha256','not-a-valid-sha']
+ ]){
+  const db=await setup();
+  await commit(db,await archive());
+  const tx=db.transaction('archive_history','readwrite');
+  const store=tx.objectStore('archive_history');
+  const h=await new Promise((resolve,reject)=>{
+   const request=store.get('test-backup');
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+  });
+  h[field]=bad;
+  store.put(h);
+  await done(tx);
+  await fail(rollback(db),'V2_ATOMIC_ROLLBACK_HISTORY_CHANGED');
+  assert.equal((await read(db,'main','state')).meta.revisionId,'imported',field);
+  assert.ok(await read(db,'full_backup','v2:test-backup'),field);
+  db.close();
+ }
+});
+test('recovery without history is not trusted when local schema or revision is damaged',async()=>{
+ for(const damaged of [
+  {...state(),meta:{schemaVersion:14,revisionId:'initial'}},
+  {...state(),meta:{schemaVersion:15,revisionId:''}}
+ ]){
+  const db=await setup();
+  const tx=db.transaction('main','readwrite');
+  tx.objectStore('main').put(damaged,'state');
+  await done(tx);
+  const result=await api.inspectMetadataRecovery(db,'test-backup',deps);
+  assert.equal(result.status,'manual_review_required');
+  assert.equal(result.restoreAuthorized,false);
+  assert.equal(result.cleanupAuthorized,false);
+  assert.deepEqual(await read(db,'main','state'),damaged);
+  db.close();
+ }
+});
