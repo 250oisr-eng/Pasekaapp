@@ -215,3 +215,34 @@ test('legacy deletion eligibility helper never authorizes removal based on queue
  ];
  for(const candidate of candidates)assert.equal(entrance.canDeleteVideoOriginal(candidate),false);
 });
+
+test('video queue cannot claim recognition completed without real ledger-backed evidence',()=>{
+ const analyzing={id:'original-v1',status:'analyzing',blobSha256:'a'.repeat(64),bytes:7};
+ const out=entrance.transitionVideoQueue(analyzing,'completed',{
+  resultPersisted:true,serverDeleteConfirmed:true,cleanupAuthorized:true,updatedAt:'2026-11-20T12:00:00Z'
+ });
+ assert.equal(out.ok,false);
+ assert.equal(out.reason,'recognition_evidence_required');
+ assert.equal(analyzing.status,'analyzing');
+ assert.equal(entrance.canDeleteVideoOriginal(analyzing),false);
+});
+test('queue metadata never overwrites original blob, identity, digest or result flags',()=>{
+ const blob={size:7},original={id:'v1',hiveId:'h1',bytes:7,blob,blobSha256:'a'.repeat(64),
+  status:'waiting_for_server',resultPersisted:false,serverDeleteConfirmed:false};
+ const dirty={id:'evil',hiveId:'h2',bytes:999,blob:{size:999},blobSha256:'b'.repeat(64),
+  resultPersisted:true,serverDeleteConfirmed:true,cleanupAuthorized:true,
+  updatedAt:'2026-11-20T12:00:00Z'};
+ const up=entrance.transitionVideoQueue(original,'uploading',dirty);
+ assert.equal(up.ok,true);
+ assert.equal(up.record.id,'v1');
+ assert.equal(up.record.hiveId,'h1');
+ assert.equal(up.record.bytes,7);
+ assert.equal(up.record.blob,blob);
+ assert.equal(up.record.blobSha256,original.blobSha256);
+ assert.equal(up.record.resultPersisted,false);
+ assert.equal(up.record.serverDeleteConfirmed,false);
+ assert.equal(up.record.cleanupAuthorized,undefined);
+ assert.equal(up.record.uploadStartedAt,'2026-11-20T12:00:00Z');
+ assert.deepEqual(original,{id:'v1',hiveId:'h1',bytes:7,blob,blobSha256:'a'.repeat(64),
+  status:'waiting_for_server',resultPersisted:false,serverDeleteConfirmed:false});
+});
