@@ -92,3 +92,49 @@ test('corrupt local ledger blocks legacy restore rather than resetting history',
  await assert.rejects(safety.assertLegacyRestoreSafe(db),/VIDEO_LEDGER_CORRUPT_RESTORE_BLOCKED/);
  db.close();
 });
+
+test('atomic restore implementation has in-transaction video ledger check and safe legacy default',()=>{
+ const start=html.indexOf('function writeMainWithBackup(');
+ const body=html.slice(start,html.indexOf('function writeAutoBackup(',start));
+ assert.match(body,/videoLedgerRequest=requireEmptyVideoRecognitionLedger\?mainStore\.get\('video_recognition_ledger_v1'\):null/);
+ assert.match(body,/requireEmptyVideoRecognitionLedger&&!videoLedgerReady/);
+ assert.match(body,/videoLedger\.entries\.length>0/);
+ assert.match(html,/writeMainWithBackup\(S,current\?\.meta\?\.revisionId\|\|null,true\)/);
+});
+test('real writeMainWithBackup aborts atomically if recognition exists after UI preflight',async()=>{
+ const name='video-archive-atomic-'+Math.random();
+ const req=factory.open(name,1);
+ const db=await new Promise((resolve,reject)=>{
+  req.onupgradeneeded=()=>{req.result.createObjectStore('main');req.result.createObjectStore('full_backup')};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const initial={meta:{revisionId:'original'},records:[],hives:[]};
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('main','readwrite');
+  tx.objectStore('main').put(initial,'state');
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
+ });
+ assert.equal(await safety.assertLegacyRestoreSafe(db),true);
+ // Recognition committed from a different task after preview but before restore commit.
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('main','readwrite');
+  tx.objectStore('main').put(local,'video_recognition_ledger_v1');
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
+ });
+ const start=html.indexOf('function writeMainWithBackup(');
+ const source=html.slice(start,html.indexOf('function writeAutoBackup(',start));
+ const write=new Function('db','STORE','BACKUP_STORE','window','assertBackupNotFromNewerSchema',
+  source+'; return writeMainWithBackup;')(db,'main','full_backup',{PasekaVideoArchiveSafety:safety},()=>{});
+ await assert.rejects(write({meta:{revisionId:'replacement'},records:[],hives:[]},'original',true),/История распознавания изменилась/);
+ const current=await new Promise((resolve,reject)=>{
+  const tx=db.transaction('main','readonly'),read=tx.objectStore('main').get('state');
+  read.onsuccess=()=>resolve(read.result);read.onerror=()=>reject(read.error);
+ });
+ assert.deepEqual(current,initial);
+ const backup=await new Promise((resolve,reject)=>{
+  const tx=db.transaction('full_backup','readonly'),read=tx.objectStore('full_backup').get('previous');
+  read.onsuccess=()=>resolve(read.result);read.onerror=()=>reject(read.error);
+ });
+ assert.equal(backup,undefined);
+ db.close();
+});
