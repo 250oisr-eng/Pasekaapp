@@ -1,3 +1,11 @@
+## CI PR #245 — UI не выдаёт статус очереди за распознавание (2026-11-20)
+
+- Проверенный code/test SHA `4a937900ec140c10624db5a04f92fe51c28cefed`; [GitHub Android workflow #44707836309](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707836309) **completed/success**: regression, Debug APK build, Upload APK успешно. [Isolated archive APK #44707836696](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707836696) **skipped**.
+- UI-путь для `status='completed'` теперь выводит «Результат распознавания не подтверждён». Файл, статусы в БД, очередь и контроль удаления остались нетронутыми. Это не реализация распознавания и не proof Android physical camera.
+- Аудит `cloudflare/worker.js`: текущий Worker принимает JSON `question/context/history`, отправляет текстовые messages в Workers AI и возвращает только `{answer,provider,model}`; действующего video-frame recognition endpoint/подписанного результата нет. Не считать этот ответ доказанным completed. Следующий приоритет — отдельный безопасный план и реализация video→frames→result с точной проверкой источника, бесплатной квотой и физическим Android-тестом. До этого delete blocked.
+- Новые docs-only коммиты после проверенного code SHA требуют отдельной проверки при необходимости; никаких merges, production, пользовательских файлов не меняли.
+
+---
 ## Контрольная точка — честный статус видео летка в UI (2026-11-20)
 
 - На базе #244 создана отдельная рабочая ветка `fix/video-entrance-unverified-status-2026-11-20`. В `index.html` статус `entrance_media.status==='completed'` больше не выводит ложное «Анализ завершён»; вместо него «Результат распознавания не подтверждён». Реального подтверждённого распознавания в этой цепочке пока нет. Показ очереди и видео, блокировка удаления, запись исходников не затронуты.
