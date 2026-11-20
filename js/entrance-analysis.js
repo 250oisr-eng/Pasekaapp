@@ -16,13 +16,17 @@ const VIDEO_QUEUE_TRANSITIONS=Object.freeze({
 });
 function transitionVideoQueue(record,next,details={}){
  if(!record||typeof record!=='object'||!VIDEO_QUEUE_STATES.includes(record.status)||!VIDEO_QUEUE_STATES.includes(next))return {ok:false,reason:'invalid_state'};
+ if(next==='completed')return {ok:false,reason:'recognition_evidence_required'};
  if(!VIDEO_QUEUE_TRANSITIONS[record.status].includes(next))return {ok:false,reason:'transition_not_allowed'};
- const updated={...record,...details,status:next,updatedAt:details.updatedAt||new Date().toISOString()};
+ // Queue transitions are not allowed to rewrite source identity or original bytes.
+ // Only known transition metadata may be applied; source fields remain immutable.
+ const at=typeof details?.updatedAt==='string'&&Number.isFinite(Date.parse(details.updatedAt))?
+  details.updatedAt:new Date().toISOString();
+ const updated={...record,status:next,updatedAt:at};
  if(next==='uploading')updated.uploadStartedAt=updated.updatedAt;
  if(next==='uploaded')updated.uploadedAt=updated.updatedAt;
  if(next==='analyzing')updated.analysisStartedAt=updated.updatedAt;
- if(next==='completed')updated.completedAt=updated.updatedAt;
- if(next==='failed_retryable'||next==='failed_permanent')updated.lastError=String(details.lastError||'Неизвестная ошибка').slice(0,500);
+ if(next==='failed_retryable'||next==='failed_permanent')updated.lastError=String(details?.lastError||'Неизвестная ошибка').slice(0,500);
  return {ok:true,record:updated};
 }
 function canDeleteVideoOriginal(_record){
