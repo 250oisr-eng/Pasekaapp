@@ -1,3 +1,11 @@
+## 2026-11-20 — повторный SHA-pinned real v6 sample и обнаруженный дисбаланс аннотаций
+
+- На SHA `e22ba60dc6672d76c3fec03f47998cf37547ba7f`: [live 16/8 pinned CI #44769784227](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44769784227) **completed/success**; 13 synthetic тестов, повторно скачаны 16 original JPEG + 16 TXT и полностью декодированы, все **32** original SHA совпали с опубликованным внутри Draft #287 pinned manifest, `sourceHashesPinnedByManifest=true` для всех 16. COCO `unassigned` содержит 16 images, 113 bee bbox. Изображения и временный COCO очищены с runner, без binary artifacts.
+- Распределение bbox по восьми группам [`20230609a`…`20230711c`]: **12, 11, 13, 5, 5, 58, 7, 2**. Неравномерность (58 в `_bee_20230711a`) подтверждает, что 16 кадров нельзя использовать для честного quality benchmark. См. `docs/VIDEO-MENDELEY-V6-16-REAL-PAIR-AUDIT.md`.
+- После этой документационной фиксации требуется отдельная проверка exact final HEAD CI/Android. Разрешение обучать/распознавать/удалять частное видео **не выдано**; `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`.
+
+---
+
 ## 2026-11-20 — подтверждённые реальные 16 JPEG+YOLO пар Mendeley v6 по файлу пользователя
 
 - Получен user upload `mendeley_v6_detection_links.csv` (4639 B, SHA256 `c90630a59a2eef13cdd4210ba1a4d7b48ff9642e487b2bbac27ce4554c95e8d0`), **16** пар JPG/TXT, по **2** для каждой из 8 исходных групп `_bee_...`. Никаких паролей/токенов. CSV передан в новый Draft #287 branch `test/video-mendeley-v6-user-16-pairs-2026-11-20` поверх #286. Source CSV metadata-only сохранён как `tests/fixtures/mendeley-v6-user-16-pairs.csv`.
