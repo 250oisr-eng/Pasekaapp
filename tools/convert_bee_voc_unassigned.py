@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline LILA-style Pascal VOC to COCO: UNASSIGNED only, never train/test split."""
+"""Offline JPEG/PNG+Pascal VOC to COCO: UNASSIGNED only, never train/test split."""
 import argparse
 import hashlib
 import json
@@ -8,11 +8,11 @@ import os
 import tempfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
-from sample_lila_voc_range import jpeg_header_dimensions, SampleRejected
+from sample_lila_voc_range import image_header_dimensions, SampleRejected
 
 CATEGORIES={"bee":1,"pollen":2}
 MAX_XML=256*1024
-MAX_JPEG=16*1024*1024
+MAX_IMAGE=16*1024*1024
 MAX_IMAGES=10000
 MAX_OBJECTS=500000
 
@@ -74,7 +74,7 @@ def build_unassigned(source_root):
     if not root.is_dir():
         raise ConversionRejected("source_root_invalid")
     xmls=sorted(root.rglob("*.xml"),key=lambda p:p.as_posix())
-    images_on_disk=sorted([*root.rglob("*.jpg"),*root.rglob("*.jpeg")],key=lambda p:p.as_posix())
+    images_on_disk=sorted([*root.rglob("*.jpg"),*root.rglob("*.jpeg"),*root.rglob("*.png")],key=lambda p:p.as_posix())
     if not xmls or len(xmls)>MAX_IMAGES or len(images_on_disk)!=len(xmls):
         raise ConversionRejected("image_xml_count_mismatch")
     result={"info":{"description":"LILA VOC source inventory: UNASSIGNED; NOT TRAINING READY",
@@ -86,29 +86,29 @@ def build_unassigned(source_root):
     for xml_path in xmls:
         xml=local_file(xml_path,root,MAX_XML)
         relative=xml.relative_to(root)
-        matches=[p for p in (xml.with_suffix(".jpg"),xml.with_suffix(".jpeg")) if p.exists()]
+        matches=[p for p in (xml.with_suffix(".jpg"),xml.with_suffix(".jpeg"),xml.with_suffix(".png")) if p.exists()]
         if len(matches)!=1:
             raise ConversionRejected("image_pair_missing_or_ambiguous")
-        jpg=local_file(matches[0],root,MAX_JPEG)
-        relative_jpeg=jpg.relative_to(root).as_posix()
-        key=relative_jpeg.casefold()
+        image=local_file(matches[0],root,MAX_IMAGE)
+        relative_image=image.relative_to(root).as_posix()
+        key=relative_image.casefold()
         if key in image_names:
             raise ConversionRejected("duplicate_image_path")
         image_names.add(key)
-        with jpg.open("rb") as stream:
+        with image.open("rb") as stream:
             header=stream.read(65536)
         try:
-            width,height=jpeg_header_dimensions(header)
+            width,height=image_header_dimensions(header,image.name)
         except SampleRejected as exc:
-            raise ConversionRejected("jpeg_header_invalid") from exc
+            raise ConversionRejected("image_header_invalid") from exc
         contents=xml.read_bytes()
-        parsed=parse_annotation(contents,jpg.name,width,height)
+        parsed=parse_annotation(contents,image.name,width,height)
         image_id=len(result["images"])+1
         digest=hashlib.sha256()
-        with jpg.open("rb") as stream:
+        with image.open("rb") as stream:
             for part in iter(lambda:stream.read(1024*1024),b""):
                 digest.update(part)
-        result["images"].append({"id":image_id,"file_name":relative_jpeg,
+        result["images"].append({"id":image_id,"file_name":relative_image,
                                  "width":width,"height":height,"sha256":digest.hexdigest()})
         for ann in parsed:
             annotation_count+=1
