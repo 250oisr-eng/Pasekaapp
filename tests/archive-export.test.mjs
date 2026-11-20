@@ -126,3 +126,32 @@ test('full archive export rejects video metadata that disagrees with the stored 
   );
   db.close();
 });
+
+test('legacy full archive rejects recognized video ledger in same readonly snapshot',async()=>{
+ const db=await openTestDb('paseka-export-recognition-ledger');
+ await writeFixture(db,stateFixture(),[videoFixture('video-retained','hive-1',new Uint8Array([1,2]),'2026-11-14T09:00:00.000Z')]);
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({version:1,entries:[{videoId:'video-retained',source:'entrance_media',resultId:'r1',cleanupState:'blocked_archive_safety'}]},'video_recognition_ledger_v1');
+ await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error)});
+ await assert.rejects(Archive.exportArchiveFromDatabase(db,webcrypto),{code:'VIDEO_LEDGER_NOT_ARCHIVED'});
+ assert.equal((await Archive.readConsistentDatabaseSnapshot(db).catch(e=>e.code)).toString(),'VIDEO_LEDGER_NOT_ARCHIVED');
+ const verify=db.transaction('entrance_media','readonly'),v=verify.objectStore('entrance_media').get('video-retained');
+ assert.equal((await new Promise(resolve=>{v.onsuccess=()=>resolve(v.result)})).id,'video-retained');
+ db.close();
+});
+test('malformed ledger blocks export without creating an archive',async()=>{
+ const db=await openTestDb('paseka-export-invalid-ledger');
+ await writeFixture(db,stateFixture());
+ const tx=db.transaction('main','readwrite');tx.objectStore('main').put({version:99,entries:[]},'video_recognition_ledger_v1');
+ await new Promise(resolve=>tx.oncomplete=resolve);
+ await assert.rejects(Archive.exportArchiveFromDatabase(db,webcrypto),{code:'VIDEO_LEDGER_UNVERIFIED'});
+ db.close();
+});
+test('empty recognized-video ledger preserves prior full archive export',async()=>{
+ const db=await openTestDb('paseka-export-empty-ledger');
+ await writeFixture(db,stateFixture());
+ const tx=db.transaction('main','readwrite');tx.objectStore('main').put({version:1,entries:[]},'video_recognition_ledger_v1');
+ await new Promise(resolve=>tx.oncomplete=resolve);
+ const result=await Archive.exportArchiveFromDatabase(db,webcrypto,{backupId:'empty-ledger',createdAt:'2026-11-14T11:00:00.000Z'});
+ assert.equal(result.summary.videoCount,0);db.close();
+});
