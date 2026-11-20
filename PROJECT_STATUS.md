@@ -1,3 +1,11 @@
+## Контрольная точка — provenance кадров LILA, 2026-11-20
+
+- #275 exact HEAD `5f12439cd21bc9d8c98b2b2c06c76e8ffdbfb3b9`: Android run #44738340971 completed/success; isolated #44738340889 skipped. Реальная Android inference и обучение не проверялись.
+- В отдельной документационной ветке поверх #275 добавлен `docs/VIDEO-LILA-SOURCE-PROVENANCE-GATE.md`: подтверждённый публичный формат/лицензия LILA отделены от неподтверждённого image→source-video/session provenance. Без реального mapping все кадры остаются `unassigned`; нельзя создавать фиктивный independent split.
+- Следующее действие: найти первичные метаданные BeeLivingSensor с доказуемым соответствием image SHA исходным видеосессиям либо выбрать альтернативный набор с проверяемыми source groups. Программный код, физические пользовательские видео, cleanup, main и production не затронуты. Документальный PR Draft, никаких новых тестов поведения; CI на итоговом SHA проверить отдельно.
+
+---
+
 ## Итог: Draft #275 PNG-aware COCO, проверенный кодовый SHA (2026-11-20)
 
 - Draft #275 `fix/video-voc-png-unassigned-coco-2026-11-20`: код/тесты/документация SHA `d56b0fe48eb531da3a0d0615dd903d1ed002092c`, Android workflow [#44738077642](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44738077642) **completed/success** (Node + Python regression suite, debug APK build/upload); isolated #44738077741 **skipped**. Отдельного теста на реальном физическом Android не было.
