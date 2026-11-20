@@ -255,7 +255,7 @@ test('Windows ZIP ships safe one-click uploader in flat kit root, not scripts/wi
  assert.match(yaml,/tests\\windows-upload-saved-report\.ps1/);
  assert.match(cmd,/%~dp0Upload-Saved-Report\.ps1/);
  assert.match(launcher,/Filter 'report\.json' -File -Recurse/);
- assert.match(launcher,/\$matches\.Count -gt 1/);
+ assert.match(launcher,/\$reportsFound\.Count -gt 1/);
  assert.match(launcher,/-Action Upload -ReportPath \$report\.FullName/);
  assert.doesNotMatch(launcher,/Invoke-RestMethod|Invoke-WebRequest|Remove-Item/);
 });
