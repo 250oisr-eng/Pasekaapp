@@ -1,3 +1,13 @@
+## Проверенный CI — защита леткового оригинала от преждевременного удаления (2026-11-20)
+
+- Draft PR #241: code/test SHA deb588ce20e5929610050a01b465455e302ed837. Android workflow #44705595782 **completed/success**: Run regression tests, Build debug APK, Upload APK успешны; isolated archive APK #44705595821 **skipped**.
+- Первый CI на SHA d9fd43b68218bd9efa3033fb3aff0a1cdd35d53b завершился **failure**: новая regression fixture ошибочно извлекала `async function removeEntranceVideo` без `async`, отчего тестовый `new Function` не мог разобрать `await`. Исправлен test-only extraction SHA deb588ce20e5929610050a01b465455e302ed837; рабочий код блокировки изменять не понадобилось.
+- Теперь все вызовы `deleteEntranceVideoBlob` на ветке #241 отклоняются до IndexedDB write; UI-кнопка отключена. Захват/просмотр сохранены. Безопасное удаление после распознавания ещё **не реализовано**. Данный CI не проверяет физическое Android устройство.
+- Следующий приоритет: безопасное durable-распознавание и результат/ledger на видео, после чего инвентаризация внутренних+внешних Android копий и строго проверяемая all-copy cleanup. Никаких merges, production, удаления пользовательских видео.
+- CI выше подтверждён для code SHA; следующие документационные коммиты проверяются отдельно.
+
+---
+
 ## Контрольная точка — блокировка преждевременного удаления леткового видео (2026-11-20)
 
 - Начальное состояние: Draft #240 HEAD fda4f6e5d72b8cd5414ba1bb4ac50ea45888bf13, Android workflow #44704230240 completed/success; isolated archive APK #44704230343 skipped. Ветка #240 остаётся Draft, никаких merges/production.
