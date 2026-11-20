@@ -1,3 +1,12 @@
+## 2026-11-20 — переход к основному detector dataset: Mendeley v6, восемь ульев
+
+- Родительский Draft #282 exact SHA `543b22a7e8b304ac4f517ef1d618a3b486363639`: Android #44743618873 **completed/success** (регрессии, debug APK, upload); isolated #44743618926 **skipped**. Проверка не подтверждает реальный inference.
+- Публичный Mendeley dataset v6 DOI `10.17632/8gb9r2yhfc.6` на карточке имеет **CC BY 4.0** для данных (отличать от CC BY-NC-ND 4.0 на отдельной статье). Реальная задача **Apis mellifera у летка**: 7200 размеченных кадров 8 групп, tracking/behavior 17162 tracks/21946 frames, pose 400, segmentation 2300. Сверено по официальным карточке Mendeley и публикациям. API Mendeley v6 без auth возвращает 401; реальные архивы/images/labels/source video SHA **не проверены и не скачаны**.
+- В отдельной ветке `feat/video-mendeley-v6-yolo-staging-2026-11-20` добавлены offline `tools/prepare_mendeley_v6_yolo_unassigned.py`, 11 Python synthetic tests, Node CI bridge и `docs/VIDEO-MENDELEY-V6-DETECTION-TRAINING-PATH.md`. Проверяет YOLO single-class пары, геометрию bbox, фактические SHA image, sourceCollectionGroups из опубликованной таблицы. Результат только `unassigned`, не обучает и не назначает независимый split.
+- Следующий приоритет: подтвердить фактическую структуру/байты/атрибуцию Mendeley v6 и принадлежность исходным видеосессиям; затем grouped train/val/test, обучение лицензированного detector (рассмотреть YOLOX Apache 2 с нуля), ONNX/WASM offline Android и независимый test направления in/out. Оригиналы пользователя не тронуты, cleanup blocked; main/production/merge без изменений. Для новой ветки проверить CI exact SHA.
+
+---
+
 ## 2026-11-20 — аудит ссылок и замены файлов staging source video
 
 - Родительский Draft #281 на SHA `e6ee7022b504fe85cdefee621d3c2c5da95da65b`: Android workflow #44742584138 **completed/success** (регрессия, Debug APK, upload); isolated #44742584105 skipped. Это не тест реальной модели и не подтверждение происхождения кадров.
