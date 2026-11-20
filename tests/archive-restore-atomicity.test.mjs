@@ -1295,3 +1295,64 @@ test('snapshot hash failure before commit preserves the complete rollback snapsh
   assert.equal(videos.length, 1);
   db.close();
 });
+
+function setRecognitionLedger(db,value){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('main','readwrite');
+  tx.objectStore('main').put(value,'video_recognition_ledger_v1');
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
+ });
+}
+async function inspectArchiveFixture(db){
+ const tx=db.transaction(['main','entrance_media','archive_staging','archive_history','full_backup'],'readonly');
+ const get=(store,key)=>new Promise((resolve,reject)=>{
+  const request=tx.objectStore(store).get(key);
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+ });
+ const [state,ledger,session,history,backup,videos]=await Promise.all([
+  get('main','state'),get('main','video_recognition_ledger_v1'),
+  get('archive_staging','commit-integration-backup'),
+  get('archive_history','commit-integration-backup'),
+  get('full_backup','previous'),
+  new Promise((resolve,reject)=>{
+   const request=tx.objectStore('entrance_media').getAll();
+   request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)
+  })
+ ]);
+ return {state,ledger,session,history,backup,videos};
+}
+test('staged full import fails atomically if recognition completed after staging',async()=>{
+ const db=await makeDatabase();
+ const {staged,archiveApi,cryptoProvider}=await stageMinimalArchive(db);
+ const ledger={version:1,entries:[{videoId:'video-1',source:'entrance_media',resultId:'result-1',cleanupState:'blocked_archive_safety'}]};
+ await setRecognitionLedger(db,ledger);
+ const original=await inspectArchiveFixture(db);
+ await assert.rejects(api.commitStagedArchive(db,staged.session.id,null,cryptoProvider,archiveApi,async()=>true),
+  error=>error.code==='VIDEO_LEDGER_NOT_PRESERVED');
+ const after=await inspectArchiveFixture(db);
+ assert.deepEqual(after,original,'ledger, staged session, main state, videos, backup and history must remain unchanged');
+ db.close();
+});
+test('staged full import blocks corrupt recognition history without touching originals',async()=>{
+ const db=await makeDatabase();
+ const {staged,archiveApi,cryptoProvider}=await stageMinimalArchive(db);
+ await setRecognitionLedger(db,{version:17,entries:[]});
+ const original=await inspectArchiveFixture(db);
+ await assert.rejects(api.commitStagedArchive(db,staged.session.id,null,cryptoProvider,archiveApi,async()=>true),
+  error=>error.code==='VIDEO_LEDGER_UNVERIFIED');
+ assert.deepEqual(await inspectArchiveFixture(db),original);
+ db.close();
+});
+test('rollback fails atomically when recognition completed after import',async()=>{
+ const db=await makeDatabase();
+ const {staged,archiveApi,cryptoProvider}=await stageMinimalArchive(db);
+ const committed=await api.commitStagedArchive(db,staged.session.id,null,cryptoProvider,archiveApi,async()=>true);
+ const ledger={version:1,entries:[{videoId:'record-1',source:'record_media',resultId:'result-2',cleanupState:'deleted'}]};
+ await setRecognitionLedger(db,ledger);
+ const original=await inspectArchiveFixture(db);
+ await assert.rejects(api.rollbackCommittedArchive(db,'commit-integration-backup',
+  committed.state.meta.revisionId,cryptoProvider,async()=>true),
+  error=>error.code==='VIDEO_LEDGER_NOT_PRESERVED');
+ assert.deepEqual(await inspectArchiveFixture(db),original);
+ db.close();
+});
