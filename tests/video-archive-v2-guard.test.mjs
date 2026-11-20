@@ -61,3 +61,9 @@ test('large structured result and recursive objects cannot bypass validation', (
  const cyc={};cyc.child=cyc;
  rejects(()=>api.validateRecognitionLedgerForV2(ledger([recognized({result:cyc})])),'V2_RESULT_INVALID');
 });
+
+test('opaque recognition payload objects and unknown entry fields fail closed',()=>{
+ rejects(()=>api.validateRecognitionLedgerForV2(ledger([recognized({result:{opaque:new Blob(['video'],{type:'video/mp4'})}})])),'V2_RESULT_INVALID');
+ rejects(()=>api.validateRecognitionLedgerForV2(ledger([recognized({unexpectedField:new Blob(['bytes'])})])),'V2_LEDGER_ENTRY_INVALID');
+ rejects(()=>api.validateRecognitionLedgerForV2({...ledger([recognized()]),unverifiedMetadata:{}}),'V2_LEDGER_INVALID');
+});
