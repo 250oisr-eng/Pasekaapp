@@ -96,3 +96,22 @@ test('live state must exist and be schema-aware',async()=>{
  await rejects(inspect(db),'V2_RESTORE_LIVE_STATE_INVALID');
  db.close();
 });
+
+test('full_backup may hide original snapshots and must block readonly restore without cleanup',async()=>{
+ const db=await setup(),tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({at:'2026-11-20',blob:new Blob(['historical original'])},'previous');
+ await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
+ const check=db.transaction('full_backup','readonly');
+ const saved=await new Promise((resolve,reject)=>{
+  const r=check.objectStore('full_backup').get('previous');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ assert.equal(saved.blob.size,19);db.close();
+});
+test('missing full_backup store fails closed before opening a transaction',async()=>{
+ const db=await setup();
+ const object={objectStoreNames:{contains:store=>store!=='full_backup'},transaction(){throw Error('should not open');}};
+ await rejects(inspect(object),'V2_RESTORE_PROTECTED_STORES_MISSING');
+ db.close();
+});
