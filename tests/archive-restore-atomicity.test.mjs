@@ -1406,3 +1406,42 @@ test('recognition during staging prevents the next archived Blob write in the sa
  assert.equal(rows.some(row=>row.kind==='session'&&row.status==='failed'),true);
  db.close();
 });
+
+
+test('recognition after final staged Blob prevents ready status without discarding the original', async () => {
+ const db = await makeDatabase();
+ const stateBlob = new Blob([JSON.stringify({app:'Paseka',state:{meta:{schemaVersion:1},hives:[],auditLog:[]}})]);
+ const videoBlob = new Blob(['original-video']);
+ const video = {kind:'entrance_video',path:'entrance-media/000001.blob',size:videoBlob.size,
+  chunkSize:1048576,chunkSha256:[],metadata:{id:'original',hiveId:'h1'},blob:videoBlob,orphanedHiveReference:false};
+ const manifest = {backupId:'ready-race-recognition',schemaVersion:1,entries:[
+  {kind:'state',size:stateBlob.size,chunkSha256:[]},video]};
+ const archiveApi = {async validateArchiveForRestore(){return {
+  backupId:'ready-race-recognition',createdAt:'2026-11-20T00:00:00Z',schemaVersion:1,
+  archiveBytes:123,manifest,stateBlob,videoEntries:[video],orphanVideoIds:[]
+ }}};
+ let writeLedger;
+ await assert.rejects(api.stageArchiveForRestore(db,new Blob(['archive']),archiveTestCrypto(),archiveApi,async()=>true,{
+  onProgress({staged,total}) {
+   if(staged===total) {
+    writeLedger=setRecognitionLedger(db,{version:1,entries:[{
+     videoId:'original',source:'entrance_media',resultId:'recognized',
+     cleanupState:'blocked_archive_safety'
+    }]});
+   }
+  }
+ }),error=>error.code==='VIDEO_LEDGER_NOT_PRESERVED');
+ await writeLedger;
+ const tx=db.transaction(['main','entrance_media','archive_staging'],'readonly');
+ const ledgerRequest=tx.objectStore('main').get('video_recognition_ledger_v1');
+ const rowsRequest=tx.objectStore('archive_staging').getAll();
+ const [ledger,rows]=await Promise.all([
+  new Promise((resolve,reject)=>{ledgerRequest.onsuccess=()=>resolve(ledgerRequest.result);ledgerRequest.onerror=()=>reject(ledgerRequest.error)}),
+  new Promise((resolve,reject)=>{rowsRequest.onsuccess=()=>resolve(rowsRequest.result);rowsRequest.onerror=()=>reject(rowsRequest.error)})
+ ]);
+ assert.equal(ledger.entries.length,1);
+ assert.equal(rows.some(row=>row.kind==='session'&&row.status==='ready'),false,
+  'a staged archive cannot become ready after a recognition ledger is committed');
+ assert.equal(rows.some(row=>row.kind==='session'&&row.status==='failed'),true);
+ db.close();
+});
