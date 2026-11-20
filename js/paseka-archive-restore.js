@@ -1215,6 +1215,9 @@ async function inspectStagingRecognitionCopies(db) {
 
 function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
+  if (typeof sessionId !== 'string' || !sessionId || sessionId.length > 200) {
+    fail('STAGING_SESSION_INVALID', 'A non-empty, bounded staging session ID is required for cleanup.');
+  }
   return new Promise((resolve, reject) => {
     let tx, failure = null, result = false, settled = false;
     const rejectOnce = error => {
@@ -1267,7 +1270,14 @@ function discardArchiveRestoreSession(db, sessionId) {
           // an unexpected kind must not be discarded just because its indexed
           // sessionId or primary-key prefix looks like staging content.
           const kinds = new Map();
-          const index = store.index('kind');
+          let index;
+          try { index = store.index('kind'); }
+          catch (error) {
+            abortWith(Object.assign(new Error('Staged record-kind index is unavailable; cleanup was cancelled.'), {
+              code: 'STAGING_CLEANUP_INDEX_MISSING'
+            }));
+            return;
+          }
           let kindsPending = 3;
           for (const kind of ['session', 'state', 'video']) {
             const kindRequest = index.getAllKeys(kind);
