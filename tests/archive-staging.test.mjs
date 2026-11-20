@@ -1597,3 +1597,74 @@ test('rollback rejects snapshot metadata changed during asynchronous state valid
   assert.equal(preservedSnapshot.record.hiveId, 'tampered-hive', 'the suspect snapshot must remain available for diagnosis');
   db.close();
 });
+
+test('staged full archive commits late honey pair evidence and original video, then restores prior data by rollback', async () => {
+  const sourceDb=await openTestDb('paseka-late-pair-archive-source');
+  const targetDb=await openTestDb('paseka-late-pair-archive-target');
+  const sourceState={...stateFixture('honey-pair archive'),
+    meta:{schemaVersion:15,revisionId:'honey-source-revision'},auditLog:[],
+    sectionalLayouts:[{id:'layout-honey',hiveId:'hive-1',honeyStack:{purpose:'main',bodyIds:['honey1','honey2','honey3','honey4']}}],
+    sectionalTechProcesses:[{id:'tech-honey',hiveId:'hive-1',state:{operations:[
+      {operationId:'OP-07',status:'DONE',evidence:{honeyBodyIds:['honey1','honey2']}},
+      {operationId:'OP-07-HONEY-PAIR-ADD',status:'DONE',evidence:{
+        previousBodyIds:['honey1','honey2'],addedBodyIds:['honey3','honey4'],
+        honeyBodyIds:['honey1','honey2','honey3','honey4']
+      }}
+    ]}}],
+    equipmentInventory:{bodies:{
+      honey1:{id:'honey1',pairId:'first'},honey2:{id:'honey2',pairId:'first'},
+      honey3:{id:'honey3',pairId:'second'},honey4:{id:'honey4',pairId:'second'}
+    }}
+  };
+  const sourceVideo=videoFixture();
+  await put(sourceDb,'main',sourceState,'state');
+  await put(sourceDb,'entrance_media',sourceVideo);
+  const archive=await Archive.exportArchiveFromDatabase(sourceDb,webcrypto,{
+    backupId:'honey-two-to-four-backup',createdAt:'2026-11-19T11:00:00.000Z'
+  });
+
+  const previous={meta:{schemaVersion:15,revisionId:'before-restore'},hives:[{id:'old-hive',number:2}],
+    families:[],records:[{id:'old-record'}],sectionalTechProcesses:[],auditLog:[]};
+  const priorVideo={...videoFixture(),id:'prior-video',hiveId:'old-hive'};
+  await put(targetDb,'main',previous,'state');
+  await put(targetDb,'entrance_media',priorVideo);
+  const staged=await Restore.stageArchiveForRestore(targetDb,archive.blob,webcrypto,Archive,()=>true);
+  assert.equal(staged.session.status,'ready');
+  assert.deepEqual(await get(targetDb,'main','state'),previous,
+    'import preflight must not change live state');
+  assert.equal((await getAll(targetDb,'entrance_media'))[0].id,'prior-video');
+  const inspected=await Restore.getStagedArchive(targetDb,staged.session.sessionId,webcrypto,Archive,()=>true);
+  assert.deepEqual(inspected.state.sectionalTechProcesses,sourceState.sectionalTechProcesses);
+  assert.equal(inspected.videos.length,1);
+  const committed=await Restore.commitStagedArchive(
+    targetDb,staged.session.sessionId,'before-restore',webcrypto,Archive,()=>true
+  );
+  assert.equal(committed.importedVideoCount,1);
+  const current=await get(targetDb,'main','state');
+  assert.deepEqual(current.sectionalLayouts,sourceState.sectionalLayouts);
+  assert.deepEqual(current.sectionalTechProcesses,sourceState.sectionalTechProcesses);
+  assert.deepEqual(current.equipmentInventory,sourceState.equipmentInventory);
+  assert.deepEqual(current.sectionalTechProcesses[0].state.operations[0].evidence,
+    {honeyBodyIds:['honey1','honey2']},'OP-07 original evidence must be preserved');
+  const currentVideos=await getAll(targetDb,'entrance_media');
+  assert.equal(currentVideos.length,1);
+  assert.equal(currentVideos[0].id,sourceVideo.id);
+  assert.deepEqual(new Uint8Array(await currentVideos[0].blob.arrayBuffer()),
+    new Uint8Array(await sourceVideo.blob.arrayBuffer()));
+
+  const reverted=await Restore.rollbackCommittedArchive(
+    targetDb,'honey-two-to-four-backup',committed.state.meta.revisionId,webcrypto,()=>true
+  );
+  assert.ok(reverted);
+  const afterRollback=await get(targetDb,'main','state');
+  assert.deepEqual(afterRollback.sectionalTechProcesses,previous.sectionalTechProcesses);
+  assert.deepEqual(afterRollback.hives,previous.hives);
+  assert.deepEqual(afterRollback.records,previous.records);
+  const restoredVideos=await getAll(targetDb,'entrance_media');
+  assert.equal(restoredVideos.length,1);
+  assert.equal(restoredVideos[0].id,priorVideo.id);
+  assert.deepEqual(new Uint8Array(await restoredVideos[0].blob.arrayBuffer()),
+    new Uint8Array(await priorVideo.blob.arrayBuffer()),
+    'rollback must restore original video bytes');
+  sourceDb.close();targetDb.close();
+});
