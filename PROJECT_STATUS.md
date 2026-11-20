@@ -1,3 +1,12 @@
+## Этап — test-only durable ledger распознавания видео (2026-11-20)
+
+- После docs-only Draft #242 создана зависимая ветка `feat/video-recognition-durable-ledger-2026-11-20`. Перенесены из несоединённой экспериментальной ветки без merge: `js/video-recognition-ledger.js` и `tests/video-recognition-ledger.test.mjs`; отдельный контракт `docs/VIDEO-RECOGNITION-DURABLE-LEDGER.md`.
+- Функция проверяет SHA-256 исходного видео и state revision, записывает результат в `main/video_recognition_ledger_v1`, при любом успешном результате оставляет `cleanupState=blocked_archive_safety`. Никаких вызовов UI, удаления Blob, схемных миграций или живых операций.
+- Открытый риск: метаданные Blob можно подменить несогласованным writer при сохранении прежнего SHA/size после хэширования, а внешние Android/архивные копии ещё не проверены. Запрет удаления #241 сохраняется. CI этого нового HEAD пока не подтверждён; следующий шаг — проверки GitHub на точном SHA, затем интеграция распознавателя отдельным шагом.
+- Merge, production, публикация и изменение пользовательских видео не выполнялись.
+
+---
+
 ## Контрольная точка — контракт распознавания/очистки видео (2026-11-20)
 
 - На основе Draft #241 создан отдельный docs-only блок: `docs/VIDEO-RECOGNITION-CLEANUP-STATE-CONTRACT.md`. Определены fail-closed состояния pending/in-progress/recognized_durable/cleanup_blocked/cleanup_committed, необходимые доказательства SHA/ledger, учёт внутренних и внешних Android копий, атомарность и запрет resurrection при restore.
