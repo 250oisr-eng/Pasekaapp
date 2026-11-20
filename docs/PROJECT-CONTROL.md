@@ -1,3 +1,7 @@
+## 2026-11-20 — три связанные меры против ложного train/test и подмены source v6
+
+- `VIDEO-MENDELEY-V6-SCENE-SIMILARITY-AND-SPLIT-GATE.md` — фактические SHA+64-bit dHash по 16 original JPEG (8 within/112 across, dHash threshold **не** proof), offline metadata-only merge до 7200 исходных JPEG/TXT из проверенных CSV, fail-closed structural group split без доказанной video/session independence, 38 tests и CI; требования landing board ROI/tracks/line crossing.
+
 ## 2026-11-20 — реальные размеры YOLO пчёл перед выбором детектора
 
 - `VIDEO-MENDELEY-V6-REAL-BOX-GEOMETRY.md` — измеренная геометрия 113 original bee bbox из 16 SHA-pinned v6 TXT, табличные данные letterbox 640/960/1280, маленькие объекты, источник 50 fps video frames, различение геометрии и несуществующих model metrics, план независимого benchmark.

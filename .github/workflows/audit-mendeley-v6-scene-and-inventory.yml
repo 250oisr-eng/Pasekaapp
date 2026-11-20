@@ -1,0 +1,120 @@
+name: Audit real Mendeley v6 scene similarity and manifest coverage (research only)
+on:
+  pull_request:
+    paths:
+      - 'tools/audit_mendeley_v6_original_scene_similarity.py'
+      - 'tools/merge_mendeley_v6_pinned_manifests.py'
+      - 'tools/audit_mendeley_v6_grouped_split_proposal.py'
+      - 'tests/test_audit_mendeley_v6_grouped_split_proposal.py'
+      - 'tests/fixtures/mendeley-v6-group-disjoint-NOT-TRAINING.json'
+      - 'tests/test_audit_mendeley_v6_original_scene_similarity.py'
+      - 'tests/test_merge_mendeley_v6_pinned_manifests.py'
+      - 'tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv'
+      - '.github/workflows/audit-mendeley-v6-scene-and-inventory.yml'
+permissions:
+  contents: read
+jobs:
+  real-original-scene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fixed free Pillow only in isolated audit
+        run: python -m pip install --disable-pip-version-check --no-deps Pillow==12.0.0
+      - name: Offline negative-security regressions (scene fingerprint)
+        run: python -m unittest discover -s tests -p 'test_audit_mendeley_v6_original_scene_similarity.py' -v
+      - name: Offline negative-security regressions (manifest accumulation)
+        run: python -m unittest discover -s tests -p 'test_merge_mendeley_v6_pinned_manifests.py' -v
+      - name: Offline negative-security regressions (group-disjoint proposal)
+        run: python -m unittest discover -s tests -p 'test_audit_mendeley_v6_grouped_split_proposal.py' -v
+      - name: Actual pinned public JPGs and source-scene similarity only, no originals stored
+        run: |
+          python tools/audit_mendeley_v6_original_scene_similarity.py \
+            tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv \
+            > "${RUNNER_TEMP}/real-scene.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads((Path(os.environ["RUNNER_TEMP"])/"real-scene.json").read_text())
+          assert d["originalFiles"]==16
+          assert d["sourceImageSha256PinsVerified"] is True
+          assert d["sourceJpegFullDecodeVerified"] is True
+          assert d["originalJpegShaUnique"] is True
+          assert len(d["publishedGroupCounts"])==8
+          assert all(v==2 for v in d["publishedGroupCounts"].values())
+          assert d["dHashPairCountWithinCollection"]==8
+          assert d["dHashPairCountAcrossCollections"]==112
+          assert len(d["closestCrossCollectionPairs"])==12
+          for key in ("heuristicDistanceThresholdIsValidated",
+                      "sourceRecordingIdentityVerified",
+                      "sameRecordingAcrossGroupsProven",
+                      "differentRecordingAcrossGroupsProven",
+                      "frameToRecordingProvenanceVerified",
+                      "independentHoldoutVerified","trainingAuthorized",
+                      "modelQualityMeasured","recognitionSucceeded","cleanupAuthorized"):
+              assert d[key] is False,key
+          print("VERIFIED_REAL_SCENE_SIMILARITY",
+                json.dumps({
+                  "sourceJpegs": d["originalFiles"],
+                  "crossPairs":d["dHashPairCountAcrossCollections"],
+                  "sameGroupPairs":d["dHashPairCountWithinCollection"],
+                  "crossGroupHeuristicClosePairs":d["crossCollectionDHashAtMost6Count"],
+                  "closestCrossGroupCandidates":d["closestCrossCollectionPairs"][:5],
+                  "videoIdentityProven":False,"trainingAuthorized":False
+                }))
+          PY
+      - name: Metadata-only merge of real SHA-pinned 16-pair manifest (no source GET)
+        run: |
+          python tools/merge_mendeley_v6_pinned_manifests.py \
+            tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv \
+            --output-json "${RUNNER_TEMP}/mendeley-inventory.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads((Path(os.environ["RUNNER_TEMP"])/"mendeley-inventory.json").read_text())
+          assert d["inventoryPairs"]==16
+          assert d["publishedExpectedPairs"]==7200
+          assert d["missingPairsRelativeToPublication"]==7184
+          assert len(d["publishedGroupCounts"])==8
+          assert all(x["inventoryPairs"]==2 for x in d["publishedGroupCounts"])
+          assert d["originalSourceBytesDownloadedInThisStep"] is False
+          assert d["countCoverageCompleteButNotIntegrityEvidence"] is False
+          for key in ("allRecordingBytesAndFrameProvenanceVerified",
+                      "independentHiveAndSessionHoldoutVerified",
+                      "trainValTestSplitCreated","trainingAuthorized",
+                      "modelApproved","recognitionSucceeded","cleanupAuthorized"):
+              assert d[key] is False,key
+          print("VERIFIED_REAL_V6_INVENTORY",
+                json.dumps({"images":16,"missing":7184,
+                            "trainValTestSplitCreated":False,"cleanupAuthorized":False}))
+          PY
+      - name: Audit structurally disjoint eight-group proposal without enabling train/val/test
+        run: |
+          python tools/audit_mendeley_v6_grouped_split_proposal.py             "${RUNNER_TEMP}/mendeley-inventory.json"             tests/fixtures/mendeley-v6-group-disjoint-NOT-TRAINING.json             > "${RUNNER_TEMP}/split-structure.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads((Path(os.environ["RUNNER_TEMP"])/"split-structure.json").read_text())
+          assert d["publishedFoldersStructurallyDisjoint"] is True
+          assert d["inventoryImages"]==16
+          assert d["publishedExpectedImages"]==7200 and d["missingImages"]==7184
+          assert d["perProposedSplit"]["train"]["inventoryImages"]==10
+          assert d["perProposedSplit"]["validation"]["inventoryImages"]==2
+          assert d["perProposedSplit"]["test"]["inventoryImages"]==4
+          for flag in ("sourceVideoRecordingHashesVerified","frameToRecordingProvenanceVerified",
+                       "actualPhysicalHivesIndependenceVerified","independentHoldoutVerified",
+                       "splitReadyForTraining","trainingAuthorized","modelApproved",
+                       "recognitionSucceeded","cleanupAuthorized"):
+              assert d[flag] is False,flag
+          print("VERIFIED_BLOCKED_GROUP_ONLY_SPLIT",
+                json.dumps({"candidate": "structurally_disjoint_not_training",
+                            "images":16,"missing":7184,
+                            "independentHoldoutVerified":False,"trainingAuthorized":False}))
+          PY
+      - name: Delete temporary metadata reports (always)
+        if: always()
+        run: |
+          rm -f -- "${RUNNER_TEMP}/real-scene.json" "${RUNNER_TEMP}/mendeley-inventory.json" "${RUNNER_TEMP}/split-structure.json"

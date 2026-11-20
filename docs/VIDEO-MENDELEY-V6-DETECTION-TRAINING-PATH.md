@@ -1,3 +1,11 @@
+## Обновление фактического статуса — 2026-11-20, после Draft #288/#289
+
+Ниже в разделе 2 оставлено историческое описание **первого** research-only этапа, когда настоящие JPG/TXT ещё не были получены; **оно больше не отражает текущее состояние**. Фактически в Draft #287 получены, SHA-проверены и полностью декодированы **16 original JPEG + 16 YOLO TXT** из всех 8 published hive groups (113 bee bbox); в Draft #288 измерены реальные размеры меток при 640/960/1280; в Draft #289 выполнен SHA-pinned dHash risk screen 16 JPEG и создан безопасный metadata-only merge (16/7200, missing 7184), с отдельным blocked group-disjoint split gate. Сводный актуальный документ `VIDEO-MENDELEY-V6-SCENE-SIMILARITY-AND-SPLIT-GATE.md`.
+
+Ни у одного из этапов **нет** подтверждённых source video recording SHA, независимого source/frame mapping, обученной модели, track IDs, физического Android in/out test либо права на удаление пользовательского исходного видео. Любые ранние утверждения «нет реальных исходных данных» следует читать только в историческом контексте первого этапа. `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`.
+
+---
+
 # Mendeley v6: подготовка реальной разметки пчёл у летка для будущего обучения
 
 Дата 2026-11-20. Статус: **read-only staging importer + тестовые фикстуры; не обученная модель**.
