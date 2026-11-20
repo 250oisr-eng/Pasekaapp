@@ -126,3 +126,49 @@ test('full archive export rejects video metadata that disagrees with the stored 
   );
   db.close();
 });
+
+test('portable archive preserves staged 2-to-4 honey pair evidence together with separate entrance video bytes', async () => {
+  const db = await openTestDb('paseka-export-sectional-late-pair');
+  const state=stateFixture();
+  state.equipmentInventory={bodies:{
+    honey1:{id:'honey1',kind:'honey',pairId:'pair-1',frames:[{frameId:'h1f1'}]},
+    honey2:{id:'honey2',kind:'honey',pairId:'pair-1',frames:[{frameId:'h2f1'}]},
+    honey3:{id:'honey3',kind:'honey',pairId:'pair-2',frames:[{frameId:'h3f1',history:[{id:'fh3',action:'corpus_from_storage'}]}]},
+    honey4:{id:'honey4',kind:'honey',pairId:'pair-2',frames:[{frameId:'h4f1',history:[{id:'fh4',action:'corpus_from_storage'}]}]}
+  }};
+  state.sectionalLayouts=[{id:'sectional-layout-1',hiveId:'hive-1',honeyStack:{
+    purpose:'main',bodyIds:['honey1','honey2','honey3','honey4']
+  }}];
+  const initialEvidence={honeyPurpose:'main',honeyBodyIds:['honey1','honey2'],frameComposition:{honey1:[{frameId:'h1f1'}],honey2:[{frameId:'h2f1'}]}};
+  const lateEvidence={previousBodyIds:['honey1','honey2'],addedBodyIds:['honey3','honey4'],
+    honeyBodyIds:['honey1','honey2','honey3','honey4'],
+    frameComposition:{honey3:[{frameId:'h3f1'}],honey4:[{frameId:'h4f1'}]}};
+  state.sectionalTechProcesses=[{id:'tech-1',hiveId:'hive-1',state:{operations:[
+    {operationId:'OP-07',status:'DONE',completedAt:'2026-11-17T09:00:00.000Z',evidence:initialEvidence},
+    {operationId:'OP-07-HONEY-PAIR-ADD',status:'DONE',completedAt:'2026-11-18T09:00:00.000Z',evidence:lateEvidence}
+  ]}}];
+  const videoBytes=new Uint8Array([1,9,2,8,3,7,4,6,5]);
+  const video=videoFixture('video-hive-1','hive-1',videoBytes,'2026-11-18T10:00:00.000Z');
+  const original=structuredClone(state);
+  await writeFixture(db,state,[video]);
+
+  const exported=await Archive.exportArchiveFromDatabase(db,webcrypto,{
+    backupId:'archive-honey-late-pair',createdAt:'2026-11-19T11:00:00.000Z'
+  });
+  const parsed=await Archive.parseArchiveBlob(exported.blob);
+  assert.equal(exported.summary.videoCount,1);
+  assert.equal(await Archive.verifyArchive(exported.blob,parsed,webcrypto),true);
+  assert.deepEqual(parsed.entries.map(entry=>entry.kind),['state','entrance_video']);
+  const restored=JSON.parse(await Archive.readArchiveEntry(exported.blob,parsed.stateEntry).text()).state;
+  assert.deepEqual(restored.sectionalLayouts,original.sectionalLayouts);
+  assert.deepEqual(restored.sectionalTechProcesses,original.sectionalTechProcesses);
+  assert.deepEqual(restored.equipmentInventory,original.equipmentInventory);
+  assert.deepEqual(restored.sectionalTechProcesses[0].state.operations[0].evidence,initialEvidence,
+    'original OP-07 evidence must not be overwritten by the second-pair event');
+  assert.deepEqual(restored.sectionalTechProcesses[0].state.operations[1].evidence,lateEvidence);
+  assert.deepEqual(new Uint8Array(await Archive.readArchiveEntry(exported.blob,parsed.entries[1]).arrayBuffer()),videoBytes);
+  const current=await Archive.readConsistentDatabaseSnapshot(db);
+  assert.deepEqual(current.state,original,'archive export must not modify live sectional hive state');
+  assert.equal(current.videos.length,1,'export must not delete live entrance videos');
+  db.close();
+});
