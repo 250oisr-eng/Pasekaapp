@@ -18,6 +18,7 @@
 | АУДИТ-PR-54-58-2026-11-16.md | Подтверждённые дефекты, воспроизведение, риски и план исправлений PR #54–58 |
 | СОСТОЯНИЕ-ПРОЕКТА.md | Актуальное состояние, SHA, PR, ограничения и следующий шаг |
 | ЖУРНАЛ-ИЗМЕНЕНИЙ.md | История решений и изменений |
+| VIDEO-TEMPORAL-TRACK-COVERAGE.md | Недостаточность sparse video frames для подтверждения tracking ID; явная политика временной полноты |
 | VIDEO-ENTRANCE-CROSSING-EVIDENCE.md | Калиброванная линия летка; test-only direction estimates с fail-closed ambiguous cases |
 | VIDEO-DETECTOR-BENCHMARK.md | Staging-only IoU/precision/recall тест, не подтверждение реальной модели или качества треков |
 | VIDEO-MODEL-ARTIFACT-INTEGRITY.md | Локальный SHA preflight весов модели, запрет считать хэш доказательством лицензии или готового inference |
