@@ -149,3 +149,22 @@ test('does not schedule another chunk after cancellation during arrayBuffer read
     globalThis.setTimeout = originalSetTimeout;
   }
 });
+
+test('journal base64 video hash matches original Blob and Node reference for multiple chunk boundaries', async () => {
+  const bytes=Uint8Array.from({length:211111},(_,i)=>(i*19+i>>>4)&255);
+  const url='data:video/mp4;base64,'+Buffer.from(bytes).toString('base64');
+  const result=await globalThis.PasekaSha256.hashVideoDataUrlHex(url);
+  assert.equal(result.sha256,referenceHash(bytes));
+  assert.equal(result.sha256,await hashBlobHex(new Blob([bytes])));
+  assert.equal(result.bytes,bytes.length);
+});
+test('journal base64 hash fails closed for malformed or non-video payloads', async () => {
+  const hash=globalThis.PasekaSha256.hashVideoDataUrlHex;
+  await assert.rejects(hash('data:text/plain;base64,YQ=='),{code:'SHA256_VIDEO_DATA_URL_INVALID'});
+  await assert.rejects(hash('data:video/mp4;base64,YQ=A'),{code:'SHA256_VIDEO_BASE64_INVALID'});
+  await assert.rejects(hash('data:video/mp4;base64,'),{code:'SHA256_VIDEO_BASE64_INVALID'});
+});
+test('journal base64 hash honours abort before reading source',async()=>{
+ const controller=new AbortController();controller.abort();
+ await assert.rejects(globalThis.PasekaSha256.hashVideoDataUrlHex('data:video/mp4;base64,YWJj',{signal:controller.signal}),{name:'AbortError'});
+});
