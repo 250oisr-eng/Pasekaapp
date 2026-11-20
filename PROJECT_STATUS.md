@@ -1,3 +1,33 @@
+## Проверка CI защитной цепочки PR #231 — 2026-11-20
+
+- Точный SHA `c8ddefcaf47443a0c5b03c907e2811dc1912f3ae`: Android workflow #44696499993 **completed/success**. В job успешны **Run regression tests**, **Build debug APK** и **Upload APK**. Отдельный `Build isolated archive test APK` workflow #44696499782 имеет `skipped` (не считать проверенным).
+- Проверена чистая последовательность stacked PR #230 → #231; нового live импортёра и удаления видео нет. Физическое тестирование APK не проводилось.
+- Дата/вывод CI относится к указанному SHA, а не автоматически к последующим документационным commits.
+- Следующая задача — отдельная проработка защищённого staging pending original видеозаписей, атомарного предварительного контракта и crash recovery; не запускать live restore или cleanup до полной проверки.
+
+---
+
+## Контрольная точка — PR #231: межисточниковые ID и гонка журнала (2026-11-20)
+
+- Draft PR #231 открыт поверх #230: https://github.com/250oisr-eng/Pasekaapp/pull/231.
+- Дополнены регрессии: одинаковый ID летка/журнала без ложного конфликта (источник входит в ключ), а также конкурентная запись журналового видео перед final aborted write-lock с сохранением исходных данных. Тестовые commits: 92207d23c2c5ac9e006a505938816e7bfd300ea8 и 85e677df21dde7beef172b01c90f52b71a01ff88.
+- На момент фиксации полного CI точного итогового SHA нет. Проверка ожидается независимо от синтаксических и smoke-тестов.
+- Следующий шаг: проверить актуальный CI; при ошибке исправить именно её, затем продолжить staging design без live действий.
+
+---
+
+## Контрольная точка — PASEKA02: защита исходных видео от коллизий ID (2026-11-20)
+
+- На базе существующей Draft #230 создана зависимая ветка fix/v2-pending-media-id-collision-2026-11-20, отдельная задача: закрыть опасность совпадающих videoId у импортируемого pending original и уже существующего видео летка или журнала.
+- В js/video-archive-v2-restore-gate.js добавлен чистый синхронный checkLivePendingMediaIdentity. Он требует отдельной проверки source+videoId, отвергает коллизию local entrance_media keys и journal record_media IDs, а также legacy видео с данными без стабильного videoId; существующий ledger/tombstone gate сохраняется.
+- В js/video-archive-v2-restore-db-preflight.js проверка подключена после единого readonly снимка пяти stores. В js/video-archive-v2-commit-lock-guard.js повторно выполняется внутри единой write-lock транзакции, которая ВСЕГДА abort. Новый importer, writer, delete и восстановление не вводились.
+- Регрессионные тесты: tests/video-archive-v2-restore-db-preflight.test.mjs и tests/video-archive-v2-commit-lock-guard.test.mjs (конфликт входного видео, conflict journal, legacy unknown ID, writer race и сохранение originals). Три изменённых JS файла прошли синтаксическую проверку в V8; pure guard прошёл три отдельных ручных сценария. Полная матрица Node/Android CI для этой ветки пока не подтверждена.
+- Контракт описан в docs/VIDEO-ARCHIVE-V2-PENDING-IDENTITY.md. Предыдущий базовый SHA 209edddc638935641d88fa197e0c5b7170c3cf76 прошёл Android CI #44695197293 (success), isolated archive APK #44695197208 skipped; эти результаты нельзя переносить на новый SHA.
+- Приоритет следующий: убедиться в прохождении CI на итоговом SHA, затем разработать атомарный защищённый staging pending originals и recovery, не включать live импорт и cleanup до доказательства безопасности всех копий.
+- Без слияний, без активации нового улья, без обновлений production, без удаления видео и пользовательских данных.
+
+---
+
 ## Контрольная точка — PASEKA02: оба recovery snapshot проходят проверку (2026-11-20)
 
 - Продолжен существующий Draft PR #230. Исправлен только изолированный metadata-only inspectMetadataRecovery: прежде чем возвращать committed/reverted, проверяет корректную форму records и отсутствие непроверенных видео в обоих сохранённых snapshot — beforeState и afterState, включая неактивный.

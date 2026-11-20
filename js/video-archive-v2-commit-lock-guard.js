@@ -16,7 +16,8 @@ function checkRestoreUnderAbortedWriteLock(db,incoming,guard,gate){
   try{
    if(!db?.objectStoreNames||STORES.some(store=>!db.objectStoreNames.contains(store)))
     fail('V2_COMMIT_PROTECTED_STORES_MISSING');
-   if(typeof gate?.checkRestoreLedgerCandidate!=='function')
+   if(typeof gate?.checkRestoreLedgerCandidate!=='function'||
+      typeof gate?.checkLivePendingMediaIdentity!=='function')
     fail('V2_COMMIT_GATE_MISSING');
    if(!obj(incoming)||!obj(incoming.ledger)||!Array.isArray(incoming.pendingVideos))
     fail('V2_COMMIT_CANDIDATE_INVALID');
@@ -49,7 +50,8 @@ function checkRestoreUnderAbortedWriteLock(db,incoming,guard,gate){
        fail('V2_COMMIT_PROTECTED_READ_INVALID');
       if(stagingCount||historyCount||backupCount)fail('V2_COMMIT_EXISTING_ARCHIVE_HISTORY');
       const checked=gate.checkRestoreLedgerCandidate(ledger,incoming,guard);
-      output={...checked,liveSchemaVersion:liveState.meta.schemaVersion,
+      const liveIdentity=gate.checkLivePendingMediaIdentity(liveState,videoKeys,incoming);
+      output={...checked,...liveIdentity,liveSchemaVersion:liveState.meta.schemaVersion,
        liveEntranceKeyCount:videoKeys.length,
        stagingCount,historyCount,backupCount,lockValidated:true,transactionAborted:true,
        preflightPassed:true,restoreAuthorized:false,archiveSafe:false,

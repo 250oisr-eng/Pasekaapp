@@ -14,7 +14,8 @@ function inspectRestoreCandidateAgainstDatabase(db,incoming,guard,gate){
   try{
    if(!db?.objectStoreNames||STORES.some(store=>!db.objectStoreNames.contains(store)))
     fail('V2_RESTORE_PROTECTED_STORES_MISSING');
-   if(typeof gate?.checkRestoreLedgerCandidate!=='function')
+   if(typeof gate?.checkRestoreLedgerCandidate!=='function'||
+      typeof gate?.checkLivePendingMediaIdentity!=='function')
     fail('V2_RESTORE_GATE_MISSING');
    if(!obj(incoming)||!obj(incoming.ledger)||!Array.isArray(incoming.pendingVideos))
     fail('V2_RESTORE_CANDIDATE_INVALID');
@@ -53,9 +54,10 @@ function inspectRestoreCandidateAgainstDatabase(db,incoming,guard,gate){
      // Some staging entries may contain protected recognized originals.
      if(stagingCount>0||historyCount>0||backupCount>0)fail('V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
      const checked=gate.checkRestoreLedgerCandidate(ledger,incoming,guard);
+     const liveIdentity=gate.checkLivePendingMediaIdentity(state,videoKeys,incoming);
      done=true;
      resolve({
-      ...checked,liveSchemaVersion:state.meta.schemaVersion,
+      ...checked,...liveIdentity,liveSchemaVersion:state.meta.schemaVersion,
       liveEntranceKeyCount:videoKeys.length,
       stagingCount,historyCount,backupCount,preflightPassed:true,
       restoreAuthorized:false,archiveSafe:false,

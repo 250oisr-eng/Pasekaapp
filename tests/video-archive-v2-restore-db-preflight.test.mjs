@@ -115,3 +115,69 @@ test('missing full_backup store fails closed before opening a transaction',async
  await rejects(inspect(object),'V2_RESTORE_PROTECTED_STORES_MISSING');
  db.close();
 });
+
+
+test('pending entrance video ID collision blocks read-only preflight without changing original',async()=>{
+ const db=await setup();
+ const pending={source:'entrance_media',videoId:'unrecognized',sourceSha256:'b'.repeat(64),sourceBytes:3};
+ const input={...candidate(),pendingVideos:[pending]};
+ await rejects(inspect(db,input),'V2_RESTORE_LIVE_ENTRANCE_ID_COLLISION');
+ const q=db.transaction('entrance_media','readonly').objectStore('entrance_media').get('unrecognized');
+ const saved=await new Promise((res,rej)=>{q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
+ assert.equal(saved.blob.size,3);db.close();
+});
+test('noncolliding pending entrance video is inspected but never authorized for restore',async()=>{
+ const db=await setup();
+ const result=await inspect(db,{...candidate(),pendingVideos:[
+  {source:'entrance_media',videoId:'different-video',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]});
+ assert.equal(result.pendingIdentityChecked,1);
+ assert.equal(result.restoreAuthorized,false);
+ assert.equal(result.archiveSafe,false);
+ db.close();
+});
+test('live journal video IDs cannot be replaced by incoming pending journal videos',async()=>{
+ const db=await setup();
+ const incoming={...candidate(),state:{...candidate().state,records:[{id:'incoming',media:[
+  {kind:'video',videoId:'journal-one',data:'data:video/mp4;base64,YWJj',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]}]},pendingVideos:[
+  {source:'record_media',videoId:'journal-one',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]};
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'new'},records:[{id:'visit',media:[
+  {kind:'video',videoId:'journal-one',data:'data:video/mp4;base64,YWJj'}
+ ]}]},'state');
+ await done(tx);
+ await rejects(inspect(db,incoming),'V2_RESTORE_LIVE_RECORD_ID_COLLISION');
+ const read=db.transaction('main','readonly').objectStore('main').get('state');
+ const saved=await new Promise((res,rej)=>{read.onsuccess=()=>res(read.result);read.onerror=()=>rej(read.error);});
+ assert.equal(saved.records[0].media[0].videoId,'journal-one');
+ db.close();
+});
+test('untracked live journal original prevents claiming safe v2 pending-media preflight',async()=>{
+ const db=await setup();
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'new'},records:[{id:'legacy',
+  media:[{kind:'video',data:'data:video/mp4;base64,YWJj'}]}]},'state');
+ await done(tx);
+ await rejects(inspect(db,{...candidate(),pendingVideos:[
+  {source:'entrance_media',videoId:'new-video',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]}),'V2_RESTORE_LIVE_RECORD_ID_UNKNOWN');
+ db.close();
+});
+
+test('equal ID across different video sources is not a false collision',async()=>{
+ const db=await setup();
+ const id='unrecognized'; // live entrance media has this ID; incoming is record_media
+ const record={id:'incoming-record',media:[{
+  kind:'video',videoId:id,data:'data:video/mp4;base64,YWJj',
+  sourceSha256:'b'.repeat(64),sourceBytes:3
+ }]};
+ const examined=await inspect(db,{...candidate(),
+  state:{meta:{schemaVersion:15},records:[record]},
+  pendingVideos:[{source:'record_media',videoId:id,sourceSha256:'b'.repeat(64),sourceBytes:3}]
+ });
+ assert.equal(examined.pendingIdentityChecked,1);
+ assert.equal(examined.restoreAuthorized,false);
+ db.close();
+});
