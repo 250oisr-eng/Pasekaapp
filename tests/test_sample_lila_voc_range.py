@@ -12,6 +12,8 @@ from sample_lila_voc_range import (
 )
 XML=b"""<annotation><size><width>100</width><height>80</height></size>
 <object><name>bee</name><bndbox><xmin>10</xmin><ymin>20</ymin><xmax>40</xmax><ymax>50</ymax></bndbox></object></annotation>"""
+JPEG=(b"\xff\xd8"+b"\xff\xe0\x00\x04AB"+
+      b"\xff\xc0\x00\x0b\x08\x00\x50\x00\x64\x01\x01\x11\x00"+b"\xff\xd9")
 
 
 def archive(files=None):
@@ -19,7 +21,8 @@ def archive(files=None):
     with zipfile.ZipFile(b,"w") as z:
         z.writestr("padding.bin",os.urandom(90000),compress_type=zipfile.ZIP_STORED)
         for name,content in (files or [
-            ("LICENSE.txt",b"test-only fake license"),("images/bee-01.xml",XML)]):
+            ("LICENSE.txt",b"test-only fake license"),("images/bee-01.xml",XML),
+            ("images/bee-01.jpg",JPEG)]):
             z.writestr(name,content,compress_type=zipfile.ZIP_DEFLATED)
     return b.getvalue()
 
@@ -60,15 +63,35 @@ class LilaSampleTests(unittest.TestCase):
         source=FakeOpener(archive())
         r=inspect_public(source)
         self.assertTrue(r["ok"])
-        self.assertEqual(r["zipEntries"],3)
+        self.assertEqual(r["zipEntries"],4)
         self.assertEqual(r["xmlCandidateCount"],1)
         self.assertEqual(r["sample"]["objectsByClass"],{"bee":1})
+        self.assertEqual(r["sampleJpegName"],"images/bee-01.jpg")
+        self.assertTrue(r["jpegHeaderDimensionsMatch"])
         self.assertIn("LICENSE.txt",r["licenseDocumentPaths"])
         self.assertLess(r["bytesFetchedByRange"],MAX_NETWORK)
         for k in ("archiveDownloaded","archiveHashVerified","archiveLicensesRead",
                   "licenseVerified","trainingAuthorized","modelApproved",
                   "recognitionSucceeded","cleanupAuthorized"):
             self.assertFalse(r[k])
+
+
+    def test_missing_jpeg_partner_fails_closed(self):
+        source=FakeOpener(archive([("images/bee-01.xml",XML)]))
+        with self.assertRaisesRegex(SampleRejected,"no_valid_voc_sample"):
+            inspect_public(source)
+
+    def test_jpeg_dimensions_must_match_annotation(self):
+        wider=JPEG.replace(b"\x00\x64",b"\x00\x65")
+        source=FakeOpener(archive([("images/bee-01.xml",XML),
+                                   ("images/bee-01.jpg",wider)]))
+        with self.assertRaisesRegex(SampleRejected,"no_valid_voc_sample"):
+            inspect_public(source)
+
+    def test_invalid_jpeg_magic_fails_closed(self):
+        from sample_lila_voc_range import jpeg_header_dimensions
+        with self.assertRaisesRegex(SampleRejected,"jpeg_magic_invalid"):
+            jpeg_header_dimensions(b"X"*100)
 
     def test_http_200_range_rejected_without_reading_body(self):
         source=FakeOpener(archive(),ignore_range=True)
