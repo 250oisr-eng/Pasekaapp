@@ -1254,24 +1254,38 @@ function discardArchiveRestoreSession(db, sessionId) {
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
           const keys = keysRequest.result || [];
-          if (!session && keys.length) {
-            const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
-            historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
-            historyRequest.onsuccess = () => {
-              const referenced = (historyRequest.result || []).some(item =>
-                item.importSessionId === sessionId || item.rollbackSessionId === sessionId
-              );
-              if (referenced) {
-                abortWith(Object.assign(new Error('Orphaned staging records are still referenced by archive history and were preserved.'), { code: 'ORPHANED_STAGING_REFERENCED' }));
-                return;
-              }
-              for (const key of keys) store.delete(key);
-              result = keys.length > 0;
-            };
+          // Never delete a rollback row, unknown entry type, or a key outside
+          // this exact session even if its indexed sessionId was corrupted.
+          const validKey = key => typeof key === 'string' &&
+            (key === sessionId || key === sessionId + ':state' || key.startsWith(sessionId + ':video:'));
+          if (keys.some(key => !validKey(key))) {
+            abortWith(Object.assign(new Error('Unexpected staged record key; cleanup was cancelled.'), { code: 'STAGING_CLEANUP_KEYS_INVALID' }));
             return;
           }
-          for (const key of keys) store.delete(key);
-          result = keys.length > 0;
+          // Check archive_history even when a session header exists. Its status
+          // can be corrupted independently of committed import references.
+          const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
+          historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
+          historyRequest.onsuccess = () => {
+            const references = (historyRequest.result || []).filter(item => item &&
+              (item.importSessionId === sessionId || item.rollbackSessionId === sessionId));
+            const protectedReference = references.some(item => {
+              // Reverted imports may discard their now-unneeded import staging,
+              // but only after rollback has been explicitly marked complete.
+              return !session || session.status !== 'reverted' ||
+                item.importSessionId !== sessionId ||
+                item.rollbackSessionId === sessionId ||
+                item.status !== 'reverted' || item.rollbackAvailable !== false;
+            });
+            if (protectedReference) {
+              abortWith(Object.assign(new Error('Staged records are referenced by archive history and were preserved.'), {
+                code: session ? 'STAGING_HISTORY_REFERENCED' : 'ORPHANED_STAGING_REFERENCED'
+              }));
+              return;
+            }
+            for (const key of keys) store.delete(key);
+            result = keys.length > 0;
+          };
         };
       };
       tx.oncomplete = () => {
