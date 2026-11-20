@@ -74,8 +74,8 @@ async function preparePendingRecordMedia(state,ledger,guard,shaModule){
 }
 function encodeBase64(bytes){
  let encoded='';
- for(let p=0;p<bytes.length;p+=32768){
-  const section=bytes.subarray(p,p+32768);
+ for(let p=0;p<bytes.length;p+=32766){
+  const section=bytes.subarray(p,p+32766);
   let text='';
   for(let i=0;i<section.length;i++)text+=String.fromCharCode(section[i]);
   encoded+=btoa(text);
