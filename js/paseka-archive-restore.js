@@ -57,7 +57,10 @@ async function findSessionByBackupId(db, backupId) {
 }
 async function updateSession(db, session) {
   const sessionId = session.sessionId || session.id;
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  // Finalizing a staged archive must share a write lock with the recognition
+  // ledger. Otherwise recognition can finish after the last staged Blob and
+  // before status=ready, leaving an incompatible archive apparently usable.
+  const tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
   let failure = null;
   const request = store.get(sessionId);
@@ -85,7 +88,24 @@ async function updateSession(db, session) {
       try { tx.abort(); } catch (error) {}
       return;
     }
-    store.put({ ...currentSession, ...session });
+    if (session.status === 'ready') {
+      const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
+      ledgerRequest.onerror = () => {
+        failure = ledgerRequest.error || new Error('Unable to verify recognition history before completing archive staging.');
+        try { tx.abort(); } catch (error) {}
+      };
+      ledgerRequest.onsuccess = () => {
+        try {
+          assertLegacyArchiveRecognitionLedger(ledgerRequest.result);
+          store.put({ ...currentSession, ...session });
+        } catch (error) {
+          failure = error;
+          try { tx.abort(); } catch (ignored) {}
+        }
+      };
+    } else {
+      store.put({ ...currentSession, ...session });
+    }
   };
   try {
     await transactionDone(tx);
