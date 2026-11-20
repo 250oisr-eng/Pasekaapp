@@ -4,14 +4,14 @@
 // transaction across every protected store, performs only reads, and
 // intentionally ABORTS before releasing the lock. Never commits archive data.
 // No async hashing, Blob I/O or network callbacks inside the transaction.
-const STORES=['main','entrance_media','archive_staging','archive_history'];
+const STORES=['main','entrance_media','archive_staging','archive_history','full_backup'];
 const LEDGER_KEY='video_recognition_ledger_v1';
 function fail(code){const e=new Error(code);e.code=code;throw e;}
 const obj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 function checkRestoreUnderAbortedWriteLock(db,incoming,guard,gate){
  return new Promise((resolve,reject)=>{
   let tx,settled=false,validated=false,validationError=null,output=null;
-  let liveState,ledger,videoKeys,stagingCount,historyCount;
+  let liveState,ledger,videoKeys,stagingCount,historyCount,backupCount;
   const rejectOnce=error=>{if(!settled){settled=true;reject(error);}};
   try{
    if(!db?.objectStoreNames||STORES.some(store=>!db.objectStoreNames.contains(store)))
@@ -27,7 +27,8 @@ function checkRestoreUnderAbortedWriteLock(db,incoming,guard,gate){
     ledger:main.get(LEDGER_KEY),
     videos:tx.objectStore('entrance_media').getAllKeys(),
     staging:tx.objectStore('archive_staging').count(),
-    history:tx.objectStore('archive_history').count()
+    history:tx.objectStore('archive_history').count(),
+    backups:tx.objectStore('full_backup').count()
    };
    const values={};
    // Execute the entire gate synchronously in the final onsuccess callback:
@@ -36,21 +37,21 @@ function checkRestoreUnderAbortedWriteLock(db,incoming,guard,gate){
     request.onsuccess=()=>{
      if(settled||validated)return;
      values[name]=request.result;
-     if(Object.keys(values).length!==5)return;
+     if(Object.keys(values).length!==6)return;
      validated=true;
      try{
       liveState=values.state;ledger=values.ledger;videoKeys=values.videos;
-      stagingCount=values.staging;historyCount=values.history;
+      stagingCount=values.staging;historyCount=values.history;backupCount=values.backups;
       if(!obj(liveState)||!obj(liveState.meta)||!Number.isSafeInteger(liveState.meta.schemaVersion))
        fail('V2_COMMIT_LIVE_STATE_INVALID');
       if(!obj(ledger))fail('V2_COMMIT_LIVE_LEDGER_MISSING');
-      if(!Array.isArray(videoKeys)||!Number.isSafeInteger(stagingCount)||!Number.isSafeInteger(historyCount))
+      if(!Array.isArray(videoKeys)||!Number.isSafeInteger(stagingCount)||!Number.isSafeInteger(historyCount)||!Number.isSafeInteger(backupCount))
        fail('V2_COMMIT_PROTECTED_READ_INVALID');
-      if(stagingCount||historyCount)fail('V2_COMMIT_EXISTING_ARCHIVE_HISTORY');
+      if(stagingCount||historyCount||backupCount)fail('V2_COMMIT_EXISTING_ARCHIVE_HISTORY');
       const checked=gate.checkRestoreLedgerCandidate(ledger,incoming,guard);
       output={...checked,liveSchemaVersion:liveState.meta.schemaVersion,
        liveEntranceKeyCount:videoKeys.length,
-       stagingCount,historyCount,lockValidated:true,transactionAborted:true,
+       stagingCount,historyCount,backupCount,lockValidated:true,transactionAborted:true,
        preflightPassed:true,restoreAuthorized:false,archiveSafe:false,
        requiresAtomicCommitCheck:true};
      }catch(error){validationError=error;}
