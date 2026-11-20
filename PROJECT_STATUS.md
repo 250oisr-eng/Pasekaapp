@@ -1,3 +1,13 @@
+## 2026-11-20 — подтверждённые реальные 16 JPEG+YOLO пар Mendeley v6 по файлу пользователя
+
+- Получен user upload `mendeley_v6_detection_links.csv` (4639 B, SHA256 `c90630a59a2eef13cdd4210ba1a4d7b48ff9642e487b2bbac27ce4554c95e8d0`), **16** пар JPG/TXT, по **2** для каждой из 8 исходных групп `_bee_...`. Никаких паролей/токенов. CSV передан в новый Draft #287 branch `test/video-mendeley-v6-user-16-pairs-2026-11-20` поверх #286. Source CSV metadata-only сохранён как `tests/fixtures/mendeley-v6-user-16-pairs.csv`.
+- Точная контрольная сумма CSV подтверждена реальным [GitHub Actions #44769285838](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44769285838), code SHA `8caa641a1e6c6196f2c5a199b67541ddaa076cc1`, **completed/success**. 13 synthetic tests, реальные 32 публичные файла Mendeley v6 успешно скачаны и обработаны в ограниченном isolated runner: **16 JPEG**, все полностью декодируются Pillow, 16 matching YOLO TXT, **113 bee class 0 bbox**, все 16 JPEG SHA256 уникальны. Получен проверенный временный `unassigned` COCO (16 images, 113 annotations) с CC BY 4.0 attribution, temporary files удалены, binary artifacts не публиковались.
+- После фактического чтения создан `tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv` с полученными **16 SHA256 JPG и 16 SHA256 TXT**, программа CI переключена на полный sha-pinned повтор; его успех **ещё нужно подтвердить на final HEAD**, не приравнивать к раннему успеху без пинов.
+- Документ `docs/VIDEO-MENDELEY-V6-16-REAL-PAIR-AUDIT.md` содержит точное состояние, ограничения исходных видео и provenance. Source recording/session independence неизвестна; нет полного датасета 7200, unbiased holdout, real training, детектора, трекера и Android physical benchmark. `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. Main/production/частные видео не изменялись; PR Draft.
+- Следующая задача: проверить финальный exact SHA/CI и отчет по группам, затем расширить реальные original JPEG/YOLO ссылки и установить связь с исходными video recordings для юридически и научно корректного независимого train/test.
+
+---
+
 ## 2026-11-20 — добавлена обязательная атрибуция оригинального Mendeley v6 в COCO
 
 - В `tools/prepare_mendeley_v6_yolo_unassigned.py` расширено только исследовательское поле `info`: `sourceCreator=Tomyslav Sledevic`, DOI, source URL, CC BY 4.0 URL и `modificationNotice` о YOLO→COCO преобразовании. Не меняет group/box logic, train/test, app runtime, storage или video retention. Добавлены проверки полей в существующие COCO regression tests и в новые 13 CSV tests. Результат проверить на exact final SHA, включая Android regression CI и real JPG/TXT stage.
