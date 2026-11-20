@@ -1,3 +1,12 @@
+## Контрольная точка — offline inference evidence и synthetic benchmark (2026-11-20)
+
+- Stacked ветка `test/video-offline-inference-benchmark-2026-11-20` после Draft #259. Новый изолированный `js/offline-inference-benchmark.js` и `tests/offline-inference-benchmark.test.mjs` измеряют лишь время выполнения внедрённого synthetic on-device adapter и проверяют fail-closed; ни реального Android inference, ни modelReady/recognitionSucceeded/cleanupAuthorized.
+- `docs/VIDEO-ANDROID-INFERENCE-EVIDENCE-GATES.md` фиксирует юридические gates весов, отдельные измерения performance/accuracy и ограничения существующих кандидатов. Honey-Bee-Society/honeybee_ml_v1 — image-level classifier с заявленной Apache-2.0, **не** detector/tracker летка; в приложение не добавляется.
+- Следующий шаг: CI нового Draft на точном SHA, затем лицензионно проверенный весовой detector и физическая Android inference-проверка; без реальной модели ledger и deletion остаются fail-closed.
+- Никаких production/merge/пользовательских видео изменений.
+
+---
+
 ## Контрольная точка — Android WASM prerequisites (2026-11-20)
 
 - Поверх Draft #258 создана отдельная тестовая ветка `test/video-android-wasm-capability-2026-11-20`. Добавлен изолированный `js/android-wasm-capability-probe.js` и отрицательные тесты `tests/android-wasm-capability-probe.test.mjs`: read-only WASM validation, опциональные параметры CPU/RAM/worker; отказ при отсутствии WASM. Любой результат **не означает** модель, разрешение лицензии, успешное распознавание или право удаления оригинала.
