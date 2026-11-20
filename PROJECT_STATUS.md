@@ -1,3 +1,12 @@
+## 2026-11-20 — большой этап: офлайн-проверка source-session манифеста (staging)
+
+- Ветка `test/video-source-session-manifest-gate-2026-11-20` основана на Draft #276, не меняет `main`. Добавлены `tools/inspect-source-session-manifest.mjs` и `tests/source-session-manifest.test.mjs` (14 случаев), документ `docs/VIDEO-SOURCE-SESSION-MANIFEST-INSPECTOR.md`.
+- Валидатор проверяет полное соответствие SHA изображений из unassigned COCO, отсутствие дублей и протечки одной заявленной видеосессии между выборками. Заявление provenance **не считается доказанным**: все флаги независимого holdout, лицензии, обучения, модели, распознавания и очистки всегда false. Продукт/IndexedDB/MediaStore/Service Worker не затронуты.
+- Внешняя сверка: LILA подтверждает тип/лицензию набора, но не source-session mapping; VnBeeTracking содержит 5 видео и ground truth, однако ограничен academic noncommercial; BEE24 содержит 36 видео, лицензию конкретного архива предстоит проверить. Эти источники не утверждены для обучения.
+- Тесты на точном SHA и PR CI подтвердить после push. Следующий этап — независимое подтверждение прав и видеосессий реального набора либо законно лицензированный альтернативный источник; не активировать модель/удаление видео до реального Android распознавания.
+
+---
+
 ## Контрольная точка — provenance кадров LILA, 2026-11-20
 
 - #275 exact HEAD `5f12439cd21bc9d8c98b2b2c06c76e8ffdbfb3b9`: Android run #44738340971 completed/success; isolated #44738340889 skipped. Реальная Android inference и обучение не проверялись.
