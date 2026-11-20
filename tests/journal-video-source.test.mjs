@@ -84,3 +84,9 @@ test('both capture and selected video paths use the shared SHA-checked preparer'
  assert.match(html,/const item=await prepareJournalVideoAttachment\(file\);/);
  assert.match(html,/media\.push\(await prepareJournalVideoAttachment\(f\)\);/);
 });
+
+test('journal video preparer is cached for offline PWA use',async()=>{
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.match(sw,/paseka-shell-v317/);
+ assert.match(sw,/'\.\/js\/journal-video-source\.js'/);
+});
