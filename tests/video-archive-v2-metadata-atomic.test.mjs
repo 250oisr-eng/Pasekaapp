@@ -373,3 +373,22 @@ test('recovery without history is not trusted when local schema or revision is d
   db.close();
  }
 });
+
+test('recovery inspector rejects embedded video originals and missing records without touching data',async()=>{
+ for(const modified of [
+  {...state(),records:[{id:'unprocessed',notes:'data:video/mp4;base64,AQID'}]},
+  {...state(),records:[{id:'unprocessed',media:[{kind:'video',data:'data:application/octet-stream;base64,AQID'}]}]},
+  {...state(),records:null}
+ ]){
+  const db=await setup();
+  const tx=db.transaction('main','readwrite');
+  tx.objectStore('main').put(modified,'state');
+  await done(tx);
+  const finding=await api.inspectMetadataRecovery(db,'test-backup',deps);
+  assert.equal(finding.status,'manual_review_required');
+  assert.equal(finding.cleanupAuthorized,false);
+  assert.deepEqual(await read(db,'main','state'),modified);
+  assert.equal(await read(db,'full_backup','v2:test-backup'),undefined);
+  db.close();
+ }
+});
