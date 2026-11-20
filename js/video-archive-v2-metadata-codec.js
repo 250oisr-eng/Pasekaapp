@@ -26,8 +26,9 @@ function assertNoVideoData(value, depth=0, seen=new Set()) {
   if (/^data:(?:video\/[a-z0-9.+-]+|application\/octet-stream)(?:;[^,]*)?,/i.test(value)) fail('V2_STATE_EMBEDDED_VIDEO');
   return;
  }
- if (value===null||typeof value==='number'||typeof value==='boolean') return;
+ if (value===null||typeof value==='boolean'||typeof value==='number'&&Number.isFinite(value)) return;
  if (typeof value!=='object'||seen.has(value)||!(Array.isArray(value)||obj(value))) fail('V2_STATE_INVALID');
+ if (!Array.isArray(value) && Object.getPrototypeOf(value)!==Object.prototype && Object.getPrototypeOf(value)!==null) fail('V2_STATE_INVALID');
  seen.add(value);
  for (const item of Array.isArray(value)?value:Object.values(value)) assertNoVideoData(item,depth+1,seen);
  seen.delete(value);
@@ -39,6 +40,15 @@ function stateAndLedger(state, ledger, guard) {
  // handled by a later, independently tested v2 video transport implementation.
  guard.checkCandidateVideoPayloads(ledger,[]);
  assertNoVideoData(state);
+ // Embedded journal media must be explicitly classified. A video payload
+ // without a recognized data:video prefix is still a binary until proven otherwise.
+ if (Array.isArray(state.records)) for (const record of state.records) {
+  if (Array.isArray(record?.media)) for (const media of record.media) {
+   const type = String(media?.type || media?.mimeType || '');
+   if ((type==='video'||type.startsWith('video/')) && media?.data != null)
+    fail('V2_STATE_EMBEDDED_VIDEO');
+  }
+ }
 }
 function checkManifest(manifest, actualSize, manifestLength) {
  if (!allowed(manifest,['format','version','backupId','createdAt','schemaVersion','entries'])||
