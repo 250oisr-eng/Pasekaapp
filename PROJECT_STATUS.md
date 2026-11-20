@@ -1,3 +1,12 @@
+## Контрольная точка — локальный YOLO-to-COCO tool (2026-11-20)
+
+- PR #265 остаётся Draft; на его точном SHA `eaa667452da762fcc0c96dc1b68e0cc3348dda38` workflow runs при проверке не найдены (это не успех). На основе #265 создана отдельная ветка `feat/video-offline-coco-preparation-2026-11-20`.
+- Реальный инструмент `tools/prepare-bee-coco.mjs` конвертирует normalized YOLO bbox в COCO train/validation/test JSON из вручную помещённых разрешённых images. Проверяет manifest, изоляцию source video ID/SHA, координаты bbox, реальные SHA-256 байтов изображения и выходы без перезаписи. Добавлены `tests/prepare-bee-coco.test.mjs` и `docs/VIDEO-OFFLINE-COCO-DATA-PREPARATION.md`. Изолированное локальное испытание синтетических данных: **6/6 passed**, общий репозиторный CI нового PR ещё не подтверждён.
+- Сверка источников: YOLOX source Apache-2.0; права pretrained checkpoint отдельно неясны (upstream issue #1915). Mendeley Data v5 dataset card CC BY 4.0, статья PMC10831503 CC BY-NC-ND; реальные архивные notices/авторство перед обучением обязательны. Не считать наличие CLI реальным обучением или физическим Android inference.
+- Нет скачивания данных, весов, использования видео пользователя, network, production, merge или cleanup. Следующая задача — CI на точном SHA и фактический разрешённый датасет + обучение с нуля / ONNX / измерения.
+
+---
+
 ## Контрольная точка — путь к бесплатному детектору без Ultralytics checkpoint (2026-11-20)
 
 - Создан отдельный docs-only этап поверх PR #264: `docs/VIDEO-PERMISSIVE-DETECTOR-TRAINING-PATH.md`. Проанализирован вариант обучения YOLOX (код Apache-2.0, поддержка ONNX) на наборах с заявленной CC BY 4.0 и бесплатном ограниченном Kaggle GPU. Это **не утверждённая модель**, не доказательство лицензии любых весов и не выполненное обучение.
