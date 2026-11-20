@@ -40,7 +40,12 @@ function inspectSnapshot(v,guard){
  const issue=name=>issues.add(name);
  const add=(store,source,id,sha,bytes,blob)=>{
   if(!['entrance_media','record_media'].includes(source)||!key(id)){
-   issue('unidentified_copy');return;
+   // Preserve the copy count even when a legacy capture path did not assign
+   // a stable ID. This copy is intentionally unmatchable to recognition.
+   issue('unidentified_copy');
+   copies.push({store,identity:null,source:source||null,videoId:null,
+    sha256:null,bytes:null,actualBlobSize:Number.isSafeInteger(blob?.size)?blob.size:null});
+   return;
   }
   if(sha!=null&&!hex(sha))issue('invalid_copy_evidence');
   if(bytes!=null&&(!Number.isSafeInteger(bytes)||bytes<1))issue('invalid_copy_evidence');
