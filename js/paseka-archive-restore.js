@@ -9,6 +9,16 @@ function fail(code, message) {
   error.code = code;
   throw error;
 }
+function assertLegacyArchiveRecognitionLedger(value) {
+  if (value == null) return;
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.version !== 1 || !Array.isArray(value.entries)) {
+    fail('VIDEO_LEDGER_UNVERIFIED', 'Recognition history cannot be validated. Archive restore is blocked.');
+  }
+  if (value.entries.length) {
+    fail('VIDEO_LEDGER_NOT_PRESERVED', 'This archive version does not preserve recognized video history. Restore is blocked.');
+  }
+}
 function ensureStores(db) {
   if (!db || !db.objectStoreNames || !db.objectStoreNames.contains(STAGING_STORE) || !db.objectStoreNames.contains(HISTORY_STORE)) {
     fail('ARCHIVE_STAGING_UNAVAILABLE', 'The local database does not support staged archive imports. Update the application and reopen it.');
@@ -439,6 +449,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       const historyStore = tx.objectStore(HISTORY_STORE);
       const reads = {
         currentState: main.get('state'),
+        recognitionLedger: main.get('video_recognition_ledger_v1'),
         currentVideos: media.getAll(),
         session: stagingStore.get(sessionId),
         stagedRecords: stagingStore.index('sessionId').getAll(sessionId),
@@ -449,6 +460,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       const process = () => {
         try {
           const currentState = values.currentState || null;
+          assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
           const session = values.session;
           const records = values.stagedRecords || [];
@@ -746,6 +758,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       // metadata checks and mutations run while this write transaction is open.
       const reads = {
         currentState: main.get('state'),
+        recognitionLedger: main.get('video_recognition_ledger_v1'),
         currentVideos: media.getAll(),
         history: historyStore.get(backupId),
         rollbackSession: stagingStore.get(rollbackSessionId),
@@ -757,6 +770,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const process = () => {
         try {
           const currentState = values.currentState || null;
+          assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = values.rollbackRecords || [];
