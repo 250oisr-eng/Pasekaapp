@@ -1,3 +1,12 @@
+## Контрольная точка — единая read-only проверка protected stores перед v2 restore (2026-11-20)
+
+- Поверх PR #223 создана отдельная Draft-ветка `feat/video-archive-v2-restore-db-preflight-2026-11-20`. Изолированный `js/video-archive-v2-restore-db-preflight.js` читает в одной readonly IndexedDB-транзакции `main/state`, `main/video_recognition_ledger_v1`, ключи `entrance_media`, количество `archive_staging` и `archive_history`; затем вызывает чистый v2 ledger restore gate PR #223. Blob не выгружаются целиком.
+- Пока полноценная безопасность staging/history v2 не реализована, при наличии **хотя бы одной** staged/history записи проверка отказывает, ничего не удаляет и не меняет. При отсутствующем ledger, неподдерживаемой схеме state, недостающих stores, конфликте истории распознавания также fail closed.
+- Добавлены `tests/video-archive-v2-restore-db-preflight.test.mjs`: один readonly transaction, обнаружение защищённых staging Blob и history rollback, сохранность данных после отказа, отсутствие ledger, потеря tombstone, отсутствие store и неверный state. Результат всё ещё `restoreAuthorized:false`, `archiveSafe:false`, `requiresAtomicCommitCheck:true`.
+- Это **не** write-транзакция, не текущий import/rollback и не разрешение удаления. Нужен разработанный и протестированный атомарный commit-guard без потери истории, затем Android физический тест. Итоговый CI проверить отдельно.
+
+---
+
 ## Контрольная точка — изолированный preflight восстановления PASEKA02 (2026-11-20)
 
 - Создана зависимая Draft-ветка `feat/video-archive-v2-restore-ledger-gate-2026-11-20` поверх PR #222. Добавлен чистый `js/video-archive-v2-restore-gate.js`: сравнивает текущий и импортируемый ledger распознавания, отказывает при потере, переписывании или понижении статуса существующих результатов/tombstone; проверяет каждый кандидат исходного видео по `(source,videoId)` и полному SHA-256 против всей известной истории, включая попытки подставить тот же исходник с новым videoId.
