@@ -156,3 +156,37 @@ test('missing codec, write-lock gate or signature never produces an import appro
  await fail(inspect(db,file,d),'V2_DRY_RUN_LOCK_CONTRACT_INVALID');
  db.close();
 });
+
+test('full_backup protected copy blocks complete file dry-run and is not destroyed',async()=>{
+ const db=await setup(),file=await build(archiveInput());
+ const tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({blob:new Blob(['old original'])},'previous');
+ await done(tx);
+ await fail(inspect(db,file),'V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
+ const verify=db.transaction('full_backup','readonly');
+ const old=await new Promise((resolve,reject)=>{
+  const r=verify.objectStore('full_backup').get('previous');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ assert.equal(old.blob.size,12);db.close();
+});
+test('recognition arriving during final fingerprint hash is caught by write-lock gate',async()=>{
+ const db=await setup(),file=await build(archiveInput()),d=deps();
+ let wrote=false;
+ d.sha={...root.PasekaSha256,async hashBlobHex(blob,opts){
+  const original=await root.PasekaSha256.hashBlobHex(blob,opts);
+  if(!wrote){
+   wrote=true;
+   const tx=db.transaction('main','readwrite');
+   tx.objectStore('main').put({version:1,entries:[{
+    source:'record_media',videoId:'recognized-journal',resultId:'recognition-result',
+    sourceSha256:'f'.repeat(64),sourceBytes:3,sourceEvidenceVersion:1,
+    recognizedAt:'2026-11-20T00:00:00Z',cleanupState:'deleted',result:{observations:['ok']}
+   }]},'video_recognition_ledger_v1');
+   await done(tx);
+  }
+  return original;
+ }};
+ await fail(inspect(db,file,d),'V2_RESTORE_LEDGER_HISTORY_LOST');
+ db.close();
+});
