@@ -1597,3 +1597,47 @@ test('rollback rejects snapshot metadata changed during asynchronous state valid
   assert.equal(preservedSnapshot.record.hiveId, 'tampered-hive', 'the suspect snapshot must remain available for diagnosis');
   db.close();
 });
+
+test('interrupted staged session cannot be finalized after recognition became durable',async()=>{
+ const db=await openTestDb('paseka-stage-finalize-recognition-ledger');
+ const archive=await makeArchive('backup-finalize-recognition-ledger');
+ const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+ const header=await get(db,'archive_staging',staged.session.sessionId);
+ header.status='staging';delete header.completedAt;
+ await put(db,'archive_staging',header);
+ const ledger={version:1,entries:[{videoId:'v1',source:'entrance_media',resultId:'result1',cleanupState:'blocked_archive_safety'}]};
+ await put(db,'main',ledger,'video_recognition_ledger_v1');
+ await assert.rejects(
+  Restore.finalizeStagedArchive(db,staged.session.sessionId,webcrypto,Archive,()=>true),
+  {code:'VIDEO_LEDGER_NOT_PRESERVED'});
+ assert.equal((await get(db,'archive_staging',staged.session.sessionId)).status,'staging');
+ assert.ok(await get(db,'archive_staging',staged.session.sessionId+':video:video-1'));
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger);
+ db.close();
+});
+test('a previously ready staged archive cannot be newly verified as safe after recognition',async()=>{
+ const db=await openTestDb('paseka-stage-ready-recognition-ledger');
+ const archive=await makeArchive('backup-ready-recognition-ledger');
+ const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+ await put(db,'main',{version:1,entries:[{videoId:'v1',source:'entrance_media',resultId:'result1',cleanupState:'deleted'}]},'video_recognition_ledger_v1');
+ await assert.rejects(Restore.finalizeStagedArchive(db,staged.session.sessionId,webcrypto,Archive,()=>true),{code:'VIDEO_LEDGER_NOT_PRESERVED'});
+ assert.equal((await get(db,'archive_staging',staged.session.sessionId)).status,'ready');
+ db.close();
+});
+test('recognition after the last staged file blocks the final ready status update',async()=>{
+ const db=await openTestDb('paseka-stage-ready-race');
+ const archive=await makeArchive('backup-last-staged-ready-race');
+ let ledgerSave=null;
+ await assert.rejects(
+  Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true,{
+   onProgress(){
+    ledgerSave=put(db,'main',{version:1,entries:[{videoId:'v1',source:'entrance_media',resultId:'result',cleanupState:'blocked_archive_safety'}]},'video_recognition_ledger_v1');
+   }
+  }),{code:'VIDEO_LEDGER_NOT_PRESERVED'});
+ await ledgerSave;
+ const sessions=await getAll(db,'archive_staging');
+ assert.equal(sessions.filter(item=>item.kind==='session').length,1);
+ assert.equal(sessions.find(item=>item.kind==='session').status,'failed');
+ assert.equal(sessions.filter(item=>item.kind==='video').length,1,'staged bytes remain for explicit safe cleanup');
+ db.close();
+});
