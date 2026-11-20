@@ -1,3 +1,10 @@
+## Этап — временная полнота tracking evidence (2026-11-20)
+
+- На базе #255 добавлен test-only `js/video-temporal-coverage.js`: без явно заданной policy `maxGapSec/minObservations`, достаточной частоты наблюдений и стабильных track IDs нельзя формально оценить даже временную полноту. Разрозненные кадры в 15/30/45 секунде из минутного видео не подтверждают одной и той же пчелы.
+- `tests/video-temporal-coverage.test.mjs`: sparse gap, missing policy, смена ID, timestamps, no UI/network. Даже успешный temporal check возвращает `identityVerified:false`, `recognitionSucceeded:false`, `cleanupAuthorized:false`. Контракт `docs/VIDEO-TEMPORAL-TRACK-COVERAGE.md`.
+- Отдельный CI exact SHA требуется. Нет модели/inference, видео пользователя, миграций, удаления/production.
+
+---
 ## Этап — геометрическая оценка пересечения летка без ложного recognition (2026-11-20)
 
 - Поверх #254 создана ветка `feat/video-entrance-crossing-evidence-2026-11-20`: `js/video-crossing-evidence.js` и unit tests. Без явной калибровки линии, её стороны inside/outside и временно монотонных наблюдений направление не определяется. При неоднозначности (несколько пересечений, точка на границе) — unknown/fail-closed.
