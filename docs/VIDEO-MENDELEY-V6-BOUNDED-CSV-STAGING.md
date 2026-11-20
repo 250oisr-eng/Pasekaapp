@@ -1,3 +1,7 @@
+## Машинно-читаемая атрибуция CC BY 4.0
+
+В `build_unassigned` дополнительно включены `info.sourceCreator=Tomyslav Sledevic`, `info.sourceDoi=10.17632/8gb9r2yhfc.6`, `info.sourceDatasetUrl`, `info.sourceLicense=CC BY 4.0`, `info.sourceLicenseUrl` и `info.modificationNotice` (YOLO normalized → COCO pixel bounding boxes; изображения не изменены). На сохранённый COCO JSON эта атрибуция распространяется автоматически. Регрессионные проверки запрещают её незаметную потерю. Это не лицензия на неаудированные pretrained model weights и не разрешение на изъятие приватных видеоматериалов.
+
 # Mendeley v6 — ограниченный пакетный импорт оригинальных JPG+YOLO из CSV
 
 Дата: 2026-11-20. Статус: **tested research-only staging**. Dataset DOI: [10.17632/8gb9r2yhfc.6](https://doi.org/10.17632/8gb9r2yhfc.6), автор **Tomyslav Sledevic**, данные CC BY 4.0; при распространении производных материалов обязательны атрибуция и маркировка изменений.
