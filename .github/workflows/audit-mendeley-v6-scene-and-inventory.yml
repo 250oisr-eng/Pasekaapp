@@ -4,6 +4,9 @@ on:
     paths:
       - 'tools/audit_mendeley_v6_original_scene_similarity.py'
       - 'tools/merge_mendeley_v6_pinned_manifests.py'
+      - 'tools/audit_mendeley_v6_grouped_split_proposal.py'
+      - 'tests/test_audit_mendeley_v6_grouped_split_proposal.py'
+      - 'tests/fixtures/mendeley-v6-group-disjoint-NOT-TRAINING.json'
       - 'tests/test_audit_mendeley_v6_original_scene_similarity.py'
       - 'tests/test_merge_mendeley_v6_pinned_manifests.py'
       - 'tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv'
@@ -25,6 +28,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_audit_mendeley_v6_original_scene_similarity.py' -v
       - name: Offline negative-security regressions (manifest accumulation)
         run: python -m unittest discover -s tests -p 'test_merge_mendeley_v6_pinned_manifests.py' -v
+      - name: Offline negative-security regressions (group-disjoint proposal)
+        run: python -m unittest discover -s tests -p 'test_audit_mendeley_v6_grouped_split_proposal.py' -v
       - name: Actual pinned public JPGs and source-scene similarity only, no originals stored
         run: |
           python tools/audit_mendeley_v6_original_scene_similarity.py \
@@ -86,7 +91,30 @@ jobs:
                 json.dumps({"images":16,"missing":7184,
                             "trainValTestSplitCreated":False,"cleanupAuthorized":False}))
           PY
+      - name: Audit structurally disjoint eight-group proposal without enabling train/val/test
+        run: |
+          python tools/audit_mendeley_v6_grouped_split_proposal.py             "${RUNNER_TEMP}/mendeley-inventory.json"             tests/fixtures/mendeley-v6-group-disjoint-NOT-TRAINING.json             > "${RUNNER_TEMP}/split-structure.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads((Path(os.environ["RUNNER_TEMP"])/"split-structure.json").read_text())
+          assert d["publishedFoldersStructurallyDisjoint"] is True
+          assert d["inventoryImages"]==16
+          assert d["publishedExpectedImages"]==7200 and d["missingImages"]==7184
+          assert d["perProposedSplit"]["train"]["inventoryImages"]==10
+          assert d["perProposedSplit"]["validation"]["inventoryImages"]==2
+          assert d["perProposedSplit"]["test"]["inventoryImages"]==4
+          for flag in ("sourceVideoRecordingHashesVerified","frameToRecordingProvenanceVerified",
+                       "actualPhysicalHivesIndependenceVerified","independentHoldoutVerified",
+                       "splitReadyForTraining","trainingAuthorized","modelApproved",
+                       "recognitionSucceeded","cleanupAuthorized"):
+              assert d[flag] is False,flag
+          print("VERIFIED_BLOCKED_GROUP_ONLY_SPLIT",
+                json.dumps({"candidate": "structurally_disjoint_not_training",
+                            "images":16,"missing":7184,
+                            "independentHoldoutVerified":False,"trainingAuthorized":False}))
+          PY
       - name: Delete temporary metadata reports (always)
         if: always()
         run: |
-          rm -f -- "${RUNNER_TEMP}/real-scene.json" "${RUNNER_TEMP}/mendeley-inventory.json"
+          rm -f -- "${RUNNER_TEMP}/real-scene.json" "${RUNNER_TEMP}/mendeley-inventory.json" "${RUNNER_TEMP}/split-structure.json"
