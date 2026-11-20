@@ -36,7 +36,7 @@ function checkRestoreLedgerCandidate(currentLedger,incoming,guard){
  const allRecognized=[...currentLedger.entries,...incoming.ledger.entries];
  const recognizedHashes=new Set(allRecognized.map(entry=>entry.sourceSha256));
  const recognizedKeys=new Set(allRecognized.map(entry=>entry.source+':'+entry.videoId));
- const seen=new Set();
+ const seen=new Set(),pendingByKey=new Map();
  for(const video of incoming.pendingVideos){
   if(!object(video)||!['entrance_media','record_media'].includes(video.source)||
      !validId(video.videoId)||!validHash(video.sourceSha256)||
@@ -45,6 +45,7 @@ function checkRestoreLedgerCandidate(currentLedger,incoming,guard){
   const key=video.source+':'+video.videoId;
   if(seen.has(key))fail('V2_RESTORE_PENDING_DUPLICATE');
   seen.add(key);
+  pendingByKey.set(key,video);
   if(recognizedKeys.has(key)||recognizedHashes.has(video.sourceSha256))
    fail('V2_RESTORE_RECOGNIZED_ORIGINAL');
  }
@@ -70,7 +71,14 @@ function checkRestoreLedgerCandidate(currentLedger,incoming,guard){
    // original data must not be restored from a previous backup.
    if((recognizedKeys.has(key)||validHash(media.sourceSha256)&&recognizedHashes.has(media.sourceSha256))&&media.data!=null)
     fail('V2_RESTORE_RECOGNIZED_ORIGINAL');
-   if(media.data!=null&&!seen.has(key))fail('V2_RESTORE_UNLISTED_RECORD_VIDEO');
+   if(media.data!=null){
+    if(typeof media.data!=='string'||!/^data:(?:video\/[a-z0-9.+-]+|application\/octet-stream);base64,/i.test(media.data))
+     fail('V2_RESTORE_RECORD_VIDEO_ENCODING');
+    const matched=pendingByKey.get(key);
+    if(!matched)fail('V2_RESTORE_UNLISTED_RECORD_VIDEO');
+    if(media.sourceSha256!==matched.sourceSha256||media.sourceBytes!==matched.sourceBytes)
+     fail('V2_RESTORE_RECORD_SOURCE_MISMATCH');
+   }
   }
  }
  for(const video of incoming.pendingVideos){
