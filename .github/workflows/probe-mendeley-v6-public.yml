@@ -1,0 +1,19 @@
+name: Probe Mendeley v6 public metadata (no media)
+on:
+  pull_request:
+    paths:
+      - 'tools/probe_mendeley_v6_public.py'
+      - 'tests/test_probe_mendeley_v6_public.py'
+      - '.github/workflows/probe-mendeley-v6-public.yml'
+permissions:
+  contents: read
+jobs:
+  metadata-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline security regressions
+        run: python3 -m unittest discover -s tests -p 'test_probe_mendeley_v6_public.py' -v
+      - name: Six bounded public GET requests, no auth or archive download
+        run: python3 tools/probe_mendeley_v6_public.py

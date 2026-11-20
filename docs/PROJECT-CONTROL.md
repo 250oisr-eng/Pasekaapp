@@ -1,3 +1,7 @@
+## 2026-11-20 — доступ к исходному Mendeley v6 набору
+
+- `VIDEO-MENDELEY-V6-ACCESS-AUDIT.md` — шесть HTTP 401 официального API, ограниченная сетевая диагностика без скачивания данных, отличие оригинала v6 от Roboflow v5 и один конкретный шаг получения минимального оригинального образца.
+
 ## 2026-11-20 — главный исследовательский источник для видео летка
 
 - `VIDEO-MENDELEY-V6-DETECTION-TRAINING-PATH.md` — первичный Mendeley v6 dataset (CC BY 4.0, восемь улейных коллекций), offline YOLO-to-unassigned COCO, недоказанные source video/session IDs, план честного детектора/трекинга и Android inference.
