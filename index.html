@@ -529,7 +529,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <input id="entranceVideoInput" type="file" accept="video/*" capture="environment" onchange="handleEntranceVideoFile(this.files);this.value='';">
   <div id="entranceVideoStatus" class="muted" aria-live="polite">Выбери улей, затем сними видео или выбери файл из галереи.</div>
  </div>
- <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Оригиналы хранятся отдельно от журнала и JSON-резервной копии. Записи ставятся в локальную очередь. Сервер анализа ещё не подключён: передача и автоматическое удаление пока отключены.</div><div id="entranceVideoList"></div></div>
+ <div class="card"><div class="row"><b>Локальные видеозаписи</b><button type="button" onclick="refreshEntranceVideos()">Обновить</button></div><div class="muted">Видео летков временно хранятся на телефоне до успешного распознавания. Сейчас сервер анализа ещё не подключён, поэтому автоматическое удаление пока не работает. После подтверждённого распознавания оригинал должен быть удалён; результаты анализа остаются в журнале. В резервных копиях могут оставаться старые оригиналы — их очистка ещё не реализована.</div><div id="entranceVideoList"></div></div>
 </section>
 <section id="hiveDetail" class="panel"><div id="selectedHivePanel" style="display:none">
   <div class="card hive-summary-card">
@@ -1330,7 +1330,7 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. До успешного распознавания оригинал сохраняется; сервер анализа и автоматическое удаление ещё не подключены.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
@@ -2735,7 +2735,7 @@ async function addCapturedVideo(file){
   const item={kind:'video',name:file.name||'Видео осмотра.mp4',type:videoTypeFor(file),data:await fileData(file)};
   pendingRecordMedia.push(item);
   const v=document.createElement('video');v.controls=true;v.preload='metadata';v.playsInline=true;v.src=item.data;$('mediaPreview').appendChild(v);
-  const note=document.createElement('div');note.className='media-note';note.textContent='Видео добавлено · '+(file.size/1024/1024).toFixed(1)+' МБ';$('mediaPreview').appendChild(note);
+  const note=document.createElement('div');note.className='media-note';note.textContent='Видео добавлено для временного хранения до распознавания (автоудаление ещё не подключено) · '+(file.size/1024/1024).toFixed(1)+' МБ';$('mediaPreview').appendChild(note);
  }catch(e){alert('Не удалось прочитать видео: '+(e.message||e))}
  $('captureVideo').value='';
 }
