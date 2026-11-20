@@ -229,6 +229,37 @@ def jpeg_header_dimensions(raw):
     raise SampleRejected("jpeg_sof_missing")
 
 
+
+
+def png_header_dimensions(raw):
+    # Verify PNG signature, IHDR and its CRC; pixels are NOT decoded.
+    if len(raw)<33 or raw[:8]!=b"\x89PNG\r\n\x1a\n":
+        raise SampleRejected("png_magic_invalid")
+    if raw[8:12]!=b"\x00\x00\x00\x0d" or raw[12:16]!=b"IHDR":
+        raise SampleRejected("png_ihdr_invalid")
+    expected=int.from_bytes(raw[29:33],"big")
+    if zlib.crc32(raw[12:29])!=expected:
+        raise SampleRejected("png_ihdr_crc_invalid")
+    width=int.from_bytes(raw[16:20],"big")
+    height=int.from_bytes(raw[20:24],"big")
+    bitdepth,colortype,compression,filter_method,interlace=raw[24:29]
+    allowed={0:(1,2,4,8,16),2:(8,16),3:(1,2,4,8),4:(8,16),6:(8,16)}
+    if (not 0<width<=20000 or not 0<height<=20000 or
+        colortype not in allowed or bitdepth not in allowed[colortype] or
+        compression!=0 or filter_method!=0 or interlace not in (0,1)):
+        raise SampleRejected("png_dimensions_or_format_invalid")
+    return width,height
+
+
+def image_header_dimensions(raw,name):
+    lower=name.lower()
+    if lower.endswith((".jpg",".jpeg")):
+        return jpeg_header_dimensions(raw)
+    if lower.endswith(".png"):
+        return png_header_dimensions(raw)
+    raise SampleRejected("unsupported_image_extension")
+
+
 def inspect_public(opener=None):
     reader=BoundedRanges(opener)
     entries=inspect_directory(reader)
