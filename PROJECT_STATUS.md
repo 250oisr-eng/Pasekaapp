@@ -1,3 +1,10 @@
+## Этап — сохранность ID/Blob при переходах очереди видео (2026-11-20)
+
+- На основе Draft #246 создана ветка `fix/video-queue-source-integrity-2026-11-20`. В `js/entrance-analysis.js` защищён `transitionVideoQueue`: из `details` больше нельзя подменить `id`, `hiveId`, `bytes`, `blob`, `blobSha256`, result/cleanup flags, а переход в `completed` без доказанного video recognizer безусловно отклоняется с `recognition_evidence_required`.
+- `tests/entrance-analysis.test.mjs` проверяет прямую попытку подмены original/source и fake completed; `docs/VIDEO-QUEUE-SOURCE-INTEGRITY.md` фиксирует границу API. Кодовый SHA `f16e38b759115eff60157ea16d1dbb8d1d2db98a`, тестовый SHA `4066397205cd48551595b0b7550ca2b7ca70c2ef`.
+- Нет активного распознавания, нет IDB writes, изменений пользовательских данных, удаления/публикации. Новую ветку необходимо оформить Draft PR и проверить CI точного HEAD.
+
+---
 ## Проверенный CI — staging локальных кадров и fail-closed delete helper (2026-11-20)
 
 - Draft #246 проверен на code/test/docs SHA `9ca75dfd17bbddc53ff4f5aff0031f917c666b6f`: [Android #44708736344](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44708736344) **completed/success** (regression tests, Build Debug APK, Upload APK); [isolated APK #44708736326](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44708736326) **completed/skipped**. Physical Android не проверен.
