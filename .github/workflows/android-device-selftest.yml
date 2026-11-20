@@ -12,6 +12,7 @@ on:
       - test/pr194-native-negative-paths-2026-11-19
       - test/manual-android-offline-archive-2026-11-19
       - test/win11-manual-agent-report-2026-11-19
+      - fix/win11-selftest-saved-report-oneclick-2026-11-20
   workflow_dispatch:
 
 concurrency:
