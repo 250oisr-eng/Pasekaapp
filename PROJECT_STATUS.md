@@ -1,3 +1,13 @@
+## 2026-11-20 — реальная геометрия 113 пчёл при входах 640/960/1280 (Draft #288)
+
+- Родительский Draft #287 final HEAD `b0d39ec04f8410f597d341c8461cdeec835fb0f6`: 16 original JPG+16 YOLO TXT SHA-pinned source CI #44770020180 **completed/success** и Android #44770020236 **completed/success**; isolated archive #44770020092 **completed/skipped**. Эти проверки не включают обученную модель.
+- Новый Draft #288 `test/video-mendeley-v6-real-bbox-scale-audit-2026-11-20`: `tools/audit_mendeley_v6_real_box_scale.py` считывает только **16** оригинальных public YOLO TXT с SHA pins из `tests/fixtures/mendeley-v6-user-16-pairs-pinned.csv`, не скачивает повторно JPG и не трогает видео пользователя. Подсчитаны размеры **113** валидных bee bbox. 11 synthetic tests + real label geometry job #44771000596 на code SHA `ca9c6de7bcbaaaff04acaab594f06b983be6b2a9` прошли необходимые steps; финальный CI на новом docs HEAD проверить отдельно.
+- Исходный 1920×1080 min bbox shorter side **20.001 px**, p10 **33 px**, медиана **49 px**. При aspect-preserving letterbox 640/960/1280 median shorter side **16.333 / 24.5 / 32.667 px**; min side менее 16px — **53/113**, **10/113**, **3/113** соответственно. Этот риск потери пространственной детализации требует реального сравнения режимов 640 и 960 (1280 по производительности); НЕ является precision/recall, FPS, удачным training run или выбором production веса.
+- В статье о наборе исходные видео 50 fps и кадры извлечены из этих записей; source recording IDs/SHA каждой группы всё ещё неизвестны, random train/test split по соседним кадрам недопустим. Детально `docs/VIDEO-MENDELEY-V6-REAL-BOX-GEOMETRY.md`.
+- Следующий практический этап: получить расширенную исходную выборку и source-session mapping; обучить лицензированную compact модель на независимом holdout, измерить accuracy и offline Android. `trainingAuthorized=false`, `detectorQualityMeasured=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. Main, production, пользовательские видео не изменять и PR не объединять.
+
+---
+
 ## 2026-11-20 — повторный SHA-pinned real v6 sample и обнаруженный дисбаланс аннотаций
 
 - На SHA `e22ba60dc6672d76c3fec03f47998cf37547ba7f`: [live 16/8 pinned CI #44769784227](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44769784227) **completed/success**; 13 synthetic тестов, повторно скачаны 16 original JPEG + 16 TXT и полностью декодированы, все **32** original SHA совпали с опубликованным внутри Draft #287 pinned manifest, `sourceHashesPinnedByManifest=true` для всех 16. COCO `unassigned` содержит 16 images, 113 bee bbox. Изображения и временный COCO очищены с runner, без binary artifacts.
