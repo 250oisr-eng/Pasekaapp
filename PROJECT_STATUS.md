@@ -1,3 +1,14 @@
+## Контрольная точка — проверка #260 и аудит весов (2026-11-20)
+
+- PR #259 exact SHA `9f9124c3c0e48e042c74ef3c23f7673018bb25e0`: Android workflow #44714109608 **completed/success** (regression, debug APK build/upload), isolated #44714109686 **skipped**.
+- PR #260 первый SHA `2b8aebb612bcb20c54abb62bbff4d5aa723eb0a3`: workflow #44714701652 **failure** — один тест aborted-case не передавал injected clock, поэтому получал `invalid_benchmark_options` вместо `aborted`; Android build/upload skipped.
+- Тестовая фикстура исправлена (без изменения runtime) в SHA `0a2ecdfb97cf325f9abf85c3721b1fd29fdcaab3`. Workflow #44714941257 был **cancelled** после дополнительного документационного изменения, это не успех и не failure тестов.
+- Дополнен `docs/VIDEO-ANDROID-INFERENCE-EVIDENCE-GATES.md`: реальные опубликованные detector weights `mattnudi/bee-detection` и `maryammeda/apiarist-honey-bee-detector` остаются кандидатами; их веса/обязательства лицензий, ONNX Android экспорт и точность tracking не проверены.
+- Финальные CI на текущем HEAD надо сверить отдельно; нельзя объявлять проверку по прежним SHA. Нет активного model inference, ledger-recognition или cleanup. Следующее — licence provenance audit конкретного weight artifact, затем Android benchmark, только после доказанного успеха source-bound recognition.
+- `main`, production и пользовательские исходники не изменены.
+
+---
+
 ## Контрольная точка — offline inference evidence и synthetic benchmark (2026-11-20)
 
 - Stacked ветка `test/video-offline-inference-benchmark-2026-11-20` после Draft #259. Новый изолированный `js/offline-inference-benchmark.js` и `tests/offline-inference-benchmark.test.mjs` измеряют лишь время выполнения внедрённого synthetic on-device adapter и проверяют fail-closed; ни реального Android inference, ни modelReady/recognitionSucceeded/cleanupAuthorized.
