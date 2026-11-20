@@ -2732,7 +2732,7 @@ async function addCapturedVideo(file){
  try{
   const duration=await getVideoDuration(file);
   if(duration>40){alert('Видео длится '+duration.toFixed(1)+' сек. Максимальная длительность — 40 секунд. Выбери или сними более короткий ролик.');return}
-  const item={kind:'video',name:file.name||'Видео осмотра.mp4',type:videoTypeFor(file),data:await fileData(file)};
+  const item={kind:'video',videoId:uid(),name:file.name||'Видео осмотра.mp4',type:videoTypeFor(file),data:await fileData(file)};
   pendingRecordMedia.push(item);
   const v=document.createElement('video');v.controls=true;v.preload='metadata';v.playsInline=true;v.src=item.data;$('mediaPreview').appendChild(v);
   const note=document.createElement('div');note.className='media-note';note.textContent='Видео добавлено для временного хранения до распознавания (автоудаление ещё не подключено) · '+(file.size/1024/1024).toFixed(1)+' МБ';$('mediaPreview').appendChild(note);
@@ -2786,7 +2786,7 @@ $('recordForm').onsubmit=async e=>{
    else if(f.type.startsWith('video/')||/\.(mp4|m4v|mov|webm|3gp)$/i.test(f.name)){
     const duration=await getVideoDuration(f);
     if(duration>40){alert('Видео «'+f.name+'» длится '+duration.toFixed(1)+' сек. Максимум — 40 секунд. Запись не сохранена.');return}
-    media.push({kind:'video',name:f.name,type:videoTypeFor(f),data:await fileData(f)});
+    media.push({kind:'video',videoId:uid(),name:f.name,type:videoTypeFor(f),data:await fileData(f)});
    }
   }
  }catch(err){alert('Не удалось прочитать вложение: '+(err?.message||err)+'. Запись не сохранена, форма оставлена открытой.');return}
