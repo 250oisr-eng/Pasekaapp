@@ -205,11 +205,13 @@ test('video queue transitions are explicit and reject illegal state changes', ()
   assert.equal(entrance.transitionVideoQueue(retry.record,'uploading').ok,true);
 });
 
-test('original video can be deleted only after completed analysis, persisted result and server confirmation', () => {
-  const base={status:'completed',resultPersisted:true,serverDeleteConfirmed:true};
-  assert.equal(entrance.canDeleteVideoOriginal(base),true);
-  assert.equal(entrance.canDeleteVideoOriginal({...base,resultPersisted:false}),false);
-  assert.equal(entrance.canDeleteVideoOriginal({...base,serverDeleteConfirmed:false}),false);
-  assert.equal(entrance.canDeleteVideoOriginal({...base,status:'analyzing'}),false);
-  assert.equal(entrance.canDeleteVideoOriginal({status:'failed_retryable',resultPersisted:true,serverDeleteConfirmed:true}),false);
+test('legacy deletion eligibility helper never authorizes removal based on queue or server flags', () => {
+ const candidates=[
+  {status:'completed',resultPersisted:true,serverDeleteConfirmed:true},
+  {status:'completed',resultPersisted:true,serverDeleteConfirmed:true,cleanupAuthorized:true},
+  {status:'completed',resultPersisted:true,serverDeleteConfirmed:true,cleanupState:'cleanup_committed'},
+  {status:'analyzing',resultPersisted:true,serverDeleteConfirmed:true},
+  null,{},undefined
+ ];
+ for(const candidate of candidates)assert.equal(entrance.canDeleteVideoOriginal(candidate),false);
 });
