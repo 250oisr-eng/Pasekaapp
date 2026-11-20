@@ -1,3 +1,14 @@
+## Контрольная точка — попытка получить Mendeley v6 metadata через отдельный CI (2026-11-20)
+
+- Main подтверждён через GitHub search commits: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, напрямую не изменялся. Draft #269 SHA `7048610673f882901b364eaafacf7d96ad3f83b4`: Android workflow #44731361433 **completed/success**, isolated #44731361453 **skipped**.
+- Попытки получить `https://api.data.mendeley.com/datasets/8gb9r2yhfc?version=6` / zip metadata из локального контейнера вновь завершились DNS-ошибкой, web JSON также недоступен. Реальный архив/веса/лицензии файлов по-прежнему **не получены**.
+- В новой Draft-ветке `test/video-public-mendeley-metadata-2026-11-20` добавлены `tools/probe_public_mendeley.py`, 6 Python unit tests, Node bridge `tests/public-mendeley-metadata.test.mjs`, и изолированный public-read-only workflow `.github/workflows/bee-public-dataset-metadata.yml`. Строго фиксированные API, dataset ID/version 6, запрет редиректов, лимит JSON и никогда не скачивать архив. Цель — установить доступность реальных метаданных с GitHub runner, не подменять ими фактический ZIP.
+- `docs/VIDEO-PUBLIC-MENDELEY-METADATA-CI.md` документирует проверку и ограничения. CI нового SHA нужно проверить отдельно; возможный недоступный API отразить как failure, не как успех.
+- Все результаты сохраняют `archiveDownloaded=false`, `licenseVerified=false`, `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. Нет обучения, Android physical inference, user video, merge или production.
+- Следующая задача: оценить exact SHA workflow; при успешном metadata query — получить actual public archive и изучить notices/лицензии, только затем датасет и обучение с нуля. При HTTP/DNS failure фиксировать блокер, не выдумывать проверку.
+
+---
+
 ## Контрольная точка — публичный ZIP-архив: реальная integrity проверка (2026-11-20)
 
 - PR #268 docs-only head `9aabaeb35892cd042bfe5a88cdde68f155a879b1` оставался Draft, workflow runs на точном SHA не обнаружены. Следующая отдельная ветка `test/video-public-archive-integrity-2026-11-20` поверх #268.
