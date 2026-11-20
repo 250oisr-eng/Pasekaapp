@@ -81,3 +81,69 @@ test('cleanup still removes a known reverted import session', async () => {
   assert.equal(rows.length, 0);
   db.close();
 });
+
+function readRows(db,sessionId){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('archive_staging','readonly');
+  const request=tx.objectStore('archive_staging').index('sessionId').getAll(sessionId);
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+}
+test('history-linked session cannot be discarded after its status was corrupted to failed',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-linked-failed');
+ const sessionId='session-history-failed';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_history',{backupId:'history-linked',status:'committed',
+  importSessionId:sessionId,rollbackAvailable:true});
+ const before=await readRows(db,sessionId);
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_HISTORY_REFERENCED'});
+ assert.deepEqual(await readRows(db,sessionId),before);
+ db.close();
+});
+test('history-linked ready or reverted staging stays protected when rollback is still available',async()=>{
+ for(const status of ['ready','reverted']){
+  const db=await openTestDb('paseka-cleanup-history-available-'+status);
+  const sessionId='session-history-'+status;
+  await seedSession(db,sessionId,status);
+  await put(db,'archive_history',{backupId:'history-'+status,status:'committed',
+   importSessionId:sessionId,rollbackAvailable:true});
+  await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+   {code:'STAGING_HISTORY_REFERENCED'});
+  assert.equal((await readRows(db,sessionId)).length,2);
+  db.close();
+ }
+});
+test('fully reverted historical import can still clean up its own unneeded staging',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-reverted-safe');
+ const sessionId='session-after-rollback';
+ await seedSession(db,sessionId,'reverted');
+ await put(db,'archive_history',{backupId:'history-reverted',status:'reverted',
+  importSessionId:sessionId,rollbackSessionId:null,rollbackAvailable:false});
+ assert.equal(await Restore.discardArchiveRestoreSession(db,sessionId),true);
+ assert.equal((await readRows(db,sessionId)).length,0);
+ db.close();
+});
+test('reverted session with inconsistent rollback metadata is preserved',async()=>{
+ const db=await openTestDb('paseka-cleanup-history-reverted-inconsistent');
+ const sessionId='session-reverted-inconsistent';
+ await seedSession(db,sessionId,'reverted');
+ await put(db,'archive_history',{backupId:'bad-history',status:'reverted',
+  importSessionId:sessionId,rollbackSessionId:'rollback-not-resolved',rollbackAvailable:true});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_HISTORY_REFERENCED'});
+ assert.equal((await readRows(db,sessionId)).length,2);
+ db.close();
+});
+test('cleanup refuses indexed entries whose actual primary key belongs to another session',async()=>{
+ const db=await openTestDb('paseka-cleanup-crosslinked-record');
+ const sessionId='session-crosslinked';
+ await seedSession(db,sessionId,'failed');
+ await put(db,'archive_staging',{id:'foreign-staging:video:bad-link',sessionId,
+  kind:'video',blob:new Blob(['must remain'])});
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,sessionId),
+  {code:'STAGING_CLEANUP_KEYS_INVALID'});
+ assert.equal((await readRows(db,sessionId)).length,3);
+ db.close();
+});
