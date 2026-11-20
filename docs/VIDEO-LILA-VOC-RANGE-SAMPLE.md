@@ -1,3 +1,16 @@
+## Фактически проверенная парная JPEG + VOC разметка (2026-11-20)
+
+На exact SHA `d708583c01c99d0979caaa9c530d1dbefe3cd72e` workflow #44733392890 **completed/success**: 10/10 Python fixture tests прошли, затем публичный GCP источник выдал настоящий парный sample.
+
+- 9986 ZIP entries, 4993 XML candidates.
+- `ML-Data/Chueried_HempBox_1.xml` SHA256 `eb405f671bc546d8d1cc16f9e97a108896a7984570dd11f01c71f42d30601879`.
+- Парный `ML-Data/Chueried_HempBox_1.jpg` — 1158291 байт, SHA256 `f5e80e1d95d230de30efe6b2fd4a0eaa9338f4c248f1c8d0baa55c028803cb6d`.
+- Pascal VOC `width=1920, height=1080`, `bee=5`, JPEG SOF заголовок подтверждает те же 1920x1080. **Это не полное декодирование JPEG и не проверка всей разметки**.
+- HTTP Range всего 2126445 байт, full ZIP/JPEG dataset не скачивался. В ZIP центральном каталоге не выявлены отдельные licence/readme/notice filenames; опубликованная CDLA Permissive license на сайте LILA — самостоятельный источник, не подтверждение архивных embedded notices.
+- У всех выводов `licenseVerified=false`, `trainingAuthorized=false`, `modelApproved=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. User original deletion остаётся заблокированным.
+
+---
+
 # Чтение настоящего публичного LILA ZIP по диапазонам: каталог и Pascal VOC
 
 Дата: 2026-11-20. Цель — подтвердить фактическую структуру открытого архива без скачивания его целиком.
