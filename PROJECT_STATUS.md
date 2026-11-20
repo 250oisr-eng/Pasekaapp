@@ -1,3 +1,11 @@
+## Контрольная точка — повторная проверка snapshot после SHA (2026-11-20)
+
+- В зависимой ветке `feat/video-archive-v2-posthash-recheck-2026-11-20` поверх PR #221 создан изолированный `js/video-archive-v2-export-candidate.js`. Метод получает согласованный snapshot, формирует PASEKA02 через отдельный codec, затем делает **повторную атомарную readonly-сверку** state, ledger и входных видеометаданных, заново хэширует исходные Blob и отменяет результат при изменении, конфликте с распознаванием или подмене байтов при старом хэше.
+- Добавлен `tests/video-archive-v2-export-candidate.test.mjs` с моделированием гонок после первого SHA: новое распознавание, изменение revision, изменение/подмена видеобайтов, добавление ещё одного оригинала; проверяется сохранность живого Blob при отказе. Положительный тест возвращает только `postHashRecheckPassed:true`, но всегда `requiresWriterFence:true`, `archiveSafe:false`, `restoreAuthorized:false`.
+- **Это оптимистическая read-only сверка, не постоянная блокировка записи**: после неё другой writer может изменить данные. Активный export/download, backup/restore/rollback и автоматическое удаление не подключены; Android Gallery и старые staged copies остаются отдельными блокерами. CI нового SHA проверить отдельно.
+
+---
+
 ## Контрольная точка — атомарный read-only снимок для архива v2 (2026-11-20)
 
 - В зависимой ветке `feat/video-archive-v2-consistent-read-2026-11-20` поверх Draft #220 добавлен **не подключённый к рабочему экспорту** `js/video-archive-v2-snapshot.js`. Он считывает state, `main/video_recognition_ledger_v1` и все `entrance_media` в одной IndexedDB readonly-транзакции, не используя хэши из несогласованных раздельных чтений.
