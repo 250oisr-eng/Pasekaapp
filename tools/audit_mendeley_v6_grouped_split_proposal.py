@@ -7,6 +7,7 @@ This tool never materializes split folders, reads user media, or assigns labels.
 """
 import argparse
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -16,6 +17,7 @@ MAX_MANIFEST_JSON_BYTES = 16 * 1024 * 1024
 MAX_PROPOSAL_JSON_BYTES = 8 * 1024
 SPLIT_NAMES = ("train", "validation", "test")
 DOI = "10.17632/8gb9r2yhfc.6"
+SHA_256_HEX = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class SplitProposalRejected(ValueError):
@@ -74,8 +76,8 @@ def assess_split_structure(inventory, proposal):
         digest = file.get("imageSha256PinnedNotRecheckedHere")
         if group not in GROUP_COUNTS or not isinstance(name, str) or not name:
             raise SplitProposalRejected("inventory_frame_identity_invalid")
-        if not isinstance(digest, str) or len(digest) != 64:
-            raise SplitProposalRejected("inventory_original_sha_missing")
+        if not isinstance(digest, str) or not SHA_256_HEX.fullmatch(digest):
+            raise SplitProposalRejected("inventory_original_sha_missing_or_malformed")
         if (group, name.casefold()) in names or digest in jpg_hashes:
             raise SplitProposalRejected("inventory_duplicate_frame_or_jpeg")
         names.add((group, name.casefold()))
