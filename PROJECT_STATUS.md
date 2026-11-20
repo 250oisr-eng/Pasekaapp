@@ -1,3 +1,23 @@
+## Проверенный результат CI — SHA staging verifier (2026-11-20)
+
+- В Draft PR #233 на SHA `c5939b055f31fc32239c29bd0a56ab698ab5208d` Android workflow #44697513266 — **completed/success**, включая шаги Run regression tests, Build debug APK, Upload APK. Изолированный Build isolated archive test APK #44697513211 — **skipped**, не успешная отдельная APK-проверка.
+- Подтверждены тесты изолированного stage verifier и существующей связанной цепочки именно на указанном SHA; реальный Android-телефон не тестировался. Последующие docs-only коммиты требуют собственного CI-статуса.
+- Реальный импорт с видеоданными, delete/cleanup, rollback видео и durable writer-fence **не реализованы и не активированы**. Весь стек #230→#231→#232→#233 остаётся Draft; Main/production не менялись.
+- Один следующий приоритет: формализовать и реализовать неизменяемость staged Blob до атомарного commit (writer-serialized согласованная защита), с сохранением новых записей, ledger/tombstones и protected backups. Без этой границы никакого live restore или deletion.
+
+---
+
+## Контрольная точка — повторная проверка SHA staging originals (2026-11-20)
+
+- В зависимой ветке feat/video-archive-v2-staging-integrity-2026-11-20 подготовлен отдельный модуль js/video-archive-v2-staging-verify.js. Он принимает реальный PASEKA02, заново проверяет архивный SHA, читает ровно пять protected stores общей readonly транзакцией, сверяет header/history и точный список staged исходников, затем **повторно хэширует байты каждого уже сохранённого staged Blob**.
+- После SHA-фазы повторно сравнивает live state, ledger, entrance keys и staged metadata под единой readwrite транзакцией, которая всегда abort. Никакого put/delete/restore. Результат всегда byteIntegrityLocked=false, requiresAtomicCommitCheck=true, restoreAuthorized=false, cleanupAuthorized=false и archiveSafe=false.
+- Известное ограничение: подмена Blob того же размера и MIME после SHA, но до final write-lock, не определяется одним metadata fingerprint. Эту проверку нельзя считать разрешением на import/cleanup до отдельного immutable/write-fence протокола.
+- Добавлены tests/video-archive-v2-staging-verify.test.mjs: оба вида видео, real-file SHA, same-size corruption, отсутствующий staged original, writer race, конфликт журнала распознавания, чужой full_backup, отсутствие store, сохранность. Синтаксис JS и тестов проверен, полный CI итогового SHA ещё не подтверждён.
+- Документ контракта: docs/VIDEO-ARCHIVE-V2-STAGING-VERIFY.md. База Draft #232: code/test SHA 8f98505a9fde38dea489576fcb8de600e8a94db1, workflow #44697058894 success; isolated archive #44697058856 skipped. Этот CI не подтверждает код нового PR.
+- Следующая задача: получить точный CI и устранить дефекты, затем спроектировать writer-fence staged Blob/реальную атомарную интеграцию с ledger и полным rollback. Main, production, пользовательские записи и удаление видео не изменяются.
+
+---
+
 ## CI изолированного PASEKA02 staging — 2026-11-20
 
 - Точный SHA `8f98505a9fde38dea489576fcb8de600e8a94db1`: Android workflow #44697058894 — completed/success (Run regression tests, Build debug APK, Upload APK). Отдельный Build isolated archive test APK #44697058856 — skipped.
