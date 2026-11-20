@@ -1641,3 +1641,41 @@ test('recognition after the last staged file blocks the final ready status updat
  assert.equal(sessions.filter(item=>item.kind==='video').length,1,'staged bytes remain for explicit safe cleanup');
  db.close();
 });
+
+test('read-only staging audit locates recognized originals without deleting blobs',async()=>{
+ const db=await openTestDb('paseka-staged-recognition-audit');
+ const archive=await makeArchive('backup-staged-recognition-audit');
+ const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+ const row=await get(db,'archive_staging',staged.session.sessionId);
+ row.status='failed';
+ await put(db,'archive_staging',row);
+ const ledger={version:1,entries:[{videoId:'video-1',source:'entrance_media',resultId:'recognized-result',cleanupState:'deleted'}]};
+ await put(db,'main',ledger,'video_recognition_ledger_v1');
+ const before=await get(db,'archive_staging',staged.session.sessionId+':video:video-1');
+ const audited=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audited.ok,true);
+ assert.equal(audited.matchedCopies,1);
+ assert.equal(audited.sessions.length,1);
+ assert.equal(audited.sessions[0].status,'failed');
+ assert.equal(audited.sessions[0].recognizedCopies,1);
+ assert.equal(audited.sessions[0].tombstonedCopies,1);
+ assert.equal(audited.sessions[0].protectedByArchiveHistory,false);
+ assert.equal(audited.sessions[0].action,'manual_review_required');
+ const after=await get(db,'archive_staging',staged.session.sessionId+':video:video-1');
+ assert.deepEqual(after,before,'audit must never delete or change the archived Blob');
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger);
+ db.close();
+});
+test('staging audit fails closed for malformed recognition history',async()=>{
+ const db=await openTestDb('paseka-staged-recognition-corrupt');
+ await put(db,'main',{version:2,entries:[]},'video_recognition_ledger_v1');
+ const audit=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audit.ok,false);assert.equal(audit.reason,'VIDEO_LEDGER_UNVERIFIED');
+ db.close();
+});
+test('staging audit of an untouched legacy database is safe and empty',async()=>{
+ const db=await openTestDb('paseka-staged-recognition-legacy');
+ const audit=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(audit.ok,true);assert.equal(audit.matchedCopies,0);
+ db.close();
+});
