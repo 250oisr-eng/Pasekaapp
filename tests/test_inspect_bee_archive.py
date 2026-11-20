@@ -1,7 +1,9 @@
 import tempfile
 import unittest
 import zipfile
+import sys
 from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from inspect_bee_archive import ArchiveRejected,inspect_archive
 
 class ArchiveTests(unittest.TestCase):
