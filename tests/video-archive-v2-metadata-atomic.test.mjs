@@ -195,3 +195,57 @@ test('post-import new pending media or other backup blocks rollback, preserving 
  assert.ok(await read(db,'full_backup','v2:test-backup'));
  db.close();
 });
+
+test('restart inspector classifies clean, committed and reverted metadata-only restore',async()=>{
+ const db=await setup(),file=await archive();
+ const probe=()=>api.inspectMetadataRecovery(db,'test-backup',deps);
+ const initial=await probe();
+ assert.equal(initial.status,'not_imported');
+ assert.equal(initial.restoreAuthorized,false);
+ await commit(db,file);
+ const applied=await probe();
+ assert.equal(applied.status,'committed');
+ assert.equal(applied.cleanupAuthorized,false);
+ await rollback(db);
+ const reverted=await probe();
+ assert.equal(reverted.status,'reverted');
+ assert.equal(reverted.liveDataModified,false);
+ db.close();
+});
+test('restart inspector demands manual review if history, snapshot or live state changed',async()=>{
+ const db=await setup(),file=await archive();
+ await commit(db,file);
+ const write=db.transaction('main','readwrite');
+ const mutated=state('imported');mutated.hives=[{id:'untracked',number:3}];
+ write.objectStore('main').put(mutated,'state');
+ await done(write);
+ const found=await api.inspectMetadataRecovery(db,'test-backup',deps);
+ assert.equal(found.status,'manual_review_required');
+ assert.equal(found.requiresManualReview,true);
+ assert.deepEqual(await read(db,'main','state'),mutated);
+ assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
+ db.close();
+});
+test('restart inspector refuses to auto-fix archive history with missing backup',async()=>{
+ const db=await setup(),file=await archive();
+ await commit(db,file);
+ const tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').delete('v2:test-backup');
+ await done(tx);
+ const found=await api.inspectMetadataRecovery(db,'test-backup',deps);
+ assert.equal(found.status,'manual_review_required');
+ assert.equal(found.cleanupAuthorized,false);
+ assert.equal((await read(db,'main','state')).meta.revisionId,'imported');
+ db.close();
+});
+test('rollback never deletes archive history or backup even if extra protected copy appears',async()=>{
+ const db=await setup();await commit(db,await archive());
+ const tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({blob:new Blob(['another protected copy'])},'older');
+ await done(tx);
+ await fail(rollback(db),'V2_ATOMIC_ROLLBACK_PROTECTED_CHANGED');
+ assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
+ assert.ok(await read(db,'full_backup','v2:test-backup'));
+ assert.ok(await read(db,'full_backup','older'));
+ db.close();
+});
