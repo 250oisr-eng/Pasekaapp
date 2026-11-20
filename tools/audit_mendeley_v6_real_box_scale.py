@@ -110,7 +110,7 @@ def analyze_rows(rows, fetch=bounded_read):
         "stage": "real_original_yolo_geometry_only",
         "verifiedLabelFiles": len(files),
         "verifiedImageFilesThisRun": 0,
-        "imagesPreviouslyVerifiedOnPinnedSha": len(files),
+        "imageHashPinsInManifestOnly": len(files),
         "originalImageSizePx": [ORIGINAL_WIDTH, ORIGINAL_HEIGHT],
         "beeBoxes": len(source),
         "originalMinBoxDimension": size_stats(source),
