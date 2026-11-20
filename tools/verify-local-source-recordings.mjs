@@ -15,7 +15,7 @@ function guard(condition,reason){if(condition)throw new RecordingFileRejected(re
 function object(x){return !!x&&typeof x==='object'&&!Array.isArray(x);}
 function safePath(p){
  return typeof p==='string'&&p.length>0&&p.length<=500&&!p.includes('\\')&&
- !p.includes('\\0')&&!isAbsolute(p)&&p.split('/').every(x=>x!==''&&x!=='.'&&x!=='..');
+ !p.includes(String.fromCharCode(0))&&!isAbsolute(p)&&p.split('/').every(x=>x!==''&&x!=='.'&&x!=='..');
 }
 async function hashSource(root,record){
  const parts=record.relativePath.split('/');
@@ -25,13 +25,16 @@ async function hashSource(root,record){
   const st=await lstat(cursor);
   guard(st.isSymbolicLink(),'symlink_forbidden');
  }
+ const leafBefore=await lstat(cursor);
+ guard(!leafBefore.isFile()||leafBefore.nlink!==1,'source_not_exclusive_regular_file');
  const actual=await realpath(cursor);
  const rel=relative(root,actual);
  guard(rel===''||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel),'path_escape');
  const f=await open(actual,constants.O_RDONLY|(constants.O_NOFOLLOW||0));
  try{
   const before=await f.stat();
-  guard(!before.isFile()||before.size===0||before.size>MAX_BYTES||before.size!==record.byteLength,'source_size_invalid');
+  guard(!before.isFile()||before.nlink!==1||before.ino!==leafBefore.ino||before.dev!==leafBefore.dev,'source_changed_before_open');
+  guard(before.size===0||before.size>MAX_BYTES||before.size!==record.byteLength,'source_size_invalid');
   const h=createHash('sha256');
   const buf=Buffer.allocUnsafe(65536);
   let offset=0;
@@ -42,7 +45,10 @@ async function hashSource(root,record){
    h.update(buf.subarray(0,bytesRead));offset+=bytesRead;
   }
   const after=await f.stat();
-  guard(before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ino!==after.ino,'source_changed_while_reading');
+  guard(before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs||before.ino!==after.ino||before.dev!==after.dev||after.nlink!==1,'source_changed_while_reading');
+  const leafAfter=await lstat(cursor);
+  guard(!leafAfter.isFile()||leafAfter.isSymbolicLink()||leafAfter.nlink!==1||leafAfter.ino!==before.ino||leafAfter.dev!==before.dev,'source_changed_while_reading');
+  guard((await realpath(cursor))!==actual,'source_changed_while_reading');
   return h.digest('hex');
  }finally{await f.close();}
 }
@@ -50,8 +56,10 @@ export async function verifyLocalSourceRecordings(manifest,sourceRoot,files){
  guard(!object(manifest)||!Array.isArray(manifest.records),'manifest_invalid');
  guard(!Array.isArray(files)||files.length===0||files.length>MAX_RECORDINGS,'source_file_list_invalid');
  guard(typeof sourceRoot!=='string'||!sourceRoot.trim(),'root_invalid');
- const root=await realpath(sourceRoot);
- guard(!(await lstat(root)).isDirectory(),'root_invalid');
+ const rootInput=resolve(sourceRoot);
+ const rootLinkStat=await lstat(rootInput);
+ guard(rootLinkStat.isSymbolicLink()||!rootLinkStat.isDirectory(),'root_symlink_or_invalid');
+ const root=await realpath(rootInput);
  const expected=new Set();
  for(const r of manifest.records){
   guard(!object(r),'manifest_record_invalid');

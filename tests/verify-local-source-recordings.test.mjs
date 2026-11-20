@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp,mkdir,writeFile,symlink,rm,readFile} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,symlink,link,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {verifyLocalSourceRecordings,RecordingFileRejected} from '../tools/verify-local-source-recordings.mjs';
@@ -78,6 +78,31 @@ test('refuses unassigned-only manifest without reading user files',async()=>fixt
  const a=Buffer.from('synthetic');
  await rejects(verifyLocalSourceRecordings(manifest({split:'unassigned',sourceRecordingSha256:null}),root,[entry(a)]),'source_file_coverage_mismatch');
 }));
+
+test('rejects symlinked source root, even if it points to a valid staging directory',async()=>fixture(async outer=>{
+ const real=join(outer,'real');await mkdir(real);
+ const bytes=Buffer.from('staging source');await writeFile(join(real,'video.mp4'),bytes);
+ await symlink(real,join(outer,'linked-root'));
+ await rejects(verifyLocalSourceRecordings(manifest(record(hash(bytes))),join(outer,'linked-root'),[entry(bytes)]),'root_symlink_or_invalid');
+}));
+test('rejects hardlink to a file outside source root even with matching SHA',async()=>fixture(async outer=>{
+ const root=join(outer,'staging');await mkdir(root);
+ const bytes=Buffer.from('outside originally');const outside=join(outer,'outside.mp4');
+ await writeFile(outside,bytes);await link(outside,join(root,'video.mp4'));
+ await rejects(verifyLocalSourceRecordings(manifest(record(hash(bytes))),root,[entry(bytes)]),'source_not_exclusive_regular_file');
+ assert.deepEqual(await readFile(outside),bytes);
+}));
+test('rejects NUL in explicitly supplied relative path before filesystem lookup',async()=>fixture(async root=>{
+ const bytes=Buffer.from('source');
+ await rejects(verifyLocalSourceRecordings(manifest(record(hash(bytes))),root,[entry(bytes,'video'+String.fromCharCode(0)+'.mp4')]),'source_path_invalid_or_duplicate');
+}));
+test('regular nested source path remains supported after link defenses',async()=>fixture(async root=>{
+ const bytes=Buffer.from('regular file');await mkdir(join(root,'nested'));
+ await writeFile(join(root,'nested','recording.mp4'),bytes);
+ const r=await verifyLocalSourceRecordings(manifest(record(hash(bytes))),root,[entry(bytes,'nested/recording.mp4')]);
+ assert.equal(r.localBytesMatchDeclarations,true);assert.equal(r.cleanupAuthorized,false);
+}));
+
 test('verifier does not activate runtime or perform network/deletion',async()=>{
  const raw=await readFile(new URL('../tools/verify-local-source-recordings.mjs',import.meta.url),'utf8');
  const index=await readFile(new URL('../index.html',import.meta.url),'utf8');
