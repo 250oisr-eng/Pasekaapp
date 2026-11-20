@@ -25,3 +25,8 @@ test('journal changes do not introduce eager cleanup or mutate existing media',(
  assert.match(html,/const combinedMedia=\[\.\.\.\(oldRecord\?\.media\|\|\[\]\),\.\.\.media,\.\.\.pendingRecordMedia\]/);
  assert.match(html,/Автоудаление ещё не подключено|автоудаление ещё не подключено/);
 });
+
+test('journal explicitly warns when native Android camera may keep an unmanaged gallery copy',()=>{
+ assert.match(html,/Штатная камера может также оставить оригинал в Галерее/);
+ assert.match(html,/приложение не может автоматически удалить такую внешнюю копию/);
+});
