@@ -302,7 +302,8 @@ test('restart inspector fails closed on altered imported revision, previous revi
    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
   });
   history[field]=field==='archiveSha256'?'not-a-digest':'tampered';
-  tx.objectStore('archive_history').put(history,'test-backup');
+  if(field==='backupId')tx.objectStore('archive_history').delete('test-backup');
+  tx.objectStore('archive_history').put(history);
   await done(tx);
   const finding=await api.inspectMetadataRecovery(db,'test-backup',deps);
   assert.equal(finding.status,'manual_review_required',field);
