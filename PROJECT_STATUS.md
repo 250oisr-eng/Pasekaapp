@@ -1,3 +1,14 @@
+## 2026-11-20 — проверен пакетный оригинальный Mendeley v6 CSV→COCO без архива 7,21 ГБ
+
+- Родительский Draft #285 SHA `bd4d4592f2973503130ba1bef9719c140aca8eb3`: real JPG+YOLO #44750045961 **completed/success**, Android APK #44750045958 **completed/success**, isolated archive #44750045874 **skipped**.
+- Новый Draft #286 branch `feat/video-mendeley-v6-bounded-csv-staging-2026-11-20`: `tools/stage_mendeley_v6_public_csv.py` безопасно обрабатывает **до 16** JPG+YOLO TXT пар из переданного Work CSV (8 допустимых оригинальных ulейных групп, UUID v6 public-files URLs, 64 KiB CSV, 8 MiB JPG/256 KiB TXT/96 MiB aggregate, ограниченные HTTPS redirects, Pillow full decode 1920×1080, опциональные SHA pins, запрет duplicate JPEG, no overwrite JSON).
+- 13 synthetic security/regression tests; [isolated CI #44756273493](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44756273493) **completed/success** на code SHA `2406506f583a4f8116496da0b80371f6e8eb25de`: настоящий SHA-pinned файл `20230609a1002.jpg` + TXT получены, полная JPEG декомпрессия прошла, создан и проверен временный COCO `unassigned` (1 изображение, 7 пчёл bbox), затем удалён с runner. Binary не сохранялись в GitHub artifacts.
+- Добавлены CSV fixture с оригинальными URL+SHA (только metadata) и workflow `.github/workflows/stage-mendeley-v6-public-csv.yml`; детали `docs/VIDEO-MENDELEY-V6-BOUNDED-CSV-STAGING.md`. После документационных коммитов проверить CI именно на итоговом SHA.
+- **Следующий вход:** получить через Work CSV оригинальных JPG/TXT с нескольких разных `_bee_...` серий. Без дополнительных ссылок новая реальная CI проверила только **одну** пару; 2-group проверка synthetic, не independent holdout. После проверки реальных групп/source sessions перейти к достаточно полному датасету, лицензированному компактному detector, реальному Android offline in/out benchmark.
+- Нет обученной модели, реального подсчёта направлений, Android physical validation или разрешения удалять original видео. `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. Main, production, IndexedDB и приватные файлы пользователя не изменялись. Draft PR не merge.
+
+---
+
 ## 2026-11-20 — первый Mendeley v6 original JPG полностью декодирован без ошибок
 
 - Отдельная **live** job [#44749817855](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44749817855) на SHA `c10c5d6f9d0eac4b780326644c2aa2774af15338`: **completed/success**; 11 Python negative/security tests, SHA-pinned real JPEG+TXT, full Pillow 12.0.0 image decode success `verifiedJpegDecode=true`. Реальные размеры/хеши остались неизменными (940530B/266B, 1920×1080, 7 class=0 рамок). Pillow свободный MIT-CMU, только временный isolated CI, не runtime/Android.
