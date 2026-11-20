@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bounded, public Mendeley v6 original JPG + YOLO TXT audit; no archive download."""
 import hashlib
+import io
 import json
 import tempfile
 from pathlib import Path
@@ -86,6 +87,24 @@ def verify_bytes(jpg, label, require_pinned_source=False):
         hashlib.sha256(label).hexdigest() != EXPECTED_LABEL_SHA256
     ):
         raise RealPairRejected("public_source_sha_changed")
+    verified_decode = False
+    if require_pinned_source:
+        # A valid JPEG header is not sufficient: fully decode the pinned
+        # original in isolated CI with the fixed-license Pillow dependency.
+        try:
+            from PIL import Image
+        except ImportError as exc:
+            raise RealPairRejected("pillow_required_for_source_decode") from exc
+        try:
+            with Image.open(io.BytesIO(jpg)) as actual:
+                if actual.format != "JPEG" or actual.size != (EXPECTED_WIDTH, EXPECTED_HEIGHT):
+                    raise RealPairRejected("decoded_jpeg_format_or_size_invalid")
+                actual.load()
+                verified_decode = True
+        except RealPairRejected:
+            raise
+        except Exception as exc:
+            raise RealPairRejected("jpeg_full_decode_failed") from exc
     if not jpg.startswith(b"\xff\xd8"):
         raise RealPairRejected("invalid_jpeg_signature")
     try:
@@ -124,7 +143,7 @@ def verify_bytes(jpg, label, require_pinned_source=False):
         "annotationFile": PAIRS[1][0], "annotationBytes": len(label),
         "annotationSha256": hashlib.sha256(label).hexdigest(),
         "beeBoundingBoxes": len(result["annotations"]),
-        "verifiedJpegDecode": False, # header parsed; full image decode not performed
+        "verifiedJpegDecode": verified_decode,
         "verifiedSourceRecording": False,
         "completeDatasetVerified": False,
         "groupIndependenceVerified": False,
