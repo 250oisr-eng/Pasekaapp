@@ -1159,6 +1159,60 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
   });
 }
 
+async function inspectStagingRecognitionCopies(db) {
+  ensureStores(db);
+  if (!db.objectStoreNames.contains('main')) fail('LIVE_DATABASE_STORES_MISSING', 'Main database is unavailable.');
+  const tx = db.transaction(['main', STAGING_STORE, HISTORY_STORE], 'readonly');
+  const done = transactionDone(tx);
+  const [ledger, sessions, videoKeys, history] = await Promise.all([
+    requestValue(tx.objectStore('main').get('video_recognition_ledger_v1')),
+    requestValue(tx.objectStore(STAGING_STORE).index('kind').getAll('session')),
+    requestValue(tx.objectStore(STAGING_STORE).index('kind').getAllKeys('video')),
+    requestValue(tx.objectStore(HISTORY_STORE).getAll())
+  ]);
+  await done;
+  if (ledger == null) return { ok: true, status: 'no_recognition_history', sessions: [], matchedCopies: 0 };
+  if (!ledger || typeof ledger !== 'object' || ledger.version !== 1 || !Array.isArray(ledger.entries) ||
+      ledger.entries.some(entry => !entry || typeof entry.videoId !== 'string' || !entry.videoId ||
+        !['entrance_media', 'record_media'].includes(entry.source) ||
+        typeof entry.resultId !== 'string' || !entry.resultId)) {
+    return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', sessions: [], matchedCopies: 0 };
+  }
+  const recognized = new Set(ledger.entries
+    .filter(entry => entry.source === 'entrance_media')
+    .map(entry => entry.videoId));
+  const tombstoned = new Set(ledger.entries
+    .filter(entry => entry.source === 'entrance_media' && entry.cleanupState === 'deleted')
+    .map(entry => entry.videoId));
+  const references = new Set();
+  for (const entry of history || []) {
+    if (entry && typeof entry.importSessionId === 'string') references.add(entry.importSessionId);
+    if (entry && typeof entry.rollbackSessionId === 'string') references.add(entry.rollbackSessionId);
+  }
+  let matchedCopies = 0;
+  const conflicts = [];
+  for (const session of sessions || []) {
+    if (!session || session.kind !== 'session' || typeof session.sessionId !== 'string') continue;
+    const prefix = session.sessionId + ':video:';
+    const copies = (videoKeys || []).filter(key => typeof key === 'string' && key.startsWith(prefix))
+      .map(key => key.slice(prefix.length));
+    const matches = copies.filter(id => recognized.has(id));
+    if (!matches.length) continue;
+    matchedCopies += matches.length;
+    conflicts.push({
+      sessionId: session.sessionId,
+      status: session.status,
+      videoCopyCount: copies.length,
+      recognizedCopies: matches.length,
+      tombstonedCopies: matches.filter(id => tombstoned.has(id)).length,
+      protectedByArchiveHistory: references.has(session.sessionId),
+      action: 'manual_review_required'
+    });
+  }
+  return { ok: true, status: conflicts.length ? 'staged_recognition_copies_detected' : 'no_staged_recognition_copies',
+    sessions: conflicts, matchedCopies };
+}
+
 function discardArchiveRestoreSession(db, sessionId) {
   ensureStores(db);
   return new Promise((resolve, reject) => {
@@ -1234,6 +1288,6 @@ function discardArchiveRestoreSession(db, sessionId) {
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
   stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, discardArchiveRollbackSnapshot, listArchiveRestoreSessions, listArchiveImportHistory,
-  getStagedArchive, finalizeStagedArchive, discardArchiveRestoreSession
+  getStagedArchive, finalizeStagedArchive, inspectStagingRecognitionCopies, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);
