@@ -57,7 +57,7 @@ async function findSessionByBackupId(db, backupId) {
 }
 async function updateSession(db, session) {
   const sessionId = session.sessionId || session.id;
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
   let failure = null;
   const request = store.get(sessionId);
@@ -75,14 +75,23 @@ async function updateSession(db, session) {
     // If explicit recovery finalized the same complete revision just before the
     // original writer's final status update, treat that update as an idempotent
     // success. Never let a stale failure path downgrade a ready session.
-    if (currentSession.status === 'ready' && session.status === 'ready' &&
+    const identicalReady = currentSession.status === 'ready' && session.status === 'ready' &&
         currentSession.fingerprint === session.fingerprint &&
         currentSession.stagingEpoch === session.stagingEpoch &&
         currentSession.stagedCount === session.stagedCount &&
-        currentSession.totalEntries === session.totalEntries) return;
-    if (currentSession.status !== 'staging') {
+        currentSession.totalEntries === session.totalEntries;
+    if (!identicalReady && currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
+      return;
+    }
+    if (session.status === 'ready') {
+      const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
+      ledgerRequest.onerror = () => { failure = ledgerRequest.error || new Error('Could not read recognition ledger during staging finalization.'); try { tx.abort(); } catch (ignored) {} };
+      ledgerRequest.onsuccess = () => {
+        try { assertLegacyArchiveRecognitionLedger(ledgerRequest.result); if (!identicalReady) store.put({ ...currentSession, ...session }); }
+        catch (error) { failure = error; try { tx.abort(); } catch (ignored) {} }
+      };
       return;
     }
     store.put({ ...currentSession, ...session });
@@ -1072,8 +1081,7 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
   }
   // Repeated requests are safe: validate the ready archive fully, then return
   // its existing header without opening another write transaction.
-  if (staged.session.status === 'ready') return staged.session;
-  if (staged.session.status !== 'staging') {
+  if (staged.session.status !== 'staging' && staged.session.status !== 'ready') {
     fail('STAGING_FINALIZE_NOT_ALLOWED', 'Only an interrupted staging session can be finalized.');
   }
   const verifiedSession = staged.session;
@@ -1089,14 +1097,16 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
     try {
-      tx = db.transaction(STAGING_STORE, 'readwrite');
+      tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
       const store = tx.objectStore(STAGING_STORE);
       const sessionRequest = store.get(sessionId);
       const recordsRequest = store.index('sessionId').getAll(sessionId);
+      const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
       const values = {};
-      let pending = 2;
+      let pending = 3;
       const process = () => {
         try {
+          assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const current = values.session;
           const records = values.records || [];
           if (!current || current.kind !== 'session' || !['staging', 'ready'].includes(current.status) ||
@@ -1130,7 +1140,7 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
           abortWith(error);
         }
       };
-      for (const [key, request] of [['session', sessionRequest], ['records', recordsRequest]]) {
+      for (const [key, request] of [['session', sessionRequest], ['records', recordsRequest], ['recognitionLedger', ledgerRequest]]) {
         request.onsuccess = () => {
           values[key] = request.result;
           pending--;
@@ -1147,6 +1157,60 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
       rejectOnce(error);
     }
   });
+}
+
+async function inspectStagingRecognitionCopies(db) {
+  ensureStores(db);
+  if (!db.objectStoreNames.contains('main')) fail('LIVE_DATABASE_STORES_MISSING', 'Main database is unavailable.');
+  const tx = db.transaction(['main', STAGING_STORE, HISTORY_STORE], 'readonly');
+  const done = transactionDone(tx);
+  const [ledger, sessions, videoKeys, history] = await Promise.all([
+    requestValue(tx.objectStore('main').get('video_recognition_ledger_v1')),
+    requestValue(tx.objectStore(STAGING_STORE).index('kind').getAll('session')),
+    requestValue(tx.objectStore(STAGING_STORE).index('kind').getAllKeys('video')),
+    requestValue(tx.objectStore(HISTORY_STORE).getAll())
+  ]);
+  await done;
+  if (ledger == null) return { ok: true, status: 'no_recognition_history', sessions: [], matchedCopies: 0 };
+  if (!ledger || typeof ledger !== 'object' || ledger.version !== 1 || !Array.isArray(ledger.entries) ||
+      ledger.entries.some(entry => !entry || typeof entry.videoId !== 'string' || !entry.videoId ||
+        !['entrance_media', 'record_media'].includes(entry.source) ||
+        typeof entry.resultId !== 'string' || !entry.resultId)) {
+    return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', sessions: [], matchedCopies: 0 };
+  }
+  const recognized = new Set(ledger.entries
+    .filter(entry => entry.source === 'entrance_media')
+    .map(entry => entry.videoId));
+  const tombstoned = new Set(ledger.entries
+    .filter(entry => entry.source === 'entrance_media' && entry.cleanupState === 'deleted')
+    .map(entry => entry.videoId));
+  const references = new Set();
+  for (const entry of history || []) {
+    if (entry && typeof entry.importSessionId === 'string') references.add(entry.importSessionId);
+    if (entry && typeof entry.rollbackSessionId === 'string') references.add(entry.rollbackSessionId);
+  }
+  let matchedCopies = 0;
+  const conflicts = [];
+  for (const session of sessions || []) {
+    if (!session || session.kind !== 'session' || typeof session.sessionId !== 'string') continue;
+    const prefix = session.sessionId + ':video:';
+    const copies = (videoKeys || []).filter(key => typeof key === 'string' && key.startsWith(prefix))
+      .map(key => key.slice(prefix.length));
+    const matches = copies.filter(id => recognized.has(id));
+    if (!matches.length) continue;
+    matchedCopies += matches.length;
+    conflicts.push({
+      sessionId: session.sessionId,
+      status: session.status,
+      videoCopyCount: copies.length,
+      recognizedCopies: matches.length,
+      tombstonedCopies: matches.filter(id => tombstoned.has(id)).length,
+      protectedByArchiveHistory: references.has(session.sessionId),
+      action: 'manual_review_required'
+    });
+  }
+  return { ok: true, status: conflicts.length ? 'staged_recognition_copies_detected' : 'no_staged_recognition_copies',
+    sessions: conflicts, matchedCopies };
 }
 
 function discardArchiveRestoreSession(db, sessionId) {
@@ -1224,6 +1288,6 @@ function discardArchiveRestoreSession(db, sessionId) {
 root.PasekaArchiveRestore = Object.freeze({
   STAGING_STORE, HISTORY_STORE,
   stageArchiveForRestore, commitStagedArchive, rollbackCommittedArchive, discardArchiveRollbackSnapshot, listArchiveRestoreSessions, listArchiveImportHistory,
-  getStagedArchive, finalizeStagedArchive, discardArchiveRestoreSession
+  getStagedArchive, finalizeStagedArchive, inspectStagingRecognitionCopies, discardArchiveRestoreSession
 });
 })(typeof window !== 'undefined' ? window : globalThis);
