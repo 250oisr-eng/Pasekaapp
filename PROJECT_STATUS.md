@@ -1,3 +1,13 @@
+## Контрольная точка — альтернатива Mendeley: прямой public LILA ZIP Range (2026-11-20)
+
+- Parent Draft #270 code/test SHA `17e37c5c5febe70d175ed2310746803c7ca989f0`: Android workflow #44732273370 **completed/success** (регрессионные тесты и debug APK), separate isolated #44732273395 **skipped**. Отдельный research CI #44732273439 **completed/failure**: offline tests **8/8 passed**, запрос к Mendeley public REST без OAuth вернул **HTTP 401**. Не считать research CI успешным и не использовать токен/обход контроля доступа.
+- Найден другой открытый источник `Boxes on Bees and Pollen`: https://lila.science/datasets/boxes-on-bees-and-pollen — 4993 изображений и ~50000 bbox, архив Pascal VOC XML, карточка с лицензией CDLA Permissive и прямыми публичными ZIP ссылками (GCP/AWS/Azure), размер ориентировочно 2 GB. Это независимый кандидат данных, не готовая модель или проверенная лицензия конкретного ZIP.
+- В новой отдельной Draft-ветке `test/video-lila-public-byte-range-2026-11-20` на базе #270 подготовлены `tools/probe_lila_bee_zip_range.py`, 7 Python regression cases, Node bridge, отдельный ограниченный workflow `.github/workflows/bee-public-lila-zip-header.yml` и `docs/VIDEO-LILA-PUBLIC-BEE-DATA-REVIEW.md`. Проверяет реальные первые 64 байта ZIP только если сервер поддерживает HTTP 206 Range; 200 OK **не читает**. Никаких ZIP downloads, данных пользователей или платных API.
+- Следующая точка: сверить CI на точном HEAD нового PR и доступность публичного ZIP. Если Range доступен — малый образец настоящих VOC-аннотаций и прав, затем data conversion/train-from-scratch. Если нет — зафиксировать отказ без выдуманных результатов. `licenseVerified=false`, `trainingAuthorized=false`, `cleanupAuthorized=false` во всех ветках.
+- Main SHA `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` остаётся неизменённым; все PR Draft, production/user originals untouched.
+
+---
+
 ## Контрольная точка — попытка получить Mendeley v6 metadata через отдельный CI (2026-11-20)
 
 - Main подтверждён через GitHub search commits: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, напрямую не изменялся. Draft #269 SHA `7048610673f882901b364eaafacf7d96ad3f83b4`: Android workflow #44731361433 **completed/success**, isolated #44731361453 **skipped**.
