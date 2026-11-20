@@ -1,3 +1,12 @@
+## Контрольная точка — screening рисков лицензий (2026-11-20)
+
+- Draft #261 code/test HEAD `5e498e7768515ebc969d8a254602c17d54d78c1f` Android workflow #44716991985 **completed/success**, isolated #44716991947 skipped.
+- Поверх него новая изолированная ветка `test/video-license-risk-screen-2026-11-20`: `js/video-license-risk-screen.js`, `tests/video-license-risk-screen.test.mjs`. Screen учитывает риск AGPL/GPL/NC/ND/неопределённых лицензий и Ultralytics YOLOv5/YOLOv8 upstream, не осуществляет юридического допуска даже при Apache-2.0. Требует предварительный provenance completeness gate; не подключён к UI/SW.
+- Источники: официальные docs.ultralytics.com/models/yolov5 и /models/yolov8 (AGPL-3.0/Enterprise); карточка maryammeda на Hugging Face декларирует Apache-2.0 и base weights yolov8s.pt. Юридическая совместимость конкретных производных весов не установлена.
+- Следующая стадия: CI точного SHA нового Draft; независимая проверка разрешений конкретных весов/датасета и реального Android inference. Нет модели в приложении, удаления видео, main/production изменений.
+
+---
+
 ## Контрольная точка — безопасный provenance gate весов (2026-11-20)
 
 - Сверено: PR #260 SHA `8b1ad6906e02e923fe11072c648844c02f07182c` workflow #44715065889 **completed/success**, isolated #44715065942 **skipped**. Сборка/тесты относятся только к этому SHA.
