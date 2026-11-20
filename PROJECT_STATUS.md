@@ -1,3 +1,10 @@
+## CI PR #244 проверен на точном SHA (2026-11-20)
+
+- Code/test/docs SHA `abcd5d3a34446a151a7400e415661f9f9d8b73d9`: [Android workflow #44707536300](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707536300) **completed/success**: regression tests, Build debug APK и Upload APK success. [Isolated archive #44707536160](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707536160) **skipped**.
+- Строгая валидация ledger read-back и duplicate identity проверена в регрессионном наборе. На физическом Android устройстве не проверялась, автоудаление не включено.
+- Следующий приоритет — убрать неподтверждённое UI-сообщение `Анализ завершён` по одному `entrance_media.status='completed'` без подтверждённого ledger. Исправление только индикации, не включать обработку и delete.
+
+---
 ## Контрольная точка — строгая fail-closed проверка read-back распознавания (2026-11-20)
 
 - Новый зависимый этап поверх Draft #243 в ветке `fix/video-ledger-read-integrity-2026-11-20`: `js/video-recognition-ledger.js` теперь валидирует целиком каждый persisted entry (источник, videoId, resultId, stateRevisionId, timestamps, digest, размер, evidenceVersion, cleanupState, JSON result), запрещает дубли identity и использует одинаковый guard при чтении и перед записью.
