@@ -35,17 +35,18 @@ async function inspectRestoreDryRun(db,file,dependencies){
  if(!first||first.restoreAuthorized!==false||first.archiveSafe!==false||
    first.preflightPassed!==true)
   fail('V2_DRY_RUN_PREFLIGHT_CONTRACT_INVALID');
+ // Compute entire-file fingerprint BEFORE final writer-serialized validation:
+ // no asynchronous hashing may occur after the last live ledger check.
+ const fingerprint=await d.sha.hashBlobHex(file);
+ if(typeof fingerprint!=='string'||!/^[a-f0-9]{64}$/.test(fingerprint))
+  fail('V2_DRY_RUN_FINGERPRINT_INVALID');
  // No async callbacks within the final readwrite transaction. It aborts
  // intentionally, including the successful path.
  const locked=await d.commitLock.checkRestoreUnderAbortedWriteLock(db,incoming,d.guard,d.gate);
  if(!locked||locked.restoreAuthorized!==false||locked.archiveSafe!==false||
    locked.lockValidated!==true||locked.transactionAborted!==true)
   fail('V2_DRY_RUN_LOCK_CONTRACT_INVALID');
- // Fingerprint the original immutable Blob for later audit; it is NOT an
- // import approval token. A fresh live check is mandatory at future commit.
- const fingerprint=await d.sha.hashBlobHex(file);
- if(typeof fingerprint!=='string'||!/^[a-f0-9]{64}$/.test(fingerprint))
-  fail('V2_DRY_RUN_FINGERPRINT_INVALID');
+
  return {
   format:'paseka-archive',version:2,backupId:incoming.backupId,
   fileSha256:fingerprint,archiveBytes:file.size,
