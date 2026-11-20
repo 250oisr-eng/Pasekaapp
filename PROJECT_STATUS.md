@@ -1,3 +1,12 @@
+## Проверенный GitHub CI — test-only PASEKA02 entrance commit (2026-11-20)
+
+- Для точного SHA **579fa1b7e9847f070318c08b224108030669ff8b** Android workflow #44700669872 завершён **completed/success**: Run regression tests, Build debug APK, Upload APK — успешны. Отдельный Build isolated archive test APK #44700669941 — skipped, не успех отдельной проверки.
+- Узкий commit в Draft PR #236 проверен на CI, но не подключён к runtime и не испытывался на реальном телефоне. Статус «committed_rollback_blocked»: полноценного безопасного отката и удаления видео пока нет.
+- Следующий главный приоритет: test-only protected quarantine rollback для импортированных, всё ещё не распознанных оригиналов, который перед изменением проверяет history.importedRevisionId и текущую revision, ledger/tombstones и все записанные оригиналы и при любом сомнении сохраняет данные.
+- CI выше относится к указанному коду SHA; новый docs HEAD проверяется отдельно. Merge и production запрещены.
+
+---
+
 ## Контрольная точка — PASEKA02 entrance-only atomic commit (2026-11-20)
 
 - Проверен предыдущий Draft #235: итоговый HEAD 3a5739067140e633da1ad2c624932f8761e73792, Android run #44699480313 completed/success (regression/build/upload), isolated archive APK #44699480300 skipped. Main фактический SHA 8144ec8fe7e61c2f70f067c78f299bf0e7551dd7; ветки #230–#235 остаются Draft и не слиты.
