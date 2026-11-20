@@ -58,6 +58,7 @@ jobs:
           assert first["labelSha256"] == "ab25e4c0d29898983b78cc8241271ca4a66095332c32c8f0d29aab68d32f68d5"
           unique = {f["imageSha256"] for f in report["files"]}
           assert len(unique) == 16
+          assert all(f["sourceHashesPinnedByManifest"] for f in report["files"]), "every original JPEG+TXT requires byte-level SHA pins"
           image_to_group = {im["id"]: im["hiveCollectionFolder"] for im in coco["images"]}
           box_counts = collections.Counter(image_to_group[a["image_id"]] for a in coco["annotations"])
           print("REAL_16_V6_PAIRS_VERIFIED",
