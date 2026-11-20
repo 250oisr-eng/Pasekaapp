@@ -109,6 +109,12 @@ class SplitProposalTests(unittest.TestCase):
         self.assertFalse(result["actualPhysicalHivesIndependenceVerified"])
         self.assertFalse(result["trainingAuthorized"])
 
+    def test_nonhex_sha_cannot_enter_candidate_inventory(self):
+        a=inventory()
+        a["files"][0]["imageSha256PinnedNotRecheckedHere"]="z"*64
+        with self.assertRaisesRegex(SplitProposalRejected,"inventory_original_sha_missing_or_malformed"):
+            assess_split_structure(a,proposal())
+
     def test_duplicate_sha_or_filename_rejected(self):
         a=inventory()
         a["files"][1]["imageSha256PinnedNotRecheckedHere"]=a["files"][0]["imageSha256PinnedNotRecheckedHere"]
