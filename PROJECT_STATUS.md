@@ -1,3 +1,12 @@
+## Контрольная точка — настоящая парная LILA JPEG/VOC проверена (2026-11-20)
+
+- PR #272 code/test SHA `d708583c01c99d0979caaa9c530d1dbefe3cd72e`: отдельный research workflow #44733392890 **completed/success**, в нём **10/10 Python tests passed**, GCP Range sample real JPEG/XML: ZIP 9986 entries, 4993 XML, `ML-Data/Chueried_HempBox_1.xml` с 5 размеченными пчёлами, парный `ML-Data/Chueried_HempBox_1.jpg` 1158291 bytes, размеры совпадают 1920×1080 по JPEG SOF и XML. Общий Range-трафик 2126445 bytes, никакого full 2GB архива. SHA XML `eb405f671bc546d8d1cc16f9e97a108896a7984570dd11f01c71f42d30601879`, SHA JPEG `f5e80e1d95d230de30efe6b2fd4a0eaa9338f4c248f1c8d0baa55c028803cb6d`.
+- Прежний #272 SHA `ba3b85fc865b533bffe69dd124d2e383037f75d5` получил #44733171812 **success** после исправления fixture и показал настоящий XML. CI Android для текущего code/test SHA необходимо сверить отдельно. После добавления docs изменения не наследуют CI автоматически.
+- Лицензионные документы по именам не обнаружены внутри central dir; CDLA Permissive заявлена на LILA website, `licenseVerified=false` до независимого изучения actual rights and attribution. Полный ZIP/все 4993 фото не проверены, JPEG пиксели не декодированы; модель YOLOX не обучена, ONNX/Android physical inference не выполнялись.
+- Следующее действие: перейти от проверенного VOC формата к безопасному конвертеру в COCO **без выдуманных идентификаторов исходных видеосеансов**; реальное train/test split только с фактическим источником. Main/user originals/production и deletion не трогать.
+
+---
+
 ## Контрольная точка — read-only ZIP central directory + Pascal VOC sample (2026-11-20)
 
 - Parent Draft #271 SHA `ea2c690d16d02bf6376991cfcc8cca13e554c32b`: public LILA header #44732672991 **completed/success** (реальные 64 bytes, HTTP 206, ZIP magic, 2 076 021 293 bytes reported), Android #44732672760 **completed/success**, isolated #44732672727 **skipped**. Образец заголовка не доказывает целостность архива или условия лицензии.
