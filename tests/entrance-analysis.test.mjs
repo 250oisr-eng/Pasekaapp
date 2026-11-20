@@ -199,7 +199,7 @@ test('video queue transitions are explicit and reject illegal state changes', ()
   assert.equal(upload.ok,true);
   assert.equal(upload.record.uploadStartedAt,'2026-11-13T10:00:00.000Z');
   assert.equal(entrance.transitionVideoQueue(initial,'completed').ok,false);
-  assert.equal(entrance.transitionVideoQueue(upload.record,'completed').reason,'transition_not_allowed');
+  assert.equal(entrance.transitionVideoQueue(upload.record,'completed').reason,'recognition_evidence_required');
   const retry=entrance.transitionVideoQueue(upload.record,'failed_retryable',{lastError:'Сеть пропала'});
   assert.equal(retry.record.lastError,'Сеть пропала');
   assert.equal(entrance.transitionVideoQueue(retry.record,'uploading').ok,true);
