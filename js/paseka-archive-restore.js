@@ -94,7 +94,7 @@ async function updateSession(db, session) {
   }
 }
 async function putStagingEntryAndUpdateSession(db, record, session) {
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
   let nextSession = null;
   let failure = null;
@@ -104,6 +104,15 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
     try { tx.abort(); } catch (error) {}
   };
   sessionRequest.onsuccess = () => {
+    // Read the ledger under the same write lock before writing any staged Blob.
+    const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
+    ledgerRequest.onerror = () => {
+      failure = ledgerRequest.error || new Error('Unable to verify recognition history before staging media.');
+      try { tx.abort(); } catch (error) {}
+    };
+    ledgerRequest.onsuccess = () => {
+      try { assertLegacyArchiveRecognitionLedger(ledgerRequest.result); }
+      catch (error) { failure = error; try { tx.abort(); } catch (ignored) {} return; }
     const currentSession = sessionRequest.result;
     if (!currentSession || currentSession.kind !== 'session' ||
         currentSession.status !== 'staging') {
@@ -142,6 +151,7 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
       store.put({ ...record, stagingRevision: nextEpoch });
       store.put(nextSession);
     };
+    }; // ledgerRequest.onsuccess
   };
   try {
     await transactionDone(tx);
