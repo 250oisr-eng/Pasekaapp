@@ -3653,7 +3653,7 @@ async function confirmHoneyReturn(){
  return true;
 }
 
-async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+async function downloadBackup(){await saveQueue;try{if(!window.PasekaVideoArchiveSafety?.assertLegacyRestoreSafe)throw new Error('Проверка сохранности видео недоступна');await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db)}catch(error){alert('JSON-архив не создан: история распознавания видео не может быть сохранена в старом формате. '+(error?.message||error));return false}if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function validateBackupState(state){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
