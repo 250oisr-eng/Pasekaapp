@@ -100,3 +100,16 @@ test('invalid ledgers and candidates always fail closed',()=>{
  rejects(()=>api(ledger([]),{ledger:ledger([]),pendingVideos:[]},guard),'V2_RESTORE_CANDIDATE_INVALID');
  rejects(()=>api(ledger([]),candidate(),null),'V2_RESTORE_GUARD_MISSING');
 });
+
+test('journal media hash and byte count must equal referenced pending original',()=>{
+ const current=ledger([]);
+ const mismatched=candidate({ledger:current,state:state([{id:'inspection',media:[media({sourceSha256:hashes.other})]}])});
+ rejects(()=>api(current,mismatched,guard),'V2_RESTORE_RECORD_SOURCE_MISMATCH');
+ const wrongBytes=candidate({ledger:current,state:state([{id:'inspection',media:[media({sourceBytes:3})]}])});
+ rejects(()=>api(current,wrongBytes,guard),'V2_RESTORE_RECORD_SOURCE_MISMATCH');
+});
+test('unknown video encoding cannot bypass gate by declaring kind video',()=>{
+ const current=ledger([]);
+ const input=candidate({ledger:current,state:state([{id:'inspection',media:[media({data:'raw-video-bytes'})]}])});
+ rejects(()=>api(current,input,guard),'V2_RESTORE_RECORD_VIDEO_ENCODING');
+});
