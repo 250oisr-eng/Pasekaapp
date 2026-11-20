@@ -49,7 +49,7 @@ test('rejects manifest with fabricated training authorization before accessing s
 });
 test('rejects declared video SHA mismatch with local bytes',()=>fixture(async root=>{
  const {coco,manifest,files}=make(Buffer.from('expected'));
- await writeFile(join(root,'source.mp4'),Buffer.from('different'));
+ await writeFile(join(root,'source.mp4'),Buffer.from('altered!'));
  await assert.rejects(inspectLocalSourceBundle(coco,manifest,root,files),
   e=>e instanceof RecordingFileRejected&&e.message==='source_hash_mismatch');
 }));
