@@ -1,3 +1,21 @@
+## Проверенный CI — pinned PASEKA02 source (2026-11-20)
+
+- PR #234 код/тесты SHA 36c990974f9f13dcb2af4d13163787c254d72c51: Android workflow #44698877760 **completed/success** (regression tests, debug APK, upload); isolated archive APK workflow #44698877638 **skipped**. Это не физическое тестирование телефона.
+- Подтверждён изолированный алгоритм получения неизменяемых SHA-проверенных архивных Blob без выдачи caller write/delete capability. Same-size staging substitution по-прежнему доказанный риск и явно возвращается stagedBytesLocked=false.
+- Следующее ограниченное доказательство: тестовый запуск настоящих IndexedDB add-запросов из тех же удержанных Blob под финальным readwrite lock, с обязательным abort независимо от успеха; ни один байт не должен попасть в durable live state.
+
+---
+## Контрольная точка — неизменяемые источники PASEKA02 вместо mutable staged Blob (2026-11-20)
+
+- Актуальная проверенная исходная цепочка: Draft #230 → #231 → #232 → #233. PR #233 HEAD 52d02d7ab84d741882ebf6d3059fb9f605c51ee5: Android workflow #44697729527 completed/success, isolated archive APK #44697729499 skipped. Нет merge/production/Android физического теста.
+- Создана зависимая ветка feat/video-archive-v2-pinned-payload-proof-2026-11-20 поверх #233, один приоритет — byte-TOCTOU между staged SHA и будущим commit. Новый изолированный js/video-archive-v2-pinned-source.js повторяет SHA staging, заново проверяет реальный PASEKA02, создаёт **локальные неизменяемые Blob-срезы именно из проверенного архива** и проверяет SHA каждого нового источника. Проверяет live revision/ledger/videoIds/staging/history под финальной readwrite-блокировкой пяти stores, которая всегда abort.
+- Ни один Blob не возвращается вызывающему коду, записи не выполняются. Результат явно сохраняет stagedBytesLocked=false, restoreAuthorized=false, cleanupAuthorized=false, archiveSafe=false. Это архитектурное доказательство для будущего одного commit-вызова, не готовая операция.
+- В tests/video-archive-v2-staging-verify.test.mjs добавлены проверки pinned-источников, record/entrance, same-size Blob swap после аудита и повторного обнаружения SHA-подмены, гонок нового recognition ledger и истории, отсутствия данных для удаления/записи. Код SHA 95ca7d5d1e6617adc2721b021fe73a8434720b1a, тест SHA 5a06f0ebd67c6fcbf19e9fda730f790af48bb26c.
+- Контракт docs/VIDEO-ARCHIVE-V2-PINNED-SOURCE.md: старые staged Blob сохраняют риск незамеченной same-size подмены; импорт вправе использовать только удерживаемые в том же вызове проверенные архивные Blob, необходим настоящий атомарный commit/rollback и полное согласование копий.
+- CI этого нового кода ещё не подтверждён. Следующее: открыть Draft PR, выполнить Node/Android CI точного SHA, исправить ошибки. Затем тестовый атомарный commit исключительно безопасного узкого подмножества, используя удерживаемые Blob вместо повторно читаемых стадированных байтов, без интеграции live/cleanup.
+
+---
+
 ## Проверенный результат CI — SHA staging verifier (2026-11-20)
 
 - В Draft PR #233 на SHA `c5939b055f31fc32239c29bd0a56ab698ab5208d` Android workflow #44697513266 — **completed/success**, включая шаги Run regression tests, Build debug APK, Upload APK. Изолированный Build isolated archive test APK #44697513211 — **skipped**, не успешная отдельная APK-проверка.
