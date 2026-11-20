@@ -1,3 +1,11 @@
+## Этап — model artifact preflight по SHA-256 (2026-11-20)
+
+- На базе Draft #252 создана отдельная ветка `feat/video-model-artifact-integrity-2026-11-20`: `js/video-model-artifact.js`, `tests/video-model-artifact.test.mjs`, `docs/VIDEO-MODEL-ARTIFACT-INTEGRITY.md`.
+- Проверяется только идентичность локально переданного Blob и заранее ожидаемого SHA-256/bytes. Возвращает `artifactMatches:true` лишь для совпавшего SHA, но **не** разрешает модель, inference, удаление или объявление распознавания успешным. Не подключено в UI/SW, сеть/IDB нет.
+- Конкретный кандидат `mattnudi/bee-detection` содержит `best.pt`; у данных Roboflow указан CC BY 4.0, но права на опубликованные веса и архитектуру отдельно не подтверждены. Веса не скачаны и не установлены.
+- Тесты нового SHA требуют GitHub CI. Следующее — отдельный gate для доверия к временной разметке и проверка track-quality, не fake success. Не изменялись live originals, main, production.
+
+---
 ## Этап — аудит свободных bee detection моделей (2026-11-20)
 
 - На базе Draft #251 создана docs-only ветка `docs/video-bee-model-license-candidate-audit-2026-11-20` с `docs/VIDEO-BEE-MODEL-CANDIDATE-AUDIT.md`. Проверены BEE24, научный датасет detection/direction, MIT-код stingless bee, Hive-Cam, Gratheon/BeeAlarmed, ограничения Ultralytics и лицензия runtime ONNX Web.
