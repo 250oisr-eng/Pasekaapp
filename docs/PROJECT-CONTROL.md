@@ -1,3 +1,7 @@
+## 2026-11-20 — главный исследовательский источник для видео летка
+
+- `VIDEO-MENDELEY-V6-DETECTION-TRAINING-PATH.md` — первичный Mendeley v6 dataset (CC BY 4.0, восемь улейных коллекций), offline YOLO-to-unassigned COCO, недоказанные source video/session IDs, план честного детектора/трекинга и Android inference.
+
 # Управление проектом «Пасека»
 
 Этот файл — входная точка для продолжения разработки.
