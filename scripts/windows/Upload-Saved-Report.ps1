@@ -15,17 +15,17 @@ if (!(Test-Path -LiteralPath $reports -PathType Container)) {
 }
 # Only canonical report.json produced by the test runner is eligible.
 # Do not search arbitrary user directories or send screenshots.
-$matches = @(Get-ChildItem -LiteralPath $reports -Filter 'report.json' -File -Recurse |
+$reportsFound = @(Get-ChildItem -LiteralPath $reports -Filter 'report.json' -File -Recurse |
   Sort-Object LastWriteTime -Descending)
-if ($matches.Count -eq 0) {
+if ($reportsFound.Count -eq 0) {
   Write-Host 'No report.json in kit reports. Nothing was uploaded.' -ForegroundColor Yellow
   exit 1
 }
-if ($matches.Count -gt 1) {
-  Write-Host ('Multiple report.json files (' + $matches.Count + '). Select a specific report manually; no automatic upload.') -ForegroundColor Yellow
+if ($reportsFound.Count -gt 1) {
+  Write-Host ('Multiple report.json files (' + $reportsFound.Count + '). Select a specific report manually; no automatic upload.') -ForegroundColor Yellow
   exit 1
 }
-$report = $matches[0]
+$report = $reportsFound[0]
 Write-Host 'Found one local report. Publishing sanitized synthetic-only summary; no screenshots.'
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publisher -Action Upload -ReportPath $report.FullName
 if ($LASTEXITCODE -ne 0) {
