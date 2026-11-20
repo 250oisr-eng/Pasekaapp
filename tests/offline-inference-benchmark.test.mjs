@@ -30,7 +30,7 @@ test('failed, backwards, stalled-in-wall-time, aborted benchmark fails closed',a
  assert.equal((await benchmark({...adapter,runSynthetic:async()=>{throw Error('fail')}},{
   runs:1,clock:clock([0])})).reason,'synthetic_inference_failed');
  const ctrl=new AbortController();ctrl.abort();
- assert.equal((await benchmark(adapter,{signal:ctrl.signal})).reason,'aborted');
+ assert.equal((await benchmark(adapter,{signal:ctrl.signal,clock:clock([0,1])})).reason,'aborted');
 });
 test('no video, database, network, model bootstrap or UI activation',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
