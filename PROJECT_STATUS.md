@@ -1,3 +1,11 @@
+## Проверка CI точного SHA #277 и права BEE24 (2026-11-20)
+
+- Проверен code+docs SHA `f779b7fc93d7a5b11e6ce92114bd1f8dde224d1a`: Android workflow #44739831967 **completed/success** — регрессионный тестовый шаг, сборка Debug APK успешно; isolated #44739831958 **skipped**. Это доказательство сборки, не Android inference или подтверждение лицензии; после нового документального коммита требуется отдельная сверка нового HEAD.
+- Аудит BEE24: 36 видео и 446908 annotations подтверждены официальным сайтом; лицензия на сам набор на странице не указана. MIT в GitHub TOPICTrack относится к коду репозитория и не доказывает лицензию dataset/weights. VnBeeTracking ограничен academic/non-commercial; LILA не имеет доказанного image→source-session mapping. Ни один вариант ещё не разрешает переход к реальному обучению и удалению пользовательских оригиналов.
+- Следующий приоритет — подтверждение прав и происхождения первичных видеосессий; все флаги модели/cleanup остаются false, `main`/production/IndexedDB без изменений.
+
+---
+
 ## 2026-11-20 — большой этап: офлайн-проверка source-session манифеста (staging)
 
 - Ветка `test/video-source-session-manifest-gate-2026-11-20` основана на Draft #276, не меняет `main`. Добавлены `tools/inspect-source-session-manifest.mjs` и `tests/source-session-manifest.test.mjs` (14 случаев), документ `docs/VIDEO-SOURCE-SESSION-MANIFEST-INSPECTOR.md`.
