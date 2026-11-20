@@ -1,3 +1,11 @@
+## 2026-11-20 — первый Mendeley v6 original JPG полностью декодирован без ошибок
+
+- Отдельная **live** job [#44749817855](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44749817855) на SHA `c10c5d6f9d0eac4b780326644c2aa2774af15338`: **completed/success**; 11 Python negative/security tests, SHA-pinned real JPEG+TXT, full Pillow 12.0.0 image decode success `verifiedJpegDecode=true`. Реальные размеры/хеши остались неизменными (940530B/266B, 1920×1080, 7 class=0 рамок). Pillow свободный MIT-CMU, только временный isolated CI, не runtime/Android.
+- Исправлено документирование пределов проверки в `docs/VIDEO-MENDELEY-V6-REAL-PAIR-VERIFICATION.md`: полная JPEG декомпрессия **не** доказывает точность bbox, независимость исходных видео, модель или локальное распознавание. Для обучения и unbiased holdout всё ещё требуется больше оригинальных source groups/session information.
+- Текущий Draft #285 содержит код, тесты и документы; final CI на актуальном документационном SHA нужно проверить отдельно. `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. Пользовательские медиатека/БД/main/production не менялись.
+
+---
+
 ## 2026-11-20 — оригинальные Mendeley v6 JPEG/TXT реально получены и импортированы (первая пара)
 
 - После Draft #284 (публичный metadata API 6×401), пользователь через Work передал **публичные прямые ссылки** на `detection/_bee_20230609a/images/20230609a1002.jpg` и matching `labels/20230609a1002.txt`; пароль не нужен. Это не архив `Download All` и не доступ к пользовательским данным.
