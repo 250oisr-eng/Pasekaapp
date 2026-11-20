@@ -35,14 +35,14 @@ def require_dir(p, root=None):
     return actual
 
 
-def require_file(p, root, limit):
+def require_file(p, root, limit, allow_empty=False):
     if p.is_symlink() or not p.is_file():
         raise MendeleyRejected("missing_or_linked_file")
     actual = p.resolve(strict=True)
     if not actual.is_relative_to(root):
         raise MendeleyRejected("file_path_escape")
     stat = actual.stat()
-    if stat.st_nlink != 1 or not 0 < stat.st_size <= limit:
+    if stat.st_nlink != 1 or not (0 <= stat.st_size <= limit if allow_empty else 0 < stat.st_size <= limit):
         raise MendeleyRejected("file_size_or_link_invalid")
     return actual
 
@@ -126,7 +126,7 @@ def build_unassigned(detection_root):
         })
         for image in images:
             img = require_file(image, root, MAX_IMAGE_BYTES)
-            label = require_file(mapping[image.stem.casefold()], root, MAX_LABEL_BYTES)
+            label = require_file(mapping[image.stem.casefold()], root, MAX_LABEL_BYTES, allow_empty=True)
             with img.open("rb") as inp:
                 header = inp.read(65536)
             try:
