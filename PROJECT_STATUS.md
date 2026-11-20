@@ -1,3 +1,9 @@
+## CI PR #247 — устранена устаревшая проверка ошибки перехода (2026-11-20)
+
+- Первый SHA `f810590d40fbe516e53e691952a6a55727d1a889`, GitHub Android workflow #44709135245 **failure**: 999/1000 тестов passed; единственный старый тест ждал `transition_not_allowed` для `uploading→completed`, новый fail-closed код правильно возвращает `recognition_evidence_required`. Debug APK и upload были skipped.
+- Исправлен только test expectation в `tests/entrance-analysis.test.mjs`, SHA `95c9eb7e313f0377b016984e793f07083c6d01be`. Рабочий код source-integrity guard не менялся. Повторить regression и Android Build/Upload на новом точном SHA; до этого не заявлять success.
+
+---
 ## Этап — сохранность ID/Blob при переходах очереди видео (2026-11-20)
 
 - На основе Draft #246 создана ветка `fix/video-queue-source-integrity-2026-11-20`. В `js/entrance-analysis.js` защищён `transitionVideoQueue`: из `details` больше нельзя подменить `id`, `hiveId`, `bytes`, `blob`, `blobSha256`, result/cleanup flags, а переход в `completed` без доказанного video recognizer безусловно отклоняется с `recognition_evidence_required`.
