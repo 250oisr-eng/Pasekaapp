@@ -1,3 +1,11 @@
+## Контрольная точка — модель отчёта Android inference (2026-11-20)
+
+- Поверх Draft #262 подготовлен изолированный модуль `js/android-inference-evidence.js`, тесты `tests/android-inference-evidence.test.mjs` и протокол `docs/VIDEO-ANDROID-PHYSICAL-TEST-PROTOCOL.md`. Требуются модель SHA/версия, Android/System WebView, офлайн-испытание и независимый dataset SHA, latency, TP/FP/FN; отчёт остаётся `physicalTestVerified=false` при любых пользовательских полях.
+- Синтетические/облачные отчёты отвергаются, отсутствие детекций не становится успешным распознаванием. Никаких весов/видео/внешних копий не загружено. Дальше — CI этой ветки, подтверждение лицензии реального checkpoint и физический Android эксперимент.
+- Все изменения Draft, main/production/данные не затронуты; originals delete заблокирован.
+
+---
+
 ## Контрольная точка — screening рисков лицензий (2026-11-20)
 
 - Draft #261 code/test HEAD `5e498e7768515ebc969d8a254602c17d54d78c1f` Android workflow #44716991985 **completed/success**, isolated #44716991947 skipped.
