@@ -1,0 +1,20 @@
+name: Public LILA bee VOC sample (research only)
+on:
+  pull_request:
+    paths:
+      - 'tools/sample_lila_voc_range.py'
+      - 'tests/test_sample_lila_voc_range.py'
+      - 'tests/public-lila-voc-sample.test.mjs'
+      - '.github/workflows/bee-public-lila-voc-sample.yml'
+permissions:
+  contents: read
+jobs:
+  public-voc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate range and XML parser against local ZIP fixtures
+        run: python3 -m unittest discover -s tests -p 'test_sample_lila_voc_range.py' -v
+      - name: Inspect central directory and one small VOC annotation
+        run: python3 tools/sample_lila_voc_range.py
