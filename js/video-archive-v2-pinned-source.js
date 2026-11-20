@@ -83,10 +83,14 @@ function checkUnderLock(v,incoming,options,archiveHash,d){
  // Any writer can replace the stored Blob preserving all these metadata.
  return {pinnedCount:pending.length,pinnedBytes:bytes};
 }
-function finalAbortedGate(db,incoming,options,d,archiveHash){
+function finalAbortedGate(db,incoming,options,d,archiveHash,pinnedForAbort=null){
  return new Promise((resolve,reject)=>{
   let tx,settled=false,completedReads=false,error=null,result;
   const rejectOnce=e=>{if(!settled){settled=true;reject(e);}};
+  const abortWith=e=>{
+   if(e)error=e;
+   try{tx.abort();}catch(abortError){rejectOnce(error||abortError);}
+  };
   try{
    requireDb(db);
    tx=db.transaction(STORES,'readwrite');
@@ -95,17 +99,46 @@ function finalAbortedGate(db,incoming,options,d,archiveHash){
     request.onsuccess=()=>{
      values[name]=request.result;
      if(--remaining!==0)return;
-     try{result=checkUnderLock(values,incoming,options,archiveHash,d);
-       completedReads=true;
-     }catch(e){error=e;}
-     try{tx.abort();}catch(e){rejectOnce(error||e);}
+     try{
+      result=checkUnderLock(values,incoming,options,archiveHash,d);
+      if(pinnedForAbort!==null){
+       // Test-only: queue real IndexedDB add operations with the exact
+       // immutable Blob handles verified before opening this transaction.
+       // All writes MUST abort before the transaction completes.
+       if(!Array.isArray(pinnedForAbort)||pinnedForAbort.length<1||
+          pinnedForAbort.some(v=>v.source!=='entrance_media'||
+           !id(v.videoId)||!v.blob||v.blob.size!==v.sourceBytes||
+           !hex(v.sourceSha256)))
+        fail('V2_PIN_WRITE_ENTRANCE_ONLY');
+       let pending=pinnedForAbort.length;
+       const destination=tx.objectStore('entrance_media');
+       for(const verified of pinnedForAbort){
+        // ADD is deliberate: PUT might overwrite an unseen live original.
+        // The supplied Blob is NOT the mutable staging row Blob.
+        const add=destination.add({
+         id:verified.videoId,blob:verified.blob,
+         blobSha256:verified.sourceSha256,bytes:verified.sourceBytes,
+         mimeType:verified.blob.type
+        });
+        add.onsuccess=()=>{
+         if(--pending===0){
+          result.abortedAddRequestCount=pinnedForAbort.length;
+          completedReads=true;
+          abortWith(null);
+         }
+        };
+        add.onerror=()=>abortWith(add.error||new Error('V2_PIN_ADD_FAILED'));
+       }
+       return;
+      }
+      completedReads=true;
+     }catch(e){return abortWith(e);}
+     abortWith(null);
     };
-    request.onerror=()=>{
-     error=request.error||new Error('V2_PIN_READ_FAILED');
-     try{tx.abort();}catch(e){rejectOnce(error||e);}
-    };
+    request.onerror=()=>abortWith(request.error||new Error('V2_PIN_READ_FAILED'));
    }
-   tx.oncomplete=()=>rejectOnce(Object.assign(new Error('V2_PIN_NOT_ABORTED'),{code:'V2_PIN_NOT_ABORTED'}));
+   tx.oncomplete=()=>rejectOnce(Object.assign(
+    new Error('V2_PIN_NOT_ABORTED'),{code:'V2_PIN_NOT_ABORTED'}));
    tx.onabort=()=>{
     if(error)return rejectOnce(error);
     if(!completedReads)return rejectOnce(tx.error||new Error('V2_PIN_ABORTED'));
@@ -115,7 +148,7 @@ function finalAbortedGate(db,incoming,options,d,archiveHash){
   }catch(e){if(tx)try{tx.abort();}catch(_){}rejectOnce(e);}
  });
 }
-async function rehearsePinnedSources(db,file,options,d){
+async function rehearsePinnedSources(db,file,options,d,testOnlyAbortAdds=false){
  requireDeps(d);requireDb(db);
  if(!obj(options)||!id(options.backupId)||!id(options.expectedRevision)||
     !file||typeof file.slice!=='function'||!Number.isSafeInteger(file.size)||
@@ -153,7 +186,8 @@ async function rehearsePinnedSources(db,file,options,d){
   pinned.push({source:video.source,videoId:video.videoId,
    sourceSha256:video.sourceSha256,sourceBytes:video.sourceBytes,blob:frozen});
  }
- const locked=await finalAbortedGate(db,incoming,options,d,archiveHash);
+ const locked=await finalAbortedGate(db,incoming,options,d,archiveHash,
+  testOnlyAbortAdds?pinned:null);
  if(locked.pinnedCount!==pinned.length)
   fail('V2_PIN_COUNT_CHANGED');
  // No Blob, callback or capability is exposed to callers. The local verified
@@ -161,9 +195,17 @@ async function rehearsePinnedSources(db,file,options,d){
  // until its own atomic write under lock; this rehearsal is NOT that commit.
  return {backupId:options.backupId,archiveSha256:archiveHash,
   pinnedSourceCount:pinned.length,pinnedSourceBytes:locked.pinnedBytes,
+  abortedAddRequestCount:testOnlyAbortAdds?locked.abortedAddRequestCount:0,
   pinnedArchiveByteSourceVerified:true,stagedBytesLocked:false,
   finalTransactionAborted:true,requiresAtomicCommitCheck:true,
   restoreAuthorized:false,cleanupAuthorized:false,archiveSafe:false};
 }
-root.PasekaVideoArchiveV2PinnedSource=Object.freeze({rehearsePinnedSources});
+// Only a narrow, abort-only entrance-media write rehearsal. Never exposes
+// verified blobs or lets a transaction commit to the user database.
+function rehearsePinnedEntranceAddsAbort(db,file,options,d){
+ return rehearsePinnedSources(db,file,options,d,true);
+}
+root.PasekaVideoArchiveV2PinnedSource=Object.freeze({
+ rehearsePinnedSources,rehearsePinnedEntranceAddsAbort
+});
 })(typeof window!=='undefined'?window:globalThis);
