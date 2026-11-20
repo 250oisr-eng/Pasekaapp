@@ -1,3 +1,13 @@
+## Проверенный CI — PASEKA02 защищённый rollback в карантин (2026-11-20)
+
+- Draft PR #237: https://github.com/250oisr-eng/Pasekaapp/pull/237. Точный code/test SHA b9adda64aa98508b04202506cb1bbc7bdb5ab1e6, Android workflow #44701259981 completed/success; Run regression tests, Build debug APK и Upload APK пройдены. Изолированный archive test APK workflow #44701259955 skipped, не считается успешной отдельной проверкой.
+- CI доказывает только поведение изолированного fake-indexeddb тестового сценария. Физический Android test не проведён; в runtime PWA/Android новый модуль не загружается.
+- Подтверждены отказ при новом распознавании, новых записях с прежней revision, changed importedRevisionId, изменении Blob/hash, неизвестных оригиналах; сценарии atomic move/quarantine, crash readonly и error delete/abort. Положительный статус quarantine не разрешает очистку: byteIntegrityLocked=false, cleanupAuthorized=false, все copies сохранены.
+- Следующий главный приоритет: независимая инвентаризация всех управляемых копий pending/recognized videos, staged/backup/quarantine/entrance/record_media и fail-closed cleanup-blocker, без удаления. Затем согласование real video-recognition workflow и физические Android испытания. Merge/production по-прежнему запрещены.
+- Вышеописанный success относится к указанному SHA; последующие docs-only commits требуют отдельной сверки.
+
+---
+
 ## Контрольная точка — PASEKA02 entrance quarantine rollback (2026-11-20)
 
 - Положительная CI-проверка предшественника Draft PR #236 code/test SHA 579fa1b7e9847f070318c08b224108030669ff8b: Android workflow #44700669872 completed/success (regression, APK build/upload). Изолированный archive APK #44700669941 skipped. Далее в #236 добавлены docs-only commits.
