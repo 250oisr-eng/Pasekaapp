@@ -1,5 +1,7 @@
 import io
 import json
+import socket
+from urllib.error import HTTPError, URLError
 import sys
 import unittest
 from pathlib import Path
@@ -73,6 +75,21 @@ class PublicMetadataTests(unittest.TestCase):
         for contents in (b"x"*(MAX_JSON_BYTES+1), b"INVALID", b'"string"'):
             with self.assertRaises(MetadataUnavailable):
                 fetch_json("dataset",FakeOpener(contents))
+
+
+    def test_api_403_is_reported_without_signed_urls(self):
+        class Denied:
+            def open(self, request, timeout):
+                raise HTTPError(request.full_url,403,"Forbidden",None,None)
+        with self.assertRaisesRegex(MetadataUnavailable,"public_api_http_403"):
+            fetch_json("dataset",Denied())
+
+    def test_dns_failure_is_classified_without_internal_address(self):
+        class NoDns:
+            def open(self, request, timeout):
+                raise URLError(socket.gaierror(-2,"Name or service not known"))
+        with self.assertRaisesRegex(MetadataUnavailable,"public_api_dns_unavailable"):
+            fetch_json("files",NoDns())
 
     def test_no_file_download_uri_leaks_into_inventory(self):
         f=fixture("files")
