@@ -1,3 +1,12 @@
+## Контрольная точка — блокировка преждевременного удаления леткового видео (2026-11-20)
+
+- Начальное состояние: Draft #240 HEAD fda4f6e5d72b8cd5414ba1bb4ac50ea45888bf13, Android workflow #44704230240 completed/success; isolated archive APK #44704230343 skipped. Ветка #240 остаётся Draft, никаких merges/production.
+- В зависимой ветке `fix/video-entrance-manual-delete-guard-2026-11-20` устранён риск прямого удаления нераспознанного оригинала из `entrance_media`: `index.html` теперь показывает disabled «Удаление заблокировано», `deleteEntranceVideoBlob(id)` всегда отклоняет вызов с кодом `ENTRANCE_VIDEO_DELETE_BLOCKED` без открытия IDB readwrite-транзакции; устаревший `removeEntranceVideo` безопасно сообщает об отказе. Capture, preview, list, SHA, журнал и все данные сохранены.
+- Добавлен `tests/entrance-video-manual-delete-guard.test.mjs` на прямой delete, старые вызывающие пути, отсутствие транзакции и сохранение записи/просмотра. Новый контракт `docs/ENTRANCE-VIDEO-DELETE-GUARD.md`. Code SHA 20ce483fda164d6c4294f014e400a2594dc9c84d; tests SHA f94812a0a526220f1f294bc6cb4a00d3903cf811.
+- CI нового SHA пока не подтверждён. Дальше — Draft PR, точная проверка regression/Android и исследование подтверждённой цепочки распознавания с учётом всех managed и external Android копий. Автоматическая очистка остаётся запрещённой, реальные пользовательские видео не удалялись.
+
+---
+
 ## Проверен CI — new journal video source SHA/ID (2026-11-20)
 
 - Draft PR #240: https://github.com/250oisr-eng/Pasekaapp/pull/240. Код и исправленные регрессии SHA `03c620231fd990123914011c9733858b034363e7`. Android workflow #44704005222 **completed/success**: Run regression tests, Build debug APK, Upload APK прошли. Isolated archive APK workflow #44704005147 **skipped**.
