@@ -1,3 +1,15 @@
+## Контрольная точка — PASEKA02: защита исходных видео от коллизий ID (2026-11-20)
+
+- На базе существующей Draft #230 создана зависимая ветка fix/v2-pending-media-id-collision-2026-11-20, отдельная задача: закрыть опасность совпадающих videoId у импортируемого pending original и уже существующего видео летка или журнала.
+- В js/video-archive-v2-restore-gate.js добавлен чистый синхронный checkLivePendingMediaIdentity. Он требует отдельной проверки source+videoId, отвергает коллизию local entrance_media keys и journal record_media IDs, а также legacy видео с данными без стабильного videoId; существующий ledger/tombstone gate сохраняется.
+- В js/video-archive-v2-restore-db-preflight.js проверка подключена после единого readonly снимка пяти stores. В js/video-archive-v2-commit-lock-guard.js повторно выполняется внутри единой write-lock транзакции, которая ВСЕГДА abort. Новый importer, writer, delete и восстановление не вводились.
+- Регрессионные тесты: tests/video-archive-v2-restore-db-preflight.test.mjs и tests/video-archive-v2-commit-lock-guard.test.mjs (конфликт входного видео, conflict journal, legacy unknown ID, writer race и сохранение originals). Три изменённых JS файла прошли синтаксическую проверку в V8; pure guard прошёл три отдельных ручных сценария. Полная матрица Node/Android CI для этой ветки пока не подтверждена.
+- Контракт описан в docs/VIDEO-ARCHIVE-V2-PENDING-IDENTITY.md. Предыдущий базовый SHA 209edddc638935641d88fa197e0c5b7170c3cf76 прошёл Android CI #44695197293 (success), isolated archive APK #44695197208 skipped; эти результаты нельзя переносить на новый SHA.
+- Приоритет следующий: убедиться в прохождении CI на итоговом SHA, затем разработать атомарный защищённый staging pending originals и recovery, не включать live импорт и cleanup до доказательства безопасности всех копий.
+- Без слияний, без активации нового улья, без обновлений production, без удаления видео и пользовательских данных.
+
+---
+
 ## Контрольная точка — PASEKA02: оба recovery snapshot проходят проверку (2026-11-20)
 
 - Продолжен существующий Draft PR #230. Исправлен только изолированный metadata-only inspectMetadataRecovery: прежде чем возвращать committed/reverted, проверяет корректную форму records и отсутствие непроверенных видео в обоих сохранённых snapshot — beforeState и afterState, включая неактивный.
