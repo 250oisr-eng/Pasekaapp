@@ -1,3 +1,14 @@
+## Контрольная точка — инвентаризация управляемых копий PASEKA02 (2026-11-20)
+
+- Предыдущий Draft PR #237 HEAD 8a6ab3543c48697170acb838cd19540d46654f76: Android workflow #44701483418 completed/success (регрессии, APK build и upload); isolated archive APK #44701483368 skipped. Main/production не изменялись; #230–237 остаются Draft.
+- Продолжена единая приоритетная задача: создана зависимая ветка feat/video-archive-v2-copy-inventory-2026-11-20. Новый изолированный js/video-archive-v2-copy-inventory.js выполняет одну readonly-транзакцию IndexedDB над main/state, video_recognition_ledger_v1, entrance_media, archive_staging, archive_history и full_backup. Считает отдельно live Blob летка, журнальные data-video вложения, staged originals и quarantine snapshots.
+- Все копии помечаются по source+videoId; если признанный удалённым tombstone имеет ещё копию, отмечается deleted_tombstone_has_copy. Для иных legacy backups, неизвестных видео без ID, недействительного ledger или состояния — fail-closed диагностика. Внешние Android Camera/Gallery/Downloads не проверяемы в этой транзакции.
+- Выход отчёта только метаданные, не Blob и не Data URL. Во всех состояниях cleanupAuthorized=false, auditComplete=false, archiveSafe=false; никаких writes и удаления не происходит. Это инвентаризация, а не механизм очистки.
+- Новые tests/video-archive-v2-copy-inventory.test.mjs проверяют readonly транзакцию, копии в нескольких protected stores, recognized/tombstone conflict, journal data URL, unknown backup, legacy media, ошибки ledger/metadata и read failure. Создан docs/VIDEO-ARCHIVE-V2-COPY-INVENTORY.md. Code SHA c18c3608435b3039b215f60d8aa4cacae80b7b93; test SHA 3222acacde827bb2f93a4aca0ffca944b6ed4265.
+- Проверка CI этого нового SHA ещё не подтверждена. Следующее — проверить и исправить CI, затем изучить реальный список источников видео/старых backup и только после доказательства полного контроля копий обсуждать безопасное удаление. Нет merge/production/активации UI/physical Android test.
+
+---
+
 ## Проверенный CI — PASEKA02 защищённый rollback в карантин (2026-11-20)
 
 - Draft PR #237: https://github.com/250oisr-eng/Pasekaapp/pull/237. Точный code/test SHA b9adda64aa98508b04202506cb1bbc7bdb5ab1e6, Android workflow #44701259981 completed/success; Run regression tests, Build debug APK и Upload APK пройдены. Изолированный archive test APK workflow #44701259955 skipped, не считается успешной отдельной проверкой.
