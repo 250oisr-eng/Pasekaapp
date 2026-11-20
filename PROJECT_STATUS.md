@@ -1,3 +1,10 @@
+## Контрольная точка — исправление CI и коллизий леткового видео (2026-11-20)
+
+- Первый Android CI Draft #243 на SHA `3f6a0dfa092ee2d845d8922e16895351fa733f11`, run #44706715461: **failure**, 988 passed / 1 failed; Android build/upload были skipped. Единственный failing test извлекал `async function putEntranceVideo` начиная с `function`, вызывая SyntaxError при `await`.
+- При анализе обнаружена реальная уязвимость: текущий `index.html` сохранял исходник через `entrance_media.put(storedRecord)`, что позволяло перезаписать видео при одинаковом ID. Изменена одна операция на `add(storedRecord)` (commit `53af9aecab221e236db1d1eb2e83ce83e326f126`); регрессионный тест исполняет настоящую async-функцию с SHA-модулем (commit `a86f8f2126cb3088209bf49a692a3bfd43c7f6f2`).
+- Повторные тесты и Android CI для нового HEAD ещё требуют проверки. Оригиналы пользователей не менялись; автоматическое удаление, UI интеграция ledger и production запрещены.
+
+---
 ## Этап — test-only durable ledger распознавания видео (2026-11-20)
 
 - После docs-only Draft #242 создана зависимая ветка `feat/video-recognition-durable-ledger-2026-11-20`. Перенесены из несоединённой экспериментальной ветки без merge: `js/video-recognition-ledger.js` и `tests/video-recognition-ledger.test.mjs`; отдельный контракт `docs/VIDEO-RECOGNITION-DURABLE-LEDGER.md`.
