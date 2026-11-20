@@ -1258,6 +1258,9 @@ function discardArchiveRestoreSession(db, sessionId) {
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
           const keys = keysRequest.result || [];
+          // Repeated cleanup with no remaining rows is a harmless no-op, even
+          // when historical records still name this already-discarded session.
+          if (!keys.length) { result = false; return; }
           // Never delete a rollback row, unknown entry type, or a key outside
           // this exact session even if its indexed sessionId was corrupted.
           const validKey = key => typeof key === 'string' &&
