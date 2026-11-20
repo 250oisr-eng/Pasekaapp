@@ -8,7 +8,7 @@ const digestOk=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const integer=x=>Number.isSafeInteger(x)&&x>0;
 const cancelled=signal=>signal&&signal.aborted===true;
 function sampleTimes(duration,count){
- if(!Number.isFinite(duration)||duration<=0||!Number.isInteger(count)||count<2||count>MAX_FRAMES)return null;
+ if(!Number.isFinite(duration)||duration<1||!Number.isInteger(count)||count<2||count>MAX_FRAMES)return null;
  return Array.from({length:count},(_,i)=>Math.min(duration-0.01,duration*(i+1)/(count+1)));
 }
 function eventOnce(target,name,errorName,signal,timeout){
@@ -82,7 +82,7 @@ async function extractTransientFrames(record,options={}){
   }
   // Blob bytes are independently verified; frames are ephemeral inference inputs, not recognition.
   if(cancelled(signal))return fail('aborted');
-  return {ok:true,frames,source:{source:'entrance_media',videoId:record.id,sourceSha256:digest,sourceBytes:record.bytes},
+  return {ok:true,frames:frames.slice(),source:{source:'entrance_media',videoId:record.id,sourceSha256:digest,sourceBytes:record.bytes},
     sourceEvidenceVerified:true,recognitionSucceeded:false,cleanupAuthorized:false};
  }catch(error){
   return fail(error&&error.message==='aborted'?'aborted':'frame_decode_failed');
