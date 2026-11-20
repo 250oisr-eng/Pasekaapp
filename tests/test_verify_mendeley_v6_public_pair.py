@@ -66,6 +66,10 @@ class RealPairTests(unittest.TestCase):
         self.assertFalse(result["recognitionSucceeded"])
         self.assertFalse(result["cleanupAuthorized"])
 
+    def test_pinned_source_prevents_synthetic_or_changed_bytes(self):
+        with self.assertRaisesRegex(RealPairRejected, "public_source_sha_changed"):
+            verify_bytes(FAKE_JPEG, FAKE_LABEL, require_pinned_source=True)
+
     def test_wrong_label_class_fails(self):
         with self.assertRaisesRegex(ValueError, "non_bee_class"):
             verify_bytes(FAKE_JPEG, b"1 .5 .5 .2 .2\n")
