@@ -161,7 +161,7 @@ async function hashBlobHex(blob, options = {}) {
 // Hash decoded bytes, not the MIME header or encoded text. Never decode a
 // whole phone video at once: each chunk decodes at most ~192 KiB.
 async function hashVideoDataUrlHex(dataUrl, options = {}) {
-  if (typeof dataUrl !== 'string' || !/^data:video\/[a-z0-9.+-]+;base64,/i.test(dataUrl)) {
+  if (typeof dataUrl !== 'string' || !/^data:(?:video\/[a-z0-9.+-]+|application\/octet-stream);base64,/i.test(dataUrl)) {
     const error = new Error('A base64 video Data URL is required.');
     error.code = 'SHA256_VIDEO_DATA_URL_INVALID';
     throw error;
