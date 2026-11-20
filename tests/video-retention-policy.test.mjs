@@ -27,7 +27,7 @@ test('existing two storage paths remain distinguishable and no unimplemented del
 
 test('policy prohibits premature deletion and unsafe mutation of existing backups',()=>{
  assert.match(policy,/Нельзя удалять на основании отправки/);
- assert.match(policy,/после подтверждённого успешного распознавания/);
+ assert.match(policy,/После подтверждённого успешного распознавания оригиналы должны быть удалены/);
  assert.match(policy,/Нельзя без отдельного разрешения необратимо удалять или перезаписывать существующие резервные копии/);
  assert.match(policy,/не является разрешением удалять сейчас существующие неопознанные видео/);
 });
