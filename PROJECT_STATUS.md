@@ -1,3 +1,11 @@
+## Проверенный CI PR #243 — test-only ledger и защита от ID collision (2026-11-20)
+
+- Исправленный code/test SHA `3e3c51372f26ce1544fa2e23cf359d5a31eb1fb4`: Android workflow [#44707175152](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707175152) **completed/success**; regression tests, debug APK build и upload прошли. Isolated archive APK [#44707175241](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707175241) **skipped**, не считать успешным тестом.
+- Предыдущий SHA `dfd5de3f1928850cb5fee1a94d3bdb3a01bfa5a5` [#44706938052](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44706938052): 988/989 passed, один старый тест требовал `put(storedRecord)` вместо безопасного `add(storedRecord)`. Исправлен только этот тест, введено явное отрицательное ожидание на `put`.
+- Следующий приоритет — строгая fail-closed проверка уже сохранённых ledger записей перед будущей интеграцией UI; затем реальный источник распознавания. Нет auto-delete, merge, production, изменений пользовательских видео.
+- Последующие docs-only коммиты не объявлять проверенными CI без отдельной проверки; code/test SHA указан выше.
+
+---
 ## Контрольная точка — исправление CI и коллизий леткового видео (2026-11-20)
 
 - Первый Android CI Draft #243 на SHA `3f6a0dfa092ee2d845d8922e16895351fa733f11`, run #44706715461: **failure**, 988 passed / 1 failed; Android build/upload были skipped. Единственный failing test извлекал `async function putEntranceVideo` начиная с `function`, вызывая SyntaxError при `await`.
