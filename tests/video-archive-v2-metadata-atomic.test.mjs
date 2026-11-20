@@ -1,0 +1,197 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {IDBFactory} from 'fake-indexeddb';
+import {webcrypto} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+const root={};
+for(const file of ['paseka-sha256.js','video-archive-v2-guard.js',
+ 'video-archive-v2-metadata-codec.js','video-archive-v2-restore-gate.js',
+ 'video-archive-v2-metadata-atomic.js'])
+ new Function('window',await readFile(new URL('../js/'+file,import.meta.url),'utf8'))(root);
+const deps={codec:root.PasekaVideoArchiveV2MetadataCodec,guard:root.PasekaVideoArchiveV2Guard,
+ gate:root.PasekaVideoArchiveV2RestoreGate,sha:root.PasekaSha256,crypto:webcrypto};
+const api=root.PasekaVideoArchiveV2MetadataAtomic;
+const ledger=()=>({version:1,entries:[]});
+const recognized=()=>({source:'entrance_media',videoId:'processed',resultId:'result',
+ sourceSha256:'a'.repeat(64),sourceBytes:3,sourceEvidenceVersion:1,
+ recognizedAt:'2026-11-20T00:00:00Z',cleanupState:'deleted',result:{observation:'seen'}});
+const state=(revision='initial')=>({meta:{schemaVersion:15,revisionId:revision},
+ records:[],hives:[{id:'h1',number:1}],families:[]});
+const validator=v=>Array.isArray(v.hives)&&Array.isArray(v.records);
+const options=(more={})=>({expectedRevision:'initial',newRevisionId:'imported',
+ rollbackRevisionId:'restored',backupId:'test-backup',validateState:validator,...more});
+const archive=(source=state('archive'),log=ledger(),pendingVideos=[])=>
+ root.PasekaVideoArchiveV2MetadataCodec.buildMetadataArchive({
+ state:source,ledger:log,pendingVideos,backupId:'test-backup',
+ createdAt:'2026-11-20T00:00:00Z'
+ },webcrypto,deps.guard,deps.sha);
+const fail=(p,code)=>assert.rejects(p,e=>e.code===code);
+const done=tx=>new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||new Error('aborted'));});
+let unique=0;
+async function setup(customLedger=ledger()){
+ const request=new IDBFactory().open('paseka-v2-atomic-'+(++unique),1);
+ request.onupgradeneeded=()=>{
+  const d=request.result;
+  d.createObjectStore('main');d.createObjectStore('entrance_media',{keyPath:'id'});
+  d.createObjectStore('archive_staging',{keyPath:'id'});
+  d.createObjectStore('archive_history',{keyPath:'backupId'});
+  d.createObjectStore('full_backup');
+ };
+ const db=await new Promise((res,rej)=>{request.onsuccess=()=>res(request.result);request.onerror=()=>rej(request.error);});
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put(state(),'state');
+ tx.objectStore('main').put(customLedger,'video_recognition_ledger_v1');
+ await done(tx);return db;
+}
+async function read(db,store,key){
+ return new Promise((resolve,reject)=>{
+  const req=db.transaction(store,'readonly').objectStore(store).get(key);
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+}
+const commit=(db,blob,config=options())=>api.commitMetadataOnly(db,blob,config,deps);
+const rollback=(db,config=options({expectedRevision:'imported'}))=>api.rollbackMetadataOnly(db,config,deps);
+
+test('real PASEKA02 metadata imports and reverts atomically; audit and ledger survive rollback',async()=>{
+ const db=await setup(),file=await archive();
+ const result=await commit(db,file);
+ assert.equal(result.committed,true);
+ assert.equal(result.archiveSafe,false);
+ assert.equal(result.cleanupAuthorized,false);
+ assert.equal(result.rollbackRecorded,true);
+ const applied=await read(db,'main','state');
+ assert.equal(applied.meta.revisionId,'imported');
+ assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
+ assert.equal((await read(db,'full_backup','v2:test-backup')).beforeState.meta.revisionId,'initial');
+ assert.deepEqual(await read(db,'main','video_recognition_ledger_v1'),ledger());
+ const back=await rollback(db);
+ assert.equal(back.reverted,true);
+ assert.equal(back.originalSnapshotPreserved,true);
+ assert.equal((await read(db,'main','state')).meta.revisionId,'restored');
+ assert.equal((await read(db,'archive_history','test-backup')).status,'reverted');
+ assert.ok(await read(db,'full_backup','v2:test-backup'));
+ await fail(rollback(db),'V2_ATOMIC_ROLLBACK_HISTORY_CHANGED');
+ db.close();
+});
+test('recognition ledger is preserved unchanged through commit and rollback',async()=>{
+ const old= {version:1,entries:[recognized()]};
+ const db=await setup(old);
+ const result=await commit(db,await archive(state('archive'),old));
+ assert.equal(result.committed,true);
+ assert.deepEqual(await read(db,'main','video_recognition_ledger_v1'),old);
+ await rollback(db);
+ assert.deepEqual(await read(db,'main','video_recognition_ledger_v1'),old);
+ db.close();
+});
+test('reject archives which add, remove or alter recognition history',async()=>{
+ const old={version:1,entries:[recognized()]};
+ for(const next of [ledger(),{version:1,entries:[{...recognized(),cleanupState:'delete_required'}]}]){
+  const db=await setup(old);
+  await assert.rejects(commit(db,await archive(state('archive'),next)));
+  assert.deepEqual(await read(db,'main','state'),state());
+  assert.equal(await read(db,'archive_history','test-backup'),undefined);
+  db.close();
+ }
+});
+test('serialized writer before commit changes revision; no partial backup or import',async()=>{
+ const db=await setup(),file=await archive();
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put(state('new-data'),'state');
+ const attempt=commit(db,file);
+ await done(tx);
+ await fail(attempt,'V2_ATOMIC_REVISION_CHANGED');
+ assert.equal((await read(db,'main','state')).meta.revisionId,'new-data');
+ assert.equal(await read(db,'full_backup','v2:test-backup'),undefined);
+ assert.equal(await read(db,'archive_history','test-backup'),undefined);
+ db.close();
+});
+test('after import new journal write blocks rollback and keeps all protected records',async()=>{
+ const db=await setup(),file=await archive();
+ await commit(db,file);
+ const tx=db.transaction('main','readwrite');
+ const changed=state('new-observation');
+ changed.records=[{id:'visit',title:'fresh inspection'}];
+ tx.objectStore('main').put(changed,'state');
+ await done(tx);
+ await fail(rollback(db),'V2_ATOMIC_ROLLBACK_REVISION_CHANGED');
+ assert.deepEqual(await read(db,'main','state'),changed);
+ assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
+ assert.ok(await read(db,'full_backup','v2:test-backup'));db.close();
+});
+test('ledger update after import blocks rollback even if revision unchanged',async()=>{
+ const db=await setup(),file=await archive();
+ await commit(db,file);
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({version:1,entries:[recognized()]},'video_recognition_ledger_v1');
+ await done(tx);
+ await fail(rollback(db),'V2_ATOMIC_ROLLBACK_LEDGER_CHANGED');
+ assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
+ assert.equal((await read(db,'main','state')).meta.revisionId,'imported');db.close();
+});
+test('silent state mutation without revision bump also blocks rollback',async()=>{
+ const db=await setup(),file=await archive();
+ await commit(db,file);
+ const tx=db.transaction('main','readwrite');
+ const changed=state('imported');changed.hives=[{id:'h-new',number:99}];
+ tx.objectStore('main').put(changed,'state');
+ await done(tx);
+ await fail(rollback(db),'V2_ATOMIC_ROLLBACK_REVISION_CHANGED');
+ assert.deepEqual(await read(db,'main','state'),changed);db.close();
+});
+test('any live media Blob or archived snapshot blocks metadata-only commit without destruction',async()=>{
+ for(const store of ['entrance_media','archive_staging','archive_history','full_backup']){
+  const db=await setup(),file=await archive();
+  const tx=db.transaction(store,'readwrite'),obj=tx.objectStore(store);
+  if(store==='entrance_media')obj.put({id:'pending',blob:new Blob(['important'])});
+  else if(store==='archive_staging')obj.put({id:'session',blob:new Blob(['important'])});
+  else if(store==='archive_history')obj.put({backupId:'older',status:'committed'});
+  else obj.put({blob:new Blob(['important'])},'previous');
+  await done(tx);
+  await fail(commit(db,file),'V2_ATOMIC_PROTECTED_DATA_PRESENT');
+  assert.deepEqual(await read(db,'main','state'),state());
+  assert.equal(await read(db,'archive_history','test-backup'),undefined);
+  assert.ok(await read(db,store,{entrance_media:'pending',archive_staging:'session',archive_history:'older',full_backup:'previous'}[store]));
+  db.close();
+ }
+});
+test('archive carrying a verified pending entrance Blob cannot enter metadata-only path',async()=>{
+ const db=await setup(),blob=new Blob([Uint8Array.of(1,2,3)],{type:'video/mp4'});
+ const sha=await root.PasekaSha256.hashBlobHex(blob);
+ const file=await archive(state('archive'),ledger(),[
+  {source:'entrance_media',videoId:'pending',sourceSha256:sha,sourceBytes:3,mimeType:'video/mp4',blob}
+ ]);
+ await fail(commit(db,file),'V2_ATOMIC_VIDEO_PAYLOAD_FORBIDDEN');
+ assert.equal(await read(db,'archive_history','test-backup'),undefined);db.close();
+});
+test('invalid archive schema, old live schema and hidden video URL all reject without writes',async()=>{
+ const db=await setup();
+ await fail(commit(db,await archive(state('archive').meta?{...state('archive'),meta:{schemaVersion:16,revisionId:'archive'}}:state('archive'))),'V2_ATOMIC_SCHEMA_UNSUPPORTED');
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({...state(),meta:{schemaVersion:14,revisionId:'initial'}},'state');
+ await done(tx);
+ await fail(commit(db,await archive()),'V2_ATOMIC_SCHEMA_UNSUPPORTED');
+ db.close();
+ const bad=await setup();const t=bad.transaction('main','readwrite');
+ const s=state();s.records=[{id:'old',media:[{kind:'video',data:'data:video/mp4;base64,AQID'}]}];
+ t.objectStore('main').put(s,'state');await done(t);
+ await fail(commit(bad,await archive()),'V2_ATOMIC_UNVERIFIED_ORIGINAL');bad.close();
+});
+test('missing protected store, duplicate backup and invalid validator fail closed',async()=>{
+ const db=await setup(),file=await archive();
+ await fail(commit({objectStoreNames:{contains:name=>name!=='full_backup'}},file),'V2_ATOMIC_STORES_MISSING');
+ await fail(commit(db,file,options({validateState:()=>Promise.resolve(true)})),'V2_ATOMIC_STATE_INVALID');
+ assert.equal((await read(db,'main','state')).meta.revisionId,'initial');
+ await commit(db,file);
+ await fail(commit(db,file,options({expectedRevision:'imported',newRevisionId:'imported-again'})),'V2_ATOMIC_PROTECTED_DATA_PRESENT');
+ db.close();
+});
+test('post-import new pending media or other backup blocks rollback, preserving snapshot',async()=>{
+ const db=await setup();await commit(db,await archive());
+ const tx=db.transaction('entrance_media','readwrite');
+ tx.objectStore('entrance_media').put({id:'newPending',blob:new Blob(['pending'])});
+ await done(tx);
+ await fail(rollback(db),'V2_ATOMIC_ROLLBACK_PROTECTED_CHANGED');
+ assert.equal((await read(db,'main','state')).meta.revisionId,'imported');
+ assert.ok(await read(db,'full_backup','v2:test-backup'));
+ db.close();
+});
