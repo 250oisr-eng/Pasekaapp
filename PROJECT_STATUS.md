@@ -1,3 +1,11 @@
+## Контрольная точка — исправлен VOC→COCO для 1241 реальных PNG LILA (2026-11-20)
+
+- Parent Draft #274 code SHA `211264fa58ff808a94150def4150bea2f42d845e`: public 5-pair workflow #44737529123 **completed/success** (8/8 Python tests, реальная 5-парная sample включая PNG 200x200), Android #44737529117 **completed/success**, isolated #44737529155 **skipped**. После документальных коммитов HEAD #274 изменился, новые CI сверять самостоятельно. Real ZIP catalog: 4993 XML, 3752 JPG и 1241 PNG, все без-JPEG XML соответствуют PNG.
+- Новая отдельная ветка `fix/video-voc-png-unassigned-coco-2026-11-20` поверх #274: исправлен `tools/convert_bee_voc_unassigned.py` (строго один JPG/JPEG/PNG на VOC, JPEG SOF или PNG signature+IHDR+CRC, размеры XML, реальный SHA256). XML без bbox сохраняется как отрицательный unassigned COCO кадр; никакого sourceVideoId/train/test не выдумывается. Добавлено 4 Python regression cases (всего 12) и Node bridge обновлён, `docs/VIDEO-LILA-VOC-UNASSIGNED-COCO.md` обновлён.
+- Новый PR требуется оформить и проверить на exact SHA (npm regressions + Android debug build). Никакой реализации real YOLOX train, ONNX/hardware inference, all-copy cleanup или доступа к пользовательским видео/production. Главный следующий шаг после CI — документально установить независимые source-group кадры для честного train/validation/test или оставить набор unassigned.
+
+---
+
 ## Контрольная точка — LILA: все 4993 XML имеют JPEG или PNG, пять реальных пар проверены (2026-11-20)
 
 - Research run #44737529123 на code/test SHA `211264fa58ff808a94150def4150bea2f42d845e` **completed/success**, 8/8 Python тестов, 5 реальных JPG/PNG+VOC пар, Range только 3579721 bytes. GitHub ZIP catalog run #44737260472 подтвердил 9986 entries: **4993 XML, 3752 JPG, 1241 PNG**. Ранее 1241 «missing JPEG» оказались одноимёнными PNG. Недопустимо автоматически считать этот набор только JPEG.
