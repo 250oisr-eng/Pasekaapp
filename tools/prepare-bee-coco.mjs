@@ -61,7 +61,7 @@ export async function prepareDataset({manifestPath,datasetRoot,outputDir}){
  // Build in a uniquely owned sibling temp folder, then publish only after all copies
  // and annotation files are prepared. No original file is modified or removed.
  const parent=await realpath(dirname(out));
- if(parent===root||inside(root,parent)||inside(parent,root))fail('output_overlaps_dataset');
+ if(parent===root||inside(root,parent))fail('output_overlaps_dataset');
  try{await lstat(out);fail('output_already_exists')}catch(e){if(e.message!=='ENOENT'&&e.code!=='ENOENT')throw e}
  const stage=await mkdtemp(join(parent,'.bee-coco-stage-'));
  let published=false;
