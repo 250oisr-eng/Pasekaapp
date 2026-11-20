@@ -1356,3 +1356,22 @@ test('rollback fails atomically when recognition completed after import',async()
  assert.deepEqual(await inspectArchiveFixture(db),original);
  db.close();
 });
+
+test('legacy staging refuses recognized videos before creating any duplicate staging blobs',async()=>{
+ const db=await makeDatabase();
+ await setRecognitionLedger(db,{version:1,entries:[{videoId:'recognized',source:'entrance_media',resultId:'result',cleanupState:'blocked_archive_safety'}]});
+ await assert.rejects(stageMinimalArchive(db),error=>error.code==='VIDEO_LEDGER_NOT_PRESERVED');
+ const tx=db.transaction('archive_staging','readonly'),req=tx.objectStore('archive_staging').getAll();
+ const staged=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+ assert.deepEqual(staged,[],'no archive data or video was staged');
+ db.close();
+});
+test('legacy staging rejects malformed recognition ledger without altering it',async()=>{
+ const db=await makeDatabase();
+ await setRecognitionLedger(db,{version:900,entries:[]});
+ await assert.rejects(stageMinimalArchive(db),error=>error.code==='VIDEO_LEDGER_UNVERIFIED');
+ const tx=db.transaction('main','readonly'),req=tx.objectStore('main').get('video_recognition_ledger_v1');
+ const ledger=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+ assert.equal(ledger.version,900);
+ db.close();
+});
