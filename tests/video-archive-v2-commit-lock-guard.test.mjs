@@ -23,6 +23,7 @@ async function setup(){
   req.result.createObjectStore('entrance_media',{keyPath:'id'});
   req.result.createObjectStore('archive_staging',{keyPath:'id'});
   req.result.createObjectStore('archive_history',{keyPath:'backupId'});
+  req.result.createObjectStore('full_backup');
  };
  const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
  const tx=db.transaction(['main','entrance_media'],'readwrite');
@@ -42,7 +43,7 @@ test('gate uses one readwrite transaction across all protected stores, always ab
  }};
  const result=await call(tracked);
  assert.equal(calls.length,1);
- assert.deepEqual(calls[0].stores,['main','entrance_media','archive_staging','archive_history']);
+ assert.deepEqual(calls[0].stores,['main','entrance_media','archive_staging','archive_history','full_backup']);
  assert.equal(calls[0].mode,'readwrite');
  assert.equal(result.lockValidated,true);
  assert.equal(result.transactionAborted,true);
