@@ -171,3 +171,25 @@ test('no pending video retains prior aborted writer-lock diagnostic behavior',as
  assert.equal(result.transactionAborted,true);
  db.close();
 });
+
+test('queued journal writer cannot hide record_media ID collision before final lock',async()=>{
+ const db=await setup();
+ const live={meta:{schemaVersion:15,revisionId:'journal-updated'},
+  records:[{id:'inspection',media:[{kind:'video',videoId:'future-record',data:'data:video/mp4;base64,YWJj'}]}]};
+ const writer=db.transaction('main','readwrite');
+ writer.objectStore('main').put(live,'state');
+ const future={...incoming(),
+  state:{meta:{schemaVersion:15},records:[{id:'imported',
+   media:[{kind:'video',videoId:'future-record',data:'data:video/mp4;base64,YWJj',
+    sourceSha256:'b'.repeat(64),sourceBytes:3}]}]},
+  pendingVideos:[{source:'record_media',videoId:'future-record',
+   sourceSha256:'b'.repeat(64),sourceBytes:3}]
+ };
+ const checked=call(db,future);
+ await transactionDone(writer);
+ await rejects(checked,'V2_RESTORE_LIVE_RECORD_ID_COLLISION');
+ const request=db.transaction('main','readonly').objectStore('main').get('state');
+ const saved=await new Promise((res,rej)=>{request.onsuccess=()=>res(request.result);request.onerror=()=>rej(request.error);});
+ assert.deepEqual(saved,live);
+ db.close();
+});
