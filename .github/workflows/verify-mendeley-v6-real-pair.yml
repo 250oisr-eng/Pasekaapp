@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Run ten offline negative/security regressions
+      - name: Run eleven offline negative/security regressions
         run: python3 -m unittest discover -s tests -p 'test_verify_mendeley_v6_public_pair.py' -v
       - name: Read actual 918 KiB JPG and 266-byte YOLO TXT with hard limits
         run: python3 tools/verify_mendeley_v6_public_pair.py
