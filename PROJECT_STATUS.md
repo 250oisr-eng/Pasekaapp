@@ -1,3 +1,10 @@
+## Контрольная точка — честный статус видео летка в UI (2026-11-20)
+
+- На базе #244 создана отдельная рабочая ветка `fix/video-entrance-unverified-status-2026-11-20`. В `index.html` статус `entrance_media.status==='completed'` больше не выводит ложное «Анализ завершён»; вместо него «Результат распознавания не подтверждён». Реального подтверждённого распознавания в этой цепочке пока нет. Показ очереди и видео, блокировка удаления, запись исходников не затронуты.
+- В `tests/entrance-video-manual-delete-guard.test.mjs` добавлен отрицательный UI-regression тест на старую надпись и сохранение предупреждения об отсутствии сервера и запрета удаления.
+- Code SHA `0604edf41b9743fc2d76e24d978fc10da0d5a8c2`, tests SHA `23a79a5cb1deb2f0754c6993870e8cc3aca1d6e6`. Новая ветка требует отдельного CI. Никакого признания `completed` без ledger, подключения AI, auto-delete, changes production.
+
+---
 ## CI PR #244 проверен на точном SHA (2026-11-20)
 
 - Code/test/docs SHA `abcd5d3a34446a151a7400e415661f9f9d8b73d9`: [Android workflow #44707536300](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707536300) **completed/success**: regression tests, Build debug APK и Upload APK success. [Isolated archive #44707536160](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44707536160) **skipped**.
