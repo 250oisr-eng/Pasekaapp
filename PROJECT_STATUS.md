@@ -1,3 +1,9 @@
+## CI Draft #250 — точный проверенный SHA (2026-11-20)
+
+- Code/test/docs SHA `53585a867927cc2ac91369c7d46d7fbc154476ba`: [Android #44710596298](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710596298) **completed/success** (регрессионные тесты, Debug APK build, Upload APK); [isolated #44710596021](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44710596021) **skipped**. Android physical test не проводился.
+- Блок не активирует реальное AI распознавание, не завершает видеозаписи, не удаляет исходники. Поздние docs-only commits после проверенного SHA не считать автоматически проверенными.
+
+---
 ## Этап — сквозные safety-инварианты между видео модулями (2026-11-20)
 
 - Следующая зависимая ветка `test/video-end-to-end-safety-invariants-2026-11-20` поверх staging pipeline #249. Добавлен `tests/video-end-to-end-safety-invariants.test.mjs`: целостная проверка запрета fake-completed, direct delete, подмены queue original, возвращаемых прав untrusted draft, отсутствия staging модулей в UI/PWA.
