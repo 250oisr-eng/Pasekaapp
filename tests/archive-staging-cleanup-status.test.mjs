@@ -194,3 +194,34 @@ test('corrupt staging sessionId cannot be used to discard records from another s
  assert.ok((await readRows(db,sessionId)).some(row=>row.id===sessionId+':state'));
  db.close();
 });
+
+test('missing legacy kind index blocks cleanup instead of hanging or deleting data',async()=>{
+ const db=await new Promise((resolve,reject)=>{
+  const request=new IDBFactory().open('paseka-cleanup-missing-kind-index',1);
+  request.onupgradeneeded=()=>{
+   const staging=request.result.createObjectStore('archive_staging',{keyPath:'id'});
+   staging.createIndex('sessionId','sessionId');
+   request.result.createObjectStore('archive_history',{keyPath:'backupId'});
+  };
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+ await seedSession(db,'session-legacy-kind','failed');
+ await assert.rejects(Restore.discardArchiveRestoreSession(db,'session-legacy-kind'),
+  {code:'STAGING_CLEANUP_INDEX_MISSING'});
+ const tx=db.transaction('archive_staging','readonly'),request=tx.objectStore('archive_staging').get('session-legacy-kind:state');
+ assert.ok(await new Promise((resolve,reject)=>{
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ }));
+ db.close();
+});
+test('invalid cleanup session identifiers are rejected before database modification',async()=>{
+ const db=await openTestDb('paseka-cleanup-invalid-sessionid');
+ await seedSession(db,'session-protected','failed');
+ for(const id of ['',null,'x'.repeat(201)]){
+  assert.throws(()=>Restore.discardArchiveRestoreSession(db,id),{code:'STAGING_SESSION_INVALID'});
+ }
+ assert.equal((await readRows(db,'session-protected')).length,2);
+ db.close();
+});
