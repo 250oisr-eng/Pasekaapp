@@ -50,3 +50,45 @@ test('corrupted identity, invalid media and duplicated incoming ledger fail clos
  assert.equal(safety.inspectRestoreRisk(local,state,[{blob:'missing id'}],verified).ok,false);
  assert.equal(safety.inspectRestoreRisk(local,state,[],{archiveCarriesLedger:true,incomingLedger:{version:1,entries:[deleted,deleted]}}).reason,'duplicate_incoming_ledger_identity');
 });
+
+import {indexedDB as factory} from 'fake-indexeddb';
+const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+async function fixture(ledgerValue){
+ const request=factory.open('video-archive-preflight-'+Math.random(),1);
+ const db=await new Promise((resolve,reject)=>{
+  request.onupgradeneeded=()=>request.result.createObjectStore('main');
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+ });
+ if(ledgerValue!==undefined)await new Promise((resolve,reject)=>{
+  const tx=db.transaction('main','readwrite');
+  tx.objectStore('main').put(ledgerValue,'video_recognition_ledger_v1');
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
+ });
+ return db;
+}
+test('legacy JSON and automatic restore call safety check before confirmation or mutation',()=>{
+ assert.match(html,/<script src="\.\/js\/video-archive-safety\.js"><\/script>/);
+ for(const functionName of ['restoreBackup','restoreAutoBackup']){
+  const begin=html.indexOf('async function '+functionName+'(){');
+  assert.ok(begin>=0);
+  const body=html.slice(begin,html.indexOf('\n}',begin));
+  const testAt=body.indexOf('await PasekaVideoArchiveSafety.assertLegacyRestoreSafe(db)');
+  assert.ok(testAt>=0);
+  assert.ok(testAt<body.indexOf('if(!confirm('));
+  assert.ok(testAt<body.indexOf('S=restored'));
+ }
+});
+test('legacy restore stays available for an old database without recognition results',async()=>{
+ const db=await fixture(undefined);
+ assert.equal(await safety.assertLegacyRestoreSafe(db),true);db.close();
+});
+test('legacy restore rejects recognition history to avoid irreversible loss',async()=>{
+ const db=await fixture(local);
+ await assert.rejects(safety.assertLegacyRestoreSafe(db),/VIDEO_RECOGNITION_HISTORY_RESTORE_BLOCKED/);
+ db.close();
+});
+test('corrupt local ledger blocks legacy restore rather than resetting history',async()=>{
+ const db=await fixture({version:1,entries:[{corrupt:'data'}]});
+ await assert.rejects(safety.assertLegacyRestoreSafe(db),/VIDEO_LEDGER_CORRUPT_RESTORE_BLOCKED/);
+ db.close();
+});
