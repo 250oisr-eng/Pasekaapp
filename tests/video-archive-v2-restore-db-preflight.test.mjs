@@ -165,3 +165,19 @@ test('untracked live journal original prevents claiming safe v2 pending-media pr
  ]}),'V2_RESTORE_LIVE_RECORD_ID_UNKNOWN');
  db.close();
 });
+
+test('equal ID across different video sources is not a false collision',async()=>{
+ const db=await setup();
+ const id='unrecognized'; // live entrance media has this ID; incoming is record_media
+ const record={id:'incoming-record',media:[{
+  kind:'video',videoId:id,data:'data:video/mp4;base64,YWJj',
+  sourceSha256:'b'.repeat(64),sourceBytes:3
+ }]};
+ const examined=await inspect(db,{...candidate(),
+  state:{meta:{schemaVersion:15},records:[record]},
+  pendingVideos:[{source:'record_media',videoId:id,sourceSha256:'b'.repeat(64),sourceBytes:3}]
+ });
+ assert.equal(examined.pendingIdentityChecked,1);
+ assert.equal(examined.restoreAuthorized,false);
+ db.close();
+});
