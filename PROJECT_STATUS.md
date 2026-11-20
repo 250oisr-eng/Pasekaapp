@@ -1,3 +1,12 @@
+## Контрольная точка — атомарный read-only снимок для архива v2 (2026-11-20)
+
+- В зависимой ветке `feat/video-archive-v2-consistent-read-2026-11-20` поверх Draft #220 добавлен **не подключённый к рабочему экспорту** `js/video-archive-v2-snapshot.js`. Он считывает state, `main/video_recognition_ledger_v1` и все `entrance_media` в одной IndexedDB readonly-транзакции, не используя хэши из несогласованных раздельных чтений.
+- При отсутствии ledger, повреждении state или отсутствии в метаданных Blob подтверждённого `blobSha256` и `bytes` операция отказывает; если в ledger есть запись о распознавании того же видео, сохранённый оригинал блокирует подготовку архива. Ни один исходный Blob не удаляется.
+- Добавлен `tests/video-archive-v2-snapshot.test.mjs`: одновременное чтение, конкурентная readwrite-запись после начала snapshot, отсутствие/повреждение ledger, отсутствие SHA, конфликт tombstone/оригинала, отсутствие магазинов и неверная схема.
+- Важно: успешный snapshot сам по себе **не делает архив безопасным** после асинхронного SHA и не подтверждает отсутствие staged/rollback/внешних Android-копий. Метод всегда возвращает `archiveSafe:false`, `restoreAuthorized:false`, `needsPostHashRecheck:true`. Интеграции с codec и живым export/import пока нет. Тесты/CI итогового SHA проверить отдельно.
+
+---
+
 ## Подтверждение кодовых тестов PASEKA02 journal adapter (2026-11-20)
 
 - На кодовом SHA `efd3ee1a795740bbde324edb64fb21ba6728a7e2` Fast quality checks завершились **completed/success**, workflow GitHub CI; после добавления итоговых документов Android и новый итоговый HEAD сверить отдельно.
