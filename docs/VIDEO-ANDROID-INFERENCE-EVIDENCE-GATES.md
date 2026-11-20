@@ -25,3 +25,13 @@
 ## Запреты
 
 Нет загрузки внешней модели, запросов к серверу, использования платных инструментов, записи изображений, подключения в UI или SW, изменения IndexedDB и удаления оригиналов. Не интегрировать модель с недоказанной лицензией, не преобразовывать пустой результат в «completed».
+
+## Конкретные опубликованные detector candidates (дополнительная сверка 2026-11-20)
+
+| Источник | Что подтверждено публично | Блокер интеграции |
+|---|---|---|
+| https://github.com/mattnudi/bee-detection | В репозитории опубликован `best.pt` для YOLOv5 honey bee detection, README перечисляет worker/drone/pollenbee/queen и offline validation results (bee P 0.947, R 0.708, 162 images). | В просмотренном README не установлена явная лицензия **весов** и исходного датасета; YOLOv5 dependency/обязательства и применимость к ракурсу летка не установлены. Не принимать показатели на своём датасете за независимый benchmark. |
+| https://huggingface.co/maryammeda/apiarist-honey-bee-detector | Публичная модель object detection с карточкой `apache-2.0`, YOLOv8s base, Worker/Drone/Varroa/Queen; готовый `.pt` весовой файл. | Нужно отдельно разрешить совместимость заявленной лицензии производных весов с происхождением YOLOv8s checkpoint и dataset terms; не объявлять Apache-2.0 окончательной юридической проверкой. Нет экспортированного и проверенного ONNX Android benchmark, нет доказанного tracking/direction на летке. |
+| https://github.com/Gratheon/models-queen-bee-detector | Опубликован код/описание queen detection, benchmark, базовая YOLOv8n архитектура. | README явно сообщает, что trained weights **не включены** — использовать как модель приложения невозможно. |
+
+**Решение:** пока нет кандидата, который одновременно имеет юридически проверяемые веса, Android ONNX/WASM performance и валидацию detection→temporal tracking→direction. Не скачивать, не фиксировать в репозитории и не подключать неизвестные веса. Следующее испытание — отдельный репродуцируемый license/origin manifest + SHA-256 после правового допуска; только затем Android CPU/WASM probe с реальным весовым файлом и изолированным fixture, без пользовательского видео.
