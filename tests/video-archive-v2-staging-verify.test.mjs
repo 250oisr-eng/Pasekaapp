@@ -7,7 +7,8 @@ const root={};
 for(const file of [
  'paseka-sha256.js','video-archive-v2-guard.js','video-archive-v2-record-media.js',
  'video-archive-v2-metadata-codec.js','video-archive-v2-restore-gate.js',
- 'video-archive-v2-pending-stage.js','video-archive-v2-staging-verify.js'
+ 'video-archive-v2-pending-stage.js','video-archive-v2-staging-verify.js',
+ 'video-archive-v2-pinned-source.js'
 ])new Function('window',await readFile(new URL('../js/'+file,import.meta.url),'utf8'))(root);
 const deps=()=>({
  codec:root.PasekaVideoArchiveV2MetadataCodec,
@@ -206,5 +207,129 @@ test('missing protected IndexedDB store is rejected before checking archive',asy
  const {db,file}=await staged();
  const fake={objectStoreNames:{contains:n=>n!=='full_backup'},transaction(){throw Error('not allowed');}};
  await rejects(verify(fake,file,opts(),deps()),'V2_VERIFY_STORES_MISSING');
+ db.close();
+});
+
+const rehearsePinned=root.PasekaVideoArchiveV2PinnedSource.rehearsePinnedSources;
+const pinnedDeps=()=>({...deps(),verify:root.PasekaVideoArchiveV2StagingVerify});
+test('pinned-source rehearsal verifies immutable archive byte handles without writing anything',async()=>{
+ const {db,file}=await staged(),modes=[];
+ const tracked={objectStoreNames:db.objectStoreNames,transaction(stores,mode){
+  modes.push(mode);return db.transaction(stores,mode);
+ }};
+ const report=await rehearsePinned(tracked,file,opts(),pinnedDeps());
+ assert.deepEqual(modes,['readonly','readwrite','readwrite']);
+ assert.equal(report.pinnedArchiveByteSourceVerified,true);
+ assert.equal(report.pinnedSourceCount,1);
+ assert.equal(report.pinnedSourceBytes,3);
+ assert.equal(report.stagedBytesLocked,false);
+ assert.equal(report.finalTransactionAborted,true);
+ assert.equal(report.requiresAtomicCommitCheck,true);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal('blob' in report,false,'no frozen byte handles may escape the rehearsal');
+ assert.deepEqual(await get(db,'main','state'),state());
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'full_backup'),0);
+ assert.equal(await count(db,'archive_staging'),2);
+ db.close();
+});
+test('pinned-source rehearsal supports archive-verified journal pending originals',async()=>{
+ const {db,file}=await staged(true);
+ const report=await rehearsePinned(db,file,opts(),pinnedDeps());
+ assert.equal(report.pinnedSourceCount,1);
+ assert.equal(report.pinnedSourceBytes,3);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal((await get(db,'archive_staging',
+  'v2pending:v2-recheck:record_media:journal-one')).kind,'v2_pending_original');
+ db.close();
+});
+test('same-size staged Blob swap after the stage audit cannot replace pinned archive source',async()=>{
+ const {db,file}=await staged();
+ const d=pinnedDeps();
+ let calls=0;
+ const original=d.codec.inspectMetadataArchive;
+ d.codec={...d.codec,inspectMetadataArchive:async(...args)=>{
+  const decoded=await original(...args);
+  if(++calls===2){
+   const key='v2pending:v2-recheck:entrance_media:video-one';
+   const old=await get(db,'archive_staging',key);
+   const tx=db.transaction('archive_staging','readwrite');
+   tx.objectStore('archive_staging').put({...old,
+    blob:new Blob(['xyz'],{type:'video/mp4'})});
+   await done(tx);
+  }
+  return decoded;
+ }};
+ const report=await rehearsePinned(db,file,opts(),d);
+ assert.equal(calls,2);
+ assert.equal(report.pinnedArchiveByteSourceVerified,true);
+ // The staged record HAS changed. A metadata-only lock does not prove otherwise.
+ assert.equal(report.stagedBytesLocked,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.cleanupAuthorized,false);
+ const changed=await get(db,'archive_staging',
+  'v2pending:v2-recheck:entrance_media:video-one');
+ assert.equal(await root.PasekaSha256.hashBlobHex(changed.blob),
+  await root.PasekaSha256.hashBlobHex(new Blob(['xyz'])));
+ assert.notEqual(await root.PasekaSha256.hashBlobHex(changed.blob),
+  (await d.codec.inspectMetadataArchive(file,d.crypto,d.guard,d.sha,d.recordAdapter)).pendingVideos[0].sourceSha256);
+ // A second fresh audit DOES reject the changed original; previous success
+ // is intentionally not an authorization to restore or delete anything.
+ await rejects(rehearsePinned(db,file,opts(),pinnedDeps()),'V2_VERIFY_STAGED_HASH_CHANGED');
+ db.close();
+});
+test('new recognition during frozen source verification blocks final aborted lock',async()=>{
+ const {db,file}=await staged(),d=pinnedDeps();
+ const original=d.sha.hashBlobHex;let hashed=0;
+ d.sha={...d.sha,hashBlobHex:async blob=>{
+  const digest=await original(blob);
+  if(++hashed===6){
+   const tx=db.transaction('main','readwrite');
+   tx.objectStore('main').put({version:1,entries:[{
+    source:'entrance_media',videoId:'video-one',resultId:'new-result',
+    sourceSha256:digest,sourceBytes:3,sourceEvidenceVersion:1,
+    recognizedAt:'2026-11-20T00:00:00Z',cleanupState:'delete_required',
+    result:{observation:'recognized while hashing'}
+   }]},'video_recognition_ledger_v1');
+   await done(tx);
+  }
+  return digest;
+ }};
+ await assert.rejects(rehearsePinned(db,file,opts(),d));
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_staging'),2);
+ assert.equal((await get(db,'main','video_recognition_ledger_v1')).entries.length,1);
+ db.close();
+});
+test('staged history mutation during frozen source verification fails closed',async()=>{
+ const {db,file}=await staged(),d=pinnedDeps();
+ const original=d.sha.hashBlobHex;let hashed=0;
+ d.sha={...d.sha,hashBlobHex:async blob=>{
+  const digest=await original(blob);
+  if(++hashed===6){
+   const saved=await get(db,'archive_history','v2-recheck');
+   const tx=db.transaction('archive_history','readwrite');
+   tx.objectStore('archive_history').put({...saved,status:'manual-review'});
+   await done(tx);
+  }
+  return digest;
+ }};
+ await rejects(rehearsePinned(db,file,opts(),d),'V2_PIN_SESSION_CHANGED');
+ assert.equal((await get(db,'archive_history','v2-recheck')).status,'manual-review');
+ assert.equal(await count(db,'archive_staging'),2);
+ db.close();
+});
+test('pinned-source rehearsal refuses any verifier that claims permission to restore',async()=>{
+ const {db,file}=await staged();
+ const d=pinnedDeps();
+ d.verify={verifyStagedPendingAgainstArchive:async()=>({
+  verifiedAtSnapshot:true,transactionAborted:true,byteIntegrityLocked:false,
+  restoreAuthorized:true,cleanupAuthorized:false
+ })};
+ await rejects(rehearsePinned(db,file,opts(),d),'V2_PIN_AUDIT_CONTRACT_INVALID');
+ assert.equal(await count(db,'entrance_media'),0);
  db.close();
 });
