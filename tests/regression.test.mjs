@@ -2573,6 +2573,7 @@ test('JSON backup restore keeps current in-memory state when atomic database wri
  const deps={
  window:{PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true}},
  PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true},
+  db:{},
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
   confirm:()=>true,
@@ -2809,6 +2810,7 @@ test('save queued behind backup restore snapshots the restored state, not stale 
  const deps={
  window:{PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true}},
  PasekaVideoArchiveSafety:{assertLegacyRestoreSafe:async()=>true},
+  db:{},
   S:current,
   $:()=>({files:[{text:async()=>JSON.stringify({state:restored})}]}),
   confirm:()=>true,
