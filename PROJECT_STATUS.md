@@ -1,3 +1,12 @@
+## 2026-11-20 — PR #280: реальные source SHA проверены тестами, исправлена фикстура
+
+- Начальный HEAD `8e1ed24b17600f76aeb6d839b7870f1e6773dc45`: Android workflow #44741716932 **failure** — 1132/1133 tests, единственное падение: тест ожидал mismatch size, но `original` и `modified` имели одинаковую длину и корректно давали `source_hash_mismatch`. APK в этом запуске не собирался.
+- Изменена только синтетическая фикстура `tests/verify-local-source-recordings.test.mjs` (подмена теперь действительно меняет размер). Исправленный code/test SHA `ae7e01b9812ecac8148057481ce1b6d88826e856`: [Android #44741869337](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44741869337) **completed/success**: regression tests, Debug APK build и Upload APK успешно; isolated #44741869430 skipped.
+- Текущий инструмент остаётся локальным staging read-only хешированием; юридическое подтверждение источника/права на кадры, модель и реальный Android inference отсутствуют; удаление оригиналов запрещено. После этого docs-only обновления CI итогового HEAD требует отдельной сверки.
+- Главная следующая задача: независимое подтверждение соответствия image→source video/session и прав конкретных файлов, затем лицензированное обучение и физическая проверка. Не сливать Draft PR, main и production не изменены.
+
+---
+
 ## 2026-11-20 — staging-only проверка реальных байтов исходных видеозаписей
 
 - Проверен родительский Draft PR #279: `e9013c1a67650720c605c0a503afdc85cc4eb4db` Android #44740891761 **completed/success** (регрессионные тесты, debug APK build и upload); архивный #44740892010 skipped. Новая независимая ветка поверх #279: `test/video-physical-source-sha-verification-2026-11-20`.
