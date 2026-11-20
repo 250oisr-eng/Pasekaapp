@@ -32,10 +32,13 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class BoundedRanges:
-    def __init__(self,opener=None):
+    def __init__(self,opener=None,budget=MAX_NETWORK):
+        if not isinstance(budget,int) or not 0<budget<=24*1024*1024:
+            raise SampleRejected('network_budget_invalid')
         self.client=opener or build_opener(NoRedirect())
         self.used=0
         self.total=None
+        self.budget=budget
 
     def head_size(self):
         req=Request(URL,method="HEAD",headers={"Accept-Encoding":"identity"})
@@ -55,7 +58,7 @@ class BoundedRanges:
         if self.total is None or not (0<=start<=end<self.total):
             raise SampleRejected("range_invalid")
         length=end-start+1
-        if length>MAX_CENTRAL or self.used+length>MAX_NETWORK:
+        if length>MAX_CENTRAL or self.used+length>self.budget:
             raise SampleRejected("range_budget_exceeded")
         req=Request(URL,method="GET",headers={
             "Range":f"bytes={start}-{end}","Accept-Encoding":"identity"})
