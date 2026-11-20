@@ -291,3 +291,42 @@ test('recovery inspector takes a readonly transaction and cannot acquire a write
  assert.equal(await read(db,'archive_history','test-backup'),undefined);
  db.close();
 });
+
+test('restart inspector fails closed on altered imported revision, previous revision or backup identity',async()=>{
+ for(const field of ['importedRevisionId','previousRevisionId','backupId','archiveSha256']){
+  const db=await setup();
+  await commit(db,await archive());
+  const tx=db.transaction('archive_history','readwrite');
+  const history=await new Promise((resolve,reject)=>{
+   const req=tx.objectStore('archive_history').get('test-backup');
+   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+  history[field]=field==='archiveSha256'?'not-a-digest':'tampered';
+  tx.objectStore('archive_history').put(history,'test-backup');
+  await done(tx);
+  const finding=await api.inspectMetadataRecovery(db,'test-backup',deps);
+  assert.equal(finding.status,'manual_review_required',field);
+  assert.equal(finding.cleanupAuthorized,false,field);
+  assert.equal((await read(db,'main','state')).meta.revisionId,'imported');
+  db.close();
+ }
+});
+test('restart inspector rejects altered snapshot revision without changing or removing recovery data',async()=>{
+ const db=await setup();
+ await commit(db,await archive());
+ const tx=db.transaction('full_backup','readwrite');
+ const store=tx.objectStore('full_backup');
+ const record=await new Promise((resolve,reject)=>{
+  const req=store.get('v2:test-backup');
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ record.afterState.meta.revisionId='other-import';
+ store.put(record,'v2:test-backup');
+ await done(tx);
+ const finding=await api.inspectMetadataRecovery(db,'test-backup',deps);
+ assert.equal(finding.status,'manual_review_required');
+ assert.equal(finding.restoreAuthorized,false);
+ assert.ok(await read(db,'full_backup','v2:test-backup'));
+ assert.equal((await read(db,'archive_history','test-backup')).status,'committed');
+ db.close();
+});
