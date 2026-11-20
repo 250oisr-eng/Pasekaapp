@@ -1,0 +1,20 @@
+name: Public LILA bee ZIP header (research only)
+on:
+  pull_request:
+    paths:
+      - 'tools/probe_lila_bee_zip_range.py'
+      - 'tests/test_probe_lila_bee_zip_range.py'
+      - 'tests/public-lila-bee-zip-range.test.mjs'
+      - '.github/workflows/bee-public-lila-zip-header.yml'
+permissions:
+  contents: read
+jobs:
+  public-header:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline ZIP Range security tests
+        run: python3 -m unittest discover -s tests -p 'test_probe_lila_bee_zip_range.py' -v
+      - name: Read first 64 ZIP bytes only, public AWS or GCP source
+        run: python3 tools/probe_lila_bee_zip_range.py
