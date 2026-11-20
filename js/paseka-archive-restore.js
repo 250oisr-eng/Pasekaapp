@@ -9,6 +9,16 @@ function fail(code, message) {
   error.code = code;
   throw error;
 }
+function assertLegacyArchiveRecognitionLedger(value) {
+  if (value == null) return;
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      value.version !== 1 || !Array.isArray(value.entries)) {
+    fail('VIDEO_LEDGER_UNVERIFIED', 'Recognition history cannot be validated. Archive restore is blocked.');
+  }
+  if (value.entries.length) {
+    fail('VIDEO_LEDGER_NOT_PRESERVED', 'This archive version does not preserve recognized video history. Restore is blocked.');
+  }
+}
 function ensureStores(db) {
   if (!db || !db.objectStoreNames || !db.objectStoreNames.contains(STAGING_STORE) || !db.objectStoreNames.contains(HISTORY_STORE)) {
     fail('ARCHIVE_STAGING_UNAVAILABLE', 'The local database does not support staged archive imports. Update the application and reopen it.');
@@ -84,7 +94,7 @@ async function updateSession(db, session) {
   }
 }
 async function putStagingEntryAndUpdateSession(db, record, session) {
-  const tx = db.transaction(STAGING_STORE, 'readwrite');
+  const tx = db.transaction([STAGING_STORE, 'main'], 'readwrite');
   const store = tx.objectStore(STAGING_STORE);
   let nextSession = null;
   let failure = null;
@@ -94,6 +104,15 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
     try { tx.abort(); } catch (error) {}
   };
   sessionRequest.onsuccess = () => {
+    // Read the ledger under the same write lock before writing any staged Blob.
+    const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
+    ledgerRequest.onerror = () => {
+      failure = ledgerRequest.error || new Error('Unable to verify recognition history before staging media.');
+      try { tx.abort(); } catch (error) {}
+    };
+    ledgerRequest.onsuccess = () => {
+      try { assertLegacyArchiveRecognitionLedger(ledgerRequest.result); }
+      catch (error) { failure = error; try { tx.abort(); } catch (ignored) {} return; }
     const currentSession = sessionRequest.result;
     if (!currentSession || currentSession.kind !== 'session' ||
         currentSession.status !== 'staging') {
@@ -132,6 +151,7 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
       store.put({ ...record, stagingRevision: nextEpoch });
       store.put(nextSession);
     };
+    }; // ledgerRequest.onsuccess
   };
   try {
     await transactionDone(tx);
@@ -184,9 +204,17 @@ async function manifestFingerprint(manifest, cryptoProvider) {
   const digest = await cryptoProvider.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
+async function assertLegacyArchiveStageAllowed(db) {
+  const tx = db.transaction('main', 'readonly');
+  const completed = transactionDone(tx);
+  const ledger = await requestValue(tx.objectStore('main').get('video_recognition_ledger_v1'));
+  await completed;
+  assertLegacyArchiveRecognitionLedger(ledger);
+}
 async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveApi, validateState, options = {}) {
   ensureStores(db);
   if (!archiveApi || typeof archiveApi.validateArchiveForRestore !== 'function') fail('ARCHIVE_CODEC_UNAVAILABLE', 'Archive validation module is unavailable.');
+  await assertLegacyArchiveStageAllowed(db);
   const checked = await archiveApi.validateArchiveForRestore(archiveBlob, cryptoProvider, validateState);
   const fingerprint = await manifestFingerprint(checked.manifest, cryptoProvider);
   const history = await getHistory(db, checked.backupId);
@@ -225,6 +253,8 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
   try {
     // Read and hash the live media outside IndexedDB transactions. Never keep a
     // readwrite transaction alive across Blob I/O or asynchronous SHA-256.
+    // Recheck after asynchronous archive validation and before any staging writes.
+    await assertLegacyArchiveStageAllowed(db);
     const baselineReadTx = db.transaction('entrance_media', 'readonly');
     const baselineReadDone = transactionDone(baselineReadTx);
     const baselineRows = await requestValue(baselineReadTx.objectStore('entrance_media').getAll());
@@ -439,6 +469,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       const historyStore = tx.objectStore(HISTORY_STORE);
       const reads = {
         currentState: main.get('state'),
+        recognitionLedger: main.get('video_recognition_ledger_v1'),
         currentVideos: media.getAll(),
         session: stagingStore.get(sessionId),
         stagedRecords: stagingStore.index('sessionId').getAll(sessionId),
@@ -449,6 +480,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       const process = () => {
         try {
           const currentState = values.currentState || null;
+          assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
           const session = values.session;
           const records = values.stagedRecords || [];
@@ -746,6 +778,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       // metadata checks and mutations run while this write transaction is open.
       const reads = {
         currentState: main.get('state'),
+        recognitionLedger: main.get('video_recognition_ledger_v1'),
         currentVideos: media.getAll(),
         history: historyStore.get(backupId),
         rollbackSession: stagingStore.get(rollbackSessionId),
@@ -757,6 +790,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
       const process = () => {
         try {
           const currentState = values.currentState || null;
+          assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = values.rollbackRecords || [];
