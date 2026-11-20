@@ -1,3 +1,7 @@
+## 2026-11-20 — первая реальная Mendeley v6 пара для будущего обучения
+
+- `VIDEO-MENDELEY-V6-REAL-PAIR-VERIFICATION.md` — подлинные публичные URL JPEG/TXT, measured actual SHA+sizes, 1920×1080, 7 YOLO bee boxes, успешный COCO unassigned importer, SHA-pinned live GitHub CI и следующий grouped independent dataset step.
+
 ## 2026-11-20 — доступ к исходному Mendeley v6 набору
 
 - `VIDEO-MENDELEY-V6-ACCESS-AUDIT.md` — шесть HTTP 401 официального API, ограниченная сетевая диагностика без скачивания данных, отличие оригинала v6 от Roboflow v5 и один конкретный шаг получения минимального оригинального образца.

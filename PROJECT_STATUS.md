@@ -1,3 +1,20 @@
+## 2026-11-20 — первый Mendeley v6 original JPG полностью декодирован без ошибок
+
+- Отдельная **live** job [#44749817855](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44749817855) на SHA `c10c5d6f9d0eac4b780326644c2aa2774af15338`: **completed/success**; 11 Python negative/security tests, SHA-pinned real JPEG+TXT, full Pillow 12.0.0 image decode success `verifiedJpegDecode=true`. Реальные размеры/хеши остались неизменными (940530B/266B, 1920×1080, 7 class=0 рамок). Pillow свободный MIT-CMU, только временный isolated CI, не runtime/Android.
+- Исправлено документирование пределов проверки в `docs/VIDEO-MENDELEY-V6-REAL-PAIR-VERIFICATION.md`: полная JPEG декомпрессия **не** доказывает точность bbox, независимость исходных видео, модель или локальное распознавание. Для обучения и unbiased holdout всё ещё требуется больше оригинальных source groups/session information.
+- Текущий Draft #285 содержит код, тесты и документы; final CI на актуальном документационном SHA нужно проверить отдельно. `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`. Пользовательские медиатека/БД/main/production не менялись.
+
+---
+
+## 2026-11-20 — оригинальные Mendeley v6 JPEG/TXT реально получены и импортированы (первая пара)
+
+- После Draft #284 (публичный metadata API 6×401), пользователь через Work передал **публичные прямые ссылки** на `detection/_bee_20230609a/images/20230609a1002.jpg` и matching `labels/20230609a1002.txt`; пароль не нужен. Это не архив `Download All` и не доступ к пользовательским данным.
+- В отдельном Draft #285 код `tools/verify_mendeley_v6_public_pair.py` и isolated GitHub job [#44749236895](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44749236895) реально скачали лишь JPG=940530 байт SHA256=`dcccf2db87e3f964870cfd84a65ad0ba9e81e992194b8f2fa18c16107fea41f3`, TXT=266 байт SHA256=`ab25e4c0d29898983b78cc8241271ca4a66095332c32c8f0d29aab68d32f68d5`. JPEG header 1920×1080; **7** bee YOLO bbox; существующий `build_unassigned` успешно преобразовал 1 реальную пару в COCO с group `_bee_20230609a`. Это не семь прилётов/вылетов.
+- Добавлено SHA pinning обоих реальных файлов, 11 synthetic negative/security tests, Node CI bridge, отдельный workflow real pair; повторная live pinned job [#44749468016](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44749468016) **completed/success**. Нет полного JPEG-decode и визуальной проверки bbox, source recording/video session mapping, всей выборки или обучения. Изображения не сохраняются в репозитории/артефактах; `trainingAuthorized=false`, `recognitionSucceeded=false`, `cleanupAuthorized=false`.
+- Новый документ `docs/VIDEO-MENDELEY-V6-REAL-PAIR-VERIFICATION.md`; следующий шаг: получить реальные image+YOLO ссылки других **улейных групп**, определить исходные session IDs, законный полный train/validation/test и обучить действительно работающую модель. После документационных коммитов проверить exact final SHA/CI. Main/production/IndexedDB/private Android media, merge не менялись.
+
+---
+
 ## 2026-11-20 — основной этап Mendeley v6: проверены реальные ответы API, требуется исходный образец
 
 - Родительский Draft #283 final HEAD `a256f63af289864f4dc3924eb9d805b29c58d66f`: Android #44744928807 **completed/success** (регрессии и Debug APK), isolated #44744928737 **skipped**. Ни обучение, ни физический Android inference ещё не выполнены.
