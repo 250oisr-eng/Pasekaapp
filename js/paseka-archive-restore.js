@@ -1237,8 +1237,9 @@ function discardArchiveRestoreSession(db, sessionId) {
           abortWith(Object.assign(new Error('A rollback snapshot cannot be deleted through the staging cleanup action.'), { code: 'ROLLBACK_SNAPSHOT_PROTECTED' }));
           return;
         }
-        if (session && session.kind !== 'session') {
-          abortWith(Object.assign(new Error('The staging session header is invalid; staged records were preserved.'), { code: 'STAGING_SESSION_INVALID' }));
+        if (session && (session.kind !== 'session' || session.sessionId !== sessionId ||
+            typeof session.backupId !== 'string' || !session.backupId)) {
+          abortWith(Object.assign(new Error('The staging session header identity is invalid; records were preserved.'), { code: 'STAGING_SESSION_INVALID' }));
           return;
         }
         if (session?.kind === 'session' && session.status === 'committed') {
@@ -1299,7 +1300,8 @@ function discardArchiveRestoreSession(db, sessionId) {
               return !session || session.status !== 'reverted' ||
                 item.importSessionId !== sessionId ||
                 item.rollbackSessionId === sessionId ||
-                item.status !== 'reverted' || item.rollbackAvailable !== false;
+                item.status !== 'reverted' || item.rollbackAvailable !== false ||
+                item.backupId !== session.backupId;
             });
             if (protectedReference) {
               abortWith(Object.assign(new Error('Staged records are referenced by archive history and were preserved.'), {
