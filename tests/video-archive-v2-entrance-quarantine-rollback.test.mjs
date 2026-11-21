@@ -530,7 +530,6 @@ async function makeLegacyPaseka01Archive(videoId='new-video'){
 }
 test('actual PASEKA01 binary cannot revive a PASEKA02-quarantined recognized original after restart',async t=>{
  const old=await makeLegacyPaseka01Archive();
- const factory=new IDBFactory();
  // Use a single persistent database for real v2 commit->quarantine->v1 attempt.
  // seed() owns its factory; re-open that factory after closing the v2 connection.
  const prepared=await seed();
