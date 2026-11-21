@@ -92,7 +92,7 @@ jobs:
           }
           config.appId = 'ru.paseka.journal.archive.test';
           config.appName = 'Пасека — архив тест';
-          fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\\n');
+          fs.writeFileSync(file, JSON.stringify(config, null, 2) + String.fromCharCode(10));
           NODE
       - name: Verify isolated Capacitor configuration
         shell: bash
