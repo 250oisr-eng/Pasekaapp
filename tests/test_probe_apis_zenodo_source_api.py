@@ -79,6 +79,16 @@ class ZenodoPublisherApiEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             publisher_record_summary(d)
 
+    def test_legacy_author_file_list_with_exact_original_zip_metadata(self):
+        d=record()
+        d["files"]=[{"key":"dataset_2823_images_labels.zip",
+                    "size":2005232875,
+                    "checksum":"md5:3b1dfaed60310045358a6e4391df89cc"}]
+        self.assertEqual(publisher_record_summary(d)["publisherOriginalZipSizeBytes"],2005232875)
+        d["files"].append(d["files"][0].copy())
+        with self.assertRaisesRegex(ValueError,"duplicated"):
+            publisher_record_summary(d)
+
     def test_reject_changed_publisher_zip_size_and_checksum(self):
         for key,value in (("size", 9),("checksum","md5:00")):
             d=record();d["files"]["entries"]["dataset_2823_images_labels.zip"][key]=value

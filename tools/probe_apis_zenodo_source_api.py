@@ -67,7 +67,19 @@ def publisher_record_summary(data):
     if "cc-by-4.0" not in ids:
         # Only public source license IDs, not cookies or signed download URLs.
         raise ValueError("publisher dataset CC BY 4.0 rights mismatch; license_ids=" + repr(ids))
-    entry = ((data.get("files") or {}).get("entries") or {}).get(ZIP_NAME)
+    # Legacy Zenodo record API: files[] list; InvenioRDM API: files.entries{}.
+    raw_files = data.get("files")
+    if isinstance(raw_files, list):
+        matches = [f for f in raw_files
+                   if isinstance(f, dict)
+                   and f.get("key", f.get("filename")) == ZIP_NAME]
+        if len(matches) != 1:
+            raise ValueError("original ZIP is missing/duplicated in legacy publisher file list")
+        entry = matches[0]
+    elif isinstance(raw_files, dict):
+        entry = (raw_files.get("entries") or {}).get(ZIP_NAME)
+    else:
+        entry = None
     if not isinstance(entry, dict):
         raise ValueError("original ZIP not found in publisher file metadata")
     checksum = str(entry.get("checksum", ""))
