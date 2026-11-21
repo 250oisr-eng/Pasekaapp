@@ -1,0 +1,31 @@
+name: Restoreproof335 private readback diagnostic (read-only)
+on:
+  push:
+    branches:
+      - 'test/android-restore335-private-readback-diagnostic-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restoreproof335-readonly-diagnostic.ps1'
+      - 'tests/android-restoreproof335-readonly-diagnostic.test.mjs'
+      - 'tests/mock_android_restoreproof335_readonly_diagnostic.py'
+      - '.github/workflows/test-android-restoreproof335-readonly-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate script syntax
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restoreproof335-readonly-diagnostic.ps1',[ref]$tok,[ref]$err)
+          if($err.Count){$err|ForEach-Object{Write-Error $_};exit 1}
+      - name: Static source-safety tests
+        run: node --test tests/android-restoreproof335-readonly-diagnostic.test.mjs
+      - name: Exercise actual PowerShell using mock ADB
+        run: python3 tests/mock_android_restoreproof335_readonly_diagnostic.py
