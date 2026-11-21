@@ -1,0 +1,50 @@
+name: "Bounded original Apis mellifera Zenodo JPG YOLO ZIP source audit"
+on:
+  push:
+    paths:
+      - 'tools/audit_apis_zenodo_bounded_original_sample.py'
+      - 'tests/test_audit_apis_zenodo_bounded_original_sample.py'
+      - '.github/workflows/audit-apis-zenodo-bounded-original-sample.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_apis_zenodo_bounded_original_sample.py'
+      - 'tests/test_audit_apis_zenodo_bounded_original_sample.py'
+      - '.github/workflows/audit-apis-zenodo-bounded-original-sample.yml'
+permissions:
+  contents: read
+jobs:
+  original-sample-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Synthetic corrupt ZIP/JPEG/YOLO, HTTP Range, safety gate tests
+        run: python -m unittest discover -s tests -p 'test_audit_apis_zenodo_bounded_original_sample.py' -v
+      - name: Read only bounded original publisher ZIP members, no full 2GB download
+        run: |
+          python tools/audit_apis_zenodo_bounded_original_sample.py > /tmp/paseka-apis-original-sample-audit.json
+          cat /tmp/paseka-apis-original-sample-audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('/tmp/paseka-apis-original-sample-audit.json').read_text())
+          assert r['sourceSpeciesPerPublisher'] == 'Apis mellifera'
+          assert r['sourceLicensePerPublisher'] == 'CC BY 4.0'
+          assert r['fullArchiveDownloaded'] is False
+          assert r['wholeArchiveMd5Verified'] is False
+          assert r['modelTrainingAllowed'] is False
+          assert r['userVideoCleanupAuthorized'] is False
+          if r.get('originalZipMemberJpegAndTxtCrcVerified'):
+              assert r['zipCentralDirectoryParsed'] is True
+              assert r['inHiveJpgTxtPairedByStem'] == 2795
+              assert len(r['sampleJpgSha256']) == 64
+              assert len(r['sampleTxtSha256']) == 64
+              assert r['originalYoloLabelSummary']['rows'] >= 0
+              print('ORIGINAL bounded JPEG/TXT verified by per-member CRC; full ZIP checksum NOT verified')
+          else:
+              assert 'blockReason' in r
+              print('OFFICIAL ORIGINAL ZIP SAMPLE NOT VERIFIED; no source evidence claimed')
+          PY
