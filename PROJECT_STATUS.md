@@ -1,3 +1,11 @@
+## RESTORE335 — physical mksh chvt failure identified (2026-11-21)
+
+- On physical OnePlus NE2213/API36 the pinned readonly probe with `adb shell -T ...` returned original SHA PASS (3158B), remote stdout 120B SHA `6b670de5719e5c29131dde7d253b4024d7693876dc60f43483c57504c40ab73e`, `REMOTE_DIAGNOSTIC: /system/bin/sh: chvt: can't find tty:  run-as ru.paseka.journal.archive.restoreproof335 /system/bin/toybox sha256sum -`. This identifies Android mksh processing `-T` as a terminal-switch argument, instead of successful remote hashing; no stdin integrity proof, no writes/restore.
+- In Draft PR #341 removed `-T` from bidirectional `adb shell run-as ... /system/bin/toybox sha256sum -`. Host standard input is redirected (not tty), allowing ADB to select raw shell without the unsupported switch. Updated mock and static CI to reject `shell -T`. This is a hypothesis to test on the physical ADB binary, not yet physical PASS.
+- Next gate: verify exact HEAD CI and run one pinned no-write physical probe; never re-run old one-shot installation or delete original/video.
+
+---
+
 ## RESTORE335 — physical 120-byte remote diagnostic (2026-11-21)
 
 - User ran pinned no-write toybox stdin probe on OnePlus NE2213/API36, script commit `a68a091b1ebd720d6be35e88eeab70a256b2e2da`: external PASEKA01 original 3158B SHA PASS, remote `EXIT_CODE: 0`, `STDOUT_BYTES: 120`, `STDOUT_SHA256: 6b670de5719e5c29131dde7d253b4024d7693876dc60f43483c57504c40ab73e`, `OUTPUT_CLASS: COMMAND_DIAGNOSTIC`, `STATUS: BLOCKED`. No received digest; actual diagnostic string was intentionally hidden. Do not infer successful transfer or byte corruption. No file writes, install, restore, cleanup.
