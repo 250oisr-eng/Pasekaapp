@@ -214,11 +214,31 @@ async function manifestFingerprint(manifest, cryptoProvider) {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 async function assertLegacyArchiveStageAllowed(db) {
-  const tx = db.transaction('main', 'readonly');
+  // A missing ledger is legitimate for an untouched historical database, but
+  // not after PASEKA02 has created protected pending/quarantine/rollback data.
+  // Read all four stores in ONE consistent snapshot. A historical PASEKA01
+  // archive cannot interpret or preserve those V2 protected originals.
+  if (!['main','archive_staging','archive_history','full_backup'].every(
+    name => db.objectStoreNames.contains(name))) {
+    fail('VIDEO_LEGACY_RESTORE_STORES_MISSING',
+      'The archive safety stores are unavailable. Legacy restore is blocked.');
+  }
+  const tx = db.transaction(['main','archive_staging','archive_history','full_backup'],'readonly');
   const completed = transactionDone(tx);
-  const ledger = await requestValue(tx.objectStore('main').get('video_recognition_ledger_v1'));
+  const [ledger,stagedKeys,history,backupKeys] = await Promise.all([
+    requestValue(tx.objectStore('main').get('video_recognition_ledger_v1')),
+    requestValue(tx.objectStore('archive_staging').getAllKeys()),
+    requestValue(tx.objectStore('archive_history').getAll()),
+    requestValue(tx.objectStore('full_backup').getAllKeys())
+  ]);
   await completed;
   assertLegacyArchiveRecognitionLedger(ledger);
+  const protectedV2 =
+    stagedKeys.some(key=>typeof key==='string'&&key.startsWith('v2pending:'))||
+    history.some(row=>row&&typeof row.kind==='string'&&row.kind.startsWith('v2_'))||
+    backupKeys.some(key=>typeof key==='string'&&key.startsWith('v2entrance:'));
+  if (protectedV2) fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+    'Protected PASEKA02 media or rollback records exist. Legacy restore is blocked.');
 }
 async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveApi, validateState, options = {}) {
   ensureStores(db);
