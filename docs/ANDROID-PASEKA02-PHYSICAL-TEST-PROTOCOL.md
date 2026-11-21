@@ -1,3 +1,15 @@
+## Быстрый Windows preflight (одно действие вместо серии ADB-команд)
+
+При уже установленной изолированной APK можно выполнить **один** скрипт `tools/android_paseka02_preflight.ps1`, закреплённый на конкретном commit SHA. Он проверяет число USB-устройств, Android API, точный package ID, состояние процесса и **только имена** потенциальных архивов. Скрипт не читает содержимое файлов, не вызывает force-stop, не устанавливает/удаляет приложения, не меняет IndexedDB и не делает выводов о PASEKA02 по одним лишь именам.
+
+Для вызова на Windows ПК, где `adb` уже доступен, скопировать одной строкой, заменив `<COMMIT_SHA>` на SHA коммита с проверенным `tools/android_paseka02_preflight.ps1`:
+
+```powershell
+$p = Join-Path $env:TEMP 'paseka02-preflight.ps1'; try { Invoke-WebRequest -UseBasicParsing -ErrorAction Stop 'https://raw.githubusercontent.com/250oisr-eng/Pasekaapp/<COMMIT_SHA>/tools/android_paseka02_preflight.ps1' -OutFile $p; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p } catch { Write-Error $_ }
+```
+
+Перед запуском допускается отдельно просмотреть [исходник](https://github.com/250oisr-eng/Pasekaapp/blob/test/android-archive-external-stop/tools/android_paseka02_preflight.ps1). Запуск PowerShell с `ExecutionPolicy Bypass` относится **только к указанному дочернему процессу**, без изменения системной политики. Скрипт выполняет только read-only preflight, не физический тест A/B/C. Результат `PREFLIGHT_COMPLETE` нельзя записывать как проверку SHA архива или видеоданных. Если нет архива, это ожидаемый следующий шаг: сначала создать проверенные синтетические данные и отдельный эталон SHA, а не экспериментировать с пользовательскими файлами.
+
 # Android: физическая проверка PASEKA02 после остановки процесса
 
 Статус: **подготовлено, физический тест НЕ выполнен** (2026-11-21). Draft PR #324, продолжение #323; без merge, публикации или изменений production.
