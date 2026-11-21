@@ -66,11 +66,12 @@ try {
   }
   Write-Host 'ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES'
   Write-Host 'STAGE: 3/3 READONLY_STDIN_SHA256_IN_RUN_AS'
-  # Bidirectional adb shell -T disables PTY; unlike exec-in, its stdout is captured.
+  # Bidirectional adb shell with redirected local stdin (non-tty); omitting -T avoids
+  # old/vendor adb forwarding -T to remote mksh (chvt: can't find tty).
   # Direct absolute toybox binary with explicit stdin operand '-', not sh -c or file redirection.
   # Prior unqualified sha256sum returned 99 diagnostic bytes on real Android.
   # Nothing is written to Android filesystem: sha256sum reads 3158 bytes from stdin.
-  $probe=ADB @('-d','shell','-T','run-as',$pkg,'/system/bin/toybox','sha256sum','-') $archive.Bytes
+  $probe=ADB @('-d','shell','run-as',$pkg,'/system/bin/toybox','sha256sum','-') $archive.Bytes
 
   Write-Host ('REMOTE_EXIT_CODE: '+$probe.Code)
   Write-Host ('REMOTE_STDOUT_BYTES: '+$probe.Bytes.Length)
