@@ -195,25 +195,63 @@ def read_annotation_structure(zip_path):
     }
 
 
+def audit_cross_archive_jpg_byte_overlap(detection_zip, tracking_zip):
+    """Exact frame-byte identity only: differs from visual similarity/session ID."""
+    def jpg_hashes(zip_file):
+        hashes = {}
+        count = 0
+        with zipfile.ZipFile(zip_file) as archive:
+            for entry in archive.infolist():
+                if entry.is_dir() or not entry.filename.lower().endswith(".jpg"):
+                    continue
+                if entry.file_size > MAX_MEMBER_BYTES:
+                    raise ValueError("oversized source JPG")
+                h = hashlib.sha256(archive.read(entry)).hexdigest()
+                hashes[h] = hashes.get(h, 0) + 1
+                count += 1
+        return hashes, count
+
+    a, na = jpg_hashes(detection_zip)
+    b, nb = jpg_hashes(tracking_zip)
+    shared = set(a) & set(b)
+    return {
+        "detectionImages": na,
+        "trackingImages": nb,
+        "uniqueDetectionJpgSha256": len(a),
+        "uniqueTrackingJpgSha256": len(b),
+        "sharedExactJpgSha256": len(shared),
+        "detectionFramesWithExactMatchInTracking": sum(a[h] for h in shared),
+        "trackingFramesWithExactMatchInDetection": sum(b[h] for h in shared),
+        "independentTrainingValidationSplitEstablished": False,
+        "imageVisualOrSessionIndependenceProved": False,
+        "realInOutEventLabelsEstablished": False,
+    }
+
+
 def audit_original_archives():
     metadata = audit()
     if not metadata["publisherDatasetLicenseMetadataVerified"]:
         raise ValueError("data license not verified")
     report = {}
     with tempfile.TemporaryDirectory(prefix="paseka-public-native-bee-") as tmp:
+        archives_by_id = {}
         for fid, (name, size, md5) in EXPECTED_FILES.items():
             local = Path(tmp) / name
             url = "https://ndownloader.figshare.com/files/" + str(fid)
+            archives_by_id[fid] = local
             record = download_checked_archive(url, local, size, md5)
             record["zip"] = inspect_zip(local)
             record["annotationStructure"] = read_annotation_structure(local)
             report[name] = record
+        cross_overlap = audit_cross_archive_jpg_byte_overlap(
+            archives_by_id[64894983], archives_by_id[64894986])
     return {
         "publisherArticle": "https://api.figshare.com/v2/articles/32315067",
         "license": metadata["publisherDatasetLicense"],
         "sourceSpecies": metadata["speciesReportedByPublisher"],
         "sourceArchiveBytesChecked": True,
         "archives": report,
+        "crossArchiveExactJpgOverlap": cross_overlap,
         "realBeeInOutGroundTruthEstablished": False,
         "sourceVideosProvedPresentAndCalibrated": False,
         "onDeviceDetectorAccuracyMeasured": False,
