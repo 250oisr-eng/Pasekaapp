@@ -152,13 +152,14 @@ function inspectPendingStaging(db,backupId){
  const sessionKey=sessionId(backupId);
  return runTx(db,'readonly',tx=>({
   header:tx.objectStore('archive_staging').get(sessionKey),
-  keys:tx.objectStore('archive_staging').getAllKeys(),
+  keyCount:tx.objectStore('archive_staging').count(),
+  sessionKeys:tx.objectStore('archive_staging').index('sessionId').getAllKeys(sessionKey),
   history:tx.objectStore('archive_history').get(backupId),
   historyCount:tx.objectStore('archive_history').count(),
   backupCount:tx.objectStore('full_backup').count()
  }),(_tx,v)=>{
   let status='manual_review_required';
-  if(v.keys?.length===0&&!v.header&&!v.history&&v.historyCount===0&&v.backupCount===0)
+  if(v.keyCount===0&&!v.header&&!v.history&&v.historyCount===0&&v.backupCount===0)
    status='not_staged';
   else if(obj(v.header)&&obj(v.history)&&v.historyCount===1&&v.backupCount===0&&
     v.header.id===sessionKey&&v.header.sessionId===sessionKey&&
@@ -170,9 +171,14 @@ function inspectPendingStaging(db,backupId){
     Number.isSafeInteger(v.header.expectedEntries)&&v.header.expectedEntries>0&&
     v.header.expectedEntries===v.history.pendingCount&&
     Array.isArray(v.header.entryIds)&&
+    v.header.expectedEntries<=MAX_PENDING&&v.header.entryIds.length===v.header.expectedEntries&&
     new Set(v.header.entryIds).size===v.header.expectedEntries&&
-    Array.isArray(v.keys)&&v.keys.length===v.header.entryIds.length+1&&
-    v.header.entryIds.every(id=>typeof id==='string'&&v.keys.includes(id)))
+    v.keyCount===v.header.expectedEntries+1&&v.sessionKeys.length===v.keyCount&&
+    v.header.entryIds.every(key=>typeof key==='string'&&v.sessionKeys.includes(key)&&
+     ['entrance_media','record_media'].some(source=>{
+      const prefix=sessionKey+':'+source+':';
+      return key.startsWith(prefix)&&key.length>prefix.length;
+     })))
    status='protected_unverified';
   // Never declare hashes verified solely from metadata/keys.
   return {backupId,status,requiresManualReview:status==='manual_review_required',
