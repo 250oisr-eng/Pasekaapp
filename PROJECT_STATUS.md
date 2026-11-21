@@ -1,3 +1,10 @@
+## 2026-11-21 — Android 16 физическое устройство подключено; isolated APK CI разблокирован
+
+- Пользователь подтвердил реальное USB ADB соединение: `adb devices -l` возвращает **одно устройство** `model:NE2213`, статус `device`. Android release **16**, SDK **36**. `adb shell pm list packages | findstr /i paseka` не вернул установленных пакетов с именем paseka. Эти команды выполнены **пользователем на своём ПК**; удалённого доступа агента к USB/ADB нет. Идентификатор устройства не публиковать в журналах.
+- Последний проверенный общий APK на `f85589fab60a6322b72cc7bde6f24a4a165c347f`: GitHub Actions #44926345429 SUCCESS; профильные Python tests #44926345506 SUCCESS. Изолированный APK #44926345507 был SKIPPED, потому что workflow разрешал только ветку `test/full-archive-android-isolated-2026-11-18`.
+- В `.github/workflows/android-archive-test.yml` разрешена ровно текущая Draft-ветка `test/android-archive-external-stop` как дополнительная; генерация изолированного `ru.paseka.journal.archive.test` выполняется временной правкой конфигурации **только на CI runner**, с обязательной проверкой `aapt` package ID до публикации artifact. Старый `scripts/prepare-archive-test-config.mjs` отсутствует в этой ветке, поэтому для неё использована встроенная строго проверенная настройка; `capacitor.config.json` в Git не менялся. Не считать изолированный APK собранным до SUCCESS на точном SHA.
+- После получения и проверки изолированного APK потребуется его установка пользователем через локальный ADB в Windows, затем строго синтетический `PASEKA02` и физические тесты A/B/C по `docs/ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md`. **Без удаления видео, изменений production, main, merge, publish**. Реальное физическое испытание ещё NOT TESTED.
+
 ## 2026-11-21 — готовность к физическому Android-тесту PASEKA02 (Draft #324)
 
 - На предыдущем SHA `57491336bcbe7ccbb3e7bea50cdf69b1dd92d4c3` GitHub Actions: профильная проверка внешнего архива **SUCCESS** (run 44925388915), обычная сборка Android **SUCCESS** (run 44925388858); изолированный Android archive test APK **SKIPPED** (run 44925388869). Это не означает, что изолированный тестовый APK собран.
