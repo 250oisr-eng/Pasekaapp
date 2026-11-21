@@ -1,0 +1,38 @@
+name: Restore335 modern ADB SHA-pinned stdin readonly
+on:
+  push:
+    branches:
+      - 'test/android-restore335-stdin-sha-readonly-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-modern-adb-pinned-stdin-readonly.ps1'
+      - 'tests/mock_android_restore335_modern_adb_pinned_stdin.py'
+      - '.github/workflows/test-android-restore335-modern-adb-pinned-stdin.yml'
+permissions:
+  contents: read
+jobs:
+  mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parse without execution
+        shell: pwsh
+        run: |
+          $t=$null;$e=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-modern-adb-pinned-stdin-readonly.ps1',[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_};exit 1}
+      - name: Static read-only and explicit binary safety checks
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tools/android-restore335-modern-adb-pinned-stdin-readonly.ps1').read_text()
+          assert "$start.FileName=$script:AdbPath" in s
+          assert "PINNED_ADB_SHA256_MISMATCH" in s
+          assert "bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee" in s
+          assert "ADB @('-d','exec-out','cat',$source)" in s
+          assert "ADB @('-d','shell','-T','run-as',$pkg,'/system/bin/toybox','sha256sum','-') $archive.Bytes" in s
+          assert "NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE" in s
+          assert all(x not in s for x in ("Get-Command adb", "adb install", "adb push", "adb pull", "Remove-Item", "SetEnvironmentVariable", "pm clear", "am start"))
+          PY
+      - name: Execute actual pwsh against explicit mock ADB with negative cases
+        run: python3 tests/mock_android_restore335_modern_adb_pinned_stdin.py

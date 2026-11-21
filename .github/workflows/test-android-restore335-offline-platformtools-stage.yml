@@ -1,0 +1,37 @@
+name: Restore335 offline Platform-Tools stage negative CI
+on:
+  push:
+    branches:
+      - 'test/android-restore335-stdin-sha-readonly-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-offline-platformtools-stage.ps1'
+      - 'tests/mock_android_restore335_offline_platformtools_stage.py'
+      - '.github/workflows/test-android-restore335-offline-platformtools-stage.yml'
+permissions:
+  contents: read
+jobs:
+  mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parse
+        shell: pwsh
+        run: |
+          $t=$null;$e=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-offline-platformtools-stage.ps1',[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_};exit 1}
+      - name: Confirm no device, system or PATH mutations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tools/android-restore335-offline-platformtools-stage.ps1').read_text()
+          assert "STAGE: 3/3 VERSION_ONLY_NO_DEVICE_CONNECTION" in s
+          assert "ANDROID_CONNECTION: NOT_ATTEMPTED" in s
+          assert "info.Arguments='version'" in s or "info.Arguments = 'version'" in s
+          assert "ZipFile]::ExtractToDirectory" in s
+          assert 'SOURCE_PROVENANCE: USER_DOWNLOADED_FROM_GOOGLE_REQUIRED' in s
+          assert all(x not in s for x in ("adb shell", "adb install", "adb push", "adb pull", "ADB @('-d'", "pm clear", "SetEnvironmentVariable", "setx ", "Remove-Item"))
+          PY
+      - name: Real PowerShell rejects malformed offline archives
+        run: python3 tests/mock_android_restore335_offline_platformtools_stage.py

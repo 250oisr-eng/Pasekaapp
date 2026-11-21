@@ -1,0 +1,49 @@
+name: Restore335 strict read-only post-dd audit v2
+on:
+  push:
+    branches:
+      - 'test/android-restore335-stdin-sha-readonly-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-post-dd-failure-readonly-v2.ps1'
+      - 'tests/mock_android_restore335_post_dd_failure_readonly_v2.py'
+      - '.github/workflows/test-android-restore335-post-dd-failure-readonly-v2.yml'
+permissions:
+  contents: read
+jobs:
+  mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parse without execution
+        shell: pwsh
+        run: |
+          $tokens=$null;$errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-post-dd-failure-readonly-v2.ps1',[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object {Write-Error $_};exit 1}
+      - name: Static strict allowlist device commands
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          s=Path('tools/android-restore335-post-dd-failure-readonly-v2.ps1').read_text()
+          assert 'ru.paseka.journal.archive.restoreproof335' in s
+          assert 'bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee' in s
+          assert '4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186' in s
+          assert 'PRIVATE_INPUT_STAT_ERROR_CLASS: NO_SUCH_FILE' in s
+          assert 'PRIVATE_FILES_LIST_CLASS: EMPTY' in s
+          assert 'SHELL_T_RUN_AS_CWD: MATCH' in s
+          assert 'PRIVATE_DIR_WRITE_PERMISSION_TEST: ALLOWED' in s
+          assert 'STATUS: RESTORE335_POST_FAILURE_READONLY_AUDIT_V2_COMPLETE' in s
+          assert 'PRIVATE_FILE_MODIFICATION: NOT_ATTEMPTED' in s
+          cmds=re.findall(r'(?:ADB|Text)\s+@\((.*?)\)',s,re.S)
+          assert cmds
+          for c in cmds:
+              assert not any(x in c for x in ("'mkdir'","'rm'","'install'","'push'","'pull'","'am'","'clear'","'of='","'dd','of='")),c
+              if "'dd'" in c:assert "'--help'" in c,c
+              if "'-T'" in c:assert "'pwd'" in c,c
+          assert 'Get-Command adb' not in s
+          assert 'Remove-Item' not in s
+          PY
+      - name: Run real PowerShell with mocked ADB, including no-file metadata
+        run: python3 tests/mock_android_restore335_post_dd_failure_readonly_v2.py

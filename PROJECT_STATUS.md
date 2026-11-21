@@ -1,3 +1,149 @@
+## RESTORE335 — case-sensitive проверка private input ENOENT (2026-11-22)
+
+- Ужесточён read-only parser gate: ENOENT принимается только для **точного** пути `files/fileproof335-input.paseka` с учётом регистра (`-cmatch`); ответ с `files/Fileproof335-input.paseka` блокирует `PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED` до вызова `dd`. Это предотвращает ложное доказательство отсутствия целевого файла при диагностике другого имени на Android.
+- Изменены `tools/android-restore335-dd-zero-count-parser-readonly.ps1` и `tests/mock_android_restore335_dd_zero_count_parser.py`; добавлен негативный сценарий `stat_wrong_case`. Code/test SHA `576c7260c5c4d4cdf49a5cf9cc8edb8e407e04e9`.
+- Новая версия **пока не прошла CI на своём итоговом SHA** и не запускалась на телефоне. Не выполнять ADB-тест на устройстве до успешного CI. Не повторять прежний write-test, не изменять и не удалять видео, архивы или данные.
+
+---
+
+## 2026-11-22 — RESTORE335: согласование диагностики stat и тестов CI
+
+На HEAD 623bfc3f364783f45dab5032f49e12691a9a06ec запуск #44949902977 упал: при неоднозначном stat скрипт корректно завершился до dd, но mock требовал count=0. Матрица теперь проверяет отсутствие любого вызова dd при отказе предварительных проверок, один вызов при ошибке baseline и два при допуске. Принят только ENOENT для точного имени входного файла (exit 0/1). Добавлены отказ доступа с «cannot stat», ошибка для другого пути и ENOENT на stderr. Следующий шаг после успешного CI — один read-only запуск с OnePlus NE2213/API36. Реальная запись, restore и cleanup не проверялись.
+
+## RESTORE335 — fail-closed проверка stat перед read-only dd (2026-11-22)
+
+- В Draft PR #341 диагностический скрипт `tools/android-restore335-dd-zero-count-parser-readonly.ps1` теперь останавливается с `PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED`, если `stat` возвращает тип файла, неизвестный ответ или отказ в доступе. Один лишь пустой `ls -A files` недостаточен для продолжения при противоречащем ответе `stat`.
+- Дополнена mock-ADB / real-pwsh матрица для `stat_regular`, `stat_unrecognized`, `stat_permission_denied`. Это тесты без записи, удаления и запуска Android-приложения.
+- Code SHA до документации: `a6978b0f55fef35ff30189835e861c39950c54cb`. **CI после исправления ещё должен быть проверен на актуальном HEAD**, ранее успешный CI относится к `cdda1f6e5caf0babe12c96e57b5f5000904a4fdf`.
+- Физический запуск нового скрипта, restore IndexedDB, воспроизведение и удаление двух MP4 по-прежнему NOT TESTED. Следующий шаг: проверить успешный CI на точном SHA, затем только один read-only parser probe на NE2213/API36, без повторения старой записи.
+
+---
+
+## RESTORE335 — физический v2-аудит: files/ пуст, dd conv=excl требует проверки парсера (2026-11-22)
+
+- Пользователь выполнил pinned `tools/android-restore335-post-dd-failure-readonly-v2.ps1` на OnePlus NE2213/API36 после прежнего one-shot `EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED`: host ADB 1.0.41 SHA PASS; исходный PASEKA01 3158B SHA PASS до и после; `PRIVATE_FILES_DIRECTORY: PRESENT`; `PRIVATE_INPUT_STAT_EXIT_CODE: 0`, `PRIVATE_INPUT_STAT_STDOUT_BYTES: 67`, `PRIVATE_INPUT_STAT_STDERR_BYTES: 0`, `PRIVATE_INPUT_STAT_ERROR_CLASS: NONE`; `PRIVATE_INPUT_FILE_TYPE: UNKNOWN_OR_ABSENT`; `PRIVATE_FILES_VISIBLE_ENTRY_COUNT: 0`, `PRIVATE_FILES_LIST_CLASS: EMPTY`; `SHELL_T_RUN_AS_CWD: MATCH`; `PRIVATE_DIR_WRITE_PERMISSION_TEST: ALLOWED`; `DD_HELP_EXIT_CODE: 0` и упоминание `excl`, `fsync`, `none` = True; `STATUS: RESTORE335_POST_FAILURE_READONLY_AUDIT_V2_COMPLETE`. **С высокой уверенностью приватный input файл отсутствует, но точные 67 байт `stat` не были показаны; прежнее скриптирование ошибочно доверяло exit 0 для диагностик на stdout. Нельзя выдавать ROOT CAUSE за подтверждённую.** Original сохранён; private directory пуст.
+- Подозрение, основанное на внешнем исходнике Android Toybox: `toys/posix/dd.c` из Android репозитория перечисляет `excl` в справке, но `dd_conv[]` содержит `fsync,noerror,notrunc,sync` и комментарий `TODO sparse excl nocreat` (https://android.googlesource.com/platform/external/toybox/+/90937f6e7e180bc1c54e6e7e9e287f1fada9c203/toys/posix/dd.c). Это версия исходника, не идентифицированный бинарник пользователя: **поддержка `conv=excl` на телефоне остаётся непроверенной**.
+- В Draft PR #341 добавлен `tools/android-restore335-dd-zero-count-parser-readonly.ps1`: строго SHA-пин modern ADB и исходника, NE2213/API36 + оба test-only APK, `files/` должен быть пуст; `stat` диагностирует отсутствие не полагаясь только на exit, а `toybox dd if=/dev/null count=0 status=none` и `toybox dd if=/dev/null count=0 conv=excl status=none` проверяют parsing **без аргумента `of=`, без stdin исходника, без записи данных**. Выводит `REJECTED_BY_PARSER` / `ACCEPTED_FOR_ZERO_COUNT` / `UNVERIFIED` и сверяет оригинал после. ACCEPTED_FOR_ZERO_COUNT не доказывает эксклюзивную семантику для реального файла.
+- Отдельные pwsh/mock regressions: нулевой exit со stdout-ошибкой, stderr-ошибка, успешный нулевой count, неожиданный ответ, ошибочный baseline, не пустой каталог, испорченный/изменённый original. Новый CI; физический запуск только после success exact HEAD. **Не повторять старую one-shot запись; никакого install, restart, restore IndexedDB, MP4, delete или cleanup.**
+
+---
+
+## RESTORE335 — физический read-only аудит: files/ есть, private input UNKNOWN; v2 диагностика (2026-11-21)
+
+- Пользователь выполнил pinned `tools/android-restore335-post-dd-failure-readonly.ps1` на физическом OnePlus NE2213/API36: новый ADB 1.0.41 и SHA исполняемого файла PASS, исходный PASEKA01 3158B SHA PASS; `PRIVATE_FILES_DIRECTORY: PRESENT`; `PRIVATE_INPUT_FILE_TYPE: UNKNOWN_OR_ABSENT`; `PRIVATE_INPUT_STATUS: UNVERIFIED_PRESERVE`; `DD_HELP_EXIT_CODE: 0`; `DD_HELP_CONV_EXCL_MENTIONED: True`, `DD_HELP_CONV_FSYNC_MENTIONED: True`, `DD_HELP_STATUS_NONE_MENTIONED: True`; после проверки исходный архив `ORIGINAL_SOURCE_POST_FAILURE: SHA256_PASS_3158_BYTES`; `PRIVATE_FILE_MODIFICATION: NOT_ATTEMPTED`; `RESTORE_COMMIT: NOT_TESTED`; `RECOGNITION_CLEANUP: NOT_AUTHORIZED`; `STATUS: RESTORE335_POST_FAILURE_READONLY_AUDIT_COMPLETE`. **Это не подтверждение отсутствия файла**, т.к. предыдущий скрипт объединил ненулевой exit, stderr и неожиданный тип в один UNKNOWN/ABSENT. Каталог существует; исходный архив не изменён. Старый one-shot писать снова запрещено; не удалять/очищать APK или данные.
+- В Draft PR #341 добавлен независимый только-читающий `tools/android-restore335-post-dd-failure-readonly-v2.ps1`: тот же закреплённый host ADB SHA/path и identity NE2213/API36; stat типа каталога и файла с отдельными exit/stdout/stderr длинами и классом причины, безопасный listing `ls -A files` с подсчётом и классом без показа имён; `adb shell -T run-as ... toybox pwd` для сравнения CWD с `exec-out`; read-only `toybox test -w files` для оценки прав; `toybox dd --help` и внешний original SHA recheck. Если обнаружен обычный файл размером <=8192B — только тогда чтение в память и SHA; nonregular не читается. Никакого `dd` с `of=`, `mkdir`, `cat` от stdin, restart, IndexedDB, delete, cleanup. Не путать `test -w` с фактической успешной записью; `dd --help` не доказывает принятие всех флагов в конкретном запуске.
+- Отдельный mock pwsh CI покрывает complete, partial, missing, missing dir, unexpected file names, stat failures, symlink, permission probes, divergence shell cwd, source corruption и опцию dd help. Физическая проверка v2 и причины предыдущего dd всё ещё **NOT TESTED / UNKNOWN**, до реального вывода никаких повторных write шагов и нового restore. Исходный archive, тестовый package и любые созданные файлы сохранять. CI на exact финальном SHA проверить перед предоставлением команды.
+
+---
+
+## RESTORE335 — физическая exclusive private staging BLOCKED; только read-only форензика (2026-11-21)
+
+- Пользователь на реальном OnePlus NE2213/API36 выполнил pinned one-shot `tools/android-restore335-modern-adb-exclusive-stage.ps1` из SHA `3bd1958623ed2eaa30a71645119cd859bd461fc5`. Пройдено: `HOST_ADB_VERSION: Android Debug Bridge version 1.0.41`, `ADB_EXE_SHA256: PASS_PINNED`, `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`, `PINNED_RUN_AS_DIRECTORY_PRECHECK`. На этапе 5/6 `EXCLUSIVE_CREATE_IN_EXISTING_TEST_PACKAGE_ONLY` получено `STATUS: BLOCKED / DETAIL: EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED`, с `ONE_SHOT_NO_RETRY_NO_INSTALL_NO_OVERWRITE_NO_RESET_NO_DELETE`. Поскольку gate `mkdir -m 700 files` пройден, каталог `files/` мог быть создан; исход `toybox dd` не определён: file может отсутствовать, быть частичным или полностью правильным. Отчёт не раскрывает, что именно вызвало BLOCKED: remote nonzero exit, stdout или stderr. **Никаких повторных записей, установки/очистки APK, удаления файлов, запуска restore без дополнительного чтения.**
+- В том же Draft PR #341 добавлен `tools/android-restore335-post-dd-failure-readonly.ps1`: SHA-пин ADB и внешнего оригинала, проверка устройства/обоих test-only packages и run-as cwd; `toybox stat -c %F` для directory/file без следования symlink, `stat -c %s` размера, только для regular <=8192B `cat` в память с SHA256 (не выводит содержимое); при неполном/чужом файле оставляет нетронутым. `toybox dd --help` только read-only показывает поддержку excl/fsync/status=none; повторный SHA внешнего оригинала. Нет dd-записи, mkdir, touch, delete, shell или reset.
+- Тесты `tests/mock_android_restore335_post_dd_failure_readonly.py` проверяют complete/partial/altered/missing/symlink/unverified stat/help failure/source changed/invalid original; отдельный workflow `.github/workflows/test-android-restore335-post-dd-failure-readonly.yml`. **Exact code SHA `455dd4ec52fa544fce7b912e432c48534e6b2063`: профильный CI `#44948412022` success**, финальный docs HEAD и физическая forensic проверка ещё ожидают отдельной верификации. Другие feature/Android build не являются доказательством физического восстановления.
+- Restore IndexedDB + двух MP4, декодирование/распознавание, cleanup — NOT TESTED / NOT AUTHORIZED. Переход к ним допустим только после доказательства целостного private test archive и отдельных guard-ов тестовой базы. Не трогать main, production и пользовательские файлы.
+
+---
+
+## RESTORE335 — реальный binary stdin PASS, подготовлен безопасный one-shot private stage (2026-11-21)
+
+- Пользователь выполнил pinned `tools/android-restore335-modern-adb-pinned-stdin-readonly.ps1` из SHA `efd79ea2ea1aa351c28f5c53b55edf1dfe149b06` на физическом OnePlus NE2213/API36: новый ADB 1.0.41 и SHA256 исполняемого файла PASS, исходный PASEKA01 3158B SHA PASS, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 69`, `REMOTE_STDOUT_SHA256: 572ea8f6596a7f6481bdb699fa4a4f7d717977a748c03434cfbac510d8aaad7d`, `STDIN_TRANSPORT: SHA256_PASS_3158_BYTES`, `STATUS: RESTORE335_MODERN_ADB_READONLY_STDIN_PASS`. **Аппаратно доказана побайтовая целостность передачи stdin; Android private file write, IndexedDB restore, MP4 decode/playback, recognition и cleanup НЕ выполнялись**. Исходный внешний архив сохранился.
+- В существующем Draft PR #341 добавлен новый, отделённый от чтения, одноразовый `tools/android-restore335-modern-adb-exclusive-stage.ps1` для **только** отдельного установленного тестового пакета `ru.paseka.journal.archive.restoreproof335`. Сначала проверяет ADB path/SHA, телефон/оба тестовых пакета, SHA исходного архива и точный cwd через run-as; создаёт каталог `files` простым `mkdir -m 700` (не `-p`, поэтому существующий каталог => BLOCKED), передаёт 3158B через `toybox dd ... conv=excl,fsync status=none` (эксклюзивная запись, перезапись запрещена), читает private файл назад и сравнивает SHA, ещё раз проверяет исходный внешний файл. На любой ошибке — BLOCKED, НЕ повторять автоматически и НЕ удалять/очищать. Никакого запуска приложения, изменения IndexedDB, других приложений, MP4 распознавания или очистки.
+- Добавлены regressive actual pwsh+mock ADB tests: PASS, неверная модель, исходник неверной SHA, существующий каталог с защищённым sentinel, ошибки mkdir/dd с misleading exit=0, повреждённый stdin, изменение внешнего источника после операции, отказ при второй попытке. Отдельный CI workflow. CI на exact HEAD и физическая запись пока должны подтверждаться отдельно; итог предыдущего code/workflow SHA #44947992104 был success, однако документальные коммиты создают новый HEAD.
+- Следующий безопасный gate: подтвердить workflow на последнем SHA, затем **одна** физическая команда exclusive stage. Только после фактического private SHA PASS разрешать отдельную one-shot проверку пустой тестовой IndexedDB и двух синтетических MP4 в пакете restoreproof335. Запрет на merge, production, uninstall, overwrite, автоматическое удаление видео сохраняется.
+
+---
+
+## RESTORE335 — modern ADB 1.0.41 staged on real Windows (2026-11-21)
+
+- User ran SHA-pinned offline Windows stage at `1bb445b133aea1f59918482ba4774cd6f60a54e3`: `SOURCE_ZIP_SHA256: 89d108360a3bf2924d3bea837239edaccc22fd6ff5befd3787c4348a9fe4f09d`, `ADB_EXE_SHA256: bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee`, `VERIFIED_ADB_VERSION: Android Debug Bridge version 1.0.41`, `ISOLATED_ADB_PATH: C:\Users\n12D8\AppData\Local\Temp\paseka-offline-platformtools-43f92107c17d47d7a2853a42348efe9b\platform-tools\adb.exe`, `OLD_ADB_AND_SYSTEM_PATH: UNCHANGED`, `ANDROID_CONNECTION: NOT_ATTEMPTED`, `STATUS: RESTORE335_OFFLINE_PLATFORMTOOLS_READY`. ZIP provenance requires user's official-source claim; structural checks and local hashes alone cannot cryptographically prove Google source. No actual device connection in stage.
+- Same Draft PR #341 adds a **distinct** `tools/android-restore335-modern-adb-pinned-stdin-readonly.ps1` that takes exactly staged ADB absolute path and SHA as defaults, validates exe SHA/version before any device access, checks existing NE2213/API36 two test packages and original 3158B pinned PASEKA01 archive, then streams only from memory through `adb shell -T run-as ... /system/bin/toybox sha256sum -` and demands matching remote SHA. No write, install, application launch, restore, recognition or deletion.
+- New real-pwsh/mock ADB negative and success scenarios + workflow. Physical new-ADB stdin proof **NOT TESTED** until exact latest SHA CI success; no more testing with old ADB 1.0.32. No merging, deployment or production changes.
+
+---
+
+## Restore335 — ZIP_UNSAFE_ENTRY on physical Windows / root directory fix (2026-11-21)
+
+- User executed pinned offline Windows ZIP stage from HEAD `f7ff409e9553e371bc811f73e67c9d65bb6c37d1`: `STAGE: 1/3 ...`, `STATUS: BLOCKED`, `DETAIL: ZIP_UNSAFE_ENTRY`, `ANDROID_CONNECTION_NOT_ATTEMPTED_NO_SYSTEM_CHANGES_NO_DELETE`. This proves original validator rejected some ZIP entry, NOT that Google's ZIP was malicious; exact offending entry not printed and cause is not independently confirmed.
+- Found probable legitimate root directory `platform-tools/` rejected by strict regex that expected at least one character after slash. In same Draft PR #341 allow exactly empty root directory marker (and require zero content), retain traversal, duplicate path, DLL and size checks. Added CI regressions that accept official-style root marker up to stage 3 and still reject malicious nonempty root marker; Linux mock sets TEMP explicitly. Real ZIP verification on physical Windows remains NOT TESTED after fix.
+- No Android, system PATH or original source modified. Next: CI exact SHA, then reuse existing Google ZIP for one offline no-device stage; do not redownload unless provenance cannot be verified.
+
+---
+
+## RESTORE335 — автономная локальная подготовка официального Windows ADB (2026-11-21)
+
+- Реальный OnePlus подтвердил `run-as + toybox sha256sum /dev/null` PASS, pinned source PASEKA01 3158 байт SHA PASS. На ПК обнаружен ADB 1.0.32. Передача binary stdin, восстановление двух MP4, распознавание и cleanup — NOT TESTED. Никогда не повторять старый one-shot installer / stdin с ADB 1.0.32.
+- В существующем Draft PR #341 добавлен `tools/android-restore335-offline-platformtools-stage.ps1` для **уже скачанного пользователем с официального сайта Google** `platform-tools-latest-windows.zip`. Офлайн проверяет структуру ZIP (уникальность путей, traversal, размер, DLL), распаковывает только в свежую отдельную папку Windows TEMP, показывает локальный SHA файла и ADB, вызывает только `adb.exe version`. Не изменяет PATH, не удаляет старый adb, не подключается к телефону и не выполняет restore/cleanup. Нельзя считать структурную проверку доказательством происхождения ZIP: пользователь должен скачать после принятия лицензии на официальной странице Google.
+- Добавлены негативные PowerShell/mock tests для отсутствующего, небезопасного, дублированного или неполного ZIP, отдельный CI workflow. Positive сценарий с реальным Google ZIP **NOT TESTED** до предоставления файла на Windows. Далее — только после подтверждения нового ADB отдельный readonly stdin SHA тест и контроль внешнего оригинала.
+- Последние CI на точном HEAD и аппаратная проверка нового ADB ожидают подтверждения. Никаких изменений в main, production или Android.
+
+---
+
+## RESTORE335 — physical run-as/Toybox PASS; legacy ADB 1.0.32 discovered (2026-11-21)
+
+- User ran SHA-pinned no-stdin physical proof on OnePlus NE2213/API36 from `2ffb17d2a4ca7399472cddbf1827ada86daaa916`: `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`, `HOST_ADB_VERSION: Android Debug Bridge version 1.0.32`, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 77`, `RUN_AS_TOYBOX_DEV_NULL_SHA: PASS`, `STDIN_TRANSPORT: NOT_TESTED`, `PRIVATE_PATH_WRITE: NOT_ATTEMPTED`, `RESTORE_COMMIT: NOT_TESTED`, `RECOGNITION_CLEANUP: NOT_AUTHORIZED`, `STATUS: RESTORE335_NO_STDIN_TOYBOX_PROBE_PASS`. Confirmed actual on-device run-as and toybox hash engine; no binary stdin proof. No writes/restore/cleanup.
+- Host's **ADB 1.0.32 is legacy**. This plausibly explains `shell -T` being forwarded to device (mksh `chvt`) and non-PTY stdin shell hang; these are compatibility hypotheses, not proven root cause of every preceding failure. Stop further stdin commands with this ADB binary. Google official current Android SDK Platform-Tools are free; use a modern adb on host before further transport testing.
+- Same Draft PR #341 adds fail-closed host ADB preflight (`>=1.0.41`) in existing stdin script before reading or transmitting archive bytes. Mock regression tests old 1.0.32 rejection and 1.0.41 pass; CI pending on code+docs SHA. No changes to production, test packages or user data. Next gate: verify CI, then obtain/use official modern ADB on PC and verify path/version, followed by a separate single read-only transport proof.
+
+---
+
+## RESTORE335 — physical no-flag stdin SHA timed out (2026-11-21)
+
+- User ran pinned script at SHA `0322168064b94afc5e54d199d867bff719bea459` on real OnePlus NE2213/API36. Device and both installed test packages checked; source PASEKA01 3158B SHA256 PASS. Stage 3 `adb shell run-as ... toybox sha256sum -` produced `STATUS: BLOCKED / ADB_TIMEOUT_12S`. No remote digest, device write, installation, restore or cleanup. **Do not claim stdin corruption or successful delivery.**
+- Earlier `shell -T` was treated by Android mksh as chvt, but omitting `-T` did not resolve the transport. The hang might relate to stdin EOF/PTY protocol; not proven. **Do not repeat this same test.**
+- In existing Draft PR #341 added `tools/android-restore335-toybox-no-stdin-readonly.ps1`: verifies device/packages and pinned original, shows host ADB version, then executes **only** `adb -d exec-out run-as <test pkg> /system/bin/toybox sha256sum /dev/null` and requires exact empty-string SHA. No stdin, no shell `-T`, no Android files created/modified. New mock-ADB pwsh tests (pass, diagnostic, wrong digest, empty output, corrupted source), separate workflow.
+- Next: exact HEAD CI check, then **one** physical non-writing no-stdin capability probe; only then design transfer. No old one-shot installer, private path writes, restore, video deletion or production change.
+
+---
+
+## RESTORE335 — physical mksh chvt failure identified (2026-11-21)
+
+- On physical OnePlus NE2213/API36 the pinned readonly probe with `adb shell -T ...` returned original SHA PASS (3158B), remote stdout 120B SHA `6b670de5719e5c29131dde7d253b4024d7693876dc60f43483c57504c40ab73e`, `REMOTE_DIAGNOSTIC: /system/bin/sh: chvt: can't find tty:  run-as ru.paseka.journal.archive.restoreproof335 /system/bin/toybox sha256sum -`. This identifies Android mksh processing `-T` as a terminal-switch argument, instead of successful remote hashing; no stdin integrity proof, no writes/restore.
+- In Draft PR #341 removed `-T` from bidirectional `adb shell run-as ... /system/bin/toybox sha256sum -`. Host standard input is redirected (not tty), allowing ADB to select raw shell without the unsupported switch. Updated mock and static CI to reject `shell -T`. This is a hypothesis to test on the physical ADB binary, not yet physical PASS.
+- Next gate: verify exact HEAD CI and run one pinned no-write physical probe; never re-run old one-shot installation or delete original/video.
+
+---
+
+## RESTORE335 — physical 120-byte remote diagnostic (2026-11-21)
+
+- User ran pinned no-write toybox stdin probe on OnePlus NE2213/API36, script commit `a68a091b1ebd720d6be35e88eeab70a256b2e2da`: external PASEKA01 original 3158B SHA PASS, remote `EXIT_CODE: 0`, `STDOUT_BYTES: 120`, `STDOUT_SHA256: 6b670de5719e5c29131dde7d253b4024d7693876dc60f43483c57504c40ab73e`, `OUTPUT_CLASS: COMMAND_DIAGNOSTIC`, `STATUS: BLOCKED`. No received digest; actual diagnostic string was intentionally hidden. Do not infer successful transfer or byte corruption. No file writes, install, restore, cleanup.
+- Same Draft PR #341 now permits **only strict short printable recognized** `run-as`/`sha256sum` command diagnostics in stdout; unrecognized/binary content is redacted. Additional mock-ADB tests include safe diagnostic and redaction. No new Android operation; physical cause still unverified. Next: confirm exact HEAD CI then run the same pinned read-only diagnostic once. Never repeat original installer.
+
+---
+
+## RESTORE335 — physical shell -T returned command diagnostic (2026-11-21)
+
+- User ran pinned `adb shell -T run-as <restoreproof335> sha256sum` on OnePlus NE2213/API36 from `fdfbeb221d4b1608748174c154edc5de90505bb7`: original PASEKA01 3158B SHA PASS, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 99`, `REMOTE_STDOUT_SHA256: 4c6c469b11269c215ee1af4fb6ab8e580441d06cbf6623c1e7afc34af448ca09`, `REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC`, `STATUS: BLOCKED`. This is not a digest and does not prove incorrect stdin transmission; diagnostic contents not disclosed. No Android writes/restore/deletion.
+- For test-only next gate in same Draft PR #341, command pinned to absolute `/system/bin/toybox sha256sum -` under `run-as`; toybox treats `-` as stdin and avoids reliance on lookup of unqualified sha256sum. Static + mock negative tests updated. Physical outcome and exact latest SHA CI pending.
+- Next: verify exact SHA CI and perform at most one read-only physical attempt; do not restage archive or repeat old installer.
+
+---
+
+## RESTORE335 — empty exec-in stdout root cause (2026-11-21)
+
+- Physical OnePlus pinned read-only run (`b6b2175a7c077616e9884ef4a2cccef7a241ae61`): original archive 3158 bytes SHA PASS; `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 0`, `REMOTE_STDOUT_SHA256: e3b0c442...`, `REMOTE_OUTPUT_CLASS: EMPTY`, `STATUS: BLOCKED/STDIN_SHA256_OUTPUT_INVALID`. No writes, restore, recognition, cleanup.
+- ADB source confirms `exec-in` copies host stdin only, unlike `exec-out` which copies device stdout. The empty stdout is explained by command semantics, NOT proof of input corruption. Read-only probe switched to bidirectional `adb shell -T run-as ... sha256sum`, with PTY disabled and explicit SHA check. Same Draft PR #341; mock and workflow updated.
+- New shell -T code/test CI and real-device probe NOT YET VERIFIED. Do not repeat installer or write private files; next step CI exact SHA then single physical read-only proof.
+
+---
+
+## RESTORE335 — physical stdin probe BLOCKED (2026-11-21)
+
+- User executed pinned read-only probe at `090fb2f9604ddbd26dad4ee0e2492d67a40abd9f` on physical NE2213/API36: source `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`; stage 3 `STATUS: BLOCKED / STDIN_SHA256_OUTPUT_INVALID`. Remote stdout did not match the expected digest syntax; not evidence of changed stdin bytes. No Android writes/install/restore/cleanup.
+- Same Draft PR #341 updated with bounded non-content diagnostics: remote exit code, stdout byte count and SHA256, classification of output as error diagnostic/empty/unknown. Mock regressions extended. New CI exact HEAD and physical diagnostic pending.
+- Next: confirm CI on exact latest SHA, then one read-only pinned rerun; never repeat installer or write to private test directory before root cause is established.
+
+---
+
+## RESTORE335 — read-only binary stdin transport probe (2026-11-21)
+
+- Physical OnePlus NE2213/API36 path-audit: pinned external PASEKA01 3158 bytes SHA256 PASS; `run-as pwd` = `/data/user/0/ru.paseka.journal.archive.restoreproof335`; `files/`, private input and report all NOT_FOUND. Earlier 65/62 byte diagnostics are missing-file stdout, not stored files.
+- Draft PR #341 stacked over #340; test script `tools/android-restore335-stdin-sha-readonly.ps1` reads source into PC memory, verifies pinned SHA, streams bytes via direct `adb exec-in run-as <existing test package> sha256sum` without shell/redirection/file writes, verifies remote digest and rejects non-digest stdout.
+- Mock CI cases: success, corrupt stdin, diagnostic stdout with exit 0, corrupt original blocked before stdin. Workflow exists; exact HEAD CI and physical USB execution **NOT VERIFIED**. No restore/MP4 decoding/recognition/deletion; no installs or production edits.
+- Next single gate: confirm workflow CI on exact HEAD, then one non-writing physical stdin diagnostic. If SHA passes, separately design a safe file-staging operation in existing test-only package; no retry of previous one-shot installer.
+
+---
+
 ## RESTORE335 — confirmed CI for read-only missing-path audit (2026-11-21)
 
 - Code/test/workflow SHA `cdf937797078234aeb9817d686d551795203c4e6` проверен: [GitHub Actions #44944519356](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44944519356) **completed/success**: PowerShell parse, static no-write tests, real `pwsh` mock-ADB with missing-file diagnostic text on stdout and exit=0. Последующие изменения — документация.

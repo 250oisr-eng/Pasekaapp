@@ -1,3 +1,24 @@
+## 2026-11-22 — Restore335: пустой private files/ после dd; запрет на повторную запись
+
+- [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — физический v2 OnePlus подтвердил private `files/` с нулём записей, но `stat` возвращает 67 stdout байт при exit=0 и файл пока без SHA; исходный PASEKA01 сохранён.
+- [ПЛАН-РАЗРАБОТКИ.md](ПЛАН-РАЗРАБОТКИ.md) — следующий не пишущий gate `tools/android-restore335-dd-zero-count-parser-readonly.ps1` (Toybox `if=/dev/null count=0`, без `of=`): проверить CI на exact SHA перед физической командой. Запрет на прежний one-shot `dd`, очистку и restore.
+
+---
+
+## RESTORE335 — 2026-11-21: следующий read-only gate private metadata v2
+
+- [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — физически `files/` подтверждён, `fileproof335-input.paseka` статус `UNKNOWN_OR_ABSENT`; исходный PASEKA01 SHA подтверждён, Toybox dd help флаги есть, запись повторять нельзя.
+- [ПЛАН-РАЗРАБОТКИ.md](ПЛАН-РАЗРАБОТКИ.md) — только `tools/android-restore335-post-dd-failure-readonly-v2.ps1` и регрессионный CI на exact SHA перед физическим чтением; никакого restart/restore/cleanup и удаления видео.
+
+---
+
+## 2026-11-21 — RESTORE335 physical dd failure: только read-only состояние приватного тестового файла
+
+- Последняя достоверная контрольная точка и следующий gate — [../PROJECT_STATUS.md](../PROJECT_STATUS.md): pinned ADB 1.0.41/stdin SHA PASS, затем one-shot `EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED` после mkdir. Нельзя повторять запись/удалять файлы.
+- [ПЛАН-РАЗРАБОТКИ.md](ПЛАН-РАЗРАБОТКИ.md) — порядок восстановления после отказа: только скрипт `tools/android-restore335-post-dd-failure-readonly.ps1` с реальным CI/физическим отчётом, затем отдельный gate пустой IndexedDB. `2 MP4 restore/decoder/recognition/cleanup` ещё не подтверждены.
+
+---
+
 ## 2026-11-21 — два синтетических видео-подобных блока: изолированный физический stop/relaunch
 
 - [ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md](ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md) — обновлённый безопасный **PASEKA01** сценарий `tools/android_synthetic_two_video_stop.ps1`, автоматически создающий отдельный контейнер с двумя *не воспроизводимыми* синтетическими blob и проверяющий внешнюю SHA-неизменность до/после остановки только тестового Android-пакета. Это не проверка app-export, IndexedDB или Camera/MediaStore.

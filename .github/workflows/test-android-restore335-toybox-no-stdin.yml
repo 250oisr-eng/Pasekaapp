@@ -1,0 +1,37 @@
+name: Restore335 no-stdin Toybox probe
+on:
+  push:
+    branches:
+      - 'test/android-restore335-stdin-sha-readonly-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-toybox-no-stdin-readonly.ps1'
+      - 'tests/mock_android_restore335_toybox_no_stdin.py'
+      - '.github/workflows/test-android-restore335-toybox-no-stdin.yml'
+permissions:
+  contents: read
+jobs:
+  mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell
+        shell: pwsh
+        run: |
+          $t=$null;$e=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-toybox-no-stdin-readonly.ps1',[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_};exit 1}
+      - name: Check that device probe cannot use stdin, install or device write
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tools/android-restore335-toybox-no-stdin-readonly.ps1').read_text()
+          assert "ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','sha256sum','/dev/null')" in s
+          assert "ADB @('-d','exec-out','cat',$source)" in s
+          assert "$archive.Bytes.Length -ne 3158" in s
+          assert "NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE" in s
+          assert "STDIN_TRANSPORT: NOT_TESTED" in s
+          assert all(x not in s for x in ("ADB @('-d','install'", "ADB @('-d','push'", "ADB @('-d','exec-in'", "ADB @('-d','shell','run-as'"))
+          PY
+      - name: Real PowerShell and mocked ADB negative cases
+        run: python3 tests/mock_android_restore335_toybox_no_stdin.py
