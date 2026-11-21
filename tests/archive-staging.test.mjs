@@ -1932,3 +1932,25 @@ for(const [kind,storeName,key,payload] of [
   db.close();
  });
 }
+
+
+test('PASEKA01 rollback refuses V2 protected quarantine added after old import',async()=>{
+ const db=await openTestDb('legacy-rollback-after-v2-protection');
+ const state=stateFixture('valuable pre-import diary');state.meta.revisionId='pre-import';
+ await put(db,'main',state,'state');
+ const input=await makeArchive('legacy-import-before-quarantine');
+ const staged=await Restore.stageArchiveForRestore(db,input,webcrypto,Archive,()=>true);
+ const imported=await Restore.commitStagedArchive(db,staged.session.sessionId,'pre-import',webcrypto,Archive,()=>true);
+ const quarantineKey='v2entrance:later-protected';
+ const protectedRecord={kind:'v2_entrance_quarantine_rollback_snapshot',
+  quarantinedMedia:[{id:'private',blob:new Blob(['protected video'])}]};
+ await put(db,'full_backup',protectedRecord,quarantineKey);
+ await assert.rejects(Restore.rollbackCommittedArchive(
+  db,'legacy-import-before-quarantine',imported.state.meta.revisionId,webcrypto,()=>true),
+  {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+ assert.deepEqual(await get(db,'main','state'),imported.state);
+ assert.deepEqual(await get(db,'full_backup',quarantineKey),protectedRecord);
+ assert.equal((await get(db,'archive_history','legacy-import-before-quarantine')).status,'committed');
+ assert.equal((await get(db,'entrance_media','video-1')).blob.size,4);
+ db.close();
+});
