@@ -33,6 +33,8 @@ jobs:
           assert r['scientificSpeciesFromZenodoPublisher'] == 'Apis mellifera'
           assert r['datasetLicenseVerifiedFromPinnedAuthorRepo'] == 'CC BY 4.0'
           assert r['originalAuthorSplitTextGitBlobVerified'] is True
+          assert r['inputOrigin'] == 'sha_verified_public_author_source'
+          assert r['authorVerificationCSVGitBlobVerified'] is True
           assert r['sourceImageCountByUniqueOriginalNames'] == 2823
           assert r['fiveFoldUniqueValidationCoverage'] == 2823
           assert len(r['nineTimestampCaptureDatesFromFileNames']) == 9
