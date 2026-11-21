@@ -1,3 +1,12 @@
+## RESTORE335 — физический post-failure read-only 65-byte private file (2026-11-21)
+
+- Пользователь запустил закреплённый read-only `tools/android-restoreproof335-readonly-diagnostic.ps1` (code SHA `8ace0319bf54810c4c1016213e5df718ee3cea3c`) на OnePlus NE2213/API36. Точный результат: `ORIGINAL_BYTES: 3158`, `ORIGINAL_SHA256: PASS`; `PRIVATE_BYTES: 65`, `PRIVATE_SHA256: d626473be6b6766170d63ca7bdf77b854cf94fb769825b2f1db3854cd9c52a60`; `PRIVATE_MATCHES_ORIGINAL: NO`; `FIRST_DIFFERENT_BYTE_OFFSET: 0`; `LENGTH_DELTA: -3093`; `PRIVATE_REPORT_PRESENT: YES_BYTES_62`; `RESTORE_COMMIT: NOT_CONFIRMED`. Это реальные аппаратные данные из консоли пользователя, а не CI mock. Исходный архив после инцидента **сохранён с подтверждённым SHA**.
+- В новом test-only пакете `ru.paseka.journal.archive.restoreproof335` осталась private копия 65 байт и отчёт 62 байта. Причина неизвестна, возможна ошибка передачи binary stdin/интерпретации shell. 65 байт не позволяют предполагать восстановление видео. Старый one-shot `tools/android-restoreproof335-one-shot.ps1` **НЕ повторять**, уже установленный пакет не удалять, не перезаписывать private test file, не сбрасывать базу и не удалять оригинальный файл.
+- Для определения природы 65 байт создана отдельная ветка `test/android-restore335-private65-forensics-2026-11-21`. `tools/android-restoreproof335-private65-forensics.ps1` расширяет ранее проверенный read-only script, **печатает hex и печатный ASCII не более 128 байт только из private input и небольшого private report**, не выводит исходный архив, не выполняет запись/launch/stop/install/delete. Повторно требует exact old/new packages, исходный SHA, device NE2213/API36. Тесты PowerShell parser/CI mock + safety.
+- Следующий шаг: подтвердить CI на exact SHA, затем один bounded read-only physical запуск для выявления содержимого 65 и 62 байт; только после этого формировать корневое исправление. Нет физического restore commit, decoder/recognition/cleanup NOT TESTED/NOT AUTHORIZED.
+
+---
+
 ## RESTORE335 read-only diagnostic CI PASS (2026-11-21)
 
 - Exact code/test/workflow SHA `8ace0319bf54810c4c1016213e5df718ee3cea3c`, GitHub Actions [#44943612626](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44943612626) **completed/success** on PR #338 head (later changes docs only). PowerShell syntax, JS source safety and actual `pwsh` with mock ADB scenarios succeeded: (a) private mismatch reports first offset and no-write, (b) exact private match, (c) original SHA mismatch blocks before private read. Mock is not physical hardware evidence.
