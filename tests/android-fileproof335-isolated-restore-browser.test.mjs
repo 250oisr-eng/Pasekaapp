@@ -106,7 +106,7 @@ test('isolated browser gate: refuse to overwrite destination state',async()=>{
   tx.objectStore('main').put({sentinel:'user-data-is-protected'},'state');
   await done;db.close();
   const data=await buildValidArchive(root);
-  await assert.rejects(root.PasekaIsolatedRestore335.run(data),e=>e.code==='DESTINATION_NOT_EMPTY');
+  await assert.rejects(root.PasekaIsolatedRestore335.run(data),e=>e.code==='DESTINATION_ALREADY_EXISTS');
   const snap=await snapshot(factory,root.PasekaIsolatedRestore335.DATABASE);
   assert.deepEqual(snap.state,{sentinel:'user-data-is-protected'});
   assert.deepEqual(snap.videos,[]);
@@ -123,4 +123,23 @@ test('isolated browser gate: never contains deletion, production DB or external 
   }
   assert.match(source,/paseka-fileproof335-destination-only-v1/);
   assert.match(source,/cleanupAuthorized:false/);
+});
+
+test('browser restart cannot reuse aborted, empty restore335 database',async()=>{
+  const factory=new IDBFactory();
+  const first=harness({factory}),data=await buildValidArchive(first);
+  await assert.rejects(first.PasekaIsolatedRestore335.run(data,{testOnlyAbortAfterFirst:true}),e=>e.code==='INJECTED_ABORT_TEST_ONLY');
+  const afterAbort=await snapshot(factory,first.PasekaIsolatedRestore335.DATABASE);
+  assert.equal(afterAbort.state,undefined);
+  assert.deepEqual(afterAbort.videos,[]);
+  const restarted=harness({factory});
+  await assert.rejects(restarted.PasekaIsolatedRestore335.run(data),e=>e.code==='DESTINATION_ALREADY_EXISTS');
+  const afterRetry=await snapshot(factory,restarted.PasekaIsolatedRestore335.DATABASE);
+  assert.equal(afterRetry.state,undefined);
+  assert.deepEqual(afterRetry.videos,[]);
+});
+test('unavailable database inventory blocks before opening restore destination',async()=>{
+  const root=harness(),bytes=await buildValidArchive(root);
+  root.indexedDB.databases=undefined;
+  await assert.rejects(root.PasekaIsolatedRestore335.run(bytes),e=>e.code==='DATABASE_ENUMERATION_REQUIRED');
 });
