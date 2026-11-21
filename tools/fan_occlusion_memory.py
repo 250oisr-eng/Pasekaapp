@@ -17,9 +17,11 @@ def overlaps(a, b, threshold):
     return intersection > 0 and intersection / (area_a + area_b - intersection) >= threshold
 
 
-def associate_with_memory(frames, threshold=0.5, max_missing=1):
+def associate_with_memory(frames, threshold=0.5, max_missing=1, recovery_threshold=0.9):
     if not 0 < threshold <= 1:
         raise ValueError("invalid IoU threshold")
+    if not threshold <= recovery_threshold <= 1:
+        raise ValueError("recovery threshold must be at least active IoU threshold")
     if type(max_missing) is not int or max_missing not in (0, 1):
         raise ValueError("max_missing must be 0 or 1")
     if not max_missing:
@@ -45,7 +47,7 @@ def associate_with_memory(frames, threshold=0.5, max_missing=1):
         # A track absent in the previous frame is eligible only once.
         remaining = {i: box for i, box in observations.items() if i not in assigned}
         possible = {tid: [i for i, candidate in remaining.items()
-                          if overlaps(box, candidate, threshold)]
+                          if overlaps(box, candidate, recovery_threshold)]
                     for tid, box in dormant.items()}
         # Ambiguity rejection is strictly symmetric: a dormant track must
         # have one eligible observation, and that observation must have one
