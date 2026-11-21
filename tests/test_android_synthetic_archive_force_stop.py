@@ -7,11 +7,12 @@ from tools.test_android_synthetic_archive_force_stop import (
 
 
 class FakeADB:
-    def __init__(self, *, device_ok=True, sha_index_failure=None, launch_ok=True):
+    def __init__(self, *, device_ok=True, sha_index_failure=None, launch_ok=True, mkdir_collision=False):
         self.calls = []
         self.device_ok = device_ok
         self.sha_index_failure = sha_index_failure
         self.launch_ok = launch_ok
+        self.mkdir_collision = mkdir_collision
         self.hash_calls = 0
         self.expected = digest(generate_archive()[0])
 
@@ -28,10 +29,11 @@ class FakeADB:
             return subprocess.CompletedProcess(args, 0, "36\n", "")
         if args[:3] == ["adb", "-d", "shell"] and args[3] == "pm path " + PACKAGE:
             return subprocess.CompletedProcess(args, 0, f"package:/data/app/{PACKAGE}/base.apk\n", "")
-        if args[:3] == ["adb", "-d", "shell"] and args[3].startswith("test -e "):
-            return subprocess.CompletedProcess(args, 1, "", "")
         if args[:3] == ["adb", "-d", "shell"] and args[3].startswith("mkdir -p "):
             return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:3] == ["adb", "-d", "shell"] and args[3].startswith("mkdir "):
+            return subprocess.CompletedProcess(args, 1 if self.mkdir_collision else 0,
+                                               "", "File exists" if self.mkdir_collision else "")
         if args[:3] == ["adb", "-d", "push"] and args[4].endswith(NAME):
             return subprocess.CompletedProcess(args, 0, "", "500 KB/s (500 bytes)\n")
         if args[:3] == ["adb", "-d", "shell"] and args[3].startswith("sha256sum "):
@@ -91,6 +93,14 @@ class IsolatedSyntheticArchiveTests(unittest.TestCase):
         with self.assertRaises(CheckBlocked):
             execute_test(execute=fake, token="../escape")
         self.assertNotIn("mkdir -p", fake.actions)
+        self.assertNotIn("force-stop", fake.actions)
+
+    def test_atomic_directory_collision_never_uploads_or_stops(self):
+        fake = FakeADB(mkdir_collision=True)
+        with self.assertRaises(CheckBlocked):
+            execute_test(execute=fake, token=self.TOKEN)
+        self.assertIn("mkdir ", fake.actions)
+        self.assertNotIn("adb -d push ", fake.actions)
         self.assertNotIn("force-stop", fake.actions)
 
     def test_bad_source_digest_pre_stop_never_stops_app(self):
