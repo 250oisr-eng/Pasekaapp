@@ -37,9 +37,16 @@ function Adb([string[]]$args) {
   $stream=New-Object System.IO.MemoryStream
   try {
     if(-not $proc.Start()) {throw 'ADB_START_FAILED'}
-    $proc.StandardOutput.BaseStream.CopyTo($stream)
-    $diagnostic=$proc.StandardError.ReadToEnd()
-    $proc.WaitForExit()
+    # Drain both redirected pipes concurrently; never block indefinitely on stdout.
+    $stdoutTask=$proc.StandardOutput.BaseStream.CopyToAsync($stream)
+    $stderrTask=$proc.StandardError.ReadToEndAsync()
+    if(-not $proc.WaitForExit(12000)) {
+      try { $proc.Kill() } catch { }
+      [void]$proc.WaitForExit(2000)
+      throw 'ADB_TIMEOUT_12S'
+    }
+    $stdoutTask.GetAwaiter().GetResult()
+    $diagnostic=$stderrTask.GetAwaiter().GetResult()
     if($proc.ExitCode -ne 0) {throw ('ADB_EXIT_'+$proc.ExitCode)}
     if($stream.Length -gt 65536 -and -not ($args -contains 'cat')) {throw 'ADB_TEXT_OUTPUT_TOO_LONG'}
     if($stream.Length -gt 1048576) {throw 'ADB_BINARY_OUTPUT_TOO_LONG'}
@@ -48,6 +55,7 @@ function Adb([string[]]$args) {
 }
 function AdbText([string[]]$args) { return (Text (Adb $args)).Trim() }
 try {
+  Write-Host 'STAGE: 1/5 USB_DEVICE_PRECHECK'
   $devices=AdbText @('devices','-l')
   $ready=@($devices -split '[\r\n]+' | Where-Object {$_ -match '^\S+\s+device\s+'})
   $bad=@($devices -split '[\r\n]+' | Where-Object {$_ -match '^\S+\s+(offline|unauthorized|recovery|sideload)\b'})
@@ -55,14 +63,18 @@ try {
   if((AdbText @('-d','shell','getprop','ro.product.model')) -cne 'NE2213' -or
      (AdbText @('-d','shell','getprop','ro.build.version.sdk')) -cne '36') {throw 'EXPECTED_NE2213_API36'}
   if((AdbText @('-d','shell','pm','path',$pkg)) -notmatch '^package:') {throw 'EXISTING_FILEPROOF329_REQUIRED'}
+  Write-Host 'STAGE: 2/5 TEST_PACKAGE_REPORT'
   $report=Adb @('-d','exec-out','run-as',$pkg,'cat','files/paseka-fileproof329.ndjson')
   if($report.Length -ne 466 -or (Sha $report) -cne $expectedReportSha) {throw 'PRIVATE_REPORT_SHA_CHANGED'}
+  Write-Host 'STAGE: 3/5 SYNTHETIC_FOLDER'
   $names=@((AdbText @('-d','shell','ls','-1',$folder)) -split '[\r\n]+' | Where-Object {$_ -ne ''})
   if($names.Count -ne 1 -or $names[0] -cnotmatch '^paseka-proof329-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.paseka$') {
     throw 'ONLY_ONE_PINNED_SYNTHETIC_ARCHIVE_REQUIRED'
   }
+  Write-Host 'STAGE: 4/5 ARCHIVE_BINARY_READ'
   $bytes=Adb @('-d','exec-out','cat',($folder+'/'+$names[0]))
   if($bytes.Length -ne 3158 -or (Sha $bytes) -cne $expectedFileSha) {throw 'ARCHIVE_SIZE_OR_SHA_CHANGED'}
+  Write-Host 'STAGE: 5/5 MANIFEST_AND_VIDEO_HASHES'
   if((Text (Slice $bytes 0 8)) -cne 'PASEKA01') {throw 'INVALID_ARCHIVE_MAGIC'}
   $length=[BitConverter]::ToUInt32($bytes,8)
   if($length -lt 2 -or $length -gt 4096 -or (12+$length) -gt $bytes.Length){throw 'INVALID_MANIFEST_LENGTH'}
