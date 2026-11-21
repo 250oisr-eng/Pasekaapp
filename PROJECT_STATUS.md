@@ -1,3 +1,10 @@
+## RESTORE335 — confirmed CI for read-only missing-path audit (2026-11-21)
+
+- Code/test/workflow SHA `cdf937797078234aeb9817d686d551795203c4e6` проверен: [GitHub Actions #44944519356](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44944519356) **completed/success**: PowerShell parse, static no-write tests, real `pwsh` mock-ADB with missing-file diagnostic text on stdout and exit=0. Последующие изменения — документация.
+- Физический run-as cwd и путь `files` пока NOT TESTED новым audit script; **вместо повторной записи** требуется один read-only осмотр cwd + ls -ld. Не считать mock доказательством on-device путей. Исходный архив 3158B original SHA PASS по последней аппаратной проверке.
+
+---
+
 ## RESTORE335 — физический forensic PASS: оба private файла НЕ СУЩЕСТВУЮТ (2026-11-21)
 
 - На реальном OnePlus NE2213/API36 пользователь выполнил pinned read-only forensic script SHA `341b99d6bf47875740024c929fe76e8b564d559e`. Из консоли: `ORIGINAL_BYTES: 3158`, `ORIGINAL_SHA256: PASS`; `PRIVATE_BYTES: 65` с печатным содержимым **`cat: files/fileproof335-input.paseka: No such file or directory\r\n`**, `REPORT_BYTES: 62` с текстом **`cat: files/restore335-report.json: No such file or directory\r\n`**. Эти 65/62 байта — **ADB/Android diagnostic stdout**, а не private файлы; прежние отчёты о существующей 65B копии и 62B репорте **опровергнуты**. Оригинал физически сохранён/цел, ничего не удалено. Стадия 6 app launch и restore commit не выполнялись.
