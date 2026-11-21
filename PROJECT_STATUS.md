@@ -1,3 +1,10 @@
+## 2026-11-21 — hardening проверенного Apis source audit; synthetic fixture не притворяется оригиналом
+
+- Ужесточён provenance gate в Draft #321: функции аудита оригинальных 10 train/val TXT и LICENSE/README/CSV выставляют `inputOrigin=sha_verified_public_author_source` и source SHA verification true **только при фактическом штатном fetch SHA-pinned bytes**; внедрённые synthetic readers обязаны отчитываться как `synthetic_fixture`, **sourceVerified=false**. Добавлен regression test на эту границу. Никакие model training, реальные in/out или video cleanup не разрешены.
+- Новый точный code/test/workflow SHA `2e8bea03b308982cb0b2ee17a4c8f6dbba65cb80`, [GitHub CI #44918362330](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44918362330) **SUCCESS: 19/19 unit tests и реальные 13 pinned original files/9 day group counts**. Все данные других видов по-прежнему исключены; original JPG Zenodo v2 ~2GB не скачивались. Расчёты 9 day-heldout сохраняются исследовательским планом без claim физической session independence. Android APK на текущем HEAD проверяется отдельно; предварительно не объявлять SUCCESS.
+- PR #321 остаётся **Draft**, не merged. Нет изменений JS/IndexedDB/backup/SW, пользовательских видео/пасеки или production. Следующий этап: реальные исходные Apis mellifera JPG/YOLO bytes, оценка near-duplicates и GT летка; не использовать непроверенный source в модели.
+
+---
 ## 2026-11-21 — дополнительная защита Apis mellifera: nine-day held-out proposal (Draft #321)
 
 - На оригинальном авторском источнике Zenodo v2 (DOI 10.5281/zenodo.23276947, Apis mellifera) добавлена минимальная **консервативная day-held-out схема**, не обучение: для 9 календарных дней из имён исходных 2795 in-hive изображений выделять целый день в validation, 8 остальных в train. **28 handheld кадров всегда исключаются**. Получены валидные объёмы по дням: 59, 149, 157, 800, 202, 1062, 35, 276, 55 (в сумме 2795). Дата по filename не подтверждает физическую независимость сессий, original JPG bytes ещё не проверены.
