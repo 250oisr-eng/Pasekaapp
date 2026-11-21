@@ -24,3 +24,9 @@ jobs:
             $parseErrors | ForEach-Object { Write-Error $_.Message }
             exit 1
           }
+      - name: Reject reserved PowerShell Matches variable for archive counts
+        shell: pwsh
+        run: |
+          $script = Get-Content 'tools/android_paseka02_preflight.ps1' -Raw
+          if ($script.Contains('$matches.Count') -or $script.Contains('foreach ($entry in $matches)')) { throw 'PowerShell automatic Matches variable must not be used as archive collection.' }
+          if (-not $script.Contains('$archiveFiles.Count')) { throw 'Expected independent archiveFiles count.' }
