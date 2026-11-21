@@ -1,3 +1,11 @@
+## FILEPROOF329 — PowerShell VoidTaskResult readout failure (2026-11-21)
+
+- Физический OnePlus: после изменения ADB аргументов кодовый SHA `54cbfc24f931270eba7cacf7b045e4c684e61c22` дал `STAGE: 1/5 USB_DEVICE_PRECHECK`, затем `BLOCKED`: PowerShell попытался преобразовать `System.Threading.Tasks.VoidTaskResult` к `System.Byte`. Это сбой тестового парсера, **не** повреждение архива или пользовательских данных; аппаратная проверка архива новым скриптом не дошла до чтения.
+- Исправлен `Adb`: `[void]$stdoutTask.GetAwaiter().GetResult()` подавляет служебный результат успешного async `CopyToAsync`, возвращаются только байты `$stream.ToArray()`. В CI добавлен позитивный mock `adb devices -l`/getprop/pm, подтверждающий прохождение стадии 1 до безопасно отклонённой стадии 2, и статический регрессионный тест утечки результата task.
+- Не выполнять следующий физический запуск до successful CI на точном SHA. Archive SHA, известный ранее: `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`. Удаление, восстановление и видео-распознавание НЕ выполнялись.
+
+---
+
 ## FILEPROOF329 — подтверждён CI исправления ADB (2026-11-21)
 
 - На code/test/workflow SHA `54cbfc24f931270eba7cacf7b045e4c684e61c22` GitHub Actions [run #44940959276](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44940959276) завершил job `preflight` со статусом success: Node и PowerShell синтаксис, отрицательные тесты, а также отдельный mock `adb devices -l` с exit=1 через реальный `pwsh`. Это подтверждает корректную передачу аргументов и диагностический отказ на мок-устройстве, не фактический запуск исправленной версии на NE2213.
