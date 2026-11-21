@@ -141,7 +141,7 @@ try {
             if ([int64]$length -gt 16777216) {
                 Finish 'BLOCKED' 'Archive is over the 16 MiB bounded local-verification limit.' 2
             }
-            $workingDir = Join-Path $env:TEMP ('paseka-verify-' + [guid]::NewGuid().ToString('N'))
+            $workingDir = Join-Path ([IO.Path]::GetTempPath()) ('paseka-verify-' + [guid]::NewGuid().ToString('N'))
             $null = New-Item -Path $workingDir -ItemType Directory -ErrorAction Stop
             $copy = Join-Path $workingDir 'test-export.paseka'
             try {
