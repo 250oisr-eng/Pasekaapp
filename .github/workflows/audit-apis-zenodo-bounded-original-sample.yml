@@ -22,7 +22,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install free MIT-CMU Pillow only in ephemeral research runner
-        run: python -m pip install --disable-pip-version-check --no-deps --only-binary=:all: Pillow==13.0.0
+        run: |
+          python -m pip install --disable-pip-version-check --no-deps --only-binary=:all: Pillow==13.0.0
       - name: Synthetic corrupt ZIP/JPEG/YOLO, HTTP Range, safety gate tests
         run: python -m unittest discover -s tests -p 'test_audit_apis_zenodo_bounded_original_sample.py' -v
       - name: Read only bounded original publisher ZIP members, no full 2GB download
