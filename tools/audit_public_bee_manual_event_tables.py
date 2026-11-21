@@ -28,19 +28,26 @@ FIELDS = frozenset((
     "labelbee_valid",
 ))
 LABELS = frozenset(("", "x", "D", "U", "DU", "UD"))
+SHA256_PINS = {
+    "original": "8d5ef1db7e742849d018c79ab8ad27cf3828518750e68aacac22ee1bf2b70d07",
+    "alternative": "51cbd31c6638dac8ebbc2b0069b441aec64bb5355edd52351ea70a45cecea059",
+}
 ROWS = 1422
 CAP = 192 * 1024
 
 
-def verify_git_blob(data, size, blob_sha):
+def verify_git_blob(data, size, blob_sha, expected_sha256=None):
     """Bound source to exact immutable Git blob (does not verify legal rights)."""
     if type(data) is not bytes or not 0 < len(data) <= CAP or len(data) != size:
         raise ValueError("unexpected public annotation source size")
     digest = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
     if digest != blob_sha:
         raise ValueError("published Git blob differs from pinned source")
+    sha256 = hashlib.sha256(data).hexdigest()
+    if expected_sha256 is not None and sha256 != expected_sha256:
+        raise ValueError("original CSV SHA-256 changed")
     return {"bytes": len(data), "gitBlobSha1": digest,
-            "sourceSha256": hashlib.sha256(data).hexdigest()}
+            "sourceSha256": sha256}
 
 
 def fetch_exact_public_source(path, max_bytes=CAP):
@@ -146,7 +153,7 @@ def audit(fetch=fetch_exact_public_source):
     tables, checks = {}, {}
     for name, path, size, gitsha in SOURCE:
         original = fetch(path)
-        checks[name] = verify_git_blob(original, size, gitsha)
+        checks[name] = verify_git_blob(original, size, gitsha, SHA256_PINS[name])
         tables[name] = parse_events_csv(original)
     return {
         "sourcePaper": "Nieves-Rivera et al. 2026, doi:10.3390/informatics13050065",
