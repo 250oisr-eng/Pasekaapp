@@ -35,6 +35,21 @@ class ExternalPredictionsTests(unittest.TestCase):
         self.assertEqual(frames[0][0], tuple(BOX))
         self.assertEqual(frames[1], {})
 
+    def test_confidence_gate_drops_low_scores_and_rejects_bad_thresholds(self):
+        records = self.good()
+        records[0]["detections"].append({"box": [.6,.6,.7,.7], "confidence": .4})
+        source = self.write(records)
+        frames, n = inspect_predictions(source, frame_count=2, minimum_confidence=.5)
+        self.assertEqual(n, 1)
+        self.assertEqual(len(frames[0]), 1)
+        frames, n = inspect_predictions(source, frame_count=2, minimum_confidence=.95)
+        self.assertEqual(n, 0)
+        self.assertEqual(frames, [{}, {}])
+        for threshold in (-1, 1.1, float("nan"), True):
+            with self.subTest(threshold=threshold):
+                with self.assertRaises(ValueError):
+                    inspect_predictions(source, frame_count=2, minimum_confidence=threshold)
+
     def test_missing_or_duplicate_frame_fails_closed(self):
         for records in (self.good()[:1], self.good() * 2,
                         [self.good()[0], self.good()[0]],
