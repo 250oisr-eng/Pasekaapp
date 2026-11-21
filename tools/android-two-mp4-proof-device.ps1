@@ -11,19 +11,19 @@ $expectedSource = @(
  '794e1dcb2598dff510b8f4b7cafea57a500cbfd57a1e57a99247a9bb7d784b9f',
  'bc9abbf1f109a7f2feb8787d52bce8363eb3c577ef2acd67ae4fcdf59a892eff'
 )
-function NativeAdb([string[]]$args) {
+function NativeAdb([string[]]$argv) {
   $old = $ErrorActionPreference
   try {
     # Windows PowerShell 5.1 maps harmless native stderr to ErrorRecord.
     $ErrorActionPreference = 'Continue'
-    $reply = (& adb @args 2>&1 | Out-String).Trim()
+    $reply = (& adb @argv 2>&1 | Out-String).Trim()
     $code = $LASTEXITCODE
   } finally { $ErrorActionPreference = $old }
   return [pscustomobject]@{ Code=$code; Text=[string]$reply }
 }
-function RequireAdb([string[]]$args) {
-  $response = NativeAdb $args
-  if ($response.Code -ne 0) { throw ('ADB_EXIT_' + $response.Code + ': ' + ($args[0..([Math]::Min($args.Count-1,2))] -join ' ')) }
+function RequireAdb([string[]]$argv) {
+  $response = NativeAdb $argv
+  if ($response.Code -ne 0) { throw ('ADB_EXIT_' + $response.Code + ': ' + ($argv[0..([Math]::Min($argv.Count-1,2))] -join ' ')) }
   return $response.Text
 }
 function Reports() {
