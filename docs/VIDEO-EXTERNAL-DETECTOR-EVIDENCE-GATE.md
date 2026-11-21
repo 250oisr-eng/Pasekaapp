@@ -33,7 +33,7 @@ python tools/evaluate_external_fan_detections.py /path/original-v6 \
 
 ## Что считается результатом
 
-После проверки MP4 и tracking TXT по издательским SHA и весов по указанному SHA программа сопоставляет реально поданные рамки с авторскими метками и запускает исследовательский трекер с памятью на один пропуск. Она возвращает рамочные `matched/missed/extra/meanMatchedIoU` и `adjacentIdSwitches` на 6000 кадрах. Эти показатели — **проверка предоставленных bbox относительно одного клипа**, а не доказательство независимости train/test или работоспособности модели на Android.
+После проверки MP4 и tracking TXT по издательским SHA и весов по указанному SHA программа сопоставляет реально поданные рамки с авторскими метками и запускает исследовательский трекер с памятью на один пропуск. Отчёт содержит вычисленные непосредственно при чтении `predictionFileIdentity.sha256` и `predictionFileIdentity.bytes`: ими можно привязать воспроизводимый отчёт к конкретному набору входных строк. Совпадение SHA не подтверждает, что предсказания действительно вычислены указанной моделью.\n\nОна возвращает рамочные `matched/missed/extra/meanMatchedIoU` и `adjacentIdSwitches` на 6000 кадрах. Эти показатели — **проверка предоставленных bbox относительно одного клипа**, а не доказательство независимости train/test или работоспособности модели на Android.
 
 Даже если вычисленные `matched` окажутся идеальными, вывод **всегда** содержит `predictionsGeneratedByModelVerified=false`, `modelLicenseVerified=false`, `independentTestSplitVerified=false`, `realDetectorValidated=false`, `entranceLineCrossingsValidated=false`, `androidOfflineInferenceVerified=false`, `videoCleanupAuthorized=false`.
 
