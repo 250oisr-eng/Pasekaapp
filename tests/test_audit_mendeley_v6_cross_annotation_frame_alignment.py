@@ -10,7 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from audit_mendeley_v6_cross_annotation_frame_alignment import (
-    pinned_series, read_yolo, compare_candidate_labels,
+    pinned_series, read_yolo, inspect_publisher_yolo_geometry, compare_candidate_labels,
     screen_training_group_overlap, run_public,
 )
 
@@ -31,6 +31,14 @@ class SourceYoloTests(unittest.TestCase):
             with self.subTest(source=source):
                 with self.assertRaises(ValueError):
                     read_yolo(source)
+
+    def test_publisher_border_violations_are_reported_not_clipped(self):
+        parsed, error = inspect_publisher_yolo_geometry(b"0 0.05 0.50 0.20 0.20\n")
+        self.assertIsNone(parsed)
+        self.assertIn("outside frame", error)
+        good, error = inspect_publisher_yolo_geometry(b"0 0.50 0.50 0.20 0.20\n")
+        self.assertIsNone(error)
+        self.assertEqual(len(good), 1)
 
     def test_annotation_comparison_preserves_brightness_order(self):
         truth = [{10: (.1,.1,.3,.3)}, {7:(.6,.6,.8,.8)}]
