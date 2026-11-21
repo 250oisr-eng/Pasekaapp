@@ -1,3 +1,9 @@
+## 2026-11-21 — проверка возможных переименованных оригиналов по SHA (stacked после Draft #316)
+
+- В отдельной ветке `test/video-inventory-hash-alias-evidence-2026-11-21` (base Draft #316) усовершенствован строго read-only `js/video-archive-v2-copy-inventory.js`: если уже распознанный источник по достоверно структурированной записи ledger имеет SHA-256 и положительный размер, а другая управляемая копия с **другим source/videoId** указывает ту же пару SHA+bytes, журнал аудита ставит флаги `possible_recognized_original_hash_alias` и для deleted tombstone `possible_deleted_tombstone_hash_alias`.
+- Совпадение **хеш-метаданных** не является повторной проверкой видеобайтов и не подтверждает общий источник. `cleanupAuthorized`, `byteIntegrityVerified`, `externalCopiesVerified`, `auditComplete` остаются **false**; пользовательские Blob и PASEKA01/02 protected copies не меняются. Если ledger невалиден, алиас не объявляется достоверно распознанным и отчёт всё равно fail-closed.
+- Добавлены 6 новых регрессий в `tests/video-archive-v2-copy-inventory.test.mjs` (renamed entrance, cross-source journal, different size, same ID, invalid ledger, protected backup) и бесплатный CI `test-video-copy-hash-alias.yml`. Следующий шаг: профильный и полный regression CI на точном HEAD, после чего отдельная физическая проверка внешних Android копий; не включать cleanup, не merge/deploy.
+
 ## 2026-11-21 — контроль CI Android video external copy disclosure (Draft #316)
 
 - Видео через `<input type=file>` не доказывает исключительное владение приложением и отсутствие оригинала в Gallery/Camera/Downloads. В двух UI путях добавлены предупреждения и 6 статических регрессионных тестов, без доступа к внешним файлам и без включения удаления.

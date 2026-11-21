@@ -297,3 +297,67 @@ test('unidentified entrance original remains counted even without matching ledge
  assert.equal(result.cleanupAuthorized,false);
  db.close();
 });
+
+
+test('renamed recognized original is reported as a possible SHA alias, never authorized',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[live('renamed-original')]});
+ const r=await audit(db,guard);
+ assert.equal(r.copyCount,1);
+ assert.ok(r.issues.includes('possible_recognized_original_hash_alias'));
+ assert.ok(r.issues.includes('possible_deleted_tombstone_hash_alias'));
+ assert.equal(r.issues.includes('recognized_original_still_present'),false);
+ assert.equal(r.cleanupAuthorized,false);
+ assert.equal(r.byteIntegrityVerified,false);
+ db.close();
+});
+test('SHA alias across separate journal and entrance sources is still suspicious',async()=>{
+ const db=await setup({ledger:ledger('deleted'),state:{
+  meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'other-journal-id',
+   data:'data:video/mp4;base64,YWJj',sourceSha256:digest,sourceBytes:3}]}]
+ }});
+ const r=await audit(db,guard);
+ assert.equal(r.copyCount,1);
+ assert.equal(r.copies[0].source,'record_media');
+ assert.ok(r.issues.includes('possible_deleted_tombstone_hash_alias'));
+ assert.equal(r.externalCopiesVerified,false);
+ db.close();
+});
+test('independent evidence with same hash but different size is not called an alias',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[{
+  id:'distinct-size',blob:blob('abcd'),blobSha256:digest,bytes:4,mimeType:'video/mp4'
+ }]});
+ const r=await audit(db,guard);
+ assert.equal(r.issues.includes('possible_recognized_original_hash_alias'),false);
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('matching original identity is not falsely classified as a renamed alias',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[live('v1')]});
+ const r=await audit(db,guard);
+ assert.ok(r.issues.includes('recognized_original_still_present'));
+ assert.ok(r.issues.includes('deleted_tombstone_has_copy'));
+ assert.equal(r.issues.includes('possible_recognized_original_hash_alias'),false);
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('invalid recognition ledger cannot be used as trusted SHA-alias evidence',async()=>{
+ const db=await setup({ledger:{version:1,entries:[{bad:true}]},entrance:[live('alias')]});
+ const r=await audit(db,guard);
+ assert.ok(r.issues.includes('ledger_invalid'));
+ assert.equal(r.issues.includes('possible_recognized_original_hash_alias'),false);
+ assert.equal(r.auditComplete,false);
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+test('SHA alias from protected backup is visible without releasing protected bytes',async()=>{
+ const db=await setup({ledger:ledger('deleted'),backups:[['v2entrance:one',{
+  kind:'v2_entrance_quarantine_rollback_snapshot',
+  quarantinedMedia:[live('renamed-backup')]}]]});
+ const r=await audit(db,guard);
+ assert.ok(r.issues.includes('possible_recognized_original_hash_alias'));
+ assert.equal(r.copies[0].store,'full_backup.quarantinedMedia');
+ assert.equal(JSON.stringify(r).includes('abc'),false);
+ assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});

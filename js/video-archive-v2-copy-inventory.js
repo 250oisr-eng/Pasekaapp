@@ -36,7 +36,7 @@ function snapshot(db){
  });
 }
 function inspectSnapshot(v,guard){
- const issues=new Set(),copies=[],names=new Set(),recognition=new Map();
+ const issues=new Set(),copies=[],names=new Set(),recognition=new Map(),recognitionEvidence=new Map();
  const issue=name=>issues.add(name);
  const add=(store,source,id,sha,bytes,blob)=>{
   if(!['entrance_media','record_media'].includes(source)||!key(id)){
@@ -60,7 +60,18 @@ function inspectSnapshot(v,guard){
  if(typeof guard?.validateRecognitionLedgerForV2!=='function')issue('ledger_guard_missing');
  else try{
   guard.validateRecognitionLedgerForV2(v.ledger);
-  for(const e of v.ledger.entries)recognition.set(sourceKey(e.source,e.videoId),e.cleanupState);
+  for(const e of v.ledger.entries){
+   const identity=sourceKey(e.source,e.videoId);
+   recognition.set(identity,e.cleanupState);
+   // Metadata-only possible alias detection: an SHA+size match is not a
+   // fresh byte-level proof and never authorizes deletion.
+   if(hex(e.sourceSha256)&&Number.isSafeInteger(e.sourceBytes)&&e.sourceBytes>0){
+    const evidenceKey=e.sourceSha256+':'+e.sourceBytes;
+    const matches=recognitionEvidence.get(evidenceKey)||[];
+    matches.push({identity,status:e.cleanupState});
+    recognitionEvidence.set(evidenceKey,matches);
+   }
+  }
  }catch(_){issue('ledger_invalid');}
  const scanState=(state,store)=>{
   if(!object(state)||!Array.isArray(state.records)){issue('state_unknown');return;}
@@ -163,6 +174,14 @@ function inspectSnapshot(v,guard){
   const status=recognition.get(copy.identity);
   if(status!=null)issue('recognized_original_still_present');
   if(status==='deleted')issue('deleted_tombstone_has_copy');
+  if(copy.sha256!==null&&Number.isSafeInteger(copy.bytes)&&copy.bytes>0){
+   const candidates=recognitionEvidence.get(copy.sha256+':'+copy.bytes)||[];
+   if(candidates.some(e=>e.identity!==copy.identity)){
+    issue('possible_recognized_original_hash_alias');
+    if(candidates.some(e=>e.identity!==copy.identity&&e.status==='deleted'))
+     issue('possible_deleted_tombstone_hash_alias');
+   }
+  }
   if(copy.sha256===null||copy.bytes===null)issue('copy_evidence_missing');
  }
  for(const [identity,status]of recognition)
