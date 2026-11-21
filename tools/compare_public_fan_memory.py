@@ -11,17 +11,18 @@ from pathlib import Path
 from audit_mendeley_v6_fan_tracks import TRACKS
 from baseline_mendeley_v6_fan_association import associate_boxes
 from evaluate_mendeley_v6_fan_tracks import evaluate, read_frames
-from fan_memory_diagnostics import memory_diagnostics
+from fan_memory_diagnostics import memory_diagnostics, cross_reference_reuse_events
 from fan_occlusion_memory import associate_with_memory
 from perturb_mendeley_v6_fan_boxes import perturb_frames
 from run_public_mendeley_v6_fan_baseline import TRACKS_URL, verify_bytes
 from stage_mendeley_v6_public_csv import bounded_read
 
 
-def safety_gate(baseline, candidate):
+def safety_gate(baseline, candidate, introduced_wrong_links=0):
     old = baseline["gapDiagnostics"]
     new = candidate["gapDiagnostics"]
-    return (new["crossReferenceIdentityReuses"] <= old["crossReferenceIdentityReuses"]
+    return (introduced_wrong_links == 0
+            and new["crossReferenceIdentityReuses"] <= old["crossReferenceIdentityReuses"]
             and new["recoveredSameIdAfterOneFrameGap"] > old["recoveredSameIdAfterOneFrameGap"])
 
 
@@ -40,8 +41,14 @@ def compare(fetch=bounded_read, drop_every=0, jitter_pixels=0, recovery_threshol
                 "gapDiagnostics": memory_diagnostics(reference, without)}
     one_frame = {"frameMetrics": evaluate(reference, with_memory),
                  "gapDiagnostics": memory_diagnostics(reference, with_memory)}
+    old_errors = cross_reference_reuse_events(reference, without)
+    new_errors = cross_reference_reuse_events(reference, with_memory)
+    introduced = len(new_errors - old_errors)
+    resolved = len(old_errors - new_errors)
     return {
-        "candidatePassesThisBenchmarkGate": safety_gate(baseline, one_frame),
+        "newWrongIdentityLinksVsBaseline": introduced,
+        "resolvedWrongIdentityLinksVsBaseline": resolved,
+        "candidatePassesThisBenchmarkGate": safety_gate(baseline, one_frame, introduced),
         "benchmarkGateScope": "one published fan TXT and declared synthetic perturbations only",
         "referenceSha256": TRACKS[2],
         "referenceFrames": len(reference),
