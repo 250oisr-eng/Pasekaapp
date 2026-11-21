@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-forensics-') as name:
     (root/'source.bin').write_bytes(synthetic)
     (root/'installed.marker').write_text('installed')
     (root/'launched.marker').write_text('launched')
-    error=b'ANDROID SHELL STDIN TRANSFER ERROR: mocked diagnostic placeholder.'
+    error=b'ANDROID SHELL STDIN TRANSFER ERROR: mocked diagnostic placeholder'
     assert len(error)==65,len(error)
     (root/'private.bin').write_bytes(error)
     test_ps=root/'forensics.ps1'
