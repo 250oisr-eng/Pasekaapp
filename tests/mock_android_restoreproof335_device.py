@@ -19,7 +19,7 @@ from pathlib import Path
 base=Path(os.environ["RESTORE335_MOCK_HOME"])
 args=sys.argv[1:]
 calls=base/"calls.jsonl"
-with calls.open("a") as out:out.write(json.dumps(args)+"\\n")
+with calls.open("a") as out:out.write(json.dumps(args)+"\n")
 pkg="ru.paseka.journal.archive.restoreproof335"
 old="ru.paseka.journal.archive.fileproof329"
 source=(base/"source.bin").read_bytes()
@@ -31,15 +31,15 @@ report={"status":"PASS","phase":"ISOLATED_RESTORE335_SHA_PASS","packageId":pkg,
         "sourcePreserved":True,"recognitionSucceeded":False,"cleanupAuthorized":False}
 def out(b): sys.stdout.buffer.write(b)
 if args==["devices","-l"]:
-    out(b"List of devices attached\\nebdb131f device product:NE2213 model:NE2213 device:OP516FL1\\n")
+    out(b"List of devices attached\nebdb131f device product:NE2213 model:NE2213 device:OP516FL1\n")
 elif args==["-d","shell","getprop","ro.product.model"]:
-    out(b"NE2213\\n")
+    out(b"NE2213\n")
 elif args==["-d","shell","getprop","ro.build.version.sdk"]:
-    out(b"36\\n")
+    out(b"36\n")
 elif args==["-d","shell","pm","path",old]:
-    out(b"package:/data/app/old/base.apk\\n")
+    out(b"package:/data/app/old/base.apk\n")
 elif args==["-d","shell","pm","path",pkg]:
-    if installed.exists():out(b"package:/data/app/new/base.apk\\n")
+    if installed.exists():out(b"package:/data/app/new/base.apk\n")
 elif args==["-d","exec-out","cat","/sdcard/Download/PasekaProof329/paseka-proof329-59a9e237-e33f-42f6-acf3-ff5f99bc1eec.paseka"]:
     out(source)
 elif len(args)>=3 and args[:2]==["-d","install"]:
@@ -49,7 +49,7 @@ elif len(args)>=3 and args[:2]==["-d","install"]:
     if hashlib.sha256(apk).hexdigest()!=(base/"apk.sha").read_text():
         sys.exit(82)
     installed.write_text("installed")
-    out(b"Success\\n")
+    out(b"Success\n")
 elif len(args)>=7 and args[:4]==["-d","exec-in","run-as",pkg]:
     if not installed.exists() or private.exists() or "fileproof335-input.paseka" not in " ".join(args):
         sys.exit(83)
@@ -60,7 +60,7 @@ elif args==["-d","exec-out","run-as",pkg,"cat","files/fileproof335-input.paseka"
 elif args==["-d","shell","am","start","-n",pkg+"/.MainActivity"]:
     if not private.exists():sys.exit(85)
     launched.write_text("launched")
-    out(b"Starting: Intent { cmp=ru.paseka.journal.archive.restoreproof335/.MainActivity }\\n")
+    out(b"Starting: Intent { cmp=ru.paseka.journal.archive.restoreproof335/.MainActivity }\n")
 elif args==["-d","exec-out","run-as",pkg,"cat","files/restore335-report.json"]:
     if not launched.exists():sys.exit(86)
     out(json.dumps(report).encode())
