@@ -1,5 +1,6 @@
 """Compare the publisher-pinned July fan clip with a detection JPEG, offline."""
 import argparse
+import csv
 import hashlib
 import heapq
 import json
@@ -34,17 +35,54 @@ def decoder(path, gray=False, first_only=False):
     return args + ["-fps_mode", "passthrough", "-f", "rawvideo", "pipe:1"]
 
 
-def nearest(stream, target, expected_count):
-    scores = []
-    frame_bytes = target.width * target.height
+def nearest_many(stream, targets, expected_count):
+    size = targets[0].size
+    if any(target.mode != "L" or target.size != size for target in targets):
+        raise ValueError("incompatible targets")
+    scores = [[] for _ in targets]
+    frame_bytes = size[0] * size[1]
+    count = 0
     while frame := stream.read(frame_bytes):
-        if len(frame) != frame_bytes or len(scores) >= expected_count:
+        if len(frame) != frame_bytes or count >= expected_count:
             raise ValueError("unexpected decoded frame length or count")
-        pixels = Image.frombytes("L", target.size, frame)
-        scores.append(ImageStat.Stat(ImageChops.difference(pixels, target)).mean[0])
-    if len(scores) != expected_count:
+        pixels = Image.frombytes("L", size, frame)
+        for target, ranking in zip(targets, scores):
+            ranking.append(ImageStat.Stat(ImageChops.difference(pixels, target)).mean[0])
+        count += 1
+    if count != expected_count:
         raise ValueError("incomplete video")
-    return heapq.nsmallest(3, enumerate(scores), key=lambda item: item[1])
+    return [heapq.nsmallest(3, enumerate(ranking), key=lambda item: item[1])
+            for ranking in scores]
+
+
+def nearest(stream, target, expected_count):
+    return nearest_many(stream, [target], expected_count)[0]
+
+
+def compare_series(directory):
+    registry = Path(__file__).resolve().parents[1] / "tests/fixtures/mendeley-v6-publisher-checksums.csv"
+    prefix = "20230711a"
+    with registry.open(newline="", encoding="utf-8") as source:
+        specs = [(r["filename"], int(r["size"]), r["sha256"]) for r in csv.DictReader(source)
+                 if r["filename"].startswith(prefix) and r["filename"].endswith(".jpg")]
+    specs.sort(key=lambda spec: int(Path(spec[0]).stem[len(prefix):]))
+    if len(specs) != 12 or len({spec[0] for spec in specs}) != 12:
+        raise ValueError("incomplete or duplicate series")
+    clip = check_source(directory, VIDEO)
+    targets = []
+    for spec in specs:
+        data = subprocess.check_output(decoder(check_source(directory, spec), gray=True, first_only=True))
+        if len(data) != 160 * 90:
+            raise ValueError("unexpected JPEG output length")
+        targets.append(Image.frombytes("L", (160, 90), data))
+    with subprocess.Popen(decoder(clip, gray=True), stdout=subprocess.PIPE) as reader:
+        try:
+            rankings = nearest_many(reader.stdout, targets, 6000)
+        finally:
+            reader.stdout.close()
+        if reader.wait():
+            raise ValueError("video decoder failed")
+    return {spec[0]: ranking for spec, ranking in zip(specs, rankings)}
 
 
 def compare(directory):
@@ -75,4 +113,7 @@ def compare(directory):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
-    print(json.dumps(compare(parser.parse_args().directory), indent=2))
+    parser.add_argument("--series", action="store_true", help="compare all 12 pinned July JPEGs in one pass")
+    args = parser.parse_args()
+    result = compare_series(args.directory) if args.series else compare(args.directory)
+    print(json.dumps(result, indent=2))

@@ -8,7 +8,7 @@ from pathlib import Path
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from compare_mendeley_v6_fan_frames import check_source, nearest
+from compare_mendeley_v6_fan_frames import check_source, nearest, nearest_many
 
 
 class FrameComparisonTest(unittest.TestCase):
@@ -16,6 +16,16 @@ class FrameComparisonTest(unittest.TestCase):
         target = Image.new("L", (2, 1), 255)
         ranked = nearest(io.BytesIO(bytes([0, 0, 255, 255, 255, 255])), target, 3)
         self.assertEqual(ranked, [(1, 0), (2, 0), (0, 255)])
+
+    def test_two_targets_rank_same_stream_separately(self):
+        targets = [Image.new("L", (1, 1), v) for v in (0, 255)]
+        ranks = nearest_many(io.BytesIO(bytes([0, 255, 128])), targets, 3)
+        self.assertEqual(ranks, [[(0, 0), (2, 128), (1, 255)],
+                                 [(1, 0), (2, 127), (0, 255)]])
+
+    def test_different_target_geometry_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "incompatible targets"):
+            nearest_many(io.BytesIO(), [Image.new("L", (1, 1)), Image.new("L", (2, 1))], 0)
 
     def test_partial_missing_and_extra_frame(self):
         for data in (b'a', b'aa', b'aaaaaa'):
