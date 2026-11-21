@@ -100,8 +100,10 @@ try{
     Write-Host 'PRIVATE_INPUT_STAT_DIAGNOSTIC: NO_SUCH_FILE'
   }elseif($statText -match '(?i)(permission denied|access denied)'){
     Write-Host 'PRIVATE_INPUT_STAT_DIAGNOSTIC: ACCESS_DENIED'
+    throw 'PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED'
   }else{
     Write-Host 'PRIVATE_INPUT_STAT_DIAGNOSTIC: UNRECOGNIZED'
+    throw 'PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED'
   }
   $help=ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','dd','--help')
   $helpText=($utf8.GetString($help.Bytes)+' '+$help.ErrorText)
