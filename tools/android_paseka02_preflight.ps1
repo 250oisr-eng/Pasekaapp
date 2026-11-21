@@ -38,15 +38,22 @@ try {
     }
     Write-Host ('DEVICE: ' + $model + ' | Android ' + $android + ' | API ' + $api)
     Write-Host ('PACKAGE: ' + $package + ' | INSTALLED')
-    # pidof returns status 1 when no process exists. This is informational only.
-    $pids = @(& adb -d shell pidof $package 2>&1)
-    $pidExit = $LASTEXITCODE
-    if ($pidExit -eq 0 -and (($pids | Out-String).Trim()) -match '^[1-9]\d*(?:\s+[1-9]\d*)*$') {
-        Write-Host 'PROCESS: RUNNING'
-    } elseif ($pidExit -eq 1 -and -not (($pids | Out-String).Trim())) {
-        Write-Host 'PROCESS: STOPPED (no action taken)'
+    # A completed export remains accessible when Android suspends or kills the app.
+    # The read-only export verifier never needs a running process, so avoid pidof altogether.
+    if ($CheckNewExport) {
+        Write-Host 'PROCESS: NOT REQUIRED (read-only saved-file check)'
     } else {
-        Finish 'BLOCKED' 'Process state could not be determined cleanly.' 2
+        # pidof is only informational for the other diagnostic modes.
+        $pids = @(& adb -d shell pidof $package 2>&1)
+        $pidExit = $LASTEXITCODE
+        $pidText = ($pids | Out-String).Trim()
+        if ($pidExit -eq 0 -and $pidText -match '^[1-9]\d*(?:\s+[1-9]\d*)*$') {
+            Write-Host 'PROCESS: RUNNING'
+        } elseif (($pidExit -eq 1 -or $pidExit -eq 0) -and -not $pidText) {
+            Write-Host 'PROCESS: STOPPED (no action taken)'
+        } else {
+            Finish 'BLOCKED' 'Process state could not be determined cleanly.' 2
+        }
     }
     # Listing only; do not download, open, change or hash any unidentified user file.
     $fileNames = @(& adb -d shell ls -1 $directory 2>&1)
