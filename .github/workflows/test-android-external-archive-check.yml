@@ -1,0 +1,15 @@
+name: Test Android external archive check with simulated ADB replies
+on:
+  pull_request:
+    paths:
+      - 'tools/check_android_archive_after_stop.py'
+      - 'tests/test_android_archive_after_stop.py'
+      - '.github/workflows/test-android-external-archive-check.yml'
+permissions:
+  contents: read
+jobs:
+  check-script:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -p test_android_archive_after_stop.py -v
