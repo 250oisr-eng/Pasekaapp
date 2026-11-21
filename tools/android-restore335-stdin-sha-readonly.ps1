@@ -59,6 +59,65 @@ try {
      (Text @('-d','shell','getprop','ro.build.version.sdk')) -cne '36'){throw 'EXPECTED_NE2213_API36'}
   if((Text @('-d','shell','pm','path',$pkg)) -notmatch '^package:' -or
      (Text @('-d','shell','pm','path',$old)) -notmatch '^package:'){throw 'BOTH_EXISTING_TEST_PACKAGES_REQUIRED'}
+  # Physical OnePlus identified host ADB 1.0.32: unsupported for safe stdin proof.
+  # Reject old clients before sending archive bytes or doing any remote stdin action.
+  $adbVer=ADB @('version')
+  if($adbVer.Code -ne 0){throw 'HOST_ADB_VERSION_FAILED'}
+  $adbFirst=($utf8.GetString($adbVer.Bytes) -split '[\r\n]+')[0].Trim()
+  if($adbFirst -notmatch '^Android Debug Bridge version (1\.0\.(\d+))
+  $archive=ADB @('-d','exec-out','cat',$source)
+  if($archive.Code -ne 0 -or $archive.Bytes.Length -ne 3158 -or (Digest $archive.Bytes) -cne $pinned){
+    throw 'ORIGINAL_PINNED_SHA_FAILED'
+  }
+  Write-Host 'ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES'
+  Write-Host 'STAGE: 3/3 READONLY_STDIN_SHA256_IN_RUN_AS'
+  # Bidirectional adb shell with redirected local stdin (non-tty); omitting -T avoids
+  # old/vendor adb forwarding -T to remote mksh (chvt: can't find tty).
+  # Direct absolute toybox binary with explicit stdin operand '-', not sh -c or file redirection.
+  # Prior unqualified sha256sum returned 99 diagnostic bytes on real Android.
+  # Nothing is written to Android filesystem: sha256sum reads 3158 bytes from stdin.
+  $probe=ADB @('-d','shell','run-as',$pkg,'/system/bin/toybox','sha256sum','-') $archive.Bytes
+
+  Write-Host ('REMOTE_EXIT_CODE: '+$probe.Code)
+  Write-Host ('REMOTE_STDOUT_BYTES: '+$probe.Bytes.Length)
+  Write-Host ('REMOTE_STDOUT_SHA256: '+(Digest $probe.Bytes))
+  if($probe.Code -ne 0){throw 'STDIN_SHA256_COMMAND_FAILED'}
+  $line=$utf8.GetString($probe.Bytes).Trim()
+  if($line -notmatch '^([a-fA-F0-9]{64})\s+\*?-$'){
+    if($line -match '^(sha256sum|run-as|/system/bin/sh|sh|error|adb):'){
+      Write-Host 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC'
+      $safeDiagnostic=($line -replace '[\r\n]+',' ').Trim()
+      if($probe.Bytes.Length -le 256 -and $safeDiagnostic.Length -le 240 -and
+         $safeDiagnostic -cmatch '^[\x20-\x7E]+$'){
+        Write-Host ('REMOTE_DIAGNOSTIC: '+$safeDiagnostic)
+      }else{
+        Write-Host 'REMOTE_DIAGNOSTIC: REDACTED'
+      }
+    }elseif($probe.Bytes.Length -eq 0){
+      Write-Host 'REMOTE_OUTPUT_CLASS: EMPTY'
+    }else{
+      Write-Host 'REMOTE_OUTPUT_CLASS: UNRECOGNIZED'
+    }
+    throw 'STDIN_SHA256_OUTPUT_INVALID'
+  }
+  $actual=$Matches[1].ToLowerInvariant()
+  if($actual -cne $pinned){throw 'STDIN_SHA256_MISMATCH'}
+  Write-Host 'STDIN_TRANSPORT: SHA256_PASS_3158_BYTES'
+  Write-Host 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED'
+  Write-Host 'RESTORE_COMMIT: NOT_TESTED'
+  Write-Host 'RECOGNITION_CLEANUP: NOT_AUTHORIZED'
+  Write-Host 'STATUS: RESTORE335_READONLY_STDIN_TRANSPORT_PASS'
+}catch{
+  Write-Host 'STATUS: BLOCKED'
+  Write-Host ('DETAIL: '+$_.Exception.Message)
+  Write-Host 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE'
+  exit 2
+}
+){
+    throw 'HOST_ADB_VERSION_UNRECOGNIZED'
+  }
+  Write-Host ('HOST_ADB_VERSION: '+$Matches[1])
+  if([int]$Matches[2] -lt 41){throw 'HOST_ADB_TOO_OLD_REQUIRES_1_0_41_OR_NEWER'}
   Write-Host 'STAGE: 2/3 ORIGINAL_ARCHIVE_IN_MEMORY_SHA'
   $archive=ADB @('-d','exec-out','cat',$source)
   if($archive.Code -ne 0 -or $archive.Bytes.Length -ne 3158 -or (Digest $archive.Bytes) -cne $pinned){
