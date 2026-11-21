@@ -20,6 +20,11 @@ class ShortMemoryTests(unittest.TestCase):
         self.assertEqual(memory_diagnostics(reference, got)["recoveredSameIdAfterOneFrameGap"], 1)
         self.assertEqual(memory_diagnostics(reference, associate_boxes(reference))["brokenIdAfterOneFrameGap"], 1)
 
+    def test_high_recovery_threshold_rejects_small_displacement(self):
+        source = [{8: A}, {}, {8: C}]
+        predicted = associate_with_memory(source, recovery_threshold=0.99)
+        self.assertNotEqual(next(iter(predicted[0])), next(iter(predicted[2])))
+
     def test_two_missing_frames_forbid_resurrection(self):
         reference = [{8: A}, {}, {}, {8: A}]
         got = associate_with_memory(reference)
@@ -62,6 +67,9 @@ class ShortMemoryTests(unittest.TestCase):
         for threshold in (0, float("nan"), 1.1):
             with self.assertRaises(ValueError):
                 associate_with_memory([], threshold=threshold)
+        for high in (0.1, float("nan"), 1.1):
+            with self.assertRaises(ValueError):
+                associate_with_memory([], recovery_threshold=high)
         for missing in (-1, 2, 1.0, True):
             with self.assertRaises(ValueError):
                 associate_with_memory([], max_missing=missing)
