@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install existing test dependencies
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Check test syntax
         run: node --check tests/fileproof329-isolated-restore-commit.test.mjs
       - name: Run isolated atomic restore and rollback tests
