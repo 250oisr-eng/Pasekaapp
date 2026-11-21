@@ -1,3 +1,22 @@
+## 2026-11-21 — следующий безопасный этап: автономный физический тест двух синтетических видеоблоков во внешнем PASEKA01
+
+**Цель:** доказать сохранность *внешнего* синтетического контейнера после `am force-stop` и перезапуска **только** `ru.paseka.journal.archive.test`. Это **не** тест сохранения двух реальных видео приложением, не восстановление IndexedDB и не проверка Camera/MediaStore.
+
+- Скрипт для Windows 5.1 `tools/android_synthetic_two_video_stop.ps1`, запускаемый одной командой. Требует ровно один USB Android `NE2213`/API36 и установленный отдельный тестовый пакет. Нельзя применять к production.
+- Самостоятельно создаёт **два разных синтетических двоичных фрагмента** с независимыми исходными SHA-256, оболочку `state.json` с `schemaVersion=15` и валидно упакованный контейнер `PASEKA01` из манифеста и хешированных блоков. Тестовые фрагменты помечены как **не воспроизводимые MP4 и не реальные записи камеры**.
+- Генерирует новый случайный идентификатор каталога, убеждается `test -e`, что такого каталога ещё **нет**, и только после проверки создаёт новый выделенный каталог `/sdcard/Download/Пасека/isolated-archive-synthetic-tests/<GUID>/`. Ни один из шести существующих архивов не открывается, не заменяется и не удаляется.
+- Сохраняет исходный SHA *до передачи*, создаёт проверенную локальную временную копию, `adb -d push` загружает только синтетический контейнер, затем трижды сверяет SHA на Android: перед остановкой тестового приложения, после его `force-stop` и после `monkey`-перезапуска. Проверяет отсутствие процесса после остановки. При любом несоответствии — `BLOCKED`; финальный статус `EXTERNAL_TWO_BLOB_SHA_PASS` только при всех совпадениях.
+- Временный каталог **на ПК** очищается в пределах текущего запуска. Созданный тестовый файл **на телефоне остаётся** с напечатанным точным путём; Android-файлы не удаляются, пользовательские данные приложения не очищаются, `main`/production не трогаются. **Не запускать**, если изолированный пакет содержит важные незавершённые операции: принудительная остановка завершает его процесс.
+- Свободные заготовки и mock-тесты: `tools/test_android_synthetic_archive_force_stop.py`, `tests/test_android_synthetic_archive_force_stop.py`, `tests/test_android_two_video_stop_mock.sh`, профильный GitHub Actions workflow. Имитационные CI-тесты проходят на коммите `b91d48a3bcada19ee4f275f0154ed20128e1b1e3` (9 прежних + 7 новых Python unittest, проверка PowerShell parser и shell ADB positive/multi-device/tamper tests).
+- Запуск Windows по закреплённому проверенному SHA:
+```powershell
+$p="$env:TEMP\paseka-two-video-stop.ps1"; Invoke-WebRequest -UseBasicParsing -ErrorAction Stop "https://raw.githubusercontent.com/250oisr-eng/Pasekaapp/<VERIFIED_COMMIT_SHA>/tools/android_synthetic_two_video_stop.ps1" -OutFile $p; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p
+```
+
+**Критерии:** при `EXTERNAL_TWO_BLOB_SHA_PASS` подтверждается лишь целостность автоматически созданного внешнего контейнера, содержащего два синтетических видео-подобных блока, после остановки тестового процесса. Это не означает, что приложение экспортирует видео из своей IndexedDB или что эти блоки можно декодировать как MP4. Следующая отдельная задача — безопасное наполнение именно IndexedDB тестового пакета двумя синтетическими воспроизводимыми MP4 с исходными SHA, экспорт приложением, прерывание/перезапуск и сравнение оригиналов; пока `NOT TESTED`. Любая автоочистка оригиналов остаётся `DISABLED`.
+
+---
+
 ## 2026-11-21 — физический Windows/OnePlus Android 16: PASEKA01 full structural verification PASS (без видео)
 
 - Пользователь успешно повторно выполнил закреплённый `tools/android_paseka02_preflight.ps1 -VerifyContents` на физическом OnePlus NE2213, Android 16/API36 через Windows PowerShell/ADB. **Фактический статус: `ARCHIVE_STRUCTURE_VERIFIED`**. `ARCHIVE_MANIFEST: PASS | entries=1 | schema=15`; `ARCHIVE_CHUNKS_SHA256: PASS | verified entries=1`; `ARCHIVE_STATE_WRAPPER: PASS`; `ARCHIVE_VIDEO_ENTRIES: 0`. `paseka-full-backup-2026-11-21.paseka`, 5124 байта, `PASEKA01`. Двойной SHA-256 Android и локальная сверка: `6541855ff07478159320ea07aab868559f7099ba15606ad8108752637ee281cc`.
