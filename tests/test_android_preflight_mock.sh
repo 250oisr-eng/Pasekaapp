@@ -12,7 +12,7 @@ case "$*" in
   "-d shell getprop ro.build.version.sdk") echo 36 ;;
   "-d shell getprop ro.build.version.release") echo 16 ;;
   "-d shell pm path ru.paseka.journal.archive.test") echo 'package:/data/app/test/base.apk' ;;
-  "-d shell pidof ru.paseka.journal.archive.test") echo 123 ;;
+  "-d shell pidof ru.paseka.journal.archive.test") echo "Export-only mode must not call pidof" >&2; exit 42 ;;
   "-d shell ls -1 /sdcard/Download/Пасека")
     echo 'paseka-full-backup-2026-11-18.paseka'
     echo 'paseka-full-backup-2026-11-19.paseka'
@@ -37,7 +37,7 @@ grep -Fq 'STATUS: EXPORT_CHECK_COMPLETE' <<< "$output"
 grep -Fq 'NEW_EXPORT_FILENAME: paseka-full-backup-2026-11-21.paseka' <<< "$output"
 grep -Fq 'NEW_EXPORT_SHA256_TWICE:' <<< "$output"
 grep -Fq 'ARCHIVE_STRUCTURE: NOT TESTED' <<< "$output"
-echo "Read-only export inventory mock passed"
+echo "Read-only export inventory mock passed without requesting pidof"
 if TEST_MODE=ambiguous pwsh -NoProfile -File tools/android_paseka02_preflight.ps1 -CheckNewExport > "$root/negative.txt" 2>&1; then
   echo 'Ambiguous new exports incorrectly passed' >&2
   exit 1
