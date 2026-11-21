@@ -47,7 +47,9 @@ esac
 ADB
 chmod +x "$scratch/adb"
 export PATH="$scratch:$PATH"
-if ! pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/pass.txt" 2>&1; then
+if ! timeout 25s pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/pass.txt" 2>&1; then
+    echo "Mock ADB calls before failure:" >&2
+    tail -30 "$MOCK_AUDIT_FILE" >&2 || true
     cat "$scratch/pass.txt" >&2
     exit 1
 fi
@@ -62,7 +64,7 @@ fi
 echo 'Synthetic two-blob external stop/restart mock PASS'
 : > "$MOCK_AUDIT_FILE"
 export MOCK_MODE=two_devices
-if pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/two.txt" 2>&1; then
+if timeout 25s pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/two.txt" 2>&1; then
     echo 'Two Android devices incorrectly passed' >&2
     exit 1
 fi
@@ -75,7 +77,7 @@ echo 'Two-device fail-closed mock PASS'
 export MOCK_MODE=changed_after_stop
 rm -f "$MOCK_STOP_MARKER"
 : > "$MOCK_AUDIT_FILE"
-if pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/changed.txt" 2>&1; then
+if timeout 25s pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/changed.txt" 2>&1; then
     echo 'Changed remote content incorrectly passed' >&2
     exit 1
 fi
