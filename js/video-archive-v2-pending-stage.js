@@ -154,6 +154,7 @@ function inspectPendingStaging(db,backupId){
   header:tx.objectStore('archive_staging').get(sessionKey),
   keyCount:tx.objectStore('archive_staging').count(),
   sessionKeys:tx.objectStore('archive_staging').index('sessionId').getAllKeys(sessionKey),
+  sessionRows:tx.objectStore('archive_staging').index('sessionId').getAll(sessionKey),
   history:tx.objectStore('archive_history').get(backupId),
   historyCount:tx.objectStore('archive_history').count(),
   backupCount:tx.objectStore('full_backup').count()
@@ -174,11 +175,22 @@ function inspectPendingStaging(db,backupId){
     v.header.expectedEntries<=MAX_PENDING&&v.header.entryIds.length===v.header.expectedEntries&&
     new Set(v.header.entryIds).size===v.header.expectedEntries&&
     v.keyCount===v.header.expectedEntries+1&&v.sessionKeys.length===v.keyCount&&
-    v.header.entryIds.every(key=>typeof key==='string'&&v.sessionKeys.includes(key)&&
-     ['entrance_media','record_media'].some(source=>{
-      const prefix=sessionKey+':'+source+':';
-      return key.startsWith(prefix)&&key.length>prefix.length;
-     })))
+    Array.isArray(v.sessionRows)&&v.sessionRows.length===v.keyCount&&
+    v.header.entryIds.every(key=>{
+     if(typeof key!=='string'||!v.sessionKeys.includes(key))return false;
+     const row=v.sessionRows.find(item=>item?.id===key);
+     if(!obj(row)||row.kind!=='v2_pending_original'||row.sessionId!==sessionKey||
+        !['entrance_media','record_media'].includes(row.source)||
+        typeof row.videoId!=='string'||!row.videoId||row.videoId.length>200||
+        /\s/.test(row.videoId)||entryId(backupId,row)!==key||
+        !sha(row.sourceSha256)||!Number.isSafeInteger(row.sourceBytes)||
+        row.sourceBytes<1||!row.blob||typeof row.blob.slice!=='function'||
+        row.blob.size!==row.sourceBytes||
+        typeof row.mimeType!=='string'||
+        !/^(?:video\/[a-z0-9.+-]+|application\/octet-stream)$/i.test(row.mimeType))
+      return false;
+     return true;
+    }))
    status='protected_unverified';
   // Never declare hashes verified solely from metadata/keys.
   return {backupId,status,requiresManualReview:status==='manual_review_required',

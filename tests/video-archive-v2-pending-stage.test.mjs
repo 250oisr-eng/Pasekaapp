@@ -318,3 +318,32 @@ test('a staged child associated with another session requires manual review', as
  assert.equal((await inspect(db, cfg().backupId)).status, 'manual_review_required');
  assert.equal(await sha((await get(db, 'archive_staging', child.id)).blob), digest);
 });
+
+
+for (const [field, corrupt] of [
+ ['source', row=>({...row,source:'record_media'})],
+ ['videoId', row=>({...row,videoId:'different-video'})],
+ ['sourceSha256', row=>({...row,sourceSha256:'not-a-hash'})],
+ ['sourceBytes', row=>({...row,sourceBytes:row.sourceBytes+1})],
+ ['mimeType', row=>({...row,mimeType:'text/plain'})],
+ ['kind', row=>({...row,kind:'not-a-video'})]
+]) {
+ test('read-only recovery requires manual review for corrupted child '+field,async t=>{
+  const db=await setup();
+  t.after(()=>db.close());
+  const {file,digest}=await archive();
+  const {sessionId}=await stage(db,file,cfg(),deps());
+  const header=await get(db,'archive_staging',sessionId);
+  const entry=await get(db,'archive_staging',header.entryIds[0]);
+  const writer=db.transaction('archive_staging','readwrite');
+  writer.objectStore('archive_staging').put(corrupt(entry));
+  await done(writer);
+  const report=await inspect(db,cfg().backupId);
+  assert.equal(report.status,'manual_review_required');
+  assert.equal(report.byteIntegrityVerified,false);
+  assert.equal(report.cleanupAuthorized,false);
+  assert.equal(await count(db,'archive_staging'),2);
+  assert.equal(await sha((await get(db,'archive_staging',entry.id)).blob),digest);
+  assert.deepEqual(await get(db,'main','state'),state());
+ });
+}
