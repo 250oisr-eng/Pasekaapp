@@ -117,6 +117,14 @@ class PublishedSourceEvidenceTests(unittest.TestCase):
                     "trainingApprovedForPaseka", "videoCleanupAuthorized"):
             self.assertIs(r[key], False, key)
 
+    def test_mock_original_reader_cannot_claim_actual_source_hash_verified(self):
+        synthetic = fake_author_files()
+        result = audit_pinned_split_files(fetch=lambda name: synthetic[name])
+        self.assertEqual(result['inputOrigin'], 'synthetic_fixture')
+        self.assertFalse(result['originalAuthorSplitTextGitBlobVerified'])
+        self.assertFalse(result['authorVerificationCSVGitBlobVerified'])
+        self.assertFalse(result['actualOriginalJpgBytesVerified'])
+        self.assertFalse(result['trainingApprovedForPaseka'])
     def test_exact_filename_train_val_leak_fail_closed(self):
         d = fake_author_files()
         path = "splits/fold-1-val.txt"
