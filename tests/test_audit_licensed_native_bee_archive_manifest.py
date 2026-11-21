@@ -9,7 +9,7 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_licensed_native_bee_archive_manifest import (
-    EXPECTED_FILES, MAX_ZIP_BYTES, download_checked_archive, inspect_zip,
+    EXPECTED_FILES, MAX_ZIP_BYTES, download_checked_archive, inspect_zip, read_annotation_structure,
 )
 
 
@@ -112,6 +112,46 @@ class ArchiveSourceAuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td, self.assertRaises(ValueError):
             download_checked_archive(url, Path(td)/name, size, md5,
                                      opener=FakeOpener(b"tiny fake archive", url))
+
+
+    def test_valid_yolo_pair_and_bee_identity_synthetic_labels(self):
+        data = archive([("set/images/1.jpg", b"fakejpg"),
+                        ("set/labels/1.txt", b"bee_7 0.5 0.5 0.2 0.2\n"),
+                        ("set/images/2.jpg", b"fakejpg"),
+                        ("set/labels/2.txt", b"0 0.5 0.5 0.2 0.2\n")])
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "x.zip"
+            p.write_bytes(data)
+            r = read_annotation_structure(p)
+            self.assertEqual(r["pairedJpgTxtFiles"], 2)
+            self.assertEqual(r["annotatedRows"], 2)
+            self.assertEqual(r["classTokenCategories"],
+                             {"bee_identity_class": 1, "numeric_class": 1})
+            self.assertEqual(r["geometryOutOfBoundsRows"], 0)
+            self.assertFalse(r["physicalInOutEventsValidated"])
+
+    def test_bad_realistic_yolo_box_reported_not_silently_fixed(self):
+        data = archive([("set/images/1.jpg", b"mock"),
+                        ("set/labels/1.txt", b"0 0.02 0.5 0.2 0.2\n"),
+                        ("set/labels/2.txt", b"bee_2 unknown\n")])
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "x.zip"
+            p.write_bytes(data)
+            r = read_annotation_structure(p)
+            self.assertEqual(r["geometryOutOfBoundsRows"], 1)
+            self.assertEqual(r["nonFiveColumnRows"], 1)
+            self.assertEqual(r["unpairedTxtFiles"], 1)
+            self.assertEqual(r["annotatedRows"], 2)
+
+    def test_empty_annotation_is_legal_but_not_empty_traffic(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "x.zip"
+            p.write_bytes(archive([("set/images/empty.jpg", b"x"),
+                                   ("set/labels/empty.txt", b"")]))
+            r = read_annotation_structure(p)
+            self.assertEqual(r["emptyLabelFiles"], 1)
+            self.assertEqual(r["annotatedRows"], 0)
+            self.assertFalse(r["physicalInOutEventsValidated"])
 
     def test_download_cap_is_tight(self):
         self.assertLess(max(x[1] for x in EXPECTED_FILES.values()), MAX_ZIP_BYTES)
