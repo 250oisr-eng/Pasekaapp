@@ -62,7 +62,11 @@ fi
 grep -Fq 'STATUS: BLOCKED' "$root/negative.txt"
 echo "Ambiguous export rejection mock passed"
 # Full structural verification uses a scratch-only copy and never writes to the fake Android source.
-verified="$(pwsh -NoProfile -File tools/android_paseka02_preflight.ps1 -VerifyContents)"
+if ! pwsh -NoProfile -File tools/android_paseka02_preflight.ps1 -VerifyContents > "$root/verified.txt" 2>&1; then
+  cat "$root/verified.txt" >&2
+  exit 1
+fi
+verified="$(cat "$root/verified.txt")"
 grep -Fq 'STATUS: ARCHIVE_STRUCTURE_VERIFIED' <<< "$verified"
 grep -Fq 'ARCHIVE_CHUNKS_SHA256: PASS' <<< "$verified"
 grep -Fq 'ARCHIVE_VIDEO_ENTRIES: 0' <<< "$verified"
