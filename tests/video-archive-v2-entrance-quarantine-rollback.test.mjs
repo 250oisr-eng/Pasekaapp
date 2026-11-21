@@ -599,7 +599,8 @@ test('missing recognition ledger must not allow PASEKA01 staging when v2 quarant
  await done(tx);
  // The original remains in the protected quarantine: ledger loss cannot
  // authorize importing an older backup, even for a once-valid legacy format.
- await assert.rejects(old.Restore.stageArchiveForRestore(db,old.file,webcrypto,old.Archive,()=>true));
+ await assert.rejects(old.Restore.stageArchiveForRestore(db,old.file,webcrypto,old.Archive,()=>true),
+  {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
  assert.equal(await count(db,'entrance_media'),0);
  assert.equal(await count(db,'archive_staging'),2);
  assert.equal(await count(db,'archive_history'),1);
