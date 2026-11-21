@@ -97,6 +97,14 @@ def read_yolo(data):
     return boxes
 
 
+def inspect_publisher_yolo_geometry(source_bytes):
+    """Report anomalous original labels without silently clipping or repairing."""
+    try:
+        return read_yolo(source_bytes), None
+    except ValueError as exc:
+        return None, str(exc)
+
+
 def compare_candidate_labels(truth, boxes, candidates, minimum_iou=0.5):
     if not candidates or not isinstance(boxes, dict):
         raise ValueError("missing reference candidates or labels")
@@ -174,9 +182,9 @@ def run_public(fetch=bounded_read, series=None):
                 hashlib.sha256(label).hexdigest() != label_spec["sha"]):
                 raise ValueError("publisher-pinned original JPEG/label mismatch")
             decode_original_jpg(original)
-            boxes = read_yolo(label)
+            boxes, geometry_error = inspect_publisher_yolo_geometry(label)
             (root / name).write_bytes(original)
-            observed[name] = {"boxes": boxes,
+            observed[name] = {"boxes": boxes, "sourceLabelGeometryRejectedReason": geometry_error,
                               "verifiedOriginalJpegSha256": jpeg_spec["sha"],
                               "verifiedOriginalYoloSha256": label_spec["sha"]}
         closest_gray_frames = compare_series(root)
@@ -189,14 +197,21 @@ def run_public(fetch=bounded_read, series=None):
                 "detectionJpeg": name,
                 "verifiedOriginalJpegSha256": data["verifiedOriginalJpegSha256"],
                 "verifiedOriginalYoloSha256": data["verifiedOriginalYoloSha256"],
-                "candidateFramesByWholeImageBrightness": compare_candidate_labels(
-                    truth, data["boxes"], closest_gray_frames[name]),
+                "sourceLabelGeometryAccepted": data["boxes"] is not None,
+                "sourceLabelGeometryRejectedReason": data["sourceLabelGeometryRejectedReason"],
+                "candidateFramesByWholeImageBrightness": (compare_candidate_labels(
+                    truth, data["boxes"], closest_gray_frames[name])
+                    if data["boxes"] is not None else []),
             })
     return {
         "sourceDoi": DOI,
         "originalVideoSha256": VIDEO[2],
         "originalTrackLabelsSha256": TRACKS[2],
         "originalJpegAndLabelPairsChecked": len(results),
+        "publisherLabelGeometryRejectedFiles": [x["detectionJpeg"] for x in results
+                                                if not x["sourceLabelGeometryAccepted"]],
+        "publisherSourceLabelsAllGeometryValid": all(
+            x["sourceLabelGeometryAccepted"] for x in results),
         "decodedVideoFrames": len(truth),
         "comparison": results,
         "wholeFrameMAECandidatesAreGroundTruthIndependent": True,
