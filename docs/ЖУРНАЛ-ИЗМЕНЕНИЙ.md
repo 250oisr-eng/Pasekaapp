@@ -1,3 +1,11 @@
+## ANDROID MP4 — успешная test-only APK сборка и независимая проверка артефакта (2026-11-22)
+
+- Code/test SHA `f0d7f5e80ebc6995c743578b006d416c0eb320d8`: [GitHub Actions #44954165092](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44954165092) — **completed/success**, включая pinned MP4 SHA/length, Node static safety regressions, Capacitor sync, Gradle assembleDebug, `aapt` проверки уникального тестового package и upload APK ZIP; generic Android build #44954165090 — completed/success. Skipped isolated archive workflow не считать проверкой.
+- Artifact `paseka-synthetic-mp4-decoder-isolated-apk` ID `14727076715`; ZIP 3 343 556 байт, GitHub и независимый SHA-256 совпали: `a0de4fd5b1dda7d5455f2bdba4d7e618bf4e2b5c7c375831babcf734d646bc60`. ZIP содержит ровно `app-debug.apk`, 8 280 639 байт, независимый SHA-256 `7b896afcd7f5c53dde75b6aa5d343f376b71269b7bebdf6e6b186a43366ff64e`. Экстрактованный APK предоставлен пользователю отдельной ссылкой в диалоге; не публиковался в production.
+- Следующее доказательство — пользовательский скриншот после **однократного** запуска кнопки в новом отдельном APK на Android. Не удалять/не переустанавливать старое приложение `selftest`. MP4 hardware decoding ещё NOT_TESTED, recognition, restore и cleanup NOT_TESTED; первый PASS IndexedDB сохраняется.
+
+---
+
 ## ANDROID MP4 — изолированный тест синтетического H.264 (2026-11-22)
 
 - После физического PASS отдельного IndexedDB теста стартовал **новый** изолированный test-only APK `ru.paseka.journal.diagnostic.mediatest`, не заменяет `ru.paseka.journal.diagnostic.selftest`, production `ru.paseka.journal` и архивный `restoreproof335`.
