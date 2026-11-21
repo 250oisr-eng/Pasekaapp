@@ -1,0 +1,27 @@
+name: Verify PASEKA01 after PASEKA02 quarantine
+
+on:
+  push:
+    paths:
+      - 'tests/video-archive-v2-entrance-quarantine-rollback.test.mjs'
+      - '.github/workflows/test-paseka01-after-v2-quarantine.yml'
+  pull_request:
+    paths:
+      - 'tests/video-archive-v2-entrance-quarantine-rollback.test.mjs'
+      - '.github/workflows/test-paseka01-after-v2-quarantine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cross-version-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
+      - name: Test PASEKA01 binary versus V2 quarantine, abort and tombstones
+        run: node --test tests/video-archive-v2-entrance-quarantine-rollback.test.mjs
