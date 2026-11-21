@@ -1,0 +1,27 @@
+name: Validate fileproof329 USB script
+
+on:
+  push:
+    branches:
+      - test/android-two-mp4-fileproof329-runtime-2026-11-21
+    paths:
+      - 'tools/android-two-mp4-fileproof329-device.ps1'
+      - 'tests/test_android_two_mp4_fileproof329_device_mock.sh'
+      - '.github/workflows/test-android-two-mp4-fileproof329-device.yml'
+  pull_request:
+    paths:
+      - 'tools/android-two-mp4-fileproof329-device.ps1'
+      - 'tests/test_android_two_mp4_fileproof329_device_mock.sh'
+      - '.github/workflows/test-android-two-mp4-fileproof329-device.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  usb-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Windows PowerShell and mocked USB fileproof329
+        run: bash tests/test_android_two_mp4_fileproof329_device_mock.sh
