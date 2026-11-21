@@ -1,3 +1,12 @@
+## Проверенные CI и одноразовый физический сценарий
+
+- [Android proof329 #44938075602](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44938075602), точный кодовый SHA **`b7e097fff66e02dd6d8a477baff903be474c6187`** — **completed/success**, Node **1233/1233 PASS**, Gradle **BUILD SUCCESSFUL**, AAPT подтвердил `ru.paseka.journal.archive.fileproof329`. Артефакт [#14720900563](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44938075602/artifacts/14720900563) `paseka-fileproof329-two-mp4-runtime-apk`, размер ZIP **3349848 B**, SHA-256 архива ZIP, подтверждённый GitHub Actions upload **`3213b323fbf2c6521c88da93abe172611559377375f4f2a167e9e85f86cb9727`**.
+- В старом Windows mock CI был **FAIL** из-за использования зарезервированной PowerShell автоматической переменной `$args` при формировании ADB команды. Исправлено отдельным `$argv`, без изменения APK. [USB CI #44938285085](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44938285085) и [#44938291588](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44938291588) на **точном SHA `f2b7a4290af78835f482214ba64b1038cb5d536b`** — **completed/success**, проверены PowerShell parser, `missingzip`, `package already installed`, полный mock успех с двумя pinned SHA. Ни один mock не выполняет `pm clear`, `uninstall`, `force-stop` или удаление файлов телефона.
+- **Физический запуск пока НЕ выполнялся**. Нужно скачать **один** указанный ZIP-артефакт GitHub (как `paseka-fileproof329-two-mp4-runtime-apk.zip` в `Downloads`) и один раз вызвать pinned `tools/android-two-mp4-fileproof329-device.ps1` по source SHA `f2b7...`, передав ZIP SHA. Если `BLOCKED`, пользователь не переустанавливает пакет и ничего не удаляет; результат исследуется отдельно. Сценарий создаёт временный каталог только на ПК, а синтетический .paseka в отдельной папке телефона **сохраняется**.
+- Никаких доказательств восстановленного архива, codec decoding, распознавания или очистки на основе данного шага. `cleanupAuthorized=false`.
+
+---
+
 # Android MediaStore fileproof329: активный тест двух MP4 — протокол и безопасность
 
 Дата: 2026-11-21. Stacked Draft PR #330 поверх #329.
