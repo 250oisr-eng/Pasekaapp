@@ -1,3 +1,10 @@
+## 2026-11-21 — RESTORE335 physical dd failure: только read-only состояние приватного тестового файла
+
+- Последняя достоверная контрольная точка и следующий gate — [../PROJECT_STATUS.md](../PROJECT_STATUS.md): pinned ADB 1.0.41/stdin SHA PASS, затем one-shot `EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED` после mkdir. Нельзя повторять запись/удалять файлы.
+- [ПЛАН-РАЗРАБОТКИ.md](ПЛАН-РАЗРАБОТКИ.md) — порядок восстановления после отказа: только скрипт `tools/android-restore335-post-dd-failure-readonly.ps1` с реальным CI/физическим отчётом, затем отдельный gate пустой IndexedDB. `2 MP4 restore/decoder/recognition/cleanup` ещё не подтверждены.
+
+---
+
 ## 2026-11-21 — два синтетических видео-подобных блока: изолированный физический stop/relaunch
 
 - [ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md](ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md) — обновлённый безопасный **PASEKA01** сценарий `tools/android_synthetic_two_video_stop.ps1`, автоматически создающий отдельный контейнер с двумя *не воспроизводимыми* синтетическими blob и проверяющий внешнюю SHA-неизменность до/после остановки только тестового Android-пакета. Это не проверка app-export, IndexedDB или Camera/MediaStore.
