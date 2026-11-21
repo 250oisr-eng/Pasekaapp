@@ -53,7 +53,11 @@ case "$*" in
   *"stat -c %s "*) wc -c < "$TEST_ARCHIVE_FIXTURE" ;;
   *"head -c 8 "*) echo PASEKA01 ;;
   *"sha256sum "*) sha256sum "$TEST_ARCHIVE_FIXTURE" ;;
-  "-d pull "*) cp "$TEST_ARCHIVE_FIXTURE" "$4" ;;
+  "-d pull "*)
+    echo "5 KB/s (5124 bytes in 1.000s)" >&2
+    if [[ "$TEST_MODE" == "pull_fail" ]]; then echo "adb: remote read error" >&2; exit 17; fi
+    cp "$TEST_ARCHIVE_FIXTURE" "$4"
+    ;;
   *) echo "Unexpected test ADB request: $*" >&2; exit 42 ;;
 esac
 ADB
@@ -81,7 +85,14 @@ verified="$(cat "$root/verified.txt")"
 grep -Fq 'STATUS: ARCHIVE_STRUCTURE_VERIFIED' <<< "$verified"
 grep -Fq 'ARCHIVE_CHUNKS_SHA256: PASS' <<< "$verified"
 grep -Fq 'ARCHIVE_VIDEO_ENTRIES: 2' <<< "$verified"
-echo "Synthetic PASEKA01 manifest and chunk hash verification passed"
+echo "Synthetic PASEKA01 manifest and chunk hash verification passed even with adb stderr progress"
+if TEST_MODE=pull_fail pwsh -NoProfile -File tools/android_paseka02_preflight.ps1 -VerifyContents > "$root/pull_failed.txt" 2>&1; then
+    echo 'Failed adb pull incorrectly verified' >&2
+    exit 1
+fi
+grep -Fq 'STATUS: BLOCKED' "$root/pull_failed.txt"
+grep -Fq 'exit 17' "$root/pull_failed.txt"
+echo "Nonzero adb pull exits fail closed"
 python3 - <<'PY'
 import os
 p=os.environ["TEST_ARCHIVE_FIXTURE"]
