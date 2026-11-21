@@ -1,3 +1,9 @@
+## Итог специализированной Gradle-сборки — SUCCESS (точный SHA)
+
+[CI #44937442484](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44937442484) на кодовом SHA `77ae44faa1d68b1e8cde17c8fd951e956f4b0457` — **completed/success**, Node **1230/1230 PASS, 0 failed**, `BUILD SUCCESSFUL`, AAPT package `ru.paseka.journal.archive.fileproof329`. Артефакт `paseka-fileproof329-inert-compile-apk`, ID **14719299636**, ZIP SHA-256 из GitHub Upload Artifact **`1953605e0deeb1fb8a31c420e24a07e2e6c99c734bd24213c9d10b8f62f57405`**. APK **инертный**: веб-страница не пишет и не экспортирует данные, никакой физический proof не проводился. Он **не предназначен для установки пользователем**. Не дополнять задним числом смысл PASS: компиляция Java, не MediaStore write/readback на телефоне.
+
+---
+
 ## Сборочная контрольная точка (21.11.2026)
 
 К тестовому источнику добавлен `scripts/prepare-android-two-mp4-fileproof329.mjs`: при явном `PASEKA_FILEPROOF329_BUILD=1` создаёт **отдельный package `ru.paseka.journal.archive.fileproof329`** и внедряет Java `IsolatedMediaStoreProofBridge` только в генерируемый Android `MainActivity`. Экран тестового APK **намеренно инертен**: не вызывает нативную запись, не открывает/не восстанавливает хранилища и не взаимодействует с любыми пользовательскими архивами.
