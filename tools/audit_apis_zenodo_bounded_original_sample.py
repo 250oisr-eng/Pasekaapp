@@ -161,6 +161,67 @@ def parse_central_directory(data, expected_count):
     return items
 
 
+# Pinned after independent inspection of all 10 SHA-authenticated author split TXT.
+EXPECTED_AUTHOR_DAY_COUNTS = {
+    "20240107": 59, "20240109": 149, "20240110": 157,
+    "20240116": 800, "20240117": 202, "20240305": 1062,
+    "20240306": 35, "20240307": 276, "20240308": 55,
+}
+DAY_PATTERN = re.compile(r"^img-(20\d{6})_\d{6}--\d+$")
+
+
+def validate_full_source_zip_inventory(entries):
+    """Check ALL original source filenames, without reading 2GB member bytes.
+
+    Fails if the central index has duplicate stems, absent label pair,
+    nonhive supplemental images mislabeled as hive dates or extra files.
+    Dates are derived from basename and are NOT physical session identifiers.
+    """
+    if type(entries) is not dict or len(entries) != 5647:
+        raise ValueError("unexpected original ZIP entry count")
+    imgs = {name: entry for name, entry in entries.items()
+            if name.lower().endswith((".jpg", ".jpeg"))}
+    labels = {name: entry for name, entry in entries.items()
+              if name.lower().endswith(".txt")
+              and PurePosixPath(name).name.lower() != "classes.txt"}
+    classes = [name for name in entries if PurePosixPath(name).name.lower() == "classes.txt"]
+    if len(imgs) != 2823 or len(labels) != 2823 or len(classes) != 1:
+        raise ValueError("original ZIP image/label/classes population changed")
+    img_stems = [PurePosixPath(name).stem for name in imgs]
+    label_stems = [PurePosixPath(name).stem for name in labels]
+    if (len(set(img_stems)) != len(img_stems)
+            or len(set(label_stems)) != len(label_stems)):
+        raise ValueError("ZIP file stem collision between folder members")
+    if set(img_stems) != set(label_stems):
+        raise ValueError("some original images have no matching YOLO TXT or vice versa")
+    day_counts = Counter()
+    handheld = 0
+    for stem in img_stems:
+        match = DAY_PATTERN.fullmatch(stem)
+        if match:
+            day_counts[match.group(1)] += 1
+        else:
+            if stem.startswith("img-"):
+                raise ValueError("unexpected source capture date filename")
+            handheld += 1
+    if dict(day_counts) != EXPECTED_AUTHOR_DAY_COUNTS or handheld != 28:
+        raise ValueError("original ZIP image inventory differs from author-pinned split TXT")
+    return {
+        "originalZipSourceJpgPathsIndexed": len(imgs),
+        "originalZipSourceYoloLabelPathsIndexed": len(labels),
+        "originalZipAllJpgTxtPairsByExactStem": len(imgs),
+        "originalZipInHiveFramesByAuthorDates": sum(day_counts.values()),
+        "originalZipSupplementalHandheldPhotosByFilename": handheld,
+        "originalZipCaptureDateCountByFilename": dict(sorted(day_counts.items())),
+        "zipCatalogImageByteSha256VerifiedCount": 0,
+        "zipAllJpgPixelDecodePassed": False,
+        "cameraOrSessionIndependenceProven": False,
+        "actualBeesEnteredOrExitedVerified": False,
+        "trainingAuthorized": False,
+        "userVideoCleanupAuthorized": False,
+    }
+
+
 def extract_sample_zip_member(entry, total, fetch):
     if entry["compressed"] > MAX_SAMPLE_BYTES or entry["uncompressed"] > MAX_SAMPLE_BYTES:
         raise ValueError("chosen original ZIP member exceeds bounded sample cap")
@@ -305,6 +366,10 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
         result["blockReason"]="official ZIP central directory range unavailable: "+type(exc).__name__
         return result
     entries=parse_central_directory(rawcd,cdinfo["count"])
+    original_inventory = validate_full_source_zip_inventory(entries)
+    result["originalFullZipFilenameInventoryMatchedAuthorSource"] = (
+        fetch is range_bytes and probe is probe_range_support)
+    result["originalFullZipFilenameInventory"] = original_inventory
     jpgs={PurePosixPath(k).stem:e for k,e in entries.items()
           if k.lower().endswith((".jpg",".jpeg")) and
           PurePosixPath(k).name.startswith("img-")}

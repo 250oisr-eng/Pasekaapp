@@ -11,6 +11,7 @@ from audit_apis_zenodo_bounded_original_sample import (
     EXPECTED_ARCHIVE_BYTES, central_directory_from_tail, parse_central_directory,
     extract_sample_zip_member, jpeg_dimensions, yolo_annotation_summary,
     range_bytes, audit_bounded_original_jpg_txt, read_bounded_segments,
+    validate_full_source_zip_inventory, EXPECTED_AUTHOR_DAY_COUNTS,
 )
 
 
@@ -62,6 +63,46 @@ class FakeOpener:
 
 
 class BoundedOriginalZipTests(unittest.TestCase):
+    def test_full_original_inventory_synthetic_matched_2795_plus_28(self):
+        entries={}
+        idx=0
+        for day,n in EXPECTED_AUTHOR_DAY_COUNTS.items():
+            for i in range(n):
+                name=f"img-{day}_{i%24:02d}{(i//24)%60:02d}{i//1440%60:02d}--{idx}"
+                entries[f"dataset/images/{name}.jpg"]={"name":name}
+                entries[f"dataset/labels/{name}.txt"]={"name":name}
+                idx+=1
+        for i in range(28):
+            name=f"handheld_{i:02d}"
+            entries[f"dataset/images/{name}.jpg"]={"name":name}
+            entries[f"dataset/labels/{name}.txt"]={"name":name}
+        entries["dataset/classes.txt"]={"name":"classes"}
+        r=validate_full_source_zip_inventory(entries)
+        self.assertEqual(r["originalZipAllJpgTxtPairsByExactStem"],2823)
+        self.assertEqual(r["originalZipInHiveFramesByAuthorDates"],2795)
+        self.assertEqual(r["originalZipSupplementalHandheldPhotosByFilename"],28)
+        self.assertEqual(r["originalZipCaptureDateCountByFilename"],EXPECTED_AUTHOR_DAY_COUNTS)
+        self.assertFalse(r["trainingAuthorized"])
+        self.assertFalse(r["userVideoCleanupAuthorized"])
+
+    def test_original_inventory_rejects_missing_or_mismatched_labels(self):
+        entries={}
+        for day,n in EXPECTED_AUTHOR_DAY_COUNTS.items():
+            for i in range(n):
+                name=f"img-{day}_{i%24:02d}{(i//24)%60:02d}{i//1440%60:02d}--{i}"
+                entries[f"d/images/{name}.jpg"]={}
+                entries[f"d/labels/{name}.txt"]={}
+        for i in range(28):
+            entries[f"d/images/handheld_{i}.jpg"]={}
+            entries[f"d/labels/handheld_{i}.txt"]={}
+        entries["d/classes.txt"]={}
+        all_valid=validate_full_source_zip_inventory(entries)
+        self.assertEqual(all_valid["originalZipSourceJpgPathsIndexed"],2823)
+        original="d/labels/handheld_0.txt"
+        entries["d/labels/handheld_bogus.txt"]=entries.pop(original)
+        with self.assertRaisesRegex(ValueError,"matching YOLO"):
+            validate_full_source_zip_inventory(entries)
+
     def test_reads_synthetic_central_directory_and_members_with_crc(self):
         jpg=fake_jpg()
         txt=b"0 0.5 0.5 0.2 0.3\n1 0.4 0.4 0.2 0.2\n"

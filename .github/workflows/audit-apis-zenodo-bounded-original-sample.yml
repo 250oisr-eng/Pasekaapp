@@ -40,6 +40,17 @@ jobs:
           if r.get('originalZipMemberJpegAndTxtCrcVerified'):
               assert r['zipCentralDirectoryParsed'] is True
               assert r['inHiveJpgTxtPairedByStem'] == 2795
+              assert r['originalFullZipFilenameInventoryMatchedAuthorSource'] is True
+              inv=r['originalFullZipFilenameInventory']
+              assert inv['originalZipSourceJpgPathsIndexed'] == 2823
+              assert inv['originalZipSourceYoloLabelPathsIndexed'] == 2823
+              assert inv['originalZipAllJpgTxtPairsByExactStem'] == 2823
+              assert inv['originalZipInHiveFramesByAuthorDates'] == 2795
+              assert inv['originalZipSupplementalHandheldPhotosByFilename'] == 28
+              assert sum(inv['originalZipCaptureDateCountByFilename'].values()) == 2795
+              assert inv['zipAllJpgPixelDecodePassed'] is False
+              assert inv['trainingAuthorized'] is False
+              assert inv['userVideoCleanupAuthorized'] is False
               assert len(r['sampleJpgSha256']) == 64
               assert len(r['sampleTxtSha256']) == 64
               assert r['originalYoloLabelSummary']['rows'] >= 0
