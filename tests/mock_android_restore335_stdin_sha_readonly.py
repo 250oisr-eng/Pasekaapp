@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         assert all(word not in calls_text for word in ('install','uninstall','rm','mkdir','am start','clear','sh -c','push','pull'))
         assert ('sha256sum' in calls_text)==(mode not in ('source_corrupt','old_adb'))
         assert "'-T'" not in calls_text
-        assert ("'/system/bin/toybox'" in calls_text)==(mode!='source_corrupt')
+        assert ("'/system/bin/toybox'" in calls_text)==(mode not in ('source_corrupt','old_adb'))
         if mode == 'old_adb':
             assert 'STAGE: 2/3 ORIGINAL_ARCHIVE_IN_MEMORY_SHA' not in result.stdout
         assert (base/'archive.bin').read_bytes()==archive
