@@ -1,0 +1,31 @@
+name: Restore335 private paths read-only mock
+on:
+  push:
+    branches:
+      - 'test/android-restore335-missing-private-path-audit-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-private-path-readonly.ps1'
+      - 'tests/android-restore335-private-path-readonly.test.mjs'
+      - 'tests/mock_android_restore335_private_path.py'
+      - '.github/workflows/test-android-restore335-private-path-readonly.yml'
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse PowerShell
+        shell: pwsh
+        run: |
+          $t=$null;$e=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-private-path-readonly.ps1',[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object{Write-Error $_};exit 1}
+      - name: Test no-write gates
+        run: node --test tests/android-restore335-private-path-readonly.test.mjs
+      - name: Mock run-as missing path with fake stdout and real pwsh
+        run: python3 tests/mock_android_restore335_private_path.py

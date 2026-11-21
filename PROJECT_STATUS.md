@@ -1,3 +1,19 @@
+## RESTORE335 — confirmed CI for read-only missing-path audit (2026-11-21)
+
+- Code/test/workflow SHA `cdf937797078234aeb9817d686d551795203c4e6` проверен: [GitHub Actions #44944519356](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44944519356) **completed/success**: PowerShell parse, static no-write tests, real `pwsh` mock-ADB with missing-file diagnostic text on stdout and exit=0. Последующие изменения — документация.
+- Физический run-as cwd и путь `files` пока NOT TESTED новым audit script; **вместо повторной записи** требуется один read-only осмотр cwd + ls -ld. Не считать mock доказательством on-device путей. Исходный архив 3158B original SHA PASS по последней аппаратной проверке.
+
+---
+
+## RESTORE335 — физический forensic PASS: оба private файла НЕ СУЩЕСТВУЮТ (2026-11-21)
+
+- На реальном OnePlus NE2213/API36 пользователь выполнил pinned read-only forensic script SHA `341b99d6bf47875740024c929fe76e8b564d559e`. Из консоли: `ORIGINAL_BYTES: 3158`, `ORIGINAL_SHA256: PASS`; `PRIVATE_BYTES: 65` с печатным содержимым **`cat: files/fileproof335-input.paseka: No such file or directory\r\n`**, `REPORT_BYTES: 62` с текстом **`cat: files/restore335-report.json: No such file or directory\r\n`**. Эти 65/62 байта — **ADB/Android diagnostic stdout**, а не private файлы; прежние отчёты о существующей 65B копии и 62B репорте **опровергнуты**. Оригинал физически сохранён/цел, ничего не удалено. Стадия 6 app launch и restore commit не выполнялись.
+- Корневая причина ошибки 65B SHA: предыдущий `adb exec-out run-as ... cat` предоставил сообщение о missing file в stdout, в раннем коде ошибочно рассчитан SHA diagnostic bytes. Почему исходный `exec-in run-as ... sh -c ...` не создал private input — ещё не установлено (проверить run-as cwd и наличие files dir). Не повторять старый installer; новый пакет уже установлен.
+- В новой ветке `test/android-restore335-missing-private-path-audit-2026-11-21` создан `tools/android-restore335-private-path-readonly.ps1`: exact device+packages, pinned original SHA и direct `run-as ... pwd`/`run-as ... ls -ld files|input|report` без `sh -c` и без записей; отдельно классифицирует строки missing file, даже при exit=0. Node static tests и real pwsh/mock ADB (missing path in stdout with exit=0) добавлены. CI на exact code SHA ещё не подтверждён.
+- НЕ перезаписывать, переустанавливать, сбрасывать новый пакет, не затрагивать production/FILEPROOF329 и внешний оригинальный PASEKA01. Android restore, decoder, распознавание и cleanup — NOT TESTED/NOT AUTHORIZED.
+
+---
+
 ## RESTORE335 — 65B read-only forensic preview CI PASS (2026-11-21)
 
 - На code/test/workflow SHA `341b99d6bf47875740024c929fe76e8b564d559e` [GitHub Actions #44944133054](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44944133054) **completed/success**: PowerShell syntax, static no-write/no-install/128-byte bound tests и actual `pwsh` c mock-ADB 65-byte private diagnostic text. Код не проверен на физическом Android новым инструментом.
