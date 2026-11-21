@@ -1,3 +1,12 @@
+## Проверенный результат — 2026-11-21: первый реальный IoU-only fan baseline
+
+- На **точном code/test SHA `68557a741fe5dccca8abd0eddb1fa0862c18bb17`** специализированный workflow [#44885787016](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885787016) завершился `success`. В нём прошли восемь unit-тестов синтетического baseline, три unit-теста источника/хеша и загрузка/анализ оригинального публичного TXT с SHA-проверкой. Workflow второго evaluator [#44885787072](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885787072) завершился `success` на том же SHA.
+- Реальный результат на `tracks_20230711a-fan.txt`: **6000 кадров, 127452 опубликованных наблюдения, 127452 геометрических совпадения, missed=0, extra=0, meanMatchedIoU=1, 124945 сравнимых соседних переходов, 1263 смены ID**. Примерно 1,01% — доля *смен ID среди соседних сравнимых переходов*, **НЕ** precision, recall, IDF1, HOTA или accuracy детектора. Рамки во входе самого трекера взяты из эталона, поэтому 100% геометрических совпадений — свойство эксперимента, не качество распознавания.
+- В stdout явно: `realDetectorEvaluated=false`, `entranceLineCrossingsEvaluated=false`, `androidOfflineInferenceVerified=false`, `videoCleanupAuthorized=false`. Пользовательские оригинальные видео не тронуты; публичный TXT временный.
+- Следующий конкретный шаг: измерить устойчивость ассоциации при шуме bbox, пропусках и появлении новых объектов, сохраняя строгую границу между синтетическими и реальными результатами. После этого отдельно исследовать реальный детектор. Merge, production и публикация не выполнялись.
+
+---
+
 ## Контрольная точка — 2026-11-21: подготовлен SHA-pinned запуск baseline на оригинальном tracking TXT
 
 - Draft PR #297, рабочая ветка `test/video-fan-iou-association-baseline-2026-11-21`, code/test HEAD `68557a741fe5dccca8abd0eddb1fa0862c18bb17`. Добавлены `tools/run_public_mendeley_v6_fan_baseline.py`, `tests/test_run_public_mendeley_v6_fan_baseline.py` и отдельный этап существующего fan-baseline workflow.
