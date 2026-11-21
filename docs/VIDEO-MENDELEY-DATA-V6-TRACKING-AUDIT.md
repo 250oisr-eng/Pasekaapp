@@ -1,3 +1,7 @@
+## 2026-11-21 — количественная граница между polygon ROI и истинным in/out
+
+Дополнительно к источниковому аудиту polygon и GT IDs в Draft #302 выполнен независимый read-only переходный эксперимент на оригинальных SHA-pinned TXT. 6000 кадра/127452 GT observations, 237 изменений принадлежности авторскому многоугольнику (100 outside→inside polygon, 137 opposite), 128 track IDs, 43 rapid reversals, 833 reappearances through gaps (их не разрешено считать пересечениями). Подтверждён source CI [#44889290182](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44889290182). **Это не пчелиные in/out события**: polygon — область наблюдения, не физически откалиброванная линия. `actualBeeTrafficCountValidated=false`, `videoCleanupAuthorized=false`; source data only, no ML, no Android. Детали: `docs/VIDEO-PUBLIC-FAN-POLYGON-BOUNDARY-DIAGNOSTIC.md`.
+
 ## 2026-11-21 — заключительная контрольная точка: проверка конкретных ложных связей в PR #298
 
 - Финальный code/test SHA `ccecf4b1c9d88de9bfb4e51e696109b4ae4d8e4f` (после документальной точки `ff72ad56...` добавлены защищённые исследования; PR #298 остаётся Draft). На точном SHA специализированные [GitHub Actions #44886515130](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886515130) — **SUCCESS**: новые unit tests и три реальных запуска по исходному SHA-verified `tracks_20230711a-fan.txt`. Fast quality checks #44886510917 — **SUCCESS** на этом SHA. Проверку Android необходимо отдельно сверить по её статусу; успешный тестовый workflow не является Android-сборкой.
