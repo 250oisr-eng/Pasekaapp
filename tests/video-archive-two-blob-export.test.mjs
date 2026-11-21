@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInThisContext } from 'node:vm';
 import { webcrypto, createHash } from 'node:crypto';
+import { IDBFactory } from 'fake-indexeddb';
 
 // Load the actual application archive module. This test never accesses a device.
 runInThisContext(readFileSync(new URL('../js/paseka-archive.js', import.meta.url), 'utf8'));
@@ -120,4 +121,51 @@ test('recognition ledger blocks lossy legacy PASEKA01 application export', async
   const db = mockReadonlyDb({ ...input, ledger: { version: 1, entries: [{ videoId: 'recognized' }] } });
   await assert.rejects(archive.exportArchiveFromDatabase(db, webcrypto),
     error => error.code === 'VIDEO_LEDGER_NOT_ARCHIVED');
+});
+
+test('two pinned MP4s persist through actual isolated IndexedDB close/reopen and app export', async () => {
+  const source = fixture();
+  const factory = new IDBFactory();
+  const name = 'two-mp4-archive-isolated';
+  const open = () => new Promise((resolve, reject) => {
+    const request = factory.open(name, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('entrance_media', { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const committed = tx => new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+  });
+  let db = await open();
+  try {
+    const tx = db.transaction(['main', 'entrance_media'], 'readwrite');
+    tx.objectStore('main').put(source.state, 'state');
+    tx.objectStore('main').put({ version: 1, entries: [] }, 'video_recognition_ledger_v1');
+    for (const video of source.videos) tx.objectStore('entrance_media').put(video);
+    await committed(tx);
+  } finally { db.close(); }
+  db = await open();
+  try {
+    const snapshot = await archive.readConsistentDatabaseSnapshot(db);
+    assert.equal(snapshot.videos.length, 2);
+    const actualSources = await Promise.all(snapshot.videos
+      .sort((a,b) => a.capturedAt.localeCompare(b.capturedAt))
+      .map(async video => sha(Buffer.from(await video.blob.arrayBuffer()))));
+    assert.deepEqual(actualSources, [
+      '794e1dcb2598dff510b8f4b7cafea57a500cbfd57a1e57a99247a9bb7d784b9f',
+      'bc9abbf1f109a7f2feb8787d52bce8363eb3c577ef2acd67ae4fcdf59a892eff'
+    ]);
+    const exported = await archive.exportArchiveFromDatabase(db, webcrypto);
+    const parsed = await archive.parseArchiveBlob(exported.blob);
+    assert.equal(parsed.videoCount, 2);
+    await archive.verifyArchive(exported.blob, parsed, webcrypto);
+    const entryHashes = await Promise.all(parsed.entries.filter(x => x.kind === 'entrance_video')
+      .map(async entry => sha(Buffer.from(await archive.readArchiveEntry(exported.blob, entry).arrayBuffer()))));
+    assert.deepEqual(entryHashes, actualSources);
+    assert.equal(snapshot.state.meta.schemaVersion, 15);
+  } finally { db.close(); }
 });
