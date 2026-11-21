@@ -1,3 +1,11 @@
+## Restore335 — ZIP_UNSAFE_ENTRY on physical Windows / root directory fix (2026-11-21)
+
+- User executed pinned offline Windows ZIP stage from HEAD `f7ff409e9553e371bc811f73e67c9d65bb6c37d1`: `STAGE: 1/3 ...`, `STATUS: BLOCKED`, `DETAIL: ZIP_UNSAFE_ENTRY`, `ANDROID_CONNECTION_NOT_ATTEMPTED_NO_SYSTEM_CHANGES_NO_DELETE`. This proves original validator rejected some ZIP entry, NOT that Google's ZIP was malicious; exact offending entry not printed and cause is not independently confirmed.
+- Found probable legitimate root directory `platform-tools/` rejected by strict regex that expected at least one character after slash. In same Draft PR #341 allow exactly empty root directory marker (and require zero content), retain traversal, duplicate path, DLL and size checks. Added CI regressions that accept official-style root marker up to stage 3 and still reject malicious nonempty root marker; Linux mock sets TEMP explicitly. Real ZIP verification on physical Windows remains NOT TESTED after fix.
+- No Android, system PATH or original source modified. Next: CI exact SHA, then reuse existing Google ZIP for one offline no-device stage; do not redownload unless provenance cannot be verified.
+
+---
+
 ## RESTORE335 — автономная локальная подготовка официального Windows ADB (2026-11-21)
 
 - Реальный OnePlus подтвердил `run-as + toybox sha256sum /dev/null` PASS, pinned source PASEKA01 3158 байт SHA PASS. На ПК обнаружен ADB 1.0.32. Передача binary stdin, восстановление двух MP4, распознавание и cleanup — NOT TESTED. Никогда не повторять старый one-shot installer / stdin с ADB 1.0.32.
