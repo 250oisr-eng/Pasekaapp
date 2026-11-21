@@ -1,3 +1,13 @@
+## RESTOREPROOF335 — одноразовый ADB аппаратный сценарий, CI mock gate (2026-11-21)
+
+- На основе подтверждённой сборки Draft #336 (GitHub Actions #44942628866, exact artifact SHA ZIP `28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176`, APK `5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e`) создана ветка `test/android-restore335-safe-device-transfer-2026-11-21`.
+- `tools/android-restoreproof335-one-shot.ps1` (PowerShell): **только конкретный OnePlus NE2213/API36**, existing original synthetic `fileproof329`, exact 3158 B source SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`, исходно отсутствующий package `ru.paseka.journal.archive.restoreproof335`. Проверяет ZIP SHA, APK SHA и ZIP entries **до** установки нового тестового пакета. Нет `install -r`, PM clear, uninstall, force-stop, удаления. В памяти ПК читает старый архив, передаёт bytes только в private `files/fileproof335-input.paseka` вновь установленного test-only пакета через ADB exec-in/run-as, независимо сверяет private SHA, запускает test-only Activity один раз, читает private test report и повторно сверяет original SHA.
+- `tests/android-restoreproof335-device-safety.test.mjs` закрепляет имена, SHA и запреты; `tests/mock_android_restoreproof335_device.py` запускает **настоящий pwsh** против фальшивого ADB, проверяя 7 этапов и сценарий неправильного source SHA без установки. Workflow `.github/workflows/test-android-restoreproof335-device-mock.yml` добавлен, фактический CI статус нового SHA **не подтверждён**.
+- Внимание: mock использует другой synthetic file и программно заменяет закреплённые SHA **только во временной копии тестируемого скрипта**; это не проверка физических bytes OnePlus. До green exact CI **не передавать пользователю рабочую физическую команду**.
+- Даже при mock CI PASS физическая установка/передача/restore остаются NOT_TESTED; user запускать только по отдельной проверенной инструкции после запроса. Оригинальный архив, production и real video не трогать; `cleanupAuthorized=false`.
+
+---
+
 ## FILEPROOF335 — Android APK compiled and artifact SHA-pinned (2026-11-21)
 
 - В Draft PR #336 на exact HEAD `595e8075f084d79f1adf6f20d1bcce7038f1421e` специализированный [GitHub Actions #44942628866](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942628866) **completed/success**. Прошли Node/VM safety tests, web config isolation, Android Java bridge compilation, Gradle assembleDebug и проверка aapt, что APK appId только `ru.paseka.journal.archive.restoreproof335`. Это CI, не физический Android запуск.
