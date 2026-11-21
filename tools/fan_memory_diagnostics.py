@@ -46,3 +46,27 @@ def memory_diagnostics(reference, prediction, threshold=0.5):
             "brokenIdAfterOneFrameGap": broken,
             "comparedPredictedLinksOffsetOneOrTwo": compared_predicted_links,
             "crossReferenceIdentityReuses": incorrect_reuses}
+
+
+def cross_reference_reuse_events(reference, prediction, threshold=0.5):
+    """Identify distinct wrong same-predicted-ID links using reference identities.
+
+    Event keys are (older_frame_index, newer_frame_index, old_truth_id,
+    new_truth_id). This ensures equal aggregate totals cannot conceal *new*
+    mistaken links. Returned only to the offline benchmark safety gate.
+    """
+    if len(reference) != len(prediction) or not 0 < threshold <= 1:
+        raise ValueError("invalid frame counts or IoU threshold")
+    matched = [{prediction_id: truth_id
+                for truth_id, prediction_id, _ in match_frame(truth, candidates, threshold)}
+               for truth, candidates in zip(reference, prediction)]
+    events = set()
+    for offset in (1, 2):
+        for frame in range(offset, len(matched)):
+            previous, current = matched[frame - offset], matched[frame]
+            for pid in previous.keys() & current.keys():
+                if offset == 2 and pid in matched[frame-1]:
+                    continue
+                if previous[pid] != current[pid]:
+                    events.add((frame - offset, frame, previous[pid], current[pid]))
+    return events
