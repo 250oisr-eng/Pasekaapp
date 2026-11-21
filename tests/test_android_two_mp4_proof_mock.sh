@@ -2,7 +2,7 @@
 set -euo pipefail
 command -v pwsh >/dev/null || { echo "pwsh missing" >&2; exit 1; }
 root="$(cd "$(dirname "$0")/.." && pwd)"
-pwsh -NoProfile -Command '$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile($args[0],[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){$errors|ForEach-Object{Write-Error $_.Message};exit 1}' "$root/tools/android-two-mp4-proof-device.ps1"
+pwsh -NoProfile -Command '$tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile("tools/android-two-mp4-proof-device.ps1",[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){$errors|ForEach-Object{Write-Error $_.Message};exit 1}'
 temp="$(mktemp -d)"
 trap 'rm -rf "$temp"' EXIT
 cat >"$temp/adb" <<'ADB'
