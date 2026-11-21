@@ -1,3 +1,13 @@
+## ANDROID VIDEO — следующий аппаратный gate: три JPEG-кадра из синтетического MP4 (2026-11-22)
+
+- Изучен реально существующий `js/entrance-frame-preparation.js`: извлекает 2–4 временных JPEG кадра из видео после SHA-проверки, не содержит ИИ inference/удаления. Лицензионная проверка конкретных весов модели и независимое качество detector отсутствуют; **распознавание пчёл пока нельзя объявить протестированным**.
+- Для дальнейшего доказательства **без обращения к пользовательскому видео** создан независимый тестовый Android package `ru.paseka.journal.diagnostic.frametest`. Он проверяет SHA ранее физически воспроизведённого синтетического 1720-byte MP4, запускает **тот же** модуль `entrance-frame-preparation.js` в Android WebView, извлекает три JPEG-кадра, проверяет формат, геометрию 64×64, возрастающие timestamp и повторный хэш исходного Blob. В отчёте выводится только счётчик/геометрия, не JPEG или видео.
+- Файлы: `tests/fixtures/android-synthetic-frame-extraction-runner.js`, `scripts/prepare-android-synthetic-frame-apk.mjs`, `tests/android-synthetic-frame-extraction.test.mjs`, `.github/workflows/build-android-synthetic-frame-apk.yml`. Новый пакет отличен от production, `selftest`, `mediatest` и `restoreproof335`; исходные тестовые APK не сбрасываются. Нет MediaStore, IndexedDB, network, удаления, model weights, background services.
+- **PASS в будущем будет означать лишь факт получения трёх JPEG-кадров синтетической записи на телефоне**. Не будет подтверждать качество кадра по содержимому, наличие пчелы, detection/inference, трекинг, распознавание или cleanup. Все такие статусы остаются `NOT_TESTED`.
+- Next: новый Draft PR, проверка workflow на точном HEAD, только после success извлечение APK и физический тест по одной кнопке. Merge/deploy/production, изменение и удаление пользовательских файлов запрещены.
+
+---
+
 ## ANDROID MP4 — физический PASS синтетического декодирования (2026-11-22)
 
 - Пользователь запустил отдельный APK `ru.paseka.journal.diagnostic.mediatest` на реальном телефоне и передал текст результата: `status: PASS`, `code: SYNTHETIC_H264_METADATA_PLAYBACK_PROGRESS`, `fixtureSha256: 29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `videoDecode: PASS`, `width: 64`, `height: 64`, `currentTime: 0.2478`. Это пользовательский отчёт **реального тестового запуска**, а не независимый ADB-лог; подтверждён программный gate метаданных, `playing` и `timeupdate >0.05` на синтетическом H.264.
