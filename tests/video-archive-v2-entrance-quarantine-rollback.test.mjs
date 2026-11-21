@@ -445,3 +445,56 @@ test('renaming a tombstoned original does not bypass its hash-based restore guar
  const quarantine=await get(db,'full_backup','v2entrance:quarantine-test');
  assert.equal(await sha(quarantine.quarantinedMedia[0].blob),digest);
 });
+
+
+for(const [field,corrupt] of [
+ ['source',row=>({...row,source:'record_media'})],
+ ['sha',row=>({...row,sourceSha256:'0'.repeat(64)})],
+ ['size',row=>({...row,sourceBytes:row.sourceBytes+1})],
+ ['identity',row=>({...row,videoId:'other-video'})]
+]){
+ test('quarantine inspector declines healthy status for altered staging child '+field,async t=>{
+  const {db,digest}=await seed();t.after(()=>db.close());
+  await rollback(db,rollbackOpts(),d());
+  assert.equal((await inspect(db,'quarantine-test',d())).status,
+   'reverted_quarantine_unverified');
+  const key='v2pending:quarantine-test:entrance_media:new-video';
+  const child=await get(db,'archive_staging',key);
+  await put(db,'archive_staging',key,corrupt(child));
+  const report=await inspect(db,'quarantine-test',d());
+  assert.equal(report.status,'manual_review_required');
+  assert.equal(report.cleanupAuthorized,false);
+  assert.equal(report.restoreAuthorized,false);
+  assert.equal(report.byteIntegrityVerified,false);
+  const snapshot=await get(db,'full_backup','v2entrance:quarantine-test');
+  assert.equal(await sha(snapshot.quarantinedMedia[0].blob),digest);
+  assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+  assert.equal(await count(db,'entrance_media'),0);
+ });
+}
+test('quarantine inspector rejects orphaned staging child without removing its backup',async t=>{
+ const {db,digest}=await seed();t.after(()=>db.close());
+ await rollback(db,rollbackOpts(),d());
+ const tx=db.transaction('archive_staging','readwrite');
+ tx.objectStore('archive_staging').delete('v2pending:quarantine-test:entrance_media:new-video');
+ await done(tx);
+ const report=await inspect(db,'quarantine-test',d());
+ assert.equal(report.status,'manual_review_required');
+ assert.equal(report.cleanupAuthorized,false);
+ const snapshot=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(snapshot.quarantinedMedia[0].blob),digest);
+ assert.equal(await count(db,'full_backup'),1);
+});
+test('quarantine inspector rejects corrupted pending header without rewriting it',async t=>{
+ const {db,digest}=await seed();t.after(()=>db.close());
+ await rollback(db,rollbackOpts(),d());
+ const key='v2pending:quarantine-test';
+ const header=await get(db,'archive_staging',key);
+ await put(db,'archive_staging',key,{...header,expectedEntries:2});
+ const report=await inspect(db,'quarantine-test',d());
+ assert.equal(report.status,'manual_review_required');
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal((await get(db,'archive_staging',key)).expectedEntries,2);
+ const snapshot=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(snapshot.quarantinedMedia[0].blob),digest);
+});

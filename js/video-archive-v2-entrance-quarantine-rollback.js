@@ -214,6 +214,33 @@ async function quarantineRollbackIsolated(db,opt,d){
    cleanupAuthorized:false,archiveSafe:false};
  });
 }
+function validQuarantineStaging(v,h,s,backupId){
+ const proofs=s.importedVideos,rows=v.staged;
+ if(!Array.isArray(proofs)||proofs.length<1||proofs.length>128||
+    !Array.isArray(rows)||rows.length!==proofs.length+1||
+    new Set(proofs.map(x=>x?.id)).size!==proofs.length)return false;
+ const session='v2pending:'+backupId;
+ const header=rows.find(x=>x?.id===session);
+ if(!obj(header)||header.kind!=='v2_pending_session'||
+    header.status!=='protected_unverified'||header.sessionId!==session||
+    header.backupId!==backupId||header.archiveSha256!==h.archiveSha256||
+    header.expectedEntries!==proofs.length||
+    !Array.isArray(header.entryIds)||header.entryIds.length!==proofs.length||
+    new Set(header.entryIds).size!==proofs.length)return false;
+ const keys=new Set(rows.map(x=>x?.id));
+ if(keys.size!==rows.length)return false;
+ for(const p of proofs){
+  const key=session+':entrance_media:'+encodeURIComponent(p.id);
+  const row=rows.find(x=>x?.id===key);
+  if(!header.entryIds.includes(key)||!obj(row)||row.kind!=='v2_pending_original'||
+     row.sessionId!==session||row.backupId!==undefined||
+     row.source!=='entrance_media'||row.videoId!==p.id||
+     row.sourceSha256!==p.blobSha256||row.sourceBytes!==p.bytes||
+     row.mimeType!==p.mimeType||!row.blob||row.blob.size!==p.bytes||
+     typeof row.blob.slice!=='function')return false;
+ }
+ return true;
+}
 function inspectQuarantine(db,backupId,d){
  if(!id(backupId)||typeof d?.guard?.validateRecognitionLedgerForV2!=='function')
   return Promise.reject(Object.assign(new Error('V2_QUARANTINE_OPTIONS_INVALID'),
@@ -237,6 +264,8 @@ function inspectQuarantine(db,backupId,d){
       Array.isArray(s.quarantinedMedia)&&
       Array.isArray(s.importedVideos)&&
       s.quarantinedMedia.length===s.importedVideos.length&&
+      new Set(s.quarantinedMedia.map(row=>row?.id)).size===s.quarantinedMedia.length&&
+      validQuarantineStaging(v,h,s,backupId)&&
       s.quarantinedMedia.every(row=>s.importedVideos.some(p=>
         row.id===p.id&&row.blobSha256===p.blobSha256&&
         row.bytes===p.bytes&&row.mimeType===p.mimeType&&
