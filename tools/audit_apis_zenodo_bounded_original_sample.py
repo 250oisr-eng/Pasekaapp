@@ -14,6 +14,7 @@ import re
 import struct
 from pathlib import PurePosixPath
 from urllib.request import Request, build_opener
+from urllib.error import HTTPError, URLError
 import zlib
 
 from probe_apis_zenodo_zip_range import (
@@ -261,14 +262,27 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
     get=(lambda a,b,t: read_bounded_segments(a,b,t,fetch=fetch)
          if fetch is range_bytes else fetch(a,b,t))
     tail_length=min(128*1024,total)
-    tail=get(total-tail_length,total-1,total)
+    try:
+        tail=get(total-tail_length,total-1,total)
+    except (TimeoutError, URLError, OSError) as exc:
+        result["blockReason"]="official ZIP EOCD range unavailable: "+type(exc).__name__
+        return result
     cdinfo=central_directory_from_tail(tail,total)
+    result.update({
+        "realZipEOCDParsedFromSourceRange": fetch is range_bytes and probe is probe_range_support,
+        "centralEntriesFromSourceEOCD": cdinfo["count"],
+        "centralDirectorySizeFromSourceEOCD": cdinfo["centralBytes"],
+    })
     # Do not repeat huge GET. The original central directory is often >256 KiB,
     # and Zenodo can time out on large consecutive random-range requests.
     import sys
     print(f"ZIP central entry count={cdinfo['count']}, bytes={cdinfo['centralBytes']}, chunkSize=131072", file=sys.stderr, flush=True)
-    rawcd=get(cdinfo["centralOffset"],
-              cdinfo["centralOffset"]+cdinfo["centralBytes"]-1,total)
+    try:
+        rawcd=get(cdinfo["centralOffset"],
+                  cdinfo["centralOffset"]+cdinfo["centralBytes"]-1,total)
+    except (TimeoutError, URLError, OSError) as exc:
+        result["blockReason"]="official ZIP central directory range unavailable: "+type(exc).__name__
+        return result
     entries=parse_central_directory(rawcd,cdinfo["count"])
     jpgs={PurePosixPath(k).stem:e for k,e in entries.items()
           if k.lower().endswith((".jpg",".jpeg")) and
@@ -294,8 +308,12 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
     if not candidates:
         raise ValueError("no bounded genuine original JPG/TXT sample")
     name=candidates[0]
-    jpg=extract_sample_zip_member(jpgs[name],total,get)
-    txt=extract_sample_zip_member(txts[name],total,get)
+    try:
+        jpg=extract_sample_zip_member(jpgs[name],total,get)
+        txt=extract_sample_zip_member(txts[name],total,get)
+    except (TimeoutError, URLError, OSError) as exc:
+        result["blockReason"]="official ZIP original JPG/TXT member ranges unavailable: "+type(exc).__name__
+        return result
     width,height=jpeg_dimensions(jpg)
     yolo=yolo_annotation_summary(txt)
     result.update({
