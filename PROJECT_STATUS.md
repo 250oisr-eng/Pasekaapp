@@ -1,3 +1,12 @@
+## FILEPROOF329 — isolated restore commit CI PASS (2026-11-21)
+
+- В отдельной ветке Draft PR #334 `test/fileproof329-isolated-restore-commit-2026-11-21` (base Draft #333) код/test/workflow SHA `82befb3a7d653378284246ea668252961ff69e05` проверен: GitHub Actions [run #44941671182](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941671182) **completed/success**. Проверка выполнялась только в Node/CI с `fake-indexeddb`; APK и физический Android не использовались.
+- Тест `tests/fileproof329-isolated-restore-commit.test.mjs`: real `PasekaArchive` export/restore preflight, атомарная readwrite транзакция state+2 synthetic MP4 в отдельную новую пустую test DB, close/reopen и проверка SHA; блокировка непустого destination; принудительный abort после первого видео со сверкой пустого назначения; повреждённый video hash блокирует до записи.
+- Первый CI #44941627356 был **failure до тестов** из-за `npm ci` при отсутствии `package-lock.json`; это исправлено в workflow на `npm install --package-lock=false`. Успешный CI относится к новому точному SHA, не старому failed run.
+- **Граница доказательств:** это test-only commit, а не production restore API и не физический restore. Реальный PASEKA01 на телефоне не читается этим тестом, настоящие видео не декодируются, cleanup запрещён. Следующий этап — отдельный безопасный native/Android isolated restore по самостоятельному плану с preflight, без чтения рабочих данных и перезаписи пакетов.
+
+---
+
 ## FILEPROOF329 — подготовлен изолированный restore commit CI (2026-11-21)
 
 - Физический OnePlus NE2213/API36: предшествующий read-only preflight `FILEPROOF329_ANDROID_READONLY_PREFLIGHT_PASS` подтверждает 3158-byte PASEKA01, manifest, state и два SHA-pinned MP4; **restore commit, Android MP4 decoder и cleanup остаются NOT_TESTED**.
