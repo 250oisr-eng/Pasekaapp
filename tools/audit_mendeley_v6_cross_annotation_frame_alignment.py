@@ -11,6 +11,7 @@ import csv
 import hashlib
 import json
 import math
+import re
 import tempfile
 from pathlib import Path
 
@@ -29,6 +30,7 @@ DOI = "10.17632/8gb9r2yhfc.6"
 ROOT = Path(__file__).resolve().parents[1]
 PUBLISHER = ROOT / "tests/fixtures/mendeley-v6-publisher-checksums.csv"
 PREFIX = "20230711a"
+SAFE_SOURCE_FILENAME = re.compile(r"20230711a[0-9]+\\.(?:jpg|txt)\\Z")
 VIDEO_URL = (
     "https://data.mendeley.com/public-files/datasets/8gb9r2yhfc/files/"
     "5e49dc33-a4b9-4be7-af18-f51871e6b71c/file_downloaded"
@@ -50,7 +52,8 @@ def pinned_series(path=PUBLISHER):
             name = item["filename"]
             if not name.startswith(PREFIX) or not name.endswith((".jpg", ".txt")):
                 continue
-            if item["version_membership"] != "listed_v6" or name in rows:
+            if (not SAFE_SOURCE_FILENAME.fullmatch(name)
+                or item["version_membership"] != "listed_v6" or name in rows):
                 raise ValueError("invalid or duplicate publisher entry")
             if len(item["sha256"]) != 64 or any(c not in "0123456789abcdef" for c in item["sha256"]):
                 raise ValueError("invalid source digest")
@@ -152,8 +155,8 @@ def screen_training_group_overlap(training_groups, test_group="_bee_20230711a"):
                    else "disjoint_folder_names_do_not_prove_recording_independence"),
     }
 
-def run_public(fetch=bounded_read, series=None):
-    specs = pinned_series() if series is None else series
+def run_public(fetch=bounded_read):
+    specs = pinned_series()
     if len(specs) != 12 or len({name for name, _, _ in specs}) != 12:
         raise ValueError("requires the complete 12-JPEG fan-series manifest")
     with tempfile.TemporaryDirectory(prefix="paseka-v6-annotation-alignment-") as directory:
