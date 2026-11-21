@@ -129,17 +129,17 @@ def execute_test(execute=run_command, token: str | None = None) -> dict:
         raise CheckBlocked("Invalid synthetic test directory token")
     test_dir = ROOT + "/" + token
     remote = test_dir + "/" + NAME
-    # Do not reuse any existing directory or overwrite any file.
-    exists = adb_shell("test -e " + shlex.quote(test_dir), execute)
-    if exists.returncode != 1 or exists.stdout.strip() or exists.stderr.strip():
-        raise CheckBlocked("Test destination already exists or could not be checked")
+    # Create only the dedicated test parent then atomically reserve a new child.
+    # mkdir without -p fails for an existing child, unlike unreliable 'test -e' responses.
+    shell_required("mkdir -p " + shlex.quote(ROOT), execute)
+    created = adb_shell("mkdir " + shlex.quote(test_dir), execute)
+    if created.returncode != 0:
+        raise CheckBlocked("Unique test directory could not be created atomically")
     with tempfile.TemporaryDirectory(prefix="paseka-synthetic-test-") as scratch:
         local = Path(scratch) / NAME
         local.write_bytes(archive)
         if digest(local.read_bytes()) != source_sha:
             raise CheckBlocked("Local synthetic fixture changed before transfer")
-        # This is the first write to Android: a new dedicated test directory only.
-        shell_required("mkdir -p " + shlex.quote(test_dir), execute)
         require_ok(["adb", "-d", "push", str(local), remote], execute, timeout=120)
         check_sha(remote, source_sha, execute)
         # Only the uniquely named isolated test process is stopped.
