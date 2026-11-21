@@ -14,9 +14,6 @@ export async function run(video,environment=globalThis){
   try{
     const bytes=Uint8Array.from(environment.atob(SYNTHETIC_MP4_BASE64),c=>c.charCodeAt(0));
     if(bytes.length!==1721)throw Error('FIXTURE_LENGTH_MISMATCH');
-    const digest=new Uint8Array(await environment.crypto.subtle.digest('SHA-256',bytes));
-    const hex=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
-    if(hex!==SYNTHETIC_MP4_SHA256)throw Error('FIXTURE_SHA_MISMATCH');
     const blob=new environment.Blob([bytes],{type:'video/mp4'});
     objectUrl=environment.URL.createObjectURL(blob);
     video.muted=true;
@@ -49,6 +46,9 @@ export async function run(video,environment=globalThis){
       try{const playResult=video.play();if(playResult?.catch)playResult.catch(e=>settle(Error('PLAY_REJECTED_'+String(e?.name||'UNKNOWN'))));}
       catch(e){settle(Error('PLAY_THROWN_'+String(e?.name||'UNKNOWN')));}
     });
+    const digest=new Uint8Array(await environment.crypto.subtle.digest('SHA-256',bytes));
+    const hex=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
+    if(hex!==SYNTHETIC_MP4_SHA256)throw Error('FIXTURE_SHA_MISMATCH');
     return report('PASS','SYNTHETIC_H264_METADATA_PLAYBACK_PROGRESS',outcome);
   }catch(e){return report('BLOCKED',String(e?.message||'UNEXPECTED').slice(0,90));}
   finally{try{video.pause();video.removeAttribute('src');video.load();}catch(_){}
