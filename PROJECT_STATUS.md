@@ -1,3 +1,22 @@
+## FILEPROOF335 — test-only WebView restore gate CI 7/7 PASS (2026-11-21)
+
+- В stacked [Draft PR #335](https://github.com/250oisr-eng/Pasekaapp/pull/335) код/тесты SHA `023cfea81f92f62c9de03c0f41f6edf47a565de9` проверены: [CI #44942008049](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942008049), isolated browser/IndexedDB gate **7/7 tests PASS, 0 failures** (job success).
+- Test-only модуль `tests/fixtures/android-fileproof335-isolated-restore.js` использует строго отдельную БД `paseka-fileproof335-destination-only-v1`; проверяет исходный 3158 B archive SHA и две MP4 SHA через `PasekaArchive.validateArchiveForRestore`, затем атомарно пишет 1 state+2 MP4 в новую пустую базу; закрывает/открывает и сверяет содержимое.
+- Дополнительно закрыт риск повторной попытки после аварийного abort: модуль теперь требует успешную `indexedDB.databases()` и **блокирует любое ранее созданное имя test-only DB, даже если база пуста**. Новый тест моделирует перезапуск WebView после abort и подтверждает no-retry/no-overwrite.
+- Позитивный CI harness подменяет digest **только всего synthetic PASEKA01** на pinned FILEPROOF329 archive SHA; сам файл, хранящийся на телефоне, в CI **не загружался**. Внутренние SHA обоих MP4 при этом настоящие. Поэтому результат является проверкой test-only логики в VM/fake-indexeddb, а **не** реальным восстановлением физических байтов на Android.
+- Следующий этап требует нового test-only Android package и строго ограниченного способа чтения pinned original archive; существующий `fileproof329`, production IndexedDB и пользовательские видео не изменять. Ни APK, ни физический restore на этом этапе не выполнялись.
+
+---
+
+## FILEPROOF335 — подготовлен browser gate восстановления в будущий изолированный Android package (2026-11-21)
+
+- После физического FILEPROOF329 read-only PASS и CI-успеха атомарного fake IndexedDB restore в Draft #334 выделена ветка `test/android-isolated-restore335-browser-gate-2026-11-21`. Новый `tests/fixtures/android-fileproof335-isolated-restore.js` — **test-only WebView-ready fixture, НЕ интегрирован в APK**.
+- Для данных назначения зафиксировано отдельное test-only имя `paseka-fileproof335-destination-only-v1`. Модуль принимает только 3158-byte SHA-pinned synthetic PASEKA01 (точный SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`), проверяет manifest/state/video через `PasekaArchive.validateArchiveForRestore` и оба исходных SHA, затем выполняет транзакционную запись state+2 MP4 исключительно в пустую тестовую IndexedDB, close/reopen и SHA-проверку. Нет API удаления/очистки, доступа к рабочей БД, записи во внешний архив или включения в production.
+- Добавлен CI-only VM/fake-indexeddb suite `tests/android-fileproof335-isolated-restore-browser.test.mjs`: атомарность, запрет повторного запуска, отказ в непустом destination, принудительный rollback и неправильный archive SHA. Позитивный тест **подменяет только SHA всего 3158-byte synthetic архива в VM harness**, потому что реальный файл физического телефона не копируется в CI; внутренние видео SHA проверяются реальными digest. Такой mock НЕ доказывает восстановление точных Android bytes.
+- Добавлен workflow `.github/workflows/test-android-fileproof335-isolated-restore.yml`; его результат ещё требуется подтвердить на exact SHA. Следующий этап: CI regression и, только после отдельного аудита, новый test-only Android package с отдельной базой и подтверждённой read-only подачей исходного файла. Не запускать существующий fileproof329 на запись; физический restore/MP4 decoder/cleanup NOT TESTED.
+
+---
+
 ## FILEPROOF329 — isolated restore commit CI PASS (2026-11-21)
 
 - В отдельной ветке Draft PR #334 `test/fileproof329-isolated-restore-commit-2026-11-21` (base Draft #333) код/test/workflow SHA `82befb3a7d653378284246ea668252961ff69e05` проверен: GitHub Actions [run #44941671182](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941671182) **completed/success**. Проверка выполнялась только в Node/CI с `fake-indexeddb`; APK и физический Android не использовались.
