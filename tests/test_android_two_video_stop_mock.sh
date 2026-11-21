@@ -22,8 +22,14 @@ case "$*" in
   "-d shell getprop ro.build.version.sdk") echo 36 ;;
   "-d shell pm path ru.paseka.journal.archive.test")
     echo 'package:/data/app/mock/ru.paseka.journal.archive.test/base.apk' ;;
-  "-d shell test -e "*) exit 1 ;;
   "-d shell mkdir -p "*) : ;;
+  "-d shell mkdir '"*)
+    if [[ "$MOCK_MODE" == "mkdir_collision" ]]; then
+      echo 'mkdir: File exists' >&2
+      exit 1
+    fi
+    :
+    ;;
   "-d push "*)
     if [[ "$#" -ne 4 || ! -f "$3" ]]; then echo 'Bad ADB push arguments' >&2; exit 14; fi
     cp "$3" "$MOCK_REMOTE_FILE"
@@ -74,6 +80,23 @@ if grep -Fq 'mkdir -p' "$MOCK_AUDIT_FILE"; then
     exit 1
 fi
 echo 'Two-device fail-closed mock PASS'
+export MOCK_MODE=mkdir_collision
+: > "$MOCK_AUDIT_FILE"
+if timeout 25s pwsh -NoProfile -File tools/android_synthetic_two_video_stop.ps1 > "$scratch/collision.txt" 2>&1; then
+    echo 'Colliding unique directory incorrectly passed' >&2
+    exit 1
+fi
+grep -Fq 'STATUS: BLOCKED' "$scratch/collision.txt"
+grep -Fq "mkdir '/sdcard/Download/Пасека/isolated-archive-synthetic-tests/" "$MOCK_AUDIT_FILE"
+if grep -Fq -- '-d push ' "$MOCK_AUDIT_FILE"; then
+    echo 'Collision attempted upload' >&2
+    exit 1
+fi
+if grep -Fq -- 'am force-stop' "$MOCK_AUDIT_FILE"; then
+    echo 'Collision stopped test app' >&2
+    exit 1
+fi
+echo 'Atomic mkdir collision fail-closed mock PASS'
 export MOCK_MODE=changed_after_stop
 rm -f "$MOCK_STOP_MARKER"
 : > "$MOCK_AUDIT_FILE"
