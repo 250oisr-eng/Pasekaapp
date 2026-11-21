@@ -57,11 +57,16 @@ def publisher_record_summary(data):
     desc = meta.get("description", "")
     if not isinstance(desc, str) or "Apis mellifera" not in desc:
         raise ValueError("Apis mellifera scientific species not documented in publisher metadata")
-    license_data = meta.get("rights", [])
-    if not any("cc-by-4.0" in str((l or {}).get("id", "")).lower()
-               or "creative commons attribution 4.0" in str((l or {}).get("title", "")).lower()
-               for l in license_data if isinstance(l, dict)):
-        raise ValueError("publisher dataset CC BY 4.0 rights mismatch")
+    # Zenodo legacy records expose metadata.license, recent RDM records use
+    # metadata.rights[]. Both must be checked by exact CC BY 4.0 identifier.
+    raw_rights = meta.get("rights", [])
+    rights = raw_rights if isinstance(raw_rights, list) else [raw_rights]
+    candidates = rights + [meta.get("license")]
+    ids = [str(o.get("id", o.get("identifier", ""))).lower()
+           for o in candidates if isinstance(o, dict)]
+    if "cc-by-4.0" not in ids:
+        # Only public source license IDs, not cookies or signed download URLs.
+        raise ValueError("publisher dataset CC BY 4.0 rights mismatch; license_ids=" + repr(ids))
     entry = ((data.get("files") or {}).get("entries") or {}).get(ZIP_NAME)
     if not isinstance(entry, dict):
         raise ValueError("original ZIP not found in publisher file metadata")

@@ -59,6 +59,15 @@ class ZenodoPublisherApiEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             publisher_record_summary(d)
 
+    def test_source_license_legacy_zenodo_metadata_field(self):
+        d=record()
+        d["metadata"]["rights"]=[]
+        d["metadata"]["license"]={"id":"cc-by-4.0"}
+        self.assertEqual(publisher_record_summary(d)["sourceLicense"],"CC BY 4.0")
+        d["metadata"]["license"]={"id":"cc-by-nc-4.0"}
+        with self.assertRaises(ValueError):
+            publisher_record_summary(d)
+
     def test_reject_wrong_id_doi_and_missing_file(self):
         d=record();d["id"]="not-author"
         with self.assertRaises(ValueError):
