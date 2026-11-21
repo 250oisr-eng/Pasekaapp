@@ -86,7 +86,8 @@ try{
   # A plain mkdir, not mkdir -p, ensures we fail on any existing directory.
   Write-Host 'STAGE: 5/6 EXCLUSIVE_CREATE_IN_EXISTING_TEST_PACKAGE_ONLY'
   $dir=ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','mkdir','-m','700','files')
-  if($dir.Code -ne 0 -or $dir.Bytes.Length -ne 0){
+  if($dir.Code -ne 0 -or $dir.Bytes.Length -ne 0 -or
+     -not [string]::IsNullOrWhiteSpace($dir.ErrorText)){
     throw 'TEST_PRIVATE_FILES_DIRECTORY_ALREADY_EXISTS_OR_UNCERTAIN'
   }
   # Android Toybox dd conv=excl uses O_EXCL to refuse overwriting any file.
@@ -94,7 +95,8 @@ try{
   # stdin has a verified length/SHA; dd reads to EOF and flushes.
   $send=ADB @('-d','shell','-T','run-as',$pkg,'/system/bin/toybox','dd',
     'of=files/fileproof335-input.paseka','bs=3158','conv=excl,fsync','status=none') $archive.Bytes
-  if($send.Code -ne 0 -or $send.Bytes.Length -ne 0){
+  if($send.Code -ne 0 -or $send.Bytes.Length -ne 0 -or
+     -not [string]::IsNullOrWhiteSpace($send.ErrorText)){
     throw 'EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED'
   }
   Write-Host 'STAGE: 6/6 READBACK_AND_ORIGINAL_SOURCE_RECHECK'
