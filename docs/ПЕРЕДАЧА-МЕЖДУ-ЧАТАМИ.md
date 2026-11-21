@@ -1,3 +1,11 @@
+## 2026-11-21 — физический Android: два внешних синтетических Blob SHA PASS после stop/relaunch
+
+- Пользователь выполнил pinned `tools/android_synthetic_two_video_stop.ps1` на OnePlus NE2213 / API 36, isolated `ru.paseka.journal.archive.test`. Создан **новый** внешний PASEKA01 с двумя синтетическими **не playable MP4** Blob. SHA общего контейнера `35ffcaa22e9fd48889a61b124f07110c300ae4a8208b273f773bc81f9b2c4ffb`.
+- `ANDROID_COPY_BEFORE_STOP=PASS`, `ANDROID_COPY_AFTER_STOP=PASS`, `ANDROID_COPY_AFTER_RELAUNCH=PASS`; итог `EXTERNAL_TWO_BLOB_SHA_PASS`. Путь сохранённого файла `/sdcard/Download/Пасека/isolated-archive-synthetic-tests/092330b0d99f47ceb577a5082427905f/synthetic-two-video.paseka`. По отчёту скрипта Android файлы **не удалялись**.
+- Это **не проверка** IndexedDB, app-export с видео, playable MP4, restore, распознавания или cleanup. `cleanupAuthorized=false`, `recognitionSucceeded=false`.
+- Полный протокол фактов и следующего read-only/isolated теста: `docs/ANDROID-SYNTHETIC-TWO-VIDEO-PHYSICAL-RESULT-2026-11-21.md`. Результат также добавлен комментарием к Draft PR #324.
+- Следующий приоритет: два независимо захешированных синтетических декодируемых MP4 только в безопасно созданной изолированной базе `entrance_media` → штатный app-export → full SHA до/после stop/relaunch. Не выполнять удаление, uninstall/reset, production deployment или merge.
+
 ## 2026-11-21 — физический Windows ADB: BLOCKED при проверке отсутствия уникальной папки; атомарное создание исправлено
 
 - Пользователь на OnePlus NE2213 Android16/API36 запустил закреплённый `tools/android_synthetic_two_video_stop.ps1` и получил **`STATUS: BLOCKED`**, `DETAIL: Test did not finish: Destination exists or cannot be verified absent; no write performed`. Это произошло **до записи синтетического тестового файла** и до `am force-stop`. Из вывода нельзя установить, существовала ли папка или неудачно вернулся `adb shell test -e`; нельзя объявлять данные повреждёнными.
