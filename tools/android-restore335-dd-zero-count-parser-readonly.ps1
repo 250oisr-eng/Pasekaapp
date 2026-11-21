@@ -96,7 +96,9 @@ try{
     'files/fileproof335-input.paseka')
   $statText=($utf8.GetString($stat.Bytes)+' '+$stat.ErrorText).Trim()
   Write-Host ('PRIVATE_INPUT_STAT_STDOUT_BYTES: '+$stat.Bytes.Length)
-  if($statText -match '(?i)(no such file or directory|not found|cannot stat)'){
+  # Accept one path-specific ENOENT diagnostic, including Toybox's exit-zero stdout form.
+  $missingInput = '^stat: (?:can''t stat |cannot stat )?[''"]?files/fileproof335-input[.]paseka[''"]?: No such file or directory$'
+  if($stat.Code -in @(0,1) -and $statText -match $missingInput){
     Write-Host 'PRIVATE_INPUT_STAT_DIAGNOSTIC: NO_SUCH_FILE'
   }elseif($statText -match '(?i)(permission denied|access denied)'){
     Write-Host 'PRIVATE_INPUT_STAT_DIAGNOSTIC: ACCESS_DENIED'

@@ -39,6 +39,10 @@ elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','stat','-c','%F','
     if mode=='stat_regular': print('regular file')
     elif mode=='stat_unrecognized': print('unexpected stat output')
     elif mode=='stat_permission_denied': print('stat: Permission denied')
+    elif mode=='stat_cannot_denied': print("stat: cannot stat 'files/fileproof335-input.paseka': Permission denied")
+    elif mode=='stat_wrong_path': print("stat: cannot stat 'files/other': No such file or directory")
+    elif mode=='stat_missing_stderr':
+        print("stat: 'files/fileproof335-input.paseka': No such file or directory",file=sys.stderr);sys.exit(1)
     else: print("stat: can't stat 'files/fileproof335-input.paseka': No such file or directory")
 elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','dd','--help']:
     print('dd help: conv=excl,fsync; status=none')
@@ -71,6 +75,9 @@ with tempfile.TemporaryDirectory(prefix='paseka-dd-readonly-ci-') as root:
         ('stat_regular','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
         ('stat_unrecognized','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
         ('stat_permission_denied','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
+        ('stat_cannot_denied','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
+        ('stat_wrong_path','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
+        ('stat_missing_stderr','DD_CONV_EXCL_ARGUMENT: ACCEPTED_FOR_ZERO_COUNT',0),
         ('source_changed','ORIGINAL_SOURCE_CHANGED',2),
         ('source_bad','ORIGINAL_PINNED_SHA_FAILED',2)
     ]:
@@ -92,7 +99,13 @@ with tempfile.TemporaryDirectory(prefix='paseka-dd-readonly-ci-') as root:
             assert 'ORIGINAL_SOURCE_POST_PROBE: SHA256_PASS_3158_BYTES' in result.stdout
         commandlog=calls.read_text()
         assert not any(x in commandlog for x in ("'mkdir'","'rm'","'install'","'push'","'pull'","'uninstall'","'am'","'clear'","'of="))
-        assert "'count=0'" in commandlog if mode not in ('source_bad','existing_file') else "'count=0'" not in commandlog
+        if expected in {'ORIGINAL_PINNED_SHA_FAILED', 'PRIVATE_FILES_NOT_CONFIRMED_EMPTY',
+                        'PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED'}:
+            assert "'dd'" not in commandlog, mode
+        elif mode == 'baseline_error':
+            assert commandlog.count("'count=0'") == 1 and "'conv=excl'" not in commandlog
+        else:
+            assert commandlog.count("'count=0'") == 2 and "'conv=excl'" in commandlog
         assert protected.read_bytes()==b'PRESERVE-PHONE-DATA'
         assert (home/'original').read_bytes()==original
 print('RESTORE335_DD_PARSER_ZERO_COUNT_READONLY_MOCK_PASS')
