@@ -206,12 +206,12 @@ async function verifyPendingStagingBlobs(db,backupId,shaTool){
  const initial=await inspectPendingStaging(db,backupId);
  const denied=reason=>({
   backupId,status:'manual_review_required',reason,
-  byteIntegrityVerified:false,requiresManualReview:true,
+  byteIntegrityVerified:false,snapshotHashesMatched:false,requiresManualReview:true,
   archiveSafe:false,restoreAuthorized:false,cleanupAuthorized:false,
   originalDataChanged:false
  });
  if(initial.status!=='protected_unverified')
-  return {...initial,byteIntegrityVerified:false};
+  return {...initial,byteIntegrityVerified:false,snapshotHashesMatched:false};
  const key=sessionId(backupId);
  const take=()=>runTx(db,'readonly',tx=>({
   header:tx.objectStore('archive_staging').get(key),
@@ -274,7 +274,8 @@ async function verifyPendingStagingBlobs(db,backupId,shaTool){
  }
  return {
   backupId,status:'protected_unverified',
-  byteIntegrityVerified:true,
+  // Hashes matched two read snapshots; this is not a writer-locked proof.
+  byteIntegrityVerified:false,snapshotHashesMatched:true,
   requiresManualReview:false,
   archiveSafe:false,restoreAuthorized:false,cleanupAuthorized:false,
   originalDataChanged:false,
