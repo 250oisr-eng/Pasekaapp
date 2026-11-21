@@ -15,7 +15,7 @@ from audit_licensed_native_bee_archive_manifest import (
 
 def archive(entries):
     out = BytesIO()
-    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_STORED) as z:
         for name, data in entries:
             z.writestr(name, data)
     return out.getvalue()
@@ -78,11 +78,11 @@ class ArchiveSourceAuditTests(unittest.TestCase):
             p = Path(td) / "test.zip"
             b = bytearray(archive([("a.txt", b"knownbytes")]))
             idx = b.find(b"knownbytes")
-            if idx != -1:
-                b[idx] = 0
-                p.write_bytes(b)
-                with self.assertRaises((ValueError, zipfile.BadZipFile)):
-                    inspect_zip(p)
+            self.assertNotEqual(idx, -1)
+            b[idx] = 0
+            p.write_bytes(b)
+            with self.assertRaises((ValueError, zipfile.BadZipFile)):
+                inspect_zip(p)
 
     def test_empty_zip_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
