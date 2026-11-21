@@ -1,0 +1,29 @@
+name: Test legacy archive final commit V2 protection
+
+on:
+  push:
+    paths:
+      - 'js/paseka-archive-restore.js'
+      - 'tests/archive-staging.test.mjs'
+      - '.github/workflows/test-legacy-commit-v2-guard.yml'
+  pull_request:
+    paths:
+      - 'js/paseka-archive-restore.js'
+      - 'tests/archive-staging.test.mjs'
+      - '.github/workflows/test-legacy-commit-v2-guard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  old-archive-v2-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
+      - name: Test archive staging and atomic commit
+        run: node --test tests/archive-staging.test.mjs
