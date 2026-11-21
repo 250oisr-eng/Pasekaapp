@@ -43,7 +43,7 @@ class FanAssociationBaselineTests(unittest.TestCase):
     def test_6000_frame_synthetic_load_without_source_id_leakage(self):
         # Performance/scale smoke check only: NOT a real detector accuracy result.
         boxes = [(i / 16, .2, i / 16 + .04, .24) for i in range(12)]
-        frames = [{(i + k * 47) % 40003 + 1: box for i, box in enumerate(boxes)}
+        frames = [{i + 1: boxes[i] for i in ((k + j) % 12 for j in range(12))}
                   for k in range(6000)]
         predictions = associate_boxes(frames)
         metrics = evaluate(frames, predictions)
