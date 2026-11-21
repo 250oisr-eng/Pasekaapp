@@ -188,6 +188,8 @@ def conservative_day_heldout_plan(image_names, verified_positive_dates=()):
 
 
 def audit_pinned_split_files(fetch=fetch_pinned_text):
+    # Injected readers are synthetic fixtures only. Never certify their bytes.
+    original_bytes_verified = fetch is fetch_pinned_text
     contents = {name: fetch(name) for name in (*SPLIT_BLOBS, *EXTRA_BLOBS)}
     verification = verify_author_metadata(
         contents["LICENSE"], contents["README.md"],
@@ -238,9 +240,10 @@ def audit_pinned_split_files(fetch=fetch_pinned_text):
         "doi": SOURCE_DOI,
         "scientificSpeciesFromZenodoPublisher": SOURCE_SPECIES,
         "datasetLicenseVerifiedFromPinnedAuthorRepo": SOURCE_LICENSE,
+        "inputOrigin": "sha_verified_public_author_source" if original_bytes_verified else "synthetic_fixture",
         "upstreamRepo": OWNER_REPO, "upstreamCommit": PINNED_COMMIT,
-        "originalAuthorSplitTextGitBlobVerified": True,
-        "authorVerificationCSVGitBlobVerified": True,
+        "originalAuthorSplitTextGitBlobVerified": original_bytes_verified,
+        "authorVerificationCSVGitBlobVerified": original_bytes_verified,
         "sourceImageCountByUniqueOriginalNames": len(catalog),
         "fiveFoldUniqueValidationCoverage": len(val_membership),
         "nineTimestampCaptureDatesFromFileNames": sorted(all_dates),
