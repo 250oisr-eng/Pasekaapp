@@ -89,6 +89,22 @@ class SourceYoloTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 pinned_series(p)
 
+    def test_source_filename_is_not_a_path_or_unsafe_publisher_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original=Path(__file__).resolve().parents[1]/"tests/fixtures/mendeley-v6-publisher-checksums.csv"
+            with original.open(newline="",encoding="utf-8") as source:
+                rows=list(csv.DictReader(source))
+            for row in rows:
+                if row["filename"]=="20230711a0.jpg":
+                    row["filename"]="20230711a../../outside.jpg"
+                    break
+            p=Path(tmp)/"unsafe.csv"
+            with p.open("w",newline="",encoding="utf-8") as out:
+                writer=csv.DictWriter(out,fieldnames=rows[0].keys())
+                writer.writeheader();writer.writerows(rows)
+            with self.assertRaisesRegex(ValueError, "invalid or duplicate publisher entry"):
+                pinned_series(p)
+
     def test_hash_failure_before_reading_labels_or_decoding_video(self):
         def invalid_mp4(_url, _cap):
             return b"not the actual public Mendeley MP4"
