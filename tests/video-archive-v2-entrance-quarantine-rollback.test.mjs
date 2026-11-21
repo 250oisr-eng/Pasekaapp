@@ -312,3 +312,136 @@ test('new state after quarantine forces recovery manual review without cleanup',
  assert.equal(await count(db,'full_backup'),1);
  db.close();
 });
+
+
+for (const [storeName,methodName] of [
+ ['full_backup','put'],
+ ['archive_history','put'],
+ ['main','put'],
+ ['entrance_media','delete']
+]) {
+ test('rollback abort after '+storeName+'.'+methodName+' survives reopen and retry',async t=>{
+  const {db,factory,name,digest}=await seed();
+  let once=false;
+  const wrapped={
+   objectStoreNames:db.objectStoreNames,
+   transaction(stores,mode){
+    const tx=db.transaction(stores,mode);
+    if(mode!=='readwrite')return tx;
+    return new Proxy(tx,{
+     get(target,key){
+      if(key==='objectStore')return targetName=>{
+       const store=target.objectStore(targetName);
+       if(targetName!==storeName)return store;
+       return new Proxy(store,{
+        get(source,method){
+         if(method===methodName)return (...args)=>{
+          const request=source[method](...args);
+          request.addEventListener('success',()=>{
+           if(!once){once=true;tx.abort();}
+          });
+          return request;
+         };
+         const val=Reflect.get(source,method,source);
+         return typeof val==='function'?val.bind(source):val;
+        }
+       });
+      };
+      const val=Reflect.get(target,key,target);
+      return typeof val==='function'?val.bind(target):val;
+     },
+     set(target,key,value){return Reflect.set(target,key,value,target);}
+    });
+   }
+  };
+  await assert.rejects(rollback(wrapped,rollbackOpts(),d()));
+  assert.equal(once,true,'the request succeeded before forced rollback');
+  db.close();
+  const reopenedRequest=factory.open(name,1);
+  const reopened=await new Promise((resolve,reject)=>{
+   reopenedRequest.onsuccess=()=>resolve(reopenedRequest.result);
+   reopenedRequest.onerror=()=>reject(reopenedRequest.error);
+  });
+  t.after(()=>reopened.close());
+  assert.deepEqual(await get(reopened,'main','state'),state('imported'));
+  assert.deepEqual(await get(reopened,'main','video_recognition_ledger_v1'),ledger());
+  assert.equal(await count(reopened,'entrance_media'),1);
+  assert.equal(await sha((await get(reopened,'entrance_media','new-video')).blob),digest);
+  assert.equal(await count(reopened,'archive_staging'),2);
+  assert.equal(await count(reopened,'full_backup'),1);
+  assert.equal((await get(reopened,'archive_history','quarantine-test')).status,
+   'committed_rollback_blocked');
+  const originalSnapshot=await get(reopened,'full_backup','v2entrance:quarantine-test');
+  assert.equal(originalSnapshot.kind,'v2_entrance_only_rollback_unverified');
+  assert.equal(originalSnapshot.quarantinedMedia,undefined);
+  assert.equal((await rollback(reopened,rollbackOpts(),d())).reverted,true);
+  const quarantined=await get(reopened,'full_backup','v2entrance:quarantine-test');
+  assert.equal(await sha(quarantined.quarantinedMedia[0].blob),digest);
+  assert.equal(await count(reopened,'entrance_media'),0);
+  assert.equal((await inspect(reopened,'quarantine-test',d())).status,
+   'reverted_quarantine_unverified');
+  assert.equal((await inspect(reopened,'quarantine-test',d())).cleanupAuthorized,false);
+  await assert.rejects(rollback(reopened,rollbackOpts(),d()));
+ });
+}
+
+
+function recognizedAfterQuarantine(sourceHash){
+ return {
+  source:'entrance_media',videoId:'new-video',resultId:'processed-after-quarantine',
+  sourceSha256:sourceHash,sourceBytes:3,sourceEvidenceVersion:1,
+  recognizedAt:'2026-11-21T12:00:00Z',cleanupState:'deleted',
+  result:{event:'synthetic-test-result'}
+ };
+}
+async function quarantinedWithDurableTombstone(){
+ const seeded=await seed();
+ await rollback(seeded.db,rollbackOpts(),d());
+ const saved=ledger();
+ saved.entries.push(recognizedAfterQuarantine(seeded.digest));
+ await put(seeded.db,'main','video_recognition_ledger_v1',saved);
+ return {...seeded,saved};
+}
+test('old archive missing the post-quarantine tombstone is rejected before restoring media',async t=>{
+ const {db,digest,saved}=await quarantinedWithDurableTombstone();
+ t.after(()=>db.close());
+ const old={
+  state:state('before-recognition'),ledger:ledger(),
+  pendingVideos:[{source:'entrance_media',videoId:'new-video',
+   sourceSha256:digest,sourceBytes:3}]
+ };
+ assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
+  {code:'V2_RESTORE_LEDGER_HISTORY_LOST'});
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),saved);
+ const quarantine=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(quarantine.quarantinedMedia[0].blob),digest);
+ assert.equal(await count(db,'entrance_media'),0);
+});
+test('old archive with preserved tombstone but original payload still cannot restore it',async t=>{
+ const {db,digest,saved}=await quarantinedWithDurableTombstone();
+ t.after(()=>db.close());
+ const old={
+  state:state('before-recognition'),ledger:saved,
+  pendingVideos:[{source:'entrance_media',videoId:'new-video',
+   sourceSha256:digest,sourceBytes:3}]
+ };
+ assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
+  {code:'V2_RECOGNIZED_ORIGINAL_INCLUDED'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'full_backup'),1);
+});
+test('renaming a tombstoned original does not bypass its hash-based restore guard',async t=>{
+ const {db,digest,saved}=await quarantinedWithDurableTombstone();
+ t.after(()=>db.close());
+ const old={
+  state:state('before-recognition'),ledger:saved,
+  pendingVideos:[{source:'entrance_media',videoId:'renamed-original',
+   sourceSha256:digest,sourceBytes:3}]
+ };
+ assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
+  {code:'V2_RESTORE_RECOGNIZED_ORIGINAL'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),saved);
+ const quarantine=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(quarantine.quarantinedMedia[0].blob),digest);
+});
