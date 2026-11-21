@@ -18,6 +18,11 @@ import zipfile
 
 from audit_licensed_native_bee_dataset_metadata import EXPECTED_FILES, audit
 
+EXPECTED_ARCHIVE_SHA256 = {
+    64894983: "a92a0976bdbaeb5fa0dbd665ccc2107ee6c1089bde3367dfe0cf6a00fa723968",
+    64894986: "fb79d8bb77cdedd394713d56396755314fa6446ecc2795dbce62a9da3109cd8b",
+}
+
 MAX_ZIP_BYTES = 128 * 1024 * 1024
 MAX_MEMBER_BYTES = 32 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024
@@ -100,6 +105,9 @@ def download_checked_archive(download_url, dest, expected_size, expected_md5, *,
             hmd5.update(block)
     if got != expected_size or hmd5.hexdigest() != expected_md5:
         raise ValueError("download bytes differ from publisher-pinned MD5 and size")
+    file_id = int(download_url.rsplit("/", 1)[-1])
+    if h256.hexdigest() != EXPECTED_ARCHIVE_SHA256[file_id]:
+        raise ValueError("original ZIP SHA256 differs from independently pinned byte-audit")
     return {"bytes": got, "publisherMd5VerifiedAgainstBytes": True,
             "originalSha256": h256.hexdigest()}
 
