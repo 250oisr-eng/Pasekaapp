@@ -1823,3 +1823,27 @@ test('a verified pre-recognition export cannot revive media after reopening a da
   assert.deepEqual(await get(clean, 'main', 'state'), stateFixture('current diary'));
   assert.deepEqual(await get(clean, 'main', 'video_recognition_ledger_v1'), stored);
 });
+
+
+for(const [storeName,value,key] of [
+ ['archive_staging',{id:'v2pending:protected',sessionId:'v2pending:protected',
+   kind:'v2_pending_session'},undefined],
+ ['archive_history',{backupId:'protected',kind:'v2_pending_stage_only'},undefined],
+ ['full_backup',{kind:'v2_entrance_only_rollback_unverified'},'v2entrance:protected']
+]){
+ test('PASEKA01 cannot stage over protected PASEKA02 '+storeName+' without a ledger',async()=>{
+  const db=await openTestDb('legacy-cross-v2-'+storeName);
+  await put(db,'main',stateFixture('live diary'),'state');
+  await put(db,storeName,value,key);
+  const input=await makeArchive('import-legacy-'+storeName);
+  await assert.rejects(
+   Restore.stageArchiveForRestore(db,input,webcrypto,Archive,()=>true),
+   {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+  assert.equal((await get(db,storeName,key??(storeName==='archive_staging'?'v2pending:protected':'protected')))!=null,true);
+  assert.equal((await get(db,'main','video_recognition_ledger_v1')),undefined);
+  assert.deepEqual(await get(db,'main','state'),stateFixture('live diary'));
+  assert.equal((await getAll(db,'archive_staging')).filter(row=>row.kind==='session').length,0);
+  assert.equal((await getAll(db,'entrance_media')).length,0);
+  db.close();
+ });
+}
