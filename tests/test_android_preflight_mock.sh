@@ -6,18 +6,29 @@ trap 'rm -rf "$root"' EXIT
 export TEST_ARCHIVE_FIXTURE="$root/fixture.paseka"
 python3 - <<'PY'
 import hashlib, json, os, struct
-state = json.dumps({"app":"Paseka","state":{"meta":{"schemaVersion":5},"hives":[]}}, separators=(',', ':')).encode()
+state = json.dumps({"app":"Paseka","state":{"meta":{"schemaVersion":5},"hives":[{"id":"fixture-hive"}]}}, separators=(',', ':')).encode()
+videos = [b"synthetic-video-one-not-a-real-recording", b"synthetic-video-two-not-a-real-recording"]
+entries = [{"path":"state.json","kind":"state","size":len(state),
+            "mimeType":"application/json","chunkSize":1048576,
+            "chunkSha256":[hashlib.sha256(state).hexdigest()]}]
+for i, blob in enumerate(videos, 1):
+    entries.append({
+        "path":f"entrance-media/{i:06d}.blob","kind":"entrance_video",
+        "size":len(blob),"mimeType":"video/mp4","chunkSize":1048576,
+        "chunkSha256":[hashlib.sha256(blob).hexdigest()],
+        "metadata":{"id":f"synthetic-video-{i}","hiveId":"fixture-hive",
+                    "capturedAt":"2026-11-21T17:00:00Z","durationSec":1,
+                    "width":32,"height":32,"bytes":len(blob),
+                    "mimeType":"video/mp4","name":f"synthetic-{i}.mp4"}
+    })
 manifest = {
     "format":"paseka-archive", "version":1,
     "backupId":"synthetic-fixture-2026-11-21", "createdAt":"2026-11-21T17:00:00Z",
-    "schemaVersion":5,
-    "entries":[{"path":"state.json","kind":"state","size":len(state),
-                "mimeType":"application/json","chunkSize":1048576,
-                "chunkSha256":[hashlib.sha256(state).hexdigest()]}]
+    "schemaVersion":5, "entries":entries
 }
 raw = json.dumps(manifest,separators=(',',':')).encode()
 with open(os.environ["TEST_ARCHIVE_FIXTURE"],'wb') as fp:
-    fp.write(b'PASEKA01'+struct.pack('<I',len(raw))+raw+state)
+    fp.write(b'PASEKA01'+struct.pack('<I',len(raw))+raw+state+b''.join(videos))
 PY
 cat > "$root/adb" <<'ADB'
 #!/usr/bin/env bash
@@ -69,7 +80,7 @@ fi
 verified="$(cat "$root/verified.txt")"
 grep -Fq 'STATUS: ARCHIVE_STRUCTURE_VERIFIED' <<< "$verified"
 grep -Fq 'ARCHIVE_CHUNKS_SHA256: PASS' <<< "$verified"
-grep -Fq 'ARCHIVE_VIDEO_ENTRIES: 0' <<< "$verified"
+grep -Fq 'ARCHIVE_VIDEO_ENTRIES: 2' <<< "$verified"
 echo "Synthetic PASEKA01 manifest and chunk hash verification passed"
 python3 - <<'PY'
 import os
