@@ -2747,6 +2747,30 @@ test('IndexedDB connection closes on versionchange so another tab can upgrade',a
  assert.equal(deps.db,null);
 });
 
+test('IndexedDB versionchange drains queued app saves before closing the connection',async()=>{
+ let releaseFirst,releaseSecond;
+ const firstSave=new Promise(resolve=>{releaseFirst=resolve});
+ const secondSave=new Promise(resolve=>{releaseSecond=resolve});
+ const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
+ const deps={DB:'paseka-test-drain',STORE:'main',BACKUP_STORE:'backup',db:null,saveQueue:firstSave,indexedDB:{open(){return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;request.onsuccess();
+ await pending;
+ fakeDb.onversionchange();
+ deps.saveQueue=secondSave;
+ assert.notEqual(fakeDb.closed,true,'the old connection must remain open while queued saves are pending');
+ releaseFirst();
+ await firstSave;
+ await Promise.resolve();
+ assert.notEqual(fakeDb.closed,true,'a save queued while draining must also finish before close');
+ releaseSecond();
+ await secondSave;
+ await Promise.resolve();
+ assert.equal(fakeDb.closed,true);
+ assert.equal(deps.db,null);
+});
+
+
 
 test('save reports snapshot preparation failures without throwing or queuing a partial save',async()=>{
  const state={meta:{},hives:[],families:[],records:[],tasks:[],extractions:[],layouts:{},snapshots:[]};
@@ -3600,7 +3624,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v313/);
+ assert.match(sw,/paseka-shell-v316/);
 });
 
 
@@ -3726,7 +3750,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v313/);
+  assert.match(source,/paseka-shell-v316/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);

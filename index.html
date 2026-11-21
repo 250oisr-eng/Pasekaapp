@@ -551,7 +551,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
  <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button></div>
  <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
 </section>
-<section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится одна полная копия предыдущего состояния, включая фотографии и видео. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Это важно при потере устройства или очистке браузера.</p><button class="primary" onclick="downloadBackup()">Скачать архив</button><label>Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Безвозвратно удаляет все ульи, семьи, рамки, записи журнала, задачи и локальные резервные снимки на этом устройстве. Перед удалением скачай архив.</p><button type="button" style="background:#a83225;color:white" onclick="deleteAllData()">Удалить все данные</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
+<section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится одна копия предыдущего состояния журнала, включая встроенные фотографии. Отдельные оригиналы видео летка в эту копию не входят. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>JSON-копия журнала</b><p class="muted">Содержит состояние журнала и встроенные фотографии, но не включает отдельные оригиналы видео летка. Для полного переноса используй архив .paseka ниже.</p><button class="primary" onclick="downloadBackup()">Скачать JSON-копию</button><label>Восстановить JSON-копию</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить JSON-копию</button></div><div class="card"><b>Полный архив пасеки</b><p class="muted">Переносит всё состояние журнала, фотографии и отдельные оригиналы видео летка. Архив формируется из одного согласованного снимка базы. Исходные данные на телефоне не удаляются.</p><button class="primary" id="downloadFullArchiveButton" type="button" onclick="downloadFullArchive()">Скачать полный архив .paseka</button><button type="button" id="shareFullArchiveButton" onclick="shareFullArchive()" hidden>Поделиться полным архивом</button><p class="muted">На поддерживаемых телефонах можно отправить архив через системное меню, например в облачное хранилище или на другое устройство.</p><p class="muted" id="fullArchiveStatus" role="status" aria-live="polite">Храни архив вне телефона. Он может быть большим, если накоплено много видео.</p><hr><b>Восстановить полный архив</b><p class="muted">Сначала архив полностью проверяется и помещается во временную область. Рабочие данные не меняются до отдельного подтверждения. При применении журнал и видео летка заменяются содержимым архива; прежнее состояние сохраняется для отмены восстановления. Точка отката хранит прежние видео и может занимать много места. После импорта её можно удалить в истории; тогда отмена станет недоступна.</p><label for="fullArchiveFile">Файл полного архива (.paseka)</label><input type="file" id="fullArchiveFile" accept=".paseka,application/octet-stream"><button type="button" id="prepareFullArchiveRestoreButton" onclick="prepareFullArchiveRestore()">Проверить архив и подготовить</button><p id="fullArchiveRestoreStatus" class="muted" role="status" aria-live="polite">Выбери файл, чтобы проверить его целостность и содержимое.</p><div id="fullArchiveRestorePreview" class="muted" hidden></div><div id="fullArchiveRestoreActions" hidden><button class="primary" type="button" onclick="commitFullArchiveRestore()">Заменить данные архивом</button><button type="button" onclick="cancelFullArchiveRestore()">Отменить подготовку</button></div><div id="archiveImportHistory" aria-live="polite"></div></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Безвозвратно удаляет все ульи, семьи, рамки, записи журнала, задачи и локальные резервные снимки на этом устройстве. Перед удалением скачай архив.</p><button type="button" style="background:#a83225;color:white" onclick="deleteAllData()">Удалить все данные</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
 </main>
 <dialog id="entranceVideoPreviewDlg" style="width:min(96vw,760px)" onclose="cleanupEntranceVideoPreview()"><h2>Видео летка</h2><video id="entranceVideoPreview" controls playsinline style="width:100%;max-height:65vh;background:#111;border-radius:12px"></video><p class="muted" id="entranceVideoPreviewInfo"></p><button type="button" onclick="closeEntranceVideoPreview()">Закрыть</button></dialog>
 <dialog id="familyTransferDlg"><h2>Перемещение семьи</h2><form id="familyTransferForm"><input type="hidden" id="transferFamilyId"><p id="transferFamilyInfo" class="muted"></p><label>В какой улей переместить</label><select id="transferTargetHive" required onchange="updateFamilyTransferTargets()"></select><label>Свободный установленный корпус</label><select id="transferTargetBox" required></select><p class="media-note">Вместе с семьёй переместятся все её рамки. Физические корпуса остаются на своих местах: рамки обменяются с рамками выбранного свободного корпуса назначения.</p><div class="row"><button type="button" onclick="$('familyTransferDlg').close()">Отмена</button><button class="primary">Переместить семью и рамки</button></div></form></dialog>
@@ -575,6 +575,10 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/pesticide-incident.js"></script>
 <script src="./js/season-planning.js"></script>
 <script src="./js/deadout-review.js"></script>
+<script src="./js/paseka-sha256.js"></script>
+<script src="./js/paseka-archive.js"></script>
+<script src="./js/paseka-archive-restore.js"></script>
+<script src="./js/paseka-android-download.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -606,7 +610,7 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
 }
 function isFreshDatabaseUpgrade(oldVersion){return oldVersion===0}
 function canInitializeFreshDatabase(databaseCreated,loadedState){return databaseCreated===true&&loadedState==null}
-function openDB(){return new Promise((ok,no)=>{let settled=false,q;/* Freshness belongs to this open attempt; retries must start false. */let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
+function openDB(){return new Promise((ok,no)=>{let settled=false,q;let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,5)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result,upgradeTx=event.target.transaction;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'});let staging;if(!d.objectStoreNames.contains('archive_staging'))staging=d.createObjectStore('archive_staging',{keyPath:'id'});else staging=upgradeTx.objectStore('archive_staging');if(!staging.indexNames.contains('sessionId'))staging.createIndex('sessionId','sessionId',{unique:false});if(!staging.indexNames.contains('kind'))staging.createIndex('kind','kind',{unique:false});if(!staging.indexNames.contains('backupId'))staging.createIndex('backupId','backupId',{unique:true});if(!d.objectStoreNames.contains('archive_history'))d.createObjectStore('archive_history',{keyPath:'backupId'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{const connection=db;const close=()=>{try{connection.close()}catch(e){}if(db===connection)db=null};if(typeof saveQueue==='undefined'||!saveQueue||typeof saveQueue.then!=='function'){close();return}const drain=async()=>{while(true){const pending=saveQueue;try{await pending}catch(e){}if(pending===saveQueue)break}close()};drain()};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
 function readMain(){
  return new Promise((ok,no)=>{
   let tx,request,value,settled=false;
@@ -1306,8 +1310,12 @@ function renderEquipmentReconciliation(){
  }).join('')||'<p class="muted">Осмотры ещё не записывались.</p>';
 }
 
-function putEntranceVideo(record){
- return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(record)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
+async function putEntranceVideo(record){
+ if(!record?.blob||typeof record.blob.slice!=='function')throw new Error('Не удалось проверить оригинал видео перед сохранением.');
+ if(!window.PasekaSha256?.hashBlobHex)throw new Error('Модуль проверки SHA-256 недоступен. Видео не сохранено.');
+ const blobSha256=await window.PasekaSha256.hashBlobHex(record.blob);
+ const storedRecord={...record,blobSha256};
+ return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(storedRecord)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
 }
 function listEntranceVideos(){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').getAll()}catch(e){no(e);return}q.onsuccess=()=>ok((q.result||[]).sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||''))));q.onerror=()=>no(q.error||new Error('Не удалось прочитать список видео'))});
@@ -3605,6 +3613,444 @@ async function confirmHoneyReturn(){
 }
 
 async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+async function downloadFullArchive(){
+ const button=$('downloadFullArchiveButton'),status=$('fullArchiveStatus');
+ if(button?.disabled)return;
+ if(button)button.disabled=true;
+ if(status)status.textContent='Сохраняю изменения и готовлю полный архив…';
+ window.__pasekaFullArchiveBlob=null;
+ const previousShareButton=$('shareFullArchiveButton');
+ if(previousShareButton)previousShareButton.hidden=true;
+ try{
+  await saveQueue;
+  if(S.meta?.saveError)throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения; архив не создан.');
+  if(!db)throw new Error('Локальная база ещё не открыта.');
+  if(!window.PasekaArchive?.exportArchiveFromDatabase)throw new Error('Модуль полного архива не загружен. Обнови приложение и повтори попытку.');
+  if(!window.PasekaAndroidDownload?.saveToAndroidDownloads)throw new Error('Модуль сохранения архива не загружен. Обнови приложение и повтори попытку.');
+  const result=await PasekaArchive.exportArchiveFromDatabase(db,window.crypto);
+  const filename='paseka-full-backup-'+today()+'.paseka';
+  const shareButton = $('shareFullArchiveButton');
+  if (shareButton) {
+   try {
+    const shareFile = new File([result.blob], filename, { type: 'application/vnd.paseka.archive' });
+    const canShareArchive = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] }));
+    shareButton.hidden = !canShareArchive;
+    window.__pasekaFullArchiveBlob = canShareArchive ? result.blob : null;
+   } catch (shareCheckError) {
+    shareButton.hidden = true;
+    window.__pasekaFullArchiveBlob = null;
+   }
+  }
+  const isAndroidApp = !!(window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'android');
+  if (isAndroidApp) {
+   if(status)status.textContent='Архив сформирован. Сохраняю в папку «Загрузки/Пасека»…';
+   const uri=await PasekaAndroidDownload.saveToAndroidDownloads(result.blob,filename,(done,total)=>{
+    if(status)status.textContent='Сохраняю архив на устройство: '+done+' из '+total+' блоков…';
+   });
+   if(status)status.textContent='Архив сохранён в «Загрузки/Пасека». Файл: '+filename+'. Оригиналы остались в локальной базе.';
+  } else {
+   const url=URL.createObjectURL(result.blob),anchor=document.createElement('a');
+   anchor.href=url;anchor.download=filename;
+   document.body.appendChild(anchor);anchor.click();anchor.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   if(status)status.textContent='Архив сформирован и передан браузеру для скачивания: '+result.summary.videoCount+' видео летка · '+entranceBytes(result.summary.archiveBytes)+'. Проверь загрузки браузера.';
+  }
+ }catch(error){
+  if(status)status.textContent='Полный архив не сохранён: '+(error?.message||error);
+  alert('Не удалось сохранить полный архив. '+(error?.message||error));
+ }finally{
+  if(button)button.disabled=false;
+ }
+}
+
+
+async function shareFullArchive() {
+  const blob = window.__pasekaFullArchiveBlob;
+  if (!blob) { const status = $('fullArchiveStatus'); if (status) status.textContent = 'Сначала сформируй полный архив.'; return; }
+  if (!navigator.share || !navigator.canShare) {
+    const status = $('fullArchiveStatus');
+    if (status) status.textContent = 'Системная отправка файлов не поддерживается. Используй скачивание архива.';
+    return;
+  }
+  try {
+    const file = new File([blob], 'paseka-full-backup-' + today() + '.paseka', { type: 'application/vnd.paseka.archive' });
+    if (!navigator.canShare({ files: [file] })) {
+      const status = $('fullArchiveStatus');
+      if (status) status.textContent = 'Этот браузер не может отправить файл такого размера. Используй скачивание архива.';
+      return;
+    }
+    await navigator.share({ files: [file], title: 'Полный архив пасеки', text: 'Резервная копия журнала пасеки.' });
+    const status = $('fullArchiveStatus');
+    if (status) status.textContent = 'Системное меню отправки закрыто. Проверь выбранное приложение или место сохранения.';
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      const status = $('fullArchiveStatus');
+      if (status) status.textContent = 'Не удалось открыть системное меню отправки: ' + (error?.message || error);
+    }
+  }
+}
+
+function validateFullArchiveImportState(state) {
+  validateBackupState(state);
+  assertRawBackupIntegrity(state);
+  return true;
+}
+function setFullArchiveRestoreStatus(message) {
+  const status = $('fullArchiveRestoreStatus');
+  if (status) status.textContent = message;
+}
+function archiveRestoreErrorText(error) {
+  if (error?.code === 'STAGING_FINALIZE_CHANGED') {
+    return 'Временная копия изменилась или её счётчики повреждены. Обнови список и повтори проверку. Рабочие данные не менялись.';
+  }
+  if (error?.code === 'STAGING_FINALIZE_NOT_ALLOWED' || error?.code === 'STAGING_SESSION_NOT_FOUND') {
+    return 'Временная копия уже изменилась или удалена в другом окне. Обнови список. Рабочие данные не менялись.';
+  }
+  if (error?.code === 'STAGING_LEGACY_SESSION') {
+    return 'Эта временная копия создана старой версией приложения и не может быть безопасно завершена. Удали её и подготовь архив заново.';
+  }
+  if (error?.code === 'STAGING_SESSION_INCOMPLETE' || error?.code === 'STAGING_ENTRY_SET_INVALID' ||
+      error?.code === 'STAGING_CONTENT_MISSING' || error?.code === 'STAGING_MANIFEST_MISMATCH') {
+    return 'Содержимое временной копии неполное или повреждено. Завершить подготовку нельзя. Рабочие данные не менялись.';
+  }
+  if (error?.name === 'QuotaExceededError' || error?.code === 'QUOTA_EXCEEDED') {
+    return 'Недостаточно свободного места для временной копии и точки отката. Рабочие данные не заменены. Освободи место и повтори.';
+  }
+  if (error?.code === 'RESTORE_CONFLICT') {
+    return 'Рабочая база изменилась после предпросмотра. Повтори проверку архива; новые записи не будут затёрты.';
+  }
+  if (error?.code === 'ROLLBACK_STATE_CHANGED') {
+    return 'Журнал изменился после импорта архива. Отмена восстановления заблокирована, чтобы не потерять новые записи. Текущий журнал и точка отката сохранены.';
+  }
+  if (error?.code === 'ROLLBACK_IMPORT_REVISION_MISSING') {
+    return 'Не удалось подтвердить исходную ревизию импорта. Отмена восстановления заблокирована; текущие данные и точка отката сохранены.';
+  }
+  if (error?.code === 'CHECKSUM_MISMATCH' || error?.code === 'STAGING_CHECKSUM_MISMATCH') {
+    return 'Контрольная сумма не совпала. Архив повреждён или изменён; восстановление остановлено.';
+  }
+  if (error?.code === 'UNSUPPORTED_SCHEMA_VERSION') {
+    return 'Архив создан более новой версией приложения. Сначала обнови приложение.';
+  }
+  return error?.message || 'Неизвестная ошибка восстановления.';
+}
+function showFullArchiveRestorePreview(session) {
+  const preview = $('fullArchiveRestorePreview');
+  const actions = $('fullArchiveRestoreActions');
+  if (!preview || !actions) return;
+  const videos = (session.manifest?.entries || []).filter(entry => entry.kind === 'entrance_video').length;
+  const orphanCount = (session.orphanVideoIds || []).length;
+  const date = session.archiveCreatedAt ? new Date(session.archiveCreatedAt).toLocaleString('ru-RU') : 'не указана';
+  preview.textContent = 'Архив проверен. Создан: ' + date +
+    '. Версия данных: ' + session.schemaVersion +
+    '. Видео летка: ' + videos +
+    '. Видео без найденного улья: ' + orphanCount +
+    (orphanCount ? '. Эти видео сохранятся без привязки; после импорта их можно найти фильтром «Видео без найденного улья».' : '') +
+    '. Размер: ' + entranceBytes(session.archiveBytes) +
+    '. При подтверждении текущий журнал и все текущие видео будут заменены.';
+  preview.hidden = false;
+  actions.hidden = false;
+}
+async function prepareFullArchiveRestore() {
+  const button = $('prepareFullArchiveRestoreButton');
+  const file = $('fullArchiveFile')?.files?.[0];
+  if (!file) { setFullArchiveRestoreStatus('Сначала выбери файл .paseka.'); return; }
+  if (button?.disabled) return;
+  if (button) button.disabled = true;
+  $('fullArchiveRestorePreview').hidden = true;
+  $('fullArchiveRestoreActions').hidden = true;
+  window.__pasekaPendingFullArchiveRestore = null;
+  try {
+    await saveQueue;
+    if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения.');
+    if (!db || !window.PasekaArchive || !window.PasekaArchiveRestore) throw new Error('Модуль архива не загружен или локальная база недоступна.');
+    const live = await readMain();
+    if (!live) throw new Error('Основное состояние пасеки не найдено. Восстановление остановлено.');
+    const expectedRevision = live.meta?.revisionId ?? null;
+    if (expectedRevision !== (S.meta?.revisionId ?? null)) throw new Error('Рабочие данные изменились или ещё не сохранены. Обнови страницу и повтори проверку.');
+    setFullArchiveRestoreStatus('Проверяю структуру, контрольные суммы и видео. Рабочие данные пока не меняются…');
+    const staged = await PasekaArchiveRestore.stageArchiveForRestore(
+      db, file, window.crypto, PasekaArchive, validateFullArchiveImportState,
+      { onProgress: progress => setFullArchiveRestoreStatus('Проверка и подготовка архива: ' + progress.staged + ' из ' + progress.total + ' элементов…') }
+    );
+    window.__pasekaPendingFullArchiveRestore = { sessionId: staged.session.sessionId, expectedRevision };
+    showFullArchiveRestorePreview(staged.session);
+    setFullArchiveRestoreStatus(staged.alreadyStaged ? 'Ранее проверенный архив найден во временной области.' : 'Проверка завершена. Рабочие данные не менялись.');
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus('Архив не подготовлен: ' + archiveRestoreErrorText(error));
+    await renderArchiveImportHistory().catch(() => {});
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function finalizeFullArchiveStaging(sessionId, button) {
+  if (button?.disabled) return;
+  const originalText = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Проверяю…';
+  }
+
+  let finalized = false;
+  try {
+    setFullArchiveRestoreStatus('Повторно проверяю все данные временной копии. Рабочие данные не меняются…');
+    await PasekaArchiveRestore.finalizeStagedArchive(
+      db, sessionId, window.crypto, PasekaArchive, validateFullArchiveImportState
+    );
+    finalized = true;
+    setFullArchiveRestoreStatus('Временная копия полностью проверена и готова к просмотру и восстановлению.');
+  } catch (error) {
+    setFullArchiveRestoreStatus('Не удалось завершить подготовку: ' + archiveRestoreErrorText(error));
+  } finally {
+    if (button?.isConnected) {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = originalText;
+    }
+  }
+
+  try {
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus(finalized
+      ? 'Подготовка завершена, но список временных копий не обновился. Обнови страницу, чтобы увидеть готовый архив.'
+      : 'Список временных копий не обновился. Обнови страницу; рабочие данные не менялись.');
+  }
+}
+async function resumeFullArchiveRestore(sessionId) {
+  try {
+    await saveQueue;
+    if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения.');
+    const live = await readMain();
+    if (!live) throw new Error('Основное состояние пасеки не найдено.');
+    const expectedRevision = live.meta?.revisionId ?? null;
+    if (expectedRevision !== (S.meta?.revisionId ?? null)) throw new Error('Рабочая база изменилась. Обнови страницу и повтори.');
+    setFullArchiveRestoreStatus('Повторно проверяю временную копию перед восстановлением…');
+    const staged = await PasekaArchiveRestore.getStagedArchive(db, sessionId, window.crypto, PasekaArchive, validateFullArchiveImportState);
+    window.__pasekaPendingFullArchiveRestore = { sessionId, expectedRevision };
+    showFullArchiveRestorePreview(staged.session);
+    setFullArchiveRestoreStatus('Временная копия повторно проверена. Рабочие данные не менялись.');
+  } catch (error) {
+    window.__pasekaPendingFullArchiveRestore = null;
+    setFullArchiveRestoreStatus('Не удалось открыть подготовленный архив: ' + archiveRestoreErrorText(error));
+  }
+}
+async function cancelFullArchiveRestore() {
+  if (!window.__pasekaPendingFullArchiveRestore) return;
+  try {
+    await PasekaArchiveRestore.discardArchiveRestoreSession(db, window.__pasekaPendingFullArchiveRestore.sessionId);
+    window.__pasekaPendingFullArchiveRestore = null;
+    $('fullArchiveRestorePreview').hidden = true;
+    $('fullArchiveRestoreActions').hidden = true;
+    setFullArchiveRestoreStatus('Подготовленная временная копия удалена. Рабочие данные не менялись.');
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + archiveRestoreErrorText(error));
+  }
+}
+async function prepareMigratedArchiveState(state) {
+  const previousState = S;
+  try {
+    S = state;
+    migrateState();
+    const integrity = validateVirtualApiary();
+    if (integrity.errorCount) {
+      const codes = [...new Set(integrity.errors.map(item => item.code))].slice(0, 6).join(', ');
+      throw new Error('После миграции архив нарушает целостность модели (' + integrity.errorCount + ' ошибок: ' + codes + ').');
+    }
+    return typeof structuredClone === 'function' ? structuredClone(S) : JSON.parse(JSON.stringify(S));
+  } finally {
+    S = previousState;
+  }
+}
+async function commitFullArchiveRestore() {
+  if (!window.__pasekaPendingFullArchiveRestore || window.__pasekaRestoreBusy) return;
+  if (!confirm('Заменить текущую пасеку содержимым полного архива? Текущие данные и видео будут сохранены во временной точке отката.')) return;
+  window.__pasekaRestoreBusy = true;
+  const actions = $('fullArchiveRestoreActions');
+  if (actions) actions.hidden = true;
+  let committed = false;
+  try {
+    await saveQueue;
+    if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Восстановление остановлено.');
+    const live = await readMain();
+    if ((live?.meta?.revisionId ?? null) !== window.__pasekaPendingFullArchiveRestore.expectedRevision ||
+        (S.meta?.revisionId ?? null) !== window.__pasekaPendingFullArchiveRestore.expectedRevision) {
+      throw new Error('Рабочая база изменилась после проверки архива. Повторно проверь архив перед восстановлением.');
+    }
+    setFullArchiveRestoreStatus('Повторно проверяю архив и атомарно заменяю данные…');
+    const result = await PasekaArchiveRestore.commitStagedArchive(
+      db, window.__pasekaPendingFullArchiveRestore.sessionId, window.__pasekaPendingFullArchiveRestore.expectedRevision,
+      window.crypto, PasekaArchive, validateFullArchiveImportState, prepareMigratedArchiveState
+    );
+    // From this point the IndexedDB transaction has committed. Later UI failures
+    // must never be reported as a failed restore or offer a second import.
+    committed = true;
+    S = result.state;
+    lastPersistedRevision = S.meta?.revisionId || null;
+    autoBackupRecovered = false;
+    try { autoBackupInfo = await readAutoBackup(); } catch (backupError) { autoBackupInfo = null; }
+    window.__pasekaPendingFullArchiveRestore = null;
+    $('fullArchiveRestorePreview').hidden = true;
+    $('fullArchiveFile').value = '';
+    render();
+    setFullArchiveRestoreStatus('Восстановление завершено. Видео: ' + result.importedVideoCount + ', без привязки к улью: ' + result.orphanedVideoCount + '. Прежнее состояние и видео сохранены для отмены. Новая revision: ' + lastPersistedRevision + '.');
+    await renderArchiveImportHistory().catch(() => {});
+  } catch (error) {
+    if (committed) {
+      setFullArchiveRestoreStatus('Архив уже восстановлен и сохранён. Не удалось полностью обновить интерфейс: ' + (error.message || error) + '. Перезагрузи страницу. Повторно импортировать архив не нужно.');
+    } else {
+      setFullArchiveRestoreStatus('Восстановление не выполнено: ' + archiveRestoreErrorText(error) + ' Рабочая база не должна быть заменена частично.');
+      if (window.__pasekaPendingFullArchiveRestore) actions.hidden = false;
+    }
+  } finally {
+    window.__pasekaRestoreBusy = false;
+  }
+}
+async function rollbackFullArchiveImport(backupId) {
+  if (window.__pasekaRestoreBusy) return;
+  if (!confirm('Отменить это восстановление и вернуть состояние, которое было до него?')) return;
+  window.__pasekaRestoreBusy = true;
+  try {
+    await saveQueue;
+    if (S.meta?.saveError) throw new Error('Есть несохранённые изменения. Сначала устрани ошибку сохранения.');
+    const live = await readMain();
+    if (!live) throw new Error('Рабочее состояние не найдено.');
+    if ((live.meta?.revisionId ?? null) !== (S.meta?.revisionId ?? null)) throw new Error('Рабочая база изменилась или не совпадает с текущим экраном. Обнови приложение перед отменой восстановления.');
+    const result = await PasekaArchiveRestore.rollbackCommittedArchive(
+      db, backupId, live.meta?.revisionId ?? null, window.crypto, validateFullArchiveImportState
+    );
+    S = result.state;
+    lastPersistedRevision = S.meta?.revisionId || null;
+    autoBackupRecovered = false;
+    window.__pasekaPendingFullArchiveRestore = null;
+    $('fullArchiveRestorePreview').hidden = true;
+    $('fullArchiveRestoreActions').hidden = true;
+    try { autoBackupInfo = await readAutoBackup(); } catch (backupError) { autoBackupInfo = null; }
+    render();
+    setFullArchiveRestoreStatus('Предыдущее состояние восстановлено. Использованная точка отката удалена. Видео летка возвращено: ' + result.restoredVideoCount + '.');
+    await renderArchiveImportHistory().catch(() => {});
+  } catch (error) {
+    setFullArchiveRestoreStatus('Отмена восстановления не выполнена: ' + archiveRestoreErrorText(error));
+  } finally {
+    window.__pasekaRestoreBusy = false;
+  }
+}
+async function discardFullArchiveRollbackSnapshot(backupId) {
+  if (window.__pasekaRestoreBusy) return;
+  if (!confirm('Удалить сохранённую точку отката? После этого отменить это восстановление будет невозможно. Текущие данные останутся без изменений.')) return;
+  window.__pasekaRestoreBusy = true;
+  try {
+    const result = await PasekaArchiveRestore.discardArchiveRollbackSnapshot(db, backupId);
+    setFullArchiveRestoreStatus('Точка отката удалена. Освобождено записей: ' + result.deletedRecords + '.');
+    await renderArchiveImportHistory();
+  } catch (error) {
+    setFullArchiveRestoreStatus('Не удалось удалить точку отката: ' + archiveRestoreErrorText(error));
+  } finally {
+    window.__pasekaRestoreBusy = false;
+  }
+}
+
+async function renderArchiveImportHistory() {
+  const container = $('archiveImportHistory');
+  if (!container || !db || !window.PasekaArchiveRestore) return;
+  const sessions = await PasekaArchiveRestore.listArchiveRestoreSessions(db);
+  const history = await PasekaArchiveRestore.listArchiveImportHistory(db);
+  container.replaceChildren();
+  const heading = document.createElement('b');
+  heading.textContent = 'Подготовленные архивы и история восстановления';
+  container.appendChild(heading);
+  for (const session of sessions) {
+    const row = document.createElement('div');
+    row.className = 'muted';
+    const description = document.createElement('p');
+    description.textContent = 'Архив ' + (session.backupId || session.sourceBackupId || 'идентификатор не сохранён') + ' · ' + session.status + ' · подготовлено элементов: ' + session.stagedCount + '/' + session.totalEntries;
+    row.appendChild(description);
+    if (session.status === 'failed') {
+      const failure = document.createElement('p');
+      failure.className = 'muted';
+      failure.textContent = session.errorCode === 'QuotaExceededError' || session.errorCode === 'QUOTA_EXCEEDED'
+        ? 'Не хватило места для временной копии. Рабочие данные не изменены. Освободи место, удали эту временную копию и выбери архив повторно.'
+        : 'Подготовка архива была прервана. Рабочие данные не изменены. Удали эту временную копию и повтори подготовку архива.';
+      row.appendChild(failure);
+    }
+    const validStagingCounters =
+      Number.isSafeInteger(session.totalEntries) && session.totalEntries > 0 &&
+      Number.isSafeInteger(session.stagedCount) && session.stagedCount >= 0 &&
+      session.stagedCount <= session.totalEntries;
+    if (session.status === 'staging' && validStagingCounters && session.stagedCount === session.totalEntries) {
+      const finalize = document.createElement('button');
+      finalize.type = 'button';
+      finalize.textContent = 'Проверить и завершить подготовку';
+      finalize.addEventListener('click', () => finalizeFullArchiveStaging(session.sessionId, finalize));
+      row.appendChild(finalize);
+    } else if (session.status === 'staging' && !validStagingCounters) {
+      const invalid = document.createElement('p');
+      invalid.className = 'muted';
+      invalid.textContent = 'Сведения о подготовке временной копии повреждены или неполны. Завершать её нельзя. Рабочие данные не изменены. Проверь архив повторно; при необходимости удали эту временную копию и подготовь архив заново.';
+      row.appendChild(invalid);
+    } else if (session.status === 'staging') {
+      const incomplete = document.createElement('p');
+      incomplete.className = 'muted';
+      incomplete.textContent = 'Подготовка прервана до записи всех элементов. Эту временную копию нельзя завершить; удали её и выбери архив повторно.';
+      row.appendChild(incomplete);
+    }
+    if (session.status === 'ready') {
+      const resume = document.createElement('button');
+      resume.type = 'button';
+      resume.textContent = 'Просмотреть и восстановить';
+      resume.addEventListener('click', () => resumeFullArchiveRestore(session.sessionId));
+      row.appendChild(resume);
+    }
+    if (session.status !== 'committed') {
+      const discard = document.createElement('button');
+      discard.type = 'button';
+      discard.textContent = 'Удалить временную копию';
+      discard.addEventListener('click', async () => {
+        if (!confirm('Удалить эту временную копию архива? Рабочие данные не изменятся.')) return;
+        try {
+          await PasekaArchiveRestore.discardArchiveRestoreSession(db, session.sessionId);
+          if (window.__pasekaPendingFullArchiveRestore?.sessionId === session.sessionId) window.__pasekaPendingFullArchiveRestore = null;
+          await renderArchiveImportHistory();
+        } catch (error) { setFullArchiveRestoreStatus('Не удалось удалить временную копию: ' + archiveRestoreErrorText(error)); }
+      });
+      row.appendChild(discard);
+    }
+    container.appendChild(row);
+  }
+  for (const item of history) {
+    const row = document.createElement('div');
+    row.className = 'muted';
+    const description = document.createElement('p');
+    description.textContent = 'Архив ' + item.backupId + ' · ' + (item.status === 'committed' ? 'восстановлен' : item.status === 'reverted' ? 'восстановление отменено' : item.status) + (Number.isInteger(item.videoCount) ? ' · видео: ' + item.videoCount : '') + (Number.isInteger(item.orphanedVideoCount) && item.orphanedVideoCount ? ' · без привязки: ' + item.orphanedVideoCount : '') + ' · ' + new Date(item.importedAt).toLocaleString('ru-RU');
+    row.appendChild(description);
+    if (item.status === 'committed' && item.rollbackSessionId) {
+      const undo = document.createElement('button');
+      undo.type = 'button';
+      undo.textContent = 'Отменить восстановление';
+      undo.addEventListener('click', () => rollbackFullArchiveImport(item.backupId));
+      row.appendChild(undo);
+    }
+    if (item.rollbackSessionId) {
+      const discardRollback = document.createElement('button');
+      discardRollback.type = 'button';
+      discardRollback.textContent = 'Удалить точку отката';
+      discardRollback.addEventListener('click', () => discardFullArchiveRollbackSnapshot(item.backupId));
+      row.appendChild(discardRollback);
+    }
+    container.appendChild(row);
+  }
+  if (!sessions.length && !history.length) {
+    const empty = document.createElement('p');
+    empty.className = 'muted';
+    empty.textContent = 'Подготовленных архивов и истории восстановления пока нет.';
+    container.appendChild(empty);
+  }
+}
+
+
 function validateBackupState(state){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
@@ -3962,7 +4408,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
-  selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
+  selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();renderArchiveImportHistory().catch(()=>{});updateStorageEstimate();
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});

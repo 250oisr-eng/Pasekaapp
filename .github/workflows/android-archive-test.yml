@@ -1,0 +1,133 @@
+name: Build isolated archive test APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/full-archive-android-isolated-2026-11-18
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'tests/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'scripts/prepare-web.mjs'
+      - 'scripts/prepare-archive-test-config.mjs'
+      - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/prepare-android-archive-download.mjs'
+      - '.github/workflows/android-archive-test.yml'
+
+concurrency:
+  group: archive-test-android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'test/full-archive-android-isolated-2026-11-18'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache npm download data
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate or install Android command-line tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install Android SDK packages
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run regression tests
+        run: npm test
+      - name: Prepare isolated archive test package
+        run: node scripts/prepare-archive-test-config.mjs
+      - name: Verify isolated Capacitor configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const c=require('./capacitor.config.json'); if(c.appId!=='ru.paseka.journal.archive.test') throw new Error('Unexpected archive test package ID: '+c.appId); if(c.appName!=='Пасека — архив тест') throw new Error('Unexpected archive test app name');"
+      - name: Prepare web assets
+        run: npm run web:prepare
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Sync Android project
+        run: npx cap sync android
+      - name: Install native archive Downloads bridge
+        run: node scripts/prepare-android-archive-download.mjs
+      - name: Use Android 15-compatible Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Require Android 15 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'android/variables.gradle';
+          let source = fs.readFileSync(path, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)\\d+`, 'm');
+            if (!pattern.test(source)) throw new Error(`Could not find ${key} in ${path}`);
+            source = source.replace(pattern, `$1${value}`);
+          }
+          fs.writeFileSync(path, source);
+          const minLine = source.split(/\r?\n/).find(line => line.trim().startsWith('minSdkVersion'));
+          if (Number(minLine?.split('=').pop()?.trim()) !== 35) throw new Error('Expected minSdkVersion 35');
+          NODE
+      - name: Build isolated debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify package ID inside APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.test'"
+          if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then
+            echo "Production package ID unexpectedly found in isolated APK" >&2
+            exit 1
+          fi
+      - name: Upload isolated archive test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-archive-isolated-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
