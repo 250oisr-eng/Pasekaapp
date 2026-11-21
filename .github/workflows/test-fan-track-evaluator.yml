@@ -1,0 +1,23 @@
+name: Test fan track evaluator
+on:
+  pull_request:
+    paths:
+      - 'tools/evaluate_mendeley_v6_fan_tracks.py'
+      - 'tools/audit_mendeley_v6_fan_tracks.py'
+      - 'tools/compare_mendeley_v6_fan_frames.py'
+      - 'tests/test_evaluate_mendeley_v6_fan_tracks.py'
+      - '.github/workflows/test-fan-track-evaluator.yml'
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install --only-binary=:all: numpy==2.2.6 scipy==1.15.3 Pillow==12.0.0
+      - run: python -m unittest discover -s tests -p 'test_evaluate_mendeley_v6_fan_tracks.py' -v
