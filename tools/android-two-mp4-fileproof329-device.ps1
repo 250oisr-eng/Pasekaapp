@@ -31,8 +31,8 @@ function UTF8([byte[]]$bytes) {
  $d=New-Object System.Text.UTF8Encoding($false,$true)
  return $d.GetString($bytes)
 }
-function AdbText([string[]]$args) {
- $r=AdbBytes $args
+function AdbText([string[]]$argv) {
+ $r=AdbBytes $argv
  if($r.Code -ne 0){throw ('ADB_COMMAND_FAILED_'+$r.Code)}
  return (UTF8 $r.Bytes).Trim()
 }
