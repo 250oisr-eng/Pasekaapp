@@ -23,5 +23,38 @@ jobs:
           python-version: '3.12'
       - name: Check strict CSV parser and fail-closed flags (no third-party dependencies)
         run: python -m unittest discover -s tests -p 'test_audit_public_bee_manual_event_tables.py' -v
-      - name: Check two real pinned public CSV sources and aggregate class revisions
-        run: python tools/audit_public_bee_manual_event_tables.py
+      - name: Check two real SHA256 pinned public CSV sources and aggregate class revisions
+        run: |
+          set -o pipefail
+          python tools/audit_public_bee_manual_event_tables.py | tee /tmp/paseka-bee-event-audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("/tmp/paseka-bee-event-audit.json").read_text())
+          original = report["sourceTables"]["original"]
+          alternative = report["sourceTables"]["alternative"]
+          assert original["rows"] == alternative["rows"] == 1422
+          assert original["referencedVideoNames"] == alternative["referencedVideoNames"] == 12
+          assert original["eventCodeCounts"] == {"D": 552, "DU": 241, "U": 339, "UD": 200, "x": 90}
+          assert alternative["eventCodeCounts"] == {"": 85, "D": 536, "DU": 248, "U": 333, "UD": 220}
+          comparison = report["crossTableComparison"]
+          assert comparison["sameGroupIdRows"] == 1422
+          assert comparison["eventLabelsChangedByGroupId"] == 177
+          assert comparison["eventIdChangedByGroupId"] == 0
+          assert comparison["videoNameChangedByGroupId"] == 0
+          assert report["sourceFiles"]["original"]["sourceSha256"] == "8d5ef1db7e742849d018c79ab8ad27cf3828518750e68aacac22ee1bf2b70d07"
+          assert report["sourceFiles"]["alternative"]["sourceSha256"] == "51cbd31c6638dac8ebbc2b0069b441aec64bb5355edd52351ea70a45cecea059"
+          for flag in ("sourceGitRepositoryLicenseFileFound",
+                       "permissionToRedistributeSourceEventsVerified",
+                       "labelCodebookIndependentlyVerified",
+                       "manualEventGroundTruthIndependentOfModelVerified",
+                       "physicalVideoSourceBytesVerified",
+                       "final1194EventSubsetReproduced",
+                       "independentValidationAuthorized",
+                       "modelTrainingAuthorized",
+                       "realBeeTrafficAccuracyMeasured",
+                       "beeRecognitionSucceeded",
+                       "videoCleanupAuthorized"):
+              assert report[flag] is False, flag
+          print("External author-event source pins confirmed; no traffic/model/cleanup approval")
+          PY
