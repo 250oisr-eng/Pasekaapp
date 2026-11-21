@@ -24,7 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
       - name: Exercise PASEKA02 integrity and abort regression tests
         run: node --test tests/video-archive-v2-pending-stage.test.mjs
