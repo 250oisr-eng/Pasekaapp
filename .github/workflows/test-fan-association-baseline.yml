@@ -1,5 +1,10 @@
 name: Test fan IoU association baseline
 on:
+  push:
+    paths:
+      - 'tools/**'
+      - 'tests/test_*fan*.py'
+      - '.github/workflows/test-fan-*.yml'
   pull_request:
     paths:
       - 'tools/baseline_mendeley_v6_fan_association.py'
