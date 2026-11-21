@@ -1,3 +1,11 @@
+## 2026-11-21 — сверка независимых YOLO объектов и fan tracks после визуального кандидата
+
+В продолжение прежнего MAE-поиска 12 original detection JPEG по публичному fan MP4 выполнена **вторая независимая ось сравнения: object bbox**. На code SHA `4ad088cb462ab70fedbe93a848d884aea4804535` CI [#44888737943](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44888737943) success, 6000 кадров и все 12 оригинальных JPEG/YOLO TXT проверены по publisher SHA. Для первого JPG `20230711a0.jpg` (ближайший video frame 0) совпадают 20/21 tracking bbox; для `20230711a1020.jpg` (frame 1700) — 20/20 при IoU>=0.5. При этом в исходном `20230711a10140.txt` найдено нарушение границы одной или более YOLO рамок: geometry rejected, без исправлений. Все сведения, ограничения и атрибуция — `VIDEO-MENDELEY-V6-CROSS-ANNOTATION-ALIGNMENT.md`.
+
+**Вывод для будущего train/test:** обнаружен конкретный высокий риск leakage внутри группы `20230711a`; отсутствие прочих совпадений не является доказательством отдельного original recording. До верификации происхождения физической записи и независимых sessions обучение не авторизовано.
+
+---
+
 # Сверка 96 пар с каталогом Mendeley v6
 
 Источник — Tomyslav Sledevic, Mendeley Data v6, CC BY 4.0. Каталог detection включает 7200 кадров. Данная проверка касается 96 JPG и 96 TXT из реестра Work. [Страница набора](https://data.mendeley.com/datasets/8gb9r2yhfc/6).
