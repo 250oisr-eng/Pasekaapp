@@ -1,3 +1,11 @@
+## RESTORE335 — 65B read-only forensic preview CI PASS (2026-11-21)
+
+- На code/test/workflow SHA `341b99d6bf47875740024c929fe76e8b564d559e` [GitHub Actions #44944133054](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44944133054) **completed/success**: PowerShell syntax, static no-write/no-install/128-byte bound tests и actual `pwsh` c mock-ADB 65-byte private diagnostic text. Код не проверен на физическом Android новым инструментом.
+- Следующий физический read-only сценарий `tools/android-restoreproof335-private65-forensics.ps1`: показывает ASCII/hex **только малого private input 65B и private report 62B**, не выводит исходный архив и не трогает другие директории. Перед этим проверяет pinned original SHA и test packages. Любая неопределённость — BLOCKED, никакого удаления/reset/reinstall/retry old staging.
+- По реальным измерениям исходный файл 3158B/SHA PASS; private file 65B first mismatch byte 0; report exists 62B. **Причина ошибки до содержимого этих bytes не установлена.**
+
+---
+
 ## RESTORE335 — физический post-failure read-only 65-byte private file (2026-11-21)
 
 - Пользователь запустил закреплённый read-only `tools/android-restoreproof335-readonly-diagnostic.ps1` (code SHA `8ace0319bf54810c4c1016213e5df718ee3cea3c`) на OnePlus NE2213/API36. Точный результат: `ORIGINAL_BYTES: 3158`, `ORIGINAL_SHA256: PASS`; `PRIVATE_BYTES: 65`, `PRIVATE_SHA256: d626473be6b6766170d63ca7bdf77b854cf94fb769825b2f1db3854cd9c52a60`; `PRIVATE_MATCHES_ORIGINAL: NO`; `FIRST_DIFFERENT_BYTE_OFFSET: 0`; `LENGTH_DELTA: -3093`; `PRIVATE_REPORT_PRESENT: YES_BYTES_62`; `RESTORE_COMMIT: NOT_CONFIRMED`. Это реальные аппаратные данные из консоли пользователя, а не CI mock. Исходный архив после инцидента **сохранён с подтверждённым SHA**.
