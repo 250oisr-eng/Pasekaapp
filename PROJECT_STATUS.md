@@ -1,3 +1,9 @@
+## 2026-11-21 — контроль CI Android video external copy disclosure (Draft #316)
+
+- Видео через `<input type=file>` не доказывает исключительное владение приложением и отсутствие оригинала в Gallery/Camera/Downloads. В двух UI путях добавлены предупреждения и 6 статических регрессионных тестов, без доступа к внешним файлам и без включения удаления.
+- Первый профильный CI #44914199119: **FAILURE 5/6** — тест неверно ожидал прямое `copyFile("index.html")`, хотя скрипт `prepare-web.mjs` копирует HTML в цикле. Вторая попытка #44914256600: **FAILURE до запуска тестов** — ошибка чрезмерного экранирования регулярного выражения теста. Исправлено проверкой литералов, без изменений runtime. На SHA `fe39afb93e556757b9d481291b493dcc359bd4d2` профильный GitHub Actions #44914314990: **SUCCESS 6/6**. Android workflow #44914315307 выполняется на этом SHA; повторная проверка потребуется на последнем docs SHA.
+- Следующая работа: физический Android test matrix с явным согласием владельца на проверку Camera/Gallery/Downloads и без удаления исходников; пока эти проверки недоступны, сохранять fail-closed политику очистки.
+
 ## 2026-11-21 — Android video capture/picker: external-copy disclosure (Draft, поверх #315)
 
 - На актуальном коде проверено: `index.html` использует `<input type="file" accept="video/*" capture="environment">` для леткового видео и видео осмотров, плюс `rmedia` для выбора файлов. Видео создаётся/выбирается через системный механизм, но происхождение Camera/Gallery/MediaStore/Downloads **не доказано**. `capacitor.config.json` содержит WebView wrapper, `scripts/prepare-web.mjs` копирует HTML в Android bundle; нативный Android manifest не хранится в этой ветке и генерируется при CI.
