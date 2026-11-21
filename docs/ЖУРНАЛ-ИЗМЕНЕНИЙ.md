@@ -1,3 +1,12 @@
+## ANDROID MP4 — физический PASS синтетического декодирования (2026-11-22)
+
+- Пользователь запустил отдельный APK `ru.paseka.journal.diagnostic.mediatest` на реальном телефоне и передал текст результата: `status: PASS`, `code: SYNTHETIC_H264_METADATA_PLAYBACK_PROGRESS`, `fixtureSha256: 29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `videoDecode: PASS`, `width: 64`, `height: 64`, `currentTime: 0.2478`. Это пользовательский отчёт **реального тестового запуска**, а не независимый ADB-лог; подтверждён программный gate метаданных, `playing` и `timeupdate >0.05` на синтетическом H.264.
+- Отчёт одновременно фиксирует `recognition: NOT_TESTED`, `cleanup: NOT_TESTED`, `actualVideos: NOT_ACCESSED`. **Нельзя** переносить PASS на реальные MP4, модель распознавания, файл архива PASEKA01 или удаление видео после успешного распознавания.
+- На прежнем code SHA `f0d7f5e80ebc6995c743578b006d416c0eb320d8` workflow #44954165092 завершён success; на последнем проверенном перед этой записью SHA `3b1409c50acaa74b09b8c0369d8af14973e01b97` изолированная сборка #44954365300 и общая Android сборка #44954365266 — success. Workflow архивного APK skipped, не считать успехом.
+- Сохранить существующие тестовые APK/хранилища, **не повторять one-shot**, не удалять реальные и синтетические видео или архивы. Следующий независимый шаг: изучить доступную реализацию распознавания и подготовить отдельный test-only gate на синтетическом входе без воздействия на пользовательское хранилище. Любую очистку реальных видео допускать только после отдельно доказанного завершения распознавания и подтверждения пользователя.
+
+---
+
 ## ANDROID MP4 — успешная test-only APK сборка и независимая проверка артефакта (2026-11-22)
 
 - Code/test SHA `f0d7f5e80ebc6995c743578b006d416c0eb320d8`: [GitHub Actions #44954165092](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44954165092) — **completed/success**, включая pinned MP4 SHA/length, Node static safety regressions, Capacitor sync, Gradle assembleDebug, `aapt` проверки уникального тестового package и upload APK ZIP; generic Android build #44954165090 — completed/success. Skipped isolated archive workflow не считать проверкой.
