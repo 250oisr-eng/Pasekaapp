@@ -1,3 +1,9 @@
+## 2026-11-21 — one-shot bridge после изменения: CI 1230/1230 PASS
+
+- [Fast quality checks #44937306814](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44937306814) на точном code SHA `dd80a0f78fb68d898829fc55944fd35cf0ab379e` — **completed/success**, **1230/1230 PASS, 0 fail**. Это включает one-shot-after-attempt safety gate и static Java source contract tests.
+- [PR Android build #44937310691](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44937310691) **cancelled** в ходе последующего обновления документации; [старый isolated archive test APK #44937310695](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44937310695) **skipped**. Ни один из них не доказывает сборку нового package fileproof329. Разработанный generator Java еще не включён в Android APK, следовательно реальный javac/Gradle проверки этого bridge и физический MediaStore тест **NOT TESTED**.
+- Новые docs коммиты не должны трактоваться как повторный CI исходников. Данные `proof325` на OnePlus, пользовательские архивы и production не изменялись; никаких merge/deploy/delete.
+ 
 ## 2026-11-21 — Draft #329: ограниченный Android MediaStore proof bridge, без влияния на существующие архивы
 
 - После физического PASS `proof325` и реального PASEKA01 disk roundtrip Node CI подготовлен stacked [Draft #329](https://github.com/250oisr-eng/Pasekaapp/pull/329) поверх #328, не main. Добавлены `scripts/isolated-android-mediastore-proof-bridge.mjs` и `tests/android-two-mp4-mediastore-isolation.test.mjs`; протокол `docs/ANDROID-TWO-MP4-MEDIASTORE-PROOF329-PLAN.md`.
