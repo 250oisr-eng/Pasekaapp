@@ -30,7 +30,7 @@ DOI = "10.17632/8gb9r2yhfc.6"
 ROOT = Path(__file__).resolve().parents[1]
 PUBLISHER = ROOT / "tests/fixtures/mendeley-v6-publisher-checksums.csv"
 PREFIX = "20230711a"
-SAFE_SOURCE_FILENAME = re.compile(r"20230711a[0-9]+\\.(?:jpg|txt)\\Z")
+SAFE_SOURCE_FILENAME = re.compile(r"20230711a[0-9]+\.(?:jpg|txt)\Z")
 VIDEO_URL = (
     "https://data.mendeley.com/public-files/datasets/8gb9r2yhfc/files/"
     "5e49dc33-a4b9-4be7-af18-f51871e6b71c/file_downloaded"
