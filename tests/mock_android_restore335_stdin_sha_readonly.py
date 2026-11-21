@@ -61,6 +61,14 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         if result.stderr:print(result.stderr)
         assert result.returncode==code,(mode,result.stderr,result.stdout)
         assert expected in result.stdout,(mode,result.stdout)
+        if mode != 'source_corrupt':
+            assert 'REMOTE_EXIT_CODE: 0' in result.stdout
+            assert 'REMOTE_STDOUT_BYTES:' in result.stdout
+            assert 'REMOTE_STDOUT_SHA256:' in result.stdout
+        if mode == 'stdout_diagnostic':
+            assert 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC' in result.stdout
+        if mode == 'pass':
+            assert 'REMOTE_OUTPUT_CLASS' not in result.stdout
         assert 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE' in result.stdout if code else 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED' in result.stdout
         calls_text=calls.read_text()
         assert all(word not in calls_text for word in ('install','uninstall','rm','mkdir','am start','clear','sh -c','push','pull'))
