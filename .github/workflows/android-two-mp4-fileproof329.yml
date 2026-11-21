@@ -1,13 +1,16 @@
-name: Compile isolated MediaStore fileproof329 APK
+name: Build isolated two-MP4 MediaStore fileproof329 APK
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - test/android-two-mp4-mediastore-isolation-2026-11-21
+      - test/android-two-mp4-fileproof329-runtime-2026-11-21
     paths:
       - 'scripts/isolated-android-mediastore-proof-bridge.mjs'
       - 'tests/android-two-mp4-mediastore-isolation.test.mjs'
+      - 'tests/android-two-mp4-fileproof329-runtime.test.mjs'
+      - 'tests/fixtures/android-two-mp4-fileproof329.js'
+      - 'tests/fixtures/android-two-mp4-proof-fixtures.js'
       - 'scripts/prepare-android-two-mp4-fileproof329.mjs'
       - 'js/paseka-archive.js'
       - '.github/workflows/android-two-mp4-fileproof329.yml'
@@ -69,7 +72,7 @@ jobs:
         run: npm test
       - name: Prepare web assets
         run: npm run web:prepare
-      - name: Prepare isolated inert fileproof329 web
+      - name: Prepare isolated two-MP4 fileproof329 web
         run: PASEKA_FILEPROOF329_BUILD=1 node scripts/prepare-android-two-mp4-fileproof329.mjs web
       - name: Generate Android project
         run: npx cap add android
@@ -96,7 +99,7 @@ jobs:
           const minLine = source.split(String.fromCharCode(10)).find(line => line.trim().startsWith('minSdkVersion'));
           if (Number(minLine?.split('=').pop()?.trim()) !== 35) throw new Error('Expected minSdkVersion 35');
           NODE
-      - name: Build inert fileproof329 isolated debug APK
+      - name: Build active isolated fileproof329 debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Verify package ID inside APK
         shell: bash
@@ -112,7 +115,7 @@ jobs:
       - name: Upload isolated archive test APK
         uses: actions/upload-artifact@v4
         with:
-          name: paseka-fileproof329-inert-compile-apk
+          name: paseka-fileproof329-two-mp4-runtime-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
