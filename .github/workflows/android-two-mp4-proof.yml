@@ -16,7 +16,8 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'scripts/prepare-web.mjs'
-      - 'scripts/prepare-android-two-mp4-proof.mjs'\n      - 'tests/fixtures/android-two-mp4-proof*'
+      - 'scripts/prepare-android-two-mp4-proof.mjs'
+      - 'tests/fixtures/android-two-mp4-proof*'
       - 'scripts/patch-android-gradle.mjs'
       - 'scripts/prepare-android-archive-download.mjs'
       - '.github/workflows/android-two-mp4-proof.yml'
@@ -105,7 +106,8 @@ jobs:
             source = source.replace(pattern, `$1${value}`);
           }
           fs.writeFileSync(path, source);
-          const minLine = source.split(/\r?\n/).find(line => line.trim().startsWith('minSdkVersion'));
+          const minLine = source.split(/\r?
+/).find(line => line.trim().startsWith('minSdkVersion'));
           if (Number(minLine?.split('=').pop()?.trim()) !== 35) throw new Error('Expected minSdkVersion 35');
           NODE
       - name: Build proof-only isolated debug APK
