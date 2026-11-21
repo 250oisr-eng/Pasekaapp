@@ -1,3 +1,10 @@
+## FILEPROOF329 — CI подтверждён для read-only Android preflight (2026-11-21)
+
+- На HEAD `e8e44f7933226f8774723a39aa47c47a77360465` специализированный GitHub Actions [run #44939952001](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44939952001): `preflight` job completed/success; Node parser, PowerShell parser, negative + source-safety checks прошли. Это проверка кода, не физический Android запуск.
+- Следующее действие: один read-only вызов `tools/android-fileproof329-readonly-preflight.ps1` с существующим тестовым архивом, только после фиксации CI. Нет установки APK, restore commit или удаления видео. Телефон пока не подвергался новому тесту.
+
+---
+
 ## FILEPROOF329 — следующий аппаратный read-only gate (2026-11-21)
 
 - CI для первоначального PR #333 HEAD `7dbfa8c39990211a9fd6110ce6b1be9a94a640dc`: [run 44939830190](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44939830190) завершён `success` (Node parse и негативные тесты). Это не физический restore.
