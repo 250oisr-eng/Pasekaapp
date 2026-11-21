@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - test/android-two-mp4-isolated-apk-proof-2026-11-21
+    paths:
+      - 'tests/fixtures/android-two-mp4-proof*'
+      - 'tests/android-two-mp4-proof.test.mjs'
+      - 'scripts/prepare-android-two-mp4-proof.mjs'
+      - 'js/paseka-archive.js'
+      - '.github/workflows/android-two-mp4-proof.yml'
   pull_request:
     paths:
       - 'index.html'
