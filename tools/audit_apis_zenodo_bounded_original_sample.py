@@ -123,10 +123,27 @@ def parse_central_directory(data, expected_count):
         except UnicodeError as exc:
             raise ValueError("source ZIP filenames not UTF-8") from exc
         path=PurePosixPath(name)
-        if (not name or name.startswith("/") or "\\" in name or ".." in path.parts
-                or len(name) > 512 or local_offset >= EXPECTED_ARCHIVE_BYTES
-                or name in items):
-            raise ValueError("unsafe/duplicate ZIP filename")
+        rejection_reasons = [
+            reason for reason, rejected in (
+                ("empty", not name),
+                ("absolute", name.startswith("/")),
+                ("backslash", "\\" in name),
+                ("traversal", ".." in path.parts),
+                ("overlong", len(name) > 512),
+                ("offset", local_offset >= EXPECTED_ARCHIVE_BYTES),
+                ("duplicate", name in items),
+            ) if rejected
+        ]
+        if rejection_reasons:
+            # Publish only a bounded diagnostic from the official public archive.
+            # Do not normalize or accept an unsafe filename to make CI pass.
+            raise ValueError(
+                "unsafe/duplicate ZIP filename: "
+                + ",".join(rejection_reasons)
+                + " at entry=" + str(len(items))
+                + " path=" + repr(name[:110])
+                + " localOffset=" + str(local_offset)
+            )
         mode = external >> 16
         if (mode & 0o170000) == 0o120000:
             raise ValueError("symlinks not accepted in original archive")
