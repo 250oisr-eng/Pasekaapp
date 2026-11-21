@@ -30,8 +30,8 @@ const done=tx=>new Promise((resolve,reject)=>{
  tx.onerror=tx.onabort=()=>reject(tx.error||new Error('aborted'));
 });
 let sequence=0;
-async function setup(){
- const req=new IDBFactory().open('v2-pending-stage-'+(++sequence),1);
+async function setup(factory=new IDBFactory()){
+ const req=factory.open('v2-pending-stage-'+(++sequence),1);
  req.onupgradeneeded=()=>{
   const db=req.result;
   db.createObjectStore('main');
@@ -228,4 +228,93 @@ test('corrupted archive fails before any write transaction or staging copy',asyn
  assert.equal(await count(db,'archive_staging'),0);
  assert.equal(await count(db,'archive_history'),0);
  db.close();
+});
+
+for (const abortAfter of ['v2_pending_session', 'v2_pending_original', 'v2_pending_stage_only']) {
+ test('reopen and retry after an IndexedDB abort at ' + abortAfter, async t => {
+  const factory = new IDBFactory();
+  let db = await setup(factory);
+  t.after(() => db.close());
+  const name = db.name;
+  const {file, digest} = await archive();
+  const original = new Blob(['other original']);
+  const seed = db.transaction('entrance_media', 'readwrite');
+  seed.objectStore('entrance_media').add({id: 'unrelated', blob: original});
+  await done(seed);
+  let interrupted = false;
+  const interruptible = {
+   objectStoreNames: db.objectStoreNames,
+   transaction(stores, mode) {
+    const tx = db.transaction(stores, mode);
+    if (mode === 'readwrite') {
+     for (const name of ['archive_staging', 'archive_history']) {
+      const store = tx.objectStore(name);
+      const add = store.add.bind(store);
+      store.add = row => {
+       const request = add(row);
+       if (row.kind === abortAfter) request.addEventListener('success', () => {
+        interrupted = true;
+        tx.abort();
+       });
+       return request;
+      };
+     }
+    }
+    return tx;
+   }
+  };
+  await assert.rejects(stage(interruptible, file, cfg(), deps()));
+  assert.equal(interrupted, true);
+  db.close();
+  const open = factory.open(name);
+  db = await new Promise((resolve, reject) => {
+   open.onsuccess = () => resolve(open.result);
+   open.onerror = () => reject(open.error);
+  });
+  assert.equal((await inspect(db, cfg().backupId)).status, 'not_staged');
+  assert.equal(await count(db, 'archive_history'), 0);
+  assert.equal(await count(db, 'archive_staging'), 0);
+  assert.equal((await stage(db, file, cfg(), deps())).staged, true);
+  await rejects(stage(db, file, cfg(), deps()), 'V2_STAGE_EXISTING_PROTECTED_RECORDS');
+  assert.equal((await inspect(db, cfg().backupId)).status, 'protected_unverified');
+  const child = await get(db, 'archive_staging', 'v2pending:pending-snapshot:entrance_media:new-entrance');
+  assert.equal(await sha(child.blob), digest);
+  assert.equal(await count(db, 'archive_staging'), 2);
+  assert.equal(await count(db, 'archive_history'), 1);
+  assert.deepEqual(await get(db, 'main', 'state'), state());
+  assert.deepEqual(await get(db, 'main', 'video_recognition_ledger_v1'), ledger());
+  assert.equal(await count(db, 'full_backup'), 0);
+  assert.equal(await count(db, 'entrance_media'), 1);
+  assert.equal(await sha((await get(db, 'entrance_media', 'unrelated')).blob), await sha(original));
+ });
+}
+
+test('recovery rejects a header naming itself as the only staged video', async t => {
+ const db = await setup();
+ t.after(() => db.close());
+ const {file} = await archive();
+ const {sessionId} = await stage(db, file, cfg(), deps());
+ const header = await get(db, 'archive_staging', sessionId);
+ header.entryIds = [sessionId];
+ const tx = db.transaction('archive_staging', 'readwrite');
+ tx.objectStore('archive_staging').put(header);
+ await done(tx);
+ const report = await inspect(db, cfg().backupId);
+ assert.equal(report.status, 'manual_review_required');
+ assert.equal(report.cleanupAuthorized, false);
+ assert.equal(await count(db, 'archive_staging'), 2);
+});
+
+test('a staged child associated with another session requires manual review', async t => {
+ const db = await setup();
+ t.after(() => db.close());
+ const {file, digest} = await archive();
+ const {sessionId} = await stage(db, file, cfg(), deps());
+ const header = await get(db, 'archive_staging', sessionId);
+ const child = await get(db, 'archive_staging', header.entryIds[0]);
+ const tx = db.transaction('archive_staging', 'readwrite');
+ tx.objectStore('archive_staging').put({...child, sessionId: 'another-session'});
+ await done(tx);
+ assert.equal((await inspect(db, cfg().backupId)).status, 'manual_review_required');
+ assert.equal(await sha((await get(db, 'archive_staging', child.id)).blob), digest);
 });
