@@ -1,0 +1,27 @@
+name: Validate fileproof329 read-only recovery
+
+on:
+  push:
+    branches:
+      - test/android-fileproof329-report-recovery-2026-11-21
+    paths:
+      - 'tools/android-fileproof329-readonly-recovery.ps1'
+      - 'tests/test_android_fileproof329_readonly_recovery_mock.sh'
+      - '.github/workflows/test-android-fileproof329-readonly-recovery.yml'
+  pull_request:
+    paths:
+      - 'tools/android-fileproof329-readonly-recovery.ps1'
+      - 'tests/test_android_fileproof329_readonly_recovery_mock.sh'
+      - '.github/workflows/test-android-fileproof329-readonly-recovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell and mocked byte-exact ADB reports
+        run: bash tests/test_android_fileproof329_readonly_recovery_mock.sh
