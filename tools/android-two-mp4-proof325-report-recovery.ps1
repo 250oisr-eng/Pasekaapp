@@ -86,7 +86,8 @@ function ReportSnapshot {
     $checked += $value
     Write-Host ('REPORT_'+($i+1)+'_STATUS: '+$value.status)
   }
-  return ,$checked
+  # Emit each report as a separate pipeline item for @(... ) consumers.
+  return $checked
 }
 try {
   $devices = ReadAdb @('devices','-l')
