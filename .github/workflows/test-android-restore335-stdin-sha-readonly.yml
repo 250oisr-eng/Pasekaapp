@@ -29,6 +29,8 @@ jobs:
           assert "ADB @('-d','shell','run-as',$pkg,'/system/bin/toybox','sha256sum','-') $archive.Bytes" in s
           assert "ADB @('-d','exec-out','cat',$source)" in s
           assert "$archive.Bytes.Length -ne 3158" in s
+          assert "HOST_ADB_TOO_OLD_REQUIRES_1_0_41_OR_NEWER" in s
+          assert "ADB @(\'version\')" in s
           assert "'shell','-T'" not in s
           assert "'/system/bin/toybox','sha256sum','-'" in s
           assert "NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE" in s
