@@ -2,6 +2,11 @@ name: Audit real Mendeley v6 scene similarity and manifest coverage (research on
 on:
   pull_request:
     paths:
+      - 'tools/*mendeley_v6*publisher_checksums.py'
+      - 'tools/audit_mendeley_v6_work_replay.py'
+      - 'tests/test_*mendeley_v6*publisher_checksums.py'
+      - 'tests/test_audit_mendeley_v6_work_replay.py'
+      - 'tests/fixtures/mendeley-v6-publisher-checksums.csv'
       - 'tools/audit_mendeley_v6_original_scene_similarity.py'
       - 'tools/merge_mendeley_v6_pinned_manifests.py'
       - 'tools/audit_mendeley_v6_grouped_split_proposal.py'
@@ -27,6 +32,12 @@ jobs:
           python-version: '3.12'
       - name: Fixed free Pillow only in isolated audit
         run: python -m pip install --disable-pip-version-check --no-deps Pillow==12.0.0
+      - name: Compare historical response evidence with versioned publisher checksums
+        run: |
+          python -m unittest discover -s tests -p 'test_*mendeley_v6*publisher_checksums.py' -v
+          python -m unittest discover -s tests -p 'test_audit_mendeley_v6_work_replay.py' -v
+          python tools/compare_mendeley_v6_publisher_checksums.py
+          python tools/audit_mendeley_v6_work_replay.py
       - name: Offline negative-security regressions (scene fingerprint)
         run: python -m unittest discover -s tests -p 'test_audit_mendeley_v6_original_scene_similarity.py' -v
       - name: Offline negative-security regressions (manifest accumulation)

@@ -1,3 +1,9 @@
+## 2026-11-21 — эталонные контрольные суммы издателя
+
+[Подробная сверка и воспроизведение](VIDEO-MENDELEY-V6-PUBLISHER-CHECKSUMS.md) — издательские SHA, результаты повторных чтений и границы проверки происхождения кадров.
+
+---
+
 ## 2026-11-20 — три связанные меры против ложного train/test и подмены source v6
 
 - `VIDEO-MENDELEY-V6-SCENE-SIMILARITY-AND-SPLIT-GATE.md` — фактические SHA+64-bit dHash по 16 original JPEG (8 within/112 across, dHash threshold **не** proof), offline metadata-only merge до 7200 исходных JPEG/TXT из проверенных CSV, fail-closed structural group split без доказанной video/session independence, 38 tests и CI; требования landing board ROI/tracks/line crossing.
