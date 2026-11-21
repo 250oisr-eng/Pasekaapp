@@ -40,6 +40,26 @@ class FanAssociationBaselineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 associate_boxes([{}], threshold)
 
+    def test_6000_frame_synthetic_load_without_source_id_leakage(self):
+        # Performance/scale smoke check only: NOT a real detector accuracy result.
+        boxes = [(i / 16, .2, i / 16 + .04, .24) for i in range(12)]
+        frames = [{(i + k * 47) % 40003 + 1: box for i, box in enumerate(boxes)}
+                  for k in range(6000)]
+        predictions = associate_boxes(frames)
+        metrics = evaluate(frames, predictions)
+        self.assertEqual(metrics["frames"], 6000)
+        self.assertEqual(metrics["matched"], 72000)
+        self.assertEqual(metrics["missed"], 0)
+        self.assertEqual(metrics["extra"], 0)
+        self.assertEqual(metrics["adjacentIdSwitches"], 0)
+        self.assertEqual(metrics["adjacentMatchedTransitions"], 12 * 5999)
+
+    def test_reenter_after_disappearance_gets_fresh_id(self):
+        source = [{1: A}, {1: B}, {1: A}]
+        predictions = associate_boxes(source)
+        self.assertEqual(len({next(iter(x)) for x in predictions}), 3)
+        self.assertEqual(evaluate(source, predictions)["adjacentIdSwitches"], 2)
+
     def test_input_is_not_mutated(self):
         source = [{3: A}, {3: A}]
         associate_boxes(source)
