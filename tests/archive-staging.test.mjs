@@ -1882,3 +1882,26 @@ test('PASEKA01 writer lock rejects protected V2 staging arriving after async pre
  assert.deepEqual(await getAll(db,'archive_history'),[]);
  db.close();
 });
+
+
+test('legacy commit rejects a V2 protected snapshot created after old archive staging',async()=>{
+ const db=await openTestDb('legacy-ready-then-protected-v2');
+ const live=stateFixture('live before quarantine');live.meta.revisionId='live-current';
+ await put(db,'main',live,'state');
+ const file=await makeArchive('old-backup-before-v2-protection');
+ const stage=await Restore.stageArchiveForRestore(db,file,webcrypto,Archive,()=>true);
+ const key='v2entrance:other-protected-backup';
+ const protectedCopy={kind:'v2_entrance_quarantine_rollback_snapshot',
+  quarantinedMedia:[{id:'recognized',blob:new Blob(['protected original'],{type:'video/mp4'})}]};
+ await put(db,'full_backup',protectedCopy,key);
+ await assert.rejects(
+  Restore.commitStagedArchive(db,stage.session.sessionId,'live-current',webcrypto,Archive,()=>true),
+  {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'}
+ );
+ assert.deepEqual(await get(db,'main','state'),live);
+ assert.deepEqual(await get(db,'full_backup',key),protectedCopy);
+ assert.equal((await get(db,'archive_staging',stage.session.sessionId)).status,'ready');
+ assert.equal(await get(db,'archive_history','old-backup-before-v2-protection'),undefined);
+ assert.deepEqual(await getAll(db,'entrance_media'),[]);
+ db.close();
+});
