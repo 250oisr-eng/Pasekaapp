@@ -49,6 +49,10 @@ def main():
     metrics = evaluate(reference, predictions, args.evaluation_iou)
     metrics["baseline"] = "adjacent-frame-IoU-only / reference boxes / reference IDs hidden"
     metrics["associationIoU"] = args.association_iou
+    metrics["realDetectorEvaluated"] = False
+    metrics["entranceLineCrossingsEvaluated"] = False
+    metrics["androidOfflineInferenceVerified"] = False
+    metrics["videoCleanupAuthorized"] = False
     print(json.dumps(metrics, indent=2, allow_nan=False))
 
 
