@@ -10,6 +10,7 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_licensed_native_bee_archive_manifest import (
     EXPECTED_FILES, MAX_ZIP_BYTES, download_checked_archive, inspect_zip, read_annotation_structure,
+    audit_cross_archive_jpg_byte_overlap,
 )
 
 
@@ -152,6 +153,28 @@ class ArchiveSourceAuditTests(unittest.TestCase):
             self.assertEqual(r["emptyLabelFiles"], 1)
             self.assertEqual(r["annotatedRows"], 0)
             self.assertFalse(r["physicalInOutEventsValidated"])
+
+
+    def test_exact_image_overlap_is_not_claimed_independent(self):
+        with tempfile.TemporaryDirectory() as td:
+            a, b = Path(td) / "a.zip", Path(td) / "b.zip"
+            a.write_bytes(archive([("a/images/1.jpg", b"sharedjpeg"),
+                                   ("a/images/2.jpg", b"unique_a")]))
+            b.write_bytes(archive([("b/images/3.jpg", b"sharedjpeg"),
+                                   ("b/images/4.jpg", b"unique_b")]))
+            r = audit_cross_archive_jpg_byte_overlap(a, b)
+            self.assertEqual(r["sharedExactJpgSha256"], 1)
+            self.assertEqual(r["detectionFramesWithExactMatchInTracking"], 1)
+            self.assertFalse(r["independentTrainingValidationSplitEstablished"])
+
+    def test_no_exact_jpg_overlap_still_does_not_prove_independent_sessions(self):
+        with tempfile.TemporaryDirectory() as td:
+            a, b = Path(td) / "a.zip", Path(td) / "b.zip"
+            a.write_bytes(archive([("a/1.jpg", b"a")]))
+            b.write_bytes(archive([("b/1.jpg", b"b")]))
+            r = audit_cross_archive_jpg_byte_overlap(a,b)
+            self.assertEqual(r["sharedExactJpgSha256"], 0)
+            self.assertFalse(r["imageVisualOrSessionIndependenceProved"])
 
     def test_download_cap_is_tight(self):
         self.assertLess(max(x[1] for x in EXPECTED_FILES.values()), MAX_ZIP_BYTES)
