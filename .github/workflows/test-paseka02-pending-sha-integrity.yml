@@ -1,0 +1,30 @@
+name: Test PASEKA02 pending Blob SHA integrity
+
+on:
+  push:
+    paths:
+      - 'js/video-archive-v2-pending-stage.js'
+      - 'tests/video-archive-v2-pending-stage.test.mjs'
+      - '.github/workflows/test-paseka02-pending-sha-integrity.yml'
+  pull_request:
+    paths:
+      - 'js/video-archive-v2-pending-stage.js'
+      - 'tests/video-archive-v2-pending-stage.test.mjs'
+      - '.github/workflows/test-paseka02-pending-sha-integrity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  staged-media-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Exercise PASEKA02 integrity and abort regression tests
+        run: node --test tests/video-archive-v2-pending-stage.test.mjs
