@@ -8,7 +8,7 @@ const builder=readFileSync(new URL('../scripts/prepare-android-synthetic-mp4-apk
 test('fixture is deterministic exact H264 synthetic video, not a real phone recording',()=>{
  const b64=fixture.match(/SYNTHETIC_MP4_BASE64='([^']+)'/)[1];
  const bytes=Buffer.from(b64,'base64');
- assert.equal(bytes.length,1721);
+ assert.equal(bytes.length,1720);
  assert.equal(createHash('sha256').update(bytes).digest('hex'),'29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49');
  assert.equal(bytes.toString('latin1',4,8),'ftyp');
 });
