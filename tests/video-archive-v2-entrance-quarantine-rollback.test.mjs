@@ -587,3 +587,23 @@ test('legacy PASEKA01 renamed original remains blocked after v2 quarantine with 
  const backup=await get(db,'full_backup','v2entrance:quarantine-test');
  assert.equal(await sha(backup.quarantinedMedia[0].blob),digest);
 });
+
+
+test('missing recognition ledger must not allow PASEKA01 staging when v2 quarantine survives',async t=>{
+ const old=await makeLegacyPaseka01Archive();
+ const {db,digest}=await seed();
+ t.after(()=>db.close());
+ await rollback(db,rollbackOpts(),d());
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').delete('video_recognition_ledger_v1');
+ await done(tx);
+ // The original remains in the protected quarantine: ledger loss cannot
+ // authorize importing an older backup, even for a once-valid legacy format.
+ await assert.rejects(old.Restore.stageArchiveForRestore(db,old.file,webcrypto,old.Archive,()=>true));
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_staging'),2);
+ assert.equal(await count(db,'archive_history'),1);
+ const protectedBackup=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(protectedBackup.quarantinedMedia[0].blob),digest);
+ assert.equal(await get(db,'main','video_recognition_ledger_v1'),undefined);
+});
