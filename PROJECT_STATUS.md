@@ -1,3 +1,11 @@
+## RESTORE335 — physical stdin probe BLOCKED (2026-11-21)
+
+- User executed pinned read-only probe at `090fb2f9604ddbd26dad4ee0e2492d67a40abd9f` on physical NE2213/API36: source `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`; stage 3 `STATUS: BLOCKED / STDIN_SHA256_OUTPUT_INVALID`. Remote stdout did not match the expected digest syntax; not evidence of changed stdin bytes. No Android writes/install/restore/cleanup.
+- Same Draft PR #341 updated with bounded non-content diagnostics: remote exit code, stdout byte count and SHA256, classification of output as error diagnostic/empty/unknown. Mock regressions extended. New CI exact HEAD and physical diagnostic pending.
+- Next: confirm CI on exact latest SHA, then one read-only pinned rerun; never repeat installer or write to private test directory before root cause is established.
+
+---
+
 ## RESTORE335 — read-only binary stdin transport probe (2026-11-21)
 
 - Physical OnePlus NE2213/API36 path-audit: pinned external PASEKA01 3158 bytes SHA256 PASS; `run-as pwd` = `/data/user/0/ru.paseka.journal.archive.restoreproof335`; `files/`, private input and report all NOT_FOUND. Earlier 65/62 byte diagnostics are missing-file stdout, not stored files.
