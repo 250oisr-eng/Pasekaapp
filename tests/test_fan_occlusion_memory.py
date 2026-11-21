@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from fan_occlusion_memory import associate_with_memory
-from fan_memory_diagnostics import memory_diagnostics
+from fan_memory_diagnostics import memory_diagnostics, cross_reference_reuse_events
 from compare_public_fan_memory import safety_gate
 from baseline_mendeley_v6_fan_association import associate_boxes
 
@@ -99,6 +99,14 @@ class MemoryDiagnosticsTests(unittest.TestCase):
         self.assertFalse(safety_gate(baseline, improved_but_unsafe))
         self.assertTrue(safety_gate(baseline, safe))
         self.assertFalse(safety_gate(baseline, stagnant))
+        self.assertFalse(safety_gate(baseline, safe, introduced_wrong_links=1))
+
+    def test_wrong_link_event_identifies_true_bees_not_predicted_id(self):
+        reference = [{1: A}, {}, {2: A}]
+        predicted = [{50: A}, {}, {50: A}]
+        self.assertEqual(cross_reference_reuse_events(reference, predicted),
+                         {(0, 2, 1, 2)})
+        self.assertEqual(cross_reference_reuse_events(reference, [{50: A}, {}, {51: A}]), set())
 
     def test_no_double_count_for_adjacent_links(self):
         source = [{1: A}, {1: A}, {1: A}]
