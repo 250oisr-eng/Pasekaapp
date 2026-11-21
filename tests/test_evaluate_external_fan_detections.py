@@ -30,8 +30,9 @@ class ExternalPredictionsTests(unittest.TestCase):
                 {"frame": 2, "detections": []}]
 
     def test_two_complete_frames_are_accepted_without_identity_claims(self):
-        frames, count = inspect_predictions(self.write(self.good()), frame_count=2)
+        frames, count, source_identity = inspect_predictions(self.write(self.good()), frame_count=2)
         self.assertEqual(count, 1)
+        self.assertEqual(source_identity["sha256"], hashlib.sha256(self.input.read_bytes()).hexdigest())
         self.assertEqual(frames[0][0], tuple(BOX))
         self.assertEqual(frames[1], {})
 
@@ -39,10 +40,10 @@ class ExternalPredictionsTests(unittest.TestCase):
         records = self.good()
         records[0]["detections"].append({"box": [.6,.6,.7,.7], "confidence": .4})
         source = self.write(records)
-        frames, n = inspect_predictions(source, frame_count=2, minimum_confidence=.5)
+        frames, n, _ = inspect_predictions(source, frame_count=2, minimum_confidence=.5)
         self.assertEqual(n, 1)
         self.assertEqual(len(frames[0]), 1)
-        frames, n = inspect_predictions(source, frame_count=2, minimum_confidence=.95)
+        frames, n, _ = inspect_predictions(source, frame_count=2, minimum_confidence=.95)
         self.assertEqual(n, 0)
         self.assertEqual(frames, [{}, {}])
         for threshold in (-1, 1.1, float("nan"), True):
@@ -54,7 +55,7 @@ class ExternalPredictionsTests(unittest.TestCase):
         with self.input.open("w", encoding="utf-8") as stream:
             for frame in range(1, 6001):
                 stream.write(json.dumps({"frame": frame, "detections": []}) + "\n")
-        frames, n = inspect_predictions(self.input)
+        frames, n, _ = inspect_predictions(self.input)
         self.assertEqual((len(frames), n), (6000, 0))
         with self.input.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps({"frame": 6001, "detections": []}) + "\n")
@@ -171,6 +172,8 @@ class ExternalPredictionsTests(unittest.TestCase):
                                 self.input, minimum_confidence=.5)
         self.assertEqual(result["frameMetrics"]["matched"], 1)
         self.assertEqual(result["predictionsAtOrAboveThreshold"], 1)
+        self.assertEqual(result["predictionFileIdentity"]["sha256"],
+                         hashlib.sha256(self.input.read_bytes()).hexdigest())
         self.assertEqual(result["frameMetrics"]["frames"], 6000)
         self.assertFalse(result["predictionsGeneratedByModelVerified"])
         self.assertFalse(result["realDetectorValidated"])
