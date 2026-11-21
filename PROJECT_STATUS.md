@@ -1,3 +1,11 @@
+## RESTORE335 — physical shell -T returned command diagnostic (2026-11-21)
+
+- User ran pinned `adb shell -T run-as <restoreproof335> sha256sum` on OnePlus NE2213/API36 from `fdfbeb221d4b1608748174c154edc5de90505bb7`: original PASEKA01 3158B SHA PASS, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 99`, `REMOTE_STDOUT_SHA256: 4c6c469b11269c215ee1af4fb6ab8e580441d06cbf6623c1e7afc34af448ca09`, `REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC`, `STATUS: BLOCKED`. This is not a digest and does not prove incorrect stdin transmission; diagnostic contents not disclosed. No Android writes/restore/deletion.
+- For test-only next gate in same Draft PR #341, command pinned to absolute `/system/bin/toybox sha256sum -` under `run-as`; toybox treats `-` as stdin and avoids reliance on lookup of unqualified sha256sum. Static + mock negative tests updated. Physical outcome and exact latest SHA CI pending.
+- Next: verify exact SHA CI and perform at most one read-only physical attempt; do not restage archive or repeat old installer.
+
+---
+
 ## RESTORE335 — empty exec-in stdout root cause (2026-11-21)
 
 - Physical OnePlus pinned read-only run (`b6b2175a7c077616e9884ef4a2cccef7a241ae61`): original archive 3158 bytes SHA PASS; `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 0`, `REMOTE_STDOUT_SHA256: e3b0c442...`, `REMOTE_OUTPUT_CLASS: EMPTY`, `STATUS: BLOCKED/STDIN_SHA256_OUTPUT_INVALID`. No writes, restore, recognition, cleanup.
