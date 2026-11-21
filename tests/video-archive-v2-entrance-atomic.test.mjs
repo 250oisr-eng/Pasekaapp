@@ -80,12 +80,17 @@ async function count(db,store){
  });
 }
 async function archive({videoId='new-video',recordVideo=false,
- archiveState=state('archived'),hasRecognized=false}={}){
+ archiveState=state('archived'),hasRecognized=false,secondVideo=false}={}){
  const blob=new Blob(['abc'],{type:'video/mp4'}),digest=await SHA(blob);
  let pendingVideos=[{
   source:'entrance_media',videoId,sourceSha256:digest,
   sourceBytes:3,mimeType:'video/mp4',blob
  }];
+ if(secondVideo){
+  const second=new Blob(['defg'],{type:'video/mp4'});
+  pendingVideos.push({source:'entrance_media',videoId:'second-video',
+   sourceSha256:await SHA(second),sourceBytes:second.size,mimeType:second.type,blob:second});
+ }
  if(recordVideo){
   archiveState={...archiveState,records:[{id:'record-1',media:[{
    kind:'video',videoId:'journal-video',data:'data:video/mp4;base64,YWJj',
@@ -392,3 +397,77 @@ test('a staged Blob swapped after positive SHA diagnosis cannot reach live entra
  assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
  db.close();
 });
+
+for (const [storeName, method, ordinal] of [
+ ['full_backup', 'add', 1], ['archive_history', 'put', 1], ['main', 'put', 1],
+ ['entrance_media', 'add', 1], ['entrance_media', 'add', 2]
+]) {
+ test('abort after successful final ' + storeName + ' write ' + ordinal + ', reopen and retry', async t => {
+  const {db, factory, name, file, digest} = await prepared({hasRecognized:true, secondVideo:true});
+  t.after(() => db.close());
+  const backupId = options().backupId;
+  const historyBefore = await get(db, 'archive_history', backupId);
+  const session = await get(db, 'archive_staging', historyBefore.sessionId);
+  const expected = new Map([['new-video', digest], ['second-video', await SHA(new Blob(['defg']))]]);
+  let interrupted = false;
+  const interruptible = {
+   objectStoreNames: db.objectStoreNames,
+   transaction(stores, mode) {
+    const tx = db.transaction(stores, mode);
+    if (mode === 'readwrite') {
+     const store = tx.objectStore(storeName);
+     const write = store[method].bind(store);
+     let writes = 0;
+     store[method] = (...args) => {
+      const request = write(...args);
+      if (++writes === ordinal) request.addEventListener('success', () => {
+       interrupted = true;
+       tx.abort();
+      });
+      return request;
+     };
+    }
+    return tx;
+   }
+  };
+  await assert.rejects(api.commitEntranceOnlyIsolated(interruptible, file, options(), deps()));
+  assert.equal(interrupted, true);
+  db.close();
+  const request = factory.open(name);
+  const reopened = await new Promise((resolve, reject) => {
+   request.onsuccess = () => resolve(request.result);
+   request.onerror = () => reject(request.error);
+  });
+  t.after(() => reopened.close());
+  assert.deepEqual(await get(reopened, 'main', 'state'), state());
+  assert.deepEqual(await get(reopened, 'main', 'video_recognition_ledger_v1'), ledger(true));
+  assert.deepEqual(await get(reopened, 'archive_history', backupId), historyBefore);
+  assert.equal(await count(reopened, 'full_backup'), 0);
+  assert.equal(await count(reopened, 'entrance_media'), 0);
+  assert.deepEqual(await get(reopened, 'archive_staging', session.id), session);
+  assert.equal(await count(reopened, 'archive_staging'), 3);
+  for (const [id, sha] of expected) {
+   const child = await get(reopened, 'archive_staging', session.id + ':entrance_media:' + id);
+   assert.equal(await SHA(child.blob), sha);
+  }
+
+  const result = await api.commitEntranceOnlyIsolated(reopened, file, options(), deps());
+  assert.equal(result.committed, true);
+  assert.equal(result.cleanupAuthorized, false);
+  const snapshot = await get(reopened, 'full_backup', 'v2entrance:' + backupId);
+  assert.deepEqual(snapshot.beforeState, state());
+  assert.deepEqual(snapshot.afterState, state('imported'));
+  assert.deepEqual(snapshot.beforeLedger, ledger(true));
+  assert.deepEqual(new Map(snapshot.importedVideos.map(v => [v.id, v.blobSha256])), expected);
+  await assert.rejects(api.commitEntranceOnlyIsolated(reopened, file, options(), deps()));
+  assert.deepEqual(await get(reopened, 'full_backup', 'v2entrance:' + backupId), snapshot);
+  assert.equal(await count(reopened, 'full_backup'), 1);
+  assert.equal(await count(reopened, 'entrance_media'), 2);
+  for (const [id, sha] of expected) {
+   assert.equal(await SHA((await get(reopened, 'entrance_media', id)).blob), sha);
+  }
+  assert.deepEqual(await get(reopened, 'main', 'video_recognition_ledger_v1'), ledger(true));
+  assert.deepEqual(await get(reopened, 'main', 'state'), state('imported'));
+  assert.equal((await get(reopened, 'archive_history', backupId)).status, 'committed_rollback_blocked');
+ });
+}
