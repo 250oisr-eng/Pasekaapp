@@ -1,0 +1,25 @@
+name: Fileproof329 archive preflight (read-only)
+on:
+  pull_request:
+    paths:
+      - 'tools/fileproof329-archive-preflight.mjs'
+      - 'tests/fileproof329-archive-preflight.test.mjs'
+      - 'js/paseka-archive.js'
+      - '.github/workflows/test-fileproof329-archive-preflight.yml'
+  push:
+    branches:
+      - 'test/android-fileproof329-restore-preflight-2026-11-21'
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse script
+        run: node --check tools/fileproof329-archive-preflight.mjs
+      - name: Negative and source-safety checks
+        run: node --test tests/fileproof329-archive-preflight.test.mjs
