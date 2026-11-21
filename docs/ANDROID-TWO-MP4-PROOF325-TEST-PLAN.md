@@ -1,3 +1,19 @@
+## Зафиксированный одноразовый физический запуск (после успешного CI)
+
+1. Сохранить [ZIP artifact #14719577745](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935383924/artifacts/14719577745) из **проверенной** специализированной сборки #44935383924 в `%USERPROFILE%\\Downloads\\paseka-two-mp4-proof-isolated-apk.zip`. GitHub может потребовать вход в аккаунт для скачивания. Не распаковывать, не заменять другие архивы, не очищать или переустанавливать рабочую/прошлую тестовую «Пасеку».
+2. Убедиться, что единственный подключённый через USB OnePlus NE2213/API36 авторизован в ADB. Если не хватает доступа к ПК, испытание остаётся **NOT TESTED**.
+3. Один закреплённый запуск в Windows PowerShell (скрипт автоматически откажет, если новый `proof325` уже установлен):
+
+```powershell
+$p=Join-Path $env:TEMP 'paseka-two-mp4-proof-device.ps1'; Invoke-WebRequest -UseBasicParsing -ErrorAction Stop 'https://raw.githubusercontent.com/250oisr-eng/Pasekaapp/ffb723a6033bd87138cd8925c09c497c5a1c5c30/tools/android-two-mp4-proof-device.ps1' -OutFile $p; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -ExpectedZipSha256 '21e8e54d5cfb2c90e5e5c2d55ae8ae099c8d335e6b10ee75ec4d1d0effd33222' -ZipPath (Join-Path $env:USERPROFILE 'Downloads\\paseka-two-mp4-proof-isolated-apk.zip')
+```
+
+Скрипт проверяет SHA самого ZIP, извлекает только `app-debug.apk` в новый временный каталог на ПК, устанавливает только новый package, затем читает приватный proof-отчёт и останавливает/перезапускает только `proof325`. Временный APK на ПК удаляется после запуска; установленный на телефоне тестовый пакет и его диагностические данные **сохраняются**. Любой результат, отличный от `STATUS: ISOLATED_ANDROID_TWO_MP4_EXPORT_PASS`, означает BLOCKED и требует анализа, а не ручной очистки. Это не видео распознавание и не тест физического удаления.
+
+Физический Windows PowerShell 5.1 и USB OnePlus **НЕ проверены** заранее. Специализированный Windows script CI на `ffb723...`: [#44935853326](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935853326) success, mock-only. Тестовый APK code SHA `a4637a443419c0783672683d83c0809410ee33c6`, [#44935383924](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935383924) success 1223/1223, ZIP digest зафиксирован выше.
+
+---
+
 # Proof325 — физическая проверка двух MP4 в отдельном Android WebView
 
 Дата: 2026-11-21. Draft PR #326 поверх #325. Статус: **реальное устройство NOT TESTED**.
