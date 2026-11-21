@@ -1,0 +1,25 @@
+name: Synthetic bee compound-event semantics (not real benchmark)
+on:
+  push:
+    paths:
+      - 'tools/bee_event_semantics_contract.py'
+      - 'tests/test_bee_event_semantics_contract.py'
+      - '.github/workflows/test-bee-event-semantics-contract.yml'
+  pull_request:
+    paths:
+      - 'tools/bee_event_semantics_contract.py'
+      - 'tests/test_bee_event_semantics_contract.py'
+      - '.github/workflows/test-bee-event-semantics-contract.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Assert compound turns are not fabricated real in-out counts
+        run: python -m unittest discover -s tests -p 'test_bee_event_semantics_contract.py' -v
