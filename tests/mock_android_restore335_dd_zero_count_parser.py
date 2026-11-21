@@ -41,6 +41,7 @@ elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','stat','-c','%F','
     elif mode=='stat_permission_denied': print('stat: Permission denied')
     elif mode=='stat_cannot_denied': print("stat: cannot stat 'files/fileproof335-input.paseka': Permission denied")
     elif mode=='stat_wrong_path': print("stat: cannot stat 'files/other': No such file or directory")
+    elif mode=='stat_wrong_case': print("stat: cannot stat 'files/Fileproof335-input.paseka': No such file or directory")
     elif mode=='stat_missing_stderr':
         print("stat: 'files/fileproof335-input.paseka': No such file or directory",file=sys.stderr);sys.exit(1)
     else: print("stat: can't stat 'files/fileproof335-input.paseka': No such file or directory")
@@ -77,6 +78,7 @@ with tempfile.TemporaryDirectory(prefix='paseka-dd-readonly-ci-') as root:
         ('stat_permission_denied','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
         ('stat_cannot_denied','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
         ('stat_wrong_path','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
+        ('stat_wrong_case','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
         ('stat_missing_stderr','DD_CONV_EXCL_ARGUMENT: ACCEPTED_FOR_ZERO_COUNT',0),
         ('source_changed','ORIGINAL_SOURCE_CHANGED',2),
         ('source_bad','ORIGINAL_PINNED_SHA_FAILED',2)
