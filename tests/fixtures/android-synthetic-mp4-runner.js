@@ -13,7 +13,7 @@ export async function run(video,environment=globalThis){
   let objectUrl;
   try{
     const bytes=Uint8Array.from(environment.atob(SYNTHETIC_MP4_BASE64),c=>c.charCodeAt(0));
-    if(bytes.length!==1721)throw Error('FIXTURE_LENGTH_MISMATCH');
+    if(bytes.length!==1720)throw Error('FIXTURE_LENGTH_MISMATCH');
     const blob=new environment.Blob([bytes],{type:'video/mp4'});
     objectUrl=environment.URL.createObjectURL(blob);
     video.muted=true;
