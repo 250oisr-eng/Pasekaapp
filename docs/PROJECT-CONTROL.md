@@ -1,3 +1,10 @@
+## 2026-11-22 — Restore335: пустой private files/ после dd; запрет на повторную запись
+
+- [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — физический v2 OnePlus подтвердил private `files/` с нулём записей, но `stat` возвращает 67 stdout байт при exit=0 и файл пока без SHA; исходный PASEKA01 сохранён.
+- [ПЛАН-РАЗРАБОТКИ.md](ПЛАН-РАЗРАБОТКИ.md) — следующий не пишущий gate `tools/android-restore335-dd-zero-count-parser-readonly.ps1` (Toybox `if=/dev/null count=0`, без `of=`): проверить CI на exact SHA перед физической командой. Запрет на прежний one-shot `dd`, очистку и restore.
+
+---
+
 ## RESTORE335 — 2026-11-21: следующий read-only gate private metadata v2
 
 - [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — физически `files/` подтверждён, `fileproof335-input.paseka` статус `UNKNOWN_OR_ABSENT`; исходный PASEKA01 SHA подтверждён, Toybox dd help флаги есть, запись повторять нельзя.
