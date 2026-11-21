@@ -213,6 +213,11 @@ async function manifestFingerprint(manifest, cryptoProvider) {
   const digest = await cryptoProvider.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
+function hasV2ProtectedRecords(stagedKeys,history,backupKeys) {
+  return stagedKeys.some(key=>typeof key==='string'&&key.startsWith('v2pending:'))||
+    history.some(row=>row&&typeof row.kind==='string'&&row.kind.startsWith('v2_'))||
+    backupKeys.some(key=>typeof key==='string'&&key.startsWith('v2entrance:'));
+}
 async function assertLegacyArchiveStageAllowed(db) {
   // A missing ledger is legitimate for an untouched historical database, but
   // not after PASEKA02 has created protected pending/quarantine/rollback data.
@@ -233,11 +238,7 @@ async function assertLegacyArchiveStageAllowed(db) {
   ]);
   await completed;
   assertLegacyArchiveRecognitionLedger(ledger);
-  const protectedV2 =
-    stagedKeys.some(key=>typeof key==='string'&&key.startsWith('v2pending:'))||
-    history.some(row=>row&&typeof row.kind==='string'&&row.kind.startsWith('v2_'))||
-    backupKeys.some(key=>typeof key==='string'&&key.startsWith('v2entrance:'));
-  if (protectedV2) fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+  if (hasV2ProtectedRecords(stagedKeys,history,backupKeys)) fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
     'Protected PASEKA02 media or rollback records exist. Legacy restore is blocked.');
 }
 async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveApi, validateState, options = {}) {
@@ -304,11 +305,26 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     // Re-read under a short write lock, but never rewrite live media rows here.
     // A legacy writer may not persist SHA-256; putting the earlier Blob back
     // could overwrite a newer same-size replacement from another tab.
-    const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
+    // Recheck ledger, V2 protected history/backups, staged keys and live videos
+    // in the SAME writer-serialized transaction that reserves PASEKA01 staging.
+    // A V2 quarantine writer cannot sneak in after the async preflight.
+    const baselineTx = db.transaction(
+      [STAGING_STORE, 'entrance_media', 'main', HISTORY_STORE, 'full_backup'], 'readwrite');
     const baselineRequest = baselineTx.objectStore('entrance_media').getAll();
-    let baselineFailure = null;
-    baselineRequest.onsuccess = () => {
+    const ledgerRequest = baselineTx.objectStore('main').get('video_recognition_ledger_v1');
+    const stageKeysRequest = baselineTx.objectStore(STAGING_STORE).getAllKeys();
+    const historyRequest = baselineTx.objectStore(HISTORY_STORE).getAll();
+    const backupKeysRequest = baselineTx.objectStore('full_backup').getAllKeys();
+    let baselineFailure = null, pendingReads = 5;
+    const finishBaselineReads = () => {
+      if (--pendingReads > 0) return;
       try {
+        assertLegacyArchiveRecognitionLedger(ledgerRequest.result);
+        if (hasV2ProtectedRecords(stageKeysRequest.result || [],
+            historyRequest.result || [], backupKeysRequest.result || [])) {
+          fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+            'Protected PASEKA02 records appeared before staging. Legacy restore is blocked.');
+        }
         const currentRows = baselineRequest.result || [];
         const expectedById = new Map(baselineRecords.map(record => [record.id, record]));
         if (currentRows.length !== baselineRecords.length ||
@@ -335,6 +351,10 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         try { baselineTx.abort(); } catch (ignored) {}
       }
     };
+    for(const read of [baselineRequest, ledgerRequest, stageKeysRequest,
+        historyRequest, backupKeysRequest]) {
+      read.onsuccess = finishBaselineReads;
+    }
     try {
       await transactionDone(baselineTx);
     } catch (error) {
