@@ -1,0 +1,33 @@
+name: Restoreproof335 one-shot ADB transfer (mock only)
+on:
+  push:
+    branches:
+      - 'test/android-restore335-safe-device-transfer-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restoreproof335-one-shot.ps1'
+      - 'tests/android-restoreproof335-device-safety.test.mjs'
+      - 'tests/mock_android_restoreproof335_device.py'
+      - '.github/workflows/test-android-restoreproof335-device-mock.yml'
+permissions:
+  contents: read
+jobs:
+  one-shot-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse PowerShell
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restoreproof335-one-shot.ps1',[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+      - name: Parse Python mock
+        run: python3 -m py_compile tests/mock_android_restoreproof335_device.py
+      - name: Source-safety and pinned identity tests
+        run: node --test tests/android-restoreproof335-device-safety.test.mjs
+      - name: Physical workflow simulation on fake ADB, never device
+        run: python3 tests/mock_android_restoreproof335_device.py
