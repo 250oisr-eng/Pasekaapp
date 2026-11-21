@@ -1,0 +1,27 @@
+name: Audit public 2026 manual bee event tables source identity
+on:
+  push:
+    paths:
+      - 'tools/audit_public_bee_manual_event_tables.py'
+      - 'tests/test_audit_public_bee_manual_event_tables.py'
+      - '.github/workflows/test-public-bee-manual-event-tables.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_public_bee_manual_event_tables.py'
+      - 'tests/test_audit_public_bee_manual_event_tables.py'
+      - '.github/workflows/test-public-bee-manual-event-tables.yml'
+permissions:
+  contents: read
+jobs:
+  inspect-source-event-labels:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check strict CSV parser and fail-closed flags (no third-party dependencies)
+        run: python -m unittest discover -s tests -p 'test_audit_public_bee_manual_event_tables.py' -v
+      - name: Check two real pinned public CSV sources and aggregate class revisions
+        run: python tools/audit_public_bee_manual_event_tables.py
