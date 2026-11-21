@@ -57,9 +57,10 @@ public final class Fileproof329Reporter {
   public Fileproof329Reporter(Context context){app=context.getApplicationContext();}
   @JavascriptInterface public synchronized void report(String text) {
     if(text==null || text.length()>1200 ||
-      !text.startsWith("{\\"proofVersion\\":1,") ||
-      !text.contains("\\"cleanupAuthorized\\":false") ||
-      !text.contains("\\"recognitionSucceeded\\":false"))return;
+      !text.startsWith("{") ||
+      !text.contains("proofVersion") ||
+      !text.contains("cleanupAuthorized") ||
+      !text.contains("recognitionSucceeded"))return;
     File file=new File(app.getFilesDir(),"paseka-fileproof329.ndjson");
     if(file.exists() && file.length()>4096)return;
     try(FileOutputStream output=new FileOutputStream(file,true)){
