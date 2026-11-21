@@ -121,6 +121,29 @@ def compare_candidate_labels(truth, boxes, candidates, minimum_iou=0.5):
     return report
 
 
+
+def screen_training_group_overlap(training_groups, test_group="_bee_20230711a"):
+    """Prohibit same-published-collection reuse and never infer independence.
+
+    Even disjoint folder names do not prove separate physical source sessions.
+    No training action can be authorized solely by this check.
+    """
+    from prepare_mendeley_v6_yolo_unassigned import GROUP_COUNTS
+    if (not isinstance(training_groups, list) or not training_groups
+        or any(type(g) is not str or g not in GROUP_COUNTS for g in training_groups)
+        or len(training_groups) != len(set(training_groups))
+        or test_group not in GROUP_COUNTS):
+        raise ValueError("invalid or duplicate source grouping evidence")
+    return {
+        "referencePublishedCollection": test_group,
+        "trainingCollections": training_groups,
+        "samePublishedCollectionInTraining": test_group in training_groups,
+        "independentPhysicalRecordingVerified": False,
+        "trainingAuthorized": False,
+        "reason": ("known_same_published_collection" if test_group in training_groups
+                   else "disjoint_folder_names_do_not_prove_recording_independence"),
+    }
+
 def run_public(fetch=bounded_read, series=None):
     specs = pinned_series() if series is None else series
     if len(specs) != 12 or len({name for name, _, _ in specs}) != 12:
