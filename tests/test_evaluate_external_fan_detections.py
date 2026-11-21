@@ -147,6 +147,35 @@ class ExternalPredictionsTests(unittest.TestCase):
                            hashlib.sha256(b"model").hexdigest(), self.input)
                 verify_model.assert_not_called()
 
+    def test_assess_synthetic_full_path_never_approves_model(self):
+        # Entire 6000-frame evaluator path with mocked source-verification;
+        # proof only of code behavior, NOT a real video/model benchmark.
+        source_video = self.root / "20230711a-fan.mp4"
+        source_video.write_bytes(b"synthetic video placeholder, not actual Mendeley")
+        model = self.root / "model.bin"
+        model.write_bytes(b"synthetic model placeholder")
+        expected_model_sha = hashlib.sha256(model.read_bytes()).hexdigest()
+        with self.input.open("w", encoding="utf-8") as stream:
+            for frame in range(1, 6001):
+                detections = [{"box": BOX, "confidence": .9}] if frame == 1 else []
+                stream.write(json.dumps({"frame": frame, "detections": detections}) + "\n")
+        truth = [{4: tuple(BOX)}] + [{} for _ in range(5999)]
+        def fake_source(directory, spec):
+            from audit_mendeley_v6_fan_tracks import TRACKS
+            return source_video if spec[0] != TRACKS[0] else self.root / TRACKS[0]
+        with patch("evaluate_external_fan_detections.check_source",
+                   side_effect=fake_source):
+            with patch("evaluate_external_fan_detections.read_frames",
+                       return_value=truth):
+                result = assess(self.root, source_video, model, expected_model_sha,
+                                self.input, minimum_confidence=.5)
+        self.assertEqual(result["frameMetrics"]["matched"], 1)
+        self.assertEqual(result["predictionsAtOrAboveThreshold"], 1)
+        self.assertEqual(result["frameMetrics"]["frames"], 6000)
+        self.assertFalse(result["predictionsGeneratedByModelVerified"])
+        self.assertFalse(result["realDetectorValidated"])
+        self.assertFalse(result["videoCleanupAuthorized"])
+
     def test_no_unverified_model_success_claims_in_script(self):
         raw = (Path(__file__).resolve().parents[1] / "tools" /
                "evaluate_external_fan_detections.py").read_text()
