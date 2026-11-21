@@ -145,9 +145,19 @@ try {
             $null = New-Item -Path $workingDir -ItemType Directory -ErrorAction Stop
             $copy = Join-Path $workingDir 'test-export.paseka'
             try {
-                $pullReply = @(& adb -d pull $newPath $copy 2>&1)
-                if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $copy -PathType Leaf)) {
-                    throw 'ADB pull of the selected archive failed.'
+                # adb pull emits normal progress to stderr. In Windows PowerShell 5.1,
+                # redirecting native stderr with ErrorActionPreference=Stop may throw
+                # even when adb exits successfully. Ignore progress text, NOT exit status.
+                $priorPreference = $ErrorActionPreference
+                try {
+                    $ErrorActionPreference = 'Continue'
+                    & adb -d pull $newPath $copy 2>&1 | Out-Null
+                    $pullExitCode = $LASTEXITCODE
+                } finally {
+                    $ErrorActionPreference = $priorPreference
+                }
+                if ($pullExitCode -ne 0 -or -not (Test-Path -LiteralPath $copy -PathType Leaf)) {
+                    throw ('ADB pull of the selected archive failed (exit ' + $pullExitCode + ').')
                 }
                 $bytes = [IO.File]::ReadAllBytes($copy)
                 if ($bytes.Length -ne [int64]$length) { throw 'Local archive length differs from Android.' }
