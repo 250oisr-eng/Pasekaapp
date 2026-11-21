@@ -1,0 +1,47 @@
+name: "Apis mellifera ONLY - source provenance and synthetic split safety"
+on:
+  push:
+    paths:
+      - 'tools/audit_apis_mellifera_source_gate.py'
+      - 'tests/test_audit_apis_mellifera_source_gate.py'
+      - '.github/workflows/test-apis-mellifera-source-gate.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_apis_mellifera_source_gate.py'
+      - 'tests/test_audit_apis_mellifera_source_gate.py'
+      - '.github/workflows/test-apis-mellifera-source-gate.yml'
+permissions:
+  contents: read
+jobs:
+  strict-source-split-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fail-closed species, dataset license, image and session split tests
+        run: python -m unittest discover -s tests -p 'test_apis_mellifera_source_gate.py' -v
+      - name: Confirm no real model training, traffic claims or original-video cleanup
+        run: |
+          python tools/audit_apis_mellifera_source_gate.py > /tmp/paseka-apis-only-audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("/tmp/paseka-apis-only-audit.json").read_text())
+          assert r["targetTaxon"] == "Apis mellifera"
+          assert len(r["candidateSummaries"]) == 2
+          for src in r["candidateSummaries"]:
+              assert src["scientificSpeciesAsReportedByPublisher"].startswith("Apis mellifera")
+              assert src["sourceLicense"] == "CC BY 4.0"
+              assert src["metadataCandidateEligibleForApisMelliferaOnly"] is True
+              assert src["sourceOriginalImageBytesVerified"] is False
+              assert src["sessionIndependentSplitEstablished"] is False
+              assert src["modelTrainingAuthorized"] is False
+              assert src["hiveEntranceInOutGroundTruthVerified"] is False
+              assert src["userVideoCleanupAuthorized"] is False
+          for key in ("approvedForRealModelTraining", "realEntranceCountingValidated", "userVideoCleanupAuthorized"):
+              assert r[key] is False
+          print("Apis mellifera metadata-only source gate PASS; no media, model or deletion approved")
+          PY
