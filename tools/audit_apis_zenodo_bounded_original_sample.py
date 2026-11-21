@@ -7,6 +7,7 @@ the MD5 of the 2GB archive; per-member CRC isn't a publisher-authenticated
 whole-archive checksum. No model training/inference/score or video deletion.
 """
 from collections import Counter
+import io
 import hashlib
 import json
 import math
@@ -288,6 +289,35 @@ def jpeg_dimensions(data):
     raise ValueError("JPEG SOF was not found before scan data")
 
 
+def decode_original_jpeg_pixels(original_bytes, expected_size):
+    """Actually decompress every pixel of ONE bounded original JPEG, in memory.
+
+    Research CI only; Pillow MIT-CMU package is deliberately NOT an app
+    runtime dependency. Image bytes never leave memory or enter artifacts.
+    """
+    from PIL import Image, ImageFile
+    ImageFile.LOAD_TRUNCATED_IMAGES = False
+    with Image.open(io.BytesIO(original_bytes)) as picture:
+        if picture.format != "JPEG" or picture.size != expected_size:
+            raise ValueError("original JPEG decode metadata mismatches source SOF")
+        if picture.width * picture.height > 30_000_000:
+            raise ValueError("JPEG decompression-bomb pixel limit")
+        picture.load()
+        if picture.mode not in ("RGB", "L"):
+            raise ValueError("unexpected actual JPEG sample pixel mode")
+        # Orientation is recorded, not applied. YOLO coordinates are against
+        # stored image pixels, NOT rotated EXIF display orientation.
+        orientation = picture.getexif().get(274, 1)
+        return {
+            "width": picture.width, "height": picture.height,
+            "pixelMode": picture.mode,
+            "decodedPixelCount": picture.width * picture.height,
+            "exifOrientationTagStoredNotApplied": orientation,
+            "fullPixelDecodeSucceeded": True,
+            "originalImagePixelsEverPersisted": False,
+        }
+
+
 def yolo_annotation_summary(text_bytes):
     try:
         content=text_bytes.decode("utf-8-sig")
@@ -401,11 +431,14 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
         result["blockReason"]="official ZIP original JPG/TXT member ranges unavailable: "+type(exc).__name__
         return result
     width,height=jpeg_dimensions(jpg)
+    pixel_decode=decode_original_jpeg_pixels(jpg, (width,height))
     yolo=yolo_annotation_summary(txt)
     result.update({
         "originalZipMemberJpegAndTxtCrcVerified": fetch is range_bytes and probe is probe_range_support,
         "sampleZipMemberStructureAndCrcPassed":True,
         "sourceInputOrigin": "actual_official_Zenodo_selected_jpg_and_txt" if fetch is range_bytes and probe is probe_range_support else "synthetic_fixture",
+        "jpegPixelsFullyDecoded": fetch is range_bytes and probe is probe_range_support,
+        "originalJpegFullDecodeInfo":pixel_decode,
         "sampleJpgOriginalMemberPath":jpgs[name]["name"],
         "sampleTxtOriginalMemberPath":txts[name]["name"],
         "sampleJpgOriginalSizeBytes":len(jpg),

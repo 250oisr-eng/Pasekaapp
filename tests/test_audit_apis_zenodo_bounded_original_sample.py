@@ -118,6 +118,24 @@ class BoundedOriginalZipTests(unittest.TestCase):
         self.assertEqual(jpeg_dimensions(jpg),(3,2))
         self.assertEqual(yolo_annotation_summary(txt)["rows"],2)
 
+    def test_synthetic_complete_jpeg_is_pixel_decoded_in_memory(self):
+        from PIL import Image
+        from audit_apis_zenodo_bounded_original_sample import decode_original_jpeg_pixels
+        buffer=io.BytesIO()
+        Image.new("RGB",(7,5),color=(10,20,30)).save(buffer,"JPEG")
+        result=decode_original_jpeg_pixels(buffer.getvalue(),(7,5))
+        self.assertEqual(result["decodedPixelCount"],35)
+        self.assertTrue(result["fullPixelDecodeSucceeded"])
+        self.assertEqual(result["exifOrientationTagStoredNotApplied"],1)
+        self.assertFalse(result["originalImagePixelsEverPersisted"])
+        with self.assertRaises(ValueError):
+            decode_original_jpeg_pixels(buffer.getvalue(),(8,5))
+
+    def test_synthetic_incomplete_jpeg_cannot_claim_full_decode(self):
+        from audit_apis_zenodo_bounded_original_sample import decode_original_jpeg_pixels
+        with self.assertRaises(Exception):
+            decode_original_jpeg_pixels(fake_jpg(),(3,2))
+
     def test_wrong_compressed_member_crc_fails(self):
         original=zipped([("images/a.jpg",fake_jpg())])
         items=parsed_archive(original)

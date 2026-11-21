@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install free MIT-CMU Pillow only in ephemeral research runner
+        run: python -m pip install --disable-pip-version-check --no-deps --only-binary=:all: Pillow==13.0.0
       - name: Synthetic corrupt ZIP/JPEG/YOLO, HTTP Range, safety gate tests
         run: python -m unittest discover -s tests -p 'test_audit_apis_zenodo_bounded_original_sample.py' -v
       - name: Read only bounded original publisher ZIP members, no full 2GB download
@@ -54,6 +56,12 @@ jobs:
               assert len(r['sampleJpgSha256']) == 64
               assert len(r['sampleTxtSha256']) == 64
               assert r['originalYoloLabelSummary']['rows'] >= 0
+              assert r['jpegPixelsFullyDecoded'] is True
+              pixel = r['originalJpegFullDecodeInfo']
+              assert pixel['fullPixelDecodeSucceeded'] is True
+              assert pixel['decodedPixelCount'] == 1920*1080
+              assert pixel['width'] == 1920 and pixel['height'] == 1080
+              assert pixel['originalImagePixelsEverPersisted'] is False
               print('ORIGINAL bounded JPEG/TXT verified by per-member CRC; full ZIP checksum NOT verified')
           else:
               assert 'blockReason' in r
