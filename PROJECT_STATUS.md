@@ -1,3 +1,12 @@
+## FILEPROOF329 — следующий аппаратный read-only gate (2026-11-21)
+
+- CI для первоначального PR #333 HEAD `7dbfa8c39990211a9fd6110ce6b1be9a94a640dc`: [run 44939830190](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44939830190) завершён `success` (Node parse и негативные тесты). Это не физический restore.
+- Добавлен `tools/android-fileproof329-readonly-preflight.ps1`: читает только уже установленный `fileproof329`, его private report и ровно один синтетический архив в `/sdcard/Download/PasekaProof329`; в памяти сверяет внешний SHA, PASEKA01 manifest, state и оба MP4 chunk/SHA. Без записи даже на ПК; нет force-stop, перезапуска, установки, restore или удаления.
+- Добавлены статический негативный тест и PowerShell parse gate; CI на новом HEAD ожидает подтверждения. Запуск на физическом устройстве не выполнялся, `restoreCommit=NOT_TESTED`, `cleanupAuthorized=false`.
+- Не использовать аппаратную команду до успешного CI на точном SHA. Не менять производственное приложение и пользовательские данные.
+
+---
+
 ## Контрольная точка — FILEPROOF329 внешний архив и read-only preflight (2026-11-21)
 
 - Физический OnePlus NE2213/API36: пользователь сообщил `ISOLATED_FILEPROOF329_POST_STOP_EXTERNAL_SHA_PASS`. Независимый ADB readback 3158-byte PASEKA01 совпал с pinned SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186` до и после `force-stop` только тестового приложения; private report остался неизменным. Доказательство относится только к синтетическому пакету `ru.paseka.journal.archive.fileproof329`.
