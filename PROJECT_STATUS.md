@@ -1,3 +1,12 @@
+## FILEPROOF335 — подготовлен browser gate восстановления в будущий изолированный Android package (2026-11-21)
+
+- После физического FILEPROOF329 read-only PASS и CI-успеха атомарного fake IndexedDB restore в Draft #334 выделена ветка `test/android-isolated-restore335-browser-gate-2026-11-21`. Новый `tests/fixtures/android-fileproof335-isolated-restore.js` — **test-only WebView-ready fixture, НЕ интегрирован в APK**.
+- Для данных назначения зафиксировано отдельное test-only имя `paseka-fileproof335-destination-only-v1`. Модуль принимает только 3158-byte SHA-pinned synthetic PASEKA01 (точный SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`), проверяет manifest/state/video через `PasekaArchive.validateArchiveForRestore` и оба исходных SHA, затем выполняет транзакционную запись state+2 MP4 исключительно в пустую тестовую IndexedDB, close/reopen и SHA-проверку. Нет API удаления/очистки, доступа к рабочей БД, записи во внешний архив или включения в production.
+- Добавлен CI-only VM/fake-indexeddb suite `tests/android-fileproof335-isolated-restore-browser.test.mjs`: атомарность, запрет повторного запуска, отказ в непустом destination, принудительный rollback и неправильный archive SHA. Позитивный тест **подменяет только SHA всего 3158-byte synthetic архива в VM harness**, потому что реальный файл физического телефона не копируется в CI; внутренние видео SHA проверяются реальными digest. Такой mock НЕ доказывает восстановление точных Android bytes.
+- Добавлен workflow `.github/workflows/test-android-fileproof335-isolated-restore.yml`; его результат ещё требуется подтвердить на exact SHA. Следующий этап: CI regression и, только после отдельного аудита, новый test-only Android package с отдельной базой и подтверждённой read-only подачей исходного файла. Не запускать существующий fileproof329 на запись; физический restore/MP4 decoder/cleanup NOT TESTED.
+
+---
+
 ## FILEPROOF329 — isolated restore commit CI PASS (2026-11-21)
 
 - В отдельной ветке Draft PR #334 `test/fileproof329-isolated-restore-commit-2026-11-21` (base Draft #333) код/test/workflow SHA `82befb3a7d653378284246ea668252961ff69e05` проверен: GitHub Actions [run #44941671182](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941671182) **completed/success**. Проверка выполнялась только в Node/CI с `fake-indexeddb`; APK и физический Android не использовались.
