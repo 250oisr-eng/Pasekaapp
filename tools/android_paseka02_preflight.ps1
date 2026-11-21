@@ -1,8 +1,9 @@
 # PASEKA02 Android 16 read-only preflight. Never clears data, stops apps or deletes files.
 # Run only after reviewing this file from the trusted Pasekaapp repository.
 [CmdletBinding()]
-param([switch]$InspectHeaders, [switch]$CheckNewExport)
+param([switch]$InspectHeaders, [switch]$CheckNewExport, [switch]$VerifyContents)
 $ErrorActionPreference = 'Stop'
+if ($VerifyContents) { $CheckNewExport = $true }
 $package = 'ru.paseka.journal.archive.test'
 $directory = '/sdcard/Download/Пасека'
 function Finish([string]$status, [string]$reason, [int]$exitCode) {
@@ -134,15 +135,131 @@ try {
         if ($digest1 -ne $Matches[1]) {
             Finish 'FAIL' 'Archive SHA-256 changed between two reads.' 1
         }
+        if ($VerifyContents) {
+            # No restoration or mutation: pull only this SHA-pinned file to a fresh disposable local copy.
+            # 16 MiB conservative staging cap; larger exports require a separate streaming verifier.
+            if ([int64]$length -gt 16777216) {
+                Finish 'BLOCKED' 'Archive is over the 16 MiB bounded local-verification limit.' 2
+            }
+            $workingDir = Join-Path $env:TEMP ('paseka-verify-' + [guid]::NewGuid().ToString('N'))
+            $null = New-Item -Path $workingDir -ItemType Directory -ErrorAction Stop
+            $copy = Join-Path $workingDir 'test-export.paseka'
+            try {
+                $pullReply = @(& adb -d pull $newPath $copy 2>&1)
+                if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $copy -PathType Leaf)) {
+                    throw 'ADB pull of the selected archive failed.'
+                }
+                $bytes = [IO.File]::ReadAllBytes($copy)
+                if ($bytes.Length -ne [int64]$length) { throw 'Local archive length differs from Android.' }
+                $sha = [Security.Cryptography.SHA256]::Create()
+                try {
+                    $localDigest = [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+                    if ($localDigest -ne $digest1) { throw 'The copied archive SHA differs from the device SHA.' }
+                    if ($bytes.Length -lt 14 -or [Text.Encoding]::ASCII.GetString($bytes, 0, 8) -ne 'PASEKA01') { throw 'Invalid archive header.' }
+                    if (-not [BitConverter]::IsLittleEndian) { throw 'Unsupported host byte order.' }
+                    $manifestLength = [int64][BitConverter]::ToUInt32($bytes, 8)
+                    if ($manifestLength -lt 2 -or $manifestLength -gt 4194304 -or 12 + $manifestLength -gt $bytes.Length) {
+                        throw 'Invalid manifest length.'
+                    }
+                    $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+                    $manifestText = $utf8.GetString($bytes, 12, [int]$manifestLength)
+                    $manifest = ConvertFrom-Json -InputObject $manifestText -ErrorAction Stop
+                    if ($manifest.format -cne 'paseka-archive' -or $manifest.version -ne 1) { throw 'Unsupported manifest format or version.' }
+                    if (-not ([string]$manifest.backupId).Trim() -or $manifest.backupId.Length -gt 128) { throw 'Invalid backup ID.' }
+                    if ([string]$manifest.schemaVersion -notmatch '^[1-9][0-9]{0,2}$') { throw 'Invalid schema version.' }
+                    if ([string]$manifest.createdAt -notmatch '^\d{4}-\d\d-\d\dT') { throw 'Invalid creation timestamp.' }
+                    $entries = @($manifest.entries)
+                    if ($entries.Count -lt 1 -or $entries.Count -gt 512) { throw 'Invalid entry count.' }
+                    $cursor = [int64](12 + $manifestLength)
+                    $stateCount = 0
+                    $videoCount = 0
+                    $paths = @{}
+                    $videoIds = @{}
+                    for ($i = 0; $i -lt $entries.Count; $i++) {
+                        $item = $entries[$i]
+                        $pathName = [string]$item.path
+                        if (-not $pathName -or $paths.ContainsKey($pathName)) { throw 'Missing or duplicate entry path.' }
+                        $paths[$pathName] = $true
+                        if ([string]$item.size -notmatch '^[1-9][0-9]*$') { throw 'Invalid entry size.' }
+                        $entryLength = [int64]$item.size
+                        if ($entryLength -gt 262144000 -or $cursor + $entryLength -gt $bytes.Length) { throw 'Entry outside archive bounds.' }
+                        if ($item.chunkSize -ne 1048576) { throw 'Unsupported chunk size.' }
+                        $hashes = @($item.chunkSha256)
+                        $expectedChunks = [int][Math]::Ceiling($entryLength / 1048576.0)
+                        if ($hashes.Count -ne $expectedChunks) { throw 'Invalid chunk digest count.' }
+                        if ($i -eq 0) {
+                            if ($item.kind -cne 'state' -or $pathName -cne 'state.json' -or $item.mimeType -cne 'application/json' -or $null -ne $item.metadata) {
+                                throw 'The first archive entry must be state.json.'
+                            }
+                            $stateCount++
+                        } else {
+                            $videoCount++
+                            $requiredPath = 'entrance-media/{0:D6}.blob' -f $videoCount
+                            if ($item.kind -cne 'entrance_video' -or $pathName -cne $requiredPath) { throw 'Invalid video entry path.' }
+                            if ($null -eq $item.metadata -or -not $item.metadata.id -or -not $item.metadata.hiveId) { throw 'Missing video metadata.' }
+                            if ([string]$item.metadata.bytes -ne [string]$entryLength -or $item.mimeType -cne $item.metadata.mimeType -or $item.mimeType -notmatch '^video/') {
+                                throw 'Video metadata size or MIME mismatch.'
+                            }
+                            $videoId = [string]$item.metadata.id
+                            if ($videoIds.ContainsKey($videoId)) { throw 'Duplicate video ID.' }
+                            $videoIds[$videoId] = $true
+                        }
+                        for ($chunkIndex = 0; $chunkIndex -lt $expectedChunks; $chunkIndex++) {
+                            $expectedHash = [string]$hashes[$chunkIndex]
+                            if ($expectedHash -cnotmatch '^[a-f0-9]{64}$') { throw 'Malformed archive chunk SHA-256.' }
+                            $chunkOffset = [int64]$chunkIndex * 1048576
+                            $chunkLength = [int][Math]::Min(1048576, $entryLength - $chunkOffset)
+                            $chunk = New-Object byte[] $chunkLength
+                            [Array]::Copy($bytes, [int]($cursor + $chunkOffset), $chunk, 0, $chunkLength)
+                            $actualHash = [BitConverter]::ToString($sha.ComputeHash($chunk)).Replace('-', '').ToLowerInvariant()
+                            if ($actualHash -cne $expectedHash) { throw ('Chunk SHA mismatch in entry ' + ($i + 1)) }
+                        }
+                        if ($i -eq 0) {
+                            $stateText = $utf8.GetString($bytes, [int]$cursor, [int]$entryLength)
+                            $stateWrapper = ConvertFrom-Json -InputObject $stateText -ErrorAction Stop
+                            if ($stateWrapper.app -cne 'Paseka' -or $null -eq $stateWrapper.state -or $null -eq $stateWrapper.state.meta) {
+                                throw 'Invalid Paseka state wrapper.'
+                            }
+                            if ([string]$stateWrapper.state.meta.schemaVersion -ne [string]$manifest.schemaVersion) {
+                                throw 'State schema version differs from manifest.'
+                            }
+                        }
+                        $cursor += $entryLength
+                    }
+                    if ($stateCount -ne 1 -or $cursor -ne $bytes.Length) { throw 'Archive end or state-entry mismatch.' }
+                    Write-Host ('ARCHIVE_MANIFEST: PASS | entries=' + $entries.Count + ' | schema=' + $manifest.schemaVersion)
+                    Write-Host ('ARCHIVE_CHUNKS_SHA256: PASS | verified entries=' + $entries.Count)
+                    Write-Host ('ARCHIVE_VIDEO_ENTRIES: ' + $videoCount)
+                    Write-Host 'ARCHIVE_STATE_WRAPPER: PASS (JSON parsed and matching schema)'
+                    Write-Host 'ARCHIVE_RESTORE: NOT TESTED (no IndexedDB writes)'
+                    Write-Host 'VIDEO_PROVENANCE: NOT TESTED (embedded hashes only)'
+                } finally {
+                    $sha.Dispose()
+                }
+            } finally {
+                # Only remove the scratch copy and directory created by this exact invocation.
+                if ((Test-Path -LiteralPath $workingDir -PathType Container) -and
+                    (Split-Path -Leaf $workingDir) -match '^paseka-verify-[a-f0-9]{32}$') {
+                    Remove-Item -LiteralPath $workingDir -Force -Recurse -ErrorAction Stop
+                }
+            }
+        }
         Write-Host ('NEW_EXPORT_FILENAME: ' + $newName)
         Write-Host ('NEW_EXPORT_FORMAT: ' + $header)
         Write-Host ('NEW_EXPORT_BYTES: ' + $length)
         Write-Host ('NEW_EXPORT_SHA256_TWICE: ' + $digest1)
         Write-Host 'ARCHIVE_HASH: PASS (stable on two reads, NOT compared to a pre-export source)'
-        Write-Host 'ARCHIVE_STRUCTURE: NOT TESTED (manifest/chunks/video not verified)'
+        if (-not $VerifyContents) { Write-Host 'ARCHIVE_STRUCTURE: NOT TESTED (manifest/chunks/video not verified)' }
         Write-Host 'INDEXEDDB: NOT TESTED; no process stopped'
         Write-Host 'PROVENANCE: NOT TESTED (filename does not prove synthetic-only data)'
-        Write-Host 'DATA_ACTIONS: READ-ONLY; no install, stop, restore, deletion or copying'
+        if ($VerifyContents) {
+            Write-Host 'DATA_ACTIONS: READ-ONLY DEVICE; local scratch copy removed, no install/stop/restore.'
+        } else {
+            Write-Host 'DATA_ACTIONS: READ-ONLY; no install, stop, restore, deletion or copying'
+        }
+        if ($VerifyContents) {
+            Finish 'ARCHIVE_STRUCTURE_VERIFIED' 'Archive bytes, manifest, chunks and state wrapper checked; restore/video provenance NOT TESTED.' 0
+        }
         Finish 'EXPORT_CHECK_COMPLETE' 'New PASEKA01 archive signature, size and repeated SHA read; not restore-proof.' 0
     }
     if ($InspectHeaders) {
