@@ -1,0 +1,27 @@
+name: Verify isolated two-MP4 proof USB preflight
+
+on:
+  push:
+    paths:
+      - 'tools/android-two-mp4-proof-device.ps1'
+      - 'tests/test_android_two_mp4_proof_mock.sh'
+      - 'tests/test_android_two_mp4_proof_positive_mock.sh'
+      - '.github/workflows/test-android-two-mp4-proof-device.yml'
+  pull_request:
+    paths:
+      - 'tools/android-two-mp4-proof-device.ps1'
+      - 'tests/test_android_two_mp4_proof_mock.sh'
+      - 'tests/test_android_two_mp4_proof_positive_mock.sh'
+      - '.github/workflows/test-android-two-mp4-proof-device.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  mock-windows-usb-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify pwsh parsing, preflight and no destructive ADB
+        run: bash tests/test_android_two_mp4_proof_mock.sh && bash tests/test_android_two_mp4_proof_positive_mock.sh
