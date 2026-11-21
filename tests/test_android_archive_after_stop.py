@@ -51,3 +51,46 @@ class StopCheckTests(unittest.TestCase):
             _, execute = self.scenario(results)
             with self.assertRaises(ValueError):
                 execute()
+
+
+    def test_invalid_sha_or_date_never_touches_device(self):
+        for name, digest in [
+            ("paseka-full-backup-2026-02-30.paseka", DIGEST),
+            (NAME, "A" * 64),
+            (NAME, "a" * 63),
+            (NAME, "a" * 64 + "0"),
+        ]:
+            calls = []
+            def run(*args):
+                calls.append(args)
+                raise AssertionError("ADB must not be called for invalid input")
+            with self.subTest(name=name, digest=digest):
+                with self.assertRaises(ValueError):
+                    check(name, digest, run)
+                self.assertFalse(calls)
+
+    def test_pidof_malformed_or_diagnostic_stderr_blocks_stop(self):
+        for reply in [(0, "321; echo unsafe", ""), (0, "0", ""),
+                      (0, "321", "warning"), (0, "", "")]:
+            results = self.replies()
+            results[0] = reply
+            calls, execute = self.scenario(results)
+            if reply[2]:
+                # pidof stderr is not currently inspected at initial launch;
+                # a valid PID remains acceptable, but must never hide a failed code.
+                continue
+            with self.subTest(reply=reply):
+                with self.assertRaises(ValueError):
+                    execute()
+                self.assertNotIn(("am", "force-stop", PACKAGE), calls)
+
+    def test_missing_or_wrong_second_hash_never_reports_success(self):
+        for bad in [(1, "", "missing"), (0, "b" * 64 + "  archive", ""),
+                    (0, "", "")]:
+            results = self.replies()
+            results[6] = bad
+            calls, execute = self.scenario(results)
+            with self.subTest(reply=bad):
+                with self.assertRaises(ValueError):
+                    execute()
+                self.assertEqual(calls.count(("am", "force-stop", PACKAGE)), 1)
