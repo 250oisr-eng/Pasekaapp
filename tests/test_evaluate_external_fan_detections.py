@@ -112,6 +112,7 @@ class ExternalPredictionsTests(unittest.TestCase):
         model = self.root / "model.bin"
         model.write_bytes(b"model")
         self.write(self.good())
+        (self.root / "wrong.mp4").write_bytes(b"synthetic wrong source")
         with patch("evaluate_external_fan_detections.check_source",
                    return_value=self.root / "different.mp4"):
             with patch("evaluate_external_fan_detections.sha256_file") as verify_model:
