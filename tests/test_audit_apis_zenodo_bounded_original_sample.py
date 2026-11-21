@@ -161,8 +161,20 @@ class BoundedOriginalZipTests(unittest.TestCase):
         r=audit_bounded_original_jpg_txt(probe=fake, fetch=lambda *_:b"")
         self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
         self.assertEqual(r["sourceInputOrigin"],"synthetic_fixture")
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertFalse(r["fullArchiveDownloaded"])
         self.assertFalse(r["modelTrainingAllowed"])
         self.assertFalse(r["userVideoCleanupAuthorized"])
+
+    def test_real_network_probe_blocked_never_marks_original_data_verified(self):
+        # Injected probe is a synthetic simulation of a timed-out original request.
+        r=audit_bounded_original_jpg_txt(
+            probe=lambda:{"rangeSupported":False,"blockReason":"TimeoutError"},
+            fetch=lambda *_:b"")
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertFalse(r["wholeArchiveMd5Verified"])
+        self.assertFalse(r["modelTrainingAllowed"])
+
 
 
 if __name__=="__main__":
