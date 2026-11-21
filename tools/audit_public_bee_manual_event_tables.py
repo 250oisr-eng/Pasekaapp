@@ -110,9 +110,35 @@ def parse_events_csv(data):
     return results
 
 
+def candidate_counts(codes):
+    """Compare aggregate support only; even an exact match cannot identify rows."""
+    counts = Counter(codes)
+    simple = counts["D"] + counts["U"]
+    compound = counts["DU"] + counts["UD"]
+    return {"total": simple + compound, "compound": compound,
+            "matchesPaperTotals": (simple + compound, compound) == (1194, 374)}
+
+
+def candidate_selections(rows):
+    # Diagnostic hypotheses: an empty flag or an explicit FALSE passes.
+    # All other source values (including free text and id_swap) are excluded.
+    return {
+        name: candidate_counts(
+            row["event"] for row in rows.values()
+            if all(row[field].strip().lower() in ("", "false") for field in fields)
+        )
+        for name, fields in (
+            ("fourCodes", ()),
+            ("withoutErrorFlag", ("error",)),
+            ("withoutErrorOrAmbiguityFlag", ("error", "ambiguousflag")),
+        )
+    }
+
+
 def summarize_table(rows):
     return {
         "rows": len(rows),
+        "candidateSelections": candidate_selections(rows),
         "eventCodeCounts": dict(sorted(Counter(x["event"] for x in rows.values()).items())),
         "referencedVideoNames": len({x["video"] for x in rows.values()}),
         "nonEmptyQualityFieldCounts": {
@@ -137,6 +163,11 @@ def compare_source_tables(first, second):
         video_changed += a["video"] != b["video"]
     return {
         "sameGroupIdRows": len(first),
+        "agreeingFourCodes": candidate_counts(
+            row["event"] for key, row in first.items()
+            if row["event"] == second[key]["event"] and row["eventid"] == second[key]["eventid"]
+            and row["video"] == second[key]["video"]
+        ),
         "eventLabelsChangedByGroupId": sum(label_changes.values()),
         "eventCodeTransitions": [
             {"from": a, "to": b, "rows": number}
