@@ -425,3 +425,51 @@ test('hash dependency must be explicitly provided',async t=>{
  const db=await setup();t.after(()=>db.close());
  await rejects(verifyBlobs(db,cfg().backupId,{}),'V2_STAGE_HASH_DEPENDENCY_MISSING');
 });
+
+
+test('concurrent replacement with equal Blob size and identical metadata is detected',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const header=await get(db,'archive_staging',sessionId);
+ const child=await get(db,'archive_staging',header.entryIds[0]);
+ let first=true;
+ const wrapped={hashBlobHex:async blob=>{
+  const digest=await sha(blob);
+  if(first){
+   first=false;
+   const writer=db.transaction('archive_staging','readwrite');
+   writer.objectStore('archive_staging').put({
+    ...child,blob:new Blob(['xyz'],{type:'video/mp4'})
+   });
+   await done(writer);
+  }
+  return digest;
+ }};
+ const report=await verifyBlobs(db,cfg().backupId,wrapped);
+ assert.equal(report.reason,'V2_STAGE_CHANGED_DURING_HASH');
+ assert.equal(report.byteIntegrityVerified,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(await count(db,'archive_staging'),2);
+});
+
+test('concurrent MIME change with still-valid MIME requires manual review',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const header=await get(db,'archive_staging',sessionId);
+ const child=await get(db,'archive_staging',header.entryIds[0]);
+ let once=true;
+ const wrapped={hashBlobHex:async blob=>{
+  const digest=await sha(blob);
+  if(once){
+   once=false;
+   const tx=db.transaction('archive_staging','readwrite');
+   tx.objectStore('archive_staging').put({...child,mimeType:'video/webm'});
+   await done(tx);
+  }
+  return digest;
+ }};
+ const result=await verifyBlobs(db,cfg().backupId,wrapped);
+ assert.equal(result.reason,'V2_STAGE_CHANGED_DURING_HASH');
+ assert.equal(result.cleanupAuthorized,false);
+});
