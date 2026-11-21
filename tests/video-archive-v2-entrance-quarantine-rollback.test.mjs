@@ -384,3 +384,64 @@ for (const [storeName,methodName] of [
   await assert.rejects(rollback(reopened,rollbackOpts(),d()));
  });
 }
+
+
+function recognizedAfterQuarantine(sourceHash){
+ return {
+  source:'entrance_media',videoId:'new-video',resultId:'processed-after-quarantine',
+  sourceSha256:sourceHash,sourceBytes:3,sourceEvidenceVersion:1,
+  recognizedAt:'2026-11-21T12:00:00Z',cleanupState:'deleted',
+  result:{event:'synthetic-test-result'}
+ };
+}
+async function quarantinedWithDurableTombstone(){
+ const seeded=await seed();
+ await rollback(seeded.db,rollbackOpts(),d());
+ const saved=ledger();
+ saved.entries.push(recognizedAfterQuarantine(seeded.digest));
+ await put(seeded.db,'main','video_recognition_ledger_v1',saved);
+ return {...seeded,saved};
+}
+test('old archive missing the post-quarantine tombstone is rejected before restoring media',async t=>{
+ const {db,digest,saved}=await quarantinedWithDurableTombstone();
+ t.after(()=>db.close());
+ const old={
+  state:state('before-recognition'),ledger:ledger(),
+  pendingVideos:[{source:'entrance_media',videoId:'new-video',
+   sourceSha256:digest,sourceBytes:3}]
+ };
+ assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
+  {code:'V2_RESTORE_LEDGER_HISTORY_LOST'});
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),saved);
+ const quarantine=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(quarantine.quarantinedMedia[0].blob),digest);
+ assert.equal(await count(db,'entrance_media'),0);
+});
+test('old archive with preserved tombstone but original payload still cannot restore it',async t=>{
+ const {db,digest,saved}=await quarantinedWithDurableTombstone();
+ t.after(()=>db.close());
+ const old={
+  state:state('before-recognition'),ledger:saved,
+  pendingVideos:[{source:'entrance_media',videoId:'new-video',
+   sourceSha256:digest,sourceBytes:3}]
+ };
+ assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
+  {code:'V2_RECOGNIZED_ORIGINAL_INCLUDED'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'full_backup'),1);
+});
+test('renaming a tombstoned original does not bypass its hash-based restore guard',async t=>{
+ const {db,digest,saved}=await quarantinedWithDurableTombstone();
+ t.after(()=>db.close());
+ const old={
+  state:state('before-recognition'),ledger:saved,
+  pendingVideos:[{source:'entrance_media',videoId:'renamed-original',
+   sourceSha256:digest,sourceBytes:3}]
+ };
+ assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
+  {code:'V2_RESTORE_RECOGNIZED_ORIGINAL'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),saved);
+ const quarantine=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(quarantine.quarantinedMedia[0].blob),digest);
+});
