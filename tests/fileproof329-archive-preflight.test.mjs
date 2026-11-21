@@ -43,3 +43,16 @@ test('physical Android preflight permits only read-only ADB operations and pinne
     assert.doesNotMatch(ps.replace(/^\s*#.*$/gm,''),forbidden);
   }
 });
+
+test('physical ADB preflight is bounded and reports checkpoints before slow reads',()=>{
+  const ps=readFileSync(new URL('../tools/android-fileproof329-readonly-preflight.ps1',import.meta.url),'utf8');
+  assert.match(ps,/WaitForExit\(12000\)/);
+  assert.match(ps,/WaitForExit\(2000\)/);
+  assert.match(ps,/ADB_TIMEOUT_12S/);
+  assert.match(ps,/BaseStream\.CopyToAsync\(\$stream\)/);
+  assert.match(ps,/StandardError\.ReadToEndAsync\(\)/);
+  for(let i=1;i<=5;i++) assert.match(ps,new RegExp('STAGE: '+i+'/5 '));
+  assert.ok(ps.indexOf('STAGE: 1/5') < ps.indexOf("$devices=AdbText"));
+  assert.ok(ps.indexOf('STAGE: 4/5') < ps.indexOf("$bytes=Adb"));
+  assert.match(ps,/NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE/);
+});
