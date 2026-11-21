@@ -8,6 +8,8 @@ on:
       - 'tests/test_android_preflight_mock.sh'
       - 'tools/test_android_synthetic_archive_force_stop.py'
       - 'tests/test_android_synthetic_archive_force_stop.py'
+      - 'tools/android_synthetic_two_video_stop.ps1'
+      - 'tests/test_android_two_video_stop_mock.sh'
       - '.github/workflows/test-android-external-archive-check.yml'
 permissions:
   contents: read
@@ -34,6 +36,16 @@ jobs:
           $script = Get-Content 'tools/android_paseka02_preflight.ps1' -Raw
           if ($script.Contains('$matches.Count') -or $script.Contains('foreach ($entry in $matches)')) { throw 'PowerShell automatic Matches variable must not be used as archive collection.' }
           if (-not $script.Contains('$archiveFiles.Count')) { throw 'Expected independent archiveFiles count.' }
+      - name: Validate synthetic physical test PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android_synthetic_two_video_stop.ps1', [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) { $parseErrors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+      - name: Simulate two-blob USB copy and force-stop with mocked ADB
+        shell: bash
+        run: bash tests/test_android_two_video_stop_mock.sh
       - name: Mock read-only export validation with simulated ADB
         shell: bash
         run: bash tests/test_android_preflight_mock.sh
