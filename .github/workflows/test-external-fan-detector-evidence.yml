@@ -1,0 +1,29 @@
+name: Test external fan detector evidence gate
+on:
+  push:
+    paths:
+      - 'tools/evaluate_external_fan_detections.py'
+      - 'tests/test_evaluate_external_fan_detections.py'
+      - '.github/workflows/test-external-fan-detector-evidence.yml'
+  pull_request:
+    paths:
+      - 'tools/evaluate_external_fan_detections.py'
+      - 'tests/test_evaluate_external_fan_detections.py'
+      - '.github/workflows/test-external-fan-detector-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  fail-closed-predictions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install --only-binary=:all: numpy==2.2.6 scipy==1.15.3 Pillow==12.0.0
+      - name: Refuse fabricated detector predictions and unverified files
+        run: python -m unittest discover -s tests -p 'test_evaluate_external_fan_detections.py' -v
+      - name: Verify local evaluator and usage without model weights
+        run: python tools/evaluate_external_fan_detections.py --help
