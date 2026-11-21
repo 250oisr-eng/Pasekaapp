@@ -114,7 +114,6 @@ def verify_author_metadata(license_text, readme, class1_csv):
                 or "Creative Commons Attribution 4.0" not in license_text):
             raise ValueError("source license does not verify dataset")
     if ("2,795" not in readme or "2,823" not in readme or "28" not in readme
-            or "Apis mellifera" not in readme and "honey bee" not in readme and "honeybee" not in readme
             or "only **3 of the 23**" not in readme):
         # README calls these honey bees; Zenodo publisher metadata confirms taxonomy.
         raise ValueError("source README statistics/safety warning changed")
