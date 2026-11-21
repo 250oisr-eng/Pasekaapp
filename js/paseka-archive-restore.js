@@ -522,7 +522,11 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         currentVideos: media.getAll(),
         session: stagingStore.get(sessionId),
         stagedRecords: stagingStore.index('sessionId').getAll(sessionId),
-        history: historyStore.get(staged.session.backupId)
+        history: historyStore.get(staged.session.backupId),
+        // Protect against V2 quarantine created AFTER legacy stage/preflight.
+        allStagedKeys: stagingStore.getAllKeys(),
+        allHistory: historyStore.getAll(),
+        protectedBackupKeys: backup.getAllKeys()
       };
       const values = {};
       let pending = Object.keys(reads).length;
@@ -530,6 +534,11 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         try {
           const currentState = values.currentState || null;
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
+          if (hasV2ProtectedRecords(values.allStagedKeys || [],
+              values.allHistory || [], values.protectedBackupKeys || [])) {
+            fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+              'Protected PASEKA02 media appeared before legacy commit. Restore is blocked.');
+          }
           const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
           const session = values.session;
           const records = values.stagedRecords || [];
@@ -658,6 +667,8 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   }
   if (expectedRevision === undefined) fail('EXPECTED_REVISION_REQUIRED', 'The current database revision is required before rollback.');
   if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before rollback.');
+
+  await assertLegacyArchiveStageAllowed(db);
 
   // Phase A: read and validate the rollback snapshot before opening the final
   // write transaction. All non-IDB awaits stay outside Phase B.
@@ -832,7 +843,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         history: historyStore.get(backupId),
         rollbackSession: stagingStore.get(rollbackSessionId),
         rollbackRecords: stagingStore.index('sessionId').getAll(rollbackSessionId),
-        importSession: stagingStore.get(knownHistory.importSessionId)
+        importSession: stagingStore.get(knownHistory.importSessionId),
+        allStagedKeys: stagingStore.getAllKeys(),
+        allHistory: historyStore.getAll(),
+        protectedBackupKeys: backup.getAllKeys()
       };
       const values = {};
       let pending = Object.keys(reads).length;
@@ -840,6 +854,11 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         try {
           const currentState = values.currentState || null;
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
+          if (hasV2ProtectedRecords(values.allStagedKeys || [],
+              values.allHistory || [], values.protectedBackupKeys || [])) {
+            fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+              'Protected PASEKA02 records exist. Legacy rollback is blocked.');
+          }
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = values.rollbackRecords || [];

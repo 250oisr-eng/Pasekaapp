@@ -67,3 +67,8 @@
 
 Фактический регрессионный CI обнаружил уязвимость в изолированном PASEKA01: если `video_recognition_ledger_v1` исчезал после успешного PASEKA02 quarantine, `stageArchiveForRestore` мог зарезервировать место для старого оригинала. Исправлено в `js/paseka-archive-restore.js`: согласованная проверка ключей защищённых V2 в staging, history и full_backup, затем обязательная повторная сверка в финальном `readwrite` блоке PASEKA01 stage. Не изменялась permissive трактовка отсутствующего ledger на **исторически чистой** базе без защищённых v2 записей, но отсутствие ledger + защищённый PASEKA02 теперь блокирует legacy import. Первый тест SHA 053a9b FAIL, после исправления CI на SHA 979d781 PASS. Формат, durable media и наружные Android копии не менялись; физическое удаление остаётся запрещённым.
 
+
+## 2026-11-21 — late V2 protected markers after v1 ready / commit
+
+Классический PASEKA01 может быть подготовлен раньше появления PASEKA02 protected copy. Поэтому только `assertLegacyArchiveStageAllowed` при старте подготовки недостаточен: в `commitStagedArchive` и `rollbackCommittedArchive` введён повторный fail-closed V2 marker check в той же пяти-store write транзакции. При любом `v2pending:`, `v2_*` history или `v2entrance:` protected backup процедура прекращается, а старые данные остаются нетронутыми. Legacy schema и физическое удаление не менялись. Это ограниченный контроль согласованности метаданных в fake-indexeddb, не верификация Android power loss и не выдача разрешений cleanup.
+
