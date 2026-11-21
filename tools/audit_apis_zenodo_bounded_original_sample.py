@@ -122,21 +122,25 @@ def parse_central_directory(data, expected_count):
             name=rawname.decode("utf-8")
         except UnicodeError as exc:
             raise ValueError("source ZIP filenames not UTF-8") from exc
-        path=PurePosixPath(name)
+        # This original Zenodo ZIP uses Windows-style separators ('dataset\classes.txt').
+        # Normalization is ONLY for read-only analytical lookup; no filesystem extraction.
+        # Keep original 'name' bytes for local-header identity validation.
+        canonical = name.replace("\\", "/")
+        parts = canonical.split("/")
         rejection_reasons = [
             reason for reason, rejected in (
                 ("empty", not name),
-                ("absolute", name.startswith("/")),
-                ("backslash", "\\" in name),
-                ("traversal", ".." in path.parts),
-                ("overlong", len(name) > 512),
+                ("absolute", canonical.startswith("/")),
+                ("windows-drive", bool(re.match(r"^[a-zA-Z]:", canonical))),
+                ("dot-or-traversal-or-empty-segment",
+                 any(x in ("", ".", "..") for x in parts)),
+                ("NUL", "\x00" in name),
+                ("overlong", len(canonical) > 512),
                 ("offset", local_offset >= EXPECTED_ARCHIVE_BYTES),
-                ("duplicate", name in items),
+                ("duplicate-canonical-path", canonical in items),
             ) if rejected
         ]
         if rejection_reasons:
-            # Publish only a bounded diagnostic from the official public archive.
-            # Do not normalize or accept an unsafe filename to make CI pass.
             raise ValueError(
                 "unsafe/duplicate ZIP filename: "
                 + ",".join(rejection_reasons)
@@ -147,7 +151,7 @@ def parse_central_directory(data, expected_count):
         mode = external >> 16
         if (mode & 0o170000) == 0o120000:
             raise ValueError("symlinks not accepted in original archive")
-        items[name]={
+        items[canonical]={
             "offset":local_offset,"crc":crc,"compressed":compressed,
             "uncompressed":original_size,"method":method,
             "name":name,

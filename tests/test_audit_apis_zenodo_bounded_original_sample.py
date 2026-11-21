@@ -85,6 +85,34 @@ class BoundedOriginalZipTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"CRC"):
             extract_sample_zip_member(tampered,len(original),bytes_fetch(original))
 
+    def test_original_windows_zip_separators_are_canonicalized_read_only(self):
+        original_name="dataset\\images\\img-20240107_010101--1.jpg"
+        data=zipped([(original_name, fake_jpg())])
+        parsed=parsed_archive(data)
+        self.assertEqual(list(parsed), ["dataset/images/img-20240107_010101--1.jpg"])
+        entry=next(iter(parsed.values()))
+        self.assertEqual(entry["name"], original_name)
+        self.assertEqual(
+            extract_sample_zip_member(entry, len(data), bytes_fetch(data)),
+            fake_jpg()
+        )
+
+    def test_zip_rejects_mixed_separator_alias_duplicate(self):
+        data=zipped([("dataset\\images\\same.jpg", b"source1"),
+                     ("dataset/images/same.jpg", b"source2")])
+        with self.assertRaisesRegex(ValueError, "duplicate-canonical-path"):
+            parsed_archive(data)
+
+    def test_windows_separator_does_not_bypass_traversal_or_absolute_block(self):
+        names=["dataset\\..\\secret.jpg",
+               "C:\\dataset\\images\\secret.jpg",
+               "\\\\server\\share\\secret.jpg",
+               "dataset\\\\images\\secret.jpg",
+               "dataset\\.\\images\\secret.jpg"]
+        for name in names:
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                parsed_archive(zipped([(name,b"unsafe")]))
+
     def test_unsafe_zip_path_rejected(self):
         original=zipped([("../escape.jpg",b"evil")])
         with self.assertRaisesRegex(ValueError,"unsafe"):
