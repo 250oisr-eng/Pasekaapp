@@ -94,10 +94,11 @@ class BeeManualEventSourceTests(unittest.TestCase):
 
     def test_extra_columns_duplicate_headers_and_bad_encoding_rejected(self):
         original = self.encode(self.fixture())
+        header, newline, body = original.partition(b"\n")
         with self.assertRaises(ValueError):
-            parse_events_csv(original.replace(b"event,", b"event,event,", 1))
+            parse_events_csv(header + b",event" + newline + body)
         with self.assertRaises(ValueError):
-            parse_events_csv(original.replace(b"group_id,", b"other,", 1))
+            parse_events_csv(header.replace(b"group_id", b"other", 1) + newline + body)
         with self.assertRaises(ValueError):
             parse_events_csv(b"\xff\xff" + original)
 
