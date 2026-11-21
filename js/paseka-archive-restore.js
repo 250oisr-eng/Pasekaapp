@@ -522,7 +522,11 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         currentVideos: media.getAll(),
         session: stagingStore.get(sessionId),
         stagedRecords: stagingStore.index('sessionId').getAll(sessionId),
-        history: historyStore.get(staged.session.backupId)
+        history: historyStore.get(staged.session.backupId),
+        // Protect against V2 quarantine created AFTER legacy stage/preflight.
+        allStagedKeys: stagingStore.getAllKeys(),
+        allHistory: historyStore.getAll(),
+        protectedBackupKeys: backup.getAllKeys()
       };
       const values = {};
       let pending = Object.keys(reads).length;
@@ -530,6 +534,11 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         try {
           const currentState = values.currentState || null;
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
+          if (hasV2ProtectedRecords(values.allStagedKeys || [],
+              values.allHistory || [], values.protectedBackupKeys || [])) {
+            fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+              'Protected PASEKA02 media appeared before legacy commit. Restore is blocked.');
+          }
           const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
           const session = values.session;
           const records = values.stagedRecords || [];
