@@ -1,3 +1,11 @@
+## 2026-11-21 — специализированная Android APK proof325 успешно собрана на точном SHA
+
+- Код/CI SHA **`a4637a443419c0783672683d83c0809410ee33c6`**: [Build isolated two-MP4 proof APK #44935383924](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935383924) **completed/success**. Node regressions **1223/1223 PASS, 0 failed**, Gradle `BUILD SUCCESSFUL`; AAPT подтвердил **точный тестовый package `ru.paseka.journal.archive.proof325`**; Upload Artifact success.
+- [Артефакт GitHub](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935383924/artifacts/14719577745): ID **14719577745**, имя `paseka-two-mp4-proof-isolated-apk`, ZIP size **3346013 bytes**, GitHub upload ZIP SHA-256 **`21e8e54d5cfb2c90e5e5c2d55ae8ae099c8d335e6b10ee75ec4d1d0effd33222`**, expires 2026-12-05 UTC (по GitHub). Это **ZIP-архив артефакта**, а не digest находящегося в нём APK; Windows-script независимо сверяет ZIP перед извлечением ровно `app-debug.apk`.
+- Отдельно [PowerShell proof mock CI #44935853326](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935853326) **completed/success** на script SHA `ffb723a6033bd87138cd8925c09c497c5a1c5c30`: три отрицательных и полный положительный сценарий `INITIAL_PASS -> force-stop только proof325 -> RELAUNCH_PASS` с mock ADB. Скрипт закреплять на этом SHA.
+- Реальный Windows/OnePlus запуск ещё **NOT TESTED**. При физическом испытании скачивать **только** SHA-verified artifact ZIP, устанавливать `proof325` только если отсутствует, один запуск скрипта из pinned SHA, передать один итоговый отчёт. Изолированная APK не записывает backup в Downloads и не делает restore commit, автоматическую очистку видео не включает.
+- Сохранены ограничения: `cleanupAuthorized=false`, `recognitionSucceeded=false`, нет merge/main/production/deploy. Последующий документационный HEAD отдельно от проверенного code SHA; не переносить CI на изменённый код без новой проверки.
+
 ## 2026-11-21 — полный положительный mock Windows/ADB proof325 PASS
 
 - Исправлена ошибка PowerShell `Reports()`: `return ,$parsed` возвращал вложенный массив, из-за которого `@(Reports)` мог неверно считать 0/1/2 результата. Используется `return $parsed` с перечислением отдельных отчётов.
