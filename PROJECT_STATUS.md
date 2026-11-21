@@ -1,3 +1,12 @@
+## 2026-11-21 — итог блока: проверка входных данных и публичных весов детектора (Draft #299)
+
+- Проверенный code/test SHA `8ab3d8c1c117f28d22356fecd1fea3ad572e92ad`: [external fan detector evidence #44886964302](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964302) **SUCCESS**, [Fast quality #44886964309](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964309) **SUCCESS**, [Android Debug APK #44886964305](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964305) **SUCCESS**. Это CI кода/формата, а НЕ работоспособность нейросети на физическом Android. Последующие коммиты содержат только документы.
+- В `docs/VIDEO-DETECTOR-WEIGHTS-CANDIDATE-REVIEW.md` сверены два открытых кандидата. Matt Nudi YOLOv5 `best.pt`: опубликован файл и карточка CC BY 4.0 **датасета**, но точная лицензия **весов** не подтверждена. Apiarist YOLOv8s: модельная карточка указывает Apache-2.0 и фокус на **соторамках**, а не летке; необходимо проверить транзитивные условия использования базовых весов и библиотеки, и качество в другом домене. Ни один кандидат не принят.
+- Нет независимого доказательства причинной связи заявленных bbox с конкретной моделью; нет проверенной независимости исходных записей train/test, фактического inference, линии входа/выхода и полевого offline Android тестирования. `modelLicenseVerified=false`, `independentTestSplitVerified=false`, `realDetectorValidated=false`, `videoCleanupAuthorized=false`.
+- Следующая задача: получить законно лицензированный checkpoint с SHA и полной модельной спецификацией, независимо воспроизводимо получить реальные предсказания и проверить их на исходном MP4+TXT, **после** подтверждения независимости source/session. Запрещены запуск платных API и удаление личных исходных видео.
+
+---
+
 ## 2026-11-21 — независимые предсказания детектора: безопасный входной шлюз (Draft #299)
 
 - После Draft PR #298 создана стековая ветка `test/video-detector-prediction-evidence-2026-11-21`. Исходная main не изменена. Код/тесты SHA `8ab3d8c1c117f28d22356fecd1fea3ad572e92ad`; GitHub Actions [#44886964302](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964302) **SUCCESS** — синтетические unit/negative tests для независимых предсказаний и CLI. Общий quality run #44886964309 **SUCCESS** на этом SHA. Android build #44886964305 проверять отдельно: на момент записи он выполнялся.
