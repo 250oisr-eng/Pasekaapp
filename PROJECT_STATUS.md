@@ -1,3 +1,10 @@
+## FILEPROOF329 — подтверждён CI на исправлении VoidTaskResult (2026-11-21)
+
+- Код/тесты SHA `d2933ddd5b7be2caa131bf64c8179c34e35e703e`: [CI #44941100823](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941100823) completed/success. Проверены синтаксис Node+PowerShell, негативные сценарии, ADB fail mock, **ADB positive USB precheck -> stage2** с реальным `pwsh`; служебный `VoidTaskResult` не возникает. Последующие изменения — только документация.
+- Физическая проверка исправленного скрипта всё ещё NOT_TESTED; не делать вывод об успешном восстановлении/декодировании MP4/очистке.
+
+---
+
 ## FILEPROOF329 — PowerShell VoidTaskResult readout failure (2026-11-21)
 
 - Физический OnePlus: после изменения ADB аргументов кодовый SHA `54cbfc24f931270eba7cacf7b045e4c684e61c22` дал `STAGE: 1/5 USB_DEVICE_PRECHECK`, затем `BLOCKED`: PowerShell попытался преобразовать `System.Threading.Tasks.VoidTaskResult` к `System.Byte`. Это сбой тестового парсера, **не** повреждение архива или пользовательских данных; аппаратная проверка архива новым скриптом не дошла до чтения.
