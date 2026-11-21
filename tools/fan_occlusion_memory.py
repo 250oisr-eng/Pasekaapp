@@ -8,6 +8,15 @@ from baseline_mendeley_v6_fan_association import associate_boxes
 from evaluate_mendeley_v6_fan_tracks import match_frame
 
 
+def overlaps(a, b, threshold):
+    x = max(0, min(a[2], b[2]) - max(a[0], b[0]))
+    y = max(0, min(a[3], b[3]) - max(a[1], b[1]))
+    intersection = x * y
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    area_b = (b[2] - b[0]) * (b[3] - b[1])
+    return intersection > 0 and intersection / (area_a + area_b - intersection) >= threshold
+
+
 def associate_with_memory(frames, threshold=0.5, max_missing=1):
     if not 0 < threshold <= 1:
         raise ValueError("invalid IoU threshold")
@@ -35,17 +44,18 @@ def associate_with_memory(frames, threshold=0.5, max_missing=1):
 
         # A track absent in the previous frame is eligible only once.
         remaining = {i: box for i, box in observations.items() if i not in assigned}
-        possible = {track_id: (box, [i for i, candidate in remaining.items()
-                                     if match_frame({track_id: box}, {i: candidate}, threshold)])
-                    for track_id, box in dormant.items()}
+        possible = {tid: [i for i, candidate in remaining.items()
+                          if overlaps(box, candidate, threshold)]
+                    for tid, box in dormant.items()}
         # Ambiguity rejection is strictly symmetric: a dormant track must
         # have one eligible observation, and that observation must have one
         # eligible dormant track. No arbitrary nearest-identity assignment.
-        eligible = {tid: candidates[0] for tid, (_, candidates) in possible.items()
-                    if len(candidates) == 1}
+        eligible = {tid: matches[0] for tid, matches in possible.items()
+                    if len(matches) == 1}
         counts = {}
-        for i in eligible.values():
-            counts[i] = counts.get(i, 0) + 1
+        for candidates in possible.values():
+            for i in candidates:
+                counts[i] = counts.get(i, 0) + 1
         for tid in sorted(eligible):
             i = eligible[tid]
             if counts[i] == 1:
