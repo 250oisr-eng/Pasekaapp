@@ -49,7 +49,8 @@ test('journal video disclosure does not equate deleting app copy with deleting p
  assert.match(n,/не означает удаления/);
 });
 test('app build copies these disclosures into Android web resources',()=>{
- assert.match(prepare,/copyFile\("index\.html",/g);
+ assert.match(prepare,/for\\s*\\(const file of \\[["']index\\.html["']/);
+ assert.match(prepare,/copyFile\\(file,\\s*`www\\/\\$\\{file\\}`\\)/);
  assert.equal(packageJson.scripts['web:prepare'],'node scripts/prepare-web.mjs');
  assert.equal(capacitor.webDir,'www');
 });
