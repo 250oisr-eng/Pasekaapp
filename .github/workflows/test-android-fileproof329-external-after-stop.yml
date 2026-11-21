@@ -1,0 +1,25 @@
+name: Validate fileproof329 post-stop external archive
+
+on:
+  push:
+    branches:
+      - test/android-fileproof329-persisted-file-stop-2026-11-21
+    paths:
+      - 'tools/android-fileproof329-external-after-stop.ps1'
+      - 'tests/test_android_fileproof329_external_after_stop_mock.sh'
+      - '.github/workflows/test-android-fileproof329-external-after-stop.yml'
+  pull_request:
+    paths:
+      - 'tools/android-fileproof329-external-after-stop.ps1'
+      - 'tests/test_android_fileproof329_external_after_stop_mock.sh'
+      - '.github/workflows/test-android-fileproof329-external-after-stop.yml'
+permissions:
+  contents: read
+jobs:
+  external-sha:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mock binary external sha before and after test package stop
+        run: bash tests/test_android_fileproof329_external_after_stop_mock.sh
