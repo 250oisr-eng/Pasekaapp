@@ -1,3 +1,21 @@
+## 2026-11-21 — однокомандная read-only проверка нового экспорта PASEKA01
+
+Пользователь подтвердил на экране физического OnePlus Android 16 **«архив сохранён»**. Это UI-результат, не доказательство того, что файловый экспорт восстановим.
+
+На установленной APK архив имеет действительный формат `PASEKA01`. Для минимизации действий добавлен флаг `-CheckNewExport` в `tools/android_paseka02_preflight.ps1`. Он выполняет повторный preflight, ищет **ровно один** файл с именем `paseka-full-backup-2026-11-21.paseka` или `paseka-full-backup-2026-11-21 (N).paseka` в строго заданной папке, проверяет регулярный тип файла, размер от 12 байт до 512 МиБ, заголовок `PASEKA01` и два последовательных чтения `sha256sum` на устройстве. При нуле или нескольких кандидатах, ошибке ADB или несовпадении SHA — **BLOCKED/FAIL**, никаких изменений. Вся проверка read-only, не делает `force-stop`, не импортирует, не переносит и не удаляет файл.
+
+Это **контроль стабильности SHA уже сохранённого файла**, а не сопоставление с независимым хешем исходного Blob до экспорта. Он не доказывает корректность manifest/chunk SHA, полноту видео, синтетическое происхождение данных, восстановление IndexedDB или возможность безопасного удаления. Результаты помечать отдельно: `ARCHIVE_HASH: PASS`, `ARCHIVE_STRUCTURE: NOT TESTED`, `INDEXEDDB: NOT TESTED`, `PROVENANCE: NOT TESTED`. Не запускать PASEKA02 force-stop сценарий на таком архиве.
+
+Пример однокомандного запуска на Windows (зафиксировать ссылку на commit со скриптом, не использовать плавающий branch):
+
+```powershell
+$p="$env:TEMP\paseka02-preflight.ps1"; Invoke-WebRequest -UseBasicParsing -ErrorAction Stop "https://raw.githubusercontent.com/250oisr-eng/Pasekaapp/<VERIFIED_SHA>/tools/android_paseka02_preflight.ps1" -OutFile $p; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -CheckNewExport
+```
+
+Безопасные проверки CI: 9 Python тестов ADB, PowerShell parser, защитный контроль регрессии подсчёта файлов и смоделированный ADB test для одного архива / отказа при неоднозначном выборе. Они не заменяют запуск на телефоне.
+
+---
+
 ## 2026-11-21 — фактический формат Android APK: PASEKA01, не PASEKA02 (обязательная поправка)
 
 На физическом OnePlus NE2213, Android 16/API36 установлен isolated test APK с SHA исходного GitHub commit `3735bc056c259b2ca517bc3590d98ead968ea4d9`. Пользователь запустил read-only `-InspectHeaders` и получил **5 из 5 файлов** с заголовком `PASEKA01` (2026-11-18, 2026-11-19, 2081-09-01, 2087-03-08, 2094-07-13). Последняя строка `PASEKA02_HEADERS: 0 of 1` некорректно указала знаменатель вследствие использования PowerShell служебной переменной `$Matches`; фактический знаменатель **5**. Код изменён на независимый массив `$archiveFiles`.
