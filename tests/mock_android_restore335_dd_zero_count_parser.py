@@ -35,8 +35,11 @@ elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','stat','-c','%F','
 elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','ls','-A','files']:
     if mode=='existing_file':print('fileproof335-input.paseka')
 elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','stat','-c','%F','files/fileproof335-input.paseka']:
-    # Show that ADB exit 0 can carry a read-only command diagnostic on stdout.
-    print("stat: can't stat 'files/fileproof335-input.paseka': No such file or directory")
+    # ADB can return exit=0 with a diagnostic on stdout; other responses must fail closed.
+    if mode=='stat_regular': print('regular file')
+    elif mode=='stat_unrecognized': print('unexpected stat output')
+    elif mode=='stat_permission_denied': print('stat: Permission denied')
+    else: print("stat: can't stat 'files/fileproof335-input.paseka': No such file or directory")
 elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','dd','--help']:
     print('dd help: conv=excl,fsync; status=none')
 elif args==['-d','exec-out','run-as',pkg,'/system/bin/toybox','dd','if=/dev/null','count=0','status=none']:
@@ -65,6 +68,9 @@ with tempfile.TemporaryDirectory(prefix='paseka-dd-readonly-ci-') as root:
         ('unrecognized','DD_CONV_EXCL_ARGUMENT: UNVERIFIED',0),
         ('baseline_error','DD_ZERO_COUNT_BASELINE_INVALID',2),
         ('existing_file','PRIVATE_FILES_NOT_CONFIRMED_EMPTY',2),
+        ('stat_regular','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
+        ('stat_unrecognized','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
+        ('stat_permission_denied','PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED',2),
         ('source_changed','ORIGINAL_SOURCE_CHANGED',2),
         ('source_bad','ORIGINAL_PINNED_SHA_FAILED',2)
     ]:
