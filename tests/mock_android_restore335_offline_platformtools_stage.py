@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix='paseka-platformtools-negative-') as fol
     adb=evil/'adb'
     adb.write_text('#!/bin/sh\nprintf "UNEXPECTED_ADB_CALLED"\nexit 93\n',encoding='utf-8')
     adb.chmod(0o755)
-    env={**os.environ,'PATH':str(evil)+os.pathsep+os.environ['PATH']}
+    env={**os.environ,'PATH':str(evil)+os.pathsep+os.environ['PATH'],'TEMP':str(dir)}
     def run(path):
         result=subprocess.run(['pwsh','-NoProfile','-File',str(script),'-ZipPath',str(path)],
                               capture_output=True,text=True,env=env,timeout=30)
