@@ -26,7 +26,7 @@ elif args in (['-d','shell','pm','path',p],['-d','shell','pm','path',old]):
     print('package:/data/app/isolated/base.apk')
 elif args==['-d','exec-out','cat','/sdcard/Download/PasekaProof329/paseka-proof329-59a9e237-e33f-42f6-acf3-ff5f99bc1eec.paseka']:
     sys.stdout.buffer.write(src)
-elif args==['-d','exec-in','run-as',p,'sha256sum']:
+elif args==['-d','shell','-T','run-as',p,'sha256sum']:
     data=sys.stdin.buffer.read()
     if mode=='stdin_corrupt':data=data[:-1]+b'!'
     if mode=='stdout_diagnostic':
@@ -73,5 +73,6 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         calls_text=calls.read_text()
         assert all(word not in calls_text for word in ('install','uninstall','rm','mkdir','am start','clear','sh -c','push','pull'))
         assert ('sha256sum' in calls_text)==(mode!='source_corrupt')
+        assert ('shell' in calls_text and "'-T'" in calls_text)==(mode!='source_corrupt')
         assert (base/'archive.bin').read_bytes()==archive
 print('RESTORE335_STDIN_SHA_READONLY_MOCK_PASS')
