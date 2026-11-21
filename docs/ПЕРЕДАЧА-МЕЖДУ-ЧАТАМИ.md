@@ -1,3 +1,10 @@
+## 2026-11-21 — физически безопасная Java компиляция fileproof329 подтверждена CI
+
+- [Специализированный run #44937442484](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44937442484) на **точном кодовом SHA `77ae44faa1d68b1e8cde17c8fd951e956f4b0457`** завершён **completed/success**, Node **1230/1230 PASS, fail 0**, `BUILD SUCCESSFUL`. AAPT: `ru.paseka.journal.archive.fileproof329`. Artifact ID `14719299636`, name `paseka-fileproof329-inert-compile-apk`, GitHub ZIP SHA-256 `1953605e0deeb1fb8a31c420e24a07e2e6c99c734bd24213c9d10b8f62f57405`.
+- Это **инертный APK для проверки Java компиляции**. Он НЕ запускает запись MediaStore, НЕ содержит сценария полноценного PASEKA01-файла с двумя видео в Downloads, НЕ производит restore и НЕ проверен на телефоне. Не просить пользователя его устанавливать; `proof325` не изменён.
+- Протокол `docs/ANDROID-TWO-MP4-MEDIASTORE-PROOF329-PLAN.md` обновлён. Для дальнейшей реальной проверки нужно отдельное дополнительное изменение JS test screen, защищённый отчёт, unit/integration tests и новая APK с собственным SHA; текущий compiled artifact для физического test недостаточен.
+- Нет изменений main/production, merge, удаления архивов или видео; `cleanupAuthorized=false`.
+
 ## 2026-11-21 — Draft #329: изолированный fileproof329 Java bridge + инертная APK сборка
 
 - [Draft #329](https://github.com/250oisr-eng/Pasekaapp/pull/329) содержит только тестовую ветку, не `main`. Создано `scripts/isolated-android-mediastore-proof-bridge.mjs`: нативный Java helper для нового package `ru.paseka.journal.archive.fileproof329`, проверяет PASEKA01, входной SHA, размер <=1 MiB, генерирует уникальный UUID и тестовую `Download/PasekaProof329/`, запрашивает MediaStore filename collision, пишет по полученному URI, публикует, повторно читает тот же URI и проверяет bytes+SHA. Не передаётся пользовательский filename/path. После *любой* попытки включается one-shot, нет API удаления и восстановления.
