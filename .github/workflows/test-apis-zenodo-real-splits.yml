@@ -1,0 +1,75 @@
+name: "Source-authenticated Apis mellifera Zenodo split list audit"
+on:
+  push:
+    paths:
+      - 'tools/audit_apis_zenodo_real_split_lists.py'
+      - 'tests/test_audit_apis_zenodo_real_split_lists.py'
+      - '.github/workflows/test-apis-zenodo-real-splits.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_apis_zenodo_real_split_lists.py'
+      - 'tests/test_audit_apis_zenodo_real_split_lists.py'
+      - '.github/workflows/test-apis-zenodo-real-splits.yml'
+permissions:
+  contents: read
+jobs:
+  author-split-source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Synthetic malformed and cross-session split rejections
+        run: python -m unittest discover -s tests -p 'test_audit_apis_zenodo_real_split_lists.py' -v
+      - name: Fetch EXACT author-pinned Git blobs and audit real ten split files
+        run: |
+          python tools/audit_apis_zenodo_real_split_lists.py > /tmp/paseka-apis-zenodo-real-split-audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('/tmp/paseka-apis-zenodo-real-split-audit.json').read_text())
+          assert r['scientificSpeciesFromZenodoPublisher'] == 'Apis mellifera'
+          assert r['datasetLicenseVerifiedFromPinnedAuthorRepo'] == 'CC BY 4.0'
+          assert r['originalAuthorSplitTextGitBlobVerified'] is True
+          assert r['inputOrigin'] == 'sha_verified_public_author_source'
+          assert r['authorVerificationCSVGitBlobVerified'] is True
+          assert r['sourceImageCountByUniqueOriginalNames'] == 2823
+          assert r['fiveFoldUniqueValidationCoverage'] == 2823
+          assert len(r['nineTimestampCaptureDatesFromFileNames']) == 9
+          for fold in r['folds']:
+              assert len(fold['sharedCaptureDatesByFilename']) == 9
+              assert fold['allPublishedDatesSharedWithinFold'] is True
+              assert fold['trainValExactFilenameOverlap'] == 0
+          assert r['positiveClassVerification']['authorVerifiedInHivePositiveBeeWithMite'] == 3
+          assert r['positiveClassVerification']['authorUnconfirmedInHivePositiveLabels'] == 20
+
+          assert r['positiveClassVerification']['authorConfirmedInHiveMitePositiveDates'] == ['20240307']
+          plan = r['conservativeDayHeldoutPlan']
+          assert plan['proposalOnly'] is True
+          assert plan['numberOfDayHeldoutProposals'] == 9
+          assert plan['inHiveFramesFromNineDates'] == 2795
+          assert plan['handheldExcludedFromInHiveEvaluation'] == 28
+          assert plan['physicalCaptureSessionIdentityVerified'] is False
+          assert plan['originalJpgBytesChecked'] is False
+          assert plan['realModelTrainingEnabled'] is False
+          assert plan['beeEntranceInOutBenchmarkEnabled'] is False
+          assert sum(f['validationImagesFromSingleDay'] for f in plan['proposedFolds']) == 2795
+          for fold in plan['proposedFolds']:
+              assert fold['sharedDateNamesBetweenTrainAndValidation'] == 0
+              assert fold['handheldImagesExcluded'] == 28
+              assert fold['readyForActualDetectorBenchmark'] is False
+              print(f"held-out date={fold['validationDayFromFileName']} val={fold['validationImagesFromSingleDay']} train={fold['trainingImagesOtherDays']} (PROPOSAL only)")
+          unsafe = [f for f in plan['proposedFolds'] if f['confirmedInHiveMitePositiveAbsentFromTrain']]
+          assert len(unsafe) == 1 and unsafe[0]['validationDayFromFileName'] == '20240307'
+          print('WARNING: on held-out 20240307 there are zero verified in-hive mite positives available to train a Varroa-class classifier')
+
+          for key in ('actualOriginalJpgBytesVerified',
+                      'captureDayIndependentTrainValidation', 'sessionIndependentTrainValidation',
+                      'modelAccuracyMeasuredForPaseka', 'realBeeEntranceInOutGroundTruthValidated',
+                      'beesWithMitesReliableGTInHive', 'trainingApprovedForPaseka',
+                      'videoCleanupAuthorized'):
+              assert r[key] is False, key
+          print('Original Apis mellifera split lists authenticated; ALL folds share capture dates; independent benchmark BLOCKED')
+          PY
