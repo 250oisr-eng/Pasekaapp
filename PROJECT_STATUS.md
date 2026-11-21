@@ -1,3 +1,12 @@
+## RESTORE335 — fail-closed проверка stat перед read-only dd (2026-11-22)
+
+- В Draft PR #341 диагностический скрипт `tools/android-restore335-dd-zero-count-parser-readonly.ps1` теперь останавливается с `PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED`, если `stat` возвращает тип файла, неизвестный ответ или отказ в доступе. Один лишь пустой `ls -A files` недостаточен для продолжения при противоречащем ответе `stat`.
+- Дополнена mock-ADB / real-pwsh матрица для `stat_regular`, `stat_unrecognized`, `stat_permission_denied`. Это тесты без записи, удаления и запуска Android-приложения.
+- Code SHA до документации: `a6978b0f55fef35ff30189835e861c39950c54cb`. **CI после исправления ещё должен быть проверен на актуальном HEAD**, ранее успешный CI относится к `cdda1f6e5caf0babe12c96e57b5f5000904a4fdf`.
+- Физический запуск нового скрипта, restore IndexedDB, воспроизведение и удаление двух MP4 по-прежнему NOT TESTED. Следующий шаг: проверить успешный CI на точном SHA, затем только один read-only parser probe на NE2213/API36, без повторения старой записи.
+
+---
+
 ## RESTORE335 — физический v2-аудит: files/ пуст, dd conv=excl требует проверки парсера (2026-11-22)
 
 - Пользователь выполнил pinned `tools/android-restore335-post-dd-failure-readonly-v2.ps1` на OnePlus NE2213/API36 после прежнего one-shot `EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED`: host ADB 1.0.41 SHA PASS; исходный PASEKA01 3158B SHA PASS до и после; `PRIVATE_FILES_DIRECTORY: PRESENT`; `PRIVATE_INPUT_STAT_EXIT_CODE: 0`, `PRIVATE_INPUT_STAT_STDOUT_BYTES: 67`, `PRIVATE_INPUT_STAT_STDERR_BYTES: 0`, `PRIVATE_INPUT_STAT_ERROR_CLASS: NONE`; `PRIVATE_INPUT_FILE_TYPE: UNKNOWN_OR_ABSENT`; `PRIVATE_FILES_VISIBLE_ENTRY_COUNT: 0`, `PRIVATE_FILES_LIST_CLASS: EMPTY`; `SHELL_T_RUN_AS_CWD: MATCH`; `PRIVATE_DIR_WRITE_PERMISSION_TEST: ALLOWED`; `DD_HELP_EXIT_CODE: 0` и упоминание `excl`, `fsync`, `none` = True; `STATUS: RESTORE335_POST_FAILURE_READONLY_AUDIT_V2_COMPLETE`. **С высокой уверенностью приватный input файл отсутствует, но точные 67 байт `stat` не были показаны; прежнее скриптирование ошибочно доверяло exit 0 для диагностик на stdout. Нельзя выдавать ROOT CAUSE за подтверждённую.** Original сохранён; private directory пуст.
