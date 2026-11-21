@@ -56,3 +56,13 @@ test('physical ADB preflight is bounded and reports checkpoints before slow read
   assert.ok(ps.indexOf('STAGE: 4/5') < ps.indexOf("$bytes=Adb"));
   assert.match(ps,/NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE/);
 });
+
+test('ADB receives explicit argv, not PowerShell automatic args',()=>{
+  const ps=readFileSync(new URL('../tools/android-fileproof329-readonly-preflight.ps1',import.meta.url),'utf8');
+  assert.match(ps,/function Adb\(\[string\[\]\]\$argv\)/);
+  assert.match(ps,/function AdbText\(\[string\[\]\]\$argv\)/);
+  assert.match(ps,/\$p\.Arguments=\$argv -join ' '/);
+  assert.doesNotMatch(ps,/function Adb\(\[string\[\]\]\$args\)/);
+  assert.match(ps,/ADB_DIAGNOSTIC:/);
+  assert.match(ps,/ADB_EXIT_/);
+});
