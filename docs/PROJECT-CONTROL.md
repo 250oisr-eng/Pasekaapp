@@ -1,3 +1,9 @@
+## 2026-11-21 — реальные переходы относительно авторского polygon ≠ вход/выход пчелы
+
+- [VIDEO-PUBLIC-FAN-POLYGON-BOUNDARY-DIAGNOSTIC.md](VIDEO-PUBLIC-FAN-POLYGON-BOUNDARY-DIAGNOSTIC.md) — 6000 tracking кадров, 237 GT polygon transitions, 43 быстрых возврата, 833 разрыва; отсутствие независимых in/out меток, полный запрет продвижения в приложенческий счётчик и cleanup.
+
+---
+
 ## 2026-11-21 — проверка source-frame overlap для честного обучающего split
 
 - [VIDEO-MENDELEY-V6-CROSS-ANNOTATION-ALIGNMENT.md](VIDEO-MENDELEY-V6-CROSS-ANNOTATION-ALIGNMENT.md) — 12 оригинальных JPEG/YOLO против 6000 исходных fan MP4 кадров; выбор кандидата по пикселям, затем независимое сравнение bbox, out-of-frame исходной разметки, консервативный запрет train/test leakage.
