@@ -1,0 +1,27 @@
+name: Fileproof329 isolated restore commit (CI only)
+on:
+  push:
+    branches:
+      - 'test/fileproof329-isolated-restore-commit-2026-11-21'
+  pull_request:
+    paths:
+      - 'tests/fileproof329-isolated-restore-commit.test.mjs'
+      - '.github/workflows/test-fileproof329-isolated-restore.yml'
+      - 'js/paseka-archive.js'
+      - 'tests/fixtures/android-two-mp4-proof-fixtures.js'
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing test dependencies
+        run: npm ci --ignore-scripts
+      - name: Check test syntax
+        run: node --check tests/fileproof329-isolated-restore-commit.test.mjs
+      - name: Run isolated atomic restore and rollback tests
+        run: node --test tests/fileproof329-isolated-restore-commit.test.mjs
