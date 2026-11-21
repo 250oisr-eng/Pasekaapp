@@ -1,3 +1,11 @@
+## RESTORE335 — modern ADB 1.0.41 staged on real Windows (2026-11-21)
+
+- User ran SHA-pinned offline Windows stage at `1bb445b133aea1f59918482ba4774cd6f60a54e3`: `SOURCE_ZIP_SHA256: 89d108360a3bf2924d3bea837239edaccc22fd6ff5befd3787c4348a9fe4f09d`, `ADB_EXE_SHA256: bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee`, `VERIFIED_ADB_VERSION: Android Debug Bridge version 1.0.41`, `ISOLATED_ADB_PATH: C:\Users\n12D8\AppData\Local\Temp\paseka-offline-platformtools-43f92107c17d47d7a2853a42348efe9b\platform-tools\adb.exe`, `OLD_ADB_AND_SYSTEM_PATH: UNCHANGED`, `ANDROID_CONNECTION: NOT_ATTEMPTED`, `STATUS: RESTORE335_OFFLINE_PLATFORMTOOLS_READY`. ZIP provenance requires user's official-source claim; structural checks and local hashes alone cannot cryptographically prove Google source. No actual device connection in stage.
+- Same Draft PR #341 adds a **distinct** `tools/android-restore335-modern-adb-pinned-stdin-readonly.ps1` that takes exactly staged ADB absolute path and SHA as defaults, validates exe SHA/version before any device access, checks existing NE2213/API36 two test packages and original 3158B pinned PASEKA01 archive, then streams only from memory through `adb shell -T run-as ... /system/bin/toybox sha256sum -` and demands matching remote SHA. No write, install, application launch, restore, recognition or deletion.
+- New real-pwsh/mock ADB negative and success scenarios + workflow. Physical new-ADB stdin proof **NOT TESTED** until exact latest SHA CI success; no more testing with old ADB 1.0.32. No merging, deployment or production changes.
+
+---
+
 ## Restore335 — ZIP_UNSAFE_ENTRY on physical Windows / root directory fix (2026-11-21)
 
 - User executed pinned offline Windows ZIP stage from HEAD `f7ff409e9553e371bc811f73e67c9d65bb6c37d1`: `STAGE: 1/3 ...`, `STATUS: BLOCKED`, `DETAIL: ZIP_UNSAFE_ENTRY`, `ANDROID_CONNECTION_NOT_ATTEMPTED_NO_SYSTEM_CHANGES_NO_DELETE`. This proves original validator rejected some ZIP entry, NOT that Google's ZIP was malicious; exact offending entry not printed and cause is not independently confirmed.
