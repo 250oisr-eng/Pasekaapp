@@ -53,11 +53,11 @@ class ExternalPredictionsTests(unittest.TestCase):
     def test_all_6000_frames_including_empty_frames_are_required(self):
         with self.input.open("w", encoding="utf-8") as stream:
             for frame in range(1, 6001):
-                stream.write(json.dumps({"frame": frame, "detections": []}) + "\\n")
+                stream.write(json.dumps({"frame": frame, "detections": []}) + "\n")
         frames, n = inspect_predictions(self.input)
         self.assertEqual((len(frames), n), (6000, 0))
         with self.input.open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps({"frame": 6001, "detections": []}) + "\\n")
+            stream.write(json.dumps({"frame": 6001, "detections": []}) + "\n")
         with self.assertRaises(ValueError):
             inspect_predictions(self.input)
 
