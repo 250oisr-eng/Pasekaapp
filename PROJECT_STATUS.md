@@ -1,3 +1,14 @@
+## FILEPROOF335 — отдельный Android test-only APK, подготовка сборки (2026-11-21)
+
+- На базе Draft #335 создана новая ветка `test/android-fileproof335-separate-apk-2026-11-21`. Цель: **только новый отдельный** Android package `ru.paseka.journal.archive.restoreproof335`; существующий `ru.paseka.journal.archive.fileproof329` и рабочий `ru.paseka.journal` не меняются.
+- `scripts/prepare-android-fileproof335-isolated-apk.mjs`: stage `web` в чистом GitHub Actions checkout подменяет appId на отдельный тестовый, включает лишь `PasekaArchive`, ограниченный restore335 browser fixture и тестовый bootstrap. Stage `native` в **генерируемом Android проекте** создаёт Java `Restore335InputBridge`, читающий строго `getFilesDir()/fileproof335-input.paseka` (3158 байт, pinned SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`) только один раз; записи в оригинальный архив, MediaStore и Downloads нет. Одноразовый reporter сохраняет результат только в новом private package без перезаписи.
+- `tests/fixtures/android-fileproof335-start.js` извлекает только проверенные test-only private input bytes, передаёт `Uint8Array` в `PasekaIsolatedRestore335.run()` и сообщает `cleanupAuthorized=false`, `recognitionSucceeded=false`.
+- `.github/workflows/build-android-fileproof335-isolated-apk.yml`: сборка в CI с проверкой distinct packageId через aapt и загрузкой debug APK только как artifact. `tests/android-fileproof335-apk-isolation.test.mjs`: negative safety checks. APK **не устанавливался** и физического Android restore не было.
+- **Критический незавершённый блок:** безопасная доставка bytes из исходного PASEKA01 внешнего файла на телефоне в *приватное пространство нового тестового пакета*; исходный файл нельзя перезаписывать или удалять. Никакие команды физической передачи/установки не выдавать до подтверждения CI и отдельного fail-closed device protocol. Новый input файл пока не создан на устройстве.
+- CI на точном SHA нового build/test workflow — PENDING/NOT CHECKED; не объявлять сборку successful до фактического success. Не merge/deploy, не менять пользовательскую базу или оригинал видео.
+
+---
+
 ## FILEPROOF335 — test-only WebView restore gate CI 7/7 PASS (2026-11-21)
 
 - В stacked [Draft PR #335](https://github.com/250oisr-eng/Pasekaapp/pull/335) код/тесты SHA `023cfea81f92f62c9de03c0f41f6edf47a565de9` проверены: [CI #44942008049](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942008049), isolated browser/IndexedDB gate **7/7 tests PASS, 0 failures** (job success).
