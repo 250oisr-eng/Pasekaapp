@@ -1,0 +1,29 @@
+name: Audit publisher fan polygon transitions without in-out claims
+on:
+  push:
+    paths:
+      - 'tools/audit_public_fan_polygon_transitions.py'
+      - 'tests/test_audit_public_fan_polygon_transitions.py'
+      - '.github/workflows/test-public-fan-zone-transitions.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_public_fan_polygon_transitions.py'
+      - 'tests/test_audit_public_fan_polygon_transitions.py'
+      - '.github/workflows/test-public-fan-zone-transitions.yml'
+permissions:
+  contents: read
+jobs:
+  source-polygon-transitions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install free Pillow dependency only
+        run: python -m pip install --only-binary=:all: Pillow==12.0.0
+      - name: Offline negative regression tests for false entrance counts
+        run: python -m unittest discover -s tests -p 'test_audit_public_fan_polygon_transitions.py' -v
+      - name: Read two genuine publisher-pinned TXT files and measure polygon-only transitions
+        run: python tools/audit_public_fan_polygon_transitions.py
