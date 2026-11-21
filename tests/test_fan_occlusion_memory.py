@@ -5,6 +5,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from fan_occlusion_memory import associate_with_memory
 from fan_memory_diagnostics import memory_diagnostics
+from compare_public_fan_memory import safety_gate
 from baseline_mendeley_v6_fan_association import associate_boxes
 
 A = (.05, .1, .15, .2)
@@ -85,6 +86,19 @@ class MemoryDiagnosticsTests(unittest.TestCase):
         mixed = memory_diagnostics([{1: A}, {}, {2: A}], same)
         self.assertEqual(mixed["crossReferenceIdentityReuses"], 1)
         self.assertEqual(mixed["groundTruthOneFrameGapEndpoints"], 0)
+
+    def test_safety_gate_rejects_increased_false_reuse(self):
+        baseline = {"gapDiagnostics": {"crossReferenceIdentityReuses": 12,
+                                         "recoveredSameIdAfterOneFrameGap": 2}}
+        improved_but_unsafe = {"gapDiagnostics": {"crossReferenceIdentityReuses": 13,
+                                                   "recoveredSameIdAfterOneFrameGap": 50}}
+        safe = {"gapDiagnostics": {"crossReferenceIdentityReuses": 12,
+                                   "recoveredSameIdAfterOneFrameGap": 3}}
+        stagnant = {"gapDiagnostics": {"crossReferenceIdentityReuses": 12,
+                                       "recoveredSameIdAfterOneFrameGap": 2}}
+        self.assertFalse(safety_gate(baseline, improved_but_unsafe))
+        self.assertTrue(safety_gate(baseline, safe))
+        self.assertFalse(safety_gate(baseline, stagnant))
 
     def test_no_double_count_for_adjacent_links(self):
         source = [{1: A}, {1: A}, {1: A}]
