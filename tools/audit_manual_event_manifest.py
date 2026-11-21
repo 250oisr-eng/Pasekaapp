@@ -47,3 +47,36 @@ def audit_explicit_selection(source_rows, selected_ids):
         'realTrafficValidationAuthorized': False,
         'videoCleanupAuthorized': False,
     }
+
+
+def audit_two_versions(original, alternative, selected_ids):
+    """Compare two source tables for the same explicitly selected IDs.
+
+    Identical class totals do not imply identical per-event labels.
+    Returns aggregates only; never returns the selected IDs.
+    """
+    left = audit_explicit_selection(original, selected_ids)
+    right = audit_explicit_selection(alternative, selected_ids)
+    disagreements = 0
+    missing_evidence = 0
+    for group in selected_ids:
+        a, b = original[group], alternative[group]
+        for field in ('eventid', 'video'):
+            if not a.get(field) or not b.get(field):
+                missing_evidence += 1
+            elif a[field] != b[field]:
+                raise ValueError('event identity differs between source versions')
+        disagreements += a['event'] != b['event']
+    if missing_evidence:
+        raise ValueError('event identity evidence missing')
+    return {
+        'original': left,
+        'alternative': right,
+        'selectedLabelDisagreements': disagreements,
+        'sameIndividualLabels': disagreements == 0,
+        'bothMatchPublishedTotals': left['matchesPublishedTotals'] and right['matchesPublishedTotals'],
+        'verifiedAuthoritativeVersion': False,
+        'verifiedAuthorManifest': False,
+        'independentValidationAuthorized': False,
+        'videoCleanupAuthorized': False,
+    }
