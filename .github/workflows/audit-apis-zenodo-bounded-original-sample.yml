@@ -46,5 +46,6 @@ jobs:
               print('ORIGINAL bounded JPEG/TXT verified by per-member CRC; full ZIP checksum NOT verified')
           else:
               assert 'blockReason' in r
-              print('OFFICIAL ORIGINAL ZIP SAMPLE NOT VERIFIED; no source evidence claimed')
+              print('BLOCKED: OFFICIAL ORIGINAL JPG/TXT NOT VERIFIED; no source evidence claimed: '+r['blockReason'])
+              raise AssertionError('Source JPG/TXT byte audit incomplete — do not consider this CI successful')
           PY
