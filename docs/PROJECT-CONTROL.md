@@ -1,3 +1,9 @@
+## 2026-11-21 — внешний исходный набор ручных пчелиных событий: license/revision gate
+
+- [VIDEO-EXTERNAL-MANUAL-BEE-EVENT-LABELS-RESEARCH.md](VIDEO-EXTERNAL-MANUAL-BEE-EVENT-LABELS-RESEARCH.md) — источник Nieves-Rivera et al. (2026), два реальных CSV по 1422 ручных событий, 177 различий классификации, отсутствующий LICENSE и непроверенное выделение 1194 эталонных событий. Не тренировать и не использовать для in/out без доказательств.
+
+---
+
 ## 2026-11-21 — реальные переходы относительно авторского polygon ≠ вход/выход пчелы
 
 - [VIDEO-PUBLIC-FAN-POLYGON-BOUNDARY-DIAGNOSTIC.md](VIDEO-PUBLIC-FAN-POLYGON-BOUNDARY-DIAGNOSTIC.md) — 6000 tracking кадров, 237 GT polygon transitions, 43 быстрых возврата, 833 разрыва; отсутствие независимых in/out меток, полный запрет продвижения в приложенческий счётчик и cleanup.
