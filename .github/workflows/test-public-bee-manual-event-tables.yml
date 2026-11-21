@@ -38,6 +38,13 @@ jobs:
           assert original["eventCodeCounts"] == {"D": 552, "DU": 241, "U": 339, "UD": 200, "x": 90}
           assert alternative["eventCodeCounts"] == {"": 85, "D": 536, "DU": 248, "U": 333, "UD": 220}
           comparison = report["crossTableComparison"]
+          for table, expected in ((original, [(1332, 441), (1299, 420), (1277, 401)]),
+                                  (alternative, [(1337, 468), (1266, 440), (1247, 425)])):
+              for name, pair in zip(("fourCodes", "withoutErrorFlag", "withoutErrorOrAmbiguityFlag"), expected):
+                  sample = table["candidateSelections"][name]
+                  assert (sample["total"], sample["compound"]) == pair
+                  assert not sample["matchesPaperTotals"]
+          assert comparison["agreeingFourCodes"] == {"total": 1245, "compound": 397, "matchesPaperTotals": False}
           assert comparison["sameGroupIdRows"] == 1422
           assert comparison["eventLabelsChangedByGroupId"] == 177
           assert comparison["eventIdChangedByGroupId"] == 0

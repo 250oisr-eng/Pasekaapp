@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_public_bee_manual_event_tables import (
     CAP, COMMIT, FIELDS, ROWS, SOURCE, SHA256_PINS, audit, compare_source_tables,
     fetch_exact_public_source, parse_events_csv, summarize_table,
-    verify_git_blob,
+    verify_git_blob, candidate_counts, candidate_selections,
 )
 
 
@@ -60,6 +60,20 @@ class BeeManualEventSourceTests(unittest.TestCase):
         self.assertEqual(report["videoNameChangedByGroupId"], 1)
         self.assertFalse(report["final1194EventSubsetIdentified"])
         self.assertFalse(report["isOneTableAnAuthoritativelyConfirmedFinalVersion"])
+
+    def test_candidate_filters_preserve_false_and_exclude_unknown_codes(self):
+        rows = {i: {"event": code, "error": error, "ambiguousflag": ambiguous}
+                for i, (code, error, ambiguous) in enumerate([
+                    ("D", "FALSE", ""), ("DU", "id_swap", ""), ("UD", "", "x"),
+                    ("x", "", ""), ("", "False", ""), ("U", "", "TRUE")])}
+        values = candidate_selections(rows)
+        self.assertEqual((values["fourCodes"]["total"], values["fourCodes"]["compound"]), (4, 2))
+        self.assertEqual(values["withoutErrorFlag"]["total"], 3)
+        self.assertEqual(values["withoutErrorOrAmbiguityFlag"]["total"], 1)
+
+    def test_total_alone_does_not_match_paper(self):
+        self.assertFalse(candidate_counts(["U"] * 1194)["matchesPaperTotals"])
+        self.assertTrue(candidate_counts(["U"] * 820 + ["UD"] * 374)["matchesPaperTotals"])
 
     def test_duplicate_and_missing_group_ids_fail_closed(self):
         for replacement in ("0", "1422", "-1", "01", "not_an_int"):
