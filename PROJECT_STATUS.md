@@ -1,3 +1,13 @@
+## FILEPROOF329 — физический read-only preflight PASS (2026-11-21)
+
+- Пользователь на OnePlus NE2213 / API36 выполнил закреплённый скрипт `tools/android-fileproof329-readonly-preflight.ps1` с code SHA `d2933ddd5b7be2caa131bf64c8179c34e35e703e`. Получен полный вывод пяти стадий и финальный `STATUS: FILEPROOF329_ANDROID_READONLY_PREFLIGHT_PASS`.
+- Подтверждены: `EXISTING_SYNTHETIC_PACKAGE: VERIFIED`, `PRIVATE_REPORT: SHA256_PASS`, `EXTERNAL_ARCHIVE: SHA256_PASS`, `PASEKA01_MANIFEST: PASS`, `STATE_SCHEMA_AND_HIVE: PASS`, `VIDEO_1_SHA256: PASS`, `VIDEO_2_SHA256: PASS`. Архив 3158 байт с pinned SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186` ранее независимо проверен `adb sha256sum`; файл сохранён.
+- CI для точного code SHA: [run #44941100823](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941100823) — completed/success, включая реальный PowerShell с mock ADB precheck. Физический результат — отдельно из пользовательского консольного вывода, не из CI.
+- **Не доказано:** restore commit, воспроизводимость MP4 аппаратным декодером, распознавание пчёл, корректная очистка после распознавания. `RESTORE_COMMIT: NOT_TESTED`, `MP4_DECODER: NOT_TESTED`, `RECOGNITION_CLEANUP: NOT_AUTHORIZED`. Синтетический тест не является подтверждением сохранности пользовательских данных или готовности production.
+- Следующий приоритет: isolated restore commit с новой пустой тестовой IndexedDB и явным read-only source + no-overwrite/fail-closed preflight; только отдельный безопасный этап. Не удалять оригинальный синтетический архив, не менять production и реальные данные.
+
+---
+
 ## FILEPROOF329 — подтверждён CI на исправлении VoidTaskResult (2026-11-21)
 
 - Код/тесты SHA `d2933ddd5b7be2caa131bf64c8179c34e35e703e`: [CI #44941100823](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941100823) completed/success. Проверены синтаксис Node+PowerShell, негативные сценарии, ADB fail mock, **ADB positive USB precheck -> stage2** с реальным `pwsh`; служебный `VoidTaskResult` не возникает. Последующие изменения — только документация.
