@@ -1,3 +1,9 @@
+## 2026-11-21 — результат физического Windows ADB preflight: 5 файлов, формат пока не подтверждён
+
+- Пользователь выполнил `tools/android_paseka02_preflight.ps1` на Windows/OnePlus NE2213: `DEVICE: NE2213 | Android 16 | API 36`, `PACKAGE: ru.paseka.journal.archive.test | INSTALLED`, `PROCESS: RUNNING`, `ARCHIVE_DIRECTORY: ACCESSIBLE; matching filenames: 5`, `STATUS: PREFLIGHT_COMPLETE`. По этой проверке **нет доказательств, что какие-либо из пяти файлов являются PASEKA02**; проверка даже не читала заголовки.
+- Чтобы не просить пользователя вводить отдельные команды по каждому файлу, PowerShell `tools/android_paseka02_preflight.ps1` дополнен параметром `-InspectHeaders`: после повторной проверки устройства читает только первые 8 байт и размеры файлов из разрешённой папки, строго по whitelist имён и максимум 20. Не читает пользовательские видео/IndexedDB, не останавливает приложение, не удаляет и не восстанавливает архивы; **тест целостности A/B/C не выполнен**.
+- Обновлён `docs/ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md`, ожидается CI для PowerShell syntax и Python mocks на актуальном SHA. Перед запуском дать пользователю одно вставляемое выражение PowerShell с **зафиксированным SHA** скрипта и запросить только вывод. Не выполнять `force-stop` или восстановление на неизвестном архиве. Реальные и синтетические исходники не изменены.
+
 ## 2026-11-21 — физический Android запущен; одно действие вместо ручной серии ADB
 
 - Пользователь на Windows подтвердил установку изолированного APK (`adb -d install` → `Success`), `adb -d shell pm path ru.paseka.journal.archive.test` → точный пакет обнаружен, `adb -d shell monkey -p ru.paseka.journal.archive.test -c android.intent.category.LAUNCHER 1` → `Events injected: 1`; пользователь наблюдал открытую главную страницу. Это **реальная проверка установки и запуска** на OnePlus NE2213/Android 16, но **НЕ** проверка IndexedDB/видеорезервного архива.
