@@ -1,0 +1,32 @@
+name: Fileproof329 archive preflight (read-only)
+on:
+  pull_request:
+    paths:
+      - 'tools/fileproof329-archive-preflight.mjs'
+      - 'tools/android-fileproof329-readonly-preflight.ps1'
+      - 'tests/fileproof329-archive-preflight.test.mjs'
+      - 'js/paseka-archive.js'
+      - '.github/workflows/test-fileproof329-archive-preflight.yml'
+  push:
+    branches:
+      - 'test/android-fileproof329-restore-preflight-2026-11-21'
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse script
+        run: node --check tools/fileproof329-archive-preflight.mjs
+      - name: Parse read-only Windows device script
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-fileproof329-readonly-preflight.ps1',[ref]$tokens,[ref]$errors)
+          if($errors.Count -gt 0){ $errors | ForEach-Object {Write-Error $_}; exit 1 }
+      - name: Negative and source-safety checks
+        run: node --test tests/fileproof329-archive-preflight.test.mjs
