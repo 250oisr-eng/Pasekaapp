@@ -1,7 +1,7 @@
 """Deterministic adjacent-frame IoU association baseline; no learned detector.
 
 The input consists of reference bounding boxes with their IDs discarded.
-New IDs are assigned in sorted input order, and a lost track is never revived.
+New IDs are assigned in geometry-sorted order, and a lost track is never revived.
 This deliberately exposes ID switches after gaps/occlusions.
 """
 import argparse
@@ -19,9 +19,9 @@ def associate_boxes(frames, threshold=0.5):
     active = {}
     next_id = 1
     for frame in frames:
-        # Reference IDs are used only for deterministic sorting here; they are
-        # not passed to the association algorithm or reused as output IDs.
-        boxes = [frame[k] for k in sorted(frame)]
+        # Never sort by ground-truth track IDs: this would leak identity
+        # information into an otherwise geometry-only baseline.
+        boxes = sorted(frame.values())
         observations = dict(enumerate(boxes))
         matches = match_frame(active, observations, threshold)
         output = {}
