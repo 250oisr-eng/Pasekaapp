@@ -41,4 +41,26 @@ with tempfile.TemporaryDirectory(prefix='paseka-platformtools-negative-') as fol
                   'missing_dll':'ZIP_REQUIRED_FILE_MISSING_platform-tools/AdbWinUsbApi.dll',
                   'duplicate':'ZIP_DUPLICATE_ENTRY'}[case]
         assert expected in out,(case,out)
+
+    # An official-style ZIP often contains a distinct empty root directory.
+    # The directory must pass structural inspection. The dummy adb.exe is not
+    # executable as a Windows PE binary and must still fail before any device I/O.
+    archive=dir/'official_style_root_marker.zip'
+    with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED) as z:
+        z.writestr('platform-tools/',b'')
+        for name in required:
+            z.writestr(name,b'X'*409600)
+    out=run(archive)
+    assert 'STAGE: 2/3 EXTRACT_FRESH_ISOLATED_WINDOWS_FOLDER' in out,out
+    assert 'STAGE: 3/3 VERSION_ONLY_NO_DEVICE_CONNECTION' in out,out
+    assert 'ZIP_UNSAFE_ENTRY' not in out,out
+    assert 'UNEXPECTED_ADB_CALLED' not in out
+    # Still fail-closed for a non-empty purported directory marker.
+    archive=dir/'unsafe_root_marker.zip'
+    with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED) as z:
+        z.writestr('platform-tools/',b'NOT_A_DIRECTORY')
+        for name in required:
+            z.writestr(name,b'X'*409600)
+    out=run(archive)
+    assert 'ZIP_DIRECTORY_HAS_CONTENT' in out,out
 print('RESTORE335_OFFLINE_PLATFORMTOOLS_NEGATIVE_MOCK_PASS')
