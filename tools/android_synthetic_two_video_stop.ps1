@@ -93,8 +93,8 @@ try {
         $launch = RequireAdb -argv @('-d','shell',("monkey -p " + $package + " -c android.intent.category.LAUNCHER 1"))
         if ($launch -notmatch 'Events injected:\s*1') { throw 'Isolated app start not confirmed; no force-stop' }
         $null = RequireAdb -argv @('-d','shell',("am force-stop " + $package))
-        $pid = InvokeNativeAdb -argv @('-d','shell',('pidof ' + $package))
-        if (-not (($pid.Code -eq 1 -or $pid.Code -eq 0) -and -not $pid.Output)) {
+        $processState = InvokeNativeAdb -argv @('-d','shell',('pidof ' + $package))
+        if (-not (($processState.Code -eq 1 -or $processState.Code -eq 0) -and -not $processState.Output)) {
             throw 'Isolated test process not confirmed stopped'
         }
         if ((RemoteSha $remote) -ne $expectedSha) { throw 'External archive changed after test app force-stop' }
