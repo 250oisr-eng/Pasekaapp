@@ -1,3 +1,12 @@
+## RESTORE335 — read-only binary stdin transport probe (2026-11-21)
+
+- Physical OnePlus NE2213/API36 path-audit: pinned external PASEKA01 3158 bytes SHA256 PASS; `run-as pwd` = `/data/user/0/ru.paseka.journal.archive.restoreproof335`; `files/`, private input and report all NOT_FOUND. Earlier 65/62 byte diagnostics are missing-file stdout, not stored files.
+- Draft PR #341 stacked over #340; test script `tools/android-restore335-stdin-sha-readonly.ps1` reads source into PC memory, verifies pinned SHA, streams bytes via direct `adb exec-in run-as <existing test package> sha256sum` without shell/redirection/file writes, verifies remote digest and rejects non-digest stdout.
+- Mock CI cases: success, corrupt stdin, diagnostic stdout with exit 0, corrupt original blocked before stdin. Workflow exists; exact HEAD CI and physical USB execution **NOT VERIFIED**. No restore/MP4 decoding/recognition/deletion; no installs or production edits.
+- Next single gate: confirm workflow CI on exact HEAD, then one non-writing physical stdin diagnostic. If SHA passes, separately design a safe file-staging operation in existing test-only package; no retry of previous one-shot installer.
+
+---
+
 ## RESTORE335 — confirmed CI for read-only missing-path audit (2026-11-21)
 
 - Code/test/workflow SHA `cdf937797078234aeb9817d686d551795203c4e6` проверен: [GitHub Actions #44944519356](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44944519356) **completed/success**: PowerShell parse, static no-write tests, real `pwsh` mock-ADB with missing-file diagnostic text on stdout and exit=0. Последующие изменения — документация.
