@@ -1,0 +1,28 @@
+name: Fileproof335 isolated browser restore gate (CI only)
+on:
+  push:
+    branches:
+      - 'test/android-isolated-restore335-browser-gate-2026-11-21'
+  pull_request:
+    paths:
+      - 'tests/fixtures/android-fileproof335-isolated-restore.js'
+      - 'tests/android-fileproof335-isolated-restore-browser.test.mjs'
+      - '.github/workflows/test-android-fileproof335-isolated-restore.yml'
+jobs:
+  browser-restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test dependencies without lockfile
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Parse fixture and test
+        run: |
+          node --check tests/fixtures/android-fileproof335-isolated-restore.js
+          node --check tests/android-fileproof335-isolated-restore-browser.test.mjs
+      - name: Run isolated browser/IndexedDB restore regression
+        run: node --test tests/android-fileproof335-isolated-restore-browser.test.mjs
