@@ -61,6 +61,26 @@ def range_bytes(start, end, total, *, opener=None):
     return data
 
 
+def read_bounded_segments(start, end, total, *, fetch=range_bytes, chunk_size=128*1024):
+    """Fetch only 128 KiB at once; avoid large Zenodo S3 range timeouts.
+
+    Bound aggregate range (8 MiB) even if many small ranges are permitted.
+    No retry to bigger range or full download on failure.
+    """
+    if (type(start) is not int or type(end) is not int or start < 0
+            or end < start or end >= total or end - start + 1 > MAX_RANGE
+            or not 0 < chunk_size <= 256*1024):
+        raise ValueError("bounded source segment invalid")
+    parts=[]
+    for i in range(start, end+1, chunk_size):
+        j=min(end,i+chunk_size-1)
+        parts.append(fetch(i,j,total))
+    data=b"".join(parts)
+    if len(data)!=end-start+1:
+        raise ValueError("source ranged chunks not contiguous/complete")
+    return data
+
+
 def central_directory_from_tail(tail, total):
     """Parse exact end of ZIP; no untrusted ZIP64 or multidisk fallback."""
     idx = tail.rfind(EOCD_SIGNATURE)
@@ -236,11 +256,18 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
     total=p.get("publisherArchiveBytesFromContentRange")
     if total!=EXPECTED_ARCHIVE_BYTES:
         raise ValueError("publisher archive byte count changed from pinned source record")
-    tail_length=min(256*1024,total)
-    tail=fetch(total-tail_length,total-1,total)
+    # Use short network byte-ranges for all original accesses.
+    get=(lambda a,b,t: read_bounded_segments(a,b,t,fetch=fetch)
+         if fetch is range_bytes else fetch(a,b,t))
+    tail_length=min(128*1024,total)
+    tail=get(total-tail_length,total-1,total)
     cdinfo=central_directory_from_tail(tail,total)
-    rawcd=fetch(cdinfo["centralOffset"],
-                cdinfo["centralOffset"]+cdinfo["centralBytes"]-1,total)
+    # Do not repeat huge GET. The original central directory is often >256 KiB,
+    # and Zenodo can time out on large consecutive random-range requests.
+    import sys
+    print(f"ZIP central entry count={cdinfo['count']}, bytes={cdinfo['centralBytes']}, chunkSize=131072", file=sys.stderr, flush=True)
+    rawcd=get(cdinfo["centralOffset"],
+              cdinfo["centralOffset"]+cdinfo["centralBytes"]-1,total)
     entries=parse_central_directory(rawcd,cdinfo["count"])
     jpgs={PurePosixPath(k).stem:e for k,e in entries.items()
           if k.lower().endswith((".jpg",".jpeg")) and
@@ -266,8 +293,8 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
     if not candidates:
         raise ValueError("no bounded genuine original JPG/TXT sample")
     name=candidates[0]
-    jpg=extract_sample_zip_member(jpgs[name],total,fetch)
-    txt=extract_sample_zip_member(txts[name],total,fetch)
+    jpg=extract_sample_zip_member(jpgs[name],total,get)
+    txt=extract_sample_zip_member(txts[name],total,get)
     width,height=jpeg_dimensions(jpg)
     yolo=yolo_annotation_summary(txt)
     result.update({
