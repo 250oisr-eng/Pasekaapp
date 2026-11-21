@@ -124,8 +124,13 @@ def verify_author_metadata(license_text, readme, class1_csv):
     no = sum(r.get("mite_visible_on_re_inspection") == "N" for r in rows)
     if (yes, no) != (3, 20):
         raise ValueError("in-hive mite class verification counts changed")
+    confirmed_dates = sorted({date_from_image_name(r["image"] + ".jpg")
+                              for r in rows if r.get("mite_visible_on_re_inspection") == "Y"})
+    if confirmed_dates != ["20240307"]:
+        raise ValueError("verified positive dates differ from published source")
     return {"authorVerifiedInHivePositiveBeeWithMite": yes,
             "authorUnconfirmedInHivePositiveLabels": no,
+            "authorConfirmedInHiveMitePositiveDates": confirmed_dates,
             "unverifiedInHiveClass1CannotBeGT": True}
 
 
@@ -241,7 +246,7 @@ def audit_pinned_split_files(fetch=fetch_pinned_text):
         "nineTimestampCaptureDatesFromFileNames": sorted(all_dates),
         "folds": folds, "positiveClassVerification": verification,
         "conservativeDayHeldoutPlan": conservative_day_heldout_plan(
-            catalog, verified_positive_dates={"20240307"}),
+            catalog, verified_positive_dates=verification["authorConfirmedInHiveMitePositiveDates"]),
         "actualOriginalJpgBytesVerified": False,
         "captureDatesProvenSamePhysicalVideoSession": False,
         "captureDayIndependentTrainValidation": False,
