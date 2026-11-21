@@ -1,3 +1,10 @@
+## 2026-11-21 — итоговый CI code/test HEAD PR #325 пройден
+
+- Проверенный **точный code/test HEAD**: `1be1200218ad46ac048288a925993bbc650f2159`. [GitHub Actions Android #44934193717](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44934193717) **completed/success**: **1220/1220 тестов**, 0 failed; Gradle `BUILD SUCCESSFUL`; `Upload APK` success. Artifact ID `14718559184`, ZIP size 3 532 409 bytes, SHA-256 `7f8a783eec0bf2e7db81992f418ffe0e354a090464767571aea61d75b7d0e7a8`.
+- [Изолированная архивная APK #44934193670](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44934193670) **completed/skipped**: не считать успешной проверкой. Промежуточные Android runs отменены после новых commits и не засчитываются.
+- Тесты исходных MP4/IndexedDB/PASEKA01 проверены в автоматизированной среде. Это **не** физический Android app-export, не запуск видеодекодера телефона и не доказательство распознавания. `cleanupAuthorized=false`. Комментарий с точными CI данными размещён в Draft #325.
+- Следующий этап — подготовить отдельный безопасный физический сценарий для тестового APK без очистки существующей базы/внешних файлов, затем проверить полный app-export и re-open SHA. Документационные изменения после этого CI не переносят success на новый SHA автоматически.
+
 ## 2026-11-21 — отдельный Draft #325: реальные синтетические MP4 → IndexedDB → экспорт PASEKA01 (CI ожидается)
 
 - Продолжение #324 поверх коммита `b0cb19f9571406f06f5bbb860e8d0f7ed8834b4b`; создан Draft PR #325, `test/android-two-blob-app-export-gate-2026-11-21`. Рабочий файл `tests/video-archive-two-blob-export.test.mjs` проверяет действительный `PasekaArchive.exportArchiveFromDatabase`, парсинг, chunk SHA и проверку перед восстановлением.
