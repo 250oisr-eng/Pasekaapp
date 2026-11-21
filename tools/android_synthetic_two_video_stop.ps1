@@ -73,9 +73,15 @@ try {
     $testToken = [guid]::NewGuid().ToString('N')
     $testFolder = $folder + '/' + $testToken
     $remote = $testFolder + '/synthetic-two-video.paseka'
-    # First potential Android write must come after strictly confirming new path.
-    $existing = InvokeNativeAdb -argv @('-d','shell',("test -e '" + $testFolder + "'"))
-    if ($existing.Code -ne 1 -or $existing.Output) { throw 'Destination exists or cannot be verified absent; no write performed' }
+    # Create only a dedicated test parent, then atomically mkdir a new random child.
+    # Unlike 'test -e', mkdir without -p cannot silently reuse an existing child.
+    # A pre-existing child is a BLOCKED collision; never overwrite its contents.
+    $null = RequireAdb -argv @('-d','shell',("mkdir -p '" + $folder + "'"))
+    $createdDir = InvokeNativeAdb -argv @('-d','shell',("mkdir '" + $testFolder + "'"))
+    if ($createdDir.Code -ne 0) {
+        throw 'Unique test directory could not be created atomically; no archive uploaded'
+    }
+    Write-Host 'TEST_DIRECTORY: CREATED_NEW_ATOMICALLY'
     $scratch = Join-Path ([IO.Path]::GetTempPath()) ('paseka-synthetic-' + [guid]::NewGuid().ToString('N'))
     $null = New-Item -Path $scratch -ItemType Directory -ErrorAction Stop
     try {
@@ -86,7 +92,6 @@ try {
         Write-Host ('TEST_PACKAGE: ' + $package)
         Write-Host ('SYNTHETIC_BLOBS: 2 (NOT playable videos)')
         Write-Host ('SYNTHETIC_SOURCE_SHA256: ' + $expectedSha)
-        $null = RequireAdb -argv @('-d','shell',("mkdir -p '" + $testFolder + "'"))
         $null = RequireAdb -argv @('-d','push',$local,$remote)
         if ((RemoteSha $remote) -ne $expectedSha) { throw 'Transferred bytes differ; no force-stop performed' }
         Write-Host 'ANDROID_COPY_BEFORE_STOP: PASS'
