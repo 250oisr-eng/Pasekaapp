@@ -66,9 +66,10 @@ try {
   }
   Write-Host 'ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES'
   Write-Host 'STAGE: 3/3 READONLY_STDIN_SHA256_IN_RUN_AS'
+  # Bidirectional adb shell -T disables PTY; unlike exec-in, its stdout is captured.
   # Direct sha256sum command, not sh -c, redirection, tee, files or temporary storage.
   # Nothing is written to Android filesystem: sha256sum reads 3158 bytes from stdin.
-  $probe=ADB @('-d','exec-in','run-as',$pkg,'sha256sum') $archive.Bytes
+  $probe=ADB @('-d','shell','-T','run-as',$pkg,'sha256sum') $archive.Bytes
 
   # Metadata only; never reveal raw remote stdout or any archive bytes.
   Write-Host ('REMOTE_EXIT_CODE: '+$probe.Code)
