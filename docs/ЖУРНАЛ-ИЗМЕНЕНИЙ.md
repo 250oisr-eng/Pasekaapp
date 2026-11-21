@@ -1,3 +1,12 @@
+## Android self-diagnostic — isolated APK CI PASS (2026-11-22)
+
+- На точном SHA `ef283fdf3bf172d21ed69afdaf5a5cfff58fdc75` workflow [#44953473256](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44953473256) — **completed/success**. Все шаги завершились успешно: JS/IndexedDB тесты, подготовка web assets, Capacitor sync, Java/Gradle `assembleDebug`, проверка `aapt` на отдельный `ru.paseka.journal.diagnostic.selftest`, публикация только CI-артефакта (НЕ production).
+- Артефакт `paseka-self-diagnostic-isolated-apk` ID `14726119493`, ZIP digest SHA-256 `83c9ff5481f46610a75de2f5736948c976c75fb4a42593a2a8486223633b022e` (SHA именно **ZIP**, не APK), размер ZIP 3342185 байт, expiry `2026-12-05T21:50:24Z`. Build Android APK #44953473285 также completed/success на этом SHA. Отдельный workflow из старой цепочки skipped, не считался тестом.
+- APK **не установлен** на телефоне и работа реального Android WebView/IndexedDB ещё NOT_TESTED. Исходный restore335 архив, настоящие видео, их декодирование, распознавание и удаление не тронуты. Никаких прав на production, слияние или release не давалось.
+- Следующий безопасный этап: проверить пользовательский способ установки test-only APK непосредственно с телефона и один запуск кнопки диагностики; не запрашивать ПК и не подменять тестом двух синтетических Blob доказательство реального восстановления MP4.
+
+---
+
 ## Android self-diagnostic: изолированная первая версия (2026-11-22)
 
 - Пользователь разрешил начать подготовку диагностики одной кнопкой непосредственно в Android-приложении, без ПК. Для исключения повреждения реальных данных первый этап реализован **только в отдельном тестовом APK**, package `ru.paseka.journal.diagnostic.selftest`, независимо от production и restoreproof335.
