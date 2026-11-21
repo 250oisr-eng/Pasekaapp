@@ -1,3 +1,12 @@
+## Контрольная точка — 2026-11-21: подготовлен SHA-pinned запуск baseline на оригинальном tracking TXT
+
+- Draft PR #297, рабочая ветка `test/video-fan-iou-association-baseline-2026-11-21`, code/test HEAD `68557a741fe5dccca8abd0eddb1fa0862c18bb17`. Добавлены `tools/run_public_mendeley_v6_fan_baseline.py`, `tests/test_run_public_mendeley_v6_fan_baseline.py` и отдельный этап существующего fan-baseline workflow.
+- Публичный файл `tracks_20230711a-fan.txt`, UUID `3291d9bc-bdb3-4bff-94d6-fe24f17ae2a5` скачивается с ограничением 4 817 427 байт через существующий строгий HTTPS downloader. До анализа проверяются размер и SHA-256 `8446fe874e2cf89041542e8740ef8c1d85086605987e5740e763b0edd20cec12`. Затем запускаются 6000-frame geometry-only baseline и независимый evaluator. Временный TXT удаляется после выхода из TemporaryDirectory, оригинальное видео, личные данные и storage приложения не затрагиваются.
+- Отдельные unit tests проверяют неверную длину, SHA, тип и отказ до ассоциации. Workflow может завершиться failure при недоступности публичного сервиса: такой результат не следует подменять успешной оценкой. В случае успеха численные показатели брать только из лога успешного run на этом SHA.
+- До получения реальной модели не разрешаются Android offline inference, подсчёт входящих/выходящих и удаление исходных видео.
+
+---
+
 ## Контрольная точка — 2026-11-21: устранён отказ CI и расширены контроли fan-трекинга
 
 - Основная цепочка эксперимента: PR #296 → [Draft #297](https://github.com/250oisr-eng/Pasekaapp/pull/297), ветка `test/video-fan-iou-association-baseline-2026-11-21`; основная ветка main не изменена. Последний изменённый код/тесты на этой точке — `5afa0d913db75170fc66f9b240d562a1f1f2cde2`.
