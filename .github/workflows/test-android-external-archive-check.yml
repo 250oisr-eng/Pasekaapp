@@ -5,6 +5,7 @@ on:
       - 'tools/check_android_archive_after_stop.py'
       - 'tests/test_android_archive_after_stop.py'
       - 'tools/android_paseka02_preflight.ps1'
+      - 'tests/test_android_preflight_mock.sh'
       - '.github/workflows/test-android-external-archive-check.yml'
 permissions:
   contents: read
@@ -30,3 +31,6 @@ jobs:
           $script = Get-Content 'tools/android_paseka02_preflight.ps1' -Raw
           if ($script.Contains('$matches.Count') -or $script.Contains('foreach ($entry in $matches)')) { throw 'PowerShell automatic Matches variable must not be used as archive collection.' }
           if (-not $script.Contains('$archiveFiles.Count')) { throw 'Expected independent archiveFiles count.' }
+      - name: Mock read-only export validation with simulated ADB
+        shell: bash
+        run: bash tests/test_android_preflight_mock.sh
