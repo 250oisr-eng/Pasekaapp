@@ -104,6 +104,89 @@ def download_checked_archive(download_url, dest, expected_size, expected_md5, *,
             "originalSha256": h256.hexdigest()}
 
 
+def read_annotation_structure(zip_path):
+    """Read YOLO text labels without exporting image bytes or event decisions.
+
+    Returns only counts; class field could be a detection class or bee_N
+    identity; no mapping to physical entry/exit is inferred.
+    """
+    import math
+    from collections import Counter
+    from pathlib import PurePosixPath
+
+    def normalized_pair_id(filename):
+        p = PurePosixPath(filename)
+        return "/".join(part for part in p.parts[:-1]
+                        if part.lower() not in ("images", "labels")) + "/" + p.stem
+
+    rows = 0
+    malformed = 0
+    geometry_invalid = 0
+    empty_label_files = 0
+    arities = Counter()
+    classes = Counter()
+    pairs_images, pairs_labels = set(), set()
+    with zipfile.ZipFile(zip_path) as archive:
+        for entry in archive.infolist():
+            if entry.is_dir():
+                continue
+            p = PurePosixPath(entry.filename)
+            ext = p.suffix.lower()
+            if ext == ".jpg":
+                pairs_images.add(normalized_pair_id(entry.filename))
+                continue
+            if ext != ".txt":
+                continue
+            pairs_labels.add(normalized_pair_id(entry.filename))
+            if entry.file_size > 128 * 1024:
+                raise ValueError("source label file unexpectedly large")
+            raw = archive.read(entry)
+            try:
+                lines = raw.decode("utf-8-sig").splitlines()
+            except UnicodeError as e:
+                raise ValueError("published source has non-UTF-8 YOLO label") from e
+            if not any(line.strip() for line in lines):
+                empty_label_files += 1
+            for line in lines:
+                if not line.strip():
+                    continue
+                rows += 1
+                fields = line.split()
+                arities[str(len(fields))] += 1
+                if len(fields) != 5:
+                    malformed += 1
+                    continue
+                label = fields[0]
+                if label.isascii() and label.isdecimal():
+                    classes["numeric_class"] += 1
+                elif label.startswith("bee_") and label[4:].isascii() and label[4:].isdecimal():
+                    classes["bee_identity_class"] += 1
+                else:
+                    classes["unrecognized_class"] += 1
+                try:
+                    cx, cy, w, h = [float(token) for token in fields[1:]]
+                except ValueError:
+                    malformed += 1
+                    continue
+                if (not all(math.isfinite(x) for x in (cx,cy,w,h))
+                        or not (0 <= cx <= 1 and 0 <= cy <= 1 and 0 < w <= 1 and 0 < h <= 1)
+                        or cx-w/2 < -1e-6 or cy-h/2 < -1e-6
+                        or cx+w/2 > 1+1e-6 or cy+h/2 > 1+1e-6):
+                    geometry_invalid += 1
+    return {
+        "annotatedRows": rows,
+        "emptyLabelFiles": empty_label_files,
+        "columnCounts": dict(sorted(arities.items())),
+        "classTokenCategories": dict(sorted(classes.items())),
+        "nonFiveColumnRows": malformed,
+        "geometryOutOfBoundsRows": geometry_invalid,
+        "pairedJpgTxtFiles": len(pairs_images & pairs_labels),
+        "unpairedJpgFiles": len(pairs_images - pairs_labels),
+        "unpairedTxtFiles": len(pairs_labels - pairs_images),
+        "physicalInOutEventsValidated": False,
+    }
+
+
 def audit_original_archives():
     metadata = audit()
     if not metadata["publisherDatasetLicenseMetadataVerified"]:
@@ -115,6 +198,7 @@ def audit_original_archives():
             url = "https://ndownloader.figshare.com/files/" + str(fid)
             record = download_checked_archive(url, local, size, md5)
             record["zip"] = inspect_zip(local)
+            record["annotationStructure"] = read_annotation_structure(local)
             report[name] = record
     return {
         "publisherArticle": "https://api.figshare.com/v2/articles/32315067",
