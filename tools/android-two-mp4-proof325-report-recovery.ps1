@@ -34,13 +34,13 @@ function AdbBytes([string[]]$argv) {
   } finally { $ms.Dispose(); $proc.Dispose() }
 }
 function Utf8([byte[]]$bytes) {
-  $decoder = New-Object System.Text.UTF8Encoding($false,$true)
+  $decoder = [System.Text.UTF8Encoding]::new($false,$true)
   return $decoder.GetString($bytes)
 }
 function ReadAdb([string[]]$argv) {
   $r = AdbBytes $argv
   if ($r.Code -ne 0) { throw ('ADB_FAILED_' + $r.Code + '_'+ $argv[0]) }
-  return (Utf8 $r.Bytes).Trim()
+  return ((Utf8 $r.Bytes).Trim())
 }
 function ReportSnapshot {
   $r = AdbBytes @('-d','exec-out','run-as',$pkg,'cat',$reportFile)
