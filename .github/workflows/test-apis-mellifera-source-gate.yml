@@ -1,4 +1,4 @@
-name: Apis mellifera ONLY: source provenance and synthetic split safety
+name: "Apis mellifera ONLY - source provenance and synthetic split safety"
 on:
   push:
     paths:
