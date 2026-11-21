@@ -1,3 +1,11 @@
+## RESTORE335 — empty exec-in stdout root cause (2026-11-21)
+
+- Physical OnePlus pinned read-only run (`b6b2175a7c077616e9884ef4a2cccef7a241ae61`): original archive 3158 bytes SHA PASS; `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 0`, `REMOTE_STDOUT_SHA256: e3b0c442...`, `REMOTE_OUTPUT_CLASS: EMPTY`, `STATUS: BLOCKED/STDIN_SHA256_OUTPUT_INVALID`. No writes, restore, recognition, cleanup.
+- ADB source confirms `exec-in` copies host stdin only, unlike `exec-out` which copies device stdout. The empty stdout is explained by command semantics, NOT proof of input corruption. Read-only probe switched to bidirectional `adb shell -T run-as ... sha256sum`, with PTY disabled and explicit SHA check. Same Draft PR #341; mock and workflow updated.
+- New shell -T code/test CI and real-device probe NOT YET VERIFIED. Do not repeat installer or write private files; next step CI exact SHA then single physical read-only proof.
+
+---
+
 ## RESTORE335 — physical stdin probe BLOCKED (2026-11-21)
 
 - User executed pinned read-only probe at `090fb2f9604ddbd26dad4ee0e2492d67a40abd9f` on physical NE2213/API36: source `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`; stage 3 `STATUS: BLOCKED / STDIN_SHA256_OUTPUT_INVALID`. Remote stdout did not match the expected digest syntax; not evidence of changed stdin bytes. No Android writes/install/restore/cleanup.
