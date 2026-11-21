@@ -1,0 +1,37 @@
+name: Test conservative fan occlusion memory
+on:
+  push:
+    paths:
+      - 'tools/fan_occlusion_memory.py'
+      - 'tools/fan_memory_diagnostics.py'
+      - 'tools/compare_public_fan_memory.py'
+      - 'tests/test_fan_occlusion_memory.py'
+      - '.github/workflows/test-fan-occlusion-memory.yml'
+  pull_request:
+    paths:
+      - 'tools/fan_occlusion_memory.py'
+      - 'tools/fan_memory_diagnostics.py'
+      - 'tools/compare_public_fan_memory.py'
+      - 'tests/test_fan_occlusion_memory.py'
+      - '.github/workflows/test-fan-occlusion-memory.yml'
+permissions:
+  contents: read
+jobs:
+  controlled-memory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install --only-binary=:all: numpy==2.2.6 scipy==1.15.3 Pillow==12.0.0
+      - name: Identity safety and negative tests
+        run: python -m unittest discover -s tests -p 'test_fan_occlusion_memory.py' -v
+      - name: Real pinned annotation, no perturbation
+        run: python tools/compare_public_fan_memory.py --require-benchmark-gate
+      - name: Real pinned annotation, deliberately missing boxes and synthetic jitter
+        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.9 --require-benchmark-gate
+      - name: Stricter 0.98 recovery threshold under identical synthetic stress
+        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.98 --require-benchmark-gate
