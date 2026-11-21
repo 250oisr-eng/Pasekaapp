@@ -41,3 +41,8 @@
 
 Read-only recovery now checks actual session-indexed child records, not only their keys. A child must have `kind=v2_pending_original`, `sessionId` matching its header, a source-qualified key reconstructed from `source` and `videoId`, SHA256-shaped `sourceSha256`, a positive integer `sourceBytes` equal to `blob.size`, and a valid media MIME. Inconsistent metadata downgrades the entire session to `manual_review_required`. This **does not recompute** the Blob SHA or authorize restore, purge, training or video cleanup. All reads remain inside one readonly transaction; no upgrade or data migration.
 
+
+## 2026-11-21 — full staged Blob SHA audit, no authorization
+
+`verifyPendingStagingBlobs(db,backupId,shaTool)` provides a **read-only diagnostic** on top of `inspectPendingStaging`. It hashes every stored pending Blob with the existing 1 MiB-chunked SHA implementation; compares the full digest to `sourceSha256`; and rereads session metadata to detect an intervening write. All outputs keep `restoreAuthorized=false` and `cleanupAuthorized=false`, including successful hashing. The positive `byteIntegrityVerified` result refers only to read Blob copies and **does not prove transaction-time stability or authorize a final commit**. Before a future restore, a distinct writer-serialized commit-time recheck and rollback tests are required.
+
