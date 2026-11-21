@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_apis_zenodo_real_split_lists import (
     SPLIT_BLOBS, EXTRA_BLOBS, git_blob_sha1, parse_split, date_from_image_name,
     fetch_pinned_text, verify_author_metadata, audit_pinned_split_files,
+    conservative_day_heldout_plan,
 )
 
 
@@ -21,8 +22,8 @@ def original_like_records():
 
 def fake_csv():
     return ("image,class1_boxes,mite_visible_on_re_inspection,note\n"
-            + "".join(f"img-{i},1,{'Y' if i < 3 else 'N'},"
-                      "verification from synthetic test fixture\n" for i in range(23)))
+            + "".join(f"img-{'20240307' if i < 3 else '20240116'}_000000--{i},1,"
+                      f"{'Y' if i < 3 else 'N'},synthetic fixture\n" for i in range(23)))
 
 
 def fake_author_files():
@@ -146,6 +147,32 @@ class PublishedSourceEvidenceTests(unittest.TestCase):
         d["LICENSE"] = "MIT License"
         with self.assertRaises(ValueError):
             audit_pinned_split_files(fetch=lambda p: d[p])
+
+    def test_conservative_day_split_excludes_all_handheld_from_all_folds(self):
+        result = audit_pinned_split_files(fetch=lambda p: fake_author_files()[p])
+        plan = result["conservativeDayHeldoutPlan"]
+        self.assertEqual(plan["numberOfDayHeldoutProposals"], 9)
+        self.assertEqual(plan["handheldExcludedFromInHiveEvaluation"], 28)
+        self.assertEqual(sum(r["validationImagesFromSingleDay"] for r in plan["proposedFolds"]), 2795)
+        self.assertTrue(all(r["sharedDateNamesBetweenTrainAndValidation"] == 0
+                            for r in plan["proposedFolds"]))
+        self.assertFalse(plan["realModelTrainingEnabled"])
+        self.assertFalse(plan["physicalCaptureSessionIdentityVerified"])
+
+    def test_day_without_verified_mites_must_not_claim_positive_truth(self):
+        plan = conservative_day_heldout_plan(set(original_like_records()),
+                                             verified_positive_dates=("20240307",))
+        folds = {x["validationDayFromFileName"]: x for x in plan["proposedFolds"]}
+        self.assertTrue(folds["20240307"]["confirmedInHiveMitePositiveAbsentFromTrain"])
+        self.assertFalse(folds["20240117"]["confirmedInHiveMitePositiveInValidation"])
+        self.assertTrue(all(not r["readyForActualDetectorBenchmark"] for r in folds.values()))
+
+    def test_cannot_suggest_day_heldout_on_incomplete_source_frames(self):
+        names = original_like_records()
+        with self.assertRaises(ValueError):
+            conservative_day_heldout_plan(names[:-1])
+        with self.assertRaises(ValueError):
+            conservative_day_heldout_plan(names, ("20230101",))
 
     def test_no_measured_ground_truth_even_for_real_manifest(self):
         r = audit_pinned_split_files(fetch=lambda p: fake_author_files()[p])
