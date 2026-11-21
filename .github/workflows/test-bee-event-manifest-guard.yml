@@ -1,0 +1,27 @@
+name: Test explicit bee-event manifest guard
+
+on:
+  push:
+    paths:
+      - 'tools/audit_manual_event_manifest.py'
+      - 'tests/test_audit_manual_event_manifest.py'
+      - '.github/workflows/test-bee-event-manifest-guard.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_manual_event_manifest.py'
+      - 'tests/test_audit_manual_event_manifest.py'
+      - '.github/workflows/test-bee-event-manifest-guard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  explicit-manifest-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test synthetic explicit manifest guard
+        run: python -m unittest discover -s tests -p 'test_audit_manual_event_manifest.py' -v
