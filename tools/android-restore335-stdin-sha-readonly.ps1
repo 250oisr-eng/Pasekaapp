@@ -82,7 +82,32 @@ try {
       Write-Host 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC'
       $safeDiagnostic=($line -replace '[\r\n]+',' ').Trim()
       if($probe.Bytes.Length -le 256 -and $safeDiagnostic.Length -le 240 -and
-         $safeDiagnostic -cmatch '^[a-zA-Z0-9_./: -]+$'){
+         $safeDiagnostic -cmatch '^[\x20-\x7E]+){
+        Write-Host ('REMOTE_DIAGNOSTIC: '+$safeDiagnostic)
+      }else{
+        Write-Host 'REMOTE_DIAGNOSTIC: REDACTED'
+      }
+    }elseif($probe.Bytes.Length -eq 0){
+      Write-Host 'REMOTE_OUTPUT_CLASS: EMPTY'
+    }else{
+      Write-Host 'REMOTE_OUTPUT_CLASS: UNRECOGNIZED'
+    }
+    throw 'STDIN_SHA256_OUTPUT_INVALID'
+  }
+  $actual=$Matches[1].ToLowerInvariant()
+  if($actual -cne $pinned){throw 'STDIN_SHA256_MISMATCH'}
+  Write-Host 'STDIN_TRANSPORT: SHA256_PASS_3158_BYTES'
+  Write-Host 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED'
+  Write-Host 'RESTORE_COMMIT: NOT_TESTED'
+  Write-Host 'RECOGNITION_CLEANUP: NOT_AUTHORIZED'
+  Write-Host 'STATUS: RESTORE335_READONLY_STDIN_TRANSPORT_PASS'
+}catch{
+  Write-Host 'STATUS: BLOCKED'
+  Write-Host ('DETAIL: '+$_.Exception.Message)
+  Write-Host 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE'
+  exit 2
+}
+){
         Write-Host ('REMOTE_DIAGNOSTIC: '+$safeDiagnostic)
       }else{
         Write-Host 'REMOTE_DIAGNOSTIC: REDACTED'
