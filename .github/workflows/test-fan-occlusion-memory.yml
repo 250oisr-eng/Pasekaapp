@@ -32,4 +32,6 @@ jobs:
       - name: Real pinned annotation, no perturbation
         run: python tools/compare_public_fan_memory.py
       - name: Real pinned annotation, deliberately missing boxes and synthetic jitter
-        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2
+        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.9
+      - name: Stricter 0.98 recovery threshold under identical synthetic stress
+        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.98
