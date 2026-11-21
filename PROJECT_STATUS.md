@@ -1,3 +1,9 @@
+## 2026-11-21 — PASEKA01 binary после карантинного отката PASEKA02 (новый изолированный блок)
+
+- В отдельной ветке `test/paseka01-after-v2-quarantine-e2e-2026-11-21` поверх Draft #313 добавлено два сквозных теста на **настоящем синтетическом бинарном PASEKA01** (формат `PasekaArchive.buildArchiveBlob` + `verifyArchive`), а не на имитации списка pending IDs. После PASEKA02 stage→atomic commit→quarantine rollback записывается durable tombstone успешного распознавания; после закрытия и повторного открытия fake-indexeddb PASEKA01 restore вызывает реальный `stageArchiveForRestore` и должен получить `VIDEO_LEDGER_NOT_PRESERVED`. Второй тест переименовывает старый оригинал при тех же байтах.
+- Сохраняются SHA оригинала в `full_backup.quarantinedMedia`, ledger, `main`, `archive_staging`, `archive_history`; live `entrance_media` остаётся пустым. Это проверка **запрета** импорта старого архива, не доказательство безопасного восстановления совместимого архива и не разрешение cleanup. Реальный Android/MediaStore/Downloads пока не проверен.
+- Изменён только `tests/video-archive-v2-entrance-quarantine-rollback.test.mjs` и контрольные документы; runtime и IndexedDB schema не менялись. Требуется CI на актуальном SHA, затем отдельная полная регрессия/Android Debug APK без merge/deploy.
+
 ## 2026-11-21 — итог цепочки PASEKA02 #312→#313 (проверенные SHA)
 
 - Изолированный abort/reopen/retry сценарий quarantine и проверка old archive tombstone/alias оформлены в Draft #312. На code SHA `ea2242b6169bdfe7bfa3e3974ada36afeccecd58` профильный CI #44909522235: **37/37 SUCCESS**.
