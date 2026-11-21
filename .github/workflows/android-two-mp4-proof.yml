@@ -88,8 +88,6 @@ jobs:
         run: npx cap sync android
       - name: Inject isolated proof report bridge
         run: PASEKA_TWO_MP4_PROOF_BUILD=1 node scripts/prepare-android-two-mp4-proof.mjs native
-      - name: Install native archive Downloads bridge
-        run: node scripts/prepare-android-archive-download.mjs
       - name: Use Android 15-compatible Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
       - name: Require Android 15 or newer
