@@ -1,3 +1,12 @@
+## RESTORE335 — physical no-flag stdin SHA timed out (2026-11-21)
+
+- User ran pinned script at SHA `0322168064b94afc5e54d199d867bff719bea459` on real OnePlus NE2213/API36. Device and both installed test packages checked; source PASEKA01 3158B SHA256 PASS. Stage 3 `adb shell run-as ... toybox sha256sum -` produced `STATUS: BLOCKED / ADB_TIMEOUT_12S`. No remote digest, device write, installation, restore or cleanup. **Do not claim stdin corruption or successful delivery.**
+- Earlier `shell -T` was treated by Android mksh as chvt, but omitting `-T` did not resolve the transport. The hang might relate to stdin EOF/PTY protocol; not proven. **Do not repeat this same test.**
+- In existing Draft PR #341 added `tools/android-restore335-toybox-no-stdin-readonly.ps1`: verifies device/packages and pinned original, shows host ADB version, then executes **only** `adb -d exec-out run-as <test pkg> /system/bin/toybox sha256sum /dev/null` and requires exact empty-string SHA. No stdin, no shell `-T`, no Android files created/modified. New mock-ADB pwsh tests (pass, diagnostic, wrong digest, empty output, corrupted source), separate workflow.
+- Next: exact HEAD CI check, then **one** physical non-writing no-stdin capability probe; only then design transfer. No old one-shot installer, private path writes, restore, video deletion or production change.
+
+---
+
 ## RESTORE335 — physical mksh chvt failure identified (2026-11-21)
 
 - On physical OnePlus NE2213/API36 the pinned readonly probe with `adb shell -T ...` returned original SHA PASS (3158B), remote stdout 120B SHA `6b670de5719e5c29131dde7d253b4024d7693876dc60f43483c57504c40ab73e`, `REMOTE_DIAGNOSTIC: /system/bin/sh: chvt: can't find tty:  run-as ru.paseka.journal.archive.restoreproof335 /system/bin/toybox sha256sum -`. This identifies Android mksh processing `-T` as a terminal-switch argument, instead of successful remote hashing; no stdin integrity proof, no writes/restore.
