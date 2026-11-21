@@ -1,3 +1,13 @@
+## 2026-11-21 — независимые предсказания детектора: безопасный входной шлюз (Draft #299)
+
+- После Draft PR #298 создана стековая ветка `test/video-detector-prediction-evidence-2026-11-21`. Исходная main не изменена. Код/тесты SHA `8ab3d8c1c117f28d22356fecd1fea3ad572e92ad`; GitHub Actions [#44886964302](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964302) **SUCCESS** — синтетические unit/negative tests для независимых предсказаний и CLI. Общий quality run #44886964309 **SUCCESS** на этом SHA. Android build #44886964305 проверять отдельно: на момент записи он выполнялся.
+- Новый `tools/evaluate_external_fan_detections.py` требует фактический оригинальный Mendeley MP4 и tracking TXT (издательские SHA), фактические локальные веса с проверкой размера и SHA и полный файл независимых bbox JSONL из **6000 кадров**, включая пустые. Заранее выбранный confidence threshold 0.5 можно изменить. Отвергаются отсутствие кадра, дубли, track_id/GT, ложные готовые метрики, некорректные bbox/confidence/NaN, небезопасный файл и неправильный SHA.
+- Имеются только **синтетические** тесты `tests/test_evaluate_external_fan_detections.py`; CLI не запускает модель, не извлекает видео, не скачивает веса и не производит действительные предсказания. Проверка байтов не доказывает соответствие файла предсказаний конкретному inference. Поля `predictionsGeneratedByModelVerified`, `modelLicenseVerified`, `independentTestSplitVerified`, `realDetectorValidated`, `entranceLineCrossingsValidated`, `androidOfflineInferenceVerified`, `videoCleanupAuthorized` всегда false. Описание и пример входного формата — `docs/VIDEO-EXTERNAL-DETECTOR-EVIDENCE-GATE.md`.
+- Ни IndexedDB, ни журнал пасеки, ни архивы, ни оригинальные видео не изменены. Автоудаление видео не активировано.
+- **Следующий шаг:** найти/подтвердить лицензионно допустимые реальные веса + независимый source-recording split, выполнить **реальный воспроизводимый inference**, передать его bbox в этот шлюз и сравнить качество и ошибки ID; только затем обсуждать Android offline и подсчёт пересечений.
+
+---
+
 ## 2026-11-21 — заключительная контрольная точка: проверка конкретных ложных связей в PR #298
 
 - Финальный code/test SHA `ccecf4b1c9d88de9bfb4e51e696109b4ae4d8e4f` (после документальной точки `ff72ad56...` добавлены защищённые исследования; PR #298 остаётся Draft). На точном SHA специализированные [GitHub Actions #44886515130](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886515130) — **SUCCESS**: новые unit tests и три реальных запуска по исходному SHA-verified `tracks_20230711a-fan.txt`. Fast quality checks #44886510917 — **SUCCESS** на этом SHA. Проверку Android необходимо отдельно сверить по её статусу; успешный тестовый workflow не является Android-сборкой.
