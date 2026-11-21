@@ -1,0 +1,27 @@
+name: "Apis mellifera Zenodo official metadata and member API feasibility"
+on:
+  push:
+    paths:
+      - 'tools/probe_apis_zenodo_source_api.py'
+      - 'tests/test_probe_apis_zenodo_source_api.py'
+      - '.github/workflows/probe-apis-zenodo-source-api.yml'
+  pull_request:
+    paths:
+      - 'tools/probe_apis_zenodo_source_api.py'
+      - 'tests/test_probe_apis_zenodo_source_api.py'
+      - '.github/workflows/probe-apis-zenodo-source-api.yml'
+permissions:
+  contents: read
+jobs:
+  official-metadata-and-member-API:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Synthetic publisher metadata and unsafe-source regressions
+        run: python -m unittest discover -s tests -p 'test_probe_apis_zenodo_source_api.py' -v
+      - name: Live official Zenodo record+optional container JSON only
+        run: python tools/probe_apis_zenodo_source_api.py

@@ -28,7 +28,8 @@ def fixture():
 
 class ApisMelliferaEvidenceGateTests(unittest.TestCase):
     def test_only_explicitly_sourced_apis_mellifera_candidates_exist(self):
-        self.assertEqual(set(SOURCES), {"beehive-mendeley-v1", "pollen-beedata-mendeley-v1"})
+        self.assertEqual(set(SOURCES), {"beehive-mendeley-v1", "pollen-beedata-mendeley-v1",
+                                      "zenodo-varroa-in-hive-v2"})
         for key, src in SOURCES.items():
             self.assertTrue(src["species"].startswith("Apis mellifera"))
             status = candidate_status(key, doi=src["doi"], species=src["species"],
@@ -37,6 +38,21 @@ class ApisMelliferaEvidenceGateTests(unittest.TestCase):
             self.assertFalse(status["modelTrainingAuthorized"])
             self.assertFalse(status["sourceOriginalImageBytesVerified"])
             self.assertFalse(status["userVideoCleanupAuthorized"])
+
+    def test_zenodo_apis_source_is_metadata_candidate_only(self):
+        sid = "zenodo-varroa-in-hive-v2"
+        d = SOURCES[sid]
+        r = candidate_status(sid, doi=d["doi"], species=d["species"], license_name=d["license"])
+        self.assertEqual(r["sourceDoi"], "10.5281/zenodo.23276947")
+        self.assertEqual(r["scientificSpeciesAsReportedByPublisher"], "Apis mellifera")
+        self.assertTrue(r["metadataCandidateEligibleForApisMelliferaOnly"])
+        self.assertFalse(r["modelTrainingAuthorized"])
+        self.assertFalse(r["sourceOriginalImageBytesVerified"])
+        self.assertFalse(r["hiveEntranceInOutGroundTruthVerified"])
+        self.assertFalse(r["userVideoCleanupAuthorized"])
+        for tamper in ("Apis cerana", "Tetragonula carbonaria"):
+            with self.assertRaises(ValueError):
+                candidate_status(sid, doi=d["doi"], species=tamper, license_name=d["license"])
 
     def test_other_species_monash_explicitly_blocked(self):
         self.assertIn("Tetragonula carbonaria", REJECTED["monash-native-bee-v1"])
@@ -167,7 +183,7 @@ class ApisMelliferaEvidenceGateTests(unittest.TestCase):
     def test_audit_is_metadata_only_and_has_no_training_or_cleanup_permission(self):
         result = audit()
         self.assertEqual(result["targetTaxon"], "Apis mellifera")
-        self.assertEqual(len(result["candidateSummaries"]), 2)
+        self.assertEqual(len(result["candidateSummaries"]), 3)
         self.assertFalse(result["approvedForRealModelTraining"])
         self.assertFalse(result["realEntranceCountingValidated"])
         self.assertFalse(result["userVideoCleanupAuthorized"])

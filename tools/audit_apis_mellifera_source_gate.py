@@ -31,6 +31,16 @@ SOURCES = {
         "publishedImages": 1278,
         "frameLevelInOutLabels": False,
     },
+    "zenodo-varroa-in-hive-v2": {
+        "doi": "10.5281/zenodo.23276947",
+        "species": "Apis mellifera",
+        "license": "CC BY 4.0",
+        "evidenceUrl": "https://zenodo.org/records/23276947",
+        "annotationKind": "bee_bbox_mite_visibility_binary_labels_not_mite_gt",
+        "observation": "in_hive_sliding_rail_2795_and_handheld_28",
+        "publishedImages": 2823,
+        "frameLevelInOutLabels": False,
+    },
 }
 REJECTED = {
     "monash-native-bee-v1": "Tetragonula carbonaria (not Apis mellifera)",

@@ -1,0 +1,283 @@
+"""Local byte fixtures test ZIP parsing. No original source images imported."""
+import io
+import struct
+import sys
+import unittest
+from pathlib import Path
+import zipfile
+
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
+from audit_apis_zenodo_bounded_original_sample import (
+    EXPECTED_ARCHIVE_BYTES, central_directory_from_tail, parse_central_directory,
+    extract_sample_zip_member, jpeg_dimensions, yolo_annotation_summary,
+    range_bytes, audit_bounded_original_jpg_txt, read_bounded_segments,
+    validate_full_source_zip_inventory, EXPECTED_AUTHOR_DAY_COUNTS,
+)
+
+
+def fake_jpg():
+    # Minimal marker structure for SOF; not a pixel-decodable JPEG, for marker tests only.
+    return (b"\xff\xd8\xff\xe0\x00\x04\x00\x00"
+            b"\xff\xc0\x00\x0b\x08\x00\x02\x00\x03\x01\x01\x11\x00"
+            b"\xff\xd9")
+
+
+def zipped(paths):
+    buf=io.BytesIO()
+    with zipfile.ZipFile(buf,mode="w",compression=zipfile.ZIP_DEFLATED) as archive:
+        for path,data in paths:
+            archive.writestr(path,data)
+    return buf.getvalue()
+
+
+def parsed_archive(payload):
+    cd=central_directory_from_tail(payload[-min(256*1024,len(payload)):],len(payload))
+    entries=parse_central_directory(payload[cd["centralOffset"]:
+                                          cd["centralOffset"]+cd["centralBytes"]],cd["count"])
+    return entries
+
+
+def bytes_fetch(payload):
+    def get(a,b,total):
+        if a<0 or b<a or b>=len(payload):
+            raise ValueError("synthetic request out of bounds")
+        return payload[a:b+1]
+    return get
+
+
+class FakeResponse:
+    def __init__(self, status, content, content_range, encoding="identity"):
+        self.status=status
+        self.content=content
+        self.headers={"Content-Range":content_range,"Content-Encoding":encoding}
+    def read(self,n): return self.content[:n]
+    def __enter__(self): return self
+    def __exit__(self,*_): return False
+
+
+class FakeOpener:
+    def __init__(self,response): self.response=response
+    def open(self,request,timeout=0):
+        self.request=request
+        return self.response
+
+
+class BoundedOriginalZipTests(unittest.TestCase):
+    def test_full_original_inventory_synthetic_matched_2795_plus_28(self):
+        entries={}
+        idx=0
+        for day,n in EXPECTED_AUTHOR_DAY_COUNTS.items():
+            for i in range(n):
+                name=f"img-{day}_{i%24:02d}{(i//24)%60:02d}{i//1440%60:02d}--{idx}"
+                entries[f"dataset/images/{name}.jpg"]={"name":name}
+                entries[f"dataset/labels/{name}.txt"]={"name":name}
+                idx+=1
+        for i in range(28):
+            name=f"handheld_{i:02d}"
+            entries[f"dataset/images/{name}.jpg"]={"name":name}
+            entries[f"dataset/labels/{name}.txt"]={"name":name}
+        entries["dataset/classes.txt"]={"name":"classes"}
+        r=validate_full_source_zip_inventory(entries)
+        self.assertEqual(r["originalZipAllJpgTxtPairsByExactStem"],2823)
+        self.assertEqual(r["originalZipInHiveFramesByAuthorDates"],2795)
+        self.assertEqual(r["originalZipSupplementalHandheldPhotosByFilename"],28)
+        self.assertEqual(r["originalZipCaptureDateCountByFilename"],EXPECTED_AUTHOR_DAY_COUNTS)
+        self.assertFalse(r["trainingAuthorized"])
+        self.assertFalse(r["userVideoCleanupAuthorized"])
+
+    def test_original_inventory_rejects_missing_or_mismatched_labels(self):
+        entries={}
+        for day,n in EXPECTED_AUTHOR_DAY_COUNTS.items():
+            for i in range(n):
+                name=f"img-{day}_{i%24:02d}{(i//24)%60:02d}{i//1440%60:02d}--{i}"
+                entries[f"d/images/{name}.jpg"]={}
+                entries[f"d/labels/{name}.txt"]={}
+        for i in range(28):
+            entries[f"d/images/handheld_{i}.jpg"]={}
+            entries[f"d/labels/handheld_{i}.txt"]={}
+        entries["d/classes.txt"]={}
+        all_valid=validate_full_source_zip_inventory(entries)
+        self.assertEqual(all_valid["originalZipSourceJpgPathsIndexed"],2823)
+        original="d/labels/handheld_0.txt"
+        entries["d/labels/handheld_bogus.txt"]=entries.pop(original)
+        with self.assertRaisesRegex(ValueError,"matching YOLO"):
+            validate_full_source_zip_inventory(entries)
+
+    def test_reads_synthetic_central_directory_and_members_with_crc(self):
+        jpg=fake_jpg()
+        txt=b"0 0.5 0.5 0.2 0.3\n1 0.4 0.4 0.2 0.2\n"
+        data=zipped([("mydataset/all/images/img-20240107_010101--1.jpg",jpg),
+                     ("mydataset/all/labels/img-20240107_010101--1.txt",txt)])
+        items=parsed_archive(data)
+        self.assertEqual(len(items),2)
+        fetched=bytes_fetch(data)
+        self.assertEqual(extract_sample_zip_member(items[next(k for k in items if k.endswith(".jpg"))],
+                                                    len(data),fetched),jpg)
+        self.assertEqual(extract_sample_zip_member(items[next(k for k in items if k.endswith(".txt"))],
+                                                    len(data),fetched),txt)
+        self.assertEqual(jpeg_dimensions(jpg),(3,2))
+        self.assertEqual(yolo_annotation_summary(txt)["rows"],2)
+
+    def test_synthetic_complete_jpeg_is_pixel_decoded_in_memory(self):
+        from PIL import Image
+        from audit_apis_zenodo_bounded_original_sample import decode_original_jpeg_pixels
+        buffer=io.BytesIO()
+        Image.new("RGB",(7,5),color=(10,20,30)).save(buffer,"JPEG")
+        result=decode_original_jpeg_pixels(buffer.getvalue(),(7,5))
+        self.assertEqual(result["decodedPixelCount"],35)
+        self.assertTrue(result["fullPixelDecodeSucceeded"])
+        self.assertEqual(result["exifOrientationTagStoredNotApplied"],1)
+        self.assertFalse(result["originalImagePixelsEverPersisted"])
+        with self.assertRaises(ValueError):
+            decode_original_jpeg_pixels(buffer.getvalue(),(8,5))
+
+    def test_synthetic_incomplete_jpeg_cannot_claim_full_decode(self):
+        from audit_apis_zenodo_bounded_original_sample import decode_original_jpeg_pixels
+        with self.assertRaises(Exception):
+            decode_original_jpeg_pixels(fake_jpg(),(3,2))
+
+    def test_wrong_compressed_member_crc_fails(self):
+        original=zipped([("images/a.jpg",fake_jpg())])
+        items=parsed_archive(original)
+        entry=next(iter(items.values()))
+        tampered=dict(entry,crc=123)
+        with self.assertRaisesRegex(ValueError,"CRC"):
+            extract_sample_zip_member(tampered,len(original),bytes_fetch(original))
+
+    def test_original_windows_zip_separators_are_canonicalized_read_only(self):
+        original_name="dataset\\images\\img-20240107_010101--1.jpg"
+        data=zipped([(original_name, fake_jpg())])
+        parsed=parsed_archive(data)
+        self.assertEqual(list(parsed), ["dataset/images/img-20240107_010101--1.jpg"])
+        entry=next(iter(parsed.values()))
+        self.assertEqual(entry["name"], original_name)
+        self.assertEqual(
+            extract_sample_zip_member(entry, len(data), bytes_fetch(data)),
+            fake_jpg()
+        )
+
+    def test_zip_rejects_mixed_separator_alias_duplicate(self):
+        data=zipped([("dataset\\images\\same.jpg", b"source1"),
+                     ("dataset/images/same.jpg", b"source2")])
+        with self.assertRaisesRegex(ValueError, "duplicate-canonical-path"):
+            parsed_archive(data)
+
+    def test_windows_separator_does_not_bypass_traversal_or_absolute_block(self):
+        names=["dataset\\..\\secret.jpg",
+               "C:\\dataset\\images\\secret.jpg",
+               "\\\\server\\share\\secret.jpg",
+               "dataset\\\\images\\secret.jpg",
+               "dataset\\.\\images\\secret.jpg"]
+        for name in names:
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                parsed_archive(zipped([(name,b"unsafe")]))
+
+    def test_unsafe_zip_path_rejected(self):
+        original=zipped([("../escape.jpg",b"evil")])
+        with self.assertRaisesRegex(ValueError,"unsafe"):
+            parsed_archive(original)
+
+    def test_rejects_non_utf8_label_text(self):
+        with self.assertRaises(ValueError):
+            yolo_annotation_summary(b"\xff\xfe")
+
+    def test_yolo_out_of_bounds_not_silently_corrected(self):
+        r=yolo_annotation_summary(b"0 0.01 0.5 0.20 0.20\n"
+                                  b"1 0.5 0.5 0.2 0.2\n")
+        self.assertEqual(r["invalidOrOutOfFrameRows"],1)
+        self.assertEqual(r["rows"],2)
+
+    def test_rejects_malformed_yolo_rows_and_nan(self):
+        r=yolo_annotation_summary(b"0 nan 0.5 0.2 0.2\n2 0.5 0.5 0.2 0.2\n"
+                                  b"0 0.5 0.5 0.2\n")
+        self.assertEqual(r["invalidOrOutOfFrameRows"],3)
+
+    def test_jpeg_oversized_wrong_marker_rejected(self):
+        with self.assertRaises(ValueError):
+            jpeg_dimensions(b"notjpg")
+        with self.assertRaises(ValueError):
+            jpeg_dimensions(b"\xff\xd8\xff\xd9")
+
+    def test_range_bounds_prohibit_large_or_wrong_archive_total(self):
+        for a,b,t in ((0,999999999,EXPECTED_ARCHIVE_BYTES),
+                      (0,10,333),(-1,10,EXPECTED_ARCHIVE_BYTES)):
+            with self.subTest(a=a,b=b,t=t), self.assertRaises(ValueError):
+                range_bytes(a,b,t)
+
+    def test_http_200_fullbody_never_read(self):
+        class NoRead(FakeResponse):
+            def read(self,n): raise AssertionError("must NOT download 2GB")
+        r=FakeOpener(NoRead(200,b"", ""))
+        with self.assertRaises(ValueError):
+            range_bytes(0,0,EXPECTED_ARCHIVE_BYTES,opener=r)
+
+    def test_correct_range_response_returns_only_exact_requested_bytes(self):
+        r=FakeOpener(FakeResponse(206,b"P",f"bytes 0-0/{EXPECTED_ARCHIVE_BYTES}"))
+        self.assertEqual(range_bytes(0,0,EXPECTED_ARCHIVE_BYTES,opener=r),b"P")
+        self.assertEqual(r.request.headers["Range"],"bytes=0-0")
+
+    def test_wrong_content_range_rejected(self):
+        r=FakeOpener(FakeResponse(206,b"P","bytes 0-1/2005232875"))
+        with self.assertRaises(ValueError):
+            range_bytes(0,0,EXPECTED_ARCHIVE_BYTES,opener=r)
+
+    def test_chunked_fetch_reconstructs_exact_bytes_only(self):
+        payload=bytes(i%251 for i in range(700))
+        calls=[]
+        def fetch(a,b,total):
+            calls.append((a,b,total))
+            return payload[a:b+1]
+        result=read_bounded_segments(10,609,len(payload),fetch=fetch,chunk_size=128)
+        self.assertEqual(result,payload[10:610])
+        self.assertEqual(len(calls),5)
+        self.assertTrue(all(b-a+1<=128 for a,b,_ in calls))
+
+    def test_chunked_fetch_rejects_fake_missing_byte(self):
+        payload=b"abcdefgh"
+        with self.assertRaises(ValueError):
+            read_bounded_segments(0,7,len(payload),
+                                  fetch=lambda a,b,t:payload[a:b],chunk_size=4)
+
+    def test_chunked_fetch_cannot_exceed_8mib_cap(self):
+        with self.assertRaises(ValueError):
+            read_bounded_segments(0,8*1024*1024,EXPECTED_ARCHIVE_BYTES,
+                                  fetch=lambda *_:b"",chunk_size=128*1024)
+
+    def test_source_audit_with_injected_fixture_is_not_original(self):
+        fake=lambda: {"rangeSupported":False,"blockReason":"test says blocked"}
+        r=audit_bounded_original_jpg_txt(probe=fake, fetch=lambda *_:b"")
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertEqual(r["sourceInputOrigin"],"synthetic_fixture")
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertFalse(r["fullArchiveDownloaded"])
+        self.assertFalse(r["modelTrainingAllowed"])
+        self.assertFalse(r["userVideoCleanupAuthorized"])
+
+    def test_real_network_probe_blocked_never_marks_original_data_verified(self):
+        # Injected probe is a synthetic simulation of a timed-out original request.
+        r=audit_bounded_original_jpg_txt(
+            probe=lambda:{"rangeSupported":False,"blockReason":"TimeoutError"},
+            fetch=lambda *_:b"")
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertFalse(r["wholeArchiveMd5Verified"])
+        self.assertFalse(r["modelTrainingAllowed"])
+
+
+    def test_timeout_in_injected_source_range_never_claims_original_jpg(self):
+        def fakeprobe():
+            return {"rangeSupported":True,
+                    "publisherArchiveBytesFromContentRange":EXPECTED_ARCHIVE_BYTES}
+        def badfetch(a,b,total):
+            raise TimeoutError("synthetic network timeout")
+        r=audit_bounded_original_jpg_txt(probe=fakeprobe,fetch=badfetch)
+        self.assertEqual(r["sourceInputOrigin"],"synthetic_fixture")
+        self.assertIn("source range",r["blockReason"].replace("ZIP EOCD range", "source range"))
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertFalse(r["wholeArchiveMd5Verified"])
+        self.assertFalse(r["modelTrainingAllowed"])
+        self.assertFalse(r["userVideoCleanupAuthorized"])
+
+
+
+if __name__=="__main__":
+    unittest.main()
