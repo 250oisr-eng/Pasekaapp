@@ -1,3 +1,7 @@
+## 2026-11-21 — дополнительная гонка V2 в финальной транзакции PASEKA01
+
+- В Draft #315 добавлен тест `legacy final writer aborts if V2 staging appears inside same atomic transaction`: V2 marker появляется в `archive_staging` прямо под PASEKA01 final `readwrite` lock. Операция обязана получить `VIDEO_LEGACY_RESTORE_V2_PROTECTED`, полностью откатить саму конкурентную запись и не менять `main`, оригинальные видео, full_backup и архивную историю. На code/test SHA `38168ff9655682b8a0c4259fed030dcb38152720` специализированный workflow #44911233954 **SUCCESS 65/65**, включая этот тест. Нужна отдельная проверка на текущем конечном документационном SHA и Android; физический Android и реальные видео не испытывались. Следующая задача: проверка прерывания и сохранности на физическом устройстве, после стабильной CI; не включать автоматическую очистку.
+
 ## 2026-11-21 — PASEKA01: final atomic commit и rollback защищены от позднего PASEKA02
 
 - Продолжена stacked цепочка Draft #314 новым Draft #315: обнаружен пропуск в `commitStagedArchive` — ранее V2 protected records проверялись на этапе PASEKA01 staging, но **не** перед финальным commit. Новый `tests/archive-staging.test.mjs` воспроизводит PASEKA01 ready, затем protected V2 full_backup/staging/history, после чего commit обязан abort. В `js/paseka-archive-restore.js` final readwrite-транзакция в составе пяти stores теперь читает все protected markers и fail-closed с `VIDEO_LEGACY_RESTORE_V2_PROTECTED`; без асинхронного I/O в write lock.
