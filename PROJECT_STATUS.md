@@ -1,3 +1,10 @@
+## RESTORE335 — physical 120-byte remote diagnostic (2026-11-21)
+
+- User ran pinned no-write toybox stdin probe on OnePlus NE2213/API36, script commit `a68a091b1ebd720d6be35e88eeab70a256b2e2da`: external PASEKA01 original 3158B SHA PASS, remote `EXIT_CODE: 0`, `STDOUT_BYTES: 120`, `STDOUT_SHA256: 6b670de5719e5c29131dde7d253b4024d7693876dc60f43483c57504c40ab73e`, `OUTPUT_CLASS: COMMAND_DIAGNOSTIC`, `STATUS: BLOCKED`. No received digest; actual diagnostic string was intentionally hidden. Do not infer successful transfer or byte corruption. No file writes, install, restore, cleanup.
+- Same Draft PR #341 now permits **only strict short printable recognized** `run-as`/`sha256sum` command diagnostics in stdout; unrecognized/binary content is redacted. Additional mock-ADB tests include safe diagnostic and redaction. No new Android operation; physical cause still unverified. Next: confirm exact HEAD CI then run the same pinned read-only diagnostic once. Never repeat original installer.
+
+---
+
 ## RESTORE335 — physical shell -T returned command diagnostic (2026-11-21)
 
 - User ran pinned `adb shell -T run-as <restoreproof335> sha256sum` on OnePlus NE2213/API36 from `fdfbeb221d4b1608748174c154edc5de90505bb7`: original PASEKA01 3158B SHA PASS, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 99`, `REMOTE_STDOUT_SHA256: 4c6c469b11269c215ee1af4fb6ab8e580441d06cbf6623c1e7afc34af448ca09`, `REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC`, `STATUS: BLOCKED`. This is not a digest and does not prove incorrect stdin transmission; diagnostic contents not disclosed. No Android writes/restore/deletion.
