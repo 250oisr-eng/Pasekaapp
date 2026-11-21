@@ -16,7 +16,7 @@ const fixtures=fixturesHost.PasekaTwoMp4ProofFixtures;
 function harness({factory=new IDBFactory(),fakeFullArchivePin=true}={}){
   const crypto=fakeFullArchivePin ? {
     subtle:{ digest:async (algorithm,bytes)=>{
-      if(bytes.byteLength===3158)return Buffer.from(PIN,'hex').buffer.slice(Buffer.from(PIN,'hex').byteOffset,Buffer.from(PIN,'hex').byteOffset+32);
+      if(bytes.byteLength===3158)return Uint8Array.from(Buffer.from(PIN,'hex')).buffer;
       return webcrypto.subtle.digest(algorithm,bytes);
     }}
   } : webcrypto;
