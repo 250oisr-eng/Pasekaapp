@@ -56,3 +56,8 @@ The full diagnostic now validates metadata consistency across two readonly snaps
 
 A positive read-only hash diagnostic uses `snapshotHashesMatched=true`; **`byteIntegrityVerified`, `restoreAuthorized`, `cleanupAuthorized` remain `false` in all cases**. Two successful snapshot reads do not hold an IndexedDB writer lock during asynchronous hashing and cannot certify persisted bytes at commit time. Never interpret this API as permission to restore/delete media.
 
+
+## 2026-11-21 — transaction abort/reopen/quarantine validation
+
+The existing isolated `quarantineRollbackIsolated` path is exercised with synthetic aborts after successful IndexedDB requests on four independent stores: full_backup, archive_history, main, and entrance_media. Each case closes and reopens the database, requires no partial commit, then retries a full rollback and confirms that all original video bytes survive under a protected quarantine snapshot. This is fake-indexeddb only: no Android process death, hardware power failure, deletion permission, or automatic cleanup.
+
