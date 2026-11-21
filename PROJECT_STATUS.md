@@ -1,3 +1,12 @@
+## RESTORE335 — автономная локальная подготовка официального Windows ADB (2026-11-21)
+
+- Реальный OnePlus подтвердил `run-as + toybox sha256sum /dev/null` PASS, pinned source PASEKA01 3158 байт SHA PASS. На ПК обнаружен ADB 1.0.32. Передача binary stdin, восстановление двух MP4, распознавание и cleanup — NOT TESTED. Никогда не повторять старый one-shot installer / stdin с ADB 1.0.32.
+- В существующем Draft PR #341 добавлен `tools/android-restore335-offline-platformtools-stage.ps1` для **уже скачанного пользователем с официального сайта Google** `platform-tools-latest-windows.zip`. Офлайн проверяет структуру ZIP (уникальность путей, traversal, размер, DLL), распаковывает только в свежую отдельную папку Windows TEMP, показывает локальный SHA файла и ADB, вызывает только `adb.exe version`. Не изменяет PATH, не удаляет старый adb, не подключается к телефону и не выполняет restore/cleanup. Нельзя считать структурную проверку доказательством происхождения ZIP: пользователь должен скачать после принятия лицензии на официальной странице Google.
+- Добавлены негативные PowerShell/mock tests для отсутствующего, небезопасного, дублированного или неполного ZIP, отдельный CI workflow. Positive сценарий с реальным Google ZIP **NOT TESTED** до предоставления файла на Windows. Далее — только после подтверждения нового ADB отдельный readonly stdin SHA тест и контроль внешнего оригинала.
+- Последние CI на точном HEAD и аппаратная проверка нового ADB ожидают подтверждения. Никаких изменений в main, production или Android.
+
+---
+
 ## RESTORE335 — physical run-as/Toybox PASS; legacy ADB 1.0.32 discovered (2026-11-21)
 
 - User ran SHA-pinned no-stdin physical proof on OnePlus NE2213/API36 from `2ffb17d2a4ca7399472cddbf1827ada86daaa916`: `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`, `HOST_ADB_VERSION: Android Debug Bridge version 1.0.32`, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 77`, `RUN_AS_TOYBOX_DEV_NULL_SHA: PASS`, `STDIN_TRANSPORT: NOT_TESTED`, `PRIVATE_PATH_WRITE: NOT_ATTEMPTED`, `RESTORE_COMMIT: NOT_TESTED`, `RECOGNITION_CLEANUP: NOT_AUTHORIZED`, `STATUS: RESTORE335_NO_STDIN_TOYBOX_PROBE_PASS`. Confirmed actual on-device run-as and toybox hash engine; no binary stdin proof. No writes/restore/cleanup.
