@@ -1,3 +1,10 @@
+## 2026-11-22 — допуск моделей пчёл: проверка лицензий, весов и назначения
+
+- [VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md](VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md) — сравнительный аудит кандидатов Matt Nudi, Apiarist, Honey-Bee-Society и Gratheon, доказательная цепочка до Android offline inference, отсутствие разрешения на распознавание и удаление видео.
+- [../js/video-detector-candidate-gate.js](../js/video-detector-candidate-gate.js) — изолированный fail-closed gate, не подключённый к UI; даже полный заявленный manifest не разрешает скачивание/запуск весов или очистку.
+
+---
+
 ## 2026-11-22 — Restore335: пустой private files/ после dd; запрет на повторную запись
 
 - [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — физический v2 OnePlus подтвердил private `files/` с нулём записей, но `stat` возвращает 67 stdout байт при exit=0 и файл пока без SHA; исходный PASEKA01 сохранён.
