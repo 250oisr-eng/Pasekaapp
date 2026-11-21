@@ -1,3 +1,9 @@
+## 2026-11-21 — завершённый CI и обнаруженный риск collision Android MediaStore
+
+- На точном code SHA `f8951094c36ef788f883f64919d5894cc42ba45e` [Build Android APK #44936845787](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44936845787) **completed/success**, [Fast quality checks #44936845758](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44936845758) **completed/success, 1227/1227 PASS**. Параллельная PR Android #44936858898 `cancelled`, старый isolated APK #44936858853 `skipped` — НЕ считать успешными.
+- Адресно прочитан `scripts/prepare-android-archive-download.mjs`: нативный `beginFile` проверяет шаблон и MIME, `MediaStore.Downloads.insert` пишет в `Downloads/Пасека`, но отсутствует доказанная проверка отсутствия существующего файла того же имени и подтверждение отображаемого URI при collision. **Не использовать** его для физического испытания над прежними архивами до реализации отдельного безопасного изолированного сценария. Протокол риска — `docs/ANDROID-TWO-MP4-EXTERNAL-FILE-ROUNDTRIP-2026-11-21.md`.
+- Документационные коммиты после code SHA не меняют tests/runtime, однако статус CI приписывается только точному SHA. Никаких физических Android Downloads test или restore commit пока не выполнялось; `cleanupAuthorized=false`.
+
 ## 2026-11-21 — Draft #328: PASEKA01 с двумя MP4 → эксклюзивная запись файла → повторное чтение диска (Node CI)
 
 - После физического `ISOLATED_ANDROID_TWO_MP4_EXPORT_PASS` (OnePlus NE2213/API36, in-memory PASEKA01, отдельный `proof325`) создан stacked [Draft PR #328](https://github.com/250oisr-eng/Pasekaapp/pull/328) поверх #327. Изменены только `tests/android-two-mp4-external-file-roundtrip.test.mjs` и документация: `docs/ANDROID-TWO-MP4-EXTERNAL-FILE-ROUNDTRIP-2026-11-21.md`.
