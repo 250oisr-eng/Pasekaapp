@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import os
+import stat
 from pathlib import Path
 
 from audit_mendeley_v6_fan_tracks import FRAMES, TRACKS, check_source
@@ -50,13 +51,25 @@ def inspect_predictions(path, frame_count=FRAMES, minimum_confidence=0.5):
     if not finite_unit(minimum_confidence):
         raise ValueError("confidence threshold must be finite in [0,1]")
     path = Path(path)
-    info = path.lstat()
-    if not path.is_file() or path.is_symlink() or not 0 < info.st_size <= MAX_PREDICTION_BYTES:
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise ValueError("prediction source missing") from exc
+    if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_PREDICTION_BYTES:
         raise ValueError("prediction source missing, unsafe, or outside size limit")
     frames = []
     total = 0
+    processed_bytes = 0
+    digest = hashlib.sha256()
     with path.open("rb") as source:
+        opened = os.fstat(source.fileno())
+        if (opened.st_dev, opened.st_ino, opened.st_size) != (info.st_dev, info.st_ino, info.st_size):
+            raise ValueError("prediction file changed during opening")
         for frame_index, line in enumerate(source, 1):
+            processed_bytes += len(line)
+            digest.update(line)
+            if processed_bytes > MAX_PREDICTION_BYTES:
+                raise ValueError("prediction source grew beyond size cap")
             if frame_index > frame_count or not line or len(line) > 65536:
                 raise ValueError("prediction frame count or line length invalid")
             try:
@@ -85,9 +98,9 @@ def inspect_predictions(path, frame_count=FRAMES, minimum_confidence=0.5):
                     frame[len(frame)] = tuple(box)
                     total += 1
             frames.append(frame)
-    if len(frames) != frame_count:
-        raise ValueError("predictions do not cover every source frame")
-    return frames, total
+    if len(frames) != frame_count or processed_bytes != info.st_size:
+        raise ValueError("predictions incomplete or changed during read")
+    return frames, total, {"sha256": digest.hexdigest(), "bytes": processed_bytes}
 
 
 def sha256_file(path, expected, max_bytes):
@@ -115,8 +128,8 @@ def assess(reference_directory, video_path, model_path, model_sha256, prediction
         raise ValueError("source video must be the same verified local original")
     model = sha256_file(model_path, model_sha256, MAX_MODEL_BYTES)
     reference = read_frames(check_source(Path(reference_directory), TRACKS))
-    predicted, observed = inspect_predictions(predictions_path,
-                                              minimum_confidence=minimum_confidence)
+    predicted, observed, prediction_file = inspect_predictions(
+        predictions_path, minimum_confidence=minimum_confidence)
     associated = associate_with_memory(predicted, recovery_threshold=0.9)
     measurements = evaluate(reference, associated)
     return {
@@ -125,6 +138,7 @@ def assess(reference_directory, video_path, model_path, model_sha256, prediction
         "verifiedTrackLabelSha256": TRACKS[2],
         "verifiedModelArtifact": model,
         "predictionsAtOrAboveThreshold": observed,
+        "predictionFileIdentity": prediction_file,
         "confidenceThreshold": minimum_confidence,
         "frameMetrics": measurements,
         "predictionsGeneratedByModelVerified": False,
