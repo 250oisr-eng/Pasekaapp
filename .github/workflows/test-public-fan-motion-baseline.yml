@@ -1,0 +1,32 @@
+name: Test real Mendeley fan motion-only video baseline
+on:
+  push:
+    paths:
+      - 'tools/evaluate_public_fan_motion_baseline.py'
+      - 'tests/test_evaluate_public_fan_motion_baseline.py'
+      - '.github/workflows/test-public-fan-motion-baseline.yml'
+  pull_request:
+    paths:
+      - 'tools/evaluate_public_fan_motion_baseline.py'
+      - 'tests/test_evaluate_public_fan_motion_baseline.py'
+      - '.github/workflows/test-public-fan-motion-baseline.yml'
+permissions:
+  contents: read
+jobs:
+  motion-only-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install scientific processing dependencies from free PyPI wheels
+        run: |
+          python -m pip install --only-binary=:all: numpy==2.2.6 scipy==1.15.3 Pillow==12.0.0
+      - name: Real decoded-pixel unit tests with negative source controls
+        run: python -m unittest discover -s tests -p 'test_evaluate_public_fan_motion_baseline.py' -v
+      - name: Verify ffmpeg availability without changing system packages
+        run: ffmpeg -version
+      - name: Download publisher-pinned original video and measure real motion
+        run: python tools/evaluate_public_fan_motion_baseline.py
