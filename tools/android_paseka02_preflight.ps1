@@ -1,7 +1,7 @@
 # PASEKA02 Android 16 read-only preflight. Never clears data, stops apps or deletes files.
 # Run only after reviewing this file from the trusted Pasekaapp repository.
 [CmdletBinding()]
-param()
+param([switch]$InspectHeaders)
 $ErrorActionPreference = 'Stop'
 $package = 'ru.paseka.journal.archive.test'
 $directory = '/sdcard/Download/Пасека'
@@ -57,7 +57,53 @@ try {
     } else {
         $matches = @($fileNames | Where-Object { $_ -match '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka$' })
         Write-Host ('ARCHIVE_DIRECTORY: ACCESSIBLE; matching filenames: ' + $matches.Count)
-        Write-Host 'PASEKA02_ARCHIVES: NOT VERIFIED (names only; no files read)'
+        if ($InspectHeaders) {
+            if ($matches.Count -gt 20) {
+                Finish 'BLOCKED' 'More than 20 matching filenames; refusing unbounded file reads.' 2
+            }
+            $paseka02Count = 0
+            $index = 0
+            foreach ($entry in $matches) {
+                $index++
+                $safeName = ([string]$entry).TrimEnd([char]13)
+                if ($safeName -notmatch '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka
+    }
+    if ($InspectHeaders) {
+        Write-Host 'DATA_ACTIONS: READ-ONLY HEADERS AND FILE LENGTHS; no stop, deletion, installation, or restore.'
+    } else {
+        Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
+    }
+    Finish 'PREFLIGHT_COMPLETE' 'Physical ADB preflight only. IndexedDB/video integrity NOT TESTED.' 0
+} catch {
+    Finish 'BLOCKED' ('Read-only preflight failed: ' + $_.Exception.Message) 2
+}
+) {
+                    Finish 'BLOCKED' 'Unexpected filename during header inspection.' 2
+                }
+                $safePath = $directory + '/' + $safeName
+                # Exact whitelist above prevents quote injection. Android shell single quotes preserve Unicode and spaces.
+                $magic = AdbOutput -arguments @('-d','shell',("head -c 8 '" + $safePath + "'"))
+                $length = AdbOutput -arguments @('-d','shell',("stat -c %s '" + $safePath + "'"))
+                if ($length -notmatch '^\d+
+    }
+    Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
+    Finish 'PREFLIGHT_COMPLETE' 'Physical ADB preflight only. IndexedDB/video integrity NOT TESTED.' 0
+} catch {
+    Finish 'BLOCKED' ('Read-only preflight failed: ' + $_.Exception.Message) 2
+}
+) {
+                    Finish 'BLOCKED' 'Invalid file size from Android stat.' 2
+                }
+                if ($magic -eq 'PASEKA02') { $paseka02Count++ }
+                elseif ($magic -eq 'PASEKA01') { }
+                else { $magic = 'OTHER_OR_UNREADABLE' }
+                Write-Host ('ARCHIVE[' + $index + ']: ' + $safeName + ' | header=' + $magic + ' | size=' + $length)
+            }
+            Write-Host ('PASEKA02_HEADERS: ' + $paseka02Count + ' of ' + $matches.Count)
+            Write-Host 'PASEKA02_CONTENT: NOT VERIFIED; archive provenance and video integrity unknown.'
+        } else {
+            Write-Host 'PASEKA02_ARCHIVES: NOT VERIFIED (names only; no files read)'
+        }
     }
     Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
     Finish 'PREFLIGHT_COMPLETE' 'Physical ADB preflight only. IndexedDB/video integrity NOT TESTED.' 0
