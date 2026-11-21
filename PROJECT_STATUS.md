@@ -1,3 +1,13 @@
+## ANDROID FRAME TEST — подтверждён PASS на физическом телефоне (2026-11-22)
+
+- Пользователь выполнил установленную изолированную APK `ru.paseka.journal.diagnostic.frametest` на физическом телефоне и передал полный текст отчёта: `status: PASS`, `code: SYNTHETIC_MP4_THREE_FRAMES_EXTRACTED`, `fixtureSha256: 29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `frameExtraction: PASS`, `frames: 3`, `width: 64`, `height: 64`, `recognition: NOT_TESTED`, `cleanup: NOT_TESTED`, `actualVideos: NOT_ACCESSED`.
+- Это **отчёт пользователя о физическом запуске** изолированной сборки, а не независимый ADB-лог. Прохождение проверок означает три JPEG кадра из оригинальной синтетической 1720-байтной H.264-фикстуры со сверенным SHA-256, без доступа к данным пасеки. Отдельно ранее на телефоне подтверждены IndexedDB round-trip и синтетическое воспроизведение MP4. Достоверность real-world detection/tracking из этого НЕ следует.
+- На ранее актуальном SHA `d7f6413eb66c90c53d2e10836b491de0b341c7e5` GitHub Actions **completed/success**: isolated frame APK #44955064401 и общая Android APK #44955064399; архивная isolated APK workflow #44955064402 skipped, не является тестом. Code SHA исходного APK `26a2de0af6ba5ba23198a6ff1802e66789f18446`, CI #44954851869 completed/success.
+- Никаких повторов one-shot, очистки, переустановки тестовых APK или удаления файлов. Непроверенными остаются реальные MP4, оригинальный архив restore, реальное распознавание пчёл, сохранение результата и политика удаления после успешного распознавания.
+- **Next:** отдельный этап поиска и правовой/технической проверки конкретного бесплатного детектора Apis mellifera с фиксированными весами и лицензией; без подтверждения provenance, accuracy и Android offline runtime не запускать inference и не разрешать cleanup. Существующие test-only APK/данные сохранить.
+
+---
+
 ## ANDROID FRAME TEST — verified CI APK and direct phone handoff (2026-11-22)
 
 - На code/test SHA `26a2de0af6ba5ba23198a6ff1802e66789f18446` [workflow #44954851869](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44954851869) **completed/success**: fixture SHA check, static safety tests, Capacitor web test package, Gradle debug APK, `aapt` package identity and artifact upload; generic Android workflow #44954851844 success, архивный isolated APK workflow skipped.
