@@ -2,9 +2,9 @@ name: Test fan track evaluator
 on:
   push:
     paths:
-      - 'tools/**'
-      - 'tests/test_*fan*.py'
-      - '.github/workflows/test-fan-*.yml'
+      - 'tools/evaluate_mendeley_v6_fan_tracks.py'
+      - 'tests/test_evaluate_mendeley_v6_fan_tracks.py'
+      - '.github/workflows/test-fan-track-evaluator.yml'
   pull_request:
     paths:
       - 'tools/evaluate_mendeley_v6_fan_tracks.py'
