@@ -1,3 +1,8 @@
+## 2026-11-21 — PASEKA02: old backup resurrection guards after quarantine
+
+- В stacked Draft #312 после проверенного 4-point IndexedDB abort/reopen/retry добавлены три синтетических сквозных проверки существующего `checkRestoreLedgerCandidate` **после успешного карантинного отката**: (1) старый архив без нового tombstone получает `V2_RESTORE_LEDGER_HISTORY_LOST`; (2) архив с корректным durable ledger, но исходным pending payload получает `V2_RECOGNIZED_ORIGINAL_INCLUDED`; (3) переименованный Blob того же SHA получает `V2_RESTORE_RECOGNIZED_ORIGINAL`. Во всех случаях защищённый `full_backup` и digest оригинала сохраняются, live `entrance_media` пуст, пользовательские записи не изменяются.
+- GitHub Actions специализированный workflow на code SHA `ea2242b6169bdfe7bfa3e3974ada36afeccecd58` SUCCESS 37/37 tests (run 44909522235); физический Android и PASEKA01-restore не проверяются этими тремя тестами. Следующий приоритет — stricter read-only `inspectQuarantine` для обнаружения повреждённого staging/header/history (без авто-delete) и полная regression/Android сборка на итоговом SHA.
+
 ## 2026-11-21 — PASEKA02: отмена quarantine rollback и повтор после перезапуска
 
 - Продолжена цепочка Draft #311 в отдельной ветке `test/paseka02-quarantine-abort-reopen-2026-11-21`. Уже существующая `quarantineRollbackIsolated` (Draft #237) дополнена **только четырьмя регрессионными сценариями**, без нового runtime: прерывание IndexedDB после успешного `full_backup.put`, `archive_history.put`, `main.put` и `entrance_media.delete`; затем закрытие/reopen fake-indexeddb и проверка полной отмены изменений. Повторная попытка должна единожды перенести оригинал в защищённый quarantine, сохранив SHA и ledger; третья попытка запрещена.
