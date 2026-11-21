@@ -25,8 +25,8 @@ def check(export_name, expected_hash, run=adb_shell):
 
     def require(*args):
         reply = run(*args)
-        if reply.returncode:
-            raise ValueError("Команда устройства не выполнена: " + args[0])
+        if reply.returncode or reply.stderr.strip():
+            raise ValueError("Команда устройства не выполнена без ошибок: " + args[0])
         return reply.stdout.strip()
 
     def verify_file():
