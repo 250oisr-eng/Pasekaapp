@@ -1,0 +1,42 @@
+name: Restore335 read-only post-dd failure inventory
+on:
+  push:
+    branches:
+      - 'test/android-restore335-stdin-sha-readonly-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-post-dd-failure-readonly.ps1'
+      - 'tests/mock_android_restore335_post_dd_failure_readonly.py'
+      - '.github/workflows/test-android-restore335-post-dd-failure-readonly.yml'
+permissions:
+  contents: read
+jobs:
+  mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse read-only PowerShell
+        shell: pwsh
+        run: |
+          $t=$null;$e=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-post-dd-failure-readonly.ps1',[ref]$t,[ref]$e)
+          if($e.Count){$e|ForEach-Object {Write-Error $_};exit 1}
+      - name: Verify fixed paths and zero Android write surface
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tools/android-restore335-post-dd-failure-readonly.ps1').read_text()
+          assert 'ru.paseka.journal.archive.restoreproof335' in s
+          assert '4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186' in s
+          assert 'bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee' in s
+          assert "ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','stat','-c','%F'" in s
+          assert "ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','cat'" in s
+          assert "ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','dd','--help')" in s
+          assert 'PRIVATE_INPUT_STATUS: SHA256_PASS_3158_BYTES' in s
+          assert 'PRIVATE_FILE_MODIFICATION: NOT_ATTEMPTED' in s
+          commands='\n'.join(l for l in s.splitlines() if l.strip().startswith(('ADB @(', '$cwd=Text @(', '$dir=ADB @(', '$kind=ADB @(', '$size=ADB @(', '$contents=ADB @(', '$help=ADB @(', '$recheck=ADB @(')))
+          for forbidden in ("'mkdir'","'of='","'shell','-T'","'install'","'push'","'pull'","'rm'","'dd','of='","'am'","'clear'"):
+              assert forbidden not in commands,(forbidden,commands)
+          PY
+      - name: Actual PowerShell with mock ADB, full absent partial and special-file cases
+        run: python3 tests/mock_android_restore335_post_dd_failure_readonly.py
