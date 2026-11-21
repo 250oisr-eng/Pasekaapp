@@ -1,6 +1,7 @@
 import subprocess
+from unittest.mock import patch
 import unittest
-from tools.check_android_archive_after_stop import check, PACKAGE
+from tools.check_android_archive_after_stop import check, PACKAGE, adb_shell
 
 NAME = "paseka-full-backup-2026-11-21 (1).paseka"
 DIGEST = "a" * 64
@@ -90,3 +91,26 @@ class StopCheckTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     execute()
                 self.assertEqual(calls.count(("am", "force-stop", PACKAGE)), 1)
+
+
+    def test_adb_shell_uses_usb_only_and_quotes_android_filename(self):
+        filename = "/sdcard/Download/Пасека/paseka-full-backup-2026-11-21 (1).paseka"
+        with patch("tools.check_android_archive_after_stop.subprocess.run") as execute:
+            execute.return_value = subprocess.CompletedProcess([], 0, "PASEKA02", "")
+            answer = adb_shell("head", "-c", "8", filename)
+            args, kwargs = execute.call_args
+            self.assertEqual(args[0][:3], ["adb", "-d", "shell"])
+            self.assertIn("'"+filename+"'", args[0][3])
+            self.assertTrue(kwargs["capture_output"])
+            self.assertTrue(kwargs["text"])
+            self.assertFalse(kwargs["check"])
+            self.assertEqual(kwargs["timeout"], 90)
+            self.assertEqual(answer.stdout, "PASEKA02")
+
+    def test_stderr_during_post_stop_read_fails_closed(self):
+        results = self.replies()
+        results[5] = (0, "PASEKA02", "read warning")
+        calls, execute = self.scenario(results)
+        with self.assertRaises(ValueError):
+            execute()
+        self.assertEqual(calls.count(("am", "force-stop", PACKAGE)), 1)
