@@ -45,7 +45,7 @@ elif len(a)==9 and a[:7]==['-d','exec-out','run-as',pkg,'/system/bin/toybox','st
             print('stat: cannot stat files: No such file or directory',file=sys.stderr);sys.exit(1)
         print('directory')
     elif path=='files/fileproof335-input.paseka':
-        if mode in ('missing_dir','missing'):
+        if mode in ('missing_dir','missing','other_file'):
             print('stat: cannot stat file: No such file or directory',file=sys.stderr);sys.exit(1)
         if mode=='stat_bad':
             print('stat: input could not be inspected',file=sys.stderr);sys.exit(2)
