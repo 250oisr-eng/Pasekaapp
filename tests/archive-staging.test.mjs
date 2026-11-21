@@ -1905,3 +1905,30 @@ test('legacy commit rejects a V2 protected snapshot created after old archive st
  assert.deepEqual(await getAll(db,'entrance_media'),[]);
  db.close();
 });
+
+
+for(const [kind,storeName,key,payload] of [
+ ['staging','archive_staging',undefined,{id:'v2pending:later',sessionId:'v2pending:later',kind:'v2_pending_session'}],
+ ['history','archive_history',undefined,{backupId:'later-v2',kind:'v2_entrance_only',status:'committed_rollback_blocked'}],
+ ['rollback','full_backup','v2entrance:later-v2',{kind:'v2_entrance_only_rollback_unverified',quarantinedMedia:[]}]
+]){
+ test('PASEKA01 final commit rejects V2 '+kind+' added after legacy ready stage',async()=>{
+  const db=await openTestDb('legacy-final-protection-'+kind);
+  const state=stateFixture('current family diary');state.meta.revisionId='base-current';
+  await put(db,'main',state,'state');
+  const input=await makeArchive('legacy-ready-'+kind);
+  const stage=await Restore.stageArchiveForRestore(db,input,webcrypto,Archive,()=>true);
+  await put(db,storeName,payload,key);
+  const countBefore=(await getAll(db,'archive_staging')).length;
+  await assert.rejects(
+   Restore.commitStagedArchive(db,stage.session.sessionId,'base-current',webcrypto,Archive,()=>true),
+   {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+  assert.deepEqual(await get(db,'main','state'),state);
+  assert.equal((await get(db,'archive_staging',stage.session.sessionId)).status,'ready');
+  assert.equal((await getAll(db,'archive_staging')).length,countBefore);
+  assert.equal(await get(db,'archive_history','legacy-ready-'+kind),undefined);
+  assert.deepEqual(await getAll(db,'entrance_media'),[]);
+  assert.equal((await getAll(db,'full_backup')).length,kind==='rollback'?1:0);
+  db.close();
+ });
+}
