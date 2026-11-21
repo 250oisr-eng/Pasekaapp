@@ -81,6 +81,34 @@ try {
   if($line -notmatch '^([a-fA-F0-9]{64})\s+\*?-$'){
     if($line -match '^(sha256sum|run-as|/system/bin/sh|sh|error|adb):'){
       Write-Host 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC'
+      # Only a short, recognized and entirely printable diagnostic may be displayed.
+      # Never output arbitrary bytes, control characters, video contents or the archive.
+      if($probe.Bytes.Length -le 256 -and $line.Length -le 240 -and
+         $line -cmatch '^[a-zA-Z0-9_./: -]+
+      Write-Host 'REMOTE_OUTPUT_CLASS: EMPTY'
+    }else{
+      Write-Host 'REMOTE_OUTPUT_CLASS: UNRECOGNIZED'
+    }
+    throw 'STDIN_SHA256_OUTPUT_INVALID'
+  }
+  $actual=$Matches[1].ToLowerInvariant()
+  if($actual -cne $pinned){throw 'STDIN_SHA256_MISMATCH'}
+  Write-Host 'STDIN_TRANSPORT: SHA256_PASS_3158_BYTES'
+  Write-Host 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED'
+  Write-Host 'RESTORE_COMMIT: NOT_TESTED'
+  Write-Host 'RECOGNITION_CLEANUP: NOT_AUTHORIZED'
+  Write-Host 'STATUS: RESTORE335_READONLY_STDIN_TRANSPORT_PASS'
+}catch{
+  Write-Host 'STATUS: BLOCKED'
+  Write-Host ('DETAIL: '+$_.Exception.Message)
+  Write-Host 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE'
+  exit 2
+}
+){
+        Write-Host ('REMOTE_DIAGNOSTIC: '+$line)
+      }else{
+        Write-Host 'REMOTE_DIAGNOSTIC: REDACTED'
+      }
     }elseif($probe.Bytes.Length -eq 0){
       Write-Host 'REMOTE_OUTPUT_CLASS: EMPTY'
     }else{
