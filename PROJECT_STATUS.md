@@ -1,3 +1,39 @@
+## Финальная сверка CI для Draft #299 — 2026-11-21
+
+- На **code/test SHA `a7baf5e7547081597724288e55ec2e25ca877ebc`**: специализированный Python CI [#44887190574](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887190574) и [#44887193388](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887193388) — SUCCESS; Fast quality checks [#44887190539](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887190539) — SUCCESS; Android Debug APK [#44887190576](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887190576) — **SUCCESS**; другой Android run #44887193480 — CANCELLED; isolated archive APK #44887193433 — SKIPPED. Различать эти статусы.
+- Все файлы после `a7baf5e...` до предыдущего doc SHA `14c7d56...` — **только документация**, код и тесты не менялись. Реальная модель, реальный inference и испытание на физическом телефоне **не выполнялись**. Разрешения на удаление исходных видео нет.
+- Draft PR #299 поверх Draft #298, base main не изменена. Следующая задача: юридически и технически проверить веса/зависимости, получить настоящие предсказания с доказательствами независимости источника, прогнать новый строгий оценщик и выполнить Android офлайн испытания.
+
+---
+
+## 2026-11-21 — дополнительная проверка воспроизводимости detector evidence (Draft #299)
+
+- Код/тесты на SHA `a7baf5e7547081597724288e55ec2e25ca877ebc`: специализированный CI #44887190574 и #44887193388 — SUCCESS, Fast quality #44887190539 — SUCCESS. Android Debug APK #44887193480 / #44887190576 на момент последней проверки были IN_PROGRESS, **не** считать успехом до завершения. Archive APK #44887193433 — SKIPPED. Последующие коммиты только документационные.
+- Сквозной синтетический unit test проходит полный путь `assess()` на 6000 кадрах и явно проверяет, что `realDetectorValidated=false` и `videoCleanupAuthorized=false`. Новый потоковый валидатор JSONL фиксирует фактический SHA-256 и размер входного файла в `predictionFileIdentity`, проверяет неизменность размера и идентичность файла при открытии. Отдельно проверяется confidence threshold.
+- Независимый реальный inference на оригинальном MP4 **не выполнялся**, поэтому нет ни фактических кадровых предсказаний, ни подтверждённой точности, ни права удаления видео. Кандидаты на веса остаются заблокированными до проверки полной лицензии и независимых данных.
+- Продолжать только после независимой проверки прав на веса и получения реальных reproducible predictions, не делать вывода о качестве модели по синтетическим тестам.
+
+---
+
+## 2026-11-21 — итог блока: проверка входных данных и публичных весов детектора (Draft #299)
+
+- Проверенный code/test SHA `8ab3d8c1c117f28d22356fecd1fea3ad572e92ad`: [external fan detector evidence #44886964302](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964302) **SUCCESS**, [Fast quality #44886964309](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964309) **SUCCESS**, [Android Debug APK #44886964305](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964305) **SUCCESS**. Это CI кода/формата, а НЕ работоспособность нейросети на физическом Android. Последующие коммиты содержат только документы.
+- В `docs/VIDEO-DETECTOR-WEIGHTS-CANDIDATE-REVIEW.md` сверены два открытых кандидата. Matt Nudi YOLOv5 `best.pt`: опубликован файл и карточка CC BY 4.0 **датасета**, но точная лицензия **весов** не подтверждена. Apiarist YOLOv8s: модельная карточка указывает Apache-2.0 и фокус на **соторамках**, а не летке; необходимо проверить транзитивные условия использования базовых весов и библиотеки, и качество в другом домене. Ни один кандидат не принят.
+- Нет независимого доказательства причинной связи заявленных bbox с конкретной моделью; нет проверенной независимости исходных записей train/test, фактического inference, линии входа/выхода и полевого offline Android тестирования. `modelLicenseVerified=false`, `independentTestSplitVerified=false`, `realDetectorValidated=false`, `videoCleanupAuthorized=false`.
+- Следующая задача: получить законно лицензированный checkpoint с SHA и полной модельной спецификацией, независимо воспроизводимо получить реальные предсказания и проверить их на исходном MP4+TXT, **после** подтверждения независимости source/session. Запрещены запуск платных API и удаление личных исходных видео.
+
+---
+
+## 2026-11-21 — независимые предсказания детектора: безопасный входной шлюз (Draft #299)
+
+- После Draft PR #298 создана стековая ветка `test/video-detector-prediction-evidence-2026-11-21`. Исходная main не изменена. Код/тесты SHA `8ab3d8c1c117f28d22356fecd1fea3ad572e92ad`; GitHub Actions [#44886964302](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886964302) **SUCCESS** — синтетические unit/negative tests для независимых предсказаний и CLI. Общий quality run #44886964309 **SUCCESS** на этом SHA. Android build #44886964305 проверять отдельно: на момент записи он выполнялся.
+- Новый `tools/evaluate_external_fan_detections.py` требует фактический оригинальный Mendeley MP4 и tracking TXT (издательские SHA), фактические локальные веса с проверкой размера и SHA и полный файл независимых bbox JSONL из **6000 кадров**, включая пустые. Заранее выбранный confidence threshold 0.5 можно изменить. Отвергаются отсутствие кадра, дубли, track_id/GT, ложные готовые метрики, некорректные bbox/confidence/NaN, небезопасный файл и неправильный SHA.
+- Имеются только **синтетические** тесты `tests/test_evaluate_external_fan_detections.py`; CLI не запускает модель, не извлекает видео, не скачивает веса и не производит действительные предсказания. Проверка байтов не доказывает соответствие файла предсказаний конкретному inference. Поля `predictionsGeneratedByModelVerified`, `modelLicenseVerified`, `independentTestSplitVerified`, `realDetectorValidated`, `entranceLineCrossingsValidated`, `androidOfflineInferenceVerified`, `videoCleanupAuthorized` всегда false. Описание и пример входного формата — `docs/VIDEO-EXTERNAL-DETECTOR-EVIDENCE-GATE.md`.
+- Ни IndexedDB, ни журнал пасеки, ни архивы, ни оригинальные видео не изменены. Автоудаление видео не активировано.
+- **Следующий шаг:** найти/подтвердить лицензионно допустимые реальные веса + независимый source-recording split, выполнить **реальный воспроизводимый inference**, передать его bbox в этот шлюз и сравнить качество и ошибки ID; только затем обсуждать Android offline и подсчёт пересечений.
+
+---
+
 ## 2026-11-21 — заключительная контрольная точка: проверка конкретных ложных связей в PR #298
 
 - Финальный code/test SHA `ccecf4b1c9d88de9bfb4e51e696109b4ae4d8e4f` (после документальной точки `ff72ad56...` добавлены защищённые исследования; PR #298 остаётся Draft). На точном SHA специализированные [GitHub Actions #44886515130](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44886515130) — **SUCCESS**: новые unit tests и три реальных запуска по исходному SHA-verified `tracks_20230711a-fan.txt`. Fast quality checks #44886510917 — **SUCCESS** на этом SHA. Проверку Android необходимо отдельно сверить по её статусу; успешный тестовый workflow не является Android-сборкой.
