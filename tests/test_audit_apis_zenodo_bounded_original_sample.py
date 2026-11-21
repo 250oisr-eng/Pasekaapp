@@ -10,7 +10,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
 from audit_apis_zenodo_bounded_original_sample import (
     EXPECTED_ARCHIVE_BYTES, central_directory_from_tail, parse_central_directory,
     extract_sample_zip_member, jpeg_dimensions, yolo_annotation_summary,
-    range_bytes, audit_bounded_original_jpg_txt,
+    range_bytes, audit_bounded_original_jpg_txt, read_bounded_segments,
 )
 
 
@@ -133,6 +133,28 @@ class BoundedOriginalZipTests(unittest.TestCase):
         r=FakeOpener(FakeResponse(206,b"P","bytes 0-1/2005232875"))
         with self.assertRaises(ValueError):
             range_bytes(0,0,EXPECTED_ARCHIVE_BYTES,opener=r)
+
+    def test_chunked_fetch_reconstructs_exact_bytes_only(self):
+        payload=bytes(i%251 for i in range(700))
+        calls=[]
+        def fetch(a,b,total):
+            calls.append((a,b,total))
+            return payload[a:b+1]
+        result=read_bounded_segments(10,609,len(payload),fetch=fetch,chunk_size=128)
+        self.assertEqual(result,payload[10:610])
+        self.assertEqual(len(calls),5)
+        self.assertTrue(all(b-a+1<=128 for a,b,_ in calls))
+
+    def test_chunked_fetch_rejects_fake_missing_byte(self):
+        payload=b"abcdefgh"
+        with self.assertRaises(ValueError):
+            read_bounded_segments(0,7,len(payload),
+                                  fetch=lambda a,b,t:payload[a:b],chunk_size=4)
+
+    def test_chunked_fetch_cannot_exceed_8mib_cap(self):
+        with self.assertRaises(ValueError):
+            read_bounded_segments(0,8*1024*1024,EXPECTED_ARCHIVE_BYTES,
+                                  fetch=lambda *_:b"",chunk_size=128*1024)
 
     def test_source_audit_with_injected_fixture_is_not_original(self):
         fake=lambda: {"rangeSupported":False,"blockReason":"test says blocked"}
