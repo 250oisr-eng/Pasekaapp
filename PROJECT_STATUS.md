@@ -1,3 +1,11 @@
+## Итог проверки текущего этапа — 2026-11-21
+
+- **Код/тесты:** SHA `8b988633c117164f6bfb50da5d8429cddce97e8c`. Специализированный fan benchmark [#44885920213](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885920213) SUCCESS; evaluator [#44885920275](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885920275) SUCCESS; Android Debug APK [#44885920191](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885920191) **SUCCESS**. Изолированный archive APK [#44885920221](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885920221) SKIPPED — это не успешная проверка архива.
+- Код после этого SHA не менялся, обновлялись только документы. Реальный Android-телефон, camera inference и очистка исходных видео не тестировались; PR #297 остаётся Draft, main не изменена.
+- Единственный следующий технический этап — безопасная кратковременная память трекера и доказательный тест ложных привязок при окклюзии, используя контрольный оригинальный Mendeley TXT. Не объявлять этап распознавания завершённым.
+
+---
+
 ## Проверенный этап — 2026-11-21: стресс-тест реальных fan bbox с искусственными пропусками
 
 - Code/test SHA `8b988633c117164f6bfb50da5d8429cddce97e8c`; CI [#44885920213](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44885920213) **success**: все новые Python unit tests, исходный и стрессовый прогоны оригинального `tracks_20230711a-fan.txt` после SHA-256 проверки. Независимый evaluator CI #44885920275 — **success**.
