@@ -1,3 +1,10 @@
+## 2026-11-21 — физический Android запущен; одно действие вместо ручной серии ADB
+
+- Пользователь на Windows подтвердил установку изолированного APK (`adb -d install` → `Success`), `adb -d shell pm path ru.paseka.journal.archive.test` → точный пакет обнаружен, `adb -d shell monkey -p ru.paseka.journal.archive.test -c android.intent.category.LAUNCHER 1` → `Events injected: 1`; пользователь наблюдал открытую главную страницу. Это **реальная проверка установки и запуска** на OnePlus NE2213/Android 16, но **НЕ** проверка IndexedDB/видеорезервного архива.
+- Для минимизации действий добавлен `tools/android_paseka02_preflight.ps1`: единый read-only Windows preflight, ADB device count / API / package / process / список **имён** возможных архивов. Синтетический PASEKA02 не создаётся и не верифицируется, файл/DB не читаются, приложения не останавливаются, фото/видео не удаляются. В `docs/ANDROID-PASEKA02-PHYSICAL-TEST-PROTOCOL.md` размещён однокомандный пример со ссылкой, закрепляемой на SHA.
+- Настоящие тесты PASEKA02 A/B/C по-прежнему **NOT TESTED**. Следующие шаги: исполнить read-only preflight одним вводом на ПК пользователя, затем только после проверки исходных synthetic video SHA выполнять физический архивный тест; никакого удаления видео/merge/deploy/production.
+- В данном сеансе PowerShell на физическом Windows ПК не доступен агенту, поэтому выполнение `.ps1` на Windows остаётся **NOT TESTED** до отчёта пользователя; наличие ADB и доступность GitHub подтверждены косвенно предыдущими командами пользователя.
+
 ## 2026-11-21 — Android 16 физическое устройство подключено; isolated APK CI разблокирован
 
 - Пользователь подтвердил реальное USB ADB соединение: `adb devices -l` возвращает **одно устройство** `model:NE2213`, статус `device`. Android release **16**, SDK **36**. `adb shell pm list packages | findstr /i paseka` не вернул установленных пакетов с именем paseka. Эти команды выполнены **пользователем на своём ПК**; удалённого доступа агента к USB/ADB нет. Идентификатор устройства не публиковать в журналах.
