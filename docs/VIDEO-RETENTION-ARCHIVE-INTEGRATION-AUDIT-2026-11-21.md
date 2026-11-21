@@ -57,3 +57,8 @@
 
 Дополнен `inspectQuarantine`: одно read-only чтение проверяет наличие/согласованность staging header и всех дочерних видео с `importedVideos` из защищённого rollback snapshot. Дефект диагностики: раньше при удалённом/изменённом staging child статус мог оставаться `reverted_quarantine_unverified` вместо ручной проверки. Сама смена статуса **не изменяет состояние БД** и не разрешает очищать копии. Проверка SHA Blob и реальный Android остаются отдельными воротами безопасности.
 
+
+## 2026-11-21 — PASEKA01 binary crossed with PASEKA02 quarantine
+
+Добавлены два интеграционных сценария, использующих фактически собранный PASEKA01 Blob, проверку manifest/chunk hash, реальный PASEKA02 stage/commit/quarantine и реальный PASEKA01 `stageArchiveForRestore`. Устройство после карантина имеет durable deleted tombstone, а в одном сценарии IndexedDB переоткрывается. Старый PASEKA01 отклоняется до staging с `VIDEO_LEDGER_NOT_PRESERVED`; защищённый Blob в `full_backup` сохраняется. Это узкая проверка fail-closed совместимости **отклонения**, а не полный Android workflow или разрешение на удаление видео.
+
