@@ -1,0 +1,58 @@
+name: Read original Monash native-bee ZIPs (ephemeral checksum and manifest)
+on:
+  push:
+    paths:
+      - 'tools/audit_licensed_native_bee_archive_manifest.py'
+      - 'tests/test_audit_licensed_native_bee_archive_manifest.py'
+      - '.github/workflows/test-licensed-native-bee-archives.yml'
+  pull_request:
+    paths:
+      - 'tools/audit_licensed_native_bee_archive_manifest.py'
+      - 'tests/test_audit_licensed_native_bee_archive_manifest.py'
+      - '.github/workflows/test-licensed-native-bee-archives.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-archive-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: ZIP CRC, traversal, size, and source allowlist rejection
+        run: python -m unittest discover -s tests -p 'test_audit_licensed_native_bee_archive_manifest.py' -v
+  original-publisher-archive-audit:
+    # Run original 206MB source-byte check only once when pushed, not on
+    # every PR metadata/status update; does NOT publish or store ZIP artifacts.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check two original Monash CC BY archives by publisher MD5 and ZIP CRC
+        run: |
+          set -o pipefail
+          python tools/audit_licensed_native_bee_archive_manifest.py | tee /tmp/paseka-native-bee-archive-audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("/tmp/paseka-native-bee-archive-audit.json").read_text())
+          assert report["license"] == "CC BY 4.0"
+          assert report["sourceArchiveBytesChecked"] is True
+          assert len(report["archives"]) == 2
+          assert sum(r["bytes"] for r in report["archives"].values()) == 206135340
+          for r in report["archives"].values():
+              assert r["publisherMd5VerifiedAgainstBytes"] is True
+              assert r["zip"]["members"] > 0
+              assert len(r["originalSha256"]) == 64
+          for flag in ("realBeeInOutGroundTruthEstablished",
+                       "sourceVideosProvedPresentAndCalibrated",
+                       "onDeviceDetectorAccuracyMeasured", "videoCleanupAuthorized"):
+              assert report[flag] is False
+          print("Source ZIP checksums verified (public stingless bee data ONLY), no traffic inference or personal media")
+          PY
