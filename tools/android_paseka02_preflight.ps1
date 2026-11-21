@@ -66,32 +66,14 @@ try {
             foreach ($entry in $matches) {
                 $index++
                 $safeName = ([string]$entry).TrimEnd([char]13)
-                if ($safeName -notmatch '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka
-    }
-    if ($InspectHeaders) {
-        Write-Host 'DATA_ACTIONS: READ-ONLY HEADERS AND FILE LENGTHS; no stop, deletion, installation, or restore.'
-    } else {
-        Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
-    }
-    Finish 'PREFLIGHT_COMPLETE' 'Physical ADB preflight only. IndexedDB/video integrity NOT TESTED.' 0
-} catch {
-    Finish 'BLOCKED' ('Read-only preflight failed: ' + $_.Exception.Message) 2
-}
-) {
+                if ($safeName -notmatch '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka$') {
                     Finish 'BLOCKED' 'Unexpected filename during header inspection.' 2
                 }
                 $safePath = $directory + '/' + $safeName
                 # Exact whitelist above prevents quote injection. Android shell single quotes preserve Unicode and spaces.
                 $magic = AdbOutput -arguments @('-d','shell',("head -c 8 '" + $safePath + "'"))
                 $length = AdbOutput -arguments @('-d','shell',("stat -c %s '" + $safePath + "'"))
-                if ($length -notmatch '^\d+
-    }
-    Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
-    Finish 'PREFLIGHT_COMPLETE' 'Physical ADB preflight only. IndexedDB/video integrity NOT TESTED.' 0
-} catch {
-    Finish 'BLOCKED' ('Read-only preflight failed: ' + $_.Exception.Message) 2
-}
-) {
+                if ($length -notmatch '^\d+$') {
                     Finish 'BLOCKED' 'Invalid file size from Android stat.' 2
                 }
                 if ($magic -eq 'PASEKA02') { $paseka02Count++ }
@@ -105,7 +87,11 @@ try {
             Write-Host 'PASEKA02_ARCHIVES: NOT VERIFIED (names only; no files read)'
         }
     }
-    Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
+    if ($InspectHeaders) {
+        Write-Host 'DATA_ACTIONS: READ-ONLY HEADERS AND FILE LENGTHS; no stop, deletion, installation, or restore.'
+    } else {
+        Write-Host 'DATA_ACTIONS: NONE; no stop, deletion, installation, restore, or archive read.'
+    }
     Finish 'PREFLIGHT_COMPLETE' 'Physical ADB preflight only. IndexedDB/video integrity NOT TESTED.' 0
 } catch {
     Finish 'BLOCKED' ('Read-only preflight failed: ' + $_.Exception.Message) 2
