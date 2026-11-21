@@ -23,11 +23,11 @@ function Slice([byte[]]$bytes,[int]$offset,[int]$length) {
   return ,$result
 }
 function Text([byte[]]$bytes) { return $utf8.GetString($bytes) }
-function Adb([string[]]$args) {
+function Adb([string[]]$argv) {
   $exe=(Get-Command adb -CommandType Application -ErrorAction Stop).Source
   $p=New-Object System.Diagnostics.ProcessStartInfo
   $p.FileName=$exe
-  $p.Arguments=$args -join ' '
+  $p.Arguments=$argv -join ' '
   $p.UseShellExecute=$false
   $p.CreateNoWindow=$true
   $p.RedirectStandardOutput=$true
@@ -47,13 +47,27 @@ function Adb([string[]]$args) {
     }
     $stdoutTask.GetAwaiter().GetResult()
     $diagnostic=$stderrTask.GetAwaiter().GetResult()
-    if($proc.ExitCode -ne 0) {throw ('ADB_EXIT_'+$proc.ExitCode)}
-    if($stream.Length -gt 65536 -and -not ($args -contains 'cat')) {throw 'ADB_TEXT_OUTPUT_TOO_LONG'}
+    if($proc.ExitCode -ne 0) {
+      # Report only command category and a bounded sanitized ADB diagnostic.
+      $category=if($argv.Count -ge 1 -and $argv[0] -eq 'devices') {'DEVICES'}
+        elseif($argv -contains 'getprop') {'DEVICE_INFO'}
+        elseif($argv -contains 'pm') {'PACKAGE'}
+        elseif($argv -contains 'run-as') {'PRIVATE_REPORT'}
+        elseif($argv -contains 'ls') {'DIRECTORY'}
+        elseif($argv -contains 'cat') {'ARCHIVE_READ'}
+        else {'OTHER'}
+      $detail=($diagnostic -replace '[\r\n]+',' ' -replace '[^a-zA-Z0-9_ .:/-]','?')
+      if($detail.Length -gt 180){$detail=$detail.Substring(0,180)}
+      Write-Host ('ADB_DIAGNOSTIC: '+$category+' EXIT_'+$proc.ExitCode)
+      if($detail) { Write-Host ('ADB_ERROR_TEXT: '+$detail) }
+      throw ('ADB_EXIT_'+$proc.ExitCode+'_'+$category)
+    }
+    if($stream.Length -gt 65536 -and -not ($argv -contains 'cat')) {throw 'ADB_TEXT_OUTPUT_TOO_LONG'}
     if($stream.Length -gt 1048576) {throw 'ADB_BINARY_OUTPUT_TOO_LONG'}
     return ,$stream.ToArray()
   }finally { $stream.Dispose();$proc.Dispose() }
 }
-function AdbText([string[]]$args) { return (Text (Adb $args)).Trim() }
+function AdbText([string[]]$argv) { return (Text (Adb $argv)).Trim() }
 try {
   Write-Host 'STAGE: 1/5 USB_DEVICE_PRECHECK'
   $devices=AdbText @('devices','-l')
