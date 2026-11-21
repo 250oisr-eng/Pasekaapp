@@ -1,0 +1,25 @@
+name: Validate proof325 diagnostic report recovery
+
+on:
+  push:
+    paths:
+      - 'tools/android-two-mp4-proof325-report-recovery.ps1'
+      - 'tests/test_android_two_mp4_proof325_report_recovery_mock.sh'
+      - '.github/workflows/test-android-two-mp4-proof325-report-recovery.yml'
+  pull_request:
+    paths:
+      - 'tools/android-two-mp4-proof325-report-recovery.ps1'
+      - 'tests/test_android_two_mp4_proof325_report_recovery_mock.sh'
+      - '.github/workflows/test-android-two-mp4-proof325-report-recovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  proof325-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parser and mock existing-APK reports
+        run: bash tests/test_android_two_mp4_proof325_report_recovery_mock.sh
