@@ -31,7 +31,7 @@ jobs:
           from pathlib import Path
           r=json.loads(Path("/tmp/paseka-apis-only-audit.json").read_text())
           assert r["targetTaxon"] == "Apis mellifera"
-          assert len(r["candidateSummaries"]) == 2
+          assert len(r["candidateSummaries"]) == 3
           for src in r["candidateSummaries"]:
               assert src["scientificSpeciesAsReportedByPublisher"].startswith("Apis mellifera")
               assert src["sourceLicense"] == "CC BY 4.0"
