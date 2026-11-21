@@ -54,3 +54,43 @@ jobs:
           grep -q 'DETAIL: ADB_EXIT_1_DEVICES' "$RUNNER_TEMP/result.txt"
           grep -q 'mock disconnected test device' "$RUNNER_TEMP/result.txt"
           grep -q 'NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE' "$RUNNER_TEMP/result.txt"
+      - name: Simulate successful USB precheck and blocked private report
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/mock-passbin"
+          cat > "$RUNNER_TEMP/mock-passbin/adb" <<'MOCK'
+          #!/usr/bin/env bash
+          case "$*" in
+            "devices -l")
+              printf 'List of devices attached\nebdb131f device product:NE2213 model:NE2213 device:OP516FL1\n'
+              exit 0 ;;
+            "-d shell getprop ro.product.model")
+              printf 'NE2213\n'
+              exit 0 ;;
+            "-d shell getprop ro.build.version.sdk")
+              printf '36\n'
+              exit 0 ;;
+            "-d shell pm path ru.paseka.journal.archive.fileproof329")
+              printf 'package:/data/app/isolated/base.apk\n'
+              exit 0 ;;
+            "-d exec-out run-as ru.paseka.journal.archive.fileproof329 cat files/paseka-fileproof329.ndjson")
+              echo 'MOCK_PRIVATE_REPORT_BLOCKED' >&2
+              exit 78 ;;
+            *)
+              echo 'UNEXPECTED_ADB_COMMAND' >&2
+              exit 99 ;;
+          esac
+          MOCK
+          chmod +x "$RUNNER_TEMP/mock-passbin/adb"
+          export PATH="$RUNNER_TEMP/mock-passbin:$PATH"
+          set +e
+          pwsh -NoProfile -File tools/android-fileproof329-readonly-preflight.ps1 > "$RUNNER_TEMP/mock-pass-result.txt" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/mock-pass-result.txt"
+          test "$status" -eq 2
+          grep -q 'STAGE: 2/5 TEST_PACKAGE_REPORT' "$RUNNER_TEMP/mock-pass-result.txt"
+          grep -q 'ADB_DIAGNOSTIC: PRIVATE_REPORT EXIT_78' "$RUNNER_TEMP/mock-pass-result.txt"
+          grep -q 'DETAIL: ADB_EXIT_78_PRIVATE_REPORT' "$RUNNER_TEMP/mock-pass-result.txt"
+          grep -q 'NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE' "$RUNNER_TEMP/mock-pass-result.txt"
+          ! grep -q 'VoidTaskResult' "$RUNNER_TEMP/mock-pass-result.txt"
