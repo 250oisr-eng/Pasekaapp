@@ -30,7 +30,7 @@ elif args==['-d','shell','-T','run-as',p,'/system/bin/toybox','sha256sum','-']:
     data=sys.stdin.buffer.read()
     if mode=='stdin_corrupt':data=data[:-1]+b'!'
     if mode in ('stdout_diagnostic','device_command_error','diagnostic_redacted'):
-        sys.stdout.write('sha256sum: no such file or directory\n' if mode=='stdout_diagnostic' else ('run-as: command failure\n' if mode=='device_command_error' else 'run-as: invalid\\x00payload\n'))
+        sys.stdout.write('sha256sum: no such file or directory\n' if mode=='stdout_diagnostic' else ('run-as: command failure\n' if mode=='device_command_error' else 'run-as: non-ascii-ñ\n'))
     else:
         print(hashlib.sha256(data).hexdigest()+'  -')
 else:
