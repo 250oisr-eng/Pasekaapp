@@ -1,3 +1,12 @@
+## ANDROID SELF-DIAGNOSTIC — физический PASS по скриншоту пользователя (2026-11-22)
+
+- Пользователь установил отдельную тестовую APK на физический Android и прислал скриншот экрана «Диагностика Пасеки» после однократного запуска кнопки. На экране: `status: PASS`; `packageId: ru.paseka.journal.diagnostic.selftest`; `database: paseka-self-diagnostic-only-v1`; `syntheticRecords: 2`; `videoDecode: NOT_TESTED`; `recognition: NOT_TESTED`; `cleanup: NOT_TESTED`; `productionAccess: NOT_ATTEMPTED`. Это **физическое наблюдение UI**, не независимый протокол Android/ADB; его достаточно для подтверждения завершённого изолированного теста IndexedDB, но не для доказательства других этапов.
+- Для code/test SHA `ef283fdf3bf172d21ed69afdaf5a5cfff58fdc75` CI #44953473256 был success; после документальных обновлений новый HEAD `5170a8b5c6248bbe28a97e55d60ddcd679acf276` также имеет success для test-only APK и Build Android APK, isolated archive workflow skipped.
+- **Не повторять** one-shot тест, не переустанавливать приложение, не очищать `paseka-self-diagnostic-only-v1`: сохранять диагностическую базу как доказательство. Исходный PASEKA01, 2 MP4, их декодирование/распознавание и удаление остаются NOT_TESTED.
+- Следующий независимый безопасный этап: проектировать отдельный one-button тест медиадекодирования **только встроенной синтетической MP4-фикстуры** с доказанным происхождением и SHA, без `MediaStore`, без чтения/удаления реальных файлов, и отдельно подтвердить его на устройстве. Не смешивать PASS IndexedDB с PASS MP4 или cleanup.
+
+---
+
 ## Android self-diagnostic — isolated APK CI PASS (2026-11-22)
 
 - На точном SHA `ef283fdf3bf172d21ed69afdaf5a5cfff58fdc75` workflow [#44953473256](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44953473256) — **completed/success**. Все шаги завершились успешно: JS/IndexedDB тесты, подготовка web assets, Capacitor sync, Java/Gradle `assembleDebug`, проверка `aapt` на отдельный `ru.paseka.journal.diagnostic.selftest`, публикация только CI-артефакта (НЕ production).
