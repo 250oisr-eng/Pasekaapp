@@ -161,13 +161,16 @@ try {
                     if ($manifestLength -lt 2 -or $manifestLength -gt 4194304 -or 12 + $manifestLength -gt $bytes.Length) {
                         throw 'Invalid manifest length.'
                     }
-                    $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+                    $utf8 = [Text.UTF8Encoding]::new($false, $true)
                     $manifestText = $utf8.GetString($bytes, 12, [int]$manifestLength)
                     $manifest = ConvertFrom-Json -InputObject $manifestText -ErrorAction Stop
                     if ($manifest.format -cne 'paseka-archive' -or $manifest.version -ne 1) { throw 'Unsupported manifest format or version.' }
                     if (-not ([string]$manifest.backupId).Trim() -or $manifest.backupId.Length -gt 128) { throw 'Invalid backup ID.' }
                     if ([string]$manifest.schemaVersion -notmatch '^[1-9][0-9]{0,2}$') { throw 'Invalid schema version.' }
-                    if ([string]$manifest.createdAt -notmatch '^\d{4}-\d\d-\d\dT') { throw 'Invalid creation timestamp.' }
+                    $parsedAt = [datetimeoffset]::MinValue
+                    if (-not [datetimeoffset]::TryParse([string]$manifest.createdAt, [ref]$parsedAt)) {
+                        throw 'Invalid creation timestamp.'
+                    }
                     $entries = @($manifest.entries)
                     if ($entries.Count -lt 1 -or $entries.Count -gt 512) { throw 'Invalid entry count.' }
                     $cursor = [int64](12 + $manifestLength)
@@ -209,7 +212,7 @@ try {
                             if ($expectedHash -cnotmatch '^[a-f0-9]{64}$') { throw 'Malformed archive chunk SHA-256.' }
                             $chunkOffset = [int64]$chunkIndex * 1048576
                             $chunkLength = [int][Math]::Min(1048576, $entryLength - $chunkOffset)
-                            $chunk = New-Object byte[] $chunkLength
+                            $chunk = [byte[]]::new($chunkLength)
                             [Array]::Copy($bytes, [int]($cursor + $chunkOffset), $chunk, 0, $chunkLength)
                             $actualHash = [BitConverter]::ToString($sha.ComputeHash($chunk)).Replace('-', '').ToLowerInvariant()
                             if ($actualHash -cne $expectedHash) { throw ('Chunk SHA mismatch in entry ' + ($i + 1)) }
