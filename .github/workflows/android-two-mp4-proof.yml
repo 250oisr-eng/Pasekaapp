@@ -11,22 +11,6 @@ on:
       - 'scripts/prepare-android-two-mp4-proof.mjs'
       - 'js/paseka-archive.js'
       - '.github/workflows/android-two-mp4-proof.yml'
-  pull_request:
-    paths:
-      - 'index.html'
-      - 'js/**'
-      - 'tests/**'
-      - 'manifest.webmanifest'
-      - 'sw.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'capacitor.config.json'
-      - 'scripts/prepare-web.mjs'
-      - 'scripts/prepare-android-two-mp4-proof.mjs'
-      - 'tests/fixtures/android-two-mp4-proof*'
-      - 'scripts/patch-android-gradle.mjs'
-      - 'scripts/prepare-android-archive-download.mjs'
-      - '.github/workflows/android-two-mp4-proof.yml'
 
 concurrency:
   group: two-mp4-proof-android-${{ github.ref }}
@@ -37,7 +21,6 @@ permissions:
 
 jobs:
   build:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'test/android-two-mp4-isolated-apk-proof-2026-11-21'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
