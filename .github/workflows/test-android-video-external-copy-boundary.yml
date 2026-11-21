@@ -1,0 +1,27 @@
+name: Test Android video external-copy disclosure
+
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'scripts/prepare-web.mjs'
+      - 'tests/video-external-copy-boundary.test.mjs'
+      - '.github/workflows/test-android-video-external-copy-boundary.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'scripts/prepare-web.mjs'
+      - 'tests/video-external-copy-boundary.test.mjs'
+      - '.github/workflows/test-android-video-external-copy-boundary.yml'
+permissions:
+  contents: read
+jobs:
+  external-copy-disclosure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/video-external-copy-boundary.test.mjs
