@@ -7,7 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_public_bee_manual_event_tables import (
-    CAP, COMMIT, FIELDS, ROWS, SOURCE, audit, compare_source_tables,
+    CAP, COMMIT, FIELDS, ROWS, SOURCE, SHA256_PINS, audit, compare_source_tables,
     fetch_exact_public_source, parse_events_csv, summarize_table,
     verify_git_blob,
 )
@@ -106,6 +106,9 @@ class BeeManualEventSourceTests(unittest.TestCase):
         gitsha = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
         identity = verify_git_blob(raw, len(raw), gitsha)
         self.assertEqual(identity["sourceSha256"], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(verify_git_blob(raw, len(raw), gitsha, identity["sourceSha256"]), identity)
+        with self.assertRaisesRegex(ValueError, "SHA-256 changed"):
+            verify_git_blob(raw, len(raw), gitsha, "0"*64)
         for data, size, sha in ((raw+b"x", len(raw), gitsha),
                                 (raw, len(raw)+1, gitsha),
                                 (raw, len(raw), "0"*40)):
@@ -126,6 +129,8 @@ class BeeManualEventSourceTests(unittest.TestCase):
                 fetch_exact_public_source(name)
         self.assertEqual(COMMIT, "295948bb398054684b7b92c18b7bb44ba37566af")
         self.assertEqual(len(SOURCE), 2)
+        self.assertEqual(len(SHA256_PINS), 2)
+        self.assertTrue(all(len(s) == 64 for s in SHA256_PINS.values()))
 
     def test_research_script_never_approves_unverified_license_or_video_deletion(self):
         raw = (Path(__file__).resolve().parents[1] / "tools" /
