@@ -79,6 +79,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         calls_text=calls.read_text()
         assert all(word not in calls_text for word in ('install','uninstall','rm','mkdir','am start','clear','sh -c','push','pull'))
         assert ('sha256sum' in calls_text)==(mode!='source_corrupt')
-        assert ('shell' in calls_text and "'-T'" not in calls_text)==(mode!='source_corrupt')
+        assert "'-T'" not in calls_text
+        assert ("'/system/bin/toybox'" in calls_text)==(mode!='source_corrupt')
         assert (base/'archive.bin').read_bytes()==archive
 print('RESTORE335_STDIN_SHA_READONLY_MOCK_PASS')
