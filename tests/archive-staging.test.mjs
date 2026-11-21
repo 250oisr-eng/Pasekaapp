@@ -1954,3 +1954,38 @@ test('PASEKA01 rollback refuses V2 protected quarantine added after old import',
  assert.equal((await get(db,'entrance_media','video-1')).blob.size,4);
  db.close();
 });
+
+
+test('legacy final writer aborts if V2 staging appears inside same atomic transaction',async()=>{
+ const db=await openTestDb('legacy-commit-race-under-writer-lock');
+ const state=stateFixture('do not overwrite');state.meta.revisionId='pre-commit';
+ await put(db,'main',state,'state');
+ const file=await makeArchive('legacy-commit-race');
+ const staged=await Restore.stageArchiveForRestore(db,file,webcrypto,Archive,()=>true);
+ let raced=false;
+ const wrapped={objectStoreNames:db.objectStoreNames,transaction(stores,mode){
+  const tx=db.transaction(stores,mode);
+  if(mode==='readwrite'&&Array.isArray(stores)&&
+     stores.includes('main')&&stores.includes('full_backup')&&
+     stores.includes('entrance_media')&&stores.includes('archive_staging')&&
+     stores.includes('archive_history')&&!raced){
+    raced=true;
+    tx.objectStore('archive_staging').add({
+     id:'v2pending:racing-commit',sessionId:'v2pending:racing-commit',
+     kind:'v2_pending_session'
+    });
+  }
+  return tx;
+ }};
+ await assert.rejects(Restore.commitStagedArchive(
+  wrapped,staged.session.sessionId,'pre-commit',webcrypto,Archive,()=>true),
+  {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+ assert.equal(raced,true);
+ assert.deepEqual(await get(db,'main','state'),state);
+ assert.equal((await get(db,'archive_staging',staged.session.sessionId)).status,'ready');
+ assert.equal((await get(db,'archive_staging','v2pending:racing-commit')),undefined);
+ assert.equal(await get(db,'archive_history','legacy-commit-race'),undefined);
+ assert.deepEqual(await getAll(db,'entrance_media'),[]);
+ assert.equal((await getAll(db,'full_backup')).length,0);
+ db.close();
+});
