@@ -43,6 +43,8 @@ if(mode==='web'){
       throw new IllegalStateException("RESTORE335_WEBVIEW_REQUIRED");
     getBridge().getWebView().addJavascriptInterface(
       new Restore335InputBridge(this), "PasekaRestore335Input");
+    getBridge().getWebView().addJavascriptInterface(
+      new Restore335Reporter(this), "PasekaRestore335Report");
   }
 `;
   writeFileSync(activityPath,activity.replace(marker,injected));
@@ -95,5 +97,31 @@ public final class Restore335InputBridge {
 }
 `;
   writeFileSync(java,nativeSource);
-  console.log('RESTORE335_NATIVE_BRIDGE',java);
+  const reporterFile=join(dirname(activityPath),'Restore335Reporter.java');
+  if(existsSync(reporterFile))throw new Error('REPORTER_ALREADY_EXISTS');
+  const reporterSource=`package ${PACKAGE};
+import android.content.Context;
+import android.webkit.JavascriptInterface;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+public final class Restore335Reporter {
+  private final Context context;
+  private boolean attempted=false;
+  Restore335Reporter(Context ctx) { context=ctx.getApplicationContext(); }
+  @JavascriptInterface public synchronized void report(String text) {
+    if(attempted)return;
+    attempted=true;
+    if(text==null || text.length()>1200 || !text.startsWith("{") ||
+      !text.contains("cleanupAuthorized") || !text.contains("recognitionSucceeded"))return;
+    File destination=new File(context.getFilesDir(),"restore335-report.json");
+    if(destination.exists())return;
+    try(FileOutputStream stream=new FileOutputStream(destination,false)){
+      stream.write(text.getBytes(StandardCharsets.UTF_8));
+    }catch(Exception ignored){}
+  }
+}
+`;
+  writeFileSync(reporterFile,reporterSource);
+  console.log('RESTORE335_NATIVE_BRIDGE',java,reporterFile);
 }else throw new Error('EXPECTED_WEB_OR_NATIVE');
