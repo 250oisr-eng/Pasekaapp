@@ -66,3 +66,10 @@ test('ADB receives explicit argv, not PowerShell automatic args',()=>{
   assert.match(ps,/ADB_DIAGNOSTIC:/);
   assert.match(ps,/ADB_EXIT_/);
 });
+
+test('ADB binary stream discards successful async CopyTo Task result',()=>{
+  const ps=readFileSync(new URL('../tools/android-fileproof329-readonly-preflight.ps1',import.meta.url),'utf8');
+  assert.match(ps,/\[void\]\$stdoutTask\.GetAwaiter\(\)\.GetResult\(\)/);
+  assert.match(ps,/return ,\$stream\.ToArray\(\)/);
+  assert.doesNotMatch(ps,/^\s*\$stdoutTask\.GetAwaiter\(\)\.GetResult\(\)/m);
+});
