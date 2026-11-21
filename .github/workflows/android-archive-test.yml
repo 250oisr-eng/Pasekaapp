@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   build:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'test/full-archive-android-isolated-2026-11-18'
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'test/full-archive-android-isolated-2026-11-18' || github.event.pull_request.head.ref == 'test/android-archive-external-stop')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -78,7 +78,22 @@ jobs:
       - name: Run regression tests
         run: npm test
       - name: Prepare isolated archive test package
-        run: node scripts/prepare-archive-test-config.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The active PASEKA02 stack does not include the legacy isolated-config script.
+          # Modify only the runner's generated Capacitor config, never the Git checkout.
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'capacitor.config.json';
+          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (config.appId !== 'ru.paseka.journal') {
+            throw new Error('Refusing unexpected source Android package: ' + config.appId);
+          }
+          config.appId = 'ru.paseka.journal.archive.test';
+          config.appName = 'Пасека — архив тест';
+          fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\\n');
+          NODE
       - name: Verify isolated Capacitor configuration
         shell: bash
         run: |
