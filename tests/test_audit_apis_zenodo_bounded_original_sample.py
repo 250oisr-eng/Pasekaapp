@@ -176,6 +176,21 @@ class BoundedOriginalZipTests(unittest.TestCase):
         self.assertFalse(r["modelTrainingAllowed"])
 
 
+    def test_timeout_in_injected_source_range_never_claims_original_jpg(self):
+        def fakeprobe():
+            return {"rangeSupported":True,
+                    "publisherArchiveBytesFromContentRange":EXPECTED_ARCHIVE_BYTES}
+        def badfetch(a,b,total):
+            raise TimeoutError("synthetic network timeout")
+        r=audit_bounded_original_jpg_txt(probe=fakeprobe,fetch=badfetch)
+        self.assertEqual(r["sourceInputOrigin"],"synthetic_fixture")
+        self.assertIn("source range",r["blockReason"].replace("ZIP EOCD range", "source range"))
+        self.assertFalse(r["originalZipMemberJpegAndTxtCrcVerified"])
+        self.assertFalse(r["wholeArchiveMd5Verified"])
+        self.assertFalse(r["modelTrainingAllowed"])
+        self.assertFalse(r["userVideoCleanupAuthorized"])
+
+
 
 if __name__=="__main__":
     unittest.main()
