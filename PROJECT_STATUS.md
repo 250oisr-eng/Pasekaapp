@@ -1,3 +1,11 @@
+## Финальная сверка CI для Draft #299 — 2026-11-21
+
+- На **code/test SHA `a7baf5e7547081597724288e55ec2e25ca877ebc`**: специализированный Python CI [#44887190574](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887190574) и [#44887193388](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887193388) — SUCCESS; Fast quality checks [#44887190539](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887190539) — SUCCESS; Android Debug APK [#44887190576](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44887190576) — **SUCCESS**; другой Android run #44887193480 — CANCELLED; isolated archive APK #44887193433 — SKIPPED. Различать эти статусы.
+- Все файлы после `a7baf5e...` до предыдущего doc SHA `14c7d56...` — **только документация**, код и тесты не менялись. Реальная модель, реальный inference и испытание на физическом телефоне **не выполнялись**. Разрешения на удаление исходных видео нет.
+- Draft PR #299 поверх Draft #298, base main не изменена. Следующая задача: юридически и технически проверить веса/зависимости, получить настоящие предсказания с доказательствами независимости источника, прогнать новый строгий оценщик и выполнить Android офлайн испытания.
+
+---
+
 ## 2026-11-21 — дополнительная проверка воспроизводимости detector evidence (Draft #299)
 
 - Код/тесты на SHA `a7baf5e7547081597724288e55ec2e25ca877ebc`: специализированный CI #44887190574 и #44887193388 — SUCCESS, Fast quality #44887190539 — SUCCESS. Android Debug APK #44887193480 / #44887190576 на момент последней проверки были IN_PROGRESS, **не** считать успехом до завершения. Archive APK #44887193433 — SKIPPED. Последующие коммиты только документационные.
