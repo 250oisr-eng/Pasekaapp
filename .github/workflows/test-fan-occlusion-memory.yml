@@ -30,8 +30,8 @@ jobs:
       - name: Identity safety and negative tests
         run: python -m unittest discover -s tests -p 'test_fan_occlusion_memory.py' -v
       - name: Real pinned annotation, no perturbation
-        run: python tools/compare_public_fan_memory.py
+        run: python tools/compare_public_fan_memory.py --require-benchmark-gate
       - name: Real pinned annotation, deliberately missing boxes and synthetic jitter
-        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.9
+        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.9 --require-benchmark-gate
       - name: Stricter 0.98 recovery threshold under identical synthetic stress
-        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.98
+        run: python tools/compare_public_fan_memory.py --drop-every 20 --jitter-pixels 2 --recovery-iou 0.98 --require-benchmark-gate
