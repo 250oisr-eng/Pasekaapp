@@ -26,11 +26,11 @@ elif args in (['-d','shell','pm','path',p],['-d','shell','pm','path',old]):
     print('package:/data/app/isolated/base.apk')
 elif args==['-d','exec-out','cat','/sdcard/Download/PasekaProof329/paseka-proof329-59a9e237-e33f-42f6-acf3-ff5f99bc1eec.paseka']:
     sys.stdout.buffer.write(src)
-elif args==['-d','shell','-T','run-as',p,'sha256sum']:
+elif args==['-d','shell','-T','run-as',p,'/system/bin/toybox','sha256sum','-']:
     data=sys.stdin.buffer.read()
     if mode=='stdin_corrupt':data=data[:-1]+b'!'
-    if mode=='stdout_diagnostic':
-        sys.stdout.write('sha256sum: no such file or directory\n')
+    if mode in ('stdout_diagnostic','device_command_error'):
+        sys.stdout.write('sha256sum: no such file or directory\n' if mode=='stdout_diagnostic' else 'run-as: command failure\n')
     else:
         print(hashlib.sha256(data).hexdigest()+'  -')
 else:
@@ -47,6 +47,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         ('pass','RESTORE335_READONLY_STDIN_TRANSPORT_PASS',0),
         ('stdin_corrupt','STDIN_SHA256_MISMATCH',2),
         ('stdout_diagnostic','STDIN_SHA256_OUTPUT_INVALID',2),
+        ('device_command_error','STDIN_SHA256_OUTPUT_INVALID',2),
         ('source_corrupt','ORIGINAL_PINNED_SHA_FAILED',2)
     ]:
         archive=source if mode!='source_corrupt' else source[:-1]+b'!'
@@ -65,7 +66,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
             assert 'REMOTE_EXIT_CODE: 0' in result.stdout
             assert 'REMOTE_STDOUT_BYTES:' in result.stdout
             assert 'REMOTE_STDOUT_SHA256:' in result.stdout
-        if mode == 'stdout_diagnostic':
+        if mode in ('stdout_diagnostic','device_command_error'):
             assert 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC' in result.stdout
         if mode == 'pass':
             assert 'REMOTE_OUTPUT_CLASS' not in result.stdout
