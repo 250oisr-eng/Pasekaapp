@@ -1,3 +1,12 @@
+## FILEPROOF335 — Android APK compiled and artifact SHA-pinned (2026-11-21)
+
+- В Draft PR #336 на exact HEAD `595e8075f084d79f1adf6f20d1bcce7038f1421e` специализированный [GitHub Actions #44942628866](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942628866) **completed/success**. Прошли Node/VM safety tests, web config isolation, Android Java bridge compilation, Gradle assembleDebug и проверка aapt, что APK appId только `ru.paseka.journal.archive.restoreproof335`. Это CI, не физический Android запуск.
+- Готов единственный CI artifact `paseka-restoreproof335-isolated-apk`, ID `14721928022`, [download page](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942628866/artifacts/14721928022), expires 2026-12-05. Artifact ZIP SHA256 `28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176`, APK SHA256 из workflow `5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e`. Не заменять pinned значения позднейшими сборками без новой проверки.
+- Приложение **не установлено** на телефон, source staging ещё не проверен. В пакете есть native read-only bridge для private `fileproof335-input.paseka` и browser one-shot restore тест в базе `paseka-fileproof335-destination-only-v1`, без удаления данных.
+- Следующий этап — безопасная автоматизация загрузки артефакта, exact SHA preflight, отсутствия нового test pkg, чтения внешнего pinned archive и единственной test-only ADB передачи **без перезаписи** внутрь private files нового пакета; отдельный mock CI до выдачи аппаратной команды.
+
+---
+
 ## FILEPROOF335 — отдельный Android test-only APK, подготовка сборки (2026-11-21)
 
 - На базе Draft #335 создана новая ветка `test/android-fileproof335-separate-apk-2026-11-21`. Цель: **только новый отдельный** Android package `ru.paseka.journal.archive.restoreproof335`; существующий `ru.paseka.journal.archive.fileproof329` и рабочий `ru.paseka.journal` не меняются.
