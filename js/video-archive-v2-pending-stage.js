@@ -198,7 +198,92 @@ function inspectPendingStaging(db,backupId){
    cleanupAuthorized:false,originalDataChanged:false};
  });
 }
+
+async function verifyPendingStagingBlobs(db,backupId,shaTool){
+ // Diagnostic only. Never licenses final restore or cleanup; writers can race
+ // with asynchronous Blob hashing, so final commit must validate afresh.
+ if(!shaTool||typeof shaTool.hashBlobHex!=='function')fail('V2_STAGE_HASH_DEPENDENCY_MISSING');
+ const initial=await inspectPendingStaging(db,backupId);
+ const denied=reason=>({
+  backupId,status:'manual_review_required',reason,
+  byteIntegrityVerified:false,snapshotHashesMatched:false,requiresManualReview:true,
+  archiveSafe:false,restoreAuthorized:false,cleanupAuthorized:false,
+  originalDataChanged:false
+ });
+ if(initial.status!=='protected_unverified')
+  return {...initial,byteIntegrityVerified:false,snapshotHashesMatched:false};
+ const key=sessionId(backupId);
+ const take=()=>runTx(db,'readonly',tx=>({
+  header:tx.objectStore('archive_staging').get(key),
+  rows:tx.objectStore('archive_staging').index('sessionId').getAll(key)
+ }),(_tx,v)=>v);
+ const before=await take();
+ if(!obj(before.header)||!Array.isArray(before.rows)||
+    before.rows.length!==before.header.expectedEntries+1)
+  return denied('V2_STAGE_SESSION_CHANGED');
+ const rows=before.rows.filter(row=>row.id!==key);
+ if(rows.length!==before.header.expectedEntries||rows.length>MAX_PENDING)
+  return denied('V2_STAGE_ENTRY_COUNT_CHANGED');
+ let bytes=0;
+ const observed=new Map();
+ try{
+  for(const row of rows){
+   if(!obj(row)||!sha(row.sourceSha256)||!Number.isSafeInteger(row.sourceBytes)||
+      row.sourceBytes<1||!row.blob||row.blob.size!==row.sourceBytes)
+    return denied('V2_STAGE_CHILD_METADATA_CHANGED');
+   bytes+=row.sourceBytes;
+   if(!Number.isSafeInteger(bytes)||bytes>MAX_BYTES)
+    return denied('V2_STAGE_BYTES_LIMIT');
+   const digest=await shaTool.hashBlobHex(row.blob);
+   if(digest!==row.sourceSha256)
+    return denied('V2_STAGE_CHILD_HASH_MISMATCH');
+   observed.set(row.id,digest);
+  }
+ }catch(_){
+  return denied('V2_STAGE_HASH_UNREADABLE');
+ }
+ const after=await take();
+ const last=await inspectPendingStaging(db,backupId);
+ if(last.status!=='protected_unverified'||!obj(after.header)||
+    after.header.archiveSha256!==before.header.archiveSha256||
+    after.header.expectedRevision!==before.header.expectedRevision||
+    after.header.expectedEntries!==before.header.expectedEntries||
+    after.header.totalBytes!==before.header.totalBytes||
+    after.rows.length!==before.rows.length)
+  return denied('V2_STAGE_CHANGED_DURING_HASH');
+ const now=after.rows.filter(row=>row.id!==key);
+ if(now.length!==rows.length||
+    JSON.stringify(after.header.entryIds)!==JSON.stringify(before.header.entryIds)||
+    now.some(row=>{
+     const old=rows.find(prior=>prior.id===row.id);
+     return !old||!observed.has(row.id)||
+      row.sourceSha256!==observed.get(row.id)||
+      ['sourceBytes','source','videoId','mimeType','kind','sessionId'].some(field=>row[field]!==old[field])||
+      !row.blob||row.blob.size!==old.blob?.size;
+    }))
+  return denied('V2_STAGE_CHANGED_DURING_HASH');
+ // A writer may replace a Blob with same-sized different bytes while preserving
+ // all its metadata. Hash the fresh read snapshot too; still do NOT authorize commit.
+ try {
+  for(const row of now) {
+   if(await shaTool.hashBlobHex(row.blob)!==observed.get(row.id))
+    return denied('V2_STAGE_CHANGED_DURING_HASH');
+  }
+ }catch(_){
+  return denied('V2_STAGE_HASH_UNREADABLE');
+ }
+ return {
+  backupId,status:'protected_unverified',
+  // Hashes matched two read snapshots; this is not a writer-locked proof.
+  byteIntegrityVerified:false,snapshotHashesMatched:true,
+  requiresManualReview:false,
+  archiveSafe:false,restoreAuthorized:false,cleanupAuthorized:false,
+  originalDataChanged:false,
+  requiresCommitTimeReverification:true
+ };
+}
+
 root.PasekaVideoArchiveV2PendingStage=Object.freeze({
- stagePendingRestore,inspectPendingStaging
+ stagePendingRestore,inspectPendingStaging,verifyPendingStagingBlobs
 });
 })(typeof window!=='undefined'?window:globalThis);

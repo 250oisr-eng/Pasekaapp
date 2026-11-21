@@ -347,3 +347,130 @@ for (const [field, corrupt] of [
   assert.deepEqual(await get(db,'main','state'),state());
  });
 }
+
+
+const verifyBlobs=root.PasekaVideoArchiveV2PendingStage.verifyPendingStagingBlobs;
+
+test('full SHA check reports integrity but never authorizes restore or cleanup',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();await stage(db,file,cfg(),deps());
+ const report=await verifyBlobs(db,cfg().backupId,deps().sha);
+ assert.equal(report.status,'protected_unverified');
+ assert.equal(report.snapshotHashesMatched,true);
+ assert.equal(report.byteIntegrityVerified,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.requiresCommitTimeReverification,true);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ assert.equal(await count(db,'entrance_media'),0);
+});
+test('same-sized corrupted Blob fails cryptographic verification',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const header=await get(db,'archive_staging',sessionId);
+ const entry=await get(db,'archive_staging',header.entryIds[0]);
+ const tx=db.transaction('archive_staging','readwrite');
+ tx.objectStore('archive_staging').put({...entry,blob:new Blob(['xyz'],{type:'video/mp4'})});
+ await done(tx);
+ assert.equal((await inspect(db,cfg().backupId)).status,'protected_unverified');
+ const report=await verifyBlobs(db,cfg().backupId,deps().sha);
+ assert.equal(report.reason,'V2_STAGE_CHILD_HASH_MISMATCH');
+ assert.equal(report.byteIntegrityVerified,false);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(await count(db,'archive_staging'),2);
+});
+test('corrupted session metadata refuses full hash success',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const header=await get(db,'archive_staging',sessionId);
+ const entry=await get(db,'archive_staging',header.entryIds[0]);
+ const tx=db.transaction('archive_staging','readwrite');
+ tx.objectStore('archive_staging').put({...entry,source:'record_media'});
+ await done(tx);
+ const report=await verifyBlobs(db,cfg().backupId,deps().sha);
+ assert.equal(report.status,'manual_review_required');
+ assert.equal(report.byteIntegrityVerified,false);
+});
+test('session changed during asynchronous hash fails closed',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const wrapped={hashBlobHex:async blob=>{
+  const digest=await sha(blob);
+  const header=await get(db,'archive_staging',sessionId);
+  const tx=db.transaction('archive_staging','readwrite');
+  tx.objectStore('archive_staging').put({...header,expectedRevision:'concurrent'});
+  await done(tx);
+  return digest;
+ }};
+ const report=await verifyBlobs(db,cfg().backupId,wrapped);
+ assert.equal(report.reason,'V2_STAGE_CHANGED_DURING_HASH');
+ assert.equal(report.cleanupAuthorized,false);
+});
+test('unreadable media leaves all protected copies untouched',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();await stage(db,file,cfg(),deps());
+ const broken={hashBlobHex:async()=>{throw new Error('unreadable');}};
+ const report=await verifyBlobs(db,cfg().backupId,broken);
+ assert.equal(report.reason,'V2_STAGE_HASH_UNREADABLE');
+ assert.equal(await count(db,'archive_staging'),2);
+ assert.equal(await count(db,'archive_history'),1);
+});
+test('missing staged session cannot receive positive verification',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const report=await verifyBlobs(db,cfg().backupId,deps().sha);
+ assert.equal(report.status,'not_staged');
+ assert.equal(report.byteIntegrityVerified,false);
+ assert.equal(report.cleanupAuthorized,false);
+});
+test('hash dependency must be explicitly provided',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ await rejects(verifyBlobs(db,cfg().backupId,{}),'V2_STAGE_HASH_DEPENDENCY_MISSING');
+});
+
+
+test('concurrent replacement with equal Blob size and identical metadata is detected',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const header=await get(db,'archive_staging',sessionId);
+ const child=await get(db,'archive_staging',header.entryIds[0]);
+ let first=true;
+ const wrapped={hashBlobHex:async blob=>{
+  const digest=await sha(blob);
+  if(first){
+   first=false;
+   const writer=db.transaction('archive_staging','readwrite');
+   writer.objectStore('archive_staging').put({
+    ...child,blob:new Blob(['xyz'],{type:'video/mp4'})
+   });
+   await done(writer);
+  }
+  return digest;
+ }};
+ const report=await verifyBlobs(db,cfg().backupId,wrapped);
+ assert.equal(report.reason,'V2_STAGE_CHANGED_DURING_HASH');
+ assert.equal(report.byteIntegrityVerified,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(await count(db,'archive_staging'),2);
+});
+
+test('concurrent MIME change with still-valid MIME requires manual review',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const {file}=await archive();const {sessionId}=await stage(db,file,cfg(),deps());
+ const header=await get(db,'archive_staging',sessionId);
+ const child=await get(db,'archive_staging',header.entryIds[0]);
+ let once=true;
+ const wrapped={hashBlobHex:async blob=>{
+  const digest=await sha(blob);
+  if(once){
+   once=false;
+   const tx=db.transaction('archive_staging','readwrite');
+   tx.objectStore('archive_staging').put({...child,mimeType:'video/webm'});
+   await done(tx);
+  }
+  return digest;
+ }};
+ const result=await verifyBlobs(db,cfg().backupId,wrapped);
+ assert.equal(result.reason,'V2_STAGE_CHANGED_DURING_HASH');
+ assert.equal(result.cleanupAuthorized,false);
+});

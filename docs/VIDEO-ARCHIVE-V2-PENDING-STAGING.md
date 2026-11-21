@@ -41,3 +41,18 @@
 
 Read-only recovery now checks actual session-indexed child records, not only their keys. A child must have `kind=v2_pending_original`, `sessionId` matching its header, a source-qualified key reconstructed from `source` and `videoId`, SHA256-shaped `sourceSha256`, a positive integer `sourceBytes` equal to `blob.size`, and a valid media MIME. Inconsistent metadata downgrades the entire session to `manual_review_required`. This **does not recompute** the Blob SHA or authorize restore, purge, training or video cleanup. All reads remain inside one readonly transaction; no upgrade or data migration.
 
+
+## 2026-11-21 — full staged Blob SHA audit, no authorization
+
+`verifyPendingStagingBlobs(db,backupId,shaTool)` provides a **read-only diagnostic** on top of `inspectPendingStaging`. It hashes every stored pending Blob with the existing 1 MiB-chunked SHA implementation; compares the full digest to `sourceSha256`; and rereads session metadata to detect an intervening write. All outputs keep `restoreAuthorized=false` and `cleanupAuthorized=false`, including successful hashing. The positive `byteIntegrityVerified` result refers only to read Blob copies and **does not prove transaction-time stability or authorize a final commit**. Before a future restore, a distinct writer-serialized commit-time recheck and rollback tests are required.
+
+
+## 2026-11-21 — concurrent same-size Blob substitution
+
+The full diagnostic now validates metadata consistency across two readonly snapshots and **re-hashes the second snapshot's Blob copies**. This detects a writer that changes media bytes without changing length or stored SHA metadata. It must remain isolated from the atomic entrance-only commit module, whose independent archive-pinned source and writer-serialized checks are never skipped by a successful staged hash report. Two integration regressions exercise both sequences. The final authorization and automatic deletion flags remain false, regardless of these tests; this is not a real Android/WebView recovery guarantee.
+
+
+## Conservative API result contract
+
+A positive read-only hash diagnostic uses `snapshotHashesMatched=true`; **`byteIntegrityVerified`, `restoreAuthorized`, `cleanupAuthorized` remain `false` in all cases**. Two successful snapshot reads do not hold an IndexedDB writer lock during asynchronous hashing and cannot certify persisted bytes at commit time. Never interpret this API as permission to restore/delete media.
+
