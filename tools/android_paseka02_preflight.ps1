@@ -55,15 +55,15 @@ try {
         Write-Host 'ARCHIVE_DIRECTORY: NOT ACCESSIBLE OR NOT CREATED'
         Write-Host 'PASEKA02_ARCHIVES: NOT VERIFIED'
     } else {
-        $matches = @($fileNames | Where-Object { $_ -match '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka$' })
-        Write-Host ('ARCHIVE_DIRECTORY: ACCESSIBLE; matching filenames: ' + $matches.Count)
+        $archiveFiles = @($fileNames | Where-Object { $_ -match '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka$' })
+        Write-Host ('ARCHIVE_DIRECTORY: ACCESSIBLE; matching filenames: ' + $archiveFiles.Count)
         if ($InspectHeaders) {
-            if ($matches.Count -gt 20) {
+            if ($archiveFiles.Count -gt 20) {
                 Finish 'BLOCKED' 'More than 20 matching filenames; refusing unbounded file reads.' 2
             }
             $paseka02Count = 0
             $index = 0
-            foreach ($entry in $matches) {
+            foreach ($entry in $archiveFiles) {
                 $index++
                 $safeName = ([string]$entry).TrimEnd([char]13)
                 if ($safeName -notmatch '^paseka-full-backup-\d{4}-\d{2}-\d{2}(?: \(\d+\))?\.paseka$') {
@@ -81,7 +81,7 @@ try {
                 else { $magic = 'OTHER_OR_UNREADABLE' }
                 Write-Host ('ARCHIVE[' + $index + ']: ' + $safeName + ' | header=' + $magic + ' | size=' + $length)
             }
-            Write-Host ('PASEKA02_HEADERS: ' + $paseka02Count + ' of ' + $matches.Count)
+            Write-Host ('PASEKA02_HEADERS: ' + $paseka02Count + ' of ' + $archiveFiles.Count)
             Write-Host 'PASEKA02_CONTENT: NOT VERIFIED; archive provenance and video integrity unknown.'
         } else {
             Write-Host 'PASEKA02_ARCHIVES: NOT VERIFIED (names only; no files read)'
