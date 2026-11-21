@@ -10,7 +10,7 @@ function EndTest([string]$status,[string]$message,[int]$code) {
     Write-Host ('DETAIL: ' + $message)
     exit $code
 }
-function Adb([string[]]$argv) {
+function InvokeNativeAdb([string[]]$argv) {
     $oldPreference = $ErrorActionPreference
     try {
         # Native adb can emit normal transfer progress to stderr in Windows PS5.1.
@@ -21,7 +21,7 @@ function Adb([string[]]$argv) {
     return [pscustomobject]@{ Code = $exitCode; Output = [string]$output }
 }
 function RequireAdb([string[]]$argv) {
-    $result = Adb $argv
+    $result = InvokeNativeAdb $argv
     if ($result.Code -ne 0) { throw ('ADB command exited ' + $result.Code + ' (' + ($argv[0..([Math]::Min($argv.Count-1,2))] -join ' ') + ')') }
     return $result.Output
 }
@@ -36,7 +36,7 @@ function RemoteSha([string]$remotePath) {
     return $Matches[1]
 }
 try {
-    $null = Get-Command adb -ErrorAction Stop
+    $null = Get-Command adb -CommandType Application -ErrorAction Stop
     $devices = RequireAdb -argv @('devices','-l')
     $online = @($devices -split "[\r\n]+" | Where-Object { $_ -match '^\S+\s+device\s+' })
     $offline = @($devices -split "[\r\n]+" | Where-Object { $_ -match '^\S+\s+(offline|unauthorized|recovery|sideload)\b' })
@@ -74,7 +74,7 @@ try {
     $testFolder = $folder + '/' + $testToken
     $remote = $testFolder + '/synthetic-two-video.paseka'
     # First potential Android write must come after strictly confirming new path.
-    $existing = Adb -argv @('-d','shell',("test -e '" + $testFolder + "'"))
+    $existing = InvokeNativeAdb -argv @('-d','shell',("test -e '" + $testFolder + "'"))
     if ($existing.Code -ne 1 -or $existing.Output) { throw 'Destination exists or cannot be verified absent; no write performed' }
     $scratch = Join-Path ([IO.Path]::GetTempPath()) ('paseka-synthetic-' + [guid]::NewGuid().ToString('N'))
     $null = New-Item -Path $scratch -ItemType Directory -ErrorAction Stop
@@ -93,7 +93,7 @@ try {
         $launch = RequireAdb -argv @('-d','shell',("monkey -p " + $package + " -c android.intent.category.LAUNCHER 1"))
         if ($launch -notmatch 'Events injected:\s*1') { throw 'Isolated app start not confirmed; no force-stop' }
         $null = RequireAdb -argv @('-d','shell',("am force-stop " + $package))
-        $pid = Adb -argv @('-d','shell',('pidof ' + $package))
+        $pid = InvokeNativeAdb -argv @('-d','shell',('pidof ' + $package))
         if (-not (($pid.Code -eq 1 -or $pid.Code -eq 0) -and -not $pid.Output)) {
             throw 'Isolated test process not confirmed stopped'
         }
