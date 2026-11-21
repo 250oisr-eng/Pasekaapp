@@ -359,3 +359,34 @@ test('unexpected live journal write after commit blocks automatic healthy recove
  assert.deepEqual(await get(db,'main','state'),changed);
  db.close();
 });
+
+
+test('positive staged Blob SHA diagnosis permits no shortcuts around atomic commit checks',async()=>{
+ const {db,file,digest}=await prepared();
+ const before=await root.PasekaVideoArchiveV2PendingStage.verifyPendingStagingBlobs(db,'atomic-video',deps().sha);
+ assert.equal(before.byteIntegrityVerified,true);
+ assert.equal(before.restoreAuthorized,false);
+ assert.equal(before.cleanupAuthorized,false);
+ const result=await api.commitEntranceOnlyIsolated(db,file,options(),deps());
+ assert.equal(result.committed,true);
+ assert.equal(result.cleanupAuthorized,false);
+ assert.equal(await SHA((await get(db,'entrance_media','new-video')).blob),digest);
+ db.close();
+});
+
+test('a staged Blob swapped after positive SHA diagnosis cannot reach live entrance media',async()=>{
+ const {db,file}=await prepared();
+ const checked=await root.PasekaVideoArchiveV2PendingStage.verifyPendingStagingBlobs(db,'atomic-video',deps().sha);
+ assert.equal(checked.byteIntegrityVerified,true);
+ const key='v2pending:atomic-video:entrance_media:new-video';
+ const stored=await get(db,'archive_staging',key);
+ await put(db,'archive_staging',key,{
+  ...stored,blob:new Blob(['xyz'],{type:'video/mp4'})
+ });
+ await assert.rejects(api.commitEntranceOnlyIsolated(db,file,options(),deps()));
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'full_backup'),0);
+ assert.deepEqual(await get(db,'main','state'),state());
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ db.close();
+});
