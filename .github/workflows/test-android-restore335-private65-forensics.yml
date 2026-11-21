@@ -1,0 +1,31 @@
+name: Restore335 private 65-byte read-only forensics
+on:
+  push:
+    branches:
+      - 'test/android-restore335-private65-forensics-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restoreproof335-private65-forensics.ps1'
+      - 'tests/android-restoreproof335-private65-forensics.test.mjs'
+      - 'tests/mock_android_restoreproof335_private65_forensics.py'
+      - '.github/workflows/test-android-restore335-private65-forensics.yml'
+permissions:
+  contents: read
+jobs:
+  inspect-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse PowerShell
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restoreproof335-private65-forensics.ps1',[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+      - name: Source-safety tests
+        run: node --test tests/android-restoreproof335-private65-forensics.test.mjs
+      - name: Verify 65-byte preview with mocked ADB and actual pwsh
+        run: python3 tests/mock_android_restoreproof335_private65_forensics.py
