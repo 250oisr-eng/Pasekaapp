@@ -143,3 +143,35 @@ test('unavailable database inventory blocks before opening restore destination',
   root.indexedDB.databases=undefined;
   await assert.rejects(root.PasekaIsolatedRestore335.run(bytes),e=>e.code==='DATABASE_ENUMERATION_REQUIRED');
 });
+
+function attachPicker(root) {
+  const picker = {}, result = {};
+  let change;
+  picker.addEventListener = (event, handler) => { if (event === 'change') change = handler; };
+  root.document = {getElementById: id => id === 'archive' ? picker : result};
+  root.addEventListener = (event, handler) => { if (event === 'DOMContentLoaded') handler(); };
+  runInNewContext(readFileSync(new URL('./fixtures/android-restore335-picker.js', import.meta.url), 'utf8'), root);
+  return {picker, result, choose: async file => { picker.files = file ? [file] : []; await change(); }};
+}
+
+test('picker ignores cancellation and rejects wrong size before reading, wrong SHA before DB', async () => {
+  const root = harness({fakeFullArchivePin:false});
+  const {choose, picker, result} = attachPicker(root);
+  await choose(null);
+  await choose({size:10, arrayBuffer(){assert.fail('wrong size must not be read');}});
+  assert.equal(picker.value, '');
+  await choose(new Blob([new Uint8Array(3158)]));
+  assert.equal(JSON.parse(result.textContent).code, 'SOURCE_SHA_INVALID');
+  assert.deepEqual(await root.indexedDB.databases(), []);
+});
+
+test('picker passes selected bytes through existing restore and reopen checks only once', async () => {
+  const root = harness(); // Synthetic complete-archive digest substitution, as in the engine tests.
+  const file = new Blob([await buildValidArchive(root)]);
+  const {choose, result} = attachPicker(root);
+  await Promise.all([choose(file), choose(file)]);
+  const report = JSON.parse(result.textContent);
+  assert.deepEqual([report.status, report.videoCount, report.cleanupAuthorized], ['PASS', 2, false]);
+  const snap = await snapshot(root.indexedDB, root.PasekaIsolatedRestore335.DATABASE);
+  assert.deepEqual(await Promise.all(snap.videos.map(async v=>sha(Buffer.from(await v.blob.arrayBuffer())))), videoHashes);
+});

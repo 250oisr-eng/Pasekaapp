@@ -2,7 +2,8 @@
 // Generates ru.paseka.journal.archive.restoreproof335, never production or fileproof329.
 import {readFileSync,writeFileSync,copyFileSync,existsSync} from 'node:fs';
 import {join,dirname} from 'node:path';
-const PACKAGE='ru.paseka.journal.archive.restoreproof335';
+const picker=process.env.PASEKA_RESTORE335_PICKER==='1';
+const PACKAGE=picker?'ru.paseka.journal.archive.restorepicker':'ru.paseka.journal.archive.restoreproof335';
 const INPUT='fileproof335-input.paseka';
 const EXPECTED='4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186';
 if(process.env.PASEKA_RESTORE335_BUILD!=='1')throw new Error('RESTORE335_BUILD_NOT_AUTHORIZED');
@@ -13,22 +14,26 @@ if(mode==='web'){
   if(config.appId!=='ru.paseka.journal')throw new Error('ORIGINAL_APP_ID_REQUIRED');
   if(!existsSync('www/js/paseka-archive.js'))throw new Error('PASEKA_ARCHIVE_WEB_ASSET_REQUIRED');
   config.appId=PACKAGE;
-  config.appName='Пасека — восстановление335';
+  config.appName=picker?'Пасека — проверка архива':'Пасека — восстановление335';
   writeFileSync(configFile,JSON.stringify(config,null,2)+'\n');
   // Staged input bytes are read by a dedicated native bridge, not by the app UI.
   const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Пасека — изолированный restore335</title>
 <style>body{font:16px system-ui;margin:20px;background:#f6f7f5;color:#182d1f}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:white;padding:16px;border-radius:8px}</style>
-</head><body><h2>Только тестовое восстановление</h2><p>Отдельная пустая тестовая IndexedDB. Только два синтетических MP4 и архив с закреплённым SHA. Не удаляет файлы.</p><pre id="result">Проверка входного архива...</pre>
+</head><body><h2>Только тестовое восстановление</h2><p>Отдельная пустая тестовая IndexedDB. Только два синтетических MP4 и архив с закреплённым SHA. Не удаляет файлы.</p>${picker?'<label>Выберите тестовый архив из Download/PasekaProof329 <input type="file" id="archive"></label>':''}<pre id="result" aria-live="polite">${picker?'Ожидание файла':'Проверка входного архива...'}</pre>
 <script src="./js/paseka-archive.js"></script><script src="./android-fileproof335-isolated-restore.js"></script>
 <script src="./android-fileproof335-start.js"></script></body></html>`;
   writeFileSync('www/index.html',html);
   copyFileSync('tests/fixtures/android-fileproof335-isolated-restore.js','www/android-fileproof335-isolated-restore.js');
-  copyFileSync('tests/fixtures/android-fileproof335-start.js','www/android-fileproof335-start.js');
+  copyFileSync(picker?'tests/fixtures/android-restore335-picker.js':'tests/fixtures/android-fileproof335-start.js','www/android-fileproof335-start.js');
   console.log('RESTORE335_WEB_ISOLATED',PACKAGE);
 }else if(mode==='native'){
   const config=JSON.parse(readFileSync('capacitor.config.json','utf8'));
   if(config.appId!==PACKAGE)throw new Error('WRONG_TEST_PACKAGE');
+  if(picker){
+    console.log('System file chooser uses the standard Capacitor activity.',PACKAGE);
+    process.exit(0);
+  }
   const activityPath=join('android','app','src','main','java',...PACKAGE.split('.'),'MainActivity.java');
   if(!existsSync(activityPath))throw new Error('ACTIVITY_NOT_GENERATED');
   const activity=readFileSync(activityPath,'utf8');

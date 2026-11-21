@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - 'scripts/prepare-android-fileproof335-isolated-apk.mjs'
+      - 'tests/fixtures/android-restore335-picker.js'
       - 'tests/fixtures/android-fileproof335-start.js'
       - 'tests/fixtures/android-fileproof335-isolated-restore.js'
       - 'tests/android-fileproof335-isolated-restore-browser.test.mjs'
@@ -15,6 +16,18 @@ permissions:
   contents: read
 jobs:
   build:
+    strategy:
+      matrix:
+        include:
+          - picker: '0'
+            package: ru.paseka.journal.archive.restoreproof335
+            artifact: paseka-restoreproof335-isolated-apk
+          - picker: '1'
+            package: ru.paseka.journal.archive.restorepicker
+            artifact: paseka-restorepicker-isolated-apk
+    env:
+      PASEKA_RESTORE335_PICKER: ${{ matrix.picker }}
+      EXPECTED_PACKAGE: ${{ matrix.package }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -93,14 +106,14 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.restoreproof335'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='$EXPECTED_PACKAGE'"
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.fileproof329'"; then exit 1; fi
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then exit 1; fi
           sha256sum "$APK"
       - name: Upload test-only APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: paseka-restoreproof335-isolated-apk
+          name: ${{ matrix.artifact }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
