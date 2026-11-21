@@ -75,10 +75,6 @@ class StopCheckTests(unittest.TestCase):
             results = self.replies()
             results[0] = reply
             calls, execute = self.scenario(results)
-            if reply[2]:
-                # pidof stderr is not currently inspected at initial launch;
-                # a valid PID remains acceptable, but must never hide a failed code.
-                continue
             with self.subTest(reply=reply):
                 with self.assertRaises(ValueError):
                     execute()
