@@ -51,3 +51,8 @@ Read-only recovery now checks actual session-indexed child records, not only the
 
 The full diagnostic now validates metadata consistency across two readonly snapshots and **re-hashes the second snapshot's Blob copies**. This detects a writer that changes media bytes without changing length or stored SHA metadata. It must remain isolated from the atomic entrance-only commit module, whose independent archive-pinned source and writer-serialized checks are never skipped by a successful staged hash report. Two integration regressions exercise both sequences. The final authorization and automatic deletion flags remain false, regardless of these tests; this is not a real Android/WebView recovery guarantee.
 
+
+## Conservative API result contract
+
+A positive read-only hash diagnostic uses `snapshotHashesMatched=true`; **`byteIntegrityVerified`, `restoreAuthorized`, `cleanupAuthorized` remain `false` in all cases**. Two successful snapshot reads do not hold an IndexedDB writer lock during asynchronous hashing and cannot certify persisted bytes at commit time. Never interpret this API as permission to restore/delete media.
+
