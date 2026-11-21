@@ -1,3 +1,11 @@
+## Сборочная контрольная точка (21.11.2026)
+
+К тестовому источнику добавлен `scripts/prepare-android-two-mp4-fileproof329.mjs`: при явном `PASEKA_FILEPROOF329_BUILD=1` создаёт **отдельный package `ru.paseka.journal.archive.fileproof329`** и внедряет Java `IsolatedMediaStoreProofBridge` только в генерируемый Android `MainActivity`. Экран тестового APK **намеренно инертен**: не вызывает нативную запись, не открывает/не восстанавливает хранилища и не взаимодействует с любыми пользовательскими архивами.
+
+Добавлена специализированная `.github/workflows/android-two-mp4-fileproof329.yml` на push test-ветки и manual dispatch. Проверяет npm regressions, генерацию изолированного Android, Gradle compilation и через AAPT **точный** package fileproof329, затем сохраняет APK-артефакт. [Сборка #44937442484](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44937442484) на кодовом SHA `77ae44faa1d68b1e8cde17c8fd951e956f4b0457`: **выполняется** по последнему наблюдению, успех пока не установлен. Не использовать этот APK на телефоне до завершения сборочной проверки и подготовки отдельного сценария. Это не физический MediaStore тест.
+
+---
+
 # Изолированный Android MediaStore: подготовка fileproof329
 
 Дата: 21.11.2026. Draft PR #329 поверх #328.
