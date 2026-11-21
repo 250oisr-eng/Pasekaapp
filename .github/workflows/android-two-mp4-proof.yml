@@ -106,8 +106,7 @@ jobs:
             source = source.replace(pattern, `$1${value}`);
           }
           fs.writeFileSync(path, source);
-          const minLine = source.split(/\r?
-/).find(line => line.trim().startsWith('minSdkVersion'));
+          const minLine = source.split(String.fromCharCode(10)).find(line => line.trim().startsWith('minSdkVersion'));
           if (Number(minLine?.split('=').pop()?.trim()) !== 35) throw new Error('Expected minSdkVersion 35');
           NODE
       - name: Build proof-only isolated debug APK
