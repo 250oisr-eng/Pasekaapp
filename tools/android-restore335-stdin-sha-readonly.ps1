@@ -69,29 +69,15 @@ try {
   # Direct sha256sum command, not sh -c, redirection, tee, files or temporary storage.
   # Nothing is written to Android filesystem: sha256sum reads 3158 bytes from stdin.
   $probe=ADB @('-d','exec-in','run-as',$pkg,'sha256sum') $archive.Bytes
-  # Diagnostic metadata only: never print archive bytes or unrecognized Android stdout/stderr.
+
+  # Metadata only; never reveal raw remote stdout or any archive bytes.
   Write-Host ('REMOTE_EXIT_CODE: '+$probe.Code)
   Write-Host ('REMOTE_STDOUT_BYTES: '+$probe.Bytes.Length)
   Write-Host ('REMOTE_STDOUT_SHA256: '+(Digest $probe.Bytes))
-  $line=$utf8.GetString($probe.Bytes).Trim()
   if($probe.Code -ne 0){throw 'STDIN_SHA256_COMMAND_FAILED'}
-  # toybox/sha256sum variants may output "<digest>  -" or "<digest> *-".
-  # Reject anything else instead of treating a shell diagnostic as a digest.
-  if($line -notmatch '^([a-fA-F0-9]{64})\s+\*?-
-  if($actual -cne $pinned){throw 'STDIN_SHA256_MISMATCH'}
-  Write-Host 'STDIN_TRANSPORT: SHA256_PASS_3158_BYTES'
-  Write-Host 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED'
-  Write-Host 'RESTORE_COMMIT: NOT_TESTED'
-  Write-Host 'RECOGNITION_CLEANUP: NOT_AUTHORIZED'
-  Write-Host 'STATUS: RESTORE335_READONLY_STDIN_TRANSPORT_PASS'
-}catch{
-  Write-Host 'STATUS: BLOCKED'
-  Write-Host ('DETAIL: '+$_.Exception.Message)
-  Write-Host 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE'
-  exit 2
-}
-){
-    if($line -match '^(?i)(sha256sum|run-as|/system/bin/sh|sh|error|adb):'){
+  $line=$utf8.GetString($probe.Bytes).Trim()
+  if($line -notmatch '^([a-fA-F0-9]{64})\s+\*?-$'){
+    if($line -match '^(sha256sum|run-as|/system/bin/sh|sh|error|adb):'){
       Write-Host 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC'
     }elseif($probe.Bytes.Length -eq 0){
       Write-Host 'REMOTE_OUTPUT_CLASS: EMPTY'
