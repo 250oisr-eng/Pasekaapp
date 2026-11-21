@@ -248,10 +248,11 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
         "sessionIndependentEvaluationEstablished":False,
         "actualBeeEntranceInOutGroundTruthValidated":False,
         "modelTrainingAllowed":False,"userVideoCleanupAuthorized":False,
-        "sourceInputOrigin":"synthetic_fixture" if fetch is not range_bytes or probe is not probe_range_support else "official_Zenodo_http_range",
+        "sourceInputOrigin":"synthetic_fixture" if fetch is not range_bytes or probe is not probe_range_support else "official_Zenodo_http_range_attempt",
     }
     if not p.get("rangeSupported"):
         result["blockReason"]=p.get("blockReason","official byte-range access unavailable")
+        result["sourceInputOrigin"]="unavailable_official_range" if fetch is range_bytes and probe is probe_range_support else "synthetic_fixture"
         return result
     total=p.get("publisherArchiveBytesFromContentRange")
     if total!=EXPECTED_ARCHIVE_BYTES:
@@ -298,7 +299,9 @@ def audit_bounded_original_jpg_txt(*, probe=probe_range_support, fetch=range_byt
     width,height=jpeg_dimensions(jpg)
     yolo=yolo_annotation_summary(txt)
     result.update({
-        "originalZipMemberJpegAndTxtCrcVerified":True,
+        "originalZipMemberJpegAndTxtCrcVerified": fetch is range_bytes and probe is probe_range_support,
+        "sampleZipMemberStructureAndCrcPassed":True,
+        "sourceInputOrigin": "actual_official_Zenodo_selected_jpg_and_txt" if fetch is range_bytes and probe is probe_range_support else "synthetic_fixture",
         "sampleJpgOriginalMemberPath":jpgs[name]["name"],
         "sampleTxtOriginalMemberPath":txts[name]["name"],
         "sampleJpgOriginalSizeBytes":len(jpg),
