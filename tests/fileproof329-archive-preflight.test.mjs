@@ -30,3 +30,16 @@ test('preflight fail-closed on synthetic PASEKA01 with wrong pinned digest',asyn
   await assert.rejects(verifyFileproof329Buffer(bytes),/ARCHIVE_SIZE_MISMATCH|ARCHIVE_SHA256_MISMATCH/);
   assert.equal(await a.verifyArchive(new Blob([bytes]),await a.parseArchiveBlob(new Blob([bytes])),webcrypto),true);
 });
+
+test('physical Android preflight permits only read-only ADB operations and pinned synthetic path',()=>{
+  const ps=readFileSync(new URL('../tools/android-fileproof329-readonly-preflight.ps1',import.meta.url),'utf8');
+  assert.match(ps,/EXTERNAL_ARCHIVE: SHA256_PASS/);
+  assert.match(ps,/VIDEO_2_SHA256: PASS/);
+  assert.match(ps,/PRIVATE_REPORT_SHA_CHANGED/);
+  assert.match(ps,/ONLY_ONE_PINNED_SYNTHETIC_ARCHIVE_REQUIRED/);
+  assert.match(ps,/PASEKA01/);
+  assert.match(ps,/run-as/);
+  for (const forbidden of [/force-stop/,/\binstall\b/i,/\bpm\s+clear\b/i,/\buninstall\b/i,/\brestore\s+commit\b/i,/\bRemove-Item\b/i,/\bSet-Content\b/i,/\bOut-File\b/i,/\bexec-out\s+rm\b/i]) {
+    assert.doesNotMatch(ps.replace(/^\s*#.*$/gm,''),forbidden);
+  }
+});
