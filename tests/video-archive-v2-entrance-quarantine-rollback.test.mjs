@@ -498,3 +498,113 @@ test('quarantine inspector rejects corrupted pending header without rewriting it
  const snapshot=await get(db,'full_backup','v2entrance:quarantine-test');
  assert.equal(await sha(snapshot.quarantinedMedia[0].blob),digest);
 });
+
+
+async function makeLegacyPaseka01Archive(videoId='new-video'){
+ const legacy={};
+ for(const file of ['paseka-sha256.js','paseka-archive.js','paseka-archive-restore.js']){
+  const script=await readFile(new URL('../js/'+file,import.meta.url),'utf8');
+  new Function('window',script)(legacy);
+ }
+ const Archive=legacy.PasekaArchive;
+ const original=new Blob(['abc'],{type:'video/mp4'});
+ const state={meta:{schemaVersion:12,revisionId:'old-revision'},
+  hives:[{id:'hive-1',number:1}],families:[],records:[],snapshots:[]};
+ const stateBlob=new Blob([JSON.stringify({app:'Paseka',state})],{type:'application/json'});
+ const createdAt='2026-11-14T09:05:00.000Z';
+ const metadata={id:videoId,hiveId:'hive-1',capturedAt:createdAt,durationSec:45,
+  width:1280,height:720,bytes:original.size,mimeType:'video/mp4',name:'old.mp4',
+  status:'waiting_for_server',queueCreatedAt:createdAt,retryCount:0};
+ const manifest={format:Archive.FORMAT,version:Archive.VERSION,
+  backupId:'old-paseka01-video',createdAt,schemaVersion:12,entries:[
+   {path:'state.json',kind:'state',size:stateBlob.size,
+    mimeType:'application/json',chunkSize:Archive.CHUNK_BYTES,
+    chunkSha256:await Archive.hashBlobChunks(stateBlob,webcrypto)},
+   {path:'entrance-media/000001.blob',kind:'entrance_video',
+    size:original.size,mimeType:'video/mp4',chunkSize:Archive.CHUNK_BYTES,
+    chunkSha256:await Archive.hashBlobChunks(original,webcrypto),
+    metadata}
+  ]};
+ return {file:Archive.buildArchiveBlob(manifest,[stateBlob,original]),
+  Archive,Restore:legacy.PasekaArchiveRestore};
+}
+test('actual PASEKA01 binary cannot revive a PASEKA02-quarantined recognized original after restart',async t=>{
+ const old=await makeLegacyPaseka01Archive();
+ // Use a single persistent database for real v2 commit->quarantine->v1 attempt.
+ // seed() owns its factory; re-open that factory after closing the v2 connection.
+ const prepared=await seed();
+ let {db}=prepared;
+ const expanded=ledger();expanded.entries.push({
+  source:'entrance_media',videoId:'new-video',resultId:'recognition-legacy-block',
+  sourceSha256:prepared.digest,sourceBytes:3,sourceEvidenceVersion:1,
+  recognizedAt:'2026-11-21T12:00:00.000Z',cleanupState:'deleted',
+  result:{observation:'test-completed'}
+ });
+ await rollback(db,rollbackOpts(),d());
+ await put(db,'main','video_recognition_ledger_v1',expanded);
+ db.close();
+ const request=prepared.factory.open(prepared.name,1);
+ db=await new Promise((ok,no)=>{
+  request.onsuccess=()=>ok(request.result);
+  request.onerror=()=>no(request.error);
+ });
+ t.after(()=>db.close());
+ const archiveParsed=await old.Archive.parseArchiveBlob(old.file);
+ assert.equal(await old.Archive.verifyArchive(old.file,archiveParsed,webcrypto),true);
+ const before=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(before.quarantinedMedia[0].blob),prepared.digest);
+ const rollbackHistory=await get(db,'archive_history','quarantine-test');
+ const originalStaging=await count(db,'archive_staging');
+ await assert.rejects(
+  old.Restore.stageArchiveForRestore(db,old.file,webcrypto,old.Archive,()=>true),
+  {code:'VIDEO_LEDGER_NOT_PRESERVED'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_staging'),originalStaging);
+ assert.equal(await count(db,'archive_history'),1);
+ assert.equal((await get(db,'archive_history','quarantine-test')).status,rollbackHistory.status);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),expanded);
+ assert.deepEqual(await get(db,'main','state'),state('restored'));
+ const after=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(after.quarantinedMedia[0].blob),prepared.digest);
+ assert.equal((await inspect(db,'quarantine-test',d())).cleanupAuthorized,false);
+});
+test('legacy PASEKA01 renamed original remains blocked after v2 quarantine with durable tombstone',async t=>{
+ const old=await makeLegacyPaseka01Archive('new-name-same-bytes');
+ const {db,digest}=await seed();
+ t.after(()=>db.close());
+ await rollback(db,rollbackOpts(),d());
+ const prior=ledger();
+ prior.entries.push({source:'entrance_media',videoId:'new-video',
+  resultId:'recognition-renamed-legacy',sourceSha256:digest,
+  sourceBytes:3,sourceEvidenceVersion:1,recognizedAt:'2026-11-21T12:00:00.000Z',
+  cleanupState:'deleted',result:{event:'test'}});
+ await put(db,'main','video_recognition_ledger_v1',prior);
+ await assert.rejects(
+  old.Restore.stageArchiveForRestore(db,old.file,webcrypto,old.Archive,()=>true),
+  {code:'VIDEO_LEDGER_NOT_PRESERVED'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),prior);
+ const backup=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(backup.quarantinedMedia[0].blob),digest);
+});
+
+
+test('missing recognition ledger must not allow PASEKA01 staging when v2 quarantine survives',async t=>{
+ const old=await makeLegacyPaseka01Archive();
+ const {db,digest}=await seed();
+ t.after(()=>db.close());
+ await rollback(db,rollbackOpts(),d());
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').delete('video_recognition_ledger_v1');
+ await done(tx);
+ // The original remains in the protected quarantine: ledger loss cannot
+ // authorize importing an older backup, even for a once-valid legacy format.
+ await assert.rejects(old.Restore.stageArchiveForRestore(db,old.file,webcrypto,old.Archive,()=>true),
+  {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_staging'),2);
+ assert.equal(await count(db,'archive_history'),1);
+ const protectedBackup=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(await sha(protectedBackup.quarantinedMedia[0].blob),digest);
+ assert.equal(await get(db,'main','video_recognition_ledger_v1'),undefined);
+});

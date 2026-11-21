@@ -57,3 +57,13 @@
 
 Дополнен `inspectQuarantine`: одно read-only чтение проверяет наличие/согласованность staging header и всех дочерних видео с `importedVideos` из защищённого rollback snapshot. Дефект диагностики: раньше при удалённом/изменённом staging child статус мог оставаться `reverted_quarantine_unverified` вместо ручной проверки. Сама смена статуса **не изменяет состояние БД** и не разрешает очищать копии. Проверка SHA Blob и реальный Android остаются отдельными воротами безопасности.
 
+
+## 2026-11-21 — PASEKA01 binary crossed with PASEKA02 quarantine
+
+Добавлены два интеграционных сценария, использующих фактически собранный PASEKA01 Blob, проверку manifest/chunk hash, реальный PASEKA02 stage/commit/quarantine и реальный PASEKA01 `stageArchiveForRestore`. Устройство после карантина имеет durable deleted tombstone, а в одном сценарии IndexedDB переоткрывается. Старый PASEKA01 отклоняется до staging с `VIDEO_LEDGER_NOT_PRESERVED`; защищённый Blob в `full_backup` сохраняется. Это узкая проверка fail-closed совместимости **отклонения**, а не полный Android workflow или разрешение на удаление видео.
+
+
+## 2026-11-21 — discovered missing-ledger legacy restore bypass and corrected writer lock
+
+Фактический регрессионный CI обнаружил уязвимость в изолированном PASEKA01: если `video_recognition_ledger_v1` исчезал после успешного PASEKA02 quarantine, `stageArchiveForRestore` мог зарезервировать место для старого оригинала. Исправлено в `js/paseka-archive-restore.js`: согласованная проверка ключей защищённых V2 в staging, history и full_backup, затем обязательная повторная сверка в финальном `readwrite` блоке PASEKA01 stage. Не изменялась permissive трактовка отсутствующего ledger на **исторически чистой** базе без защищённых v2 записей, но отсутствие ledger + защищённый PASEKA02 теперь блокирует legacy import. Первый тест SHA 053a9b FAIL, после исправления CI на SHA 979d781 PASS. Формат, durable media и наружные Android копии не менялись; физическое удаление остаётся запрещённым.
+
