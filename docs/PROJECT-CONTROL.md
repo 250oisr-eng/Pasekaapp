@@ -1,3 +1,9 @@
+## 2026-11-21 — проверка source-frame overlap для честного обучающего split
+
+- [VIDEO-MENDELEY-V6-CROSS-ANNOTATION-ALIGNMENT.md](VIDEO-MENDELEY-V6-CROSS-ANNOTATION-ALIGNMENT.md) — 12 оригинальных JPEG/YOLO против 6000 исходных fan MP4 кадров; выбор кандидата по пикселям, затем независимое сравнение bbox, out-of-frame исходной разметки, консервативный запрет train/test leakage.
+
+---
+
 ## 2026-11-21 — реальный MP4, классический motion-only контроль
 
 - [VIDEO-PUBLIC-FAN-REAL-MOTION-BASELINE.md](VIDEO-PUBLIC-FAN-REAL-MOTION-BASELINE.md) — SHA-проверка двух оригинальных файлов Mendeley v6, 6000 декодированных кадров, реально измеренная недопустимая точность простой детекции движения; нейросеть/очистка видео не разрешены.
