@@ -18,6 +18,13 @@ from run_public_mendeley_v6_fan_baseline import TRACKS_URL, verify_bytes
 from stage_mendeley_v6_public_csv import bounded_read
 
 
+def safety_gate(baseline, candidate):
+    old = baseline["gapDiagnostics"]
+    new = candidate["gapDiagnostics"]
+    return (new["crossReferenceIdentityReuses"] <= old["crossReferenceIdentityReuses"]
+            and new["recoveredSameIdAfterOneFrameGap"] > old["recoveredSameIdAfterOneFrameGap"])
+
+
 def compare(fetch=bounded_read, drop_every=0, jitter_pixels=0, recovery_threshold=0.9):
     data = fetch(TRACKS_URL, TRACKS[1])
     name = verify_bytes(data)
@@ -29,17 +36,21 @@ def compare(fetch=bounded_read, drop_every=0, jitter_pixels=0, recovery_threshol
         without = associate_boxes(observations)
         with_memory = associate_with_memory(observations, recovery_threshold=recovery_threshold)
 
+    baseline = {"frameMetrics": evaluate(reference, without),
+                "gapDiagnostics": memory_diagnostics(reference, without)}
+    one_frame = {"frameMetrics": evaluate(reference, with_memory),
+                 "gapDiagnostics": memory_diagnostics(reference, with_memory)}
     return {
+        "candidatePassesThisBenchmarkGate": safety_gate(baseline, one_frame),
+        "benchmarkGateScope": "one published fan TXT and declared synthetic perturbations only",
         "referenceSha256": TRACKS[2],
         "referenceFrames": len(reference),
         "referenceObservations": sum(len(f) for f in reference),
         "syntheticDropEvery": drop_every,
         "syntheticJitterPixels": jitter_pixels,
         "recoveryIoUThreshold": recovery_threshold,
-        "baseline": {"frameMetrics": evaluate(reference, without),
-                     "gapDiagnostics": memory_diagnostics(reference, without)},
-        "oneFrameMemory": {"frameMetrics": evaluate(reference, with_memory),
-                           "gapDiagnostics": memory_diagnostics(reference, with_memory)},
+        "baseline": baseline,
+        "oneFrameMemory": one_frame,
         "realDetectorEvaluated": False,
         "entranceLineCrossingsEvaluated": False,
         "androidOfflineInferenceVerified": False,
@@ -52,9 +63,13 @@ def main():
     parser.add_argument("--drop-every", type=int, default=0)
     parser.add_argument("--jitter-pixels", type=int, default=0)
     parser.add_argument("--recovery-iou", type=float, default=0.9)
+    parser.add_argument("--require-benchmark-gate", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(compare(drop_every=args.drop_every, jitter_pixels=args.jitter_pixels, recovery_threshold=args.recovery_iou),
-                     indent=2, allow_nan=False))
+    report = compare(drop_every=args.drop_every, jitter_pixels=args.jitter_pixels,
+                     recovery_threshold=args.recovery_iou)
+    print(json.dumps(report, indent=2, allow_nan=False))
+    if args.require_benchmark_gate and not report["candidatePassesThisBenchmarkGate"]:
+        parser.exit(1, "Conservative research benchmark gate failed; no model approval.\\n")
 
 
 if __name__ == "__main__":
