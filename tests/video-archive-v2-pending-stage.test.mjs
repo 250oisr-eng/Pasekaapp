@@ -356,7 +356,8 @@ test('full SHA check reports integrity but never authorizes restore or cleanup',
  const {file}=await archive();await stage(db,file,cfg(),deps());
  const report=await verifyBlobs(db,cfg().backupId,deps().sha);
  assert.equal(report.status,'protected_unverified');
- assert.equal(report.byteIntegrityVerified,true);
+ assert.equal(report.snapshotHashesMatched,true);
+ assert.equal(report.byteIntegrityVerified,false);
  assert.equal(report.restoreAuthorized,false);
  assert.equal(report.cleanupAuthorized,false);
  assert.equal(report.requiresCommitTimeReverification,true);
