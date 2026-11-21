@@ -20,6 +20,8 @@ mode=os.environ['RESTORE335_MOCK_MODE']
 src=(base/'archive.bin').read_bytes()
 if args==['devices','-l']:
     print('List of devices attached\nebdb131f device product:NE2213 model:NE2213 device:OP516FL1')
+elif args==['version']:
+    print('Android Debug Bridge version '+('1.0.32' if mode=='old_adb' else '1.0.41'))
 elif args==['-d','shell','getprop','ro.product.model']:print('NE2213')
 elif args==['-d','shell','getprop','ro.build.version.sdk']:print('36')
 elif args in (['-d','shell','pm','path',p],['-d','shell','pm','path',old]):
@@ -49,7 +51,8 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         ('stdout_diagnostic','STDIN_SHA256_OUTPUT_INVALID',2),
         ('device_command_error','STDIN_SHA256_OUTPUT_INVALID',2),
         ('diagnostic_redacted','STDIN_SHA256_OUTPUT_INVALID',2),
-        ('source_corrupt','ORIGINAL_PINNED_SHA_FAILED',2)
+        ('source_corrupt','ORIGINAL_PINNED_SHA_FAILED',2),
+        ('old_adb','HOST_ADB_TOO_OLD_REQUIRES_1_0_41_OR_NEWER',2)
     ]:
         archive=source if mode!='source_corrupt' else source[:-1]+b'!'
         (base/'archive.bin').write_bytes(archive)
@@ -63,7 +66,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         if result.stderr:print(result.stderr)
         assert result.returncode==code,(mode,result.stderr,result.stdout)
         assert expected in result.stdout,(mode,result.stdout)
-        if mode != 'source_corrupt':
+        if mode not in ('source_corrupt','old_adb'):
             assert 'REMOTE_EXIT_CODE: 0' in result.stdout
             assert 'REMOTE_STDOUT_BYTES:' in result.stdout
             assert 'REMOTE_STDOUT_SHA256:' in result.stdout
@@ -78,8 +81,10 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         assert 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE' in result.stdout if code else 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED' in result.stdout
         calls_text=calls.read_text()
         assert all(word not in calls_text for word in ('install','uninstall','rm','mkdir','am start','clear','sh -c','push','pull'))
-        assert ('sha256sum' in calls_text)==(mode!='source_corrupt')
+        assert ('sha256sum' in calls_text)==(mode not in ('source_corrupt','old_adb'))
         assert "'-T'" not in calls_text
         assert ("'/system/bin/toybox'" in calls_text)==(mode!='source_corrupt')
+        if mode == 'old_adb':
+            assert 'STAGE: 2/3 ORIGINAL_ARCHIVE_IN_MEMORY_SHA' not in result.stdout
         assert (base/'archive.bin').read_bytes()==archive
 print('RESTORE335_STDIN_SHA_READONLY_MOCK_PASS')
