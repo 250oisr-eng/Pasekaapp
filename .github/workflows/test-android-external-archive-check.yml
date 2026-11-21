@@ -4,6 +4,7 @@ on:
     paths:
       - 'tools/check_android_archive_after_stop.py'
       - 'tests/test_android_archive_after_stop.py'
+      - 'tools/android_paseka02_preflight.ps1'
       - '.github/workflows/test-android-external-archive-check.yml'
 permissions:
   contents: read
@@ -13,3 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m unittest discover -s tests -p test_android_archive_after_stop.py -v
+      - name: Validate Windows PowerShell preflight syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android_paseka02_preflight.ps1', [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
