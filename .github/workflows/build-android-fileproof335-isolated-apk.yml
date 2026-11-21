@@ -1,0 +1,105 @@
+name: Build isolated restoreproof335 Android APK (test only)
+on:
+  push:
+    branches:
+      - 'test/android-fileproof335-separate-apk-2026-11-21'
+  pull_request:
+    paths:
+      - 'scripts/prepare-android-fileproof335-isolated-apk.mjs'
+      - 'tests/fixtures/android-fileproof335-start.js'
+      - 'tests/fixtures/android-fileproof335-isolated-restore.js'
+      - 'tests/android-fileproof335-isolated-restore-browser.test.mjs'
+      - '.github/workflows/build-android-fileproof335-isolated-apk.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate Android SDK tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses || test "${PIPESTATUS[1]}" -eq 0
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Verify isolated restore JavaScript and VM regressions
+        run: |
+          node --check scripts/prepare-android-fileproof335-isolated-apk.mjs
+          node --check tests/fixtures/android-fileproof335-start.js
+          node --test tests/android-fileproof335-isolated-restore-browser.test.mjs
+      - name: Prepare web assets
+        run: npm run web:prepare
+      - name: Generate test-only web/package config
+        run: PASEKA_RESTORE335_BUILD=1 node scripts/prepare-android-fileproof335-isolated-apk.mjs web
+      - name: Generate and sync fresh Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+      - name: Add isolated native bridge and private report
+        run: PASEKA_RESTORE335_BUILD=1 node scripts/prepare-android-fileproof335-isolated-apk.mjs native
+      - name: Patch Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Require Android 15 SDK levels
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs');
+          const path='android/variables.gradle';
+          let source=fs.readFileSync(path,'utf8');
+          for(const [key,value] of Object.entries({minSdkVersion:35,compileSdkVersion:35,targetSdkVersion:35})){
+            const re=new RegExp('(^\\s*'+key+'\\s*=\\s*)\\d+','m');
+            if(!re.test(source))throw Error('SDK_VARIABLE_MISSING_'+key);
+            source=source.replace(re,'$1'+value);
+          }
+          fs.writeFileSync(path,source);
+          NODE
+      - name: Build isolated debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify unique test-only package in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.restoreproof335'"
+          if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.fileproof329'"; then exit 1; fi
+          if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then exit 1; fi
+          sha256sum "$APK"
+      - name: Upload test-only APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-restoreproof335-isolated-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
