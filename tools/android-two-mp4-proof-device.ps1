@@ -44,7 +44,8 @@ function Reports() {
     }
     $parsed += $entry
   }
-  return ,$parsed
+  # Enumerate reports as pipeline items: @(... ) at the caller must count 0, 1, or 2 records.
+  return $parsed
 }
 function WaitReport([string]$wanted,[int]$count) {
   for ($i=0; $i -lt 40; $i++) {
