@@ -1,3 +1,11 @@
+## RESTORE335 — case-sensitive проверка private input ENOENT (2026-11-22)
+
+- Ужесточён read-only parser gate: ENOENT принимается только для **точного** пути `files/fileproof335-input.paseka` с учётом регистра (`-cmatch`); ответ с `files/Fileproof335-input.paseka` блокирует `PRIVATE_INPUT_ABSENCE_NOT_CONFIRMED` до вызова `dd`. Это предотвращает ложное доказательство отсутствия целевого файла при диагностике другого имени на Android.
+- Изменены `tools/android-restore335-dd-zero-count-parser-readonly.ps1` и `tests/mock_android_restore335_dd_zero_count_parser.py`; добавлен негативный сценарий `stat_wrong_case`. Code/test SHA `576c7260c5c4d4cdf49a5cf9cc8edb8e407e04e9`.
+- Новая версия **пока не прошла CI на своём итоговом SHA** и не запускалась на телефоне. Не выполнять ADB-тест на устройстве до успешного CI. Не повторять прежний write-test, не изменять и не удалять видео, архивы или данные.
+
+---
+
 ## 2026-11-22 — RESTORE335: согласование диагностики stat и тестов CI
 
 На HEAD 623bfc3f364783f45dab5032f49e12691a9a06ec запуск #44949902977 упал: при неоднозначном stat скрипт корректно завершился до dd, но mock требовал count=0. Матрица теперь проверяет отсутствие любого вызова dd при отказе предварительных проверок, один вызов при ошибке baseline и два при допуске. Принят только ENOENT для точного имени входного файла (exit 0/1). Добавлены отказ доступа с «cannot stat», ошибка для другого пути и ENOENT на stderr. Следующий шаг после успешного CI — один read-only запуск с OnePlus NE2213/API36. Реальная запись, restore и cleanup не проверялись.
