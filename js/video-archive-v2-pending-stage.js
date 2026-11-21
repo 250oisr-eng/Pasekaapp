@@ -252,11 +252,26 @@ async function verifyPendingStagingBlobs(db,backupId,shaTool){
     after.rows.length!==before.rows.length)
   return denied('V2_STAGE_CHANGED_DURING_HASH');
  const now=after.rows.filter(row=>row.id!==key);
- if(now.length!==rows.length||now.some(row=>
-    !observed.has(row.id)||row.sourceSha256!==observed.get(row.id)||
-    row.sourceBytes!==rows.find(old=>old.id===row.id)?.sourceBytes||
-    row.kind!=='v2_pending_original'||row.sessionId!==key))
+ if(now.length!==rows.length||
+    JSON.stringify(after.header.entryIds)!==JSON.stringify(before.header.entryIds)||
+    now.some(row=>{
+     const old=rows.find(prior=>prior.id===row.id);
+     return !old||!observed.has(row.id)||
+      row.sourceSha256!==observed.get(row.id)||
+      ['sourceBytes','source','videoId','mimeType','kind','sessionId'].some(field=>row[field]!==old[field])||
+      !row.blob||row.blob.size!==old.blob?.size;
+    }))
   return denied('V2_STAGE_CHANGED_DURING_HASH');
+ // A writer may replace a Blob with same-sized different bytes while preserving
+ // all its metadata. Hash the fresh read snapshot too; still do NOT authorize commit.
+ try {
+  for(const row of now) {
+   if(await shaTool.hashBlobHex(row.blob)!==observed.get(row.id))
+    return denied('V2_STAGE_CHANGED_DURING_HASH');
+  }
+ }catch(_){
+  return denied('V2_STAGE_HASH_UNREADABLE');
+ }
  return {
   backupId,status:'protected_unverified',
   byteIntegrityVerified:true,
