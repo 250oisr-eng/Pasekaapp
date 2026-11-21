@@ -1,3 +1,86 @@
+## FILEPROOF329 — физический read-only preflight PASS (2026-11-21)
+
+- Пользователь на OnePlus NE2213 / API36 выполнил закреплённый скрипт `tools/android-fileproof329-readonly-preflight.ps1` с code SHA `d2933ddd5b7be2caa131bf64c8179c34e35e703e`. Получен полный вывод пяти стадий и финальный `STATUS: FILEPROOF329_ANDROID_READONLY_PREFLIGHT_PASS`.
+- Подтверждены: `EXISTING_SYNTHETIC_PACKAGE: VERIFIED`, `PRIVATE_REPORT: SHA256_PASS`, `EXTERNAL_ARCHIVE: SHA256_PASS`, `PASEKA01_MANIFEST: PASS`, `STATE_SCHEMA_AND_HIVE: PASS`, `VIDEO_1_SHA256: PASS`, `VIDEO_2_SHA256: PASS`. Архив 3158 байт с pinned SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186` ранее независимо проверен `adb sha256sum`; файл сохранён.
+- CI для точного code SHA: [run #44941100823](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941100823) — completed/success, включая реальный PowerShell с mock ADB precheck. Физический результат — отдельно из пользовательского консольного вывода, не из CI.
+- **Не доказано:** restore commit, воспроизводимость MP4 аппаратным декодером, распознавание пчёл, корректная очистка после распознавания. `RESTORE_COMMIT: NOT_TESTED`, `MP4_DECODER: NOT_TESTED`, `RECOGNITION_CLEANUP: NOT_AUTHORIZED`. Синтетический тест не является подтверждением сохранности пользовательских данных или готовности production.
+- Следующий приоритет: isolated restore commit с новой пустой тестовой IndexedDB и явным read-only source + no-overwrite/fail-closed preflight; только отдельный безопасный этап. Не удалять оригинальный синтетический архив, не менять production и реальные данные.
+
+---
+
+## FILEPROOF329 — подтверждён CI на исправлении VoidTaskResult (2026-11-21)
+
+- Код/тесты SHA `d2933ddd5b7be2caa131bf64c8179c34e35e703e`: [CI #44941100823](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44941100823) completed/success. Проверены синтаксис Node+PowerShell, негативные сценарии, ADB fail mock, **ADB positive USB precheck -> stage2** с реальным `pwsh`; служебный `VoidTaskResult` не возникает. Последующие изменения — только документация.
+- Физическая проверка исправленного скрипта всё ещё NOT_TESTED; не делать вывод об успешном восстановлении/декодировании MP4/очистке.
+
+---
+
+## FILEPROOF329 — PowerShell VoidTaskResult readout failure (2026-11-21)
+
+- Физический OnePlus: после изменения ADB аргументов кодовый SHA `54cbfc24f931270eba7cacf7b045e4c684e61c22` дал `STAGE: 1/5 USB_DEVICE_PRECHECK`, затем `BLOCKED`: PowerShell попытался преобразовать `System.Threading.Tasks.VoidTaskResult` к `System.Byte`. Это сбой тестового парсера, **не** повреждение архива или пользовательских данных; аппаратная проверка архива новым скриптом не дошла до чтения.
+- Исправлен `Adb`: `[void]$stdoutTask.GetAwaiter().GetResult()` подавляет служебный результат успешного async `CopyToAsync`, возвращаются только байты `$stream.ToArray()`. В CI добавлен позитивный mock `adb devices -l`/getprop/pm, подтверждающий прохождение стадии 1 до безопасно отклонённой стадии 2, и статический регрессионный тест утечки результата task.
+- Не выполнять следующий физический запуск до successful CI на точном SHA. Archive SHA, известный ранее: `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`. Удаление, восстановление и видео-распознавание НЕ выполнялись.
+
+---
+
+## FILEPROOF329 — подтверждён CI исправления ADB (2026-11-21)
+
+- На code/test/workflow SHA `54cbfc24f931270eba7cacf7b045e4c684e61c22` GitHub Actions [run #44940959276](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44940959276) завершил job `preflight` со статусом success: Node и PowerShell синтаксис, отрицательные тесты, а также отдельный mock `adb devices -l` с exit=1 через реальный `pwsh`. Это подтверждает корректную передачу аргументов и диагностический отказ на мок-устройстве, не фактический запуск исправленной версии на NE2213.
+- Следующая контрольная точка — единственная read-only физическая попытка по закреплённому SHA; при отказе диагностическое сообщение. Restore commit, декодирование MP4 и удаление видео остаются NOT_TESTED/NOT_AUTHORIZED.
+
+---
+
+## FILEPROOF329 — первая стадия ADB_EXIT_1, исправление аргументов (2026-11-21)
+
+- По фактическому выводу пользователя скрипт pinned SHA `2e08487bb9d056466711f5588d538133304ec66d` скачался успешно, затем на `STAGE: 1/5 USB_DEVICE_PRECHECK` выдал `STATUS: BLOCKED / DETAIL: ADB_EXIT_1`. Это не тест внутренней целостности архива. Ни восстановление, ни очистка, ни чтение архива этим новым запуском не подтверждены.
+- Проверка кода выявила риск использования специальной PowerShell-переменной `$args` как формального параметра функций `Adb`/`AdbText`. В ветке PR #333 её заменили на `$argv`; ошибки ADB теперь помечаются безопасной категорией команды и ограниченным stderr. Реальную точную причину ADB_EXIT_1 ещё нужно подтвердить.
+- Добавлен регрессионный тест аргументов и CI-сценарий с фальшивым исполняемым `adb`, вызываемый реальным `pwsh` и проверяющий fail-closed обработку `devices -l`. CI/аппаратный тест на последнем SHA ожидает проверки. Существующий синтетический архив с закреплённым SHA не изменялся.
+- Следующий этап: проверить CI на точном code SHA, затем один повторный read-only запуск исправленного скрипта; при BLOCKED без установки/удаления/повторных ручных действий.
+
+---
+
+## FILEPROOF329 — ограничение ADB, подтверждённый CI (2026-11-21)
+
+- Исправленный код+тесты SHA `2e08487bb9d056466711f5588d538133304ec66d`: специализированный [CI #44940781025](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44940781025) — completed/success: Node syntax, PowerShell syntax, negative/source-safety checks. CI не доказывает физическую диагностику ADB.
+- Уточнение: причина предыдущего молчаливого ожидания не установлена (возможны этап скачивания скрипта и ожидание ADB). Для нового запуска команду скачивания ограничивать `-TimeoutSec 20` и выводить этап до скачивания; новая PS1 ограничивает ADB до 12 секунд на вызов.
+- Физический запуск нового скрипта NOT_TESTED. Запрещены delete/reset/install/restore/cleanup. Сохранить прежний файл и результат SHA.
+
+---
+## FILEPROOF329 — исправление молчаливого зависания (2026-11-21)
+
+- Пользователь сообщил: первоначальный Android preflight оставался с мигающим курсором и без вывода; `Ctrl+C` завершил попытку. Последующие отдельные безопасные ADB-команды подтвердили NE2213 как `device`, ровно один файл `paseka-proof329-59a9e237-e33f-42f6-acf3-ff5f99bc1eec.paseka` и pinned SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`. Это **не** подтверждает внутренний preflight и не доказывает причину зависания.
+- В PR #333 исправлен `tools/android-fileproof329-readonly-preflight.ps1`: пять коротких диагностических стадий до ADB-запросов; stdout/stderr читаются асинхронно; каждый ADB-процесс ограничен 12 секундами, при timeout прерывается только созданный ADB-процесс (не приложение); результат `ADB_TIMEOUT_12S` fail-closed. Добавлен регрессионный статический тест.
+- CI на новом SHA и физический повторный запуск после исправления пока не подтверждены. Пользовательское видео и синтетический архив не менялись, удаление не разрешено.
+- Следующий шаг: green CI на SHA исправления, затем один запуск закреплённого read-only диагностического сценария, который показывает этап сбоя.
+
+---
+
+## FILEPROOF329 — CI подтверждён для read-only Android preflight (2026-11-21)
+
+- На HEAD `e8e44f7933226f8774723a39aa47c47a77360465` специализированный GitHub Actions [run #44939952001](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44939952001): `preflight` job completed/success; Node parser, PowerShell parser, negative + source-safety checks прошли. Это проверка кода, не физический Android запуск.
+- Следующее действие: один read-only вызов `tools/android-fileproof329-readonly-preflight.ps1` с существующим тестовым архивом, только после фиксации CI. Нет установки APK, restore commit или удаления видео. Телефон пока не подвергался новому тесту.
+
+---
+
+## FILEPROOF329 — следующий аппаратный read-only gate (2026-11-21)
+
+- CI для первоначального PR #333 HEAD `7dbfa8c39990211a9fd6110ce6b1be9a94a640dc`: [run 44939830190](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44939830190) завершён `success` (Node parse и негативные тесты). Это не физический restore.
+- Добавлен `tools/android-fileproof329-readonly-preflight.ps1`: читает только уже установленный `fileproof329`, его private report и ровно один синтетический архив в `/sdcard/Download/PasekaProof329`; в памяти сверяет внешний SHA, PASEKA01 manifest, state и оба MP4 chunk/SHA. Без записи даже на ПК; нет force-stop, перезапуска, установки, restore или удаления.
+- Добавлены статический негативный тест и PowerShell parse gate; CI на новом HEAD ожидает подтверждения. Запуск на физическом устройстве не выполнялся, `restoreCommit=NOT_TESTED`, `cleanupAuthorized=false`.
+- Не использовать аппаратную команду до успешного CI на точном SHA. Не менять производственное приложение и пользовательские данные.
+
+---
+
+## Контрольная точка — FILEPROOF329 внешний архив и read-only preflight (2026-11-21)
+
+- Физический OnePlus NE2213/API36: пользователь сообщил `ISOLATED_FILEPROOF329_POST_STOP_EXTERNAL_SHA_PASS`. Независимый ADB readback 3158-byte PASEKA01 совпал с pinned SHA `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186` до и после `force-stop` только тестового приложения; private report остался неизменным. Доказательство относится только к синтетическому пакету `ru.paseka.journal.archive.fileproof329`.
+- Следующий этап в ветке `test/android-fileproof329-restore-preflight-2026-11-21`: `tools/fileproof329-archive-preflight.mjs` читает локальную копию архива без изменений, требует точно закреплённые размер/SHA, проверяет формат/manifest/chunk hashes через production `PasekaArchive`, валидирует структуру state и два изолированных MP4 (ID/size/SHA), не вызывает restore commit.
+- Негативные тесты `tests/fileproof329-archive-preflight.test.mjs`; специализированный CI workflow. CI на HEAD новой ветки пока не подтверждён; реальный внешний файл этой новой проверкой ещё не проверялся.
+- Нет удаления видео, распознавания, MP4 decoder/playback, восстановления данных, production install/deploy/merge. `cleanupAuthorized=false`. Оригинальный физический тестовый файл нужно сохранить.
+- Следующее действие: проверить CI на точном SHA, затем выполнить только read-only preflight на байтах существующего синтетического архива, без обновления APK/перезаписи файла и без восстановления.
+
+---
+
 ## 2026-11-21 — Draft #332: независимый SHA физического внешнего PASEKA01 после stop; CI mock PASS, телефон NOT TESTED
 
 - На основании **действительного** OnePlus NE2213/API36 `ISOLATED_FILEPROOF329_MEDIASTORE_PASS` (файл PASEKA01 **3158 B**, SHA-256 `4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186`; private report 466 B, SHA `002fbc37d6627e1412f95ad68946388dceeb257fda55b51b8df62b7ba3886ac4`) открыт stacked [Draft PR #332](https://github.com/250oisr-eng/Pasekaapp/pull/332) поверх #331.

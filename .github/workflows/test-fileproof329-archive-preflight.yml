@@ -1,0 +1,96 @@
+name: Fileproof329 archive preflight (read-only)
+on:
+  pull_request:
+    paths:
+      - 'tools/fileproof329-archive-preflight.mjs'
+      - 'tools/android-fileproof329-readonly-preflight.ps1'
+      - 'tests/fileproof329-archive-preflight.test.mjs'
+      - 'js/paseka-archive.js'
+      - '.github/workflows/test-fileproof329-archive-preflight.yml'
+  push:
+    branches:
+      - 'test/android-fileproof329-restore-preflight-2026-11-21'
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse script
+        run: node --check tools/fileproof329-archive-preflight.mjs
+      - name: Parse read-only Windows device script
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-fileproof329-readonly-preflight.ps1',[ref]$tokens,[ref]$errors)
+          if($errors.Count -gt 0){ $errors | ForEach-Object {Write-Error $_}; exit 1 }
+      - name: Negative and source-safety checks
+        run: node --test tests/fileproof329-archive-preflight.test.mjs
+      - name: Simulate ADB devices failure with real PowerShell process invocation
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/mockbin"
+          cat > "$RUNNER_TEMP/mockbin/adb" <<'MOCK'
+          #!/usr/bin/env bash
+          if [[ "$1" == "devices" && "$2" == "-l" ]]; then
+            echo "mock disconnected test device" >&2
+            exit 1
+          fi
+          exit 97
+          MOCK
+          chmod +x "$RUNNER_TEMP/mockbin/adb"
+          export PATH="$RUNNER_TEMP/mockbin:$PATH"
+          set +e
+          pwsh -NoProfile -File tools/android-fileproof329-readonly-preflight.ps1 > "$RUNNER_TEMP/result.txt" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/result.txt"
+          test "$status" -eq 2
+          grep -q 'ADB_DIAGNOSTIC: DEVICES EXIT_1' "$RUNNER_TEMP/result.txt"
+          grep -q 'DETAIL: ADB_EXIT_1_DEVICES' "$RUNNER_TEMP/result.txt"
+          grep -q 'mock disconnected test device' "$RUNNER_TEMP/result.txt"
+          grep -q 'NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE' "$RUNNER_TEMP/result.txt"
+      - name: Simulate successful USB precheck and blocked private report
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/mock-passbin"
+          cat > "$RUNNER_TEMP/mock-passbin/adb" <<'MOCK'
+          #!/usr/bin/env bash
+          case "$*" in
+            "devices -l")
+              printf 'List of devices attached\nebdb131f device product:NE2213 model:NE2213 device:OP516FL1\n'
+              exit 0 ;;
+            "-d shell getprop ro.product.model")
+              printf 'NE2213\n'
+              exit 0 ;;
+            "-d shell getprop ro.build.version.sdk")
+              printf '36\n'
+              exit 0 ;;
+            "-d shell pm path ru.paseka.journal.archive.fileproof329")
+              printf 'package:/data/app/isolated/base.apk\n'
+              exit 0 ;;
+            "-d exec-out run-as ru.paseka.journal.archive.fileproof329 cat files/paseka-fileproof329.ndjson")
+              echo 'MOCK_PRIVATE_REPORT_BLOCKED' >&2
+              exit 78 ;;
+            *)
+              echo 'UNEXPECTED_ADB_COMMAND' >&2
+              exit 99 ;;
+          esac
+          MOCK
+          chmod +x "$RUNNER_TEMP/mock-passbin/adb"
+          export PATH="$RUNNER_TEMP/mock-passbin:$PATH"
+          set +e
+          pwsh -NoProfile -File tools/android-fileproof329-readonly-preflight.ps1 > "$RUNNER_TEMP/mock-pass-result.txt" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/mock-pass-result.txt"
+          test "$status" -eq 2
+          grep -q 'STAGE: 2/5 TEST_PACKAGE_REPORT' "$RUNNER_TEMP/mock-pass-result.txt"
+          grep -q 'ADB_DIAGNOSTIC: PRIVATE_REPORT EXIT_78' "$RUNNER_TEMP/mock-pass-result.txt"
+          grep -q 'DETAIL: ADB_EXIT_78_PRIVATE_REPORT' "$RUNNER_TEMP/mock-pass-result.txt"
+          grep -q 'NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE' "$RUNNER_TEMP/mock-pass-result.txt"
+          ! grep -q 'VoidTaskResult' "$RUNNER_TEMP/mock-pass-result.txt"
