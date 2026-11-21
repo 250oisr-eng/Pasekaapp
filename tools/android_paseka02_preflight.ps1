@@ -1,7 +1,7 @@
 # PASEKA02 Android 16 read-only preflight. Never clears data, stops apps or deletes files.
 # Run only after reviewing this file from the trusted Pasekaapp repository.
 [CmdletBinding()]
-param([switch]$InspectHeaders)
+param([switch]$InspectHeaders, [switch]$CheckNewExport)
 $ErrorActionPreference = 'Stop'
 $package = 'ru.paseka.journal.archive.test'
 $directory = '/sdcard/Download/Пасека'
@@ -86,6 +86,57 @@ try {
         } else {
             Write-Host 'PASEKA02_ARCHIVES: NOT VERIFIED (names only; no files read)'
         }
+    }
+    if ($CheckNewExport) {
+        # Narrow the scan to today's newly created test export; never inspect unknown old archives.
+        if ($fileExit -ne 0) {
+            Finish 'BLOCKED' 'The Android Downloads archive folder is unavailable.' 2
+        }
+        $newCandidates = @($archiveFiles | Where-Object { $_ -match '^paseka-full-backup-2026-11-21(?: \(\d+\))?\.paseka$' })
+        if ($newCandidates.Count -ne 1) {
+            Finish 'BLOCKED' ('Expected exactly one 2026-11-21 export, found ' + $newCandidates.Count + '. No archives read.') 2
+        }
+        $newName = [string]$newCandidates[0]
+        if ($newName -notmatch '^paseka-full-backup-2026-11-21(?: \(\d+\))?\.paseka$') {
+            Finish 'BLOCKED' 'Unexpected test archive name.' 2
+        }
+        $newPath = $directory + '/' + $newName
+        $quoted = "'" + $newPath + "'"
+        $type = AdbOutput -arguments @('-d','shell',("stat -c %F " + $quoted))
+        if ($type -ne 'regular file') {
+            Finish 'BLOCKED' 'New archive is not a regular file.' 2
+        }
+        $length = AdbOutput -arguments @('-d','shell',("stat -c %s " + $quoted))
+        if ($length -notmatch '^\d+$' -or [int64]$length -lt 12 -or [int64]$length -gt 536870912) {
+            Finish 'BLOCKED' 'Invalid or out-of-range archive length.' 2
+        }
+        $header = AdbOutput -arguments @('-d','shell',("head -c 8 " + $quoted))
+        if ($header -ne 'PASEKA01') {
+            Finish 'BLOCKED' 'The current Android app exports PASEKA01, not this header.' 2
+        }
+        $hashLine1 = AdbOutput -arguments @('-d','shell',("sha256sum " + $quoted))
+        $hashLine2 = AdbOutput -arguments @('-d','shell',("sha256sum " + $quoted))
+        $digestRegex = '^([a-f0-9]{64})\s+'
+        if ($hashLine1 -notmatch $digestRegex) {
+            Finish 'BLOCKED' 'First SHA-256 reply is malformed.' 2
+        }
+        $digest1 = $Matches[1]
+        if ($hashLine2 -notmatch $digestRegex) {
+            Finish 'BLOCKED' 'Second SHA-256 reply is malformed.' 2
+        }
+        if ($digest1 -ne $Matches[1]) {
+            Finish 'FAIL' 'Archive SHA-256 changed between two reads.' 1
+        }
+        Write-Host ('NEW_EXPORT_FILENAME: ' + $newName)
+        Write-Host ('NEW_EXPORT_FORMAT: ' + $header)
+        Write-Host ('NEW_EXPORT_BYTES: ' + $length)
+        Write-Host ('NEW_EXPORT_SHA256_TWICE: ' + $digest1)
+        Write-Host 'ARCHIVE_HASH: PASS (stable on two reads, NOT compared to a pre-export source)'
+        Write-Host 'ARCHIVE_STRUCTURE: NOT TESTED (manifest/chunks/video not verified)'
+        Write-Host 'INDEXEDDB: NOT TESTED; no process stopped'
+        Write-Host 'PROVENANCE: NOT TESTED (filename does not prove synthetic-only data)'
+        Write-Host 'DATA_ACTIONS: READ-ONLY; no install, stop, restore, deletion or copying'
+        Finish 'EXPORT_CHECK_COMPLETE' 'New PASEKA01 archive signature, size and repeated SHA read; not restore-proof.' 0
     }
     if ($InspectHeaders) {
         Write-Host 'DATA_ACTIONS: READ-ONLY HEADERS AND FILE LENGTHS; no stop, deletion, installation, or restore.'
