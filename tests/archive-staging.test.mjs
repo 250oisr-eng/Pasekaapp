@@ -1747,3 +1747,79 @@ test('staging recognition audit flags malformed video keys rather than declaring
  assert.ok(await get(db,'archive_staging','unexpected-video-key'));
  db.close();
 });
+
+test('a verified pre-recognition export cannot revive media after reopening a database with a tombstone', async t => {
+  const modules = {};
+  for (const file of ['paseka-sha256', 'video-recognition-ledger', 'video-archive-v2-guard', 'video-archive-v2-copy-inventory']) {
+    const script = await readFile(new URL('../js/' + file + '.js', import.meta.url), 'utf8');
+    new Function('window', script)(modules);
+  }
+  const factory = new IDBFactory();
+  const name = 'archive-retention-integration';
+  let db = await openTestDb(name, factory);
+  t.after(() => db.close());
+  const video = videoFixture();
+  const hash = async blob => Buffer.from(await webcrypto.subtle.digest('SHA-256', await blob.arrayBuffer())).toString('hex');
+  video.blobSha256 = await hash(video.blob);
+  const state = stateFixture();
+  state.records[0].media = [{kind: 'video', videoId: video.id, sourceBytes: video.bytes,
+    sourceSha256: video.blobSha256, data: 'data:video/mp4;base64,ChQeKA=='}];
+  await put(db, 'main', state, 'state');
+  await put(db, 'entrance_media', video);
+  const saved = await Archive.exportArchiveFromDatabase(db, webcrypto, {backupId: 'pending-original'});
+  const parsed = await Archive.parseArchiveBlob(saved.blob);
+  assert.equal(await Archive.verifyArchive(saved.blob, parsed, webcrypto), true);
+  const entry = parsed.entries.find(row => row.metadata?.id === video.id);
+  assert.equal(await hash(Archive.readArchiveEntry(saved.blob, entry)), video.blobSha256);
+
+  const ledger = modules.PasekaVideoRecognitionLedger;
+  const receipt = await ledger.recordRecognitionResult(db, {
+    source: 'entrance_media', videoId: video.id, resultId: 'synthetic-result',
+    processedSourceBytes: video.bytes, processedSourceSha256: video.blobSha256,
+    expectedStateRevisionId: state.meta.revisionId, recognizedAt: '2026-11-21T00:00:00Z',
+    recognitionSucceeded: true, recognitionStatus: 'completed', result: {note: 'test fixture'}
+  });
+  assert.equal(receipt.cleanupState, 'blocked_archive_safety');
+  const stored = await get(db, 'main', 'video_recognition_ledger_v1');
+  assert.equal(stored.entries[0].sourceSha256, video.blobSha256);
+  assert.equal(stored.entries[0].sourceBytes, video.bytes);
+  // Model a previous cleanup marker alongside surviving protected copies.
+  stored.entries[0].cleanupState = 'deleted';
+  await put(db, 'main', stored, 'video_recognition_ledger_v1');
+  const rollback = {id: 'rollback:original', kind: 'rollback_video', originalId: video.id, record: video};
+  const history = {backupId: 'prior', kind: 'v2_entrance_only', status: 'reverted_quarantined_unverified'};
+  await put(db, 'archive_staging', rollback);
+  await put(db, 'archive_history', history);
+  await put(db, 'full_backup', {state}, 'previous');
+  db.close();
+  db = await openTestDb(name, factory);
+  const report = await modules.PasekaVideoArchiveV2CopyInventory.auditManagedVideoCopies(db, modules.PasekaVideoArchiveV2Guard);
+  assert.equal(report.recognitionEntries, 1);
+  assert.equal(report.distinctIdentities, 2);
+  assert.equal(report.copyCount, 4);
+  assert.ok(report.issues.includes('deleted_tombstone_has_copy'));
+  assert.equal(report.cleanupAuthorized, false);
+  assert.equal(report.externalCopiesVerified, false);
+  await assert.rejects(Restore.stageArchiveForRestore(db, saved.blob, webcrypto, Archive, () => true),
+    {code: 'VIDEO_LEDGER_NOT_PRESERVED'});
+  assert.deepEqual(await getAll(db, 'archive_history'), [history]);
+  const staged = await getAll(db, 'archive_staging');
+  assert.deepEqual(staged.map(row => row.id), [rollback.id]);
+  assert.equal(await hash(staged[0].record.blob), video.blobSha256);
+  assert.deepEqual(await get(db, 'main', 'state'), state);
+  assert.deepEqual(await get(db, 'main', 'video_recognition_ledger_v1'), stored);
+  assert.deepEqual(await get(db, 'full_backup', 'previous'), {state});
+  assert.equal(await hash((await get(db, 'entrance_media', video.id)).blob), video.blobSha256);
+
+  // Simulate a later device state with history but no live entrance original.
+  const clean = await openTestDb('archive-retention-after-cleanup', factory);
+  t.after(() => clean.close());
+  await put(clean, 'main', stored, 'video_recognition_ledger_v1');
+  await put(clean, 'main', stateFixture('current diary'), 'state');
+  await assert.rejects(Restore.stageArchiveForRestore(clean, saved.blob, webcrypto, Archive, () => true),
+    {code: 'VIDEO_LEDGER_NOT_PRESERVED'});
+  assert.deepEqual(await getAll(clean, 'entrance_media'), []);
+  assert.deepEqual(await getAll(clean, 'archive_staging'), []);
+  assert.deepEqual(await get(clean, 'main', 'state'), stateFixture('current diary'));
+  assert.deepEqual(await get(clean, 'main', 'video_recognition_ledger_v1'), stored);
+});
