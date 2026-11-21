@@ -26,13 +26,13 @@ try {
     if ($connected.Count -ne 1 -or $unavailable.Count -gt 0) {
         Finish 'BLOCKED' 'Exactly one authorized USB test device is required.' 2
     }
-    $model = AdbOutput @('-d','shell','getprop','ro.product.model')
-    $api = AdbOutput @('-d','shell','getprop','ro.build.version.sdk')
-    $android = AdbOutput @('-d','shell','getprop','ro.build.version.release')
+    $model = AdbOutput -arguments @('-d','shell','getprop','ro.product.model')
+    $api = AdbOutput -arguments @('-d','shell','getprop','ro.build.version.sdk')
+    $android = AdbOutput -arguments @('-d','shell','getprop','ro.build.version.release')
     if ($api -notmatch '^\d+$' -or [int]$api -lt 35) {
         Finish 'BLOCKED' 'Android API 35 or higher required.' 2
     }
-    $installed = AdbOutput @('-d','shell','pm','path',$package)
+    $installed = AdbOutput -arguments @('-d','shell','pm','path',$package)
     if ($installed -notmatch '^package:') {
         Finish 'BLOCKED' 'Isolated package not found.' 2
     }
