@@ -133,6 +133,12 @@ async function run(bytes,options={}){
   if(attempted) blocked('ONE_SHOT_ALREADY_ATTEMPTED');
   attempted=true;
   const {bytes:original,proof}=await inspectSource(bytes); // before opening/writing test DB
+  // A failed or aborted first run still leaves a database. Never treat an
+  // existing empty database as permission to retry after WebView restart.
+  if(typeof root.indexedDB.databases!=='function') blocked('DATABASE_ENUMERATION_REQUIRED');
+  const databases=await root.indexedDB.databases();
+  if(!Array.isArray(databases)) blocked('DATABASE_ENUMERATION_FAILED');
+  if(databases.some(db=>db && db.name===DATABASE)) blocked('DESTINATION_ALREADY_EXISTS');
   const db=await openOnlyDestination();
   try{
     requireStores(db);
