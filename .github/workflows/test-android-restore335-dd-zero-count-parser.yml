@@ -1,0 +1,42 @@
+name: Restore335 Toybox dd zero-count parser read-only
+on:
+  push:
+    branches:
+      - 'test/android-restore335-stdin-sha-readonly-2026-11-21'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-dd-zero-count-parser-readonly.ps1'
+      - 'tests/mock_android_restore335_dd_zero_count_parser.py'
+      - '.github/workflows/test-android-restore335-dd-zero-count-parser.yml'
+permissions:
+  contents: read
+jobs:
+  mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PowerShell parser
+        shell: pwsh
+        run: |
+          $tokens=$null;$errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-dd-zero-count-parser-readonly.ps1',[ref]$tokens,[ref]$errors)
+          if($errors.Count){$errors|ForEach-Object{Write-Error $_};exit 1}
+      - name: Ensure dd never writes private files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tools/android-restore335-dd-zero-count-parser-readonly.ps1').read_text()
+          assert 'PRIVATE_FILES_LIST_CLASS: EMPTY' in s
+          assert 'RESTORE335_DD_ZERO_COUNT_PARSER_READONLY_COMPLETE' in s
+          assert "'if=/dev/null','count=0','status=none'" in s
+          assert "'if=/dev/null','count=0','conv=excl','status=none'" in s
+          assert "ADB @('-d','exec-out','cat',$source)" in s
+          assert '4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186' in s
+          assert 'bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee' in s
+          assert "ANDROID_PRIVATE_WRITE: NOT_ATTEMPTED" in s
+          command_lines=[line.strip() for line in s.splitlines() if 'ADB @(' in line or line.strip().startswith("'if=/dev/null'")]
+          assert all('of=' not in line for line in command_lines),command_lines
+          assert all(bad not in s for bad in ["'mkdir'","'rm'","'push'","'install'","'clear'","'am','start'","Remove-Item","SetEnvironmentVariable","'shell','-T'","'of=files/"])
+          PY
+      - name: Actual PowerShell and mock ADB success and failure matrix
+        run: python3 tests/mock_android_restore335_dd_zero_count_parser.py
