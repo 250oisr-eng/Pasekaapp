@@ -21,24 +21,5 @@ jobs:
           $t=$null;$e=$null
           [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-modern-adb-exclusive-stage.ps1',[ref]$t,[ref]$e)
           if($e.Count){$e|ForEach-Object {Write-Error $_};exit 1}
-      - name: Assert fixed test-only identity, pinned hashes and non-overwrite
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          s=Path('tools/android-restore335-modern-adb-exclusive-stage.ps1').read_text()
-          assert 'ru.paseka.journal.archive.restoreproof335' in s
-          assert 'ru.paseka.journal.archive.fileproof329' in s
-          assert 'bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee' in s
-          assert '4bb2f51ab874956b2387bc381a66c92221d2e88ea9bd0b14adfa73222c785186' in s
-          assert "ADB @('-d','exec-out','run-as',$pkg,'/system/bin/toybox','mkdir','-m','700','files')" in s
-          assert "'of=files/fileproof335-input.paseka','bs=3158','conv=excl,fsync','status=none'" in s
-          assert 'PRIVATE_TEST_INPUT: SHA256_PASS_3158_BYTES' in s
-          assert 'ORIGINAL_SOURCE_POST_STAGE: SHA256_PASS_3158_BYTES' in s
-          assert 'ONE_SHOT_NO_RETRY_NO_INSTALL_NO_OVERWRITE_NO_RESET_NO_DELETE' in s
-          no_comments='\n'.join(x for x in s.splitlines() if not x.lstrip().startswith('#'))
-          for bad in ['Get-Command adb','Remove-Item','rm -','install -r','pm clear','uninstall','am start',
-                      'force-stop','adb push','adb pull','deleteDatabase','SetEnvironmentVariable','setx ']:
-              assert bad not in no_comments,(bad,no_comments)
-          PY
-      - name: Real PowerShell mock-ADB one-shot and negative cases
+      - name: Retired writer blocks before ADB (default and explicit path)
         run: python3 tests/mock_android_restore335_exclusive_stage.py
