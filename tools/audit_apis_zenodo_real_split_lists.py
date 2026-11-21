@@ -129,6 +129,59 @@ def verify_author_metadata(license_text, readme, class1_csv):
             "unverifiedInHiveClass1CannotBeGT": True}
 
 
+def conservative_day_heldout_plan(image_names, verified_positive_dates=()):
+    """Read-only COUNTS, not a trainable manifest or real session proof.
+
+    Keep 28 handheld photos completely out of in-hive frame evaluation.
+    Training approval stays false regardless of this plan.
+    """
+    if type(image_names) not in (set, frozenset, list, tuple):
+        raise ValueError("original source image IDs needed")
+    if len(image_names) != 2823 or len(set(image_names)) != 2823:
+        raise ValueError("source image inventory must be exactly 2823 unique IDs")
+    dates = Counter()
+    handheld = 0
+    for name in image_names:
+        if type(name) is not str or len(name) > 255:
+            raise ValueError("malformed image ID")
+        day = date_from_image_name(name)
+        if day is None:
+            handheld += 1
+        else:
+            dates[day] += 1
+    if handheld != 28 or sum(dates.values()) != 2795 or len(dates) != 9:
+        raise ValueError("source dated/handheld partition changed")
+    positive_days = set(verified_positive_dates)
+    if not positive_days.issubset(dates):
+        raise ValueError("confirmed positive dates must occur in source frames")
+    proposed = []
+    for day in sorted(dates):
+        holdout = dates[day]
+        proposed.append({
+            "validationDayFromFileName": day,
+            "validationImagesFromSingleDay": holdout,
+            "trainingImagesOtherDays": 2795 - holdout,
+            "handheldImagesExcluded": handheld,
+            "sharedDateNamesBetweenTrainAndValidation": 0,
+            "confirmedInHiveMitePositiveInValidation": day in positive_days,
+            "confirmedInHiveMitePositiveAbsentFromTrain": positive_days == {day},
+            "readyForActualDetectorBenchmark": False,
+        })
+    return {
+        "proposalOnly": True,
+        "numberOfDayHeldoutProposals": len(proposed),
+        "inHiveFramesFromNineDates": 2795,
+        "handheldExcludedFromInHiveEvaluation": handheld,
+        "captureDayFromFilenameNotAuthenticatedCameraSession": True,
+        "proposedFolds": proposed,
+        "originalJpgBytesChecked": False,
+        "physicalCaptureSessionIdentityVerified": False,
+        "perceptualNearDuplicatesChecked": False,
+        "realModelTrainingEnabled": False,
+        "beeEntranceInOutBenchmarkEnabled": False,
+    }
+
+
 def audit_pinned_split_files(fetch=fetch_pinned_text):
     contents = {name: fetch(name) for name in (*SPLIT_BLOBS, *EXTRA_BLOBS)}
     verification = verify_author_metadata(
@@ -187,6 +240,8 @@ def audit_pinned_split_files(fetch=fetch_pinned_text):
         "fiveFoldUniqueValidationCoverage": len(val_membership),
         "nineTimestampCaptureDatesFromFileNames": sorted(all_dates),
         "folds": folds, "positiveClassVerification": verification,
+        "conservativeDayHeldoutPlan": conservative_day_heldout_plan(
+            catalog, verified_positive_dates={"20240307"}),
         "actualOriginalJpgBytesVerified": False,
         "captureDatesProvenSamePhysicalVideoSession": False,
         "captureDayIndependentTrainValidation": False,
