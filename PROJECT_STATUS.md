@@ -1,3 +1,12 @@
+## RESTOREPROOF335 — одноразовый ADB сценарий: MOCK CI PASS (2026-11-21)
+
+- Код/test SHA `0b6d76b0fc415233656018a23e28e3165cbc0779`, [GitHub Actions #44943098055](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44943098055): **completed/success**. PowerShell parser, Python parser, 3/3 static safety tests и реальный `pwsh` против mock-ADB проходят. Позитивный mock проверил 7/7 последовательных стадий: source preflight, ZIP/APK SHA, отсутствие нового package, install только в mock, private byte staging/readback, отчет, повторный source digest. Негативный mock изменённого source SHA остановился на 2/7 **до** установки; ни одной mock-записи private.
+- MOCK prints `RESTORE_PROOF335: ANDROID_SYNTHETIC_PASS` только как имитацию; это **не** реальный OnePlus и не доказательство Android IndexedDB! На физическом телефоне APK #336 ещё не установлен, bytes original не переданы и restore NOT_TESTED.
+- Pinned user artifact [ID 14721928022](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942628866/artifacts/14721928022), SHA256 ZIP `28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176`; APK `5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e`. Script `tools/android-restoreproof335-one-shot.ps1` pinned to code SHA before doc update, no overwrite/cleanup/production.
+- Следующее физическое действие возможно только на компьютере пользователя и по локальному запуску: скачать ровно pinned GitHub artifact ZIP в Downloads, запустить pinned PowerShell one-shot скрипт, прислать полный отчет. Не повторять при BLOCKED и не очищать ни один пакет. Результат не считать успешным до реального report.
+
+---
+
 ## RESTOREPROOF335 — одноразовый ADB аппаратный сценарий, CI mock gate (2026-11-21)
 
 - На основе подтверждённой сборки Draft #336 (GitHub Actions #44942628866, exact artifact SHA ZIP `28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176`, APK `5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e`) создана ветка `test/android-restore335-safe-device-transfer-2026-11-21`.
