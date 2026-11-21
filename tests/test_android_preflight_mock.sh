@@ -3,6 +3,22 @@
 set -euo pipefail
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
+export TEST_ARCHIVE_FIXTURE="$root/fixture.paseka"
+python3 - <<'PY'
+import hashlib, json, os, struct
+state = json.dumps({"app":"Paseka","state":{"meta":{"schemaVersion":5},"hives":[]}}, separators=(',', ':')).encode()
+manifest = {
+    "format":"paseka-archive", "version":1,
+    "backupId":"synthetic-fixture-2026-11-21", "createdAt":"2026-11-21T17:00:00Z",
+    "schemaVersion":5,
+    "entries":[{"path":"state.json","kind":"state","size":len(state),
+                "mimeType":"application/json","chunkSize":1048576,
+                "chunkSha256":[hashlib.sha256(state).hexdigest()]}]
+}
+raw = json.dumps(manifest,separators=(',',':')).encode()
+with open(os.environ["TEST_ARCHIVE_FIXTURE"],'wb') as fp:
+    fp.write(b'PASEKA01'+struct.pack('<I',len(raw))+raw+state)
+PY
 cat > "$root/adb" <<'ADB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -23,9 +39,10 @@ case "$*" in
     if [[ "$TEST_MODE" == "ambiguous" ]]; then echo 'paseka-full-backup-2026-11-21 (1).paseka'; fi
     ;;
   *"stat -c %F "*) echo 'regular file' ;;
-  *"stat -c %s "*) echo 2048 ;;
+  *"stat -c %s "*) wc -c < "$TEST_ARCHIVE_FIXTURE" ;;
   *"head -c 8 "*) echo PASEKA01 ;;
-  *"sha256sum "*) printf '%064d  archive\n' 0 | tr '0' 'a' ;;
+  *"sha256sum "*) sha256sum "$TEST_ARCHIVE_FIXTURE" ;;
+  "-d pull "*) cp "$TEST_ARCHIVE_FIXTURE" "$4" ;;
   *) echo "Unexpected test ADB request: $*" >&2; exit 42 ;;
 esac
 ADB
@@ -44,3 +61,24 @@ if TEST_MODE=ambiguous pwsh -NoProfile -File tools/android_paseka02_preflight.ps
 fi
 grep -Fq 'STATUS: BLOCKED' "$root/negative.txt"
 echo "Ambiguous export rejection mock passed"
+# Full structural verification uses a scratch-only copy and never writes to the fake Android source.
+verified="$(pwsh -NoProfile -File tools/android_paseka02_preflight.ps1 -VerifyContents)"
+grep -Fq 'STATUS: ARCHIVE_STRUCTURE_VERIFIED' <<< "$verified"
+grep -Fq 'ARCHIVE_CHUNKS_SHA256: PASS' <<< "$verified"
+grep -Fq 'ARCHIVE_VIDEO_ENTRIES: 0' <<< "$verified"
+echo "Synthetic PASEKA01 manifest and chunk hash verification passed"
+python3 - <<'PY'
+import os
+p=os.environ["TEST_ARCHIVE_FIXTURE"]
+with open(p, 'r+b') as f:
+    f.seek(-1, 2)
+    c=f.read(1)
+    f.seek(-1, 2)
+    f.write(bytes([c[0]^1]))
+PY
+if pwsh -NoProfile -File tools/android_paseka02_preflight.ps1 -VerifyContents > "$root/tampered.txt" 2>&1; then
+    echo 'Corrupt archive payload incorrectly verified' >&2
+    exit 1
+fi
+grep -Fq 'STATUS: BLOCKED' "$root/tampered.txt"
+echo "Tampered PASEKA01 payload correctly rejected"
