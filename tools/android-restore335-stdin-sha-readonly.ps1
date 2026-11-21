@@ -59,12 +59,16 @@ try {
      (Text @('-d','shell','getprop','ro.build.version.sdk')) -cne '36'){throw 'EXPECTED_NE2213_API36'}
   if((Text @('-d','shell','pm','path',$pkg)) -notmatch '^package:' -or
      (Text @('-d','shell','pm','path',$old)) -notmatch '^package:'){throw 'BOTH_EXISTING_TEST_PACKAGES_REQUIRED'}
-  # Physical OnePlus identified host ADB 1.0.32: unsupported for safe stdin proof.
-  # Reject old clients before sending archive bytes or doing any remote stdin action.
+  # Reject legacy ADB before any binary stdin transport. On OnePlus 1.0.32 is blocked.
   $adbVer=ADB @('version')
   if($adbVer.Code -ne 0){throw 'HOST_ADB_VERSION_FAILED'}
   $adbFirst=($utf8.GetString($adbVer.Bytes) -split '[\r\n]+')[0].Trim()
-  if($adbFirst -notmatch '^Android Debug Bridge version (1\.0\.(\d+))
+  $versionMatch=[regex]::Match($adbFirst,'^Android Debug Bridge version 1[.]0[.](\d+)$')
+  if(-not $versionMatch.Success){throw 'HOST_ADB_VERSION_UNRECOGNIZED'}
+  $revision=[int]$versionMatch.Groups[1].Value
+  Write-Host ('HOST_ADB_VERSION: '+$adbFirst)
+  if($revision -lt 41){throw 'HOST_ADB_TOO_OLD_REQUIRES_1_0_41_OR_NEWER'}
+  Write-Host 'STAGE: 2/3 ORIGINAL_ARCHIVE_IN_MEMORY_SHA'
   $archive=ADB @('-d','exec-out','cat',$source)
   if($archive.Code -ne 0 -or $archive.Bytes.Length -ne 3158 -or (Digest $archive.Bytes) -cne $pinned){
     throw 'ORIGINAL_PINNED_SHA_FAILED'
