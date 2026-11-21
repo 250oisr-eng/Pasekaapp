@@ -30,6 +30,7 @@ public final class IsolatedMediaStoreProofBridge {
     private final Context app;
     private String lastError = "";
     private String lastUri = "";
+    private boolean attempted = false;
 
     public IsolatedMediaStoreProofBridge(Context context) {
         this.app = context.getApplicationContext();
@@ -59,7 +60,8 @@ public final class IsolatedMediaStoreProofBridge {
     public synchronized String saveAndReadBack(String base64, String sha256) {
         // Only tiny synthetic test files; no arbitrary filename, folder or URI from JS.
         try {
-            if (lastUri.length() != 0) throw new IllegalStateException("ONE_SHOT_ALREADY_USED");
+            if (attempted) throw new IllegalStateException("ONE_SHOT_ALREADY_USED");
+            attempted = true;
             if (base64 == null || base64.length() > 1500000 ||
                 sha256 == null || !sha256.matches("[a-f0-9]{64}"))
                 throw new IllegalArgumentException("INVALID_TEST_INPUT");
