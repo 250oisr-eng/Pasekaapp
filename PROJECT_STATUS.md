@@ -1,3 +1,20 @@
+## RESTORE335 read-only diagnostic CI PASS (2026-11-21)
+
+- Exact code/test/workflow SHA `8ace0319bf54810c4c1016213e5df718ee3cea3c`, GitHub Actions [#44943612626](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44943612626) **completed/success** on PR #338 head (later changes docs only). PowerShell syntax, JS source safety and actual `pwsh` with mock ADB scenarios succeeded: (a) private mismatch reports first offset and no-write, (b) exact private match, (c) original SHA mismatch blocks before private read. Mock is not physical hardware evidence.
+- Next: one **read-only** run of pinned `tools/android-restoreproof335-readonly-diagnostic.ps1` on already connected OnePlus. Must not reinstall/retry staging, `pm clear`, remove original, or launch new app. Compare original/private sizes and hashes; only after actual diagnostic decide next safe action.
+
+---
+
+## RESTOREPROOF335 — физический BLOCKED на private readback (2026-11-21)
+
+- Пользователь запустил единственный pinned PowerShell one-shot script SHA `0b6d76b0fc415233656018a23e28e3165cbc0779` на OnePlus NE2213/API36. Наблюдаемая последовательность: стадия 1 device/package gate, стадия 2 original archive SHA gate, стадия 3 ZIP/APK SHA gate, стадия 4 install нового отдельного package, стадия 5 transfer private input — `STATUS: BLOCKED`, `DETAIL: PRIVATE_INPUT_READBACK_SHA_MISMATCH`. Статус `RESTORE_PROOF335: ANDROID_SYNTHETIC_PASS` **НЕ получен**. Стадии 6 launch/IndexedDB restore и 7 post-restore original SHA **НЕ выполнены**.
+- Сценарий подтвердил исходную контрольную сумму *перед* transfer и успешно установил новый TEST-ONLY package `ru.paseka.journal.archive.restoreproof335`. О точных length/SHA уже созданного `files/fileproof335-input.paseka` на устройстве данных пока нет. Старый archive после ошибки пока не перепроверен. Не утверждать, что ошибка вызвана CRLF, ADB или сохранением Blob без диагностики. Прежний тестовый `fileproof329`, production пользовательская база не изменялись командами сценария; новый private test file мог быть создан/повреждён.
+- **НЕ ПОВТОРЯТЬ старый one-shot script**: он проверяет отсутствие нового package и не должен перезаписывать private file. Никакого `pm clear`, `uninstall`, повторной установки, удаления тестового архива или пользовательских данных.
+- Создан stacked read-only diagnostic branch `test/android-restore335-private-readback-diagnostic-2026-11-21`. Новый `tools/android-restoreproof335-readonly-diagnostic.ps1` только проверяет OnePlus, exact old+new package, original SHA, существующий private readback bytes/length/SHA и первый offset расхождения, плюс факт private report — **ничего не пишет/не запускает/не удаляет**. `tests/android-restoreproof335-readonly-diagnostic.test.mjs` и `tests/mock_android_restoreproof335_readonly_diagnostic.py` моделируют reading changed private vs original. Специализированный CI на новом SHA ещё требует подтверждения.
+- Следующий приоритет: дождаться green CI диагностики, затем **один** запуск pinned read-only tool на пользовательском ПК и получить реальный вывод; после этого исправлять первопричину transfer (если она подтверждена), сохраняя существующее test-only состояние.
+
+---
+
 ## RESTOREPROOF335 — одноразовый ADB сценарий: MOCK CI PASS (2026-11-21)
 
 - Код/test SHA `0b6d76b0fc415233656018a23e28e3165cbc0779`, [GitHub Actions #44943098055](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44943098055): **completed/success**. PowerShell parser, Python parser, 3/3 static safety tests и реальный `pwsh` против mock-ADB проходят. Позитивный mock проверил 7/7 последовательных стадий: source preflight, ZIP/APK SHA, отсутствие нового package, install только в mock, private byte staging/readback, отчет, повторный source digest. Негативный mock изменённого source SHA остановился на 2/7 **до** установки; ни одной mock-записи private.
