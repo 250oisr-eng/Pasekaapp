@@ -1847,3 +1847,38 @@ for(const [storeName,value,key] of [
   db.close();
  });
 }
+
+
+test('PASEKA01 writer lock rejects protected V2 staging arriving after async preflight',async()=>{
+ const db=await openTestDb('legacy-v2-writer-lock-race');
+ const current=stateFixture('important current diary');
+ await put(db,'main',current,'state');
+ const archive=await makeArchive('v1-writer-race');
+ let injected=false;
+ const wrapped={
+  objectStoreNames:db.objectStoreNames,
+  transaction(stores,mode){
+   const tx=db.transaction(stores,mode);
+   if(mode==='readwrite'&&Array.isArray(stores)&&
+      stores.includes('archive_staging')&&stores.includes('full_backup')&&
+      stores.includes('main')&&stores.includes('entrance_media')&&!injected){
+    injected=true;
+    // Simulates a previously queued writer becoming visible under the final
+    // staging lock, without yielding to async I/O inside that transaction.
+    tx.objectStore('archive_staging').add({
+     id:'v2pending:race',kind:'v2_pending_session',sessionId:'v2pending:race'
+    });
+   }
+   return tx;
+  }
+ };
+ await assert.rejects(
+  Restore.stageArchiveForRestore(wrapped,archive,webcrypto,Archive,()=>true),
+  {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+ assert.equal(injected,true);
+ assert.deepEqual(await get(db,'main','state'),current);
+ assert.deepEqual(await getAll(db,'archive_staging'),[]);
+ assert.deepEqual(await getAll(db,'entrance_media'),[]);
+ assert.deepEqual(await getAll(db,'archive_history'),[]);
+ db.close();
+});
