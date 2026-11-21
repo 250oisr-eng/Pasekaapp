@@ -1,3 +1,11 @@
+## ANDROID FRAME TEST — verified CI APK and direct phone handoff (2026-11-22)
+
+- На code/test SHA `26a2de0af6ba5ba23198a6ff1802e66789f18446` [workflow #44954851869](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44954851869) **completed/success**: fixture SHA check, static safety tests, Capacitor web test package, Gradle debug APK, `aapt` package identity and artifact upload; generic Android workflow #44954851844 success, архивный isolated APK workflow skipped.
+- Verified GitHub artifact `paseka-synthetic-frame-extraction-isolated-apk`, ID `14726629748`, ZIP 3343582 байта, SHA-256 `fb8de747050e545649ec2b856dd5942d84a956c9cc2c2554e830d3343eefaec2` (соответствует digest GitHub); содержит ровно `app-debug.apk` 8282933 байта, SHA-256 `0e80aaff0d6b327f41ec09b41700f2e3671d4656792cd7ee26e746a415e9e0c6`. Извлечённый APK предоставлен в чате для теста на Android без ПК.
+- **Физический результат извлечения кадров — NOT TESTED.** Исходные installed `selftest` и `mediatest` не заменять/не очищать. Один запуск новой кнопки, один отчёт; PASS будет подтверждением только synthetic frame extraction, не ML recognition. User videos/backup/IndexedDB не изменены. Merge/deploy не выполнялись.
+
+---
+
 ## ANDROID VIDEO — следующий аппаратный gate: три JPEG-кадра из синтетического MP4 (2026-11-22)
 
 - Изучен реально существующий `js/entrance-frame-preparation.js`: извлекает 2–4 временных JPEG кадра из видео после SHA-проверки, не содержит ИИ inference/удаления. Лицензионная проверка конкретных весов модели и независимое качество detector отсутствуют; **распознавание пчёл пока нельзя объявить протестированным**.
