@@ -182,12 +182,12 @@ function inspectPendingStaging(db,backupId){
      if(!obj(row)||row.kind!=='v2_pending_original'||row.sessionId!==sessionKey||
         !['entrance_media','record_media'].includes(row.source)||
         typeof row.videoId!=='string'||!row.videoId||row.videoId.length>200||
-        /\\s/.test(row.videoId)||entryId(backupId,row)!==key||
+        /\s/.test(row.videoId)||entryId(backupId,row)!==key||
         !sha(row.sourceSha256)||!Number.isSafeInteger(row.sourceBytes)||
         row.sourceBytes<1||!row.blob||typeof row.blob.slice!=='function'||
         row.blob.size!==row.sourceBytes||
         typeof row.mimeType!=='string'||
-        !/^(?:video\\/[a-z0-9.+-]+|application\\/octet-stream)$/i.test(row.mimeType))
+        !/^(?:video\/[a-z0-9.+-]+|application\/octet-stream)$/i.test(row.mimeType))
       return false;
      return true;
     }))
