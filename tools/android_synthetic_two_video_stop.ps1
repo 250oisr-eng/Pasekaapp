@@ -31,20 +31,20 @@ function HexHash([byte[]]$content) {
     finally { $sha.Dispose() }
 }
 function RemoteSha([string]$remotePath) {
-    $reply = RequireAdb @('-d','shell',("sha256sum '" + $remotePath + "'"))
+    $reply = RequireAdb -argv @('-d','shell',("sha256sum '" + $remotePath + "'"))
     if ($reply -notmatch '^([a-f0-9]{64})\s+') { throw 'Android sha256sum response invalid' }
     return $Matches[1]
 }
 try {
     $null = Get-Command adb -ErrorAction Stop
-    $devices = RequireAdb @('devices','-l')
+    $devices = RequireAdb -argv @('devices','-l')
     $online = @($devices -split "[\r\n]+" | Where-Object { $_ -match '^\S+\s+device\s+' })
     $offline = @($devices -split "[\r\n]+" | Where-Object { $_ -match '^\S+\s+(offline|unauthorized|recovery|sideload)\b' })
     if ($online.Count -ne 1 -or $offline.Count -gt 0) { throw 'Exactly one authorized Android USB device required' }
-    $model = RequireAdb @('-d','shell','getprop ro.product.model')
-    $api = RequireAdb @('-d','shell','getprop ro.build.version.sdk')
+    $model = RequireAdb -argv @('-d','shell','getprop ro.product.model')
+    $api = RequireAdb -argv @('-d','shell','getprop ro.build.version.sdk')
     if ($model -ne 'NE2213' -or $api -ne '36') { throw 'Expected physical OnePlus NE2213 Android API 36 only' }
-    $installed = RequireAdb @('-d','shell',('pm path ' + $package))
+    $installed = RequireAdb -argv @('-d','shell',('pm path ' + $package))
     if ($installed -notmatch '^package:/data/app/') { throw 'Isolated test APK not installed' }
     # Byte-only synthetic stand-ins; NOT playable MP4, NOT actual camera footage.
     $videoA = [Text.Encoding]::ASCII.GetBytes(("PASEKA SYNTHETIC VIDEO BLOB A -- NOT A CAMERA VIDEO" + [char]10) * 5)
@@ -74,7 +74,7 @@ try {
     $testFolder = $folder + '/' + $testToken
     $remote = $testFolder + '/synthetic-two-video.paseka'
     # First potential Android write must come after strictly confirming new path.
-    $existing = Adb @('-d','shell',("test -e '" + $testFolder + "'"))
+    $existing = Adb -argv @('-d','shell',("test -e '" + $testFolder + "'"))
     if ($existing.Code -ne 1 -or $existing.Output) { throw 'Destination exists or cannot be verified absent; no write performed' }
     $scratch = Join-Path ([IO.Path]::GetTempPath()) ('paseka-synthetic-' + [guid]::NewGuid().ToString('N'))
     $null = New-Item -Path $scratch -ItemType Directory -ErrorAction Stop
@@ -86,20 +86,20 @@ try {
         Write-Host ('TEST_PACKAGE: ' + $package)
         Write-Host ('SYNTHETIC_BLOBS: 2 (NOT playable videos)')
         Write-Host ('SYNTHETIC_SOURCE_SHA256: ' + $expectedSha)
-        $null = RequireAdb @('-d','shell',("mkdir -p '" + $testFolder + "'"))
-        $null = RequireAdb @('-d','push',$local,$remote)
+        $null = RequireAdb -argv @('-d','shell',("mkdir -p '" + $testFolder + "'"))
+        $null = RequireAdb -argv @('-d','push',$local,$remote)
         if ((RemoteSha $remote) -ne $expectedSha) { throw 'Transferred bytes differ; no force-stop performed' }
         Write-Host 'ANDROID_COPY_BEFORE_STOP: PASS'
-        $launch = RequireAdb @('-d','shell',("monkey -p " + $package + " -c android.intent.category.LAUNCHER 1"))
+        $launch = RequireAdb -argv @('-d','shell',("monkey -p " + $package + " -c android.intent.category.LAUNCHER 1"))
         if ($launch -notmatch 'Events injected:\s*1') { throw 'Isolated app start not confirmed; no force-stop' }
-        $null = RequireAdb @('-d','shell',("am force-stop " + $package))
-        $pid = Adb @('-d','shell',('pidof ' + $package))
+        $null = RequireAdb -argv @('-d','shell',("am force-stop " + $package))
+        $pid = Adb -argv @('-d','shell',('pidof ' + $package))
         if (-not (($pid.Code -eq 1 -or $pid.Code -eq 0) -and -not $pid.Output)) {
             throw 'Isolated test process not confirmed stopped'
         }
         if ((RemoteSha $remote) -ne $expectedSha) { throw 'External archive changed after test app force-stop' }
         Write-Host 'ANDROID_COPY_AFTER_STOP: PASS'
-        $restart = RequireAdb @('-d','shell',("monkey -p " + $package + " -c android.intent.category.LAUNCHER 1"))
+        $restart = RequireAdb -argv @('-d','shell',("monkey -p " + $package + " -c android.intent.category.LAUNCHER 1"))
         if ($restart -notmatch 'Events injected:\s*1') { throw 'Isolated app relaunch not confirmed' }
         if ((RemoteSha $remote) -ne $expectedSha) { throw 'External archive changed after relaunch' }
         Write-Host 'ANDROID_COPY_AFTER_RELAUNCH: PASS'
