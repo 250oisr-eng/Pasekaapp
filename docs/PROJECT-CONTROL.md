@@ -1,3 +1,10 @@
+## RESTORE335 — 2026-11-21: следующий read-only gate private metadata v2
+
+- [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — физически `files/` подтверждён, `fileproof335-input.paseka` статус `UNKNOWN_OR_ABSENT`; исходный PASEKA01 SHA подтверждён, Toybox dd help флаги есть, запись повторять нельзя.
+- [ПЛАН-РАЗРАБОТКИ.md](ПЛАН-РАЗРАБОТКИ.md) — только `tools/android-restore335-post-dd-failure-readonly-v2.ps1` и регрессионный CI на exact SHA перед физическим чтением; никакого restart/restore/cleanup и удаления видео.
+
+---
+
 ## 2026-11-21 — RESTORE335 physical dd failure: только read-only состояние приватного тестового файла
 
 - Последняя достоверная контрольная точка и следующий gate — [../PROJECT_STATUS.md](../PROJECT_STATUS.md): pinned ADB 1.0.41/stdin SHA PASS, затем one-shot `EXCLUSIVE_TEST_PRIVATE_INPUT_STAGE_FAILED` после mkdir. Нельзя повторять запись/удалять файлы.
