@@ -1,3 +1,11 @@
+## RESTORE335 — physical run-as/Toybox PASS; legacy ADB 1.0.32 discovered (2026-11-21)
+
+- User ran SHA-pinned no-stdin physical proof on OnePlus NE2213/API36 from `2ffb17d2a4ca7399472cddbf1827ada86daaa916`: `ORIGINAL_ARCHIVE: SHA256_PASS_3158_BYTES`, `HOST_ADB_VERSION: Android Debug Bridge version 1.0.32`, `REMOTE_EXIT_CODE: 0`, `REMOTE_STDOUT_BYTES: 77`, `RUN_AS_TOYBOX_DEV_NULL_SHA: PASS`, `STDIN_TRANSPORT: NOT_TESTED`, `PRIVATE_PATH_WRITE: NOT_ATTEMPTED`, `RESTORE_COMMIT: NOT_TESTED`, `RECOGNITION_CLEANUP: NOT_AUTHORIZED`, `STATUS: RESTORE335_NO_STDIN_TOYBOX_PROBE_PASS`. Confirmed actual on-device run-as and toybox hash engine; no binary stdin proof. No writes/restore/cleanup.
+- Host's **ADB 1.0.32 is legacy**. This plausibly explains `shell -T` being forwarded to device (mksh `chvt`) and non-PTY stdin shell hang; these are compatibility hypotheses, not proven root cause of every preceding failure. Stop further stdin commands with this ADB binary. Google official current Android SDK Platform-Tools are free; use a modern adb on host before further transport testing.
+- Same Draft PR #341 adds fail-closed host ADB preflight (`>=1.0.41`) in existing stdin script before reading or transmitting archive bytes. Mock regression tests old 1.0.32 rejection and 1.0.41 pass; CI pending on code+docs SHA. No changes to production, test packages or user data. Next gate: verify CI, then obtain/use official modern ADB on PC and verify path/version, followed by a separate single read-only transport proof.
+
+---
+
 ## RESTORE335 — physical no-flag stdin SHA timed out (2026-11-21)
 
 - User ran pinned script at SHA `0322168064b94afc5e54d199d867bff719bea459` on real OnePlus NE2213/API36. Device and both installed test packages checked; source PASEKA01 3158B SHA256 PASS. Stage 3 `adb shell run-as ... toybox sha256sum -` produced `STATUS: BLOCKED / ADB_TIMEOUT_12S`. No remote digest, device write, installation, restore or cleanup. **Do not claim stdin corruption or successful delivery.**
