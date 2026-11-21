@@ -6,6 +6,7 @@ Never trains, runs a detector, updates the apiary, or deletes video.
 """
 import hashlib
 import json
+import math
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -32,7 +33,10 @@ def classify_zone_transitions(frames, polygon):
     if not isinstance(frames, list) or not frames:
         raise ValueError("source frames must be a nonempty list")
     if (not isinstance(polygon, list) or len(polygon) < 3
-        or any(not isinstance(p, list) or len(p) != 2 for p in polygon)):
+        or any(not isinstance(p, list) or len(p) != 2
+               or any(type(v) not in (int,float) or not math.isfinite(v) for v in p)
+               or not (0<=p[0]<=WIDTH and 0<=p[1]<=HEIGHT)
+               for p in polygon)):
         raise ValueError("source polygon is missing or malformed")
     edges=list(zip(polygon,polygon[1:]+polygon[:1]))
     previous={}
@@ -46,10 +50,11 @@ def classify_zone_transitions(frames, polygon):
             raise ValueError("frame must be an ID-to-bbox mapping")
         current={}
         for track_id, box in frame.items():
-            if type(track_id) is not int or track_id < 0 or len(box)!=4:
+            if (type(track_id) is not int or track_id < 0
+                or not isinstance(box,(list,tuple)) or len(box)!=4):
                 raise ValueError("invalid reference ID or box")
             x1,y1,x2,y2=box
-            if not all(isinstance(v,(int,float)) and __import__('math').isfinite(v) for v in box):
+            if not all(type(v) in (int,float) and math.isfinite(v) for v in box):
                 raise ValueError("invalid or nonfinite reference box")
             if not 0<=x1<x2<=1 or not 0<=y1<y2<=1:
                 raise ValueError("reference bbox outside normalized image")
