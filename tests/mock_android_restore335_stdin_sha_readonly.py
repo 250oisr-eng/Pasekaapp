@@ -29,8 +29,8 @@ elif args==['-d','exec-out','cat','/sdcard/Download/PasekaProof329/paseka-proof3
 elif args==['-d','shell','-T','run-as',p,'/system/bin/toybox','sha256sum','-']:
     data=sys.stdin.buffer.read()
     if mode=='stdin_corrupt':data=data[:-1]+b'!'
-    if mode in ('stdout_diagnostic','device_command_error'):
-        sys.stdout.write('sha256sum: no such file or directory\n' if mode=='stdout_diagnostic' else 'run-as: command failure\n')
+    if mode in ('stdout_diagnostic','device_command_error','diagnostic_redacted'):
+        sys.stdout.write('sha256sum: no such file or directory\n' if mode=='stdout_diagnostic' else ('run-as: command failure\n' if mode=='device_command_error' else 'run-as: invalid\\x00payload\n'))
     else:
         print(hashlib.sha256(data).hexdigest()+'  -')
 else:
@@ -48,6 +48,7 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
         ('stdin_corrupt','STDIN_SHA256_MISMATCH',2),
         ('stdout_diagnostic','STDIN_SHA256_OUTPUT_INVALID',2),
         ('device_command_error','STDIN_SHA256_OUTPUT_INVALID',2),
+        ('diagnostic_redacted','STDIN_SHA256_OUTPUT_INVALID',2),
         ('source_corrupt','ORIGINAL_PINNED_SHA_FAILED',2)
     ]:
         archive=source if mode!='source_corrupt' else source[:-1]+b'!'
@@ -66,8 +67,12 @@ with tempfile.TemporaryDirectory(prefix='restore335-stdin-ci-') as td:
             assert 'REMOTE_EXIT_CODE: 0' in result.stdout
             assert 'REMOTE_STDOUT_BYTES:' in result.stdout
             assert 'REMOTE_STDOUT_SHA256:' in result.stdout
-        if mode in ('stdout_diagnostic','device_command_error'):
+        if mode in ('stdout_diagnostic','device_command_error','diagnostic_redacted'):
             assert 'REMOTE_OUTPUT_CLASS: COMMAND_DIAGNOSTIC' in result.stdout
+        if mode == 'device_command_error':
+            assert 'REMOTE_DIAGNOSTIC: run-as: command failure' in result.stdout
+        if mode == 'diagnostic_redacted':
+            assert 'REMOTE_DIAGNOSTIC: REDACTED' in result.stdout
         if mode == 'pass':
             assert 'REMOTE_OUTPUT_CLASS' not in result.stdout
         assert 'NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE' in result.stdout if code else 'PRIVATE_PATH_WRITE: NOT_ATTEMPTED' in result.stdout
