@@ -30,3 +30,27 @@ jobs:
           if($errors.Count -gt 0){ $errors | ForEach-Object {Write-Error $_}; exit 1 }
       - name: Negative and source-safety checks
         run: node --test tests/fileproof329-archive-preflight.test.mjs
+      - name: Simulate ADB devices failure with real PowerShell process invocation
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/mockbin"
+          cat > "$RUNNER_TEMP/mockbin/adb" <<'MOCK'
+          #!/usr/bin/env bash
+          if [[ "$1" == "devices" && "$2" == "-l" ]]; then
+            echo "mock disconnected test device" >&2
+            exit 1
+          fi
+          exit 97
+          MOCK
+          chmod +x "$RUNNER_TEMP/mockbin/adb"
+          export PATH="$RUNNER_TEMP/mockbin:$PATH"
+          set +e
+          pwsh -NoProfile -File tools/android-fileproof329-readonly-preflight.ps1 > "$RUNNER_TEMP/result.txt" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/result.txt"
+          test "$status" -eq 2
+          grep -q 'ADB_DIAGNOSTIC: DEVICES EXIT_1' "$RUNNER_TEMP/result.txt"
+          grep -q 'DETAIL: ADB_EXIT_1_DEVICES' "$RUNNER_TEMP/result.txt"
+          grep -q 'mock disconnected test device' "$RUNNER_TEMP/result.txt"
+          grep -q 'NO_INSTALL_NO_RESET_NO_STOP_NO_RESTORE_NO_DELETE' "$RUNNER_TEMP/result.txt"
