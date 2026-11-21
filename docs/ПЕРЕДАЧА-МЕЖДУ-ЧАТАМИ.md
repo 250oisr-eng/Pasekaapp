@@ -1,3 +1,11 @@
+## 2026-11-21 — отдельный Draft #325: реальные синтетические MP4 → IndexedDB → экспорт PASEKA01 (CI ожидается)
+
+- Продолжение #324 поверх коммита `b0cb19f9571406f06f5bbb860e8d0f7ed8834b4b`; создан Draft PR #325, `test/android-two-blob-app-export-gate-2026-11-21`. Рабочий файл `tests/video-archive-two-blob-export.test.mjs` проверяет действительный `PasekaArchive.exportArchiveFromDatabase`, парсинг, chunk SHA и проверку перед восстановлением.
+- Две независимо созданные FFmpeg/ffprobe синтетические MP4 по 893 байта (чёрный/белый кадр, 16×16): SHA256 `794e1dcb2598dff510b8f4b7cafea57a500cbfd57a1e57a99247a9bb7d784b9f` и `bc9abbf1f109a7f2feb8787d52bce8363eb3c577ef2acd67ae4fcdf59a892eff`. Base64 зафиксирован в тесте. Android-декодирование **не проверено**.
+- Добавлены негативные проверки порчи одного байта, отсутствующего Blob и существующего recognition ledger, а также отдельная проверка записи двух файлов через `fake-indexeddb` в **новую изолированную** базу, закрытия/повторного открытия и SHA-равенства app-export.
+- Документ `docs/ANDROID-TWO-MP4-APP-EXPORT-REGRESSION-2026-11-21.md` описывает границы и следующий шаг. Изменения только в тестах и документации, **не в runtime APK, main или production**.
+- GitHub Actions CI на конечном SHA ещё **не подтверждён**; предыдущие запуски на промежуточных коммитах не переносятся на новый HEAD. Физический Android app-export/restore и распознавание **NOT TESTED**. `cleanupAuthorized=false`; удаление запрещено.
+
 ## 2026-11-21 — физический Android: два внешних синтетических Blob SHA PASS после stop/relaunch
 
 - Пользователь выполнил pinned `tools/android_synthetic_two_video_stop.ps1` на OnePlus NE2213 / API 36, isolated `ru.paseka.journal.archive.test`. Создан **новый** внешний PASEKA01 с двумя синтетическими **не playable MP4** Blob. SHA общего контейнера `35ffcaa22e9fd48889a61b124f07110c300ae4a8208b273f773bc81f9b2c4ffb`.
