@@ -1,3 +1,11 @@
+## 2026-11-21 — полный положительный mock Windows/ADB proof325 PASS
+
+- Исправлена ошибка PowerShell `Reports()`: `return ,$parsed` возвращал вложенный массив, из-за которого `@(Reports)` мог неверно считать 0/1/2 результата. Используется `return $parsed` с перечислением отдельных отчётов.
+- Добавлен `tests/test_android_two_mp4_proof_positive_mock.sh`: самостоятельно создаёт изолированный ZIP/APK test fixture, проверяет SHA ZIP, имитирует `adb install`, первый `INITIAL_PASS`, ровно один `am force-stop` только `ru.paseka.journal.archive.proof325`, второй `RELAUNCH_PASS`, запрет `pm clear/uninstall` и отсутствие пользовательского удаления. Исправлен начальный mock FAIL `ZIP_SIZE_LIMIT`: тестовый ZIP должен быть больше минимальной длины, использовано `ZIP_STORED` вместо сжимаемых нулей.
+- [CI PowerShell USB proof #44935853326](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935853326) **completed/success** на `ffb723a6033bd87138cd8925c09c497c5a1c5c30`: три negative cases PASS и **Positive two-report Windows PowerShell mock: PASS**. Это не физический Android и не подтверждение ZIP артефакта нового APK.
+- Отдельный APK workflow [#44935383924](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44935383924) на `a4637a443419c0783672683d83c0809410ee33c6` по последнему наблюдению ещё **in_progress** на `Build proof-only isolated debug APK`; успех и SHA артефакта неизвестны. Не запускать пользовательский физический сценарий до подтверждения CI и SHA.
+- Реальные данные, пользовательские файлы, main, merge, production deployment, распознавание и автоматическая очистка не затрагивались. `cleanupAuthorized=false`.
+
 ## 2026-11-21 — новый Draft #326: изолированный Android proof325, mock-ADB PASS, APK CI не завершён
 
 - Создан stacked Draft [#326](https://github.com/250oisr-eng/Pasekaapp/pull/326) поверх #325. Только тестовые `tests/fixtures/android-two-mp4-proof.{html,js}`, фикстуры MP4, Node-тесты, CI workflow, сборочный скрипт и инструмент Windows. На runner формируется отдельный пакет `ru.paseka.journal.archive.proof325` со **своей новой IndexedDB**, не заменяющий production/ранее установленный архивный APK.
