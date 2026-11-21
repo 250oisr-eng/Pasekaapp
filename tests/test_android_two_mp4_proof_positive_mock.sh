@@ -6,7 +6,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 python3 - "$tmp/proof.zip" <<'PY'
 import sys,zipfile
-with zipfile.ZipFile(sys.argv[1],"w",compression=zipfile.ZIP_DEFLATED) as z:
+with zipfile.ZipFile(sys.argv[1],"w",compression=zipfile.ZIP_STORED) as z:
     z.writestr("app-debug.apk",b"X"*4096)
 PY
 sha="$(sha256sum "$tmp/proof.zip" | awk '{print $1}')"
