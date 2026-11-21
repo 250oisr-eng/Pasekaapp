@@ -1,3 +1,11 @@
+## 2026-11-21 — Apis mellifera: подтверждённый архив и видовая изоляция
+
+- [VIDEO-APIS-ZENODO-PARTIAL-ORIGINAL-ZIP-AUDIT.md](VIDEO-APIS-ZENODO-PARTIAL-ORIGINAL-ZIP-AUDIT.md) — официальный Zenodo v2 Apis mellifera, полный исходный ZIP-каталог JPG/TXT, первая подлинная JPEG/TXT CRC/SHA, ограничения data quality.
+- [VIDEO-APIS-ZENODO-REAL-SPLIT-AUDIT.md](VIDEO-APIS-ZENODO-REAL-SPLIT-AUDIT.md) — авторские 10 real split TXT, девять дат train/val и стратегия day-heldout.
+- [VIDEO-APIS-MELLIFERA-ONLY-SOURCE-GATE.md](VIDEO-APIS-MELLIFERA-ONLY-SOURCE-GATE.md) — список видов/лицензий и запрет моделей других видов.
+
+---
+
 ## 2026-11-21 — внешний исходный набор ручных пчелиных событий: license/revision gate
 
 - [VIDEO-EXTERNAL-MANUAL-BEE-EVENT-LABELS-RESEARCH.md](VIDEO-EXTERNAL-MANUAL-BEE-EVENT-LABELS-RESEARCH.md) — источник Nieves-Rivera et al. (2026), два реальных CSV по 1422 ручных событий, 177 различий классификации, отсутствующий LICENSE и непроверенное выделение 1194 эталонных событий. Не тренировать и не использовать для in/out без доказательств.

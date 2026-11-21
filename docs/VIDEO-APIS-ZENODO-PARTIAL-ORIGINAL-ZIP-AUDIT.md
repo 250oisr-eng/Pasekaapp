@@ -1,3 +1,18 @@
+## 2026-11-21 — реальный ZIP Zenodo Apis mellifera: 2823 исходных JPG/TXT по каталогу, 1 CRC/SHA пара (Draft #322)
+
+- **Верифицированный первоисточник:** [Zenodo v2](https://zenodo.org/records/23276947), DOI 10.5281/zenodo.23276947; издательская API-карточка подтверждает научный вид **Apis mellifera**, права **CC BY 4.0**, ZIP размером **2 005 232 875 байт** и заявленный MD5 `3b1dfaed60310045358a6e4391df89cc`. Полный MD5 2-ГБ архива **не пересчитан**.
+- Настоящий ZIP central index (5647 элементов) проверен через ограниченные HTTP byte ranges: **2823 JPG + 2823 YOLO TXT + classes.txt**. Все 2823 JPG/TXT по basename попарно совпадают, все даты кадров точно совпали с исходными SHA-верифицированными авторскими split TXT: **2795** in-hive frames и **28** handheld. Из ZIP получены и ZIP CRC-проверены оригинальные `img-20240107_220407--312.jpg` (621231 байт, SOF 1920x1080) и соответствующий TXT (38 байт, 1 YOLO bbox класса 0; geometry valid). Измеренные SHA256: JPG `8eaebe87ab7d28e5e70d679bf2ef63c48f2790b34524c4443bd8a2478b53f401`; TXT `c9ca49a9252af21a09a86fbbfdeeb12e4c765a774f526233fc32155b7ba2faf2`.
+- Исходный архив использует Windows backslash в ZIP-именах (например, `dataset\classes.txt`). Аналитическая нормализация разделителей исправлена **без извлечения или переименования исходных байтов**; абсолютные пути, drive/UNC, traversal и коллизии после нормализации блокируются. Воспроизводимый [CI #44923936313](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44923936313) **SUCCESS, 22/22 synthetic tests + оригинальный ZIP catalog + первая CRC/SHA пара**. Повтор [#44923991236](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44923991236) SUCCESS.
+- Официальный Zenodo JSON record реально проверен: [CI #44923991250](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44923991250) **SUCCESS, 11/11 synthetic tests + exact DOI/taxon/license/size/MD5 metadata**; внутренний ZIP-member endpoint ответил HTTP **403**. Издательский MD5 остаётся только metadata claim, а не independently verified checksum.
+- Третий metadata-only allowlist source `zenodo-varroa-in-hive-v2` добавлен к BEEHIVE/pollen-beedata, только вид Apis mellifera, лицензия CC BY 4.0. [Source gate CI #44924124286](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44924124286) **SUCCESS, 22/22 tests** на кодовом SHA `6c6c21078a1350d5da6d9e449c41f686a6907098`. **Metadata eligible не означает разрешённое обучение**.
+- **Остаётся непроверенным:** полный архивный MD5, индивидуальные исходные байты **2822** JPG/TXT, полный JPEG pixel decode, физическая session/camera независимость, независимая точность детектора, реальный in/out/U-turn GT на летке и офлайн Android inference. Код приложения, IndexedDB, backup, SW, оригинальные пользовательские видео не затрагивались, автоудаление/обучение/деплой/слияние PR запрещены. Следующий этап — дополнительные исходные байты, полноценная проверка близких дублей и независимый видеобенчмарк входов/выходов Apis mellifera.
+
+---
+
+Нижеследующие прежние сетевые failure/timeout остаются **историческими контрольными точками** и НЕ отменяют последующие подтверждённые SUCCESS на перечисленных SHA.
+
+---
+
 ## Фактические HTTP и CI результаты 2026-11-21 — центральный каталог доступен частично, JPG/TXT не удостоверены
 
 - **Проверенный исходник:** строго https://zenodo.org/records/23276947/files/dataset_2823_images_labels.zip?download=1, `Apis mellifera`, версия 2, CC BY 4.0. На [GitHub CI #44918667190](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44918667190): подлинный ответ `206 Content-Range: bytes 0-0/2005232875`, полный размер **2 005 232 875 байт**, проверены 7 тестов fail-closed. Издательский MD5 `3b1dfaed60310045358a6e4391df89cc` — пока **не проверен по содержимому всего ZIP**.
