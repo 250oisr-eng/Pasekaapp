@@ -45,7 +45,7 @@ function Adb([string[]]$argv) {
       [void]$proc.WaitForExit(2000)
       throw 'ADB_TIMEOUT_12S'
     }
-    $stdoutTask.GetAwaiter().GetResult()
+    [void]$stdoutTask.GetAwaiter().GetResult()
     $diagnostic=$stderrTask.GetAwaiter().GetResult()
     if($proc.ExitCode -ne 0) {
       # Report only command category and a bounded sanitized ADB diagnostic.
