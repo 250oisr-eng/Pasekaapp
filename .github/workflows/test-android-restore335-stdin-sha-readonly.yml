@@ -26,7 +26,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           s=Path('tools/android-restore335-stdin-sha-readonly.ps1').read_text()
-          assert "ADB @('-d','exec-in','run-as',$pkg,'sha256sum') $archive.Bytes" in s
+          assert "ADB @('-d','shell','-T','run-as',$pkg,'sha256sum') $archive.Bytes" in s
           assert "ADB @('-d','exec-out','cat',$source)" in s
           assert "$archive.Bytes.Length -ne 3158" in s
           assert "NO_INSTALL_NO_WRITE_NO_LAUNCH_NO_RESET_NO_DELETE" in s
