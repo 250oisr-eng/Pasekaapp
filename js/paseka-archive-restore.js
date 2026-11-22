@@ -106,10 +106,16 @@ async function updateSession(db, session) {
     // original writer's final status update, treat that update as an idempotent
     // success. Never let a stale failure path downgrade a ready session.
     const identicalReady = currentSession.status === 'ready' && session.status === 'ready' &&
+        currentSession.sessionId === sessionId && session.sessionId === sessionId &&
+        currentSession.backupId === session.backupId &&
         currentSession.fingerprint === session.fingerprint &&
         currentSession.stagingEpoch === session.stagingEpoch &&
         currentSession.stagedCount === session.stagedCount &&
-        currentSession.totalEntries === session.totalEntries;
+        currentSession.totalEntries === session.totalEntries &&
+        typeof currentSession.baselineMediaFingerprint === 'string' &&
+        currentSession.baselineMediaFingerprint === session.baselineMediaFingerprint &&
+        typeof currentSession.baselineMediaMetadataFingerprint === 'string' &&
+        currentSession.baselineMediaMetadataFingerprint === session.baselineMediaMetadataFingerprint;
     if (!identicalReady && currentSession.status !== 'staging') {
       failure = Object.assign(new Error('Staging session is no longer writable.'), { code: 'STAGING_SESSION_NOT_WRITABLE' });
       try { tx.abort(); } catch (error) {}
