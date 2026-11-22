@@ -1,3 +1,19 @@
+## P2 — доказанный программный прогресс, полная готовность заблокирована (2026-11-23)
+
+- Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, все P2 #424–#427 Draft/unmerged. Стабилизация P0/P1 OPEN, Restore335 STOP, видео/MediaStore НЕ удалять, production не менять.
+- Проверенные exact code/test SHA: #424 `1c4135f9c3472c23b6bc18a42512cdcb2c487682` — Fast #45082890375 1227/1227, Android #45082890367 success, emulator #45082890376 success; #425 `03beb85c022d6566e77e3136f4fa1c7f2813d981` — Fast #45083042750 1231/1231, Android #45083042720 success, emulator #45083042669 success; #426 `0431aee1a139a1017cc71c06b8912653cddf9cb7` — Fast #45083344403 1234/1234, Android #45083344435 success; #427 `19f7bd300b8efb4da9663d231036e53e0312fdd9` — Fast #45083503795 1238/1238, Android #45083503833 success. Emulator #426/#427 IN_PROGRESS, не PASS.
+- Итог code #427 Android APK **8 401 230 bytes**, runtime JS 21/450 361 bytes; неактивные v2 JS остались в Git, исключены из APK. Результат до/после для старого APK неизвестен.
+- P2.1/P2.2/P2.5/P2.7 code-tests и Android build **PASS**; реальная RAM, CPU latency, батарея, ONNX bee model, физическая офлайн-съёмка, media cleanup остаются **BLOCKED/NOT_TESTED**. Полная матрица `docs/P2-ПРОИЗВОДИТЕЛЬНОСТЬ-2026-11-23.md`. **P2: PARTIAL, NOT READY**.
+- Этот docs-only commit увеличивает SHA после code/test CI; его отдельная проверка Fast/Android необходима. Не менять рабочие данные, не выполнять merge/production без отдельного разрешения. Один следующий шаг: завершить P0/P1 safety gate, затем физические P2 замеры на disposable Android.
+
+---
+## P2.7 — длинная история / подтверждённый footprint Android (2026-11-23)
+
+- P2 Draft #426 exact HEAD `0431aee1a139a1017cc71c06b8912653cddf9cb7`: Fast Quality #45083344403 **1234/1234 PASS**, Android Debug #45083344435 **success**. Android CI измерил `P2_APK_BYTES=8400918`, `P2_RUNTIME_JS_BYTES=450361` (21 файл), `P2_SOURCE_JS_BYTES=596340` (38 файлов); 17 изолированных прототипов (145979 source bytes) не попадают в generated www. Это **не** доказательство разницы размера APK до/после. P0 emulator workflow отдельный, нужно проверить его статус на exact SHA.
+- Следующий безопасный блок `perf/p2-long-history-readonly-render-2026-11-23`: newest 100 audit events из длинной истории читаются с хвоста, без O(N) полного копирования; журнал сначала фильтруется, потом сортируется, не теряя старых записей. `tests/p2-long-history-render.test.mjs` проверяет 20k synthetic audit и порядок журналов.
+- Нет изменений IndexedDB schema/backup/media, кадры/детекция/очистка/production не тронуты. P2.1/2.2/2.5 частично проверены в CI, P2.3/P2.4/P2.8 и физические P2.6 зависят от открытых P0/P1. Текущий P2.7 нуждается в CI именно на новом HEAD; P2 **NOT READY**.
+
+---
 ### P2.5 — первый CI: устаревший тест способа упаковки (2026-11-23)
 
 - Первый SHA #426 `d5acee9c76941649187c09e25d2898e08fd7dad2`: Fast Quality #45083259096 **FAILED: 1233/1234 PASS, 1 FAIL**. Старый `tests/voice-session.test.mjs` жёстко требовал `cp('js','www/js',{recursive:true})` и противоречил цели безопасной упаковки только runtime ассетов. Проверка загрузки двух голосовых JS и их offline caching по-прежнему PASS.
