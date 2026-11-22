@@ -1239,11 +1239,15 @@ async function inspectStagingRecognitionCopies(db) {
         !['blocked_archive_safety', 'delete_required', 'deleted'].includes(entry.cleanupState))) {
     return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', ...empty };
   }
-  const identities = new Set();
+  const identities = new Set(), resultIds = new Set();
   for (const entry of ledger.entries) {
     const id = entry.source + ':' + entry.videoId;
     if (identities.has(id)) return { ok: false, reason: 'VIDEO_LEDGER_DUPLICATE_IDENTITY', ...empty };
+    if (resultIds.has(entry.resultId))
+      return { ok: false, reason: 'VIDEO_LEDGER_DUPLICATE_RESULT_ID',
+        ...empty, requiresManualReview: true };
     identities.add(id);
+    resultIds.add(entry.resultId);
   }
   // This diagnostic must never call an incomplete recognition entry verified.
   // The archive-V2 guard separately requires the same source-bound hash, byte
