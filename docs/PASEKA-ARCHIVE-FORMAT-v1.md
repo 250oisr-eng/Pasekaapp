@@ -1,3 +1,13 @@
+## 2026-11-22 — P0: гарантии перечисления media/history во время staging/restore/rollback
+
+- В отдельной ветке `fix/archive-restore-enumeration-failclosed-2026-11-22` поверх Draft PR #391 внесено точечное исправление `js/paseka-archive-restore.js`: `assertIndexedDbRows` запрещает интерпретировать нештатный результат `IDBObjectStore.getAll()` как пустой список. Основные пути: начальное сканирование видео при staging; повторная проверка при коротком write lock; Phase A hash baseline; Phase B commit write lock; фазы rollback; `archive_history.getAll()` перед удалением staging.
+- Для медиа используется `RESTORE_MEDIA_ENUMERATION_UNVERIFIED`, для ссылок истории — `ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED`. Все эти ошибки блокируют операцию; нет автоматической очистки или восстановления из неизвестного источника. Стандартный IndexedDB при нормальной работе возвращает Array — это защита от ошибочного адаптера/рефакторинга, а не доказательство исправления известного физического сбоя Android.
+- Добавлен `tests/archive-restore-enumeration-failclosed.test.mjs`: 11 синтетических сценариев (штатная пустая медиа-библиотека, 4 некорректных ответа первичного чтения, ошибка write-lock сканирования, Phase A и Phase B commit, защищённое удаление staging, Phase A и Phase B rollback), используются отдельные fake-indexeddb и подменяемые **только ответы** getAll через изолированный Proxy. Проверяется сохранность live state, archive_history и staging.
+- Это кодовый + регрессионный этап; пока CI на exact SHA не завершён, не объявлять PASS. После финального documentation snapshot создать Draft PR и выполнить полный Node/Android CI на проверенном SHA. `main`/production пользовательские данные и Restore335 не затронуты, удаление видео по-прежнему запрещено.
+- Далее: audit архитектуры writer-lock и v2 media-ledger/restore с отдельными независимыми фикстурами; отсутствие real recording в ноябре не блокирует развитие.
+
+---
+
 ## 2026-11-22 — блокировка неверного результата перечисления video store перед экспортом
 
 - `readConsistentDatabaseSnapshot` обязательно требует **Array** от `entrance_media.getAll()`. Нестандартный `undefined`, `null`, объект или иное значение нельзя интерпретировать как «видеозаписей нет». Теперь отказ `VIDEO_SNAPSHOT_UNVERIFIED`, попытка abort read-only транзакции и отсутствие результата экспорта.
