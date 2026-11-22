@@ -194,3 +194,76 @@ for(const mode of ['readonly','readwrite']){
   }finally{db.close();}
  });
 }
+
+function corruptIndexRead(db,storeName,indexName,requestMethod,replacement){
+ return {
+  objectStoreNames:db.objectStoreNames,
+  transaction(...args){
+   const tx=db.transaction(...args);
+   return new Proxy(tx,{get(target,field){
+    if(field!=='objectStore')return Reflect.get(target,field,target);
+    return name=>{
+     const store=target.objectStore(name);
+     if(name!==storeName)return store;
+     return new Proxy(store,{get(targetStore,storeField){
+      if(storeField!=='index')return Reflect.get(targetStore,storeField,targetStore);
+      return key=>{
+       const index=targetStore.index(key);
+       if(key!==indexName)return index;
+       return new Proxy(index,{get(targetIndex,indexField){
+        if(indexField!==requestMethod)return Reflect.get(targetIndex,indexField,targetIndex);
+        return (...requestArgs)=>{
+         const request=targetIndex[requestMethod](...requestArgs);
+         return new Proxy(request,{
+          get(targetRequest,requestField){
+           if(requestField==='result')return replacement;
+           return Reflect.get(targetRequest,requestField,targetRequest);
+          },
+          set(targetRequest,requestField,value){
+           return Reflect.set(targetRequest,requestField,value,targetRequest);
+          }
+         });
+        };
+       }});
+      };
+     }});
+    };
+   }});
+  }
+ };
+}
+test('read-only staging copy audit reports empty indexes only when all lists are valid',async()=>{
+ const db=await seeded();
+ try{
+  const report=await Restore.inspectStagingRecognitionCopies(db);
+  assert.equal(report.ok,true);
+  assert.equal(report.status,'no_recognition_history');
+  assert.equal(report.matchedCopies,0);
+ }finally{db.close();}
+});
+test('read-only staging copy audit refuses unverifiable history even when ledger is absent',async()=>{
+ const db=await seeded();
+ try{
+  await assert.rejects(
+   Restore.inspectStagingRecognitionCopies(corruptGetAll(db,'archive_history',null)),
+   {code:'ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED'});
+ }finally{db.close();}
+});
+test('read-only staging copy audit refuses unverifiable session headers',async()=>{
+ const db=await seeded();
+ try{
+  await assert.rejects(
+   Restore.inspectStagingRecognitionCopies(corruptIndexRead(
+    db,'archive_staging','kind','getAll',null)),
+   {code:'STAGING_SESSIONS_ENUMERATION_UNVERIFIED'});
+ }finally{db.close();}
+});
+test('read-only staging copy audit refuses unverifiable video-copy keys',async()=>{
+ const db=await seeded();
+ try{
+  await assert.rejects(
+   Restore.inspectStagingRecognitionCopies(corruptIndexRead(
+    db,'archive_staging','kind','getAllKeys',null)),
+   {code:'STAGING_VIDEO_KEYS_ENUMERATION_UNVERIFIED'});
+ }finally{db.close();}
+});
