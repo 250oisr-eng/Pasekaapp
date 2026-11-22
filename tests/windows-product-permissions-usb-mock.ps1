@@ -18,6 +18,26 @@ try {
 @echo off
 echo %*>>"%MOCK_ADB_LOG%"
 if "%~1"=="devices" (
+ if "%MOCK_SCENARIO%"=="device-change" (
+  if exist "%MOCK_DEVICE_COUNT_FLAG%" (
+   echo List of devices attached
+   echo NEW456 device product:mock usb:2-1
+   exit /b 0
+  )
+  type nul > "%MOCK_DEVICE_COUNT_FLAG%"
+ )
+ if "%MOCK_SCENARIO%"=="extra-device" (
+  echo List of devices attached
+  echo MOCK123 device product:mock usb:1-1
+  echo SECOND2 device product:mock usb:2-1
+  exit /b 0
+ )
+ if "%MOCK_SCENARIO%"=="unknown-state" (
+  echo List of devices attached
+  echo MOCK123 device product:mock usb:1-1
+  echo OTHER123 disconnected usb:2-1
+  exit /b 0
+ )
  if "%MOCK_SCENARIO%"=="no-device" (
   echo List of devices attached
   exit /b 0
@@ -91,6 +111,9 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
  $cases=@(
   @{Name='no-device';Expected=2;Install=$false;Launch=$false;Reason='EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'},
   @{Name='unauthorized';Expected=2;Install=$false;Launch=$false;Reason='EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'},
+  @{Name='extra-device';Expected=2;Install=$false;Launch=$false;Reason='EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'},
+  @{Name='unknown-state';Expected=2;Install=$false;Launch=$false;Reason='EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'},
+  @{Name='device-change';Expected=2;Install=$false;Launch=$false;Reason='USB_DEVICE_CHANGED_NO_INSTALL'},
   @{Name='no-product';Expected=2;Install=$false;Launch=$false;Reason='PRODUCT_NOT_INSTALLED_NO_TEST'},
   @{Name='preinstalled';Expected=2;Install=$false;Launch=$false;Reason='DIAGNOSTIC_ALREADY_PRESENT_NO_REINSTALL'},
   @{Name='bad-hash';Expected=2;Install=$false;Launch=$false;Reason='PINNED_APK_SHA256_MISMATCH'},
@@ -102,9 +125,11 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
   $name=$case.Name
   $log=Join-Path $dir ($name+'.log')
   $flag=Join-Path $dir ($name+'.installed')
+  $countFlag=Join-Path $dir ($name+'.device-call')
   $env:MOCK_SCENARIO=$name
   $env:MOCK_ADB_LOG=$log
   $env:MOCK_INSTALLED_FLAG=$flag
+  $env:MOCK_DEVICE_COUNT_FLAG=$countFlag
   $output=& $shell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $worker -Installer $installer -DummyApk $apk 2>&1
   $exit=$LASTEXITCODE
   $result=($output -join [Environment]::NewLine)
@@ -121,11 +146,12 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
   }
   Write-Host ("MOCK_USB_{0}: PASS expected exit={1}, installs={2}, launches={3}" -f $name,$exit,$installs.Count,$launches.Count)
  }
- Write-Host 'WINDOWS_POWERSHELL_USB_MOCK_MATRIX: PASS 8/8'
+ Write-Host 'WINDOWS_POWERSHELL_USB_MOCK_MATRIX: PASS 11/11'
 }finally{
  $env:PATH=$originalPath
  Remove-Item Env:MOCK_SCENARIO -ErrorAction SilentlyContinue
  Remove-Item Env:MOCK_ADB_LOG -ErrorAction SilentlyContinue
  Remove-Item Env:MOCK_INSTALLED_FLAG -ErrorAction SilentlyContinue
+ Remove-Item Env:MOCK_DEVICE_COUNT_FLAG -ErrorAction SilentlyContinue
  if(Test-Path -LiteralPath $dir){Remove-Item -LiteralPath $dir -Recurse -Force}
 }
