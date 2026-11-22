@@ -67,6 +67,25 @@
       "fieldBenchmark": "NOT_ENTRANCE",
       "offlineAndroid": "UNVERIFIED",
       "status": "BLOCKED"
+    },
+    {
+      "id": "matpalm-bnn",
+      "source": "https://github.com/matpalm/bnn",
+      "codeLicense": "MIT_REPO_LICENSE",
+      "weightsLicense": "UNVERIFIED",
+      "weightsArtifact": "NO_PUBLISHED_CHECKPOINT_VERIFIED",
+      "baseModel": "TensorFlow U-Net-style centroid heatmap",
+      "baseModelLicense": "SOURCE_ONLY_MIT",
+      "task": "hive_entrance_bee_centroid_localization",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED",
+      "evidence": [
+        "README documents train run checkpoints under ckpts/<run>",
+        "gitignore excludes ckpts and frozen graph",
+        "freeze_graph.sh references a local ckpts/r19_bfs4/20180308_193817",
+        "GitHub repository lists no Releases"
+      ]
     }
   ]
 }
