@@ -6,7 +6,10 @@ function fail(code){const e=new Error(code);e.code=code;throw e;}
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const validId=v=>typeof v==='string'&&v.length>0&&v.length<=200&&!/\s/.test(v);
 const validHash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
-const videoLike=v=>v?.kind==='video'||v?.type==='video'||typeof v?.type==='string'&&v.type.startsWith('video/');
+const videoType=value=>typeof value==='string' &&
+ (value.toLowerCase()==='video'||/^video\//i.test(value)||
+  /^application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl)$/i.test(value));
+const videoLike=v=>v?.kind==='video'||videoType(v?.type)||videoType(v?.mimeType);
 function canonical(value){
  if(value===null||typeof value==='string'||typeof value==='boolean')return JSON.stringify(value);
  if(typeof value==='number'&&Number.isFinite(value))return JSON.stringify(value);
