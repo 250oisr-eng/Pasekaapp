@@ -12,7 +12,7 @@ function assertStructuredResult(value, depth = 0, seen = new Set()) {
   if (depth > 12) fail('V2_RESULT_DEPTH_LIMIT');
   if (value === null || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value)) return;
   if (typeof value === 'string') {
-    if (/^data:(?:video|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))/i.test(value)) fail('V2_RESULT_BINARY');
+    if (/data:(?:video|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))/i.test(value)) fail('V2_RESULT_BINARY');
     return;
   }
   if (typeof value !== 'object' || seen.has(value) || !(Array.isArray(value) || obj(value))) fail('V2_RESULT_INVALID');
