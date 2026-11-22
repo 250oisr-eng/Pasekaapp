@@ -170,6 +170,20 @@ function inspectSnapshot(v,guard){
    !['committed_rollback_blocked','reverted_quarantined_unverified'].includes(record.status))
    issue('history_status_unknown');
  }
+ // Cross-store metadata disagreement cannot be treated as consistent source evidence.
+ // Compare only independently present fields; missing fields stay blocked elsewhere.
+ const copiesByIdentity=new Map();
+ for(const copy of copies){
+  if(copy.identity===null)continue;
+  const previous=copiesByIdentity.get(copy.identity)||[];
+  for(const prior of previous){
+   if(copy.sha256!==null&&prior.sha256!==null&&copy.sha256!==prior.sha256||
+      copy.bytes!==null&&prior.bytes!==null&&copy.bytes!==prior.bytes)
+    issue('conflicting_copy_evidence');
+  }
+  previous.push(copy);
+  copiesByIdentity.set(copy.identity,previous);
+ }
  for(const copy of copies){
   const status=recognition.get(copy.identity);
   if(status!=null)issue('recognized_original_still_present');
