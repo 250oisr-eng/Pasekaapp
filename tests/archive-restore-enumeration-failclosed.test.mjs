@@ -381,3 +381,93 @@ for (const mode of ['readonly','readwrite']) {
   } finally { db.close(); }
  });
 }
+
+async function committedSyntheticRollbackFixture() {
+ const db=await seeded();
+ const staged=await stage(db);
+ const commit=await Restore.commitStagedArchive(
+  db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+ return {db,staged,commit,rollbackId:commit.rollbackSessionId};
+}
+async function replaceSyntheticStagedKey(db,from,to,kind) {
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('archive_staging','readwrite');
+  const store=tx.objectStore('archive_staging');
+  const original=store.get(from);
+  original.onsuccess=()=>{
+   store.delete(from);
+   store.put({...original.result,id:to,kind});
+  };
+  tx.oncomplete=resolve;
+  tx.onabort=tx.onerror=()=>reject(tx.error);
+ });
+}
+test('rollback snapshot discard removes only verified synthetic rollback rows and leaves imported state',async()=>{
+ const {db,rollbackId}=await committedSyntheticRollbackFixture();
+ try {
+  const stateBefore=await get(db,'main','state');
+  const actual=await Restore.discardArchiveRollbackSnapshot(db,'synthetic-media-integrity-1');
+  assert.equal(actual.deletedRecords,2);
+  assert.equal(await get(db,'archive_staging',rollbackId),undefined);
+  assert.equal(await get(db,'archive_staging',rollbackId+':state'),undefined);
+  assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).rollbackAvailable,false);
+  assert.deepEqual(await get(db,'main','state'),stateBefore);
+ } finally {db.close();}
+});
+test('rollback snapshot discard rejects an unknown indexed key despite unchanged entry count',async()=>{
+ const {db,rollbackId}=await committedSyntheticRollbackFixture();
+ try {
+  await replaceSyntheticStagedKey(db,rollbackId+':state',rollbackId+':unexpected','rollback_state');
+  const stageBefore=await rows(db,'archive_staging');
+  const historyBefore=await get(db,'archive_history','synthetic-media-integrity-1');
+  const stateBefore=await get(db,'main','state');
+  await assert.rejects(Restore.discardArchiveRollbackSnapshot(db,'synthetic-media-integrity-1'),
+    {code:'ROLLBACK_SNAPSHOT_INVALID'});
+  assert.deepEqual(await rows(db,'archive_staging'),stageBefore);
+  assert.deepEqual(await get(db,'archive_history','synthetic-media-integrity-1'),historyBefore);
+  assert.deepEqual(await get(db,'main','state'),stateBefore);
+ } finally {db.close();}
+});
+test('rollback snapshot discard rejects a valid key with an invalid indexed record kind',async()=>{
+ const {db,rollbackId}=await committedSyntheticRollbackFixture();
+ try {
+  const original=await get(db,'archive_staging',rollbackId+':state');
+  await put(db,'archive_staging',{...original,kind:'rollback_video'});
+  const stageBefore=await rows(db,'archive_staging');
+  const historyBefore=await get(db,'archive_history','synthetic-media-integrity-1');
+  await assert.rejects(Restore.discardArchiveRollbackSnapshot(db,'synthetic-media-integrity-1'),
+    {code:'ROLLBACK_DISCARD_KIND_INVALID'});
+  assert.deepEqual(await rows(db,'archive_staging'),stageBefore);
+  assert.deepEqual(await get(db,'archive_history','synthetic-media-integrity-1'),historyBefore);
+ } finally {db.close();}
+});
+for (const malformed of [null,undefined,{}]) {
+ test('rollback discard preserves snapshots when kind enumeration is unverifiable: '+String(malformed),async()=>{
+  const {db,rollbackId}=await committedSyntheticRollbackFixture();
+  try {
+   const stageBefore=await rows(db,'archive_staging');
+   const historyBefore=await get(db,'archive_history','synthetic-media-integrity-1');
+   await assert.rejects(Restore.discardArchiveRollbackSnapshot(
+    corruptIndexRead(db,'archive_staging','kind','getAllKeys',malformed),
+    'synthetic-media-integrity-1'),{code:'ROLLBACK_DISCARD_KINDS_UNVERIFIED'});
+   assert.deepEqual(await rows(db,'archive_staging'),stageBefore);
+   assert.deepEqual(await get(db,'archive_history','synthetic-media-integrity-1'),historyBefore);
+   assert.ok(await get(db,'archive_staging',rollbackId));
+  } finally {db.close();}
+ });
+}
+for (const malformed of [null,[null],{}]) {
+ test('rollback discard rejects unverified primary key listing: '+String(malformed),async()=>{
+  const {db}=await committedSyntheticRollbackFixture();
+  try {
+   const stageBefore=await rows(db,'archive_staging');
+   const historyBefore=await get(db,'archive_history','synthetic-media-integrity-1');
+   await assert.rejects(Restore.discardArchiveRollbackSnapshot(
+    corruptIndexRead(db,'archive_staging','sessionId','getAllKeys',malformed),
+    'synthetic-media-integrity-1'),
+    {code: Array.isArray(malformed)?'ROLLBACK_SNAPSHOT_INVALID':'ROLLBACK_DISCARD_KEYS_UNVERIFIED'});
+   assert.deepEqual(await rows(db,'archive_staging'),stageBefore);
+   assert.deepEqual(await get(db,'archive_history','synthetic-media-integrity-1'),historyBefore);
+  } finally {db.close();}
+ });
+}
