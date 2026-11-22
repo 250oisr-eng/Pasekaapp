@@ -1,3 +1,10 @@
+## 2026-11-22 — Gratheon: проверка назначения весов
+
+В [ревизии 21faabd](https://github.com/Gratheon/models-gate-tracker/tree/21faabd0ea2d57f9e0d4434fc47b5af0839fbb81) BeeDetection.py использует контуры OpenCV и fitEllipse, а BeeClassification.py запускает predict_on_batch для классификации подготовленных изображений. В дереве есть SavedModel с переменными, корневой LICENSE содержит GPLv3, Training/BeeDataset подключён отдельным подмодулем BeeAlarmed/BeeDataset. Проверены исходники и метаданные; веса не скачивались. Отдельная модель классификации не решает задачу локализации на полном кадре. Следующий шаг — проверить происхождение весов следующего кандидата для детекции летка. На SHA 23728d707bc3229b5944e6939ca2fc3954424e59 локально прошли 3/3 теста допуска, Android CI #44955879058 успешен, #44955879068 пропущен.
+
+Для #344 получен физический MEDIA_ERROR_4_android-proof-black после сверки SHA, белый кадр не проверялся. PASS трёх кадров H.264 в #347 относится к другой фикстуре. Повтор запусков от пользователя сейчас не требуется.
+
+
 ## VIDEO MODEL — проверка реальных кандидатов и fail-closed gate (2026-11-22)
 
 - После физического PASS IndexedDB, синтетического MP4 playback и трёх JPEG кадров проведён независимый аудит кандидатов для Android: Matt Nudi, Apiarist YOLOv8s, Honey-Bee-Society AutoGluon, Gratheon gate tracker и MIT ONNX Runtime. Подробности и публичные первичные ссылки — `docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md`.
