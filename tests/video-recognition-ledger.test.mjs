@@ -262,3 +262,21 @@ test('persisted recognition history rejects tampered entries and duplicated sour
  assert.ok((await get(db,'entrance_media','v1')).blob);
  db.close();
 });
+
+
+test('resultId cannot be shared by distinct video sources in durable recognition history',async()=>{
+ const {db}=await fixture();
+ assert.equal((await ledger.recordRecognitionResult(db,base)).ok,true);
+ const clean=await get(db,'main',ledger.KEY);
+ const duplicate={...clean.entries[0],source:'record_media',videoId:'journal-other'};
+ await put(db,'main',ledger.KEY,{version:1,entries:[...clean.entries,duplicate]});
+ const result=await ledger.readRecognitionLedger(db);
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'ledger_corrupt');
+ const write=await ledger.recordRecognitionResult(db,{...base,resultId:'new-result'});
+ assert.equal(write.ok,false);
+ assert.equal(write.reason,'ledger_corrupt');
+ assert.ok((await get(db,'entrance_media','v1')).blob);
+ assert.equal((await get(db,'main',ledger.KEY)).entries.length,2);
+ db.close();
+});
