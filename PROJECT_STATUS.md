@@ -1,3 +1,11 @@
+### P0 multirestart — код и тесты проверены (2026-11-23)
+
+- Исправленный code/test+docs SHA `e1fe813d659c99ed59e6526afd5f4e77ac34326a`: [Fast Quality #45081949766](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45081949766) **1222/1222 PASS, 0 FAIL/SKIPPED**, [Android Debug #45081949795](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45081949795) **completed/success**. Позитивный цикл stage→reopen→commit→reopen→quarantine→reopen + SHA и negative tampered-stage commit проходят.
+- Ранее Fast #45081854012 на SHA `2b434f9449baea7399d2b35d4cf0cb29a783aae2` упал на некорректном ожидании теста: staging-history уже содержит 1 защищённую запись. Исправлено только ожидание; ошибка не была подтверждённым runtime-дефектом.
+- Следующий docs-only commit создаёт новый HEAD, поэтому необходим independent CI на новом SHA. P0 остаётся OPEN: isolated synthetic tests не заменяют реальный Android и live PASEKA02/Restore335.
+
+---
+
 ### P0 multirestart — промежуточная ошибка теста и корректировка (2026-11-23)
 
 - Первый exact HEAD `2b434f9449baea7399d2b35d4cf0cb29a783aae2`: Fast Quality #45081854012 **FAILED: 1221 PASS / 1 FAIL из 1222**. Положительный multi-restart сценарий прошёл; отрицательный тест неправильно требовал 0 записей в `archive_history` после staging, тогда как staging уже создаёт 1 защищённую запись.
