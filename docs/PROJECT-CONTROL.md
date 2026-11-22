@@ -1,3 +1,9 @@
+## 2026-11-22 — Android Restore335 V9: bounded NUL-delimited type probes
+
+- [ANDROID-RESTORE335-NULL-TYPE-V9-2026-11-22.md](ANDROID-RESTORE335-NULL-TYPE-V9-2026-11-22.md): после физического V8 `OTHER_OPAQUE_MISMATCH` — одна запись `find -print0`, без сравнения имён и без доступа к содержимому.
+
+---
+
 ## 2026-11-22 — Restore335 V8: anonymous path mismatch shape
 
 - [ANDROID-RESTORE335-FIND-SHAPE-V8-2026-11-22.md](ANDROID-RESTORE335-FIND-SHAPE-V8-2026-11-22.md) — после физического V7 BLOCKED: обезличенная диагностика формы вывода, без доступа к файлу.

@@ -1,3 +1,12 @@
+## 2026-11-22 — Physical Restore335 V8 opaque find mismatch, read-only V9 Draft #379
+
+- User physical V8 on pinned authorized OnePlus NE2213/API36: `stage=ANDROID_RESTORE335_FIND_SHAPE_V8`, `status=BLOCKED`, `detail=PRIVATE_FIND_PATH_MISMATCH_PRESERVE`, `findMismatchClass=OTHER_OPAQUE_MISMATCH`, `findMismatchFilter=f`. Diagnostic package present untouched; production package absent; ADB SHA, model/API, package triple check and directory/path predicates PASS. One private diagnostic `files` entry preserved. `privateEntryType=NOT_TESTED`, `privateInput=UNKNOWN_PRESERVE`; `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Windows wrapper accurately printed `V8_BLOCKED_REPORTED_IN_JSON`. Raw filename/metadata not disclosed; not evidence of media corruption.
+- Created dependent [Draft PR #379](https://github.com/250oisr-eng/Pasekaapp/pull/379) stacked on #378: `tools/android-restore335-private-null-type-v9.ps1` changes only the output validation for type discovery to a bounded one-record NUL-delimited `toybox find ... -print0` query; preserves exact device/package restrictions, one-entry and two-listing snapshots, 7 constant type filters, replays positive filter, blocks invalid/multiple records, emits no file names/paths/content. `privateInput=UNKNOWN_PRESERVE` and `cleanup=NOT_AUTHORIZED` always. One type-filter match would not authorize archive restore/recognition/deletion.
+- Added Node static privacy tests, Windows PowerShell parser with executable synthetic NUL record framing test cases, and `docs/ANDROID-RESTORE335-NULL-TYPE-V9-2026-11-22.md`. **CI and physical V9 NOT VERIFIED** at creation. No user device writes, production install, merge or deployment.
+- Next: verify exact-SHA Windows/synthetic and Android CI; only then offer one hash-pinned V9 launcher if software checks pass. Do not repeat V4–V8 on phone.
+
+---
+
 ## 2026-11-22 — Physical Restore335 V7 BLOCKED on private find path; V8 opaque-shape Draft #378
 
 - User's actual OnePlus NE2213/API36 V7 JSON: pinned ADB, sole authorized phone, triple diagnostic PM check, path/directory predicates all PASS. One private entry; `privateEntryType=NOT_TESTED`, `privateInput=UNKNOWN_PRESERVE`, `detail=PRIVATE_FIND_PATH_MISMATCH_PRESERVE`, `status=BLOCKED`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. The post-JSON CMD error is consistent with the nonzero BLOCKED exit.
