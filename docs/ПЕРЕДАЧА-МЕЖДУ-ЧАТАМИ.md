@@ -1,3 +1,13 @@
+## 2026-11-22 — Restore335 V4 verified Windows static CI (code SHA c7312bc6)
+
+- V4 whitespace-preserving, pinned private `ls -A files` count-only code and fifth static regression committed on `c7312bc683da783884b4868b3d9079071f7d8018`. In the bounded-inventory mode only trailing CR/LF is trimmed, not filename spaces. Commands outside the exactly pinned diagnostic listing cannot request raw-output mode.
+- [Windows readonly V4 CI #45053521448](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053521448) **completed/success on that exact code SHA**. Inspected job log: PowerShell parser PASS; Node static safety suite **5/5 PASS, 0 FAIL**. The static suite is not a physical ADB/device behavioral test.
+- [General Android APK #45053521454](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053521454) was **pending** at last observation; isolated archive build #45053521517 **skipped**, not PASS. Do not infer Android APK success or physical V4 PASS.
+- Original user physical V3 `PRIVATE_FILES_NONEMPTY_NO_ACTION` remains the only device data; files preserved and unexamined. No MP4 read, recovery, bee detection, cleanup, production install, merge or deploy.
+- Next: check Android workflow terminal status on code SHA, then consider one pinned V4 execution only if software checks and safety scope remain intact.
+
+---
+
 ## 2026-11-22 — Restore335 physical V3 BLOCKED; private read-only V4 Draft PR #374
 
 - User-provided actual OnePlus NE2213/API36 V3 report: ADB/device/pinned SHA/package triple check/directory+path predicates PASS; diagnostic package present untouched, production absent; `privateFilesClass=NONEMPTY_PRESERVE`, `privateInput=UNKNOWN_PRESERVE`, `status=BLOCKED`, `detail=PRIVATE_FILES_NONEMPTY_NO_ACTION`. No install, write, media read, restore or cleanup attempted.
