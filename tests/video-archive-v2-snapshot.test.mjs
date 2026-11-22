@@ -82,7 +82,8 @@ test('entrance source without SHA evidence is rejected, no inferred safe origina
 test('recognized original still stored is not eligible for v2 export',async()=>{
  const db=await fixture(),tx=db.transaction('main','readwrite');
  tx.objectStore('main').put({version:1,entries:[{source:'entrance_media',videoId:'vid',
-  resultId:'res1',recognizedAt:'2026-11-20T00:00:00Z',result:{observation:'ok'},
+  resultId:'res1',recognizedAt:'2026-11-20T00:00:00Z',stateRevisionId:'old',
+  sourceHashVerifiedAt:'2026-11-20T00:00:00Z',result:{observation:'ok'},
   sourceSha256:sha(new Uint8Array([1,2,3])),sourceBytes:3,
   sourceEvidenceVersion:1,cleanupState:'deleted'}]},'video_recognition_ledger_v1');
  await done(tx);
