@@ -316,6 +316,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
       return { ...record, blobSha256: actualHash };
     }));
     session.baselineMediaFingerprint = mediaRecordsFingerprint(baselineRecords);
+    session.baselineMediaMetadataFingerprint = fullMediaMetadataFingerprint(baselineRecords);
 
     // Re-read under a short write lock, but never rewrite live media rows here.
     // A legacy writer may not persist SHA-256; putting the earlier Blob back
@@ -340,6 +341,9 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         });
         if (mediaRecordsFingerprint(normalizedRows) !== session.baselineMediaFingerprint) {
           fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being prepared. The import was not staged.');
+        }
+        if (fullMediaMetadataFingerprint(normalizedRows) !== session.baselineMediaMetadataFingerprint) {
+          fail('RESTORE_MEDIA_METADATA_CHANGED', 'Video metadata changed while staging the archive. The existing library was preserved.');
         }
         const sessionAddRequest = baselineTx.objectStore(STAGING_STORE).add(session);
         sessionAddRequest.onerror = () => {
@@ -426,6 +430,47 @@ function mediaRecordsFingerprint(records) {
   }).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
   return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 3, canonical]);
 }
+function canonicalMediaJson(value, errorCode) {
+  const seen = new WeakSet();
+  const sort = item => {
+    if (item === null || typeof item === 'string' || typeof item === 'boolean') return item;
+    if (typeof item === 'number' && Number.isFinite(item)) return item;
+    if (Array.isArray(item)) {
+      if (seen.has(item)) fail(errorCode, 'Cyclic video metadata cannot be verified.');
+      seen.add(item);
+      return item.map(sort);
+    }
+    if (item && typeof item === 'object' &&
+        (Object.getPrototypeOf(item) === Object.prototype || Object.getPrototypeOf(item) === null)) {
+      if (seen.has(item)) fail(errorCode, 'Shared or cyclic video metadata cannot be verified.');
+      seen.add(item);
+      return Object.fromEntries(Object.keys(item).sort().map(key => [key, sort(item[key])]));
+    }
+    fail(errorCode, 'Video metadata contains an unsupported non-JSON value.');
+  };
+  return JSON.stringify(sort(value));
+}
+function fullMediaMetadataFingerprint(records) {
+  // Version-3 content fingerprint is deliberately retained for compatibility.
+  // This ADDITIONAL baseline covers every persisted field except Blob bytes,
+  // which have an independently verified content hash.
+  if (!Array.isArray(records)) fail('MEDIA_METADATA_BASELINE_UNVERIFIED', 'The video metadata set is not a verified array.');
+  const list = records.map(record => {
+    if (!record || typeof record.id !== 'string' || !record.id) {
+      fail('MEDIA_METADATA_BASELINE_UNVERIFIED', 'A video metadata row has no stable identifier.');
+    }
+    const metadata = {};
+    for (const [key, value] of Object.entries(record)) {
+      if (key !== 'blob') metadata[key] = value;
+    }
+    return [record.id, canonicalMediaJson(metadata, 'MEDIA_METADATA_BASELINE_UNVERIFIED')];
+  }).sort((a,b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  if (new Set(list.map(row => row[0])).size !== list.length) {
+    fail('MEDIA_METADATA_BASELINE_UNVERIFIED', 'Duplicate video IDs make the baseline ambiguous.');
+  }
+  return JSON.stringify(['PASEKA-MEDIA-METADATA-FINGERPRINT', 1, list]);
+}
+
 function assertImportedMediaMetadataUnchanged(records, importSession) {
   // The existing version-3 media fingerprint deliberately covers only a
   // subset of fields. Before rollback deletes/replaces the imported library,
@@ -449,26 +494,7 @@ function assertImportedMediaMetadataUnchanged(records, importSession) {
     }
     byId.set(meta.id, meta);
   }
-  const canonical = value => {
-    const seen = new WeakSet();
-    const sort = item => {
-      if (item === null || typeof item === 'string' || typeof item === 'boolean') return item;
-      if (typeof item === 'number' && Number.isFinite(item)) return item;
-      if (Array.isArray(item)) {
-        if (seen.has(item)) fail('ROLLBACK_MEDIA_METADATA_UNVERIFIED', 'Cyclic video metadata cannot be verified.');
-        seen.add(item);
-        return item.map(sort);
-      }
-      if (item && typeof item === 'object' &&
-          (Object.getPrototypeOf(item) === Object.prototype || Object.getPrototypeOf(item) === null)) {
-        if (seen.has(item)) fail('ROLLBACK_MEDIA_METADATA_UNVERIFIED', 'Shared or cyclic video metadata cannot be verified.');
-        seen.add(item);
-        return Object.fromEntries(Object.keys(item).sort().map(key => [key, sort(item[key])]));
-      }
-      fail('ROLLBACK_MEDIA_METADATA_UNVERIFIED', 'Video metadata contains an unsupported non-JSON value.');
-    };
-    return JSON.stringify(sort(value));
-  };
+  const canonical = value => canonicalMediaJson(value, 'ROLLBACK_MEDIA_METADATA_UNVERIFIED');
   const seenIds = new Set();
   for (const record of records) {
     if (!record || typeof record.id !== 'string' || !record.id ||
@@ -510,6 +536,7 @@ async function hashLiveMediaBaseline(db, cryptoProvider) {
   }));
   return {
     fingerprint: mediaRecordsFingerprint(records),
+    metadataFingerprint: fullMediaMetadataFingerprint(records),
     hashes: new Map(records.map(record => [record.id, record.blobSha256]))
   };
 }
@@ -529,6 +556,12 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
   if (typeof staged.session.baselineMediaFingerprint !== 'string' ||
       phaseAMedia.fingerprint !== staged.session.baselineMediaFingerprint) {
     fail('RESTORE_MEDIA_CHANGED', 'The video library changed after archive preparation. The import was cancelled to preserve newer videos.');
+  }
+  if (typeof staged.session.baselineMediaMetadataFingerprint !== 'string') {
+    fail('STAGING_MEDIA_METADATA_BASELINE_MISSING', 'This staged archive predates full media metadata safety checks. Discard the staging session and verify the archive again.');
+  }
+  if (phaseAMedia.metadataFingerprint !== staged.session.baselineMediaMetadataFingerprint) {
+    fail('RESTORE_MEDIA_METADATA_CHANGED', 'The video metadata changed after archive staging. The import was cancelled.');
   }
   const phaseAMediaHashes = phaseAMedia.hashes;
   let importedState = cloneState(staged.state);
@@ -605,7 +638,10 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (history && history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
           if (!Number.isSafeInteger(session.stagingEpoch) || session.stagingEpoch < 0) fail('STAGING_LEGACY_SESSION', 'This staged import predates revision tracking. Discard it and import the archive again.');
           if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint ||
-              session.baselineMediaFingerprint !== staged.session.baselineMediaFingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
+              session.baselineMediaFingerprint !== staged.session.baselineMediaFingerprint ||
+              session.baselineMediaMetadataFingerprint !== staged.session.baselineMediaMetadataFingerprint) {
+            fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
+          }
           // The staging index must enumerate exactly the verified session header
           // and its manifest entries under this same sessionId. The earlier
           // preview checks this, but another writer may alter the index while
@@ -650,6 +686,9 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (typeof session.baselineMediaFingerprint !== 'string' ||
               mediaRecordsFingerprint(normalizedCurrentVideos) !== session.baselineMediaFingerprint) {
             fail('RESTORE_MEDIA_CHANGED', 'The video library changed while the archive was being committed. The import was cancelled to preserve newer videos.');
+          }
+          if (fullMediaMetadataFingerprint(normalizedCurrentVideos) !== session.baselineMediaMetadataFingerprint) {
+            fail('RESTORE_MEDIA_METADATA_CHANGED', 'Video metadata changed during archive validation. The import was cancelled to preserve newer records.');
           }
           if ((currentState?.meta?.revisionId || null) !== expectedRevision) fail('RESTORE_CONFLICT', 'The live database changed after the restore preview. Refresh the data and review the archive again.');
 
