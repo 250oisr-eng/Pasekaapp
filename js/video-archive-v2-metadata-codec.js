@@ -46,8 +46,11 @@ function stateAndLedger(state, ledger, guard, pendingVideos = []) {
  // without a recognized data:video prefix is still a binary until proven otherwise.
  if (Array.isArray(state.records)) for (const record of state.records) {
   if (Array.isArray(record?.media)) for (const media of record.media) {
-   const type = String(media?.type || media?.mimeType || '');
-   if ((media?.kind==='video'||type==='video'||type.startsWith('video/')) && media?.data != null)
+   const types = [media?.type, media?.mimeType];
+   const isVideo = media?.kind === 'video' || types.some(type => typeof type === 'string' &&
+     (type.toLowerCase() === 'video' || /^video\//i.test(type) ||
+      /^application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl)$/i.test(type)));
+   if (isVideo && media?.data != null)
     fail('V2_STATE_EMBEDDED_VIDEO');
   }
  }
