@@ -1,3 +1,14 @@
+## 2026-11-22 — P0: malformed live journal при restore, последовательно поверх #397 (CI новой правки ожидается)
+
+- Текущий `main` SHA `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; в него ничего не вносилось. Родительский Draft PR #397 — code/test SHA `f29eafbff7376ab51a95dc0b3e9a550c4b86c9b6`, docs HEAD `768033a561f68bbe25639eb858b49ab03fbe94dd`, проверен отдельно: Fast Quality #45068360057 и Android #45068359996 завершены success. Результат родителя **не доказывает** новые изменения.
+- Для избежания конкурирующих sibling PR #397/#398 новая правка `commitStagedArchive` перенесена в отдельную последовательную рабочую ветку от точного HEAD #397. Тесты #397 на удаление rollback snapshot с проверкой ключей и `kind` сохранены; десять тестов защиты исходного журнала добавлены следом.
+- **Выявленный дефект:** выражение `values.currentState || null` в финальной readwrite-транзакции при ожидаемой `null` revision ошибочно трактовало сохранённые `false`, `0`, пустую строку как отсутствие state, потенциально заменяя недостоверный журнал без корректного rollback snapshot. Новый `RESTORE_LIVE_STATE_UNVERIFIED` запрещает такое восстановление для non-object/Array/invalid `meta`, не записывая новые данные.
+- `tests/archive-restore-enumeration-failclosed.test.mjs`: восемь негативных fake-indexeddb кейсов с настоящими некорректными значениями в main/state, плюс позитивные проверки реального отсутствия state и legacy meta без revisionId. Не изменяются IndexedDB version, формат архива, существующие миграции и ветвление UI.
+- **Verification:** новый code/test/Docs HEAD пока **NOT_VERIFIED**, ожидаются Fast Quality и Android CI на точном SHA. Реальное видео, физическое восстановление и очистка NOT_TESTED/NOT_AUTHORIZED; Restore335 STOP; v2 ledger перенос в архив ещё не завершён. Ни merge, ни production/deploy, ни удаление оригиналов не разрешены.
+- Следующий шаг: обновить stacked Draft #398 на проверенную базу #397 и выполнить полную регрессию/Android на точном SHA; при любом FAIL исправить в той же ветке. Затем продолжить один P0 блок сохранности архива.
+
+---
+
 ## 2026-11-22 — PR #397: P0 rollback snapshot discard guard, exact code/test SHA PASS
 
 - Code+test+initial-docs SHA **`f29eafbff7376ab51a95dc0b3e9a550c4b86c9b6`**: [Fast quality #45068360057](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45068360057) **completed/success, 828/828 tests PASS, 0 FAIL, 0 SKIPPED**; [Android Debug #45068359996](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45068359996) **completed/success**, regression tests PASS, full APK build/upload PASS, ZIP artifact #14771829960 (3,456,981 bytes; NOT a binary APK SHA).
