@@ -1,3 +1,14 @@
+## 2026-11-23 — P0: stored null recognition ledger ≠ отсутствующая история (Draft; CI pending)
+
+- Родитель: [Draft #401](https://github.com/250oisr-eng/Pasekaapp/pull/401) на SHA `1ca21b55482620e508aed199b87e031975e1ecf3`, Fast Quality #45069993189 и Android #45069993246 завершены **completed/success** на этом SHA. Родительская проверка не доказывает новых изменений.
+- Анализ чтения `main/video_recognition_ledger_v1` выявил fail-open `if (value == null) return` в `js/paseka-archive.js` и `js/paseka-archive-restore.js`, а также `ledger == null` в read-only `inspectStagingRecognitionCopies`. IndexedDB `get(missingKey)` возвращает только `undefined`, поэтому **существующий `null` — недостоверное сохранённое значение**, не подтверждение пустой истории. Ранее v1 export/staging/commit/rollback допускали этот случай, а audit сообщал `no_recognition_history`. Это установленная логическая граница, не наблюдённый сбой физической Android БД.
+- Минимальная правка **трёх guards в двух JS модулях**: только `undefined` означает отсутствие ledger; `null` запрещает v1 архив `VIDEO_LEDGER_UNVERIFIED`, а inspection возвращает `ok:false, reason:'VIDEO_LEDGER_UNVERIFIED'`. Корректный legacy `{version:1,entries:[]}` остаётся допустим, непустой ledger по-прежнему запрещает v1 export/import.
+- `tests/archive-restore-enumeration-failclosed.test.mjs`: **7 synthetic/fake-indexeddb сценариев** для real stored `null` (export, staging, audit, commit, rollback) с проверкой сохранности state/staging/history/rollback, плюс пустой валидный ledger и непустой ledger, который по-прежнему блокируется. Никакие пользовательские данные не читались/удалялись.
+- Новый код/test SHA **пока не проверен CI**; не переносить parent PASS. Никаких миграций, изменений формата `.paseka`, Service Worker, Android permissions, видеозаписей или production. STABILIZATION_ONLY, Restore335 STOP, перенос `ledger/tombstones` v2 не реализован и удаление оригиналов запрещено.
+- Следующий этап: точный Fast Quality + Android CI, исправление failures, запись проверенного SHA и продолжение P0 аудита границ наследования/истории без merge/deploy.
+
+---
+
 ## 2026-11-22 — P0 lookup lineage: Draft PR #401, exact CI PASS
 
 - **Точный проверенный code+tests+initial-docs SHA `f6a253466129cdab2a15eb4913cc6da136c9a28d`**: [Fast Quality #45069818039](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069818039) **completed/success 857/857 PASS, 0 FAIL/0 skipped**. [Android #45069818031](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069818031) **completed/success**, regression suite, debug APK build и upload PASS. ZIP artifact [#14772668626](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069818031/artifacts/14772668626), 3,458,386 bytes, **это ZIP size, не hash APK binary**.
