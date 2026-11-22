@@ -24,3 +24,10 @@ test('V4 reports count without names, never upgrades unknown input',()=>{
   assert.match(v4,/privateInput = 'UNKNOWN_PRESERVE'/);
   assert.doesNotMatch(v4,/\$report\.[a-zA-Z]+\s*=\s*\$names\b/);
 });
+
+test('V4 preserves whitespace-only entry names in listing before count',()=>{
+  assert.match(v4,/\$inventory = Call-Adb[^\r\n]*-PreserveListing/);
+  assert.match(v4,/UNPINNED_PRIVATE_LISTING_REQUEST/);
+  assert.match(v4,/return \$out\.TrimEnd\(\[char\[\]\]@\(\[char\]13,\[char\]10\)\)/);
+  assert.match(v4,/return \$out\.Trim\(\)/);
+});
