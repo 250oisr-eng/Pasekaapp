@@ -1,3 +1,13 @@
+## 2026-11-23 — P0 durable SHA-bound recognition ledger / live video ID collision, Draft #415
+
+- Parent [Draft #414](https://github.com/250oisr-eng/Pasekaapp/pull/414) exact docs HEAD `54f6b10fe2a80a9b613aa063465604c083f96b81`: Fast Quality #45076740736 and Android Debug #45076740655 **completed/success**; parent code SHA `806012dd03ab32b5bccfa8bbc249746110f6a068` passed 1182/1182 tests and Android on that exact SHA. Main unchanged.
+- Child [Draft #415](https://github.com/250oisr-eng/Pasekaapp/pull/415): ported preexisting `js/video-recognition-ledger.js` and `tests/video-recognition-ledger.test.mjs` from isolated v2 branch. Added `tests/archive-v2-durable-writer-crossversion.test.mjs`: real synthetic SHA-bound recognition writes to durable main ledger, PASEKA02 binary codec preserves full result, fake IndexedDB close/reopen retains ledger, v1 export rejects omission and v2 restore guard rejects older archive without recognition. No original Blob deleted; cleanupState remains `blocked_archive_safety`.
+- **Confirmed live data-loss defect** discovered by inherited test: `index.html` `putEntranceVideo` used `entrance_media.put(storedRecord)`, silently replacing an original on ID collision. Fixed only new-video insert to atomic `add(storedRecord)` and changed outdated static UI test to require add and forbid put. First code SHA `0ea879e78723cfaf759a5f61a2fbd029e4e95e16` FAILED 1199/1200 due to this real regression; second code SHA `6b7a52e54e70969a67a307826dfde2f700374026` failed 1199/1200 only because old UI static test expected put; fixed at `c5d927bef3d4d4f68463bb54dcab453e328d2a79`.
+- **Exact code/test SHA `c5d927bef3d4d4f68463bb54dcab453e328d2a79`:** [Fast Quality #45077008257](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45077008257) **completed/success 1200/1200 PASS, 0 fail/skip**, [Android Debug #45077008321](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45077008321) **completed/success** (regression, APK build/upload). No production writes.
+- **P0 REMAINS OPEN** for physical Android restore/reboot and external Gallery/Camera/Downloads evidence; verified model recognition and proof of safe irreversible cleanup are absent. No automatic deletion; subsequent Draft #416 closes the unsafe manual deletion path. No merge/deployment, Restore335 STOP.
+
+---
+
 ## 2026-11-23 — P0 protected pending video + quarantine recovery, Draft #414
 
 - Parent Draft #413 final HEAD `5027f7895cac6395d1e5bf1e528faed0b665e9e5`: Fast Quality #45076448875 and Android #45076448915 both **completed/success**. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` unchanged.
