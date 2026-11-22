@@ -648,3 +648,86 @@ test('commit refuses a replaced session-header kind after the verified staging p
   await put(db,'archive_staging',{...session,kind:'state'});
  },'STAGING_SESSION_INCOMPLETE');
 });
+
+function corruptStoreGet(db,storeName,replacement,modeFilter=null) {
+ return {
+  objectStoreNames:db.objectStoreNames,
+  transaction(...args) {
+   const tx=db.transaction(...args);
+   if(modeFilter && (args[1]||'readonly')!==modeFilter)return tx;
+   return new Proxy(tx,{get(target,field){
+    if(field!=='objectStore')return Reflect.get(target,field,target);
+    return name=>{
+     const store=target.objectStore(name);
+     if(name!==storeName)return store;
+     return new Proxy(store,{get(targetStore,method){
+      if(method!=='get')return Reflect.get(targetStore,method,targetStore);
+      return (...params)=>{
+       const request=targetStore.get(...params);
+       return new Proxy(request,{
+        get(targetRequest,key){
+         if(key==='result')return replacement;
+         return Reflect.get(targetRequest,key,targetRequest);
+        },
+        set(targetRequest,key,value){return Reflect.set(targetRequest,key,value,targetRequest);}
+       });
+      };
+     }});
+    };
+   }});
+  }
+ };
+}
+for(const unexpected of [false,null,{}, {backupId:'other-backup',status:'reverted'}]){
+ test('staging refuses unverified archive-history lookup: '+JSON.stringify(unexpected),async()=>{
+  const db=await seeded();
+  try{
+   await assert.rejects(stage(corruptStoreGet(db,'archive_history',unexpected)),
+    {code:'ARCHIVE_HISTORY_IDENTITY_UNVERIFIED'});
+   assert.deepEqual(await rows(db,'archive_staging'),[]);
+   assert.deepEqual(await rows(db,'archive_history'),[]);
+   assert.deepEqual(await get(db,'main','state'),LIVE);
+  }finally{db.close();}
+ });
+}
+for(const unexpected of [false,null,{},{
+ id:'wrong-session',sessionId:'wrong-session',kind:'session',backupId:'other-backup'
+}]){
+ test('staging refuses malformed backup-ID index lookup: '+JSON.stringify(unexpected),async()=>{
+  const db=await seeded();
+  try{
+   await assert.rejects(stage(corruptIndexRead(db,'archive_staging','backupId','get',unexpected)),
+    {code:'STAGING_BACKUP_LOOKUP_UNVERIFIED'});
+   assert.deepEqual(await rows(db,'archive_staging'),[]);
+   assert.deepEqual(await get(db,'main','state'),LIVE);
+  }finally{db.close();}
+ });
+}
+test('commit refuses malformed archive history inside the final write lock',async()=>{
+ const db=await seeded();
+ try{
+  const staged=await stage(db);
+  const stagingBefore=await rows(db,'archive_staging');
+  const currentState=await get(db,'main','state');
+  const previousBackup=await get(db,'full_backup','previous');
+  await assert.rejects(Restore.commitStagedArchive(
+   corruptStoreGet(db,'archive_history',false,'readwrite'),
+   staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true),
+   {code:'ARCHIVE_HISTORY_IDENTITY_UNVERIFIED'});
+  assert.deepEqual(await rows(db,'archive_staging'),stagingBefore);
+  assert.deepEqual(await get(db,'main','state'),currentState);
+  assert.deepEqual(await rows(db,'archive_history'),[]);
+  assert.deepEqual(await get(db,'full_backup','previous'),previousBackup);
+ }finally{db.close();}
+});
+test('valid existing staging backup-ID lookup remains idempotent with same archive',async()=>{
+ const db=await seeded();
+ try{
+  const fixture=await fixtureArchive();
+  const first=await stage(db,fixture);
+  const second=await stage(db,fixture);
+  assert.equal(second.alreadyStaged,true);
+  assert.equal(second.session.sessionId,first.session.sessionId);
+  assert.equal((await rows(db,'archive_staging')).length,2);
+ }finally{db.close();}
+});
