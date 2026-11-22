@@ -1,3 +1,13 @@
+## 2026-11-22 — P0: проверка принадлежности записей при удалении rollback snapshot (Draft, CI pending)
+
+- GitHub `main` на старте цикла: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. Родительский Draft #396: HEAD `65fb6a28217d252de866b3c1686e6b8968e3676a`; прямого слияния с main нет. Его code/test SHA `dbce7c3f188047ae791b0b783fc69483d331a80b` проверялся отдельно (819/819 и Android Debug PASS); результаты не переносятся на новый код.
+- Новый узкий P0 дефект: `discardArchiveRollbackSnapshot()` удалял все ключи по `sessionId`, если совпали только число записей, заголовок и статус; он не проверял точную структуру первичных ключей и типы строк. При нештатном/повреждённом индексировании мог удалить неожиданные staged-записи вместо fail-closed. Исправление касается только **уже существующей операции явного отказа от снимка отката**, не добавляет разрешения на удаление оригиналов видео.
+- Код `js/paseka-archive-restore.js`: проверка типа/уникальности/допустимого префикса ключей, проверка вторичного индекса `kind` для `rollback_session`, `rollback_state`, `rollback_video` через **getAllKeys без загрузки Blob**, откат readwrite-транзакции при неуверенной принадлежности, сохранение первой установленной ошибки при конкурентных abort-событиях. Коды: `ROLLBACK_DISCARD_KEYS_UNVERIFIED`, `ROLLBACK_SNAPSHOT_INVALID`, `ROLLBACK_DISCARD_KIND_INVALID`, `ROLLBACK_DISCARD_KINDS_UNVERIFIED`.
+- `tests/archive-restore-enumeration-failclosed.test.mjs`: добавлены **9 сценариев** на synthetic/fake-indexeddb: корректный discard, подменённый ключ при неизменном количестве строк, неверный kind, 3 некорректных kind-list и 3 некорректных primary-list. Проверка сохранности state/staging/history при отказах. **CI/Android pending** до подтверждения на точном SHA.
+- Изменений схемы IndexedDB, backup-формата, product-разрешений, `main`, production или реальных данных нет. Сохранить STABILIZATION_ONLY; Restore335 STOP; real video/restore/cleanup/deletion NOT_TESTED/NOT_AUTHORIZED. Следующее одно действие: проверить Fast Quality и Android CI на точном кодовом SHA, исправить любые ошибки; затем обновить PR и handoff без заявления о проверке последующих docs-only SHA.
+
+---
+
 ## 2026-11-22 — PR #396: final code+tests SHA PASS; Draft/unmerged
 
 - **Exact verified code/test SHA**: `dbce7c3f188047ae791b0b783fc69483d331a80b`. [Fast Quality #45067205123](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45067205123) **completed/success: 819/819 PASS, 0 failures, 0 skipped**. [Android #45067205158](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45067205158) **completed/success**, full debug APK build and artifact upload; artifact #14771673588, ZIP/artifact 3,456,295 bytes, not a verified APK binary SHA.
