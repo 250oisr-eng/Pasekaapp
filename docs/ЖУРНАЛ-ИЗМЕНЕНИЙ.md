@@ -1,3 +1,12 @@
+## 2026-11-22 — Android emulator CI attempt: infrastructure-only failures and pinned APK approach
+
+- [Emulator attempt #45046697734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046697734) failed before Android because workflow expected absent npm lockfile. [Attempt #45046748384](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046748384) failed Gradle dependency resolution against Google/Maven repos in fresh runner; these are environment failures, not demonstrated runtime application failures.
+- Workflow changed to fetch **existing confirmed APK** [Android run #45046512693 / artifact #14763364196](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512693/artifacts/14763364196), source code/test SHA `335db90f07d73adbe0c422ec533433fdc03e85f4`, then test install/start on an ephemeral clean Android 35 emulator. Exact workflow commit `25f4888f7833aeb418e26f68f8725d33c5fd9aa0`; [emulator run #45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) underway on latest check; NO emulator PASS claimed before terminal logs.
+- Latest revision also has [Android CI #45046823920](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823920) completed/success and [specialized #45046823856](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823856) completed/success; unrelated archive workflow skipped. This does not verify USB OnePlus, real recognition, original video deletion or archive restore.
+- No physical ADB path in cloud environment. Stop at fail-closed boundary: do not install/overwrite production app or delete user media. Draft PR #373 open, unmerged.
+
+---
+
 ## 2026-11-22 — PR #373 exact-SHA tests + clean Android emulator smoke
 
 - Tested SHA `335db90f07d73adbe0c422ec533433fdc03e85f4`: [video synthetic/fail-closed CI #45046512612](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512612) completed/success, job log shows **176/176 PASS, 0 fail**; [Android debug build #45046512693](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512693) completed/success, full **1343/1343 PASS, 0 fail**, Gradle `BUILD SUCCESSFUL`, artifact #14763364196 (GitHub ZIP digest `85a8bf2d6143b21ff7a9a57996d1cdf0e7bf24c9e1cbf0b2d2b9a06581aaf87a`). Isolated archive workflow #45046512633 **skipped**, not PASS.
