@@ -1,3 +1,12 @@
+## 2026-11-22 — PR #373 exact-SHA tests + clean Android emulator smoke
+
+- Tested SHA `335db90f07d73adbe0c422ec533433fdc03e85f4`: [video synthetic/fail-closed CI #45046512612](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512612) completed/success, job log shows **176/176 PASS, 0 fail**; [Android debug build #45046512693](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512693) completed/success, full **1343/1343 PASS, 0 fail**, Gradle `BUILD SUCCESSFUL`, artifact #14763364196 (GitHub ZIP digest `85a8bf2d6143b21ff7a9a57996d1cdf0e7bf24c9e1cbf0b2d2b9a06581aaf87a`). Isolated archive workflow #45046512633 **skipped**, not PASS.
+- New workflow `.github/workflows/test-android-emulator-smoke.yml` is a CI-only, clean Android API 35 virtual-device test of APK install and app process launch; it does not access camera, video, archive or user data. Its **new HEAD result is pending** and must not be represented as physical device validation.
+- Direct ADB to user's USB-connected OnePlus is not available in this cloud session; physical phone testing remains NOT_TESTED. No deployment, merge, real deletion, recognition or all-copy safety authorization.
+- Next: verify exact new HEAD emulator run; then require separate evidence before physical phone testing or cleanup.
+
+---
+
 ## 2026-11-22 — дополнительная негативная матрица synthetic cleanup (Draft child of #372)
 
 - Ветка `test/video-synthetic-cleanup-negative-matrix-2026-11-22` поверх #372. В `tests/video-synthetic-cleanup-atomicity.test.mjs` добавлены 5 изолированных fake-indexeddb регрессий: подмена Blob при правильных SHA-метаданных, отдельно защищённые staging и history, отсутствие ledger, существующий tombstone.
