@@ -1269,6 +1269,10 @@ function discardArchiveRestoreSession(db, sessionId) {
       if (!settled) { settled = true; reject(error); }
     };
     const abortWith = error => {
+      // Several indexed requests may fail as the same transaction aborts.
+      // Preserve the first verified cause instead of replacing it with a
+      // later generic AbortError from a cancelled sibling request.
+      if (failure) return;
       failure = error;
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
