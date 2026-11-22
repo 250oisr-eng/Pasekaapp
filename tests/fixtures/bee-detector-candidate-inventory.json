@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-11-22",
+  "purpose": "Offline Android honeybee entrance object detection, not frame inspection",
+  "candidates": [
+    {
+      "id": "mattnudi-bee-detection",
+      "source": "https://github.com/mattnudi/bee-detection",
+      "codeLicense": "UNVERIFIED",
+      "weightsLicense": "UNVERIFIED",
+      "weightsArtifact": "best.pt",
+      "baseModel": "YOLOv5",
+      "baseModelLicense": "UNVERIFIED",
+      "task": "honeybee_object_detection",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "ajayjohnalex-bee-detection",
+      "source": "https://github.com/AjayJohnAlex/Bee_Detection",
+      "codeLicense": "MIT_REPO_LICENSE",
+      "weightsLicense": "UNVERIFIED",
+      "weightsArtifact": "UNVERIFIED",
+      "baseModel": "Ultralytics YOLO",
+      "baseModelLicense": "NEEDS_TRANSITIVE_REVIEW",
+      "task": "bee_detection_and_tracking_project",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "gratheon-models-gate-tracker",
+      "source": "https://github.com/Gratheon/models-gate-tracker",
+      "codeLicense": "GPL-3.0_REPO_LICENSE",
+      "weightsLicense": "UNVERIFIED",
+      "weightsArtifact": "SavedModel_UNVERIFIED",
+      "baseModel": "TensorFlow + OpenCV; derived BeeAlarmed",
+      "baseModelLicense": "NEEDS_TRANSITIVE_REVIEW",
+      "task": "hive_entrance_detection_tracking_server",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "gratheon-models-bee-detector",
+      "source": "https://github.com/Gratheon/models-bee-detector",
+      "codeLicense": "REVIEW_REQUIRED",
+      "weightsLicense": "UNVERIFIED",
+      "weightsArtifact": "Matt_Nudi_weights_reference",
+      "baseModel": "YOLOv5",
+      "baseModelLicense": "NEEDS_TRANSITIVE_REVIEW",
+      "task": "http_microservice_bee_detector",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "apiarist-honey-bee-detector",
+      "source": "https://huggingface.co/maryammeda/apiarist-honey-bee-detector",
+      "codeLicense": "APACHE-2.0_CLAIM_ON_MODEL_CARD",
+      "weightsLicense": "CLAIM_UNVERIFIED_TRANSITIVE",
+      "weightsArtifact": "honey_bee_detector.pt",
+      "baseModel": "YOLOv8s",
+      "baseModelLicense": "NEEDS_TRANSITIVE_REVIEW",
+      "task": "honeycomb_frame_inspection",
+      "fieldBenchmark": "NOT_ENTRANCE",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
+    }
+  ]
+}
