@@ -676,3 +676,40 @@ test('two simultaneous read-only reports remain stable after reconnect on isolat
  assert.equal(again.dataModified,false);
  reopened.close();
 });
+
+test('corrupt ledger remains untrusted across restart even when no live originals are visible',async()=>{
+ const corrupt={version:1,entries:[{source:'entrance_media',videoId:'v1',
+  cleanupState:'deleted',sourceSha256:'bad',sourceBytes:3}]};
+ const db=await setup({ledger:corrupt});
+ const before=await audit(db,guard);
+ assert.equal(before.copyCount,0);
+ assert.ok(before.issues.includes('ledger_invalid'));
+ assert.equal(before.cleanupAuthorized,false);
+ const name=db.name;db.close();
+ const req=fixtureFactory.open(name,1);
+ const reopened=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const after=await audit(reopened,guard);
+ assert.deepEqual(after,before);
+ assert.equal(after.archiveSafe,false);
+ assert.equal(after.restoreAuthorized,false);
+ reopened.close();
+});
+test('unknown protected backup payload stays blocked without revealing its contents on reopen',async()=>{
+ const secret='SYNTHETIC_PRIVATE_ARCHIVE_TEST_BYTES';
+ const db=await setup({backups:[['opaque',{blob:new Blob([secret])}]]});
+ const before=await audit(db,guard);
+ assert.ok(before.issues.includes('unknown_backup_format'));
+ assert.equal(before.cleanupAuthorized,false);
+ assert.equal(JSON.stringify(before).includes(secret),false);
+ const name=db.name;db.close();
+ const req=fixtureFactory.open(name,1);
+ const reopened=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const after=await audit(reopened,guard);
+ assert.deepEqual(after,before);
+ assert.equal(after.dataModified,false);
+ reopened.close();
+});
