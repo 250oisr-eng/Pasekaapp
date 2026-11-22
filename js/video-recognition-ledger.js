@@ -162,6 +162,9 @@ function commitRecognitionResult(db,input,proof){
     const ledger=ledgerRequest.result||{version:1,entries:[]};
     if(!validateLedger(ledger))return fail('ledger_corrupt');
     const prior=ledger.entries.find(entry=>entry.videoId===input.videoId&&entry.source===input.source);
+    if(ledger.entries.some(entry=>entry.resultId===input.resultId&&
+       (entry.videoId!==input.videoId||entry.source!==input.source)))
+      return fail('conflicting_recognition_result_id');
     if(prior){
      if(prior.resultId!==input.resultId||JSON.stringify(prior.result)!==JSON.stringify(input.result)||
        prior.sourceSha256!==proof.sha256||prior.sourceBytes!==proof.bytes)
