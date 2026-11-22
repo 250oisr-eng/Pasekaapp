@@ -1,3 +1,20 @@
+## P1 проверенный кодовый HEAD — 2026-11-23
+
+- На CODE/TEST SHA `ba1a9a4efc64280ef33dc717f6b08b24a6ce685d` Fast Quality #45081133712 **1220/1220 PASS**, 0 failures/skipped; Android Debug #45081133626 **completed/success**. Это целевые регрессионные и сборочные проверки, не физическое Android/production доказательство.
+- Цепочка P1: Draft #418 concurrent writes; #419 offline SW cache scope; #420 cross-tab + v2/v4 migration; #421 документальная карта PR; #422 abort/reopen + Farrar isolation. Все не слиты в main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. Ни один PR автоматически не закрыт.
+- P1 **NOT READY** из-за физических испытаний и недоинтегрированного live PASEKA02/P0. Restore335 STOP, media cleanup DISABLED. Следующая безопасная задача: в рамках P0 предоставить доказательное runtime state/media восстановление без потерь; затем device/physical acceptance, интеграция по разрешению пользователя и повторный audit на актуальных SHA.
+
+---
+
+## P1 — тест прерывания записи и изоляции Farrar/sectional (2026-11-23)
+
+- PR #420 exact HEAD `b8aa09cc7d848c28be75f76b4984b25fa749ef86`: Fast #45080849658 **1218/1218 PASS**, Android Debug #45080849673 **success**.
+- Draft #421 документационно инвентаризировал 349 открытых PR на момент снимка, не делая merge.
+- Новый блок P1: тест `writeMainWithBackup` после DataCloneError и restart сохраняет старые main+backup; OP-04 для секционного улья не затрагивает legacy Farrar hive/layout. Два новых регрессионных теста, ни одного изменения runtime/schema/media.
+- Следующее: новый exact-HEAD CI, затем финальная сверка незакрытых P1 ворот. P0 OPEN и физическое устройство недоступно для доказательства; не объявлять P1 полностью готовым.
+
+---
+
 ## P1.6 — карта зависимостей PR (2026-11-23)
 
 - После #420 проведена read-only инвентаризация GitHub: 349 open PR, все Draft, 30 base=main, 319 stacked, рабочая цепочка P0→P1 из 32 PR до #420; 542 commits ahead/0 behind от main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`.

@@ -911,3 +911,21 @@ test('OP-04 staged first-row to second-row sequence composes with OP-05, OP-06 a
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
  assert.deepEqual(fixture.state.sectionalTechProcesses[0].state.operations.map(row=>row.operationId),['OP-04','OP-05','OP-06','OP-07']);
 });
+
+
+test('P1: completing sectional OP-04 never mutates an unrelated legacy Farrar hive', () => {
+ const fixture=makeFixture(),deps=dependencies();
+ const legacyHive={id:'legacy-farrar',number:27,profileId:'farrar-6x6-v1',notes:'preserve historic profile'};
+ const legacyLayout={mode:'summer',installedBoxes:[],honeyBoxInstalled:[],corpusIds:{},notes:'historic arrangement'};
+ fixture.state.hives.push(structuredClone(legacyHive));
+ fixture.state.layouts['legacy-farrar']=structuredClone(legacyLayout);
+ const before=structuredClone({
+   hive:fixture.state.hives.find(hive=>hive.id==='legacy-farrar'),
+   layout:fixture.state.layouts['legacy-farrar']
+ });
+ const result=Coordinator.completeOP04(fixture.state,request(fixture),deps);
+ assert.equal(result.ok,true,JSON.stringify(result.details||result));
+ assert.deepEqual(fixture.state.hives.find(hive=>hive.id==='legacy-farrar'),before.hive);
+ assert.deepEqual(fixture.state.layouts['legacy-farrar'],before.layout);
+ assert.equal(fixture.state.hives.length,2,'sectional OP-04 must not add or remove an unrelated legacy hive');
+});

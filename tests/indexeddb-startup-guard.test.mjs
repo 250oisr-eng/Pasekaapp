@@ -555,3 +555,46 @@ test('P1: upgrading v4 to v5 preserves staged media and archive history records 
   assert.deepEqual(preservedHistory, history);
   deps.db.close();
 });
+
+
+test('P1: interrupted state+backup replacement preserves both records after simulated restart', async () => {
+  const factory = new IDBFactory();
+  const before = openDbDependencies(factory);
+  await load('openDB', before)();
+  const original = { meta: { schemaVersion: 15, revisionId: 'stable-original' }, hives: [{ id: 'hive-protected' }] };
+  const previousBackup = { at: '2026-11-20T01:00:00.000Z', state: { meta: { schemaVersion: 14, revisionId: 'backup-original' }, hives: [{ id: 'backup-hive' }] } };
+  const transaction = before.db.transaction(['main', 'full_backup'], 'readwrite');
+  transaction.objectStore('main').put(original, 'state');
+  transaction.objectStore('full_backup').put(previousBackup, 'previous');
+  await new Promise((resolve, reject) => {
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+
+  before.assertBackupNotFromNewerSchema = load('assertBackupNotFromNewerSchema', before);
+  const uncloneable = { meta: { revisionId: 'invalid' }, callback: () => 'unsafe' };
+  await assert.rejects(
+    load('writeMainWithBackup', before)(uncloneable, 'stable-original'),
+    error => error?.name === 'DataCloneError'
+  );
+  before.db.close();
+
+  // A new page session must observe the complete old pair, never a mixed partial write.
+  const restarted = openDbDependencies(factory);
+  assert.equal(await load('openDB', restarted)(), false);
+  const read = restarted.db.transaction(['main', 'full_backup'], 'readonly');
+  const main = read.objectStore('main').get('state');
+  const backup = read.objectStore('full_backup').get('previous');
+  const persisted = await new Promise((resolve, reject) => {
+    const values = {};
+    main.onsuccess = () => { values.main = main.result; };
+    backup.onsuccess = () => { values.backup = backup.result; };
+    read.oncomplete = () => resolve(values);
+    read.onerror = () => reject(read.error);
+    read.onabort = () => reject(read.error);
+  });
+  assert.deepEqual(persisted.main, original);
+  assert.deepEqual(persisted.backup, previousBackup);
+  restarted.db.close();
+});
