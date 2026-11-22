@@ -1,3 +1,14 @@
+## 2026-11-23 — P0: запрет перезаписи staged Blob при primary-key конфликте (Draft, CI pending)
+
+- **Родитель:** Draft PR #402 на SHA `b19ced33c1b2933d6e15e5bd98515d11b1ceda46`. Его кодовый SHA `c283c74930ff20a2dcf2959c8bf4c8fac791fcd0` отдельно прошёл [Fast Quality #45070364455](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364455) **864/864 PASS** и [Android #45070364533](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364533) **completed/success**; parent checks не подтверждают новый код.
+- **Риск:** `putStagingEntryAndUpdateSession()` при `store.get(record.id)` с уже существующей строкой того же `sessionId` и любым `kind !== 'session'` ранее делал `store.put(record)`, **молча перезаписывая staged Blob**. При конкурентной или неконформной записи возможна утрата оригинальной временной копии, даже если последующая проверка full archive заблокирует commit.
+- **Правка:** каждую запись манифеста stage записывает один раз; если ключ уже существует независимо от вида/владельца — abort `STAGING_ENTRY_ID_CONFLICT`. При ожидаемом отсутствии `store.add()` вместо `store.put()` гарантирует родную уникальность первичного ключа даже при недостоверном ответе `get()`. `stagedCount` увеличивается только для действительно нового ключа. При отказе live main/media/history не изменяются, существующая временная Blob-копия сохраняется. Нет изменений модели IndexedDB, .paseka, миграций или формата.
+- `tests/archive-restore-enumeration-failclosed.test.mjs`: **4 synthetic fixture сценария** с созданным внутри теста .paseka из двух фальшивых Blob: штатный stage; поздняя посторонняя строка `rollback_video`; поздняя строка `video` с тем же ключом; адаптер `get()`, скрывающий реально существующую строку — в этом случае native `add()` обязан отклонить транзакцию и сохранить байты. Тесты не используют реальные пасечные записи и не удаляют исходное видео.
+- **Точный новый CI: PENDING**, до подтверждения ничего не считать PASS. STABILIZATION_ONLY, Restore335 STOP, v2 ledger/tombstones и безопасное реальное удаление ещё не реализованы. Main/production/merge/deploy не затрагивались.
+- Следующее: запустить/проверить exact-SHA Fast Quality и Android, исправить любые failures, зафиксировать код SHA, и продолжить P0 lineage/integration audit.
+
+---
+
 ## 2026-11-23 — Draft PR #402: stored null recognition ledger P0, exact-SHA CI PASS
 
 - **Code+tests+initial-docs SHA `c283c74930ff20a2dcf2959c8bf4c8fac791fcd0`**: [Fast Quality #45070364455](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364455) **completed/success, 864/864 PASS, 0 fail, 0 skipped**. [Android #45070364533](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364533) **completed/success**, regression suite, full debug APK build and artifact upload success; ZIP artifact [#14773350972](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364533/artifacts/14773350972) 3,458,857 bytes (**не SHA бинарного APK**).
