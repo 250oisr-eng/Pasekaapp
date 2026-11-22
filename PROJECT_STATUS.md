@@ -1,3 +1,10 @@
+## P1 — проверка QuotaExceededError после частичной постановки записей (2026-11-23)
+
+- В новой отдельной ветке над #432 добавлен `tests/p1-idb-quota-atomic-reopen.test.mjs`: синтетическая ошибка `QuotaExceededError` при `full_backup.put` после успешной постановки `main.put` в единую readwrite-транзакцию. Проверяется отказ и после закрытия/открытия IndexedDB сохранность **обоих** прежних записей, затем успешный retry и резервная копия предыдущего state.
+- Тест использует только `fake-indexeddb` и реальную функцию `writeMainWithBackup` из `index.html`, без физической базы, прав Android, медиа и production. Exact-HEAD CI ожидается; **не** является доказательством реальной quota exhaustion, power-loss или full-media restore на OnePlus. P0/P1 OPEN.
+
+---
+
 ## P0 — временные Blob URL запрещены в переносимых результатах recognition (2026-11-23)
 
 - Зафиксирован независимый пробел `js/video-archive-v2-guard.js`: `result` ledger раньше блокировал `data:video`, но не текстовые ссылки `blob:` (они исчезают после restart и не являются переносимыми доказательствами). Теперь вложенные `blob:` URL отклоняются `V2_RESULT_BINARY`; обычный текст и `data:image/png` сохраняют прежнее поведение.
