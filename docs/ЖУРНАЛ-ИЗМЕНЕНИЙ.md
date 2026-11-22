@@ -1,3 +1,23 @@
+## Android ONNX WASM — exact-SHA CI PASS и проверенный APK (2026-11-22)
+
+- После начальных ошибок изолированного CI исправлен запуск реального WASM в Node: Node ESM не поддерживает `http:` JS-модуль; используются только локальные `file:` для JS и `data:` для pinned WASM, **без внешнего HTTP**. Дополнительно общий `npm test` пропускает специализованное ONNX runtime испытание с явной пометкой skip, а isolated workflow `PASEKA_SYNTHETIC_ORT_CI=1` обязательно выполняет и не позволяет skip. Это устранение реальных CI failure, не скрытие проблем.
+- На code SHA `9003ba94d6f621b2a02db8eea9a4f7bd073e6c26`: [isolated workflow #44999470475](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44999470475) **completed/success** на повторной попытке после внешнего сбоя загрузки Maven/Gradle (в первой попытке зависимость `org.jetbrains.kotlin:kotlin-stdlib-jdk8` и другие не находились; библиотеки/зеркала не менялись). Фактически прошли ONNX Runtime Web WASM `3+2=5`, подготовка web-assets, Gradle debug APK, `aapt` проверки изолированного package, upload. [Generic Android #44999470546](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44999470546) **completed/success**. Archive isolated workflow `#44999470466` skipped, не является тестом восстановления.
+- GitHub artifact ZIP `paseka-synthetic-onnx-wasm-isolated-apk`, ID `14744334351`, ZIP 7 965 464 B, digest SHA-256 `24a37fab78c8e612f1cc861cf093b58123dbbca8cc051d681ee3d00d517f1cad` — независимо совпал с GitHub. Извлечён единственный `app-debug.apk`, 12 913 955 B, SHA-256 `4eb4bddf9addc37f96f4afd7fe12248606d90dcea3f07504f26056d68eba6160`. В APK подтверждены `assets/public/ort.min.js`, `ort-wasm-simd-threaded.mjs`, `ort-wasm-simd-threaded.wasm` (14 848 852 B), `synthetic-add.onnx` (127 B), тестовый runner. Ссылка на extracted APK предоставляется пользователю в чате.
+- **Физический Android запуск ONNX ещё NOT_TESTED.** Даже физический PASS будет означать только синтетическую локальную математику через ONNX WebView WASM, не bee detection, real media, source-bound recognition, и не cleanup. Исходные три физические PASS для IndexedDB, MP4 playback, 3 JPEG frames сохраняются. Старые тестовые APK и данные не очищать.
+- Следующий шаг: одно безопасное тестовое приложение на телефоне, одна кнопка и полный PASS/BLOCKED отчёт. После этого оценивать реальную модель только при подтверждённых лицензиях конкретных весов и независимых benchmark. main/deploy/merge/удаление не выполнялись.
+
+---
+
+## Android — test-only локальное ONNX WASM исполнение (2026-11-22)
+
+- Подготовлен полностью **авторский синтетический ONNX граф** `Add(x,bias=2)` (вход float32[1] `3` → ожидаемый выход `5`), программно собираемый только из protobuf-структур в `scripts/generate-synthetic-onnx.mjs`. Ни один байт обученных весов третьих лиц не используется; модель не распознаёт ни пчёл, ни изображений.
+- Создан новый независимый тестовый APK `ru.paseka.journal.diagnostic.ortsmoke`, не меняющий production, `selftest`, `mediatest` и `frametest`. `scripts/prepare-android-synthetic-ort-apk.mjs` упаковывает локально `onnxruntime-web@1.31.1` (MIT), `ort.min.js` и однотредовый WASM-бэкенд из пакета, без CDN/API. Кнопка `tests/fixtures/android-synthetic-ort-runner.js` вызывает `InferenceSession.create` только для локального `synthetic-add.onnx`, `session.run({x:3})`, сверяет строго `5`, возвращает один отчёт PASS/BLOCKED.
+- `tests/android-synthetic-ort.test.mjs` проверяет отсутствие доступа к пользовательскому видео/IndexedDB/network и выполняет **реальное WASM вычисление с тем же синтетическим ONNX** в Node CI; тест fail-closed, не допускает skip при отсутствии runtime. Отдельный workflow `.github/workflows/build-android-synthetic-ort-apk.yml` ставит только test-only pinned runtime, запускает тесты, собирает отдельную APK и проверяет package ID.
+- **Границы:** даже будущий аппаратный PASS будет означать лишь offline execution математической ONNX модели, НЕ доказательство детекции пчёл, качества, лицензии сторонних весов, tracking/direction, `recognitionSucceeded` или удаления. Ни одна из семи найденных моделей пчёл не допущена к исполнению; пользовательские видео/данные/backup и production не затрагиваются.
+- Следующий gate: проверить CI на exact HEAD и ошибки, получить точный SHA APK, только затем предоставить Android тест по одной кнопке. Никакого автоматического install/restart/cleanup.
+
+---
+
 ## VIDEO MODEL — InsectAI Model Zoo: цепочка лицензии весов (2026-11-22)
 
 - Проверены первичные LICENSE: `IDEA-Research/GroundingDINO` Apache-2.0 (GitHub blob SHA `f1460f5e6ad1e90abb720a1536a46e3d057686a9`) и `darsa-group/flat-bug` MIT (blob `bee96279e49757f77280f9c8ddf0bf28983dda2d`). Независимый InsectAI Model Zoo отдельно предупреждает о непрямом происхождении лицензионных ярлыков.
