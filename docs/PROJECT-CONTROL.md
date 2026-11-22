@@ -1,3 +1,9 @@
+## 2026-11-22 — Android Restore335 V6 protected metadata-format diagnosis
+
+- [ANDROID-RESTORE335-PRIVATE-METADATA-V6-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-METADATA-V6-2026-11-22.md) — after actual V5 format BLOCKED, parse only safe metadata mode shape or preserve UNKNOWN without inspecting media content.
+
+---
+
 ## 2026-11-22 — Restore335 V5: type-only private metadata, no payload read
 
 - [ANDROID-RESTORE335-PRIVATE-TYPE-V5-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-TYPE-V5-2026-11-22.md) — этап после физического V4 PASS: один элемент, классификация метаданных без доступа к содержимому, восстановления и удаления.
