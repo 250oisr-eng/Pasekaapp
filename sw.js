@@ -1,1 +1,64 @@
-const CACHE='paseka-shell-v316';const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/paseka-sha256.js','./js/paseka-archive.js','./js/paseka-archive-restore.js','./js/paseka-android-download.js'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const nav=e.request.mode==='navigate'||new URL(e.request.url).pathname.endsWith('/index.html');if(nav){e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request).then(c=>c||caches.match('./index.html'))));return}e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(x=>x.put(e.request,copy));return r}).catch(()=>caches.match('./index.html'))))});
+// Only the versioned Paseka application shell may be cached offline.
+const CACHE='paseka-shell-v317';
+const CACHE_PREFIX='paseka-shell-';
+const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/paseka-sha256.js','./js/paseka-archive.js','./js/paseka-archive-restore.js','./js/paseka-android-download.js'];
+const SCOPE=new URL(self.registration.scope);
+const SHELL_PATHS=new Set(FILES.map(file=>new URL(file,SCOPE).pathname));
+
+function cacheableResponse(response){
+  return response.ok &&
+    (response.type==='basic'||response.type==='default') &&
+    !/\b(?:no-store|private)\b/i.test(response.headers?.get('cache-control')||'');
+}
+
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(key=>key.startsWith(CACHE_PREFIX)&&key!==CACHE).map(key=>caches.delete(key))))
+      .then(()=>self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  if(request.method!=='GET')return;
+  const url=new URL(request.url);
+  // Never intercept third-party traffic, other applications on this origin, or user data APIs.
+  if(url.origin!==SCOPE.origin)return;
+  const navigation=request.mode==='navigate';
+  if(navigation){
+    if(!url.pathname.startsWith(SCOPE.pathname))return;
+  }else if(!SHELL_PATHS.has(url.pathname)){
+    return;
+  }
+
+  const remember=response=>{
+    if(cacheableResponse(response)&&SHELL_PATHS.has(url.pathname)){
+      event.waitUntil(caches.open(CACHE).then(cache=>cache.put(request,response.clone())).catch(()=>{}));
+    }
+    return response;
+  };
+
+  if(navigation){
+    // The network is authoritative online; only the app shell is an offline fallback.
+    event.respondWith(
+      fetch(request).then(remember).catch(()=>
+        caches.open(CACHE)
+          .then(cache=>cache.match(request,{ignoreSearch:true})
+            .then(saved=>saved||cache.match('./index.html')))
+          .then(saved=>saved||Response.error())
+      )
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.open(CACHE)
+      .then(cache=>cache.match(request,{ignoreSearch:true}))
+      .then(saved=>saved||fetch(request).then(remember).catch(()=>Response.error()))
+  );
+});
