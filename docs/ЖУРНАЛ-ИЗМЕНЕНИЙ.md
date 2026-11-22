@@ -1,3 +1,11 @@
+## 2026-11-22 — исполняемая негативная проверка списка разрешений APK
+
+- В `tests/android-product-installed-permissions.test.mjs` добавлена проверка **исполнением реального фрагмента Node из Android workflow**, а не только поиском строк: штатное внутреннее разрешение принимается; `INTERNET`, `RECORD_AUDIO`, `READ_MEDIA_VIDEO`, `ACCESS_FINE_LOCATION`, `CAMERA` через `uses-permission-sdk-23`, пустой и повреждённый результат `aapt` отвергаются. Исходный код самого runtime и package ID не менялись.
+- Code/test SHA `e3395c89aadda9d0e6b50de439e580867fbc8eb3`. [Fast quality checks #45029672213](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672213) **completed/success**; точные итоги Android workflow #45029672179 и общей Android сборки #45029672164 необходимо сверить отдельно перед финальной отметкой.
+- Реальные Android PackageManager, трафик, архивы, распознавание и удаление видео **NOT_TESTED**. `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`. Изменений production, `main`, пользовательских данных и merge нет.
+
+---
+
 ## 2026-11-22 — полный CI PASS: копируемость большого отчёта
 
 - **Exact code/test SHA:** `3970f58d2e9a2b1a7e1010c4b3aa1124bba9310e`. Все три workflow **completed/success**: [Fast quality checks #45029108308](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029108308), [изолированный APK #45029108284](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029108284), [Android APK #45029108411](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029108411). Последующие изменения только документационные, не являются новым проверенным кодовым SHA.
