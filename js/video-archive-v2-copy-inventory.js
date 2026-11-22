@@ -36,7 +36,7 @@ function snapshot(db){
  });
 }
 function inspectSnapshot(v,guard){
- const issues=new Set(),copies=[],names=new Set(),recognition=new Map(),recognitionEvidence=new Map();
+ const issues=new Set(),copies=[],names=new Set(),recognition=new Map(),recognitionEvidence=new Map(),recognizedByIdentity=new Map();
  const issue=name=>issues.add(name);
  const add=(store,source,id,sha,bytes,blob)=>{
   if(!['entrance_media','record_media'].includes(source)||!key(id)){
@@ -63,6 +63,7 @@ function inspectSnapshot(v,guard){
   for(const e of v.ledger.entries){
    const identity=sourceKey(e.source,e.videoId);
    recognition.set(identity,e.cleanupState);
+   recognizedByIdentity.set(identity,e);
    // Metadata-only possible alias detection: an SHA+size match is not a
    // fresh byte-level proof and never authorizes deletion.
    if(hex(e.sourceSha256)&&Number.isSafeInteger(e.sourceBytes)&&e.sourceBytes>0){
@@ -88,8 +89,19 @@ function inspectSnapshot(v,guard){
     if(!video)continue;
     if(m.data!=null){
      if(!videoUri(m.data)){issue('record_video_payload_unknown');continue;}
+     // A blob: URL is a short-lived browser reference, not durable media evidence.
+     if(typeof m.data==='string'&&/^blob:/i.test(m.data))
+      issue('volatile_blob_url_requires_source_provenance');
+     // Do not decode arbitrary user media in this metadata-only diagnostic.
+     if(typeof m.data==='string'&&/^data:(?:video\/|application\/octet-stream)[^,]*,$/i.test(m.data))
+      issue('empty_video_data_url');
      add(store,'record_media',m.videoId,m.sourceSha256,m.sourceBytes,null);
-    }else if(!key(m.videoId))issue('record_video_id_missing');
+    }else{
+     // A video marker without payload is not evidence that a recorded video
+     // has been cleaned up. Flag even if an id is present.
+     issue('record_video_payload_missing');
+     if(!key(m.videoId))issue('record_video_id_missing');
+    }
    }
   }
  };
@@ -98,7 +110,19 @@ function inspectSnapshot(v,guard){
  else for(const item of v.entrance){
   if(!object(item)){issue('entrance_record_unknown');continue;}
   if(item.blob==null){issue('entrance_payload_unknown');continue;}
-  add('entrance_media','entrance_media',item.id,item.blobSha256||item.sourceSha256,
+  // Both forms can coexist on migrated records: never silently prefer one.
+  if(item.blobSha256!=null&&!hex(item.blobSha256)||
+     item.sourceSha256!=null&&!hex(item.sourceSha256))issue('invalid_copy_evidence');
+  if(item.blobSha256!=null&&item.sourceSha256!=null&&
+     hex(item.blobSha256)&&hex(item.sourceSha256)&&
+     item.blobSha256!==item.sourceSha256)issue('conflicting_source_metadata');
+  if(item.bytes!=null&&(!Number.isSafeInteger(item.bytes)||item.bytes<1)||
+     item.sourceBytes!=null&&(!Number.isSafeInteger(item.sourceBytes)||item.sourceBytes<1))
+   issue('invalid_copy_evidence');
+  if(item.bytes!=null&&item.sourceBytes!=null&&
+     Number.isSafeInteger(item.bytes)&&Number.isSafeInteger(item.sourceBytes)&&
+     item.bytes!==item.sourceBytes)issue('conflicting_source_metadata');
+  add('entrance_media','entrance_media',item.id,item.blobSha256??item.sourceSha256,
    item.bytes??item.sourceBytes,item.blob);
  }
  if(!Array.isArray(v.staging))issue('staging_unknown');
@@ -119,6 +143,16 @@ function inspectSnapshot(v,guard){
    if(!object(row.record)||row.record.blob==null){
     issue('rollback_video_unknown');continue;
    }
+   if(row.originalId!=null&&row.record.id!=null&&
+      row.originalId!==row.record.id)issue('rollback_original_identity_conflict');
+   if(row.record.blobSha256!=null&&row.record.sourceSha256!=null&&
+      hex(row.record.blobSha256)&&hex(row.record.sourceSha256)&&
+      row.record.blobSha256!==row.record.sourceSha256)
+    issue('conflicting_source_metadata');
+   if(row.record.bytes!=null&&row.record.sourceBytes!=null&&
+      Number.isSafeInteger(row.record.bytes)&&Number.isSafeInteger(row.record.sourceBytes)&&
+      row.record.bytes!==row.record.sourceBytes)
+    issue('conflicting_source_metadata');
    add('archive_staging.rollback_video','entrance_media',
     row.originalId??row.record.id,
     row.record.blobSha256??row.record.sourceSha256,
@@ -170,9 +204,33 @@ function inspectSnapshot(v,guard){
    !['committed_rollback_blocked','reverted_quarantined_unverified'].includes(record.status))
    issue('history_status_unknown');
  }
+ // Cross-store metadata disagreement cannot be treated as consistent source evidence.
+ // Compare only independently present fields; missing fields stay blocked elsewhere.
+ const copiesByIdentity=new Map();
+ const seenCopyLocations=new Set();
+ for(const copy of copies){
+  if(copy.identity===null)continue;
+  const locationKey=JSON.stringify([copy.store,copy.identity]);
+  if(seenCopyLocations.has(locationKey))issue('duplicate_copy_location_identity');
+  seenCopyLocations.add(locationKey);
+  const previous=copiesByIdentity.get(copy.identity)||[];
+  for(const prior of previous){
+   if(copy.sha256!==null&&prior.sha256!==null&&copy.sha256!==prior.sha256||
+      copy.bytes!==null&&prior.bytes!==null&&copy.bytes!==prior.bytes)
+    issue('conflicting_copy_evidence');
+  }
+  previous.push(copy);
+  copiesByIdentity.set(copy.identity,previous);
+ }
  for(const copy of copies){
   const status=recognition.get(copy.identity);
   if(status!=null)issue('recognized_original_still_present');
+  // Persisted recognition digest must not be trusted over contradictory source metadata.
+  const verifiedEntry=recognizedByIdentity.get(copy.identity);
+  if(verifiedEntry&&(
+    copy.sha256!==null&&copy.sha256!==verifiedEntry.sourceSha256||
+    copy.bytes!==null&&copy.bytes!==verifiedEntry.sourceBytes))
+   issue('recognition_source_evidence_conflict');
   if(status==='deleted')issue('deleted_tombstone_has_copy');
   if(copy.sha256!==null&&Number.isSafeInteger(copy.bytes)&&copy.bytes>0){
    const candidates=recognitionEvidence.get(copy.sha256+':'+copy.bytes)||[];

@@ -1,3 +1,39 @@
+## 2026-11-22 — transient browser Blob URL и пустой Data URL не являются сохранённым видео
+
+- В `js/video-archive-v2-copy-inventory.js` для распознанных как видео записей журнала введены read-only issues: `volatile_blob_url_requires_source_provenance` для `blob:` (ссылка жизни браузерного документа, не доказательство устойчивого файла) и `empty_video_data_url` для пустого `data:video/...,`. Оригиналы и URI не возвращаются пользователю в диагностическом отчёте. Отсутствует чтение/декодирование payload и разрешение cleanup.
+- `tests/video-archive-v2-copy-inventory.test.mjs` +3 синтетических теста: transient blob URL, пустой inline Data URL, нормальный непустой Data URL без ложных issues. Всего ожидается **48** тестов inventory и **137** связанных четырёх модулей; эти числа не объявлять PASS до фактической проверки CI на соответствующем SHA.
+- При реальной записи через системную камеру/MediaStore всё ещё нельзя доказать отсутствие отдельной внешней копии; физическое удаление не разрешено. Идущая общая Android сборка не равна проверке жизненного цикла пользовательского видео. Model search parked.
+
+---
+
+## 2026-11-22 — крупный интеграционный CI-блок: inventory + ledger + guard + staging
+
+- На code SHA `e29fb1e7e6be220fdb34080a5867e0e34d22f14d` отдельный [workflow #45003390723](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003390723) completed/success: **45/45** тестов; fake-indexeddb повторно открыта с неизменным результатом read-only audit. Это не аппаратное восстановление.
+- Изменён только `.github/workflows/test-video-copy-hash-alias.yml`: вместо одного модуля запускаются совместно `tests/video-archive-v2-copy-inventory.test.mjs`, `tests/video-recognition-ledger.test.mjs`, `tests/video-archive-v2-guard.test.mjs`, `tests/archive-staging.test.mjs`. Push и pull_request paths расширены на зависимые тесты. Данные, runtime, Android package и production не менялись этим пунктом.
+- Новый критерий: реальный combined CI на *последнем SHA* (сумма тестов может отличаться от простой суммы объявлений `test()` при вложенных тестах), перед признанием доказательства совместимости. Отдельный архивный restore на телефоне и физическое удаление не выполнялись; `cleanupAuthorized=false`.
+- Поиск сторонних моделей остаётся припаркованным. Дальнейший приоритет — независимые контракты Android media provenance и отказобезопасности архива без открытия пользовательских файлов.
+
+---
+
+## 2026-11-22 — воспроизводимый restart/abort read-only inventory
+
+- Расширена только тестовая среда `tests/video-archive-v2-copy-inventory.test.mjs`: единая изолированная `IDBFactory` с уникальными именами БД позволяет закрыть и повторно открыть ту же синтетическую IndexedDB. Проверяется точное совпадение всех полей и issue list в результате аудита до и после reopen при конфликтующих копиях/ledger и защищённом tombstone; `cleanupAuthorized=false`.
+- Второй тест проверяет, что закрытая БД без доступной транзакции отклоняется с ошибкой, а не выдаёт фиктивный пустой/«чистый» отчёт. Новые операции только над изолированными тестовыми данными, не физическая потеря питания телефона.
+- На SHA `138c5c910ab301997c7aaf6026f392b6db96f463`: специализированный [CI #45003304134](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003304134) **completed/success**, 43/43. После reopen тестов ожидается 45, проверить exact HEAD; общая Android/физический restore/cleanup не подтверждены.
+- Поиск моделей остаётся закрытым до нового доказательства; архивный writer, данные пользователя и production не затронуты.
+
+---
+
+## 2026-11-22 — крупный независимый блок: fail-closed инвентаризация после прерывания и rollback
+
+- **Предыдущий контроль:** exact SHA `caa330a2c676c6aabc976e69aa5b09ede9bf1d4d`: specialized [workflow #45003038458](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003038458) success, 33/33; общий Android [#45003038470](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003038470) completed/success; isolated archive skipped. Это не физический restore.
+- В Draft PR #354 расширен `js/video-archive-v2-copy-inventory.js`: метка видео журнала без payload распознаётся как `record_video_payload_missing` даже при наличии videoId; два видео одной source/videoId в одном логическом месте — `duplicate_copy_location_identity`; несогласованные `originalId` и `record.id` legacy rollback — `rollback_original_identity_conflict`; альтернативные метаданные rollback с конфликтующими SHA/bytes — `conflicting_source_metadata`.
+- В `tests/video-archive-v2-copy-inventory.test.mjs` добавлены десять связанных проверок: отсутствующий payload с id/без id, дубли одной логической локации, допустимые копии в разных store, расхождение ID отката, противоречивые и непротиворечивые поля rollback, составной прерванный archive/recognition/tombstone, повтор readonly после staged orphan, независимость record_media и entrance_media при совпадающем видео-ID.
+- Работа исключительно с метаданными `fake-indexeddb`/readonly snapshot; не вызывается удаление, импорт/restore, hash Blob, сеть или устройство. Источники и формат БД не изменены. Результат никогда не авторизует cleanup, archiveSafe или restore. Ожидается 43 целевых теста после CI на *последнем* SHA. Android Camera/MediaStore, физический restart и целостность настоящих файлов всё ещё NOT_TESTED.
+- Остановить поиск весов: `MODEL_SEARCH_PARKED_EVIDENCE_REQUIRED`. Следующий безопасный этап — оценить реальный read-only failure/restart протокол на изолированных синтетических данных без вмешательства в пользовательскую базу, только после точного CI, без массового рефакторинга.
+
+---
+
 # Аудит совместимости временного видео, распознавания и резервного архива
 
 Дата: 2026-11-21. Статус: документационный аудит без изменений runtime, удаления и миграций.

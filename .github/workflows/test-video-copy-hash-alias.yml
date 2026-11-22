@@ -5,11 +5,17 @@ on:
     paths:
       - 'js/video-archive-v2-copy-inventory.js'
       - 'tests/video-archive-v2-copy-inventory.test.mjs'
+      - 'tests/video-recognition-ledger.test.mjs'
+      - 'tests/video-archive-v2-guard.test.mjs'
+      - 'tests/archive-staging.test.mjs'
       - '.github/workflows/test-video-copy-hash-alias.yml'
   pull_request:
     paths:
       - 'js/video-archive-v2-copy-inventory.js'
       - 'tests/video-archive-v2-copy-inventory.test.mjs'
+      - 'tests/video-recognition-ledger.test.mjs'
+      - 'tests/video-archive-v2-guard.test.mjs'
+      - 'tests/archive-staging.test.mjs'
       - '.github/workflows/test-video-copy-hash-alias.yml'
 permissions:
   contents: read
@@ -24,5 +30,10 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
-      - name: Test conservative cross-ID SHA alias warnings
-        run: node --test tests/video-archive-v2-copy-inventory.test.mjs
+      - name: Test read-only inventory, recognition ledger, archive guard and staging together
+        run: |
+          node --test \
+            tests/video-archive-v2-copy-inventory.test.mjs \
+            tests/video-recognition-ledger.test.mjs \
+            tests/video-archive-v2-guard.test.mjs \
+            tests/archive-staging.test.mjs

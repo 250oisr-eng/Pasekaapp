@@ -16,9 +16,10 @@ const ledger=(state='deleted')=>({version:1,entries:[{
 const done=tx=>new Promise((ok,no)=>{
  tx.oncomplete=ok;tx.onerror=tx.onabort=()=>no(tx.error||new Error('tx fail'));
 });
+const fixtureFactory=new IDBFactory();
 let serial=0;
 async function setup(data={}){
- const request=new IDBFactory().open('paseka-v2-inventory-'+(++serial),1);
+ const request=fixtureFactory.open('paseka-v2-inventory-'+(++serial),1);
  request.onupgradeneeded=()=>{
   const db=request.result;db.createObjectStore('main');
   db.createObjectStore('entrance_media',{keyPath:'id'});
@@ -359,5 +360,275 @@ test('SHA alias from protected backup is visible without releasing protected byt
  assert.equal(r.copies[0].store,'full_backup.quarantinedMedia');
  assert.equal(JSON.stringify(r).includes('abc'),false);
  assert.equal(r.cleanupAuthorized,false);
+ db.close();
+});
+
+test('same video identity with contradictory SHA across app and protected staging flags conflict without writing',async()=>{
+ const different='b'.repeat(64);
+ const db=await setup({entrance:[live('same')],staging:[{
+  ...staged('same'),sourceSha256:different
+ }]});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.distinctIdentities,1);
+ assert.ok(report.issues.includes('conflicting_copy_evidence'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.dataModified,false);
+ const recheck=await audit(db,guard);
+ assert.deepEqual(recheck.issues,report.issues);
+ db.close();
+});
+test('matching cross-store evidence does not create a false conflict',async()=>{
+ const db=await setup({entrance:[live('same')],staging:[staged('same')]});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.issues.includes('conflicting_copy_evidence'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+test('same video identity with contradictory byte count flags conflict without deleting copies',async()=>{
+ const db=await setup({entrance:[live('same')],staging:[{
+  ...staged('same'),sourceBytes:4,blob:blob('abcd')
+ }]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_copy_evidence'));
+ assert.equal(report.copies.length,2);
+ assert.equal(report.dataModified,false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+
+test('two conflicting SHA fields on one live entrance record are not silently reconciled',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceSha256:'b'.repeat(64)}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_source_metadata'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('two conflicting byte lengths on one live entrance record are not silently reconciled',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceBytes:4}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_source_metadata'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('recognition source SHA mismatch is reported without trusting recognized flag',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[{...live('v1'),blobSha256:'b'.repeat(64)}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('recognition_source_evidence_conflict'));
+ assert.ok(report.issues.includes('deleted_tombstone_has_copy'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.restoreAuthorized,false);
+ db.close();
+});
+test('recognition source byte mismatch is reported with no false mismatch for matching evidence',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[{...live('v1'),bytes:4,blob:blob('abcd')}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('recognition_source_evidence_conflict'));
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+ const matching=await setup({ledger:ledger('deleted'),entrance:[live('v1')]});
+ const correct=await audit(matching,guard);
+ assert.equal(correct.issues.includes('recognition_source_evidence_conflict'),false);
+ assert.equal(correct.cleanupAuthorized,false);
+ matching.close();
+});
+
+test('valid preferred SHA cannot conceal a malformed legacy SHA field',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceSha256:'untrusted-invalid-hash'}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('invalid_copy_evidence'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('valid preferred bytes cannot conceal a malformed alternate byte field',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceBytes:0}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('invalid_copy_evidence'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+
+test('journal video marker with videoId but missing data is not interpreted as deletion',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'journal-pending',sourceSha256:digest,sourceBytes:3}]}]}});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('record_video_payload_missing'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('journal video marker with neither source identifier nor payload is detected',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video'}]}]}});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('record_video_payload_missing'));
+ assert.ok(report.issues.includes('record_video_id_missing'));
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+test('duplicated journal video identity across two records cannot appear unambiguous',async()=>{
+ const media={kind:'video',videoId:'same',sourceSha256:digest,sourceBytes:3,
+  data:'data:video/mp4;base64,YWJj'};
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit1',media:[media]},{id:'visit2',media:[media]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.distinctIdentities,1);
+ assert.ok(report.issues.includes('duplicate_copy_location_identity'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(JSON.stringify(report).includes('YWJj'),false);
+ db.close();
+});
+test('same original in two different protected stores is not mistaken for same-location duplicate',async()=>{
+ const db=await setup({entrance:[live('shared')],staging:[staged('shared')]});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.issues.includes('duplicate_copy_location_identity'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+
+test('legacy rollback originalId different from embedded record.id is explicitly ambiguous',async()=>{
+ const db=await setup({staging:[{id:'rollback:video:original',kind:'rollback_video',
+  sessionId:'rollback',originalId:'original',record:live('other')}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('rollback_original_identity_conflict'));
+ assert.ok(report.issues.includes('legacy_rollback_requires_review'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.restoreAuthorized,false);
+ db.close();
+});
+test('legacy rollback with conflicting embedded SHA and size fields is flagged',async()=>{
+ const record={...live('old'),sourceSha256:'b'.repeat(64),sourceBytes:4};
+ const db=await setup({staging:[{id:'rollback:video:old',kind:'rollback_video',
+  sessionId:'rollback',originalId:'old',record}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_source_metadata'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('consistent rollback originalId and record id adds no false identity conflict',async()=>{
+ const db=await setup({staging:[{id:'rollback:video:old',kind:'rollback_video',
+  sessionId:'rollback',originalId:'old',record:live('old')}]});
+ const report=await audit(db,guard);
+ assert.equal(report.issues.includes('rollback_original_identity_conflict'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+
+test('compound interrupted archive snapshot reports every conflict but never authorizes cleanup',async()=>{
+ const db=await setup({ledger:ledger('deleted'),
+  entrance:[{...live('v1'),sourceSha256:'b'.repeat(64)}],
+  staging:[{...staged('v1'),sourceSha256:'c'.repeat(64)},{
+    id:'rb:video:v1',kind:'rollback_video',sessionId:'rb',originalId:'v1',
+    record:live('renamed')}],
+  backups:[['v2entrance:b',{kind:'v2_entrance_quarantine_rollback_snapshot',
+    beforeState:{meta:{revisionId:'before'},records:[]},
+    afterState:{meta:{revisionId:'after'},records:[]},
+    quarantinedMedia:[live('v1')]}]]});
+ const report=await audit(db,guard);
+ for(const issue of ['conflicting_source_metadata','conflicting_copy_evidence',
+  'recognition_source_evidence_conflict','rollback_original_identity_conflict',
+  'deleted_tombstone_has_copy','external_android_copies_not_audited']){
+  assert.ok(report.issues.includes(issue),issue);
+ }
+ assert.equal(report.copyCount,4);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('pending stage original survives read-only audit if main entrance copy is absent',async()=>{
+ const db=await setup({staging:[staged('orphan-pending')]});
+ const first=await audit(db,guard);
+ const second=await audit(db,guard);
+ assert.equal(first.copyCount,1);
+ assert.equal(first.copies[0].store,'archive_staging');
+ assert.deepEqual(second.copies,first.copies);
+ assert.equal(first.cleanupAuthorized,false);
+ assert.equal(first.dataModified,false);
+ db.close();
+});
+test('same videoId in journal and entrance source remains two distinct identities',async()=>{
+ const db=await setup({entrance:[live('shared')],
+  state:{meta:{schemaVersion:15,revisionId:'r1'},
+   records:[{id:'visit',media:[{kind:'video',videoId:'shared',
+    sourceSha256:'b'.repeat(64),sourceBytes:3,
+    data:'data:video/mp4;base64,YWJj'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.distinctIdentities,2);
+ assert.equal(report.issues.includes('conflicting_copy_evidence'),false);
+ assert.equal(report.issues.includes('duplicate_copy_location_identity'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+
+test('interrupted archive evidence survives IndexedDB close and reopen without mutations',async()=>{
+ const db=await setup({ledger:ledger('deleted'),
+   entrance:[{...live('v1'),sourceSha256:'b'.repeat(64)}],
+   staging:[{...staged('v1'),sourceSha256:'c'.repeat(64)}]});
+ const dbName=db.name;
+ const before=await audit(db,guard);
+ db.close();
+ const reopened=await new Promise((resolve,reject)=>{
+  const request=fixtureFactory.open(dbName,1);
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+ const after=await audit(reopened,guard);
+ assert.deepEqual(after,before);
+ assert.ok(after.issues.includes('conflicting_source_metadata'));
+ assert.ok(after.issues.includes('recognition_source_evidence_conflict'));
+ assert.equal(after.cleanupAuthorized,false);
+ assert.equal(after.dataModified,false);
+ reopened.close();
+});
+test('closed database cannot silently produce a clean inventory report',async()=>{
+ const db=await setup({entrance:[live('orphan')]});
+ db.close();
+ await assert.rejects(audit(db,guard));
+});
+
+test('transient blob URL in recorded journal video is not reported as durable media',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'temporary',
+   sourceSha256:digest,sourceBytes:3,data:'blob:https://localhost/only-temporary'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,1);
+ assert.ok(report.issues.includes('volatile_blob_url_requires_source_provenance'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ assert.equal(JSON.stringify(report).includes('only-temporary'),false);
+ db.close();
+});
+test('empty journal data URL is not accepted as reliable preserved video bytes',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'empty',
+   sourceSha256:digest,sourceBytes:3,data:'data:video/mp4;base64,'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,1);
+ assert.ok(report.issues.includes('empty_video_data_url'));
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+test('nonempty inline journal video does not receive the transient or empty-payload warning',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'saved',
+   sourceSha256:digest,sourceBytes:3,data:'data:video/mp4;base64,YWJj'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.issues.includes('empty_video_data_url'),false);
+ assert.equal(report.issues.includes('volatile_blob_url_requires_source_provenance'),false);
+ assert.equal(report.cleanupAuthorized,false);
  db.close();
 });
