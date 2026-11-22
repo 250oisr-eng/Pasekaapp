@@ -1,3 +1,12 @@
+## 2026-11-22 — PR #396: final code+tests SHA PASS; Draft/unmerged
+
+- **Exact verified code/test SHA**: `dbce7c3f188047ae791b0b783fc69483d331a80b`. [Fast Quality #45067205123](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45067205123) **completed/success: 819/819 PASS, 0 failures, 0 skipped**. [Android #45067205158](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45067205158) **completed/success**, full debug APK build and artifact upload; artifact #14771673588, ZIP/artifact 3,456,295 bytes, not a verified APK binary SHA.
+- The first run [#45067124172](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45067124172) **FAILED** (815 pass, 4 fail) and is explicitly retained in history. Three failures found another unchecked row listing in `readStagedArchive()`; the fourth was a wrong synthetic injection phase. Both fixed before the successful exact SHA rerun.
+- Scope: malformed `getAll()` results now fail closed during staged manifest reading, commit, finalization and rollback (Phase A/recheck/write lock). 6 new synthetic regression tests. Real media and device restore/cleanup **NOT_TESTED**, Restore335 STOP, v2 ledger unresolved.
+- Draft PR [#396](https://github.com/250oisr-eng/Pasekaapp/pull/396) stacked on #395, no merge/main change/production/deployment. Documents added **after verified code SHA**, therefore later docs HEAD is **not independently exact-SHA CI verified**. Next: continue P0 archive lineage and compatibility audit, with explicit negative tests and without unlocking deletion.
+
+---
+
 ## 2026-11-22 — STABILIZATION_ONLY: fail-closed staged rows enumeration (Draft, CI pending)
 
 - Parent Draft #395 HEAD at start: `23923731d2150de751cd2acbcd6bfb29abe9fa68`; parent PR is not main. Its Fast Quality #45066838403 and Android #45066838354 were completed/success on that parent HEAD; these are **not** checks of the new code.
