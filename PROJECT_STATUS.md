@@ -1,3 +1,13 @@
+## 2026-11-22 — физический Android: основной APK отсутствует, USB-подтверждение исправлено
+
+- Пользователь проверил OnePlus NE2213 через `adb devices -l` и `adb -d get-serialno`: серийный номер `ebdb131f`, транспорт USB подтверждён, но `adb devices -l` не содержит необязательного маркера `usb:`.
+- `adb shell pm path ru.paseka.journal` не обнаружил основной продукт. `pm list packages` показывает только 14 изолированных тестовых пакетов. Пользователь подтвердил, что основным приложением на телефоне не пользуется. Поэтому installed-product audit **BLOCKED / PRODUCT_NOT_INSTALLED**, а не PASS. Не устанавливать основную «Пасеку» ради этого аудита без отдельной безопасной задачи.
+- Исправлен PowerShell one-shot: единственный авторизованный ADB device подтверждается явным `adb -d get-serialno`, а затем все команды закреплены за серийным номером. Добавлены отрицательный сценарий USB serial mismatch и положительный сценарий без маркера `usb:` (13 mock-сценариев вместо 11).
+- CI на `9f815152337bf163678a410d594256b498e9b539`: main Android #45037105192 success, Windows #45037105178 failure вследствие несогласованной имитации смены устройства в mock-стенде; isolated diagnostic #45037105224 ещё был in_progress при проверке. Исправление стенда на `7cf4f413557b98f268d41a9528df3e8e2a1e8008`. Новый CI требует проверки точного SHA; не заявлять PASS заранее.
+- Физический доступ к компьютеру временно недоступен. Дальнейшую работу выполнять через GitHub без пользовательских действий. Реальные видео, удаление, сетевой трафик и restore **NOT_TESTED**, никаких операций с ними не выполнялось. PR #366 остаётся Draft; main/production не изменены.
+
+---
+
 ## 2026-11-22 — полный CI PASS на pinned-serial SHA после Maven 429 retry
 
 - **Exact code/test SHA:** `f15cfe8394a3c6de3d9be7fe607f4b6cef1036c8`. [Windows PowerShell USB mock #45035077410](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077410) **completed/success (11/11)**, [Fast quality #45035077493](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077493) **completed/success**, [main Android APK #45035077441](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077441) **completed/success**, [isolated diagnostic APK #45035077459](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077459) **completed/success в attempt 2**. В attempt 1 изолированный APK **failed**: HTTP 429 Maven Central при получении Gradle-зависимостей; только этот failed job был перезапущен, итог подтверждён отдельно.
