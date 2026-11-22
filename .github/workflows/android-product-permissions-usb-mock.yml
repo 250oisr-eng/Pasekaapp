@@ -1,0 +1,41 @@
+name: Test isolated diagnostic USB installer with fake Windows ADB
+
+on:
+  push:
+    branches:
+      - test/android-product-installed-permission-audit-2026-11-22
+    paths:
+      - 'tools/android-product-permissions-one-shot.ps1'
+      - 'tests/windows-product-permissions-usb-mock.ps1'
+      - 'tests/android-product-permissions-one-shot.test.mjs'
+      - '.github/workflows/android-product-permissions-usb-mock.yml'
+  pull_request:
+    paths:
+      - 'tools/android-product-permissions-one-shot.ps1'
+      - 'tests/windows-product-permissions-usb-mock.ps1'
+      - 'tests/android-product-permissions-one-shot.test.mjs'
+      - '.github/workflows/android-product-permissions-usb-mock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@v4
+      - name: Execute PowerShell 5.1 against eight simulated USB conditions
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          & ./tests/windows-product-permissions-usb-mock.ps1
+          if($LASTEXITCODE -and $LASTEXITCODE -ne 0){throw ('Windows mock suite failed: '+$LASTEXITCODE)}
+      - name: Confirm no real-device tools or production data were used
+        shell: powershell
+        run: |
+          Write-Host 'MOCK_ONLY: Windows test creates adb.cmd in its own temporary directory'
+          Write-Host 'NO_PHYSICAL_ANDROID_PERMISSION_PROOF: TRUE'
+          Write-Host 'NO_REAL_APK_INSTALLATION: TRUE'
