@@ -9,8 +9,9 @@ for(const file of ['paseka-sha256.js','video-managed-copies-byte-audit.js'])
 const inspect=root.PasekaManagedVideoCopyByteAudit.inspectManagedCopyBytes;
 const digest=s=>createHash('sha256').update(s).digest('hex');
 let count=0;
+const fixtureFactory=new IDBFactory();
 async function setup(data={}){
- const f=new IDBFactory(),r=f.open('managed-bytes-'+(++count),1);
+ const r=fixtureFactory.open('managed-bytes-'+(++count),1);
  r.onupgradeneeded=()=>{
   const db=r.result;db.createObjectStore('main');
   db.createObjectStore('entrance_media',{keyPath:'id'});
@@ -127,9 +128,12 @@ test('reopen and repeated read-only audits preserve protected originals',async()
  const db=await setup({entrance:[live()],staging:[staged()]});
  const first=await inspect(db,{source:'entrance_media',videoId:'v1'});
  blocked(first);
- db.close();
- // Separate fresh fixture checks that repeated audit performs no destructive work.
- const other=await setup({entrance:[live()],staging:[staged()]});
+ const name=db.name;db.close();
+ const req=fixtureFactory.open(name,1);
+ const other=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error);
+ });
  const again=await inspect(other,{source:'entrance_media',videoId:'v1'});
  blocked(again);
  assert.equal(first.managedCopiesObserved,2);
