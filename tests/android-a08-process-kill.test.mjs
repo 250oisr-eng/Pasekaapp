@@ -17,7 +17,7 @@ function load(shared) {
   textContent:id==='result'?'NOT_TESTED':'',disabled:id==='copy',handlers:{},
   addEventListener(n,fn){this.handlers[n]=fn;}
  };
- const w={Capacitor:{Plugins:{A08Process:{
+ const w={indexedDB:shared.db,crypto:webcrypto,Capacitor:{Plugins:{A08Process:{
   async killSelf({nonce}) {shared.killCalls++;shared.nonce=nonce;shared.processChanged=true;},
   async readProof({nonce}) {return {observed:shared.processChanged&&shared.nonce===nonce,
    nonceMatched:shared.nonce===nonce,processChanged:shared.processChanged};}
