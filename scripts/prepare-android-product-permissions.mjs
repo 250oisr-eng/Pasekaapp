@@ -1,0 +1,11 @@
+import {mkdir,rm,copyFile,writeFile,readFile} from 'node:fs/promises';
+const PKG='ru.paseka.journal.diagnostic.productpermsv1';
+const cfg=JSON.parse(await readFile('capacitor.config.json','utf8'));
+if(cfg.appId!=='ru.paseka.journal')throw Error('EXPECTED_PRODUCT_CONFIG_MISSING');
+cfg.appId=PKG;
+cfg.appName='Пасека — права основного приложения';
+await writeFile('capacitor.config.json',JSON.stringify(cfg,null,2)+'\n');
+await rm('www',{force:true,recursive:true});
+await mkdir('www',{recursive:true});
+for(const file of ['index.html','runner.js','copy-report.js'])await copyFile('diagnostics/product-permissions/'+file,'www/'+file);
+console.log('Unique read-only installed-product package audit:',PKG);
