@@ -1,3 +1,13 @@
+## 2026-11-23 — P0 PASEKA02 provenance validation: Draft #411
+
+- Parent [Draft #410](https://github.com/250oisr-eng/Pasekaapp/pull/410), exact final HEAD `05812b90e3eaf24b0a8c624d7c94ad0a720d273c`: Fast Quality #45075319695 **completed/success, 961/961 PASS, 0 fail/skip**; Android #45075319647 **completed/success**, debug APK built/uploaded. No merge/main/production writes.
+- Confirmed source-level defect in v2 codeported from old #315: `validateRecognitionLedgerForV2` permitted `stateRevisionId` and `sourceHashVerifiedAt` keys but did not require or validate their values. Thus a portable result/tombstone could be accepted without provenance linking it to an actual state revision and source-hash verification time. Directly incompatible with the stricter recording contract and unsafe to mark as verified.
+- New [Draft #411](https://github.com/250oisr-eng/Pasekaapp/pull/411), branch `fix/archive-v2-ledger-provenance-required-2026-11-23`: require nonempty bounded `stateRevisionId` and parseable string `sourceHashVerifiedAt` for every entry, in addition to SHA/size/evidence/status already checked. Update original three isolated v2 test fixture sets, add seven negative provenance cases.
+- **No silent mutation/migration** of older ledger rows: missing values now fail closed. Synthetic compatibility and complete test suite/Android must be checked on exact SHA `85a0b0d1995debdfeb06928adf1a5ec4ba1c34a8`; status PENDING.
+- Remaining P0: multi-store full portable v2 stage/commit/rollback recovery, historical/legacy migrations, externally managed Camera/Gallery/Downloads copies, physical Android power loss/reopen, video recognition accuracy and safe immediate cleanup. None is authorized by this validator change; Restore335 STOP, no delete, no merge or deployment.
+
+---
+
 ## 2026-11-23 — P0: isolated PASEKA02 portable ledger/tombstone integration, Draft #410
 
 - Parent [Draft #409](https://github.com/250oisr-eng/Pasekaapp/pull/409) final HEAD `115d7b3da40ab9ecd90d4812f2dbdf5dac232724`: Fast Quality #45075059847 **completed/success 924/924 PASS**; Android #45075059682 **completed/success**, debug APK build/upload on that exact SHA. Parent #408 also checked. Main unchanged.

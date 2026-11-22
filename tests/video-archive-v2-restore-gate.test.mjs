@@ -10,6 +10,7 @@ const guard=root.PasekaVideoArchiveV2Guard;
 const hashes={recognized:'a'.repeat(64),pending:'b'.repeat(64),other:'c'.repeat(64)};
 const result=(overrides={})=>({source:'record_media',videoId:'v1',resultId:'r1',
  recognizedAt:'2026-11-20T00:00:00Z',sourceEvidenceVersion:1,
+ stateRevisionId:'rev-before-recognition',sourceHashVerifiedAt:'2026-11-20T00:00:00Z',
  sourceSha256:hashes.recognized,sourceBytes:3,cleanupState:'deleted',
  result:{observation:'облёт'},...overrides});
 const ledger=entries=>({version:1,entries});

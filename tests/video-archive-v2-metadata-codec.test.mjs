@@ -15,7 +15,8 @@ const guard=root.PasekaVideoArchiveV2Guard;
 const state=()=>({meta:{schemaVersion:15,revisionId:'rev'},hives:[{id:'h1'}],records:[]});
 const entry=()=>({source:'entrance_media',videoId:'original1',resultId:'result1',
  cleanupState:'deleted',sourceSha256:'a'.repeat(64),sourceBytes:1024,sourceEvidenceVersion:1,
- recognizedAt:'2026-11-20T00:00:00Z',result:{observations:['леток']}});
+ recognizedAt:'2026-11-20T00:00:00Z',stateRevisionId:'rev',
+ sourceHashVerifiedAt:'2026-11-20T00:00:00Z',result:{observations:['леток']}});
 const args=()=>({state:state(),ledger:{version:1,entries:[entry()]},
  backupId:'test-archive',createdAt:'2026-11-20T00:00:00Z'});
 const build=x=>api.buildMetadataArchive(x,webcrypto,guard,root.PasekaSha256);
