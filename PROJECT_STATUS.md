@@ -1,3 +1,11 @@
+## 2026-11-22 — полный CI PASS на pinned-serial SHA после Maven 429 retry
+
+- **Exact code/test SHA:** `f15cfe8394a3c6de3d9be7fe607f4b6cef1036c8`. [Windows PowerShell USB mock #45035077410](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077410) **completed/success (11/11)**, [Fast quality #45035077493](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077493) **completed/success**, [main Android APK #45035077441](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077441) **completed/success**, [isolated diagnostic APK #45035077459](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077459) **completed/success в attempt 2**. В attempt 1 изолированный APK **failed**: HTTP 429 Maven Central при получении Gradle-зависимостей; только этот failed job был перезапущен, итог подтверждён отдельно.
+- Все USB ADB package/install/launch команды теперь требуют `-s` того же серийного номера, предварительно и повторно проверенного; 11 негативных/позитивных Windows-сценариев с mock `adb.cmd` проверены реальным PowerShell. Это **не** физическая проверка Android или исходного `ru.paseka.journal` на телефоне. Переустановка основной «Пасеки», удаление реальных видео, restore архивов, merge/deploy не выполнялись и не разрешаются.
+- Последующие изменения только документационные. Draft PR #366, `main` остаётся без изменений. Следующая точка — запуск pinned диагностического APK на физическом устройстве, затем независимая оценка фактического трафика; оригинальные видео **NOT_TESTED**.
+
+---
+
 ## 2026-11-22 — USB serial lock: команды ADB закреплены за проверенным устройством
 
 - Устранён оставшийся риск подмены USB-устройства после проверки: `tools/android-product-permissions-one-shot.ps1` теперь не только сверяет единственный авторизованный USB serial до установки и запуска, но и использует строго `adb -s $serial` при `pm path`, `install`, `monkey`, вместо динамического `adb -d`. Запуск и установка целевого `ru.paseka.journal` не выполняются. Сценарий требует один USB-девайс в `device` state, отвергает второй девайс/неизвестный state/изменение serial, не удаляет и не восстанавливает медиа/архивы.
