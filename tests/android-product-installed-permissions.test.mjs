@@ -82,10 +82,10 @@ test('native bridge can query only explicitly declared product without app enume
 });
 
 test('CI rejects every APK permission not on the single-package allowlist',()=>{
- assert.match(workflow,/product-permissions-apk\\.txt/);
- assert.match(workflow,/allowed = new Set\\(\\[/);
- assert.match(workflow,/diagnostic\\.productpermsv1\\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION/);
- assert.match(workflow,/!allowed\\.has\\(match\\[1\\]\\)/);
- assert.match(workflow,/Unexpected diagnostic APK permission/);
- assert.doesNotMatch(workflow,/grep -E 'android\\.permission\\.\\(INTERNET/);
+ assert.ok(workflow.includes('product-permissions-apk.txt'));
+ assert.ok(workflow.includes('allowed = new Set(['));
+ assert.ok(workflow.includes('diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'));
+ assert.ok(workflow.includes('!allowed.has(match[1])'));
+ assert.ok(workflow.includes('Unexpected diagnostic APK permission'));
+ assert.ok(!workflow.includes("grep -E 'android.permission.(INTERNET"));
 });
