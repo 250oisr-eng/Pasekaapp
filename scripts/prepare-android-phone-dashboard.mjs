@@ -1,0 +1,10 @@
+import {readFile,writeFile,mkdir,rm,copyFile} from 'node:fs/promises';
+const config=JSON.parse(await readFile('capacitor.config.json','utf8'));
+if(process.env.PASEKA_PHONE_DASHBOARD_BUILD!=='1'||config.appId!=='ru.paseka.journal') throw Error('ISOLATED_BUILD_GUARD');
+config.appId='ru.paseka.journal.diagnostic.phonechecks';
+config.appName='Пасека — диагностика Android';
+await writeFile('capacitor.config.json',JSON.stringify(config,null,2)+'\n');
+await rm('www',{force:true,recursive:true});
+await mkdir('www',{recursive:true});
+for(const file of ['index.html','runner.js'])await copyFile('diagnostics/phone-dashboard/'+file,'www/'+file);
+console.log('PHONE_DASHBOARD_ISOLATED',config.appId);

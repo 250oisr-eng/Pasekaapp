@@ -1,3 +1,34 @@
+## 2026-11-22 — подтверждён физический запуск PHONE_SAFE_SYNTHETIC_V1
+
+- Пользователь прислал полный JSON с Android: `suite=PHONE_SAFE_SYNTHETIC_V1`, `packageId=ru.paseka.journal.diagnostic.phonechecks`, `status=PASS`, `code=SAFE_SYNTHETIC_ONLY`. Это **физический результат со слов пользователя**, в отличие от CI.
+- `syntheticSha.status=PASS`, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`; независимо вычислено из фиксированной строки `paseka-phonechecks-synthetic-v1` (31 байт) — совпадает. `syntheticIndexedDbReopen.status=PASS`, `bytes=31`, `hashMatches=true`.
+- `failClosed.status=PASS`, `cleanupAuthorized=false`, `deleteAllowed=false`, `realSourcesAccessed=false`; `externalRequests=NOT_ATTEMPTED` (значение, записанное диагностикой, не измерение сетевого трафика).
+- `scope`: реальные видео, распознавание пчёл, ONNX WASM в данной диагностике, извлечение кадров MP4, реальный backup/restore, разрешения продукта, cleanup и сетевой трафик — **всё NOT_TESTED**. Нельзя распространять этот PASS на такие функции.
+- Пользователь запускал ранее выданный APK Artifact #14768976188, собранный из code/workflow SHA `e2040b8080e672f33e1592b690d92a4ae788acc1`; сам JSON не содержит build SHA или APK-хэш, поэтому привязка бинарника к SHA опирается на порядок выдачи APK, а не независимое устройство-level подтверждение хэша APK.
+- Замечено: `diagnostics/phone-dashboard/runner.js` содержит неиспользуемую константу `EXPECTED` с неверным хэшем; фактический тест проверяет повторное чтение против вычисленного текущего хэша, но не против жёстко заданного эталона. Требуется отдельный минимальный регрессионный фикс до следующей версии APK; текущий PASS не аннулируется.
+- Restore335 не трогать, удаление данных не разрешено. **Следующий этап:** усилить тест фиксированным известным хэшем, отдельно проверить этот инвариант в CI, затем следующий телефонный тест только с новым точным SHA.
+
+---
+
+## 2026-11-22 — Android phone-only APK: точный CI checkpoint
+
+- Code/workflow SHA: `e2040b8080e672f33e1592b690d92a4ae788acc1` (до документационных дополнений). Изолированный workflow [#45059127503](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059127503) **completed/success**; 5/5 статических тестов, WebView isolation, native Clipboard registration, Gradle debug build, APK package/permission/content checks и upload прошли. APK SHA256 `dacd0d18f65f8a0e163741cb8f653f8c49b1c0652c8c39ff0361ea31c341c0f8`. [Artifact #14768976188](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059127503/artifacts/14768976188), ZIP до 2026-12-06; digest ZIP отдельно от APK.
+- Общий Android workflow [#45059127481](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059127481) **completed/success** на том же SHA; он не заменяет тест на телефоне.
+- Предыдущая ошибка `sdkmanager: command not found` на первом CI #45059062950 исправлена bootstrap-этапом; первый прогон был **failure**, не скрывать.
+- **Физический Android запуск нового dashboard NOT_TESTED.** Проверяется только synthetic SHA-256, синтетический Blob IndexedDB reopen и fail-closed flags; ONNX/MP4/bee recognition/real media/cleanup остаются NOT_TESTED. Ни production, ни Restore335 не трогать.
+- Следующий шаг: пользователь с телефона скачивает Artifact, распаковывает ZIP, устанавливает только `ru.paseka.journal.diagnostic.phonechecks`, нажимает «Проверить всё безопасное» → «Копировать результат», отправляет JSON; при блокере APK не переустанавливать другие диагностики и не удалять видео.
+
+---
+
+## 2026-11-22 — отдельный диагностический Android APK: первый безопасный модуль
+
+- Ветка `test/android-phone-only-safe-dashboard-2026-11-22` поверх документационной #381: добавлены `diagnostics/phone-dashboard/{index.html,runner.js}`, `scripts/prepare-android-phone-dashboard.mjs`, `tests/android-phone-dashboard-static.test.mjs`, `.github/workflows/android-phone-dashboard-apk.yml`.
+- Приложение использует отдельный ID `ru.paseka.journal.diagnostic.phonechecks`, две кнопки, синтетический SHA-256, изолированный IndexedDB Blob close/reopen и принудительный `cleanupAuthorized:false`; отсутствуют вызовы удаления и доступа к реальным видео. CI проверяет изоляцию и запрещённые разрешения APK.
+- **Ограничения:** нет ONNX, MP4, реального распознавания, реального архива или очистки; все эти пункты `NOT_TESTED`. Сборка и физическое выполнение на устройстве **не подтверждены**, пока нет точного CI SHA и пользовательского JSON. Не ставить `PASS` заранее.
+- Следующий этап: exact-SHA workflow и исправление ошибок сборки; только после этого передать телефонную инструкцию установки и копирования JSON. Restore335 оставлен STOP.
+
+---
+
 ## 2026-11-22 — Android проверки только с телефона (подготовка)
 
 - Пользователь располагает только телефоном: ADB, PowerShell, USB и desktop-сценарии исключены из текущей очереди физической проверки.
