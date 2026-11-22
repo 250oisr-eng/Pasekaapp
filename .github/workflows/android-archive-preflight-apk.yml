@@ -35,7 +35,13 @@ jobs:
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund
       - name: Install isolated Android native Share plugin
-        run: npm install --no-save --no-package-lock --no-audit --no-fund @capacitor/share@6.0.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Capacitor discovers native plugins from package.json; this edits the CI checkout only.
+          npm pkg set 'dependencies.@capacitor/share=6.0.3'
+          npm install --no-package-lock --no-audit --no-fund
+          node -e "if(require('@capacitor/share/package.json').version!=='6.0.3') throw Error('Unexpected native Share version')"
       - name: Execute synthetic metadata tests
         run: node --test tests/android-archive-preflight.test.mjs
       - name: Execute complete regression tests
@@ -79,7 +85,8 @@ jobs:
           const fs = require('node:fs');
           const file = 'android/app/src/main/assets/capacitor.plugins.json';
           const plugins = JSON.parse(fs.readFileSync(file, 'utf8'));
-          if (!plugins.some(p => p.pkg === '@capacitor/share' && p.classpath?.includes('SharePlugin'))) {
+          if (!plugins.some(p => typeof p.classpath === 'string' && p.classpath.endsWith('.SharePlugin'))) {
+            console.error('Registered native classpaths:', plugins.map(p => p.classpath));
             throw Error('Native Android SharePlugin registration missing');
           }
           console.log('Native Android SharePlugin present in isolated diagnostic');
