@@ -31,7 +31,7 @@ $report = [ordered]@{
   cleanup = 'NOT_AUTHORIZED'
   detail = 'NOT_STARTED'
 }
-function Call-Adb([string[]]$Arguments, [switch]$AllowMissingPackage, [switch]$AllowReadOnlyTestFalse) {
+function Call-Adb([string[]]$Arguments, [switch]$AllowMissingPackage, [switch]$AllowReadOnlyTestFalse, [switch]$PreserveListing) {
   # Capture stderr separately: Windows PowerShell 5.1 throws on harmless native stderr.
   $start = New-Object System.Diagnostics.ProcessStartInfo
   $start.FileName = $script:AdbPath
@@ -93,6 +93,17 @@ function Call-Adb([string[]]$Arguments, [switch]$AllowMissingPackage, [switch]$A
         $daemonStarted = $line -match '^\* daemon (?:not running; starting now at tcp:5037|started successfully)$'
         if (-not ($oldDaemon -or $daemonStarted)) { throw 'ADB_UNEXPECTED_STDERR' }
       }
+    }
+    if ($PreserveListing) {
+      $exactListing = $Arguments.Count -eq 9 -and
+        $Arguments[0] -ceq '-s' -and $Arguments[2] -ceq 'exec-out' -and
+        $Arguments[3] -ceq 'run-as' -and
+        $Arguments[4] -ceq 'ru.paseka.journal.archive.restoreproof335' -and
+        $Arguments[5] -ceq '/system/bin/toybox' -and
+        $Arguments[6] -ceq 'ls' -and $Arguments[7] -ceq '-A' -and $Arguments[8] -ceq 'files'
+      if (-not $exactListing) { throw 'UNPINNED_PRIVATE_LISTING_REQUEST' }
+      # Strip only transport newline; never strip meaningful spaces in filenames.
+      return $out.TrimEnd([char[]]@([char]13,[char]10))
     }
     return $out.Trim()
   } finally {
@@ -184,7 +195,7 @@ try {
     $report.detail = 'READ_ONLY_PRIVATE_PATH_NOT_PRESENT_BY_TESTS_NO_WRITE'
   } elseif ($isDir -ceq '' -and $isAny -ceq '') {
     $report.privateDirectory = 'PASS_PRESENT_DIRECTORY'
-    $inventory = Call-Adb @('-s',$serial,'exec-out','run-as',$privatePackage,'/system/bin/toybox','ls','-A','files')
+    $inventory = Call-Adb @('-s',$serial,'exec-out','run-as',$privatePackage,'/system/bin/toybox','ls','-A','files') -PreserveListing
     if ($inventory.Length -eq 0) {
       $report.privateFilesClass = 'EMPTY'
       $report.privateEntryCount = '0'
