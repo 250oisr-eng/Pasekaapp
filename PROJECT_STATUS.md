@@ -1,3 +1,14 @@
+## 2026-11-22 — устранён конфликт установки diagnostic Copy APK (package/signature)
+
+- Пользователь сообщил, что APK с «Копировать результат» не устанавливается из-за конфликта с другим приложением. Вероятная причина: предыдущие GitHub Actions debug APK подписаны разными автоматически созданными debug-сертификатами при одинаковом `applicationId`; Android запрещает in-place update при несовпадении подписи. Подпись старого установленного APK отдельно не извлекалась, поэтому причина остаётся диагностическим выводом, а не измерением сертификатов на телефоне.
+- В новом Draft PR #361 новый **уникальный** `applicationId:ru.paseka.journal.diagnostic.archivecopyv2`, не совпадает с предыдущим `ru.paseka.journal.diagnostic.archivepreflight` и production `ru.paseka.journal`. Старое приложение, его IndexedDB и реальные пользовательские записи не удалены и не затронуты. Новый APK ставится **рядом** со старой диагностикой, а не поверх неё.
+- В `diagnostics/archive-preflight/copy-report.js`, `runner.js`, `scripts/prepare-android-archive-preflight.mjs`, `.github/workflows/android-archive-preflight-apk.yml` и тестах согласован новый ID; добавлен `tests/android-archive-package-isolation.test.mjs` (новая регрессия). Две кнопки `Провести тест` → `Копировать результат` сохранены.
+- На точном code SHA `22df2950bf2aa774ec43ae7a85500ede9aa45427`: [isolated APK GitHub Actions #45007429297](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45007429297) **completed/success**, тесты fail=0, Android debug build, package/permissions/assets проверки. [Общий Android build #45007429340](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45007429340) **success**, старый isolated archive workflow #45007429310 **skipped**.
+- GitHub artifact ID `14748063277`, ZIP SHA256 `130f2f2a9bc928c015d5e042969987e3740b20cf2b1c1e4a3bb7f5d14d6aa87e`. Извлечённый APK `Paseka-Archive-Copy-NoConflict-2026-11-22.apk`, 3 753 718 bytes, SHA256 `23361c15dc600a22d91ba3cdfdc01008dbc202e57afaa9cd3d5228f82db53115`; ZIP/APK/встроенные кнопки/`ClipboardPlugin` дополнительно проверены локально.
+- Физическая **установка новой версии** и нажатие `Копировать результат` ещё **NOT_TESTED**. Удалять предыдущий APK не требуется. Не выдавать synthetic PASS за real restore/cleanup; все запреты на доступ к видео и удаление действуют. Ни main, ни production не изменены, PR остаётся Draft.
+
+---
+
 ## 2026-11-22 — Android preflight: ровно две кнопки «Провести тест» и «Копировать результат»
 
 - По прямому запросу пользователя удалено требование выбирать получателя при отправке. В новой изолированной версии кнопка **«Копировать результат»** после `PASS` или `BLOCKED` копирует весь JSON через нативный `@capacitor/clipboard@6.0.0`, после чего пользователь сам вставляет его в чат. Пока тест не завершён, кнопка недоступна; копирование только по явному нажатию. Нет автоматических публикаций и отправки данных в сеть.
