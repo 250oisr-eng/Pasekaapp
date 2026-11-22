@@ -1,3 +1,13 @@
+## 2026-11-22 — P1: npm lockfile и воспроизводимые Android CI — PASS на точном SHA
+
+- Code+tests+docs SHA **`2e7ea193a2efe55124c250fc7f8631d8bf7fa17f`**: [Fast Quality #45066672875](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45066672875) **completed/success, 813/813 tests PASS, 0 FAIL** (job #137344290582). [Android #45066672884](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45066672884) **completed/success, 813/813 tests PASS, 0 FAIL**, debug APK built/uploaded (job #137344279027). ZIP artifact #14770759970, ZIP digest `b4f31054e48cf8f459f6b83f3bef0290a9a55dfd7109c3d9484e2e0f4266db2a` (**это не SHA самого APK**); истекает 2026-12-06. Проверена именно установка через `npm ci`, а не прежний `npm install`.
+- `package-lock.json` создан из `npm install` в успешном GitHub Actions #45066477298 (job #137343654312), root `paseka-android@1.0.0`, lockfileVersion 3, 100 transitive dependency entries, каждый с версией, HTTPS registry.npmjs.org URL и Subresource Integrity. Совпадение direct dependencies с `package.json` проверено. Временный вывод lockfile из CI удалён **до финальной проверенной сборки**.
+- Три активных GitHub workflows `quality.yml`, `android-debug.yml`, `android-archive-test.yml` переведены на `npm ci --no-audit --no-fund` и cache keys по SHA lockfile. Native archive bridge `scripts/prepare-android-archive-download.mjs` добавлен в PR path filters Android CI. `tests/ci-npm-lockfile-reproducibility.test.mjs` — 7 новых проверок lock metadata/SRI/CI paths/исключения bootstrap.
+- [Draft PR #395](https://github.com/250oisr-eng/Pasekaapp/pull/395) остаётся зависимым от #394; `main` и production не изменены. Фактическая экономия времени CI пока не измерена; результат — **воспроизводимые npm версии**, не доказательство отсутствия всех supply-chain рисков или физической работоспособности продукта.
+- Следующие P0/P1 блокеры STABILIZATION_ONLY: lineage и безопасная интеграция архивного стека в `main` с полноценной v2 ledger/restore совместимостью; IndexedDB migration/offline SW, product Android permissions, regression физических профилей. Полевые записи пчёл недоступны в ноябре; real media deletion NOT_AUTHORIZED. Без отдельного разрешения ни merge, ни production deployment.
+
+---
+
 ## 2026-11-22 — P1 стабилизация: воспроизводимая npm dependency graph / npm ci
 
 - Обнаружен `package.json` c четырьмя прямыми pinned зависимостями и **отсутствующий package-lock.json**. Все три CI workflows использовали `npm install --no-audit --no-fund`, что допускало изменение вложенных npm зависимостей между сборками. Это риск воспроизводимости тестов/Android APK, не подтверждённая утечка или поломка production.
