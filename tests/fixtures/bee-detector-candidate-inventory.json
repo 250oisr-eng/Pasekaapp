@@ -67,6 +67,34 @@
       "fieldBenchmark": "NOT_ENTRANCE",
       "offlineAndroid": "UNVERIFIED",
       "status": "BLOCKED"
+    },
+    {
+      "id": "idea-grounding-dino",
+      "source": "https://github.com/IDEA-Research/GroundingDINO",
+      "codeLicense": "APACHE-2.0_REPO_LICENSE",
+      "codeLicenseBlobSha": "f1460f5e6ad1e90abb720a1536a46e3d057686a9",
+      "weightsLicense": "CHECKPOINT_TERMS_UNVERIFIED",
+      "weightsArtifact": "groundingdino_swint_ogc.pth",
+      "baseModel": "GroundingDINO_SwinT_OGC",
+      "baseModelLicense": "NEEDS_TRANSITIVE_REVIEW",
+      "task": "open_vocabulary_object_detection_not_entrance_validated",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "darsa-flatbug",
+      "source": "https://github.com/darsa-group/flat-bug",
+      "codeLicense": "MIT_REPO_LICENSE",
+      "codeLicenseBlobSha": "bee96279e49757f77280f9c8ddf0bf28983dda2d",
+      "weightsLicense": "UPSTREAM_AGPL_NOTICE_IN_MODEL_METADATA",
+      "weightsArtifact": "Ultralytics_YOLO_SEG_UNPINNED",
+      "baseModel": "Ultralytics YOLOv8-seg/YOLO26-seg",
+      "baseModelLicense": "AGPL_TRANSITIVE_REVIEW",
+      "task": "insect_segmentation_on_uniform_background_not_hive_entrance",
+      "fieldBenchmark": "NOT_ENTRANCE",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
     }
   ]
 }
