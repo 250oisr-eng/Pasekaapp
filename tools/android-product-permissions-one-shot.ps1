@@ -9,6 +9,7 @@ $apkSha='04fdba8e71f57bf896ca2af43149437d101d5ffc15f24d30c6f7bcf351bf1216'
 $diagnostic='ru.paseka.journal.diagnostic.productpermsv1'
 $product='ru.paseka.journal'
 $scratch=$null
+$serial=$null
 function CommandOutput([string]$exe,[string[]]$arg) {
  $result=& $exe @arg 2>&1
  if($LASTEXITCODE -ne 0){throw ('COMMAND_FAILED_'+$exe+'_'+$LASTEXITCODE)}
@@ -27,7 +28,7 @@ function AssertSameUsb([string]$expected) {
  if((CheckedUsbSerial) -cne $expected){throw 'USB_DEVICE_CHANGED_NO_INSTALL'}
 }
 function PackagePaths([string]$package) {
- $lines=CommandOutput 'adb' @('-d','shell','pm','path',$package)
+ $lines=CommandOutput 'adb' @('-s',$serial,'shell','pm','path',$package)
  return @($lines -split '[\r\n]+' | Where-Object {$_ -match '^package:'})
 }
 try {
@@ -57,12 +58,12 @@ try {
  if((PackagePaths $product).Count -lt 1){throw 'PRODUCT_DISAPPEARED_NO_INSTALL'}
  AssertSameUsb $serial
  Write-Host 'STAGE: 5/6 INSTALL_ONLY_NEW_DIAGNOSTIC'
- $installed=CommandOutput 'adb' @('-d','install',$apk.FullName)
+ $installed=CommandOutput 'adb' @('-s',$serial,'install',$apk.FullName)
  if($installed -notmatch '(?m)^Success\s*$'){throw 'INSTALL_NOT_CONFIRMED'}
  if((PackagePaths $diagnostic).Count -lt 1){throw 'DIAGNOSTIC_NOT_VISIBLE_AFTER_INSTALL'}
  AssertSameUsb $serial
  Write-Host 'STAGE: 6/6 LAUNCH_DIAGNOSTIC_ONLY'
- $launch=CommandOutput 'adb' @('-d','shell','monkey','-p',$diagnostic,'-c','android.intent.category.LAUNCHER','1')
+ $launch=CommandOutput 'adb' @('-s',$serial,'shell','monkey','-p',$diagnostic,'-c','android.intent.category.LAUNCHER','1')
  if($launch -notmatch 'Events injected:\s*1'){throw 'DIAGNOSTIC_LAUNCH_NOT_CONFIRMED'}
  Write-Host 'STATUS: PASS_DIAGNOSTIC_INSTALLED_AND_LAUNCHED_ONLY'
  Write-Host 'PHYSICAL_PERMISSION_AUDIT: NOT_TESTED_UNTIL_TWO_BUTTON_REPORT'
