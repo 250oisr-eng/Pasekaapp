@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {IDBFactory} from 'fake-indexeddb';
 import {readFile} from 'node:fs/promises';
 const root={};
-for(const file of ['video-archive-v2-guard.js','video-archive-v2-copy-inventory.js'])
+for(const file of ['video-archive-v2-guard.js','video-archive-v2-copy-inventory.js','video-cleanup-preflight.js'])
  new Function('window',await readFile(new URL('../js/'+file,import.meta.url),'utf8'))(root);
 const audit=root.PasekaVideoArchiveV2CopyInventory.auditManagedVideoCopies;
 const guard=root.PasekaVideoArchiveV2Guard;
@@ -712,4 +712,72 @@ test('unknown protected backup payload stays blocked without revealing its conte
  assert.deepEqual(after,before);
  assert.equal(after.dataModified,false);
  reopened.close();
+});
+
+const preflight=root.PasekaVideoCleanupPreflight.assess;
+test('cleanup preflight always BLOCKED for valid synthetic recognized original',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[live('v1')]});
+ const report=await preflight(db,guard,{source:'entrance_media',videoId:'v1'});
+ assert.equal(report.status,'BLOCKED');
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.deleteAllowed,false);
+ assert.equal(report.dataModified,false);
+ assert.equal(report.managedCopyCount,1);
+ assert.deepEqual(report.managedCopyLocations,['entrance_media']);
+ assert.ok(report.blockers.includes('external_android_camera_gallery_downloads_not_verified'));
+ assert.ok(report.blockers.includes('all_managed_copy_bytes_not_verified'));
+ assert.ok((await audit(db,guard)).copies.some(x=>x.identity==='entrance_media:v1'));
+ db.close();
+});
+test('all-copy preflight identifies protected staging, rollback and live copies without releasing them',async()=>{
+ const db=await setup({ledger:ledger('blocked_archive_safety'),entrance:[live('v1')],staging:[staged('v1')],
+  backups:[['rollback',{kind:'v2_entrance_quarantine_rollback_snapshot',
+    beforeState:{meta:{revisionId:'rev'},records:[]},
+    afterState:{meta:{revisionId:'rev'},records:[]},
+    quarantinedMedia:[live('v1')]}]]});
+ const result=await preflight(db,guard,{source:'entrance_media',videoId:'v1'});
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.managedCopyCount,3);
+ assert.deepEqual(result.managedCopyLocations,['archive_staging','entrance_media','full_backup.quarantinedMedia']);
+ assert.equal(result.cleanupAuthorized,false);
+ assert.equal((await audit(db,guard)).copyCount,3);
+ db.close();
+});
+test('invalid candidate and empty copy inventory never turn into deletion approval',async()=>{
+ const db=await setup();
+ for(const candidate of [null,{}, {source:'entrance_media',videoId:'../video'},
+  {source:'unknown',videoId:'v1'},{source:'record_media',videoId:''}]){
+  const result=await preflight(db,guard,candidate);
+  assert.equal(result.status,'BLOCKED');
+  assert.equal(result.deleteAllowed,false);
+ }
+ const empty=await preflight(db,guard,{source:'entrance_media',videoId:'missing'});
+ assert.ok(empty.blockers.includes('candidate_original_not_located'));
+ assert.equal(empty.cleanupAuthorized,false);
+ db.close();
+});
+test('read-only failure cannot be interpreted as authorization or expose exception details',async()=>{
+ const db=await setup({entrance:[live('v1')]});
+ const broken={objectStoreNames:db.objectStoreNames,transaction(){throw new Error('PRIVATE_TEST_SECRET')}};
+ const result=await preflight(broken,guard,{source:'entrance_media',videoId:'v1'});
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.reason,'inventory_read_failed');
+ assert.equal(JSON.stringify(result).includes('PRIVATE_TEST_SECRET'),false);
+ assert.equal(result.cleanupAuthorized,false);
+ db.close();
+});
+test('candidate metadata report omits original Blob bytes and cannot be promoted by forged input approval',async()=>{
+ const privateValue='PRIVATE_VIDEO_PAYLOAD_SENTINEL';
+ const original={id:'v1',blob:new Blob([privateValue]),bytes:privateValue.length,
+  blobSha256:'b'.repeat(64)};
+ const db=await setup({entrance:[original]});
+ const result=await preflight(db,guard,{source:'entrance_media',videoId:'v1',
+  cleanupAuthorized:true,externalCopiesVerified:true,byteIntegrityVerified:true,
+  archiveSafe:true,deleteAllowed:true});
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.cleanupAuthorized,false);
+ assert.equal(result.externalCopiesVerified,false);
+ assert.equal(JSON.stringify(result).includes(privateValue),false);
+ assert.equal((await audit(db,guard)).copyCount,1);
+ db.close();
 });
