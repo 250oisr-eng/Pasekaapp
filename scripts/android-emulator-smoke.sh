@@ -35,7 +35,7 @@ launch_and_verify() {
   adb_safe shell am force-stop "$PACKAGE"
   output="$(adb_safe shell am start -W -n "${PACKAGE}/.MainActivity" 2>&1)"
   echo "$output"
-  if ! grep -Eq 'Status: ok|Status: timeout' <<<"$output"; then
+  if ! grep -Eq 'Status: ok' <<<"$output"; then
     echo "FAIL: cannot launch app ($scenario)" >&2; exit 1
   fi
   sleep 8
