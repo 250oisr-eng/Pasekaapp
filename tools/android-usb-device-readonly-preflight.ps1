@@ -23,8 +23,7 @@ $report = [ordered]@{
   detail = 'NOT_STARTED'
 }
 function Call-Adb([string[]]$Arguments) {
-  # Keep stdout/stderr separate: Windows PowerShell can turn benign ADB server
-  # replacement notices into terminating errors with ErrorActionPreference=Stop.
+  # Capture stderr separately: Windows PowerShell 5.1 throws on harmless native stderr.
   $start = New-Object System.Diagnostics.ProcessStartInfo
   $start.FileName = $script:AdbPath
   $start.Arguments = ($Arguments -join ' ')
@@ -36,23 +35,31 @@ function Call-Adb([string[]]$Arguments) {
   $p.StartInfo = $start
   try {
     if (-not $p.Start()) { throw 'ADB_START_FAILED' }
-    $outTask = $p.StandardOutput.ReadToEndAsync()
-    $errTask = $p.StandardError.ReadToEndAsync()
+    $stdout = $p.StandardOutput.ReadToEndAsync()
+    $stderr = $p.StandardError.ReadToEndAsync()
     if (-not $p.WaitForExit(15000)) {
       try { $p.Kill() } catch { }
       [void]$p.WaitForExit(2000)
       throw 'ADB_TIMEOUT_15S'
     }
-    $out = $outTask.GetAwaiter().GetResult()
-    $err = $errTask.GetAwaiter().GetResult()
+    $out = $stdout.GetAwaiter().GetResult()
+    $err = $stderr.GetAwaiter().GetResult()
     if ($out.Length -gt 8192 -or $err.Length -gt 8192) { throw 'ADB_OUTPUT_TOO_LARGE' }
     if ($p.ExitCode -ne 0) { throw ('ADB_COMMAND_FAILED_' + $p.ExitCode) }
     if (-not [string]::IsNullOrWhiteSpace($err)) {
-      # ADB may replace an old PC-side daemon; no phone files are modified.
       $lines = @($err -split '[\r\n]+' | Where-Object { $_.Trim().Length -gt 0 })
-      $known = $true
       foreach ($line in $lines) {
-        if ($line -notmatch '^(?:adb server version \(\d+\) doesn.t match this client \(\d+\); killing\.\.\.|\* daemon (?:not running; starting now at tcp:5037|started successfully))
+        $oldDaemon = $line -match '^adb server version \(\d+\) doesn.t match this client \(\d+\); killing\.\.\.$'
+        $daemonStarted = $line -match '^\* daemon (?:not running; starting now at tcp:5037|started successfully)$'
+        if (-not ($oldDaemon -or $daemonStarted)) { throw 'ADB_UNEXPECTED_STDERR' }
+      }
+    }
+    return $out.Trim()
+  } finally {
+    $p.Dispose()
+  }
+}
+
 try {
   if (-not (Test-Path -LiteralPath $AdbPath -PathType Leaf)) { throw 'PINNED_ADB_MISSING' }
   $hash = (Get-FileHash -LiteralPath $AdbPath -Algorithm SHA256).Hash.ToLowerInvariant()
