@@ -149,7 +149,8 @@ async function run() {
   reportElement.textContent=JSON.stringify({
    status:'BLOCKED',code:String(error&&error.message||error),packageId,
    checks:checked,realVideoAccess:'NOT_ATTEMPTED',beeRecognition:'NOT_TESTED',
-   cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false
+   cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false,
+   userDataModified:false
   },null,2);
  } finally {
   if(db)db.close();
