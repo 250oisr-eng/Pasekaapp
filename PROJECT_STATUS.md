@@ -1,3 +1,12 @@
+## 2026-11-22 — подготовлен безопасный USB one-shot для installed-product permission audit
+
+- Новый `tools/android-product-permissions-one-shot.ps1` автоматизирует одну ограниченную операцию **только с отдельным диагностическим Android-пакетом**: проверяет единственный авторизованный USB ADB, наличие основной `ru.paseka.journal`, отсутствие диагностического `ru.paseka.journal.diagnostic.productpermsv1`, получает закреплённый CI APK через авторизованный `gh run download` (или локальный `-ApkPath`), сверяет SHA256 и выполняет `adb -d install` без `-r`, затем запускает только диагностику. Продукт не запускает, не изменяет, не удаляет, не переустанавливает.
+- Закреплённый артефакт: [workflow #45032633730](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633730), code SHA `17f5c656b42dc0fe0909ff0bf3640a216ea6672c`, artifact `paseka-product-installed-permissions-readonly-apk` ID `14757584289`, zip digest `07d21fa5f69863447247e281f33d9d28742dffe79153e9281922bbfad816aba1`, APK SHA256 `04fdba8e71f57bf896ca2af43149437d101d5ffc15f24d30c6f7bcf351bf1216` (из exact CI логов). Артефакт временный, истекает 2026-12-06. Для автоматического скачивания нужен доступный авторизованный `gh` CLI; при отсутствии такого доступа сценарий завершается `BLOCKED`, возможен `-ApkPath` на ранее проверенный файл.
+- Добавлен `tests/android-product-permissions-one-shot.test.mjs`: фиксированные hash/package/runner, запреты на очистку, переустановку, изменение пользовательских данных и выдачу установленного APK за физически завершённый тест. Запуск на **ПК/телефоне НЕ ПРОВЕДЁН**. Это PC installer preflight, не доказательство реальных разрешений, сетевого трафика, безопасности архивов или удаления.
+- Проверяемый кодовый SHA `5ad381e43453a49d99213d1bba3a82bdce443857`, CI на момент фиксации ещё не завершён. Следующая задача: подтвердить CI, затем один физический запуск и копирование JSON двумя кнопками (только когда пользователь сможет работать с телефоном/ПК). Никаких разрешений на cleanup/restore/merge/deploy.
+
+---
+
 ## 2026-11-22 — завершена проверка защиты от параллельных вызовов Android
 
 - **Exact code/test SHA** `17f5c656b42dc0fe0909ff0bf3640a216ea6672c`. GitHub Actions **completed/success** на этом SHA: [Fast quality #45032633609](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633609), [диагностический APK #45032633730](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633730), [основная Android-сборка #45032633563](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633563).
