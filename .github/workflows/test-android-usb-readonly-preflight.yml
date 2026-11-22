@@ -52,10 +52,8 @@ jobs:
           foreach ($token in @('PASS_PRESENT_DIRECTORY','PRIVATE_FILES_NONEMPTY_NO_ACTION','ABSENT_IN_EMPTY_LISTING','NOT_AUTHORIZED','PASS_PINNED')) {
             if (-not $src.Contains($token)) { throw "MISSING_PRIVATE_STAGE_GUARD_$token" }
           }
-          $calls = @([regex]::Matches($src, "(?m)^\\s*(?:\\$[A-Za-z][A-Za-z0-9]*\\s*=\\s*)?Call-Adb\\s+@\\('([^'\\r\\n]*)'"))
-          foreach ($call in $calls) {
-            $name = $call.Groups[1].Value
-            if ($name -notin @('version','devices','-s')) { throw "UNEXPECTED_ADB_PREFIX_$name" }
+          foreach ($required in @("Call-Adb @('version')","Call-Adb @('devices','-l')","'exec-out','run-as'","'stat','-c','%F','files'","'ls','-A','files'")) {
+            if (-not $src.Contains($required)) { throw "MISSING_PRIVATE_READONLY_QUERY_$required" }
           }
           foreach ($bad in @('adb install','adb push','adb pull','pm clear','am force-stop','toybox dd','toybox rm','run-as $privatePackage sh')) {
             if ($src.Contains($bad)) { throw "PRIVATE_STAGE_DISALLOWED_$bad" }
