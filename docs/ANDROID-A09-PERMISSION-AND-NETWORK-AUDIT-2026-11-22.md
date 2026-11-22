@@ -22,3 +22,11 @@
 
 ## Непреодолимые запреты
 Любое удаление пользовательских видео, реальный restore, доступ к личному архиву, производство APK для основного приложения и merge запрещены без отдельного разрешения. Android force-stop отдельно не проверен и не должен маскироваться A08 synthetic PASS.
+
+
+## Реализация тестового APK — 2026-11-22
+
+- Сборка `ru.paseka.journal.diagnostic.archivea09v1` из `diagnostics/archive-a09/` и собственного Java plugin выполнена. Native PackageManager проверяет **собственный** package ID и UID процесса, список запрошенных и grant-состояние установленных permissions. Полученные значения включены в отчёт; запрещённое разрешение блокирует тест даже если оно не выдано.
+- Кодовый SHA `a00fbbe9b07a75b90a559a810597742bff0f0ff7`; [isolated CI #45026210096](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45026210096) **success**, [generic CI #45026210074](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45026210074) **success**, в первом запуске #45026010944 была ошибка пути в скрипте проверки, исправлена. Артефакт `14756160132`, ZIP SHA-256 `05748c8b692a4314c5eec79e5d3a460f1606c5039709452d36446435afe46d8b`, APK SHA-256 `15a1454efa57dc0bc125b3b10436aacc778668dd95cb4c72f582dbd371526280`.
+- Важно: `A09_INSTALLED_PERMISSION_AUDIT_ONLY` может получить PASS **только после запуска на телефоне**. До пользовательского отчёта поле device A09 — **NOT_TESTED**. Трафик сети `networkTrafficObserved:NOT_TESTED` и после этого теста, поскольку мониторинг пакетов или соединений отдельно не проводился.
+
