@@ -1,3 +1,12 @@
+## 2026-11-22 — отдельный диагностический Android APK: первый безопасный модуль
+
+- Ветка `test/android-phone-only-safe-dashboard-2026-11-22` поверх документационной #381: добавлены `diagnostics/phone-dashboard/{index.html,runner.js}`, `scripts/prepare-android-phone-dashboard.mjs`, `tests/android-phone-dashboard-static.test.mjs`, `.github/workflows/android-phone-dashboard-apk.yml`.
+- Приложение использует отдельный ID `ru.paseka.journal.diagnostic.phonechecks`, две кнопки, синтетический SHA-256, изолированный IndexedDB Blob close/reopen и принудительный `cleanupAuthorized:false`; отсутствуют вызовы удаления и доступа к реальным видео. CI проверяет изоляцию и запрещённые разрешения APK.
+- **Ограничения:** нет ONNX, MP4, реального распознавания, реального архива или очистки; все эти пункты `NOT_TESTED`. Сборка и физическое выполнение на устройстве **не подтверждены**, пока нет точного CI SHA и пользовательского JSON. Не ставить `PASS` заранее.
+- Следующий этап: exact-SHA workflow и исправление ошибок сборки; только после этого передать телефонную инструкцию установки и копирования JSON. Restore335 оставлен STOP.
+
+---
+
 ## 2026-11-22 — Android проверки только с телефона (подготовка)
 
 - Пользователь располагает только телефоном: ADB, PowerShell, USB и desktop-сценарии исключены из текущей очереди физической проверки.
