@@ -1,3 +1,13 @@
+## VIDEO MODEL — проверка реальных кандидатов и fail-closed gate (2026-11-22)
+
+- После физического PASS IndexedDB, синтетического MP4 playback и трёх JPEG кадров проведён независимый аудит кандидатов для Android: Matt Nudi, Apiarist YOLOv8s, Honey-Bee-Society AutoGluon, Gratheon gate tracker и MIT ONNX Runtime. Подробности и публичные первичные ссылки — `docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md`.
+- Matt Nudi публикует `best.pt` и внутренние метрики, но лицензия весов/базовой модели и мобильный runtime не подтверждены. Apiarist заявляет Apache-2.0 для весов и классы Worker/Drone/Queen/Varroa, но модель обучена для осмотра рамок, а не летка, базовые YOLOv8s/Ultralytics AGPL условия нуждаются в отдельной проверке. Honey-Bee-Society — классификатор (~383 MB), не детектор/трекер летка. Gratheon — исходный серверный Jetson/Python pipeline, недоказаны лицензия конкретных весов и offline WebView. **Ни одна модель не допущена** к inference/копированию в APK.
+- Новый `js/video-detector-candidate-gate.js` — только неактивный анализ доказательств, без сети, хранилищ, весов и вызовов модели. Возвращает конкретную причину блокировки при отсутствии прав, SHA, mobile runtime или независимого benchmark; даже при всех самодекларированных положительных полях не разрешает `canDownloadWeights`, `canRunInference`, `recognitionSucceeded`, `cleanupAuthorized`. Добавлен `tests/video-detector-candidate-gate.test.mjs` с отрицательными сценариями.
+- Главная точка неопределённости: проверить immutable license chain *конкретных весов* и базовой модели, а затем реальную пригодность для детекции летка. Нельзя скачивать/исполнять untrusted `.pt` pickle и выдавать презентационные метрики за независимую точность.
+- Следующее: CI exact HEAD для нового Draft PR, ревью результатов и последующая проверка доступных модели/лицензий. Не трогать существующие тестовые приложения и видео, не создавать production data, не удалять ничего.
+
+---
+
 ## ANDROID FRAME TEST — подтверждён PASS на физическом телефоне (2026-11-22)
 
 - Пользователь выполнил установленную изолированную APK `ru.paseka.journal.diagnostic.frametest` на физическом телефоне и передал полный текст отчёта: `status: PASS`, `code: SYNTHETIC_MP4_THREE_FRAMES_EXTRACTED`, `fixtureSha256: 29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `frameExtraction: PASS`, `frames: 3`, `width: 64`, `height: 64`, `recognition: NOT_TESTED`, `cleanup: NOT_TESTED`, `actualVideos: NOT_ACCESSED`.
