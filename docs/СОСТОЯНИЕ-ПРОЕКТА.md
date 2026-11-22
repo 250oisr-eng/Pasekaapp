@@ -1,3 +1,12 @@
+## 2026-11-22 — физическая безопасная установка Restore335 PASS; следующий read-only gate без повторной установки
+
+- Пользователь запустил `RESTORE335_PINNED_SAFE_INSTALL_V1` на подключённом OnePlus `NE2213`/API `36` и вернул реальный JSON `status=PASS`, `adb=PASS_PINNED`, `device=PASS_ONE_AUTHORIZED`, `androidUsers=PASS_ONLY_USER0`. Перед установкой `installedBefore=NOT_VISIBLE_USER0`, `residualPackage=NO_PM_U_MATCH_USER0`, `zip=PASS_PINNED_SHA`, `apk=PASS_PINNED_SHA_AND_CI_PACKAGE_ID`. **Физическая установка `ru.paseka.journal.archive.restoreproof335` подтверждена**: `install=PASS`, `installedAfter=PRESENT_USER0`. Только изолированное приложение; production не устанавливалось. Источник APK — прежний pinned artifact #14721928022.
+- `privateFiles=NOT_TESTED`, `restores=NOT_ATTEMPTED`, `mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Установка **не подтверждает** сохранность старого private archive, восстановление IndexedDB, 2 MP4 или распознавание; **не запускать** старый one-shot/dd, не повторять установку, не очищать app data.
+- Следующий минимальный аппаратный этап — **уже существующий и проверенный** `tools/android-restore335-private-readonly-stage-v2.ps1` (бывший blocked из-за отсутствия пакета); повторить его **один раз после установленного пакета**. Он выполняет 3 read-only PackageManager observations; при согласованном PRESENT читает только `pwd/stat/ls` из isolated `run-as` без выдачи имён. При отсутствии `files/` может остановиться BLOCKED (не считать падением данных); чтение исходного архива и восстановление по-прежнему запрещены. Windows CI этого скрипта [#45050934639](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45050934639) completed/success на SHA `6ff268473dca06de6f2d01302c1ef07f635d5366`; physical result **пока ожидается**.
+- Никаких изменений на `main`, merge, deploy или удалений. Draft PR #373.
+
+---
+
 ## 2026-11-22 — explicit user authorization to reinstall diagnostic APK; fail-closed installer prepared, physical install pending
 
 - Пользователь прямо разрешил переустановить всё необходимое на подключённый OnePlus NE2213/API36 и продолжить проверки. **Прямого доступа к USB Windows из cloud нет; ни одной физической команды установки в текущем шаге не выполнено.** Область безопасного действия — только отдельное диагностическое приложение `ru.paseka.journal.archive.restoreproof335`, а не `ru.paseka.journal`, fileproof329, архивы, MediaStore или видео.
