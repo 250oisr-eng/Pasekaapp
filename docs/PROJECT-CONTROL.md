@@ -1,3 +1,11 @@
+## 2026-11-22 — обязательное UX копирования и изолированный A08 process-kill
+
+- [../AGENTS.md](../AGENTS.md) и [ПРАВИЛА-РАЗРАБОТКИ.md](ПРАВИЛА-РАЗРАБОТКИ.md) — общий обязательный стандарт диагностики «Провести тест» → «Копировать результат» для PASS/BLOCKED и большие автономные циклы без ручного выделения JSON.
+- [ANDROID-A08-PROCESS-KILL-PREFLIGHT-2026-11-22.md](ANDROID-A08-PROCESS-KILL-PREFLIGHT-2026-11-22.md) — строгие ограничения двухфазного синтетического A08: нативный Process.killProcess только собственного PID, повторное открытие, сверка nonce/PID/IndexedDB SHA, запрет реального restore/cleanup и отличие от Android force-stop.
+- [../diagnostics/archive-a08/runner.js](../diagnostics/archive-a08/runner.js) — автономный A08 state machine, [../scripts/install-android-a08-native-plugin.mjs](../scripts/install-android-a08-native-plugin.mjs) — изолированный нативный plugin, [../tests/android-a08-process-kill.test.mjs](../tests/android-a08-process-kill.test.mjs) — регрессионные тесты, [../.github/workflows/android-a08-process-kill-apk.yml](../.github/workflows/android-a08-process-kill-apk.yml) — отдельная сборка APK.
+
+---
+
 ## 2026-11-22 — допуск моделей пчёл: проверка лицензий, весов и назначения
 
 - [VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md](VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md) — сравнительный аудит кандидатов Matt Nudi, Apiarist, Honey-Bee-Society и Gratheon, доказательная цепочка до Android offline inference, отсутствие разрешения на распознавание и удаление видео.
