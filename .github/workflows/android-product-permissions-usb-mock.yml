@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Checkout exact SHA
         uses: actions/checkout@v4
-      - name: Execute PowerShell 5.1 against eight simulated USB conditions
+      - name: Execute PowerShell 5.1 against eleven simulated USB conditions
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
