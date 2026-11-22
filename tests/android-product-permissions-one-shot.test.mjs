@@ -21,8 +21,8 @@ test('no uninstall, overwrite, force-stop, restore, or media mutation on Android
  /['"]monkey['"][^\n]*\$product/,/['"]install['"][^\n]*\$product/,
  /['"]-d['"]\s*,\s*['"]install['"]\s*,\s*['"]-r['"]/
  ])assert.doesNotMatch(executable,pattern);
- assert.match(script,/['"]install['"]\s*,\s*\$apk\.FullName/);
- assert.match(script,/['"]monkey['"]\s*,\s*['"]-p['"]\s*,\s*\$diagnostic/);
+ assert.match(script,/['"]-s['"]\s*,\s*\$serial\s*,\s*['"]install['"]\s*,\s*\$apk\.FullName/);
+ assert.match(script,/['"]-s['"]\s*,\s*\$serial\s*,\s*['"]shell['"]\s*,\s*['"]monkey['"]\s*,\s*['"]-p['"]\s*,\s*\$diagnostic/);
  assert.match(script,/PRODUCT_NOT_INSTALLED_NO_TEST/);
  assert.match(script,/DIAGNOSTIC_APPEARED_NO_REINSTALL/);
 });
@@ -40,4 +40,9 @@ test('one verified USB serial is enforced before install and before launching di
  assert.match(script,/AssertSameUsb \$serial[\s\S]*STAGE: 5\/6 INSTALL_ONLY_NEW_DIAGNOSTIC/);
  assert.match(script,/AssertSameUsb \$serial[\s\S]*STAGE: 6\/6 LAUNCH_DIAGNOSTIC_ONLY/);
  assert.match(script,/\$rows\.Count -ne 1/);
+});
+
+test('no unpinned ADB -d target is permitted in one-shot installer',()=>{
+ assert.doesNotMatch(script,/@\('-d'/);
+ assert.match(script,/['"]-s['"],\$serial,['"]shell['"],['"]pm['"],['"]path['"]/);
 });
