@@ -1,3 +1,12 @@
+### 2026-11-23 — verified P0 Android 15 emulator smoke, Draft #417
+
+- **Exact code/test SHA `cc9fc690e1e48c0e2b1e42a722f2e54267e2247d`**: [Fast Quality #45078984977](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45078984977) **completed/success, 1208/1208 PASS, zero failed/skipped**; [Android Debug #45078984963](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45078984963) **completed/success** (debug APK build/upload); [emulator-only #45078984940](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45078984940) **completed/success** (Android API 35 emulator-5554, real APK cold-start and restart after disabling Wi-Fi and mobile data, process alive, no app AndroidRuntime fatal).
+- First emulator SHA `f29d414ac397d2074de30e32badc29588bf22af9`: emulator booted but workflow **FAILED** before installing APK because external action invokes `script` under `/bin/sh`, which rejected `set -euo pipefail`. Moved build/test into explicit Bash script `scripts/run-p0-emulator-ci.sh`, tightened the activity-start check to reject timeout; reran all checks on exact revised code SHA.
+- This is **emulator-only startup evidence**, NOT physical Android, IndexedDB byte-integrity across restart, external Android Camera/MediaStore/Gallery/Downloads copies, actual bee recognition, safe cleanup or real PASEKA02 restoration. Physical user phone remains disconnected; Restore335 private source unresolved. **P0 OPEN / Restore335 STOP / deletion disabled**.
+- Draft #416 integration parent SHA `5365b2585e3314f166e9cf731a30cf97d91ef402` had successful Fast #45078502472 and Android #45078502603 after reconciling #415 docs; both PRs remain Draft, no main/prod merge. Results above pertain to code SHA; this documentation-only commit will create a new HEAD and requires its own CI check.
+
+---
+
 ## 2026-11-23 — P0 device-independent integration and Android emulator proof (Draft #417)
 
 - Parent [Draft #416](https://github.com/250oisr-eng/Pasekaapp/pull/416) reconciled with parent #415 docs in commit `5365b2585e3314f166e9cf731a30cf97d91ef402` (GitHub pull/416 `mergeable=true`). No PR merged into main, no real media altered. Before reconciliation #416 code/test SHA `4a866a52f4957899442e8e7fc12557b6403f9ee0` passed Fast #45077090132 **1205/1205** and Android Debug #45077090061 **success**; merged-working-tree CI must be checked independently.
