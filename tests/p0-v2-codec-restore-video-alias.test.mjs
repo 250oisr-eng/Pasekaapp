@@ -94,3 +94,20 @@ test('live identity check includes alternate video aliases and refuses collision
     ),e => e.code === 'V2_RESTORE_LIVE_RECORD_ID_COLLISION'
   );
 });
+
+test('codec and restore must not trust a harmless type when MIME reports video', async () => {
+  const incoming = state();
+  incoming.records = [{id:'record-1',media:[{
+    kind:'image',type:'image/png',mimeType:'video/mp4',data:'data:image/png;base64,AAAA'
+  }]}];
+  await assert.rejects(codec.buildMetadataArchive({
+    state:incoming,ledger,backupId:'conflicting-mime',
+    createdAt:'2026-11-23T00:00:00Z'
+  },webcrypto,guard,root.PasekaSha256),e=>e.code==='V2_STATE_EMBEDDED_VIDEO');
+  assert.throws(()=>gate.checkRestoreLedgerCandidate(ledger,{
+    state:incoming,ledger,pendingVideos:[]
+  },guard),e=>e.code==='V2_RESTORE_RECORD_VIDEO_ENCODING');
+  assert.throws(()=>gate.checkLivePendingMediaIdentity(incoming,[],{
+    pendingVideos:[video('same-video')]
+  }),e=>e.code==='V2_RESTORE_LIVE_RECORD_ID_UNKNOWN');
+});
