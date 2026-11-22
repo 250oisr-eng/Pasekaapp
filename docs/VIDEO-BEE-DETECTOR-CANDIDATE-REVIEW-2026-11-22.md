@@ -1,3 +1,74 @@
+# Итог единого расширенного поиска моделей — 22 ноября 2026
+
+**Решение:** текущий большой поисковый проход **закрыт**, дальнейший последовательный поиск весов не блокирует разработку. Приоритет перенесён на независимый safety-этап временного видео и архивов. «Публично найдена модель» ≠ «проверен лицензионный checkpoint» ≠ «проверено точное распознавание летка». Никаких весов не импортировано.
+
+| № | Кандидат / источник | Наличие и назначение | Незакрытый gate / решение |
+|---|---|---|---|
+| 1 | [Matt Nudi / bee-detection](https://github.com/mattnudi/bee-detection) | Реальный опубликованный `best.pt` (YOLOv5), детекция bee/drone/pollenbee/queen; Roboflow dataset [CC BY 4.0](https://universe.roboflow.com/matt-nudi/honey-bee-detection-model-zgjnb) | Лицензия **самих весов** и исходного YOLO checkpoint не подтверждена; `best.pt` pickle, offline Android ONNX и независимые in/out метрики не доказаны. BLOCKED |
+| 2 | [Apiarist](https://huggingface.co/maryammeda/apiarist-honey-bee-detector) | 22.5 MB `honey_bee_detector.pt`, карточка Apache-2.0, YOLOv8s | Обучен для осмотра рамок и Varroa, а не летка; права/условия базовой YOLOv8s требуют проверки; файл pickle. TASK_MISMATCH |
+| 3 | [Honey-Bee-Society](https://huggingface.co/Honey-Bee-Society/honeybee_ml_v1) | AutoGluon классификатор пчела/оса/шмель | Не локализует отдельные пчёлы, ~383 MB. TASK_MISMATCH |
+| 4 | [Gratheon gate tracker](https://github.com/Gratheon/models-gate-tracker) | OpenCV+TF/Jetson серверный tracker летка | Нет полной правовой цепочки конкретного SavedModel и доказательства offline WebView; S3/server вне заданной приватности. BLOCKED |
+| 5 | [Gratheon models-bee-detector](https://github.com/Gratheon/models-bee-detector) | Внешний YOLOv5/Matt Nudi checkpoint | Наследует неопределённость прав #1, без независимых весов. BLOCKED |
+| 6 | [AjayJohnAlex Bee_Detection](https://github.com/AjayJohnAlex/Bee_Detection) | MIT исходники; Ultralytics/torch и tracking | Не подтверждены отдельные пчелиные веса/их лицензионная цепочка. BLOCKED |
+| 7 | [vladvroust bee-yolo-tracking](https://github.com/vladvroust/bee-yolo-tracking) | Конфиг класса bee; ожидает `bin/yolo.weights` | Требуемые обученные веса не подтверждены в проверенной ревизии; GPLv3 кода. BLOCKED |
+| 8 | [maxim2100 bee-detection-classification](https://github.com/maxim2100/bee-detection-classification) | Опубликованный `yolov8n.pt`, отдельная классификация | Не доказано, что это обученный bee-checkpoint; README содержит незаполненную лицензию. BLOCKED |
+| 9 | [matpalm/bnn](https://github.com/matpalm/bnn) | MIT исходный код U-Net-подобной локализации центров пчёл | `ckpts` в .gitignore, нет доказанного публичного checkpoint; не трекает in/out. BLOCKED |
+| 10 | [TobysWorkshop Hive-Cam](https://github.com/TobysWorkshop/Hive-Cam) | Отслеживание вход/выход с YOLOv8 | Авторские ограничения на распространение/коммерческое использование. REJECT_FOR_BUNDLING |
+| 11 | [asadiceiu native-bee-detection-tracking](https://github.com/asadiceiu/native-bee-detection-tracking) | 3277 размеченных кадров/benchmark входа | Исследует Tetragonula/Exoneura, не Apis mellifera; опубликованный Android offline checkpoint с правами не подтверждён. SPECIES_MISMATCH / RESEARCH |
+| 12 | [Moncoutiej SwinTransformer](https://github.com/Moncoutiej/SwinTransformer-insect-detector) | Пчёлы/шершни рядом с ульем, автор заявляет pretrained модель >1GB | Неизвестны права конкретных весов, Android footprint; не in/out. BLOCKED |
+| 13 | [Mjrovai Bee-Counting](https://github.com/Mjrovai/Bee-Counting) | Учебный YOLOv8 pipeline для Raspberry Pi Zero 2W | GPLv3 исходников, нет подтверждённых переносимых лицензированных весов и WebView испытаний. BLOCKED |
+| 14 | [WataNekko aiot-beehive](https://github.com/WataNekko/aiot-beehive) | CV + YOLOv7 для изображений летка | GPLv3 кода, обученные веса/право распространять/Android offline не подтверждены. BLOCKED |
+| 15 | [kasiabozek bee_tracking](https://github.com/kasiabozek/bee_tracking) | 2D markerless tracking колонии | Другая съёмка/геометрия; GPLv3 и checkpoint Android не подтверждены. RESEARCH_ONLY |
+| 16 | [pamudu123 BEE_counting](https://github.com/pamudu123/BEE_counting) | YOLOv8 + ByteTrack, синтетические видеоданные, проект ongoing | Нет доказанного лицензированного checkpoint или независимого леткового benchmark. BLOCKED |
+| 17 | [Bee-A-Hero](https://github.com/Manheim666/Bee-A-Hero) | Комбинированный pipeline цветы/насекомые с заявленными включёнными весами | Не доказана конкретная bee-entrance специализация, права/источник исходного YOLO26 и Android runtime. RESEARCH_ONLY |
+| 18 | [Zenodo keypoint bee orientation](https://zenodo.org/records/15229457) | Исследовательская статья и PDF о позе/ориентации | Архив публикации не является проверенным свободным checkpoint. RESEARCH_ONLY |
+| 19 | [Zenodo in-hive Varroa](https://zenodo.org/records/23099412) | Датасет и веса для наличия Varroa на пчёлах **внутри** улья | Другая постановка задачи, не подсчёт прилёта/вылета. TASK_MISMATCH |
+
+**Не считать отдельными кандидатами:** многочисленные форки одного Roboflow набора Matt Nudi с теми же четырьмя классами; не увеличивают разнообразие доказанных весов.
+
+**Правовые основания:** в [лицензионной справке Roboflow (ред. 2026-10-27)](https://roboflow.com/licensing) явно различены бесплатный cloud, self-hosting и лицензии семейств YOLOv5/v8, RF-DETR. Указанная на странице набора CC BY 4.0 не решает автоматически вопрос исходных pretrained weights; MIT ONNX Runtime не даёт прав на внешний checkpoint. Для каждой модели нужно отдельно проверить immutable revision, SHA-256 файла, лицензию базового checkpoint и обучающих данных, независимый benchmark на летке и Android offline.
+
+**Финальный итог:** 0/19 кандидатов полностью допущены к запуску на пользовательском видео. Публикуемые источником цифры P/R/F1 — чужие метрики, не результаты проекта. В следующем этапе **не** создавать фиктивную `recognitionSucceeded=true`, не удалять оригиналы, не копировать сторонние веса и не вводить платный сервис. Вернуться к поиску только при новом качественном доказательстве: прямом разрешении автора, точном контрольном хэше разрешённых весов или новом публичном checkpoint с подтверждённой цепочкой прав.
+
+---
+
+## Первичная проверка checkpoint matpalm/bnn — 2026-11-22
+
+Прочитаны исходные `README.md`, `LICENSE`, `.gitignore`, `predict.py`, `freeze_graph.sh`, `run_sample_training_pipeline.sh` из [matpalm/bnn](https://github.com/matpalm/bnn). Подтверждено:
+
+- У проекта MIT-лицензия для исходного кода (2018 Matthew Kelcey), но не найдено отдельно идентифицируемого опубликованного checkpoint для распространяемого inference.
+- README документирует `--run r12` и локальные `ckpts/r12/`; `.gitignore` прямо исключает `ckpts` и `bnn_graph.predict.frozen.pb`. `predict.py` вызывает `restore_model(opts.run)`; `freeze_graph.sh` содержит локальный путь `ckpts/r19_bfs4/20180308_193817`, **а не URL опубликованного файла**. На GitHub у репозитория нет опубликованных Releases.
+- В README цифры precision 0.936 / recall 0.797 / F1 0.861 приведены как пример вызова скрипта на неопределённой базе и не являются воспроизведённым независимым benchmark нашего летка; нельзя переносить их на приложение.
+- Проект локализует центры пчёл в отдельных изображениях. Направление `in/out`, стабильность track ID и точность на видео летка из этих источников **не доказаны**.
+
+**Решение:** `matpalm-bnn` сохранён в машинном реестре как `BLOCKED`: `NO_PUBLISHED_CHECKPOINT_VERIFIED`, `weightsLicense=UNVERIFIED`, `offlineAndroid=UNVERIFIED`. Добавлен регрессионный тест, не допускающий использования MIT-лицензии кода как разрешения весов. Это отсутствие найденного публичного checkpoint, а не утверждение, что файл нигде не существует. Доступ к видео, inference и cleanup не менялись.
+
+---
+
+## Дополнительная проверка альтернативных проектов у летка — 2026-11-22
+
+- [matpalm/bnn](https://github.com/matpalm/bnn): архивный GitHub-репозиторий (с 31 октября 2022), MIT-лицензия **исходного кода**; README описывает U-Net-подобное преобразование изображения летка в карту центров пчёл и применение Raspberry Pi / нейропроцессора. В просмотренном корневом списке файлов присутствуют код, sample data и скрипты обучения/экспорта, но нет явно идентифицированного готового весового файла. Не установлены immutable revision конкретных весов, их SHA-256, отдельные права на веса/обучающие данные, совместимость с Android WebView и accuracy на наших летках. **RESEARCH_ONLY / WEIGHTS_UNVERIFIED; нельзя загружать или включать в APK.**
+- [TobysWorkshop/Hive-Cam](https://github.com/TobysWorkshop/Hive-Cam): README описывает YOLOv8-счёт входящих/выходящих пчёл с оценкой лишь на двух 30-секундных роликах. Публичное Attribution-условие прямо запрещает коммерческое использование и перераспространение кода/проекта. Без нового разрешения правообладателя **REJECT_FOR_BUNDLING**; даже научные результаты двух роликов не доказывают качество на других летках.
+
+**Решение:** не приравнивать MIT лицензию репозитория к лицензии обученных весов; не включать Hive-Cam. Отдельный следующий проверяемый шаг — установить, существует ли свободно распространяемый *конкретный бинарный checkpoint* matpalm/bnn и кто владеет правами на обучение/данные. Исследование не даёт доступа к пользовательским видео, inference и cleanup.
+
+---
+
+## Дополнительная проверка первичных LICENSE и зависимостей — 2026-11-22
+
+Фактически прочитаны файлы в чужих публичных репозиториях (через GitHub, **не** исполнялись их программы и не скачивались веса):
+
+- [AjayJohnAlex/Bee_Detection/LICENSE](https://github.com/AjayJohnAlex/Bee_Detection/blob/main/LICENSE): реальный текст MIT, blob SHA GitHub `891259553e1a6f161d94cdb5d370c9cfaf59e56b`, copyright 2023 Ajay John Alex. [requirements.txt](https://github.com/AjayJohnAlex/Bee_Detection/blob/main/requirements.txt): `ultralytics==8.0.134`, `torch==2.0.1`, `torchvision==0.15.2`, `deep-sort-realtime==1.3.2`, Flask и OpenCV. Наличие MIT для кода репозитория **не доказывает**, что отдельные pretrained weights, базовые YOLO checkpoint и тренирующий датасет имеют такую же лицензию. URL immutable commit ещё не подтверждён. Candidate: blocked.
+- [Gratheon/models-gate-tracker/LICENSE](https://github.com/Gratheon/models-gate-tracker/blob/main/LICENSE): текст GPL-3.0, blob SHA GitHub `f288702d2fa16d3cdf0035b15a9fcbc552cd88e7`; README описывает Python/TensorFlow/OpenCV и HTTP upload/server с S3-копией. GPL кода требует отдельного исследования совместимости; **никаких** подтверждённых прав на конкретный `SavedModel`, dataset или Android WebView offline execution. Candidate: blocked.
+- [Gratheon/models-bee-detector](https://github.com/Gratheon/models-bee-detector): HTTP/Docker сервис с YOLOv5 и прямым указанием на внешние веса Matt Nudi. Это **не новый независимый источник прав** на `best.pt`; отсутствие доказанной лицензии Matt Nudi переносится как блокер. Candidate: blocked.
+- [Ajay repo](https://github.com/AjayJohnAlex/Bee_Detection) сообщает примерно 9664 размеченных изображения и MIT для repo; в отсутствие independently pinned весов и оценки на конкретном летке не считать этим validated detector.
+
+Новая структурированная опись `tests/fixtures/bee-detector-candidate-inventory.json` содержит **только публичные ссылки и явно неподтверждённые статусы**, без бинарных весов, данных пользователя и модельных числовых метрик. `tests/video-bee-candidate-inventory.test.mjs` проверяет, что ни один кандидат нельзя подать в staging-gate как авторизованный и что MIT/GPL код репозитория не транзитивно присваивается весам.
+
+**Следующая целевая проверка:** у автора/правообладателя выбранной модели подтвердить *точную лицензию конкретного файла весов и исходного pretrained checkpoint*, immutable revision, training data license, геометрию входа/выхода и offline conversion. Только после этой проверки — отдельный изолированный Android inference proof на синтетических кадрах с independently pinned ONNX/TF Lite моделью и нулевым доступом к реальным видео.
+
+---
+
 ## 2026-11-22 — Gratheon: проверка назначения весов
 
 В [ревизии 21faabd](https://github.com/Gratheon/models-gate-tracker/tree/21faabd0ea2d57f9e0d4434fc47b5af0839fbb81) BeeDetection.py использует контуры OpenCV и fitEllipse, а BeeClassification.py запускает predict_on_batch для классификации подготовленных изображений. В дереве есть SavedModel с переменными, корневой LICENSE содержит GPLv3, Training/BeeDataset подключён отдельным подмодулем BeeAlarmed/BeeDataset. Проверены исходники и метаданные; веса не скачивались. Отдельная модель классификации не решает задачу локализации на полном кадре. Следующий шаг — проверить происхождение весов следующего кандидата для детекции летка. На SHA 23728d707bc3229b5944e6939ca2fc3954424e59 локально прошли 3/3 теста допуска, Android CI #44955879058 успешен, #44955879068 пропущен.
