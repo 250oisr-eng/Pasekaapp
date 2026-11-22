@@ -1,3 +1,41 @@
+## 2026-11-22 — physical Restore335 V4 PASS, count 1; CMD post-report false failure
+
+- User ran pinned V4 on actual OnePlus NE2213/API36. Device JSON: `stage=ANDROID_RESTORE335_PRIVATE_READONLY_V4`, `status=PASS`, ADB/device/model/sdk/ADB SHA PASS, diagnostic package `PRESENT_UNTOUCHED`, production absent, PM triple check PRESENT, private directory checks both TRUE, `privateFilesClass=NONEMPTY_PRESERVE`, `privateEntryCount=1`, `privateInput=UNKNOWN_PRESERVE`. `installs/writes/mediaRead=NOT_ATTEMPTED`; `cleanup=NOT_AUTHORIZED`. The unknown entry was not examined or changed.
+- Launcher subsequently emitted `V4_DEVICE_CHECK_BLOCKED_OR_FAILED` because it checked `$LASTEXITCODE` even though the successful V4 script had no explicit zero exit. This is a wrapper-level exit-status ambiguity, **not** a device-stage failure. Fixed V4 to explicitly `exit 0` after PASS and `exit 2` after BLOCKED; added static regression. Fix itself has NOT been run on device.
+- Exactly one entry is not evidence of valid restore input, video copy or restored MP4. Do not rerun old V4 just to clear wrapper message. Next: verify Windows static CI and Android general CI on the new exact code SHA; design bounded, read-only entry-type/provenance evidence without disclosing filename contents or touching user media, before any hardware recheck.
+- No main merge, production install/deploy, app data write, restoration or cleanup performed.
+
+---
+
+## 2026-11-22 — V4 exact HEAD software CI completed; physical validation pending
+
+- Draft PR [#374](https://github.com/250oisr-eng/Pasekaapp/pull/374) code SHA `c7312bc683da783884b4868b3d9079071f7d8018`; subsequent documentation-only HEAD `bd268d2285942dc4fb2eb8920865f75dc3c4c73a`.
+- On that documentation HEAD, [Windows V4 CI #45053610072](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053610072) **completed/success**: PowerShell parser + 5/5 static regression tests. [General Android debug APK #45053610206](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053610206) **completed/success**: regression suite, web asset preparation, Android debug APK build and artifact upload, per completed job steps. Isolated archive #45053610128 was **skipped**, not a PASS. Earlier Android run #45053521454 was **cancelled**, not an error and not PASS.
+- Physical device V4 **NOT_TESTED**; V3 physical BLOCKED/NONEMPTY_PRESERVE remains last actual observation. A V4 PASS, if obtained, would only establish bounded directory listing/count, not input provenance or restore permission. `privateInput=UNKNOWN_PRESERVE`, `cleanup=NOT_AUTHORIZED`.
+- One next action: run V4 read-only on exact pinned device through the existing trusted Windows+ADB environment, capture only JSON report. Until then avoid restoration, user-media reads, installs, uninstalls, writes and cleanup. This step requires access to the user's PC; GitHub CI cannot substitute physical testing.
+
+---
+
+## 2026-11-22 — Restore335 V4 verified Windows static CI (code SHA c7312bc6)
+
+- V4 whitespace-preserving, pinned private `ls -A files` count-only code and fifth static regression committed on `c7312bc683da783884b4868b3d9079071f7d8018`. In the bounded-inventory mode only trailing CR/LF is trimmed, not filename spaces. Commands outside the exactly pinned diagnostic listing cannot request raw-output mode.
+- [Windows readonly V4 CI #45053521448](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053521448) **completed/success on that exact code SHA**. Inspected job log: PowerShell parser PASS; Node static safety suite **5/5 PASS, 0 FAIL**. The static suite is not a physical ADB/device behavioral test.
+- [General Android APK #45053521454](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053521454) was **pending** at last observation; isolated archive build #45053521517 **skipped**, not PASS. Do not infer Android APK success or physical V4 PASS.
+- Original user physical V3 `PRIVATE_FILES_NONEMPTY_NO_ACTION` remains the only device data; files preserved and unexamined. No MP4 read, recovery, bee detection, cleanup, production install, merge or deploy.
+- Next: check Android workflow terminal status on code SHA, then consider one pinned V4 execution only if software checks and safety scope remain intact.
+
+---
+
+## 2026-11-22 — Restore335 physical V3 BLOCKED; private read-only V4 Draft PR #374
+
+- User-provided actual OnePlus NE2213/API36 V3 report: ADB/device/pinned SHA/package triple check/directory+path predicates PASS; diagnostic package present untouched, production absent; `privateFilesClass=NONEMPTY_PRESERVE`, `privateInput=UNKNOWN_PRESERVE`, `status=BLOCKED`, `detail=PRIVATE_FILES_NONEMPTY_NO_ACTION`. No install, write, media read, restore or cleanup attempted.
+- New Draft [#374](https://github.com/250oisr-eng/Pasekaapp/pull/374) stacked on Draft #373. New `tools/android-restore335-private-readonly-stage-v4.ps1` retains pinned identity gates; a nonempty isolated private `files` folder yields bounded count-only observation (1–64), no filenames in output and no per-file reads. V4 `PASS` is count-only inventory, **never** proof of valid restore input. Unknown private content stays preserved.
+- Added `tests/android-restore335-private-readonly-v4.test.mjs`, `.github/workflows/android-restore335-readonly-v4.yml`, and `docs/ANDROID-RESTORE335-PRIVATE-READONLY-V4-2026-11-22.md`. Exact-SHA CI and physical V4: **NOT VERIFIED** until separately observed.
+- No main merge, deployment, application install, device cleanup or production data modification authorized. Two-MP4 recovery, real bee detection and immediate video deletion remain **NOT_TESTED / NOT_AUTHORIZED**.
+- **Next:** verify CI on exact Draft #374 HEAD, then only if successful present one pinned V4 execution to user; never infer file provenance from count.
+
+---
+
 ## 2026-11-22 — физический Restore335 после установки: package PASS, private stat BLOCKED; read-only v3 подготовлен
 
 - Пользователь физически запустил `ANDROID_RESTORE335_PRIVATE_READONLY_V2` после успешно завершённой установки изолированного `ru.paseka.journal.archive.restoreproof335`. Фактический JSON: `status=BLOCKED`; `adb/device/model/sdk/adbSha256=PASS` OnePlus NE2213/API36, `diagnosticPackage=PRESENT_UNTOUCHED`, `productionPackage=ABSENT`, `packagePathFirst=PRESENT`, `packageList=PRESENT_USER0`, `packagePathSecond=PRESENT`; `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `detail=PRIVATE_FILES_NOT_DIRECTORY`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`.

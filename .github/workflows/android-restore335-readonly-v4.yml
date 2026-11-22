@@ -1,0 +1,29 @@
+name: Android Restore335 read-only V4 static proof
+on:
+  push:
+    paths:
+      - 'tools/android-restore335-private-readonly-stage-v4.ps1'
+      - 'tests/android-restore335-private-readonly-v4.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v4.yml'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-private-readonly-stage-v4.ps1'
+      - 'tests/android-restore335-private-readonly-v4.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v4.yml'
+jobs:
+  readonly-v4:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PowerShell syntax parse
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-private-readonly-stage-v4.ps1',[ref]$tok,[ref]$err)
+          if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
+      - name: Static safety regressions (no ADB or phone)
+        shell: pwsh
+        run: node --test tests/android-restore335-private-readonly-v4.test.mjs
