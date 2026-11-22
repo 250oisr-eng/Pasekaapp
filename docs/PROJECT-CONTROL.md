@@ -1,3 +1,10 @@
+## 2026-11-22 — Restore335 V10: аппаратный блок и потенциальный отчёт вместо архива
+
+- [ANDROID-RESTORE335-FIXED-SOURCE-PREDICATES-V10-2026-11-22.md](ANDROID-RESTORE335-FIXED-SOURCE-PREDICATES-V10-2026-11-22.md) — дополнено реальным результатом V10 `SOURCE_FIXED_NAME_NOT_MATCHED_PRESERVE` и подтверждённым по коду writer `restore335-report.json`, который может создавать отчёт даже при неудачном восстановлении. Содержимое единственной записи неизвестно; повторные физические диагностики приостановлены.
+- [../tests/android-restore335-report-writer-provenance.test.mjs](../tests/android-restore335-report-writer-provenance.test.mjs) — программная проверка BLOCKED отчёта при отсутствующем входном тестовом архиве.
+
+---
+
 ## 2026-11-22 — Restore335 V10: fixed source-defined private test file
 
 - [ANDROID-RESTORE335-FIXED-SOURCE-PREDICATES-V10-2026-11-22.md](ANDROID-RESTORE335-FIXED-SOURCE-PREDICATES-V10-2026-11-22.md) — после физического V9 BLOCKED: точное имя из исходного APK, проверка `test -e/-f/-d/-L` только для известного тестового пути, без чтения файлов и удаления.
