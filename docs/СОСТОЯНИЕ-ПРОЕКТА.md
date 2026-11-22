@@ -1,3 +1,11 @@
+## 2026-11-22 — terminal CI PASS, managed copy byte audit PR #371
+
+- Exact code SHA `5a3e05e4df05259f24f099adbb6b01680096f031`; subsequent documentation HEAD `258a13ecbd2909b2d7fc58a2a72e22c8bb4bdec4` does not change code. On that HEAD [video read-only CI #45045686537](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045686537) **completed/success**, actual job log **165 tests, 165 PASS, 0 FAIL**, including actual same-database IndexedDB reopen and all seven new managed cross-store copy integrity scenarios. [Android APK #45045686468](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045686468) **completed/success**. [Isolated archive #45045686445](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045686445) **completed/skipped**, not a successful archive test.
+- Verified scope: hash matching of selected *known* protected video copies in synthetic IndexedDB. It does not certify every physical copy or safely delete any file. Unknown legacy backups and Android Camera/Gallery/MediaStore remain unverified; real bee detector is not approved; phone physical deletion and recovery **NOT_TESTED**.
+- Continue only via separate safety-gated Android test with synthetic app-private videos and confirmed ownership. No cleanup activated; user source media, main, production, backups, PR merges not touched.
+
+---
+
 ## 2026-11-22 — protected managed video copies: readonly SHA across stores
 
 - Child Draft PR #371 `test/video-managed-copies-byte-audit-2026-11-22` from #370 adds `js/video-managed-copies-byte-audit.js`, an isolated `readonly` snapshot of five protected stores and SHA-256 of known candidate copies: `entrance_media`, `v2_pending_original`, legacy staging video (unverified full SHA), rollback video, quarantine, journal Data URLs and legacy `full_backup.previous.state`. Unknown backups, opaque state and unidentified legacy records remain **blocking**. No raw bytes or full user state returned.
