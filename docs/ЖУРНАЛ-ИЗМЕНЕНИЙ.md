@@ -1,3 +1,11 @@
+## 2026-11-22 — byte evidence CI terminal status, PR #370
+
+- Exact source SHA `0ba8ede476e459dc450efd33d446a98476e26495`: [managed video/ledger/staging and new byte integrity workflow #45044911066](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45044911066) **completed/success**, verified real job log **158/158 tests PASS, 0 FAIL**, including 5 new two-snapshot SHA tests; [Android APK #45044911086](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45044911086) **completed/success**. Isolated archive APK #45044911060 **completed/skipped** and not an archive validation.
+- Later commits only documentation/PR metadata, so latest HEAD will have different SHA. The module is not wired into app UI, does not write/read outside one `entrance_media` managed original, cannot delete or authorize all-copy safety.
+- Still **NOT_TESTED**: physical Android byte integrity, real bee recognition, Gallery/MediaStore, protected backup copy by-copy SHA, physical deletion, crash recovery. `cleanupAuthorized:false`, `deleteAllowed:false`; Draft stack #370->#369->#368->#356, no merge/deployment or production data operations.
+
+---
+
 ## 2026-11-22 — double-SHA readonly evidence for entrance video (no cleanup)
 
 - Separate stacked test branch `test/video-cleanup-byte-evidence-readonly-2026-11-22` from Draft PR #369. New isolated `js/video-cleanup-byte-evidence.js`: two distinct `readonly` IndexedDB reads of one `entrance_media` Blob with actual SHA-256 hashing **outside** transactions; metadata/provenance and byte digest compared across observations. Fail closed on tampered Blob, missing metadata, source replacement, failed read or hash. This is a *point-in-time* test, not a stable global snapshot or authorization to remove any copy.
