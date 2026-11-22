@@ -13,12 +13,12 @@
 <h1>Диагностика сохранности архива</h1>
 <p>Только синтетические записи в отдельном диагностическом приложении. Настоящие видео, пользовательские резервные копии и данные пасеки не открываются.</p>
 <button id="run" type="button">Провести тест</button>
-<button id="share" type="button" disabled>Отправить результат</button>
-<p id="share-status" aria-live="polite">Сначала проведите тест.</p>
+<button id="copy" type="button" disabled>Копировать результат</button>
+<p id="copy-status" aria-live="polite">Сначала проведите тест.</p>
 <h2>Отчёт</h2>
 <pre id="result" aria-live="polite">NOT_TESTED</pre>
 <small>PASS здесь не подтверждает распознавание пчёл, восстановление настоящего архива или возможность удаления видео.</small>
 <script src="./preflight-guard.js"></script>
-<script src="./share-report.js"></script>
+<script src="./copy-report.js"></script>
 <script src="./runner.js"></script>
 </body></html>
