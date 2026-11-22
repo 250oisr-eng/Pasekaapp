@@ -436,3 +436,20 @@ test('recognition source byte mismatch is reported with no false mismatch for ma
  assert.equal(correct.cleanupAuthorized,false);
  matching.close();
 });
+
+test('valid preferred SHA cannot conceal a malformed legacy SHA field',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceSha256:'untrusted-invalid-hash'}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('invalid_copy_evidence'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('valid preferred bytes cannot conceal a malformed alternate byte field',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceBytes:0}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('invalid_copy_evidence'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
