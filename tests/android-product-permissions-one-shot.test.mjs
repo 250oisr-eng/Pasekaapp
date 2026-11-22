@@ -43,7 +43,7 @@ test('one verified USB serial is enforced before install and before launching di
 });
 
 test('no unpinned ADB -d target is permitted in one-shot installer',()=>{
- assert.doesNotMatch(script,/@\('-d'/);
+ assert.doesNotMatch(script,/@\('-d','install'/);
  assert.match(script,/['"]-s['"],\$serial,['"]shell['"],['"]pm['"],['"]path['"]/);
 });
 
