@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; media-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Пасека — A08</title><style>
+:root{color-scheme:light dark}body{font:16px system-ui,sans-serif;max-width:650px;margin:auto;padding:20px;line-height:1.5}
+button{padding:15px 16px;margin:4px;border:0;border-radius:10px;color:white;background:#336d52;font-size:17px}button:disabled{opacity:.5}
+pre{padding:14px;border:1px solid #8886;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+</style></head><body>
+<h1>A08 — сохранность после остановки процесса</h1>
+<p>Только синтетические данные. После нажатия «Провести тест» приложение завершит собственный процесс. <strong>Откройте его ещё раз</strong>: проверка продолжится автоматически.</p>
+<button id="run" type="button">Провести тест</button>
+<button id="copy" type="button" disabled>Копировать результат</button>
+<p id="status" aria-live="polite">Готово к проверке.</p>
+<pre id="result" aria-live="polite">NOT_TESTED</pre>
+<small>PASS не разрешает удаление видео, восстановление реальных архивов или распознавание пчёл.</small>
+<script src="./copy-report.js"></script><script src="./runner.js"></script>
+</body></html>
