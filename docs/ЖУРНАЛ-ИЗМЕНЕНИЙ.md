@@ -1,3 +1,11 @@
+## 2026-11-22 — эмулятор: доказана инфраструктурная причина отказа, автоматические перезапуски остановлены
+
+- Job [#45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) завершился **failure**: Android Emulator 37.3.10 на Ubuntu не имел KVM, `-accel off` прямо отвергнут (`Software CPU emulation ... is not supported`), затем `Timeout waiting for emulator to boot`. APK был ранее успешно скачан, но **не установлен и не запущен**; нельзя маркировать emulator PASS.
+- Workflow `.github/workflows/test-android-emulator-smoke.yml` переведён на `workflow_dispatch` (не запускать на каждый PR); установлен `ANDROID_I_WANT_MY_TCG=yes` для будущего отдельного ручного software-emulation эксперимента, который **не был проверен**. На бесплатном CI не тратить повторно время, приоритет — безопасная физическая проверка OnePlus.
+- CI Windows PowerShell audit `#45047825843` прошёл; физический отчёт от пользователя пока не получен. Локальный .ps1 выполняет **только чтение** pinned ADB и пакетов, без установки и изменений. Успешная CI-сборка не означает реальный Android runtime PASS.
+
+---
+
 ## 2026-11-22 — физический USB Android: подготовлен однократный read-only preflight, пользовательский запуск ожидается
 
 - Новая ветка внутри Draft PR #373: `tools/android-usb-device-readonly-preflight.ps1` проверяет SHA256 ранее подтверждённого Google ADB `bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee`, ADB 1.0.41+, единственный авторизованный Android, ранее подтверждённый OnePlus `NE2213`/SDK 36, наличие/отсутствие только конкретных `ru.paseka.journal` и `ru.paseka.journal.archive.restoreproof335`. Не читает MediaStore/видео/архивы, не устанавливает APK, не запускает приложения и не изменяет телефон. Весь вывод — JSON без серийного номера устройства.
