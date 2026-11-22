@@ -16,14 +16,14 @@ const perm=(name,granted=false)=>({name,granted,requestedGrantedFlag:granted});
 function app(data,{missing=false,reject=null}={}){
  const els={};for(const id of ['run','copy','status','result'])els[id]={
   disabled:id==='copy',textContent:'',handlers:{},addEventListener(name,cb){this.handlers[name]=cb;}};
- const writes=[];
+ const writes=[];let nativeCalls=0;
  const w={Capacitor:{Plugins:{
-  ProductPermissions:missing?undefined:{async inspectTarget(){if(reject)throw Error(reject);return data;}},
+  ProductPermissions:missing?undefined:{async inspectTarget(){nativeCalls++;if(reject)throw Error(reject);return data;}},
   Clipboard:{async write({string}){writes.push(string);}}
  }}};
  const ctx=vm.createContext({window:w,document:{getElementById:id=>els[id]}});
  vm.runInContext(copier,ctx);vm.runInContext(runner,ctx);
- return {els,writes,context:ctx,async run(){await els.run.handlers.click();return JSON.parse(els.result.textContent)},
+ return {els,writes,context:ctx,nativeCalls:()=>nativeCalls,async run(){await els.run.handlers.click();return JSON.parse(els.result.textContent)},
   async copy(){await els.copy.handlers.click();return writes;}};
 }
 test('exactly two buttons, copy disabled before a complete diagnostic',()=>{
@@ -154,4 +154,48 @@ test('execute real CI aapt allowlist parser against allowed, dangerous and malfo
  assert.throws(()=>validate("uses-permission: malformed\n"),/Unexpected diagnostic APK permission/);
  assert.throws(()=>validate(expected+"\nuses-permission-sdk-23: name='android.permission.CAMERA'\n"),
   /Unexpected diagnostic APK permission/);
+});
+
+
+test('overlapping attempts do not invoke native bridge twice or overwrite the final report',async()=>{
+ let resolveFirst;
+ const deferred=new Promise(resolve=>{resolveFirst=resolve;});
+ const a=app(deferred);
+ const first=a.els.run.handlers.click();
+ const second=a.els.run.handlers.click();
+ assert.equal(a.nativeCalls(),1);
+ assert.equal(a.els.run.disabled,true);
+ assert.equal(a.els.copy.disabled,true);
+ await second;
+ assert.equal(a.els.result.textContent,'RUNNING');
+ resolveFirst(valid([perm('android.permission.INTERNET',true)]));
+ await first;
+ const report=JSON.parse(a.els.result.textContent);
+ assert.equal(report.status,'PASS');
+ assert.equal(report.internetPermissionDeclared,true);
+ assert.equal(a.nativeCalls(),1);
+ assert.equal(a.els.run.disabled,false);
+ await a.copy();
+ assert.equal(a.writes.length,1);
+ assert.equal(JSON.parse(a.writes[0]).status,'PASS');
+});
+
+test('native bridge rejection releases in-flight guard and allows a fresh retry',async()=>{
+ let calls=0;
+ let fail=true;
+ const a=app(null);
+ a.context.window.Capacitor.Plugins.ProductPermissions.inspectTarget=async()=>{
+  calls++;
+  if(fail)throw Error('PRODUCT_PACKAGE_NOT_INSTALLED_OR_NOT_VISIBLE');
+  return valid([perm('android.permission.INTERNET',false)]);
+ };
+ const blocked=await a.run();
+ assert.equal(blocked.status,'BLOCKED');
+ assert.equal(a.els.run.disabled,false);
+ fail=false;
+ const pass=await a.run();
+ assert.equal(pass.status,'PASS');
+ assert.equal(calls,2);
+ assert.equal(pass.cleanupAuthorized,false);
+ assert.equal(pass.productNetworkTrafficObserved,'NOT_TESTED');
 });
