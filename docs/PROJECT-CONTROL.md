@@ -1,3 +1,10 @@
+## 2026-11-22 — read-only byte evidence of one managed video
+
+- [VIDEO-CLEANUP-BYTE-INTEGRITY-READONLY-2026-11-22.md](VIDEO-CLEANUP-BYTE-INTEGRITY-READONLY-2026-11-22.md) — двухкратный SHA одного управляемого Blob после отдельных readonly транзакций и пределы безопасности.
+- [../js/video-cleanup-byte-evidence.js](../js/video-cleanup-byte-evidence.js) — отключённый диагностический модуль, не разрешающий удаление.
+
+---
+
 ## 2026-11-22 — контроль безопасности всех видео-копий и подготовка удаления
 
 - [VIDEO-ALL-COPY-CLEANUP-SAFETY-GATE-2026-11-22.md](VIDEO-ALL-COPY-CLEANUP-SAFETY-GATE-2026-11-22.md) — карта подтверждённых/неподтверждённых оригиналов, fail-closed readiness, блокеры Gallery/MediaStore/backup, протокол будущего удаления без его активации.
