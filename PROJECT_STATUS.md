@@ -1,3 +1,12 @@
+## 2026-11-22 — exact-code-SHA verification PR #356 завершена
+
+- Программный SHA `7bd84889694c84276b09a84e80192181922c06c8`: [совместный video/ledger/guard/archive CI #45004521556](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521556) **completed/success, 145/145, fail 0, skipped 0**; [legacy archive guard CI #45004521509](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521509) **completed/success, 68/68, fail 0, skipped 0**; [общая Android APK #45004521548](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521548) **completed/success**. [Isolated archive APK #45004521488](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521488) **skipped** (не проверка Android restore).
+- PR #355: предыдущий commit `c54b922497107ca679f7be96c9c9f0253113dc60` 142/142 CI и Android build completed/success. PR #354 ранее 137/137 и Android build completed/success. Все PR остаются Draft и не слиты.
+- Основное устранённое расхождение: `inspectStagingRecognitionCopies` не считает неполные source-bound записи распознавания достоверными и отклоняет дублирующиеся resultId; это диагностический запрет, **не разрешение** удалять видео.
+- Следующий независимый этап: подготовка беззаписного физического preflight Android/PASEKA01/PASEKA02 для синтетических архивов с минимальными действиями пользователя только после отдельной проверки пакета и сохранения исходных данных. Реальные MP4, media provenance, end-to-end recognition, удаление и Android restore NOT_TESTED; новые веса не искать до evidence.
+
+---
+
 ## 2026-11-22 — защита от повторного resultId в readonly архивном аудите
 
 - В дополнение к полной проверке source-bound SHA/bytes/evidence диагностический `inspectStagingRecognitionCopies` теперь отклоняет повторное использование одного `resultId` для разных `source/videoId` с `VIDEO_LEDGER_DUPLICATE_RESULT_ID` и `requiresManualReview:true`. В другом V2-guard такой запрет уже существовал: расхождение между проверками устранено.
