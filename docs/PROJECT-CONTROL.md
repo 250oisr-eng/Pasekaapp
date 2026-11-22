@@ -1,3 +1,9 @@
+## 2026-11-22 — Restore335 V8: anonymous path mismatch shape
+
+- [ANDROID-RESTORE335-FIND-SHAPE-V8-2026-11-22.md](ANDROID-RESTORE335-FIND-SHAPE-V8-2026-11-22.md) — после физического V7 BLOCKED: обезличенная диагностика формы вывода, без доступа к файлу.
+
+---
+
 ## 2026-11-22 — Restore335 V7 read-only shallow Toybox find type
 
 - [ANDROID-RESTORE335-PRIVATE-FINDTYPE-V7-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-FINDTYPE-V7-2026-11-22.md) — классификация единственного диагностического элемента после физического V6 UNKNOWN, без чтения содержимого и удаления.
