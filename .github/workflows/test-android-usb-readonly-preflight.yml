@@ -7,6 +7,7 @@ on:
       - 'tools/android-restore335-verified-safe-install.ps1'
       - 'tools/android-restore335-private-readonly-stage.ps1'
       - 'tools/android-restore335-private-readonly-stage-v2.ps1'
+      - 'tools/android-restore335-private-readonly-stage-v3.ps1'
       - 'tests/android-usb-preflight-mock.ps1'
       - '.github/workflows/test-android-usb-readonly-preflight.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'tools/android-restore335-verified-safe-install.ps1'
       - 'tools/android-restore335-private-readonly-stage.ps1'
       - 'tools/android-restore335-private-readonly-stage-v2.ps1'
+      - 'tools/android-restore335-private-readonly-stage-v3.ps1'
       - '.github/workflows/test-android-usb-readonly-preflight.yml'
 
 permissions:
@@ -78,6 +80,24 @@ jobs:
           if (@([regex]::Matches($s, "'pm','path'")).Count -ne 3) { throw 'V2_REQUIRES_THREE_PATH_CALLS' }
           if (@([regex]::Matches($s, "'pm','list','packages'")).Count -ne 1) { throw 'V2_REQUIRES_ONE_PACKAGE_LIST' }
           Write-Host 'ANDROID_RESTORE335_V2_STATIC_PASS'
+      - name: Validate read-only private path predicate stage v3
+        shell: pwsh
+        run: |
+          $path = 'tools/android-restore335-private-readonly-stage-v3.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) { throw 'PRIVATE_V3_PARSE_FAILED' }
+          $s = Get-Content -LiteralPath $path -Raw
+          foreach ($term in @('ANDROID_RESTORE335_PRIVATE_READONLY_V3','AllowReadOnlyTestFalse','ABSENT_BY_TWO_TESTS_UNVERIFIED','PRIVATE_PATH_TESTS_CONTRADICTORY_NO_ACTION','PRIVATE_FILES_NONEMPTY_NO_ACTION','NOT_AUTHORIZED')) {
+            if (-not $s.Contains($term)) { throw "PRIVATE_V3_GUARD_MISSING_$term" }
+          }
+          if (@([regex]::Matches($s, "'test','-[de]','files'")).Count -ne 2) { throw 'PRIVATE_V3_TWO_PREDICATES_REQUIRED' }
+          if (@([regex]::Matches($s, "'stat','-c'")).Count -ne 0) { throw 'PRIVATE_V3_FORBIDDEN_STAT' }
+          foreach ($bad in @("'-r'","'install'","'uninstall'","'clear'","'push'","'pull'","'dd'","'rm'","'mkdir'","'am','start'")) {
+            if ($s.Contains($bad)) { throw "PRIVATE_V3_WRITE_COMMAND_$bad" }
+          }
+          Write-Host 'RESTORE335_READONLY_PRIVATE_V3_STATIC_PASS'
       - name: Parse and audit SHA-pinned Restore335 no-overwrite installer
         shell: pwsh
         run: |
