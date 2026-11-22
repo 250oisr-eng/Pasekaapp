@@ -1180,6 +1180,11 @@ async function inspectStagingRecognitionCopies(db) {
     requestValue(tx.objectStore(HISTORY_STORE).getAll())
   ]);
   await done;
+  // A read-only report must not claim an empty protected copy set when an
+  // enumeration unexpectedly failed or returned a malformed value.
+  assertIndexedDbRows(sessions, 'STAGING_SESSIONS_ENUMERATION_UNVERIFIED');
+  assertIndexedDbRows(videoKeys, 'STAGING_VIDEO_KEYS_ENUMERATION_UNVERIFIED');
+  assertIndexedDbRows(history, 'ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED');
   const empty = { sessions: [], matchedCopies: 0, orphanedMatchedCopies: 0, unclassifiedVideoKeyCount: 0 };
   if (ledger == null) return { ok: true, status: 'no_recognition_history', ...empty };
   if (!ledger || typeof ledger !== 'object' || ledger.version !== 1 || !Array.isArray(ledger.entries) ||
