@@ -38,6 +38,11 @@ if "%~1"=="devices" (
   echo OTHER123 disconnected usb:2-1
   exit /b 0
  )
+ if "%MOCK_SCENARIO%"=="no-usb-marker" (
+  echo List of devices attached
+  echo MOCK123 device product:mock model:mock
+  exit /b 0
+ )
  if "%MOCK_SCENARIO%"=="no-device" (
   echo List of devices attached
   exit /b 0
@@ -49,6 +54,14 @@ if "%~1"=="devices" (
  )
  echo List of devices attached
  echo MOCK123 device product:mock usb:1-1
+ exit /b 0
+)
+if "%~1"=="-d" if "%~2"=="get-serialno" (
+ if "%MOCK_SCENARIO%"=="usb-mismatch" (
+  echo DIFFERENT_USB
+  exit /b 0
+ )
+ echo MOCK123
  exit /b 0
 )
 if "%~1"=="-s" if "%~2"=="MOCK123" if "%~3"=="shell" if "%~4"=="pm" if "%~5"=="path" (
@@ -114,6 +127,8 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
   @{Name='extra-device';Expected=2;Install=$false;Launch=$false;Reason='EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'},
   @{Name='unknown-state';Expected=2;Install=$false;Launch=$false;Reason='EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'},
   @{Name='device-change';Expected=2;Install=$false;Launch=$false;Reason='USB_DEVICE_CHANGED_NO_INSTALL'},
+  @{Name='usb-mismatch';Expected=2;Install=$false;Launch=$false;Reason='USB_TRANSPORT_SERIAL_MISMATCH'},
+  @{Name='no-usb-marker';Expected=0;Install=$true;Launch=$true;Reason='PASS_DIAGNOSTIC_INSTALLED_AND_LAUNCHED_ONLY'},
   @{Name='no-product';Expected=2;Install=$false;Launch=$false;Reason='PRODUCT_NOT_INSTALLED_NO_TEST'},
   @{Name='preinstalled';Expected=2;Install=$false;Launch=$false;Reason='DIAGNOSTIC_ALREADY_PRESENT_NO_REINSTALL'},
   @{Name='bad-hash';Expected=2;Install=$false;Launch=$false;Reason='PINNED_APK_SHA256_MISMATCH'},
@@ -146,7 +161,7 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
   }
   Write-Host ("MOCK_USB_{0}: PASS expected exit={1}, installs={2}, launches={3}" -f $name,$exit,$installs.Count,$launches.Count)
  }
- Write-Host 'WINDOWS_POWERSHELL_USB_MOCK_MATRIX: PASS 11/11'
+ Write-Host 'WINDOWS_POWERSHELL_USB_MOCK_MATRIX: PASS 13/13'
 }finally{
  $env:PATH=$originalPath
  Remove-Item Env:MOCK_SCENARIO -ErrorAction SilentlyContinue
