@@ -1,3 +1,12 @@
+## P0 — PASEKA02: автономная проверка staging → commit → quarantine после перезапусков (2026-11-23)
+
+- Ветка `test/p0-v2-multirestart-quarantine-evidence-2026-11-23` основана на Draft #422 exact HEAD `4899f5ec5593131d2eaf1dda5706ecbe2e3177ec`, Fast #45081290606 **1220/1220** и Android #45081290597 **success**. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` без изменений.
+- Добавлены **два новых теста** `tests/video-archive-v2-entrance-quarantine-rollback.test.mjs`: (1) staging+reopen+SHA→isolated entrance commit+reopen+SHA→quarantine rollback+reopen+SHA, сохранение ledger/state/history/двух защищённых копий; (2) staged Blob изменён до нового открытия DB, commit обязан отказать без записи в live stores/потери staged evidence.
+- Изолированный PASEKA02 эксперимент **не подключён** к UI/runtime; автоматическая очистка оригиналов и Restore335 остаются STOP. Тестовый IndexedDB — `fake-indexeddb`, не физический Android/отключение питания/MediaStore. Этот блок не закрывает весь P0 или P1.
+- CI на точном HEAD нового Draft PR должен быть проверен отдельно; до этого результат новых тестов — **PENDING**. Следующий этап: runtime-full-media migration/restore проектировать отдельно на основе отрицательных проверок, не активируя её без доказательств и разрешения.
+
+---
+
 ## P1 проверенный кодовый HEAD — 2026-11-23
 
 - На CODE/TEST SHA `ba1a9a4efc64280ef33dc717f6b08b24a6ce685d` Fast Quality #45081133712 **1220/1220 PASS**, 0 failures/skipped; Android Debug #45081133626 **completed/success**. Это целевые регрессионные и сборочные проверки, не физическое Android/production доказательство.
