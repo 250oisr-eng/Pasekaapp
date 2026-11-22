@@ -42,6 +42,10 @@ public class A09PermissionsPlugin extends Plugin {
    }
    String[] names=info.requestedPermissions;
    int[] flags=info.requestedPermissionsFlags;
+   if(names==null && flags==null) {
+    names=new String[0];
+    flags=new int[0];
+   }
    if(names==null || flags==null || names.length!=flags.length) {
     call.reject("PERMISSION_ARRAY_INCOMPLETE");return;
    }
