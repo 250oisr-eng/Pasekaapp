@@ -1,3 +1,12 @@
+## 2026-11-22 — CI verified all-copy cleanup preflight; real deletion still BLOCKED
+
+- Exact tested SHA `a919c91982da05c03c0c73d1b0a9f6bf2e67ebff`: [managed video read-only CI #45038488279](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038488279) **completed/success 153/153 tests**, including 5 new cleanup-readiness synthetic cases; [main Android APK #45038488363](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038488363) **completed/success**. Isolated archive build #45038488278 **completed/skipped** (NOT PASS).
+- `index.html` inspected on current branch: direct `deleteEntranceVideoBlob` returns `ENTRANCE_VIDEO_DELETE_BLOCKED`; UI button disabled; file-input capture sets `externalCopyState:'unknown'`, and explicitly states server/real bee recognition not connected. Read-only preflight is dormant, does not connect to UI, and cannot authorize delete.
+- Exact count and location of **all** originals cannot be proven: live IndexedDB metadata alone does not guarantee byte integrity or cover Android Camera/Gallery/MediaStore/Downloads, opaque archives and external backups. Therefore **ALL_COPIES_VERIFIED: FALSE**, **cleanupAuthorized:false**, original video deletion **NOT_TESTED / BLOCKED**. No actual Android device run, user data/media change, archive restore, merge or deployment.
+- PR #369 Draft, based on #368; documentation of unknowns and future deletion preconditions: `docs/VIDEO-ALL-COPY-CLEANUP-SAFETY-GATE-2026-11-22.md`. Next independent step: physically verify ownership and absence of external copies using isolated synthetic capture, then separate atomic deletion design/review. Not authorized to delete user files.
+
+---
+
 ## 2026-11-22 — все копии видео: удаление не подтверждено, только read-only preflight
 
 - По исходникам доказано, что `js/video-archive-v2-copy-inventory.js` перечисляет известные управляемые копии в `main/state.records[].media`, `entrance_media`, `archive_staging`, `full_backup` и использует `archive_history`, но не читает Android Gallery/MediaStore/Downloads, внешние резервные архивы и системные кэши. Он не повторяет SHA всех Blob/Data URL и всегда оставляет `byteIntegrityVerified:false`, `externalCopiesVerified:false`, `cleanupAuthorized:false`. Поэтому подтвердить безопасность **всех** копий нельзя.
