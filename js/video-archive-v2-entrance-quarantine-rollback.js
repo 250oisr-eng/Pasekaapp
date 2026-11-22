@@ -23,7 +23,7 @@ function canonical(v){
 function noOriginal(value,depth=0,seen=new Set()){
  if(depth>48)fail('V2_QUARANTINE_STATE_BINARY');
  if(typeof value==='string'){
-  if(/(?:data:(?:video\/|application\/octet-stream)|blob:)/i.test(value))
+  if(/(?:data:(?:video\/|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/i.test(value))
    fail('V2_QUARANTINE_STATE_BINARY');
   return;
  }
