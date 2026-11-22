@@ -331,12 +331,23 @@ for (const bad of [undefined, null, {}]) {
   } finally { db.close(); }
  });
 }
-test('staging finalization rejects malformed row enumeration without claiming ready',async()=>{
+test('staging finalization rejects malformed write-locked row enumeration',async()=>{
  const db=await seeded();
  try {
+  const staged=await stage(db);
+  const before=await rows(db,'archive_staging');
+  const corrupted=corruptIndexRead(db,'archive_staging','sessionId','getAll',null);
+  const adapter={
+   objectStoreNames:corrupted.objectStoreNames,
+   transaction(...args){
+    if((args[1]||'readonly')!=='readwrite')return db.transaction(...args);
+    return corrupted.transaction(...args);
+   }
+  };
   await assert.rejects(
-   stage(corruptIndexRead(db,'archive_staging','sessionId','getAll',null)),
+   Restore.finalizeStagedArchive(adapter,staged.session.sessionId,webcrypto,Archive,()=>true),
    {code:'STAGING_FINALIZE_RECORDS_ENUMERATION_UNVERIFIED'});
+  assert.deepEqual(await rows(db,'archive_staging'),before);
   assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
   assert.equal((await rows(db,'archive_history')).length,0);
  } finally { db.close(); }
