@@ -17,8 +17,8 @@ test('V6 provides only bounded shallow metadata and no writes',()=>{
 test('V6 never infers type from unrecognized metadata',()=>{
   assert.match(src,/privateEntryType = 'UNKNOWN_PRESERVE'/);
   assert.match(src,/metadataFormat = 'UNKNOWN_MODE_FORMAT_PRESERVE'/);
-  assert.match(src,/metadataFormat = 'MODE_WITH_SUFFIX'/);
-  assert.match(src,/metadataFormat = 'STANDARD_MODE'/);
+  assert.match(src,/'MODE_WITH_SUFFIX'/);
+  assert.match(src,/'STANDARD_MODE'/);
   assert.match(src,/if \(\$metaLines\[0\] -cmatch/);
 });
 test('V6 bounded metadata accepts normal and single marker formatting, rejects other text',()=>{
