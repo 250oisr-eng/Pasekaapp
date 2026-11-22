@@ -1,3 +1,12 @@
+## 2026-11-22 — синтетический metadata-only Android archive preflight (Draft)
+
+- Добавлен `js/android-archive-preflight.js`: чистая диагностическая функция без доступа к IndexedDB/MediaStore/видео; проверяет SHA-256/bytes метаданных, конфликты идентичностей, повторные resultId, состав source-bound evidence. Любой результат возвращает `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`, `physicalRestoreVerified:false`.
+- Добавлен `tests/android-archive-preflight.test.mjs`: шесть независимых Node-тестов, включая повреждённые метаданные, конфликт копий, дублирование resultId и запрет побочных эффектов.
+- ВАЖНО: это **первый кодовый блок**, не Android APK и не выполнение матрицы A01–A10. Истинность хэшей относительно Blob, физический restart, PASEKA01/PASEKA02 restore и реальное распознавание не проверялись. Следующий этап — изолированная Android test-only оболочка и реальные synthetic hardware проверки.
+- Новые модули не подключены к production приложению; `main` не изменена, данные пользователя не открывались. CI на точном SHA требуется отдельно.
+
+---
+
 ## 2026-11-22 — отдельный Android archive preflight: план без доступа к данным
 
 - На основе Draft PR #356 (`810a39c1267c5351160e65dea95213372abb2cbc`) создана отдельная ветка `docs/android-archive-physical-preflight-plan-2026-11-22`.
