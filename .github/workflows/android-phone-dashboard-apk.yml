@@ -1,0 +1,79 @@
+name: Build isolated Android phone-only safe dashboard
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'diagnostics/phone-dashboard/**'
+      - 'scripts/prepare-android-phone-dashboard.mjs'
+      - 'tests/android-phone-dashboard-static.test.mjs'
+      - '.github/workflows/android-phone-dashboard-apk.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Add native clipboard to isolated CI checkout only
+        run: |
+          npm pkg set 'dependencies.@capacitor/clipboard=6.0.0'
+          npm install --no-package-lock --no-audit --no-fund
+      - name: Run static regression checks
+        run: node --test tests/android-phone-dashboard-static.test.mjs
+      - name: Prepare isolated app
+        env:
+          PASEKA_PHONE_DASHBOARD_BUILD: '1'
+        run: node scripts/prepare-android-phone-dashboard.mjs
+      - name: Assert isolation
+        run: |
+          test "$(find www -type f | wc -l)" -eq 2
+          test "$(node -p 'require("./capacitor.config.json").appId')" = "ru.paseka.journal.diagnostic.phonechecks"
+          ! grep -rE 'https?://|XMLHttpRequest|fetch\(|MediaStore|navigator.mediaDevices|entrance_media|record_media' www
+      - name: Prepare Android SDK packages
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Generate isolated Android project
+        run: npx cap add android && npx cap sync android
+      - name: Verify native clipboard
+        run: |
+          node --input-type=module -e 'import fs from "node:fs"; const p=JSON.parse(fs.readFileSync("android/app/src/main/assets/capacitor.plugins.json","utf8")); if(!p.some(x=>x.classpath?.endsWith(".ClipboardPlugin")))process.exit(1)'
+      - name: Patch Gradle
+        run: node scripts/patch-android-gradle.mjs
+      - name: Strip INTERNET permission and forbid media permissions
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const file='android/app/src/main/AndroidManifest.xml';
+          const before=await readFile(file,'utf8');
+          const after=before.replace(/\s*<uses-permission\s+android:name="android.permission.INTERNET"\s*\/>/g,'');
+          if(/android.permission.(INTERNET|CAMERA|RECORD_AUDIO|READ_MEDIA_|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE)/.test(after))throw Error('FORBIDDEN_PERMISSION');
+          await writeFile(file,after);
+          NODE
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify APK identity, content and permission
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.phonechecks'"
+          if "$AAPT" dump permissions "$APK" | grep -E 'android.permission.(INTERNET|CAMERA|RECORD_AUDIO|READ_MEDIA_|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE)'; then exit 1; fi
+          unzip -l "$APK" | grep -F 'assets/public/runner.js'
+          unzip -p "$APK" assets/capacitor.plugins.json | grep -F ClipboardPlugin
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paseka-phone-only-safe-dashboard-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error
