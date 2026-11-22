@@ -1,3 +1,12 @@
+## 2026-11-22 — расширен read-only контроль противоречивых метаданных видео
+
+- В Draft PR #354 добавлен контроль **внутри** записи `entrance_media`: если одновременно присутствуют `blobSha256` и `sourceSha256` либо `bytes` и `sourceBytes` и известные значения не совпадают, issue `conflicting_source_metadata`. Старое предпочтение поля без проверки больше не маскирует конфликт. 
+- Проверена согласованность известных SHA/размера физически сохраняемой копии с уже валидированным ledger одной `source/videoId`: обнаруженные расхождения маркируются `recognition_source_evidence_conflict`. Это метаданные, не физическая сверка Blob.
+- Добавлены четыре регрессионных сценария: два конфликта полей, конфликт с SHA распознавания, конфликт по bytes + контроль совпадающих значений; все флаги cleanup/restore остаются false. Не менялись источники видео, IndexedDB, архивный формат, импорт, миграции или delete.
+- Требуется проверка workflow на exact HEAD; физические Android файлы и Camera/MediaStore не проверялись. Поиск весов остаётся MODEL_SEARCH_PARKED_EVIDENCE_REQUIRED.
+
+---
+
 ## 2026-11-22 — следующий независимый этап после закрытия поиска моделей: cross-store evidence conflict
 
 - Ветка `test/video-copy-evidence-conflict-audit-2026-11-22` над `research/bee-weights-license-chain-2026-11-22`. В `js/video-archive-v2-copy-inventory.js` readonly inventory дополнительно выдаёт issue `conflicting_copy_evidence` при несовпадении двух известных SHA-256 или bytes для одной пары source/videoId между защищёнными store. Отсутствующие поля не считаются подтверждением совпадения и продолжают отдельно блокировать безопасную очистку.
