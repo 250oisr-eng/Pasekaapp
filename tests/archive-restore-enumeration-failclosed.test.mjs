@@ -1050,3 +1050,117 @@ test('rollback rejects a changed import manifest even when its video rows are un
   await assertRollbackPreservesChangedMedia(db,revision,'ROLLBACK_IMPORT_MANIFEST_CHANGED');
  }finally{db.close();}
 });
+
+async function stagedWithExistingMetadata(){
+ const db=await seeded();
+ const blob=new Blob(['LEGACY-SYNTHETIC-MEDIA-CONTENT'],{type:'video/mp4'});
+ const record={id:'existing-legacy-video',hiveId:'legacy-hive',
+  capturedAt:'2026-11-22T12:00:00Z',durationSec:1,width:640,height:480,
+  bytes:blob.size,mimeType:'video/mp4',name:'synthetic-existing.mp4',
+  status:'waiting_for_server',retryCount:0,
+  blob};
+ await put(db,'entrance_media',record);
+ const staged=await stage(db);
+ return {db,staged,record};
+}
+async function assertAbortedCommitKeepsCurrentMedia(db,sessionId,code,validator=()=>true){
+ const current=await get(db,'main','state');
+ const videos=await rows(db,'entrance_media');
+ const staging=await rows(db,'archive_staging');
+ const history=await rows(db,'archive_history');
+ const previous=await get(db,'full_backup','previous');
+ await assert.rejects(Restore.commitStagedArchive(
+  db,sessionId,current.meta.revisionId,webcrypto,Archive,validator),{code});
+ assert.deepEqual(await get(db,'main','state'),current);
+ assert.deepEqual(await rows(db,'entrance_media'),videos);
+ assert.deepEqual(await rows(db,'archive_staging'),staging);
+ assert.deepEqual(await rows(db,'archive_history'),history);
+ assert.deepEqual(await get(db,'full_backup','previous'),previous);
+}
+test('valid staged import with existing synthetic video retains metadata baseline and commits',async()=>{
+ const {db,staged}=await stagedWithExistingMetadata();
+ try {
+  assert.ok(staged.session.baselineMediaMetadataFingerprint.startsWith('["PASEKA-MEDIA-METADATA-FINGERPRINT",1,'));
+  const committed=await Restore.commitStagedArchive(
+   db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+  assert.equal(committed.previousVideoCount,1);
+  assert.equal(committed.importedVideoCount,0);
+  assert.equal((await rows(db,'entrance_media')).length,0);
+  assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'committed');
+  const oldVideo=await get(db,'archive_staging',committed.rollbackSessionId+':video:existing-legacy-video');
+  assert.equal(oldVideo.record.status,'waiting_for_server');
+ }finally{db.close();}
+});
+test('commit blocks status changed after staging without changes to video bytes',async()=>{
+ const {db,staged,record}=await stagedWithExistingMetadata();
+ try {
+  await put(db,'entrance_media',{...record,status:'completed'});
+  await assertAbortedCommitKeepsCurrentMedia(db,staged.session.sessionId,'RESTORE_MEDIA_METADATA_CHANGED');
+ }finally{db.close();}
+});
+test('commit blocks new queue metadata field added after staging',async()=>{
+ const {db,staged,record}=await stagedWithExistingMetadata();
+ try {
+  await put(db,'entrance_media',{...record,lastError:'new observation'});
+  await assertAbortedCommitKeepsCurrentMedia(db,staged.session.sessionId,'RESTORE_MEDIA_METADATA_CHANGED');
+ }finally{db.close();}
+});
+test('commit blocks metadata mutation during async state validation under its final write lock',async()=>{
+ const {db,staged,record}=await stagedWithExistingMetadata();
+ try {
+  const stateBefore=await get(db,'main','state');
+  const historyBefore=await rows(db,'archive_history');
+  const stagingBefore=await rows(db,'archive_staging');
+  let checked=0;
+  const validator=async()=>{
+   checked++;
+   if(checked===2)await put(db,'entrance_media',{...record,status:'analyzing'});
+   return true;
+  };
+  await assert.rejects(
+   Restore.commitStagedArchive(db,staged.session.sessionId,
+    LIVE.meta.revisionId,webcrypto,Archive,validator),
+   {code:'RESTORE_MEDIA_METADATA_CHANGED'});
+  assert.equal(checked,2);
+  assert.equal((await get(db,'entrance_media','existing-legacy-video')).status,'analyzing');
+  assert.deepEqual(await get(db,'main','state'),stateBefore);
+  assert.deepEqual(await rows(db,'archive_history'),historyBefore);
+  assert.deepEqual(await rows(db,'archive_staging'),stagingBefore);
+ }finally{db.close();}
+});
+test('old staged session without full metadata fingerprint is preserved but cannot commit',async()=>{
+ const {db,staged}=await stagedWithExistingMetadata();
+ try {
+  const session=await get(db,'archive_staging',staged.session.sessionId);
+  const legacy={...session};
+  delete legacy.baselineMediaMetadataFingerprint;
+  await put(db,'archive_staging',legacy);
+  await assertAbortedCommitKeepsCurrentMedia(db,staged.session.sessionId,
+   'STAGING_MEDIA_METADATA_BASELINE_MISSING');
+ }finally{db.close();}
+});
+test('staging cancels when legacy metadata changes during async SHA verification',async()=>{
+ const db=await seeded();
+ try {
+  const blob=new Blob(['STAGE-BLOB-COMPATIBILITY-TEST'],{type:'video/mp4'});
+  const record={id:'stage-race-video',capturedAt:'2026-11-22T12:00:00Z',
+   hiveId:'legacy-hive',bytes:blob.size,blob,status:'waiting_for_server'};
+  await put(db,'entrance_media',record);
+  const original=globalThis.PasekaSha256;
+  let changed=false;
+  globalThis.PasekaSha256={...original,async hashBlobHex(blob,options){
+   if(!changed){
+    changed=true;
+    await put(db,'entrance_media',{...record,status:'uploaded'});
+   }
+   return original.hashBlobHex(blob,options);
+  }};
+  try{
+   await assert.rejects(stage(db),{code:'RESTORE_MEDIA_METADATA_CHANGED'});
+  }finally{globalThis.PasekaSha256=original;}
+  assert.equal(changed,true);
+  assert.deepEqual(await rows(db,'archive_staging'),[]);
+  assert.equal((await get(db,'entrance_media','stage-race-video')).status,'uploaded');
+  assert.deepEqual(await get(db,'main','state'),LIVE);
+ }finally{db.close();}
+});
