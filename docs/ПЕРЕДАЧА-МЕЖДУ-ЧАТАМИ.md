@@ -1,3 +1,14 @@
+## 2026-11-22 — P0: fail-closed идентичность history и backupId-index lookup (Draft, CI pending)
+
+- **Родитель:** Draft [#400](https://github.com/250oisr-eng/Pasekaapp/pull/400), HEAD `2bf06bf9de810579978357ad95cafa158d5d144d` (последующие docs к проверенному родительскому SHA). Его code+tests SHA `c8a71df8b44f75d064448b2b4f20f02092dfb59c` прошёл [Fast Quality #45069529560](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069529560) **847/847 PASS** и [Android #45069529612](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069529612) **completed/success**; не приписывать этот результат новым изменениям.
+- **Риск:** `getHistory()` и `findSessionByBackupId()` использовали `result || null`, объявляя `false`, `null` и иные недостоверные результаты IndexedDB отсутствующей history/staging-сессией. Затем `commitStagedArchive()` финально проверял history лишь при truthy result. При неконформном драйвере/адаптере можно было начать новый импорт или заменить неподтверждённую историю backup.
+- **Исправление `js/paseka-archive-restore.js`**: IndexedDB `get` должен возвращать `undefined` при отсутствии строки. Любой иной результат обязан быть объектом с точным `backupId`, для staging также `kind:'session'`, корректными `id === sessionId`. Подтверждено в read-only lookup и **повторно под финальным readwrite lock** для history. Ошибки `ARCHIVE_HISTORY_IDENTITY_UNVERIFIED`, `STAGING_BACKUP_LOOKUP_UNVERIFIED`; без удаления/импорта в случае ошибки. Совместимый корректный индексированный legacy session сохраняет поведение.
+- **10 новых fake-indexeddb тестов**: 4 непроверенных history results, 4 неправильных lookup staged backup-ID, одна недостоверная history внутри commit write lock с проверкой сохранности main/staging/history/full_backup и одна позитивная повторная подготовка того же архива. Только synthetic adapter, без реальных записей и Blob.
+- **CI нового SHA: PENDING.** Формат .paseka, схема IndexedDB, физические данные, live media, PWA и Android permissions не меняются. STABILIZATION_ONLY / Restore335 STOP; v2 recognition ledger/tombstones не интегрированы, исходное видео и backup удалять нельзя. Main/production без изменения, merge/deploy запрещены.
+- **Следующее:** exact-SHA Fast Quality/Android CI, фиксация failures и результатов, затем дальнейший аудит замещения данных без разблокировки restore/video deletion.
+
+---
+
 ## 2026-11-22 — P0 staging ownership PR #400: CI проверен на точном code SHA
 
 - **Code+tests SHA `c8a71df8b44f75d064448b2b4f20f02092dfb59c`**: [Fast Quality #45069529560](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069529560) **completed/success: 847/847 PASS, 0 FAIL, 0 skipped**. [Android Debug #45069529612](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069529612) **completed/success**: regression tests, APK build и upload PASS; ZIP artifact #14771909618 (3,457,863 bytes, **не SHA бинарного APK**).
