@@ -1,3 +1,37 @@
+# Итог единого расширенного поиска моделей — 22 ноября 2026
+
+**Решение:** текущий большой поисковый проход **закрыт**, дальнейший последовательный поиск весов не блокирует разработку. Приоритет перенесён на независимый safety-этап временного видео и архивов. «Публично найдена модель» ≠ «проверен лицензионный checkpoint» ≠ «проверено точное распознавание летка». Никаких весов не импортировано.
+
+| № | Кандидат / источник | Наличие и назначение | Незакрытый gate / решение |
+|---|---|---|---|
+| 1 | [Matt Nudi / bee-detection](https://github.com/mattnudi/bee-detection) | Реальный опубликованный `best.pt` (YOLOv5), детекция bee/drone/pollenbee/queen; Roboflow dataset [CC BY 4.0](https://universe.roboflow.com/matt-nudi/honey-bee-detection-model-zgjnb) | Лицензия **самих весов** и исходного YOLO checkpoint не подтверждена; `best.pt` pickle, offline Android ONNX и независимые in/out метрики не доказаны. BLOCKED |
+| 2 | [Apiarist](https://huggingface.co/maryammeda/apiarist-honey-bee-detector) | 22.5 MB `honey_bee_detector.pt`, карточка Apache-2.0, YOLOv8s | Обучен для осмотра рамок и Varroa, а не летка; права/условия базовой YOLOv8s требуют проверки; файл pickle. TASK_MISMATCH |
+| 3 | [Honey-Bee-Society](https://huggingface.co/Honey-Bee-Society/honeybee_ml_v1) | AutoGluon классификатор пчела/оса/шмель | Не локализует отдельные пчёлы, ~383 MB. TASK_MISMATCH |
+| 4 | [Gratheon gate tracker](https://github.com/Gratheon/models-gate-tracker) | OpenCV+TF/Jetson серверный tracker летка | Нет полной правовой цепочки конкретного SavedModel и доказательства offline WebView; S3/server вне заданной приватности. BLOCKED |
+| 5 | [Gratheon models-bee-detector](https://github.com/Gratheon/models-bee-detector) | Внешний YOLOv5/Matt Nudi checkpoint | Наследует неопределённость прав #1, без независимых весов. BLOCKED |
+| 6 | [AjayJohnAlex Bee_Detection](https://github.com/AjayJohnAlex/Bee_Detection) | MIT исходники; Ultralytics/torch и tracking | Не подтверждены отдельные пчелиные веса/их лицензионная цепочка. BLOCKED |
+| 7 | [vladvroust bee-yolo-tracking](https://github.com/vladvroust/bee-yolo-tracking) | Конфиг класса bee; ожидает `bin/yolo.weights` | Требуемые обученные веса не подтверждены в проверенной ревизии; GPLv3 кода. BLOCKED |
+| 8 | [maxim2100 bee-detection-classification](https://github.com/maxim2100/bee-detection-classification) | Опубликованный `yolov8n.pt`, отдельная классификация | Не доказано, что это обученный bee-checkpoint; README содержит незаполненную лицензию. BLOCKED |
+| 9 | [matpalm/bnn](https://github.com/matpalm/bnn) | MIT исходный код U-Net-подобной локализации центров пчёл | `ckpts` в .gitignore, нет доказанного публичного checkpoint; не трекает in/out. BLOCKED |
+| 10 | [TobysWorkshop Hive-Cam](https://github.com/TobysWorkshop/Hive-Cam) | Отслеживание вход/выход с YOLOv8 | Авторские ограничения на распространение/коммерческое использование. REJECT_FOR_BUNDLING |
+| 11 | [asadiceiu native-bee-detection-tracking](https://github.com/asadiceiu/native-bee-detection-tracking) | 3277 размеченных кадров/benchmark входа | Исследует Tetragonula/Exoneura, не Apis mellifera; опубликованный Android offline checkpoint с правами не подтверждён. SPECIES_MISMATCH / RESEARCH |
+| 12 | [Moncoutiej SwinTransformer](https://github.com/Moncoutiej/SwinTransformer-insect-detector) | Пчёлы/шершни рядом с ульем, автор заявляет pretrained модель >1GB | Неизвестны права конкретных весов, Android footprint; не in/out. BLOCKED |
+| 13 | [Mjrovai Bee-Counting](https://github.com/Mjrovai/Bee-Counting) | Учебный YOLOv8 pipeline для Raspberry Pi Zero 2W | GPLv3 исходников, нет подтверждённых переносимых лицензированных весов и WebView испытаний. BLOCKED |
+| 14 | [WataNekko aiot-beehive](https://github.com/WataNekko/aiot-beehive) | CV + YOLOv7 для изображений летка | GPLv3 кода, обученные веса/право распространять/Android offline не подтверждены. BLOCKED |
+| 15 | [kasiabozek bee_tracking](https://github.com/kasiabozek/bee_tracking) | 2D markerless tracking колонии | Другая съёмка/геометрия; GPLv3 и checkpoint Android не подтверждены. RESEARCH_ONLY |
+| 16 | [pamudu123 BEE_counting](https://github.com/pamudu123/BEE_counting) | YOLOv8 + ByteTrack, синтетические видеоданные, проект ongoing | Нет доказанного лицензированного checkpoint или независимого леткового benchmark. BLOCKED |
+| 17 | [Bee-A-Hero](https://github.com/Manheim666/Bee-A-Hero) | Комбинированный pipeline цветы/насекомые с заявленными включёнными весами | Не доказана конкретная bee-entrance специализация, права/источник исходного YOLO26 и Android runtime. RESEARCH_ONLY |
+| 18 | [Zenodo keypoint bee orientation](https://zenodo.org/records/15229457) | Исследовательская статья и PDF о позе/ориентации | Архив публикации не является проверенным свободным checkpoint. RESEARCH_ONLY |
+| 19 | [Zenodo in-hive Varroa](https://zenodo.org/records/23099412) | Датасет и веса для наличия Varroa на пчёлах **внутри** улья | Другая постановка задачи, не подсчёт прилёта/вылета. TASK_MISMATCH |
+
+**Не считать отдельными кандидатами:** многочисленные форки одного Roboflow набора Matt Nudi с теми же четырьмя классами; не увеличивают разнообразие доказанных весов.
+
+**Правовые основания:** в [лицензионной справке Roboflow (ред. 2026-10-27)](https://roboflow.com/licensing) явно различены бесплатный cloud, self-hosting и лицензии семейств YOLOv5/v8, RF-DETR. Указанная на странице набора CC BY 4.0 не решает автоматически вопрос исходных pretrained weights; MIT ONNX Runtime не даёт прав на внешний checkpoint. Для каждой модели нужно отдельно проверить immutable revision, SHA-256 файла, лицензию базового checkpoint и обучающих данных, независимый benchmark на летке и Android offline.
+
+**Финальный итог:** 0/19 кандидатов полностью допущены к запуску на пользовательском видео. Публикуемые источником цифры P/R/F1 — чужие метрики, не результаты проекта. В следующем этапе **не** создавать фиктивную `recognitionSucceeded=true`, не удалять оригиналы, не копировать сторонние веса и не вводить платный сервис. Вернуться к поиску только при новом качественном доказательстве: прямом разрешении автора, точном контрольном хэше разрешённых весов или новом публичном checkpoint с подтверждённой цепочкой прав.
+
+---
+
 ## Первичная проверка checkpoint matpalm/bnn — 2026-11-22
 
 Прочитаны исходные `README.md`, `LICENSE`, `.gitignore`, `predict.py`, `freeze_graph.sh`, `run_sample_training_pipeline.sh` из [matpalm/bnn](https://github.com/matpalm/bnn). Подтверждено:
