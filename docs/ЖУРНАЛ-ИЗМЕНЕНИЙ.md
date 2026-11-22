@@ -1,3 +1,13 @@
+## 2026-11-23 — STABILIZATION_ONLY P0: stale staging status write-lock guard, Draft #407
+
+- Parent **Draft #406** final HEAD `60b23a40e4386492593b973bec49c925e4828b61`: Fast Quality #45073200522 completed/success, Android #45073200503 completed/success, both on exact final parent HEAD. Parent #406 code/test SHA `53fb59cac14a735c32bcad2a7be698a5deef6031`: 886/886 tests PASS, 0 fail/skip, Android build/upload success.
+- Child [Draft #407](https://github.com/250oisr-eng/Pasekaapp/pull/407), branch `fix/archive-staging-session-stale-write-guard-2026-11-23`, base #406, **code/test SHA `ea48e80f5ea59ac634b69620df893288fc1434c2`**. These parent checks do NOT verify this child.
+- Source-level concurrency defect: `updateSession` could replace advanced `stagingEpoch`, `stagedCount`, identity or media baseline when a stale caller marked an existing `staging` session `ready` or `failed`. New guard in `js/paseka-archive-restore.js` verifies exact persisted stage/session identifiers, manifest/backup, epoch/count, entry total and both media baselines inside IndexedDB readwrite lock **before any status write**. Mismatch => `STAGING_SESSION_CHANGED`; staging records preserved. Ready-idempotence logic from #406 unchanged.
+- `tests/archive-ready-session-idempotency.test.mjs`: 2 positive + 16 negative synthetic fake-indexeddb scenarios added; verify that stale ready/failed finalization does not change persisted staging. No IndexedDB migration, archive format or runtime media cleanup changes.
+- CI for child SHA requires separate confirmation. No real-device restore, video recognition, original deletion or rollback performed; `main`/production unchanged, no merges/deployment. Restore335 remains STOP. Next: verify Fast Quality and Android exact SHA; then portable v2 recognition ledger and tombstone transport, without enabling destructive actions.
+
+---
+
 ### Проверка нового кода — 2026-11-23 (exact code/test SHA)
 
 - **Code + tests + initial docs HEAD `53fb59cac14a735c32bcad2a7be698a5deef6031`**: Fast Quality [#45073061756](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073061756) **completed/success, 886/886 tests PASS, 0 failures, 0 skipped** (по job logs); Android [#45073061805](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073061805) **completed/success**, regression и Android debug APK build/upload. Проверено на точном SHA, не переносить результат автоматически на последующие документационные коммиты.
