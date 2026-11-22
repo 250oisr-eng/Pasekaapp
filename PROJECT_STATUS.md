@@ -1,3 +1,21 @@
+### Проверка нового кода — 2026-11-23 (exact code/test SHA)
+
+- **Code + tests + initial docs HEAD `53fb59cac14a735c32bcad2a7be698a5deef6031`**: Fast Quality [#45073061756](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073061756) **completed/success, 886/886 tests PASS, 0 failures, 0 skipped** (по job logs); Android [#45073061805](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073061805) **completed/success**, regression и Android debug APK build/upload. Проверено на точном SHA, не переносить результат автоматически на последующие документационные коммиты.
+- Draft PR [#406](https://github.com/250oisr-eng/Pasekaapp/pull/406) поверх #405. Изменения затрагивают только идемпотентность готовой staging-сессии, 6 synthetic регрессионных тестов; физическое устройство, реальные видео, восстановление и удаление **NOT_TESTED**, `main`/production **не изменялись**, Restore335 STOP.
+- Следующий шаг: CI финального docs HEAD, затем P0 перенос истории распознавания v2 и tombstones; не сливать PR без разрешения.
+
+---
+
+## 2026-11-23 — STABILIZATION_ONLY / P0: ready staging idempotence hardening (Draft, CI pending)
+
+- Parent: Draft #405 HEAD `7d358d2fa713a04a0e691e2f8888e01a9d826b1a`; Fast Quality #45072345871 completed/success 880/880, Android #45072345960 completed/success on that exact parent SHA. Эти результаты **не** подтверждают новый код.
+- Рабочая ветка `fix/archive-ready-session-baseline-idempotency-2026-11-23` (последовательная зависимость после #405). Исправление в `js/paseka-archive-restore.js`: при повторном завершении уже `ready` staging-сессии сравниваются не только количество записей, epoch и manifest fingerprint, но и session/backup identity, оба сохранённых отпечатка исходной медиатеки. Legacy ready без metadata baseline не принимается как идентичная.
+- Новый `tests/archive-ready-session-idempotency.test.mjs`: 1 положительный и 5 отрицательных synthetic fake-indexeddb сценариев; сверка неизменности staging при отказе. Не утверждать PASS до фактической проверки точного HEAD.
+- Scope: idempotent ready-session finalization only; без изменения IndexedDB schema, .paseka, backup payload, runtime recognition, физического удаления файлов или релиза. `main`, production, реальные записи/видео не тронуты.
+- Следующий приоритет: получить Fast Quality + Android CI для точного code/test SHA; при ошибке исправить тест/код, затем финальная повторная проверка HEAD. После этого вернуться к P0 v2 portable recognition ledger/tombstones и реальному Android preflight; Restore335 остаётся STOP. Ни один Draft не сливать без разрешения пользователя.
+
+---
+
 ## 2026-11-23 — P0 live media metadata stage/commit Draft #405: exact-SHA CI PASS
 
 - **Проверенный code+test+initial-docs SHA `d64403df8f8be199256711cee523cdf881f75074`**: [Fast Quality #45072184778](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45072184778) **completed/success, 880/880 PASS, 0 FAIL, 0 skipped**. [Android Debug #45072184732](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45072184732) **completed/success**, full regression tests, debug APK build и upload PASS. ZIP artifact [#14773369098](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45072184732/artifacts/14773369098), 3,461,897 bytes (**это не SHA бинарного APK**).
