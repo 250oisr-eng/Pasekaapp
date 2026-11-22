@@ -1,3 +1,27 @@
+### P0 multirestart — код и тесты проверены (2026-11-23)
+
+- Исправленный code/test+docs SHA `e1fe813d659c99ed59e6526afd5f4e77ac34326a`: [Fast Quality #45081949766](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45081949766) **1222/1222 PASS, 0 FAIL/SKIPPED**, [Android Debug #45081949795](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45081949795) **completed/success**. Позитивный цикл stage→reopen→commit→reopen→quarantine→reopen + SHA и negative tampered-stage commit проходят.
+- Ранее Fast #45081854012 на SHA `2b434f9449baea7399d2b35d4cf0cb29a783aae2` упал на некорректном ожидании теста: staging-history уже содержит 1 защищённую запись. Исправлено только ожидание; ошибка не была подтверждённым runtime-дефектом.
+- Следующий docs-only commit создаёт новый HEAD, поэтому необходим independent CI на новом SHA. P0 остаётся OPEN: isolated synthetic tests не заменяют реальный Android и live PASEKA02/Restore335.
+
+---
+
+### P0 multirestart — промежуточная ошибка теста и корректировка (2026-11-23)
+
+- Первый exact HEAD `2b434f9449baea7399d2b35d4cf0cb29a783aae2`: Fast Quality #45081854012 **FAILED: 1221 PASS / 1 FAIL из 1222**. Положительный multi-restart сценарий прошёл; отрицательный тест неправильно требовал 0 записей в `archive_history` после staging, тогда как staging уже создаёт 1 защищённую запись.
+- Тест скорректирован: отказ commit должен **сохранить** staging-history (1 запись), а не удалять её. Код библиотеки и поведение runtime не менялись. Дальнейшие проверки Fast/Android должны относиться только к новому итоговому SHA.
+
+---
+
+## P0 — PASEKA02: автономная проверка staging → commit → quarantine после перезапусков (2026-11-23)
+
+- Ветка `test/p0-v2-multirestart-quarantine-evidence-2026-11-23` основана на Draft #422 exact HEAD `4899f5ec5593131d2eaf1dda5706ecbe2e3177ec`, Fast #45081290606 **1220/1220** и Android #45081290597 **success**. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` без изменений.
+- Добавлены **два новых теста** `tests/video-archive-v2-entrance-quarantine-rollback.test.mjs`: (1) staging+reopen+SHA→isolated entrance commit+reopen+SHA→quarantine rollback+reopen+SHA, сохранение ledger/state/history/двух защищённых копий; (2) staged Blob изменён до нового открытия DB, commit обязан отказать без записи в live stores/потери staged evidence.
+- Изолированный PASEKA02 эксперимент **не подключён** к UI/runtime; автоматическая очистка оригиналов и Restore335 остаются STOP. Тестовый IndexedDB — `fake-indexeddb`, не физический Android/отключение питания/MediaStore. Этот блок не закрывает весь P0 или P1.
+- CI на точном HEAD нового Draft PR должен быть проверен отдельно; до этого результат новых тестов — **PENDING**. Следующий этап: runtime-full-media migration/restore проектировать отдельно на основе отрицательных проверок, не активируя её без доказательств и разрешения.
+
+---
+
 ## P1 проверенный кодовый HEAD — 2026-11-23
 
 - На CODE/TEST SHA `ba1a9a4efc64280ef33dc717f6b08b24a6ce685d` Fast Quality #45081133712 **1220/1220 PASS**, 0 failures/skipped; Android Debug #45081133626 **completed/success**. Это целевые регрессионные и сборочные проверки, не физическое Android/production доказательство.
