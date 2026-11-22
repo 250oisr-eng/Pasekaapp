@@ -828,3 +828,124 @@ test('nonempty v1 ledger is still prohibited by both legacy archive directions',
   assert.deepEqual(await rows(db,'archive_staging'),[]);
  }finally{db.close();}
 });
+
+async function twoSyntheticVideoArchive(){
+ const state={meta:{schemaVersion:12,revisionId:'fixture-archived-revision'},hives:[{id:'fixture-hive'}],families:[],records:[]};
+ const stateBlob=new Blob([JSON.stringify({app:'Paseka',state})],{type:'application/json'});
+ const payloads=[stateBlob];
+ const entries=[{
+  path:'state.json',kind:'state',size:stateBlob.size,mimeType:'application/json',
+  chunkSize:Archive.CHUNK_BYTES,chunkSha256:await Archive.hashBlobChunks(stateBlob,webcrypto)
+ }];
+ for(const [index,id] of ['synthetic-v1','synthetic-v2'].entries()){
+  const blob=new Blob(['SYNTHETIC-MP4-NOT-REAL-'+id],{type:'video/mp4'});
+  const metadata={id,hiveId:'fixture-hive',capturedAt:'2026-11-22T10:00:00Z',
+   durationSec:1,width:640,height:480,bytes:blob.size,mimeType:'video/mp4',
+   name:id+'.mp4'};
+  payloads.push(blob);
+  entries.push({path:'entrance-media/'+String(index+1).padStart(6,'0')+'.blob',
+   kind:'entrance_video',size:blob.size,mimeType:'video/mp4',
+   metadata,chunkSize:Archive.CHUNK_BYTES,
+   chunkSha256:await Archive.hashBlobChunks(blob,webcrypto)});
+ }
+ return Archive.buildArchiveBlob({
+  format:Archive.FORMAT,version:Archive.VERSION,
+  backupId:'synthetic-two-video-collision',createdAt:'2026-11-22T10:00:00Z',
+  schemaVersion:12,entries
+ },payloads);
+}
+function hideSpecificStagingGet(db,suffix){
+ return {
+  objectStoreNames:db.objectStoreNames,
+  transaction(...args){
+   const tx=db.transaction(...args);
+   return new Proxy(tx,{get(target,field){
+    if(field!=='objectStore')return Reflect.get(target,field,target);
+    return name=>{
+     const store=target.objectStore(name);
+     if(name!=='archive_staging')return store;
+     return new Proxy(store,{get(targetStore,method){
+      if(method!=='get')return Reflect.get(targetStore,method,targetStore);
+      return key=>{
+       const req=targetStore.get(key);
+       if(typeof key!=='string'||!key.endsWith(suffix))return req;
+       return new Proxy(req,{
+        get(targetRequest,prop){
+         if(prop==='result')return undefined;
+         return Reflect.get(targetRequest,prop,targetRequest);
+        },
+        set(targetRequest,prop,value){return Reflect.set(targetRequest,prop,value,targetRequest);}
+       });
+      };
+     }});
+    };
+   }});
+  }
+ };
+}
+async function attemptStagingCollision(kind,lieAboutExisting=false){
+ const db=await seeded();
+ try {
+  const archive=await twoSyntheticVideoArchive();
+  const injectedBlob=new Blob(['FOREIGN-SYNTHETIC-ENTRY-DO-NOT-OVERWRITE'],{type:'video/mp4'});
+  let injectedKey=null,injected=false,insertCompleted=null;
+  const options={onProgress({staged,total}){
+   if(staged!==2||total!==3||injected)return;
+   injected=true;
+   insertCompleted=new Promise((resolve,reject)=>{
+    const tx=db.transaction('archive_staging','readwrite');
+    const store=tx.objectStore('archive_staging');
+    const req=store.index('kind').get('session');
+    req.onsuccess=()=>{
+     const session=req.result;
+     injectedKey=session.sessionId+':video:synthetic-v2';
+     store.add({id:injectedKey,sessionId:session.sessionId,kind,
+       originalId:'foreign-synthetic',blob:injectedBlob,bytes:injectedBlob.size});
+    };
+    tx.oncomplete=resolve;
+    tx.onabort=tx.onerror=()=>reject(tx.error);
+   });
+  }};
+  const adapter=lieAboutExisting?hideSpecificStagingGet(db,':video:synthetic-v2'):db;
+  const expected=lieAboutExisting?/IndexedDB transaction failed|ConstraintError/: {code:'STAGING_ENTRY_ID_CONFLICT'};
+  await assert.rejects(
+   Restore.stageArchiveForRestore(adapter,archive,webcrypto,Archive,()=>true,options),
+   expected);
+  assert.equal(injected,true);
+  await insertCompleted;
+  const existing=await get(db,'archive_staging',injectedKey);
+  assert.equal(existing.kind,kind);
+  assert.equal(await existing.blob.text(),await injectedBlob.text(),
+   'a conflicting staged blob must remain byte-identical');
+  const sessionId=injectedKey.slice(0,-':video:synthetic-v2'.length);
+  const session=await get(db,'archive_staging',sessionId);
+  assert.equal(session.status,'failed');
+  assert.equal(session.stagedCount,2);
+  assert.equal(await get(db,'main','video_recognition_ledger_v1'),undefined);
+  assert.deepEqual(await get(db,'main','state'),LIVE);
+  assert.deepEqual(await rows(db,'entrance_media'),[]);
+  assert.deepEqual(await rows(db,'archive_history'),[]);
+ }finally{db.close();}
+}
+test('normal two-video synthetic archive stages each distinct key once',async()=>{
+ const db=await seeded();
+ try{
+  const staged=await Restore.stageArchiveForRestore(
+   db,await twoSyntheticVideoArchive(),webcrypto,Archive,()=>true);
+  assert.equal(staged.session.status,'ready');
+  assert.equal(staged.session.totalEntries,3);
+  assert.equal(staged.session.stagedCount,3);
+  const rowsBySession=await rows(db,'archive_staging');
+  assert.equal(rowsBySession.length,4);
+  assert.equal(new Set(rowsBySession.map(x=>x.id)).size,4);
+ }finally{db.close();}
+});
+test('staging refuses to overwrite a foreign-kind row under a matching manifest key',async()=>{
+ await attemptStagingCollision('rollback_video');
+});
+test('staging refuses to overwrite a same-kind row under a matching manifest key',async()=>{
+ await attemptStagingCollision('video');
+});
+test('native IndexedDB add prevents overwrite when an adapter hides an existing staged row',async()=>{
+ await attemptStagingCollision('video',true);
+});
