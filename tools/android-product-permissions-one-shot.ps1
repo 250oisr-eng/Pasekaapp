@@ -20,9 +20,13 @@ function CheckedUsbSerial {
  $rows=@($devices -split '[\r\n]+' | Where-Object {
   $_.Trim() -and $_ -notmatch '^List of devices attached' -and $_ -notmatch '^\* daemon'
  })
- $valid=@($rows | Where-Object {$_ -match '^(\S+)\s+device\s+.*\busb:'})
+ $valid=@($rows | Where-Object {$_ -match '^(\S+)\s+device(?:\s+|$)'})
  if($rows.Count -ne 1 -or $valid.Count -ne 1){throw 'EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'}
- return ($valid[0] -split '\s+')[0]
+ $candidate=($valid[0] -split '\s+')[0]
+ # adb devices -l may omit usb: even for a verified USB-connected device.
+ $usb=(CommandOutput 'adb' @('-d','get-serialno')).Trim()
+ if($usb -cne $candidate){throw 'USB_TRANSPORT_SERIAL_MISMATCH'}
+ return $candidate
 }
 function AssertSameUsb([string]$expected) {
  if((CheckedUsbSerial) -cne $expected){throw 'USB_DEVICE_CHANGED_NO_INSTALL'}
