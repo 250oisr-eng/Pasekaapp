@@ -31,3 +31,8 @@ test('V4 preserves whitespace-only entry names in listing before count',()=>{
   assert.match(v4,/return \$out\.TrimEnd\(\[char\[\]\]@\(\[char\]13,\[char\]10\)\)/);
   assert.match(v4,/return \$out\.Trim\(\)/);
 });
+
+test('V4 reports explicit success and nonzero block process exits to CMD launcher',()=>{
+  assert.match(v4,/if \(\$report\.status -ne 'PASS'\) \{ exit 2 \}\s*exit 0\s*$/);
+  assert.match(v4,/finally \{\s*\$report \| ConvertTo-Json -Depth 3\s*\}/);
+});
