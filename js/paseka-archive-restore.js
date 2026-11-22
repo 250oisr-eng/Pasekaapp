@@ -278,12 +278,37 @@ async function manifestFingerprint(manifest, cryptoProvider) {
   const digest = await cryptoProvider.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
+// Adapted from the isolated PASEKA01/PASEKA02 cross-version guard in Draft #315.
+// These V2 rows are protected originals, not disposable staging leftovers.
+function assertNoV2ProtectedRecords(stagedKeys, history, backupKeys) {
+  const staged = assertIndexedDbRows(stagedKeys, 'VIDEO_V2_STAGING_KEYS_UNVERIFIED');
+  const histories = assertIndexedDbRows(history, 'VIDEO_V2_HISTORY_UNVERIFIED');
+  const backups = assertIndexedDbRows(backupKeys, 'VIDEO_V2_BACKUP_KEYS_UNVERIFIED');
+  if (staged.some(key => typeof key === 'string' && key.startsWith('v2pending:')) ||
+      histories.some(row => row && typeof row.kind === 'string' && row.kind.startsWith('v2_')) ||
+      backups.some(key => typeof key === 'string' && key.startsWith('v2entrance:'))) {
+    fail('VIDEO_LEGACY_RESTORE_V2_PROTECTED',
+      'Protected PASEKA02 media or rollback copies exist. PASEKA01 restore is blocked.');
+  }
+}
 async function assertLegacyArchiveStageAllowed(db) {
-  const tx = db.transaction('main', 'readonly');
+  const required = ['main', STAGING_STORE, HISTORY_STORE, 'full_backup'];
+  if (required.some(name => !db.objectStoreNames.contains(name))) {
+    fail('VIDEO_LEGACY_RESTORE_STORES_MISSING', 'The archive safety stores are unavailable.');
+  }
+  // One readonly snapshot: an absent historical ledger is not evidence that
+  // PASEKA02 quarantine and its protected copies have also disappeared.
+  const tx = db.transaction(required, 'readonly');
   const completed = transactionDone(tx);
-  const ledger = await requestValue(tx.objectStore('main').get('video_recognition_ledger_v1'));
+  const [ledger, stagedKeys, history, backupKeys] = await Promise.all([
+    requestValue(tx.objectStore('main').get('video_recognition_ledger_v1')),
+    requestValue(tx.objectStore(STAGING_STORE).getAllKeys()),
+    requestValue(tx.objectStore(HISTORY_STORE).getAll()),
+    requestValue(tx.objectStore('full_backup').getAllKeys())
+  ]);
   await completed;
   assertLegacyArchiveRecognitionLedger(ledger);
+  assertNoV2ProtectedRecords(stagedKeys, history, backupKeys);
 }
 async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveApi, validateState, options = {}) {
   ensureStores(db);
@@ -350,11 +375,19 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     // Re-read under a short write lock, but never rewrite live media rows here.
     // A legacy writer may not persist SHA-256; putting the earlier Blob back
     // could overwrite a newer same-size replacement from another tab.
-    const baselineTx = db.transaction([STAGING_STORE, 'entrance_media'], 'readwrite');
+    const baselineTx = db.transaction([STAGING_STORE, 'entrance_media', 'main', HISTORY_STORE, 'full_backup'], 'readwrite');
     const baselineRequest = baselineTx.objectStore('entrance_media').getAll();
+    const baselineLedger = baselineTx.objectStore('main').get('video_recognition_ledger_v1');
+    const baselineStageKeys = baselineTx.objectStore(STAGING_STORE).getAllKeys();
+    const baselineHistory = baselineTx.objectStore(HISTORY_STORE).getAll();
+    const baselineBackupKeys = baselineTx.objectStore('full_backup').getAllKeys();
     let baselineFailure = null;
-    baselineRequest.onsuccess = () => {
+    let baselinePending = 5;
+    const finishBaseline = () => {
+      if (--baselinePending !== 0 || baselineFailure) return;
       try {
+        assertLegacyArchiveRecognitionLedger(baselineLedger.result);
+        assertNoV2ProtectedRecords(baselineStageKeys.result, baselineHistory.result, baselineBackupKeys.result);
         const currentRows = assertIndexedDbRows(baselineRequest.result, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
         const expectedById = new Map(baselineRecords.map(record => [record.id, record]));
         if (currentRows.length !== baselineRecords.length ||
@@ -384,6 +417,13 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
         try { baselineTx.abort(); } catch (ignored) {}
       }
     };
+    for (const request of [baselineRequest, baselineLedger, baselineStageKeys, baselineHistory, baselineBackupKeys]) {
+      request.onsuccess = finishBaseline;
+      request.onerror = () => {
+        baselineFailure = request.error || new Error('Could not verify protected video copies before staging.');
+        try { baselineTx.abort(); } catch (ignored) {}
+      };
+    }
     try {
       await transactionDone(baselineTx);
     } catch (error) {
@@ -640,7 +680,10 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         currentVideos: media.getAll(),
         session: stagingStore.get(sessionId),
         stagedRecords: stagingStore.index('sessionId').getAll(sessionId),
-        history: historyStore.get(staged.session.backupId)
+        history: historyStore.get(staged.session.backupId),
+        v2StageKeys: stagingStore.getAllKeys(),
+        v2History: historyStore.getAll(),
+        v2BackupKeys: backup.getAllKeys()
       };
       const values = {};
       let pending = Object.keys(reads).length;
@@ -656,6 +699,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
             fail('RESTORE_LIVE_STATE_UNVERIFIED', 'The live journal is not a verifiable state object. The archive was not imported.');
           }
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
+          assertNoV2ProtectedRecords(values.v2StageKeys, values.v2History, values.v2BackupKeys);
           const currentVideos = assertIndexedDbRows(values.currentVideos, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
           const session = values.session;
           const records = assertIndexedDbRows(values.stagedRecords, 'STAGING_RECORDS_ENUMERATION_UNVERIFIED');
@@ -848,6 +892,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   }
   if (expectedRevision === undefined) fail('EXPECTED_REVISION_REQUIRED', 'The current database revision is required before rollback.');
   if (typeof validateState !== 'function') fail('STATE_VALIDATOR_REQUIRED', 'The application state validator is required before rollback.');
+  await assertLegacyArchiveStageAllowed(db);
 
   // Phase A: read and validate the rollback snapshot before opening the final
   // write transaction. All non-IDB awaits stay outside Phase B.
@@ -1035,7 +1080,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         history: historyStore.get(backupId),
         rollbackSession: stagingStore.get(rollbackSessionId),
         rollbackRecords: stagingStore.index('sessionId').getAll(rollbackSessionId),
-        importSession: stagingStore.get(knownHistory.importSessionId)
+        importSession: stagingStore.get(knownHistory.importSessionId),
+        v2StageKeys: stagingStore.getAllKeys(),
+        v2History: historyStore.getAll(),
+        v2BackupKeys: backup.getAllKeys()
       };
       const values = {};
       let pending = Object.keys(reads).length;
@@ -1043,6 +1091,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
         try {
           const currentState = values.currentState || null;
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
+          assertNoV2ProtectedRecords(values.v2StageKeys, values.v2History, values.v2BackupKeys);
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
           const currentRecords = assertIndexedDbRows(values.rollbackRecords, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED');
