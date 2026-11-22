@@ -1,0 +1,13 @@
+import {mkdir,rm,copyFile,writeFile,readFile} from 'node:fs/promises';
+const PKG='ru.paseka.journal.diagnostic.archivea08v1';
+const config=JSON.parse(await readFile('capacitor.config.json','utf8'));
+if(config.appId!=='ru.paseka.journal')throw Error('PRODUCTION_PACKAGE_NOT_EXPECTED');
+config.appId=PKG;
+config.appName='Пасека A08 — проверка';
+await writeFile('capacitor.config.json',JSON.stringify(config,null,2)+'\n');
+await rm('www',{recursive:true,force:true});
+await mkdir('www',{recursive:true});
+await copyFile('diagnostics/archive-a08/index.html','www/index.html');
+await copyFile('diagnostics/archive-a08/runner.js','www/runner.js');
+await copyFile('diagnostics/archive-a08/copy-report.js','www/copy-report.js');
+console.log('Only three synthetic A08 files published; appId='+PKG);
