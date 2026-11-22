@@ -1,3 +1,12 @@
+## 2026-11-22 — реальный OnePlus USB preflight v1: подтверждён ADB 41, диагностирован старый HOST ADB-сервер 32; исправлен v2
+
+- Пользователь выполнил `android-usb-device-readonly-preflight.ps1` на Windows: отчёт `BLOCKED`, `adb=PASS`, `adbSha256=PASS_PINNED`; точная причина `adb server version (32) doesn't match this client (41); killing...`. `device/model/sdk/productionPackage/diagnosticPackage=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Это **не аппаратный PASS и не отказ телефона**: старый компьютерный ADB daemon выдаёт ожидаемый stderr, который PowerShell 5.1 при `ErrorActionPreference=Stop` ошибочно трактовал как terminating error.
+- Исправлен **только скрипт диагностики**, без изменения пользовательских данных: отдельное чтение stdout/stderr через `System.Diagnostics.Process`, 15-секундный timeout, строгий whitelist `adb server version ... doesn't match ... killing...`, `* daemon ...`; неожиданный stderr по-прежнему BLOCKED. Клиент может автоматически заменить **HOST** ADB-сервер; телефон не перезапускается, пакеты не устанавливаются, оригиналы не читаются.
+- Синтаксис Windows PowerShell и аудит дозволенных команд на exact SHA `3d7161400f019f83e4baf54b4083a0378c5c827d`: [workflow #45049502481](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45049502481) **completed/success**. Промежуточные коммиты `54115cb` и `a545735` дали CI parser FAIL из-за неполной записи/дублированного хвоста, исправлены; не считать их проверенными.
+- Готов файл v2 `tools/android-usb-device-readonly-preflight.ps1`/локальная копия `android-usb-device-readonly-preflight.ps1`, SHA256 `91ce7017149f940226b4825ceace474e4c8d9a335880f0a83e785cf80b439588` (4568 байт). Следующее одно действие пользователя: заменить прежнюю копию в Downloads и выполнить ту же PowerShell-команду, прислать JSON. Физические Android package check/video/recognition/cleanup остаются NOT_TESTED до нового отчёта.
+
+---
+
 ## 2026-11-22 — эмулятор: доказана инфраструктурная причина отказа, автоматические перезапуски остановлены
 
 - Job [#45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) завершился **failure**: Android Emulator 37.3.10 на Ubuntu не имел KVM, `-accel off` прямо отвергнут (`Software CPU emulation ... is not supported`), затем `Timeout waiting for emulator to boot`. APK был ранее успешно скачан, но **не установлен и не запущен**; нельзя маркировать emulator PASS.
