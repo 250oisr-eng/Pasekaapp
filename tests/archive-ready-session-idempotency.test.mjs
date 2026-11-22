@@ -83,3 +83,50 @@ for (const [caseName, mutate] of [
     } finally { db.close(); }
   });
 }
+
+
+const staging = () => ({ ...ready(), status: 'staging' });
+test('matching staging status may finalize ready without losing baseline', async () => {
+  const db = await openDb();
+  try {
+    const original = staging();
+    await put(db, original);
+    const candidate = { ...original, status: 'ready', completedAt: '2026-11-23T00:00:00.000Z' };
+    await updateSession(db, candidate);
+    assert.deepEqual(await get(db), candidate);
+  } finally { db.close(); }
+});
+test('matching staging error status may be recorded with current epoch', async () => {
+  const db = await openDb();
+  try {
+    const original = staging();
+    await put(db, original);
+    const candidate = { ...original, status: 'failed', errorCode: 'TEST_FAILURE' };
+    await updateSession(db, candidate);
+    assert.deepEqual(await get(db), candidate);
+  } finally { db.close(); }
+});
+for (const [name, mutate] of [
+  ['advanced epoch', current => { current.stagingEpoch = 3; }],
+  ['advanced record count', current => { current.stagedCount = 3; }],
+  ['changed backup identity', current => { current.backupId = 'another-backup'; }],
+  ['changed manifest fingerprint', current => { current.fingerprint = 'another-manifest'; }],
+  ['changed total entries', current => { current.totalEntries = 3; }],
+  ['changed media baseline', current => { current.baselineMediaFingerprint = 'newer-content'; }],
+  ['changed metadata baseline', current => { current.baselineMediaMetadataFingerprint = 'newer-metadata'; }],
+  ['changed record primary identity', current => { current.sessionId = 'foreign-session'; }]
+]) {
+  for (const requestedStatus of ['ready', 'failed']) {
+    test('stale ' + requestedStatus + ' status rejects ' + name, async () => {
+      const db = await openDb();
+      try {
+        const current = staging();
+        mutate(current);
+        await put(db, current);
+        const candidate = { ...staging(), status: requestedStatus };
+        await assert.rejects(updateSession(db, candidate), { code: 'STAGING_SESSION_CHANGED' });
+        assert.deepEqual(await get(db), current);
+      } finally { db.close(); }
+    });
+  }
+}
