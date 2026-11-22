@@ -93,7 +93,7 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.ortsmoke'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.ortmodule'"
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.archive.fileproof329'"; then exit 1; fi
           if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then exit 1; fi
           sha256sum "$APK"

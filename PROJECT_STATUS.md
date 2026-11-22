@@ -1,3 +1,7 @@
+## 2026-11-22 — повтор ONNX без замены ранее установленного приложения
+
+В #352 на 73b9d014 исправленный APK успешно собран (run 45000158169), общая сборка также успешна. У старого и нового APK с одинаковым ID ortsmoke разные SHA-256 сертификатов v2: ffbbd3ade07803840b90151fc0f6dca0a682c23aa6108c22ab4beb4fe4af19dd и c39141c52510009fd0cc8f8579e551979f58e6cc19a4896b6ec5b3dd38338288. Контрольные суммы обоих ZIP сверены с данными GitHub. Для совместной установки новая диагностика получила отдельный ID ru.paseka.journal.diagnostic.ortmodule. Отчёт, проверка aapt и регрессия привязаны к новому имени. После сборки проверить SHA артефакта и передать APK для одного физического теста. Старый APK остаётся установленным. Распознавание пчёл и очистка не проверяются.
+
 ## 2026-11-22 — Android ONNX physical BLOCKED, Draft PR #352
 
 - Physical report: isolated package ru.paseka.journal.diagnostic.ortsmoke, ORT_ERROR no available backend found / Failed to fetch dynamically imported module; runtime BLOCKED. Bee recognition/video access/cleanup not tested.

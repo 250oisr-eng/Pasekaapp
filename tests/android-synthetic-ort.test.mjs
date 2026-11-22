@@ -13,7 +13,10 @@ test('tiny self-authored ONNX has fixed source, no learned weights or external b
 test('isolated Android build never targets real app, test user storage or remote weights',()=>{
  assert.match(builder,/PASEKA_SYNTHETIC_ORT_BUILD/);
  assert.match(builder,/ORIGINAL_APP_ID_REQUIRED/);
- assert.match(builder,/ru\.paseka\.journal\.diagnostic\.ortsmoke/);
+ for(const source of [builder,runner]){
+  assert.ok(source.includes("'ru.paseka.journal.diagnostic.ortmodule'"));
+  assert.ok(!source.includes("'ru.paseka.journal.diagnostic.ortsmoke'"));
+ }
  assert.match(builder,/writeFileSync\('www\/synthetic-add.onnx',SYNTHETIC_ONNX\)/);
  assert.match(runner,/executionProviders:\['wasm'\]/);
  assert.match(runner,/ONE_SHOT_ALREADY_ATTEMPTED/);

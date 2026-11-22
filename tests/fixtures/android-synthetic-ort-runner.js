@@ -1,7 +1,7 @@
 // Offline test-only WebView WASM math; this is not a bee model or recognition.
 (function(root){
 'use strict';
-const PKG='ru.paseka.journal.diagnostic.ortsmoke';
+const PKG='ru.paseka.journal.diagnostic.ortmodule';
 let attempted=false;
 const status=(result,code,extra={})=>({status:result,code,packageId:PKG,
  model:'SELF_AUTHORED_SYNTHETIC_ADD_2_ONLY',
