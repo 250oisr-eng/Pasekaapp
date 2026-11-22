@@ -1,3 +1,13 @@
+## 2026-11-22 — P0: гарантии перечисления media/history во время staging/restore/rollback
+
+- В отдельной ветке `fix/archive-restore-enumeration-failclosed-2026-11-22` поверх Draft PR #391 внесено точечное исправление `js/paseka-archive-restore.js`: `assertIndexedDbRows` запрещает интерпретировать нештатный результат `IDBObjectStore.getAll()` как пустой список. Основные пути: начальное сканирование видео при staging; повторная проверка при коротком write lock; Phase A hash baseline; Phase B commit write lock; фазы rollback; `archive_history.getAll()` перед удалением staging.
+- Для медиа используется `RESTORE_MEDIA_ENUMERATION_UNVERIFIED`, для ссылок истории — `ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED`. Все эти ошибки блокируют операцию; нет автоматической очистки или восстановления из неизвестного источника. Стандартный IndexedDB при нормальной работе возвращает Array — это защита от ошибочного адаптера/рефакторинга, а не доказательство исправления известного физического сбоя Android.
+- Добавлен `tests/archive-restore-enumeration-failclosed.test.mjs`: 11 синтетических сценариев (штатная пустая медиа-библиотека, 4 некорректных ответа первичного чтения, ошибка write-lock сканирования, Phase A и Phase B commit, защищённое удаление staging, Phase A и Phase B rollback), используются отдельные fake-indexeddb и подменяемые **только ответы** getAll через изолированный Proxy. Проверяется сохранность live state, archive_history и staging.
+- Это кодовый + регрессионный этап; пока CI на exact SHA не завершён, не объявлять PASS. После финального documentation snapshot создать Draft PR и выполнить полный Node/Android CI на проверенном SHA. `main`/production пользовательские данные и Restore335 не затронуты, удаление видео по-прежнему запрещено.
+- Далее: audit архитектуры writer-lock и v2 media-ledger/restore с отдельными независимыми фикстурами; отсутствие real recording в ноябре не блокирует развитие.
+
+---
+
 ## 2026-11-22 — CI ускорение подтверждено на точном code SHA
 
 - Code/test/workflow SHA `d45d6630561295efcfbd292e7893cfef06b3eac0`: [Fast Quality #45064009718](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009718) **completed/success**, 782/782 tests PASS, 0 FAIL (job #137336001559). [Android #45064009728](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009728) **attempt 1 CANCELLED** до Gradle во время обновлений PR; **rerun attempt 2 completed/success** (job #137336366763): 782/782 tests PASS, 0 FAIL, Android debug APK build/upload success. [Artifact #14770079580](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009728/artifacts/14770079580) ZIP digest `6b23f9f3cac3126d61eb4395ccdb2cafaca08f1771e055ec73a08350c23c7721`; это не подтверждённый APK binary SHA.
