@@ -426,6 +426,66 @@ function mediaRecordsFingerprint(records) {
   }).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
   return JSON.stringify(['PASEKA-MEDIA-FINGERPRINT', 3, canonical]);
 }
+function assertImportedMediaMetadataUnchanged(records, importSession) {
+  // The existing version-3 media fingerprint deliberately covers only a
+  // subset of fields. Before rollback deletes/replaces the imported library,
+  // compare every preserved metadata field with the *original import manifest*
+  // to protect newer queue/quality/custom metadata, without invalidating
+  // historical v3 fingerprints or rewriting old imported records.
+  const entries = importSession?.manifest?.entries;
+  if (!Array.isArray(entries)) {
+    fail('ROLLBACK_IMPORT_MEDIA_PROVENANCE_MISSING', 'The original import manifest is unavailable; rollback would risk losing video metadata.');
+  }
+  const videoEntries = entries.filter(entry => entry?.kind === 'entrance_video');
+  if (videoEntries.length !== records.length) {
+    fail('ROLLBACK_MEDIA_METADATA_CHANGED', 'The imported video list no longer matches the archive manifest.');
+  }
+  const byId = new Map();
+  for (const entry of videoEntries) {
+    const meta = entry?.metadata;
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta) ||
+        typeof meta.id !== 'string' || !meta.id || byId.has(meta.id)) {
+      fail('ROLLBACK_IMPORT_MEDIA_PROVENANCE_MISSING', 'Imported video metadata is missing or ambiguous.');
+    }
+    byId.set(meta.id, meta);
+  }
+  const canonical = value => {
+    const seen = new WeakSet();
+    const sort = item => {
+      if (item === null || typeof item === 'string' || typeof item === 'boolean') return item;
+      if (typeof item === 'number' && Number.isFinite(item)) return item;
+      if (Array.isArray(item)) {
+        if (seen.has(item)) fail('ROLLBACK_MEDIA_METADATA_UNVERIFIED', 'Cyclic video metadata cannot be verified.');
+        seen.add(item);
+        return item.map(sort);
+      }
+      if (item && typeof item === 'object' &&
+          (Object.getPrototypeOf(item) === Object.prototype || Object.getPrototypeOf(item) === null)) {
+        if (seen.has(item)) fail('ROLLBACK_MEDIA_METADATA_UNVERIFIED', 'Shared or cyclic video metadata cannot be verified.');
+        seen.add(item);
+        return Object.fromEntries(Object.keys(item).sort().map(key => [key, sort(item[key])]));
+      }
+      fail('ROLLBACK_MEDIA_METADATA_UNVERIFIED', 'Video metadata contains an unsupported non-JSON value.');
+    };
+    return JSON.stringify(sort(value));
+  };
+  const seenIds = new Set();
+  for (const record of records) {
+    if (!record || typeof record.id !== 'string' || !record.id ||
+        seenIds.has(record.id) || !byId.has(record.id)) {
+      fail('ROLLBACK_MEDIA_METADATA_CHANGED', 'A stored imported video has an unexpected or duplicate identity.');
+    }
+    seenIds.add(record.id);
+    const metadata = {};
+    for (const [key, value] of Object.entries(record)) {
+      if (key !== 'blob' && key !== 'blobSha256' && key !== 'orphanedHiveReference') metadata[key] = value;
+    }
+    if (canonical(metadata) !== canonical(byId.get(record.id))) {
+      fail('ROLLBACK_MEDIA_METADATA_CHANGED', 'Video metadata changed after import; rollback was blocked to preserve newer records.');
+    }
+  }
+}
+
 async function sha256BlobHex(blob, cryptoProvider) {
   if (!root.PasekaSha256 || typeof root.PasekaSha256.hashBlobHex !== 'function') {
     fail('MEDIA_HASH_UNAVAILABLE', 'The incremental SHA-256 module is unavailable on this device.');
@@ -773,6 +833,14 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
+  // A version-3 media fingerprint is insufficient for metadata: its canonical
+  // form omits queue/quality and future fields. Verify the immutable original
+  // archive manifest before any rollback snapshot is consumed.
+  if (typeof knownHistory.fingerprint !== 'string' ||
+      await manifestFingerprint(importSession.manifest, cryptoProvider) !== knownHistory.fingerprint) {
+    fail('ROLLBACK_IMPORT_MANIFEST_CHANGED', 'The imported archive manifest cannot be verified against its history.');
+  }
+  assertImportedMediaMetadataUnchanged(phaseAMedia, importSession);
   let snapshotRecords = assertRollbackSnapshotIdentity(rollbackSessionId, rollbackSession, records);
   const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
@@ -940,6 +1008,13 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
               (currentState?.meta?.revisionId ?? null) !== currentImportSession.importedRevisionId) {
             fail('ROLLBACK_STATE_CHANGED', 'The journal changed after this archive was imported. Rollback was cancelled to preserve newer journal entries.');
           }
+          if (history.fingerprint !== knownHistory.fingerprint ||
+              JSON.stringify(currentImportSession.manifest) !== JSON.stringify(importSession.manifest)) {
+            fail('ROLLBACK_IMPORT_MANIFEST_CHANGED', 'The original archive manifest changed during rollback validation.');
+          }
+          // Recheck inside the same write lock as media.clear(): do not erase
+          // newer video metadata added while asynchronous validation ran.
+          assertImportedMediaMetadataUnchanged(currentVideos, currentImportSession);
           if ((currentState?.meta?.revisionId ?? null) !== expectedRevision) {
             fail('RESTORE_CONFLICT', 'The live database changed during rollback. Refresh the data and review the current state before retrying.');
           }
