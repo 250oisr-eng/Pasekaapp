@@ -422,3 +422,136 @@ test('P1: uncloneable state aborts a conditional write without damaging the prev
   assert.deepEqual(saved, initial);
   deps.db.close();
 });
+
+
+test('P1: separate IndexedDB connections cannot commit two updates based on one revision', async () => {
+  const indexedDB = new IDBFactory();
+  const tabA = openDbDependencies(indexedDB);
+  const tabB = openDbDependencies(indexedDB);
+  await load('openDB', tabA)();
+  await load('openDB', tabB)();
+
+  const seed = tabA.db.transaction('main', 'readwrite');
+  seed.objectStore('main').put({ meta: { revisionId: 'shared-rev' }, families: [{ id: 'original' }] }, 'state');
+  await new Promise((resolve, reject) => {
+    seed.oncomplete = resolve;
+    seed.onerror = () => reject(seed.error);
+    seed.onabort = () => reject(seed.error);
+  });
+
+  const a = { meta: { revisionId: 'tab-a-rev' }, families: [{ id: 'from-a' }] };
+  const b = { meta: { revisionId: 'tab-b-rev' }, families: [{ id: 'from-b' }] };
+  const results = await Promise.allSettled([
+    load('writeMainIfUnchanged', tabA)(a, 'shared-rev'),
+    load('writeMainIfUnchanged', tabB)(b, 'shared-rev')
+  ]);
+  assert.deepEqual(results.map(result => result.status), ['fulfilled', 'rejected']);
+  assert.equal(results[1].reason.name, 'PasekaConflictError');
+
+  const read = tabB.db.transaction('main', 'readonly');
+  const request = read.objectStore('main').get('state');
+  const saved = await new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.deepEqual(saved, a, 'the rejected tab must never erase the committed family');
+  tabA.db.close();
+  tabB.db.close();
+});
+
+test('P1: legacy IndexedDB v2 upgrades to v5 without replacing main or automatic backup', async () => {
+  const indexedDB = new IDBFactory();
+  const deps = openDbDependencies(indexedDB);
+  const oldState = { meta: { schemaVersion: 9, revisionId: 'old-v2' }, hives: [{ id: 'kept-hive' }] };
+  const oldBackup = { at: '2026-11-17T08:00:00.000Z', state: { meta: { schemaVersion: 8 }, hives: [{ id: 'backup-hive' }] } };
+  const request = indexedDB.open(deps.DB, 2);
+  const oldDb = await new Promise((resolve, reject) => {
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('main');
+      request.result.createObjectStore('full_backup');
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const write = oldDb.transaction(['main', 'full_backup'], 'readwrite');
+  write.objectStore('main').put(oldState, 'state');
+  write.objectStore('full_backup').put(oldBackup, 'previous');
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+  oldDb.close();
+
+  assert.equal(await load('openDB', deps)(), false);
+  assert.equal(deps.db.version, 5);
+  for (const name of ['main', 'full_backup', 'entrance_media', 'archive_staging', 'archive_history']) {
+    assert.equal(deps.db.objectStoreNames.contains(name), true);
+  }
+  const read = deps.db.transaction(['main', 'full_backup'], 'readonly');
+  const main = read.objectStore('main').get('state');
+  const previous = read.objectStore('full_backup').get('previous');
+  const state = await new Promise((resolve, reject) => {
+    const values = {};
+    main.onsuccess = () => { values.main = main.result; };
+    previous.onsuccess = () => { values.backup = previous.result; };
+    read.oncomplete = () => resolve(values);
+    read.onerror = () => reject(read.error);
+    read.onabort = () => reject(read.error);
+  });
+  assert.deepEqual(state.main, oldState);
+  assert.deepEqual(state.backup, oldBackup);
+  deps.db.close();
+});
+
+test('P1: upgrading v4 to v5 preserves staged media and archive history records without touching bytes', async () => {
+  const indexedDB = new IDBFactory();
+  const deps = openDbDependencies(indexedDB);
+  const oldMedia = { id: 'media-x', hiveId: 'hive-x', blob: new Blob([new Uint8Array([11, 22, 33])], { type: 'video/mp4' }) };
+  const pending = { id: 'stage-1', sessionId: 'session-x', kind: 'video', backupId: 'backup-x', blob: oldMedia.blob };
+  const history = { backupId: 'history-x', status: 'committed', records: ['old-entry'] };
+  const request = indexedDB.open(deps.DB, 4);
+  const oldDb = await new Promise((resolve, reject) => {
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      db.createObjectStore('main');
+      db.createObjectStore('full_backup');
+      db.createObjectStore('entrance_media', { keyPath: 'id' });
+      const staging = db.createObjectStore('archive_staging', { keyPath: 'id' });
+      staging.createIndex('sessionId', 'sessionId', { unique: false });
+      staging.createIndex('kind', 'kind', { unique: false });
+      staging.createIndex('backupId', 'backupId', { unique: true });
+      db.createObjectStore('archive_history', { keyPath: 'backupId' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const write = oldDb.transaction(['entrance_media', 'archive_staging', 'archive_history'], 'readwrite');
+  write.objectStore('entrance_media').add(oldMedia);
+  write.objectStore('archive_staging').add(pending);
+  write.objectStore('archive_history').add(history);
+  await new Promise((resolve, reject) => {
+    write.oncomplete = resolve;
+    write.onerror = () => reject(write.error);
+    write.onabort = () => reject(write.error);
+  });
+  oldDb.close();
+
+  assert.equal(await load('openDB', deps)(), false);
+  const read = deps.db.transaction(['entrance_media', 'archive_staging', 'archive_history'], 'readonly');
+  const get = (name, key) => new Promise((resolve, reject) => {
+    const request = read.objectStore(name).get(key);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const [media, staged, preservedHistory] = await Promise.all([
+    get('entrance_media', 'media-x'),
+    get('archive_staging', 'stage-1'),
+    get('archive_history', 'history-x')
+  ]);
+  assert.equal(media.hiveId, 'hive-x');
+  assert.deepEqual([...new Uint8Array(await media.blob.arrayBuffer())], [11, 22, 33]);
+  assert.deepEqual([...new Uint8Array(await staged.blob.arrayBuffer())], [11, 22, 33]);
+  assert.deepEqual(preservedHistory, history);
+  deps.db.close();
+});
