@@ -39,3 +39,22 @@ test('published code licenses are not falsely extended to weights or base traini
  assert.equal(apiarist.task,'honeycomb_frame_inspection');
  assert.equal(apiarist.status,'BLOCKED');
 });
+
+test('matpalm BNN cannot become Android detector from MIT source code alone',()=>{
+ const c=registry.candidates.find(x=>x.id==='matpalm-bnn');
+ assert.ok(c,'candidate entry is required');
+ assert.equal(c.codeLicense,'MIT_REPO_LICENSE');
+ assert.equal(c.weightsArtifact,'NO_PUBLISHED_CHECKPOINT_VERIFIED');
+ assert.equal(c.weightsLicense,'UNVERIFIED');
+ assert.equal(c.status,'BLOCKED');
+ assert.equal(c.offlineAndroid,'UNVERIFIED');
+ assert.equal(c.fieldBenchmark,'UNVERIFIED');
+ assert.ok(c.evidence.some(x=>x.includes('gitignore')));
+ const result=gate.evaluateCandidate({id:c.id,version:'v1',
+   task:'hive_entrance_bee_detection',weightsLicenseVerified:false,
+   baseWeightsLicenseVerified:false,datasetLicenseVerified:false,
+   runtimeLicenseVerified:false,redistributionAllowed:false});
+ assert.equal(result.reason,'LICENSE_CHAIN_UNVERIFIED');
+ assert.equal(result.canRunInference,false);
+ assert.equal(result.cleanupAuthorized,false);
+});
