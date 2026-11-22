@@ -1,3 +1,11 @@
+## 2026-11-22 — transient browser Blob URL и пустой Data URL не являются сохранённым видео
+
+- В `js/video-archive-v2-copy-inventory.js` для распознанных как видео записей журнала введены read-only issues: `volatile_blob_url_requires_source_provenance` для `blob:` (ссылка жизни браузерного документа, не доказательство устойчивого файла) и `empty_video_data_url` для пустого `data:video/...,`. Оригиналы и URI не возвращаются пользователю в диагностическом отчёте. Отсутствует чтение/декодирование payload и разрешение cleanup.
+- `tests/video-archive-v2-copy-inventory.test.mjs` +3 синтетических теста: transient blob URL, пустой inline Data URL, нормальный непустой Data URL без ложных issues. Всего ожидается **48** тестов inventory и **137** связанных четырёх модулей; эти числа не объявлять PASS до фактической проверки CI на соответствующем SHA.
+- При реальной записи через системную камеру/MediaStore всё ещё нельзя доказать отсутствие отдельной внешней копии; физическое удаление не разрешено. Идущая общая Android сборка не равна проверке жизненного цикла пользовательского видео. Model search parked.
+
+---
+
 ## 2026-11-22 — крупный интеграционный CI-блок: inventory + ledger + guard + staging
 
 - На code SHA `e29fb1e7e6be220fdb34080a5867e0e34d22f14d` отдельный [workflow #45003390723](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003390723) completed/success: **45/45** тестов; fake-indexeddb повторно открыта с неизменным результатом read-only audit. Это не аппаратное восстановление.
