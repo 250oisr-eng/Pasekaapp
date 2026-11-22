@@ -24,9 +24,8 @@ test('isolated Android build never targets real app, test user storage or remote
    assert.doesNotMatch(text,unsafe);
  }
 });
-test('real onnxruntime web wasm executes simple local numeric ONNX model',async(t)=>{
- let ort;
- try{ort=await import('onnxruntime-web/wasm')}catch{t.skip('ORT_WEB_NOT_INSTALLED');return}
+test('real onnxruntime web wasm executes simple local numeric ONNX model',async()=>{
+ const ort=await import('onnxruntime-web/wasm');
  const session=await ort.InferenceSession.create(SYNTHETIC_ONNX,{executionProviders:['wasm']});
  try{
   const result=await session.run({x:new ort.Tensor('float32',Float32Array.of(3),[1])});
