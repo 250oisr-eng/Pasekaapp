@@ -137,6 +137,16 @@ function inspectSnapshot(v,guard){
    if(!object(row.record)||row.record.blob==null){
     issue('rollback_video_unknown');continue;
    }
+   if(row.originalId!=null&&row.record.id!=null&&
+      row.originalId!==row.record.id)issue('rollback_original_identity_conflict');
+   if(row.record.blobSha256!=null&&row.record.sourceSha256!=null&&
+      hex(row.record.blobSha256)&&hex(row.record.sourceSha256)&&
+      row.record.blobSha256!==row.record.sourceSha256)
+    issue('conflicting_source_metadata');
+   if(row.record.bytes!=null&&row.record.sourceBytes!=null&&
+      Number.isSafeInteger(row.record.bytes)&&Number.isSafeInteger(row.record.sourceBytes)&&
+      row.record.bytes!==row.record.sourceBytes)
+    issue('conflicting_source_metadata');
    add('archive_staging.rollback_video','entrance_media',
     row.originalId??row.record.id,
     row.record.blobSha256??row.record.sourceSha256,
