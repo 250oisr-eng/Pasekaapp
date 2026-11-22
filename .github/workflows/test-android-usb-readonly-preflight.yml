@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tests/android-usb-preflight-mock.ps1'
       - '.github/workflows/test-android-usb-readonly-preflight.yml'
   pull_request:
     paths:
@@ -37,3 +38,6 @@ jobs:
             }
           }
           Write-Host "POWERSHELL_PARSE_AND_ADB_COMMAND_AUDIT_PASS"
+      - name: Windows mock regression — absent vs denied packages
+        shell: pwsh
+        run: ./tests/android-usb-preflight-mock.ps1
