@@ -626,6 +626,48 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
   });
 }
 
+function assertRollbackSnapshotIdentity(rollbackSessionId, rollbackSession, rows) {
+  const records = assertIndexedDbRows(rows, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED');
+  // An index result must be the exact snapshot, not merely the right number
+  // of rows. Otherwise a wrong-key state or video can silently be restored.
+  if (!rollbackSession || rollbackSession.id !== rollbackSessionId ||
+      rollbackSession.sessionId !== rollbackSessionId ||
+      rollbackSession.kind !== 'rollback_session') {
+    fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'The rollback snapshot header identity is invalid; existing data was preserved.');
+  }
+  const seen = new Set();
+  let headerCount = 0;
+  for (const row of records) {
+    if (!row || row.sessionId !== rollbackSessionId ||
+        typeof row.id !== 'string' || seen.has(row.id)) {
+      fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'The rollback snapshot contains an invalid or duplicate row identity.');
+    }
+    seen.add(row.id);
+    if (row.kind === 'rollback_session') {
+      if (row.id !== rollbackSessionId) {
+        fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'The rollback snapshot header is not stored under its expected key.');
+      }
+      headerCount++;
+    } else if (row.kind === 'rollback_state') {
+      if (row.id !== rollbackSessionId + ':state') {
+        fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'The previous journal snapshot has an unexpected key.');
+      }
+    } else if (row.kind === 'rollback_video') {
+      if (typeof row.originalId !== 'string' || !row.originalId ||
+          !row.record || row.record.id !== row.originalId ||
+          row.id !== rollbackSessionId + ':video:' + row.originalId) {
+        fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'A previous video snapshot does not match its original ID and primary key.');
+      }
+    } else {
+      fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'The rollback snapshot contains an unknown record kind.');
+    }
+  }
+  if (headerCount !== 1) {
+    fail('ROLLBACK_SNAPSHOT_IDENTITY_INVALID', 'The rollback snapshot header could not be verified in the staged row set.');
+  }
+  return records;
+}
+
 async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoProvider, validateState) {
   ensureStores(db);
   if (!db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('full_backup') || !db.objectStoreNames.contains('entrance_media')) {
@@ -686,7 +728,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
-  let snapshotRecords = assertIndexedDbRows(records, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED').filter(record => record && record.sessionId === rollbackSessionId);
+  let snapshotRecords = assertRollbackSnapshotIdentity(rollbackSessionId, rollbackSession, records);
   const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
       rollbackSession.stagedCount !== rollbackSession.totalEntries ||
@@ -748,7 +790,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   const finalSnapshotReadDone = transactionDone(finalSnapshotReadTx);
   const finalSnapshotRows = await requestValue(finalSnapshotReadTx.objectStore(STAGING_STORE).index('sessionId').getAll(rollbackSessionId));
   await finalSnapshotReadDone;
-  snapshotRecords = assertIndexedDbRows(finalSnapshotRows, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED').filter(record => record && record.sessionId === rollbackSessionId);
+  snapshotRecords = assertRollbackSnapshotIdentity(rollbackSessionId, rollbackSession, finalSnapshotRows);
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
       snapshotFingerprint(snapshotRecords) !== expectedSnapshotFingerprint) {
     fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
