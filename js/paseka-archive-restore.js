@@ -9,6 +9,13 @@ function fail(code, message) {
   error.code = code;
   throw error;
 }
+function assertIndexedDbRows(rows, code) {
+  // IndexedDB getAll() must return an Array, including when the store is empty.
+  // A malformed result must never masquerade as an empty media library or
+  // empty history: doing so could overwrite videos or discard protected data.
+  if (!Array.isArray(rows)) fail(code, 'The IndexedDB enumeration is not a verified array; data was preserved.');
+  return rows;
+}
 function assertLegacyArchiveRecognitionLedger(value) {
   if (value == null) return;
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
@@ -268,7 +275,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     const baselineReadDone = transactionDone(baselineReadTx);
     const baselineRows = await requestValue(baselineReadTx.objectStore('entrance_media').getAll());
     await baselineReadDone;
-    const baselineRecords = await Promise.all((baselineRows || []).map(async record => {
+    const baselineRecords = await Promise.all(assertIndexedDbRows(baselineRows, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED').map(async record => {
       if (!record || !record.blob || typeof record.blob.slice !== 'function') {
         fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob. The archive import was not staged.');
       }
@@ -289,7 +296,7 @@ async function stageArchiveForRestore(db, archiveBlob, cryptoProvider, archiveAp
     let baselineFailure = null;
     baselineRequest.onsuccess = () => {
       try {
-        const currentRows = baselineRequest.result || [];
+        const currentRows = assertIndexedDbRows(baselineRequest.result, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
         const expectedById = new Map(baselineRecords.map(record => [record.id, record]));
         if (currentRows.length !== baselineRecords.length ||
             currentRows.some(record => !record || !expectedById.has(record.id))) {
@@ -401,7 +408,7 @@ async function hashLiveMediaBaseline(db, cryptoProvider) {
   const done = transactionDone(tx);
   const rows = await requestValue(tx.objectStore('entrance_media').getAll());
   await done;
-  const records = await Promise.all((rows || []).map(async record => {
+  const records = await Promise.all(assertIndexedDbRows(rows, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED').map(async record => {
     if (!record || !record.blob || typeof record.blob.slice !== 'function') {
       fail('MEDIA_BASELINE_BLOB_INVALID', 'An existing entrance video has no readable Blob.');
     }
@@ -490,7 +497,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
         try {
           const currentState = values.currentState || null;
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
-          const currentVideos = Array.isArray(values.currentVideos) ? values.currentVideos : [];
+          const currentVideos = assertIndexedDbRows(values.currentVideos, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
           const session = values.session;
           const records = values.stagedRecords || [];
           if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) {
@@ -658,6 +665,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (typeof knownHistory.importedMediaFingerprint !== 'string') {
     fail('ROLLBACK_MEDIA_BASELINE_MISSING', 'This import predates video change protection. Rollback is disabled to avoid deleting videos that may have been added later.');
   }
+  assertIndexedDbRows(phaseAMedia, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
   if (phaseAMedia.some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || ''))) {
     fail('ROLLBACK_MEDIA_HASH_MISSING', 'One or more videos predate content hashing. Export them and create a fresh verified archive before rollback.');
   }
@@ -816,10 +824,11 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
               history.importSessionId !== knownHistory.importSessionId) {
             fail('ROLLBACK_NOT_AVAILABLE', 'The archive import is no longer eligible for rollback.');
           }
-          if ((values.currentVideos || []).some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || '')) ||
+          const currentVideos = assertIndexedDbRows(values.currentVideos, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
+          if (currentVideos.some(record => !/^[a-f0-9]{64}$/.test(record?.blobSha256 || '')) ||
               typeof history.importedMediaFingerprint !== 'string' ||
               history.importedMediaFingerprint !== knownHistory.importedMediaFingerprint ||
-              mediaRecordsFingerprint(values.currentVideos || []) !== history.importedMediaFingerprint) {
+              mediaRecordsFingerprint(currentVideos) !== history.importedMediaFingerprint) {
             fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
           }
           if (!currentRollbackSession || currentRollbackSession.kind !== 'rollback_session' ||
@@ -1336,7 +1345,7 @@ function discardArchiveRestoreSession(db, sessionId) {
             const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
             historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
             historyRequest.onsuccess = () => {
-            const references = (historyRequest.result || []).filter(item => item &&
+            const references = assertIndexedDbRows(historyRequest.result, 'ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED').filter(item => item &&
               (item.importSessionId === sessionId || item.rollbackSessionId === sessionId));
             const protectedReference = references.some(item => {
               // Reverted imports may discard their now-unneeded import staging,
