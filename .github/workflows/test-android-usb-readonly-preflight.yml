@@ -73,7 +73,7 @@ jobs:
           foreach ($required in @('ANDROID_RESTORE335_PRIVATE_READONLY_V2','packagePathFirst','packageList','packagePathSecond','PRESENT_USER0','PACKAGE_IDENTITY_INCONSISTENT_OR_ABSENT_NO_PRIVATE_ACCESS','PRIVATE_FILES_NONEMPTY_NO_ACTION','NOT_AUTHORIZED')) {
             if (-not $s.Contains($required)) { throw "V2_SAFETY_GUARD_MISSING_$required" }
           }
-          if (@([regex]::Matches($s, "'pm','path'")).Count -ne 2) { throw 'V2_REQUIRES_TWO_PATH_CALLS' }
+          if (@([regex]::Matches($s, "'pm','path'")).Count -ne 3) { throw 'V2_REQUIRES_THREE_PATH_CALLS' }
           if (@([regex]::Matches($s, "'pm','list','packages'")).Count -ne 1) { throw 'V2_REQUIRES_ONE_PACKAGE_LIST' }
           Write-Host 'ANDROID_RESTORE335_V2_STATIC_PASS'
       - name: Windows mock regression — absent vs denied packages
