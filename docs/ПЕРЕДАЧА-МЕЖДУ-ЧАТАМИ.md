@@ -1,3 +1,11 @@
+## 2026-11-22 — USB one-shot: exact-code-SHA CI PASS, физический тест ожидает устройство
+
+- Кодовый SHA `5ad381e43453a49d99213d1bba3a82bdce443857`: [Fast quality #45033051029](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033051029), [изолированный диагностический APK #45033050984](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033050984), [основная Android сборка #45033051007](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033051007) — **все completed/success**. Это проверки исходного кода и CI, **не исполнение PowerShell на Windows или на Android**.
+- Следующий физический этап ограничен `tools/android-product-permissions-one-shot.ps1` с закреплённым артефактом `#45032633730` и точным SHA256 APK. Требуются доступные USB ADB и авторизованный GitHub CLI `gh` для автоматического скачивания (или локальный `-ApkPath`); при отсутствии зависимости сценарий завершится BLOCKED, не трогая исходный продукт. На экране диагностического приложения останутся ровно две кнопки для итогового JSON.
+- `main`, production, оригинальная установленная `ru.paseka.journal`, данные и медиа не изменялись. Реальные разрешения установленного продукта, трафик, распознавание и безопасное удаление видео: **NOT_TESTED**. Действия по cleanup/restore не разрешены.
+
+---
+
 ## 2026-11-22 — подготовлен безопасный USB one-shot для installed-product permission audit
 
 - Новый `tools/android-product-permissions-one-shot.ps1` автоматизирует одну ограниченную операцию **только с отдельным диагностическим Android-пакетом**: проверяет единственный авторизованный USB ADB, наличие основной `ru.paseka.journal`, отсутствие диагностического `ru.paseka.journal.diagnostic.productpermsv1`, получает закреплённый CI APK через авторизованный `gh run download` (или локальный `-ApkPath`), сверяет SHA256 и выполняет `adb -d install` без `-r`, затем запускает только диагностику. Продукт не запускает, не изменяет, не удаляет, не переустанавливает.
