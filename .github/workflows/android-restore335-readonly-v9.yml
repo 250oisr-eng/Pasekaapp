@@ -26,7 +26,7 @@ jobs:
           if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
           $defs=@($tree.FindAll({param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -eq 'Test-SingleNullRecord'},$true))
           if ($defs.Count -ne 1) { throw 'NULL_PARSER_FUNCTION_NOT_FOUND' }
-          [void][ScriptBlock]::Create($defs[0].Extent.Text).Invoke()
+          . ([ScriptBlock]::Create($defs[0].Extent.Text))
           $n=[char]0
           if ((Test-SingleNullRecord '') -ne 0) { throw 'EMPTY_NOT_ZERO' }
           if ((Test-SingleNullRecord ('files/one'+$n)) -ne 1) { throw 'SINGLE_NOT_ONE' }
