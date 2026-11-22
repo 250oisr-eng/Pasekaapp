@@ -94,8 +94,8 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
   @{Name='no-product';Expected=2;Install=$false;Launch=$false;Reason='PRODUCT_NOT_INSTALLED_NO_TEST'},
   @{Name='preinstalled';Expected=2;Install=$false;Launch=$false;Reason='DIAGNOSTIC_ALREADY_PRESENT_NO_REINSTALL'},
   @{Name='bad-hash';Expected=2;Install=$false;Launch=$false;Reason='PINNED_APK_SHA256_MISMATCH'},
-  @{Name='install-fail';Expected=2;Install=$true;Launch=$false;Reason='COMMAND_FAILED_adb_1'},
-  @{Name='launch-fail';Expected=2;Install=$true;Launch=$true;Reason='COMMAND_FAILED_adb_9'},
+  @{Name='install-fail';Expected=2;Install=$true;Launch=$false;Reason='INSTALL_NOT_CONFIRMED'},
+  @{Name='launch-fail';Expected=2;Install=$true;Launch=$true;Reason='DIAGNOSTIC_LAUNCH_NOT_CONFIRMED'},
   @{Name='success';Expected=0;Install=$true;Launch=$true;Reason='PASS_DIAGNOSTIC_INSTALLED_AND_LAUNCHED_ONLY'}
  )
  foreach($case in $cases){
