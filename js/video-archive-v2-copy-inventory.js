@@ -36,7 +36,7 @@ function snapshot(db){
  });
 }
 function inspectSnapshot(v,guard){
- const issues=new Set(),copies=[],names=new Set(),recognition=new Map(),recognitionEvidence=new Map();
+ const issues=new Set(),copies=[],names=new Set(),recognition=new Map(),recognitionEvidence=new Map(),recognizedByIdentity=new Map();
  const issue=name=>issues.add(name);
  const add=(store,source,id,sha,bytes,blob)=>{
   if(!['entrance_media','record_media'].includes(source)||!key(id)){
@@ -63,6 +63,7 @@ function inspectSnapshot(v,guard){
   for(const e of v.ledger.entries){
    const identity=sourceKey(e.source,e.videoId);
    recognition.set(identity,e.cleanupState);
+   recognizedByIdentity.set(identity,e);
    // Metadata-only possible alias detection: an SHA+size match is not a
    // fresh byte-level proof and never authorizes deletion.
    if(hex(e.sourceSha256)&&Number.isSafeInteger(e.sourceBytes)&&e.sourceBytes>0){
@@ -98,7 +99,14 @@ function inspectSnapshot(v,guard){
  else for(const item of v.entrance){
   if(!object(item)){issue('entrance_record_unknown');continue;}
   if(item.blob==null){issue('entrance_payload_unknown');continue;}
-  add('entrance_media','entrance_media',item.id,item.blobSha256||item.sourceSha256,
+  // Both forms can coexist on migrated records: never silently prefer one.
+  if(item.blobSha256!=null&&item.sourceSha256!=null&&
+     hex(item.blobSha256)&&hex(item.sourceSha256)&&
+     item.blobSha256!==item.sourceSha256)issue('conflicting_source_metadata');
+  if(item.bytes!=null&&item.sourceBytes!=null&&
+     Number.isSafeInteger(item.bytes)&&Number.isSafeInteger(item.sourceBytes)&&
+     item.bytes!==item.sourceBytes)issue('conflicting_source_metadata');
+  add('entrance_media','entrance_media',item.id,item.blobSha256??item.sourceSha256,
    item.bytes??item.sourceBytes,item.blob);
  }
  if(!Array.isArray(v.staging))issue('staging_unknown');
@@ -187,6 +195,12 @@ function inspectSnapshot(v,guard){
  for(const copy of copies){
   const status=recognition.get(copy.identity);
   if(status!=null)issue('recognized_original_still_present');
+  // Persisted recognition digest must not be trusted over contradictory source metadata.
+  const verifiedEntry=recognizedByIdentity.get(copy.identity);
+  if(verifiedEntry&&(
+    copy.sha256!==null&&copy.sha256!==verifiedEntry.sourceSha256||
+    copy.bytes!==null&&copy.bytes!==verifiedEntry.sourceBytes))
+   issue('recognition_source_evidence_conflict');
   if(status==='deleted')issue('deleted_tombstone_has_copy');
   if(copy.sha256!==null&&Number.isSafeInteger(copy.bytes)&&copy.bytes>0){
    const candidates=recognitionEvidence.get(copy.sha256+':'+copy.bytes)||[];
