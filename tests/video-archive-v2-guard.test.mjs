@@ -68,3 +68,19 @@ test('opaque recognition payload objects and unknown entry fields fail closed',(
  rejects(()=>api.validateRecognitionLedgerForV2(ledger([recognized({unexpectedField:new Blob(['bytes'])})])),'V2_LEDGER_ENTRY_INVALID');
  rejects(()=>api.validateRecognitionLedgerForV2({...ledger([recognized()]),unverifiedMetadata:{}}),'V2_LEDGER_INVALID');
 });
+
+
+for (const [label,patch] of [
+  ['missing state revision', {stateRevisionId:undefined}],
+  ['empty state revision', {stateRevisionId:''}],
+  ['invalid state revision', {stateRevisionId:'invalid whitespace'}],
+  ['missing source hash verification time', {sourceHashVerifiedAt:undefined}],
+  ['unparseable source hash verification time', {sourceHashVerifiedAt:'not-a-date'}],
+  ['numeric hash verification time', {sourceHashVerifiedAt:123}],
+  ['non-string state revision', {stateRevisionId:42}]
+]) {
+  test('PASEKA02 ledger refuses '+label+' without recognizing an unverifiable original',()=>{
+    rejects(()=>api.validateRecognitionLedgerForV2(ledger([recognized(patch)])),
+      'V2_LEDGER_ENTRY_INVALID');
+  });
+}
