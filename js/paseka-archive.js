@@ -188,7 +188,10 @@ async function verifyArchive(blob, parsed, cryptoProvider) {
   return true;
 }
 function assertLegacyArchiveRecognitionLedger(value) {
-  if (value == null) return;
+  // An absent IndexedDB key returns undefined. A present null value is
+  // corrupt/ambiguous, not proof that recognition history is empty.
+  // Never export, import or roll back a v1 archive in that condition.
+  if (value === undefined) return;
   if (!isObject(value) || value.version !== 1 || !Array.isArray(value.entries)) {
     fail('VIDEO_LEDGER_UNVERIFIED', 'Recognition history is unreadable. The legacy archive export is blocked.');
   }
