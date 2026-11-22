@@ -1,3 +1,10 @@
+## P2.7 — длинная история / подтверждённый footprint Android (2026-11-23)
+
+- P2 Draft #426 exact HEAD `0431aee1a139a1017cc71c06b8912653cddf9cb7`: Fast Quality #45083344403 **1234/1234 PASS**, Android Debug #45083344435 **success**. Android CI измерил `P2_APK_BYTES=8400918`, `P2_RUNTIME_JS_BYTES=450361` (21 файл), `P2_SOURCE_JS_BYTES=596340` (38 файлов); 17 изолированных прототипов (145979 source bytes) не попадают в generated www. Это **не** доказательство разницы размера APK до/после. P0 emulator workflow отдельный, нужно проверить его статус на exact SHA.
+- Следующий безопасный блок `perf/p2-long-history-readonly-render-2026-11-23`: newest 100 audit events из длинной истории читаются с хвоста, без O(N) полного копирования; журнал сначала фильтруется, потом сортируется, не теряя старых записей. `tests/p2-long-history-render.test.mjs` проверяет 20k synthetic audit и порядок журналов.
+- Нет изменений IndexedDB schema/backup/media, кадры/детекция/очистка/production не тронуты. P2.1/2.2/2.5 частично проверены в CI, P2.3/P2.4/P2.8 и физические P2.6 зависят от открытых P0/P1. Текущий P2.7 нуждается в CI именно на новом HEAD; P2 **NOT READY**.
+
+---
 ### P2.5 — первый CI: устаревший тест способа упаковки (2026-11-23)
 
 - Первый SHA #426 `d5acee9c76941649187c09e25d2898e08fd7dad2`: Fast Quality #45083259096 **FAILED: 1233/1234 PASS, 1 FAIL**. Старый `tests/voice-session.test.mjs` жёстко требовал `cp('js','www/js',{recursive:true})` и противоречил цели безопасной упаковки только runtime ассетов. Проверка загрузки двух голосовых JS и их offline caching по-прежнему PASS.
