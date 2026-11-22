@@ -121,6 +121,29 @@ async function updateSession(db, session) {
       try { tx.abort(); } catch (error) {}
       return;
     }
+    // A concurrent staging writer may have advanced the manifest entries and
+    // epoch while this caller was preparing a final status update. Never let a
+    // stale ready/failed update regress the verified counter, overwrite the
+    // baseline, or re-label another session's staging records.
+    if (currentSession.status === 'staging' &&
+        (currentSession.id !== sessionId ||
+         currentSession.sessionId !== sessionId ||
+         session.id !== sessionId ||
+         currentSession.backupId !== session.backupId ||
+         currentSession.fingerprint !== session.fingerprint ||
+         currentSession.totalEntries !== session.totalEntries ||
+         !Number.isSafeInteger(currentSession.stagingEpoch) ||
+         currentSession.stagingEpoch < 0 ||
+         currentSession.stagingEpoch !== session.stagingEpoch ||
+         !Number.isSafeInteger(currentSession.stagedCount) ||
+         currentSession.stagedCount < 0 ||
+         currentSession.stagedCount !== session.stagedCount ||
+         currentSession.baselineMediaFingerprint !== session.baselineMediaFingerprint ||
+         currentSession.baselineMediaMetadataFingerprint !== session.baselineMediaMetadataFingerprint)) {
+      failure = Object.assign(new Error('Staging session changed during status finalization.'), { code: 'STAGING_SESSION_CHANGED' });
+      try { tx.abort(); } catch (error) {}
+      return;
+    }
     if (session.status === 'ready') {
       const ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
       ledgerRequest.onerror = () => { failure = ledgerRequest.error || new Error('Could not read recognition ledger during staging finalization.'); try { tx.abort(); } catch (ignored) {} };
