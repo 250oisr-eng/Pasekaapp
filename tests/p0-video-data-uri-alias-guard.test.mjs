@@ -49,7 +49,7 @@ test('recognition ledger rejects alternative video MIME payloads in structured r
     'video/mp4', 'application/octet-stream', 'application/x-matroska',
     'application/ogg', 'application/x-msvideo', 'application/vnd.apple.mpegurl'
   ]) {
-    const withBinary = {...record, result:{observation:'data:' + type + ';base64,AAAA'}};
+    const withBinary = {...record, result:{observation:'Observation: data:' + type + ';base64,AAAA'}};
     assert.throws(() => validate({version:1, entries:[withBinary]}),
       e => e.code === 'V2_RESULT_BINARY', type + ' must not pass as text observation');
   }
