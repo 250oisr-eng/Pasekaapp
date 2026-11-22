@@ -229,4 +229,7 @@ catch {
 finally {
   $report | ConvertTo-Json -Depth 3
 }
+# Explicit exit status prevents the calling CMD/PowerShell wrapper from inheriting
+# a stale nonzero LASTEXITCODE after a successful read-only check.
 if ($report.status -ne 'PASS') { exit 2 }
+exit 0
