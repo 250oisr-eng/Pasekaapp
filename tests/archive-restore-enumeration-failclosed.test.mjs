@@ -173,3 +173,24 @@ test('unverified history listing forbids deletion of referenced staged files',as
   assert.equal((await rows(db,'archive_history')).length,1);
  }finally{db.close();}
 });
+
+for(const mode of ['readonly','readwrite']){
+ test('unverified media enumeration blocks rollback in '+mode+' phase, preserving imported state',async()=>{
+  const db=await seeded();
+  try{
+   const staged=await stage(db);
+   const committed=await Restore.commitStagedArchive(db,staged.session.sessionId,
+    LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+   const before=await get(db,'main','state');
+   const history=await get(db,'archive_history','synthetic-media-integrity-1');
+   assert.equal(history.status,'committed');
+   await assert.rejects(
+    Restore.rollbackCommittedArchive(corruptGetAll(db,'entrance_media',null,mode),
+     'synthetic-media-integrity-1',before.meta.revisionId,webcrypto,()=>true),
+    {code:'RESTORE_MEDIA_ENUMERATION_UNVERIFIED'});
+   assert.deepEqual(await get(db,'main','state'),before);
+   assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'committed');
+   assert.ok(await get(db,'archive_staging',committed.rollbackSessionId));
+  }finally{db.close();}
+ });
+}
