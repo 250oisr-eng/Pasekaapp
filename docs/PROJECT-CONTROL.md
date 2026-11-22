@@ -1,3 +1,9 @@
+## 2026-11-22 — Restore335 V10: fixed source-defined private test file
+
+- [ANDROID-RESTORE335-FIXED-SOURCE-PREDICATES-V10-2026-11-22.md](ANDROID-RESTORE335-FIXED-SOURCE-PREDICATES-V10-2026-11-22.md) — после физического V9 BLOCKED: точное имя из исходного APK, проверка `test -e/-f/-d/-L` только для известного тестового пути, без чтения файлов и удаления.
+
+---
+
 ## 2026-11-22 — Android Restore335 V9: bounded NUL-delimited type probes
 
 - [ANDROID-RESTORE335-NULL-TYPE-V9-2026-11-22.md](ANDROID-RESTORE335-NULL-TYPE-V9-2026-11-22.md): после физического V8 `OTHER_OPAQUE_MISMATCH` — одна запись `find -print0`, без сравнения имён и без доступа к содержимому.
