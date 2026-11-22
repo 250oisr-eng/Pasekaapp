@@ -1,3 +1,10 @@
+## 2026-11-22 — контроль безопасности всех видео-копий и подготовка удаления
+
+- [VIDEO-ALL-COPY-CLEANUP-SAFETY-GATE-2026-11-22.md](VIDEO-ALL-COPY-CLEANUP-SAFETY-GATE-2026-11-22.md) — карта подтверждённых/неподтверждённых оригиналов, fail-closed readiness, блокеры Gallery/MediaStore/backup, протокол будущего удаления без его активации.
+- [../js/video-cleanup-preflight.js](../js/video-cleanup-preflight.js) — read-only диагностика, не подключённая к UI; никогда не разрешает delete.
+
+---
+
 ## 2026-11-22 — допуск моделей пчёл: проверка лицензий, весов и назначения
 
 - [VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md](VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md) — сравнительный аудит кандидатов Matt Nudi, Apiarist, Honey-Bee-Society и Gratheon, доказательная цепочка до Android offline inference, отсутствие разрешения на распознавание и удаление видео.
