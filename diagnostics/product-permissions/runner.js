@@ -1,7 +1,7 @@
 (function(){'use strict';
 const PKG='ru.paseka.journal.diagnostic.productpermsv1',TARGET='ru.paseka.journal';
 const button=document.getElementById('run'),copy=document.getElementById('copy'),status=document.getElementById('status'),view=document.getElementById('result');
-let last=null;
+let last=null,runInFlight=false;
 function check(x,code){if(!x)throw Error(code);}
 function report(state,code,extra={}){
  const result={status:state,code,packageId:PKG,targetPackageId:TARGET,
@@ -39,6 +39,8 @@ function report(state,code,extra={}){
  status.textContent=(finalReport.status==='PASS'?'Метаданные получены.':'Проверка ограничена: '+finalReport.code+'.')+' Нажмите «Копировать результат».';
 }
 async function run(){
+ if(runInFlight)return;
+ runInFlight=true;
  button.disabled=true;copy.disabled=true;last=null;view.textContent='RUNNING';
  status.textContent='Читаются сведения установленного пакета Android…';
  try{
@@ -67,7 +69,7 @@ async function run(){
    requestedPermissions:permissions});
  }catch(e){
   report('BLOCKED',String(e&&e.message||e),{installedProductPackageVerified:false});
- }finally{button.disabled=false;}
+ }finally{runInFlight=false;button.disabled=false;}
 }
 async function write(){
  if(copy.disabled||!last)return;
