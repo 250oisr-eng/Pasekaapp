@@ -1,0 +1,54 @@
+name: Android Restore335 V10 fixed source read-only predicates
+on:
+  push:
+    paths:
+      - 'tools/android-restore335-fixed-file-predicates-v10.ps1'
+      - 'tests/android-restore335-fixed-file-predicates-v10.test.mjs'
+      - 'tests/android-restore335-report-writer-provenance.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v10.yml'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-fixed-file-predicates-v10.ps1'
+      - 'tests/android-restore335-fixed-file-predicates-v10.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v10.yml'
+jobs:
+  readonly-v10:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse PowerShell and execute synthetic boolean-predicate matrix
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          $tree=[System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-fixed-file-predicates-v10.ps1',[ref]$tok,[ref]$err)
+          if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
+          $defs=@($tree.FindAll({param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -eq 'Get-ExpectedSourceKind'},$true))
+          if ($defs.Count -ne 1) { throw 'EXPECTED_PREDICATE_FUNCTION_MISSING' }
+          . ([ScriptBlock]::Create($defs[0].Extent.Text))
+          $abs='__TEST_FALSE__'
+          if ((Get-ExpectedSourceKind '' '' $abs $abs) -cne 'REGULAR_FILE_NAMED_ONLY') { throw 'VALID_FIXED_FILE_REJECTED' }
+          $bad=@(
+            @($abs,$abs,$abs,$abs),
+            @('',$abs,$abs,$abs),
+            @('','',$abs,''),
+            @('','',$abs,'garbage'),
+            @('','',$abs,'UNKNOWN'),
+            @('','', '',$abs),
+            @('','garbage',$abs,$abs)
+          )
+          foreach($case in $bad) {
+            $blocked=$false
+            try { [void](Get-ExpectedSourceKind $case[0] $case[1] $case[2] $case[3]) } catch { $blocked=$true }
+            if(-not $blocked){throw 'UNVERIFIED_FIXED_FILE_ACCEPTED'}
+          }
+          Write-Host 'PowerShell parser + 8 synthetic boolean-predicate cases PASS'
+      - name: Static security and exact-source regression checks
+        shell: pwsh
+        run: |
+          node --test tests/android-restore335-fixed-file-predicates-v10.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/android-restore335-report-writer-provenance.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
