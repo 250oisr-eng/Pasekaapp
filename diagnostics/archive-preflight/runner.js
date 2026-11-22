@@ -2,6 +2,9 @@
 'use strict';
 const runButton=document.getElementById('run');
 const reportElement=document.getElementById('result');
+const shareButton=document.getElementById('share');
+const shareStatus=document.getElementById('share-status');
+let latestReport=null;
 const dbName='paseka_archive_preflight_synthetic_only_v1';
 const packageId='ru.paseka.journal.diagnostic.archivepreflight';
 const guard=window.PasekaAndroidArchivePreflight;
@@ -94,6 +97,9 @@ function assertBlocked(records,expectedIssue,scenario) {
 }
 async function run() {
  runButton.disabled=true;
+ shareButton.disabled=true;
+ latestReport=null;
+ shareStatus.textContent='Выполняется проверка';
  reportElement.textContent='RUNNING';
  checked.length=0;
  let db=null;
@@ -148,7 +154,32 @@ async function run() {
  } finally {
   if(db)db.close();
   runButton.disabled=false;
+  latestReport=reportElement.textContent;
+  try {
+   window.PasekaDiagnosticShare.checkedReport(latestReport);
+   shareButton.disabled=false;
+   shareStatus.textContent='Отчёт готов. Нажмите «Отправить результат» и выберите приложение.';
+  } catch(_) {
+   latestReport=null;
+   shareButton.disabled=true;
+   shareStatus.textContent='Отчёт некорректен: отправка заблокирована.';
+  }
+ }
+}
+async function shareResult() {
+ if(shareButton.disabled || !latestReport)return;
+ shareButton.disabled=true;
+ shareStatus.textContent='Открывается меню отправки Android…';
+ try {
+  const share=window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+  await window.PasekaDiagnosticShare.shareReport(latestReport,share);
+  shareStatus.textContent='Меню отправки закрыто. Проверьте, что сообщение действительно отправлено выбранным приложением.';
+ } catch(error) {
+  shareStatus.textContent='Отправка не подтверждена: '+String(error&&error.message||error)+'. Отчёт сохранён на экране.';
+ } finally {
+  shareButton.disabled=false;
  }
 }
 runButton.addEventListener('click',run);
+shareButton.addEventListener('click',shareResult);
 })();
