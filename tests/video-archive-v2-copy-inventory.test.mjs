@@ -632,3 +632,84 @@ test('nonempty inline journal video does not receive the transient or empty-payl
  assert.equal(report.cleanupAuthorized,false);
  db.close();
 });
+
+test('aborted concurrent archive inventory transaction fails closed and preserves original',async()=>{
+ const db=await setup({entrance:[live('protected-original')],staging:[staged('protected-original')]});
+ const aborted={objectStoreNames:db.objectStoreNames,transaction(stores,mode){
+  assert.equal(mode,'readonly');
+  const tx=db.transaction(stores,mode);
+  queueMicrotask(()=>{try{tx.abort()}catch(_){}});
+  return tx;
+ }};
+ await assert.rejects(audit(aborted,guard));
+ const after=await audit(db,guard);
+ assert.equal(after.copyCount,2);
+ assert.equal(after.distinctIdentities,1);
+ assert.equal(after.cleanupAuthorized,false);
+ assert.equal(after.restoreAuthorized,false);
+ assert.equal(after.dataModified,false);
+ db.close();
+});
+test('incomplete or old schema with missing protected object stores cannot yield empty-safe report',async()=>{
+ const factory=new IDBFactory();
+ const req=factory.open('paseka-incomplete-video-inventory-'+(++serial),1);
+ req.onupgradeneeded=()=>{req.result.createObjectStore('main')};
+ const db=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ await assert.rejects(audit(db,guard),/V2_COPIES_STORES_MISSING/);
+ db.close();
+});
+test('two simultaneous read-only reports remain stable after reconnect on isolated synthetic storage',async()=>{
+ const db=await setup({entrance:[live('stable')],staging:[staged('stable')]});
+ const [one,two]=await Promise.all([audit(db,guard),audit(db,guard)]);
+ assert.deepEqual(one,two);
+ assert.equal(one.copyCount,2);
+ assert.equal(one.cleanupAuthorized,false);
+ db.close();
+ const request=fixtureFactory.open(db.name,1);
+ const reopened=await new Promise((resolve,reject)=>{
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+ });
+ const again=await audit(reopened,guard);
+ assert.deepEqual(again,one);
+ assert.equal(again.dataModified,false);
+ reopened.close();
+});
+
+test('corrupt ledger remains untrusted across restart even when no live originals are visible',async()=>{
+ const corrupt={version:1,entries:[{source:'entrance_media',videoId:'v1',
+  cleanupState:'deleted',sourceSha256:'bad',sourceBytes:3}]};
+ const db=await setup({ledger:corrupt});
+ const before=await audit(db,guard);
+ assert.equal(before.copyCount,0);
+ assert.ok(before.issues.includes('ledger_invalid'));
+ assert.equal(before.cleanupAuthorized,false);
+ const name=db.name;db.close();
+ const req=fixtureFactory.open(name,1);
+ const reopened=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const after=await audit(reopened,guard);
+ assert.deepEqual(after,before);
+ assert.equal(after.archiveSafe,false);
+ assert.equal(after.restoreAuthorized,false);
+ reopened.close();
+});
+test('unknown protected backup payload stays blocked without revealing its contents on reopen',async()=>{
+ const secret='SYNTHETIC_PRIVATE_ARCHIVE_TEST_BYTES';
+ const db=await setup({backups:[['opaque',{blob:new Blob([secret])}]]});
+ const before=await audit(db,guard);
+ assert.ok(before.issues.includes('unknown_backup_format'));
+ assert.equal(before.cleanupAuthorized,false);
+ assert.equal(JSON.stringify(before).includes(secret),false);
+ const name=db.name;db.close();
+ const req=fixtureFactory.open(name,1);
+ const reopened=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const after=await audit(reopened,guard);
+ assert.deepEqual(after,before);
+ assert.equal(after.dataModified,false);
+ reopened.close();
+});
