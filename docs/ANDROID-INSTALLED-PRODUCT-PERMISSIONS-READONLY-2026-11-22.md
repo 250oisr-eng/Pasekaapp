@@ -1,3 +1,10 @@
+## 2026-11-22 — подтверждена исправленная проверка разрешений диагностического APK
+
+- **Кодовый SHA:** `645b15926094be50921585d5207ed13067b9eede`. GitHub Actions **completed/success на этом SHA**: [Fast quality checks #45028723506](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723506), [изолированный APK #45028723546](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723546), [общая Android сборка #45028723579](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723579). Предыдущие CI failures вызваны ошибочным синтаксисом нового теста, исправлены отдельным commit.
+- Специализированный workflow проверил разрешения APK по точному allowlist. Только диагностический APK затронут; основная `ru.paseka.journal` не менялась. Телефон, реальное видео, удаление и восстановление **NOT_TESTED**. Нет разрешения на cleanup/restore/merge/deploy.
+
+---
+
 ## Дополнительная защита сборки — 2026-11-22
 
 В Draft PR #366 CI изменён на **allowlist вместо неполного denylist**: изолированный APK не должен декларировать никаких Android `uses-permission` сверх собственного `ru.paseka.journal.diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. Любое неожиданное разрешение или отсутствие распознанных строк `aapt` — ошибка сборки. Добавлен регрессионный тест правила. Изменение не касается разрешений основной «Пасеки» и не является физическим доказательством отсутствия трафика. Code/test SHA `5333783d4eb12502fe8541ec73fa0a101d990a66`, итог CI ещё не подтверждён.
