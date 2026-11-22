@@ -57,3 +57,12 @@ test('native bridge changes must trigger Android PR build',()=>{
  assert.ok(pr,'missing pull_request path filter');
  assert.match(pr,/\n      - 'scripts\/prepare-android-archive-download\.mjs'/);
 });
+
+test('emulator-only workflow caches dependencies by the committed lockfile without removing tests',()=>{
+ const yaml=readFileSync('.github/workflows/android-emulator-smoke.yml','utf8');
+ assert.match(yaml,/uses: actions\/setup-node@v4\s*\n\s*with:\s*\n\s*node-version: '20'\s*\n\s*cache: 'npm'\s*\n\s*cache-dependency-path: package-lock\.json/);
+ assert.match(yaml,/run: npm ci --no-audit --no-fund/);
+ assert.match(yaml,/run: node --test tests\/android-emulator-smoke-contract\.test\.mjs/);
+ assert.match(yaml,/script: bash scripts\/run-p0-emulator-ci\.sh/);
+ assert.doesNotMatch(yaml,/npm install --no-audit --no-fund/);
+});

@@ -1,3 +1,11 @@
+## P1 — npm-cache в изолированном Android Emulator CI (2026-11-23)
+
+- Без ослабления проверок в `.github/workflows/android-emulator-smoke.yml` включён `actions/setup-node@v4` `cache: npm` по `package-lock.json`, что позволяет переиспользовать скачанные npm-пакеты между последовательными проверками того же lockfile. `npm ci`, contract test и offline emulator smoke **сохранены**.
+- Расширен `tests/ci-npm-lockfile-reproducibility.test.mjs` на контракт нового cache. Это **потенциальная**, не доказанная измерениями экономия времени; exact-SHA CI нового workflow обязателен. GitHub бесплатный cache без платных сервисов.
+- P0/P1 OPEN, OnePlus не тестировался, main/production/media не менялись.
+
+---
+
 ## P1 — проверка QuotaExceededError после частичной постановки записей (2026-11-23)
 
 - В новой отдельной ветке над #432 добавлен `tests/p1-idb-quota-atomic-reopen.test.mjs`: синтетическая ошибка `QuotaExceededError` при `full_backup.put` после успешной постановки `main.put` в единую readwrite-транзакцию. Проверяется отказ и после закрытия/открытия IndexedDB сохранность **обоих** прежних записей, затем успешный retry и резервная копия предыдущего state.
