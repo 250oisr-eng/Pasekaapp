@@ -398,3 +398,41 @@ test('same video identity with contradictory byte count flags conflict without d
  assert.equal(report.cleanupAuthorized,false);
  db.close();
 });
+
+test('two conflicting SHA fields on one live entrance record are not silently reconciled',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceSha256:'b'.repeat(64)}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_source_metadata'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('two conflicting byte lengths on one live entrance record are not silently reconciled',async()=>{
+ const db=await setup({entrance:[{...live('v1'),sourceBytes:4}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_source_metadata'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('recognition source SHA mismatch is reported without trusting recognized flag',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[{...live('v1'),blobSha256:'b'.repeat(64)}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('recognition_source_evidence_conflict'));
+ assert.ok(report.issues.includes('deleted_tombstone_has_copy'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.restoreAuthorized,false);
+ db.close();
+});
+test('recognition source byte mismatch is reported with no false mismatch for matching evidence',async()=>{
+ const db=await setup({ledger:ledger('deleted'),entrance:[{...live('v1'),bytes:4,blob:blob('abcd')}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('recognition_source_evidence_conflict'));
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+ const matching=await setup({ledger:ledger('deleted'),entrance:[live('v1')]});
+ const correct=await audit(matching,guard);
+ assert.equal(correct.issues.includes('recognition_source_evidence_conflict'),false);
+ assert.equal(correct.cleanupAuthorized,false);
+ matching.close();
+});
