@@ -1,3 +1,12 @@
+## 2026-11-22 — защищён размер диагностического отчёта и уточнены границы доказательств
+
+- Обнаружено несоответствие: JS разрешал до 256 запрошенных permissions длиной до 200 символов, в то время как кнопка копирования отклоняла JSON длиннее 32768 символов. Исправление `diagnostics/product-permissions/runner.js`: при превышении лимита результат **BLOCKED / REPORT_TOO_LARGE**, копируемый и без полного списка, а не успешный, который нельзя передать. Признаки `cleanupAuthorized`, `restoreAuthorized`, `archiveSafe` всегда false. Текст статуса соответствует итоговому JSON.
+- Положительный PackageManager результат **не удостоверяет цифровую подпись или совпадение бинарного APK с CI**: `productSigningCertificateVerified:NOT_TESTED`, `productBinaryMatchesCIBuild:NOT_TESTED`. Сетевой трафик на телефоне остаётся NOT_TESTED.
+- Расширен `tests/android-product-installed-permissions.test.mjs`: oversized-report, границы происхождения APK, отображение ошибки при отсутствии Clipboard и сохранение исходного отчёта. Новая проверка в CI выполняется на кодовом SHA `3970f58d2e9a2b1a7e1010c4b3aa1124bba9310e`; до завершения CI результат **НЕ ПОДТВЕРЖДЁН**.
+- Данные основной `Пасеки`, IndexedDB, архивы, видео и production не затронуты. Физическая проверка исходной программы на Android не проведена; реальный restore/cleanup запрещён. Draft PR #366; merge/deploy не выполнялись.
+
+---
+
 ## 2026-11-22 — подтверждена исправленная проверка разрешений диагностического APK
 
 - **Кодовый SHA:** `645b15926094be50921585d5207ed13067b9eede`. GitHub Actions **completed/success на этом SHA**: [Fast quality checks #45028723506](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723506), [изолированный APK #45028723546](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723546), [общая Android сборка #45028723579](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723579). Предыдущие CI failures вызваны ошибочным синтаксисом нового теста, исправлены отдельным commit.
