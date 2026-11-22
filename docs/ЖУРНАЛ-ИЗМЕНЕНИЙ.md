@@ -1,3 +1,13 @@
+## 2026-11-22 — physical Restore335 private gate v1 BLOCKED: contradictory package identity; v2 cross-check prepared
+
+- Actual user-submitted `ANDROID_RESTORE335_PRIVATE_READONLY_V1`: `status=BLOCKED`, `adb/device/model/sdk/adbSha256=PASS` on physical NE2213/API36, `diagnosticPackage=ABSENT`, `productionPackage=ABSENT`, `detail=DIAGNOSTIC_PACKAGE_NOT_INSTALLED`; `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, cleanup NOT_AUTHORIZED.
+- **Material contradiction:** preceding physical `ANDROID_USB_READONLY_PREFLIGHT_V3` reported `diagnosticPackage=PRESENT_UNTOUCHED`. Do NOT claim uninstall, restore, changed private files, installed package or successful Android app operation. No remote change to phone occurred from project scripts; PackageManager visibility/state could be different, cannot determine cause from reports.
+- New `tools/android-restore335-private-readonly-stage-v2.ps1` independently cross-checks two `pm path` observations and `pm list packages --user 0` for exactly `ru.paseka.journal.archive.restoreproof335`. Only when all three agree PRESENT does it run `run-as ... toybox pwd/stat/ls`; otherwise stops BLOCKED with status fields, without file accesses or mutations. Output reports no serial, filenames or media. Previous v1 remains unmodified; no reinstall or cleanup.
+- Git blob of v2 `3416f12ad38b2e8c6b36ba01b30d8002eedd05dd`, SHA-256 `645009924760f81eacf5d21ff00786bb160e84049350fb938ed2735a7578d197`, size 8371 bytes. Windows CI on SHA `6ff268473dca06de6f2d01302c1ef07f635d5366` [#45050934639](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45050934639) completed/success, log has `ANDROID_RESTORE335_V2_STATIC_PASS`, base readonly guard PASS and mock ADB PASS. Earlier #45050879162 failed because test counted 2 rather than actual 3 pm path calls (one production, two diagnostic); corrected, no runtime changes. Physical v2 **NOT_TESTED** until user report.
+- Fail-closed: no new installer, synthetic archive transfer, overwrite, restore, real video read/deletion, PR merge or deploy.
+
+---
+
 ## 2026-11-22 — OnePlus physical v3 PASS; next isolated restore335 private files read-only gate ready (NOT_TESTED on device)
 
 - Пользовательский фактический JSON `ANDROID_USB_READONLY_PREFLIGHT_V3` **PASS**: pinned ADB SHA/версия, один авторизованный OnePlus `NE2213` SDK `36`, `ru.paseka.journal.archive.restoreproof335=PRESENT_UNTOUCHED`, `ru.paseka.journal=ABSENT`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Не приписывать этому запуск APK/restore/video.
