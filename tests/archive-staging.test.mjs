@@ -1750,3 +1750,61 @@ test('staging recognition audit flags malformed video keys rather than declaring
  assert.ok(await get(db,'archive_staging','unexpected-video-key'));
  db.close();
 });
+
+
+const protectedV2Markers = [
+  ['pending staging', 'archive_staging', {id:'v2pending:synthetic-protected',sessionId:'v2pending:synthetic-protected',kind:'v2_pending'}],
+  ['quarantined backup', 'full_backup', {kind:'v2_entrance_quarantine_rollback_snapshot',quarantinedMedia:[{id:'keep-original',blob:new Blob(['protected bytes'])}]}, 'v2entrance:synthetic-protected'],
+  ['import history', 'archive_history', {backupId:'synthetic-v2-import',kind:'v2_entrance_import',status:'committed'}]
+];
+for (const [label,store,value,key] of protectedV2Markers) {
+  test('PASEKA01 staging rejects ' + label + ' without changing protected copies',async()=>{
+    const db=await openTestDb('v1-v2-preflight-'+label);
+    const live=stateFixture('unmodified live state');
+    live.meta.revisionId='live-before-v1';
+    await put(db,'main',live,'state');
+    await put(db,store,value,key);
+    const archive=await makeArchive('legacy-v1-blocked-'+label);
+    await assert.rejects(Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true),
+      {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+    assert.deepEqual(await get(db,'main','state'),live);
+    assert.deepEqual(await get(db,store,key===undefined?(value.id ?? value.backupId):key),value);
+    assert.equal((await getAll(db,'archive_staging')).filter(x=>x.kind==='session').length,0);
+    db.close();
+  });
+  test('PASEKA01 commit rejects ' + label + ' added after staging',async()=>{
+    const db=await openTestDb('v1-v2-commit-'+label);
+    const live=stateFixture('unmodified live state');
+    live.meta.revisionId='live-before-v1';
+    await put(db,'main',live,'state');
+    const archive=await makeArchive('legacy-commit-blocked-'+label);
+    const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+    await put(db,store,value,key);
+    await assert.rejects(Restore.commitStagedArchive(db,staged.session.sessionId,
+      live.meta.revisionId,webcrypto,Archive,()=>true),
+      {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+    assert.deepEqual(await get(db,'main','state'),live);
+    assert.deepEqual(await get(db,store,key===undefined?(value.id ?? value.backupId):key),value);
+    assert.equal((await get(db,'archive_staging',staged.session.sessionId)).status,'ready');
+    db.close();
+  });
+  test('PASEKA01 rollback rejects ' + label + ' added after import',async()=>{
+    const db=await openTestDb('v1-v2-rollback-'+label);
+    const live=stateFixture('before import');
+    live.meta.revisionId='live-before-v1';
+    await put(db,'main',live,'state');
+    const archive=await makeArchive('legacy-rollback-blocked-'+label);
+    const staged=await Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true);
+    const committed=await Restore.commitStagedArchive(db,staged.session.sessionId,
+      live.meta.revisionId,webcrypto,Archive,()=>true);
+    await put(db,store,value,key);
+    const before=await get(db,'main','state');
+    const revision=before.meta.revisionId;
+    await assert.rejects(Restore.rollbackCommittedArchive(db,staged.session.backupId,
+      revision,webcrypto,()=>true),
+      {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
+    assert.deepEqual(await get(db,'main','state'),before);
+    assert.deepEqual(await get(db,store,key===undefined?(value.id ?? value.backupId):key),value);
+    db.close();
+  });
+}

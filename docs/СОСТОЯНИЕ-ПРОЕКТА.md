@@ -1,3 +1,21 @@
+### 2026-11-23 — Draft #408 P0 PASEKA01↔PASEKA02 protected-copy guard: verified code SHA
+
+- **Exact code/test+initial-docs SHA `4df96ca0edd34fed684517fc0743be86d88daf5f`**: [Fast Quality #45074270336](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45074270336) **completed/success, 913/913 tests PASS, 0 fail, 0 skipped** (job logs); [Android Debug #45074269945](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45074269945) **completed/success**, debug APK build/upload. Initial HEAD `6abb78ad8e04e9adf14d99c4b6467c5c908eae0a` failed **910/913** because 3 synthetic `archive_history` fixtures were read using undefined `id` rather than `backupId`; fixed test lookup in `4df96ca`, full suite retested. No production/user data touched.
+- [Draft #408](https://github.com/250oisr-eng/Pasekaapp/pull/408) continues #407 and adapts existing cross-version v2 guard from isolated #315 into new PASEKA01 staging/commit/rollback code, with 9 synthetic negative tests. See `docs/АУДИТ-СОВМЕСТИМОСТИ-АРХИВОВ-V1-V2-2026-11-23.md`. Results on this SHA do **not** certify any later docs-only HEAD until checked.
+- No merge/deployment, no real Android restore or media deletion; portable PASEKA02 ledger/tombstones, schema/migration, full protected-copy inventory and Restore335 remain STOP. Next: verify final docs-only HEAD CI and audit cross-version race at v1 ready/recovery, without enabling deletion.
+
+---
+
+## 2026-11-23 — P0 legacy PASEKA01 vs protected PASEKA02: Draft #408
+
+- **Точная ветка** `fix/archive-v1-v2-protected-copy-bridge-2026-11-23`; parent Draft #407 HEAD `6a473fffcd6675e4a1ac221a1fbccbbe99e7b64d`, Fast #45073651288 и Android #45073651334 completed/success на этом SHA. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` не менялся.
+- Интеграционный аудит: #315 и #407 разошлись, общий ancestor `f00726d0cd0565092c634a108268a0e246f90625`; v2 имеет свои реализации и тесты (PR #215–#248, #309–#315). Нельзя объединить старую ветку целиком вместо современных проверок. Полная карта и критерии: `docs/АУДИТ-СОВМЕСТИМОСТИ-АРХИВОВ-V1-V2-2026-11-23.md`.
+- **Дефект пересечения версий**: актуальный `js/paseka-archive-restore.js` из #407 не имел проверки `VIDEO_LEGACY_RESTORE_V2_PROTECTED`, уже созданной в изолированной #315. В дочернем [Draft #408](https://github.com/250oisr-eng/Pasekaapp/pull/408) перенесена адаптированная fail-closed проверка `v2pending:` staging, `kind=v2_*` history, `v2entrance:` full_backup. Preflight единым readonly snapshot, stage/commit/rollback повторная проверка в write lock. Нет изменения схемы, пользовательских записей, удаления или включения PASEKA02 UI.
+- Девять синтетических регрессий по трём типам маркеров × stage/late commit/rollback добавлены в `tests/archive-staging.test.mjs`. **CI на новом code/test SHA не подтверждён**, до его проверки считать status PENDING; успешный родительский CI не наследовать.
+- Следующее: проверить Fast Quality и Android на точном HEAD, исправить любые ошибки; реальный Android restore, ledger/tombstones transport, автоудаление оригиналов и Restore335 остаются STOP. PR Draft, merge/deployment не выполнять.
+
+---
+
 ### 2026-11-23 — Draft #407 verified code/test/docs SHA (CI PASS)
 
 - **Exact tested SHA `2416fa53a82209867eb7d150db394c885296b268`**: Fast Quality [#45073507018](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073507018) **completed/success, 904/904 tests PASS, 0 fail, 0 skipped** (job logs). Android Debug [#45073507005](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073507005) **completed/success**: regression suite, debug APK build/upload. These results cover this code/test SHA; documentation commits made later require separate HEAD verification.
