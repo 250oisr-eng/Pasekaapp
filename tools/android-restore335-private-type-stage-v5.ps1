@@ -259,10 +259,11 @@ exit 0
         $metaLines = @($metaLines[1])
       }
       if ($metaLines.Count -ne 1) { throw 'PRIVATE_METADATA_ROWS_UNVERIFIED' }
-      if ($metaLines[0] -notmatch '^([-dlbcps])[rwxStTs-]{9}\s') {
+      if ($metaLines[0] -match '^([-dlbcps])[rwxStTs-]{9}\s') {
+        $kind = $Matches[1]
+      } else {
         throw 'PRIVATE_METADATA_FORMAT_UNVERIFIED'
       }
-      $kind = $Matches[1]
       if ($kind -ceq '-') { $report.privateEntryType = 'REGULAR_FILE' }
       elseif ($kind -ceq 'd') { $report.privateEntryType = 'DIRECTORY' }
       elseif ($kind -ceq 'l') { $report.privateEntryType = 'SYMLINK_NO_FOLLOW' }
