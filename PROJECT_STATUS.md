@@ -1,3 +1,13 @@
+## 2026-11-22 — отдельный Android archive preflight: план без доступа к данным
+
+- На основе Draft PR #356 (`810a39c1267c5351160e65dea95213372abb2cbc`) создана отдельная ветка `docs/android-archive-physical-preflight-plan-2026-11-22`.
+- Добавлен `docs/ANDROID-ARCHIVE-PHYSICAL-PREFLIGHT-2026-11-22.md`: 10 изолированных синтетических испытаний PASEKA01/PASEKA02, повторного открытия IndexedDB, повреждений source-bound ledger, abort/restart, неизменности исходных копий и запрета cleanup.
+- Этап **только проектный**: APK не создан, реальные видео и архивы не открывались, физические проверки A01–A10 не выполнялись; `beeRecognition`, `restore`, `cleanup` остаются NOT_TESTED. В этой ветке нет runtime/DB/schema/permissions изменений.
+- У родительского PR #356 code SHA `7bd84889694c84276b09a84e80192181922c06c8`: подтверждённые 145/145 video CI, 68/68 archive guard CI и Android debug build success. На его документационном HEAD `810a39c1267c5351160e65dea95213372abb2cbc` проверены success соответствующих workflow, isolated archive APK — skipped. Эти проверки не доказывают физическое восстановление.
+- Следующий блок: отдельный кодовый Draft PR на базе этой ветки — изолированный Android APK для синтетического read-only preflight. Не выполнять merge, production deployment, чтение реального MP4 или удаление пользовательских медиа.
+
+---
+
 ## 2026-11-22 — exact-code-SHA verification PR #356 завершена
 
 - Программный SHA `7bd84889694c84276b09a84e80192181922c06c8`: [совместный video/ledger/guard/archive CI #45004521556](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521556) **completed/success, 145/145, fail 0, skipped 0**; [legacy archive guard CI #45004521509](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521509) **completed/success, 68/68, fail 0, skipped 0**; [общая Android APK #45004521548](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521548) **completed/success**. [Isolated archive APK #45004521488](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521488) **skipped** (не проверка Android restore).
