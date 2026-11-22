@@ -1768,7 +1768,7 @@ for (const [label,store,value,key] of protectedV2Markers) {
     await assert.rejects(Restore.stageArchiveForRestore(db,archive,webcrypto,Archive,()=>true),
       {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
     assert.deepEqual(await get(db,'main','state'),live);
-    assert.deepEqual(await get(db,store,key===undefined?value.id:key),value);
+    assert.deepEqual(await get(db,store,key===undefined?(value.id ?? value.backupId):key),value);
     assert.equal((await getAll(db,'archive_staging')).filter(x=>x.kind==='session').length,0);
     db.close();
   });
@@ -1784,7 +1784,7 @@ for (const [label,store,value,key] of protectedV2Markers) {
       live.meta.revisionId,webcrypto,Archive,()=>true),
       {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
     assert.deepEqual(await get(db,'main','state'),live);
-    assert.deepEqual(await get(db,store,key===undefined?value.id:key),value);
+    assert.deepEqual(await get(db,store,key===undefined?(value.id ?? value.backupId):key),value);
     assert.equal((await get(db,'archive_staging',staged.session.sessionId)).status,'ready');
     db.close();
   });
@@ -1804,7 +1804,7 @@ for (const [label,store,value,key] of protectedV2Markers) {
       revision,webcrypto,()=>true),
       {code:'VIDEO_LEGACY_RESTORE_V2_PROTECTED'});
     assert.deepEqual(await get(db,'main','state'),before);
-    assert.deepEqual(await get(db,store,key===undefined?value.id:key),value);
+    assert.deepEqual(await get(db,store,key===undefined?(value.id ?? value.backupId):key),value);
     db.close();
   });
 }
