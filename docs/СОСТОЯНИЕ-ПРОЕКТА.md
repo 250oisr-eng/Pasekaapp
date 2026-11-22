@@ -1,3 +1,13 @@
+## 2026-11-23 — P0 v2 five-store preflight + aborted write lock integration, Draft #412
+
+- Parent [Draft #411](https://github.com/250oisr-eng/Pasekaapp/pull/411), final HEAD `bb9d11e382f33a69b8631bb4351abc4b15e60cd9`: Fast Quality #45075564230 **completed/success, 968/968 PASS**, Android #45075564355 **completed/success**, debug APK regression/build/upload, no merge.
+- New [Draft #412](https://github.com/250oisr-eng/Pasekaapp/pull/412), branch `test/archive-v2-five-store-restore-preflight-2026-11-23`, imported from existing isolated Draft #315: `js/video-archive-v2-snapshot.js`, `js/video-archive-v2-restore-db-preflight.js`, `js/video-archive-v2-commit-lock-guard.js` and three original test suites. The two tests with recognition fixtures now supply mandatory `stateRevisionId` and `sourceHashVerifiedAt` introduced by #411.
+- `tests/archive-v2-five-store-reopen-integration.test.mjs`: no-write ledger/tombstone read-only preflight and **always-aborted** five-store writer gate across IndexedDB close/reopen; second scenario creates protected V2 full_backup quarantine *after* successful preflight, expects final write-lock refusal `V2_COMMIT_EXISTING_ARCHIVE_HISTORY` and refusal after reopen `V2_RESTORE_EXISTING_ARCHIVE_HISTORY`; original source bytes and history preserved.
+- First child SHA `a029cd8c58a2a0fce330132b557944d98a3d9898`: Fast Quality **999/1000 PASS, 1 FAIL** due to inherited test fixture in `video-archive-v2-snapshot.test.mjs` missing newly required provenance, so expected `V2_RECOGNIZED_ORIGINAL_INCLUDED` was preempted by `V2_LEDGER_ENTRY_INVALID`. The fixture, not production logic, was corrected in `e9ad720dc4c96d7897be003bebded26c25d2d0ed`. New exact-SHA CI **PENDING**, no declaration of PASS until results.
+- Not a live restore: modules are isolated, no runtime script tags or Service Worker activation, no IDB schema migration and no real video deletion, no user data or production operations. Full PASEKA02 protected history integration, original byte-hash proof after reboot, Android external Camera/Gallery/Downloads copy inventory and physical-device tests remain **P0 STOP**; Restore335 STOP, do not merge/deploy without separate approval.
+
+---
+
 ## 2026-11-23 — P0 PASEKA02 provenance validation: Draft #411
 
 - Parent [Draft #410](https://github.com/250oisr-eng/Pasekaapp/pull/410), exact final HEAD `05812b90e3eaf24b0a8c624d7c94ad0a720d273c`: Fast Quality #45075319695 **completed/success, 961/961 PASS, 0 fail/skip**; Android #45075319647 **completed/success**, debug APK built/uploaded. No merge/main/production writes.
