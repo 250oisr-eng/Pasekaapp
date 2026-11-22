@@ -906,10 +906,18 @@ function renderHiveDirectory(){
  const host=$('hiveList');if(!host)return;
  const query=String($('hiveSearch')?.value||'').trim().toLocaleLowerCase('ru-RU'),mode=$('hiveModeFilter')?.value||'all';
  const filtered=S.hives.filter(h=>{
-  const layout=layoutFor(h.id),families=S.families.filter(f=>f.hive===h.id),profile=getHiveProfile(h);
+  const layout=layoutFor(h.id);
+  if(mode!=='all'&&layout.mode!==mode)return false;
+  // A blank query only needs the assembly mode. Do not walk all frame histories
+  // (or construct a search index) on every save and screen refresh.
+  if(!query)return true;
+  const families=S.families.filter(f=>f.hive===h.id),profile=getHiveProfile(h);
+  const searchable=[hname(h.id),h.id,profile?.name,layout.mode==='winter'?'зимняя':'летняя',...families.flatMap(f=>[f.name,f.code,f.breed,f.custom])].join(' ').toLocaleLowerCase('ru-RU');
+  if(searchable.includes(query))return true;
+  // Preserve the original joined-field search semantics, including matches
+  // spanning adjacent frame IDs, for queries not found in the cheap fields.
   const frames=[...profileBroodKeys(h.id),...profileHoneyKeys(h.id)].flatMap(key=>{const arr=frameArray(layout,key,h.id);return Array.isArray(arr)?arr:[]});
-  const haystack=[hname(h.id),h.id,profile?.name,layout.mode==='winter'?'зимняя':'летняя',...families.flatMap(f=>[f.name,f.code,f.breed,f.custom]),...frames.map(f=>f.frameId)].join(' ').toLocaleLowerCase('ru-RU');
-  return (mode==='all'||layout.mode===mode)&&(!query||haystack.includes(query));
+  return (searchable+' '+frames.map(f=>f.frameId).join(' ')).toLocaleLowerCase('ru-RU').includes(query);
  });
  const count=$('hiveDirectoryCount');if(count)count.textContent=filtered.length+' из '+S.hives.length+' '+ruPlural(S.hives.length,'улей','улья','ульев');
  host.innerHTML=filtered.map(card).join('')||(S.hives.length?'<div class="empty">По этому запросу ульи не найдены.</div>':'<div class="empty">Ульев пока нет.</div>');
@@ -1024,14 +1032,19 @@ function renderJournalRecords(){
  const selectedType=typeSelect?.value||'all',selectedFamily=familySelect?.value||'all';
  const rows=activeJournalHive?available.filter(r=>r.hive===activeJournalHive).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))):[];
  const filtered=rows.filter(r=>{
+  // Apply inexpensive structured filters first. Construct the full-text
+  // haystack only when a nonempty text search actually needs it.
+  if((selectedType!=='all'&&r.type!==selectedType)||(selectedFamily!=='all'&&r.family!==selectedFamily)||(date&&r.date!==date))return false;
+  if(!search)return true;
   const family=S.families.find(f=>f.id===r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
   const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
-  return (selectedType==='all'||r.type===selectedType)&&(selectedFamily==='all'||r.family===selectedFamily)&&(!date||r.date===date)&&(!search||haystack.includes(search));
+  return haystack.includes(search);
  });
  const count=$('journalResultCount');if(count)count.textContent=activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
  host.classList.toggle('has-entries',filtered.length>0);
  host.innerHTML=activeJournalHive?(filtered.map(r=>'<article class="card journal-entry" data-record-id="'+safe(r.id)+'"><div class="journal-entry-head"><span class="journal-entry-type">'+safe(r.type)+'</span><time datetime="'+safe(r.date)+'">'+safe(r.date)+'</time></div>'+(r.text?'<p class="journal-entry-text">'+safe(r.text)+'</p>':'')+recordFamilyHtml(r)+recordExtraHtml(r)+(r.media?.length?'<div class="journal-entry-media">'+mediaHtml(r.media)+'</div>':'')+'<div class="row journal-entry-actions"><button type="button" data-record-id="'+safe(r.id)+'" onclick="editRecord(this.dataset.recordId)">Изменить</button><button type="button" data-record-id="'+safe(r.id)+'" onclick="deleteRecord(this.dataset.recordId)">В архив</button></div></article>').join('')||(rows.length?'<div class="empty">По выбранным фильтрам записей нет.</div>':'<div class="empty">Для этого улья записей пока нет.</div>')):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';
 }
+
 function clearJournalFilters(){
  ['journalSearch','journalDateFilter'].forEach(id=>{const el=$(id);if(el)el.value=''});
  const type=$('journalTypeFilter'),family=$('journalFamilyFilter');if(type)type.value='all';if(family)family.value='all';renderJournalRecords();
@@ -1629,13 +1642,23 @@ function validateTaskCompletion(state,taskId,date,recordId){
 }
 function renderHome(){
  S.tasks=S.tasks||[];renderApiaryStatus();
+ // One pass instead of one complete scan for each hive. Maintain original
+ // task order within each hive; never mutate persisted task records.
+ const pendingByHive=new Map(),active=[];
+ const currentDay=today();
+ for(const task of S.tasks){
+  if(task.status!=='pending'&&task.status!=='suggested')continue;
+  active.push(task);
+  if(!pendingByHive.has(task.hive))pendingByHive.set(task.hive,[]);
+  pendingByHive.get(task.hive).push(task);
+ }
  $('homeHives').innerHTML=S.hives.map(h=>{
   const l=layoutFor(h.id),profile=getHiveProfile(h),families=S.families.filter(f=>f.hive===h.id).length;
   const broodKeys=profileBroodKeys(h.id),honeyKeys=profileHoneyKeys(h.id),winter=l.mode==='winter';
   const order=(winter?(l.winterOrder||[]):l.installedBoxes||[]).map(String).filter(key=>broodKeys.includes(key));
   const installedCount=order.length,honeyInstalled=honeyKeys.filter((key,index)=>Boolean(l.honeyBoxInstalled[index])).length;
   const composition=[installedCount?installedCount+' гнездовых':'',honeyInstalled?honeyInstalled+' медовых':''].filter(Boolean).join(' · ');
-  const pending=S.tasks.filter(t=>t.hive===h.id&&['pending','suggested'].includes(t.status)),urgent=pending.some(t=>t.status==='pending'&&t.date<today());
+  const pending=pendingByHive.get(h.id)||[],urgent=pending.some(t=>t.status==='pending'&&t.date<currentDay);
   const marks=(frames,cls)=>frames.map(fr=>'<i class="mini-frame '+cls+' status-'+safe(fr.status||'foundation')+'" title="'+safe(frameStatusName(fr.status))+'"></i>').join('');
   const honeyRows=honeyKeys.map((key,index)=>({key,index})).filter(item=>Boolean(l.honeyBoxInstalled[item.index])).map(item=>'<div class="mini-honey-tier"><span>'+safe(item.key)+'</span><div class="mini-honey-frames">'+marks(l.honeyFrames[item.index]||[],'')+'</div></div>').join('');
   const broodBox=key=>{
@@ -1648,8 +1671,8 @@ function renderHome(){
   const visual='<div class="mini-hive '+(winter?'winter':'summer')+'" aria-label="Схема фактической сборки улья">'+(honeyRows?'<div class="mini-honey-stack">'+honeyRows+'</div>':'')+body+'</div>';
   return '<div class="home-hive" role="button" tabindex="0" aria-label="Открыть '+safe(hname(h.id))+'" onclick="openHive(&quot;'+safe(h.id)+'&quot;)"><div class="row"><b>'+safe(hname(h.id))+'</b><span>'+(urgent?'⚠️':'🐝')+'</span></div><div class="muted home-hive-profile">'+safe(profile?.name||'Профиль не указан')+'</div>'+visual+(composition?'<div class="numbers">'+composition+'</div>':'')+'<div class="muted">'+families+' '+ruPlural(families,'семья','семьи','семей')+(pending.length?' · '+pending.length+' '+ruPlural(pending.length,'задача','задачи','задач'):'')+(urgent?' · Есть просрочка':'')+'</div></div>';
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
- const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31')));
- const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
+ active.sort((a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31')));
+ const overdue=active.filter(t=>t.status==='pending'&&t.date<currentDay),todayTasks=active.filter(t=>t.status==='pending'&&t.date===currentDay),future=active.filter(t=>t.status==='pending'&&t.date>currentDay),suggested=active.filter(t=>t.status==='suggested');
  $('homeAlerts').innerHTML=overdue.length?'<div class="card home-alert"><b>⚠ Просрочено: '+overdue.length+'</b>'+overdue.map(t=>taskMarkup(t)).join('')+'</div>':'';
  $('homeTasks').innerHTML=(todayTasks.length?'<h3 class="home-section-title">Сегодня</h3>'+todayTasks.map(taskMarkup).join(''):'')+(suggested.length?'<h3 class="home-section-title">Рекомендации приложения</h3>'+suggested.map(taskMarkup).join(''):'')+(future.length?'<h3 class="home-section-title">Предстоит</h3>'+future.slice(0,5).map(taskMarkup).join(''):'')+(!active.length?'<div class="muted" style="padding:10px 0">Запланированных работ пока нет.</div>':'');
 }
