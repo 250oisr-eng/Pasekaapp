@@ -1,3 +1,11 @@
+## 2026-11-22 — exact-SHA regression verification, PR #368
+
+- Tested SHA `334bc43b8ee78580164c08b9fceea7f451eb040a`: [video/ledger/archive/staging CI #45038058414](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038058414) **completed/success**, independently checked job log: **148 tests, 148 PASS, 0 FAIL**, including historical duplicate `resultId`, sequential collision and concurrent two-video collision.
+- [Android APK #45038058365](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038058365) **pending** on that exact SHA as of observation; no claim of build success. Isolated archive workflow #45038058412 **skipped**, not PASS. Following this docs update HEAD will differ; verify later workflow separately.
+- No actual neural bee recognition, Android production app, external Gallery file enumeration/deletion, physical cleanup, restore, main merge or production deployment. Original video retention remains protected; no cleanup authorization.
+
+---
+
 ## 2026-11-22 — конкурентная запись результатов распознавания: дополнительный regression
 
 - В Draft PR #368 добавлен тест `concurrent distinct video results cannot commit the same resultId`: две одновременные заявки для разных синтетических Blob-видео с одинаковым resultId проходят через оригинальную `recordRecognitionResult` и IndexedDB readwrite; ожидается ровно один сохранённый результат и один `conflicting_recognition_result_id`. Оба исходника должны остаться неизменными.
