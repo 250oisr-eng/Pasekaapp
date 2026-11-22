@@ -494,3 +494,32 @@ test('same original in two different protected stores is not mistaken for same-l
  assert.equal(report.cleanupAuthorized,false);
  db.close();
 });
+
+test('legacy rollback originalId different from embedded record.id is explicitly ambiguous',async()=>{
+ const db=await setup({staging:[{id:'rollback:video:original',kind:'rollback_video',
+  sessionId:'rollback',originalId:'original',record:live('other')}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('rollback_original_identity_conflict'));
+ assert.ok(report.issues.includes('legacy_rollback_requires_review'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.restoreAuthorized,false);
+ db.close();
+});
+test('legacy rollback with conflicting embedded SHA and size fields is flagged',async()=>{
+ const record={...live('old'),sourceSha256:'b'.repeat(64),sourceBytes:4};
+ const db=await setup({staging:[{id:'rollback:video:old',kind:'rollback_video',
+  sessionId:'rollback',originalId:'old',record}]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_source_metadata'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('consistent rollback originalId and record id adds no false identity conflict',async()=>{
+ const db=await setup({staging:[{id:'rollback:video:old',kind:'rollback_video',
+  sessionId:'rollback',originalId:'old',record:live('old')}]});
+ const report=await audit(db,guard);
+ assert.equal(report.issues.includes('rollback_original_identity_conflict'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
