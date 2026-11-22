@@ -4,6 +4,7 @@ on:
     paths:
       - 'tools/android-restore335-fixed-file-predicates-v10.ps1'
       - 'tests/android-restore335-fixed-file-predicates-v10.test.mjs'
+      - 'tests/android-restore335-report-writer-provenance.test.mjs'
       - '.github/workflows/android-restore335-readonly-v10.yml'
   pull_request:
     paths:
@@ -46,4 +47,6 @@ jobs:
           Write-Host 'PowerShell parser + 8 synthetic boolean-predicate cases PASS'
       - name: Static security and exact-source regression checks
         shell: pwsh
-        run: node --test tests/android-restore335-fixed-file-predicates-v10.test.mjs
+        run: |
+          node --test tests/android-restore335-fixed-file-predicates-v10.test.mjs
+          node --test tests/android-restore335-report-writer-provenance.test.mjs
