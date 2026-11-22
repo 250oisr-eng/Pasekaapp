@@ -89,6 +89,12 @@ function inspectSnapshot(v,guard){
     if(!video)continue;
     if(m.data!=null){
      if(!videoUri(m.data)){issue('record_video_payload_unknown');continue;}
+     // A blob: URL is a short-lived browser reference, not durable media evidence.
+     if(typeof m.data==='string'&&/^blob:/i.test(m.data))
+      issue('volatile_blob_url_requires_source_provenance');
+     // Do not decode arbitrary user media in this metadata-only diagnostic.
+     if(typeof m.data==='string'&&/^data:(?:video\/|application\/octet-stream)[^,]*,$/i.test(m.data))
+      issue('empty_video_data_url');
      add(store,'record_media',m.videoId,m.sourceSha256,m.sourceBytes,null);
     }else{
      // A video marker without payload is not evidence that a recorded video
