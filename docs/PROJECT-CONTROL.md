@@ -1,3 +1,9 @@
+## 2026-11-22 — изолированный тест транзакционного удаления только синтетического видео
+
+- [VIDEO-SYNTHETIC-CLEANUP-ATOMICITY-2026-11-22.md](VIDEO-SYNTHETIC-CLEANUP-ATOMICITY-2026-11-22.md) — rollback, сохранность tombstone/ledger, ограничения test-only удаления без доступа к пользовательскому runtime.
+
+---
+
 ## 2026-11-22 — проверка байтов известных защищённых копий
 
 - [VIDEO-MANAGED-COPIES-BYTE-AUDIT-2026-11-22.md](VIDEO-MANAGED-COPIES-BYTE-AUDIT-2026-11-22.md) — snapshot+SHA известных хранилищ, ограничения внешних/непрозрачных копий и запрет удаления.
