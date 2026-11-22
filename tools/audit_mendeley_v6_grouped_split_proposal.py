@@ -12,6 +12,7 @@ from collections import Counter
 from pathlib import Path
 
 from prepare_mendeley_v6_yolo_unassigned import GROUP_COUNTS
+from stage_mendeley_v6_public_csv import FILENAME
 
 MAX_MANIFEST_JSON_BYTES = 16 * 1024 * 1024
 MAX_PROPOSAL_JSON_BYTES = 8 * 1024
@@ -74,8 +75,13 @@ def assess_split_structure(inventory, proposal):
             raise SplitProposalRejected("invalid_inventory_row")
         group, name = file.get("hiveCollectionFolder"), file.get("filename")
         digest = file.get("imageSha256PinnedNotRecheckedHere")
-        if group not in GROUP_COUNTS or not isinstance(name, str) or not name:
+        if not isinstance(group, str) or group not in GROUP_COUNTS or not isinstance(name, str):
             raise SplitProposalRejected("inventory_frame_identity_invalid")
+        stem, _, extension = name.rpartition(".")
+        if extension not in ("jpg", "jpeg") or not FILENAME.fullmatch(stem):
+            raise SplitProposalRejected("inventory_frame_identity_invalid")
+        if not stem.startswith(group.removeprefix("_bee_")):
+            raise SplitProposalRejected("inventory_frame_group_mismatch")
         if not isinstance(digest, str) or not SHA_256_HEX.fullmatch(digest):
             raise SplitProposalRejected("inventory_original_sha_missing_or_malformed")
         if (group, name.casefold()) in names or digest in jpg_hashes:

@@ -53,6 +53,24 @@ class SplitProposalTests(unittest.TestCase):
                     "recognitionSucceeded","cleanupAuthorized"):
             self.assertFalse(result[key],key)
 
+    def test_reassigned_training_frame_cannot_count_as_test_frame(self):
+        data = inventory()
+        data["files"][0]["hiveCollectionFolder"] = proposal()["test"][0]
+        with self.assertRaisesRegex(SplitProposalRejected, "inventory_frame_group_mismatch"):
+            assess_split_structure(data, proposal())
+
+    def test_registry_filenames_must_be_original_jpeg_basenames(self):
+        data = inventory()
+        row = data["files"][0]
+        stem = row["filename"][:-4]
+        for invalid in (stem + ".png", stem + "/other.jpg", ""):
+            with self.subTest(filename=invalid):
+                row["filename"] = invalid
+                with self.assertRaisesRegex(SplitProposalRejected, "inventory_frame_identity_invalid"):
+                    assess_split_structure(data, proposal())
+        row["filename"] = stem + ".jpeg"
+        self.assertTrue(assess_split_structure(data, proposal())["publishedFoldersStructurallyDisjoint"])
+
     def test_duplicate_group_across_train_test_rejected(self):
         p=proposal()
         p["test"].append(p["train"][0])
