@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 const script=readFileSync('scripts/android-emulator-smoke.sh','utf8');
 const workflow=readFileSync('.github/workflows/android-emulator-smoke.yml','utf8');
 const prepare=readFileSync('scripts/prepare-p0-emulator-build.mjs','utf8');
+const runner=readFileSync('scripts/run-p0-emulator-ci.sh','utf8');
 
 test('emulator smoke refuses non-emulator or unidentified devices before install or mutation',()=>{
  assert.match(script,/emulator-\[0-9\]/);
@@ -29,7 +30,10 @@ test('emulator CI is isolated from production deployment and explicitly pins API
  assert.match(workflow,/api-level: 35/);
  assert.match(workflow,/on:\s*\n  workflow_dispatch:/);
  assert.match(workflow,/pull_request:/);
- assert.match(workflow,/bash scripts\/android-emulator-smoke\.sh/);
+ assert.match(workflow,/script: bash scripts\/run-p0-emulator-ci\.sh/);
+ assert.match(runner,/set -euo pipefail/);
+ assert.match(runner,/bash scripts\/android-emulator-smoke\.sh/);
+ assert.doesNotMatch(script,/Status: timeout/);
  assert.doesNotMatch(workflow,/\b(?:deployment|production|release|publish|merge_pull_request)\b/i);
  for(const prop of ['minSdkVersion','compileSdkVersion','targetSdkVersion'])
    assert.ok(prepare.includes(prop));
