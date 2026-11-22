@@ -1,3 +1,10 @@
+## 2026-11-22 — начало A09: только доказательно обоснованный аудит Android permissions/network
+
+- После подтверждённого пользователем physical A08 synthetic PASS подготовлена [A09 evidence matrix](docs/ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md). Выявлено, что `aapt` из успешной CI проверяет только **собранный APK**; PackageManager с устройства и реальные соединения процесса пока **NOT_TESTED**. A09 не объявлять PASS и не подменять отсутствие INTERNET разрешения доказательством нулевого трафика.
+- Следующий цикл — отдельный нативный PackageManager audit только собственного package и собственных запрошенных/granted permissions, уникальный ID, интерфейс **Провести тест / Копировать результат**, полный PASS/BLOCKED JSON; без доступа к архивам или медиа. Отдельное наблюдение сетевого трафика не исполнялось. Нет оснований для `cleanupAuthorized` или `restoreAuthorized`.
+
+---
+
 ## 2026-11-22 — PHYSICAL PASS: A08 синтетические Blob пережили уничтожение процесса
 
 - Пользователь прислал полный JSON с физического Android: `status:PASS`, `code:A08_SYNTHETIC_PROCESS_KILL_VERIFIED`, `packageId:ru.paseka.journal.diagnostic.archivea08v1`, `suite:ARCHIVE_A08_PROCESS_KILL_V1`. Подтверждены `A08_SYNTHETIC_BLOB_HASH_AFTER_PROCESS_KILL:PASS`, `A08_NATIVE_PID_CHANGED:PASS`, `scenariosVerified:[A08_PROCESS_KILL_SYNTHETIC_ONLY]`, `processKillVerified:true`, `syntheticBlobHashVerified:true`.
