@@ -608,3 +608,74 @@ test('missing recognition ledger must not allow PASEKA01 staging when v2 quarant
  assert.equal(await sha(protectedBackup.quarantinedMedia[0].blob),digest);
  assert.equal(await get(db,'main','video_recognition_ledger_v1'),undefined);
 });
+
+
+test('P0 synthetic PASEKA02 keeps original bytes across independent stage, commit and quarantine restarts',async t=>{
+ const setupResult=await setup();
+ let db=setupResult.db;
+ const reopen=async()=>{
+  db.close();
+  const request=setupResult.factory.open(setupResult.name,1);
+  db=await new Promise((resolve,reject)=>{
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+  });
+ };
+ t.after(()=>{try{db.close()}catch(_){}});
+ const original=new Blob(['synthetic-original-restart-evidence'],{type:'video/mp4'});
+ const digest=await sha(original);
+ const archive=await d().codec.buildMetadataArchive({
+  state:state('archive'),ledger:ledger(),
+  backupId:'quarantine-test',createdAt:stageOpts().createdAt,
+  pendingVideos:[{
+   source:'entrance_media',videoId:'new-video',
+   sourceSha256:digest,sourceBytes:original.size,
+   mimeType:'video/mp4',blob:original
+  }]
+ },webcrypto,d().guard,d().sha,d().recordAdapter);
+
+ // Phase 1: staging is durable, while live original has not been installed.
+ await stage(db,archive,stageOpts(),d());
+ await reopen();
+ const stageKey='v2pending:quarantine-test:entrance_media:new-video';
+ const staged=await get(db,'archive_staging',stageKey);
+ assert.ok(staged?.blob instanceof Blob);
+ assert.equal(await sha(staged.blob),digest);
+ assert.deepEqual(await get(db,'main','state'),state());
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'full_backup'),0);
+
+ // Phase 2: the isolated commit may introduce only this previously absent video.
+ const committed=await commit(db,archive,commitOpts(),d());
+ assert.equal(committed.committed,true);
+ assert.equal(committed.cleanupAuthorized,false);
+ await reopen();
+ const live=await get(db,'entrance_media','new-video');
+ assert.ok(live?.blob instanceof Blob);
+ assert.equal(await sha(live.blob),digest);
+ assert.deepEqual(await get(db,'main','state'),state('imported'));
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ assert.equal(await count(db,'full_backup'),1);
+
+ // Phase 3: rollback MUST quarantine the original instead of discarding it.
+ const reverted=await rollback(db,rollbackOpts(),d());
+ assert.equal(reverted.reverted,true);
+ assert.equal(reverted.cleanupAuthorized,false);
+ assert.equal(reverted.rollbackAuthorized,false);
+ await reopen();
+ const protectedCopy=await get(db,'full_backup','v2entrance:quarantine-test');
+ assert.equal(protectedCopy.kind,'v2_entrance_quarantine_rollback_snapshot');
+ assert.equal(protectedCopy.quarantinedMedia.length,1);
+ assert.equal(await sha(protectedCopy.quarantinedMedia[0].blob),digest);
+ assert.equal(await sha((await get(db,'archive_staging',stageKey)).blob),digest);
+ assert.deepEqual(await get(db,'main','state'),state('restored'));
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_history'),1);
+ const inspection=await inspect(db,'quarantine-test',d());
+ assert.equal(inspection.status,'reverted_quarantine_unverified');
+ assert.equal(inspection.byteIntegrityVerified,false);
+ assert.equal(inspection.cleanupAuthorized,false);
+ assert.equal(inspection.restoreAuthorized,false);
+});
