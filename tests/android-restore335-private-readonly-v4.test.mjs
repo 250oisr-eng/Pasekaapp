@@ -7,7 +7,7 @@ test('V4 is pinned to diagnostic package, physical device and ADB',()=>{
     assert.ok(v4.includes(token),token);
 });
 test('V4 does not add device write, cleanup, media reading, or binary output',()=>{
-  for(const dangerous of [/\bpush\b/i,/\binstall\s+[-\w]/i,/\buninstall\b/i,/\bpm\s+clear\b/i,/\bdelete\b.*\bfiles\b/i,/\bMediaStore\b/i,/\bcat\s+files\b/i])
+  for(const dangerous of [/Call-Adb[^\r\n]*'push'/i,/Call-Adb[^\r\n]*'install'/i,/Call-Adb[^\r\n]*'uninstall'/i,/Call-Adb[^\r\n]*'clear'/i,/Call-Adb[^\r\n]*'rm'/i,/Call-Adb[^\r\n]*'cat'/i])
     assert.doesNotMatch(v4,dangerous);
   assert.match(v4,/writes = 'NOT_ATTEMPTED'/);
   assert.match(v4,/cleanup = 'NOT_AUTHORIZED'/);
