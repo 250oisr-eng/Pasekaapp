@@ -516,6 +516,21 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (!Number.isSafeInteger(session.stagingEpoch) || session.stagingEpoch < 0) fail('STAGING_LEGACY_SESSION', 'This staged import predates revision tracking. Discard it and import the archive again.');
           if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint ||
               session.baselineMediaFingerprint !== staged.session.baselineMediaFingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
+          // The staging index must enumerate exactly the verified session header
+          // and its manifest entries under this same sessionId. The earlier
+          // preview checks this, but another writer may alter the index while
+          // the async state validator is running. Never let the cleanup loop
+          // below delete an additional or misowned row during a valid import.
+          const allStagedIds = records.map(record => record?.id);
+          if (session.id !== sessionId || session.sessionId !== sessionId ||
+              records.length !== session.totalEntries + 1 ||
+              records.some(record => !record || record.sessionId !== sessionId ||
+                typeof record.id !== 'string' || !record.id ||
+                (record.id === sessionId) !== (record.kind === 'session')) ||
+              new Set(allStagedIds).size !== records.length ||
+              !allStagedIds.includes(sessionId)) {
+            fail('STAGING_RECORD_SET_MISMATCH', 'Staging ownership or session record set changed before commit. Live and staged data were preserved.');
+          }
           const contentRecords = records.filter(record => record && record.sessionId === sessionId && record.kind !== 'session');
           const knownKinds = new Set(['state', 'video']);
           if (contentRecords.some(record => !knownKinds.has(record.kind))) fail('STAGING_KIND_UNKNOWN', 'Staged archive contains an unsupported entry type.');

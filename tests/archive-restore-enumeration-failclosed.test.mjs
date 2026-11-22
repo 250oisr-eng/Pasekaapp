@@ -595,3 +595,56 @@ test('rollback refuses wrong primary key for a valid prior video snapshot',async
   await verifyRejectedRollbackUnchanged(db);
  }finally{db.close();}
 });
+
+async function rejectLateStagingMutationPreservingEverything(mutate, expectedCode='STAGING_RECORD_SET_MISMATCH') {
+ const db=await seeded();
+ try{
+  const staged=await stage(db);
+  const sid=staged.session.sessionId;
+  const liveBefore=await get(db,'main','state');
+  const mediaBefore=await rows(db,'entrance_media');
+  const historyBefore=await rows(db,'archive_history');
+  const backupBefore=await get(db,'full_backup','previous');
+  let validated=0, stagingAfterMutation;
+  const validate=async()=>{
+   validated++;
+   // First invocation reads the valid staged archive. Second invocation
+   // prepares the import after the read-only snapshot has been released.
+   if(validated===2){
+    await mutate(db,sid);
+    stagingAfterMutation=await rows(db,'archive_staging');
+   }
+   return true;
+  };
+  await assert.rejects(
+   Restore.commitStagedArchive(db,sid,LIVE.meta.revisionId,webcrypto,Archive,validate),
+   {code:expectedCode});
+  assert.equal(validated,2,'mutation must happen after the staged preview and before the final write lock');
+  assert.deepEqual(await get(db,'main','state'),liveBefore);
+  assert.deepEqual(await rows(db,'entrance_media'),mediaBefore);
+  assert.deepEqual(await rows(db,'archive_history'),historyBefore);
+  assert.deepEqual(await get(db,'full_backup','previous'),backupBefore);
+  assert.deepEqual(await rows(db,'archive_staging'),stagingAfterMutation,
+   'rollback must not delete the late or unexpected staged records');
+ } finally {db.close();}
+}
+test('commit refuses a second session header inserted after the verified staging preview',async()=>{
+ await rejectLateStagingMutationPreservingEverything(async(db,sid)=>{
+  await put(db,'archive_staging',{
+   id:sid+':foreign-session',sessionId:sid,kind:'session',
+   status:'ready',createdAt:'2026-11-22T00:00:00.000Z'
+  });
+ });
+});
+test('commit refuses a session header reindexed to another owner during async validation',async()=>{
+ await rejectLateStagingMutationPreservingEverything(async(db,sid)=>{
+  const session=await get(db,'archive_staging',sid);
+  await put(db,'archive_staging',{...session,sessionId:'foreign-owner'});
+ });
+});
+test('commit refuses a replaced session-header kind after the verified staging preview',async()=>{
+ await rejectLateStagingMutationPreservingEverything(async(db,sid)=>{
+  const session=await get(db,'archive_staging',sid);
+  await put(db,'archive_staging',{...session,kind:'state'});
+ },'STAGING_SESSION_INCOMPLETE');
+});
