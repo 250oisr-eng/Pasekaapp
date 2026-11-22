@@ -1,3 +1,16 @@
+## 2026-11-22 — физический Android PASS единого синтетического набора
+
+- Пользователь прислал полный JSON из физического устройства: `suite=PHONE_UNIFIED_SYNTHETIC_V2`, `packageId=ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Ранее изолированный APK собран на проверенном code/workflow SHA `1d25ea5e3b93aae2cc37472d0024ad93d9ccb1e1`, artifact #14769308321; JSON не включает самостоятельный APK SHA, связь с бинарником основана на выданном пользователю артефакте, а не независимой проверке APK-хэша телефоном.
+- `checks.storage=PASS`: эталон `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`, 31 байт, `previousFixture=ABSENT_CREATED`. Это **создание первой фикстуры в уникальном пакете**, НЕ проверка сохранности между разными запусками. Для проверки требуется повторно нажать тест в **том же установленном APK без удаления данных** и получить `PRESENT_VERIFIED`.
+- `checks.archiveMetadata=PASS`, ровно четыре синтетических сценария; `cleanupAuthorized=false`, `restoreAuthorized=false`.
+- `checks.syntheticFrames=PASS`: 3 JPEG кадра 64×64 из фиксированного синтетического MP4 SHA256 `29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`; `realVideos=NOT_ACCESSED`.
+- `checks.localOnnxWasm=PASS`: `LOCAL_ONNX_WASM_ADD_2_EXACT`, input=3, output=5; только собственная арифметическая модель, `beeRecognition=NOT_TESTED`.
+- Все инварианты удаления/восстановления запрещены: `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`. `networkTraffic=NOT_MEASURED`, `externalRequests=NOT_MEASURED` — отсутствие прав и внешнего кода не равно физическому измерению трафика. Реальные видео, распознавание пчёл, real backup/restore, разрешения продукта, Android force-stop и real deletion **NOT_TESTED**.
+- Следующий шаг без новой установки: в том же диагностическом приложении снова нажать «Проверить всё безопасное» и прислать JSON. Не удалять данные, не чистить приложение, не трогать Restore335; при `ABSENT_CREATED` повторно расследовать изоляцию/хранилище, не объявлять сохранность проверенной. После этого заниматься отдельным read-only аудитом реальных возможностей приложения, без реального удаления и восстановления.
+- Источник: полный JSON пользователя в чате 2026-11-22. Production и main не менялись; Draft PR #385 не объединён.
+
+---
+
 ## 2026-11-22 — объединённый Android synthetic APK: CI SUCCESS на точном SHA
 
 - Code/workflow SHA `1d25ea5e3b93aae2cc37472d0024ad93d9ccb1e1`: [isolated Android CI #45060987323](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45060987323) **completed/success** (лог job #137326641813: **6/6 tests PASS, 0 FAIL**, generate/sync, Android debug build, package ID `ru.paseka.journal.diagnostic.allchecks`, native Clipboard, запрет INTERNET/CAMERA/RECORD_AUDIO/MEDIA permission, upload). [Общая сборка #45060987404](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45060987404) **completed/success** на том же SHA.
