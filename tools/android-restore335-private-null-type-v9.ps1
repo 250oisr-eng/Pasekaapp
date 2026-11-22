@@ -130,6 +130,17 @@ function Call-Adb([string[]]$Arguments, [switch]$AllowMissingPackage, [switch]$A
   }
 }
 
+# Pure parser: count zero or one NUL-terminated record, never return path text.
+function Test-SingleNullRecord([string]$Observed) {
+  if ($Observed.Length -eq 0) { return 0 }
+  if ($Observed.Length -gt 4096) { throw 'PRIVATE_FIND_NULL_OUTPUT_TOO_LARGE' }
+  if ($Observed.Length -lt 2 -or
+      $Observed.IndexOf([char]0) -ne ($Observed.Length - 1)) {
+    throw 'PRIVATE_FIND_NULL_FRAMING_UNVERIFIED'
+  }
+  return 1
+}
+
 try {
   if (-not (Test-Path -LiteralPath $AdbPath -PathType Leaf)) { throw 'PINNED_ADB_MISSING' }
   $hash = (Get-FileHash -LiteralPath $AdbPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -246,14 +257,8 @@ try {
       $matchedBytes = @{}
       foreach ($kind in @('f','d','l','b','c','p','s')) {
         $found = Call-Adb @('-s',$serial,'exec-out','run-as',$privatePackage,'/system/bin/toybox','find','files','-mindepth','1','-maxdepth','1','-type',$kind,'-print0') -FindTypeListing
-        if ($found.Length -gt 4096) { throw 'PRIVATE_FIND_NULL_OUTPUT_TOO_LARGE' }
-        if ($found -ceq '') { continue }
-        $firstNull = $found.IndexOf([char]0)
-        # One NUL-terminated nonempty record and nothing else: no multi-match,
-        # no partial output, no appended text. No filename parsing needed.
-        if ($found.Length -lt 2 -or $firstNull -ne ($found.Length - 1)) {
-          throw 'PRIVATE_FIND_NULL_FRAMING_UNVERIFIED'
-        }
+        # One NUL-terminated record or empty output, never filename parsing.
+        if ((Test-SingleNullRecord $found) -eq 0) { continue }
         $matchedTypes += $kind
         $matchedBytes[$kind] = $found
       }
