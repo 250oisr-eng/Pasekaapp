@@ -15,3 +15,10 @@ User supplied V3 result: `status=BLOCKED`, `detail=PRIVATE_FILES_NONEMPTY_NO_ACT
 
 ## Non-goals
 No production application install, PWA release, main merge, user-media deletion, real bee recognition, two-MP4 restore, backup mutation or external directory access.
+
+## Confirmed physical V4 (2026-11-22)
+User ran the pinned launcher on OnePlus NE2213/API36 and supplied exact JSON: `status=PASS`, `adb/device/model/sdk/adbSha256=PASS`, diagnostic package `PRESENT_UNTOUCHED`, production package `ABSENT`; all three PM observations present; `directoryTest=TRUE`, `pathTest=TRUE`, `privateFilesClass=NONEMPTY_PRESERVE`, `privateEntryCount="1"`, `privateInput=UNKNOWN_PRESERVE`, `writes=NOT_ATTEMPTED`, `mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. This proves only one observed entry in the isolated diagnostic private `files` listing, **not its name, type, original provenance, video validity or restore readiness**.
+
+The Windows CMD wrapper then printed `V4_DEVICE_CHECK_BLOCKED_OR_FAILED` despite the JSON `PASS`. The wrapper was checking `$LASTEXITCODE`, but the script's PASS branch did not explicitly `exit 0`; a stale external-command exit status is a plausible cause of this **wrapper-level false failure**, not evidence of Android-side failure. To remove this ambiguity, the script now explicitly exits 0 on PASS and 2 on BLOCKED, with a dedicated static regression. This later change has not been physically retested; the actual V4 device observation remains trustworthy within its limited read-only scope.
+
+Do not rerun V4 merely to clear the launcher message. Do not clear, install over, uninstall, restore, read or delete unknown data. The next stage should be a carefully bounded, explicitly read-only provenance/type inspection of the **one** private entry, designed and tested before any physical execution. No user-input media should be read to identify it without a separate safety review.
