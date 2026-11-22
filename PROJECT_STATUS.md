@@ -1,3 +1,12 @@
+## 2026-11-22 — дополнительная негативная матрица synthetic cleanup (Draft child of #372)
+
+- Ветка `test/video-synthetic-cleanup-negative-matrix-2026-11-22` поверх #372. В `tests/video-synthetic-cleanup-atomicity.test.mjs` добавлены 5 изолированных fake-indexeddb регрессий: подмена Blob при правильных SHA-метаданных, отдельно защищённые staging и history, отсутствие ledger, существующий tombstone.
+- Все тесты обязаны сохранить исходный синтетический Blob; результат BLOCKED, новый tombstone не появляется, существующий tombstone сохраняется. Проверки реального Android, Camera/MediaStore/Downloads, настоящего детектора пчёл, разрешения удаления и восстановления не проводятся.
+- Runtime, IndexedDB схема реального приложения и пользовательские данные не менялись. PR Draft, никаких merge/release/deployment. CI для нового exact SHA проверять отдельно; успешный предыдущий #372 не подменяет новый результат.
+- Следующий шаг: проверить точный SHA и логи CI новой ветки; сохранить запрет удаления оригиналов до полной верификации распознавания и всех копий.
+
+---
+
 ## 2026-11-22 — synthetic cleanup atomicity exact-SHA CI 171/171 PASS
 
 - Exact tested SHA `6ca6d6ffe87124a782818a21b4e8cba411772179`: [Video inventory/recognition/staging/synthetic cleanup CI #45046041873](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046041873) **completed/success**, actual job log **171/171 tests PASS, 0 FAIL**. Six new tests include test-only atomic `main` tombstone + synthetic `entrance_media` deletion, rollback after forced abort, stale revision, protected backup, unverified capture provenance, reopen and no second delete. [General Android APK #45046041952](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046041952) **completed/success**. Isolated archive workflow #45046041928 **completed/skipped**, not PASS.
