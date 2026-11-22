@@ -59,7 +59,7 @@ jobs:
           node --check scripts/generate-synthetic-onnx.mjs
           node --check scripts/prepare-android-synthetic-ort-apk.mjs
           node --check tests/fixtures/android-synthetic-ort-runner.js
-          node --test tests/android-synthetic-ort.test.mjs
+          PASEKA_SYNTHETIC_ORT_CI=1 node --test tests/android-synthetic-ort.test.mjs
       - name: Prepare web assets
         run: npm run web:prepare
       - name: Generate test-only web/package config
