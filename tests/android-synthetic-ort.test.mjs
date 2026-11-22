@@ -24,7 +24,10 @@ test('isolated Android build never targets real app, test user storage or remote
    assert.doesNotMatch(text,unsafe);
  }
 });
-test('real ONNX Runtime Web WASM performs math with bundled local runtime bytes',async()=>{
+test('real ONNX Runtime Web WASM performs math with bundled local runtime bytes',async(t)=>{
+ if(process.env.PASEKA_SYNTHETIC_ORT_CI!=='1'){
+  t.skip('Only isolated pinned ONNX workflow executes the runtime; generic CI covers safety assertions');return;
+ }
  const ort=await import('onnxruntime-web/wasm');
  const runtimeDir=new URL('../node_modules/onnxruntime-web/dist/',import.meta.url);
  const wasmBytes=readFileSync(new URL('ort-wasm-simd-threaded.wasm',runtimeDir));
