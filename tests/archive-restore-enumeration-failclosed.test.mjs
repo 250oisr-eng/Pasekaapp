@@ -596,7 +596,7 @@ test('rollback refuses wrong primary key for a valid prior video snapshot',async
  }finally{db.close();}
 });
 
-async function rejectLateStagingMutationPreservingEverything(mutate) {
+async function rejectLateStagingMutationPreservingEverything(mutate, expectedCode='STAGING_RECORD_SET_MISMATCH') {
  const db=await seeded();
  try{
   const staged=await stage(db);
@@ -618,7 +618,7 @@ async function rejectLateStagingMutationPreservingEverything(mutate) {
   };
   await assert.rejects(
    Restore.commitStagedArchive(db,sid,LIVE.meta.revisionId,webcrypto,Archive,validate),
-   {code:'STAGING_RECORD_SET_MISMATCH'});
+   {code:expectedCode});
   assert.equal(validated,2,'mutation must happen after the staged preview and before the final write lock');
   assert.deepEqual(await get(db,'main','state'),liveBefore);
   assert.deepEqual(await rows(db,'entrance_media'),mediaBefore);
@@ -646,5 +646,5 @@ test('commit refuses a replaced session-header kind after the verified staging p
  await rejectLateStagingMutationPreservingEverything(async(db,sid)=>{
   const session=await get(db,'archive_staging',sid);
   await put(db,'archive_staging',{...session,kind:'state'});
- });
+ },'STAGING_SESSION_INCOMPLETE');
 });
