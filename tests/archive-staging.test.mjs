@@ -2024,3 +2024,18 @@ test('readonly staging audit rejects mismatching evidence schema and invalid sou
  }
  db.close();
 });
+
+test('readonly staging audit rejects repeated resultId for different original identities',async()=>{
+ const db=await openTestDb('paseka-stage-audit-result-id-collision');
+ const ledger={version:1,entries:[
+  verifiedStagingAuditEntry('video-1','same-result-id','deleted'),
+  verifiedStagingAuditEntry('video-2','same-result-id','blocked_archive_safety')
+ ]};
+ await put(db,'main',ledger,'video_recognition_ledger_v1');
+ const report=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(report.ok,false);
+ assert.equal(report.reason,'VIDEO_LEDGER_DUPLICATE_RESULT_ID');
+ assert.equal(report.requiresManualReview,true);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger);
+ db.close();
+});
