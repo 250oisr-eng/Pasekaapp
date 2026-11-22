@@ -1,3 +1,11 @@
+## 2026-11-22 — synthetic cleanup atomicity exact-SHA CI 171/171 PASS
+
+- Exact tested SHA `6ca6d6ffe87124a782818a21b4e8cba411772179`: [Video inventory/recognition/staging/synthetic cleanup CI #45046041873](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046041873) **completed/success**, actual job log **171/171 tests PASS, 0 FAIL**. Six new tests include test-only atomic `main` tombstone + synthetic `entrance_media` deletion, rollback after forced abort, stale revision, protected backup, unverified capture provenance, reopen and no second delete. [General Android APK #45046041952](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046041952) **completed/success**. Isolated archive workflow #45046041928 **completed/skipped**, not PASS.
+- These results DO NOT establish physical Android safety or authorize any production deletion. Test DB is `synthetic-cleanup-test-only-*` and no cleanup code is exposed to `index.html`. Device `ru.paseka.journal` absent, genuine offline bee detector not verified, external Android Gallery/MediaStore/Downloads and historical opaque backup copies unknown, real network traffic/retention/cleanup NOT_TESTED. Runtime delete guard remains unconditional.
+- Draft PR #372 based on #371 remains unmerged, no production deployment, no user files/backup/IndexedDB modifications. Following commits docs-only; code on exact SHA is the tested version.
+
+---
+
 ## 2026-11-22 — synthetic only atomic video cleanup rollback matrix
 
 - Создан отдельный зависимый CI-only этап `test/video-synthetic-cleanup-atomicity-2026-11-22` поверх Draft PR #371. В `tests/video-synthetic-cleanup-atomicity.test.mjs` реализована **исключительно искусственная** `fake-indexeddb` с собственным именем `synthetic-cleanup-test-only-*`; транзакция атомарно создаёт tombstone и удаляет искусственный Blob лишь после проверки SHA, synthetic source ownership, state revision, synthetic recognition result и отсутствия любых staging/history/backup. Не изменяется runtime UI, schema production или приложение, реальных video delete функций не добавляется.
