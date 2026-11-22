@@ -471,3 +471,50 @@ for (const malformed of [null,[null],{}]) {
   } finally {db.close();}
  });
 }
+
+// A malformed *stored* main/state must not look like an empty database when
+// the caller provides expectedRevision=null. Use real fake-indexeddb rows
+// rather than altering request.result, and verify no record is overwritten.
+for (const malformed of [false, 0, '', 'corrupt', [], {}, {meta:null}, {meta:[]}]) {
+ test('restore preserves invalid live state instead of treating it as absent: '+JSON.stringify(malformed),async()=>{
+  const db=await seeded();
+  try {
+   const staged=await stage(db);
+   await put(db,'main',malformed,'state');
+   const beforeStage=await rows(db,'archive_staging');
+   await assert.rejects(
+    Restore.commitStagedArchive(db,staged.session.sessionId,null,webcrypto,Archive,()=>true),
+    {code:'RESTORE_LIVE_STATE_UNVERIFIED'});
+   assert.deepEqual(await get(db,'main','state'),malformed);
+   assert.deepEqual(await rows(db,'archive_staging'),beforeStage);
+   assert.equal((await rows(db,'archive_history')).length,0);
+   assert.equal(await get(db,'full_backup','previous'),undefined);
+  } finally { db.close(); }
+ });
+}
+test('restore still accepts a genuinely missing main/state and saves its imported state',async()=>{
+ const db=await openDb();
+ try {
+  assert.equal(await get(db,'main','state'),undefined);
+  const staged=await stage(db);
+  const result=await Restore.commitStagedArchive(
+   db,staged.session.sessionId,null,webcrypto,Archive,()=>true);
+  assert.ok(typeof result.state.meta.revisionId==='string');
+  assert.equal((await get(db,'main','state')).meta.revisionId,result.state.meta.revisionId);
+  assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'committed');
+ } finally { db.close(); }
+});
+test('restore preserves legacy object state with meta but no revision in rollback snapshot',async()=>{
+ const db=await seeded();
+ try {
+  const staged=await stage(db);
+  const legacy={meta:{schemaVersion:12},hives:[],families:[],records:[]};
+  await put(db,'main',legacy,'state');
+  const result=await Restore.commitStagedArchive(
+   db,staged.session.sessionId,null,webcrypto,Archive,()=>true);
+  assert.ok(result.rollbackSessionId);
+  const rollbackState=await get(db,'archive_staging',result.rollbackSessionId+':state');
+  assert.deepEqual(rollbackState.state,legacy);
+  assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'committed');
+ } finally { db.close(); }
+});
