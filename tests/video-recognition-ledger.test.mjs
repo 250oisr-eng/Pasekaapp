@@ -300,3 +300,23 @@ test('new distinct video cannot reuse committed resultId even with valid source 
  assert.equal((await ledger.readRecognitionLedger(db)).entries.length,2);
  db.close();
 });
+
+
+test('concurrent distinct video results cannot commit the same resultId',async()=>{
+ const {db}=await fixture();
+ await put(db,'entrance_media',null,{id:'v2',status:'analyzing',bytes:5,
+  blobSha256:sourceHash,blob:new Blob(['video'],{type:'video/mp4'})});
+ const [first,second]=await Promise.all([
+  ledger.recordRecognitionResult(db,{...base,videoId:'v1'}),
+  ledger.recordRecognitionResult(db,{...base,videoId:'v2'})
+ ]);
+ assert.equal([first,second].filter(result=>result.ok).length,1);
+ assert.equal([first,second].filter(result=>!result.ok&&result.reason==='conflicting_recognition_result_id').length,1);
+ const saved=await ledger.readRecognitionLedger(db);
+ assert.equal(saved.ok,true);
+ assert.equal(saved.entries.length,1);
+ assert.equal(saved.entries[0].resultId,'result-1');
+ assert.ok((await get(db,'entrance_media','v1')).blob);
+ assert.ok((await get(db,'entrance_media','v2')).blob);
+ db.close();
+});
