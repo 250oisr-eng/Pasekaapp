@@ -1,3 +1,12 @@
+## 2026-11-22 — physical V6 PASS but metadata format UNKNOWN; safe V7 Draft PR #377
+
+- User physical pinned V6 JSON: `status=PASS`, ADB/device/model/sdk/ADB SHA PASS, one authorized OnePlus NE2213 API36, diagnostic package untouched, production absent, package/path checks PASS, exactly one private `files` entry. `privateEntryType=UNKNOWN_PRESERVE`, `metadataFormat=UNKNOWN_MODE_FORMAT_PRESERVE`, `privateInput=UNKNOWN_PRESERVE`, `detail=READ_ONLY_SINGLE_ENTRY_METADATA_FORMAT_NO_CONTENT_READ`; `writes/installs/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Process exit `V6_READONLY_EXIT_PASS`. Unknown type means no restore readiness or media provenance.
+- On V6 code/test SHA `27993c288cf07cd30e7012aba8d99d15c8a31310`, Windows static CI #45055257301 and general Android build #45055257246 both completed/success; isolated archive #45055257242 skipped. Do not confuse software CI with physical recognition/restore.
+- Draft [#377](https://github.com/250oisr-eng/Pasekaapp/pull/377) stacked on #376, V7 bounded read-only Toybox `find` type filters (one entry, one level, no per-entry arguments, no filename/raw metadata output, no media read/writes). Root cause of `ls -lA` format remains unknown; do not guess. Added Windows static negative tests, workflow, documentation `docs/ANDROID-RESTORE335-PRIVATE-FINDTYPE-V7-2026-11-22.md`. V7 physical **NOT_TESTED**.
+- Next: exact SHA syntax/static CI and Android build. Only then consider one pinned physical V7 check; no repetition of V4–V6, no archive restoration or cleanup without proof.
+
+---
+
 ## 2026-11-22 — physical V5 metadata format BLOCKED; conservative V6 Draft PR #376
 
 - User physical OnePlus NE2213/API36 V5: pinned script hash PASS; ADB/device/model/sdk/ADB SHA PASS, diagnostic package present unchanged, production package absent, three PM observations present, directory/path TRUE. Exactly one private entry preserved; `privateEntryType=NOT_TESTED`, `privateInput=UNKNOWN_PRESERVE`, `detail=PRIVATE_METADATA_FORMAT_UNVERIFIED`, `status=BLOCKED`. `installs/writes/mediaRead=NOT_ATTEMPTED`; `cleanup=NOT_AUTHORIZED`. The CMD error after JSON is expected for nonzero BLOCKED and is not an independent data failure.
