@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tools/android-restore335-verified-safe-install.ps1'
       - 'tools/android-restore335-private-readonly-stage.ps1'
       - 'tools/android-restore335-private-readonly-stage-v2.ps1'
       - 'tests/android-usb-preflight-mock.ps1'
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tools/android-restore335-verified-safe-install.ps1'
       - 'tools/android-restore335-private-readonly-stage.ps1'
       - 'tools/android-restore335-private-readonly-stage-v2.ps1'
       - '.github/workflows/test-android-usb-readonly-preflight.yml'
@@ -76,6 +78,23 @@ jobs:
           if (@([regex]::Matches($s, "'pm','path'")).Count -ne 3) { throw 'V2_REQUIRES_THREE_PATH_CALLS' }
           if (@([regex]::Matches($s, "'pm','list','packages'")).Count -ne 1) { throw 'V2_REQUIRES_ONE_PACKAGE_LIST' }
           Write-Host 'ANDROID_RESTORE335_V2_STATIC_PASS'
+      - name: Parse and audit SHA-pinned Restore335 no-overwrite installer
+        shell: pwsh
+        run: |
+          $path = 'tools/android-restore335-verified-safe-install.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Host; throw 'INSTALLER_POWERSHELL_PARSE_FAILED' }
+          $s = Get-Content -LiteralPath $path -Raw
+          foreach ($term in @('RESTORE335_PINNED_SAFE_INSTALL_V1','PASS_ONLY_USER0','POSSIBLE_RETAINED_APP_DATA_NO_REINSTALL','PACKAGE_CHANGED_BEFORE_INSTALL','ZIP_SHA_MISMATCH','APK_SHA_MISMATCH','APK_INSTALL_FAILED_NO_RETRY','NO_LAUNCH_NO_PRIVATE_MUTATION','NOT_AUTHORIZED','bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee','28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176','5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e')) {
+            if (-not $s.Contains($term)) { throw "INSTALLER_REQUIRED_GUARD_MISSING_$term" }
+          }
+          if (@([regex]::Matches($s, "'install','-t'")).Count -ne 1) { throw 'INSTALL_COMMAND_NOT_EXACTLY_ONE' }
+          foreach ($bad in @("'-r'","'uninstall'","'clear'","'force-stop'","'push'","'pull'","'rm'","'dd'","'am','start'")) {
+            if ($s.Contains($bad)) { throw "DISALLOWED_COMMAND_$bad" }
+          }
+          Write-Host 'RESTORE335_INSTALLER_NO_OVERWRITE_STATIC_PASS'
       - name: Windows mock regression — absent vs denied packages
         shell: pwsh
         run: ./tests/android-usb-preflight-mock.ps1
