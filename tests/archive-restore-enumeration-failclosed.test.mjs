@@ -983,7 +983,9 @@ test('rollback still restores synthetic journal and removes unmodified imported 
    db,'synthetic-two-video-collision',revision,webcrypto,()=>true);
   assert.equal(reverted.restoredVideoCount,0);
   assert.equal((await rows(db,'entrance_media')).length,0);
-  assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
+  const restored=await get(db,'main','state');
+  assert.notEqual(restored.meta.revisionId,revision,'rollback must create a fresh audit revision');
+  assert.ok(restored.auditLog.some(entry=>entry.type==='backup_rollback' && entry.backupId==='synthetic-two-video-collision'));
   assert.equal((await get(db,'archive_history','synthetic-two-video-collision')).status,'reverted');
  }finally{db.close();}
 });
