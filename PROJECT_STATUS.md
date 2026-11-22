@@ -1,3 +1,12 @@
+## 2026-11-22 — OnePlus physical v3 PASS; next isolated restore335 private files read-only gate ready (NOT_TESTED on device)
+
+- Пользовательский фактический JSON `ANDROID_USB_READONLY_PREFLIGHT_V3` **PASS**: pinned ADB SHA/версия, один авторизованный OnePlus `NE2213` SDK `36`, `ru.paseka.journal.archive.restoreproof335=PRESENT_UNTOUCHED`, `ru.paseka.journal=ABSENT`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Не приписывать этому запуск APK/restore/video.
+- Для следующего одного безопасного физического запуска создан `tools/android-restore335-private-readonly-stage.ps1`: проверяет все v3 identity/package guards и только метаданные выделенного `run-as ru.paseka.journal.archive.restoreproof335` (`toybox pwd`, `stat -c %F files`, `ls -A files`). Не читает имена файлов в отчёт, не читает содержимое, не создаёт/пишет/удаляет ничего. `EMPTY` означает только пустой видимый листинг в момент проверки; не значит доказанный восстановленный архив или отсутствие внешних копий. При nonempty `BLOCKED` и `PRESERVE`.
+- Windows CI на SHA `d8500626e734fa8e67ed9a29936b12e61f8adc89` [#45050364113](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45050364113) **completed/success**: PowerShell parser/ADB guard `PASS`, private-stage static guard `PASS`, ADB mock suite `PASS`. Предыдущий CI #45050265578 упал из-за ошибочного regex только в CI-аудите; исправлено, runtime скрипт без изменений. Новый физический stage `NOT_TESTED`.
+- Локально подготовленная копия байт-в-байт совпадает с Git blob `014a2fa61aaa732f1718f94be9d52d6848c13471`; SHA256 `35287c42fb8a39db41835020783f94f429a72600fab3e0ea6ee570c9efa7a246`, размер 6947 bytes. Разрешено одно чтение, без повторного dd, исходных видео/архивов, переустановки, слияния или deploy.
+
+---
+
 ## 2026-11-22 — PHYSICAL OnePlus NE2213/API36: USB preflight v3 PASS (user-submitted report)
 
 - Фактический вывод PowerShell `ANDROID_USB_READONLY_PREFLIGHT_V3`: `status=PASS`, `adb=PASS`, `device=PASS_ONE_AUTHORIZED`, `model=PASS_NE2213`, `sdk=PASS_API36`, `adbSha256=PASS_PINNED`; `diagnosticPackage=PRESENT_UNTOUCHED` для `ru.paseka.journal.archive.restoreproof335`; `productionPackage=ABSENT` для `ru.paseka.journal`.
