@@ -42,7 +42,12 @@ test('voice modules load before the app and are precached and packaged for offli
   assert.match(serviceWorker, /paseka-shell-v\d+/);
   assert.match(serviceWorker, /\.\/js\/voice-command-parser\.js/);
   assert.match(serviceWorker, /\.\/js\/voice-session\.js/);
-  assert.match(webPrepareScript, /cp\("js", "www\/js", \{ recursive: true \}\)/);
+  // The optimized builder copies only HTML+SW-listed runtime modules;
+  // the two voice scripts must remain in both lists and be packaged.
+  assert.match(webPrepareScript, /const loaded = \[\.\.\.html\.matchAll/);
+  assert.match(webPrepareScript, /const cached = \[\.\.\.worker\.matchAll/);
+  assert.match(webPrepareScript, /loadedSet\.size/);
+  assert.match(webPrepareScript, /copyFile\(`js\/\$\{file\}`, `www\/js\/\$\{file\}`\)/);
 });
 
 test('voice parser recognizes wake phrases with punctuation and Russian case variants', () => {
