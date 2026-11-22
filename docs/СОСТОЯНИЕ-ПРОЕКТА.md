@@ -1,3 +1,130 @@
+## 2026-11-22 — физический Restore335 после установки: package PASS, private stat BLOCKED; read-only v3 подготовлен
+
+- Пользователь физически запустил `ANDROID_RESTORE335_PRIVATE_READONLY_V2` после успешно завершённой установки изолированного `ru.paseka.journal.archive.restoreproof335`. Фактический JSON: `status=BLOCKED`; `adb/device/model/sdk/adbSha256=PASS` OnePlus NE2213/API36, `diagnosticPackage=PRESENT_UNTOUCHED`, `productionPackage=ABSENT`, `packagePathFirst=PRESENT`, `packageList=PRESENT_USER0`, `packagePathSecond=PRESENT`; `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `detail=PRIVATE_FILES_NOT_DIRECTORY`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`.
+- В v2 запрос `run-as ... toybox stat -c %F files` **не дал строго ожидаемого слова** `directory`; это не доказательство удаления/отсутствия пути и не доказательство нарушения данных. Причиной может быть отсутствие каталога после свежей установки, необычный вывод команды или недопустимое состояние; пока UNKNOWN. Нельзя создавать, перезаписывать, удалять или запускать restore для диагностики.
+- Создан отдельный `tools/android-restore335-private-readonly-stage-v3.ps1`: прежние ADB/package/identity prechecks; вместо неоднозначного `stat` — два отдельных **read-only** `run-as ... /system/bin/toybox test -d files` и `test -e files`; допускается только stdout/stderr пустые и `exit=0` (true) или `exit=1` (false). Результаты false/false маркируются `ABSENT_BY_TWO_TESTS_UNVERIFIED`, **без разрешения на запись**, true/true ведёт к `ls -A files` без раскрытия имён, несовпадение/ошибки — BLOCKED. `cleanup=NOT_AUTHORIZED` всегда; оригинальный архив и медиа не читаются.
+- GitHub script blob `e701f2bf5e6656c15f4b0fcee90f8e393208a4c2`, локальный SHA256 `a21825876b33feb608ff5e41acaa5529e90798006b2d658559926d4bdf16d271`, размер 10293 байта. Windows CI [#45052714494](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45052714494) completed/success на code/workflow SHA `5a6ffa25bf536931b8c650ec7afc6d6918f5005c`: parser + isolated read-only static guard PASS, ADB base mock PASS. **Физический запуск v3 NOT_TESTED**. Не повторять installer или старые one-shot/dd. PR #373 Draft, main/release/production не тронуты.
+
+---
+
+## 2026-11-22 — физическая безопасная установка Restore335 PASS; следующий read-only gate без повторной установки
+
+- Пользователь запустил `RESTORE335_PINNED_SAFE_INSTALL_V1` на подключённом OnePlus `NE2213`/API `36` и вернул реальный JSON `status=PASS`, `adb=PASS_PINNED`, `device=PASS_ONE_AUTHORIZED`, `androidUsers=PASS_ONLY_USER0`. Перед установкой `installedBefore=NOT_VISIBLE_USER0`, `residualPackage=NO_PM_U_MATCH_USER0`, `zip=PASS_PINNED_SHA`, `apk=PASS_PINNED_SHA_AND_CI_PACKAGE_ID`. **Физическая установка `ru.paseka.journal.archive.restoreproof335` подтверждена**: `install=PASS`, `installedAfter=PRESENT_USER0`. Только изолированное приложение; production не устанавливалось. Источник APK — прежний pinned artifact #14721928022.
+- `privateFiles=NOT_TESTED`, `restores=NOT_ATTEMPTED`, `mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Установка **не подтверждает** сохранность старого private archive, восстановление IndexedDB, 2 MP4 или распознавание; **не запускать** старый one-shot/dd, не повторять установку, не очищать app data.
+- Следующий минимальный аппаратный этап — **уже существующий и проверенный** `tools/android-restore335-private-readonly-stage-v2.ps1` (бывший blocked из-за отсутствия пакета); повторить его **один раз после установленного пакета**. Он выполняет 3 read-only PackageManager observations; при согласованном PRESENT читает только `pwd/stat/ls` из isolated `run-as` без выдачи имён. При отсутствии `files/` может остановиться BLOCKED (не считать падением данных); чтение исходного архива и восстановление по-прежнему запрещены. Windows CI этого скрипта [#45050934639](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45050934639) completed/success на SHA `6ff268473dca06de6f2d01302c1ef07f635d5366`; physical result **пока ожидается**.
+- Никаких изменений на `main`, merge, deploy или удалений. Draft PR #373.
+
+---
+
+## 2026-11-22 — explicit user authorization to reinstall diagnostic APK; fail-closed installer prepared, physical install pending
+
+- Пользователь прямо разрешил переустановить всё необходимое на подключённый OnePlus NE2213/API36 и продолжить проверки. **Прямого доступа к USB Windows из cloud нет; ни одной физической команды установки в текущем шаге не выполнено.** Область безопасного действия — только отдельное диагностическое приложение `ru.paseka.journal.archive.restoreproof335`, а не `ru.paseka.journal`, fileproof329, архивы, MediaStore или видео.
+- Подтверждённый ранее изолированный artifact [GitHub run #44942628866/artifact #14721928022](https://github.com/250oisr-eng/Pasekaapp/actions/runs/44942628866/artifacts/14721928022) всё ещё доступен по GitHub API; ZIP SHA256 `28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176`, debug APK SHA256 `5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e`, CI aapt подтверждает application ID `ru.paseka.journal.archive.restoreproof335` и исключает production app ID.
+- Создан `tools/android-restore335-verified-safe-install.ps1` (git blob `b07fbc2be0d235d6be1c696e39a8f94004d91c52`): pinned ADB SHA+device+API36; ограничение одним Android user 0; два `pm path` и `pm list packages` включая `-u` (остаточная запись/потенциально сохранённые данные блокируют); сверка ZIP/APK SHA; только `adb install -t` без `-r`, `uninstall`, `clear` и обновления пользовательского пакета. После установки проверяет `pm path` и список пакетов; **не** запускает APK, не создаёт private files, не читает архив и не удаляет видео. При отклонении строгих условий `BLOCKED` без повторных установок.
+- Проверка Windows CI exact SHA `ccc4942baf220fc0b6b2e07bb0e612c6f7000a0c`: [#45051485699](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45051485699) **completed/success**, лог `RESTORE335_INSTALLER_NO_OVERWRITE_STATIC_PASS`, PowerShell parse и прежние ADB mock suite PASS; **не было реальной установки или динамического mock-теста самого установщика**. Android general build #45051485725 ещё in_progress на контрольной проверке; отдельный архивный workflow SKIPPED, а не PASS.
+- Дальнейшее действие: пользователь получает pinned ZIP (если его нет в Downloads), сохраняет проверенный скрипт и запускает единственную команду. Запросить один JSON с результатом установки, не повторять при `BLOCKED`. Только после `install=PASS` и `installedAfter=PRESENT_USER0` проектировать отдельный read-only private stage; никакого старого опасного one-shot dd/cleanup. Draft PR #373, main/release/deploy не изменены.
+
+---
+
+## 2026-11-22 — physical Restore335 v2: fail-closed package absent/unverified; private access NOT_TESTED
+
+- Пользовательский реальный отчёт `ANDROID_RESTORE335_PRIVATE_READONLY_V2`: `status=BLOCKED`; `adb/device/model/sdk/adbSha256=PASS` на OnePlus NE2213/API36; `productionPackage=ABSENT`; `diagnosticPackage=UNVERIFIED_PRESERVE`; `packagePathFirst=ABSENT_OR_UNVERIFIED`, `packageList=NO_MATCH_USER0`, `packagePathSecond=ABSENT`, `detail=PACKAGE_IDENTITY_INCONSISTENT_OR_ABSENT_NO_PRIVATE_ACCESS`.
+- Три **текущих** наблюдения не подтвердили `ru.paseka.journal.archive.restoreproof335` для пользователя Android 0; ранее v3 USB preflight сообщал `PRESENT_UNTOUCHED`, поэтому причина расхождения неизвестна. Не утверждать удаление, отсутствие во всех пользователях Android, утрату его файлов или факт их сохранности. Новая установка/восстановление не разрешаются этим результатом.
+- `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Сценарий корректно прекратил работу **до** `run-as`, чтения исходных байтов, восстановления и любых операций записи. Физическая проверка приватного архива остаётся заблокированной; не повторять прежнюю one-shot dd, не чистить пакеты, не удалять оригиналы и не считать недоступность пакета доказательством удаления.
+- Дальнейшая аппаратная задача: только после отдельной безопасной проверки области пользователей Android и происхождения ранее установленного тестового APK; до неё не запрашивать у пользователя повторные однотипные диагностические прогоны. Продолжать независимые CI и тесты без затрагивания устройства. PR #373 остаётся Draft без merge/deploy.
+
+---
+
+## 2026-11-22 — physical Restore335 private gate v1 BLOCKED: contradictory package identity; v2 cross-check prepared
+
+- Actual user-submitted `ANDROID_RESTORE335_PRIVATE_READONLY_V1`: `status=BLOCKED`, `adb/device/model/sdk/adbSha256=PASS` on physical NE2213/API36, `diagnosticPackage=ABSENT`, `productionPackage=ABSENT`, `detail=DIAGNOSTIC_PACKAGE_NOT_INSTALLED`; `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, cleanup NOT_AUTHORIZED.
+- **Material contradiction:** preceding physical `ANDROID_USB_READONLY_PREFLIGHT_V3` reported `diagnosticPackage=PRESENT_UNTOUCHED`. Do NOT claim uninstall, restore, changed private files, installed package or successful Android app operation. No remote change to phone occurred from project scripts; PackageManager visibility/state could be different, cannot determine cause from reports.
+- New `tools/android-restore335-private-readonly-stage-v2.ps1` independently cross-checks two `pm path` observations and `pm list packages --user 0` for exactly `ru.paseka.journal.archive.restoreproof335`. Only when all three agree PRESENT does it run `run-as ... toybox pwd/stat/ls`; otherwise stops BLOCKED with status fields, without file accesses or mutations. Output reports no serial, filenames or media. Previous v1 remains unmodified; no reinstall or cleanup.
+- Git blob of v2 `3416f12ad38b2e8c6b36ba01b30d8002eedd05dd`, SHA-256 `645009924760f81eacf5d21ff00786bb160e84049350fb938ed2735a7578d197`, size 8371 bytes. Windows CI on SHA `6ff268473dca06de6f2d01302c1ef07f635d5366` [#45050934639](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45050934639) completed/success, log has `ANDROID_RESTORE335_V2_STATIC_PASS`, base readonly guard PASS and mock ADB PASS. Earlier #45050879162 failed because test counted 2 rather than actual 3 pm path calls (one production, two diagnostic); corrected, no runtime changes. Physical v2 **NOT_TESTED** until user report.
+- Fail-closed: no new installer, synthetic archive transfer, overwrite, restore, real video read/deletion, PR merge or deploy.
+
+---
+
+## 2026-11-22 — OnePlus physical v3 PASS; next isolated restore335 private files read-only gate ready (NOT_TESTED on device)
+
+- Пользовательский фактический JSON `ANDROID_USB_READONLY_PREFLIGHT_V3` **PASS**: pinned ADB SHA/версия, один авторизованный OnePlus `NE2213` SDK `36`, `ru.paseka.journal.archive.restoreproof335=PRESENT_UNTOUCHED`, `ru.paseka.journal=ABSENT`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Не приписывать этому запуск APK/restore/video.
+- Для следующего одного безопасного физического запуска создан `tools/android-restore335-private-readonly-stage.ps1`: проверяет все v3 identity/package guards и только метаданные выделенного `run-as ru.paseka.journal.archive.restoreproof335` (`toybox pwd`, `stat -c %F files`, `ls -A files`). Не читает имена файлов в отчёт, не читает содержимое, не создаёт/пишет/удаляет ничего. `EMPTY` означает только пустой видимый листинг в момент проверки; не значит доказанный восстановленный архив или отсутствие внешних копий. При nonempty `BLOCKED` и `PRESERVE`.
+- Windows CI на SHA `d8500626e734fa8e67ed9a29936b12e61f8adc89` [#45050364113](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45050364113) **completed/success**: PowerShell parser/ADB guard `PASS`, private-stage static guard `PASS`, ADB mock suite `PASS`. Предыдущий CI #45050265578 упал из-за ошибочного regex только в CI-аудите; исправлено, runtime скрипт без изменений. Новый физический stage `NOT_TESTED`.
+- Локально подготовленная копия байт-в-байт совпадает с Git blob `014a2fa61aaa732f1718f94be9d52d6848c13471`; SHA256 `35287c42fb8a39db41835020783f94f429a72600fab3e0ea6ee570c9efa7a246`, размер 6947 bytes. Разрешено одно чтение, без повторного dd, исходных видео/архивов, переустановки, слияния или deploy.
+
+---
+
+## 2026-11-22 — PHYSICAL OnePlus NE2213/API36: USB preflight v3 PASS (user-submitted report)
+
+- Фактический вывод PowerShell `ANDROID_USB_READONLY_PREFLIGHT_V3`: `status=PASS`, `adb=PASS`, `device=PASS_ONE_AUTHORIZED`, `model=PASS_NE2213`, `sdk=PASS_API36`, `adbSha256=PASS_PINNED`; `diagnosticPackage=PRESENT_UNTOUCHED` для `ru.paseka.journal.archive.restoreproof335`; `productionPackage=ABSENT` для `ru.paseka.journal`.
+- `installs=NOT_ATTEMPTED`, `writes=NOT_ATTEMPTED`, `mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. **Это доказательство подключения и состояния пакетов, НЕ доказательство запуска APK, Android restore/IndexedDB, 2 MP4, видео, распознавания или удаления.**
+- Ранее Windows CI [#45049940201](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45049940201) PASS на v3 runtime (mock tests в CI); физический отчёт получен отдельно. Нельзя устанавливать основное приложение или переписывать содержимое тестового `restoreproof335` только по этому PASS.
+- Next: отдельная не пишущая аппаратная проверка private `files/` установленного изолированного пакета и ранее закреплённого синтетического архива; **никаких повторов failed dd/restore, установки, очистки или удаления** до полного подтверждения безопасности.
+
+---
+
+## 2026-11-22 — OnePlus physical USB v2: ADB/device/model/API PASS, package query BLOCKED; v3 mock CI PASS
+
+- Пользователь запустил v2 на физическом подключённом NE2213: `status=BLOCKED`, `adb=PASS`, `device=PASS_ONE_AUTHORIZED`, `model=PASS_NE2213`, `sdk=PASS_API36`, `adbSha256=PASS_PINNED`. Последний detail `ADB_COMMAND_FAILED_1` произошёл в запросе установленного пакета; `productionPackage` и `diagnosticPackage` оставлены `NOT_TESTED`. Установки/записи/чтение медиа `NOT_ATTEMPTED`, cleanup `NOT_AUTHORIZED`. `pm path` при отсутствии пакета *может* давать exit 1; отсутствие пакета ещё не доказано.
+- Сценарий `tools/android-usb-device-readonly-preflight.ps1` v3: строго `exit=1` и **пустые stdout+stderr** рассматриваются как отсутствие *только* для двух перечисленных `pm path`. Ошибка доступа/посторонние сообщения/иная команда/код остаются BLOCKED. При exit 0 лишь `package:` маркирует PRESENT; пустой ответ блокируется как UNVERIFIED. Никакой установки, удаления или доступа к файлам телефона.
+- Тест `tests/android-usb-preflight-mock.ps1` компилирует локальный имитатор ADB на Windows для positive/negative сценариев; CI workflow `.github/workflows/test-android-usb-readonly-preflight.yml` проходит статический аудит и мок-тест. [Windows CI #45049940201](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45049940201) completed/success на SHA `269b9158d0e7d6a9738ccc967200926a79fc9644`; лог содержит `POWERSHELL_PARSE_AND_ADB_COMMAND_AUDIT_PASS` и `ANDROID_USB_MOCK_ALL_CASES_PASS`. Промежуточный CI #45049870248 fail из-за несовместимого PowerShell `Add-Type -OutputType ConsoleApplication`, исправлен штатным Windows .NET Framework C# compiler; скрипт runtime не менялся после SHA `76e47ad52b5af1a9ea6a5fffd4d681eaf60e9f80`.
+- Локальный полный v3 `android-usb-device-readonly-preflight.ps1`: git blob SHA `4cbe80a100b31a16e87a7433e02baeb41c9a99da`, SHA-256 `ae75003966b9b4c5b3fdc9d700a58a10ddcafed3a77f9f7986a4bf3931a0fef1` (5667 bytes). Физическая проверка v3 ещё **NOT_TESTED**; один безопасный запуск, оригиналы/backup/продукт не трогать.
+
+---
+
+## 2026-11-22 — реальный OnePlus USB preflight v1: подтверждён ADB 41, диагностирован старый HOST ADB-сервер 32; исправлен v2
+
+- Пользователь выполнил `android-usb-device-readonly-preflight.ps1` на Windows: отчёт `BLOCKED`, `adb=PASS`, `adbSha256=PASS_PINNED`; точная причина `adb server version (32) doesn't match this client (41); killing...`. `device/model/sdk/productionPackage/diagnosticPackage=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Это **не аппаратный PASS и не отказ телефона**: старый компьютерный ADB daemon выдаёт ожидаемый stderr, который PowerShell 5.1 при `ErrorActionPreference=Stop` ошибочно трактовал как terminating error.
+- Исправлен **только скрипт диагностики**, без изменения пользовательских данных: отдельное чтение stdout/stderr через `System.Diagnostics.Process`, 15-секундный timeout, строгий whitelist `adb server version ... doesn't match ... killing...`, `* daemon ...`; неожиданный stderr по-прежнему BLOCKED. Клиент может автоматически заменить **HOST** ADB-сервер; телефон не перезапускается, пакеты не устанавливаются, оригиналы не читаются.
+- Синтаксис Windows PowerShell и аудит дозволенных команд на exact SHA `3d7161400f019f83e4baf54b4083a0378c5c827d`: [workflow #45049502481](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45049502481) **completed/success**. Промежуточные коммиты `54115cb` и `a545735` дали CI parser FAIL из-за неполной записи/дублированного хвоста, исправлены; не считать их проверенными.
+- Готов файл v2 `tools/android-usb-device-readonly-preflight.ps1`/локальная копия `android-usb-device-readonly-preflight.ps1`, SHA256 `91ce7017149f940226b4825ceace474e4c8d9a335880f0a83e785cf80b439588` (4568 байт). Следующее одно действие пользователя: заменить прежнюю копию в Downloads и выполнить ту же PowerShell-команду, прислать JSON. Физические Android package check/video/recognition/cleanup остаются NOT_TESTED до нового отчёта.
+
+---
+
+## 2026-11-22 — эмулятор: доказана инфраструктурная причина отказа, автоматические перезапуски остановлены
+
+- Job [#45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) завершился **failure**: Android Emulator 37.3.10 на Ubuntu не имел KVM, `-accel off` прямо отвергнут (`Software CPU emulation ... is not supported`), затем `Timeout waiting for emulator to boot`. APK был ранее успешно скачан, но **не установлен и не запущен**; нельзя маркировать emulator PASS.
+- Workflow `.github/workflows/test-android-emulator-smoke.yml` переведён на `workflow_dispatch` (не запускать на каждый PR); установлен `ANDROID_I_WANT_MY_TCG=yes` для будущего отдельного ручного software-emulation эксперимента, который **не был проверен**. На бесплатном CI не тратить повторно время, приоритет — безопасная физическая проверка OnePlus.
+- CI Windows PowerShell audit `#45047825843` прошёл; физический отчёт от пользователя пока не получен. Локальный .ps1 выполняет **только чтение** pinned ADB и пакетов, без установки и изменений. Успешная CI-сборка не означает реальный Android runtime PASS.
+
+---
+
+## 2026-11-22 — физический USB Android: подготовлен однократный read-only preflight, пользовательский запуск ожидается
+
+- Новая ветка внутри Draft PR #373: `tools/android-usb-device-readonly-preflight.ps1` проверяет SHA256 ранее подтверждённого Google ADB `bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee`, ADB 1.0.41+, единственный авторизованный Android, ранее подтверждённый OnePlus `NE2213`/SDK 36, наличие/отсутствие только конкретных `ru.paseka.journal` и `ru.paseka.journal.archive.restoreproof335`. Не читает MediaStore/видео/архивы, не устанавливает APK, не запускает приложения и не изменяет телефон. Весь вывод — JSON без серийного номера устройства.
+- CI parser/allowed-commands audit (Windows) `test-android-usb-readonly-preflight.yml` [#45047825843](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45047825843) **completed/success** на SHA `c7820ec9046433a77a978d9177c07c943852f9c8`. Это синтаксический и ограниченный статический аудит, **не физический PASS**. Подготовлен отдельный передаваемый пользователю `.ps1`, SHA256 `0b1f956fc72804b261433da09ee7b0c91c5fdd0939b344c437f956bcca050fc1`; для испытания необходимо единоразово запустить файл в Windows PowerShell с доступом к ПК.
+- Фактический ADB/USB результат пока `NOT_TESTED`, никаких предписаний переустановки рабочего `ru.paseka.journal`. При `BLOCKED` не выполнять write/restore или cleanup. Запросить один итоговый JSON и продолжить диагностику без многократных ручных действий.
+- Android virtual emulator [#45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) ещё `in_progress` на последней проверке, PASS не приписывать. Изолированная архивация skipped, не PASS. PR Draft, main неизменна.
+
+---
+
+## 2026-11-22 — Android emulator CI attempt: infrastructure-only failures and pinned APK approach
+
+- [Emulator attempt #45046697734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046697734) failed before Android because workflow expected absent npm lockfile. [Attempt #45046748384](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046748384) failed Gradle dependency resolution against Google/Maven repos in fresh runner; these are environment failures, not demonstrated runtime application failures.
+- Workflow changed to fetch **existing confirmed APK** [Android run #45046512693 / artifact #14763364196](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512693/artifacts/14763364196), source code/test SHA `335db90f07d73adbe0c422ec533433fdc03e85f4`, then test install/start on an ephemeral clean Android 35 emulator. Exact workflow commit `25f4888f7833aeb418e26f68f8725d33c5fd9aa0`; [emulator run #45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) underway on latest check; NO emulator PASS claimed before terminal logs.
+- Latest revision also has [Android CI #45046823920](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823920) completed/success and [specialized #45046823856](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823856) completed/success; unrelated archive workflow skipped. This does not verify USB OnePlus, real recognition, original video deletion or archive restore.
+- No physical ADB path in cloud environment. Stop at fail-closed boundary: do not install/overwrite production app or delete user media. Draft PR #373 open, unmerged.
+
+---
+
+## 2026-11-22 — PR #373 exact-SHA tests + clean Android emulator smoke
+
+- Tested SHA `335db90f07d73adbe0c422ec533433fdc03e85f4`: [video synthetic/fail-closed CI #45046512612](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512612) completed/success, job log shows **176/176 PASS, 0 fail**; [Android debug build #45046512693](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046512693) completed/success, full **1343/1343 PASS, 0 fail**, Gradle `BUILD SUCCESSFUL`, artifact #14763364196 (GitHub ZIP digest `85a8bf2d6143b21ff7a9a57996d1cdf0e7bf24c9e1cbf0b2d2b9a06581aaf87a`). Isolated archive workflow #45046512633 **skipped**, not PASS.
+- New workflow `.github/workflows/test-android-emulator-smoke.yml` is a CI-only, clean Android API 35 virtual-device test of APK install and app process launch; it does not access camera, video, archive or user data. Its **new HEAD result is pending** and must not be represented as physical device validation.
+- Direct ADB to user's USB-connected OnePlus is not available in this cloud session; physical phone testing remains NOT_TESTED. No deployment, merge, real deletion, recognition or all-copy safety authorization.
+- Next: verify exact new HEAD emulator run; then require separate evidence before physical phone testing or cleanup.
+
+---
+
+## 2026-11-22 — дополнительная негативная матрица synthetic cleanup (Draft child of #372)
+
+- Ветка `test/video-synthetic-cleanup-negative-matrix-2026-11-22` поверх #372. В `tests/video-synthetic-cleanup-atomicity.test.mjs` добавлены 5 изолированных fake-indexeddb регрессий: подмена Blob при правильных SHA-метаданных, отдельно защищённые staging и history, отсутствие ledger, существующий tombstone.
+- Все тесты обязаны сохранить исходный синтетический Blob; результат BLOCKED, новый tombstone не появляется, существующий tombstone сохраняется. Проверки реального Android, Camera/MediaStore/Downloads, настоящего детектора пчёл, разрешения удаления и восстановления не проводятся.
+- Runtime, IndexedDB схема реального приложения и пользовательские данные не менялись. PR Draft, никаких merge/release/deployment. CI для нового exact SHA проверять отдельно; успешный предыдущий #372 не подменяет новый результат.
+- Следующий шаг: проверить точный SHA и логи CI новой ветки; сохранить запрет удаления оригиналов до полной верификации распознавания и всех копий.
+
+---
+
 ## 2026-11-22 — synthetic cleanup atomicity exact-SHA CI 171/171 PASS
 
 - Exact tested SHA `6ca6d6ffe87124a782818a21b4e8cba411772179`: [Video inventory/recognition/staging/synthetic cleanup CI #45046041873](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046041873) **completed/success**, actual job log **171/171 tests PASS, 0 FAIL**. Six new tests include test-only atomic `main` tombstone + synthetic `entrance_media` deletion, rollback after forced abort, stale revision, protected backup, unverified capture provenance, reopen and no second delete. [General Android APK #45046041952](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046041952) **completed/success**. Isolated archive workflow #45046041928 **completed/skipped**, not PASS.

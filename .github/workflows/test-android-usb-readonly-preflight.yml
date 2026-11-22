@@ -1,0 +1,120 @@
+name: Validate Android USB read-only preflight
+
+on:
+  push:
+    paths:
+      - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tools/android-restore335-verified-safe-install.ps1'
+      - 'tools/android-restore335-private-readonly-stage.ps1'
+      - 'tools/android-restore335-private-readonly-stage-v2.ps1'
+      - 'tools/android-restore335-private-readonly-stage-v3.ps1'
+      - 'tests/android-usb-preflight-mock.ps1'
+      - '.github/workflows/test-android-usb-readonly-preflight.yml'
+  pull_request:
+    paths:
+      - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tools/android-restore335-verified-safe-install.ps1'
+      - 'tools/android-restore335-private-readonly-stage.ps1'
+      - 'tools/android-restore335-private-readonly-stage-v2.ps1'
+      - 'tools/android-restore335-private-readonly-stage-v3.ps1'
+      - '.github/workflows/test-android-usb-readonly-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  powershell-static:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parse and allowed ADB command audit
+        shell: pwsh
+        run: |
+          $file = 'tools/android-usb-device-readonly-preflight.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Host; throw 'POWERSHELL_PARSE_FAILED' }
+          $src = Get-Content -Raw $file
+          foreach ($term in @('adbSha256','ONE_AUTHORIZED_DEVICE_REQUIRED','NOT_AUTHORIZED','PINNED_ADB_MISSING')) {
+            if (-not $src.Contains($term)) { throw "MISSING_SAFETY_GUARD_$term" }
+          }
+          foreach ($forbidden in @('install','uninstall','push','pull','am start','force-stop','rm -','deleteFile','format','clearPackage')) {
+            $calls = [regex]::Matches($src, "(?m)^\s*(?:Call-Adb|\$[A-Za-z][A-Za-z0-9]*\s*=\s*Call-Adb)\s+@\(([^\r\n]*)")
+            foreach ($call in $calls) {
+              if ($call.Value -match "(?i)\b$([regex]::Escape($forbidden))\b") { throw "DISALLOWED_ADB_COMMAND_$forbidden" }
+            }
+          }
+          Write-Host "POWERSHELL_PARSE_AND_ADB_COMMAND_AUDIT_PASS"
+      - name: Parse and guard private stage against all writes
+        shell: pwsh
+        run: |
+          $file = 'tools/android-restore335-private-readonly-stage.ps1'
+          $t = $null
+          $e = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$t, [ref]$e)
+          if ($e.Count -gt 0) { throw 'PRIVATE_STAGE_PARSE_FAILED' }
+          $src = Get-Content -Raw $file
+          foreach ($token in @('PASS_PRESENT_DIRECTORY','PRIVATE_FILES_NONEMPTY_NO_ACTION','ABSENT_IN_EMPTY_LISTING','NOT_AUTHORIZED','PASS_PINNED')) {
+            if (-not $src.Contains($token)) { throw "MISSING_PRIVATE_STAGE_GUARD_$token" }
+          }
+          foreach ($required in @("Call-Adb @('version')","Call-Adb @('devices','-l')","'exec-out','run-as'","'stat','-c','%F','files'","'ls','-A','files'")) {
+            if (-not $src.Contains($required)) { throw "MISSING_PRIVATE_READONLY_QUERY_$required" }
+          }
+          foreach ($bad in @('adb install','adb push','adb pull','pm clear','am force-stop','toybox dd','toybox rm','run-as $privatePackage sh')) {
+            if ($src.Contains($bad)) { throw "PRIVATE_STAGE_DISALLOWED_$bad" }
+          }
+          Write-Host 'RESTORE335_PRIVATE_READONLY_STATIC_PASS'
+      - name: Verify v2 private stage syntax and three independent package observations
+        shell: pwsh
+        run: |
+          $path = 'tools/android-restore335-private-readonly-stage-v2.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) { throw 'V2_POWERSHELL_PARSE_FAILED' }
+          $s = Get-Content -LiteralPath $path -Raw
+          foreach ($required in @('ANDROID_RESTORE335_PRIVATE_READONLY_V2','packagePathFirst','packageList','packagePathSecond','PRESENT_USER0','PACKAGE_IDENTITY_INCONSISTENT_OR_ABSENT_NO_PRIVATE_ACCESS','PRIVATE_FILES_NONEMPTY_NO_ACTION','NOT_AUTHORIZED')) {
+            if (-not $s.Contains($required)) { throw "V2_SAFETY_GUARD_MISSING_$required" }
+          }
+          if (@([regex]::Matches($s, "'pm','path'")).Count -ne 3) { throw 'V2_REQUIRES_THREE_PATH_CALLS' }
+          if (@([regex]::Matches($s, "'pm','list','packages'")).Count -ne 1) { throw 'V2_REQUIRES_ONE_PACKAGE_LIST' }
+          Write-Host 'ANDROID_RESTORE335_V2_STATIC_PASS'
+      - name: Validate read-only private path predicate stage v3
+        shell: pwsh
+        run: |
+          $path = 'tools/android-restore335-private-readonly-stage-v3.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) { throw 'PRIVATE_V3_PARSE_FAILED' }
+          $s = Get-Content -LiteralPath $path -Raw
+          foreach ($term in @('ANDROID_RESTORE335_PRIVATE_READONLY_V3','AllowReadOnlyTestFalse','ABSENT_BY_TWO_TESTS_UNVERIFIED','PRIVATE_PATH_TESTS_CONTRADICTORY_NO_ACTION','PRIVATE_FILES_NONEMPTY_NO_ACTION','NOT_AUTHORIZED')) {
+            if (-not $s.Contains($term)) { throw "PRIVATE_V3_GUARD_MISSING_$term" }
+          }
+          if (@([regex]::Matches($s, "'test','-[de]','files'")).Count -ne 2) { throw 'PRIVATE_V3_TWO_PREDICATES_REQUIRED' }
+          if (@([regex]::Matches($s, "'stat','-c'")).Count -ne 0) { throw 'PRIVATE_V3_FORBIDDEN_STAT' }
+          foreach ($bad in @("'-r'","'install'","'uninstall'","'clear'","'push'","'pull'","'dd'","'rm'","'mkdir'","'am','start'")) {
+            if ($s.Contains($bad)) { throw "PRIVATE_V3_WRITE_COMMAND_$bad" }
+          }
+          Write-Host 'RESTORE335_READONLY_PRIVATE_V3_STATIC_PASS'
+      - name: Parse and audit SHA-pinned Restore335 no-overwrite installer
+        shell: pwsh
+        run: |
+          $path = 'tools/android-restore335-verified-safe-install.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Host; throw 'INSTALLER_POWERSHELL_PARSE_FAILED' }
+          $s = Get-Content -LiteralPath $path -Raw
+          foreach ($term in @('RESTORE335_PINNED_SAFE_INSTALL_V1','PASS_ONLY_USER0','POSSIBLE_RETAINED_APP_DATA_NO_REINSTALL','PACKAGE_CHANGED_BEFORE_INSTALL','ZIP_SHA_MISMATCH','APK_SHA_MISMATCH','APK_INSTALL_FAILED_NO_RETRY','NO_LAUNCH_NO_PRIVATE_MUTATION','NOT_AUTHORIZED','bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee','28e62f19d80a4ede343041a658da7093b2c106c82a02e0db23f2ccedd5bde176','5ba91f66576e8f859a398655be001d0116819478501981650505ea66a92f496e')) {
+            if (-not $s.Contains($term)) { throw "INSTALLER_REQUIRED_GUARD_MISSING_$term" }
+          }
+          if (@([regex]::Matches($s, "'install','-t'")).Count -ne 1) { throw 'INSTALL_COMMAND_NOT_EXACTLY_ONE' }
+          foreach ($bad in @("'-r'","'uninstall'","'clear'","'force-stop'","'push'","'pull'","'rm'","'dd'","'am','start'")) {
+            if ($s.Contains($bad)) { throw "DISALLOWED_COMMAND_$bad" }
+          }
+          Write-Host 'RESTORE335_INSTALLER_NO_OVERWRITE_STATIC_PASS'
+      - name: Windows mock regression — absent vs denied packages
+        shell: pwsh
+        run: ./tests/android-usb-preflight-mock.ps1

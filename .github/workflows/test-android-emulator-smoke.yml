@@ -1,0 +1,44 @@
+name: Test Paseka Android emulator launch (manual, requires CPU emulation)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  emulator-launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ANDROID_I_WANT_MY_TCG: 'yes'
+    steps:
+      - name: Fetch pinned known-good debug APK from existing CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p downloaded
+          gh run download 45046512693 --repo 250oisr-eng/Pasekaapp -n paseka-debug-apk -D downloaded
+          test -s downloaded/app-debug.apk
+          sha256sum downloaded/app-debug.apk
+          echo 'Downloaded APK from exact code/test SHA 335db90f07d73adbe0c422ec533433fdc03e85f4'
+      - name: Emulator install/launch smoke, without user data
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_4
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb wait-for-device
+            adb shell getprop sys.boot_completed | grep -q '1'
+            adb install --no-streaming downloaded/app-debug.apk
+            adb shell pm path ru.paseka.journal | grep -q 'package:'
+            adb shell am start -W -n ru.paseka.journal/.MainActivity
+            sleep 5
+            adb shell pidof ru.paseka.journal | grep -E '^[0-9]+'
+            echo "EMULATOR_INSTALL_LAUNCH_PASS (not physical video, recognition, archive or deletion proof)"
