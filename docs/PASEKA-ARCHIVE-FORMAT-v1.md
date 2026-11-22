@@ -1,3 +1,24 @@
+## 2026-11-22 — PR #398: sequential P0 live state guard, exact code/test SHA PASS
+
+- **Проверенный code/test+docs SHA**: `3506848c07b4a9062e78e0efc9ca8bd180bdfc2f`. [Fast Quality #45068666037](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45068666037) **completed/success, 838/838 tests PASS, 0 fail/skip**. [Android #45068665898](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45068665898) **completed/success**, debug APK build/upload; artifact #14772561698, archive 3,457,147 bytes, **not** a separately calculated binary APK checksum. New docs-only commits AFTER the checked SHA do not automatically inherit exact-SHA validation.
+- Draft PR [#398](https://github.com/250oisr-eng/Pasekaapp/pull/398) is now a **true stacked child** of Draft [#397](https://github.com/250oisr-eng/Pasekaapp/pull/397), base HEAD `768033a561f68bbe25639eb858b49ab03fbe94dd`. Rebased own branch via compare, new commits and exact SHA lease; #397's safe rollback-discard code/tests/doc updates are preserved. Relative to #397: 7 files, 9 code added/1 removed, 47 lines new tests (8 negative + 2 positive scenarios), and 5 docs. No competing sibling PR changes retained in current #398 diff.
+- **Defect fixed**: In `commitStagedArchive` final readwrite transaction, `values.currentState || null` treated malformed falsy persisted journal rows like an empty database when `expectedRevision=null`. New guard `RESTORE_LIVE_STATE_UNVERIFIED` prevents overwrite, preserves current journal/staging/history/full_backup. Actual absent state still accepts import, and legacy object with `meta` but no revision keeps its rollback copy.
+- Limits: validation is type/shape fail-closed, not a complete integrity proof of every valid-looking state. No IndexedDB migration, no archive schema change, no production/main writes, no merge/deploy, no real restore/cleanup/video deletion. Restore335 STOP, v2 ledger and complete portable backup integration remain P0 blockers.
+- **Next single step:** continue P0 audit of archive v1/v2 coverage and recognition ledger retention, preserving fail-closed cleanup; no expansion to new feature work during STABILIZATION_ONLY.
+
+---
+
+## 2026-11-22 — P0: malformed live journal при restore, последовательно поверх #397 (CI новой правки ожидается)
+
+- Текущий `main` SHA `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; в него ничего не вносилось. Родительский Draft PR #397 — code/test SHA `f29eafbff7376ab51a95dc0b3e9a550c4b86c9b6`, docs HEAD `768033a561f68bbe25639eb858b49ab03fbe94dd`, проверен отдельно: Fast Quality #45068360057 и Android #45068359996 завершены success. Результат родителя **не доказывает** новые изменения.
+- Для избежания конкурирующих sibling PR #397/#398 новая правка `commitStagedArchive` перенесена в отдельную последовательную рабочую ветку от точного HEAD #397. Тесты #397 на удаление rollback snapshot с проверкой ключей и `kind` сохранены; десять тестов защиты исходного журнала добавлены следом.
+- **Выявленный дефект:** выражение `values.currentState || null` в финальной readwrite-транзакции при ожидаемой `null` revision ошибочно трактовало сохранённые `false`, `0`, пустую строку как отсутствие state, потенциально заменяя недостоверный журнал без корректного rollback snapshot. Новый `RESTORE_LIVE_STATE_UNVERIFIED` запрещает такое восстановление для non-object/Array/invalid `meta`, не записывая новые данные.
+- `tests/archive-restore-enumeration-failclosed.test.mjs`: восемь негативных fake-indexeddb кейсов с настоящими некорректными значениями в main/state, плюс позитивные проверки реального отсутствия state и legacy meta без revisionId. Не изменяются IndexedDB version, формат архива, существующие миграции и ветвление UI.
+- **Verification:** новый code/test/Docs HEAD пока **NOT_VERIFIED**, ожидаются Fast Quality и Android CI на точном SHA. Реальное видео, физическое восстановление и очистка NOT_TESTED/NOT_AUTHORIZED; Restore335 STOP; v2 ledger перенос в архив ещё не завершён. Ни merge, ни production/deploy, ни удаление оригиналов не разрешены.
+- Следующий шаг: обновить stacked Draft #398 на проверенную базу #397 и выполнить полную регрессию/Android на точном SHA; при любом FAIL исправить в той же ветке. Затем продолжить один P0 блок сохранности архива.
+
+---
+
 ## 2026-11-22 — P0: проверка принадлежности записей при удалении rollback snapshot (Draft, CI pending)
 
 - GitHub `main` на старте цикла: `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. Родительский Draft #396: HEAD `65fb6a28217d252de866b3c1686e6b8968e3676a`; прямого слияния с main нет. Его code/test SHA `dbce7c3f188047ae791b0b783fc69483d331a80b` проверялся отдельно (819/819 и Android Debug PASS); результаты не переносятся на новый код.
