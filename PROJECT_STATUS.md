@@ -1,3 +1,13 @@
+## 2026-11-22 — Android проверки только с телефона (подготовка)
+
+- Пользователь располагает только телефоном: ADB, PowerShell, USB и desktop-сценарии исключены из текущей очереди физической проверки.
+- Добавлена единая матрица M00–M14: `docs/ANDROID-PHONE-ONLY-TEST-MATRIX-2026-11-22.md`. Это документация, **не** единый APK, не новые физические проверки и не подтверждение распознавания пчёл.
+- Последний Restore335 V10 PR #380: физический `BLOCKED / SOURCE_FIXED_NAME_NOT_MATCHED_PRESERVE`; запрещены дальнейшие слепые пробы неизвестного private-файла, чистка, перезапись и удаление. ONNX self-authored Add(3,2)=5 ранее PASS, но beeRecognition NOT_TESTED.
+- Следующий шаг: отдельный изолированный Android dashboard APK только с безвредными синтетическими проверками, 2 кнопки тест/копирование JSON; после сборки exact-SHA CI и физической проверки на телефоне. Реальные видео, backup/restore и cleanup не включать без доказанных гарантий.
+- Main/production, пользовательские видео и данные не менялись; merge/release/deploy не выполнялись.
+
+---
+
 ## Контрольная точка — OP-07 и резервная безопасность (2026-11-17)
 
 - PR #154: code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`; Fast Quality Checks #44169456462 — **611/611 tests, 0 failures**; Android Debug APK PR run #44169468103 — success; push run #44169456444 — success.
