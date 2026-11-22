@@ -1,0 +1,29 @@
+name: Android Restore335 V6 private metadata format static proof
+on:
+  push:
+    paths:
+      - 'tools/android-restore335-private-metadata-stage-v6.ps1'
+      - 'tests/android-restore335-private-metadata-v6.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v6.yml'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-private-metadata-stage-v6.ps1'
+      - 'tests/android-restore335-private-metadata-v6.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v6.yml'
+jobs:
+  readonly-v6:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PowerShell parser
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-private-metadata-stage-v6.ps1',[ref]$tok,[ref]$err)
+          if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
+      - name: Run V6 static invariants and metadata format fixtures
+        shell: pwsh
+        run: node --test tests/android-restore335-private-metadata-v6.test.mjs

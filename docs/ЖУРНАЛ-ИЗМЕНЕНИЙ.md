@@ -1,3 +1,12 @@
+## 2026-11-22 — physical V5 metadata format BLOCKED; conservative V6 Draft PR #376
+
+- User physical OnePlus NE2213/API36 V5: pinned script hash PASS; ADB/device/model/sdk/ADB SHA PASS, diagnostic package present unchanged, production package absent, three PM observations present, directory/path TRUE. Exactly one private entry preserved; `privateEntryType=NOT_TESTED`, `privateInput=UNKNOWN_PRESERVE`, `detail=PRIVATE_METADATA_FORMAT_UNVERIFIED`, `status=BLOCKED`. `installs/writes/mediaRead=NOT_ATTEMPTED`; `cleanup=NOT_AUTHORIZED`. The CMD error after JSON is expected for nonzero BLOCKED and is not an independent data failure.
+- Draft [#376](https://github.com/250oisr-eng/Pasekaapp/pull/376) stacked on #375 adds V6 format-only classifier supporting standard ten-character mode and optional one-character `.`, `+`, `@` metadata suffix. The suffix hypothesis is **not proven** by the V5 output. Unknown mode remains `UNKNOWN_MODE_FORMAT_PRESERVE`/`UNKNOWN_PRESERVE` without raw metadata disclosure; no name, type guess, file contents, archive reads, restore or deletion.
+- Added `tools/android-restore335-private-metadata-stage-v6.ps1`, five Node regression/format tests, Windows parser workflow, and `docs/ANDROID-RESTORE335-PRIVATE-METADATA-V6-2026-11-22.md`. Windows CI and physical V6 pending at this entry. No merge, main modification, production deployment or phone writes.
+- One next step: verify exact V6 SHA Windows/static and Android CI before offering a single pinned physical V6 run, if needed. Never repeat failed V5 or erase unknown private files.
+
+---
+
 ## 2026-11-22 — Restore335 V5 corrected source and exact-SHA CI confirmed
 
 - Draft PR [#375](https://github.com/250oisr-eng/Pasekaapp/pull/375) stacked on Draft #374; corrected script code SHA `d843d65d025b93813e3d8f66283636932ab49d2c` after initial malformed-generator syntax error (the original Windows CI #45054604478 FAILED during parse, before tests).
