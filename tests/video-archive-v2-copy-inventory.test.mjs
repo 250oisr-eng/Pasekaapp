@@ -523,3 +523,52 @@ test('consistent rollback originalId and record id adds no false identity confli
  assert.equal(report.cleanupAuthorized,false);
  db.close();
 });
+
+test('compound interrupted archive snapshot reports every conflict but never authorizes cleanup',async()=>{
+ const db=await setup({ledger:ledger('deleted'),
+  entrance:[{...live('v1'),sourceSha256:'b'.repeat(64)}],
+  staging:[{...staged('v1'),sourceSha256:'c'.repeat(64)},{
+    id:'rb:video:v1',kind:'rollback_video',sessionId:'rb',originalId:'v1',
+    record:live('renamed')}],
+  backups:[['v2entrance:b',{kind:'v2_entrance_quarantine_rollback_snapshot',
+    beforeState:{meta:{revisionId:'before'},records:[]},
+    afterState:{meta:{revisionId:'after'},records:[]},
+    quarantinedMedia:[live('v1')]}]]});
+ const report=await audit(db,guard);
+ for(const issue of ['conflicting_source_metadata','conflicting_copy_evidence',
+  'recognition_source_evidence_conflict','rollback_original_identity_conflict',
+  'deleted_tombstone_has_copy','external_android_copies_not_audited']){
+  assert.ok(report.issues.includes(issue),issue);
+ }
+ assert.equal(report.copyCount,4);
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('pending stage original survives read-only audit if main entrance copy is absent',async()=>{
+ const db=await setup({staging:[staged('orphan-pending')]});
+ const first=await audit(db,guard);
+ const second=await audit(db,guard);
+ assert.equal(first.copyCount,1);
+ assert.equal(first.copies[0].store,'archive_staging');
+ assert.deepEqual(second.copies,first.copies);
+ assert.equal(first.cleanupAuthorized,false);
+ assert.equal(first.dataModified,false);
+ db.close();
+});
+test('same videoId in journal and entrance source remains two distinct identities',async()=>{
+ const db=await setup({entrance:[live('shared')],
+  state:{meta:{schemaVersion:15,revisionId:'r1'},
+   records:[{id:'visit',media:[{kind:'video',videoId:'shared',
+    sourceSha256:'b'.repeat(64),sourceBytes:3,
+    data:'data:video/mp4;base64,YWJj'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.distinctIdentities,2);
+ assert.equal(report.issues.includes('conflicting_copy_evidence'),false);
+ assert.equal(report.issues.includes('duplicate_copy_location_identity'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
