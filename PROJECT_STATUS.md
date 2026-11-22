@@ -1,3 +1,12 @@
+## 2026-11-22 — physical Restore335 v2: fail-closed package absent/unverified; private access NOT_TESTED
+
+- Пользовательский реальный отчёт `ANDROID_RESTORE335_PRIVATE_READONLY_V2`: `status=BLOCKED`; `adb/device/model/sdk/adbSha256=PASS` на OnePlus NE2213/API36; `productionPackage=ABSENT`; `diagnosticPackage=UNVERIFIED_PRESERVE`; `packagePathFirst=ABSENT_OR_UNVERIFIED`, `packageList=NO_MATCH_USER0`, `packagePathSecond=ABSENT`, `detail=PACKAGE_IDENTITY_INCONSISTENT_OR_ABSENT_NO_PRIVATE_ACCESS`.
+- Три **текущих** наблюдения не подтвердили `ru.paseka.journal.archive.restoreproof335` для пользователя Android 0; ранее v3 USB preflight сообщал `PRESENT_UNTOUCHED`, поэтому причина расхождения неизвестна. Не утверждать удаление, отсутствие во всех пользователях Android, утрату его файлов или факт их сохранности. Новая установка/восстановление не разрешаются этим результатом.
+- `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Сценарий корректно прекратил работу **до** `run-as`, чтения исходных байтов, восстановления и любых операций записи. Физическая проверка приватного архива остаётся заблокированной; не повторять прежнюю one-shot dd, не чистить пакеты, не удалять оригиналы и не считать недоступность пакета доказательством удаления.
+- Дальнейшая аппаратная задача: только после отдельной безопасной проверки области пользователей Android и происхождения ранее установленного тестового APK; до неё не запрашивать у пользователя повторные однотипные диагностические прогоны. Продолжать независимые CI и тесты без затрагивания устройства. PR #373 остаётся Draft без merge/deploy.
+
+---
+
 ## 2026-11-22 — physical Restore335 private gate v1 BLOCKED: contradictory package identity; v2 cross-check prepared
 
 - Actual user-submitted `ANDROID_RESTORE335_PRIVATE_READONLY_V1`: `status=BLOCKED`, `adb/device/model/sdk/adbSha256=PASS` on physical NE2213/API36, `diagnosticPackage=ABSENT`, `productionPackage=ABSENT`, `detail=DIAGNOSTIC_PACKAGE_NOT_INSTALLED`; `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `installs/writes/mediaRead=NOT_ATTEMPTED`, cleanup NOT_AUTHORIZED.
