@@ -96,7 +96,6 @@ function Call-Adb([string[]]$Arguments, [switch]$AllowMissingPackage, [switch]$A
       }
     }
     if ($MetadataListing) {
-      # Exactly one shallow metadata listing for the diagnostic sandbox.
       $pinned = $Arguments.Count -eq 9 -and
         $Arguments[0] -ceq '-s' -and $Arguments[2] -ceq 'exec-out' -and
         $Arguments[3] -ceq 'run-as' -and
@@ -228,34 +227,14 @@ try {
       $report.privateEntryCount = [string]$names.Count
       $report.privateFilesClass = 'NONEMPTY_PRESERVE'
       $report.privateInput = 'UNKNOWN_PRESERVE'
-      # V4 observed exactly one entry. Never inspect metadata when multiple
-      # entries, names are ambiguous, or a listing changes between reads.
+      # Never inspect per-entry metadata unless count is exactly one.
       if ($names.Count -ne 1 -or $names[0] -match '[\x00-\x1F\x7F]') {
         throw 'PRIVATE_ENTRY_IDENTITY_UNVERIFIED'
       }
       $metadata = Call-Adb @('-s',$serial,'exec-out','run-as',$privatePackage,'/system/bin/toybox','ls','-lA','files') -MetadataListing
       if ($metadata.IndexOf([char]0) -ge 0) { throw 'PRIVATE_METADATA_BINARY_UNVERIFIED' }
       $metaLines = @($metadata -split "\r?\n" | Where-Object { $_.Length -gt 0 })
-      # Toybox may emit a leading total line. Accept exactly one metadata row.
-      if ($metaLines.Count -eq 2 -and $metaLines[0] -match '^total [0-9]+
-    }
-  } else {
-    $report.privateDirectory = 'AMBIGUOUS_OR_NON_DIRECTORY_PRESERVE'
-    throw 'PRIVATE_PATH_TESTS_CONTRADICTORY_NO_ACTION'
-  }
-}
-catch {
-  $report.status = 'BLOCKED'
-  $report.detail = [string]$_.Exception.Message
-}
-finally {
-  $report | ConvertTo-Json -Depth 3
-}
-# Explicit exit status prevents the calling CMD/PowerShell wrapper from inheriting
-# a stale nonzero LASTEXITCODE after a successful read-only check.
-if ($report.status -ne 'PASS') { exit 2 }
-exit 0
-) {
+      if ($metaLines.Count -eq 2 -and $metaLines[0] -match '^total [0-9]+$') {
         $metaLines = @($metaLines[1])
       }
       if ($metaLines.Count -ne 1) { throw 'PRIVATE_METADATA_ROWS_UNVERIFIED' }
