@@ -6,7 +6,10 @@ function fail(code){const e=new Error(code);e.code=code;throw e;}
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const validId=v=>typeof v==='string'&&v.length>0&&v.length<=200&&!/\s/.test(v);
 const validHash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
-const videoLike=v=>v?.kind==='video'||v?.type==='video'||typeof v?.type==='string'&&v.type.startsWith('video/');
+const videoType=value=>typeof value==='string' &&
+ (value.toLowerCase()==='video'||/^video\//i.test(value)||
+  /^application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl)$/i.test(value));
+const videoLike=v=>v?.kind==='video'||videoType(v?.type)||videoType(v?.mimeType);
 function canonical(value){
  if(value===null||typeof value==='string'||typeof value==='boolean')return JSON.stringify(value);
  if(typeof value==='number'&&Number.isFinite(value))return JSON.stringify(value);
@@ -59,7 +62,7 @@ function checkRestoreLedgerCandidate(currentLedger,incoming,guard){
   if(!Array.isArray(record.media))continue;
   for(const media of record.media){
    if(!object(media))fail('V2_RESTORE_MEDIA_INVALID');
-   const hasVideoData=typeof media.data==='string'&&/^data:(?:video\/|application\/octet-stream)/i.test(media.data);
+   const hasVideoData=typeof media.data==='string'&&/(?:data:(?:video\/|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/i.test(media.data);
    if(hasVideoData&&!videoLike(media))fail('V2_RESTORE_UNCLASSIFIED_VIDEO');
    if(!videoLike(media))continue;
    if(!validId(media.videoId))fail('V2_RESTORE_VIDEO_ID_MISSING');
@@ -127,9 +130,7 @@ function checkLivePendingMediaIdentity(liveState,liveEntranceKeys,incoming){
   for(const media of record.media){
    if(!object(media))fail('V2_RESTORE_LIVE_MEDIA_INVALID');
    const dataPrefix=typeof media.data==='string'?media.data.toLowerCase():'';
-   const hasVideoData=dataPrefix.startsWith('data:video/')||
-     dataPrefix.startsWith('data:application/octet-stream')||
-     dataPrefix.startsWith('blob:');
+   const hasVideoData=/(?:data:(?:video\/|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/.test(dataPrefix);
    if(!videoLike(media)&&!hasVideoData)continue;
    liveRecordVideoCount++;
    if(!validId(media.videoId)){

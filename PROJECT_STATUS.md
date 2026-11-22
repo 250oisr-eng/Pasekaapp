@@ -1,3 +1,13 @@
+## P0 — одинаковая классификация видео в codec и restore preflight (2026-11-23)
+
+- Дополнительный негативный тест: `kind/type` объявлены изображением, а `mimeType` содержит `video/mp4`; codec блокирует экспорт, restore preflight не принимает файл как изображение, live collision не пропускает совпавший ID. Запрещено доверять только первому указанному MIME-полю.
+
+- После Draft #429 исправлены **две дополнительные изолированные** ветви PASEKA02: `js/video-archive-v2-metadata-codec.js` и `js/video-archive-v2-restore-gate.js`. Ранее codec проверял только строго начинающиеся `data:video/*`/`octet-stream`; preflight и live-collision пропускали альтернативные форматы или URL во вложенном тексте. Теперь проверяются также `application/x-matroska`, `application/ogg`, `application/x-msvideo`, `application/vnd.apple.mpegurl`, `blob:`, включая вложенный текст.
+- `tests/p0-v2-codec-restore-video-alias.test.mjs`: реальные isolated export, restore preflight, live collision; негативные варианты и положительный image/png control. Проверка полноты CI нового HEAD ещё не утверждена.
+- Это **P0 hardening subset**, не полноценный live PASEKA02 restore, не media inventory и не delete authorization. P0/P1 OPEN, P2 PARTIAL, Restore335 STOP; main/production/media не изменены. Следующий шаг — CI exact SHA, затем иные P0 safety blockers.
+
+---
+
 ## P0 — MIME alias fail-closed guard (2026-11-23)
 
 - Дочерняя рабочая ветка после #428: исправлены **только** два изолированных PASEKA02 state scanner и проверка recognition ledger: `js/video-archive-v2-entrance-atomic.js` и `js/video-archive-v2-entrance-quarantine-rollback.js`. Запрещены embedded `data:application/x-matroska`, `application/ogg`, `application/x-msvideo`, `application/vnd.apple.mpegurl` наряду с `video/*`, `octet-stream` и `blob:`. Обычный `data:image/png` не запрещён. Это устраняет локальный неполный MIME guard, но **не закрывает P0**.
