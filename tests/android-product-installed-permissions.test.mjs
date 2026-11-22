@@ -127,3 +127,31 @@ test('copy failure is visible and does not erase original report',async()=>{
  assert.equal(a.els.result.textContent,original);
  assert.equal(a.writes.length,0);
 });
+
+
+test('execute real CI aapt allowlist parser against allowed, dangerous and malformed permission inventories',()=>{
+ const begin="          node - \"$RUNNER_TEMP/product-permissions-apk.txt\" <<'NODE'\n";
+ const start=workflow.indexOf(begin);
+ assert.ok(start>=0,'Expected CI aapt parser heredoc');
+ const end=workflow.indexOf('\n          NODE',start+begin.length);
+ assert.ok(end>start,'Expected closing CI aapt parser heredoc');
+ const script=workflow.slice(start+begin.length,end).split('\n').map(line=>line.replace(/^ {10}/,'')).join('\n');
+ function validate(lines){
+  const mockFs={readFileSync(){return lines;}};
+  return vm.runInNewContext(script,{
+   require(module){assert.equal(module,'node:fs');return mockFs;},
+   process:{argv:['node','aapt-report.txt']},
+   console:{log(){}}
+  });
+ }
+ const expected="uses-permission: name='ru.paseka.journal.diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'";
+ assert.doesNotThrow(()=>validate(expected+'\n'));
+ for(const permission of ['android.permission.INTERNET','android.permission.RECORD_AUDIO',
+  'android.permission.READ_MEDIA_VIDEO','android.permission.ACCESS_FINE_LOCATION']){
+  assert.throws(()=>validate(expected+"\nuses-permission: name='"+permission+"'\n"),/Unexpected diagnostic APK permission/);
+ }
+ assert.throws(()=>validate(''),/Missing aapt uses-permission metadata/);
+ assert.throws(()=>validate("uses-permission: malformed\n"),/Unexpected diagnostic APK permission/);
+ assert.throws(()=>validate(expected+"\nuses-permission-sdk-23: name='android.permission.CAMERA'\n"),
+  /Unexpected diagnostic APK permission/);
+});
