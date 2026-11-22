@@ -1,3 +1,13 @@
+## 2026-11-22 — readonly staging audit: обязательная проверка исходных свидетельств распознавания
+
+- Найдено реальное расхождение: `js/paseka-archive-restore.js:inspectStagingRecognitionCopies` ранее принимала `version:1` ledger с `videoId/resultId/cleanupState`, но **без** `sourceSha256/sourceBytes/sourceEvidenceVersion/recognizedAt/result`; отдельно `js/video-archive-v2-guard.js` требует эти поля. Это давало диагностическое `ok:true` для неподтверждённой истории, не давая при этом разрешения delete.
+- В новой изолированной ветке `fix/staging-audit-recognition-evidence-2026-11-22` добавлен fail-closed read-only ответ `ok:false, reason:VIDEO_LEDGER_EVIDENCE_UNVERIFIED, requiresManualReview:true` при отсутствии либо неверном SHA-256/размере, evidence version, времени распознавания, объекте результата. Дубликаты источников по-прежнему получают отдельный `VIDEO_LEDGER_DUPLICATE_IDENTITY` в порядке проверок; сами записи и архивные объекты не меняются.
+- В `tests/archive-staging.test.mjs` существующие три положительных диагностических fixture переведены на полную синтетическую структуру source-bound evidence; добавлены два негативных сценария с отсутствующими полями и таблицей пяти повреждений. Это не признание истинного распознавания пчёл, а исключительно форматная проверка.
+- Перед разработкой подтверждён CI на родительском SHA `c54b922497107ca679f7be96c9c9f0253113dc60`: 142/142 combined [#45004202173](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004202173), общая Android сборка success [#45004202218](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004202218), архивная isolated проверка skipped. Для новой ветки требуется собственный CI на exact HEAD; физические media, DB import, Android restore/cleanup NOT_TESTED.
+- Поиск весов/моделей остаётся припаркованным. Не изменять `main`, не объединять Draft PR и не удалять исходные файлы.
+
+---
+
 ## 2026-11-22 — новый независимый этап: read-only archive failure/restart matrix
 
 - Создана дочерняя ветка `test/video-archive-readonly-transaction-failures-2026-11-22` на базе успешного Draft PR #354, не изменяя `main` или PR #354.
