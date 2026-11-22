@@ -40,7 +40,10 @@ function validateRecognitionLedgerForV2(ledger) {
         !statuses.has(entry.cleanupState) || !sha(entry.sourceSha256) ||
         !Number.isSafeInteger(entry.sourceBytes) || entry.sourceBytes <= 0 ||
         entry.sourceEvidenceVersion !== 1 ||
+        !id(entry.stateRevisionId) ||
         typeof entry.recognizedAt !== 'string' || !Number.isFinite(Date.parse(entry.recognizedAt)) ||
+        typeof entry.sourceHashVerifiedAt !== 'string' ||
+        !Number.isFinite(Date.parse(entry.sourceHashVerifiedAt)) ||
         !obj(entry.result)) fail('V2_LEDGER_ENTRY_INVALID');
     const identity = entry.source + ':' + entry.videoId;
     if (identities.has(identity) || resultIds.has(entry.resultId)) fail('V2_LEDGER_DUPLICATE');
