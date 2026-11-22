@@ -1,3 +1,13 @@
+## 2026-11-22 — fail-closed уникальность resultId в журнале распознавания видео
+
+- Аудит обнаружил расхождение: `js/video-recognition-ledger.js:validateLedger` отклонял повторную пару `source/videoId`, но допускал один `resultId` для разных видео. При этом `js/video-archive-v2-guard.js:validateRecognitionLedgerForV2` и `js/paseka-archive-restore.js:inspectStagingRecognitionCopies` уже требуют уникальности `resultId`.
+- Отдельная дочерняя ветка `fix/video-ledger-resultid-unique-2026-11-22` основана на `fix/staging-audit-recognition-evidence-2026-11-22` (PR #356), без изменений main/production. В `validateLedger` добавлена проверка уникальности `resultId` между всеми источниками и видео. При старой/повреждённой записи отказ `ledger_corrupt`, никаких автоматических миграций или переписывания истории.
+- Добавлен синтетический регрессионный тест: два разных video source/ID с одинаковым `resultId` отклоняются при чтении и при следующей попытке записи; исходный `entrance_media` и сохранённая некорректная история не удаляются и не изменяются.
+- Код и тесты: `b42b534ded2baec08aa4a10d77e6010e52335d9e`; **CI пока не подтверждён**. Это программная проверка согласованности метаданных, не подтверждение качества распознавания пчёл и не разрешение cleanup. `cleanupAuthorized:false`, real video/network/physical deletion `NOT_TESTED`.
+- Следующий шаг: создать Draft PR поверх PR #356, проверить точный SHA CI, устранить ошибки, затем документировать результат. Не сливать PR без явного разрешения.
+
+---
+
 ## 2026-11-22 — exact-code-SHA verification PR #356 завершена
 
 - Программный SHA `7bd84889694c84276b09a84e80192181922c06c8`: [совместный video/ledger/guard/archive CI #45004521556](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521556) **completed/success, 145/145, fail 0, skipped 0**; [legacy archive guard CI #45004521509](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521509) **completed/success, 68/68, fail 0, skipped 0**; [общая Android APK #45004521548](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521548) **completed/success**. [Isolated archive APK #45004521488](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521488) **skipped** (не проверка Android restore).
