@@ -1,3 +1,11 @@
+## 2026-11-22 — исполняемые негативные тесты CI подтверждены на точном SHA
+
+- Code/test SHA `e3395c89aadda9d0e6b50de439e580867fbc8eb3`: [Fast quality checks #45029672213](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672213), [изолированный диагностический APK #45029672179](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672179), [основная Android сборка #45029672164](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672164) — **все completed/success**. После этого SHA в Draft PR добавляются лишь документы.
+- Дополнительные негативные тесты выполняют CI allowlist parser с разрешённым, запрещёнными, отсутствующими и некорректными `aapt` значениями. Проверки не означают физического доступа к телефону или безопасности реального удаления видео.
+- `main`, production, данные пасеки, IndexedDB и видео не менялись. `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`. Физический installed-package test и фактический сетевой трафик **NOT_TESTED**.
+
+---
+
 ## 2026-11-22 — исполняемая негативная проверка списка разрешений APK
 
 - В `tests/android-product-installed-permissions.test.mjs` добавлена проверка **исполнением реального фрагмента Node из Android workflow**, а не только поиском строк: штатное внутреннее разрешение принимается; `INTERNET`, `RECORD_AUDIO`, `READ_MEDIA_VIDEO`, `ACCESS_FINE_LOCATION`, `CAMERA` через `uses-permission-sdk-23`, пустой и повреждённый результат `aapt` отвергаются. Исходный код самого runtime и package ID не менялись.
