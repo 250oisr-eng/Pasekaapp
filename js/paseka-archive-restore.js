@@ -17,7 +17,10 @@ function assertIndexedDbRows(rows, code) {
   return rows;
 }
 function assertLegacyArchiveRecognitionLedger(value) {
-  if (value == null) return;
+  // An absent IndexedDB key returns undefined. A present null value is
+  // corrupt/ambiguous, not proof that recognition history is empty.
+  // Never export, import or roll back a v1 archive in that condition.
+  if (value === undefined) return;
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       value.version !== 1 || !Array.isArray(value.entries)) {
     fail('VIDEO_LEDGER_UNVERIFIED', 'Recognition history cannot be validated. Archive restore is blocked.');
@@ -1316,7 +1319,9 @@ async function inspectStagingRecognitionCopies(db) {
   assertIndexedDbRows(videoKeys, 'STAGING_VIDEO_KEYS_ENUMERATION_UNVERIFIED');
   assertIndexedDbRows(history, 'ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED');
   const empty = { sessions: [], matchedCopies: 0, orphanedMatchedCopies: 0, unclassifiedVideoKeyCount: 0 };
-  if (ledger == null) return { ok: true, status: 'no_recognition_history', ...empty };
+  // Stored null is not evidence of no recognition history: only a missing
+  // IndexedDB key (undefined) permits the empty-history audit result.
+  if (ledger === undefined) return { ok: true, status: 'no_recognition_history', ...empty };
   if (!ledger || typeof ledger !== 'object' || ledger.version !== 1 || !Array.isArray(ledger.entries) ||
       ledger.entries.some(entry => !entry || typeof entry.videoId !== 'string' || !entry.videoId ||
         !['entrance_media', 'record_media'].includes(entry.source) ||

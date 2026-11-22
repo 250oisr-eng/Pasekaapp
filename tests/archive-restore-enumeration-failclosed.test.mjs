@@ -731,3 +731,100 @@ test('valid existing staging backup-ID lookup remains idempotent with same archi
   assert.equal((await rows(db,'archive_staging')).length,2);
  }finally{db.close();}
 });
+
+test('stored null recognition ledger blocks v1 export without altering live records',async()=>{
+ const db=await seeded();
+ try {
+  await put(db,'main',null,'video_recognition_ledger_v1');
+  const before=await get(db,'main','state');
+  await assert.rejects(Archive.exportArchiveFromDatabase(db,webcrypto),
+    {code:'VIDEO_LEDGER_UNVERIFIED'});
+  assert.equal(await get(db,'main','video_recognition_ledger_v1'),null);
+  assert.deepEqual(await get(db,'main','state'),before);
+  assert.deepEqual(await rows(db,'entrance_media'),[]);
+  assert.deepEqual(await rows(db,'archive_history'),[]);
+ }finally{db.close();}
+});
+test('stored null recognition ledger blocks archive staging before any temporary copy',async()=>{
+ const db=await seeded();
+ try {
+  await put(db,'main',null,'video_recognition_ledger_v1');
+  const before=await get(db,'main','state');
+  await assert.rejects(stage(db),{code:'VIDEO_LEDGER_UNVERIFIED'});
+  assert.equal(await get(db,'main','video_recognition_ledger_v1'),null);
+  assert.deepEqual(await get(db,'main','state'),before);
+  assert.deepEqual(await rows(db,'archive_staging'),[]);
+ }finally{db.close();}
+});
+test('staging copy inspection reports stored null recognition ledger as unverifiable',async()=>{
+ const db=await seeded();
+ try {
+  await put(db,'main',null,'video_recognition_ledger_v1');
+  const report=await Restore.inspectStagingRecognitionCopies(db);
+  assert.equal(report.ok,false);
+  assert.equal(report.reason,'VIDEO_LEDGER_UNVERIFIED');
+  assert.notEqual(report.status,'no_recognition_history');
+  assert.deepEqual(await rows(db,'archive_staging'),[]);
+ }finally{db.close();}
+});
+test('stored null ledger added after staging blocks commit with rollback data intact',async()=>{
+ const db=await seeded();
+ try {
+  const staged=await stage(db);
+  await put(db,'main',null,'video_recognition_ledger_v1');
+  const beforeState=await get(db,'main','state');
+  const beforeStage=await rows(db,'archive_staging');
+  await assert.rejects(Restore.commitStagedArchive(
+   db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true),
+   {code:'VIDEO_LEDGER_UNVERIFIED'});
+  assert.equal(await get(db,'main','video_recognition_ledger_v1'),null);
+  assert.deepEqual(await get(db,'main','state'),beforeState);
+  assert.deepEqual(await rows(db,'archive_staging'),beforeStage);
+  assert.deepEqual(await rows(db,'archive_history'),[]);
+  assert.equal(await get(db,'full_backup','previous'),undefined);
+ }finally{db.close();}
+});
+test('stored null ledger blocks rollback after import, preserving existing journal and snapshot',async()=>{
+ const db=await seeded();
+ try {
+  const staged=await stage(db);
+  const committed=await Restore.commitStagedArchive(
+   db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+  await put(db,'main',null,'video_recognition_ledger_v1');
+  const imported=await get(db,'main','state');
+  const beforeStage=await rows(db,'archive_staging');
+  const beforeHistory=await rows(db,'archive_history');
+  await assert.rejects(Restore.rollbackCommittedArchive(
+   db,'synthetic-media-integrity-1',imported.meta.revisionId,webcrypto,()=>true),
+   {code:'VIDEO_LEDGER_UNVERIFIED'});
+  assert.deepEqual(await get(db,'main','state'),imported);
+  assert.deepEqual(await rows(db,'archive_staging'),beforeStage);
+  assert.deepEqual(await rows(db,'archive_history'),beforeHistory);
+  assert.ok(await get(db,'archive_staging',committed.rollbackSessionId));
+  assert.equal(await get(db,'main','video_recognition_ledger_v1'),null);
+ }finally{db.close();}
+});
+test('explicitly verified empty v1 ledger remains compatible with export and staging',async()=>{
+ const db=await seeded();
+ try {
+  await put(db,'main',{version:1,entries:[]},'video_recognition_ledger_v1');
+  const archive=await Archive.exportArchiveFromDatabase(db,webcrypto);
+  assert.equal(archive.summary.videoCount,0);
+  const staged=await stage(db);
+  assert.equal(staged.session.status,'ready');
+  const report=await Restore.inspectStagingRecognitionCopies(db);
+  assert.equal(report.ok,true);
+  assert.equal(report.status,'no_staged_recognition_copies');
+ }finally{db.close();}
+});
+test('nonempty v1 ledger is still prohibited by both legacy archive directions',async()=>{
+ const db=await seeded();
+ try {
+  await put(db,'main',{version:1,entries:[{videoId:'test-video'}]},'video_recognition_ledger_v1');
+  await assert.rejects(Archive.exportArchiveFromDatabase(db,webcrypto),
+   {code:'VIDEO_LEDGER_NOT_ARCHIVED'});
+  await assert.rejects(stage(db),
+   {code:'VIDEO_LEDGER_NOT_PRESERVED'});
+  assert.deepEqual(await rows(db,'archive_staging'),[]);
+ }finally{db.close();}
+});
