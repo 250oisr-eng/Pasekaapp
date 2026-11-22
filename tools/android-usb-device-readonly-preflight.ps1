@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $expectedAdbSha256 = 'bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee'
 $report = [ordered]@{
-  stage = 'ANDROID_USB_READONLY_PREFLIGHT_V2'
+  stage = 'ANDROID_USB_READONLY_PREFLIGHT_V3'
   status = 'BLOCKED'
   adb = 'NOT_TESTED'
   device = 'NOT_TESTED'
@@ -22,7 +22,7 @@ $report = [ordered]@{
   cleanup = 'NOT_AUTHORIZED'
   detail = 'NOT_STARTED'
 }
-function Call-Adb([string[]]$Arguments) {
+function Call-Adb([string[]]$Arguments, [switch]$AllowMissingPackage) {
   # Capture stderr separately: Windows PowerShell 5.1 throws on harmless native stderr.
   $start = New-Object System.Diagnostics.ProcessStartInfo
   $start.FileName = $script:AdbPath
@@ -45,7 +45,23 @@ function Call-Adb([string[]]$Arguments) {
     $out = $stdout.GetAwaiter().GetResult()
     $err = $stderr.GetAwaiter().GetResult()
     if ($out.Length -gt 8192 -or $err.Length -gt 8192) { throw 'ADB_OUTPUT_TOO_LARGE' }
-    if ($p.ExitCode -ne 0) { throw ('ADB_COMMAND_FAILED_' + $p.ExitCode) }
+    if ($p.ExitCode -ne 0) {
+      # Android 'pm path' can return 1 for an absent package. Accept only
+      # exactly this read-only query with empty stdout/stderr; all other
+      # nonzero exits remain failures. Do not confuse permission errors
+      # or service failures with package absence.
+      $isPackageQuery = $Arguments.Count -eq 6 -and
+        $Arguments[0] -ceq '-s' -and
+        $Arguments[2] -ceq 'shell' -and
+        $Arguments[3] -ceq 'pm' -and
+        $Arguments[4] -ceq 'path' -and
+        $Arguments[5] -in @('ru.paseka.journal', 'ru.paseka.journal.archive.restoreproof335')
+      if ($AllowMissingPackage -and $isPackageQuery -and $p.ExitCode -eq 1 -and
+          $out.Length -eq 0 -and [string]::IsNullOrWhiteSpace($err)) {
+        return '__PACKAGE_ABSENT__'
+      }
+      throw ('ADB_COMMAND_FAILED_' + $p.ExitCode)
+    }
     if (-not [string]::IsNullOrWhiteSpace($err)) {
       $lines = @($err -split '[\r\n]+' | Where-Object { $_.Trim().Length -gt 0 })
       foreach ($line in $lines) {
@@ -82,10 +98,18 @@ try {
   $report.model = 'PASS_NE2213'
   if ($sdk -cne '36') { throw 'NOT_PINNED_API_36' }
   $report.sdk = 'PASS_API36'
-  $pkg = Call-Adb @('-s',$serial,'shell','pm','path','ru.paseka.journal')
-  $report.productionPackage = $(if ($pkg -match '(?m)^package:') { 'PRESENT_UNTOUCHED' } else { 'ABSENT' })
-  $testPkg = Call-Adb @('-s',$serial,'shell','pm','path','ru.paseka.journal.archive.restoreproof335')
-  $report.diagnosticPackage = $(if ($testPkg -match '(?m)^package:') { 'PRESENT_UNTOUCHED' } else { 'ABSENT' })
+  $pkg = Call-Adb @('-s',$serial,'shell','pm','path','ru.paseka.journal') -AllowMissingPackage
+  if ($pkg -ceq '__PACKAGE_ABSENT__') {
+    $report.productionPackage = 'ABSENT'
+  } elseif ($pkg -match '(?m)^package:') {
+    $report.productionPackage = 'PRESENT_UNTOUCHED'
+  } else { throw 'PRODUCTION_PACKAGE_QUERY_UNVERIFIED' }
+  $testPkg = Call-Adb @('-s',$serial,'shell','pm','path','ru.paseka.journal.archive.restoreproof335') -AllowMissingPackage
+  if ($testPkg -ceq '__PACKAGE_ABSENT__') {
+    $report.diagnosticPackage = 'ABSENT'
+  } elseif ($testPkg -match '(?m)^package:') {
+    $report.diagnosticPackage = 'PRESENT_UNTOUCHED'
+  } else { throw 'DIAGNOSTIC_PACKAGE_QUERY_UNVERIFIED' }
   $report.status = 'PASS'
   $report.detail = 'READ_ONLY_DEVICE_IDENTIFIED'
 }
