@@ -1345,6 +1345,7 @@ function discardArchiveRestoreSession(db, sessionId) {
             const historyRequest = tx.objectStore(HISTORY_STORE).getAll();
             historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not verify archive history references.'));
             historyRequest.onsuccess = () => {
+              try {
             const references = assertIndexedDbRows(historyRequest.result, 'ARCHIVE_HISTORY_ENUMERATION_UNVERIFIED').filter(item => item &&
               (item.importSessionId === sessionId || item.rollbackSessionId === sessionId));
             const protectedReference = references.some(item => {
@@ -1364,6 +1365,7 @@ function discardArchiveRestoreSession(db, sessionId) {
             }
               for (const key of keys) store.delete(key);
               result = keys.length > 0;
+              } catch (error) { abortWith(error); }
             };
           };
         };
