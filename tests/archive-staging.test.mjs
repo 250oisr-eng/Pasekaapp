@@ -1074,7 +1074,10 @@ test('quota failure during media staging survives database reopen and preserves 
               if (name !== 'archive_staging') return store;
               return new Proxy(store, {
                 get(storeTarget, method) {
-                  if (method === 'put') {
+                  // Staging uses add() for new keys, with put() retained for
+                  // session metadata. Quota injection must still exercise the
+                  // media write regardless of the safe insertion primitive.
+                  if (method === 'put' || method === 'add') {
                     return value => {
                       if (!injected && value?.kind === 'video') {
                         injected = true;
@@ -1082,7 +1085,7 @@ test('quota failure during media staging survives database reopen and preserves 
                         target.abort();
                         return null;
                       }
-                      return storeTarget.put(value);
+                      return storeTarget[method](value);
                     };
                   }
                   const result = Reflect.get(storeTarget, method, storeTarget);
