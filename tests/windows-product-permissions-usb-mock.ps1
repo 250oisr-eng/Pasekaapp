@@ -51,13 +51,13 @@ if "%~1"=="devices" (
  echo MOCK123 device product:mock usb:1-1
  exit /b 0
 )
-if "%~1"=="-d" if "%~2"=="shell" if "%~3"=="pm" if "%~4"=="path" (
- if "%~5"=="ru.paseka.journal" (
+if "%~1"=="-s" if "%~2"=="MOCK123" if "%~3"=="shell" if "%~4"=="pm" if "%~5"=="path" (
+ if "%~6"=="ru.paseka.journal" (
   if "%MOCK_SCENARIO%"=="no-product" (exit /b 0)
   echo package:/data/app/ru.paseka.journal/base.apk
   exit /b 0
  )
- if "%~5"=="ru.paseka.journal.diagnostic.productpermsv1" (
+ if "%~6"=="ru.paseka.journal.diagnostic.productpermsv1" (
   if "%MOCK_SCENARIO%"=="preinstalled" (
    echo package:/data/app/ru.paseka.journal.diagnostic.productpermsv1/base.apk
    exit /b 0
@@ -69,7 +69,7 @@ if "%~1"=="-d" if "%~2"=="shell" if "%~3"=="pm" if "%~4"=="path" (
  )
  exit /b 3
 )
-if "%~1"=="-d" if "%~2"=="install" (
+if "%~1"=="-s" if "%~2"=="MOCK123" if "%~3"=="install" (
  if "%MOCK_SCENARIO%"=="install-fail" (
   echo Failure [INSTALL_FAILED_INVALID_APK]
   exit /b 1
@@ -78,9 +78,9 @@ if "%~1"=="-d" if "%~2"=="install" (
  echo Success
  exit /b 0
 )
-if "%~1"=="-d" if "%~2"=="shell" if "%~3"=="monkey" (
- if not "%~4"=="-p" (exit /b 7)
- if not "%~5"=="ru.paseka.journal.diagnostic.productpermsv1" (exit /b 8)
+if "%~1"=="-s" if "%~2"=="MOCK123" if "%~3"=="shell" if "%~4"=="monkey" (
+ if not "%~5"=="-p" (exit /b 7)
+ if not "%~6"=="ru.paseka.journal.diagnostic.productpermsv1" (exit /b 8)
  if "%MOCK_SCENARIO%"=="launch-fail" (exit /b 9)
  echo Events injected: 1
  exit /b 0
@@ -137,8 +137,8 @@ if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
   if(-not $result.Contains($case.Reason)){throw "CASE_$($name)_MISSING_REASON: $result"}
   if(-not $result.Contains('PHYSICAL_PERMISSION_AUDIT: NOT_TESTED')){throw "CASE_$($name)_PHYSICAL_STATUS_MISSING"}
   $lines=if(Test-Path -LiteralPath $log){@(Get-Content -LiteralPath $log)}else{@()}
-  $installs=@($lines | Where-Object {$_ -match '^-d install '})
-  $launches=@($lines | Where-Object {$_ -match '^-d shell monkey '})
+  $installs=@($lines | Where-Object {$_ -match '^-s MOCK123 install '})
+  $launches=@($lines | Where-Object {$_ -match '^-s MOCK123 shell monkey '})
   if(($installs.Count -eq 1) -ne $case.Install){throw "CASE_$($name)_INSTALL_COUNT_$($installs.Count)"}
   if(($launches.Count -eq 1) -ne $case.Launch){throw "CASE_$($name)_LAUNCH_COUNT_$($launches.Count)"}
   if($lines -match 'uninstall|force-stop|pm clear|install -r|run-as|exec-out|pull|push'){
