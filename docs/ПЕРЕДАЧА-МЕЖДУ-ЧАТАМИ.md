@@ -1,3 +1,12 @@
+## 2026-11-22 — обязательная стабилизация до новых функций
+
+- Пользователь **запретил переход к дальнейшей разработке функций**, пока не завершены оптимизация и исправления. Режим `STABILIZATION_ONLY`: разрешены аудит, точечные исправления безопасности, регрессии, оптимизация CI, миграционные тесты, документация и Draft PR. Запрещены новые пользовательские функции, экраны, технологические операции и расширение ИИ. Не снимать режим автоматически после отдельного успешного CI.
+- Контрольный документ: `docs/СТАБИЛИЗАЦИЯ-ПЕРЕД-НОВЫМИ-ФУНКЦИЯМИ-2026-11-22.md`; критерии P0/P1, очерёдность, безопасные исключения из реальных ноябрьских медиа, необходимость отдельного подтверждения пользователя перед возобновлением новых функций.
+- Выполнено ограниченное исправление CI: `.github/workflows/android-archive-test.yml` больше не порождает `skipped` job для чужих PR, сохраняя `workflow_dispatch`, push только по выделенной исторической archive test ветке, `npm test`, проверку изолированного appId и Gradle APK. `tests/ci-isolated-archive-scope.test.mjs` — новые статические регрессии на неизменность защит. `main` и production не изменены.
+- После открытия Draft PR проверить точный code+docs SHA по Fast Quality и общему Android workflow. До завершения CI обозначать как `NOT_VERIFIED`. Отсутствующий/пропущенный workflow не равно PASS. Продолжать только стабилизацию P0/P1 и PR lineage, никаких feature задач.
+
+---
+
 ## 2026-11-22 — P0: read-only audit protected media/history fail-closed, final exact SHA PASS
 
 - Заключительный code/test SHA `837a36efb329b1e7fe6d1c2e63da3af6696a31e7`: [Fast Quality #45065053746](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45065053746) **completed/success**, job #137339229782, **797/797 tests PASS, 0 FAIL**. [Android #45065053625](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45065053625) **completed/success**, job #137339245171, **797/797 PASS, 0 FAIL**, debug APK built/uploaded. [GitHub artifact ZIP #14770873137](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45065053625/artifacts/14770873137), ZIP SHA256 `72289479e04056492e684820a6375c22ef3dd5dc4007194fa0486de54bd77c58` (не SHA самого APK), expires 2026-12-06.
