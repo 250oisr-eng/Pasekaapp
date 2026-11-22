@@ -312,3 +312,61 @@ for(const value of [null,undefined]){
   }finally{db.close();}
  });
 }
+
+
+for (const bad of [undefined, null, {}]) {
+ test('commit never accepts unverifiable staging rows: '+String(bad), async()=>{
+  const db=await seeded();
+  try {
+   const staged=await stage(db);
+   const before=await rows(db,'archive_staging');
+   await assert.rejects(
+    Restore.commitStagedArchive(
+     corruptIndexRead(db,'archive_staging','sessionId','getAll',bad),
+     staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true),
+    {code:'STAGING_RECORDS_ENUMERATION_UNVERIFIED'});
+   assert.deepEqual(await rows(db,'archive_staging'),before);
+   assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
+   assert.equal((await rows(db,'archive_history')).length,0);
+  } finally { db.close(); }
+ });
+}
+test('staging finalization rejects malformed row enumeration without claiming ready',async()=>{
+ const db=await seeded();
+ try {
+  await assert.rejects(
+   stage(corruptIndexRead(db,'archive_staging','sessionId','getAll',null)),
+   {code:'STAGING_FINALIZE_RECORDS_ENUMERATION_UNVERIFIED'});
+  assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
+  assert.equal((await rows(db,'archive_history')).length,0);
+ } finally { db.close(); }
+});
+for (const mode of ['readonly','readwrite']) {
+ test('rollback refuses unverifiable snapshot rows in '+mode+' transaction',async()=>{
+  const db=await seeded();
+  try {
+   const staged=await stage(db);
+   const committed=await Restore.commitStagedArchive(
+    db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+   const before=await get(db,'main','state');
+   const history=await get(db,'archive_history','synthetic-media-integrity-1');
+   assert.equal(history.status,'committed');
+   const wrapped=corruptIndexRead(db,'archive_staging','sessionId','getAll',null);
+   // Restrict synthetic corruption to the selected IDB transaction mode.
+   const adapter={
+    objectStoreNames:wrapped.objectStoreNames,
+    transaction(...args){
+     if((args[1]||'readonly')!==mode)return db.transaction(...args);
+     return wrapped.transaction(...args);
+    }
+   };
+   await assert.rejects(
+    Restore.rollbackCommittedArchive(adapter,'synthetic-media-integrity-1',
+     before.meta.revisionId,webcrypto,()=>true),
+    {code:'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED'});
+   assert.deepEqual(await get(db,'main','state'),before);
+   assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'committed');
+   assert.ok(await get(db,'archive_staging',committed.rollbackSessionId));
+  } finally { db.close(); }
+ });
+}
