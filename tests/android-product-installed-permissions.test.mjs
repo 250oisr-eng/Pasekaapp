@@ -23,7 +23,7 @@ function app(data,{missing=false,reject=null}={}){
  }}};
  const ctx=vm.createContext({window:w,document:{getElementById:id=>els[id]}});
  vm.runInContext(copier,ctx);vm.runInContext(runner,ctx);
- return {els,writes,async run(){await els.run.handlers.click();return JSON.parse(els.result.textContent)},
+ return {els,writes,context:ctx,async run(){await els.run.handlers.click();return JSON.parse(els.result.textContent)},
   async copy(){await els.copy.handlers.click();return writes;}};
 }
 test('exactly two buttons, copy disabled before a complete diagnostic',()=>{
@@ -119,11 +119,11 @@ test('copy failure is visible and does not erase original report',async()=>{
  const a=app(valid());
  const result=await a.run();
  assert.equal(result.status,'PASS');
- a.writes.length=0;
- a.els.copy.disabled=false;
- a.els.result.textContent=JSON.stringify(result);
- // No automatic network send or result mutation happens on report generation.
  assert.equal(a.writes.length,0);
+ const original=a.els.result.textContent;
+ vm.runInContext('delete window.Capacitor.Plugins.Clipboard',a.context);
  await a.copy();
- assert.equal(a.writes.length,1);
+ assert.match(a.els.status.textContent,/CLIPBOARD_UNAVAILABLE/);
+ assert.equal(a.els.result.textContent,original);
+ assert.equal(a.writes.length,0);
 });
