@@ -1,3 +1,34 @@
+## 2026-11-22 — подтверждена сохранность synthetic IndexedDB между повторными запусками на Android
+
+- Пользователь прислал второй физический JSON из уже установленного пакета `ru.paseka.journal.diagnostic.allchecks`: `suite=PHONE_UNIFIED_SYNTHETIC_V2`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`, `checks.storage.previousFixture=PRESENT_VERIFIED`. Ранее первый физический запуск того же набора вернул `ABSENT_CREATED` (создание фикстуры). Таким образом, последовательность **ABSENT_CREATED → PRESENT_VERIFIED** теперь физически наблюдалась на Android для синтетической записи; не доказывает долговечность при перезагрузке устройства или force-stop и не относится к данным production приложения.
+- `checks.storage`: PASS, `bytes=31`, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`. Сохранённый Blob подтверждён по типу, размеру и фиксированному хэшу; запись не пересоздавалась в этом запуске.
+- Остальные физические проверки второго запуска: `archiveMetadata=PASS` (4 synthetic metadata cases), `syntheticFrames=PASS` (3 кадра 64×64, фиксированный MP4 SHA256 `29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`), `localOnnxWasm=PASS` (self-authored Add(3,2)=5). Это **не** распознавание пчёл.
+- Safety flags во втором отчёте `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`; `realVideos=NOT_TESTED`, `beeRecognition=NOT_TESTED`, `realBackupRestore=NOT_TESTED`, `productPermissions=NOT_TESTED`, `androidForceStop=NOT_TESTED`, `realVideoDeletion=NOT_TESTED`, `networkTraffic=NOT_MEASURED`.
+- Контрольная точка **synthetic persistence across repeated invocations: PASS (reported device observation)**; без проверки APK binary hash на телефоне, без стороннего telemetry и без реальных записей. Пользовательских действий для повторения именно этого теста больше не требуется.
+- Следующий инженерный этап: самостоятельный read-only аудит production permission/архивных гарантий и согласование безопасных границ реального device-теста; не выполнять опасные действия, не переустанавливать Restore335, не изменять main и production, не разрешать cleanup.
+
+---
+
+## 2026-11-22 — исполняемые отрицательные тесты unified V2: CI PASS после Maven 429
+
+- Code+test/workflow SHA `81454760c6ec4d8bdfddec1bfdb4cf7d562631b1`; [GitHub Actions #45061552865](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45061552865). **Attempt 1 FAILED** при Gradle: Maven Central `HTTP 429 Too Many Requests` на зависимостях (`jsr305`, Kotlin и др.), не ошибка нового теста. Запущен rerun failed jobs; **attempt 2 completed/success**, job #137329066555. По логу **11/11 Node tests PASS, 0 FAIL**, debug APK build, package ID, запрещённые permissions, Clipboard, upload PASS. Общая сборка Android #45061552794 была completed/success на том же code SHA.
+- Новый APK SHA256 `f1d6c5380ca3563f1df1140c5b884b568cc1c74c0cc283a2e2da4a84cc21f203`; [artifact #14769657472](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45061552865/artifacts/14769657472), ZIP sha256 `5727d3919e567e31d586b7ca1e0b3b924d8baee22f5c8d2b14900d18efbae783`, expires 2026-12-06.
+- Пять исполняемых новых негативных/позитивных тестов (реальный браузер на устройстве не эмулируют): две независимые VM-загрузки с одной fake-indexeddb (создание → `PRESENT_VERIFIED`), повреждённые bytes и неизвестный type блокируются без перезаписи, неверные mock frame/ONNX responses по отдельности дают общий `BLOCKED` с `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`.
+- **Новых функций в Android APK нет**: менялись только тестовый файл и workflow плюс документация. Поэтому повторная установка не нужна для ожидающего физического второго прогона прежнего `ru.paseka.journal.diagnostic.allchecks`. Физический второй прогон с `PRESENT_VERIFIED` по-прежнему NOT_TESTED; последний известный результат `ABSENT_CREATED` из первого запуска.
+- Реальные видео, распознавание, полный архив/restore и удаление остаются NOT_TESTED/NOT_AUTHORIZED. Main, production, существующие Android private files и Restore335 не затронуты. Draft PR #386 не сливать автоматически.
+
+---
+
+## 2026-11-22 — следующий автономный этап после физического PASS unified V2
+
+- Последний подтверждённый пользователем физический `PHONE_UNIFIED_SYNTHETIC_V2`: все четыре synthetic checks PASS, но `storage.previousFixture=ABSENT_CREATED`. Физического повторного запуска с `PRESENT_VERIFIED` пока **нет**; нельзя утверждать долговечность между отдельными запусками Android.
+- В дочернем Draft PR #386 `test/android-unified-runtime-regressions-2026-11-22` добавлен **исполняемый** `tests/android-unified-runtime.test.mjs` (Node VM + отдельная fake-indexeddb): первая и вторая инициализации тестового хранилища, повреждение байтов с проверкой запрета автоматического исправления, чужой тип, независимые ошибки synthetic MP4 и ONNX. Выраженный во всех negative paths инвариант: `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`. Физический APK не изменён, новая установка пользователю не требуется.
+- `.github/workflows/android-unified-safe-apk.yml` теперь запускает `tests/android-unified-safe.test.mjs` и `tests/android-unified-runtime.test.mjs`; exact code SHA `81454760c6ec4d8bdfddec1bfdb4cf7d562631b1`, [CI #45061552865](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45061552865) запущен. Перед заявлением о PASS проверить полное завершение и лог на этом SHA, не экстраполировать успешные промежуточные этапы.
+- Следующее действие пользователя (без установки): открыть **то же** `ru.paseka.journal.diagnostic.allchecks` и нажать «Проверить всё безопасное» второй раз, скопировать один JSON; до его получения `PRESENT_VERIFIED` считается NOT_TESTED.
+- Реальные видео, детекция пчёл, реальный полный archive restore, user data cleanup и измерение сети не тестировались; Restore335 STOP; main/production/merge не затронуты.
+
+---
+
 ## 2026-11-22 — физический Android PASS единого синтетического набора
 
 - Пользователь прислал полный JSON из физического устройства: `suite=PHONE_UNIFIED_SYNTHETIC_V2`, `packageId=ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Ранее изолированный APK собран на проверенном code/workflow SHA `1d25ea5e3b93aae2cc37472d0024ad93d9ccb1e1`, artifact #14769308321; JSON не включает самостоятельный APK SHA, связь с бинарником основана на выданном пользователю артефакте, а не независимой проверке APK-хэша телефоном.

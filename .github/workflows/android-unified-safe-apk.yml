@@ -7,6 +7,7 @@ on:
       - 'scripts/prepare-android-unified-safe.mjs'
       - 'scripts/generate-synthetic-onnx.mjs'
       - 'tests/android-unified-safe.test.mjs'
+      - 'tests/android-unified-runtime.test.mjs'
       - '.github/workflows/android-unified-safe-apk.yml'
 permissions:
   contents: read
@@ -31,7 +32,7 @@ jobs:
           npm install --no-package-lock --no-audit --no-fund
           npm install --no-save --no-package-lock --ignore-scripts --no-audit --no-fund onnxruntime-web@1.31.1
       - name: Run static regression checks
-        run: node --test tests/android-unified-safe.test.mjs
+        run: node --test tests/android-unified-safe.test.mjs tests/android-unified-runtime.test.mjs
       - name: Prepare isolated app
         env:
           PASEKA_UNIFIED_SAFE_BUILD: '1'
