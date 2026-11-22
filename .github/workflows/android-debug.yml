@@ -15,6 +15,7 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/audit-android-product-apk.mjs'
       - 'scripts/prepare-android-archive-download.mjs'
       - '.github/workflows/android-debug.yml'
   pull_request:
@@ -30,6 +31,7 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/audit-android-product-apk.mjs'
       - '.github/workflows/android-debug.yml'
 
 concurrency:
@@ -127,6 +129,31 @@ jobs:
             gradle-${{ runner.os }}-
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Audit exact built product APK permissions and source network capabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/audit-android-product-apk.mjs \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" \
+            android-product-apk-static-audit.json
+          node - <<'NODE'
+          const report=require('./android-product-apk-static-audit.json');
+          if(report.status!=='PASS'||report.code!=='PRODUCT_APK_STATIC_AUDIT_ONLY'||
+            report.packageId!=='ru.paseka.journal'||report.cleanupAuthorized!==false||
+            report.restoreAuthorized!==false||report.archiveSafe!==false||
+            report.productInstalledPermissions!=='NOT_TESTED'||
+            report.productNetworkTrafficObserved!=='NOT_TESTED')
+             throw Error('Unsafe or overstated product APK audit');
+          console.log('Static read-only audit accepted; physical claims remain NOT_TESTED');
+          NODE
+      - name: Upload product APK static audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-product-apk-static-audit
+          path: android-product-apk-static-audit.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
