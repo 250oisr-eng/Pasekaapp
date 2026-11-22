@@ -39,6 +39,24 @@ jobs:
           test "$(find www -type f | wc -l)" -eq 2
           test "$(node -p 'require("./capacitor.config.json").appId')" = "ru.paseka.journal.diagnostic.phonechecks"
           ! grep -rE 'https?://|XMLHttpRequest|fetch\(|MediaStore|navigator.mediaDevices|entrance_media|record_media' www
+      - name: Locate or install Android command-line tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo android-cli.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli "$SDK_ROOT/cmdline-tools/latest"
+            unzip -q android-cli.zip -d android-cli
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
       - name: Prepare Android SDK packages
         run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Generate isolated Android project
