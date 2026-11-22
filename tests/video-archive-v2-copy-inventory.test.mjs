@@ -361,3 +361,40 @@ test('SHA alias from protected backup is visible without releasing protected byt
  assert.equal(r.cleanupAuthorized,false);
  db.close();
 });
+
+test('same video identity with contradictory SHA across app and protected staging flags conflict without writing',async()=>{
+ const different='b'.repeat(64);
+ const db=await setup({entrance:[live('same')],staging:[{
+  ...staged('same'),sourceSha256:different
+ }]});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.distinctIdentities,1);
+ assert.ok(report.issues.includes('conflicting_copy_evidence'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.restoreAuthorized,false);
+ assert.equal(report.dataModified,false);
+ const recheck=await audit(db,guard);
+ assert.deepEqual(recheck.issues,report.issues);
+ db.close();
+});
+test('matching cross-store evidence does not create a false conflict',async()=>{
+ const db=await setup({entrance:[live('same')],staging:[staged('same')]});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.issues.includes('conflicting_copy_evidence'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+test('same video identity with contradictory byte count flags conflict without deleting copies',async()=>{
+ const db=await setup({entrance:[live('same')],staging:[{
+  ...staged('same'),sourceBytes:4,blob:blob('abcd')
+ }]});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('conflicting_copy_evidence'));
+ assert.equal(report.copies.length,2);
+ assert.equal(report.dataModified,false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
