@@ -1,3 +1,12 @@
+## 2026-11-22 — физический USB Android: подготовлен однократный read-only preflight, пользовательский запуск ожидается
+
+- Новая ветка внутри Draft PR #373: `tools/android-usb-device-readonly-preflight.ps1` проверяет SHA256 ранее подтверждённого Google ADB `bae5ce98846b19caa74a34900850caa8b21d01976932b2ad83baeb5de5651aee`, ADB 1.0.41+, единственный авторизованный Android, ранее подтверждённый OnePlus `NE2213`/SDK 36, наличие/отсутствие только конкретных `ru.paseka.journal` и `ru.paseka.journal.archive.restoreproof335`. Не читает MediaStore/видео/архивы, не устанавливает APK, не запускает приложения и не изменяет телефон. Весь вывод — JSON без серийного номера устройства.
+- CI parser/allowed-commands audit (Windows) `test-android-usb-readonly-preflight.yml` [#45047825843](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45047825843) **completed/success** на SHA `c7820ec9046433a77a978d9177c07c943852f9c8`. Это синтаксический и ограниченный статический аудит, **не физический PASS**. Подготовлен отдельный передаваемый пользователю `.ps1`, SHA256 `0b1f956fc72804b261433da09ee7b0c91c5fdd0939b344c437f956bcca050fc1`; для испытания необходимо единоразово запустить файл в Windows PowerShell с доступом к ПК.
+- Фактический ADB/USB результат пока `NOT_TESTED`, никаких предписаний переустановки рабочего `ru.paseka.journal`. При `BLOCKED` не выполнять write/restore или cleanup. Запросить один итоговый JSON и продолжить диагностику без многократных ручных действий.
+- Android virtual emulator [#45046823902](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046823902) ещё `in_progress` на последней проверке, PASS не приписывать. Изолированная архивация skipped, не PASS. PR Draft, main неизменна.
+
+---
+
 ## 2026-11-22 — Android emulator CI attempt: infrastructure-only failures and pinned APK approach
 
 - [Emulator attempt #45046697734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046697734) failed before Android because workflow expected absent npm lockfile. [Attempt #45046748384](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45046748384) failed Gradle dependency resolution against Google/Maven repos in fresh runner; these are environment failures, not demonstrated runtime application failures.
