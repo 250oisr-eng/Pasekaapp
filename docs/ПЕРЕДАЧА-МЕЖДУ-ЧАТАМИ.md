@@ -1,3 +1,11 @@
+## 2026-11-22 — synthetic only atomic video cleanup rollback matrix
+
+- Создан отдельный зависимый CI-only этап `test/video-synthetic-cleanup-atomicity-2026-11-22` поверх Draft PR #371. В `tests/video-synthetic-cleanup-atomicity.test.mjs` реализована **исключительно искусственная** `fake-indexeddb` с собственным именем `synthetic-cleanup-test-only-*`; транзакция атомарно создаёт tombstone и удаляет искусственный Blob лишь после проверки SHA, synthetic source ownership, state revision, synthetic recognition result и отсутствия любых staging/history/backup. Не изменяется runtime UI, schema production или приложение, реальных video delete функций не добавляется.
+- 6 synthetic CI regressions: успешный isolated commit, abort rollback обеих операций, stale revision, защищённый backup, недостоверный capture provenance, reopen без второго удаления. Workflow `test-video-copy-hash-alias.yml` включает suite. Детали `docs/VIDEO-SYNTHETIC-CLEANUP-ATOMICITY-2026-11-22.md`.
+- Code SHA `52c7c7e555018468196f7d093ef675054935ecbd`, но exact-SHA CI после добавления **ещё не подтверждён** на момент этой записи. Физический Android, истинное распознавание пчёл, неизвестные копии Android/архива и production cleanup NOT_TESTED. `cleanupAuthorized:false`, никакого удаления пользовательских файлов, merge или deployment.
+
+---
+
 ## 2026-11-22 — terminal CI PASS, managed copy byte audit PR #371
 
 - Exact code SHA `5a3e05e4df05259f24f099adbb6b01680096f031`; subsequent documentation HEAD `258a13ecbd2909b2d7fc58a2a72e22c8bb4bdec4` does not change code. On that HEAD [video read-only CI #45045686537](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045686537) **completed/success**, actual job log **165 tests, 165 PASS, 0 FAIL**, including actual same-database IndexedDB reopen and all seven new managed cross-store copy integrity scenarios. [Android APK #45045686468](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045686468) **completed/success**. [Isolated archive #45045686445](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045686445) **completed/skipped**, not a successful archive test.
