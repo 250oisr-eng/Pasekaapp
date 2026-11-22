@@ -100,9 +100,14 @@ function inspectSnapshot(v,guard){
   if(!object(item)){issue('entrance_record_unknown');continue;}
   if(item.blob==null){issue('entrance_payload_unknown');continue;}
   // Both forms can coexist on migrated records: never silently prefer one.
+  if(item.blobSha256!=null&&!hex(item.blobSha256)||
+     item.sourceSha256!=null&&!hex(item.sourceSha256))issue('invalid_copy_evidence');
   if(item.blobSha256!=null&&item.sourceSha256!=null&&
      hex(item.blobSha256)&&hex(item.sourceSha256)&&
      item.blobSha256!==item.sourceSha256)issue('conflicting_source_metadata');
+  if(item.bytes!=null&&(!Number.isSafeInteger(item.bytes)||item.bytes<1)||
+     item.sourceBytes!=null&&(!Number.isSafeInteger(item.sourceBytes)||item.sourceBytes<1))
+   issue('invalid_copy_evidence');
   if(item.bytes!=null&&item.sourceBytes!=null&&
      Number.isSafeInteger(item.bytes)&&Number.isSafeInteger(item.sourceBytes)&&
      item.bytes!==item.sourceBytes)issue('conflicting_source_metadata');
