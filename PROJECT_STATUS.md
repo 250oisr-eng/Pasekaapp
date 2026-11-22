@@ -1,3 +1,13 @@
+## 2026-11-22 — Android phone-only APK: точный CI checkpoint
+
+- Code/workflow SHA: `e2040b8080e672f33e1592b690d92a4ae788acc1` (до документационных дополнений). Изолированный workflow [#45059127503](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059127503) **completed/success**; 5/5 статических тестов, WebView isolation, native Clipboard registration, Gradle debug build, APK package/permission/content checks и upload прошли. APK SHA256 `dacd0d18f65f8a0e163741cb8f653f8c49b1c0652c8c39ff0361ea31c341c0f8`. [Artifact #14768976188](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059127503/artifacts/14768976188), ZIP до 2026-12-06; digest ZIP отдельно от APK.
+- Общий Android workflow [#45059127481](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059127481) **completed/success** на том же SHA; он не заменяет тест на телефоне.
+- Предыдущая ошибка `sdkmanager: command not found` на первом CI #45059062950 исправлена bootstrap-этапом; первый прогон был **failure**, не скрывать.
+- **Физический Android запуск нового dashboard NOT_TESTED.** Проверяется только synthetic SHA-256, синтетический Blob IndexedDB reopen и fail-closed flags; ONNX/MP4/bee recognition/real media/cleanup остаются NOT_TESTED. Ни production, ни Restore335 не трогать.
+- Следующий шаг: пользователь с телефона скачивает Artifact, распаковывает ZIP, устанавливает только `ru.paseka.journal.diagnostic.phonechecks`, нажимает «Проверить всё безопасное» → «Копировать результат», отправляет JSON; при блокере APK не переустанавливать другие диагностики и не удалять видео.
+
+---
+
 ## 2026-11-22 — отдельный диагностический Android APK: первый безопасный модуль
 
 - Ветка `test/android-phone-only-safe-dashboard-2026-11-22` поверх документационной #381: добавлены `diagnostics/phone-dashboard/{index.html,runner.js}`, `scripts/prepare-android-phone-dashboard.mjs`, `tests/android-phone-dashboard-static.test.mjs`, `.github/workflows/android-phone-dashboard-apk.yml`.
