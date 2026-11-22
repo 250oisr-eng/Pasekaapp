@@ -28,7 +28,7 @@ function exact(value){let r;try{r=JSON.stringify(value);}catch(_){fail('V2_ENTRA
 function noVideo(value,depth=0,seen=new Set()){
  if(depth>48)fail('V2_ENTRANCE_VIDEO_STATE_UNSAFE');
  if(typeof value==='string'){
-  if(/(?:data:(?:video\/|application\/octet-stream)|blob:)/i.test(value))
+  if(/(?:data:(?:video\/|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/i.test(value))
    fail('V2_ENTRANCE_VIDEO_STATE_UNSAFE');
   return;
  }

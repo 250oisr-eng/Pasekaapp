@@ -1,3 +1,11 @@
+## P0 — MIME alias fail-closed guard (2026-11-23)
+
+- Дочерняя рабочая ветка после #428: исправлены **только** два изолированных PASEKA02 state scanner и проверка recognition ledger: `js/video-archive-v2-entrance-atomic.js` и `js/video-archive-v2-entrance-quarantine-rollback.js`. Запрещены embedded `data:application/x-matroska`, `application/ogg`, `application/x-msvideo`, `application/vnd.apple.mpegurl` наряду с `video/*`, `octet-stream` и `blob:`. Обычный `data:image/png` не запрещён. Это устраняет локальный неполный MIME guard, но **не закрывает P0**.
+- Добавлен `tests/p0-video-data-uri-alias-guard.test.mjs`: прямое исполнение обеих проверок и public ledger validator на вложенных данных; полный CI и Android на exact HEAD ещё требуют подтверждения. Нет runtime integration, новых функций, IndexedDB schema, медиа-операций или разрешения cleanup.
+- Restore335 STOP, P0/P1 OPEN, P2 PARTIAL; **main не менять, PR не сливать, видео не удалять**. Следующий шаг — проверить CI текущего PR и продолжить критический класс полноценной PASEKA02 restore/media сохранности.
+
+---
+
 ## P3 readiness audit — no feature activation (2026-11-23)
 
 - Пользователь запросил полное выполнение P3 (прикладная функциональность P3.1–P3.9). В текущем репозитории нет утверждённой P3-контрольной матрицы; записана кандидатная декомпозиция и ворота допуска в `docs/P3-ГОТОВНОСТЬ-И-ЗАВИСИМОСТИ-2026-11-23.md`.
