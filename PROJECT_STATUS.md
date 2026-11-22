@@ -1,3 +1,10 @@
+## 2026-11-22 — полный CI PASS: копируемость большого отчёта
+
+- **Exact code/test SHA:** `3970f58d2e9a2b1a7e1010c4b3aa1124bba9310e`. Все три workflow **completed/success**: [Fast quality checks #45029108308](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029108308), [изолированный APK #45029108284](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029108284), [Android APK #45029108411](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029108411). Последующие изменения только документационные, не являются новым проверенным кодовым SHA.
+- Ограничения прежние: PackageManager на физическом Android **NOT_TESTED**, реальный сетевой трафик и оригинальные видео **NOT_TESTED**, автоматическое удаление / восстановление **не разрешены**. Draft PR #366, основная ветка не менялась.
+
+---
+
 ## 2026-11-22 — защищён размер диагностического отчёта и уточнены границы доказательств
 
 - Обнаружено несоответствие: JS разрешал до 256 запрошенных permissions длиной до 200 символов, в то время как кнопка копирования отклоняла JSON длиннее 32768 символов. Исправление `diagnostics/product-permissions/runner.js`: при превышении лимита результат **BLOCKED / REPORT_TOO_LARGE**, копируемый и без полного списка, а не успешный, который нельзя передать. Признаки `cleanupAuthorized`, `restoreAuthorized`, `archiveSafe` всегда false. Текст статуса соответствует итоговому JSON.
