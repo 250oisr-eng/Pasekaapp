@@ -1,3 +1,11 @@
+## 2026-11-22 — блокировка параллельных запросов Android PackageManager
+
+- В `diagnostics/product-permissions/runner.js` введён независимый от состояния HTML-кнопки флаг `runInFlight`: параллельный вызов обработчика не запускает вторую проверку и не может перезаписать отчёт ответом от конкурирующего native-вызова. Флаг снимается в `finally`, в том числе при отказе PackageManager.
+- В `tests/android-product-installed-permissions.test.mjs` добавлены асинхронные регрессии: два почти одновременных вызова вызывают native plugin ровно один раз, PASS/Clipboard сохраняются; после BLOCKED native-ошибки возможен явный повтор без ослабления запретов `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`.
+- Кодовый SHA `17f5c656b42dc0fe0909ff0bf3640a216ea6672c`; итог CI на нём на момент фиксации ещё не подтверждён. Продуктовое приложение, IndexedDB, видео/архивы не затронуты, PR #366 остаётся Draft; физические Android / network / real media проверки NOT_TESTED.
+
+---
+
 ## 2026-11-22 — исполняемые негативные тесты CI подтверждены на точном SHA
 
 - Code/test SHA `e3395c89aadda9d0e6b50de439e580867fbc8eb3`: [Fast quality checks #45029672213](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672213), [изолированный диагностический APK #45029672179](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672179), [основная Android сборка #45029672164](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45029672164) — **все completed/success**. После этого SHA в Draft PR добавляются лишь документы.
