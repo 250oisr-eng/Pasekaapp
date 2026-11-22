@@ -1,3 +1,14 @@
+## 2026-11-22 — Restore335 V5 corrected source and exact-SHA CI confirmed
+
+- Draft PR [#375](https://github.com/250oisr-eng/Pasekaapp/pull/375) stacked on Draft #374; corrected script code SHA `d843d65d025b93813e3d8f66283636932ab49d2c` after initial malformed-generator syntax error (the original Windows CI #45054604478 FAILED during parse, before tests).
+- [V5 Windows readonly CI #45054695676](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45054695676): **completed/success** at exact corrected SHA; PowerShell parser PASS and **5/5 static negative tests PASS, 0 FAIL** (job log inspected).
+- [General Android APK #45054695650](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45054695650): **completed/success** at same corrected SHA; isolated archive workflow #45054695652 **skipped** (not PASS). Subsequent documentation-only HEAD requires independent CI status verification; neither CI proves physical V5 behavior.
+- Physical V4 PASS remains 1 unknown entry in diagnostic private `files`, preserved; V5 physical **NOT_TESTED**. V5 only classifies a coarse entry type via shallow metadata; it cannot determine archive/video provenance or authorize restore/deletion. No access to the user's phone via GitHub and no data mutation.
+- A one-click local CMD launcher exists as a conversation artifact, with a pinned code commit and Git blob check; it has **not** been tested on the user's Windows host. One future user action would be required to execute physical V5 if chosen.
+- Next: verify docs HEAD CI and only then offer metadata-only physical V5 test; never touch media bytes, cleanup, installed diagnostic app or production app.
+
+---
+
 ## 2026-11-22 — next read-only V5 metadata stage, Draft PR #375
 
 - Physical V4 from user: PASS on NE2213/API36; exactly one private diagnostic `files` entry, no writes/installs/media read, `privateInput=UNKNOWN_PRESERVE`, cleanup unauthorized. CMD wrapper exit-status discrepancy was addressed in parent Draft #374 with explicit process exit and static regression; do not repeat physical V4 simply to clear the wrapper error.
