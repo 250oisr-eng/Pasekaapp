@@ -59,7 +59,7 @@ function checkRestoreLedgerCandidate(currentLedger,incoming,guard){
   if(!Array.isArray(record.media))continue;
   for(const media of record.media){
    if(!object(media))fail('V2_RESTORE_MEDIA_INVALID');
-   const hasVideoData=typeof media.data==='string'&&/^data:(?:video\/|application\/octet-stream)/i.test(media.data);
+   const hasVideoData=typeof media.data==='string'&&/(?:data:(?:video\/|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/i.test(media.data);
    if(hasVideoData&&!videoLike(media))fail('V2_RESTORE_UNCLASSIFIED_VIDEO');
    if(!videoLike(media))continue;
    if(!validId(media.videoId))fail('V2_RESTORE_VIDEO_ID_MISSING');
@@ -127,9 +127,7 @@ function checkLivePendingMediaIdentity(liveState,liveEntranceKeys,incoming){
   for(const media of record.media){
    if(!object(media))fail('V2_RESTORE_LIVE_MEDIA_INVALID');
    const dataPrefix=typeof media.data==='string'?media.data.toLowerCase():'';
-   const hasVideoData=dataPrefix.startsWith('data:video/')||
-     dataPrefix.startsWith('data:application/octet-stream')||
-     dataPrefix.startsWith('blob:');
+   const hasVideoData=/(?:data:(?:video\/|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/.test(dataPrefix);
    if(!videoLike(media)&&!hasVideoData)continue;
    liveRecordVideoCount++;
    if(!validId(media.videoId)){
