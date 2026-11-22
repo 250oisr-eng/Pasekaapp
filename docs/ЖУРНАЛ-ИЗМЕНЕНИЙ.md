@@ -1,3 +1,11 @@
+## 2026-11-22 — USB serial lock: команды ADB закреплены за проверенным устройством
+
+- Устранён оставшийся риск подмены USB-устройства после проверки: `tools/android-product-permissions-one-shot.ps1` теперь не только сверяет единственный авторизованный USB serial до установки и запуска, но и использует строго `adb -s $serial` при `pm path`, `install`, `monkey`, вместо динамического `adb -d`. Запуск и установка целевого `ru.paseka.journal` не выполняются. Сценарий требует один USB-девайс в `device` state, отвергает второй девайс/неизвестный state/изменение serial, не удаляет и не восстанавливает медиа/архивы.
+- `tests/windows-product-permissions-usb-mock.ps1` изменён для реального исполнения 11 сценариев с единственным pinned serial; `tests/android-product-permissions-one-shot.test.mjs` требует `-s`, отсутствие `-d`, повторный serial gate. Новый кодовый SHA `f15cfe8394a3c6de3d9be7fe607f4b6cef1036c8`: [Windows PowerShell #45035077410](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077410) **completed/success (11/11)**, [Fast quality #45035077493](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45035077493) **completed/success**. Статус Android APK #45035077441 и diagnostic APK #45035077459 следует подтвердить отдельно.
+- Источник APK по-прежнему fixed CI run #45032633730 с SHA256 файла `04fdba8e71f57bf896ca2af43149437d101d5ffc15f24d30c6f7bcf351bf1216`. В CI используется только искусственный `adb.cmd`; физическая установка, PackageManager метаданные основной «Пасеки», реальный сетевой трафик и операции с оригинальными видео **NOT_TESTED**. `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`; Draft PR #366, `main` и production не менялись.
+
+---
+
 ## 2026-11-22 — защита от смены USB-устройства во время диагностической установки
 
 - Обнаружен риск TOCTOU: прежний one-shot проверял одно USB-подключение только в начале. `tools/android-product-permissions-one-shot.ps1` теперь запоминает серийный номер единственного USB-устройства в статусе `device` и перед установкой и запуском повторно проверяет, что тот же серийный номер сохранён. Второе устройство, неизвестное/отключённое состояние ADB и смена serial дают **BLOCKED**; не используются `install -r`, `uninstall`, `pm clear`, `force-stop`, операции с видео или архивами.
