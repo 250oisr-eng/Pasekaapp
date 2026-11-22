@@ -46,3 +46,9 @@ test('no unpinned ADB -d target is permitted in one-shot installer',()=>{
  assert.doesNotMatch(script,/@\('-d'/);
  assert.match(script,/['"]-s['"],\$serial,['"]shell['"],['"]pm['"],['"]path['"]/);
 });
+
+test('USB transport confirmed by adb -d, without requiring optional usb marker',()=>{
+ assert.match(script,/['"]-d['"],['"]get-serialno['"]/);
+ assert.match(script,/USB_TRANSPORT_SERIAL_MISMATCH/);
+ assert.doesNotMatch(script,/\\busb:/);
+});
