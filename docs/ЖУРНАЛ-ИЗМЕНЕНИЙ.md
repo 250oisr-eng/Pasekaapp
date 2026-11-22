@@ -1,3 +1,11 @@
+## 2026-11-22 — дополнительные кандидаты детекции летка (research only)
+
+- Проверены первичные страницы matpalm/bnn (архивный MIT исходный код, карта центров пчёл; подтверждённого конкретного checkpoint и прав на веса нет) и TobysWorkshop/Hive-Cam (явные ограничения коммерческого использования и перераспространения; исключён для bundling). Результат добавлен в docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md.
+- Ни одна модель не допущена к скачиванию весов, ONNX-инференсу на реальном видео или cleanup. Отдельно зафиксирован ранее успешный физический ortmodule ONNX smoke тест (другой PR #352).
+- Next: первичная проверка наличия и права на конкретный checkpoint matpalm/bnn, затем Android offline feasibility и независимый field benchmark. Новые проверки и сборка на последнем SHA пока не подтверждены; PR не сливать.
+
+---
+
 ## Видео / реальная модель — проверка LICENSE первичных репозиториев (2026-11-22)
 
 - По публичным GitHub-файлам прочитаны MIT `AjayJohnAlex/Bee_Detection/LICENSE` (blob `891259553e1a6f161d94cdb5d370c9cfaf59e56b`) и GPL-3.0 `Gratheon/models-gate-tracker/LICENSE` (blob `f288702d2fa16d3cdf0035b15a9fcbc552cd88e7`). `Ajay.../requirements.txt` подтверждает Ultralytics 8.0.134, torch 2.0.1 и deep-sort-realtime; Gratheon использует HTTP server и внешние модели. **Лицензии кода не дают автоматически права на конкретные веса**, базовый checkpoint и датасет. Immutable upstream commit и SHA реальных весов НЕ получены.
