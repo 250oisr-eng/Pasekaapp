@@ -1,3 +1,10 @@
+## 2026-11-22 — physical metadata audit установленной основной «Пасеки» (APK готов, телефон NOT_TESTED)
+
+- [ANDROID-INSTALLED-PRODUCT-PERMISSIONS-READONLY-2026-11-22.md](ANDROID-INSTALLED-PRODUCT-PERMISSIONS-READONLY-2026-11-22.md) — отдельный двухкнопочный package `ru.paseka.journal.diagnostic.productpermsv1` для чтения **только** метаданных установленного `ru.paseka.journal`, строгие границы PackageManager, CI SHA и физический gate.
+- [../diagnostics/product-permissions/runner.js](../diagnostics/product-permissions/runner.js) — PASS/BLOCKED JSON + Clipboard, [../scripts/install-android-product-permissions-plugin.mjs](../scripts/install-android-product-permissions-plugin.mjs) — один explicit `<queries>` пакет, [../tests/android-product-installed-permissions.test.mjs](../tests/android-product-installed-permissions.test.mjs) — регрессии, [../.github/workflows/android-product-installed-permissions-apk.yml](../.github/workflows/android-product-installed-permissions-apk.yml) — изолированная сборка. Не утверждать физический PASS до отчёта пользователя; настоящий network traffic всё ещё NOT_TESTED.
+
+---
+
 ## 2026-11-22 — аудит реального Android APK «Пасека» и статических сетевых возможностей
 
 - [ANDROID-PRODUCT-APK-NETWORK-PERMISSIONS-STATIC-AUDIT-2026-11-22.md](ANDROID-PRODUCT-APK-NETWORK-PERMISSIONS-STATIC-AUDIT-2026-11-22.md) — exact CI SHA, реально собранный package `ru.paseka.journal` и **объявленное INTERNET**, внутреннее receiver-разрешение, 57 просмотренных файлов и 6 строк network source. Физические разрешения установленного product APK и реальный трафик **NOT_TESTED**.

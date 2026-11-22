@@ -1,0 +1,150 @@
+name: Build isolated installed PRODUCT permissions reader APK
+
+on:
+  push:
+    branches:
+      - test/android-product-installed-permission-audit-2026-11-22
+  pull_request:
+    paths:
+      - 'diagnostics/product-permissions/**'
+      - 'scripts/prepare-android-product-permissions.mjs'
+      - 'scripts/install-android-product-permissions-plugin.mjs'
+      - 'tests/android-product-installed-permissions.test.mjs'
+      - '.github/workflows/android-product-installed-permissions-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install npm dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install isolated Android native Clipboard plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Capacitor discovers native plugins from package.json; this edits the CI checkout only.
+          npm pkg set 'dependencies.@capacitor/clipboard=6.0.0'
+          npm install --no-package-lock --no-audit --no-fund
+          node -e "if(require('@capacitor/clipboard/package.json').version!=='6.0.0') throw Error('Unexpected native Clipboard version')"
+      - name: Execute synthetic metadata tests
+        run: node --test tests/android-product-installed-permissions.test.mjs
+      - name: Execute complete regression tests
+        run: npm test
+      - name: Prepare isolated diagnostic application
+        run: node scripts/prepare-android-product-permissions.mjs
+      - name: Assert web application isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find www -type f | wc -l)" -eq 3
+          test "$(node -p 'require("./capacitor.config.json").appId')" = 'ru.paseka.journal.diagnostic.productpermsv1'
+          ! grep -rE 'https?://|fetch\(|XMLHttpRequest|MediaStore|navigator.mediaDevices' www/runner.js www/copy-report.js www/index.html
+          ! grep -Fq 'android-archive-preflight.js' www/index.html
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo android-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p cli "$SDK_ROOT/cmdline-tools/latest"
+            unzip -q android-tools.zip -d cli
+            cp -R cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Prepare Android SDK platform
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Generate isolated Android project
+        run: npx cap add android && npx cap sync android
+      - name: Register read-only explicit product visibility plugin
+        run: node scripts/install-android-product-permissions-plugin.mjs
+      - name: Verify native clipboard plugin registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'android/app/src/main/assets/capacitor.plugins.json';
+          const plugins = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (!plugins.some(p => typeof p.classpath === 'string' && p.classpath.endsWith('.ClipboardPlugin'))) {
+            console.error('Registered native classpaths:', plugins.map(p => p.classpath));
+            throw Error('Native Android ClipboardPlugin registration missing');
+          }
+          console.log('Native Android ClipboardPlugin present in isolated diagnostic');
+          NODE
+      - name: Use supported Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Remove diagnostic Internet permission
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          const file='android/app/src/main/AndroidManifest.xml';
+          const before=await readFile(file,'utf8');
+          const after=before.replace(/\s*<uses-permission\s+android:name="android.permission.INTERNET"\s*\/>/g,'');
+          if (after.includes('android.permission.INTERNET')) throw Error('Unexpected network permission');
+          await writeFile(file,after);
+          NODE
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Validate APK package, permissions and content
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.productpermsv1'"
+          "$AAPT" dump permissions "$APK" > "$RUNNER_TEMP/product-permissions-apk.txt"
+          cat "$RUNNER_TEMP/product-permissions-apk.txt"
+          node - "$RUNNER_TEMP/product-permissions-apk.txt" <<'NODE'
+          const fs = require('node:fs');
+          const input = fs.readFileSync(process.argv[2], 'utf8');
+          const allowed = new Set([
+            'ru.paseka.journal.diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+          ]);
+          const declared = input.split(/\r?\n/).filter(line => /^\s*uses-permission(?:-sdk-\d+)?:/.test(line));
+          if (!declared.length) throw Error('Missing aapt uses-permission metadata');
+          for (const line of declared) {
+            const match = line.match(/^\s*uses-permission(?:-sdk-\d+)?:\s*name='([^']+)'/);
+            if (!match || !allowed.has(match[1])) {
+              throw Error('Unexpected diagnostic APK permission: ' + line.trim());
+            }
+          }
+          console.log('Diagnostic permission allowlist verified:', declared.length);
+          NODE
+          unzip -l "$APK" | grep -F 'assets/public/runner.js'
+          unzip -l "$APK" | grep -F 'assets/public/copy-report.js'
+          unzip -p "$APK" assets/capacitor.plugins.json | grep -F 'ClipboardPlugin'
+          grep -Fq 'PackageManager.GET_PERMISSIONS' android/app/src/main/java/ru/paseka/journal/diagnostic/productpermsv1/ProductPermissionsPlugin.java
+          grep -Fq '<package android:name="ru.paseka.journal" />' android/app/src/main/AndroidManifest.xml
+          test "$(grep -c '<package android:name="ru.paseka.journal" />' android/app/src/main/AndroidManifest.xml)" -eq 1
+          sha256sum "$APK"
+      - name: Upload diagnostic APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-product-installed-permissions-readonly-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

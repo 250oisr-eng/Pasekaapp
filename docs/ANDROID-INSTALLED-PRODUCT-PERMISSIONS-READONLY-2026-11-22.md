@@ -1,0 +1,53 @@
+## 2026-11-22 — защищён размер диагностического отчёта и уточнены границы доказательств
+
+- Обнаружено несоответствие: JS разрешал до 256 запрошенных permissions длиной до 200 символов, в то время как кнопка копирования отклоняла JSON длиннее 32768 символов. Исправление `diagnostics/product-permissions/runner.js`: при превышении лимита результат **BLOCKED / REPORT_TOO_LARGE**, копируемый и без полного списка, а не успешный, который нельзя передать. Признаки `cleanupAuthorized`, `restoreAuthorized`, `archiveSafe` всегда false. Текст статуса соответствует итоговому JSON.
+- Положительный PackageManager результат **не удостоверяет цифровую подпись или совпадение бинарного APK с CI**: `productSigningCertificateVerified:NOT_TESTED`, `productBinaryMatchesCIBuild:NOT_TESTED`. Сетевой трафик на телефоне остаётся NOT_TESTED.
+- Расширен `tests/android-product-installed-permissions.test.mjs`: oversized-report, границы происхождения APK, отображение ошибки при отсутствии Clipboard и сохранение исходного отчёта. Новая проверка в CI выполняется на кодовом SHA `3970f58d2e9a2b1a7e1010c4b3aa1124bba9310e`; до завершения CI результат **НЕ ПОДТВЕРЖДЁН**.
+- Данные основной `Пасеки`, IndexedDB, архивы, видео и production не затронуты. Физическая проверка исходной программы на Android не проведена; реальный restore/cleanup запрещён. Draft PR #366; merge/deploy не выполнялись.
+
+---
+
+## 2026-11-22 — подтверждена исправленная проверка разрешений диагностического APK
+
+- **Кодовый SHA:** `645b15926094be50921585d5207ed13067b9eede`. GitHub Actions **completed/success на этом SHA**: [Fast quality checks #45028723506](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723506), [изолированный APK #45028723546](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723546), [общая Android сборка #45028723579](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028723579). Предыдущие CI failures вызваны ошибочным синтаксисом нового теста, исправлены отдельным commit.
+- Специализированный workflow проверил разрешения APK по точному allowlist. Только диагностический APK затронут; основная `ru.paseka.journal` не менялась. Телефон, реальное видео, удаление и восстановление **NOT_TESTED**. Нет разрешения на cleanup/restore/merge/deploy.
+
+---
+
+## Дополнительная защита сборки — 2026-11-22
+
+В Draft PR #366 CI изменён на **allowlist вместо неполного denylist**: изолированный APK не должен декларировать никаких Android `uses-permission` сверх собственного `ru.paseka.journal.diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. Любое неожиданное разрешение или отсутствие распознанных строк `aapt` — ошибка сборки. Добавлен регрессионный тест правила. Изменение не касается разрешений основной «Пасеки» и не является физическим доказательством отсутствия трафика. Code/test SHA `5333783d4eb12502fe8541ec73fa0a101d990a66`, итог CI ещё не подтверждён.
+
+---
+
+# Проверка разрешений УСТАНОВЛЕННОЙ основной «Пасеки» — Android read-only APK
+
+Дата: 2026-11-22. Статус: код и сборка CI **PASS**, физическая проверка **NOT_TESTED**.
+
+## Почему нужен отдельный APK
+
+Предыдущая диагностика `archivea09v1` прочитала только разрешения **своего** пакета и показала отсутствие `INTERNET`. Между тем статический аудит APK настоящего `ru.paseka.journal` (code SHA `42b548b45f20d8aec1ec1e336942c6a8d1f011a7`, CI #45027702899) обнаружил **объявленный `android.permission.INTERNET`**. Ни один из результатов не доказывает, какие права сейчас имеют установленная на телефоне версия `ru.paseka.journal` и какой трафик она генерирует.
+
+## Реализация и изоляция
+
+- Диагностический APK: **`ru.paseka.journal.diagnostic.productpermsv1`**, отдельный Android пакет и отдельная IndexedDB/данные, не меняет production.
+- Ровно две кнопки: **«Провести тест» → «Копировать результат»**. При `PASS` и `BLOCKED` результат валидируется и копируется в системный буфер только по прямому нажатию пользователя; отсутствие отчёта/Clipboard — не скрывается.
+- Native `ProductPermissionsPlugin` выполняет только `PackageManager.getPackageInfo("ru.paseka.journal", GET_PERMISSIONS)`; манифест содержит строго один `<queries><package android:name="ru.paseka.journal"/></queries>`. **НЕТ** `QUERY_ALL_PACKAGES`, перечисления других приложений, Internet/media/camera разрешений самого диагностического APK, обращения к файлам, резервным копиям, видео, логину, токенам.
+- Native проверяет точный target ID, положительный UID и несовпадение target UID с диагностическим процессом, возвращает только `versionCode`, `versionName`, `requestedPermissions`/grant flags; **не запускает** целевое приложение и не взаимодействует с пользовательскими данными.
+- JS проверяет source marker и exact `targetPackageId`, структуру, отсутствие дубликатов и длины, сортировки не подменяют исходный JSON. При отсутствующем пакете Android, отказе PackageManager или неверных метаданных **`BLOCKED`**, никогда выдуманный `PASS`.
+- `PASS / PRODUCT_INSTALLED_PACKAGE_PERMISSIONS_READONLY` означает **только** прочитанную правильную метаинформацию. Если `INTERNET` указан, вывести `internetPermissionDeclared:true`, а не занижать статус риска. `productNetworkTrafficObserved:NOT_TESTED` даже при PASS. `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false` всегда.
+
+## CI и контрольный APK
+
+Кодовый SHA: `0f299c9d1cfef125406ee237283890158114e3f4`.
+
+- [GitHub Actions #45028133593](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45028133593): **completed/success** (Node регрессии, общий набор, Gradle, APK, permissions/package/queries/plugins проверка).
+- ZIP artifact ID `14755989927`, ZIP SHA256 `f515a5f14bf7e8284a1b8981e2b557e3cfe8d7f662108c0c4016b4333eefb205`.
+- Извлечённый `Paseka-Installed-Product-Permissions-2026-11-22.apk`: **3 752 785 bytes**, SHA256 `1c220092ae90243d6963443fc522859d85adff0dbb71a9463fc1167878658ea5`.
+- Файл проверен отдельно: ZIP содержит ровно один APK, в нём обе кнопки, `assets/public/runner.js`, `copy-report.js`, native `ClipboardPlugin`; `queries` проверен workflow в исходном AndroidManifest до сборки.
+
+## Физический сценарий
+
+Пользователь без удаления старых APK устанавливает новый отдельный файл, нажимает **«Провести тест»**, затем **«Копировать результат»** и вставляет полный JSON в чат. Если на этом Android **не установлена** основная `ru.paseka.journal` или PackageManager не видит пакет, результат должен быть **BLOCKED** с причиной. Установка, обновление или очистка оригинальной «Пасеки» ради теста не разрешаются.
+
+Физический результат ещё не получен: `PRODUCT_INSTALLED_PERMISSIONS_METADATA_ONLY:NOT_TESTED`. Отсутствие/наличие реальных сетевых передач и доступ к архивам отдельно не тестировались. Критический допуск restore/delete остаётся запрещённым.
