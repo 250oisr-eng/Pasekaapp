@@ -453,3 +453,44 @@ test('valid preferred bytes cannot conceal a malformed alternate byte field',asy
  assert.equal(report.dataModified,false);
  db.close();
 });
+
+test('journal video marker with videoId but missing data is not interpreted as deletion',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'journal-pending',sourceSha256:digest,sourceBytes:3}]}]}});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('record_video_payload_missing'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.archiveSafe,false);
+ assert.equal(report.dataModified,false);
+ db.close();
+});
+test('journal video marker with neither source identifier nor payload is detected',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video'}]}]}});
+ const report=await audit(db,guard);
+ assert.ok(report.issues.includes('record_video_payload_missing'));
+ assert.ok(report.issues.includes('record_video_id_missing'));
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+test('duplicated journal video identity across two records cannot appear unambiguous',async()=>{
+ const media={kind:'video',videoId:'same',sourceSha256:digest,sourceBytes:3,
+  data:'data:video/mp4;base64,YWJj'};
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit1',media:[media]},{id:'visit2',media:[media]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.distinctIdentities,1);
+ assert.ok(report.issues.includes('duplicate_copy_location_identity'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(JSON.stringify(report).includes('YWJj'),false);
+ db.close();
+});
+test('same original in two different protected stores is not mistaken for same-location duplicate',async()=>{
+ const db=await setup({entrance:[live('shared')],staging:[staged('shared')]});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,2);
+ assert.equal(report.issues.includes('duplicate_copy_location_identity'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
