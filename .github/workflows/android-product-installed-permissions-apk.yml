@@ -116,10 +116,24 @@ jobs:
           APK=android/app/build/outputs/apk/debug/app-debug.apk
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.productpermsv1'"
-          if "$AAPT" dump permissions "$APK" | grep -E 'android.permission.(INTERNET|READ_MEDIA_|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|CAMERA)'; then
-            echo 'Unsafe diagnostic permission detected' >&2
-            exit 1
-          fi
+          "$AAPT" dump permissions "$APK" > "$RUNNER_TEMP/product-permissions-apk.txt"
+          cat "$RUNNER_TEMP/product-permissions-apk.txt"
+          node - "$RUNNER_TEMP/product-permissions-apk.txt" <<'NODE'
+          const fs = require('node:fs');
+          const input = fs.readFileSync(process.argv[2], 'utf8');
+          const allowed = new Set([
+            'ru.paseka.journal.diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+          ]);
+          const declared = input.split(/\r?\n/).filter(line => /^\s*uses-permission(?:-sdk-\d+)?:/.test(line));
+          if (!declared.length) throw Error('Missing aapt uses-permission metadata');
+          for (const line of declared) {
+            const match = line.match(/^\s*uses-permission(?:-sdk-\d+)?:\s*name='([^']+)'/);
+            if (!match || !allowed.has(match[1])) {
+              throw Error('Unexpected diagnostic APK permission: ' + line.trim());
+            }
+          }
+          console.log('Diagnostic permission allowlist verified:', declared.length);
+          NODE
           unzip -l "$APK" | grep -F 'assets/public/runner.js'
           unzip -l "$APK" | grep -F 'assets/public/copy-report.js'
           unzip -p "$APK" assets/capacitor.plugins.json | grep -F 'ClipboardPlugin'
