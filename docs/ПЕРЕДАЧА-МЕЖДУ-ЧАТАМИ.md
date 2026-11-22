@@ -1,3 +1,14 @@
+## 2026-11-22 — подтверждён физический Android PASS синтетического archive preflight
+
+- Пользователь прислал полный JSON с устройства: `status:PASS`, `code:SYNTHETIC_OFFLINE_PREFLIGHT_PARTIAL`, `packageId:ru.paseka.journal.diagnostic.archivepreflight`, `suite:ARCHIVE_PREFLIGHT_V1`. Это пользовательский фактический отчёт с запуска APK, а не результат CI или воспроизведение агентом.
+- Подтверждённые `checks`: `A01_SYNTHETIC_COPY_HASH`, `A04_BAD_SOURCE_EVIDENCE`, `A05_CONFLICTING_COPY`, `A06_DUPLICATE_RESULT_ID`, `A01_CLOSE_REOPEN_INTEGRITY`, `A07_READONLY_ABORT_UNCHANGED`, `A10_SYNTHETIC_FIXTURES_UNCHANGED` — **все PASS**.
+- `scenariosVerified` ограничены A01, A04/A05/A06 только **METADATA_ONLY**, A07 и A10 только **SYNTHETIC_ONLY**. `scenariosNotTested`: `A02_REAL_PASEKA01`, `A03_REAL_PASEKA02`, `A08_PROCESS_KILL`, `A09_NETWORK_PERMISSION_DEVICE_AUDIT`.
+- Отчёт содержит `beeRecognition:NOT_TESTED`, `realArchiveRestore:NOT_TESTED`, `realVideoAccess:NOT_ATTEMPTED`, `externalMediaAccess:NOT_ATTEMPTED`, `videoDeletion:NOT_ATTEMPTED`, `networkRequests:NOT_ATTEMPTED`, `userDataModified:false`, `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`.
+- CI точного APK code SHA `3696301b64ecafb18fd51b2bd8b087150deccfe0` ранее завершился **success**: isolated APK #45005435770, metadata #45005435764, generic Android #45005435865. Физический PASS и CI — независимые свидетельства; ни одно не подтверждает восстановление или удаление настоящего видео.
+- Следующий приоритет: отдельный изолированный A08 сценарий **реального** force-stop/reopen с сохранёнными синтетическими копиями; не путать с `db.close()`, не совершать реальные deletions/restore и не менять production. A02/A03 оставаться BLOCKED до безопасной проверки формата и подготовленных контейнеров.
+
+---
+
 ## 2026-11-22 — изолированный Android archive preflight APK собран и проверен
 
 - Реализованы `scripts/prepare-android-archive-preflight.mjs`, `diagnostics/archive-preflight/index.html`, `diagnostics/archive-preflight/runner.js` и `.github/workflows/android-archive-preflight-apk.yml`. Отдельный applicationId: `ru.paseka.journal.diagnostic.archivepreflight`. Генератор заменяет `www` тестовой страницей, не включает рабочий `index.html` и пользовательские данные.
