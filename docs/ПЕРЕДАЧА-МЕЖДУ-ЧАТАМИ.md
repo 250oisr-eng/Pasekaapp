@@ -1,3 +1,22 @@
+## 2026-11-22 — CI ускорение подтверждено на точном code SHA
+
+- Code/test/workflow SHA `d45d6630561295efcfbd292e7893cfef06b3eac0`: [Fast Quality #45064009718](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009718) **completed/success**, 782/782 tests PASS, 0 FAIL (job #137336001559). [Android #45064009728](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009728) **attempt 1 CANCELLED** до Gradle во время обновлений PR; **rerun attempt 2 completed/success** (job #137336366763): 782/782 tests PASS, 0 FAIL, Android debug APK build/upload success. [Artifact #14770079580](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009728/artifacts/14770079580) ZIP digest `6b23f9f3cac3126d61eb4395ccdb2cafaca08f1771e055ec73a08350c23c7721`; это не подтверждённый APK binary SHA.
+- В `.github/workflows/quality.yml` добавлен обязательный на уровне конфигурации `pull_request` для кода/тестов, push ограничен `main`; в `.github/workflows/android-debug.yml` push также ограничен `main`, PR-прогон сохранён. `workflow_dispatch` и npm/Gradle regression не удалены, concurrency по PR number. `tests/ci-pr-branch-triggers.test.mjs` сохраняет контракт триггеров.
+- Операционное правило ускорения: **заканчивать код+тесты+документы до создания Draft PR**, затем один полный CI на code SHA; документы после создания PR могут запускать новый synchronize и отменить идущие задания из-за `cancel-in-progress`. После обновления одних документов успех предыдущего code SHA не называть успехом нового HEAD.
+- Остаток: новая PR-first конфигурация проверена на одном тестовом PR; систематическое уменьшение числа запусков за длительный период не измерено. Это ускорение уменьшает вероятность дублей, но не доказанная кратность экономии. Использовать Draft PR для работы; до открытия PR ветка не получает общих push CI. Никаких merge/main/production/пользовательских данных.
+
+---
+
+## 2026-11-22 — крупный цикл ускорения: PR-first CI вместо дублей и быстрый feedback
+
+- По запросу пользователя на ускорение с разрешением безопасных разработческих действий создан дочерний **Draft PR #391** поверх #390. Изменены только `.github/workflows/quality.yml`, `.github/workflows/android-debug.yml`, добавлен `tests/ci-pr-branch-triggers.test.mjs`.
+- Ранее `quality.yml` не реагировал на PR, только на push; Android общим workflow мог запускать **дважды** на каждый code commit (branch push и pull_request). Теперь оба набора работают по PR и по push **только в main**, плюс `workflow_dispatch`; concurrency group привязан к номеру PR. Ни `npm test`, ни Android Gradle сборка, ни artifact upload, ни permission boundaries не удалены. Базовую проверку обязательно проводить в Draft PR; push без PR теперь не выдаёт общий CI — это сознательный trade-off с обязательным Draft PR правилом.
+- Добавлены регрессии на PR-триггеры, необходимое покрытие paths, branch main, workflow_dispatch, отказ от `pull_request_target`, Android assembleDebug/upload. Не трогать `main`, production и реальные пользовательские файлы.
+- Code/test SHA `d45d6630561295efcfbd292e7893cfef06b3eac0`; [Fast Quality #45064009718](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009718) и [Android #45064009728](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45064009728) запущены — точные результаты проверять отдельно после завершения. Isolated archive job #45064009733 ожидаемо skipped из-за ограничения имени ветки, не является PASS.
+- Приоритет дальнейшей оптимизации: работа в **небольшом числе устойчивых Draft PR-цепочек** вместо выпуска диагностического APK на каждую микрозадачу; P0 — полный архив и откат; потом permissions/offline и приложение без реальной ноябрьской съёмки. Не удалять архивные/исследовательские ветки без доказанной ненужности, не делать массовых merge.
+
+---
+
 ## 2026-11-22 — P0: запрет неполного архива при недостоверном списке видео
 
 - По результатам инвентаризации [401 ветка / 317 открытых PR](https://github.com/250oisr-eng/Pasekaapp/pull/389) создан зависимый **Draft PR #390** поверх #388; `main` не изменён. В `js/paseka-archive.js` `readConsistentDatabaseSnapshot` перестал трактовать не-массивное значение `entrance_media.getAll()` как пустой список видео: теперь `VIDEO_SNAPSHOT_UNVERIFIED`, транзакция abort, export блокируется без записи и удаления источников.

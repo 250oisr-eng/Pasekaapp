@@ -3,6 +3,20 @@ name: Fast quality checks
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'js/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/quality.yml'
+
+  pull_request:
     paths:
       - 'index.html'
       - 'js/**'
@@ -15,7 +29,7 @@ on:
       - '.github/workflows/quality.yml'
 
 concurrency:
-  group: quality-${{ github.ref }}
+  group: quality-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
