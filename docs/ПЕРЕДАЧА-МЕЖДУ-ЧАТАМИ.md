@@ -1,3 +1,11 @@
+## 2026-11-22 — additional atomic resultId collision gate
+
+- Дополнительно к fail-closed чтению существующей истории, `recordRecognitionResult` теперь отклоняет **новую** запись с уже существующим `resultId` у другой пары `source/videoId` прямо в атомарной readwrite-транзакции. Результат: `conflicting_recognition_result_id`, rollback, оригиналы не меняются.
+- Регрессионный тест создаёт второе синтетическое видео с корректными Blob/SHA/bytes, проверяет отказ при повторном `resultId`, сохранение первого результата и обоих оригиналов, а затем успешную запись со свежим `resultId`. Кодовый SHA `2caee54e193c18ab8ad72f2fd28e04bc5a4ccb55`; CI проверяется отдельно и не считается успешным заранее.
+- PR #368 Draft поверх #356. Реальное распознавание пчёл, видеоудаление и network traffic NOT_TESTED, не разрешены. Main/production/телефон не менялись.
+
+---
+
 ## 2026-11-22 — fail-closed уникальность resultId в журнале распознавания видео
 
 - Аудит обнаружил расхождение: `js/video-recognition-ledger.js:validateLedger` отклонял повторную пару `source/videoId`, но допускал один `resultId` для разных видео. При этом `js/video-archive-v2-guard.js:validateRecognitionLedgerForV2` и `js/paseka-archive-restore.js:inspectStagingRecognitionCopies` уже требуют уникальности `resultId`.
