@@ -6,6 +6,8 @@ on:
       - 'js/video-archive-v2-copy-inventory.js'
       - 'tests/video-archive-v2-copy-inventory.test.mjs'
       - 'tests/video-cleanup-byte-evidence.test.mjs'
+      - 'tests/video-managed-copies-byte-audit.test.mjs'
+      - 'js/video-managed-copies-byte-audit.js'
       - 'js/video-cleanup-byte-evidence.js'
       - 'tests/video-recognition-ledger.test.mjs'
       - 'tests/video-archive-v2-guard.test.mjs'
@@ -16,6 +18,8 @@ on:
       - 'js/video-archive-v2-copy-inventory.js'
       - 'tests/video-archive-v2-copy-inventory.test.mjs'
       - 'tests/video-cleanup-byte-evidence.test.mjs'
+      - 'tests/video-managed-copies-byte-audit.test.mjs'
+      - 'js/video-managed-copies-byte-audit.js'
       - 'js/video-cleanup-byte-evidence.js'
       - 'tests/video-recognition-ledger.test.mjs'
       - 'tests/video-archive-v2-guard.test.mjs'
@@ -39,6 +43,7 @@ jobs:
           node --test \
             tests/video-archive-v2-copy-inventory.test.mjs \
             tests/video-cleanup-byte-evidence.test.mjs \
+            tests/video-managed-copies-byte-audit.test.mjs \
             tests/video-recognition-ledger.test.mjs \
             tests/video-archive-v2-guard.test.mjs \
             tests/archive-staging.test.mjs

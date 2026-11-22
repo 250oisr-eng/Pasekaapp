@@ -1,3 +1,10 @@
+## 2026-11-22 — проверка байтов известных защищённых копий
+
+- [VIDEO-MANAGED-COPIES-BYTE-AUDIT-2026-11-22.md](VIDEO-MANAGED-COPIES-BYTE-AUDIT-2026-11-22.md) — snapshot+SHA известных хранилищ, ограничения внешних/непрозрачных копий и запрет удаления.
+- [../js/video-managed-copies-byte-audit.js](../js/video-managed-copies-byte-audit.js) — отдельный read-only аудит с только запретительными результатами.
+
+---
+
 ## 2026-11-22 — read-only byte evidence of one managed video
 
 - [VIDEO-CLEANUP-BYTE-INTEGRITY-READONLY-2026-11-22.md](VIDEO-CLEANUP-BYTE-INTEGRITY-READONLY-2026-11-22.md) — двухкратный SHA одного управляемого Blob после отдельных readonly транзакций и пределы безопасности.
