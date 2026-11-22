@@ -361,3 +361,64 @@ test('opening v5 upgrades an existing v4 archive database without replacing live
   assert.equal(values[2].blobSha256, undefined, 'legacy media remains readable and is not silently rewritten');
   deps.db.close();
 });
+
+
+test('P1: two concurrent writers with the same revision cannot silently overwrite one another', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  const initial = { meta: { revisionId: 'rev-before' }, hives: [{ id: 'hive-original' }] };
+  const seed = deps.db.transaction('main', 'readwrite');
+  seed.objectStore('main').put(initial, 'state');
+  await new Promise((resolve, reject) => {
+    seed.oncomplete = resolve;
+    seed.onerror = () => reject(seed.error);
+    seed.onabort = () => reject(seed.error);
+  });
+
+  const write = load('writeMainIfUnchanged', deps);
+  const first = { meta: { revisionId: 'rev-first' }, hives: [{ id: 'hive-first' }] };
+  const second = { meta: { revisionId: 'rev-second' }, hives: [{ id: 'hive-second' }] };
+  const results = await Promise.allSettled([
+    write(first, 'rev-before'),
+    write(second, 'rev-before')
+  ]);
+  assert.equal(results.filter(item => item.status === 'fulfilled').length, 1);
+  const rejected = results.filter(item => item.status === 'rejected');
+  assert.equal(rejected.length, 1);
+  assert.equal(rejected[0].reason?.name, 'PasekaConflictError');
+
+  const request = deps.db.transaction('main', 'readonly').objectStore('main').get('state');
+  const saved = await new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.deepEqual(saved, first, 'the first committed writer must retain all its records');
+  deps.db.close();
+});
+
+test('P1: uncloneable state aborts a conditional write without damaging the previous state', async () => {
+  const deps = openDbDependencies(new IDBFactory());
+  await load('openDB', deps)();
+  const initial = { meta: { revisionId: 'stable-revision' }, hives: [{ id: 'protected-hive' }] };
+  const seed = deps.db.transaction('main', 'readwrite');
+  seed.objectStore('main').put(initial, 'state');
+  await new Promise((resolve, reject) => {
+    seed.oncomplete = resolve;
+    seed.onerror = () => reject(seed.error);
+    seed.onabort = () => reject(seed.error);
+  });
+
+  const invalid = { meta: { revisionId: 'invalid-revision' }, callback: () => 'not cloneable' };
+  await assert.rejects(
+    load('writeMainIfUnchanged', deps)(invalid, 'stable-revision'),
+    error => error?.name === 'DataCloneError'
+  );
+
+  const request = deps.db.transaction('main', 'readonly').objectStore('main').get('state');
+  const saved = await new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  assert.deepEqual(saved, initial);
+  deps.db.close();
+});

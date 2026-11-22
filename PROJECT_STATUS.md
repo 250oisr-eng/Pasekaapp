@@ -1,3 +1,11 @@
+## Контрольная точка P1 — 2026-11-23 (частичное выполнение)
+
+- P0 **OPEN**; main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, PR #417 `c6afbc101d0083e7e9d3a7329fab1eb4a4727754` (Fast/Android/emulator success, физический Android не проверен).
+- P1 открыт отдельной дочерней веткой `test/p1-indexeddb-concurrent-writes-2026-11-23`, не меняющей runtime; две регрессионные проверки защищают конкурентные сохранения и abort при DataCloneError. Документ проверки: `docs/P1-СТАБИЛИЗАЦИЯ-2026-11-23.md`.
+- P1.1–P1.7 **не закрыты** до проверки интеграций, полной матрицы отказов, физического устройства и точного HEAD CI. Не сливать PR, не публиковать, не трогать оригиналы видео. Следующий шаг: exact-HEAD CI тестов этого P1 PR, затем аудит остальных путей записи.
+
+---
+
 ### 2026-11-23 — verified P0 Android 15 emulator smoke, Draft #417
 
 - **Exact code/test SHA `cc9fc690e1e48c0e2b1e42a722f2e54267e2247d`**: [Fast Quality #45078984977](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45078984977) **completed/success, 1208/1208 PASS, zero failed/skipped**; [Android Debug #45078984963](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45078984963) **completed/success** (debug APK build/upload); [emulator-only #45078984940](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45078984940) **completed/success** (Android API 35 emulator-5554, real APK cold-start and restart after disabling Wi-Fi and mobile data, process alive, no app AndroidRuntime fatal).
