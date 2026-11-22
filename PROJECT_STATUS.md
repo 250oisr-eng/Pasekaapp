@@ -1,3 +1,41 @@
+## 2026-11-22 — подтверждён физический Android PASS синтетического archive preflight
+
+- Пользователь прислал полный JSON с устройства: `status:PASS`, `code:SYNTHETIC_OFFLINE_PREFLIGHT_PARTIAL`, `packageId:ru.paseka.journal.diagnostic.archivepreflight`, `suite:ARCHIVE_PREFLIGHT_V1`. Это пользовательский фактический отчёт с запуска APK, а не результат CI или воспроизведение агентом.
+- Подтверждённые `checks`: `A01_SYNTHETIC_COPY_HASH`, `A04_BAD_SOURCE_EVIDENCE`, `A05_CONFLICTING_COPY`, `A06_DUPLICATE_RESULT_ID`, `A01_CLOSE_REOPEN_INTEGRITY`, `A07_READONLY_ABORT_UNCHANGED`, `A10_SYNTHETIC_FIXTURES_UNCHANGED` — **все PASS**.
+- `scenariosVerified` ограничены A01, A04/A05/A06 только **METADATA_ONLY**, A07 и A10 только **SYNTHETIC_ONLY**. `scenariosNotTested`: `A02_REAL_PASEKA01`, `A03_REAL_PASEKA02`, `A08_PROCESS_KILL`, `A09_NETWORK_PERMISSION_DEVICE_AUDIT`.
+- Отчёт содержит `beeRecognition:NOT_TESTED`, `realArchiveRestore:NOT_TESTED`, `realVideoAccess:NOT_ATTEMPTED`, `externalMediaAccess:NOT_ATTEMPTED`, `videoDeletion:NOT_ATTEMPTED`, `networkRequests:NOT_ATTEMPTED`, `userDataModified:false`, `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`.
+- CI точного APK code SHA `3696301b64ecafb18fd51b2bd8b087150deccfe0` ранее завершился **success**: isolated APK #45005435770, metadata #45005435764, generic Android #45005435865. Физический PASS и CI — независимые свидетельства; ни одно не подтверждает восстановление или удаление настоящего видео.
+- Следующий приоритет: отдельный изолированный A08 сценарий **реального** force-stop/reopen с сохранёнными синтетическими копиями; не путать с `db.close()`, не совершать реальные deletions/restore и не менять production. A02/A03 оставаться BLOCKED до безопасной проверки формата и подготовленных контейнеров.
+
+---
+
+## 2026-11-22 — изолированный Android archive preflight APK собран и проверен
+
+- Реализованы `scripts/prepare-android-archive-preflight.mjs`, `diagnostics/archive-preflight/index.html`, `diagnostics/archive-preflight/runner.js` и `.github/workflows/android-archive-preflight-apk.yml`. Отдельный applicationId: `ru.paseka.journal.diagnostic.archivepreflight`. Генератор заменяет `www` тестовой страницей, не включает рабочий `index.html` и пользовательские данные.
+- APK test-only проверяет синтетические Blob/SHA-256 в собственном IndexedDB, close/reopen, readonly abort и конфликтные **метаданные**. Реальные PASEKA01/02 не импортируются; A02/A03/A08/A09-device остаются NOT_TESTED. Отчёт всегда `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`.
+- На точном code HEAD `3696301b64ecafb18fd51b2bd8b087150deccfe0`: [isolated build #45005435770](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45005435770) **completed/success** (npm regression, Android debug APK, package+permission+asset checks, artifact upload). [Metadata CI #45005435764](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45005435764) **success**; [generic Android #45005435865](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45005435865) **success**; older unrelated isolated archive job **skipped**. Первоначальная ошибка npm ci из-за отсутствия lockfile исправлена на npm install.
+- Артефакт GitHub ID `14748180113`, ZIP SHA-256 `86d98a9cc8802498428ecc4763725a2a5570b57ac7bffa58a5cf19708bb8cbdf`. Один APK 3 750 226 bytes, SHA-256 `a610da9ee974fe724c3be9edf27bfccd40b01c5dfaeaa16db64ec31719ea88cd`. Извлечён и повторно проверен, JavaScript внутри APK синтаксически корректен.
+- Физический Android запуск **NOT_TESTED**. Ни видеораспознавание, ни реальный restore, ни удаление видео не подтверждены. `main`, production и данные пользователя не изменялись. PR остаётся Draft.
+- Следующий шаг: пользователь запускает только отдельный APK и передаёт отчёт PASS/BLOCKED; после этого проверяется точность заявленных аппаратных сценариев. Никакого разрешения удаления реальных MP4.
+
+---
+
+## 2026-11-22 — контрольная точка CI metadata preflight
+
+- Code HEAD `87b1eb91b6bcc01702b09133577c653b5c94bc77`: исправлен fail-closed ответ при невалидном наборе записей (все флаги byteIntegrityVerified/physicalRestoreVerified/cleanupAuthorized/restoreAuthorized/archiveSafe = false), добавлен отдельный GitHub Actions workflow `.github/workflows/android-archive-preflight-metadata.yml` для шести Node-тестов и защиты production `index.html` от подключения диагностики.
+- GitHub Actions на точном HEAD пока **не обнаружены**; 6 тестов написаны, но не обозначаются как пройденные. Android APK по-прежнему **не создан**. Следующий приоритет — подтвердить CI и продолжить отдельную тестовую Android-оболочку. Main и пользовательские данные не изменялись.
+
+---
+
+## 2026-11-22 — синтетический metadata-only Android archive preflight (Draft)
+
+- Добавлен `js/android-archive-preflight.js`: чистая диагностическая функция без доступа к IndexedDB/MediaStore/видео; проверяет SHA-256/bytes метаданных, конфликты идентичностей, повторные resultId, состав source-bound evidence. Любой результат возвращает `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`, `physicalRestoreVerified:false`.
+- Добавлен `tests/android-archive-preflight.test.mjs`: шесть независимых Node-тестов, включая повреждённые метаданные, конфликт копий, дублирование resultId и запрет побочных эффектов.
+- ВАЖНО: это **первый кодовый блок**, не Android APK и не выполнение матрицы A01–A10. Истинность хэшей относительно Blob, физический restart, PASEKA01/PASEKA02 restore и реальное распознавание не проверялись. Следующий этап — изолированная Android test-only оболочка и реальные synthetic hardware проверки.
+- Новые модули не подключены к production приложению; `main` не изменена, данные пользователя не открывались. CI на точном SHA требуется отдельно.
+
+---
+
 ## 2026-11-22 — отдельный Android archive preflight: план без доступа к данным
 
 - На основе Draft PR #356 (`810a39c1267c5351160e65dea95213372abb2cbc`) создана отдельная ветка `docs/android-archive-physical-preflight-plan-2026-11-22`.

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; media-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Пасека — проверка архива</title>
+<style>
+:root{color-scheme:light dark}body{font:16px system-ui,sans-serif;margin:auto;max-width:670px;padding:24px;line-height:1.5}button{padding:15px 22px;font-size:17px;border-radius:10px;border:0;background:#356e56;color:white}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #8886;padding:15px;border-radius:10px;font:13px ui-monospace,monospace}small{opacity:.8}
+</style>
+</head>
+<body>
+<h1>Диагностика сохранности архива</h1>
+<p>Только синтетические записи в отдельном диагностическом приложении. Настоящие видео, пользовательские резервные копии и данные пасеки не открываются.</p>
+<button id="run" type="button">Запустить тест</button>
+<h2>Отчёт</h2>
+<pre id="result" aria-live="polite">NOT_TESTED</pre>
+<small>PASS здесь не подтверждает распознавание пчёл, восстановление настоящего архива или возможность удаления видео.</small>
+<script src="./preflight-guard.js"></script>
+<script src="./runner.js"></script>
+</body></html>

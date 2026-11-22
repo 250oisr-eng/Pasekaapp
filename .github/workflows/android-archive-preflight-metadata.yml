@@ -1,0 +1,37 @@
+name: Test isolated archive preflight metadata guard
+
+on:
+  push:
+    branches:
+      - test/android-archive-readonly-preflight-2026-11-22
+  pull_request:
+    paths:
+      - 'js/android-archive-preflight.js'
+      - 'tests/android-archive-preflight.test.mjs'
+      - '.github/workflows/android-archive-preflight-metadata.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned commit
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run isolated guard tests
+        run: node --test tests/android-archive-preflight.test.mjs
+      - name: Assert no application entrypoint wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq 'android-archive-preflight.js' index.html; then
+            echo 'Production application unexpectedly loaded diagnostic code' >&2
+            exit 1
+          fi
+          echo "No production entrypoint wiring"
