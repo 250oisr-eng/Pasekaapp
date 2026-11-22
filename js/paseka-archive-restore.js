@@ -836,6 +836,10 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   // A version-3 media fingerprint is insufficient for metadata: its canonical
   // form omits queue/quality and future fields. Verify the immutable original
   // archive manifest before any rollback snapshot is consumed.
+  if (!importSession.manifest || typeof importSession.manifest !== 'object' ||
+      Array.isArray(importSession.manifest) || !Array.isArray(importSession.manifest.entries)) {
+    fail('ROLLBACK_IMPORT_MEDIA_PROVENANCE_MISSING', 'The original archive manifest is missing or invalid; rollback was blocked.');
+  }
   if (typeof knownHistory.fingerprint !== 'string' ||
       await manifestFingerprint(importSession.manifest, cryptoProvider) !== knownHistory.fingerprint) {
     fail('ROLLBACK_IMPORT_MANIFEST_CHANGED', 'The imported archive manifest cannot be verified against its history.');
