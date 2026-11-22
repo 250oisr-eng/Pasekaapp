@@ -93,6 +93,10 @@ function collect(values,source,videoId){
    if(backup.beforeState)scanState(backup.beforeState,'full_backup.beforeState');
    if(backup.afterState)scanState(backup.afterState,'full_backup.afterState');
    if(backup.state)scanState(backup.state,'full_backup.legacy_state');
+   if(backup.previous&&typeof backup.previous==='object'&&backup.previous.state)
+    scanState(backup.previous.state,'full_backup.previous.state');
+   // PASEKA01 previous={at,state} is a known legacy snapshot shape,
+   // but its presence never establishes complete copy provenance.
    if(!['v2_entrance_only_rollback_unverified','v2_entrance_quarantine_rollback_snapshot'].includes(backup.kind))
     unknown.add('unknown_backup');
   }
