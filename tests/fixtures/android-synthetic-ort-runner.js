@@ -24,7 +24,7 @@ async function run(ort=root.ort){
   const response=await root.fetch(mjsUrl.href,{cache:'no-store'});
   if(!response.ok)throw Error('LOCAL_MJS_HTTP_'+response.status);
   const js=await response.text();
-  if(js.length<1000||/^\\s*<!doctype html/i.test(js)||/^\\s*<html/i.test(js))
+  if(js.length<1000||/^\s*<!doctype html/i.test(js)||/^\s*<html/i.test(js))
     throw Error('LOCAL_MJS_NOT_JAVASCRIPT');
   moduleUrl=root.URL.createObjectURL(new root.Blob([js],{type:'text/javascript'}));
   ort.env.wasm.wasmPaths={mjs:moduleUrl,wasm:wasmUrl.href};
