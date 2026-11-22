@@ -1,3 +1,10 @@
+## 2026-11-22 — завершён полный exact-SHA CI для Windows USB mock
+
+- Кодовый SHA `6178761121703835a51dd17194b4530c31ce01e0`, **все completed/success**: [Windows PowerShell USB mock #45033922233](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922233), [Fast quality #45033922218](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922218), [Android main APK #45033922207](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922207), [Android isolated diagnostic APK #45033922317](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922317). Windows test исполняет установочный скрипт на подставном ADB и **не** подтверждает USB-поведение на настоящем телефоне.
+- Физическая контрольная точка по-прежнему ожидает телефон/ПК: чтение именно установленного пакета `ru.paseka.journal` и копирование отчёта диагностическим приложением. Ни признание трафика отсутствующим, ни разрешение на удаление/восстановление видео не допускаются. Данные пасеки не изменены, production deployment и merge не выполнялись.
+
+---
+
 ## 2026-11-22 — Windows USB mock integration: восемь сценариев в настоящем PowerShell 5.1
 
 - В ветке PR #366 добавлены `tests/windows-product-permissions-usb-mock.ps1` и `.github/workflows/android-product-permissions-usb-mock.yml`. GitHub Actions **Windows Server 2022 + PowerShell 5.1** реально запускает `tools/android-product-permissions-one-shot.ps1` с подставным `adb.cmd` и фиктивным APK только на CI: 8 сценариев (no-device, unauthorized, no-product, preinstalled, bad-hash, install-fail, launch-fail, success). Проверяется количество `adb install` и `adb monkey`, отсутствие команд удаления/очистки/изменения пользовательских файлов и вывод `NOT_TESTED` для физической проверки. Эмулятор Android и реальный телефон **не запускаются**.
