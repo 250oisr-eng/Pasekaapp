@@ -1,3 +1,11 @@
+## 2026-11-22 — защита от повторного resultId в readonly архивном аудите
+
+- В дополнение к полной проверке source-bound SHA/bytes/evidence диагностический `inspectStagingRecognitionCopies` теперь отклоняет повторное использование одного `resultId` для разных `source/videoId` с `VIDEO_LEDGER_DUPLICATE_RESULT_ID` и `requiresManualReview:true`. В другом V2-guard такой запрет уже существовал: расхождение между проверками устранено.
+- Добавлен отдельный тест с двумя различными видео и общим resultId; проверяется неизменность IndexedDB и запрет выдачи успешного audit. Исходный реальный архив, media, схема, rollback, delete не затрагиваются.
+- На предыдущем коде этого Draft PR `53c2da53c3730533ced3861a3e680655d6352cc3` подтверждены 144/144 интеграционных и 67/67 архивных тестов; для нового SHA обязательно ждать новых запусков. Isolated APK остаётся skipped, это не Android restore.
+
+---
+
 ## 2026-11-22 — readonly staging audit: обязательная проверка исходных свидетельств распознавания
 
 - Найдено реальное расхождение: `js/paseka-archive-restore.js:inspectStagingRecognitionCopies` ранее принимала `version:1` ledger с `videoId/resultId/cleanupState`, но **без** `sourceSha256/sourceBytes/sourceEvidenceVersion/recognizedAt/result`; отдельно `js/video-archive-v2-guard.js` требует эти поля. Это давало диагностическое `ok:true` для неподтверждённой истории, не давая при этом разрешения delete.
