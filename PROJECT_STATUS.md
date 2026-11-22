@@ -1,3 +1,13 @@
+## 2026-11-23 — P0 live entrance original protection, Draft #416
+
+- Parent [Draft #415](https://github.com/250oisr-eng/Pasekaapp/pull/415) code SHA `c5d927bef3d4d4f68463bb54dcab453e328d2a79` verified Fast #45077008257 **1200/1200 PASS** and Android #45077008321 **completed/success**. Main remains unchanged; #415 docs-only HEAD CI must be separately tracked.
+- Current [Draft #416](https://github.com/250oisr-eng/Pasekaapp/pull/416), branch `fix/video-manual-delete-failclosed-2026-11-23`, exact code/test SHA `4a866a52f4957899442e8e7fc12557b6403f9ee0`: [Fast Quality #45077090132](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45077090132) **completed/success, 1205/1205 tests PASS, 0 fail/skipped**; [Android Debug #45077090061](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45077090061) **completed/success** with full regressions/debug APK build/upload.
+- Confirmed live UI risk: `index.html` manual `removeEntranceVideo` called unconditional `deleteEntranceVideoBlob`, permitting irreversible loss even before recognition succeeded. Adapted existing fail-closed guard from old Draft #241: direct deletion rejects `ENTRANCE_VIDEO_DELETE_BLOCKED` before any IndexedDB write; UI displays disabled removal button with reason; old direct caller also rejects without showing destructive confirmation. Ported 5 tests from `tests/entrance-video-manual-delete-guard.test.mjs`. No actual deletion performed and no automatic cleanup enabled.
+- P0 **NOT CLOSED**: full restore/migration to live PASEKA02, physical Android power-cycle/permission/Camera/Gallery/Downloads inventory and verified deletion after genuine recognition remain unproven. Modules isolated, no production deployment, Restore335 STOP, no merge and no changes to real user data. Docs-only final SHA requires fresh verification.
+- Next single blocking stage: physical isolated Android synthetic video lifecycle (source creation, recognition evidence, durable ledger, external copy census, backup, restart, rollback and deletion safety), then only after verified evidence and explicit permission plan live rollout. No further destructive change until it is possible to perform safely.
+
+---
+
 ## 2026-11-23 — P0 durable SHA-bound recognition ledger / live video ID collision, Draft #415
 
 - Parent [Draft #414](https://github.com/250oisr-eng/Pasekaapp/pull/414) exact docs HEAD `54f6b10fe2a80a9b613aa063465604c083f96b81`: Fast Quality #45076740736 and Android Debug #45076740655 **completed/success**; parent code SHA `806012dd03ab32b5bccfa8bbc249746110f6a068` passed 1182/1182 tests and Android on that exact SHA. Main unchanged.
