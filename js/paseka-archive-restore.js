@@ -1302,7 +1302,12 @@ function discardArchiveRestoreSession(db, sessionId) {
         const keysRequest = store.index('sessionId').getAllKeys(sessionId);
         keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not list staged import records.'));
         keysRequest.onsuccess = () => {
-          const keys = keysRequest.result || [];
+          let keys;
+          try {
+            // An invalid getAllKeys response cannot mean a verified empty
+            // staging index: never report cleanup complete without proof.
+            keys = assertIndexedDbRows(keysRequest.result, 'STAGING_CLEANUP_KEYS_UNVERIFIED');
+          } catch (error) { abortWith(error); return; }
           // Repeated cleanup with no remaining rows is a harmless no-op, even
           // when historical records still name this already-discarded session.
           if (!keys.length) { result = false; return; }
@@ -1331,8 +1336,11 @@ function discardArchiveRestoreSession(db, sessionId) {
             const kindRequest = index.getAllKeys(kind);
             kindRequest.onerror = () => abortWith(kindRequest.error || new Error('Could not verify staged record kinds.'));
             kindRequest.onsuccess = () => {
-              for (const key of kindRequest.result || []) kinds.set(key, kind);
-              if (--kindsPending === 0) verifyHistory();
+              try {
+                const kindKeys = assertIndexedDbRows(kindRequest.result, 'STAGING_CLEANUP_KINDS_UNVERIFIED');
+                for (const key of kindKeys) kinds.set(key, kind);
+                if (--kindsPending === 0) verifyHistory();
+              } catch (error) { abortWith(error); }
             };
           }
           const verifyHistory = () => {
