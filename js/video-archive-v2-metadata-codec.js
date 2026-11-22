@@ -26,7 +26,7 @@ async function hash(bytes, cryptoProvider) {
 function assertNoVideoData(value, depth=0, seen=new Set()) {
  if (depth>48) fail('V2_STATE_DEPTH_LIMIT');
  if (typeof value==='string') {
-  if (/^data:(?:video\/[a-z0-9.+-]+|application\/octet-stream)(?:;[^,]*)?,/i.test(value)) fail('V2_STATE_EMBEDDED_VIDEO');
+  if (/(?:data:(?:video\/[a-z0-9.+-]+|application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl))|blob:)/i.test(value)) fail('V2_STATE_EMBEDDED_VIDEO');
   return;
  }
  if (value===null||typeof value==='boolean'||typeof value==='number'&&Number.isFinite(value)) return;
