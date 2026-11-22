@@ -518,3 +518,80 @@ test('restore preserves legacy object state with meta but no revision in rollbac
   assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'committed');
  } finally { db.close(); }
 });
+
+async function syntheticRollbackWithPriorVideo(){
+ const db=await seeded();
+ await put(db,'entrance_media',{
+  id:'prior-video',hiveId:'fixture-hive',
+  capturedAt:'2026-11-21T12:00:00.000Z',
+  blob:new Blob(['synthetic-old-video-not-a-real-record'],{type:'video/mp4'})
+ });
+ const staged=await stage(db);
+ const committed=await Restore.commitStagedArchive(
+  db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+ return {db,rollbackId:committed.rollbackSessionId,videoKey:committed.rollbackSessionId+':video:prior-video'};
+}
+async function verifyRejectedRollbackUnchanged(db){
+ const stateBefore=await get(db,'main','state');
+ const mediaBefore=await rows(db,'entrance_media');
+ const stageBefore=await rows(db,'archive_staging');
+ const historyBefore=await rows(db,'archive_history');
+ await assert.rejects(
+  Restore.rollbackCommittedArchive(db,'synthetic-media-integrity-1',
+   stateBefore.meta.revisionId,webcrypto,()=>true),
+  {code:'ROLLBACK_SNAPSHOT_IDENTITY_INVALID'});
+ assert.deepEqual(await get(db,'main','state'),stateBefore);
+ assert.deepEqual(await rows(db,'entrance_media'),mediaBefore);
+ assert.deepEqual(await rows(db,'archive_staging'),stageBefore);
+ assert.deepEqual(await rows(db,'archive_history'),historyBefore);
+}
+test('rollback restores a correctly identified synthetic prior video and journal',async()=>{
+ const {db}=await syntheticRollbackWithPriorVideo();
+ try{
+  const current=await get(db,'main','state');
+  const result=await Restore.rollbackCommittedArchive(
+   db,'synthetic-media-integrity-1',current.meta.revisionId,webcrypto,()=>true);
+  assert.equal(result.restoredVideoCount,1);
+  assert.equal((await rows(db,'entrance_media'))[0].id,'prior-video');
+  assert.equal((await get(db,'main','state')).meta.schemaVersion,12);
+  assert.equal((await get(db,'archive_history','synthetic-media-integrity-1')).status,'reverted');
+ }finally{db.close();}
+});
+test('rollback refuses wrong primary key for valid saved journal despite matching row count',async()=>{
+ const {db,rollbackId}=await committedSyntheticRollbackFixture();
+ try{
+  await replaceSyntheticStagedKey(db,rollbackId+':state',rollbackId+':unexpected','rollback_state');
+  await verifyRejectedRollbackUnchanged(db);
+ }finally{db.close();}
+});
+test('rollback refuses wrong session identity in snapshot header even with valid history',async()=>{
+ const {db,rollbackId}=await committedSyntheticRollbackFixture();
+ try{
+  const header=await get(db,'archive_staging',rollbackId);
+  await put(db,'archive_staging',{...header,sessionId:'foreign-snapshot'});
+  await verifyRejectedRollbackUnchanged(db);
+ }finally{db.close();}
+});
+test('rollback refuses a prior video snapshot whose originalId differs from its recorded ID',async()=>{
+ const {db,videoKey}=await syntheticRollbackWithPriorVideo();
+ try{
+  const original=await get(db,'archive_staging',videoKey);
+  await put(db,'archive_staging',{...original,originalId:'different-video'});
+  await verifyRejectedRollbackUnchanged(db);
+ }finally{db.close();}
+});
+test('rollback refuses a prior video snapshot whose stored record.id differs from its originalId',async()=>{
+ const {db,videoKey}=await syntheticRollbackWithPriorVideo();
+ try{
+  const original=await get(db,'archive_staging',videoKey);
+  await put(db,'archive_staging',{...original,record:{...original.record,id:'different-video'}});
+  await verifyRejectedRollbackUnchanged(db);
+ }finally{db.close();}
+});
+test('rollback refuses wrong primary key for a valid prior video snapshot',async()=>{
+ const {db,videoKey,rollbackId}=await syntheticRollbackWithPriorVideo();
+ try{
+  await replaceSyntheticStagedKey(db,videoKey,rollbackId+':video:another-video','rollback_video');
+  await verifyRejectedRollbackUnchanged(db);
+ }finally{db.close();}
+});
