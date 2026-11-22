@@ -113,8 +113,9 @@ async function run(){
   db=await openDb();
   await ensureFixture(db);
   const nonce=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
+  const expectedSha256=await hash(bytes);
   const tx=db.transaction('synthetic','readwrite'),wait=done(tx);
-  tx.objectStore('synthetic').put({id:'a08-pending',synthetic:true,nonce,expectedSha256:await hash(bytes)});
+  tx.objectStore('synthetic').put({id:'a08-pending',synthetic:true,nonce,expectedSha256});
   await wait;
   await verify(db);
   db.close();db=null;
