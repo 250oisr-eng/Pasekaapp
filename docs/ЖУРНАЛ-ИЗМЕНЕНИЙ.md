@@ -1,3 +1,13 @@
+## 2026-11-22 — Android persisted-Blob exact-SHA CI итог
+
+- **Code/test/workflow SHA** `5e7f4cbc00afde0e0bc35709faff65ea8921e654`: [изолированная Android диагностика CI #45060182564](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45060182564) **completed/success**; лог job #137324124417 подтверждает **10/10 Node тестов, 0 FAIL**, Android debug APK build, проверку package ID/запрещённых разрешений/Clipboard и upload. [Общий Android CI #45060182516](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45060182516) **completed/success** на том же SHA.
+- APK SHA256 `ac50056af03761667159e711b58d888656296f391d9fc0db7a18e6c2c5ebec5c`. [Artifact #14769625021](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45060182564/artifacts/14769625021), zip digest `0da2d6db19742475492b1abeffc51de3047957ca116acfe152b0a0592300280a`, expires 2026-12-06.
+- Физический Android тест **этой новой версии NOT_TESTED**. Предыдущий физический `PHONE_SAFE_SYNTHETIC_V1:PASS` относится к ранее установленной версии без проверки сохранённого объекта перед записью. Не смешивать успех CI с работой на устройстве.
+- Для перехода на новую версию достаточно обновить одноимённую изолированную диагностику при совпадении подписи; при ошибке подписи не удалять прежнее приложение, сообщить `BLOCKED_INSTALL_SIGNATURE`. После запуска нажать одну кнопку тестирования и копировать JSON: ожидаемый `previousFixture=PRESENT_VERIFIED`, но только если прежняя запись сохранилась. Это не предположение о фактическом состоянии телефона.
+- Реальные видео, распознавание пчёл, настоящий архив, сетевой трафик и очистка остаются NOT_TESTED; cleanupAuthorized=false. Merge, deploy, production change не производились.
+
+---
+
 ## Контрольная точка 2026-11-22 — телефон: проверка сохранённого синтетического Blob
 
 - Дочерний Draft PR #384 поверх #383: проверка `PHONE_SAFE_SYNTHETIC_V1` перед записью читает существующий объект `single-synthetic-blob` из *изолированного* `paseka-phonechecks-synthetic-v1`. Если объект существует и не соответствует Blob/эталонному SHA256 — `BLOCKED` (`PREVIOUS_FIXTURE_NOT_BLOB_PRESERVE` или `PREVIOUS_FIXTURE_MISMATCH_PRESERVE`), без удаления или перезаписи. Если отсутствует — создаётся синтетическая фикстура один раз; отчёт отдельно отмечает `ABSENT_CREATED` / `PRESENT_VERIFIED`.
