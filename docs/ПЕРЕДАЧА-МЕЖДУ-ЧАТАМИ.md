@@ -1,3 +1,13 @@
+## 2026-11-22 — новый независимый этап: read-only archive failure/restart matrix
+
+- Создана дочерняя ветка `test/video-archive-readonly-transaction-failures-2026-11-22` на базе успешного Draft PR #354, не изменяя `main` или PR #354.
+- В `tests/video-archive-v2-copy-inventory.test.mjs` добавлено пять специальных синтетических сценариев: принудительный `readonly` transaction abort без выдачи ложного отчёта и с сохранением двух копий; отсутствие обязательных объектных хранилищ старой схемы; конкурентные readonly аудиты с повторным открытием `fake-indexeddb`; повреждённый ledger после перезапуска без разрешения cleanup; непрозрачный backup после перезапуска без раскрытия содержимого.
+- Не изменялись runtime, видео, архивный движок, схемы/миграции IndexedDB, Android package и сохранённая история; выполнение только на synthetic `fake-indexeddb`. `cleanupAuthorized`, `archiveSafe`, `restoreAuthorized` остаются `false`.
+- Требуется exact-SHA CI для всех четырёх связанных тестовых модулей и Android сборки. Даже успех этих проверок не доказывает реальный Android power loss, доступность внешних MediaStore копий или физическое восстановление `.paseka`.
+- Поиск модели пчёл остаётся `MODEL_SEARCH_PARKED_EVIDENCE_REQUIRED`; никаких реальных весов или видео не импортировано. Следующий безопасный блок после CI — отдельный read-only preflight восстановления PASEKA01/PASEKA02 с физическими фикстурами без переписывания пользовательских данных.
+
+---
+
 ## 2026-11-22 — transient browser Blob URL и пустой Data URL не являются сохранённым видео
 
 - В `js/video-archive-v2-copy-inventory.js` для распознанных как видео записей журнала введены read-only issues: `volatile_blob_url_requires_source_provenance` для `blob:` (ссылка жизни браузерного документа, не доказательство устойчивого файла) и `empty_video_data_url` для пустого `data:video/...,`. Оригиналы и URI не возвращаются пользователю в диагностическом отчёте. Отсутствует чтение/декодирование payload и разрешение cleanup.
