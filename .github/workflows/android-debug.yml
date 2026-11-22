@@ -16,6 +16,7 @@ on:
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
+      - 'scripts/report-p2-package-footprint.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - 'scripts/prepare-android-archive-download.mjs'
       - '.github/workflows/android-debug.yml'
@@ -31,6 +32,7 @@ on:
       - 'capacitor.config.json'
       - 'android/**'
       - 'scripts/prepare-web.mjs'
+      - 'scripts/report-p2-package-footprint.mjs'
       - 'scripts/patch-android-gradle.mjs'
       - 'scripts/prepare-android-archive-download.mjs'
       - '.github/workflows/android-debug.yml'
@@ -130,6 +132,8 @@ jobs:
             gradle-${{ runner.os }}-
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Report P2 package footprint
+        run: node scripts/report-p2-package-footprint.mjs
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
