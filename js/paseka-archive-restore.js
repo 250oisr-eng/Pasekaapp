@@ -1003,6 +1003,7 @@ async function readStagedArchive(db, sessionId, cryptoProvider, archiveApi, vali
   if ((session.status !== 'ready' && !(allowStaging && session.status === 'staging')) || session.stagedCount !== session.totalEntries) fail('STAGING_SESSION_INCOMPLETE', 'Staged import is incomplete and cannot be restored.');
   if (!session.manifest || !Array.isArray(session.manifest.entries)) fail('STAGING_MANIFEST_MISSING', 'Staged archive manifest is missing.');
   if (session.manifest.backupId !== session.backupId || session.manifest.schemaVersion !== session.schemaVersion || session.manifest.entries.length !== session.totalEntries) fail('STAGING_MANIFEST_MISMATCH', 'Staged session metadata does not match its manifest.');
+  assertIndexedDbRows(records, 'STAGING_RECORDS_ENUMERATION_UNVERIFIED');
   const sessionRecords = records.filter(record => record.kind === 'session');
   const contentRecords = records.filter(record => record.kind !== 'session');
   const manifestStateEntries = session.manifest.entries.filter(entry => entry.kind === 'state');
