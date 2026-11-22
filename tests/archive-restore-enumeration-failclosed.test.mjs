@@ -267,3 +267,48 @@ test('read-only staging copy audit refuses unverifiable video-copy keys',async()
    {code:'STAGING_VIDEO_KEYS_ENUMERATION_UNVERIFIED'});
  }finally{db.close();}
 });
+
+test('normal cleanup still removes a verified unreferenced synthetic session',async()=>{
+ const db=await seeded();
+ try{
+  const staged=await stage(db);
+  const sid=staged.session.sessionId;
+  assert.equal(await Restore.discardArchiveRestoreSession(db,sid),true);
+  assert.equal((await rows(db,'archive_staging')).length,0);
+  assert.equal(await Restore.discardArchiveRestoreSession(db,sid),false);
+  assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
+ }finally{db.close();}
+});
+for(const value of [null,undefined,{}]){
+ test('cleanup never treats unverified staged keys as an empty index: '+String(value),async()=>{
+  const db=await seeded();
+  try{
+   const staged=await stage(db);
+   const sid=staged.session.sessionId;
+   const before=(await rows(db,'archive_staging')).map(x=>x.id).sort();
+   assert.ok(before.length>0);
+   await assert.rejects(
+    Restore.discardArchiveRestoreSession(corruptIndexRead(
+     db,'archive_staging','sessionId','getAllKeys',value),sid),
+    {code:'STAGING_CLEANUP_KEYS_UNVERIFIED'});
+   assert.deepEqual((await rows(db,'archive_staging')).map(x=>x.id).sort(),before);
+   assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
+  }finally{db.close();}
+ });
+}
+for(const value of [null,undefined]){
+ test('cleanup aborts without deletion when record-kind index is unverified: '+String(value),async()=>{
+  const db=await seeded();
+  try{
+   const staged=await stage(db);
+   const sid=staged.session.sessionId;
+   const before=(await rows(db,'archive_staging')).map(x=>x.id).sort();
+   await assert.rejects(
+    Restore.discardArchiveRestoreSession(corruptIndexRead(
+     db,'archive_staging','kind','getAllKeys',value),sid),
+    {code:'STAGING_CLEANUP_KINDS_UNVERIFIED'});
+   assert.deepEqual((await rows(db,'archive_staging')).map(x=>x.id).sort(),before);
+   assert.equal((await get(db,'main','state')).meta.revisionId,LIVE.meta.revisionId);
+  }finally{db.close();}
+ });
+}
