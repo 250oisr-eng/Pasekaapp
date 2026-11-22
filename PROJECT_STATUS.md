@@ -1,3 +1,11 @@
+## P2 — первый проверяемый блок оптимизации рендеринга (2026-11-23)
+
+- Актуальная база: main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; parent Draft #423 HEAD `5da0522a116ffae27681fd1c81590421b8cf4fe3` успешно прошёл Fast #45082087989 (1222/1222) и Android Debug #45082087992. P0/P1 OPEN, merge/production/удаление оригиналов запрещены.
+- Отдельная ветка `perf/p2-render-hotpaths-2026-11-23`: `renderHiveDirectory` пропускает тяжёлый обход рамок при пустом поиске/раннем совпадении; `renderJournalRecords` не строит full-text для неиспользуемого поиска; `renderHome` собирает pending tasks одним проходом и фиксирует одну дату. Добавлен `tests/p2-render-hotpaths.test.mjs`.
+- Исходный source tree: `index.html` 604 815 байт, `js/` 596 340 байт в 38 файлах, моделей .onnx/.wasm/.tflite нет; это НЕ доказательство размера APK, RAM или latency. Полная матрица и критерии: `docs/P2-ПРОИЗВОДИТЕЛЬНОСТЬ-2026-11-23.md`.
+- **Статус P2: IN_PROGRESS / NOT READY.** Тесты нового SHA и Android требуется проверить после создания Draft PR. Открытые физические/медийные ворота P0/P1 не переобъявлять PASS. Следующий шаг: exact-HEAD CI этого блока, затем безопасная память/история и APK sizes.
+
+---
 ### P0 multirestart — код и тесты проверены (2026-11-23)
 
 - Исправленный code/test+docs SHA `e1fe813d659c99ed59e6526afd5f4e77ac34326a`: [Fast Quality #45081949766](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45081949766) **1222/1222 PASS, 0 FAIL/SKIPPED**, [Android Debug #45081949795](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45081949795) **completed/success**. Позитивный цикл stage→reopen→commit→reopen→quarantine→reopen + SHA и negative tampered-stage commit проходят.
