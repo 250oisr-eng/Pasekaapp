@@ -59,14 +59,4 @@ jobs:
           emulator-boot-timeout: 600
           disable-animations: true
           emulator-options: -no-snapshot-load -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: |
-            set -euo pipefail
-            npm run web:prepare
-            npx cap add android
-            npx cap sync android
-            node scripts/prepare-android-archive-download.mjs
-            node scripts/patch-android-gradle.mjs
-            node scripts/prepare-p0-emulator-build.mjs
-            (cd android && chmod +x gradlew && ./gradlew assembleDebug)
-            bash -n scripts/android-emulator-smoke.sh
-            bash scripts/android-emulator-smoke.sh android/app/build/outputs/apk/debug/app-debug.apk
+          script: bash scripts/run-p0-emulator-ci.sh
