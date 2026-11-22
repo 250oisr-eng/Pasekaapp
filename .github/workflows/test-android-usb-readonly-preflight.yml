@@ -1,0 +1,39 @@
+name: Validate Android USB read-only preflight
+
+on:
+  push:
+    paths:
+      - 'tools/android-usb-device-readonly-preflight.ps1'
+      - '.github/workflows/test-android-usb-readonly-preflight.yml'
+  pull_request:
+    paths:
+      - 'tools/android-usb-device-readonly-preflight.ps1'
+      - '.github/workflows/test-android-usb-readonly-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  powershell-static:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parse and allowed ADB command audit
+        shell: pwsh
+        run: |
+          $file = 'tools/android-usb-device-readonly-preflight.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Host; throw 'POWERSHELL_PARSE_FAILED' }
+          $src = Get-Content -Raw $file
+          foreach ($term in @('adbSha256','ONE_AUTHORIZED_DEVICE_REQUIRED','NOT_AUTHORIZED','PINNED_ADB_MISSING')) {
+            if (-not $src.Contains($term)) { throw "MISSING_SAFETY_GUARD_$term" }
+          }
+          foreach ($forbidden in @('install','uninstall','push','pull','am start','force-stop','rm -','deleteFile','format','clearPackage')) {
+            $calls = [regex]::Matches($src, "(?m)^\s*(?:Call-Adb|\$[A-Za-z][A-Za-z0-9]*\s*=\s*Call-Adb)\s+@\(([^\r\n]*)")
+            foreach ($call in $calls) {
+              if ($call.Value -match "(?i)\b$([regex]::Escape($forbidden))\b") { throw "DISALLOWED_ADB_COMMAND_$forbidden" }
+            }
+          }
+          Write-Host "POWERSHELL_PARSE_AND_ADB_COMMAND_AUDIT_PASS"
