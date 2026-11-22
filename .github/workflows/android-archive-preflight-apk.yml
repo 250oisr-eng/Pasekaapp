@@ -34,6 +34,14 @@ jobs:
           java-version: '17'
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund
+      - name: Install isolated Android native Share plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Capacitor discovers native plugins from package.json; this edits the CI checkout only.
+          npm pkg set 'dependencies.@capacitor/share=6.0.3'
+          npm install --no-package-lock --no-audit --no-fund
+          node -e "if(require('@capacitor/share/package.json').version!=='6.0.3') throw Error('Unexpected native Share version')"
       - name: Execute synthetic metadata tests
         run: node --test tests/android-archive-preflight.test.mjs
       - name: Execute complete regression tests
@@ -44,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find www -type f | wc -l)" -eq 3
+          test "$(find www -type f | wc -l)" -eq 4
           test "$(node -p 'require("./capacitor.config.json").appId')" = 'ru.paseka.journal.diagnostic.archivepreflight'
           ! grep -rE 'https?://|fetch\(|XMLHttpRequest|MediaStore|navigator.mediaDevices' www/runner.js www/preflight-guard.js www/index.html
           ! grep -Fq 'android-archive-preflight.js' index.html
@@ -69,6 +77,20 @@ jobs:
         run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Generate isolated Android project
         run: npx cap add android && npx cap sync android
+      - name: Verify native chooser plugin registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'android/app/src/main/assets/capacitor.plugins.json';
+          const plugins = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (!plugins.some(p => typeof p.classpath === 'string' && p.classpath.endsWith('.SharePlugin'))) {
+            console.error('Registered native classpaths:', plugins.map(p => p.classpath));
+            throw Error('Native Android SharePlugin registration missing');
+          }
+          console.log('Native Android SharePlugin present in isolated diagnostic');
+          NODE
       - name: Use supported Gradle toolchain
         run: node scripts/patch-android-gradle.mjs
       - name: Remove diagnostic Internet permission
@@ -97,6 +119,8 @@ jobs:
             exit 1
           fi
           unzip -l "$APK" | grep -F 'assets/public/runner.js'
+          unzip -l "$APK" | grep -F 'assets/public/share-report.js'
+          unzip -p "$APK" assets/capacitor.plugins.json | grep -F 'SharePlugin'
           unzip -l "$APK" | grep -F 'assets/public/preflight-guard.js'
           sha256sum "$APK"
       - name: Upload diagnostic APK

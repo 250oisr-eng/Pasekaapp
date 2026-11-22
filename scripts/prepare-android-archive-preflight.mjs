@@ -11,4 +11,5 @@ await mkdir('www',{recursive:true});
 await copyFile('js/android-archive-preflight.js','www/preflight-guard.js');
 await copyFile('diagnostics/archive-preflight/index.html','www/index.html');
 await copyFile('diagnostics/archive-preflight/runner.js','www/runner.js');
+await copyFile('diagnostics/archive-preflight/share-report.js','www/share-report.js');
 console.log('Created isolated synthetic archive preflight web application; no production pages copied.');
