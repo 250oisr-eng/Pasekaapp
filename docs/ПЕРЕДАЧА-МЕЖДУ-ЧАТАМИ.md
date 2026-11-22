@@ -1,3 +1,13 @@
+## 2026-11-22 — следующий автономный этап после физического PASS unified V2
+
+- Последний подтверждённый пользователем физический `PHONE_UNIFIED_SYNTHETIC_V2`: все четыре synthetic checks PASS, но `storage.previousFixture=ABSENT_CREATED`. Физического повторного запуска с `PRESENT_VERIFIED` пока **нет**; нельзя утверждать долговечность между отдельными запусками Android.
+- В дочернем Draft PR #386 `test/android-unified-runtime-regressions-2026-11-22` добавлен **исполняемый** `tests/android-unified-runtime.test.mjs` (Node VM + отдельная fake-indexeddb): первая и вторая инициализации тестового хранилища, повреждение байтов с проверкой запрета автоматического исправления, чужой тип, независимые ошибки synthetic MP4 и ONNX. Выраженный во всех negative paths инвариант: `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`. Физический APK не изменён, новая установка пользователю не требуется.
+- `.github/workflows/android-unified-safe-apk.yml` теперь запускает `tests/android-unified-safe.test.mjs` и `tests/android-unified-runtime.test.mjs`; exact code SHA `81454760c6ec4d8bdfddec1bfdb4cf7d562631b1`, [CI #45061552865](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45061552865) запущен. Перед заявлением о PASS проверить полное завершение и лог на этом SHA, не экстраполировать успешные промежуточные этапы.
+- Следующее действие пользователя (без установки): открыть **то же** `ru.paseka.journal.diagnostic.allchecks` и нажать «Проверить всё безопасное» второй раз, скопировать один JSON; до его получения `PRESENT_VERIFIED` считается NOT_TESTED.
+- Реальные видео, детекция пчёл, реальный полный archive restore, user data cleanup и измерение сети не тестировались; Restore335 STOP; main/production/merge не затронуты.
+
+---
+
 ## 2026-11-22 — физический Android PASS единого синтетического набора
 
 - Пользователь прислал полный JSON из физического устройства: `suite=PHONE_UNIFIED_SYNTHETIC_V2`, `packageId=ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Ранее изолированный APK собран на проверенном code/workflow SHA `1d25ea5e3b93aae2cc37472d0024ad93d9ccb1e1`, artifact #14769308321; JSON не включает самостоятельный APK SHA, связь с бинарником основана на выданном пользователю артефакте, а не независимой проверке APK-хэша телефоном.
