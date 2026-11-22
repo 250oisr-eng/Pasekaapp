@@ -50,27 +50,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             npm-${{ runner.os }}-
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Emit npm dependency lock for one-time reproducibility bootstrap
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s package-lock.json
-          node - <<'NODE'
-          const fs = require('fs');
-          const lock = fs.readFileSync('package-lock.json');
-          const parsed = JSON.parse(lock.toString('utf8'));
-          if (parsed.lockfileVersion !== 3 || parsed.packages?.['']?.name !== 'paseka-android') {
-            throw new Error('Generated npm lockfile has unexpected root metadata');
-          }
-          const b64 = lock.toString('base64');
-          console.log('PASEKA_LOCK_BOOTSTRAP_BEGIN');
-          for (let pos=0;pos<b64.length;pos+=180) console.log('PASEKA_LOCK_BOOTSTRAP_CHUNK='+b64.slice(pos,pos+180));
-          console.log('PASEKA_LOCK_BOOTSTRAP_END');
-          NODE
+        run: npm ci --no-audit --no-fund
       - name: Run complete regression suite
         run: npm test
