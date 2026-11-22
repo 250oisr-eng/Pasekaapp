@@ -1,3 +1,11 @@
+## 2026-11-22 — double-SHA readonly evidence for entrance video (no cleanup)
+
+- Separate stacked test branch `test/video-cleanup-byte-evidence-readonly-2026-11-22` from Draft PR #369. New isolated `js/video-cleanup-byte-evidence.js`: two distinct `readonly` IndexedDB reads of one `entrance_media` Blob with actual SHA-256 hashing **outside** transactions; metadata/provenance and byte digest compared across observations. Fail closed on tampered Blob, missing metadata, source replacement, failed read or hash. This is a *point-in-time* test, not a stable global snapshot or authorization to remove any copy.
+- `tests/video-cleanup-byte-evidence.test.mjs`: synthetic byte match, tamper, invalid/missing metadata and ID, concurrent replacement during hash, unreadable store/error redaction; CI workflow `.github/workflows/test-video-copy-hash-alias.yml` includes this test directly. All outcomes keep `cleanupAuthorized:false`, `allCopiesVerified:false`, `deleteAllowed:false`, no writes or real media.
+- [Detailed limits](docs/VIDEO-CLEANUP-BYTE-INTEGRITY-READONLY-2026-11-22.md): unverified backup/staging/legacy journal, Android Gallery/MediaStore, external archives, crash recovery and AI quality. Product APK absent on test OnePlus; no physical original video / deletion performed. Exact SHA CI must be verified before claiming PASS, Draft only; no merge/deploy.
+
+---
+
 ## 2026-11-22 — CI verified all-copy cleanup preflight; real deletion still BLOCKED
 
 - Exact tested SHA `a919c91982da05c03c0c73d1b0a9f6bf2e67ebff`: [managed video read-only CI #45038488279](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038488279) **completed/success 153/153 tests**, including 5 new cleanup-readiness synthetic cases; [main Android APK #45038488363](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038488363) **completed/success**. Isolated archive build #45038488278 **completed/skipped** (NOT PASS).
