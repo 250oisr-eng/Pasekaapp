@@ -1,3 +1,13 @@
+## 2026-11-22 — P1 стабилизация: воспроизводимая npm dependency graph / npm ci
+
+- Обнаружен `package.json` c четырьмя прямыми pinned зависимостями и **отсутствующий package-lock.json**. Все три CI workflows использовали `npm install --no-audit --no-fund`, что допускало изменение вложенных npm зависимостей между сборками. Это риск воспроизводимости тестов/Android APK, не подтверждённая утечка или поломка production.
+- В дочернем **Draft PR #395** поверх #394 bootstrap выполнен в успешном GitHub Fast Quality job #137343654312 (run #45066477298): npm install сгенерировал npm v3 lockfile; проверены root name/version/direct dependencies и наличие 100 nested package entries. Проверенный `package-lock.json` создан отдельным commit. Временный вывод lockfile из CI удалён после bootstrap.
+- `.github/workflows/quality.yml`, `.github/workflows/android-debug.yml` и `.github/workflows/android-archive-test.yml` теперь используют `npm ci --no-audit --no-fund`; кэш npm привязан к SHA `package-lock.json`; Android PR paths дополнены `scripts/prepare-android-archive-download.mjs`, чтобы изменения native bridge не проходили мимо Android CI.
+- Новый `tests/ci-npm-lockfile-reproducibility.test.mjs` проверяет совместимость root dependencies, версии и SRI всех transitive packages, использование `npm ci`, отсутствие временного lockfile log bootstrap, PR path filters, сохранность полной регрессии. До завершения очередных Fast Quality и Android CI на точном финальном SHA — **не объявлять PASS**.
+- Главная ветка не изменена; не объединять PR без разрешения, не запускать deployment, не изменять реальные данные. `STABILIZATION_ONLY` остаётся активным, P0 архив/медиа/rollback и P1 offline/миграции остаются в очереди.
+
+---
+
 ## 2026-11-22 — P0 стабилизация: staged cleanup key/kind enumeration, exact-SHA CI
 
 - В дочернем Draft PR #394 (поверх #393, без merge) устранены два remaining fail-open fallback в `discardArchiveRestoreSession`: нештатное `index('sessionId').getAllKeys` больше не считается пустым списком, нештатное `index('kind').getAllKeys` больше не подменяется пустым списком. Ошибки `STAGING_CLEANUP_KEYS_UNVERIFIED` / `STAGING_CLEANUP_KINDS_UNVERIFIED`, вся readwrite транзакция откатывается и staged copies сохраняются.
