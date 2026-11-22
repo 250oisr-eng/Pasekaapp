@@ -71,8 +71,9 @@ exit /b 90
  # A worker-scoped fake digest tests control flow, never actual APK integrity.
  @'
 param([string]$Installer,[string]$DummyApk)
-function Get-FileHash {
+function global:Get-FileHash {
  param([string]$LiteralPath,[string]$Algorithm)
+ Write-Host ('MOCK_HASH_INVOCATION: '+$env:MOCK_SCENARIO)
  if($LiteralPath -cne $DummyApk -or $Algorithm -cne 'SHA256'){throw 'UNEXPECTED_HASH_CALL'}
  if($env:MOCK_SCENARIO -eq 'bad-hash'){
   return [pscustomobject]@{Hash=('0'*64)}
