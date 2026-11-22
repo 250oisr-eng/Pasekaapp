@@ -1,3 +1,12 @@
+## 2026-11-22 — protected managed video copies: readonly SHA across stores
+
+- Child Draft PR #371 `test/video-managed-copies-byte-audit-2026-11-22` from #370 adds `js/video-managed-copies-byte-audit.js`, an isolated `readonly` snapshot of five protected stores and SHA-256 of known candidate copies: `entrance_media`, `v2_pending_original`, legacy staging video (unverified full SHA), rollback video, quarantine, journal Data URLs and legacy `full_backup.previous.state`. Unknown backups, opaque state and unidentified legacy records remain **blocking**. No raw bytes or full user state returned.
+- New `tests/video-managed-copies-byte-audit.test.mjs` includes 7 synthetic scenarios: three valid copies, tampered staging, legacy journal, opaque backup, invalid input/readonly failure, old PASEKA01 `previous.state`, and true IndexedDB reopen. CI workflow `test-video-copy-hash-alias.yml` includes new suite. No delete API, UI, schema, physical phone or real user file change.
+- Code/test SHA `5a3e05e4df05259f24f099adbb6b01680096f031`; **new exact-SHA CI not yet verified** at this journal update. Earlier superseded SHA `984510ac2314ae9e1455a948f1075480e030ae95` ran [video CI #45045543503](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45045543503) **completed/success 165/165**, including 7 new cases, but last test then used a *new fixture*, not actual reopened database; fixed now. Android run for new SHA must be rechecked, previous results do not imply success.
+- Cannot certify **all** video copies: external Android Gallery/MediaStore, opaque historical archives, recorded model results and cleanup crash/rollback remain NOT_TESTED. `cleanupAuthorized:false`, `deleteAllowed:false` at every outcome. Draft only, main/production not modified.
+
+---
+
 ## 2026-11-22 — byte evidence CI terminal status, PR #370
 
 - Exact source SHA `0ba8ede476e459dc450efd33d446a98476e26495`: [managed video/ledger/staging and new byte integrity workflow #45044911066](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45044911066) **completed/success**, verified real job log **158/158 tests PASS, 0 FAIL**, including 5 new two-snapshot SHA tests; [Android APK #45044911086](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45044911086) **completed/success**. Isolated archive APK #45044911060 **completed/skipped** and not an archive validation.
