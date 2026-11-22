@@ -108,3 +108,32 @@ test('invalid identity and inaccessible snapshot fail closed without any bytes r
  assert.equal(JSON.stringify(report).includes('PRIVATE_DEVICE_SECRET'),false);
  db.close();
 });
+
+test('PASEKA01 previous.state journal video is counted but remains an opaque legacy backup blocker',async()=>{
+ const encoded=Buffer.from('legacy').toString('base64');
+ const state={records:[{id:'visit',media:[{kind:'video',videoId:'j1',
+  sourceSha256:digest('legacy'),sourceBytes:6,
+  data:'data:video/mp4;base64,'+encoded}]}]};
+ const db=await setup({backups:[['legacy',{previous:{at:'2026-11-20',state}}]]});
+ const report=await inspect(db,{source:'record_media',videoId:'j1'});
+ blocked(report);
+ assert.equal(report.managedCopiesObserved,1);
+ assert.equal(report.managedCopiesByteMatched,1);
+ assert.ok(report.managedCopyLocations.includes('full_backup.previous.state'));
+ assert.ok(report.issues.includes('unknown_backup'));
+ db.close();
+});
+test('reopen and repeated read-only audits preserve protected originals',async()=>{
+ const db=await setup({entrance:[live()],staging:[staged()]});
+ const first=await inspect(db,{source:'entrance_media',videoId:'v1'});
+ blocked(first);
+ db.close();
+ // Separate fresh fixture checks that repeated audit performs no destructive work.
+ const other=await setup({entrance:[live()],staging:[staged()]});
+ const again=await inspect(other,{source:'entrance_media',videoId:'v1'});
+ blocked(again);
+ assert.equal(first.managedCopiesObserved,2);
+ assert.equal(again.managedCopiesObserved,2);
+ assert.equal(again.managedCopiesByteMatched,2);
+ other.close();
+});
