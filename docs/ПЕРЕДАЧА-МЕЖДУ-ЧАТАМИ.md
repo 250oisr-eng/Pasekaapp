@@ -1,3 +1,13 @@
+## 2026-11-22 — все копии видео: удаление не подтверждено, только read-only preflight
+
+- По исходникам доказано, что `js/video-archive-v2-copy-inventory.js` перечисляет известные управляемые копии в `main/state.records[].media`, `entrance_media`, `archive_staging`, `full_backup` и использует `archive_history`, но не читает Android Gallery/MediaStore/Downloads, внешние резервные архивы и системные кэши. Он не повторяет SHA всех Blob/Data URL и всегда оставляет `byteIntegrityVerified:false`, `externalCopiesVerified:false`, `cleanupAuthorized:false`. Поэтому подтвердить безопасность **всех** копий нельзя.
+- В дочерней ветке `test/video-cleanup-readiness-fail-closed-2026-11-22` от PR #368 добавлен отключённый от UI `js/video-cleanup-preflight.js`: `assess` использует существующий readonly-инвентарь, локализует найденные управляемые копии по `source/videoId` и выдаёт только `BLOCKED` с причиной. Не существует пути delete/clear/unlink, разрешение из входных данных игнорируется.
+- Расширены синтетические регрессии `tests/video-archive-v2-copy-inventory.test.mjs`: одна копия, 3 protected copies, пустой/неверный ID, сбой readonly, злоумышленные `cleanupAuthorized:true`, отсутствие утечки приватных байтов. Никаких записей/удалений пользовательских данных.
+- Протокол будущего удаления и границы проверки: `docs/VIDEO-ALL-COPY-CLEANUP-SAFETY-GATE-2026-11-22.md`. Внешние файлы не удалять; старые неопознанные записи не переписывать; защищённые backup/staging/quarantine не очищать. Физические испытания и реальное распознавание `NOT_TESTED`.
+- Тесты/Android CI на новом SHA **ещё требуют проверки**, нельзя объявлять PASS. PR только Draft, main/production неизменны.
+
+---
+
 ## 2026-11-22 — exact-SHA regression verification, PR #368
 
 - Tested SHA `334bc43b8ee78580164c08b9fceea7f451eb040a`: [video/ledger/archive/staging CI #45038058414](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038058414) **completed/success**, independently checked job log: **148 tests, 148 PASS, 0 FAIL**, including historical duplicate `resultId`, sequential collision and concurrent two-video collision.
