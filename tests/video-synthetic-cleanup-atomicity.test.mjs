@@ -167,3 +167,49 @@ test('reopen preserves synthetic tombstone and never deletes twice',async()=>{
  assert.equal(await get(reopened,'entrance_media','synthetic-v1'),undefined);
  reopened.close();
 });
+
+test('correct metadata cannot disguise different synthetic original bytes',async()=>{
+ const db=await createFixture();
+ const x=await get(db,'entrance_media','synthetic-v1');
+ x.blob=new Blob(['ALTERED_SYNTHETIC_BYTES']);
+ await transact(db,'readwrite',tx=>tx.objectStore('entrance_media').put(x));
+ const result=await syntheticCleanupOnly(db);
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.reason,'source_bytes_mismatch');
+ assert.ok((await get(db,'entrance_media','synthetic-v1')).blob);
+ assert.equal(await get(db,'main','synthetic_cleanup_tombstone'),undefined);
+ db.close();
+});
+for(const protectedStore of ['archive_staging','archive_history']){
+ test(protectedStore+' rejects synthetic deletion with untouched source and no tombstone',async()=>{
+  const db=await createFixture();
+  await addProtected(db,protectedStore,{kind:'unknown',blob:new Blob([video])},'protected');
+  const result=await syntheticCleanupOnly(db);
+  assert.equal(result.status,'BLOCKED');
+  assert.equal(result.reason,'protected_copy_or_history_present');
+  assert.ok((await get(db,'entrance_media','synthetic-v1')).blob);
+  assert.equal(await get(db,'main','synthetic_cleanup_tombstone'),undefined);
+  db.close();
+ });
+}
+test('missing durable recognition ledger cannot authorize synthetic deletion',async()=>{
+ const db=await createFixture();
+ await transact(db,'readwrite',tx=>tx.objectStore('main').delete('video_recognition_ledger_v1'));
+ const result=await syntheticCleanupOnly(db);
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.reason,'synthetic_recognition_evidence_missing');
+ assert.ok((await get(db,'entrance_media','synthetic-v1')).blob);
+ assert.equal(await get(db,'main','synthetic_cleanup_tombstone'),undefined);
+ db.close();
+});
+test('preexisting tombstone blocks any synthetic delete attempt without mutation',async()=>{
+ const db=await createFixture();
+ const prior={version:1,source:'entrance_media',videoId:'synthetic-v1',disposition:'pending_reconciliation'};
+ await transact(db,'readwrite',tx=>tx.objectStore('main').put(prior,'synthetic_cleanup_tombstone'));
+ const result=await syntheticCleanupOnly(db);
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.reason,'existing_tombstone_requires_reconciliation');
+ assert.ok((await get(db,'entrance_media','synthetic-v1')).blob);
+ assert.deepEqual(await get(db,'main','synthetic_cleanup_tombstone'),prior);
+ db.close();
+});
