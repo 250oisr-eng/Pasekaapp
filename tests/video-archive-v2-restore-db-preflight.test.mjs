@@ -1,0 +1,184 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {IDBFactory} from 'fake-indexeddb';
+import {readFile} from 'node:fs/promises';
+const root={};
+for(const file of ['video-archive-v2-guard.js','video-archive-v2-restore-gate.js',
+ 'video-archive-v2-restore-db-preflight.js']){
+ new Function('window',await readFile(new URL('../js/'+file,import.meta.url),'utf8'))(root);
+}
+const guard=root.PasekaVideoArchiveV2Guard,gate=root.PasekaVideoArchiveV2RestoreGate,
+ api=root.PasekaVideoArchiveV2RestoreDatabasePreflight.inspectRestoreCandidateAgainstDatabase;
+const hash='a'.repeat(64);
+const entry=()=>({source:'entrance_media',videoId:'recognized',resultId:'result',
+ sourceSha256:hash,sourceBytes:3,sourceEvidenceVersion:1,
+ recognizedAt:'2026-11-20T00:00:00Z',stateRevisionId:'verified-state',
+ sourceHashVerifiedAt:'2026-11-20T00:00:00Z',cleanupState:'deleted',result:{observations:['осмотр']}});
+const ledger=()=>({version:1,entries:[entry()]});
+const candidate=()=>({state:{meta:{schemaVersion:15},records:[]},
+ ledger:ledger(),pendingVideos:[]});
+const done=tx=>new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onabort=tx.onerror=()=>reject(tx.error||new Error('database error'));});
+async function setup(){
+ const req=new IDBFactory().open('v2restore-preflight',1);
+ req.onupgradeneeded=()=>{
+  const db=req.result;db.createObjectStore('main');
+  db.createObjectStore('entrance_media',{keyPath:'id'});
+  db.createObjectStore('archive_staging',{keyPath:'id'});
+  db.createObjectStore('archive_history',{keyPath:'backupId'});
+  db.createObjectStore('full_backup');
+ };
+ const db=await new Promise((resolve,reject)=>{
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const tx=db.transaction(['main','entrance_media'],'readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'new'},records:[]},'state');
+ tx.objectStore('main').put(ledger(),'video_recognition_ledger_v1');
+ tx.objectStore('entrance_media').put({id:'unrecognized',bytes:3,blob:new Blob(['abc'])});
+ await done(tx);return db;
+}
+const inspect=(db,archive=candidate())=>api(db,archive,guard,gate);
+const rejects=(p,code)=>assert.rejects(p,error=>error.code===code);
+
+test('live preflight uses one readonly transaction across all protected stores without reading blobs',async()=>{
+ const db=await setup(),calls=[];
+ const tracked={objectStoreNames:db.objectStoreNames,transaction(...args){
+  calls.push(args);return db.transaction(...args);
+ }};
+ const outcome=await inspect(tracked);
+ assert.deepEqual(calls,[[['main','entrance_media','archive_staging','archive_history','full_backup'],'readonly']]);
+ assert.equal(outcome.historyPreserved,1);
+ assert.equal(outcome.liveEntranceKeyCount,1);
+ assert.equal(outcome.preflightPassed,true);
+ assert.equal(outcome.restoreAuthorized,false);
+ assert.equal(outcome.archiveSafe,false);
+ assert.equal(outcome.requiresAtomicCommitCheck,true);
+ db.close();
+});
+test('stored staging Blob blocks preflight; no staging data is deleted',async()=>{
+ const db=await setup();
+ const tx=db.transaction('archive_staging','readwrite');
+ tx.objectStore('archive_staging').put({id:'staged-original',blob:new Blob(['protected'])});
+ await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
+ const read=db.transaction('archive_staging','readonly');
+ const item=await new Promise((resolve,reject)=>{
+  const q=read.objectStore('archive_staging').get('staged-original');
+  q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);
+ });
+ assert.equal(item.blob.size,9);db.close();
+});
+test('archive history with rollback reference blocks preflight without rewriting it',async()=>{
+ const db=await setup();
+ const tx=db.transaction('archive_history','readwrite');
+ tx.objectStore('archive_history').put({backupId:'previous',status:'committed'});
+ await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
+ db.close();
+});
+test('live ledger cannot silently disappear or lose recognized tombstones',async()=>{
+ const db=await setup();
+ await rejects(inspect(db,{...candidate(),ledger:{version:1,entries:[]}}),'V2_RESTORE_LEDGER_HISTORY_LOST');
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').delete('video_recognition_ledger_v1');
+ await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_LIVE_LEDGER_MISSING');
+ db.close();
+});
+test('missing required protected store rejects without any transaction',async()=>{
+ const db=await setup();
+ const tracked={objectStoreNames:{contains:name=>name!=='archive_history'},
+  transaction(){throw Error('must not open');}};
+ await rejects(inspect(tracked),'V2_RESTORE_PROTECTED_STORES_MISSING');
+ db.close();
+});
+test('live state must exist and be schema-aware',async()=>{
+ const db=await setup();const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:'unknown'}},'state');await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_LIVE_STATE_INVALID');
+ db.close();
+});
+
+test('full_backup may hide original snapshots and must block readonly restore without cleanup',async()=>{
+ const db=await setup(),tx=db.transaction('full_backup','readwrite');
+ tx.objectStore('full_backup').put({at:'2026-11-20',blob:new Blob(['historical original'])},'previous');
+ await done(tx);
+ await rejects(inspect(db),'V2_RESTORE_EXISTING_ARCHIVE_HISTORY');
+ const check=db.transaction('full_backup','readonly');
+ const saved=await new Promise((resolve,reject)=>{
+  const r=check.objectStore('full_backup').get('previous');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ assert.equal(saved.blob.size,19);db.close();
+});
+test('missing full_backup store fails closed before opening a transaction',async()=>{
+ const db=await setup();
+ const object={objectStoreNames:{contains:store=>store!=='full_backup'},transaction(){throw Error('should not open');}};
+ await rejects(inspect(object),'V2_RESTORE_PROTECTED_STORES_MISSING');
+ db.close();
+});
+
+
+test('pending entrance video ID collision blocks read-only preflight without changing original',async()=>{
+ const db=await setup();
+ const pending={source:'entrance_media',videoId:'unrecognized',sourceSha256:'b'.repeat(64),sourceBytes:3};
+ const input={...candidate(),pendingVideos:[pending]};
+ await rejects(inspect(db,input),'V2_RESTORE_LIVE_ENTRANCE_ID_COLLISION');
+ const q=db.transaction('entrance_media','readonly').objectStore('entrance_media').get('unrecognized');
+ const saved=await new Promise((res,rej)=>{q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
+ assert.equal(saved.blob.size,3);db.close();
+});
+test('noncolliding pending entrance video is inspected but never authorized for restore',async()=>{
+ const db=await setup();
+ const result=await inspect(db,{...candidate(),pendingVideos:[
+  {source:'entrance_media',videoId:'different-video',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]});
+ assert.equal(result.pendingIdentityChecked,1);
+ assert.equal(result.restoreAuthorized,false);
+ assert.equal(result.archiveSafe,false);
+ db.close();
+});
+test('live journal video IDs cannot be replaced by incoming pending journal videos',async()=>{
+ const db=await setup();
+ const incoming={...candidate(),state:{...candidate().state,records:[{id:'incoming',media:[
+  {kind:'video',videoId:'journal-one',data:'data:video/mp4;base64,YWJj',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]}]},pendingVideos:[
+  {source:'record_media',videoId:'journal-one',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]};
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'new'},records:[{id:'visit',media:[
+  {kind:'video',videoId:'journal-one',data:'data:video/mp4;base64,YWJj'}
+ ]}]},'state');
+ await done(tx);
+ await rejects(inspect(db,incoming),'V2_RESTORE_LIVE_RECORD_ID_COLLISION');
+ const read=db.transaction('main','readonly').objectStore('main').get('state');
+ const saved=await new Promise((res,rej)=>{read.onsuccess=()=>res(read.result);read.onerror=()=>rej(read.error);});
+ assert.equal(saved.records[0].media[0].videoId,'journal-one');
+ db.close();
+});
+test('untracked live journal original prevents claiming safe v2 pending-media preflight',async()=>{
+ const db=await setup();
+ const tx=db.transaction('main','readwrite');
+ tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'new'},records:[{id:'legacy',
+  media:[{kind:'video',data:'data:video/mp4;base64,YWJj'}]}]},'state');
+ await done(tx);
+ await rejects(inspect(db,{...candidate(),pendingVideos:[
+  {source:'entrance_media',videoId:'new-video',sourceSha256:'b'.repeat(64),sourceBytes:3}
+ ]}),'V2_RESTORE_LIVE_RECORD_ID_UNKNOWN');
+ db.close();
+});
+
+test('equal ID across different video sources is not a false collision',async()=>{
+ const db=await setup();
+ const id='unrecognized'; // live entrance media has this ID; incoming is record_media
+ const record={id:'incoming-record',media:[{
+  kind:'video',videoId:id,data:'data:video/mp4;base64,YWJj',
+  sourceSha256:'b'.repeat(64),sourceBytes:3
+ }]};
+ const examined=await inspect(db,{...candidate(),
+  state:{meta:{schemaVersion:15},records:[record]},
+  pendingVideos:[{source:'record_media',videoId:id,sourceSha256:'b'.repeat(64),sourceBytes:3}]
+ });
+ assert.equal(examined.pendingIdentityChecked,1);
+ assert.equal(examined.restoreAuthorized,false);
+ db.close();
+});
