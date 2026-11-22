@@ -715,7 +715,9 @@ test('P0 tampered staged Blob after restart refuses isolated commit without chan
  assert.deepEqual(await get(db,'main','state'),state());
  assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
  assert.equal(await count(db,'entrance_media'),0);
- assert.equal(await count(db,'archive_history'),0);
+ // Staging already retains one protected history row. A rejected commit must
+ // not silently remove that proof or create an additional committed record.
+ assert.equal(await count(db,'archive_history'),1);
  assert.equal(await count(db,'full_backup'),0);
  // Failure must never silently overwrite or erase the unverified staged bytes.
  const stillStaged=await get(db,'archive_staging',stageKey);
