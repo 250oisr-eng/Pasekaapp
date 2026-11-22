@@ -209,7 +209,18 @@ function readConsistentDatabaseSnapshot(db) {
       videosRequest = tx.objectStore('entrance_media').getAll();
       ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
       stateRequest.onsuccess = () => { state = stateRequest.result || null; };
-      videosRequest.onsuccess = () => { videos = Array.isArray(videosRequest.result) ? videosRequest.result : []; };
+      videosRequest.onsuccess = () => {
+        if (!Array.isArray(videosRequest.result)) {
+          // Never interpret a failed or non-conforming media enumeration as
+          // an empty video library: that would silently omit user footage.
+          const error = new Error('Entrance-media enumeration did not return a verified list. Export was blocked.');
+          error.code = 'VIDEO_SNAPSHOT_UNVERIFIED';
+          rejectOnce(error);
+          try { tx.abort(); } catch (_) {}
+          return;
+        }
+        videos = videosRequest.result;
+      };
       ledgerRequest.onsuccess = () => { ledger = ledgerRequest.result; };
       stateRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(stateRequest.error || error); } };
       videosRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(videosRequest.error || error); } };
