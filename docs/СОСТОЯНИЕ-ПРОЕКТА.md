@@ -1,3 +1,13 @@
+## 2026-11-22 — Restore335 physical V3 BLOCKED; private read-only V4 Draft PR #374
+
+- User-provided actual OnePlus NE2213/API36 V3 report: ADB/device/pinned SHA/package triple check/directory+path predicates PASS; diagnostic package present untouched, production absent; `privateFilesClass=NONEMPTY_PRESERVE`, `privateInput=UNKNOWN_PRESERVE`, `status=BLOCKED`, `detail=PRIVATE_FILES_NONEMPTY_NO_ACTION`. No install, write, media read, restore or cleanup attempted.
+- New Draft [#374](https://github.com/250oisr-eng/Pasekaapp/pull/374) stacked on Draft #373. New `tools/android-restore335-private-readonly-stage-v4.ps1` retains pinned identity gates; a nonempty isolated private `files` folder yields bounded count-only observation (1–64), no filenames in output and no per-file reads. V4 `PASS` is count-only inventory, **never** proof of valid restore input. Unknown private content stays preserved.
+- Added `tests/android-restore335-private-readonly-v4.test.mjs`, `.github/workflows/android-restore335-readonly-v4.yml`, and `docs/ANDROID-RESTORE335-PRIVATE-READONLY-V4-2026-11-22.md`. Exact-SHA CI and physical V4: **NOT VERIFIED** until separately observed.
+- No main merge, deployment, application install, device cleanup or production data modification authorized. Two-MP4 recovery, real bee detection and immediate video deletion remain **NOT_TESTED / NOT_AUTHORIZED**.
+- **Next:** verify CI on exact Draft #374 HEAD, then only if successful present one pinned V4 execution to user; never infer file provenance from count.
+
+---
+
 ## 2026-11-22 — физический Restore335 после установки: package PASS, private stat BLOCKED; read-only v3 подготовлен
 
 - Пользователь физически запустил `ANDROID_RESTORE335_PRIVATE_READONLY_V2` после успешно завершённой установки изолированного `ru.paseka.journal.archive.restoreproof335`. Фактический JSON: `status=BLOCKED`; `adb/device/model/sdk/adbSha256=PASS` OnePlus NE2213/API36, `diagnosticPackage=PRESENT_UNTOUCHED`, `productionPackage=ABSENT`, `packagePathFirst=PRESENT`, `packageList=PRESENT_USER0`, `packagePathSecond=PRESENT`; `privateDirectory/privateFilesClass/privateInput=NOT_TESTED`, `detail=PRIVATE_FILES_NOT_DIRECTORY`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`.
