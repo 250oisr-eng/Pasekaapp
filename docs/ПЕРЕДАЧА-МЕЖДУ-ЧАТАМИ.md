@@ -1,3 +1,13 @@
+## 2026-11-22 — физический Android A09: PASS собственных разрешений, сеть НЕ проверялась
+
+- Пользователь передал точный JSON с физического устройства: `status:PASS`, `code:A09_INSTALLED_PERMISSION_AUDIT_ONLY`, `packageId:ru.paseka.journal.diagnostic.archivea09v1`, `suite:ARCHIVE_A09_INSTALLED_PERMISSION_AUDIT_V1`. Проверка `A09_INSTALLED_OWN_PACKAGE_PERMISSIONS:PASS`; `installedPackageVerified:true`, `packagePermissionAudit:PASS`, `forbiddenPermissions:[]`. Это физическое свидетельство штатного PackageManager **только установленного диагностического APK**, отдельное от CI.
+- `requestedPermissions` содержит **одну** запись: `ru.paseka.journal.diagnostic.archivea09v1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (`granted:true`, `requestedGrantedFlag:true`). В отчёте нет `INTERNET`, `CAMERA`, media/storage или `RECORD_AUDIO`; внутреннее разрешение receiver не является доказательством наличия доступа к сети. Не приписывать полученные права основной «Пасеке»: обследован **другой изолированный пакет**.
+- Ограничение доказательства: `networkTrafficObserved:NOT_TESTED`, `networkRequests:NOT_ATTEMPTED`, `A09_NETWORK_TRAFFIC_OBSERVATION` остаётся в `scenariosNotTested`. Ни отсутствие INTERNET, ни PackageManager PASS сами по себе не являются инструментальным доказательством отсутствия сетевых передач.
+- Остальные `scenariosNotTested`: `A02_REAL_PASEKA01`, `A03_REAL_PASEKA02`, `A08_ANDROID_FORCE_STOP`. `beeRecognition:NOT_TESTED`, `realArchiveRestore:NOT_TESTED`, `realVideoAccess:NOT_ATTEMPTED`, `externalMediaAccess:NOT_ATTEMPTED`, `videoDeletion:NOT_ATTEMPTED`. Сохраняются `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`, `userDataModified:false`.
+- Контроль CI именно APK: code SHA `a00fbbe9b07a75b90a559a810597742bff0f0ff7`, workflow A09 #45026210096 success, артефакт #14756160132, APK SHA-256 `15a1454efa57dc0bc125b3b10436aacc778668dd95cb4c72f582dbd371526280`. Физический PASS добавляет подтверждение установленного пакета, но не изменяет код, не разрешает restore/delete и не означает merge/deployment.
+
+---
+
 ## 2026-11-22 — A09: собран изолированный APK аудита разрешений установленного пакета (ожидается физический отчёт)
 
 - Реализован `ru.paseka.journal.diagnostic.archivea09v1` с двумя кнопками **«Провести тест» → «Копировать результат»**. Java `A09PermissionsPlugin` через Android PackageManager `getPackageInfo(собственный packageName,GET_PERMISSIONS)` получает **только свой** package ID, сравнивает UID с UID процесса, считывает полный список запрошенных разрешений и их grant flags, без запросов новых прав, сканирования других приложений, доступа к видео или пользовательскому архиву.
