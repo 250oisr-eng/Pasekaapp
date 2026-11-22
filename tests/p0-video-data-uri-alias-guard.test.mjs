@@ -57,3 +57,26 @@ test('recognition ledger rejects alternative video MIME payloads in structured r
     version:1, entries:[{...record, result:{observation:'safe plain text'}}]
   }));
 });
+
+test('PASEKA02 recognition result ledger never preserves a temporary blob URL as portable evidence', async () => {
+  const src = await readFile(new URL('../js/video-archive-v2-guard.js', import.meta.url), 'utf8');
+  const root = {};
+  new Function('window', src)(root);
+  const validate = root.PasekaVideoArchiveV2Guard.validateRecognitionLedgerForV2;
+  const record = {
+    source:'record_media',videoId:'blob-test',resultId:'blob-result',
+    recognizedAt:'2026-11-20T00:00:00Z',stateRevisionId:'before',
+    sourceSha256:'a'.repeat(64),sourceBytes:5,
+    sourceEvidenceVersion:1,sourceHashVerifiedAt:'2026-11-20T00:00:00Z',
+    cleanupState:'blocked_archive_safety',result:{summary:'ordinary text'}
+  };
+  const ledger = result=>({version:1,entries:[{...record,result}]});
+  for (const url of ['blob:local-object-url','Observed blob:https://localhost/123']) {
+    assert.throws(
+      ()=>validate(ledger({summary:{notes:['observed',url]}})),
+      e=>e.code==='V2_RESULT_BINARY',url
+    );
+  }
+  assert.equal(validate(ledger({summary:'safe text'})).entryCount,1);
+  assert.equal(validate(ledger({summary:'data:image/png;base64,AAAA'})).entryCount,1);
+});
