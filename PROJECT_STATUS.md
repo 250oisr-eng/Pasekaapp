@@ -1,3 +1,12 @@
+## 2026-11-22 — Physical Restore335 V7 BLOCKED on private find path; V8 opaque-shape Draft #378
+
+- User's actual OnePlus NE2213/API36 V7 JSON: pinned ADB, sole authorized phone, triple diagnostic PM check, path/directory predicates all PASS. One private entry; `privateEntryType=NOT_TESTED`, `privateInput=UNKNOWN_PRESERVE`, `detail=PRIVATE_FIND_PATH_MISMATCH_PRESERVE`, `status=BLOCKED`. `installs/writes/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. The post-JSON CMD error is consistent with the nonzero BLOCKED exit.
+- Do not presume which path formatting caused mismatch; no private filename was disclosed and no media was read.
+- Created dependent [Draft PR #378](https://github.com/250oisr-eng/Pasekaapp/pull/378), V8 **read-only mismatch-shape** diagnostic. It preserves V7 exact path check and fail-closed BLOCKED while returning only coarse `findMismatchClass` and fixed filter token, without filenames, path strings, metadata text, size or content. Added Windows parser/static safety tests and `docs/ANDROID-RESTORE335-FIND-SHAPE-V8-2026-11-22.md`. Physical V8 NOT_TESTED. CI pending.
+- Next: validate exact-SHA Windows/static and Android CI, then prepare one pinned read-only V8 run if necessary. Do not repeat V7, restore archives, install/uninstall apps or delete user video.
+
+---
+
 ## 2026-11-22 — physical V6 PASS but metadata format UNKNOWN; safe V7 Draft PR #377
 
 - User physical pinned V6 JSON: `status=PASS`, ADB/device/model/sdk/ADB SHA PASS, one authorized OnePlus NE2213 API36, diagnostic package untouched, production absent, package/path checks PASS, exactly one private `files` entry. `privateEntryType=UNKNOWN_PRESERVE`, `metadataFormat=UNKNOWN_MODE_FORMAT_PRESERVE`, `privateInput=UNKNOWN_PRESERVE`, `detail=READ_ONLY_SINGLE_ENTRY_METADATA_FORMAT_NO_CONTENT_READ`; `writes/installs/mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. Process exit `V6_READONLY_EXIT_PASS`. Unknown type means no restore readiness or media provenance.
