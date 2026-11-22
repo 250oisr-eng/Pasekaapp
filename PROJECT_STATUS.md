@@ -1,3 +1,12 @@
+## 2026-11-22 — physical Restore335 V4 PASS, count 1; CMD post-report false failure
+
+- User ran pinned V4 on actual OnePlus NE2213/API36. Device JSON: `stage=ANDROID_RESTORE335_PRIVATE_READONLY_V4`, `status=PASS`, ADB/device/model/sdk/ADB SHA PASS, diagnostic package `PRESENT_UNTOUCHED`, production absent, PM triple check PRESENT, private directory checks both TRUE, `privateFilesClass=NONEMPTY_PRESERVE`, `privateEntryCount=1`, `privateInput=UNKNOWN_PRESERVE`. `installs/writes/mediaRead=NOT_ATTEMPTED`; `cleanup=NOT_AUTHORIZED`. The unknown entry was not examined or changed.
+- Launcher subsequently emitted `V4_DEVICE_CHECK_BLOCKED_OR_FAILED` because it checked `$LASTEXITCODE` even though the successful V4 script had no explicit zero exit. This is a wrapper-level exit-status ambiguity, **not** a device-stage failure. Fixed V4 to explicitly `exit 0` after PASS and `exit 2` after BLOCKED; added static regression. Fix itself has NOT been run on device.
+- Exactly one entry is not evidence of valid restore input, video copy or restored MP4. Do not rerun old V4 just to clear wrapper message. Next: verify Windows static CI and Android general CI on the new exact code SHA; design bounded, read-only entry-type/provenance evidence without disclosing filename contents or touching user media, before any hardware recheck.
+- No main merge, production install/deploy, app data write, restoration or cleanup performed.
+
+---
+
 ## 2026-11-22 — V4 exact HEAD software CI completed; physical validation pending
 
 - Draft PR [#374](https://github.com/250oisr-eng/Pasekaapp/pull/374) code SHA `c7312bc683da783884b4868b3d9079071f7d8018`; subsequent documentation-only HEAD `bd268d2285942dc4fb2eb8920865f75dc3c4c73a`.
