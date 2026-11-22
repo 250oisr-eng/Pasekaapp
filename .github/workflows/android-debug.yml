@@ -3,6 +3,8 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - 'index.html'
       - 'js/**'
@@ -33,7 +35,7 @@ on:
       - '.github/workflows/android-debug.yml'
 
 concurrency:
-  group: android-${{ github.ref }}
+  group: android-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
