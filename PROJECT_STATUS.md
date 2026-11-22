@@ -1,3 +1,13 @@
+## 2026-11-22 — пользователь подтвердил PASS на физическом Android: archivecopyv2 + кнопка копирования
+
+- Получен полный диагностический JSON, переданный пользователем из новой установки `ru.paseka.journal.diagnostic.archivecopyv2`: `status:PASS`, `code:SYNTHETIC_OFFLINE_PREFLIGHT_PARTIAL`, `suite:ARCHIVE_PREFLIGHT_V1`. Это пользовательский отчёт с физического телефона, а не дополнительный CI тест; факт передачи JSON через чат согласуется с успешной работой «Копировать результат», но не доказывает детали внутреннего системного clipboard API отдельно.
+- Подтверждены все семь синтетических checks: `A01_SYNTHETIC_COPY_HASH`, `A04_BAD_SOURCE_EVIDENCE`, `A05_CONFLICTING_COPY`, `A06_DUPLICATE_RESULT_ID`, `A01_CLOSE_REOPEN_INTEGRITY`, `A07_READONLY_ABORT_UNCHANGED`, `A10_SYNTHETIC_FIXTURES_UNCHANGED` — PASS. Вторая физическая тестовая установка с уникальным ID устранила наблюдаемый ранее конфликт; причина прошлого конфликта подписи остаётся вероятной, не измеренной на устройстве.
+- `scenariosNotTested`: `A02_REAL_PASEKA01`, `A03_REAL_PASEKA02`, `A08_PROCESS_KILL`, `A09_NETWORK_PERMISSION_DEVICE_AUDIT`. `beeRecognition:NOT_TESTED`, `realArchiveRestore:NOT_TESTED`, `realVideoAccess:NOT_ATTEMPTED`, `externalMediaAccess:NOT_ATTEMPTED`, `videoDeletion:NOT_ATTEMPTED`, `networkRequests:NOT_ATTEMPTED`, `userDataModified:false`.
+- `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`. Никакой допуск к удалению видео и восстановлению реальных пользовательских записей не получен.
+- База подтверждённой сборки: code SHA `22df2950bf2aa774ec43ae7a85500ede9aa45427`, isolated APK CI #45007429297 completed/success, generic Android CI #45007429340 success. Дальнейший этап — A08 фактический process kill/reopen на отдельном синтетическом пакете; исключить ложное равенство с простым `db.close()`. Не требовать повторной отправки уже полученного отчёта.
+
+---
+
 ## 2026-11-22 — устранён конфликт установки diagnostic Copy APK (package/signature)
 
 - Пользователь сообщил, что APK с «Копировать результат» не устанавливается из-за конфликта с другим приложением. Вероятная причина: предыдущие GitHub Actions debug APK подписаны разными автоматически созданными debug-сертификатами при одинаковом `applicationId`; Android запрещает in-place update при несовпадении подписи. Подпись старого установленного APK отдельно не извлекалась, поэтому причина остаётся диагностическим выводом, а не измерением сертификатов на телефоне.
