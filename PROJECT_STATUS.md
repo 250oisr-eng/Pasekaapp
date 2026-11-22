@@ -1,3 +1,13 @@
+## 2026-11-23 — P0 protected pending video + quarantine recovery, Draft #414
+
+- Parent Draft #413 final HEAD `5027f7895cac6395d1e5bf1e528faed0b665e9e5`: Fast Quality #45076448875 and Android #45076448915 both **completed/success**. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` unchanged.
+- [Draft #414](https://github.com/250oisr-eng/Pasekaapp/pull/414), branch `test/archive-v2-pending-quarantine-recovery-2026-11-23`, code/test SHA **`806012dd03ab32b5bccfa8bbc249746110f6a068`**: [Fast Quality #45076558423](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45076558423) **completed/success, 1182/1182 PASS, 0 fail/skip**; [Android #45076558453](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45076558453) **completed/success** (full regression and debug APK build/upload).
+- Existing isolated v2 modules from #315 now present alongside modern v1: `video-archive-v2-pending-stage.js`, `video-archive-v2-staging-verify.js`, `video-archive-v2-pinned-source.js`, `video-archive-v2-entrance-atomic.js`, `video-archive-v2-entrance-quarantine-rollback.js`, `video-archive-v2-copy-inventory.js`. Five original fake-indexeddb suites were carried and strict evidence fixtures adapted. Quarantine **preserves** original Blob in protected full_backup, no irreversible deletion, and all audit outputs deny cleanup authorization.
+- **NOT_DONE / P0 STILL BLOCKED:** full live PASEKA02 restore and legacy migration, original SHA and tombstone lifecycle across physical Android reboot, external Gallery/Downloads/Camera copy inventory, proven model recognition and actual cleanup. Modules isolated, no runtime index.html/SW loading, no actual user data touched, Restore335 STOP. Tests do not prove physical Android operation. Draft, no merge/deployment.
+- Next: integrate existing isolated durable SHA-bound recognition writer with restart/cross-version regression, verify exact CI. Documentation-only commits after code SHA require fresh HEAD checks.
+
+---
+
 ### 2026-11-23 — Draft #413 SHA-verified PASEKA02 metadata-only recovery and journal Data URL SHA
 
 - **Exact verified code/test SHA `87d63fa51d7bcd3abdc9db43e0052cf2b749dbf6`**: [Fast Quality #45076278599](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45076278599) **completed/success, 1067/1067 tests PASS, 0 fail, 0 skipped**; [Android Debug #45076278725](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45076278725) **completed/success**, regression tests and debug APK build/upload.
