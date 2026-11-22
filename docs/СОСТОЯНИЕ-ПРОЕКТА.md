@@ -1,3 +1,13 @@
+## 2026-11-22 — PR #398: sequential P0 live state guard, exact code/test SHA PASS
+
+- **Проверенный code/test+docs SHA**: `3506848c07b4a9062e78e0efc9ca8bd180bdfc2f`. [Fast Quality #45068666037](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45068666037) **completed/success, 838/838 tests PASS, 0 fail/skip**. [Android #45068665898](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45068665898) **completed/success**, debug APK build/upload; artifact #14772561698, archive 3,457,147 bytes, **not** a separately calculated binary APK checksum. New docs-only commits AFTER the checked SHA do not automatically inherit exact-SHA validation.
+- Draft PR [#398](https://github.com/250oisr-eng/Pasekaapp/pull/398) is now a **true stacked child** of Draft [#397](https://github.com/250oisr-eng/Pasekaapp/pull/397), base HEAD `768033a561f68bbe25639eb858b49ab03fbe94dd`. Rebased own branch via compare, new commits and exact SHA lease; #397's safe rollback-discard code/tests/doc updates are preserved. Relative to #397: 7 files, 9 code added/1 removed, 47 lines new tests (8 negative + 2 positive scenarios), and 5 docs. No competing sibling PR changes retained in current #398 diff.
+- **Defect fixed**: In `commitStagedArchive` final readwrite transaction, `values.currentState || null` treated malformed falsy persisted journal rows like an empty database when `expectedRevision=null`. New guard `RESTORE_LIVE_STATE_UNVERIFIED` prevents overwrite, preserves current journal/staging/history/full_backup. Actual absent state still accepts import, and legacy object with `meta` but no revision keeps its rollback copy.
+- Limits: validation is type/shape fail-closed, not a complete integrity proof of every valid-looking state. No IndexedDB migration, no archive schema change, no production/main writes, no merge/deploy, no real restore/cleanup/video deletion. Restore335 STOP, v2 ledger and complete portable backup integration remain P0 blockers.
+- **Next single step:** continue P0 audit of archive v1/v2 coverage and recognition ledger retention, preserving fail-closed cleanup; no expansion to new feature work during STABILIZATION_ONLY.
+
+---
+
 ## 2026-11-22 — P0: malformed live journal при restore, последовательно поверх #397 (CI новой правки ожидается)
 
 - Текущий `main` SHA `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; в него ничего не вносилось. Родительский Draft PR #397 — code/test SHA `f29eafbff7376ab51a95dc0b3e9a550c4b86c9b6`, docs HEAD `768033a561f68bbe25639eb858b49ab03fbe94dd`, проверен отдельно: Fast Quality #45068360057 и Android #45068359996 завершены success. Результат родителя **не доказывает** новые изменения.
