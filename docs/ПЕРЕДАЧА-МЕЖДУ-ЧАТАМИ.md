@@ -1,3 +1,12 @@
+## 2026-11-22 — защита от смены USB-устройства во время диагностической установки
+
+- Обнаружен риск TOCTOU: прежний one-shot проверял одно USB-подключение только в начале. `tools/android-product-permissions-one-shot.ps1` теперь запоминает серийный номер единственного USB-устройства в статусе `device` и перед установкой и запуском повторно проверяет, что тот же серийный номер сохранён. Второе устройство, неизвестное/отключённое состояние ADB и смена serial дают **BLOCKED**; не используются `install -r`, `uninstall`, `pm clear`, `force-stop`, операции с видео или архивами.
+- `tests/windows-product-permissions-usb-mock.ps1` проверяет 11 сценариев: прежние 8 плюс `device-change`, `extra-device`, `unknown-state`. `tests/android-product-permissions-one-shot.test.mjs` проверяет повторный USB gate. Workflow описание обновлено на 11 сценариев. Эти проверки ограничены **подставным ADB** — физическое устройство/основная «Пасека» не проверены. Между последней проверкой и командой ADB теоретически остаётся маленькое окно смены устройства; окончательное закрытие требует явного `adb -s <serial>` в будущем отдельном шаге, с тестами.
+- Test code SHA `53553bca3fc78b15b3aef9af8ac9790b2308bed4`: [Windows #45034848074](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45034848074) **completed/success**, [Fast quality #45034848062](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45034848062) **completed/success**. APK сборки этого SHA в момент документирования требуют проверки terminal outcome; SHA `8262dea79269a6af9f0b50b8e15224e6ab88a3dd` меняет только метку workflow, CI по нему также может выполняться. Не утверждать PASS заранее.
+- PR #366 остаётся Draft, main/production и пользовательские видео/архивы не менялись, разрешение на cleanup/restore отсутствует.
+
+---
+
 ## 2026-11-22 — завершён полный exact-SHA CI для Windows USB mock
 
 - Кодовый SHA `6178761121703835a51dd17194b4530c31ce01e0`, **все completed/success**: [Windows PowerShell USB mock #45033922233](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922233), [Fast quality #45033922218](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922218), [Android main APK #45033922207](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922207), [Android isolated diagnostic APK #45033922317](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45033922317). Windows test исполняет установочный скрипт на подставном ADB и **не** подтверждает USB-поведение на настоящем телефоне.
