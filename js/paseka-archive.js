@@ -199,15 +199,41 @@ function assertLegacyArchiveRecognitionLedger(value) {
     fail('VIDEO_LEDGER_NOT_ARCHIVED', 'This archive version cannot preserve recognized video history. Export was blocked.');
   }
 }
+function assertNoV2ProtectedArchiveCopies(stagedKeys, historyRows, backupKeys) {
+  if (!Array.isArray(stagedKeys) || !Array.isArray(historyRows) || !Array.isArray(backupKeys)) {
+    fail('VIDEO_V2_SNAPSHOT_UNVERIFIED', 'Protected archive-copy inventory cannot be verified. Legacy export was blocked.');
+  }
+  if (stagedKeys.some(key => typeof key === 'string' && key.startsWith('v2pending:')) ||
+      historyRows.some(row => row && typeof row.kind === 'string' && row.kind.startsWith('v2_')) ||
+      backupKeys.some(key => typeof key === 'string' && key.startsWith('v2entrance:'))) {
+    fail('VIDEO_LEGACY_EXPORT_V2_PROTECTED',
+      'PASEKA02 protected originals or rollback history exist. A PASEKA01 export would omit these records.');
+  }
+}
 function readConsistentDatabaseSnapshot(db) {
   return new Promise((resolve, reject) => {
-    let tx, stateRequest, videosRequest, ledgerRequest, state, videos, ledger, settled = false;
+    let tx, stateRequest, videosRequest, ledgerRequest, state, videos, ledger, protectedRequests, settled = false;
     const rejectOnce = error => { if (!settled) { settled = true; reject(error); } };
     try {
       if (!db || !db.objectStoreNames || !db.objectStoreNames.contains('main') || !db.objectStoreNames.contains('entrance_media')) {
         fail('DATABASE_STORES_MISSING', 'Required Paseka database stores are unavailable.');
       }
-      tx = db.transaction(['main', 'entrance_media'], 'readonly');
+      const protectedStoreNames = ['archive_staging', 'archive_history', 'full_backup'];
+      const installed = protectedStoreNames.filter(name => db.objectStoreNames.contains(name));
+      // An older DB without any archive stores cannot contain protected v2 rows.
+      // Partial archive schema is not a verifiable source for a full export.
+      if (installed.length > 0 && installed.length !== protectedStoreNames.length) {
+        fail('VIDEO_LEGACY_EXPORT_STORES_MISSING', 'The local archive safety stores are incomplete.');
+      }
+      const hasArchiveStores = installed.length === protectedStoreNames.length;
+      tx = db.transaction(['main', 'entrance_media', ...(hasArchiveStores ? protectedStoreNames : [])], 'readonly');
+      if (hasArchiveStores) {
+        protectedRequests = {
+          stagedKeys: tx.objectStore('archive_staging').getAllKeys(),
+          history: tx.objectStore('archive_history').getAll(),
+          backupKeys: tx.objectStore('full_backup').getAllKeys()
+        };
+      }
       stateRequest = tx.objectStore('main').get('state');
       videosRequest = tx.objectStore('entrance_media').getAll();
       ledgerRequest = tx.objectStore('main').get('video_recognition_ledger_v1');
@@ -228,6 +254,9 @@ function readConsistentDatabaseSnapshot(db) {
       stateRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(stateRequest.error || error); } };
       videosRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(videosRequest.error || error); } };
       ledgerRequest.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(ledgerRequest.error || error); } };
+      if (protectedRequests) for (const request of Object.values(protectedRequests)) {
+        request.onerror = () => { try { tx.abort(); } catch (error) { rejectOnce(request.error || error); } };
+      }
       tx.oncomplete = () => {
         if (settled) return;
         settled = true;
@@ -235,8 +264,16 @@ function readConsistentDatabaseSnapshot(db) {
           reject(new Error('Основное состояние пасеки не найдено. Экспорт отменён.'));
           return;
         }
-        try { assertLegacyArchiveRecognitionLedger(ledger); }
-        catch (error) { reject(error); return; }
+        try {
+          assertLegacyArchiveRecognitionLedger(ledger);
+          if (protectedRequests) {
+            assertNoV2ProtectedArchiveCopies(
+              protectedRequests.stagedKeys.result,
+              protectedRequests.history.result,
+              protectedRequests.backupKeys.result
+            );
+          }
+        } catch (error) { reject(error); return; }
         resolve({ state, videos });
       };
       tx.onabort = () => rejectOnce(tx.error || stateRequest.error || videosRequest.error || new Error('Чтение согласованной копии базы прервано.'));
