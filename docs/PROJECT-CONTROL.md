@@ -1,3 +1,9 @@
+## 2026-11-22 — Restore335 V7 read-only shallow Toybox find type
+
+- [ANDROID-RESTORE335-PRIVATE-FINDTYPE-V7-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-FINDTYPE-V7-2026-11-22.md) — классификация единственного диагностического элемента после физического V6 UNKNOWN, без чтения содержимого и удаления.
+
+---
+
 ## 2026-11-22 — Android Restore335 V6 protected metadata-format diagnosis
 
 - [ANDROID-RESTORE335-PRIVATE-METADATA-V6-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-METADATA-V6-2026-11-22.md) — after actual V5 format BLOCKED, parse only safe metadata mode shape or preserve UNKNOWN without inspecting media content.
