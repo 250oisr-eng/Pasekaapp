@@ -1,3 +1,12 @@
+## 2026-11-23 — P0 isolated PASEKA02 metadata-only atomic commit/rollback, Draft #413
+
+- Parent [Draft #412](https://github.com/250oisr-eng/Pasekaapp/pull/412) HEAD `cc494662fd15ca0d7209ee151f3f9f07ede5a169`: Fast Quality #45075921205 **completed/success 1000/1000 PASS**; Android #45075921196 **completed/success**, debug APK build/upload. The first #412 code SHA failed 999/1000 because one negative test fixture lacked fields newly required by #411; corrected before final 1000/1000 PASS. No real data.
+- Child [Draft #413](https://github.com/250oisr-eng/Pasekaapp/pull/413), branch `test/archive-v2-metadata-atomic-recovery-2026-11-23`: port from existing isolated v2 branch #315, retaining safety-only functionality: `video-archive-v2-record-media.js`, `video-archive-v2-metadata-atomic.js`, `video-archive-v2-export-candidate.js`, `video-archive-v2-restore-dry-run.js` and five original test suites. Synthetic fixtures populated with mandatory verified state-revision and hash timestamp from #411.
+- **Metadata-only** atomics verify PASEKA02 file and live ledger, require empty originals/protected copies, perform transactional state import with rollback snapshot and explicit rollback on isolated fake IndexedDB; recovery inspector is read-only, retains historic ledger. These API outputs still explicitly deny `archiveSafe` and `cleanupAuthorized`. Export candidate/record-media adapter and dry-run verify hashes and cross-store guards without enabling product restore.
+- Code/test SHA `9f936afb044caf570e03dad11f54b5505a605470`: CI **NOT_YET_CONFIRMED**. No production v2 UI, no IndexedDB migration or real video data. Full pending-entrance Blob stage/commit/quarantine, copy inventory, physical Android reboot/Camera/Gallery/Downloads, real recognition and deletion remain P0 blockers. No merge/deploy and Restore335 STOP. Next: run CI at exact child HEAD; fix fixtures and code regressions; then integrate isolated protected pending-video staging and atomic rollback under tests.
+
+---
+
 ## 2026-11-23 — P0 v2 five-store preflight + aborted write lock integration, Draft #412
 
 - Parent [Draft #411](https://github.com/250oisr-eng/Pasekaapp/pull/411), final HEAD `bb9d11e382f33a69b8631bb4351abc4b15e60cd9`: Fast Quality #45075564230 **completed/success, 968/968 PASS**, Android #45075564355 **completed/success**, debug APK regression/build/upload, no merge.
