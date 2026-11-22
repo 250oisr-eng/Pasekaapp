@@ -1,12 +1,7 @@
-name: Test Paseka Android emulator launch (synthetic CI only)
+name: Test Paseka Android emulator launch (manual, requires CPU emulation)
 
 on:
-  push:
-    paths:
-      - '.github/workflows/test-android-emulator-smoke.yml'
-  pull_request:
-    paths:
-      - '.github/workflows/test-android-emulator-smoke.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,7 +10,9 @@ permissions:
 jobs:
   emulator-launch:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
+    env:
+      ANDROID_I_WANT_MY_TCG: 'yes'
     steps:
       - name: Fetch pinned known-good debug APK from existing CI
         env:
