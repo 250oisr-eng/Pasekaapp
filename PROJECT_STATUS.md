@@ -1,3 +1,10 @@
+## P0 — временные Blob URL запрещены в переносимых результатах recognition (2026-11-23)
+
+- Зафиксирован независимый пробел `js/video-archive-v2-guard.js`: `result` ledger раньше блокировал `data:video`, но не текстовые ссылки `blob:` (они исчезают после restart и не являются переносимыми доказательствами). Теперь вложенные `blob:` URL отклоняются `V2_RESULT_BINARY`; обычный текст и `data:image/png` сохраняют прежнее поведение.
+- Добавлен негативный регрессионный тест к `tests/p0-video-data-uri-alias-guard.test.mjs`. Все media, schema, runtime restore, cleanup не затронуты. P0/P1 OPEN, Restore335 STOP, разрешений на удаление нет; exact-SHA CI обязателен.
+
+---
+
 ## P1.6 — реальная инвентаризация 359 Draft PR (2026-11-23)
 
 - Актуальный GitHub read-only снимок: **359 OPEN Draft**, 30 base=main, 329 stacked; активная P0→P1→P2 chain до #430 состоит из **42 PR**, head `a1861a512c848580fdb1dd630f15d4f3e79765b6`, main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`, ahead=644/behind=0. Подробная карта `docs/P1-ИНВЕНТАРИЗАЦИЯ-359-PR-2026-11-23.md`.
