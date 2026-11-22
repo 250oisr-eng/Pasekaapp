@@ -1,3 +1,13 @@
+## 2026-11-22 — исполняемые отрицательные тесты unified V2: CI PASS после Maven 429
+
+- Code+test/workflow SHA `81454760c6ec4d8bdfddec1bfdb4cf7d562631b1`; [GitHub Actions #45061552865](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45061552865). **Attempt 1 FAILED** при Gradle: Maven Central `HTTP 429 Too Many Requests` на зависимостях (`jsr305`, Kotlin и др.), не ошибка нового теста. Запущен rerun failed jobs; **attempt 2 completed/success**, job #137329066555. По логу **11/11 Node tests PASS, 0 FAIL**, debug APK build, package ID, запрещённые permissions, Clipboard, upload PASS. Общая сборка Android #45061552794 была completed/success на том же code SHA.
+- Новый APK SHA256 `f1d6c5380ca3563f1df1140c5b884b568cc1c74c0cc283a2e2da4a84cc21f203`; [artifact #14769657472](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45061552865/artifacts/14769657472), ZIP sha256 `5727d3919e567e31d586b7ca1e0b3b924d8baee22f5c8d2b14900d18efbae783`, expires 2026-12-06.
+- Пять исполняемых новых негативных/позитивных тестов (реальный браузер на устройстве не эмулируют): две независимые VM-загрузки с одной fake-indexeddb (создание → `PRESENT_VERIFIED`), повреждённые bytes и неизвестный type блокируются без перезаписи, неверные mock frame/ONNX responses по отдельности дают общий `BLOCKED` с `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`.
+- **Новых функций в Android APK нет**: менялись только тестовый файл и workflow плюс документация. Поэтому повторная установка не нужна для ожидающего физического второго прогона прежнего `ru.paseka.journal.diagnostic.allchecks`. Физический второй прогон с `PRESENT_VERIFIED` по-прежнему NOT_TESTED; последний известный результат `ABSENT_CREATED` из первого запуска.
+- Реальные видео, распознавание, полный архив/restore и удаление остаются NOT_TESTED/NOT_AUTHORIZED. Main, production, существующие Android private files и Restore335 не затронуты. Draft PR #386 не сливать автоматически.
+
+---
+
 ## 2026-11-22 — следующий автономный этап после физического PASS unified V2
 
 - Последний подтверждённый пользователем физический `PHONE_UNIFIED_SYNTHETIC_V2`: все четыре synthetic checks PASS, но `storage.previousFixture=ABSENT_CREATED`. Физического повторного запуска с `PRESENT_VERIFIED` пока **нет**; нельзя утверждать долговечность между отдельными запусками Android.
