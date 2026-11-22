@@ -1,3 +1,12 @@
+## 2026-11-22 — воспроизводимый restart/abort read-only inventory
+
+- Расширена только тестовая среда `tests/video-archive-v2-copy-inventory.test.mjs`: единая изолированная `IDBFactory` с уникальными именами БД позволяет закрыть и повторно открыть ту же синтетическую IndexedDB. Проверяется точное совпадение всех полей и issue list в результате аудита до и после reopen при конфликтующих копиях/ledger и защищённом tombstone; `cleanupAuthorized=false`.
+- Второй тест проверяет, что закрытая БД без доступной транзакции отклоняется с ошибкой, а не выдаёт фиктивный пустой/«чистый» отчёт. Новые операции только над изолированными тестовыми данными, не физическая потеря питания телефона.
+- На SHA `138c5c910ab301997c7aaf6026f392b6db96f463`: специализированный [CI #45003304134](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003304134) **completed/success**, 43/43. После reopen тестов ожидается 45, проверить exact HEAD; общая Android/физический restore/cleanup не подтверждены.
+- Поиск моделей остаётся закрытым до нового доказательства; архивный writer, данные пользователя и production не затронуты.
+
+---
+
 ## 2026-11-22 — крупный независимый блок: fail-closed инвентаризация после прерывания и rollback
 
 - **Предыдущий контроль:** exact SHA `caa330a2c676c6aabc976e69aa5b09ede9bf1d4d`: specialized [workflow #45003038458](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003038458) success, 33/33; общий Android [#45003038470](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003038470) completed/success; isolated archive skipped. Это не физический restore.
