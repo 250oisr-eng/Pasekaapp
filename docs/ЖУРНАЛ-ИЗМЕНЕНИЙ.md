@@ -1,3 +1,13 @@
+## 2026-11-22 — P0 staging ownership PR #400: CI проверен на точном code SHA
+
+- **Code+tests SHA `c8a71df8b44f75d064448b2b4f20f02092dfb59c`**: [Fast Quality #45069529560](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069529560) **completed/success: 847/847 PASS, 0 FAIL, 0 skipped**. [Android Debug #45069529612](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069529612) **completed/success**: regression tests, APK build и upload PASS; ZIP artifact #14771909618 (3,457,863 bytes, **не SHA бинарного APK**).
+- Первоначальный CI того же Draft PR на предыдущем SHA `9af470743af816d55df7ef1cf4b69c85308ae526` **FAILED**: Fast Quality #45069473880 — 846 PASS / 1 FAIL из 847; Android #45069473877 failed на регрессионном тесте. Это была неточная ожидаемая ошибка теста: неверный kind истинного заголовка уже блокировался раньше с `STAGING_SESSION_INCOMPLETE`, а тест ошибочно требовал `STAGING_RECORD_SET_MISMATCH`. Проверка скорректирована, защиту не ослабляли; повторные прогоны на точном code SHA успешны.
+- [Draft PR #400](https://github.com/250oisr-eng/Pasekaapp/pull/400) — дочерний от #399, не main. Код `commitStagedArchive` проверяет всё множество staging rows (включая заголовок), ownership и уникальные ключи в финальной IDB readwrite-транзакции **до удаления временных данных**. 3 synthetic TOCTOU regressions подтверждают сохранение main/media/history/backup/staging при посторонних/перемещённых строках.
+- Последующие docs-only коммиты имеют собственные HEAD и не наследуют CI без отдельной проверки. Схема БД, backup v1, ledger, реальные медиа и production **не изменены**. Restore335 STOP, v2 ledger/recognition provenance остаётся P0, пользовательские оригиналы и backup удалять нельзя. `main` без изменений, no merge/deploy.
+- **Следующий P0 шаг:** проверить корректность идентификаторов `archive_history` и `archive_staging` при повторных импортах, не позволяя malformed индексированным значениям выглядеть отсутствующими строками. Затем negative tests и CI в отдельном stacked Draft.
+
+---
+
 ## 2026-11-22 — P0: защита полного состава staging в финальной write-транзакции импорта (Draft; CI pending)
 
 - **Прямой родитель:** Draft #399, HEAD `415ded603be7d9650ed511ce80965d16cf56020e`; его code SHA `9ae7a9ddc56991958fbc4a7be175c2b6db7edb6e` отдельно прошёл 844/844 Fast Quality и Android Debug. Это не подтверждает текущие изменения.
