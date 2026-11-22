@@ -7,6 +7,7 @@ const copier=await readFile(new URL('../diagnostics/product-permissions/copy-rep
 const html=await readFile(new URL('../diagnostics/product-permissions/index.html',import.meta.url),'utf8');
 const javaScript=await readFile(new URL('../scripts/install-android-product-permissions-plugin.mjs',import.meta.url),'utf8');
 const TARGET='ru.paseka.journal';
+const workflow=await readFile(new URL('../.github/workflows/android-product-installed-permissions-apk.yml',import.meta.url),'utf8');
 const valid=(permissions=[])=>({
  targetPackageId:TARGET,source:'ANDROID_PACKAGE_MANAGER_INSTALLED_EXPLICIT_TARGET',identityVerified:true,
  requestedPermissions:permissions,versionName:'1.0',versionCode:'1'
@@ -78,4 +79,13 @@ test('native bridge can query only explicitly declared product without app enume
  assert.match(javaScript,/PRODUCT_PACKAGE_NOT_INSTALLED_OR_NOT_VISIBLE/);
  assert.doesNotMatch(javaScript,/QUERY_ALL_PACKAGES|getInstalledPackages\(|requestPermissions\(|MediaStore|Process\.killProcess|startActivity\(/);
  assert.doesNotMatch(runner,/\bfetch\s*\(|sendBeacon|XMLHttpRequest|WebSocket/);
+});
+
+test('CI rejects every APK permission not on the single-package allowlist',()=>{
+ assert.match(workflow,/product-permissions-apk\\.txt/);
+ assert.match(workflow,/allowed = new Set\\(\\[/);
+ assert.match(workflow,/diagnostic\\.productpermsv1\\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION/);
+ assert.match(workflow,/!allowed\\.has\\(match\\[1\\]\\)/);
+ assert.match(workflow,/Unexpected diagnostic APK permission/);
+ assert.doesNotMatch(workflow,/grep -E 'android\\.permission\\.\\(INTERNET/);
 });
