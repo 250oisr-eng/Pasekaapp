@@ -20,11 +20,12 @@ echo %*>>"%MOCK_ADB_LOG%"
 if "%~1"=="devices" (
  if "%MOCK_SCENARIO%"=="device-change" (
   if exist "%MOCK_DEVICE_COUNT_FLAG%" (
+   echo CHANGED > "%MOCK_DEVICE_COUNT_FLAG%"
    echo List of devices attached
    echo NEW456 device product:mock usb:2-1
    exit /b 0
   )
-  type nul > "%MOCK_DEVICE_COUNT_FLAG%"
+  echo INITIAL > "%MOCK_DEVICE_COUNT_FLAG%"
  )
  if "%MOCK_SCENARIO%"=="extra-device" (
   echo List of devices attached
@@ -58,8 +59,11 @@ if "%~1"=="devices" (
 )
 if "%~1"=="-d" if "%~2"=="get-serialno" (
  if "%MOCK_SCENARIO%"=="device-change" if exist "%MOCK_DEVICE_COUNT_FLAG%" (
-  echo NEW456
-  exit /b 0
+  findstr /c:"CHANGED" "%MOCK_DEVICE_COUNT_FLAG%" >nul
+  if not errorlevel 1 (
+   echo NEW456
+   exit /b 0
+  )
  )
  if "%MOCK_SCENARIO%"=="usb-mismatch" (
   echo DIFFERENT_USB
