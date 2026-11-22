@@ -1,3 +1,18 @@
+## Дополнительная проверка первичных LICENSE и зависимостей — 2026-11-22
+
+Фактически прочитаны файлы в чужих публичных репозиториях (через GitHub, **не** исполнялись их программы и не скачивались веса):
+
+- [AjayJohnAlex/Bee_Detection/LICENSE](https://github.com/AjayJohnAlex/Bee_Detection/blob/main/LICENSE): реальный текст MIT, blob SHA GitHub `891259553e1a6f161d94cdb5d370c9cfaf59e56b`, copyright 2023 Ajay John Alex. [requirements.txt](https://github.com/AjayJohnAlex/Bee_Detection/blob/main/requirements.txt): `ultralytics==8.0.134`, `torch==2.0.1`, `torchvision==0.15.2`, `deep-sort-realtime==1.3.2`, Flask и OpenCV. Наличие MIT для кода репозитория **не доказывает**, что отдельные pretrained weights, базовые YOLO checkpoint и тренирующий датасет имеют такую же лицензию. URL immutable commit ещё не подтверждён. Candidate: blocked.
+- [Gratheon/models-gate-tracker/LICENSE](https://github.com/Gratheon/models-gate-tracker/blob/main/LICENSE): текст GPL-3.0, blob SHA GitHub `f288702d2fa16d3cdf0035b15a9fcbc552cd88e7`; README описывает Python/TensorFlow/OpenCV и HTTP upload/server с S3-копией. GPL кода требует отдельного исследования совместимости; **никаких** подтверждённых прав на конкретный `SavedModel`, dataset или Android WebView offline execution. Candidate: blocked.
+- [Gratheon/models-bee-detector](https://github.com/Gratheon/models-bee-detector): HTTP/Docker сервис с YOLOv5 и прямым указанием на внешние веса Matt Nudi. Это **не новый независимый источник прав** на `best.pt`; отсутствие доказанной лицензии Matt Nudi переносится как блокер. Candidate: blocked.
+- [Ajay repo](https://github.com/AjayJohnAlex/Bee_Detection) сообщает примерно 9664 размеченных изображения и MIT для repo; в отсутствие independently pinned весов и оценки на конкретном летке не считать этим validated detector.
+
+Новая структурированная опись `tests/fixtures/bee-detector-candidate-inventory.json` содержит **только публичные ссылки и явно неподтверждённые статусы**, без бинарных весов, данных пользователя и модельных числовых метрик. `tests/video-bee-candidate-inventory.test.mjs` проверяет, что ни один кандидат нельзя подать в staging-gate как авторизованный и что MIT/GPL код репозитория не транзитивно присваивается весам.
+
+**Следующая целевая проверка:** у автора/правообладателя выбранной модели подтвердить *точную лицензию конкретного файла весов и исходного pretrained checkpoint*, immutable revision, training data license, геометрию входа/выхода и offline conversion. Только после этой проверки — отдельный изолированный Android inference proof на синтетических кадрах с independently pinned ONNX/TF Lite моделью и нулевым доступом к реальным видео.
+
+---
+
 ## 2026-11-22 — Gratheon: проверка назначения весов
 
 В [ревизии 21faabd](https://github.com/Gratheon/models-gate-tracker/tree/21faabd0ea2d57f9e0d4434fc47b5af0839fbb81) BeeDetection.py использует контуры OpenCV и fitEllipse, а BeeClassification.py запускает predict_on_batch для классификации подготовленных изображений. В дереве есть SavedModel с переменными, корневой LICENSE содержит GPLv3, Training/BeeDataset подключён отдельным подмодулем BeeAlarmed/BeeDataset. Проверены исходники и метаданные; веса не скачивались. Отдельная модель классификации не решает задачу локализации на полном кадре. Следующий шаг — проверить происхождение весов следующего кандидата для детекции летка. На SHA 23728d707bc3229b5944e6939ca2fc3954424e59 локально прошли 3/3 теста допуска, Android CI #44955879058 успешен, #44955879068 пропущен.
