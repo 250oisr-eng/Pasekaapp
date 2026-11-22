@@ -1,3 +1,11 @@
+## 2026-11-22 — усиление fail-closed контроля разрешений APK в Draft PR #366
+
+- Вместо проверки неполного списка опасных разрешений workflow теперь отклоняет **любое** `uses-permission` APK, кроме точно названного внутреннего `ru.paseka.journal.diagnostic.productpermsv1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. Пустой/неожиданный формат вывода `aapt` также блокирует сборку. Проверка касается **только изолированного диагностического APK**, не меняет разрешения основной `ru.paseka.journal`.
+- Изменены `.github/workflows/android-product-installed-permissions-apk.yml` и `tests/android-product-installed-permissions.test.mjs`. Code/test SHA `5333783d4eb12502fe8541ec73fa0a101d990a66`. На момент фиксации Fast quality checks #45028649180 **IN_PROGRESS**; успешность последней сборки/тестов не заявляется до проверки результата на точном SHA. Ранее `543ebeaf9a8d2991fdb224e2614608de92e62bef` — успешно собранный APK.
+- Physical installed-product test всё ещё NOT_TESTED. `productNetworkTrafficObserved:NOT_TESTED`, `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`. Не выполнять удаление реальных видео, восстановление архивов, merge/deploy.
+
+---
+
 ## 2026-11-22 — крупный цикл 2/2: собран read-only APK для проверки УСТАНОВЛЕННОЙ основной «Пасеки»
 
 - После успешного статического аудита реального `ru.paseka.journal` (APK INTERNET объявлен, сеть на телефоне NOT_TESTED) реализован **отдельный** физический тест только метаданных установленного `ru.paseka.journal`. Уникальный package `ru.paseka.journal.diagnostic.productpermsv1`. Две кнопки **«Провести тест → Копировать результат»**, полный PASS/BLOCKED JSON.
