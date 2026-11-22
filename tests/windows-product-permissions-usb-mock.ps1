@@ -57,6 +57,10 @@ if "%~1"=="devices" (
  exit /b 0
 )
 if "%~1"=="-d" if "%~2"=="get-serialno" (
+ if "%MOCK_SCENARIO%"=="device-change" if exist "%MOCK_DEVICE_COUNT_FLAG%" (
+  echo NEW456
+  exit /b 0
+ )
  if "%MOCK_SCENARIO%"=="usb-mismatch" (
   echo DIFFERENT_USB
   exit /b 0
