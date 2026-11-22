@@ -1,3 +1,25 @@
+## 2026-11-22 — OnePlus: физический PASS локального ONNX Runtime Web / WASM
+
+Пользователь передал полный JSON с OnePlus после выдачи исправленного тестового APK из [сборки #45000574979](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45000574979), исходный коммит 1cc6be654d93c19f9b9da25782f60d994e3b4649, APK SHA-256 e6a5c5adec9645df1372fd307b3f25b4e7a0920dd9ffdbf3bccacd4f0984635e. Это контрольная сумма выданного файла; отчёт телефона не содержит собственного измерения SHA.
+
+```json
+{"status":"PASS","code":"LOCAL_ONNX_WASM_ADD_2_EXACT","packageId":"ru.paseka.journal.diagnostic.ortmodule","model":"SELF_AUTHORED_SYNTHETIC_ADD_2_ONLY","runtime":"PASS","beeRecognition":"NOT_TESTED","videoAccess":"NOT_ATTEMPTED","cleanup":"NOT_TESTED","externalRequests":"NOT_ATTEMPTED","input":3,"output":5}
+```
+
+Физическая проверка загрузки локального модуля и исполнения синтетического графа завершена. Повтор на OnePlus не нужен. Следующий этап — проверка происхождения и условий распространения конкретных весов детектора летка перед автономным испытанием на размеченных кадрах. Допуск к распознаванию и удалению видео остаётся закрытым.
+
+## 2026-11-22 — повтор ONNX без замены ранее установленного приложения
+
+В #352 на 73b9d014 исправленный APK успешно собран (run 45000158169), общая сборка также успешна. У старого и нового APK с одинаковым ID ortsmoke разные SHA-256 сертификатов v2: ffbbd3ade07803840b90151fc0f6dca0a682c23aa6108c22ab4beb4fe4af19dd и c39141c52510009fd0cc8f8579e551979f58e6cc19a4896b6ec5b3dd38338288. Контрольные суммы обоих ZIP сверены с данными GitHub. Для совместной установки новая диагностика получила отдельный ID ru.paseka.journal.diagnostic.ortmodule. Исправлена проверка результата: только точное float32 5 даёт PASS; регрессия включает NaN, бесконечность и соседнее значение. Отчёт, проверка aapt и регрессия привязаны к новому имени. После сборки проверить SHA артефакта и передать APK для одного физического теста. Старый APK остаётся установленным. Распознавание пчёл и очистка не проверяются.
+
+## 2026-11-22 — Android ONNX physical BLOCKED, Draft PR #352
+
+- Physical report: isolated package ru.paseka.journal.diagnostic.ortsmoke, ORT_ERROR no available backend found / Failed to fetch dynamically imported module; runtime BLOCKED. Bee recognition/video access/cleanup not tested.
+- Draft PR #352 (branch fix/android-ort-webview-local-module-2026-11-22) proposes same-app preflight .mjs load, typed JS Blob URL, absolute packaged WASM URL and Blob revocation, plus regression tests. No production app, existing data, or video changed.
+- CI at exact HEAD and Android retest NOT YET VERIFIED. Next: verify isolated APK workflow and one-tap on-device result. No merge, deploy or deletion.
+
+---
+
 ## Android ONNX WASM — exact-SHA CI PASS и проверенный APK (2026-11-22)
 
 - После начальных ошибок изолированного CI исправлен запуск реального WASM в Node: Node ESM не поддерживает `http:` JS-модуль; используются только локальные `file:` для JS и `data:` для pinned WASM, **без внешнего HTTP**. Дополнительно общий `npm test` пропускает специализованное ONNX runtime испытание с явной пометкой skip, а isolated workflow `PASEKA_SYNTHETIC_ORT_CI=1` обязательно выполняет и не позволяет skip. Это устранение реальных CI failure, не скрытие проблем.

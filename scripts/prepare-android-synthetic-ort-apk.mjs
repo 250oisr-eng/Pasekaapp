@@ -2,13 +2,13 @@
 import {readFileSync,writeFileSync,copyFileSync,existsSync,statSync} from 'node:fs';
 import {join} from 'node:path';
 import {SYNTHETIC_ONNX} from './generate-synthetic-onnx.mjs';
-const PKG='ru.paseka.journal.diagnostic.ortsmoke';
+const PKG='ru.paseka.journal.diagnostic.ortmodule';
 if(process.env.PASEKA_SYNTHETIC_ORT_BUILD!=='1')throw Error('ORT_TEST_BUILD_NOT_AUTHORIZED');
 if(process.argv[2]!=='web')throw Error('EXPECTED_WEB_MODE');
 if(!existsSync('www/index.html'))throw Error('WEB_ASSETS_REQUIRED');
 const conf=JSON.parse(readFileSync('capacitor.config.json','utf8'));
 if(conf.appId!=='ru.paseka.journal')throw Error('ORIGINAL_APP_ID_REQUIRED');
-conf.appId=PKG;conf.appName='Пасека — тест ONNX';
+conf.appId=PKG;conf.appName='Пасека — проверка модуля ONNX';
 writeFileSync('capacitor.config.json',JSON.stringify(conf,null,2)+'\n');
 const dist='node_modules/onnxruntime-web/dist';
 for(const name of ['ort.min.js','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.wasm']){

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {SYNTHETIC_ONNX} from '../scripts/generate-synthetic-onnx.mjs';
@@ -13,7 +14,10 @@ test('tiny self-authored ONNX has fixed source, no learned weights or external b
 test('isolated Android build never targets real app, test user storage or remote weights',()=>{
  assert.match(builder,/PASEKA_SYNTHETIC_ORT_BUILD/);
  assert.match(builder,/ORIGINAL_APP_ID_REQUIRED/);
- assert.match(builder,/ru\.paseka\.journal\.diagnostic\.ortsmoke/);
+ for(const source of [builder,runner]){
+  assert.ok(source.includes("'ru.paseka.journal.diagnostic.ortmodule'"));
+  assert.ok(!source.includes("'ru.paseka.journal.diagnostic.ortsmoke'"));
+ }
  assert.match(builder,/writeFileSync\('www\/synthetic-add.onnx',SYNTHETIC_ONNX\)/);
  assert.match(runner,/executionProviders:\['wasm'\]/);
  assert.match(runner,/ONE_SHOT_ALREADY_ATTEMPTED/);
@@ -44,4 +48,33 @@ test('real ONNX Runtime Web WASM performs math with bundled local runtime bytes'
   assert.equal(result.y.data.length,1);
   assert.equal(result.y.data[0],5);
  }finally{await session.release()}
+});
+
+test('Android WebView runtime uses packaged local module via JavaScript Blob and absolute WASM URL',()=>{
+ assert.match(runner,/fetch\(mjsUrl\.href,\{cache:'no-store'\}\)/);
+ assert.match(runner,/LOCAL_MJS_HTTP_/);
+ assert.match(runner,/LOCAL_MJS_NOT_JAVASCRIPT/);
+ assert.match(runner,/createObjectURL\(new root\.Blob\(\[js\],\{type:'text\/javascript'\}\)\)/);
+ assert.match(runner,/wasmPaths=\{mjs:moduleUrl,wasm:wasmUrl\.href\}/);
+ assert.match(runner,/revokeObjectURL\(moduleUrl\)/);
+ assert.doesNotMatch(runner,/wasmPaths='\.\/'/);
+});
+
+test('synthetic WebView reports PASS only for the exact expected float', async () => {
+ for (const output of [5, NaN, Infinity, 5.000000476837158]) {
+  const window = {
+   location: {href: 'https://localhost/'}, URL, Blob,
+   fetch: async () => ({ok:true, text:async () => ' '.repeat(1024)})
+  };
+  runInNewContext(runner, {window, URL});
+  const ort = {
+   env: {wasm:{}}, Tensor: class {},
+   InferenceSession: {create: async () => ({
+    run: async () => ({y:{type:'float32', dims:[1], data:Float32Array.of(output)}}),
+    release: async () => {}
+   })}
+  };
+  const report = await window.PasekaSyntheticOrtDiagnostic.run(ort);
+  assert.equal(report.code, output === 5 ? 'LOCAL_ONNX_WASM_ADD_2_EXACT' : 'SYNTHETIC_OUTPUT_MISMATCH');
+ }
 });
