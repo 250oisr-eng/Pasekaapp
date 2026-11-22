@@ -1,3 +1,10 @@
+### P0 multirestart — промежуточная ошибка теста и корректировка (2026-11-23)
+
+- Первый exact HEAD `2b434f9449baea7399d2b35d4cf0cb29a783aae2`: Fast Quality #45081854012 **FAILED: 1221 PASS / 1 FAIL из 1222**. Положительный multi-restart сценарий прошёл; отрицательный тест неправильно требовал 0 записей в `archive_history` после staging, тогда как staging уже создаёт 1 защищённую запись.
+- Тест скорректирован: отказ commit должен **сохранить** staging-history (1 запись), а не удалять её. Код библиотеки и поведение runtime не менялись. Дальнейшие проверки Fast/Android должны относиться только к новому итоговому SHA.
+
+---
+
 ## P0 — PASEKA02: автономная проверка staging → commit → quarantine после перезапусков (2026-11-23)
 
 - Ветка `test/p0-v2-multirestart-quarantine-evidence-2026-11-23` основана на Draft #422 exact HEAD `4899f5ec5593131d2eaf1dda5706ecbe2e3177ec`, Fast #45081290606 **1220/1220** и Android #45081290597 **success**. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` без изменений.
