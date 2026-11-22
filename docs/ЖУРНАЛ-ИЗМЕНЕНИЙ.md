@@ -1,3 +1,13 @@
+## Android — test-only локальное ONNX WASM исполнение (2026-11-22)
+
+- Подготовлен полностью **авторский синтетический ONNX граф** `Add(x,bias=2)` (вход float32[1] `3` → ожидаемый выход `5`), программно собираемый только из protobuf-структур в `scripts/generate-synthetic-onnx.mjs`. Ни один байт обученных весов третьих лиц не используется; модель не распознаёт ни пчёл, ни изображений.
+- Создан новый независимый тестовый APK `ru.paseka.journal.diagnostic.ortsmoke`, не меняющий production, `selftest`, `mediatest` и `frametest`. `scripts/prepare-android-synthetic-ort-apk.mjs` упаковывает локально `onnxruntime-web@1.31.1` (MIT), `ort.min.js` и однотредовый WASM-бэкенд из пакета, без CDN/API. Кнопка `tests/fixtures/android-synthetic-ort-runner.js` вызывает `InferenceSession.create` только для локального `synthetic-add.onnx`, `session.run({x:3})`, сверяет строго `5`, возвращает один отчёт PASS/BLOCKED.
+- `tests/android-synthetic-ort.test.mjs` проверяет отсутствие доступа к пользовательскому видео/IndexedDB/network и выполняет **реальное WASM вычисление с тем же синтетическим ONNX** в Node CI; тест fail-closed, не допускает skip при отсутствии runtime. Отдельный workflow `.github/workflows/build-android-synthetic-ort-apk.yml` ставит только test-only pinned runtime, запускает тесты, собирает отдельную APK и проверяет package ID.
+- **Границы:** даже будущий аппаратный PASS будет означать лишь offline execution математической ONNX модели, НЕ доказательство детекции пчёл, качества, лицензии сторонних весов, tracking/direction, `recognitionSucceeded` или удаления. Ни одна из семи найденных моделей пчёл не допущена к исполнению; пользовательские видео/данные/backup и production не затрагиваются.
+- Следующий gate: проверить CI на exact HEAD и ошибки, получить точный SHA APK, только затем предоставить Android тест по одной кнопке. Никакого автоматического install/restart/cleanup.
+
+---
+
 ## VIDEO MODEL — InsectAI Model Zoo: цепочка лицензии весов (2026-11-22)
 
 - Проверены первичные LICENSE: `IDEA-Research/GroundingDINO` Apache-2.0 (GitHub blob SHA `f1460f5e6ad1e90abb720a1536a46e3d057686a9`) и `darsa-group/flat-bug` MIT (blob `bee96279e49757f77280f9c8ddf0bf28983dda2d`). Независимый InsectAI Model Zoo отдельно предупреждает о непрямом происхождении лицензионных ярлыков.
