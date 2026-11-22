@@ -280,3 +280,23 @@ test('resultId cannot be shared by distinct video sources in durable recognition
  assert.equal((await get(db,'main',ledger.KEY)).entries.length,2);
  db.close();
 });
+
+
+test('new distinct video cannot reuse committed resultId even with valid source hash',async()=>{
+ const {db}=await fixture();
+ assert.equal((await ledger.recordRecognitionResult(db,base)).ok,true);
+ await put(db,'entrance_media',null,{id:'v2',status:'analyzing',bytes:5,
+  blobSha256:sourceHash,blob:new Blob(['video'],{type:'video/mp4'})});
+ const reused=await ledger.recordRecognitionResult(db,{...base,videoId:'v2'});
+ assert.equal(reused.ok,false);
+ assert.equal(reused.reason,'conflicting_recognition_result_id');
+ const after=await ledger.readRecognitionLedger(db);
+ assert.equal(after.ok,true);
+ assert.equal(after.entries.length,1);
+ assert.equal(after.entries[0].videoId,'v1');
+ assert.ok((await get(db,'entrance_media','v2')).blob);
+ const unique=await ledger.recordRecognitionResult(db,{...base,videoId:'v2',resultId:'result-2'});
+ assert.equal(unique.ok,true);
+ assert.equal((await ledger.readRecognitionLedger(db)).entries.length,2);
+ db.close();
+});
