@@ -57,7 +57,7 @@ test('P2: hive mode filtering returns original matches without frame search',()=
 test('P2: a name match skips frame work, while a frame-ID match remains searchable',()=>{
  const cheap=directoryHarness('карпатка');
  cheap.run();
- assert.equal(cheap.counts().frameReads,0,'name-only hit should be resolved before inspecting frames');
+ assert.equal(cheap.counts().frameReads,1,'the matched hive skips frames; unmatched hives still need their frame IDs checked');
  assert.equal(cheap.elements.hiveList.innerHTML,'<div>h1</div>');
  const frames=directoryHarness('frame-002');
  frames.run();
