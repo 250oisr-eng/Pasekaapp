@@ -1,3 +1,13 @@
+## 2026-11-22 — P0: запрет неполного архива при недостоверном списке видео
+
+- По результатам инвентаризации [401 ветка / 317 открытых PR](https://github.com/250oisr-eng/Pasekaapp/pull/389) создан зависимый **Draft PR #390** поверх #388; `main` не изменён. В `js/paseka-archive.js` `readConsistentDatabaseSnapshot` перестал трактовать не-массивное значение `entrance_media.getAll()` как пустой список видео: теперь `VIDEO_SNAPSHOT_UNVERIFIED`, транзакция abort, export блокируется без записи и удаления источников.
+- Добавлен `tests/archive-video-snapshot-integrity.test.mjs`: штатное пустое Array принимается; шесть некорректных значений (`undefined/null/{}/string/0/false`) отвергаются; экспорт при `null` не выдаёт неполный архив. Фикстуры синтетические, настоящий Blob/медиа пользователя не открываются.
+- **Exact code/test SHA `eb11b71dc632b191bd6f557e42d57ba2d0f9db1c`**: [общий Android CI #45063432833](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45063432833) **completed/success**, job #137334217283 **776/776 тестов PASS, 0 fail**, Android Debug APK build/upload completed. Artifact #14770447374, ZIP digest `89d50d732734843be71fd96b81dcb82ae704877307e03213e3c489c52e9d7a06`, expires 2026-12-06. APK binary SHA в этом workflow не подтверждён: не выдумывать хэш APK. Изолированный archive workflow #45063432834 **SKIPPED** по workflow branch condition; не считать его PASS.
+- Защитное изменение покрывает только нарушение контракта перечисления медиа; реальный IndexedDB штатно возвращает Array. Не доказывает полную атомарность экспорта, перенос видео-леджера в v2, безопасность production backup/restore или разрешение удалить источники. Все реальные медиа и cleanup остаются NOT_TESTED/NOT_AUTHORIZED.
+- Дальше: аудит проверки восстановленных архивов, редких race/rollback, корректной схемы и интеграции стека из Draft PR в главную ветку — **только после отдельного разрешения merge**. Никакой физической ноябрьской съёмки не требуется.
+
+---
+
 ## Дополнение к PR #212 — аудит осиротевших видеокопий (2026-11-20)
 
 - Исправлен `inspectStagingRecognitionCopies(db)` в `js/paseka-archive-restore.js`: прежде он рассматривал только видеокопии staging, для которых сохранился `kind=session` header. Теперь только по индексным **ключам**, без загрузки Blob в память, проверяются и видеокопии с потерянным заголовком. Такие копии получают `status='orphaned_header'`, `missingSessionHeader=true` и `action='manual_review_required'`.
