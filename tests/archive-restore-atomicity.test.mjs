@@ -1287,7 +1287,9 @@ test('snapshot hash failure before commit preserves the complete rollback snapsh
       return originalHasher.hashBlobHex(blob, options);
     }
   };
-  const cryptoProvider = { getRandomValues(bytes) { bytes.fill(23); return bytes; } };
+  // Preserve the native SHA-256 provenance check while injecting the failure
+  // only into incremental Blob hashing at the intended later phase.
+  const cryptoProvider = { ...testCryptoProvider(), getRandomValues(bytes) { bytes.fill(23); return bytes; } };
 
   try {
     await assert.rejects(
