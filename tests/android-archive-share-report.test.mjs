@@ -29,11 +29,11 @@ function fixture({withDatabase=true,plugin=true}={}) {
  vm.runInContext(runnerCode,context);
  return {elements,calls,window,clipboard};
 }
-test('two buttons exist; share disabled before user test, and no implicit clipboard copy',()=>{
+test('two buttons exist; copy disabled before user test, and no implicit clipboard copy',()=>{
  const f=fixture();
  assert.match(html,/id="run"/);
  assert.match(html,/id="copy"[^>]*disabled/);
- assert.match(html,/share-report\.js/);
+ assert.match(html,/copy-report\.js/);
  assert.equal(f.elements.copy.disabled,true);
  assert.equal(f.calls.length,0);
 });
@@ -63,7 +63,7 @@ test('BLOCKED report also copies without losing error evidence',async()=>{
 test('native clipboard failure cannot report successful copy',async()=>{
  const f=fixture();
  await f.elements.run.handlers.click();
- f.window.Capacitor.Plugins.Share={async write(){throw Error('CLIPBOARD_DENIED');}};
+ f.window.Capacitor.Plugins.Clipboard={async write(){throw Error('CLIPBOARD_DENIED');}};
  await f.elements.copy.handlers.click();
  assert.match(f.elements['copy-status'].textContent,/Копирование не выполнено/);
  assert.equal(f.elements.copy.disabled,false);
