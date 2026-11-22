@@ -23,7 +23,12 @@ public static class MockADB {
   }
 }
 '@
-Add-Type -TypeDefinition $code -OutputAssembly $exe -OutputType ConsoleApplication
+$cs = Join-Path $env:RUNNER_TEMP 'paseka-mock-adb.cs'
+Set-Content -LiteralPath $cs -Value $code -Encoding UTF8
+$compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+if (-not (Test-Path -LiteralPath $compiler)) { throw 'WINDOWS_CSC_MISSING' }
+& $compiler /nologo ("/out:" + $exe) $cs
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $exe)) { throw 'MOCK_ADB_COMPILE_FAILED' }
 $script:AdbPath = $exe
 $pkgArgs = @('-s','TEST_SERIAL','shell','pm','path','ru.paseka.journal')
 $testArgs = @('-s','TEST_SERIAL','shell','pm','path','ru.paseka.journal.archive.restoreproof335')
