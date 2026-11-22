@@ -1,3 +1,13 @@
+## 2026-11-23 — P0: isolated PASEKA02 portable ledger/tombstone integration, Draft #410
+
+- Parent [Draft #409](https://github.com/250oisr-eng/Pasekaapp/pull/409) final HEAD `115d7b3da40ab9ecd90d4812f2dbdf5dac232724`: Fast Quality #45075059847 **completed/success 924/924 PASS**; Android #45075059682 **completed/success**, debug APK build/upload on that exact SHA. Parent #408 also checked. Main unchanged.
+- Existing v2 project branch #315 `6b6d1094ebc6bee925dd57351a8521933e162683` supplied **unchanged isolated** `js/video-archive-v2-guard.js`, `js/video-archive-v2-metadata-codec.js`, `js/video-archive-v2-restore-gate.js`, plus their 3 existing test suites. In child [Draft #410](https://github.com/250oisr-eng/Pasekaapp/pull/410) they now coexist with the current hardened v1 stack. No clone of old v1 runtime, no wholesale branch merge, no modifications to the production script-loading list.
+- New `tests/archive-v1-v2-ledger-portable-integration.test.mjs`: synthetic binary PASEKA02 preserves result and `deleted` tombstone across IndexedDB close/reopen; actual PASEKA01 `exportArchiveFromDatabase` rejects nonempty recognition ledger; PASEKA02 restore gate rejects an incoming archive that omits the tombstone even after reopen. The gate explicitly returns `restoreAuthorized:false`, `archiveSafe:false`; it **never commits or deletes** data.
+- Source code+test SHA `a03f04c3fafb770f27e83eb82e5d9974d9f36f91` requires **fresh CI verification**. Validation of isolated v2 components is NOT permission for product live restore: full multi-store atomic stage/commit/rollback/recovery, real archive-compat migration, offline Service Worker, Android Camera/Gallery/Downloads copy inventory and physical reboot/deletion test remain **P0 BLOCKED**. Restore335 STOP. Do not merge/publish/delete production data without user approval.
+- Next: verify full suite and Android on exact final HEAD, fix failures; then adapt isolated v2 snapshot and staging/commit modules without overriding modern v1 guards and add synthetic migration/restore abort tests.
+
+---
+
 ## 2026-11-23 — P0 legacy export after PASEKA02 quarantine, Draft #409
 
 - Parent [Draft #408](https://github.com/250oisr-eng/Pasekaapp/pull/408), HEAD `7926e2b1f8a3bb498be0b6d1b4af9bf667693d6d`: Fast Quality #45074421414 and Android #45074421377 both **completed/success** on exact parent SHA. Main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` unchanged.
