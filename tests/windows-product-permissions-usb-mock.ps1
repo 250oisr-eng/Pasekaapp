@@ -80,6 +80,7 @@ function Get-FileHash {
  return [pscustomobject]@{Hash='04fdba8e71f57bf896ca2af43149437d101d5ffc15f24d30c6f7bcf351bf1216'}
 }
 & $Installer -ApkPath $DummyApk
+if($null -ne $LASTEXITCODE){exit $LASTEXITCODE}
 '@ | Set-Content -LiteralPath $worker -Encoding UTF8
  $env:PATH=$dir+[IO.Path]::PathSeparator+$originalPath
  $shell=(Get-Command powershell.exe -CommandType Application -ErrorAction Stop).Source
