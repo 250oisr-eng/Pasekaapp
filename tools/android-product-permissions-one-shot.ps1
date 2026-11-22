@@ -14,6 +14,18 @@ function CommandOutput([string]$exe,[string[]]$arg) {
  if($LASTEXITCODE -ne 0){throw ('COMMAND_FAILED_'+$exe+'_'+$LASTEXITCODE)}
  return ($result -join [Environment]::NewLine)
 }
+function CheckedUsbSerial {
+ $devices=CommandOutput 'adb' @('devices','-l')
+ $rows=@($devices -split '[\r\n]+' | Where-Object {
+  $_.Trim() -and $_ -notmatch '^List of devices attached' -and $_ -notmatch '^\* daemon'
+ })
+ $valid=@($rows | Where-Object {$_ -match '^(\S+)\s+device\s+.*\busb:'})
+ if($rows.Count -ne 1 -or $valid.Count -ne 1){throw 'EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'}
+ return ($valid[0] -split '\s+')[0]
+}
+function AssertSameUsb([string]$expected) {
+ if((CheckedUsbSerial) -cne $expected){throw 'USB_DEVICE_CHANGED_NO_INSTALL'}
+}
 function PackagePaths([string]$package) {
  $lines=CommandOutput 'adb' @('-d','shell','pm','path',$package)
  return @($lines -split '[\r\n]+' | Where-Object {$_ -match '^package:'})
@@ -21,10 +33,7 @@ function PackagePaths([string]$package) {
 try {
  Write-Host 'STAGE: 1/6 CHECK_TOOLS_AND_USB'
  $null=Get-Command adb -CommandType Application -ErrorAction Stop
- $devices=CommandOutput 'adb' @('devices','-l')
- $ready=@($devices -split '[\r\n]+' | Where-Object {$_ -match '^\S+\s+device(?:\s|$)'})
- $bad=@($devices -split '[\r\n]+' | Where-Object {$_ -match '^\S+\s+(offline|unauthorized|recovery|sideload)(?:\s|$)'})
- if($ready.Count -ne 1 -or $bad.Count -ne 0){throw 'EXACTLY_ONE_AUTHORIZED_USB_DEVICE_REQUIRED'}
+ $serial=CheckedUsbSerial
  Write-Host 'STAGE: 2/6 CHECK_INSTALLED_PRODUCT_READONLY'
  if((PackagePaths $product).Count -lt 1){throw 'PRODUCT_NOT_INSTALLED_NO_TEST'}
  if((PackagePaths $diagnostic).Count -ne 0){throw 'DIAGNOSTIC_ALREADY_PRESENT_NO_REINSTALL'}
@@ -43,12 +52,15 @@ try {
   throw 'PINNED_APK_SHA256_MISMATCH'
  }
  Write-Host 'STAGE: 4/6 RECHECK_PACKAGE_GATE'
+ AssertSameUsb $serial
  if((PackagePaths $diagnostic).Count -ne 0){throw 'DIAGNOSTIC_APPEARED_NO_REINSTALL'}
  if((PackagePaths $product).Count -lt 1){throw 'PRODUCT_DISAPPEARED_NO_INSTALL'}
+ AssertSameUsb $serial
  Write-Host 'STAGE: 5/6 INSTALL_ONLY_NEW_DIAGNOSTIC'
  $installed=CommandOutput 'adb' @('-d','install',$apk.FullName)
  if($installed -notmatch '(?m)^Success\s*$'){throw 'INSTALL_NOT_CONFIRMED'}
  if((PackagePaths $diagnostic).Count -lt 1){throw 'DIAGNOSTIC_NOT_VISIBLE_AFTER_INSTALL'}
+ AssertSameUsb $serial
  Write-Host 'STAGE: 6/6 LAUNCH_DIAGNOSTIC_ONLY'
  $launch=CommandOutput 'adb' @('-d','shell','monkey','-p',$diagnostic,'-c','android.intent.category.LAUNCHER','1')
  if($launch -notmatch 'Events injected:\s*1'){throw 'DIAGNOSTIC_LAUNCH_NOT_CONFIRMED'}
