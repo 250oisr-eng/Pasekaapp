@@ -9,7 +9,7 @@ const copyCode=await readFile(new URL('../diagnostics/archive-preflight/copy-rep
 const runnerCode=await readFile(new URL('../diagnostics/archive-preflight/runner.js',import.meta.url),'utf8');
 const guardCode=await readFile(new URL('../js/android-archive-preflight.js',import.meta.url),'utf8');
 const html=await readFile(new URL('../diagnostics/archive-preflight/index.html',import.meta.url),'utf8');
-const expectedPackage='ru.paseka.journal.diagnostic.archivepreflight';
+const expectedPackage='ru.paseka.journal.diagnostic.archivecopyv2';
 const valid=(status='PASS')=>JSON.stringify({status,packageId:expectedPackage,cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false});
 function fixture({withDatabase=true,plugin=true}={}) {
  const elements={};

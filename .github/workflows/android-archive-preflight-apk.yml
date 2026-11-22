@@ -10,6 +10,7 @@ on:
       - 'scripts/prepare-android-archive-preflight.mjs'
       - 'js/android-archive-preflight.js'
       - 'tests/android-archive-preflight.test.mjs'
+      - 'tests/android-archive-share-report.test.mjs'
       - '.github/workflows/android-archive-preflight-apk.yml'
   workflow_dispatch:
 
@@ -53,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(find www -type f | wc -l)" -eq 4
-          test "$(node -p 'require("./capacitor.config.json").appId')" = 'ru.paseka.journal.diagnostic.archivepreflight'
+          test "$(node -p 'require("./capacitor.config.json").appId')" = 'ru.paseka.journal.diagnostic.archivecopyv2'
           ! grep -rE 'https?://|fetch\(|XMLHttpRequest|MediaStore|navigator.mediaDevices' www/runner.js www/preflight-guard.js www/index.html
           ! grep -Fq 'android-archive-preflight.js' index.html
       - name: Install Android SDK
@@ -113,7 +114,7 @@ jobs:
           set -euo pipefail
           APK=android/app/build/outputs/apk/debug/app-debug.apk
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.archivepreflight'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.archivecopyv2'"
           if "$AAPT" dump permissions "$APK" | grep -E 'android.permission.(INTERNET|READ_MEDIA_|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|CAMERA)'; then
             echo 'Unsafe diagnostic permission detected' >&2
             exit 1
