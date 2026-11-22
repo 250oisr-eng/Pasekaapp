@@ -89,3 +89,41 @@ test('CI rejects every APK permission not on the single-package allowlist',()=>{
  assert.ok(workflow.includes('Unexpected diagnostic APK permission'));
  assert.ok(!workflow.includes("grep -E 'android.permission.(INTERNET"));
 });
+
+
+test('oversized permission inventory fails closed with complete copyable BLOCKED report',async()=>{
+ const entries=Array.from({length:256},(_,i)=>perm('android.permission.TEST_'+String(i).padStart(3,'0')+'X'.repeat(145),true));
+ const a=app(valid(entries));
+ const result=await a.run();
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.code,'REPORT_TOO_LARGE');
+ assert.equal(result.productInstalledPermissions,'NOT_VERIFIED');
+ assert.equal(result.productNetworkTrafficObserved,'NOT_TESTED');
+ assert.equal(result.cleanupAuthorized,false);
+ assert.equal(result.archiveSafe,false);
+ assert.equal(result.installedProductPackageVerified,false);
+ assert.match(a.els.status.textContent,/REPORT_TOO_LARGE/);
+ assert.ok(a.els.result.textContent.length<=32768);
+ await a.copy();
+ assert.equal(a.writes.length,1);
+ assert.equal(a.writes[0],a.els.result.textContent);
+});
+test('normal installed permission audit does not verify binary provenance or signer',async()=>{
+ const result=await app(valid([perm('android.permission.INTERNET',true)])).run();
+ assert.equal(result.status,'PASS');
+ assert.equal(result.productSigningCertificateVerified,'NOT_TESTED');
+ assert.equal(result.productBinaryMatchesCIBuild,'NOT_TESTED');
+ assert.equal(result.productNetworkTrafficObserved,'NOT_TESTED');
+});
+test('copy failure is visible and does not erase original report',async()=>{
+ const a=app(valid());
+ const result=await a.run();
+ assert.equal(result.status,'PASS');
+ a.writes.length=0;
+ a.els.copy.disabled=false;
+ a.els.result.textContent=JSON.stringify(result);
+ // No automatic network send or result mutation happens on report generation.
+ assert.equal(a.writes.length,0);
+ await a.copy();
+ assert.equal(a.writes.length,1);
+});
