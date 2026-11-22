@@ -1,3 +1,10 @@
+## P2.2 — stream metadata списка видео (2026-11-23)
+
+- Parent Draft #424 source SHA `1c4135f9c3472c23b6bc18a42512cdcb2c487682` Fast Quality #45082890375 **1227/1227 PASS**; Android Debug / P0 emulator CI пока требуют отдельного точного подтверждения.
+- Новая дочерняя ветка `perf/p2-video-metadata-cursor-2026-11-23`: `listEntranceVideos` больше не загружает все оригинальные Blob через IndexedDB getAll, а проходит их курсором и выдаёт только metadata. `getEntranceVideo` для реального просмотра остаётся без изменений. Добавлены точные тесты SHA-256 после нового открытия DB и legacy records.
+- Оригиналы, staging, full_backup, схемы IndexedDB, PASEKA02, правила удаления, MediaStore/production не менялись. Это оптимизация памяти **по форме данных**, а не измеренная RAM Android. Требуется exact-HEAD Fast Quality, Android, возможно emulator smoke. P0/P1 OPEN, P2 NOT READY.
+
+---
 ### P2 render — первый CI выявил некорректное ожидание теста (2026-11-23)
 
 - На первоначальном SHA #424 `8dddb33bb32bbd1e40a401f85ccb1aeaaf0b519e` Fast Quality #45082808818 **FAILED: 1226/1227 PASS, 1 FAIL**. Ошибка только в новом тесте: поиск по имени в первом улье избегает чтения рамок первого, но всё ещё должен проверить рамки второго, не совпавшего по имени. Тест неверно ожидал 0 чтений вместо 1. Код приложения не менялся.
