@@ -12,12 +12,29 @@ function report(state,code,extra={}){
    'A02_REAL_PASEKA01','A03_REAL_PASEKA02','A08_ANDROID_FORCE_STOP'],
   productInstalledPermissions:state==='PASS'?'READ_ONLY_METADATA_VERIFIED':'NOT_VERIFIED',
   productNetworkTrafficObserved:'NOT_TESTED',
+  productSigningCertificateVerified:'NOT_TESTED',productBinaryMatchesCIBuild:'NOT_TESTED',
   installedAppOpened:false,
   beeRecognition:'NOT_TESTED',realArchiveRestore:'NOT_TESTED',
   realVideoAccess:'NOT_ATTEMPTED',videoDeletion:'NOT_ATTEMPTED',
   cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false,userDataModified:false,
   ...extra};
- last=JSON.stringify(result,null,2);view.textContent=last;copy.disabled=false;
+ // Keep every completed PASS/BLOCKED report inside the clipboard safety limit.
+ // A large permission inventory must fail closed, never leave an uncopyable PASS.
+ let serialized=JSON.stringify(result,null,2);
+ if(serialized.length>32768){
+  const blocked={status:'BLOCKED',code:'REPORT_TOO_LARGE',packageId:PKG,targetPackageId:TARGET,
+   suite:'PRODUCT_INSTALLED_PERMISSIONS_READONLY_V1',
+   checks:[],scenariosVerified:[],
+   scenariosNotTested:['PRODUCT_INSTALLED_PERMISSIONS_METADATA_ONLY','PRODUCT_NETWORK_TRAFFIC_OBSERVATION',
+    'PRODUCT_DATA_READ_OR_RESTORE','A02_REAL_PASEKA01','A03_REAL_PASEKA02','A08_ANDROID_FORCE_STOP'],
+   productInstalledPermissions:'NOT_VERIFIED',productNetworkTrafficObserved:'NOT_TESTED',
+   installedProductPackageVerified:false,installedAppOpened:false,
+   beeRecognition:'NOT_TESTED',realArchiveRestore:'NOT_TESTED',
+   realVideoAccess:'NOT_ATTEMPTED',videoDeletion:'NOT_ATTEMPTED',
+   cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false,userDataModified:false};
+  serialized=JSON.stringify(blocked,null,2);
+ }
+ last=serialized;view.textContent=last;copy.disabled=false;
  status.textContent=(state==='PASS'?'Метаданные получены.':'Проверка ограничена: '+code+'.')+' Нажмите «Копировать результат».';
 }
 async function run(){
