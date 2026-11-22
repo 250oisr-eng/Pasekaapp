@@ -299,6 +299,49 @@ async function exportArchiveFromDatabase(db, cryptoProvider, options = {}) {
     entries
   };
   const blob = buildArchiveBlob(manifest, payloads);
+  // The initial IndexedDB snapshot is consistent, but digesting its Blob
+  // payloads is asynchronous. Recognition or another tab may change the live
+  // ledger/state/media while SHA-256 is running. Do not hand out a stale v1
+  // archive if an intervening change is observable. In particular, a newly
+  // recognized video must never be silently archived without its ledger.
+  const postHash = await readConsistentDatabaseSnapshot(db);
+  if (JSON.stringify(postHash.state) !== JSON.stringify(snapshot.state) ||
+      postHash.videos.length !== sortedVideos.length) {
+    fail('EXPORT_SNAPSHOT_CHANGED', 'The apiary changed during archive export. Retry from a fresh snapshot.');
+  }
+  const expectedById = new Map(sortedVideos.map((record, index) => [record.id, { record, entry: entries[index + 1] }]));
+  if (expectedById.size !== sortedVideos.length) {
+    fail('EXPORT_SNAPSHOT_CHANGED', 'Video identifiers are duplicated. Archive export was cancelled.');
+  }
+  for (const current of postHash.videos) {
+    const expected = expectedById.get(current?.id);
+    if (!expected || !current?.blob || typeof current.blob.slice !== 'function' ||
+        current.blob.size !== expected.entry.size ||
+        JSON.stringify(archiveVideoMetadata(current)) !== JSON.stringify(archiveVideoMetadata(expected.record))) {
+      fail('EXPORT_SNAPSHOT_CHANGED', 'The entrance video library changed during export. Retry from a fresh snapshot.');
+    }
+    // Detect a same-size/same-MIME Blob replacement even for legacy records
+    // without a persisted blobSha256 field.
+    const currentHashes = await hashBlobChunks(current.blob, cryptoProvider);
+    if (currentHashes.length !== expected.entry.chunkSha256.length ||
+        currentHashes.some((value, i) => value !== expected.entry.chunkSha256[i])) {
+      fail('EXPORT_SNAPSHOT_CHANGED', 'Entrance video bytes changed during export. Retry from a fresh snapshot.');
+    }
+  }
+  // Re-read after hashing, as the final hashes were computed asynchronously.
+  // This is a best-effort read consistency gate, not a substitute for an
+  // application-wide writer protocol and not permission to delete any copy.
+  const finalSnapshot = await readConsistentDatabaseSnapshot(db);
+  if (JSON.stringify(finalSnapshot.state) !== JSON.stringify(snapshot.state) ||
+      finalSnapshot.videos.length !== sortedVideos.length ||
+      finalSnapshot.videos.some(current => {
+        const expected = expectedById.get(current?.id);
+        return !expected || !current?.blob ||
+          current.blob.size !== expected.entry.size ||
+          JSON.stringify(archiveVideoMetadata(current)) !== JSON.stringify(archiveVideoMetadata(expected.record));
+      })) {
+    fail('EXPORT_SNAPSHOT_CHANGED', 'The apiary changed while finalizing its archive. Retry from a fresh snapshot.');
+  }
   return {
     blob,
     manifest,
