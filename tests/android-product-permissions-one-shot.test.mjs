@@ -31,3 +31,13 @@ test('report does not overclaim physical permission audit after install and laun
  assert.match(script,/NO_UNINSTALL_NO_RESET_NO_PRODUCT_CHANGE_NO_VIDEO_DELETE/);
  assert.doesNotMatch(script,/PHYSICAL_PERMISSION_AUDIT: PASS/);
 });
+
+
+test('one verified USB serial is enforced before install and before launching diagnostic',()=>{
+ assert.match(script,/function CheckedUsbSerial/);
+ assert.match(script,/function AssertSameUsb/);
+ assert.match(script,/USB_DEVICE_CHANGED_NO_INSTALL/);
+ assert.match(script,/AssertSameUsb \$serial[\s\S]*STAGE: 5\/6 INSTALL_ONLY_NEW_DIAGNOSTIC/);
+ assert.match(script,/AssertSameUsb \$serial[\s\S]*STAGE: 6\/6 LAUNCH_DIAGNOSTIC_ONLY/);
+ assert.match(script,/\$rows\.Count -ne 1/);
+});
