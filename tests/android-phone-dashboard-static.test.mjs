@@ -9,3 +9,10 @@ test('run and native clipboard controls',()=>{assert.match(html,/id="run"/);asse
 test('test-only scope and fail closed',()=>{assert.match(runner,/cleanupAuthorized:false,deleteAllowed:false/);assert.match(runner,/realVideos:'NOT_TESTED'/);assert.match(runner,/beeRecognition:'NOT_TESTED'/);assert.match(runner,/onnxWasm:'NOT_TESTED'/);assert.doesNotMatch(runner,/(?:\.delete\s*\(|deleteDatabase\s*\(|\.clear\s*\(|navigator\.mediaDevices|MediaStore|XMLHttpRequest|fetch\s*\()/);});
 test('private synthetic IndexedDB only',()=>{assert.match(runner,/paseka-phonechecks-synthetic-v1/);assert.match(runner,/single-synthetic-blob/);assert.match(runner,/new Blob\(\[bytes\]/);assert.match(runner,/crypto\.subtle\.digest/);});
 test('no real user media source names',()=>{assert.doesNotMatch(runner,/entrance_media|record_media|fileproof335|archive\.paseka/);assert.match(runner,/externalRequests:'NOT_ATTEMPTED'/);});
+
+test('synthetic fixture SHA256 matches known fixed reference and is actively enforced',async()=>{
+ const {createHash}=await import('node:crypto');
+ const expected=createHash('sha256').update('paseka-phonechecks-synthetic-v1').digest('hex');
+ assert.match(runner,new RegExp("const EXPECTED='"+expected+"'"));
+ assert.match(runner,/if\(sha!==EXPECTED\)throw Error\('SYNTHETIC_REFERENCE_HASH_MISMATCH'\)/);
+});

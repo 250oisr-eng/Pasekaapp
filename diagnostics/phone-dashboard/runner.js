@@ -2,7 +2,7 @@
 'use strict';
 const PACKAGE='ru.paseka.journal.diagnostic.phonechecks';
 const DB='paseka-phonechecks-synthetic-v1';
-const EXPECTED='47df47c91c67aa53a83deebc3b343dcf98a7aa1b12ca8068ba85d20d60b81b3a';
+const EXPECTED='d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2';
 const $=id=>document.getElementById(id);
 let reportText='';
 function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onabort=()=>reject(Error('TRANSACTION_ABORT'));tx.onerror=()=>reject(Error('TRANSACTION_ERROR'));});}
@@ -16,6 +16,7 @@ async function run(){
   if(!indexedDB||!crypto?.subtle||!Blob)throw Error('ANDROID_WEB_APIS_UNAVAILABLE');
   const bytes=new TextEncoder().encode('paseka-phonechecks-synthetic-v1');
   const sha=await digest(bytes);
+  if(sha!==EXPECTED)throw Error('SYNTHETIC_REFERENCE_HASH_MISMATCH');
   result.checks.syntheticSha={status:'PASS',sha256:sha};
   const blob=new Blob([bytes],{type:'application/octet-stream'});
   db=await openDb();
