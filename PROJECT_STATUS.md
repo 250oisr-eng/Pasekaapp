@@ -1,3 +1,12 @@
+## 2026-11-22 — PHYSICAL OnePlus NE2213/API36: USB preflight v3 PASS (user-submitted report)
+
+- Фактический вывод PowerShell `ANDROID_USB_READONLY_PREFLIGHT_V3`: `status=PASS`, `adb=PASS`, `device=PASS_ONE_AUTHORIZED`, `model=PASS_NE2213`, `sdk=PASS_API36`, `adbSha256=PASS_PINNED`; `diagnosticPackage=PRESENT_UNTOUCHED` для `ru.paseka.journal.archive.restoreproof335`; `productionPackage=ABSENT` для `ru.paseka.journal`.
+- `installs=NOT_ATTEMPTED`, `writes=NOT_ATTEMPTED`, `mediaRead=NOT_ATTEMPTED`, `cleanup=NOT_AUTHORIZED`. **Это доказательство подключения и состояния пакетов, НЕ доказательство запуска APK, Android restore/IndexedDB, 2 MP4, видео, распознавания или удаления.**
+- Ранее Windows CI [#45049940201](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45049940201) PASS на v3 runtime (mock tests в CI); физический отчёт получен отдельно. Нельзя устанавливать основное приложение или переписывать содержимое тестового `restoreproof335` только по этому PASS.
+- Next: отдельная не пишущая аппаратная проверка private `files/` установленного изолированного пакета и ранее закреплённого синтетического архива; **никаких повторов failed dd/restore, установки, очистки или удаления** до полного подтверждения безопасности.
+
+---
+
 ## 2026-11-22 — OnePlus physical USB v2: ADB/device/model/API PASS, package query BLOCKED; v3 mock CI PASS
 
 - Пользователь запустил v2 на физическом подключённом NE2213: `status=BLOCKED`, `adb=PASS`, `device=PASS_ONE_AUTHORIZED`, `model=PASS_NE2213`, `sdk=PASS_API36`, `adbSha256=PASS_PINNED`. Последний detail `ADB_COMMAND_FAILED_1` произошёл в запросе установленного пакета; `productionPackage` и `diagnosticPackage` оставлены `NOT_TESTED`. Установки/записи/чтение медиа `NOT_ATTEMPTED`, cleanup `NOT_AUTHORIZED`. `pm path` при отсутствии пакета *может* давать exit 1; отсутствие пакета ещё не доказано.
