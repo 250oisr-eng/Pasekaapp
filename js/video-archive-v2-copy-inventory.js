@@ -90,7 +90,12 @@ function inspectSnapshot(v,guard){
     if(m.data!=null){
      if(!videoUri(m.data)){issue('record_video_payload_unknown');continue;}
      add(store,'record_media',m.videoId,m.sourceSha256,m.sourceBytes,null);
-    }else if(!key(m.videoId))issue('record_video_id_missing');
+    }else{
+     // A video marker without payload is not evidence that a recorded video
+     // has been cleaned up. Flag even if an id is present.
+     issue('record_video_payload_missing');
+     if(!key(m.videoId))issue('record_video_id_missing');
+    }
    }
   }
  };
@@ -186,8 +191,12 @@ function inspectSnapshot(v,guard){
  // Cross-store metadata disagreement cannot be treated as consistent source evidence.
  // Compare only independently present fields; missing fields stay blocked elsewhere.
  const copiesByIdentity=new Map();
+ const seenCopyLocations=new Set();
  for(const copy of copies){
   if(copy.identity===null)continue;
+  const locationKey=JSON.stringify([copy.store,copy.identity]);
+  if(seenCopyLocations.has(locationKey))issue('duplicate_copy_location_identity');
+  seenCopyLocations.add(locationKey);
   const previous=copiesByIdentity.get(copy.identity)||[];
   for(const prior of previous){
    if(copy.sha256!==null&&prior.sha256!==null&&copy.sha256!==prior.sha256||
