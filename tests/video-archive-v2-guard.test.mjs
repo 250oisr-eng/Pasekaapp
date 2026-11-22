@@ -11,6 +11,7 @@ const recognized = (overrides = {}) => ({
  source:'entrance_media', videoId:'v1', resultId:'result1',
  cleanupState:'deleted', sourceSha256:hash, sourceBytes:3,
  sourceEvidenceVersion:1, recognizedAt:'2026-11-20T00:00:00Z',
+ stateRevisionId:'rev-before-recognition',sourceHashVerifiedAt:'2026-11-20T00:00:00Z',
  result:{label:'облёт'}, ...overrides
 });
 const ledger = entries => ({version:1,entries});
