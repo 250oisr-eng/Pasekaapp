@@ -1,3 +1,11 @@
+## 2026-11-22 — блокировка неверного результата перечисления video store перед экспортом
+
+- `readConsistentDatabaseSnapshot` обязательно требует **Array** от `entrance_media.getAll()`. Нестандартный `undefined`, `null`, объект или иное значение нельзя интерпретировать как «видеозаписей нет». Теперь отказ `VIDEO_SNAPSHOT_UNVERIFIED`, попытка abort read-only транзакции и отсутствие результата экспорта.
+- Это страховка от ошибочного драйвера, повреждённого адаптера или будущих нарушений контракта; стандартный IndexedDB `getAll()` возвращает Array. Проверена на 8 synthetic сценариях в `tests/archive-video-snapshot-integrity.test.mjs`; никакие реальные media не читались или удалялись.
+- Точный code/test SHA `eb11b71dc632b191bd6f557e42d57ba2d0f9db1c`, [общий Android CI #45063432833](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45063432833): 776/776 тестов PASS и debug build success; isolated archive workflow skipped, не PASS. Исправление не доказывает atomically committed full archive, полноценный video-ledger v2 или production restore. Без права cleanup.
+
+---
+
 ## Дополнение к PR #212 — аудит осиротевших видеокопий (2026-11-20)
 
 - Исправлен `inspectStagingRecognitionCopies(db)` в `js/paseka-archive-restore.js`: прежде он рассматривал только видеокопии staging, для которых сохранился `kind=session` header. Теперь только по индексным **ключам**, без загрузки Blob в память, проверяются и видеокопии с потерянным заголовком. Такие копии получают `status='orphaned_header'`, `missingSessionHeader=true` и `action='manual_review_required'`.
