@@ -1,0 +1,29 @@
+name: Android Restore335 V8 opaque find shape proof
+on:
+  push:
+    paths:
+      - 'tools/android-restore335-find-output-shape-v8.ps1'
+      - 'tests/android-restore335-find-output-shape-v8.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v8.yml'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-find-output-shape-v8.ps1'
+      - 'tests/android-restore335-find-output-shape-v8.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v8.yml'
+jobs:
+  readonly-v8:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PowerShell parser
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-find-output-shape-v8.ps1',[ref]$tok,[ref]$err)
+          if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
+      - name: Static privacy and safety regression checks
+        shell: pwsh
+        run: node --test tests/android-restore335-find-output-shape-v8.test.mjs
