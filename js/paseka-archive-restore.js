@@ -177,17 +177,23 @@ async function putStagingEntryAndUpdateSession(db, record, session) {
     };
     existingRequest.onsuccess = () => {
       const existing = existingRequest.result;
-      if (existing && (existing.sessionId !== currentSession.sessionId || existing.kind === 'session')) {
-        failure = Object.assign(new Error('Staging entry identity conflicts with an existing record.'), { code: 'STAGING_ENTRY_ID_CONFLICT' });
+      // Each manifest entry is written exactly once. Resuming a partial
+      // import requires a fresh archive verification, not overwriting the
+      // existing Blob under the same primary key. Never silently replace
+      // an existing staged/rollback copy, even if its kind and session match.
+      if (existing !== undefined) {
+        failure = Object.assign(new Error('A staged entry already exists at this primary key; no Blob was overwritten.'), { code: 'STAGING_ENTRY_ID_CONFLICT' });
         try { tx.abort(); } catch (error) {}
         return;
       }
       nextSession = {
         ...currentSession,
-        stagedCount: currentSession.stagedCount + (existing ? 0 : 1),
+        stagedCount: currentSession.stagedCount + 1,
         stagingEpoch: nextEpoch
       };
-      store.put({ ...record, stagingRevision: nextEpoch });
+      // add() is a second, native uniqueness gate if an IndexedDB adapter
+      // unexpectedly reported a missing key during the prior get().
+      store.add({ ...record, stagingRevision: nextEpoch });
       store.put(nextSession);
     };
     }; // ledgerRequest.onsuccess
