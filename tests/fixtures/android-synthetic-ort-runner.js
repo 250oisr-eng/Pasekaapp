@@ -35,7 +35,7 @@ async function run(ort=root.ort){
   const results=await session.run({x:input});
   const y=results?.y;
   if(!y||y.type!=='float32'||y.dims?.length!==1||y.dims[0]!==1||
-    y.data?.length!==1||Math.abs(y.data[0]-5)>1e-6)
+    y.data?.length!==1||y.data[0]!==5)
     return status('BLOCKED','SYNTHETIC_OUTPUT_MISMATCH');
   return status('PASS','LOCAL_ONNX_WASM_ADD_2_EXACT',{input:3,output:5});
  }catch(error){
