@@ -495,7 +495,15 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
       let pending = Object.keys(reads).length;
       const process = () => {
         try {
-          const currentState = values.currentState || null;
+          // A falsy but present row (false/0/'') is not an empty database.
+          // Never overwrite it merely because the caller expected null.
+          const currentState = values.currentState == null ? null : values.currentState;
+          if (currentState !== null &&
+              (typeof currentState !== 'object' || Array.isArray(currentState) ||
+               !currentState.meta || typeof currentState.meta !== 'object' ||
+               Array.isArray(currentState.meta))) {
+            fail('RESTORE_LIVE_STATE_UNVERIFIED', 'The live journal is not a verifiable state object. The archive was not imported.');
+          }
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const currentVideos = assertIndexedDbRows(values.currentVideos, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
           const session = values.session;
