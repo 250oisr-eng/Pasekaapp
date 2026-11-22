@@ -2,7 +2,7 @@
 'use strict';
 // Isolated diagnostic: explicit clipboard write only after a user press.
 // Never uploads data, reads user media, modifies archives or authorizes cleanup.
-const PACKAGE='ru.paseka.journal.diagnostic.archivepreflight';
+const PACKAGE='ru.paseka.journal.diagnostic.archivecopyv2';
 function checkedReport(value) {
  if(typeof value!=='string' || value.length===0 || value.length>32768)
   throw Error('COPY_REPORT_SIZE_INVALID');
