@@ -1,3 +1,11 @@
+## 2026-11-22 — матрица доказательств matpalm/bnn: checkpoint не опубликован в проверенных источниках
+
+- Прочитаны upstream README, LICENSE, .gitignore, predict.py, freeze_graph.sh и run_sample_training_pipeline.sh; README использует локальные ckpts/<run>, gitignore исключает ckpts, а freeze_graph.sh ссылается на локальный checkpoint. GitHub Releases нет. MIT относится к исходному коду, отдельная лицензия и точный SHA конкретных обученных весов неизвестны.
+- Добавлена запись matpalm-bnn в tests/fixtures/bee-detector-candidate-inventory.json со статусом BLOCKED/NO_PUBLISHED_CHECKPOINT_VERIFIED и регрессионный тест в tests/video-bee-candidate-inventory.test.mjs; подробности в docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md.
+- Не утверждать отсутствие весов во всём интернете. Не скачивались веса, не выполнялся сторонний код, inference/cleanup/production/data не затронуты. Следующее: CI на exact HEAD, затем исследовать новый кандидат с явно опубликованным весовым файлом и правами.
+
+---
+
 ## 2026-11-22 — дополнительные кандидаты детекции летка (research only)
 
 - Проверены первичные страницы matpalm/bnn (архивный MIT исходный код, карта центров пчёл; подтверждённого конкретного checkpoint и прав на веса нет) и TobysWorkshop/Hive-Cam (явные ограничения коммерческого использования и перераспространения; исключён для bundling). Результат добавлен в docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md.
