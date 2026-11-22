@@ -49,4 +49,6 @@ jobs:
         shell: pwsh
         run: |
           node --test tests/android-restore335-fixed-file-predicates-v10.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/android-restore335-report-writer-provenance.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
