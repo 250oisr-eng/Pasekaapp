@@ -908,6 +908,8 @@ function discardArchiveRollbackSnapshot(db, backupId) {
       if (!settled) { settled = true; reject(error); }
     };
     const abortWith = error => {
+      // Aborted sibling requests must not hide the first verified reason.
+      if (failure) return;
       failure = error;
       try { tx.abort(); } catch (abortError) { rejectOnce(error); }
     };
@@ -918,61 +920,102 @@ function discardArchiveRollbackSnapshot(db, backupId) {
       const historyRequest = historyStore.get(backupId);
       historyRequest.onerror = () => abortWith(historyRequest.error || new Error('Could not read archive history.'));
       historyRequest.onsuccess = () => {
-        const history = historyRequest.result;
-        if (!history || !['committed', 'reverted'].includes(history.status) || !history.rollbackSessionId) {
-          abortWith(Object.assign(new Error('There is no retained rollback snapshot for this archive.'), { code: 'ROLLBACK_NOT_AVAILABLE' }));
-          return;
-        }
-        const rollbackSessionId = history.rollbackSessionId;
-        const sessionRequest = stagingStore.get(rollbackSessionId);
-        const keysRequest = stagingStore.index('sessionId').getAllKeys(rollbackSessionId);
-        let pending = 2, session, keys;
-        const finish = () => {
-          pending--;
-          if (pending !== 0) return;
-          if (!session || session.kind !== 'rollback_session' || session.sourceBackupId !== backupId ||
-              !['ready', 'used'].includes(session.status) || !Array.isArray(keys) ||
-              session.stagedCount !== session.totalEntries || keys.length !== session.totalEntries + 1 ||
-              !keys.includes(rollbackSessionId)) {
-            abortWith(Object.assign(new Error('The rollback snapshot could not be verified and was not deleted.'), { code: 'ROLLBACK_SNAPSHOT_INVALID' }));
-            return;
+        try {
+          const history = historyRequest.result;
+          if (!history || !['committed', 'reverted'].includes(history.status) || !history.rollbackSessionId) {
+            fail('ROLLBACK_NOT_AVAILABLE', 'There is no retained rollback snapshot for this archive.');
           }
-          for (const key of keys) stagingStore.delete(key);
-          historyStore.put({
-            ...history,
-            rollbackSessionId: null,
-            rollbackAvailable: false,
-            rollbackDiscardedAt: new Date().toISOString()
-          });
-          if (history.importSessionId) {
-            const importRequest = stagingStore.get(history.importSessionId);
-            importRequest.onerror = () => abortWith(importRequest.error || new Error('Could not update the import session.'));
-            importRequest.onsuccess = () => {
-              const importSession = importRequest.result;
-              if (importSession && importSession.kind === 'session') {
-                const updated = { ...importSession };
-                delete updated.rollbackSessionId;
-                stagingStore.put(updated);
+          const rollbackSessionId = history.rollbackSessionId;
+          const sessionRequest = stagingStore.get(rollbackSessionId);
+          const keysRequest = stagingStore.index('sessionId').getAllKeys(rollbackSessionId);
+          let pending = 2, session, keys;
+          const finish = () => {
+            if (--pending !== 0 || failure) return;
+            try {
+              const verifiedKeys = assertIndexedDbRows(keys, 'ROLLBACK_DISCARD_KEYS_UNVERIFIED');
+              const keySet = new Set(verifiedKeys);
+              const videoPrefix = rollbackSessionId + ':video:';
+              if (!session || session.kind !== 'rollback_session' || session.sessionId !== rollbackSessionId ||
+                  session.sourceBackupId !== backupId || !['ready', 'used'].includes(session.status) ||
+                  session.stagedCount !== session.totalEntries ||
+                  verifiedKeys.length !== session.totalEntries + 1 ||
+                  keySet.size !== verifiedKeys.length || !keySet.has(rollbackSessionId) ||
+                  verifiedKeys.some(key => typeof key !== 'string' ||
+                    !(key === rollbackSessionId || key === rollbackSessionId + ':state' ||
+                      (key.startsWith(videoPrefix) && key.length > videoPrefix.length)))) {
+                fail('ROLLBACK_SNAPSHOT_INVALID', 'The rollback snapshot keys or ownership cannot be verified; no records were deleted.');
               }
-            };
-          }
-          result = { backupId, deletedRecords: (keys || []).length };
-        };
-        sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read rollback session.'));
-        sessionRequest.onsuccess = () => { session = sessionRequest.result; finish(); };
-        keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not read rollback records.'));
-        keysRequest.onsuccess = () => { keys = keysRequest.result; finish(); };
+              // Index-only kind verification avoids loading large Blob copies.
+              // Matching key counts alone cannot prove that a row belongs to
+              // the rollback snapshot or that it is safe to delete.
+              const kindIndex = stagingStore.index('kind');
+              const kinds = new Map();
+              let kindsPending = 3;
+              const verifyKinds = () => {
+                if (failure || --kindsPending !== 0) return;
+                try {
+                  const invalid = verifiedKeys.some(key => kinds.get(key) !== (
+                    key === rollbackSessionId ? 'rollback_session' :
+                    key === rollbackSessionId + ':state' ? 'rollback_state' : 'rollback_video'
+                  ));
+                  if (invalid) fail('ROLLBACK_DISCARD_KIND_INVALID', 'The rollback snapshot includes an unverified record kind; no records were deleted.');
+                  for (const key of verifiedKeys) stagingStore.delete(key);
+                  historyStore.put({
+                    ...history,
+                    rollbackSessionId: null,
+                    rollbackAvailable: false,
+                    rollbackDiscardedAt: new Date().toISOString()
+                  });
+                  if (history.importSessionId) {
+                    const importRequest = stagingStore.get(history.importSessionId);
+                    importRequest.onerror = () => abortWith(importRequest.error || new Error('Could not update the import session.'));
+                    importRequest.onsuccess = () => {
+                      try {
+                        const importSession = importRequest.result;
+                        if (importSession && importSession.kind === 'session') {
+                          const updated = { ...importSession };
+                          delete updated.rollbackSessionId;
+                          stagingStore.put(updated);
+                        }
+                      } catch (error) { abortWith(error); }
+                    };
+                  }
+                  result = { backupId, deletedRecords: verifiedKeys.length };
+                } catch (error) { abortWith(error); }
+              };
+              for (const kind of ['rollback_session', 'rollback_state', 'rollback_video']) {
+                const kindRequest = kindIndex.getAllKeys(kind);
+                kindRequest.onerror = () => abortWith(kindRequest.error || new Error('Could not verify rollback record kinds.'));
+                kindRequest.onsuccess = () => {
+                  try {
+                    const kindKeys = assertIndexedDbRows(kindRequest.result, 'ROLLBACK_DISCARD_KINDS_UNVERIFIED');
+                    for (const key of kindKeys) {
+                      if (keySet.has(key)) {
+                        if (kinds.has(key)) fail('ROLLBACK_DISCARD_KIND_INVALID', 'A rollback record has contradictory indexed kinds.');
+                        kinds.set(key, kind);
+                      }
+                    }
+                    verifyKinds();
+                  } catch (error) { abortWith(error); }
+                };
+              }
+            } catch (error) { abortWith(error); }
+          };
+          sessionRequest.onerror = () => abortWith(sessionRequest.error || new Error('Could not read rollback session.'));
+          sessionRequest.onsuccess = () => { session = sessionRequest.result; finish(); };
+          keysRequest.onerror = () => abortWith(keysRequest.error || new Error('Could not read rollback records.'));
+          keysRequest.onsuccess = () => { keys = keysRequest.result; finish(); };
+        } catch (error) { abortWith(error); }
       };
       tx.oncomplete = () => {
         if (!settled) { settled = true; resolve(result); }
       };
       tx.onabort = () => rejectOnce(failure || tx.error || new Error('Rollback snapshot cleanup transaction aborted.'));
       tx.onerror = () => rejectOnce(failure || tx.error || new Error('Rollback snapshot cleanup transaction failed.'));
-    } catch (error) {
-      rejectOnce(error);
-    }
+    } catch (error) { rejectOnce(error); }
   });
 }
+
 async function listArchiveImportHistory(db) {
   ensureStores(db);
   const tx = db.transaction(HISTORY_STORE, 'readonly');
