@@ -1,3 +1,13 @@
+## 2026-11-22 — Android preflight: ровно две кнопки «Провести тест» и «Копировать результат»
+
+- По прямому запросу пользователя удалено требование выбирать получателя при отправке. В новой изолированной версии кнопка **«Копировать результат»** после `PASS` или `BLOCKED` копирует весь JSON через нативный `@capacitor/clipboard@6.0.0`, после чего пользователь сам вставляет его в чат. Пока тест не завершён, кнопка недоступна; копирование только по явному нажатию. Нет автоматических публикаций и отправки данных в сеть.
+- Изменены `diagnostics/archive-preflight/index.html`, `runner.js`, `scripts/prepare-android-archive-preflight.mjs`, `.github/workflows/android-archive-preflight-apk.yml`, перепроверены 6 тестов `tests/android-archive-share-report.test.mjs`, добавлен `diagnostics/archive-preflight/copy-report.js` с deny-all валидацией и сохранением полного оригинального JSON. Production package.json не менялся; plugin добавляется только в CI checkout.
+- Точный **code SHA** `25f072196ad3fdb452bd1d2e572eea9a9799959c`: [isolated APK workflow #45006853621](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45006853621) **completed/success** (полный npm test, synthetic guard, native ClipboardPlugin, APK, permissions, артефакт). [Общий Android build #45006853589](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45006853589) **completed/success**. Старый isolated archive job — skipped, не считать прошедшим.
+- GitHub artifact ID `14748376078`; ZIP SHA-256 `370ae65eae9b4ce524bc8624e4f34e9e85c19258ecff844690e9eb23e68f422a`. Извлечённый APK `Paseka-Archive-Preflight-Copy-2026-11-22.apk`: 3 753 706 байт, SHA-256 `bd4deb644019ba847de3a6e1cb15154d4afda5f6961e69294ab832f52cf4f5d4`. Независимо проверены ZIP, наличие `assets/public/copy-report.js`, наличие двухкнопочного интерфейса и `com.capacitorjs.plugins.clipboard.ClipboardPlugin` в APK.
+- На физическом Android новая кнопка пока **NOT_TESTED**. Ранее подтверждённый синтетический PASS относится к предыдущему APK; его не переносить на новую сборку. A02/A03/A08/A09, реальные видео и удаление видео остаются **NOT_TESTED/NOT_AUTHORIZED**. Main и пользовательские данные не изменялись, Draft PR #360 без слияния.
+
+---
+
 ## 2026-11-22 — Android preflight: две кнопки и штатное меню отправки
 
 - По прямому запросу пользователя интерфейс изолированной диагностики получил две кнопки: **«Провести тест»** и **«Отправить результат»**. Вторая активна только после получения структурного PASS/BLOCKED JSON. При нажатии открывается штатный Android Sharesheet через бесплатный `@capacitor/share@6.0.3`. Пользователь выбирает приложение-получатель; автоматической передачи в ChatGPT или иной сервис нет, подтверждение получения не подделывается.
