@@ -9,7 +9,8 @@ function inspect(records) {
  const keys=new Set(),results=new Set(),sources=new Map();
  if(!Array.isArray(records)) {
   return Object.freeze({ok:false,issues:['RECORD_SET_INVALID'],requiresManualReview:true,
-   cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false});
+   cleanupAuthorized:false,restoreAuthorized:false,archiveSafe:false,
+   physicalRestoreVerified:false,byteIntegrityVerified:false});
  }
  if(records.length > 100000)errors.push('RECORD_SET_TOO_LARGE');
  for(const record of records.slice(0,100001)) {
