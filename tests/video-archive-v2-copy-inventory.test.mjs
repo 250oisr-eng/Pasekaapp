@@ -599,3 +599,36 @@ test('closed database cannot silently produce a clean inventory report',async()=
  db.close();
  await assert.rejects(audit(db,guard));
 });
+
+test('transient blob URL in recorded journal video is not reported as durable media',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'temporary',
+   sourceSha256:digest,sourceBytes:3,data:'blob:https://localhost/only-temporary'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,1);
+ assert.ok(report.issues.includes('volatile_blob_url_requires_source_provenance'));
+ assert.equal(report.cleanupAuthorized,false);
+ assert.equal(report.dataModified,false);
+ assert.equal(JSON.stringify(report).includes('only-temporary'),false);
+ db.close();
+});
+test('empty journal data URL is not accepted as reliable preserved video bytes',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'empty',
+   sourceSha256:digest,sourceBytes:3,data:'data:video/mp4;base64,'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.copyCount,1);
+ assert.ok(report.issues.includes('empty_video_data_url'));
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
+test('nonempty inline journal video does not receive the transient or empty-payload warning',async()=>{
+ const db=await setup({state:{meta:{schemaVersion:15,revisionId:'r1'},
+  records:[{id:'visit',media:[{kind:'video',videoId:'saved',
+   sourceSha256:digest,sourceBytes:3,data:'data:video/mp4;base64,YWJj'}]}]}});
+ const report=await audit(db,guard);
+ assert.equal(report.issues.includes('empty_video_data_url'),false);
+ assert.equal(report.issues.includes('volatile_blob_url_requires_source_provenance'),false);
+ assert.equal(report.cleanupAuthorized,false);
+ db.close();
+});
