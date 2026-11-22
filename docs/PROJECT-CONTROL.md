@@ -1,3 +1,10 @@
+## 2026-11-22 — A09 Android PackageManager diagnostic APK (CI PASS, physical NOT_TESTED)
+
+- [ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md](ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md) — описание безопасного аудитa именно installed permissions, строгие границы сетевых доказательств и SHA готового APK.
+- [../diagnostics/archive-a09/runner.js](../diagnostics/archive-a09/runner.js), [../diagnostics/archive-a09/copy-report.js](../diagnostics/archive-a09/copy-report.js) — интерфейс «Провести тест → Копировать результат» и ограниченный JSON PASS/BLOCKED; [../scripts/install-android-a09-permission-plugin.mjs](../scripts/install-android-a09-permission-plugin.mjs) — только собственный Android package через PackageManager; [../tests/android-a09-installed-permissions.test.mjs](../tests/android-a09-installed-permissions.test.mjs) — регрессии; [../.github/workflows/android-a09-installed-permissions-apk.yml](../.github/workflows/android-a09-installed-permissions-apk.yml) — точная сборка и проверка APK.
+
+---
+
 ## 2026-11-22 — A09 доказательная матрица Android permissions/network
 
 - [ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md](ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md) — разделяет доказанную CI проверку permissions внутри APK и отсутствующий аудит установленного пакета на устройстве и сетевого трафика; фиксирует обязательный two-button Copy UX и запреты реальных медиа/удаления.
