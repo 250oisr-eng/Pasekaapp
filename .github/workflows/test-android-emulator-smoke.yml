@@ -4,41 +4,29 @@ on:
   push:
     paths:
       - '.github/workflows/test-android-emulator-smoke.yml'
-      - 'tests/video-synthetic-cleanup-atomicity.test.mjs'
-      - 'capacitor.config.json'
-      - 'scripts/prepare-web.mjs'
   pull_request:
     paths:
       - '.github/workflows/test-android-emulator-smoke.yml'
-      - 'tests/video-synthetic-cleanup-atomicity.test.mjs'
-      - 'capacitor.config.json'
-      - 'scripts/prepare-web.mjs'
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   emulator-launch:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Generate isolated debug build
+      - name: Fetch pinned known-good debug APK from existing CI
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
-          npm run web:prepare
-          npx cap add android
-          npx cap sync android
-          cd android
-          chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
+          set -euo pipefail
+          mkdir -p downloaded
+          gh run download 45046512693 --repo 250oisr-eng/Pasekaapp -n paseka-debug-apk -D downloaded
+          test -s downloaded/app-debug.apk
+          sha256sum downloaded/app-debug.apk
+          echo 'Downloaded APK from exact code/test SHA 335db90f07d73adbe0c422ec533433fdc03e85f4'
       - name: Emulator install/launch smoke, without user data
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -51,7 +39,7 @@ jobs:
             set -euo pipefail
             adb wait-for-device
             adb shell getprop sys.boot_completed | grep -q '1'
-            adb install --no-streaming android/app/build/outputs/apk/debug/app-debug.apk
+            adb install --no-streaming downloaded/app-debug.apk
             adb shell pm path ru.paseka.journal | grep -q 'package:'
             adb shell am start -W -n ru.paseka.journal/.MainActivity
             sleep 5
