@@ -1,0 +1,29 @@
+name: Android Restore335 V7 readonly find-type proof
+on:
+  push:
+    paths:
+      - 'tools/android-restore335-private-findtype-stage-v7.ps1'
+      - 'tests/android-restore335-private-findtype-v7.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v7.yml'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-private-findtype-stage-v7.ps1'
+      - 'tests/android-restore335-private-findtype-v7.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v7.yml'
+jobs:
+  readonly-v7:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PowerShell syntax verification
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-private-findtype-stage-v7.ps1',[ref]$tok,[ref]$err)
+          if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
+      - name: Static negative regression tests
+        shell: pwsh
+        run: node --test tests/android-restore335-private-findtype-v7.test.mjs
