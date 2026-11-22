@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tools/android-restore335-private-readonly-stage.ps1'
       - 'tests/android-usb-preflight-mock.ps1'
       - '.github/workflows/test-android-usb-readonly-preflight.yml'
   pull_request:
     paths:
       - 'tools/android-usb-device-readonly-preflight.ps1'
+      - 'tools/android-restore335-private-readonly-stage.ps1'
       - '.github/workflows/test-android-usb-readonly-preflight.yml'
 
 permissions:
@@ -38,6 +40,27 @@ jobs:
             }
           }
           Write-Host "POWERSHELL_PARSE_AND_ADB_COMMAND_AUDIT_PASS"
+      - name: Parse and guard private stage against all writes
+        shell: pwsh
+        run: |
+          $file = 'tools/android-restore335-private-readonly-stage.ps1'
+          $t = $null
+          $e = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$t, [ref]$e)
+          if ($e.Count -gt 0) { throw 'PRIVATE_STAGE_PARSE_FAILED' }
+          $src = Get-Content -Raw $file
+          foreach ($token in @('PASS_PRESENT_DIRECTORY','PRIVATE_FILES_NONEMPTY_NO_ACTION','ABSENT_IN_EMPTY_LISTING','NOT_AUTHORIZED','PASS_PINNED')) {
+            if (-not $src.Contains($token)) { throw "MISSING_PRIVATE_STAGE_GUARD_$token" }
+          }
+          $calls = @([regex]::Matches($src, "(?m)^\\s*(?:\\$[A-Za-z][A-Za-z0-9]*\\s*=\\s*)?Call-Adb\\s+@\\('([^'\\r\\n]*)'"))
+          foreach ($call in $calls) {
+            $name = $call.Groups[1].Value
+            if ($name -notin @('version','devices','-s')) { throw "UNEXPECTED_ADB_PREFIX_$name" }
+          }
+          foreach ($bad in @('adb install','adb push','adb pull','pm clear','am force-stop','toybox dd','toybox rm','run-as $privatePackage sh')) {
+            if ($src.Contains($bad)) { throw "PRIVATE_STAGE_DISALLOWED_$bad" }
+          }
+          Write-Host 'RESTORE335_PRIVATE_READONLY_STATIC_PASS'
       - name: Windows mock regression — absent vs denied packages
         shell: pwsh
         run: ./tests/android-usb-preflight-mock.ps1
