@@ -1,3 +1,11 @@
+## 2026-11-22 — конкурентная запись результатов распознавания: дополнительный regression
+
+- В Draft PR #368 добавлен тест `concurrent distinct video results cannot commit the same resultId`: две одновременные заявки для разных синтетических Blob-видео с одинаковым resultId проходят через оригинальную `recordRecognitionResult` и IndexedDB readwrite; ожидается ровно один сохранённый результат и один `conflicting_recognition_result_id`. Оба исходника должны остаться неизменными.
+- Проверяется не только повреждённая история и последовательное повторное использование ID, но и гонка двух записей без изменений API, IndexedDB schema, archive format, Android permissions, удаления или восстановления. Тест SHA `ed85d33aed7f5dc5301af6948d56e5742a9a38fd`. CI этого SHA/последующего документального HEAD пока не засчитан; старые отменённые Android workflow не являются PASS.
+- Физический телефон, модель пчёл, внешние Camera/Gallery копии и настоящее удаление видео **NOT_TESTED**. Следующая проверка — точный актуальный SHA в CI; потом зафиксировать результат и не сливать Draft без разрешения.
+
+---
+
 ## 2026-11-22 — additional atomic resultId collision gate
 
 - Дополнительно к fail-closed чтению существующей истории, `recordRecognitionResult` теперь отклоняет **новую** запись с уже существующим `resultId` у другой пары `source/videoId` прямо в атомарной readwrite-транзакции. Результат: `conflicting_recognition_result_id`, rollback, оригиналы не меняются.
