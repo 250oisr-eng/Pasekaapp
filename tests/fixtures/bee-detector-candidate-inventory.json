@@ -95,6 +95,21 @@
       "fieldBenchmark": "NOT_ENTRANCE",
       "offlineAndroid": "UNVERIFIED",
       "status": "BLOCKED"
+    },
+    {
+      "id": "buzzlytics-entrance",
+      "source": "https://github.com/okayxsh/Buzzlytics---CSCI435/tree/d248d76aff72500fe85498d93cfa269eca835d9a",
+      "codeLicense": "UNVERIFIED",
+      "weightsLicense": "UNVERIFIED",
+      "weightsArtifact": "cv_pipeline/weights/best.pt",
+      "gitBlob": "ec7600af3b36b6479f9bd27093f1656f565acf46",
+      "baseModel": "YOLOv8n COCO",
+      "baseModelLicense": "NEEDS_TRANSITIVE_REVIEW",
+      "trainingDataset": "VnPollenBee",
+      "task": "hive_entrance_bee_detection",
+      "fieldBenchmark": "UNVERIFIED",
+      "offlineAndroid": "UNVERIFIED",
+      "status": "BLOCKED"
     }
   ]
 }
