@@ -1,3 +1,13 @@
+## 2026-11-23 — Draft PR #402: stored null recognition ledger P0, exact-SHA CI PASS
+
+- **Code+tests+initial-docs SHA `c283c74930ff20a2dcf2959c8bf4c8fac791fcd0`**: [Fast Quality #45070364455](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364455) **completed/success, 864/864 PASS, 0 fail, 0 skipped**. [Android #45070364533](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364533) **completed/success**, regression suite, full debug APK build and artifact upload success; ZIP artifact [#14773350972](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45070364533/artifacts/14773350972) 3,458,857 bytes (**не SHA бинарного APK**).
+- [Draft PR #402](https://github.com/250oisr-eng/Pasekaapp/pull/402) основан на #401 и остаётся unmerged; `main` = `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7` на старте цикла. В `js/paseka-archive.js` и `js/paseka-archive-restore.js` только отсутствующий `undefined` ledger допускается как empty key; сохранённый `null` блокирует v1 export/stage/commit/rollback с `VIDEO_LEDGER_UNVERIFIED`. Read-only staging copy inspector показывает `ok:false`, не `no_recognition_history`.
+- Добавлено 7 synthetic tests: 5 отказов на stored null, позитивный пустой валидный ledger и запрет непустой истории; проверена неизменность state/staging/history/rollback. Это **не** утверждение о реальном повреждении IndexedDB/Android.
+- После точного проверенного SHA будут docs-only коммиты: **не считать новый HEAD проверенным без отдельного CI**. В format/schema/permissions/production/устройство/реальные видео ничего не менялось. STABILIZATION_ONLY, Restore335 STOP; v2 ledger/tombstones/provenance ещё не интегрированы, удаление видео и restore не авторизованы. Merge/deploy не выполнялись.
+- **Следующая P0 проверка:** запрет перезаписи существующей staging-записи при частичном импорте/гонке, включая конфликт по первичному ключу `id`, с синтетическими регрессиями и новым stacked Draft PR.
+
+---
+
 ## 2026-11-23 — P0: stored null recognition ledger ≠ отсутствующая история (Draft; CI pending)
 
 - Родитель: [Draft #401](https://github.com/250oisr-eng/Pasekaapp/pull/401) на SHA `1ca21b55482620e508aed199b87e031975e1ecf3`, Fast Quality #45069993189 и Android #45069993246 завершены **completed/success** на этом SHA. Родительская проверка не доказывает новых изменений.
