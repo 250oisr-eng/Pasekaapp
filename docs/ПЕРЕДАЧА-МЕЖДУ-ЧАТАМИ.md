@@ -1,3 +1,12 @@
+### 2026-11-23 — Draft #413 SHA-verified PASEKA02 metadata-only recovery and journal Data URL SHA
+
+- **Exact verified code/test SHA `87d63fa51d7bcd3abdc9db43e0052cf2b749dbf6`**: [Fast Quality #45076278599](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45076278599) **completed/success, 1067/1067 tests PASS, 0 fail, 0 skipped**; [Android Debug #45076278725](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45076278725) **completed/success**, regression tests and debug APK build/upload.
+- First code SHA `9ae6ea4c5de83d9ee754c401f55e7b84bc1f04d6` **FAILED 26/1058** because the modern `paseka-sha256.js` missed `hashVideoDataUrlHex` from the older v2 source line; this caused `V2_RECORD_ADAPTER_UNAVAILABLE` in isolated journal-video and dry-run tests. Integrated only the existing streaming Data URL SHA implementation (Sha256/abort-safe) into current SHA module without replacing modern Blob algorithm; added `tests/sha256-journal-video-dataurl.test.mjs` covering large multipart video, Android octet-stream, invalid base64/encoding and abort. No real files touched.
+- All five inherited v2 test suites and modern 1000-test base now pass. **Scope remains isolated** metadata-only atomic import/rollback and read-only full-file dry-run, not an enabled product archive. PASEKA02 pending original Blob commit/quarantine/rollback, full v2 migration, physical Android reboot/Gallery/Downloads copy inventory, and original delete remain P0 blocked; no merge/deployment, Restore335 STOP.
+- The current docs-only SHA resulting from this entry must receive its own exact-HEAD CI; do not inherit prior result without verification.
+
+---
+
 ## 2026-11-23 — P0 isolated PASEKA02 metadata-only atomic commit/rollback, Draft #413
 
 - Parent [Draft #412](https://github.com/250oisr-eng/Pasekaapp/pull/412) HEAD `cc494662fd15ca0d7209ee151f3f9f07ede5a169`: Fast Quality #45075921205 **completed/success 1000/1000 PASS**; Android #45075921196 **completed/success**, debug APK build/upload. The first #412 code SHA failed 999/1000 because one negative test fixture lacked fields newly required by #411; corrected before final 1000/1000 PASS. No real data.
