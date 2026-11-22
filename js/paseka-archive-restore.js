@@ -50,17 +50,37 @@ function transactionDone(tx) {
     tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted.'));
   });
 }
+function verifyArchiveHistoryRow(row, backupId) {
+  // IndexedDB.get() returns undefined for an absent key. A present falsy
+  // value, wrong ID or malformed row must not be silently treated as missing,
+  // which would let a later import overwrite unverified lineage.
+  if (row === undefined) return null;
+  if (!row || typeof row !== 'object' || Array.isArray(row) ||
+      row.backupId !== backupId) {
+    fail('ARCHIVE_HISTORY_IDENTITY_UNVERIFIED', 'Archive import history is not a verified row for this backup ID; no data was replaced.');
+  }
+  return row;
+}
+function verifyBackupStagingLookup(row, backupId) {
+  if (row === undefined) return null;
+  if (!row || typeof row !== 'object' || Array.isArray(row) ||
+      row.backupId !== backupId || row.kind !== 'session' ||
+      typeof row.id !== 'string' || !row.id || row.id !== row.sessionId) {
+    fail('STAGING_BACKUP_LOOKUP_UNVERIFIED', 'The staged backup index returned an unverified session; no new staging was created.');
+  }
+  return row;
+}
 async function getHistory(db, backupId) {
   const tx = db.transaction(HISTORY_STORE, 'readonly');
   const result = await requestValue(tx.objectStore(HISTORY_STORE).get(backupId));
   await transactionDone(tx);
-  return result || null;
+  return verifyArchiveHistoryRow(result, backupId);
 }
 async function findSessionByBackupId(db, backupId) {
   const tx = db.transaction(STAGING_STORE, 'readonly');
   const result = await requestValue(tx.objectStore(STAGING_STORE).index('backupId').get(backupId));
   await transactionDone(tx);
-  return result || null;
+  return verifyBackupStagingLookup(result, backupId);
 }
 async function updateSession(db, session) {
   const sessionId = session.sessionId || session.id;
@@ -511,8 +531,9 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) {
             fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
           }
-          if (values.history && values.history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
-          if (values.history && values.history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
+          const history = verifyArchiveHistoryRow(values.history, staged.session.backupId);
+          if (history && history.status !== 'reverted') fail('ALREADY_IMPORTED', 'This archive has already been imported.');
+          if (history && history.fingerprint !== session.fingerprint) fail('BACKUP_ID_COLLISION', 'This backup ID was already imported with different content.');
           if (!Number.isSafeInteger(session.stagingEpoch) || session.stagingEpoch < 0) fail('STAGING_LEGACY_SESSION', 'This staged import predates revision tracking. Discard it and import the archive again.');
           if (session.backupId !== staged.session.backupId || session.fingerprint !== staged.session.fingerprint ||
               session.baselineMediaFingerprint !== staged.session.baselineMediaFingerprint) fail('STAGING_SESSION_CHANGED', 'Staged import session changed during restore.');
