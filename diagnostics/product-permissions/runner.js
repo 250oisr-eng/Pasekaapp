@@ -35,7 +35,8 @@ function report(state,code,extra={}){
   serialized=JSON.stringify(blocked,null,2);
  }
  last=serialized;view.textContent=last;copy.disabled=false;
- status.textContent=(state==='PASS'?'Метаданные получены.':'Проверка ограничена: '+code+'.')+' Нажмите «Копировать результат».';
+ const finalReport=JSON.parse(serialized);
+ status.textContent=(finalReport.status==='PASS'?'Метаданные получены.':'Проверка ограничена: '+finalReport.code+'.')+' Нажмите «Копировать результат».';
 }
 async function run(){
  button.disabled=true;copy.disabled=true;last=null;view.textContent='RUNNING';
