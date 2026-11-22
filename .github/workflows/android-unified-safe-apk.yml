@@ -86,7 +86,7 @@ jobs:
           set -euo pipefail
           APK=android/app/build/outputs/apk/debug/app-debug.apk
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.phonechecks'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.diagnostic.allchecks'"
           if "$AAPT" dump permissions "$APK" | grep -E 'android.permission.(INTERNET|CAMERA|RECORD_AUDIO|READ_MEDIA_|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE)'; then exit 1; fi
           unzip -l "$APK" | grep -F 'assets/public/runner.js'
           unzip -p "$APK" assets/capacitor.plugins.json | grep -F ClipboardPlugin
