@@ -1,3 +1,13 @@
+## 2026-11-22 — STABILIZATION_ONLY: fail-closed staged rows enumeration (Draft, CI pending)
+
+- Parent Draft #395 HEAD at start: `23923731d2150de751cd2acbcd6bfb29abe9fa68`; parent PR is not main. Its Fast Quality #45066838403 and Android #45066838354 were completed/success on that parent HEAD; these are **not** checks of the new code.
+- New branch `fix/archive-staging-rows-failclosed-2026-11-22`; code commit `0ab1dc6d9250a35bb5b308c65e4d4654d6f05826`, test commit `6768a140b4e2163c9d0c63231c71dbf27a73faeb`.
+- P0 audit found residual `getAll()` non-array fallbacks (`|| []`) for staging records across commit, rollback Phase A/recheck/Phase B and staged finalization. Instead of accepting malformed results as an empty list, `js/paseka-archive-restore.js` now checks arrays with explicit failure codes `STAGING_RECORDS_ENUMERATION_UNVERIFIED`, `ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED`, `STAGING_FINALIZE_RECORDS_ENUMERATION_UNVERIFIED`.
+- `tests/archive-restore-enumeration-failclosed.test.mjs`: 6 synthetic malformed-result regression cases (commit three, finalize one, rollback readonly/readwrite two). Expected abort/preservation of live journal, history and staging; no real records or deletion involved. **CI pending; do not assert PASS before checking exact HEAD.**
+- No changes to main, production database, Android permissions, video cleanup permissions or release. Restore335 STOP; v2 ledger/portable archive remain unresolved. One next step: inspect Fast Quality and Android CI for exact new PR HEAD, resolve failures before further changes. No merge/deploy authorized.
+
+---
+
 ## 2026-11-22 — P1: npm lockfile и воспроизводимые Android CI — PASS на точном SHA
 
 - Code+tests+docs SHA **`2e7ea193a2efe55124c250fc7f8631d8bf7fa17f`**: [Fast Quality #45066672875](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45066672875) **completed/success, 813/813 tests PASS, 0 FAIL** (job #137344290582). [Android #45066672884](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45066672884) **completed/success, 813/813 tests PASS, 0 FAIL**, debug APK built/uploaded (job #137344279027). ZIP artifact #14770759970, ZIP digest `b4f31054e48cf8f459f6b83f3bef0290a9a55dfd7109c3d9484e2e0f4266db2a` (**это не SHA самого APK**); истекает 2026-12-06. Проверена именно установка через `npm ci`, а не прежний `npm install`.
