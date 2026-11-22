@@ -1,3 +1,13 @@
+## 2026-11-22 — крупный независимый блок: fail-closed инвентаризация после прерывания и rollback
+
+- **Предыдущий контроль:** exact SHA `caa330a2c676c6aabc976e69aa5b09ede9bf1d4d`: specialized [workflow #45003038458](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003038458) success, 33/33; общий Android [#45003038470](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003038470) completed/success; isolated archive skipped. Это не физический restore.
+- В Draft PR #354 расширен `js/video-archive-v2-copy-inventory.js`: метка видео журнала без payload распознаётся как `record_video_payload_missing` даже при наличии videoId; два видео одной source/videoId в одном логическом месте — `duplicate_copy_location_identity`; несогласованные `originalId` и `record.id` legacy rollback — `rollback_original_identity_conflict`; альтернативные метаданные rollback с конфликтующими SHA/bytes — `conflicting_source_metadata`.
+- В `tests/video-archive-v2-copy-inventory.test.mjs` добавлены десять связанных проверок: отсутствующий payload с id/без id, дубли одной логической локации, допустимые копии в разных store, расхождение ID отката, противоречивые и непротиворечивые поля rollback, составной прерванный archive/recognition/tombstone, повтор readonly после staged orphan, независимость record_media и entrance_media при совпадающем видео-ID.
+- Работа исключительно с метаданными `fake-indexeddb`/readonly snapshot; не вызывается удаление, импорт/restore, hash Blob, сеть или устройство. Источники и формат БД не изменены. Результат никогда не авторизует cleanup, archiveSafe или restore. Ожидается 43 целевых теста после CI на *последнем* SHA. Android Camera/MediaStore, физический restart и целостность настоящих файлов всё ещё NOT_TESTED.
+- Остановить поиск весов: `MODEL_SEARCH_PARKED_EVIDENCE_REQUIRED`. Следующий безопасный этап — оценить реальный read-only failure/restart протокол на изолированных синтетических данных без вмешательства в пользовательскую базу, только после точного CI, без массового рефакторинга.
+
+---
+
 # Аудит совместимости временного видео, распознавания и резервного архива
 
 Дата: 2026-11-21. Статус: документационный аудит без изменений runtime, удаления и миграций.
