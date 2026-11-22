@@ -499,7 +499,7 @@ async function commitStagedArchive(db, sessionId, expectedRevision, cryptoProvid
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const currentVideos = assertIndexedDbRows(values.currentVideos, 'RESTORE_MEDIA_ENUMERATION_UNVERIFIED');
           const session = values.session;
-          const records = values.stagedRecords || [];
+          const records = assertIndexedDbRows(values.stagedRecords, 'STAGING_RECORDS_ENUMERATION_UNVERIFIED');
           if (!session || session.kind !== 'session' || session.status !== 'ready' || session.stagedCount !== session.totalEntries) {
             fail('STAGING_SESSION_INCOMPLETE', 'Staged import is not ready for commit.');
           }
@@ -678,7 +678,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   if (mediaRecordsFingerprint(phaseAMedia) !== knownHistory.importedMediaFingerprint) {
     fail('ROLLBACK_MEDIA_CHANGED', 'The entrance video library changed after this archive was imported. Export or preserve the new videos before retrying rollback.');
   }
-  let snapshotRecords = (records || []).filter(record => record && record.sessionId === rollbackSessionId);
+  let snapshotRecords = assertIndexedDbRows(records, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED').filter(record => record && record.sessionId === rollbackSessionId);
   const contentRecords = snapshotRecords.filter(record => record.kind !== 'rollback_session');
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
       rollbackSession.stagedCount !== rollbackSession.totalEntries ||
@@ -740,7 +740,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
   const finalSnapshotReadDone = transactionDone(finalSnapshotReadTx);
   const finalSnapshotRows = await requestValue(finalSnapshotReadTx.objectStore(STAGING_STORE).index('sessionId').getAll(rollbackSessionId));
   await finalSnapshotReadDone;
-  snapshotRecords = (finalSnapshotRows || []).filter(record => record && record.sessionId === rollbackSessionId);
+  snapshotRecords = assertIndexedDbRows(finalSnapshotRows, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED').filter(record => record && record.sessionId === rollbackSessionId);
   if (snapshotRecords.length !== rollbackSession.totalEntries + 1 ||
       snapshotFingerprint(snapshotRecords) !== expectedSnapshotFingerprint) {
     fail('ROLLBACK_SNAPSHOT_CHANGED', 'The rollback snapshot changed during validation. Review it again before retrying.');
@@ -810,7 +810,7 @@ async function rollbackCommittedArchive(db, backupId, expectedRevision, cryptoPr
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const history = values.history;
           const currentRollbackSession = values.rollbackSession;
-          const currentRecords = values.rollbackRecords || [];
+          const currentRecords = assertIndexedDbRows(values.rollbackRecords, 'ROLLBACK_RECORDS_ENUMERATION_UNVERIFIED');
           const currentImportSession = values.importSession;
           // The immutable Blob bytes were SHA-256 verified in Phase A. The
           // snapshot row set and metadata fingerprint are rechecked here under
@@ -1117,7 +1117,7 @@ async function finalizeStagedArchive(db, sessionId, cryptoProvider, archiveApi, 
         try {
           assertLegacyArchiveRecognitionLedger(values.recognitionLedger);
           const current = values.session;
-          const records = values.records || [];
+          const records = assertIndexedDbRows(values.records, 'STAGING_FINALIZE_RECORDS_ENUMERATION_UNVERIFIED');
           if (!current || current.kind !== 'session' || !['staging', 'ready'].includes(current.status) ||
               current.sessionId !== verifiedSession.sessionId ||
               current.backupId !== verifiedSession.backupId ||
