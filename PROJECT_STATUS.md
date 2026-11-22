@@ -1,3 +1,15 @@
+## 2026-11-22 — большой цикл: проверка разрешений и сетевых точек основного Android APK
+
+- Установленный isolated диагностический A09 физически PASS, но он **не** показывал разрешения основной `Пасеки`. Поэтому отдельно проанализирован **реально собранный продуктовый APK `ru.paseka.journal`**, не данные пасеки и не пользовательский телефон.
+- Добавлены `scripts/audit-android-product-apk.mjs`, `tests/android-product-apk-static-audit.test.mjs`, этап и JSON-артефакт в `.github/workflows/android-debug.yml`; [детальный отчёт](docs/ANDROID-PRODUCT-APK-NETWORK-PERMISSIONS-STATIC-AUDIT-2026-11-22.md). Exact code SHA `42b548b45f20d8aec1ec1e336942c6a8d1f011a7`, GitHub Actions #45027702899 **completed/success**: npm regression, Android build и static audit. После этого кодового SHA добавлены только документы; их не следует объявлять проверенными на прежнем SHA.
+- APK SHA256 `20e489c28bfa03a5c816a29f78b74870292000cea4a7ba9bdd47ed784ef1cb30`, артефакт `14756088460`. Отчёт JSON SHA256 `be679691dc2f72349ed2a58f71a27d284c0f7552dc2804a1f22b9a4c2e36361c`, artifact `14755834746` (ZIP SHA256 `1de32d8dac6668bc5ca2d4e411baa10010549b458d3d3c8fcf5526559ef1b99c`).
+- **Фактические declared permissions основного APK**: `android.permission.INTERNET` и внутреннее `ru.paseka.journal.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. Нет других заявленных прав на `CAMERA`, `RECORD_AUDIO`, `READ_MEDIA_*` и legacy storage в этом APK. Важная разница: main app **имеет INTERNET**, isolated diagnostic A09 — **не имеет**.
+- Статический скан 57 файлов дал 6 строк потенциальных сетевых вызовов/адресов: `index.html:1753,1754,1770` авторизация/ИИ/внешний CDN; `2354` POST к ИИ-сервису; `2828` `fetch(data:)` (локальный data URL); `sw.js:1` fetch/кеш. Это source heuristic, **не измерение сетевого трафика**. Product installed package permissions `NOT_TESTED`, реальный network traffic `NOT_TESTED`.
+- Это **PASS только процедуры статического аудита**, а не доказательство полной сетевой изоляции и не гарантия отсутствия утечек. `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`; user data untouched; без изменения main/production, без merge/deployment.
+- Следующий этап: отдельная **read-only** физическая проверка PackageManager для реально установленного `ru.paseka.journal`, затем независимое наблюдение сетевых соединений с явной привязкой к UID. Не заменять установленный продуктовый APK и не стирать его IndexedDB. Сохранить правило «Провести тест → Копировать результат» для интерактивных диагностик и крупные автономные циклы.
+
+---
+
 ## 2026-11-22 — физический Android A09: PASS собственных разрешений, сеть НЕ проверялась
 
 - Пользователь передал точный JSON с физического устройства: `status:PASS`, `code:A09_INSTALLED_PERMISSION_AUDIT_ONLY`, `packageId:ru.paseka.journal.diagnostic.archivea09v1`, `suite:ARCHIVE_A09_INSTALLED_PERMISSION_AUDIT_V1`. Проверка `A09_INSTALLED_OWN_PACKAGE_PERMISSIONS:PASS`; `installedPackageVerified:true`, `packagePermissionAudit:PASS`, `forbiddenPermissions:[]`. Это физическое свидетельство штатного PackageManager **только установленного диагностического APK**, отдельное от CI.

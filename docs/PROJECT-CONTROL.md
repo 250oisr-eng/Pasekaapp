@@ -1,3 +1,10 @@
+## 2026-11-22 — аудит реального Android APK «Пасека» и статических сетевых возможностей
+
+- [ANDROID-PRODUCT-APK-NETWORK-PERMISSIONS-STATIC-AUDIT-2026-11-22.md](ANDROID-PRODUCT-APK-NETWORK-PERMISSIONS-STATIC-AUDIT-2026-11-22.md) — exact CI SHA, реально собранный package `ru.paseka.journal` и **объявленное INTERNET**, внутреннее receiver-разрешение, 57 просмотренных файлов и 6 строк network source. Физические разрешения установленного product APK и реальный трафик **NOT_TESTED**.
+- [../scripts/audit-android-product-apk.mjs](../scripts/audit-android-product-apk.mjs) — read-only parse `aapt` и SHA-256/инвентаризация source; [../tests/android-product-apk-static-audit.test.mjs](../tests/android-product-apk-static-audit.test.mjs) — регрессии; [../.github/workflows/android-debug.yml](../.github/workflows/android-debug.yml) — автоматическая проверка именно собранного продуктового APK + отдельный JSON артефакт. Это не повторный A09 diagnostic app и не permission grant.
+
+---
+
 ## 2026-11-22 — A09 Android PackageManager diagnostic APK (CI PASS, physical NOT_TESTED)
 
 - [ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md](ANDROID-A09-PERMISSION-AND-NETWORK-AUDIT-2026-11-22.md) — описание безопасного аудитa именно installed permissions, строгие границы сетевых доказательств и SHA готового APK.
