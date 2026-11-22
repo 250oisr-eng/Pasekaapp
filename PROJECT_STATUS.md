@@ -1,3 +1,37 @@
+## 2026-11-22 — exact-SHA regression verification, PR #368
+
+- Tested SHA `334bc43b8ee78580164c08b9fceea7f451eb040a`: [video/ledger/archive/staging CI #45038058414](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038058414) **completed/success**, independently checked job log: **148 tests, 148 PASS, 0 FAIL**, including historical duplicate `resultId`, sequential collision and concurrent two-video collision.
+- [Android APK #45038058365](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45038058365) **pending** on that exact SHA as of observation; no claim of build success. Isolated archive workflow #45038058412 **skipped**, not PASS. Following this docs update HEAD will differ; verify later workflow separately.
+- No actual neural bee recognition, Android production app, external Gallery file enumeration/deletion, physical cleanup, restore, main merge or production deployment. Original video retention remains protected; no cleanup authorization.
+
+---
+
+## 2026-11-22 — конкурентная запись результатов распознавания: дополнительный regression
+
+- В Draft PR #368 добавлен тест `concurrent distinct video results cannot commit the same resultId`: две одновременные заявки для разных синтетических Blob-видео с одинаковым resultId проходят через оригинальную `recordRecognitionResult` и IndexedDB readwrite; ожидается ровно один сохранённый результат и один `conflicting_recognition_result_id`. Оба исходника должны остаться неизменными.
+- Проверяется не только повреждённая история и последовательное повторное использование ID, но и гонка двух записей без изменений API, IndexedDB schema, archive format, Android permissions, удаления или восстановления. Тест SHA `ed85d33aed7f5dc5301af6948d56e5742a9a38fd`. CI этого SHA/последующего документального HEAD пока не засчитан; старые отменённые Android workflow не являются PASS.
+- Физический телефон, модель пчёл, внешние Camera/Gallery копии и настоящее удаление видео **NOT_TESTED**. Следующая проверка — точный актуальный SHA в CI; потом зафиксировать результат и не сливать Draft без разрешения.
+
+---
+
+## 2026-11-22 — additional atomic resultId collision gate
+
+- Дополнительно к fail-closed чтению существующей истории, `recordRecognitionResult` теперь отклоняет **новую** запись с уже существующим `resultId` у другой пары `source/videoId` прямо в атомарной readwrite-транзакции. Результат: `conflicting_recognition_result_id`, rollback, оригиналы не меняются.
+- Регрессионный тест создаёт второе синтетическое видео с корректными Blob/SHA/bytes, проверяет отказ при повторном `resultId`, сохранение первого результата и обоих оригиналов, а затем успешную запись со свежим `resultId`. Кодовый SHA `2caee54e193c18ab8ad72f2fd28e04bc5a4ccb55`; CI проверяется отдельно и не считается успешным заранее.
+- PR #368 Draft поверх #356. Реальное распознавание пчёл, видеоудаление и network traffic NOT_TESTED, не разрешены. Main/production/телефон не менялись.
+
+---
+
+## 2026-11-22 — fail-closed уникальность resultId в журнале распознавания видео
+
+- Аудит обнаружил расхождение: `js/video-recognition-ledger.js:validateLedger` отклонял повторную пару `source/videoId`, но допускал один `resultId` для разных видео. При этом `js/video-archive-v2-guard.js:validateRecognitionLedgerForV2` и `js/paseka-archive-restore.js:inspectStagingRecognitionCopies` уже требуют уникальности `resultId`.
+- Отдельная дочерняя ветка `fix/video-ledger-resultid-unique-2026-11-22` основана на `fix/staging-audit-recognition-evidence-2026-11-22` (PR #356), без изменений main/production. В `validateLedger` добавлена проверка уникальности `resultId` между всеми источниками и видео. При старой/повреждённой записи отказ `ledger_corrupt`, никаких автоматических миграций или переписывания истории.
+- Добавлен синтетический регрессионный тест: два разных video source/ID с одинаковым `resultId` отклоняются при чтении и при следующей попытке записи; исходный `entrance_media` и сохранённая некорректная история не удаляются и не изменяются.
+- Код и тесты: `b42b534ded2baec08aa4a10d77e6010e52335d9e`; **CI пока не подтверждён**. Это программная проверка согласованности метаданных, не подтверждение качества распознавания пчёл и не разрешение cleanup. `cleanupAuthorized:false`, real video/network/physical deletion `NOT_TESTED`.
+- Следующий шаг: создать Draft PR поверх PR #356, проверить точный SHA CI, устранить ошибки, затем документировать результат. Не сливать PR без явного разрешения.
+
+---
+
 ## 2026-11-22 — exact-code-SHA verification PR #356 завершена
 
 - Программный SHA `7bd84889694c84276b09a84e80192181922c06c8`: [совместный video/ledger/guard/archive CI #45004521556](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521556) **completed/success, 145/145, fail 0, skipped 0**; [legacy archive guard CI #45004521509](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521509) **completed/success, 68/68, fail 0, skipped 0**; [общая Android APK #45004521548](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521548) **completed/success**. [Isolated archive APK #45004521488](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521488) **skipped** (не проверка Android restore).

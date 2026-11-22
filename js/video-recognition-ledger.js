@@ -23,7 +23,7 @@ function validateResult(result){
 }
 function validateLedger(ledger){
  if(!isObject(ledger)||ledger.version!==1||!Array.isArray(ledger.entries))return false;
- const seen=new Set();
+ const seen=new Set(), resultIds=new Set();
  for(const entry of ledger.entries){
   if(!isObject(entry)||!idOk(entry.videoId)||!idOk(entry.resultId)||
      !['entrance_media','record_media'].includes(entry.source)||
@@ -37,8 +37,9 @@ function validateLedger(ledger){
      entry.cleanupState!=='blocked_archive_safety'||
      !validateResult(entry.result))return false;
   const identity=entry.source+':'+entry.videoId;
-  if(seen.has(identity))return false;
+  if(seen.has(identity)||resultIds.has(entry.resultId))return false;
   seen.add(identity);
+  resultIds.add(entry.resultId);
  }
  return true;
 }
@@ -161,6 +162,9 @@ function commitRecognitionResult(db,input,proof){
     const ledger=ledgerRequest.result||{version:1,entries:[]};
     if(!validateLedger(ledger))return fail('ledger_corrupt');
     const prior=ledger.entries.find(entry=>entry.videoId===input.videoId&&entry.source===input.source);
+    if(ledger.entries.some(entry=>entry.resultId===input.resultId&&
+       (entry.videoId!==input.videoId||entry.source!==input.source)))
+      return fail('conflicting_recognition_result_id');
     if(prior){
      if(prior.resultId!==input.resultId||JSON.stringify(prior.result)!==JSON.stringify(input.result)||
        prior.sourceSha256!==proof.sha256||prior.sourceBytes!==proof.bytes)

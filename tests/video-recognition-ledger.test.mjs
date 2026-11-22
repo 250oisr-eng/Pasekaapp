@@ -262,3 +262,61 @@ test('persisted recognition history rejects tampered entries and duplicated sour
  assert.ok((await get(db,'entrance_media','v1')).blob);
  db.close();
 });
+
+
+test('resultId cannot be shared by distinct video sources in durable recognition history',async()=>{
+ const {db}=await fixture();
+ assert.equal((await ledger.recordRecognitionResult(db,base)).ok,true);
+ const clean=await get(db,'main',ledger.KEY);
+ const duplicate={...clean.entries[0],source:'record_media',videoId:'journal-other'};
+ await put(db,'main',ledger.KEY,{version:1,entries:[...clean.entries,duplicate]});
+ const result=await ledger.readRecognitionLedger(db);
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'ledger_corrupt');
+ const write=await ledger.recordRecognitionResult(db,{...base,resultId:'new-result'});
+ assert.equal(write.ok,false);
+ assert.equal(write.reason,'ledger_corrupt');
+ assert.ok((await get(db,'entrance_media','v1')).blob);
+ assert.equal((await get(db,'main',ledger.KEY)).entries.length,2);
+ db.close();
+});
+
+
+test('new distinct video cannot reuse committed resultId even with valid source hash',async()=>{
+ const {db}=await fixture();
+ assert.equal((await ledger.recordRecognitionResult(db,base)).ok,true);
+ await put(db,'entrance_media',null,{id:'v2',status:'analyzing',bytes:5,
+  blobSha256:sourceHash,blob:new Blob(['video'],{type:'video/mp4'})});
+ const reused=await ledger.recordRecognitionResult(db,{...base,videoId:'v2'});
+ assert.equal(reused.ok,false);
+ assert.equal(reused.reason,'conflicting_recognition_result_id');
+ const after=await ledger.readRecognitionLedger(db);
+ assert.equal(after.ok,true);
+ assert.equal(after.entries.length,1);
+ assert.equal(after.entries[0].videoId,'v1');
+ assert.ok((await get(db,'entrance_media','v2')).blob);
+ const unique=await ledger.recordRecognitionResult(db,{...base,videoId:'v2',resultId:'result-2'});
+ assert.equal(unique.ok,true);
+ assert.equal((await ledger.readRecognitionLedger(db)).entries.length,2);
+ db.close();
+});
+
+
+test('concurrent distinct video results cannot commit the same resultId',async()=>{
+ const {db}=await fixture();
+ await put(db,'entrance_media',null,{id:'v2',status:'analyzing',bytes:5,
+  blobSha256:sourceHash,blob:new Blob(['video'],{type:'video/mp4'})});
+ const [first,second]=await Promise.all([
+  ledger.recordRecognitionResult(db,{...base,videoId:'v1'}),
+  ledger.recordRecognitionResult(db,{...base,videoId:'v2'})
+ ]);
+ assert.equal([first,second].filter(result=>result.ok).length,1);
+ assert.equal([first,second].filter(result=>!result.ok&&result.reason==='conflicting_recognition_result_id').length,1);
+ const saved=await ledger.readRecognitionLedger(db);
+ assert.equal(saved.ok,true);
+ assert.equal(saved.entries.length,1);
+ assert.equal(saved.entries[0].resultId,'result-1');
+ assert.ok((await get(db,'entrance_media','v1')).blob);
+ assert.ok((await get(db,'entrance_media','v2')).blob);
+ db.close();
+});
