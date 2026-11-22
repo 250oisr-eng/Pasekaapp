@@ -1,3 +1,11 @@
+## 2026-11-22 — следующий независимый этап после закрытия поиска моделей: cross-store evidence conflict
+
+- Ветка `test/video-copy-evidence-conflict-audit-2026-11-22` над `research/bee-weights-license-chain-2026-11-22`. В `js/video-archive-v2-copy-inventory.js` readonly inventory дополнительно выдаёт issue `conflicting_copy_evidence` при несовпадении двух известных SHA-256 или bytes для одной пары source/videoId между защищёнными store. Отсутствующие поля не считаются подтверждением совпадения и продолжают отдельно блокировать безопасную очистку.
+- `tests/video-archive-v2-copy-inventory.test.mjs`: отрицательные сценарии разные SHA и bytes в entrance/staging, положительный сценарий идентичных свидетельств, обязательный запрет `cleanupAuthorized`, `restoreAuthorized`, `archiveSafe`, без изменения данных.
+- Не изменён формат IndexedDB, содержимое видео, импорт, архивная запись или удаление. Это диагностическая проверка только метаданных; фактическая целостность Blob и внешние Camera/MediaStore остаются NOT_TESTED. Требуется CI на точном HEAD нового Draft PR. Model search parked.
+
+---
+
 ## 2026-11-22 — единый широкий поиск моделей закрыт; переключение приоритета
 
 - Выполнен единый пакетный поиск 19 различающихся кандидатов; [полная матрица, источники и причины исключения](docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md). 0/19 кандидатов имеют одновременно подтверждённый конкретный checkpoint с правами на веса/базовую модель/данные, доказанную работу offline Android и независимую точность Apis mellifera in/out. Права на набор Roboflow не приравниваются к правам на веса.
