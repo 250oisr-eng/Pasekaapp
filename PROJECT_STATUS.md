@@ -1,3 +1,12 @@
+## 2026-11-22 — V4 exact HEAD software CI completed; physical validation pending
+
+- Draft PR [#374](https://github.com/250oisr-eng/Pasekaapp/pull/374) code SHA `c7312bc683da783884b4868b3d9079071f7d8018`; subsequent documentation-only HEAD `bd268d2285942dc4fb2eb8920865f75dc3c4c73a`.
+- On that documentation HEAD, [Windows V4 CI #45053610072](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053610072) **completed/success**: PowerShell parser + 5/5 static regression tests. [General Android debug APK #45053610206](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45053610206) **completed/success**: regression suite, web asset preparation, Android debug APK build and artifact upload, per completed job steps. Isolated archive #45053610128 was **skipped**, not a PASS. Earlier Android run #45053521454 was **cancelled**, not an error and not PASS.
+- Physical device V4 **NOT_TESTED**; V3 physical BLOCKED/NONEMPTY_PRESERVE remains last actual observation. A V4 PASS, if obtained, would only establish bounded directory listing/count, not input provenance or restore permission. `privateInput=UNKNOWN_PRESERVE`, `cleanup=NOT_AUTHORIZED`.
+- One next action: run V4 read-only on exact pinned device through the existing trusted Windows+ADB environment, capture only JSON report. Until then avoid restoration, user-media reads, installs, uninstalls, writes and cleanup. This step requires access to the user's PC; GitHub CI cannot substitute physical testing.
+
+---
+
 ## 2026-11-22 — Restore335 V4 verified Windows static CI (code SHA c7312bc6)
 
 - V4 whitespace-preserving, pinned private `ls -A files` count-only code and fifth static regression committed on `c7312bc683da783884b4868b3d9079071f7d8018`. In the bounded-inventory mode only trailing CR/LF is trimmed, not filename spaces. Commands outside the exactly pinned diagnostic listing cannot request raw-output mode.
