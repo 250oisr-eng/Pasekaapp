@@ -1,3 +1,30 @@
+## 2026-11-22 — exact-code-SHA verification PR #356 завершена
+
+- Программный SHA `7bd84889694c84276b09a84e80192181922c06c8`: [совместный video/ledger/guard/archive CI #45004521556](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521556) **completed/success, 145/145, fail 0, skipped 0**; [legacy archive guard CI #45004521509](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521509) **completed/success, 68/68, fail 0, skipped 0**; [общая Android APK #45004521548](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521548) **completed/success**. [Isolated archive APK #45004521488](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004521488) **skipped** (не проверка Android restore).
+- PR #355: предыдущий commit `c54b922497107ca679f7be96c9c9f0253113dc60` 142/142 CI и Android build completed/success. PR #354 ранее 137/137 и Android build completed/success. Все PR остаются Draft и не слиты.
+- Основное устранённое расхождение: `inspectStagingRecognitionCopies` не считает неполные source-bound записи распознавания достоверными и отклоняет дублирующиеся resultId; это диагностический запрет, **не разрешение** удалять видео.
+- Следующий независимый этап: подготовка беззаписного физического preflight Android/PASEKA01/PASEKA02 для синтетических архивов с минимальными действиями пользователя только после отдельной проверки пакета и сохранения исходных данных. Реальные MP4, media provenance, end-to-end recognition, удаление и Android restore NOT_TESTED; новые веса не искать до evidence.
+
+---
+
+## 2026-11-22 — защита от повторного resultId в readonly архивном аудите
+
+- В дополнение к полной проверке source-bound SHA/bytes/evidence диагностический `inspectStagingRecognitionCopies` теперь отклоняет повторное использование одного `resultId` для разных `source/videoId` с `VIDEO_LEDGER_DUPLICATE_RESULT_ID` и `requiresManualReview:true`. В другом V2-guard такой запрет уже существовал: расхождение между проверками устранено.
+- Добавлен отдельный тест с двумя различными видео и общим resultId; проверяется неизменность IndexedDB и запрет выдачи успешного audit. Исходный реальный архив, media, схема, rollback, delete не затрагиваются.
+- На предыдущем коде этого Draft PR `53c2da53c3730533ced3861a3e680655d6352cc3` подтверждены 144/144 интеграционных и 67/67 архивных тестов; для нового SHA обязательно ждать новых запусков. Isolated APK остаётся skipped, это не Android restore.
+
+---
+
+## 2026-11-22 — readonly staging audit: обязательная проверка исходных свидетельств распознавания
+
+- Найдено реальное расхождение: `js/paseka-archive-restore.js:inspectStagingRecognitionCopies` ранее принимала `version:1` ledger с `videoId/resultId/cleanupState`, но **без** `sourceSha256/sourceBytes/sourceEvidenceVersion/recognizedAt/result`; отдельно `js/video-archive-v2-guard.js` требует эти поля. Это давало диагностическое `ok:true` для неподтверждённой истории, не давая при этом разрешения delete.
+- В новой изолированной ветке `fix/staging-audit-recognition-evidence-2026-11-22` добавлен fail-closed read-only ответ `ok:false, reason:VIDEO_LEDGER_EVIDENCE_UNVERIFIED, requiresManualReview:true` при отсутствии либо неверном SHA-256/размере, evidence version, времени распознавания, объекте результата. Дубликаты источников по-прежнему получают отдельный `VIDEO_LEDGER_DUPLICATE_IDENTITY` в порядке проверок; сами записи и архивные объекты не меняются.
+- В `tests/archive-staging.test.mjs` существующие три положительных диагностических fixture переведены на полную синтетическую структуру source-bound evidence; добавлены два негативных сценария с отсутствующими полями и таблицей пяти повреждений. Это не признание истинного распознавания пчёл, а исключительно форматная проверка.
+- Перед разработкой подтверждён CI на родительском SHA `c54b922497107ca679f7be96c9c9f0253113dc60`: 142/142 combined [#45004202173](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004202173), общая Android сборка success [#45004202218](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45004202218), архивная isolated проверка skipped. Для новой ветки требуется собственный CI на exact HEAD; физические media, DB import, Android restore/cleanup NOT_TESTED.
+- Поиск весов/моделей остаётся припаркованным. Не изменять `main`, не объединять Draft PR и не удалять исходные файлы.
+
+---
+
 ## 2026-11-22 — новый независимый этап: read-only archive failure/restart matrix
 
 - Создана дочерняя ветка `test/video-archive-readonly-transaction-failures-2026-11-22` на базе успешного Draft PR #354, не изменяя `main` или PR #354.

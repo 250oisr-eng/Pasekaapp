@@ -12,6 +12,11 @@ new Function(codecSource)();
 new Function(restoreSource)();
 const Archive = globalThis.PasekaArchive;
 const Restore = globalThis.PasekaArchiveRestore;
+const verifiedStagingAuditEntry=(videoId,resultId,cleanupState)=>({
+ videoId,source:'entrance_media',resultId,cleanupState,
+ sourceSha256:'a'.repeat(64),sourceBytes:3,sourceEvidenceVersion:1,
+ recognizedAt:'2026-11-20T00:00:00.000Z',result:{note:'synthetic audit only'}
+});
 
 function openTestDb(name, factory = new IDBFactory()) {
   return new Promise((resolve, reject) => {
@@ -1649,7 +1654,7 @@ test('read-only staging audit locates recognized originals without deleting blob
  const row=await get(db,'archive_staging',staged.session.sessionId);
  row.status='failed';
  await put(db,'archive_staging',row);
- const ledger={version:1,entries:[{videoId:'video-1',source:'entrance_media',resultId:'recognized-result',cleanupState:'deleted'}]};
+ const ledger={version:1,entries:[verifiedStagingAuditEntry('video-1','recognized-result','deleted')]};
  await put(db,'main',ledger,'video_recognition_ledger_v1');
  const before=await get(db,'archive_staging',staged.session.sessionId+':video:video-1');
  const audited=await Restore.inspectStagingRecognitionCopies(db);
@@ -1691,8 +1696,7 @@ test('staging recognition audit includes orphaned original copies after their se
   tx.objectStore('archive_staging').delete(staged.session.sessionId);
   tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);
  });
- const ledger={version:1,entries:[{videoId:'video-1',source:'entrance_media',
-  resultId:'success-result',cleanupState:'deleted'}]};
+ const ledger={version:1,entries:[verifiedStagingAuditEntry('video-1','success-result','deleted')]};
  await put(db,'main',ledger,'video_recognition_ledger_v1');
  const audit=await Restore.inspectStagingRecognitionCopies(db);
  assert.equal(audit.ok,true);
@@ -1718,8 +1722,7 @@ test('staging recognition audit marks orphaned copies referenced by archive hist
  });
  await put(db,'archive_history',{backupId:'history-audit',
   status:'committed',importSessionId:staged.session.sessionId});
- await put(db,'main',{version:1,entries:[{videoId:'video-1',source:'entrance_media',
-  resultId:'verified',cleanupState:'blocked_archive_safety'}]},'video_recognition_ledger_v1');
+ await put(db,'main',{version:1,entries:[verifiedStagingAuditEntry('video-1','verified','blocked_archive_safety')]},'video_recognition_ledger_v1');
  const audit=await Restore.inspectStagingRecognitionCopies(db);
  assert.equal(audit.sessions[0].protectedByArchiveHistory,true);
  assert.equal(audit.sessions[0].missingSessionHeader,true);
@@ -1987,5 +1990,52 @@ test('legacy final writer aborts if V2 staging appears inside same atomic transa
  assert.equal(await get(db,'archive_history','legacy-commit-race'),undefined);
  assert.deepEqual(await getAll(db,'entrance_media'),[]);
  assert.equal((await getAll(db,'full_backup')).length,0);
+ db.close();
+});
+
+test('readonly staging audit rejects missing SHA and byte evidence despite plausible recognition identifiers',async()=>{
+ const db=await openTestDb('paseka-stage-weak-recognition-evidence');
+ const weak={version:1,entries:[{videoId:'video-1',source:'entrance_media',
+  resultId:'claimed-result',cleanupState:'deleted'}]};
+ await put(db,'main',weak,'video_recognition_ledger_v1');
+ const report=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(report.ok,false);
+ assert.equal(report.reason,'VIDEO_LEDGER_EVIDENCE_UNVERIFIED');
+ assert.equal(report.requiresManualReview,true);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),weak);
+ db.close();
+});
+test('readonly staging audit rejects mismatching evidence schema and invalid source digests',async()=>{
+ const variants=[
+  {sourceSha256:'incorrect'},
+  {sourceBytes:0},
+  {sourceEvidenceVersion:2},
+  {recognizedAt:'not-a-time'},
+  {result:null}
+ ];
+ const db=await openTestDb('paseka-stage-bad-recognition-evidence-fields');
+ for(const variant of variants){
+  const bad={version:1,entries:[{...verifiedStagingAuditEntry('video-1','result-1','deleted'),...variant}]};
+  await put(db,'main',bad,'video_recognition_ledger_v1');
+  const report=await Restore.inspectStagingRecognitionCopies(db);
+  assert.equal(report.ok,false,JSON.stringify(variant));
+  assert.equal(report.reason,'VIDEO_LEDGER_EVIDENCE_UNVERIFIED');
+  assert.equal(report.requiresManualReview,true);
+ }
+ db.close();
+});
+
+test('readonly staging audit rejects repeated resultId for different original identities',async()=>{
+ const db=await openTestDb('paseka-stage-audit-result-id-collision');
+ const ledger={version:1,entries:[
+  verifiedStagingAuditEntry('video-1','same-result-id','deleted'),
+  verifiedStagingAuditEntry('video-2','same-result-id','blocked_archive_safety')
+ ]};
+ await put(db,'main',ledger,'video_recognition_ledger_v1');
+ const report=await Restore.inspectStagingRecognitionCopies(db);
+ assert.equal(report.ok,false);
+ assert.equal(report.reason,'VIDEO_LEDGER_DUPLICATE_RESULT_ID');
+ assert.equal(report.requiresManualReview,true);
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger);
  db.close();
 });

@@ -1239,11 +1239,31 @@ async function inspectStagingRecognitionCopies(db) {
         !['blocked_archive_safety', 'delete_required', 'deleted'].includes(entry.cleanupState))) {
     return { ok: false, reason: 'VIDEO_LEDGER_UNVERIFIED', ...empty };
   }
-  const identities = new Set();
+  const identities = new Set(), resultIds = new Set();
   for (const entry of ledger.entries) {
     const id = entry.source + ':' + entry.videoId;
     if (identities.has(id)) return { ok: false, reason: 'VIDEO_LEDGER_DUPLICATE_IDENTITY', ...empty };
+    if (resultIds.has(entry.resultId))
+      return { ok: false, reason: 'VIDEO_LEDGER_DUPLICATE_RESULT_ID',
+        ...empty, requiresManualReview: true };
     identities.add(id);
+    resultIds.add(entry.resultId);
+  }
+  // This diagnostic must never call an incomplete recognition entry verified.
+  // The archive-V2 guard separately requires the same source-bound hash, byte
+  // count and evidence version. Incomplete historical entries remain in place
+  // for manual review; no backup or media is altered by this readonly audit.
+  if (ledger.entries.some(entry =>
+      typeof entry.sourceSha256 !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(entry.sourceSha256) ||
+      !Number.isSafeInteger(entry.sourceBytes) || entry.sourceBytes < 1 ||
+      entry.sourceEvidenceVersion !== 1 ||
+      typeof entry.recognizedAt !== 'string' ||
+      !Number.isFinite(Date.parse(entry.recognizedAt)) ||
+      !entry.result || typeof entry.result !== 'object' ||
+      Array.isArray(entry.result))) {
+    return { ok: false, reason: 'VIDEO_LEDGER_EVIDENCE_UNVERIFIED',
+      ...empty, requiresManualReview: true };
   }
   const recognized = new Set(ledger.entries
     .filter(entry => entry.source === 'entrance_media')
