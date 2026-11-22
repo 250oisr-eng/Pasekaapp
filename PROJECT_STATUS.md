@@ -1,3 +1,10 @@
+## 2026-11-22 — контрольная точка CI metadata preflight
+
+- Code HEAD `87b1eb91b6bcc01702b09133577c653b5c94bc77`: исправлен fail-closed ответ при невалидном наборе записей (все флаги byteIntegrityVerified/physicalRestoreVerified/cleanupAuthorized/restoreAuthorized/archiveSafe = false), добавлен отдельный GitHub Actions workflow `.github/workflows/android-archive-preflight-metadata.yml` для шести Node-тестов и защиты production `index.html` от подключения диагностики.
+- GitHub Actions на точном HEAD пока **не обнаружены**; 6 тестов написаны, но не обозначаются как пройденные. Android APK по-прежнему **не создан**. Следующий приоритет — подтвердить CI и продолжить отдельную тестовую Android-оболочку. Main и пользовательские данные не изменялись.
+
+---
+
 ## 2026-11-22 — синтетический metadata-only Android archive preflight (Draft)
 
 - Добавлен `js/android-archive-preflight.js`: чистая диагностическая функция без доступа к IndexedDB/MediaStore/видео; проверяет SHA-256/bytes метаданных, конфликты идентичностей, повторные resultId, состав source-bound evidence. Любой результат возвращает `cleanupAuthorized:false`, `restoreAuthorized:false`, `archiveSafe:false`, `physicalRestoreVerified:false`.
