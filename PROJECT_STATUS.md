@@ -1,3 +1,11 @@
+## P1 проверенный кодовый HEAD — 2026-11-23
+
+- На CODE/TEST SHA `ba1a9a4efc64280ef33dc717f6b08b24a6ce685d` Fast Quality #45081133712 **1220/1220 PASS**, 0 failures/skipped; Android Debug #45081133626 **completed/success**. Это целевые регрессионные и сборочные проверки, не физическое Android/production доказательство.
+- Цепочка P1: Draft #418 concurrent writes; #419 offline SW cache scope; #420 cross-tab + v2/v4 migration; #421 документальная карта PR; #422 abort/reopen + Farrar isolation. Все не слиты в main `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`. Ни один PR автоматически не закрыт.
+- P1 **NOT READY** из-за физических испытаний и недоинтегрированного live PASEKA02/P0. Restore335 STOP, media cleanup DISABLED. Следующая безопасная задача: в рамках P0 предоставить доказательное runtime state/media восстановление без потерь; затем device/physical acceptance, интеграция по разрешению пользователя и повторный audit на актуальных SHA.
+
+---
+
 ## P1 — тест прерывания записи и изоляции Farrar/sectional (2026-11-23)
 
 - PR #420 exact HEAD `b8aa09cc7d848c28be75f76b4984b25fa749ef86`: Fast #45080849658 **1218/1218 PASS**, Android Debug #45080849673 **success**.
