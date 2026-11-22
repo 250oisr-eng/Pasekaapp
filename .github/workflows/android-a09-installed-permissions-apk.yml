@@ -123,7 +123,7 @@ jobs:
           unzip -l "$APK" | grep -F 'assets/public/runner.js'
           unzip -l "$APK" | grep -F 'assets/public/copy-report.js'
           unzip -p "$APK" assets/capacitor.plugins.json | grep -F 'ClipboardPlugin'
-          grep -Fq 'PackageManager.GET_PERMISSIONS' android/app/src/main/java/ru/paseka/journal/diagnostic/archivea08v1/A09PermissionsPlugin.java
+          grep -Fq 'PackageManager.GET_PERMISSIONS' android/app/src/main/java/ru/paseka/journal/diagnostic/archivea09v1/A09PermissionsPlugin.java
           sha256sum "$APK"
       - name: Upload diagnostic APK
         uses: actions/upload-artifact@v4
