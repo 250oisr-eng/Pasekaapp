@@ -1,3 +1,12 @@
+## 2026-11-22 — крупный интеграционный CI-блок: inventory + ledger + guard + staging
+
+- На code SHA `e29fb1e7e6be220fdb34080a5867e0e34d22f14d` отдельный [workflow #45003390723](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45003390723) completed/success: **45/45** тестов; fake-indexeddb повторно открыта с неизменным результатом read-only audit. Это не аппаратное восстановление.
+- Изменён только `.github/workflows/test-video-copy-hash-alias.yml`: вместо одного модуля запускаются совместно `tests/video-archive-v2-copy-inventory.test.mjs`, `tests/video-recognition-ledger.test.mjs`, `tests/video-archive-v2-guard.test.mjs`, `tests/archive-staging.test.mjs`. Push и pull_request paths расширены на зависимые тесты. Данные, runtime, Android package и production не менялись этим пунктом.
+- Новый критерий: реальный combined CI на *последнем SHA* (сумма тестов может отличаться от простой суммы объявлений `test()` при вложенных тестах), перед признанием доказательства совместимости. Отдельный архивный restore на телефоне и физическое удаление не выполнялись; `cleanupAuthorized=false`.
+- Поиск сторонних моделей остаётся припаркованным. Дальнейший приоритет — независимые контракты Android media provenance и отказобезопасности архива без открытия пользовательских файлов.
+
+---
+
 ## 2026-11-22 — воспроизводимый restart/abort read-only inventory
 
 - Расширена только тестовая среда `tests/video-archive-v2-copy-inventory.test.mjs`: единая изолированная `IDBFactory` с уникальными именами БД позволяет закрыть и повторно открыть ту же синтетическую IndexedDB. Проверяется точное совпадение всех полей и issue list в результате аудита до и после reopen при конфликтующих копиях/ledger и защищённом tombstone; `cleanupAuthorized=false`.
