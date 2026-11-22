@@ -10,7 +10,7 @@ function openDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(D
 function record(db,mode,task){return new Promise((resolve,reject)=>{const tx=db.transaction('fixtures',mode);const request=task(tx.objectStore('fixtures'));request.onerror=()=>reject(Error('REQUEST'));request.onsuccess=()=>resolve(request.result);});}
 function digest(buffer){return crypto.subtle.digest('SHA-256',buffer).then(b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''));}
 async function run(){
- const result={suite:'PHONE_SAFE_SYNTHETIC_V1',packageId:PACKAGE,status:'BLOCKED',code:'CHECK_INCOMPLETE',checks:{},scope:{syntheticOnly:true,realVideos:'NOT_TESTED',beeRecognition:'NOT_TESTED',onnxWasm:'NOT_TESTED',mp4Frames:'NOT_TESTED',realBackupRestore:'NOT_TESTED',productPermissions:'NOT_TESTED',cleanup:'NOT_TESTED',networkTraffic:'NOT_TESTED'},cleanupAuthorized:false,deleteAllowed:false,externalRequests:'NOT_ATTEMPTED'};
+ const result={suite:'PHONE_SAFE_SYNTHETIC_V1',packageId:PACKAGE,status:'BLOCKED',code:'CHECK_INCOMPLETE',checks:{},scope:{syntheticOnly:true,realVideos:'NOT_TESTED',beeRecognition:'NOT_TESTED',onnxWasm:'NOT_TESTED',mp4Frames:'NOT_TESTED',realBackupRestore:'NOT_TESTED',productPermissions:'NOT_TESTED',cleanup:'NOT_TESTED',networkTraffic:'NOT_TESTED'},cleanupAuthorized:false,deleteAllowed:false,externalRequests:'NOT_MEASURED'};
  let db;
  try{
   if(!indexedDB||!crypto?.subtle||!Blob)throw Error('ANDROID_WEB_APIS_UNAVAILABLE');
@@ -20,13 +20,24 @@ async function run(){
   result.checks.syntheticSha={status:'PASS',sha256:sha};
   const blob=new Blob([bytes],{type:'application/octet-stream'});
   db=await openDb();
-  const putTx=db.transaction('fixtures','readwrite');putTx.objectStore('fixtures').put(blob,'single-synthetic-blob');await txDone(putTx);db.close();db=null;
+  const existing=await record(db,'readonly',store=>store.get('single-synthetic-blob'));
+  const previousFixture=existing===undefined?'ABSENT_CREATED':'PRESENT_VERIFIED';
+  if(existing!==undefined){
+   if(!(existing instanceof Blob))throw Error('PREVIOUS_FIXTURE_NOT_BLOB_PRESERVE');
+   const previousBytes=new Uint8Array(await existing.arrayBuffer());
+   if(previousBytes.length!==bytes.length||await digest(previousBytes)!==EXPECTED)throw Error('PREVIOUS_FIXTURE_MISMATCH_PRESERVE');
+  }else{
+   const putTx=db.transaction('fixtures','readwrite');
+   putTx.objectStore('fixtures').add(blob,'single-synthetic-blob');
+   await txDone(putTx);
+  }
+  db.close();db=null;
   db=await openDb();const stored=await record(db,'readonly',store=>store.get('single-synthetic-blob'));
   if(!(stored instanceof Blob))throw Error('BLOB_READBACK_MISSING');
   const copy=new Uint8Array(await stored.arrayBuffer());
   if(copy.length!==bytes.length||copy.some((v,i)=>v!==bytes[i]))throw Error('BLOB_READBACK_MISMATCH');
-  if(await digest(copy)!==sha)throw Error('BLOB_SHA_MISMATCH');
-  result.checks.syntheticIndexedDbReopen={status:'PASS',bytes:copy.length,hashMatches:true};
+  if(await digest(copy)!==EXPECTED)throw Error('BLOB_SHA_MISMATCH');
+  result.checks.syntheticIndexedDbReopen={status:'PASS',bytes:copy.length,hashMatches:true,previousFixture};
   result.checks.failClosed={status:'PASS',cleanupAuthorized:false,deleteAllowed:false,realSourcesAccessed:false};
   result.status='PASS';result.code='SAFE_SYNTHETIC_ONLY';
  }catch(e){

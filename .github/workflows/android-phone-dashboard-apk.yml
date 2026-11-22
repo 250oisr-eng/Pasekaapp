@@ -6,6 +6,7 @@ on:
       - 'diagnostics/phone-dashboard/**'
       - 'scripts/prepare-android-phone-dashboard.mjs'
       - 'tests/android-phone-dashboard-static.test.mjs'
+      - 'tests/android-phone-dashboard-persistence.test.mjs'
       - '.github/workflows/android-phone-dashboard-apk.yml'
 permissions:
   contents: read
@@ -29,7 +30,7 @@ jobs:
           npm pkg set 'dependencies.@capacitor/clipboard=6.0.0'
           npm install --no-package-lock --no-audit --no-fund
       - name: Run static regression checks
-        run: node --test tests/android-phone-dashboard-static.test.mjs
+        run: node --test tests/android-phone-dashboard-static.test.mjs tests/android-phone-dashboard-persistence.test.mjs
       - name: Prepare isolated app
         env:
           PASEKA_PHONE_DASHBOARD_BUILD: '1'
