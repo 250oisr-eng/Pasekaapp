@@ -1,3 +1,12 @@
+## 2026-11-22 — next read-only V5 metadata stage, Draft PR #375
+
+- Physical V4 from user: PASS on NE2213/API36; exactly one private diagnostic `files` entry, no writes/installs/media read, `privateInput=UNKNOWN_PRESERVE`, cleanup unauthorized. CMD wrapper exit-status discrepancy was addressed in parent Draft #374 with explicit process exit and static regression; do not repeat physical V4 simply to clear the wrapper error.
+- Created dependent [Draft PR #375](https://github.com/250oisr-eng/Pasekaapp/pull/375) on #374. New `tools/android-restore335-private-type-stage-v5.ps1` queries strictly one coarse type via metadata-only `toybox ls -lA files`, requires exact device/package/private-directory checks and stable before/after `ls -A` snapshots, never emits filenames, paths, sizes or content. Unknown results BLOCK. `privateInput=UNKNOWN_PRESERVE` remains; no restore/cleanup activation.
+- Added five negative static tests, Windows PowerShell parser workflow, `docs/ANDROID-RESTORE335-PRIVATE-TYPE-V5-2026-11-22.md`. **V5 CI/physical: NOT VERIFIED** pending exact SHA. No main merge or production deployment.
+- Next: verify Windows V5 static CI and general Android CI on exact SHA; physical V5 is a separate device test and not evidence of archive origin or video detection.
+
+---
+
 ## 2026-11-22 — physical Restore335 V4 PASS, count 1; CMD post-report false failure
 
 - User ran pinned V4 on actual OnePlus NE2213/API36. Device JSON: `stage=ANDROID_RESTORE335_PRIVATE_READONLY_V4`, `status=PASS`, ADB/device/model/sdk/ADB SHA PASS, diagnostic package `PRESENT_UNTOUCHED`, production absent, PM triple check PRESENT, private directory checks both TRUE, `privateFilesClass=NONEMPTY_PRESERVE`, `privateEntryCount=1`, `privateInput=UNKNOWN_PRESERVE`. `installs/writes/mediaRead=NOT_ATTEMPTED`; `cleanup=NOT_AUTHORIZED`. The unknown entry was not examined or changed.
