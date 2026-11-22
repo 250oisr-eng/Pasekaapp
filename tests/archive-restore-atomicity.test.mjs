@@ -308,16 +308,24 @@ function mediaFingerprint(records) {
 async function seedRollback(db, { currentVideos = [] } = {}) {
   const importedBlob = new Blob(['imported'], { type: 'video/mp4' });
   const importedVideo = { id: 'imported-video', blob: importedBlob, blobSha256: createHash('sha256').update(Buffer.from('imported')).digest('hex'), capturedAt: '2026-11-14T10:00:00.000Z' };
+  // Manually seeded rollback fixtures need real import provenance too: the
+  // new fail-closed metadata check must compare against a SHA-256-linked
+  // original manifest, not an invented standalone history fingerprint.
+  const manifest = { entries: [
+    { kind: 'state' },
+    { kind: 'entrance_video', metadata: { id: importedVideo.id, capturedAt: importedVideo.capturedAt } }
+  ] };
+  const fingerprint = createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
   const tx = db.transaction(['main', 'entrance_media', 'archive_staging', 'archive_history'], 'readwrite');
   tx.objectStore('main').put({ meta: { revisionId: 'imported-revision' }, hives: [], auditLog: [] }, 'state');
   for (const video of currentVideos.length ? currentVideos : [importedVideo]) tx.objectStore('entrance_media').put(video);
   const staging = tx.objectStore('archive_staging');
   staging.put({ id: 'rollback-1', sessionId: 'rollback-1', kind: 'rollback_session', sourceBackupId: 'backup-1', status: 'ready', totalEntries: 1, stagedCount: 1 });
   staging.put({ id: 'rollback-1:state', sessionId: 'rollback-1', kind: 'rollback_state', state: { meta: { revisionId: 'old-revision' }, hives: [], auditLog: [] } });
-  staging.put({ id: 'import-1', sessionId: 'import-1', kind: 'session', backupId: 'backup-1', status: 'committed', importedRevisionId: 'imported-revision' });
+  staging.put({ id: 'import-1', sessionId: 'import-1', kind: 'session', backupId: 'backup-1', status: 'committed', importedRevisionId: 'imported-revision', fingerprint, manifest });
   tx.objectStore('archive_history').put({
     backupId: 'backup-1',
-    fingerprint: 'archive-fingerprint',
+    fingerprint,
     status: 'committed',
     rollbackSessionId: 'rollback-1',
     importSessionId: 'import-1',
@@ -507,16 +515,19 @@ test('rollback rejects same-size same-type video byte replacement', async () => 
   db.close();
 });
 
-test('rollback fingerprint ignores harmless video metadata additions', async () => {
+test('rollback preserves new video metadata even when legacy fingerprint ignores it', async () => {
   const db = await makeDatabase();
   const importedVideo = await seedRollback(db);
   const tx = db.transaction('entrance_media', 'readwrite');
   tx.objectStore('entrance_media').put({ ...importedVideo, syncStatus: 'not-synced' });
   await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = tx.onerror = () => reject(tx.error || new Error('metadata update failed')); });
-  const result = await api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
-    getRandomValues(bytes) { bytes.fill(9); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength); } }
-  }, async () => true);
-  assert.equal(result.rollbackSnapshotRemoved, true);
+  await assert.rejects(api.rollbackCommittedArchive(db, 'backup-1', 'imported-revision', {
+    getRandomValues(bytes) { bytes.fill(9); return bytes; }, subtle: { async digest(_, data) { const hash = createHash('sha256').update(Buffer.from(data)).digest(); return hash.buffer.slice(hash.byteOffset, hash.byteLength + hash.byteOffset); } }
+  }, async () => true), { code: 'ROLLBACK_MEDIA_METADATA_CHANGED' });
+  assert.equal((await new Promise((resolve,reject)=>{
+    const q=db.transaction('archive_history','readonly').objectStore('archive_history').get('backup-1');
+    q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);
+  })).status,'committed');
   db.close();
 });
 
@@ -587,7 +598,13 @@ function gatedSnapshotHasher(expectedCalls) {
   };
 }
 function testCryptoProvider() {
-  return { getRandomValues(bytes) { bytes.fill(13); return bytes; } };
+  return {
+    getRandomValues(bytes) { bytes.fill(13); return bytes; },
+    subtle: { async digest(_, data) {
+      const hash = createHash('sha256').update(Buffer.from(data)).digest();
+      return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+    } }
+  };
 }
 
 test('rollback rechecks fresh history after Phase A validation', async () => {
@@ -1270,7 +1287,9 @@ test('snapshot hash failure before commit preserves the complete rollback snapsh
       return originalHasher.hashBlobHex(blob, options);
     }
   };
-  const cryptoProvider = { getRandomValues(bytes) { bytes.fill(23); return bytes; } };
+  // Preserve the native SHA-256 provenance check while injecting the failure
+  // only into incremental Blob hashing at the intended later phase.
+  const cryptoProvider = { ...testCryptoProvider(), getRandomValues(bytes) { bytes.fill(23); return bytes; } };
 
   try {
     await assert.rejects(

@@ -949,3 +949,104 @@ test('staging refuses to overwrite a same-kind row under a matching manifest key
 test('native IndexedDB add prevents overwrite when an adapter hides an existing staged row',async()=>{
  await attemptStagingCollision('video',true);
 });
+
+async function committedImportedMediaFixture(){
+ const db=await seeded();
+ const staged=await Restore.stageArchiveForRestore(
+  db,await twoSyntheticVideoArchive(),webcrypto,Archive,()=>true);
+ const committed=await Restore.commitStagedArchive(
+  db,staged.session.sessionId,LIVE.meta.revisionId,webcrypto,Archive,()=>true);
+ const live=await get(db,'main','state');
+ assert.equal((await rows(db,'entrance_media')).length,2);
+ return {db,staged,committed,revision:live.meta.revisionId};
+}
+async function assertRollbackPreservesChangedMedia(db,revision,expectedCode='ROLLBACK_MEDIA_METADATA_CHANGED',validator=()=>true){
+ const liveBefore=await get(db,'main','state');
+ const mediaBefore=await rows(db,'entrance_media');
+ const historyBefore=await rows(db,'archive_history');
+ const stagingBefore=await rows(db,'archive_staging');
+ const backupBefore=await get(db,'full_backup','previous');
+ await assert.rejects(
+  Restore.rollbackCommittedArchive(db,'synthetic-two-video-collision',
+   revision,webcrypto,validator),
+  {code:expectedCode});
+ assert.deepEqual(await get(db,'main','state'),liveBefore);
+ assert.deepEqual(await rows(db,'entrance_media'),mediaBefore);
+ assert.deepEqual(await rows(db,'archive_history'),historyBefore);
+ assert.deepEqual(await rows(db,'archive_staging'),stagingBefore);
+ assert.deepEqual(await get(db,'full_backup','previous'),backupBefore);
+}
+test('rollback still restores synthetic journal and removes unmodified imported media',async()=>{
+ const {db,revision}=await committedImportedMediaFixture();
+ try{
+  const reverted=await Restore.rollbackCommittedArchive(
+   db,'synthetic-two-video-collision',revision,webcrypto,()=>true);
+  assert.equal(reverted.restoredVideoCount,0);
+  assert.equal((await rows(db,'entrance_media')).length,0);
+  const restored=await get(db,'main','state');
+  assert.notEqual(restored.meta.revisionId,revision,'rollback must create a fresh audit revision');
+  assert.ok(restored.auditLog.some(entry=>entry.type==='backup_rollback' && entry.backupId==='synthetic-two-video-collision'));
+  assert.equal((await get(db,'archive_history','synthetic-two-video-collision')).status,'reverted');
+ }finally{db.close();}
+});
+test('rollback refuses a newer processing status without any change to video bytes',async()=>{
+ const {db,revision}=await committedImportedMediaFixture();
+ try{
+  const current=await get(db,'entrance_media','synthetic-v1');
+  await put(db,'entrance_media',{...current,status:'completed'});
+  await assertRollbackPreservesChangedMedia(db,revision);
+ }finally{db.close();}
+});
+test('rollback refuses a newer queue retry count without any change to video bytes',async()=>{
+ const {db,revision}=await committedImportedMediaFixture();
+ try{
+  const current=await get(db,'entrance_media','synthetic-v2');
+  await put(db,'entrance_media',{...current,retryCount:3});
+  await assertRollbackPreservesChangedMedia(db,revision);
+ }finally{db.close();}
+});
+test('rollback refuses a previously unknown metadata field added after import',async()=>{
+ const {db,revision}=await committedImportedMediaFixture();
+ try{
+  const current=await get(db,'entrance_media','synthetic-v1');
+  await put(db,'entrance_media',{...current,reviewNotes:'new finding after archive import'});
+  await assertRollbackPreservesChangedMedia(db,revision);
+ }finally{db.close();}
+});
+test('rollback checks changed media metadata inside final transaction after async validation',async()=>{
+ const {db,revision}=await committedImportedMediaFixture();
+ try{
+  const original=await get(db,'entrance_media','synthetic-v2');
+  let changed=false;
+  // Phase A sees the original row. The asynchronous user validator then
+  // changes a queue status before Phase B opens its final write lock.
+  const validator=async()=>{
+   if(!changed){
+    changed=true;
+    await put(db,'entrance_media',{...original,status:'failed_retryable'});
+   }
+   return true;
+  };
+  const stateBefore=await get(db,'main','state');
+  const historyBefore=await rows(db,'archive_history');
+  const stagingBefore=await rows(db,'archive_staging');
+  await assert.rejects(Restore.rollbackCommittedArchive(
+   db,'synthetic-two-video-collision',revision,webcrypto,validator),
+   {code:'ROLLBACK_MEDIA_METADATA_CHANGED'});
+  assert.equal(changed,true);
+  assert.equal((await get(db,'entrance_media','synthetic-v2')).status,'failed_retryable');
+  assert.deepEqual(await get(db,'main','state'),stateBefore);
+  assert.deepEqual(await rows(db,'archive_history'),historyBefore);
+  assert.deepEqual(await rows(db,'archive_staging'),stagingBefore);
+ }finally{db.close();}
+});
+test('rollback rejects a changed import manifest even when its video rows are unchanged',async()=>{
+ const {db,revision,staged}=await committedImportedMediaFixture();
+ try{
+  const session=await get(db,'archive_staging',staged.session.sessionId);
+  const manifest=structuredClone(session.manifest);
+  manifest.entries.find(entry=>entry.kind==='entrance_video').metadata.name='forged-name.mp4';
+  await put(db,'archive_staging',{...session,manifest});
+  await assertRollbackPreservesChangedMedia(db,revision,'ROLLBACK_IMPORT_MANIFEST_CHANGED');
+ }finally{db.close();}
+});
