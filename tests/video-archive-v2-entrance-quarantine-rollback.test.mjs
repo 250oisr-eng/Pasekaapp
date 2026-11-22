@@ -679,3 +679,46 @@ test('P0 synthetic PASEKA02 keeps original bytes across independent stage, commi
  assert.equal(inspection.cleanupAuthorized,false);
  assert.equal(inspection.restoreAuthorized,false);
 });
+
+
+test('P0 tampered staged Blob after restart refuses isolated commit without changing live stores',async t=>{
+ const setupResult=await setup();
+ let db=setupResult.db;
+ const reopen=async()=>{
+  db.close();
+  const request=setupResult.factory.open(setupResult.name,1);
+  db=await new Promise((resolve,reject)=>{
+   request.onsuccess=()=>resolve(request.result);
+   request.onerror=()=>reject(request.error);
+  });
+ };
+ t.after(()=>{try{db.close()}catch(_){}});
+ const original=new Blob(['synthetic-unmodified-original'],{type:'video/mp4'});
+ const digest=await sha(original);
+ const archive=await d().codec.buildMetadataArchive({
+  state:state('archive'),ledger:ledger(),
+  backupId:'quarantine-test',createdAt:stageOpts().createdAt,
+  pendingVideos:[{
+   source:'entrance_media',videoId:'new-video',
+   sourceSha256:digest,sourceBytes:original.size,
+   mimeType:'video/mp4',blob:original
+  }]
+ },webcrypto,d().guard,d().sha,d().recordAdapter);
+ await stage(db,archive,stageOpts(),d());
+ const stageKey='v2pending:quarantine-test:entrance_media:new-video';
+ const staged=await get(db,'archive_staging',stageKey);
+ await put(db,'archive_staging',stageKey,{
+  ...staged,blob:new Blob(['synthetic-corrupted-after-stage'],{type:'video/mp4'})
+ });
+ await reopen();
+ await assert.rejects(commit(db,archive,commitOpts(),d()));
+ assert.deepEqual(await get(db,'main','state'),state());
+ assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),ledger());
+ assert.equal(await count(db,'entrance_media'),0);
+ assert.equal(await count(db,'archive_history'),0);
+ assert.equal(await count(db,'full_backup'),0);
+ // Failure must never silently overwrite or erase the unverified staged bytes.
+ const stillStaged=await get(db,'archive_staging',stageKey);
+ assert.equal(await stillStaged.blob.text(),'synthetic-corrupted-after-stage');
+ assert.equal((await get(db,'archive_staging','v2pending:quarantine-test')).backupId,'quarantine-test');
+});
