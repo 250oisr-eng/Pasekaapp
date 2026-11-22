@@ -1,3 +1,11 @@
+## P1 — расширенная матрица миграций и независимых вкладок (2026-11-23)
+
+- P1 Draft #419 `2865f5c3761cf4f2d46c754672f2358fbed66254`: Fast #45080691201 success **1215/1215**, Android Debug #45080691220 success. Offline SW `v317` исправлен в Draft, в main не перенесён.
+- Новый дочерний блок: `tests/indexeddb-startup-guard.test.mjs` проверяет независимые IndexedDB connections, upgrade v2→v5 (сохранение main/backup), v4→v5 (сохранение video/staging/history Blob). Только тесты и документы; без runtime, реальных записей и миграции production.
+- Проверка нового HEAD и полная матрица P1 остаются следующими шагами. P0 OPEN, реальный Android/Restore335/media cleanup STOP.
+
+---
+
 ## P1 — офлайн-изоляция Service Worker (2026-11-23)
 
 - Draft PR #418 на `1ac3b974f025e5313bd52f22353a5176bf4a94ce` проверен: 1210/1210 Fast Quality и успешный Android Debug APK workflow. Main не изменён.
