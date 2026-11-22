@@ -1,3 +1,12 @@
+## VIDEO MODEL — InsectAI Model Zoo: цепочка лицензии весов (2026-11-22)
+
+- Проверены первичные LICENSE: `IDEA-Research/GroundingDINO` Apache-2.0 (GitHub blob SHA `f1460f5e6ad1e90abb720a1536a46e3d057686a9`) и `darsa-group/flat-bug` MIT (blob `bee96279e49757f77280f9c8ddf0bf28983dda2d`). Независимый InsectAI Model Zoo отдельно предупреждает о непрямом происхождении лицензионных ярлыков.
+- Grounding DINO — общий text-guided detector с опубликованными checkpoints, но **неизвестны** права на конкретный checkpoint/его SHA-256 и offline Android RAM/perf, нет независимого benchmark летка. У flatbug каталог сообщает об AGPL-уведомлении в весах Ultralytics несмотря на MIT кода; типовая задача top-down плоский фон, не леток. Оба — **BLOCKED**, веса не загружены.
+- Добавлены кандидаты в `tests/fixtures/bee-detector-candidate-inventory.json` (всего 7), регрессионный `tests/video-bee-candidate-inventory.test.mjs` и документальная сверка `docs/VIDEO-BEE-DETECTOR-CANDIDATE-REVIEW-2026-11-22.md`. Даже при корректной лицензии исходника никакой model inference и удаление оригиналов не разрешены.
+- Следующий безопасный этап: синтетический самостоятельно созданный ONNX/офлайн WebView WASM smoke-test runtime, отдельно от реально обученной модели. Не выдавать `runtime PASS` за `recognition PASS`. Никаких изменений пользовательских данных, хранилищ, архивов, записей телефона или production.
+
+---
+
 ## Видео / реальная модель — проверка LICENSE первичных репозиториев (2026-11-22)
 
 - По публичным GitHub-файлам прочитаны MIT `AjayJohnAlex/Bee_Detection/LICENSE` (blob `891259553e1a6f161d94cdb5d370c9cfaf59e56b`) и GPL-3.0 `Gratheon/models-gate-tracker/LICENSE` (blob `f288702d2fa16d3cdf0035b15a9fcbc552cd88e7`). `Ajay.../requirements.txt` подтверждает Ultralytics 8.0.134, torch 2.0.1 и deep-sort-realtime; Gratheon использует HTTP server и внешние модели. **Лицензии кода не дают автоматически права на конкретные веса**, базовый checkpoint и датасет. Immutable upstream commit и SHA реальных весов НЕ получены.

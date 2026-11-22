@@ -39,3 +39,23 @@ test('published code licenses are not falsely extended to weights or base traini
  assert.equal(apiarist.task,'honeycomb_frame_inspection');
  assert.equal(apiarist.status,'BLOCKED');
 });
+
+test('Grounding DINO Apache code and flatbug MIT code are not treated as validated checkpoint rights',()=>{
+ const grounding=registry.candidates.find(x=>x.id==='idea-grounding-dino');
+ const flatbug=registry.candidates.find(x=>x.id==='darsa-flatbug');
+ assert.ok(grounding);assert.ok(flatbug);
+ assert.equal(grounding.codeLicense,'APACHE-2.0_REPO_LICENSE');
+ assert.equal(grounding.codeLicenseBlobSha,'f1460f5e6ad1e90abb720a1536a46e3d057686a9');
+ assert.equal(grounding.weightsLicense,'CHECKPOINT_TERMS_UNVERIFIED');
+ assert.equal(flatbug.codeLicense,'MIT_REPO_LICENSE');
+ assert.equal(flatbug.codeLicenseBlobSha,'bee96279e49757f77280f9c8ddf0bf28983dda2d');
+ assert.equal(flatbug.weightsLicense,'UPSTREAM_AGPL_NOTICE_IN_MODEL_METADATA');
+ for(const c of [grounding,flatbug]){
+  assert.equal(c.status,'BLOCKED');
+  assert.notEqual(c.fieldBenchmark,'VERIFIED');
+  assert.notEqual(c.offlineAndroid,'VERIFIED');
+  const out=gate.evaluateCandidate({id:c.id,version:'v1',task:c.task});
+  assert.equal(out.canRunInference,false);
+  assert.equal(out.cleanupAuthorized,false);
+ }
+});
