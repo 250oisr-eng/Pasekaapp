@@ -36,3 +36,9 @@
 Тест: `tests/video-detector-candidate-gate.test.mjs`; негативные варианты для каждого доказательного барьера, полный самообъявленный manifest и запрет сетевых/файловых побочных эффектов.
 
 **Итог на дату проверки:** ни один кандидат пока не допущен к реальному inference на пользовательских видео; Android IndexedDB, воспроизведение синтетического MP4 и извлечение JPEG уже подтверждены отдельно физическими результатами, но не эквивалентны распознаванию пчёл.
+
+## 2026-11-22 — проверка весов bee-yolo-tracking
+
+В фиксированной ревизии vladvroust есть одноклассовая конфигурация для пчёл и метка bee. Оба видеосценария загружают общие cfg/yolo.cfg и bin/yolo.weights. В полном дереве этой ревизии требуемого файла и отдельно идентифицируемого обученного checkpoint пчёл не найдено; при проверке список GitHub Releases был пуст. Корневой LICENSE содержит GPLv3. Происхождение конкретных весов, их контрольная сумма и условия распространения остались неподтверждёнными. Решение — исключить эту ревизию из очереди испытаний на устройстве. Следующий кандидат для проверки — maxim2100/bee-detection-classification: сопоставить файл весов с реальной задачей детекции и условиями автора до загрузки.
+
+Проверенные исходники: [process_video.py](https://github.com/vladvroust/bee-yolo-tracking/blob/2d913be3d4035f3c1961fe06d47ed127bcf6fa40/process_video.py), [process_videocam.py](https://github.com/vladvroust/bee-yolo-tracking/blob/2d913be3d4035f3c1961fe06d47ed127bcf6fa40/process_videocam.py), [cfg/tiny-yolo-voc-1c-bee.cfg](https://github.com/vladvroust/bee-yolo-tracking/blob/2d913be3d4035f3c1961fe06d47ed127bcf6fa40/cfg/tiny-yolo-voc-1c-bee.cfg), [labels.txt](https://github.com/vladvroust/bee-yolo-tracking/blob/2d913be3d4035f3c1961fe06d47ed127bcf6fa40/labels.txt), [LICENSE](https://github.com/vladvroust/bee-yolo-tracking/blob/2d913be3d4035f3c1961fe06d47ed127bcf6fa40/LICENSE).
