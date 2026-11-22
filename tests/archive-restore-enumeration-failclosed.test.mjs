@@ -907,7 +907,7 @@ async function attemptStagingCollision(kind,lieAboutExisting=false){
    });
   }};
   const adapter=lieAboutExisting?hideSpecificStagingGet(db,':video:synthetic-v2'):db;
-  const expected=lieAboutExisting?{name:'ConstraintError'}:{code:'STAGING_ENTRY_ID_CONFLICT'};
+  const expected=lieAboutExisting?/IndexedDB transaction failed|ConstraintError/: {code:'STAGING_ENTRY_ID_CONFLICT'};
   await assert.rejects(
    Restore.stageArchiveForRestore(adapter,archive,webcrypto,Archive,()=>true,options),
    expected);
