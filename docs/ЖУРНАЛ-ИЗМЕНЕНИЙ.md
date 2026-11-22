@@ -1,3 +1,21 @@
+### 2026-11-23 — Draft #407 verified code/test/docs SHA (CI PASS)
+
+- **Exact tested SHA `2416fa53a82209867eb7d150db394c885296b268`**: Fast Quality [#45073507018](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073507018) **completed/success, 904/904 tests PASS, 0 fail, 0 skipped** (job logs). Android Debug [#45073507005](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073507005) **completed/success**: regression suite, debug APK build/upload. These results cover this code/test SHA; documentation commits made later require separate HEAD verification.
+- Draft [#407](https://github.com/250oisr-eng/Pasekaapp/pull/407) remains stacked on #406 and unmerged; `main`/production untouched. Synthetic tests do **not** establish that real phone video restore or deletion is safe. Original media deletion, real restore, v2 recognition ledger/tombstones, Restore335 remain **STOP / NOT_TESTED**.
+- Next: validate docs-only final HEAD and prepare bounded v2 provenance/tombstone integration audit. No merge or production deployment without explicit approval.
+
+---
+
+## 2026-11-23 — STABILIZATION_ONLY P0: stale staging status write-lock guard, Draft #407
+
+- Parent **Draft #406** final HEAD `60b23a40e4386492593b973bec49c925e4828b61`: Fast Quality #45073200522 completed/success, Android #45073200503 completed/success, both on exact final parent HEAD. Parent #406 code/test SHA `53fb59cac14a735c32bcad2a7be698a5deef6031`: 886/886 tests PASS, 0 fail/skip, Android build/upload success.
+- Child [Draft #407](https://github.com/250oisr-eng/Pasekaapp/pull/407), branch `fix/archive-staging-session-stale-write-guard-2026-11-23`, base #406, **code/test SHA `ea48e80f5ea59ac634b69620df893288fc1434c2`**. These parent checks do NOT verify this child.
+- Source-level concurrency defect: `updateSession` could replace advanced `stagingEpoch`, `stagedCount`, identity or media baseline when a stale caller marked an existing `staging` session `ready` or `failed`. New guard in `js/paseka-archive-restore.js` verifies exact persisted stage/session identifiers, manifest/backup, epoch/count, entry total and both media baselines inside IndexedDB readwrite lock **before any status write**. Mismatch => `STAGING_SESSION_CHANGED`; staging records preserved. Ready-idempotence logic from #406 unchanged.
+- `tests/archive-ready-session-idempotency.test.mjs`: 2 positive + 16 negative synthetic fake-indexeddb scenarios added; verify that stale ready/failed finalization does not change persisted staging. No IndexedDB migration, archive format or runtime media cleanup changes.
+- CI for child SHA requires separate confirmation. No real-device restore, video recognition, original deletion or rollback performed; `main`/production unchanged, no merges/deployment. Restore335 remains STOP. Next: verify Fast Quality and Android exact SHA; then portable v2 recognition ledger and tombstone transport, without enabling destructive actions.
+
+---
+
 ### Проверка нового кода — 2026-11-23 (exact code/test SHA)
 
 - **Code + tests + initial docs HEAD `53fb59cac14a735c32bcad2a7be698a5deef6031`**: Fast Quality [#45073061756](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073061756) **completed/success, 886/886 tests PASS, 0 failures, 0 skipped** (по job logs); Android [#45073061805](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45073061805) **completed/success**, regression и Android debug APK build/upload. Проверено на точном SHA, не переносить результат автоматически на последующие документационные коммиты.
