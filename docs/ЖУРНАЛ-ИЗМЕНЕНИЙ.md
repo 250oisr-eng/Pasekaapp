@@ -1,3 +1,14 @@
+## 2026-11-22 — P0: защита полного состава staging в финальной write-транзакции импорта (Draft; CI pending)
+
+- **Прямой родитель:** Draft #399, HEAD `415ded603be7d9650ed511ce80965d16cf56020e`; его code SHA `9ae7a9ddc56991958fbc4a7be175c2b6db7edb6e` отдельно прошёл 844/844 Fast Quality и Android Debug. Это не подтверждает текущие изменения.
+- **Причина:** в `commitStagedArchive()` Phase A `readStagedArchive()` проверяла весь набор записей; Phase B после асинхронного валидатора проверяла только content rows (не kind=session), поэтому поздняя дополнительная строка с `sessionId` и `kind:'session'` не меняла fingerprint, но затем массовый цикл удаления удалял эту неожиданную строку вместе с легитимными staged rows. Кроме того, изменение индексируемого `sessionId` самого заголовка между фазами раньше не отвергалось отдельно.
+- **Устранение:** `js/paseka-archive-restore.js` перед любыми write операциями в финальном IndexedDB readwrite-lock требует строго `session.id === sessionId`, `session.sessionId === sessionId`, ровно `totalEntries + 1` staged rows, все с тем же sessionId, уникальными ненулевыми ключами, единственным заголовком под canonical ID и без других session-kind строк. Ошибка `STAGING_RECORD_SET_MISMATCH` отменяет всю транзакцию; live state, archive history, backup и staged originals сохраняются.
+- **Тесты:** `tests/archive-restore-enumeration-failclosed.test.mjs` — 3 новых сценария fake-indexeddb, модификации **после проверенного preview, до финального write lock**: лишний заголовок, header reindexed to another owner, неверный kind заголовка. Отдельно сравниваются состояние main, entrance_media, full_backup, archive_history и staging. Никаких реальных пользовательских данных не изменено.
+- **Проверки нового SHA:** PENDING, не объявлять успех до exact Fast Quality/Android. Схема IndexedDB, v1 .paseka, ledger, Android permissions и live media не меняются. STABILIZATION_ONLY; Restore335 STOP, v2 ledger/tombstones и настоящее безопасное удаление НЕ РАЗБЛОКИРОВАНЫ. Main/production/deploy не затронуты; слияние без отдельного разрешения запрещено.
+- **Следующий шаг:** exact-SHA CI исправления, устранение failures и документальная фиксация; затем очередной P0 аудит lineage и флага сохранности ledger.
+
+---
+
 ## 2026-11-22 — Draft PR #399, P0 rollback snapshot identity: exact-SHA CI PASS
 
 - **Exact code+tests+initial-docs SHA `9ae7a9ddc56991958fbc4a7be175c2b6db7edb6e`**: [Fast Quality run #45069026386](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069026386) **completed/success, 844/844 PASS, 0 FAIL, 0 skipped**. [Android run #45069026486](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069026486) **completed/success**: regression tests, debug APK build, artifact upload succeeded. [APK artifact #14772915036](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45069026486/artifacts/14772915036) is a ZIP, size 3,457,518 bytes, expires 2026-12-06; **ZIP size is not APK binary SHA**.
