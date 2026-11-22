@@ -1,3 +1,23 @@
+## 2026-11-22 — Restore335 V5 corrected source and exact-SHA CI confirmed
+
+- Draft PR [#375](https://github.com/250oisr-eng/Pasekaapp/pull/375) stacked on Draft #374; corrected script code SHA `d843d65d025b93813e3d8f66283636932ab49d2c` after initial malformed-generator syntax error (the original Windows CI #45054604478 FAILED during parse, before tests).
+- [V5 Windows readonly CI #45054695676](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45054695676): **completed/success** at exact corrected SHA; PowerShell parser PASS and **5/5 static negative tests PASS, 0 FAIL** (job log inspected).
+- [General Android APK #45054695650](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45054695650): **completed/success** at same corrected SHA; isolated archive workflow #45054695652 **skipped** (not PASS). Subsequent documentation-only HEAD requires independent CI status verification; neither CI proves physical V5 behavior.
+- Physical V4 PASS remains 1 unknown entry in diagnostic private `files`, preserved; V5 physical **NOT_TESTED**. V5 only classifies a coarse entry type via shallow metadata; it cannot determine archive/video provenance or authorize restore/deletion. No access to the user's phone via GitHub and no data mutation.
+- A one-click local CMD launcher exists as a conversation artifact, with a pinned code commit and Git blob check; it has **not** been tested on the user's Windows host. One future user action would be required to execute physical V5 if chosen.
+- Next: verify docs HEAD CI and only then offer metadata-only physical V5 test; never touch media bytes, cleanup, installed diagnostic app or production app.
+
+---
+
+## 2026-11-22 — next read-only V5 metadata stage, Draft PR #375
+
+- Physical V4 from user: PASS on NE2213/API36; exactly one private diagnostic `files` entry, no writes/installs/media read, `privateInput=UNKNOWN_PRESERVE`, cleanup unauthorized. CMD wrapper exit-status discrepancy was addressed in parent Draft #374 with explicit process exit and static regression; do not repeat physical V4 simply to clear the wrapper error.
+- Created dependent [Draft PR #375](https://github.com/250oisr-eng/Pasekaapp/pull/375) on #374. New `tools/android-restore335-private-type-stage-v5.ps1` queries strictly one coarse type via metadata-only `toybox ls -lA files`, requires exact device/package/private-directory checks and stable before/after `ls -A` snapshots, never emits filenames, paths, sizes or content. Unknown results BLOCK. `privateInput=UNKNOWN_PRESERVE` remains; no restore/cleanup activation.
+- Added five negative static tests, Windows PowerShell parser workflow, `docs/ANDROID-RESTORE335-PRIVATE-TYPE-V5-2026-11-22.md`. **V5 CI/physical: NOT VERIFIED** pending exact SHA. No main merge or production deployment.
+- Next: verify Windows V5 static CI and general Android CI on exact SHA; physical V5 is a separate device test and not evidence of archive origin or video detection.
+
+---
+
 ## 2026-11-22 — physical Restore335 V4 PASS, count 1; CMD post-report false failure
 
 - User ran pinned V4 on actual OnePlus NE2213/API36. Device JSON: `stage=ANDROID_RESTORE335_PRIVATE_READONLY_V4`, `status=PASS`, ADB/device/model/sdk/ADB SHA PASS, diagnostic package `PRESENT_UNTOUCHED`, production absent, PM triple check PRESENT, private directory checks both TRUE, `privateFilesClass=NONEMPTY_PRESERVE`, `privateEntryCount=1`, `privateInput=UNKNOWN_PRESERVE`. `installs/writes/mediaRead=NOT_ATTEMPTED`; `cleanup=NOT_AUTHORIZED`. The unknown entry was not examined or changed.

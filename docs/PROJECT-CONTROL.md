@@ -1,3 +1,9 @@
+## 2026-11-22 — Restore335 V5: type-only private metadata, no payload read
+
+- [ANDROID-RESTORE335-PRIVATE-TYPE-V5-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-TYPE-V5-2026-11-22.md) — этап после физического V4 PASS: один элемент, классификация метаданных без доступа к содержимому, восстановления и удаления.
+
+---
+
 ## 2026-11-22 — Android Restore335 read-only V4
 
 - [ANDROID-RESTORE335-PRIVATE-READONLY-V4-2026-11-22.md](ANDROID-RESTORE335-PRIVATE-READONLY-V4-2026-11-22.md): count-only private directory inventory after V3 safe block; no media read/deletion and no restore authority.
