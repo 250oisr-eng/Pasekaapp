@@ -2,8 +2,8 @@
 'use strict';
 const runButton=document.getElementById('run');
 const reportElement=document.getElementById('result');
-const shareButton=document.getElementById('share');
-const shareStatus=document.getElementById('share-status');
+const copyButton=document.getElementById('copy');
+const copyStatus=document.getElementById('copy-status');
 let latestReport=null;
 const dbName='paseka_archive_preflight_synthetic_only_v1';
 const packageId='ru.paseka.journal.diagnostic.archivepreflight';
@@ -97,9 +97,9 @@ function assertBlocked(records,expectedIssue,scenario) {
 }
 async function run() {
  runButton.disabled=true;
- shareButton.disabled=true;
+ copyButton.disabled=true;
  latestReport=null;
- shareStatus.textContent='Выполняется проверка';
+ copyStatus.textContent='Выполняется проверка';
  reportElement.textContent='RUNNING';
  checked.length=0;
  let db=null;
@@ -157,30 +157,32 @@ async function run() {
   runButton.disabled=false;
   latestReport=reportElement.textContent;
   try {
-   window.PasekaDiagnosticShare.checkedReport(latestReport);
-   shareButton.disabled=false;
-   shareStatus.textContent='Отчёт готов. Нажмите «Отправить результат» и выберите приложение.';
+   window.PasekaDiagnosticCopy.checkedReport(latestReport);
+   copyButton.disabled=false;
+   copyStatus.textContent='Отчёт готов. Нажмите «Копировать результат», затем вставьте текст в чат.';
   } catch(_) {
    latestReport=null;
-   shareButton.disabled=true;
-   shareStatus.textContent='Отчёт некорректен: отправка заблокирована.';
+   copyButton.disabled=true;
+   copyStatus.textContent='Отчёт некорректен: копирование заблокировано.';
   }
  }
 }
-async function shareResult() {
- if(shareButton.disabled || !latestReport)return;
- shareButton.disabled=true;
- shareStatus.textContent='Открывается меню отправки Android…';
+async function copyResult() {
+ if(copyButton.disabled || !latestReport)return;
+ copyButton.disabled=true;
+ copyStatus.textContent='Копирование отчёта…';
  try {
-  const share=window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
-  await window.PasekaDiagnosticShare.shareReport(latestReport,share);
-  shareStatus.textContent='Меню отправки закрыто. Проверьте, что сообщение действительно отправлено выбранным приложением.';
+  const clipboard=window.Capacitor && window.Capacitor.Plugins &&
+   window.Capacitor.Plugins.Clipboard;
+  await window.PasekaDiagnosticCopy.copyReport(latestReport,clipboard);
+  copyStatus.textContent='Результат скопирован. Откройте чат и нажмите «Вставить».';
  } catch(error) {
-  shareStatus.textContent='Отправка не подтверждена: '+String(error&&error.message||error)+'. Отчёт сохранён на экране.';
+  copyStatus.textContent='Копирование не выполнено: '+String(error&&error.message||error)+
+   '. Отчёт остаётся на экране.';
  } finally {
-  shareButton.disabled=false;
+  copyButton.disabled=false;
  }
 }
 runButton.addEventListener('click',run);
-shareButton.addEventListener('click',shareResult);
+copyButton.addEventListener('click',copyResult);
 })();
