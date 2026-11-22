@@ -16,9 +16,10 @@ const ledger=(state='deleted')=>({version:1,entries:[{
 const done=tx=>new Promise((ok,no)=>{
  tx.oncomplete=ok;tx.onerror=tx.onabort=()=>no(tx.error||new Error('tx fail'));
 });
+const fixtureFactory=new IDBFactory();
 let serial=0;
 async function setup(data={}){
- const request=new IDBFactory().open('paseka-v2-inventory-'+(++serial),1);
+ const request=fixtureFactory.open('paseka-v2-inventory-'+(++serial),1);
  request.onupgradeneeded=()=>{
   const db=request.result;db.createObjectStore('main');
   db.createObjectStore('entrance_media',{keyPath:'id'});
@@ -571,4 +572,30 @@ test('same videoId in journal and entrance source remains two distinct identitie
  assert.equal(report.issues.includes('duplicate_copy_location_identity'),false);
  assert.equal(report.cleanupAuthorized,false);
  db.close();
+});
+
+test('interrupted archive evidence survives IndexedDB close and reopen without mutations',async()=>{
+ const db=await setup({ledger:ledger('deleted'),
+   entrance:[{...live('v1'),sourceSha256:'b'.repeat(64)}],
+   staging:[{...staged('v1'),sourceSha256:'c'.repeat(64)}]});
+ const dbName=db.name;
+ const before=await audit(db,guard);
+ db.close();
+ const reopened=await new Promise((resolve,reject)=>{
+  const request=fixtureFactory.open(dbName,1);
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error);
+ });
+ const after=await audit(reopened,guard);
+ assert.deepEqual(after,before);
+ assert.ok(after.issues.includes('conflicting_source_metadata'));
+ assert.ok(after.issues.includes('recognition_source_evidence_conflict'));
+ assert.equal(after.cleanupAuthorized,false);
+ assert.equal(after.dataModified,false);
+ reopened.close();
+});
+test('closed database cannot silently produce a clean inventory report',async()=>{
+ const db=await setup({entrance:[live('orphan')]});
+ db.close();
+ await assert.rejects(audit(db,guard));
 });
