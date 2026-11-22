@@ -1,3 +1,9 @@
+## 2026-11-22 — terminal CI update for code SHA 8af4327
+
+Confirmed **completed/success** for exact code SHA `8af4327deb58fbac139b4509750d7b827fbf7327`: [Windows USB mock #45037285858](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45037285858) **13/13**, [main Android APK #45037285792](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45037285792), [isolated permissions APK #45037285786](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45037285786). Archive test #45037285824 was **skipped**, not passed. After this code SHA, one workflow-label-only commit and documentation commits followed. They do not provide physical USB proof. Product absent on OnePlus, physical product permission report blocked; network traffic, bee recognition and video deletion remain NOT_TESTED. No media writes, merge, or deployment.
+
+---
+
 ## 2026-11-22 — USB marker compatibility: Windows CI 13/13 PASS
 
 - Телефон пользователя: USB serial `ebdb131f`, `adb -d get-serialno` подтвердил USB без маркера `usb:` в `adb devices -l`; основной `ru.paseka.journal` не установлен. Доступ к ПК временно отсутствует, действий пользователя не требуется.
