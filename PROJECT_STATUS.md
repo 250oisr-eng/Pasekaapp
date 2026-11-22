@@ -1,3 +1,12 @@
+## 2026-11-22 — отдельный фикс эталона синтетического SHA после физического PASS
+
+- Дочерний Draft PR #383 закрепляет независимо вычисленный эталон `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2` для 31-байтовой синтетической строки; результат при несовпадении будет `BLOCKED / SYNTHETIC_REFERENCE_HASH_MISMATCH`. Ранее физически проверенный APK PR #382 не менялся.
+- На точном code/test SHA `8149039f757fe95575879b92ce9d4149ac9cf8b3`: [изолированный Android CI #45059850207](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059850207) **completed/success**, статические тесты **6/6 PASS**, APK build/package/permissions/upload PASS; [общий Android CI](https://github.com/250oisr-eng/Pasekaapp/actions?query=sha%3A8149039f757fe95575879b92ce9d4149ac9cf8b3) completed/success по commit workflow lookup.
+- Новый APK SHA256 `676563fa72dfa006d2044796e436123e6b4cf633e5bdc2b379b617a2b30a91c4`, [artifact #14768841978](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45059850207/artifacts/14768841978); физический запуск **новой версии NOT_TESTED**. Родительский пользовательский физический PASS V1 остаётся подтверждённым только для прежнего APK.
+- Дальше: не требовать немедленной переустановки. Следующий физический тест делать только для новой APK-версии после отдельной последовательности проверки, при этом не трогать Restore335 и реальные видео.
+
+---
+
 ## 2026-11-22 — подтверждён физический запуск PHONE_SAFE_SYNTHETIC_V1
 
 - Пользователь прислал полный JSON с Android: `suite=PHONE_SAFE_SYNTHETIC_V1`, `packageId=ru.paseka.journal.diagnostic.phonechecks`, `status=PASS`, `code=SAFE_SYNTHETIC_ONLY`. Это **физический результат со слов пользователя**, в отличие от CI.
