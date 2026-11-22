@@ -1,0 +1,42 @@
+name: Android Restore335 V9 readonly null type proof
+on:
+  push:
+    paths:
+      - 'tools/android-restore335-private-null-type-v9.ps1'
+      - 'tests/android-restore335-private-null-type-v9.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v9.yml'
+  pull_request:
+    paths:
+      - 'tools/android-restore335-private-null-type-v9.ps1'
+      - 'tests/android-restore335-private-null-type-v9.test.mjs'
+      - '.github/workflows/android-restore335-readonly-v9.yml'
+jobs:
+  readonly-v9:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: PowerShell parser and executable synthetic NUL framing cases
+        shell: pwsh
+        run: |
+          $tok=$null; $err=$null
+          $tree=[System.Management.Automation.Language.Parser]::ParseFile('tools/android-restore335-private-null-type-v9.ps1',[ref]$tok,[ref]$err)
+          if ($err.Count -gt 0) { $err | Out-String | Write-Error; exit 1 }
+          $defs=@($tree.FindAll({param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -eq 'Test-SingleNullRecord'},$true))
+          if ($defs.Count -ne 1) { throw 'NULL_PARSER_FUNCTION_NOT_FOUND' }
+          [void][ScriptBlock]::Create($defs[0].Extent.Text).Invoke()
+          $n=[char]0
+          if ((Test-SingleNullRecord '') -ne 0) { throw 'EMPTY_NOT_ZERO' }
+          if ((Test-SingleNullRecord ('files/one'+$n)) -ne 1) { throw 'SINGLE_NOT_ONE' }
+          if ((Test-SingleNullRecord ('files/new'+[char]10+'line'+$n)) -ne 1) { throw 'NEWLINE_NAME_NOT_ONE' }
+          foreach ($bad in @('files/one',('a'+$n+'b'+$n),[string]$n,('files/one'+$n+'bad'),('x'*4096+$n))) {
+            $blocked=$false
+            try { [void](Test-SingleNullRecord $bad) } catch { $blocked=$true }
+            if (-not $blocked) { throw 'BAD_NULL_FRAMING_ACCEPTED' }
+          }
+          Write-Host 'PowerShell parser + 7 synthetic null-record cases PASS'
+      - name: Static security invariant tests
+        shell: pwsh
+        run: node --test tests/android-restore335-private-null-type-v9.test.mjs
