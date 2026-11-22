@@ -1,3 +1,11 @@
+## 2026-11-22 — завершена проверка защиты от параллельных вызовов Android
+
+- **Exact code/test SHA** `17f5c656b42dc0fe0909ff0bf3640a216ea6672c`. GitHub Actions **completed/success** на этом SHA: [Fast quality #45032633609](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633609), [диагностический APK #45032633730](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633730), [основная Android-сборка #45032633563](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45032633563).
+- Конкурирующие вызовы native PackageManager не запускаются повторно и не перезаписывают отчёт; retry после ошибки разрешён только новым вызовом, без записи в данные продукта. Новые test cases проверены регрессионным набором.
+- После этого SHA отдельные коммиты только в документации. Реальный Android installed-package test и сетевой трафик НЕ ПРОВЕРЕНЫ; видео, archive restore/cleanup и права на удаление не меняются. `main`, production и данные пасеки не изменены. Draft PR #366 остаётся открытым.
+
+---
+
 ## 2026-11-22 — блокировка параллельных запросов Android PackageManager
 
 - В `diagnostics/product-permissions/runner.js` введён независимый от состояния HTML-кнопки флаг `runInFlight`: параллельный вызов обработчика не запускает вторую проверку и не может перезаписать отчёт ответом от конкурирующего native-вызова. Флаг снимается в `finally`, в том числе при отказе PackageManager.
