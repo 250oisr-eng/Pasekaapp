@@ -90,3 +90,40 @@ test('main UI exposes distinct guarded P0 flow while legacy JSON functions stay 
  assert.match(html,/async function downloadBackup\(/);
  assert.match(html,/async function restoreBackup\(/);
 });
+
+test('reopened database retains complete recovery after simulated crash boundary',async()=>{
+ const idb=new IDBFactory(),name='paseka-crash-fixture';
+ const open=()=>new Promise((yes,no)=>{const q=idb.open(name,3);q.onupgradeneeded=()=>{q.result.createObjectStore('main');q.result.createObjectStore('full_backup');q.result.createObjectStore('entrance_media',{keyPath:'id'});};q.onsuccess=()=>yes(q.result);q.onerror=()=>no(q.error)});
+ let db=await open();await seed(db);const raw=await api.exportArchive(db);
+ let tx=db.transaction(['main','entrance_media'],'readwrite');
+ tx.objectStore('main').put({meta:{revisionId:'new'},hives:[],families:[],records:[]},'state');
+ tx.objectStore('entrance_media').delete('video1');
+ await new Promise((yes,no)=>{tx.oncomplete=yes;tx.onerror=()=>no(tx.error)});
+ const inspection=await api.inspectArchive(raw,db);
+ await api.atomicRestore(db,inspection,'new');
+ db.close();db=await open();
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ const video=await get(db,'entrance_media','video1');
+ assert.deepEqual(Array.from(new Uint8Array(await video.blob.arrayBuffer())),[1,2,3,4]);
+ db.close();
+});
+test('quota-like DataCloneError aborts all-store restore and preserves media and history',async()=>{
+ const db=await database();await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ inspection.rows.get('main')[0].value.meta.revisionId='changed';
+ inspection.rows.get('entrance_media')[0].value.blob=()=>{}; // fake structured clone / quota precondition
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'));
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ assert.deepEqual((await get(db,'main','state')).auditLog,[{id:'event'}]);
+ db.close();
+});
+test('truncated archive and hostile index shape fail before restore',async()=>{
+ const db=await database();await seed(db);const raw=await api.exportArchive(db);
+ await assert.rejects(api.inspectArchive(raw.slice(0,-20),db));
+ const modified=JSON.parse(raw);
+ modified.payload.stores.find(x=>x.name==='entrance_media').keyPath='different';
+ modified.manifest.sha256=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(modified.payload)))).toString('hex');
+ await assert.rejects(api.inspectArchive(JSON.stringify(modified),db),/Store schema mismatch/);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');db.close();
+});
