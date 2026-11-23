@@ -19,7 +19,7 @@ function writeSeed(initial){
 }
 async function waitDb(){
  for(let i=0;i<160;i++){
-  if(typeof db!=='undefined'&&db&&typeof PasekaDisasterArchive==='object'&&typeof readMain==='function')return;
+  if(typeof db!=='undefined'&&db&&typeof PasekaDisasterArchive==='object'&&typeof readMain==='function'){const saved=await readMain().catch(()=>null);if(saved?.meta?.revisionId)return;}
   await new Promise(r=>setTimeout(r,125));
  }
  throw Error('App database not available');
