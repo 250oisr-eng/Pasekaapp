@@ -65,7 +65,7 @@ function stage(state,request,deps={}){
     if(!h?.ok)throw Error('early_honey_lineage_rejected:'+h?.error);
    }
    if(typeof deps.PasekaFamilyLineage.applyMerge!=='function')throw Error('merge_lineage_api_missing');
-   const m=deps.PasekaFamilyLineage.applyMerge(draft,{sourceFamilyIds:initialFamilyIds,resultFamily:request.resultFamily,operationId:op,techProcessId:cycle[0].id,occurredAt:request.occurredAt},makeId,request.occurredAt);
+   const m=deps.PasekaFamilyLineage.applyMerge(draft,{sourceFamilyIds:initialFamilyIds,resultFamily:request.resultFamily,operationId:op,scenario:op==='OP-14'?'EARLY_HONEY':null,techProcessId:cycle[0].id,occurredAt:request.occurredAt},makeId,request.occurredAt);
    if(!m?.ok)throw Error('merge_lineage_rejected:'+m?.error);
   }else{
    const ix=draft.sectionalLayouts.findIndex(l=>l.id===old.id);
