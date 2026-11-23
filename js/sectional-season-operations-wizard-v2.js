@@ -34,7 +34,7 @@ const fieldSpecs={
  entrances:[['phase','Проверяемая фаза','phase'],['allSectionsObserved','Летки всех трёх секций осмотрены','check']],
  removeHoney:[['honeyBodyIds','Снятые медовые корпуса','honeyBodies'],['excluderIds','Две снятые разделительные решётки','excluders'],['storageLabel','Фактическое место хранения','storage'],['actualHoneyStored','Все медовые корпуса фактически сняты и отправлены на склад','check'],['actualExcludersStored','Обе разделительные решётки фактически сняты и хранятся на складе','check'],['coversReinstalled','Крышки и подкрышники возвращены','check']],
  merge:[['upperBodyIds','Три фактически сохранённых верхних гнездовых корпуса','broodMany'],['actualMerge','Пчёлы фактически объединены; матка не назначена','check']],
- winter:[['diaphragmIds','Две сетчатые диафрагмы','diaphragms'],['winterBodyIds','Четыре гнездовых корпуса (2+1+1)','winterBodies'],['actualIsolation','Три семьи изолированы по подтверждённой раскладке','check']],
+ winter:[['diaphragmIds','Две сетчатые диафрагмы','diaphragms'],['winterBodyIds','Четыре гнездовых корпуса (2+1+1)','winterBodies'],['strongestFamilyId','Самая сильная семья (личное наблюдение)','family'],['actualIsolation','Три семьи изолированы по подтверждённой раскладке','check']],
  spring:[['bottomIds','Два отдельных днища','bottoms'],['additionalBodyIds','Два дополнительных гнездовых корпуса','broodPair'],['actualSeparation','Семьи фактически разделены','check']],
  early:[['honeyBodyIds','Снятые корпуса с ранним мёдом','honeyBodies'],['excluderIds','Снятые большие разделительные решётки','excluders'],['nestBodiesAfterHarvest','Корпусов в объединённом гнезде','nestBodies'],['actualMerge','После медосбора семьи действительно объединены','check']]
 };
@@ -96,6 +96,55 @@ function validate(state,draft){
   const layout=A(state.sectionalLayouts).find(l=>l.hiveId===draft.hiveId);
   const seq=A(layout?.sections?.[0]?.broodBodyIds);
   if(layout?.mode!=='SINGLE_FAMILY'||seq.length!==3||draft.values?.bottomBodyId!==seq[0]||draft.values?.topBodyId!==seq[2])add('swap_actual_position_mismatch','Верхний и нижний корпуса должны совпадать с текущим порядком физического реестра');
+ }
+
+ if(['OP-11','OP-12'].includes(draft.operationId)){
+  const physical=A(state.sectionalLayouts).filter(l=>l.hiveId===draft.hiveId);
+  const row=physical[0];
+  if(physical.length!==1||row.mode!=='SIDE_BY_SIDE'||A(row.sections).length!==3||
+     row.honeyStack!=null||A(row.sections).some(s=>A(s.broodBodyIds).length!==2))
+   add('winter_source_layout_not_ready','Для зимовки нужны три отдельные двухкорпусные секции без установленного медового яруса');
+  if(draft.operationId==='OP-12'&&row){
+   const selectedBodies=selected(draft.values?.winterBodyIds);
+   const distribution=A(row.sections).map(s=>A(s.broodBodyIds).filter(id=>selectedBodies.includes(id)).length);
+   const exact=new Set(A(row.sections).flatMap(s=>A(s.broodBodyIds)));
+   if(selectedBodies.some(id=>!exact.has(id))||
+      JSON.stringify(distribution.slice().sort())!=='[1,1,2]')
+    add('op12_physical_2_1_1_not_proven','Оставьте обе рамочные секции самой сильной семьи (2 корпуса) и по одному действующему корпусу двух других семей');
+   const leader=A(row.sections).find((s,i)=>distribution[i]===2);
+   if(!leader||leader.familyId!==draft.values?.strongestFamilyId)
+    add('op12_strongest_family_not_confirmed','Укажите фактически самую сильную семью, которой оставлены два корпуса');
+   const items=state.equipmentInventory?.items||{};
+   if(selected(draft.values?.diaphragmIds).some(id=>items[id]?.location?.type!=='storage'||items[id]?.condition!=='good'))
+    add('op12_diaphragms_not_from_storage','Обе сетчатые диафрагмы должны быть исправными и находиться на подтверждённом складе');
+  }
+ }
+ if(draft.operationId==='OP-13'){
+  const rows=A(state.sectionalLayouts).filter(l=>l.hiveId===draft.hiveId),physical=rows[0];
+  const byFamily=A(physical?.sections);
+  const counts=byFamily.map(s=>A(s.broodBodyIds).length).sort();
+  if(rows.length!==1||physical.mode!=='ALTERNATIVE_WINTERING_COLUMN'||
+     JSON.stringify(counts)!=='[1,1,2]'||byFamily.length!==3)
+   add('op13_source_wintering_layout_invalid','Весенняя разборка возможна только после фактической альтернативной зимовки с размещением 2+1+1');
+  const selectedBottoms=selected(draft.values?.bottomIds),selectedBodies=selected(draft.values?.additionalBodyIds),
+        items=state.equipmentInventory?.items||{},bodies=state.equipmentInventory?.bodies||{};
+  const installed=new Set(A(physical?.sections).flatMap(s=>A(s.broodBodyIds)));
+  if(selectedBottoms.some(id=>items[id]?.condition!=='good'||items[id]?.location?.type!=='storage'))
+   add('op13_bottoms_not_in_storage','Для двух отделяемых семей требуются два исправных днища, зарегистрированных на складе');
+  if(selectedBodies.some(id=>installed.has(id)||bodies[id]?.condition!=='good'||
+     !S(bodies[id]?.storageLocation)))
+   add('op13_added_bodies_not_in_storage','Оба дополнительных гнездовых корпуса должны быть свободными и учтёнными на складе');
+ }
+ if(draft.operationId==='OP-14'){
+  const rows=A(state.sectionalLayouts).filter(l=>l.hiveId===draft.hiveId),physical=rows[0];
+  const currentHoney=A(physical?.honeyStack?.bodyIds);
+  const actualExcluders=A(physical?.honeyStack?.excluders).map(x=>x.itemId);
+  if(rows.length!==1||physical.mode!=='SIDE_BY_SIDE'||physical.honeyStack?.purpose!=='early'||
+     currentHoney.length!==2||actualExcluders.length!==2||
+     selected(draft.values?.honeyBodyIds).length!==2||
+     currentHoney.some(id=>!selected(draft.values?.honeyBodyIds).includes(id))||
+     actualExcluders.some(id=>!selected(draft.values?.excluderIds).includes(id)))
+   add('op14_original_early_honey_layout_mismatch','Для раннего объединения нужно подтвердить именно два установленных корпуса раннего мёда и обе действующие решётки');
  }
  if(draft.operationId==='OP-11'){
   const layout=A(state.sectionalLayouts).find(l=>l.hiveId===draft.hiveId);
