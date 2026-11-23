@@ -45,7 +45,7 @@ test('treatment draft requires explicit confirmation before any state mutation',
  assert.match(submit,/if\(!isTreatment\)/);
  assert.match(submit,/if\(data\.date>today\(\)\)/);
  assert.match(submit,/if\(!confirm\(/);
- const persisted=submit.indexOf('if(!await save())');
+ const persisted=submit.indexOf('stored=await save()');
  const dialogClose=submit.indexOf("$('recordDlg').close()");
  assert.ok(persisted>mutation&&dialogClose>persisted,'journal closes only after a confirmed save');
  assert.match(submit,/dataset\.varroaTreatmentDraft='';\s*}finally\{form\.dataset\.saveInProgress='';\}/);
