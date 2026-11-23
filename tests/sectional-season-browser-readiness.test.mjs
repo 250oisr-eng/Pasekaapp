@@ -11,6 +11,7 @@ const modules=[
  'js/sectional-season-transaction-v2.js',
  'js/sectional-season-provenance-v2.js',
  'js/sectional-season-physical-executor-v2.js',
+ 'js/sectional-season-body-manifest-v2.js',
  'js/sectional-season-runtime-v2.js',
  'js/sectional-season-lifecycle-v2.js',
  'js/sectional-season-browser-commit-v2.js',
