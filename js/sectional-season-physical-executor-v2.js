@@ -24,7 +24,7 @@ function stage(state,request,deps={}){
  const before=locations(old),after=locations(target),inventory=state.equipmentInventory;
  if(!O(inventory?.bodies)||!O(inventory?.items)||!Array.isArray(inventory.events)||!Array.isArray(inventory.itemEvents)||!Array.isArray(state.auditLog)||!Array.isArray(state.familyEvents)||!Array.isArray(state.queenEvents))return fail('season_inventory_or_history_invalid');
  const changed=[...new Set([...before.keys(),...after.keys()])].filter(id=>JSON.stringify(before.get(id)||null)!==JSON.stringify(after.get(id)||null));
- if(changed.length!==bodyMoves.length||changed.some(id=>!bodyMoves.some(x=>x.bodyId===id)))return fail('season_body_movement_manifest_incomplete');
+ if(changed.length!==bodyMoves.length||changed.some(id=>!bodyMoves.some(x=>x.bodyId===id&&JSON.stringify(x.from??null)===JSON.stringify(before.get(id)||null)&&JSON.stringify(x.to??null)===JSON.stringify(after.get(id)||(!after.has(id)&&S(storageLocations[id])?{type:'storage',label:storageLocations[id]}:null)))))return fail('season_body_movement_manifest_incomplete');
  const storageLocations=O(request.storageLocations)?request.storageLocations:{};
  for(const id of changed){
   const b=inventory.bodies[id];
@@ -36,10 +36,14 @@ function stage(state,request,deps={}){
  if(op==='OP-11'||op==='OP-14'){
   if(old.mode!=='SIDE_BY_SIDE'||target.mode!=='SINGLE_FAMILY'||initialFamilyIds.length!==3||A(target.sections).length!==1||!O(request.resultFamily)||request.resultFamily.hive!==request.hiveId||!S(request.resultFamily.id)||request.resultFamily.currentQueenId||request.resultFamily.queenId)return fail('season_merge_plan_invalid');
   if(op==='OP-11'&&request.actualMergeConfirmed!==true)return fail('op11_merge_confirmation_missing');
+  if(op==='OP-11'){
+   const expected=A(old.sections).map(s=>s.upperBroodBodyId);
+   if(expected.some(id=>!S(id))||A(target.sections[0].broodBodyIds).length!==3||!expected.every(id=>A(target.sections[0].broodBodyIds).includes(id)))return fail('op11_must_preserve_exact_three_upper_bodies');
+  }
   if(op==='OP-14'&&(request.actualMergeConfirmed!==true||request.earlyHoneyHarvestConfirmed!==true))return fail('op14_harvest_and_merge_confirmation_missing');
  }else if(op==='OP-12'){
-  if(old.mode!=='SIDE_BY_SIDE'||target.mode!=='ALTERNATIVE_WINTERING_COLUMN'||request.actualIsolationConfirmed!==true)return fail('op12_wintering_confirmation_missing');
- }else if(old.mode!=='ALTERNATIVE_WINTERING_COLUMN'||target.mode!=='SIDE_BY_SIDE'||request.actualSeparationConfirmed!==true)return fail('op13_spring_separation_confirmation_missing');
+  if(old.mode!=='SIDE_BY_SIDE'||target.mode!=='ALTERNATIVE_WINTERING_COLUMN'||request.actualIsolationConfirmed!==true||A(target.sections).length!==3||!initialFamilyIds.every(id=>A(target.sections).some(s=>s.familyId===id)))return fail('op12_wintering_confirmation_missing');
+ }else if(old.mode!=='ALTERNATIVE_WINTERING_COLUMN'||target.mode!=='SIDE_BY_SIDE'||request.actualSeparationConfirmed!==true||A(target.sections).length!==3||!initialFamilyIds.every(id=>A(target.sections).some(s=>s.familyId===id)))return fail('op13_spring_separation_confirmation_missing');
  let draft;try{draft=structuredClone(state)}catch{return fail('season_clone_failed')}
  const used=new Set([...A(draft.auditLog),...A(draft.familyEvents),...A(draft.queenEvents),...A(inventory.events),...A(inventory.itemEvents),...Object.values(inventory.bodies).flatMap(b=>[...A(b.events),...A(b.frames).flatMap(f=>A(f.history))]),...Object.values(inventory.items).flatMap(i=>A(i.events))].map(e=>e?.id).filter(Boolean));
  const makeId=()=>{const id=deps.makeId();if(!S(id)||used.has(id))throw Error('season_event_id_conflict');used.add(id);return id};
