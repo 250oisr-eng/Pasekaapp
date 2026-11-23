@@ -44,3 +44,21 @@ test('OP07 does not use Farrar hive, wrong stage or future operation time',()=>{
  const x=fixture();x.state.sectionalLayouts[0].broodRows=1;assert.equal(plan(x.state,x.req).ok,false);
  const y=fixture();y.req.occurredAt='2099-01-01T00:00:00Z';assert.equal(plan(y.state,y.req).ok,false);
 });
+
+test('mobile OP07 inputs form a concrete reversible v2 request through actual manifest',()=>{
+ const form={};new Function('window',readFileSync(new URL('../js/sectional-season-operations-wizard-v2.js',import.meta.url),'utf8'))(form);
+ const w=form.PasekaSeasonOperationsWizardV2,source=fixture();
+ source.state.sectionalSeasonCycles=[{id:'c',hiveId:'h',status:'ACTIVE',events:[]}];
+ const values={honeyBodyIds:['h1','h2'],excluderIds:['x1','x2'],leftExcluderId:'x1',rightExcluderId:'x2',
+ honeyPurpose:'main',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW',storageLabel:'склад',
+ actualCoversRemoved:true,actualExcludersInstalled:true,actualHoneyBodiesInstalled:true};
+ const draft={operationId:'OP-07',hiveId:'h',occurredAt:'2026-11-23T10:00:00Z',userConfirmed:true,values};
+ const prior=structuredClone(source.state);
+ assert.deepEqual(w.validate(source.state,draft),[]);
+ const result=w.previewOP07(source.state,draft,{manifest:{plan}});
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(result.request.layout.honeyStack.excluders[0].side,'left');
+ assert.deepEqual(source.state,prior);
+ const swapped={...draft,values:{...values,rightExcluderId:'x1'}};
+ assert.equal(w.previewOP07(source.state,swapped,{manifest:{plan}}).ok,false);
+});
