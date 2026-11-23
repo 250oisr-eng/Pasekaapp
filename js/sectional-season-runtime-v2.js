@@ -6,7 +6,7 @@
 const O=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const S=x=>typeof x==='string'&&x.trim().length>0;
 const fail=(error,details)=>({ok:false,error,...(details?{details}:{})});
-const ops=new Set(['OP-04','OP-05','OP-06','OP-07','OP-08','OP-09','OP-10','OP-11','OP-12','OP-13','OP-14']);
+const ops=new Set(['OP-04','OP-05','OP-06','OP-06-RESCUE','OP-07','OP-08','OP-09','OP-10','OP-11','OP-12','OP-13','OP-14']);
 async function commit(request,deps={}){
  if(!O(request)||!ops.has(request.operationId)||request.userConfirmed!==true||!S(request.hiveId)||!S(request.cycleId)||!S(request.eventId)||!S(request.transactionId)||!S(request.occurredAt)||!S(request.confirmedBy))return fail('season_runtime_user_confirmation_missing');
  const required=['readMain','writeMainIfUnchanged','verifyFullArchiveAndReplay','validateState','makeRevisionId','preparePersistentSnapshot'];
