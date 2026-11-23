@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 // Standalone test of production IDB writer against a synthetic, isolated DB.
-// No user data, filesystem, MediaStore, imports, restoration or deletes.
+// No user data, external files, imports, restoration or deletes.
 const PKG='ru.paseka.journal.diagnostic.idbatomicv1';
 const DB_NAME='paseka-p1-atomic-diagnostic-synthetic-v1';
 const TAG='PASEKA_P1_ATOMIC_SYNTHETIC_ONLY';
