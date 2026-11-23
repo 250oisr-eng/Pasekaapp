@@ -52,7 +52,13 @@ test('OP07 requires complete honey pairs and exactly two own excluders',()=>{
  assert.ok(api.validate(f,request('OP-07',{...values,honeyBodyIds:['h1','h3']})).some(e=>e.code==='honey_incomplete_pair'));
 });
 test('OP10 cannot silently leave installed honey body on hive',()=>{
- const f=fixture(),v={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],storageLabel:'склад',coversReinstalled:true};
+ const f=fixture(),v={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],storageLabel:'склад',actualHoneyStored:true,actualExcludersStored:true,coversReinstalled:true,stackAccessories:{}};
+ f.sectionalLayouts[0].stacks=['left','middle','right'].map(id=>({id}));
+ for(const id of ['left','middle','right']){
+  v.stackAccessories[id]={coverItemId:'cover-'+id,topRiserItemId:'riser-'+id};
+  f.equipmentInventory.items['cover-'+id]={id:'cover-'+id,kind:'cover',condition:'good',location:{type:'storage',label:'склад'}};
+  f.equipmentInventory.items['riser-'+id]={id:'riser-'+id,kind:'topRiser',condition:'good',location:{type:'storage',label:'склад'}};
+ }
  assert.deepEqual(api.validate(f,request('OP-10',v)),[]);
  assert.ok(api.validate(f,request('OP-10',{...v,honeyBodyIds:['h3','h4']})).some(e=>e.code==='honey_remove_not_current'));
 });
