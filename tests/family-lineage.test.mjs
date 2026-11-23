@@ -626,3 +626,32 @@ test('queen absence event integrity rejects candidate queens, foreign resolution
  assert.equal(api.getQueenPresenceStatus(state,'absence-integrity-2'),'inconsistent');
  assert.ok(api.inspect(state).some(error=>error.code==='queen_absence_active_family_state_requires_resolution'));
 });
+
+test('OP13 canonical stackId bottom placement is accepted only when linked to actual family section',()=>{
+ const state=baseState(),at='2026-04-20T10:00:00.000Z';
+ state.equipmentInventory.bodies=Object.fromEntries(['b1','b2','b3','b4','b5','b6'].map(id=>[id,{id}]));
+ state.equipmentInventory.items={
+  d1:{id:'d1',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'between-lower-middle'}},
+  d2:{id:'d2',kind:'meshDiaphragm',condition:'good',location:{type:'hive',hiveId:'h1',positionLabel:'between-middle-upper'}},
+  bottom2:{id:'bottom2',kind:'bottom',condition:'good',location:{type:'hive',hiveId:'h1',stackId:'stack-middle'}}
+ };
+ const families=['f1','f2','f3'],winterLayout=[
+  {familyId:'f1',position:'lower',bodyCount:2},
+  {familyId:'f2',position:'middle',bodyCount:1},
+  {familyId:'f3',position:'upper',bodyCount:1}
+ ];
+ assert.equal(api.configureAlternativeWintering(state,{familyIds:families,diaphragmItemIds:['d1','d2'],layout:winterLayout,techProcessId:'winter1'},makeId,at).ok,true);
+ state.sectionalLayouts=[{hiveId:'h1',mode:'SIDE_BY_SIDE',sections:[
+  {id:'section-left',familyId:'f1'},{id:'section-middle',familyId:'f2'},{id:'section-right',familyId:'f3'}],
+  stacks:[{id:'stack-middle',bottomItemId:'bottom2',sectionIds:['section-middle']}] }];
+ const request={familyIds:families,familyId:'f2',techProcessId:'winter1',from:{position:'middle',bodyIds:['b3']},to:{position:'separate_bottom',bottomItemId:'bottom2',bodyIds:['b3','b4']}};
+ const result=api.recordPlacementChanged(state,request,makeId,at);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(result.event.bottomSnapshot.stackId,'stack-middle');
+ assert.equal(result.event.bottomSnapshot.positionLabel,null);
+ assert.deepEqual(api.inspect(state),[]);
+ const wrong=structuredClone(state);
+ wrong.equipmentInventory.items.bottom2.location.stackId='stack-left';
+ const resultWrong=api.recordPlacementChanged(wrong,{...request,familyId:'f3',from:{position:'upper',bodyIds:['b5']},to:{...request.to,bodyIds:['b5','b6']}},makeId,at);
+ assert.equal(resultWrong.error,'placement_bottom_stack_mismatch');
+});

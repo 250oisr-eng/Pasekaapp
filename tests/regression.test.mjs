@@ -14,6 +14,12 @@ const familyLineageSource = await readFile(new URL('../js/family-lineage.js', im
 const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
 const sectionalEntranceOperationsSource = await readFile(new URL('../js/sectional-entrance-operations.js', import.meta.url), 'utf8');
 const sectionalOP03Source = await readFile(new URL('../js/sectional-op03-body-swap.js', import.meta.url), 'utf8');
+const v2Source0 = await readFile(new URL('../js/sectional-season-ledger-v2.js', import.meta.url), 'utf8');
+const v2Source1 = await readFile(new URL('../js/sectional-season-evidence-v2.js', import.meta.url), 'utf8');
+const v2Source2 = await readFile(new URL('../js/sectional-season-dual-read-v2.js', import.meta.url), 'utf8');
+const v2Source3 = await readFile(new URL('../js/sectional-op09-entrances.js', import.meta.url), 'utf8');
+const op08HoneySource = await readFile(new URL('../js/sectional-op08-honey.js', import.meta.url), 'utf8');
+const op02CourseSource = await readFile(new URL('../js/sectional-op02-course.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -29,6 +35,12 @@ new Function('window', familyLineageSource)(appWindow);
 new Function('window', sectionalOperationCoordinatorSource)(appWindow);
 new Function('window', sectionalEntranceOperationsSource)(appWindow);
 new Function('window', sectionalOP03Source)(appWindow);
+new Function('window', v2Source0)(appWindow);
+new Function('window', v2Source1)(appWindow);
+new Function('window', v2Source2)(appWindow);
+new Function('window', v2Source3)(appWindow);
+new Function('window', op02CourseSource)(appWindow);
+new Function('window', op08HoneySource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -62,6 +74,12 @@ function loadFunction(name, globals = {}) {
   deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
   deps.PasekaSectionalEntranceOperations ||= appWindow.PasekaSectionalEntranceOperations;
   deps.PasekaSectionalOP03BodySwap ||= appWindow.PasekaSectionalOP03BodySwap;
+  deps.PasekaSectionalSeasonLedgerV2 ||= appWindow.PasekaSectionalSeasonLedgerV2;
+  deps.PasekaSectionalSeasonEvidenceV2 ||= appWindow.PasekaSectionalSeasonEvidenceV2;
+  deps.PasekaSectionalSeasonDualReadV2 ||= appWindow.PasekaSectionalSeasonDualReadV2;
+  deps.PasekaSectionalOP09Entrances ||= appWindow.PasekaSectionalOP09Entrances;
+  deps.PasekaSectionalOP02Course ||= appWindow.PasekaSectionalOP02Course;
+  deps.PasekaSectionalOP08Honey ||= appWindow.PasekaSectionalOP08Honey;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -3606,7 +3624,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v319/);
+ assert.match(sw,/paseka-shell-v328/);
 });
 
 
@@ -3732,7 +3750,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v319/);
+  assert.match(source,/paseka-shell-v328/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);

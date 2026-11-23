@@ -251,7 +251,7 @@ function inspect(state) {
    const itemMap=state.equipmentInventory?.items||{},bottom=itemMap[event.to?.bottomItemId];
    if (!bottom || bottom.id!==event.to?.bottomItemId || bottom.kind!=='bottom') add('family_placement_event_bottom_missing',{eventId:event.id,bottomItemId:event.to?.bottomItemId??null});
    const snapshot=event.bottomSnapshot;
-   if (!snapshot || snapshot.itemId!==event.to?.bottomItemId || snapshot.kind!=='bottom' || snapshot.condition!=='good' || snapshot.hiveId!==event.hiveId || !snapshot.positionLabel) add('family_placement_event_bottom_snapshot_invalid',{eventId:event.id});
+   if (!snapshot || snapshot.itemId!==event.to?.bottomItemId || snapshot.kind!=='bottom' || snapshot.condition!=='good' || snapshot.hiveId!==event.hiveId || !(snapshot.positionLabel||snapshot.stackId)) add('family_placement_event_bottom_snapshot_invalid',{eventId:event.id});
    for (const familyId of Array.isArray(event.familyIds)?event.familyIds:[]) if (!familyMap.has(familyId)) add('family_event_family_missing',{eventId:event.id,familyId});
   }
  }
@@ -618,11 +618,21 @@ function recordPlacementChanged(state, request, makeId, now) {
   if ([...fromBodyIds,...toBodyIds].some(id=>!bodyMap[id]||bodyMap[id].id!==id))
    return {ok:false,error:'placement_body_reference_missing'};
   const bottom=draft.equipmentInventory?.items?.[request?.to?.bottomItemId];
-  if (!bottom||bottom.kind!=='bottom'||bottom.condition!=='good'||bottom.location?.type!=='hive'||bottom.location?.hiveId!==family.hive||!bottom.location?.positionLabel)
+  if (!bottom||bottom.kind!=='bottom'||bottom.condition!=='good'||bottom.location?.type!=='hive'||bottom.location?.hiveId!==family.hive)
    return {ok:false,error:'placement_bottom_not_installed'};
+  // Older lineage recorded positionLabel. Physical inventory's canonical bottom
+  // placement uses stackId (it explicitly rejects positionLabel on stack items).
+  // The modern path must point to the actual stack hosting this family.
+  if(bottom.location.stackId){
+   const physical=(Array.isArray(draft.sectionalLayouts)?draft.sectionalLayouts:[]).find(l=>l.hiveId===family.hive);
+   const destSection=(physical?.sections||[]).find(s=>s?.familyId===family.id);
+   const destStack=(physical?.stacks||[]).find(s=>s?.id===bottom.location.stackId);
+   if(!destSection||!destStack||destStack.bottomItemId!==bottom.id||!Array.isArray(destStack.sectionIds)||!destStack.sectionIds.includes(destSection.id))
+    return {ok:false,error:'placement_bottom_stack_mismatch'};
+  }else if(!bottom.location.positionLabel)return {ok:false,error:'placement_bottom_position_missing'};
   const at=now||new Date().toISOString(),eventId=nextId(makeId,new Set(draft.familyEvents.map(e=>e?.id).filter(Boolean)));
   if (!eventId) return {ok:false,error:'family_event_id_required'};
-  const event={id:eventId,type:'placement_changed',familyId:family.id,familyIds,hiveId:family.hive,operationId:'OP-13',scenario:'ALT_WINTERING_SPRING',techProcessId:request?.techProcessId||null,from:{position:request.from.position,bodyIds:fromBodyIds},to:{position:'separate_bottom',bottomItemId:bottom.id,bodyIds:toBodyIds},bottomSnapshot:{itemId:bottom.id,kind:bottom.kind,condition:bottom.condition,hiveId:family.hive,positionLabel:bottom.location.positionLabel},occurredAt:request?.occurredAt||at,createdAt:at};
+  const event={id:eventId,type:'placement_changed',familyId:family.id,familyIds,hiveId:family.hive,operationId:'OP-13',scenario:'ALT_WINTERING_SPRING',techProcessId:request?.techProcessId||null,from:{position:request.from.position,bodyIds:fromBodyIds},to:{position:'separate_bottom',bottomItemId:bottom.id,bodyIds:toBodyIds},bottomSnapshot:{itemId:bottom.id,kind:bottom.kind,condition:bottom.condition,hiveId:family.hive,positionLabel:bottom.location.positionLabel??null,stackId:bottom.location.stackId??null},occurredAt:request?.occurredAt||at,createdAt:at};
   draft.familyEvents.push(event);
   return {ok:true,event};
  });
