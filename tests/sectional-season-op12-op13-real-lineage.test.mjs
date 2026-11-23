@@ -11,7 +11,7 @@ function setup(){
  const items={};
  for(const id of ['d1','d2'])items[id]={id,kind:'meshDiaphragm',condition:'good',location:{type:'storage',label:'склад'},events:[]};
  for(const id of ['bottom2','bottom3'])items[id]={id,kind:'bottom',condition:'good',location:{type:'storage',label:'склад'},events:[]};
- const state={meta:{revisionId:'rev1',schemaVersion:15},hives:[{id:'hive',profileId:profile}],sectionalTechProcesses:[],sectionalSeasonCycles:[{id:'cycle',hiveId:'hive',status:'ACTIVE'}],sectionalLayouts:[original],equipmentInventory:{bodies,items,events:[],itemEvents:[]},auditLog:[],familyEvents:[],queenEvents:[],families:[1,2,3].map(i=>({id:'f'+i,hive:'hive',colonyGroupId:'g',recordStatus:'active',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'})]};
+ const state={meta:{revisionId:'rev1',schemaVersion:15},hives:[{id:'hive',profileId:profile}],sectionalTechProcesses:[],sectionalSeasonCycles:[{id:'cycle',hiveId:'hive',status:'ACTIVE'}],sectionalLayouts:[original],equipmentInventory:{bodies,items,events:[],itemEvents:[]},auditLog:[],familyEvents:[],queenEvents:[],families:[1,2,3].map(i=>({id:'f'+i,hive:'hive',colonyGroupId:'g',recordStatus:'active',currentQueenId:'q'+i,queenIdentityStatus:'identified'})),queens:[1,2,3].map(i=>({id:'q'+i,familyId:'f'+i,status:'current'}))};
  let i=0;
  const deps={now:'2026-11-23T10:00:00Z',makeId:()=> 'proof-'+(++i),PasekaFamilyLineage:lin,PasekaEquipmentItems:{place:(draft,r,makeId,time)=>{
   const item=draft.equipmentInventory.items[r.itemId];if(!item)return {ok:false,error:'item_missing'};
