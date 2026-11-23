@@ -275,7 +275,7 @@ function inspect(state,deps={}){
    if(!completed||op06.status!=='DONE'||!validDate(op06.completedAt))add('sectional_tech_process_op06_status_invalid',{id:record.id});
    if(validDate(op06.completedAt)&&validDate(operation?.startedAt)){
     const days=calendarDayDifference(op06.completedAt,operation.startedAt);
-    if(days!==20&&days!==21)add('sectional_tech_process_op06_timing_invalid',{id:record.id,days});
+    if(days==null||days<20)add('sectional_tech_process_op06_timing_invalid',{id:record.id,days});
     if(op06.evidence?.daysAfterDivision!==days)add('sectional_tech_process_op06_timing_evidence_mismatch',{id:record.id,days});
    }
    const families=sections.map(section=>state.families?.find(row=>row?.id===section.familyId));
@@ -609,7 +609,7 @@ function completeOP06(state,request,deps={}){
  if(!validDate(op04.startedAt)||!validDate(op04.completedAt)||Date.parse(request.occurredAt)<Date.parse(op04.completedAt))return fail('op06_precedes_op04_completion');
  if(operations.some(row=>row?.operationId==='OP-06'))return fail('op06_already_recorded');
  const daysAfterDivision=calendarDayDifference(request.occurredAt,op04.startedAt);
- if(daysAfterDivision!==20&&daysAfterDivision!==21)return fail('op06_outside_source_window',{daysAfterDivision,requiredDayRange:[20,21]});
+ if(daysAfterDivision==null||daysAfterDivision<20)return fail('op06_before_safe_observation_window',{daysAfterDivision,earliestConservativeDay:20,sourceOrientation:'approximately 20–21 days; actual laying confirmation required'});
  const hive=rows(state.hives).find(row=>row?.id===request.hiveId);
  if(!hive||hive.profileId!==PROFILE_ID)return fail('sectional_profile_not_active_or_hive_missing');
  const sourceLayouts=rows(state.sectionalLayouts).filter(row=>row?.hiveId===request.hiveId);
@@ -657,7 +657,7 @@ function completeOP06(state,request,deps={}){
  const nextRecord=draft.sectionalTechProcesses.find(row=>row?.id===request.techProcessId);
  const removed=installed.map(row=>({itemId:row.itemId,bodyId:row.bodyId,openingId:row.openingId})).sort((a,b)=>a.itemId.localeCompare(b.itemId));
  const itemMovementEventIds=removed.map(plug=>({itemId:plug.itemId,eventId:rows(draft.equipmentInventory?.items?.[plug.itemId]?.events).at(-1)?.id??null}));
- nextRecord.state.operations.push({operationId:'OP-06',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,daysAfterDivision,removedPlugs:removed,removedItemIds:removed.map(row=>row.itemId),noPlugsInstalledConfirmed:removed.length===0,itemMovementEventIds}});
+ nextRecord.state.operations.push({operationId:'OP-06',status:'DONE',completedAt:request.occurredAt,evidence:{layoutId:nextLayout.id,daysAfterDivision,timingBeyondSourceOrientation:daysAfterDivision>21,removedPlugs:removed,removedItemIds:removed.map(row=>row.itemId),noPlugsInstalledConfirmed:removed.length===0,itemMovementEventIds}});
  nextRecord.updatedAt=request.occurredAt;
  const validationErrors=[...deps.PasekaInventory.inspect(draft,deps.PasekaLabels,deps.profileForHive),...deps.PasekaEquipmentItems.inspect(draft),...deps.PasekaEquipmentItems.validateReferences(draft),...deps.PasekaSectionalPhysicalLayout.inspect(draft),...deps.PasekaFamilyLineage.inspect(draft),...inspect(draft,deps)];
  if(validationErrors.length)return fail('op06_transaction_validation_failed',validationErrors);
