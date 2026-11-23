@@ -73,7 +73,7 @@ test('symlink cannot escape the approved static artifact',async t=>{
 test('workflow builds exact static site from approved SHA and never uploads repository root',()=>{
   assert.match(workflow,/run: npm test/);
   assert.match(workflow,/run: npm run web:prepare/);
-  assert.match(workflow,/run: node scripts\/verify-pages-release-assets\.mjs/);
+  assert.match(workflow,/run: node "\$RUNNER_TEMP\/paseka-verify-pages-assets\.mjs"/);
   assert.match(workflow,/actions\/upload-pages-artifact@v4/);
   assert.match(workflow,/path: \.\/www/);
   assert.doesNotMatch(workflow,/path: '\.'|path: "\."/);
@@ -97,4 +97,14 @@ test('source audit never changes GitHub Pages settings or releases on CI push',(
   assert.match(qualityWorkflow,/^  push:/m);
   assert.match(qualityWorkflow,/^      - '\.github\/workflows\/quality\.yml'$/m);
   assert.match(workflow,/^on:\n  workflow_dispatch:/m);
+});
+
+test('rollback checkout preserves current verified tooling before selecting an older approved commit',()=>{
+ const preserve=workflow.indexOf('cp scripts/verify-pages-release-assets.mjs "$RUNNER_TEMP/paseka-verify-pages-assets.mjs"');
+ const checkout=workflow.indexOf('ref: ${{ inputs.release_sha }}');
+ const run=workflow.indexOf('run: node "$RUNNER_TEMP/paseka-verify-pages-assets.mjs"');
+ assert.ok(preserve>0, 'Verifier must be copied from current main before any historical checkout');
+ assert.ok(checkout>preserve, 'Historical SHA checkout may otherwise replace the verifier');
+ assert.ok(run>checkout, 'Verifier from main must execute on the historical built artifact');
+ assert.match(workflow,/test -s "\$RUNNER_TEMP\/paseka-verify-pages-assets\.mjs"/);
 });
