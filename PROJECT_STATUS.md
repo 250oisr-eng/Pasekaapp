@@ -1,3 +1,38 @@
+## 2026-11-23 — OnePlus reboot + оба канала сети выключены: пользовательский физический PASS
+
+- Новый пользовательский отчёт после предыдущего ручного offline/force-stop: **«Перезагрузил. Сеть отключена.»** и полный JSON `PHONE_UNIFIED_SYNTHETIC_V2`, пакет `ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Это прямая пользовательская аттестация **перезагрузки и отключённой сети** перед запуском; сам APK не определяет OS reboot и состояние соединения.
+- `checks.storage.status=PASS`, `previousFixture=PRESENT_VERIFIED`, 31 byte, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2` — ожидаемые тестовые байты сохранены **через перезагрузку**. `archiveMetadata=PASS` 4 синтетических cases, `syntheticFrames=PASS` 3×64×64 с SHA256 `29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `localOnnxWasm=PASS` self-authored Add(3,2)=5.
+- Scoped status: `USER_CONFIRMED_PASS_PHYSICAL_REBOOT_OFFLINE_SYNTHETIC_IDB_PRESERVATION`; отдельный manual-force-stop+offline этап уже подтверждён предыдущим ответом. **Не записывать** автоматический reboot detection, реальную PASEKA02 миграцию/restore, physical quota, power-loss, beeRecognition или media cleanup. JSON `androidForceStop=NOT_TESTED`, `networkTraffic=NOT_MEASURED`, `beeRecognition=NOT_TESTED`, `realBackupRestore=NOT_TESTED`, `realVideoDeletion=NOT_TESTED`; `cleanupAuthorized=false`, `restoreAuthorized=false`, `deleteAllowed=false`.
+- Документ-источник: `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`. Следующий физический этап (quota/медиа/реальная модель) требует отдельного безопасного диагностического обеспечения; **не повторять reboot или прошлый synthetic test без причины**. Restore335 STOP, P0/P1 OPEN. Исходный код, main, медиа и production не затронуты.
+
+---
+
+## 2026-11-23 — OnePlus подтверждённый ручной offline + force-stop synthetic proof
+
+- **Новый ответ пользователя:** «Да, оба действия выполнены» на точный вопрос о полном отключении Wi-Fi **и** мобильной передачи данных, а также Android Settings → «Принудительно остановить» для `ru.paseka.journal.diagnostic.allchecks` **до** присланного диагностического JSON. Больше не требуется повторное подтверждение этих шагов.
+- На том же OnePlus получен user-reported `PHONE_UNIFIED_SYNTHETIC_V2 / PASS / SYNTHETIC_SUITE_ONLY`, 4/4 синтетических модуля PASS, `storage.previousFixture=PRESENT_VERIFIED`, 31 bytes, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`. **Узкий итог:** `PHYSICAL_MANUAL_FORCE_STOP_OFFLINE_SYNTHETIC_BLOB_PRESERVED: USER_CONFIRMED_PASS`; приложение смогло запустить локальные синтетические тесты без Wi-Fi/мобильной сети после ручной остановки, и ранее сохранённый искусственный Blob прочитан и сверен. Это не автоматический OS audit; фактический APK SHA телефона не измерен.
+- Поле APK `scope.androidForceStop=NOT_TESTED` оставлено без ретроактивного изменения: исходный runner **не измеряет** force-stop; отдельное сообщение пользователя является внешним свидетельством. `networkTraffic=NOT_MEASURED`, `externalRequests=NOT_MEASURED`: работа без подключения не доказывает отсутствие попыток запросов в онлайн-режиме.
+- **Не подтверждены:** реальные видео пчёл, bee ONNX inference, PASEKA02 реальное восстановление, Android MediaStore/Camera копии, quota/power-loss, reboot, безопасное удаление. `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`; P0/P1 OPEN, Restore335 STOP. Следующий независимый physical gate — reboot того же установленного `allchecks` с отключёнными сетями, без очистки/переустановки, проверка `PRESENT_VERIFIED`.
+- Подробный протокол и ограничения: `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`. `main`/production/user data не изменялись.
+
+---
+
+## 2026-11-23 — получен новый OnePlus allchecks JSON, offline/force-stop не подтверждены
+
+- Новый пользовательский JSON: `PHONE_UNIFIED_SYNTHETIC_V2`, `ru.paseka.journal.diagnostic.allchecks`, `PASS / SYNTHETIC_SUITE_ONLY`, четыре синтетических модуля PASS. IndexedDB fixture 31 bytes, hash `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`, `previousFixture=PRESENT_VERIFIED`; synthetic archive metadata cases=4, three 64×64 MP4 frames, ONNX WASM Add(3,2)=5. Все synthetic claims ограничены соответствующим fixture.
+- **Ключевой пробел**: в сообщении только JSON, без подтверждения отключения **обеих** сетей и применения Android Settings → «Принудительно остановить». JSON имеет `androidForceStop=NOT_TESTED` и `networkTraffic=NOT_MEASURED`. Не считать новым доказательством force-stop/offline, не требовать повторения теста до уточнения выполнения действий. `realVideos`, `beeRecognition`, `realBackupRestore`, `realVideoDeletion` = NOT_TESTED, `cleanupAuthorized=false`.
+- Результат и дальнейшая однократная проверка условий отражены в `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`. Исходные медиа, Restore335, приложение и production не изменены. P0/P1 OPEN.
+
+---
+
+## OnePlus — проверка offline + Android force-stop без повторной установки (2026-11-23)
+
+- Выяснено, что запрошенный единый безопасный диагностический APK **уже создан** в Draft #385 и физически проверен дважды в #385/#386: `ru.paseka.journal.diagnostic.allchecks`, `PHONE_UNIFIED_SYNTHETIC_V2`, 4 synthetic modules PASS и `storage.previousFixture=PRESENT_VERIFIED` на втором запуске. **Не нужно создавать новое приложение или повторять уже доказанные проверки**.
+- Подготовлен конкретный телефонный тест `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`: выключить Wi-Fi+mobile data, Android Settings → **Принудительно остановить только allchecks** → повторно открыть тот же APK → запустить диагностику → «Копировать результат» → включить сеть и вставить JSON. Цель: user-reported offline+force-stop hash-preservation. Никакого ADB, USB, reinstall, real videos, Restore335, data clearing или cleanup.
+- Новый физический прогон ещё **NOT_TESTED**, P0/P1 OPEN; установленный APK не соответствует автоматически HEAD последних P0 PR #430–#434, не смешивать evidence. Artifact #14769308321 (GitHub isolated #45060987323, дата истечения 06.12) доступен как fallback, не требуется при сохранённой установке.
+
+---
+
 ## P1 — npm-cache в изолированном Android Emulator CI (2026-11-23)
 
 - Без ослабления проверок в `.github/workflows/android-emulator-smoke.yml` включён `actions/setup-node@v4` `cache: npm` по `package-lock.json`, что позволяет переиспользовать скачанные npm-пакеты между последовательными проверками того же lockfile. `npm ci`, contract test и offline emulator smoke **сохранены**.
