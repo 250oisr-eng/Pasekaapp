@@ -24,7 +24,8 @@ async function pack(value,seen=new WeakSet()){
  if(value===undefined)return {t:'undefined'};
  assert(typeof value==='object','Unsupported value in archive');
  if(value instanceof Date){assert(!Number.isNaN(value.getTime()),'Invalid date');return {t:'date',v:value.toISOString()};}
- if(value instanceof Blob){let bytes=new Uint8Array(await value.arrayBuffer());return {t:'blob',mime:value.type,size:value.size,b64:b64(bytes)};}
+ if(typeof File!=='undefined'&&value instanceof File){const bytes=new Uint8Array(await value.arrayBuffer());return {t:'file',name:value.name,modified:value.lastModified,mime:value.type,size:value.size,b64:b64(bytes)};}
+ if(value instanceof Blob){const bytes=new Uint8Array(await value.arrayBuffer());return {t:'blob',mime:value.type,size:value.size,b64:b64(bytes)};}
  if(value instanceof ArrayBuffer)return {t:'buffer',b64:b64(new Uint8Array(value))};
  assert(!(ArrayBuffer.isView(value)),'Typed arrays are not supported; export aborted to prevent data loss');
  assert(!seen.has(value),'Circular data; export aborted');
@@ -45,6 +46,7 @@ function unpack(value,depth=0){
  case 'undefined':return undefined;
  case 'date':assert(typeof value.v==='string'&&!Number.isNaN(Date.parse(value.v)),'Invalid date');return new Date(value.v);
  case 'blob':{const bytes=fromB64(value.b64);assert(Number.isSafeInteger(value.size)&&bytes.length===value.size,'Blob size mismatch');return new Blob([bytes],{type:value.mime||''});}
+ case 'file':{assert(typeof File!=='undefined','File objects unavailable in restore environment');const bytes=fromB64(value.b64);assert(Number.isSafeInteger(value.size)&&bytes.length===value.size&&typeof value.name==='string'&&Number.isFinite(value.modified),'File metadata mismatch');return new File([bytes],value.name,{type:value.mime||'',lastModified:value.modified});}
  case 'buffer':return fromB64(value.b64).buffer;
  case 'array':assert(Array.isArray(value.v),'Invalid array');return value.v.map(x=>unpack(x,depth+1));
  case 'object':{assert(Array.isArray(value.v),'Invalid object');const target=Object.create(null),keys=new Set();for(const pair of value.v){assert(Array.isArray(pair)&&pair.length===2&&typeof pair[0]==='string'&&!keys.has(pair[0]),'Duplicate object field');keys.add(pair[0]);Object.defineProperty(target,pair[0],{value:unpack(pair[1],depth+1),enumerable:true,writable:true,configurable:true});}return target;}
