@@ -630,6 +630,8 @@ function completeOP06(state,request,deps={}){
  }else if(op05||installed.length!==0||request.noPlugsInstalledConfirmed!==true)return fail('op06_op05_absence_not_confirmed');
  const splitEvent=rows(state.familyEvents).find(event=>event?.id===op04.evidence?.familyEventId&&event.type==='split'&&event.operationId==='OP-04'&&event.techProcessId===record.id);
  if(!splitEvent||splitEvent.resultFamilyIds?.length!==3)return fail('op06_split_event_missing');
+ const unresolvedConfirmedAbsence=rows(state.familyEvents).find(event=>event?.type==='queen_absence_confirmed'&&event?.userConfirmed===true&&event?.outcome==='not_returned_from_mating_flight'&&event?.splitEventId===splitEvent.id&&splitEvent.resultFamilyIds.includes(event.familyId)&&!rows(state.familyEvents).some(later=>later?.type==='queen_identity_confirmed'&&later?.resolvesAbsenceEventId===event.id));
+ if(unresolvedConfirmedAbsence)return fail('op06_two_queen_mesh_removal_procedure_unconfirmed',{familyId:unresolvedConfirmedAbsence.familyId,absenceEventId:unresolvedConfirmedAbsence.id});
  for(const section of rows(record.state.sections)){
   const family=rows(state.families).find(row=>row?.id===section.familyId);
   if(!family||family.recordStatus==='historical'||family.hive!==request.hiveId||family.queenIdentityStatus!=='identified'||!family.currentQueenId)return fail('op06_three_identified_queens_required',{familyId:section.familyId});
