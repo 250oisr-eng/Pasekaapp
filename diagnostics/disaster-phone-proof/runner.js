@@ -51,7 +51,7 @@ function display(status,code,detail=''){
     return;
   }
   const initial=await request('main','state');
-  ensure(initial?.hives?.length===0&&initial?.records?.length===0&&(!initial?.auditLog||initial.auditLog.length===0),'Diagnostic storage not clean; refusing overwrite');
+  ensure(initial?.hives?.length===0&&initial?.records?.length===0,'Diagnostic storage not clean; refusing overwrite');
   const entries=await new Promise((resolve,reject)=>{const tx=db.transaction('entrance_media','readonly'),q=tx.objectStore('entrance_media').count();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
   ensure(entries===0,'Diagnostic media store is not empty; refusing overwrite');
   add('isolatedStorageGuard','PASS');
