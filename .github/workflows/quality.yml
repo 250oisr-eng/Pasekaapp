@@ -12,7 +12,7 @@ on:
       - 'package-lock.json'
       - 'scripts/**'
       - 'tests/**'
-      - '.github/workflows/quality.yml'
+      - '.github/workflows/**'
 
 concurrency:
   group: quality-${{ github.ref }}
@@ -22,6 +22,42 @@ permissions:
   contents: read
 
 jobs:
+  pages_source_read_only:
+    name: Verify Pages source is GitHub Actions (read-only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Read GitHub Pages source without deploying
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          node --input-type=module <<'NODE'
+          const repository = process.env.GH_REPOSITORY;
+          if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(repository || '')) {
+            throw new Error('Missing or invalid GitHub repository identifier');
+          }
+          const response = await fetch('https://api.github.com/repos/' + repository + '/pages', {
+            headers: {
+              Authorization: 'Bearer ' + process.env.GH_TOKEN,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'Paseka-Pages-Source-ReadOnly-Audit'
+            }
+          });
+          if (!response.ok) {
+            throw new Error('Pages source could not be read (HTTP ' + response.status + '); source status is NOT VERIFIED.');
+          }
+          const configuration = await response.json();
+          if (configuration.build_type !== 'workflow') {
+            throw new Error('Unsafe Pages source: expected build_type=workflow; observed ' + JSON.stringify(configuration.build_type));
+          }
+          console.log('PASS: Pages build_type=workflow. Read-only verification; deployment NOT_ATTEMPTED.');
+          NODE
+
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
