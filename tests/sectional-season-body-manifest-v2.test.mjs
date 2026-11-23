@@ -275,3 +275,18 @@ test('OP14 removal of both installed large excluders requires two confirmed stor
  assert.equal(r.ok,true,JSON.stringify(r));
  assert.deepEqual(r.requiredItemMoveIds,['x1','x2']);
 });
+
+
+test('old closed-opening mesh plugs cannot disappear during winter merge',()=>{
+ const f=setup(),old=f.state.sectionalLayouts[0];
+ old.closedOpenings=[{itemId:'plug1',openingId:'o1',bodyId:'b2'}];
+ f.state.equipmentInventory.items.plug1={id:'plug1',kind:'metalMeshPlug',condition:'good',
+  location:{type:'hive',hiveId:'h',bodyId:'b2',openingId:'o1'}};
+ assert.equal(plan(f.state,f.request).error,'season_manifest_item_moves_incomplete_or_unrelated');
+ f.request.itemMoves=[{itemId:'plug1',location:{type:'storage',label:'склад'}}];
+ const r=plan(f.state,f.request);
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.deepEqual(r.requiredItemMoveIds,['plug1']);
+ assert.equal(r.physicalLayoutValidated,false);
+ assert.equal(r.requiresFullPhysicalAndArchiveGates,true);
+});
