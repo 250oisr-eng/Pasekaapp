@@ -1,3 +1,14 @@
+## 2026-11-23 — P0 физический OnePlus: изолированный restore PASS, production NOT_TESTED
+
+- Получен отчёт пользователя `P0-OnePlus-Result.json`: `schema=paseka-oneplus-p0-physical-v1`, timestamp UTC `2026-11-23T10:40:53.6545207Z`, устройство `OnePlus NE2213`, `packageId=ru.paseka.journal.disasterproof`, `status=PARTIAL_PASS`, `error=null`.
+- Все **12/12** внешних ADB/идентификационных/снимковых проверок отчёта имеют `PASS`: изолированный APK SHA-256 совпал с манифестом; физическое приложение установлено, запущено и перезапущено.
+- Подтверждение из реального Android WebView: `P0_DISASTER_WEBVIEW_RESTORE_PASS`, включая snapshot всех IDB stores, SHA-256, fail-closed на испорченной контрольной сумме, conflict rollback и `atomicMultiStoreRestore=PASS`. В логе указан SHA-256 тестового снимка `0afcf61f67b013adae13c773b31b38dcca19a35c7f6c912ef71b507dd3c53b6c`.
+- После `force-stop` и повторного запуска подтверждено `P0_DISASTER_PHYSICAL_RESTART_PASS`: контрольные `main`, `full_backup` и Blob сохранились. Это **DEVICE_VERIFIED_ISOLATED**, но НЕ `PRODUCTION_DATABASE_RESTORED` и НЕ `RELEASED`.
+- В отчёте `productionPackage`, `productionDatabase`, `userMedia` = `NOT_ACCESSED`, `cleanup=NOT_ATTEMPTED`. Нет доказательства успешного восстановления реальных записей, внешней копии на другом устройстве, больших MP4, всех исторических миграций, реального аварийного восстановления после потери телефона и сохранения неполного архивного файла при нехватке памяти.
+- Действующий блокер #442 auto-delete видео FROZEN. PR #452 остаётся Draft; нет согласия на merge или release. Следующий этап: независимая внешняя копия и readback на чистом отдельном профиле, stress крупных Blob / recovery migration / interruption; production пользователя не изменять.
+
+---
+
 ## 2026-11-23 — P0 аварийные испытания: изолированный Android WebView / OnePlus gate
 
 - Пользователь поручил аварийные испытания и проверку OnePlus. В Draft #452 добавлен `tests/disaster-archive.test.mjs` crash-reopen, corrupt/truncated archive, cross-store rollback and injected `QuotaExceededError` tests. **667/667 PASS**, Gradle Android debug **BUILD SUCCESSFUL** на кодовом SHA `9953d2ec926c99f879e51e7aae627b963623664b`: [CI #45156548707](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45156548707).
