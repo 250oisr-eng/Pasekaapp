@@ -284,9 +284,27 @@ function inspectSource(state,hiveId){
   const itemEntries=[...items].map(([id,{kind,expected}])=>({
    id,kind,expected,actual:inv.items[id]?.location||null
   }));
-  if(bodyEntries.some(x=>!O(inv.bodies[x.id]))||
-     itemEntries.some(x=>!O(inv.items[x.id])||inv.items[x.id].kind!==x.kind))
-   return fail('manifest_source_referenced_equipment_missing');
+  const frameIds=new Set();
+  for(const entry of bodyEntries){
+   const body=inv.bodies[entry.id],needed=entry.location.bodyRole==='brood'?6:10;
+   if(!O(body)||body.id!==entry.id||body.kind!==entry.location.bodyRole||
+      body.condition!=='good'||body.spec?.profileId!==PROFILE||
+      body.spec?.framesPerBox!==needed||!Array.isArray(body.frames)||
+      body.frames.length!==needed||S(body.storageLocation))
+    return fail('manifest_source_body_inventory_unverified',{bodyId:entry.id});
+   for(const frame of body.frames){
+    if(!S(frame?.frameId)||!Array.isArray(frame.history)||frameIds.has(frame.frameId))
+     return fail('manifest_source_frame_identity_duplicate_or_invalid');
+    frameIds.add(frame.frameId);
+   }
+  }
+  for(const entry of itemEntries){
+   const item=inv.items[entry.id],actual=item?.location;
+   if(!O(item)||item.id!==entry.id||item.kind!==entry.kind||
+      item.condition!=='good'||actual?.type!=='hive'||
+      Object.entries(entry.expected).some(([key,value])=>actual[key]!==value))
+    return fail('manifest_source_accessory_position_unverified',{itemId:entry.id});
+  }
   return {ok:true,readOnly:true,sourceRevisionId:state.meta.revisionId,
    bodyEntries,itemEntries,mode:layouts[0].mode};
  }catch{return fail('manifest_source_duplicate_or_incomplete')}
