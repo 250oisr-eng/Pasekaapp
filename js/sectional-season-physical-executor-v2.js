@@ -16,7 +16,7 @@ function stage(state,request,deps={}){
  if(!O(state)||!O(request)||!['OP-11','OP-12','OP-13','OP-14'].includes(op)||request.userConfirmed!==true||request.actualWorkConfirmed!==true||!S(request.hiveId)||!S(request.occurredAt)||!S(deps.now)||Date.parse(request.occurredAt)>Date.parse(deps.now)||!Number.isFinite(Date.parse(request.occurredAt))||typeof deps.makeId!=='function'||typeof deps.PasekaEquipmentItems?.place!=='function'||!O(deps.PasekaFamilyLineage))return fail('season_actual_operation_and_dependencies_required');
  if(A(state.sectionalTechProcesses).some(p=>p?.hiveId===request.hiveId))return fail('season_legacy_coordinator_must_be_migrated');
  const cycle=A(state.sectionalSeasonCycles).filter(p=>p?.hiveId===request.hiveId&&p.status==='ACTIVE');
- if(cycle.length!==1||cycle[0].migrationStatus==='REQUIRES_RECONCILIATION')return fail('season_active_v2_cycle_required');
+ if(cycle.length!==1||['REQUIRES_RECONCILIATION','BASELINE_IMPORTED_PENDING_ACTIVATION'].includes(cycle[0].migrationStatus))return fail('season_active_v2_cycle_required');
  const layouts=A(state.sectionalLayouts).filter(l=>l?.hiveId===request.hiveId),old=layouts[0],target=request.targetLayout;
  if(layouts.length!==1||old?.profileId!=='sectional-multiqueen-v1'||!O(target)||target.hiveId!==request.hiveId||target.id!==old.id||target.profileId!==old.profileId)return fail('season_target_layout_invalid');
  const itemMoves=A(request.itemMoves),bodyMoves=A(request.bodyMoves);
