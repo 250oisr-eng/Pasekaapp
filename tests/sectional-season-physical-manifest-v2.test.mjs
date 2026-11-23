@@ -203,3 +203,27 @@ test('installed unreferenced physical accessory cannot be hidden by rewriting on
   location:{type:'hive',hiveId:'h',openingId:'unknown'}};
  assert.equal(plan(state,r).error,'manifest_unreferenced_installed_accessory');
 });
+
+test('mobile source inventory snapshot includes tracked bodies, bottoms, frame IDs and immutable revision',()=>{
+ const state=base(),original=structuredClone(state);
+ const r=w.PasekaSectionalSeasonPhysicalManifestV2.inspectSource(state,'h');
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.equal(r.readOnly,true);assert.equal(r.sourceRevisionId,'revision1');
+ assert.equal(r.bodyEntries.length,6);
+ assert.equal(r.itemEntries.length,3);
+ assert.equal(r.bodyEntries[0].frameIds.length,6);
+ assert.deepEqual(state,original);
+});
+test('stage preview refuses to describe executable operation without full local physical inspectors',()=>{
+ const state=base();
+ const req=request('OP-11',mergeTarget(),{
+  actualMergeConfirmed:true,resultFamily:{id:'merged',hive:'h'},
+  storageLocations:{b1:'склад',b3:'склад',b5:'склад'},
+  itemDestinations:{'bottom-middle':{type:'storage',label:'склад'},
+   'bottom-right':{type:'storage',label:'склад'}},
+  confirmedBodyIds:['b1','b2','b3','b4','b5','b6'],
+  confirmedItemIds:['bottom-middle','bottom-right']
+ });
+ const r=w.PasekaSectionalSeasonPhysicalManifestV2.previewStage(state,req,{});
+ assert.equal(r.error,'manifest_required_local_integrity_inspector_missing');
+});
