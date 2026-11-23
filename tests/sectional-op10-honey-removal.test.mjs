@@ -43,3 +43,5 @@ test('OP10 refuses unmigrated v1 coordinator',()=>{const f=fixture();f.state.sec
 test('OP10 rejects future timestamp',()=>{const f=fixture();f.req.occurredAt='2026-12-01T10:00:00Z';assert.equal(stage(f.state,f.req,f.deps).ok,false)});
 test('OP10 failure midway cannot change original state',()=>{const f=fixture(),before=structuredClone(f.state);let n=0;f.deps.PasekaEquipmentItems.place=()=>++n>1?{ok:false,error:'io_failure'}:{ok:true};assert.equal(stage(f.state,f.req,f.deps).ok,false);assert.deepEqual(f.state,before)});
 test('OP10 rejects no active seasonal cycle',()=>{const f=fixture();f.state.sectionalSeasonCycles=[];assert.equal(stage(f.state,f.req,f.deps).ok,false)});
+
+test('OP10 cannot stage imported legacy cycle before explicit activation',()=>{const f=fixture();f.state.sectionalSeasonCycles[0].migrationStatus='BASELINE_IMPORTED_PENDING_ACTIVATION';assert.equal(stage(f.state,f.req,f.deps).ok,false)});
