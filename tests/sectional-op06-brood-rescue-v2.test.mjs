@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-const host={window:{}};
+const host={window:{},structuredClone};
 for(const filename of [
  'op06-two-queen-recovery.js','sectional-op06-brood-rescue-v2.js',
  'sectional-season-ledger-v2.js','sectional-season-evidence-v2.js',
