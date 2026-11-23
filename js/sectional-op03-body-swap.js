@@ -21,6 +21,15 @@ function inspect(state){
   if(entry.userConfirmed!==true||!validAt(entry.occurredAt)||!validAt(entry.recordedAt)||Date.parse(entry.occurredAt)>Date.parse(entry.recordedAt))errors.push({code:'op03_event_confirmation_invalid',id:entry.id});
   const before=entry.before,after=entry.after;
   if(!Array.isArray(before)||before.length!==3||new Set(before).size!==3||!before.every(x=>typeof x==='string'&&x.length>0)||!Array.isArray(after)||JSON.stringify(after)!==JSON.stringify([before[2],before[1],before[0]]))errors.push({code:'op03_swap_evidence_invalid',id:entry.id});
+  if(Array.isArray(before)&&before.length===3&&Array.isArray(after)&&after.length===3){
+   const global=array(state.equipmentInventory?.events).filter(e=>e?.type==='sectional_op03_body_order_swapped'&&e?.eventId===entry.id&&e?.hiveId===entry.hiveId&&e?.at===entry.occurredAt&&JSON.stringify(e.before)===JSON.stringify(before)&&JSON.stringify(e.after)===JSON.stringify(after));
+   if(global.length!==1)errors.push({code:'op03_global_movement_evidence_invalid',id:entry.id});
+   for(const bodyId of [before[0],before[2]]){
+    const body=state.equipmentInventory?.bodies?.[bodyId];
+    const bodyEvents=array(body?.events).filter(e=>e?.type==='sectional_op03_body_reordered'&&e?.operationId==='OP-03'&&e?.hiveId===entry.hiveId&&e?.at===entry.occurredAt&&e?.fromPosition===before.indexOf(bodyId)+1&&e?.toPosition===after.indexOf(bodyId)+1);
+    if(bodyEvents.length!==1)errors.push({code:'op03_body_movement_evidence_invalid',id:entry.id,bodyId});
+   }
+  }
  }
  return errors;
 }
