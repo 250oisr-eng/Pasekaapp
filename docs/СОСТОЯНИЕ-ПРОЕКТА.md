@@ -1,3 +1,14 @@
+## 2026-11-23 — P0 усиление внешнего архива и preflight в том же Draft #452
+
+- Продолжение в ранее открытом Draft #452, без дублирующих PR и без изменения `main`. На кодовом и тестовом SHA `54e508a11423631cb2ea1b6dff0513759390c2ae`: [Android CI #45159320991](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45159320991) **670/670 PASS**, Gradle debug **BUILD SUCCESSFUL**.
+- `js/disaster-archive.js`: preflight отклоняет дубли ключей и несовпадение inline keyPath/ID, в том числе у архивов с заново пересчитанной SHA-256. Всё происходит **до** readwrite transaction; не создаёт пользовательские данные.
+- `index.html`: отдельная кнопка read-only **«Проверить скачанный архив»**, реальный `File.text()` → SHA-256 и структурный preflight; сообщения об экспорте больше не выдают подготовку Blob за доказанное сохранение файла вне телефона. Старый JSON/restore оставлен.
+- `tests/disaster-archive.test.mjs`: созданный во временной директории реальный JSON-файл прочитан заново, независимо восстановлен в новой `fake-indexeddb`, сверены main/audit/backup/бинарный Blob; проверены дубли ключей и ложные inline идентификаторы, даже после нового checksum. Это автоматический тест независимого файла, **не внешний пользовательский носитель и не физический OnePlus**.
+- Изолированный Android emulator suite на кодовом SHA `54e508a... ` инициирован [#45159320956](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45159320956); окончательный статус проверить на exact SHA. Старое физическое доказательство OnePlus для более раннего кода остаётся актуальным **только для его APK SHA**, оно не переносится автоматически на новые UI/preflight изменения.
+- Вопросы P0: перенос реального архива на независимое устройство, большие пользовательские видео, квоты/память, legacy schema/migration — NOT_TESTED. `productionDatabase` NOT_ACCESSED, PR Draft, #442 FROZEN, merge и Pages release не разрешены.
+
+---
+
 ## 2026-11-23 — P0 физический OnePlus: изолированный restore PASS, production NOT_TESTED
 
 - Получен отчёт пользователя `P0-OnePlus-Result.json`: `schema=paseka-oneplus-p0-physical-v1`, timestamp UTC `2026-11-23T10:40:53.6545207Z`, устройство `OnePlus NE2213`, `packageId=ru.paseka.journal.disasterproof`, `status=PARTIAL_PASS`, `error=null`.
