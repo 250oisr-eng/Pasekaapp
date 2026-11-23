@@ -41,11 +41,19 @@ const fieldSpecs={
 const multiKinds={plugs:['metalMeshPlug'],honeyBodies:['body:honey'],excluders:['honeyQueenExcluder'],frames:['frame'],broodMany:['body:brood'],winterBodies:['body:brood'],diaphragms:['meshDiaphragm'],bottoms:['bottom'],broodPair:['body:brood'],queenIds:['queen']};
 const limits={plugs:[8,8],honeyBodies:[2,4],excluders:[2,2],frames:[1,200],broodMany:[3,3],winterBodies:[4,4],diaphragms:[2,2],bottoms:[2,2],broodPair:[2,2],queenIds:[3,3]};
 function candidates(state,hive,kind){
+ const inventory=state.equipmentInventory||{},layouts=A(state.sectionalLayouts);
+ const layout=layouts.find(x=>x.hiveId===hive),owned=new Set([
+  ...A(layout?.sections).flatMap(s=>A(s?.broodBodyIds)),...A(layout?.honeyStack?.bodyIds)
+ ]);
+ const other=new Set(layouts.filter(x=>x.hiveId!==hive).flatMap(l=>[
+  ...A(l?.sections).flatMap(s=>A(s?.broodBodyIds)),...A(l?.honeyStack?.bodyIds)
+ ]));
+ const bodies=Object.values(inventory.bodies||{}).filter(b=>b?.spec?.profileId===PROFILE&&!other.has(b.id)&&(owned.has(b.id)||S(b.storageLocation)));
  if(kind==='family')return A(state.families).filter(x=>x.hive===hive&&x.recordStatus!=='historical').map(x=>({id:x.id,label:x.name||x.id}));
- if(kind==='queen')return A(state.queens).filter(q=>A(state.families).some(f=>f.id===q.familyId&&f.hive===hive&&f.recordStatus!=='historical')).map(q=>({id:q.id,label:q.code||q.id}));
- if(kind==='frame')return Object.values(state.equipmentInventory?.bodies||{}).flatMap(b=>A(b.frames).map(f=>({id:f.frameId,label:f.frameId+' · '+(b.label||b.id)})));
- if(kind.startsWith('body:'))return Object.values(state.equipmentInventory?.bodies||{}).filter(x=>x.kind===kind.split(':')[1]&&x.spec?.profileId===PROFILE).map(x=>({id:x.id,label:x.label||x.id}));
- return Object.values(state.equipmentInventory?.items||{}).filter(x=>x.kind===kind).map(x=>({id:x.id,label:x.label?x.label+' · '+x.id:x.id}));
+ if(kind==='queen')return A(state.queens).filter(q=>q.status==='current'&&A(state.families).some(f=>f.id===q.familyId&&f.hive===hive&&f.recordStatus!=='historical')).map(q=>({id:q.id,label:q.code||q.id}));
+ if(kind==='frame')return A(layout?.honeyStack?.bodyIds).flatMap(id=>A(inventory.bodies?.[id]?.frames).map(f=>({id:f.frameId,label:f.frameId+' · '+id})));
+ if(kind.startsWith('body:'))return bodies.filter(x=>x.kind===kind.split(':')[1]).map(x=>({id:x.id,label:x.label||x.id}));
+ return Object.values(inventory.items||{}).filter(x=>x.kind===kind&&(x.location?.type==='storage'||x.location?.type==='hive'&&x.location.hiveId===hive)).map(x=>({id:x.id,label:x.label?x.label+' · '+x.id:x.id}));
 }
 function selected(value){return A(value).map(String).filter(S)}
 function validate(state,draft){
@@ -75,6 +83,25 @@ function validate(state,draft){
   if(type==='timing'&&!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_15_DAYS_AFTER_SECOND_ROW'].includes(value))add('timing_invalid','Выберите подтверждённый вариант срока');
  }
  if(draft.operationId==='OP-03'&&draft.values?.topBodyId===draft.values?.bottomBodyId)add('same_body','Верхний и нижний корпуса должны быть разными');
+ if(draft.operationId==='OP-03'){
+  const layout=A(state.sectionalLayouts).find(l=>l.hiveId===draft.hiveId);
+  const seq=A(layout?.sections?.[0]?.broodBodyIds);
+  if(layout?.mode!=='SINGLE_FAMILY'||seq.length!==3||draft.values?.bottomBodyId!==seq[0]||draft.values?.topBodyId!==seq[2])add('swap_actual_position_mismatch','Верхний и нижний корпуса должны совпадать с текущим порядком физического реестра');
+ }
+ if(draft.operationId==='OP-11'){
+  const layout=A(state.sectionalLayouts).find(l=>l.hiveId===draft.hiveId);
+  const exact=A(layout?.sections).map(s=>s.upperBroodBodyId);
+  const chosen=selected(draft.values?.upperBodyIds);
+  if(exact.length!==3||!exact.every(id=>chosen.includes(id)))add('winter_upper_bodies_mismatch','Нужно сохранить три действительных верхних корпуса, не произвольные');
+ }
+ if(draft.operationId==='OP-07'||draft.operationId==='OP-10'){
+  const ids=selected(draft.values?.honeyBodyIds),map=state.equipmentInventory?.bodies||{},pairs=new Map();
+  for(const id of ids){const pairId=map[id]?.pairId;if(!S(pairId))add('honey_missing_pair_id','Медовый корпус без идентификатора пары');else pairs.set(pairId,(pairs.get(pairId)||0)+1);}
+  if([...pairs.values()].some(n=>n!==2))add('honey_incomplete_pair','Все выбранные пары медовых корпусов должны быть полными');
+  const installed=A(A(state.sectionalLayouts).find(l=>l.hiveId===draft.hiveId)?.honeyStack?.bodyIds);
+  if(draft.operationId==='OP-10'&&(installed.length!==ids.length||installed.some(id=>!ids.includes(id))))add('honey_remove_not_current','Снимать можно только все корпуса фактически установленного медового яруса');
+ }
+
  if(draft.operationId==='OP-06'&&draft.values?.layingObserved!==true)add('no_laying_proof','Без подтверждённой яйцекладки всех трёх маток снятие сеток запрещено');
  return problems;
 }
