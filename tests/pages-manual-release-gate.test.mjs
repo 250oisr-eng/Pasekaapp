@@ -6,6 +6,7 @@ import { join, dirname } from 'node:path';
 import { verifyPagesReleaseAssets } from '../scripts/verify-pages-release-assets.mjs';
 
 const workflow = await readFile(new URL('../.github/workflows/pages-manual-release.yml', import.meta.url), 'utf8');
+const qualityWorkflow = await readFile(new URL('../.github/workflows/quality.yml', import.meta.url), 'utf8');
 
 async function fixture(t) {
   const dir = await mkdtemp(join(tmpdir(), 'paseka-pages-release-test-'));
@@ -76,4 +77,22 @@ test('workflow builds exact static site from approved SHA and never uploads repo
   assert.match(workflow,/actions\/upload-pages-artifact@v4/);
   assert.match(workflow,/path: \.\/www/);
   assert.doesNotMatch(workflow,/path: '\.'|path: "\."/);
+});
+
+test('continuous CI independently audits actual Pages publishing source read-only',()=>{
+  assert.match(qualityWorkflow,/pages_source_read_only:/);
+  assert.match(qualityWorkflow,/name: Verify Pages source is GitHub Actions \(read-only\)/);
+  assert.match(qualityWorkflow,/pages: read/);
+  assert.doesNotMatch(qualityWorkflow,/pages: write/);
+  assert.match(qualityWorkflow,/configuration\.build_type !== 'workflow'/);
+  assert.match(qualityWorkflow,/\/pages', \{/);
+  assert.match(qualityWorkflow,/deployment NOT_ATTEMPTED/);
+  assert.doesNotMatch(qualityWorkflow,/actions\/deploy-pages|actions\/upload-pages-artifact/);
+});
+
+test('source audit never changes GitHub Pages settings or releases on CI push',()=>{
+  assert.doesNotMatch(qualityWorkflow,/PATCH|PUT|POST|DELETE|curl.*--request|fetch\([^)]*method:/i);
+  assert.match(qualityWorkflow,/^  push:/m);
+  assert.match(qualityWorkflow,/^      - '\.github\/workflows\/quality\.yml'$/m);
+  assert.match(workflow,/^on:\n  workflow_dispatch:/m);
 });
