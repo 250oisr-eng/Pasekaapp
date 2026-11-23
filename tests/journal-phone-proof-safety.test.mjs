@@ -28,7 +28,7 @@ test('diagnostic runner is excluded from normal web assets and requires empty di
 test('isolated workflow assembles debug APK and uploads artifact but never publishes public site',()=>{
  assert.match(workflow,/^on:\n  workflow_dispatch:/m);
  assert.match(workflow,/paseka-journal-proof-isolated-apk/);
- assert.match(workflow,/run: node scripts\/prepare-journal-phone-proof\.mjs/);
+ assert.match(workflow,/node scripts\/prepare-journal-phone-proof\.mjs/);
  assert.match(workflow,/\.\/gradlew assembleDebug/);
  assert.doesNotMatch(workflow,/deploy-pages|deploy-cloudflare|gh-pages|release:\s*published|pages:\s*write/);
 });
