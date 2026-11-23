@@ -81,6 +81,12 @@ function stagePhysicalTransition(beforeState,afterState,ledger,request,deps={}){
  if(!Array.isArray(transitionErrors)||transitionErrors.length)return fail('stage_transition_not_allowed',transitionErrors);
  const result=clone(ledger),target=result.find(x=>x.id===request.cycleId);
  target.events.push({id:request.eventId,type:'STAGE_CONFIRMED',occurredAt:request.occurredAt,evidence:{operationId:request.operationId,before:before.snapshot,after:after.snapshot,confirmedBy:request.confirmedBy,transactionId:request.transactionId,stagedWithPhysicalState:true}});
+ // Commit the coordinator's current-cycle compat state together with the
+ // physical evidence. Neither one may be inspected or persisted on its own.
+ if(deps.nextCompatProcess!==undefined){
+  if(!['OP-04','OP-05','OP-06','OP-07'].includes(request.operationId)||!object(deps.nextCompatProcess)||deps.nextCompatProcess.id!==target.id||deps.nextCompatProcess.hiveId!==target.hiveId||deps.nextCompatProcess.modelVersion!==1)return fail('stage_compat_process_invalid');
+  target.compatProcess=clone(deps.nextCompatProcess);
+ }
  const errors=[...Ledger.inspect(result),...inspectStages(result)];
  return errors.length?fail('stage_result_invalid',errors):{ok:true,records:result,event:clone(target.events.at(-1))};
 }
