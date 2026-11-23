@@ -54,7 +54,8 @@ test('pending video that matches a recognized original by identity OR bytes is r
  state:state([{id:'inspection',media:[media({videoId:'v1'})]}])}),guard),'V2_RECOGNIZED_ORIGINAL_INCLUDED');
  const alias=pending({videoId:'new-name',sourceSha256:hashes.recognized});
  const input=candidate({pendingVideos:[alias],state:state([{id:'inspection',media:[media({videoId:'new-name',sourceSha256:hashes.recognized})]}])});
- rejects(()=>api(original,input,guard),'V2_RESTORE_RECOGNIZED_ORIGINAL');
+ // Shared P0 guard now rejects the recognized hash before the restore-specific gate.
+ rejects(()=>api(original,input,guard),'V2_RECOGNIZED_ORIGINAL_INCLUDED');
 });
 
 test('an already recognized journal video must have no original Data URL in restored state',()=>{
