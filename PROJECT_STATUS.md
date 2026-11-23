@@ -1,3 +1,12 @@
+## 2026-11-23 — OnePlus reboot + оба канала сети выключены: пользовательский физический PASS
+
+- Новый пользовательский отчёт после предыдущего ручного offline/force-stop: **«Перезагрузил. Сеть отключена.»** и полный JSON `PHONE_UNIFIED_SYNTHETIC_V2`, пакет `ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Это прямая пользовательская аттестация **перезагрузки и отключённой сети** перед запуском; сам APK не определяет OS reboot и состояние соединения.
+- `checks.storage.status=PASS`, `previousFixture=PRESENT_VERIFIED`, 31 byte, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2` — ожидаемые тестовые байты сохранены **через перезагрузку**. `archiveMetadata=PASS` 4 синтетических cases, `syntheticFrames=PASS` 3×64×64 с SHA256 `29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `localOnnxWasm=PASS` self-authored Add(3,2)=5.
+- Scoped status: `USER_CONFIRMED_PASS_PHYSICAL_REBOOT_OFFLINE_SYNTHETIC_IDB_PRESERVATION`; отдельный manual-force-stop+offline этап уже подтверждён предыдущим ответом. **Не записывать** автоматический reboot detection, реальную PASEKA02 миграцию/restore, physical quota, power-loss, beeRecognition или media cleanup. JSON `androidForceStop=NOT_TESTED`, `networkTraffic=NOT_MEASURED`, `beeRecognition=NOT_TESTED`, `realBackupRestore=NOT_TESTED`, `realVideoDeletion=NOT_TESTED`; `cleanupAuthorized=false`, `restoreAuthorized=false`, `deleteAllowed=false`.
+- Документ-источник: `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`. Следующий физический этап (quota/медиа/реальная модель) требует отдельного безопасного диагностического обеспечения; **не повторять reboot или прошлый synthetic test без причины**. Restore335 STOP, P0/P1 OPEN. Исходный код, main, медиа и production не затронуты.
+
+---
+
 ## 2026-11-23 — OnePlus подтверждённый ручной offline + force-stop synthetic proof
 
 - **Новый ответ пользователя:** «Да, оба действия выполнены» на точный вопрос о полном отключении Wi-Fi **и** мобильной передачи данных, а также Android Settings → «Принудительно остановить» для `ru.paseka.journal.diagnostic.allchecks` **до** присланного диагностического JSON. Больше не требуется повторное подтверждение этих шагов.
