@@ -25,7 +25,7 @@ function inspect(options={}){
  const selected=find(options.operationId),profile=options.profileId;
  if(!selected)return Object.freeze({ok:false,code:'UNKNOWN_OPERATION',canExecute:false});
  // The new technology has no fully enabled profile-wide UI, inventory and restore contract yet.
- if(profile&&profile!=='sectional_multi_queen')return Object.freeze({ok:false,code:'PROFILE_ISOLATION',canExecute:false,operation:selected});
+ if(profile&&profile!=='sectional-multiqueen-v1')return Object.freeze({ok:false,code:'PROFILE_ISOLATION',canExecute:false,operation:selected});
  return Object.freeze({ok:false,code:'READ_ONLY_NOT_ACTIVATED',canExecute:false,operation:selected});
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
