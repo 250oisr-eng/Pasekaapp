@@ -7,11 +7,12 @@ for(const name of [
  'sectional-season-dual-read-v2.js','sectional-season-operation-rules-v2.js',
  'sectional-season-transaction-v2.js','sectional-season-runtime-v2.js',
  'sectional-season-operations-wizard-v2.js','sectional-op08-honey.js',
- 'sectional-op09-entrances.js','sectional-season-browser-commit-v2.js'
+ 'sectional-op09-entrances.js','sectional-op10-honey-removal.js',
+ 'equipment-items.js','sectional-season-provenance-v2.js','sectional-season-browser-commit-v2.js'
 ])new Function('window',readFileSync(new URL('../js/'+name,import.meta.url),'utf8'))(w);
 const api=w.PasekaSectionalSeasonBrowserCommitV2;
 const p='sectional-multiqueen-v1';
-function setup(){
+function setup(withOp10=false){
  const honey=id=>({id,kind:'honey',condition:'good',pairId:'p1',spec:{profileId:p,framesPerBox:10},
   frames:[{frameId:id+'fr',history:[]}],events:[]});
  const data={meta:{schemaVersion:15,revisionId:'r1'},hives:[{id:'h',profileId:p}],
@@ -29,6 +30,19 @@ function setup(){
   },items:{},events:[],itemEvents:[]},
   sectionalHoneyExtractions:[],sectionalSeasonalEntranceObservations:[]
  };
+ if(withOp10){
+  data.sectionalLayouts[0].stacks=['left','middle','right'].map(id=>({id}));
+  data.sectionalLayouts[0].honeyStack.excluders=[{itemId:'x1'},{itemId:'x2'}];
+  data.auditLog=[];
+  const items={};
+  for(const id of ['x1','x2'])items[id]={id,kind:'honeyQueenExcluder',condition:'good',
+   location:{type:'hive',hiveId:'h'},events:[]};
+  for(const id of ['left','middle','right'])for(const [kind,prefix]of [['cover','cover'],['topRiser','riser']]){
+   const key=prefix+'-'+id;
+   items[key]={id:key,kind,condition:'good',location:{type:'storage',label:'склад'},events:[]};
+  }
+  data.equipmentInventory.items=items;
+ }
  let saved=structuredClone(data),n=0,writeCount=0,proofCalls=0;
  const deps={
   now:'2026-11-23T14:00:00Z',makeId:()=> 'unique-'+(++n),
@@ -116,4 +130,39 @@ test('CAS fault cannot falsely complete an operation',async()=>{
  const f=setup();f.deps.writeMainIfUnchanged=async()=>{throw Error('quota exceeded')};
  const r=await api.commitWitnessed(op09,'r1',f.deps);
  assert.equal(r.ok,false);assert.equal(f.writes(),0);
+});
+
+test('synthetic OP10 actual item movement, cold read and recorded storage in one CAS',async()=>{
+ const f=setup(true),previous=structuredClone(f.data);
+ f.deps.honeyRemoval=w.PasekaSectionalOP10HoneyRemoval;
+ f.deps.equipmentItems=w.PasekaEquipmentItems;
+ f.deps.provenance=w.PasekaSectionalSeasonProvenanceV2;
+ const stackAccessories=Object.fromEntries(['left','middle','right'].map(id=>
+  [id,{coverItemId:'cover-'+id,topRiserItemId:'riser-'+id}]));
+ const request=d('OP-10',{
+  honeyBodyIds:['h1','h2'],excluderIds:['x1','x2'],storageLabel:'склад',
+  actualHoneyStored:true,actualExcludersStored:true,coversReinstalled:true,stackAccessories
+ });
+ const r=await api.commitWitnessed(request,'r1',f.deps);
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.equal(f.writes(),1);assert.equal(f.proofs(),1);
+ assert.equal(f.db().meta.revisionId,'r2');
+ assert.equal(f.db().sectionalSeasonCycles[0].events[0].evidence.operationId,'OP-10');
+ assert.equal(f.db().sectionalLayouts[0].honeyStack,undefined);
+ assert.equal(f.db().equipmentInventory.items.x1.location.type,'storage');
+ assert.equal(f.db().equipmentInventory.items['cover-left'].location.type,'hive');
+ assert.equal(f.db().equipmentInventory.bodies.h1.storageLocation,'склад');
+ assert.equal(f.db().equipmentInventory.events.length,2);
+ assert.deepEqual(f.data,previous);
+});
+test('synthetic OP10 refuses to persist an incomplete accessory manifest',async()=>{
+ const f=setup(true);
+ f.deps.honeyRemoval=w.PasekaSectionalOP10HoneyRemoval;
+ f.deps.equipmentItems=w.PasekaEquipmentItems;
+ f.deps.provenance=w.PasekaSectionalSeasonProvenanceV2;
+ const req=d('OP-10',{honeyBodyIds:['h1','h2'],excluderIds:['x1','x2'],
+  storageLabel:'склад',actualHoneyStored:true,actualExcludersStored:true,
+  coversReinstalled:true,stackAccessories:{}});
+ assert.equal((await api.commitWitnessed(req,'r1',f.deps)).error,'browser_wizard_preflight_rejected');
+ assert.equal(f.writes(),0);
 });
