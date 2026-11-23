@@ -47,7 +47,7 @@ test('OP06 cannot present two-queen outcome as safe mesh removal',()=>{
  assert.deepEqual(api.validate(f,{...r,values:{...r.values,twoQueenOutcome:false}}),[]);
 });
 test('OP07 requires complete honey pairs and exactly two own excluders',()=>{
- const f=fixture(),values={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],timingMode:'AFTER_OP06'};
+ const f=fixture(),values={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],leftExcluderId:'ex1',rightExcluderId:'ex2',honeyPurpose:'main',storageLabel:'склад',actualCoversRemoved:true,actualExcludersInstalled:true,actualHoneyBodiesInstalled:true,timingMode:'AFTER_OP06'};
  assert.deepEqual(api.validate(f,request('OP-07',values)),[]);
  assert.ok(api.validate(f,request('OP-07',{...values,honeyBodyIds:['h1','h3']})).some(e=>e.code==='honey_incomplete_pair'));
 });
@@ -110,7 +110,7 @@ test('OP03 cannot claim physical swap if current layout positions disagree',()=>
 });
 
 test('OP07 12–15-day option passes the exact coordinator timing enum, without inventing a new mode',()=>{
- const f=fixture(),values={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'};
+ const f=fixture(),values={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],leftExcluderId:'ex1',rightExcluderId:'ex2',honeyPurpose:'main',storageLabel:'склад',actualCoversRemoved:true,actualExcludersInstalled:true,actualHoneyBodiesInstalled:true,timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'};
  assert.deepEqual(api.validate(f,request('OP-07',values)),[]);
  assert.ok(api.validate(f,request('OP-07',{...values,timingMode:'APPROX_12_15_DAYS_AFTER_SECOND_ROW'})).some(e=>e.code==='timing_invalid'));
 });
