@@ -1,3 +1,13 @@
+## 2026-11-23 — P0 FROZEN; P1 main-root Service Worker safety instead of 720-commit video chain
+
+- По прямому решению пользователя PASEKA02 restore / bee detector / real video deletion **FROZEN**, канонический issue [#442](https://github.com/250oisr-eng/Pasekaapp/issues/442). Без доказанной лицензии конкретных weights, real bee video, полной физической копии/rollback, MediaStore/Gallery/Downloads inventory и автоматической safety gate **не возобновлять** повторные synthetic-only видео PR. `cleanupAuthorized:false`, `restoreAuthorized:false`, Restore335 STOP.
+- GitHub `main=8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; 370 OPEN PR, 30 напрямую main, 12 актуальных by ancestry / 18 позади на 678–682 commits. P0 #441 (1258 tests/Android/emulator PASS, SHA `c0ef4afccc6060ad36898fce9d6eebde82e626cd`) на 720 commits впереди main, но **не в main**. #69/#70 fixes уже отражены в текущем коде main — не дублировать.
+- Создана отдельная **main-based** ветка `fix/p1-sw-safe-cache-main-2026-11-23`: подтверждённый P1 дефект `sw.js` (массовое удаление origin caches, захват чужих GET, cache private/no-store и HTML на JS offline) исправлен минимальным переносом из старого #419. Принципиально сохранён только main FILES (без недоставленных archive modules), версия v313→v314. Ветку сопровождают семь тестов границ cache + два обновлённых version regression assertions.
+- Подробная карта и критерии: `docs/P1-КОРНЕВЫЕ-PR-И-ВОРОТА-2026-11-23.md`. **Code/test SHA** `26c3ae8813133670cb02dcdb02b577580dd7e3d3`; exact final HEAD CI пока **PENDING**; никаких заявлений о merge, prod, Android physical или изменении данных.
+- Next: завершить проверку этого **реального** прямого main-P1 исправления и подготовить один именованный кандидат к безопасной интеграции. Не начинать новую функцию и не объединять PR без отдельного разрешения.
+
+---
+
 ## Контрольная точка — OP-07 и резервная безопасность (2026-11-17)
 
 - PR #154: code/test HEAD `2b66cd59e4acf05adb44b40b0991ecff56154d56`; Fast Quality Checks #44169456462 — **611/611 tests, 0 failures**; Android Debug APK PR run #44169468103 — success; push run #44169456444 — success.
