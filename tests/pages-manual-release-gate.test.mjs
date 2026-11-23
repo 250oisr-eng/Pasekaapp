@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, mkdir, mkdtemp, writeFile, rm, symlink } from 'node:fs/promises';
+import { readFile, readdir, mkdir, mkdtemp, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { verifyPagesReleaseAssets } from '../scripts/verify-pages-release-assets.mjs';
@@ -95,8 +95,7 @@ test('source audit never changes GitHub Pages settings or releases on CI push',(
   assert.doesNotMatch(qualityWorkflow,/\bmethod\s*:\s*['\"]?(?:PATCH|PUT|POST|DELETE)\b/i);
   assert.doesNotMatch(qualityWorkflow,/actions\/deploy-pages|actions\/upload-pages-artifact/);
   assert.match(qualityWorkflow,/^  push:/m);
-  assert.match(qualityWorkflow,/^      - '\.github\/workflows\/quality\.yml'$/m);
-  assert.match(qualityWorkflow,/^      - '\.github\/workflows\/pages-manual-release\.yml'$/m);
+  assert.match(qualityWorkflow,/^      - '\.github\/workflows\/\*\*'$/m);
   assert.match(workflow,/^on:\n  workflow_dispatch:/m);
 });
 
@@ -108,4 +107,19 @@ test('rollback checkout preserves current verified tooling before selecting an o
  assert.ok(checkout>preserve, 'Historical SHA checkout may otherwise replace the verifier');
  assert.ok(run>checkout, 'Verifier from main must execute on the historical built artifact');
  assert.match(workflow,/test -s "\$RUNNER_TEMP\/paseka-verify-pages-assets\.mjs"/);
+});
+
+test('every Pages deployment workflow in repository is manual-only, not auto-triggered by a push',async()=>{
+ const directory=new URL('../.github/workflows/',import.meta.url);
+ const names=(await readdir(directory)).filter(name=>/\.ya?ml$/.test(name));
+ const publishing=[];
+ for(const name of names){
+  const contents=await readFile(new URL(name,directory),'utf8');
+  if(!/uses:\s*actions\/deploy-pages@/.test(contents))continue;
+  publishing.push(name);
+  assert.match(contents,/^on:\s*\n\s{2}workflow_dispatch:/m, 'Pages deployment must require workflow_dispatch: '+name);
+  assert.doesNotMatch(contents,/^\s{2}(push|pull_request|pull_request_target|schedule|repository_dispatch|workflow_run|workflow_call|release):/m, 'Pages deployment must not allow implicit event: '+name);
+  assert.match(contents,/^\s{4}if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'$/m, 'Pages build must check default branch: '+name);
+ }
+ assert.deepEqual(publishing,['pages-manual-release.yml']);
 });
