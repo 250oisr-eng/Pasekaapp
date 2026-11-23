@@ -168,5 +168,5 @@ async function commit(request,deps={}){
  if(!persistedMatches)return fail('season_runtime_full_cold_read_mismatch_commit_uncertain');
  return {...result,fullBackupVerificationId:verified.verificationId};
 }
-window.PasekaSectionalSeasonRuntimeV2=Object.freeze({commit});
+window.PasekaSectionalSeasonRuntimeV2=Object.freeze({commit,integrity:Object.freeze({sameData,preparedIsSafe})});
 })();
