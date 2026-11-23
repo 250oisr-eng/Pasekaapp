@@ -8,7 +8,7 @@ const end=html.indexOf('\n\nconst FRAME_TYPES=',start);
 assert.ok(start>=0&&end>start,'production journal submission handler must exist');
 const handlerSource=html.slice(start,end);
 
-function fixture({saveResults=[true],confirmed=true,existing=null,type='Обработка',varroa=true,date='2026-11-23'}={}){
+function fixture({saveResults=[true],confirmed=true,existing=null,type='Обработка',varroa=true,date='2026-11-23',suggestThrows=false}={}){
  const ids=[...new Set([...handlerSource.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
  const elements=Object.fromEntries(ids.map(id=>[id,{value:'',disabled:false,dataset:{},files:[],closed:false,close(){this.closed=true}}]));
  elements.rtype.value=type;
@@ -26,11 +26,11 @@ function fixture({saveResults=[true],confirmed=true,existing=null,type='Обра
   state:startingState,
   get:id=>elements[id],
   uid:()=> 'synthetic-record-'+(++seq),
-  save:async()=>{const result=saveResults[Math.min(saveCalls,saveResults.length-1)];saveCalls++;return result},
+  save:async()=>{const result=saveResults[Math.min(saveCalls,saveResults.length-1)];saveCalls++;if(result instanceof Error)throw result;return result},
   confirm:()=>{confirmCalls++;return confirmed},
   alert:message=>alerts.push(message),
   render:()=>{renderCalls++},
-  suggest:()=>{},
+  suggest:()=>{if(suggestThrows)throw Error('simulated expansion failure')},
   validate:()=>({ok:true})
  };
  const factory=new Function('env',[
@@ -117,7 +117,7 @@ test('ordinary inspection save failure also rolls back, without Varroa confirmat
 test('production ordering: snapshot before mutation and persistence before dialog close',()=>{
  const snap=handlerSource.indexOf('previous=cloneApiaryState()');
  const mutation=handlerSource.indexOf('S.records.push(data)');
- const commit=handlerSource.indexOf('if(!await save())');
+ const commit=handlerSource.indexOf('stored=await save()');
  const rollback=handlerSource.indexOf('S=previous;');
  const closing=handlerSource.indexOf("$('recordDlg').close()");
  assert.ok(snap>=0&&mutation>snap&&commit>mutation&&rollback>commit&&closing>rollback);
@@ -193,4 +193,27 @@ test('generic journal note may use a future date without being misclassified as 
  assert.equal(f.confirmCalls,0);
  assert.equal(f.saveCalls,1);
  assert.equal(f.runner.getState().records[0].type,'Заметка');
+});
+
+test('unexpected IndexedDB rejection rolls back journal mutation and preserves editable form',async()=>{
+ const f=fixture({saveResults:[new Error('simulated IndexedDB exception')]});
+ const initial=structuredClone(f.startingState);
+ await f.runner.submit();
+ assert.deepEqual(f.runner.getState(),initial);
+ assert.equal(f.saveCalls,1);
+ assert.equal(f.elements.recordDlg.closed,false);
+ assert.equal(f.elements.rhive.disabled,true);
+ assert.equal(f.elements.recordForm.dataset.varroaTreatmentDraft,'1');
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+ assert.match(f.alerts.at(-1),/Не удалось завершить сохранение записи/);
+});
+test('failed expansion suggestion before persistence cannot leave a phantom journal record',async()=>{
+ const f=fixture({suggestThrows:true});
+ const initial=structuredClone(f.startingState);
+ await f.runner.submit();
+ assert.deepEqual(f.runner.getState(),initial);
+ assert.equal(f.saveCalls,0);
+ assert.equal(f.elements.recordDlg.closed,false);
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+ assert.match(f.alerts.at(-1),/simulated expansion failure/);
 });
