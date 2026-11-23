@@ -55,7 +55,7 @@ function planCloseCycle(records,request){
  if(!obj(request)||request.userConfirmed!==true||!text(request.confirmationRef)||!text(request.id)||!text(request.cycleId)||!text(request.occurredAt)||!Number.isFinite(Date.parse(request.occurredAt)))return {ok:false,errors:[{code:'cycle_close_confirmation_required'}]};
  if(records.some(r=>r.events?.some(e=>e.id===request.id)))return {ok:false,errors:[{code:'cycle_close_event_id_duplicate'}]};
  const current=records.find(r=>r.id===request.cycleId);
- if(!current||current.status!=='ACTIVE'||current.migrationStatus==='REQUIRES_RECONCILIATION')return {ok:false,errors:[{code:'cycle_close_not_allowed'}]};
+ if(!current||current.status!=='ACTIVE'||['REQUIRES_RECONCILIATION','BASELINE_IMPORTED_PENDING_ACTIVATION'].includes(current.migrationStatus))return {ok:false,errors:[{code:'cycle_close_not_allowed'}]};
  const last=current.events.at(-1),ev=last?.evidence;
  if(last?.type!=='STAGE_CONFIRMED'||!['OP-11','OP-14'].includes(ev?.operationId)||ev?.after?.layout?.mode!=='SINGLE_FAMILY'||ev?.stagedWithPhysicalState!==true)return {ok:false,errors:[{code:'cycle_terminal_physical_state_missing'}]};
  if(Date.parse(request.occurredAt)<Date.parse(last.occurredAt))return {ok:false,errors:[{code:'cycle_close_before_last_stage'}]};
@@ -72,7 +72,7 @@ function planNewCycle(records,request){
  if(records.some(r=>r.id===request.id))return {ok:false,errors:[{code:'season_id_duplicate'}]};
  const prior=records.filter(r=>r.hiveId===request.hiveId).sort((a,b)=>b.cycleNumber-a.cycleNumber)[0];
  if(prior&&prior.status!=='CLOSED')return {ok:false,errors:[{code:'season_previous_not_closed'}]};
- if(prior?.migrationStatus==='REQUIRES_RECONCILIATION')return {ok:false,errors:[{code:'season_legacy_unreconciled'}]};
+ if(['REQUIRES_RECONCILIATION','BASELINE_IMPORTED_PENDING_ACTIVATION'].includes(prior?.migrationStatus))return {ok:false,errors:[{code:'season_legacy_unreconciled'}]};
  const close=prior?.events.at(-1)?.occurredAt;
  if(close&&Date.parse(request.occurredAt)<Date.parse(close))return {ok:false,errors:[{code:'season_open_before_close'}]};
  const next={modelVersion:2,id:request.id,hiveId:request.hiveId,cycleNumber:(prior?.cycleNumber||0)+1,status:'ACTIVE',events:[]};
