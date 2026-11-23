@@ -19,6 +19,23 @@ function inspect(records){
    if(e.type==='CYCLE_CLOSED'){term++;if(j!==r.events.length-1||!text(e.evidence.reason)||!text(e.evidence.confirmedBy))errors.push({code:'season_close_evidence_invalid',index,eventIndex:j});}
   });
   if((r.status==='CLOSED'&&term!==1)||(r.status==='ACTIVE'&&term!==0))errors.push({code:'season_terminal_state_invalid',index});
+  // A v1 coordinator projected into a v2 season is not a second active legacy
+  // process. Its operation statuses must be backed by the immutable v2 stages.
+  const compat=r.compatProcess;
+  const stageOps=r.events.filter(e=>e.type==='STAGE_CONFIRMED'&&['OP-04','OP-05','OP-06','OP-07'].includes(e.evidence?.operationId)).map(e=>e.evidence.operationId);
+  if(compat!=null){
+   const ops=compat?.state?.operations;
+   if(!obj(compat)||compat.modelVersion!==1||compat.id!==r.id||compat.hiveId!==r.hiveId||!Array.isArray(ops)||!ops.length||ops[0]?.operationId!=='OP-04'||ops.some((op,i)=>!obj(op)||!['OP-04','OP-05','OP-06','OP-07'].includes(op.operationId)||!['IN_PROGRESS','DONE'].includes(op.status)||(i>0&&(op.operationId==='OP-04'||op.status!=='DONE')))||new Set(ops.slice(1).map(o=>o.operationId)).size!==ops.length-1)
+    errors.push({code:'season_compat_process_invalid',index});
+   else{
+    const expected=['OP-04',...(ops[0].status==='DONE'&&compat.state?.rowStage===2?['OP-04']:[]),...ops.slice(1).map(o=>o.operationId)];
+    // Historical v1 can complete the initial 2-row division at once;
+    // a single confirmed OP04 event remains legal for that path.
+    const legit=stageOps.length>=ops.length&&stageOps.length<=ops.length+1&&stageOps.slice(0,ops.length===1?1:stageOps.length).every(op=>expected.includes(op))&&ops.every(op=>stageOps.includes(op.operationId));
+    if(!legit||stageOps.some((op,i)=>op!=='OP-04'&&stageOps.indexOf(op)!==i))errors.push({code:'season_compat_stages_unproven',index});
+   }
+  }else if(stageOps.length)errors.push({code:'season_compat_process_missing',index});
+
  });
  for(const [h,list] of byHive){
   list.sort((a,b)=>a.cycleNumber-b.cycleNumber);
