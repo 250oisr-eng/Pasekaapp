@@ -8,11 +8,11 @@ const end=html.indexOf('\n\nconst FRAME_TYPES=',start);
 assert.ok(start>=0&&end>start,'production journal submission handler must exist');
 const handlerSource=html.slice(start,end);
 
-function fixture({saveResults=[true],confirmed=true,existing=null,type='Обработка',varroa=true}={}){
+function fixture({saveResults=[true],confirmed=true,existing=null,type='Обработка',varroa=true,date='2026-11-23'}={}){
  const ids=[...new Set([...handlerSource.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
  const elements=Object.fromEntries(ids.map(id=>[id,{value:'',disabled:false,dataset:{},files:[],closed:false,close(){this.closed=true}}]));
  elements.rtype.value=type;
- elements.rdate.value='2026-11-23';
+ elements.rdate.value=date;
  elements.rhive.value='h1';
  elements.rhive.disabled=true;
  elements.recordId.value=existing?.id||'';
@@ -35,7 +35,7 @@ function fixture({saveResults=[true],confirmed=true,existing=null,type='Обра
  };
  const factory=new Function('env',[
   'let S=env.state; const $=env.get; const videoRecorder=null; const pendingRecordMedia=[];',
-  'const uid=env.uid,save=env.save,confirm=env.confirm,alert=env.alert,render=env.render;',
+  'const uid=env.uid,save=env.save,confirm=env.confirm,alert=env.alert,render=env.render; const today=()=>"2026-11-23";',
   'const cloneApiaryState=()=>structuredClone(S);',
   'const createExpansionSuggestion=env.suggest,validateJournalRecordDraft=env.validate;',
   'const prepareImage=async()=>{throw Error("unexpected file")},getVideoDuration=async()=>0;',
@@ -164,4 +164,33 @@ test('changing Varroa draft away from treatment rejects it without saving',async
 test('busy-lock and release are in try-finally even on early return',()=>{
  assert.match(handlerSource,/form\.dataset\.saveInProgress='1';\s*try\s*\{/);
  assert.match(handlerSource,/finally\s*\{form\.dataset\.saveInProgress='';\}/);
+});
+
+test('future dated Varroa treatment is rejected before confirmation and persistence',async()=>{
+ const f=fixture({date:'2026-11-24'});
+ const initial=structuredClone(f.startingState);
+ await f.runner.submit();
+ assert.equal(f.saveCalls,0);
+ assert.equal(f.confirmCalls,0);
+ assert.deepEqual(f.runner.getState(),initial);
+ assert.equal(f.elements.recordDlg.closed,false);
+ assert.match(f.alerts.at(-1),/дату из будущего/i);
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+});
+
+test('historical completed treatment remains allowed when explicitly confirmed',async()=>{
+ const f=fixture({date:'2026-11-21'});
+ await f.runner.submit();
+ assert.equal(f.confirmCalls,1);
+ assert.equal(f.saveCalls,1);
+ assert.equal(f.runner.getState().records[0].date,'2026-11-21');
+ assert.equal(f.elements.recordDlg.closed,true);
+});
+
+test('generic journal note may use a future date without being misclassified as a performed treatment',async()=>{
+ const f=fixture({date:'2026-11-24',type:'Заметка',varroa:false});
+ await f.runner.submit();
+ assert.equal(f.confirmCalls,0);
+ assert.equal(f.saveCalls,1);
+ assert.equal(f.runner.getState().records[0].type,'Заметка');
 });
