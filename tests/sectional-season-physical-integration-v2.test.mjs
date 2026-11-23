@@ -37,3 +37,14 @@ test('actual lineage merge fails closed if a queen is not identified',()=>{
  const prior=structuredClone(f.state),result=exec(f.state,f.req,f.deps);
  assert.equal(result.ok,false);assert.deepEqual(f.state,prior);
 });
+
+test('real OP14 early-honey harvest and merge must preserve actual lineage with unresolved queen',()=>{
+ const f=fixture();f.req.operationId='OP-14';f.req.earlyHoneyHarvestConfirmed=true;
+ const before=structuredClone(f.state),result=exec(f.state,f.req,f.deps);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.deepEqual(f.state,before);
+ assert.equal(result.draft.familyEvents.filter(e=>e.operationId==='OP-14'&&e.type==='early_honey_harvest_completed').length,1);
+ assert.equal(result.draft.familyEvents.filter(e=>e.operationId==='OP-14'&&e.type==='merge').length,1);
+ assert.equal(result.draft.families.find(x=>x.id==='merged').currentQueenId,null);
+ assert.deepEqual(lineage.inspect(result.draft),[]);
+});
