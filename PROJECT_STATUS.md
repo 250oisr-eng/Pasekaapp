@@ -1,3 +1,13 @@
+## 2026-11-23 — GitHub Pages SOURCE VERIFIED / PR #447 остаётся Draft
+
+- Пользователь подтвердил административное переключение `Settings → Pages → Build and deployment → Source → GitHub Actions`; это **независимо доказано** API-проверкой из GitHub Actions: [run #45138090176](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45138090176), `pages_source_read_only` job #137569085413 SUCCESS, лог `PASS: Pages build_type=workflow. Read-only verification; deployment NOT_ATTEMPTED.`
+- В [Draft #447](https://github.com/250oisr-eng/Pasekaapp/pull/447) добавлен постоянный read-only audit Pages settings в `.github/workflows/quality.yml`, с `pages: read`, без права публиковать. Провал на промежуточном `67d090e` вызвал только слишком широкий test regex с совпадением слова `input`; исправлен именно тест. **Точный HEAD кода и тестов:** `9c24e008e8d3ad96a7d5adb520e61fe8c8438548`; Fast [#45138090176](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45138090176): **628 PASS / 0 FAIL**, Pages source PASS. Android #45138090334/#45138097694 проверить отдельно после завершения.
+- Основная причина автоматической публикации устранена на уровне настройки Pages. Но основной `main=f981e36d807d9cfb6c6077b7e3575f9abd42daf8` ещё не менялся и **контроль последующего разрешённого merge без нового Pages deploy ещё НЕ проведён**. #444 статус PARTIALLY RESOLVED, не закрывать без подтверждения интеграции. #447 Draft; #445/#446 Draft. Отдельное разрешение на merge по-прежнему необходимо.
+- Реальный выпуск приложения ни разу не запускался в этом этапе, original media/DB не тронуты, PASEKA02 #442 FROZEN.
+- Следующая конкретная задача: проверить Android exact code SHA, PR diff и по отдельному пользовательскому разрешению интегрировать #447 (без manual release), затем проверить отсутствие автоматического Pages job на commit merged main.
+
+---
+
 ## 2026-11-23 — issue #444: подготовлен ручной GitHub Pages release gate (NO DEPLOY)
 
 - Факты: после merge #443 Pages автоматически запустил [run #45126883908](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45126883908) на main SHA `f981e36d807d9cfb6c6077b7e3575f9abd42daf8`, успешный deploy, хотя публикация отдельно не разрешалась. Существующие YAML: quality, android-debug, Cloudflare manual. Pages build — GitHub-managed, фактический Settings source через connector недоступен.
