@@ -32,7 +32,7 @@ const fieldSpecs={
  honey:[['honeyBodyIds','2 или 4 медовых корпуса','honeyBodies'],['excluderIds','Две большие разделительные решётки','excluders'],['timingMode','Подтверждённый вариант срока','timing']],
  sealed:[['sealedFrameIds','Фактически запечатанные рамки','frames'],['sealingObserved','Запечатанность лично проверена','check']],
  entrances:[['phase','Проверяемая фаза','phase'],['allSectionsObserved','Летки всех трёх секций осмотрены','check']],
- removeHoney:[['honeyBodyIds','Снятые медовые корпуса','honeyBodies'],['excluderIds','Две снятые разделительные решётки','excluders'],['storageLabel','Фактическое место хранения','storage'],['coversReinstalled','Крышки и подкрышники возвращены','check']],
+ removeHoney:[['honeyBodyIds','Снятые медовые корпуса','honeyBodies'],['excluderIds','Две снятые разделительные решётки','excluders'],['storageLabel','Фактическое место хранения','storage'],['actualHoneyStored','Все медовые корпуса фактически сняты и отправлены на склад','check'],['actualExcludersStored','Обе разделительные решётки фактически сняты и хранятся на складе','check'],['coversReinstalled','Крышки и подкрышники возвращены','check']],
  merge:[['upperBodyIds','Три фактически сохранённых верхних гнездовых корпуса','broodMany'],['actualMerge','Пчёлы фактически объединены; матка не назначена','check']],
  winter:[['diaphragmIds','Две сетчатые диафрагмы','diaphragms'],['winterBodyIds','Четыре гнездовых корпуса (2+1+1)','winterBodies'],['actualIsolation','Три семьи изолированы по подтверждённой раскладке','check']],
  spring:[['bottomIds','Два отдельных днища','bottoms'],['additionalBodyIds','Два дополнительных гнездовых корпуса','broodPair'],['actualSeparation','Семьи фактически разделены','check']],
@@ -94,6 +94,23 @@ function validate(state,draft){
   const chosen=selected(draft.values?.upperBodyIds);
   if(exact.length!==3||!exact.every(id=>chosen.includes(id)))add('winter_upper_bodies_mismatch','Нужно сохранить три действительных верхних корпуса, не произвольные');
  }
+ if(draft.operationId==='OP-10'){
+  const layout=A(state.sectionalLayouts).find(l=>l.hiveId===draft.hiveId);
+  const stacks=A(layout?.stacks),chosen=draft.values?.stackAccessories,items=state.equipmentInventory?.items||{};
+  if(stacks.length!==3||!O(chosen)||Object.keys(chosen).length!==3)add('stack_accessory_plan_required','Для трёх секций требуются три пары крышки и подкрышника');
+  else {
+   const seen=new Set();
+   for(const stack of stacks){
+    const pair=chosen[stack.id];
+    for(const [key,kind]of [['coverItemId','cover'],['topRiserItemId','topRiser']]){
+     const id=pair?.[key],item=items[id];
+     if(!S(id)||!item||item.kind!==kind||item.condition!=='good'||item.location?.type!=='storage'||seen.has(id))
+      add('stack_accessory_not_available','Оборудование крышки и подкрышника не подтверждено на складе для секции '+stack.id);
+     seen.add(id);
+    }
+   }
+  }
+ }
  if(draft.operationId==='OP-07'||draft.operationId==='OP-10'){
   const ids=selected(draft.values?.honeyBodyIds),map=state.equipmentInventory?.bodies||{},pairs=new Map();
   for(const id of ids){const pairId=map[id]?.pairId;if(!S(pairId))add('honey_missing_pair_id','Медовый корпус без идентификатора пары');else pairs.set(pairId,(pairs.get(pairId)||0)+1);}
@@ -134,7 +151,33 @@ function createDraft(state,form){
   const fields=A(Array.from(form.querySelectorAll('[data-season-field="'+name+'"]')));
   values[name]=Object.hasOwn(multiKinds,type)?fields.filter(e=>e.checked).map(e=>e.value):type==='check'||type==='optionalCheck'?fields.some(e=>e.checked):fields[0]?.value??'';
  }
+ if(op==='OP-10'){
+  values.stackAccessories={};
+  const layout=A(state.sectionalLayouts).find(l=>l.hiveId===hive);
+  for(const stack of A(layout?.stacks)){
+   values.stackAccessories[stack.id]={
+    coverItemId:form.querySelector('[data-season-accessory="'+stack.id+':cover"]')?.value||'',
+    topRiserItemId:form.querySelector('[data-season-accessory="'+stack.id+':topRiser"]')?.value||''
+   };
+  }
+ }
  return {operationId:op,hiveId:hive,occurredAt:form.querySelector('[data-season-at]')?.value||'',userConfirmed:form.querySelector('[data-season-confirm]')?.checked===true,values};
+}
+function previewOP10(state,draft,deps={}){
+ const errors=validate(state,draft);
+ if(errors.length)return {ok:false,error:'op10_wizard_validation_failed',details:errors};
+ if(draft.operationId!=='OP-10'||typeof deps.executor?.stage!=='function'||typeof deps.equipment?.place!=='function'||typeof deps.makeId!=='function')
+  return {ok:false,error:'op10_stage_capability_missing'};
+ const values=draft.values,storage=values.storageLabel,bodyIds=selected(values.honeyBodyIds),excluderIds=selected(values.excluderIds);
+ const request={
+  operationId:'OP-10',hiveId:draft.hiveId,occurredAt:new Date(draft.occurredAt).toISOString(),userConfirmed:true,
+  honeyBodiesStoredConfirmed:values.actualHoneyStored,excludersStoredConfirmed:values.actualExcludersStored,
+  coversActuallyReinstalled:values.coversReinstalled,
+  bodyStorageLocations:Object.fromEntries(bodyIds.map(id=>[id,storage])),
+  excluderStorageLocations:Object.fromEntries(excluderIds.map(id=>[id,storage])),
+  stackAccessories:structuredClone(values.stackAccessories)
+ };
+ return deps.executor.stage(state,request,{now:deps.now,makeId:deps.makeId,PasekaEquipmentItems:deps.equipment});
 }
 function mount(host,getState){
  if(!host||typeof host.innerHTML!=='string'||typeof getState!=='function')return {ok:false,error:'season_wizard_host_or_state_missing'};
@@ -152,6 +195,17 @@ function mount(host,getState){
   const op=selectedOp(),hive=selectedHive(),desc=descriptors.find(x=>x[0]===op);
   host.querySelector('[data-season-source]').textContent=desc?.[2]||'';
   host.querySelector('[data-season-fields]').innerHTML=(fieldSpecs[desc[3]]||[]).map(f=>inputHTML(getState(),hive,f)).join('');
+  const layout=A(getState().sectionalLayouts).find(l=>l.hiveId===hive);
+  if(op==='OP-10'){
+   const items=getState().equipmentInventory?.items||{},accessories=['cover','topRiser'];
+   const labels={cover:'Крышка',topRiser:'Подкрышник'};
+   const extra=A(layout?.stacks).map(stack=>'<fieldset><legend>Секция '+esc(stack.id)+'</legend>'+
+    accessories.map(kind=>'<label>'+labels[kind]+'<select data-season-accessory="'+esc(stack.id)+':'+kind+'"><option value="">— Выберите с подтверждённого склада —</option>'+
+     Object.values(items).filter(item=>item.kind===kind&&item.condition==='good'&&item.location?.type==='storage')
+      .map(item=>'<option value="'+esc(item.id)+'">'+esc(item.label||item.id)+'</option>').join('')+'</select></label>').join('')+
+    '</fieldset>').join('');
+   host.querySelector('[data-season-fields]').insertAdjacentHTML('beforeend',extra);
+  }
   host.querySelector('[data-season-confirm]').checked=false;
   host.querySelector('[data-season-result]').textContent='';
  };
@@ -160,9 +214,15 @@ function mount(host,getState){
  host.querySelector('[data-season-preview]').addEventListener('click',()=>{
   const d=createDraft(getState(),host),errs=validate(getState(),d),result=host.querySelector('[data-season-result]');
   if(errs.length){result.textContent='Не подтверждено: '+errs.map(e=>e.message).join('; ');return;}
+  if(d.operationId==='OP-10'){
+   const op10=root.PasekaSectionalOP10HoneyRemoval,equipment=root.PasekaEquipmentItems;
+   const stage=previewOP10(getState(),d,{executor:op10,equipment,now:new Date().toISOString(),makeId:()=>root.crypto?.randomUUID?.()});
+   result.textContent=stage.ok?'Физический план OP-10 проверен на временной копии: '+stage.removedBodyIds.length+' корпуса, '+stage.storedExcluderIds.length+' решётки. НЕ записано в базу. Второе устройство и восстановление полного архива ещё требуют проверки.':'OP-10 не допущена: '+String(stage.error||'неизвестная ошибка')+'. '+String(stage.details?.message||'Проверьте раскладку и комплектность.');
+   return;
+  }
   result.textContent='Фактические поля проверены. Это локальная заявка, а не завершённая операция. Физический переход и сохранение в базе заблокированы до подтверждённого восстановления полного архива и отдельной проверки раскладки.';
  });
  update();return {ok:true,readOnly:true,operations:descriptors.length};
 }
-root.PasekaSeasonOperationsWizardV2=Object.freeze({descriptors,fieldSpecs,candidates,validate,createDraft,mount});
+root.PasekaSeasonOperationsWizardV2=Object.freeze({descriptors,fieldSpecs,candidates,validate,createDraft,previewOP10,mount});
 })(typeof window!=='undefined'?window:globalThis);
