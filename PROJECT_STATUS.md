@@ -1,3 +1,17 @@
+## Дополнение к приёмке (точный кодовый SHA)
+
+**`483e3978dd522350171830d7c0a82178f9cf68c6`**:
+- [Fast quality #45255191654](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191654) — **948/948 PASS, 0 FAIL**.
+- [Android Build #45255191703](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191703) — **SUCCESS**.
+- [Android Build #45255206700](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255206700) — **SUCCESS**.
+- [Isolated diagnostic #45255206733](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255206733) — **CANCELLED**, не PASS.
+- [Предыдущий независимый изолированный эмулятор #45250101151](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250101151) — SUCCESS на **другом** SHA, только синтетическое восстановление и перезапуск, не OnePlus/внешний оригинальный архив.
+- Сравнение GitHub `483e3978… → итоговый HEAD`: **только Markdown-документация**. Код, тесты, shell и wasm после подтверждённого SHA не менялись.
+
+**Статус:** IMPLEMENTED_DRAFT + CI_VERIFIED_EXACT_CODE_SHA / DEVICE_VERIFIED=NO / IN_MAIN=NO / RELEASED=NO. 
+
+---
+
 ## 23.11.2026 — P1 физические манифесты OP11–14, новый stacked Draft #458
 
 - Изолированная ветка `feat/p1-physical-movement-manifest-2026-11-23` / [Draft PR #458](https://github.com/250oisr-eng/Pasekaapp/pull/458) поверх Draft #456; `main` **не менялся**. Текущий code/test SHA `483e3978dd522350171830d7c0a82178f9cf68c6`: [Fast #45255191654](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191654) **948/948 PASS**. Android Build #45255191703/#45255206700 и isolated diagnostic #45255206733 требуют отдельной проверки итогового conclusion.
