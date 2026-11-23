@@ -74,3 +74,31 @@ test('two laying queens plus confirmed absence never authorizes OP06 or mesh rem
  assert.equal(result.canRemoveMesh,false);
  assert.equal(state.sectionalTechProcesses[0].state.operations.some(x=>x.operationId==='OP-06'),false);
 });
+
+test('two-queen evidence persists in isolated IndexedDB and survives database reopen',async()=>{
+ const {IDBFactory}=await import('fake-indexeddb');
+ const idb=new IDBFactory(),name='p1-twoqueen-reopen';
+ const open=()=>new Promise((resolve,reject)=>{const q=idb.open(name,1);q.onupgradeneeded=()=>q.result.createObjectStore('main');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+ const {state}=fixture();
+ const recorded=api.recordConfirmedAbsence(state,{userConfirmed:true,familyId:'section-3',processId:'tp1',occurredAt:'2026-04-20T10:00:00.000Z'},lineage,makeId,now);
+ assert.equal(recorded.ok,true);
+ let db=await open();
+ await new Promise((resolve,reject)=>{const tx=db.transaction('main','readwrite');tx.objectStore('main').put(structuredClone(state),'state');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
+ db.close();db=await open();
+ const loaded=await new Promise((resolve,reject)=>{const q=db.transaction('main','readonly').objectStore('main').get('state');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+ assert.equal(api.assess(loaded,'tp1',lineage).absentCount,1);
+ assert.equal(api.assess(loaded,'tp1',lineage).canCompleteOP06,false);
+ assert.equal(loaded.familyEvents.filter(x=>x.type==='queen_absence_confirmed').length,1);
+ db.close();
+});
+test('UI requires explicit absence evidence and never exposes an OP06 mesh-removal action',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/id="twoQueenConfirmAbsence"/);
+ assert.match(html,/recordTwoQueenAbsence\(\)/);
+ assert.match(html,/readMain\(\)/);
+ assert.match(html,/PasekaSectionalQueenOutcome/);
+ assert.match(html,/Снятие сеток и OP-06 по-прежнему заблокированы/);
+ const start=html.indexOf('async function recordTwoQueenAbsence()'),end=html.indexOf('async function downloadBackup()',start);
+ assert.ok(start>=0);
+ assert.doesNotMatch(html.slice(start,end>start?end:start+6500),/completeOP06\(/);
+});
