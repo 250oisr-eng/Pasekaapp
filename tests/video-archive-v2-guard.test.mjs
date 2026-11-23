@@ -15,7 +15,8 @@ const recognized = (overrides = {}) => ({
  result:{label:'облёт'}, ...overrides
 });
 const ledger = entries => ({version:1,entries});
-const payload = (overrides = {}) => ({source:'entrance_media',videoId:'v2',sourceSha256:hash,sourceBytes:3,...overrides});
+// Distinct unrecognized pending payloads must not reuse recognized SHA bytes.
+const payload = (overrides = {}) => ({source:'entrance_media',videoId:'v2',sourceSha256:'b'.repeat(64),sourceBytes:3,...overrides});
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
 
 test('candidate v2 guard permits pending video metadata but never grants archiveSafe', () => {
