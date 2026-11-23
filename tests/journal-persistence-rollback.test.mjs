@@ -8,7 +8,7 @@ const end=html.indexOf('\n\nconst FRAME_TYPES=',start);
 assert.ok(start>=0&&end>start,'production journal submission handler must exist');
 const handlerSource=html.slice(start,end);
 
-function fixture({saveResults=[true],confirmed=true,existing=null,type='Обработка',varroa=true,date='2026-11-23',suggestThrows=false}={}){
+function fixture({saveResults=[true],confirmed=true,existing=null,type='Обработка',varroa=true,date='2026-11-23',suggestThrows=false,renderThrows=false}={}){
  const ids=[...new Set([...handlerSource.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
  const elements=Object.fromEntries(ids.map(id=>[id,{value:'',disabled:false,dataset:{},files:[],closed:false,close(){this.closed=true}}]));
  elements.rtype.value=type;
@@ -29,7 +29,7 @@ function fixture({saveResults=[true],confirmed=true,existing=null,type='Обра
   save:async()=>{const result=saveResults[Math.min(saveCalls,saveResults.length-1)];saveCalls++;if(result instanceof Error)throw result;return result},
   confirm:()=>{confirmCalls++;return confirmed},
   alert:message=>alerts.push(message),
-  render:()=>{renderCalls++},
+  render:()=>{renderCalls++;if(renderThrows)throw Error('simulated UI rendering failure')},
   suggest:()=>{if(suggestThrows)throw Error('simulated expansion failure')},
   validate:()=>({ok:true})
  };
@@ -216,4 +216,20 @@ test('failed expansion suggestion before persistence cannot leave a phantom jour
  assert.equal(f.elements.recordDlg.closed,false);
  assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
  assert.match(f.alerts.at(-1),/simulated expansion failure/);
+});
+
+test('render failure after rejected persistence never loses rollback or unlocks an uncommitted record',async()=>{
+ const f=fixture({saveResults:[false],renderThrows:true});
+ const prior=structuredClone(f.startingState);
+ const oldConsoleError=console.error;
+ const caught=[];
+ console.error=(...args)=>caught.push(args.join(' '));
+ try{await f.runner.submit();}finally{console.error=oldConsoleError;}
+ assert.deepEqual(f.runner.getState(),prior);
+ assert.equal(f.saveCalls,1);
+ assert.equal(f.elements.recordDlg.closed,false);
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+ assert.match(f.alerts.at(-1),/Запись не сохранена/);
+ assert.equal(caught.length,1);
+ assert.match(caught[0],/Не удалось обновить интерфейс/);
 });
