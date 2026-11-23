@@ -2827,12 +2827,20 @@ $('recordForm').onsubmit=async e=>{
  const journalValidation=validateJournalRecordDraft(data,S,oldRecord);
  if(!journalValidation.ok){alert(journalValidation.errors.map(error=>error.message).join('\n'));return}
  if($('recordForm').dataset.varroaTreatmentDraft==='1'&&(!isTreatment||!confirm('Подтверди, что обработка Varroa действительно выполнена, а указанные параметры внесены по факту. Сохранить запись?')))return;
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную копию текущего состояния. Запись не сохранена: '+(error?.message||'ошибка копирования'));return}
  if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
  if(!oldRecord){
   createExpansionSuggestion(data);
   if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
  }
- $('recordDlg').close();$('rhive').disabled=false;$('recordForm').dataset.varroaTreatmentDraft='';await save();
+ if(!await save()){
+  S=previous;
+  render();
+  alert('Запись не сохранена. Данные формы остались открытыми; проверь ошибку сохранения перед повторной попыткой.');
+  return;
+ }
+ $('recordDlg').close();$('rhive').disabled=false;$('recordForm').dataset.varroaTreatmentDraft='';
 }
 
 const FRAME_TYPES=[{id:'foundation',name:'Вощина',short:'В',status:'foundation'},{id:'strip',name:'Полоска вощины',short:'П',status:'foundation'},{id:'comb',name:'Сушь',short:'С',status:'drawn'}];
