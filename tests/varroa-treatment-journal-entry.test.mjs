@@ -42,7 +42,9 @@ test('treatment draft requires explicit confirmation before any state mutation',
  const confirmation=submit.indexOf("dataset.varroaTreatmentDraft==='1'");
  const mutation=submit.indexOf('if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data)');
  assert.ok(validator>=0&&confirmation>validator&&mutation>confirmation);
- assert.match(submit,/!isTreatment\|\|!confirm\(/);
+ assert.match(submit,/if\(!isTreatment\)/);
+ assert.match(submit,/if\(data\.date>today\(\)\)/);
+ assert.match(submit,/if\(!confirm\(/);
  const persisted=submit.indexOf('if(!await save())');
  const dialogClose=submit.indexOf("$('recordDlg').close()");
  assert.ok(persisted>mutation&&dialogClose>persisted,'journal closes only after a confirmed save');
@@ -58,4 +60,61 @@ test('entry reuses journal storage without schema migration and leaves dose unfi
  assert.doesNotMatch(source,/S\.records\.push|schemaVersion|indexedDB|delete|\.save\(/);
  assert.match(html,/id="varroaObservationsList"/);
  assert.match(html,/onclick="openVarroaTreatmentJournal\(\)"/);
+});
+
+test('Varroa treatment history filters by selected hive and excludes other events',()=>{
+ const renderStart=html.indexOf('function renderVarroaModule(){');
+ const renderEnd=html.indexOf('\nasync function saveVarroaObservation(',renderStart);
+ assert.ok(renderStart>=0&&renderEnd>renderStart);
+ const renderSource=html.slice(renderStart,renderEnd);
+ const elements=Object.fromEntries(['varroaHive','varroaDate','varroaObservationsList','varroaTreatmentsList','varroaTreatmentsCount','varroaCount'].map(id=>[id,{value:'',innerHTML:'',textContent:''}]));
+ elements.varroaHive.value='h1';
+ const state={
+  hives:[{id:'h1',number:1},{id:'h2',number:2}],
+  varroaObservations:[],
+  records:[
+   {id:'t1',type:'Обработка',hive:'h1',date:'2026-11-22',treatmentActive:'Щавелевая кислота',treatmentMethod:'Сублимация сублиматором',text:'Факт выполнен'},
+   {id:'t2',type:'Обработка',hive:'h2',date:'2026-11-21',treatmentProduct:'Другой препарат'},
+   {id:'a1',type:'Обработка',hive:'h1',date:'2026-11-20',archivedAt:'2026-11-21'},
+   {id:'n1',type:'Заметка',hive:'h1',date:'2026-11-20'}
+  ]
+ };
+ const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+ const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId',renderSource+';return renderVarroaModule')(
+  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,safe,()=> '2026-11-23','h1'
+ );
+ render();
+ assert.match(elements.varroaTreatmentsCount.textContent,/^1 обработка/);
+ assert.match(elements.varroaTreatmentsList.innerHTML,/Щавелевая кислота/);
+ assert.match(elements.varroaTreatmentsList.innerHTML,/Факт выполнен/);
+ assert.doesNotMatch(elements.varroaTreatmentsList.innerHTML,/Другой препарат|n1|a1/);
+ assert.match(elements.varroaObservationsList.innerHTML,/Измерений пока нет/);
+ elements.varroaHive.value='h2';
+ render();
+ assert.match(elements.varroaTreatmentsCount.textContent,/^1 обработка/);
+ assert.match(elements.varroaTreatmentsList.innerHTML,/Другой препарат/);
+ assert.doesNotMatch(elements.varroaTreatmentsList.innerHTML,/Щавелевая кислота/);
+});
+
+test('treatment history safely escapes user-provided text',()=>{
+ const renderStart=html.indexOf('function renderVarroaModule(){');
+ const renderEnd=html.indexOf('\nasync function saveVarroaObservation(',renderStart);
+ const renderSource=html.slice(renderStart,renderEnd);
+ const elements=Object.fromEntries(['varroaHive','varroaDate','varroaObservationsList','varroaTreatmentsList','varroaTreatmentsCount','varroaCount'].map(id=>[id,{value:'',innerHTML:'',textContent:''}]));
+ elements.varroaHive.value='h1';
+ const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+ const state={hives:[{id:'h1'}],varroaObservations:[],records:[{id:'t',type:'Обработка',hive:'h1',date:'2026-11-22',treatmentProduct:'<img src=x onerror=alert(1)>',text:'<script>bad()</script>'}]};
+ const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId',renderSource+';return renderVarroaModule')(
+  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,safe,()=> '2026-11-23','h1'
+ );
+ render();
+ assert.doesNotMatch(elements.varroaTreatmentsList.innerHTML,/<img|<script>/i);
+ assert.match(elements.varroaTreatmentsList.innerHTML,/&lt;img/);
+ assert.match(elements.varroaTreatmentsList.innerHTML,/&lt;script&gt;/);
+});
+
+test('Varroa picker updates treatment history when selecting a different hive',()=>{
+ assert.match(html,/<select id="varroaHive" onchange="renderVarroaModule\(\)" required>/);
+ assert.match(html,/id="varroaTreatmentsList"/);
+ assert.match(html,/не только против Varroa/);
 });
