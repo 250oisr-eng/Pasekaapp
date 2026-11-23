@@ -25,6 +25,29 @@ for (const [filename, name, code] of cases) {
       );
     }
     assert.throws(() => scan({nested:['blob:local-object-url']}), e => e.code === code);
+    // Image-looking bytes cannot hide behind an alternate media MIME field.
+    for(const field of ['type','mimeType']) {
+      for(const videoMime of [
+        'video/mp4','application/octet-stream','application/x-matroska',
+        'application/ogg','application/x-msvideo','application/vnd.apple.mpegurl'
+      ]) {
+        const media={kind:'image',type:'image/png',data:'data:image/png;base64,AAAA'};
+        media[field]=videoMime;
+        assert.throws(
+          ()=>scan({records:[{media:[media]}]}),
+          e=>e.code===code,
+          field + '=' + videoMime + ' must not be treated as a safe image'
+        );
+      }
+    }
+    assert.throws(
+      ()=>scan({records:[{media:[{kind:'video',type:'image/png',data:'data:image/png;base64,AAAA'}]}]}),
+      e=>e.code===code,'video kind overrides image MIME'
+    );
+    assert.doesNotThrow(()=>scan({records:[{media:[{
+      kind:'image',type:'image/png',mimeType:'image/png',
+      data:'data:image/png;base64,AAAA'
+    }]}]}));
     assert.doesNotThrow(() => scan({notes:'data:image/png;base64,AAAA', list:[{value:'ordinary note'}]}));
   });
 }
