@@ -88,7 +88,7 @@ function validate(before,after,request){
   if(request.actualSeparationConfirmed!==true||request.queenObservationConfirmed!==true)add('op13_observed_separation_required');
  }
  if(op==='OP-14'){
-  if(old.mode!=='SIDE_BY_SIDE'||newer.mode!=='SINGLE_FAMILY'||rows(newer.sections).length!==1||![0,2].includes(oldHoney.length)||newHoney.length!==0||![3,4].includes(broodCount(newer)))add('op14_early_honey_merge_invalid');
+  if(old.mode!=='SIDE_BY_SIDE'||newer.mode!=='SINGLE_FAMILY'||rows(newer.sections).length!==1||oldHoney.length!==2||newHoney.length!==0||![3,4].includes(broodCount(newer)))add('op14_early_honey_merge_invalid');
   if(request.earlyHoneyHarvestConfirmed!==true||request.actualMergeConfirmed!==true||request.queenIdentityAutoSelected===true)add('op14_early_harvest_merge_confirmations_required');
  }
  if(op==='OP-11'||op==='OP-12'||op==='OP-13'||op==='OP-14'){
