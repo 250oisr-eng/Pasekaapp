@@ -35,6 +35,11 @@ function inspectStages(records){
  for(const rec of records){
   if(!object(rec)||!Array.isArray(rec.events))continue;
   let previous=null;
+  const baseline=rec.events.find(e=>e?.type==='BASELINE_IMPORTED');
+  if(baseline){
+   if(!object(baseline.evidence?.snapshot)||!nonempty(baseline.evidence?.backupVerificationId)||baseline.evidence.restoreReplayVerified!==true||rec.events[0]!==baseline)errors.push({code:'stage_imported_baseline_invalid',cycleId:rec.id});
+   else previous=baseline.evidence.snapshot;
+  }
   for(let i=0;i<rec.events.length;i++){
    const event=rec.events[i];
    if(event?.type!=='STAGE_CONFIRMED')continue;
@@ -61,6 +66,7 @@ function stagePhysicalTransition(beforeState,afterState,ledger,request,deps={}){
  if(Ledger.inspect(ledger).length||inspectStages(ledger).length)return fail('stage_ledger_corrupted');
  const rec=ledger.find(x=>x?.id===request.cycleId);
  if(!rec||rec.status!=='ACTIVE'||rec.hiveId!==request.hiveId)return fail('stage_cycle_not_active');
+ if(['REQUIRES_RECONCILIATION','BASELINE_IMPORTED_PENDING_ACTIVATION'].includes(rec.migrationStatus))return fail('stage_imported_cycle_not_activated');
  if(ledger.some(x=>x.events?.some(e=>e.id===request.eventId)))return fail('stage_event_id_duplicate');
  const before=physicalSnapshot(beforeState,request.hiveId),after=physicalSnapshot(afterState,request.hiveId);
  if(!before.ok)return before;if(!after.ok)return after;
@@ -69,6 +75,7 @@ function stagePhysicalTransition(beforeState,afterState,ledger,request,deps={}){
  if(lastEvent&&Date.parse(request.occurredAt)<Date.parse(lastEvent.occurredAt))return fail('stage_time_reverse');
  const priorStages=rec.events.filter(x=>x.type==='STAGE_CONFIRMED');
  if(priorStages.length&&!same(priorStages.at(-1).evidence.after,before.snapshot))return fail('stage_prior_snapshot_mismatch');
+ if(!priorStages.length&&rec.events.some(e=>e.type==='BASELINE_IMPORTED')&&!same(rec.events.find(e=>e.type==='BASELINE_IMPORTED').evidence.snapshot,before.snapshot))return fail('stage_imported_baseline_mismatch');
  if(typeof deps.validateTransition!=='function')return fail('stage_transition_rule_validator_missing');
  const transitionErrors=deps.validateTransition(before.snapshot,after.snapshot,request);
  if(!Array.isArray(transitionErrors)||transitionErrors.length)return fail('stage_transition_not_allowed',transitionErrors);
