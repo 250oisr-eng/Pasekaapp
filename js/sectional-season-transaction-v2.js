@@ -65,7 +65,8 @@ async function commitVerifiedTransition(current,request,deps){
  if(!Array.isArray(initialErrors)||initialErrors.length)return fail('season_physical_staging_integrity_failed',initialErrors);
  const stage=deps.evidence.stagePhysicalTransition(base,draft,base.sectionalSeasonCycles,request,{
   ledger:deps.ledger,inspectBefore:deps.inspectState,inspectAfter:()=>deps.inspectState(stagedInspection),
-  validateTransition:deps.rules.validate
+  validateTransition:deps.rules.validate,
+  nextCompatProcess:COMPAT_OPS.has(request.operationId)?draft.sectionalSeasonCycles.find(c=>c.id===request.cycleId)?.compatProcess:undefined
  });
  if(!stage?.ok)return fail(stage?.error||'season_stage_failed',stage?.details);
  draft.sectionalSeasonCycles=stage.records;
