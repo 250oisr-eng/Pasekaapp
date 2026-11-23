@@ -32,9 +32,16 @@ function noOriginal(value,depth=0,seen=new Set()){
    Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null))
   fail('V2_QUARANTINE_STATE_BINARY');
  seen.add(value);
- if(!Array.isArray(value)&&
-    (value.kind==='video'||value.type==='video'||typeof value.type==='string'&&value.type.startsWith('video/'))&&
-    value.data!=null)fail('V2_QUARANTINE_STATE_BINARY');
+ // Do not let harmless-looking Data URLs or an image type override a video
+ // MIME alias on an embedded journal attachment. This is a second barrier;
+ // the codec and restore gate independently reject untracked originals.
+ if(!Array.isArray(value) && value.data!=null && (
+    value.kind==='video' || [value.type,value.mimeType].some(type=>
+      typeof type==='string' && (type.toLowerCase()==='video'||
+       /^video\//i.test(type)||
+       /^application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl)$/i.test(type))
+    )
+  )) fail('V2_QUARANTINE_STATE_BINARY');
  for(const item of (Array.isArray(value)?value:Object.values(value)))
   noOriginal(item,depth+1,seen);
  seen.delete(value);

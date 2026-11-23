@@ -1,3 +1,11 @@
+## 2026-11-23 — P0: предотвращение видео MIME маскировки в atomic/quarantine
+
+- Подготовлен P0 fix в `js/video-archive-v2-entrance-atomic.js` и `js/video-archive-v2-entrance-quarantine-rollback.js`: рекурсивные сканеры состояний теперь отклоняют любые вложенные медиа с `data != null` при `kind=video` или `type`/**`mimeType`** равном `video/*` либо известному video MIME alias (`application/x-matroska`, `application/ogg`, `application/x-msvideo`, `application/vnd.apple.mpegurl`, `application/octet-stream`). Ранее `mimeType=video/mp4` и `type=image/png` с `data:image/png` могли пройти этот **изолированный** state scanner. Кодек и restore gate имели отдельные, более строгие проверки; фикс — defense-in-depth.
+- Регрессия `tests/p0-video-data-uri-alias-guard.test.mjs` теперь проверяет оба сканера и оба поля для всех MIME aliases, `kind=video`, разрешённый PNG. Без живого restore/import, IndexedDB migration, production, оригиналов/cleanup; всё только в незлитой рабочей ветке.
+- Требуется Fast Quality, Android build и emulator smoke на exact HEAD нового Draft PR. P0 **OPEN**, Restore335 **STOP**. Следующий этап — независимая безопасная диагностика атомарности write-abort на OnePlus, без заполнения памяти и без изменения пользовательских данных.
+
+---
+
 ## 2026-11-23 — OnePlus reboot + оба канала сети выключены: пользовательский физический PASS
 
 - Новый пользовательский отчёт после предыдущего ручного offline/force-stop: **«Перезагрузил. Сеть отключена.»** и полный JSON `PHONE_UNIFIED_SYNTHETIC_V2`, пакет `ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Это прямая пользовательская аттестация **перезагрузки и отключённой сети** перед запуском; сам APK не определяет OS reboot и состояние соединения.
