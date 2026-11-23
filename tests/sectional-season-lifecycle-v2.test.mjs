@@ -8,7 +8,7 @@ function fixture(){
  let db=structuredClone(s),counter=1,writes=0;
  const deps={ledger,evidence,dualRead,readMain:async()=>structuredClone(db),
   writeMainIfUnchanged:async(next,expected)=>{if(db.meta.revisionId!==expected)throw Error('conflict');db=structuredClone(next);writes++;},
-  verifyFullArchiveAndReplay:async(state)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,verificationId:'verified',originalRevisionId:state.meta.revisionId}),
+  verifyFullArchiveAndReplay:async(state)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',verificationId:'verified',originalRevisionId:state.meta.revisionId}),
   validateState:()=>[],makeRevisionId:()=> 'rev'+(++counter),
   preparePersistentSnapshot:async(candidate,old,rev)=>({...structuredClone(candidate),meta:{...candidate.meta,revisionId:rev}})};
  const request={hiveId:'h',cycleId:'cycle1',occurredAt:'2026-11-23T10:00:00Z',userConfirmed:true,physicalStatePersonallyVerified:true,confirmationRef:'bee-verified'};
@@ -21,7 +21,7 @@ test('opens one cycle with durable CAS and independent archive proof',async()=>{
  assert.equal(duplicate.ok,false);assert.equal(f.writes(),1);
 });
 test('cannot open without full archive restore proof',async()=>{
- const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:false,includesOriginalMedia:true,originalRevisionId:'rev1',verificationId:'x'});
+ const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:false,includesOriginalMedia:true,externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',originalRevisionId:'rev1',verificationId:'x'});
  assert.equal((await lifecycle.open(f.request,f.deps)).ok,false);assert.equal(f.writes(),0);
 });
 test('refuses arbitrary winter layout or missing confirmation',async()=>{
@@ -39,4 +39,9 @@ test('CAS conflict and readback mismatch never report confirmed operation',async
  assert.equal((await lifecycle.open(f.request,f.deps)).ok,false);
  const g=fixture(),read=g.deps.readMain;let reads=0;g.deps.readMain=async()=>{const s=await read();if(++reads>1)s.meta.revisionId='other';return s};
  assert.equal((await lifecycle.open(g.request,g.deps)).error,'season_lifecycle_cold_read_mismatch_commit_uncertain');
+});
+
+test('same-device replay does not permit new physical cycle',async()=>{
+ const f=fixture();f.deps.verifyFullArchiveAndReplay=async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:false,verificationScope:'LOCAL_INDEPENDENT_INDEXEDDB_REPLAY',originalRevisionId:source.meta.revisionId,verificationId:'local'});
+ assert.equal((await lifecycle.open(f.request,f.deps)).error,'season_lifecycle_full_archive_not_verified');assert.equal(f.writes(),0);
 });
