@@ -100,8 +100,10 @@ const mutable={
  'OP-13':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog'],
  'OP-14':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog']
 };
-async function stageWithinScope(before,after,operationId){
- if(!O(before)||!O(after)||!Array.isArray(mutable[operationId]))return false;
+const rows=x=>Array.isArray(x)?x:[];
+async function stageWithinScope(before,after,request){
+ const operationId=request?.operationId,hiveId=request?.hiveId;
+ if(!O(before)||!O(after)||!S(hiveId)||!Array.isArray(mutable[operationId]))return false;
  const whitelist=new Set(mutable[operationId]);
  const keys=new Set([...Object.keys(before),...Object.keys(after)]);
  for(const key of keys){
@@ -109,6 +111,41 @@ async function stageWithinScope(before,after,operationId){
   if(!Object.hasOwn(before,key)||!Object.hasOwn(after,key))return false;
   if(!await sameData(before[key],after[key]))return false;
  }
+ // All mutable histories are append-only, including when the selected
+ // operation is allowed to add records to them.
+ for(const key of ['auditLog','familyEvents','queenEvents','sectionalHoneyExtractions',
+    'sectionalSeasonalEntranceObservations']){
+  const previous=before[key],next=after[key];
+  if(previous===undefined||previous===null)continue;
+  if(!Array.isArray(previous)||!Array.isArray(next)||next.length<previous.length||
+     !await sameData(previous,next.slice(0,previous.length)))return false;
+ }
+ for(const key of ['events','itemEvents']){
+  const previous=before.equipmentInventory?.[key],next=after.equipmentInventory?.[key];
+  if(previous===undefined||previous===null)continue;
+  if(!Array.isArray(previous)||!Array.isArray(next)||next.length<previous.length||
+     !await sameData(previous,next.slice(0,previous.length)))return false;
+ }
+ // An operation's mutable fields remain scoped to its own hive. Even a valid
+ // local stage cannot rewrite installed equipment or identities of another hive.
+ const foreign=(s,key)=>rows(s[key]).filter(x=>x?.hiveId!==hiveId&&x?.hive!==hiveId);
+ if(!await sameData(foreign(before,'sectionalLayouts'),foreign(after,'sectionalLayouts')))return false;
+ if(!await sameData(foreign(before,'families'),foreign(after,'families')))return false;
+ const foreignFamilyIds=new Set(foreign(before,'families').map(x=>x.id));
+ const foreignQueens=s=>rows(s.queens).filter(q=>foreignFamilyIds.has(q.familyId));
+ if(!await sameData(foreignQueens(before),foreignQueens(after)))return false;
+ const foreignBodyIds=new Set(rows(before.sectionalLayouts)
+  .filter(l=>l.hiveId!==hiveId).flatMap(l=>[
+    ...rows(l.sections).flatMap(s=>rows(s.broodBodyIds)),
+    ...rows(l.honeyStack?.bodyIds)
+  ]));
+ for(const id of foreignBodyIds){
+  if(!await sameData(before.equipmentInventory?.bodies?.[id],
+                     after.equipmentInventory?.bodies?.[id]))return false;
+ }
+ const foreignItems=state=>Object.fromEntries(Object.entries(state.equipmentInventory?.items||{})
+  .filter(([id,item])=>item?.location?.type==='hive'&&item.location.hiveId!==hiveId));
+ if(!await sameData(foreignItems(before),foreignItems(after)))return false;
  return true;
 }
 const ops=new Set(['OP-04','OP-05','OP-06','OP-06-RESCUE','OP-07','OP-08','OP-09','OP-10','OP-11','OP-12','OP-13','OP-14']);
@@ -139,7 +176,7 @@ async function commit(request,deps={}){
    // pre-execution baseline into its own forged comparison target.
    const result=await executor(structuredClone(state),req);
    if(!result?.ok||!O(result.draft))throw Error('physical_executor_rejected');
-   if(!await stageWithinScope(state,result.draft,req.operationId))
+   if(!await stageWithinScope(state,result.draft,req))
     throw Error('physical_executor_mutated_unrelated_state');
    return result.draft;
   },
