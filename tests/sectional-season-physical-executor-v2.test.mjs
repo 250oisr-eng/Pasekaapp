@@ -4,12 +4,12 @@ import {readFileSync} from 'node:fs';
 const w={};new Function('window',readFileSync(new URL('../js/sectional-season-physical-executor-v2.js',import.meta.url),'utf8'))(w);
 const stage=w.PasekaSectionalSeasonPhysicalExecutorV2.stage,AT='2026-11-22T10:00:00Z';
 function fixture(){
- const source={id:'l1',hiveId:'h1',profileId:'sectional-multiqueen-v1',mode:'SIDE_BY_SIDE',sections:['left','middle','right'].map((position,i)=>({id:position,position,familyId:'f'+(i+1),broodBodyIds:['b'+(i*2+1),'b'+(i*2+2)]})),stacks:[]};
+ const source={id:'l1',hiveId:'h1',profileId:'sectional-multiqueen-v1',mode:'SIDE_BY_SIDE',sections:['left','middle','right'].map((position,i)=>({id:position,position,familyId:'f'+(i+1),broodBodyIds:['b'+(i*2+1),'b'+(i*2+2)],upperBroodBodyId:'b'+(i*2+2)})),stacks:[]};
  const bodies=Object.fromEntries(Array.from({length:6},(_,i)=>{const id='b'+(i+1);return [id,{id,kind:'brood',frames:[{frameId:id+'f',history:[]}],events:[]}]}));
  const state={meta:{revisionId:'rev1'},sectionalTechProcesses:[],sectionalSeasonCycles:[{id:'cycle1',hiveId:'h1',status:'ACTIVE'}],sectionalLayouts:[source],families:['f1','f2','f3'].map(id=>({id,hive:'h1',currentQueenId:'q'+id,queenIdentityStatus:'identified',recordStatus:'active'})),queens:['f1','f2','f3'].map(id=>({id:'q'+id,familyId:id,status:'current'})),familyEvents:[],queenEvents:[],equipmentInventory:{bodies,items:{},events:[],itemEvents:[]},auditLog:[]};
  const target={id:'l1',hiveId:'h1',profileId:'sectional-multiqueen-v1',mode:'SINGLE_FAMILY',sections:[{id:'combined',position:'combined',familyId:'f-result',broodBodyIds:['b2','b4','b6']}],stacks:[]};
  const oldIds=source.sections.flatMap(x=>x.broodBodyIds),newIds=target.sections[0].broodBodyIds;
- const request={operationId:'OP-11',hiveId:'h1',occurredAt:AT,userConfirmed:true,actualWorkConfirmed:true,actualMergeConfirmed:true,resultFamily:{id:'f-result',hive:'h1'},targetLayout:target,itemMoves:[],bodyMoves:oldIds.map(bodyId=>({bodyId})),storageLocations:{b1:'склад',b3:'склад',b5:'склад'}};
+ const request={operationId:'OP-11',hiveId:'h1',occurredAt:AT,userConfirmed:true,actualWorkConfirmed:true,actualMergeConfirmed:true,resultFamily:{id:'f-result',hive:'h1'},targetLayout:target,itemMoves:[],bodyMoves:oldIds.map((bodyId,index)=>({bodyId,from:{type:'sectional',hiveId:'h1',layoutId:'l1',bodyRole:'brood',sectionId:source.sections[Math.floor(index/2)].id,position:source.sections[Math.floor(index/2)].position},to:newIds.includes(bodyId)?{type:'sectional',hiveId:'h1',layoutId:'l1',bodyRole:'brood',sectionId:'combined',position:'combined'}:{type:'storage',label:'склад'}})),storageLocations:{b1:'склад',b3:'склад',b5:'склад'}};
  // Simplified mock of existing lineage API's no-placement and unknown-queen semantics.
  const lineage={applyMerge:(draft,req)=>{
   if(draft.sectionalLayouts.some(l=>l.hiveId===req.resultFamily.hive))return {ok:false,error:'still_placed'};
