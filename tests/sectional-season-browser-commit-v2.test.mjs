@@ -71,6 +71,13 @@ test('browser bridge rejects stale form revision and unknown operation before wr
 });
 test('synthetic OP09 browser-to-real-recorder-to-atomic-CAS-to-cold-read',async()=>{
  const f=setup(),original=structuredClone(f.data);
+ const preflight=f.deps.wizard.validate(f.data,op09);
+ assert.equal(preflight.length,0,JSON.stringify(preflight));
+ const direct=f.deps.entrances.record(f.data,{
+  hiveId:'h',occurredAt:op09.occurredAt,phase:'SUMMER_FULL',userConfirmed:true,
+  sections:sections.map(s=>({sectionId:s.sectionId,roundEntrances:s.roundEntrances,flatEntrance:s.flatEntrance})),notes:''
+ },()=> 'diagnostic-id',f.deps.now);
+ assert.equal(direct.ok,true,JSON.stringify(direct));
  const result=await api.commitWitnessed(op09,'r1',f.deps);
  assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.durable,true);
  assert.equal(f.writes(),1);assert.equal(f.proofs(),1);
