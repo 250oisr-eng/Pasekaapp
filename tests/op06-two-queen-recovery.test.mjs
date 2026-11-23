@@ -106,3 +106,44 @@ test('no invented mesh schedule, storage action or queen result',()=>{
  assert.equal(r.readOnly,true);assert.equal(r.releaseAllowed,false);
 });
 test('malformed transfer does not crash',()=>{const {data,lineage}=state();const r=request();r.transfers=[null,r.transfers[1]];assert.equal(planFromState(data,r,{lineage}).ok,false)});
+
+
+test('recovery wizard offers only a read-only review when two statuses are confirmed',()=>{
+ const {data,lineage}=state('middle');
+ sandbox.window.PasekaFamilyLineage=lineage;
+ vm.runInNewContext(readFileSync(new URL('../js/sectional-season-operations-wizard-v2.js',import.meta.url),'utf8'),sandbox);
+ const w=sandbox.window.PasekaSeasonOperationsWizardV2;
+ const html=w.op06RecoveryHTML(data,'hive');
+ assert.match(html,/data-op06-recovery/);
+ assert.match(html,/data-op06-brood="0"/);
+ assert.match(html,/data-op06-queen-safe="1"/);
+ assert.match(html,/Проверить восстановление \(без записи\)/);
+ assert.doesNotMatch(html,/type="submit"/);
+ const noQueenProof=Object.assign({},lineage,{getQueenPresenceStatus:()=> 'unresolved'});
+ sandbox.window.PasekaFamilyLineage=noQueenProof;
+ const missing=w.op06RecoveryHTML(data,'hive');
+ assert.match(missing,/Сначала подтвердите/);
+ assert.doesNotMatch(missing,/data-op06-check/);
+});
+test('wizard read-only button builds an inventory-grounded request and never changes state',()=>{
+ const {data,lineage}=state('left'),original=structuredClone(data);
+ sandbox.window.PasekaFamilyLineage=lineage;
+ if(!sandbox.window.PasekaSeasonOperationsWizardV2)
+  vm.runInNewContext(readFileSync(new URL('../js/sectional-season-operations-wizard-v2.js',import.meta.url),'utf8'),sandbox);
+ const w=sandbox.window.PasekaSeasonOperationsWizardV2;
+ const donors=[{frameId:'middle-1',fromBodyId:'body-middle',fromSectionId:'section-middle'},
+ {frameId:'right-2',fromBodyId:'body-right',fromSectionId:'section-right'}];
+ const panel={querySelector(sel){
+  const donor=sel.match(/^\[data-op06-donor="([01])"\]$/);
+  if(donor){const d=donors[Number(donor[1])];return {value:d.frameId,selectedOptions:[{getAttribute:k=>
+    k==='data-from-body'?d.fromBodyId:k==='data-from-section'?d.fromSectionId:null}]};}
+  if(sel==='[data-op06-target]')return {value:'body-left'};
+  if(sel==='[data-op06-confirm]')return {checked:true};
+  if(/^\[data-op06-(brood|queen-safe)="[01]"\]$/.test(sel))return {checked:true};
+  return null;
+ }};
+ const r=w.checkOP06Recovery(data,'hive',panel);
+ assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.meshBoundary.connectionId,'c-left');
+ assert.equal(r.readOnly,true);assert.equal(r.canPersist,false);
+ assert.deepEqual(data,original);
+});
