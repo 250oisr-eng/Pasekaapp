@@ -45,6 +45,18 @@ async function commitWitnessed(draft,expectedRevision,deps={}){
  if(!S(eventId)||!S(txId)||eventId===txId)return fail('browser_unique_event_id_required');
  const request={operationId:draft.operationId,hiveId:draft.hiveId,cycleId:matching[0].id,
   eventId,transactionId:txId,occurredAt:normalizedAt,userConfirmed:true,confirmedBy:'beekeeper'};
+ if(draft.operationId==='OP-08'){
+  request.sealedFrameIds=A(v.sealedFrameIds);
+  request.sealingObserved=v.sealingObserved===true;
+ }
+ if(draft.operationId==='OP-09'){
+  request.seasonPhase=v.phase;
+  request.entrancesPersonallyObserved=v.allSectionsObserved===true;
+ }
+ if(draft.operationId==='OP-10'){
+  request.honeyBodiesStoredConfirmed=v.actualHoneyStored===true;
+  request.excludersStoredConfirmed=v.actualExcludersStored===true;
+ }
  const executor=async(state,req)=>{
   // The persisted state is reread under CAS. Re-check physical facts again,
   // otherwise a stale form may be replayed against a changed inventory.
