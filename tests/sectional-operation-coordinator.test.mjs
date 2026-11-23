@@ -9,7 +9,8 @@ for(const path of [
  '../js/equipment-items.js',
  '../js/sectional-physical-layout.js',
  '../js/family-lineage.js',
- '../js/sectional-operation-coordinator.js'
+ '../js/sectional-operation-coordinator.js',
+ '../js/sectional-op03-body-swap.js'
 ]){
  const source=await readFile(new URL(path,import.meta.url),'utf8');
  new Function('window',source)(appWindow);
@@ -20,6 +21,7 @@ const Items=appWindow.PasekaEquipmentItems;
 const Layout=appWindow.PasekaSectionalPhysicalLayout;
 const Lineage=appWindow.PasekaFamilyLineage;
 const Coordinator=appWindow.PasekaSectionalOperationCoordinator;
+const OP03Swap=appWindow.PasekaSectionalOP03BodySwap;
 const PROFILE='sectional-multiqueen-v1';
 const NOW='2026-11-17T10:00:00.000Z';
 const codes=['ААА','ААБ','ААГ','ААД','ААЕ','ААЖ'];
@@ -952,4 +954,45 @@ test('OP-06 late observation cannot bypass missing laying evidence',()=>{
  assert.equal(result.ok,false);
  assert.equal(result.error,'op06_queen_laying_observation_required');
  assert.deepEqual(fixture.state,before);
+});
+
+test('OP-03 physically swaps top and bottom brood bodies, keeps middle and original frames',()=>{
+ const fixture=makeFixture(),original=structuredClone(fixture.state),deps=dependencies();
+ const r=OP03Swap.applySwap(fixture.state,{hiveId:'h1',userConfirmed:true,occurredAt:'2026-11-17T10:00:00.000Z'},
+  {...deps,now:'2026-11-17T10:01:00.000Z'});
+ assert.equal(r.ok,true,JSON.stringify(r.details||r));
+ assert.deepEqual(fixture.state,original,'pure preflight must not mutate real state');
+ const before=original.sectionalLayouts[0].sections[0].broodBodyIds;
+ const after=r.draft.sectionalLayouts[0].sections[0].broodBodyIds;
+ assert.deepEqual(after,[before[2],before[1],before[0]]);
+ assert.equal(r.draft.sectionalLayouts[0].sections[0].upperBroodBodyId,before[0]);
+ assert.deepEqual(r.draft.equipmentInventory.bodies.b2,original.equipmentInventory.bodies.b2,'middle body not changed');
+ assert.deepEqual(r.draft.equipmentInventory.bodies.b1.frames.map(x=>x.frameId),original.equipmentInventory.bodies.b1.frames.map(x=>x.frameId));
+ assert.equal(r.draft.equipmentInventory.bodies.b1.frames[0].history.at(-1).action,'sectional_body_reordered');
+ assert.equal(r.draft.equipmentInventory.bodies.b3.frames[0].history.at(-1).action,'sectional_body_reordered');
+ assert.equal(r.draft.sectionalBodyReorders.length,1);
+ assert.equal(r.draft.sectionalBodyReorders[0].userConfirmed,true);
+ assert.deepEqual(OP03Swap.inspect(r.draft),[]);
+ assert.deepEqual(Layout.inspect(r.draft),[]);
+ assert.deepEqual(Lineage.inspect(r.draft),[]);
+});
+test('OP-03 refuses unconfirmed or duplicate swap and preserves all original state',()=>{
+ const f=makeFixture(),deps=dependencies(),before=structuredClone(f.state);
+ assert.equal(OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:false,occurredAt:NOW},{...deps,now:NOW}).ok,false);
+ assert.deepEqual(f.state,before);
+ let r=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:NOW});
+ assert.equal(r.ok,true,JSON.stringify(r.details||r));
+ const second=OP03Swap.applySwap(r.draft,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW});
+ assert.equal(second.error,'optional_swap_already_recorded');
+ assert.equal(OP03Swap.inspect(r.draft).length,0);
+ const changed=structuredClone(f.state);changed.hives[0].profileId='farrar-6x6-v1';
+ assert.equal(OP03Swap.applySwap(changed,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'sectional_profile_required');
+});
+test('OP-03 fail-closed with partial body inventory, invalid timestamp or active split',()=>{
+ const f=makeFixture();
+ let modified=structuredClone(f.state);modified.equipmentInventory.bodies.b1.frames.pop();
+ assert.equal(OP03Swap.applySwap(modified,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'body_or_frame_inventory_invalid');
+ modified=structuredClone(f.state);modified.sectionalTechProcesses.push({id:'tp',hiveId:'h1'});
+ assert.equal(OP03Swap.applySwap(modified,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'pre_split_only');
+ assert.equal(OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:'2026-11-18T10:00:00.000Z'},{...dependencies(),now:NOW}).error,'operation_time_invalid');
 });
