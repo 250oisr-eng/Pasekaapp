@@ -1,3 +1,9 @@
+## 23.11.2026 — контроль готовности к телефонным испытаниям P1
+
+Доказательства по exact SHA `351d6840aa4f92d005a6abb88440e3776e9030ad` и незакрытые ворота перечислены в [`P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md`](./P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md). Fast 932/932 PASS, Android Debug Build SUCCESS; production UI/independent P0 restore/OnePlus NOT_VERIFIED. `SECOND_DEVICE_VERIFIED` не подменять CI. Следующий шаг — диагностический эмуляторный P0 восстановительный тест, затем полные UI physical manifests. Всё Draft #456, без merge/release.
+
+---
+
 ## 2026-11-23 — входная точка P1 atomic state safety
 
 [Карточка F0–F2 «P1 — безопасность атомарного сохранения»](./P1-БЕЗОПАСНОСТЬ-АТОМАРНОГО-СОХРАНЕНИЯ-2026-11-23.md) — защита записей/медиа/аудита, scope физических операций и полное cold read, exact code SHA `d79fd4a5120582a0bf00e4fa6fe3fe0fd5582a5d` (Fast 907/907, Android SUCCESS). Следующий шаг: `sectional-season-lifecycle-v2.js` по тем же safety gates. Это Draft #456, не main и не production.
