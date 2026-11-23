@@ -92,14 +92,14 @@ test('center: four actual frames exchanged, identities retained, all histories a
  const before=evidence.physicalSnapshot(old,'hive');
  const snapshot=evidence.physicalSnapshot(x.draft,'hive');
  assert.equal(before.ok,true);assert.equal(snapshot.ok,true);
- assert.deepEqual(rules.validate(before.snapshot,snapshot.snapshot,request),[]);
+ assert.equal(rules.validate(before.snapshot,snapshot.snapshot,request).length,0);
  const ev=evidence.stagePhysicalTransition(old,x.draft,old.sectionalSeasonCycles,request,{
   ledger,inspectBefore:()=>[],inspectAfter:()=>[],validateTransition:rules.validate});
  assert.equal(ev.ok,true,JSON.stringify(ev));
  assert.equal(ev.event.evidence.operationId,'OP-06-RESCUE');
  assert.equal(ledger.inspect(ev.records).length,0);
  assert.equal(evidence.inspectStages(ev.records).length,0);
- assert.deepEqual(ev.records[0].events.map(e=>e.type),['STAGE_CONFIRMED']);
+ assert.equal(ev.records[0].events.map(e=>e.type).join(','),'STAGE_CONFIRMED');
  assert.equal(ev.records[0].events[0].evidence.operationId,'OP-06-RESCUE');
 });
 test('one matron donor can supply both frames with two receiver displacements',()=>{
