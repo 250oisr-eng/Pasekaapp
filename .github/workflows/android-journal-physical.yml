@@ -116,10 +116,33 @@ jobs:
             gradle-${{ runner.os }}-
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Bind APK SHA-256 and exact test-only package identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          const apkPath='android/app/build/outputs/apk/debug/app-debug.apk';
+          const bytes=await readFile(apkPath);
+          const manifest={
+            schema:'paseka-journal-isolated-artifact-v1',
+            packageId:'ru.paseka.journal.journalproof',
+            originalPackageId:'ru.paseka.journal',
+            branchProcess:'CI-only diagnostic build; not a production release',
+            sha:process.env.GITHUB_SHA,
+            apkFile:'app-debug.apk',
+            apkSha256:createHash('sha256').update(bytes).digest('hex'),
+            noUserDataAccess:true,
+            noCleanup:true
+          };
+          await writeFile('journal-proof-manifest.json',JSON.stringify(manifest,null,2)+'\\n','utf8');
+          console.log('Manifest bound to diagnostic package, APK SHA256 and build commit.');
+          NODE
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: paseka-journal-proof-isolated-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |\n            android/app/build/outputs/apk/debug/app-debug.apk\n            journal-proof-manifest.json
           if-no-files-found: error
           retention-days: 7
