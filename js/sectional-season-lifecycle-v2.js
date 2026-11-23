@@ -17,7 +17,7 @@ async function change(mode,request,deps){
  if(!Array.isArray(inspection)||inspection.length||deps.dualRead.inspectMixedState(source,{ledger:deps.ledger}).length)return fail('season_lifecycle_existing_state_invalid');
  let proof;
  try{proof=await deps.verifyFullArchiveAndReplay(source,request)}catch{return fail('season_lifecycle_full_archive_unavailable')}
- if(!O(proof)||proof.ok!==true||proof.restoreReplayVerified!==true||proof.includesOriginalMedia!==true||!S(proof.verificationId)||proof.originalRevisionId!==source.meta.revisionId)return fail('season_lifecycle_full_archive_not_verified');
+ if(!O(proof)||proof.ok!==true||proof.restoreReplayVerified!==true||proof.includesOriginalMedia!==true||proof.externalCopyConfirmed!==true||proof.verificationScope!=='SECOND_DEVICE_VERIFIED'||!S(proof.verificationId)||proof.originalRevisionId!==source.meta.revisionId)return fail('season_lifecycle_full_archive_not_verified');
  const records=Array.isArray(source.sectionalSeasonCycles)?source.sectionalSeasonCycles:[];
  const layout=(Array.isArray(source.sectionalLayouts)?source.sectionalLayouts:[]).filter(l=>l.hiveId===request.hiveId);
  if(layout.length!==1)return fail('season_lifecycle_physical_layout_missing');
