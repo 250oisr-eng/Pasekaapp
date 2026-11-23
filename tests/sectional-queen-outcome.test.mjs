@@ -111,3 +111,20 @@ test('laying UI remains an observation-only operation requiring user evidence',a
  assert.match(html,/userConfirmed:true,occurredAt:new Date\(at\)\.toISOString\(\)/);
  assert.match(html,/Двухматочная ветвь: <b>снятие сеток и OP-06 заблокированы<\/b>/);
 });
+
+test('fabricated laying observation without identity evidence cannot promote two-queen outcome',()=>{
+ const {state,split}=fixture();
+ const confirmed=api.recordConfirmedAbsence(state,{userConfirmed:true,familyId:'section-3',processId:'tp1',occurredAt:'2026-04-20T10:00:00.000Z'},lineage,makeId,now);
+ assert.equal(confirmed.ok,true);
+ for(const familyId of ['section-1','section-2']){
+  const family=state.families.find(f=>f.id===familyId),queenId=makeId();
+  family.queenIdentityStatus='identified';family.currentQueenId=queenId;
+  state.queens.push({id:queenId,familyId,status:'current'});
+  state.queenEvents.push({id:makeId(),type:'laying_observed',familyId,queenId,splitEventId:split.event.id,
+   techProcessId:'tp1',hiveId:'h1',userConfirmed:true,occurredAt:'2026-04-20T09:00:00.000Z'});
+ }
+ const view=api.assess(state,'tp1',lineage);
+ assert.equal(view.outcome,'TWO_QUEENS_ONE_ABSENT_LAYING_UNVERIFIED');
+ assert.equal(view.layingConfirmedCount,0);
+ assert.equal(view.canCompleteOP06,false);
+});
