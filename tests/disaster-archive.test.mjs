@@ -63,6 +63,16 @@ test('revision race aborts restore without clearing existing data',async()=>{
  assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
  assert.equal((await get(db,'entrance_media','video1')).id,'video1');db.close();
 });
+test('unexpected invalid inline-key record aborts the entire multi-store restore',async()=>{
+ const db=await database();await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ inspection.rows.get('main')[0].value.meta.revisionId='different';
+ inspection.rows.get('entrance_media')[0].value=Object.create(null);
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'));
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
 test('unsupported store changes and missing main state are rejected',async()=>{
  const db=await database();await seed(db);const raw=await api.exportArchive(db),obj=JSON.parse(raw);
  const bad=JSON.parse(raw);bad.payload.stores.find(x=>x.name==='main').entries=[];
