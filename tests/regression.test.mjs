@@ -13,6 +13,7 @@ const sectionalPhysicalLayoutSource = await readFile(new URL('../js/sectional-ph
 const familyLineageSource = await readFile(new URL('../js/family-lineage.js', import.meta.url), 'utf8');
 const sectionalOperationCoordinatorSource = await readFile(new URL('../js/sectional-operation-coordinator.js', import.meta.url), 'utf8');
 const sectionalEntranceOperationsSource = await readFile(new URL('../js/sectional-entrance-operations.js', import.meta.url), 'utf8');
+const sectionalOP03Source = await readFile(new URL('../js/sectional-op03-body-swap.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
 const incidentSource = await readFile(new URL('../js/pesticide-incident.js', import.meta.url), 'utf8');
@@ -27,6 +28,7 @@ new Function('window', sectionalPhysicalLayoutSource)(appWindow);
 new Function('window', familyLineageSource)(appWindow);
 new Function('window', sectionalOperationCoordinatorSource)(appWindow);
 new Function('window', sectionalEntranceOperationsSource)(appWindow);
+new Function('window', sectionalOP03Source)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -59,6 +61,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaFamilyLineage ||= appWindow.PasekaFamilyLineage;
   deps.PasekaSectionalOperationCoordinator ||= appWindow.PasekaSectionalOperationCoordinator;
   deps.PasekaSectionalEntranceOperations ||= appWindow.PasekaSectionalEntranceOperations;
+  deps.PasekaSectionalOP03BodySwap ||= appWindow.PasekaSectionalOP03BodySwap;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
