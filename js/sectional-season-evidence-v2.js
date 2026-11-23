@@ -68,6 +68,9 @@ function stagePhysicalTransition(beforeState,afterState,ledger,request,deps={}){
  if(lastEvent&&Date.parse(request.occurredAt)<Date.parse(lastEvent.occurredAt))return fail('stage_time_reverse');
  const priorStages=rec.events.filter(x=>x.type==='STAGE_CONFIRMED');
  if(priorStages.length&&!same(priorStages.at(-1).evidence.after,before.snapshot))return fail('stage_prior_snapshot_mismatch');
+ if(typeof deps.validateTransition!=='function')return fail('stage_transition_rule_validator_missing');
+ const transitionErrors=deps.validateTransition(before.snapshot,after.snapshot,request);
+ if(!Array.isArray(transitionErrors)||transitionErrors.length)return fail('stage_transition_not_allowed',transitionErrors);
  const result=clone(ledger),target=result.find(x=>x.id===request.cycleId);
  target.events.push({id:request.eventId,type:'STAGE_CONFIRMED',occurredAt:request.occurredAt,evidence:{operationId:request.operationId,before:before.snapshot,after:after.snapshot,confirmedBy:request.confirmedBy,transactionId:request.transactionId,stagedWithPhysicalState:true}});
  const errors=[...Ledger.inspect(result),...inspectStages(result)];
