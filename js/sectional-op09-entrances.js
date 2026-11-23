@@ -19,6 +19,9 @@ function inspect(state){
   if(r.profileId!==PROFILE||r.operationId!=='OP-09'||!hives.has(r.hiveId)||r.userConfirmed!==true||!valid(r.occurredAt)||!valid(r.recordedAt)||Date.parse(r.occurredAt)>Date.parse(r.recordedAt))errors.push({code:'op09_evidence_invalid',index});
   if(!Object.hasOwn(configurations,r.phase))errors.push({code:'op09_phase_invalid',index});
   const expected=configurations[r.phase];
+  const layout=rows(state.sectionalLayouts).find(l=>l?.hiveId===r.hiveId);
+  const expectedSections=rows(layout?.sections).map(s=>s?.id);
+  if(layout?.mode!=='SIDE_BY_SIDE'||expectedSections.length!==3||rows(r.sections).some(s=>!expectedSections.includes(s?.sectionId)))errors.push({code:'op09_layout_section_mismatch',index});
   if(!expected||rows(r.sections).length!==3||new Set(rows(r.sections).map(s=>s.sectionId)).size!==3||rows(r.sections).some(s=>s.roundEntrances!==expected.roundEntrances||s.flatEntrance!==expected.flatEntrance))errors.push({code:'op09_section_entrances_invalid',index});
   if(typeof r.notes!=='string'||r.notes.length>500)errors.push({code:'op09_notes_invalid',index});
  }
