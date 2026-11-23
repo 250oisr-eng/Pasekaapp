@@ -156,8 +156,8 @@ function createDraft(state,form){
   const layout=A(state.sectionalLayouts).find(l=>l.hiveId===hive);
   for(const stack of A(layout?.stacks)){
    values.stackAccessories[stack.id]={
-    coverItemId:form.querySelector('[data-season-accessory="'+stack.id+':cover"]')?.value||'',
-    topRiserItemId:form.querySelector('[data-season-accessory="'+stack.id+':topRiser"]')?.value||''
+    coverItemId:Array.from(form.querySelectorAll('[data-season-accessory]')).find(el=>el.getAttribute('data-season-accessory')===stack.id+':cover')?.value||'',
+    topRiserItemId:Array.from(form.querySelectorAll('[data-season-accessory]')).find(el=>el.getAttribute('data-season-accessory')===stack.id+':topRiser')?.value||''
    };
   }
  }
