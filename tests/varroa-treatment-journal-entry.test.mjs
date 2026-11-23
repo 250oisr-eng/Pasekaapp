@@ -43,7 +43,10 @@ test('treatment draft requires explicit confirmation before any state mutation',
  const mutation=submit.indexOf('if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data)');
  assert.ok(validator>=0&&confirmation>validator&&mutation>confirmation);
  assert.match(submit,/!isTreatment\|\|!confirm\(/);
- assert.match(submit,/\$\('recordForm'\)\.dataset\.varroaTreatmentDraft='';await save\(\)/);
+ const persisted=submit.indexOf('if(!await save())');
+ const dialogClose=submit.indexOf("$('recordDlg').close()");
+ assert.ok(persisted>mutation&&dialogClose>persisted,'journal closes only after a confirmed save');
+ assert.match(submit,/dataset\.varroaTreatmentDraft='';\s*}finally\{form\.dataset\.saveInProgress='';\}/);
 });
 test('new record and edit record reset treatment-specific flag',()=>{
  assert.match(html,/function newRecord\(\)\{\$\('recordForm'\)\.dataset\.varroaTreatmentDraft='';/);
