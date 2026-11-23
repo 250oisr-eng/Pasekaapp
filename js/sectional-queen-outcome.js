@@ -22,7 +22,8 @@ function assess(state,processId,lineage){
  const sections=families.map(f=>{
    const presence=lineage.getQueenPresenceStatus(state,f.id);
    const queenId=f.currentQueenId||null;
-   const observed=queenId!==null&&array(state.queenEvents).some(x=>x?.type==='laying_observed'&&x?.queenId===queenId&&x?.familyId===f.id&&x?.splitEventId===split.id&&x?.techProcessId===processId&&x?.userConfirmed===true&&typeof x?.occurredAt==='string'&&!Number.isNaN(Date.parse(x.occurredAt)));
+   const identity=array(state.familyEvents).find(e=>e?.type==='queen_identity_confirmed'&&e?.familyId===f.id&&e?.queenId===queenId&&e?.hiveId===process.hiveId&&e?.techProcessId===processId&&typeof e?.occurredAt==='string'&&Number.isFinite(Date.parse(e.occurredAt)));
+   const observed=queenId!==null&&!!identity&&array(state.queenEvents).some(x=>x?.type==='laying_observed'&&x?.queenId===queenId&&x?.familyId===f.id&&x?.splitEventId===split.id&&x?.techProcessId===processId&&x?.hiveId===process.hiveId&&x?.userConfirmed===true&&typeof x?.occurredAt==='string'&&Number.isFinite(Date.parse(x.occurredAt))&&typeof x?.createdAt==='string'&&Number.isFinite(Date.parse(x.createdAt))&&Date.parse(x.occurredAt)>=Date.parse(identity.occurredAt)&&Date.parse(x.occurredAt)>=Date.parse(split.occurredAt));
    return Object.freeze({familyId:f.id,queenId,presence:allowed.has(presence)?presence:'inconsistent',layingConfirmed:presence==='confirmed_present'&&observed});
  });
  const count=name=>sections.filter(row=>row.presence===name).length;
