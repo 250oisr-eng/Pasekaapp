@@ -1,3 +1,15 @@
+## 2026-11-23 — журнал: реальный Android WebView в эмуляторе PASS, OnePlus ожидает локальный запуск
+
+- [Draft PR #451](https://github.com/250oisr-eng/Pasekaapp/pull/451), исходный производственный main `13c724a634f0987ff634a058a5fa37a1b8e20c92`. Код исправлений журнала остаётся **ТОЛЬКО В DRAFT** и не опубликован.
+- `index.html`: измерения Varroa отделяются по выбранному улью, сохраняются атомарно с audit; исключения и отказ IndexedDB откатывают память; архив/восстановление записи откатывают полный снимок вместе со ссылками на вложения и audit; duplicate submit блокируется; даты из будущего недопустимы для фактически выполненных измерений. Нет миграции, нового дозирования или изменения видео.
+- **Точный HEAD проверен:** `18bc474215137078b8daa6d7d8a6a30efe9bfa81`, [Fast #45149168308](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45149168308) SUCCESS, [Android Debug #45149177210](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45149177210) SUCCESS.
+- **Эмулятор Android 15 / WebView / IndexedDB:** [#45149168294](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45149168294) SUCCESS. Реальный UI на эмуляторе показал `ISOLATED_JOURNAL_REAL_WEBVIEW_REOPEN_ONLY` PASS после WebView reload и `ISOLATED_JOURNAL_ANDROID_RESTART_ONLY` PASS после force-stop/relaunch только изолированной диагностической APK. Логи и скриншоты сохранены в Actions artifact `paseka-journal-android-emulator-evidence`.
+- **Физический OnePlus 10 Pro NE2213/API36:** NOT_TESTED. Создан и SHA-проверен единый ZIP с APK из GitHub artifact #14806195640, подтверждённым source SHA `18bc474215137078b8daa6d7d8a6a30efe9bfa81`; он выполняется **только на пользовательском ПК с USB-ADB**, которого в этом чате нет. Ждём результата JSON и двух PNG; до него DEVICE_VERIFIED ставить нельзя.
+- **Не подтверждены:** восстановление настоящей базы/медиа, реальный авиарежим OnePlus, физическое использование журнала в production APK. Видео PASEKA02 #442 и удаление оригиналов остаются FROZEN; noUserDataAccess=true, cleanup=false. Дальнейшая интеграция PR #451 требует отдельного разрешения пользователя.
+- Следующий неразрушающий приоритет после реального доказательства OnePlus: миграции/backup/restore именно **не-медийных** записей, затем физическая модель OP/инвентаря/семей и offline голосовой журнал. Не повторять синтетические видео-тесты.
+
+---
+
 ## 2026-11-23 — ЖУРНАЛ: Android-эмулятор прошёл полный readback + restart
 
 **Сначала live-факты:** main остаётся `13c724a634f0987ff634a058a5fa37a1b8e20c92`. Исправления журнала и изолированная диагностика доступны только в [Draft #451](https://github.com/250oisr-eng/Pasekaapp/pull/451), ещё НЕ merged и НЕ released.
