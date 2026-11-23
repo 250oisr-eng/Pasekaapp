@@ -1,0 +1,18 @@
+import {readFile,writeFile,copyFile} from 'node:fs/promises';
+const diagnosticId='ru.paseka.journal.journalproof';
+const diagnosticTitle='Пасека · Журнал · ТЕСТ';
+const configPath='capacitor.config.json',out='www/index.html';
+const config=JSON.parse(await readFile(configPath,'utf8'));
+if(config.appId!=='ru.paseka.journal')throw Error('Unexpected original package; refusing to alter production config');
+if(config.webDir!=='www')throw Error('Unexpected webDir');
+config.appId=diagnosticId;
+config.appName=diagnosticTitle;
+await writeFile(configPath,JSON.stringify(config,null,2)+'\n','utf8');
+let html=await readFile(out,'utf8');
+const marker='</body>';
+if(html.split(marker).length!==2||html.includes('journal-phone-proof.js'))throw Error('Missing or duplicate closing HTML body; failing closed');
+html=html.replace(marker,'<script src="./journal-phone-proof.js"></script>\n'+marker);
+await writeFile(out,html,'utf8');
+await copyFile('diagnostics/journal-phone-proof/runner.js','www/journal-phone-proof.js');
+if(!html.includes('<script src="./journal-phone-proof.js"></script>'))throw Error('Diagnostic script not injected');
+console.log('Test-only Android package: '+config.appId+'; production repo source index.html and config were NOT modified');
