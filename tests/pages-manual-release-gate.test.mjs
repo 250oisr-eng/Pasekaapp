@@ -96,6 +96,7 @@ test('source audit never changes GitHub Pages settings or releases on CI push',(
   assert.doesNotMatch(qualityWorkflow,/actions\/deploy-pages|actions\/upload-pages-artifact/);
   assert.match(qualityWorkflow,/^  push:/m);
   assert.match(qualityWorkflow,/^      - '\.github\/workflows\/quality\.yml'$/m);
+  assert.match(qualityWorkflow,/^      - '\.github\/workflows\/pages-manual-release\.yml'$/m);
   assert.match(workflow,/^on:\n  workflow_dispatch:/m);
 });
 
