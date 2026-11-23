@@ -6,7 +6,8 @@ const host={window:{},structuredClone};
 for(const filename of [
  'op06-two-queen-recovery.js','sectional-op06-brood-rescue-v2.js',
  'sectional-season-ledger-v2.js','sectional-season-evidence-v2.js',
- 'sectional-season-operation-rules-v2.js','sectional-season-runtime-v2.js'
+ 'sectional-season-operation-rules-v2.js','sectional-season-transaction-v2.js',
+ 'sectional-season-dual-read-v2.js','sectional-season-runtime-v2.js'
 ])vm.runInNewContext(readFileSync(new URL('../js/'+filename,import.meta.url),'utf8'),host);
 const api=host.window.PasekaSectionalOP06BroodRescueV2;
 const recovery=host.window.PasekaOP06TwoQueenRecovery;
@@ -203,4 +204,67 @@ test('mobile staged action is strictly temporary and refuses duplicate displacem
  transfer[1].replacementFrameId=transfer[0].replacementFrameId;
  const duplicate=w.preflightOP06RescueStage(data,'hive',panel,opts);
  assert.equal(duplicate.ok,false);assert.deepEqual(data,originals);
+});
+
+
+test('synthetic full transaction: rescue + audit + inventory + stage persist on one revision',async()=>{
+ const {data,lineage}=setup(),request=req();
+ let stored=structuredClone(data),counter=0,reads=0,writes=0;
+ const tx=host.window.PasekaSectionalSeasonTransactionV2;
+ const dualRead=host.window.PasekaSectionalSeasonDualReadV2;
+ const deps={
+  readMain:async()=>{reads++;return structuredClone(stored);},
+  writeMainIfUnchanged:async(value,expected)=>{
+   assert.equal(stored.meta.revisionId,expected);
+   stored=structuredClone(value);writes++;
+  },
+  verifyFullArchiveAndReplay:async(s)=>({
+   ok:true,restoreReplayVerified:true,includesOriginalMedia:true,
+   externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',
+   originalRevisionId:s.meta.revisionId,verificationId:'SIMULATED_TEST_CAPABILITY_ONLY'
+  }),
+  validateState:()=>[],makeRevisionId:()=> 'revision-2',
+  preparePersistentSnapshot:async(candidate,expected,revision)=>{
+   assert.equal(expected,'revision-1');
+   return {...candidate,meta:{...candidate.meta,revisionId:revision}};
+  },
+  transaction:tx,evidence,ledger,dualRead,rules,
+  executors:{'OP-06-RESCUE':(current,req)=>api.stage(current,req,{
+   now,makeId:()=> 'event-id-'+(++counter),recovery,lineage,inspectState:()=>[]
+  })}
+ };
+ const result=await runtime.commit(request,deps);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(result.durable,true);
+ assert.equal(writes,1);assert.ok(reads>=2);
+ assert.equal(stored.meta.revisionId,'revision-2');
+ assert.equal(stored.sectionalSeasonCycles[0].status,'ACTIVE');
+ assert.equal(stored.sectionalSeasonCycles[0].events.length,1);
+ assert.equal(stored.sectionalSeasonCycles[0].events[0].evidence.operationId,'OP-06-RESCUE');
+ assert.equal(stored.equipmentInventory.events.length,4);
+ assert.equal(stored.auditLog.length,1);
+ assert.equal(stored.sectionalLayouts[0].mode,'SIDE_BY_SIDE');
+ assert.equal(stored.equipmentInventory.bodies['body-middle'].frames[0].frameId,'left-1');
+ assert.equal(stored.equipmentInventory.bodies['body-left'].frames[0].frameId,'middle-1');
+ assert.equal(evidence.inspectStages(stored.sectionalSeasonCycles).length,0);
+ assert.equal(dualRead.inspectMixedState(stored,{ledger}).length,0);
+});
+test('synthetic CAS fault leaves original revision and all frame positions unchanged',async()=>{
+ const {data,lineage}=setup(),request=req(),baseline=structuredClone(data);
+ let stored=structuredClone(data),counter=0;
+ const result=await runtime.commit(request,{
+  readMain:async()=>structuredClone(stored),
+  writeMainIfUnchanged:async()=>{throw Error('simulated IndexedDB CAS failure');},
+  verifyFullArchiveAndReplay:async s=>({ok:true,restoreReplayVerified:true,
+   includesOriginalMedia:true,externalCopyConfirmed:true,
+   verificationScope:'SECOND_DEVICE_VERIFIED',originalRevisionId:s.meta.revisionId,
+   verificationId:'SIMULATED_TEST_CAPABILITY_ONLY'}),
+  validateState:()=>[],makeRevisionId:()=> 'revision-2',
+  preparePersistentSnapshot:async(s,old,revision)=>({...s,meta:{...s.meta,revisionId:revision}}),
+  transaction:host.window.PasekaSectionalSeasonTransactionV2,evidence,ledger,
+  dualRead:host.window.PasekaSectionalSeasonDualReadV2,rules,
+  executors:{'OP-06-RESCUE':(s,r)=>api.stage(s,r,{now,
+    makeId:()=> 'event-'+(++counter),recovery,lineage,inspectState:()=>[]})}
+ });
+ assert.equal(result.ok,false);assert.deepEqual(stored,baseline);
 });
