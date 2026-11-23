@@ -90,7 +90,8 @@ test('OP04, OP08, OP12, OP13 and OP14 have non-placeholder witnessed input contr
  ];
  for(const [id,values]of cases){
   assert.deepEqual(api.validate(f,request(id,values)),[],id+' should accept a fully supplied witnessed form');
-  const bad={...values,[Object.keys(values).at(-1)]:false};
+  const required={'OP-04':'threeSectionsObserved','OP-08':'sealingObserved','OP-12':'actualIsolation','OP-13':'actualSeparation','OP-14':'actualMerge'}[id];
+  const bad={...values,[required]:false};
   assert.ok(api.validate(f,request(id,bad)).length>0,id+' must reject invalid proof');
  }
 });
