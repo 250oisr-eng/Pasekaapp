@@ -1,3 +1,13 @@
+## 2026-11-23 — OnePlus подтверждённый ручной offline + force-stop synthetic proof
+
+- **Новый ответ пользователя:** «Да, оба действия выполнены» на точный вопрос о полном отключении Wi-Fi **и** мобильной передачи данных, а также Android Settings → «Принудительно остановить» для `ru.paseka.journal.diagnostic.allchecks` **до** присланного диагностического JSON. Больше не требуется повторное подтверждение этих шагов.
+- На том же OnePlus получен user-reported `PHONE_UNIFIED_SYNTHETIC_V2 / PASS / SYNTHETIC_SUITE_ONLY`, 4/4 синтетических модуля PASS, `storage.previousFixture=PRESENT_VERIFIED`, 31 bytes, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`. **Узкий итог:** `PHYSICAL_MANUAL_FORCE_STOP_OFFLINE_SYNTHETIC_BLOB_PRESERVED: USER_CONFIRMED_PASS`; приложение смогло запустить локальные синтетические тесты без Wi-Fi/мобильной сети после ручной остановки, и ранее сохранённый искусственный Blob прочитан и сверен. Это не автоматический OS audit; фактический APK SHA телефона не измерен.
+- Поле APK `scope.androidForceStop=NOT_TESTED` оставлено без ретроактивного изменения: исходный runner **не измеряет** force-stop; отдельное сообщение пользователя является внешним свидетельством. `networkTraffic=NOT_MEASURED`, `externalRequests=NOT_MEASURED`: работа без подключения не доказывает отсутствие попыток запросов в онлайн-режиме.
+- **Не подтверждены:** реальные видео пчёл, bee ONNX inference, PASEKA02 реальное восстановление, Android MediaStore/Camera копии, quota/power-loss, reboot, безопасное удаление. `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`; P0/P1 OPEN, Restore335 STOP. Следующий независимый physical gate — reboot того же установленного `allchecks` с отключёнными сетями, без очистки/переустановки, проверка `PRESENT_VERIFIED`.
+- Подробный протокол и ограничения: `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`. `main`/production/user data не изменялись.
+
+---
+
 ## 2026-11-23 — получен новый OnePlus allchecks JSON, offline/force-stop не подтверждены
 
 - Новый пользовательский JSON: `PHONE_UNIFIED_SYNTHETIC_V2`, `ru.paseka.journal.diagnostic.allchecks`, `PASS / SYNTHETIC_SUITE_ONLY`, четыре синтетических модуля PASS. IndexedDB fixture 31 bytes, hash `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`, `previousFixture=PRESENT_VERIFIED`; synthetic archive metadata cases=4, three 64×64 MP4 frames, ONNX WASM Add(3,2)=5. Все synthetic claims ограничены соответствующим fixture.
