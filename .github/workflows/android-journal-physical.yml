@@ -175,7 +175,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            set -euo pipefail
+            set -eu
             apk="$(find diagnostic-artifact -type f -name app-debug.apk -print -quit)"
             test -n "$apk" && test -f "$apk"
             adb install -r "$apk"
