@@ -2,6 +2,15 @@ name: Isolated Disaster Phone Proof APK (no publication)
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'js/disaster-archive.js'
+      - 'diagnostics/disaster-phone-proof/**'
+      - 'scripts/prepare-disaster-phone-proof.mjs'
+      - 'tests/disaster-archive.test.mjs'
+      - '.github/workflows/android-disaster-physical.yml'
   push:
     paths:
       - 'index.html'
