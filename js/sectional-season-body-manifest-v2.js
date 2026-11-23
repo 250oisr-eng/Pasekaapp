@@ -29,6 +29,31 @@ function positions(layout){
  }
  return refs;
 }
+function itemPositions(layout){
+ const refs=new Map();
+ const add=(id,role,slot)=>{
+  if(id===undefined||id===null||id==='')return true;
+  if(!S(id)||refs.has(id))return false;
+  refs.set(id,{role,...slot});return true;
+ };
+ for(const stack of A(layout.stacks)){
+  if(!O(stack)||!S(stack.id))return null;
+  for(const [key,role] of [['bottomItemId','bottom'],['coverItemId','cover'],
+   ['topRiserItemId','topRiser'],['feederItemId','feeder']]){
+   if(!add(stack[key],role,{stackId:stack.id}))return null;
+  }
+ }
+ for(const item of A(layout.honeyStack?.excluders))
+  if(!add(item?.itemId,'honeyQueenExcluder',{side:item?.side||null}))return null;
+ for(const item of A(layout.meshDiaphragms))
+  if(!add(item?.itemId,'meshDiaphragm',{positionLabel:item?.positionLabel||null}))return null;
+ for(const connection of A(layout.technicalConnections))
+  for(const opening of A(connection?.openings))
+   if(!add(opening?.itemId,'technicalQueenExcluder',{bodyId:opening?.bodyId,openingId:opening?.openingId}))return null;
+ for(const plug of A(layout.temporaryQueenIsolation))
+  if(!add(plug?.itemId,'metalMeshPlug',{bodyId:plug?.bodyId,openingId:plug?.openingId}))return null;
+ return refs;
+}
 const identical=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
 function stageManifest(state,request){
  const operationId=request?.operationId,hiveId=request?.hiveId;
@@ -103,13 +128,31 @@ function stageManifest(state,request){
   if(!O(body)||!Array.isArray(body.frames)||body.frames.some(f=>!O(f)||!S(f.frameId)||!Array.isArray(f.history)))
    return fail('season_manifest_frame_identity_or_history_missing',{bodyId:id});
  }
+ const oldItems=itemPositions(old),newItems=itemPositions(target);
+ if(!oldItems||!newItems)return fail('season_manifest_duplicate_accessory_reference');
+ const itemChanged=[...new Set([...oldItems.keys(),...newItems.keys()])]
+  .filter(id=>!identical(oldItems.get(id),newItems.get(id)));
+ const movedItemsById=new Map(A(request.itemMoves).map(x=>[x?.itemId,x]));
+ if(itemChanged.length!==A(request.itemMoves).length||
+    itemChanged.some(id=>!movedItemsById.has(id))||
+    A(request.itemMoves).some(x=>!itemChanged.includes(x?.itemId)))
+  return fail('season_manifest_item_moves_incomplete_or_unrelated',
+   {requiredItemIds:itemChanged});
  const itemIds=new Set(),items=state.equipmentInventory.items||{};
  for(const row of request.itemMoves){
   const item=items[row?.itemId],location=row?.location;
-  if(!S(row?.itemId)||itemIds.has(row.itemId)||!O(item)||item.condition!=='good'||
-     !O(location)||!['hive','storage'].includes(location.type)||
-     location.type==='hive'&&location.hiveId!==hiveId||
-     location.type==='storage'&&!S(location.label))
+  const oldRef=oldItems.get(row?.itemId),newRef=newItems.get(row?.itemId);
+  const expectedRole=newRef?.role||oldRef?.role;
+  if(!S(row?.itemId)||itemIds.has(row.itemId)||!O(item)||item.kind!==expectedRole||
+     item.condition!=='good'||!O(location)||!['hive','storage'].includes(location.type)||
+     newRef&& (location.type!=='hive'||location.hiveId!==hiveId)||
+     !newRef&&(location.type!=='storage'||!S(location.label))||
+     newRef?.stackId&&location.stackId!==newRef.stackId||
+     newRef?.bodyId&&location.bodyId!==newRef.bodyId||
+     newRef?.openingId&&location.openingId!==newRef.openingId||
+     newRef?.positionLabel&&location.positionLabel!==newRef.positionLabel||
+     !oldRef&&item.location?.type!=='storage'||
+     oldRef&&item.location?.type==='hive'&&item.location.hiveId!==hiveId)
    return fail('season_manifest_item_move_invalid',{itemId:row?.itemId});
   itemIds.add(row.itemId);
  }
@@ -122,7 +165,7 @@ function stageManifest(state,request){
  // Do not add actualWorkConfirmed or completion flags. The physical executor,
  // independent archive gate and real CAS must independently authorize them.
  return {ok:true,stagedOnly:true,operationCompleted:false,
-  request:mapped,bodyMoves,removedBodyIds:removed,addedBodyIds:moved.filter(id=>!oldPositions.has(id))};
+  request:mapped,bodyMoves,removedBodyIds:removed,addedBodyIds:moved.filter(id=>!oldPositions.has(id)),requiredItemMoveIds:itemChanged};
 }
 root.PasekaSectionalSeasonBodyManifestV2=Object.freeze({stageManifest});
 })(typeof window!=='undefined'?window:globalThis);
