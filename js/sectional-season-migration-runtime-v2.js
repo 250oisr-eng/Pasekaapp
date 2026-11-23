@@ -8,7 +8,7 @@ const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 async function proof(deps,source,request){
  if(typeof deps.verifyFullArchiveAndReplay!=='function')return null;
  let p;try{p=await deps.verifyFullArchiveAndReplay(source,request)}catch{return null}
- if(!O(p)||p.ok!==true||p.restoreReplayVerified!==true||p.includesOriginalMedia!==true||!S(p.verificationId)||p.originalRevisionId!==source.meta?.revisionId)return null;
+ if(!O(p)||p.ok!==true||p.restoreReplayVerified!==true||p.includesOriginalMedia!==true||p.externalCopyConfirmed!==true||p.verificationScope!=='SECOND_DEVICE_VERIFIED'||!S(p.verificationId)||p.originalRevisionId!==source.meta?.revisionId)return null;
  return p;
 }
 async function writeAndRead(source,candidate,deps){
