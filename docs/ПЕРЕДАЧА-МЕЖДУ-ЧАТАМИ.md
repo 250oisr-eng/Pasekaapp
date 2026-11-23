@@ -1,3 +1,16 @@
+## 2026-11-23 — P0 record-media MIME integrity #441: exact code/test SHA verification
+
+- [Draft PR #441](https://github.com/250oisr-eng/Pasekaapp/pull/441), parent #440. **CODE+TEST+INITIAL-DOC SHA `be9351d14f2ad0de709f178256dc7c8efad6674b` verified:**
+  - [Fast Quality #45118052607](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45118052607): **completed/success, 1258 tests PASS, 0 failed, 0 skipped** (actual job log #137505314962).
+  - [Android APK #45118052509](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45118052509): **completed/success**, artifact `paseka-debug-apk` #14792910379, 3,466,953 bytes ZIP.
+  - [Android emulator #45118052510](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45118052510): **completed/success**. Job #137505314303 log: `VERIFIED_TEST_EMULATOR=emulator-5554 API=35`, `PASS: COLD_START_ON_EMULATOR`, `PASS: OFFLINE_RESTART_ON_EMULATOR`, `PASS: EMULATOR_ANDROID_35_LAUNCH_AND_OFFLINE_RESTART`. Не утверждать проверку byte-integrity IndexedDB, MediaStore, camera или удаления видео на emulator.
+- `js/video-archive-v2-record-media.js` теперь проверяет MIME-only classification и сохраняет единообразное видео-определение с codec/gate, отклоняя явный type/mimeType conflict (`V2_RECORD_MIME_MISMATCH`) до формирования/использования записей; generic `type:'video'` допускается. Четыре регрессии в `tests/video-archive-v2-record-media.test.mjs`, дополнительная independent-source journal-to-staging test в `tests/p0-v2-independent-source-full-cycle.test.mjs`. Все пять новых тестов входят в 1258, без feature activation.
+- GitHub compare #440→#441: 7 commits ahead, 0 behind, 1 JS+2 test+6 Markdown files до этой документационной контрольной точки; `main` не изменён, PR Draft, merge не разрешён. Исполняемый JS API, кроме изолированного адаптера, IndexedDB schema, Service Worker, UI и production untouched.
+- Данное обновление документации **создаёт новый HEAD** без изменения code/tests; exact-HEAD повторные CI статусы у нового документационного SHA должны проверяться отдельно до объявления полного завершения. Verified previous SHA не является доказательством автоматического успеха нового SHA.
+- `record_media` active journal commit всё ещё **отклоняется** `V2_ENTRANCE_ARCHIVE_UNSUPPORTED`, и этот отказ является PASS-тестом сохранности доказательств, а не работающим full restore. Старые PASEKA01 копии, Restore335, real bee detector/license и Android physical backup/restore, Gallery/Downloads copy inventory, crash/quota, cleanup остаются P0/P1 OPEN. `cleanupAuthorized:false`, `restoreAuthorized:false`, никакого реального удаления, import/merge/deploy. Следующий конкретный шаг после exact-HEAD CI: cross-version PASEKA01-v2 legacy journal copy inventory + аварийные write/restore gates, без активации пользовательских данных.
+
+---
+
 ## 2026-11-23 — P0 journal-video MIME provenance, independent export-to-staging fail-closed
 
 - После проверенного [Draft PR #440](https://github.com/250oisr-eng/Pasekaapp/pull/440), HEAD `1983cad0a7a698dcb528a031d6e4952226ca7cda` (Fast #45092127721: **1253/1253 PASS**, Android #45092127832: **success**, exact-SHA), подготовлен дочерний **Draft #441** в ветке `fix/p0-record-video-mime-provenance-2026-11-23`. Эта задача — минимальная стабилизация `record_media`, **не добавление нового restore/cleanup**.
