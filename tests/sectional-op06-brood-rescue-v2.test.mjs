@@ -144,6 +144,15 @@ test('tampering with frame history after staging invalidates physical rule',()=>
  after.bodyInventory['body-middle'].frames[0].history[0].operationId='OP-99';
  assert.ok(rules.validate(before,after,request).some(x=>x.code==='rescue_frame_provenance_invalid'));
 });
+test('physics rule denies donor section/body mismatch even with plausible frame IDs',()=>{
+ const {data,lineage}=setup(),request=req(),x=runner(data,request,{lineage});
+ assert.equal(x.ok,true);
+ const before=evidence.physicalSnapshot(data,'hive').snapshot;
+ const after=evidence.physicalSnapshot(x.draft,'hive').snapshot;
+ const forged=structuredClone(request);
+ forged.transfers[0].fromSectionId='section-right';
+ assert.ok(rules.validate(before,after,forged).some(x=>x.code==='rescue_section_and_body_ownership_invalid'));
+});
 test('external-archive gate is mandatory even when an executor is available',async()=>{
  const {data,lineage}=setup(),request=req();
  const denied=await runtime.commit(request,{
