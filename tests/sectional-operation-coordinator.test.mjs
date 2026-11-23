@@ -911,3 +911,21 @@ test('OP-04 staged first-row to second-row sequence composes with OP-05, OP-06 a
  assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
  assert.deepEqual(fixture.state.sectionalTechProcesses[0].state.operations.map(row=>row.operationId),['OP-04','OP-05','OP-06','OP-07']);
 });
+
+test('OP-06 refuses all mesh removal when one split family has a still-unresolved confirmed absence',()=>{
+ const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
+ assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
+ prepareOP06Queens(fixture.state,deps);
+ const process=fixture.state.sectionalTechProcesses[0],splitEvent=fixture.state.familyEvents.find(e=>e.id===process.state.operations.find(o=>o.operationId==='OP-04').evidence.familyEventId);
+ assert.ok(splitEvent);
+ fixture.state.familyEvents.push({id:'confirmed-missing-queen-p0',type:'queen_absence_confirmed',userConfirmed:true,
+  outcome:'not_returned_from_mating_flight',familyId:splitEvent.resultFamilyIds[2],splitEventId:splitEvent.id,
+  operationId:'OP-04',techProcessId:process.id,hiveId:process.hiveId,occurredAt:'2026-12-06T08:00:00.000Z'});
+ const before=structuredClone(fixture.state);
+ const result=Coordinator.completeOP06(fixture.state,op06Request(prepared),deps);
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'op06_two_queen_mesh_removal_procedure_unconfirmed');
+ assert.deepEqual(fixture.state,before);
+ assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,8);
+ assert.equal(process.state.operations.some(op=>op.operationId==='OP-06'),false);
+});
