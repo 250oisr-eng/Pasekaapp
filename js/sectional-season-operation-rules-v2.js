@@ -54,6 +54,10 @@ function validateOP06Rescue(before,after,request){
    const previous=oldFrames.get(frame.frameId)||
      Object.values(b).flatMap(body=>rows(body.frames)).find(x=>x.frameId===frame.frameId);
    if(!previous){add('rescue_unaccounted_frame');continue;}
+   if(!seen.has(frame.frameId)){
+    if(!same(frame,previous))add('rescue_unmoved_frame_modified');
+    continue;
+   }
    const cloned=structuredClone(frame),last=cloned.history?.pop();
    if(!last||last.action!=='sectional_op06_brood_rescue_exchange'||
       last.operationId!=='OP-06-RESCUE'||last.cycleId!==request.cycleId||
