@@ -1,3 +1,13 @@
+## 2026-11-23 — P1: изолированный Android тест атомарности IndexedDB и синтетической ошибки квоты
+
+- Подготовлены `diagnostics/phone-idb-atomic/index.html`, `runner.js`, `scripts/extract-android-idb-atomic-writer.mjs`, `scripts/prepare-android-idb-atomic.mjs` и отдельный CI `.github/workflows/android-idb-atomic-apk.yml`. PackageId `ru.paseka.journal.diagnostic.idbatomicv1` не совпадает с продуктовым или с прежними Android diagnostics; **не устанавливать поверх** существующего `allchecks`/Restore335.
+- В APK включается **точная функция** `writeMainWithBackup` из `index.html` на момент сборки, но связывается только с `paseka-p1-atomic-diagnostic-synthetic-v1` и двумя тестовыми stores. Тест: записать узнаваемый маленький fixture, в момент `backup.put` после `main.put` вызвать **искусственное** `QuotaExceededError`, убедиться после повторного открытия, что обе записи не изменились; проверить stale revision conflict и успешный retry с предыдущим backup; повторный запуск может проверять тот же namespaced synthetic fixture. При чужой/битой записи отказ `P1_UNKNOWN_LOCAL_FIXTURE_PRESERVE` без перезаписи.
+- `tests/p1-phone-idb-atomic.test.mjs`: VM/fake-indexeddb исполняет diagnostic runner и реальный writer, 2 последовательных успешных цикла, проверяет запреты на очистку и сохранность при подменённом fixture. Никакого вызова `indexedDB.deleteDatabase`, доступа к видео/MediaStore, сети или production app; Android manifest не запрашивает INTERNET/Camera/Storage, копирование JSON через нативный Clipboard, внешний отчёт без автозагрузки.
+- **Ограничение доказательства:** намеренно **инъецированное** исключение имитирует QuotaExceededError; это НЕ физическая квота Android и не полномасштабный PASEKA02 backup/restore. Реальный quota, OS power-loss, recovery media **NOT_TESTED**. Новый физический OnePlus запуск потребуется **только после** CI на точном code SHA и проверки APK artifact; не требовать пользователя сейчас.
+- P0/P1 OPEN, Restore335 STOP, автоматическое удаление видео запрещено. No main/production/merge/deploy.
+
+---
+
 ## 2026-11-23 — P0: запрет повторного включения распознанных байтов по новому videoId
 
 - Обнаружен защитный пробел в изолированном PASEKA02 `js/video-archive-v2-guard.js`: `checkCandidateVideoPayloads` сравнивал новые видео с ledger только по `source:videoId`, не по `sourceSha256`. Одинаковый оригинал мог пройти preflight под новым ID или другим `source`, несмотря на уже записанный результат распознавания или tombstone; gate реального restore имел более строгую SHA-проверку.
