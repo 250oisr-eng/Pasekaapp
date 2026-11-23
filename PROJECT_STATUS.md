@@ -1,3 +1,11 @@
+## 2026-11-23 — получен новый OnePlus allchecks JSON, offline/force-stop не подтверждены
+
+- Новый пользовательский JSON: `PHONE_UNIFIED_SYNTHETIC_V2`, `ru.paseka.journal.diagnostic.allchecks`, `PASS / SYNTHETIC_SUITE_ONLY`, четыре синтетических модуля PASS. IndexedDB fixture 31 bytes, hash `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`, `previousFixture=PRESENT_VERIFIED`; synthetic archive metadata cases=4, three 64×64 MP4 frames, ONNX WASM Add(3,2)=5. Все synthetic claims ограничены соответствующим fixture.
+- **Ключевой пробел**: в сообщении только JSON, без подтверждения отключения **обеих** сетей и применения Android Settings → «Принудительно остановить». JSON имеет `androidForceStop=NOT_TESTED` и `networkTraffic=NOT_MEASURED`. Не считать новым доказательством force-stop/offline, не требовать повторения теста до уточнения выполнения действий. `realVideos`, `beeRecognition`, `realBackupRestore`, `realVideoDeletion` = NOT_TESTED, `cleanupAuthorized=false`.
+- Результат и дальнейшая однократная проверка условий отражены в `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`. Исходные медиа, Restore335, приложение и production не изменены. P0/P1 OPEN.
+
+---
+
 ## OnePlus — проверка offline + Android force-stop без повторной установки (2026-11-23)
 
 - Выяснено, что запрошенный единый безопасный диагностический APK **уже создан** в Draft #385 и физически проверен дважды в #385/#386: `ru.paseka.journal.diagnostic.allchecks`, `PHONE_UNIFIED_SYNTHETIC_V2`, 4 synthetic modules PASS и `storage.previousFixture=PRESENT_VERIFIED` на втором запуске. **Не нужно создавать новое приложение или повторять уже доказанные проверки**.
