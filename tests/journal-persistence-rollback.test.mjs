@@ -123,3 +123,45 @@ test('production ordering: snapshot before mutation and persistence before dialo
  assert.ok(snap>=0&&mutation>snap&&commit>mutation&&rollback>commit&&closing>rollback);
  assert.equal(handlerSource.includes("close();$('rhive').disabled=false;$('recordForm').dataset.varroaTreatmentDraft='';await save()"),false);
 });
+
+test('concurrent double submit is rejected until the first durable save finishes',async()=>{
+ let finish;
+ const pending=new Promise(resolve=>{finish=resolve});
+ const f=fixture({saveResults:[pending]});
+ const first=f.runner.submit();
+ const second=f.runner.submit();
+ await second;
+ assert.equal(f.saveCalls,1);
+ assert.equal(f.confirmCalls,1);
+ assert.equal(f.runner.getState().records.length,1);
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'1');
+ finish(true);
+ await first;
+ assert.equal(f.runner.getState().records.length,1);
+ assert.equal(f.elements.recordDlg.closed,true);
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+});
+
+test('failed save clears busy lock, allowing user to retry without losing form',async()=>{
+ const f=fixture({saveResults:[false,true]});
+ await f.runner.submit();
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+ assert.equal(f.elements.recordDlg.closed,false);
+ await f.runner.submit();
+ assert.equal(f.saveCalls,2);
+ assert.equal(f.elements.recordDlg.closed,true);
+});
+
+test('changing Varroa draft away from treatment rejects it without saving',async()=>{
+ const f=fixture({type:'Заметка'});
+ await f.runner.submit();
+ assert.equal(f.saveCalls,0);
+ assert.equal(f.elements.recordDlg.closed,false);
+ assert.equal(f.elements.recordForm.dataset.saveInProgress,'');
+ assert.equal(f.runner.getState().records.length,0);
+});
+
+test('busy-lock and release are in try-finally even on early return',()=>{
+ assert.match(handlerSource,/form\.dataset\.saveInProgress='1';\s*try\s*\{/);
+ assert.match(handlerSource,/finally\s*\{form\.dataset\.saveInProgress='';\}/);
+});
