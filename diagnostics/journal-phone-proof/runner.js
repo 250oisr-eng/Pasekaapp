@@ -42,6 +42,18 @@ async function run(){
   requireOk(location.protocol==='https:','Diagnostic must run in Capacitor secure origin');
   await waitUntilInitialized();
   const prior=localStorage.getItem(key);
+  const proven=localStorage.getItem(key+'-persisted-fixtures');
+  if(!prior&&proven){
+   const checkpoint=JSON.parse(proven);
+   const actual=await readMain();
+   requireOk(actual?.hives?.some(h=>h.id===checkpoint.hive),'Synthetic hive not found after Android process restart');
+   requireOk(actual?.varroaObservations?.some(o=>o.id===checkpoint.observation),'Synthetic observation not found after Android process restart');
+   const record=actual?.records?.find(o=>o.id===checkpoint.record);
+   requireOk(record&&!record.archivedAt,'Restored journal record not retained after Android process restart');
+   add('androidProcessRestartReadback','PASS','Isolated diagnostic app reopened; same synthetic records present in real IndexedDB');
+   display('PASS','ISOLATED_JOURNAL_ANDROID_RESTART_ONLY','Actual device process relaunch passed; airplane mode and production restore not attempted.');
+   return;
+  }
   if(prior){
    const checkpoint=JSON.parse(prior);
    requireOk(checkpoint.phase==='reload','Unexpected interrupted test checkpoint');
@@ -54,6 +66,7 @@ async function run(){
    requireOk(record.treatmentDose==='','Unspecified Varroa dose was unexpectedly filled');
    add('coldWebViewReloadIndexedDB','PASS','Synthetic hive + observation + treatment are byte-identifiable after restart');
    add('originalAppDataIsolation','PASS','Separate Android applicationId and private WebView storage');
+   localStorage.setItem(key+'-persisted-fixtures',JSON.stringify(checkpoint));
    localStorage.removeItem(key);
    display('PASS','ISOLATED_JOURNAL_REAL_WEBVIEW_REOPEN_ONLY','Succeeded on real Android WebView; live backups, network disable and real apiary state not tested.');
    return;
