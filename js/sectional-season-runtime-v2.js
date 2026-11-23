@@ -16,9 +16,15 @@ async function sameData(a,b,seen=new WeakMap()){
  if(tag==='[object Blob]'||tag==='[object File]'){
   if(a.size!==b.size||a.type!==b.type)return false;
   if(tag==='[object File]'&&(a.name!==b.name||a.lastModified!==b.lastModified))return false;
-  const first=new Uint8Array(await a.arrayBuffer()),second=new Uint8Array(await b.arrayBuffer());
-  if(first.length!==second.length)return false;
-  for(let i=0;i<first.length;i++)if(first[i]!==second[i])return false;
+  // Stream-sized chunks keep mobile memory bounded for original videos.
+  const chunk=1024*1024;
+  for(let offset=0;offset<a.size;offset+=chunk){
+   const end=Math.min(offset+chunk,a.size);
+   const first=new Uint8Array(await a.slice(offset,end).arrayBuffer());
+   const second=new Uint8Array(await b.slice(offset,end).arrayBuffer());
+   if(first.length!==second.length)return false;
+   for(let i=0;i<first.length;i++)if(first[i]!==second[i])return false;
+  }
   return true;
  }
  if(ArrayBuffer.isView(a)){
