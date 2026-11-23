@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// Pure bridge for confirmed physical transactions. NO direct writes, actions, or implicit DONE.
+// Pure staged bridge: physical state + event must be saved in ONE atomic CAS transaction. NO direct writes or implicit DONE.
 const PROFILE='sectional-multiqueen-v1';
 const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const nonempty=x=>typeof x==='string'&&x.trim().length>0;
@@ -38,7 +38,7 @@ function inspectStages(records){
    const event=rec.events[i];
    if(event?.type!=='STAGE_CONFIRMED')continue;
    const ev=event.evidence;
-   if(!object(ev)||!operations.has(ev.operationId)||!object(ev.before)||!object(ev.after)||!nonempty(ev.confirmedBy)||ev.physicalCommitted!==true||!nonempty(ev.physicalCommitId)){
+   if(!object(ev)||!operations.has(ev.operationId)||!object(ev.before)||!object(ev.after)||!nonempty(ev.confirmedBy)||ev.stagedWithPhysicalState!==true||!nonempty(ev.transactionId)){
     errors.push({code:'stage_evidence_invalid',cycleId:rec.id,index:i});continue;
    }
    if(ev.before.hiveId!==rec.hiveId||ev.after.hiveId!==rec.hiveId||ev.before.profileId!==PROFILE||ev.after.profileId!==PROFILE)errors.push({code:'stage_hive_profile_mismatch',cycleId:rec.id,index:i});
@@ -49,8 +49,8 @@ function inspectStages(records){
  }
  return errors;
 }
-function appendCommittedStage(beforeState,afterState,ledger,request,deps={}){
- if(!object(request)||request.userConfirmed!==true||!nonempty(request.confirmedBy)||!nonempty(request.physicalCommitId)||!nonempty(request.eventId)||!stamp(request.occurredAt)||!operations.has(request.operationId)||!nonempty(request.cycleId))return fail('stage_confirmation_required');
+function stagePhysicalTransition(beforeState,afterState,ledger,request,deps={}){
+ if(!object(request)||request.userConfirmed!==true||!nonempty(request.confirmedBy)||!nonempty(request.transactionId)||!nonempty(request.eventId)||!stamp(request.occurredAt)||!operations.has(request.operationId)||!nonempty(request.cycleId))return fail('stage_confirmation_required');
  if(!Array.isArray(ledger)||!deps||typeof deps.inspectBefore!=='function'||typeof deps.inspectAfter!=='function')return fail('stage_validator_required');
  const baseErrors=deps.inspectBefore(beforeState);
  const finalErrors=deps.inspectAfter(afterState);
@@ -69,9 +69,9 @@ function appendCommittedStage(beforeState,afterState,ledger,request,deps={}){
  const priorStages=rec.events.filter(x=>x.type==='STAGE_CONFIRMED');
  if(priorStages.length&&!same(priorStages.at(-1).evidence.after,before.snapshot))return fail('stage_prior_snapshot_mismatch');
  const result=clone(ledger),target=result.find(x=>x.id===request.cycleId);
- target.events.push({id:request.eventId,type:'STAGE_CONFIRMED',occurredAt:request.occurredAt,evidence:{operationId:request.operationId,before:before.snapshot,after:after.snapshot,confirmedBy:request.confirmedBy,physicalCommitId:request.physicalCommitId,physicalCommitted:true}});
+ target.events.push({id:request.eventId,type:'STAGE_CONFIRMED',occurredAt:request.occurredAt,evidence:{operationId:request.operationId,before:before.snapshot,after:after.snapshot,confirmedBy:request.confirmedBy,transactionId:request.transactionId,stagedWithPhysicalState:true}});
  const errors=[...Ledger.inspect(result),...inspectStages(result)];
  return errors.length?fail('stage_result_invalid',errors):{ok:true,records:result,event:clone(target.events.at(-1))};
 }
-window.PasekaSectionalSeasonEvidenceV2=Object.freeze({PROFILE,physicalSnapshot,inspectStages,appendCommittedStage});
+window.PasekaSectionalSeasonEvidenceV2=Object.freeze({PROFILE,physicalSnapshot,inspectStages,stagePhysicalTransition});
 })();
