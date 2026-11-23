@@ -80,8 +80,8 @@ test('Farrar and timestamps from future cannot pass physical OP form validation'
  assert.ok(api.validate(f,{...r,occurredAt:'2099-11-22T10:00:00Z'}).length);
 });
 test('wizard validates without mutating any registered family, queen, frame or inventory item',()=>{
- const f=fixture(),old=structuredClone(f);
- f.sectionalLayouts[0].honeyStack=null;
+ const f=fixture();f.sectionalLayouts[0].honeyStack=null;
+ const old=structuredClone(f);
  const r=request('OP-11',{upperBodyIds:['b2','b4','b6'],actualMerge:true});
  api.validate(f,r);api.candidates(f,'h1','frame');
  assert.deepEqual(f,old);
