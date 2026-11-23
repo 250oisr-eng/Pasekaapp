@@ -210,11 +210,11 @@ test('OP12 requires both real stored diaphragms installed at witnessed target po
    {id:'w1',position:'lower',familyId:'f1',broodBodyIds:['b1','b2'],upperBroodBodyId:'b2'},
    {id:'w2',position:'middle',familyId:'f2',broodBodyIds:['b3'],upperBroodBodyId:'b3'},
    {id:'w3',position:'upper',familyId:'f3',broodBodyIds:['b5'],upperBroodBodyId:'b5'}
-  ],stacks:[],meshDiaphragms:[{itemId:'d1',positionLabel:'lower-middle'},{itemId:'d2',positionLabel:'middle-upper'}]};
+  ],stacks:[{id:'winter-stack'}],meshDiaphragms:[{itemId:'d1',positionLabel:'lower-middle'},{itemId:'d2',positionLabel:'middle-upper'}]};
  f.request.storageLocations={b4:'склад',b6:'склад'};
  assert.equal(plan(f.state,f.request).error,'season_manifest_item_moves_incomplete_or_unrelated');
  f.request.itemMoves=['d1','d2'].map((itemId,i)=>({
-  itemId,location:{type:'hive',hiveId:'h',
+  itemId,location:{type:'hive',hiveId:'h',stackId:'winter-stack',
    positionLabel:i===0?'lower-middle':'middle-upper'}
  }));
  assert.equal(plan(f.state,f.request).ok,true);
@@ -277,10 +277,10 @@ test('OP14 removal of both installed large excluders requires two confirmed stor
 });
 
 
-test('old closed-opening mesh plugs cannot disappear during winter merge',()=>{
+test('old closed-opening plastic plugs cannot disappear during winter merge',()=>{
  const f=setup(),old=f.state.sectionalLayouts[0];
  old.closedOpenings=[{itemId:'plug1',openingId:'o1',bodyId:'b2'}];
- f.state.equipmentInventory.items.plug1={id:'plug1',kind:'metalMeshPlug',condition:'good',
+ f.state.equipmentInventory.items.plug1={id:'plug1',kind:'plasticPlug',condition:'good',
   location:{type:'hive',hiveId:'h',bodyId:'b2',openingId:'o1'}};
  assert.equal(plan(f.state,f.request).error,'season_manifest_item_moves_incomplete_or_unrelated');
  f.request.itemMoves=[{itemId:'plug1',location:{type:'storage',label:'склад'}}];
