@@ -6,6 +6,77 @@ const obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const rows=x=>Array.isArray(x)?x:[];
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const ids=x=>rows(x).map(v=>v?.id);
+
+function validateOP06Rescue(before,after,request){
+ const errors=[],add=code=>errors.push({code});
+ const b=before?.bodyInventory,a=after?.bodyInventory;
+ const moves=rows(request?.transfers);
+ if(request?.operationId!=='OP-06-RESCUE'||request?.userConfirmed!==true||
+    request?.actualWorkConfirmed!==true||request?.actualFrameExchangeConfirmed!==true||
+    request?.meshConfigurationPersonallyVerified!==true||
+    !same(before?.layout,after?.layout)||!same(before?.families,after?.families)||
+    !same(before?.queens,after?.queens)||
+    !same(before?.seasonalEntranceObservations,after?.seasonalEntranceObservations))
+    add('rescue_layout_family_queen_or_confirmation_changed');
+ if(!obj(b)||!obj(a)||!same(Object.keys(b).sort(),Object.keys(a).sort())||
+    moves.length!==2)return [...errors,{code:'rescue_body_snapshot_or_transfer_invalid'}];
+ const old=structuredClone(b),seen=new Set(),affected=new Set();
+ for(const [index,m] of moves.entries()){
+  const from=old[m?.fromBodyId],to=old[request?.toBodyId];
+  if(!from||!to||m.fromBodyId===request.toBodyId||
+     !Array.isArray(from.frames)||!Array.isArray(to.frames)||
+     !m.frameId||!m.replacementFrameId||seen.has(m.frameId)||
+     seen.has(m.replacementFrameId)||m.frameId===m.replacementFrameId||
+     m.broodObserved!==true||m.freshEggsObserved!==true||
+     m.queenAbsentOnTransferredFrameConfirmed!==true){
+    add('rescue_frame_mapping_invalid');continue;
+  }
+  seen.add(m.frameId);seen.add(m.replacementFrameId);
+  affected.add(m.fromBodyId);affected.add(request.toBodyId);
+  const fi=from.frames.findIndex(x=>x.frameId===m.frameId),
+       ti=to.frames.findIndex(x=>x.frameId===m.replacementFrameId);
+  if(fi<0||ti<0){add('rescue_source_frame_slot_invalid');continue;}
+  [from.frames[fi],to.frames[ti]]=[to.frames[ti],from.frames[fi]];
+ }
+ if(errors.length)return errors;
+ for(const id of Object.keys(b)){
+  const original=b[id],current=a[id],expected=old[id];
+  if(!obj(current)||!Array.isArray(current.frames)||!Array.isArray(original.frames)||
+     !same(expected.frames.map(x=>x.frameId),current.frames.map(x=>x.frameId))){
+    add('rescue_frame_order_mismatch');continue;
+  }
+  if(!affected.has(id)){
+   if(!same(original,current))add('rescue_unrelated_body_mutated');
+   continue;
+  }
+  const oldFrames=new Map(original.frames.map(x=>[x.frameId,x]));
+  for(const frame of current.frames){
+   const previous=oldFrames.get(frame.frameId)||
+     Object.values(b).flatMap(body=>rows(body.frames)).find(x=>x.frameId===frame.frameId);
+   if(!previous){add('rescue_unaccounted_frame');continue;}
+   const cloned=structuredClone(frame),last=cloned.history?.pop();
+   if(!last||last.action!=='sectional_op06_brood_rescue_exchange'||
+      last.operationId!=='OP-06-RESCUE'||last.cycleId!==request.cycleId||
+      last.frameId!==frame.frameId||last.at!==request.occurredAt||
+      !same(cloned,previous))add('rescue_frame_provenance_invalid');
+  }
+  const normalized=structuredClone(current);
+  delete normalized.updatedAt;delete normalized.events;delete normalized.frames;
+  const normalizedOld=structuredClone(original);
+  delete normalizedOld.updatedAt;delete normalizedOld.events;delete normalizedOld.frames;
+  if(!same(normalized,normalizedOld)||current.updatedAt!==request.occurredAt)
+    add('rescue_body_metadata_mutated');
+  const prevEvents=rows(original.events),newEvents=rows(current.events);
+  if(!same(prevEvents,newEvents.slice(0,prevEvents.length))||
+     newEvents.length-prevEvents.length!==moves.filter(x=>x.fromBodyId===id).length*2+
+       (id===request.toBodyId?moves.length*2:0)||
+     newEvents.slice(prevEvents.length).some(x=>x.operationId!=='OP-06-RESCUE'||
+       x.at!==request.occurredAt||!['op06_frame_exchanged_out','op06_frame_exchanged_in'].includes(x.type)))
+    add('rescue_body_event_provenance_invalid');
+ }
+ return errors;
+}
+
 function validate(before,after,request){
  const errors=[],add=(code)=>errors.push({code});
  if(!obj(before)||!obj(after)||!obj(request))return [{code:'operation_transition_required'}];
@@ -17,6 +88,7 @@ function validate(before,after,request){
  const families=layout=>rows(layout.sections).map(s=>s?.familyId);
  const broodCount=layout=>rows(layout.sections).reduce((n,s)=>n+rows(s?.broodBodyIds).length,0);
  const oldBodies=Object.keys(before.bodyInventory||{}),newBodies=Object.keys(after.bodyInventory||{});
+ if(op==='OP-06-RESCUE')return [...errors,...validateOP06Rescue(before,after,request)];
  if(!['OP-04','OP-05','OP-06','OP-07','OP-08','OP-09','OP-10','OP-11','OP-12','OP-13','OP-14'].includes(op))return [...errors,{code:'operation_v2_rule_missing'}];
 
  if(op==='OP-04'){
