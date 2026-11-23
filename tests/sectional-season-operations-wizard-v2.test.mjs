@@ -97,9 +97,10 @@ test('OP04, OP08, OP12, OP13 and OP14 have non-placeholder witnessed input contr
   ['OP-14',{honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],nestBodiesAfterHarvest:3,actualMerge:true}]
  ];
  for(const [id,values]of cases){
-  if(id==='OP-12')f.sectionalLayouts[0].honeyStack=null;
+  const current=fixture();
+  if(id==='OP-12')current.sectionalLayouts[0].honeyStack=null;
   if(id==='OP-13'){
-   const l=f.sectionalLayouts[0];l.mode='ALTERNATIVE_WINTERING_COLUMN';l.honeyStack=null;
+   const l=current.sectionalLayouts[0];l.mode='ALTERNATIVE_WINTERING_COLUMN';l.honeyStack=null;
    l.sections=[
     {id:'lower',position:'lower',familyId:'f1',broodBodyIds:['b1','b2']},
     {id:'middle',position:'middle',familyId:'f2',broodBodyIds:['b3']},
@@ -107,13 +108,15 @@ test('OP04, OP08, OP12, OP13 and OP14 have non-placeholder witnessed input contr
    ];
   }
   if(id==='OP-14'){
-   f.sectionalLayouts[0].mode='SIDE_BY_SIDE';
-   f.sectionalLayouts[0].honeyStack={purpose:'early',bodyIds:['h1','h2'],excluders:[{itemId:'ex1'},{itemId:'ex2'}]};
+   const source=fixture().sectionalLayouts[0];
+   current.sectionalLayouts[0].sections=source.sections;
+   current.sectionalLayouts[0].mode='SIDE_BY_SIDE';
+   current.sectionalLayouts[0].honeyStack={purpose:'early',bodyIds:['h1','h2'],excluders:[{itemId:'ex1'},{itemId:'ex2'}]};
   }
-  assert.deepEqual(api.validate(f,request(id,values)),[],id+' should accept a fully supplied witnessed form');
+  assert.deepEqual(api.validate(current,request(id,values)),[],id+' should accept a fully supplied witnessed form');
   const required={'OP-04':'threeSectionsObserved','OP-08':'sealingObserved','OP-12':'actualIsolation','OP-13':'actualSeparation','OP-14':'actualMerge'}[id];
   const bad={...values,[required]:false};
-  assert.ok(api.validate(f,request(id,bad)).length>0,id+' must reject invalid proof');
+  assert.ok(api.validate(current,request(id,bad)).length>0,id+' must reject invalid proof');
  }
 });
 test('OP03 cannot claim physical swap if current layout positions disagree',()=>{
