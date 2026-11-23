@@ -36,8 +36,16 @@ function noVideo(value,depth=0,seen=new Set()){
  if(typeof value!=='object'||seen.has(value)||!(Array.isArray(value)||Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null))
   fail('V2_ENTRANCE_VIDEO_STATE_UNSAFE');
  seen.add(value);
- if(!Array.isArray(value)&&(value.kind==='video'||value.type==='video'||typeof value.type==='string'&&value.type.startsWith('video/'))&&value.data!=null)
-  fail('V2_ENTRANCE_VIDEO_STATE_UNSAFE');
+ // Do not let harmless-looking Data URLs or an image type override a video
+ // MIME alias on an embedded journal attachment. This is a second barrier;
+ // the codec and restore gate independently reject untracked originals.
+ if(!Array.isArray(value) && value.data!=null && (
+    value.kind==='video' || [value.type,value.mimeType].some(type=>
+      typeof type==='string' && (type.toLowerCase()==='video'||
+       /^video\//i.test(type)||
+       /^application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl)$/i.test(type))
+    )
+  )) fail('V2_ENTRANCE_VIDEO_STATE_UNSAFE');
  for(const child of (Array.isArray(value)?value:Object.values(value)))noVideo(child,depth+1,seen);
  seen.delete(value);
 }
