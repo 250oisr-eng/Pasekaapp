@@ -407,7 +407,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <section id="varroa" class="panel">
  <div class="card"><h2 style="margin-top:0">Контроль Varroa</h2><p class="muted">Ручной учёт результатов измерений. Приложение рассчитывает показатели, но не ставит диагноз и не назначает обработку. Дополнительные электронные устройства не требуются.</p></div>
  <div class="card"><h3 style="margin-top:0">Новое измерение</h3><form id="varroaForm" onsubmit="saveVarroaObservation(event)">
-  <label for="varroaHive">Улей</label><select id="varroaHive" required><option value="">— Выбери улей —</option></select>
+  <label for="varroaHive">Улей</label><select id="varroaHive" onchange="renderVarroaModule()" required><option value="">— Выбери улей —</option></select>
   <label for="varroaDate">Дата</label><input id="varroaDate" type="date" required>
   <label for="varroaType">Тип наблюдения</label><select id="varroaType" onchange="toggleVarroaFields()"><option value="adult_bee_sample">Проба взрослых пчёл</option><option value="sticky_board">Контрольный поддон</option></select>
   <div id="varroaAdultFields"><label for="varroaMethod">Метод отбора</label><select id="varroaMethod"><option value="alcohol_wash">Смыв</option><option value="sugar_roll">Сахарная пудра</option><option value="other">Другой метод</option></select><label for="varroaBeesCount">Количество исследованных пчёл</label><input id="varroaBeesCount" type="number" min="10" max="1000" step="1" inputmode="numeric" value="300"><label for="varroaMitesCount">Количество обнаруженных клещей</label><input id="varroaMitesCount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="0"></div>
@@ -417,6 +417,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
  </form></div>
  <div class="card"><h3 style="margin-top:0">Фактически выполненная обработка Varroa</h3><p class="muted">Отдельная запись в журнале улья. Подтверди факт выполнения перед сохранением; дозу, препарат, сроки и условия указывай только по факту и инструкции. Наблюдение за клещом не считается обработкой.</p><button type="button" onclick="openVarroaTreatmentJournal()">Записать выполненную обработку</button></div>
  <div class="card"><div class="row"><b>История измерений</b><span class="muted" id="varroaCount">0</span></div><div class="muted">Проба взрослых пчёл и осыпь на поддоне показываются раздельно: эти показатели нельзя напрямую приравнивать друг к другу.</div><div id="varroaObservationsList"></div></div>
+ <div class="card"><div class="row"><b>История обработок выбранного улья</b><span class="muted" id="varroaTreatmentsCount">0</span></div><p class="muted">Все записи типа «Обработка» выбранного улья, не только против Varroa. Измерения клеща не являются лечением. Архивные записи доступны в общем журнале.</p><div id="varroaTreatmentsList"></div></div>
 </section>
 <section id="incidents" class="panel">
  <div class="card"><h2 style="margin-top:0">Досье при подозрении на отравление</h2><p class="muted">Фиксируй только наблюдаемые факты. Приложение не определяет химическое вещество и не устанавливает причину гибели пчёл. Записи и фотографии остаются на устройстве.</p></div>
@@ -1395,6 +1396,12 @@ function renderVarroaModule(){
  const hiveSelect=$('varroaHive'),list=$('varroaObservationsList');if(!hiveSelect||!list)return;
  if(!$('varroaDate').value)$('varroaDate').value=today();const previous=hiveSelect.value;hiveSelect.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
  hiveSelect.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:(S.hives[0]?.id||''));
+ const treatmentsHost=$('varroaTreatmentsList');
+ if(treatmentsHost){
+  const treatments=(Array.isArray(S.records)?S.records:[]).filter(row=>row&&row.type==='Обработка'&&!row.archivedAt&&row.hive===hiveSelect.value).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  $('varroaTreatmentsCount').textContent=treatments.length+' '+ruPlural(treatments.length,'обработка','обработки','обработок');
+  treatmentsHost.innerHTML=treatments.length?treatments.map(row=>'<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(row.treatmentProduct||row.treatmentActive||'Обработка')+'</b><span class="muted">'+safe(row.date)+'</span></div><div class="muted">'+safe([row.treatmentActive,row.treatmentMethod].filter(Boolean).join(' · ')||'Параметры не указаны')+'</div>'+(row.text?'<div>'+safe(row.text)+'</div>':'')+'</div>').join(''):'<p class="muted">Записанных обработок для выбранного улья нет.</p>';
+ }
  const rows=(S.varroaObservations||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
  $('varroaCount').textContent=rows.length+' '+ruPlural(rows.length,'измерение','измерения','измерений');
  if(!rows.length){list.innerHTML='<p class="muted">Измерений пока нет. Добавь результат ручного контроля клеща.</p>';return}
@@ -2830,7 +2837,11 @@ $('recordForm').onsubmit=async e=>{
  const data={id:id||uid(),date:$('rdate').value,type:$('rtype').value,hive:hiveId,family:familyId,familyNameAtTime:familyId?(oldRecord?.family===familyId?(oldRecord.familyNameAtTime||selectedFamily?.name||''):(selectedFamily?.name||'')):'',familyHiveAtTime:familyId?(oldRecord?.family===familyId?(oldRecord.familyHiveAtTime||oldRecord.hive||hiveId):hiveId):'',familySnapshotAtTime:familyId&&oldRecord?.family===familyId?(oldRecord.familySnapshotAtTime||null):null,text:$('rtext').value,occupancy:isInspection&&$('roccupancy').value!==''?Number($('roccupancy').value):null,broodFrames:isInspection&&$('rbrood').value!==''?Number($('rbrood').value):null,freeDrawn:isInspection&&$('rdrawn').value!==''?Number($('rdrawn').value):null,queen:isInspection?$('rqueen').value:'',eggs:isInspection?$('reggs').value:'',broodPattern:isInspection?$('rbroodPattern').value:'',queenCells:isInspection?$('rqueenCells').value:'',swarmSigns:isInspection?$('rswarmSigns').value:'',treatmentProduct:isTreatment?$('rtreatmentProduct').value:'',treatmentActive:isTreatment?$('rtreatmentActive').value:'',treatmentMethod:isTreatment?$('rtreatmentMethod').value:'',treatmentDose:isTreatment?$('rtreatmentDose').value:'',treatmentCheck:isTreatment?$('rtreatmentCheck').value:'',treatmentWaiting:isTreatment?$('rtreatmentWaiting').value:'',treatmentBatch:isTreatment?$('rtreatmentBatch').value:'',feedingType:isFeeding?$('rfeedingType').value:'',feedingSubstance:isFeeding?$('rfeedingSubstance').value:'',feedingAmount:isFeeding?$('rfeedingAmount').value:'',feedingConcentration:isFeeding?$('rfeedingConcentration').value:'',feedingMethod:isFeeding?$('rfeedingMethod').value:'',media:combinedMedia};
  const journalValidation=validateJournalRecordDraft(data,S,oldRecord);
  if(!journalValidation.ok){alert(journalValidation.errors.map(error=>error.message).join('\n'));return}
- if($('recordForm').dataset.varroaTreatmentDraft==='1'&&(!isTreatment||!confirm('Подтверди, что обработка Varroa действительно выполнена, а указанные параметры внесены по факту. Сохранить запись?')))return;
+ if(form.dataset.varroaTreatmentDraft==='1'){
+  if(!isTreatment){alert('Запись из раздела Varroa должна оставаться обработкой.');return}
+  if(data.date>today()){alert('Фактически выполненная обработка не может иметь дату из будущего. Проверь дату записи.');return}
+  if(!confirm('Подтверди, что обработка Varroa действительно выполнена, а указанные параметры внесены по факту. Сохранить запись?'))return;
+ }
  let previous;
  try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную копию текущего состояния. Запись не сохранена: '+(error?.message||'ошибка копирования'));return}
  if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
