@@ -1,3 +1,11 @@
+## OnePlus — проверка offline + Android force-stop без повторной установки (2026-11-23)
+
+- Выяснено, что запрошенный единый безопасный диагностический APK **уже создан** в Draft #385 и физически проверен дважды в #385/#386: `ru.paseka.journal.diagnostic.allchecks`, `PHONE_UNIFIED_SYNTHETIC_V2`, 4 synthetic modules PASS и `storage.previousFixture=PRESENT_VERIFIED` на втором запуске. **Не нужно создавать новое приложение или повторять уже доказанные проверки**.
+- Подготовлен конкретный телефонный тест `docs/ONEPLUS-OFFLINE-FORCE-STOP-PHONE-ONLY-2026-11-23.md`: выключить Wi-Fi+mobile data, Android Settings → **Принудительно остановить только allchecks** → повторно открыть тот же APK → запустить диагностику → «Копировать результат» → включить сеть и вставить JSON. Цель: user-reported offline+force-stop hash-preservation. Никакого ADB, USB, reinstall, real videos, Restore335, data clearing или cleanup.
+- Новый физический прогон ещё **NOT_TESTED**, P0/P1 OPEN; установленный APK не соответствует автоматически HEAD последних P0 PR #430–#434, не смешивать evidence. Artifact #14769308321 (GitHub isolated #45060987323, дата истечения 06.12) доступен как fallback, не требуется при сохранённой установке.
+
+---
+
 ## P1 — npm-cache в изолированном Android Emulator CI (2026-11-23)
 
 - Без ослабления проверок в `.github/workflows/android-emulator-smoke.yml` включён `actions/setup-node@v4` `cache: npm` по `package-lock.json`, что позволяет переиспользовать скачанные npm-пакеты между последовательными проверками того же lockfile. `npm ci`, contract test и offline emulator smoke **сохранены**.
