@@ -227,3 +227,27 @@ test('stage preview refuses to describe executable operation without full local 
  const r=w.PasekaSectionalSeasonPhysicalManifestV2.previewStage(state,req,{});
  assert.equal(r.error,'manifest_required_local_integrity_inspector_missing');
 });
+
+test('duplicate physical frame ID or false storage label blocks winter manifest',()=>{
+ const state=base(),req=request('OP-11',mergeTarget(),{
+  actualMergeConfirmed:true,resultFamily:{id:'merged',hive:'h'},
+  storageLocations:{b1:'склад',b3:'склад',b5:'склад'},
+  itemDestinations:{'bottom-middle':{type:'storage',label:'склад'},
+   'bottom-right':{type:'storage',label:'склад'}}
+ });
+ state.equipmentInventory.bodies.b3.frames[0].frameId=state.equipmentInventory.bodies.b2.frames[0].frameId;
+ assert.equal(plan(state,req).error,'manifest_frame_identity_repeated_across_bodies');
+ state.equipmentInventory.bodies.b3.frames[0].frameId='b3-f1';
+ state.equipmentInventory.bodies.b2.storageLocation='склад';
+ assert.equal(plan(state,req).error,'manifest_installed_body_falsely_marked_stored');
+});
+test('item registered on a different stack than its original source reference blocks replay',()=>{
+ const state=base(),req=request('OP-11',mergeTarget(),{
+  actualMergeConfirmed:true,resultFamily:{id:'merged',hive:'h'},
+  storageLocations:{b1:'склад',b3:'склад',b5:'склад'},
+  itemDestinations:{'bottom-middle':{type:'storage',label:'склад'},
+   'bottom-right':{type:'storage',label:'склад'}}
+ });
+ state.equipmentInventory.items['bottom-middle'].location.stackId='stack-right';
+ assert.equal(plan(state,req).error,'manifest_source_item_wrong_actual_position');
+});
