@@ -245,5 +245,60 @@ function plan(state,input){
    changedBodyIds:changedBodies,changedItemIds:itemIds,
    request};
 }
-root.PasekaSectionalSeasonPhysicalManifestV2=Object.freeze({plan});
+function inspectSource(state,hiveId){
+ const h=A(state?.hives).find(x=>x?.id===hiveId);
+ const layouts=A(state?.sectionalLayouts).filter(x=>x?.hiveId===hiveId);
+ if(h?.profileId!==PROFILE||layouts.length!==1||!S(state?.meta?.revisionId))
+  return fail('manifest_source_revision_or_layout_missing');
+ try{
+  const bodies=bodyMap(layouts[0]),items=itemMap(layouts[0]);
+  const inv=state.equipmentInventory;
+  if(!O(inv?.bodies)||!O(inv?.items))return fail('manifest_source_inventory_missing');
+  const bodyEntries=[...bodies].map(([id,location])=>({id,location,
+   frameIds:A(inv.bodies[id]?.frames).map(f=>f.frameId)}));
+  const itemEntries=[...items].map(([id,{kind,expected}])=>({
+   id,kind,expected,actual:inv.items[id]?.location||null
+  }));
+  if(bodyEntries.some(x=>!O(inv.bodies[x.id]))||
+     itemEntries.some(x=>!O(inv.items[x.id])||inv.items[x.id].kind!==x.kind))
+   return fail('manifest_source_referenced_equipment_missing');
+  return {ok:true,readOnly:true,sourceRevisionId:state.meta.revisionId,
+   bodyEntries,itemEntries,mode:layouts[0].mode};
+ }catch{return fail('manifest_source_duplicate_or_incomplete')}
+}
+function previewStage(state,input,deps={}){
+ const planned=plan(state,input);
+ if(!planned.ok)return planned;
+ if(typeof deps.executor?.stage!=='function'||
+    typeof deps.layout?.validate!=='function'||
+    typeof deps.lineage?.inspect!=='function'||
+    typeof deps.provenance?.validate!=='function'||
+    typeof deps.equipmentItems?.place!=='function'||
+    typeof deps.makeId!=='function'||!S(deps.now))
+  return fail('manifest_required_local_integrity_inspector_missing');
+ let simulation;
+ try{
+  simulation=deps.executor.stage(state,planned.request,{
+   now:deps.now,makeId:deps.makeId,PasekaEquipmentItems:deps.equipmentItems,
+   PasekaFamilyLineage:deps.lineage
+  });
+ }catch{return fail('manifest_executor_simulation_unavailable')}
+ if(!simulation?.ok||!O(simulation.draft))
+  return fail('manifest_executor_rejected',simulation);
+ try{
+  const check=deps.layout.validate(planned.request.targetLayout,simulation.draft);
+  const lineage=deps.lineage.inspect(simulation.draft);
+  const provenance=deps.provenance.validate(state,simulation.draft,planned.request);
+  if(!check?.valid||!Array.isArray(lineage)||lineage.length||
+     !Array.isArray(provenance)||provenance.length)
+   return fail('manifest_simulated_physical_or_lineage_invalid',{
+    layoutErrors:check?.errors||[],lineageErrors:lineage,provenanceErrors:provenance
+   });
+ }catch{return fail('manifest_full_local_validation_unavailable')}
+ return {ok:true,previewOnly:true,readyForPersistence:false,
+  requiresIndependentArchiveVerification:true,sourceRevisionId:planned.sourceRevisionId,
+  changedBodyIds:planned.changedBodyIds,changedItemIds:planned.changedItemIds,
+  operationCompleted:false};
+}
+root.PasekaSectionalSeasonPhysicalManifestV2=Object.freeze({plan,inspectSource,previewStage});
 })(typeof window!=='undefined'?window:globalThis);
