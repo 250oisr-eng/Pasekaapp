@@ -192,3 +192,14 @@ test('committed Varroa observation keeps current hive selected after form reset'
  assert.equal(f.elements.varroaHive.value,'h2');
  assert.equal(f.saves,1);
 });
+
+test('future-dated actual Varroa observation is rejected before audit and IndexedDB',async()=>{
+ const f=observationFixture();
+ f.elements.varroaDate.value='2026-11-24';
+ const before=structuredClone(f.api.getState());
+ await f.api.run();
+ assert.deepEqual(f.api.getState(),before);
+ assert.equal(f.saves,0);
+ assert.match(f.alerts.at(-1),/дату из будущего/i);
+ assert.equal(f.elements.varroaForm.dataset.saveInProgress,'');
+});
