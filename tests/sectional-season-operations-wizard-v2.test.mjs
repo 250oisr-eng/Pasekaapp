@@ -91,7 +91,7 @@ test('OP04, OP08, OP12, OP13 and OP14 have non-placeholder witnessed input contr
  const f=fixture();
  const cases=[
   ['OP-04',{sourceFamilyId:'f1',threeSectionsObserved:true,secondRowObserved:false}],
-  ['OP-08',{sealedFrameIds:['h1fr','h2fr'],sealingObserved:true}],
+  ['OP-08',{sealedFrameIds:['h1fr','h2fr'],sealingObserved:true,actualExtraction:true,actualHoneyBodyReturn:true}],
   ['OP-12',{diaphragmIds:['dia1','dia2'],winterBodyIds:['b1','b2','b3','b5'],strongestFamilyId:'f1',actualIsolation:true}],
   ['OP-13',{bottomIds:['bottom1','bottom2'],additionalBodyIds:['b5','b6'],actualSeparation:true}],
   ['OP-14',{honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],nestBodiesAfterHarvest:3,actualMerge:true}]
