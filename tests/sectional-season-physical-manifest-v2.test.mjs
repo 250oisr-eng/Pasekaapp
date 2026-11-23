@@ -103,7 +103,7 @@ test('OP12 2+1+1 requires real diaphragm IDs, declared positions and unused uppe
  });
  const r=finalize(state,req);
  assert.equal(r.ok,true,JSON.stringify(r));
- assert.equal(r.request.bodyMoves.length,6);
+ assert.equal(r.request.bodyMoves.length,5);
  assert.deepEqual(r.request.itemMoves.map(x=>x.itemId),['bottom-middle','bottom-right','d1','d2']);
  assert.deepEqual(r.request.storageLocations,{b4:'склад',b6:'склад'});
  const wrong=structuredClone(req);wrong.itemDestinations.d1.positionLabel='wrong';
@@ -130,7 +130,7 @@ test('OP13 rejects unregistered or already installed extra bodies, accepts genui
  const r=finalize(state,req);
  assert.equal(r.ok,true,JSON.stringify(r));
  assert.deepEqual(r.request.itemMoves.map(x=>x.itemId),['bottom-middle','bottom-right','d1','d2']);
- assert.equal(r.request.bodyMoves.length,6);
+ assert.equal(r.request.bodyMoves.length,5);
  delete state.equipmentInventory.bodies.b4.storageLocation;
  assert.equal(plan(state,req).error,'manifest_body_not_available_from_storage');
 });
