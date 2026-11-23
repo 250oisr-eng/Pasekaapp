@@ -8,10 +8,10 @@ const stages=[];
 function add(name,status,detail=''){stages.push({name,status,detail:String(detail)});}
 function ensure(value,message){if(!value)throw Error(message);}
 async function request(store,key){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly'),req=tx.objectStore(store).get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-function writeSeed(){
+function writeSeed(initial){
  return new Promise((resolve,reject)=>{
  const tx=db.transaction(['main','full_backup','entrance_media'],'readwrite');
- tx.objectStore('main').put({meta:{schemaVersion:15,revisionId:'p0-seed'},hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[],auditLog:[{id:'p0-test-audit',type:'test'}]},'state');
+ const state=structuredClone(initial);state.meta={...(state.meta||{}),revisionId:'p0-seed'};state.auditLog=[{id:'p0-test-audit',type:'test'}];tx.objectStore('main').put(state,'state');
  tx.objectStore('full_backup').put({at:'2026-11-23T00:00:00Z',state:{hives:[]}},'previous');
  tx.objectStore('entrance_media').put({id:'P0_TEST_ONLY_MP4_BYTES',blob:new Blob([new Uint8Array([0,0,0,24,102,116,121,112,105,115,111,109])],{type:'video/mp4'})});
  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('seed aborted'));
@@ -55,7 +55,7 @@ function display(status,code,detail=''){
   const entries=await new Promise((resolve,reject)=>{const tx=db.transaction('entrance_media','readonly'),q=tx.objectStore('entrance_media').count();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
   ensure(entries===0,'Diagnostic media store is not empty; refusing overwrite');
   add('isolatedStorageGuard','PASS');
-  await writeSeed();
+  await writeSeed(initial);
   const original=await PasekaDisasterArchive.exportArchive(db);
   const proof=await PasekaDisasterArchive.inspectArchive(original,db);
   ensure(proof.counts.entrance_media===1&&proof.counts.main===1,'Archive inventory mismatch');
