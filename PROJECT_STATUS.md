@@ -1,3 +1,15 @@
+## 23.11.2026 — P1 предтелефонная проверка, STACKED DRAFT #456
+
+**Текущая контрольная точка (не production):** код/тест SHA `351d6840aa4f92d005a6abb88440e3776e9030ad`. [Fast #45247372131](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45247372131): **932/932 PASS**; [Android #45247372094](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45247372094) и [#45247386484](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45247386484): **SUCCESS**. Эмуляторный restore и реальный OnePlus в эти результаты НЕ входят.
+
+**Изменения:** `sectional-season-lifecycle-v2.js` теперь защищает всю базу, байты Blob, предыдущие snapshots и проверяет целиком cold read; `sectional-season-runtime-v2.js` отклоняет повреждение чужого улья и перезапись исторических событий. Runtime/provenance/physical executor/lifecycle реально подключены к Android/PWA и offline SW v332. OP-08 вызывает настоящий staged журнал откачки и историю рамок, OP-09 настоящие наблюдения всех трёх секций; `SUMMER_OPEN` и `SUMMER_FULL` согласованы без потери legacy данных. Новый `sectional-season-browser-commit-v2.js` даёт capability-bound **синтетически проверенный** путь OP08/09/10 → строгий P0 gate → IDB CAS → холодное чтение. UI остаётся preview-only, физическое сохранение без реального SECOND_DEVICE_VERIFIED не включено.
+
+**Открытые блокеры:** полный UI→CAS OP01–14 в т.ч. OP04–07/11–14 targetLayout/itemMoves/bodyMoves, независимый внешний full archive/Blob restore, диагностический Android emulator proof (на предыдущих SHA выдавал P0_EMULATOR_RESTORE_BLOCKED), многосезонный OnePlus и разрешение на merge. Профиль не активировать, видео не удалять, issue #442 FROZEN. **P1 NOT FULLY PHONE-READY**. Полная матрица: `docs/P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md`.
+
+**Один следующий автономный шаг:** выяснить и устранить отсутствие подтверждённого PASS isolated P0 Android emulator backup/restore; затем guided full manifests и реальный архив. Пользователь сейчас не нужен. Никаких merge, публикаций, production и изменения оригиналов.
+
+---
+
 ## 2026-11-23 — P1 приоритет: защита атомарной записи всех данных при OP (Draft #456)
 
 **Результат:** в `js/sectional-season-runtime-v2.js` защищены P1 staged executor, snapshot preparer и полное холодное чтение. Неизменные обычные записи, матки, медиа (включая байты Blob), журнал, аудит и будущие поля теперь защищены от непредусмотренной порчи до и после CAS. Blob сравнивается порциями ≤1 МБ; snapshots добавляются без переписывания старых. `SECOND_DEVICE_VERIFIED` и запреты не ослаблены. Профиль `sectional-multiqueen-v1` не активирован, `main`/production не менялись.
