@@ -127,3 +127,38 @@ test('truncated archive and hostile index shape fail before restore',async()=>{
  await assert.rejects(api.inspectArchive(JSON.stringify(modified),db),/Store schema mismatch/);
  assert.equal((await get(db,'main','state')).meta.revisionId,'r1');db.close();
 });
+
+test('injected QuotaExceededError after first store write aborts all stores and preserves prior state',async()=>{
+ const db=await database();await seed(db);
+ const raw=await api.exportArchive(db);
+ const inspected=await api.inspectArchive(raw,db);
+ inspected.rows.get('main')[0].value.meta.revisionId='recovered';
+ const hostileDb={
+  objectStoreNames:db.objectStoreNames,
+  transaction(names,mode){
+   const inner=db.transaction(names,mode);
+   if(mode!=='readwrite')return inner;
+   return new Proxy(inner,{
+    get(target,property){
+     if(property==='objectStore')return name=>{
+      const real=target.objectStore(name);
+      return new Proxy(real,{
+       get(record,operation){
+        if(operation==='put'&&name==='entrance_media')return ()=>{throw Object.assign(new Error('Simulated storage quota reached'),{name:'QuotaExceededError'});};
+        const value=Reflect.get(record,operation,record);
+        return typeof value==='function'?value.bind(record):value;
+       }
+      });
+     };
+     const value=Reflect.get(target,property,target);
+     return typeof value==='function'?value.bind(target):value;
+    },
+    set(target,property,value){Reflect.set(target,property,value,target);return true;}
+   });
+  }
+ };
+ await assert.rejects(api.atomicRestore(hostileDb,inspected,'r1'),error=>error?.name==='QuotaExceededError');
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
