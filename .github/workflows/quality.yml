@@ -12,8 +12,7 @@ on:
       - 'package-lock.json'
       - 'scripts/**'
       - 'tests/**'
-      - '.github/workflows/quality.yml'
-      - '.github/workflows/pages-manual-release.yml'
+      - '.github/workflows/**'
 
 concurrency:
   group: quality-${{ github.ref }}
