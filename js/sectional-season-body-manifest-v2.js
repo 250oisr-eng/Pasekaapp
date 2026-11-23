@@ -46,14 +46,15 @@ function itemPositions(layout){
  for(const item of A(layout.honeyStack?.excluders))
   if(!add(item?.itemId,'honeyQueenExcluder',{side:item?.side||null}))return null;
  for(const item of A(layout.meshDiaphragms))
-  if(!add(item?.itemId,'meshDiaphragm',{positionLabel:item?.positionLabel||null}))return null;
+  if(!add(item?.itemId,'meshDiaphragm',{stackId:A(layout.stacks)[0]?.id||null,
+   positionLabel:item?.positionLabel||null}))return null;
  for(const connection of A(layout.technicalConnections))
   for(const opening of A(connection?.openings))
    if(!add(opening?.itemId,'technicalQueenExcluder',{bodyId:opening?.bodyId,openingId:opening?.openingId}))return null;
  for(const plug of A(layout.temporaryQueenIsolation))
   if(!add(plug?.itemId,'metalMeshPlug',{bodyId:plug?.bodyId,openingId:plug?.openingId}))return null;
  for(const plug of A(layout.closedOpenings))
-  if(!add(plug?.itemId,'metalMeshPlug',{bodyId:plug?.bodyId,openingId:plug?.openingId}))return null;
+  if(!add(plug?.itemId,'plasticPlug',{bodyId:plug?.bodyId,openingId:plug?.openingId}))return null;
  return refs;
 }
 const identical=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
