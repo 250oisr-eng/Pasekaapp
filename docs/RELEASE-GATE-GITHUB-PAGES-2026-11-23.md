@@ -1,3 +1,16 @@
+## 2026-11-23 — администрация Pages успешно переключена, источник подтверждён CI
+
+**Текущий статус: SOURCE VERIFIED = PASS; CODE IN DRAFT; NO MERGE; NO DEPLOY.**
+
+- Пользователь сообщил, что в `Settings → Pages → Build and deployment → Source` установил `GitHub Actions`.
+- **Независимое машинное подтверждение:** [Fast Quality run #45138090176](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45138090176), job `Verify Pages source is GitHub Actions (read-only)` (job ID `137569085413`) завершился **SUCCESS** на commit `9c24e008e8d3ad96a7d5adb520e61fe8c8438548`. GitHub Actions с временным токеном `pages:read` прочитал `GET /repos/250oisr-eng/Pasekaapp/pages`; в логах: `PASS: Pages build_type=workflow. Read-only verification; deployment NOT_ATTEMPTED.` Точный источник теперь доказан и больше не является блокером.
+- Качество на том же exact code/test SHA: [Fast Quality #45138090176](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45138090176) **628/628 PASS**; два Android Debug run #45138090334/#45138097694 были IN_PROGRESS при фиксации документа, требуют отдельной проверки. Прежний #45137969658: Pages-source audit PASS, но test job FAILED из-за чрезмерно широкого regex для запрета write verbs, совпадавшего с обычным словом `input`; тест исправлен, новое полное выполнение PASS.
+- `.github/workflows/quality.yml`: добавлен **только read-only** дополнительный job `pages_source_read_only` с разрешением `pages:read`. Он будет сигнализировать FAIL, если source откатится на branch-based или API не удастся прочитать; не публикует ничего. Workflow `pages-manual-release.yml` остаётся manual-only и пока не входит в main.
+- Теперь требуется НЕ переключать настройки ещё раз, а согласовать конкретное **слияние Draft PR #447**. Простая фраза пользователя «сделал; продолжай» не является отдельным разрешением на merge. После разрешённого merge проверяем отсутствие `pages build and deployment` по новому `main` SHA; **не запускаем ручной publish**. Лишь затем issue #444 можно закрыть полностью.
+- Публичный сайт, main, пользовательские данные и оригинальные видео в этом этапе не изменялись. В конце этого документа исторические инструкции по переключению отражают прежнее состояние и больше не требуют повторного выполнения.
+
+---
+
 # GitHub Pages — разделение разработки и публикации (23.11.2026)
 
 Статус: **MANUAL WORKFLOW IN DRAFT; PAGES ADMIN SOURCE NOT SWITCHED**. Issue #444. Никакие новые production-публикации этим документом/PR не разрешаются.
