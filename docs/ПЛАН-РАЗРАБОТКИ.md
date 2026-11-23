@@ -1,3 +1,15 @@
+## 23.11.2026 — P1 source-bound физические манифесты OP11–14, stacked Draft #457
+
+**Точный code/test SHA `973b91411b1da9bd23ba0702176e313408e05b66`:** [Fast #45252538549](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45252538549) **947/947 PASS**; [Android #45252538566](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45252538566) и [#45252550365](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45252550365) **SUCCESS**. Только docs после SHA; проверить последний GitHub compare перед завершением.
+
+**Новое:** `js/sectional-season-body-manifest-v2.js` в офлайн-приложении SW v333 формирует 100% source-bound `bodyMoves` из лично утверждённой целевой физической раскладки OP11–14. Точные места хранения снятых корпусов обязательны. Все `itemMoves` подтверждены источником: днища, крышки, подкрышники, кормушки, большие решётки, диафрагмы, временные **металлические** заглушки и зимние **пластиковые** (разные типы). Обязанность явно указать фактическую позицию предметов сохраняется; тесты включают вызов существующего physical executor для OP11 с неизменной историей рамок. Манифест READ-ONLY, `physicalLayoutValidated:false`, нет DONE/записи/активации профиля.
+
+**P0 из родителя #456:** isolated Android WebView/Blob/restart PASS, run #45250101151, exact SHA `3bf8e2ec20efabb1a9b034811f015841d25545ca`. Не выдавать за реальное off-device/second-device восстановление.
+
+**Статус:** IMPLEMENTED_DRAFT / CI_VERIFIED_EXACT_CODE_SHA / NOT_IN_MAIN / DEVICE_VERIFIED=NO / LIVE_UI_WRITE=OFF. Следующая одна техническая задача: guided mobile UI собирает полный targetLayout и фактические itemMoves OP11–14 с проверками физических ограничений и только затем связывается с реальным capability-bound CAS; OP04–07 также не закрыты. Реальный P0 independent full restore и OnePlus E2E остаются заблокированными/непроверенными. Нет merge/release/production/media delete. Карточка `docs/P1-МАНИФЕСТЫ-КОРПУСОВ-ОБОРУДОВАНИЯ-OP11-14-2026-11-23.md`.
+
+---
+
 ## 23.11.2026 — P0 Android isolated emulator proof PASS, P1 gate still CLOSED
 
 **Точный код SHA `3bf8e2ec20efabb1a9b034811f015841d25545ca`:** [Fast #45250100983](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250100983) **935/935 PASS**; [Android #45250100961](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250100961) **SUCCESS**; [P0 Android emulator #45250101151](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250101151) **SUCCESS**, лог `P0_DISASTER_WEBVIEW_RESTORE_PASS` и после force-stop `P0_DISASTER_PHYSICAL_RESTART_PASS` (artifact ID 14855067803 подтверждён). Ранее ошибка была безопасным отказом при пустой существующей базе в disposable APK. Добавлен **единственный pre-launch** `pm clear` исключительно `ru.paseka.journal.disasterproof`, с тестом. Пользовательский пакет, база и видео не затрагивались.
