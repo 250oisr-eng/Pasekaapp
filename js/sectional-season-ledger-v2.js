@@ -3,7 +3,7 @@
 // Isolated contract: no IndexedDB writes, mutation, UI or authorization of physical work.
 const VERSION=2, obj=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const text=x=>typeof x==='string'&&x.trim().length>0;
-const copy=x=>structuredClone(x);
+const copy=x=>structuredClone(x),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 function inspect(records){
  if(!Array.isArray(records))return [{code:'season_ledger_not_array'}];
  const errors=[],ids=new Set(),byHive=new Map();
