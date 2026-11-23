@@ -1,3 +1,14 @@
+## 2026-11-23 — стратегическая коррекция после проверки GitHub / DRAFT
+
+- **Источник актуального статуса — GitHub, не старый текст ниже.** main = f981e36d807d9cfb6c6077b7e3575f9abd42daf8. PR #148, #149, #87, #150, #151, #152, #153, #154 фактически MERGED 18.11.2026 (сверен merged_at). В main присутствует js/sectional-operation-coordinator.js с completeOP04/05/06/07. Это говорит о наличии кодовой реализации, но НЕ о полном физическом UI/эксплуатационном испытании. Не создавать повторных PR для этих уже интегрированных функций.
+- Итоги стабилизации: основной Fast #45126886680 и Android #45126886481 success на merge SHA; OnePlus NE2213/Android16 USB ADB/синтетические apk suite summary PASS по предоставленным скриншотам, но реально-физический bee video/restore/cleanup NOT_TESTED. Freeze PASEKA02 #442 сохраняется.
+- **Релиз-блокер #444**: GitHub Pages #45126883908 deployed автоматически при PR #443 merge. До фактически исправленной настройки публикации не сливать новые PR; отдельное разрешение на merge не равно отдельному разрешению на выпуск.
+- Текущая предметная ветка — [Draft PR #445](https://github.com/250oisr-eng/Pasekaapp/pull/445) «фактически выполненная обработка Varroa»; пока НЕ IN_MAIN. Code SHA 47db4d4ddd544d9b65dfacf7631e3d46778673ea: Fast #45130489030 SUCCESS, Android #45130489067 SUCCESS; Android на docs-only HEAD b139f5be0f08142ba0ce130bf7ed73b47d754bf5: #45130651975 SUCCESS. Физическая проверка именно новой функции не проводилась.
+- Открыта отдельная документационная стратегия от текущего main: docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md и docs/ШАБЛОН-КАРТОЧКИ-ФУНКЦИИ.md. Порядок F0–F7: инвентаризация → контракт → ресурс/лицензия/реальное устройство → архитектура данных/backup/rollback → минимальная функция → несколько уровней теста → интеграция → отдельный релиз. Видеотрек V0–V6 остаётся самостоятельным FROZEN, не останавливает безопасные функции.
+- **Одна следующая операционная задача:** read-only проверить фактическую конфигурацию GitHub Pages и сформулировать безопасный план изменения #444, без деплоя; параллельно не дублировать PR #445 и ждать его предметного пользовательского теста до готовности к integration.
+
+---
+
 ## 2026-11-23 — P0 FROZEN; P1 main-root Service Worker safety instead of 720-commit video chain
 
 - По прямому решению пользователя PASEKA02 restore / bee detector / real video deletion **FROZEN**, канонический issue [#442](https://github.com/250oisr-eng/Pasekaapp/issues/442). Без доказанной лицензии конкретных weights, real bee video, полной физической копии/rollback, MediaStore/Gallery/Downloads inventory и автоматической safety gate **не возобновлять** повторные synthetic-only видео PR. `cleanupAuthorized:false`, `restoreAuthorized:false`, Restore335 STOP.
