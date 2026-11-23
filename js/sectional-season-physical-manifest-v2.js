@@ -84,13 +84,14 @@ function plan(state,input){
  const op=input.operationId,oldSections=A(source.sections),newSections=A(target.sections);
  const oldFamilyIds=oldSections.map(s=>s.familyId),newFamilyIds=newSections.map(s=>s.familyId);
  const sameFamilies=oldFamilyIds.length===newFamilyIds.length&&
+  new Set(oldFamilyIds).size===oldFamilyIds.length&&
   oldFamilyIds.every(id=>newFamilyIds.includes(id))&&
   new Set(newFamilyIds).size===newFamilyIds.length;
  const newCount=newSections.reduce((n,s)=>n+A(s.broodBodyIds).length,0);
  if(op==='OP-11'){
   const upper=oldSections.map(s=>s.upperBroodBodyId);
   if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='SINGLE_FAMILY'||target.purpose!=='primary_wintering'||
-    source.honeyStack!=null||oldSections.length!==3||
+    source.honeyStack!=null||target.honeyStack!=null||oldSections.length!==3||
     oldSections.some(s=>A(s.broodBodyIds).length!==2)||newSections.length!==1||
     newCount!==3||upper.some(id=>!S(id)||!A(newSections[0].broodBodyIds).includes(id))||
     input.actualMergeConfirmed!==true||!O(input.resultFamily)||
@@ -99,7 +100,9 @@ function plan(state,input){
    return fail('manifest_op11_three_upper_bodies_and_new_unknown_family_required');
  }else if(op==='OP-12'){
   if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='ALTERNATIVE_WINTERING_COLUMN'||
-    !sameFamilies||oldSections.length!==3||newSections.length!==3||
+    !sameFamilies||source.honeyStack!=null||target.honeyStack!=null||
+    oldSections.length!==3||oldSections.some(s=>A(s.broodBodyIds).length!==2)||
+    newSections.length!==3||
     newCount!==4||!same(newSections.map(s=>A(s.broodBodyIds).length).sort(),[1,1,2])||
     !S(input.strongestFamilyId)||
     !oldFamilyIds.includes(input.strongestFamilyId)||
@@ -112,7 +115,9 @@ function plan(state,input){
    return fail('manifest_op12_2_1_1_and_two_diaphragms_required');
  }else if(op==='OP-13'){
   if(source.mode!=='ALTERNATIVE_WINTERING_COLUMN'||target.mode!=='SIDE_BY_SIDE'||
-    !sameFamilies||newSections.length!==3||
+    !sameFamilies||source.honeyStack!=null||target.honeyStack!=null||
+    !same(oldSections.map(s=>A(s.broodBodyIds).length).sort(),[1,1,2])||
+    newSections.length!==3||
     newSections.some(s=>{
      const before=oldSections.find(x=>x.familyId===s.familyId);
      return A(s.broodBodyIds).length!==2||
@@ -124,6 +129,10 @@ function plan(state,input){
  }else{
   const upper=oldSections.map(s=>s.upperBroodBodyId);
   if(source.mode!=='SIDE_BY_SIDE'||source.honeyStack?.purpose!=='early'||
+    oldSections.length!==3||oldSections.some(s=>A(s.broodBodyIds).length!==2)||
+    target.honeyStack!=null||
+    newSections.some(s=>A(s.broodBodyIds).some(id=>
+     !oldSections.some(old=>A(old.broodBodyIds).includes(id))))||
     A(source.honeyStack?.bodyIds).length!==2||
     A(source.honeyStack?.excluders).length!==2||
     target.mode!=='SINGLE_FAMILY'||target.purpose!=='early_honey_merge'||newSections.length!==1||
@@ -136,6 +145,10 @@ function plan(state,input){
     input.familiesOnSeparateBottomsConfirmed!==true)
    return fail('manifest_op14_actual_early_honey_history_required');
  }
+ if((op==='OP-11'||op==='OP-14')&&
+    (!O(input.resultFamily)||!S(input.resultFamily.id)||
+     A(state.families).some(f=>f?.id===input.resultFamily.id)))
+  return fail('manifest_result_family_must_be_new_and_registered_later');
  if((op==='OP-12'||op==='OP-13')&&input.resultFamily!==undefined)
   return fail('manifest_no_family_merge_during_winter_isolation');
  const allLayouts=A(state.sectionalLayouts).filter(l=>l?.hiveId!==input.hiveId);
