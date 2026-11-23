@@ -221,6 +221,9 @@ function op06RecoveryHTML(state,hiveId){
  const donors=present.flatMap(x=>A(x.section.broodBodyIds).flatMap(bodyId=>
   A(bodies[bodyId]?.frames).map(frame=>({sectionId:x.section.id,bodyId,frameId:frame.frameId}))))
   .filter(x=>S(x.frameId));
+ const displacedOptions='<option value="">— Рамка, фактически переставленная из безматочного корпуса —</option>'+
+ A(receiver.broodBodyIds).flatMap(bodyId=>A(bodies[bodyId]?.frames).map(frame=>
+ '<option value="'+esc(frame.frameId)+'" data-body-id="'+esc(bodyId)+'">'+esc(frame.frameId+' · '+bodyId)+'</option>')).join('');
  const donorOptions='<option value="">— Выберите фактическую рамку —</option>'+donors.map(x=>
    '<option value="'+esc(x.frameId)+'" data-from-body="'+esc(x.bodyId)+'" data-from-section="'+esc(x.sectionId)+'">'+esc(x.frameId+' · '+x.bodyId)+'</option>').join('');
  if(!targetChoices||donors.length<2)return '<p>Нет подтверждённых идентификаторов корпусов и рамок для проверки восстановления.</p>';
@@ -229,9 +232,17 @@ function op06RecoveryHTML(state,hiveId){
  '<label>Корпус-получатель<select data-op06-target>'+targetChoices+'</select></label>'+
  [0,1].map(i=>'<fieldset><legend>Рамка '+(i+1)+'</legend><label>Источник (фактический ID)<select data-op06-donor="'+i+'">'+donorOptions+'</select></label>'+
  '<label><input type="checkbox" data-op06-brood="'+i+'"> На рамке лично проверен расплод</label>'+
- '<label><input type="checkbox" data-op06-queen-safe="'+i+'"> Матка на рамке отсутствует (лично проверено)</label></fieldset>').join('')+
+ '<label><input type="checkbox" data-op06-eggs="'+i+'"> На этой рамке лично проверены свежие яйца (DOCX P31–33)</label>'+
+ '<label><input type="checkbox" data-op06-queen-safe="'+i+'"> Матка на рамке отсутствует (лично проверено)</label>'+
+ '<label>Рамка, фактически освобождающая место в корпусе-получателе<select data-op06-replacement="'+i+'">'+displacedOptions+'</select></label></fieldset>').join('')+
  '<label><input type="checkbox" data-op06-confirm> Подтверждаю достоверность осмотра; это не отметка о выполненном переносе</label>'+
  '<button type="button" data-op06-check>Проверить восстановление (без записи)</button>'+
+ '<fieldset><legend>Только после фактической перестановки четырёх рамок</legend>'+
+ '<p>Для полного заполненного корпуса необходимо отметить ID двух переставляемых из него рамок и их новые места в корпусах-донорах. Никакое перемещение не угадывается.</p>'+
+ '<label><input type="checkbox" data-op06-work> Лично выполнил описанный обмен рамок</label>'+
+ '<label><input type="checkbox" data-op06-mesh> Фактически сверил сетки по схеме край/центр</label>'+
+ '<button type="button" data-op06-stage>Проверить запись физических изменений (без сохранения)</button>'+
+ '<p role="status" aria-live="polite" data-op06-stage-result>Изменения в базу не записывались.</p></fieldset>'+
  '<p role="status" aria-live="polite" data-op06-result>Операция не выполнялась и не записывалась.</p></fieldset>';
 }
 function checkOP06Recovery(state,hiveId,panel){
@@ -240,6 +251,8 @@ function checkOP06Recovery(state,hiveId,panel){
   return {frameId:element?.value||'',fromBodyId:option?.getAttribute('data-from-body')||'',
    fromSectionId:option?.getAttribute('data-from-section')||'',
    broodObserved:panel.querySelector('[data-op06-brood="'+i+'"]')?.checked===true,
+   freshEggsObserved:panel.querySelector('[data-op06-eggs="'+i+'"]')?.checked===true,
+   replacementFrameId:panel.querySelector('[data-op06-replacement="'+i+'"]')?.value||'',
    queenAbsentOnTransferredFrameConfirmed:panel.querySelector('[data-op06-queen-safe="'+i+'"]')?.checked===true};
  });
  const layout=A(state.sectionalLayouts).find(l=>l.hiveId===hiveId&&l.mode==='SIDE_BY_SIDE');
@@ -249,6 +262,56 @@ function checkOP06Recovery(state,hiveId,panel){
   hiveId,queenlessSectionId:receiver?.id,toBodyId:panel.querySelector('[data-op06-target]')?.value,
   userConfirmed:panel.querySelector('[data-op06-confirm]')?.checked===true,
   transfers:choices}, {lineage});
+}
+
+
+function preflightOP06RescueStage(state,hiveId,panel,options={}){
+ if(typeof root.PasekaSectionalOP06BroodRescueV2?.stage!=='function')
+  return {ok:false,error:'op06_rescue_physical_stage_unavailable'};
+ const preflight=checkOP06Recovery(state,hiveId,panel);
+ if(!preflight.ok)return {ok:false,error:'op06_rescue_source_preflight_invalid',details:preflight.errors};
+ const active=A(state.sectionalSeasonCycles).filter(c=>c.hiveId===hiveId&&c.status==='ACTIVE');
+ if(active.length!==1)return {ok:false,error:'op06_rescue_active_season_missing'};
+ const bodyId=panel.querySelector('[data-op06-target]')?.value||'';
+ const selects=[0,1].map(i=>panel.querySelector('[data-op06-donor="'+i+'"]'));
+ const transfers=selects.map((el,i)=>({
+  frameId:el?.value||'',fromBodyId:el?.selectedOptions?.[0]?.getAttribute('data-from-body')||'',
+  fromSectionId:el?.selectedOptions?.[0]?.getAttribute('data-from-section')||'',
+  toSectionId:preflight.queenlessSectionId,
+  broodObserved:panel.querySelector('[data-op06-brood="'+i+'"]')?.checked===true,
+  freshEggsObserved:panel.querySelector('[data-op06-eggs="'+i+'"]')?.checked===true,
+  queenAbsentOnTransferredFrameConfirmed:panel.querySelector('[data-op06-queen-safe="'+i+'"]')?.checked===true,
+  replacementFrameId:panel.querySelector('[data-op06-replacement="'+i+'"]')?.value||''
+ }));
+ const occurredAt=options.occurredAt,now=options.now;
+ if(!S(occurredAt)||!S(now)||!Number.isFinite(Date.parse(occurredAt))||!Number.isFinite(Date.parse(now)))
+  return {ok:false,error:'op06_rescue_actual_time_missing'};
+ const request={operationId:'OP-06-RESCUE',hiveId,cycleId:active[0].id,
+  occurredAt,userConfirmed:panel.querySelector('[data-op06-confirm]')?.checked===true,
+  actualWorkConfirmed:panel.querySelector('[data-op06-work]')?.checked===true,
+  actualFrameExchangeConfirmed:panel.querySelector('[data-op06-work]')?.checked===true,
+  meshConfigurationPersonallyVerified:panel.querySelector('[data-op06-mesh]')?.checked===true,
+  queenlessSectionId:preflight.queenlessSectionId,toBodyId:bodyId,transfers};
+ const inspector=options.inspectState||((s)=>{
+  const checks=[
+   root.PasekaSectionalPhysicalLayout?.inspect?.(s),
+   root.PasekaFamilyLineage?.inspect?.(s),
+   root.PasekaLabels?.inspectLabelIntegrity?.(s),
+   root.PasekaInventory?.inspect?.(s,root.PasekaLabels),
+   root.PasekaEquipmentItems?.inspect?.(s)
+  ];
+  if(checks.some(x=>!Array.isArray(x)))return [{code:'op06_required_integrity_inspector_missing'}];
+  return checks.flat();
+ });
+ const result=root.PasekaSectionalOP06BroodRescueV2.stage(state,request,{
+  now,makeId:options.makeId||(()=>root.crypto?.randomUUID?.()),
+  recovery:root.PasekaOP06TwoQueenRecovery,lineage:root.PasekaFamilyLineage,
+  inspectState:inspector
+ });
+ if(!result.ok)return result;
+ return {ok:true,stagedOnly:true,operationCompleted:false,
+  changedBodyIds:result.changedBodyIds,beforeFrameOrder:result.beforeFrameOrder,
+  afterFrameOrder:result.afterFrameOrder};
 }
 
 function mount(host,getState){
@@ -271,6 +334,22 @@ function mount(host,getState){
    const fields=host.querySelector('[data-season-fields]');
    fields.insertAdjacentHTML('beforeend',op06RecoveryHTML(getState(),hive));
    const panel=fields.querySelector('[data-op06-recovery]');
+   panel?.querySelector('[data-op06-stage]')?.addEventListener('click',()=>{
+    const result=panel.querySelector('[data-op06-stage-result]');
+    let staged;
+    try{
+     const actual=host.querySelector('[data-season-at]')?.value||'';
+     staged=preflightOP06RescueStage(getState(),hive,panel,{
+      now:new Date().toISOString(),
+      occurredAt:actual?new Date(actual).toISOString():'',
+      makeId:()=>root.crypto?.randomUUID?.()
+     });
+    }catch(error){staged={ok:false,error:'op06_stage_preview_failed'}}
+    result.textContent=staged.ok?
+     'Предварительная физическая запись проверена на временной копии: '+staged.changedBodyIds.join(', ')+
+     '. Ничего не записано в IndexedDB, OP-06 не завершена. Для окончательного сохранения необходим подтверждённый внешний архив и атомарная транзакция.':
+     'Перестановка не допущена: '+String(staged.error||'ошибка данных')+'. Не записано.';
+   });
    panel?.querySelector('[data-op06-check]')?.addEventListener('click',()=>{
     let outcome;try{outcome=checkOP06Recovery(getState(),hive,panel)}
     catch(error){outcome={ok:false,errors:['recovery_validation_unavailable']}}
@@ -317,5 +396,5 @@ function mount(host,getState){
  });
  update();return {ok:true,readOnly:true,operations:descriptors.length};
 }
-root.PasekaSeasonOperationsWizardV2=Object.freeze({descriptors,fieldSpecs,candidates,validate,createDraft,previewOP07,previewOP10,op06RecoveryHTML,checkOP06Recovery,mount});
+root.PasekaSeasonOperationsWizardV2=Object.freeze({descriptors,fieldSpecs,candidates,validate,createDraft,previewOP07,previewOP10,op06RecoveryHTML,checkOP06Recovery,preflightOP06RescueStage,mount});
 })(typeof window!=='undefined'?window:globalThis);
