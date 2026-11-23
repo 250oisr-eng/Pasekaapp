@@ -81,6 +81,13 @@ jobs:
           console.log('Pages publishing source verified: custom GitHub Actions.');
           NODE
 
+      - name: Preserve trusted release verifier from current main for rollback compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/verify-pages-release-assets.mjs "$RUNNER_TEMP/paseka-verify-pages-assets.mjs"
+          test -s "$RUNNER_TEMP/paseka-verify-pages-assets.mjs"
+
       - name: Checkout exact approved commit, not a floating branch
         uses: actions/checkout@v4
         with:
@@ -102,7 +109,7 @@ jobs:
         run: npm run web:prepare
 
       - name: Verify static artifact completeness, provenance and isolation
-        run: node scripts/verify-pages-release-assets.mjs
+        run: node "$RUNNER_TEMP/paseka-verify-pages-assets.mjs"
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
