@@ -1,3 +1,13 @@
+## 2026-11-23 — контроль нового Draft #439, source-executed synthetic verification
+
+- Открыт [Draft PR #439](https://github.com/250oisr-eng/Pasekaapp/pull/439) поверх #437. Исходная ветка #436 осталась Draft; её три кодовых/test blob содержатся в #439 без изменения SHA содержимого, а уникальный SHA-alias guard #437 сохранён.
+- После документационного HEAD `60fa858c78b7feaa6b5f00023ed74e5a9a0a30f3` GitHub compare #437→#439: 8 commits ahead, 0 behind, 8 changed files; GitHub PR reported mergeable=true/clean. Main→#439: 701 ahead/0 behind на текущем baseline `8144ec8fe7e61c2f70f067c78f299bf0e7551dd7`; **это не разрешение на merge**.
+- В отдельном source-executed V8 sandbox загружен точный JS из ветки и выполнены 12 негативных cases `type/mimeType` для каждого из двух scanners, 2 PNG positive controls, и блокировка re-identified SHA across `entrance_media`→`record_media`. Все эти узкие проверки PASS; они не являются `node --test`, full workflow, Android или real restore.
+- Для указанного HEAD GitHub API Actions `workflow_runs=[]` и commit combined status `statuses=[]`; единственный `check_run` — сторонний Workers Builds: pasekaapp completed/success. **Fast, Android, emulator для составной ветки: NOT_RUN/NO_EVIDENCE.** Не путать успешный CI веток #436/#437 с CI текущего HEAD.
+- Новый README/тип модели или веса не добавлялись; лицензированный детектор, full PASEKA02 restore, аварийные миграции, реальная видеосъёмка и удаление НЕ проверены. Очистка запрещена, Restore335 STOP. Следующий шаг: добиться exact-SHA Fast/Android/emulator; затем сквозные synthetic export/restore/rollback без реальных данных.
+
+---
+
 ## 2026-11-23 — P0: согласование независимых Draft #436 и #437 без merge
 
 - Найдены два успешно проверенных, но расходящихся от общего HEAD #435 P0-патча: #436 (вложенные MIME video aliases в isolated atomic/quarantine) и #437 (запрет SHA-совпадающего распознанного видео с другим ID/источником). Их merge base: `333f56ad9f580433bb5ba59af9983a064d0fbffd`; напрямую считать #437 включающим #436 было ошибкой.
