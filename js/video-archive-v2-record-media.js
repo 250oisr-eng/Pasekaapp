@@ -11,14 +11,14 @@ function fail(code){const e=new Error(code);e.code=code;throw e;}
 // Keep journal classification consistent with the codec/restore gate: a
 // masked video MIME field is still a video, never an ordinary photo.
 const videoLikeType=value=>typeof value==='string'&&
- (value.toLowerCase()==='video'||/^video\\//i.test(value)||
-  /^application\\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\\.apple\\.mpegurl)$/i.test(value));
+ (value.toLowerCase()==='video'||/^video\//i.test(value)||
+  /^application\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\.apple\.mpegurl)$/i.test(value));
 function mediaIsVideo(item){return item?.kind==='video'||videoLikeType(item?.type)||videoLikeType(item?.mimeType);}
 function assertDeclaredMime(item,actualMime){
  for(const declared of [item?.type,item?.mimeType]){
   // 'video' is a generic label, not a claimed MIME. Explicit video or
   // application MIME declarations must agree with verified payload MIME.
-  if(typeof declared==='string'&&/^(?:video\\/|application\\/)/i.test(declared)&&
+  if(typeof declared==='string'&&/^(?:video\/|application\/)/i.test(declared)&&
      declared.toLowerCase()!==actualMime)
    fail('V2_RECORD_MIME_MISMATCH');
  }
