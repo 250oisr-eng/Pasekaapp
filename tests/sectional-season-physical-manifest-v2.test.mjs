@@ -252,3 +252,16 @@ test('item registered on a different stack than its original source reference bl
  req.confirmedBodyIds=['b1','b2','b3','b4','b5','b6'];
  assert.equal(plan(state,req).error,'manifest_source_item_wrong_actual_position');
 });
+
+test('mobile source inspection refuses wrong item location and incomplete six-frame body',()=>{
+ const original=base(),api=w.PasekaSectionalSeasonPhysicalManifestV2;
+ const missingFrame=structuredClone(original);
+ missingFrame.equipmentInventory.bodies.b1.frames.pop();
+ assert.equal(api.inspectSource(missingFrame,'h').error,'manifest_source_body_inventory_unverified');
+ const wrongItem=structuredClone(original);
+ wrongItem.equipmentInventory.items['bottom-left'].location.stackId='foreign';
+ assert.equal(api.inspectSource(wrongItem,'h').error,'manifest_source_accessory_position_unverified');
+ const repeated=structuredClone(original);
+ repeated.equipmentInventory.bodies.b2.frames[0].frameId=repeated.equipmentInventory.bodies.b1.frames[0].frameId;
+ assert.equal(api.inspectSource(repeated,'h').error,'manifest_source_frame_identity_duplicate_or_invalid');
+});
