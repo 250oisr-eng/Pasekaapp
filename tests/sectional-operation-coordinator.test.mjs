@@ -996,3 +996,32 @@ test('OP-03 fail-closed with partial body inventory, invalid timestamp or active
  assert.equal(OP03Swap.applySwap(modified,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...dependencies(),now:NOW}).error,'pre_split_only');
  assert.equal(OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:'2026-11-18T10:00:00.000Z'},{...dependencies(),now:NOW}).error,'operation_time_invalid');
 });
+
+test('OP-03 physical layout and complete frame histories survive isolated IndexedDB reopen',async()=>{
+ const {IDBFactory}=await import('fake-indexeddb');
+ const idb=new IDBFactory(),open=()=>new Promise((ok,no)=>{const q=idb.open('p1-op03-reopen',1);q.onupgradeneeded=()=>q.result.createObjectStore('main');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
+ const f=makeFixture(),deps=dependencies();
+ const result=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:'2026-11-17T10:01:00.000Z'});
+ assert.equal(result.ok,true,JSON.stringify(result));
+ let db=await open();
+ await new Promise((ok,no)=>{const tx=db.transaction('main','readwrite');tx.objectStore('main').put(result.draft,'state');tx.oncomplete=ok;tx.onabort=()=>no(tx.error)});
+ db.close();db=await open();
+ const saved=await new Promise((ok,no)=>{const req=db.transaction('main','readonly').objectStore('main').get('state');req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error)});
+ assert.deepEqual(OP03Swap.inspect(saved),[]);
+ assert.deepEqual(Layout.inspect(saved),[]);
+ assert.deepEqual(saved.sectionalLayouts[0].sections[0].broodBodyIds,['b3','b2','b1']);
+ assert.equal(saved.equipmentInventory.bodies.b1.frames[0].history.at(-1).action,'sectional_body_reordered');
+ assert.equal(saved.equipmentInventory.bodies.b3.frames[0].history.at(-1).action,'sectional_body_reordered');
+ db.close();
+});
+test('OP-03 UI integrates confirmed durable swap without enabling premature profile activation',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+ assert.match(html,/js\/sectional-op03-body-swap\.js/);
+ assert.match(html,/id="sectionalOp03Confirmed"/);
+ assert.match(html,/async function saveSectionalOp03\(\)/);
+ assert.match(html,/PasekaSectionalOP03BodySwap\.inspect\(S\)/);
+ assert.match(html,/PasekaSectionalOP03BodySwap\.inspect\(state\)/);
+ assert.match(html,/sectionalBodyReorders:S\.sectionalBodyReorders\|\|\[\]/);
+ assert.match(sw,/sectional-op03-body-swap\.js/);
+});
