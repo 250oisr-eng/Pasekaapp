@@ -439,7 +439,7 @@ test('renaming a tombstoned original does not bypass its hash-based restore guar
    sourceSha256:digest,sourceBytes:3}]
  };
  assert.throws(()=>d().gate.checkRestoreLedgerCandidate(saved,old,d().guard),
-  {code:'V2_RESTORE_RECOGNIZED_ORIGINAL'});
+  {code:'V2_RECOGNIZED_ORIGINAL_INCLUDED'});
  assert.equal(await count(db,'entrance_media'),0);
  assert.deepEqual(await get(db,'main','video_recognition_ledger_v1'),saved);
  const quarantine=await get(db,'full_backup','v2entrance:quarantine-test');
