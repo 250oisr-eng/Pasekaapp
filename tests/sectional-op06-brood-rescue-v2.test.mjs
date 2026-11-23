@@ -154,3 +154,44 @@ test('external-archive gate is mandatory even when an executor is available',asy
   transaction:{},evidence,ledger,dualRead:{},rules,executors:{'OP-06-RESCUE':()=>runner(data,request,{lineage})}});
  assert.equal(denied.error,'season_runtime_verified_full_archive_required');
 });
+
+
+test('mobile wizard exposes displacement and fresh-egg evidence without a save action',()=>{
+ host.window.PasekaFamilyLineage=setup().lineage;
+ vm.runInNewContext(readFileSync(new URL('../js/sectional-season-operations-wizard-v2.js',import.meta.url),'utf8'),host);
+ const html=host.window.PasekaSeasonOperationsWizardV2.op06RecoveryHTML(setup().data,'hive');
+ assert.match(html,/data-op06-eggs="0"/);
+ assert.match(html,/data-op06-replacement="1"/);
+ assert.match(html,/data-op06-work/);
+ assert.match(html,/data-op06-mesh/);
+ assert.match(html,/без сохранения/);
+ assert.doesNotMatch(html,/type="submit"/);
+});
+test('mobile staged action is strictly temporary and refuses duplicate displacement',()=>{
+ const {data,lineage}=setup();host.window.PasekaFamilyLineage=lineage;
+ if(!host.window.PasekaSeasonOperationsWizardV2)
+  vm.runInNewContext(readFileSync(new URL('../js/sectional-season-operations-wizard-v2.js',import.meta.url),'utf8'),host);
+ const originals=structuredClone(data),transfer=req().transfers;
+ const panel={querySelector(selector){
+  let m=selector.match(/^\[data-op06-donor="([01])"\]$/);
+  if(m){const t=transfer[Number(m[1])];return {value:t.frameId,selectedOptions:[{getAttribute:(key)=>
+    key==='data-from-body'?t.fromBodyId:key==='data-from-section'?t.fromSectionId:''}]};}
+  m=selector.match(/^\[data-op06-replacement="([01])"\]$/);
+  if(m)return {value:transfer[Number(m[1])].replacementFrameId};
+  if(selector==='[data-op06-target]')return {value:'body-middle'};
+  if(/^\[data-op06-(?:brood|eggs|queen-safe)="[01]"\]$/.test(selector)||
+     ['[data-op06-confirm]','[data-op06-work]','[data-op06-mesh]'].includes(selector))
+    return {checked:true};
+  return null;
+ }};
+ let id=0;
+ const w=host.window.PasekaSeasonOperationsWizardV2;
+ const opts={now,occurredAt:timestamp,inspectState:()=>[],makeId:()=> 'stage-'+(++id)};
+ const first=w.preflightOP06RescueStage(data,'hive',panel,opts);
+ assert.equal(first.ok,true,JSON.stringify(first));
+ assert.equal(first.operationCompleted,false);assert.equal(first.stagedOnly,true);
+ assert.deepEqual(data,originals,'preview is never saved');
+ transfer[1].replacementFrameId=transfer[0].replacementFrameId;
+ const duplicate=w.preflightOP06RescueStage(data,'hive',panel,opts);
+ assert.equal(duplicate.ok,false);assert.deepEqual(data,originals);
+});
