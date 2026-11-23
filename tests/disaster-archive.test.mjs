@@ -162,3 +162,53 @@ test('injected QuotaExceededError after first store write aborts all stores and 
  assert.equal((await get(db,'entrance_media','video1')).id,'video1');
  db.close();
 });
+
+test('physical file round-trip imports all stores into a clean independent IndexedDB',async()=>{
+ const {mkdtemp,writeFile,readFile,rm}=await import('node:fs/promises');
+ const {tmpdir}=await import('node:os');
+ const {join}=await import('node:path');
+ const source=await database('source-fixture');await seed(source);
+ const raw=await api.exportArchive(source);
+ const dir=await mkdtemp(join(tmpdir(),'paseka-independent-'));
+ try{
+  const filename=join(dir,'full-apiary-test.json');
+  await writeFile(filename,raw,'utf8');
+  source.close();
+  const stored=await readFile(filename,'utf8');
+  assert.equal(stored,raw,'actual saved file round-trip must be byte identical');
+  const clean=await database('clean-fixture');
+  const proof=await api.inspectArchive(stored,clean);
+  assert.deepEqual(proof.counts,{entrance_media:1,full_backup:1,main:1});
+  assert.equal(await get(clean,'main','state'),undefined);
+  await api.atomicRestore(clean,proof,null);
+  assert.equal((await get(clean,'main','state')).hives[0].id,'h1');
+  assert.equal((await get(clean,'full_backup','previous')).state.hives.length,0);
+  const video=await get(clean,'entrance_media','video1');
+  assert.deepEqual([...new Uint8Array(await video.blob.arrayBuffer())],[1,2,3,4]);
+  clean.close();
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+test('duplicate source keys and mismatched inline IDs reject preflight with valid recomputed SHA',async()=>{
+ const db=await database();await seed(db);const raw=await api.exportArchive(db);
+ const reseal=async envelope=>{
+  envelope.manifest.counts=Object.fromEntries(envelope.payload.stores.map(x=>[x.name,x.entries.length]));
+  envelope.manifest.sha256=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(envelope.payload)))).toString('hex');
+  return JSON.stringify(envelope);
+ };
+ const duplicates=JSON.parse(raw);
+ const media=duplicates.payload.stores.find(x=>x.name==='entrance_media');
+ media.entries.push(structuredClone(media.entries[0]));
+ await assert.rejects(api.inspectArchive(await reseal(duplicates),db),/Duplicate record key/);
+ const wrong=JSON.parse(raw),media2=wrong.payload.stores.find(x=>x.name==='entrance_media');
+ const record=media2.entries[0][1],idField=record.v.find(item=>item[0]==='id');
+ idField[1].v='other-video';
+ await assert.rejects(api.inspectArchive(await reseal(wrong),db),/Inline record key mismatch/);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ db.close();
+});
+test('archive UI allows non-destructive read-back verification before restore',()=>{
+ assert.match(html,/async function verifyDisasterArchive\(/);
+ assert.match(html,/onclick="verifyDisasterArchive\(\)"/);
+ assert.match(html,/await PasekaDisasterArchive\.inspectArchive\(raw,db/);
+ assert.match(html,/Сохранение файла на носитель ещё НЕ подтверждено/);
+});
