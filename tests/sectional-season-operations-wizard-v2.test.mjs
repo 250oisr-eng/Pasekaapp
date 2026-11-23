@@ -78,3 +78,26 @@ test('wizard validates without mutating any registered family, queen, frame or i
  api.validate(f,r);api.candidates(f,'h1','frame');
  assert.deepEqual(f,old);
 });
+
+test('OP04, OP08, OP12, OP13 and OP14 have non-placeholder witnessed input contracts',()=>{
+ const f=fixture();
+ const cases=[
+  ['OP-04',{sourceFamilyId:'f1',threeSectionsObserved:true,secondRowObserved:false}],
+  ['OP-08',{sealedFrameIds:['h1fr','h2fr'],sealingObserved:true}],
+  ['OP-12',{diaphragmIds:['dia1','dia2'],winterBodyIds:['b1','b2','b3','b4'],actualIsolation:true}],
+  ['OP-13',{bottomIds:['bottom1','bottom2'],additionalBodyIds:['b5','b6'],actualSeparation:true}],
+  ['OP-14',{honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],nestBodiesAfterHarvest:3,actualMerge:true}]
+ ];
+ for(const [id,values]of cases){
+  assert.deepEqual(api.validate(f,request(id,values)),[],id+' should accept a fully supplied witnessed form');
+  const bad={...values,[Object.keys(values).at(-1)]:false};
+  assert.ok(api.validate(f,request(id,bad)).length>0,id+' must reject invalid proof');
+ }
+});
+test('OP03 cannot claim physical swap if current layout positions disagree',()=>{
+ const f=fixture(),r=request('OP-03',{topBodyId:'b3',bottomBodyId:'b1',middleStayed:true});
+ assert.ok(api.validate(f,r).some(e=>e.code==='swap_actual_position_mismatch'));
+ f.sectionalLayouts[0].mode='SINGLE_FAMILY';
+ f.sectionalLayouts[0].sections=[{id:'combined',broodBodyIds:['b1','b2','b3']}];
+ assert.deepEqual(api.validate(f,r),[]);
+});
