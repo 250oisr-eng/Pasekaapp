@@ -79,3 +79,57 @@ test('a large multipart base64 payload reconstructs without padding corruption',
  const restored=await hydrate(result.state,empty(),result.pendingVideos);
  assert.deepEqual(Buffer.from(restored.state.records[0].media[0].data.split(',')[1],'base64'),Buffer.from(bytes));
 });
+
+
+test('MIME-only journal video cannot masquerade as a photo during archive and reconstruction',async()=>{
+ const state=sample();
+ state.records[0].media[1].kind='photo';
+ state.records[0].media[1].mimeType='video/mp4';
+ const clone=structuredClone(state);
+ const candidate=await prep(state,empty());
+ assert.deepEqual(state,clone);
+ assert.equal(candidate.pendingVideos.length,1);
+ assert.equal(candidate.pendingVideos[0].source,'record_media');
+ assert.equal(candidate.pendingVideos[0].mimeType,'video/mp4');
+ assert.equal(candidate.state.records[0].media[1].data,null);
+ assert.equal(candidate.state.records[0].media[1].archivePendingVideoV2,true);
+ const restored=await hydrate(candidate.state,empty(),candidate.pendingVideos);
+ assert.deepEqual(restored.state,state);
+ assert.equal(restored.restoreAuthorized,false);
+});
+
+test('masked video MIME still observes prior recognition tombstone instead of reintroducing bytes',async()=>{
+ const state=sample();
+ state.records[0].media[1].kind='photo';
+ state.records[0].media[1].mimeType='video/mp4';
+ await rejected(prep(state,recognized()),'V2_RECOGNIZED_ORIGINAL_INCLUDED');
+});
+
+test('journal source MIME declarations cannot disagree with actual verified Data URL MIME',async()=>{
+ for(const key of ['mimeType','type']){
+  const state=sample();
+  state.records[0].media[1][key]='video/webm';
+  const baseline=structuredClone(state);
+  await rejected(prep(state,empty()),'V2_RECORD_MIME_MISMATCH');
+  assert.deepEqual(state,baseline);
+ }
+ const generic=sample();
+ generic.records[0].media[1].type='video';
+ generic.records[0].media[1].mimeType='video/mp4';
+ const extracted=await prep(generic,empty());
+ assert.equal(extracted.pendingVideos.length,1);
+});
+
+test('journal rehydration rejects mismatched declared MIME or archive entry MIME, preserving staged evidence',async()=>{
+ const prepared=await prep(sample(),empty());
+ const modified={...prepared.state,records:prepared.state.records.map(record=>({
+  ...record,media:record.media.map(item=>item.videoId==='v1'?
+   {...item,mimeType:'video/webm'}:item)
+ }))};
+ const baseline=structuredClone(modified);
+ await rejected(hydrate(modified,empty(),prepared.pendingVideos),'V2_RECORD_MIME_MISMATCH');
+ assert.deepEqual(modified,baseline);
+ const forged=[{...prepared.pendingVideos[0],mimeType:'video/webm'}];
+ await rejected(hydrate(prepared.state,empty(),forged),'V2_RECORD_MIME_MISMATCH');
+ assert.equal(await prepared.pendingVideos[0].blob.size,3);
+});
