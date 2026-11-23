@@ -1,3 +1,13 @@
+## Подтверждение пользователя — этап offline + force-stop ЗАВЕРШЁН в указанной области (2026-11-23)
+
+- После получения диагностического JSON пользователь **отдельным ответом** подтвердил оба запрошенных условия: **Wi-Fi и мобильный интернет были отключены; `ru.paseka.journal.diagnostic.allchecks` принудительно остановлен через настройки Android до запуска**. Прежняя пометка `EVIDENCE_INCOMPLETE` ниже относится к промежуточному состоянию до этого ответа и теперь **снята**.
+- Результат: `PHONE_UNIFIED_SYNTHETIC_V2 / PASS / SYNTHETIC_SUITE_ONLY`, `storage.previousFixture=PRESENT_VERIFIED`, 31 байт, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`; archiveMetadata 4 синтетических сценария PASS, syntheticFrames 3×64×64 PASS, локальная синтетическая ONNX/WASM арифметика Add(3,2)=5 PASS.
+- **Ровно доказанная область:** подтверждённое пользователем ручное Android force-stop + отключение обоих каналов сети, затем успешный автономный запуск синтетических проверок и чтение неизменённого тестового Blob. Не заявлять независимо инструментированное обнаружение force-stop: поле исходного JSON `scope.androidForceStop=NOT_TESTED` неизменно. `networkTraffic=NOT_MEASURED` не подтверждает отсутствие сетевых попыток в онлайн-режиме. Не является проверкой main/current P0 branch на физическом устройстве; диагностический APK собран отдельно.
+- **Следующее независимое испытание, только когда пользователь готов:** перезагрузить OnePlus без очистки данных, с отключёнными Wi-Fi и мобильным интернетом, открыть то же `allchecks`, нажать «Проверить всё безопасное» → «Копировать результат», восстановить интернет и передать JSON с пометкой `REBOOT_PERFORMED=YES; BOTH_NETWORKS_OFF=YES`. Критерий — `storage.previousFixture=PRESENT_VERIFIED`. Если BLOCKED, ничего не удалять/не переустанавливать.
+- Реальные видео, beeRecognition, физическая quota, portable restore, MediaStore copies, traffic capture и deletion по-прежнему NOT_TESTED/NOT_AUTHORIZED; P0/P1 OPEN, Restore335 STOP.
+
+---
+
 ## Новый отчёт пользователя после выдачи протокола — 2026-11-23
 
 - Получен JSON `suite=PHONE_UNIFIED_SYNTHETIC_V2`, `packageId=ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`.
