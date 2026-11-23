@@ -23,9 +23,9 @@ function stage(state,request,deps={}){
  if(!Array.isArray(request.itemMoves)||!Array.isArray(request.bodyMoves)||itemMoves.some(m=>!S(m?.itemId)||!O(m.location))||new Set(itemMoves.map(x=>x.itemId)).size!==itemMoves.length||new Set(bodyMoves.map(x=>x?.bodyId)).size!==bodyMoves.length)return fail('season_movement_manifest_invalid');
  const before=locations(old),after=locations(target),inventory=state.equipmentInventory;
  if(!O(inventory?.bodies)||!O(inventory?.items)||!Array.isArray(inventory.events)||!Array.isArray(inventory.itemEvents)||!Array.isArray(state.auditLog)||!Array.isArray(state.familyEvents)||!Array.isArray(state.queenEvents))return fail('season_inventory_or_history_invalid');
+ const storageLocations=O(request.storageLocations)?request.storageLocations:{};
  const changed=[...new Set([...before.keys(),...after.keys()])].filter(id=>JSON.stringify(before.get(id)||null)!==JSON.stringify(after.get(id)||null));
  if(changed.length!==bodyMoves.length||changed.some(id=>!bodyMoves.some(x=>x.bodyId===id&&JSON.stringify(x.from??null)===JSON.stringify(before.get(id)||null)&&JSON.stringify(x.to??null)===JSON.stringify(after.get(id)||(!after.has(id)&&S(storageLocations[id])?{type:'storage',label:storageLocations[id]}:null)))))return fail('season_body_movement_manifest_incomplete');
- const storageLocations=O(request.storageLocations)?request.storageLocations:{};
  for(const id of changed){
   const b=inventory.bodies[id];
   if(!O(b)||!Array.isArray(b.frames)||b.frames.some(f=>!O(f)||!Array.isArray(f.history)))return fail('season_movement_body_or_frame_invalid',{bodyId:id});
