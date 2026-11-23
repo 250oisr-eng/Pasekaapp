@@ -33,5 +33,16 @@ function buildDailyPlan(state,request,makeId,now){
   note:String(request.notes||'').trim(),createdAt:at};
  return {ok:true,task};
 }
-root.PasekaSectionalOP02Feeding=Object.freeze({PROFILE,OP,buildDailyPlan});
+function validateDailyCompletion(state,task){
+ const fail=error=>({ok:false,error});
+ if(!state||!task||task.operationId!==OP||task.op02Scope!=='daily_plan'||task.status!=='pending')return fail('invalid_or_completed_daily_task');
+ const hive=(Array.isArray(state.hives)?state.hives:[]).find(x=>x?.id===task.hive);
+ if(hive?.profileId!==PROFILE)return fail('sectional_profile_required');
+ const family=(Array.isArray(state.families)?state.families:[]).find(x=>x?.id===task.familyId&&x?.hive===hive.id&&x?.recordStatus!=='historical');
+ if(!family)return fail('active_family_required');
+ if(!validDate(task.date)||typeof task.gramsPerColonyPerDay!=='number'||task.gramsPerColonyPerDay<100||task.gramsPerColonyPerDay>200||!Number.isFinite(task.gramsPerColonyPerDay)||task.syrupRatio!=='2:1'||task.proteinFeedingDaily!==true)return fail('daily_plan_parameters_invalid');
+ if(!Array.isArray(state.tasks)||!state.tasks.includes(task))return fail('task_not_current');
+ return {ok:true};
+}
+root.PasekaSectionalOP02Feeding=Object.freeze({PROFILE,OP,buildDailyPlan,validateDailyCompletion});
 })(typeof window!=='undefined'?window:globalThis);
