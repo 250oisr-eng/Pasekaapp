@@ -16,7 +16,7 @@ const request=()=>({cycleId:'cycle1',hiveId:'h1',operationId:'OP-09',seasonPhase
 const fixture=()=>{
  let db=initial();
  const deps={ledger,evidence,rules,dualRead,authorized:async()=>true,inspectState:()=>[],
-  applyPhysicalOperation:async draft=>{draft.sectionalSeasonalEntranceObservations.push({id:'entrance1',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true});return draft;},
+  applyPhysicalOperation:async draft=>{draft.sectionalSeasonalEntranceObservations.push({id:'entrance1',hiveId:'h1',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true});return draft;},
   persistIfRevision:async(draft,old)=>{if(db.meta.revisionId!==old)return {ok:false};db=structuredClone(draft);db.meta.revisionId='r2';return {ok:true,revisionId:'r2'};},
   readPersisted:async()=>structuredClone(db)};
  return {deps,getDB:()=>db};
