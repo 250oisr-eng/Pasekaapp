@@ -55,9 +55,9 @@ function harness({network=async()=>new Response('ok'),existingCaches=[],offlineS
 }
 
 test('P1 SW activation deletes only earlier Paseka caches, never unrelated app caches',async()=>{
-  const sw=harness({existingCaches:['paseka-shell-v313','other-app-cache','paseka-shell-v314','paseka-shell-v315','paseka-shell-v316','paseka-shell-v317','paseka-shell-v318','paseka-shell-v319','other-project-data']});
+  const sw=harness({existingCaches:['paseka-shell-v313','other-app-cache','paseka-shell-v314','paseka-shell-v315','paseka-shell-v316','paseka-shell-v317','paseka-shell-v318','paseka-shell-v319','paseka-shell-v320','other-project-data']});
   await sw.activate();
-  assert.deepEqual(sw.deleted,['paseka-shell-v313','paseka-shell-v314','paseka-shell-v315','paseka-shell-v316','paseka-shell-v317','paseka-shell-v318','paseka-shell-v319']);
+  assert.deepEqual(sw.deleted,['paseka-shell-v313','paseka-shell-v314','paseka-shell-v315','paseka-shell-v316','paseka-shell-v317','paseka-shell-v318','paseka-shell-v319','paseka-shell-v320']);
 });
 
 test('P1 SW does not intercept external requests or private non-shell endpoints',async()=>{
