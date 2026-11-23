@@ -1,3 +1,14 @@
+## 2026-11-23 — сезонная v2: P0 полный архив и защита внешнего восстановления, Draft #454
+
+- Зависимость из P0 Draft #452 безопасно перенесена в P1 stacked Draft: `js/disaster-archive.js`, `tests/disaster-archive.test.mjs`, UI полного архива с SHA-256, восстановлением всех IndexedDB stores, включая оригинальные Blob-видео. Никаких данных пользователя не затронуто, cleanup #442 остаётся FROZEN.
+- Добавлен `js/sectional-season-archive-replay-v2.js`: пробная транзакция восстановления файла в отдельной временной IndexedDB + холодное открытие и сравнение SHA всего payload с исходным. Кнопка в настройках; исходная БД не перезаписывается. `sw.js` v325; дополнительный тест на независимый media replay.
+- Сезонные `runtime`, `migration-runtime`, `lifecycle` требуют реальное **SECOND_DEVICE_VERIFIED** + подтверждённую внешнюю копию и полный media restore; локальный replay возвращает `externalCopyConfirmed:false` и НЕ открывает активацию. Добавлены негативные regression guards.
+- Последний подтверждённый exact CI **до последних proof guards**: SHA `4b70a6633b8e7d7cdd882721c16385e40647e97c` run #45196785928 **817/817 PASS, Android BUILD SUCCESSFUL**. Проверить свежий HEAD отдельно; не приписывать результат новому коммиту.
+- Полная карта выполненного и отсутствующих ворот: `docs/P1-СКВОЗНАЯ-МОДЕЛЬ-V2-ГОТОВНОСТЬ-2026-11-23.md`. **P1 не закрыт:** нет complete OP04–07 и OP08/10–14 UI/real-device E2E; нет second-device full restore; OP06 two-queen BLOCKED. Не активировать профиль. Не merge/release.
+- Next: завершить v2 coordinator для OP04–07, пользовательский физический wizard и end-to-end тест всех операций, затем подтверждённое полное восстановление на другом устройстве; без отдельного согласия не вливать в main.
+
+---
+
 ## 2026-11-23 — P1 v2: двухфазная миграция, CAS bridge и мобильный обзор (Draft #454)
 
 - Новые модули `js/sectional-season-runtime-v2.js` и `js/sectional-season-migration-runtime-v2.js` требуют независимого реального `verifyFullArchiveAndReplay` с полными оригиналами мультимедиа, исходным revision ID и подтверждённым восстановлением; atomic `writeMainIfUnchanged`, durable read-back. Миграция сначала импортирует v1 в неизменяемый архив и статус `BASELINE_IMPORTED_PENDING_ACTIVATION`, затем отдельное личное подтверждение физической раскладки и повторная проверка полного архива переводят его в `ACTIVATED`. Неизвестный/повреждённый результат commit = UNCERTAIN, без автоматического rollback уничтожающего данные.
