@@ -131,5 +131,5 @@ test('journal rehydration rejects mismatched declared MIME or archive entry MIME
  assert.deepEqual(modified,baseline);
  const forged=[{...prepared.pendingVideos[0],mimeType:'video/webm'}];
  await rejected(hydrate(prepared.state,empty(),forged),'V2_RECORD_MIME_MISMATCH');
- assert.equal(await prepared.pendingVideos[0].blob.size,3);
+ assert.equal(prepared.pendingVideos[0].blob.size,3);
 });
