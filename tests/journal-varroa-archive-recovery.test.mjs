@@ -182,3 +182,13 @@ test('Varroa observations only show selected hive, while preserving all underlyi
  assert.doesNotMatch(f.elements.varroaObservationsList.innerHTML,/Hive 1/);
  assert.equal(f.state.varroaObservations.length,2);
 });
+
+test('committed Varroa observation keeps current hive selected after form reset',async()=>{
+ const f=observationFixture();
+ f.elements.varroaHive.value='h2';
+ f.elements.varroaForm.reset=()=>{f.elements.varroaHive.value='h1';};
+ await f.api.run();
+ assert.equal(f.api.getState().varroaObservations[0].hiveId,'h2');
+ assert.equal(f.elements.varroaHive.value,'h2');
+ assert.equal(f.saves,1);
+});
