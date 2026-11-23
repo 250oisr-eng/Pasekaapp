@@ -1,3 +1,14 @@
+## 23.11.2026 — P1 физические манифесты OP11–14, новый stacked Draft #458
+
+- Изолированная ветка `feat/p1-physical-movement-manifest-2026-11-23` / [Draft PR #458](https://github.com/250oisr-eng/Pasekaapp/pull/458) поверх Draft #456; `main` **не менялся**. Текущий code/test SHA `483e3978dd522350171830d7c0a82178f9cf68c6`: [Fast #45255191654](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191654) **948/948 PASS**. Android Build #45255191703/#45255206700 и isolated diagnostic #45255206733 требуют отдельной проверки итогового conclusion.
+- `js/sectional-season-physical-manifest-v2.js`: read-only `plan`, `inspectSource`, `previewStage`; рассчитывает точные bodyMoves/itemMoves из текущей и **отдельно подтверждённой целевой** раскладки, требует поэлементное подтверждение ID всех изменений, склад/точные установки; блокирует чужой улей, повторяющиеся frameId, ложные места и придуманные предметы; OP11/12/13/14 сверены с источником. `previewStage` не допускается без настоящего local physical/lineage/provenance validator; никакой CAS автоматически.
+- `js/sectional-season-operations-wizard-v2.js`: на OP11–14 можно посмотреть реальные исходные корпуса/рамки/позиции/предметы без сохранения. `index.html`, `sw.js` v333 включают JS в Android/PWA offline shell. В тестах есть настоящий physical executor+lineage+provenance для OP12; тесты не являются личной проверкой пчеловода.
+- **Состояние:** CI_VERIFIED_EXACT_CODE_SHA, DEVICE_VERIFIED=NO, IN_MAIN=NO, RELEASED=NO. P0 isolated emulator backup ранее PASS на synthetic package, но **не** SECOND_DEVICE_VERIFIED, не оригинальные пользовательские Blob. OP01–14 не полностью UI→CAS, новые варианты физической геометрии вводить лишь после подтверждения. PASEKA02 cleanup #442 FROZEN.
+- **Открытый следующий этап:** guided mobile UI выбора точной целевой модели OP11–14 + atomic CAS с реальным независимо восстановленным архивом, затем OnePlus offline multi-season испытания. Слияние PR и публикация требуют отдельного разрешения.
+- Основная карточка F0–F2: `docs/P1-МАНИФЕСТ-ОП11-14-2026-11-23.md`.
+
+---
+
 ## 23.11.2026 — контроль готовности к телефонным испытаниям P1
 
 Доказательства по exact SHA `351d6840aa4f92d005a6abb88440e3776e9030ad` и незакрытые ворота перечислены в [`P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md`](./P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md). Fast 932/932 PASS, Android Debug Build SUCCESS; production UI/independent P0 restore/OnePlus NOT_VERIFIED. `SECOND_DEVICE_VERIFIED` не подменять CI. Следующий шаг — диагностический эмуляторный P0 восстановительный тест, затем полные UI physical manifests. Всё Draft #456, без merge/release.

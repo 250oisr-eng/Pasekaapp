@@ -469,6 +469,30 @@ function mount(host,getState){
    });
   }
   const layout=A(getState().sectionalLayouts).find(l=>l.hiveId===hive);
+  if(['OP-11','OP-12','OP-13','OP-14'].includes(op)){
+   const fields=host.querySelector('[data-season-fields]');
+   fields.insertAdjacentHTML('beforeend','<fieldset data-season-physical-source>'+
+     '<legend>Физический инвентарь перед операцией</legend>'+
+     '<p>Проверьте зарегистрированные корпуса и оборудование. Целевые позиции и склад не назначаются автоматически.</p>'+
+     '<button type="button" data-season-physical-audit>Показать текущие ID и позиции</button>'+
+     '<div role="status" aria-live="polite" data-season-physical-audit-result>Никакая операция не выполнялась.</div>'+
+     '</fieldset>');
+   fields.querySelector('[data-season-physical-audit]')?.addEventListener('click',()=>{
+    const output=fields.querySelector('[data-season-physical-audit-result]');
+    const audit=root.PasekaSectionalSeasonPhysicalManifestV2?.inspectSource?.(getState(),hive);
+    if(!audit?.ok){
+     output.textContent='Физический инвентарь не подтверждён: '+String(audit?.error||'нет обязательного модуля')+
+      '. Данные не изменены.';
+     return;
+    }
+    const inventory=[...audit.bodyEntries.map(b=>'Корпус '+b.id+' · '+b.location.bodyRole+
+       ' · '+b.location.position+' · рамок '+b.frameIds.length),
+     ...audit.itemEntries.map(item=>'Предмет '+item.id+' · '+item.kind+
+       ' · '+(item.actual?.type==='storage'?'склад':item.actual?.stackId||item.actual?.positionLabel||'место неизвестно'))];
+    output.textContent='Ревизия '+audit.sourceRevisionId+'. '+inventory.join('; ')+
+     '. Для физической записи дополнительно требуется точная целевая раскладка, новые места каждого предмета и независимый архив. Ничего не сохранено.';
+   });
+  }
   if(op==='OP-09'){
    const opts=(items)=>items.map(([id,title])=>'<option value="'+esc(id)+'">'+esc(title)+'</option>').join('');
    const layout=A(getState().sectionalLayouts).find(l=>l.hiveId===hive&&l.mode==='SIDE_BY_SIDE');
@@ -520,6 +544,15 @@ function mount(host,getState){
    const op10=root.PasekaSectionalOP10HoneyRemoval,equipment=root.PasekaEquipmentItems;
    const stage=previewOP10(getState(),d,{executor:op10,equipment,now:new Date().toISOString(),makeId:()=>root.crypto?.randomUUID?.()});
    result.textContent=stage.ok?'Физический план OP-10 проверен на временной копии: '+stage.removedBodyIds.length+' корпуса, '+stage.storedExcluderIds.length+' решётки. НЕ записано в базу. Второе устройство и восстановление полного архива ещё требуют проверки.':'OP-10 не допущена: '+String(stage.error||'неизвестная ошибка')+'. '+String(stage.details?.message||'Проверьте раскладку и комплектность.');
+   return;
+  }
+  if(['OP-11','OP-12','OP-13','OP-14'].includes(d.operationId)){
+   const audit=root.PasekaSectionalSeasonPhysicalManifestV2?.inspectSource?.(getState(),d.hiveId);
+   result.textContent=audit?.ok?
+    'Подтверждено только исходное размещение '+audit.bodyEntries.length+
+    ' корпусов и '+audit.itemEntries.length+' предметов. Для каждого перемещения нужны целевая компоновка, место хранения и отдельная сверка ID. OP не завершена, IndexedDB не изменена.':
+    'Исходная физическая раскладка недоступна: '+String(audit?.error||'нет проверяющего модуля')+
+    '. Операция заблокирована, ничего не записано.';
    return;
   }
   result.textContent='Фактические поля проверены. Это локальная заявка, а не завершённая операция. Физический переход и сохранение в базе заблокированы до подтверждённого восстановления полного архива и отдельной проверки раскладки.';

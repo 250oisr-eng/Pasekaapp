@@ -14,6 +14,7 @@ const modules=[
  'js/sectional-season-runtime-v2.js',
  'js/sectional-season-lifecycle-v2.js',
  'js/sectional-season-browser-commit-v2.js',
+ 'js/sectional-season-physical-manifest-v2.js',
  'js/sectional-season-operations-wizard-v2.js',
  'js/sectional-op08-honey.js',
  'js/sectional-op09-entrances.js'
@@ -28,6 +29,7 @@ test('P1 v2 persistence and physical modules are actually shipped to offline And
  assert.ok(loaded('js/sectional-season-transaction-v2.js')<loaded('js/sectional-season-runtime-v2.js'));
  assert.ok(loaded('js/sectional-season-runtime-v2.js')<loaded('js/sectional-season-lifecycle-v2.js'));
  assert.ok(loaded('js/sectional-season-lifecycle-v2.js')<loaded('js/sectional-season-browser-commit-v2.js'));
+ assert.ok(loaded('js/sectional-season-physical-manifest-v2.js')<loaded('js/sectional-season-operations-wizard-v2.js'));
 });
 test('pre-phone UI exposes only physical preview and never turns a checkbox into DONE or CAS',()=>{
  const wizard=src('js/sectional-season-operations-wizard-v2.js');

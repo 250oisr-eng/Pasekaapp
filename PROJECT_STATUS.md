@@ -1,3 +1,28 @@
+## Дополнение к приёмке (точный кодовый SHA)
+
+**`483e3978dd522350171830d7c0a82178f9cf68c6`**:
+- [Fast quality #45255191654](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191654) — **948/948 PASS, 0 FAIL**.
+- [Android Build #45255191703](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191703) — **SUCCESS**.
+- [Android Build #45255206700](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255206700) — **SUCCESS**.
+- [Isolated diagnostic #45255206733](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255206733) — **CANCELLED**, не PASS.
+- [Предыдущий независимый изолированный эмулятор #45250101151](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250101151) — SUCCESS на **другом** SHA, только синтетическое восстановление и перезапуск, не OnePlus/внешний оригинальный архив.
+- Сравнение GitHub `483e3978… → итоговый HEAD`: **только Markdown-документация**. Код, тесты, shell и wasm после подтверждённого SHA не менялись.
+
+**Статус:** IMPLEMENTED_DRAFT + CI_VERIFIED_EXACT_CODE_SHA / DEVICE_VERIFIED=NO / IN_MAIN=NO / RELEASED=NO. 
+
+---
+
+## 23.11.2026 — P1 физические манифесты OP11–14, новый stacked Draft #458
+
+- Изолированная ветка `feat/p1-physical-movement-manifest-2026-11-23` / [Draft PR #458](https://github.com/250oisr-eng/Pasekaapp/pull/458) поверх Draft #456; `main` **не менялся**. Текущий code/test SHA `483e3978dd522350171830d7c0a82178f9cf68c6`: [Fast #45255191654](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191654) **948/948 PASS**. Android Build #45255191703/#45255206700 и isolated diagnostic #45255206733 требуют отдельной проверки итогового conclusion.
+- `js/sectional-season-physical-manifest-v2.js`: read-only `plan`, `inspectSource`, `previewStage`; рассчитывает точные bodyMoves/itemMoves из текущей и **отдельно подтверждённой целевой** раскладки, требует поэлементное подтверждение ID всех изменений, склад/точные установки; блокирует чужой улей, повторяющиеся frameId, ложные места и придуманные предметы; OP11/12/13/14 сверены с источником. `previewStage` не допускается без настоящего local physical/lineage/provenance validator; никакой CAS автоматически.
+- `js/sectional-season-operations-wizard-v2.js`: на OP11–14 можно посмотреть реальные исходные корпуса/рамки/позиции/предметы без сохранения. `index.html`, `sw.js` v333 включают JS в Android/PWA offline shell. В тестах есть настоящий physical executor+lineage+provenance для OP12; тесты не являются личной проверкой пчеловода.
+- **Состояние:** CI_VERIFIED_EXACT_CODE_SHA, DEVICE_VERIFIED=NO, IN_MAIN=NO, RELEASED=NO. P0 isolated emulator backup ранее PASS на synthetic package, но **не** SECOND_DEVICE_VERIFIED, не оригинальные пользовательские Blob. OP01–14 не полностью UI→CAS, новые варианты физической геометрии вводить лишь после подтверждения. PASEKA02 cleanup #442 FROZEN.
+- **Открытый следующий этап:** guided mobile UI выбора точной целевой модели OP11–14 + atomic CAS с реальным независимо восстановленным архивом, затем OnePlus offline multi-season испытания. Слияние PR и публикация требуют отдельного разрешения.
+- Основная карточка F0–F2: `docs/P1-МАНИФЕСТ-ОП11-14-2026-11-23.md`.
+
+---
+
 ## 23.11.2026 — P0 Android isolated emulator proof PASS, P1 gate still CLOSED
 
 **Точный код SHA `3bf8e2ec20efabb1a9b034811f015841d25545ca`:** [Fast #45250100983](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250100983) **935/935 PASS**; [Android #45250100961](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250100961) **SUCCESS**; [P0 Android emulator #45250101151](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250101151) **SUCCESS**, лог `P0_DISASTER_WEBVIEW_RESTORE_PASS` и после force-stop `P0_DISASTER_PHYSICAL_RESTART_PASS` (artifact ID 14855067803 подтверждён). Ранее ошибка была безопасным отказом при пустой существующей базе в disposable APK. Добавлен **единственный pre-launch** `pm clear` исключительно `ru.paseka.journal.disasterproof`, с тестом. Пользовательский пакет, база и видео не затрагивались.
