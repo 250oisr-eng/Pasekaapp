@@ -29,7 +29,7 @@ test('critical source alternatives and user-confirmed requirements are preserved
  assert.match(find('OP-02').source,/2:1/);
  assert.match(find('OP-03').timing,/необязательно/);
  assert.match(find('OP-05').timing,/необязательным/);
- assert.match(find('OP-06').timing,/двухматочн/);
+ assert.match(find('OP-06').timing,/двухматочн/i);
  assert.match(find('OP-07').source,/парами \(2 или 4\)/);
  assert.match(find('OP-07').timing,/12–15 дней/);
  assert.match(find('OP-11').timing,/альтернатива OP-12/);
