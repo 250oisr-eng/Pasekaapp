@@ -46,10 +46,11 @@ test('OP13 spring split needs alternative winter state and observed separation',
  assert.deepEqual(validate(a,b,req('OP-13',{actualSeparationConfirmed:true,queenObservationConfirmed:true})),[]);
  assert.ok(validate(a,b,req('OP-13',{actualSeparationConfirmed:true})).length);
 });
-test('OP14 confirmed early honey merge blocks auto-selected queen',()=>{
- const a=snap('SIDE_BY_SIDE',0),b=snap('SINGLE_FAMILY',0);
+test('OP14 confirmed early honey merge requires a real two-body harvest and blocks auto-selected queen',()=>{
+ const a=snap('SIDE_BY_SIDE',2),b=snap('SINGLE_FAMILY',0);
  assert.deepEqual(validate(a,b,req('OP-14',{earlyHoneyHarvestConfirmed:true,actualMergeConfirmed:true})),[]);
  assert.ok(validate(a,b,req('OP-14',{earlyHoneyHarvestConfirmed:true,actualMergeConfirmed:true,queenIdentityAutoSelected:true})).length);
+ assert.ok(fails(validate(snap('SIDE_BY_SIDE',0),b,req('OP-14',{earlyHoneyHarvestConfirmed:true,actualMergeConfirmed:true})),'op14_early_honey_merge_invalid'));
 });
 test('Farrar or unknown operation cannot pass sectional v2 policy',()=>{
  const a=snap(),b=snap('SIDE_BY_SIDE',4);
