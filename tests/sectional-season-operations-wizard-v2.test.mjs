@@ -108,3 +108,9 @@ test('OP03 cannot claim physical swap if current layout positions disagree',()=>
  f.sectionalLayouts[0].sections=[{id:'combined',broodBodyIds:['b1','b2','b3']}];
  assert.deepEqual(api.validate(f,r),[]);
 });
+
+test('OP07 12–15-day option passes the exact coordinator timing enum, without inventing a new mode',()=>{
+ const f=fixture(),values={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW'};
+ assert.deepEqual(api.validate(f,request('OP-07',values)),[]);
+ assert.ok(api.validate(f,request('OP-07',{...values,timingMode:'APPROX_12_15_DAYS_AFTER_SECOND_ROW'})).some(e=>e.code==='timing_invalid'));
+});
