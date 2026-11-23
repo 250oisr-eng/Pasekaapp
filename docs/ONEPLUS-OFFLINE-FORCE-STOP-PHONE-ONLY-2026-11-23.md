@@ -1,6 +1,16 @@
+## Новый отчёт пользователя после выдачи протокола — 2026-11-23
+
+- Получен JSON `suite=PHONE_UNIFIED_SYNTHETIC_V2`, `packageId=ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`.
+- `checks.storage`: `PASS`, `previousFixture=PRESENT_VERIFIED`, `bytes=31`, SHA-256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`. Это совпадает с фиксированным синтетическим fixture и прежним отчётом; **не доказывает независимо выполнение нового force-stop**.
+- `checks.archiveMetadata`: `PASS`, 4 synthetic metadata cases; `restoreAuthorized=false`, `cleanupAuthorized=false`. `checks.syntheticFrames`: `PASS`, 3 кадра 64×64, исходник synthetic MP4 SHA-256 `29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`, `realVideos=NOT_ACCESSED`. `checks.localOnnxWasm`: `PASS`, только self-authored Add(3,2)=5, `beeRecognition=NOT_TESTED`.
+- В JSON поле `scope.androidForceStop=NOT_TESTED`, `networkTraffic=NOT_MEASURED`, `externalRequests=NOT_MEASURED`; пользователь прислал **только JSON, без отдельно запрошенного подтверждения** `OFFLINE_WIFI_MOBILE=OFF; FORCE_STOP_FROM_SETTINGS=YES`. Следовательно, физический offline / force-stop этап **EVIDENCE_INCOMPLETE**, не PASS и не FAIL; подтверждение факта действий требуется, не просить повторного запуска заранее.
+- Никакого свидетельства полного PASEKA02 restore, удаления исходных видео, продакшн-разрешений или bee recognition. `deleteAllowed=false`, `cleanupAuthorized=false`, `restoreAuthorized=false`. **P0/P1 OPEN, Restore335 STOP**.
+
+---
+
 # OnePlus: безопасная проверка офлайн + остановка процесса без ПК (2026-11-23)
 
-**Статус: протокол готов, новый физический прогон NOT_TESTED.** Не требуется новый APK, USB, ADB, root, разработческий режим, доступ к чужим медиа или production. В рамках STABILIZATION_ONLY — только независимый синтетический тест ранее установленного APK.
+**Статус: новый пользовательский JSON получен, 4 синтетических модуля PASS; offline/force-stop пока EVIDENCE_INCOMPLETE из-за отсутствия отдельного подтверждения ручных действий.** Не требуется новый APK, USB, ADB, root, разработческий режим, доступ к чужим медиа или production. В рамках STABILIZATION_ONLY — только независимый синтетический тест ранее установленного APK.
 
 ## Установленные факты, не повторять без причины
 
