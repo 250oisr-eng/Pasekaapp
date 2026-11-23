@@ -129,3 +129,45 @@ test('OP07 12–15-day option passes the exact coordinator timing enum, without 
  assert.deepEqual(api.validate(f,request('OP-07',values)),[]);
  assert.ok(api.validate(f,request('OP-07',{...values,timingMode:'APPROX_12_15_DAYS_AFTER_SECOND_ROW'})).some(e=>e.code==='timing_invalid'));
 });
+
+
+test('OP11 blocks winter merge while the honey layer is still physically installed',()=>{
+ const f=fixture(),r=request('OP-11',{upperBodyIds:['b2','b4','b6'],actualMerge:true});
+ assert.ok(api.validate(f,r).some(e=>e.code==='winter_source_layout_not_ready'));
+});
+test('OP12 requires 2+1+1 from actual installed brood bodies and personally chosen strongest family',()=>{
+ const f=fixture();f.sectionalLayouts[0].honeyStack=null;
+ const values={diaphragmIds:['dia1','dia2'],winterBodyIds:['b1','b2','b3','b5'],
+  strongestFamilyId:'f1',actualIsolation:true};
+ assert.deepEqual(api.validate(f,request('OP-12',values)),[]);
+ assert.ok(api.validate(f,request('OP-12',{...values,winterBodyIds:['b1','b2','b3','b4']}))
+  .some(e=>e.code==='op12_physical_2_1_1_not_proven'));
+ assert.ok(api.validate(f,request('OP-12',{...values,strongestFamilyId:'f2'}))
+  .some(e=>e.code==='op12_strongest_family_not_confirmed'));
+ f.equipmentInventory.items.dia2.location={type:'hive',hiveId:'h1'};
+ assert.ok(api.validate(f,request('OP-12',values)).some(e=>e.code==='op12_diaphragms_not_from_storage'));
+});
+test('OP13 only accepts alternative wintering and freely available stored bottoms/bodies',()=>{
+ const f=fixture(),values={bottomIds:['bottom1','bottom2'],additionalBodyIds:['b5','b6'],
+  actualSeparation:true};
+ assert.ok(api.validate(f,request('OP-13',values)).some(e=>e.code==='op13_source_wintering_layout_invalid'));
+ const l=f.sectionalLayouts[0];l.mode='ALTERNATIVE_WINTERING_COLUMN';l.honeyStack=null;
+ l.sections=[
+  {id:'lower',position:'lower',broodBodyIds:['b1','b2']},
+  {id:'middle',position:'middle',broodBodyIds:['b3']},
+  {id:'upper',position:'upper',broodBodyIds:['b4']}
+ ];
+ assert.deepEqual(api.validate(f,request('OP-13',values)),[]);
+ f.equipmentInventory.items.bottom1.location={type:'hive',hiveId:'h1'};
+ assert.ok(api.validate(f,request('OP-13',values)).some(e=>e.code==='op13_bottoms_not_in_storage'));
+});
+test('OP14 refuses main honey or incorrect identity of installed early pair',()=>{
+ const f=fixture(),values={honeyBodyIds:['h1','h2'],excluderIds:['ex1','ex2'],
+  nestBodiesAfterHarvest:3,actualMerge:true};
+ assert.ok(api.validate(f,request('OP-14',values)).some(e=>e.code==='op14_original_early_honey_layout_mismatch'));
+ f.sectionalLayouts[0].honeyStack={purpose:'early',bodyIds:['h1','h2'],
+  excluders:[{itemId:'ex1'},{itemId:'ex2'}]};
+ assert.deepEqual(api.validate(f,request('OP-14',values)),[]);
+ assert.ok(api.validate(f,request('OP-14',{...values,honeyBodyIds:['h3','h4']}))
+  .some(e=>e.code==='op14_original_early_honey_layout_mismatch'));
+});
