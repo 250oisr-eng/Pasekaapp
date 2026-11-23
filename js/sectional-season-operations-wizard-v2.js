@@ -139,7 +139,9 @@ function validate(state,draft){
   const rows=A(state.sectionalLayouts).filter(l=>l.hiveId===draft.hiveId),physical=rows[0];
   const currentHoney=A(physical?.honeyStack?.bodyIds);
   const actualExcluders=A(physical?.honeyStack?.excluders).map(x=>x.itemId);
-  if(rows.length!==1||physical.mode!=='SIDE_BY_SIDE'||physical.honeyStack?.purpose!=='early'||
+  if(rows.length!==1||physical.mode!=='SIDE_BY_SIDE'||
+     A(physical.sections).length!==3||A(physical.sections).some(s=>A(s.broodBodyIds).length!==2||!A(s.broodBodyIds).includes(s.upperBroodBodyId))||
+     physical.honeyStack?.purpose!=='early'||
      currentHoney.length!==2||actualExcluders.length!==2||
      selected(draft.values?.honeyBodyIds).length!==2||
      currentHoney.some(id=>!selected(draft.values?.honeyBodyIds).includes(id))||
