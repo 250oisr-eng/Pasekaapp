@@ -249,5 +249,6 @@ test('item registered on a different stack than its original source reference bl
    'bottom-right':{type:'storage',label:'склад'}}
  });
  state.equipmentInventory.items['bottom-middle'].location.stackId='stack-right';
+ req.confirmedBodyIds=['b1','b2','b3','b4','b5','b6'];
  assert.equal(plan(state,req).error,'manifest_source_item_wrong_actual_position');
 });
