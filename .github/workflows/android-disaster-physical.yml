@@ -9,7 +9,7 @@ on:
       - 'js/disaster-archive.js'
       - 'diagnostics/disaster-phone-proof/**'
       - 'scripts/prepare-disaster-phone-proof.mjs'
-      - 'tests/disaster-varroa-archive-recovery.test.mjs'
+      - 'tests/disaster-archive.test.mjs'
       - '.github/workflows/android-disaster-physical.yml'
 
 concurrency:
