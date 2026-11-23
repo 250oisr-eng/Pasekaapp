@@ -8,7 +8,21 @@ const id=v=>typeof v==='string'&&v.length>0&&v.length<=200&&!/\s/.test(v);
 const sha=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const videoMime=/^(?:video\/[a-z0-9.+-]+|application\/octet-stream)$/i;
 function fail(code){const e=new Error(code);e.code=code;throw e;}
-function mediaIsVideo(item){return item?.kind==='video'||item?.type==='video'||typeof item?.type==='string'&&item.type.startsWith('video/');}
+// Keep journal classification consistent with the codec/restore gate: a
+// masked video MIME field is still a video, never an ordinary photo.
+const videoLikeType=value=>typeof value==='string'&&
+ (value.toLowerCase()==='video'||/^video\\//i.test(value)||
+  /^application\\/(?:octet-stream|x-matroska|ogg|x-msvideo|vnd\\.apple\\.mpegurl)$/i.test(value));
+function mediaIsVideo(item){return item?.kind==='video'||videoLikeType(item?.type)||videoLikeType(item?.mimeType);}
+function assertDeclaredMime(item,actualMime){
+ for(const declared of [item?.type,item?.mimeType]){
+  // 'video' is a generic label, not a claimed MIME. Explicit video or
+  // application MIME declarations must agree with verified payload MIME.
+  if(typeof declared==='string'&&/^(?:video\\/|application\\/)/i.test(declared)&&
+     declared.toLowerCase()!==actualMime)
+   fail('V2_RECORD_MIME_MISMATCH');
+ }
+}
 function ledgerKeys(ledger,guard){
  if(!guard||typeof guard.validateRecognitionLedgerForV2!=='function')fail('V2_GUARD_MISSING');
  const valid=guard.validateRecognitionLedgerForV2(ledger);
@@ -58,6 +72,7 @@ async function preparePendingRecordMedia(state,ledger,guard,shaModule){
     media.push(item);continue;
    }
    const parsed=dataUrlParts(item.data);
+   assertDeclaredMime(item,parsed.mimeType);
    if(!sha(item.sourceSha256)||!Number.isSafeInteger(item.sourceBytes)||item.sourceBytes<1||
       item.sourceBytes>MAX_RECORD_BYTES)fail('V2_RECORD_SOURCE_EVIDENCE_MISSING');
    const proof=await shaModule.hashVideoDataUrlHex(item.data);
@@ -116,6 +131,7 @@ async function rehydratePendingRecordMedia(state,ledger,entries,guard,shaModule)
    if(item.archivePendingVideoV2!==true||item.data!==null||used.has(key))fail('V2_RECORD_MARKER_INVALID');
    const video=byKey.get(key);
    if(!video||video.sourceSha256!==item.sourceSha256||video.sourceBytes!==item.sourceBytes)fail('V2_RECORD_ENTRY_MISSING');
+   assertDeclaredMime(item,video.mimeType);
    used.add(key);
    if(await shaModule.hashBlobHex(video.blob)!==video.sourceSha256)fail('V2_RECORD_SOURCE_HASH_MISMATCH');
    const bytes=new Uint8Array(await video.blob.arrayBuffer());
