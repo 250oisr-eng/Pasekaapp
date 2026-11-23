@@ -53,12 +53,16 @@ test('two laying queens plus confirmed absence never authorizes OP06 or mesh rem
  const {state,split}=fixture();
  const ids=['section-1','section-2'];
  for(const [index,id] of ids.entries()){
-  // Directly model confirmed evidence for this read-only assessment (writer remains existing lineage API).
-  const family=state.families.find(f=>f.id===id);
-  const queenId='queen-test-'+index;
-  family.currentQueenId=queenId;family.queenIdentityStatus='identified';
-  state.queens.push({id:queenId,familyId:id,status:'current'});
-  state.queenEvents.push({id:makeId(),type:'laying_observed',familyId:id,queenId,splitEventId:split.event.id,techProcessId:'tp1',userConfirmed:true,occurredAt:'2026-04-20T09:00:00.000Z'});
+  const identity=lineage.confirmQueenIdentity(state,{
+   familyId:id,newQueen:{originType:'emergency_reared',code:'Q'+index},
+   operationId:'OP-04',techProcessId:'tp1',occurredAt:'2026-04-12T08:00:00.000Z'
+  },makeId,'2026-04-12T08:01:00.000Z');
+  assert.equal(identity.ok,true,JSON.stringify(identity));
+  const observed=lineage.recordQueenLayingObserved(state,{
+   familyId:id,techProcessId:'tp1',splitEventId:split.event.id,userConfirmed:true,
+   occurredAt:'2026-04-20T09:00:00.000Z'
+  },makeId,now);
+  assert.equal(observed.ok,true,JSON.stringify(observed));
  }
  const absence=api.recordConfirmedAbsence(state,{userConfirmed:true,familyId:'section-3',processId:'tp1',occurredAt:'2026-04-20T10:00:00.000Z'},lineage,makeId,now);
  assert.equal(absence.ok,true,JSON.stringify(absence));
