@@ -155,3 +155,42 @@ test('valid unchanged originals and newly appended snapshots survive safe CAS an
  assert.equal(result.state.records[0].text,'inspection');
  assert.equal(result.state.auditLog[0].id,'prior');
 });
+
+
+test('unrelated state mutations inside a physical executor cannot cross the persistence gate',async()=>{
+ for(const [label,damage] of [
+  ['journal',(s)=>{s.records=[{id:'r',note:'forged'}]}],
+  ['audit',(s)=>{s.auditLog=[{id:'ghost',type:'done'}]}],
+  ['hive',(s)=>{s.hives[0].profileId='farrar'}],
+  ['meta',(s)=>{s.meta.schemaVersion=99}],
+  ['old queen',(s)=>{s.queens=[{id:'unknown',status:'current'}]}],
+  ['unknown field',(s)=>{s.privateData={changed:true}}]
+ ]){
+  const f=fixture();
+  f.deps.executors['OP-09']=async state=>{
+   state.sectionalSeasonalEntranceObservations.push({
+    id:'obs',hiveId:'h',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true
+   });
+   damage(state);
+   return {ok:true,draft:state};
+  };
+  const result=await runtime.commit(f.request,f.deps);
+  assert.equal(result.error,'season_physical_staging_failed',label);
+  assert.equal(f.count(),0,label+' cannot reach persistent storage');
+ }
+});
+test('physical executor cannot replace an original Blob with equal-size bytes',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>({...await read(),records:[
+  {id:'inspection',media:new Blob(['AAAA'],{type:'video/mp4'})}
+ ]});
+ f.deps.executors['OP-09']=async state=>{
+  state.sectionalSeasonalEntranceObservations.push({
+   id:'obs1',hiveId:'h',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true
+  });
+  state.records[0].media=new Blob(['BBBB'],{type:'video/mp4'});
+  return {ok:true,draft:state};
+ };
+ assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
+ assert.equal(f.count(),0);
+});
