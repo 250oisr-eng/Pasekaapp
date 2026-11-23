@@ -53,10 +53,18 @@ async function commitVerifiedTransition(current,request,deps){
   const compat=validateCompatProcessTransition(base.sectionalSeasonCycles,draft.sectionalSeasonCycles,request);
   if(!compat.ok)return fail(compat.error);
  }
- const initialErrors=deps.inspectState(draft);
+ // The v1 compat coordinator projection is deliberately staged before its
+ // matching STAGE_CONFIRMED event. During physical preflight inspect a view
+ // with the previous cycle metadata; after staging validate the full pair.
+ let stagedInspection=draft;
+ if(COMPAT_OPS.has(request.operationId)){
+  stagedInspection=structuredClone(draft);
+  stagedInspection.sectionalSeasonCycles=structuredClone(base.sectionalSeasonCycles);
+ }
+ const initialErrors=deps.inspectState(stagedInspection);
  if(!Array.isArray(initialErrors)||initialErrors.length)return fail('season_physical_staging_integrity_failed',initialErrors);
  const stage=deps.evidence.stagePhysicalTransition(base,draft,base.sectionalSeasonCycles,request,{
-  ledger:deps.ledger,inspectBefore:deps.inspectState,inspectAfter:deps.inspectState,
+  ledger:deps.ledger,inspectBefore:deps.inspectState,inspectAfter:()=>deps.inspectState(stagedInspection),
   validateTransition:deps.rules.validate
  });
  if(!stage?.ok)return fail(stage?.error||'season_stage_failed',stage?.details);
