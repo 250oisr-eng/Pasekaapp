@@ -9,7 +9,7 @@ function stage(state,request,deps={}){
  if(!S(deps.now)||Date.parse(request.occurredAt)>Date.parse(deps.now))return fail('op10_invalid_or_future_date');
  if(A(state.sectionalTechProcesses).some(p=>p?.hiveId===request.hiveId))return fail('op10_legacy_coordinator_must_be_migrated');
  const cycles=A(state.sectionalSeasonCycles).filter(p=>p?.hiveId===request.hiveId&&p.status==='ACTIVE');
- if(cycles.length!==1||cycles[0].migrationStatus==='REQUIRES_RECONCILIATION')return fail('op10_active_v2_cycle_required');
+ if(cycles.length!==1||['REQUIRES_RECONCILIATION','BASELINE_IMPORTED_PENDING_ACTIVATION'].includes(cycles[0].migrationStatus))return fail('op10_active_v2_cycle_required');
  const layoutList=A(state.sectionalLayouts).filter(l=>l?.hiveId===request.hiveId);
  if(layoutList.length!==1||layoutList[0].mode!=='SIDE_BY_SIDE'||layoutList[0].profileId!=='sectional-multiqueen-v1')return fail('op10_side_by_side_layout_required');
  const old=layoutList[0],honey=A(old.honeyStack?.bodyIds),excluders=A(old.honeyStack?.excluders);
