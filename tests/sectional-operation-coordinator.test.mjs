@@ -628,7 +628,7 @@ test('OP-06 rejects missing queen laying evidence, wrong day and partial plug re
  prepareOP06Queens(wrongFixture.state,wrongDeps);
  before=structuredClone(wrongFixture.state);
  result=Coordinator.completeOP06(wrongFixture.state,op06Request(wrong,{occurredAt:'2026-12-06T10:00:00.000Z'}),wrongDeps);
- assert.equal(result.ok,false);assert.equal(result.error,'op06_outside_source_window');
+ assert.equal(result.ok,false);assert.equal(result.error,'op06_before_safe_observation_window');
  assert.deepEqual(wrongFixture.state,before);
 
  const partial=prepareOP05Fixture(),{fixture:partialFixture,deps:partialDeps}=partial;
@@ -928,4 +928,28 @@ test('OP-06 refuses all mesh removal when one split family has a still-unresolve
  assert.deepEqual(fixture.state,before);
  assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,8);
  assert.equal(process.state.operations.some(op=>op.operationId==='OP-06'),false);
+});
+
+test('OP-06 later than the day 20–21 orientation is allowed only with all three confirmed laying queens',()=>{
+ const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
+ assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
+ prepareOP06Queens(fixture.state,deps);
+ const result=Coordinator.completeOP06(fixture.state,op06Request(prepared,{occurredAt:'2026-12-10T10:00:00.000Z'}),deps);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ const stage=fixture.state.sectionalTechProcesses[0].state.operations.find(o=>o.operationId==='OP-06');
+ assert.equal(stage.evidence.daysAfterDivision,23);
+ assert.equal(stage.evidence.timingBeyondSourceOrientation,true);
+ assert.equal(fixture.state.sectionalLayouts[0].temporaryQueenIsolation.length,0);
+ assert.deepEqual(Coordinator.inspect(fixture.state,deps),[]);
+});
+test('OP-06 late observation cannot bypass missing laying evidence',()=>{
+ const prepared=prepareOP05Fixture(),{fixture,deps}=prepared;
+ assert.equal(Coordinator.completeOP05(fixture.state,op05Request(prepared),deps).ok,true);
+ prepareOP06Queens(fixture.state,deps);
+ fixture.state.queenEvents=fixture.state.queenEvents.filter(e=>!(e.type==='laying_observed'&&e.familyId==='f2'));
+ const before=structuredClone(fixture.state);
+ const result=Coordinator.completeOP06(fixture.state,op06Request(prepared,{occurredAt:'2026-12-10T10:00:00.000Z'}),deps);
+ assert.equal(result.ok,false);
+ assert.equal(result.error,'op06_queen_laying_observation_required');
+ assert.deepEqual(fixture.state,before);
 });
