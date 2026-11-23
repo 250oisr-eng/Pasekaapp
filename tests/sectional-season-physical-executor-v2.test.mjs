@@ -38,3 +38,5 @@ test('OP12 refuses unconfirmed isolation',()=>{const f=fixture();f.request.opera
 test('OP13 refuses operation without actual spring separation',()=>{const f=fixture();f.request.operationId='OP-13';assert.equal(stage(f.state,f.request,f.deps).ok,false)});
 test('OP14 refuses early honey merge without actual harvest proof',()=>{const f=fixture();f.request.operationId='OP-14';assert.equal(stage(f.state,f.request,f.deps).ok,false)});
 test('all OP11-14 reject legacy single-season coordinator',()=>{const f=fixture();f.state.sectionalTechProcesses=[{hiveId:'h1'}];for(const op of ['OP-11','OP-12','OP-13','OP-14'])assert.equal(stage(f.state,{...f.request,operationId:op},f.deps).error,'season_legacy_coordinator_must_be_migrated')});
+
+test('OP11–14 fail closed when imported v1 cycle has not been activated',()=>{const f=fixture();f.state.sectionalSeasonCycles[0].migrationStatus='BASELINE_IMPORTED_PENDING_ACTIVATION';assert.equal(stage(f.state,f.request,f.deps).error,'season_active_v2_cycle_required')});
