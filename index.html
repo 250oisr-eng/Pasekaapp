@@ -1778,6 +1778,7 @@ $('planForm').onsubmit=async e=>{
 async function completeTask(id){
  const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
  let actualFeedingAmount='';
+ if(t.operationId==='OP-02'&&t.op02Scope==='daily_plan'&&!confirm('Подтверждаете фактическую выдачу сегодня жидкой подкормки 2:1 И ежедневной белковой подкормки через потолочную кормушку? Если выполнена лишь часть, ведите отдельный журнал и не закрывайте план OP-02.'))return false;
  if(t.type==='Подкормка'){
   const planned=t.plannedFeedingAmount?' Планировалось: '+t.plannedFeedingAmount+'.':'';
   const entered=prompt('Фактически выданное количество корма (с единицей измерения). Оставь пустым, если количество не измерялось.'+planned,'');
@@ -1799,6 +1800,7 @@ async function completeTask(id){
   completedRecord.gramsPerColonyPerDay=t.gramsPerColonyPerDay;
   completedRecord.syrupRatio=t.syrupRatio;
   completedRecord.proteinFeedingDaily=t.proteinFeedingDaily;
+  completedRecord.proteinActuallyFedConfirmed=true;
  }
  if(t.type==='Подкормка'){
   completedRecord.feedingType=t.plannedFeedingType||'';completedRecord.feedingSubstance=t.plannedFeedingSubstance||'';completedRecord.feedingAmount=actualFeedingAmount;completedRecord.feedingConcentration=t.plannedFeedingConcentration||'';completedRecord.feedingMethod=t.plannedFeedingMethod||'';completedRecord.plannedFeedingAmount=t.plannedFeedingAmount||'';
