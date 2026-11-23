@@ -194,3 +194,20 @@ test('physical executor cannot replace an original Blob with equal-size bytes',a
  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
  assert.equal(f.count(),0);
 });
+
+
+test('binary verification detects changes after the first megabyte of video',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ const sourceBytes=new Uint8Array(1024*1024+5).fill(67);
+ f.deps.readMain=async()=>({...await read(),records:[
+  {id:'large-original',media:new Blob([sourceBytes],{type:'video/mp4'})}
+ ]});
+ f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+  s.meta.revisionId=rev;
+  const changed=sourceBytes.slice();changed[1024*1024+1]=68;
+  s.records[0].media=new Blob([changed],{type:'video/mp4'});
+  return s;
+ };
+ assert.equal((await runtime.commit(f.request,f.deps)).ok,false);
+ assert.equal(f.count(),0);
+});
