@@ -212,3 +212,17 @@ test('archive UI allows non-destructive read-back verification before restore',(
  assert.match(html,/await PasekaDisasterArchive\.inspectArchive\(raw,db/);
  assert.match(html,/Сохранение файла на носитель ещё НЕ подтверждено/);
 });
+
+test('isolated Android emulator reset only targets disposable diagnostic package, never production',async()=>{
+ const script=await readFile(new URL('../diagnostics/disaster-phone-proof/emulator-proof.sh',import.meta.url),'utf8');
+ const id='ru.paseka.journal.disasterproof';
+ assert.match(script,/package='ru\.paseka\.journal\.disasterproof'/);
+ assert.match(script,/test "\$package" = 'ru\.paseka\.journal\.disasterproof'/);
+ assert.match(script,/adb shell pm clear "\$package"/);
+ assert.doesNotMatch(script,/pm clear ['"]?ru\.paseka\.journal['"]?(?:\s|$)/m);
+ const reset=script.indexOf('adb shell pm clear "$package"');
+ const firstLaunch=script.indexOf('adb shell monkey -p "$package"');
+ const restart=script.indexOf('adb shell am force-stop "$package"');
+ assert.ok(reset>=0&&firstLaunch>reset&&restart>firstLaunch);
+ assert.equal(script.indexOf('pm clear "$package"',firstLaunch),-1,'no clearing after restore before reboot proof');
+});
