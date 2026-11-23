@@ -29,6 +29,13 @@ function plan(state,input){
   const b=bodies[id];
   if(!b||b.kind!=='honey'||b.condition!=='good'||b.spec?.profileId!=='sectional-multiqueen-v1'||b.spec?.framesPerBox!==10||
    !str(b.storageLocation)||!str(b.pairId)||arr(b.frames).length!==10)return fail('op07_honey_body_unavailable',{id});
+  if(input.honeyPurpose==='early'){
+   const frames=arr(b.frames),types=frames.map(x=>x?.combType);
+   const foundation=types.flatMap((kind,index)=>kind==='wax_foundation'?[index]:[]);
+   if(types.some(kind=>!['drawn_comb','wax_foundation'].includes(kind))||!types.includes('drawn_comb')||foundation.length>2||
+    foundation.some(index=>index===0||index===types.length-1||types[index-1]!=='drawn_comb'||types[index+1]!=='drawn_comb'))
+    return fail('op07_early_honey_requires_drawn_comb_and_separated_max_two_foundation',{id});
+  }
   pairs.set(b.pairId,(pairs.get(b.pairId)||0)+1);
  }
  if([...pairs.values()].some(n=>n!==2)||pairs.size!==honeyIds.length/2)return fail('op07_incomplete_body_pair');
