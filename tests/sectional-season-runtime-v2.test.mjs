@@ -10,7 +10,7 @@ function fixture(){
  const deps={
   ledger:w.PasekaSectionalSeasonLedgerV2,evidence:w.PasekaSectionalSeasonEvidenceV2,dualRead:w.PasekaSectionalSeasonDualReadV2,rules:w.PasekaSectionalSeasonOperationRulesV2,transaction:w.PasekaSectionalSeasonTransactionV2,
   readMain:async()=>structuredClone(db),writeMainIfUnchanged:async(candidate,rev)=>{if(db.meta.revisionId!==rev)throw Error('CAS');db=structuredClone(candidate);saved++},
-  verifyFullArchiveAndReplay:async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,originalRevisionId:source.meta.revisionId,verificationId:'proof-1'}),
+  verifyFullArchiveAndReplay:async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',originalRevisionId:source.meta.revisionId,verificationId:'proof-1'}),
   validateState:()=>[],makeRevisionId:()=> 'rev2',
   preparePersistentSnapshot:async(state,old,revision)=>({...structuredClone(state),meta:{...state.meta,revisionId:revision},snapshots:[{at:'2026-11-23'}]}),
   executors:{'OP-09':async draft=>{draft.sectionalSeasonalEntranceObservations.push({id:'obs1',hiveId:'h',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true});return {ok:true,draft}}}
@@ -24,11 +24,11 @@ test('verified full archive, staged physical event, atomic CAS and cold read req
  assert.equal(r.fullBackupVerificationId,'proof-1');
 });
 test('refuses unverified full archive without writes',async()=>{
- const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:false,includesOriginalMedia:true,originalRevisionId:'rev1',verificationId:'proof'});
+ const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:false,includesOriginalMedia:true,externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',originalRevisionId:'rev1',verificationId:'proof'});
  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_runtime_verified_full_archive_required');assert.equal(f.count(),0);
 });
 test('refuses backup of different revision without writes',async()=>{
- const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,originalRevisionId:'old',verificationId:'proof'});
+ const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',originalRevisionId:'old',verificationId:'proof'});
  assert.equal((await runtime.commit(f.request,f.deps)).ok,false);assert.equal(f.count(),0);
 });
 test('refuses unverified original media without writes',async()=>{
@@ -53,4 +53,9 @@ test('snapshot preparer cannot alter equipment or families',async()=>{
 test('absence of physical executor or validator fails closed',async()=>{
  const f=fixture();delete f.deps.executors['OP-09'];assert.equal((await runtime.commit(f.request,f.deps)).ok,false);
  const g=fixture();delete g.deps.validateState;assert.equal((await runtime.commit(g.request,g.deps)).ok,false);
+});
+
+test('same-phone isolated replay is insufficient for physical operation activation',async()=>{
+ const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:false,verificationScope:'LOCAL_INDEPENDENT_INDEXEDDB_REPLAY',originalRevisionId:'rev1',verificationId:'local'});
+ assert.equal((await runtime.commit(f.request,f.deps)).error,'season_runtime_verified_full_archive_required');assert.equal(f.count(),0);
 });
