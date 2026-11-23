@@ -1,0 +1,192 @@
+name: Isolated Disaster Phone Proof APK (no publication)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'js/disaster-archive.js'
+      - 'diagnostics/disaster-phone-proof/**'
+      - 'scripts/prepare-disaster-phone-proof.mjs'
+      - 'tests/disaster-varroa-archive-recovery.test.mjs'
+      - '.github/workflows/android-disaster-physical.yml'
+
+concurrency:
+  group: disaster-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache npm download data
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate or install Android command-line tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install Android SDK packages
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run regression tests
+        run: npm test
+      - name: Prepare web assets
+        run: npm run web:prepare
+      - name: Prepare strict test-only package and bundled proof
+        run: |
+          node scripts/prepare-disaster-phone-proof.mjs
+          node --input-type=module <<'NODE'
+          import {readFile} from 'node:fs/promises';
+          const config=JSON.parse(await readFile('capacitor.config.json','utf8'));
+          const html=await readFile('www/index.html','utf8');
+          if(config.appId!=='ru.paseka.disaster.disasterproof'||!html.includes('disaster-phone-proof.js')){
+            throw Error('Production package collision or missing proof injection');
+          }
+          console.log('PASS: isolated applicationId, test runner bundled, no production install');
+          NODE
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Sync Android project
+        run: npx cap sync android
+      - name: Use Android 15-compatible Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Require Android 15 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'android/variables.gradle';
+          let source = fs.readFileSync(path, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)\\d+`, 'm');
+            if (!pattern.test(source)) throw new Error(`Could not find ${key} in ${path}; refusing to build with an unknown Android SDK configuration`);
+            source = source.replace(pattern, `$1${value}`);
+          }
+          fs.writeFileSync(path, source);
+          const minLine = source.split(/\r?\n/).find(line => line.trim().startsWith('minSdkVersion'));
+          const min = Number(minLine?.split('=').pop()?.trim());
+          if (min !== 35) throw new Error(`Expected minSdkVersion 35, got ${min}`);
+          console.log('Android minimum API: 35 (Android 15); compile/target API: 35');
+          NODE
+      - name: Cache Gradle build data
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Bind APK SHA-256 and exact test-only package identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          const apkPath='android/app/build/outputs/apk/debug/app-debug.apk';
+          const bytes=await readFile(apkPath);
+          const manifest={
+            schema:'paseka-disaster-isolated-artifact-v1',
+            packageId:'ru.paseka.disaster.disasterproof',
+            originalPackageId:'ru.paseka.disaster',
+            branchProcess:'CI-only diagnostic build; not a production release',
+            sha:process.env.GITHUB_SHA,
+            apkFile:'app-debug.apk',
+            apkSha256:createHash('sha256').update(bytes).digest('hex'),
+            noUserDataAccess:true,
+            noCleanup:true
+          };
+          await writeFile('disaster-proof-manifest.json',JSON.stringify(manifest,null,2),'utf8');
+          console.log('Manifest bound to diagnostic package, APK SHA256 and build commit.');
+          NODE
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-disaster-proof-isolated-apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            disaster-proof-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
+  emulator:
+    name: Disaster actual Android WebView + IndexedDB on emulator (non-production)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout only verified test scripts
+        uses: actions/checkout@v4
+      - name: Download only isolated diagnostic APK
+        uses: actions/download-artifact@v4
+        with:
+          name: paseka-disaster-proof-isolated-apk
+          path: diagnostic-artifact
+      - name: Enable KVM for Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Launch isolated app, verify actual persistent records, restart Android process
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash diagnostics/disaster-phone-proof/emulator-proof.sh
+      - name: Preserve emulator evidence, even if script fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-disaster-android-emulator-evidence
+          path: |
+            disaster-emulator-first.png
+            disaster-emulator-restart.png
+            disaster-emulator-first-result.txt
+            disaster-emulator-restart-result.txt
+          if-no-files-found: warn
+          retention-days: 7
