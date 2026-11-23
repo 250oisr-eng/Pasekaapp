@@ -52,6 +52,8 @@ function itemPositions(layout){
    if(!add(opening?.itemId,'technicalQueenExcluder',{bodyId:opening?.bodyId,openingId:opening?.openingId}))return null;
  for(const plug of A(layout.temporaryQueenIsolation))
   if(!add(plug?.itemId,'metalMeshPlug',{bodyId:plug?.bodyId,openingId:plug?.openingId}))return null;
+ for(const plug of A(layout.closedOpenings))
+  if(!add(plug?.itemId,'metalMeshPlug',{bodyId:plug?.bodyId,openingId:plug?.openingId}))return null;
  return refs;
 }
 const identical=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
@@ -165,6 +167,7 @@ function stageManifest(state,request){
  // Do not add actualWorkConfirmed or completion flags. The physical executor,
  // independent archive gate and real CAS must independently authorize them.
  return {ok:true,stagedOnly:true,operationCompleted:false,
+  physicalLayoutValidated:false,requiresFullPhysicalAndArchiveGates:true,
   request:mapped,bodyMoves,removedBodyIds:removed,addedBodyIds:moved.filter(id=>!oldPositions.has(id)),requiredItemMoveIds:itemChanged};
 }
 root.PasekaSectionalSeasonBodyManifestV2=Object.freeze({stageManifest});
