@@ -2792,6 +2792,10 @@ $('rmedia').onchange=async()=>{
 $('rtype').onchange=toggleOccupancy;
 $('recordForm').onsubmit=async e=>{
  e.preventDefault();
+ const form=$('recordForm');
+ if(form.dataset.saveInProgress==='1')return;
+ form.dataset.saveInProgress='1';
+ try{
  if(videoRecorder&&videoRecorder.state==='recording'){alert('Сначала нажми «Остановить» и дождись появления видео в предпросмотре, затем сохрани запись.');return}
  const files=[...$('rmedia').files],tooLarge=files.find(f=>(f.type.startsWith('video/')||/\.(mp4|m4v|mov|webm|3gp)$/i.test(f.name))&&f.size>50*1024*1024);
  if(tooLarge){alert('Видео «'+tooLarge.name+'» больше 50 МБ. Уменьши файл или выбери другое видео. Запись не сохранена.');return}
@@ -2841,7 +2845,8 @@ $('recordForm').onsubmit=async e=>{
   return;
  }
  $('recordDlg').close();$('rhive').disabled=false;$('recordForm').dataset.varroaTreatmentDraft='';
-}
+ }finally{form.dataset.saveInProgress='';}
+};
 
 const FRAME_TYPES=[{id:'foundation',name:'Вощина',short:'В',status:'foundation'},{id:'strip',name:'Полоска вощины',short:'П',status:'foundation'},{id:'comb',name:'Сушь',short:'С',status:'drawn'}];
 const FRAME_STATUSES=[['foundation','Вощина'],['partial','Частично отстроена'],['drawn','Отстроена'],['eggs','Яйца'],['brood-sealed','Печатный расплод'],['drone-cell','Трутневая ячейка'],['nectar','С мёдом, не запечатана'],['sealed','Запечатана'],['extracted','Откачана'],['damaged','Повреждена'],['discard','Под выбраковку']];
