@@ -4,7 +4,10 @@
 const PROFILE='sectional-multiqueen-v1',rows=x=>Array.isArray(x)?x:[],object=x=>x&&typeof x==='object'&&!Array.isArray(x);
 const valid=x=>typeof x==='string'&&Number.isFinite(Date.parse(x));
 const configurations={
+ // SUMMER_FULL is the original wizard phase ID; SUMMER_OPEN is the original
+ // journal ID. Both describe identical witnessed openings. Preserve both.
  SUMMER_OPEN:{roundEntrances:'all_open',flatEntrance:'fully_open'},
+ SUMMER_FULL:{roundEntrances:'all_open',flatEntrance:'fully_open'},
  AUTUMN_REDUCED:{roundEntrances:'one_open',flatEntrance:'one_bee_width'}
 };
 const fail=error=>({ok:false,error});
