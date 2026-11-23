@@ -31,3 +31,11 @@ test('OP09 inspector rejects duplicate or tampered events and leaves pre-existin
  s.sectionalSeasonalEntranceObservations.push(structuredClone(result.event));
  assert.ok(api.inspect(s).length);
 });
+
+test('historical SUMMER_OPEN and wizard SUMMER_FULL remain equivalent, preserving old journal',()=>{
+ const old=api.record(base(),req('SUMMER_OPEN'),()=> 'old',now);
+ const modern=api.record(base(),req('SUMMER_FULL'),()=> 'new',now);
+ assert.equal(old.ok,true);assert.equal(modern.ok,true);
+ assert.deepEqual(old.event.sections,modern.event.sections);
+ assert.equal(api.inspect({...base(),sectionalSeasonalEntranceObservations:[old.event,modern.event]}).length,0);
+});
