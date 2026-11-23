@@ -4,8 +4,17 @@
 const O=x=>x!==null&&typeof x==='object'&&!Array.isArray(x),S=x=>typeof x==='string'&&x.trim().length>0;
 const fail=(error,details)=>({ok:false,error,...(details?{details}:{})});
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const integrity=()=>window.PasekaSectionalSeasonRuntimeV2?.integrity;
+async function unchangedOutsideCycles(source,candidate,guard){
+ const other=structuredClone(candidate);
+ other.sectionalSeasonCycles=structuredClone(source.sectionalSeasonCycles);
+ return guard.sameData(source,other);
+}
 async function change(mode,request,deps){
  if(!['OPEN','CLOSE'].includes(mode)||!O(request)||request.userConfirmed!==true||request.physicalStatePersonallyVerified!==true||!S(request.hiveId)||!S(request.occurredAt)||!Number.isFinite(Date.parse(request.occurredAt))||!S(request.confirmationRef)||!O(deps)||!O(deps.ledger)||!O(deps.evidence)||!O(deps.dualRead))return fail('season_lifecycle_confirmation_or_dependencies_missing');
+ const guard=integrity();
+ if(typeof guard?.sameData!=='function'||typeof guard?.preparedIsSafe!=='function')
+  return fail('season_lifecycle_full_state_integrity_dependency_missing');
  const funcs=['readMain','writeMainIfUnchanged','verifyFullArchiveAndReplay','validateState','makeRevisionId','preparePersistentSnapshot'];
  if(funcs.some(k=>typeof deps[k]!=='function'))return fail('season_lifecycle_storage_capability_missing');
  let source;
@@ -40,17 +49,26 @@ async function change(mode,request,deps){
  if(!S(revision)||revision===source.meta.revisionId)return fail('season_lifecycle_new_revision_invalid');
  const candidate=structuredClone(source);
  candidate.sectionalSeasonCycles=plan.records;
+ // OPEN/CLOSE may append a lifecycle event only. No change to physical state,
+ // inspection journal, original media or even unfamiliar future fields.
+ try{if(!await unchangedOutsideCycles(source,candidate,guard))return fail('season_lifecycle_candidate_scope_violation')}
+ catch{return fail('season_lifecycle_scope_validation_unavailable')}
  let prepared;
- try{prepared=await deps.preparePersistentSnapshot(candidate,source.meta.revisionId,revision)}catch{return fail('season_lifecycle_snapshot_preparation_failed')}
- if(!O(prepared)||prepared.meta?.revisionId!==revision||!same(prepared.sectionalSeasonCycles,plan.records))return fail('season_lifecycle_snapshot_changed');
- for(const key of ['equipmentInventory','families','queens','familyEvents','queenEvents','sectionalLayouts','sectionalTechProcesses','sectionalTechProcessesArchive']){
-  if(!same(prepared[key],source[key]))return fail('season_lifecycle_physical_state_would_change');
- }
+ try{prepared=await deps.preparePersistentSnapshot(structuredClone(candidate),source.meta.revisionId,revision)}
+ catch{return fail('season_lifecycle_snapshot_preparation_failed')}
+ try{if(!await guard.preparedIsSafe(candidate,prepared,revision))return fail('season_lifecycle_snapshot_changed')}
+ catch{return fail('season_lifecycle_snapshot_validation_unavailable')}
+
  let written=false;
  try{await deps.writeMainIfUnchanged(prepared,source.meta.revisionId);written=true}catch{return fail('season_lifecycle_cas_failed_or_unknown')}
  let durable;
  try{durable=await deps.readMain()}catch{return fail('season_lifecycle_cold_read_failed_commit_uncertain')}
  if(!O(durable)||durable.meta?.revisionId!==revision||!same(durable.sectionalSeasonCycles,plan.records))return fail('season_lifecycle_cold_read_mismatch_commit_uncertain');
+ // A matching cycle event does not prove preservation of the remaining data.
+ let complete=false;
+ try{complete=await guard.sameData(prepared,durable)}
+ catch{return fail('season_lifecycle_full_cold_read_unavailable_commit_uncertain')}
+ if(!complete)return fail('season_lifecycle_full_cold_read_mismatch_commit_uncertain');
  const errors=[...deps.validateState(durable),...deps.dualRead.inspectMixedState(durable,{ledger:deps.ledger}),...deps.evidence.inspectStages(durable.sectionalSeasonCycles)];
  if(errors.length)return fail('season_lifecycle_saved_integrity_failed_commit_uncertain',errors);
  return {ok:true,durable:true,mode,cycleId:request.cycleId,revisionId:revision,state:durable,fullBackupVerificationId:proof.verificationId};

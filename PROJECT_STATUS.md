@@ -1,3 +1,56 @@
+## 23.11.2026 — P0 Android isolated emulator proof PASS, P1 gate still CLOSED
+
+**Точный код SHA `3bf8e2ec20efabb1a9b034811f015841d25545ca`:** [Fast #45250100983](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250100983) **935/935 PASS**; [Android #45250100961](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250100961) **SUCCESS**; [P0 Android emulator #45250101151](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45250101151) **SUCCESS**, лог `P0_DISASTER_WEBVIEW_RESTORE_PASS` и после force-stop `P0_DISASTER_PHYSICAL_RESTART_PASS` (artifact ID 14855067803 подтверждён). Ранее ошибка была безопасным отказом при пустой существующей базе в disposable APK. Добавлен **единственный pre-launch** `pm clear` исключительно `ru.paseka.journal.disasterproof`, с тестом. Пользовательский пакет, база и видео не затрагивались.
+
+**Существенный остаток:** PASS только в изолированном эмуляторе с тестовыми Blob, **НЕ** SECOND_DEVICE_VERIFIED. Полный OP01–14 UI→CAS, реальный off-device backup/recovery и физический OnePlus не проверены; ничего не включать автоматически. `main`/production без изменений; merge/release требуют отдельного разрешения. Полное доказательство: `docs/P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md`.
+
+**Следующая задача:** source-bound полноценные физические манифесты OP11–14/OP04–07 и валидация staged UI без выдачи preview за DONE; после этого реальный независимый архив для живого CAS.
+
+---
+
+## 23.11.2026 — P1 предтелефонная проверка, STACKED DRAFT #456
+
+**Текущая контрольная точка (не production):** код/тест SHA `351d6840aa4f92d005a6abb88440e3776e9030ad`. [Fast #45247372131](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45247372131): **932/932 PASS**; [Android #45247372094](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45247372094) и [#45247386484](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45247386484): **SUCCESS**. Эмуляторный restore и реальный OnePlus в эти результаты НЕ входят.
+
+**Изменения:** `sectional-season-lifecycle-v2.js` теперь защищает всю базу, байты Blob, предыдущие snapshots и проверяет целиком cold read; `sectional-season-runtime-v2.js` отклоняет повреждение чужого улья и перезапись исторических событий. Runtime/provenance/physical executor/lifecycle реально подключены к Android/PWA и offline SW v332. OP-08 вызывает настоящий staged журнал откачки и историю рамок, OP-09 настоящие наблюдения всех трёх секций; `SUMMER_OPEN` и `SUMMER_FULL` согласованы без потери legacy данных. Новый `sectional-season-browser-commit-v2.js` даёт capability-bound **синтетически проверенный** путь OP08/09/10 → строгий P0 gate → IDB CAS → холодное чтение. UI остаётся preview-only, физическое сохранение без реального SECOND_DEVICE_VERIFIED не включено.
+
+**Открытые блокеры:** полный UI→CAS OP01–14 в т.ч. OP04–07/11–14 targetLayout/itemMoves/bodyMoves, независимый внешний full archive/Blob restore, диагностический Android emulator proof (на предыдущих SHA выдавал P0_EMULATOR_RESTORE_BLOCKED), многосезонный OnePlus и разрешение на merge. Профиль не активировать, видео не удалять, issue #442 FROZEN. **P1 NOT FULLY PHONE-READY**. Полная матрица: `docs/P1-ПЕРЕД-ТЕЛЕФОННЫМИ-ИСПЫТАНИЯМИ-КОНТРОЛЬ-2026-11-23.md`.
+
+**Один следующий автономный шаг:** выяснить и устранить отсутствие подтверждённого PASS isolated P0 Android emulator backup/restore; затем guided full manifests и реальный архив. Пользователь сейчас не нужен. Никаких merge, публикаций, production и изменения оригиналов.
+
+---
+
+## 2026-11-23 — P1 приоритет: защита атомарной записи всех данных при OP (Draft #456)
+
+**Результат:** в `js/sectional-season-runtime-v2.js` защищены P1 staged executor, snapshot preparer и полное холодное чтение. Неизменные обычные записи, матки, медиа (включая байты Blob), журнал, аудит и будущие поля теперь защищены от непредусмотренной порчи до и после CAS. Blob сравнивается порциями ≤1 МБ; snapshots добавляются без переписывания старых. `SECOND_DEVICE_VERIFIED` и запреты не ослаблены. Профиль `sectional-multiqueen-v1` не активирован, `main`/production не менялись.
+
+**Точный code/test SHA:** `d79fd4a5120582a0bf00e4fa6fe3fe0fd5582a5d` — [Fast #45242117745](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45242117745) **907/907 PASS**, [Android #45242117729](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45242117729) **SUCCESS**. Статус CI_VERIFIED_EXACT_SHA для кода, DEVICE_VERIFIED=NO, IN_MAIN=NO. После проверенного кода только docs-only изменения; сверять diff final HEAD.
+
+**Следующий один шаг:** отдельно защитить `sectional-season-lifecycle-v2.js` (открытие/закрытие сезона использует собственный путь snapshot/CAS). Затем завершать UI→CAS каждой OP только после независимого P0 full restore proof, physical OnePlus E2E. P1 как эксплуатационная функция остаётся OPEN, video cleanup #442 FROZEN. Карточка F0–F2: `docs/P1-БЕЗОПАСНОСТЬ-АТОМАРНОГО-СОХРАНЕНИЯ-2026-11-23.md`.
+
+---
+
+## 23.11.2026 — P1 #456 завершённый программный цикл и проверка точного SHA (не производственный допуск)
+
+- **Точный code+test SHA** `722fefff1dc8ef3b4561852c81c12a4e111fe0ca`: [Fast quality #45238141698](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45238141698) **898/898 PASS, 0 FAIL**; [Android Build #45238141581](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45238141581) **SUCCESS**. Здесь проверены OP06 rescue staged swap, синтетическая CAS/rollback/cold-read, отказ при неправильной секции или неправильных сетках и запрет ложной OP06 DONE, а также новые OP11–14 предварительные физические фильтры.
+- Новый UI preflight для OP11–14: объединение только после снятия медового яруса, альтернативная зимовка 2+1+1 по зарегистрированным корпусам и лично определённой сильной семье, вывод из зимовки только с реально складскими днищами/корпусами, раннее объединение только с исходным early honey layer и тремя двухкорпусными секциями.
+- Прямой источник на OP06 rescue: DOCX P31–P33 про яйца и стряхивание пчёл; пользователь подтвердил именно две рамки с расплодом в безматочный корпус и правило сеток центра/края. В UI staged вариант 2↔2 — **не автоматическая технология** и не единственный путь; иной фактический перенос требует отдельной точной регистрации, не фиктивного обмена.
+- Состояние: **IMPLEMENTED_DRAFT + CI_VERIFIED_EXACT_SHA**, DEVICE_VERIFIED=NO, IN_MAIN=NO, RELEASED=NO. Для полного P1 по-прежнему необходимы UI→CAS каждого OP, P0 независимый внешний архив/restore, OnePlus physical offline multi-season E2E и отдельное разрешение на merge; не считать все OP завершёнными. Основной статус см. `docs/P1-СКВОЗНАЯ-ПРИЕМКА-ОПЕРАЦИЙ-СЕМЕЙ-ИНВЕНТАРЯ-2026-11-23.md`.
+
+---
+
+## 2026-11-23 — P1 большая секция: безопасный физический OP-06-RESCUE, Draft #456 (не завершён весь P1)
+
+- Ветка `feat/p1-op06-atomic-frame-exchange-2026-11-23` от финального SHA Draft #455, самостоятельно без main/merge/release. Из основного DOCX сверены P31–P33: донорские рамки со свежими яйцами, пчёл стряхивают, чтобы не перенести матку. Прямое решение пользователя: две рамки с расплодом в единственную безматочную секцию, центр — сетки остаются, край — первоначальное правило сеток на границе с центром.
+- `js/sectional-op06-brood-rescue-v2.js`: реальный staged exchange 2 рамок с яйцами и **двух явно выбранных пользователем** рамок, освобождающих место; 4 неизменных frameId/UID, индивидуальная append-only история, события корпуса и инвентаря, audit. Это один поддержанный конкретный сценарий; если реально выполнено иное размещение, его нельзя выдумывать и учитывать через этот исполнитель.
+- `sectional-season-operation-rules-v2.js`, `sectional-season-evidence-v2.js`, `sectional-season-runtime-v2.js`: `OP-06-RESCUE` отдельная атомарная не-терминальная стадия, не означает OP-06 DONE/появление новой плодной матки, full external SECOND_DEVICE_VERIFIED gate не ослаблен.
+- `sectional-season-operations-wizard-v2.js` + `index.html`, `sw.js` v330: мобильный ввод 2 донорских рамок + 2 фактически освобождённых, яйца, отсутствие матки, выполнение и сетки. Две кнопки **только просмотр**: в реальные данные ничего не пишет.
+- Добавлен `docs/P1-СКВОЗНАЯ-ПРИЕМКА-ОПЕРАЦИЙ-СЕМЕЙ-ИНВЕНТАРЯ-2026-11-23.md` — конкретный перечень доказательств по всем OP01–14 и доступных остатков, без выдачи staged кода за production.
+- Code+test exact SHA `e0af9617ecbd8328d115abd0863ae6ffde5add27`: [Fast #45236915663](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45236915663) **SUCCESS**, [Android #45236915698](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45236915698) **SUCCESS**. Последующие документы — docs-only; финальный HEAD отдельно сравнить с code SHA.
+- **BLOCKERS P1:** отсутствует полный UI→atomic CAS по всем OP01–14 и операциям зимовки/раннего мёда, физическая проверка OnePlus и независимый P0 внешнего архива/restore на втором устройстве; двухматочный OP06 остаётся fail-closed. Main/production/offline records/video не менялись, video #442 FROZEN. Не объявлять P1 полностью завершённым, не сливать и не публиковать. Следующий безопасный этап — независимые UI→CAS для OP08–14 и реальный P0 restore proof перед включением изменяющих действий.
+
+---
+
 ## 2026-11-23 — P1 согласованность операций/семей/инвентаря: OP-06 реальный реестр и мобильный preflight, Draft #455
 
 - Актуальная точка preflight: main `13c724a634f0987ff634a058a5fa37a1b8e20c92`; stacked Draft #454 (season v2) → Draft #455 (OP06). В main новый двухматочный сценарий **не находится**. Никакого merge/release/production DB/media.

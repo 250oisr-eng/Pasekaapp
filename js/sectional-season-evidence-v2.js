@@ -8,7 +8,7 @@ const clone=x=>structuredClone(x);
 const stamp=x=>nonempty(x)&&Number.isFinite(Date.parse(x));
 const fail=(code,details)=>({ok:false,error:code,...(details?{details}:{})});
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-const operations=new Set(Array.from({length:11},(_,i)=>'OP-'+String(i+4).padStart(2,'0')));
+const operations=new Set([...Array.from({length:11},(_,i)=>'OP-'+String(i+4).padStart(2,'0')),'OP-06-RESCUE']);
 function physicalSnapshot(state,hiveId){
  if(!object(state)||!nonempty(hiveId))return fail('snapshot_state_invalid');
  const hive=(Array.isArray(state.hives)?state.hives:[]).find(x=>x?.id===hiveId);

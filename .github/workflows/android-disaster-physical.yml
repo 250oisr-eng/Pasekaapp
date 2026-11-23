@@ -197,5 +197,11 @@ jobs:
             disaster-emulator-restart.png
             disaster-emulator-first-result.txt
             disaster-emulator-restart-result.txt
+            disaster-emulator-first.xml
+            disaster-emulator-restart.xml
+            disaster-emulator-first-uiautomator.txt
+            disaster-emulator-restart-uiautomator.txt
+            disaster-emulator-first.log
+            disaster-emulator-restart.log
           if-no-files-found: warn
           retention-days: 7

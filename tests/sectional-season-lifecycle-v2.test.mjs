@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const w={};for(const name of ['sectional-season-ledger-v2.js','sectional-season-evidence-v2.js','sectional-season-dual-read-v2.js','sectional-season-lifecycle-v2.js'])new Function('window',readFileSync(new URL('../js/'+name,import.meta.url),'utf8'))(w);
+const w={};for(const name of ['sectional-season-ledger-v2.js','sectional-season-evidence-v2.js','sectional-season-dual-read-v2.js','sectional-season-runtime-v2.js','sectional-season-lifecycle-v2.js'])new Function('window',readFileSync(new URL('../js/'+name,import.meta.url),'utf8'))(w);
 const lifecycle=w.PasekaSectionalSeasonLifecycleV2,ledger=w.PasekaSectionalSeasonLedgerV2,evidence=w.PasekaSectionalSeasonEvidenceV2,dualRead=w.PasekaSectionalSeasonDualReadV2;
 function fixture(){
  const s={meta:{revisionId:'rev1',schemaVersion:15},hives:[{id:'h',profileId:'sectional-multiqueen-v1'}],sectionalTechProcesses:[],sectionalSeasonCycles:[],sectionalLayouts:[{id:'l',hiveId:'h',profileId:'sectional-multiqueen-v1',mode:'SINGLE_FAMILY',sections:[{id:'s',familyId:'f',broodBodyIds:['b1','b2','b3']}]}],equipmentInventory:{bodies:Object.fromEntries(['b1','b2','b3'].map(id=>[id,{id,frames:[{frameId:id+'f',history:[]}]}]))},families:[{id:'f'}],queens:[],familyEvents:[],queenEvents:[]};
@@ -44,4 +44,88 @@ test('CAS conflict and readback mismatch never report confirmed operation',async
 test('same-device replay does not permit new physical cycle',async()=>{
  const f=fixture();f.deps.verifyFullArchiveAndReplay=async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:false,verificationScope:'LOCAL_INDEPENDENT_INDEXEDDB_REPLAY',originalRevisionId:source.meta.revisionId,verificationId:'local'});
  assert.equal((await lifecycle.open(f.request,f.deps)).error,'season_lifecycle_full_archive_not_verified');assert.equal(f.writes(),0);
+});
+
+
+test('OPEN lifecycle snapshot preparer may not change any prior journal or metadata',async()=>{
+ for(const mutate of [
+  s=>{s.records=[{id:'forged',type:'inspection'}]},
+  s=>{s.auditLog=[{id:'fake'}]},
+  s=>{s.meta.schemaVersion=500},
+  s=>{s.families[0].id='rewritten'},
+  s=>{s.privateUnknown='new'},
+  s=>{s.sectionalSeasonCycles=[]}
+ ]){
+  const f=fixture();
+  f.deps.preparePersistentSnapshot=async (candidate,old,rev)=>{
+   candidate.meta.revisionId=rev;
+   mutate(candidate);
+   return candidate;
+  };
+  const r=await lifecycle.open(f.request,f.deps);
+  assert.equal(r.ok,false,JSON.stringify(r));
+  assert.equal(f.writes(),0);
+ }
+});
+test('OPEN lifecycle preparer cannot mutate existing media even with identical Blob size',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>({...await read(),entranceMedia:[
+  {id:'clip',blob:new Blob(['AAAA'],{type:'video/mp4'})}
+ ]});
+ f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+  s.meta.revisionId=rev;
+  s.entranceMedia[0].blob=new Blob(['BBBB'],{type:'video/mp4'});
+  return s;
+ };
+ const r=await lifecycle.open(f.request,f.deps);
+ assert.equal(r.ok,false);
+ assert.equal(f.writes(),0);
+});
+test('OPEN lifecycle preparer cannot rewrite previous archived snapshots',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>({...await read(),snapshots:[{id:'original'}]});
+ f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+  s.meta.revisionId=rev;s.snapshots=[{id:'replaced'}];return s;
+ };
+ assert.equal((await lifecycle.open(f.request,f.deps)).ok,false);
+ assert.equal(f.writes(),0);
+});
+test('OPEN lifecycle detects altered independent video on cold read even after successful CAS',async()=>{
+ const f=fixture(),read=f.deps.readMain;let reads=0;
+ f.deps.readMain=async()=>{
+  const s=await read();reads++;
+  s.entranceMedia=[{id:'clip',blob:new Blob([reads===1?'AAAA':'BBBB'],{type:'video/mp4'})}];
+  return s;
+ };
+ const r=await lifecycle.open(f.request,f.deps);
+ assert.equal(r.error,'season_lifecycle_full_cold_read_mismatch_commit_uncertain');
+ assert.equal(f.writes(),1);
+});
+test('OPEN lifecycle detects changed inspection journal on cold read, never reports durable',async()=>{
+ const f=fixture(),read=f.deps.readMain;let reads=0;
+ f.deps.readMain=async()=>{
+  const s=await read();s.records=[{id:'record',content:(++reads===1?'old':'tampered')}];return s;
+ };
+ const r=await lifecycle.open(f.request,f.deps);
+ assert.equal(r.error,'season_lifecycle_full_cold_read_mismatch_commit_uncertain');
+ assert.equal(f.writes(),1);
+});
+test('OPEN lifecycle preserves existing media and appends snapshot without changing any other data',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>{
+  const s=await read();
+  if(!s.records)s.records=[{id:'r1',content:'kept'}];
+  if(!s.entranceMedia)s.entranceMedia=[{id:'video1',blob:new Blob(['real bytes'],{type:'video/mp4'})}];
+  if(!s.snapshots)s.snapshots=[{id:'existing'}];
+  return s;
+ };
+ f.deps.preparePersistentSnapshot=async (s,old,rev)=>{
+  s.meta.revisionId=rev;s.snapshots.push({id:'new',revisionId:rev});return s;
+ };
+ const r=await lifecycle.open(f.request,f.deps);
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.equal(r.state.entranceMedia[0].blob.size,10);
+ assert.equal(r.state.records[0].content,'kept');
+ assert.equal(r.state.snapshots[0].id,'existing');
+ assert.equal(r.state.snapshots[1].id,'new');
 });

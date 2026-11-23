@@ -59,3 +59,204 @@ test('same-phone isolated replay is insufficient for physical operation activati
  const f=fixture();f.deps.verifyFullArchiveAndReplay=async()=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:false,verificationScope:'LOCAL_INDEPENDENT_INDEXEDDB_REPLAY',originalRevisionId:'rev1',verificationId:'local'});
  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_runtime_verified_full_archive_required');assert.equal(f.count(),0);
 });
+
+
+test('snapshot preparer cannot rewrite an existing journal record or audit history',async()=>{
+ for(const key of ['records','auditLog','extractions','sectionalSeasonalEntranceObservations']){
+  const f=fixture(),baseline=f.deps.readMain;
+  f.deps.readMain=async()=>{
+   const state=await baseline();
+   if(key!=='sectionalSeasonalEntranceObservations')state[key]=[{id:'original',note:'keep'}];
+   return state;
+  };
+  f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+   s.meta.revisionId=rev;
+   s[key]=[{id:'tampered',note:'changed'}];
+   return s;
+  };
+  const r=await runtime.commit(f.request,f.deps);
+  assert.equal(r.ok,false,key+' silently rewritten');
+  assert.equal(f.count(),0,key+' must never reach IndexedDB');
+ }
+});
+test('snapshot preparer cannot rewrite meta schema, add unknown fields or previous snapshots',async()=>{
+ const options=[
+  (s)=>{s.meta.schemaVersion=999;},
+  (s)=>{s.unrelatedSecret='unapproved';},
+  (s)=>{s.snapshots=[{id:'replaced-snapshot'}];}
+ ];
+ for(let i=0;i<options.length;i++){
+  const f=fixture(),read=f.deps.readMain;
+  f.deps.readMain=async()=>{
+   const state=await read();state.snapshots=[{id:'previous',revisionId:'rev0'}];
+   return state;
+  };
+  f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+   s.meta.revisionId=rev;options[i](s);return s;
+  };
+  assert.equal((await runtime.commit(f.request,f.deps)).ok,false,'mutation '+i);
+  assert.equal(f.count(),0);
+ }
+});
+test('binary original media is compared byte for byte, not Blob size/type or JSON serialization',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>{
+  const s=await read();
+  s.records=[{id:'record',originalBlob:new Blob(['ABCD'],{type:'video/mp4'})}];
+  return s;
+ };
+ f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+  s.meta.revisionId=rev;
+  s.records[0].originalBlob=new Blob(['WXYZ'],{type:'video/mp4'});
+  return s;
+ };
+ const result=await runtime.commit(f.request,f.deps);
+ assert.equal(result.ok,false);
+ assert.equal(f.count(),0,'same-size media replacement cannot be persisted');
+});
+test('a snapshot preparer cannot conceal in-place mutations by returning the same object',async()=>{
+ const f=fixture();
+ f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+  s.meta.revisionId=rev;s.families[0].id='other';
+  return s;
+ };
+ assert.equal((await runtime.commit(f.request,f.deps)).ok,false);
+ assert.equal(f.count(),0);
+});
+test('complete cold read rejects unrelated record or video changes after atomic write',async()=>{
+ for(const kind of ['journal','video']){
+  const f=fixture(),read=f.deps.readMain;
+  let n=0;
+  f.deps.readMain=async()=>{
+   const s=await read();n++;
+   // First read is source. Second read is the post-write cold read.
+   if(kind==='journal'){
+    s.records=[{id:'entry',text:n===1?'saved':'silently overwritten'}];
+   }else{
+    s.entranceMedia=[{id:'clip',blob:new Blob([n===1?'ABCD':'WXYZ'],{type:'video/mp4'})}];
+   }
+   return s;
+  };
+  const result=await runtime.commit(f.request,f.deps);
+  assert.equal(result.error,'season_runtime_full_cold_read_mismatch_commit_uncertain');
+  assert.equal(f.count(),1,'write happened: state must be marked uncertain, not rolled back');
+ }
+});
+test('valid unchanged originals and newly appended snapshots survive safe CAS and cold read',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>({
+  ...await read(),
+  records:[{id:'entry',text:'inspection',blob:new Blob(['same content'],{type:'video/mp4'})}],
+  auditLog:[{id:'prior',type:'inspection'}]
+ });
+ const result=await runtime.commit(f.request,f.deps);
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(f.count(),1);
+ assert.equal(result.state.records[0].text,'inspection');
+ assert.equal(result.state.auditLog[0].id,'prior');
+});
+
+
+test('unrelated state mutations inside a physical executor cannot cross the persistence gate',async()=>{
+ for(const [label,damage] of [
+  ['journal',(s)=>{s.records=[{id:'r',note:'forged'}]}],
+  ['audit',(s)=>{s.auditLog=[{id:'ghost',type:'done'}]}],
+  ['hive',(s)=>{s.hives[0].profileId='farrar'}],
+  ['meta',(s)=>{s.meta.schemaVersion=99}],
+  ['old queen',(s)=>{s.queens=[{id:'unknown',status:'current'}]}],
+  ['unknown field',(s)=>{s.privateData={changed:true}}]
+ ]){
+  const f=fixture();
+  f.deps.executors['OP-09']=async state=>{
+   state.sectionalSeasonalEntranceObservations.push({
+    id:'obs',hiveId:'h',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true
+   });
+   damage(state);
+   return {ok:true,draft:state};
+  };
+  const result=await runtime.commit(f.request,f.deps);
+  assert.equal(result.error,'season_physical_staging_failed',label);
+  assert.equal(f.count(),0,label+' cannot reach persistent storage');
+ }
+});
+test('physical executor cannot replace an original Blob with equal-size bytes',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ f.deps.readMain=async()=>({...await read(),records:[
+  {id:'inspection',media:new Blob(['AAAA'],{type:'video/mp4'})}
+ ]});
+ f.deps.executors['OP-09']=async state=>{
+  state.sectionalSeasonalEntranceObservations.push({
+   id:'obs1',hiveId:'h',operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true
+  });
+  state.records[0].media=new Blob(['BBBB'],{type:'video/mp4'});
+  return {ok:true,draft:state};
+ };
+ assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
+ assert.equal(f.count(),0);
+});
+
+
+test('binary verification detects changes after the first megabyte of video',async()=>{
+ const f=fixture(),read=f.deps.readMain;
+ const sourceBytes=new Uint8Array(1024*1024+5).fill(67);
+ f.deps.readMain=async()=>({...await read(),records:[
+  {id:'large-original',media:new Blob([sourceBytes],{type:'video/mp4'})}
+ ]});
+ f.deps.preparePersistentSnapshot=async(s,old,rev)=>{
+  s.meta.revisionId=rev;
+  const changed=sourceBytes.slice();changed[1024*1024+1]=68;
+  s.records[0].media=new Blob([changed],{type:'video/mp4'});
+  return s;
+ };
+ assert.equal((await runtime.commit(f.request,f.deps)).ok,false);
+ assert.equal(f.count(),0);
+});
+
+
+test('OP11 cannot mutate installed equipment or family/queen identity of another hive',async()=>{
+ for(const mutation of [
+  s=>{s.families.find(f=>f.id==='foreign-family').id='rewritten';},
+  s=>{s.queens.find(q=>q.familyId==='foreign-family').status='unknown';},
+  s=>{s.equipmentInventory.bodies.foreignBody.frames[0].frameId='rewritten';},
+  s=>{s.equipmentInventory.items.foreignMesh.location.hiveId='h';},
+  s=>{s.sectionalLayouts.find(l=>l.hiveId==='foreign').sections[0].familyId='hijacked';}
+ ]){
+  const f=fixture(),read=f.deps.readMain;
+  f.deps.readMain=async()=>{
+   const source=await read();
+   source.hives.push({id:'foreign',profileId:'sectional-multiqueen-v1'});
+   source.families.push({id:'foreign-family',hive:'foreign'});
+   source.queens.push({id:'foreign-q',familyId:'foreign-family',status:'current'});
+   source.sectionalLayouts.push({id:'foreign-layout',hiveId:'foreign',profileId:'sectional-multiqueen-v1',
+    mode:'SIDE_BY_SIDE',sections:[{id:'foreign-section',familyId:'foreign-family',broodBodyIds:['foreignBody']}]});
+   source.equipmentInventory.bodies.foreignBody={id:'foreignBody',kind:'brood',frames:[{frameId:'foreignFrame',history:[]}]};
+   source.equipmentInventory.items={foreignMesh:{id:'foreignMesh',kind:'metalMeshPlug',location:{type:'hive',hiveId:'foreign'}}};
+   return source;
+  };
+  f.request.operationId='OP-11';
+  f.deps.executors={'OP-11':async s=>{
+   mutation(s);return {ok:true,draft:s};
+  }};
+  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
+  assert.equal(f.count(),0);
+ }
+});
+test('OP11 cannot rewrite prior audit, family or equipment event even though those fields are mutable',async()=>{
+ for(const key of ['auditLog','familyEvents','equipmentEvents']){
+  const f=fixture(),read=f.deps.readMain;
+  f.deps.readMain=async()=>{
+   const s=await read();
+   if(key==='equipmentEvents')s.equipmentInventory.events=[{id:'past',type:'existing'}];
+   else s[key]=[{id:'past',type:'existing'}];
+   return s;
+  };
+  f.request.operationId='OP-11';
+  f.deps.executors={'OP-11':async s=>{
+   if(key==='equipmentEvents')s.equipmentInventory.events[0].type='tampered';
+   else s[key][0].type='tampered';
+   return {ok:true,draft:s};
+  }};
+  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
+  assert.equal(f.count(),0);
+ }
+});
