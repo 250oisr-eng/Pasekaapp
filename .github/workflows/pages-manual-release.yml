@@ -1,0 +1,128 @@
+name: Publish PASEKA Pages (manual release only)
+
+# SECURITY: No push/pull_request/schedule trigger. A main merge must never deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: "Full 40-character main commit SHA explicitly approved for public release"
+        required: true
+        type: string
+      confirmation:
+        description: "Type PUBLISH-PASEKA to confirm publication"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paseka-pages-manual-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    env:
+      RELEASE_SHA: ${{ inputs.release_sha }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout latest main for authorization and ancestry checks
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require explicit release confirmation and immutable main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CONFIRMATION" = 'PUBLISH-PASEKA' || {
+            echo '::error::Explicit publication confirmation missing'
+            exit 1
+          }
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]] || {
+            echo '::error::Provide an exact lowercase 40-character commit SHA'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          test "$(git cat-file -t "$RELEASE_SHA")" = commit || {
+            echo '::error::Release SHA is not a commit'
+            exit 1
+          }
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main || {
+            echo '::error::Release SHA is not reachable from the verified main branch'
+            exit 1
+          }
+          echo "Approved main commit for this explicit release: $RELEASE_SHA"
+
+      - name: Require Pages manual GitHub Actions publishing source
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const repo = process.env.GH_REPOSITORY;
+          const response = await fetch('https://api.github.com/repos/' + repo + '/pages', {
+            headers: {
+              Authorization: 'Bearer ' + process.env.GH_TOKEN,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'Paseka-manual-release-gate'
+            }
+          });
+          if (!response.ok) throw new Error('Cannot verify Pages settings (' + response.status + '); refusing to publish.');
+          const settings = await response.json();
+          if (settings.build_type !== 'workflow') throw new Error('Pages is not configured for custom GitHub Actions. Disable branch auto-deploy in Settings > Pages before proceeding.');
+          console.log('Pages publishing source verified: custom GitHub Actions.');
+          NODE
+
+      - name: Checkout exact approved commit, not a floating branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run full regression suite for the approved release commit
+        run: npm test
+
+      - name: Prepare browser-only static assets
+        run: npm run web:prepare
+
+      - name: Verify static artifact completeness, provenance and isolation
+        run: node scripts/verify-pages-release-assets.mjs
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload verified static Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./www
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages_release.outputs.page_url }}
+    steps:
+      - name: Publish only approved artifact
+        id: pages_release
+        uses: actions/deploy-pages@v4
