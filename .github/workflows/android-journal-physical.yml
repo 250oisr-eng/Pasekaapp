@@ -148,3 +148,57 @@ jobs:
             journal-proof-manifest.json
           if-no-files-found: error
           retention-days: 7
+
+  emulator:
+    name: Journal actual Android WebView + IndexedDB on emulator (non-production)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Download only isolated diagnostic APK
+        uses: actions/download-artifact@v4
+        with:
+          name: paseka-journal-proof-isolated-apk
+          path: diagnostic-artifact
+      - name: Enable KVM for Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Launch isolated app, verify actual persistent records, restart Android process
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            set -euo pipefail
+            apk="$(find diagnostic-artifact -type f -name app-debug.apk -print -quit)"
+            test -n "$apk" && test -f "$apk"
+            adb install -r "$apk"
+            adb shell pm path ru.paseka.journal.journalproof | grep -F 'package:'
+            adb shell monkey -p ru.paseka.journal.journalproof -c android.intent.category.LAUNCHER 1
+            sleep 35
+            adb exec-out screencap -p > journal-emulator-after-webview-reload.png
+            adb shell am force-stop ru.paseka.journal.journalproof
+            adb shell monkey -p ru.paseka.journal.journalproof -c android.intent.category.LAUNCHER 1
+            sleep 12
+            adb exec-out screencap -p > journal-emulator-after-process-restart.png
+            adb logcat -d -v brief > journal-emulator-log.txt
+            grep -F 'PASEKA_JOURNAL_PHYSICAL_RESULT' journal-emulator-log.txt | tail -n 4 > journal-emulator-proof-lines.txt || true
+            cat journal-emulator-proof-lines.txt
+            grep -F 'ISOLATED_JOURNAL_ANDROID_RESTART_ONLY' journal-emulator-proof-lines.txt | grep -F '"status":"PASS"' >/dev/null
+      - name: Preserve emulator evidence, even if script fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-journal-android-emulator-evidence
+          path: |
+            journal-emulator-after-webview-reload.png
+            journal-emulator-after-process-restart.png
+            journal-emulator-proof-lines.txt
+          if-no-files-found: warn
+          retention-days: 7
