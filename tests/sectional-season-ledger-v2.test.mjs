@@ -46,3 +46,17 @@ test('falsified CLOSED record cannot authorize new season',()=>{
 });
 
 test('imported pending baseline cannot close or authorize new cycle even with terminal record',()=>{const pending={...closed,migrationStatus:'BASELINE_IMPORTED_PENDING_ACTIVATION'};assert.equal(L.planNewCycle([pending],{hiveId:'h1',id:'c2',occurredAt:'2026-11-21T12:00:00Z'}).ok,false);const active={...pending,status:'ACTIVE',events:[closed.events[0]]};assert.equal(L.planCloseCycle([active],{userConfirmed:true,confirmationRef:'witness',id:'close',cycleId:'c1',occurredAt:'2026-11-21T12:00:00Z'}).ok,false)});
+
+test('v2 compat coordinator is accepted only when all completed stages have physical history',()=>{
+ const cycle={modelVersion:2,id:'c1',hiveId:'h1',cycleNumber:1,status:'ACTIVE',events:[
+  {id:'physical-split',type:'STAGE_CONFIRMED',occurredAt:'2026-11-20T10:00:00Z',evidence:{operationId:'OP-04'}},
+  {id:'physical-mesh',type:'STAGE_CONFIRMED',occurredAt:'2026-11-21T10:00:00Z',evidence:{operationId:'OP-05'}}
+ ],compatProcess:{id:'c1',hiveId:'h1',modelVersion:1,state:{operations:[{operationId:'OP-04',status:'DONE'},{operationId:'OP-05',status:'DONE'}]}}};
+ assert.deepEqual(L.inspect([cycle]),[]);
+ const missing=structuredClone(cycle);missing.events.pop();
+ assert.ok(L.inspect([missing]).some(e=>e.code==='season_compat_stages_unproven'));
+ const corrupted=structuredClone(cycle);corrupted.compatProcess.state.operations[1].status='IN_PROGRESS';
+ assert.ok(L.inspect([corrupted]).some(e=>e.code==='season_compat_process_invalid'));
+ const none=structuredClone(cycle);delete none.compatProcess;
+ assert.ok(L.inspect([none]).some(e=>e.code==='season_compat_process_missing'));
+});
