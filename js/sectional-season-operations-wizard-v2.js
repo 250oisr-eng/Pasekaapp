@@ -29,7 +29,7 @@ const fieldSpecs={
  split:[['sourceFamilyId','Исходная семья','family'],['threeSectionsObserved','Три секции и их технические связи проверены','check'],['secondRowObserved','Второй ряд установлен фактически (необязательно)','optionalCheck']],
  plugs:[['standLevelConfirmed','Подставка ровная','check'],['plugIds','8 установленных сетчатых заглушек','plugs']],
  queen:[['queenIds','Три индивидуально подтверждённые плодные матки','queenIds'],['layingObserved','Яйцекладка каждой из трёх маток подтверждена','check'],['twoQueenOutcome','Наблюдалось только две матки','optionalCheck']],
- honey:[['honeyBodyIds','2 или 4 медовых корпуса','honeyBodies'],['excluderIds','Две большие разделительные решётки','excluders'],['timingMode','Подтверждённый вариант срока','timing']],
+ honey:[['honeyBodyIds','2 или 4 медовых корпуса','honeyBodies'],['excluderIds','Две большие разделительные решётки','excluders'],['leftExcluderId','Решётка слева (полная левая и половина средней секции)','excluder'],['rightExcluderId','Решётка справа (половина средней и полная правая секция)','excluder'],['honeyPurpose','Назначение медового яруса','honeyPurpose'],['timingMode','Подтверждённый вариант срока','timing'],['storageLabel','Место хранения снятых крышек и подкрышников','storage'],['actualCoversRemoved','Три крышки и три подкрышника физически сняты','check'],['actualExcludersInstalled','Обе большие решётки физически установлены','check'],['actualHoneyBodiesInstalled','Медовые корпуса физически установлены парами','check']],
  sealed:[['sealedFrameIds','Фактически запечатанные рамки','frames'],['sealingObserved','Запечатанность лично проверена','check']],
  entrances:[['phase','Проверяемая фаза','phase'],['allSectionsObserved','Летки всех трёх секций осмотрены','check']],
  removeHoney:[['honeyBodyIds','Снятые медовые корпуса','honeyBodies'],['excluderIds','Две снятые разделительные решётки','excluders'],['storageLabel','Фактическое место хранения','storage'],['actualHoneyStored','Все медовые корпуса фактически сняты и отправлены на склад','check'],['actualExcludersStored','Обе разделительные решётки фактически сняты и хранятся на складе','check'],['coversReinstalled','Крышки и подкрышники возвращены','check']],
@@ -81,6 +81,15 @@ function validate(state,draft){
   }
   if(type==='phase'&&!['SUMMER_FULL','AUTUMN_REDUCED'].includes(value))add('phase_invalid','Выберите сезонную фазу');
   if(type==='timing'&&!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(value))add('timing_invalid','Выберите подтверждённый вариант срока');
+  if(type==='honeyPurpose'&&!['early','main'].includes(value))add('honey_purpose_invalid','Выберите назначение медового яруса');
+  if(type==='excluder'&&(!S(value)||!candidates(state,draft.hiveId,'honeyQueenExcluder').some(x=>x.id===value)))add('excluder_identity_invalid','Решётка должна быть зарегистрирована в своем улье');
+ }
+ if(draft.operationId==='OP-07'){
+  const values=draft.values||{},ids=selected(values.excluderIds);
+  if(values.leftExcluderId===values.rightExcluderId||ids.length!==2||!ids.includes(values.leftExcluderId)||!ids.includes(values.rightExcluderId))
+   add('honey_excluder_side_mapping_invalid','Две выбранные решётки должны быть назначены по одной слева и справа');
+  if(values.honeyPurpose==='early'&&selected(values.honeyBodyIds).length!==2)
+   add('early_honey_requires_two_bodies','Для раннего медового яруса допускается только одна пара корпусов');
  }
  if(draft.operationId==='OP-03'&&draft.values?.topBodyId===draft.values?.bottomBodyId)add('same_body','Верхний и нижний корпуса должны быть разными');
  if(draft.operationId==='OP-03'){
@@ -133,6 +142,8 @@ function inputHTML(state,hive,field){
   const entries=optionsFor(state,hive,type);
   return '<fieldset><legend>'+esc(title)+'</legend>'+(entries.length?entries.map(item=>'<label><input type="checkbox" '+base+' value="'+esc(item.id)+'"> '+esc(item.label)+'</label>').join(''):'<p>Нет зарегистрированных подходящих предметов. Сначала выполните сверку инвентаря.</p>')+'</fieldset>';
  }
+ if(type==='honeyPurpose')return '<label>'+esc(title)+'<select '+base+'><option value="">— Выберите —</option><option value="early">Ранний взяток</option><option value="main">Основной взяток</option></select></label>';
+ if(type==='excluder')return '<label>'+esc(title)+'<select '+base+'><option value="">— Выберите —</option>'+candidates(state,hive,'honeyQueenExcluder').filter(x=>state.equipmentInventory?.items?.[x.id]?.location?.type==='storage').map(x=>'<option value="'+esc(x.id)+'">'+esc(x.label)+'</option>').join('')+'</select></label>';
  if(type==='family'||type==='brood'){
   return '<label>'+esc(title)+'<select '+base+'><option value="">— Выберите —</option>'+optionsFor(state,hive,type).map(e=>'<option value="'+esc(e.id)+'">'+esc(e.label)+'</option>').join('')+'</select></label>';
  }
@@ -162,6 +173,21 @@ function createDraft(state,form){
   }
  }
  return {operationId:op,hiveId:hive,occurredAt:form.querySelector('[data-season-at]')?.value||'',userConfirmed:form.querySelector('[data-season-confirm]')?.checked===true,values};
+}
+function previewOP07(state,draft,deps={}){
+ const errors=validate(state,draft);
+ if(errors.length)return {ok:false,error:'op07_wizard_validation_failed',details:errors};
+ if(draft.operationId!=='OP-07'||typeof deps.manifest?.plan!=='function')return {ok:false,error:'op07_manifest_capability_missing'};
+ const active=A(state.sectionalSeasonCycles).filter(c=>c.hiveId===draft.hiveId&&c.status==='ACTIVE');
+ if(active.length!==1)return {ok:false,error:'op07_active_season_missing'};
+ const v=draft.values;
+ return deps.manifest.plan(state,{
+  hiveId:draft.hiveId,cycleId:active[0].id,userConfirmed:draft.userConfirmed,
+  occurredAt:new Date(draft.occurredAt).toISOString(),honeyBodyIds:selected(v.honeyBodyIds),
+  leftExcluderId:v.leftExcluderId,rightExcluderId:v.rightExcluderId,honeyPurpose:v.honeyPurpose,
+  timingMode:v.timingMode,storageLabel:v.storageLabel,actualCoversRemoved:v.actualCoversRemoved,
+  actualExcludersInstalled:v.actualExcludersInstalled,actualHoneyBodiesInstalled:v.actualHoneyBodiesInstalled
+ });
 }
 function previewOP10(state,draft,deps={}){
  const errors=validate(state,draft);
@@ -214,6 +240,11 @@ function mount(host,getState){
  host.querySelector('[data-season-preview]').addEventListener('click',()=>{
   const d=createDraft(getState(),host),errs=validate(getState(),d),result=host.querySelector('[data-season-result]');
   if(errs.length){result.textContent='Не подтверждено: '+errs.map(e=>e.message).join('; ');return;}
+  if(d.operationId==='OP-07'){
+   const candidate=previewOP07(getState(),d,{manifest:root.PasekaSectionalOP07ManifestV2});
+   result.textContent=candidate.ok?'План OP-07 проверен по зарегистрированной раскладке: '+candidate.request.layout.honeyStack.bodyIds.length+' медовых корпуса, 2 решётки с конкретной геометрией и снятие 6 крышек/подкрышников. Это ТОЛЬКО ПРОСМОТР, не DONE и не запись в базу.':'OP-07 не допущена: '+String(candidate.error)+'. Проверьте инвентарь, компоновку и активный сезон.';
+   return;
+  }
   if(d.operationId==='OP-10'){
    const op10=root.PasekaSectionalOP10HoneyRemoval,equipment=root.PasekaEquipmentItems;
    const stage=previewOP10(getState(),d,{executor:op10,equipment,now:new Date().toISOString(),makeId:()=>root.crypto?.randomUUID?.()});
@@ -224,5 +255,5 @@ function mount(host,getState){
  });
  update();return {ok:true,readOnly:true,operations:descriptors.length};
 }
-root.PasekaSeasonOperationsWizardV2=Object.freeze({descriptors,fieldSpecs,candidates,validate,createDraft,previewOP10,mount});
+root.PasekaSeasonOperationsWizardV2=Object.freeze({descriptors,fieldSpecs,candidates,validate,createDraft,previewOP07,previewOP10,mount});
 })(typeof window!=='undefined'?window:globalThis);
