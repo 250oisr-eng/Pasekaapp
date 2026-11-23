@@ -77,6 +77,34 @@ async function preparedIsSafe(candidate,prepared,revision){
  for(let i=0;i<prev.length;i++)if(!await sameData(prev[i],next[i]))return false;
  return true;
 }
+// Only the fields actually owned by the selected OP may be changed by its
+// physical executor. In particular, journal records/media, hive registry and
+// other users' entries cannot be silently rewritten in a stage.
+const mutable={
+ 'OP-04':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog','sectionalSeasonCycles'],
+ 'OP-05':['sectionalLayouts','equipmentInventory','auditLog','sectionalSeasonCycles'],
+ 'OP-06':['sectionalLayouts','equipmentInventory','auditLog','sectionalSeasonCycles'],
+ 'OP-06-RESCUE':['equipmentInventory','auditLog'],
+ 'OP-07':['sectionalLayouts','equipmentInventory','auditLog','sectionalSeasonCycles'],
+ 'OP-08':['equipmentInventory','sectionalHoneyExtractions'],
+ 'OP-09':['sectionalSeasonalEntranceObservations'],
+ 'OP-10':['sectionalLayouts','equipmentInventory','auditLog'],
+ 'OP-11':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog'],
+ 'OP-12':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog'],
+ 'OP-13':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog'],
+ 'OP-14':['sectionalLayouts','equipmentInventory','families','queens','familyEvents','queenEvents','auditLog']
+};
+async function stageWithinScope(before,after,operationId){
+ if(!O(before)||!O(after)||!Array.isArray(mutable[operationId]))return false;
+ const whitelist=new Set(mutable[operationId]);
+ const keys=new Set([...Object.keys(before),...Object.keys(after)]);
+ for(const key of keys){
+  if(whitelist.has(key))continue;
+  if(!Object.hasOwn(before,key)||!Object.hasOwn(after,key))return false;
+  if(!await sameData(before[key],after[key]))return false;
+ }
+ return true;
+}
 const ops=new Set(['OP-04','OP-05','OP-06','OP-06-RESCUE','OP-07','OP-08','OP-09','OP-10','OP-11','OP-12','OP-13','OP-14']);
 async function commit(request,deps={}){
  if(!O(request)||!ops.has(request.operationId)||request.userConfirmed!==true||!S(request.hiveId)||!S(request.cycleId)||!S(request.eventId)||!S(request.transactionId)||!S(request.occurredAt)||!S(request.confirmedBy))return fail('season_runtime_user_confirmation_missing');
@@ -101,8 +129,12 @@ async function commit(request,deps={}){
   authorized:async(state,req)=>req.userConfirmed===true&&state.meta?.revisionId===verified.originalRevisionId,
   inspectState:deps.validateState,
   applyPhysicalOperation:async(state,req)=>{
-   const result=await executor(state,req);
+   // Use an independent input so even a badly behaved executor cannot turn a
+   // pre-execution baseline into its own forged comparison target.
+   const result=await executor(structuredClone(state),req);
    if(!result?.ok||!O(result.draft))throw Error('physical_executor_rejected');
+   if(!await stageWithinScope(state,result.draft,req.operationId))
+    throw Error('physical_executor_mutated_unrelated_state');
    return result.draft;
   },
   persistIfRevision:async(candidate,expectedRevision)=>{
