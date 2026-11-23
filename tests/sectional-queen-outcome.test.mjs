@@ -102,3 +102,12 @@ test('UI requires explicit absence evidence and never exposes an OP06 mesh-remov
  assert.ok(start>=0);
  assert.doesNotMatch(html.slice(start,end>start?end:start+6500),/completeOP06\(/);
 });
+
+test('laying UI remains an observation-only operation requiring user evidence',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/id="twoQueenConfirmLaying"/);
+ assert.match(html,/recordTwoQueenLayingObservation\(\)/);
+ assert.match(html,/PasekaFamilyLineage\.recordQueenLayingObserved\(draft/);
+ assert.match(html,/userConfirmed:true,occurredAt:new Date\(at\)\.toISOString\(\)/);
+ assert.match(html,/Двухматочная ветвь: <b>снятие сеток и OP-06 заблокированы<\/b>/);
+});
