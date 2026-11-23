@@ -18,14 +18,15 @@ function planMigration(state,request,deps){
  if(archive!=null&&(!Array.isArray(archive)||archive.length))return fail('migration_existing_archive_requires_manual_review');
  const previous=state.sectionalSeasonCycles;
  if(previous!=null&&(!Array.isArray(previous)||previous.length))return fail('migration_existing_v2_requires_manual_review');
+ if(!str(request.occurredAt)||!Number.isFinite(Date.parse(request.occurredAt)))return fail('migration_timestamp_invalid');
+ const baselines=new Map();for(const process of old){const snap=deps.evidence.physicalSnapshot(state,process.hiveId);if(!snap.ok)return fail('migration_baseline_invalid',{hiveId:process.hiveId,cause:snap.error});baselines.set(process.hiveId,snap.snapshot)}
  const converted=deps.ledger.previewV1(old);
  if(!converted.ok)return fail('migration_legacy_preview_rejected',converted.errors);
  const candidate=structuredClone(state);
  candidate.sectionalTechProcessesArchive=structuredClone(old);
  candidate.sectionalTechProcesses=[];
  candidate.sectionalSeasonCycles=converted.records.map(rec=>{
-  const snap=deps.evidence.physicalSnapshot(state,rec.hiveId);
-  if(!snap.ok)throw Object.assign(new Error('baseline failed'),{code:snap.error});
+  const snap={snapshot:baselines.get(rec.hiveId)};
   return {...rec,migrationStatus:'BASELINE_IMPORTED_PENDING_ACTIVATION',
    events:[{id:'baseline:'+rec.id,type:'BASELINE_IMPORTED',occurredAt:request.occurredAt,evidence:{
     snapshot:snap.snapshot,sourceLegacyId:rec.legacy.sourceId,sourceRevisionId:request.expectedRevisionId,
