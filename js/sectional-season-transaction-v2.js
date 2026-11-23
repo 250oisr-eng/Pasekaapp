@@ -20,6 +20,11 @@ async function commitVerifiedTransition(current,request,deps){
  let draft;
  try{draft=await deps.applyPhysicalOperation(structuredClone(base),request)}catch{return fail('season_physical_staging_failed')}
  if(!obj(draft)||!obj(draft.meta)||draft.meta.revisionId!==expectedRevisionId)return fail('season_physical_staging_revision_changed');
+ if(['OP-10','OP-11','OP-12','OP-13','OP-14'].includes(request.operationId)){
+  if(typeof deps.provenance?.validate!=='function')return fail('season_physical_provenance_validator_missing');
+  const provenanceErrors=deps.provenance.validate(base,draft,request);
+  if(!Array.isArray(provenanceErrors)||provenanceErrors.length)return fail('season_physical_provenance_invalid',provenanceErrors);
+ }
  if(!Array.isArray(draft.sectionalSeasonCycles)||!same(base.sectionalSeasonCycles,draft.sectionalSeasonCycles))return fail('season_physical_staging_mutated_history');
  const initialErrors=deps.inspectState(draft);
  if(!Array.isArray(initialErrors)||initialErrors.length)return fail('season_physical_staging_integrity_failed',initialErrors);
