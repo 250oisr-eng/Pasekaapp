@@ -34,19 +34,19 @@ function stage(state,request,deps={}){
  const used=new Set([...A(inv.events),...A(inv.itemEvents),...A(state.auditLog),...Object.values(items).flatMap(i=>A(i.events)),...Object.values(bodies).flatMap(b=>[...A(b.events),...A(b.frames).flatMap(f=>A(f.history))])].map(e=>e?.id).filter(Boolean));
  const nextId=()=>{const id=deps.makeId();if(!S(id)||used.has(id))throw Error('op10_duplicate_event_id');used.add(id);return id};
  let draft;try{draft=structuredClone(state)}catch{return fail('op10_clone_failed')}
- const target=draft.sectionalLayouts.find(l=>l.id===old.id);
  try{
   // Remove the excluders BEFORE removing their footprint from layout.
   for(const e of excluders){
    const r=deps.PasekaEquipmentItems.place(draft,{itemId:e.itemId,location:{type:'storage',label:itemStorage[e.itemId]}},nextId,request.occurredAt);
    if(!r.ok)throw Error('excluder_move:'+r.error);
   }
-  delete target.honeyStack;
-  for(const stack of target.stacks){
+  delete draft.sectionalLayouts.find(l=>l.id===old.id).honeyStack;
+  for(const stackId of old.stacks.map(s=>s.id)){ 
+   const stack=draft.sectionalLayouts.find(l=>l.id===old.id).stacks.find(s=>s.id===stackId);
    const pair=accessories[stack.id];
    for(const [field,itemId] of Object.entries({coverItemId:pair.coverItemId,topRiserItemId:pair.topRiserItemId})){
-    stack[field]=itemId;
-    const r=deps.PasekaEquipmentItems.place(draft,{itemId,location:{type:'hive',hiveId:request.hiveId,stackId:stack.id}},nextId,request.occurredAt);
+    draft.sectionalLayouts.find(l=>l.id===old.id).stacks.find(s=>s.id===stackId)[field]=itemId;
+    const r=deps.PasekaEquipmentItems.place(draft,{itemId,location:{type:'hive',hiveId:request.hiveId,stackId:stackId}},nextId,request.occurredAt);
     if(!r.ok)throw Error('stack_move:'+r.error);
    }
   }
