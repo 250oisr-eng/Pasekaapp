@@ -62,3 +62,15 @@ test('mobile OP07 inputs form a concrete reversible v2 request through actual ma
  const swapped={...draft,values:{...values,rightExcluderId:'x1'}};
  assert.equal(w.previewOP07(source.state,swapped,{manifest:{plan}}).ok,false);
 });
+
+test('early honey OP07 refuses 3 foundation frames or adjacent foundation before any physical preview is presented',()=>{
+ const a=fixture();a.req.honeyPurpose='early';
+ a.state.equipmentInventory.bodies.h1.frames[2].combType='wax_foundation';
+ a.state.equipmentInventory.bodies.h1.frames[4].combType='wax_foundation';
+ a.state.equipmentInventory.bodies.h1.frames[6].combType='wax_foundation';
+ assert.equal(plan(a.state,a.req).error,'op07_early_honey_requires_drawn_comb_and_separated_max_two_foundation');
+ const b=fixture();b.req.honeyPurpose='early';b.state.equipmentInventory.bodies.h1.frames[3].combType='wax_foundation';b.state.equipmentInventory.bodies.h1.frames[4].combType='wax_foundation';
+ assert.equal(plan(b.state,b.req).ok,false);
+ const good=fixture();good.req.honeyPurpose='early';good.state.equipmentInventory.bodies.h1.frames[3].combType='wax_foundation';good.state.equipmentInventory.bodies.h1.frames[6].combType='wax_foundation';
+ assert.equal(plan(good.state,good.req).ok,true);
+});
