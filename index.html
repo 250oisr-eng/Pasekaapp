@@ -1437,7 +1437,7 @@ async function saveVarroaObservation(event){
    alert('Измерение не сохранено. Исходные данные восстановлены, форма оставлена открытой.'+(persistenceError||saveFailure?' Причина: '+(persistenceError||saveFailure):''));
    return;
   }
-  try{form.reset();$('varroaDate').value=today();toggleVarroaFields();renderVarroaModule()}
+  try{form.reset();$('varroaHive').value=observation.hiveId;$('varroaDate').value=today();toggleVarroaFields();renderVarroaModule()}
   catch(error){
    console.error('Измерение Varroa сохранено, но экран не удалось обновить',error);
    alert('Измерение сохранено. Интерфейс не обновился; перезагрузи приложение, не сохраняй его повторно.');
