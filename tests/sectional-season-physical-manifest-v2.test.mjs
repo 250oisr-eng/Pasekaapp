@@ -93,7 +93,7 @@ test('OP11 derives 6 exact brood body moves and storage of 2 existing bottoms wi
 });
 test('OP12 2+1+1 requires real diaphragm IDs, declared positions and unused upper bodies in storage',()=>{
  const state=base(),req=request('OP-12',winterTarget(),{
-  actualIsolationConfirmed:true,storageLocations:{b4:'склад',b6:'склад'},
+  actualIsolationConfirmed:true,strongestFamilyId:'f1',storageLocations:{b4:'склад',b6:'склад'},
   itemDestinations:{
    'bottom-middle':{type:'storage',label:'склад'},
    'bottom-right':{type:'storage',label:'склад'},
@@ -106,6 +106,10 @@ test('OP12 2+1+1 requires real diaphragm IDs, declared positions and unused uppe
  assert.equal(r.request.bodyMoves.length,5);
  assert.deepEqual(r.request.itemMoves.map(x=>x.itemId),['bottom-middle','bottom-right','d1','d2']);
  assert.deepEqual(r.request.storageLocations,{b4:'склад',b6:'склад'});
+ const withoutStrong=structuredClone(req);withoutStrong.strongestFamilyId='';
+ assert.equal(plan(state,withoutStrong).error,'manifest_op12_2_1_1_and_two_diaphragms_required');
+ const wrongLeader=structuredClone(req);wrongLeader.strongestFamilyId='f2';
+ assert.equal(plan(state,wrongLeader).error,'manifest_op12_2_1_1_and_two_diaphragms_required');
  const wrong=structuredClone(req);wrong.itemDestinations.d1.positionLabel='wrong';
  assert.equal(plan(state,wrong).error,'manifest_installed_item_destination_missing_or_wrong');
 });
