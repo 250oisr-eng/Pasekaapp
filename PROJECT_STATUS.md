@@ -1,3 +1,13 @@
+## 2026-11-23 — P1 приоритет: защита атомарной записи всех данных при OP (Draft #456)
+
+**Результат:** в `js/sectional-season-runtime-v2.js` защищены P1 staged executor, snapshot preparer и полное холодное чтение. Неизменные обычные записи, матки, медиа (включая байты Blob), журнал, аудит и будущие поля теперь защищены от непредусмотренной порчи до и после CAS. Blob сравнивается порциями ≤1 МБ; snapshots добавляются без переписывания старых. `SECOND_DEVICE_VERIFIED` и запреты не ослаблены. Профиль `sectional-multiqueen-v1` не активирован, `main`/production не менялись.
+
+**Точный code/test SHA:** `d79fd4a5120582a0bf00e4fa6fe3fe0fd5582a5d` — [Fast #45242117745](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45242117745) **907/907 PASS**, [Android #45242117729](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45242117729) **SUCCESS**. Статус CI_VERIFIED_EXACT_SHA для кода, DEVICE_VERIFIED=NO, IN_MAIN=NO. После проверенного кода только docs-only изменения; сверять diff final HEAD.
+
+**Следующий один шаг:** отдельно защитить `sectional-season-lifecycle-v2.js` (открытие/закрытие сезона использует собственный путь snapshot/CAS). Затем завершать UI→CAS каждой OP только после независимого P0 full restore proof, physical OnePlus E2E. P1 как эксплуатационная функция остаётся OPEN, video cleanup #442 FROZEN. Карточка F0–F2: `docs/P1-БЕЗОПАСНОСТЬ-АТОМАРНОГО-СОХРАНЕНИЯ-2026-11-23.md`.
+
+---
+
 ## 23.11.2026 — P1 #456 завершённый программный цикл и проверка точного SHA (не производственный допуск)
 
 - **Точный code+test SHA** `722fefff1dc8ef3b4561852c81c12a4e111fe0ca`: [Fast quality #45238141698](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45238141698) **898/898 PASS, 0 FAIL**; [Android Build #45238141581](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45238141581) **SUCCESS**. Здесь проверены OP06 rescue staged swap, синтетическая CAS/rollback/cold-read, отказ при неправильной секции или неправильных сетках и запрет ложной OP06 DONE, а также новые OP11–14 предварительные физические фильтры.
