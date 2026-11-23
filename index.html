@@ -1811,6 +1811,10 @@ $('planForm').onsubmit=async e=>{
 }
 async function completeTask(id){
  const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;
+ if(t.operationId==='OP-02'&&t.op02Scope==='daily_plan'){
+  const guard=window.PasekaSectionalOP02Feeding?.validateDailyCompletion(S,t);
+  if(!guard?.ok)return alert('Нельзя закрыть дневной OP-02: '+(guard?.error||'ошибка проверки')+'. Никаких изменений не внесено.');
+ }
  let actualFeedingAmount='';
  if(t.operationId==='OP-02'&&t.op02Scope==='daily_plan'&&!confirm('Подтверждаете фактическую выдачу сегодня жидкой подкормки 2:1 И ежедневной белковой подкормки через потолочную кормушку? Если выполнена лишь часть, ведите отдельный журнал и не закрывайте план OP-02.'))return false;
  if(t.type==='Подкормка'){
