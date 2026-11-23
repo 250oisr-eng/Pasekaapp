@@ -60,6 +60,7 @@ function validateDestination(item,expected,destination){
 function plan(state,input){
  if(!O(state)||!O(input)||!OPS.has(input.operationId)||input.userConfirmed!==true||
     !S(input.hiveId)||!S(input.occurredAt)||!Number.isFinite(Date.parse(input.occurredAt))||
+    Date.parse(input.occurredAt)>Date.now()||
     input.actualWorkConfirmed!==true)return fail('manifest_user_confirmed_actual_work_required');
  const h=state.hives?.find(x=>x?.id===input.hiveId);
  if(h?.profileId!==PROFILE)return fail('manifest_profile_invalid');
@@ -100,12 +101,23 @@ function plan(state,input){
   if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='ALTERNATIVE_WINTERING_COLUMN'||
     !sameFamilies||oldSections.length!==3||newSections.length!==3||
     newCount!==4||!same(newSections.map(s=>A(s.broodBodyIds).length).sort(),[1,1,2])||
+    !S(input.strongestFamilyId)||
+    !oldFamilyIds.includes(input.strongestFamilyId)||
+    !newSections.some(s=>s.familyId===input.strongestFamilyId&&A(s.broodBodyIds).length===2)||
+    newSections.some(s=>{
+     const before=oldSections.find(x=>x.familyId===s.familyId);
+     return A(s.broodBodyIds).some(id=>!A(before?.broodBodyIds).includes(id));
+    })||
     A(target.meshDiaphragms).length!==2||input.actualIsolationConfirmed!==true)
    return fail('manifest_op12_2_1_1_and_two_diaphragms_required');
  }else if(op==='OP-13'){
   if(source.mode!=='ALTERNATIVE_WINTERING_COLUMN'||target.mode!=='SIDE_BY_SIDE'||
     !sameFamilies||newSections.length!==3||
-    newSections.some(s=>A(s.broodBodyIds).length!==2)||
+    newSections.some(s=>{
+     const before=oldSections.find(x=>x.familyId===s.familyId);
+     return A(s.broodBodyIds).length!==2||
+       A(before?.broodBodyIds).some(id=>!A(s.broodBodyIds).includes(id));
+    })||
     A(source.sections).filter(s=>A(s.broodBodyIds).length===1).length!==2||
     input.actualSeparationConfirmed!==true)
    return fail('manifest_op13_three_families_and_two_new_bodies_required');
@@ -124,6 +136,8 @@ function plan(state,input){
     input.familiesOnSeparateBottomsConfirmed!==true)
    return fail('manifest_op14_actual_early_honey_history_required');
  }
+ if((op==='OP-12'||op==='OP-13')&&input.resultFamily!==undefined)
+  return fail('manifest_no_family_merge_during_winter_isolation');
  const allLayouts=A(state.sectionalLayouts).filter(l=>l?.hiveId!==input.hiveId);
  const foreignBodies=new Set(allLayouts.flatMap(l=>[
    ...A(l.sections).flatMap(s=>A(s.broodBodyIds)),...A(l.honeyStack?.bodyIds)
@@ -216,6 +230,7 @@ function plan(state,input){
    actualWorkConfirmed:true,occurredAt:input.occurredAt,
    targetLayout:structuredClone(target),bodyMoves,itemMoves:itemChanges,
    storageLocations:locations};
+ if(op==='OP-12')request.strongestFamilyId=input.strongestFamilyId;
  for(const key of ['actualMergeConfirmed','actualIsolationConfirmed','actualSeparationConfirmed',
    'earlyHoneyHarvestConfirmed','actualDiaphragmsRemovedConfirmed','familiesOnSeparateBottomsConfirmed']){
   if(input[key]!==undefined)request[key]=input[key];
