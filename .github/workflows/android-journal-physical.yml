@@ -136,13 +136,15 @@ jobs:
             noUserDataAccess:true,
             noCleanup:true
           };
-          await writeFile('journal-proof-manifest.json',JSON.stringify(manifest,null,2)+'\\n','utf8');
+          await writeFile('journal-proof-manifest.json',JSON.stringify(manifest,null,2),'utf8');
           console.log('Manifest bound to diagnostic package, APK SHA256 and build commit.');
           NODE
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: paseka-journal-proof-isolated-apk
-          path: |\n            android/app/build/outputs/apk/debug/app-debug.apk\n            journal-proof-manifest.json
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            journal-proof-manifest.json
           if-no-files-found: error
           retention-days: 7
