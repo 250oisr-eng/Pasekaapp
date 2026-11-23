@@ -88,7 +88,7 @@ function plan(state,input){
  const newCount=newSections.reduce((n,s)=>n+A(s.broodBodyIds).length,0);
  if(op==='OP-11'){
   const upper=oldSections.map(s=>s.upperBroodBodyId);
-  if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='SINGLE_FAMILY'||
+  if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='SINGLE_FAMILY'||target.purpose!=='primary_wintering'||
     source.honeyStack!=null||oldSections.length!==3||
     oldSections.some(s=>A(s.broodBodyIds).length!==2)||newSections.length!==1||
     newCount!==3||upper.some(id=>!S(id)||!A(newSections[0].broodBodyIds).includes(id))||
@@ -114,7 +114,7 @@ function plan(state,input){
   if(source.mode!=='SIDE_BY_SIDE'||source.honeyStack?.purpose!=='early'||
     A(source.honeyStack?.bodyIds).length!==2||
     A(source.honeyStack?.excluders).length!==2||
-    target.mode!=='SINGLE_FAMILY'||newSections.length!==1||
+    target.mode!=='SINGLE_FAMILY'||target.purpose!=='early_honey_merge'||newSections.length!==1||
     ![3,4].includes(newCount)||upper.some(id=>!S(id)||!A(newSections[0].broodBodyIds).includes(id))||
     oldFamilyIds.includes(newSections[0].familyId)||
     newSections[0].familyId!==input.resultFamily?.id||
@@ -132,6 +132,14 @@ function plan(state,input){
  try{foreignItemIds=allLayouts.flatMap(l=>[...itemMap(l).keys()])}
  catch{return fail('manifest_foreign_layout_invalid')}
  const foreignItems=new Set(foreignItemIds);
+ const currentInstalledItems=new Set([...oldItems.keys()]);
+ const kinds=new Set(['bottom','cover','topRiser','feeder','honeyQueenExcluder',
+   'technicalQueenExcluder','metalMeshPlug','meshDiaphragm','plasticPlug']);
+ for(const item of Object.values(inventory.items)){
+  if(item?.location?.type==='hive'&&item.location.hiveId===input.hiveId&&
+     kinds.has(item.kind)&&!currentInstalledItems.has(item.id))
+   return fail('manifest_unreferenced_installed_accessory',{itemId:item.id});
+ }
  const allBodies=new Set([...oldBodies.keys(),...nextBodies.keys()]);
  for(const id of allBodies){
   const b=inventory.bodies[id],wanted=nextBodies.get(id),before=oldBodies.get(id);
