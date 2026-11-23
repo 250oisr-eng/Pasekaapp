@@ -238,3 +238,70 @@ test('P0: altered staged Blob fails closed after restart; no live import or evid
   assert.equal(await v2.sha.hashBlobHex((await get(source,'entrance_media',videoId)).blob),
     digest);
 });
+
+
+test('P0: real V2 record-media export stages protected journal original, but no unsupported live commit',async t => {
+  const factory = new IDBFactory();
+  let source = await open(factory,'isolated-record-export');
+  let target = await open(factory,'isolated-record-target');
+  t.after(() => {try{source.close();}catch{} try{target.close();}catch{}});
+  const bytes = new Blob([new Uint8Array([1,2,3])],{type:'video/mp4'});
+  const digest = await v2.sha.hashBlobHex(bytes);
+  await seed(source,'archived');
+  await seed(target,'base');
+  const journalState = {
+    ...state('archived'),
+    records:[{id:'inspection-journal',media:[
+      {kind:'photo',id:'nonvideo',data:'data:image/png;base64,AQID'},
+      {kind:'video',videoId:'journal-original',mimeType:'video/mp4',
+       sourceSha256:digest,sourceBytes:3,data:'data:video/mp4;base64,AQID'}
+    ]}]
+  };
+  const tx = source.transaction('main','readwrite');
+  tx.objectStore('main').put(journalState,'state');
+  await completed(tx);
+  const out = await v2.exportCandidate.buildV2ArchiveCandidateFromDatabase(
+    source,{backupId,createdAt},deps());
+  assert.equal(out.requiresWriterFence,true);
+  assert.equal(out.archiveSafe,false);
+  const incoming = await v2.codec.inspectMetadataArchive(
+    out.file,webcrypto,v2.guard,v2.sha,v2.recordAdapter);
+  assert.deepEqual(incoming.state,journalState);
+  assert.deepEqual(incoming.ledger,prior());
+  assert.equal(incoming.pendingVideos.length,1);
+  assert.equal(incoming.pendingVideos[0].source,'record_media');
+  assert.equal(incoming.pendingVideos[0].sourceSha256,digest);
+  assert.equal(await v2.sha.hashBlobHex(incoming.pendingVideos[0].blob),digest);
+  const preflight = await v2.preflight.inspectRestoreCandidateAgainstDatabase(
+    target,incoming,v2.guard,v2.gate);
+  assert.equal(preflight.preflightPassed,true);
+  assert.equal(preflight.restoreAuthorized,false);
+
+  const stage = await v2.stage.stagePendingRestore(target,out.file,options(),deps());
+  assert.equal(stage.staged,true);
+  assert.equal(stage.cleanupAuthorized,false);
+  target.close();
+  target = await open(factory,'isolated-record-target');
+  const stagingKey = 'v2pending:' + backupId + ':record_media:journal-original';
+  const protectedRow = await get(target,'archive_staging',stagingKey);
+  assert.equal(await v2.sha.hashBlobHex(protectedRow.blob),digest);
+  const audited = await v2.verify.verifyStagedPendingAgainstArchive(
+    target,out.file,options(),deps());
+  assert.equal(audited.verifiedAtSnapshot,true);
+  assert.equal(audited.restoreAuthorized,false);
+
+  await assert.rejects(v2.commit.commitEntranceOnlyIsolated(
+    target,out.file,commitOptions(),deps()),{code:'V2_ENTRANCE_ARCHIVE_UNSUPPORTED'});
+  assert.deepEqual(await get(target,'main','state'),state('base'));
+  assert.deepEqual(await get(target,'main','video_recognition_ledger_v1'),prior());
+  assert.equal(await count(target,'entrance_media'),0);
+  assert.equal(await count(target,'archive_staging'),2);
+  assert.equal(await count(target,'archive_history'),1);
+  assert.equal((await get(target,'archive_history',backupId)).status,'staged');
+  assert.equal(await count(target,'full_backup'),0);
+  assert.equal(await v2.sha.hashBlobHex((await get(target,'archive_staging',stagingKey)).blob),
+    digest);
+  assert.deepEqual(await get(source,'main','state'),journalState);
+  assert.equal(await count(source,'archive_staging'),0);
+  assert.equal(await count(source,'full_backup'),0);
+});
