@@ -8,7 +8,7 @@ const layout={id:'l1',hiveId:'h1',mode:'SIDE_BY_SIDE',sections:[{id:'s1',familyI
 const state=()=>({hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],sectionalLayouts:[structuredClone(layout)],equipmentInventory:{bodies:{b1:{frames:[{frameId:'r1'}]},honey1:{frames:[{frameId:'r2'}]}}},families:[{id:'f1'}],queens:[{id:'q1',familyId:'f1'}]});
 const fresh=()=>[{modelVersion:2,id:'c1',hiveId:'h1',cycleNumber:1,status:'ACTIVE',events:[]}];
 const request=()=>({cycleId:'c1',hiveId:'h1',operationId:'OP-08',eventId:'event-1',occurredAt:'2026-11-23T10:00:00Z',userConfirmed:true,confirmedBy:'beekeeper',transactionId:'durable-save-1'});
-const deps={ledger,inspectBefore:()=>[],inspectAfter:()=>[]};
+const deps={ledger,inspectBefore:()=>[],inspectAfter:()=>[],validateTransition:()=>[]};
 test('snapshot keeps physical IDs and copies without mutation',()=>{
  const s=state(),snap=ev.physicalSnapshot(s,'h1');
  assert.equal(snap.ok,true);s.equipmentInventory.bodies.b1.frames.pop();
