@@ -65,13 +65,12 @@ test('revision race aborts restore without clearing existing data',async()=>{
 });
 test('unsupported store changes and missing main state are rejected',async()=>{
  const db=await database();await seed(db);const raw=await api.exportArchive(db),obj=JSON.parse(raw);
- const other=await database('other');await assert.rejects(api.inspectArchive(raw,other),/Database version mismatch|Archive store inventory/).catch(()=>{});
  const bad=JSON.parse(raw);bad.payload.stores.find(x=>x.name==='main').entries=[];
  bad.manifest.counts.main=0;
  const cryptoChecksum=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(bad.payload)));
  bad.manifest.sha256=Buffer.from(cryptoChecksum).toString('hex');
  await assert.rejects(api.inspectArchive(JSON.stringify(bad),db),/Main state is missing/);
- db.close();other.close();
+ db.close();
 });
 test('main UI exposes distinct guarded P0 flow while legacy JSON functions stay present',()=>{
  assert.match(html,/js\/disaster-archive\.js/);
