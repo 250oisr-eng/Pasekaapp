@@ -118,3 +118,21 @@ test('Varroa picker updates treatment history when selecting a different hive',(
  assert.match(html,/id="varroaTreatmentsList"/);
  assert.match(html,/не только против Varroa/);
 });
+
+test('old backups without records array display an empty treatment history without fabricating entries',()=>{
+ const from=html.indexOf('function renderVarroaModule(){');
+ const to=html.indexOf('\nasync function saveVarroaObservation(',from);
+ assert.ok(from>=0&&to>from);
+ const source=html.slice(from,to);
+ const elements=Object.fromEntries(['varroaHive','varroaDate','varroaObservationsList','varroaTreatmentsList','varroaTreatmentsCount','varroaCount'].map(id=>[id,{value:'',innerHTML:'',textContent:''}]));
+ elements.varroaHive.value='h1';
+ const state={hives:[{id:'h1'}],varroaObservations:[],records:null};
+ const render=new Function('S','$','ruPlural','hname','safe','today','selectedHiveId',source+';return renderVarroaModule')(
+  state,id=>elements[id],(n,a,b,c)=>n===1?a:c,id=>'Улей '+id,value=>String(value??''),()=> '2026-11-23','h1'
+ );
+ assert.doesNotThrow(render);
+ assert.match(elements.varroaTreatmentsCount.textContent,/^0 обработок/);
+ assert.match(elements.varroaTreatmentsList.innerHTML,/Записанных обработок для выбранного улья нет/);
+ assert.match(elements.varroaObservationsList.innerHTML,/Измерений пока нет/);
+ assert.equal(state.records,null,'render must not silently migrate or modify historical state');
+});
