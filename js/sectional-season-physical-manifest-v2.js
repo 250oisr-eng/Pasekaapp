@@ -78,11 +78,60 @@ function plan(state,input){
  let oldBodies,nextBodies,oldItems,nextItems;
  try{oldBodies=bodyMap(source);nextBodies=bodyMap(target);oldItems=itemMap(source);nextItems=itemMap(target)}
  catch(e){return fail('manifest_duplicate_or_invalid_physical_id',{message:e.message})}
+ // Exact OP-specific physical shape. This is a preliminary filter; the
+ // full local layout/lineage/executor checks remain mandatory before CAS.
+ const op=input.operationId,oldSections=A(source.sections),newSections=A(target.sections);
+ const oldFamilyIds=oldSections.map(s=>s.familyId),newFamilyIds=newSections.map(s=>s.familyId);
+ const sameFamilies=oldFamilyIds.length===newFamilyIds.length&&
+  oldFamilyIds.every(id=>newFamilyIds.includes(id))&&
+  new Set(newFamilyIds).size===newFamilyIds.length;
+ const newCount=newSections.reduce((n,s)=>n+A(s.broodBodyIds).length,0);
+ if(op==='OP-11'){
+  const upper=oldSections.map(s=>s.upperBroodBodyId);
+  if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='SINGLE_FAMILY'||
+    source.honeyStack!=null||oldSections.length!==3||
+    oldSections.some(s=>A(s.broodBodyIds).length!==2)||newSections.length!==1||
+    newCount!==3||upper.some(id=>!S(id)||!A(newSections[0].broodBodyIds).includes(id))||
+    input.actualMergeConfirmed!==true||!O(input.resultFamily)||
+    newSections[0].familyId!==input.resultFamily.id||
+    oldFamilyIds.includes(newSections[0].familyId))
+   return fail('manifest_op11_three_upper_bodies_and_new_unknown_family_required');
+ }else if(op==='OP-12'){
+  if(source.mode!=='SIDE_BY_SIDE'||target.mode!=='ALTERNATIVE_WINTERING_COLUMN'||
+    !sameFamilies||oldSections.length!==3||newSections.length!==3||
+    newCount!==4||!same(newSections.map(s=>A(s.broodBodyIds).length).sort(),[1,1,2])||
+    A(target.meshDiaphragms).length!==2||input.actualIsolationConfirmed!==true)
+   return fail('manifest_op12_2_1_1_and_two_diaphragms_required');
+ }else if(op==='OP-13'){
+  if(source.mode!=='ALTERNATIVE_WINTERING_COLUMN'||target.mode!=='SIDE_BY_SIDE'||
+    !sameFamilies||newSections.length!==3||
+    newSections.some(s=>A(s.broodBodyIds).length!==2)||
+    A(source.sections).filter(s=>A(s.broodBodyIds).length===1).length!==2||
+    input.actualSeparationConfirmed!==true)
+   return fail('manifest_op13_three_families_and_two_new_bodies_required');
+ }else{
+  const upper=oldSections.map(s=>s.upperBroodBodyId);
+  if(source.mode!=='SIDE_BY_SIDE'||source.honeyStack?.purpose!=='early'||
+    A(source.honeyStack?.bodyIds).length!==2||
+    A(source.honeyStack?.excluders).length!==2||
+    target.mode!=='SINGLE_FAMILY'||newSections.length!==1||
+    ![3,4].includes(newCount)||upper.some(id=>!S(id)||!A(newSections[0].broodBodyIds).includes(id))||
+    oldFamilyIds.includes(newSections[0].familyId)||
+    newSections[0].familyId!==input.resultFamily?.id||
+    input.actualMergeConfirmed!==true||
+    input.earlyHoneyHarvestConfirmed!==true||
+    input.actualDiaphragmsRemovedConfirmed!==true||
+    input.familiesOnSeparateBottomsConfirmed!==true)
+   return fail('manifest_op14_actual_early_honey_history_required');
+ }
  const allLayouts=A(state.sectionalLayouts).filter(l=>l?.hiveId!==input.hiveId);
  const foreignBodies=new Set(allLayouts.flatMap(l=>[
    ...A(l.sections).flatMap(s=>A(s.broodBodyIds)),...A(l.honeyStack?.bodyIds)
  ]));
- const foreignItems=new Set(allLayouts.flatMap(l=>[...itemMap(l).keys()]));
+ let foreignItemIds;
+ try{foreignItemIds=allLayouts.flatMap(l=>[...itemMap(l).keys()])}
+ catch{return fail('manifest_foreign_layout_invalid')}
+ const foreignItems=new Set(foreignItemIds);
  const allBodies=new Set([...oldBodies.keys(),...nextBodies.keys()]);
  for(const id of allBodies){
   const b=inventory.bodies[id],wanted=nextBodies.get(id),before=oldBodies.get(id);
