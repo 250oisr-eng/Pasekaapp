@@ -30,7 +30,7 @@ async function pack(value,seen=new WeakSet()){
  assert(!seen.has(value),'Circular data; export aborted');
  seen.add(value);
  let result;
- if(Array.isArray(value))result={t:'array',v:await Promise.all(value.map(x=>pack(x,seen)))};
+ if(Array.isArray(value)){const items=[];for(const item of value)items.push(await pack(item,seen));result={t:'array',v:items};}
  else{
   assert(Object.getPrototypeOf(value)===Object.prototype||Object.getPrototypeOf(value)===null,'Unsupported object prototype');
   const pairs=[];for(const key of Object.keys(value))pairs.push([key,await pack(value[key],seen)]);
