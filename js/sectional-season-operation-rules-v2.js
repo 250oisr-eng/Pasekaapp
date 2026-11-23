@@ -33,11 +33,9 @@ function validate(before,after,request){
   }))add('op08_no_frame_history_change');
  }
  if(op==='OP-09'){
-  if(old.mode!=='SIDE_BY_SIDE'||newer.mode!=='SIDE_BY_SIDE'||!same(families(old),families(newer)))add('op09_layout_mode_invalid');
-  if(![2,4].includes(oldHoney.length)||![2,4].includes(newHoney.length)||new Set(newHoney).size!==newHoney.length)add('op09_honey_pairs_required');
-  if(oldHoney.length===2&&newHoney.length===4&&!oldHoney.every(x=>newHoney.includes(x)))add('op09_addition_must_keep_existing_bodies');
-  if(oldHoney.length===4&&newHoney.length===2&&!newHoney.every(x=>oldHoney.includes(x)))add('op09_removal_not_from_existing');
-  if(!request.inventoryMovesConfirmed)add('op09_inventory_move_confirmation_required');
+  if(old.mode!=='SIDE_BY_SIDE'||newer.mode!=='SIDE_BY_SIDE'||!same(old,newer)||!same(before.bodyInventory,after.bodyInventory)||!same(before.families,after.families)||!same(before.queens,after.queens))add('op09_must_only_observe_entrances');
+  const prev=rows(before.seasonalEntranceObservations),next=rows(after.seasonalEntranceObservations);
+  if(next.length!==prev.length+1||!same(prev,next.slice(0,-1))||next.at(-1)?.operationId!=='OP-09'||next.at(-1)?.phase!==request.seasonPhase||next.at(-1)?.userConfirmed!==true||request.entrancesPersonallyObserved!==true)add('op09_observed_entrance_event_required');
  }
  if(op==='OP-10'){
   if(old.mode!=='SIDE_BY_SIDE'||newer.mode!=='SIDE_BY_SIDE'||![2,4].includes(oldHoney.length)||newHoney.length!==0||newer.honeyStack!=null)add('op10_honey_removal_required');
