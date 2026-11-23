@@ -59,3 +59,21 @@ test('OP02 UI is linked only as confirmed day plan, not physical automatic compl
  assert.match(html,/Подтверждаете фактическую выдачу сегодня жидкой подкормки 2:1/);
  assert.match(sw,/sectional-op02-feeding\.js/);
 });
+
+test('OP02 completion rechecks family/profile and never accepts stale or altered daily plans',()=>{
+ const state=base(),result=api.buildDailyPlan(state,request(),id);
+ assert.equal(result.ok,true);
+ state.tasks.push(result.task);
+ assert.equal(api.validateDailyCompletion(state,state.tasks[0]).ok,true);
+ state.hives[0].profileId='farrar';
+ assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'sectional_profile_required');
+ state.hives[0].profileId='sectional-multiqueen-v1';
+ state.families[0].recordStatus='historical';
+ assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'active_family_required');
+ state.families[0].recordStatus='active';
+ state.tasks[0].gramsPerColonyPerDay=999;
+ assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'daily_plan_parameters_invalid');
+ state.tasks[0].gramsPerColonyPerDay=150;
+ state.tasks[0].status='done';
+ assert.equal(api.validateDailyCompletion(state,state.tasks[0]).error,'invalid_or_completed_daily_task');
+});
