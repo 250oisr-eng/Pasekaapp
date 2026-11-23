@@ -53,6 +53,10 @@ test('v2 compat coordinator is accepted only when all completed stages have phys
   {id:'physical-mesh',type:'STAGE_CONFIRMED',occurredAt:'2026-11-21T10:00:00Z',evidence:{operationId:'OP-05'}}
  ],compatProcess:{id:'c1',hiveId:'h1',modelVersion:1,state:{operations:[{operationId:'OP-04',status:'DONE'},{operationId:'OP-05',status:'DONE'}]}}};
  assert.deepEqual(L.inspect([cycle]),[]);
+ const reordered=structuredClone(cycle);reordered.events.reverse();
+ assert.ok(L.inspect([reordered]).some(e=>e.code==='season_compat_stages_unproven'));
+ const duplicated=structuredClone(cycle);duplicated.events[1].evidence.operationId='OP-04';
+ assert.ok(L.inspect([duplicated]).some(e=>e.code==='season_compat_stages_unproven'));
  const missing=structuredClone(cycle);missing.events.pop();
  assert.ok(L.inspect([missing]).some(e=>e.code==='season_compat_stages_unproven'));
  const corrupted=structuredClone(cycle);corrupted.compatProcess.state.operations[1].status='IN_PROGRESS';
