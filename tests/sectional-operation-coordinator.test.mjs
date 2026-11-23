@@ -1025,3 +1025,16 @@ test('OP-03 UI integrates confirmed durable swap without enabling premature prof
  assert.match(html,/sectionalBodyReorders:S\.sectionalBodyReorders\|\|\[\]/);
  assert.match(sw,/sectional-op03-body-swap\.js/);
 });
+
+test('OP-03 backup integrity rejects forged global or body movement evidence',()=>{
+ const f=makeFixture(),deps=dependencies();
+ const result=OP03Swap.applySwap(f.state,{hiveId:'h1',userConfirmed:true,occurredAt:NOW},{...deps,now:'2026-11-17T10:01:00.000Z'});
+ assert.equal(result.ok,true,JSON.stringify(result));
+ const globalMissing=structuredClone(result.draft);
+ globalMissing.equipmentInventory.events=globalMissing.equipmentInventory.events.filter(e=>e.type!=='sectional_op03_body_order_swapped');
+ assert.ok(OP03Swap.inspect(globalMissing).some(x=>x.code==='op03_global_movement_evidence_invalid'));
+ const bodyMissing=structuredClone(result.draft);
+ bodyMissing.equipmentInventory.bodies.b1.events=bodyMissing.equipmentInventory.bodies.b1.events.filter(e=>e.type!=='sectional_op03_body_reordered');
+ assert.ok(OP03Swap.inspect(bodyMissing).some(x=>x.code==='op03_body_movement_evidence_invalid'));
+ assert.deepEqual(OP03Swap.inspect(result.draft),[]);
+});
