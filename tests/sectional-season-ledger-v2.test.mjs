@@ -44,3 +44,5 @@ test('falsified CLOSED record cannot authorize new season',()=>{
  const forged=structuredClone(closed);forged.events[0].evidence.stagedWithPhysicalState=false;
  assert.equal(L.planNewCycle([forged],{hiveId:'h1',id:'c2',occurredAt:'2026-11-21T12:00:00Z'}).ok,false);
 });
+
+test('imported pending baseline cannot close or authorize new cycle even with terminal record',()=>{const pending={...closed,migrationStatus:'BASELINE_IMPORTED_PENDING_ACTIVATION'};assert.equal(L.planNewCycle([pending],{hiveId:'h1',id:'c2',occurredAt:'2026-11-21T12:00:00Z'}).ok,false);const active={...pending,status:'ACTIVE',events:[closed.events[0]]};assert.equal(L.planCloseCycle([active],{userConfirmed:true,confirmationRef:'witness',id:'close',cycleId:'c1',occurredAt:'2026-11-21T12:00:00Z'}).ok,false)});
