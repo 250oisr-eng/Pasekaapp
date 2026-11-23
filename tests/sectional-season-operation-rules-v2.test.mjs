@@ -18,11 +18,12 @@ test('OP08 requires each confirmed sealed frame to gain actual history',()=>{
  assert.ok(fails(validate(a,b,req('OP-08',{sealingObserved:false,sealedFrameIds:['h1-frame']})),'op08_sealed_frame_evidence_required'));
  assert.ok(fails(validate(a,a,req('OP-08',{sealingObserved:true,sealedFrameIds:['h1-frame']})),'op08_no_frame_history_change'));
 });
-test('OP09 pair extension allows 2 to 4 retaining original bodies',()=>{
- const a=snap(),b=snap('SIDE_BY_SIDE',4);
- assert.deepEqual(validate(a,b,req('OP-09',{inventoryMovesConfirmed:true})),[]);
- b.layout.honeyStack.bodyIds=['new1','new2','new3','new4'];
- assert.ok(validate(a,b,req('OP-09',{inventoryMovesConfirmed:true})).length);
+test('OP09 observes summer/autumn entrances but never moves honey bodies',()=>{
+ const a=snap(),b=structuredClone(a);
+ a.seasonalEntranceObservations=[];b.seasonalEntranceObservations=[{operationId:'OP-09',phase:'AUTUMN_REDUCED',userConfirmed:true}];
+ assert.deepEqual(validate(a,b,req('OP-09',{seasonPhase:'AUTUMN_REDUCED',entrancesPersonallyObserved:true})),[]);
+ b.layout.honeyStack.bodyIds=['h1','h2','h3','h4'];
+ assert.ok(validate(a,b,req('OP-09',{seasonPhase:'AUTUMN_REDUCED',entrancesPersonallyObserved:true})).length);
 });
 test('OP10 requires removing honey tier and storing equipment',()=>{
  const a=snap(),b=snap('SIDE_BY_SIDE',0);
