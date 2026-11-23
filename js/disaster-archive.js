@@ -102,11 +102,19 @@ async function inspectArchive(raw,db,validateMain){
   const store=db.transaction([spec.name],'readonly').objectStore(spec.name);
   assert(JSON.stringify(spec.keyPath)===JSON.stringify(store.keyPath)&&spec.autoIncrement===store.autoIncrement,'Store schema mismatch: '+spec.name);
   assert(Array.isArray(spec.entries)&&spec.entries.length===manifest.counts[spec.name],'Archive count mismatch: '+spec.name);
-  const rows=[];
+  const rows=[],uniqueKeys=new Set();
   for(const pair of spec.entries){
    assert(Array.isArray(pair)&&pair.length===2,'Invalid record tuple');
    const key=unpack(pair[0]),value=unpack(pair[1]);
    assert(key!==undefined&&key!==null,'Invalid record key');
+   const encodedKey=JSON.stringify(pair[0]);
+   assert(!uniqueKeys.has(encodedKey),'Duplicate record key in archive: '+spec.name);
+   uniqueKeys.add(encodedKey);
+   if(store.keyPath!==null){
+    assert(typeof store.keyPath==='string'&&store.keyPath.length>0,'Unsupported inline keyPath');
+    const inlineKey=store.keyPath.split('.').reduce((item,part)=>item?.[part],value);
+    assert(inlineKey!==undefined&&JSON.stringify(inlineKey)===JSON.stringify(key),'Inline record key mismatch: '+spec.name);
+   }
    rows.push({key,value});
   }
   restored.set(spec.name,rows);
