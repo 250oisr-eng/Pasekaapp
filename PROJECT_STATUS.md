@@ -1,3 +1,12 @@
+## 2026-11-23 — P0: запрет повторного включения распознанных байтов по новому videoId
+
+- Обнаружен защитный пробел в изолированном PASEKA02 `js/video-archive-v2-guard.js`: `checkCandidateVideoPayloads` сравнивал новые видео с ledger только по `source:videoId`, не по `sourceSha256`. Одинаковый оригинал мог пройти preflight под новым ID или другим `source`, несмотря на уже записанный результат распознавания или tombstone; gate реального restore имел более строгую SHA-проверку.
+- Исправление: после полной валидации ledger собираются SHA-256 **обоих** источников, и все новые кандидаты с распознанными байтами fail-closed `V2_RECOGNIZED_ORIGINAL_INCLUDED`, включая `blocked_archive_safety`, `delete_required`, `deleted`. Не запрещаются самостоятельные кандидаты с отличающимся SHA и ID.
+- `tests/p0-v2-guard-recognized-hash-alias.test.mjs`: 12 комбинаций source/status, положительный distinct-hash контроль, запрет same identity и реальный вызов `buildMetadataArchive` с Blob. Проверка CI на **точном HEAD после всех коммитов**; статус до результата `PENDING`.
+- Только pre-integration guard, codec и tests, без live PASEKA02 активации, Android устройств, реальных медиа или удаления. `cleanupAuthorized` не появляется, P0/P1 OPEN, Restore335 STOP. Следующая задача — дальнейший аудиторский/сквозной P0 state+media restore и P1 physical quota, только безопасные фикстуры.
+
+---
+
 ## 2026-11-23 — OnePlus reboot + оба канала сети выключены: пользовательский физический PASS
 
 - Новый пользовательский отчёт после предыдущего ручного offline/force-stop: **«Перезагрузил. Сеть отключена.»** и полный JSON `PHONE_UNIFIED_SYNTHETIC_V2`, пакет `ru.paseka.journal.diagnostic.allchecks`, `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. Это прямая пользовательская аттестация **перезагрузки и отключённой сети** перед запуском; сам APK не определяет OS reboot и состояние соединения.

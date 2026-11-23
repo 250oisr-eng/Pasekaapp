@@ -60,6 +60,10 @@ function validateRecognitionLedgerForV2(ledger) {
 }
 function checkCandidateVideoPayloads(ledger, payloads) {
   const checked = validateRecognitionLedgerForV2(ledger);
+  // A recognized original must not re-enter a portable backup under a new
+  // videoId or source. Checking identities alone would miss renamed copies.
+  // Compare hashes across BOTH media stores and all cleanup states.
+  const recognizedHashes = new Set(ledger.entries.map(entry => entry.sourceSha256));
   if (!Array.isArray(payloads)) fail('V2_PAYLOAD_SET_MISSING');
   const seen = new Set();
   for (const item of payloads) {
@@ -69,7 +73,8 @@ function checkCandidateVideoPayloads(ledger, payloads) {
     const key = item.source + ':' + item.videoId;
     if (seen.has(key)) fail('V2_PAYLOAD_DUPLICATE');
     seen.add(key);
-    if (checked.identities.has(key)) fail('V2_RECOGNIZED_ORIGINAL_INCLUDED');
+    if (checked.identities.has(key) || recognizedHashes.has(item.sourceSha256))
+      fail('V2_RECOGNIZED_ORIGINAL_INCLUDED');
   }
   // Only metadata validation. A caller must still scan state Data URLs, actual
   // Blob bytes, staged and rollback copies, and concurrent updates. Never use
