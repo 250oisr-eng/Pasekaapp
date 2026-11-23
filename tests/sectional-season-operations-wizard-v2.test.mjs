@@ -69,7 +69,7 @@ test('OP11 requires exactly the three upper brood bodies',()=>{
  assert.ok(api.validate(f,request('OP-11',{...v,upperBodyIds:['b1','b3','b5']})).some(e=>e.code==='winter_upper_bodies_mismatch'));
 });
 test('OP09 checks phase and actual observations of three sections',()=>{
- const f=fixture(),v={phase:'SUMMER_FULL',allSectionsObserved:true};
+ const f=fixture(),v={phase:'SUMMER_FULL',allSectionsObserved:true,sectionEntrances:['left','middle','right'].map(sectionId=>({sectionId,roundEntrances:'all_open',flatEntrance:'fully_open',personallyObserved:true}))};
  assert.deepEqual(api.validate(f,request('OP-09',v)),[]);
  assert.ok(api.validate(f,request('OP-09',{...v,allSectionsObserved:false})).length);
 });
@@ -173,4 +173,29 @@ test('OP14 refuses main honey or incorrect identity of installed early pair',()=
  assert.deepEqual(api.validate(f,request('OP-14',values)),[]);
  assert.ok(api.validate(f,request('OP-14',{...values,honeyBodyIds:['h3','h4']}))
   .some(e=>e.code==='op14_original_early_honey_layout_mismatch'));
+});
+
+
+test('OP08 requires actual extraction and return, not just visually sealed honey',()=>{
+ const f=fixture(),v={sealedFrameIds:['h1fr'],sealingObserved:true,
+  actualExtraction:true,actualHoneyBodyReturn:true};
+ assert.deepEqual(api.validate(f,request('OP-08',v)),[]);
+ for(const missing of ['actualExtraction','actualHoneyBodyReturn']){
+  assert.ok(api.validate(f,request('OP-08',{...v,[missing]:false}))
+   .some(e=>e.code==='confirmation_missing'));
+ }
+});
+test('OP09 requires three individually witnessed entrance configurations',()=>{
+ const f=fixture(),sections=['left','middle','right'].map(sectionId=>({
+  sectionId,roundEntrances:'one_open',flatEntrance:'one_bee_width',personallyObserved:true
+ }));
+ const v={phase:'AUTUMN_REDUCED',allSectionsObserved:true,sectionEntrances:sections};
+ assert.deepEqual(api.validate(f,request('OP-09',v)),[]);
+ for(const changed of [
+  sections.slice(0,2),
+  sections.map((s,i)=>i===1?{...s,personallyObserved:false}:s),
+  sections.map((s,i)=>i===1?{...s,flatEntrance:'fully_open'}:s),
+  sections.map((s,i)=>i===1?{...s,sectionId:'left'}:s)
+ ])assert.ok(api.validate(f,request('OP-09',{...v,sectionEntrances:changed}))
+  .some(e=>e.code==='op09_actual_sections_not_verified'));
 });
