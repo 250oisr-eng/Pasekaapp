@@ -44,3 +44,22 @@ test('reject corrupt history and overlapping snapshot chain',()=>{
 test('only valid sectional profile can enter historical ledger',()=>{
  const a=state();a.hives[0].profileId='farrar';assert.equal(ev.physicalSnapshot(a,'h1').error,'snapshot_profile_invalid');
 });
+
+test('imported legacy cycle cannot be staged until activated after verified restore',()=>{
+ const a=state(),b=structuredClone(a);b.equipmentInventory.bodies.b1.frames.push({frameId:'new'});
+ const rows=fresh();rows[0].migrationStatus='BASELINE_IMPORTED_PENDING_ACTIVATION';
+ rows[0].events=[{id:'baseline',type:'BASELINE_IMPORTED',occurredAt:'2026-11-22T09:00:00Z',evidence:{snapshot:ev.physicalSnapshot(a,'h1').snapshot,backupVerificationId:'verified-backup',restoreReplayVerified:true}}];
+ assert.deepEqual(ev.inspectStages(rows),[]);
+ assert.equal(ev.stagePhysicalTransition(a,b,rows,request(),deps).error,'stage_imported_cycle_not_activated');
+ const activated=structuredClone(rows);activated[0].migrationStatus='ACTIVATED';
+ assert.equal(ev.stagePhysicalTransition(a,b,activated,request(),deps).ok,true);
+});
+test('corrupt or mismatched imported baseline blocks future transitions',()=>{
+ const a=state(),b=structuredClone(a);b.equipmentInventory.bodies.b1.frames.push({frameId:'new'});
+ const rows=fresh();rows[0].migrationStatus='ACTIVATED';
+ rows[0].events=[{id:'baseline',type:'BASELINE_IMPORTED',occurredAt:'2026-11-22T09:00:00Z',evidence:{snapshot:ev.physicalSnapshot(a,'h1').snapshot,backupVerificationId:'archive',restoreReplayVerified:true}}];
+ rows[0].events[0].evidence.snapshot.layout.id='forged';
+ assert.equal(ev.stagePhysicalTransition(a,b,rows,request(),deps).error,'stage_imported_baseline_mismatch');
+ rows[0].events[0].evidence.backupVerificationId='';
+ assert.ok(ev.inspectStages(rows).some(x=>x.code==='stage_imported_baseline_invalid'));
+});
