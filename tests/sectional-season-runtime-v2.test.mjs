@@ -211,3 +211,52 @@ test('binary verification detects changes after the first megabyte of video',asy
  assert.equal((await runtime.commit(f.request,f.deps)).ok,false);
  assert.equal(f.count(),0);
 });
+
+
+test('OP11 cannot mutate installed equipment or family/queen identity of another hive',async()=>{
+ for(const mutation of [
+  s=>{s.families.find(f=>f.id==='foreign-family').id='rewritten';},
+  s=>{s.queens.find(q=>q.familyId==='foreign-family').status='unknown';},
+  s=>{s.equipmentInventory.bodies.foreignBody.frames[0].frameId='rewritten';},
+  s=>{s.equipmentInventory.items.foreignMesh.location.hiveId='h';},
+  s=>{s.sectionalLayouts.find(l=>l.hiveId==='foreign').sections[0].familyId='hijacked';}
+ ]){
+  const f=fixture(),read=f.deps.readMain;
+  f.deps.readMain=async()=>{
+   const source=await read();
+   source.hives.push({id:'foreign',profileId:'sectional-multiqueen-v1'});
+   source.families.push({id:'foreign-family',hive:'foreign'});
+   source.queens.push({id:'foreign-q',familyId:'foreign-family',status:'current'});
+   source.sectionalLayouts.push({id:'foreign-layout',hiveId:'foreign',profileId:'sectional-multiqueen-v1',
+    mode:'SIDE_BY_SIDE',sections:[{id:'foreign-section',familyId:'foreign-family',broodBodyIds:['foreignBody']}]});
+   source.equipmentInventory.bodies.foreignBody={id:'foreignBody',kind:'brood',frames:[{frameId:'foreignFrame',history:[]}]};
+   source.equipmentInventory.items={foreignMesh:{id:'foreignMesh',kind:'metalMeshPlug',location:{type:'hive',hiveId:'foreign'}}};
+   return source;
+  };
+  f.request.operationId='OP-11';
+  f.deps.executors={'OP-11':async s=>{
+   mutation(s);return {ok:true,draft:s};
+  }};
+  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
+  assert.equal(f.count(),0);
+ }
+});
+test('OP11 cannot rewrite prior audit, family or equipment event even though those fields are mutable',async()=>{
+ for(const key of ['auditLog','familyEvents','equipmentEvents']){
+  const f=fixture(),read=f.deps.readMain;
+  f.deps.readMain=async()=>{
+   const s=await read();
+   if(key==='equipmentEvents')s.equipmentInventory.events=[{id:'past',type:'existing'}];
+   else s[key]=[{id:'past',type:'existing'}];
+   return s;
+  };
+  f.request.operationId='OP-11';
+  f.deps.executors={'OP-11':async s=>{
+   if(key==='equipmentEvents')s.equipmentInventory.events[0].type='tampered';
+   else s[key][0].type='tampered';
+   return {ok:true,draft:s};
+  }};
+  assert.equal((await runtime.commit(f.request,f.deps)).error,'season_physical_staging_failed');
+  assert.equal(f.count(),0);
+ }
+});
