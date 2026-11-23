@@ -80,7 +80,7 @@ function validate(state,draft){
    if(type==='honeyBodies'&&![2,4].includes(ids.length))add('honey_pair_invalid','Медовые корпуса устанавливаются и снимаются только парами');
   }
   if(type==='phase'&&!['SUMMER_FULL','AUTUMN_REDUCED'].includes(value))add('phase_invalid','Выберите сезонную фазу');
-  if(type==='timing'&&!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_15_DAYS_AFTER_SECOND_ROW'].includes(value))add('timing_invalid','Выберите подтверждённый вариант срока');
+  if(type==='timing'&&!['AFTER_OP06','WITH_SECOND_ROW','APPROX_12_DAYS_AFTER_SECOND_ROW'].includes(value))add('timing_invalid','Выберите подтверждённый вариант срока');
  }
  if(draft.operationId==='OP-03'&&draft.values?.topBodyId===draft.values?.bottomBodyId)add('same_body','Верхний и нижний корпуса должны быть разными');
  if(draft.operationId==='OP-03'){
@@ -138,7 +138,7 @@ function inputHTML(state,hive,field){
  }
  if(type==='phase'||type==='timing'){
   const vals=type==='phase'?[['','— Выберите —'],['SUMMER_FULL','Летние летки открыты'],['AUTUMN_REDUCED','Осеннее сокращение']]:
-   [['','— Выберите —'],['AFTER_OP06','После подтверждённой OP-06'],['WITH_SECOND_ROW','Вместе со вторым рядом'],['APPROX_12_15_DAYS_AFTER_SECOND_ROW','Через 12–15 дней после второго ряда (пользовательское уточнение)']];
+   [['','— Выберите —'],['AFTER_OP06','После подтверждённой OP-06'],['WITH_SECOND_ROW','Вместе со вторым рядом'],['APPROX_12_DAYS_AFTER_SECOND_ROW','Через 12–15 дней после второго ряда (пользовательское уточнение)']];
   return '<label>'+esc(title)+'<select '+base+'>'+vals.map(e=>'<option value="'+esc(e[0])+'">'+esc(e[1])+'</option>').join('')+'</select></label>';
  }
  return '<label>'+esc(title)+'<input '+base+' type="'+(type==='grams'||type==='nestBodies'?'number':'text')+'"'+(type==='grams'?' min="100" max="200" step="1"':'')+' maxlength="160"></label>';
