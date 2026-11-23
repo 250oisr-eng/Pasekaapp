@@ -8,7 +8,7 @@ function fixture(){
  let db=structuredClone(state),seq=1,writes=0;
  const deps={ledger:w.PasekaSectionalSeasonLedgerV2,evidence:w.PasekaSectionalSeasonEvidenceV2,dualRead:w.PasekaSectionalSeasonDualReadV2,migration:w.PasekaSectionalSeasonMigrationV2,
   readMain:async()=>structuredClone(db),writeMainIfUnchanged:async(candidate,expected)=>{if(db.meta.revisionId!==expected)throw Error('conflict');db=structuredClone(candidate);writes++},
-  makeRevisionId:()=> 'r'+(++seq),verifyFullArchiveAndReplay:async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,originalRevisionId:source.meta.revisionId,verificationId:'verified:'+source.meta.revisionId}),inspectV1:()=>[],inspectPhysical:()=>[]};
+  makeRevisionId:()=> 'r'+(++seq),verifyFullArchiveAndReplay:async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:true,verificationScope:'SECOND_DEVICE_VERIFIED',originalRevisionId:source.meta.revisionId,verificationId:'verified:'+source.meta.revisionId}),inspectV1:()=>[],inspectPhysical:()=>[]};
  return {deps,source:state,getDB:()=>db,getWrites:()=>writes};
 }
 const importReq={occurredAt:'2026-11-23T12:00:00Z',userConfirmed:true};
@@ -45,4 +45,9 @@ test('cold-read mismatch reports uncertain commit, no fabricated rollback',async
  f.deps.readMain=async()=>{const x=await read();if(++reads>1)x.meta.revisionId='incorrect';return x};
  assert.equal((await runtime.importLegacy(importReq,f.deps)).error,'migration_cold_read_mismatch_commit_uncertain');
  assert.equal(f.getWrites(),1);
+});
+
+test('local replay never authorizes v1 migration or season activation',async()=>{
+ const f=fixture();f.deps.verifyFullArchiveAndReplay=async(source)=>({ok:true,restoreReplayVerified:true,includesOriginalMedia:true,externalCopyConfirmed:false,verificationScope:'LOCAL_INDEPENDENT_INDEXEDDB_REPLAY',originalRevisionId:source.meta.revisionId,verificationId:'local'});
+ assert.equal((await runtime.importLegacy(importReq,f.deps)).error,'migration_full_backup_restore_proof_required');assert.equal(f.getWrites(),0);
 });
