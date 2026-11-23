@@ -155,6 +155,7 @@ function plan(state,input){
    return fail('manifest_unreferenced_installed_accessory',{itemId:item.id});
  }
  const allBodies=new Set([...oldBodies.keys(),...nextBodies.keys()]);
+ const seenFrames=new Set();
  for(const id of allBodies){
   const b=inventory.bodies[id],wanted=nextBodies.get(id),before=oldBodies.get(id);
   const kind=wanted?.bodyRole||before?.bodyRole;
@@ -164,6 +165,13 @@ function plan(state,input){
      !Array.isArray(b.frames)||b.frames.length!==(kind==='brood'?6:10)||
      b.frames.some(f=>!S(f?.frameId)||!Array.isArray(f.history)))
    return fail('manifest_body_or_frame_inventory_invalid',{bodyId:id});
+  for(const frame of b.frames){
+   if(seenFrames.has(frame.frameId))
+    return fail('manifest_frame_identity_repeated_across_bodies',{frameId:frame.frameId});
+   seenFrames.add(frame.frameId);
+  }
+  if(before&&S(b.storageLocation))
+   return fail('manifest_installed_body_falsely_marked_stored',{bodyId:id});
   if(wanted&&!before&&!S(b.storageLocation))
    return fail('manifest_body_not_available_from_storage',{bodyId:id});
  }
@@ -199,6 +207,10 @@ function plan(state,input){
   if(!O(loc)||(loc.type!=='storage'&&
      (loc.type!=='hive'||loc.hiveId!==input.hiveId)))
    return fail('manifest_item_not_held_by_hive_or_storage',{itemId:id});
+  if(previous){
+   if(loc.type!=='hive'||Object.entries(previous.expected).some(([key,value])=>loc[key]!==value))
+    return fail('manifest_source_item_wrong_actual_position',{itemId:id});
+  }
   if(previous&&!O(desired)&&loc.type!=='hive')
    return fail('manifest_source_item_no_longer_installed',{itemId:id});
   if(!previous&&desired&&loc.type!=='storage')
