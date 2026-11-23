@@ -11,6 +11,30 @@ function locations(layout){
  for(const id of A(layout.honeyStack?.bodyIds))m.set(id,{type:'sectional',hiveId:layout.hiveId,layoutId:layout.id,bodyRole:'honey',position:'shared-honey-stack'});
  return m;
 }
+function earlyHoneyPhysicalSnapshot(state,layout){
+ const honey=A(layout.honeyStack?.bodyIds),excluders=A(layout.honeyStack?.excluders),sections=A(layout.sections),stacks=A(layout.stacks);
+ if(honey.length!==2||excluders.length!==2||sections.length!==3||stacks.length!==3||A(layout.meshDiaphragms).length)return null;
+ const upperBodyIds=sections.map(row=>row.upperBroodBodyId);
+ if(upperBodyIds.some(x=>!S(x))||new Set(upperBodyIds).size!==3)return null;
+ if(new Set(stacks.map(x=>x.bottomItemId)).size!==3||stacks.some(x=>!S(x.bottomItemId)))return null;
+ const bodyMap=state.equipmentInventory?.bodies||{},items=state.equipmentInventory?.items||{};
+ const honeyBodySnapshots=honey.map(bodyId=>{
+  const body=bodyMap[bodyId];
+  if(!body||body.kind!=='honey'||body.condition!=='good'||body.spec?.framesPerBox!==10||body.spec?.profileId!==layout.profileId)return null;
+  return {bodyId,kind:'honey',condition:'good',framesPerBox:10,profileId:layout.profileId,hiveId:layout.hiveId,installed:true};
+ });
+ if(honeyBodySnapshots.some(x=>!x))return null;
+ const largeExcluderSnapshots=excluders.map(row=>{
+  const item=items[row.itemId],footprint=item?.location?.footprint;
+  if(!item||item.kind!=='honeyQueenExcluder'||item.condition!=='good'||item.location?.type!=='hive'||item.location?.hiveId!==layout.hiveId||!Array.isArray(footprint)||footprint.length!==2)return null;
+  return {itemId:item.id,kind:item.kind,condition:item.condition,hiveId:layout.hiveId,installed:true,footprint:structuredClone(footprint)};
+ });
+ if(largeExcluderSnapshots.some(x=>!x)||new Set(excluders.map(x=>x.itemId)).size!==2)return null;
+ const full=largeExcluderSnapshots.map(x=>x.footprint.find(p=>p.coverage==='FULL')?.bodyId);
+ const half=largeExcluderSnapshots.map(x=>x.footprint.find(p=>p.coverage==='HALF')?.bodyId);
+ if(new Set(full).size!==2||!full.includes(upperBodyIds[0])||!full.includes(upperBodyIds[2])||half.some(id=>id!==upperBodyIds[1]))return null;
+ return {honeyBodyIds:honey.slice(),honeyBodySnapshots,largeExcluderIds:excluders.map(x=>x.itemId),largeExcluderSnapshots,upperBodyIds};
+}
 function stage(state,request,deps={}){
  const op=request?.operationId;
  if(!O(state)||!O(request)||!['OP-11','OP-12','OP-13','OP-14'].includes(op)||request.userConfirmed!==true||request.actualWorkConfirmed!==true||!S(request.hiveId)||!S(request.occurredAt)||!S(deps.now)||Date.parse(request.occurredAt)>Date.parse(deps.now)||!Number.isFinite(Date.parse(request.occurredAt))||typeof deps.makeId!=='function'||typeof deps.PasekaEquipmentItems?.place!=='function'||!O(deps.PasekaFamilyLineage))return fail('season_actual_operation_and_dependencies_required');
@@ -40,7 +64,16 @@ function stage(state,request,deps={}){
    const expected=A(old.sections).map(s=>s.upperBroodBodyId);
    if(expected.some(id=>!S(id))||A(target.sections[0].broodBodyIds).length!==3||!expected.every(id=>A(target.sections[0].broodBodyIds).includes(id)))return fail('op11_must_preserve_exact_three_upper_bodies');
   }
-  if(op==='OP-14'&&(request.actualMergeConfirmed!==true||request.earlyHoneyHarvestConfirmed!==true))return fail('op14_harvest_and_merge_confirmation_missing');
+  if(op==='OP-14'&&(request.actualMergeConfirmed!==true||request.earlyHoneyHarvestConfirmed!==true||request.actualDiaphragmsRemovedConfirmed!==true||request.familiesOnSeparateBottomsConfirmed!==true))return fail('op14_harvest_and_merge_confirmation_missing');
+  if(op==='OP-14'){
+   const historicalSetup=earlyHoneyPhysicalSnapshot(state,old);
+   if(!historicalSetup)return fail('op14_honey_and_excluder_original_provenance_required');
+   const preserved=A(target.sections[0].broodBodyIds);
+   if(historicalSetup.upperBodyIds.some(id=>!preserved.includes(id)))return fail('op14_original_upper_bodies_must_survive');
+   if(!A(state.familyEvents).some(e=>e.type==='alternative_wintering_configured'&&e.hiveId===request.hiveId&&e.techProcessId===cycle[0].id))return fail('op14_wintering_lineage_missing');
+   const moves=A(state.familyEvents).filter(e=>e.type==='placement_changed'&&e.operationId==='OP-13'&&e.hiveId===request.hiveId&&e.techProcessId===cycle[0].id);
+   if(moves.length!==2||new Set(moves.map(e=>e.familyId)).size!==2)return fail('op14_spring_relocation_provenance_missing');
+  }
  }else if(op==='OP-12'){
   if(old.mode!=='SIDE_BY_SIDE'||target.mode!=='ALTERNATIVE_WINTERING_COLUMN'||request.actualIsolationConfirmed!==true||A(target.sections).length!==3||!initialFamilyIds.every(id=>A(target.sections).some(s=>s.familyId===id)))return fail('op12_wintering_confirmation_missing');
  }else if(old.mode!=='ALTERNATIVE_WINTERING_COLUMN'||target.mode!=='SIDE_BY_SIDE'||request.actualSeparationConfirmed!==true||A(target.sections).length!==3||!initialFamilyIds.every(id=>A(target.sections).some(s=>s.familyId===id)))return fail('op13_spring_separation_confirmation_missing');
@@ -59,7 +92,7 @@ function stage(state,request,deps={}){
     const h=deps.PasekaFamilyLineage.recordEarlyHoneyHarvest(draft,{
      familyIds:initialFamilyIds,nestBodiesAfterHarvest:A(target.sections[0].broodBodyIds).length,
      honeyBodiesRemoved:true,largeExcludersRemoved:true,harvestConfirmed:true,
-     diaphragmsRemoved:true,familiesOnSeparateBottoms:true,physicalSetup:structuredClone(target),
+     diaphragmsRemoved:true,familiesOnSeparateBottoms:true,physicalSetup:earlyHoneyPhysicalSnapshot(state,old),
      operationId:'OP-14',techProcessId:cycle[0].id,occurredAt:request.occurredAt
     },makeId,request.occurredAt);
     if(!h?.ok)throw Error('early_honey_lineage_rejected:'+h?.error);
