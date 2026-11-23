@@ -12,6 +12,20 @@ function plan(state,input){
  !['early','main'].includes(input.honeyPurpose)||!str(input.storageLabel)||input.storageLabel.length>160||
  input.actualCoversRemoved!==true||input.actualExcludersInstalled!==true||
  input.actualHoneyBodiesInstalled!==true)return fail('op07_physical_confirmations_required');
+ const cycles=arr(state.sectionalSeasonCycles).filter(c=>c.id===input.cycleId&&c.hiveId===input.hiveId&&c.status==='ACTIVE');
+ const cycle=cycles.length===1?cycles[0]:null,compat=cycle?.compatProcess;
+ const stages=arr(compat?.state?.operations),op04=stages.find(op=>op.operationId==='OP-04');
+ if(!cycle||['REQUIRES_RECONCILIATION','BASELINE_IMPORTED_PENDING_ACTIVATION'].includes(cycle.migrationStatus)||
+  compat?.modelVersion!==1||compat.id!==cycle.id||op04?.status!=='DONE'||!Number.isFinite(Date.parse(op04?.completedAt)))
+  return fail('op07_requires_confirmed_two_row_split');
+ const secondRowAt=op04.evidence?.secondRowAt||op04.completedAt;
+ const dayDiff=(later,earlier)=>Number.isFinite(Date.parse(later))&&Number.isFinite(Date.parse(earlier))?
+  Math.round((Date.parse(later.slice(0,10)+'T00:00:00Z')-Date.parse(earlier.slice(0,10)+'T00:00:00Z'))/86400000):null;
+ const days=dayDiff(input.occurredAt,secondRowAt);
+ if(days==null||days<0)return fail('op07_before_actual_second_row');
+ if(input.timingMode==='WITH_SECOND_ROW'&&days!==0)return fail('op07_simultaneous_timing_mismatch');
+ if(input.timingMode==='APPROX_12_DAYS_AFTER_SECOND_ROW'&&(days<12||days>15))return fail('op07_confirmed_12_15_day_range_required');
+ if(input.timingMode==='AFTER_OP06'&&!stages.some(op=>op.operationId==='OP-06'&&op.status==='DONE'&&Date.parse(op.completedAt)<=Date.parse(input.occurredAt)))return fail('op07_confirmed_op06_precondition_missing');
  const hive=arr(state.hives).find(h=>h.id===input.hiveId);
  if(hive?.profileId!=='sectional-multiqueen-v1')return fail('op07_profile_mismatch');
  const existing=arr(state.sectionalLayouts).filter(l=>l?.hiveId===input.hiveId);
