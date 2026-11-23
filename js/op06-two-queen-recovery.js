@@ -71,7 +71,7 @@ function planFromState(state,request,deps={}){
  if(!S(request.toBodyId)||!A(receiver.broodBodyIds).includes(request.toBodyId))
    return fail('receiving_body_not_in_queenless_section');
  const targetBody=inventory.bodies[request.toBodyId];
- if(targetBody?.kind!=='brood'||targetBody?.spec?.profileId!==PROFILE||
+ if(targetBody?.kind!=='brood'||targetBody?.spec?.profileId!==PROFILE||targetBody?.spec?.framesPerBox!==6||
    !Array.isArray(targetBody.frames)||targetBody.condition!=='good')
    return fail('receiving_body_inventory_invalid');
  const transfers=A(request.transfers),errors=[];
@@ -91,7 +91,7 @@ function planFromState(state,request,deps={}){
  }
  for(const t of transfers){
   const sec=A(layout.sections).find(s=>s.id===t?.fromSectionId);
-  if(!sec||sections.find(s=>s.id===sec.id)?.queenState!=='QUEENRIGHT'||
+  if(!O(t)||!sec||sections.find(s=>s.id===sec.id)?.queenState!=='QUEENRIGHT'||
      !S(t.fromBodyId)||!A(sec.broodBodyIds).includes(t.fromBodyId)||
      !S(t.frameId)||t.fromBodyId===request.toBodyId||
      !inventory.bodies[t.fromBodyId].frames.some(f=>f.frameId===t.frameId)){
