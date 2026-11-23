@@ -26,10 +26,10 @@ function validate(before,after,request){
   if(sealed.some(id=>!initialFrames.includes(id)))add('op08_frames_not_in_honey_bodies');
   const postFrames=newHoney.flatMap(id=>rows(after.bodyInventory?.[id]?.frames).map(f=>f?.frameId));
   if(sealed.some(id=>!postFrames.includes(id)))add('op08_frames_missing_after_extraction');
-  if(sealed.every(id=>{
+  if(sealed.some(id=>{
    const initial=oldHoney.flatMap(body=>rows(before.bodyInventory?.[body]?.frames)).find(f=>f?.frameId===id);
    const final=newHoney.flatMap(body=>rows(after.bodyInventory?.[body]?.frames)).find(f=>f?.frameId===id);
-   return same(initial,final);
+   return same(initial,final)||rows(final?.history).length<=rows(initial?.history).length;
   }))add('op08_no_frame_history_change');
  }
  if(op==='OP-09'){
