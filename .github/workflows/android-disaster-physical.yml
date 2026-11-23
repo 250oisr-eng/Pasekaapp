@@ -138,7 +138,7 @@ jobs:
           const manifest={
             schema:'paseka-disaster-isolated-artifact-v1',
             packageId:'ru.paseka.journal.disasterproof',
-            originalPackageId:'ru.paseka.disaster',
+            originalPackageId:'ru.paseka.journal',
             branchProcess:'CI-only diagnostic build; not a production release',
             sha:process.env.GITHUB_SHA,
             apkFile:'app-debug.apk',
