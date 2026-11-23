@@ -604,7 +604,7 @@ function renderTwoQueenOutcome(){
  const assessment=module.assess(S,host.value,PasekaFamilyLineage);
  if(!assessment.ok){report.textContent='Состояние не подтверждено: '+assessment.code+'. Изменения запрещены.';return;}
  const labels={confirmed_present:'Матка подтверждена',confirmed_absent:'Отсутствие подтверждено',unresolved:'Неизвестно',inconsistent:'Противоречие',historical:'Архив'};
- report.innerHTML='<p><b>Состояние:</b> '+safe(assessment.outcome)+'. OP-06 и снятие сеток: <b>ЗАБЛОКИРОВАНО</b> до подтверждения процедуры.</p>'+assessment.sections.map(x=>'<div class="muted">'+safe(S.families.find(f=>f.id===x.familyId)?.name||x.familyId)+': '+safe(labels[x.presence]||'Неизвестно')+(x.layingConfirmed?' · яйцекладка подтверждена':'')+'</div>').join('');
+ report.innerHTML='<p><b>Состояние:</b> '+safe(assessment.outcome)+'. '+(assessment.requiresProcedureConfirmation?'Двухматочная ветвь: <b>снятие сеток и OP-06 заблокированы</b> до подтверждения отдельной процедуры.':'Этот экран ведёт только наблюдения и не завершает OP-06 или снятие сеток.')+'</p>'+assessment.sections.map(x=>'<div class="muted">'+safe(S.families.find(f=>f.id===x.familyId)?.name||x.familyId)+': '+safe(labels[x.presence]||'Неизвестно')+(x.layingConfirmed?' · яйцекладка подтверждена':'')+'</div>').join('');
  const layingEligible=assessment.sections.filter(x=>x.presence==='confirmed_present'&&!x.layingConfirmed);
  if(layingSelect&&layingForm&&layingEligible.length){
   layingSelect.innerHTML=layingEligible.map(x=>'<option value="'+safe(x.familyId)+'">'+safe(S.families.find(f=>f.id===x.familyId)?.name||x.familyId)+'</option>').join('');
