@@ -20,6 +20,12 @@ function validateOP06Rescue(before,after,request){
     add('rescue_layout_family_queen_or_confirmation_changed');
  if(!obj(b)||!obj(a)||!same(Object.keys(b).sort(),Object.keys(a).sort())||
     moves.length!==2)return [...errors,{code:'rescue_body_snapshot_or_transfer_invalid'}];
+ const actualSections=rows(before.layout?.sections),receiver=actualSections.find(s=>s?.id===request.queenlessSectionId);
+ if(before.layout?.mode!=='SIDE_BY_SIDE'||actualSections.length!==3||!receiver||
+    !rows(receiver.broodBodyIds).includes(request.toBodyId)||
+    moves.some(m=>!actualSections.some(s=>s?.id===m?.fromSectionId&&s.id!==receiver.id&&
+      rows(s.broodBodyIds).includes(m.fromBodyId))))
+   return [...errors,{code:'rescue_section_and_body_ownership_invalid'}];
  const old=structuredClone(b),seen=new Set(),affected=new Set();
  for(const [index,m] of moves.entries()){
   const from=old[m?.fromBodyId],to=old[request?.toBodyId];
