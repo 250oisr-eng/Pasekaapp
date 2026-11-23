@@ -26,7 +26,8 @@ function physicalSnapshot(state,hiveId){
  const families=(Array.isArray(state.families)?state.families:[]).filter(f=>familyIds.includes(f?.id)).map(clone);
  if(new Set(familyIds).size!==familyIds.length||families.length!==familyIds.length)return fail('snapshot_family_reference_invalid');
  const queens=(Array.isArray(state.queens)?state.queens:[]).filter(q=>familyIds.includes(q?.familyId)).map(clone);
- return {ok:true,snapshot:{hiveId,profileId:PROFILE,layout:clone(layout),bodyInventory:bodyMap,families,queens}};
+ const seasonalEntranceObservations=(Array.isArray(state.sectionalSeasonalEntranceObservations)?state.sectionalSeasonalEntranceObservations:[]).filter(x=>x?.hiveId===hiveId).map(clone);
+ return {ok:true,snapshot:{hiveId,profileId:PROFILE,layout:clone(layout),bodyInventory:bodyMap,families,queens,seasonalEntranceObservations}};
 }
 function inspectStages(records){
  const errors=[];
