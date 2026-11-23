@@ -1,3 +1,14 @@
+## 2026-11-23 — issue #444: подготовлен ручной GitHub Pages release gate (NO DEPLOY)
+
+- Факты: после merge #443 Pages автоматически запустил [run #45126883908](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45126883908) на main SHA `f981e36d807d9cfb6c6077b7e3575f9abd42daf8`, успешный deploy, хотя публикация отдельно не разрешалась. Существующие YAML: quality, android-debug, Cloudflare manual. Pages build — GitHub-managed, фактический Settings source через connector недоступен.
+- Подключённый GitHub `permissions.admin=true`, но GitHub connector не имеет endpoint `GET/PUT Pages settings`; веб-браузер сервиса не доступен без платного пополнения (запрещено). Административное переключение нельзя притворно выполнить из Draft.
+- Создана main-based ветка `fix/pages-manual-release-gate-2026-11-23` с `.github/workflows/pages-manual-release.yml`: **только workflow_dispatch**; ручной точный SHA из main + подтверждение PUBLISH-PASEKA + проверка `build_type=workflow` + regression tests + статический пакет `www` + отдельное окружение `github-pages`.
+- `scripts/verify-pages-release-assets.mjs` не допускает симлинки, неожиданные файлы и несовпадение байтов исходного release SHA. `tests/pages-manual-release-gate.test.mjs`: 8 тестов publish guards/allowlist/negative cases. [Fast Quality #45135890519](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45135890519) SUCCESS и [Android #45135890556](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45135890556) SUCCESS на CODE+TEST SHA `6cf57964098141a8949f4f0f1e7d7c32ff65c259`. Никаких Pages-deploy jobs с этой ветки не запускалось.
+- Файл `docs/RELEASE-GATE-GITHUB-PAGES-2026-11-23.md` содержит пошаговый переключатель и условия closure. **НЕ РЕШЕНО до административного действия:** в [Settings → Pages](https://github.com/250oisr-eng/Pasekaapp/settings/pages) выбрать Source: **GitHub Actions**; не создавать шаблон с push trigger и не запускать publish. Достаточно одного шага пользователя со скриншотом/подтверждением.
+- После подтверждения проверенного source и отдельного разрешения можно merge этого workflow PR без публикации; следующая функциональная интеграция тоже требует отдельного merge разрешения, release — отдельного разрешения. Issue #444 остаётся OPEN до доказательств. Main, production data, media, сайт и PASEKA02 #442 НЕ ИЗМЕНЕНЫ.
+
+---
+
 ## 2026-11-23 — P0 FROZEN; P1 main-root Service Worker safety instead of 720-commit video chain
 
 - По прямому решению пользователя PASEKA02 restore / bee detector / real video deletion **FROZEN**, канонический issue [#442](https://github.com/250oisr-eng/Pasekaapp/issues/442). Без доказанной лицензии конкретных weights, real bee video, полной физической копии/rollback, MediaStore/Gallery/Downloads inventory и автоматической safety gate **не возобновлять** повторные synthetic-only видео PR. `cleanupAuthorized:false`, `restoreAuthorized:false`, Restore335 STOP.
