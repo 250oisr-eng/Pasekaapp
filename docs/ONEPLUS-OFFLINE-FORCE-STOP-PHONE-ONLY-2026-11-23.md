@@ -1,3 +1,13 @@
+## Второе независимое испытание: OnePlus reboot/offline — подтверждено пользователем (2026-11-23)
+
+- После успешного подтверждённого ручного force-stop пользователь **перезагрузил OnePlus**, с отключённой сетью запустил тот же установленный диагностический APK и прислал полный JSON плюс собственный текст: **«Перезагрузил. Сеть отключена.»**
+- `suite=PHONE_UNIFIED_SYNTHETIC_V2`; `packageId=ru.paseka.journal.diagnostic.allchecks`; `status=PASS`, `code=SYNTHETIC_SUITE_ONLY`. `checks.storage` `status=PASS`, `previousFixture=PRESENT_VERIFIED`, `bytes=31`, SHA256 `d9f56955f6abce25e3e877c089a0b22b8b777e2f405263f1847370698d1f07c2`. **Пользовательски подтверждённая сохранность ранее созданного синтетического IndexedDB Blob через OS reboot в офлайне: PASS**.
+- Сопутствующие проверки после reboot: `archiveMetadata.status=PASS` (4 синтетических сценария, delete/restore false), `syntheticFrames.status=PASS` (3 кадра 64×64, synthetic MP4 SHA256 `29c801c7ffbeabc3796ffd265f8b8e465232c671eeeacfafd8e25e2fb105bd49`), `localOnnxWasm.status=PASS` (только self-authored 3+2=5; bee recognition NOT_TESTED).
+- Доказательная граница: runner **не измеряет** OS reboot, networking/traffic, статус действующей PWA или аппаратный APK checksum. Перезагрузка/сеть подтверждены сообщением пользователя, целостность fixture — JSON. Не делать выводов о полноценном PASEKA02 backup/restore, реальном видео, bee recognition, quota или safe deletion. В JSON `scope.androidForceStop=NOT_TESTED` (прежняя ручная проверка подтверждена отдельно), `networkTraffic=NOT_MEASURED`; `cleanupAuthorized=false`, `deleteAllowed=false`, `restoreAuthorized=false`.
+- Предыдущие инструкции «Следующая фаза — reboot» далее сохранены как история плана и **уже выполнены**, не предлагать снова этот этап. Следующий потенциально полезный физический класс — отдельный read-only/synthetic storage quota gate или тест оригинального *заранее подготовленного* безопасного диагностического видео, только после проверки его независимого APK; Restore335 STOP, никаких удалений.
+
+---
+
 ## Подтверждение пользователя — этап offline + force-stop ЗАВЕРШЁН в указанной области (2026-11-23)
 
 - После получения диагностического JSON пользователь **отдельным ответом** подтвердил оба запрошенных условия: **Wi-Fi и мобильный интернет были отключены; `ru.paseka.journal.diagnostic.allchecks` принудительно остановлен через настройки Android до запуска**. Прежняя пометка `EVIDENCE_INCOMPLETE` ниже относится к промежуточному состоянию до этого ответа и теперь **снята**.
