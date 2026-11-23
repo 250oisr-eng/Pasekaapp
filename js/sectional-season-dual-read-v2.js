@@ -7,11 +7,17 @@ function inspectMixedState(state,deps){
  const errors=[];
  if(!isObject(state))return [{code:'season_state_invalid'}];
  if(!deps?.ledger||typeof deps.ledger.inspect!=='function'||typeof deps.ledger.previewV1!=='function')return [{code:'season_ledger_dependency_missing'}];
- const legacy=state.sectionalTechProcesses,modern=state.sectionalSeasonCycles;
+ const legacy=state.sectionalTechProcesses,modern=state.sectionalSeasonCycles,archive=state.sectionalTechProcessesArchive;
  if(legacy!=null&&!Array.isArray(legacy))errors.push({code:'season_legacy_shape_invalid'});
  if(modern!=null&&!Array.isArray(modern))errors.push({code:'season_v2_shape_invalid'});
+ if(archive!=null&&!Array.isArray(archive))errors.push({code:'season_v1_archive_shape_invalid'});
  if(errors.length)return errors;
- const v1=legacy||[],v2=modern||[];
+ const v1=legacy||[],v2=modern||[],archived=archive||[];
+ const archivedPreview=deps.ledger.previewV1(archived);if(!archivedPreview.ok)errors.push(...archivedPreview.errors);
+ for(const row of archived){if(v1.some(x=>x.id===row.id))errors.push({code:'season_legacy_active_archive_duplicate',hiveId:row.hiveId});
+  const exact=v2.find(x=>x?.legacy?.sourceId===row.id&&x.hiveId===row.hiveId);
+  if(!exact||!same(exact.legacy?.original,row))errors.push({code:'season_v1_archive_provenance_mismatch',hiveId:row.hiveId});
+ }
  const converted=deps.ledger.previewV1(v1);
  if(!converted.ok)errors.push(...converted.errors);
  errors.push(...deps.ledger.inspect(v2));
