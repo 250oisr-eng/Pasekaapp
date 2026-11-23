@@ -15,7 +15,7 @@ const recognized = (overrides = {}) => ({
  result:{label:'облёт'}, ...overrides
 });
 const ledger = entries => ({version:1,entries});
-// Distinct unrecognized pending payloads must not reuse recognized SHA bytes.
+// Positive pending fixtures must use a DIFFERENT digest than the recognized original.
 const payload = (overrides = {}) => ({source:'entrance_media',videoId:'v2',sourceSha256:'b'.repeat(64),sourceBytes:3,...overrides});
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
 
