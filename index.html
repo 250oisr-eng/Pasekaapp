@@ -2844,14 +2844,23 @@ $('recordForm').onsubmit=async e=>{
  }
  let previous;
  try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную копию текущего состояния. Запись не сохранена: '+(error?.message||'ошибка копирования'));return}
- if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
- if(!oldRecord){
-  createExpansionSuggestion(data);
-  if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
- }
- if(!await save()){
+ let stored=false;
+ try{
+  if(oldRecord)Object.assign(oldRecord,data);else S.records.push(data);
+  if(!oldRecord){
+   createExpansionSuggestion(data);
+   if(isTreatment&&data.treatmentCheck){S.tasks=S.tasks||[];S.tasks.push({id:uid(),hive:data.hive,type:'Контроль после обработки',date:data.treatmentCheck,note:'Проверить результат обработки'+(data.treatmentProduct?' · '+data.treatmentProduct:'')+(data.treatmentActive?' · '+data.treatmentActive:''),source:'auto',status:'pending',createdAt:new Date().toISOString()})}
+  }
+  stored=await save();
+ }catch(error){
   S=previous;
-  render();
+  try{render()}catch(refreshError){console.error('Не удалось обновить интерфейс после отказа записи журнала',refreshError)}
+  alert('Не удалось завершить сохранение записи. Данные формы остались открытыми; проверь состояние базы перед повторной попыткой: '+(error?.message||'неизвестная ошибка'));
+  return;
+ }
+ if(!stored){
+  S=previous;
+  try{render()}catch(refreshError){console.error('Не удалось обновить интерфейс после отказа записи журнала',refreshError)}
   alert('Запись не сохранена. Данные формы остались открытыми; проверь ошибку сохранения перед повторной попыткой.');
   return;
  }
