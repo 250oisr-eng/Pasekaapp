@@ -1,3 +1,13 @@
+## 2026-11-23 — ЖУРНАЛ: Android-эмулятор прошёл полный readback + restart
+
+**Сначала live-факты:** main остаётся `13c724a634f0987ff634a058a5fa37a1b8e20c92`. Исправления журнала и изолированная диагностика доступны только в [Draft #451](https://github.com/250oisr-eng/Pasekaapp/pull/451), ещё НЕ merged и НЕ released.
+
+- **Последний код и CI-скрипт SHA** `18bc474215137078b8daa6d7d8a6a30efe9bfa81`: [Fast Quality](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45149168308) **SUCCESS**, [Android APK](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45149177210) **SUCCESS**. Exact production code/test SHA `960ca732188497d7656bb0eba7f232bf0b4270a5`: Fast #45147385684 **674/674 PASS**, Android #45147385710 SUCCESS; subsequent modifications were only diagnostic CI, runner/shell/docs.
+- **Независимый Android 15 эмулятор / WebView / IndexedDB: PASS**, [isolated run #45149168294](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45149168294), оба jobs SUCCESS. Само приложение в реальном WebView вывело `status=PASS`, `code=ISOLATED_JOURNAL_REAL_WEBVIEW_REOPEN_ONLY` после перезагрузки WebView и `code=ISOLATED_JOURNAL_ANDROID_RESTART_ONLY` после остановки и повторного запуска только диагностического APK. Лог `PASS_JOURNAL_EMULATOR_DURABLE_RESTART`. Два артефактных скриншота `paseka-journal-android-emulator-evidence` (artifact #14806056578) просмотрены и подтверждают эти статусы. Тест — **синтетический изолированный улей**, не пользовательская рабочая база.
+- **OnePlus NE2213 / Android 16: NOT_TESTED**, потому что к USB-устройству пользователя в этом чате нет удалённого ADB. Пользователю уже передан **полный ZIP с отдельным APK и Windows-скриптом**, SHA256 пакета проверен. Требуется ровно одно локальное действие: `Run-Journal-Phone-Proof.cmd`; затем прислать JSON и 2 PNG. Не объявлять физический этап PASS по эмулятору.
+- Оригинальные видео, Gallery, пользовательские записи, production DB и удаление файлов не затронуты; реальный backup/restore и авиарежим **NOT_TESTED**. Issue #442 PASEKA02 остаётся FROZEN. Issue #444 Pages closed, ручная публикация не запускалась.
+- Следующий приоритет после фактической проверки OnePlus — **не-медийный** IndexedDB/legacy/JSON backup/restore и аварийный rollback, затем изоляция физической модели ульев/OP/инвентаря и надёжная офлайн-работа/голосовой журнал. Ни #451 merge, ни release без отдельного разрешения.
+---
 ## 2026-11-23 — журнал: проверка ошибок, изолированная Android-диагностика, **НЕ В MAIN**
 
 - Исходный main `13c724a634f0987ff634a058a5fa37a1b8e20c92`: PR #448 стратегия и #449 журнал Varroa merged, Fast 656/656 и Android APK success; Pages source GitHub Actions, auto-deploy после merge не было. Исходные #445/#446 не переносить повторно.
