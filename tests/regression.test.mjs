@@ -18,6 +18,7 @@ const v2Source0 = await readFile(new URL('../js/sectional-season-ledger-v2.js', 
 const v2Source1 = await readFile(new URL('../js/sectional-season-evidence-v2.js', import.meta.url), 'utf8');
 const v2Source2 = await readFile(new URL('../js/sectional-season-dual-read-v2.js', import.meta.url), 'utf8');
 const v2Source3 = await readFile(new URL('../js/sectional-op09-entrances.js', import.meta.url), 'utf8');
+const op08HoneySource = await readFile(new URL('../js/sectional-op08-honey.js', import.meta.url), 'utf8');
 const op02CourseSource = await readFile(new URL('../js/sectional-op02-course.js', import.meta.url), 'utf8');
 const equipmentBodiesSource = await readFile(new URL('../js/equipment-bodies.js', import.meta.url), 'utf8');
 const varroaSource = await readFile(new URL('../js/varroa-monitor.js', import.meta.url), 'utf8');
@@ -39,6 +40,7 @@ new Function('window', v2Source1)(appWindow);
 new Function('window', v2Source2)(appWindow);
 new Function('window', v2Source3)(appWindow);
 new Function('window', op02CourseSource)(appWindow);
+new Function('window', op08HoneySource)(appWindow);
 new Function('window', equipmentBodiesSource)(appWindow);
 new Function('window', varroaSource)(appWindow);
 new Function('window', incidentSource)(appWindow);
@@ -77,6 +79,7 @@ function loadFunction(name, globals = {}) {
   deps.PasekaSectionalSeasonDualReadV2 ||= appWindow.PasekaSectionalSeasonDualReadV2;
   deps.PasekaSectionalOP09Entrances ||= appWindow.PasekaSectionalOP09Entrances;
   deps.PasekaSectionalOP02Course ||= appWindow.PasekaSectionalOP02Course;
+  deps.PasekaSectionalOP08Honey ||= appWindow.PasekaSectionalOP08Honey;
   deps.PasekaVarroa ||= appWindow.PasekaVarroa;
   deps.PasekaIncident ||= appWindow.PasekaIncident;
   deps.PasekaDeadout ||= appWindow.PasekaDeadout;
@@ -3621,7 +3624,7 @@ test('service worker caches accessory inventory module for offline operation',as
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
- assert.match(sw,/paseka-shell-v321/);
+ assert.match(sw,/paseka-shell-v322/);
 });
 
 
@@ -3747,7 +3750,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v321/);
+  assert.match(source,/paseka-shell-v322/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
