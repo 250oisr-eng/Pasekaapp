@@ -145,7 +145,8 @@ test('OP14 uses only installed early honey, source excluders and confirmed 3-4 u
   ['x2',[{bodyId:'b4',coverage:'HALF'},{bodyId:'b6',coverage:'FULL'}]]])
   state.equipmentInventory.items[id]={id,kind:'honeyQueenExcluder',condition:'good',
    location:{type:'hive',hiveId:'h',footprint}};
- const req=request('OP-14',mergeTarget('merged'),{
+ const target=mergeTarget('merged');target.purpose='early_honey_merge';
+ const req=request('OP-14',target,{
   actualMergeConfirmed:true,earlyHoneyHarvestConfirmed:true,
   actualDiaphragmsRemovedConfirmed:true,familiesOnSeparateBottomsConfirmed:true,
   resultFamily:{id:'merged',hive:'h'},
@@ -179,8 +180,22 @@ test('fail closed on unconfirmed individual moves, unknown location, repeated bo
  assert.equal(plan(state,duplicate).error,'manifest_duplicate_or_invalid_physical_id');
  const queen=structuredClone(req);queen.resultFamily.currentQueenId='q1';
  assert.equal(finalize(state,queen).error,'manifest_survivor_queen_must_remain_unknown');
+ const invalidPurpose=structuredClone(req);invalidPurpose.targetLayout.purpose='early_honey_merge';
+ assert.equal(plan(state,invalidPurpose).error,'manifest_op11_three_upper_bodies_and_new_unknown_family_required');
  const foreign=structuredClone(state);foreign.hives.push({id:'other',profileId:profile});
  foreign.sectionalLayouts.push({id:'other-layout',hiveId:'other',profileId:profile,
   mode:'SIDE_BY_SIDE',sections:[{id:'other',position:'left',broodBodyIds:['b2']}],stacks:[]});
  assert.equal(plan(foreign,req).error,'manifest_body_or_frame_inventory_invalid');
+});
+
+test('installed unreferenced physical accessory cannot be hidden by rewriting only target layout',()=>{
+ const state=base(),r=request('OP-11',mergeTarget(),{
+  actualMergeConfirmed:true,resultFamily:{id:'merged',hive:'h'},
+  storageLocations:{b1:'склад',b3:'склад',b5:'склад'},
+  itemDestinations:{'bottom-middle':{type:'storage',label:'склад'},
+   'bottom-right':{type:'storage',label:'склад'}}
+ });
+ state.equipmentInventory.items.ghost={id:'ghost',kind:'plasticPlug',condition:'good',
+  location:{type:'hive',hiveId:'h',openingId:'unknown'}};
+ assert.equal(plan(state,r).error,'manifest_unreferenced_installed_accessory');
 });
