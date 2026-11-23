@@ -112,10 +112,13 @@ test('OPEN lifecycle detects changed inspection journal on cold read, never repo
 });
 test('OPEN lifecycle preserves existing media and appends snapshot without changing any other data',async()=>{
  const f=fixture(),read=f.deps.readMain;
- f.deps.readMain=async()=>({...await read(),
-  records:[{id:'r1',content:'kept'}],
-  entranceMedia:[{id:'video1',blob:new Blob(['real bytes'],{type:'video/mp4'})}],
-  snapshots:[{id:'existing'}]});
+ f.deps.readMain=async()=>{
+  const s=await read();
+  if(!s.records)s.records=[{id:'r1',content:'kept'}];
+  if(!s.entranceMedia)s.entranceMedia=[{id:'video1',blob:new Blob(['real bytes'],{type:'video/mp4'})}];
+  if(!s.snapshots)s.snapshots=[{id:'existing'}];
+  return s;
+ };
  f.deps.preparePersistentSnapshot=async (s,old,rev)=>{
   s.meta.revisionId=rev;s.snapshots.push({id:'new',revisionId:rev});return s;
  };
