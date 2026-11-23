@@ -6,6 +6,14 @@ apk="$(find diagnostic-artifact -type f -name app-debug.apk -print -quit)"
 test -n "$apk" && test -f "$apk" || { echo 'P0_APK_MISSING'; exit 1; }
 adb install -r "$apk"
 adb shell pm path "$package" | grep -F 'package:'
+# Only the disposable ru.paseka.journal.disasterproof package is reset.
+# A reused emulator may retain an empty, previously-created database; the
+# production app correctly refuses to self-initialize such an ambiguous DB.
+# Resetting this isolated package BEFORE the first launch is safe. Never clear
+# the application in the middle of the restore/restart proof.
+test "$package" = 'ru.paseka.journal.disasterproof'
+adb shell pm clear "$package" | grep -Fx 'Success'
+echo P0_ISOLATED_DIAGNOSTIC_PACKAGE_CLEARED_BEFORE_FIRST_LAUNCH
 capture() {
  local stage="$1"
  adb exec-out screencap -p > "disaster-emulator-${stage}.png" || true
