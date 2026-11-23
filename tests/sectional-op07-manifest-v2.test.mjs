@@ -13,7 +13,7 @@ function fixture(){
  for(const id of ['x1','x2'])items[id]={id,kind:'honeyQueenExcluder',condition:'good',location:{type:'storage',label:'склад'}};
  const bodies={};for(const [id,pair]of [['h1','p1'],['h2','p1'],['h3','p2'],['h4','p2']])bodies[id]={id,kind:'honey',condition:'good',pairId:pair,storageLocation:'склад',spec:{profileId:p,framesPerBox:10},frames:Array.from({length:10},(_,i)=>({frameId:id+i,combType:'drawn_comb',history:[]}))};
  const layout={schemaVersion:1,id:'layout',hiveId:'h',profileId:p,mode:'SIDE_BY_SIDE',broodRows:2,sections:['left','middle','right'].map((position,i)=>({id:position,position,upperBroodBodyId:'b'+(i*2+2),broodBodyIds:['b'+(i*2+1),'b'+(i*2+2)]})),stacks:['left','middle','right'].map(position=>({id:'stack-'+position,position,sectionIds:[position],coverItemId:'cover-'+position,topRiserItemId:'riser-'+position}))};
- const state={hives:[{id:'h',profileId:p}],sectionalLayouts:[layout],equipmentInventory:{bodies,items}};
+ const state={hives:[{id:'h',profileId:p}],sectionalLayouts:[layout],equipmentInventory:{bodies,items},sectionalSeasonCycles:[{id:'c',hiveId:'h',status:'ACTIVE',modelVersion:2,cycleNumber:1,events:[],compatProcess:{id:'c',hiveId:'h',modelVersion:1,state:{rowStage:2,operations:[{operationId:'OP-04',status:'DONE',completedAt:'2026-11-10T10:00:00Z',evidence:{secondRowAt:'2026-11-10T10:00:00Z'}}]}}}]}
  const req={hiveId:'h',cycleId:'c',occurredAt:'2026-11-23T10:00:00Z',userConfirmed:true,timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW',honeyPurpose:'main',storageLabel:'склад',actualCoversRemoved:true,actualExcludersInstalled:true,actualHoneyBodiesInstalled:true,honeyBodyIds:['h1','h2'],leftExcluderId:'x1',rightExcluderId:'x2'};
  return {state,req};
 }
@@ -48,7 +48,7 @@ test('OP07 does not use Farrar hive, wrong stage or future operation time',()=>{
 test('mobile OP07 inputs form a concrete reversible v2 request through actual manifest',()=>{
  const form={};new Function('window',readFileSync(new URL('../js/sectional-season-operations-wizard-v2.js',import.meta.url),'utf8'))(form);
  const w=form.PasekaSeasonOperationsWizardV2,source=fixture();
- source.state.sectionalSeasonCycles=[{id:'c',hiveId:'h',status:'ACTIVE',events:[]}];
+ // The source fixture already contains a real confirmed split for this cycle.
  const values={honeyBodyIds:['h1','h2'],excluderIds:['x1','x2'],leftExcluderId:'x1',rightExcluderId:'x2',
  honeyPurpose:'main',timingMode:'APPROX_12_DAYS_AFTER_SECOND_ROW',storageLabel:'склад',
  actualCoversRemoved:true,actualExcludersInstalled:true,actualHoneyBodiesInstalled:true};
@@ -73,4 +73,15 @@ test('early honey OP07 refuses 3 foundation frames or adjacent foundation before
  assert.equal(plan(b.state,b.req).ok,false);
  const good=fixture();good.req.honeyPurpose='early';good.state.equipmentInventory.bodies.h1.frames[3].combType='wax_foundation';good.state.equipmentInventory.bodies.h1.frames[6].combType='wax_foundation';
  assert.equal(plan(good.state,good.req).ok,true);
+});
+
+test('OP07 early-modes reject wrong temporal claims and missing actual OP06 proof',()=>{
+ const f=fixture();f.req.timingMode='WITH_SECOND_ROW';
+ assert.equal(plan(f.state,f.req).error,'op07_simultaneous_timing_mismatch');
+ f.req.timingMode='AFTER_OP06';
+ assert.equal(plan(f.state,f.req).error,'op07_confirmed_op06_precondition_missing');
+ f.state.sectionalSeasonCycles[0].compatProcess.state.operations.push({operationId:'OP-06',status:'DONE',completedAt:'2026-11-22T10:00:00Z'});
+ assert.equal(plan(f.state,f.req).ok,true);
+ const g=fixture();g.state.sectionalSeasonCycles[0].compatProcess.state.operations[0].evidence.secondRowAt='2026-11-15T10:00:00Z';
+ assert.equal(plan(g.state,g.req).error,'op07_confirmed_12_15_day_range_required');
 });
