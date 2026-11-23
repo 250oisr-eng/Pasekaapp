@@ -20,7 +20,7 @@ async function commit(request,deps={}){
  if(cycles.length!==1||['BASELINE_IMPORTED_PENDING_ACTIVATION','REQUIRES_RECONCILIATION'].includes(cycles[0].migrationStatus))return fail('season_runtime_cycle_not_activated');
  let verified;
  try{verified=await deps.verifyFullArchiveAndReplay(source,request)}catch{return fail('season_runtime_backup_proof_unavailable')}
- if(!O(verified)||verified.ok!==true||verified.restoreReplayVerified!==true||verified.includesOriginalMedia!==true||verified.originalRevisionId!==source.meta.revisionId||!S(verified.verificationId))return fail('season_runtime_verified_full_archive_required');
+ if(!O(verified)||verified.ok!==true||verified.restoreReplayVerified!==true||verified.includesOriginalMedia!==true||verified.externalCopyConfirmed!==true||verified.verificationScope!=='SECOND_DEVICE_VERIFIED'||verified.originalRevisionId!==source.meta.revisionId||!S(verified.verificationId))return fail('season_runtime_verified_full_archive_required');
  const currentErrors=deps.validateState(source);
  if(!Array.isArray(currentErrors)||currentErrors.length)return fail('season_runtime_source_invalid',currentErrors);
  let persistedSnapshot=null;
