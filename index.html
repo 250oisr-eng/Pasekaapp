@@ -1417,6 +1417,7 @@ async function saveVarroaObservation(event){
   const type=$('varroaType').value,input={type,hiveId:$('varroaHive').value,date:$('varroaDate').value,notes:$('varroaNotes').value};
   if(type==='adult_bee_sample'){input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
   else{input.mitesCount=$('varroaBoardMites').value;input.exposureHours=$('varroaExposureHours').value}
+  if(input.date>today()){alert('Фактически выполненное измерение Varroa не может иметь дату из будущего.');return}
   let observation;
   try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString())}
   catch(error){alert(error.message||'Проверь данные измерения');return}
