@@ -16,6 +16,8 @@
 - v4: `run-as ru.paseka.journal id` **доступен**, но сценарий остановился на `UNEXPECTED_REMOTE_PATH` до повторного hash/signing; fingerprint **NOT_VERIFIED**. Анализ ZIP выявил чрезмерно узкую проверку имени APK (`~`, `+`, `=` в `/data/app/~~...==/.../base.apk`); подготовлен локальный **v5 read-only ZIP** с ограниченным исправлением whitelist. Физический запуск v5 **NOT_TESTED**. Ни в v4, ни в v5 база пользователя не извлекается.
 - **STOP:** никаких установок поверх v315, удаления/очистки, восстановления, видео-cleanup, публикаций либо утверждений о полном архиве до доказанной независимой копии/возврата, проверки package/signing и отдельного разрешения на конкретное обновление.
 
+- **B11 v5 (USER_REPORTED_JSON):** `PASEKA_B11_ANDROID_READONLY_GATE_V5=PASS`, `run-as=true`, installed base.apk совпадает с v2/v3 по SHA-256, извлечение пользовательской БД и изменения устройства отсутствуют. `apksigner` найден, но завершился с exit code 1; причина и сертификат **NOT_VERIFIED**. Подготовлен локальный ZIP v6 с прямым Java/JAR вызовом `apksigner`, категориями ошибок и проверкой только наличия каталогов app sandbox (`run-as ls -ld`); ZIP/статический запрет на запись PASS, физическое исполнение **NOT_TESTED**. До реального полного архива и совпадения signing certificate обновление запрещено.
+
 ## Блокеры и следующие действия
 
 **B01** независимый полный backup/restore; **B04/B05** installed fingerprint и постоянный ключ; **B06/B10** реальные лицензированные видео и модели, issue [#442](https://github.com/250oisr-eng/Pasekaapp/issues/442) **FROZEN**; **B11** v315→v317 upgrade не проверен; **B14** device performance. Полный [реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md).
