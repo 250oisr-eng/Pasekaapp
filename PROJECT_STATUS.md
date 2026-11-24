@@ -1,3 +1,13 @@
+## 2026-11-24 — безопасный G0 отделён от P0 Restore: Draft #468 непосредственно от main
+
+- После фактического OnePlus `PASS_ISOLATED_ONLY` (NE2213, Android API36, тестовый `ru.paseka.journal.disasterproof2`, report 24.11) исключены бессмысленные повторы synthetic APK. G0 рабочих данных требует **того же app origin**, отдельный test package Android не читает production IndexedDB.
+- Создан отдельный [Draft #468](https://github.com/250oisr-eng/Pasekaapp/pull/468) от проверенного `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`, чтобы можно было отдельно оценить **только чтение**, не включать full restore / auto-delete из #452 / #442. `js/p0-source-inventory.js`, кнопка выгрузки обезличенных агрегированных G0 counts в `index.html`, `sw.js` v315 и 3 negative/privacy unit tests. **Без schema changes, сетевой отправки, очистки данных или доступа к MediaStore.**
+- Code SHA `e633e8d1bd0cd337dcb72d248f88aeef7678f04f`: [Android CI #45366819767](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45366819767) **659/659 PASS + Gradle debug BUILD SUCCESSFUL**, [Fast quality #45366731045](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45366731045) **SUCCESS**. Последующие commits только docs, не выдавать их за новый code SHA.
+- Область и риски: [`docs/P0-G0-READONLY-PR468-2026-11-24.md`](docs/P0-G0-READONLY-PR468-2026-11-24.md): main `records[].media` Data URL, `entrance_media` Blob, `full_backup`; большие DataURL клонируются в память для метаданных, Blob bytes не читаются. Другие stores + OS копии помечаются UNKNOWN. `G0_REAL_ONEPLUS=NOT_TESTED`; для реального запуска нужно **отдельное согласие на merge именно #468 и отдельное на production release**. Запрет на слияние/публикацию остаётся; #442 frozen.
+- G0 есть также в прежнем Draft #452 — это **незавершённая ветка**; перед интеграцией #452 нужно согласовать дубли в `index.html`/`sw.js`/тестах и повторно проверить CI на актуальном base, не делать stacked merge вслепую.
+
+---
+
 ## 2026-11-23 — интеграционная очередь восстановлена, стратегия → Varroa, без публикации
 
 - [Draft #448](https://github.com/250oisr-eng/Pasekaapp/pull/448) — восстановленная стратегия/карточки требований/автоматизация из исходного конфликтного #446, основана на `main=043779c1a192e749f3b9870d1dce689156ddf3bb`, 0 behind, только .md. [Draft #449](https://github.com/250oisr-eng/Pasekaapp/pull/449) — восстановленный журнал Varroa из #445, теперь **base = ветка #448**, 0 behind. Git merge commit `c1775a051641086553a1289a8558008e75ac11b0` сохранил обе версии пяти общих контрольных документов.
