@@ -115,7 +115,7 @@ test('WebView runner reports only isolated module smoke, never fake real phone a
  assert.equal(obj.p1ReleaseReady,false);
  assert.equal(obj.physicalHiveOperation,'NOT_ATTEMPTED');
  assert.equal(obj.independentSecondDeviceArchive,'NOT_VERIFIED');
- assert.equal(obj.checks.length,12);
+ assert.equal(obj.checks.length,13);
  assert.ok(children.length>0);
  ctx.PasekaSectionalPhysicalBrowserCommitV2={commitWitnessed(){}};
  runInNewContext(runner,ctx);
