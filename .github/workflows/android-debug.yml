@@ -13,8 +13,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
-      - 'scripts/prepare-web.mjs'
-      - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/**'
       - '.github/workflows/android-debug.yml'
   pull_request:
     paths:
@@ -27,8 +26,7 @@ on:
       - 'package-lock.json'
       - 'capacitor.config.json'
       - 'android/**'
-      - 'scripts/prepare-web.mjs'
-      - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/**'
       - '.github/workflows/android-debug.yml'
 
 concurrency:
