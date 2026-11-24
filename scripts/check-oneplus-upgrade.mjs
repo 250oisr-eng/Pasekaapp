@@ -39,7 +39,9 @@ export function evaluateUpgrade(installed, candidate) {
 }
 
 function run(binary, args) {
-  return execFileSync(binary, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 8 * 1024 * 1024 }).trim();
+  const command = typeof binary === 'string' ? binary : binary.command;
+  const argv = typeof binary === 'string' ? args : [...binary.prefix, ...args];
+  return execFileSync(command, argv, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 8 * 1024 * 1024 }).trim();
 }
 
 function sdkTool(name) {
@@ -48,6 +50,9 @@ function sdkTool(name) {
   const base = join(sdk, 'build-tools');
   const versions = readdirSync(base, { withFileTypes: true }).filter(x => x.isDirectory()).map(x => x.name).sort((a,b) => b.localeCompare(a, undefined, { numeric: true }));
   if (!versions.length) throw new Error('BLOCKED: no Android SDK build tools');
+  if (name === 'apksigner' && process.platform === 'win32') {
+    return { command: 'java', prefix: ['-jar', join(base, versions[0], 'lib', 'apksigner.jar')] };
+  }
   return join(base, versions[0], name + (process.platform === 'win32' ? '.exe' : ''));
 }
 
