@@ -13,6 +13,8 @@
 
 - **Draft #478 / B11 follow-up:** VM regression проверяет холодный offline shell fallback, отсутствие перехвата API/cross-origin/POST и очистку только старого Paseka shell cache при активации. Основа — проверенный #477 main; SHA первого code commit `f30d8c889fdc4f3112063597a514f23f4aa25676`. Его собственный CI и последующий финальный HEAD требуют проверки; **NOT_IN_MAIN, DEVICE_NOT_VERIFIED**. Не сливать без отдельного разрешения.
 
+- **B11 реальный OnePlus / read-only evidence (USER_REPORTED_JSON, 2026-11-24):** `PASEKA_B11_READONLY_PREFLIGHT_V1=PASS`, `PASEKA_B11_APK_ASSET_AUDIT_V2=PASS`; OnePlus `NE2213`, Android 16/API 36, пакет `ru.paseka.journal` v1.0, установленный `base.apk` 8 350 003 bytes, SHA-256 `a6e14157fcdce06885cb8c6a5ad55c8a76170c3fa4cefa234b1715d80865aec6`, внутри `assets/public/sw.js` объявлен `paseka-shell-v315`. Это **не** подтверждает активный SW, WebView/Chrome controller, v317 rollout, cold offline или upgrade. Скрипты read-only; установка/очистка/сеть/данные не изменялись. В `main` shell v317, релиз не разрешён. **Следующий шаг:** безопасный cold-offline запуск существующего APK v315 без изменений данных; обновление v315→v317 заблокировано до отдельного release/backup/signing gate.
+
 ## Следующие ограничения
 
 B01 полный внешний архив/restore, B04/B05 installed signer/durable key, B06 лицензированные реальные веса, B10 real video, B11 cold offline/upgrade, B14 физические метрики — НЕ ПОДТВЕРЖДЕНЫ. P1 OP/new hive profile не активировать без локальных валидаторов и оригинала технологии.
