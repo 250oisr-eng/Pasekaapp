@@ -49,8 +49,8 @@ test('SHA tampering and truncated store inventory fail before any write',async()
  await assert.rejects(api.inspectArchive(JSON.stringify(damaged),db),/SHA-256/);
  assert.equal((await get(db,'main','state')).meta.revisionId,'r1');db.close();
 });
-test('restoring an archive atomically rewrites all stores and survives reopen',async()=>{
- const db=await database();await seed(db);const raw=await api.exportArchive(db);
+test('restoring an archive atomically rewrites non-binary live stores and survives reopen',async()=>{
+ const db=await database();await seed(db,false);const raw=await api.exportArchive(db);
  let tx=db.transaction('main','readwrite');tx.objectStore('main').put({meta:{revisionId:'r2'},hives:[],families:[],records:[]},'state');await new Promise(r=>tx.oncomplete=r);
  const inspected=await api.inspectArchive(raw,db);
  await api.atomicRestore(db,inspected,'r2');
@@ -108,7 +108,7 @@ test('reopened database retains complete recovery after simulated crash boundary
  db.close();
 });
 test('quota-like DataCloneError aborts all-store restore and preserves media and history',async()=>{
- const db=await database();await seed(db);
+ const db=await database();await seed(db,false);
  const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
  inspection.rows.get('main')[0].value.meta.revisionId='changed';
  inspection.rows.get('entrance_media')[0].value.blob=()=>{}; // fake structured clone / quota precondition
@@ -299,5 +299,46 @@ test('restore requires live value fence; an incomplete inspection is not authori
  await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Live store value fence is missing/);
  assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
  assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
+
+test('same-size same-MIME replacement after preflight never overwrites newer original',async()=>{
+ const db=await database('binary-fence-equal-size');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const newer=[9,8,7,6]; // exactly the same byte length and video/mp4 as the archived original
+ const t=db.transaction('entrance_media','readwrite');
+ t.objectStore('entrance_media').put({id:'video1',blob:new Blob([new Uint8Array(newer)],{type:'video/mp4'})});
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Live binary originals require non-destructive restore: entrance_media/);
+ const preserved=await get(db,'entrance_media','video1');
+ assert.deepEqual([...new Uint8Array(await preserved.blob.arrayBuffer())],newer);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ assert.deepEqual((await get(db,'full_backup','previous')).state.hives,[]);
+ db.close();
+});
+
+test('unchanged existing binary refuses destructive rewrite while fresh DB may restore it',async()=>{
+ const original=await database('binary-fence-existing');await seed(original);
+ const raw=await api.exportArchive(original),inspection=await api.inspectArchive(raw,original);
+ await assert.rejects(api.atomicRestore(original,inspection,'r1'),/Live binary originals require non-destructive restore: entrance_media/);
+ assert.deepEqual([...new Uint8Array(await (await get(original,'entrance_media','video1')).blob.arrayBuffer())],[1,2,3,4]);
+ const fresh=await database('binary-fence-fresh');
+ const cleanInspection=await api.inspectArchive(raw,fresh);
+ await api.atomicRestore(fresh,cleanInspection,null);
+ assert.deepEqual([...new Uint8Array(await (await get(fresh,'entrance_media','video1')).blob.arrayBuffer())],[1,2,3,4]);
+ assert.equal((await get(fresh,'main','state')).meta.revisionId,'r1');
+ original.close();fresh.close();
+});
+
+test('nested live media in a non-video store blocks restore without clearing any record',async()=>{
+ const db=await database('binary-fence-nested');await seed(db,false);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const old=await get(db,'full_backup','previous');
+ old.state.nested={attachments:[{payload:new Blob([Uint8Array.from([4,4,4,4])],{type:'application/octet-stream'})}]};
+ const t=db.transaction('full_backup','readwrite');t.objectStore('full_backup').put(old,'previous');
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store values changed since preflight: full_backup|Live binary originals require non-destructive restore: full_backup/);
+ assert.equal((await get(db,'full_backup','previous')).state.nested.attachments[0].payload.size,4);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
  db.close();
 });
