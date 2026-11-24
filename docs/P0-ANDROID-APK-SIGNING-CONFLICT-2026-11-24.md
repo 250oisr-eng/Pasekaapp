@@ -1,3 +1,13 @@
+## 6. Автоматическая офлайн-проверка пары будущих APK (без телефона)
+
+В Draft #469 реализовано `node scripts/check-oneplus-upgrade.mjs --compare-files old.apk new.apk`. Требования: Node.js и Android SDK Build Tools с `aapt` и `apksigner`, локальные **распакованные APK**, а не ZIP GitHub Actions. Проверяются `packageName`, `versionCode`, certificate fingerprints через системный инструмент `apksigner verify --print-certs`. При несовпадении — `BLOCKED`, без установок, ADB и изменения данных. На Windows для проверки подписи используется `java -jar <Android SDK>/build-tools/<version>/lib/apksigner.jar`.
+
+- Этот режим **не устанавливает** APK и не является полным тестом backup/restore, режима полёта, миграций или гарантией fingerprint реально установленной сборки OnePlus.
+- CI exact code SHA `84b6277e78b24bda8aa4fe2f39d70e7ef377e174`, [#45405378314](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45405378314): **676/676 PASS, Android BUILD SUCCESSFUL**. В тестах проверено, что ZIP и неполные параметры нельзя передать как APK.
+- Кодовые изменения для предупреждений о JSON: `index.html`; контрольные тесты: `tests/json-backup-scope-ui.test.mjs`. Отдельные видео `entrance_media` не являются частью обычного JSON export. Нет доказанного разрешения на перенос пользовательских данных между разными appId.
+
+---
+
 ## 5. Повторное подтверждение: третья сборка тоже имеет новую подпись
 
 - [Android CI #45404872099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45404872099), exact code+tests SHA `f377130c1f9a9b0c33ef13de7f03d480239bbea4`: **completed/success, 675/675 PASS, Gradle BUILD SUCCESSFUL**, artifact `paseka-debug-apk` ID `14925680411`, срок действия до `2026-12-08T13:35:52Z`.
