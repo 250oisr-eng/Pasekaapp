@@ -98,6 +98,7 @@ function winterFixture(){
 }
 function select(){
  return {hiveId:'h',sourceRevisionId:'r1',
+  springVariant:'EARLY_HONEY_PREPARATION',springDevelopmentPersonallyConfirmed:true,
   placements:{
    left:{familyId:'f1',broodBodyIds:['b1','b2'],stackId:'stack-left',
     bottomItemId:'bottom-left',coverItemId:'cover-left',
