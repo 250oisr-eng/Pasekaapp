@@ -410,10 +410,10 @@ test('recovery verification refuses unproven inspection and detects altered hist
 });
 
 test('main baseline keeps G0 inventory and isolates readonly archive UI',()=>{
- assert.match(html,/onclick="downloadG0SourceInventory\\(\\)"/);
- assert.match(html,/js\\/p0-source-inventory\\.js/);
- assert.match(html,/id="p0FullArchiveReadonly"/);
- assert.match(html,/Функция восстановления полной базы заблокирована/);
- assert.match(html,/await PasekaDisasterArchive\\.exportArchive\\(db\\)/);
- assert.doesNotMatch(html,/restoreDisasterArchive\\(\\)/);
+ assert.ok(html.includes('onclick="downloadG0SourceInventory()"'));
+ assert.ok(html.includes('./js/p0-source-inventory.js'));
+ assert.ok(html.includes('id="p0FullArchiveReadonly"'));
+ assert.ok(html.includes('Функция восстановления полной базы заблокирована'));
+ assert.ok(html.includes('await PasekaDisasterArchive.exportArchive(db)'));
+ assert.ok(!html.includes('restoreDisasterArchive()'));
 });
