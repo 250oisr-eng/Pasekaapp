@@ -120,3 +120,32 @@ for(const name of ['readMain','readAutoBackup']){
   assert.equal(deps.autoBackupInfo,'NOT_COMMITTED');
  });
 }
+
+test('B09 openDB closes late success after blocked open instead of adopting stale handle',async()=>{
+ let closes=0;
+ const opened={objectStoreNames:{contains(){return true}},close(){closes++}};
+ const request={result:opened,error:null};
+ const deps={indexedDB:{open(){return request}},DB:'b09-blocked',STORE:'main',
+  BACKUP_STORE:'full_backup',db:null,isFreshDatabaseUpgrade:old=>old===0};
+ const pending=load('openDB',deps)();
+ request.onblocked();
+ await assert.rejects(pending,/занята другой вкладкой/);
+ request.onsuccess();
+ assert.equal(closes,1,'late success must release stale connection');
+ assert.equal(deps.db,null,'blocked open cannot become active after rejection');
+});
+
+test('B09 openDB closes and clears active handle on version change',async()=>{
+ let closes=0;
+ const opened={objectStoreNames:{contains(){return true}},close(){closes++}};
+ const request={result:opened,error:null};
+ const deps={indexedDB:{open(){return request}},DB:'b09-versionchange',STORE:'main',
+  BACKUP_STORE:'full_backup',db:null,isFreshDatabaseUpgrade:old=>old===0};
+ const pending=load('openDB',deps)();
+ request.onsuccess();
+ assert.equal(await pending,false,'existing schema must not be treated as fresh');
+ assert.equal(deps.db,opened);
+ opened.onversionchange();
+ assert.equal(closes,1);
+ assert.equal(deps.db,null,'invalidated handle must not be reused');
+});
