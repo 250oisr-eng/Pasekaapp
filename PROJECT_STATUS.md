@@ -1,3 +1,12 @@
+## 2026-11-24 — P0 code-level original-media inventory and independent restore protocol (Draft #452)
+
+- GitHub live verified: `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`; #452 remains OPEN/DRAFT based on main. Inspected actual `main/index.html` and PASEKA02 frozen Draft #441 `c0ef4afccc6060ad36898fce9d6eebde82e626cd`: `video-archive-v2-copy-inventory.js`, `snapshot.js`, `record-media.js`, `restore-db-preflight.js`, `restore-gate.js`, `metadata-codec.js`, `entrance-atomic.js` and inventory tests.
+- Wrote [source inventory + independent restore protocol](docs/P0-PASEKA02-РЕЕСТР-ИСТОЧНИКОВ-И-ПРОТОКОЛ-НЕЗАВИСИМОГО-ВОССТАНОВЛЕНИЯ-2026-11-24.md): exact data placements main.state journal Data URLs, entrance_media Blob, full_backup historical state/quarantine, v2 archive_staging/history, ledger key, and unobservable Android OS Camera/Gallery/Downloads/MediaStore. Important mismatch: main IDB v3 has 3 stores; isolated PASEKA02 v2 preflight requires 5. No live v2 migration/complete record_media restore demonstrated.
+- Inspected existing v2 read-only five-store copy inventory instead of duplicating it. It **always denies cleanup/restore authorization** and doesn't prove hashes or OS copies. G0 actual user-source inventory and G1–G6 independent external physical restore remain **NOT_TESTED/NOT_VERIFIED**. `SECOND_DEVICE_VERIFIED=NO`, #442 FROZEN, no original media deletion.
+- Scope: documentation-only, no JS/runtime/DB/production changes, no new APK, no redundant synthetic guard PR, no main merge or Pages release. Next executable gate: safe read-only G0 inventory against an actual authorized isolated data source; without it no claims of full cross-device restore. User action only when physical original source or second device is genuinely required.
+
+---
+
 ## 2026-11-24 — P0 archive coverage audit in existing Draft #452 (no runtime changes)
 
 - Проведено read-only ревью `js/disaster-archive.js`, `tests/disaster-archive.test.mjs` и P0 UI `index.html` на ветке #452. Сверены текущий `main=13c724a634f0987ff634a058a5fa37a1b8e20c92` и Draft #452 base=main, исторический HEAD до аудита `1d0912012002def0d7e9133cb9e600fb0f2aae9d` (52 commits ahead, 0 behind).
