@@ -181,6 +181,9 @@ test('physical file round-trip imports all stores into a clean independent Index
   assert.deepEqual(proof.counts,{entrance_media:1,full_backup:1,main:1});
   assert.equal(await get(clean,'main','state'),undefined);
   await api.atomicRestore(clean,proof,null);
+  const byteProof=await api.verifyRestoredArchive(clean,proof);
+  assert.equal(byteProof.verified,true);
+  assert.equal(byteProof.sha256,JSON.parse(stored).manifest.sha256);
   assert.equal((await get(clean,'main','state')).hives[0].id,'h1');
   assert.equal((await get(clean,'full_backup','previous')).state.hives.length,0);
   const video=await get(clean,'entrance_media','video1');
@@ -345,4 +348,64 @@ test('nested live media in a non-video store blocks restore without clearing any
  assert.equal((await get(db,'full_backup','previous')).state.nested.attachments[0].payload.size,4);
  assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
  db.close();
+});
+
+test('independent recovered database survives reopen and full SHA/Blob verification',async()=>{
+ const original=await database('recover-source-reopen');await seed(original);
+ const raw=await api.exportArchive(original);
+ const restored=await database('recover-target-reopen');
+ const inspection=await api.inspectArchive(raw,restored);
+ await api.atomicRestore(restored,inspection,null);
+ const proofBefore=await api.verifyRestoredArchive(restored,inspection);
+ assert.equal(proofBefore.verified,true);
+ restored.close();
+ // Reopening a separate database connection after process-like shutdown.
+ // IndexedDBFactory per helper is intentionally isolated; this fixture keeps
+ // the same underlying IDBFactory to simulate a durable restart accurately.
+ const idb=new IDBFactory(),name='recover-real-restart';
+ const open=()=>new Promise((yes,no)=>{
+  const request=idb.open(name,3);
+  request.onupgradeneeded=()=>{
+   request.result.createObjectStore('main');
+   request.result.createObjectStore('full_backup');
+   request.result.createObjectStore('entrance_media',{keyPath:'id'});
+  };
+  request.onsuccess=()=>yes(request.result);request.onerror=()=>no(request.error);
+ });
+ let db=await open();
+ const reopenedInspection=await api.inspectArchive(raw,db);
+ await api.atomicRestore(db,reopenedInspection,null);
+ db.close();db=await open();
+ assert.equal((await api.verifyRestoredArchive(db,reopenedInspection)).sha256,JSON.parse(raw).manifest.sha256);
+ db.close();original.close();
+});
+
+test('recovered same-size same-MIME video corruption is detected by full-byte proof',async()=>{
+ const source=await database('verify-original-video');await seed(source);
+ const raw=await api.exportArchive(source);
+ const clean=await database('verify-corrupted-video');
+ const proof=await api.inspectArchive(raw,clean);
+ await api.atomicRestore(clean,proof,null);
+ assert.equal((await api.verifyRestoredArchive(clean,proof)).verified,true);
+ const t=clean.transaction('entrance_media','readwrite');
+ t.objectStore('entrance_media').put({id:'video1',blob:new Blob([Uint8Array.from([8,7,6,5])],{type:'video/mp4'})});
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onerror=t.onabort=()=>no(t.error);});
+ await assert.rejects(api.verifyRestoredArchive(clean,proof),/Restored database differs from archived source bytes/);
+ assert.deepEqual([...new Uint8Array(await (await get(clean,'entrance_media','video1')).blob.arrayBuffer())],[8,7,6,5]);
+ clean.close();source.close();
+});
+
+test('recovery verification refuses unproven inspection and detects altered history',async()=>{
+ const source=await database('verify-history-source');await seed(source,false);
+ const raw=await api.exportArchive(source);
+ const clean=await database('verify-history-target');
+ const inspection=await api.inspectArchive(raw,clean);
+ await api.atomicRestore(clean,inspection,null);
+ await assert.rejects(api.verifyRestoredArchive(clean,{}),/SHA-256 required/);
+ const t=clean.transaction('full_backup','readwrite');
+ t.objectStore('full_backup').put({state:{hives:[{id:'changed'}]}},'previous');
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onerror=t.onabort=()=>no(t.error);});
+ await assert.rejects(api.verifyRestoredArchive(clean,inspection),/Restored database differs from archived source bytes/);
+ assert.equal((await get(clean,'full_backup','previous')).state.hives[0].id,'changed');
+ clean.close();source.close();
 });
