@@ -15,7 +15,7 @@ export function parseBadging(output) {
 }
 
 export function parseSigning(output) {
-  const matches = [...String(output).matchAll(/Signer\s+#\d+\s+certificate\s+SHA-256\s+digest:\s*([0-9a-f:]+)/gi)];
+  const matches = [...String(output).matchAll(/^(?:Signer\s+#\d+|V\d+(?:\.\d+)?\s+Signer(?:\s+#\d+)?:)\s+certificate\s+SHA-256\s+digest:\s*([0-9a-f:]+)\s*$/gmi)];
   if (!matches.length) throw new Error('BLOCKED: cannot establish certificate SHA-256 fingerprint');
   return [...new Set(matches.map(m => m[1].replace(/:/g, '').toLowerCase()))].sort();
 }
