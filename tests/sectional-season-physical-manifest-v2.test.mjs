@@ -53,7 +53,7 @@ function mergeTarget(family='merged',ids=['b2','b4','b6']){
    bottomItemId:'bottom-left'}]};
 }
 function request(operationId,target,extra={}){
- return {operationId,hiveId:'h',userConfirmed:true,
+ return {operationId,hiveId:'h',expectedSourceRevisionId:'revision1',userConfirmed:true,
   actualWorkConfirmed:true,occurredAt:'2026-11-23T10:00:00Z',
   targetLayout:target,itemDestinations:{},storageLocations:{},
   confirmedBodyIds:[],confirmedItemIds:[],...extra};
@@ -264,4 +264,25 @@ test('mobile source inspection refuses wrong item location and incomplete six-fr
  const repeated=structuredClone(original);
  repeated.equipmentInventory.bodies.b2.frames[0].frameId=repeated.equipmentInventory.bodies.b1.frames[0].frameId;
  assert.equal(api.inspectSource(repeated,'h').error,'manifest_source_frame_identity_duplicate_or_invalid');
+});
+
+
+test('manifest rejects stale or absent source revision without changing state',()=>{
+ const state=base(),before=structuredClone(state);
+ const req=request('OP-11',mergeTarget(),{
+  actualMergeConfirmed:true,resultFamily:{id:'merged',hive:'h'},
+  storageLocations:{b1:'склад',b3:'склад',b5:'склад'},
+  itemDestinations:{'bottom-middle':{type:'storage',label:'склад'},
+    'bottom-right':{type:'storage',label:'склад'}}
+ });
+ delete req.expectedSourceRevisionId;
+ assert.equal(plan(state,req).error,'manifest_source_revision_stale_or_missing');
+ req.expectedSourceRevisionId='previous-revision';
+ assert.equal(plan(state,req).error,'manifest_source_revision_stale_or_missing');
+ req.expectedSourceRevisionId='revision1';
+ state.meta.revisionId='revision-after-other-tab-write';
+ assert.equal(plan(state,req).error,'manifest_source_revision_stale_or_missing');
+ state.meta.revisionId='revision1';
+ assert.equal(plan(state,req).error,'manifest_body_movements_not_individually_confirmed');
+ assert.deepEqual(state,before);
 });

@@ -47,7 +47,7 @@ function fixture(){
   meshDiaphragms:[{itemId:'d1',positionLabel:'lower-middle'},
    {itemId:'d2',positionLabel:'middle-upper'}]
  };
- const request={operationId:'OP-12',hiveId:'h',userConfirmed:true,actualWorkConfirmed:true,
+ const request={operationId:'OP-12',hiveId:'h',expectedSourceRevisionId:state.meta.revisionId,userConfirmed:true,actualWorkConfirmed:true,
   actualIsolationConfirmed:true,strongestFamilyId:'f1',occurredAt:'2026-11-22T12:00:00Z',
   targetLayout:target,storageLocations:{b4:'склад',b6:'склад'},
   itemDestinations:{

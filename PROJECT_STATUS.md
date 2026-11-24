@@ -1,3 +1,19 @@
+## 2026-11-24 — Android CI result for code/test SHA
+
+- SHA `fbbda9c5fdd0b238c8e0197f909eaef32704f4e1`: [Android Build #45331780029](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331780029) **SUCCESS**; redundant run #45331787512 **CANCELLED**, not PASS. [Fast #45331779981](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331779981): 949/949 PASS. Subsequent commits only changed Markdown documentation. No physical OnePlus test or external real archive restore.
+
+## 2026-11-24 — P1 manifest revision guard, CI evidence
+
+- Code/test SHA `fbbda9c5fdd0b238c8e0197f909eaef32704f4e1`: [Fast Quality #45331779981](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331779981) **949/949 PASS, 0 FAIL**, Pages source read-only PASS. Android builds #45331780029 and #45331787512 were IN_PROGRESS at evidence check; they are NOT marked PASS here.
+- First Android job #45331680974 exposed 2 missed integration-fixture revision fields; both fixed. Physical state and original data untouched. Draft #459; no release/merge.
+
+## 2026-11-24 — P1 stale-source physical manifest gate (Draft, not released)
+
+- Branch `fix/p1-manifest-stale-source-revision-2026-11-24` is stacked on Draft #458 at `16c3fb29976c24b4251e89bab649c78e275b078d`; no main, production or personal media changes.
+- `js/sectional-season-physical-manifest-v2.js`: `plan` now requires `expectedSourceRevisionId` matching `state.meta.revisionId`. A missing or stale input is rejected before evaluating movements. This prevents a mobile draft created before a concurrent-tab write or restore from silently being reinterpreted against a newer physical state.
+- `tests/sectional-season-physical-manifest-v2.test.mjs`: existing synthetic requests supply the original revision; tests cover missing, stale, concurrent revision and unchanged state. This changes the pre-commit request contract intentionally; any future full guided UI must pass the revision from `inspectSource` and refresh on mismatch.
+- Verification: GitHub CI on the new exact HEAD still needs confirmation; no claim of green CI or device test. Remaining blockers: guided target layout and item placement UI, complete OP01–14 UI→CAS, independent real external archive restore with original Blobs, OnePlus offline E2E, separate merge and release authorization.
+
 ## Дополнение к приёмке (точный кодовый SHA)
 
 **`483e3978dd522350171830d7c0a82178f9cf68c6`**:
