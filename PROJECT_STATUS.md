@@ -1,3 +1,11 @@
+## 24.11.2026 — P1 OP-12 guided 2+1+1 physical target input, stacked Draft #460
+
+- Source/contract: `docs/P1-OP12-ПОШАГОВАЯ-ЦЕЛЕВАЯ-РАСКЛАДКА-2026-11-24.md`; source-bound `js/sectional-season-op12-guided-v2.js` + mobile wizard, `index.html`, SW offline v334. Based on existing Draft #459; NOT_IN_MAIN, NO_MERGE, NO_RELEASE.
+- For OP-12 the beekeeper can personally choose the strongest family, exact retained bodies for middle/upper families, a real cover, optional feeder, two registered storage mesh diaphragms, individually confirm movement IDs and enter actual storage for all removed assets. The module rejects stale revisions, other hives, wrong family/body associations and fabricated or non-stored diaphragms; reselecting a source choice invalidates previous confirmations. It builds a read-only target and runs the existing physical manifest planner; NO IndexedDB, DONE, queen selection or video operations.
+- Tests: `tests/sectional-season-op12-guided-v2.test.mjs` (+ offline shell tests); first CI runs discovered changed-only-body and test assertion issues, fixed in code/tests. **Do not mark exact-head CI PASS before completed runs on the latest code SHA** `af353ad42dd7bad51d921f0fe2929ef5ad508d5d`.
+- Scope limitations: still missing guided OP11/13/14 and full UI→CAS for OP01–14; independent P0 real original archive second-device restore and physical OnePlus offline multi-season E2E NOT VERIFIED. PASEKA02 #442 FROZEN. Do not merge/publish or authorize physical data mutation.
+- Next: verify exact-head CI (Fast + Android), fix any failure; continue one independent guided physical operation in a separate stacked Draft, then review full device/archive gates.
+
 ## 2026-11-24 — Android CI result for code/test SHA
 
 - SHA `fbbda9c5fdd0b238c8e0197f909eaef32704f4e1`: [Android Build #45331780029](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331780029) **SUCCESS**; redundant run #45331787512 **CANCELLED**, not PASS. [Fast #45331779981](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331779981): 949/949 PASS. Subsequent commits only changed Markdown documentation. No physical OnePlus test or external real archive restore.
