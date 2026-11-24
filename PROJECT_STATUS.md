@@ -1,3 +1,7 @@
+## 2026-11-24 — Android CI result for code/test SHA
+
+- SHA `fbbda9c5fdd0b238c8e0197f909eaef32704f4e1`: [Android Build #45331780029](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331780029) **SUCCESS**; redundant run #45331787512 **CANCELLED**, not PASS. [Fast #45331779981](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331779981): 949/949 PASS. Subsequent commits only changed Markdown documentation. No physical OnePlus test or external real archive restore.
+
 ## 2026-11-24 — P1 manifest revision guard, CI evidence
 
 - Code/test SHA `fbbda9c5fdd0b238c8e0197f909eaef32704f4e1`: [Fast Quality #45331779981](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331779981) **949/949 PASS, 0 FAIL**, Pages source read-only PASS. Android builds #45331780029 and #45331787512 were IN_PROGRESS at evidence check; they are NOT marked PASS here.
