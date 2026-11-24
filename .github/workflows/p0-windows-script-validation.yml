@@ -1,0 +1,101 @@
+name: P0 Windows PowerShell audit script validation (no device)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/p0-oneplus/**'
+      - '.github/workflows/p0-windows-script-validation.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  windows-mock:
+    name: PowerShell 5.1 parser, exact APK and mocked ADB (never production)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout script under test
+        uses: actions/checkout@v4
+      - name: Fetch pinned, already CI verified P0 proof2 APK
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 45360760781
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: paseka-disaster-proof-isolated-apk
+          path: artifact
+      - name: Validate actual script in Windows PowerShell 5.1 with real APK and fake ADB
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='tools/p0-oneplus/run-p0-oneplus.ps1'
+          $tokens=$null
+          $parseErrors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $source),[ref]$tokens,[ref]$parseErrors) | Out-Null
+          if($parseErrors.Count -ne 0){ $parseErrors | ForEach-Object { Write-Error $_ }; throw 'PowerShell 5.1 syntax invalid' }
+          Write-Host 'P0_PS51_PARSE_PASS'
+          $manifest=Get-Content -Raw artifact/disaster-proof-manifest.json | ConvertFrom-Json
+          if($manifest.sourceSha -ne '3677797d3f83027353a9b7ff8c5cec5f91152a2e' -or $manifest.packageId -ne 'ru.paseka.journal.disasterproof2'){throw 'Source/package mismatch'}
+          $apks=@(Get-ChildItem artifact -Recurse -Filter app-debug.apk -File)
+          if($apks.Count -ne 1){throw 'Exactly one APK required'}
+          $hash=(Get-FileHash $apks[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($hash -ne '79a6227719debbac7216bc51fd99f3f786b57232d73d232ea7f6524ee355332f'){throw 'APK digest mismatch'}
+          Write-Host 'P0_APK_BUNDLE_SHA256_PASS'
+          $work=Join-Path $env:RUNNER_TEMP 'p0-windows-verify'
+          $fake=Join-Path $work 'fakebin'
+          $data=Join-Path $work 'mockstate'
+          New-Item -ItemType Directory -Path $fake -Force | Out-Null
+          New-Item -ItemType Directory -Path $data -Force | Out-Null
+          Copy-Item 'tools/p0-oneplus/tests/mock-adb.cmd' (Join-Path $fake 'adb.cmd')
+          $env:PATH=$fake+';'+$env:PATH
+          $env:P0_MOCK_STATE_DIR=$data
+          $good=Join-Path $work 'success'
+          New-Item -ItemType Directory -Path $good -Force | Out-Null
+          Copy-Item $source (Join-Path $good 'run-p0-oneplus.ps1')
+          Copy-Item 'artifact/disaster-proof-manifest.json' (Join-Path $good 'disaster-proof-manifest.json')
+          Copy-Item $apks[0].FullName (Join-Path $good 'app-debug.apk')
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $good 'run-p0-oneplus.ps1')
+          if($LASTEXITCODE -ne 0){throw 'Mocked success run failed'}
+          $reports=@(Get-ChildItem $good -Recurse -Filter report.json -File)
+          if($reports.Count -ne 1){throw "Expected one report; got $($reports.Count)"}
+          $report=Get-Content $reports[0].FullName -Raw | ConvertFrom-Json
+          if($report.finalStatus -ne 'PASS_ISOLATED_ONLY' -or $report.firstCode -ne 'P0_DISASTER_WEBVIEW_RESTORE_PASS' -or $report.secondCode -ne 'P0_DISASTER_PHYSICAL_RESTART_PASS'){throw 'Mocked result missing restore/restart PASS'}
+          Write-Host 'P0_WINDOWS_POWERSHELL_MOCK_FULL_CYCLE_PASS'
+          $bad=Join-Path $work 'wrong-manifest'
+          $badState=Join-Path $work 'wrong-manifest-state'
+          New-Item -ItemType Directory -Path $bad -Force | Out-Null
+          New-Item -ItemType Directory -Path $badState -Force | Out-Null
+          $env:P0_MOCK_STATE_DIR=$badState
+          Copy-Item (Join-Path $good 'run-p0-oneplus.ps1') (Join-Path $bad 'run-p0-oneplus.ps1')
+          Copy-Item (Join-Path $good 'app-debug.apk') (Join-Path $bad 'app-debug.apk')
+          $badManifest=Get-Content (Join-Path $good 'disaster-proof-manifest.json') -Raw | ConvertFrom-Json
+          $badManifest.sourceSha='b1a33b82b49daff52b5e840bd7e63a6d83b917e5'
+          $badManifest | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $bad 'disaster-proof-manifest.json')
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $bad 'run-p0-oneplus.ps1')
+          if($LASTEXITCODE -eq 0){throw 'Wrong PR source SHA wrongly accepted'}
+          $badReports=@(Get-ChildItem $bad -Recurse -Filter report.json -File)
+          if($badReports.Count -ne 1){throw 'Wrong-manifest run did not write report'}
+          $badReport=Get-Content $badReports[0].FullName -Raw | ConvertFrom-Json
+          if($badReport.blockCode -ne 'BUNDLE_MANIFEST_MISMATCH'){throw 'Wrong manifest not fail-closed'}
+          if(Test-Path (Join-Path $badState 'installed.flag')){throw 'Wrong manifest invoked adb install'}
+          Write-Host 'P0_WINDOWS_WRONG_ARTIFACT_BLOCKED_BEFORE_INSTALL_PASS'
+          $installed=Join-Path $work 'already-installed'
+          $installedState=Join-Path $work 'already-installed-state'
+          New-Item -ItemType Directory -Path $installed -Force | Out-Null
+          New-Item -ItemType Directory -Path $installedState -Force | Out-Null
+          Copy-Item $source (Join-Path $installed 'run-p0-oneplus.ps1')
+          Copy-Item (Join-Path $good 'disaster-proof-manifest.json') (Join-Path $installed 'disaster-proof-manifest.json')
+          Copy-Item $apks[0].FullName (Join-Path $installed 'app-debug.apk')
+          'present' | Set-Content (Join-Path $installedState 'installed.flag')
+          $env:P0_MOCK_STATE_DIR=$installedState
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $installed 'run-p0-oneplus.ps1')
+          if($LASTEXITCODE -eq 0){throw 'Already-installed diagnostic package wrongly accepted'}
+          $blockedReports=@(Get-ChildItem $installed -Recurse -Filter report.json -File)
+          if($blockedReports.Count -ne 1){throw 'Already-installed run did not write report'}
+          $blocked=Get-Content $blockedReports[0].FullName -Raw | ConvertFrom-Json
+          if($blocked.blockCode -ne 'TEST_PACKAGE_ALREADY_INSTALLED'){throw 'Missing fail-closed for existing package'}
+          Write-Host 'P0_WINDOWS_ALREADY_INSTALLED_PRESERVED_PASS'
+
+          exit 0 # Expected negative-case exit=1 must not fail the runner wrapper.

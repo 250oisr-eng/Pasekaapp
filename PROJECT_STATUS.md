@@ -1,3 +1,145 @@
+## 2026-11-24 — актуальная развязка G0: **только Draft #468**, P0 restore остаётся в #452
+
+- Отделён read-only инвентарь G0 в независимый [Draft #468](https://github.com/250oisr-eng/Pasekaapp/pull/468) непосредственно от `main`. Code SHA `e633e8d1bd0cd337dcb72d248f88aeef7678f04f`: [Android #45366819767](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45366819767) **659/659 PASS / BUILD SUCCESSFUL**, [Fast #45366731045](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45366731045) SUCCESS. Документ контракта в #468: `docs/P0-G0-READONLY-PR468-2026-11-24.md`.
+- **Исправлено дублирование:** из текущего Draft #452 удалены добавленные для G0 `js/p0-source-inventory.js` и `tests/p0-source-inventory.test.mjs`, а `index.html`, `sw.js` и два существующих regression файла восстановлены byte-for-byte из ранее проверенного commit `4aa42e74c2077dcc992413650d5a4ba74ef77212`. [GitHub compare] показывает, что отличие #452 от `4aa42e...` сейчас **только документы**. Экспериментальный full-backup/restore #452 не менялся, no merge/release.
+- **Нормативный статус:** G0 `IMPLEMENTED_DRAFT #468 / CI_VERIFIED_EXACT_SHA`, но реальный same-origin OnePlus `NOT_TESTED`. Синтетический физический P0 proof2 `PASS_ISOLATED_ONLY` остаётся закрытым, повторять не требуется. Для реальной G0 нужен отдельно одобренный merge **#468**, затем отдельное разрешение на production release; #442 видеоудаление `FROZEN`. Старые записи ниже о G0 в #452 являются **историей до переноса**, не текущим расположением модуля.
+
+---
+
+## 2026-11-24 — после OnePlus proof2: G0 read-only scanner в существующем Draft #452
+
+- Подтверждено: физический OnePlus `NE2213` `PASS_ISOLATED_ONLY`, повторных synthetic APK не требуется. Проведена исходная ревизия реального `main` (без доступа к пользовательской базе): `paseka-v1` IDB v3; `main.state.records[].media` содержит журнал Data URL, `entrance_media` хранит отдельные оригинальные Blob летков, `full_backup` — локальные исторические состояния. `record_media`, `archive_staging`, `archive_history` из v2 не включены в current main; Android MediaStore/Gallery/Downloads не видны через IDB. Подробная матрица [`docs/P0-G0-ИНВЕНТАРИЗАЦИЯ-ИСТОЧНИКОВ-READONLY-2026-11-24.md`](docs/P0-G0-ИНВЕНТАРИЗАЦИЯ-ИСТОЧНИКОВ-READONLY-2026-11-24.md).
+- В существующем Draft #452 (без новой ветки и без merge): добавлен `js/p0-source-inventory.js` — **только одна IndexedDB readonly транзакция**, имена и число записей по всем stores, журнал с DataURL/непрозрачными источниками, Blob метаданные `entrance_media`, резервные значения `full_backup`; нет `Blob.arrayBuffer()`, raw данных/ID/имён видео в отчёте, `put/delete/clear` или отправок по сети. Нестандартные stores перечисляются как `UNINSPECTED`. Новый UI в разделе архива формирует редактируемый пользователем обезличенный JSON, в который добавляются counts незавершённых файлов в памяти.
+- `sw.js` кеш **v316** включает этот JS офлайн; обновлены старые assertions v315 в `tests/regression.test.mjs` и `tests/sw-cache-boundary.test.mjs`, добавлены 3 негативных теста `tests/p0-source-inventory.test.mjs` (неполная схема, неверная длина Blob, неизвестный staging, чувствительные значения не экспортируются).
+- **CI по точному кодовому SHA `af4badf63cfa0254d2e266e20166a4f69ff483fb`:** [Android #45365917523](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45365917523) **677/677 tests PASS, 0 FAIL, Gradle BUILD SUCCESSFUL**. Предыдущий SHA `648fe...` дал **674/677**, три настоящих сбоя в legacy тестах версии SW; исправлено и перепроверено, не скрыто. [Windows test #45365927731](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45365927731) completed/success. Другие workflow проверять по exact SHA отдельно, не переносить статус.
+- G0 в **реальной рабочей базе OnePlus всё ещё `NOT_VERIFIED`**: Draft не интегрирован; Android диагностический пакет не имеет доступа к production sandbox. Разрешения на merge/release нет. Внешняя копия G1, второй приемник G2–G6, Android OS файлы и реальное распознавание не проверены. #442 auto video cleanup **FROZEN**; никакого удаления, очистки, миграции или production deploy.
+
+---
+
+## 2026-11-24 — OnePlus NE2213: **физическое испытание P0 proof2 PASS**
+
+- Принят реальный пользовательский отчёт `report(10).json` с `schema=paseka-p0-pc-oneplus-audit-v2`, `generatedAt=2026-11-24T12:23:10.5418837+03:00`, `finalStatus=PASS_ISOLATED_ONLY`. Точное тестовое приложение `ru.paseka.journal.disasterproof2`; `deviceModel=NE2213`, Android API `36`. Исходный код APK `3677797d3f83027353a9b7ff8c5cec5f91152a2e`, артефакт `14904927140`, проверенный APK SHA-256 `79a6227719debbac7216bc51fd99f3f786b57232d73d232ea7f6524ee355332f`.
+- Все 5 внешних проверок `checks` **PASS**: `exactCiManifestAndApkSha256`, `onePlusUsbApiAndModel`, `freshIsolatedPackageInstalled`, `realAndroidWebViewRestore`, `processRestartMediaDurability`. Первый этап: `isolatedStorageGuard`, `fullIndexedDbSnapshotSha256` (снимок SHA `b84fc9c323313b93e163f097db7a2ff8e04e1ad736396995804d08647b661995`), `corruptionFailClosed`, `revisionConflictRollback`, `atomicMultiStoreRestore` — **5/5 PASS**. Второй запуск после `force-stop`: `androidProcessRestartDurability=PASS`, код `P0_DISASTER_PHYSICAL_RESTART_PASS`.
+- **Закрыто только** `P0_ISOLATED_ONEPLUS_PROOF2=DEVICE_VERIFIED` для этого APK и синтетического IDB теста. Отчёт напрямую устанавливает `originalUserMedia=NOT_ACCESSED`, `productionPackage=NOT_ACCESSED`, `secondPhysicalDevice=NOT_VERIFIED`, `cleanup=NOT_ATTEMPTED`. Не утверждать `REAL_FULL_EXTERNAL_RESTORE`, `PASEKA02_RECOGNITION` или разрешение на видеоочистку. Следующая полезная задача — G0 read-only реальный реестр оригинальных медиа, затем G1–G6 внешняя копия и отдельное независимое восстановление (не повторять proof2).
+- Никаких изменений production, оригиналов или `main`; #452 остаётся Draft, #442 FROZEN. Отчёт хранится в пользовательском чате, **не публиковать пользовательский JSON или личные сведения в GitHub**.
+
+---
+
+## 2026-11-24 — P0 OnePlus: устранена цепочка ошибок тестового комплекта, Windows CI PASS, физический запуск ожидается
+
+- Пользовательские отчёты последовательно выявили: неправильный SHA temporary PR merge vs source SHA, пустые аргументы ADB, PowerShell 5.1 stderr-прогресс install, `INSTALL_FAILED_UPDATE_INCOMPATIBLE` старой диагностической подписи и повторную загрузку **старого** артефакта при правильном новом скрипте. Пошаговый постмортем и матрица ограничений: [docs/P0-РАЗБОР-СБОЕВ-ONEPLUS-И-ЕДИНЫЙ-КОМПЛЕКТ-2026-11-24.md](docs/P0-РАЗБОР-СБОЕВ-ONEPLUS-И-ЕДИНЫЙ-КОМПЛЕКТ-2026-11-24.md).
+- **Единый работающий по Windows CI комплект в чате:** `PASEKA_P0_ONEPLUS_ОДИН_КОМПЛЕКТ_2026-11-24.zip`, ZIP SHA256 `f28e3a967494639e09dcf23dc58e18450e3bb1ee64d46428b10381d8e88d3afd`, размер 3297710 B, содержит проверенный реальный APK+manifest+CMD+PowerShell+инструкцию. Источник APK — [Actions #45360760781](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45360760781), artifact #14904927140, source SHA `3677797d3f83027353a9b7ff8c5cec5f91152a2e`, APK SHA256 `79a6227719debbac7216bc51fd99f3f786b57232d73d232ea7f6524ee355332f`; package **только** `ru.paseka.journal.disasterproof2`, старые версии не удаляются/не заменяются.
+- Исходник комплекта закреплён `tools/p0-oneplus/run-p0-oneplus.ps1`, точный Git blob `7cf0689c2b9d6d6c51a354c42857a420aedea202`; мок ADB в `tools/p0-oneplus/tests/mock-adb.cmd`; автопроверка на настоящем Windows PowerShell 5.1 `.github/workflows/p0-windows-script-validation.yml`. **CI exact SHA `f4651f540971fb1e46e5de033e20745fa8e34b6c`:** [Windows #45363579052](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45363579052) **SUCCESS**, синтаксис и SHA APK PASS, имитация полного install/restore/restart PASS, отказ старому sourceSha и при уже установленном пакете PASS. [Android #45363577163](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45363577163) SUCCESS; [isolated emulator #45363577144](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45363577144) SUCCESS. ZIP не подписывался как production и не публиковался.
+- **Физический OnePlus с новым ZIP ещё не выполнялся.** Текущий статус `P0_ONEPLUS_PROOF2=AWAITING_PHYSICAL_REPORT`, `REAL_USER_MEDIA=NOT_ACCESSED`, `SECOND_DEVICE_FULL_RESTORE=NOT_VERIFIED`, `VIDEO_CLEANUP=FROZEN #442`. Ожидается только отчёт `P0-RESULT-*/report.json`. Не утверждать полноценное пользовательское восстановление по mock CI. Рабочую базу/видео не читали, main не меняли, PR не объединяли и ничего не развёртывали.
+
+---
+
+## 2026-11-24 — окончательный CI gate исправленной P0 диагностической сборки
+
+- После исправления исходного source SHA на кодовом SHA `b1a33b82b49daff52b5e840bd7e63a6d83b917e5`: [isolated #45358963645](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963645) **completed/success включая emulator job**, build 674/674 PASS, APK BUILD SUCCESSFUL. [Android #45358963671](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963671) **completed/success**. Пакет artifact #14904145878 доступен. Это не физический OnePlus и не production restore.
+- Исправленный Windows ZIP доступен пользователю непосредственно в чате; `P0_CURRENT_ONEPLUS=AWAITING_USER_REPORT`. CI гейты завершены на точном кодовом SHA; последующие изменения только документации не означают иной пересобранный APK.
+
+---
+
+## 2026-11-24 — P0 PC+OnePlus diagnostic manifest mismatch: root cause fixed, physical retest pending
+
+- Пользователь попытался запустить Windows `PASEKA_P0_OnePlus_PC_Audit_2026-11-24.zip` на `D:\\приложение ПАСЕКА\\тест`; **BLOCKED `DIAGNOSTIC_MANIFEST_MISMATCH` ДО установки Android APK**. Испытание телефона не проводилось, не считать ошибкой P0 restore. Не было команд `adb install`/force-stop/cleanup этого запуска.
+- Подтверждён кодовый дефект контракта: `.github/workflows/android-disaster-physical.yml` записывал `manifest.sha=process.env.GITHUB_SHA` (в pull_request это временный CI **merge commit**), а Windows script требовал совпадение с **PR head/source SHA**. Защита правильно отказала, но правило проверки было неверно.
+- В существующем Draft #452 commit `b1a33b82b49daff52b5e840bd7e63a6d83b917e5` добавлено `manifest.sourceSha=PR_HEAD_SHA || GITHUB_SHA` с явной записью исходного PR head; `manifest.sha` оставлен для CI checkout. Без ослабления package identity/noCleanup/APK SHA-256. Пересоздан в текущем чате `PASEKA_P0_OnePlus_PC_Audit_FIX_2026-11-24.zip` (Windows, вне GitHub): проверяет `sourceSha=b1a33b82...`, `manifest.sha` 40 hex, SHA256 APK и отдельный package `ru.paseka.journal.disasterproof`; исправлена передача аргументов ADB через ValueFromRemainingArguments.
+- [CI Android #45358963671](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963671) completed/success; [новая isolated сборка #45358963645](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963645) build job success, **674/674 tests, BUILD SUCCESSFUL**, artifact `paseka-disaster-proof-isolated-apk` #14904145878. Emulator job **in_progress при последней проверке**, не объявлять emulator PASS без завершения. После docs-only commits SHA меняется; результаты CI относятся только к указанному `b1a33b82...`.
+- Действие пользователя: новый Windows FIX ZIP в новую папку и НОВЫЙ isolated artifact из run #45358963645; старый #45356117524 содержит старый manifest, не использовать. USB OnePlus → CMD → передать `P0-RESULT-*/report.json`. До нового отчёта P0_CURRENT_ONEPLUS=NOT_VERIFIED. Ни production media, ни реальная база не изменены; full external backup/second-device restore не проверены, #442 FROZEN, никакого merge/release/deploy.
+
+---
+
+## 2026-11-24 — полный аудит готовой части P0/P1 и комплект Windows+OnePlus (ожидается реальный отчёт)
+
+- Проверены live `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`, #452 OPEN/DRAFT (code/test SHA `9bf460ba5feb7b4694c0383220d1c035b5ad8b61`), #467 OPEN/DRAFT (read-only phone code/source `e5cabce...`), #441 OPEN/DRAFT/FROZEN. Полный матричный аудит: [`docs/P0-АУДИТ-ГОТОВОЙ-ЧАСТИ-И-ПРОВЕРКА-ONEPLUS-2026-11-24.md`](docs/P0-АУДИТ-ГОТОВОЙ-ЧАСТИ-И-ПРОВЕРКА-ONEPLUS-2026-11-24.md).
+- **Точные CI доказательства #452 `9bf460ba...`:** Android Build [#45356118008](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45356118008) **completed/success, npm 674/674 PASS, Gradle BUILD SUCCESSFUL**; isolated [#45356117524](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45356117524) **completed/success, build 674/674 PASS и emulator job success `PASS_P0_ANDROID_EMULATOR_DISASTER_RESTORE_AND_RESTART`**. Diagnostic artifact #14901669210 доступен (не expired при аудите).
+- Подготовлен локальный пользовательский Windows ZIP `PASEKA_P0_OnePlus_PC_Audit_2026-11-24.zip` в текущем чате: проверка SHA256 из CI manifest, проверка Android API/ADB, `adb install -r` **только** отдельного `ru.paseka.journal.disasterproof`, force-stop **только** diagnostic package, отчёт `P0-RESULT-*/report.json`. **Скрипт ещё НЕ испытывался на Windows**; до реального ответа пользователя phone-current-SHA PASS объявлять нельзя. Рабочая БД и медиа не затронуты.
+- Последовательность для физического приёма: пользователь скачивает diagnostic artifact с GitHub Actions #45356117524, помещает ZIP рядом с CMD, подключает OnePlus USB и запускает CMD. Затем получает `report.json`; ChatGPT проверяет все identity/sha/status, классифицирует узкий device smoke.
+- P0 real-user-media G0, перенос полной внешней копии, второй физический receiver, крупные оригинальные Blob и PASEKA02 production restore **NOT_VERIFIED**. Android-sandbox исключает чтение production базы тестовым APK; не выдавать smoke за реальный backup. #442 auto-cleanup FROZEN, no merge, no release or deploy.
+
+---
+
+## 2026-11-24 — P0 regression fix: backup/entrance media key race under final restore lock (#452)
+
+- **Confirmed defect** in `js/disaster-archive.js`: original restore checked only `main.state.meta.revisionId`. A new `entrance_media` Blob or new `full_backup` record added after archive preflight but without main revision change could be lost when `atomicRestore` clears all stores.
+- **Implemented narrow fail-closed guard in existing Draft #452** (no new branch/PR): `inspectArchive` captures full key inventory of every store in one readonly transaction; `atomicRestore` re-reads `getAllKeys()` for every store **inside its final readwrite transaction** and aborts before any `clear()` if any key added/removed/renamed or inventory missing. It still checks main revision and uses atomic rollback for any write failure. Existing restore API signature, archive file format and IndexedDB schema unchanged.
+- Four regression tests in `tests/disaster-archive.test.mjs`: new original video without revision bump, new historical backup, removed media key, missing inspection fence. Existing successful restore/rollback tests retained. Code commit `65c53a4a1bdb8fe4566c5f78a614e224ff96b8b1`; tests commit `70e285c7e6f7f1272b7b0daeb2aea737dc4277b9`. GitHub CI started on test SHA; **do not claim PASS until exact SHA workflow completed successfully**.
+- **Remaining limitation:** same-key content rewrite (including changed video Blob bytes under unchanged `id`) with unchanged main revision **cannot be detected by key-only fence**. It is not complete record-content CAS, writer isolation or proof of full external restore. Do not use current Draft for destructive production restore or grant `cleanupAuthorized`. #442 FROZEN; actual original files/second-device full restore NOT_VERIFIED. No user data touched; no merge/release/deploy.
+
+---
+
+## 2026-11-24 — P0 code-level original-media inventory and independent restore protocol (Draft #452)
+
+- GitHub live verified: `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`; #452 remains OPEN/DRAFT based on main. Inspected actual `main/index.html` and PASEKA02 frozen Draft #441 `c0ef4afccc6060ad36898fce9d6eebde82e626cd`: `video-archive-v2-copy-inventory.js`, `snapshot.js`, `record-media.js`, `restore-db-preflight.js`, `restore-gate.js`, `metadata-codec.js`, `entrance-atomic.js` and inventory tests.
+- Wrote [source inventory + independent restore protocol](docs/P0-PASEKA02-РЕЕСТР-ИСТОЧНИКОВ-И-ПРОТОКОЛ-НЕЗАВИСИМОГО-ВОССТАНОВЛЕНИЯ-2026-11-24.md): exact data placements main.state journal Data URLs, entrance_media Blob, full_backup historical state/quarantine, v2 archive_staging/history, ledger key, and unobservable Android OS Camera/Gallery/Downloads/MediaStore. Important mismatch: main IDB v3 has 3 stores; isolated PASEKA02 v2 preflight requires 5. No live v2 migration/complete record_media restore demonstrated.
+- Inspected existing v2 read-only five-store copy inventory instead of duplicating it. It **always denies cleanup/restore authorization** and doesn't prove hashes or OS copies. G0 actual user-source inventory and G1–G6 independent external physical restore remain **NOT_TESTED/NOT_VERIFIED**. `SECOND_DEVICE_VERIFIED=NO`, #442 FROZEN, no original media deletion.
+- Scope: documentation-only, no JS/runtime/DB/production changes, no new APK, no redundant synthetic guard PR, no main merge or Pages release. Next executable gate: safe read-only G0 inventory against an actual authorized isolated data source; without it no claims of full cross-device restore. User action only when physical original source or second device is genuinely required.
+
+---
+
+## 2026-11-24 — P0 archive coverage audit in existing Draft #452 (no runtime changes)
+
+- Проведено read-only ревью `js/disaster-archive.js`, `tests/disaster-archive.test.mjs` и P0 UI `index.html` на ветке #452. Сверены текущий `main=13c724a634f0987ff634a058a5fa37a1b8e20c92` и Draft #452 base=main, исторический HEAD до аудита `1d0912012002def0d7e9133cb9e600fb0f2aae9d` (52 commits ahead, 0 behind).
+- Новая матрица [`docs/P0-МАТРИЦА-ПОКРЫТИЯ-АРХИВА-И-ВНЕШНЕГО-ВОССТАНОВЛЕНИЯ-2026-11-24.md`](docs/P0-МАТРИЦА-ПОКРЫТИЯ-АРХИВА-И-ВНЕШНЕГО-ВОССТАНОВЛЕНИЯ-2026-11-24.md) разделяет `paseka-v1` main/full_backup/entrance_media, и НЕ подтверждённые PASEKA02 record_media/legacy и OS Gallery/Downloads/MediaStore. Exact code/test SHA `54e508a11423631cb2ea1b6dff0513759390c2ae`, Android #45159320991 670/670 PASS; более поздние Android #45159667762 и isolated #45159667706 completed/success на прежнем docs-HEAD. **После нового docs-коммита CI ещё не подтверждён на его точном SHA.**
+- **Только документация:** защита данных и CI-код не менялись; не создавать дублирующий PR или преждевременно подключать PASEKA02. Ограничение #442 остаётся FROZEN, live restore/автоудаление реальных видео запрещено, `SECOND_DEVICE_VERIFIED=NO`. Один следующий приоритет — доказать полный инвентарь PASEKA02/legacy и независимое restore исходных больших Blob на отдельном устройстве, без production вмешательства. Real device proof P1 #467 относится к изолированному read-only smoke и не заменяет P0.
+
+---
+
+## 2026-11-23 — P0 усиление внешнего архива и preflight в том же Draft #452
+
+- Продолжение в ранее открытом Draft #452, без дублирующих PR и без изменения `main`. На кодовом и тестовом SHA `54e508a11423631cb2ea1b6dff0513759390c2ae`: [Android CI #45159320991](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45159320991) **670/670 PASS**, Gradle debug **BUILD SUCCESSFUL**.
+- `js/disaster-archive.js`: preflight отклоняет дубли ключей и несовпадение inline keyPath/ID, в том числе у архивов с заново пересчитанной SHA-256. Всё происходит **до** readwrite transaction; не создаёт пользовательские данные.
+- `index.html`: отдельная кнопка read-only **«Проверить скачанный архив»**, реальный `File.text()` → SHA-256 и структурный preflight; сообщения об экспорте больше не выдают подготовку Blob за доказанное сохранение файла вне телефона. Старый JSON/restore оставлен.
+- `tests/disaster-archive.test.mjs`: созданный во временной директории реальный JSON-файл прочитан заново, независимо восстановлен в новой `fake-indexeddb`, сверены main/audit/backup/бинарный Blob; проверены дубли ключей и ложные inline идентификаторы, даже после нового checksum. Это автоматический тест независимого файла, **не внешний пользовательский носитель и не физический OnePlus**.
+- Изолированный Android emulator suite на кодовом SHA `54e508a... ` инициирован [#45159320956](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45159320956); окончательный статус проверить на exact SHA. Старое физическое доказательство OnePlus для более раннего кода остаётся актуальным **только для его APK SHA**, оно не переносится автоматически на новые UI/preflight изменения.
+- Вопросы P0: перенос реального архива на независимое устройство, большие пользовательские видео, квоты/память, legacy schema/migration — NOT_TESTED. `productionDatabase` NOT_ACCESSED, PR Draft, #442 FROZEN, merge и Pages release не разрешены.
+
+---
+
+## 2026-11-23 — P0 физический OnePlus: изолированный restore PASS, production NOT_TESTED
+
+- Получен отчёт пользователя `P0-OnePlus-Result.json`: `schema=paseka-oneplus-p0-physical-v1`, timestamp UTC `2026-11-23T10:40:53.6545207Z`, устройство `OnePlus NE2213`, `packageId=ru.paseka.journal.disasterproof`, `status=PARTIAL_PASS`, `error=null`.
+- Все **12/12** внешних ADB/идентификационных/снимковых проверок отчёта имеют `PASS`: изолированный APK SHA-256 совпал с манифестом; физическое приложение установлено, запущено и перезапущено.
+- Подтверждение из реального Android WebView: `P0_DISASTER_WEBVIEW_RESTORE_PASS`, включая snapshot всех IDB stores, SHA-256, fail-closed на испорченной контрольной сумме, conflict rollback и `atomicMultiStoreRestore=PASS`. В логе указан SHA-256 тестового снимка `0afcf61f67b013adae13c773b31b38dcca19a35c7f6c912ef71b507dd3c53b6c`.
+- После `force-stop` и повторного запуска подтверждено `P0_DISASTER_PHYSICAL_RESTART_PASS`: контрольные `main`, `full_backup` и Blob сохранились. Это **DEVICE_VERIFIED_ISOLATED**, но НЕ `PRODUCTION_DATABASE_RESTORED` и НЕ `RELEASED`.
+- В отчёте `productionPackage`, `productionDatabase`, `userMedia` = `NOT_ACCESSED`, `cleanup=NOT_ATTEMPTED`. Нет доказательства успешного восстановления реальных записей, внешней копии на другом устройстве, больших MP4, всех исторических миграций, реального аварийного восстановления после потери телефона и сохранения неполного архивного файла при нехватке памяти.
+- Действующий блокер #442 auto-delete видео FROZEN. PR #452 остаётся Draft; нет согласия на merge или release. Следующий этап: независимая внешняя копия и readback на чистом отдельном профиле, stress крупных Blob / recovery migration / interruption; production пользователя не изменять.
+
+---
+
+## 2026-11-23 — P0 аварийные испытания: изолированный Android WebView / OnePlus gate
+
+- Пользователь поручил аварийные испытания и проверку OnePlus. В Draft #452 добавлен `tests/disaster-archive.test.mjs` crash-reopen, corrupt/truncated archive, cross-store rollback and injected `QuotaExceededError` tests. **667/667 PASS**, Gradle Android debug **BUILD SUCCESSFUL** на кодовом SHA `9953d2ec926c99f879e51e7aae627b963623664b`: [CI #45156548707](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45156548707).
+- Подготовлен **строго отдельный** APK `ru.paseka.journal.disasterproof` из `diagnostics/disaster-phone-proof/` и CI workflow `.github/workflows/android-disaster-physical.yml`. Реальное Android API35 emulator/WebView на Draft с фиксированным runner SHA `d207399508ae955a08547a9de768a6c03e81f29d`: [CI #45157180623](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45157180623), build SUCCESS, emulator SUCCESS. Эмулятор подтвердил `P0_DISASTER_WEBVIEW_RESTORE_PASS` (snapshot, SHA256, corrupt rejection, revision-conflict rollback, all-store restore) и `P0_DISASTER_PHYSICAL_RESTART_PASS` (force-stop/relaunch + readback main/audit/Blob). Artifact evidence `14809960540`, isolated APK `14808339264`.
+- Снимки экрана и logcat отдельно просмотрены. На снимках наложено окно ANR **Pixel Launcher** эмулятора; сам тестовый WebView показывает PASS, и logcat подтверждает оба этапа. Это не свидетельство безошибочности всех UI/Android устройств.
+- Подготовлен полный Windows one-click ZIP с исходным diagnostic APK+manifest, SHA256 проверяется до ADB установки. **РЕАЛЬНЫЙ OnePlus NE2213: NOT_TESTED для этого P0**, пока не получены JSON и два PNG с пользовательского USB ПК; никакого удалённого доступа к его телефону нет.
+- Крупные видео/действительная потеря телефона, реальная внешняя копия всех данных, старые миграции и аварийное восстановление production НЕ ПРОВЕРЕНЫ. Не вводить в эксплуатацию на основании emulator PASS. #442 auto-video-delete FROZEN, production data untouched, no merge / Pages release.
+- Следующий технический шаг: физический OnePlus с изолированным diagnostic APK, затем оценка крупных Blob/полноты миграций; отдельное согласование merge и самостоятельное release authorization.
+
+---
+
+## 2026-11-23 — P0 реализация независимого IDB-архива и атомарного restore в Draft #452
+
+- Главный приоритет P0 подтверждён пользователем: сохранность всей базы, внешний архив, аварийное восстановление, а не оптимизации. GitHub main при старте `13c724a634f0987ff634a058a5fa37a1b8e20c92`.
+- Аудит `index.html` и 17 подключённых JS-модулей: подтверждена IndexedDB `paseka-v1` v3, stores `main`, `full_backup`, `entrance_media`. В index и 17 загружаемых JS-модулях других прямых localStorage/sessionStorage/IndexedDB вызовов не обнаружено. Возможные нативные/внешние данные за пределами origin не объявляются покрытыми.
+- В новой ветке Draft #452: `js/disaster-archive.js` (снимок всех IDB stores/keys, JSON codec включая Blob/File/ArrayBuffer/Date, SHA256/manifest, проверка перед записью, all-store IDB transaction rollback), UI с отдельной кнопкой полного архива и двойным подтверждением restore, `sw.js` v315, `tests/disaster-archive.test.mjs` и актуализация двух SW regression tests. Legacy JSON оставлен совместимым, предупреждения о неучтённых видео улучшены.
+- Android CI на промежуточном code SHA `b9a45bf02b2ea9bacfcdaef6d3a9ded9bea04d02`: **661/663 PASS, 2 FAIL** — ровно старые тесты, ожидавшие SW v314; исправлены далее. Новые тесты P0 в том CI PASS. После следующих изменений тесты на актуальном HEAD требуют новой CI проверки, не заявлять PASS заранее.
+- Восстановление production не проводилось, внешняя копия действующих данных не создана, OnePlus реальный restore НЕ ПРОВЕРЕН. #442 остаётся FROZEN, никакого auto-video-delete.
+- Следующее: дождаться точного CI на финальном runtime SHA, устранить ошибки; независимо выполнить изолированный Android/OnePlus полный roundtrip, аварийный abort/quota/crash, затем оценить безопасность deployment. Ни слияния, ни публикации без отдельного разрешения.
+
+---
+
+## 2026-11-23 — P0 смена приоритета: вся база пасеки / аварийное восстановление (контракт, без выполнения restore)
+
+- Решение пользователя: **полная сохранность базы пасеки и аварийное восстановление важнее всех дополнительных оптимизаций**. Android P1 isolated test PARTIAL_PASS не доказывает IndexedDB durability.
+- Read-only аудит main `13c724a634f0987ff634a058a5fa37a1b8e20c92`: ручной JSON `downloadBackup` экспортирует `state:S`, но отдельно хранимый `entrance_media` object store в экспорт не входит. Локальная автоматическая копия не защищает от потери/очистки телефона. Реальная полнота восстановимости НЕ ДОКАЗАНА.
+- Новые обязательные ворота и план: [docs/P0-ПОЛНАЯ-БАЗА-И-АВАРИЙНОЕ-ВОССТАНОВЛЕНИЕ-2026-11-23.md](docs/P0-ПОЛНАЯ-БАЗА-И-АВАРИЙНОЕ-ВОССТАНОВЛЕНИЕ-2026-11-23.md). Статус CONTRACT/AUDIT ONLY, **код/миграции/пользовательские данные не изменялись**; CI/device restore NOT_TESTED. Действующие старые Draft надо сверить по diff прежде чем переносить реализацию.
+- Следующий один шаг: составить полную coverage matrix по всем stores/Blob/metadata и реализовать проверяемый внешний archive + staged restore в отдельной рабочей ветке. #442 видео/cleanup сохраняется FROZEN, auto-delete не разрешено, merge/Pages release не разрешены.
+
+---
+
 ## 2026-11-23 — интеграционная очередь восстановлена, стратегия → Varroa, без публикации
 
 - [Draft #448](https://github.com/250oisr-eng/Pasekaapp/pull/448) — восстановленная стратегия/карточки требований/автоматизация из исходного конфликтного #446, основана на `main=043779c1a192e749f3b9870d1dce689156ddf3bb`, 0 behind, только .md. [Draft #449](https://github.com/250oisr-eng/Pasekaapp/pull/449) — восстановленный журнал Varroa из #445, теперь **base = ветка #448**, 0 behind. Git merge commit `c1775a051641086553a1289a8558008e75ac11b0` сохранил обе версии пяти общих контрольных документов.
