@@ -81,19 +81,31 @@ test('B11 cold offline navigation serves installed shell without network and nev
  assert.equal((await h.request('./index.html',{method:'POST'})).intercepted,false);
 });
 
-test('B11 upgrade activation only removes old Paseka shell caches; unrelated caches survive',async()=>{
+test('B11 activation removes obsolete numeric shell versions only, preserving user and future caches',async()=>{
  const h=harness();
- h.buckets.set('paseka-shell-v316',new Map([['legacy','data']]));
+ h.buckets.set('paseka-shell-v315',new Map([['legacy315','data']]));
+ h.buckets.set('paseka-shell-v316',new Map([['legacy316','data']]));
+ h.buckets.set('paseka-shell-v317',new Map([['legacy317','data']]));
  h.buckets.set('another-app-cache',new Map([['private','untouched']]));
  h.buckets.set('paseka-user-content',new Map([['user-data','untouched']]));
+ h.buckets.set('paseka-shell-user-content',new Map([['user-data','untouched']]));
+ h.buckets.set('paseka-shell-v317-user-backup',new Map([['user-data','untouched']]));
+ h.buckets.set('paseka-shell-v319',new Map([['future','untouched']]));
+ h.buckets.set('paseka-shell-v99999999999999999999999',new Map([['unknown','untouched']]));
  await h.lifecycle('install');
- assert.equal(h.buckets.has('paseka-shell-v316'),true,'install must not delete old shell');
+ for(const version of [315,316,317]){
+  assert.equal(h.buckets.has('paseka-shell-v'+version),true,'install must not evict v'+version);
+ }
  assert.equal(h.calls.skipWaiting,1);
  await h.lifecycle('activate');
- assert.equal(h.buckets.has('paseka-shell-v316'),false,'old shell is removed after successful activation');
- assert.equal(h.buckets.has('paseka-shell-v317'),true);
- assert.equal(h.buckets.has('another-app-cache'),true,'other application cache is preserved');
- assert.equal(h.buckets.has('paseka-user-content'),true,'user cache is preserved');
+ for(const version of [315,316,317]){
+  assert.equal(h.buckets.has('paseka-shell-v'+version),false,'obsolete v'+version+' must be removed');
+ }
+ assert.equal(h.buckets.has('paseka-shell-v318'),true,'current shell installed');
+ for(const cache of ['another-app-cache','paseka-user-content','paseka-shell-user-content',
+  'paseka-shell-v317-user-backup','paseka-shell-v319','paseka-shell-v99999999999999999999999']){
+  assert.equal(h.buckets.has(cache),true,'do not delete unrelated/user/future cache '+cache);
+ }
  assert.equal(h.calls.claimed,1);
- assert.deepEqual(h.calls.deleted,['paseka-shell-v316']);
+ assert.deepEqual(h.calls.deleted,['paseka-shell-v315','paseka-shell-v316','paseka-shell-v317']);
 });
