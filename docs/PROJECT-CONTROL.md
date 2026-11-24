@@ -1,3 +1,11 @@
+## 2026-11-24 — макроцикл: реальная двукратная подпись QA APK, 690/690 exact CI
+
+- [Полный отчёт макроцикла: изолированный Android QA package, одноразовая двукратная подпись, 2/2 CI jobs PASS, ограничения реального restore и графа Draft #452](./P0-MACRO-CYCLE-BINARY-SIGNING-CI-2026-11-24.md). Exact code/test SHA `829be6d8a0de28266d345ffe496a8dd0e649f916`, [Actions #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572) `completed/success`, **690/690 тестов PASS**, оба Gradle successful, QA `matchedCertificate=true` на двух **реальных APK** с одноразовым ключом. Подписанные QA APK **не публиковались**.
+- **Не путать с постоянной подписью:** долговременный защищённый signing key ещё отсутствует; обновление установленной `ru.paseka.journal` заблокировано из-за прежнего signer drift. OnePlus first-use/offline PASS сообщён пользователем, тестовые данные сохранить.
+- Макроциклы как постоянный рабочий стандарт закреплены в `AGENTS.md`. #452 full restore ветка diverged и требует отдельной сверки; #442 video cleanup FROZEN; никакого merge/release/deploy.
+
+---
+
 ## 2026-11-24 — большой P0 цикл с доказанным CI: QA-signing guards и перенос JSON
 
 - [Технический отчёт: отдельный QA appId, внешний key custody, запреты подписи и восстановления, 686/686 exact Android CI](./P0-BIG-CYCLE-SAFE-SIGNING-TRANSFER-2026-11-24.md). Кодовый SHA `6878def7f050131e65a15c00d5f4af4264bf1d10`: [Actions #45438672376](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45438672376) **686/686 PASS, Gradle BUILD SUCCESSFUL**. Стабильный ключ ещё не предоставлен; actual isolated signed QA APK `NOT_BUILT`. Debug APK с другим signer **не использовать как обновление** OnePlus. Старые пользовательские тестовые данные сохранить, без reinstall/clear.
