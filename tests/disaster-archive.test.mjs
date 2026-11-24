@@ -229,7 +229,7 @@ test('new original entrance video after preflight blocks restore without deletin
  db.close();
 });
 test('new historical backup after preflight blocks restore and preserves full_backup',async()=>{
- const db=await database('key-fence-history');await seed(db);
+ const db=await database('key-fence-history');await seed(db,false);
  const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
  const t=db.transaction('full_backup','readwrite');
  t.objectStore('full_backup').put({state:{hives:[{id:'newly-saved'}]}},'after-preflight');
@@ -260,7 +260,7 @@ test('restore refuses a caller-supplied inspection without live key inventory',a
 });
 
 test('same-key historical backup overwrite after preflight blocks restore without losing newer record',async()=>{
- const db=await database('value-fence-same-key-history');await seed(db);
+ const db=await database('value-fence-same-key-history');await seed(db,false);
  const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
  const t=db.transaction('full_backup','readwrite');
  t.objectStore('full_backup').put({state:{hives:[{id:'newer-hive'}]}},'previous');
@@ -271,7 +271,7 @@ test('same-key historical backup overwrite after preflight blocks restore withou
  db.close();
 });
 test('same-key main.state edit with unchanged revisionId blocks archive restore',async()=>{
- const db=await database('value-fence-main');await seed(db);
+ const db=await database('value-fence-main');await seed(db,false);
  const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
  const changed=await get(db,'main','state');
  changed.records.push({id:'new-inspection',text:'Synthetic record'});
