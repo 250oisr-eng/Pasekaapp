@@ -160,7 +160,7 @@
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED."
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. B11 physical OnePlus v315 offline first/second reopen and retained hive/family/two notes were reported PASS 2026-11-24 (USER_REPORTED_DEVICE_PASS); this is real evidence for that narrow scenario, not an Android force-stop or v315→v317 cache-upgrade test, and is not counted as another completed post-reform development macrocycle. See #478 and changelog."
   },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
