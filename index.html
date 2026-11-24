@@ -3661,9 +3661,10 @@ async function downloadG0SourceInventory(){
  try{
   await saveQueue;
   if(!db)throw new Error('Локальная база недоступна');
+  const pending={journal:pendingRecordMedia.length,plants:pendingPlantMedia.length,incidents:pendingIncidentMedia.length,deadout:pendingDeadoutMedia.length,activeVideoCapture:!!videoRecorder,activeCamera:!!cameraStream};
+  if(Object.values(pending).some(value=>value===true||(typeof value==='number'&&value>0))){if(status)status.textContent='Инвентаризация не запущена: есть несохранённые вложения или активная камера. Сначала завершите работу с черновиком, чтобы не рисковать его потерей.';return;}
   const report=await PasekaP0SourceInventory.readOnlyInventory(db);
-  report.unsavedInMemory={journal:pendingRecordMedia.length,plants:pendingPlantMedia.length,incidents:pendingIncidentMedia.length,deadout:pendingDeadoutMedia.length,activeVideoCapture:!!videoRecorder,activeCamera:!!cameraStream};
-  if(Object.values(report.unsavedInMemory).some(value=>value===true||(typeof value==='number'&&value>0)))report.issues.push('IN_MEMORY_UNSAVED_MEDIA_NOT_IN_IDB');
+  report.unsavedInMemory=pending;
   const raw=JSON.stringify(report,null,2),url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');
   a.href=url;a.download='paseka-g0-readonly-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
