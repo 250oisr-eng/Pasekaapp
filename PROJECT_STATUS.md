@@ -9,7 +9,7 @@
 | `main` | `ecea1c3c50801250d42f49366e00e1e9e96d556f` — подтверждено GitHub compare с `main` 24.11.2026. Отдельного release **нет** |
 | [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469) | QA first-use/signing, HEAD `01ba91aa63e5d27b65671c5c06c55f58020c701f`, **НЕ merged**. Code SHA `829be6d8a0de28266d345ffe496a8dd0e649f916`: [Android #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572), **690/690 PASS**, 2 jobs PASS, два реальных изолированных QA APK с одним временным сертификатом. Дальнейший diff только docs/process |
 | [Draft #452](https://github.com/250oisr-eng/Pasekaapp/pull/452) | Full IDB archive/atomic restore, HEAD `f0367c338e0e5d9b9449803364af77d636f4ce56`, **НЕ merged**; ветка разошлась с #469 и main, текущую совместимость и реальные файлы ещё проверять |
-| [Draft #470](https://github.com/250oisr-eng/Pasekaapp/pull/470) | **Текущий макроцикл:** ограниченная реформа правил, оперативного статуса и метрик. Документы/CI в рабочей ветке, merge запрещён без решения пользователя |
+| [Draft #470](https://github.com/250oisr-eng/Pasekaapp/pull/470) | **Текущий макроцикл:** ограниченная реформа управления, не merged. Code/test SHA `7a29810dcc6cfb3deee56957ae205c574c33704d`: [Governance #45445521258](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45445521258) **4/4 PASS**, [Android #45445521237](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45445521237) **664/664 PASS, BUILD SUCCESSFUL**. Последующие изменения — только документация/PR-шаблон/CI path; перед merge сверить diff и актуальные проверки |
 | [Issue #442](https://github.com/250oisr-eng/Pasekaapp/issues/442) | PASEKA02 video recognition + automatic cleanup **FROZEN** до V0–V6, лицензии модели, оригинальных данных и доказанного восстановления |
 | OnePlus | Пользователь подтвердил: первый улей, семья, две заметки сохранены после офлайн-перезапуска — `DEVICE_USER_REPORTED_PASS`. Installed APK signer независимо не прочитан. **Не переустанавливать, не очищать, не обновлять неподписанным/другим APK** |
 
@@ -27,7 +27,7 @@
 
 - Последний законченный **кодовый** макроцикл #469: [Actions #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572) на `829be6d8...`, 690/690 PASS, два Android jobs успешны. Никаких merge/release; подписанные изолированные APK с временным ключом **не публиковались**.
 - Незакрытые внешние зависимости: долговременный QA-key; независимый original-file backup/restore; physical Android restore; лицензированные веса модели/данные; разрешения merge и выпуска. Отсутствие этих ресурсов **не разрешает удаление или рискованный импорт**.
-- **Следующее действие:** завершить #470 на точном SHA с документальным CI и замером стартовой базы, а после завершения следующих 2–3 настоящих макроциклов занести повторные чтения, отменённые CI, блокеры и завершённые пользовательские сценарии в [WORK-CYCLE-METRICS.json](docs/WORK-CYCLE-METRICS.json). Если будущих циклов нет, эффект `NOT_MEASURED`; не придумывать экономию.
+- **Следующее действие:** проверить docs-only diff и финальные CI Draft #470, оставить его на рассмотрении **без merge**; после следующих 2–3 завершённых реальных макроциклов занести повторные чтения, отменённые CI, блокеры и завершённые пользовательские сценарии в [WORK-CYCLE-METRICS.json](docs/WORK-CYCLE-METRICS.json). Пока эффект `NOT_MEASURED`; экономию не выдумывать.
 
 ## 4. Ссылки
 
