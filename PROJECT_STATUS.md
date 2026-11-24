@@ -11,5 +11,6 @@
 
 ## Неразрешённые зависимости
 - **B01:** OnePlus v315, app history survived offline/reboot; 4 известные synthetic ADB zero streams PASS, public TAR 1090 B INVALID; полный внешний backup/restore НЕ доказан, новые приватные capture запрещены до доказанного transport. 
+- **Draft #469** startup/signing пока НЕ объединён; **Draft #452** full restore пока НЕ объединён. Не считать их безопасными для прямого merge.
 - **B04/B05:** signer и долговременный ключ не подтверждены. **B06/B10:** реальная модель пчёл, видео и auto-cleanup **FROZEN #442**. Android cold offline/upgrade и performance физически NOT_VERIFIED.
 - Следующее: провести exact-SHA CI текущего B08, исправить реальные ошибки, оставить Draft для ревью; затем продолжать P1 выборочно. **Запрещены** merge без отдельного разрешения, deployment/release, изменение production DB, запуск live restore, удаление оригиналов видео, установка APK на рабочий телефон.
