@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — семь независимых направлений.** Подтверждённый текущий `main=1d51eb982eebdcff05659ab7471a0f8e6697e635`. Рабочая документация: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). SHA пересверять непосредственно перед каждым merge и после него.
+**25.11.2026 — семь независимых направлений.** Подтверждённый текущий `main=c7240ba99a9719368150980e13335f50ed18a37f`. Рабочая документация: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). SHA пересверять непосредственно перед каждым merge и после него.
 
 ## Доказанные интеграции этого цикла
 
@@ -12,8 +12,8 @@
 
 ## Параллельные направления
 
-- **#495 MERGED** → `1d51eb982eebdcff05659ab7471a0f8e6697e635`: источник Cloudflare Worker, негативные проверки mid-stream transport failure и нулевого byte cap. Draft Android #45505456614, Governance #45505456637 SUCCESS; exact-main Fast #45506703146, Governance #45506703052, Android #45506703159 **PENDING, проверить финально**.
-- **#497 DRAFT / NOT_IN_MAIN:** перенос из #480 ручного Cloudflare deploy с явным RELEASE_SHA, подтверждением и main ancestry (никогда push deploy). Android #45505466312, Governance #45505466390 **SUCCESS** на Draft; реальные deployment не выполнялись.
+- **#495 MERGED** → `1d51eb982eebdcff05659ab7471a0f8e6697e635`: источник Cloudflare Worker, негативные проверки mid-stream transport failure и нулевого byte cap. Draft Android #45505456614, Governance #45505456637 SUCCESS; exact-main Fast #45506703146, Governance #45506703052 и Android #45506703159 — **SUCCESS**.
+- **#497 MERGED** → `c7240ba99a9719368150980e13335f50ed18a37f`: ручной Cloudflare deploy с явным RELEASE_SHA, подтверждением и main ancestry (никогда push deploy). Исходный #480 CLOSED/SUPERSEDED. Android #45505466312, Governance #45505466390 SUCCESS на Draft. Exact-main Fast #45506934159, Governance #45506934083, Android #45506934100 **PENDING, проверить**; сам deployment не выполнялся.
 - **Draft #469** startup/installed signer, **Draft #452** аварийное восстановление, **Draft #479** read-only B01 transport — исторические сложные кандидаты, НЕ объединены и не превращены в физическое доказательство.
 
 ## Незакрытые реальные зависимости
@@ -22,6 +22,6 @@
 
 ## Следующий этап
 
-1. Завершить exact-main CI #495, затем интегрировать #497 (ручной Cloudflare release SHA gate, без deployment), повторяя Fast/Governance/Android CI на новом `main`.
+1. Проверить exact-main Fast/Governance/Android #497 и объединить этот docs-only статус после собственного Governance CI. Любой release остаётся отдельным физически безопасным gate.
 2. Обновить этот статус и журнал, проверить Governance docs-only SHA, не затереть историю.
 3. Вернуться к B01 лишь при появлении доказуемого безопасного внешнего восстановления. P2 physical performance и все OP01–14 live activation отдельно требуют source-bound/устройственного gate.
