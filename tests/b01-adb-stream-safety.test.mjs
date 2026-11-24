@@ -42,3 +42,16 @@ test('B01 synthetic: correct size alone is not enough without integrity hash', (
   assert.equal(modified.length, expectedBytes);
   assert.equal(exactZero(modified), false);
 });
+
+const exactSmallZero = ({stdout, stderr = '', exitCode = 0}) =>
+  exitCode === 0 && stderr.length === 0 && stdout.length === 16 && stdout.every(byte => byte === 0);
+
+test('B01 synthetic: exact 16-byte zero preflight is required before large transfer', () => {
+  assert.equal(exactSmallZero({stdout:Buffer.alloc(16)}), true);
+  assert.equal(exactSmallZero({stdout:Buffer.from('error: '.padEnd(75, '!')),exitCode:0}), false);
+  assert.equal(exactSmallZero({stdout:Buffer.alloc(16),stderr:'warning'}), false);
+  const wrongSameSize = Buffer.alloc(16);
+  wrongSameSize[15] = 1;
+  assert.equal(exactSmallZero({stdout:wrongSameSize}), false);
+  assert.equal(exactSmallZero({stdout:Buffer.alloc(16),exitCode:1}), false);
+});
