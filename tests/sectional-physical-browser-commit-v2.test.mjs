@@ -160,6 +160,7 @@ function setup(){
   },
   runtime:w.PasekaSectionalSeasonRuntimeV2,
   manifest:w.PasekaSectionalSeasonPhysicalManifestV2,
+  guides:{'OP-13':w.PasekaSectionalOP13GuidedV2},
   physicalExecutor:w.PasekaSectionalSeasonPhysicalExecutorV2,
   layout:w.PasekaSectionalPhysicalLayout,
   lineage:w.PasekaFamilyLineage,
