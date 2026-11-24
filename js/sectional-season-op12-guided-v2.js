@@ -75,7 +75,11 @@ function prepare(state,input){
    {itemId:input.lowerDiaphragmId,positionLabel:'lower-middle'},
    {itemId:input.upperDiaphragmId,positionLabel:'middle-upper'}]};
  const retainedIds=new Set(sections.flatMap(s=>s.broodBodyIds));
- const changedBodyIds=b.snapshot.bodyEntries.map(x=>x.id);
+ const targetPositions=new Map(sections.flatMap(section=>section.broodBodyIds.map(bodyId=>[
+  bodyId,{type:'sectional',hiveId:input.hiveId,layoutId:target.id,
+   bodyRole:'brood',sectionId:section.id,position:section.position}])));
+ const changedBodyIds=b.snapshot.bodyEntries.filter(entry=>
+  !same(entry.location,targetPositions.get(entry.id)||null)).map(x=>x.id).sort();
  const removedBodyIds=changedBodyIds.filter(id=>!retainedIds.has(id));
  const desiredItems=new Map([
   [bottomItemId,{type:'hive',hiveId:input.hiveId,stackId}],
