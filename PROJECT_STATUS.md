@@ -1,3 +1,11 @@
+## 2026-11-24 — завершён safety hardening независимого G0 Draft #468, exact CI
+
+- Финальный **кодовый SHA `e30c34c1632eaf259b10ead2eeda6607bb2f21da`**, после которого изменялась только документация. `js/p0-source-inventory.js`: G0 v1 читает `main.state` метаданные, `entrance_media` Blob size, все store counts; **`full_backup` — только `count()` без клонирования тяжёлых записей** и с обязательным `LOCAL_BACKUP_CONTENTS_UNINSPECTED`. В `index.html` активная камера и любые несохранённые вложения **останавливают** скан до открытия IDB, чтобы не потерять черновик при нехватке памяти. Дополнен UI guard test.
+- [Fast workflow #45367564230, attempt 2](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45367564230): тестовый job `138353993573` **660/660 PASS, 0 FAIL**, однако **общий workflow = cancelled** из-за отдельно отменённого Pages read-only check. Не выдавать за Fast workflow SUCCESS. [Android #45367706413](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45367706413) на документационном HEAD `99f612217f8127771014447e05887ccb6e75e638` **completed/success, 660/660 PASS и BUILD SUCCESSFUL**. Сравнение code SHA → docs HEAD подтверждает только docs изменения.
+- Правила безопасного реального запуска: only origin where the user DB lives; G0 `PARTIAL_READONLY` означает только внутреннюю IndexedDB, не SHA оригиналов и не системные копии Android. Релиз/merge #468 требуют отдельного разрешения. #452 full-restore не объединять, #442 cleanup FROZEN. Данных пользователя и `main` не касались.
+
+---
+
 ## 2026-11-24 — безопасный G0 отделён от P0 Restore: Draft #468 непосредственно от main
 
 - После фактического OnePlus `PASS_ISOLATED_ONLY` (NE2213, Android API36, тестовый `ru.paseka.journal.disasterproof2`, report 24.11) исключены бессмысленные повторы synthetic APK. G0 рабочих данных требует **того же app origin**, отдельный test package Android не читает production IndexedDB.
