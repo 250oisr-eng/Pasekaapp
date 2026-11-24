@@ -40,3 +40,12 @@
 Если кандидат создан — отдельно спроектировать/проверить изолированный restore, после него установленные signing fingerprint и upgrade policy. Если `APP_PROCESS_RUNNING_NO_CAPTURE` — не обходить stop-gate техническими ухищрениями. Если Java для подписи отсутствует — использовать доступный Android Studio JBR/локальную Java после изучения SDK, без изменения APK.
 
 **Статус:** `SAFE_CONSOLIDATED_BLOCK_PREPARED / DEVICE_NOT_RUN / FULL_RESTORE_BLOCKED`; никакого merge этого Draft PR без отдельного разрешения.
+
+## Фактический результат V2 и отдельная Windows-only проверка кандидата
+
+**USER_REPORTED_JSON 24.11.2026:** `PASEKA_B11_CONSOLIDATED_SAFE_CAPTURE_V2=PASS`, `CANDIDATE_ARCHIVE_CREATED_RESTORE_NOT_VERIFIED`; `runAsAvailable=true`, `installedApkIdentical=true`, `appProcess=NOT_RUNNING_AT_PREFLIGHT`, `tarEntries=17`, `archiveBytes=5119715`, TAR SHA-256 `70ac319f8641cee92494bb54f329d574d3a5ef040c67a5b5cef68e9a45c072de`; пользователь сохранил копию локально в `D:\PasekaBackup`. Данные/сеть/установленный APK на устройстве не менялись. `completeBackupVerified=false`, `restoreTested=false`, `signerCertificateSha256=NOT_VERIFIED`.
+
+Следующий независимый и более безопасный этап **без телефона** — локальный архив `PASEKA-B01-offline-PC-archive-audit-v1.zip`, SHA-256 ZIP `5d3c6fb7f2f3c54f01674b318679e45f854facbf6252b3a8160e22435cdd32f2`: `START-B01-VERIFY.cmd`, PowerShell 5.1 script, README. Он только перечисляет файлы с расширением .tar в указанной локальной папке, находит **единственный** совпадающий по размеру/хешу с V2, выполняет `tar.exe -tf` и сверяет количество 17/наличие путей IndexedDB, возвращает только обобщённый JSON. Временный список имён файлов удаляется с ПК; пути/имена/содержимое в чат не выводятся. Не извлекает TAR, не соединяется с OnePlus, не вызывает ADB, не модифицирует архив. Статический ZIP CRC PASS, **исполнение на Windows ещё NOT_TESTED**.
+
+**Ограничения:** точный SHA и `tar -tf` подтверждают только файл-кандидат и доступность структуры, не консистентность транзакций/Blob, не полный перечень скрытых системных копий, не успешный восстановленный IndexedDB и не безопасность upgrade v315→v317. Надёжный recovery потребует отдельной пустой тестовой среды, оригинальной подписи или совместимого isolated appId, внешнего media inventory, а не restore на рабочий OnePlus. Приватный TAR не загружать в чат, не синхронизировать в облако.
+
