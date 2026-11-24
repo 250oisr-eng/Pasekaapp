@@ -1,23 +1,17 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**2026-11-24.** Live `main=6b865fe0b338f360d763ce3d0599829b7c34dedc` после отдельно разрешённых merges #472, #473, #471. Точные исторические доказательства — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), условия — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md).
+**24.11.2026: B09 после интеграции B13.** Последний проверенный базовый `main=81537a665dadb1cdab09fe27e11d76321a959eef`; live GitHub имеет приоритет. [Реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md) · [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) · [внешние ворота](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
 
-## Подтверждено
+## Интеграция
 
-- **PR #472 MERGED:** read-only полный архив IndexedDB, SHA-проверка файла, fail-closed защита существующих Blob и SW v316. Fast #3995/Android #7009 PASS на main SHA `9e3c76b...`. **Нет live restore UI.**
-- **PR #473 MERGED:** отказ при неполной IDB v3 без изменения данных. Fast #3998/Android #7013 PASS на main SHA `c20d0fc...`. B09 физическое восстановление не подтверждено.
-- **PR #471 MERGED:** регламент и B01–B15; окончательный docs-only main SHA `6b865fe...` **не имел собственного CI run**, потому что workflow filter не включал docs-only push.
-- **Draft #474:** read-only Governance Docs push-main gate, CI SUCCESS на SHA `9cd45a3...`; ещё не в main.
-- **Draft #475:** B13 Varroa journal rollback/selected-hive UI; Android **709/709 PASS** и Governance SUCCESS на HEAD `ace5993909879615db7b16083775c3f17089c78e`; ещё не merged.
-- **Draft #476:** тесты B09 реальных синтетических IndexedDB v1/v2→v3, неизменности Blob/ArrayBuffer/истории и отказа v4. Кодовый SHA `2e2f28b1b5c2ceb65e405c00af0edde2a603d2ef`: [Android #45471971411](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45470298315) **701/701 PASS, BUILD SUCCESSFUL**, [Governance #45471971343](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45470298335) SUCCESS. Также 3 теста на двух-store atomic abort, stale revision и future-schema backup с побайтовой сверкой Blob после reopen. Только тесты и документы; не merged.
+- **#472/#473/#471 MERGED:** read-only архив `paseka-v1`, Blob guard, обязательные stores v3, правила. Старые реальные данные/видео не изменялись, live restore не включён.
+- **#474 MERGED:** read-only governance push-main, без публикации. На SHA `6ec1b20d...`: Fast #45473457920 и Docs #45473457945 **SUCCESS**.
+- **#475 MERGED:** B13 журнал Varroa и fail-closed save/rollback с изоляцией ульев. SHA `81537a665dadb1cdab09fe27e11d76321a959eef`; согласованный PR HEAD `4c296752...`: Android **710/710 PASS, BUILD SUCCESSFUL**, Docs SUCCESS. Exact-main Fast/Android/Docs проверяются отдельно.
+- **#476 B09:** в текущей ветке находятся тесты v1/v2→v3, v4 VersionError, сохранности Blob/ArrayBuffer и атомарного двух-store transaction abort/guard. До согласования кодовый SHA `a71e69bc47eb5411ef5ff0887b96f47af0464bda`: **701/701 PASS**, Android и Docs SUCCESS. Обновлённый merge-from-main HEAD требует нового Android/Docs CI; фактический статус PR проверять в GitHub.
+- **Draft #469:** реальная подпись установленного OnePlus UNKNOWN, защищённого постоянного ключа нет. **Draft #452:** прежний full restore остаётся не объединённым. **Issue #442:** PASEKA02 real bee recognition и auto-delete **FROZEN**.
 
-## Внешние ограничения
+## Дальнейшие ворота
 
-- **B01:** внешний архив/независимый restore NOT_VERIFIED. **Draft #452** старый live restore не merged.
-- **B04/B05:** реальный installed OnePlus signer/долгоживущий защищённый key неизвестны; **Draft #469** лишь mock-ADB.
-- **B06:** real bee recognition и auto-delete **FROZEN #442**, лицензии/оригиналы/V0–V6 недоказаны.
-- **B07/B08/B13:** не объединять старые stacked PR без source-bound проверки; **B10/B11** физические Android/offline тесты, **B14** эксплуатационные измерения, **B15** полный Pages audit не закрыты.
+Проверить exact SHA обновлённого #476 и совместимость с main. После успешного CI — разрешённое последовательное слияние; затем подтвердить точный main CI. B01/B04/B05/B06/B10/B11 физически не закрыты; B07/B08 OP требуют осторожной выборочной интеграции, B14 — измерений, B15 — полного аудита deployments.
 
-**Следующее:** проверить CI на final docs HEAD #476, затем только при отдельном разрешении последовательно согласовать и объединить конкретные PR #474/#475/#476, проверяя новый main и CI после каждого. Не использовать старые разрешения #472/#473/#471 повторно.
-
-**Запреты:** без отдельного разрешения запрещены merge, publish/release, APK install, изменение production-базы, реальное restore и удаление оригиналов. Текущий OnePlus не тронут.
+**Без отдельного согласия нельзя:** публиковать PWA, устанавливать APK, изменять production IndexedDB, выполнять live restore, очистку или удаление оригиналов. Подтверждение CI не заменяет реальный архив и физический тест OnePlus.
