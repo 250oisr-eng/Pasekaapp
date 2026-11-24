@@ -27,6 +27,14 @@
 - Android `force-stop`, `install`, `uninstall`, `pm clear`, restore, удаление, production deployment, выпуск v317 не разрешены и в комплект не входят.
 - Локальная структурная проверка ZIP (CRC) и статические проверки read-only/opt-in контрактов прошли; **Windows/Android фактический запуск нового блока NOT_TESTED**. Инструмент не способен самостоятельно подтвердить полноту аварийного восстановления.
 
+## Результат пользователя v1 и исправленный сводный пакет v2 (24.11.2026)
+
+- Пользователь запустил v1 и предоставил `PASEKA_B11_CONSOLIDATED_SAFE_CAPTURE_V1`: `BLOCKED / SAFE_CAPTURE_BLOCKED`, `errorCode=PIDOF_RESULT_AMBIGUOUS`; модель `NE2213`, `runAsAvailable=true`, SHA-256 установленного APK совпадает, `archiveCreated=false`, никаких изменений телефона.
+- **Причина:** в PowerShell v1 пустой stdout `pidof` при exit code **0** ошибочно считается неоднозначным вместо проверки через вторую команду. Нельзя объявлять процесс остановленным только по пустому stdout — новая версия исправляет это без снятия запрета.
+- Подготовлен один исправленный ZIP `PASEKA-B11-consolidated-OnePlus-safe-capture-v2.zip`, SHA-256 ZIP `8508c8dfed8fc7e91c1a72e1496521f60f1b2e1f54af0503a7cc4d5c3bdf4bd0`. Процесс: числовые PID → RUNNING; пустой pidof с exit 0/1 и без stderr подтверждать только по корректному выводу `adb shell ps -A` (PID, NAME; нет `ru.paseka.journal` и процессов `:service`); некорректный/несогласованный вывод → UNKNOWN/BLOCKED.
+- Повторить проверку состояния непосредственно перед чтением и после него; при любом RUNNING/UNKNOWN — STOP, файл-кандидат не может считаться проверенным архивом. Явный ввод `CAPTURE` сохраняется. ZIP CRC/структура и статические STOP/read-only проверки прошли **локально**, реальное Windows/OnePlus исполнение **NOT_TESTED**; PowerShell 5.1 не запускался в текущей среде.
+- **V1 архив не создал.** Никакой B01 restore/upgrade gate не снят. При v2 PASS без `CAPTURE` также нет backup; при TAR PASS это только приватный кандидат, пока нет независимого restore.
+
 ## Следующее решение после отчёта
 
 Если кандидат создан — отдельно спроектировать/проверить изолированный restore, после него установленные signing fingerprint и upgrade policy. Если `APP_PROCESS_RUNNING_NO_CAPTURE` — не обходить stop-gate техническими ухищрениями. Если Java для подписи отсутствует — использовать доступный Android Studio JBR/локальную Java после изучения SDK, без изменения APK.
