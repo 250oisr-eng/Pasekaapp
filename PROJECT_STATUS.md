@@ -1,3 +1,10 @@
+## 2026-11-24 — P1 stale-source physical manifest gate (Draft, not released)
+
+- Branch `fix/p1-manifest-stale-source-revision-2026-11-24` is stacked on Draft #458 at `16c3fb29976c24b4251e89bab649c78e275b078d`; no main, production or personal media changes.
+- `js/sectional-season-physical-manifest-v2.js`: `plan` now requires `expectedSourceRevisionId` matching `state.meta.revisionId`. A missing or stale input is rejected before evaluating movements. This prevents a mobile draft created before a concurrent-tab write or restore from silently being reinterpreted against a newer physical state.
+- `tests/sectional-season-physical-manifest-v2.test.mjs`: existing synthetic requests supply the original revision; tests cover missing, stale, concurrent revision and unchanged state. This changes the pre-commit request contract intentionally; any future full guided UI must pass the revision from `inspectSource` and refresh on mismatch.
+- Verification: GitHub CI on the new exact HEAD still needs confirmation; no claim of green CI or device test. Remaining blockers: guided target layout and item placement UI, complete OP01–14 UI→CAS, independent real external archive restore with original Blobs, OnePlus offline E2E, separate merge and release authorization.
+
 ## Дополнение к приёмке (точный кодовый SHA)
 
 **`483e3978dd522350171830d7c0a82178f9cf68c6`**:
