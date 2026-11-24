@@ -1,3 +1,12 @@
+## 2026-11-24 — P0 regression fix: backup/entrance media key race under final restore lock (#452)
+
+- **Confirmed defect** in `js/disaster-archive.js`: original restore checked only `main.state.meta.revisionId`. A new `entrance_media` Blob or new `full_backup` record added after archive preflight but without main revision change could be lost when `atomicRestore` clears all stores.
+- **Implemented narrow fail-closed guard in existing Draft #452** (no new branch/PR): `inspectArchive` captures full key inventory of every store in one readonly transaction; `atomicRestore` re-reads `getAllKeys()` for every store **inside its final readwrite transaction** and aborts before any `clear()` if any key added/removed/renamed or inventory missing. It still checks main revision and uses atomic rollback for any write failure. Existing restore API signature, archive file format and IndexedDB schema unchanged.
+- Four regression tests in `tests/disaster-archive.test.mjs`: new original video without revision bump, new historical backup, removed media key, missing inspection fence. Existing successful restore/rollback tests retained. Code commit `65c53a4a1bdb8fe4566c5f78a614e224ff96b8b1`; tests commit `70e285c7e6f7f1272b7b0daeb2aea737dc4277b9`. GitHub CI started on test SHA; **do not claim PASS until exact SHA workflow completed successfully**.
+- **Remaining limitation:** same-key content rewrite (including changed video Blob bytes under unchanged `id`) with unchanged main revision **cannot be detected by key-only fence**. It is not complete record-content CAS, writer isolation or proof of full external restore. Do not use current Draft for destructive production restore or grant `cleanupAuthorized`. #442 FROZEN; actual original files/second-device full restore NOT_VERIFIED. No user data touched; no merge/release/deploy.
+
+---
+
 ## 2026-11-24 — P0 code-level original-media inventory and independent restore protocol (Draft #452)
 
 - GitHub live verified: `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`; #452 remains OPEN/DRAFT based on main. Inspected actual `main/index.html` and PASEKA02 frozen Draft #441 `c0ef4afccc6060ad36898fce9d6eebde82e626cd`: `video-archive-v2-copy-inventory.js`, `snapshot.js`, `record-media.js`, `restore-db-preflight.js`, `restore-gate.js`, `metadata-codec.js`, `entrance-atomic.js` and inventory tests.
