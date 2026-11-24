@@ -50,7 +50,7 @@ test('PASEKA02 original media auto cleanup stays outside this implementation',()
 test('OP12 guided target is a preview-only UI with no physical persistence capability',()=>{
  const guide=src('js/sectional-season-op12-guided-v2.js'),wizard=src('js/sectional-season-operations-wizard-v2.js');
  assert.match(wizard,/PasekaSectionalOP12GuidedV2/);
- assert.match(guide,/data-op12-confirm-body/);
+ assert.match(guide,/confirm\\('body'/);
  assert.match(guide,/expectedSourceRevisionId/);
  assert.doesNotMatch(guide,/\.status\s*=\s*['"]DONE['"]|indexedDB\.open|\.put\(|\.delete\(/);
 });
