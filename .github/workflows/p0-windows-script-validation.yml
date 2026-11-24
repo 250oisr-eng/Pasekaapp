@@ -97,3 +97,5 @@ jobs:
           $blocked=Get-Content $blockedReports[0].FullName -Raw | ConvertFrom-Json
           if($blocked.blockCode -ne 'TEST_PACKAGE_ALREADY_INSTALLED'){throw 'Missing fail-closed for existing package'}
           Write-Host 'P0_WINDOWS_ALREADY_INSTALLED_PRESERVED_PASS'
+
+          exit 0 # Expected negative-case exit=1 must not fail the runner wrapper.
