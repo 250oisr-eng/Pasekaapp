@@ -1,3 +1,12 @@
+## 24.11.2026 — P1 limited OnePlus smoke APK READY, full P1 acceptance BLOCKED (Draft #467)
+
+- [Draft #467](https://github.com/250oisr-eng/Pasekaapp/pull/467) поверх #466: отдельный Android P1 WebView test-only пакет `ru.paseka.journal.p1smoke`, не заменяет рабочий `ru.paseka.journal`. Диагностика проверяет реальные загруженные OP01–14/OP11–14 read-only модули и три fail-closed варианта OP13 без доступа к пользовательским видео, реальной базе, CAS и производственным операциям. Отображает копируемый результат и инструкции проверки офлайн на телефоне.
+- **Exact code+test SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`:** [Fast Quality #45348217568](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45348217568) **989/989 PASS**, [Isolated APK #45348217564](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45348217564) **SUCCESS / 989 PASS / Gradle BUILD SUCCESSFUL**. `aapt` подтвердил пакет. Artifact `paseka-p1-oneplus-isolated-smoke-apk` #14898717991 (7 days). APK SHA-256 `0ca7279a97bb3b7c4a5713f925522ce78ca3b3a4f10db62f800330ee9774890a`.
+- Статус: **READY_FOR_ISOLATED_PHONE_SMOKE**, не DEVICE_VERIFIED и не RELEASE_READY. Реальные скриншоты с OnePlus, offline force-stop, исходный внешний архив и оригинальные Blob на втором физическом устройстве **не проверены**. Полный UI→CAS OP01–14, обычная ветка OP13 и активный critical CAS не завершены. PASEKA02 cleanup #442 FROZEN; production/main и пользовательские записи не изменялись.
+- Телефонная карта F0–F2 и минимальные действия: [`docs/P1-ONEPLUS-ПОДГОТОВКА-И-ПРОТОКОЛ-ИСПЫТАНИЙ-2026-11-24.md`](docs/P1-ONEPLUS-ПОДГОТОВКА-И-ПРОТОКОЛ-ИСПЫТАНИЙ-2026-11-24.md). Не просить установить обычный debug APK с production package ID. Слияние/публикацию не выполнять без разрешения.
+- Следующий этап: провести безвредный single-app isolated phone smoke, получить фактический отчёт; затем внешний независимый full archive/Blob restore и завершить live UI→CAS.
+
+
 ## 24.11.2026 — P1 OP13 explicit spring variant, Draft #466 (no live write)
 
 - Проверен пользовательский DOCX P72–P76: обычное развитие после зимовки ≠ подготовка к раннему мёду с двумя дополнительными корпусами. В `js/sectional-season-op13-guided-v2.js` для схемы 2+2+2 обязательны выбранный пользователем `EARLY_HONEY_PREPARATION` и `springDevelopmentPersonallyConfirmed`; регулярный вариант `REGULAR_DEVELOPMENT` блокируется до отдельной реализации. Ориентир «около 1,5 месяцев» не равен готовности семьи.

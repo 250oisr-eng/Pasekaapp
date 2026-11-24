@@ -1,3 +1,50 @@
+## 24.11.2026 — OnePlus: ручная физическая офлайн-проверка P1 isolated smoke подтверждена пользователем
+
+- Пользователь **явно подтвердил «Да»** на вопрос, что **до последнего запуска** отключил Wi-Fi и мобильный интернет и нажал Android **«Остановить принудительно»** для тестового приложения `ru.paseka.journal.p1smoke`. Последующий предоставленный диагностический JSON для source SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`: `status=PASS`, 12/12 PASS, `isolatedLocalStorageContinuity=PRIVATE_DIAGNOSTIC_LOCAL_MARKER_SEEN_AGAIN`.
+- Статус узкой проверки: **P1_ISOLATED_PHONE_OFFLINE_FORCE_STOP_USER_CONFIRMED_PASS** — фактические действия Android и отключение сетей удостоверены пользователем, успешный повторный запуск и загрузка read-only модулей — отчётом. `networkReportedByWebView=ONLINE` **противоречит ручному наблюдению**, но это значение `navigator.onLine`, а не измерение интернет-доступа; не считать доказательством реального сетевого подключения или причиной автоматического FAIL. `forceStopObserved=NOT_DETECTABLE_BY_WEBVIEW` остаётся корректным: WebView не наблюдает системный force-stop самостоятельно.
+- Это **не** проверка производства: `originalUserArchive=NOT_ACCESSED`, `originalVideos=NOT_ACCESSED`, `dataRestore=NOT_ATTEMPTED`, `p1CasPersistence=NOT_TESTED`, `independentSecondDeviceArchive=NOT_VERIFIED`, `p1ReleaseReady=false`. **SECOND_DEVICE_VERIFIED=NO**, full P1 UI→CAS E2E BLOCKED, PASEKA02 auto cleanup #442 FROZEN. Запрещено автоматически менять состояние улья или удалять видео.
+- Физический smoke для отдельного APK на данном этапе завершён; **не запрашивать повторение тех же действий**, пока не появится новая конкретная неисправность или новая сборка. Следующая независимая задача — разработать и доказать полный внешний backup/restore исходных Blob-видео на другом физическом устройстве без затрагивания рабочего архива; не подменять доказательства эмулятором/синтетикой. Нет merge, release или production deployment.
+
+---
+
+## 24.11.2026 — повторный пользовательский P1 OnePlus smoke PASS, локальная непрерывность подтверждена
+
+- Получен второй пользовательский JSON `paseka-p1-phone-readonly-smoke-v1`, source `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`: `status=PASS`, 12/12 checks PASS, `P1_ISOLATED_PREVIEW_SMOKE_PASS`. `isolatedLocalStorageContinuity=PRIVATE_DIAGNOSTIC_LOCAL_MARKER_SEEN_AGAIN` — локальный тестовый маркер пережил повторный запуск приложения. Это **не** доказательство сохранения боевого CAS/IndexedDB/архива.
+- Сеть по-прежнему `networkReportedByWebView=ONLINE`; это только `navigator.onLine`, не достоверный сетевой тест. Независимого подтверждения отключения Wi-Fi и мобильных данных не предоставлено. `forceStopObserved=NOT_DETECTABLE_BY_WEBVIEW`: подтверждения фактического системного force-stop нет.
+- Статус `P1_ONEPLUS_ONLINE_RELAUNCH_REPORTED_PASS`; `P1_ISOLATED_PHONE_OFFLINE_FORCE_STOP_VERIFIED=NO`, `SECOND_DEVICE_VERIFIED=NO`, `p1ReleaseReady=false`. Полный исходный пользовательский архив/Blob restore, CAS и PASEKA02 cleanup не испытывались. **Никакого удаления видео, изменения production/main, merge или release.**
+- Следующий узкий gate: человек непосредственно подтверждает в настройках Android отключение двух сетей и системный force-stop тестового пакета; затем повторный read-only report. Если WebView всё ещё показывает ONLINE, не подменять OS-level наблюдение полем `navigator.onLine`; выделить диагностическую неточность отдельно. Независимый restore остаётся блокером дальнейшего подключения live CAS.
+
+---
+
+## 24.11.2026 — получен реальный отчёт первого запуска OnePlus P1 isolated smoke
+
+- Пользователь предоставил диагностический JSON schema `paseka-p1-phone-readonly-smoke-v1` из отдельного Android-пакета `ru.paseka.journal.p1smoke` для source SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`. Результат `status=PASS`, `code=P1_ISOLATED_PREVIEW_SMOKE_PASS`; **12/12 checks PASS**: проверка https://localhost, загрузка 14 OP wizard, physical-manifest/layout и OP11–14 guided previews, три отрицательных gate OP13 и отсутствие live CAS bridge.
+- **Доказан только пользовательский запуск и in-app read-only smoke в ONLINE режиме**, `networkReportedByWebView=ONLINE`, `isolatedLocalStorageContinuity=NOT_VERIFIED`. Это пользовательское полевое свидетельство, а не независимая APK attestation: `testOnlyPackageConfig` сам сообщает, что конфигурация ID не удостоверяет установленный пакет.
+- **Ещё не подтверждены** offline повторный запуск, Android force-stop/relaunch, data persistence, исходный пользовательский архив, все оригинальные Blob-видео и независимый restore на втором физическом устройстве. `forceStopObserved=NOT_DETECTABLE_BY_WEBVIEW`, `p1ReleaseReady=false`, `independentSecondDeviceArchive=NOT_VERIFIED`. Не объявлять `P1_ISOLATED_PHONE_SMOKE_DEVICE_VERIFIED` до второго офлайн-отчёта с ручным подтверждением force-stop.
+- Следующий минимальный ручной этап: отключить обе сети, выполнить Android «Остановить» только тестового приложения, повторно открыть его и передать результат. Рабочее приложение и его данные не очищать. PASEKA02 #442 остаётся FROZEN: никаких настоящих видео не удалять.
+- Это фиксация предоставленного свидетельства в Draft #467, без изменений runtime, IndexedDB, CI, основного приложения, main, merge/release/deploy.
+
+---
+
+## 24.11.2026 — повторная live-сверка main/PR/CI после перехода между чатами
+
+- GitHub branch API: **main = `13c724a634f0987ff634a058a5fa37a1b8e20c92`**, merge commit PR #449 (23.11.2026 09:04:26 UTC). **PR #448 и #449 оба фактически MERGED**; старые записи ниже про ожидание разрешения на их слияние исторические и больше не являются следующим действием.
+- [Draft #467](https://github.com/250oisr-eng/Pasekaapp/pull/467) OPEN/DRAFT, branch `feat/p1-isolated-oneplus-smoke-2026-11-24` → base Draft #466, HEAD до этой заметки `34130f7403b1ac6ec61e4338eaa2a90578d65035`. Проверка compare `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91...34130f7403b1ac6ec61e4338eaa2a90578d65035`: один коммит и **только семь Markdown файлов**, код диагностического APK и тесты неизменны.
+- Дополнительно проверены Github Actions на точном HEAD #467: P1 Isolated OnePlus Smoke APK run **#45348643042 completed/success** и Android APK run **#45348642283 completed/success**. Статус старого code SHA не следует выводить из одного последнего run: среди повторных попыток есть cancelled; исходное доказательство 989/989 относится к отдельно указанным successful run #45348217568 и #45348217564.
+- **Фактический следующий gate неизменен:** real OnePlus isolated APK offline/relaunch/force-stop screenshot/JSON, затем независимо подтверждённое полное внешнее восстановление оригинального архива, включая Blob-видео, на втором физическом устройстве; только после этого обсуждать live UI→CAS. `SECOND_DEVICE_VERIFIED=NO`, `ONEPLUS_P1_PHYSICAL_E2E=NOT_VERIFIED`. PASEKA02 #442 остаётся FROZEN; никаких настоящих медиа не удалять.
+- Текущий этап — документальная сверка; не выполнены установка APK на телефон, новый функциональный код, merge, release и production deployment. Следующее разрешённое автономное действие — ревью P1 на текущей цепочке Draft без подмены физических доказательств CI.
+
+---
+
+## 24.11.2026 — P1 limited OnePlus smoke APK READY, full P1 acceptance BLOCKED (Draft #467)
+
+- [Draft #467](https://github.com/250oisr-eng/Pasekaapp/pull/467) поверх #466: отдельный Android P1 WebView test-only пакет `ru.paseka.journal.p1smoke`, не заменяет рабочий `ru.paseka.journal`. Диагностика проверяет реальные загруженные OP01–14/OP11–14 read-only модули и три fail-closed варианта OP13 без доступа к пользовательским видео, реальной базе, CAS и производственным операциям. Отображает копируемый результат и инструкции проверки офлайн на телефоне.
+- **Exact code+test SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`:** [Fast Quality #45348217568](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45348217568) **989/989 PASS**, [Isolated APK #45348217564](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45348217564) **SUCCESS / 989 PASS / Gradle BUILD SUCCESSFUL**. `aapt` подтвердил пакет. Artifact `paseka-p1-oneplus-isolated-smoke-apk` #14898717991 (7 days). APK SHA-256 `0ca7279a97bb3b7c4a5713f925522ce78ca3b3a4f10db62f800330ee9774890a`.
+- Статус: **READY_FOR_ISOLATED_PHONE_SMOKE**, не DEVICE_VERIFIED и не RELEASE_READY. Реальные скриншоты с OnePlus, offline force-stop, исходный внешний архив и оригинальные Blob на втором физическом устройстве **не проверены**. Полный UI→CAS OP01–14, обычная ветка OP13 и активный critical CAS не завершены. PASEKA02 cleanup #442 FROZEN; production/main и пользовательские записи не изменялись.
+- Телефонная карта F0–F2 и минимальные действия: [`docs/P1-ONEPLUS-ПОДГОТОВКА-И-ПРОТОКОЛ-ИСПЫТАНИЙ-2026-11-24.md`](docs/P1-ONEPLUS-ПОДГОТОВКА-И-ПРОТОКОЛ-ИСПЫТАНИЙ-2026-11-24.md). Не просить установить обычный debug APK с production package ID. Слияние/публикацию не выполнять без разрешения.
+- Следующий этап: провести безвредный single-app isolated phone smoke, получить фактический отчёт; затем внешний независимый full archive/Blob restore и завершить live UI→CAS.
+
+
 ## 24.11.2026 — P1 OP13 explicit spring variant, Draft #466 (no live write)
 
 - Проверен пользовательский DOCX P72–P76: обычное развитие после зимовки ≠ подготовка к раннему мёду с двумя дополнительными корпусами. В `js/sectional-season-op13-guided-v2.js` для схемы 2+2+2 обязательны выбранный пользователем `EARLY_HONEY_PREPARATION` и `springDevelopmentPersonallyConfirmed`; регулярный вариант `REGULAR_DEVELOPMENT` блокируется до отдельной реализации. Ориентир «около 1,5 месяцев» не равен готовности семьи.
