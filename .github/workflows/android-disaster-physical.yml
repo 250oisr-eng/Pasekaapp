@@ -128,6 +128,8 @@ jobs:
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Bind APK SHA-256 and exact test-only package identity
         shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -137,6 +139,7 @@ jobs:
           const bytes=await readFile(apkPath);
           const manifest={
             schema:'paseka-disaster-isolated-artifact-v1',
+            sourceSha:process.env.PR_HEAD_SHA||process.env.GITHUB_SHA,
             packageId:'ru.paseka.journal.disasterproof',
             originalPackageId:'ru.paseka.journal',
             branchProcess:'CI-only diagnostic build; not a production release',
@@ -147,7 +150,7 @@ jobs:
             noCleanup:true
           };
           await writeFile('disaster-proof-manifest.json',JSON.stringify(manifest,null,2),'utf8');
-          console.log('Manifest bound to diagnostic package, APK SHA256 and build commit.');
+          console.log('Manifest bound to diagnostic package, APK SHA256, source PR head and CI checkout commit.');
           NODE
       - name: Upload APK
         uses: actions/upload-artifact@v4
