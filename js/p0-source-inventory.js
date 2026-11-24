@@ -40,7 +40,10 @@ function scan(value,stats,depth=0,seen=new WeakSet()){
  seen.add(value);
  if(Array.isArray(value)){for(const item of value)scan(item,stats,depth+1,seen);}
  else {
-  if(value.kind==='video'&&typeof value.data!=='string'&&!(value.blob instanceof Blob))stats.opaqueMedia++;
+  if(value.kind==='video'&&!(value.blob instanceof Blob)){
+   const info=dataUrlInfo(value.data);
+   if(!info||info.kind==='image'||info.kind==='other')stats.opaqueMedia++;
+  }
   for(const k of Object.keys(value))scan(value[k],stats,depth+1,seen);
  }
  seen.delete(value);
