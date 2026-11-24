@@ -6,6 +6,7 @@ on:
       - 'AGENTS.md'
       - 'PROJECT_STATUS.md'
       - 'docs/**'
+      - '.github/pull_request_template.md'
       - 'scripts/governance-*.mjs'
       - '.github/workflows/governance-docs.yml'
   workflow_dispatch:
