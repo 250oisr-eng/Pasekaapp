@@ -160,7 +160,7 @@
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED."
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25 B15 Draft #480 manual Cloudflare release guard: exact SHA from main and PUBLISH-CLOUDFLARE before secrets, negative workflow tests; code SHA 6ad83a14e4921baea237b552c6047480ed3a35e6 Fast #45495992070 and Android #45495991865 SUCCESS, prior docs SHA 2a86a44303a829ab7676ea00d2c6a4dcd3cb6f87 Android #45496201683 and Governance #45496201473 SUCCESS. No Cloudflare deploy, no merged PR, no actual user scenario/elapsed-time speed metric. Subsequent docs-only HEAD requires new exact SHA CI."
   },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
