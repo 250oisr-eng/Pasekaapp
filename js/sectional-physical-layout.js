@@ -154,6 +154,9 @@ function validate(layout,state){
    if(stack.coverItemId)add('honey_stage_cover_must_be_removed',{stackId:stack.id??null,itemId:stack.coverItemId});
    if(stack.topRiserItemId)add('honey_stage_top_riser_must_be_removed',{stackId:stack.id??null,itemId:stack.topRiserItemId});
   }else if(stack.coverItemId)checkItem(stack.coverItemId,'cover',{stackId:stack.id});
+  // An inner cover remains a tracked physical part in vertical winter stacks.
+  if(layout.mode!==MODES.SIDE_BY_SIDE&&stack.topRiserItemId)
+   checkItem(stack.topRiserItemId,'topRiser',{stackId:stack.id});
   if(stack.feederItemId)checkItem(stack.feederItemId,'feeder',{stackId:stack.id});
   if(layout.mode===MODES.ALTERNATIVE_WINTERING_COLUMN){
    const boundaries=rows(stack.boundaries);
