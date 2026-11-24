@@ -18,3 +18,9 @@
 Это доказательство на эмулированной среде Node, а **не** физический cold-offline, обновление PWA, сохранность браузерных Blob или тест реальной установки OnePlus. Полный B11 остаётся `NOT_VERIFIED` до реального offline/reopen/upgrade и отдельного разрешения на выпуск. Не запускать Pages deployment, устанавливать APK или менять production данные.
 
 **Статус:** `IMPLEMENTED_DRAFT / EXACT_SHA_CI_PENDING`. Если хотя бы один тест FAIL, исправить и повторить проверки; не изменять политику приватности ради зелёного CI.
+
+## F5 — проверка на кодовом SHA
+
+- Code/docs HEAD `ab122276f86f26b83fe7cbc715b1d3c668417996`: [Android CI #45475559444](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559444) **719/719 PASS, BUILD SUCCESSFUL**; [Governance #45475559734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559734) **SUCCESS**.
+- Три новых негативных и позитивных теста действительно исполняют исходник `sw.js` в VM. Подтверждена область только install-shell. Состояние `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN / PHYSICAL_NOT_VERIFIED`.
+- Новый docs-only HEAD после фиксации этих результатов должен пройти Governance CI; если CI изменит итог — приоритет у live CI. Merge и release остаются запрещёнными без отдельного разрешения.
