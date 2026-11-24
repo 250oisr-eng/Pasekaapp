@@ -85,7 +85,7 @@ jobs:
           import {readFile} from 'node:fs/promises';
           const config=JSON.parse(await readFile('capacitor.config.json','utf8'));
           const html=await readFile('www/index.html','utf8');
-          if(config.appId!=='ru.paseka.journal.disasterproof'||!html.includes('disaster-phone-proof.js')){
+          if(config.appId!=='ru.paseka.journal.disasterproof2'||!html.includes('disaster-phone-proof.js')){
             throw Error('Production package collision or missing proof injection');
           }
           console.log('PASS: isolated applicationId, test runner bundled, no production install');
@@ -140,7 +140,7 @@ jobs:
           const manifest={
             schema:'paseka-disaster-isolated-artifact-v1',
             sourceSha:process.env.PR_HEAD_SHA||process.env.GITHUB_SHA,
-            packageId:'ru.paseka.journal.disasterproof',
+            packageId:'ru.paseka.journal.disasterproof2',
             originalPackageId:'ru.paseka.journal',
             branchProcess:'CI-only diagnostic build; not a production release',
             sha:process.env.GITHUB_SHA,
