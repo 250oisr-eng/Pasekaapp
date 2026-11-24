@@ -8,6 +8,10 @@ const valid = { packageName: 'ru.paseka.journal', versionCode: 1, signers: [sign
 test('parse Android metadata and signer cert without private signing key', () => {
   assert.deepEqual(parseBadging("package: name='ru.paseka.journal' versionCode='14' versionName='1.0'"), {packageName:'ru.paseka.journal', versionCode:14});
   assert.deepEqual(parseSigning('Signer #1 certificate SHA-256 digest: '+signer.toUpperCase()), [signer]);
+  assert.deepEqual(parseSigning('V3.0 Signer: certificate SHA-256 digest: '+signer), [signer]);
+  assert.deepEqual(parseSigning('V2.0 Signer: certificate SHA-256 digest: '+signer), [signer]);
+  assert.deepEqual(parseSigning('V3.0 Signer: certificate SHA-256 digest: '+signer+'\nV2.0 Signer: certificate SHA-256 digest: '+signer), [signer]);
+  assert.throws(()=>parseSigning('Untrusted: certificate SHA-256 digest: '+signer), /BLOCKED/);
   assert.throws(()=>parseBadging('badging failed'), /BLOCKED/);
   assert.throws(()=>parseSigning('no signer'), /BLOCKED/);
 });
