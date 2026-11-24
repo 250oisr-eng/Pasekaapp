@@ -1,3 +1,8 @@
+## 2026-11-24 — P1 manifest revision guard, CI evidence
+
+- Code/test SHA `fbbda9c5fdd0b238c8e0197f909eaef32704f4e1`: [Fast Quality #45331779981](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45331779981) **949/949 PASS, 0 FAIL**, Pages source read-only PASS. Android builds #45331780029 and #45331787512 were IN_PROGRESS at evidence check; they are NOT marked PASS here.
+- First Android job #45331680974 exposed 2 missed integration-fixture revision fields; both fixed. Physical state and original data untouched. Draft #459; no release/merge.
+
 ## 2026-11-24 — P1 stale-source physical manifest gate (Draft, not released)
 
 - Branch `fix/p1-manifest-stale-source-revision-2026-11-24` is stacked on Draft #458 at `16c3fb29976c24b4251e89bab649c78e275b078d`; no main, production or personal media changes.
