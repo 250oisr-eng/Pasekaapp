@@ -17,4 +17,10 @@
 
 ## F2: условия выпуска
 
-`IMPLEMENTED_DRAFT / CI_RERUN_REQUIRED`: первый Android CI на SHA `2a0c4f74c00f2712d4c127a61acd811bff56088a` показал **708/709 PASS, 1 FAIL**: измерения отображались одновременно по двум ульям. Исправлена только выборка в UI; успешный повторный CI на новом SHA требуется. Требуется `npm test`, Android build, exact head SHA; только затем `READY_FOR_MERGE_REVIEW`, не `IN_MAIN`. Не слить без отдельного разрешения. После тестов проверить пересечения с #474, физический журнал на отдельном безопасном test appId и отсутствие переустановки живого OnePlus.
+`READY_FOR_MERGE_REVIEW / NOT_IN_MAIN` (подтверждено повторным CI после исправления): первый Android CI на SHA `2a0c4f74c00f2712d4c127a61acd811bff56088a` показал **708/709 PASS, 1 FAIL**: измерения отображались одновременно по двум ульям. Исправлена только выборка в UI; успешный повторный CI на новом SHA требуется. Требуется `npm test`, Android build, exact head SHA; только затем `READY_FOR_MERGE_REVIEW`, не `IN_MAIN`. Не слить без отдельного разрешения. После тестов проверить пересечения с #474, физический журнал на отдельном безопасном test appId и отсутствие переустановки живого OnePlus.
+
+## F3 / подтверждённый результат
+
+- Кодовый SHA `4638218ce4cc81cb149237619752145fb59794bd` (fix selected-hive view), следующий docs-only HEAD `a8e2afbaf10e070a198b60fbc01fb3289e7bd816`: [Android run #45469116241](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45469116241) **709/709 PASS; Gradle BUILD SUCCESSFUL**; [Governance #45469116177](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45469116177) **SUCCESS**.
+- Первый SHA `2a0c4f74c00f2712d4c127a61acd811bff56088a` был **FAIL 708/709**: в списке измерений Varroa отображался чужой улей; устранено выборочной фильтрацией по `hiveId`, без изменения массива или истории.
+- Статус `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN`; физический Android/устойчивость реальных данных **NOT_VERIFIED**; нет разрешения на merge и release.
