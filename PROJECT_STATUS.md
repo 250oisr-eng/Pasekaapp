@@ -1,18 +1,18 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**2026-11-24.** Живой `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1`, после разрешённого merge #474/#475/#476. Состояние подтверждено GitHub, [реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md) и [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**2026-11-25.** `main=0e62ced6e34ea1fc92e7e090c2c514e8306c5f8d`; текущая ветка — изолированный Draft. Нормы [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md) и [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
 
-## Подтверждено
+## Актуальные факты и PR
 
-- **#472/#473/#471 MERGED:** read-only архив `paseka-v1`, fail-closed сохранность старых Blob, обязательные IDB stores и управление рисками. Полный live restore UI выключен.
-- **#474 MERGED:** read-only docs-only push-main CI без права Pages deployment.
-- **#475 MERGED:** Varroa/journal rollback, защита от повторного submit и изоляция по улью; точный merge SHA `81537a6...` Fast/Android/Docs SUCCESS.
-- **#476 MERGED:** тесты legacy IDB v1/v2→v3, сохранности Blob/ArrayBuffer, atomic abort и newer-schema guard; последний `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1` [Fast #45474625284](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625284), [Android #45474625192](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625192), [Governance #45474625209](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625209) — **SUCCESS**.
-- **Текущий Draft B11:** [исходный риск](docs/P1-B11-SW-PRIVATE-CACHE-INSTALL-GATE-2026-11-24.md): прежний `sw.js` использовал `cache.addAll` без ограничения `Cache-Control: private/no-store`. В рабочей ветке v317 установка fail-closed, добавлены 3 теста; [Draft #477](https://github.com/250oisr-eng/Pasekaapp/pull/477), кодовый SHA `ab122276f86f26b83fe7cbc715b1d3c668417996`: [Android #45475559444](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559444) **719/719 PASS, BUILD SUCCESSFUL**, [Governance #45475559734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559734) **SUCCESS**; финальный docs HEAD проверить.
-- **Draft #469:** B04 реальные OnePlus APK package/signature UNKNOWN, защищённого signing key нет. **Draft #452:** прежний full restore не объединён. **Issue #442** PASEKA02 real-video detection/auto-cleanup **FROZEN**.
+- #471–#477 **MERGED**, read-only export, IndexedDB/Varroa/journal guards, SW v317; exact-main Fast #45476750153, Android #45476750242, Docs #45476750196 **SUCCESS**. Без публикации.
+- [Draft #478](https://github.com/250oisr-eng/Pasekaapp/pull/478): B11 SW v318 ограниченное удаление versioned caches, code Fast PASS, final Android #45494369418 + Docs #45494369444 SUCCESS, NOT_IN_MAIN.
+- [Draft #479](https://github.com/250oisr-eng/Pasekaapp/pull/479): B01 **PAUSED** до ПК. Установленный OnePlus NE2213 `ru.paseka.journal` v315, APK SHA `a6e14157fcdce06885cb8c6a5ad55c8a76170c3fa4cefa234b1715d80865aec6`; улей/семья/2 записи сохранены после offline/reboot. 4 synthetic ADB zeros PASS, public TAR 1090 bytes invalid, 2 приватных TAR повреждены, real full backup/restore NOT_VERIFIED. Не повторять USB без нового ресурса.
+- [Draft #480](https://github.com/250oisr-eng/Pasekaapp/pull/480): B15 ручная Cloudflare публикация только с `main`, точным `release_sha` и подтверждением. Fast code #45495992070, final Android #45496201683 + Docs #45496201473 SUCCESS; no deploy.
+- [Draft #481](https://github.com/250oisr-eng/Pasekaapp/pull/481): B08 полный read-only PR inventory + negative tests. Fast #45496538943, final Android #45496870257 + Docs #45496870566 SUCCESS. Открытых PR **396** после #483 (GitHub page4=96), root/main 43; не делать массовый merge.
+- [Draft #482](https://github.com/250oisr-eng/Pasekaapp/pull/482): узкий main-based Cloudflare request body bound из старого #52; Fast code #45497203026, final Android #45497433414 + Docs #45497433509 SUCCESS; Worker **не опубликован**.
+- [Draft #483](https://github.com/250oisr-eng/Pasekaapp/pull/483): **текущий B09** — 6 синтетических негативных/позитивных тестов реальных функций `openDB/readMain/readAutoBackup`: существующая повреждённая v3 не пересоздаётся, данные/Blob остаются при reopen; request success с последующим transaction abort не принимается как подтверждение. Никаких runtime/схема/DB изменений. Code SHA `56fe53bb91d780e3ef24c26c25d90ba31606cf3e`: Fast #45497667563 SUCCESS, exact final CI проверить.
 
-## Следующие ограничения
+## Следующий независимый этап и запреты
 
-B01 полный внешний архив/restore, B04/B05 installed signer/durable key, B06 лицензированные реальные веса, B10 real video, B11 cold offline/upgrade, B14 физические метрики — НЕ ПОДТВЕРЖДЕНЫ. P1 OP/new hive profile не активировать без локальных валидаторов и оригинала технологии.
-
-**Без отдельного разрешения:** никаких merge новых PR, Pages/deployment, установки APK, изменений production IndexedDB, восстановления или удаления записей/видео. Устройство OnePlus не затрагивалось.
+- B01 full backup/restore, B04/B05 installed signer/key и физический B11 upgrade **BLOCKED**; B06/B10 PASEKA02 лицензированная видео-модель/автоудаление **FROZEN #442**. **Draft #469** startup/signing и **Draft #452** full restore не слиты.
+- Продолжать без ПК только после проверки CI #483 и приоритизированного анализа других старых PR на `main`. Нет разрешения на merge PR, release/Pages/Cloudflare deploy, установку/очистку APK, restore, изменение production IndexedDB, удаление оригиналов/архивов. Зелёный CI не равен физическому восстановлению.
