@@ -101,3 +101,18 @@ test('B08 Cloudflare bound: streamed read exception must fail closed and release
  await assert.rejects(readBoundedBody({headers:new Headers(),body},10),/synthetic read failure/);
  assert.equal(released,true);
 });
+
+test('B08 stream error after valid partial content never returns truncated text',async()=>{
+ let released=0,reads=0;
+ const body={getReader(){return {
+  async read(){reads++;if(reads===1)return {done:false,value:new TextEncoder().encode('ok')};
+   throw new Error('synthetic mid-stream transport failure');},
+  releaseLock(){released++;},
+ };}};
+ await assert.rejects(readBoundedBody({headers:new Headers(),body},10),/mid-stream transport failure/);
+ assert.equal(released,1);
+});
+test('B08 zero byte limit rejects even the first body byte',async()=>{
+ await assert.rejects(readBoundedBody(req('x'),0),e=>e.code==='BODY_TOO_LARGE');
+ assert.equal(await readBoundedBody({headers:new Headers(),body:null},0),'');
+});
