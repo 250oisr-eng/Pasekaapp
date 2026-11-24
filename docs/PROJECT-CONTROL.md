@@ -1,3 +1,11 @@
+## 2026-11-24 — новый P0 gate после реальных APK: сертификаты несовместимы
+
+- [Отчёт: оригинальные APK, SHA-256 архивов и сертификатов, безопасная стратегия сохранения OnePlus данных](./P0-ANDROID-APK-SIGNING-CONFLICT-2026-11-24.md). Для артефактов [#45375657672](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45375657672) и [#45400013138](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45400013138) извлечены **разные APK v2 signer SHA-256**: `9b10baf0...` vs `df54ef93...`. Старый и новый APK **не являются совместимой парой для in-place Android upgrade**. Физический first-use OnePlus — `USER_REPORTED_PASS`, фактический installed signer пока `NOT_TESTED`. Не переустанавливать и не очищать его данные.
+- Дальнейшее создание подписанного release/QA package требует долговременной подписи, **без приватных ключей в Git**; смена ключа не обновит напрямую старую debug-сборку. План безопасной параллельной установки с другим appId возможен только после доказанного backup/restore на независимом стенде.
+- Открытый Draft #469, не merged; P0 full restore #452 отдельный Draft; PASEKA02 #442 FROZEN.
+
+---
+
 ## 2026-11-24 — точная точка проекта после разрешённого merge #468 и prelaunch-защита #469
 
 - [Первый запуск, fail-closed запись после ошибки IndexedDB, негативные тесты и план первой приёмки](./P0-ПЕРВЫЙ-ЗАПУСК-И-БЛОКИРОВКА-ЗАПИСЕЙ-2026-11-24.md) — отдельный [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469), **не merged / не released**. Кодовый SHA `f39be0d1955e9fe816e71f3b10885e90f306ac37`: Fast [#45371671672](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45371671672) **665/665 PASS**, Android [#45371671537](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45371671537) **665/665 PASS, BUILD SUCCESSFUL**. Остальные промежуточные неуспешные CI указаны в журнале.
