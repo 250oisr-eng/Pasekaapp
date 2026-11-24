@@ -16,6 +16,10 @@ export function auditPasekaJsonTransfer(raw, expected = {}) {
     failures.push('Export must include a state object');
     return { status: 'BLOCKED', failures, warnings, counts: null };
   }
+  const schemaVersion=state.meta?.schemaVersion;
+  if (!Number.isInteger(schemaVersion) || schemaVersion < 1 || schemaVersion > 15) {
+    failures.push('Unsupported or unknown JSON schema version: blocked until independent migration review');
+  }
   const byType = Object.fromEntries(['hives', 'families', 'records'].map(name => [name, state[name]]));
   for (const [name, rows] of Object.entries(byType)) {
     if (!Array.isArray(rows)) failures.push('Missing or non-array section: ' + name);
