@@ -92,3 +92,28 @@ test('actual legacy restore writes original first-use JSON to separate blank Ind
   try{target.close()}catch{}
  }
 });
+
+test('isolated restore rejects damaged archive without replacing existing IndexedDB state',async()=>{
+ const target=await open('transfer-reject-corrupt-origin');
+ try {
+  const previous=structuredClone(fixture);
+  await put(target,previous);
+  const deps={
+   db:target,STORE:'main',BACKUP_STORE:'backup',S:structuredClone(previous),
+   startupWriteGate:{ready:true},rejectWhileStartupNotReady:()=>null,
+   $:()=>({files:[{text:async()=>JSON.stringify({app:'Paseka',state:{...fixture,records:'CORRUPT'}})}]}),
+   confirm:()=>{throw Error('Confirmation must never be requested for malformed archive')},
+   saveQueue:Promise.resolve(),
+   validateBackupState:state=>{
+    if(!Array.isArray(state.records)) throw Error('Malformed records array');
+    return state;
+   },
+   assertRawBackupIntegrity:state=>state,
+   readMain:appFn('readMain',{db:target,STORE:'main'}),
+   alert:()=>{}
+  };
+  await appFn('restoreBackup',deps)();
+  assert.deepEqual(await get(target),previous,'invalid JSON must not mutate main state');
+  assert.deepEqual(deps.S,previous,'invalid JSON must not mutate the visible page state');
+ } finally {target.close()}
+});
