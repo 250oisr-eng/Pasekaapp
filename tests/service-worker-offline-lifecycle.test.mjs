@@ -12,6 +12,7 @@ function harness(){
  const buckets=new Map();
  const calls={skipWaiting:0,claimed:0,deleted:[],responded:0,network:0};
  let offline=false;
+ let deleteFailure=null;
  const publicResponse=url=>({
   ok:true,type:'basic',url,
   headers:{get:()=> 'public, max-age=600'},
@@ -27,7 +28,7 @@ function harness(){
    };
   },
   async keys(){return [...buckets.keys()]},
-  async delete(name){calls.deleted.push(name);return buckets.delete(name)}
+  async delete(name){calls.deleted.push(name);if(deleteFailure)throw deleteFailure;return buckets.delete(name)}
  };
  const fetch=async request=>{
   calls.network++;
@@ -62,7 +63,7 @@ function harness(){
   await Promise.all(waits);
   return {intercepted:true,result};
  }
- return {lifecycle,request,calls,buckets,setOffline(value){offline=value},publicResponse};
+ return {lifecycle,request,calls,buckets,setOffline(value){offline=value},setDeleteFailure(error){deleteFailure=error},publicResponse};
 }
 
 test('B11 cold offline navigation serves installed shell without network and never intercepts user API',async()=>{
@@ -108,4 +109,30 @@ test('B11 activation removes obsolete numeric shell versions only, preserving us
  }
  assert.equal(h.calls.claimed,1);
  assert.deepEqual(h.calls.deleted,['paseka-shell-v315','paseka-shell-v316','paseka-shell-v317']);
+});
+
+
+test('B11 rejected cache deletion prevents clients.claim and leaves user caches intact',async()=>{
+ const h=harness();
+ h.buckets.set('paseka-shell-v317',new Map([['old','old']]));
+ h.buckets.set('paseka-shell-v318-user-backup',new Map([['private','preserved']]));
+ await h.lifecycle('install');
+ h.setDeleteFailure(new Error('synthetic CacheStorage delete rejection'));
+ await assert.rejects(h.lifecycle('activate'),/synthetic CacheStorage delete rejection/);
+ assert.equal(h.calls.claimed,0,'do not claim a completed upgrade on failed deletion');
+ assert.equal(h.buckets.has('paseka-shell-v317'),true);
+ assert.equal(h.buckets.has('paseka-shell-v318-user-backup'),true);
+});
+
+test('B11 activation refuses to remove misleading numeric names and leaves future versions alone',async()=>{
+ const h=harness();
+ const protectedNames=['paseka-shell-v0317','paseka-shell-v0','paseka-shell-v318',
+  'paseka-shell-v319','paseka-shell-v317-extra','paseka-shell-v317.0',
+  'paseka-shell-v-317','paseka-shell-v9999999999999999999999'];
+ for(const name of protectedNames)h.buckets.set(name,new Map([['private','unchanged']]));
+ h.buckets.set('paseka-shell-v1',new Map());
+ await h.lifecycle('install');
+ await h.lifecycle('activate');
+ for(const name of protectedNames)assert.equal(h.buckets.has(name),true,name+' must not be removed');
+ assert.deepEqual(h.calls.deleted,['paseka-shell-v1']);
 });
