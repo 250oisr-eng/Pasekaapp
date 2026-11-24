@@ -493,6 +493,14 @@ function mount(host,getState){
      '. Для физической записи дополнительно требуется точная целевая раскладка, новые места каждого предмета и независимый архив. Ничего не сохранено.';
    });
   }
+  if(op==='OP-14'){
+   const fields=host.querySelector('[data-season-fields]');
+   fields.insertAdjacentHTML('beforeend','<div data-op14-guided></div>');
+   const guided=root.PasekaSectionalOP14GuidedV2?.mount?.(
+    fields.querySelector('[data-op14-guided]'),getState,hive,host);
+   if(!guided?.ok)fields.querySelector('[data-op14-guided]').textContent=
+    'OP-14: исходная раскладка не подтверждена. Физическая запись заблокирована.';
+  }
   if(op==='OP-11'){
    const fields=host.querySelector('[data-season-fields]');
    fields.insertAdjacentHTML('beforeend','<div data-op11-guided></div>');
