@@ -17,6 +17,7 @@ const modules=[
  'js/sectional-season-physical-manifest-v2.js',
  'js/sectional-season-op12-guided-v2.js',
  'js/sectional-season-op11-guided-v2.js',
+ 'js/sectional-season-op13-inventory-guide-v2.js',
  'js/sectional-season-operations-wizard-v2.js',
  'js/sectional-op08-honey.js',
  'js/sectional-op09-entrances.js'
@@ -33,7 +34,8 @@ test('P1 v2 persistence and physical modules are actually shipped to offline And
  assert.ok(loaded('js/sectional-season-lifecycle-v2.js')<loaded('js/sectional-season-browser-commit-v2.js'));
  assert.ok(loaded('js/sectional-season-physical-manifest-v2.js')<loaded('js/sectional-season-op12-guided-v2.js'));
  assert.ok(loaded('js/sectional-season-op12-guided-v2.js')<loaded('js/sectional-season-op11-guided-v2.js'));
- assert.ok(loaded('js/sectional-season-op11-guided-v2.js')<loaded('js/sectional-season-operations-wizard-v2.js'));
+ assert.ok(loaded('js/sectional-season-op11-guided-v2.js')<loaded('js/sectional-season-op13-inventory-guide-v2.js'));
+ assert.ok(loaded('js/sectional-season-op13-inventory-guide-v2.js')<loaded('js/sectional-season-operations-wizard-v2.js'));
 });
 test('pre-phone UI exposes only physical preview and never turns a checkbox into DONE or CAS',()=>{
  const wizard=src('js/sectional-season-operations-wizard-v2.js');
@@ -63,5 +65,15 @@ test('OP11 winter merge guide is preview-only and requires individual opening pl
  assert.match(wizard,/PasekaSectionalOP11GuidedV2/);
  assert.match(guide,/op11_one_registered_stored_plastic_plug_per_opening_required/);
  assert.match(guide,/expectedSourceRevisionId/);
+ assert.doesNotMatch(guide,/indexedDB\.open|\.put\(|\.delete\(|\.status\s*=\s*['"]DONE['"]/);
+});
+
+test('OP13 read-only variant does not invent exact target geometry or mark DONE',()=>{
+ const guide=src('js/sectional-season-op13-inventory-guide-v2.js');
+ assert.match(guide,/EARLY_HONEY_PREPARATION/);
+ assert.match(guide,/targetLayout:null/);
+ assert.match(guide,/physicalLayoutValidated:false/);
+ assert.match(guide,/op13_stale_source_revision/);
+ assert.match(src('js/sectional-season-operations-wizard-v2.js'),/PasekaSectionalOP13InventoryGuideV2/);
  assert.doesNotMatch(guide,/indexedDB\.open|\.put\(|\.delete\(|\.status\s*=\s*['"]DONE['"]/);
 });
