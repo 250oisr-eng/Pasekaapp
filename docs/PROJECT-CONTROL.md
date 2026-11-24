@@ -1,3 +1,11 @@
+## 2026-11-24 — актуальная развязка G0: **только Draft #468**, P0 restore остаётся в #452
+
+- Отделён read-only инвентарь G0 в независимый [Draft #468](https://github.com/250oisr-eng/Pasekaapp/pull/468) непосредственно от `main`. Code SHA `e633e8d1bd0cd337dcb72d248f88aeef7678f04f`: [Android #45366819767](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45366819767) **659/659 PASS / BUILD SUCCESSFUL**, [Fast #45366731045](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45366731045) SUCCESS. Документ контракта в #468: `docs/P0-G0-READONLY-PR468-2026-11-24.md`.
+- **Исправлено дублирование:** из текущего Draft #452 удалены добавленные для G0 `js/p0-source-inventory.js` и `tests/p0-source-inventory.test.mjs`, а `index.html`, `sw.js` и два существующих regression файла восстановлены byte-for-byte из ранее проверенного commit `4aa42e74c2077dcc992413650d5a4ba74ef77212`. [GitHub compare] показывает, что отличие #452 от `4aa42e...` сейчас **только документы**. Экспериментальный full-backup/restore #452 не менялся, no merge/release.
+- **Нормативный статус:** G0 `IMPLEMENTED_DRAFT #468 / CI_VERIFIED_EXACT_SHA`, но реальный same-origin OnePlus `NOT_TESTED`. Синтетический физический P0 proof2 `PASS_ISOLATED_ONLY` остаётся закрытым, повторять не требуется. Для реальной G0 нужен отдельно одобренный merge **#468**, затем отдельное разрешение на production release; #442 видеоудаление `FROZEN`. Старые записи ниже о G0 в #452 являются **историей до переноса**, не текущим расположением модуля.
+
+---
+
 ## 2026-11-24 — G0 read-only в Draft P0
 
 - [Карта живых источников, read-only инвентаризации G0 и границ восстановления](./P0-G0-ИНВЕНТАРИЗАЦИЯ-ИСТОЧНИКОВ-READONLY-2026-11-24.md). Узкий модуль `js/p0-source-inventory.js` в Draft #452; результаты реальной рабочей базы OnePlus ещё не получены, не путать с закрытым proof2 или с frozen v2 #441.
