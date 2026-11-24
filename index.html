@@ -1404,7 +1404,7 @@ function renderVarroaModule(){
   $('varroaTreatmentsCount').textContent=treatments.length+' '+ruPlural(treatments.length,'обработка','обработки','обработок');
   treatmentsHost.innerHTML=treatments.length?treatments.map(row=>'<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(row.treatmentProduct||row.treatmentActive||'Обработка')+'</b><span class="muted">'+safe(row.date)+'</span></div><div class="muted">'+safe([row.treatmentActive,row.treatmentMethod].filter(Boolean).join(' · ')||'Параметры не указаны')+'</div>'+(row.text?'<div>'+safe(row.text)+'</div>':'')+'</div>').join(''):'<p class="muted">Записанных обработок для выбранного улья нет.</p>';
  }
- const rows=(S.varroaObservations||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+ const rows=(Array.isArray(S.varroaObservations)?S.varroaObservations:[]).filter(row=>row&&row.hiveId===hiveSelect.value).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
  $('varroaCount').textContent=rows.length+' '+ruPlural(rows.length,'измерение','измерения','измерений');
  if(!rows.length){list.innerHTML='<p class="muted">Измерений пока нет. Добавь результат ручного контроля клеща.</p>';return}
  const methodLabels={alcohol_wash:'Смыв',sugar_roll:'Сахарная пудра',other:'Другой метод'};
