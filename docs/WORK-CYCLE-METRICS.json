@@ -160,7 +160,7 @@
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED."
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25 B08 security-port #52 into Draft #482: main Cloudflare unbounded request.text replaced by 270000-byte bounded streaming read with preserved 90000-char limit and CORS/auth; node negative tests. Old #52 863 behind main was NOT merged. Code SHA 4b900914ec8ffac35bc99d81487b1ef04c9f24c9 Fast #45497203026 SUCCESS; final SHA CI separately. No deploy, no real user scenario or measured speed/time improvement. Prior initial test syntax issue corrected."
   },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
