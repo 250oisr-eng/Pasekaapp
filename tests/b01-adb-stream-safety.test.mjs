@@ -63,3 +63,23 @@ test('B01 synthetic: Android mksh chvt diagnostic is not binary success despite 
   const noPtyWithClosedStdin = ['shell', 'head', '-c', '16', '/dev/zero'];
   assert.equal(noPtyWithClosedStdin.includes('-T'), false);
 });
+
+test('B01 synthetic: missing shell_v2 flag is not evidence that exact raw public bytes fail', () => {
+  const probe = ({stdout, exitCode, hostStderr, shellV2Advertised}) => {
+    // shellV2Advertised is metadata only: raw exec-out is independently verified.
+    void shellV2Advertised;
+    return exitCode === 0 && hostStderr === '' && stdout.length === 16 &&
+      stdout.every(byte => byte === 0);
+  };
+  assert.equal(probe({stdout:Buffer.alloc(16),exitCode:0,hostStderr:'',shellV2Advertised:false}), true);
+  assert.equal(probe({stdout:Buffer.alloc(16),exitCode:0,hostStderr:'',shellV2Advertised:true}), true);
+  assert.equal(probe({stdout:Buffer.concat([Buffer.alloc(16),Buffer.from('stderr')]),exitCode:0,hostStderr:'',shellV2Advertised:false}), false);
+  assert.equal(probe({stdout:Buffer.alloc(16),exitCode:0,hostStderr:'unexpected',shellV2Advertised:false}), false);
+});
+
+test('B01 synthetic: dd-like remote diagnostics merged into raw exec-out must fail size check', () => {
+  const data = Buffer.concat([Buffer.alloc(16),Buffer.from('16+0 records out\n')]);
+  assert.notEqual(data.length,16);
+  assert.equal(data.subarray(0,16).every(byte => byte === 0),true);
+  // A prefix-only check is inadequate: raw transport must compare the whole stream.
+});
