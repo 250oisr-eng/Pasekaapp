@@ -17,3 +17,5 @@
 - Следующее без ПК: завершить #482 CI, затем отдельные B09 negative migration/atomicity проверки без изменения production schema, при обнаружении недостающих случаев. Никакого merge без отдельного разрешения, production deployment/Pages/Worker release, APK install/uninstall/clear, restore или удаления любых пользовательских данных.
 
 - **Параллельный цикл 25.11 / B08 Cloudflare:** к `tests/cloudflare-bounded-body.test.mjs` добавлено 3 негативных теста fragment UTF-8 / cumulative overflow / reader exception, test SHA `59f423c96c4f63aa95bbdd3955e68cafc389c344`. Governance этого SHA SUCCESS, Android/финальный HEAD проверить отдельно. Worker runtime не менялся, production Cloudflare не опубликован.
+
+- **Финальная сверка параллельного B08:** HEAD `936ec4312e21011caa691550c2aca7f7dd46bee2`, Android #45501084489 completed/SUCCESS, Governance #45501084529 completed/SUCCESS. Worker не публиковался, PR #482 остаётся Draft, NOT_IN_MAIN. Следующий docs-only SHA также требует своей проверки.
