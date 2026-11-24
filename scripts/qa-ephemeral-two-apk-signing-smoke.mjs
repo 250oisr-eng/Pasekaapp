@@ -29,10 +29,6 @@ export function testEphemeralQaSigning(sourceApk, env=process.env) {
     throw new Error('BLOCKED: actual isolated APK file missing');
   }
   const workspace=mkdtempSync(join(tmpdir(),'paseka-ephemeral-signing-proof-'));
-  const original={};
-  const names=['PASEKA_SIGN_ISOLATED_QA','PASEKA_QA_KEYSTORE_PATH','PASEKA_QA_KEY_ALIAS',
-    'PASEKA_QA_STORE_PASSWORD','PASEKA_QA_KEY_PASSWORD','PASEKA_QA_CERT_SHA256'];
-  for (const key of names) original[key]=process.env[key];
   try {
     const password=randomBytes(22).toString('hex');
     const keyPath=join(workspace,'ephemeral-only.keystore');
@@ -46,16 +42,16 @@ export function testEphemeralQaSigning(sourceApk, env=process.env) {
     const found=/^\s*SHA256:\s*([a-fA-F0-9:]+)/m.exec(details);
     const fingerprint=found?.[1].replaceAll(':','').toLowerCase();
     if (!/^[a-f0-9]{64}$/.test(fingerprint||'')) throw new Error('BLOCKED: disposable key certificate unavailable');
-    Object.assign(process.env,{
+    const signingEnv={...env,
       PASEKA_SIGN_ISOLATED_QA:'YES',
       PASEKA_QA_KEYSTORE_PATH:keyPath,
       PASEKA_QA_KEY_ALIAS:'synthetic-smoke',
       PASEKA_QA_STORE_PASSWORD:password,
       PASEKA_QA_KEY_PASSWORD:password,
       PASEKA_QA_CERT_SHA256:fingerprint
-    });
+    };
     const outputs=[join(workspace,'qa-proof-1.apk'),join(workspace,'qa-proof-2.apk')];
-    const first=signIsolatedQaApk(process.env,resolve(sourceApk),outputs[0]);
+    const first=signIsolatedQaApk(signingEnv,resolve(sourceApk),outputs[0]);
     const second=signIsolatedQaApk(process.env,resolve(sourceApk),outputs[1]);
     if (first.packageName!==second.packageName || first.signerSha256!==second.signerSha256 ||
         first.versionCode!==second.versionCode) throw new Error('BLOCKED: disposable QA certificates drifted');
@@ -63,10 +59,6 @@ export function testEphemeralQaSigning(sourceApk, env=process.env) {
       versionCode:first.versionCode,matchedCertificate:true,
       requiresExternalDurableKey:true,upgradeOnOnePlus:false};
   } finally {
-    for (const key of names) {
-      if(original[key] === undefined) delete process.env[key];
-      else process.env[key]=original[key];
-    }
     rmSync(workspace,{recursive:true,force:true});
   }
 }
