@@ -65,3 +65,39 @@ test('B08 Cloudflare bound: request path enforces byte limit before parsing and 
   assert.match(source,/if \(!ALLOWED_ORIGINS\.has\(origin\)\)/,'existing CORS guard preserved');
   assert.match(source,/await verifyToken\(/,'existing JWT validation preserved');
 });
+
+
+test('B08 Cloudflare bound: split UTF-8 sequence is decoded only after the full bounded stream',async()=>{
+ const bytes=new TextEncoder().encode('пчёлы');
+ let emitted=false;
+ const stream=new ReadableStream({start(controller){
+  controller.enqueue(bytes.slice(0,1));
+  controller.enqueue(bytes.slice(1,3));
+  controller.enqueue(bytes.slice(3));
+  controller.close();
+  emitted=true;
+ }});
+ assert.equal(await readBoundedBody({headers:new Headers(),body:stream},bytes.length),'пчёлы');
+ assert.equal(emitted,true);
+});
+
+test('B08 Cloudflare bound: cumulative stream overflow cancels rather than accepting individually small chunks',async()=>{
+ let cancelled=false;
+ const stream=new ReadableStream({
+  start(controller){controller.enqueue(new Uint8Array(6));controller.enqueue(new Uint8Array(5));},
+  cancel(){cancelled=true;}
+ });
+ await assert.rejects(readBoundedBody({headers:new Headers({'content-length':'1'}),body:stream},10),
+  error=>error.code==='BODY_TOO_LARGE');
+ assert.equal(cancelled,true);
+});
+
+test('B08 Cloudflare bound: streamed read exception must fail closed and release reader lock',async()=>{
+ let released=false;
+ const body={getReader(){return {
+  read:async()=>{throw new Error('synthetic read failure')},
+  releaseLock(){released=true;}
+ };}};
+ await assert.rejects(readBoundedBody({headers:new Headers(),body},10),/synthetic read failure/);
+ assert.equal(released,true);
+});
