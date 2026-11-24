@@ -2735,6 +2735,35 @@ test('IndexedDB open rejects a blocked upgrade and closes a late connection',asy
  assert.equal(deps.db,null);
 });
 
+test('legacy current-version IndexedDB with a missing required store is rejected without mutation',async()=>{
+ const request={},calls=[];
+ const fakeDb={
+  objectStoreNames:{contains(name){return name!=='entrance_media'}},
+  close(){this.closed=true},
+  transaction(){calls.push('transaction');throw new Error('should not open a transaction')},
+  createObjectStore(){calls.push('create');throw new Error('should not mutate schema')}
+ };
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'full_backup',db:null,indexedDB:{open(name,version){assert.equal(version,3);return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;
+ request.onsuccess();
+ await assert.rejects(pending,/Неполная структура локальной базы.*entrance_media/);
+ assert.equal(fakeDb.closed,true);
+ assert.equal(deps.db,null);
+ assert.deepEqual(calls,[]);
+});
+
+test('complete current-version IndexedDB opens without changing its schema',async()=>{
+ const request={},visited=[];
+ const fakeDb={objectStoreNames:{contains(name){visited.push(name);return ['main','full_backup','entrance_media'].includes(name)}},close(){}};
+ const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'full_backup',db:null,indexedDB:{open(){return request}}};
+ const pending=loadFunction('openDB',deps)();
+ request.result=fakeDb;request.onsuccess();
+ assert.equal(await pending,false);
+ assert.deepEqual(visited,['main','full_backup','entrance_media']);
+ assert.equal(deps.db,fakeDb);
+});
+
 test('IndexedDB connection closes on versionchange so another tab can upgrade',async()=>{
  const request={},fakeDb={objectStoreNames:{contains:()=>true},close(){this.closed=true}};
  const deps={DB:'paseka-test',STORE:'main',BACKUP_STORE:'backup',db:null,indexedDB:{open(){return request}}};
