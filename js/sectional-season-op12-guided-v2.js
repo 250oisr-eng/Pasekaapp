@@ -159,6 +159,22 @@ function mount(host,getState,getHiveId,controls){
   [...host.querySelectorAll('[data-op12-field]')].map(el=>[el.getAttribute('data-op12-field'),el.value]));
  const result=()=>host.querySelector('[data-op12-result]');
  let prepared=null;
+ const filterBody=(familyField,bodyField)=>{
+  const family=host.querySelector('[data-op12-field="'+familyField+'"]')?.value;
+  const select=host.querySelector('[data-op12-field="'+bodyField+'"]');
+  if(!select)return;
+  const matching=bodyChoices.filter(row=>row.label.endsWith(' / '+family));
+  select.innerHTML=options(family?matching:[],'id','label');
+ };
+ for(const control of host.querySelectorAll('[data-op12-field]'))control.addEventListener('change',()=>{
+  prepared=null;
+  host.querySelector('[data-op12-moves]').textContent='';
+  result().textContent='Целевая схема изменена: повторите подготовку для актуальных перемещений.';
+  if(control.getAttribute('data-op12-field')==='middleFamilyId')filterBody('middleFamilyId','middleBodyId');
+  if(control.getAttribute('data-op12-field')==='upperFamilyId')filterBody('upperFamilyId','upperBodyId');
+ });
+ filterBody('middleFamilyId','middleBodyId');
+ filterBody('upperFamilyId','upperBodyId');
  host.querySelector('[data-op12-select]').addEventListener('click',()=>{
   prepared=prepare(getState(),{hiveId:getHiveId(),sourceRevisionId:revision,...fieldValues()});
   const panel=host.querySelector('[data-op12-moves]');
@@ -192,7 +208,7 @@ function mount(host,getState,getHiveId,controls){
     occurredAt:at?new Date(at).toISOString():''};
    let r;try{r=plan(getState(),request);}catch{r=fail('op12_preview_exception');}
    result().textContent=r.ok?
-    'План проверен: '+r.request.bodyMoves.length+' перемещений корпусов, '+r.request.itemMoves.length+
+    'Предварительный манифест ID проверен: '+r.request.bodyMoves.length+' перемещений корпусов, '+r.request.itemMoves.length+
     ' предметов. Только предварительный просмотр; IndexedDB, история и DONE не изменены. Независимое восстановление полного архива и CAS ещё обязательны.':
     'План отклонён: '+String(r.error||'неизвестная ошибка')+'. Данные не изменены.';
   });
