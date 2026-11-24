@@ -16,6 +16,20 @@ const stableFields=['operationId','hiveId','cycleId','sourceRevisionId','userCon
 function samePlan(a,b){
  return stableFields.every(k=>equal(a?.[k],b?.[k]));
 }
+function sourceRevision(input){
+ const a=input?.expectedSourceRevisionId,b=input?.sourceRevisionId;
+ if(S(a)&&S(b)&&a!==b)return '';
+ return S(a)?a:b;
+}
+function planForState(state,input,deps){
+ try{
+  if(O(input.targetLayout)&&S(input.expectedSourceRevisionId))
+   return deps.manifest.plan(state,input);
+  const guide=deps.guides?.[input.operationId];
+  if(typeof guide?.plan!=='function')return fail('physical_bridge_exact_guided_planner_missing');
+  return guide.plan(state,input);
+ }catch{return fail('physical_bridge_planner_exception')}
+}
 function validateStage(source,planned,deps){
  let staged;
  try{
@@ -46,8 +60,7 @@ function validateStage(source,planned,deps){
 async function commitWitnessed(input,expectedRevision,deps={}){
  if(!O(input)||!OPS.has(input.operationId)||input.userConfirmed!==true||
     input.actualWorkConfirmed!==true||!S(input.hiveId)||!S(input.occurredAt)||
-    !S(expectedRevision)||!S(input.expectedSourceRevisionId)||
-    input.expectedSourceRevisionId!==expectedRevision)
+    !S(expectedRevision)||sourceRevision(input)!==expectedRevision)
   return fail('physical_bridge_exact_user_input_and_revision_required');
  const methods=['readMain','writeMainIfUnchanged','verifyFullArchiveAndReplay',
   'validateState','makeRevisionId','preparePersistentSnapshot','makeId'];
@@ -68,7 +81,7 @@ async function commitWitnessed(input,expectedRevision,deps={}){
  if(!O(latest)||latest.meta?.revisionId!==expectedRevision)
   return fail('physical_bridge_stale_source_revision');
  let planned;
- try{planned=deps.manifest.plan(latest,input)}
+ try{planned=planForState(latest,input,deps)}
  catch{return fail('physical_bridge_manifest_unavailable')}
  if(!planned?.ok||planned.previewOnly!==true||
     planned.sourceRevisionId!==expectedRevision||
@@ -87,7 +100,7 @@ async function commitWitnessed(input,expectedRevision,deps={}){
      req.sourceRevisionId!==expectedRevision||req.operationId!==input.operationId)
    return fail('physical_bridge_source_revision_changed_before_stage');
   let live;
-  try{live=deps.manifest.plan(state,input)}catch{return fail('physical_bridge_manifest_recheck_failed')}
+  try{live=planForState(state,input,deps)}catch{return fail('physical_bridge_manifest_recheck_failed')}
   if(!live?.ok||live.sourceRevisionId!==expectedRevision||
      !samePlan(live.request,planned.request)||
      !samePlan(live.request,req))
