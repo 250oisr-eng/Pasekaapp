@@ -13,7 +13,7 @@
 ## Параллельные направления
 
 - **#495 MERGED** → `1d51eb982eebdcff05659ab7471a0f8e6697e635`: источник Cloudflare Worker, негативные проверки mid-stream transport failure и нулевого byte cap. Draft Android #45505456614, Governance #45505456637 SUCCESS; exact-main Fast #45506703146, Governance #45506703052 и Android #45506703159 — **SUCCESS**.
-- **#497 MERGED** → `c7240ba99a9719368150980e13335f50ed18a37f`: ручной Cloudflare deploy с явным RELEASE_SHA, подтверждением и main ancestry (никогда push deploy). Исходный #480 CLOSED/SUPERSEDED. Android #45505466312, Governance #45505466390 SUCCESS на Draft. Exact-main Fast #45506934159, Governance #45506934083, Android #45506934100 **PENDING, проверить**; сам deployment не выполнялся.
+- **#497 MERGED** → `c7240ba99a9719368150980e13335f50ed18a37f`: ручной Cloudflare deploy с явным RELEASE_SHA, подтверждением и main ancestry (никогда push deploy). Исходный #480 CLOSED/SUPERSEDED. Android #45505466312, Governance #45505466390 SUCCESS на Draft. Exact-main Fast #45506934159, Governance #45506934083 и Android #45506934100 — **SUCCESS**; сам deployment не выполнялся.
 - **Draft #469** startup/installed signer, **Draft #452** аварийное восстановление, **Draft #479** read-only B01 transport — исторические сложные кандидаты, НЕ объединены и не превращены в физическое доказательство.
 
 ## Незакрытые реальные зависимости
