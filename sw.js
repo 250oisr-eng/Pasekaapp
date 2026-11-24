@@ -1,5 +1,5 @@
 // Only the versioned Paseka application shell may be cached offline.
-const CACHE='paseka-shell-v316';
+const CACHE='paseka-shell-v317';
 const CACHE_PREFIX='paseka-shell-';
 const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/p0-source-inventory.js','./js/disaster-archive.js'];
 const SCOPE=new URL(self.registration.scope);
@@ -12,7 +12,20 @@ function cacheableResponse(response){
 }
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE).then(async cache=>{
+      // Cache.addAll() does not enforce our private/no-store response policy.
+      // Reject an incomplete or restricted shell before enabling this worker.
+      for(const file of FILES){
+        const asset=new URL(file,SCOPE);
+        const response=await fetch(asset.href,{cache:'reload',credentials:'same-origin'});
+        if(!cacheableResponse(response)){
+          throw new Error('Offline shell install blocked by missing or non-cacheable asset: '+file);
+        }
+        await cache.put(asset.href,response);
+      }
+    }).then(()=>self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate',event=>{
