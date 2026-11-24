@@ -1,3 +1,13 @@
+## 2026-11-24 — P0 PC+OnePlus diagnostic manifest mismatch: root cause fixed, physical retest pending
+
+- Пользователь попытался запустить Windows `PASEKA_P0_OnePlus_PC_Audit_2026-11-24.zip` на `D:\\приложение ПАСЕКА\\тест`; **BLOCKED `DIAGNOSTIC_MANIFEST_MISMATCH` ДО установки Android APK**. Испытание телефона не проводилось, не считать ошибкой P0 restore. Не было команд `adb install`/force-stop/cleanup этого запуска.
+- Подтверждён кодовый дефект контракта: `.github/workflows/android-disaster-physical.yml` записывал `manifest.sha=process.env.GITHUB_SHA` (в pull_request это временный CI **merge commit**), а Windows script требовал совпадение с **PR head/source SHA**. Защита правильно отказала, но правило проверки было неверно.
+- В существующем Draft #452 commit `b1a33b82b49daff52b5e840bd7e63a6d83b917e5` добавлено `manifest.sourceSha=PR_HEAD_SHA || GITHUB_SHA` с явной записью исходного PR head; `manifest.sha` оставлен для CI checkout. Без ослабления package identity/noCleanup/APK SHA-256. Пересоздан в текущем чате `PASEKA_P0_OnePlus_PC_Audit_FIX_2026-11-24.zip` (Windows, вне GitHub): проверяет `sourceSha=b1a33b82...`, `manifest.sha` 40 hex, SHA256 APK и отдельный package `ru.paseka.journal.disasterproof`; исправлена передача аргументов ADB через ValueFromRemainingArguments.
+- [CI Android #45358963671](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963671) completed/success; [новая isolated сборка #45358963645](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963645) build job success, **674/674 tests, BUILD SUCCESSFUL**, artifact `paseka-disaster-proof-isolated-apk` #14904145878. Emulator job **in_progress при последней проверке**, не объявлять emulator PASS без завершения. После docs-only commits SHA меняется; результаты CI относятся только к указанному `b1a33b82...`.
+- Действие пользователя: новый Windows FIX ZIP в новую папку и НОВЫЙ isolated artifact из run #45358963645; старый #45356117524 содержит старый manifest, не использовать. USB OnePlus → CMD → передать `P0-RESULT-*/report.json`. До нового отчёта P0_CURRENT_ONEPLUS=NOT_VERIFIED. Ни production media, ни реальная база не изменены; full external backup/second-device restore не проверены, #442 FROZEN, никакого merge/release/deploy.
+
+---
+
 ## 2026-11-24 — полный аудит готовой части P0/P1 и комплект Windows+OnePlus (ожидается реальный отчёт)
 
 - Проверены live `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`, #452 OPEN/DRAFT (code/test SHA `9bf460ba5feb7b4694c0383220d1c035b5ad8b61`), #467 OPEN/DRAFT (read-only phone code/source `e5cabce...`), #441 OPEN/DRAFT/FROZEN. Полный матричный аудит: [`docs/P0-АУДИТ-ГОТОВОЙ-ЧАСТИ-И-ПРОВЕРКА-ONEPLUS-2026-11-24.md`](docs/P0-АУДИТ-ГОТОВОЙ-ЧАСТИ-И-ПРОВЕРКА-ONEPLUS-2026-11-24.md).
