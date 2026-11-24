@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const w={};
 for(const name of ['sectional-season-physical-manifest-v2.js',
- 'sectional-physical-layout.js','family-lineage.js','sectional-season-op14-guided-v2.js'])
+ 'sectional-physical-layout.js','family-lineage.js','sectional-season-physical-executor-v2.js',
+ 'sectional-season-provenance-v2.js','sectional-season-op14-guided-v2.js'])
  new Function('window',readFileSync(new URL('../js/'+name,import.meta.url),'utf8'))(w);
 const api=w.PasekaSectionalOP14GuidedV2,PROFILE='sectional-multiqueen-v1';
 function fixture(){
@@ -175,4 +176,33 @@ test('OP14 requires each storage destination and individual actual-work confirma
  req.confirmedItemIds=api.prepare(state,req).changedItemIds;
  req.actualMergeConfirmed=false;
  assert.equal(api.plan(state,req).error,'op14_harvest_and_merge_actual_confirmation_required');
+});
+
+test('OP14 guided manifest integrates with real physical executor, lineage and provenance without source mutation',()=>{
+ const state=fixture14(),before=structuredClone(state),input=confirmed(state),planned=api.plan(state,input);
+ assert.equal(planned.ok,true,JSON.stringify(planned));
+ assert.deepEqual(w.PasekaFamilyLineage.inspect(state),[]);
+ let n=0;const makeId=()=> 'op14-stage-event-'+(++n);
+ const inventoryItems={place:(draft,move,newId,at)=>{
+  const item=draft.equipmentInventory.items[move.itemId];
+  if(!item)return {ok:false,error:'item_missing'};
+  const from=structuredClone(item.location);
+  item.location=structuredClone(move.location);
+  const event={id:newId(),itemId:item.id,type:'moved',at,from,to:structuredClone(item.location)};
+  item.events.push(event);draft.equipmentInventory.itemEvents.push(structuredClone(event));
+  return {ok:true};
+ }};
+ const staged=w.PasekaSectionalSeasonPhysicalExecutorV2.stage(state,planned.request,{
+  now:'2026-11-23T11:00:00Z',makeId,
+  PasekaEquipmentItems:inventoryItems,PasekaFamilyLineage:w.PasekaFamilyLineage});
+ assert.equal(staged.ok,true,JSON.stringify(staged));
+ const newLayout=staged.draft.sectionalLayouts[0];
+ assert.equal(w.PasekaSectionalPhysicalLayout.validate(newLayout,staged.draft).valid,true);
+ assert.deepEqual(w.PasekaFamilyLineage.inspect(staged.draft),[]);
+ assert.deepEqual(w.PasekaSectionalSeasonProvenanceV2.validate(state,staged.draft,planned.request),[]);
+ const merged=staged.draft.families.find(f=>f.id==='merged-early');
+ assert.equal(merged.currentQueenId,null);
+ assert.equal(merged.queenIdentityStatus,'unresolved');
+ assert.equal(staged.draft.equipmentInventory.bodies.honey1.storageLocation,'сухой склад honey1');
+ assert.deepEqual(state,before);
 });
