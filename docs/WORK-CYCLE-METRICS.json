@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Проверка эффекта реформы на 2–3 настоящих макроциклах. null=NOT_MEASURED, не ноль.",
+  "baseline": {
+    "sourceMainSha": "ecea1c3c50801250d42f49366e00e1e9e96d556f",
+    "recordedAt": "2026-11-24",
+    "docs": [
+      {
+        "path": "AGENTS.md",
+        "chars": 11506
+      },
+      {
+        "path": "PROJECT_STATUS.md",
+        "chars": 81649
+      },
+      {
+        "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "chars": 65421
+      },
+      {
+        "path": "docs/PROJECT-CONTROL.md",
+        "chars": 5831
+      },
+      {
+        "path": "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "chars": 12001
+      },
+      {
+        "path": "docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md",
+        "chars": 22346
+      }
+    ]
+  },
+  "trackedCriticalDependencies": [
+    {
+      "key": "FULL_REAL_MEDIA_RESTORE",
+      "source": "https://github.com/250oisr-eng/Pasekaapp/pull/452"
+    },
+    {
+      "key": "DURABLE_QA_SIGNING_KEY",
+      "source": "https://github.com/250oisr-eng/Pasekaapp/pull/469"
+    },
+    {
+      "key": "DEVICE_INSTALLED_APK_FINGERPRINT_AND_MIGRATION",
+      "source": "https://github.com/250oisr-eng/Pasekaapp/pull/469"
+    },
+    {
+      "key": "LICENSED_REAL_BEE_MODEL_AND_VIDEO_CLEANUP",
+      "source": "https://github.com/250oisr-eng/Pasekaapp/issues/442"
+    }
+  ],
+  "preReformCycles": [
+    {
+      "id": "before-01-20261124-isolated-json",
+      "label": "Изолированный синтетический source-target JSON",
+      "codeSha": "6cdd1791a87f1d5ba7d5618fb27a08031def8085",
+      "ciRuns": [
+        {
+          "id": 45437125111,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtEnd": null,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Only synthetic IndexedDB; real user transfer NOT_TESTED"
+    },
+    {
+      "id": "before-02-20261124-signing-guards",
+      "label": "Защита QA signing и JSON схема",
+      "codeSha": "6878def7f050131e65a15c00d5f4af4264bf1d10",
+      "ciRuns": [
+        {
+          "id": 45438672376,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtEnd": null,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Only CI guards; no physical user scenario"
+    },
+    {
+      "id": "before-03-20261124-binary-signing",
+      "label": "Реальный дважды подписанный QA APK",
+      "codeSha": "829be6d8a0de28266d345ffe496a8dd0e649f916",
+      "ciRuns": [
+        {
+          "id": 45439809986,
+          "conclusion": "cancelled"
+        },
+        {
+          "id": 45439867332,
+          "conclusion": "failure"
+        },
+        {
+          "id": 45440405934,
+          "conclusion": "failure"
+        },
+        {
+          "id": 45441911572,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Two ephemeral QA binaries verified; no OnePlus migration/user scenario"
+    }
+  ],
+  "postReformCycles": [],
+  "evaluation": {
+    "minimumRealPostCycles": 2,
+    "preferredRealPostCycles": 3,
+    "fields": [
+      "cycleId",
+      "codeSha",
+      "ciRuns",
+      "repeatedDocumentReads",
+      "trackedBlockersAtStart",
+      "trackedBlockersAtEnd",
+      "completedVerifiedUserScenarios",
+      "scenariosEvidence",
+      "prUrl"
+    ],
+    "definitions": {
+      "repeatedDocumentReads": "Сколько раз в пределах макроцикла перечитан без изменения уже изученный обязательный файл. Одна первичная загрузка не считается повтором. Если лог не вёлся, null, не 0.",
+      "ciRuns": "Список всех известных запущенных CI по коду данного макроцикла, включая cancelled/failure/success; ссылки и exact SHA проверить в GitHub; если охват не полный, пометить в scenariosEvidence.",
+      "trackedBlockersAtStart": "Количество из trackedCriticalDependencies, не решённых на старте, считать только по проверенным источникам; неизвестно -> null.",
+      "trackedBlockersAtEnd": "То же в конце цикла; сокращение доказуемо только при подтверждённой проверке данных/устройства, не по green CI.",
+      "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
+      "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
+    },
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet."
+  },
+  "pilotReformCycle": {
+    "id": "pilot-governance-20261124-pr470",
+    "phase": "REFORM_ROLLOUT_NOT_A_POST_REFORM_PRODUCT_CYCLE",
+    "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/470",
+    "codeSha": "7a29810dcc6cfb3deee56957ae205c574c33704d",
+    "ciRuns": [
+      {
+        "id": 45445521258,
+        "conclusion": "success",
+        "testsPassed": 4,
+        "kind": "governance-docs"
+      },
+      {
+        "id": 45445521237,
+        "conclusion": "success",
+        "testsPassed": 664,
+        "kind": "android-regressions"
+      }
+    ],
+    "repeatedDocumentReads": null,
+    "trackedBlockersAtStart": 4,
+    "trackedBlockersAtEnd": 4,
+    "completedVerifiedUserScenarios": 0,
+    "scenariosEvidence": "Documentation governance refactor only; no user-device scenario or physical data migration attempted. Repeated reads NOT_MEASURED.",
+    "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
+  }
+}

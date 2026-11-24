@@ -1,0 +1,31 @@
+name: Governance Docs Checks
+
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'PROJECT_STATUS.md'
+      - 'docs/**'
+      - '.github/pull_request_template.md'
+      - 'scripts/governance-*.mjs'
+      - '.github/workflows/governance-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check rule invariants, compact context and macrocycle evidence
+        run: node scripts/governance-check.mjs
+      - name: Run negative governance tests
+        run: node --test scripts/governance-tests.mjs
