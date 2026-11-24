@@ -580,7 +580,7 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <script src="./js/p0-source-inventory.js"></script>
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
-function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let startupWriteGate={ready:false};let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function validateJournalRecordDraft(draft,state,existingRecord=null){
  const errors=[];
  const realDate=value=>{
@@ -609,7 +609,23 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
 }
 function isFreshDatabaseUpgrade(oldVersion){return oldVersion===0}
 function canInitializeFreshDatabase(databaseCreated,loadedState){return databaseCreated===true&&loadedState==null}
-function openDB(){return new Promise((ok,no)=>{let settled=false,q;/* Freshness belongs to this open attempt; retries must start false. */let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}db=null};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
+function rejectWhileStartupNotReady(){if(startupWriteGate.ready)return null;const error=new Error('Запись запрещена: запуск приложения не завершён или локальная база не прошла проверку. Не очищай хранилище.');error.name='PasekaStartupBlockedError';return error}
+function showStartupFailure(error){
+ startupWriteGate.ready=false;
+ let panel=document.getElementById('startupFailureOverlay');
+ if(!panel){
+  panel=document.createElement('section');panel.id='startupFailureOverlay';panel.setAttribute('role','alertdialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','startupFailureTitle');panel.tabIndex=-1;
+  panel.style.cssText='position:fixed;inset:0;z-index:2147483647;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px;background:#101c17f5;color:#fff;';
+  const box=document.createElement('div');box.style.cssText='width:min(100%,540px);padding:22px;border:2px solid #f0be65;border-radius:12px;background:#1c2924;';
+  const title=document.createElement('h2');title.id='startupFailureTitle';title.textContent='Данные не открыты — действия заблокированы';
+  const description=document.createElement('p');description.textContent='Приложение не будет создавать ульи, записи и видео или изменять хранилище до безопасного открытия базы. Не очищай данные и не переустанавливай приложение.';
+  const detail=document.createElement('p');detail.id='startupFailureDetail';detail.style.overflowWrap='anywhere';
+  const reload=document.createElement('button');reload.type='button';reload.textContent='Повторить открытие без удаления данных';reload.addEventListener('click',()=>location.reload());
+  box.append(title,description,detail,reload);panel.appendChild(box);document.body.appendChild(panel);
+ }
+ document.getElementById('startupFailureDetail').textContent=String(error?.message||error||'Неизвестная ошибка чтения');panel.focus();
+}
+function openDB(){return new Promise((ok,no)=>{let settled=false,q;/* Freshness belongs to this open attempt; retries must start false. */let createdDuringOpen=false;const fail=error=>{if(!settled){settled=true;no(error)}};try{q=indexedDB.open(DB,3)}catch(e){fail(e);return}q.onupgradeneeded=event=>{if(isFreshDatabaseUpgrade(event.oldVersion))createdDuringOpen=true;const d=q.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE);if(!d.objectStoreNames.contains(BACKUP_STORE))d.createObjectStore(BACKUP_STORE);if(!d.objectStoreNames.contains('entrance_media'))d.createObjectStore('entrance_media',{keyPath:'id'})};q.onblocked=()=>fail(new Error('База данных занята другой вкладкой. Закрой остальные вкладки приложения и повтори.'));q.onsuccess=()=>{if(settled){q.result?.close?.();return}db=q.result;db.onversionchange=()=>{startupWriteGate.ready=false;try{db.close()}catch(e){}db=null;showStartupFailure(new Error('Локальная база изменила версию в другой вкладке. Все действия остановлены до перезагрузки.'))};settled=true;ok(createdDuringOpen)};q.onerror=()=>fail(q.error||new Error('Не удалось открыть локальную базу данных'))})}
 function readMain(){
  return new Promise((ok,no)=>{
   let tx,request,value,settled=false;
@@ -642,7 +658,7 @@ function readAutoBackup(){
 }
 async function read(){let current=null,mainReadError=null;try{current=await readMain()}catch(e){mainReadError=e}if(current)return current;const backup=await readAutoBackup();if(backup&&backup.state){validateAutomaticBackup(backup);startupRecoveryPending=true;return backup.state}if(mainReadError)throw new Error('Не удалось прочитать основную базу, а полной автокопии нет: '+(mainReadError.message||mainReadError));return undefined}
 async function commitStartupState(state,expectedRevision,recoveredFromBackup){await writeMainIfUnchanged(state,expectedRevision);if(recoveredFromBackup){autoBackupRecovered=true;startupRecoveryPending=false}}
-function write(state=S){return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
+function write(state=S){const blocked=rejectWhileStartupNotReady();if(blocked)return Promise.reject(blocked);return new Promise((ok,no)=>{let t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(state,'state');t.oncomplete=ok;t.onerror=()=>no(t.error||new Error('Не удалось сохранить основную базу'));t.onabort=()=>no(t.error||new Error('Сохранение прервано'))})}
 function writeMainIfUnchanged(state,expectedRevision){
  return new Promise((ok,no)=>{
   let previous=null,conflict=null,failure=null,t,settled=false;
@@ -745,6 +761,7 @@ function writeAutoBackup(state,expectedRevision){
  });
 }
 async function save(){
+ if(rejectWhileStartupNotReady())return false;
  const run=async()=>{
  S.extractions=S.extractions||[];S.tasks=S.tasks||[];S.meta=S.meta||{};S.plantCatalog=S.plantCatalog||[];S.plantLocations=S.plantLocations||[];S.plantObservations=S.plantObservations||[];S.plantAIQueue=S.plantAIQueue||[];S.queens=S.queens||[];S.queenEvents=S.queenEvents||[];if(S.familyEvents==null&&Number(S.meta.schemaVersion||0)<14)S.familyEvents=[];if(S.sectionalTechProcesses==null&&Number(S.meta.schemaVersion||0)<15)S.sectionalTechProcesses=[];
  S.varroaObservations=S.varroaObservations||[];S.pesticideIncidents=S.pesticideIncidents||[];S.deadoutReviews=S.deadoutReviews||[];
@@ -1310,6 +1327,7 @@ function renderEquipmentReconciliation(){
 }
 
 function putEntranceVideo(record){
+ const blocked=rejectWhileStartupNotReady();if(blocked)return Promise.reject(blocked);
  return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(record)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
 }
 function listEntranceVideos(){
@@ -1319,6 +1337,7 @@ function getEntranceVideo(id){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').get(id)}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error||new Error('Не удалось открыть видео'))});
 }
 function deleteEntranceVideoBlob(id){
+ const blocked=rejectWhileStartupNotReady();if(blocked)return Promise.reject(blocked);
  return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').delete(id)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось удалить видео'));tx.onabort=()=>no(tx.error||new Error('Удаление видео прервано'))});
 }
 function entranceBytes(value){if(!Number.isFinite(value)||value<0)return '—';if(value<1024*1024)return Math.round(value/1024)+' КБ';return (value/1024/1024).toFixed(1)+' МБ'}
@@ -3672,7 +3691,7 @@ async function downloadG0SourceInventory(){
   if(status)status.textContent='Инвентаризация проведена только для текущей IndexedDB. '+counts+'. Неопределённостей: '+report.issues.length+'. Сохранение файла не подтверждено. Все системные копии Android и байты видео вне проверки.';
  }catch(error){if(status)status.textContent='Инвентаризация НЕ завершена: '+(error?.message||error);}
 }
-async function downloadBackup(){await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+async function downloadBackup(){if(rejectWhileStartupNotReady())return alert('Запуск базы не прошёл проверку. Чтобы не создать ложный пустой архив, экспорт заблокирован.');await saveQueue;if(S.meta?.saveError&&!confirm('Основная база сообщает об ошибке сохранения. Скачать текущие данные из памяти страницы?'))return;const data=JSON.stringify({app:'Paseka',state:S},null,2),u=URL.createObjectURL(new Blob([data],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='paseka-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function validateBackupState(state){
  const isObject=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!isObject(state))throw new Error('Архив не содержит корректного состояния приложения');
@@ -3863,6 +3882,7 @@ function assertRawBackupIntegrity(state){
  return state;
 }
 async function restoreBackup(){
+ if(rejectWhileStartupNotReady())return alert('Данные не открылись безопасно. Автоматическая замена базы из архива заблокирована до отдельной процедуры восстановления.');
  const f=$('backupFile').files[0];if(!f)return alert('Выбери JSON-файл');
  try{
   const run=async()=>{
@@ -3877,6 +3897,7 @@ async function restoreBackup(){
  }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
 }
 async function restoreAutoBackup(){
+ if(rejectWhileStartupNotReady())return alert('Данные не открылись безопасно. Не заменяем существующую базу из непроверенного сеанса.');
  try{
   const run=async()=>{
    const backup=await readAutoBackup();if(!backup||!backup.state)return alert('Полная автокопия пока отсутствует.');
@@ -3892,6 +3913,7 @@ async function restoreAutoBackup(){
 }
 
 async function deleteAllData(){
+ if(rejectWhileStartupNotReady())return alert('Очистка запрещена, пока запуск и целостность локальной базы не подтверждены.');
  if(!confirm('Удалить ВСЕ данные приложения на этом устройстве? Это действие нельзя отменить. Рекомендуется сначала скачать архив.'))return;
  await saveQueue;
  const phrase=prompt('Для окончательного подтверждения введи: УДАЛИТЬ ВСЁ');
@@ -4030,11 +4052,12 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
+  startupWriteGate.ready=true;
   selectedHiveId=S.hives[0]?.id||'';activeJournalHive=selectedHiveId;render();updateStorageEstimate();
   history.replaceState({pasekaTab:'home'},'',location.pathname);
   showTab('home',false);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(reg=>reg.update()).catch(()=>{});
- }catch(e){alert('Не удалось безопасно открыть данные пасеки: '+(e.message||e)+'. Не очищай данные браузера. Если есть JSON-архив, восстанови его после проверки.')}
+ }catch(e){showStartupFailure(e);alert('Не удалось безопасно открыть данные пасеки. Действия заблокированы, хранилище не очищено. '+(e.message||e))}
 })();
 </script><!-- graphical-assembly-cache-v23 -->
 <!-- Pages publish trigger: latest honey-super settings fix -->
