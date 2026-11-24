@@ -79,6 +79,6 @@ test('B01 export reader fails closed on synchronous transaction setup failure',a
 test('B01 export reader rejects absent required stores without starting a transaction',async()=>{
  let started=false;
  const db={objectStoreNames:['main','full_backup'],transaction(){started=true;throw Error('unreachable');}};
- await assert.rejects(getRecords(db),/Required IndexedDB stores are missing/);
+ assert.throws(()=>getRecords(db),/Required IndexedDB stores are missing/);
  assert.equal(started,false);
 });
