@@ -29,6 +29,7 @@ test('signing requires external key + explicit user-controlled flag + nonoverwri
  assert.throws(()=>validateSigningInputs({...env,PASEKA_QA_CERT_SHA256:'badsignature'},input,output),/BLOCKED/);
  assert.throws(()=>validateSigningInputs(env,input,input),/BLOCKED/);
  assert.throws(()=>validateSigningInputs(env,'baseline.zip',output),/BLOCKED/);
+ assert.throws(()=>validateSigningInputs({...env,PASEKA_QA_KEYSTORE_PATH:new URL('../package.json',import.meta.url).pathname},input,output),/Git worktree/);
  writeFileSync(output,'existing bytes');
  assert.throws(()=>validateSigningInputs(env,input,output),/BLOCKED/);
 });
