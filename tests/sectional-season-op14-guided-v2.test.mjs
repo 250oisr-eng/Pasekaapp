@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const w={};
 for(const name of ['sectional-season-physical-manifest-v2.js',
- 'sectional-physical-layout.js','sectional-season-op14-guided-v2.js'])
+ 'sectional-physical-layout.js','family-lineage.js','sectional-season-op14-guided-v2.js'])
  new Function('window',readFileSync(new URL('../js/'+name,import.meta.url),'utf8'))(w);
 const api=w.PasekaSectionalOP14GuidedV2,PROFILE='sectional-multiqueen-v1';
 function fixture(){
@@ -73,13 +73,36 @@ function fixture14(){
    condition:'good',location:{type:'hive',hiveId:'h',footprint},events:[]};
  layout.honeyStack={purpose:'early',bodyIds:['honey1','honey2'],
   excluders:[{itemId:'xleft',side:'left'},{itemId:'xright',side:'right'}]};
+ const familyIds=['f1','f2','f3'],now='2026-11-22T10:00:00Z';
+ for(const [id,label]of [['d1','lower-middle'],['d2','middle-upper']])
+  state.equipmentInventory.items[id]={id,kind:'meshDiaphragm',condition:'good',
+   location:{type:'storage',label:'снятая диафрагма'},events:[]};
  state.familyEvents=[
-  {id:'winter',type:'alternative_wintering_configured',hiveId:'h',techProcessId:'cycle'},
-  {id:'sep1',type:'placement_changed',hiveId:'h',techProcessId:'cycle',
-   operationId:'OP-13',familyId:'f2'},
-  {id:'sep2',type:'placement_changed',hiveId:'h',techProcessId:'cycle',
-   operationId:'OP-13',familyId:'f3'}
+  {id:'winter',type:'alternative_wintering_configured',familyIds,hiveId:'h',
+   operationId:'OP-12',techProcessId:'cycle',occurredAt:now,createdAt:now,
+   diaphragmItemIds:['d1','d2'],
+   diaphragmSnapshots:[
+    {itemId:'d1',kind:'meshDiaphragm',condition:'good',hiveId:'h',positionLabel:'lower-middle'},
+    {itemId:'d2',kind:'meshDiaphragm',condition:'good',hiveId:'h',positionLabel:'middle-upper'}
+   ],layout:[
+    {familyId:'f1',position:'lower',bodyCount:2},
+    {familyId:'f2',position:'middle',bodyCount:1},
+    {familyId:'f3',position:'upper',bodyCount:1}
+   ]}
  ];
+ for(const [index,familyId,sourcePosition,bodyIds,bottomId,stackId]of [
+  [1,'f2','middle',['b3','b4'],'bottom-middle','stack-middle'],
+  [2,'f3','upper',['b5','b6'],'bottom-right','stack-right']]){
+  state.familyEvents.push({
+   id:'sep'+index,type:'placement_changed',familyIds,familyId,hiveId:'h',
+   operationId:'OP-13',scenario:'ALT_WINTERING_SPRING',techProcessId:'cycle',
+   from:{position:sourcePosition,bodyIds:[bodyIds[0]]},
+   to:{position:'separate_bottom',bottomItemId:bottomId,bodyIds},
+   bottomSnapshot:{itemId:bottomId,kind:'bottom',condition:'good',
+    hiveId:'h',positionLabel:null,stackId},
+   occurredAt:'2026-11-23T09:00:00Z',createdAt:'2026-11-23T09:00:00Z'
+  });
+ }
  return state;
 }
 function selected(extra='',extraPos=''){
@@ -134,6 +157,8 @@ test('OP14 cannot fake new family, fourth body, early honey or OP13 family prove
   'op14_extra_position_without_body');
  const invalid=structuredClone(state);invalid.sectionalLayouts[0].honeyStack.purpose='main';
  assert.equal(api.prepare(invalid,base).error,'op14_confirmed_early_honey_source_required');
+ const broken=structuredClone(state);broken.familyEvents[0].diaphragmSnapshots=[];
+ assert.equal(api.prepare(broken,base).error,'op14_full_family_lineage_not_verified');
  const unproven=structuredClone(state);unproven.familyEvents=[];
  assert.equal(api.prepare(unproven,base).error,'op14_confirmed_op12_op13_lineage_required');
 });
