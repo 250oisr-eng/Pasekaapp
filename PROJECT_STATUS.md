@@ -1,18 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**2026-11-24.** Живой `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1`, после разрешённого merge #474/#475/#476. Состояние подтверждено GitHub, [реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md) и [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**25.11.2026, P0 B01 read-only tests.** Проверенный main `0e62ced6e34ea1fc92e7e090c2c514e8306c5f8d`; действуют [AGENTS.md](AGENTS.md), [docs/PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), F0–F7. Здесь только отдельная рабочая ветка; main не изменён.
 
-## Подтверждено
+## Факты и незавершённое
+- #471–#477 MERGED, защищённый read-only архив и guards IndexedDB в main, без release. [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469) signer/startup и [Draft #452](https://github.com/250oisr-eng/Pasekaapp/pull/452) full restore остаются несоединёнными.
+- [Draft #478](https://github.com/250oisr-eng/Pasekaapp/pull/478) B11 SW v318; [Draft #482](https://github.com/250oisr-eng/Pasekaapp/pull/482) B08 Cloudflare bounded body; [Draft #483](https://github.com/250oisr-eng/Pasekaapp/pull/483) B09 malformed IDB/abort; [Draft #484](https://github.com/250oisr-eng/Pasekaapp/pull/484) B08 legacy inventory reverse diagnostic — независимые ветки, NOT_IN_MAIN.
+- **Этот P0/B01 этап:** добавлено 5 source-backed тестов для `js/disaster-archive.js/getRecords()` в `tests/disaster-archive-read-abort.test.mjs` (отказы readonly транзакции, pending vs committed, отсутствие store); [контракт](docs/P0-B01-ARCHIVE-READ-TRANSACTION-ABORT-2026-11-25.md). Последний тестовый SHA `c5f769b750f5f72712456f7a8aa719cf417671f1`; exact SHA CI проверить. Не менялись runtime, schema, phone или user data.
 
-- **#472/#473/#471 MERGED:** read-only архив `paseka-v1`, fail-closed сохранность старых Blob, обязательные IDB stores и управление рисками. Полный live restore UI выключен.
-- **#474 MERGED:** read-only docs-only push-main CI без права Pages deployment.
-- **#475 MERGED:** Varroa/journal rollback, защита от повторного submit и изоляция по улью; точный merge SHA `81537a6...` Fast/Android/Docs SUCCESS.
-- **#476 MERGED:** тесты legacy IDB v1/v2→v3, сохранности Blob/ArrayBuffer, atomic abort и newer-schema guard; последний `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1` [Fast #45474625284](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625284), [Android #45474625192](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625192), [Governance #45474625209](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625209) — **SUCCESS**.
-- **Текущий Draft B11:** [исходный риск](docs/P1-B11-SW-PRIVATE-CACHE-INSTALL-GATE-2026-11-24.md): прежний `sw.js` использовал `cache.addAll` без ограничения `Cache-Control: private/no-store`. В рабочей ветке v317 установка fail-closed, добавлены 3 теста; [Draft #477](https://github.com/250oisr-eng/Pasekaapp/pull/477), кодовый SHA `ab122276f86f26b83fe7cbc715b1d3c668417996`: [Android #45475559444](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559444) **719/719 PASS, BUILD SUCCESSFUL**, [Governance #45475559734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559734) **SUCCESS**; финальный docs HEAD проверить.
-- **Draft #469:** B04 реальные OnePlus APK package/signature UNKNOWN, защищённого signing key нет. **Draft #452:** прежний full restore не объединён. **Issue #442** PASEKA02 real-video detection/auto-cleanup **FROZEN**.
-
-## Следующие ограничения
-
-B01 полный внешний архив/restore, B04/B05 installed signer/durable key, B06 лицензированные реальные веса, B10 real video, B11 cold offline/upgrade, B14 физические метрики — НЕ ПОДТВЕРЖДЕНЫ. P1 OP/new hive profile не активировать без локальных валидаторов и оригинала технологии.
-
-**Без отдельного разрешения:** никаких merge новых PR, Pages/deployment, установки APK, изменений production IndexedDB, восстановления или удаления записей/видео. Устройство OnePlus не затрагивалось.
+## Непреодолённые блокеры и следующий шаг
+- B01 независимый внешний оригинальный архив и restore НЕ ДОКАЗАНЫ. P0 B04/B05 OnePlus installed signer/key неизвестны; P0 B06/B10 лицензированные веса/реальный видеопоток и автоудаление оригиналов **FROZEN #442**; B11 реальное Android upgrade и P2 device performance NOT_VERIFIED.
+- Следующее: собрать точный Node/Android/Governance CI, устранить реальные регрессии и обновить Draft PR; затем перейти к иной независимой P1-задаче. Запрещены merge, Pages/Cloudflare deploy, Android installation, production IndexedDB writes, live restore и удаление оригиналов/архивов без отдельного разрешения.
