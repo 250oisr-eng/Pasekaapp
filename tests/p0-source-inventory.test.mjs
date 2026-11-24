@@ -58,7 +58,9 @@ test('G0 inventory is redacted and read-only: main embedded URLs, entrance Blob,
  assert.equal(report.main.stats.imageDataUrls,1);
  assert.equal(report.main.stats.opaqueMedia,1);
  assert.equal(report.fullBackup.entries,1);
- assert.equal(report.fullBackup.stats.videoDataUrls,1);
+ assert.equal(report.fullBackup.contentsInspected,false,'large legacy backup contents deliberately not cloned into memory');
+ assert.equal(report.fullBackup.stats.videoDataUrls,0);
+ assert(report.issues.includes('LOCAL_BACKUP_CONTENTS_UNINSPECTED'));
  assert.equal(report.entranceMedia.entries,1);
  assert.equal(report.entranceMedia.withBlob,1);
  assert.equal(report.entranceMedia.blobBytes,4);
