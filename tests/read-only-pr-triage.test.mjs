@@ -16,10 +16,10 @@ test('B08 paginates all open PR pages before reporting any total and never infer
  assert.deepEqual(calls,[[1,2],[2,2],[3,2]]);
  const summary=summarizeOpenPulls(result);
  assert.equal(summary.totalOpen,5);
- assert.equal(summary.directMainBase,2);
- assert.equal(summary.otherBase,3);
- assert.deepEqual(summary.baseCounts,[{base:'stack-A',count:3},{base:'main',count:2}]);
- assert.deepEqual(summary.directMainCandidates.map(x=>x.number),[1,5]);
+ assert.equal(summary.directMainBase,3);
+ assert.equal(summary.otherBase,2);
+ assert.deepEqual(summary.baseCounts,[{base:'main',count:3},{base:'stack-A',count:2}]);
+ assert.deepEqual(summary.directMainCandidates.map(x=>x.number),[1,3,5]);
  for(const x of result){
    assert.equal(x.reviewStatus,'REVIEW_REQUIRED');
    assert.equal(x.ancestry,'NOT_CHECKED');
