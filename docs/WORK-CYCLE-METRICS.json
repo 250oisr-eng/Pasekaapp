@@ -110,7 +110,6 @@
   ],
   "postReformCycles": [
     {
-      "cycleId": "b09-atomicity-20261124-pr476",
       "codeSha": "2e2f28b1b5c2ceb65e405c00af0edde2a603d2ef",
       "ciRuns": [
         {
@@ -135,7 +134,8 @@
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 0,
       "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
-      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476"
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
+      "id": "b09-atomicity-20261124-pr476"
     }
   ],
   "evaluation": {
