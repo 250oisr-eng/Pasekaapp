@@ -189,28 +189,28 @@ test('OP11–14 adapter is never attached to live HTML or offline shell',()=>{
  const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
  assert.doesNotMatch(html,/sectional-physical-browser-commit-v2\.js/);
  assert.doesNotMatch(sw,/sectional-physical-browser-commit-v2\.js/);
- assert.deepEqual(api.writableOperations,['OP-11','OP-12','OP-13','OP-14']);
+ assert.deepEqual(bridge.writableOperations,['OP-11','OP-12','OP-13','OP-14']);
 });
 test('no actual archive verification capability means no runtime call or write',async()=>{
  const f=setup();delete f.deps.verifyFullArchiveAndReplay;
- const r=await api.commitWitnessed(f.input,f.expectedRevision,f.deps);
+ const r=await bridge.commitWitnessed(f.input,f.expectedRevision,f.deps);
  assert.equal(r.error,'physical_bridge_missing_real_storage_or_restore_capabilities');
  assert.equal(f.writes(),0);assert.equal(f.proofCalls(),0);
 });
 test('stale form and unconfirmed move are rejected before backup verification or CAS',async()=>{
  const f=setup();const q={...f.input,expectedSourceRevisionId:'old'};
- assert.equal((await api.commitWitnessed(q,'r1',f.deps)).error,
+ assert.equal((await bridge.commitWitnessed(q,'r1',f.deps)).error,
   'physical_bridge_exact_user_input_and_revision_required');
  assert.equal(f.writes(),0);assert.equal(f.proofCalls(),0);
  const g=setup();g.input.confirmedBodyIds=[];
- assert.equal((await api.commitWitnessed(g.input,'r1',g.deps)).error,
+ assert.equal((await bridge.commitWitnessed(g.input,'r1',g.deps)).error,
   'physical_bridge_source_bound_manifest_invalid');
  assert.equal(g.writes(),0);assert.equal(g.proofCalls(),0);
 });
 test('incomplete full lineage blocks physical preflight before runtime',async()=>{
  const f=setup(),s=f.db();s.familyEvents[0].diaphragmSnapshots=[];
  f.setDB(s);
- assert.equal((await api.commitWitnessed(f.input,'r1',f.deps)).ok,false);
+ assert.equal((await bridge.commitWitnessed(f.input,'r1',f.deps)).ok,false);
  assert.equal(f.writes(),0);assert.equal(f.proofCalls(),0);
 });
 test('OP13 cannot claim observed queens from generic physical-work confirmation',async()=>{
@@ -225,13 +225,13 @@ test('synthetic same-device replay is NOT an acceptable independent full archive
   externalCopyConfirmed:false,verificationScope:'LOCAL_INDEPENDENT_INDEXEDDB_REPLAY',
   originalRevisionId:source.meta.revisionId,verificationId:'local-only'
  });
- const result=await api.commitWitnessed(f.input,'r1',f.deps);
+ const result=await bridge.commitWitnessed(f.input,'r1',f.deps);
  assert.equal(result.error,'season_runtime_verified_full_archive_required',JSON.stringify(result));
  assert.equal(f.writes(),0);
 });
 test('exact revision and synthetic contract proof allow real atomic runtime CAS and cold-read',async()=>{
  const f=setup(),original=structuredClone(f.db());
- const result=await api.commitWitnessed(f.input,'r1',f.deps);
+ const result=await bridge.commitWitnessed(f.input,'r1',f.deps);
  assert.equal(result.ok,true,JSON.stringify(result));
  assert.equal(result.durable,true);
  assert.equal(f.writes(),1);
@@ -249,7 +249,7 @@ test('source change between first read and runtime must fail without writing',as
   if(n===2)s.meta.revisionId='other-tab';
   return s;
  };
- const result=await api.commitWitnessed(f.input,'r1',f.deps);
+ const result=await bridge.commitWitnessed(f.input,'r1',f.deps);
  assert.equal(result.ok,false,JSON.stringify(result));
  assert.equal(f.writes(),0);
 });
