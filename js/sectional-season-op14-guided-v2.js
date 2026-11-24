@@ -30,6 +30,12 @@ function inspect(state,input){
   return fail('op14_confirmed_op12_op13_lineage_required');
  const upper=sections.map(s=>s.upperBroodBodyId);
  if(new Set(upper).size!==3)return fail('op14_upper_body_identity_invalid');
+ // A plausible OP12/OP13 event name is not sufficient: the complete
+ // append-only lineage must pass its own independent inspector.
+ const lineage=root.PasekaFamilyLineage?.inspect?.(state);
+ if(!Array.isArray(lineage)||lineage.length)
+  return fail('op14_full_family_lineage_not_verified',
+   {errors:Array.isArray(lineage)?lineage.slice(0,8):[]});
  const physical=root.PasekaSectionalPhysicalLayout?.validate?.(source,state);
  if(!physical?.valid)return fail('op14_original_physical_layout_invalid',
   {errors:physical?.errors?.slice(0,8)||[]});
