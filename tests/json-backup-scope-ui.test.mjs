@@ -32,3 +32,9 @@ test('local state auto-backup does not claim to restore separate entrance videos
  assert.match(restore, /Отдельные видео летков не затронуты/);
  assert.doesNotMatch(restore, /полное состояние, включая фотографии и видео/);
 });
+
+test('backup panel does not promise original entrance-video storage is duplicated', () => {
+ assert.match(html, /копия предыдущего состояния приложения, включая вложения внутри записей, но не отдельные видео летков/);
+ assert.match(html, /Автокопия состояния:/);
+ assert.doesNotMatch(html, /одна полная копия предыдущего состояния, включая фотографии и видео/);
+});
