@@ -50,6 +50,8 @@ function loadFunction(name, globals = {}) {
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   // Legacy unit tests invoke individual handlers after simulating successful bootstrap.
   deps.startupWriteGate ||= {ready:true};
+  if(name!=='rejectWhileStartupNotReady')deps.rejectWhileStartupNotReady ||= loadFunction('rejectWhileStartupNotReady',deps);
+  deps.showStartupFailure ||= ()=>{};
   deps.window ||= appWindow;
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
