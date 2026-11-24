@@ -1,9 +1,9 @@
-// P0 recovery proof: ONLY for ru.paseka.journal.disasterproof diagnostic APK.
+// P0 recovery proof: ONLY for ru.paseka.journal.disasterproof2 diagnostic APK.
 (function(){
 'use strict';
-const packageId='ru.paseka.journal.disasterproof';
+const packageId='ru.paseka.journal.disasterproof2';
 const TAG='PASEKA_P0_DISASTER_PROOF_RESULT';
-const checkpoint='paseka-p0-disaster-restart-v1';
+const checkpoint='paseka-p0-disaster-restart-v2';
 const stages=[];
 function add(name,status,detail=''){stages.push({name,status,detail:String(detail)});}
 function ensure(value,message){if(!value)throw Error(message);}
