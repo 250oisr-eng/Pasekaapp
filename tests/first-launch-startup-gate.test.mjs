@@ -11,7 +11,7 @@ function source(name){
  const next=/\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
  next.lastIndex=match.index+match[0].length;
  const end=next.exec(html);
- if(name==='deleteAllData')return html.slice(match.index,html.indexOf("\ndocument.addEventListener(",match.index));
+ if(name==='deleteAllData')return html.slice(match.index,html.indexOf("\ndocument.querySelectorAll(",match.index));
  return html.slice(match.index,end?.index??html.indexOf('</script>',match.index));
 }
 function load(name,deps={}){return new Function('deps','with(deps){return ('+source(name)+');}')(deps);}
