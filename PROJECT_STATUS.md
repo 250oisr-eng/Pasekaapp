@@ -9,7 +9,7 @@
 - **PR #471 MERGED:** регламент и B01–B15; окончательный docs-only main SHA `6b865fe...` **не имел собственного CI run**, потому что workflow filter не включал docs-only push.
 - **Draft #474:** read-only Governance Docs push-main gate, CI SUCCESS на SHA `9cd45a3...`; ещё не в main.
 - **Draft #475:** B13 Varroa journal rollback/selected-hive UI; Android **709/709 PASS** и Governance SUCCESS на HEAD `ace5993909879615db7b16083775c3f17089c78e`; ещё не merged.
-- **Draft #476:** тесты B09 реальных синтетических IndexedDB v1/v2→v3, неизменности Blob/ArrayBuffer/истории и отказа v4. Кодовый SHA `a06de48dd117973d0ba66b7dc4573d15e2979080`: [Android #45470298315](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45470298315) **698/698 PASS, BUILD SUCCESSFUL**, [Governance #45470298335](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45470298335) SUCCESS. Только тесты и документы; не merged.
+- **Draft #476:** тесты B09 реальных синтетических IndexedDB v1/v2→v3, неизменности Blob/ArrayBuffer/истории и отказа v4. Кодовый SHA `2e2f28b1b5c2ceb65e405c00af0edde2a603d2ef`: [Android #45471971411](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45470298315) **701/701 PASS, BUILD SUCCESSFUL**, [Governance #45471971343](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45470298335) SUCCESS. Также 3 теста на двух-store atomic abort, stale revision и future-schema backup с побайтовой сверкой Blob после reopen. Только тесты и документы; не merged.
 
 ## Внешние ограничения
 
