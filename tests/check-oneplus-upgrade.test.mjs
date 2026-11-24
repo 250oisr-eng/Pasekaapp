@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight } from '../scripts/check-oneplus-upgrade.mjs';
+import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight, auditInstalledPackage } from '../scripts/check-oneplus-upgrade.mjs';
 
 const signer = 'a'.repeat(64);
 const valid = { packageName: 'ru.paseka.journal', versionCode: 1, signers: [signer] };
@@ -40,4 +40,45 @@ test('offline two-APK preflight rejects archives and missing inputs before invok
   assert.throws(() => runArtifactPairPreflight(undefined, 'candidate.apk'), /BLOCKED/);
   assert.throws(() => runArtifactPairPreflight('reference.zip', 'candidate.apk'), /BLOCKED/);
   assert.throws(() => runArtifactPairPreflight('reference.apk', 'candidate.zip'), /BLOCKED/);
+});
+
+test('B04 installed-only signer audit reads package metadata without candidate, install or deletion',()=>{
+ const calls=[];
+ const command=(bin,args)=>{
+  calls.push({bin,args});
+  if(bin==='adb'&&args[0]==='devices')return 'List of devices attached\\nONEPLUS device product:OnePlus\\n';
+  if(bin==='adb'&&args.includes('pm'))return 'package:/data/app/sample/base.apk\\n';
+  if(bin==='adb'&&args.includes('pull'))return '1 file pulled';
+  if(bin==='aapt')return "package: name='ru.paseka.journal' versionCode='17' versionName='1.0'";
+  if(bin==='apksigner')return 'Signer #1 certificate SHA-256 digest: '+signer;
+  throw new Error('Unexpected command');
+ };
+ const result=auditInstalledPackage({command,tool:name=>name});
+ assert.deepEqual(result,{status:'INSTALLED_APK_METADATA_READONLY',
+  packageName:'ru.paseka.journal',versionCode:17,signers:[signer],
+  installationAuthorized:false,upgradeCompatible:null});
+ assert.deepEqual(calls.map(c=>[c.bin,c.args[0]]),[
+  ['adb','devices'],['adb','-s'],['adb','-s'],['aapt','dump'],['apksigner','verify']]);
+ assert.ok(calls.every(c=>!c.args.some(arg=>['install','uninstall','clear','delete','rm','reboot'].includes(arg))));
+ assert.ok(!calls.some(c=>c.args.some(arg=>arg.includes('candidate.apk'))));
+});
+
+test('B04 audit fails closed for missing device, installed package mismatch and unknown signer',()=>{
+ const baseline=(bin,args)=>{
+  if(bin==='adb'&&args[0]==='devices')return 'List of devices attached\\nONEPLUS device\\n';
+  if(bin==='adb'&&args.includes('pm'))return 'package:/data/app/sample/base.apk\\n';
+  if(bin==='adb'&&args.includes('pull'))return '1 file pulled';
+  if(bin==='aapt')return "package: name='ru.paseka.journal' versionCode='17'";
+  if(bin==='apksigner')return 'Signer #1 certificate SHA-256 digest: '+signer;
+  throw new Error('unknown command');
+ };
+ assert.throws(()=>auditInstalledPackage({command:(bin,args)=>
+   bin==='adb'&&args[0]==='devices'?'List of devices attached\\nONEPLUS unauthorized\\n':baseline(bin,args),
+   tool:name=>name}),/BLOCKED/);
+ assert.throws(()=>auditInstalledPackage({command:(bin,args)=>
+   bin==='aapt'?"package: name='ru.paseka.journal.firstuseqa' versionCode='17'":baseline(bin,args),
+   tool:name=>name}),/BLOCKED: installed package/);
+ assert.throws(()=>auditInstalledPackage({command:(bin,args)=>
+   bin==='apksigner'?'no certificate evidence':baseline(bin,args),
+   tool:name=>name}),/BLOCKED: cannot establish certificate/);
 });
