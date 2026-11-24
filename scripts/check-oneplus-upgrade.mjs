@@ -93,10 +93,21 @@ export function runPreflight(candidatePath) {
   }
 }
 
+export function runArtifactPairPreflight(referencePath, candidatePath) {
+  if (!referencePath?.endsWith('.apk') || !candidatePath?.endsWith('.apk')) {
+    throw new Error('BLOCKED: require original and candidate .apk files; never compare ZIP artifacts as APKs');
+  }
+  const aapt = sdkTool('aapt');
+  const apksigner = sdkTool('apksigner');
+  return evaluateUpgrade(inspect(resolve(referencePath), aapt, apksigner), inspect(resolve(candidatePath), aapt, apksigner));
+}
+
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   try {
-    const result = runPreflight(process.argv[2]);
+    const artifactMode = process.argv[2] === '--compare-files';
+    const result = artifactMode ? runArtifactPairPreflight(process.argv[3], process.argv[4]) : runPreflight(process.argv[2]);
     console.log(JSON.stringify(result, null, 2));
+    console.log(artifactMode ? 'ARTIFACTS ONLY: this does not establish the certificate of the APK actually installed on OnePlus.' : 'DEVICE APP METADATA ONLY: this does not authorize installation.');
     console.log('NOT AN INSTALLATION OR BACKUP TEST. Check backups and storage migration separately.');
   } catch (error) {
     console.error(error.message || String(error));
