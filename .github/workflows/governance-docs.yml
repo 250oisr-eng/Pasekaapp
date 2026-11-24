@@ -1,6 +1,16 @@
 name: Governance Docs Checks
 
 on:
+  # Documentation-only merges must have an exact-main check without release.
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - 'PROJECT_STATUS.md'
+      - 'docs/**'
+      - '.github/pull_request_template.md'
+      - 'scripts/governance-*.mjs'
+      - '.github/workflows/governance-docs.yml'
   pull_request:
     paths:
       - 'AGENTS.md'
@@ -19,7 +29,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Checkout exact PR commit
+      - name: Checkout exact event commit (PR or main)
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v4

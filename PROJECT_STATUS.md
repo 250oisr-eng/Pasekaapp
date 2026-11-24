@@ -1,13 +1,18 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**24.11.2026.** Живой `main=c20d0fc39c8e1142925d2667c74c5c7760d3ce20`. [PR #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) **MERGED по отдельному разрешению**, без публикации: в main полный read-only v1 IDB экспорт, проверка SHA, B02 Blob guard, G0 и SW v316. Fast #3995 SUCCESS на merge SHA, Android #7009 completed/success. Full live restore UI не существует.
+**2026-11-24.** Актуальный проверенный через GitHub `main=6b865fe0b338f360d763ce3d0599829b7c34dedc`. История — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), безопасность — [AGENTS.md](AGENTS.md), действующие блокеры — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md).
 
-**PR #473 MERGED**: B09 fail-closed проверка схемы `main/full_backup/entrance_media` с двумя тестами добавлена в main после 695/695 PASS / Android BUILD SUCCESSFUL на PR SHA. Fast #3998 и Android #7013 на merge SHA проверяются отдельно. Полные legacy migrations и аварийное восстановление NOT_VERIFIED. Полные legacy migrations и аварийное восстановление NOT_VERIFIED.
+## Главные факты
 
-**PR #471**: в рабочей ветке согласованы компактные правила, реестр B01–B15, план действий и журнал. **Не merged**, новый exact SHA Governance CI проверить.
+- **PR #472 MERGED:** read-only полный экспорт `paseka-v1`, SHA-проверка файла, B02 Blob guard и SW v316. Main merge SHA `9e3c76b...`: Fast #3995 и Android #7009 **SUCCESS**. Full live restore UI отсутствует.
+- **PR #473 MERGED:** fail-closed отказ при отсутствующем `main/full_backup/entrance_media` без записи в пользовательскую базу. Main merge SHA `c20d0fc...`: Fast #3998 и Android #7013 **SUCCESS**. Полное legacy migration/rollback и физический restore B09 **NOT_VERIFIED**.
+- **PR #471 MERGED:** оперативные правила, реестр B01–B15 и план физических испытаний. Code-free финальный main SHA `6b865fe0b338f360d763ce3d0599829b7c34dedc` **без отдельного CI run**: fast/Android workflows не слушают docs-only push, Governance Docs Checks на PR HEAD `a36eb74...` SUCCESS. Отсутствие run ≠ успешная проверка финального SHA.
+- **Текущий Draft:** безопасный документационный CI на push `main`, без Pages/deploy и без прав записи, со статическим негативным тестом. До отдельного разрешения на merge этот механизм не работает в main.
+- **Draft #469:** read-only audit signer OnePlus тестировался лишь с подменённым ADB; фактический signer UNKNOWN, долговременный защищённый ключ отсутствует. **Draft #452:** старый live restore не объединён. PASEKA02 **FROZEN #442**, лицензионные веса/реальный video/auto delete не подтверждены.
 
-**Draft #469**: прочтение установленной подписи OnePlus только в mock tests, actual signing fingerprint UNKNOWN, постоянного защищённого ключа нет. **Draft #452** — старый full restore, не merged. **Issue #442** PASEKA02 automatic video cleanup FROZEN. Без независимой копии и V0–V6 нельзя удалять реальные файлы.
+## Незавершённое
 
-**Внешние ворота:** read-only ADB на доступном OnePlus, независимый архив вне устройства, byte-safe восстановление только на пустом тестовом target, постоянный signing keystore вне Git. Технологические OP и старые stacked PR не интегрировать пачкой. Подробности — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md) и [план](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
+- B01 — нет внешнего полного файла, byte-proof и независимого restore; B04/B05 — нет реального signer/secure key; B06 — FROZEN; B07/B08/B13 — source-bound выборочная интеграция; B10/B11 — физические Android/offline испытания; B14 — реальные измерения; B15 — точная история release/Pages и docs-only main CI.
+- [План снятия B01–B15](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md) определяет минимум участия пользователя. При доступе к ПК — только read-only ADB, затем внешний архив и отдельный пустой target.
 
-**Права:** отдельные разрешения пользователя на последовательное слияние #472, #473 и #471 ограничены проверкой CI/отсутствием конфликтов. #472 и #473 уже merged. #471 — ещё Draft; для merge требуется успешный новый exact-SHA Governance CI и повторная проверка main. Публикация не разрешена. Никаких publish/deploy, установки APK, изменения production-базы, восстановления и удаления.
+**Права:** новые PR разрабатываются автономно, но **слияние, публикация, APK install, production DB, восстановление/удаление оригиналов запрещены без отдельного разрешения**. Предыдущие разрешения #472/#473/#471 исполнены и не распространяются на новые PR.
