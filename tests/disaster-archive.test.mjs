@@ -212,3 +212,47 @@ test('archive UI allows non-destructive read-back verification before restore',(
  assert.match(html,/await PasekaDisasterArchive\.inspectArchive\(raw,db/);
  assert.match(html,/Сохранение файла на носитель ещё НЕ подтверждено/);
 });
+
+test('new original entrance video after preflight blocks restore without deleting any media',async()=>{
+ const db=await database('key-fence-entrance');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const t=db.transaction('entrance_media','readwrite');
+ t.objectStore('entrance_media').put({id:'new-original',blob:new Blob([new Uint8Array([9,8,7])],{type:'video/mp4'})});
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store keys changed since preflight: entrance_media/);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ const original=await get(db,'entrance_media','new-original');
+ assert.deepEqual([...new Uint8Array(await original.blob.arrayBuffer())],[9,8,7]);
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
+test('new historical backup after preflight blocks restore and preserves full_backup',async()=>{
+ const db=await database('key-fence-history');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const t=db.transaction('full_backup','readwrite');
+ t.objectStore('full_backup').put({state:{hives:[{id:'newly-saved'}]}},'after-preflight');
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store keys changed since preflight: full_backup/);
+ assert.equal((await get(db,'full_backup','after-preflight')).state.hives[0].id,'newly-saved');
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ db.close();
+});
+test('changed media key inventory including deletion blocks restore without rewriting prior state',async()=>{
+ const db=await database('key-fence-delete');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const t=db.transaction('entrance_media','readwrite');
+ t.objectStore('entrance_media').delete('video1');
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store keys changed since preflight: entrance_media/);
+ assert.equal(await get(db,'entrance_media','video1'),undefined);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ db.close();
+});
+test('restore refuses a caller-supplied inspection without live key inventory',async()=>{
+ const db=await database('key-fence-missing');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ delete inspection.liveKeySignatures;
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Live store key fence is missing/);
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
