@@ -58,7 +58,7 @@ function readOnlyInventory(db){
  const names=Array.from(db.objectStoreNames);
  const report={
   schema:'paseka-g0-readonly-v1',status:'PARTIAL_READONLY',scope:'CURRENT_INDEXEDDB_ONLY',
-  database:db.name,version:db.version,stores:[],main:null,fullBackup:{entries:0,stats:totals()},entranceMedia:{entries:0,withBlob:0,blobBytes:0,missingBlob:0,declaredSizeMismatch:0},
+  database:db.name,version:db.version,stores:[],main:null,fullBackup:{entries:0,contentsInspected:false,stats:totals()},entranceMedia:{entries:0,withBlob:0,blobBytes:0,missingBlob:0,declaredSizeMismatch:0},
   issues:[],osMediaStore:'NOT_ACCESSED',externalFiles:'NOT_ACCESSED',otherOrigins:'UNKNOWN',
   originalByteHashesVerified:false,backupVerified:false,restoreVerified:false,cleanupAuthorized:false
  };
@@ -75,29 +75,24 @@ function readOnlyInventory(db){
     const store=tx.objectStore(name),info={name,keyPath:store.keyPath,autoIncrement:store.autoIncrement,count:null,valuesInspected:KNOWN.includes(name)};
     report.stores.push(info);
     const count=store.count();
-    count.onsuccess=()=>{info.count=count.result;};
+    count.onsuccess=()=>{info.count=count.result;if(name==='full_backup')report.fullBackup.entries=count.result;};
     count.onerror=()=>fail(count.error);
     if(name==='main'){
      const req=store.get('state');
      req.onsuccess=()=>{try{report.main=summarizeMain(req.result);}catch(e){try{tx.abort();}catch(_){}fail(e);}};
      req.onerror=()=>fail(req.error);
-    }else if(name==='full_backup'||name==='entrance_media'){
+    }else if(name==='entrance_media'){
      const cursor=store.openCursor();
      cursor.onsuccess=()=>{
       try{
        const c=cursor.result;if(!c)return;
-       if(name==='full_backup'){
-        report.fullBackup.entries++;
-        scan(c.value,report.fullBackup.stats);
-       }else{
-        report.entranceMedia.entries++;
-        const val=c.value,blob=val?.blob;
-        if(blob instanceof Blob){
-         report.entranceMedia.withBlob++;
-         report.entranceMedia.blobBytes+=blob.size;
-         if(val?.bytes!==undefined&&val.bytes!==blob.size)report.entranceMedia.declaredSizeMismatch++;
-        }else report.entranceMedia.missingBlob++;
-       }
+       report.entranceMedia.entries++;
+       const val=c.value,blob=val?.blob;
+       if(blob instanceof Blob){
+        report.entranceMedia.withBlob++;
+        report.entranceMedia.blobBytes+=blob.size;
+        if(val?.bytes!==undefined&&val.bytes!==blob.size)report.entranceMedia.declaredSizeMismatch++;
+       }else report.entranceMedia.missingBlob++;
        c.continue();
       }catch(e){try{tx.abort();}catch(_){}fail(e);}
      };
@@ -108,10 +103,11 @@ function readOnlyInventory(db){
     if(done)return;
     done=true;
     if(!report.main?.present)report.issues.push('MAIN_STATE_MISSING');
-    if(report.main?.stats.limitReached||report.fullBackup.stats.limitReached)report.issues.push('SCAN_LIMIT_REACHED');
+    if(report.main?.stats.limitReached)report.issues.push('SCAN_LIMIT_REACHED');
+    if(report.fullBackup.entries>0)report.issues.push('LOCAL_BACKUP_CONTENTS_UNINSPECTED');
     if(report.entranceMedia.missingBlob)report.issues.push('ENTRANCE_ORIGINAL_BLOB_MISSING');
     if(report.entranceMedia.declaredSizeMismatch)report.issues.push('ENTRANCE_BLOB_SIZE_MISMATCH');
-    if(report.main?.stats.opaqueMedia||report.fullBackup.stats.opaqueMedia)report.issues.push('OPAQUE_EMBEDDED_MEDIA');
+    if(report.main?.stats.opaqueMedia)report.issues.push('OPAQUE_EMBEDDED_MEDIA');
     resolve(report);
    };
    tx.onerror=()=>fail(tx.error);
