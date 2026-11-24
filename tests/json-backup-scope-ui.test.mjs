@@ -22,7 +22,7 @@ test('legacy JSON download clearly describes that entrance videos are excluded',
 test('manual JSON restore no longer promises a complete media backup', () => {
  const restore = fragment('async function restoreBackup()', 'async function restoreAutoBackup()');
  assert.match(restore, /отдельные видео летков в неё не входят/);
- assert.match(restore, /Архив восстановлен \\(JSON-состояние\\)/);
+ assert.match(restore, /Архив восстановлен \(JSON-состояние\)/);
  assert.doesNotMatch(restore, /Перед заменой текущие данные сохранятся в полной автокопии/);
 });
 
