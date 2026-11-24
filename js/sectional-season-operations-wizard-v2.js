@@ -493,6 +493,14 @@ function mount(host,getState){
      '. Для физической записи дополнительно требуется точная целевая раскладка, новые места каждого предмета и независимый архив. Ничего не сохранено.';
    });
   }
+  if(op==='OP-11'){
+   const fields=host.querySelector('[data-season-fields]');
+   fields.insertAdjacentHTML('beforeend','<div data-op11-guided></div>');
+   const guided=root.PasekaSectionalOP11GuidedV2?.mount?.(
+    fields.querySelector('[data-op11-guided]'),getState,hive,host);
+   if(!guided?.ok)fields.querySelector('[data-op11-guided]').textContent=
+    'OP-11: пошаговый предварительный план недоступен. Физическая запись заблокирована.';
+  }
   if(op==='OP-12'){
    const fields=host.querySelector('[data-season-fields]');
    fields.insertAdjacentHTML('beforeend','<div data-op12-guided></div>');
