@@ -1,3 +1,13 @@
+## 24.11.2026 — повторная live-сверка main/PR/CI после перехода между чатами
+
+- GitHub branch API: **main = `13c724a634f0987ff634a058a5fa37a1b8e20c92`**, merge commit PR #449 (23.11.2026 09:04:26 UTC). **PR #448 и #449 оба фактически MERGED**; старые записи ниже про ожидание разрешения на их слияние исторические и больше не являются следующим действием.
+- [Draft #467](https://github.com/250oisr-eng/Pasekaapp/pull/467) OPEN/DRAFT, branch `feat/p1-isolated-oneplus-smoke-2026-11-24` → base Draft #466, HEAD до этой заметки `34130f7403b1ac6ec61e4338eaa2a90578d65035`. Проверка compare `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91...34130f7403b1ac6ec61e4338eaa2a90578d65035`: один коммит и **только семь Markdown файлов**, код диагностического APK и тесты неизменны.
+- Дополнительно проверены Github Actions на точном HEAD #467: P1 Isolated OnePlus Smoke APK run **#45348643042 completed/success** и Android APK run **#45348642283 completed/success**. Статус старого code SHA не следует выводить из одного последнего run: среди повторных попыток есть cancelled; исходное доказательство 989/989 относится к отдельно указанным successful run #45348217568 и #45348217564.
+- **Фактический следующий gate неизменен:** real OnePlus isolated APK offline/relaunch/force-stop screenshot/JSON, затем независимо подтверждённое полное внешнее восстановление оригинального архива, включая Blob-видео, на втором физическом устройстве; только после этого обсуждать live UI→CAS. `SECOND_DEVICE_VERIFIED=NO`, `ONEPLUS_P1_PHYSICAL_E2E=NOT_VERIFIED`. PASEKA02 #442 остаётся FROZEN; никаких настоящих медиа не удалять.
+- Текущий этап — документальная сверка; не выполнены установка APK на телефон, новый функциональный код, merge, release и production deployment. Следующее разрешённое автономное действие — ревью P1 на текущей цепочке Draft без подмены физических доказательств CI.
+
+---
+
 ## 24.11.2026 — P1 limited OnePlus smoke APK READY, full P1 acceptance BLOCKED (Draft #467)
 
 - [Draft #467](https://github.com/250oisr-eng/Pasekaapp/pull/467) поверх #466: отдельный Android P1 WebView test-only пакет `ru.paseka.journal.p1smoke`, не заменяет рабочий `ru.paseka.journal`. Диагностика проверяет реальные загруженные OP01–14/OP11–14 read-only модули и три fail-closed варианта OP13 без доступа к пользовательским видео, реальной базе, CAS и производственным операциям. Отображает копируемый результат и инструкции проверки офлайн на телефоне.
