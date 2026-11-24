@@ -8,7 +8,7 @@ const start=html.indexOf('function openDB(){');
 const end=html.indexOf('\nfunction readMain(){',start);
 assert.ok(start>=0&&end>start,'real production openDB must be inspectable');
 const source=html.slice(start,end);
-const REQUIRED=['main','full_backup','entrance_media'];
+const REQUIRED=['entrance_media','full_backup','main'];
 
 function applicationOpen(factory,name){
  const deps={indexedDB:factory,DB:name,STORE:'main',BACKUP_STORE:'full_backup',
