@@ -148,6 +148,11 @@ function mount(host,getState,hiveId,controls){
  const revision=audit.sourceRevisionId;
  const b=inspect(state,hiveId,revision);
  if(!b.ok){host.textContent='OP-13: '+b.error;return b;}
+ // Never offer a physical preparation guide for a malformed live hive layout.
+ const original=A(state.sectionalLayouts).find(row=>row?.hiveId===hiveId);
+ const check=root.PasekaSectionalPhysicalLayout?.validate?.(original,state);
+ if(!check?.valid){host.textContent='OP-13: исходная физическая раскладка не прошла проверку.';
+  return err('op13_source_physical_layout_invalid');}
  const inv=b.inventory;
  const options=rows=>'<option value="">— Выберите фактически —</option>'+
   rows.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id)+'</option>').join('');
@@ -173,7 +178,8 @@ function mount(host,getState,hiveId,controls){
   '<p>Снятые сетчатые диафрагмы: '+b.diaphragmIds.map(esc).join(', ')+'</p>'+
   '<button type="button" data-op13-next>Проверить комплект 2+2+2</button>'+
   '<div data-op13-moves></div><div role="status" aria-live="polite" data-op13-result></div></fieldset>';
- const fieldValue=key=>host.querySelector('[data-op13-field="'+key+'"]')?.value||'';
+ const fieldValue=key=>[...host.querySelectorAll('[data-op13-field]')]
+  .find(el=>el.getAttribute('data-op13-field')===key)?.value||'';
  const selection=()=>({hiveId,sourceRevisionId:revision,purpose:'EARLY_HONEY_PREPARATION',
   strongestFamilyId:b.familyWithTwo.id,confirmedExistingBottomId:b.existingBottomId,
   existingTargetPosition:fieldValue('position-existing'),
