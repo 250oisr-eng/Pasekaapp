@@ -1,3 +1,14 @@
+## 5. Повторное подтверждение: третья сборка тоже имеет новую подпись
+
+- [Android CI #45404872099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45404872099), exact code+tests SHA `f377130c1f9a9b0c33ef13de7f03d480239bbea4`: **completed/success, 675/675 PASS, Gradle BUILD SUCCESSFUL**, artifact `paseka-debug-apk` ID `14925680411`, срок действия до `2026-12-08T13:35:52Z`.
+- Оригинальный GitHub ZIP скачан, его SHA-256 `052229b2d07847b2f74bc47650c63889291dac7da90d31e570ee466ea0678e64` **совпал** с GitHub digest.
+- SHA-256 вложенного `app-debug.apk`: `12693116ec67d237716d249f8d5b9a7cc997c0a5c481be7bebf68d79158d468a`.
+- SHA-256 сертификата APK v2 signer: **`d5c6e897bf1edf368b587e02c2980b41bdf9c1b68d2f018e833fccdb71fc4e71`** — отличается и от baseline `9b10baf0...`, и от предыдущего кандидата `df54ef93...`.
+- Это **три независимых фактически разных signing certificate**, а не теоретическое опасение. Текущий CI создаёт артефакты, для которых **не доказано** наличие общего ключа; последние три конкретные APK непригодны как взаимные in-place upgrades при одинаковом packageId.
+- Важно: user-device installed signer по-прежнему `NOT_TESTED` — на устройстве приложение не переустановлено и хранилище сохранено.
+
+---
+
 # P0 — фактическое несовпадение подписи Android APK и безопасная стратегия следующего кандидата
 
 Дата: 2026-11-24. Статус: **SIGNATURE_DRIFT_CONFIRMED; DIRECT_UPGRADE_BLOCKED**.
