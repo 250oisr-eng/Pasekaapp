@@ -493,6 +493,14 @@ function mount(host,getState){
      '. Для физической записи дополнительно требуется точная целевая раскладка, новые места каждого предмета и независимый архив. Ничего не сохранено.';
    });
   }
+  if(op==='OP-13'){
+   const fields=host.querySelector('[data-season-fields]');
+   fields.insertAdjacentHTML('beforeend','<div data-op13-guided></div>');
+   const guided=root.PasekaSectionalOP13GuidedV2?.mount?.(
+    fields.querySelector('[data-op13-guided]'),getState,hive,host);
+   if(!guided?.ok)fields.querySelector('[data-op13-guided]').textContent=
+    'OP-13: исходная зимняя раскладка или история не подтверждена. Запись запрещена.';
+  }
   if(op==='OP-14'){
    const fields=host.querySelector('[data-season-fields]');
    fields.insertAdjacentHTML('beforeend','<div data-op14-guided></div>');
