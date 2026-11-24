@@ -137,5 +137,9 @@ test('OP11 stage integration keeps source intact and refuses to choose surviving
  assert.equal(staged.draft.families.find(f=>f.id==='merged-1').currentQueenId,null);
  const validation=w.PasekaSectionalPhysicalLayout.validate(staged.draft.sectionalLayouts[0],staged.draft);
  assert.equal(validation.valid,true,JSON.stringify(validation.errors));
+ const misplaced=structuredClone(staged.draft);
+ misplaced.equipmentInventory.items['riser-left'].location.stackId='wrong-stack';
+ const errors=w.PasekaSectionalPhysicalLayout.validate(misplaced.sectionalLayouts[0],misplaced).errors;
+ assert.ok(errors.some(e=>e.code==='section_accessory_position_mismatch'),JSON.stringify(errors));
  assert.deepEqual(state,before);
 });
