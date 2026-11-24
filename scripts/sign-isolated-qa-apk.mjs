@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { existsSync, mkdirSync, rmSync, readdirSync, realpathSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { parseBadging, parseSigning } from './check-oneplus-upgrade.mjs';
 
 const QA_PACKAGE = 'ru.paseka.journal.firstuseqa';
@@ -17,6 +17,9 @@ export function validateSigningInputs(env, input, output) {
   if (resolve(input) === resolve(output)) throw new Error('BLOCKED: refusing in-place overwrite of source APK');
   if (!isAbsolute(env.PASEKA_QA_KEYSTORE_PATH)) throw new Error('BLOCKED: keystore must have an absolute external path');
   if (!existsSync(env.PASEKA_QA_KEYSTORE_PATH)) throw new Error('BLOCKED: external keystore is unavailable');
+  const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+  const keyRelative = relative(repoRoot, realpathSync(env.PASEKA_QA_KEYSTORE_PATH));
+  if (!keyRelative.startsWith('..') && !isAbsolute(keyRelative)) throw new Error('BLOCKED: keystore cannot be inside the Git worktree');
   if (existsSync(output)) throw new Error('BLOCKED: output already exists; will not overwrite');
   if (!existsSync(input)) throw new Error('BLOCKED: input APK is unavailable');
   if (basename(input) === basename(output)) throw new Error('BLOCKED: distinct APK filenames required');
@@ -44,7 +47,6 @@ export function validateSignedArtifact(badging, certOutput, expectedFingerprint)
 function sdkCommands(env) {
   const sdk = env.ANDROID_HOME || env.ANDROID_SDK_ROOT;
   if (!sdk) throw new Error('BLOCKED: Android SDK path required');
-  const { readdirSync } = syncFs();
   const dir = join(sdk, 'build-tools');
   const versions = readdirSync(dir,{withFileTypes:true}).filter(x=>x.isDirectory()).map(x=>x.name).sort((a,b)=>b.localeCompare(a,undefined,{numeric:true}));
   if (!versions.length) throw new Error('BLOCKED: Android build-tools unavailable');
@@ -56,8 +58,6 @@ function sdkCommands(env) {
       : {bin:join(root,'apksigner'),prefix:[]}
   };
 }
-function syncFs() { return { readdirSync: globalReadDir }; }
-import {readdirSync as globalReadDir} from 'node:fs';
 
 function call(command, args) {
   // Passwords are never passed as argv or written to logs; apksigner reads them by environment name.
