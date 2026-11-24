@@ -82,6 +82,10 @@ export function signIsolatedQaApk(env, input, output) {
       '--key-pass','env:PASEKA_QA_KEY_PASSWORD',
       '--out',p.output,p.input]);
     const verified=call(commands.apksigner,['verify','--print-certs',p.output]);
+    if (process.env.PASEKA_EPHEMERAL_CI_DIAGNOSTIC === 'YES' &&
+        process.env.GITHUB_EVENT_NAME === 'pull_request' && process.env.CI === 'true') {
+      console.log('EPHEMERAL_APK_PUBLIC_CERTIFICATE_OUTPUT='+JSON.stringify(verified.slice(0,1400)));
+    }
     return validateSignedArtifact(call(commands.aapt,['dump','badging',p.output]),verified,p.fingerprint);
   } catch(error) {
     if(existsSync(p.output)) rmSync(p.output,{force:true});
