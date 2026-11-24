@@ -7,7 +7,7 @@ const ISOLATED_ID='ru.paseka.journal.firstuseqa';
 const EXPECTED_REF='refs/heads/fix/p0-first-launch-startup-write-gate-2026-11-24';
 
 export function prepareIsolatedConfig(configuration,environment=process.env){
- if(environment.PASEKA_ISOLATED_FIRST_USE!=='YES' || environment.GITHUB_REF!==EXPECTED_REF){
+ if(environment.PASEKA_ISOLATED_FIRST_USE!=='YES' || !(environment.GITHUB_REF===EXPECTED_REF || (environment.GITHUB_EVENT_NAME==='pull_request' && environment.GITHUB_HEAD_REF===EXPECTED_REF.slice('refs/heads/'.length)))){
   throw new Error('ISOLATED_BUILD_GUARD: dedicated first-use branch and explicit CI flag required');
  }
  if(configuration?.appId!==EXPECTED_BASE || configuration?.webDir!=='www'){
