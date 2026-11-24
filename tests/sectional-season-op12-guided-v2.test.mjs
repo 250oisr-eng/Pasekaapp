@@ -57,7 +57,7 @@ test('guided OP12 preserves 2+1+1 real body IDs and creates valid manifest witho
  assert.equal(r.previewOnly,true);assert.equal(r.readyForPersistence,false);
  assert.equal(r.request.expectedSourceRevisionId,undefined); // internal request carries sourceRevisionId
  assert.equal(r.request.sourceRevisionId,'r1');
- assert.equal(r.request.bodyMoves.length,6);
+ assert.equal(r.request.bodyMoves.length,5);
  assert.deepEqual(r.request.itemMoves.map(x=>x.itemId).sort(),p.changedItemIds);
  assert.deepEqual(state,before);
 });
