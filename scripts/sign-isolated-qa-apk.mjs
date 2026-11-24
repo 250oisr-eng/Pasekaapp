@@ -59,11 +59,11 @@ function sdkCommands(env) {
   };
 }
 
-function call(command, args) {
+function call(command, args, env) {
   // Passwords are never passed as argv or written to logs; apksigner reads them by environment name.
   try {
     return execFileSync(command.bin,[...command.prefix,...args],{
-      encoding:'utf8',env:process.env,stdio:['ignore','pipe','pipe'],maxBuffer:4*1024*1024
+      encoding:'utf8',env,stdio:['ignore','pipe','pipe'],maxBuffer:4*1024*1024
     }).trim();
   } catch {
     throw new Error('BLOCKED: Android SDK signing or verification command failed (details suppressed)');
@@ -73,16 +73,16 @@ function call(command, args) {
 export function signIsolatedQaApk(env, input, output) {
   const p = validateSigningInputs(env,input,output);
   const commands=sdkCommands(env);
-  const before=parseBadging(call(commands.aapt,['dump','badging',p.input]));
+  const before=parseBadging(call(commands.aapt,['dump','badging',p.input],env));
   if(before.packageName !== QA_PACKAGE) throw new Error('BLOCKED: refusing to re-sign non-isolated Paseka APK');
   mkdirSync(dirname(p.output),{recursive:true});
   try {
     call(commands.apksigner,['sign','--ks',p.keystore,'--ks-key-alias',p.alias,
       '--ks-pass','env:PASEKA_QA_STORE_PASSWORD',
       '--key-pass','env:PASEKA_QA_KEY_PASSWORD',
-      '--out',p.output,p.input]);
-    const verified=call(commands.apksigner,['verify','--print-certs',p.output]);
-    return validateSignedArtifact(call(commands.aapt,['dump','badging',p.output]),verified,p.fingerprint);
+      '--out',p.output,p.input],env);
+    const verified=call(commands.apksigner,['verify','--print-certs',p.output],env);
+    return validateSignedArtifact(call(commands.aapt,['dump','badging',p.output],env),verified,p.fingerprint);
   } catch(error) {
     if(existsSync(p.output)) rmSync(p.output,{force:true});
     throw error;
