@@ -1,3 +1,8 @@
+## 24.11.2026 — OP11 exact Android CI confirmed
+
+- Verified code SHA `ae86c0c9e02a014d018ec50ee399ef5e38813ffd`: [Fast Quality #45333877202](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45333877202) **961/961 PASS**; [Android Build #45333877326](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45333877326) **SUCCESS**, job logs **961/961 PASS**, Gradle **BUILD SUCCESSFUL**; secondary Android #45333883480 SUCCESS. Isolated diagnostic #45333883504 CANCELLED, not evidence of user original off-device recovery.
+- Compare code SHA → documented HEAD `ea7e1e9843e4fdd5ca1ca19eb7da4d2422545f45`: six Markdown files only. Runtime is unchanged after verified code. This does not constitute DEVICE_VERIFIED, IN_MAIN or release.
+
 ## 24.11.2026 — OP-11 guided original-upper-body winter merge / Draft #461
 
 - Основание: `docs/P1-OP11-ЗИМНЯЯ-КОЛОННА-ВВОД-2026-11-24.md`. Новый source-bound mobile UI выбирает реальную последовательность 3 ранее верхних гнездовых корпусов, физическое дно, крышку, подкрышник, потолочную кормушку, уникальные складские пластиковые заглушки на каждое существующее отверстие, назначения снятого инвентаря и поэлементные подтверждения. Новый объединённый familyId **только volatile**, матка неизвестна. Ни CAS, ни DONE, ни видео/cleanup; прежняя OP12 и другие UI не удалены.
