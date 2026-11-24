@@ -80,7 +80,7 @@ test('OP13 source identity rejects stale revision, Farrar, wrong mode, duplicate
  const state=fixture(),before=structuredClone(state);
  assert.equal(api.inspect(state,'h','old').error,'op13_stale_source_revision');
  state.hives[0].profileId='farrar';
- assert.equal(api.inspect(state,'h','r1').error,'op13_alternative_wintering_2_1_1_source_required');
+ assert.equal(api.inspect(state,'h','r1').error,'manifest_source_revision_or_layout_missing');
  state.hives[0].profileId=PROFILE;
  state.sectionalSeasonCycles.push({id:'second',hiveId:'h',status:'ACTIVE'});
  assert.equal(api.inspect(state,'h','r1').error,'op13_alternative_wintering_2_1_1_source_required');
@@ -116,7 +116,7 @@ test('OP13 requires every distinct registered bottom, cover, inner cover and tar
  assert.equal(api.prepare(state,s).error,'op13_new_stack_item_must_be_registered_in_storage');
  state.equipmentInventory.items['cover-right'].condition='good';
  s.separations[0].targetPosition='left';
- assert.equal(api.prepare(state,s).error,'op13_duplicate_physical_assignment');
+ assert.equal(api.prepare(state,s).error,'op13_existing_stack_position_required');
  s.separations[0].targetPosition='middle';
  s.strongestFamilyId='f2';
  assert.equal(api.prepare(state,s).error,'op13_original_two_body_family_and_bottom_must_be_confirmed');
