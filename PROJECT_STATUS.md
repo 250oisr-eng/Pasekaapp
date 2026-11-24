@@ -12,5 +12,5 @@
 ## Следующие условия и безопасность
 
 - **B11 v315→v318 upgrade BLOCKED:** независимо проверенный полный backup+restore и signer/rollback, пользовательское отдельное разрешение на merge и отдельно на install/release. Баг удаления чужих кешей предотвращается **только в Draft #478**, не на установленном телефоне.
-- B04/B05 signer/долгоживущий ключ **NOT_VERIFIED**; B06/B10 real bee model/video cleanup [#442](https://github.com/250oisr-eng/Pasekaapp/issues/442) **FROZEN**; прочие B-ID — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md).
+- **Draft #469** startup/signing gate и **Draft #452** полный restore остаются NOT_IN_MAIN; B04/B05 signer/долгоживущий ключ **NOT_VERIFIED**; B06/B10 real bee model/video cleanup [#442](https://github.com/250oisr-eng/Pasekaapp/issues/442) **FROZEN**; прочие B-ID — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md).
 - Следующий безопасный шаг без ПК: закончить code/negative/Android CI именно для B11 Draft #478, обновить PR evidence. **Запрещены без отдельного разрешения:** merge, production deployment, APK update/install, restore, clear/uninstall, удаление видео и пользовательских данных. Ни green CI, ни синтетика не доказывают физическую миграцию.
