@@ -62,7 +62,7 @@ function Device-Epoch {
   if($raw -notmatch '^\d{10,}$'){ Stop-Safely 'DEVICE_TIME_UNAVAILABLE' ('Unexpected device timestamp: '+$raw) }
   return [long]$raw
 }
-function Get-FreshProof([long]$since,[int]$timeoutSeconds) {
+function Get-FreshProof([long]$since,[int]$timeoutSeconds,[string]$expectedCode) {
   $end=(Get-Date).AddSeconds($timeoutSeconds)
   do {
     # Last 7000 epoch-stamped lines, filtered in memory. No full logs on disk.
@@ -78,7 +78,7 @@ function Get-FreshProof([long]$since,[int]$timeoutSeconds) {
       $candidate=$payloadMatch.Groups[1].Value
       try { $data=$candidate|ConvertFrom-Json -ErrorAction Stop } catch { continue }
       if($data.packageId -ne $Package){ continue }
-      return $data
+      if($data.status -eq 'BLOCKED' -or $data.code -eq $expectedCode){ return $data }
     }
     Start-Sleep -Seconds 2
   } while((Get-Date) -lt $end)
@@ -157,7 +157,7 @@ try {
 
   $before=Device-Epoch
   $launch=Device-Adb -Arguments @('shell','monkey','-p',$Package,'-c','android.intent.category.LAUNCHER','1')
-  $first=Get-FreshProof -since $before -timeoutSeconds 65
+  $first=Get-FreshProof -since $before -timeoutSeconds 65 -expectedCode 'P0_DISASTER_WEBVIEW_RESTORE_PASS'
   $report.firstCode=$first.code
   $report.firstChecks=$first.checks
   if($first.status -ne 'PASS' -or $first.code -ne 'P0_DISASTER_WEBVIEW_RESTORE_PASS'){
@@ -169,7 +169,7 @@ try {
   $cut=Device-Epoch
   [void](Device-Adb -Arguments @('shell','am','force-stop',$Package))
   [void](Device-Adb -Arguments @('shell','monkey','-p',$Package,'-c','android.intent.category.LAUNCHER','1'))
-  $second=Get-FreshProof -since $cut -timeoutSeconds 65
+  $second=Get-FreshProof -since $cut -timeoutSeconds 65 -expectedCode 'P0_DISASTER_PHYSICAL_RESTART_PASS'
   $report.secondCode=$second.code
   $report.secondChecks=$second.checks
   if($second.status -ne 'PASS' -or $second.code -ne 'P0_DISASTER_PHYSICAL_RESTART_PASS'){
