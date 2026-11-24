@@ -1411,13 +1411,43 @@ function renderVarroaModule(){
  list.innerHTML=rows.map(row=>{const hive=S.hives.find(h=>h.id===row.hiveId),title=row.type==='adult_bee_sample'?'Проба взрослых пчёл':'Контрольный поддон',value=row.type==='adult_bee_sample'?row.mitesPer100Bees+' клеща на 100 пчёл':row.mitesPer24h+' клеща за 24 часа',detail=row.type==='adult_bee_sample'?methodLabels[row.method]+' · '+row.beesCount+' пчёл · '+row.mitesCount+' клещей':row.mitesCount+' клещей · '+row.exposureHours+' ч';return '<div style="padding:10px 0;border-bottom:1px solid #edf0e9"><div class="row"><b>'+safe(title)+' · '+safe(hive?hname(hive.id):(row.hiveLabelAtTime||'Архивный улей'))+'</b><span class="muted">'+safe(row.date)+'</span></div><div><b>'+safe(value)+'</b></div><div class="muted">'+safe(detail)+'</div>'+(row.notes?'<div class="muted">'+safe(row.notes)+'</div>':'')+'</div>'}).join('');
 }
 async function saveVarroaObservation(event){
- event?.preventDefault?.();const type=$('varroaType').value,input={type,hiveId:$('varroaHive').value,date:$('varroaDate').value,notes:$('varroaNotes').value};
- if(type==='adult_bee_sample'){input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
- else{input.mitesCount=$('varroaBoardMites').value;input.exposureHours=$('varroaExposureHours').value}
- let observation;try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString())}catch(error){alert(error.message||'Проверь данные измерения');return}
- const previous=cloneApiaryState();S.varroaObservations=S.varroaObservations||[];S.varroaObservations.push(observation);logAudit('varroa_observation_created',{observationId:observation.id,hiveId:observation.hiveId,type:observation.type,date:observation.date});
- if(!await save()){S=previous;render();return}
- $('varroaForm').reset();$('varroaDate').value=today();toggleVarroaFields();renderVarroaModule();
+ event?.preventDefault?.();
+ const form=$('varroaForm');
+ if(form.dataset.saveInProgress==='1')return;
+ form.dataset.saveInProgress='1';
+ try{
+  const type=$('varroaType').value,input={type,hiveId:$('varroaHive').value,date:$('varroaDate').value,notes:$('varroaNotes').value};
+  if(type==='adult_bee_sample'){input.method=$('varroaMethod').value;input.beesCount=$('varroaBeesCount').value;input.mitesCount=$('varroaMitesCount').value}
+  else{input.mitesCount=$('varroaBoardMites').value;input.exposureHours=$('varroaExposureHours').value}
+  if(input.date>today()){alert('Фактически выполненное измерение Varroa не может иметь дату из будущего.');return}
+  let observation;
+  try{observation=PasekaVarroa.buildVarroaObservation(input,S.hives,uid,new Date().toISOString())}
+  catch(error){alert(error.message||'Проверь данные измерения');return}
+  let previous;
+  try{previous=cloneApiaryState()}
+  catch(error){alert('Не удалось подготовить безопасное сохранение измерения: '+(error?.message||error));return}
+  let saved=false,saveFailure='';
+  try{
+   if(!Array.isArray(S.varroaObservations))throw new Error('Раздел измерений повреждён; запись не добавлена');
+   S.varroaObservations.push(observation);
+   logAudit('varroa_observation_created',{observationId:observation.id,hiveId:observation.hiveId,type:observation.type,date:observation.date});
+   saved=await save();
+  }catch(error){saveFailure=error?.message||'Неизвестная ошибка записи'}
+  if(!saved){
+   const persistenceError=S.meta?.saveError;
+   S=previous;
+   try{render()}catch(error){console.error('Не удалось обновить экран после отмены измерения Varroa',error)}
+   alert('Измерение не сохранено. Исходные данные восстановлены, форма оставлена открытой.'+(persistenceError||saveFailure?' Причина: '+(persistenceError||saveFailure):''));
+   return;
+  }
+  try{form.reset();$('varroaHive').value=observation.hiveId;$('varroaDate').value=today();toggleVarroaFields();renderVarroaModule()}
+  catch(error){
+   console.error('Измерение Varroa сохранено, но экран не удалось обновить',error);
+   alert('Измерение сохранено. Интерфейс не обновился; перезагрузи приложение, не сохраняй его повторно.');
+  }
+ }finally{
+  form.dataset.saveInProgress='';
+ }
 }
 function openVarroaTreatmentJournal(){
  const hiveId=$('varroaHive')?.value;
@@ -2710,7 +2740,38 @@ function mediaHtml(items){
  }).join('');
 }
 function editRecord(id){const r=S.records.find(x=>x.id===id);if(!r)return;$('recordForm').dataset.varroaTreatmentDraft='';$('recordForm').reset();const extractNotice=$('aiJournalExtractNotice');if(extractNotice){extractNotice.textContent='';extractNotice.style.display='none'}$('recordId').value=r.id;$('recordTitle').textContent='Редактирование записи';prepareRecordForm();$('rdate').value=r.date;$('rtype').value=r.type;$('roccupancy').value=r.occupancy??'';$('rbrood').value=r.broodFrames??'';$('rdrawn').value=r.freeDrawn??'';toggleOccupancy();$('rhive').value=r.hive;fillFamilies(r.family||'',r.familySnapshotAtTime||null);$('rfamily').value=r.family||'';$('rqueen').value=r.queen||'';$('reggs').value=r.eggs||'';$('rbroodPattern').value=r.broodPattern||'';$('rqueenCells').value=r.queenCells||'';$('rswarmSigns').value=r.swarmSigns||'';$('rtreatmentProduct').value=r.treatmentProduct||'';$('rtreatmentActive').value=r.treatmentActive||'';$('rtreatmentMethod').value=r.treatmentMethod||'';$('rtreatmentDose').value=r.treatmentDose||'';$('rtreatmentCheck').value=r.treatmentCheck||'';$('rtreatmentWaiting').value=r.treatmentWaiting||'';$('rtreatmentBatch').value=r.treatmentBatch||'';$('rfeedingType').value=r.feedingType||'';$('rfeedingSubstance').value=r.feedingSubstance||'';$('rfeedingAmount').value=r.feedingAmount||'';$('rfeedingConcentration').value=r.feedingConcentration||'';$('rfeedingMethod').value=r.feedingMethod||'';$('rtext').value=r.text||'';$('existingMedia').innerHTML=mediaHtml(r.media||[]);$('recordDlg').showModal()}
-async function deleteRecord(id){const r=S.records.find(x=>x.id===id);if(!r||r.archivedAt)return;if(!confirm('Переместить запись в архив? История и прикреплённые файлы сохранятся.'))return;r.archivedAt=new Date().toISOString();r.updatedAt=r.archivedAt;S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type:'record_archived',entityId:r.id,at:r.archivedAt});await save()}async function restoreRecord(id){const r=S.records.find(x=>x.id===id);if(!r||!r.archivedAt)return;delete r.archivedAt;r.updatedAt=new Date().toISOString();S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type:'record_restored',entityId:r.id,at:r.updatedAt});await save()}
+const pendingJournalRecordActions=new Set();
+async function mutateArchivedJournalRecord(id,action){
+ if(pendingJournalRecordActions.has(id))return false;
+ const record=S.records.find(row=>row.id===id);
+ if(!record||(action==='archive'?!!record.archivedAt:!record.archivedAt))return false;
+ if(action==='archive'&&!confirm('Переместить запись в архив? История и прикреплённые файлы сохранятся.'))return false;
+ pendingJournalRecordActions.add(id);
+ try{
+  let previous;
+  try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасное изменение записи: '+(error?.message||error));return false}
+  let saved=false,saveFailure='';
+  try{
+   const now=new Date().toISOString();
+   if(action==='archive')record.archivedAt=now;
+   else delete record.archivedAt;
+   record.updatedAt=now;
+   S.auditLog=S.auditLog||[];
+   S.auditLog.push({id:uid(),type:action==='archive'?'record_archived':'record_restored',entityId:record.id,at:now});
+   saved=await save();
+  }catch(error){saveFailure=error?.message||'Неизвестная ошибка записи'}
+  if(!saved){
+   const persistenceError=S.meta?.saveError;
+   S=previous;
+   try{render()}catch(error){console.error('Не удалось перерисовать журнал после отказа архивации',error)}
+   alert('Изменение архива не сохранено; исходная запись восстановлена.'+(persistenceError||saveFailure?' Причина: '+(persistenceError||saveFailure):''));
+   return false;
+  }
+  return true;
+ }finally{pendingJournalRecordActions.delete(id)}
+}
+async function deleteRecord(id){return mutateArchivedJournalRecord(id,'archive')}
+async function restoreRecord(id){return mutateArchivedJournalRecord(id,'restore')}
 function fillFamilies(includeFamilyId='',archivedSnapshot=null){const live=S.families.filter(f=>f.hive===$('rhive').value||f.id===includeFamilyId);let options=live.map(f=>'<option value="'+f.id+'">'+safe(f.name)+(f.hive!==$('rhive').value?' · сейчас в '+safe(hname(f.hive)):'')+'</option>').join('');if(includeFamilyId&&!live.some(f=>f.id===includeFamilyId)&&archivedSnapshot?.id===includeFamilyId)options+='<option value="'+includeFamilyId+'">'+safe(archivedSnapshot.name||archivedSnapshot.code||'Удалённая семья')+' · архивная связь</option>';$('rfamily').innerHTML='<option value="">Не указана</option>'+options}
 async function fileData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file)})}
 async function addCapturedPhoto(file){
