@@ -79,7 +79,7 @@ test('B15 regression: implicit push / PR / scheduled production triggers fail cl
 
 test('B15 regression: missing SHA ancestry, confirmation, main-only gate or reordered secrets are rejected',()=>{
   assert.throws(()=>assertCloudflareGate(cloudflare.replace('git merge-base --is-ancestor','git merge-base --is-unrelated')),/merge-base/);
-  assert.throws(()=>assertCloudflareGate(cloudflare.replace('PUBLISH-CLOUDFLARE','SKIP-CONFIRMATION')),/PUBLISH-CLOUDFLARE/);
+  assert.throws(()=>assertCloudflareGate(cloudflare.replace("test \"$CONFIRMATION\" = 'PUBLISH-CLOUDFLARE'","test \"$CONFIRMATION\" = 'SKIP-CONFIRMATION'")),/PUBLISH-CLOUDFLARE/);
   assert.throws(()=>assertCloudflareGate(cloudflare.replace("github.ref == 'refs/heads/main'","github.ref == 'refs/heads/dev'")),/main/);
   const approval='      - name: Require an approved exact main commit and explicit confirmation';
   const secrets='      - name: Check deployment secrets';
