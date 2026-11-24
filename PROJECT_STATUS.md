@@ -1,18 +1,19 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**2026-11-24.** Актуальный проверенный через GitHub `main=6b865fe0b338f360d763ce3d0599829b7c34dedc`. История — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), безопасность — [AGENTS.md](AGENTS.md), действующие блокеры — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md).
+**24.11.2026, согласование PR #475 после #474.** Базовый подтверждённый `main=6ec1b20d618924959122821c81fc0bef808e6b9e`; live GitHub имеет приоритет. [Журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), [реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md), [план внешних испытаний](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
 
-## Главные факты
+## Интеграция и точные проверки
 
-- **PR #472 MERGED:** read-only полный экспорт `paseka-v1`, SHA-проверка файла, B02 Blob guard и SW v316. Main merge SHA `9e3c76b...`: Fast #3995 и Android #7009 **SUCCESS**. Full live restore UI отсутствует.
-- **PR #473 MERGED:** fail-closed отказ при отсутствующем `main/full_backup/entrance_media` без записи в пользовательскую базу. Main merge SHA `c20d0fc...`: Fast #3998 и Android #7013 **SUCCESS**. Полное legacy migration/rollback и физический restore B09 **NOT_VERIFIED**.
-- **PR #471 MERGED:** оперативные правила, реестр B01–B15 и план физических испытаний. Code-free финальный main SHA `6b865fe0b338f360d763ce3d0599829b7c34dedc` **без отдельного CI run**: fast/Android workflows не слушают docs-only push, Governance Docs Checks на PR HEAD `a36eb74...` SUCCESS. Отсутствие run ≠ успешная проверка финального SHA.
-- **Текущий Draft:** безопасный документационный CI на push `main`, без Pages/deploy и без прав записи, со статическим негативным тестом. До отдельного разрешения на merge этот механизм не работает в main.
-- **Draft #469:** read-only audit signer OnePlus тестировался лишь с подменённым ADB; фактический signer UNKNOWN, долговременный защищённый ключ отсутствует. **Draft #452:** старый live restore не объединён. PASEKA02 **FROZEN #442**, лицензионные веса/реальный video/auto delete не подтверждены.
+- **#472 MERGED:** read-only полный IDB архив, SHA, fail-closed Blob guard, G0, SW v316. Основной SHA `9e3c76b...` Fast/Android PASS. Реальный restore запрещён.
+- **#473 MERGED:** проверка обязательных IDB stores без изменения базы. Основной SHA `c20d0fc...` Fast/Android PASS.
+- **#471 MERGED:** правила F0–F7, реестр и планы.
+- **#474 MERGED:** безопасный docs-only push-main Governance CI без публикации. На точном `main=6ec1b20d618924959122821c81fc0bef808e6b9e` [Governance #45473457945](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45473457945) SUCCESS и [Fast #45473457920](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45473457920) SUCCESS.
+- **#475:** согласование безопасного Varroa/journal save rollback и выбранного улья с уже объединённым #474. Исходный кодовый PR SHA `ace5993909879615db7b16083775c3f17089c78e`: Android **709/709 PASS, BUILD SUCCESSFUL**. Обновлённый reconciliation HEAD требует самостоятельных CI. Не утверждать merge до фактического GitHub результата.
+- **Draft #476:** B09 test-only v1/v2 upgrade и атомарный abort; последний SHA `a71e69bc47eb5411ef5ff0887b96f47af0464bda` **701/701 PASS**, Android/Docs SUCCESS; после #475 потребует нового согласования.
+- **Draft #469:** read-only mock ADB, installed signer OnePlus UNKNOWN и постоянный ключ отсутствует. **Draft #452:** старый restore не merged. PASEKA02 **FROZEN #442** — реальные веса, видео, V0–V6 и удаление не разрешены.
 
-## Незавершённое
+## Следующий gate
 
-- B01 — нет внешнего полного файла, byte-proof и независимого restore; B04/B05 — нет реального signer/secure key; B06 — FROZEN; B07/B08/B13 — source-bound выборочная интеграция; B10/B11 — физические Android/offline испытания; B14 — реальные измерения; B15 — точная история release/Pages и docs-only main CI.
-- [План снятия B01–B15](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md) определяет минимум участия пользователя. При доступе к ПК — только read-only ADB, затем внешний архив и отдельный пустой target.
+На согласованном HEAD #475 повторить Android+Docs CI и проверить `behind main=0`/mergeable. После отдельного уже данного разрешения — последовательное merge #475, точный CI main и согласование #476 с новым main. B01/B04–B06/B10–B11 физически не закрыты.
 
-**Права:** новые PR разрабатываются автономно, но **слияние, публикация, APK install, production DB, восстановление/удаление оригиналов запрещены без отдельного разрешения**. Предыдущие разрешения #472/#473/#471 исполнены и не распространяются на новые PR.
+**Запреты:** никаких release, Pages deployment, APK install, production database restore/cleanup и удаления исходных видео. Без подтверждённой внешней копии физические операции B09 запрещены.
