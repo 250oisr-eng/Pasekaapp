@@ -1,3 +1,13 @@
+## 2026-11-24 — первый запуск: исправленный тест + точный Android CI PASS, кандидат debug APK
+
+- Новый сквозной storage-contract тест `tests/first-use-storage-journey.test.mjs` выявил тестовую ошибку: существующая запись проверялась как новая, и правильный duplicate-ID guard отказал. Исправлено передачей `existingRecord`; поведение приложения не ослаблялось. Промежуточный Android workflow #45372647223 = **FAIL** на этом неверном тесте, APK тогда не построен.
+- **Точный исправленный CODE+TEST SHA: `f2217095a9ae25d65f06dfaa24258eb177903887`.** [Android workflow #45372830530](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45372830530) **completed/success, 667/667 tests PASS, Gradle BUILD SUCCESSFUL, artifact upload SUCCESS.** Отдельного Fast quality workflow для точного SHA в доступных результатах не подтверждено: `FAST_EXACT_SHA=NOT_VERIFIED`, `ANDROID_CI_EXACT_SHA=PASS`.
+- GitHub Actions artifact `paseka-debug-apk`, ID `14908849781`, expires 2026-12-08 UTC, artifact ZIP digest `sha256:5ab4d8f0d95854273539d6af94445a5154f42989821115f8b2d1c8e755ae3a98` (**это digest ZIP artifact, НЕ SHA-256 конкретного APK**). В `capacitor.config.json` appId `ru.paseka.journal` — обычный пакет, **не изолированный**. Не устанавливать поверх существующего приложения с пользовательскими данными без проверки/бэкапа.
+- В Draft #469 добавлены синтетический контракт хранения и `docs/ПЕРВЫЙ-ЗАПУСК-И-КАНДИДАТ-ONEPLUS-2026-11-24.md`. `DEVICE_FIRST_USE_E2E=NOT_TESTED`; `APK_BUILD_CANDIDATE=AVAILABLE`, но `UNIFIED_DEVICE_VERIFIED_CANDIDATE=NOT_READY`: независимые P0/P1 Draft #468/#452/#467 не интегрированы, PASEKA02 #442 FROZEN.
+- Нет merge, выпуска, production БД и удаления медиа. Следующее действие: проверить отсутствие конфликтов пакета на OnePlus и провести единственный пользовательский UI smoke на допустимом тестовом профиле, предварительно проверив файл APK и его цифровой отпечаток.
+
+---
+
 ## 2026-11-24 — первый запуск: storage-contract сквозная регрессия, OnePlus ещё НЕ проверен
 
 - Приоритет пользователя: пустая база → первый улей → первая семья → запись журнала → сохранение → перезапуск → офлайн. Продолжена **существующая ветка Draft #469** от main, вместо дублирующего PR.
