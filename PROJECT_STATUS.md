@@ -1,13 +1,19 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**24.11.2026.** Живой `main=c20d0fc39c8e1142925d2667c74c5c7760d3ce20`. [PR #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) **MERGED по отдельному разрешению**, без публикации: в main полный read-only v1 IDB экспорт, проверка SHA, B02 Blob guard, G0 и SW v316. Fast #3995 SUCCESS на merge SHA, Android #7009 completed/success. Full live restore UI не существует.
+**2026-11-24.** Live `main=6b865fe0b338f360d763ce3d0599829b7c34dedc` после отдельно разрешённых слияний #472/#473/#471. История — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), оперативные B01–B15 — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md).
 
-**PR #473 MERGED**: B09 fail-closed проверка схемы `main/full_backup/entrance_media` с двумя тестами добавлена в main после 695/695 PASS / Android BUILD SUCCESSFUL на PR SHA. Fast #3998 и Android #7013 на merge SHA проверяются отдельно. Полные legacy migrations и аварийное восстановление NOT_VERIFIED. Полные legacy migrations и аварийное восстановление NOT_VERIFIED.
+## Подтверждённое
 
-**PR #471**: в рабочей ветке согласованы компактные правила, реестр B01–B15, план действий и журнал. **Не merged**, новый exact SHA Governance CI проверить.
+- **#472 MERGED:** read-only полный архив `paseka-v1`, SHA проверки, B02 fail-closed и SW v316. CI merge `9e3c76b...`: Fast #3995 и Android #7009 SUCCESS. In-place live restore UI **отсутствует**.
+- **#473 MERGED:** fail-closed проверка обязательных IDB stores, без миграции или очистки. CI merge `c20d0fc...`: Fast #3998, Android #7013 SUCCESS. Старые миграции и реальный backup/recovery NOT_VERIFIED.
+- **#471 MERGED:** правила F0–F7, реестр блокеров, план внешних действий. Итоговый `main=6b865fe...` не получил CI run, поскольку docs-only main push не покрыт workflow; считать `NOT_VERIFIED`, не `FAIL`.
+- **Draft #474:** безопасный Governance Docs workflow на docs-only main push и тест запрета публикации, CI SUCCESS на кодовом SHA `e17f2c15...`; новый docs-only HEAD проверить. Не merged.
+- **Draft #475:** основной B13 journal/Varroa rollback и фильтр измерений выбранного улья. На SHA `a8e2afbaf10e070a198b60fbc01fb3289e7bd816` [Android #45469116241](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45469116241) **709/709 PASS, BUILD SUCCESSFUL**, [Governance #45469116177](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45469116177) SUCCESS. Последующие изменения только docs. `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN`, физическая проверка NOT_VERIFIED.
+- **Draft #469:** реальный signer установленного OnePlus UNKNOWN и защищённый постоянный key отсутствует. **Draft #452:** старый restore не merged. Video/auto delete **FROZEN #442**.
 
-**Draft #469**: прочтение установленной подписи OnePlus только в mock tests, actual signing fingerprint UNKNOWN, постоянного защищённого ключа нет. **Draft #452** — старый full restore, не merged. **Issue #442** PASEKA02 automatic video cleanup FROZEN. Без независимой копии и V0–V6 нельзя удалять реальные файлы.
+## Следующее
 
-**Внешние ворота:** read-only ADB на доступном OnePlus, независимый архив вне устройства, byte-safe восстановление только на пустом тестовом target, постоянный signing keystore вне Git. Технологические OP и старые stacked PR не интегрировать пачкой. Подробности — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md) и [план](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
+- Проверить exact-head CI #474 и #475, отдельное разрешение пользователя на возможное merge. Они оба обновляют статус, перед слиянием нужно согласовать docs и повторно проверить main/CI.
+- B01/B04/B05/B06/B10/B11 — внешние независимые архив/устройство/веса/подпись; B07/B08 технологические PR и B13 journal требуют адресной интеграции, B14 — измерений, B15 — проверки release/Pages. Подробности — [план действий](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
 
-**Права:** отдельные разрешения пользователя на последовательное слияние #472, #473 и #471 ограничены проверкой CI/отсутствием конфликтов. #472 и #473 уже merged. #471 — ещё Draft; для merge требуется успешный новый exact-SHA Governance CI и повторная проверка main. Публикация не разрешена. Никаких publish/deploy, установки APK, изменения production-базы, восстановления и удаления.
+**Запреты:** без нового разрешения нельзя merge PR, публиковать, устанавливать APK, изменять production DB, восстанавливать или удалять оригиналы. Рабочий OnePlus не затронут.
