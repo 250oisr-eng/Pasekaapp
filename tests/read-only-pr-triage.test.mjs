@@ -54,3 +54,25 @@ test('B08 tool is read-only and has no mutation or automatic PR merge/close acti
  assert.match(source,/reviewStatus:'REVIEW_REQUIRED'/);
  assert.match(source,/B08_INVENTORY_NOT_VERIFIED/);
 });
+
+test('B08 invalid arguments and malformed pages never report a partial inventory',async()=>{
+ for(const options of [{pageSize:0},{pageSize:101},{maxPages:0},{maxPages:101},{pageSize:NaN}]){
+  await assert.rejects(collectOpenPulls(async()=>[],options),/Invalid/);
+ }
+ await assert.rejects(collectOpenPulls(async()=>null),/malformed/);
+ await assert.rejects(collectOpenPulls(async()=>({items:[]})),/malformed/);
+});
+test('B08 an exactly-full last page is never mistaken for complete inventory',async()=>{
+ const page=async n=>n===1?[make(1)]:[];
+ await assert.rejects(collectOpenPulls(page,{pageSize:1,maxPages:1}),/Pagination limit/);
+ const result=await collectOpenPulls(page,{pageSize:1,maxPages:2});
+ assert.equal(result.length,1);
+});
+test('B08 never asserts merge-ready when metadata says draft=false',async()=>{
+ const p=make(300);p.draft=false;
+ const result=await collectOpenPulls(async()=>[p],{pageSize:5});
+ assert.equal(result[0].draft,false);
+ assert.equal(result[0].reviewStatus,'REVIEW_REQUIRED');
+ assert.equal(result[0].ciStatus,'NOT_CHECKED');
+ assert.equal(result[0].ancestry,'NOT_CHECKED');
+});
