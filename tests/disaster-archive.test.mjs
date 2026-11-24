@@ -129,7 +129,7 @@ test('truncated archive and hostile index shape fail before restore',async()=>{
 });
 
 test('injected QuotaExceededError after first store write aborts all stores and preserves prior state',async()=>{
- const db=await database();await seed(db);
+ const db=await database();await seed(db,false);
  const raw=await api.exportArchive(db);
  const inspected=await api.inspectArchive(raw,db);
  inspected.rows.get('main')[0].value.meta.revisionId='recovered';
