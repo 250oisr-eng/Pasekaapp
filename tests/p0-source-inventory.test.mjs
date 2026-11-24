@@ -104,3 +104,18 @@ test('G0 catches missing entrance original while never attempting restore or del
  assert(!JSON.stringify(report).includes('MISSING-PRIVATE'));
  db.close();
 });
+
+test('G0 UI blocks heavyweight scan before opening IndexedDB if unsaved media or camera is active',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('async function downloadG0SourceInventory(){');
+ const end=html.indexOf('async function downloadBackup(){',start);
+ assert(start>=0&&end>start);
+ const body=html.slice(start,end);
+ const guard=body.indexOf("const pending={journal:pendingRecordMedia.length");
+ const stop=body.indexOf("Инвентаризация не запущена:");
+ const scan=body.indexOf('PasekaP0SourceInventory.readOnlyInventory(db)');
+ assert(guard>=0&&stop>guard&&scan>stop,'unsaved state must be checked before expensive read-only scan');
+ assert.match(body,/report\.unsavedInMemory=pending/);
+ assert(!body.includes('deleteAllData('));
+ assert(!body.includes('restoreDisasterArchive('));
+});
