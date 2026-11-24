@@ -1,3 +1,14 @@
+## 2026-11-24 — большой цикл P0: QA-signing guard + изолированный transfer + негативный restore, 686/686 PASS
+
+- Сверены live GitHub: Draft #469 открыт, не merged; P0 full restore #452 отдельный Draft, PASEKA02 auto-cleanup #442 FROZEN; `main` не изменён. Пользовательский OnePlus `USER_REPORTED_DEVICE_PASS` (чистый первый улей, семья, две заметки после офлайн-перезапуска), данные **есть на устройстве** — не удалять.
+- Добавлен `scripts/sign-isolated-qa-apk.mjs`: только `ru.paseka.journal.firstuseqa`, внешний абсолютный keystore **за пределами Git worktree**, отдельный неперезаписываемый output APK, explicit `PASEKA_SIGN_ISOLATED_QA=YES`, SHA-256 certificate pin, apksigner password via `env:` без буквального пароля в аргументах. При сбое частично созданный output удаляется. Нет реальных ключей и секретов, **практическая подпись/воспроизводимость NOT_TESTED**.
+- `tests/sign-isolated-qa-apk.test.mjs` защищает от отсутствующих параметров/секретов, разных сертификатов, случайного основного appId, хранения keystore в репозитории, перезаписи APK. `tests/isolated-qa-package-config.test.mjs` фиксирует отдельный appId и запрет основной ветки. Никакая обычная debug сборка CI не объявляется готовым подписанным QA-артефактом.
+- `scripts/audit-oneplus-json-transfer.mjs` теперь блокирует неизвестную/более новую JSON schema version (включая 16) вместо ложного PASS; обновлены тесты. `tests/isolated-json-origin-restore.test.mjs` добавил негативный сценарий: некорректный synthetic JSON не изменяет target main IndexedDB. Отдельные видео летков по-прежнему не входят в legacy JSON.
+- Кодовый SHA **`6878def7f050131e65a15c00d5f4af4264bf1d10`**: [Android CI #45438672376](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45438672376) **completed/success, 686/686 PASS, fail 0, Gradle BUILD SUCCESSFUL**; artifact ID `14943380507`, ZIP digest `sha256:46786fb83738d6a7778c7c244d37a1ecc7583034071a82231cd9115f52c13048`, expires `2026-12-08T16:35:17Z`. Новый debug APK **не устанавливать поверх OnePlus** из-за доказанного signer drift; это не stable QA signature.
+- Полный сводный технический отчёт: `docs/P0-BIG-CYCLE-SAFE-SIGNING-TRANSFER-2026-11-24.md`. **Следующий gate:** внешнее безопасное хранение долгоживущего закрытого ключа и конкретная подпись двух изолированных APK с одним cert, затем реальная проверка независимого Android origin/backup при сохранённой старой установке. Пока `QA_SIGNING_KEY_NOT_PROVISIONED`, `DEVICE_TRANSFER_NOT_TESTED`; не делать release/merge/deploy.
+
+---
+
 ## 2026-11-24 — P0: локальный аудит JSON и изолированный origin-restore; 681/681 exact Android CI PASS
 
 - Пользовательский OnePlus first-use+offline `USER_REPORTED_DEVICE_PASS`; на телефоне есть тестовые улей, семья и **две заметки**, которые **нельзя удалять или перезаписывать** до подтверждённой надёжной миграции. Подписи опубликованных debug APK не совпадают; `DIRECT_UPGRADE=BLOCKED`, report `docs/P0-ANDROID-APK-SIGNING-CONFLICT-2026-11-24.md`.
