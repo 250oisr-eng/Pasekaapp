@@ -285,5 +285,20 @@ async function atomicRestore(db,inspection,expectedRevision){
   }catch(e){fail(e);}
  });
 }
-root.PasekaDisasterArchive=Object.freeze({exportArchive,inspectArchive,atomicRestore,format:FORMAT});
+// Read-only recovery proof: compare every store, record and binary byte of the
+// actual target DB against the archive checksum. It cannot prove that an
+// external file was saved or that other databases/files were included.
+async function verifyRestoredArchive(db,inspection){
+ assert(inspection&&typeof inspection.sha256==='string'&&/^[a-f0-9]{64}$/.test(inspection.sha256),
+  'Archive inspection with SHA-256 required for recovery verification');
+ const exported=JSON.parse(await exportArchive(db));
+ assert(exported.manifest.sha256===inspection.sha256,
+  'Restored database differs from archived source bytes');
+ const expectedCounts=inspection.counts;
+ assert(expectedCounts&&typeof expectedCounts==='object','Archive store counts missing');
+ assert(JSON.stringify(exported.manifest.counts)===JSON.stringify(expectedCounts),
+  'Restored database record inventory differs from archive');
+ return {verified:true,sha256:exported.manifest.sha256,counts:exported.manifest.counts};
+}
+root.PasekaDisasterArchive=Object.freeze({exportArchive,inspectArchive,atomicRestore,verifyRestoredArchive,format:FORMAT});
 })(typeof window!=='undefined'?window:globalThis);
