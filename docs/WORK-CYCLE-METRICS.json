@@ -160,7 +160,7 @@
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED."
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25 B08 read-only inventory: complete GitHub PR pagination 393 before Draft #481, 394 after, 41 main-root, 353 other-base; exact code+test SHA 658ce729ba1c3af383d4f3c07119ffd3ca8ca4df Fast #45496538943 and Android #45496538980 SUCCESS. First test-assertion mismatch fixed, no actual production or user scenario completed, no verified time saved; repeat-read and elapsed-time baseline unknown. F0–F7 evidence in B08 report, no bulk merge."
   },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
