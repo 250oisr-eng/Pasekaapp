@@ -16,3 +16,5 @@
 - Следующий безопасный шаг без ПК: закончить code/negative/Android CI именно для B11 Draft #478, обновить PR evidence. **Запрещены без отдельного разрешения:** merge, production deployment, APK update/install, restore, clear/uninstall, удаление видео и пользовательских данных. Ни green CI, ни синтетика не доказывают физическую миграцию.
 
 - **Параллельный цикл 25.11 / B11:** к `tests/service-worker-offline-lifecycle.test.mjs` добавлено 2 негативных теста deletion rejection и cache-name lookalikes на code SHA `7faf378cc09a3b6fd0c9bc73d7b57ebfd1c118bc`. Governance на этом SHA SUCCESS, Android exact final SHA требует отдельной сверки. `sw.js` не менялся; OnePlus v315→v318 upgrade по-прежнему BLOCKED.
+
+- **Финальная сверка параллельного B11:** HEAD `e3883bdffef8528184c5e8363d24f04c3117225a`, Android #45501080070 completed/SUCCESS, Governance #45501080586 completed/SUCCESS. Вся новая проверка синтетическая; установочный SW/телефон не обновлялись; PR #478 остаётся Draft, NOT_IN_MAIN. Следующий docs-only SHA также требует собственной сверки CI.
