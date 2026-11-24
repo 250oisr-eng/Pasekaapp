@@ -6,7 +6,9 @@ const source=await readFile(new URL('../js/disaster-archive.js',import.meta.url)
 const start=source.indexOf('function getRecords(db){');
 const end=source.indexOf('\nasync function exportArchive(db){',start);
 assert.ok(start>=0&&end>start,'must run the real full archive snapshot reader');
-const getRecords=new Function('return ('+source.slice(start,end)+');')();
+const getRecords=new Function('assert','return ('+source.slice(start,end)+');')(
+ (ok,message)=>{if(!ok)throw new Error(message);}
+);
 
 function snapshotHarness(){
  const names=['main','full_backup','entrance_media'];
