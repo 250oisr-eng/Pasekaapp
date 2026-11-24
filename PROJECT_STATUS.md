@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**2026-11-24.** Живой `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1`, после разрешённого merge #474/#475/#476. Состояние подтверждено GitHub, [реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md) и [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**2026-11-24.** Подтверждённый `main=0e62ced6e34ea1fc92e7e090c2c514e8306c5f8d` после разрешённой интеграции #477. Live SHA и CI имеют приоритет.
 
 ## Подтверждено
 
@@ -8,8 +8,10 @@
 - **#474 MERGED:** read-only docs-only push-main CI без права Pages deployment.
 - **#475 MERGED:** Varroa/journal rollback, защита от повторного submit и изоляция по улью; точный merge SHA `81537a6...` Fast/Android/Docs SUCCESS.
 - **#476 MERGED:** тесты legacy IDB v1/v2→v3, сохранности Blob/ArrayBuffer, atomic abort и newer-schema guard; последний `main=04fabd9b0ea184b23f5ee8a573f0b4d8a99ba9e1` [Fast #45474625284](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625284), [Android #45474625192](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625192), [Governance #45474625209](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45474625209) — **SUCCESS**.
-- **Текущий Draft B11:** [исходный риск](docs/P1-B11-SW-PRIVATE-CACHE-INSTALL-GATE-2026-11-24.md): прежний `sw.js` использовал `cache.addAll` без ограничения `Cache-Control: private/no-store`. В рабочей ветке v317 установка fail-closed, добавлены 3 теста; [Draft #477](https://github.com/250oisr-eng/Pasekaapp/pull/477), кодовый SHA `ab122276f86f26b83fe7cbc715b1d3c668417996`: [Android #45475559444](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559444) **719/719 PASS, BUILD SUCCESSFUL**, [Governance #45475559734](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45475559734) **SUCCESS**; финальный docs HEAD проверить.
+- **#477 MERGED / B11 install gate IN_MAIN:** Service Worker v317 отклоняет private/no-store/отсутствующие shell assets при установке; новый `main=0e62ced6...`. Exact-main [Fast #45476750153](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45476750153), [Android #45476750242](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45476750242), [Governance #45476750196](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45476750196) **completed/success**. Реальные offline/upgrade и device backup всё ещё **NOT_VERIFIED**.
 - **Draft #469:** B04 реальные OnePlus APK package/signature UNKNOWN, защищённого signing key нет. **Draft #452:** прежний full restore не объединён. **Issue #442** PASEKA02 real-video detection/auto-cleanup **FROZEN**.
+
+- **Draft #478 / B11 follow-up:** VM regression проверяет холодный offline shell fallback, отсутствие перехвата API/cross-origin/POST и очистку только старого Paseka shell cache при активации. Основа — проверенный #477 main; SHA первого code commit `f30d8c889fdc4f3112063597a514f23f4aa25676`. Его собственный CI и последующий финальный HEAD требуют проверки; **NOT_IN_MAIN, DEVICE_NOT_VERIFIED**. Не сливать без отдельного разрешения.
 
 ## Следующие ограничения
 
