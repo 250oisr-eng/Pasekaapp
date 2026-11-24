@@ -83,3 +83,27 @@ test('B01 synthetic: dd-like remote diagnostics merged into raw exec-out must fa
   assert.equal(data.subarray(0,16).every(byte => byte === 0),true);
   // A prefix-only check is inadequate: raw transport must compare the whole stream.
 });
+
+test('B01 device V6 regression: 1,090-byte public TAR is never accepted despite raw ADB exit zero', () => {
+  // The physical report had four exact zero-byte transfers, then a 1090-byte TAR.
+  // Raw exec-out can mix remote diagnostic bytes into output; cause not yet proven.
+  const purportedTar = Buffer.concat([Buffer.alloc(1024), Buffer.alloc(66, 0x45)]);
+  assert.equal(purportedTar.length, 1090);
+  assert.equal(purportedTar.length % 512, 66);
+  assert.equal(alignedTar(purportedTar), false);
+  const exitCode = 0;
+  assert.equal(exitCode === 0 && alignedTar(purportedTar), false);
+});
+
+test('B01 device V6 regression: zero payload integrity and public TAR validity are independent gates', () => {
+  const plain16 = Buffer.alloc(16);
+  const runAs16 = Buffer.alloc(16);
+  const plain5MiB = allZero;
+  const runAs5MiB = Buffer.from(allZero);
+  const malformedTar = Buffer.alloc(1090);
+  const zeroBytesVerified = [plain16, runAs16].every(b => b.length === 16 && b.every(x => x === 0)) &&
+    exactZero(plain5MiB) && exactZero(runAs5MiB);
+  assert.equal(zeroBytesVerified, true);
+  assert.equal(alignedTar(malformedTar), false);
+  assert.equal(zeroBytesVerified && alignedTar(malformedTar), false);
+});
