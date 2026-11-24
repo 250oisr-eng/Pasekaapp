@@ -1,3 +1,10 @@
+## 2026-11-24 — окончательный CI gate исправленной P0 диагностической сборки
+
+- После исправления исходного source SHA на кодовом SHA `b1a33b82b49daff52b5e840bd7e63a6d83b917e5`: [isolated #45358963645](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963645) **completed/success включая emulator job**, build 674/674 PASS, APK BUILD SUCCESSFUL. [Android #45358963671](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45358963671) **completed/success**. Пакет artifact #14904145878 доступен. Это не физический OnePlus и не production restore.
+- Исправленный Windows ZIP доступен пользователю непосредственно в чате; `P0_CURRENT_ONEPLUS=AWAITING_USER_REPORT`. CI гейты завершены на точном кодовом SHA; последующие изменения только документации не означают иной пересобранный APK.
+
+---
+
 ## 2026-11-24 — P0 PC+OnePlus diagnostic manifest mismatch: root cause fixed, physical retest pending
 
 - Пользователь попытался запустить Windows `PASEKA_P0_OnePlus_PC_Audit_2026-11-24.zip` на `D:\\приложение ПАСЕКА\\тест`; **BLOCKED `DIAGNOSTIC_MANIFEST_MISMATCH` ДО установки Android APK**. Испытание телефона не проводилось, не считать ошибкой P0 restore. Не было команд `adb install`/force-stop/cleanup этого запуска.
