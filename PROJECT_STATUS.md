@@ -1,3 +1,13 @@
+## 24.11.2026 — получен реальный отчёт первого запуска OnePlus P1 isolated smoke
+
+- Пользователь предоставил диагностический JSON schema `paseka-p1-phone-readonly-smoke-v1` из отдельного Android-пакета `ru.paseka.journal.p1smoke` для source SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`. Результат `status=PASS`, `code=P1_ISOLATED_PREVIEW_SMOKE_PASS`; **12/12 checks PASS**: проверка https://localhost, загрузка 14 OP wizard, physical-manifest/layout и OP11–14 guided previews, три отрицательных gate OP13 и отсутствие live CAS bridge.
+- **Доказан только пользовательский запуск и in-app read-only smoke в ONLINE режиме**, `networkReportedByWebView=ONLINE`, `isolatedLocalStorageContinuity=NOT_VERIFIED`. Это пользовательское полевое свидетельство, а не независимая APK attestation: `testOnlyPackageConfig` сам сообщает, что конфигурация ID не удостоверяет установленный пакет.
+- **Ещё не подтверждены** offline повторный запуск, Android force-stop/relaunch, data persistence, исходный пользовательский архив, все оригинальные Blob-видео и независимый restore на втором физическом устройстве. `forceStopObserved=NOT_DETECTABLE_BY_WEBVIEW`, `p1ReleaseReady=false`, `independentSecondDeviceArchive=NOT_VERIFIED`. Не объявлять `P1_ISOLATED_PHONE_SMOKE_DEVICE_VERIFIED` до второго офлайн-отчёта с ручным подтверждением force-stop.
+- Следующий минимальный ручной этап: отключить обе сети, выполнить Android «Остановить» только тестового приложения, повторно открыть его и передать результат. Рабочее приложение и его данные не очищать. PASEKA02 #442 остаётся FROZEN: никаких настоящих видео не удалять.
+- Это фиксация предоставленного свидетельства в Draft #467, без изменений runtime, IndexedDB, CI, основного приложения, main, merge/release/deploy.
+
+---
+
 ## 24.11.2026 — повторная live-сверка main/PR/CI после перехода между чатами
 
 - GitHub branch API: **main = `13c724a634f0987ff634a058a5fa37a1b8e20c92`**, merge commit PR #449 (23.11.2026 09:04:26 UTC). **PR #448 и #449 оба фактически MERGED**; старые записи ниже про ожидание разрешения на их слияние исторические и больше не являются следующим действием.
