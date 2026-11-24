@@ -62,6 +62,12 @@ async function commitWitnessed(input,expectedRevision,deps={}){
     input.actualWorkConfirmed!==true||!S(input.hiveId)||!S(input.occurredAt)||
     !S(expectedRevision)||sourceRevision(input)!==expectedRevision)
   return fail('physical_bridge_exact_user_input_and_revision_required');
+ // A raw, prebuilt targetLayout must not bypass the OP13 guided-variant guard.
+ // The ordinary delayed-development route has different technology.
+ if(input.operationId==='OP-13'&&
+    (input.springVariant!=='EARLY_HONEY_PREPARATION'||
+     input.springDevelopmentPersonallyConfirmed!==true))
+  return fail('physical_bridge_op13_explicit_early_honey_variant_required');
  const methods=['readMain','writeMainIfUnchanged','verifyFullArchiveAndReplay',
   'validateState','makeRevisionId','preparePersistentSnapshot','makeId'];
  if(methods.some(k=>typeof deps[k]!=='function')||!S(deps.now)||

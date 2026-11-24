@@ -1,3 +1,7 @@
+## 24.11.2026 — контроль источника OP13 (Draft #466)
+
+[Развилка обычного весеннего развития и раннего медосбора: F0–F2](./P1-OP13-РАЗВИЛКА-ВЕСНА-РАННИЙ-МЁД-2026-11-24.md) — обязательный source-backed gate для OP13 2+2+2, тесты, ограничения OnePlus и архива.
+
 ## 23.11.2026 — P1 физические манифесты OP11–14, новый stacked Draft #458
 
 - Изолированная ветка `feat/p1-physical-movement-manifest-2026-11-23` / [Draft PR #458](https://github.com/250oisr-eng/Pasekaapp/pull/458) поверх Draft #456; `main` **не менялся**. Текущий code/test SHA `483e3978dd522350171830d7c0a82178f9cf68c6`: [Fast #45255191654](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45255191654) **948/948 PASS**. Android Build #45255191703/#45255206700 и isolated diagnostic #45255206733 требуют отдельной проверки итогового conclusion.

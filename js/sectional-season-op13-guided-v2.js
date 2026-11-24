@@ -44,6 +44,15 @@ function inspect(state,input){
  return {ok:true,snapshot:snap,source,sections,original,cycles,inventory,storedBodies};
 }
 function makeStructure(state,input){
+ // The original source distinguishes ordinary delayed spring development
+ // from the early-honey route that immediately adds two extra brood bodies.
+ // Never turn the ordinary route into an implicit 2+2+2 operation.
+ if(input?.springVariant==='REGULAR_DEVELOPMENT')
+  return fail('op13_regular_development_requires_separate_plan');
+ if(input?.springVariant!=='EARLY_HONEY_PREPARATION')
+  return fail('op13_early_honey_variant_must_be_explicit');
+ if(input?.springDevelopmentPersonallyConfirmed!==true)
+  return fail('op13_personal_spring_strength_observation_required');
  const i=inspect(state,input);if(!i.ok)return i;
  const src=i.source,items=i.inventory.items;
  const specs=O(input.placements)?input.placements:{};
@@ -222,6 +231,12 @@ function mount(host,getState,hiveId,controls){
  host.innerHTML='<fieldset data-op13-guide><legend>OP-13 · весеннее разделение на три секции</legend>'+
   '<p>Выберите каждую семью, два реальных корпуса, дно, крышку, подкрышник и ID стопки. Два дополнительных корпуса должны действительно находиться на складе. Не придумывайте физические номера отверстий.</p>'+
   '<p>Исходная ревизия '+esc(revision)+'. Всё только для проверки, без записи.</p>'+
+  '<label>Цель весеннего разделения<select data-op13-spring-variant>'+ 
+   '<option value="">— Выберите цель лично —</option>'+ 
+   '<option value="EARLY_HONEY_PREPARATION">Подготовка к раннему медосбору (два дополнительных корпуса)</option>'+ 
+   '<option value="REGULAR_DEVELOPMENT">Обычное развитие семей (отдельный сценарий, пока заблокирован)</option>'+ 
+   '</select></label>'+ 
+  '<label><input type="checkbox" data-op13-strength-confirm> Лично подтвердил, что две отделяемые семьи достаточно развились для фактического разделения</label>'+
   POSITIONS.map(position=>'<fieldset><legend>Позиция '+esc(position)+'</legend>'+
    '<label>Семья<select data-op13-family="'+esc(position)+'">'+opts(families)+'</select></label>'+
    '<label>Нижний корпус<select data-op13-lower="'+esc(position)+'">'+opts(bodies)+'</select></label>'+
@@ -240,13 +255,17 @@ function mount(host,getState,hiveId,controls){
   familyId:field('family',pos),broodBodyIds:[field('lower',pos),field('upper',pos)],
   stackId:field('stack',pos),bottomItemId:field('bottom',pos),
   coverItemId:field('cover',pos),topRiserItemId:field('riser',pos),feederItemId:field('feeder',pos)}]));
- const base=()=>({hiveId,sourceRevisionId:revision,placements:placements()});
+ const base=()=>({hiveId,sourceRevisionId:revision,
+  springVariant:host.querySelector('[data-op13-spring-variant]')?.value||'',
+  springDevelopmentPersonallyConfirmed:host.querySelector('[data-op13-strength-confirm]')?.checked===true,
+  placements:placements()});
  const openingPanel=()=>host.querySelector('[data-op13-openings]');
  const moves=()=>host.querySelector('[data-op13-moves]');
  const output=()=>host.querySelector('[data-op13-result]');
  const invalidate=()=>{openingPanel().textContent='';moves().textContent='';
   output().textContent='Исходный выбор изменён. Повторите выбор отверстий и все подтверждения.'};
- for(const x of host.querySelectorAll('[data-op13-family],[data-op13-lower],[data-op13-upper],'+
+ for(const x of host.querySelectorAll('[data-op13-spring-variant],[data-op13-strength-confirm],'+
+  '[data-op13-family],[data-op13-lower],[data-op13-upper],'+
   '[data-op13-stack],[data-op13-bottom],[data-op13-cover],[data-op13-riser],[data-op13-feeder]'))
   x.addEventListener('change',invalidate);
  const excluders=Object.values(source.inventory.items).filter(i=>i?.kind==='technicalQueenExcluder'&&

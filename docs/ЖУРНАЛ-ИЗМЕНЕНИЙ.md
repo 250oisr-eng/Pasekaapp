@@ -1,3 +1,12 @@
+## 24.11.2026 — P1 OP13 explicit spring variant, Draft #466 (no live write)
+
+- Проверен пользовательский DOCX P72–P76: обычное развитие после зимовки ≠ подготовка к раннему мёду с двумя дополнительными корпусами. В `js/sectional-season-op13-guided-v2.js` для схемы 2+2+2 обязательны выбранный пользователем `EARLY_HONEY_PREPARATION` и `springDevelopmentPersonallyConfirmed`; регулярный вариант `REGULAR_DEVELOPMENT` блокируется до отдельной реализации. Ориентир «около 1,5 месяцев» не равен готовности семьи.
+- В **неподключённом** `js/sectional-physical-browser-commit-v2.js` прямой `targetLayout` больше не обходит эти проверки. Прежние source-revision/queen/backup/CAS и physical local gates сохранены. Offline shell v338.
+- Code/test SHA `fc01c92e6f0a568ef43d4d6a23956db7435daf0a`: [Fast #45344099517](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45344099517) **985/985 PASS**; [Android #45344099510](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45344099510) **SUCCESS, 985/985 PASS, BUILD SUCCESSFUL**. Это не physical device proof.
+- Параллельный дублирующий Draft #465 закрыт SUPERSEDED без merge/deletion; продолжаем от полной цепочки #462→#463→#464→#466. `main`, production и пользовательские Blob/видео не менялись; нет merge/release.
+- Остаётся: отдельный обычный вариант OP13; полный P1 UI→CAS OP01–14; реальный независимый full archive/Blob restore на втором устройстве; OnePlus offline/multi-season E2E. `SECOND_DEVICE_VERIFIED=NO`, `IN_MAIN=NO`, cleanup PASEKA02 FROZEN.
+- Полная F0–F2 карточка: `docs/P1-OP13-РАЗВИЛКА-ВЕСНА-РАННИЙ-МЁД-2026-11-24.md`.
+
 ## 24.11.2026 — P1 OP11–14 capability-bound physical CAS bridge, stacked Draft #464
 
 - [Draft #464](https://github.com/250oisr-eng/Pasekaapp/pull/464) stacked over #463, no main/production/user data changes, no merge or release. New `js/sectional-physical-browser-commit-v2.js` **deliberately not shipped in index.html/SW** and not callable via live wizard: prepares exact user-confirmed manifest, blocks stale source revision, independently simulates real executor and validates layout, lineage/provenance/global state before handing off to existing `PasekaSectionalSeasonRuntimeV2.commit` with true archive and CAS capabilities. OP13 independently requires `queenObservationConfirmed===true`; it is not manufactured from generic checkbox, and no UI for that evidence is activated.

@@ -98,6 +98,7 @@ function winterFixture(){
 }
 function select(){
  return {hiveId:'h',sourceRevisionId:'r1',
+  springVariant:'EARLY_HONEY_PREPARATION',springDevelopmentPersonallyConfirmed:true,
   placements:{
    left:{familyId:'f1',broodBodyIds:['b1','b2'],stackId:'stack-left',
     bottomItemId:'bottom-left',coverItemId:'cover-left',
@@ -252,4 +253,22 @@ test('source change between first read and runtime must fail without writing',as
  const result=await bridge.commitWitnessed(f.input,'r1',f.deps);
  assert.equal(result.ok,false,JSON.stringify(result));
  assert.equal(f.writes(),0);
+});
+
+
+test('OP13 raw manifest cannot bypass explicit early-honey route and personal spring development',async()=>{
+ const f=setup(),planned=f.deps.guides['OP-13'].plan(f.db(),f.input);
+ assert.equal(planned.ok,true,JSON.stringify(planned));
+ const raw={...planned.request,expectedSourceRevisionId:'r1',queenObservationConfirmed:true};
+ assert.equal((await bridge.commitWitnessed(raw,'r1',f.deps)).error,
+  'physical_bridge_op13_explicit_early_honey_variant_required');
+ assert.equal(f.proofCalls(),0);assert.equal(f.writes(),0);
+ const ordinary=setup();ordinary.input.springVariant='REGULAR_DEVELOPMENT';
+ assert.equal((await bridge.commitWitnessed(ordinary.input,'r1',ordinary.deps)).error,
+  'physical_bridge_op13_explicit_early_honey_variant_required');
+ assert.equal(ordinary.proofCalls(),0);assert.equal(ordinary.writes(),0);
+ const unobserved=setup();unobserved.input.springDevelopmentPersonallyConfirmed=false;
+ assert.equal((await bridge.commitWitnessed(unobserved.input,'r1',unobserved.deps)).error,
+  'physical_bridge_op13_explicit_early_honey_variant_required');
+ assert.equal(unobserved.proofCalls(),0);assert.equal(unobserved.writes(),0);
 });

@@ -93,6 +93,7 @@ function winterFixture(){
 }
 function select(){
  return {hiveId:'h',sourceRevisionId:'r1',
+  springVariant:'EARLY_HONEY_PREPARATION',springDevelopmentPersonallyConfirmed:true,
   placements:{
    left:{familyId:'f1',broodBodyIds:['b1','b2'],stackId:'stack-left',
     bottomItemId:'bottom-left',coverItemId:'cover-left',
@@ -205,4 +206,31 @@ test('OP13 feeds real executor and records both confirmed family relocations wit
  const events=stage.draft.familyEvents.filter(e=>e.operationId==='OP-13'&&e.type==='placement_changed');
  assert.deepEqual(events.map(e=>e.familyId),['f2','f3']);
  assert.deepEqual(state,before);
+});
+
+
+test('OP13 never silently applies early-honey two-body additions to ordinary spring development',()=>{
+ const state=winterFixture(),before=structuredClone(state),selected=select();
+ selected.springVariant='REGULAR_DEVELOPMENT';
+ assert.equal(api.makeStructure(state,selected).error,
+  'op13_regular_development_requires_separate_plan');
+ selected.springVariant='';
+ assert.equal(api.makeStructure(state,selected).error,
+  'op13_early_honey_variant_must_be_explicit');
+ selected.springVariant='EARLY_HONEY_PREPARATION';
+ selected.springDevelopmentPersonallyConfirmed=false;
+ assert.equal(api.makeStructure(state,selected).error,
+  'op13_personal_spring_strength_observation_required');
+ selected.springDevelopmentPersonallyConfirmed=true;
+ assert.equal(api.makeStructure(state,selected).ok,true);
+ assert.deepEqual(state,before);
+});
+
+test('OP13 mobile guide shows a manually selected spring variant rather than inferring one',()=>{
+ const source=readFileSync(new URL('../js/sectional-season-op13-guided-v2.js',import.meta.url),'utf8');
+ assert.match(source,/data-op13-spring-variant/);
+ assert.match(source,/data-op13-strength-confirm/);
+ assert.match(source,/REGULAR_DEVELOPMENT/);
+ assert.match(source,/EARLY_HONEY_PREPARATION/);
+ assert.doesNotMatch(source,/indexedDB\.open|\.put\(|\.status\s*=\s*['"]DONE['"]/);
 });
