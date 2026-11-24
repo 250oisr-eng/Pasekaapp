@@ -509,6 +509,14 @@ function mount(host,getState){
    if(!outcome?.ok)fields.querySelector('[data-op12-guided]').textContent=
     'OP-12: пошаговый план временно недоступен. Сохранение по-прежнему заблокировано.';
   }
+  if(op==='OP-13'){
+   const fields=host.querySelector('[data-season-fields]');
+   fields.insertAdjacentHTML('beforeend','<div data-op13-inventory-guide></div>');
+   const preliminary=root.PasekaSectionalOP13InventoryGuideV2?.mount?.(
+    fields.querySelector('[data-op13-inventory-guide]'),getState,hive,host);
+   if(!preliminary?.ok)fields.querySelector('[data-op13-inventory-guide]').textContent=
+    'OP-13: проверка комплекта временно недоступна. Реальная операция заблокирована.';
+  }
   if(op==='OP-09'){
    const opts=(items)=>items.map(([id,title])=>'<option value="'+esc(id)+'">'+esc(title)+'</option>').join('');
    const layout=A(getState().sectionalLayouts).find(l=>l.hiveId===hive&&l.mode==='SIDE_BY_SIDE');
