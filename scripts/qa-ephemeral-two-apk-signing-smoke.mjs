@@ -52,7 +52,7 @@ export function testEphemeralQaSigning(sourceApk, env=process.env) {
     };
     const outputs=[join(workspace,'qa-proof-1.apk'),join(workspace,'qa-proof-2.apk')];
     const first=signIsolatedQaApk(signingEnv,resolve(sourceApk),outputs[0]);
-    const second=signIsolatedQaApk(process.env,resolve(sourceApk),outputs[1]);
+    const second=signIsolatedQaApk(signingEnv,resolve(sourceApk),outputs[1]);
     if (first.packageName!==second.packageName || first.signerSha256!==second.signerSha256 ||
         first.versionCode!==second.versionCode) throw new Error('BLOCKED: disposable QA certificates drifted');
     return {status:'EPHEMERAL_TWO_BINARY_SIGNING_PROOF',packageName:first.packageName,
