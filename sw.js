@@ -1,9 +1,18 @@
 // Only the versioned Paseka application shell may be cached offline.
-const CACHE='paseka-shell-v317';
-const CACHE_PREFIX='paseka-shell-';
+const CACHE='paseka-shell-v318';
+const CACHE_VERSION=318;
 const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/p0-source-inventory.js','./js/disaster-archive.js'];
 const SCOPE=new URL(self.registration.scope);
 const SHELL_PATHS=new Set(FILES.map(file=>new URL(file,SCOPE).pathname));
+
+// Only obsolete version-numbered application-shell caches are disposable.
+// A private/user cache with a similar prefix must never be removed.
+function isObsoleteShellCache(name){
+  const match=/^paseka-shell-v([1-9]\d*)$/.exec(name);
+  if(!match)return false;
+  const version=Number(match[1]);
+  return Number.isSafeInteger(version) && version<CACHE_VERSION;
+}
 
 function cacheableResponse(response){
   return response.ok &&
@@ -31,7 +40,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil(
     caches.keys()
-      .then(keys=>Promise.all(keys.filter(key=>key.startsWith(CACHE_PREFIX)&&key!==CACHE).map(key=>caches.delete(key))))
+      .then(keys=>Promise.all(keys.filter(isObsoleteShellCache).map(key=>caches.delete(key))))
       .then(()=>self.clients.claim())
   );
 });
