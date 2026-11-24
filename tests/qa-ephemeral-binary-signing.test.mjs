@@ -32,3 +32,10 @@ test('isolated binary signing CI job never uploads secret keys or disposable sig
  assert.doesNotMatch(isolated,/secrets\./);
  assert.match(isolated,/prepare-oneplus-first-use-config/);
 });
+
+test('ephemeral signing proof never mutates process-wide secret variables',()=>{
+ const source=readFileSync(new URL('../scripts/qa-ephemeral-two-apk-signing-smoke.mjs',import.meta.url),'utf8');
+ assert.doesNotMatch(source,/Object\.assign\(process\.env/);
+ assert.doesNotMatch(source,/process\.env\[.*\]\s*=/);
+ assert.match(source,/signIsolatedQaApk\(signingEnv/);
+});
