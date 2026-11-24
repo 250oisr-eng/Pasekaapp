@@ -28,31 +28,31 @@ export function auditPasekaJsonTransfer(raw, expected = {}) {
   const ids = {};
   for (const [name, rows] of Object.entries(byType)) {
     const seen = new Set();
-    for (const item of rows) {
+    for (const [index, item] of rows.entries()) {
       if (typeof item.id !== 'string' || !item.id.trim()) {
         failures.push('Missing identifier in ' + name);
       } else if (seen.has(item.id)) {
-        failures.push('Duplicate identifier in ' + name + ': ' + item.id);
+        failures.push('Duplicate identifier in ' + name + ' at row ' + index);
       } else {
         seen.add(item.id);
       }
     }
     ids[name] = seen;
   }
-  for (const family of byType.families) {
+  for (const [index, family] of byType.families.entries()) {
     if (family.hive && !ids.hives.has(family.hive)) {
-      warnings.push('Family references an unavailable hive: ' + family.id);
+      warnings.push('Family references an unavailable hive at row ' + index);
     }
   }
-  for (const record of byType.records) {
+  for (const [index, record] of byType.records.entries()) {
     if (record.hive && !ids.hives.has(record.hive)) {
-      warnings.push('Record references an unavailable hive: ' + record.id);
+      warnings.push('Record references an unavailable hive at row ' + index);
     }
     if (record.family && !ids.families.has(record.family)) {
-      warnings.push('Record references an unavailable/archived family: ' + record.id);
+      warnings.push('Record references an unavailable/archived family at row ' + index);
     }
     if (record.media != null && !Array.isArray(record.media)) {
-      failures.push('Journal media must be an array when present: ' + record.id);
+      failures.push('Journal media must be an array when present at row ' + index);
     }
   }
   const counts = Object.fromEntries(Object.entries(byType).map(([name, rows]) => [name, rows.length]));
