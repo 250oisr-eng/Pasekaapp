@@ -1,3 +1,12 @@
+## 2026-11-24 — B03: селективный main-based Draft #472 (не merged)
+
+- Начиная от `main=d179da9a2d93ae193adaaaed7e4435ca42dc2cc5`, создан [Draft #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) как минимальный перенос архива из #452 без перетаскивания его 141-коммитной истории и без пересечения с Android signing #469.
+- Добавлены `js/disaster-archive.js`, адаптированные изолированные регрессионные тесты и **только read-only** кнопки экспорта текущей `paseka-v1` / SHA-проверки выбранного файла. Исходная G0-инвентаризация и старый JSON сохранены. SW обновлён с v315 на v316 с whitelist нового скрипта; схема IndexedDB не менялась.
+- B03 = `IMPLEMENTED_DRAFT / CI_PENDING`; исходный #452 и #469 остаются Draft. **Опасного интерфейса full restore нет**, B01 физический перенос NOT_VERIFIED, B02 защищён fail-closed внутри тестируемого модуля, #442 FROZEN. CI/Android результат сверить по точному HEAD; никакого merge/release/OnePlus.
+- Следующая задача после exact-SHA CI: при успехе `READY_FOR_MERGE_REVIEW` (не merge), затем независимый B04/B05 Android signing; при ошибках изолированно исправить #472.
+
+---
+
 # PROJECT_STATUS — текущая точка проекта «Пасека 2.0»
 
 **Обновлено:** 2026-11-24. **Это краткий оперативный указатель, не журнал изменений.** Факты ниже сверяются с live GitHub перед работой; если SHA/PR изменился, обновить эту запись. История — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), Git и [прошлая редакция этого файла на main](https://github.com/250oisr-eng/Pasekaapp/blob/ecea1c3c50801250d42f49366e00e1e9e96d556f/PROJECT_STATUS.md).
