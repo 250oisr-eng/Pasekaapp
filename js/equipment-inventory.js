@@ -218,5 +218,41 @@ function createStockHoneyPair(state,request,labels,makeId,now){return transact(s
 function installStockBody(state,request,labels,now){return transact(state,draft=>installStockBodyUnsafe(draft,request,labels,now))}
 function installStockHoneyPair(state,request,labels,now){return transact(state,draft=>installStockHoneyPairUnsafe(draft,request,labels,now))}
 function migrate(state,makeId,now,getProfile,labels){const draft=cloneState(state);migrateUnsafe(draft,makeId,now,getProfile,labels);commitState(state,draft);return state}
-window.PasekaInventory={ensure,locateBody,locateAll,specFor,compatibleSpec,registerAtPosition,createStockBody,createStockHoneyPair,installStockBody,installStockHoneyPair,recordSwap,updateDetails,inspect,migrate};
+// Read-only audit of the direction missing from inspect(): layout -> registered body.
+// Legacy layouts may predate equipment registration, so an unknown body is a
+// review item, NOT a corruption verdict or permission to synthesize records.
+function auditLegacyLayoutBodyReferences(state){
+ const findings=[],layouts=state?.layouts,inv=state?.equipmentInventory;
+ if(!layouts||typeof layouts!=='object'||Array.isArray(layouts))return findings;
+ const bodies=inv?.bodies&&typeof inv.bodies==='object'&&!Array.isArray(inv.bodies)?inv.bodies:{};
+ for(const [hiveId,layout] of Object.entries(layouts)){
+  const references=layout?.corpusIds;
+  if(references==null)continue;
+  if(!references||typeof references!=='object'||Array.isArray(references)){
+   findings.push({severity:'error',code:'invalid_layout_corpus_references',details:{hiveId}});
+   continue;
+  }
+  for(const [boxKey,rawId] of Object.entries(references)){
+   const id=typeof rawId==='string'?rawId.trim():'';
+   if(!id||id!==rawId){
+    findings.push({severity:'error',code:'invalid_layout_body_reference',details:{hiveId,boxKey}});
+    continue;
+   }
+   if(!Object.hasOwn(bodies,id)){
+    findings.push({severity:'warning',code:'legacy_body_not_registered',details:{hiveId,boxKey,bodyId:id}});
+    continue;
+   }
+   const body=bodies[id];
+   if(!body||typeof body!=='object'||Array.isArray(body)||body.id!==id){
+    findings.push({severity:'error',code:'invalid_registered_body_identity',details:{hiveId,boxKey,bodyId:id}});
+    continue;
+   }
+   if(!body.spec||typeof body.spec!=='object'||Array.isArray(body.spec)){
+    findings.push({severity:'warning',code:'registered_body_spec_unknown',details:{hiveId,boxKey,bodyId:id}});
+   }
+  }
+ }
+ return findings;
+}
+window.PasekaInventory={ensure,locateBody,locateAll,specFor,compatibleSpec,registerAtPosition,createStockBody,createStockHoneyPair,installStockBody,installStockHoneyPair,recordSwap,updateDetails,inspect,migrate,auditLegacyLayoutBodyReferences};
 })();
