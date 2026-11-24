@@ -15,3 +15,5 @@
 
 - B01 восстановление, B04/B05 подпись и хранение ключей, B11 обновление телефона BLOCKED; B06/B10 лицензированные модель/видео/автоудаление **FROZEN #442**; B09 миграции только синтетически проверены. **Draft #469** startup/signing и **Draft #452** старый restore не слиты.
 - Следующее без ПК: завершить #482 CI, затем отдельные B09 negative migration/atomicity проверки без изменения production schema, при обнаружении недостающих случаев. Никакого merge без отдельного разрешения, production deployment/Pages/Worker release, APK install/uninstall/clear, restore или удаления любых пользовательских данных.
+
+- **Параллельный цикл 25.11 / B08 Cloudflare:** к `tests/cloudflare-bounded-body.test.mjs` добавлено 3 негативных теста fragment UTF-8 / cumulative overflow / reader exception, test SHA `59f423c96c4f63aa95bbdd3955e68cafc389c344`. Governance этого SHA SUCCESS, Android/финальный HEAD проверить отдельно. Worker runtime не менялся, production Cloudflare не опубликован.
