@@ -13,6 +13,7 @@ function harness(){
  const calls={skipWaiting:0,claimed:0,deleted:[],responded:0,network:0};
  let offline=false;
  let deleteFailure=null;
+ let responseOverride=null;
  const publicResponse=url=>({
   ok:true,type:'basic',url,
   headers:{get:()=> 'public, max-age=600'},
@@ -33,7 +34,7 @@ function harness(){
  const fetch=async request=>{
   calls.network++;
   if(offline)throw new Error('offline');
-  return publicResponse(resolve(request));
+  return responseOverride?responseOverride(resolve(request)):publicResponse(resolve(request));
  };
  const self={
   registration:{scope},
@@ -63,7 +64,7 @@ function harness(){
   await Promise.all(waits);
   return {intercepted:true,result};
  }
- return {lifecycle,request,calls,buckets,setOffline(value){offline=value},setDeleteFailure(error){deleteFailure=error},publicResponse};
+ return {lifecycle,request,calls,buckets,setOffline(value){offline=value},setDeleteFailure(error){deleteFailure=error},setResponseOverride(fn){responseOverride=fn},publicResponse};
 }
 
 test('B11 cold offline navigation serves installed shell without network and never intercepts user API',async()=>{
@@ -135,4 +136,25 @@ test('B11 activation refuses to remove misleading numeric names and leaves futur
  await h.lifecycle('activate');
  for(const name of protectedNames)assert.equal(h.buckets.has(name),true,name+' must not be removed');
  assert.deepEqual(h.calls.deleted,['paseka-shell-v1']);
+});
+
+test('B11 incomplete shell installation rejects before skipWaiting and preserves older cache',async()=>{
+ const h=harness();
+ h.buckets.set('paseka-shell-v317',new Map([['legacy','persistent']]));
+ h.setResponseOverride(url=>url.endsWith('index.html')?{ok:false,type:'basic',headers:{get:()=>''}}:h.publicResponse(url));
+ await assert.rejects(h.lifecycle('install'),/Offline shell install blocked/);
+ assert.equal(h.calls.skipWaiting,0);
+ assert.equal(h.buckets.has('paseka-shell-v317'),true);
+ assert.equal(h.calls.deleted.length,0);
+});
+test('B11 private or no-store shell response cannot activate a new worker',async()=>{
+ for(const directive of ['private, max-age=60','no-store']){
+  const h=harness();
+  h.setResponseOverride(url=>url.endsWith('index.html')
+   ?{ok:true,type:'basic',headers:{get:()=>directive}}
+   :h.publicResponse(url));
+  await assert.rejects(h.lifecycle('install'),/Offline shell install blocked/);
+  assert.equal(h.calls.skipWaiting,0);
+  assert.equal(h.calls.claimed,0);
+ }
 });
