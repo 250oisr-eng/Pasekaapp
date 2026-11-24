@@ -37,5 +37,6 @@ test('ephemeral signing proof never mutates process-wide secret variables',()=>{
  const source=readFileSync(new URL('../scripts/qa-ephemeral-two-apk-signing-smoke.mjs',import.meta.url),'utf8');
  assert.doesNotMatch(source,/Object\.assign\(process\.env/);
  assert.doesNotMatch(source,/process\.env\[.*\]\s*=/);
- assert.match(source,/signIsolatedQaApk\(signingEnv/);
+ assert.equal((source.match(/signIsolatedQaApk\(signingEnv/g)||[]).length,2,'both signature runs require the same explicit credentials');
+ assert.doesNotMatch(source,/signIsolatedQaApk\(process\.env/);
 });
