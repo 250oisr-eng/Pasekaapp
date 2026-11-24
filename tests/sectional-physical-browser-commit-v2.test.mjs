@@ -180,7 +180,7 @@ function setup(){
   dualRead:w.PasekaSectionalSeasonDualReadV2,
   rules:w.PasekaSectionalSeasonOperationRulesV2
  };
- return {input:request(state),expectedRevision:'r1',deps,
+ return {input:{...request(state),operationId:'OP-13'},expectedRevision:'r1',deps,
   db:()=>db,writes:()=>writes,proofCalls:()=>verifyCalls,readCalls:()=>readCount,
   setDB:next=>{db=structuredClone(next)}};
 }
