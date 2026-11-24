@@ -1,3 +1,11 @@
+## 2026-11-24 — точная точка проекта после разрешённого merge #468 и prelaunch-защита #469
+
+- [Первый запуск, fail-closed запись после ошибки IndexedDB, негативные тесты и план первой приёмки](./P0-ПЕРВЫЙ-ЗАПУСК-И-БЛОКИРОВКА-ЗАПИСЕЙ-2026-11-24.md) — отдельный [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469), **не merged / не released**. Кодовый SHA `f39be0d1955e9fe816e71f3b10885e90f306ac37`: Fast [#45371671672](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45371671672) **665/665 PASS**, Android [#45371671537](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45371671537) **665/665 PASS, BUILD SUCCESSFUL**. Остальные промежуточные неуспешные CI указаны в журнале.
+- **Уточнение фактов вместо устаревшей записи ниже**: G0 [PR #468](https://github.com/250oisr-eng/Pasekaapp/pull/468) был отдельно разрешён и merged в `main=ecea1c3c50801250d42f49366e00e1e9e96d556f`, на exact merge SHA CI 660/660 и Gradle успешны, **не опубликован**. Пользователь подтвердил отсутствие реальных данных/видео, т.к. приложение ещё не выпущено. G0 реального origin `NOT_APPLICABLE_PRELAUNCH`; next — подготовка первого пользователя на искусственных данных.
+- Не сливать #469 без отдельного разрешения, не запускать production deployment или удаление видео. #452 full restore остается Draft; #442 auto cleanup FROZEN.
+
+---
+
 ## 2026-11-24 — G0 read-only отдельно от рискованного full restore
 
 - [Безопасный отдельный Draft #468: область источников, автотесты на точном SHA, память и условия реального G0](./P0-G0-READONLY-PR468-2026-11-24.md). Не объединён, не опубликован, main не изменён. P0 restore #452 отдельно, #442 frozen.
