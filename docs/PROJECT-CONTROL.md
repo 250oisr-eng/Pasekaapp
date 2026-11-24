@@ -1,3 +1,9 @@
+## 2026-11-24 — G0 read-only в Draft P0
+
+- [Карта живых источников, read-only инвентаризации G0 и границ восстановления](./P0-G0-ИНВЕНТАРИЗАЦИЯ-ИСТОЧНИКОВ-READONLY-2026-11-24.md). Узкий модуль `js/p0-source-inventory.js` в Draft #452; результаты реальной рабочей базы OnePlus ещё не получены, не путать с закрытым proof2 или с frozen v2 #441.
+
+---
+
 ## 2026-11-24 — проверенный единый комплект Windows/OnePlus
 
 - [Постмортем повторных ADB/PowerShell/Android-signature/manifest ошибок, exact APK, исходник Windows, CI и оставшийся физический gate](./P0-РАЗБОР-СБОЕВ-ONEPLUS-И-ЕДИНЫЙ-КОМПЛЕКТ-2026-11-24.md). Весь APK+manifest+скрипт упакован в одном ZIP текущего чата. Это только изолированный P0 proof; #442 video cleanup FROZEN.
