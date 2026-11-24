@@ -1,4 +1,6 @@
 import {readFile,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 
 const EXPECTED_BASE='ru.paseka.journal';
 const ISOLATED_ID='ru.paseka.journal.firstuseqa';
@@ -14,7 +16,7 @@ export function prepareIsolatedConfig(configuration,environment=process.env){
  return {...configuration,appId:ISOLATED_ID,appName:'Пасека · тест первого запуска'};
 }
 
-if(process.argv[1] && import.meta.url===new URL('file://'+process.argv[1]).href){
+if(process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const file='capacitor.config.json';
  const original=JSON.parse(await readFile(file,'utf8'));
  const isolated=prepareIsolatedConfig(original);
