@@ -160,7 +160,7 @@
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED."
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25: seven independent P0/P1 draft/review/CI tracks #492–#498, code-only merges and synthetic tests verified on their exact SHAs. No live OnePlus physical restore, durable signer, licensed video model or device media cleanup; not a comparable real-user post-reform cycle. Repeated document reads NOT_MEASURED, physical scenarios remain 0, effect NOT_MEASURED."
   },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
