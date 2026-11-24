@@ -1,3 +1,10 @@
+## 2026-11-24 — большой P0 цикл с доказанным CI: QA-signing guards и перенос JSON
+
+- [Технический отчёт: отдельный QA appId, внешний key custody, запреты подписи и восстановления, 686/686 exact Android CI](./P0-BIG-CYCLE-SAFE-SIGNING-TRANSFER-2026-11-24.md). Кодовый SHA `6878def7f050131e65a15c00d5f4af4264bf1d10`: [Actions #45438672376](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45438672376) **686/686 PASS, Gradle BUILD SUCCESSFUL**. Стабильный ключ ещё не предоставлен; actual isolated signed QA APK `NOT_BUILT`. Debug APK с другим signer **не использовать как обновление** OnePlus. Старые пользовательские тестовые данные сохранить, без reinstall/clear.
+- P0 #452 full restore остается отдельным Draft, PASEKA02 #442 FROZEN. Draft #469 не merged, main/release/deploy без изменений.
+
+---
+
 ## 2026-11-24 — новый P0 gate после реальных APK: сертификаты несовместимы
 
 - [Отчёт: оригинальные APK, SHA-256 архивов и сертификатов, безопасная стратегия сохранения OnePlus данных](./P0-ANDROID-APK-SIGNING-CONFLICT-2026-11-24.md). Для артефактов [#45375657672](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45375657672) и [#45400013138](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45400013138) извлечены **разные APK v2 signer SHA-256**: `9b10baf0...` vs `df54ef93...`. Старый и новый APK **не являются совместимой парой для in-place Android upgrade**. Физический first-use OnePlus — `USER_REPORTED_PASS`, фактический installed signer пока `NOT_TESTED`. Не переустанавливать и не очищать его данные.
