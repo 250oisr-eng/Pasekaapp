@@ -15,3 +15,5 @@
 - B01/B04/B05: backup/signer/custody BLOCKED; B06/B10 модель и реальные видео **FROZEN #442**; B09 legacy IDB синтетически проверен, физически НЕ ПРОВЕРЕН; B11 device update BLOCKED.
 - **Draft #469** старый startup/signing и **Draft #452** old restore не объединены. B08 массовые merges/закрытия запрещены.
 - Без отдельного разрешения: **никакого merge, deploy/Pages/Cloudflare release, APK install, изменений production DB/видео, restore или удаления пользовательских данных**. Следующий автономный шаг без ПК — завершить #481 CI, затем main-based port #52 и регрессии.
+
+- **Параллельная B08 интеграционная очередь (25.11):** [матрица пяти независимых Draft](docs/P1-B08-DRAFT-INTEGRATION-ORDER-2026-11-25.md) #478/#482/#483/#484/#485 с exact-main GitHub compare, отдельными functional diffs и общими документальными конфликтными зонами. Счётчики behind=0; это не доказательство отсутствия merge conflicts. Нет разрешений на merge, release или работу с данными. Документальный SHA `c8cf24bb2683c94dd3f435c55590c061d87781b2`; финальный CI проверить.
