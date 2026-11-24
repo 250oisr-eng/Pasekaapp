@@ -62,6 +62,11 @@ function plan(state,input){
     !S(input.hiveId)||!S(input.occurredAt)||!Number.isFinite(Date.parse(input.occurredAt))||
     Date.parse(input.occurredAt)>Date.now()||
     input.actualWorkConfirmed!==true)return fail('manifest_user_confirmed_actual_work_required');
+ // A draft captured before a tab write, restore or migration cannot be
+ // reinterpreted as a fresh physical observation after the state changes.
+ if(!S(input.expectedSourceRevisionId)||!S(state.meta?.revisionId)||
+    input.expectedSourceRevisionId!==state.meta.revisionId)
+  return fail('manifest_source_revision_stale_or_missing');
  const h=state.hives?.find(x=>x?.id===input.hiveId);
  if(h?.profileId!==PROFILE)return fail('manifest_profile_invalid');
  const cycles=A(state.sectionalSeasonCycles).filter(c=>c?.hiveId===input.hiveId&&c.status==='ACTIVE');
