@@ -24,3 +24,7 @@ Only Worker code and Node `Request`/stream synthetic fixtures are needed. GitHub
 
 - Run `npm test`, related regression suite, Android CI and Governance on **actual final SHA**. Synthetic Node evidence is not proof of deployed Cloudflare runtime.
 - Draft only; before any merge obtain separate approval for named PR; before Cloudflare release require separate authorization and B15 verified gate. Production deployment, secrets and existing app data must stay untouched.
+
+## Дополнительные негативные регрессии — 25 ноября 2026
+
+К source-bound reader добавлено 3 теста: многокусковое UTF-8 с разрезанным кодовым символом должно быть успешно декодировано только после сборки допустимых байтов; при превышении общего лимита несколькими отдельными допустимыми кусками поток отменяется даже с `Content-Length: 1`; ошибка `reader.read()` отклоняет Promise с вызовом `releaseLock()`. Тестовый SHA `59f423c96c4f63aa95bbdd3955e68cafc389c344`, exact SHA CI ещё проверить. Код Worker, JWT, provider, billing, production и секреты не затронуты.
