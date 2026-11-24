@@ -1,3 +1,12 @@
+## 24.11.2026 — повторный пользовательский P1 OnePlus smoke PASS, локальная непрерывность подтверждена
+
+- Получен второй пользовательский JSON `paseka-p1-phone-readonly-smoke-v1`, source `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`: `status=PASS`, 12/12 checks PASS, `P1_ISOLATED_PREVIEW_SMOKE_PASS`. `isolatedLocalStorageContinuity=PRIVATE_DIAGNOSTIC_LOCAL_MARKER_SEEN_AGAIN` — локальный тестовый маркер пережил повторный запуск приложения. Это **не** доказательство сохранения боевого CAS/IndexedDB/архива.
+- Сеть по-прежнему `networkReportedByWebView=ONLINE`; это только `navigator.onLine`, не достоверный сетевой тест. Независимого подтверждения отключения Wi-Fi и мобильных данных не предоставлено. `forceStopObserved=NOT_DETECTABLE_BY_WEBVIEW`: подтверждения фактического системного force-stop нет.
+- Статус `P1_ONEPLUS_ONLINE_RELAUNCH_REPORTED_PASS`; `P1_ISOLATED_PHONE_OFFLINE_FORCE_STOP_VERIFIED=NO`, `SECOND_DEVICE_VERIFIED=NO`, `p1ReleaseReady=false`. Полный исходный пользовательский архив/Blob restore, CAS и PASEKA02 cleanup не испытывались. **Никакого удаления видео, изменения production/main, merge или release.**
+- Следующий узкий gate: человек непосредственно подтверждает в настройках Android отключение двух сетей и системный force-stop тестового пакета; затем повторный read-only report. Если WebView всё ещё показывает ONLINE, не подменять OS-level наблюдение полем `navigator.onLine`; выделить диагностическую неточность отдельно. Независимый restore остаётся блокером дальнейшего подключения live CAS.
+
+---
+
 ## 24.11.2026 — получен реальный отчёт первого запуска OnePlus P1 isolated smoke
 
 - Пользователь предоставил диагностический JSON schema `paseka-p1-phone-readonly-smoke-v1` из отдельного Android-пакета `ru.paseka.journal.p1smoke` для source SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`. Результат `status=PASS`, `code=P1_ISOLATED_PREVIEW_SMOKE_PASS`; **12/12 checks PASS**: проверка https://localhost, загрузка 14 OP wizard, physical-manifest/layout и OP11–14 guided previews, три отрицательных gate OP13 и отсутствие live CAS bridge.
