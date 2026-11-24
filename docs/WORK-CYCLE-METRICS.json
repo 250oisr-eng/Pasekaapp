@@ -160,7 +160,7 @@
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED."
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25 B09 Draft #483 synthetic regression: production existing incomplete IndexedDB v3 fail-closed after reopen; real readMain/readAutoBackup reject post-request-success tx abort and resolve only tx.oncomplete; no production schema/DB actions. Code SHA 56fe53bb91d780e3ef24c26c25d90ba31606cf3e Fast #45497667563 SUCCESS; final Android/Governance exact SHA separately verified. No physical recovery completed, no speed-up quantified; baseline repeated-read data unknown."
   },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
