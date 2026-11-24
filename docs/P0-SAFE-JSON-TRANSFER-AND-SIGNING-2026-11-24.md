@@ -1,3 +1,12 @@
+## Результат синтетического stage F2 — 24.11.2026
+
+- Exact code SHA `6cdd1791a87f1d5ba7d5618fb27a08031def8085`: [Android CI #45437125111](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45437125111) **681/681 tests PASS**, Gradle **BUILD SUCCESSFUL**. Зелёный CI не равен физическому восстановлению или доказанной переносимости всех медиа.
+- `tests/isolated-json-origin-restore.test.mjs`: source с синтетическим ульем, семьёй и двумя заметками → JSON → отдельная IndexedDB target → реальный `restoreBackup`/transactional writer → закрытие и повторное открытие target → обе заметки остались; source не изменён. Полные доменные validators в test harness подменены, поэтому `DOMAIN_VALIDATION_E2E=NOT_TESTED`.
+- `tests/audit-oneplus-json-transfer.test.mjs`: 4/4 позитивных и негативных контрактных сценария. Не использовать новый debug APK как обновление текущего OnePlus, signing conflict не устранён.
+- Вход реального пользовательского архива и стабильный закрытый signing key пока отсутствуют. `DEVICE_TRANSFER=BLOCKED` до независимого source-backup verification, stable signing и isolated appID release gate.
+
+---
+
 # P0 — изолированный перенос JSON и долговременная Android-подпись
 
 Контрольная точка: 24 ноября 2026. Статус: **CONTRACT_READY; TRANSFER_NOT_TESTED; SIGNING_NOT_PROVISIONED**.
