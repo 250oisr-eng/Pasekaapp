@@ -96,3 +96,27 @@ for(const name of ['readMain','readAutoBackup']){
   if(name==='readAutoBackup')assert.equal(h.deps.autoBackupInfo,value);
  });
 }
+
+for(const name of ['readMain','readAutoBackup']){
+ test('B09 '+name+' rejects transaction error after request success without publishing backup metadata',async()=>{
+  const h=controlledRead(name),pending=h.read();
+  h.request.result={state:{sentinel:'NOT_DURABLE'}};
+  h.request.onsuccess();
+  h.tx.onerror();
+  await assert.rejects(pending,/Ошибка чтения/);
+  assert.equal(h.deps.autoBackupInfo,'NOT_COMMITTED');
+ });
+ test('B09 '+name+' rejects request failure even when no transaction completion arrives',async()=>{
+  const h=controlledRead(name),pending=h.read();
+  h.request.error=new Error('synthetic get failure');
+  h.request.onerror();
+  await assert.rejects(pending,/synthetic get failure/);
+  assert.equal(h.deps.autoBackupInfo,'NOT_COMMITTED');
+ });
+ test('B09 '+name+' rejects synchronous transaction setup failure',async()=>{
+  const deps={db:{transaction(){throw new Error('synthetic transaction failure')}},
+   STORE:'main',BACKUP_STORE:'full_backup',autoBackupInfo:'NOT_COMMITTED'};
+  await assert.rejects(load(name,deps)(),/synthetic transaction failure/);
+  assert.equal(deps.autoBackupInfo,'NOT_COMMITTED');
+ });
+}
