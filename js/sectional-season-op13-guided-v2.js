@@ -265,10 +265,14 @@ function mount(host,getState,hiveId,controls){
   for(const x of openingPanel().querySelectorAll('input,select'))x.addEventListener('change',()=>{
    moves().textContent='';output().textContent='Изменены отверстия или решётки — подтверждения перемещений сброшены.';
   });
+  // Use exact attribute equality instead of interpolating inventory IDs into
+  // CSS selectors: valid user IDs may contain quotes, colons or brackets.
+  const fieldValue=(kind,key)=>[...openingPanel().querySelectorAll('[data-op13-'+kind+']')]
+   .find(el=>el.getAttribute('data-op13-'+kind)===key)?.value||'';
   const claims=()=>Object.fromEntries(p.slots.map(slot=>[slot.key,{
-   openingId:openingPanel().querySelector('[data-op13-hole="'+slot.key+'"]')?.value||'',
-   diameterMm:openingPanel().querySelector('[data-op13-mm="'+slot.key+'"]')?.value||'',
-   itemId:openingPanel().querySelector('[data-op13-excluder="'+slot.key+'"]')?.value||''
+   openingId:fieldValue('hole',slot.key),
+   diameterMm:fieldValue('mm',slot.key),
+   itemId:fieldValue('excluder',slot.key)
   }]));
   const full=()=>({...base(),openingClaims:claims(),
    physicalOpeningsPersonallyChecked:openingPanel().querySelector('[data-op13-hole-confirm]')?.checked===true});
