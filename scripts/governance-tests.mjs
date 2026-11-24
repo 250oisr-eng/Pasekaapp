@@ -55,3 +55,15 @@ test('fake CI conclusions, duplicate cycles and unverified user scenarios are re
  }];
  assert.throws(()=>validateCycleLedger(unproved),/requires explicit evidence/);
 });
+
+test('governance workflow checks documentation-only main pushes without publishing',()=>{
+ const workflow=readFileSync(resolve(root,'.github/workflows/governance-docs.yml'),'utf8');
+ assert.match(workflow,/\n  push:\n    branches: \[main\]\n/);
+ assert.match(workflow,/\n      - 'PROJECT_STATUS\.md'/);
+ assert.match(workflow,/\n      - 'docs\/\*\*'/);
+ assert.match(workflow,/\n  pull_request:\n/);
+ assert.match(workflow,/\npermissions:\n  contents: read\n/);
+ assert.match(workflow,/node scripts\/governance-check\.mjs/);
+ assert.match(workflow,/node --test scripts\/governance-tests\.mjs/);
+ assert.doesNotMatch(workflow,/deploy-pages|upload-pages-artifact|pages: write|id-token: write|npm publish|git push/);
+});
