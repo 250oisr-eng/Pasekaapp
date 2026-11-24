@@ -1,3 +1,14 @@
+## 2026-11-24 — Android upgrade metadata preflight: exact CI PASS
+
+- **Кодовый SHA `ef4984ac3cd9388b44ee3ef1cbdc411837edc0e5`**: недеструктивный Android upgrade preflight с Windows Java JAR support; новый регрессионный тест на package/signature/downgrade/ADB `tests/check-oneplus-upgrade.test.mjs`.
+- Точный SHA полной CI-сборки с тем же кодом: `de58296b0903083347323557723950db6c69dd6f`; diff от code SHA — **только `PROJECT_STATUS.md` и `docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md`**, подтверждено GitHub compare.
+- [Android build #45400013138](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45400013138): **completed/success, 671/671 tests PASS, fail 0, Gradle BUILD SUCCESSFUL, APK upload SUCCESS**.
+- Artifact `paseka-debug-apk` **ID `14922458781`**, expiry `2026-12-08T13:07:15Z`, ZIP digest `sha256:db18770bfd75d2f7c733f1936d4280c40b77b33a1d77aaba626b4e8fbbbc632b`. Это digest ZIP, не самого `.apk` и не сертификата подписи.
+- **Устройство**: первый запуск и офлайн-две заметки `USER_REPORTED_DEVICE_PASS`. **Сертификат установленной версии и данного APK НЕ СРАВНИВАЛИСЬ**: `DEVICE_UPGRADE=NOT_TESTED`, `ALLOW_INSTALL_NEW_APK=NO`. Не рекомендовать переустановку/очистку. Существующие тестовые данные на OnePlus должны сохраняться.
+- Draft #469 открыт, main не изменён, release/deploy не выполнялись; P0 restore #452 отдельный Draft, PASEKA02 #442 FROZEN.
+
+---
+
 ## 2026-11-24 — безопасный Android upgrade preflight: реализован read-only script и негативные регрессии
 
 - Код `scripts/check-oneplus-upgrade.mjs`: до установки сравнивает actual packageId, `versionCode` и SHA-256 fingerprints сертификатов установленного Android base APK с новым candidate APK; работает с **одним** авторизованным ADB-устройством и только считывает APK через `adb pull`. Не выполняет `install`, `uninstall`, `clear` и не изменяет пользовательские данные. При любой неопределённости — `BLOCKED`.
