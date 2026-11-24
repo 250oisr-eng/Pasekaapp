@@ -29,3 +29,11 @@
 ## Следующий gate
 
 Проверить `npm test`, Android build и SW boundary на **новом SHA** через CI. При провале исправить только текущий PR; при невозможности запуска CI — пометить `NOT_VERIFIED` и не объявлять готовым к интеграции. Следующая независимая задача после этих ворот — B04/B05 signing, не возвращаться к синтетическому PASEKA02.
+
+## Результат последней точной проверки (кодовый SHA)
+
+`f2bf7842ad38dd2220b55d1e16a77fdf862e4596`:
+- [Android #45462990179](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990179): `completed/success`, **693/693 tests PASS**, `BUILD SUCCESSFUL`, upload debug APK PASS.
+- [Governance #45462990244](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990244): `completed/success`.
+- Реально прошедшие неуспешные стадии до исправления: отменённый Android #45462545345; failure Android #45462624604 (invalid regex) и #45462833880 (три non-binary fixture). Каждая причина исправлена; code/test проверен заново на SHA выше.
+- Stage `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN`; после изменения только документации HEAD может отличаться, сравнивать `compare` на изменения кода. Ни merge, ни release, ни физический B01 не разрешены.
