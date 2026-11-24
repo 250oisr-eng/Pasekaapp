@@ -108,7 +108,36 @@
       "scenariosEvidence": "Two ephemeral QA binaries verified; no OnePlus migration/user scenario"
     }
   ],
-  "postReformCycles": [],
+  "postReformCycles": [
+    {
+      "codeSha": "2e2f28b1b5c2ceb65e405c00af0edde2a603d2ef",
+      "ciRuns": [
+        {
+          "id": 45470164787,
+          "conclusion": "failure"
+        },
+        {
+          "id": 45470298315,
+          "conclusion": "success"
+        },
+        {
+          "id": 45471971411,
+          "conclusion": "success"
+        },
+        {
+          "id": 45471971343,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
+      "id": "b09-atomicity-20261124-pr476"
+    }
+  ],
   "evaluation": {
     "minimumRealPostCycles": 2,
     "preferredRealPostCycles": 3,
