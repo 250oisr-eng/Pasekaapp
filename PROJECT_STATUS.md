@@ -1,3 +1,12 @@
+## 24.11.2026 — OnePlus: ручная физическая офлайн-проверка P1 isolated smoke подтверждена пользователем
+
+- Пользователь **явно подтвердил «Да»** на вопрос, что **до последнего запуска** отключил Wi-Fi и мобильный интернет и нажал Android **«Остановить принудительно»** для тестового приложения `ru.paseka.journal.p1smoke`. Последующий предоставленный диагностический JSON для source SHA `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`: `status=PASS`, 12/12 PASS, `isolatedLocalStorageContinuity=PRIVATE_DIAGNOSTIC_LOCAL_MARKER_SEEN_AGAIN`.
+- Статус узкой проверки: **P1_ISOLATED_PHONE_OFFLINE_FORCE_STOP_USER_CONFIRMED_PASS** — фактические действия Android и отключение сетей удостоверены пользователем, успешный повторный запуск и загрузка read-only модулей — отчётом. `networkReportedByWebView=ONLINE` **противоречит ручному наблюдению**, но это значение `navigator.onLine`, а не измерение интернет-доступа; не считать доказательством реального сетевого подключения или причиной автоматического FAIL. `forceStopObserved=NOT_DETECTABLE_BY_WEBVIEW` остаётся корректным: WebView не наблюдает системный force-stop самостоятельно.
+- Это **не** проверка производства: `originalUserArchive=NOT_ACCESSED`, `originalVideos=NOT_ACCESSED`, `dataRestore=NOT_ATTEMPTED`, `p1CasPersistence=NOT_TESTED`, `independentSecondDeviceArchive=NOT_VERIFIED`, `p1ReleaseReady=false`. **SECOND_DEVICE_VERIFIED=NO**, full P1 UI→CAS E2E BLOCKED, PASEKA02 auto cleanup #442 FROZEN. Запрещено автоматически менять состояние улья или удалять видео.
+- Физический smoke для отдельного APK на данном этапе завершён; **не запрашивать повторение тех же действий**, пока не появится новая конкретная неисправность или новая сборка. Следующая независимая задача — разработать и доказать полный внешний backup/restore исходных Blob-видео на другом физическом устройстве без затрагивания рабочего архива; не подменять доказательства эмулятором/синтетикой. Нет merge, release или production deployment.
+
+---
+
 ## 24.11.2026 — повторный пользовательский P1 OnePlus smoke PASS, локальная непрерывность подтверждена
 
 - Получен второй пользовательский JSON `paseka-p1-phone-readonly-smoke-v1`, source `e5cabce911f3c3e0d5036d85a542bfd9b4a81c91`: `status=PASS`, 12/12 checks PASS, `P1_ISOLATED_PREVIEW_SMOKE_PASS`. `isolatedLocalStorageContinuity=PRIVATE_DIAGNOSTIC_LOCAL_MARKER_SEEN_AGAIN` — локальный тестовый маркер пережил повторный запуск приложения. Это **не** доказательство сохранения боевого CAS/IndexedDB/архива.
