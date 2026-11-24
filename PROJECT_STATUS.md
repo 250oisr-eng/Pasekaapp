@@ -1,36 +1,13 @@
-# PROJECT_STATUS — текущая точка проекта «Пасека 2.0»
+# PROJECT_STATUS — Пасека 2.0
 
-**Обновлено:** 2026-11-24. **Это краткий оперативный указатель, не журнал изменений.** Факты ниже сверяются с live GitHub перед работой; если SHA/PR изменился, обновить эту запись. История — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), Git и [прошлая редакция этого файла на main](https://github.com/250oisr-eng/Pasekaapp/blob/ecea1c3c50801250d42f49366e00e1e9e96d556f/PROJECT_STATUS.md).
+**24.11.2026.** Живой `main=c20d0fc39c8e1142925d2667c74c5c7760d3ce20`. [PR #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) **MERGED по отдельному разрешению**, без публикации: в main полный read-only v1 IDB экспорт, проверка SHA, B02 Blob guard, G0 и SW v316. Fast #3995 SUCCESS на merge SHA, Android #7009 completed/success. Full live restore UI не существует.
 
-## 1. Реальные границы состояния
+**PR #473 MERGED**: B09 fail-closed проверка схемы `main/full_backup/entrance_media` с двумя тестами добавлена в main после 695/695 PASS / Android BUILD SUCCESSFUL на PR SHA. Fast #3998 и Android #7013 на merge SHA проверяются отдельно. Полные legacy migrations и аварийное восстановление NOT_VERIFIED. Полные legacy migrations и аварийное восстановление NOT_VERIFIED.
 
-| Объект | Статус / подтверждённый источник |
-|---|---|
-| `main` | Live SHA `d179da9a2d93ae193adaaaed7e4435ca42dc2cc5`; #470 MERGED по отдельному разрешению. Публикация не разрешена |
-| [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469) | QA first-use/signing, HEAD `01ba91aa63e5d27b65671c5c06c55f58020c701f`, **НЕ merged**. Code SHA `829be6d8a0de28266d345ffe496a8dd0e649f916`: [Android #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572), **690/690 PASS**, 2 jobs PASS, два реальных изолированных QA APK с одним временным сертификатом. Дальнейший diff только docs/process |
-| [Draft #452](https://github.com/250oisr-eng/Pasekaapp/pull/452) | Full-IDB archive/restore, HEAD `36fb89e888b2ed486af011d400cf2224c5be1872`, **НЕ merged**; B01 физически NOT_VERIFIED, B02 защита fail-closed существует в Draft |
-| [Draft #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) | **B03 READY_FOR_MERGE_REVIEW / NOT_IN_MAIN.** Code SHA `f2bf7842ad38dd2220b55d1e16a77fdf862e4596`: [Android #45462990179](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990179) **693/693 PASS, BUILD SUCCESSFUL**; [Docs #45462990244](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990244) success. Main-based read-only P0 export/verify, G0 сохранён, live restore не активирован |
-| [Issue #442](https://github.com/250oisr-eng/Pasekaapp/issues/442) | PASEKA02 video recognition + automatic cleanup **FROZEN** до V0–V6, лицензии модели, оригинальных данных и доказанного восстановления |
-| OnePlus | Пользователь подтвердил: первый улей, семья, две заметки сохранены после офлайн-перезапуска — `DEVICE_USER_REPORTED_PASS`. Installed APK signer независимо не прочитан. **Не переустанавливать, не очищать, не обновлять неподписанным/другим APK** |
+**PR #471**: в рабочей ветке согласованы компактные правила, реестр B01–B15, план действий и журнал. **Не merged**, новый exact SHA Governance CI проверить.
 
-## 2. Очередь и зависимости
+**Draft #469**: прочтение установленной подписи OnePlus только в mock tests, actual signing fingerprint UNKNOWN, постоянного защищённого ключа нет. **Draft #452** — старый full restore, не merged. **Issue #442** PASEKA02 automatic video cleanup FROZEN. Без независимой копии и V0–V6 нельзя удалять реальные файлы.
 
-1. **GOVERNANCE #470 — MERGED:** по отдельному решению. Новый безопасный архив B03 в **Draft #472**, ещё не в main; следующий независимый приоритет B04/B05 Android signing.
-2. **P0 DATA — READY FOR INDEPENDENT REVIEW, NOT FOR MERGE:** полный архив/restore #452: матрица источников, миграции, фактическое восстановление и исходные Blob; отдельная ветка, cross-PR совместимость ещё не доказана.
-3. **P0 ANDROID — QA READY IN CODE, DEVICE MIGRATION BLOCKED:** #469: временный binary signing smoke PASS; **долговременный ключ отсутствует**, исходная установленная подпись OnePlus неизвестна, данные на устройстве сохранять.
-4. **P1:** по live main/Draft проверить и подготовить интеграцию независимых PR; физическая модель OP, дневник, кормление, зимовка, медосбор — без нового UI на неподдержанной модели.
-5. **FROZEN:** PASEKA02 video auto-delete #442 до лицензионного/физического/архивного подтверждения.
+**Внешние ворота:** read-only ADB на доступном OnePlus, независимый архив вне устройства, byte-safe восстановление только на пустом тестовом target, постоянный signing keystore вне Git. Технологические OP и старые stacked PR не интегрировать пачкой. Подробности — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md) и [план](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
 
-**Уровни доказательств не смешивать:** `IMPLEMENTED_DRAFT`, `CI_VERIFIED_EXACT_SHA`, `BINARY_PROOF`, `DEVICE_USER_REPORTED_PASS`, `DEVICE_VERIFIED`, `IN_MAIN`, `RELEASED`, `NOT_TESTED`.
-
-## 3. Последний этап, блокеры, следующее действие
-
-- Последний законченный **кодовый** макроцикл #469: [Actions #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572) на `829be6d8...`, 690/690 PASS, два Android jobs успешны. Никаких merge/release; подписанные изолированные APK с временным ключом **не публиковались**.
-- Незакрытые внешние зависимости: долговременный QA-key; независимый original-file backup/restore; physical Android restore; лицензированные веса модели/данные; разрешения merge и выпуска. Отсутствие этих ресурсов **не разрешает удаление или рискованный импорт**.
-- **Следующее действие:** финализировать только документный HEAD CI #472; без разрешения merge не выполнять, перейти к B04/B05 signing. B01 real cross-device NOT_VERIFIED и PASEKA02 FROZEN. В течение следующих 2–3 реальных макроциклов учитывать повторные чтения, отменённые CI, блокеры и завершённые пользовательские сценарии в [WORK-CYCLE-METRICS.json](docs/WORK-CYCLE-METRICS.json). Эффект `NOT_MEASURED` до фактических измерений; экономию не выдумывать.
-
-## 4. Ссылки
-
-Единственный рабочий цикл: [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Ограничения: [AGENTS.md](AGENTS.md). Индекс: [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md). История: [ЖУРНАЛ-ИЗМЕНЕНИЙ.md](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md). Короткая передача: [ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md](docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md).
-
-**Запреты:** merge #470 разрешён отдельно 24.11.2026; никакие другие PR, публикация, production deployment, производственные миграции и удаление данных/видео не разрешены.
+**Права:** отдельные разрешения пользователя на последовательное слияние #472, #473 и #471 ограничены проверкой CI/отсутствием конфликтов. #472 и #473 уже merged. #471 — ещё Draft; для merge требуется успешный новый exact-SHA Governance CI и повторная проверка main. Публикация не разрешена. Никаких publish/deploy, установки APK, изменения production-базы, восстановления и удаления.
