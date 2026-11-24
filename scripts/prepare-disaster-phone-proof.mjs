@@ -1,9 +1,9 @@
 import {readFile,writeFile,copyFile} from 'node:fs/promises';
-const diagnosticId='ru.paseka.journal.disasterproof';
+const diagnosticId='ru.paseka.journal.disasterproof2';
 const configPath='capacitor.config.json',out='www/index.html';
 const config=JSON.parse(await readFile(configPath,'utf8'));
 if(config.appId!=='ru.paseka.journal'||config.webDir!=='www')throw Error('Unexpected original configuration; refusing to modify');
-config.appId=diagnosticId;config.appName='Пасека · P0 Recovery TEST';
+config.appId=diagnosticId;config.appName='Пасека · P0 Recovery TEST 2';
 await writeFile(configPath,JSON.stringify(config,null,2)+'\n','utf8');
 let html=await readFile(out,'utf8');
 const marker='</body>';
