@@ -1,3 +1,15 @@
+## 2026-11-24 — МАКРОЦИКЛ P0: реальный независимый QA-signing proof; 690/690 CI PASS
+
+- Пользователь потребовал **масштабировать объём автономных циклов**. В `AGENTS.md` закреплён порядок: несколько связанных задач, бинарный proof, отрицательные тесты, самокоррекция CI, документация и сводный отчёт за один цикл. Ограничения merge/release/данных сохраняются.
+- `main` не изменён; [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469) открыт. **ONEPLUS: USER_REPORTED_DEVICE_PASS** (первый улей/семья/две заметки после офлайн-перезапуска); данные на телефоне существуют, **ничего не удалять/не переустанавливать**.
+- Развёрнут отдельный `isolated_qa_signature_proof` job в `.github/workflows/android-debug.yml` (только PR точной QA ветки), который реально собирает `ru.paseka.journal.firstuseqa` и подписывает два APK **одним одноразовым приватным ключом**, удаляет ключ и временные APK, **не загружает QA APK в artifacts**. Ключ не является долгоживущим.
+- Реальный апксайнер выдаёт `V3.0 Signer` вместо старого `Signer #1`: обновлён `parseSigning` и регрессии. Промежуточные CI #45439867332 и #45440405934 зафиксировали ошибки парсинга; #45441512631 — ошибка второго вызова после перехода на явную передачу конфигурации, затем исправлено. Глобальное `process.env` не мутируется; все изменения `scripts/**` запускают CI.
+- **CODE/TEST SHA `829be6d8a0de28266d345ffe496a8dd0e649f916`**, [GitHub Actions #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572) — **completed/success; оба jobs PASS; 690/690 tests, fail 0; оба Gradle BUILD SUCCESSFUL**. QA proof реально вывел `EPHEMERAL_TWO_BINARY_SIGNING_PROOF`, `matchedCertificate=true`, `packageName=ru.paseka.journal.firstuseqa`, `versionCode=1`, `requiresExternalDurableKey=true`, `upgradeOnOnePlus=false`. Единственный Actions artifact — обычный `paseka-debug-apk` ID `14943682043`, ZIP digest `sha256:378d505ea57cd6525e2ea3f3fdbd4ff8ffc840e20e9cd88ebe9daa3947ea1d0d`, **НЕ разрешён для upgrade**.
+- Read-only сверка: Draft #452 full restore ветка **diverged** от проверенной main базы (ahead 122, behind 21), от #469 code SHA (ahead 122, behind 128). Эти значения — commit graph, **не установленный merge conflict**. #452 нельзя механически слить в #469/main; реальные user-media external backup/restore ещё NOT_TESTED. PASEKA02 #442 FROZEN.
+- **Документация макроцикла:** `docs/P0-MACRO-CYCLE-BINARY-SIGNING-CI-2026-11-24.md`. Следующие gates: долгоживущий QA signing key вне Git + независимое доказательство полного backup→restore с реальными исходниками до устройства, no merge/release/deploy.
+
+---
+
 ## 2026-11-24 — большой цикл P0: QA-signing guard + изолированный transfer + негативный restore, 686/686 PASS
 
 - Сверены live GitHub: Draft #469 открыт, не merged; P0 full restore #452 отдельный Draft, PASEKA02 auto-cleanup #442 FROZEN; `main` не изменён. Пользовательский OnePlus `USER_REPORTED_DEVICE_PASS` (чистый первый улей, семья, две заметки после офлайн-перезапуска), данные **есть на устройстве** — не удалять.
