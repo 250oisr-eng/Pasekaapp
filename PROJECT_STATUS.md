@@ -1,3 +1,12 @@
+## 2026-11-24 — B03: main-based Draft #472 CI_VERIFIED_EXACT_SHA
+
+- Code/test SHA `f2bf7842ad38dd2220b55d1e16a77fdf862e4596` на [Draft #472](https://github.com/250oisr-eng/Pasekaapp/pull/472): [Android #45462990179](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990179) **693/693 PASS, Gradle BUILD SUCCESSFUL, debug APK uploaded**, [Governance #45462990244](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990244) **SUCCESS**.
+- Первые два Android-прогона новой ветки реально были `CANCELLED` (добавились документы) и `FAIL` (неверный regex теста); третий `FAIL` (три fixture с Blob вместо чистого key/value race). Ошибки исправлены на нынешнем code/test SHA; нельзя переименовывать прошлые run в PASS.
+- B03 `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN`: селективно перенесён безопасный read-only экспорт/проверка файла в main-based Draft, G0 и старый JSON сохранены, destructive full restore UI отсутствует; Android signing #469 не затронут. **Никаких merge/release/OnePlus.**
+- Следующий независимый приоритет B04/B05. B01 полная внешняя копия/восстановление, B02 в основном `main` и #442 FROZEN сохраняют свои реальные ворота до интеграции/физического доказательства.
+
+---
+
 ## 2026-11-24 — B03: селективный main-based Draft #472 (не merged)
 
 - Начиная от `main=d179da9a2d93ae193adaaaed7e4435ca42dc2cc5`, создан [Draft #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) как минимальный перенос архива из #452 без перетаскивания его 141-коммитной истории и без пересечения с Android signing #469.
