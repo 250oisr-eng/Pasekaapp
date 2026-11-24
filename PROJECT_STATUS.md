@@ -1,25 +1,13 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**Обновлено: 2026-11-24.** Живые GitHub SHA/PR/CI выше исторических статусов. Полный [реестр B01–B15](docs/РЕЕСТР-БЛОКЕРОВ.md), [однопроходный план снятия и минимальные действия пользователя](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md), [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**24.11.2026.** Живой `main=9e3c76b25036bef1e441d6890a913ad1e0b4c48b`. [PR #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) **MERGED по отдельному разрешению**, без публикации: в main полный read-only v1 IDB экспорт, проверка SHA, B02 Blob guard, G0 и SW v316. Fast #3995 SUCCESS на merge SHA, Android #7009 результат проверять по live Actions. Full live restore UI не существует.
 
-## Подтверждено
+**PR #473**: B09 fail-closed проверка схемы `main/full_backup/entrance_media` с двумя тестами; ветка согласована с #472, **не merged**, новый exact SHA/CI проверить. Полные legacy migrations и аварийное восстановление NOT_VERIFIED.
 
-- `main=d179da9a2d93ae193adaaaed7e4435ca42dc2cc5` (#470 уже merged по отдельному разрешению). На точном main публичные push-run **Fast quality checks #3975** и **Build Android APK #6981** completed/success. Исчерпывающая сверка отсутствия неразрешённого Pages deploy остаётся B15 PARTIAL.
-- **Draft #472**: B02/B03 безопасный main-based P0 архив **только экспорт и проверка файла**, live restore UI отсутствует. Финальный код+docs SHA `4d3d82a65c5dfbddf835cd0f853fbbe684309420`: [Android #45463484539](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45463484539) и [Governance #45463484267](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45463484267) success; 693/693 PASS на кодовом SHA. `READY_FOR_MERGE_REVIEW`, **NOT_IN_MAIN**.
-- **Draft #473**: B09 main-based проверка неполных stores IndexedDB без изменения базы. SHA `4cb69a107602caf7452f542da2cb956afaa8f398`: [Android #45465229553](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45465229553) **666/666 PASS / BUILD SUCCESSFUL**, [Docs #45465229695](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45465229695) success; `READY_FOR_MERGE_REVIEW / NOT_IN_MAIN`. Не является полным legacy recovery.
-- **Draft #469**: B04 read-only установленного APK `--installed-only` реализован и протестирован на mock ADB, **exact нового HEAD CI НЕ ПОДТВЕРЖДЁН**. Подпись реально установленного OnePlus неизвестна, постоянный signing key отсутствует. Прежние 690/690 CI по старому SHA на новый код не распространяются.
-- **Draft #452**: старый full-IDB restore, с B01 byte-readback/B02 fail-closed; не слит, не разрешён для реальной базы; переносим безопасную часть через #472, не целиком.
-- **Draft #471**: документационный реестр и настоящее решение B01–B15; не merged. Источник требований и ограничения — `AGENTS.md` и стратегия F0–F7.
-- В GitHub публично **393 открытых PR**. B07 технологическая цепочка #453–466 имеет зависимости; B08 массовый merge запрещён; B13 #445/#451 отстают от main; P2 #424–427 не имеет реальных метрик.
-- OnePlus: по словам пользователя сохраняются улей, семья и две заметки, проверенные после offline reopen; реальная installed APK signature, внешний media backup и миграции не подтверждены. **Ни uninstall, ни clear, ни установка случайного нового APK.**
-- PASEKA02 real bee-video + auto-cleanup **FROZEN #442**, `cleanupAuthorized=false`, никакого удаления оригиналов.
+**PR #471**: в рабочей ветке согласованы компактные правила, реестр B01–B15, план действий и журнал. **Не merged**, новый exact SHA Governance CI проверить.
 
-## Действия по очереди
+**PR #469**: прочтение установленной подписи OnePlus только в mock tests, actual signing fingerprint UNKNOWN, постоянного защищённого ключа нет. **PR #452** старый full restore Draft, не merged. **Issue #442** PASEKA02 automatic video cleanup FROZEN. Без независимой копии и V0–V6 нельзя удалять реальные файлы.
 
-1. **Только если пользователь разрешит именно эти действия:** отдельно merge #472 и (после проверки) #473; после каждого проверить новый main SHA/CI и отсутствие release. **Никакой публикации.**
-2. **При доступе к OnePlus и ПК:** read-only установленная подпись через ADB; без установки. Затем полный проверяемый файл архива, физически независимая копия и отдельно восстановление в пустом тестовом контексте. Без доказанного backup реальные миграции/restore запрещены.
-3. **Вне Git:** защищённый постоянный signing keystore и offline backup; только публичный fingerprint в отчёте. Отдельный QA appId / 2 APK upgrade тест после полной готовности.
-4. B07/B08/B13: по одному независимому main-based PR со source-bound OP/журнал контрактом, регрессиями и CI; B10/B11 физические тесты только безопасной сборки; B14 performance после P0/P1.
-5. **B06 остаётся FROZEN** до лицензированного checkpoint, реальных исходников, V0–V6, независимого recovery и отдельного разрешения на удаление. Все риски/вопросы — в едином плане выше.
+**Внешние ворота:** read-only ADB на доступном OnePlus, независимый архив вне устройства, byte-safe восстановление только на пустом тестовом target, постоянный signing keystore вне Git. Технологические OP и старые stacked PR не интегрировать пачкой. Подробности — [реестр](docs/РЕЕСТР-БЛОКЕРОВ.md) и [план](docs/P0-P2-ПЛАН-ЗАКРЫТИЯ-БЛОКЕРОВ-И-ДЕЙСТВИЯ-ПОЛЬЗОВАТЕЛЯ-2026-11-24.md).
 
-**Любой merge PR, production deploy, изменение рабочей БД, очистка или удаление оригиналов требуют соответствующего отдельного разрешения.** Нет разрешения сливать все 393 PR. Следующие проверки — по точным SHA, не по прошлой зелёной ветке.
+**Права:** отдельное разрешение пользователя на merge #472 уже использовано. Текущее поручение — исправить ветки #473/#471 и проверить CI, **не** разрешение их слияния. Никаких publish/deploy, установки APK, изменения production-базы, восстановления и удаления.
