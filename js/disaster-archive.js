@@ -69,29 +69,67 @@ function keyListSignature(keys){
  assert(Array.isArray(keys),'Invalid IndexedDB key enumeration');
  return JSON.stringify(keys.map(keySignature));
 }
+// Synchronous, deterministic value fence for the final readwrite transaction.
+// Blob/File contents cannot be synchronously read inside an IndexedDB transaction;
+// this covers metadata only. Equal-size/type binary replacements remain BLOCKED
+// from being considered fully protected until a byte-level protocol is added.
+function liveValueSignature(value){
+ const seen=new WeakSet();
+ function node(item,depth){
+  assert(depth<200,'Live record too deep for restore fence');
+  if(item===null||typeof item==='string'||typeof item==='boolean')return ['p',item];
+  if(typeof item==='number'){assert(Number.isFinite(item),'Non-finite live value');return ['n',item];}
+  if(item===undefined)return ['u'];
+  if(typeof item==='bigint')return ['bigint',item.toString()];
+  if(item instanceof Date)return ['date',item.getTime()];
+  if(typeof File!=='undefined'&&item instanceof File)return ['file',item.size,item.type,item.name,item.lastModified];
+  if(item instanceof Blob)return ['blob-metadata-only',item.size,item.type];
+  if(item instanceof ArrayBuffer)return ['buffer',b64(new Uint8Array(item))];
+  if(ArrayBuffer.isView(item))return ['view',Object.prototype.toString.call(item),b64(new Uint8Array(item.buffer,item.byteOffset,item.byteLength))];
+  assert(item&&typeof item==='object','Unsupported live record in restore fence');
+  assert(!seen.has(item),'Cyclic live record; restore aborted');
+  seen.add(item);
+  let result;
+  if(Array.isArray(item))result=['array',item.map(x=>node(x,depth+1))];
+  else{
+   assert(Object.getPrototypeOf(item)===Object.prototype||Object.getPrototypeOf(item)===null,
+    'Unsupported live object prototype in restore fence');
+   result=['object',Object.keys(item).sort().map(k=>[k,node(item[k],depth+1)])];
+  }
+  seen.delete(item);
+  return result;
+ }
+ return JSON.stringify(node(value,0));
+}
 function snapshotLiveKeys(db){
  const names=Array.from(db.objectStoreNames);
  return new Promise((resolve,reject)=>{
-  const observed=Object.create(null);
+  const observedKeys=Object.create(null),observedValues=Object.create(null);
   let tx,finished=false;
-  const fail=e=>{if(!finished){finished=true;reject(e||new Error('Restore key snapshot failed'));}};
+  const fail=e=>{if(!finished){finished=true;reject(e||new Error('Restore snapshot failed'));}};
   try{
    tx=db.transaction(names,'readonly');
    for(const name of names){
-    const q=tx.objectStore(name).getAllKeys();
-    q.onsuccess=()=>{observed[name]=q.result;};
-    q.onerror=()=>{try{tx.abort();}catch(_){}fail(q.error);};
+    const store=tx.objectStore(name),keys=store.getAllKeys(),values=store.getAll();
+    keys.onsuccess=()=>{observedKeys[name]=keys.result;};
+    values.onsuccess=()=>{observedValues[name]=values.result;};
+    keys.onerror=values.onerror=()=>{try{tx.abort();}catch(_){}fail(store.transaction.error||new Error('Restore snapshot read failed'));};
    }
    tx.oncomplete=()=>{
     if(finished)return;
     try{
-     const signatures=Object.create(null);
-     for(const name of names)signatures[name]=keyListSignature(observed[name]);
-     finished=true;resolve(signatures);
+     const keySignatures=Object.create(null),valueSignatures=Object.create(null);
+     for(const name of names){
+      assert(Array.isArray(observedKeys[name])&&Array.isArray(observedValues[name])&&
+        observedKeys[name].length===observedValues[name].length,'Incomplete restore snapshot');
+      keySignatures[name]=keyListSignature(observedKeys[name]);
+      valueSignatures[name]=JSON.stringify(observedValues[name].map(liveValueSignature));
+     }
+     finished=true;resolve({keys:keySignatures,values:valueSignatures});
     }catch(e){fail(e);}
    };
-   tx.onabort=()=>fail(tx.error||new Error('Restore key snapshot aborted'));
-   tx.onerror=()=>fail(tx.error||new Error('Restore key snapshot failed'));
+   tx.onabort=()=>fail(tx.error||new Error('Restore snapshot aborted'));
+   tx.onerror=()=>fail(tx.error||new Error('Restore snapshot failed'));
   }catch(e){fail(e);}
  });
 }
@@ -164,8 +202,9 @@ async function inspectArchive(raw,db,validateMain){
  const main=restored.get('main').find(x=>x.key==='state')?.value;
  assert(main&&typeof main==='object','Main state is missing');
  if(validateMain)validateMain(main);
- const liveKeySignatures=await snapshotLiveKeys(db);
- return {rows:restored,main,counts:manifest.counts,sha256:manifest.sha256,liveKeySignatures};
+ const liveSnapshot=await snapshotLiveKeys(db);
+ return {rows:restored,main,counts:manifest.counts,sha256:manifest.sha256,
+  liveKeySignatures:liveSnapshot.keys,liveValueSignatures:liveSnapshot.values};
 }
 async function atomicRestore(db,inspection,expectedRevision){
  assert(inspection&&inspection.rows instanceof Map,'Archive must pass preflight');
@@ -174,22 +213,27 @@ async function atomicRestore(db,inspection,expectedRevision){
  assert(inspection.liveKeySignatures&&
    JSON.stringify(Object.keys(inspection.liveKeySignatures).sort())===JSON.stringify(names.slice().sort()),
    'Live store key fence is missing; repeat preflight');
+ assert(inspection.liveValueSignatures&&
+   JSON.stringify(Object.keys(inspection.liveValueSignatures).sort())===JSON.stringify(names.slice().sort()),
+   'Live store value fence is missing; repeat preflight');
  return new Promise((resolve,reject)=>{
   let tx,conflict=null,settled=false;
   const fail=e=>{if(!settled){settled=true;reject(e||new Error('Restore transaction aborted'));}};
   try{
    tx=db.transaction(names,'readwrite');
    const main=tx.objectStore('main'),req=main.get('state');
-   const checks=names.map(name=>({name,req:tx.objectStore(name).getAllKeys()}));
-   let remaining=checks.length+1,revisionOk=false;
+   const checks=names.map(name=>({name,req:tx.objectStore(name).getAllKeys(),values:tx.objectStore(name).getAll()}));
+   let remaining=checks.length*2+1,revisionOk=false;
    const abort=e=>{if(!conflict)conflict=e;try{tx.abort();}catch(_){}};
    const proceed=()=>{
     if(--remaining!==0)return;
     if(!revisionOk)return abort(new Error('Database changed since preflight'));
     try{
-     for(const {name,req:keys} of checks){
+     for(const {name,req:keys,values} of checks){
       if(keyListSignature(keys.result)!==inspection.liveKeySignatures[name])
        return abort(new Error('Store keys changed since preflight: '+name));
+      if(JSON.stringify(values.result.map(liveValueSignature))!==inspection.liveValueSignatures[name])
+       return abort(new Error('Store values changed since preflight: '+name));
      }
      for(const name of names){
       const store=tx.objectStore(name),rows=inspection.rows.get(name);
@@ -203,9 +247,11 @@ async function atomicRestore(db,inspection,expectedRevision){
    };
    req.onsuccess=()=>{revisionOk=(req.result?.meta?.revisionId||null)===expectedRevision;proceed();};
    req.onerror=()=>abort(req.error||new Error('Restore revision read failed'));
-   for(const {req:keys} of checks){
+   for(const {req:keys,values} of checks){
     keys.onsuccess=proceed;
     keys.onerror=()=>abort(keys.error||new Error('Restore key read failed'));
+    values.onsuccess=proceed;
+    values.onerror=()=>abort(values.error||new Error('Restore value read failed'));
    }
    tx.oncomplete=()=>{if(!settled){settled=true;resolve(true);}};
    tx.onabort=()=>fail(conflict||tx.error||new Error('Restore rolled back'));
