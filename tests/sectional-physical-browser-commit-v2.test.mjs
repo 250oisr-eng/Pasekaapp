@@ -11,7 +11,8 @@ for(const file of [
  'sectional-season-provenance-v2.js','sectional-season-op13-guided-v2.js',
  'sectional-physical-browser-commit-v2.js'
 ])new Function('window',readFileSync(new URL('../js/'+file,import.meta.url),'utf8'))(w);
-const PROFILE='sectional-multiqueen-v1',api=w.PasekaSectionalPhysicalBrowserCommitV2;
+const PROFILE='sectional-multiqueen-v1',api=w.PasekaSectionalOP13GuidedV2,
+ bridge=w.PasekaSectionalPhysicalBrowserCommitV2;
 function fixture(){
  const positions=['left','middle','right'],sections=[],stacks=[],items={},bodies={};
  const queenRefs={},connLeft=[],connRight=[];
