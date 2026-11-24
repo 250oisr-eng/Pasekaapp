@@ -3663,6 +3663,8 @@ async function downloadG0SourceInventory(){
   await saveQueue;
   if(!db)throw new Error('Локальная база ещё не открыта');
   const report=await PasekaP0SourceInventory.readOnlyInventory(db);
+  report.unsavedInMemory={journal:pendingRecordMedia.length,plants:pendingPlantMedia.length,incidents:pendingIncidentMedia.length,deadout:pendingDeadoutMedia.length,activeVideoCapture:!!videoRecorder,activeCamera:!!cameraStream};
+  if(Object.entries(report.unsavedInMemory).some(([key,value])=>value===true||(typeof value==='number'&&value>0)))report.issues.push('IN_MEMORY_UNSAVED_MEDIA_NOT_IN_IDB');
   const raw=JSON.stringify(report,null,2),url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');
   a.href=url;a.download='paseka-g0-readonly-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
