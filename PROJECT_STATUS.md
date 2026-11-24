@@ -1,24 +1,27 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026, интеграция по отдельному разрешению пользователя.** Текущий подтверждённый main: `d448fb293644e93c5f222608c4f822c500a6807a`. Источники и процесс: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Это состояние исходного main при создании **docs-only** ветки; SHA и CI пересверять перед каждым merge.
+**25.11.2026 — семь независимых направлений.** Подтверждённый текущий `main=97e61dcd28cdaf823098e6ba7317fccc9420a3fa`. Рабочая документация: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). SHA пересверять непосредственно перед каждым merge и после него.
 
-## Реально объединено, а не только протестировано
+## Доказанные интеграции этого цикла
 
-- **#485 MERGED** → `023ad0dd09435ba9c26042b86f26b960f19dfe9a`: B01 пять тестов полной readonly-транзакции архива. Fast #45502702439, Governance #45502702437, Android #45502702424 — **SUCCESS** на точном main, без публикации.
-- **#486 MERGED** → `731a0c80b758e574084d1af836f4c31df483ffe8`: B09 14 тестов existing malformed v3, transaction abort, openDB late events; первоначальный #483 CLOSED/SUPERSEDED. Fast #45503391689, Governance #45503391788, Android #45503391704 — **SUCCESS** на точном main.
-- **#487 MERGED** → `4ae6b335582dff1d8957f594911cb03685034b81`: ограничение Cloudflare request body до JSON parse, 270000 UTF-8 bytes, тесты. Исходный #482 CLOSED/SUPERSEDED. Fast #45503589145, Governance #45503589120, Android #45503589237 — **SUCCESS**, Worker production NOT_DEPLOYED.
-- **#488 MERGED** → `cb32d0ca8d72f9c4e8d57bb2d06d86a7b5cef237`: opt-in read-only legacy layout-body audit + 8 тестов; нет startup/save hooks. Исходный #484 CLOSED/SUPERSEDED. Fast #45503772232, Governance #45503772297 и Android #45503772276 — **SUCCESS** на точном main.
-- **#489 MERGED** → `156181ef07e1c76b83e7afd2df22441ba1ec90cd`: Service Worker v318 (numeric old shell only, user/future caches preserved) и VM lifecycle tests; исходный Draft #478 CLOSED/SUPERSEDED. Fast #45504008635, Governance #45504008552 и Android #45504008409 — **SUCCESS** на точном main. Установленное приложение OnePlus не обновлялось, Pages не публиковались. 
-- **#491 MERGED** → `d448fb293644e93c5f222608c4f822c500a6807a`: GET-only полный PR inventory, fail-closed пагинация/дубликаты, read-only тесты и датированные документы. Исходный Draft #481 CLOSED/SUPERSEDED. Точный main Fast #45504487977, Governance #45504487993, Android #45504488311 — **SUCCESS**. Исторический снимок 393/394 PR не равен текущему числу.
-- **Draft #469** B04 startup/signing и **Draft #452** full restore — НЕ ОБЪЕДИНЕНЫ. Пользовательское разрешение на интеграцию не является доказательством физического восстановления.
+- **#496 MERGED** → `17834a1413f954eac1eb25bc2da0c7077ec9965e`: read-only B04 signer/OnePlus evidence audit; exact-main docs Governance #45505605231 **SUCCESS**. Физический signer не доказан.
+- **#492 MERGED** → `a17cc60231db5015bc9895d40b80fcea8f53fcc0`: source-backed архивные abort и полный перечень stores; Fast #45505720390, Governance #45505720425, Android #45505720387 **SUCCESS** на main.
+- **#493 MERGED** → `812d43f719d38e1ad29109200d2b79ba8bdcd691`: read-only PR inventory negative pagination and never-auto-ready; Fast #45505907793, Governance #45505907794, Android #45505907858 **SUCCESS** на main.
+- **#494 MERGED** → `22123ab09b644ee79898395cf626f2e1301625f1`: SW install rejects missing/private shell assets; Fast #45506214902, Governance #45506215211, Android #45506215472 **SUCCESS** на main.
+- **#498 MERGED** → `97e61dcd28cdaf823098e6ba7317fccc9420a3fa`: честное описание обычного JSON/auto backup против P0 read-only full IndexedDB archive; Fast #45506427598 SUCCESS, Governance #45506427574 SUCCESS, Android #45506427607 **PENDING** при фиксации. Код backup и данные не менялись.
 
-## Блокеры, которые кодовый CI не снял
+## Параллельные направления
 
-**B01:** на OnePlus нет независимо подтверждённого полного внешнего архива/restore; старые приватные TAR некорректны. **B04/B05:** текущий установленный signer и долговременный signing key неизвестны. **B06/B10:** лицензированные веса, настоящий video pipeline и физическая media cleanup не доказаны; issue #442 **FROZEN**. B11 реальное холодное офлайн-открытие/апгрейд с сохранностью данных и P2 эксплуатационные метрики NOT_VERIFIED. Пользовательские архивы, IndexedDB, оригиналы видео и установленный APK не трогали.
+- **#495 DRAFT / NOT_IN_MAIN:** источник Cloudflare Worker, негативные проверки mid-stream transport failure и нулевого byte cap; Android #45505456614, Governance #45505456637 **SUCCESS** на Draft.
+- **#497 DRAFT / NOT_IN_MAIN:** перенос из #480 ручного Cloudflare deploy с явным RELEASE_SHA, подтверждением и main ancestry (никогда push deploy). Android #45505466312, Governance #45505466390 **SUCCESS** на Draft; реальные deployment не выполнялись.
+- **Draft #469** startup/installed signer, **Draft #452** аварийное восстановление, **Draft #479** read-only B01 transport — исторические сложные кандидаты, НЕ объединены и не превращены в физическое доказательство.
 
-## Следующая очередь
+## Незакрытые реальные зависимости
 
-1. Завершить этот docs-only PR после exact-HEAD Governance CI и перепроверить её точный merge SHA; без публикации.
-2. Актуализировать этот docs-only статус после всех подтверждённых merge, проверить exact CI/Pages source на конечном main.
-3. Продолжить B01 только безопасной read-only диагностикой до доказанного внешнего архива; запретить реальный restore/cleanup.
-4. Опубликовать Pages/Cloudflare или менять production-данные **только отдельным безопасным release-процессом с проверенным SHA и необходимым backup/rollback**. Сам факт общей авторизации не превращает рискованную операцию в безопасную.
+**B01:** полного внешнего оригинального архива с отдельным тестовым restore нет, старые TAR OnePlus недействительны. **B04/B05:** signer реального установленного пакета и долгоживущий ключ отсутствуют. **B06/B10:** лицензированные weights, реальный видеоконвейер и автоудаление оригиналов **FROZEN #442**. **B11:** настоящие cold-offline/rollback тесты на OnePlus не выполнены. Никаких изменений в production БД, установки APK, публикации Pages или Cloudflare, стирания видео и секретов не было.
+
+## Следующий этап
+
+1. Завершить exact-main Android #498 и интегрировать #495/#497 по одному, повторяя Fast/Governance/Android CI на каждом новом `main`.
+2. Обновить этот статус и журнал, проверить Governance docs-only SHA, не затереть историю.
+3. Вернуться к B01 лишь при появлении доказуемого безопасного внешнего восстановления. P2 physical performance и все OP01–14 live activation отдельно требуют source-bound/устройственного gate.
