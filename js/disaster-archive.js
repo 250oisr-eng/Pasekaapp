@@ -101,6 +101,29 @@ function liveValueSignature(value){
  }
  return JSON.stringify(node(value,0));
 }
+// Fail closed on ALL live Blob/File values before a destructive rewrite.
+// IndexedDB clones Blob handles: synchronous size/type checks cannot prove bytes.
+// A newly replaced same-size video would otherwise pass the preflight fence.
+// Binary archive imports remain possible into a fresh destination database.
+function assertNoLiveBinary(value,storeName){
+ const seen=new WeakSet();
+ function visit(item,depth){
+  assert(depth<200,'Live binary guard record too deep: '+storeName);
+  if(item===null||typeof item!=='object')return;
+  if(item instanceof Blob)throw new Error('Live binary originals require non-destructive restore: '+storeName);
+  if(item instanceof ArrayBuffer||ArrayBuffer.isView(item)||item instanceof Date)return;
+  assert(!seen.has(item),'Cyclic live record; restore aborted');
+  seen.add(item);
+  if(Array.isArray(item))for(const child of item)visit(child,depth+1);
+  else{
+   assert(Object.getPrototypeOf(item)===Object.prototype||Object.getPrototypeOf(item)===null,
+    'Unsupported live record for binary guard: '+storeName);
+   for(const key of Object.keys(item))visit(item[key],depth+1);
+  }
+  seen.delete(item);
+ }
+ visit(value,0);
+}
 function snapshotLiveKeys(db){
  const names=Array.from(db.objectStoreNames);
  return new Promise((resolve,reject)=>{
@@ -234,6 +257,9 @@ async function atomicRestore(db,inspection,expectedRevision){
        return abort(new Error('Store keys changed since preflight: '+name));
       if(JSON.stringify(values.result.map(liveValueSignature))!==inspection.liveValueSignatures[name])
        return abort(new Error('Store values changed since preflight: '+name));
+      // All stores, including nested records: never overwrite an existing
+      // binary without a transaction-safe byte-level comparison.
+      for(const value of values.result)assertNoLiveBinary(value,name);
      }
      for(const name of names){
       const store=tx.objectStore(name),rows=inspection.rows.get(name);
