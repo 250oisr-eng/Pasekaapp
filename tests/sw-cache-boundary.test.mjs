@@ -57,7 +57,7 @@ function harness({network=async()=>new Response('ok'),existingCaches=[],offlineS
 test('P1 SW activation deletes only earlier Paseka caches, never unrelated app caches',async()=>{
   const sw=harness({existingCaches:['paseka-shell-v313','other-app-cache','paseka-shell-v314','other-project-data']});
   await sw.activate();
-  assert.deepEqual(sw.deleted,['paseka-shell-v313']);
+  assert.deepEqual(sw.deleted,['paseka-shell-v313','paseka-shell-v314']);
 });
 
 test('P1 SW does not intercept external requests or private non-shell endpoints',async()=>{
