@@ -69,7 +69,16 @@ function display(status,code,detail=''){
   ensure(conflictRejected,'Conflicting restore unexpectedly committed');
   ensure((await request('main','state')).meta.revisionId==='p0-modified','Conflict altered live state');
   add('revisionConflictRollback','PASS');
-  await PasekaDisasterArchive.atomicRestore(db,proof,'p0-modified');
+  // Even with an updated revision argument, the stale preflight must not erase
+  // a same-key edit. Re-inspect the original archive against the current live
+  // snapshot before any authorized recovery attempt.
+  let staleRejected=false;
+  try{await PasekaDisasterArchive.atomicRestore(db,proof,'p0-modified');}catch(_){staleRejected=true;}
+  ensure(staleRejected,'Stale same-key preflight unexpectedly overwrote live state');
+  ensure((await request('main','state')).meta.revisionId==='p0-modified','Stale preflight changed live data');
+  add('sameKeyValueConflictRollback','PASS');
+  const freshProof=await PasekaDisasterArchive.inspectArchive(original,db);
+  await PasekaDisasterArchive.atomicRestore(db,freshProof,'p0-modified');
   ensure((await request('main','state')).meta.revisionId==='p0-seed','Real IDB restore did not commit');
   ensure((await request('entrance_media','P0_TEST_ONLY_MP4_BYTES'))?.blob instanceof Blob,'Media not restored');
   add('atomicMultiStoreRestore','PASS');
