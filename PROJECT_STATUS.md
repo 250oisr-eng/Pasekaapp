@@ -1,3 +1,11 @@
+## 2026-11-24 — B01 verification implemented in Draft; external recovery BLOCKED
+
+- Реализована `PasekaDisasterArchive.verifyRestoredArchive`: после импорта отдельной базы пересчитать SHA всех stores, значений и исходных Blob; тесты включают повторный open и same-size видео-коррупцию. **Не доказывает внешний носитель, Android MediaStore, отдельное устройство.**
+- B01 частично реализован в Draft #452. Физическое доказательство B01 **BLOCKED/NOT_VERIFIED** до реального внешнего файла и второго защищённого контекста; не повторять synthetic-only циклы. Следующее независимое задание B03 / exact-SHA CI B01/B02.
+
+
+---
+
 ## 2026-11-24 — B02: бинарный fail-closed guard в Draft #452
 
 - Исправлен известный B02 same-size/same-MIME live video overwrite: `atomicRestore` до очистки всех stores отменяет транзакцию при **любом существующем вложенном Blob/File**. Текущие бинарные данные не перезаписываются, даже если их размер/MIME совпадает и изменились только байты. Восстановление архива с Blob в **пустую** базу сохраняется.
