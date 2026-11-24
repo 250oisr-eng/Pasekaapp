@@ -337,7 +337,11 @@ test('nested live media in a non-video store blocks restore without clearing any
  old.state.nested={attachments:[{payload:new Blob([Uint8Array.from([4,4,4,4])],{type:'application/octet-stream'})}]};
  const t=db.transaction('full_backup','readwrite');t.objectStore('full_backup').put(old,'previous');
  await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
- await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store values changed since preflight: full_backup|Live binary originals require non-destructive restore: full_backup/);
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store values changed since preflight: full_backup/);
+ // A fresh preflight now sees an unchanged nested Blob: the final transaction
+ // must still reject its destructive overwrite, independently of value races.
+ const unchangedBinaryInspection=await api.inspectArchive(raw,db);
+ await assert.rejects(api.atomicRestore(db,unchangedBinaryInspection,'r1'),/Live binary originals require non-destructive restore: full_backup/);
  assert.equal((await get(db,'full_backup','previous')).state.nested.attachments[0].payload.size,4);
  assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
  db.close();
