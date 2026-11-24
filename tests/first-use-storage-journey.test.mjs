@@ -69,7 +69,7 @@ test('first-use storage journey: fresh database -> hive -> family -> journal -> 
  assert.equal(reopened.records.length,1);
  assert.equal(reopened.records[0].hive,reopened.hives[0].id);
  assert.equal(reopened.records[0].family,reopened.families[0].id);
- assert.equal(validate(reopened.records[0],reopened).ok,true);
+ assert.equal(validate(reopened.records[0],reopened,reopened.records[0]).ok,true,'saved record is checked as existing, not a duplicate insertion');
  deps.db=db;
  gate.ready=false;
  await assert.rejects(write({...reopened,records:[]}),{name:'PasekaStartupBlockedError'});
