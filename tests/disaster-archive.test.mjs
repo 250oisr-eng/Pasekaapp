@@ -256,3 +256,48 @@ test('restore refuses a caller-supplied inspection without live key inventory',a
  assert.equal((await get(db,'entrance_media','video1')).id,'video1');
  db.close();
 });
+
+test('same-key historical backup overwrite after preflight blocks restore without losing newer record',async()=>{
+ const db=await database('value-fence-same-key-history');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const t=db.transaction('full_backup','readwrite');
+ t.objectStore('full_backup').put({state:{hives:[{id:'newer-hive'}]}},'previous');
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store values changed since preflight: full_backup/);
+ assert.equal((await get(db,'full_backup','previous')).state.hives[0].id,'newer-hive');
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ db.close();
+});
+test('same-key main.state edit with unchanged revisionId blocks archive restore',async()=>{
+ const db=await database('value-fence-main');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const changed=await get(db,'main','state');
+ changed.records.push({id:'new-inspection',text:'Synthetic record'});
+ const t=db.transaction('main','readwrite');t.objectStore('main').put(changed,'state');
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store values changed since preflight: main/);
+ assert.equal((await get(db,'main','state')).records[0].id,'new-inspection');
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
+test('same-key video replacement with different binary size aborts before any store clear',async()=>{
+ const db=await database('value-fence-media-size');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ const newer=[8,7,6,5,4,3];
+ const t=db.transaction('entrance_media','readwrite');
+ t.objectStore('entrance_media').put({id:'video1',blob:new Blob([new Uint8Array(newer)],{type:'video/mp4'})});
+ await new Promise((yes,no)=>{t.oncomplete=yes;t.onabort=t.onerror=()=>no(t.error);});
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Store values changed since preflight: entrance_media/);
+ assert.deepEqual([...new Uint8Array(await (await get(db,'entrance_media','video1')).blob.arrayBuffer())],newer);
+ assert.equal((await get(db,'full_backup','previous')).state.hives.length,0);
+ db.close();
+});
+test('restore requires live value fence; an incomplete inspection is not authority to rewrite',async()=>{
+ const db=await database('value-fence-missing');await seed(db);
+ const raw=await api.exportArchive(db),inspection=await api.inspectArchive(raw,db);
+ delete inspection.liveValueSignatures;
+ await assert.rejects(api.atomicRestore(db,inspection,'r1'),/Live store value fence is missing/);
+ assert.equal((await get(db,'main','state')).meta.revisionId,'r1');
+ assert.equal((await get(db,'entrance_media','video1')).id,'video1');
+ db.close();
+});
