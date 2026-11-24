@@ -6,16 +6,16 @@
 
 | Объект | Статус / подтверждённый источник |
 |---|---|
-| `main` | Исходный SHA перед отдельно разрешённым merge #470: `ecea1c3c50801250d42f49366e00e1e9e96d556f`. **После merge фактический новый main SHA устанавливать через live GitHub; это поле не претендует на текущий SHA.** Публикация отдельно не разрешена |
+| `main` | Live SHA `d179da9a2d93ae193adaaaed7e4435ca42dc2cc5`; #470 MERGED по отдельному разрешению. Публикация не разрешена |
 | [Draft #469](https://github.com/250oisr-eng/Pasekaapp/pull/469) | QA first-use/signing, HEAD `01ba91aa63e5d27b65671c5c06c55f58020c701f`, **НЕ merged**. Code SHA `829be6d8a0de28266d345ffe496a8dd0e649f916`: [Android #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572), **690/690 PASS**, 2 jobs PASS, два реальных изолированных QA APK с одним временным сертификатом. Дальнейший diff только docs/process |
-| [Draft #452](https://github.com/250oisr-eng/Pasekaapp/pull/452) | Full IDB archive/atomic restore, HEAD `f0367c338e0e5d9b9449803364af77d636f4ce56`, **НЕ merged**; ветка разошлась с #469 и main, текущую совместимость и реальные файлы ещё проверять |
-| [PR #470](https://github.com/250oisr-eng/Pasekaapp/pull/470) | **Реформа управления: пользователь отдельно разрешил merge 24.11.2026.** Итоговый статус и SHA после merge проверить через GitHub; публикация не разрешена. Исходный code/test SHA `7a29810dcc6cfb3deee56957ae205c574c33704d`: [Governance #45445521258](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45445521258) **4/4 PASS**, [Android #45445521237](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45445521237) **664/664 PASS, BUILD SUCCESSFUL**; перед слиянием новые коммиты с документами требуют своих проверок |
+| [Draft #452](https://github.com/250oisr-eng/Pasekaapp/pull/452) | Full-IDB archive/restore, HEAD `36fb89e888b2ed486af011d400cf2224c5be1872`, **НЕ merged**; B01 физически NOT_VERIFIED, B02 защита fail-closed существует в Draft |
+| [Draft #472](https://github.com/250oisr-eng/Pasekaapp/pull/472) | **B03 READY_FOR_MERGE_REVIEW / NOT_IN_MAIN.** Code SHA `f2bf7842ad38dd2220b55d1e16a77fdf862e4596`: [Android #45462990179](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990179) **693/693 PASS, BUILD SUCCESSFUL**; [Docs #45462990244](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45462990244) success. Main-based read-only P0 export/verify, G0 сохранён, live restore не активирован |
 | [Issue #442](https://github.com/250oisr-eng/Pasekaapp/issues/442) | PASEKA02 video recognition + automatic cleanup **FROZEN** до V0–V6, лицензии модели, оригинальных данных и доказанного восстановления |
 | OnePlus | Пользователь подтвердил: первый улей, семья, две заметки сохранены после офлайн-перезапуска — `DEVICE_USER_REPORTED_PASS`. Installed APK signer независимо не прочитан. **Не переустанавливать, не очищать, не обновлять неподписанным/другим APK** |
 
 ## 2. Очередь и зависимости
 
-1. **GOVERNANCE #470 — MERGE APPROVED:** единый F0–F7, компактный статус, учёт метрик; после фактического merge и проверок следующая **активная безопасная цепочка — P0 DATA #452**. Проверить live статус, не считать разрешение доказательством выполнения.
+1. **GOVERNANCE #470 — MERGED:** по отдельному решению. Новый безопасный архив B03 в **Draft #472**, ещё не в main; следующий независимый приоритет B04/B05 Android signing.
 2. **P0 DATA — READY FOR INDEPENDENT REVIEW, NOT FOR MERGE:** полный архив/restore #452: матрица источников, миграции, фактическое восстановление и исходные Blob; отдельная ветка, cross-PR совместимость ещё не доказана.
 3. **P0 ANDROID — QA READY IN CODE, DEVICE MIGRATION BLOCKED:** #469: временный binary signing smoke PASS; **долговременный ключ отсутствует**, исходная установленная подпись OnePlus неизвестна, данные на устройстве сохранять.
 4. **P1:** по live main/Draft проверить и подготовить интеграцию независимых PR; физическая модель OP, дневник, кормление, зимовка, медосбор — без нового UI на неподдержанной модели.
@@ -27,7 +27,7 @@
 
 - Последний законченный **кодовый** макроцикл #469: [Actions #45441911572](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45441911572) на `829be6d8...`, 690/690 PASS, два Android jobs успешны. Никаких merge/release; подписанные изолированные APK с временным ключом **не публиковались**.
 - Незакрытые внешние зависимости: долговременный QA-key; независимый original-file backup/restore; physical Android restore; лицензированные веса модели/данные; разрешения merge и выпуска. Отсутствие этих ресурсов **не разрешает удаление или рискованный импорт**.
-- **Следующее действие:** после отдельного разрешённого merge #470 проверить GitHub main SHA/CI и отсутствие незапрошенной публикации, затем продолжить read-only анализ полного backup/restore #452. В течение следующих 2–3 реальных макроциклов учитывать повторные чтения, отменённые CI, блокеры и завершённые пользовательские сценарии в [WORK-CYCLE-METRICS.json](docs/WORK-CYCLE-METRICS.json). Эффект `NOT_MEASURED` до фактических измерений; экономию не выдумывать.
+- **Следующее действие:** финализировать только документный HEAD CI #472; без разрешения merge не выполнять, перейти к B04/B05 signing. B01 real cross-device NOT_VERIFIED и PASEKA02 FROZEN. В течение следующих 2–3 реальных макроциклов учитывать повторные чтения, отменённые CI, блокеры и завершённые пользовательские сценарии в [WORK-CYCLE-METRICS.json](docs/WORK-CYCLE-METRICS.json). Эффект `NOT_MEASURED` до фактических измерений; экономию не выдумывать.
 
 ## 4. Ссылки
 
