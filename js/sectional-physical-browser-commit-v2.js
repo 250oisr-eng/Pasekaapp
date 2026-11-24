@@ -88,13 +88,18 @@ async function commitWitnessed(input,expectedRevision,deps={}){
     !O(planned.request)||planned.request.sourceRevisionId!==expectedRevision||
     planned.request.operationId!==input.operationId)
   return fail('physical_bridge_source_bound_manifest_invalid',planned);
+ // OP13 physical rules demand an independent, firsthand queen observation.
+ // Do not infer this from separation, a general checkbox or the guide's plan.
+ if(input.operationId==='OP-13'&&input.queenObservationConfirmed!==true)
+  return fail('physical_bridge_op13_personal_queen_observation_required');
  const checked=validateStage(latest,planned,deps);
  if(!checked.ok)return checked;
  const eventId=deps.makeId(),transactionId=deps.makeId();
  if(!S(eventId)||!S(transactionId)||eventId===transactionId)
   return fail('physical_bridge_event_ids_invalid');
  const request={...structuredClone(planned.request),eventId,transactionId,
-  confirmedBy:'beekeeper'};
+  confirmedBy:'beekeeper',
+  ...(input.operationId==='OP-13'?{queenObservationConfirmed:true}:{})};
  const executor=async(state,req)=>{
   if(state.meta?.revisionId!==expectedRevision||
      req.sourceRevisionId!==expectedRevision||req.operationId!==input.operationId)
