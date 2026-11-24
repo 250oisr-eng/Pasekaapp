@@ -82,3 +82,41 @@ test('B01 export reader rejects absent required stores without starting a transa
  assert.throws(()=>getRecords(db),/Required IndexedDB stores are missing/);
  assert.equal(started,false);
 });
+
+test('B01 export does not publish snapshot on abort after only one getAllKeys success',async()=>{
+ const h=snapshotHarness(),pending=getRecords(h.db);
+ const only=h.requests.get('entrance_media');
+ only.keys.result=['media-1'];
+ only.keys.onsuccess();
+ h.tx.error=new Error('synthetic quota abort');
+ h.tx.onabort();
+ await assert.rejects(pending,/synthetic quota abort/);
+ h.tx.oncomplete();
+});
+
+test('B01 archive reader refuses a missing entrance_media store without any transaction',()=>{
+ let attempted=0;
+ const db={objectStoreNames:['main','full_backup'],transaction(){attempted++;}};
+ assert.throws(()=>getRecords(db),/Required IndexedDB stores are missing/);
+ assert.equal(attempted,0);
+});
+
+test('B01 export includes extra legacy store in the single atomic readonly snapshot',async()=>{
+ const h=snapshotHarness();
+ const names=['main','full_backup','entrance_media','historical_custom'];
+ const requests=new Map();
+ const tx={error:null,objectStore(name){
+  const values={result:null},keys={result:null};
+  requests.set(name,{values,keys});
+  return {keyPath:null,autoIncrement:false,getAll(){return values},getAllKeys(){return keys}};
+ }};
+ const db={objectStoreNames:names,version:3,transaction(actual,mode){
+  assert.deepEqual(actual,names);assert.equal(mode,'readonly');return tx;
+ }};
+ const promise=getRecords(db);
+ for(const [name,x] of requests){x.values.result=[{id:name}];x.keys.result=[name];x.values.onsuccess();x.keys.onsuccess();}
+ tx.oncomplete();
+ const snapshot=await promise;
+ assert.deepEqual(snapshot.stores.map(x=>x.name),names);
+ assert.equal(snapshot.stores.at(-1).records[0].id,'historical_custom');
+});
