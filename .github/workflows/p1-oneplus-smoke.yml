@@ -1,0 +1,170 @@
+name: P1 Isolated OnePlus Smoke APK (no release)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'diagnostics/p1-oneplus-smoke/**'
+      - 'scripts/prepare-p1-oneplus-smoke.mjs'
+      - 'tests/p1-oneplus-smoke.test.mjs'
+      - '.github/workflows/p1-oneplus-smoke.yml'
+  pull_request:
+    paths:
+      - 'diagnostics/p1-oneplus-smoke/**'
+      - 'scripts/prepare-p1-oneplus-smoke.mjs'
+      - 'tests/p1-oneplus-smoke.test.mjs'
+      - '.github/workflows/p1-oneplus-smoke.yml'
+
+concurrency:
+  group: p1-oneplus-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact head SHA (not an unverified PR merge)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache npm download data
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate or install Android command-line tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install Android SDK packages
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run regression tests
+        run: npm test
+      - name: Prepare web assets
+        run: npm run web:prepare
+      - name: Prepare isolated read-only P1 test package
+        env:
+          P1_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/prepare-p1-oneplus-smoke.mjs
+          node --input-type=module <<'NODE'
+          import {readFile} from 'node:fs/promises';
+          const config=JSON.parse(await readFile('capacitor.config.json','utf8'));
+          const html=await readFile('www/index.html','utf8');
+          const expected='ru.paseka.journal.p1smoke';
+          if(config.appId!==expected||
+             !html.includes('p1-oneplus-smoke.js')||
+             !html.includes('p1-oneplus-smoke-meta.js')){
+            throw Error('Refusing to build without exact isolated package ID and read-only overlay');
+          }
+          console.log('PASS: Isolated P1 OnePlus diagnostic; never the production app');
+          NODE
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Sync Android project
+        run: npx cap sync android
+      - name: Use Android 15-compatible Gradle toolchain
+        run: node scripts/patch-android-gradle.mjs
+      - name: Require Android 15 or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'android/variables.gradle';
+          let source = fs.readFileSync(path, 'utf8');
+          for (const [key, value] of Object.entries({ minSdkVersion: 35, compileSdkVersion: 35, targetSdkVersion: 35 })) {
+            const pattern = new RegExp(`(^\\s*${key}\\s*=\\s*)\\d+`, 'm');
+            if (!pattern.test(source)) throw new Error(`Could not find ${key} in ${path}; refusing to build with an unknown Android SDK configuration`);
+            source = source.replace(pattern, `$1${value}`);
+          }
+          fs.writeFileSync(path, source);
+          const minLine = source.split(/\r?\n/).find(line => line.trim().startsWith('minSdkVersion'));
+          const min = Number(minLine?.split('=').pop()?.trim());
+          if (min !== 35) throw new Error(`Expected minSdkVersion 35, got ${min}`);
+          console.log('Android minimum API: 35 (Android 15); compile/target API: 35');
+          NODE
+      - name: Cache Gradle build data
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Assert exact APK application ID and create SHA-256 evidence
+        shell: bash
+        env:
+          P1_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          APK='android/app/build/outputs/apk/debug/app-debug.apk'
+          [ -f "$APK" ]
+          BADGING="$(aapt dump badging "$APK" | head -n 1)"
+          case "$BADGING" in
+            "package: name='ru.paseka.journal.p1smoke'"*) ;;
+            *) echo "FAIL: APK has unexpected package identity: $BADGING"; exit 1 ;;
+          esac
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          const bytes=await readFile('android/app/build/outputs/apk/debug/app-debug.apk');
+          const sha=createHash('sha256').update(bytes).digest('hex');
+          const manifest={schema:'paseka-p1-oneplus-test-apk-v1',
+            sourceSha:process.env.P1_SOURCE_SHA,
+            packageId:'ru.paseka.journal.p1smoke',
+            productionPackageId:'ru.paseka.journal',
+            apkSha256:sha,
+            proofScope:'ISOLATED_WEBVIEW_READONLY_SMOKE_ONLY',
+            independentUserMediaRestore:'NOT_TESTED',
+            liveP1CAS:'NOT_ATTEMPTED',
+            productionUserData:'NOT_ACCESSED',
+            videoCleanup:'NOT_ATTEMPTED',
+            mainOrProductionRelease:'NOT_ATTEMPTED'};
+          await writeFile('p1-oneplus-smoke-manifest.json',JSON.stringify(manifest,null,2)+'\n');
+          console.log('PASS: exact package, sha256 '+sha+', source '+manifest.sourceSha);
+          NODE
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-p1-oneplus-isolated-smoke-apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            p1-oneplus-smoke-manifest.json
+          if-no-files-found: error
+          retention-days: 7
