@@ -1,3 +1,11 @@
+## 2026-11-24 — P0 archive coverage audit in existing Draft #452 (no runtime changes)
+
+- Проведено read-only ревью `js/disaster-archive.js`, `tests/disaster-archive.test.mjs` и P0 UI `index.html` на ветке #452. Сверены текущий `main=13c724a634f0987ff634a058a5fa37a1b8e20c92` и Draft #452 base=main, исторический HEAD до аудита `1d0912012002def0d7e9133cb9e600fb0f2aae9d` (52 commits ahead, 0 behind).
+- Новая матрица [`docs/P0-МАТРИЦА-ПОКРЫТИЯ-АРХИВА-И-ВНЕШНЕГО-ВОССТАНОВЛЕНИЯ-2026-11-24.md`](docs/P0-МАТРИЦА-ПОКРЫТИЯ-АРХИВА-И-ВНЕШНЕГО-ВОССТАНОВЛЕНИЯ-2026-11-24.md) разделяет `paseka-v1` main/full_backup/entrance_media, и НЕ подтверждённые PASEKA02 record_media/legacy и OS Gallery/Downloads/MediaStore. Exact code/test SHA `54e508a11423631cb2ea1b6dff0513759390c2ae`, Android #45159320991 670/670 PASS; более поздние Android #45159667762 и isolated #45159667706 completed/success на прежнем docs-HEAD. **После нового docs-коммита CI ещё не подтверждён на его точном SHA.**
+- **Только документация:** защита данных и CI-код не менялись; не создавать дублирующий PR или преждевременно подключать PASEKA02. Ограничение #442 остаётся FROZEN, live restore/автоудаление реальных видео запрещено, `SECOND_DEVICE_VERIFIED=NO`. Один следующий приоритет — доказать полный инвентарь PASEKA02/legacy и независимое restore исходных больших Blob на отдельном устройстве, без production вмешательства. Real device proof P1 #467 относится к изолированному read-only smoke и не заменяет P0.
+
+---
+
 ## 2026-11-23 — P0 усиление внешнего архива и preflight в том же Draft #452
 
 - Продолжение в ранее открытом Draft #452, без дублирующих PR и без изменения `main`. На кодовом и тестовом SHA `54e508a11423631cb2ea1b6dff0513759390c2ae`: [Android CI #45159320991](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45159320991) **670/670 PASS**, Gradle debug **BUILD SUCCESSFUL**.
