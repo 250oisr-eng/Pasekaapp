@@ -130,6 +130,33 @@
       "trackedBlockersAtEnd": "То же в конце цикла; сокращение доказуемо только при подтверждённой проверке данных/устройства, не по green CI.",
       "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
       "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
-    }
+    },
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet."
+  },
+  "pilotReformCycle": {
+    "id": "pilot-governance-20261124-pr470",
+    "phase": "REFORM_ROLLOUT_NOT_A_POST_REFORM_PRODUCT_CYCLE",
+    "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/470",
+    "codeSha": "7a29810dcc6cfb3deee56957ae205c574c33704d",
+    "ciRuns": [
+      {
+        "id": 45445521258,
+        "conclusion": "success",
+        "testsPassed": 4,
+        "kind": "governance-docs"
+      },
+      {
+        "id": 45445521237,
+        "conclusion": "success",
+        "testsPassed": 664,
+        "kind": "android-regressions"
+      }
+    ],
+    "repeatedDocumentReads": null,
+    "trackedBlockersAtStart": 4,
+    "trackedBlockersAtEnd": 4,
+    "completedVerifiedUserScenarios": 0,
+    "scenariosEvidence": "Documentation governance refactor only; no user-device scenario or physical data migration attempted. Repeated reads NOT_MEASURED.",
+    "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   }
 }
