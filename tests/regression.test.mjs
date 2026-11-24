@@ -48,6 +48,8 @@ function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
+  // Legacy unit tests invoke individual handlers after simulating successful bootstrap.
+  deps.startupWriteGate ||= {ready:true};
   deps.window ||= appWindow;
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
