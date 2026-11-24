@@ -21,6 +21,8 @@ test('missing, duplicated or corrupt content fails closed',()=>{
  assert.equal(auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,records:'not array'}}).status,'BLOCKED');
  assert.equal(auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,records:[note('x'),note('x')]}}).status,'BLOCKED');
  assert.equal(auditPasekaJsonTransfer(exportJson,{records:3}).status,'BLOCKED');
+ assert.equal(auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,meta:{schemaVersion:16}}}).status,'BLOCKED');
+ assert.equal(auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,meta:{}}}).status,'BLOCKED');
  assert.equal(auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,records:[{...note('a'),media:'bad'}]}}).status,'BLOCKED');
 });
 
