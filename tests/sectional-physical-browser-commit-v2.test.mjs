@@ -180,7 +180,7 @@ function setup(){
   dualRead:w.PasekaSectionalSeasonDualReadV2,
   rules:w.PasekaSectionalSeasonOperationRulesV2
  };
- return {input:{...request(state),operationId:'OP-13'},expectedRevision:'r1',deps,
+ return {input:{...request(state),operationId:'OP-13',queenObservationConfirmed:true},expectedRevision:'r1',deps,
   db:()=>db,writes:()=>writes,proofCalls:()=>verifyCalls,readCalls:()=>readCount,
   setDB:next=>{db=structuredClone(next)}};
 }
@@ -212,6 +212,12 @@ test('incomplete full lineage blocks physical preflight before runtime',async()=
  f.setDB(s);
  assert.equal((await api.commitWitnessed(f.input,'r1',f.deps)).ok,false);
  assert.equal(f.writes(),0);assert.equal(f.proofCalls(),0);
+});
+test('OP13 cannot claim observed queens from generic physical-work confirmation',async()=>{
+ const f=setup();delete f.input.queenObservationConfirmed;
+ const result=await bridge.commitWitnessed(f.input,'r1',f.deps);
+ assert.equal(result.error,'physical_bridge_op13_personal_queen_observation_required');
+ assert.equal(f.proofCalls(),0);assert.equal(f.writes(),0);
 });
 test('synthetic same-device replay is NOT an acceptable independent full archive proof',async()=>{
  const f=setup();f.deps.verifyFullArchiveAndReplay=async source=>({
