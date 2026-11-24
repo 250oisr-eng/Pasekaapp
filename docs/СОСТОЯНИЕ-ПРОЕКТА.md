@@ -1,3 +1,10 @@
+## 24.11.2026 — CI confirmed for OP12 guided preview
+
+- Exact checked commit `64f58ebe7d10fb470cc8316a51dc398ecf9f7d30`: [Android Build #45333199034](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45333199034) **completed/success**, in its job **955/955 regression PASS, 0 FAIL**, Gradle **BUILD SUCCESSFUL**. This proves code + Android packaging, not user-device physical acceptance.
+- Compared `af353ad42dd7bad51d921f0fe2929ef5ad508d5d` (latest code/test) → checked docs HEAD: only five Markdown files, no runtime changes. Fast Quality #45333119935 on code SHA was still pending when checked; do not label PASS without its own conclusion.
+- Separate isolated disaster APK #45333199041 was still in progress at evidence time and cannot prove actual off-device restore of original user Blob/videos.
+- Scope remains Draft #460 read-only OP12. Missing full P1 UI→CAS for OP01–14, OP11/13/14 guided layout, independent full archive second-device restore, and real OnePlus test.
+
 ## 24.11.2026 — P1 OP-12 guided 2+1+1 physical target input, stacked Draft #460
 
 - Source/contract: `docs/P1-OP12-ПОШАГОВАЯ-ЦЕЛЕВАЯ-РАСКЛАДКА-2026-11-24.md`; source-bound `js/sectional-season-op12-guided-v2.js` + mobile wizard, `index.html`, SW offline v334. Based on existing Draft #459; NOT_IN_MAIN, NO_MERGE, NO_RELEASE.
