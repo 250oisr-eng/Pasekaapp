@@ -1,3 +1,13 @@
+## 2026-11-24 — безопасный Android upgrade preflight: реализован read-only script и негативные регрессии
+
+- Код `scripts/check-oneplus-upgrade.mjs`: до установки сравнивает actual packageId, `versionCode` и SHA-256 fingerprints сертификатов установленного Android base APK с новым candidate APK; работает с **одним** авторизованным ADB-устройством и только считывает APK через `adb pull`. Не выполняет `install`, `uninstall`, `clear` и не изменяет пользовательские данные. При любой неопределённости — `BLOCKED`.
+- Отдельные 4 тестовых сценария `tests/check-oneplus-upgrade.test.mjs` проверяют parsing, несовпадение package, подписи, downgrade, отсутствие/несколько ADB. Локальный Node.js unit run **4/4 PASS**, это тест кода preflight, а не физическая совместимость двух APK.
+- Дополнительно исправлен Windows `apksigner`: запуск `java -jar .../lib/apksigner.jar` без cmd.exe/BAT/shell, чтобы не зависеть от запуска Windows-скрипта. Кодовый SHA после исправления `ef4984ac3cd9388b44ee3ef1cbdc411837edc0e5`; **CI exact SHA — PENDING** до отчёта Actions.
+- Неизвестен сертификат уже установленного APK; обычная `assembleDebug` в CI не доказывает стабильность подписи между runners. Поэтому `DEVICE_UPGRADE=NOT_TESTED` и `UPGRADE_ALLOWED=NO` до сравнения на конкретном устройстве и проверки backup/recovery.
+- Тестовые улей, семья, две заметки на OnePlus **сохраняются**; пользователь пока ничего не устанавливает повторно. Draft #469 не merged, #452 restore отдельно, #442 video cleanup FROZEN.
+
+---
+
 ## 2026-11-24 — недеструктивная автоматическая проверка Android upgrade (Draft #469)
 
 - В `scripts/check-oneplus-upgrade.mjs` добавлена **только read-only preflight-проверка**: одно авторизованное ADB-устройство, установленный `ru.paseka.journal`, `aapt` package/versionCode для установленного base APK и будущего кандидата, `apksigner` сертификаты SHA-256 для обоих.
