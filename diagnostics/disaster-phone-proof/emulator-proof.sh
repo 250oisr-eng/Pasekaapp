@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-package='ru.paseka.journal.disasterproof'
+package='ru.paseka.journal.disasterproof2'
 apk="$(find diagnostic-artifact -type f -name app-debug.apk -print -quit)"
 test -n "$apk" && test -f "$apk" || { echo 'P0_APK_MISSING'; exit 1; }
 adb install -r "$apk"
