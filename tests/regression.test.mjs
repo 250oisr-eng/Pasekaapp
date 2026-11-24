@@ -50,7 +50,7 @@ function loadFunction(name, globals = {}) {
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   // Legacy unit tests invoke individual handlers after simulating successful bootstrap.
   deps.startupWriteGate ||= {ready:true};
-  if(name!=='rejectWhileStartupNotReady')deps.rejectWhileStartupNotReady ||= loadFunction('rejectWhileStartupNotReady',deps);
+  deps.rejectWhileStartupNotReady ||= ()=>deps.startupWriteGate.ready?null:Object.assign(new Error('Запуск базы не завершён'),{name:'PasekaStartupBlockedError'});
   deps.showStartupFailure ||= ()=>{};
   deps.window ||= appWindow;
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
