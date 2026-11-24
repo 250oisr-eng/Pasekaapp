@@ -55,3 +55,11 @@ test('B01 synthetic: exact 16-byte zero preflight is required before large trans
   assert.equal(exactSmallZero({stdout:wrongSameSize}), false);
   assert.equal(exactSmallZero({stdout:Buffer.alloc(16),exitCode:1}), false);
 });
+
+test('B01 synthetic: Android mksh chvt diagnostic is not binary success despite ADB exit 0', () => {
+  const chvt = Buffer.from("/system/bin/sh: chvt: can't find tty:  head -c 16 /dev/zero  ");
+  assert.equal(chvt.length, 61);
+  assert.equal(exactSmallZero({stdout:chvt,stderr:'',exitCode:0}), false);
+  const noPtyWithClosedStdin = ['shell', 'head', '-c', '16', '/dev/zero'];
+  assert.equal(noPtyWithClosedStdin.includes('-T'), false);
+});
