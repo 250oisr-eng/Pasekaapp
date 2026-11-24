@@ -189,7 +189,6 @@ jobs:
       - name: Sign same isolated APK twice and verify exact certificates
         env:
           CI: 'true'
-          PASEKA_EPHEMERAL_CI_DIAGNOSTIC: 'YES'
         run: node scripts/qa-ephemeral-two-apk-signing-smoke.mjs android/app/build/outputs/apk/debug/app-debug.apk
       - name: No APK publication
         run: echo 'Isolated disposable signing proof complete; no signed APK uploaded, no permanent signing key provisioned'
