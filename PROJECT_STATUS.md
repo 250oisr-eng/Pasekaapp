@@ -1,3 +1,12 @@
+## 2026-11-24 — OnePlus NE2213: **физическое испытание P0 proof2 PASS**
+
+- Принят реальный пользовательский отчёт `report(10).json` с `schema=paseka-p0-pc-oneplus-audit-v2`, `generatedAt=2026-11-24T12:23:10.5418837+03:00`, `finalStatus=PASS_ISOLATED_ONLY`. Точное тестовое приложение `ru.paseka.journal.disasterproof2`; `deviceModel=NE2213`, Android API `36`. Исходный код APK `3677797d3f83027353a9b7ff8c5cec5f91152a2e`, артефакт `14904927140`, проверенный APK SHA-256 `79a6227719debbac7216bc51fd99f3f786b57232d73d232ea7f6524ee355332f`.
+- Все 5 внешних проверок `checks` **PASS**: `exactCiManifestAndApkSha256`, `onePlusUsbApiAndModel`, `freshIsolatedPackageInstalled`, `realAndroidWebViewRestore`, `processRestartMediaDurability`. Первый этап: `isolatedStorageGuard`, `fullIndexedDbSnapshotSha256` (снимок SHA `b84fc9c323313b93e163f097db7a2ff8e04e1ad736396995804d08647b661995`), `corruptionFailClosed`, `revisionConflictRollback`, `atomicMultiStoreRestore` — **5/5 PASS**. Второй запуск после `force-stop`: `androidProcessRestartDurability=PASS`, код `P0_DISASTER_PHYSICAL_RESTART_PASS`.
+- **Закрыто только** `P0_ISOLATED_ONEPLUS_PROOF2=DEVICE_VERIFIED` для этого APK и синтетического IDB теста. Отчёт напрямую устанавливает `originalUserMedia=NOT_ACCESSED`, `productionPackage=NOT_ACCESSED`, `secondPhysicalDevice=NOT_VERIFIED`, `cleanup=NOT_ATTEMPTED`. Не утверждать `REAL_FULL_EXTERNAL_RESTORE`, `PASEKA02_RECOGNITION` или разрешение на видеоочистку. Следующая полезная задача — G0 read-only реальный реестр оригинальных медиа, затем G1–G6 внешняя копия и отдельное независимое восстановление (не повторять proof2).
+- Никаких изменений production, оригиналов или `main`; #452 остаётся Draft, #442 FROZEN. Отчёт хранится в пользовательском чате, **не публиковать пользовательский JSON или личные сведения в GitHub**.
+
+---
+
 ## 2026-11-24 — P0 OnePlus: устранена цепочка ошибок тестового комплекта, Windows CI PASS, физический запуск ожидается
 
 - Пользовательские отчёты последовательно выявили: неправильный SHA temporary PR merge vs source SHA, пустые аргументы ADB, PowerShell 5.1 stderr-прогресс install, `INSTALL_FAILED_UPDATE_INCOMPATIBLE` старой диагностической подписи и повторную загрузку **старого** артефакта при правильном новом скрипте. Пошаговый постмортем и матрица ограничений: [docs/P0-РАЗБОР-СБОЕВ-ONEPLUS-И-ЕДИНЫЙ-КОМПЛЕКТ-2026-11-24.md](docs/P0-РАЗБОР-СБОЕВ-ONEPLUS-И-ЕДИНЫЙ-КОМПЛЕКТ-2026-11-24.md).
