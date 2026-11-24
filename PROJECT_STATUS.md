@@ -1,3 +1,13 @@
+## 2026-11-24 — полный аудит готовой части P0/P1 и комплект Windows+OnePlus (ожидается реальный отчёт)
+
+- Проверены live `main=13c724a634f0987ff634a058a5fa37a1b8e20c92`, #452 OPEN/DRAFT (code/test SHA `9bf460ba5feb7b4694c0383220d1c035b5ad8b61`), #467 OPEN/DRAFT (read-only phone code/source `e5cabce...`), #441 OPEN/DRAFT/FROZEN. Полный матричный аудит: [`docs/P0-АУДИТ-ГОТОВОЙ-ЧАСТИ-И-ПРОВЕРКА-ONEPLUS-2026-11-24.md`](docs/P0-АУДИТ-ГОТОВОЙ-ЧАСТИ-И-ПРОВЕРКА-ONEPLUS-2026-11-24.md).
+- **Точные CI доказательства #452 `9bf460ba...`:** Android Build [#45356118008](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45356118008) **completed/success, npm 674/674 PASS, Gradle BUILD SUCCESSFUL**; isolated [#45356117524](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45356117524) **completed/success, build 674/674 PASS и emulator job success `PASS_P0_ANDROID_EMULATOR_DISASTER_RESTORE_AND_RESTART`**. Diagnostic artifact #14901669210 доступен (не expired при аудите).
+- Подготовлен локальный пользовательский Windows ZIP `PASEKA_P0_OnePlus_PC_Audit_2026-11-24.zip` в текущем чате: проверка SHA256 из CI manifest, проверка Android API/ADB, `adb install -r` **только** отдельного `ru.paseka.journal.disasterproof`, force-stop **только** diagnostic package, отчёт `P0-RESULT-*/report.json`. **Скрипт ещё НЕ испытывался на Windows**; до реального ответа пользователя phone-current-SHA PASS объявлять нельзя. Рабочая БД и медиа не затронуты.
+- Последовательность для физического приёма: пользователь скачивает diagnostic artifact с GitHub Actions #45356117524, помещает ZIP рядом с CMD, подключает OnePlus USB и запускает CMD. Затем получает `report.json`; ChatGPT проверяет все identity/sha/status, классифицирует узкий device smoke.
+- P0 real-user-media G0, перенос полной внешней копии, второй физический receiver, крупные оригинальные Blob и PASEKA02 production restore **NOT_VERIFIED**. Android-sandbox исключает чтение production базы тестовым APK; не выдавать smoke за реальный backup. #442 auto-cleanup FROZEN, no merge, no release or deploy.
+
+---
+
 ## 2026-11-24 — P0 regression fix: backup/entrance media key race under final restore lock (#452)
 
 - **Confirmed defect** in `js/disaster-archive.js`: original restore checked only `main.state.meta.revisionId`. A new `entrance_media` Blob or new `full_backup` record added after archive preflight but without main revision change could be lost when `atomicRestore` clears all stores.
