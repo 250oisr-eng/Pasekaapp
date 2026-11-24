@@ -50,7 +50,7 @@ test('B08 Cloudflare bound: stream overflow cancels reader and never returns par
 });
 
 test('B08 Cloudflare bound: invalid UTF-8 and invalid stream values fail closed',async()=>{
-  await assert.rejects(readBoundedBody(req(new Uint8Array([0xc3,0x28])),TypeError);
+  await assert.rejects(readBoundedBody(req(new Uint8Array([0xc3,0x28]))),TypeError);
   const badStream={getReader(){return {read:async()=>({done:false,value:undefined}),releaseLock(){},cancel:async()=>{}};}};
   await assert.rejects(readBoundedBody({headers:new Headers(),body:badStream},10),e=>e.code==='BODY_TOO_LARGE');
 });
