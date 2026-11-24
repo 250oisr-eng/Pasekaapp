@@ -1,3 +1,12 @@
+## 24.11.2026 — P1 OP13 source-bound guided spring separation, stacked Draft #463
+
+- [Draft #463](https://github.com/250oisr-eng/Pasekaapp/pull/463) базируется на #462, ветка `feat/p1-op13-guided-spring-separation-2026-11-24`. Источник — пользовательский DOCX P72–P77 (выбор времени и варианта весеннего отделения без автоматического срока). Ни main, ни пользовательские данные не изменялись; релиз и merge не разрешены.
+- `js/sectional-season-op13-guided-v2.js`: read-only guided form с явно назначенными 3 семьями и 3 позициями, обязательным сохранением исходных 2+1+1 корпусов, ровно 2 дополнительными проверенными складскими гнездовыми корпусами (по 6 рамок), точными днищами/подкрышниками/крышками, ID стопок и 8 лично проверенными техническими отверстиями, диаметрами и отдельными складскими разделительными решётками. Не подставляет вымышленные openingId/itemId. Снятые сетчатые диафрагмы требуют реальных мест хранения; каждое изменённое тело и аксессуар подтверждается отдельно. Проверка stale revision, src physical layout и полной lineage.
+- `js/sectional-season-operations-wizard-v2.js`, `index.html`, `sw.js` v337. `tests/sectional-season-op13-guided-v2.test.mjs`, browser-readiness и regression: реальная stage-модель OP13 с двумя family placement_changed, чистые lineage/provenance/layout, без мутации источника; негативные ID/склад/принадлежность/подтверждение.
+- Точный code/test SHA `2622e8b2df85de13d167bf08d9d2cf2f93e9e890`: [Fast Quality #45341444092](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45341444092) **SUCCESS 974/974 PASS**; [Android Build #45341443988](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45341443988) был IN_PROGRESS при записи, его результат проверить отдельно.
+- Открытые gates: полные live UI→CAS OP01–14 не подключены, исходный полный архив с оригинальными Blob/видео не восстановлен на втором настоящем устройстве, OnePlus offline E2E не проведён, Draft-цепочка не интегрирована в main, PASEKA02 cleanup #442 FROZEN.
+- Следующее: дождаться/проверить exact-SHA Android CI, аудит сквозного UI→CAS и P0 external restore без обхода `SECOND_DEVICE_VERIFIED`.
+
 ## 2026-11-24 — P1 OP14 guided early-honey consolidation, Draft #462
 
 - Изолированный stacked [Draft #462](https://github.com/250oisr-eng/Pasekaapp/pull/462) на Draft #461; main, пользовательские данные, видео не изменены. Основной DOCX P78–P85: после раннего медосбора снимают два медовых корпуса и две решётки, объединяют три семьи на трёх (если необходимо четырёх) прежних гнездовых корпусах, матку не выбирают.
