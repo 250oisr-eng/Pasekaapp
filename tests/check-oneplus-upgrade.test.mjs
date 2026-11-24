@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath } from '../scripts/check-oneplus-upgrade.mjs';
+import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight } from '../scripts/check-oneplus-upgrade.mjs';
 
 const signer = 'a'.repeat(64);
 const valid = { packageName: 'ru.paseka.journal', versionCode: 1, signers: [signer] };
@@ -30,4 +30,10 @@ test('require exactly one online authorized ADB device',()=>{
 test('require installed base APK from package-manager paths',()=>{
   assert.equal(parseBaseApkPath('package:/data/app/abc/base.apk\n'),'/data/app/abc/base.apk');
   assert.throws(()=>parseBaseApkPath(''),/BLOCKED/);
+});
+
+test('offline two-APK preflight rejects archives and missing inputs before invoking external SDK tools', () => {
+  assert.throws(() => runArtifactPairPreflight(undefined, 'candidate.apk'), /BLOCKED/);
+  assert.throws(() => runArtifactPairPreflight('reference.zip', 'candidate.apk'), /BLOCKED/);
+  assert.throws(() => runArtifactPairPreflight('reference.apk', 'candidate.zip'), /BLOCKED/);
 });
