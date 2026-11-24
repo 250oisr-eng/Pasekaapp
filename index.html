@@ -3891,7 +3891,7 @@ async function restoreBackup(){
    const current=await readMain();
    const oldState=S;S=restored;
    try{migrateState();S.meta=S.meta||{};S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();logAudit('backup_restored',{source:'json'});const integrity=validateVirtualApiary();if(integrity.errorCount){const codes=[...new Set(integrity.errors.map(x=>x.code))].slice(0,5).join(', ');throw new Error('Архив нарушает целостность модели ('+integrity.errorCount+' ошибок: '+codes+'). Текущие данные не заменены.')}const previous=await writeMainWithBackup(S,current?.meta?.revisionId||null);lastPersistedRevision=S.meta.revisionId;if(previous)autoBackupInfo={at:new Date().toISOString()};}catch(e){S=oldState;throw e}
-   autoBackupRecovered=false;render();alert('JSON восстановлен. Предыдущее состояние приложения сохранено в локальной автокопии (без отдельных видео летков).');
+   autoBackupRecovered=false;render();alert('Архив восстановлен (JSON-состояние). Предыдущее состояние приложения сохранено в локальной автокопии (без отдельных видео летков).');
   };
   const pending=saveQueue.then(run,run);saveQueue=pending.catch(()=>{});await pending;
  }catch(e){alert('Ошибка восстановления: '+(e.message||e))}
