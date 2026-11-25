@@ -97,7 +97,7 @@ jobs:
           $folder='v20-windows'
           New-Item -ItemType Directory -Force -Path $folder | Out-Null
           $src='tools/b01-isolated-diagnostic'
-          foreach($n in @('transfer-to-emulator.mjs','transfer-cli.mjs','START-EMULATOR-V20.ps1','START-EMULATOR-V20.cmd','README-V20.txt')){
+          foreach($n in @('transfer-to-emulator.mjs','transfer-cli.mjs','START-EMULATOR-V20.ps1','START-EMULATOR-V20.cmd','CREATE-ISOLATED-AVD-V20.ps1','CREATE-ISOLATED-AVD-V20.cmd','README-V20.txt')){
             Copy-Item -LiteralPath (Join-Path $src $n) -Destination $folder
           }
           Copy-Item -LiteralPath 'diagnostic-apk/app-debug.apk' -Destination (Join-Path $folder 'B01-diagnostic.apk')
