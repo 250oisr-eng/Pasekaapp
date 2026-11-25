@@ -1,6 +1,7 @@
 # PASEKA B01/V9: read-only phone -> NEW local candidate file. Windows PowerShell 5.1.
 # This is NOT an independent restore and never marks fullBackupVerified.
 # No Android writes, no install/uninstall/clear/force-stop/restore/delete/network.
+param([switch]$PublicOnly)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $pkg = 'ru.paseka.journal'
@@ -292,6 +293,13 @@ try {
     $report.stage='AWAITING_PRIVATE_READ_CONFIRMATION'
     Save-Report
     Write-Host 'PUBLIC TAR PASS. No private files read.' -ForegroundColor Green
+    if($PublicOnly) {
+        # Unified public-diagnostic mode: no private-data prompt or reading.
+        $report.status='PUBLIC_ONLY_PASS'
+        $report.code='PUBLIC_ONLY_EXPLICIT_MODE_NO_PRIVATE_READ'
+        Save-Report
+        return
+    }
     Write-Host 'For a new confidential PC-only candidate (NOT full verified backup), type CAPTURE.'
     Write-Host 'Anything else exits without private capture.'
     $answer=Read-Host 'Action'
