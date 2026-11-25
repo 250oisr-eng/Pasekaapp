@@ -88,7 +88,7 @@ test('first-use storage journey: fresh database -> hive -> family -> journal -> 
 test('offline shell contains the journal entry point and local modules',()=>{
  assert.match(sw,/\.\/index\.html/);
  assert.match(sw,/\.\/js\/hive-model\.js/);
- assert.match(sw,/cache\.addAll\(FILES\)/);
+ assert.match(sw,/await cache\.put\(asset\.href,response\)/);
  assert.match(sw,/cache\.match\('\.\/index\.html'\)/);
  // Offline availability on an actual WebView still needs an installed APK/device proof.
 });
