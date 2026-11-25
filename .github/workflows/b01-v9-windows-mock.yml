@@ -48,7 +48,7 @@ jobs:
             $marker=Join-Path $sandbox 'b01-device-started.flag'
             if(Test-Path -LiteralPath $marker){Remove-Item -LiteralPath $marker -Force}
             $env:B01_MOCK_MODE=$case.mode
-            'CAPTURE' | & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'B01-ONEPLUS-SAFE-V9.ps1') | Out-Null
+            'CAPTURE' | & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'B01-ONEPLUS-SAFE-V9.ps1') -PublicTransport EXEC_OUT -GatedPrivateCandidate -CandidateBase (Join-Path $env:RUNNER_TEMP 'paseka-b01-legacy-mock-candidates') | Out-Null
             $files=@(Get-ChildItem -Path (Join-Path $sandbox 'results') -Filter 'b01-v9-result.json' -Recurse | Sort-Object LastWriteTimeUtc)
             $latest=$files[-1]
             $report=Get-Content -LiteralPath $latest.FullName -Raw | ConvertFrom-Json
@@ -282,39 +282,101 @@ jobs:
           }
           Remove-Item Env:B01_MOCK_MODE
 
-      - name: Stage independent V14 user bundle, validate five source file hashes
+          # V15 PRIVATE candidate gate: simulate on a FRESH folder and fake ADB only.
+          # Actual user's prior tests may be deleted. No real device connected.
+          foreach($case in @(
+            @{mode='PASS';input='CAPTURE';status='PC_PRIVATE_CANDIDATE_ONLY';code='PRIVATE_CANDIDATE_EXPORTED_RESTORE_NOT_TESTED'},
+            @{mode='PASS';input='';status='USER_DECLINED_PRIVATE_CAPTURE';code='USER_SKIPPED_PRIVATE_READ'},
+            @{mode='BAD_PRIVATE_HEADER';input='CAPTURE';status='BLOCKED';code='PRIVATE_TAR_INVALID_INVALID_TAR_HEADER_CHECKSUM'},
+            @{mode='OLD_ADB';input='CAPTURE';status='BLOCKED';code='ADB_TOO_OLD'},
+            @{mode='RUNNING';input='CAPTURE';status='BLOCKED';code='APP_PROCESS_RUNNING_NO_CAPTURE'}
+          )){
+            $fresh=Join-Path $env:RUNNER_TEMP ('b01-v15-clean-'+$case.mode+'-'+$case.status)
+            $persistent=Join-Path $env:RUNNER_TEMP ('b01-v15-persistent-'+$case.mode+'-'+$case.status)
+            [void][IO.Directory]::CreateDirectory($fresh)
+            foreach($name in @('RUN-ONEPLUS-UNIFIED-V15.ps1','B01-ONEPLUS-SAFE-V9.ps1')){
+              Copy-Item -LiteralPath (Join-Path 'tools/b01-oneplus-safe-v9' $name) -Destination $fresh
+            }
+            $mock=Join-Path $fresh 'platform-tools'
+            [void][IO.Directory]::CreateDirectory($mock)
+            Copy-Item -LiteralPath (Join-Path $sandbox 'platform-tools/adb.exe') -Destination $mock
+            Copy-Item -LiteralPath (Join-Path $sandbox 'platform-tools/AdbWinApi.dll') -Destination $mock
+            $env:B01_MOCK_MODE=$case.mode
+            if($case.input -eq 'CAPTURE'){
+              'CAPTURE' | & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-UNIFIED-V15.ps1') -CandidateBase $persistent | Out-Null
+            } else {
+              '' | & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-UNIFIED-V15.ps1') -CandidateBase $persistent | Out-Null
+            }
+            $jsonFile=Join-Path $fresh 'B01-RESULT.json'
+            if(-not [IO.File]::Exists($jsonFile)){throw 'V15 one root JSON missing'}
+            $j=Get-Content -LiteralPath $jsonFile -Raw | ConvertFrom-Json
+            Write-Host ("V15 $($case.mode) $($case.status): $($j.status) $($j.code)")
+            if($j.schema -ne 'paseka-b01-standalone-gated-pc-candidate-v15' -or
+                $j.status -ne $case.status -or $j.code -ne $case.code) {
+              throw "V15 unexpected result $($case.mode) $($case.status): $($j.status) / $($j.code)"
+            }
+            if($j.fullBackupVerified -ne $false -or $j.independentRestore -ne 'NOT_TESTED' -or
+               $j.mediaStoreGalleryCoverage -ne 'NOT_TESTED' -or $j.phoneWrites -ne 'NOT_ATTEMPTED' -or
+               $j.deleteOriginals -ne 'NOT_ATTEMPTED' -or $j.priorTestRequired -ne $false) {
+              throw 'V15 falsely verified restore or changed phone'
+            }
+            if($case.status -eq 'PC_PRIVATE_CANDIDATE_ONLY'){
+              $archives=@(Get-ChildItem -LiteralPath $persistent -Filter '*.tar' -Recurse -File)
+              $manifests=@(Get-ChildItem -LiteralPath $persistent -Filter 'MANIFEST.json' -Recurse -File)
+              if($archives.Count -ne 1 -or $manifests.Count -ne 1 -or
+                  $j.candidateOutsideTestFolder -ne $true -or $j.candidateManifestWritten -ne $true -or
+                  $j.privateTransport -ne 'EXEC_OUT') {
+                throw 'V15 did not preserve off-test private candidate and manifest'
+              }
+              $manifest=Get-Content -LiteralPath $manifests[0].FullName -Raw | ConvertFrom-Json
+              if($manifest.sha256 -ne (Get-FileHash -LiteralPath $archives[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -or
+                 $manifest.fullBackupVerified -ne $false) {
+                throw 'V15 private candidate manifest not hash-bound or falsely verified'
+              }
+              # User deletes all disposable tests: preserved PC candidate must survive.
+              Remove-Item -LiteralPath $fresh -Recurse -Force
+              if(-not [IO.File]::Exists($archives[0].FullName)){throw 'V15 candidate was inside deleted test folder'}
+            } else {
+              if([IO.Directory]::Exists($persistent) -and
+                 @(Get-ChildItem -LiteralPath $persistent -Filter '*.tar' -Recurse -File).Count -gt 0){
+                throw 'V15 created a private archive without an authorized successful capture'
+              }
+            }
+          }
+          Remove-Item Env:B01_MOCK_MODE
+
+      - name: Stage one independent V15 candidate backup-preflight ZIP (no data)
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $src='tools/b01-oneplus-safe-v9'
-          $dest='tools/b01-v14-bundle'
+          $dest='tools/b01-v15-bundle'
           [void][IO.Directory]::CreateDirectory($dest)
           $parts=@(
-            @{src='START-UNIFIED-V14.cmd';dest='START.cmd'},
-            @{src='RUN-ONEPLUS-UNIFIED-V14.ps1';dest='RUN-ONEPLUS-UNIFIED-V14.ps1'},
-            @{src='B01-ONEPLUS-SAFE-V9.ps1';dest='B01-ONEPLUS-SAFE-V9.ps1'},
-            @{src='B01-PUBLIC-TAR-FORENSIC-V10.ps1';dest='B01-PUBLIC-TAR-FORENSIC-V10.ps1'},
-            @{src='README-UNIFIED-V14.txt';dest='README.txt'}
+            @{from='START-UNIFIED-V15.cmd';to='START.cmd'},
+            @{from='RUN-ONEPLUS-UNIFIED-V15.ps1';to='RUN-ONEPLUS-UNIFIED-V15.ps1'},
+            @{from='B01-ONEPLUS-SAFE-V9.ps1';to='B01-ONEPLUS-SAFE-V9.ps1'},
+            @{from='README-UNIFIED-V15.txt';to='README.txt'}
           )
           foreach($p in $parts){
-            $from=Join-Path $src $p.src
-            $to=Join-Path $dest $p.dest
+            $from=Join-Path $src $p.from
+            $to=Join-Path $dest $p.to
             Copy-Item -LiteralPath $from -Destination $to
             if((Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash -ne
-               (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash){
-              throw "V14 package component hash mismatch: $($p.dest)"
+               (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash) {
+              throw "V15 component mismatched: $($p.to)"
             }
           }
-          $all=@(Get-ChildItem -LiteralPath $dest -File)
-          if($all.Count -ne 5){throw 'V14 package must contain 5 files'}
-          if(@($all | Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
-            throw 'V14 package includes user data or generated reports'
+          if(@(Get-ChildItem -LiteralPath $dest -File).Count -ne 4){throw 'V15 bundle must have exactly 4 files'}
+          if(@(Get-ChildItem -LiteralPath $dest -Recurse -File |
+                Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
+            throw 'V15 bundle contains data or phone artifacts'
           }
 
-      - name: Upload ONE independent V14 user diagnostic ZIP
+      - name: Upload ONE standalone V15 PC candidate package
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V14
-          path: tools/b01-v14-bundle/*
+          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V15
+          path: tools/b01-v15-bundle/*
           if-no-files-found: error
           retention-days: 7
