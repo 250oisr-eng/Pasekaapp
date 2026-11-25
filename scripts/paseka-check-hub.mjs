@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findFullExport } from './run-b01-oneclick.mjs';
 import { proveExportedArchiveRecoveryFile } from './prove-exported-archive-recovery.mjs';
-import { chooseAdbBinary, inspectConnectedOnePlus } from './check-oneplus-readonly-usb.mjs';
+import { chooseAdbBinary, inspectConnectedOnePlus, inspectOnePlusFullExportPresence } from './check-oneplus-readonly-usb.mjs';
 
 export const HUB_SCHEMA='paseka-offline-check-hub-v1';
 export const HUB_VERSION=1;
@@ -31,7 +31,8 @@ export function validateChecks(checks) {
     if(!c||!SAFE_ID.test(c.id)||seen.has(c.id)||typeof c.run!=='function'||
        c.readOnly!==true||c.networkAccess!==false||
        !(c.deviceAccess===false || (c.deviceAccess==='METADATA_ONLY' &&
-         c.id==='oneplus-usb-metadata' && c.run===onePlusMetadataCheck)))
+         ((c.id==='oneplus-usb-metadata' && c.run===onePlusMetadataCheck) ||
+          (c.id==='oneplus-downloads-export' && c.run===onePlusDownloadsCheck)))))
       throw Error('UNSAFE_CHECK_REGISTRY');
     seen.add(c.id);
   }
@@ -40,6 +41,10 @@ export function validateChecks(checks) {
 
 async function onePlusMetadataCheck(context) {
   return inspectConnectedOnePlus({binary:chooseAdbBinary()});
+}
+
+async function onePlusDownloadsCheck() {
+  return inspectOnePlusFullExportPresence({binary:chooseAdbBinary()});
 }
 
 const REGISTERED=Object.freeze([
@@ -80,7 +85,9 @@ const REGISTERED=Object.freeze([
         proofLevel:'NOT_VERIFIED'};
     }}),
   Object.freeze({id:'oneplus-usb-metadata',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
-    run:onePlusMetadataCheck})
+    run:onePlusMetadataCheck}),
+  Object.freeze({id:'oneplus-downloads-export',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
+    run:onePlusDownloadsCheck})
 ]);
 validateChecks(REGISTERED);
 
