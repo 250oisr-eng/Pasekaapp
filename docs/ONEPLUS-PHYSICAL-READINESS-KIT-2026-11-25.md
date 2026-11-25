@@ -49,3 +49,14 @@ Windows workflow должен собрать **реально самостоят
 После получения доказанной полной B01 копии и rollback потребуется **отдельное явное разрешение** на поздний Android UI/cold-offline тест — этот комплект сознательно не установит новую сборку сам. Без лицензированных весов и V0–V6 удаление оригиналов остаётся запрещённым.
 
 **Итог готовности:** `KIT_READY_FOR_READ_ONLY_PREFLIGHT` только после PASS точного Windows CI; `DEVICE_FULLY_TESTED=false` до физических доказательств. Нельзя подменять одно другим.
+
+## Проверенные результаты подготовительного цикла
+
+Точный последний **code/test** SHA: `2a901f2db3c67b81c04476e5cb3abce196ebb0d1`.
+
+- [Windows Check Hub #45672045187](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45672045187): **SUCCESS**, `48/48` тестов, ZIP артефакт `PASEKA-UNIFIED-OFFLINE-CHECK-CENTER` (~29 MB), проверена целостность с SHA256-manifest и привязкой к workflow checkout SHA. Временная копия с повреждённым README отвергнута. Реальный `.cmd` выполнен автоматически без окна/пауз; 3 локальных независимых отчёта. Ничего не запускалось на OnePlus.
+- [Fast #45672028722](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45672028722): **SUCCESS**, `854/854`, `0` failed/skipped/todo.
+- [Android build #45672045116](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45672045116) и [Governance #45672045472](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45672045472): **SUCCESS** на том же HEAD. Ни один APK не устанавливался.
+- Наличие артефакта на GitHub Actions не является его цифровой подписью или доказательством восстановимости данных. Артефакты хранятся ограниченное время (в Windows workflow 7 суток). Для будущего теста используйте свежую успешно проверенную сборку — не старый ZIP с истёкшими гарантиями соответствия.
+
+`READY_FOR_READ_ONLY_PHYSICAL_PREFLIGHT` — техническая готовность инструмента. `B01_FULL_BACKUP/RESTORE=BLOCKED`, `B04_B05=BLOCKED`, `COLD_OFFLINE=NOT_TESTED`, `V0–V6=FROZEN`. До пользователя никаких действий не требуется.
