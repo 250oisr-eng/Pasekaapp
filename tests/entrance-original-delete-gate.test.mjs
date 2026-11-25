@@ -16,7 +16,7 @@ function load(name,deps={}){
 test('direct original-video delete always fails closed without a readwrite transaction',async()=>{
  let transactions=0, deletes=0;
  const db={transaction(){transactions++;return {objectStore(){return {delete(){deletes++;}}}}}};
- const fn=load('deleteEntranceVideoBlob',{db});
+ const fn=load('deleteEntranceVideoBlob',{db,rejectWhileStartupNotReady:()=>null});
  for(const id of ['original-01','','..','legacy']){
   await assert.rejects(fn(id),error=>error?.code==='ENTRANCE_VIDEO_DELETE_BLOCKED' && /заблокировано/.test(error.message));
  }
@@ -34,7 +34,7 @@ test('UI no longer offers direct original-video deletion',()=>{
 });
 test('legacy UI removal handler cannot reach storage mutation or claim deletion',async()=>{
  const messages=[];
- const denied=load('deleteEntranceVideoBlob',{db:{transaction(){throw new Error('Storage must not be accessed')}}});
+ const denied=load('deleteEntranceVideoBlob',{rejectWhileStartupNotReady:()=>null,db:{transaction(){throw new Error('Storage must not be accessed')}}});
  const remove=load('removeEntranceVideo',{deleteEntranceVideoBlob:denied,alert:message=>messages.push(message),confirm(){throw new Error('Confirmation alone is not a recovery gate')}});
  assert.equal(await remove('protected-01'),false);
  assert.equal(messages.length,1);
