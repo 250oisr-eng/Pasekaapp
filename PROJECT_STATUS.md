@@ -4,12 +4,12 @@
 
 ## Увеличенный макроцикл — 8 независимых потоков, 25.11.2026
 
-- **P0 #512**: `putEntranceVideo` переведён с overwrite `put` на insert-only `add`; duplicate ID fail-closed, тест бинарного payload. HEAD `7c543353`, Governance PASS, новый Android CI проверить; видео #442 FROZEN.
+- **P0 #512**: `putEntranceVideo` переведён с overwrite `put` на insert-only `add`; duplicate ID fail-closed, тест бинарного payload. HEAD `7c543353`, Android #45667402579 / Governance #45667402584 SUCCESS; видео #442 FROZEN.
 - **P1 #530**: query/redirect/204/206 cache gates, новый cache **v320**, прежний v319 не трогать при неудачной установке. HEAD `ab2e64ab`, Fast/Android/Governance SUCCESS; cold offline NOT_TESTED.
 - **P1 #514**: JS-опасные ID видео заменены на безопасный `data-video-id`; HEAD `3e239ab1`, Android/Governance SUCCESS. Родительский delete UI всё ещё требует P0 #512 перед интеграцией.
 - **P0/P1/P2 #518**: test-only композиция защиты Blob, `add`, metadata cursor и ID/race guard; HEAD `53b46fa6`, Android/Governance SUCCESS, не release.
-- **P1 #516**: JSON исторических связей семьи/улья без автоматического исправления; code/test CI SUCCESS, docs HEAD `b9753069` требует exact-head Android. Не full backup.
-- **B01 #524**: тесты изменения legacy store и дублей манифеста, code/test CI SUCCESS, docs HEAD `673ffbf2` требует exact-head Android. Не OnePlus recovery.
+- **P1 #516**: JSON исторических связей семьи/улья без автоматического исправления; docs HEAD `b9753069`, Android #45667463840 / Governance #45667463839 SUCCESS. Не full backup.
+- **B01 #524**: тесты изменения legacy store и дублей манифеста, docs HEAD `673ffbf2`, Android #45667486417 / Governance #45667486311 / Windows #45667486432 SUCCESS. Не OnePlus recovery.
 - **P2 #531**: журнал с индексами family/first record и сохранением legacy имён; HEAD `38b51b9e`, Android/Governance SUCCESS, физическая скорость NOT_MEASURED.
 - **Контроль #529**: матрица зависимостей, статусы CI и журнал; код других веток не переносить автоматически. NO_MERGE / NO_RELEASE.
 
