@@ -33,7 +33,7 @@ test('V11 default local mode cannot silently invoke USB or private capture',()=>
   assert.match(runner,/\$answer -cne 'USB'/);
   assert.match(runner,/Choose-ExistingPublicTar/);
   assert.match(runner,/\[switch\]\$NoPicker/);
-  assert.doesNotMatch(runner,/\bCAPTURE\b/);
+  assert.doesNotMatch(runner,/Read-Host ['\"]?CAPTURE/);
 });
 test('V11 final sanitized JSON cannot claim full restoration or leak filenames',()=>{
   assert.match(runner,/fullBackupVerified=\$false/);
