@@ -107,7 +107,7 @@ export async function inspectOnePlusPrivateDbAccessGate({binary,command=defaultC
     const raw=String(command(binary,[
       '-s',target.serial,'shell','run-as','ru.paseka.journal','id'
     ]));
-    if(!/^uid=\\d+\\([^)]{1,120}\\)\\s+gid=\\d+\\(/.test(raw.trim()))
+    if(!/^uid=[0-9]+[(][^)]{1,120}[)][ \t]+gid=[0-9]+[(]/.test(raw.trim()))
       return {status:'BLOCKED',code:'RUN_AS_IDENTITY_NOT_ATTESTED',proofLevel:'NOT_VERIFIED'};
     return {
       status:'PASS',code:'INSTALLED_APP_RUN_AS_IDENTITY_AVAILABLE',
