@@ -13,6 +13,7 @@ $runFolder = Join-Path $results ('run-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'
 $reportPath = Join-Path $runFolder 'b01-v9-result.json'
 $report = [ordered]@{
     schema = 'paseka-b01-private-readonly-v9'
+    scriptRevision = 'v9.1-adb-host-startup-diagnostics'
     generatedUtc = [DateTime]::UtcNow.ToString('o')
     status = 'BLOCKED'
     stage = 'PREFLIGHT'
