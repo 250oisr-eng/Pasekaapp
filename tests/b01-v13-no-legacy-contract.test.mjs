@@ -47,7 +47,7 @@ test('V13 PowerShell 5.1 script ASCII-only, no network and no extra prerequisite
   assert.match(v13,/B01-ONEPLUS-SAFE-V9\.ps1/);
 });
 test('new policy explicitly treats previous tests as deleted and requires autonomy',()=>{
-  assert.match(agents,/предыдущие тесты пользователь удаляет/);
+  assert.match(agents,/старые тесты пользователь удаляет/);
   assert.match(agents,/все разрешённые этапы без «продолжай»/);
   assert.match(rules,/Предыдущие тесты пользователь удаляет/);
   assert.match(rules,/один конечный обезличенный JSON/);
