@@ -1,14 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## 26.11.2026 — независимая проверка оставшихся миграций (Draft, не main)
+## 26.11.2026 — B09 миграция и аварийный retry (Draft)
 
-- Live `main=346b35035861257be45dae93ee0573cbd4de9082` после merge #512; прежний датированный SHA выше — исторический снимок.
-- [Draft #536](https://github.com/250oisr-eng/Pasekaapp/pull/536): тест фактического `openDB` на синтетической IndexedDB v2 с открытой старой вкладкой, `onblocked`, безопасным повтором v3 и byte-for-byte проверкой исторического Blob после повторного открытия. Код приложения/схема/медиа не меняются. **CI exact SHA: NOT_TESTED** до появления результатов GitHub Actions.
-- Предварительный review existing tests: v1/v2→v3 и future version; malformed v3; tx abort/read; миграции state 1–15 и переход 13→15; архивный SHA/stores/Blob и independent empty fake-IDB recovery уже покрываются тестами в main, но не являются физическим доказательством восстановления пользовательского OnePlus.
-- B09: новая регрессия IMPLEMENTED_DRAFT; физическое power-loss/Quota и OnePlus restore NOT_VERIFIED. B01 остаётся BLOCKED; #442 FROZEN. Следующий шаг: точный CI #536, исправление при красном тесте; затем аппаратное восстановление только при подтверждённой внешней копии и безопасной отдельной цели. NO_MERGE / NO_RELEASE / NO_USER_DATA_MUTATION.
+- Live main `346b35035861257be45dae93ee0573cbd4de9082` (#512). [Draft #536](https://github.com/250oisr-eng/Pasekaapp/pull/536): production `openDB`, синтетическая v2 с историей и Blob, конфликт старой вкладки, blocked upgrade, retry v3, reopen и byte equality.
+- **Fast CI #45702838055 SUCCESS** на точном code SHA `c3f6b690b8065df982576e554092f071e9a46279`; Android CI PENDING/CANCELLED на раннем запуске; final docs HEAD отдельно проверяется. Тест не доказывает физический power-loss.
+- В main уже тестируются v1/v2→v3, schema 13→15, malformed v3, abort/rollback, archive checksum/independent fake restore. B01/реальный OnePlus restore BLOCKED, #442 FROZEN. Нет merge, выпуска или изменения реальных данных.
 
-
-**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**25.11.2026 — исторический main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
