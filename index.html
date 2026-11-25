@@ -1332,7 +1332,35 @@ function putEntranceVideo(record){
  return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').put(record)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось сохранить видео'));tx.onabort=()=>no(tx.error||new Error('Сохранение видео прервано'))});
 }
 function listEntranceVideos(){
- return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').getAll()}catch(e){no(e);return}q.onsuccess=()=>ok((q.result||[]).sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||''))));q.onerror=()=>no(q.error||new Error('Не удалось прочитать список видео'))});
+ return new Promise((ok,no)=>{
+  // A queue screen needs metadata only. Avoid getAll() because it retains
+  // every protected original Blob in the result array at the same time.
+  const rows=[];let tx,request,settled=false;
+  const fail=error=>{if(!settled){settled=true;no(error||new Error('Не удалось прочитать список видео'))}};
+  try{
+   tx=db.transaction('entrance_media','readonly');
+   request=tx.objectStore('entrance_media').openCursor();
+   request.onsuccess=()=>{
+    try{
+     const cursor=request.result;
+     if(!cursor)return;
+     const value=cursor.value;
+     if(!value||typeof value!=='object')throw new Error('Повреждена запись очереди видео');
+     const {blob,...metadata}=value;
+     rows.push(metadata);
+     cursor.continue();
+    }catch(error){
+     try{tx.abort()}catch(abortError){fail(error)}
+    }
+   };
+   request.onerror=()=>fail(request.error||new Error('Не удалось прочитать список видео'));
+   tx.oncomplete=()=>{
+    if(!settled){settled=true;ok(rows.sort((a,b)=>String(b.capturedAt||'').localeCompare(String(a.capturedAt||''))))}
+   };
+   tx.onabort=()=>fail(tx.error||new Error('Чтение списка видео прервано'));
+   tx.onerror=()=>fail(tx.error||new Error('Ошибка чтения списка видео'));
+  }catch(error){fail(error)}
+ });
 }
 function getEntranceVideo(id){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').get(id)}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error||new Error('Не удалось открыть видео'))});
