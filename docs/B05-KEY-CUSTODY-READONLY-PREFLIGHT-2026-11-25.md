@@ -18,3 +18,9 @@ F2 — LIMITED_SAFE_DRAFT. Не создавать новый ключ теку�
 Пять синтетических негативных/положительных тестов, exact GitHub CI и дальнейшее подтверждение при необходимости. Для полного B05 нужна независимая защищённая копия оригинального ключа, проверяемое подписание отдельного тестового APK тем же сертификатом и потом B01 + rollback; никаких прямых обновлений OnePlus без отдельного разрешения пользователя.
 
 **NO_MERGE / NO_RELEASE / NO_INSTALL / NO_KEY_UPLOAD / NO_MEDIA_DELETE.**
+
+## Физический V6 — проверка стандартного Windows debug.keystore
+
+User-reported read-only V6 `2026-11-25T07:54:12Z`, schema `paseka-b05-default-debug-keystore-readonly-v6`: `DEFAULT_DEBUG_KEYSTORE_NOT_FOUND`, `filePresent=false`, `certificateSha256=null`, `candidatePrivateKeyConfirmed=false`, `privateKeyUsableForSigning=NOT_TESTED`, `keystoreBackupVerified=false`, `installerCompatibility=NOT_VERIFIED`. Scope был **только** `%USERPROFILE%\\.android\\debug.keystore`. Никакие другие keystore, пути старых ПК, Android Studio signing configs или GitHub CI артефакты V6 не проверял. Поэтому логический вывод — только «стандартный файл на данном Windows не обнаружен», а не «владельца ключа не существует». Никакого key export/password read/sign/adb/install/delete/network не было.
+
+B05 остаётся BLOCKED до установления **происхождения конкретного установленного APK** и существующего подписывающего ключа; дополнительное автоматическое сканирование личных дисков без явно ограниченного источника не запускать. Совместимый update из текущего GitHub debug build исключён фактическим cert mismatch в [#520](https://github.com/250oisr-eng/Pasekaapp/pull/520); телефон не очищать и не переустанавливать.
