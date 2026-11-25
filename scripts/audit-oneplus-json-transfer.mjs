@@ -48,7 +48,15 @@ export function auditPasekaJsonTransfer(raw, expected = {}) {
       warnings.push('Family references an unavailable hive at row ' + index);
     }
   }
+  // A present family ID can still point to another active hive. Treat this
+  // as a reconciliation warning, not a successful integrity/restore proof.
+  // Historic snapshots may intentionally retain an archived family ID.
+  const familiesById = new Map(byType.families.filter(f => typeof f.id === 'string').map(f => [f.id, f]));
   for (const [index, record] of byType.records.entries()) {
+    const linkedFamily = familiesById.get(record.family);
+    if (linkedFamily && record.hive && linkedFamily.hive && record.hive !== linkedFamily.hive) {
+      warnings.push('Record family and hive association differ at row ' + index + '; inspect historical move/archival evidence');
+    }
     if (record.hive && !ids.hives.has(record.hive)) {
       warnings.push('Record references an unavailable hive at row ' + index);
     }
