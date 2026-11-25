@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "kind": "PASEKA_COMPREHENSIVE_QA_MATRIX",
+  "source": "AGENTS.md + docs/PROJECT-CONTROL.md + docs/АВТОМАТИЗИРОВАННЫЕ-ТЕСТЫ-И-МИНИМУМ-УЧАСТИЯ-2026-11-23.md",
+  "scope": "MAIN_CODE_SYNTHETIC_TESTS_ONLY",
+  "lanes": [
+    {
+      "id": "journal",
+      "title": "Сохранение, откат, журнал и первый запуск",
+      "priority": "P0",
+      "files": [
+        "tests/journal-persistence-rollback.test.mjs",
+        "tests/varroa-treatment-journal-entry.test.mjs",
+        "tests/first-use-storage-journey.test.mjs",
+        "tests/journal-varroa-archive-recovery.test.mjs",
+        "tests/regression.test.mjs"
+      ],
+      "autoPrefixes": [
+        "journal-",
+        "varroa-treatment-",
+        "first-use-",
+        "regression"
+      ]
+    },
+    {
+      "id": "indexeddb",
+      "title": "IndexedDB, миграции и аварийный запуск",
+      "priority": "P0",
+      "files": [
+        "tests/first-launch-startup-gate.test.mjs",
+        "tests/idb-legacy-open-upgrade.test.mjs",
+        "tests/idb-read-abort-and-malformed-v3.test.mjs",
+        "tests/indexeddb-startup-guard.test.mjs"
+      ],
+      "autoPrefixes": [
+        "first-launch-",
+        "idb-",
+        "indexeddb-"
+      ]
+    },
+    {
+      "id": "backup",
+      "title": "Локальные архивы, валидация и неизменность входа",
+      "priority": "P0",
+      "files": [
+        "tests/audit-oneplus-json-transfer.test.mjs",
+        "tests/backup-scope-labels.test.mjs",
+        "tests/disaster-archive-read-abort.test.mjs",
+        "tests/disaster-archive.test.mjs",
+        "tests/verify-exported-archive.test.mjs"
+      ],
+      "autoPrefixes": [
+        "audit-",
+        "backup-",
+        "disaster-",
+        "verify-exported-"
+      ]
+    },
+    {
+      "id": "offline",
+      "title": "Service Worker, безопасный кеш и офлайн-доступ",
+      "priority": "P1",
+      "files": [
+        "tests/service-worker-install-private.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "autoPrefixes": [
+        "service-worker-",
+        "sw-"
+      ]
+    },
+    {
+      "id": "physical",
+      "title": "Физическая модель, семьи и инвентарь",
+      "priority": "P1",
+      "files": [
+        "tests/equipment-bodies.test.mjs",
+        "tests/equipment-inventory.test.mjs",
+        "tests/equipment-items.test.mjs",
+        "tests/equipment-labels.test.mjs",
+        "tests/equipment-reconciliation.test.mjs",
+        "tests/family-lineage.test.mjs",
+        "tests/hive-model.test.mjs",
+        "tests/legacy-layout-body-reference-audit.test.mjs",
+        "tests/sectional-operation-coordinator.test.mjs",
+        "tests/sectional-physical-layout.test.mjs"
+      ],
+      "autoPrefixes": [
+        "equipment-",
+        "family-",
+        "hive-",
+        "legacy-layout-",
+        "sectional-"
+      ]
+    },
+    {
+      "id": "season",
+      "title": "Сезонные наблюдения, Varroa и инциденты",
+      "priority": "P1",
+      "files": [
+        "tests/deadout-review.test.mjs",
+        "tests/pesticide-incident.test.mjs",
+        "tests/plant-module.test.mjs",
+        "tests/season-planning.test.mjs",
+        "tests/varroa-monitor.test.mjs"
+      ],
+      "autoPrefixes": [
+        "deadout-",
+        "pesticide-",
+        "plant-",
+        "season-",
+        "varroa-monitor-"
+      ]
+    },
+    {
+      "id": "voice",
+      "title": "Голос и офлайн-команды без автоматической физической операции",
+      "priority": "P1",
+      "files": [
+        "tests/equipment-reconciliation-voice.test.mjs",
+        "tests/voice-session.test.mjs"
+      ],
+      "autoPrefixes": [
+        "voice-",
+        "equipment-reconciliation-voice-"
+      ]
+    },
+    {
+      "id": "video",
+      "title": "Метаданные видео и запрет недоказанного распознавания",
+      "priority": "P0",
+      "files": [
+        "tests/entrance-analysis.test.mjs",
+        "tests/p0-source-inventory.test.mjs"
+      ],
+      "autoPrefixes": [
+        "entrance-",
+        "p0-source-"
+      ]
+    },
+    {
+      "id": "release",
+      "title": "Подпись, запреты публикации и governance",
+      "priority": "P0",
+      "files": [
+        "tests/android-toolchain.test.mjs",
+        "tests/check-oneplus-upgrade.test.mjs",
+        "tests/cloudflare-bounded-body.test.mjs",
+        "tests/cloudflare-wrangler-config.test.mjs",
+        "tests/comprehensive-pr-checks.test.mjs",
+        "tests/deployment-safety.test.mjs",
+        "tests/governance-control.test.mjs",
+        "tests/pages-manual-release-gate.test.mjs",
+        "tests/read-only-pr-triage.test.mjs"
+      ],
+      "autoPrefixes": [
+        "android-",
+        "check-oneplus-",
+        "cloudflare-",
+        "deployment-",
+        "governance-",
+        "pages-",
+        "read-only-pr-",
+        "comprehensive-pr-"
+      ]
+    },
+    {
+      "id": "qa_contract",
+      "title": "Защита самого испытательного контура от ложных PASS",
+      "priority": "P0",
+      "files": [
+        "tests/comprehensive-qa.test.mjs"
+      ],
+      "autoPrefixes": [
+        "comprehensive-qa-"
+      ]
+    }
+  ],
+  "externalGates": [
+    {
+      "id": "P0_ORIGINALS_GUARD_IN_MAIN",
+      "status": "BLOCKED",
+      "requires": "Защита от удаления/перезаписи входного видео из Draft #512/#518 пока не включена в main; отдельные успешные CI не означают защищённую установленную версию"
+    },
+    {
+      "id": "B01_FULL_DEVICE_RECOVERY",
+      "status": "BLOCKED",
+      "requires": "Реальная внешняя копия IndexedDB, Gallery/MediaStore, сверка SHA всех оригиналов и независимый restore на пустой цели"
+    },
+    {
+      "id": "B04_B05_ANDROID_UPGRADE",
+      "status": "BLOCKED",
+      "requires": "Доказанный соответствующий установленному APK ключ, rollback и полный B01 backup до установки"
+    },
+    {
+      "id": "B11_COLD_OFFLINE_ONEPLUS",
+      "status": "NOT_TESTED",
+      "requires": "Холодный запуск на устройстве, без сети, после разрешённого безопасного обновления"
+    },
+    {
+      "id": "DEVICE_VIDEO_PIPELINE_V0_V6",
+      "status": "FROZEN",
+      "requires": "Лицензированная модель, реальные эталоны, видео end-to-end, копии, восстановление и отдельное разрешение"
+    },
+    {
+      "id": "PHYSICAL_HIVE_OPERATION",
+      "status": "NOT_TESTED",
+      "requires": "Локальная валидация и отдельное подтверждение пчеловода для реально выполненных операций"
+    },
+    {
+      "id": "REAL_ENERGY_MEMORY",
+      "status": "NOT_TESTED",
+      "requires": "Реальное измерение RAM/CPU/тепла/аккумулятора на OnePlus на безопасных входах"
+    }
+  ],
+  "releaseDecision": "NO_RELEASE_WITHOUT_EXPLICIT_PERMISSION",
+  "phoneActionsRequiredNow": 0
+}

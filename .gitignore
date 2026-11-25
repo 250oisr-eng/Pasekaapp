@@ -1,0 +1,3 @@
+# Generated synthetic CI evidence: never add local logs or reports to Git.
+/qa-results/
+/qa-comprehensive.tap
