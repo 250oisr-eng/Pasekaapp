@@ -12,7 +12,7 @@ function source(name){
  next.lastIndex=match.index+match[0].length;
  const end=next.exec(html);
  if(name==='deleteAllData')return html.slice(match.index,html.indexOf("\ndocument.querySelectorAll(",match.index));
- return html.slice(match.index,end?.index??html.indexOf('</script>',match.index));
+ return html.slice(match.index,end?.index??html.indexOf('</script>',match.index)).replace(/\n\/\/ Read-only P0 archive workflow\.[^\n]*$/,'');
 }
 function load(name,deps={}){return new Function('deps','with(deps){return ('+source(name)+');}')(deps);}
 async function indexedDb(){
@@ -116,7 +116,7 @@ test('P0 G0 inventory and full archive must not claim an unverified startup was 
  };
  await load('downloadG0SourceInventory',deps)();
  await load('downloadDisasterArchive',deps)();
- assert.match(text.g0InventoryStatus.textContent,/не запущена/);
+ assert.match(text.g0InventoryStatus.textContent,/невозможна/);
  assert.match(text.disasterArchiveStatus.textContent,/не готов/);
  assert.equal(gate.ready,false);
 });
