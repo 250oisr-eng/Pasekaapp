@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -48,6 +48,27 @@ function run(binary, args) {
   return execFileSync(command, argv, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 8 * 1024 * 1024 }).trim();
 }
 
+// Android Studio bundles its own Java runtime (JBR), often without java.exe
+// on PATH. This function only selects an existing local executable; it does
+// not install packages, use the network or inspect a signing private key.
+export function resolveJavaForApksigner({
+  env = process.env, platform = process.platform, fileExists = existsSync
+} = {}) {
+  if (platform !== 'win32') return 'java';
+  const paths = [];
+  for (const variable of ['JAVA_HOME', 'STUDIO_JDK', 'ANDROID_STUDIO_JDK']) {
+    if (env[variable]) paths.push(join(env[variable], 'bin', 'java.exe'));
+  }
+  if (env.ProgramFiles) {
+    paths.push(join(env.ProgramFiles, 'Android', 'Android Studio', 'jbr', 'bin', 'java.exe'));
+    paths.push(join(env.ProgramFiles, 'Android', 'Android Studio', 'jre', 'bin', 'java.exe'));
+  }
+  if (env.LOCALAPPDATA) {
+    paths.push(join(env.LOCALAPPDATA, 'Programs', 'Android Studio', 'jbr', 'bin', 'java.exe'));
+  }
+  return paths.find(path => fileExists(path)) || 'java';
+}
+
 function sdkTool(name) {
   const sdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
   if (!sdk) return name;
@@ -55,7 +76,10 @@ function sdkTool(name) {
   const versions = readdirSync(base, { withFileTypes: true }).filter(x => x.isDirectory()).map(x => x.name).sort((a,b) => b.localeCompare(a, undefined, { numeric: true }));
   if (!versions.length) throw new Error('BLOCKED: no Android SDK build tools');
   if (name === 'apksigner' && process.platform === 'win32') {
-    return { command: 'java', prefix: ['-jar', join(base, versions[0], 'lib', 'apksigner.jar')] };
+    const version = versions.find(value => existsSync(join(base, value, 'lib', 'apksigner.jar')));
+    if (!version) throw new Error('BLOCKED: Android SDK build tools do not contain apksigner.jar');
+    return { command: resolveJavaForApksigner(),
+      prefix: ['-jar', join(base, version, 'lib', 'apksigner.jar')] };
   }
   return join(base, versions[0], name + (process.platform === 'win32' ? '.exe' : ''));
 }
