@@ -60,3 +60,23 @@
 **P2 #531:** однократные индексы по семье и первому историческому событию, preserving legacy first-match semantics; Android/Governance SUCCESS `38b51b9e`; физическая экономия RAM/CPU NOT_MEASURED.
 
 **F6–F7:** все компоненты — независимые Draft; `main=fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2` остаётся неизменён. При будущей отдельно разрешённой интеграции повторить регрессионные проверки на новом точном SHA и сравнить реальные данные с резервной копией; автоматический merge/deploy/удаление original media запрещены.
+
+## 26.11.2026 — актуализация после merge P0 #512 и B09 Android-конвейера
+
+**Проверен live GitHub**, а не исторический snapshot сверху: `main=346b35035861257be45dae93ee0573cbd4de9082`; **#512 MERGED 25.11.2026**, защита от удаления оригиналов входит в main. Никакой release/publish не было. Столбец «пока не в main» в таблице 25.11 для #512 является **устаревшим историческим состоянием**, не действующим решением.
+
+| Направление | Фактическое состояние на 26.11 | Следующий контролируемый шаг |
+| --- | --- | --- |
+| **P0 оригиналы #512** | В main, SHA `346b3503`. Оригиналы видео FROZEN #442 | Не ослаблять запрет удаления во время интеграции других PR |
+| **P1 video UI #514** | Чистый main-root Draft `f0346cdd`, изменяет только `index.html`, тесты и описание; P0 main сохранён | Независимый merge review, затем exact-main CI по отдельному разрешению |
+| **P1 JSON #516** | Чистый main-root Draft `c1cc5dbf`, только script, тесты, docs; не содержит полного архива медиа | Независимый merge review, исторические связи оставить `REVIEW_REQUIRED` |
+| **B11 SW parent #515** | До согласования `mergeable_state=dirty` с main; создан двухродительский коммит `6b8dc21e`, дерево на main плюс v319 SW/тесты | Exact SHA Fast/Android/Governance, отсутствие возврата P0 |
+| **B11 SW child #530** | Зависит от #515; кодовой SHA `29912189`, дерево от обновлённого #515, v320, status 200, no redirected/partial/query-poison; дополнительно Authorization/Range/no-store bypass | Exact SHA Fast/Android/Governance, review относительно обновлённого #515; физический cold-offline позже |
+| **B09 #536** | Синтетический blocked v2→v3 retry; exact docs SHA `ef04be2b`, Android/Governance SUCCESS | READY_FOR_MERGE_REVIEW, отдельное разрешение на merge |
+| **B09 #538** | Синтетическая квота/rollback Blob; final SHA `4b3fd205`, Android/Governance SUCCESS; кодовый Fast SUCCESS | READY_FOR_MERGE_REVIEW, только synthetic |
+| **B01 Android #534→#537** | Изолированный `disasterproof2`, final #537 SHA `5b893ea1`: APK, Windows ZIP, Android эмулятор и Governance SUCCESS; артефакт `PASEKA-ONEPLUS-RECOVERY-ONECLICK` | Физический OnePlus **NOT_TESTED**, только когда ПК доступен |
+| **P2 #510→#531** | Стек оптимизации журнала, не в main; отдельные CI green, реальная RAM/latency NOT_MEASURED | Review после безопасного P0 и без массовой синхронизации |
+
+**Scope-разделение:** #514 `index.html` и #516 `scripts/audit-oneplus-json-transfer.mjs` не конфликтуют по runtime-файлам; их зелёные изолированные проверки не доказывают совместную релизную сборку. #530 и #515 намеренно **одна последовательная SW-цепочка**, не независимые кандидаты на одновременный merge. Составной старый #518 — тестовая история, не подтверждение новых SHA. Не переносить `tests/regression.test.mjs` целиком из устаревших веток: он содержит P0 регрессии защищённого main.
+
+**Запреты:** no merge без отдельного разрешения; no release/production; никакого удаления видео; real full archive/media and rollback B01/B04/B05 не подтверждены. Физические результаты не заменяются эмулятором или CI.

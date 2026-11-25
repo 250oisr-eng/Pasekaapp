@@ -1,10 +1,13 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**26.11.2026 — live main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Увеличенный макроцикл — 8 независимых потоков, 25.11.2026
 
-- **P0 #512**: `putEntranceVideo` переведён с overwrite `put` на insert-only `add`; duplicate ID fail-closed, тест бинарного payload. HEAD `7c543353`, Android #45667402579 / Governance #45667402584 SUCCESS; видео #442 FROZEN.
+- **26.11 B11 #515→#530**: #515 конфликт с main устранён отдельным защищённым двухродительским коммитом `6b8dc21e`; #530 выровнен на родителя, `29912189`, с обходом Authorization/Range/no-store. Итоговый CI этих SHA проверять отдельно; OnePlus offline NOT_TESTED.
+- **26.11 B09 #536/#537/#538**: #536 и #538 synthetic IndexedDB CI PASS; #537 isolated emulator+Windows ZIP PASS на итоговом SHA; реальный OnePlus NOT_TESTED. Ни один Draft не в main.
+
+- **P0 #512 MERGED**: protected main `346b3503`, video insert-only `add`, старые destructive действия FROZEN; видео #442 FROZEN.
 - **P1 #530**: query/redirect/204/206 cache gates, новый cache **v320**, прежний v319 не трогать при неудачной установке. HEAD `ab2e64ab`, Fast/Android/Governance SUCCESS; cold offline NOT_TESTED.
 - **P1 #514**: JS-опасные ID видео заменены на безопасный `data-video-id`; HEAD `3e239ab1`, Android/Governance SUCCESS. Родительский delete UI всё ещё требует P0 #512 перед интеграцией.
 - **P0/P1/P2 #518**: test-only композиция защиты Blob, `add`, metadata cursor и ID/race guard; HEAD `53b46fa6`, Android/Governance SUCCESS, не release.
