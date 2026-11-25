@@ -1,9 +1,8 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## 26.11.2026 · OnePlus B09 (Draft #537, не main)
+## 26.11.2026 · OnePlus физический тест #537
 
-Пользователь сообщил, что на OnePlus нет рабочих данных пасеки/оригинального приложения; состояние устройства ещё не проверено. Поверх существующего Draft #534 подготовлен отдельный [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537): автономный Windows one-click ZIP для установки ТОЛЬКО `ru.paseka.journal.disasterproof2`, синтетического Android WebView archive restore → byte proof → force-stop/relaunch → обезличенный отчёт. APK и комплект собирает CI. Реальный OnePlus до доступа к ПК NOT_TESTED. Main, user data, production release не затронуты. B01 и #442 остаются ограниченными; без merge.
-
+На отдельном Draft [#537](https://github.com/250oisr-eng/Pasekaapp/pull/537), зависимом от #534, подготовлен Windows one-click ZIP с изолированной диагностикой `ru.paseka.journal.disasterproof2` и синтетическим full IndexedDB/Blob restore → force-stop/relaunch. На кодовом SHA `60b802322dd8672d356912434f45f1eeca3d912e`: [Windows ZIP + Android emulator #45705458586](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705458586), [Android #45705458653](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705458653), [Governance #45705458570](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705458570) **SUCCESS**. Реальный OnePlus NOT_TESTED; рабочие данные, app и production untouched. Нет merge/release/очистки; #442 FROZEN.
 
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
