@@ -55,7 +55,7 @@ async function getAdb(){
 }
 async function liveLogProof(adb,serial,expected,launch){
  // Subscribe BEFORE launching. No historical/stale log entries can pass.
- const child=spawn(adb,['-s',serial,'logcat','-T','1','-v','brief','chromium:I','*:S'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
+ const child=spawn(adb,['-s',serial,'logcat','-T','1','-v','brief'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
  let data='',settled=false;
  const promise=new Promise((resolveResult,reject)=>{
   const deadline=setTimeout(()=>finish(error('PROOF_TIMEOUT')),120000);
@@ -64,7 +64,7 @@ async function liveLogProof(adb,serial,expected,launch){
   child.on('exit',()=>{if(!settled)finish(error('LOGCAT_EXITED'));});
   child.stdout.on('data',chunk=>{
    data+=String(chunk);
-   if(data.length>1024*1024){finish(error('LOGCAT_BOUNDED_LIMIT'));return;}
+   if(data.length>256*1024){finish(error('LOGCAT_LINE_TOO_LONG'));return;}
    let idx;while((idx=data.indexOf('\n'))>=0){
     const line=data.slice(0,idx);data=data.slice(idx+1);
     if(validateProofLine(line,expected)){finish();return;}
