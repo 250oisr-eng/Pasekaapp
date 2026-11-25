@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { findFullExport } from './run-b01-oneclick.mjs';
 import { proveExportedArchiveRecoveryFile } from './prove-exported-archive-recovery.mjs';
 import { chooseAdbBinary, inspectConnectedOnePlus, inspectOnePlusFullExportPresence, inspectOnePlusPrivateDbAccessGate, inspectOnePlusIdbInventory } from './check-oneplus-readonly-usb.mjs';
+import { assessPhysicalReadiness } from './physical-test-readiness.mjs';
 
 export const HUB_SCHEMA='paseka-offline-check-hub-v1';
 export const HUB_VERSION=1;
@@ -133,7 +134,7 @@ export async function executeChecks({checks=REGISTERED,bundleRoot,downloads,desk
     catch {results[check.id]={status:'BLOCKED',code:'CHECK_EXECUTION_FAILED_REDACTED',proofLevel:'NOT_VERIFIED'};}
   }
   const statuses=Object.values(results).map(x=>x.status);
-  return {
+  const report={
     schema:HUB_SCHEMA,version:HUB_VERSION,
     status:statuses.includes('BLOCKED')?'BLOCKED':
       statuses.includes('NEEDS_INPUT')?'NEEDS_INPUT':'PARTIAL_EVIDENCE_ONLY',
@@ -146,6 +147,7 @@ export async function executeChecks({checks=REGISTERED,bundleRoot,downloads,desk
     deletion:'NOT_ATTEMPTED',
     network:'NOT_ATTEMPTED'
   };
+  return {...report,physicalReadiness:assessPhysicalReadiness(report)};
 }
 
 export async function saveReport({bundleRoot,report,stamp=new Date().toISOString().replace(/[:.]/g,'-'),
