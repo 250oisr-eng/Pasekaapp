@@ -1,11 +1,11 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**25.11.2026 — live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## B04/B05 последняя проверка — Draft #520 (25.11.2026)
 
 - **V5 physical OnePlus:** `PASS_APKSIGNER_VERIFY` установленного `ru.paseka.journal`, cert SHA-256 `9b10baf04e1e09bfe2d58e72b1c1eecf04b48f532940b5e91a3083bd73ddb0aa`; APK SHA-256 `a6e14157fcdce06885cb8c6a5ad55c8a76170c3fa4cefa234b1715d80865aec6`. B04 installed signer = DEVICE_USER_REPORTED_PASS; новый APK upgrade NOT_VERIFIED.
-- [Draft #520](https://github.com/250oisr-eng/Pasekaapp/pull/520): B05 CI debug APK signature audit: compares actual newly built APK signing certificate to the physical OnePlus V5 SHA; Fast #45570931304 SUCCESS on code SHA d0104fba, final Android/Governance still pending. A CI debug key does not prove private signing-key custody or release compatibility.
+- [Draft #520](https://github.com/250oisr-eng/Pasekaapp/pull/520): actual CI debug APK `ru.paseka.journal` versionCode 1, verified by `apksigner` in Android #45571119849 SUCCESS; debug cert `c26be541646150290a25bdd0d55c4c24ae3098cc1f69ccd9bec220b869495f22` **DIFFERS** from OnePlus V5 `9b10baf0…ddb0aa`. Fast #45570931304 / Governance #45571119925 SUCCESS; normal CI debug APK cannot update installed app. No key custody proof.
 - **B05 остаётся BLOCKED:** нет доказанного доступного долгоживущего private signing key с backup и успешным подписанием независимого QA APK; `assembleDebug` не является proof. **B01 BLOCKED** full external backup/restore. #442 video cleanup FROZEN. Ни merge, ни release, ни OnePlus install.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
