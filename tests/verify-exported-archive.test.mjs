@@ -54,7 +54,7 @@ test('B01 independent file verifier rejects modified byte content despite unchan
  const raw=await syntheticArchive(),env=JSON.parse(raw);
  const store=env.payload.stores.find(x=>x.name==='entrance_media');
  const encoded=JSON.stringify(store);
- assert.match(encoded,/AAH\//,'expected real packaged byte fixture');
+ assert.match(encoded,/ABH\//,'expected real packaged byte fixture');
  store.entries[0][1].v.find(pair=>pair[0]==='blob')[1].b64='AAEA';
  await assert.rejects(inspectExportedArchiveText(JSON.stringify(env)),/SHA-256 mismatch/);
 });
