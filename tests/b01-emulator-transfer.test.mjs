@@ -40,7 +40,7 @@ test('B01 v20 builds binary TAR from private local copy in memory with no source
  try{
   const src=await collectV16IndexedDb(root);
   assert.equal(src.regular.length,3);
-  assert.equal(src.bytes,16+16+6); // CURRENT 16, MANIFEST 19? computed below
+  assert.equal(src.bytes,16+19+6); // synthetic CURRENT, MANIFEST and binary log
   const before=await fs.readFile(join(db,'000001.log'));
   const chunks=[];
   for await(const part of tarBytes(src.members))chunks.push(part);
