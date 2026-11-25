@@ -94,8 +94,7 @@ test('B01 v20 full mocked emulator import: no physical commands, private bytes s
       'shell getprop ro.hardware':'ranchu',
       'shell getprop ro.build.fingerprint':'generic/sdk_gphone64_x86_64/emulator',
       'emu avd name':'PASEKA_B01_ISOLATED_TEST\nOK',
-      'shell pm path ru.paseka.journal':'',
-      'shell pm path ru.paseka.journal.diagnostic.restore':'',
+      'shell pm list packages':'package:com.android.systemui\npackage:com.android.settings',
       ['install --no-streaming '+apk]:'Success'
     };
     if(value in cases)return {status:0,stdout:cases[value]};
