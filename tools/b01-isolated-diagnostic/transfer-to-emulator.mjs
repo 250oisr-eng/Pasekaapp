@@ -31,8 +31,8 @@ export function ensureExpectedApp(apkBadging){
  if(match?.[1]!==DIAGNOSTIC) refuse('APK_PACKAGE_ID_NOT_DIAGNOSTIC');
  if(!/application-label:'Paseka B01 Isolated Diagnostic'/.test(apkBadging))refuse('APK_LABEL_NOT_DIAGNOSTIC');
 }
-function adbSync(adb,serial,...args) {
- const result=spawnSync(adb,['-s',serial,...args],{encoding:'utf8',timeout:30000,maxBuffer:1024*1024,windowsHide:true});
+function adbSync(syncFn,adb,serial,...args) {
+ const result=syncFn(adb,['-s',serial,...args],{encoding:'utf8',timeout:30000,maxBuffer:1024*1024,windowsHide:true});
  return output(result);
 }
 async function realFile(path,kind){
@@ -138,20 +138,20 @@ export function validateAdbDeviceList(list){
  if(rows.length!==1)refuse('ONE_RUNNING_EMULATOR_REQUIRED');
  return rows[0].trim().split(/\s+/)[0];
 }
-export async function executeIsolatedTransfer({persistentRoot,adb,apk,aapt,dryRun=false,runner=null}){
+export async function executeIsolatedTransfer({persistentRoot,adb,apk,aapt,dryRun=false,spawnSyncFn=spawnSync,spawnFn=spawn}){
  const src=await collectV16IndexedDb(persistentRoot);
  if(!adb||!apk||!aapt)refuse('ADB_APK_AAPT_EXPLICIT_PATHS_REQUIRED');
  await realFile(adb,'file');await realFile(apk,'file');await realFile(aapt,'file');
- const badging=output(spawnSync(aapt,['dump','badging',apk],{encoding:'utf8',timeout:30000,windowsHide:true}));
+ const badging=output(spawnSyncFn(aapt,['dump','badging',apk],{encoding:'utf8',timeout:30000,windowsHide:true}));
  ensureExpectedApp(badging);
- const devices=output(spawnSync(adb,['devices','-l'],{encoding:'utf8',timeout:30000,windowsHide:true}));
+ const devices=output(spawnSyncFn(adb,['devices','-l'],{encoding:'utf8',timeout:30000,windowsHide:true}));
  const serial=validateAdbDeviceList(devices);
- const qemu=adbSync(adb,serial,'shell','getprop','ro.kernel.qemu');
- const hardware=adbSync(adb,serial,'shell','getprop','ro.hardware');
- const fingerprint=adbSync(adb,serial,'shell','getprop','ro.build.fingerprint');
- const avdName=adbSync(adb,serial,'emu','avd','name').split(/\r?\n/)[0].trim();
- const liveInstalled=adbSync(adb,serial,'shell','pm','path',LIVE).includes('package:');
- const diagnosticInstalled=adbSync(adb,serial,'shell','pm','path',DIAGNOSTIC).includes('package:');
+ const qemu=adbSync(spawnSyncFn,adb,serial,'shell','getprop','ro.kernel.qemu');
+ const hardware=adbSync(spawnSyncFn,adb,serial,'shell','getprop','ro.hardware');
+ const fingerprint=adbSync(spawnSyncFn,adb,serial,'shell','getprop','ro.build.fingerprint');
+ const avdName=adbSync(spawnSyncFn,adb,serial,'emu','avd','name').split(/\r?\n/)[0].trim();
+ const liveInstalled=adbSync(spawnSyncFn,adb,serial,'shell','pm','path',LIVE).includes('package:');
+ const diagnosticInstalled=adbSync(spawnSyncFn,adb,serial,'shell','pm','path',DIAGNOSTIC).includes('package:');
  classifyEmulator({serial,hardware,fingerprint,qemu,avdName,liveInstalled,diagnosticInstalled});
  const report={
   schema:'paseka-b01-isolated-emulator-transfer-v20',
@@ -165,12 +165,12 @@ export async function executeIsolatedTransfer({persistentRoot,adb,apk,aapt,dryRu
   galleryMediaStore:'NOT_TESTED',videoCleanup:'NOT_ATTEMPTED'
  };
  if(dryRun)return report;
- const installed=adbSync(adb,serial,'install','--no-streaming',apk);
+ const installed=adbSync(spawnSyncFn,adb,serial,'install','--no-streaming',apk);
  if(!/Success/.test(installed))refuse('EMULATOR_INSTALL_NOT_CONFIRMED');
- await transmitTar(adb,serial,src.members);
+ await transmitTar(adb,serial,src.members,{spawnFn});
  for(const member of src.regular) {
   // Real data never leaves the diagnostic app sandbox; only digest is returned.
-  const result=adbSync(adb,serial,'exec-out','run-as',DIAGNOSTIC,'sha256sum',member.name);
+  const result=adbSync(spawnSyncFn,adb,serial,'exec-out','run-as',DIAGNOSTIC,'sha256sum',member.name);
   const digest=/^([0-9a-f]{64})(?:\s|$)/i.exec(result)?.[1]?.toLowerCase();
   if(!digest||digest!==member.sha256)refuse('EMULATOR_BYTE_READBACK_MISMATCH');
   report.sourceHashesComparedToEmulator++;
