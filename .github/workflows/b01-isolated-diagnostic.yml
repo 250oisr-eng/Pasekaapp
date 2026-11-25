@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/b01-isolated-diagnostic/**"
       - "tests/b01-isolated-diagnostic.test.mjs"
+      - "tests/b01-emulator-transfer.test.mjs"
       - ".github/workflows/b01-isolated-diagnostic.yml"
   workflow_dispatch:
 
@@ -26,7 +27,7 @@ jobs:
           java-version: '17'
 
       - name: Isolated source and readonly IndexedDB tests
-        run: node --test tests/b01-isolated-diagnostic.test.mjs
+        run: node --test tests/b01-isolated-diagnostic.test.mjs tests/b01-emulator-transfer.test.mjs
 
       - name: Generate independent diagnostic Capacitor app outside source tree
         env:
@@ -71,5 +72,61 @@ jobs:
         with:
           name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
           path: ${{ runner.temp }}/paseka-b01-diagnostic/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  package-v20-windows:
+    needs: diagnostic
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
+          path: diagnostic-apk
+
+      - name: Package guarded local-only emulator transfer (no private data)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $folder='v20-windows'
+          New-Item -ItemType Directory -Force -Path $folder | Out-Null
+          $src='tools/b01-isolated-diagnostic'
+          foreach($n in @('transfer-to-emulator.mjs','transfer-cli.mjs','START-EMULATOR-V20.ps1','START-EMULATOR-V20.cmd','README-V20.txt')){
+            Copy-Item -LiteralPath (Join-Path $src $n) -Destination $folder
+          }
+          Copy-Item -LiteralPath 'diagnostic-apk/app-debug.apk' -Destination (Join-Path $folder 'B01-diagnostic.apk')
+          Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination $folder
+          $adb=Join-Path $env:ANDROID_HOME 'platform-tools/adb.exe'
+          if(-not (Test-Path -LiteralPath $adb)){throw 'Windows Android SDK adb.exe missing'}
+          foreach($name in @('adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll')){
+            $path=Join-Path (Split-Path $adb) $name
+            if(-not (Test-Path -LiteralPath $path)){throw "ADB dependency missing: $name"}
+            Copy-Item -LiteralPath $path -Destination $folder
+          }
+          $aapt=Get-ChildItem -LiteralPath (Join-Path $env:ANDROID_HOME 'build-tools') -Recurse -File -Filter aapt.exe |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if($null -eq $aapt){throw 'Windows Android build tools aapt.exe missing'}
+          Copy-Item -LiteralPath $aapt.FullName -Destination $folder
+          $listed=@(Get-ChildItem -LiteralPath $folder -File | Select-Object -ExpandProperty Name)
+          foreach($required in @('node.exe','adb.exe','aapt.exe','B01-diagnostic.apk','transfer-cli.mjs','transfer-to-emulator.mjs','START-EMULATOR-V20.cmd','START-EMULATOR-V20.ps1')){
+            if($listed -notcontains $required){throw "V20 package incomplete: $required"}
+          }
+          if(@(Get-ChildItem -LiteralPath $folder -File |
+            Where-Object {$_.Extension -in @('.tar','.log','.ldb','.db','.json','.mp4','.jpg')}).Count -gt 0){
+            throw 'V20 package unexpectedly contains data'
+          }
+          & (Join-Path (Get-Location) 'v20-windows/node.exe') --version
+          Write-Host 'V20_BINARIES_ONLY_NO_PRIVATE_DATA'
+
+      - name: Upload standalone Windows V20 emulator-only gate
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-ISOLATED-EMULATOR-TRANSFER-V20
+          path: v20-windows/*
           if-no-files-found: error
           retention-days: 7
