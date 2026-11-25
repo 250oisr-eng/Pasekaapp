@@ -16,6 +16,13 @@
 - **#502 MERGED:** по исходному DOCX OP13 обычное весеннее развитие и ранний мёд — разные сценарии. В v2 stacked Draft #461–#466 они ещё не активированы в main.
 - Исторический #70 CLOSED/SUPERSEDED: `startupRecoveryPending`/commit-after-save и негативные тесты уже в main.
 
+## B01 — независимый app-level архив, отдельный Draft #524
+
+- После V20 6/6 SHA сырого LevelDB в Android-эмуляторе V19 показал `EXPECTED_DB_NOT_DISCOVERED`; V22 выявил 1 SHA-match, 1 difference, 4 ошибки `stat`, **0 подтверждённо отсутствующих**. Сырой повторный импорт прекращён; исходный архив и OnePlus не затронуты. История/точные отчёты в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [Draft #523](https://github.com/250oisr-eng/Pasekaapp/pull/523).
+- **[Draft #524](https://github.com/250oisr-eng/Pasekaapp/pull/524) IMPLEMENTED_DRAFT:** отдельный локальный `scripts/prove-exported-archive-recovery.mjs` (без доступа к телефону) проверяет существующий файл `paseka-idb-full-v1`: ограниченное неизменяемое чтение, временная fake IndexedDB, `inspectArchive` → `atomicRestore` в пустую DB → точное сравнение всех Store/Blob → закрытие/повторное открытие и проверка SHA. Тесты включают binary same-size corruption, старые дополнительные stores и невалидный архив. **Точный код+docs SHA `14aa7e844edc346b5452cf9f37840ba8e8f11abc`: [Android #45625611272](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45625611272) SUCCESS — 817/817 тестов, debug APK PASS; [Governance #45625611266](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45625611266) SUCCESS.**
+- **B01 Windows one-click kit (code SHA `c41bbcf72a9e1843c090959c5440515b0cbef3fd`):** [CI #45626974570](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45626974570) SUCCESS, **14/14 Windows тестов**, ZIP artifact `PASEKA-B01-FULL-ARCHIVE-ONE-CLICK-WINDOWS` (#15029585522). Ищет **один** `paseka-full-idb-YYYY-MM-DD.json` на ПК, запускает независимый ephemeral restore, выдаёт обезличенный JSON; отсутствие/несколько архивов — BLOCKED. Windows пользовательский запуск NOT_TESTED, реального полного файла не получено.
+- **Не доказаны** существование полного реального экспортированного JSON с OnePlus, Gallery/MediaStore и независимый Android restore. B01 и видео #442 остаются BLOCKED/FROZEN; никаких production-операций.
+
 ## Нерешённые блокеры
 
 - **B01 P0 — BLOCKED:** нет проверенной внешней копии всех оригинальных источников OnePlus (в том числе Gallery/MediaStore/отдельные видео), нет независимого restore на пустой цели. Старый TAR некорректен. Новый локальный checker не заменяет backup/restore.
@@ -25,7 +32,7 @@
 
 ## Следующий безопасный этап
 
-1. Только при доступности реального внешнего файла и ПК: локально проверить полный экспорт отдельно от обычного JSON, затем независимый restore на пустой среде; **архив с личными данными в чат/CI не загружать**.
+1. Локально выполнить B01 Windows ZIP из CI #45626974570 **только если уже получен полный JSON-экспорт**; передать обезличенный отчёт. Если экспорта нет — использовать штатную кнопку существующей «Пасеки» без установки новой APK. Gallery/MediaStore подтвердить отдельно; приватные данные не загружать.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 

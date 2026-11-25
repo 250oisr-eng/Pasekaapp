@@ -58,7 +58,7 @@ export async function inspectExportedArchiveText(raw) {
   }
 }
 
-export async function inspectExportedArchiveFile(path, { maxBytes = 512 * 1024 * 1024 } = {}) {
+export async function readExportedArchiveFile(path, { maxBytes = 512 * 1024 * 1024 } = {}) {
   if (!path || typeof path !== 'string' || !Number.isSafeInteger(maxBytes) || maxBytes < 1)
     throw Error('Invalid local archive path or size limit');
   // Check the already-exported file, never the application's live database.
@@ -93,12 +93,14 @@ export async function inspectExportedArchiveFile(path, { maxBytes = 512 * 1024 *
         finished.dev !== initial.dev || finished.ino !== initial.ino ||
         finished.mtimeMs !== initial.mtimeMs || finished.ctimeMs !== initial.ctimeMs)
       throw Error('Archive file changed during verification; export again');
-    return inspectExportedArchiveText(
-      new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, total))
-    );
+    return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, total));
   } finally {
     await handle.close();
   }
+}
+
+export async function inspectExportedArchiveFile(path, options) {
+  return inspectExportedArchiveText(await readExportedArchiveFile(path, options));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
