@@ -107,3 +107,55 @@ test('B01 device V6 regression: zero payload integrity and public TAR validity a
   assert.equal(alignedTar(malformedTar), false);
   assert.equal(zeroBytesVerified && alignedTar(malformedTar), false);
 });
+
+
+function tarHeaderChecksum(block) {
+  let sum = 0;
+  for (let index = 0; index < 512; index++) {
+    sum += index >= 148 && index < 156 ? 32 : block[index];
+  }
+  return sum;
+}
+function writeOctal(block, start, width, value) {
+  const digits = value.toString(8).padStart(width - 1, '0');
+  block.write(digits + '\\0', start, width, 'ascii');
+}
+function verifyFirstTarHeader(archive) {
+  if (archive.length < 1536 || archive.length % 512 !== 0) return false;
+  const block = archive.subarray(0, 512);
+  const stored = block.subarray(148, 156).toString('ascii').replace(/\\0.*$/, '').trim();
+  if (!/^[0-7]+$/.test(stored)) return false;
+  if (parseInt(stored, 8) !== tarHeaderChecksum(block)) return false;
+  // Fixture represents an empty member followed by two end-of-archive blocks.
+  return archive.subarray(512).every(byte => byte === 0);
+}
+
+test('B01 V8 regression: exit zero and 512 alignment do not override bad TAR header checksum', () => {
+  const clean = Buffer.alloc(1536);
+  clean.write('synthetic.txt', 0, 'ascii');
+  writeOctal(clean, 100, 8, 0o644);
+  writeOctal(clean, 108, 8, 0);
+  writeOctal(clean, 116, 8, 0);
+  writeOctal(clean, 124, 12, 0);
+  writeOctal(clean, 136, 12, 0);
+  clean.fill(32, 148, 156);
+  clean[156] = '0'.charCodeAt(0);
+  writeOctal(clean, 148, 8, tarHeaderChecksum(clean.subarray(0, 512)));
+  assert.equal(verifyFirstTarHeader(clean), true);
+
+  const bad = Buffer.from(clean);
+  bad[0] ^= 1; // Same length and valid-looking member; checksum now invalid.
+  assert.equal(bad.length % 512, 0);
+  assert.equal(verifyFirstTarHeader(bad), false);
+  assert.equal(0 === 0 && verifyFirstTarHeader(bad), false);
+});
+
+test('B01 V8 regression: broken/truncated TAR and polluted EOF remain rejected', () => {
+  const empty = Buffer.alloc(1536);
+  assert.equal(verifyFirstTarHeader(empty), false);
+  const poisoned = Buffer.alloc(1536, 0);
+  poisoned.write('synthetic', 0, 'ascii');
+  poisoned[148] = '0'.charCodeAt(0);
+  assert.equal(verifyFirstTarHeader(poisoned), false);
+  assert.equal(verifyFirstTarHeader(Buffer.alloc(1024)), false);
+});
