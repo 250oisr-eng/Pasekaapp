@@ -26,7 +26,11 @@ function transitionVideoQueue(record,next,details={}){
  return {ok:true,record:updated};
 }
 function canDeleteVideoOriginal(record){
- return !!record&&record.status==='completed'&&record.resultPersisted===true&&record.serverDeleteConfirmed===true;
+ // B06 / #442 FROZEN: queue status and server acknowledgement are NOT
+ // proof of independent, byte-complete recovery of every local original.
+ // Never authorize deletion from untrusted record flags or AI results.
+ // A future deletion protocol requires separate source-bound, local gates.
+ return false;
 }
 function assessVideoMetadata(input={}){
  const errors=[],warnings=[];
