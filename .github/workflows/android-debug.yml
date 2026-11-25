@@ -15,6 +15,8 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/audit-android-debug-artifact.mjs'
+      - 'diagnostics/android-debug-artifact/**'
       - '.github/workflows/android-debug.yml'
   pull_request:
     paths:
@@ -29,6 +31,8 @@ on:
       - 'android/**'
       - 'scripts/prepare-web.mjs'
       - 'scripts/patch-android-gradle.mjs'
+      - 'scripts/audit-android-debug-artifact.mjs'
+      - 'diagnostics/android-debug-artifact/**'
       - '.github/workflows/android-debug.yml'
 
 concurrency:
@@ -124,10 +128,21 @@ jobs:
             gradle-${{ runner.os }}-
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify debug APK bytes, signer and explicit B05 no-upgrade marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/audit-android-debug-artifact.mjs \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" \
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: paseka-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/DEBUG-ONLY-provenance.json
+            diagnostics/android-debug-artifact/NOT_FOR_ONEPLUS.txt
           if-no-files-found: error
           retention-days: 14
