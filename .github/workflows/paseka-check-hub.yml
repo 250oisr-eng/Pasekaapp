@@ -62,7 +62,7 @@ jobs:
           $src=Join-Path (Get-Location) 'PASEKA-UNIFIED-CHECK-CENTER'
           $smoke=Join-Path $env:RUNNER_TEMP 'PASEKA-CHECK-HUB-PACKAGED-SMOKE'
           New-Item -ItemType Directory -Force -Path $smoke | Out-Null
-          Copy-Item -LiteralPath "$src/*" -Destination $smoke -Recurse -Force
+          Copy-Item -Path "$src/*" -Destination $smoke -Recurse -Force
           Push-Location $smoke
           try {
             & '.\node.exe' 'scripts/paseka-check-hub.mjs'
