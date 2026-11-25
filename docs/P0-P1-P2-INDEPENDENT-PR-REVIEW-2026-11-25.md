@@ -80,3 +80,13 @@
 **Scope-разделение:** #514 `index.html` и #516 `scripts/audit-oneplus-json-transfer.mjs` не конфликтуют по runtime-файлам; их зелёные изолированные проверки не доказывают совместную релизную сборку. #530 и #515 намеренно **одна последовательная SW-цепочка**, не независимые кандидаты на одновременный merge. Составной старый #518 — тестовая история, не подтверждение новых SHA. Не переносить `tests/regression.test.mjs` целиком из устаревших веток: он содержит P0 регрессии защищённого main.
 
 **Запреты:** no merge без отдельного разрешения; no release/production; никакого удаления видео; real full archive/media and rollback B01/B04/B05 не подтверждены. Физические результаты не заменяются эмулятором или CI.
+
+## 26.11.2026 — P2: разрешение конфликтов с main без отмены оригинальной P0-защиты
+
+Три уже существующих Draft приведены к защищённому `main=346b3503`, вместо создания дублирующих PR. **Не merged**. Каждый кодовый SHA имеет Fast/Android/Governance SUCCESS:
+
+- [#510](https://github.com/250oisr-eng/Pasekaapp/pull/510) `7c500f84f1ffe46c94e89df920eba3f96fe65735`: фильтр журнала до сортировки и read-only preview последних 100 audit записей; [Fast #45707793381](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45707793381), [Android #45707793402](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45707793402), [Governance #45707800196](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45707800196) SUCCESS.
+- [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) `3d4fe4d8226b5646b38ce00fa40ee59f6c908669`: child поверх #510, первым совпадением индексирует семейные имена и исторические labels; [Fast #45707888890](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45707888890), [Android #45707888916](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45707888916), [Governance #45707901936](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45707901936) SUCCESS.
+- [#511](https://github.com/250oisr-eng/Pasekaapp/pull/511) `7965fcbe55bbac58c3e5951813fdacbd9895c610`: read-only metadata cursor `listEntranceVideos`, остальные P0 video/read/restore пути **побайтово те же функции**, что и main; [Fast #45708060218](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45708060218), [Android #45708060600](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45708060600), [Governance #45708069913](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45708069913) SUCCESS.
+
+**Порядок review:** #510 отдельно → #531 отдельно; #511 независимая main-root кандидатура, но UI #514 и составные #518 должны проверяться после реального разрешённого merge на **новом** SHA, а не по прежним тестам. `#512` уже в main. Реальных измерений скорости/RAM нет. Без merge/release, без физического испытания, без видеоочистки.

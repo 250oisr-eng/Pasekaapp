@@ -1,8 +1,10 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## 26.11.2026 · Матрица Draft и офлайн-конфликтов #529
+## 26.11.2026 · Матрица Draft / P2 и офлайн-конфликтов #529
 
 Live main `346b35035861257be45dae93ee0573cbd4de9082`; P0 #512 MERGED, сохранение original video защищено, cleanup #442 FROZEN. [Review #529](https://github.com/250oisr-eng/Pasekaapp/pull/529) уточняет: #514/#516 clean main-root; #515→#530 выровнены на защищённом main с новым v320 auth/range/no-store guard (CI на новых SHA проверить); #536/#538 synthetic B09 PASS, #537 emulator+Windows ZIP PASS, физический OnePlus NOT_TESTED. Все перечисленные новые PR Draft, no merge/release.
+
+P2 защищённые ветки: #510 `7c500f84`, #531 `3d4fe4d8` (зависимый child), #511 `7965fcbe` (независимый cursor). Fast/Android/Governance на кодовых SHA SUCCESS; память/скорость OnePlus NOT_MEASURED.
 
 
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
