@@ -119,3 +119,25 @@ test('B01 diagnostic source has no mutable DB methods or external IO',()=>{
  assert.match(js,/indexedDB\.databases\(\)/);
  assert.match(js,/req\.transaction\.abort\(\)/);
 });
+
+
+test('B01 Android emulator guard is mandatory, restrictive, and source-identical',async()=>{
+ const java=await readFile(new URL('../tools/b01-isolated-diagnostic/MainActivity.java',import.meta.url),'utf8');
+ assert.match(java,/B01_EMULATOR_ONLY_NO_PHYSICAL_DEVICE/);
+ assert.match(java,/emulatedHardware && emulatedFingerprint/);
+ assert.match(java,/throw new IllegalStateException[\s\S]*super\.onCreate/s);
+ assert.match(java,/package ru\.paseka\.journal\.diagnostic\.restore;/);
+ const {installEmulatorGuard}=await import('../tools/b01-isolated-diagnostic/guard-android.mjs');
+ const parent=await mkdtemp(join(tmpdir(),'b01-native-guard-'));
+ try{
+  const dst=join(parent,'clean');
+  await generateIsolatedProbe(dst);
+  const source=join(dst,'android/app/src/main/java/ru/paseka/journal/diagnostic/restore');
+  await mkdir(source,{recursive:true});
+  await import('node:fs/promises').then(({writeFile})=>writeFile(join(source,'MainActivity.java'),
+   'package ru.paseka.journal.diagnostic.restore;\npublic class MainActivity extends BridgeActivity {}\n'));
+  await installEmulatorGuard(dst);
+  assert.equal(await readFile(join(source,'MainActivity.java'),'utf8'),java);
+  await assert.rejects(installEmulatorGuard(dst),/UNEXPECTED_GENERATED_ANDROID_ACTIVITY/);
+ } finally {await rm(parent,{recursive:true,force:true});}
+});
