@@ -32,7 +32,7 @@
 
 ## Следующий безопасный этап
 
-1. После CI #525 скачать **единый** Windows комплект, распаковать и запускать всегда `ПРОВЕРИТЬ-ПАСЕКУ.cmd`; отдавать только последний `PASEKA-CHECK-*.json`. Если полного JSON нет — отметить NEEDS_INPUT, не устанавливать APK ради экспорта и не смешивать обычный JSON с полным.
+1. **Первый Windows user report:** runtime PASS, полный экспорт `FULL_EXPORT_NOT_FOUND` (NEEDS_INPUT), Gallery/MediaStore NEEDS_DEVICE_EVIDENCE. Не повторять запуск до появления `paseka-full-idb-...json`; не обновлять OnePlus ради проверки.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
