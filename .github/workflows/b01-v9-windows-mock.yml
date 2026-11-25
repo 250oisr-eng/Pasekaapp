@@ -341,8 +341,9 @@ jobs:
               $partials=@(Get-ChildItem -LiteralPath $persistent -Filter '*.tar' -Recurse -File)
               $badMarkers=@(Get-ChildItem -LiteralPath $persistent -Filter 'INVALID-CANDIDATE-NOT-BACKUP.txt' -Recurse -File)
               $validManifests=@(Get-ChildItem -LiteralPath $persistent -Filter 'MANIFEST.json' -Recurse -File)
-              if($partials.Count -ne 1 -or $badMarkers.Count -ne 1 -or $validManifests.Count -ne 0){
-                throw 'V15 failure candidate incorrectly promoted or unmarked'
+              if($partials.Count -ne 1 -or $badMarkers.Count -ne 1 -or $validManifests.Count -ne 0 -or
+                 $j.privateTar -ne 'ATTEMPTED_UNVERIFIED' -or $j.privateTransport -ne 'EXEC_OUT'){
+                throw 'V15 failure candidate incorrectly promoted, unmarked, or misreported as unread'
               }
             } else {
               if([IO.Directory]::Exists($persistent) -and
