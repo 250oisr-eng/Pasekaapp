@@ -510,3 +510,90 @@ jobs:
           path: tools/b01-v16-bundle/*
           if-no-files-found: error
           retention-days: 7
+
+      - name: V17 metadata-only IndexedDB scan on clean synthetic PC fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script='tools/b01-oneplus-safe-v9/RUN-ONEPLUS-INDEXEDDB-V17.ps1'
+          foreach($case in @(
+            @{name='LEVELDB_PRESENT';expected='METADATA_ONLY_INDEXEDDB_MARKERS_PRESENT'},
+            @{name='NO_LEVELDB';expected='NO_INDEXEDDB_LEVELDB_FILESET_WITH_EXPECTED_MARKERS'},
+            @{name='PARTIAL_MARKERS';expected='NO_INDEXEDDB_LEVELDB_FILESET_WITH_EXPECTED_MARKERS'},
+            @{name='INCOMPLETE_RECONSTRUCTION';expected='INCOMPLETE_PC_RECONSTRUCTION'}
+          )){
+            $home=Join-Path $env:RUNNER_TEMP ('b01-v17-'+$case.name)
+            $fresh=Join-Path $home 'new-package'
+            $persistent=Join-Path $home 'persistent'
+            $db=Join-Path $persistent 'pc-reconstruction-11111111111111111111111111111111/app_webview/Default/IndexedDB/https_example_0.indexeddb.leveldb'
+            [void][IO.Directory]::CreateDirectory($fresh)
+            [void][IO.Directory]::CreateDirectory($db)
+            Copy-Item -LiteralPath $script -Destination $fresh
+            if($case.name -ne 'NO_LEVELDB'){
+              [IO.File]::WriteAllText((Join-Path $db 'CURRENT'),'MANIFEST-000001')
+              [IO.File]::WriteAllText((Join-Path $db 'MANIFEST-000001'),'synthetic')
+            }
+            if($case.name -eq 'LEVELDB_PRESENT'){
+              [IO.File]::WriteAllText((Join-Path $db '000001.ldb'),'synthetic')
+            }
+            if($case.name -eq 'INCOMPLETE_RECONSTRUCTION'){
+              [IO.File]::WriteAllText((Join-Path $persistent 'pc-reconstruction-11111111111111111111111111111111/INVALID-PC-RECONSTRUCTION-NOT-BACKUP.txt'),'invalid')
+            }
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-INDEXEDDB-V17.ps1') -CandidateRoot $persistent | Out-Null
+            $reportFile=Join-Path $fresh 'B01-RESULT.json'
+            if(-not [IO.File]::Exists($reportFile)){throw "V17 report missing: $($case.name)"}
+            $report=Get-Content -LiteralPath $reportFile -Raw | ConvertFrom-Json
+            Write-Host ("V17 $($case.name): $($report.status) $($report.code)")
+            if($report.code -ne $case.expected){throw "V17 unexpected code: $($case.name) / $($report.code)"}
+            if($report.fullBackupVerified -ne $false -or $report.dbRecordsRead -ne 'NO' -or
+               $report.androidRestore -ne 'NOT_TESTED' -or $report.phoneWrites -ne 'NOT_ATTEMPTED' -or
+               $report.fileDataRead -ne 'NO' -or $report.network -ne 'NOT_ATTEMPTED'){
+              throw 'V17 cannot claim full backup or access private payload/device'
+            }
+            if($case.name -eq 'LEVELDB_PRESENT' -and
+               ($report.leveldbFileSetsWithMarkers -ne 1 -or $report.leveldbTableCount -ne 1)){
+              throw 'V17 failed to enumerate a synthetic LevelDB file set'
+            }
+            if($case.name -eq 'INCOMPLETE_RECONSTRUCTION' -and $report.status -ne 'BLOCKED'){
+              throw 'V17 must reject a partial V16 reconstruction'
+            }
+            $hash=(Get-FileHash -LiteralPath $reportFile -Algorithm SHA256).Hash
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-INDEXEDDB-V17.ps1') -CandidateRoot $persistent | Out-Null
+            if((Get-FileHash -LiteralPath $reportFile -Algorithm SHA256).Hash -ne $hash){
+              throw 'V17 overwrote prior evidence'
+            }
+          }
+
+      - name: Stage independent V17 metadata-only Windows ZIP (3 source files)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src='tools/b01-oneplus-safe-v9'
+          $dest='tools/b01-v17-bundle'
+          [void][IO.Directory]::CreateDirectory($dest)
+          foreach($item in @(
+            @{src='START-INDEXEDDB-V17.cmd';dst='START.cmd'},
+            @{src='RUN-ONEPLUS-INDEXEDDB-V17.ps1';dst='RUN-ONEPLUS-INDEXEDDB-V17.ps1'},
+            @{src='README-INDEXEDDB-V17.txt';dst='README.txt'}
+          )){
+            $from=Join-Path $src $item.src
+            $to=Join-Path $dest $item.dst
+            Copy-Item -LiteralPath $from -Destination $to
+            if((Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash -ne
+               (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash){
+              throw 'V17 bundle source integrity failure'
+            }
+          }
+          if(@(Get-ChildItem -LiteralPath $dest -File).Count -ne 3){throw 'V17 package must contain 3 files'}
+          if(@(Get-ChildItem -LiteralPath $dest -Recurse -File |
+              Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
+            throw 'V17 package contains possible private data'
+          }
+
+      - name: Upload independent V17 IndexedDB metadata-only ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-INDEXEDDB-METADATA-V17
+          path: tools/b01-v17-bundle/*
+          if-no-files-found: error
+          retention-days: 7
