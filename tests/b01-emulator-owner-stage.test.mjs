@@ -14,9 +14,9 @@ const valid=(argv)=>{
 };
 test('emulator-only guard uses explicit serial and requires qemu/API35/test package',()=>{
  assert.equal(inspectEmulator(valid),true);
- assert.throws(()=>inspectEmulator(a=>a.includes('ro.kernel.qemu')?'0':valid(a)),/TARGET_NOT_EMULATOR/);
- assert.throws(()=>inspectEmulator(a=>a.includes('ro.build.version.sdk')?'34':valid(a)),/ANDROID_API_NOT_35/);
- assert.throws(()=>inspectEmulator(a=>a.includes('pm path')?'':valid(a)),/DIAGNOSTIC_PACKAGE_NOT_INSTALLED/);
+ assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('ro.kernel.qemu')?'0':valid(a)),/TARGET_NOT_EMULATOR/);
+ assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('ro.build.version.sdk')?'34':valid(a)),/ANDROID_API_NOT_35/);
+ assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('pm path')?'':valid(a)),/DIAGNOSTIC_PACKAGE_NOT_INSTALLED/);
 });
 test('real-PC archive gating fails closed when source is absent',async()=>{
  const root=await mkdtemp(join(tmpdir(),'b01-emulator-test-'));
