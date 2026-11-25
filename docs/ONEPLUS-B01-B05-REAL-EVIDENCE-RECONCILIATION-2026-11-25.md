@@ -12,9 +12,13 @@
 | Установленная подпись V5 | **`oneplus-signer-result(1).json`**, **07:42:33** | **`PASS_INSTALLED_SIGNING_CERT_VERIFIED`**, `PASS_APKSIGNER_VERIFY`; `matchesV4Certificate=true`, тот же SHA cert и APK | Существование исходного private keystore или способность подписать совместимое обновление; в scope `signingKeyAccess=NOT_ATTEMPTED` |
 | Локальный debug-keystore | `b05-local-key-result.json`, 07:54:12 | `DEFAULT_DEBUG_KEYSTORE_NOT_FOUND`, `candidatePrivateKeyConfirmed=false`, `keystoreBackupVerified=false` | Отсутствие ключа во всех иных резервных хранилищах; они не были проверены |
 | Реальный WebView/USB | `PASEKA-CHECK-2026-11-25T16-39-37-780Z-d697a93843.json`, 16:39 | `oneplus-usb-metadata=PASS`, `run-as=PASS`, `oneplus-idb-inventory=PASS`; proof `DIRECTORY_METADATA_ONLY_NOT_BACKUP` | Чтение/восстановление IndexedDB, происхождение оригинальных видео, `Gallery/MediaStore`; `FULL_EXPORT_NOT_FOUND` в обследованных местах |
+| Исходная передача файлов B01 | `B01-RESULT(4).json`, V20 | 6 синтетически/диагностически переданных файлов, всего 578794 bytes, исходные SHA на отдельной AVD совпали **6/6**, `EMULATOR_ISOLATED_FILE_IMPORT_SHA_PASS_NOT_DB_RESTORE` | Только *передача* файлов в изолированную среду, не открытая IndexedDB/restore; последующий V21/V22 более слабый |
 | Диагностические файлы B01 | `B01-READONLY-V21-RESULT.json` и `B01-FORENSIKA-V22-RESULT.json`, 13:26–13:32 | Сопоставлено шесть прежних файлов (578794 bytes) с **изолированным эмулятором**: 1 совпал, 1 отличался, 4 `stat` errors; `CURRENT/MANIFEST/log` не видны | Целостный WebView IndexedDB, восстановление его origin или полный backup; `databaseOpened=NOT_VERIFIED` |
 
 **Уровень аттестации:** результаты телефона — отчёты инструментов, предоставленные пользователем, а не независимый онлайн-доступ разработчика к USB сегодня. `PASS_APKSIGNER_VERIFY` подтверждает **криптографическую проверку установленного APK в V5-отчёте**, но не владение закрытым ключом. Не объявлять B04/B05 `RESOLVED` целиком.
+
+
+**Порядок фактов V20→V21→V22:** первоначальная передача файлов `6/6 SHA PASS` не противоречит последующей проверке, где после WebView 1/6 совпадает, 1/6 отличается и 4/6 недоступны. Из этого нельзя заключить, что восстановление прошло, или что файлы на рабочем OnePlus повреждены: V21/V22 исследовали **только изолированный эмулятор**.
 
 ## Отдельный бинарный контроль — подтверждено непосредственно GitHub
 
