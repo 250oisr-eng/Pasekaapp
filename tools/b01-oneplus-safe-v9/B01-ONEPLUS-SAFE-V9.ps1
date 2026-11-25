@@ -344,7 +344,12 @@ try {
     if(-not $drive.IsReady -or $drive.DriveType -ne [IO.DriveType]::Fixed) { Fail 'CANDIDATE_DRIVE_NOT_FIXED_READY' }
     [void][IO.Directory]::CreateDirectory($root)
     $dirInfo=New-Object IO.DirectoryInfo($root)
-    if(([int]$dirInfo.Attributes -band [int][IO.FileAttributes]::ReparsePoint) -ne 0){ Fail 'CANDIDATE_DIRECTORY_REPARSE_POINT' }
+    # Refuse redirected/reparse ancestors; keep candidate off cloud-synced test paths.
+    $ancestor=$dirInfo
+    while($null -ne $ancestor) {
+        if(([int]$ancestor.Attributes -band [int][IO.FileAttributes]::ReparsePoint) -ne 0){ Fail 'CANDIDATE_PATH_REPARSE_POINT' }
+        $ancestor=$ancestor.Parent
+    }
     $diskFloor=[long]64*1024*1024
     if($drive.AvailableFreeSpace -lt $diskFloor) { Fail 'CANDIDATE_DRIVE_SPACE_TOO_LOW' }
     $script:privateOutputDir=Join-Path $root ('candidate-'+[Guid]::NewGuid().ToString('N'))
@@ -365,6 +370,28 @@ try {
     $report.privateTarBytes=$private.bytes
     $report.privateTarSha256=$private.sha256
     $report.privateTarEntries=$private.entries
+    # Durable local-only manifest next to the candidate, OUTSIDE removable test files.
+    # No user filenames, phone serial, database content or private TAR member names.
+    $manifest=[ordered]@{
+        schema='paseka-b01-private-candidate-pc-v1'
+        candidateKind='APP_DATA_CANDIDATE_NOT_FULL_BACKUP'
+        transport='EXEC_OUT'
+        bytes=$private.bytes
+        sha256=$private.sha256
+        entries=$private.entries
+        fullBackupVerified=$false
+        mediaStoreGalleryCoverage='NOT_TESTED'
+        independentRestore='NOT_TESTED'
+    }
+    $manifestFile=Join-Path $script:privateOutputDir 'MANIFEST.json'
+    $manifestData=ConvertTo-Json -InputObject $manifest -Depth 4
+    $outStream=New-Object IO.FileStream($manifestFile,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+    try {
+        $manifestBytes=[Text.Encoding]::UTF8.GetBytes($manifestData)
+        $outStream.Write($manifestBytes,0,$manifestBytes.Length)
+        $outStream.Flush()
+    } finally { $outStream.Dispose() }
+    $report.candidateManifestWritten=$true
     $report.webviewPathHints=$private.webviewHints
     $report.databasePathHints=$private.databaseHints
     $report.status='CANDIDATE_ONLY'
