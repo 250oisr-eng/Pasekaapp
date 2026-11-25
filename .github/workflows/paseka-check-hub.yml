@@ -112,8 +112,11 @@ jobs:
               }
             }
             Add-Content -LiteralPath 'README-RU.txt' -Value 'synthetic-tamper-test'
-            & '.\node.exe' 'scripts/verify-physical-kit.mjs'
-            if($LASTEXITCODE -eq 0){throw 'Tampered package unexpectedly accepted'}
+            # Expected nonzero refusal must NOT cause the entire PowerShell step
+            # to fail. Inspect the child exit code explicitly.
+            $reject=Start-Process -FilePath (Join-Path $smoke 'node.exe') -ArgumentList 'scripts/verify-physical-kit.mjs' -Wait -PassThru -NoNewWindow -RedirectStandardError (Join-Path $smoke 'expected-tamper-reject.stderr')
+            if($reject.ExitCode -eq 0){throw 'Tampered package unexpectedly accepted'}
+            Write-Host 'PASEKA_PACKAGE_TAMPER_REJECTED_AS_EXPECTED'
             Write-Host 'PASEKA_PACKAGED_EXE_TWO_CLICKS_SAFE_REPORTS_PASS'
           } finally { Pop-Location }
       - name: Publish standalone one-click offline check center
