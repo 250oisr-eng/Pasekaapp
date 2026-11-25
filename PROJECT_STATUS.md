@@ -5,7 +5,7 @@
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
 - [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
-- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): обнаружен P0 обход #442 в `deleteEntranceVideoBlob` и `deleteAllData`, способных удалять оригиналы `entrance_media` без recovery. Оба пути блокируются до IndexedDB destructive transaction. Существующие тесты startup и новые негативные регрессии обновлены; точный итоговый CI уточнять по рабочей ветке.
+- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой/всеобщий UI блокирован до записи, legacy helper всегда `false`, даже при поддельных флагах восстановления. Тесты и проверка точного SHA обязательны; без merge/release.
 - [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
 - B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
 
