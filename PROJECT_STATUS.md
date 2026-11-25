@@ -19,10 +19,10 @@ PR #500–#507: подробные доказательства — в журн�
 - **[Draft #525](https://github.com/250oisr-eng/Pasekaapp/pull/525) IMPLEMENTED_DRAFT, stacked on #524:** единый offline Windows `ПРОВЕРИТЬ-ПАСЕКУ.cmd` для B01 и следующих локальных проверок. Проверяет доступный полный экспорт через одноразовую IndexedDB, пишет **новые** обезличенные отчёты в `PASEKA-CHECK-REPORTS`, не повторяет сырую пересадку LevelDB. При отсутствии JSON отмечает `NEEDS_INPUT`; MediaStore — `NEEDS_DEVICE_EVIDENCE`. Устройство, сеть, исходные файлы и видео не затрагивает. **Windows CI #45630998698 PASS на SHA `56fea1f` — 22/22 и два запуска реального ZIP; Governance #45630998840 PASS.**
 - **Не доказаны** существование полного реального экспортированного JSON с OnePlus, Gallery/MediaStore и независимый Android restore. B01 и видео #442 остаются BLOCKED/FROZEN; никаких production-операций.
 
-## OnePlus — безопасное чтение на реальном телефоне (Draft #526)
+## B01: подтверждённый USB OnePlus, продолжение read-only
 
-- **[Draft #526](https://github.com/250oisr-eng/Pasekaapp/pull/526), stacked #525 → #524:** добавлена к тому же `ПРОВЕРИТЬ-ПАСЕКУ.cmd` **необязательная** локальная проверка ADB только при наличии установленного SDK, единственного авторизованного физического USB и аппаратного OnePlus 10 Pro. Разрешены только `adb devices -l`, `getprop`, `pm path ru.paseka.journal`; нет `install/pull/clear`, чтения приватной IndexedDB, запуска приложения, изменения данных. Если нет USB — `NEEDS_INPUT`, а не ложный PASS. Никакого доступа к USB пользователя непосредственно из ChatGPT/GitHub нет.
-- **[Windows CI #45633525568](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45633525568) на кодовом SHA `5eaf4395a36b324dd07e94e042aebaf64a48adcd` SUCCESS: 30/30 тестов**, проверка собранного Windows ZIP двойным запуском PASS; ZIP `PASEKA-UNIFIED-OFFLINE-CHECK-CENTER` artifact #15031967148. Реальное OnePlus USB исполнение NOT_TESTED, Android общий CI требует финальной проверки.
+- **Отчёт реального Windows запуска от 25.11.2026:** `oneplus-usb-metadata=PASS` (`ONEPLUS_10_PRO_INSTALLED_PACKAGE_METADATA_ONLY`), runtime PASS. Полный экспорт на ПК `FULL_EXPORT_NOT_FOUND`; Gallery/MediaStore `NEEDS_DEVICE_EVIDENCE`; restore NOT_TESTED, исходные данные не менялись.
+- **Draft #526 → #525 → #524:** только метаданные через `adb devices/getprop/pm path`; дополнительно проверяется лишь число файлов с именем `paseka-full-idb-*.json` в Android Download без чтения/копирования содержимого. Это НЕ подтверждает восстановление. B01 BLOCKED, #442 FROZEN.
 
 ## Нерешённые блокеры
 
@@ -33,7 +33,7 @@ PR #500–#507: подробные доказательства — в журн�
 
 ## Следующий безопасный этап
 
-1. **Первый Windows user report:** runtime PASS, полный экспорт `FULL_EXPORT_NOT_FOUND` (NEEDS_INPUT), Gallery/MediaStore NEEDS_DEVICE_EVIDENCE. Не повторять запуск до появления `paseka-full-idb-...json`; не обновлять OnePlus ради проверки.
+1. Новая версия единого Windows ZIP #526: запускать один раз для проверки наличия имени экспорта в Download на уже подключённом OnePlus. Никаких APK install, очистки или чтения личных файлов.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
