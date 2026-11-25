@@ -105,6 +105,7 @@
         "tests/check-oneplus-upgrade.test.mjs",
         "tests/cloudflare-bounded-body.test.mjs",
         "tests/cloudflare-wrangler-config.test.mjs",
+        "tests/comprehensive-pr-checks.test.mjs",
         "tests/deployment-safety.test.mjs",
         "tests/governance-control.test.mjs",
         "tests/pages-manual-release-gate.test.mjs",
