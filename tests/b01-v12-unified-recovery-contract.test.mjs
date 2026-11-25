@@ -36,7 +36,7 @@ test('V12 does not turn file absence into implied USB authorization',()=>{
   assert.ok(runner.includes('$scriptPath -PublicOnly'));
   assert.match(runner,/USB_PRIVATE_GATE_VIOLATION/);
   assert.doesNotMatch(runner,/\bCAPTURE\b/);
-  assert.match(v91,/param\(\[switch\]\$PublicOnly\)/);
+  assert.match(v91,/param\(\[switch\]\$PublicOnly,/);
   assert.match(v91,/if\(\$PublicOnly\)/);
   assert.match(v91,/PUBLIC_ONLY_EXPLICIT_MODE_NO_PRIVATE_READ/);
 });
