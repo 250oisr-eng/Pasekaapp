@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**25.11.2026 — base main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
@@ -16,17 +16,24 @@
 - **#502 MERGED:** по исходному DOCX OP13 обычное весеннее развитие и ранний мёд — разные сценарии. В v2 stacked Draft #461–#466 они ещё не активированы в main.
 - Исторический #70 CLOSED/SUPERSEDED: `startupRecoveryPending`/commit-after-save и негативные тесты уже в main.
 
+## B01 V20 — VERIFIED SYNTHETIC ANDROID EMULATOR TRANSFER (25.11.2026)
+
+- **SUCCESS [CI #45619544834](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45619544834)** на **точном кодовом SHA `f82184b99bad1d1c3cf4b23a2a38416c4f045200`**: diagnostic APK build PASS, Windows portable kit PASS и **реальный аппаратно ускоренный Android 15 API 35 эмулятор** PASS для потока синтетических LevelDB-заглушек через ADB `exec-in/run-as/tar` и полного SHA-256 readback. Предыдущие failures: CI KVM, потеря переменных при `/usr/bin/sh -c` и смешанный код ошибки SHA; всё исправлено, не маскировалось.
+- Доступен Windows zip-артефакт **`PASEKA-B01-ISOLATED-EMULATOR-TRANSFER-V20`**, ID `15023179533`, ~37.4 MB, из того же успешного run. Пользователь подтвердил, что на Windows 11 установлен Android Studio Rabbit 2 и **свежий виртуальный телефон успешно запустился**; его автоматизированный перенос **реальной** V16 копии ещё не выполнялся.
+- **V20 DEVICE_USER_REPORTED_PASS / V19 WEBVIEW BLOCKED:** реальный Windows 11 V20 отчёт: 6/6 SHA, 578794 B, копия только в isolated emulator. Последующий скриншот WebView-пробы: `EXPECTED_DB_NOT_DISCOVERED`, origin `https://localhost` PASS, `databaseDiscovered=false`, `databaseOpened=false`, records/Blob НЕ читались. **Причина неизвестна:** физические файлы ≠ IndexedDB registry; возможно путь, неполный WebView profile/Quota либо Chromium backend/version. **V21 реальный user report:** 6 исходных файлов / 578794 B; SHA после WebView: 1 совпал, 1 отличается, 4 непрочитаны, 0 явно отсутствуют; `find` обнаружил лишь 2 файла в IndexedDB дереве, маркеров CURRENT/MANIFEST/log нет. Непрочитанные не считать удалёнными; возможна неполнота V21 диагностики. **V22 USER REPORT (NOT_RESTORED):** 6 файлов, SHA 1 match/1 different, 4 `stat` errors, 0 confirmed absent; `find` 2 файла, без CURRENT/MANIFEST/log. Четыре ошибки не доказывают удаления. V20–V22 не повторять.
+- До physical evidence **B01 FULL_RESTORE_BLOCKED**, видео #442 **FROZEN**; никакого APK upgrade, OnePlus install/write, удаления исходников, merge или deploy.
+
 ## Нерешённые блокеры
 
-- **B01 P0 — BLOCKED:** нет проверенной внешней копии всех оригинальных источников OnePlus (в том числе Gallery/MediaStore/отдельные видео), нет независимого restore на пустой цели. Старый TAR некорректен. Новый локальный checker не заменяет backup/restore.
+- **B01 P0 — PARTIAL PHYSICAL PC PROOF / FULL RESTORE BLOCKED:** в Draft #522 реальные отчёты V16→V18 от пользователя подтверждают кандидат TAR 5 113 856 B, 96/96 побайтовых PC файлов, один набор IndexedDB LevelDB и CRC32C журнала 578 035 B / 63 физические / 46 логических / 0 ошибок. **Это не работающий Android restore.** Полнота Gallery/MediaStore/видео и проверка ключей/Blob НЕ доказаны. Ни APK upgrade, ни удаление оригиналов не разрешены.
 - **B04/B05 P0 — BLOCKED:** реальный signing fingerprint установленного `ru.paseka.journal` и постоянный приватный ключ не подтверждены; **Draft #469** остаётся частично неперенесённым. Прямой APK upgrade запрещён до B01 backup, восстановления и rollback.
 - **B06/B10 — FROZEN #442:** лицензированные веса, реальный детектор пчёл/видеоконвейер и доказательное удаление оригиналов не подтверждены. Оригиналы **не удалять**.
 - **P1 OP01–14/B11 — NOT_VERIFIED:** новый многосекционный профиль и физический OP13/CAS не активировать; холодный offline и обновление на реальном OnePlus не проверены. Не смешивать новую технологию с Farrar.
 
 ## Следующий безопасный этап
 
-1. Только при доступности реального внешнего файла и ПК: локально проверить полный экспорт отдельно от обычного JSON, затем независимый restore на пустой среде; **архив с личными данными в чат/CI не загружать**.
-2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
-3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
+1. **V20 реальный перенос пользовательского IndexedDB file-set: DEVICE_USER_REPORTED_PASS (6/6 SHA-256, 578794 B)**; не повторять перенос и не переустанавливать приложение в использованном AVD.
+2. **V22:** 4 `stat` errors не равны 4 потерям. Далее — полный app-level export+Blob+MediaStore вместо сырого LevelDB.
+3. Не устанавливать APK на OnePlus и не удалять оригиналы; параллельно продолжать source-bound review P1 Draft PR, без активации OP11–14 в live UI.
 
-**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный CI не равен физическому испытанию.
+**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный синтетический CI ≠ пользовательский restore.

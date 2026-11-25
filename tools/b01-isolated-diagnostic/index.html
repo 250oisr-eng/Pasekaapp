@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B01 — изолированная проверка IndexedDB</title>
+<style>body{font:16px system-ui,sans-serif;max-width:800px;margin:2rem auto;padding:1rem}
+button{padding:.8rem 1.1rem;font:inherit}
+textarea{width:100%;min-height:30rem;margin-top:1rem;font:12px monospace}
+p{line-height:1.5}</style></head>
+<body><h1>B01: независимая проверка IndexedDB</h1>
+<p>Только для отдельного Android-эмулятора и пакета <code>ru.paseka.journal.diagnostic.restore</code>.
+Не устанавливайте на рабочий OnePlus. Данные приложения не изменяются; проверяются только наличие базы, схема и количество записей.</p>
+<p>Наличие записей само по себе не подтверждает полное восстановление, содержимое видео или совместимость миграций.</p>
+<button id="run" type="button">Проверить базу только для чтения</button>
+<label for="output"><p>Обезличенный JSON-отчёт</p></label>
+<textarea id="output" readonly spellcheck="false"></textarea>
+<script src="probe.js"></script></body></html>

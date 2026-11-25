@@ -1,0 +1,180 @@
+name: B01 isolated emulator-only IndexedDB diagnostic APK
+
+on:
+  pull_request:
+    paths:
+      - "tools/b01-isolated-diagnostic/**"
+      - "tests/b01-isolated-diagnostic.test.mjs"
+      - "tests/b01-emulator-transfer.test.mjs"
+      - "tools/b01-isolated-diagnostic/ci-real-adb-smoke.mjs"
+      - ".github/workflows/b01-isolated-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Isolated source and readonly IndexedDB tests
+        run: node --test tests/b01-isolated-diagnostic.test.mjs tests/b01-emulator-transfer.test.mjs
+
+      - name: Generate independent diagnostic Capacitor app outside source tree
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          node tools/b01-isolated-diagnostic/generate.mjs "$B01_DIAG_ROOT"
+          node -e "const c=require(process.env.B01_DIAG_ROOT+'/capacitor.config.json');if(c.appId!=='ru.paseka.journal.diagnostic.restore')process.exit(5)"
+
+      - name: Generate Android wrapper and install strict physical-device guard
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          cd "$B01_DIAG_ROOT"
+          npm install --no-audit --no-fund
+          npx cap add android
+          cd "$GITHUB_WORKSPACE"
+          node tools/b01-isolated-diagnostic/guard-android.mjs "$B01_DIAG_ROOT"
+          grep -F 'B01_EMULATOR_ONLY_NO_PHYSICAL_DEVICE' "$B01_DIAG_ROOT/android/app/src/main/java/ru/paseka/journal/diagnostic/restore/MainActivity.java"
+
+      - name: Build isolated debug APK only — no emulator boot or user data
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          cd "$B01_DIAG_ROOT/android"
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: Verify APK package identity, no production app id
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          apk="$B01_DIAG_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          aapt="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -n 1)"
+          test -x "$aapt"
+          "$aapt" dump badging "$apk" | grep -F "package: name='ru.paseka.journal.diagnostic.restore'"
+          "$aapt" dump badging "$apk" | grep -F "application-label:'Paseka B01 Isolated Diagnostic'"
+          echo 'B01_DIAGNOSTIC_APK_PACKAGE_ID_PASS_NO_REAL_DEVICE'
+
+      - name: Publish diagnostic emulator-only APK (no data or original app)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
+          path: ${{ runner.temp }}/paseka-b01-diagnostic/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  package-v20-windows:
+    needs: diagnostic
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
+          path: diagnostic-apk
+
+      - name: Package guarded local-only emulator transfer (no private data)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $folder='v20-windows'
+          New-Item -ItemType Directory -Force -Path $folder | Out-Null
+          $src='tools/b01-isolated-diagnostic'
+          foreach($n in @('transfer-to-emulator.mjs','transfer-cli.mjs','START-EMULATOR-V20.ps1','START-EMULATOR-V20.cmd','CREATE-ISOLATED-AVD-V20.ps1','CREATE-ISOLATED-AVD-V20.cmd','README-V20.txt')){
+            Copy-Item -LiteralPath (Join-Path $src $n) -Destination $folder
+          }
+          Copy-Item -LiteralPath 'diagnostic-apk/app-debug.apk' -Destination (Join-Path $folder 'B01-diagnostic.apk')
+          Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination $folder
+          $adb=Join-Path $env:ANDROID_HOME 'platform-tools/adb.exe'
+          if(-not (Test-Path -LiteralPath $adb)){throw 'Windows Android SDK adb.exe missing'}
+          foreach($name in @('adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll')){
+            $path=Join-Path (Split-Path $adb) $name
+            if(-not (Test-Path -LiteralPath $path)){throw "ADB dependency missing: $name"}
+            Copy-Item -LiteralPath $path -Destination $folder
+          }
+          $aapt=Get-ChildItem -LiteralPath (Join-Path $env:ANDROID_HOME 'build-tools') -Recurse -File -Filter aapt.exe |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if($null -eq $aapt){throw 'Windows Android build tools aapt.exe missing'}
+          Copy-Item -LiteralPath $aapt.FullName -Destination $folder
+          $listed=@(Get-ChildItem -LiteralPath $folder -File | Select-Object -ExpandProperty Name)
+          foreach($required in @('node.exe','adb.exe','aapt.exe','B01-diagnostic.apk','transfer-cli.mjs','transfer-to-emulator.mjs','START-EMULATOR-V20.cmd','START-EMULATOR-V20.ps1')){
+            if($listed -notcontains $required){throw "V20 package incomplete: $required"}
+          }
+          if(@(Get-ChildItem -LiteralPath $folder -File |
+            Where-Object {$_.Extension -in @('.tar','.log','.ldb','.db','.json','.mp4','.jpg')}).Count -gt 0){
+            throw 'V20 package unexpectedly contains data'
+          }
+          foreach($name in @('START-EMULATOR-V20.ps1','CREATE-ISOLATED-AVD-V20.ps1')){
+            $tokens=$null;$errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path (Resolve-Path $folder).Path $name),[ref]$tokens,[ref]$errors)
+            if($errors.Count -ne 0){throw "V20 PowerShell parse errors in $name"}
+          }
+          & (Join-Path (Get-Location) 'v20-windows/aapt.exe') dump badging 'v20-windows/B01-diagnostic.apk' |
+            Select-String "package: name='ru.paseka.journal.diagnostic.restore'"
+          & (Join-Path (Get-Location) 'v20-windows/node.exe') --version
+          Write-Host 'V20_BINARIES_ONLY_NO_PRIVATE_DATA'
+
+      - name: Upload standalone Windows V20 emulator-only gate
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-ISOLATED-EMULATOR-TRANSFER-V20
+          path: v20-windows/*
+          if-no-files-found: error
+          retention-days: 7
+
+  emulator-transport-smoke:
+    # Synthetic-only, no real user files; runs on PR updates and never touches OnePlus.
+    needs: diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
+          path: diagnostic-apk
+      - name: Enable KVM access for hardware-accelerated CI emulator
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo 'KVM_NOT_AVAILABLE_ON_RUNNER'
+            exit 1
+          fi
+          sudo chmod a+rw /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+      - name: Boot isolated AVD and verify actual binary ADB transport with synthetic data
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          avd-name: PASEKA_B01_ISOLATED_CI
+          force-avd-creation: true
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot-save
+          script: bash tools/b01-isolated-diagnostic/ci-emulator-run.sh
