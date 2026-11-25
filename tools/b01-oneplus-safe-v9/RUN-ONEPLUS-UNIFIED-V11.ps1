@@ -80,7 +80,7 @@ function Find-ExistingPublicTar {
     $queue=New-Object 'System.Collections.Queue'
     foreach($root in (Build-SearchRoots)){
         if(-not [IO.Directory]::Exists($root)){continue}
-        $di=New-Object IO.DirectoryInfo($root)
+        $di=[IO.DirectoryInfo]::new($root)
         if(Is-SafeDirectory $di){$queue.Enqueue([pscustomobject]@{dir=$di;depth=0})}
     }
     $scanned=0
@@ -97,7 +97,7 @@ function Find-ExistingPublicTar {
                 if(-not (Is-SafeDirectory $run)){continue}
                 $candidate=Join-Path $run.FullName 'public-only-v9.tar'
                 if(-not [IO.File]::Exists($candidate)){continue}
-                $file=New-Object IO.FileInfo($candidate)
+                $file=[IO.FileInfo]::new($candidate)
                 if(Has-ExpectedLayout $file){$found.Add($file)}
             }
             continue
@@ -123,7 +123,7 @@ function Choose-ExistingPublicTar {
         $dialog.CheckFileExists=$true
         $dialog.Multiselect=$false
         if($dialog.ShowDialog() -ne [Windows.Forms.DialogResult]::OK){return $null}
-        $item=New-Object IO.FileInfo($dialog.FileName)
+        $item=[IO.FileInfo]::new($dialog.FileName)
         if(Has-ExpectedLayout $item){return $item}
         return $null
     } catch { return $null }
@@ -213,7 +213,7 @@ try {
     else {
         $item=$null
         if($ArchivePath){
-            $item=New-Object IO.FileInfo($ArchivePath)
+            $item=[IO.FileInfo]::new($ArchivePath)
             if(-not (Has-ExpectedLayout $item)){Abort 'PUBLIC_TAR_PATH_OR_LAYOUT_INVALID'}
         }
         else {$item=Find-ExistingPublicTar}
