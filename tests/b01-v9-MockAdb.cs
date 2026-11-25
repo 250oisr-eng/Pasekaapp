@@ -30,9 +30,28 @@ class MockAdb {
             Console.WriteLine(mode=="OLD_ADB"?"Android Debug Bridge version 1.0.32":"Android Debug Bridge version 1.0.41");return 0;
         }
         if(command=="devices -l"){
-            Console.WriteLine("List of devices attached");Console.WriteLine("MOCK123 device product:mock model:NE2213 device:mock");return 0;
+            string stateDir=Environment.GetEnvironmentVariable("B01_MOCK_STATE_DIR") ?? Path.GetTempPath();
+            string marker=Path.Combine(stateDir,"b01-device-started.flag");
+            if(mode=="DAEMON_STARTUP_ONCE" && !File.Exists(marker)){
+                File.WriteAllText(marker,"synthetic startup only");
+                Console.Error.WriteLine("* daemon not running; starting now at tcp:5037");
+                Console.Error.WriteLine("* daemon started successfully");
+            }
+            if(mode=="DEVICES_STARTUP_REPEAT"){
+                Console.Error.WriteLine("* daemon not running; starting now at tcp:5037");
+                Console.Error.WriteLine("* daemon started successfully");
+            }
+            if(mode=="DEVICES_UNKNOWN_STDERR")Console.Error.WriteLine("unknown and untrusted mock warning");
+            if(mode=="DEVICES_EXIT_FAIL"){Console.Error.WriteLine("failed to connect");return 1;}
+            Console.WriteLine("List of devices attached");
+            if(mode=="DEVICES_UNAUTHORIZED")Console.WriteLine("MOCK123 unauthorized");
+            else Console.WriteLine("MOCK123 device product:mock model:NE2213 device:mock");
+            return 0;
         }
-        if(command.EndsWith("shell getprop ro.product.model")){Console.WriteLine("NE2213");return 0;}
+        if(command.EndsWith("shell getprop ro.product.model")){
+            if(mode=="MODEL_FAIL"){Console.Error.WriteLine("synthetic read-only getprop failed");return 1;}
+            Console.WriteLine("NE2213");return 0;
+        }
         if(command.EndsWith("features")){Console.WriteLine(mode=="NO_SHELL_V2"?"stat_v2":"shell_v2,stat_v2");return 0;}
         if(command.EndsWith("shell run-as ru.paseka.journal pwd")){Console.WriteLine("/data/user/0/ru.paseka.journal");return 0;}
         if(command.EndsWith("shell ps -A")){
