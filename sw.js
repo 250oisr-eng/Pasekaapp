@@ -15,9 +15,9 @@ function isObsoleteShellCache(name){
 }
 
 // A 204/206 response is 'ok' but incomplete for an offline JS/HTML asset.
-// Only full, unrestricted HTTP 200 responses can become shell resources.
+// Only full, unredirected HTTP 200 responses can become shell resources.
 function cacheableResponse(response){
-  return response.status===200 && response.ok &&
+  return response.status===200 && response.ok && response.redirected!==true &&
     (response.type==='basic'||response.type==='default') &&
     !/\b(?:no-store|private)\b/i.test(response.headers?.get('cache-control')||'');
 }
