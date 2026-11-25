@@ -159,7 +159,7 @@
       "trackedBlockersAtStart": 4,
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 1,
-      "scenariosEvidence": "One bounded DEVICE_USER_REPORTED_PASS scenario: real external 299687-byte owner JSON SHA verified source and emulator copy, isolated empty Android API35 test-only DB restore/reopen PASS (owner photographs), targeted diagnostic force-stop/relaunch plus B01D existing logcat boundary and POST-restart owner database readback PASS (main=1,full_backup=1,entrance_media=0). Does NOT cover installed OnePlus production app, rollback, full Android origins/MediaStore, independent physical disk or video deletion. B01 remains partial.",
+      "scenariosEvidence": "One bounded DEVICE_USER_REPORTED_PASS scenario: real external 299687-byte owner JSON SHA verified source and emulator copy, isolated empty Android API35 test-only DB restore/reopen PASS (owner photographs), targeted diagnostic force-stop/relaunch plus B01D existing logcat boundary and POST-restart owner database readback PASS (main=1,full_backup=1,entrance_media=0). Does NOT cover installed OnePlus production app, rollback, full Android origins/MediaStore, independent physical disk or video deletion. B01 remains partial. Evidence: https://github.com/250oisr-eng/Pasekaapp/pull/534#issuecomment-7174437928 (sanitized owner B01D physical report), plus owner screenshots of separate DB restore/reopen in previous conversation.",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/534"
     }
   ],
