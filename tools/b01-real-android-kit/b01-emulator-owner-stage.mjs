@@ -5,7 +5,7 @@ import { readdir, lstat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { join, basename } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SERIAL='emulator-5554';
@@ -72,7 +72,7 @@ function cliRun(args){
  return execFileSync(adb,args,{timeout:15000,maxBuffer:256*1024,encoding:'utf8',
   windowsHide:true,stdio:['ignore','pipe','pipe']});
 }
-if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
  const root=join(process.env.LOCALAPPDATA||'', 'PasekaB01LocalBackups');
  try{
   ensure(!!process.env.LOCALAPPDATA,'LOCALAPPDATA_UNAVAILABLE');
