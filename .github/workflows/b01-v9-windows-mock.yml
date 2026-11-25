@@ -430,7 +430,7 @@ jobs:
               transport='EXEC_OUT'
               bytes=$tar.Length
               sha256=if($case.name -eq 'BAD_HASH'){'0'*64}else{$sha}
-              entries=if($case.name -eq 'FILE_PARENT_CONFLICT'){2}else{1}
+              entries=$(if($case.name -eq 'FILE_PARENT_CONFLICT'){2}else{1})
               fullBackupVerified=$false
               mediaStoreGalleryCoverage='NOT_TESTED'
               independentRestore='NOT_TESTED'
