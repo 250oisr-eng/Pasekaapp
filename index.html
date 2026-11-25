@@ -1031,6 +1031,9 @@ function renderJournalRecords(){
  // Preserve Array.find first-match semantics for malformed/legacy duplicate IDs.
  const familyById=new Map();
  for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
+ // Preserve available.find first-match semantics for historical family labels.
+ const firstRecordByFamily=new Map();
+ for(const record of available){if(!firstRecordByFamily.has(record.family))firstRecordByFamily.set(record.family,record);}
  if(typeSelect){
   const old=typeSelect.value,types=[...new Set(available.map(r=>r.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
   typeSelect.innerHTML='<option value="all">Все события</option>'+types.map(type=>'<option value="'+safe(type)+'">'+safe(type)+'</option>').join('');
@@ -1038,7 +1041,7 @@ function renderJournalRecords(){
  }
  if(familySelect){
   const old=familySelect.value,ids=[...new Set(available.map(r=>r.family).filter(Boolean))];
-  familySelect.innerHTML='<option value="all">Все семьи</option>'+ids.map(id=>{const family=familyById.get(id),record=available.find(r=>r.family===id);return '<option value="'+safe(id)+'">'+safe(family?.name||record?.familyNameAtTime||record?.familySnapshotAtTime?.name||'Архивная семья')+'</option>'}).join('');
+  familySelect.innerHTML='<option value="all">Все семьи</option>'+ids.map(id=>{const family=familyById.get(id),record=firstRecordByFamily.get(id);return '<option value="'+safe(id)+'">'+safe(family?.name||record?.familyNameAtTime||record?.familySnapshotAtTime?.name||'Архивная семья')+'</option>'}).join('');
   familySelect.value=ids.includes(old)?old:'all';
  }
  const selectedType=typeSelect?.value||'all',selectedFamily=familySelect?.value||'all';
