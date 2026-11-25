@@ -376,7 +376,7 @@ jobs:
             Oct $b 136 12 0
             for($i=148;$i -lt 156;$i++){$b[$i]=32}
             $b[156]=[byte][char]$kind
-            [byte[]]$data=[Text.Encoding]::ASCII.GetBytes('ORIGINAL-SYNTHETIC-32-BYTES-DATA!')
+            [byte[]]$data=[Text.Encoding]::ASCII.GetBytes('ORIGINAL-SYNTHETIC-32-BYTES-DATA')
             if($data.Length -ne 32){throw 'Synthetic payload length error'}
             [Array]::Copy($data,0,$b,512,$data.Length)
             $sum=[long]0
