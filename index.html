@@ -1039,12 +1039,16 @@ function renderJournalRecords(){
   familySelect.value=ids.includes(old)?old:'all';
  }
  const selectedType=typeSelect?.value||'all',selectedFamily=familySelect?.value||'all';
- const rows=activeJournalHive?available.filter(r=>r.hive===activeJournalHive).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))):[];
+ const rows=activeJournalHive?available:[];
  const filtered=rows.filter(r=>{
+  if((selectedType!=='all'&&r.type!==selectedType)||
+     (selectedFamily!=='all'&&r.family!==selectedFamily)||
+     (date&&r.date!==date))return false;
+  if(!search)return true;
   const family=S.families.find(f=>f.id===r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
   const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
-  return (selectedType==='all'||r.type===selectedType)&&(selectedFamily==='all'||r.family===selectedFamily)&&(!date||r.date===date)&&(!search||haystack.includes(search));
- });
+  return haystack.includes(search);
+ }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  const count=$('journalResultCount');if(count)count.textContent=activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
  host.classList.toggle('has-entries',filtered.length>0);
  host.innerHTML=activeJournalHive?(filtered.map(r=>'<article class="card journal-entry" data-record-id="'+safe(r.id)+'"><div class="journal-entry-head"><span class="journal-entry-type">'+safe(r.type)+'</span><time datetime="'+safe(r.date)+'">'+safe(r.date)+'</time></div>'+(r.text?'<p class="journal-entry-text">'+safe(r.text)+'</p>':'')+recordFamilyHtml(r)+recordExtraHtml(r)+(r.media?.length?'<div class="journal-entry-media">'+mediaHtml(r.media)+'</div>':'')+'<div class="row journal-entry-actions"><button type="button" data-record-id="'+safe(r.id)+'" onclick="editRecord(this.dataset.recordId)">Изменить</button><button type="button" data-record-id="'+safe(r.id)+'" onclick="deleteRecord(this.dataset.recordId)">В архив</button></div></article>').join('')||(rows.length?'<div class="empty">По выбранным фильтрам записей нет.</div>':'<div class="empty">Для этого улья записей пока нет.</div>')):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';
