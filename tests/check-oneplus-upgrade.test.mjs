@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight, auditInstalledPackage } from '../scripts/check-oneplus-upgrade.mjs';
+import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight, auditInstalledPackage, resolveJavaForApksigner } from '../scripts/check-oneplus-upgrade.mjs';
 
 const signer = 'a'.repeat(64);
 const valid = { packageName: 'ru.paseka.journal', versionCode: 1, signers: [signer] };
@@ -93,4 +93,23 @@ test('B04 certificate digest must have exactly 32 SHA-256 bytes, not a shortened
 test('B04 ambiguous installed base APK path always blocks signer proof',()=>{
  assert.throws(()=>parseBaseApkPath('package:/data/app/one/base.apk\npackage:/data/app/two/base.apk\n'),/BLOCKED/);
  assert.throws(()=>parseBaseApkPath('package:relative/base.apk\n'),/BLOCKED/);
+});
+
+test('B04 Windows Java discovery uses existing Android Studio JBR without installation',()=>{
+ const requested=[];
+ const expected='C:/Program Files/Android/Android Studio/jbr/bin/java.exe';
+ const env={ProgramFiles:'C:/Program Files',JAVA_HOME:'C:/missing/java'};
+ const selected=resolveJavaForApksigner({env,platform:'win32',fileExists:path=>{
+  requested.push(path);
+  return path.replaceAll('\\\\','/').replaceAll('\\','/')===expected;
+ }});
+ assert.equal(selected,expected);
+ assert.ok(requested.some(path=>path.includes('missing')));
+ assert.ok(requested.some(path=>path.includes('Android Studio')));
+});
+test('B04 Java discovery rejects fake paths and falls back to PATH without inventing a signature',()=>{
+ const env={JAVA_HOME:'/not/installed',STUDIO_JDK:'/not/installed-either'};
+ assert.equal(resolveJavaForApksigner({env,platform:'win32',fileExists:()=>false}),'java');
+ assert.equal(resolveJavaForApksigner({env,platform:'linux',fileExists:()=>{throw Error('must not search on Linux')}}),'java');
+ assert.equal(resolveJavaForApksigner({env:{},platform:'win32',fileExists:()=>{throw Error('nothing to check')}}),'java');
 });
