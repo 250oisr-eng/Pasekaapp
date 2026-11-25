@@ -6,7 +6,7 @@
 
 - OnePlus V5 read-only: installed `ru.paseka.journal` certificate SHA-256 `9b10baf04e1e09bfe2d58e72b1c1eecf04b48f532940b5e91a3083bd73ddb0aa`, `apksigner` VERIFIED. GitHub Android #45571119849 verified **different** debug cert `c26be541…495f22`.
 - 24.11 original build history found: code SHA `f2217095`, Actions runs #45372830530/#45372822990, artifact IDs 14908849781/14910605853 downloaded and binary compared. Their v2 certs `ecf41751…67b80fb` / `15c87fd5…07d280` differ from each other and installed signer. No persistent original signing key proved. V6 Windows standard debug.keystore NOT_FOUND.
-- [Draft #521](https://github.com/250oisr-eng/Pasekaapp/pull/521) adds fail-closed sanitized V7 PC-local `run-as` snapshot report checker. Read-only Windows V7 kit ZIP prepared, **not executed**. Potential TAR is local-only, B01 completeness/independent restore/MediaStore NOT_VERIFIED; installed app/real data unchanged.
+- [Draft #521](https://github.com/250oisr-eng/Pasekaapp/pull/521): V7 physical result `BLOCKED / ADB_READONLY_COMMAND_FAILED`, deviceModel null, **no TAR**. Failure occurred before run-as proof; cause of ADB command failure unknown. Prepared stage-aware local V8 ZIP (SHA256 `b6b75ca1…42f814`), not physically tested. Only sanitized JSON may be shared, not personal TAR. B01 recovery/MediaStore NOT_VERIFIED.
 - **B04 installed signer PASS; B05 original signing key BLOCKED; B01 full backup/restore BLOCKED.** Direct debug APK upgrade forbidden. Only after independent recovery and separate permission can a second app ID with stable owner key be evaluated. No original-video deletion or merge/release.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
