@@ -1,5 +1,9 @@
 # PROJECT_STATUS — Пасека 2.0
 
+## 26.11.2026 · B09 QuotaExceededError #538
+
+Отдельный [Draft #538](https://github.com/250oisr-eng/Pasekaapp/pull/538) от защищённого `main=346b3503`: три синтетических сценария квоты для действующих `writeMainWithBackup`/`writeAutoBackup`. На кодовом SHA `300154ffa09f9d76e02557a411191b4ad99443a3`: [Fast #45705908849](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705908849) и [Android #45705908839](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705908839) SUCCESS; сохранены основная запись, автокопия, история и Blob после reopen. Физический Android full storage NOT_TESTED; без merge/release/данных пользователя.
+
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
