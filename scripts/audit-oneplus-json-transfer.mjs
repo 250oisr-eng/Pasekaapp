@@ -59,6 +59,11 @@ export function auditPasekaJsonTransfer(raw, expected = {}) {
     if (record.family && !record.hive) {
       warnings.push('Record with a family link has no hive context at row ' + index + '; review historical association');
     }
+    // A record linked to a known family with no current hive assignment is
+    // ambiguous, even when the record itself names a valid historical hive.
+    if (record.family && linkedFamily && record.hive && !linkedFamily.hive) {
+      warnings.push('Linked family has no hive assignment for record at row ' + index + '; review historic placement');
+    }
     if (linkedFamily && record.hive && linkedFamily.hive && record.hive !== linkedFamily.hive) {
       warnings.push('Record family and hive association differ at row ' + index + '; inspect historical move/archival evidence');
     }
