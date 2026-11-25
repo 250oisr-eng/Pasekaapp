@@ -118,12 +118,12 @@ function tarHeaderChecksum(block) {
 }
 function writeOctal(block, start, width, value) {
   const digits = value.toString(8).padStart(width - 1, '0');
-  block.write(digits + '\\0', start, width, 'ascii');
+  block.write(digits + String.fromCharCode(0), start, width, 'ascii');
 }
 function verifyFirstTarHeader(archive) {
   if (archive.length < 1536 || archive.length % 512 !== 0) return false;
   const block = archive.subarray(0, 512);
-  const stored = block.subarray(148, 156).toString('ascii').replace(/\\0.*$/, '').trim();
+  const stored = block.subarray(148, 156).toString('ascii').split(String.fromCharCode(0))[0].trim();
   if (!/^[0-7]+$/.test(stored)) return false;
   if (parseInt(stored, 8) !== tarHeaderChecksum(block)) return false;
   // Fixture represents an empty member followed by two end-of-archive blocks.
