@@ -1,27 +1,27 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — семь независимых направлений.** Подтверждённый текущий `main=c7240ba99a9719368150980e13335f50ed18a37f`. Рабочая документация: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). SHA пересверять непосредственно перед каждым merge и после него.
+**25.11.2026 — контроль F7 после параллельного цикла.** Текущий подтверждённый `main=f60479263064f59a227a4f26d8d7e7186123181f`. Факты проверены через live GitHub. Нормативные ограничения: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
 
-## Доказанные интеграции этого цикла
+## Реальные изменения и проверки
 
-- **#496 MERGED** → `17834a1413f954eac1eb25bc2da0c7077ec9965e`: read-only B04 signer/OnePlus evidence audit; exact-main docs Governance #45505605231 **SUCCESS**. Физический signer не доказан.
-- **#492 MERGED** → `a17cc60231db5015bc9895d40b80fcea8f53fcc0`: source-backed архивные abort и полный перечень stores; Fast #45505720390, Governance #45505720425, Android #45505720387 **SUCCESS** на main.
-- **#493 MERGED** → `812d43f719d38e1ad29109200d2b79ba8bdcd691`: read-only PR inventory negative pagination and never-auto-ready; Fast #45505907793, Governance #45505907794, Android #45505907858 **SUCCESS** на main.
-- **#494 MERGED** → `22123ab09b644ee79898395cf626f2e1301625f1`: SW install rejects missing/private shell assets; Fast #45506214902, Governance #45506215211, Android #45506215472 **SUCCESS** на main.
-- **#498 MERGED** → `97e61dcd28cdaf823098e6ba7317fccc9420a3fa`: честное описание обычного JSON/auto backup против P0 read-only full IndexedDB archive; Fast #45506427598, Governance #45506427574 и Android #45506427607 — **SUCCESS** на main. Код backup и данные не менялись.
+- **[#501](https://github.com/250oisr-eng/Pasekaapp/pull/501) MERGED** → `2cf40d8bd272a43775705985939a8fa775182ab9`: отдельная **локальная проверка сохранённого полного P0 JSON-файла**, `scripts/verify-exported-archive.mjs`, чтение файла, реальный `PasekaDisasterArchive.inspectArchive` и временная fake-indexeddb **только в памяти**, контроль SHA/stores/counts/binary. Возвращает `EXPORTED_FILE_STRUCTURALLY_VERIFIED_RESTORE_NOT_TESTED`. Прогон на актуальном main: Fast #45548279930, Governance #45548279902, Android #45548279894 — **SUCCESS**. **Ни реальный OnePlus, ни независимый restore не проверены**. Лимит памяти CLI 512 MiB, более крупные архивы не объявляются повреждёнными.
+- **[#500](https://github.com/250oisr-eng/Pasekaapp/pull/500) MERGED** → `554e21a2e04bbb8c4baa4ae3ed3bdba2b1ed103a`: независимый перенос из большого Draft #469 инструмента **только чтения** `scripts/check-oneplus-upgrade.mjs`, с отказом на неполном SHA-256 и неоднозначных `base.apk`. Первоначальный CI #45548102535 **FAILURE** из-за двойного экранирования перенесённой тестовой фикстуры ADB; исправлено **только в тесте**, повторный кодовый SHA `6da2de1b95e47137167161d9fa0ed574ff136add` Android #45548217911, Governance #45548217837 SUCCESS. После merge: Fast #45548435371, Governance #45548435436, Android #45548435450 — **SUCCESS** на точном main. Установленный сертификат и ключ **неизвестны**: CLI на телефоне/ПК не запускался.
+- **[#502](https://github.com/250oisr-eng/Pasekaapp/pull/502) MERGED** → `f60479263064f59a227a4f26d8d7e7186123181f`: только [сверка OP-13 с пользовательским исходным DOCX P72–P79](docs/P1-OP13-SPRING-VARIANT-LIVE-MAIN-GATE-2026-11-25.md). Обычное развитие после зимовки `REGULAR_DEVELOPMENT` и подготовка к раннему мёду `EARLY_HONEY_PREPARATION` — разные технологические ветви; календарный ориентир не подтверждает операцию. Governance оригинального PR #45548333418 **SUCCESS**, exact-main docs Governance проверить.
+- **[Исторический #70](https://github.com/250oisr-eng/Pasekaapp/pull/70) CLOSED/SUPERSEDED** (не merge): `index.html` main уже отмечает восстановление автокопии только после успешного `writeMainIfUnchanged`; тесты ожидания, abort, commit, CAS уже есть. Никаких дублирующих исправлений.
+- **Draft #469** остаётся открытым ради других, не перенесённых first-launch/QA возможностей. **Draft #452/#479** тоже остаются открытыми, требуют собственной проверки и физического recovery.
 
-## Параллельные направления
+## Не снятые внешние ограничения
 
-- **#495 MERGED** → `1d51eb982eebdcff05659ab7471a0f8e6697e635`: источник Cloudflare Worker, негативные проверки mid-stream transport failure и нулевого byte cap. Draft Android #45505456614, Governance #45505456637 SUCCESS; exact-main Fast #45506703146, Governance #45506703052 и Android #45506703159 — **SUCCESS**.
-- **#497 MERGED** → `c7240ba99a9719368150980e13335f50ed18a37f`: ручной Cloudflare deploy с явным RELEASE_SHA, подтверждением и main ancestry (никогда push deploy). Исходный #480 CLOSED/SUPERSEDED. Android #45505466312, Governance #45505466390 SUCCESS на Draft. Exact-main Fast #45506934159, Governance #45506934083 и Android #45506934100 — **SUCCESS**; сам deployment не выполнялся.
-- **Draft #469** startup/installed signer, **Draft #452** аварийное восстановление, **Draft #479** read-only B01 transport — исторические сложные кандидаты, НЕ объединены и не превращены в физическое доказательство.
+- **B01 P0 BLOCKED:** нет полной оригинальной внешней копии всех реальных данных OnePlus и доказанного независимого восстановления на пустой цели. Новый verifier подтверждает **только целостность отдельного файла**, который ещё нужно реально создать.
+- **B04/B05 P0 BLOCKED:** нет фактического fingerprint установленного `ru.paseka.journal`, подконтрольного владельцу долговременного signing key, проверенного backup/rollback. `--installed-only` разработан, но физически не запускался. Прямое обновление рабочего APK запрещено до ворот.
+- **B06/B10 / #442 FROZEN:** лицензированные веса, реальное распознавание пчёл, видеоконвейер, полный исходный файл и доказательное удаление отсутствуют; синтетические ONNX и JSON проверки этого не заменяют.
+- **OP13 live execution BLOCKED:** v2 физический план/коммит находится в прежнем stacked Draft #461–#466, отсутствует в current main и не должен включаться без совместимости, профилей, local CAS и физического evidence. **B11** реальные офлайн-сценарии OnePlus NOT_VERIFIED.
 
-## Незакрытые реальные зависимости
+## Следующее действие
 
-**B01:** полного внешнего оригинального архива с отдельным тестовым restore нет, старые TAR OnePlus недействительны. **B04/B05:** signer реального установленного пакета и долгоживущий ключ отсутствуют. **B06/B10:** лицензированные weights, реальный видеоконвейер и автоудаление оригиналов **FROZEN #442**. **B11:** настоящие cold-offline/rollback тесты на OnePlus не выполнены. Никаких изменений в production БД, установки APK, публикации Pages или Cloudflare, стирания видео и секретов не было.
+1. Сверить точный Governance на этом docs-only SHA после merge; не выдавать отсутствующие Fast/Android запуски за PASS.
+2. Для B01 при реальном доступе к внешнему экспортированному файлу выполнить **локальную** структурную проверку, затем независимо доказать восстановление; отдельно инвентаризировать Gallery/MediaStore и иные источники. Не загружать личный архив в чат/CI.
+3. Для B04/B05 проверить installed APK signer только read-only при авторизованном устройстве; без доступа зафиксировать блокер, не повторять synthetic циклы.
+4. Для OP13 рассмотреть новую main-based read-only модель двух веток, без прямого переноса старого `sw.js` v338, без активации в production и без физического подтверждения ИИ.
 
-## Следующий этап
-
-1. Проверить exact-main Fast/Governance/Android #497 и объединить этот docs-only статус после собственного Governance CI. Любой release остаётся отдельным физически безопасным gate.
-2. Обновить этот статус и журнал, проверить Governance docs-only SHA, не затереть историю.
-3. Вернуться к B01 лишь при появлении доказуемого безопасного внешнего восстановления. P2 physical performance и все OP01–14 live activation отдельно требуют source-bound/устройственного gate.
+**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Отдельное разрешение пользователя на безопасное слияние использовано; оно не доказывает выполнимость необратимой операции.
