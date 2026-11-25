@@ -177,11 +177,4 @@ jobs:
           force-avd-creation: true
           disable-animations: true
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot-save
-          script: |
-            set -eu
-            test -f diagnostic-apk/app-debug.apk
-            adb_bin="$ANDROID_HOME/platform-tools/adb"
-            aapt_bin="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -n 1)"
-            test -x "$adb_bin"
-            test -x "$aapt_bin"
-            B01_CI_ADB="$adb_bin" B01_CI_AAPT="$aapt_bin" B01_CI_APK="$GITHUB_WORKSPACE/diagnostic-apk/app-debug.apk" node tools/b01-isolated-diagnostic/ci-real-adb-smoke.mjs
+          script: bash tools/b01-isolated-diagnostic/ci-emulator-run.sh
