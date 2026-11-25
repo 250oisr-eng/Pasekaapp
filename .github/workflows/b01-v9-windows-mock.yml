@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'tools/b01-oneplus-safe-v9/**'
-      - 'tests/b01-v9-*'
+      - 'tests/b01-v*-*'
       - '.github/workflows/b01-v9-windows-mock.yml'
   workflow_dispatch:
 permissions:
@@ -154,17 +154,78 @@ jobs:
           if($usbJson.status -ne 'BLOCKED_WITH_PUBLIC_DIAGNOSIS' -or $usbJson.adbUsed -ne 'YES' -or $usbJson.priorPublicTarClass -ne 'BAD_HEADER' -or $usbJson.v91PrivateTar -ne 'NOT_ATTEMPTED'){
             throw 'V11 explicit USB mock does not yield one fail-closed final report'
           }
+          # V12: simulate prior V9.1 data on another fixed local drive without copying it.
+          function Latest-V12 {
+            $jsons=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'unified-results') -Filter 'b01-unified-result.json' -File -Recurse |
+              Sort-Object LastWriteTimeUtc -Descending)
+            foreach($j in $jsons) {
+              $x=Get-Content -LiteralPath $j.FullName -Raw | ConvertFrom-Json
+              if($x.schema -eq 'paseka-b01-unified-gate-v12'){return $x}
+            }
+            throw 'No V12 unified result found'
+          }
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V12.ps1') -Mode Local -SearchRoots $missingRoot -FixedSearchRoots $priorFolder -NoPicker | Out-Null
+          $v12=Latest-V12
+          Write-Host ("V12 FIXED FALLBACK: $($v12.status) $($v12.priorPublicTarClass) $($v12.searchTier)")
+          if($v12.status -ne 'PUBLIC_ONLY_DIAGNOSIS' -or $v12.priorPublicTarBytes -ne 1090 -or $v12.searchTier -ne 'FIXED_LOCAL_DRIVES' -or $v12.adbUsed -ne 'NO'){
+            throw 'V12 did not discover an old public TAR through fixed-drive fallback'
+          }
+          if((Get-FileHash -LiteralPath $oldTar -Algorithm SHA256).Hash -ne $oldHash){
+            throw 'V12 modified old public TAR'
+          }
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V12.ps1') -Mode Local -SearchRoots $missingRoot -FixedSearchRoots $missingRoot -NoPicker | Out-Null
+          $v12=Latest-V12
+          Write-Host ("V12 NO-SOURCE: $($v12.status) $($v12.code) $($v12.adbUsed)")
+          if($v12.code -ne 'NO_PREVIOUS_PUBLIC_TAR_FOUND' -or $v12.adbUsed -ne 'NO' -or $v12.previousPublicTarFound -ne $false){
+            throw 'V12 no-source/no-picker must fail closed without ADB'
+          }
+          $env:B01_MOCK_MODE='BAD_HEADER'
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V12.ps1') -Mode USB -NoPicker | Out-Null
+          $v12=Latest-V12
+          Write-Host ("V12 USB BAD HEADER: $($v12.status) $($v12.code) $($v12.v91PrivateTar)")
+          if($v12.status -ne 'BLOCKED_WITH_PUBLIC_DIAGNOSIS' -or $v12.priorPublicTarClass -ne 'BAD_HEADER' -or $v12.adbUsed -ne 'YES' -or $v12.v91PrivateTar -ne 'NOT_ATTEMPTED'){
+            throw 'V12 public-only USB did not reject malformed public TAR with private untouched'
+          }
+          $env:B01_MOCK_MODE='PASS'
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V12.ps1') -Mode USB -NoPicker | Out-Null
+          $v12=Latest-V12
+          Write-Host ("V12 USB PUBLIC PASS: $($v12.status) $($v12.v91Code) $($v12.v91PrivateTar)")
+          if($v12.v91Status -ne 'PUBLIC_ONLY_PASS' -or $v12.v91Code -ne 'PUBLIC_ONLY_EXPLICIT_MODE_NO_PRIVATE_READ' -or $v12.v91PrivateTar -ne 'NOT_ATTEMPTED' -or $v12.fullBackupVerified -ne $false -or $v12.priorPublicTarClass -ne 'HEADER_AND_EOF_STRUCTURALLY_PLAUSIBLE'){
+            throw 'V12 public-only USB success leaked into private-data capture or full backup claim'
+          }
           Remove-Item Env:B01_MOCK_MODE
 
-      - name: Upload standalone single-launch V11 Windows bundle (scripts only)
+      - name: Stage independent V12 one-click bundle and verify source hashes (scripts only)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src='tools/b01-oneplus-safe-v9'
+          $stage='tools/b01-v12-artifact'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $files=@(
+            @{from='START-UNIFIED-V12.cmd';to='START.cmd'},
+            @{from='RUN-ONEPLUS-UNIFIED-V12.ps1';to='RUN-ONEPLUS-UNIFIED-V12.ps1'},
+            @{from='B01-PUBLIC-TAR-FORENSIC-V10.ps1';to='B01-PUBLIC-TAR-FORENSIC-V10.ps1'},
+            @{from='B01-ONEPLUS-SAFE-V9.ps1';to='B01-ONEPLUS-SAFE-V9.ps1'},
+            @{from='README-UNIFIED-V12.txt';to='README.txt'}
+          )
+          foreach($item in $files){
+            $source=Join-Path $src $item.from
+            $dest=Join-Path $stage $item.to
+            Copy-Item -LiteralPath $source -Destination $dest
+            if((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash){
+              throw "Staged script differs: $($item.to)"
+            }
+          }
+          if(@(Get-ChildItem -LiteralPath $stage -File).Count -ne 5){throw 'Standalone bundle must contain exactly 5 non-data files'}
+          if(@(Get-ChildItem -LiteralPath $stage -Recurse -File | Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4')}).Count -ne 0){
+            throw 'V12 artifact must not contain a TAR, result JSON or private media'
+          }
+
+      - name: Upload ONE independent V12 Windows bundle (no phone data)
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-B01-ONEPLUS-UNIFIED-V11
-          path: |
-            tools/b01-oneplus-safe-v9/START-ONEPLUS-UNIFIED.cmd
-            tools/b01-oneplus-safe-v9/RUN-ONEPLUS-UNIFIED-V11.ps1
-            tools/b01-oneplus-safe-v9/B01-PUBLIC-TAR-FORENSIC-V10.ps1
-            tools/b01-oneplus-safe-v9/B01-ONEPLUS-SAFE-V9.ps1
-            tools/b01-oneplus-safe-v9/README-UNIFIED-V11.txt
+          name: PASEKA-B01-ONEPLUS-UNIFIED-V12
+          path: tools/b01-v12-artifact/*
           if-no-files-found: error
           retention-days: 7
