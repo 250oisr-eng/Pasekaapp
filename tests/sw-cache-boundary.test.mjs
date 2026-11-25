@@ -126,3 +126,15 @@ test('B11 SW never stores partial HTTP 206 or empty HTTP 204 shell responses',as
  assert.equal(empty.status,204);
  assert.deepEqual(h.writes,[],'no incomplete asset may be cached');
 });
+
+test('B11 SW refuses redirected HTTP 200 during normal shell fetch caching',async()=>{
+ const sw=harness({network:async request=>{
+   // A browser-followed redirect can look like successful HTTP 200.
+   return {status:200,ok:true,type:'basic',redirected:true,
+     headers:new Headers({'cache-control':'public, max-age=300'}),
+     clone(){return this;}};
+ }});
+ const response=await sw.fireFetch(scope+'js/hive-model.js');
+ assert.equal(response.status,200,'network response still reaches caller');
+ assert.deepEqual(sw.writes,[],'redirected content must not poison offline shell cache');
+});
