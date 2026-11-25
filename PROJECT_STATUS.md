@@ -22,7 +22,7 @@ PR #500–#507: подробные доказательства — в журн�
 ## B01: подтверждённый USB OnePlus, продолжение read-only
 
 - **Отчёт реального Windows запуска от 25.11.2026:** `oneplus-usb-metadata=PASS` (`ONEPLUS_10_PRO_INSTALLED_PACKAGE_METADATA_ONLY`), runtime PASS. Полный экспорт на ПК `FULL_EXPORT_NOT_FOUND`; Gallery/MediaStore `NEEDS_DEVICE_EVIDENCE`; restore NOT_TESTED, исходные данные не менялись.
-- **Draft #526 → #525 → #524:** только метаданные через `adb devices/getprop/pm path`; дополнительно проверяется лишь число файлов с именем `paseka-full-idb-*.json` в Android Download без чтения/копирования содержимого. Это НЕ подтверждает восстановление. B01 BLOCKED, #442 FROZEN.
+- **Draft #527 → #526 → #525 → #524:** к read-only USB-метаданным и поиску *имени* экспорта в Android Download добавлен `run-as ru.paseka.journal id` только для аттестованного OnePlus. Проверяет право доступа к контексту APK, **не читает IndexedDB**. [Windows CI #45653926285](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45653926285) на кодовом SHA `178f4226` SUCCESS: 36/36, упакованный Windows ZIP дважды PASS. Реальное `run-as` NOT_TESTED, B01 BLOCKED, #442 FROZEN.
 
 ## Нерешённые блокеры
 
@@ -33,7 +33,7 @@ PR #500–#507: подробные доказательства — в журн�
 
 ## Следующий безопасный этап
 
-1. Новая версия единого Windows ZIP #526: запускать один раз для проверки наличия имени экспорта в Download на уже подключённом OnePlus. Никаких APK install, очистки или чтения личных файлов.
+1. Единый Windows ZIP Draft #527: один запуск на уже разрешённом USB проверит имя архива в Download и доступность `run-as id`; без копирования, установки APK и удаления. Обезличенный отчёт определит дальнейший безопасный путь.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
