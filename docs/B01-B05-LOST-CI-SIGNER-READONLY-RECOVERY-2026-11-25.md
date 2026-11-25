@@ -31,3 +31,11 @@ Even if TAR succeeds, it is only a **candidate snapshot**, potentially inconsist
 3. Only after proven B01 complete independent restore and user permission, plan new package ID + long-lived local signing key, tested migration, rollback and physical QA.
 
 **NO_REINSTALL / NO_DATA_CLEAR / NO_DEPLOY / NO_MERGE / NO_ORIGINAL_DELETE.**
+
+## V7 физический отказ и переход на V8 — 25.11.2026
+
+Пользовательский отчёт V7 `2026-11-25T08:07:06Z`: `status=BLOCKED`, `errors=[ADB_READONLY_COMMAND_FAILED]`, `deviceModel=null`, `runAsAvailable=false`, `archiveCreated=false`, `archiveBytes=0`, `archiveSha256=null`, `archiveValidTar=false`, `independentRestore=NOT_TESTED`. Никаких изменений телефона или данных. Отсутствие модели показывает, что **до проверки run-as** не был успешно завершён `adb devices -l` или `adb shell getprop`; по V7 нельзя утверждать ни отказ Android run-as, ни отсутствие данных. Сначала необходимо диагностировать точный ADB этап.
+
+В исходном PowerShell V7 имелось обобщённое исключение `ADB_READONLY_COMMAND_FAILED` и имя формального параметра `$args`, совпадающее с автоматической переменной PowerShell. Это возможные недостатки реализации, но **причина физического отказа V7 не доказана**. Подготовлен отдельный локальный V8 ZIP SHA-256 `b6b75ca1aa88a458f7bc6e31a8a200431461bc9e87c624f0e70bef834b42f814`: параметр `$arguments`, диагностические поля `failureStage`, `failureCategory`, `lastAdbExitCode`, запрет утечки serial/пути/данных; в случае успешных проверок продолжает ограниченный read-only TAR на ПК. ZIP integrity/статический контроль пройдены, реальный Windows тест V8 **NOT_TESTED**. Не запрашивать повтор V3–V7; пользователь присылает **только** `results/oneplus-private-backup-v8-result.json`, никогда TAR.
+
+Статус B01 full backup + independent restore по-прежнему BLOCKED; B05 original signer private key BLOCKED. Никакой установки/очистки приложения, удаления медиа или обхода Android sandbox не выполнять.
