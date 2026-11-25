@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {chooseAdbBinary,parseOnePlusTarget,inspectConnectedOnePlus} from '../scripts/check-oneplus-readonly-usb.mjs';
+import {chooseAdbBinary,parseOnePlusTarget,inspectConnectedOnePlus,inspectOnePlusFullExportPresence} from '../scripts/check-oneplus-readonly-usb.mjs';
 import {executeChecks} from '../scripts/paseka-check-hub.mjs';
 
 test('USB probe refuses zero, offline, unauthorized, emulator and multiple ADB devices',()=>{
@@ -79,4 +79,49 @@ test('ADB binary selection uses only known Android SDK locations, never PATH or 
  assert.equal(chooseAdbBinary({platform:'win32',env:{},home:'C:/Users/Test',exists:()=>false}),null);
  const path=chooseAdbBinary({platform:'win32',env:{ANDROID_HOME:'C:/sdk'},home:'C:/Users/Test',exists:()=>true});
  assert.match(path,/platform-tools[\\/]adb\.exe$/);
+});
+
+test('phone Downloads full-export filename scan counts only candidates, never discloses private names',async()=>{
+ const calls=[];
+ const command=(_,args)=>{
+   calls.push(args.join(' '));
+   if(args[0]==='devices')return 'List of devices attached\\nUSB12345 device product:x\\n';
+   const k=args.slice(3).join(' ');
+   const known={'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
+     'getprop ro.product.model':'NE2215',
+     'pm path ru.paseka.journal':'package:/data/app/sample/base.apk',
+     'ls -1 /sdcard/Download':'family-private.pdf\\npaseka-full-idb-2026-11-25.json\\nprivate.mp4'};
+   if(!(k in known))throw Error('unknown command');
+   return known[k];
+ };
+ const result=await inspectOnePlusFullExportPresence({binary:'fixture-adb',command});
+ assert.equal(result.status,'PASS');
+ assert.equal(result.code,'ONE_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS');
+ assert.equal(result.proofLevel,'FILENAME_PRESENCE_ONLY_NOT_FILE_READBACK');
+ assert.doesNotMatch(JSON.stringify(result),/private|USB12345|paseka-full-idb-2026/);
+ assert.ok(calls.every(x=>!/(?:pull|install|clear|rm|cat|cp|mv|content query)/.test(x)));
+ assert.ok(calls.some(x=>x.includes('ls -1 /sdcard/Download')));
+});
+test('phone Downloads scan missing or inaccessible remains NEEDS_INPUT/BLOCKED',async()=>{
+ const make=(listing)=>(_,args)=>{
+   if(args[0]==='devices')return 'List of devices attached\\nUSB12345 device\\n';
+   const k=args.slice(3).join(' ');
+   const values={'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
+     'getprop ro.product.model':'NE2215','pm path ru.paseka.journal':'package:/data/app/a/base.apk'};
+   if(k==='ls -1 /sdcard/Download')return listing;
+   if(k in values)return values[k];
+   throw Error('unexpected');
+ };
+ const missing=await inspectOnePlusFullExportPresence({binary:'fixture',command:make('holiday.mp4')});
+ assert.equal(missing.status,'NEEDS_INPUT');
+ assert.equal(missing.code,'NO_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS');
+ const multiple=await inspectOnePlusFullExportPresence({binary:'fixture',
+   command:make('paseka-full-idb-2026-11-25.json\\npaseka-full-idb-2026-11-24.json')});
+ assert.equal(multiple.code,'MULTIPLE_FULL_EXPORT_FILENAMES_IN_PHONE_DOWNLOADS');
+ const denied=await inspectOnePlusFullExportPresence({binary:'fixture',command:(binary,args)=>{
+   if(args.slice(3).join(' ')==='ls -1 /sdcard/Download')throw Error('private filepath');
+   return make('')(binary,args);
+ }});
+ assert.equal(denied.status,'BLOCKED');
+ assert.equal(denied.code,'USB_EXPORT_LISTING_NOT_AVAILABLE');
 });
