@@ -65,6 +65,15 @@ class MockAdb {
             bool isPrivate=command.EndsWith(" tar -cf - .");
             bool bad=(mode=="BAD_HEADER" || (isPrivate && mode=="BAD_PRIVATE_HEADER"));
             byte[] bytes=Tar(isPrivate && mode!="BAD_COVERAGE",bad);
+            // V14: reproduce an invalid public shell transport while exec-out succeeds,
+            // without touching real devices or reading app-private data.
+            bool isExecOut=command.Contains(" exec-out ");
+            if(!isPrivate && (mode=="SHELL_EMPTY_TAR_EXEC_VALID" && !isExecOut ||
+                              mode=="BOTH_PUBLIC_EMPTY_TAR")) {
+                byte[] tail=Encoding.ASCII.GetBytes(("tar: synthetic public file denied").PadRight(66,'!'));
+                bytes=new byte[1024+tail.Length];
+                Array.Copy(tail,0,bytes,1024,tail.Length);
+            }
             Stream output=Console.OpenStandardOutput();output.Write(bytes,0,bytes.Length);output.Flush();
             if(mode=="REMOTE_ERROR")Console.Error.WriteLine("synthetic remote diagnostic");
             return 0;
