@@ -29,7 +29,7 @@ jobs:
       - name: Install pinned repository dependencies without lockfile
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
       - name: Run safe check hub and existing B01 recovery regressions
-        run: node --test tests/check-oneplus-readonly-usb.test.mjs tests/paseka-check-hub.test.mjs tests/run-b01-oneclick.test.mjs tests/prove-exported-archive-recovery.test.mjs tests/verify-exported-archive.test.mjs
+        run: node --test tests/check-oneplus-readonly-usb.test.mjs tests/paseka-check-hub.test.mjs tests/physical-test-readiness.test.mjs tests/verify-physical-kit.test.mjs tests/run-b01-oneclick.test.mjs tests/prove-exported-archive-recovery.test.mjs tests/verify-exported-archive.test.mjs
       - name: Package complete standalone Windows check center without user files
         shell: pwsh
         run: |
@@ -38,7 +38,7 @@ jobs:
           foreach($folder in @($dst,"$dst/scripts","$dst/js","$dst/node_modules")) {
             New-Item -ItemType Directory -Path $folder -Force | Out-Null
           }
-          foreach($name in @('paseka-check-hub.mjs','check-oneplus-readonly-usb.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
+          foreach($name in @('paseka-check-hub.mjs','check-oneplus-readonly-usb.mjs','physical-test-readiness.mjs','verify-physical-kit.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
             Copy-Item -LiteralPath "scripts/$name" -Destination "$dst/scripts"
           }
           Copy-Item -LiteralPath 'js/disaster-archive.js' -Destination "$dst/js"
@@ -46,7 +46,7 @@ jobs:
           Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination $dst
           Copy-Item -LiteralPath 'tools/paseka-check-hub/ПРОВЕРИТЬ-ПАСЕКУ.cmd' -Destination $dst
           Copy-Item -LiteralPath 'tools/paseka-check-hub/README-RU.txt' -Destination $dst
-          foreach($name in @('paseka-check-hub.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
+          foreach($name in @('paseka-check-hub.mjs','physical-test-readiness.mjs','verify-physical-kit.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
             & "$dst/node.exe" --check "$dst/scripts/$name"
             if($LASTEXITCODE -ne 0){throw "Syntax check failed: $name"}
           }
@@ -57,6 +57,30 @@ jobs:
             $_.Name -match '^paseka-full-idb-.*[.]json$' -or $_.Extension -in @('.tar','.mp4','.mkv','.jpg','.ldb','.log')
           }).Count -gt 0){throw 'Private data or suspicious files in check kit'}
           Write-Host 'PASEKA_CHECK_HUB_OFFLINE_NO_DEVICE_NO_PERSONAL_DATA_PACKAGE_PASS'
+      - name: Create and verify offline source-SHA kit integrity manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dst=(Resolve-Path -LiteralPath 'PASEKA-UNIFIED-CHECK-CENTER').Path
+          $files=@(Get-ChildItem -LiteralPath $dst -Recurse -File | Sort-Object FullName)
+          if($files.Count -lt 12){throw 'Incomplete physical check hub files'}
+          $members=@(foreach($f in $files){
+            $rel=$f.FullName.Substring($dst.Length+1).Replace('\','/')
+            [ordered]@{
+              path=$rel
+              size=[long]$f.Length
+              sha256=(Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+          })
+          $manifest=[ordered]@{
+            schema='paseka-offline-physical-kit-sha256-v1'
+            sourceSha='${{ github.sha }}'
+            files=$members
+          }
+          $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath "$dst/PASEKA-PHYSICAL-KIT-MANIFEST.json" -Encoding utf8
+          & "$dst/node.exe" "$dst/scripts/verify-physical-kit.mjs"
+          if($LASTEXITCODE -ne 0){throw 'Packaged check hub failed hash manifest verification'}
+          Write-Host 'PASEKA_PHYSICAL_KIT_SHA256_VERIFIED_NO_DEVICE_PROOF'
       - name: Smoke test the actual packaged Windows executable and repeat-run history
         shell: pwsh
         run: |
@@ -67,6 +91,8 @@ jobs:
           Copy-Item -Path "$src/*" -Destination $smoke -Recurse -Force
           Push-Location $smoke
           try {
+            & '.\node.exe' 'scripts/verify-physical-kit.mjs'
+            if($LASTEXITCODE -ne 0){throw 'Packaged integrity check failed'}
             & '.\node.exe' 'scripts/paseka-check-hub.mjs'
             if($LASTEXITCODE -ne 0){throw 'Packaged hub failed without source archive'}
             & '.\node.exe' 'scripts/paseka-check-hub.mjs'
@@ -77,10 +103,28 @@ jobs:
               $json=Get-Content -LiteralPath $item.FullName -Raw | ConvertFrom-Json
               if($json.schema -ne 'paseka-offline-check-hub-v1' -or
                  $json.checks.'full-indexeddb-export'.status -ne 'NEEDS_INPUT' -or
-                 $json.checks.'external-android-media'.status -ne 'NEEDS_DEVICE_EVIDENCE'){
+                 $json.checks.'external-android-media'.status -ne 'NEEDS_DEVICE_EVIDENCE' -or
+                 $json.physicalReadiness.steps.S3_EXTERNAL_ORIGINALS.status -ne 'BLOCKED' -or
+                 $json.physicalReadiness.steps.S4_SIGNER_AND_ROLLBACK.status -ne 'BLOCKED' -or
+                 $json.physicalReadiness.steps.S6_REAL_VIDEO_PIPELINE.status -ne 'FROZEN' -or
+                 $json.physicalReadiness.steps.S7_LOCAL_REPORT.status -ne 'PASS'){
                 throw 'Packaged hub reported unsupported proof'
               }
             }
+            # Exercise the actual one-click Windows entrypoint, not just its Node script.
+            # The CI flag suppresses Explorer/pause only; all integrity and USB gates remain.
+            $env:PASEKA_PHYSICAL_CI_TEST='1'
+            & (Join-Path $smoke 'ПРОВЕРИТЬ-ПАСЕКУ.cmd')
+            if($LASTEXITCODE -ne 0){throw 'One-click Windows entrypoint failed'}
+            $now=@(Get-ChildItem -LiteralPath 'PASEKA-CHECK-REPORTS' -Filter 'PASEKA-CHECK-*.json' -File)
+            if($now.Count -ne 3){throw 'One-click Windows entrypoint did not preserve three reports'}
+            Write-Host 'PASEKA_REAL_CMD_ENTRYPOINT_SAFE_PASS'
+            Add-Content -LiteralPath 'README-RU.txt' -Value 'synthetic-tamper-test'
+            # Expected nonzero refusal must NOT cause the entire PowerShell step
+            # to fail. Inspect the child exit code explicitly.
+            $reject=Start-Process -FilePath (Join-Path $smoke 'node.exe') -ArgumentList 'scripts/verify-physical-kit.mjs' -Wait -PassThru -NoNewWindow -RedirectStandardError (Join-Path $smoke 'expected-tamper-reject.stderr')
+            if($reject.ExitCode -eq 0){throw 'Tampered package unexpectedly accepted'}
+            Write-Host 'PASEKA_PACKAGE_TAMPER_REJECTED_AS_EXPECTED'
             Write-Host 'PASEKA_PACKAGED_EXE_TWO_CLICKS_SAFE_REPORTS_PASS'
           } finally { Pop-Location }
       - name: Publish standalone one-click offline check center

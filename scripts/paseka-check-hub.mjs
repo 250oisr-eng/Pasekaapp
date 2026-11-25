@@ -8,7 +8,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findFullExport } from './run-b01-oneclick.mjs';
 import { proveExportedArchiveRecoveryFile } from './prove-exported-archive-recovery.mjs';
-import { chooseAdbBinary, inspectConnectedOnePlus, inspectOnePlusFullExportPresence, inspectOnePlusPrivateDbAccessGate } from './check-oneplus-readonly-usb.mjs';
+import { chooseAdbBinary, inspectConnectedOnePlus, inspectOnePlusFullExportPresence, inspectOnePlusPrivateDbAccessGate, inspectOnePlusIdbInventory } from './check-oneplus-readonly-usb.mjs';
+import { assessPhysicalReadiness } from './physical-test-readiness.mjs';
 
 export const HUB_SCHEMA='paseka-offline-check-hub-v1';
 export const HUB_VERSION=1;
@@ -33,7 +34,8 @@ export function validateChecks(checks) {
        !(c.deviceAccess===false || (c.deviceAccess==='METADATA_ONLY' &&
          ((c.id==='oneplus-usb-metadata' && c.run===onePlusMetadataCheck) ||
           (c.id==='oneplus-downloads-export' && c.run===onePlusDownloadsCheck) ||
-          (c.id==='oneplus-private-db-gate' && c.run===onePlusPrivateDbGateCheck)))))
+          (c.id==='oneplus-private-db-gate' && c.run===onePlusPrivateDbGateCheck) ||
+          (c.id==='oneplus-idb-inventory' && c.run===onePlusIdbInventoryCheck)))))
       throw Error('UNSAFE_CHECK_REGISTRY');
     seen.add(c.id);
   }
@@ -50,6 +52,10 @@ async function onePlusDownloadsCheck() {
 
 async function onePlusPrivateDbGateCheck() {
   return inspectOnePlusPrivateDbAccessGate({binary:chooseAdbBinary()});
+}
+
+async function onePlusIdbInventoryCheck() {
+  return inspectOnePlusIdbInventory({binary:chooseAdbBinary()});
 }
 
 const REGISTERED=Object.freeze([
@@ -94,7 +100,9 @@ const REGISTERED=Object.freeze([
   Object.freeze({id:'oneplus-downloads-export',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
     run:onePlusDownloadsCheck}),
   Object.freeze({id:'oneplus-private-db-gate',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
-    run:onePlusPrivateDbGateCheck})
+    run:onePlusPrivateDbGateCheck}),
+  Object.freeze({id:'oneplus-idb-inventory',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
+    run:onePlusIdbInventoryCheck})
 ]);
 validateChecks(REGISTERED);
 
@@ -126,7 +134,7 @@ export async function executeChecks({checks=REGISTERED,bundleRoot,downloads,desk
     catch {results[check.id]={status:'BLOCKED',code:'CHECK_EXECUTION_FAILED_REDACTED',proofLevel:'NOT_VERIFIED'};}
   }
   const statuses=Object.values(results).map(x=>x.status);
-  return {
+  const report={
     schema:HUB_SCHEMA,version:HUB_VERSION,
     status:statuses.includes('BLOCKED')?'BLOCKED':
       statuses.includes('NEEDS_INPUT')?'NEEDS_INPUT':'PARTIAL_EVIDENCE_ONLY',
@@ -139,6 +147,7 @@ export async function executeChecks({checks=REGISTERED,bundleRoot,downloads,desk
     deletion:'NOT_ATTEMPTED',
     network:'NOT_ATTEMPTED'
   };
+  return {...report,physicalReadiness:assessPhysicalReadiness(report)};
 }
 
 export async function saveReport({bundleRoot,report,stamp=new Date().toISOString().replace(/[:.]/g,'-'),
@@ -161,7 +170,12 @@ export async function saveReport({bundleRoot,report,stamp=new Date().toISOString
 }
 
 export async function runAndSave({bundleRoot,downloads,desktop,checks,stamp,random}={}) {
-  const report=await executeChecks({bundleRoot,downloads,desktop,checks});
+  const pending=await executeChecks({bundleRoot,downloads,desktop,checks});
+  // This claim is only persisted if exclusive file creation really succeeds.
+  // It does not upgrade ANY USB, original-backup, restore or video proof.
+  const report={...pending,physicalReadiness:{...pending.physicalReadiness,
+    steps:{...pending.physicalReadiness.steps,
+      S7_LOCAL_REPORT:{status:'PASS',code:'LOCAL_REPORT_WRITTEN_EXCLUSIVELY'}}}};
   const path=await saveReport({bundleRoot,report,stamp,random});
   return {report,path};
 }
