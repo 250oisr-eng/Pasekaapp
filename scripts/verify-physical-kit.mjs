@@ -1,14 +1,14 @@
 // Standalone offline integrity preflight. Detects accidental/tampered package files,
 // NOT a cryptographic signature or independent proof of publisher identity.
 import {createHash} from 'node:crypto';
-import {createReadStream,existsSync,lstatSync,readFileSync} from 'node:fs';
-import {dirname,join,relative,resolve,sep} from 'node:path';
+import {createReadStream,lstatSync,readFileSync} from 'node:fs';
+import {dirname,join,resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {finished} from 'node:stream/promises';
 
 const SHA40=/^[a-f0-9]{40}$/;
 const SHA256=/^[a-f0-9]{64}$/;
-const SAFE_REL=/^[A-Za-z0-9_.\/-]+$/;
+const SAFE_REL=/^[\p{L}\p{N}_.\/-]+$/u;
 export const MANIFEST_FILE='PASEKA-PHYSICAL-KIT-MANIFEST.json';
 export const MANIFEST_SCHEMA='paseka-offline-physical-kit-sha256-v1';
 export const REQUIRED=[
@@ -19,9 +19,8 @@ export const REQUIRED=[
   'scripts/verify-exported-archive.mjs',
   'scripts/prove-exported-archive-recovery.mjs',
   'scripts/run-b01-oneclick.mjs',
-  'js/disaster-archive.js',
-  'tools-placeholder' // removed below: package must contain only actual named files
-].filter(x=>x!=='tools-placeholder').concat(['ПРОВЕРИТЬ-ПАСЕКУ.cmd','README-RU.txt']);
+  'js/disaster-archive.js','ПРОВЕРИТЬ-ПАСЕКУ.cmd','README-RU.txt'
+];
 
 export function validateKitManifest(manifest){
  if(manifest?.schema!==MANIFEST_SCHEMA||!SHA40.test(manifest.sourceSha||'')||
