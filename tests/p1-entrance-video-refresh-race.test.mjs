@@ -21,7 +21,7 @@ function fixture(){
   $:id=>id==='entranceVideoList'?host:id==='entranceHiveSelect'?select:null,
   listEntranceVideos:()=>{const request=deferred();list.push(request);return request.promise;},
   hname:id=>id,
-  safe:x=>String(x??''),
+  safe:x=>String(x??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
   entranceBytes:n=>n+' bytes',
  };
  const refresh=new Function('deps','with(deps){return ('+functionSource+');}')(deps);
@@ -81,4 +81,16 @@ test('current failure remains visible and a normal single refresh preserves curr
 test('queue refresh only displays data, never mutates storage or user records',()=>{
  assert.match(functionSource,/generation!==entranceVideoRefreshGeneration/);
  assert.doesNotMatch(functionSource,/\.delete\(|\.put\(|\.clear\(|deleteDatabase\(/);
+});
+
+test('video identifiers are escaped as data attributes, never placed in inline JS string literals',async()=>{
+ const f=fixture(),pending=f.refresh();
+ const special=`video-'"><img src=x onerror=alert(1)>`;
+ f.list[0].resolve([f.row(special,'hive-A')]);
+ await pending;
+ assert.match(f.host.innerHTML,/data-video-id="video-&#39;&quot;&gt;&lt;img/);
+ assert.match(f.host.innerHTML,/onclick="viewEntranceVideo\(this\.dataset\.videoId\)"/);
+ assert.match(f.host.innerHTML,/onclick="removeEntranceVideo\(this\.dataset\.videoId\)"/);
+ assert.doesNotMatch(f.host.innerHTML,/onclick="(?:view|remove)EntranceVideo\('/);
+ assert.doesNotMatch(f.host.innerHTML,/<img src=x/);
 });
