@@ -9,7 +9,8 @@ function load(name,deps={}){
  const next=/\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
  next.lastIndex=begin+name.length+10;
  const found=next.exec(html);
- const source=html.slice(begin,found?found.index:html.indexOf('</script>',begin));
+ const start=html.slice(Math.max(0,begin-6),begin)==='async '?begin-6:begin;
+ const source=html.slice(start,found?found.index:html.indexOf('</script>',begin));
  return new Function('deps','with(deps){return ('+source+');}')(deps);
 }
 test('direct original-video delete always fails closed without a readwrite transaction',async()=>{
