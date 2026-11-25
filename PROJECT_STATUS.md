@@ -2,13 +2,16 @@
 
 **25.11.2026 — live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## Параллельный макроцикл — пять независимых потоков, 25.11.2026
+## Увеличенный макроцикл — 8 независимых потоков, 25.11.2026
 
-- **P0 data/video:** [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512) `277e27be0b964c2aec7ed6971adb5f2615e2b90b`: новый регрессионный запрет на дополнительные пути `entrance_media/readwrite`, `deleteDatabase` и прямые `delete/clear`. #442 остаётся FROZEN, защитный код НЕ в main. Android #45665543531, Governance #45665543246 SUCCESS.
-- **P1 offline:** [Draft #530](https://github.com/250oisr-eng/Pasekaapp/pull/530) `42a30c950c397e4093aafb99b4b4bba5c544f8e1`: запрет кешировать query-bearing HTML/JS поверх redirect/204/206 protections. Android/Governance SUCCESS на точном SHA; OnePlus offline NOT_TESTED.
-- **P1 JSON:** [Draft #516](https://github.com/250oisr-eng/Pasekaapp/pull/516) `0a74cb4082e9b8bb3f824197a9ed2b950975b3cc`: связь family без hive → только `REVIEW_REQUIRED`, без домысливания истории; три новых теста. Android #45665568549, Governance #45665568708 SUCCESS; это НЕ full backup.
-- **P2 journal:** [Draft #531](https://github.com/250oisr-eng/Pasekaapp/pull/531) `38b51b9edaa60e8f6cfcb5c86070f214f7150979`: family/first-record индекс с сохранением legacy имени; Android/Governance SUCCESS, реальное ускорение NOT_MEASURED.
-- **Контроль интеграции:** [Draft #529](https://github.com/250oisr-eng/Pasekaapp/pull/529) — review #510–#518, порядок P0 #512 перед #511/#514, source SHA/CI, B01/B04/B05. Не объединять или публиковать без разрешения.
+- **P0 #512**: `putEntranceVideo` переведён с overwrite `put` на insert-only `add`; duplicate ID fail-closed, тест бинарного payload. HEAD `7c543353`, Governance PASS, новый Android CI проверить; видео #442 FROZEN.
+- **P1 #530**: query/redirect/204/206 cache gates, новый cache **v320**, прежний v319 не трогать при неудачной установке. HEAD `ab2e64ab`, Fast/Android/Governance SUCCESS; cold offline NOT_TESTED.
+- **P1 #514**: JS-опасные ID видео заменены на безопасный `data-video-id`; HEAD `3e239ab1`, Android/Governance SUCCESS. Родительский delete UI всё ещё требует P0 #512 перед интеграцией.
+- **P0/P1/P2 #518**: test-only композиция защиты Blob, `add`, metadata cursor и ID/race guard; HEAD `53b46fa6`, Android/Governance SUCCESS, не release.
+- **P1 #516**: JSON исторических связей семьи/улья без автоматического исправления; code/test CI SUCCESS, docs HEAD `b9753069` требует exact-head Android. Не full backup.
+- **B01 #524**: тесты изменения legacy store и дублей манифеста, code/test CI SUCCESS, docs HEAD `673ffbf2` требует exact-head Android. Не OnePlus recovery.
+- **P2 #531**: журнал с индексами family/first record и сохранением legacy имён; HEAD `38b51b9e`, Android/Governance SUCCESS, физическая скорость NOT_MEASURED.
+- **Контроль #529**: матрица зависимостей, статусы CI и журнал; код других веток не переносить автоматически. NO_MERGE / NO_RELEASE.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
