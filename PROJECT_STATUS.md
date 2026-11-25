@@ -19,10 +19,10 @@ PR #500–#507: подробные доказательства — в журн�
 - **[Draft #525](https://github.com/250oisr-eng/Pasekaapp/pull/525) IMPLEMENTED_DRAFT, stacked on #524:** единый offline Windows `ПРОВЕРИТЬ-ПАСЕКУ.cmd` для B01 и следующих локальных проверок. Проверяет доступный полный экспорт через одноразовую IndexedDB, пишет **новые** обезличенные отчёты в `PASEKA-CHECK-REPORTS`, не повторяет сырую пересадку LevelDB. При отсутствии JSON отмечает `NEEDS_INPUT`; MediaStore — `NEEDS_DEVICE_EVIDENCE`. Устройство, сеть, исходные файлы и видео не затрагивает. **Windows CI #45630998698 PASS на SHA `56fea1f` — 22/22 и два запуска реального ZIP; Governance #45630998840 PASS.**
 - **Не доказаны** существование полного реального экспортированного JSON с OnePlus, Gallery/MediaStore и независимый Android restore. B01 и видео #442 остаются BLOCKED/FROZEN; никаких production-операций.
 
-## B01: подтверждённый USB OnePlus, продолжение read-only
+## B01 — реальный OnePlus, run-as PASS, read-only инвентаризация
 
-- **Отчёт реального Windows запуска от 25.11.2026:** `oneplus-usb-metadata=PASS` (`ONEPLUS_10_PRO_INSTALLED_PACKAGE_METADATA_ONLY`), runtime PASS. Полный экспорт на ПК `FULL_EXPORT_NOT_FOUND`; Gallery/MediaStore `NEEDS_DEVICE_EVIDENCE`; restore NOT_TESTED, исходные данные не менялись.
-- **Draft #527 → #526 → #525 → #524:** к read-only USB-метаданным и поиску *имени* экспорта в Android Download добавлен `run-as ru.paseka.journal id` только для аттестованного OnePlus. Проверяет право доступа к контексту APK, **не читает IndexedDB**. [Windows CI #45653926285](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45653926285) на кодовом SHA `178f4226` SUCCESS: 36/36, упакованный Windows ZIP дважды PASS. Реальное `run-as` NOT_TESTED, B01 BLOCKED, #442 FROZEN.
+- **Пользовательский отчёт 25.11.2026 16:31 UTC:** OnePlus/package и `run-as ru.paseka.journal id` **PASS**. Полного экспортированного JSON на ПК нет (`FULL_EXPORT_NOT_FOUND`), имени экспорта в Android Download нет, внешние Gallery/MediaStore и Android restore **NOT_VERIFIED**. `run-as` даёт лишь право работать с sandbox, **не** подтверждает копию данных.
+- **Draft #528 → #527 → #526 → #525 → #524:** разрешена *только* одноразовая read-only инвентаризация метаданных трёх фиксированных каталогов WebView (`run-as ... ls -1`); имена не публикуются, файлы не открываются/не копируются. [Windows #45655304597](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45655304597) code SHA `19811258` SUCCESS **39/39**, packaged double-run PASS. Реальный inventory ещё NOT_TESTED. B01 BLOCKED, #442 FROZEN.
 
 ## Нерешённые блокеры
 
@@ -33,7 +33,7 @@ PR #500–#507: подробные доказательства — в журн�
 
 ## Следующий безопасный этап
 
-1. Единый Windows ZIP Draft #527: один запуск на уже разрешённом USB проверит имя архива в Download и доступность `run-as id`; без копирования, установки APK и удаления. Обезличенный отчёт определит дальнейший безопасный путь.
+1. После точного CI #528: один запуск обновлённого Windows ZIP на OnePlus проверит **только метаданные** каталогов WebView. Передавать исключительно обезличенный `PASEKA-CHECK-*.json`; ни база, ни видео не копируются.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
