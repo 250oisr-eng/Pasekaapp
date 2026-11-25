@@ -2,15 +2,13 @@
 
 **25.11.2026 — live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## Масштабированный цикл — два независимых кодовых Draft (25.11.2026)
+## Параллельный макроцикл — пять независимых потоков, 25.11.2026
 
-- [#530](https://github.com/250oisr-eng/Pasekaapp/pull/530) поверх #515: SW запрещает сохранять `Response.redirected=true` даже при HTTP 200, отрицательные install/fetch тесты. [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) поверх #510: однократный Map семей при отображении журнала, сохранены поисковые исторические имена, два теста. Изменённые файлы не пересекаются. **На точных конечных HEAD #530 и #531 Android + Governance SUCCESS**: #530 Android #45658901083, Governance #45658901124; #531 Android #45659290364, Governance #45659290425. Это синтетические тесты, не физическое испытание OnePlus. В дочернем #531 новый коммит `38b51b9` дополнительно исключает `available.find` для каждого пункта фильтра семей, сохраняет первый исторический label; Android и Governance проверять на этом новом SHA отдельно.
-- Без merge и release. #529 review matrix Governance SUCCESS на `9bc99efba2b10aca5d4ac834a9c01218fbd57390`. Физический OnePlus/производительность не проверялись.
-
-## Параллельный P0/P1/P2 review — 25.11.2026
-
-- Проверен live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`. Без merge: #512 P0 запрет удаления оригиналов, #511 metadata cursor, #514 race guard, их синтетическая композиция #518, независимые #510 журнал, #515 SW и #516 JSON. На точных HEAD #510/#512/#518 Android и Governance SUCCESS; физические доказательства не получены.
-- Порядок и риски в [матрице](docs/P0-P1-P2-INDEPENDENT-PR-REVIEW-2026-11-25.md): защита #512 обязательна до включения связанных P2/P1 видео-оптимизаций; #518 — не разрешение на merge. #510/#515/#516 независимы. B01/B04/B05 BLOCKED, видео #442 FROZEN.
+- **P0 data/video:** [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512) `277e27be0b964c2aec7ed6971adb5f2615e2b90b`: новый регрессионный запрет на дополнительные пути `entrance_media/readwrite`, `deleteDatabase` и прямые `delete/clear`. #442 остаётся FROZEN, защитный код НЕ в main. Проверить новый Android CI.
+- **P1 offline:** [Draft #530](https://github.com/250oisr-eng/Pasekaapp/pull/530) `42a30c950c397e4093aafb99b4b4bba5c544f8e1`: запрет кешировать query-bearing HTML/JS поверх redirect/204/206 protections. Android/Governance SUCCESS на точном SHA; OnePlus offline NOT_TESTED.
+- **P1 JSON:** [Draft #516](https://github.com/250oisr-eng/Pasekaapp/pull/516) `0a74cb4082e9b8bb3f824197a9ed2b950975b3cc`: связь family без hive → только `REVIEW_REQUIRED`, без домысливания истории; три новых теста. Проверить новый Android CI; это НЕ full backup.
+- **P2 journal:** [Draft #531](https://github.com/250oisr-eng/Pasekaapp/pull/531) `38b51b9edaa60e8f6cfcb5c86070f214f7150979`: family/first-record индекс с сохранением legacy имени; Android/Governance SUCCESS, реальное ускорение NOT_MEASURED.
+- **Контроль интеграции:** [Draft #529](https://github.com/250oisr-eng/Pasekaapp/pull/529) — review #510–#518, порядок P0 #512 перед #511/#514, source SHA/CI, B01/B04/B05. Не объединять или публиковать без разрешения.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
