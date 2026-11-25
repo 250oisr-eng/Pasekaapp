@@ -2,11 +2,11 @@ PASEKA B01 / V16 SINGLE INDEPENDENT OFFLINE ARCHIVE VERIFICATION
 ================================================================
 
 WHY:
-Real OnePlus NE2213 report dated 2026-11-25 09:50 UTC documented a PRIVATE
-candidate on the local PC: 5,113,856 bytes, 144 TAR entries, SHA-256:
-c58ad5be389548d6afcf61c2685963c5a098eeeff08c50f9ac496960e21dae10
-The report says a manifest was written and the candidate is outside old
-test folders. A CHILD JSON alone is NOT independent restore proof.
+Real OnePlus NE2213 report dated 2026-11-25 documented a PRIVATE
+candidate on the local PC and a matching local manifest. This software
+must recalculate its actual SHA-256 locally; no user's private-file hash
+or archive bytes are embedded in this public ZIP or GitHub source.
+A CHILD JSON alone is NOT independent restore proof.
 
 ONE ACTION, ONE FINAL REPORT:
 1. Extract ONLY this new ZIP into ANY NEW local Windows folder.
@@ -35,7 +35,8 @@ HOW IT WORKS (all PC-local, no network):
   local folder is marked INVALID-PC-RECONSTRUCTION-NOT-BACKUP.txt and
   is never deleted automatically. A repeated START never overwrites
   the previous B01-RESULT.json or any archive.
-- Creates no extra copies of original videos or phone gallery data.
+- Reconstructs only files actually present in the private candidate TAR.
+  Does not independently inventory original phone videos or Gallery data.
 
 IMPORTANT SECURITY:
 - This test reads PRIVATE local app data; both the original candidate
@@ -57,6 +58,8 @@ REQUIRES:
 - The V15 PRIVATE candidate and its manifest in the persistent directory
   ABOVE, NOT any previous test package. If absent, script fails safely.
 - Sufficient PC disk space (at least reconstructed bytes plus 64 MiB).
-- Fixed local storage, not network/cloud redirect or symlinks.
+- Fixed local storage, not network mounts or symlinks. If the Windows
+  user profile is synced by separate cloud software, disable that sync
+  for confidential files before running; this program cannot control it.
 
 BUNDLE: exactly START.cmd, RUN-ONEPLUS-UNIFIED-V16.ps1, README.txt.
