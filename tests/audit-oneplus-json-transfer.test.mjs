@@ -94,3 +94,31 @@ test('same-family same-hive and unavailable historical family remain backwards c
  assert.ok(missing.warnings.some(w=>/unavailable\/archived family/.test(w)));
  assert.ok(!missing.warnings.some(w=>/family and hive association differ/.test(w)));
 });
+
+test('family-linked historical note without hive context is REVIEW_REQUIRED, never repaired',()=>{
+ const detached={...note('detached'),hive:null,family:'f-first'};
+ const state={...exportJson.state,records:[detached]};
+ const raw={...exportJson,state};
+ const before=JSON.stringify(raw);
+ const result=auditPasekaJsonTransfer(raw,{hives:1,families:1,records:1});
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/no hive context at row 0/.test(w)));
+ assert.doesNotMatch(JSON.stringify(result),/detached|f-first|PRIVATE TEXT/);
+ assert.equal(JSON.stringify(raw),before,'preflight must not inject inferred hive ID');
+});
+
+test('hive-only note remains valid without a family link and historical snapshots survive',()=>{
+ const hiveOnly={...note('hive-only'),family:null};
+ const state={...exportJson.state,records:[hiveOnly]};
+ const result=auditPasekaJsonTransfer({...exportJson,state},{records:1});
+ assert.equal(result.status,'JSON_STATE_PREFLIGHT_ONLY');
+ assert.ok(!result.warnings.some(w=>/no hive context/.test(w)));
+ assert.ok(result.warnings.some(w=>/entrance_media/.test(w)));
+});
+
+test('absent hive link is not silently accepted because family belongs to existing hive',()=>{
+ const missing={...note('old-hive-unknown'),hive:''};
+ const result=auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,records:[missing]}});
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/historical association/.test(w)));
+});
