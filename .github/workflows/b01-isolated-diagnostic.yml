@@ -24,7 +24,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
 
       - name: Isolated source and readonly IndexedDB tests
         run: node --test tests/b01-isolated-diagnostic.test.mjs
