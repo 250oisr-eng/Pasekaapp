@@ -12,9 +12,13 @@ BEFORE FIRST START
 ------------------
 1. Keep the original B01 TAR, MANIFEST and V16 PC reconstruction
    under %USERPROFILE%\PASEKA-B01-KEEP-PRIVATE-CANDIDATES\.
-2. Android Studio Device Manager must already have a NEW EMPTY Android
-   virtual device with a name starting EXACTLY PASEKA_B01_ISOLATED_
-   (for example PASEKA_B01_ISOLATED_TEST). Boot that AVD.
+2. Android Studio must have Android SDK 35 / Google APIs x86_64 image.
+   Optional: run CREATE-ISOLATED-AVD-V20.cmd to create and boot a NEW
+   PASEKA_B01_ISOLATED_TEST virtual device automatically. This helper
+   refuses to reuse, wipe, rename or overwrite an existing virtual
+   device and never sends commands to a physical phone.
+   Alternatively create and boot a NEW EMPTY virtual device in Device
+   Manager with name PASEKA_B01_ISOLATED_TEST.
 3. Close any other emulators. A connected real OnePlus is allowed in
    the ADB device list but it is NEVER selected or operated upon.
 4. Extract THIS ZIP into a NEW folder. Do not mix with V16-V18.
