@@ -1,9 +1,11 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## B01 P0 — 25.11.2026: физический V9.1 `PUBLIC_TAR` FAIL
+## B01 P0 — 25.11.2026: единый тест V11 без копирования
 
-- OnePlus NE2213: ADB 1.0.41, shell_v2, run-as, process gate PASS; `PUBLIC_TAR_INVALID_TAR_BLOCK_ALIGNMENT_OR_LENGTH_INVALID`. **Приватные данные не читались, restore NOT_TESTED**.
-- Draft #522: PC-only V10 проверяет уже сохранённый публичный `public-only-v9.tar` без ADB, извлечения и передачи файлов. Windows CI: пять synthetic TAR PASS. Следующий шаг — только обезличенный JSON локальной форензики. B01 BLOCKED; APK/удаление видео запрещены.
+- Физический V9.1: ADB/shell_v2/run-as PASS, публичный TAR INVALID_LENGTH; private NOT_ATTEMPTED, restore NOT_TESTED.
+- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): один ZIP/START и один JSON, поиск прежнего TAR в чужих папках read-only, USB только с явного выбора. Правило в `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md` (Draft).
+- Windows synthetic #45580215459 SUCCESS; Governance #45580215441 SUCCESS на SHA `a0d4627585ea65780c2d58220cbfc7554f98402e`. ZIP SHA256 `a71c103ba1adee93d082f40b3020c0b4583b8c8011de82cd3fa30f1dbc5044ad`.
+- Следующий шаг: новый `b01-unified-result.json`. B01 BLOCKED; без merge/APK update/video cleanup.
 
 ## 25.11.2026 — B01: Windows TAR capture V9, Draft #522
 
