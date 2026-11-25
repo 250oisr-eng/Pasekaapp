@@ -25,7 +25,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $platform | Out-Null
           $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
           if(-not (Test-Path $compiler)){throw 'Windows .NET Framework C# compiler unavailable'}
-          & $compiler /nologo /target:exe "/out:$platform\adb.exe" 'tests/b01-v9-MockAdb.cs'
+          & $compiler /nologo /target:exe "/out:$platform\adb.exe" (Join-Path (Get-Location).Path 'tests/b01-v9-MockAdb.cs')
           if($LASTEXITCODE -ne 0){throw 'Synthetic mock compiler failed'}
           [IO.File]::WriteAllText((Join-Path $platform 'AdbWinApi.dll'),'synthetic-test-marker')
           foreach($case in @(
