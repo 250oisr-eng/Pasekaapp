@@ -1,7 +1,7 @@
 // PASEKA comprehensive CI: only public source/tests and an already-completed TAP log.
 // This script must never access the phone, its DB, private backups or deployment APIs.
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdirSync, writeFileSync, lstatSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -69,6 +69,18 @@ export function validateQAMatrix(matrix, discovered) {
     autoCounts, externalGateCount:matrix.externalGates.length};
 }
 
+// Only read the generated test log, never an arbitrary user export or symlink.
+export function readSyntheticTap(path, root = ROOT) {
+  const target = resolve(path);
+  assert.equal(target, join(root,'qa-comprehensive.tap'),
+    'only the generated synthetic TAP log is an allowed QA evidence source');
+  const stat = lstatSync(target);
+  assert.ok(stat.isFile() && !stat.isSymbolicLink() &&
+    stat.size > 0 && stat.size <= 16*1024*1024,
+    'synthetic TAP must be a bounded regular non-symlink file');
+  return readFileSync(target,'utf8');
+}
+
 export function parseTapSummary(raw) {
   const fallback = {status:'NOT_TESTED', tests:null, pass:null, fail:null,
     cancelled:null, skipped:null, todo:null};
@@ -130,7 +142,7 @@ function main() {
   const discovered=readdirSync(join(ROOT,'tests'))
     .filter(name=>name.endsWith('.test.mjs')).map(name=>'tests/'+name);
   const script=JSON.parse(readFileSync(join(ROOT,'package.json'),'utf8')).scripts.test;
-  const tap=mode==='--tap' ? readFileSync(resolve(args[1]),'utf8') : '';
+  const tap=mode==='--tap' ? readSyntheticTap(args[1]) : '';
   const report=buildQAReport({
     matrix,discovered,tap,sha:process.env.GITHUB_SHA||null,packageTestScript:script
   });
