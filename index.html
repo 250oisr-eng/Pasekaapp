@@ -1338,8 +1338,13 @@ function getEntranceVideo(id){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').get(id)}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error||new Error('Не удалось открыть видео'))});
 }
 function deleteEntranceVideoBlob(id){
- const blocked=rejectWhileStartupNotReady();if(blocked)return Promise.reject(blocked);
- return new Promise((ok,no)=>{let tx;try{tx=db.transaction('entrance_media','readwrite');tx.objectStore('entrance_media').delete(id)}catch(e){no(e);return}tx.oncomplete=()=>ok(true);tx.onerror=()=>no(tx.error||new Error('Не удалось удалить видео'));tx.onabort=()=>no(tx.error||new Error('Удаление видео прервано'))});
+ // Original video deletion requires verified recovery, a licensed real
+ // detector and complete accounting of every copy (issue #442).
+ // A confirmation dialog alone cannot authorize irreversible data loss.
+ return Promise.reject(Object.assign(
+  new Error('Удаление оригинала видео заблокировано до проверенного распознавания, полного резервного копирования и разрешённой безопасной очистки.'),
+  {code:'ENTRANCE_VIDEO_DELETE_BLOCKED'}
+ ));
 }
 function entranceBytes(value){if(!Number.isFinite(value)||value<0)return '—';if(value<1024*1024)return Math.round(value/1024)+' КБ';return (value/1024/1024).toFixed(1)+' МБ'}
 function renderEntranceModule(){
@@ -1353,7 +1358,7 @@ async function refreshEntranceVideos(){
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
   const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><button type="button" onclick="removeEntranceVideo(\''+safe(x.id)+'\')">Удалить</button></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><span class="muted">Оригинал защищён от удаления</span></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
  }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
@@ -1409,8 +1414,9 @@ let entrancePreviewUrl=null;
 function cleanupEntranceVideoPreview(){const video=$('entranceVideoPreview');if(video){video.pause();video.removeAttribute('src');video.load()}if(entrancePreviewUrl){URL.revokeObjectURL(entrancePreviewUrl);entrancePreviewUrl=null}}
 function closeEntranceVideoPreview(){const dialog=$('entranceVideoPreviewDlg');if(dialog?.open)dialog.close();cleanupEntranceVideoPreview()}
 async function removeEntranceVideo(id){
- if(!confirm('Удалить оригинал видео с этого устройства? Это действие нельзя отменить.'))return;
- try{await deleteEntranceVideoBlob(id);await refreshEntranceVideos();const status=$('entranceVideoStatus');if(status)status.textContent='Видео удалено с устройства.'}catch(error){alert(error.message||'Не удалось удалить видео')}
+ // Legacy callers cannot bypass the same fail-closed original-video gate.
+ try{await deleteEntranceVideoBlob(id)}catch(error){alert(error.message||'Удаление оригинала заблокировано');return false}
+ return false;
 }
 function toggleVarroaFields(){const board=$('varroaType')?.value==='sticky_board';$('varroaAdultFields').hidden=board;$('varroaBoardFields').hidden=!board}
 function renderVarroaModule(){
