@@ -96,20 +96,20 @@ test('P0 media storage mutation surface has only the existing insert-only write 
  assert.doesNotMatch(html,/objectStore\s*\(\s*['"]entrance_media['"]\s*\)\s*\.\s*(?:clear|delete)\s*\(/);
 });
 
-test('P0 duplicate entrance video ID cannot overwrite stored original bytes',async()=>{
+test('P0 duplicate media ID cannot overwrite persisted synthetic binary bytes',async()=>{
  const idb=new IDBFactory(),request=idb.open('protected-media-collision-only',3);
  request.onupgradeneeded=()=>request.result.createObjectStore('entrance_media',{keyPath:'id'});
  const db=await new Promise((ok,no)=>{request.onsuccess=()=>ok(request.result);request.onerror=()=>no(request.error);});
  try{
   const put=load('putEntranceVideo',{db,rejectWhileStartupNotReady:()=>null});
   const original=Uint8Array.from([0,255,17,4,9,0]);
-  await put({id:'protected-original',blob:new Blob([original],{type:'video/mp4'})});
-  await assert.rejects(put({id:'protected-original',blob:new Blob([Uint8Array.from([1,2,3])],{type:'video/mp4'})}));
+  await put({id:'protected-original',blob:original});
+  await assert.rejects(put({id:'protected-original',blob:Uint8Array.from([1,2,3])}));
   const saved=await new Promise((ok,no)=>{
    const tx=db.transaction('entrance_media','readonly'),req=tx.objectStore('entrance_media').get('protected-original');
    req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error);
   });
   assert.equal(saved.id,'protected-original');
-  assert.deepEqual(Uint8Array.from(await saved.blob.arrayBuffer()),original);
+  assert.deepEqual(Uint8Array.from(saved.blob),original);
  }finally{db.close();}
 });
