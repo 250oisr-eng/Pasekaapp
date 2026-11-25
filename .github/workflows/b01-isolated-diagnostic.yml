@@ -1,0 +1,76 @@
+name: B01 isolated emulator-only IndexedDB diagnostic APK
+
+on:
+  pull_request:
+    paths:
+      - "tools/b01-isolated-diagnostic/**"
+      - "tests/b01-isolated-diagnostic.test.mjs"
+      - ".github/workflows/b01-isolated-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+
+      - name: Isolated source and readonly IndexedDB tests
+        run: node --test tests/b01-isolated-diagnostic.test.mjs
+
+      - name: Generate independent diagnostic Capacitor app outside source tree
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          node tools/b01-isolated-diagnostic/generate.mjs "$B01_DIAG_ROOT"
+          node -e "const c=require(process.env.B01_DIAG_ROOT+'/capacitor.config.json');if(c.appId!=='ru.paseka.journal.diagnostic.restore')process.exit(5)"
+
+      - name: Generate Android wrapper and install strict physical-device guard
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          cd "$B01_DIAG_ROOT"
+          npm install --no-audit --no-fund
+          npx cap add android
+          cd "$GITHUB_WORKSPACE"
+          node tools/b01-isolated-diagnostic/guard-android.mjs "$B01_DIAG_ROOT"
+          grep -F 'B01_EMULATOR_ONLY_NO_PHYSICAL_DEVICE' "$B01_DIAG_ROOT/android/app/src/main/java/ru/paseka/journal/diagnostic/restore/MainActivity.java"
+
+      - name: Build isolated debug APK only — no emulator boot or user data
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          cd "$B01_DIAG_ROOT/android"
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: Verify APK package identity, no production app id
+        env:
+          B01_DIAG_ROOT: ${{ runner.temp }}/paseka-b01-diagnostic
+        run: |
+          apk="$B01_DIAG_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          aapt="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -n 1)"
+          test -x "$aapt"
+          "$aapt" dump badging "$apk" | grep -F "package: name='ru.paseka.journal.diagnostic.restore'"
+          "$aapt" dump badging "$apk" | grep -F "application-label:'Paseka B01 Isolated Diagnostic'"
+          echo 'B01_DIAGNOSTIC_APK_PACKAGE_ID_PASS_NO_REAL_DEVICE'
+
+      - name: Publish diagnostic emulator-only APK (no data or original app)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
+          path: ${{ runner.temp }}/paseka-b01-diagnostic/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
