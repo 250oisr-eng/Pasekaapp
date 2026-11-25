@@ -77,7 +77,6 @@ test('hub refuses arbitrary metadata-only device function while permitting named
 });
 test('ADB binary selection uses only known Android SDK locations, never PATH or current directory',()=>{
  assert.equal(chooseAdbBinary({platform:'win32',env:{},home:'C:/Users/Test',exists:()=>false}),null);
- const expected='C:/sdk/platform-tools/adb.exe'.replaceAll('/',String.raw`\`);
  const path=chooseAdbBinary({platform:'win32',env:{ANDROID_HOME:'C:/sdk'},home:'C:/Users/Test',exists:()=>true});
  assert.match(path,/platform-tools[\\/]adb\.exe$/);
 });
