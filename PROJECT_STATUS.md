@@ -1,13 +1,17 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — проверенный live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+## 26.11.2026 · B11 offline cache parent #515
 
-## Последний автономный параллельный цикл — P0/P1 UI и offline (25.11.2026)
+В рабочей ветке Draft [#515](https://github.com/250oisr-eng/Pasekaapp/pull/515) подготовлено конфликтное согласование с защищённым main `346b3503` без удаления P0 #512. Только v319 HTTP 200-кеш и регрессионные SW тесты; F0–F2 существуют в PR. Новый exact-head CI обязателен, дочерний #530 v320 отдельно. NO_MERGE/NO_RELEASE; cold offline OnePlus NOT_TESTED.
 
-- [Draft #513](https://github.com/250oisr-eng/Pasekaapp/pull/513): совмещённый P0 запрет удаления + P2 cursor; на code SHA `02fdc90c2747335844e4d4d08afca765d9d585da` Fast #45565279763 / Governance #45565286208 / Android #45565279681 SUCCESS; финальный docs SHA `62b683b12582ad13987630945d3e4c18dd755455`, Android #45565408125 SUCCESS. Это только синтетическая совместимость, не реальная копия или физическое распознавание.
-- [Draft #514](https://github.com/250oisr-eng/Pasekaapp/pull/514): игнорирование устаревших асинхронных ответов списка видео после изменения улья. Fast #45565796111 / Android #45565796184 SUCCESS на code/test SHA `afa06e44929c30cac74935fc748fc0c611d7750c`; Governance #45565837574 / Android #45565837409 SUCCESS на docs SHA `1bcf7d45779d99b3e3045a2836f474246890186e`. Физический UX NOT_TESTED.
-- [Draft #515](https://github.com/250oisr-eng/Pasekaapp/pull/515): SW cache v319 — запрет на кеширование HTTP 204/206 в качестве полного JS/HTML. Код/регрессии на SHA `e42e7cffd97813224332ae7e50969e1909d38b8c`, Fast #45566086209 / Governance #45566093391 SUCCESS, Android #45566093392 ещё проверяется. Первая ошибка CI — два устаревших теста v318; исправлены.
-- Все PR только Draft. `main`, установленный OnePlus и рабочие оригиналы не менялись. B01/B04/B05 BLOCKED, #442 FROZEN. Для аппаратных тестов предупредить пользователя отдельно до необходимости запуска.
+**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+
+## Текущий параллельный цикл — безопасность оригиналов и P2
+
+- [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
+- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой UI и функция сброса блокированы до записи, кнопка полного удаления **disabled без onclick**, legacy helper всегда `false`, даже при поддельных флагах восстановления. Тесты и проверка точного SHA обязательны; без merge/release.
+- [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
+- B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
