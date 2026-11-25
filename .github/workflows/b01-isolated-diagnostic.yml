@@ -158,6 +158,14 @@ jobs:
         with:
           name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
           path: diagnostic-apk
+      - name: Enable KVM access for hardware-accelerated CI emulator
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo 'KVM_NOT_AVAILABLE_ON_RUNNER'
+            exit 1
+          fi
+          sudo chmod a+rw /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
       - name: Boot isolated AVD and verify actual binary ADB transport with synthetic data
         uses: reactivecircus/android-emulator-runner@v2
         with:
