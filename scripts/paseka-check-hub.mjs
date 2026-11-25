@@ -170,7 +170,12 @@ export async function saveReport({bundleRoot,report,stamp=new Date().toISOString
 }
 
 export async function runAndSave({bundleRoot,downloads,desktop,checks,stamp,random}={}) {
-  const report=await executeChecks({bundleRoot,downloads,desktop,checks});
+  const pending=await executeChecks({bundleRoot,downloads,desktop,checks});
+  // This claim is only persisted if exclusive file creation really succeeds.
+  // It does not upgrade ANY USB, original-backup, restore or video proof.
+  const report={...pending,physicalReadiness:{...pending.physicalReadiness,
+    steps:{...pending.physicalReadiness.steps,
+      S7_LOCAL_REPORT:{status:'PASS',code:'LOCAL_REPORT_WRITTEN_EXCLUSIVELY'}}}};
   const path=await saveReport({bundleRoot,report,stamp,random});
   return {report,path};
 }
