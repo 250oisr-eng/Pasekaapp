@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { webcrypto } from 'node:crypto';
@@ -82,5 +82,37 @@ test('B01 readback of synthetic local file does not modify its bytes or claim in
   assert.deepEqual(await readFile(path),before);
   await assert.rejects(inspectExportedArchiveFile(path,{maxBytes:before.length-1}),/memory safety limit/);
   assert.deepEqual(await readFile(path),before);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('B01 verifier refuses a symlink to a valid archive instead of silently following it',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'paseka-b01-symlink-proof-'));
+ try {
+  const original=join(dir,'original.json'),link=join(dir,'link.json');
+  await writeFile(original,await syntheticArchive());
+  await symlink(original,link);
+  await assert.rejects(inspectExportedArchiveFile(link),/non-symlink/);
+  const checked=await inspectExportedArchiveFile(original);
+  assert.equal(checked.independentRestoreVerified,false);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('B01 verifier rejects malformed UTF-8 without leaking private file contents',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'paseka-b01-utf8-proof-'));
+ try {
+  const path=join(dir,'malformed.json');
+  await writeFile(path,Buffer.from([0xff,0xfe,0x7b,0x7d]));
+  await assert.rejects(inspectExportedArchiveFile(path));
+  assert.deepEqual(await readFile(path),Buffer.from([0xff,0xfe,0x7b,0x7d]));
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('B01 byte cap rejects short invalid payload before parser and does not modify it',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'paseka-b01-cap-proof-'));
+ try {
+  const path=join(dir,'invalid.json'),data=Buffer.from('x'.repeat(4096));
+  await writeFile(path,data);
+  await assert.rejects(inspectExportedArchiveFile(path,{maxBytes:1024}),/memory safety limit/);
+  assert.deepEqual(await readFile(path),data);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
