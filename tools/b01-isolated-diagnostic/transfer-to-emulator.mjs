@@ -176,7 +176,8 @@ export async function executeIsolatedTransfer({persistentRoot,adb,apk,aapt,dryRu
   // Real data never leaves the diagnostic app sandbox; only digest is returned.
   const result=adbSync(spawnSyncFn,adb,serial,'exec-out','run-as',DIAGNOSTIC,'sha256sum',member.name);
   const digest=/^([0-9a-f]{64})(?:\s|$)/i.exec(result)?.[1]?.toLowerCase();
-  if(!digest||digest!==member.sha256)refuse('EMULATOR_BYTE_READBACK_MISMATCH');
+  if(!digest)refuse('EMULATOR_READBACK_HASH_FORMAT_UNEXPECTED');
+  if(digest!==member.sha256)refuse('EMULATOR_FILE_BYTES_DIFFER');
   report.sourceHashesComparedToEmulator++;
  }
  if(report.sourceHashesComparedToEmulator!==src.regular.length)refuse('EMULATOR_READBACK_INCOMPLETE');
