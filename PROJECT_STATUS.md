@@ -16,6 +16,13 @@
 - **#502 MERGED:** по исходному DOCX OP13 обычное весеннее развитие и ранний мёд — разные сценарии. В v2 stacked Draft #461–#466 они ещё не активированы в main.
 - Исторический #70 CLOSED/SUPERSEDED: `startupRecoveryPending`/commit-after-save и негативные тесты уже в main.
 
+## B01 V20 — VERIFIED SYNTHETIC ANDROID EMULATOR TRANSFER (25.11.2026)
+
+- **SUCCESS [CI #45619544834](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45619544834)** на **точном кодовом SHA `f82184b99bad1d1c3cf4b23a2a38416c4f045200`**: diagnostic APK build PASS, Windows portable kit PASS и **реальный аппаратно ускоренный Android 15 API 35 эмулятор** PASS для потока синтетических LevelDB-заглушек через ADB `exec-in/run-as/tar` и полного SHA-256 readback. Предыдущие failures: CI KVM, потеря переменных при `/usr/bin/sh -c` и смешанный код ошибки SHA; всё исправлено, не маскировалось.
+- Доступен Windows zip-артефакт **`PASEKA-B01-ISOLATED-EMULATOR-TRANSFER-V20`**, ID `15023179533`, ~37.4 MB, из того же успешного run. Пользователь подтвердил, что на Windows 11 установлен Android Studio Rabbit 2 и **свежий виртуальный телефон успешно запустился**; его автоматизированный перенос **реальной** V16 копии ещё не выполнялся.
+- **Следующий единственный real-data gate:** пользователь скачивает **только новый CI-пакет** с run #45619544834, распаковывает в новую папку и запускает `START-EMULATOR-V20.cmd` на единственном новом AVD с именем `PASEKA_B01_ISOLATED_*`; затем передаёт только обезличенный `B01-RESULT.json`. При SHA PASS — вручную внутри отдельного APK выполнить WebView read-only `paseka-v1` reopen/count и передать обезличенный экран/JSON. Указанные действия не эквивалентны полному restore: значения/Blob, Gallery/MediaStore и полнота видео не проверены.
+- До physical evidence **B01 FULL_RESTORE_BLOCKED**, видео #442 **FROZEN**; никакого APK upgrade, OnePlus install/write, удаления исходников, merge или deploy.
+
 ## Нерешённые блокеры
 
 - **B01 P0 — PARTIAL PHYSICAL PC PROOF / FULL RESTORE BLOCKED:** в Draft #522 реальные отчёты V16→V18 от пользователя подтверждают кандидат TAR 5 113 856 B, 96/96 побайтовых PC файлов, один набор IndexedDB LevelDB и CRC32C журнала 578 035 B / 63 физические / 46 логических / 0 ошибок. **Это не работающий Android restore.** Полнота Gallery/MediaStore/видео и проверка ключей/Blob НЕ доказаны. Ни APK upgrade, ни удаление оригиналов не разрешены.
