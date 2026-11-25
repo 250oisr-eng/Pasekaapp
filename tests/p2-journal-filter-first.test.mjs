@@ -99,3 +99,14 @@ test('archived family snapshot remains searchable when current family lookup has
  assert.match(els.records.innerHTML,/data-record-id="c"/);
  assert.equal(els.journalResultCount.textContent,'1 из 3 записей');
 });
+
+test('legacy duplicate family ID retains first-match behavior of former Array.find',()=>{
+ const {deps,els,render}=env();
+ deps.S.families.push({id:'f1',name:'Different duplicate'});
+ els.journalSearch.value='family 1';
+ render();
+ assert.match(els.journalFamilyFilter.innerHTML,/Family 1/);
+ assert.doesNotMatch(els.journalFamilyFilter.innerHTML,/Different duplicate/);
+ assert.match(els.records.innerHTML,/data-record-id="a"/);
+ assert.match(els.records.innerHTML,/data-record-id="b"/);
+});
