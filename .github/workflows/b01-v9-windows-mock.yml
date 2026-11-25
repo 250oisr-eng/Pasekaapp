@@ -109,3 +109,14 @@ jobs:
               throw 'Physical V6-like synthetic tail classification failed'
             }
           }
+
+      - name: Package only read-only public TAR forensic scripts (no personal or synthetic results)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-PUBLIC-TAR-FORENSIC-V10
+          path: |
+            tools/b01-oneplus-safe-v9/B01-PUBLIC-TAR-FORENSIC-V10.ps1
+            tools/b01-oneplus-safe-v9/START-PUBLIC-FORENSIC-ONLY.cmd
+            tools/b01-oneplus-safe-v9/README-PUBLIC-TAR-FORENSIC-V10.txt
+          if-no-files-found: error
+          retention-days: 7
