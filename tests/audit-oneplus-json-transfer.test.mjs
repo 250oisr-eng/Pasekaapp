@@ -67,3 +67,30 @@ test('legacy JSON preflight rejects symlink, malformed data and never mutates or
   assert.throws(()=>auditFile(join(dir,'missing.json'))); 
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test('existing family linked to another existing hive requires review without exposing names or content',()=>{
+ const foreignHive={id:'h-other',number:2};
+ const state={...exportJson.state,
+  hives:[hive,foreignHive],
+  families:[family],
+  records:[{...note('cross'),hive:'h-other'}]
+ };
+ const raw={...exportJson,state};
+ const report=auditPasekaJsonTransfer(raw,{hives:2,families:1,records:1});
+ assert.equal(report.status,'REVIEW_REQUIRED');
+ assert.ok(report.warnings.some(w=>/family and hive association differ/.test(w)));
+ assert.equal(JSON.stringify(report).includes('PRIVATE TEXT MUST NOT APPEAR'),false);
+ assert.equal(JSON.stringify(report).includes('h-other'),false);
+ assert.equal(state.records[0].hive,'h-other','audit may not normalize or mutate historical records');
+});
+test('same-family same-hive and unavailable historical family remain backwards compatible',()=>{
+ const same=auditPasekaJsonTransfer(exportJson);
+ assert.equal(same.status,'JSON_STATE_PREFLIGHT_ONLY');
+ assert.ok(!same.warnings.some(w=>/family and hive association differ/.test(w)));
+ const missing=auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,
+  records:[{...note('archived'),family:'former-family',familySnapshotAtTime:{name:'Archived'}}]
+ }});
+ assert.equal(missing.status,'REVIEW_REQUIRED');
+ assert.ok(missing.warnings.some(w=>/unavailable\/archived family/.test(w)));
+ assert.ok(!missing.warnings.some(w=>/family and hive association differ/.test(w)));
+});
