@@ -1,5 +1,10 @@
 # PROJECT_STATUS — Пасека 2.0
 
+## 26.11.2026 · B06 модель пчёл — F0–F2
+
+[Исследование V0–V2](docs/VIDEO-V0-V2-PERMISSIVE-DETECTOR-FEASIBILITY-2026-11-26.md): Mendeley v6 bbox (по #290 93 проверенные пары, 3 неправильных labels; CC BY 4.0 по прошлой проверке, direct license snapshot v6 проверить вновь). Предпочтителен собственный bee-detector на Apache-licensed LiteRT/TFLite pipeline, но upstream право на **конкретные pretrained weights** не подтверждено, нужна независимость source-video и GT событий IN/OUT. Никаких весов не скачивали, real inference не выполняли, #442 FROZEN. Восстановление и автоудаление вне области этого этапа.
+
+
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
