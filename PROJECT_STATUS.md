@@ -5,9 +5,9 @@
 ## Текущее — B01, 25.11.2026
 - **P0 #512 MERGED** в `main=346b35035861257be45dae93ee0573cbd4de9082`: удаление/перезапись оригиналов видео и всей базы заблокировано. OnePlus APK неизменен.
 - **B01 — физический OnePlus, частичный PASS:** рабочий WebView `paseka-v1`, readonly-экспорт **299687 байт**, v3, хранилища `main=1`, `full_backup=1`, `entrance_media=0`; независимый ПК file/payload SHA256 **MATCH** и empty in-memory IndexedDB restore → close/reopen → **all store bytes PASS**, пользовательский `PASEKA_B01_REPORT: EXACT_ARCHIVE_REOPEN_BYTES_VERIFIED`. Исходные телефон/архив неизменны; private data не переданы. Это **не** реальный Android restore/rollback.
-- **Видео и B01:** `index.html`: `input type=file accept=video/* capture=environment` → `putEntranceVideo` → `entrance_media.add`. Ноль IndexedDB-записей не исключает системные Gallery/MediaStore. Неизвестны источник, принадлежность и расположение внешних оригиналов. **Внешние видео / Android restore NOT_TESTED**; не сканировать всю личную медиатеку без привязки к источнику.
+- **Видео и B01:** `index.html`: `input type=file accept=video/* capture=environment` → `putEntranceVideo` → `entrance_media.add`. **Отдельное пользовательское подтверждение 25.11.2026:** видео летков для «Пасеки» на OnePlus ещё не снимались. В сочетании с `entrance_media=0` известных видео летков к резервированию **нет для текущего снимка**. Это не утверждение о пустой Gallery/MediaStore; не сканировать личную галерею. При будущей съёмке повторно учесть все оригиналы. **Android restore/rollback NOT_TESTED**.
 - **B05:** сертификат APK ранее подтверждён V5; CI debug signer другой, постоянный приватный ключ/rollback неизвестны. APK install, production restore/release и cleanup запрещены; **#442 FROZEN**.
-- [Draft #524](https://github.com/250oisr-eng/Pasekaapp/pull/524) — CI-проверенный код isolated restore, без merge; [Draft #528](https://github.com/250oisr-eng/Pasekaapp/pull/528) — новые физические доказательства в комментариях; **#533 — только Draft governance**, без merge. Следующий этап: source-linked определение внешних оригиналов; при наличии — отдельные byte-проверенные копии. Ускорение NOT_MEASURED.
+- [Draft #524](https://github.com/250oisr-eng/Pasekaapp/pull/524) — CI-проверенный код isolated restore, без merge; [Draft #528](https://github.com/250oisr-eng/Pasekaapp/pull/528) — новые физические доказательства в комментариях; **#533 — только Draft governance**, без merge. Следующий этап: доказать независимую защищённую копию архива и восстановление только в изолированной Android-среде, не на OnePlus. Ускорение NOT_MEASURED.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
@@ -25,7 +25,7 @@
 
 ## Нерешённые блокеры
 
-- **B01 P0 — PARTIAL/EXTERNAL_MEDIA_BLOCKED:** реальный полный IndexedDB v3 экспорт и независимый пустой in-memory restore/reopen/byte proof PASS по отчёту владельца 25.11.2026; системные Gallery/MediaStore оригиналы и реальное Android восстановление NOT_TESTED. Не объявлять fullBackupVerified.
+- **B01 P0 — PARTIAL/EXTERNAL_MEDIA_BLOCKED:** реальный полный IndexedDB v3 экспорт и независимый пустой in-memory restore/reopen/byte proof PASS по отчёту владельца 25.11.2026; владелец подтвердил отсутствие снятых для «Пасеки» видео летков; Gallery целиком не проверялась и не нужна для этого вывода. Реальное Android восстановление NOT_TESTED. Не объявлять fullBackupVerified.
 - **B04/B05 P0 — BLOCKED:** реальный signing fingerprint установленного `ru.paseka.journal` и постоянный приватный ключ не подтверждены; **Draft #469** остаётся частично неперенесённым. Прямой APK upgrade запрещён до B01 backup, восстановления и rollback.
 - **B06/B10 — FROZEN #442:** лицензированные веса, реальный детектор пчёл/видеоконвейер и доказательное удаление оригиналов не подтверждены. Оригиналы **не удалять**.
 - **P1 OP01–14/B11 — NOT_VERIFIED:** новый многосекционный профиль и физический OP13/CAS не активировать; холодный offline и обновление на реальном OnePlus не проверены. Не смешивать новую технологию с Farrar.
