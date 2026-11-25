@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "repository": "250oisr-eng/Pasekaapp",
+  "purpose": "Read-only exact-HEAD Draft CI inventory, never merge/deploy proof",
+  "targetPulls": [
+    {
+      "number": 512,
+      "scope": "P0-original-immutability",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 511,
+      "scope": "P2-metadata-cursor",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 514,
+      "scope": "P1-video-selection",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 518,
+      "scope": "P0-P2-video-composed-synthetic",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 515,
+      "scope": "B11-partial-shell",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 530,
+      "scope": "B11-versioned-offline-shell",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 510,
+      "scope": "P2-journal-filter",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 531,
+      "scope": "P2-journal-index",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 516,
+      "scope": "P1-json-cross-hive",
+      "requiredChecks": [
+        "build",
+        "governance"
+      ]
+    },
+    {
+      "number": 524,
+      "scope": "B01-ephemeral-archive",
+      "requiredChecks": [
+        "build",
+        "governance",
+        "windows-offline-kit"
+      ]
+    },
+    {
+      "number": 529,
+      "scope": "docs-review",
+      "requiredChecks": [
+        "governance"
+      ]
+    }
+  ],
+  "meaningOfPass": "Only exact-head code CI; composed cross-branch runtime, phone and release require separate proof",
+  "phoneActionsRequiredNow": 0
+}
