@@ -87,6 +87,8 @@ try{
  $r.publicTar=$data.publicTar
  $r.publicTarBytes=$data.publicTarBytes
  $r.publicTarModulo512=$data.publicTarModulo512
+ $r.privateTar=$data.privateTar
+ $r.privateTransport=$data.privateTransport
  $r.stage='FINAL_CLASSIFICATION'
  if($data.status -eq 'CANDIDATE_ONLY' -and
     $data.privateTransport -eq 'EXEC_OUT' -and
