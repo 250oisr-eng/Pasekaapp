@@ -32,9 +32,8 @@
 
 ## Следующий безопасный этап
 
-- **V20 IMPLEMENTED_DRAFT — emulator-only guarded transfer:** [Draft #523](https://github.com/250oisr-eng/Pasekaapp/pull/523) теперь содержит бинарный TAR stream в `run-as` диагностического APK на строгом AVD `PASEKA_B01_ISOLATED_*`, SHA-256 readback каждого файла, portable Windows-пакет (Node/ADB/aapt/APK), optional AVD bootstrap и negative tests для физического устройства. Без загрузки приватных данных. **Windows bundle и Node mock tests SUCCESS** в CI #45609310937 (код SHA `ac4a99ed...`), реальный CI-эмулятор ещё выполняется; **физическое OnePlus→emulator IndexedDB reopen NOT_TESTED**. Видео основного приложения сохраняются Blob в IndexedDB `entrance_media`: при будущей проверке необходимо доказать сохранность этих Blob отдельно от record counts.
-1. **Следующий B01 gate:** [Draft #523](https://github.com/250oisr-eng/Pasekaapp/pull/523) создаёт изолированный Android **эмуляторный диагностический** APK с отдельным appId, нативным запретом на физическом телефоне и read-only IndexedDB open/count. Code SHA `80c11cce88dcd0a19540eebee8e7d623eba74520`: diagnostic CI #45607669397 и обычная Android CI #45607669395 SUCCESS; диагностический artifact #15018781489. **APK сборка ≠ фактический restore.** Без проверенного копирования профиля только в пустой эмулятор реальный V19 NOT_TESTED; не пытаться переносить файлы вручную.
-2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
-3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
+1. Пользователь (Windows 11 + уже работающий отдельный AVD) загружает **новый** Windows V20 ZIP из [успешного run #45619544834](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45619544834), запускает `START-EMULATOR-V20.cmd` только на `PASEKA_B01_ISOLATED_*`. Передаёт **только** обезличенный `B01-RESULT.json`; устаревшие ZIP не смешивать.
+2. Если SHA-256 файла-копии PASS, запустить диагностический APK **в эмуляторе** и собрать read-only WebView `paseka-v1` open/count. Blob и Gallery/MediaStore требуют дополнительного независимого доказательства.
+3. Не устанавливать APK на OnePlus и не удалять оригиналы; параллельно продолжать source-bound review P1 Draft PR, без активации OP11–14 в live UI.
 
-**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный CI не равен физическому испытанию.
+**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный синтетический CI ≠ пользовательский restore.
