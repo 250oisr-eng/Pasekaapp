@@ -122,3 +122,22 @@ test('absent hive link is not silently accepted because family belongs to existi
  assert.equal(result.status,'REVIEW_REQUIRED');
  assert.ok(result.warnings.some(w=>/historical association/.test(w)));
 });
+
+test('known family without current hive cannot prove a historical record location',()=>{
+ const unassigned={...family,hive:null};
+ const row=note('historical-family-location');
+ const raw={...exportJson,state:{...exportJson.state,families:[unassigned],records:[row]}};
+ const before=JSON.stringify(raw);
+ const result=auditPasekaJsonTransfer(raw,{hives:1,families:1,records:1});
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/no hive assignment for record at row 0/.test(w)));
+ assert.doesNotMatch(JSON.stringify(result),/historical-family-location|PRIVATE TEXT|f-first|h-first/);
+ assert.equal(JSON.stringify(raw),before);
+});
+test('unknown historical family already produces only the existing missing-family warning',()=>{
+ const raw={...exportJson,state:{...exportJson.state,records:[{...note('historical'),family:'not-in-current-catalog'}]}};
+ const result=auditPasekaJsonTransfer(raw);
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/unavailable\/archived family/.test(w)));
+ assert.ok(!result.warnings.some(w=>/no hive assignment for record/.test(w)));
+});
