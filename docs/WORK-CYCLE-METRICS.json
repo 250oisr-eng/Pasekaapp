@@ -136,6 +136,22 @@
       "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
       "id": "b09-atomicity-20261124-pr476"
+    },
+    {
+      "id": "b01-oneplus-shellv2-v9-20261125-pr522",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/522",
+      "codeSha": "c4eeb62c1a6d2a5566646a16fee4752b67c99195",
+      "ciRuns": [
+        {"id": 45575794159, "conclusion": "failure", "kind": "windows-mock-initial-source-path"},
+        {"id": 45575886776, "conclusion": "success", "kind": "windows-powershell-synthetic"},
+        {"id": 45575877666, "conclusion": "success", "kind": "fast-quality"},
+        {"id": 45575886737, "conclusion": "cancelled", "kind": "android"}
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Eight Windows PowerShell 5.1 mock ADB cases, no real OnePlus, no private TAR or independent restore. Windows mock first CI failed because synthetic C# compiler received relative source path; corrected. Physical B01 remains BLOCKED."
     }
   ],
   "evaluation": {
