@@ -140,12 +140,14 @@ test('B09 openDB closes and clears active handle on version change',async()=>{
  const opened={objectStoreNames:{contains(){return true}},close(){closes++}};
  const request={result:opened,error:null};
  const deps={indexedDB:{open(){return request}},DB:'b09-versionchange',STORE:'main',
-  BACKUP_STORE:'full_backup',db:null,isFreshDatabaseUpgrade:old=>old===0};
+  BACKUP_STORE:'full_backup',db:null,isFreshDatabaseUpgrade:old=>old===0,
+  startupWriteGate:{ready:true},showStartupFailure(){} };
  const pending=load('openDB',deps)();
  request.onsuccess();
  assert.equal(await pending,false,'existing schema must not be treated as fresh');
  assert.equal(deps.db,opened);
  opened.onversionchange();
+ assert.equal(deps.startupWriteGate.ready,false,'version change must block all future writes');
  assert.equal(closes,1);
  assert.equal(deps.db,null,'invalidated handle must not be reused');
 });
