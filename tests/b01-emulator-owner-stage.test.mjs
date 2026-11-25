@@ -10,6 +10,8 @@ const valid=(argv)=>{
  if(cmd.endsWith('getprop ro.kernel.qemu'))return '1\n';
  if(cmd.endsWith('getprop ro.build.version.sdk'))return '35\n';
  if(cmd.includes('pm path'))return 'package:/data/app/ru.paseka.journal.disasterproof2-123/base.apk\n';
+ if(cmd.endsWith('settings get global airplane_mode_on'))return '1\n';
+ if(cmd.endsWith('shell ip route'))return '10.0.2.0/24 dev eth0\n';
  throw Error('unexpected adb command in preflight test: '+cmd);
 };
 test('emulator-only guard uses explicit serial and requires qemu/API35/test package',()=>{
@@ -17,6 +19,8 @@ test('emulator-only guard uses explicit serial and requires qemu/API35/test pack
  assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('ro.kernel.qemu')?'0':valid(a)),/TARGET_NOT_EMULATOR/);
  assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('ro.build.version.sdk')?'34':valid(a)),/ANDROID_API_NOT_35/);
  assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('pm path')?'':valid(a)),/DIAGNOSTIC_PACKAGE_NOT_INSTALLED/);
+ assert.throws(()=>inspectEmulator(a=>a.join(' ').includes('airplane_mode_on')?'0':valid(a)),/EMULATOR_AIRPLANE_MODE_REQUIRED/);
+ assert.throws(()=>inspectEmulator(a=>a.join(' ').endsWith('shell ip route')?'default via 10.0.2.2 dev eth0':valid(a)),/EMULATOR_NETWORK_ROUTE_PRESENT/);
 });
 test('real-PC archive gating fails closed when source is absent',async()=>{
  const root=await mkdtemp(join(tmpdir(),'b01-emulator-test-'));

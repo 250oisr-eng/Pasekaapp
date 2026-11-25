@@ -44,6 +44,9 @@ export function inspectEmulator(run){
  ensure(sdk==='35','ANDROID_API_NOT_35');
  const pkg=args('-s',SERIAL,'shell','pm','path',PACKAGE);
  ensure(pkg.includes('package:')&&pkg.includes(PACKAGE),'DIAGNOSTIC_PACKAGE_NOT_INSTALLED');
+ ensure(args('-s',SERIAL,'shell','settings','get','global','airplane_mode_on')==='1','EMULATOR_AIRPLANE_MODE_REQUIRED');
+ const routes=args('-s',SERIAL,'shell','ip','route');
+ ensure(!/(^|\n)\s*default\b/i.test(routes),'EMULATOR_NETWORK_ROUTE_PRESENT');
  return true;
 }
 export async function runGate({root,mode,run}){
