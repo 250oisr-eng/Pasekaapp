@@ -77,5 +77,19 @@ jobs:
             npm-${{ runner.os }}-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Run complete regression suite
-        run: npm test
+      - name: Run complete regression suite (retain synthetic TAP evidence)
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee qa-comprehensive.tap
+      - name: Classify comprehensive QA evidence and unresolved physical gates
+        if: always()
+        run: node scripts/comprehensive-qa.mjs --tap qa-comprehensive.tap
+      - name: Upload synthetic QA report only (no private files or raw test logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paseka-qa-synthetic-${{ github.sha }}
+          path: qa-results/comprehensive-report.json
+          if-no-files-found: warn
+          retention-days: 7
