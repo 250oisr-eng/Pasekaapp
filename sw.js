@@ -61,7 +61,9 @@ self.addEventListener('fetch',event=>{
   }
 
   const remember=response=>{
-    if(cacheableResponse(response)&&SHELL_PATHS.has(url.pathname)){
+    // Only the canonical, query-free shell paths may populate the shared offline cache.
+    // A request like index.html?token=... must not become an offline fallback.
+    if(cacheableResponse(response)&&SHELL_PATHS.has(url.pathname)&&!url.search){
       event.waitUntil(caches.open(CACHE).then(cache=>cache.put(request,response.clone())).catch(()=>{}));
     }
     return response;
