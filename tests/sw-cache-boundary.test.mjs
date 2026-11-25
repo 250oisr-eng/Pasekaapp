@@ -113,3 +113,16 @@ test('P1 SW never caches private or no-store app navigation',async()=>{
   assert.equal(response.status,200);
   assert.deepEqual(sw.writes,[]);
 });
+
+test('B11 SW never stores partial HTTP 206 or empty HTTP 204 shell responses',async()=>{
+ const h=harness({network:async request=>
+  request.url.endsWith('hive-model.js')
+   ?new Response('partial JS',{status:206,headers:{'content-range':'bytes 0-9/100'}})
+   :new Response(null,{status:204})
+ });
+ const partial=await h.fireFetch(scope+'js/hive-model.js');
+ const empty=await h.fireFetch(scope+'js/voice-session.js');
+ assert.equal(partial.status,206);
+ assert.equal(empty.status,204);
+ assert.deepEqual(h.writes,[],'no incomplete asset may be cached');
+});
