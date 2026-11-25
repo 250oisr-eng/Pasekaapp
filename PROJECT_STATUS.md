@@ -20,7 +20,7 @@
 
 - **SUCCESS [CI #45619544834](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45619544834)** на **точном кодовом SHA `f82184b99bad1d1c3cf4b23a2a38416c4f045200`**: diagnostic APK build PASS, Windows portable kit PASS и **реальный аппаратно ускоренный Android 15 API 35 эмулятор** PASS для потока синтетических LevelDB-заглушек через ADB `exec-in/run-as/tar` и полного SHA-256 readback. Предыдущие failures: CI KVM, потеря переменных при `/usr/bin/sh -c` и смешанный код ошибки SHA; всё исправлено, не маскировалось.
 - Доступен Windows zip-артефакт **`PASEKA-B01-ISOLATED-EMULATOR-TRANSFER-V20`**, ID `15023179533`, ~37.4 MB, из того же успешного run. Пользователь подтвердил, что на Windows 11 установлен Android Studio Rabbit 2 и **свежий виртуальный телефон успешно запустился**; его автоматизированный перенос **реальной** V16 копии ещё не выполнялся.
-- **Следующий единственный real-data gate:** пользователь скачивает **только новый CI-пакет** с run #45619544834, распаковывает в новую папку и запускает `START-EMULATOR-V20.cmd` на единственном новом AVD с именем `PASEKA_B01_ISOLATED_*`; затем передаёт только обезличенный `B01-RESULT.json`. При SHA PASS — вручную внутри отдельного APK выполнить WebView read-only `paseka-v1` reopen/count и передать обезличенный экран/JSON. Указанные действия не эквивалентны полному restore: значения/Blob, Gallery/MediaStore и полнота видео не проверены.
+- **DEVICE_USER_REPORTED_PASS (B01 V20):** получен обезличенный `B01-RESULT(4).json`: `EMULATOR_ISOLATED_FILE_IMPORT_SHA_PASS_NOT_DB_RESTORE`, `ISOLATED_DIAGNOSTIC_FILE_BYTES_MATCH`, **6/6 SHA-256**, 578794 B, `sourceFilesModified=NO`, `physicalOnePlusAccess=NOT_ATTEMPTED`. Это отчёт пользователя с его локального Windows 11; независимая проверка исходных байтов недоступна. **Следующий gate:** внутри *уже существующего* изолированного AVD нажать `Проверить базу только для чтения` в диагностическом APK и передать только обезличенный JSON/screenshot. Значения/Blob, Gallery/MediaStore и полнота видео не проверены.
 - До physical evidence **B01 FULL_RESTORE_BLOCKED**, видео #442 **FROZEN**; никакого APK upgrade, OnePlus install/write, удаления исходников, merge или deploy.
 
 ## Нерешённые блокеры
@@ -32,8 +32,8 @@
 
 ## Следующий безопасный этап
 
-1. Пользователь (Windows 11 + уже работающий отдельный AVD) загружает **новый** Windows V20 ZIP из [успешного run #45619544834](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45619544834), запускает `START-EMULATOR-V20.cmd` только на `PASEKA_B01_ISOLATED_*`. Передаёт **только** обезличенный `B01-RESULT.json`; устаревшие ZIP не смешивать.
-2. Если SHA-256 файла-копии PASS, запустить диагностический APK **в эмуляторе** и собрать read-only WebView `paseka-v1` open/count. Blob и Gallery/MediaStore требуют дополнительного независимого доказательства.
+1. **V20 реальный перенос пользовательского IndexedDB file-set: DEVICE_USER_REPORTED_PASS (6/6 SHA-256, 578794 B)**; не повторять перенос и не переустанавливать приложение в использованном AVD.
+2. Запустить установленный диагностический APK **в том же эмуляторе** и выполнить read-only WebView `paseka-v1` open/count; передать только обезличенный результат. Blob и Gallery/MediaStore остаются за отдельным gate.
 3. Не устанавливать APK на OnePlus и не удалять оригиналы; параллельно продолжать source-bound review P1 Draft PR, без активации OP11–14 в live UI.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный синтетический CI ≠ пользовательский restore.
