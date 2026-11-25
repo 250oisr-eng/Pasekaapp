@@ -36,3 +36,16 @@ Downloads, Android external app files, other web origins, backups on the phone,
 and recovery keys are not proven included. No restore has been tested.
 Even a valid TAR is a CANDIDATE, not a full independent backup.
 No install, force-stop, clear, restore, app writes, delete or remote capture.
+
+V9.1 DIAGNOSTIC CORRECTION (25 NOV 2026)
+The user V9 report failed before device identification: adb 1.0.41 was found,
+but the script emitted only ADB_READONLY_COMMAND_FAILED and no TAR tests ran.
+This was insufficient to identify which preflight command failed.
+V9.1 records fixed probe IDs, numeric exit code and a REDACTED stderr class,
+never stderr contents, serials, TAR member paths or app data.
+If the FIRST `adb devices -l` returns exit 0 plus ONLY the canonical host
+ADB server-started banner, exactly one clean `adb devices -l` retry is
+allowed. Any other stderr/nonzero exit/repeated startup still BLOCKS.
+This is a bounded host-startup exception, NOT permission to ignore TAR
+stderr or remote errors. On error share only b01-v9-result.json.
+The JSON has scriptRevision=v9.1-adb-host-startup-diagnostics.
