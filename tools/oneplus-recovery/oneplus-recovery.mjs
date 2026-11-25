@@ -3,7 +3,7 @@
 import {spawn,execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFile,writeFile,stat} from 'node:fs/promises';
-import {resolve,dirname,basename} from 'node:path';
+import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const HERE=dirname(fileURLToPath(import.meta.url));
 export const PACKAGE='ru.paseka.journal.disasterproof2';
@@ -100,7 +100,7 @@ async function run(){
  if(!result.includes('Success'))throw error('DIAGNOSTIC_INSTALL_FAILED');
  const start=()=>command(adb,['-s',serial,'shell','am','start','-n',PACKAGE+'/.MainActivity'],30000);
  await liveLogProof(adb,serial,FIRST,start);
- // Force-stop only the distinct test package; never reboot or reset the phone.
+ // Force-stop only the distinct test package; never restart the whole phone or reset its storage.
  await command(adb,['-s',serial,'shell','am','force-stop',PACKAGE]);
  await liveLogProof(adb,serial,SECOND,start);
  return {status:'PASS',code:'ONEPLUS_SYNTHETIC_WEBVIEW_RESTORE_AND_RESTART',deviceClass:'ONEPLUS_NE221X',androidApiAtLeast35:true,
