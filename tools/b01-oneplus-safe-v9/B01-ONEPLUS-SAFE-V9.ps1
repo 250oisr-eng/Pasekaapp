@@ -363,6 +363,7 @@ try {
     # V14 real OnePlus public proof: adb shell introduced 2 bytes; exec-out preserved binary blocks.
     # This capture is only after user typed CAPTURE and a matching exec-out public preflight passed.
     $report.privateTransport='EXEC_OUT'
+    $report.privateTar='ATTEMPTED_UNVERIFIED'
     Save-Report
     $private=GrabTar ('-s '+$script:serial+' exec-out run-as '+$pkg+' tar -cf - .') $name 'PRIVATE'
     if(-not (Is-AppStopped)) { Fail 'PROCESS_STARTED_DURING_PRIVATE_CAPTURE' }
