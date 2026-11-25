@@ -75,7 +75,7 @@ jobs:
           import {readFile} from 'node:fs/promises';
           const config=JSON.parse(await readFile('capacitor.config.json','utf8'));
           const html=await readFile('www/index.html','utf8');
-          if(config.appId!=='ru.paseka.journal.disasterproof2'||!html.includes('disaster-phone-proof.js')){
+          if(config.appId!=='ru.paseka.journal.disasterproof2'||!html.includes('disaster-phone-proof.js')||!html.includes('b01-owner-archive.js')){
             throw Error('Production package collision or missing proof injection');
           }
           console.log('PASS: isolated applicationId, test runner bundled, no production install');
