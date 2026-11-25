@@ -35,6 +35,7 @@ set "result=%ERRORLEVEL%"
 echo.
 echo Only send the most recent report from PASEKA-CHECK-REPORTS.
 echo Never send the original archive or private files.
+if /i "%PASEKA_PHYSICAL_CI_TEST%"=="1" exit /b %result%
 if exist "PASEKA-CHECK-REPORTS" start "" explorer.exe "%~dp0PASEKA-CHECK-REPORTS"
 pause
 exit /b %result%
