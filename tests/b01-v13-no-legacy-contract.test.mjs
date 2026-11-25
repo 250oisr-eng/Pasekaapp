@@ -54,3 +54,12 @@ test('new policy explicitly treats previous tests as deleted and requires autono
   assert.match(rules,/Максимальная автономия работы/);
   assert.doesNotMatch(rules,/расширить поиск по разрешённым локальным фиксированным дискам/);
 });
+
+test('V13 explicit fail-closed public diagnostics never yield backup success',()=>{
+  assert.match(v13,/Stop-Test 'PUBLIC_DIAGNOSTIC_RESULT_MISSING'/);
+  assert.match(v13,/Stop-Test 'UNEXPECTED_BUNDLED_COMPONENT_REVISION'/);
+  assert.match(v13,/Stop-Test 'PUBLIC_FORENSICS_REPORT_MISSING'/);
+  assert.match(v13,/Stop-Test 'PUBLIC_COMPONENT_VALIDATION_CONTRADICTION'/);
+  assert.match(v13,/PUBLIC_TAR_VALID_BACKUP_NOT_VERIFIED/);
+  assert.match(readme,/Full backup and independent restore remain NOT_VERIFIED/);
+});
