@@ -267,6 +267,7 @@ function GrabTar([string]$argsLine,[string]$fileName,[string]$kind) {
 }
 try {
     Save-Report
+    if($PublicTransport -eq 'EXEC_OUT' -and -not $PublicOnly) { Fail 'EXEC_OUT_PUBLIC_ONLY' }
     $script:adb=Find-ModernAdb
     $version=SafeText 'version' 'ADB_VERSION'
     $m=[regex]::Match($version,'Android Debug Bridge version\s+(\d+)\.(\d+)\.(\d+)')
