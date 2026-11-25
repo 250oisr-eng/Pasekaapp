@@ -15,7 +15,9 @@ test('B01 V9 requires recent host adb and shell v2 with separated stdout/stderr'
   assert.match(ps,/StandardOutput\.BaseStream\.Read/);
   assert.match(ps,/SHELL_V2_NOT_NEGOTIATED/);
   assert.match(ps,/ADB_TOO_OLD/);
-  assert.doesNotMatch(ps,/exec-out|\sshell\s-T\b/i);
+  assert.doesNotMatch(ps,/\sshell\s-T\b/i);
+  assert.match(ps,/EXEC_OUT_PUBLIC_ONLY/);
+  assert.match(ps,/\$transport=if\(\$PublicTransport -eq 'EXEC_OUT'\)/);
 });
 test('B01 V9 requires public TAR before private read',()=>{
   const pub=ps.indexOf("$report.stage='PUBLIC_TAR_GATE'");
