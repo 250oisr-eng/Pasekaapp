@@ -31,7 +31,7 @@ function env() {
   const deps = { S:{records,families:[{id:'f1',name:'Family 1'},{id:'f2',name:'Family 2'}]},
     activeJournalHive:'h1', $:id=>els[id]||null, renderFeedingLedger(){},
     safe, recordFamilyHtml:()=>'', recordExtraHtml:()=>'', mediaHtml:()=>'' };
-  return { records,els,render:load(deps) };
+  return { records,els,deps,render:load(deps) };
 }
 test('selected hive filtering and ordering preserve persistent original records',()=>{
  const {records,els,render}=env();
@@ -78,4 +78,24 @@ test('journal reads only selected rows for sorting without sorting unfiltered hi
  assert.match(source,/const rows=activeJournalHive\?available:\[\];/);
  assert.match(source,/\}\)\.sort\(\(a,b\)=>String\(b\.date\|\|''\)/);
  assert.doesNotMatch(source,/available\.filter\([^\n]+\)\.sort\(/);
+});
+
+test('family-name search and family dropdown use indexed lookup without repeated array.find',()=>{
+ const {els,deps,render}=env();
+ deps.S.families.find=()=>{throw Error('linear family scan forbidden')};
+ els.journalSearch.value='family 1';
+ assert.doesNotThrow(render);
+ assert.match(els.records.innerHTML,/data-record-id="a"/);
+ assert.match(els.records.innerHTML,/data-record-id="b"/);
+ assert.doesNotMatch(els.records.innerHTML,/data-record-id="c"/);
+ assert.match(els.journalFamilyFilter.innerHTML,/Family 1/);
+});
+test('archived family snapshot remains searchable when current family lookup has no match',()=>{
+ const {els,deps,records,render}=env();
+ deps.S.families=deps.S.families.filter(f=>f.id!=='f2');
+ records[3].familySnapshotAtTime={name:'Историческая семья'};
+ els.journalSearch.value='историческая семья';
+ assert.doesNotThrow(render);
+ assert.match(els.records.innerHTML,/data-record-id="c"/);
+ assert.equal(els.journalResultCount.textContent,'1 из 3 записей');
 });
