@@ -47,6 +47,11 @@ function extractFunction(name) {
 function loadFunction(name, globals = {}) {
   const source = extractFunction(name);
   const deps = globals;
+  // Standalone regression handlers represent a previously verified bootstrap.
+  // Dedicated first-launch tests exercise ready=false and abort paths separately.
+  deps.startupWriteGate ||= {ready:true};
+  deps.rejectWhileStartupNotReady ||= ()=>deps.startupWriteGate.ready?null:Object.assign(new Error('Startup not complete'),{name:'PasekaStartupBlockedError'});
+  deps.showStartupFailure ||= ()=>{};
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   deps.window ||= appWindow;
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
