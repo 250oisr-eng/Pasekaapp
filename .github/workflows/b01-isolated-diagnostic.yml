@@ -6,6 +6,7 @@ on:
       - "tools/b01-isolated-diagnostic/**"
       - "tests/b01-isolated-diagnostic.test.mjs"
       - "tests/b01-emulator-transfer.test.mjs"
+      - "tools/b01-isolated-diagnostic/ci-real-adb-smoke.mjs"
       - ".github/workflows/b01-isolated-diagnostic.yml"
   workflow_dispatch:
 
@@ -130,3 +131,41 @@ jobs:
           path: v20-windows/*
           if-no-files-found: error
           retention-days: 7
+
+  emulator-transport-smoke:
+    # Synthetic-only, no real user files; runs on PR updates and never touches OnePlus.
+    needs: diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: PASEKA-B01-EMULATOR-ONLY-INDEXEDDB-DIAGNOSTIC
+          path: diagnostic-apk
+      - name: Boot isolated AVD and verify actual binary ADB transport with synthetic data
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          avd-name: PASEKA_B01_ISOLATED_CI
+          force-avd-creation: true
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot-save
+          script: |
+            set -eu
+            test -f diagnostic-apk/app-debug.apk
+            adb_bin="$ANDROID_HOME/platform-tools/adb"
+            aapt_bin="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt -type f | sort -V | tail -n 1)"
+            test -x "$adb_bin"
+            test -x "$aapt_bin"
+            B01_CI_ADB="$adb_bin" B01_CI_AAPT="$aapt_bin" B01_CI_APK="$GITHUB_WORKSPACE/diagnostic-apk/app-debug.apk" node tools/b01-isolated-diagnostic/ci-real-adb-smoke.mjs
