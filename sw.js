@@ -50,6 +50,9 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
   const request=event.request;
   if(request.method!=='GET')return;
+  // Never substitute or cache shared offline shell for explicitly private, authorized,
+  // byte-range or no-store requests, even when the URL matches an allowlisted path.
+  if(request.headers?.has?.('authorization') || request.headers?.has?.('range') || request.cache==='no-store')return;
   const url=new URL(request.url);
   // Never intercept third-party traffic, other applications on this origin, or user data APIs.
   if(url.origin!==SCOPE.origin)return;
