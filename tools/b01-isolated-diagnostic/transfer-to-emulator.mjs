@@ -169,8 +169,8 @@ export async function executeIsolatedTransfer({persistentRoot,adb,apk,aapt,dryRu
   galleryMediaStore:'NOT_TESTED',videoCleanup:'NOT_ATTEMPTED'
  };
  if(dryRun)return report;
- const installed=adbSync(spawnSyncFn,adb,serial,'install','--no-streaming',apk);
- if(!/Success/.test(installed))refuse('EMULATOR_INSTALL_NOT_CONFIRMED');
+ const installResult=adbSync(spawnSyncFn,adb,serial,'install','--no-streaming',apk);
+ if(!/Success/.test(installResult))refuse('EMULATOR_INSTALL_NOT_CONFIRMED');
  await transmitTar(adb,serial,src.members,{spawnFn});
  for(const member of src.regular) {
   // Real data never leaves the diagnostic app sandbox; only digest is returned.
