@@ -230,19 +230,71 @@ jobs:
           }
           Remove-Item Env:B01_MOCK_MODE
 
-      - name: Stage and checksum independent single-launch V13 user ZIP
+          # V14 controlled transport comparison in CLEAN folders, no previous tests.
+          foreach($case in @(
+            @{mode='PASS';code='SHELL_PUBLIC_TAR_VALID_NO_PRIVATE_BACKUP';shell='HEADER_AND_EOF_STRUCTURALLY_PLAUSIBLE';exec='NOT_TESTED'},
+            @{mode='BAD_HEADER';code='BOTH_PUBLIC_TRANSPORTS_FAILED_CLASSIFIED';shell='BAD_HEADER';exec='BAD_HEADER'},
+            @{mode='SHELL_EMPTY_TAR_EXEC_VALID';code='SHELL_FAILED_EXEC_OUT_PUBLIC_TAR_VALID';shell='EMPTY_TAR_EOF_PLUS_UNALIGNED_TRAILER';exec='HEADER_AND_EOF_STRUCTURALLY_PLAUSIBLE'},
+            @{mode='BOTH_PUBLIC_EMPTY_TAR';code='BOTH_PUBLIC_TRANSPORTS_FAILED_CLASSIFIED';shell='EMPTY_TAR_EOF_PLUS_UNALIGNED_TRAILER';exec='EMPTY_TAR_EOF_PLUS_UNALIGNED_TRAILER'},
+            @{mode='OLD_ADB';code='ADB_TOO_OLD';shell='NOT_TESTED';exec='NOT_TESTED'}
+          )){
+            $fresh=Join-Path $env:RUNNER_TEMP ('b01-v14-clean-'+$case.mode)
+            [void][IO.Directory]::CreateDirectory($fresh)
+            foreach($name in @('RUN-ONEPLUS-UNIFIED-V14.ps1','B01-ONEPLUS-SAFE-V9.ps1','B01-PUBLIC-TAR-FORENSIC-V10.ps1')){
+              Copy-Item -LiteralPath (Join-Path 'tools/b01-oneplus-safe-v9' $name) -Destination $fresh
+            }
+            $mock=Join-Path $fresh 'platform-tools'
+            [void][IO.Directory]::CreateDirectory($mock)
+            Copy-Item -LiteralPath (Join-Path $sandbox 'platform-tools/adb.exe') -Destination $mock
+            Copy-Item -LiteralPath (Join-Path $sandbox 'platform-tools/AdbWinApi.dll') -Destination $mock
+            $env:B01_MOCK_MODE=$case.mode
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-UNIFIED-V14.ps1') | Out-Null
+            $file=Join-Path $fresh 'B01-RESULT.json'
+            if(-not [IO.File]::Exists($file)){throw "V14 missing one root final report ($($case.mode))"}
+            $r=Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
+            Write-Host ("V14 $($case.mode): $($r.status) $($r.code) SHELL=$($r.shell.structure) EXEC=$($r.execOut.structure)")
+            if($r.schema -ne 'paseka-b01-independent-public-transport-v14' -or
+               $r.code -ne $case.code -or $r.shell.structure -ne $case.shell -or
+               $r.execOut.structure -ne $case.exec) {
+              throw "V14 wrong transport diagnosis for $($case.mode)"
+            }
+            if($r.privateTar -ne 'NOT_ATTEMPTED' -or $r.fullBackupVerified -ne $false -or
+               $r.independentRestore -ne 'NOT_TESTED' -or $r.previousTestRequired -ne $false -or
+               $r.phoneWrites -ne 'NOT_ATTEMPTED' -or $r.install -ne 'NOT_ATTEMPTED' -or
+               $r.deleteOriginals -ne 'NOT_ATTEMPTED'){
+                throw "V14 unsafe or unjustified result for $($case.mode)"
+            }
+            if($case.mode -eq 'SHELL_EMPTY_TAR_EXEC_VALID' -and
+              ($r.shell.bytes -ne 1090 -or $r.shell.remainder512 -ne 66 -or
+               $r.shell.tailErrorLike -ne $true -or $r.execOut.status -ne 'PUBLIC_ONLY_PASS')){
+               throw 'V14 failed to diagnose synthetic shell-only 1090 byte diagnostic tail'
+            }
+            if($case.mode -eq 'BOTH_PUBLIC_EMPTY_TAR' -and
+              ($r.shell.bytes -ne 1090 -or $r.execOut.bytes -ne 1090)){
+               throw 'V14 failed to classify both malformed public transports'
+            }
+            # A re-run must not replace the existing user-facing final JSON.
+            $hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-UNIFIED-V14.ps1') | Out-Null
+            if((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ne $hash){
+              throw 'V14 overwrote its existing final report'
+            }
+          }
+          Remove-Item Env:B01_MOCK_MODE
+
+      - name: Stage independent V14 user bundle, validate five source file hashes
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $src='tools/b01-oneplus-safe-v9'
-          $dest='tools/b01-v13-bundle'
+          $dest='tools/b01-v14-bundle'
           [void][IO.Directory]::CreateDirectory($dest)
           $parts=@(
-            @{src='START-UNIFIED-V13.cmd';dest='START.cmd'},
-            @{src='RUN-ONEPLUS-UNIFIED-V13.ps1';dest='RUN-ONEPLUS-UNIFIED-V13.ps1'},
+            @{src='START-UNIFIED-V14.cmd';dest='START.cmd'},
+            @{src='RUN-ONEPLUS-UNIFIED-V14.ps1';dest='RUN-ONEPLUS-UNIFIED-V14.ps1'},
             @{src='B01-ONEPLUS-SAFE-V9.ps1';dest='B01-ONEPLUS-SAFE-V9.ps1'},
             @{src='B01-PUBLIC-TAR-FORENSIC-V10.ps1';dest='B01-PUBLIC-TAR-FORENSIC-V10.ps1'},
-            @{src='README-UNIFIED-V13.txt';dest='README.txt'}
+            @{src='README-UNIFIED-V14.txt';dest='README.txt'}
           )
           foreach($p in $parts){
             $from=Join-Path $src $p.src
@@ -250,19 +302,19 @@ jobs:
             Copy-Item -LiteralPath $from -Destination $to
             if((Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash -ne
                (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash){
-              throw "V13 bundled file hash mismatch: $($p.dest)"
+              throw "V14 package component hash mismatch: $($p.dest)"
             }
           }
-          $contents=@(Get-ChildItem -LiteralPath $dest -File)
-          if($contents.Count -ne 5){throw 'V13 must contain exactly 5 clean files'}
-          if(@($contents | Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
-            throw 'V13 artifact must not include phone data, result, TAR or APK'
+          $all=@(Get-ChildItem -LiteralPath $dest -File)
+          if($all.Count -ne 5){throw 'V14 package must contain 5 files'}
+          if(@($all | Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
+            throw 'V14 package includes user data or generated reports'
           }
 
-      - name: Upload independent V13 user test (only one ZIP)
+      - name: Upload ONE independent V14 user diagnostic ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V13
-          path: tools/b01-v13-bundle/*
+          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V14
+          path: tools/b01-v14-bundle/*
           if-no-files-found: error
           retention-days: 7
