@@ -6,7 +6,7 @@
 
 - **V5 physical OnePlus:** `PASS_APKSIGNER_VERIFY` установленного `ru.paseka.journal`, cert SHA-256 `9b10baf04e1e09bfe2d58e72b1c1eecf04b48f532940b5e91a3083bd73ddb0aa`; APK SHA-256 `a6e14157fcdce06885cb8c6a5ad55c8a76170c3fa4cefa234b1715d80865aec6`. B04 installed signer = DEVICE_USER_REPORTED_PASS; новый APK upgrade NOT_VERIFIED.
 - [Draft #519](https://github.com/250oisr-eng/Pasekaapp/pull/519): B05 local keystore entry digest comparison has five synthetic regression tests (Fast #45570755984 SUCCESS on code SHA e9b4baa2; final docs SHA 1bbeeb2b Android #45570818088 and Governance #45570818356 SUCCESS). Real original key NOT_FOUND/NOT_TESTED; certificate alone cannot recover private key.
-- **B05 остаётся BLOCKED:** нет доказанного доступного долгоживущего private signing key с backup и успешным подписанием независимого QA APK; `assembleDebug` не является proof. **B01 BLOCKED** full external backup/restore. #442 video cleanup FROZEN. Ни merge, ни release, ни OnePlus install.
+- **V6 PC read-only 07:54 UTC:** default `%USERPROFILE%\\.android\\debug.keystore` NOT_FOUND; другие пути/ключи не проверены. **B05 остаётся BLOCKED:** нет доказанного доступного долгоживущего private signing key с backup и успешным подписанием независимого QA APK; `assembleDebug` не является proof. **B01 BLOCKED** full external backup/restore. #442 video cleanup FROZEN. Ни merge, ни release, ни OnePlus install.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
