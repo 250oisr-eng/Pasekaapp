@@ -20,8 +20,8 @@ test('V12 is standalone one click, preserves old archives and reports',()=>{
 test('V12 expands read-only history search without remote roots or symlinks',()=>{
   assert.match(runner,/Build-SearchRoots/);
   assert.match(runner,/Build-FixedDriveRoots/);
-  assert.match(runner,/\\$script:scanned -ge 25000/);
-  assert.match(runner,/\\$watch.Elapsed.TotalSeconds -gt 90/);
+  assert.ok(runner.includes('$script:scanned -ge 25000'));
+  assert.ok(runner.includes('$watch.Elapsed.TotalSeconds -gt 90'));
   assert.match(runner,/DriveType\]::Fixed/);
   assert.match(runner,/User Shell Folders/);
   assert.match(runner,/Search-Roots @\(Build-FixedDriveRoots\)/);
@@ -30,10 +30,10 @@ test('V12 expands read-only history search without remote roots or symlinks',()=
   assert.match(runner,/FixedSearchRoots = @\(\)/);
 });
 test('V12 does not turn file absence into implied USB authorization',()=>{
-  assert.match(runner,/\\$answer -cne 'PUBLIC'/);
+  assert.ok(runner.includes("$answer -cne 'PUBLIC'"));
   assert.match(runner,/NO_PREVIOUS_TAR_PUBLIC_USB_NOT_APPROVED/);
   assert.match(runner,/if\(\$Mode -eq 'USB'\)/);
-  assert.match(runner,/\\$scriptPath -PublicOnly/);
+  assert.ok(runner.includes('$scriptPath -PublicOnly'));
   assert.match(runner,/USB_PRIVATE_GATE_VIOLATION/);
   assert.doesNotMatch(runner,/\bCAPTURE\b/);
   assert.match(v91,/param\(\[switch\]\$PublicOnly\)/);
@@ -51,5 +51,5 @@ test('V12 never asserts a full backup; final output path-free and private-free',
 });
 test('V12 primary PowerShell script compatible with Windows PowerShell 5.1 encoding',()=>{
   assert.ok([...runner].every(x=>x.charCodeAt(0)<128),'V12 source must be ASCII');
-  assert.match(runner,/\\[IO.FileInfo\]::new/);
+  assert.ok(runner.includes('[IO.FileInfo]::new'));
 });
