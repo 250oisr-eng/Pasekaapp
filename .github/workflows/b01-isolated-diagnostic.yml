@@ -121,6 +121,14 @@ jobs:
             Where-Object {$_.Extension -in @('.tar','.log','.ldb','.db','.json','.mp4','.jpg')}).Count -gt 0){
             throw 'V20 package unexpectedly contains data'
           }
+          foreach($name in @('START-EMULATOR-V20.ps1','CREATE-ISOLATED-AVD-V20.ps1')){
+            $tokens=$null;$errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path (Resolve-Path $folder).Path $name),[ref]$tokens,[ref]$errors)
+            if($errors.Count -ne 0){throw "V20 PowerShell parse errors in $name"}
+          }
+          & (Join-Path (Get-Location) 'v20-windows/aapt.exe') dump badging 'v20-windows/B01-diagnostic.apk' |
+            Select-String "package: name='ru.paseka.journal.diagnostic.restore'"
           & (Join-Path (Get-Location) 'v20-windows/node.exe') --version
           Write-Host 'V20_BINARIES_ONLY_NO_PRIVATE_DATA'
 
