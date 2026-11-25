@@ -8,12 +8,6 @@
 - [Draft #516](https://github.com/250oisr-eng/Pasekaapp/pull/516) detects cross-hive family mismatch in JSON without editing user records; [Draft #517](https://github.com/250oisr-eng/Pasekaapp/pull/517) discovers installed Android Studio Java for read-only APK certificate audit, **not** physical signer proof.
 - Current live main remains `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`. New Drafts not merged/released; B01/B04/B05 still blocked, video #442 FROZEN. No real phone/PC tests now.
 
-## Cross-PR P0/P2 check — Draft #513, 25.11.2026
-
-- [Draft #513](https://github.com/250oisr-eng/Pasekaapp/pull/513) is a **stacked test-only integration** on top of #512, using exactly the read-only metadata cursor from #511. No merge/release permitted automatically. A new fake-indexeddb regression verifies SHA-256 of a synthetic original after list, denied direct delete, and denied whole-db reset. Original media files not touched.
-- Source cross-PR code/test SHA `02fdc90c2747335844e4d4d08afca765d9d585da` Fast Quality #45565279763 SUCCESS; Governance #45565286208 SUCCESS; Android CI on exact SHA pending at this record. Historical first test-extraction FAIL fixed without loosening P0 guards.
-- B01 complete original backup and independent restore BLOCKED, B04/B05 signing BLOCKED, #442 real bee detection and cleanup FROZEN. No OnePlus/PC test required for this synthetic integration stage. User will be warned before any needed real device testing.
-
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
 - [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
