@@ -5,8 +5,8 @@
 ## Новая независимая проверка — Draft #517 (25.11.2026)
 
 - [Draft #517](https://github.com/250oisr-eng/Pasekaapp/pull/517): Windows Android Studio Java discovery. Code/test SHA `11c52d1e5ec9a49bee1afc9d1d5d00754a09fc76`, Fast #45568224253 SUCCESS; Governance #45568275138, Android #45568275099 проверять на точном SHA (не наследовать успех code SHA).
-- Изменение только в изолированной рабочей ветке, не в `main`; никакого изменения реального устройства, архивов или production. B01 полноценная копия/restore BLOCKED; B04/B05 signature/key BLOCKED до физического доказательства; #442 видео FROZEN.
-- Действие пользователя сейчас не требуется. О необходимости read-only проверки ПК/OnePlus сообщить отдельно после доступного инструмента; `apksigner` на данном физическом ПК ещё не подтверждён.
+- Изменение только в изолированной рабочей ветке, не в `main`; никакого изменения реального устройства, архивов или production. B01 полноценная копия/restore BLOCKED; B04 **installed signer DEVICE_USER_REPORTED_PASS V5**, B04 upgrade NOT_VERIFIED, B05 private signing key BLOCKED; #442 видео FROZEN.
+- Действие пользователя сейчас не требуется. V5 физически подтвердил `apksigner verify` на установленном APK: SHA-256 сертификата `9b10baf04e1e09bfe2d58e72b1c1eecf04b48f532940b5e91a3083bd73ddb0aa` (совпадает с V4), APK SHA-256 совпадает с V3. Повторный signer-тест не требуется; ключ для будущих обновлений не доказан.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
