@@ -354,38 +354,145 @@ jobs:
           }
           Remove-Item Env:B01_MOCK_MODE
 
-      - name: Stage one independent V15 candidate backup-preflight ZIP (no data)
+      - name: V16 offline PC-only TAR reconstruction - clean Windows PowerShell 5.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script='tools/b01-oneplus-safe-v9/RUN-ONEPLUS-UNIFIED-V16.ps1'
+          function Oct([byte[]]$b,[int]$start,[int]$width,[long]$n){
+            $str=[Convert]::ToString($n,8).PadLeft($width-1,'0')+([char]0)
+            $bytes=[Text.Encoding]::ASCII.GetBytes($str)
+            [Array]::Copy($bytes,0,$b,$start,$bytes.Length)
+          }
+          function MakeSynthetic([string]$name,[string]$kind='0'){
+            $b=New-Object byte[] 2048
+            $nameBytes=[Text.Encoding]::ASCII.GetBytes($name)
+            if($nameBytes.Length -ge 100){throw 'Synthetic path too long'}
+            [Array]::Copy($nameBytes,0,$b,0,$nameBytes.Length)
+            Oct $b 100 8 420
+            Oct $b 108 8 0
+            Oct $b 116 8 0
+            Oct $b 124 12 32
+            Oct $b 136 12 0
+            for($i=148;$i -lt 156;$i++){$b[$i]=32}
+            $b[156]=[byte][char]$kind
+            [byte[]]$data=[Text.Encoding]::ASCII.GetBytes('ORIGINAL-SYNTHETIC-32-BYTES-DATA!')
+            if($data.Length -ne 32){throw 'Synthetic payload length error'}
+            [Array]::Copy($data,0,$b,512,$data.Length)
+            $sum=[long]0
+            for($i=0;$i -lt 512;$i++){$sum += [long]$b[$i]}
+            Oct $b 148 8 $sum
+            return ,$b
+          }
+          $commonName='app_webview/Default/IndexedDB/synth.txt'
+          foreach($case in @(
+            @{name='GOOD';expected='CANDIDATE_SHA_AND_PC_BYTE_READBACK_PASS_ANDROID_RESTORE_NOT_TESTED'},
+            @{name='BAD_HASH';expected='CANDIDATE_SHA256_MISMATCH'},
+            @{name='TRAVERSAL';expected='TAR_UNSAFE_MEMBER_PATH'},
+            @{name='SYMLINK';expected='TAR_LINK_OR_SPECIAL_ENTRY_NOT_SAFE_FOR_PC_RECONSTRUCTION'},
+            @{name='BAD_HEADER';expected='TAR_HEADER_CHECKSUM_INVALID'},
+            @{name='NONZERO_AFTER_EOF';expected='TAR_NONZERO_AFTER_EOF'},
+            @{name='BAD_MANIFEST';expected='CANDIDATE_MANIFEST_INVALID'}
+          )){
+            $fresh=Join-Path $env:RUNNER_TEMP ('b01-v16-clean-'+$case.name)
+            $persistent=Join-Path $env:RUNNER_TEMP ('b01-v16-persist-'+$case.name)
+            [void][IO.Directory]::CreateDirectory($fresh)
+            [void][IO.Directory]::CreateDirectory($persistent)
+            $candidate=Join-Path $persistent ('candidate-'+[Guid]::NewGuid().ToString('N'))
+            [void][IO.Directory]::CreateDirectory($candidate)
+            Copy-Item -LiteralPath $script -Destination $fresh
+            $tar=MakeSynthetic $commonName
+            if($case.name -eq 'TRAVERSAL'){$tar=MakeSynthetic '../outside.txt'}
+            if($case.name -eq 'SYMLINK'){$tar=MakeSynthetic $commonName '2'}
+            if($case.name -eq 'BAD_HEADER'){$tar[0]=$tar[0] -bxor 1}
+            if($case.name -eq 'NONZERO_AFTER_EOF'){
+              $expanded=New-Object byte[] 2560
+              [Array]::Copy($tar,0,$expanded,0,$tar.Length)
+              $expanded[2048]=88
+              $tar=$expanded
+            }
+            $archive=Join-Path $candidate 'private-candidate-v9-synthetic.tar'
+            [IO.File]::WriteAllBytes($archive,$tar)
+            $sha=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+            $manifest=[ordered]@{
+              schema='paseka-b01-private-candidate-pc-v1'
+              candidateKind='APP_DATA_CANDIDATE_NOT_FULL_BACKUP'
+              transport='EXEC_OUT'
+              bytes=$tar.Length
+              sha256=if($case.name -eq 'BAD_HASH'){'0'*64}else{$sha}
+              entries=1
+              fullBackupVerified=$false
+              mediaStoreGalleryCoverage='NOT_TESTED'
+              independentRestore='NOT_TESTED'
+            }
+            if($case.name -eq 'BAD_MANIFEST'){$manifest.schema='invalid-candidate-manifest'}
+            [IO.File]::WriteAllText((Join-Path $candidate 'MANIFEST.json'),(ConvertTo-Json $manifest -Depth 4))
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-UNIFIED-V16.ps1') -CandidateRoot $persistent | Out-Null
+            $outFile=Join-Path $fresh 'B01-RESULT.json'
+            if(-not [IO.File]::Exists($outFile)){throw "V16 did not write one root JSON ($($case.name))"}
+            $r=Get-Content -LiteralPath $outFile -Raw | ConvertFrom-Json
+            Write-Host ("V16 $($case.name): $($r.status) $($r.code) bytes=$($r.reconstructedBytes) compared=$($r.independentlyComparedFiles)")
+            if($r.schema -ne 'paseka-b01-independent-offline-pc-rehydration-v16' -or
+               $r.code -ne $case.expected){
+              throw "V16 wrong diagnosis ($($case.name)): $($r.code)"
+            }
+            if($r.adbUsed -ne 'NO' -or $r.phoneReads -ne 'NOT_ATTEMPTED' -or
+               $r.fullBackupVerified -ne $false -or $r.independentRestore -ne 'NOT_TESTED' -or
+               $r.appRestored -ne 'NOT_TESTED' -or $r.videoCleanup -ne 'NOT_ATTEMPTED'){
+               throw "V16 safety contract violated ($($case.name))"
+            }
+            if($case.name -eq 'GOOD'){
+              if($r.byteForByteComparison -ne 'PASS' -or
+                 $r.tarRegularFiles -ne 1 -or $r.reconstructedBytes -ne 32 -or
+                 $r.independentlyComparedFiles -ne 1 -or $r.indexedDbPathHints -ne 1) {
+                throw 'V16 did not independently reconstruct and compare fake TAR payload'
+              }
+              $recon=@(Get-ChildItem -LiteralPath $persistent -Directory -Filter 'pc-reconstruction-*')
+              if($recon.Count -ne 1){throw 'V16 missing isolated PC reconstruction'}
+              $file=Join-Path $recon[0].FullName 'app_webview/Default/IndexedDB/synth.txt'
+              if(-not [IO.File]::Exists($file)){throw 'V16 missing synthetic extracted file'}
+              Remove-Item -LiteralPath $fresh -Force -Recurse
+              if(-not [IO.File]::Exists($archive) -or -not [IO.File]::Exists($file)){
+                throw 'V16 original or reconstructed file lost when test removed'
+              }
+            } else {
+              if($r.byteForByteComparison -eq 'PASS' -or $r.status -ne 'BLOCKED'){
+                throw "V16 falsely passed defective synthetic case $($case.name)"
+              }
+            }
+          }
+
+      - name: Stage one independent V16 offline verification ZIP (NO PRIVATE FILES)
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $src='tools/b01-oneplus-safe-v9'
-          $dest='tools/b01-v15-bundle'
+          $dest='tools/b01-v16-bundle'
           [void][IO.Directory]::CreateDirectory($dest)
           $parts=@(
-            @{from='START-UNIFIED-V15.cmd';to='START.cmd'},
-            @{from='RUN-ONEPLUS-UNIFIED-V15.ps1';to='RUN-ONEPLUS-UNIFIED-V15.ps1'},
-            @{from='B01-ONEPLUS-SAFE-V9.ps1';to='B01-ONEPLUS-SAFE-V9.ps1'},
-            @{from='README-UNIFIED-V15.txt';to='README.txt'}
+            @{src='START-UNIFIED-V16.cmd';dst='START.cmd'},
+            @{src='RUN-ONEPLUS-UNIFIED-V16.ps1';dst='RUN-ONEPLUS-UNIFIED-V16.ps1'},
+            @{src='README-UNIFIED-V16.txt';dst='README.txt'}
           )
           foreach($p in $parts){
-            $from=Join-Path $src $p.from
-            $to=Join-Path $dest $p.to
+            $from=Join-Path $src $p.src
+            $to=Join-Path $dest $p.dst
             Copy-Item -LiteralPath $from -Destination $to
             if((Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash -ne
-               (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash) {
-              throw "V15 component mismatched: $($p.to)"
+               (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash){
+              throw "V16 package component SHA mismatch: $($p.dst)"
             }
           }
-          if(@(Get-ChildItem -LiteralPath $dest -File).Count -ne 4){throw 'V15 bundle must have exactly 4 files'}
+          if(@(Get-ChildItem -LiteralPath $dest -File).Count -ne 3){throw 'V16 ZIP must have exactly three files'}
           if(@(Get-ChildItem -LiteralPath $dest -Recurse -File |
-                Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
-            throw 'V15 bundle contains data or phone artifacts'
+              Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
+            throw 'V16 ZIP has private data'
           }
 
-      - name: Upload ONE standalone V15 PC candidate package
+      - name: Upload ONE standalone V16 offline PC validation ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V15
-          path: tools/b01-v15-bundle/*
+          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V16
+          path: tools/b01-v16-bundle/*
           if-no-files-found: error
           retention-days: 7
