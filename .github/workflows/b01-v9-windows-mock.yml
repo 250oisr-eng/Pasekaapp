@@ -195,37 +195,74 @@ jobs:
           }
           Remove-Item Env:B01_MOCK_MODE
 
-      - name: Stage independent V12 one-click bundle and verify source hashes (scripts only)
+          # V13 clean-room artifact: use NO previous TAR, JSON or old test package.
+          # V9 and V10 are BUNDLED code components, not external legacy dependencies.
+          $fresh=Join-Path $env:RUNNER_TEMP 'b01-v13-fresh-independent'
+          [void][IO.Directory]::CreateDirectory($fresh)
+          foreach($name in @('RUN-ONEPLUS-UNIFIED-V13.ps1','B01-ONEPLUS-SAFE-V9.ps1','B01-PUBLIC-TAR-FORENSIC-V10.ps1')){
+            Copy-Item -LiteralPath (Join-Path 'tools/b01-oneplus-safe-v9' $name) -Destination $fresh
+          }
+          $fakeTools=Join-Path $fresh 'platform-tools'
+          [void][IO.Directory]::CreateDirectory($fakeTools)
+          Copy-Item -LiteralPath (Join-Path $sandbox 'platform-tools/adb.exe') -Destination $fakeTools
+          Copy-Item -LiteralPath (Join-Path $sandbox 'platform-tools/AdbWinApi.dll') -Destination $fakeTools
+          foreach($case in @(
+            @{ mode='PASS'; status='PUBLIC_ONLY_DIAGNOSIS'; code='PUBLIC_TAR_VALID_BACKUP_NOT_VERIFIED'; publicClass='HEADER_AND_EOF_STRUCTURALLY_PLAUSIBLE' },
+            @{ mode='BAD_HEADER'; status='BLOCKED'; code='PUBLIC_TAR_INVALID_INVALID_TAR_HEADER_CHECKSUM'; publicClass='BAD_HEADER' },
+            @{ mode='OLD_ADB'; status='BLOCKED'; code='ADB_TOO_OLD'; publicClass='NOT_TESTED' },
+            @{ mode='NO_SHELL_V2'; status='BLOCKED'; code='SHELL_V2_NOT_NEGOTIATED'; publicClass='NOT_TESTED' }
+          )){
+            $env:B01_MOCK_MODE=$case.mode
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-UNIFIED-V13.ps1') | Out-Null
+            $candidate=@(Get-ChildItem -LiteralPath (Join-Path $fresh 'unified-results') -Filter 'b01-unified-result.json' -File -Recurse |
+              Sort-Object LastWriteTimeUtc -Descending)[0]
+            $json=Get-Content -LiteralPath $candidate.FullName -Raw | ConvertFrom-Json
+            Write-Host ("V13 NO-LEGACY $($case.mode): $($json.status) $($json.code) $($json.publicTarClass) private=$($json.privateTar)")
+            if($json.schema -ne 'paseka-b01-unified-public-only-v13' -or $json.status -ne $case.status -or
+               $json.code -ne $case.code -or $json.publicTarClass -ne $case.publicClass) {
+                throw "V13 unexpected outcome: $($case.mode)"
+            }
+            if($json.privateTar -ne 'NOT_ATTEMPTED' -or $json.fullBackupVerified -ne $false -or
+               $json.independentRestore -ne 'NOT_TESTED' -or $json.previousTestRequired -ne $false -or
+               $json.phoneWrites -ne 'NOT_ATTEMPTED') {
+                throw "V13 safety contract failed: $($case.mode)"
+            }
+          }
+          Remove-Item Env:B01_MOCK_MODE
+
+      - name: Stage and checksum independent single-launch V13 user ZIP
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $src='tools/b01-oneplus-safe-v9'
-          $stage='tools/b01-v12-artifact'
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          $files=@(
-            @{from='START-UNIFIED-V12.cmd';to='START.cmd'},
-            @{from='RUN-ONEPLUS-UNIFIED-V12.ps1';to='RUN-ONEPLUS-UNIFIED-V12.ps1'},
-            @{from='B01-PUBLIC-TAR-FORENSIC-V10.ps1';to='B01-PUBLIC-TAR-FORENSIC-V10.ps1'},
-            @{from='B01-ONEPLUS-SAFE-V9.ps1';to='B01-ONEPLUS-SAFE-V9.ps1'},
-            @{from='README-UNIFIED-V12.txt';to='README.txt'}
+          $dest='tools/b01-v13-bundle'
+          [void][IO.Directory]::CreateDirectory($dest)
+          $parts=@(
+            @{src='START-UNIFIED-V13.cmd';dest='START.cmd'},
+            @{src='RUN-ONEPLUS-UNIFIED-V13.ps1';dest='RUN-ONEPLUS-UNIFIED-V13.ps1'},
+            @{src='B01-ONEPLUS-SAFE-V9.ps1';dest='B01-ONEPLUS-SAFE-V9.ps1'},
+            @{src='B01-PUBLIC-TAR-FORENSIC-V10.ps1';dest='B01-PUBLIC-TAR-FORENSIC-V10.ps1'},
+            @{src='README-UNIFIED-V13.txt';dest='README.txt'}
           )
-          foreach($item in $files){
-            $source=Join-Path $src $item.from
-            $dest=Join-Path $stage $item.to
-            Copy-Item -LiteralPath $source -Destination $dest
-            if((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash){
-              throw "Staged script differs: $($item.to)"
+          foreach($p in $parts){
+            $from=Join-Path $src $p.src
+            $to=Join-Path $dest $p.dest
+            Copy-Item -LiteralPath $from -Destination $to
+            if((Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash -ne
+               (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash){
+              throw "V13 bundled file hash mismatch: $($p.dest)"
             }
           }
-          if(@(Get-ChildItem -LiteralPath $stage -File).Count -ne 5){throw 'Standalone bundle must contain exactly 5 non-data files'}
-          if(@(Get-ChildItem -LiteralPath $stage -Recurse -File | Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4')}).Count -ne 0){
-            throw 'V12 artifact must not contain a TAR, result JSON or private media'
+          $contents=@(Get-ChildItem -LiteralPath $dest -File)
+          if($contents.Count -ne 5){throw 'V13 must contain exactly 5 clean files'}
+          if(@($contents | Where-Object {$_.Extension -in @('.tar','.json','.db','.jpg','.mp4','.apk')}).Count -ne 0){
+            throw 'V13 artifact must not include phone data, result, TAR or APK'
           }
 
-      - name: Upload ONE independent V12 Windows bundle (no phone data)
+      - name: Upload independent V13 user test (only one ZIP)
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-B01-ONEPLUS-UNIFIED-V12
-          path: tools/b01-v12-artifact/*
+          name: PASEKA-B01-ONEPLUS-INDEPENDENT-V13
+          path: tools/b01-v13-bundle/*
           if-no-files-found: error
           retention-days: 7
