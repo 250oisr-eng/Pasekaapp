@@ -1,7 +1,7 @@
 # PASEKA B01 V15. New standalone private candidate gate, PC storage outside test folder.
 # Windows PowerShell 5.1. No prior test files. Private read requires exact CAPTURE.
 [CmdletBinding()]
-param()
+param([string]$CandidateBase='')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $base=$PSScriptRoot
@@ -62,7 +62,7 @@ try{
  Save
  # The child makes an exec-out PUBLIC tar first. Only user typed CAPTURE may open private route.
  # The private TAR and MANIFEST are saved outside disposable test folder, not uploaded.
- & $child -PublicTransport EXEC_OUT -GatedPrivateCandidate | Out-Null
+ & $child -PublicTransport EXEC_OUT -GatedPrivateCandidate -CandidateBase $CandidateBase | Out-Null
  $now=@(ReportFiles | Where-Object {$before -notcontains $_})
  if($now.Count -ne 1){throw 'CANDIDATE_CHILD_REPORT_MISSING_OR_AMBIGUOUS'}
  $data=Get-Content -LiteralPath $now[0] -Raw | ConvertFrom-Json
