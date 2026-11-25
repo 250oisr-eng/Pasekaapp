@@ -46,8 +46,8 @@ test('B04 installed-only signer audit reads package metadata without candidate, 
  const calls=[];
  const command=(bin,args)=>{
   calls.push({bin,args});
-  if(bin==='adb'&&args[0]==='devices')return 'List of devices attached\\nONEPLUS device product:OnePlus\\n';
-  if(bin==='adb'&&args.includes('pm'))return 'package:/data/app/sample/base.apk\\n';
+  if(bin==='adb'&&args[0]==='devices')return 'List of devices attached\nONEPLUS device product:OnePlus\n';
+  if(bin==='adb'&&args.includes('pm'))return 'package:/data/app/sample/base.apk\n';
   if(bin==='adb'&&args.includes('pull'))return '1 file pulled';
   if(bin==='aapt')return "package: name='ru.paseka.journal' versionCode='17' versionName='1.0'";
   if(bin==='apksigner')return 'Signer #1 certificate SHA-256 digest: '+signer;
@@ -65,15 +65,15 @@ test('B04 installed-only signer audit reads package metadata without candidate, 
 
 test('B04 audit fails closed for missing device, installed package mismatch and unknown signer',()=>{
  const baseline=(bin,args)=>{
-  if(bin==='adb'&&args[0]==='devices')return 'List of devices attached\\nONEPLUS device\\n';
-  if(bin==='adb'&&args.includes('pm'))return 'package:/data/app/sample/base.apk\\n';
+  if(bin==='adb'&&args[0]==='devices')return 'List of devices attached\nONEPLUS device\n';
+  if(bin==='adb'&&args.includes('pm'))return 'package:/data/app/sample/base.apk\n';
   if(bin==='adb'&&args.includes('pull'))return '1 file pulled';
   if(bin==='aapt')return "package: name='ru.paseka.journal' versionCode='17'";
   if(bin==='apksigner')return 'Signer #1 certificate SHA-256 digest: '+signer;
   throw new Error('unknown command');
  };
  assert.throws(()=>auditInstalledPackage({command:(bin,args)=>
-   bin==='adb'&&args[0]==='devices'?'List of devices attached\\nONEPLUS unauthorized\\n':baseline(bin,args),
+   bin==='adb'&&args[0]==='devices'?'List of devices attached\nONEPLUS unauthorized\n':baseline(bin,args),
    tool:name=>name}),/BLOCKED/);
  assert.throws(()=>auditInstalledPackage({command:(bin,args)=>
    bin==='aapt'?"package: name='ru.paseka.journal.firstuseqa' versionCode='17'":baseline(bin,args),
@@ -91,6 +91,6 @@ test('B04 certificate digest must have exactly 32 SHA-256 bytes, not a shortened
 });
 
 test('B04 ambiguous installed base APK path always blocks signer proof',()=>{
- assert.throws(()=>parseBaseApkPath('package:/data/app/one/base.apk\\npackage:/data/app/two/base.apk\\n'),/BLOCKED/);
- assert.throws(()=>parseBaseApkPath('package:relative/base.apk\\n'),/BLOCKED/);
+ assert.throws(()=>parseBaseApkPath('package:/data/app/one/base.apk\npackage:/data/app/two/base.apk\n'),/BLOCKED/);
+ assert.throws(()=>parseBaseApkPath('package:relative/base.apk\n'),/BLOCKED/);
 });
