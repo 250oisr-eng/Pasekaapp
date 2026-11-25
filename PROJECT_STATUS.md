@@ -6,8 +6,8 @@
 
 - Пользовательский обезличенный отчёт **25.11.2026 16:39 UTC**: `runtime=PASS`, `oneplus-usb-metadata=PASS`, `oneplus-private-db-gate=PASS`, `oneplus-idb-inventory=PASS / WEBVIEW_STORAGE_DIRECTORY_ENTRIES_PRESENT`. Уровень доказательства: **DIRECTORY_METADATA_ONLY_NOT_BACKUP**; файлы и значения IndexedDB не читались. **Повторять инвентаризацию не нужно.**
 - `full-indexeddb-export=NEEDS_INPUT / FULL_EXPORT_NOT_FOUND`; `oneplus-downloads-export=NEEDS_INPUT / NO_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS`; `external-android-media=NEEDS_DEVICE_EVIDENCE`. `fullBackupVerified=false`, `androidDurableRestore=NOT_TESTED`, `originalVideosRestored=NOT_TESTED`, `originalFilesModified=false`, `deletion=NOT_ATTEMPTED`.
-- **Draft #524**: локальная проверка существующего `paseka-idb-full-v1` экспорта с in-memory restore/reopen, SHA/stores/Blob, только синтетический CI. **Draft #525–#528**: единый Windows offline центр, USB/Download/identity/WebView metadata-only проверки. До последнего docs-коммита #528 прошли Windows 39/39 и Android 845/845; физическое восстановление не тестировалось. Стек не интегрирован в main.
-- **CI docs HEAD `e1818e63bd322bfd9b9b923d9e7f060b683b47c1`**: Windows SUCCESS 39/39, Android FAILURE 844/845, Governance FAILURE: **единственная причина** — лимит длины этого статуса `<=6500` в `scripts/governance-check.mjs`. Код продукта не изменился. Этот коммит сокращает статус без ослабления governance; **новые CI ещё не проверены**.
+- **Draft #524→#528**: проверка реального локального полного экспорта (если появится), bounded fake-IDB reopen, Windows Check Hub и USB/WebView metadata. Кодовый SHA `2a901f2d` Windows 48/48, Fast 854/854, Android/Governance SUCCESS; code не в main. Реальное восстановление на OnePlus не проводилось.
+- **#528 прежний docs HEAD `9ea4df85ce0397802200c15f670caa8daadc8255`**: Windows #45672408138, Android #45672408176, Governance #45672408115 SUCCESS; ZIP SHA256 из GitHub `5a6ed4a4…f5bfcef2`. История прежних FAIL оставлена в журнале. Новый docs HEAD проверять отдельно.
 
 ## Подготовка физических испытаний — Check Hub #528
 
