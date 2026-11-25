@@ -1028,7 +1028,9 @@ function renderJournalRecords(){
  const typeSelect=$('journalTypeFilter'),familySelect=$('journalFamilyFilter');
  const date=String($('journalDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
  const available=S.records.filter(r=>!r.archivedAt&&(!activeJournalHive||r.hive===activeJournalHive));
- const familyById=new Map(S.families.map(f=>[f.id,f]));
+ // Preserve Array.find first-match semantics for malformed/legacy duplicate IDs.
+ const familyById=new Map();
+ for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
  if(typeSelect){
   const old=typeSelect.value,types=[...new Set(available.map(r=>r.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
   typeSelect.innerHTML='<option value="all">Все события</option>'+types.map(type=>'<option value="'+safe(type)+'">'+safe(type)+'</option>').join('');
