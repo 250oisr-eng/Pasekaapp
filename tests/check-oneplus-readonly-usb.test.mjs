@@ -85,12 +85,12 @@ test('phone Downloads full-export filename scan counts only candidates, never di
  const calls=[];
  const command=(_,args)=>{
    calls.push(args.join(' '));
-   if(args[0]==='devices')return 'List of devices attached\\nUSB12345 device product:x\\n';
+   if(args[0]==='devices')return 'List of devices attached\nUSB12345 device product:x\n';
    const k=args.slice(3).join(' ');
    const known={'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
      'getprop ro.product.model':'NE2215',
      'pm path ru.paseka.journal':'package:/data/app/sample/base.apk',
-     'ls -1 /sdcard/Download':'family-private.pdf\\npaseka-full-idb-2026-11-25.json\\nprivate.mp4'};
+     'ls -1 /sdcard/Download':'family-private.pdf\npaseka-full-idb-2026-11-25.json\nprivate.mp4'};
    if(!(k in known))throw Error('unknown command');
    return known[k];
  };
@@ -104,7 +104,7 @@ test('phone Downloads full-export filename scan counts only candidates, never di
 });
 test('phone Downloads scan missing or inaccessible remains NEEDS_INPUT/BLOCKED',async()=>{
  const make=(listing)=>(_,args)=>{
-   if(args[0]==='devices')return 'List of devices attached\\nUSB12345 device\\n';
+   if(args[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
    const k=args.slice(3).join(' ');
    const values={'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
      'getprop ro.product.model':'NE2215','pm path ru.paseka.journal':'package:/data/app/a/base.apk'};
@@ -116,7 +116,7 @@ test('phone Downloads scan missing or inaccessible remains NEEDS_INPUT/BLOCKED',
  assert.equal(missing.status,'NEEDS_INPUT');
  assert.equal(missing.code,'NO_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS');
  const multiple=await inspectOnePlusFullExportPresence({binary:'fixture',
-   command:make('paseka-full-idb-2026-11-25.json\\npaseka-full-idb-2026-11-24.json')});
+   command:make('paseka-full-idb-2026-11-25.json\npaseka-full-idb-2026-11-24.json')});
  assert.equal(multiple.code,'MULTIPLE_FULL_EXPORT_FILENAMES_IN_PHONE_DOWNLOADS');
  const denied=await inspectOnePlusFullExportPresence({binary:'fixture',command:(binary,args)=>{
    if(args.slice(3).join(' ')==='ls -1 /sdcard/Download')throw Error('private filepath');
