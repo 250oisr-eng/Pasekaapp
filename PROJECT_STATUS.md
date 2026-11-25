@@ -4,7 +4,7 @@
 
 ## Масштабированный цикл — два независимых кодовых Draft (25.11.2026)
 
-- [#530](https://github.com/250oisr-eng/Pasekaapp/pull/530) поверх #515: SW запрещает сохранять `Response.redirected=true` даже при HTTP 200, отрицательные install/fetch тесты. [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) поверх #510: однократный Map семей при отображении журнала, сохранены поисковые исторические имена, два теста. Изменённые файлы не пересекаются. **Governance SUCCESS** на исходных HEAD #530 и #531, Android/build на момент записи ещё `IN_PROGRESS`; не считать проверенными до финала.
+- [#530](https://github.com/250oisr-eng/Pasekaapp/pull/530) поверх #515: SW запрещает сохранять `Response.redirected=true` даже при HTTP 200, отрицательные install/fetch тесты. [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) поверх #510: однократный Map семей при отображении журнала, сохранены поисковые исторические имена, два теста. Изменённые файлы не пересекаются. **На точных конечных HEAD #530 и #531 Android + Governance SUCCESS**: #530 Android #45658901083, Governance #45658901124; #531 Android #45659290364, Governance #45659290425. Это синтетические тесты, не физическое испытание OnePlus.
 - Без merge и release. #529 review matrix Governance SUCCESS на `9bc99efba2b10aca5d4ac834a9c01218fbd57390`. Физический OnePlus/производительность не проверялись.
 
 ## Параллельный P0/P1/P2 review — 25.11.2026
