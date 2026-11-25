@@ -4,7 +4,7 @@
 
 - Физический V11: `NO_PREVIOUS_PUBLIC_TAR_FOUND`, ADB не вызывался, личные данные не читались. Предыдущий V9.1: публичный TAR с некратной 512 длиной; первопричина UNKNOWN.
 - [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): V12 — один ZIP/START/JSON; read-only поиск прежнего TAR на локальных дисках с пределами, выбор без копирования; при отсутствии — только явный `PUBLIC` для публичного ADB. Приватный захват в этом режиме запрещён.
-- Windows synthetic #45581760047 SUCCESS (V12 fixed-drive, no-file и публичный USB PASS/FAIL). ZIP CRC PASS; SHA-256 `404eb855e3e195bf62a2e47cab65293d3b2d76ba61578e982d122392cb5262f2`. Правило — `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md` (Draft).
+- Windows synthetic #45581760047 SUCCESS (поиск/USB negative). ZIP SHA-256 `404eb855e3e195bf62a2e47cab65293d3b2d76ba61578e982d122392cb5262f2`. Правило сохранено в Draft.
 - Следующий шаг: один `b01-unified-result.json` V12. B01 BLOCKED; без merge/install/video delete.
 
 ## 25.11.2026 — B01: Windows TAR capture V9, Draft #522
