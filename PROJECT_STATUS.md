@@ -1,5 +1,10 @@
 # PROJECT_STATUS — Пасека 2.0
 
+## 26.11.2026 · OnePlus B09 (Draft #537, не main)
+
+Пользователь сообщил, что на OnePlus нет рабочих данных пасеки/оригинального приложения; состояние устройства ещё не проверено. Поверх существующего Draft #534 подготовлен отдельный [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537): автономный Windows one-click ZIP для установки ТОЛЬКО `ru.paseka.journal.disasterproof2`, синтетического Android WebView archive restore → byte proof → force-stop/relaunch → обезличенный отчёт. APK и комплект собирает CI. Реальный OnePlus до доступа к ПК NOT_TESTED. Main, user data, production release не затронуты. B01 и #442 остаются ограниченными; без merge.
+
+
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
