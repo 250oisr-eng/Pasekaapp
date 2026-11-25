@@ -80,3 +80,16 @@ test('whole-database destructive button is visibly disabled while B01/B06 are FR
  // Direct calls still hit the separate fail-closed function tested above.
  assert.match(html,/async function deleteAllData\(\)/);
 });
+
+test('P0 media storage mutation surface has only the existing insert-only write path',()=>{
+ // Central guard against introducing a new, unreviewed destructive route.
+ const tx=[...html.matchAll(/transaction\s*\(\s*['"]entrance_media['"]\s*,\s*['"]readwrite['"]\s*\)/g)];
+ assert.equal(tx.length,1,'new media write entrypoints require P0 audit and explicit approval');
+ const saveStart=html.indexOf('function putEntranceVideo(record){');
+ const listStart=html.indexOf('\nfunction listEntranceVideos(){',saveStart);
+ assert.ok(saveStart>=0&&listStart>saveStart);
+ assert.match(html.slice(saveStart,listStart),/transaction\('entrance_media','readwrite'\)/);
+ assert.match(html.slice(saveStart,listStart),/\.put\(record\)/);
+ assert.doesNotMatch(html,/indexedDB\s*\.\s*deleteDatabase\s*\(/);
+ assert.doesNotMatch(html,/objectStore\s*\(\s*['"]entrance_media['"]\s*\)\s*\.\s*(?:clear|delete)\s*\(/);
+});
