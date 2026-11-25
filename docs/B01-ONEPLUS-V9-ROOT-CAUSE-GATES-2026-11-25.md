@@ -27,3 +27,15 @@
 - До B01 closure: физический Windows+OnePlus публичный gate, приватный кандидат с доказательством согласованности/байт, инвентаризация всех оригинальных медиа и **независимый restore на отдельной пустой цели**. Только после этого можно обсуждать APK upgrade, media lifecycle и release.
 
 **Статус F0–F5:** `IMPLEMENTED_DRAFT`, Windows synthetic CI verified; **F6 physical = NOT_TESTED**, **F7 main integration = NOT_DONE**, **B01=BLOCKED**, `NO_VIDEO_DELETE`.
+
+## 25.11.2026 — физический V9 и исправленный preflight V9.1
+
+Пользовательский `b01-v9-result.json` (`2026-11-25T08:30:04.3973340Z`) показал: `BLOCKED / PREFLIGHT / ADB_READONLY_COMMAND_FAILED`, `adbVersion=1.0.41`, `deviceModel=null`, `shellV2Advertised=false` как ещё не выполненный gate, `publicTar=NOT_TESTED`, `privateTar=NOT_ATTEMPTED`, `phoneWrites=NOT_ATTEMPTED`. Байт приватного TAR не получено, independent restore отсутствует. Из-за объединённого отказа V9 невозможно отличить `devices -l` от `getprop` по этому JSON.
+
+Исходник AOSP [adb_client.cpp](https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/client/adb_client.cpp) подтверждает, что ADB-клиент пишет диагностическую последовательность запуска daemon в host stderr; `adb devices -l` может инициировать запуск сервера. Это **возможное объяснение**, а не установленная первопричина V9.
+
+Исправление V9.1 на том же Draft #522: в JSON сохраняются фиксированный `scriptRevision`, `adbProbeId`, код выхода, длина и обезличенный класс stderr, `adbServerStartupObserved`. Для **первого** `adb devices -l` допустим **только** известный полный daemon-startup баннер при exit0, затем однократное повторение: повтор обязан иметь exit0 и пустой stderr. Несоответствие, повторное предупреждение, отказ `getprop` или другие ошибки — `BLOCKED`. Для TAR stderr по-прежнему недопустим. Никакого перезапуска/kill-server по собственной команде, удаления, сетевых запросов, очистки или установки.
+
+Windows PowerShell 5.1 synthetic CI проверил 14 режимов (включая STARTUP_ONCE→принятие synthetic и негативные повторный startup, unknown stderr, ошибка getprop, unauthorized): [run #45577450594](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45577450594) SUCCESS; Governance [#45577450377](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45577450377) SUCCESS на HEAD `69cd80dbb428f64a6c508079185ff4e01486be5a`. Реальное устройство V9.1 **NOT_TESTED**.
+
+Выдан локальный пакет `PASEKA-B01-ONEPLUS-V9.1-ADB-FIX-VERIFIED.zip`, SHA-256 `82f10887efdaefb7fe1288cc948a2caaa9de2865f77325d5dabaad2124454e33`: ZIP CRC и SHA Git blob скрипта `faac2ea1b745237588ab95fc54276e353deccb1f` совпадают с кодом PR. Источник private TAR не загружался, пользователь делится только JSON. `B01=BLOCKED`, full source inventory, independent empty-target restore, Gallery/MediaStore и media cleanup по-прежнему не разрешены.
