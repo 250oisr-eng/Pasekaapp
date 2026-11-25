@@ -94,3 +94,11 @@ test('startup gate: real bootstrap sets ready only after integrity/migration and
  assert.match(source('openDB'),/db\.onversionchange=\(\)=>\{startupWriteGate\.ready=false;/);
  assert.match(source('save'),/if\(rejectWhileStartupNotReady\(\)\)return false;/);
 });
+
+
+test('B01 destructive prompts explicitly exclude standalone entrance videos from JSON and auto copies',()=>{
+ assert.match(html,/Обычный JSON-архив НЕ включает отдельные видео летков/);
+ assert.match(source('restoreAutoBackup'),/Отдельные видео летков в эту автокопию НЕ входят/);
+ assert.match(source('restoreBackup'),/отдельные видео летков в неё НЕ входят/);
+ assert.match(source('deleteAllData'),/Без отдельно проверенного полного архива и независимого восстановления/);
+});
