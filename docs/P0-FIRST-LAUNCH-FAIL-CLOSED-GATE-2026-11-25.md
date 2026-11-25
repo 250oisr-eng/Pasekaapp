@@ -8,7 +8,9 @@
 ## F3–F4: минимальный перенос
 `startupWriteGate.ready=false` до завершения безопасного чтения, проверки физической целостности и `ensureAutomaticBackup`. Только после успешного startup — `ready=true`. Сбой загрузки вызывает блокирующий `alertdialog` с нейтральной командой повторного открытия без стирания. `onversionchange` снова блокирует записи.
 
+Диалоги ручного JSON/авто-восстановления и удаления дополнительно предупреждают, что отдельные видео летков не входят в обычную автокопию и не доказано внешнее восстановление.
+
 Пока startup не успешен: `save()` не меняет S и не начинает очередь записи; прямой `write()`, `putEntranceVideo()`, `deleteEntranceVideoBlob()` возвращают ошибку; обычный экспорт JSON заблокирован, чтобы не создать ложную пустую «копию»; JSON/автокопия restore и `deleteAllData()` недоступны. Сам `writeMainIfUnchanged` намеренно не блокируется: он используется для атомарной startup-фиксации и уже защищён CAS/транзакцией. Нет изменения `sw.js`, `indexedDB.open` версии или модели OP.
 
 ## F5–F7
-Source-bound `tests/first-launch-startup-gate.test.mjs`: блокировка state/media/restore/delete, положительный synthetic first-use, диалог ошибки, порядок readiness. Проверить Fast/Android/Governance на точном SHA и регрессию IndexedDB. Успех на фикстуре не доказывает физическое обновление OnePlus, архивацию, восстановление или правильность установленной подписи. **B01 full external restore BLOCKED; B04/B05 signer BLOCKED; #442 video cleanup FROZEN**. Не выпускать и не ставить APK без физического evidence.
+Source-bound `tests/first-launch-startup-gate.test.mjs` и `tests/first-use-storage-journey.test.mjs`: блокировка state/media/restore/delete, положительный synthetic first-use, диалог ошибки, порядок readiness. Проверить Fast/Android/Governance на точном SHA и регрессию IndexedDB. Успех на фикстуре не доказывает физическое обновление OnePlus, архивацию, восстановление или правильность установленной подписи. **B01 full external restore BLOCKED; B04/B05 signer BLOCKED; #442 video cleanup FROZEN**. Не выпускать и не ставить APK без физического evidence.
