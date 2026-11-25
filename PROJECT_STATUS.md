@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**25.11.2026 — current main requires live verification**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
@@ -8,13 +8,9 @@
 - **[#507](https://github.com/250oisr-eng/Pasekaapp/pull/507) MERGED**, `main=01a3449ee232299a37655d0194f39b23161048e7`: отдельный `scripts/audit-oneplus-json-transfer.mjs` — локальная, ограниченная 512 MiB проверка **обычного JSON состояния** старой версии OnePlus. Сверяет структуру ульев/семей/записей, ожидаемые counts, сообщает об исключении отдельного `entrance_media`. **Fast #45556536401, Governance #45556536383, Android #45556536188 SUCCESS** на точном main. `JSON_STATE_PREFLIGHT_ONLY` не равно `fullBackupVerified`.
 - **Draft #452 / Draft #479:** источник резервных копий и исторический 1 090-byte TAR остаются без физического доказательства, большой stacked diff не интегрировать целиком. PR отмечены как требующие изолированного review.
 
-## Предыдущие подтверждённые интеграции
+## Исторические интеграции
 
-- **#504 MERGED**, `8b4eabf04220a96e45127568816758360da834c5`: fail-closed первые операции при ошибке IndexedDB/`versionchange`; не разрешены state/media writes, restore, delete или ложный полный G0. Fast #45549767248, Governance #45549767244, Android #45549767279 SUCCESS на main.
-- **#501 MERGED:** локальный `verify-exported-archive` использует исходный `inspectArchive`, отдельную in-memory fake-indexeddb, SHA/stores/counts/Blob. Проверенный **файл** не равен независимому restore.
-- **#500 MERGED:** `check-oneplus-upgrade.mjs --installed-only` умеет read-only получать package/versionCode/SHA-256 сертификата установленного APK с ADB и SDK. Реальный телефон не проверялся.
-- **#502 MERGED:** по исходному DOCX OP13 обычное весеннее развитие и ранний мёд — разные сценарии. В v2 stacked Draft #461–#466 они ещё не активированы в main.
-- Исторический #70 CLOSED/SUPERSEDED: `startupRecoveryPending`/commit-after-save и негативные тесты уже в main.
+PR #500–#507: подробные доказательства — в журнале изменений.
 
 ## B01 — независимый app-level архив, отдельный Draft #524
 
@@ -22,6 +18,11 @@
 - **[Draft #524](https://github.com/250oisr-eng/Pasekaapp/pull/524) IMPLEMENTED_DRAFT:** отдельный локальный `scripts/prove-exported-archive-recovery.mjs` (без доступа к телефону) проверяет существующий файл `paseka-idb-full-v1`: ограниченное неизменяемое чтение, временная fake IndexedDB, `inspectArchive` → `atomicRestore` в пустую DB → точное сравнение всех Store/Blob → закрытие/повторное открытие и проверка SHA. Тесты включают binary same-size corruption, старые дополнительные stores и невалидный архив. **Точный код+docs SHA `14aa7e844edc346b5452cf9f37840ba8e8f11abc`: [Android #45625611272](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45625611272) SUCCESS — 817/817 тестов, debug APK PASS; [Governance #45625611266](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45625611266) SUCCESS.**
 - **[Draft #525](https://github.com/250oisr-eng/Pasekaapp/pull/525) IMPLEMENTED_DRAFT, stacked on #524:** единый offline Windows `ПРОВЕРИТЬ-ПАСЕКУ.cmd` для B01 и следующих локальных проверок. Проверяет доступный полный экспорт через одноразовую IndexedDB, пишет **новые** обезличенные отчёты в `PASEKA-CHECK-REPORTS`, не повторяет сырую пересадку LevelDB. При отсутствии JSON отмечает `NEEDS_INPUT`; MediaStore — `NEEDS_DEVICE_EVIDENCE`. Устройство, сеть, исходные файлы и видео не затрагивает. **Windows CI #45630998698 PASS на SHA `56fea1f` — 22/22 и два запуска реального ZIP; Governance #45630998840 PASS.**
 - **Не доказаны** существование полного реального экспортированного JSON с OnePlus, Gallery/MediaStore и независимый Android restore. B01 и видео #442 остаются BLOCKED/FROZEN; никаких production-операций.
+
+## B01: подтверждённый USB OnePlus, продолжение read-only
+
+- **Отчёт реального Windows запуска от 25.11.2026:** `oneplus-usb-metadata=PASS` (`ONEPLUS_10_PRO_INSTALLED_PACKAGE_METADATA_ONLY`), runtime PASS. Полный экспорт на ПК `FULL_EXPORT_NOT_FOUND`; Gallery/MediaStore `NEEDS_DEVICE_EVIDENCE`; restore NOT_TESTED, исходные данные не менялись.
+- **Draft #526 → #525 → #524:** только метаданные через `adb devices/getprop/pm path`; дополнительно проверяется лишь число файлов с именем `paseka-full-idb-*.json` в Android Download без чтения/копирования содержимого. Это НЕ подтверждает восстановление. B01 BLOCKED, #442 FROZEN.
 
 ## Нерешённые блокеры
 
@@ -32,7 +33,7 @@
 
 ## Следующий безопасный этап
 
-1. **Первый Windows user report:** runtime PASS, полный экспорт `FULL_EXPORT_NOT_FOUND` (NEEDS_INPUT), Gallery/MediaStore NEEDS_DEVICE_EVIDENCE. Не повторять запуск до появления `paseka-full-idb-...json`; не обновлять OnePlus ради проверки.
+1. Новая версия единого Windows ZIP #526: запускать один раз для проверки наличия имени экспорта в Download на уже подключённом OnePlus. Никаких APK install, очистки или чтения личных файлов.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 

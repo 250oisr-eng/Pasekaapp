@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'scripts/paseka-check-hub.mjs'
+      - 'scripts/check-oneplus-readonly-usb.mjs'
+      - 'tests/check-oneplus-readonly-usb.test.mjs'
       - 'scripts/run-b01-oneclick.mjs'
       - 'scripts/prove-exported-archive-recovery.mjs'
       - 'scripts/verify-exported-archive.mjs'
@@ -27,7 +29,7 @@ jobs:
       - name: Install pinned repository dependencies without lockfile
         run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
       - name: Run safe check hub and existing B01 recovery regressions
-        run: node --test tests/paseka-check-hub.test.mjs tests/run-b01-oneclick.test.mjs tests/prove-exported-archive-recovery.test.mjs tests/verify-exported-archive.test.mjs
+        run: node --test tests/check-oneplus-readonly-usb.test.mjs tests/paseka-check-hub.test.mjs tests/run-b01-oneclick.test.mjs tests/prove-exported-archive-recovery.test.mjs tests/verify-exported-archive.test.mjs
       - name: Package complete standalone Windows check center without user files
         shell: pwsh
         run: |
@@ -36,7 +38,7 @@ jobs:
           foreach($folder in @($dst,"$dst/scripts","$dst/js","$dst/node_modules")) {
             New-Item -ItemType Directory -Path $folder -Force | Out-Null
           }
-          foreach($name in @('paseka-check-hub.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
+          foreach($name in @('paseka-check-hub.mjs','check-oneplus-readonly-usb.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
             Copy-Item -LiteralPath "scripts/$name" -Destination "$dst/scripts"
           }
           Copy-Item -LiteralPath 'js/disaster-archive.js' -Destination "$dst/js"
