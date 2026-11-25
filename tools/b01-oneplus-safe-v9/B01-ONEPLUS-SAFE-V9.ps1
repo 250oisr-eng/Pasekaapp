@@ -1,7 +1,7 @@
 # PASEKA B01/V9: read-only phone -> NEW local candidate file. Windows PowerShell 5.1.
 # This is NOT an independent restore and never marks fullBackupVerified.
 # No Android writes, no install/uninstall/clear/force-stop/restore/delete/network.
-param([switch]$PublicOnly,[ValidateSet('SHELL','EXEC_OUT')][string]$PublicTransport='SHELL')
+param([switch]$PublicOnly,[ValidateSet('SHELL','EXEC_OUT')][string]$PublicTransport='SHELL',[switch]$GatedPrivateCandidate,[string]$CandidateBase='')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $pkg = 'ru.paseka.journal'
@@ -38,6 +38,9 @@ $report = [ordered]@{
     privateTarBytes = 0
     privateTarSha256 = $null
     privateTarEntries = 0
+    privateTransport = 'NOT_ATTEMPTED'
+    candidateOutsideTestFolder = $false
+    candidateDiskClass = 'NOT_TESTED'
     backupCompleteness = 'NOT_VERIFIED'
     independentRestore = 'NOT_TESTED'
     mediaStoreGalleryCoverage = 'NOT_TESTED'
@@ -248,7 +251,8 @@ function Inspect-Tar([string]$path) {
     } finally { $fs.Dispose() }
 }
 function GrabTar([string]$argsLine,[string]$fileName,[string]$kind) {
-    $out=Join-Path $runFolder $fileName
+    $destination=if($kind -eq 'PRIVATE'){$script:privateOutputDir}else{$runFolder}
+    $out=Join-Path $destination $fileName
     # The output file never exists before capture and is never overwritten. On failure it
     # remains for local forensic review; it is not a validated backup.
     $captureLimit=if($kind -eq 'PUBLIC'){[long]64*1024*1024}else{$maxBytes}
@@ -268,7 +272,9 @@ function GrabTar([string]$argsLine,[string]$fileName,[string]$kind) {
 }
 try {
     Save-Report
-    if($PublicTransport -eq 'EXEC_OUT' -and -not $PublicOnly) { Fail 'EXEC_OUT_PUBLIC_ONLY' }
+    if($GatedPrivateCandidate -and $PublicOnly) { Fail 'CONFLICTING_CAPTURE_FLAGS' }
+    if($PublicTransport -eq 'EXEC_OUT' -and -not ($PublicOnly -or $GatedPrivateCandidate)) { Fail 'EXEC_OUT_PUBLIC_ONLY' }
+    if($GatedPrivateCandidate -and $PublicTransport -ne 'EXEC_OUT') { Fail 'GATED_PRIVATE_REQUIRES_EXEC_OUT' }
     $script:adb=Find-ModernAdb
     $version=SafeText 'version' 'ADB_VERSION'
     $m=[regex]::Match($version,'Android Debug Bridge version\s+(\d+)\.(\d+)\.(\d+)')
@@ -315,7 +321,9 @@ try {
         Save-Report
         return
     }
-    Write-Host 'For a new confidential PC-only candidate (NOT full verified backup), type CAPTURE.'
+    if(-not $GatedPrivateCandidate) { Fail 'PRIVATE_CAPTURE_REQUIRES_GATED_WORKFLOW' }
+    Write-Host 'A PRIVATE application candidate will be saved on the PC outside this test folder.'
+    Write-Host 'It is NOT a full backup and MUST NOT be uploaded to chat. To permit PRIVATE reading type CAPTURE.'
     Write-Host 'Anything else exits without private capture.'
     $answer=Read-Host 'Action'
     if($answer -cne 'CAPTURE') {
@@ -325,10 +333,32 @@ try {
         return
     }
     if(-not (Is-AppStopped)) { Fail 'APP_PROCESS_RUNNING_NO_CAPTURE' }
+    # Candidate must survive user deleting OLD/NEW test directories after this run.
+    $root=if($CandidateBase){$CandidateBase}else{Join-Path $env:USERPROFILE 'PASEKA-B01-KEEP-PRIVATE-CANDIDATES'}
+    if(-not [IO.Path]::IsPathRooted($root) -or $root.StartsWith('\\')) { Fail 'PERSISTENT_CANDIDATE_PATH_NOT_LOCAL' }
+    $root=[IO.Path]::GetFullPath($root)
+    $testPath=[IO.Path]::GetFullPath($base).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
+    if($root.StartsWith($testPath,[StringComparison]::OrdinalIgnoreCase)) { Fail 'CANDIDATE_INSIDE_DISPOSABLE_TEST_FOLDER' }
+    $driveRoot=[IO.Path]::GetPathRoot($root)
+    $drive=New-Object IO.DriveInfo($driveRoot)
+    if(-not $drive.IsReady -or $drive.DriveType -ne [IO.DriveType]::Fixed) { Fail 'CANDIDATE_DRIVE_NOT_FIXED_READY' }
+    [void][IO.Directory]::CreateDirectory($root)
+    $dirInfo=New-Object IO.DirectoryInfo($root)
+    if(([int]$dirInfo.Attributes -band [int][IO.FileAttributes]::ReparsePoint) -ne 0){ Fail 'CANDIDATE_DIRECTORY_REPARSE_POINT' }
+    $diskFloor=[long]64*1024*1024
+    if($drive.AvailableFreeSpace -lt $diskFloor) { Fail 'CANDIDATE_DRIVE_SPACE_TOO_LOW' }
+    $script:privateOutputDir=Join-Path $root ('candidate-'+[Guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($script:privateOutputDir)
+    $report.candidateOutsideTestFolder=$true
+    $report.candidateDiskClass='FIXED_LOCAL_PC_UNRESTORED'
     $report.stage='PRIVATE_READ_CANDIDATE'
     Save-Report
     $name='private-candidate-v9-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'.tar'
-    $private=GrabTar ('-s '+$script:serial+' shell run-as '+$pkg+' tar -cf - .') $name 'PRIVATE'
+    # V14 real OnePlus public proof: adb shell introduced 2 bytes; exec-out preserved binary blocks.
+    # This capture is only after user typed CAPTURE and a matching exec-out public preflight passed.
+    $report.privateTransport='EXEC_OUT'
+    Save-Report
+    $private=GrabTar ('-s '+$script:serial+' exec-out run-as '+$pkg+' tar -cf - .') $name 'PRIVATE'
     if(-not (Is-AppStopped)) { Fail 'PROCESS_STARTED_DURING_PRIVATE_CAPTURE' }
     if($private.webviewHints -lt 1 -and $private.databaseHints -lt 1) { Fail 'PRIVATE_EXPECTED_STORAGE_HINTS_MISSING' }
     $report.privateTar='STRUCTURALLY_VALID_CANDIDATE_RESTORE_NOT_VERIFIED'
