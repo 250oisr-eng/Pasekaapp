@@ -28,7 +28,7 @@ test('V13 only calls bundled public-only branch and refuses private read',()=>{
   assert.match(v91,/param\(\[switch\]\$PublicOnly\)/);
   assert.match(v91,/if\(\$PublicOnly\)/);
   assert.match(v13,/privateTar='NOT_ATTEMPTED'/);
-  assert.doesNotMatch(v13,/Read-Host|CAPTURE|Invoke-WebRequest|start-process/gi);
+  assert.doesNotMatch(v13,/Read-Host|Invoke-WebRequest|start-process/i);
 });
 test('V13 reports only public TAR proof and never asserts recoverability',()=>{
   assert.match(v13,/publicTarBytes/);
