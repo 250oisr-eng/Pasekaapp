@@ -56,6 +56,7 @@ async function waitDb(){
  }
  throw Error('App database not available');
 }
+function rootOwnerStart(){try{window.PasekaB01OwnerArchive?.start?.()}catch(_){/* owner proof separate and optional */}}
 function display(status,code,detail=''){
  const result={schema:'paseka-oneplus-p0-disaster-v1',packageId,isolated:true,productionApp:'NOT_ACCESSED',productionDatabase:'NOT_ACCESSED',originalVideos:'NOT_ACCESSED',autoDelete:'NOT_ATTEMPTED',status,code,checks:stages,detail:String(detail)};
  const div=document.createElement('main');div.id='p0-disaster-proof';
@@ -64,6 +65,7 @@ function display(status,code,detail=''){
  const p=document.createElement('p');p.textContent='Только отдельное тестовое приложение. Пользовательская база и видео не затрагиваются.';
  const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;word-break:break-word;font:12px monospace';pre.textContent=JSON.stringify(result,null,2);
  div.append(h,p,pre);document.body.append(div);
+ if(status==='PASS')rootOwnerStart();
  console.log(TAG+' '+JSON.stringify(result));
 }
 (async()=>{
