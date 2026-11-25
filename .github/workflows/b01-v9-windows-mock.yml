@@ -110,13 +110,61 @@ jobs:
             }
           }
 
-      - name: Package only read-only public TAR forensic scripts (no personal or synthetic results)
+          # V11 standalone archive discovery: prior TAR is OUTSIDE the new ZIP folder.
+          $priorFolder=Join-Path $env:RUNNER_TEMP 'b01-historical-v91-extracted'
+          $oldRun=Join-Path (Join-Path $priorFolder 'results') 'run-previous'
+          [void][IO.Directory]::CreateDirectory($oldRun)
+          $oldTar=Join-Path $oldRun 'public-only-v9.tar'
+          [IO.File]::WriteAllBytes($oldTar,$emptyTail)
+          $oldHash=(Get-FileHash -LiteralPath $oldTar -Algorithm SHA256).Hash
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V11.ps1') -Mode Local -SearchRoots $priorFolder -NoPicker | Out-Null
+          $latest=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'unified-results') -Filter 'b01-unified-result.json' -File -Recurse)[0]
+          $unified=Get-Content -LiteralPath $latest.FullName -Raw | ConvertFrom-Json
+          Write-Host ("V11 HISTORICAL: $($unified.status) $($unified.priorPublicTarClass) $($unified.priorPublicTarBytes)")
+          if($unified.status -ne 'PUBLIC_ONLY_DIAGNOSIS' -or $unified.priorPublicTarClass -ne 'EMPTY_TAR_EOF_PLUS_UNALIGNED_TRAILER' -or $unified.priorPublicTarBytes -ne 1090 -or $unified.adbUsed -ne 'NO'){
+            throw 'V11 did not find and inspect historical TAR from another location'
+          }
+          if((Get-FileHash -LiteralPath $oldTar -Algorithm SHA256).Hash -ne $oldHash){
+            throw 'V11 unexpectedly modified the historical TAR'
+          }
+          if($unified.fullBackupVerified -ne $false -or $unified.independentRestore -ne 'NOT_TESTED'){
+            throw 'V11 asserted recoverable backup from only a historical TAR'
+          }
+          # Explicit local path and wrong-path tests, without USB.
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V11.ps1') -Mode Local -ArchivePath (Join-Path $sandbox 'README.txt') -NoPicker | Out-Null
+          $bad=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'unified-results') -Filter 'b01-unified-result.json' -File -Recurse | Sort-Object LastWriteTimeUtc -Descending)[0]
+          $badJson=Get-Content -LiteralPath $bad.FullName -Raw | ConvertFrom-Json
+          if($badJson.status -ne 'BLOCKED' -or $badJson.code -ne 'PUBLIC_TAR_PATH_OR_LAYOUT_INVALID' -or $badJson.adbUsed -ne 'NO'){
+            throw 'V11 did not block wrong existing-file selection'
+          }
+          $missingRoot=Join-Path $env:RUNNER_TEMP 'b01-empty-search'
+          [void][IO.Directory]::CreateDirectory($missingRoot)
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V11.ps1') -Mode Local -SearchRoots $missingRoot -NoPicker | Out-Null
+          $missing=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'unified-results') -Filter 'b01-unified-result.json' -File -Recurse | Sort-Object LastWriteTimeUtc -Descending)[0]
+          $missingJson=Get-Content -LiteralPath $missing.FullName -Raw | ConvertFrom-Json
+          if($missingJson.code -ne 'NO_PREVIOUS_PUBLIC_TAR_FOUND' -or $missingJson.adbUsed -ne 'NO'){
+            throw 'V11 must stop when no public TAR exists without implicit USB fallback'
+          }
+          # USB path is explicit, uses mock ADB, then auto-diagnoses malformed public TAR.
+          $env:B01_MOCK_MODE='BAD_HEADER'
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'RUN-ONEPLUS-UNIFIED-V11.ps1') -Mode USB -NoPicker | Out-Null
+          $usb=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'unified-results') -Filter 'b01-unified-result.json' -File -Recurse | Sort-Object LastWriteTimeUtc -Descending)[0]
+          $usbJson=Get-Content -LiteralPath $usb.FullName -Raw | ConvertFrom-Json
+          Write-Host ("V11 USB SYNTHETIC: $($usbJson.status) $($usbJson.code) $($usbJson.priorPublicTarClass)")
+          if($usbJson.status -ne 'BLOCKED_WITH_PUBLIC_DIAGNOSIS' -or $usbJson.adbUsed -ne 'YES' -or $usbJson.priorPublicTarClass -ne 'BAD_HEADER' -or $usbJson.v91PrivateTar -ne 'NOT_ATTEMPTED'){
+            throw 'V11 explicit USB mock does not yield one fail-closed final report'
+          }
+          Remove-Item Env:B01_MOCK_MODE
+
+      - name: Upload standalone single-launch V11 Windows bundle (scripts only)
         uses: actions/upload-artifact@v4
         with:
-          name: PASEKA-B01-PUBLIC-TAR-FORENSIC-V10
+          name: PASEKA-B01-ONEPLUS-UNIFIED-V11
           path: |
+            tools/b01-oneplus-safe-v9/START-ONEPLUS-UNIFIED.cmd
+            tools/b01-oneplus-safe-v9/RUN-ONEPLUS-UNIFIED-V11.ps1
             tools/b01-oneplus-safe-v9/B01-PUBLIC-TAR-FORENSIC-V10.ps1
-            tools/b01-oneplus-safe-v9/START-PUBLIC-FORENSIC-ONLY.cmd
-            tools/b01-oneplus-safe-v9/README-PUBLIC-TAR-FORENSIC-V10.txt
+            tools/b01-oneplus-safe-v9/B01-ONEPLUS-SAFE-V9.ps1
+            tools/b01-oneplus-safe-v9/README-UNIFIED-V11.txt
           if-no-files-found: error
           retention-days: 7
