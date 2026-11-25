@@ -14,6 +14,12 @@
         "tests/first-use-storage-journey.test.mjs",
         "tests/journal-varroa-archive-recovery.test.mjs",
         "tests/regression.test.mjs"
+      ],
+      "autoPrefixes": [
+        "journal-",
+        "varroa-treatment-",
+        "first-use-",
+        "regression"
       ]
     },
     {
@@ -25,6 +31,11 @@
         "tests/idb-legacy-open-upgrade.test.mjs",
         "tests/idb-read-abort-and-malformed-v3.test.mjs",
         "tests/indexeddb-startup-guard.test.mjs"
+      ],
+      "autoPrefixes": [
+        "first-launch-",
+        "idb-",
+        "indexeddb-"
       ]
     },
     {
@@ -37,6 +48,12 @@
         "tests/disaster-archive-read-abort.test.mjs",
         "tests/disaster-archive.test.mjs",
         "tests/verify-exported-archive.test.mjs"
+      ],
+      "autoPrefixes": [
+        "audit-",
+        "backup-",
+        "disaster-",
+        "verify-exported-"
       ]
     },
     {
@@ -47,6 +64,10 @@
         "tests/service-worker-install-private.test.mjs",
         "tests/service-worker-offline-lifecycle.test.mjs",
         "tests/sw-cache-boundary.test.mjs"
+      ],
+      "autoPrefixes": [
+        "service-worker-",
+        "sw-"
       ]
     },
     {
@@ -64,6 +85,13 @@
         "tests/legacy-layout-body-reference-audit.test.mjs",
         "tests/sectional-operation-coordinator.test.mjs",
         "tests/sectional-physical-layout.test.mjs"
+      ],
+      "autoPrefixes": [
+        "equipment-",
+        "family-",
+        "hive-",
+        "legacy-layout-",
+        "sectional-"
       ]
     },
     {
@@ -76,6 +104,13 @@
         "tests/plant-module.test.mjs",
         "tests/season-planning.test.mjs",
         "tests/varroa-monitor.test.mjs"
+      ],
+      "autoPrefixes": [
+        "deadout-",
+        "pesticide-",
+        "plant-",
+        "season-",
+        "varroa-monitor-"
       ]
     },
     {
@@ -85,6 +120,10 @@
       "files": [
         "tests/equipment-reconciliation-voice.test.mjs",
         "tests/voice-session.test.mjs"
+      ],
+      "autoPrefixes": [
+        "voice-",
+        "equipment-reconciliation-voice-"
       ]
     },
     {
@@ -94,6 +133,10 @@
       "files": [
         "tests/entrance-analysis.test.mjs",
         "tests/p0-source-inventory.test.mjs"
+      ],
+      "autoPrefixes": [
+        "entrance-",
+        "p0-source-"
       ]
     },
     {
@@ -110,6 +153,16 @@
         "tests/governance-control.test.mjs",
         "tests/pages-manual-release-gate.test.mjs",
         "tests/read-only-pr-triage.test.mjs"
+      ],
+      "autoPrefixes": [
+        "android-",
+        "check-oneplus-",
+        "cloudflare-",
+        "deployment-",
+        "governance-",
+        "pages-",
+        "read-only-pr-",
+        "comprehensive-pr-"
       ]
     },
     {
@@ -118,6 +171,9 @@
       "priority": "P0",
       "files": [
         "tests/comprehensive-qa.test.mjs"
+      ],
+      "autoPrefixes": [
+        "comprehensive-qa-"
       ]
     }
   ],
