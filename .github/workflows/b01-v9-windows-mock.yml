@@ -68,3 +68,44 @@ jobs:
             }
           }
           Remove-Item Env:B01_MOCK_MODE
+          # Offline forensic tool: synthetic public TAR only, no ADB/phone.
+          $validArchive = @(Get-ChildItem -Path (Join-Path $sandbox 'results') -Filter 'public-only-v9.tar' -Recurse |
+            Where-Object {$_.Length -ge 1536} | Select-Object -First 1)
+          if($validArchive.Count -ne 1){throw 'No synthetic public TAR fixture from mock'}
+          [byte[]]$clean = [IO.File]::ReadAllBytes($validArchive[0].FullName)
+          [byte[]]$badHeader = [byte[]]$clean.Clone()
+          $badHeader[0] = $badHeader[0] -bxor 1
+          [byte[]]$truncated = New-Object byte[] ($clean.Length-1)
+          [Array]::Copy($clean,0,$truncated,0,$truncated.Length)
+          [byte[]]$tail = [Text.Encoding]::ASCII.GetBytes(('tar: synthetic unavailable'.PadRight(66,'!')))
+          [byte[]]$emptyTail = New-Object byte[] (1024+$tail.Length)
+          [Array]::Copy($tail,0,$emptyTail,1024,$tail.Length)
+          [byte[]]$appendTail = New-Object byte[] ($clean.Length+$tail.Length)
+          [Array]::Copy($clean,0,$appendTail,0,$clean.Length)
+          [Array]::Copy($tail,0,$appendTail,$clean.Length,$tail.Length)
+          foreach($fixture in @(
+            @{name='VALID';bytes=$clean;expected='HEADER_AND_EOF_STRUCTURALLY_PLAUSIBLE';status='READONLY_DIAGNOSIS_COMPLETE'},
+            @{name='BAD_HEADER';bytes=$badHeader;expected='BAD_HEADER';status='READONLY_DIAGNOSIS_COMPLETE'},
+            @{name='TRUNCATED';bytes=$truncated;expected='UNALIGNED_BYTES';status='READONLY_DIAGNOSIS_COMPLETE'},
+            @{name='EMPTY_PLUS_TEXT';bytes=$emptyTail;expected='EMPTY_TAR_EOF_PLUS_UNALIGNED_TRAILER';status='READONLY_DIAGNOSIS_COMPLETE'},
+            @{name='APPEND_DIAGNOSTIC';bytes=$appendTail;expected='UNALIGNED_BYTES';status='READONLY_DIAGNOSIS_COMPLETE'}
+          )){
+            $fixtureDir=Join-Path (Join-Path $sandbox 'results') ('run-offline-'+$fixture.name)
+            [void][IO.Directory]::CreateDirectory($fixtureDir)
+            $archiveFile=Join-Path $fixtureDir 'public-only-v9.tar'
+            [IO.File]::WriteAllBytes($archiveFile,$fixture.bytes)
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'B01-PUBLIC-TAR-FORENSIC-V10.ps1') -ArchivePath $archiveFile | Out-Null
+            $latest=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'forensics-results') -Filter 'public-tar-v10-*.json' |
+              Sort-Object LastWriteTimeUtc -Descending)[0]
+            $report=Get-Content -LiteralPath $latest.FullName -Raw | ConvertFrom-Json
+            Write-Host ("OFFLINE $($fixture.name): $($report.status) $($report.structureClass) $($report.remainder512)")
+            if($report.status -ne $fixture.status -or $report.structureClass -ne $fixture.expected){
+              throw "Unexpected offline forensic result for $($fixture.name): $($report.status) / $($report.structureClass)"
+            }
+            if($report.privateAppData -ne 'NOT_READ' -or $report.adb -ne 'NOT_USED' -or $report.fullBackupVerified -ne $false){
+              throw 'Offline forensic claimed device/private access or full backup'
+            }
+            if($fixture.name -eq 'EMPTY_PLUS_TEXT' -and ($report.archiveBytes -ne 1090 -or $report.remainder512 -ne 66 -or $report.tailPrintableAscii -ne $true -or $report.tailErrorLike -ne $true)){
+              throw 'Physical V6-like synthetic tail classification failed'
+            }
+          }
