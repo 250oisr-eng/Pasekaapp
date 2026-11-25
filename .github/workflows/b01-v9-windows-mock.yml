@@ -522,9 +522,9 @@ jobs:
             @{name='PARTIAL_MARKERS';expected='NO_INDEXEDDB_LEVELDB_FILESET_WITH_EXPECTED_MARKERS'},
             @{name='INCOMPLETE_RECONSTRUCTION';expected='INCOMPLETE_PC_RECONSTRUCTION'}
           )){
-            $home=Join-Path $env:RUNNER_TEMP ('b01-v17-'+$case.name)
-            $fresh=Join-Path $home 'new-package'
-            $persistent=Join-Path $home 'persistent'
+            $fixtureRoot=Join-Path $env:RUNNER_TEMP ('b01-v17-'+$case.name)
+            $fresh=Join-Path $fixtureRoot 'new-package'
+            $persistent=Join-Path $fixtureRoot 'persistent'
             $db=Join-Path $persistent 'pc-reconstruction-11111111111111111111111111111111/app_webview/Default/IndexedDB/https_example_0.indexeddb.leveldb'
             [void][IO.Directory]::CreateDirectory($fresh)
             [void][IO.Directory]::CreateDirectory($db)
