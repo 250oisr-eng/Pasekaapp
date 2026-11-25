@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync} from 'node:fs';
+import {readFileSync,readdirSync,mkdtempSync,writeFileSync,symlinkSync,rmSync,truncateSync,unlinkSync} from 'node:fs';
 import {join} from 'node:path';
-import {validateQAMatrix,parseTapSummary,buildQAReport} from '../scripts/comprehensive-qa.mjs';
+import {tmpdir} from 'node:os';
+import {validateQAMatrix,parseTapSummary,buildQAReport,readSyntheticTap} from '../scripts/comprehensive-qa.mjs';
 
 const matrix=JSON.parse(readFileSync(new URL('../qa/comprehensive-matrix.json',import.meta.url),'utf8'));
 const root=new URL('../tests/',import.meta.url);
@@ -82,4 +83,21 @@ test('runner cannot infer evidence without exact full npm test command or a vali
  assert.equal(report.sourceSha,null);
  assert.equal(report.suite.status,'NOT_TESTED');
  assert.ok(report.laneResults.every(l=>l.status==='NOT_VERIFIED_SEPARATELY'));
+});
+
+test('synthetic TAP input rejects arbitrary local data, symlinks and oversized logs',t=>{
+ const dir=mkdtempSync(join(tmpdir(),'paseka-qa-tap-'));
+ t.after(()=>rmSync(dir,{recursive:true,force:true}));
+ const tapPath=join(dir,'qa-comprehensive.tap');
+ const log=tap();
+ writeFileSync(tapPath,log);
+ assert.equal(readSyntheticTap(tapPath,dir),log);
+ assert.throws(()=>readSyntheticTap(join(dir,'private-data.json'),dir),/only the generated/);
+ truncateSync(tapPath,16*1024*1024+1);
+ assert.throws(()=>readSyntheticTap(tapPath,dir),/bounded regular/);
+ unlinkSync(tapPath);
+ const other=join(dir,'test-source.tap');
+ writeFileSync(other,log);
+ symlinkSync(other,tapPath);
+ assert.throws(()=>readSyntheticTap(tapPath,dir),/bounded regular/);
 });
