@@ -6,12 +6,13 @@ import {readFile} from 'node:fs/promises';
 const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
 const SCOPE='https://example.invalid/Pasekaapp/';
 
-function makeInstallHarness({restrictedPath=null,unavailablePath=null,partialPath=null,emptyPath=null}={}){
+function makeInstallHarness({restrictedPath=null,unavailablePath=null,partialPath=null,emptyPath=null,redirectedPath=null}={}){
  const listeners=new Map(),stored=new Map(),calls={skipWaiting:0,network:[],addAll:0};
  const mockResponse=path=>({
   ok:path!==unavailablePath,
   status:path===unavailablePath?404:path===partialPath?206:path===emptyPath?204:200,
   type:'basic',
+  redirected:path===redirectedPath,
   headers:{get(name){return name.toLowerCase()==='cache-control'&&path===restrictedPath?'private, no-store':'public, max-age=600'}},
   clone(){return this}
  });
@@ -81,4 +82,12 @@ test('B11 install rejects HTTP 206 partial JS and HTTP 204 empty HTML before act
   assert.equal(h.calls.skipWaiting,0,'incomplete bundle must not activate');
   assert.equal(h.stored.has(query),false,'partial/empty response must never be cached');
  }
+});
+
+test('B11 install refuses redirected HTTP 200 shell even when response.ok is true',async()=>{
+ const path='/Pasekaapp/index.html';
+ const h=makeInstallHarness({redirectedPath:path});
+ await assert.rejects(h.install(),/Offline shell install blocked/);
+ assert.equal(h.stored.has(path),false,'redirected response may not replace local shell');
+ assert.equal(h.calls.skipWaiting,0,'redirected app must not activate offline');
 });
