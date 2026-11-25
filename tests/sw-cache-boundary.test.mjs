@@ -138,3 +138,21 @@ test('B11 SW refuses redirected HTTP 200 during normal shell fetch caching',asyn
  assert.equal(response.status,200,'network response still reaches caller');
  assert.deepEqual(sw.writes,[],'redirected content must not poison offline shell cache');
 });
+
+test('B11 query-bearing HTML and JS responses cannot poison canonical offline shell cache',async()=>{
+ const sw=harness({network:async request=>new Response('dynamic response:'+request.url)});
+ const navigated=await sw.fireFetch(scope+'index.html?token=synthetic-secret',{mode:'navigate'});
+ const module=await sw.fireFetch(scope+'js/hive-model.js?session=synthetic-secret');
+ assert.equal(navigated.status,200);
+ assert.equal(module.status,200);
+ assert.equal(sw.writes.length,0,'query response must not enter durable shell cache');
+ assert.equal(sw.requests.length,2,'both queries may still be fetched normally online');
+});
+
+test('B11 canonical query-free shell resource remains cacheable after query guard',async()=>{
+ const sw=harness({network:async()=>new Response('public module')});
+ const resource=await sw.fireFetch(scope+'js/hive-model.js');
+ assert.equal(resource.status,200);
+ assert.equal(sw.writes.length,1);
+ assert.equal(sw.writes[0].request,scope+'js/hive-model.js');
+});
