@@ -1,0 +1,64 @@
+name: PASEKA unified offline check hub
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/paseka-check-hub.mjs'
+      - 'scripts/run-b01-oneclick.mjs'
+      - 'scripts/prove-exported-archive-recovery.mjs'
+      - 'scripts/verify-exported-archive.mjs'
+      - 'tests/paseka-check-hub.test.mjs'
+      - 'tools/paseka-check-hub/**'
+      - '.github/workflows/paseka-check-hub.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-check-hub:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install pinned repository dependencies without lockfile
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
+      - name: Run safe check hub and existing B01 recovery regressions
+        run: node --test tests/paseka-check-hub.test.mjs tests/run-b01-oneclick.test.mjs tests/prove-exported-archive-recovery.test.mjs tests/verify-exported-archive.test.mjs
+      - name: Package complete standalone Windows check center without user files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dst='PASEKA-UNIFIED-CHECK-CENTER'
+          foreach($folder in @($dst,"$dst/scripts","$dst/js","$dst/node_modules")) {
+            New-Item -ItemType Directory -Path $folder -Force | Out-Null
+          }
+          foreach($name in @('paseka-check-hub.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
+            Copy-Item -LiteralPath "scripts/$name" -Destination "$dst/scripts"
+          }
+          Copy-Item -LiteralPath 'js/disaster-archive.js' -Destination "$dst/js"
+          Copy-Item -LiteralPath 'node_modules/fake-indexeddb' -Destination "$dst/node_modules/fake-indexeddb" -Recurse
+          Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination $dst
+          Copy-Item -LiteralPath 'tools/paseka-check-hub/ПРОВЕРИТЬ-ПАСЕКУ.cmd' -Destination $dst
+          Copy-Item -LiteralPath 'tools/paseka-check-hub/README-RU.txt' -Destination $dst
+          foreach($name in @('paseka-check-hub.mjs','run-b01-oneclick.mjs','verify-exported-archive.mjs','prove-exported-archive-recovery.mjs')) {
+            & "$dst/node.exe" --check "$dst/scripts/$name"
+            if($LASTEXITCODE -ne 0){throw "Syntax check failed: $name"}
+          }
+          if(-not (Test-Path -LiteralPath "$dst/node_modules/fake-indexeddb/package.json")) {
+            throw 'Missing offline IndexedDB runtime'
+          }
+          if(@(Get-ChildItem -LiteralPath $dst -Recurse -File | Where-Object {
+            $_.Name -match '^paseka-full-idb-.*[.]json$' -or $_.Extension -in @('.tar','.mp4','.mkv','.jpg','.ldb','.log')
+          }).Count -gt 0){throw 'Private data or suspicious files in check kit'}
+          Write-Host 'PASEKA_CHECK_HUB_OFFLINE_NO_DEVICE_NO_PERSONAL_DATA_PACKAGE_PASS'
+      - name: Publish standalone one-click offline check center
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-UNIFIED-OFFLINE-CHECK-CENTER
+          path: PASEKA-UNIFIED-CHECK-CENTER/
+          if-no-files-found: error
+          retention-days: 7
