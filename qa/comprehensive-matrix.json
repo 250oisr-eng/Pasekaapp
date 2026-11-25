@@ -123,6 +123,11 @@
   ],
   "externalGates": [
     {
+      "id": "P0_ORIGINALS_GUARD_IN_MAIN",
+      "status": "BLOCKED",
+      "requires": "Защита от удаления/перезаписи входного видео из Draft #512/#518 пока не включена в main; отдельные успешные CI не означают защищённую установленную версию"
+    },
+    {
       "id": "B01_FULL_DEVICE_RECOVERY",
       "status": "BLOCKED",
       "requires": "Реальная внешняя копия IndexedDB, Gallery/MediaStore, сверка SHA всех оригиналов и независимый restore на пустой цели"
