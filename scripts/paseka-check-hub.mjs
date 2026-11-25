@@ -8,10 +8,11 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findFullExport } from './run-b01-oneclick.mjs';
 import { proveExportedArchiveRecoveryFile } from './prove-exported-archive-recovery.mjs';
+import { chooseAdbBinary, inspectConnectedOnePlus } from './check-oneplus-readonly-usb.mjs';
 
 export const HUB_SCHEMA='paseka-offline-check-hub-v1';
 export const HUB_VERSION=1;
-const CHECK_IDS=Object.freeze(['runtime','full-indexeddb-export','external-android-media']);
+const CHECK_IDS=Object.freeze(['runtime','full-indexeddb-export','external-android-media','oneplus-usb-metadata']);
 const SAFE_ID=/^[a-z][a-z0-9-]{0,63}$/;
 
 function errorCode(error) {
@@ -28,11 +29,17 @@ export function validateChecks(checks) {
   const seen=new Set();
   for(const c of checks) {
     if(!c||!SAFE_ID.test(c.id)||seen.has(c.id)||typeof c.run!=='function'||
-       c.readOnly!==true||c.deviceAccess!==false||c.networkAccess!==false)
+       c.readOnly!==true||c.networkAccess!==false||
+       !(c.deviceAccess===false || (c.deviceAccess==='METADATA_ONLY' &&
+         c.id==='oneplus-usb-metadata' && c.run===onePlusMetadataCheck)))
       throw Error('UNSAFE_CHECK_REGISTRY');
     seen.add(c.id);
   }
   return true;
+}
+
+async function onePlusMetadataCheck(context) {
+  return inspectConnectedOnePlus({binary:chooseAdbBinary()});
 }
 
 const REGISTERED=Object.freeze([
@@ -71,7 +78,9 @@ const REGISTERED=Object.freeze([
     async run() {
       return {status:'NEEDS_DEVICE_EVIDENCE',code:'GALLERY_MEDIASTORE_NOT_ACCESSIBLE_FROM_LOCAL_ARCHIVE',
         proofLevel:'NOT_VERIFIED'};
-    }})
+    }}),
+  Object.freeze({id:'oneplus-usb-metadata',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
+    run:onePlusMetadataCheck})
 ]);
 validateChecks(REGISTERED);
 
@@ -112,7 +121,7 @@ export async function executeChecks({checks=REGISTERED,bundleRoot,downloads,desk
     androidDurableRestore:'NOT_TESTED',
     originalVideosRestored:'NOT_TESTED',
     originalFilesModified:false,
-    onePlusAccess:'NOT_ATTEMPTED',
+    onePlusAccess:results['oneplus-usb-metadata']?.status==='PASS'?'READONLY_PACKAGE_METADATA_ONLY':'NOT_VERIFIED',
     deletion:'NOT_ATTEMPTED',
     network:'NOT_ATTEMPTED'
   };
