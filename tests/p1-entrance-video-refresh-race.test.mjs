@@ -90,7 +90,8 @@ test('video identifiers are escaped as data attributes, never placed in inline J
  await pending;
  assert.match(f.host.innerHTML,/data-video-id="video-&#39;&quot;&gt;&lt;img/);
  assert.match(f.host.innerHTML,/onclick="viewEntranceVideo\(this\.dataset\.videoId\)"/);
- assert.match(f.host.innerHTML,/onclick="removeEntranceVideo\(this\.dataset\.videoId\)"/);
+ assert.match(f.host.innerHTML,/Оригинал защищён от удаления/);
+ assert.doesNotMatch(f.host.innerHTML,/onclick="removeEntranceVideo\(/);
  assert.doesNotMatch(f.host.innerHTML,/onclick="(?:view|remove)EntranceVideo\('/);
  assert.doesNotMatch(f.host.innerHTML,/<img src=x/);
 });

@@ -47,16 +47,16 @@ test('startup gate: destructive restore, raw export, deletion are blocked before
  assert(calls.every(text=>text.startsWith('alert:')));
 });
 
-test('startup gate: verified first-use state permits normal independent media insert/delete and state write',async()=>{
+test('startup gate: verified first-use state allows media insert and state write but protects original from deletion',async()=>{
  const db=await indexedDb(),gate={ready:true};
  const deps={startupWriteGate:gate,rejectWhileStartupNotReady:load('rejectWhileStartupNotReady',{startupWriteGate:gate}),db,S:{meta:{revisionId:'first-use'},hives:[],families:[],records:[]},STORE:'main'};
  await load('write',deps)();
  const first=await new Promise((resolve,reject)=>{const tx=db.transaction('main','readonly'),q=tx.objectStore('main').get('state');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
  assert.equal(first.meta.revisionId,'first-use');
  assert.equal(await load('putEntranceVideo',deps)({id:'synthetic-one',blob:new Blob(['synthetic-fixture'])}),true);
- assert.equal(await load('deleteEntranceVideoBlob',deps)('synthetic-one'),true);
+ await assert.rejects(load('deleteEntranceVideoBlob',deps)('synthetic-one'),{code:'ENTRANCE_VIDEO_DELETE_BLOCKED'});
  const after=await new Promise((resolve,reject)=>{const tx=db.transaction('entrance_media','readonly'),q=tx.objectStore('entrance_media').count();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
- assert.equal(after,0);
+ assert.equal(after,1,'stored original must remain after prohibited delete');
  db.close();
 });
 
