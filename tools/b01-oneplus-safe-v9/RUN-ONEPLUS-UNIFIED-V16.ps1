@@ -209,6 +209,19 @@ try {
    $headerCount++
    $tar.Position=$offset+$skip
   }
+  # Reject file/child collisions BEFORE creating any reconstruction files.
+  # A valid child requires all of its ancestor members to be directories.
+  $regularPaths=New-Object 'System.Collections.Generic.HashSet[string]' -ArgumentList ([StringComparer]::OrdinalIgnoreCase)
+  foreach($entry in $entries){
+   if($entry.type -eq '0'){[void]$regularPaths.Add($entry.name)}
+  }
+  foreach($entry in $entries){
+   $parts=$entry.name.Split('/')
+   for($depth=1;$depth -lt $parts.Length;$depth++){
+    $ancestor=[string]::Join('/', $parts[0..($depth-1)])
+    if($regularPaths.Contains($ancestor)){throw 'TAR_FILE_PARENT_PATH_CONFLICT'}
+   }
+  }
   if($zeros -lt 2 -or $headerCount -lt 1){throw 'TAR_MISSING_EOF_OR_MEMBERS'}
   if($headerCount -ne [long]$manifest.entries){throw 'TAR_MANIFEST_ENTRY_COUNT_MISMATCH'}
   $report.tarMemberCount=$headerCount
@@ -300,7 +313,7 @@ try {
    'TAR_NONZERO_AFTER_EOF','TAR_HEADER_CHECKSUM_INVALID',
    'TAR_LINK_OR_SPECIAL_ENTRY_NOT_SAFE_FOR_PC_RECONSTRUCTION','TAR_ENTRY_SIZE_INVALID',
    'TAR_DIRECTORY_HAS_PAYLOAD','TAR_PAYLOAD_TRUNCATED',
-   'TAR_DUPLICATE_WINDOWS_MEMBER_PATH','TAR_TOO_MANY_ENTRIES','TAR_MISSING_EOF_OR_MEMBERS',
+   'TAR_DUPLICATE_WINDOWS_MEMBER_PATH','TAR_TOO_MANY_ENTRIES','TAR_FILE_PARENT_PATH_CONFLICT','TAR_MISSING_EOF_OR_MEMBERS',
    'TAR_MANIFEST_ENTRY_COUNT_MISMATCH','PC_RECONSTRUCTION_LIMIT_512MIB',
    'INSUFFICIENT_LOCAL_PC_SPACE_FOR_ISOLATED_RECONSTRUCTION',
    'TAR_DESTINATION_OUTSIDE_EMPTY_PC_ROOT','PC_REBUILT_FILE_SIZE_MISMATCH',
