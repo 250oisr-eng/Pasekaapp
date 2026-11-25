@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findFullExport } from './run-b01-oneclick.mjs';
 import { proveExportedArchiveRecoveryFile } from './prove-exported-archive-recovery.mjs';
-import { chooseAdbBinary, inspectConnectedOnePlus, inspectOnePlusFullExportPresence } from './check-oneplus-readonly-usb.mjs';
+import { chooseAdbBinary, inspectConnectedOnePlus, inspectOnePlusFullExportPresence, inspectOnePlusPrivateDbAccessGate } from './check-oneplus-readonly-usb.mjs';
 
 export const HUB_SCHEMA='paseka-offline-check-hub-v1';
 export const HUB_VERSION=1;
@@ -32,7 +32,8 @@ export function validateChecks(checks) {
        c.readOnly!==true||c.networkAccess!==false||
        !(c.deviceAccess===false || (c.deviceAccess==='METADATA_ONLY' &&
          ((c.id==='oneplus-usb-metadata' && c.run===onePlusMetadataCheck) ||
-          (c.id==='oneplus-downloads-export' && c.run===onePlusDownloadsCheck)))))
+          (c.id==='oneplus-downloads-export' && c.run===onePlusDownloadsCheck) ||
+          (c.id==='oneplus-private-db-gate' && c.run===onePlusPrivateDbGateCheck)))))
       throw Error('UNSAFE_CHECK_REGISTRY');
     seen.add(c.id);
   }
@@ -45,6 +46,10 @@ async function onePlusMetadataCheck(context) {
 
 async function onePlusDownloadsCheck() {
   return inspectOnePlusFullExportPresence({binary:chooseAdbBinary()});
+}
+
+async function onePlusPrivateDbGateCheck() {
+  return inspectOnePlusPrivateDbAccessGate({binary:chooseAdbBinary()});
 }
 
 const REGISTERED=Object.freeze([
@@ -87,7 +92,9 @@ const REGISTERED=Object.freeze([
   Object.freeze({id:'oneplus-usb-metadata',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
     run:onePlusMetadataCheck}),
   Object.freeze({id:'oneplus-downloads-export',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
-    run:onePlusDownloadsCheck})
+    run:onePlusDownloadsCheck}),
+  Object.freeze({id:'oneplus-private-db-gate',readOnly:true,deviceAccess:'METADATA_ONLY',networkAccess:false,
+    run:onePlusPrivateDbGateCheck})
 ]);
 validateChecks(REGISTERED);
 
