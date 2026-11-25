@@ -392,7 +392,8 @@ jobs:
             @{name='SYMLINK';expected='TAR_LINK_OR_SPECIAL_ENTRY_NOT_SAFE_FOR_PC_RECONSTRUCTION'},
             @{name='BAD_HEADER';expected='TAR_HEADER_CHECKSUM_INVALID'},
             @{name='NONZERO_AFTER_EOF';expected='TAR_NONZERO_AFTER_EOF'},
-            @{name='BAD_MANIFEST';expected='CANDIDATE_MANIFEST_INVALID'}
+            @{name='BAD_MANIFEST';expected='CANDIDATE_MANIFEST_INVALID'},
+            @{name='FILE_PARENT_CONFLICT';expected='TAR_FILE_PARENT_PATH_CONFLICT'}
           )){
             $fresh=Join-Path $env:RUNNER_TEMP ('b01-v16-clean-'+$case.name)
             $persistent=Join-Path $env:RUNNER_TEMP ('b01-v16-persist-'+$case.name)
@@ -411,6 +412,15 @@ jobs:
               $expanded[2048]=88
               $tar=$expanded
             }
+            if($case.name -eq 'FILE_PARENT_CONFLICT'){
+              # Two individually valid headers: file "a" and child "a/b".
+              # Reject during preflight, before any PC reconstruction directory exists.
+              $parent=MakeSynthetic 'a'
+              $child=MakeSynthetic 'a/b'
+              $tar=New-Object byte[] 3072
+              [Array]::Copy($parent,0,$tar,0,1024)
+              [Array]::Copy($child,0,$tar,1024,1024)
+            }
             $archive=Join-Path $candidate 'private-candidate-v9-synthetic.tar'
             [IO.File]::WriteAllBytes($archive,$tar)
             $sha=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -420,7 +430,7 @@ jobs:
               transport='EXEC_OUT'
               bytes=$tar.Length
               sha256=if($case.name -eq 'BAD_HASH'){'0'*64}else{$sha}
-              entries=1
+              entries=if($case.name -eq 'FILE_PARENT_CONFLICT'){2}else{1}
               fullBackupVerified=$false
               mediaStoreGalleryCoverage='NOT_TESTED'
               independentRestore='NOT_TESTED'
@@ -456,6 +466,10 @@ jobs:
                 throw 'V16 original or reconstructed file lost when test removed'
               }
             } else {
+              if($case.name -eq 'FILE_PARENT_CONFLICT' -and
+                 @(Get-ChildItem -LiteralPath $persistent -Directory -Filter 'pc-reconstruction-*').Count -ne 0){
+                throw 'V16 wrote PC files before rejecting TAR file-parent collision'
+              }
               if($r.byteForByteComparison -eq 'PASS' -or $r.status -ne 'BLOCKED'){
                 throw "V16 falsely passed defective synthetic case $($case.name)"
               }
