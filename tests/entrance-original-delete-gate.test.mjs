@@ -48,3 +48,24 @@ test('video copy-protection regressions do not change normal read path',()=>{
  assert.match(code,/\.get\(id\)/);
  assert.doesNotMatch(code,/\.delete\(|\.clear\(/);
 });
+
+test('full database reset refuses confirmations and cannot delete original video stores',async()=>{
+ const start=html.indexOf('async function deleteAllData(){');
+ const end=html.indexOf("\ndocument.querySelectorAll('nav button')",start);
+ assert.ok(start>=0&&end>start);
+ const code=html.slice(start,end);
+ assert.doesNotMatch(code,/indexedDB\\.deleteDatabase\\(|\\.clear\\(/);
+ const messages=[];
+ const deps={
+  rejectWhileStartupNotReady:()=>null,
+  alert:message=>messages.push(message),
+  confirm(){throw new Error('USER_CONFIRMATION_IS_NOT_FULL_RECOVERY')},
+  prompt(){throw new Error('TYPED_CONFIRMATION_IS_NOT_FULL_RECOVERY')},
+  indexedDB:{deleteDatabase(){throw new Error('DATABASE_DELETE_MUST_NOT_RUN')}},
+  db:{close(){throw new Error('DATABASE_CLOSE_MUST_NOT_RUN')}}
+ };
+ const fn=new Function('deps','with(deps){return ('+code+');}')(deps);
+ assert.equal(await fn(),false);
+ assert.equal(messages.length,1);
+ assert.match(messages[0],/Без отдельно проверенного полного архива и независимого восстановления/);
+});
