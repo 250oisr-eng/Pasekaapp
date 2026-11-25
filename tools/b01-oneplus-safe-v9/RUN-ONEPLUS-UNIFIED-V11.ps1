@@ -1,4 +1,4 @@
-# PASEKA B01 V11 — one-folder, one-launch, fail-closed Windows PowerShell 5.1.
+# PASEKA B01 V11 - one-folder, one-launch, fail-closed Windows PowerShell 5.1.
 # Default: diagnose an EXISTING public TAR anywhere in user's common folders.
 # Only explicit USB choice invokes legacy V9.1; private capture needs its own CAPTURE confirmation.
 [CmdletBinding()]
@@ -118,7 +118,7 @@ function Choose-ExistingPublicTar {
     try {
         Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
         $dialog=New-Object Windows.Forms.OpenFileDialog
-        $dialog.Title='PASEKA B01 - выберите СУЩЕСТВУЮЩИЙ public-only-v9.tar'
+        $dialog.Title='PASEKA B01 - select EXISTING public-only-v9.tar'
         $dialog.Filter='Existing public-only-v9.tar|public-only-v9.tar'
         $dialog.CheckFileExists=$true
         $dialog.Multiselect=$false
