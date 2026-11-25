@@ -16,8 +16,8 @@ echo This does NOT modify your OnePlus, Android emulator, source archive or vide
 "node.exe" "scripts\paseka-check-hub.mjs"
 set "result=%ERRORLEVEL%"
 echo.
-echo Only send the most recent report from B01-REPORTS.
+echo Only send the most recent report from PASEKA-CHECK-REPORTS.
 echo Never send the original archive or private files.
-if exist "B01-REPORTS" start "" explorer.exe "%~dp0B01-REPORTS"
+if exist "PASEKA-CHECK-REPORTS" start "" explorer.exe "%~dp0PASEKA-CHECK-REPORTS"
 pause
 exit /b %result%
