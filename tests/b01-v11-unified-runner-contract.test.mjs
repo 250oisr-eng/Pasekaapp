@@ -49,3 +49,10 @@ test('mandatory project rule favors standalone one-launch tools over patching ol
   assert.match(rules,/единый самодостаточный/i);
   assert.match(rules,/не (?:требовать|заставлять).*копир/i);
 });
+
+test('V11 remains parseable under Windows PowerShell 5.1 default file encoding',()=>{
+  assert.ok([...runner].every(c=>c.charCodeAt(0)<128),
+    'Standalone PowerShell 5.1 entry should be 7-bit ASCII without a BOM');
+  assert.match(runner,/\[IO\.DirectoryInfo\]::new\(\$root\)/);
+  assert.match(runner,/\[IO\.FileInfo\]::new\(\$candidate\)/);
+});
