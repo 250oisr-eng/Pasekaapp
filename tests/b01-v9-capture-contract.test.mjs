@@ -43,3 +43,14 @@ test('B01 V9 report never claims full backup, independent restore, or media cove
   assert.match(readme,/NEVER upload \.tar/);
   assert.match(cmd,/ExecutionPolicy Bypass/);
 });
+
+test('B01 V10 redacts preflight command failures by fixed identifier rather than logging stderr',()=>{
+  for(const name of ['ADB_VERSION','DEVICES_INITIAL','DEVICES_AFTER_STARTUP','DEVICE_MODEL','ADB_FEATURES','RUN_AS_PWD','PROCESS_LIST']) assert.ok(ps.includes(name),name);
+  assert.match(ps,/function Read-DevicesWithOneStartupRetry/);
+  assert.match(ps,/Test-AdbDaemonStartup|Is-CanonicalAdbStartup/);
+  assert.match(ps,/\$first\.exitCode -ne 0 -or -not \(Is-CanonicalAdbStartup \$first\.stderr\)/);
+  assert.match(ps,/\$second\.exitCode -ne 0 -or \$second\.stderr\.Length -gt 0/);
+  assert.match(ps,/adbProbeStderrClass/);
+  assert.doesNotMatch(ps,/ADB_READONLY_COMMAND_FAILED/);
+  assert.doesNotMatch(ps,/Write-Host .*\.stderr|\$report\.stderr\s*=/);
+});
