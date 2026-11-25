@@ -54,6 +54,11 @@ export function auditPasekaJsonTransfer(raw, expected = {}) {
   const familiesById = new Map(byType.families.filter(f => typeof f.id === 'string').map(f => [f.id, f]));
   for (const [index, record] of byType.records.entries()) {
     const linkedFamily = familiesById.get(record.family);
+    // A family-linked record without its own hive cannot prove the historic
+    // association. Require review, not mutation or fabricated reconciliation.
+    if (record.family && !record.hive) {
+      warnings.push('Record with a family link has no hive context at row ' + index + '; review historical association');
+    }
     if (linkedFamily && record.hive && linkedFamily.hive && record.hive !== linkedFamily.hive) {
       warnings.push('Record family and hive association differ at row ' + index + '; inspect historical move/archival evidence');
     }
