@@ -120,3 +120,50 @@ export async function inspectOnePlusPrivateDbAccessGate({binary,command=defaultC
       proofLevel:'NOT_VERIFIED'};
   }
 }
+
+/**
+ * B01 read-only private storage metadata inventory.
+ * Lists only fixed WebView IndexedDB candidate directories, discards their
+ * contents immediately, and reports fixed status codes (no names or paths).
+ * run-as must first be allowed by the installed package on the attested USB
+ * OnePlus. It never opens a database, reads file bytes, or creates a copy.
+ */
+export async function inspectOnePlusIdbInventory({binary,command=defaultCommand}={}) {
+  const gate=await inspectOnePlusPrivateDbAccessGate({binary,command});
+  if(gate.code!=='INSTALLED_APP_RUN_AS_IDENTITY_AVAILABLE')
+    return {status:'NEEDS_INPUT',code:'PRIVATE_STORE_INVENTORY_REQUIRES_RUN_AS',proofLevel:'NOT_VERIFIED'};
+  let target;
+  try{target=parseOnePlusTarget(command(binary,['devices','-l']));}
+  catch{return {status:'BLOCKED',code:'PRIVATE_STORE_INVENTORY_TARGET_LOST',proofLevel:'NOT_VERIFIED'};}
+  if(target.status!=='READY')
+    return {status:'NEEDS_INPUT',code:'PRIVATE_STORE_INVENTORY_TARGET_CHANGED',proofLevel:'NOT_VERIFIED'};
+  const candidates=[
+    'app_webview/Default/IndexedDB',
+    'app_webview/IndexedDB',
+    'app_webview/Default/Local Storage/leveldb'
+  ];
+  let accessible=0;
+  let nonEmpty=0;
+  // No shell scripts, glob expansion, find, cat, tar, pull, file reads or
+  // filesystem modification. Each command is a fixed readonly ls -1.
+  for(const relative of candidates){
+    try{
+      const entries=String(command(binary,[
+        '-s',target.serial,'shell','run-as','ru.paseka.journal',
+        'ls','-1',relative
+      ])).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+      accessible++;
+      if(entries.length>0)nonEmpty++;
+    }catch{
+      // Missing path or permission is not evidence of an empty or
+      // nonexistent IndexedDB in another profile or WebView version.
+    }
+  }
+  if(accessible===0)
+    return {status:'NEEDS_INPUT',code:'WEBVIEW_CANDIDATE_DIRECTORIES_UNAVAILABLE',proofLevel:'NOT_VERIFIED'};
+  return {
+    status:'PASS',
+    code:nonEmpty>0?'WEBVIEW_STORAGE_DIRECTORY_ENTRIES_PRESENT':'WEBVIEW_STORAGE_CANDIDATES_EMPTY',
+    proofLevel:'DIRECTORY_METADATA_ONLY_NOT_BACKUP'
+  };
+}
