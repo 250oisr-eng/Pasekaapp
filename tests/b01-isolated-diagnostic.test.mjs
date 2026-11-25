@@ -138,6 +138,7 @@ test('B01 Android emulator guard is mandatory, restrictive, and source-identical
    'package ru.paseka.journal.diagnostic.restore;\npublic class MainActivity extends BridgeActivity {}\n'));
   await installEmulatorGuard(dst);
   assert.equal(await readFile(join(source,'MainActivity.java'),'utf8'),java);
+  await import('node:fs/promises').then(({writeFile})=>writeFile(join(source,'MainActivity.java'), 'package wrong.package;\npublic class MainActivity extends BridgeActivity {}\n'));
   await assert.rejects(installEmulatorGuard(dst),/UNEXPECTED_GENERATED_ANDROID_ACTIVITY/);
  } finally {await rm(parent,{recursive:true,force:true});}
 });
