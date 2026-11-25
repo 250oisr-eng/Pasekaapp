@@ -1,11 +1,11 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## B01 P0 — 25.11.2026: единый тест V11 без копирования
+## B01 P0 — 25.11.2026: реальный V11 BLOCKED, исправление V12
 
-- Физический V9.1: ADB/shell_v2/run-as PASS, публичный TAR INVALID_LENGTH; private NOT_ATTEMPTED, restore NOT_TESTED.
-- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): один ZIP/START и один JSON, поиск прежнего TAR в чужих папках read-only, USB только с явного выбора. Правило в `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md` (Draft).
-- Windows synthetic #45580215459 SUCCESS; Governance #45580215441 SUCCESS на SHA `a0d4627585ea65780c2d58220cbfc7554f98402e`. ZIP SHA256 `a71c103ba1adee93d082f40b3020c0b4583b8c8011de82cd3fa30f1dbc5044ad`.
-- Следующий шаг: новый `b01-unified-result.json`. B01 BLOCKED; без merge/APK update/video cleanup.
+- Физический V11: `NO_PREVIOUS_PUBLIC_TAR_FOUND`, ADB не вызывался, личные данные не читались. Предыдущий V9.1: публичный TAR с некратной 512 длиной; первопричина UNKNOWN.
+- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): V12 — один ZIP/START/JSON; read-only поиск прежнего TAR на локальных дисках с пределами, выбор без копирования; при отсутствии — только явный `PUBLIC` для публичного ADB. Приватный захват в этом режиме запрещён.
+- Windows synthetic #45581760047 SUCCESS (V12 fixed-drive, no-file и публичный USB PASS/FAIL). ZIP CRC PASS; SHA-256 `404eb855e3e195bf62a2e47cab65293d3b2d76ba61578e982d122392cb5262f2`. Правило — `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md` (Draft).
+- Следующий шаг: один `b01-unified-result.json` V12. B01 BLOCKED; без merge/install/video delete.
 
 ## 25.11.2026 — B01: Windows TAR capture V9, Draft #522
 
