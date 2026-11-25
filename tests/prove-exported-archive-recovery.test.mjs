@@ -98,3 +98,25 @@ test('B01 source reader refuses size limit, source file still byte identical',as
     assert.equal(stat.size,content.length);
   } finally {await rm(dir,{recursive:true,force:true});}
 });
+
+test('B01 recovery proof rejects mutation of a declared legacy store and does not claim device restore',async()=>{
+ const original=JSON.parse(await fixture({withLegacy:true}));
+ const changed=JSON.parse(JSON.stringify(original));
+ const legacy=changed.payload.stores.find(spec=>spec.name==='legacy_extra');
+ assert.ok(legacy?.entries?.length,'synthetic legacy record must be present');
+ legacy.entries[0][1]={t:'str',v:'substituted legacy bytes'};
+ await assert.rejects(proveExportedArchiveRecoveryText(JSON.stringify(changed)));
+ const untouched=await proveExportedArchiveRecoveryText(JSON.stringify(original));
+ assert.equal(untouched.archivedStoreCount,4);
+ assert.equal(untouched.allArchivedStoresByteVerified,true);
+ assert.equal(untouched.fullBackupVerified,false);
+ assert.equal(untouched.realAndroidRestore,'NOT_TESTED');
+});
+test('B01 recovery does not accept duplicate or invalid extra store manifests',async()=>{
+ const archive=JSON.parse(await fixture({withLegacy:true}));
+ archive.payload.stores.push({...archive.payload.stores[0]});
+ await assert.rejects(proveExportedArchiveRecoveryText(JSON.stringify(archive)),/B01_BLOCKED_INVALID_STORE_MANIFEST/);
+ const invalid=JSON.parse(await fixture());
+ invalid.payload.stores[0].name='../untrusted';
+ await assert.rejects(proveExportedArchiveRecoveryText(JSON.stringify(invalid)),/B01_BLOCKED_INVALID_STORE_MANIFEST/);
+});
