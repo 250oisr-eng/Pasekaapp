@@ -21,8 +21,8 @@ PR #500–#507: подробные доказательства — в журн�
 
 ## B01 — реальный OnePlus, run-as PASS, read-only инвентаризация
 
-- **Пользовательский отчёт 25.11.2026 16:31 UTC:** OnePlus/package и `run-as ru.paseka.journal id` **PASS**. Полного экспортированного JSON на ПК нет (`FULL_EXPORT_NOT_FOUND`), имени экспорта в Android Download нет, внешние Gallery/MediaStore и Android restore **NOT_VERIFIED**. `run-as` даёт лишь право работать с sandbox, **не** подтверждает копию данных.
-- **Draft #528 → #527 → #526 → #525 → #524:** разрешена *только* одноразовая read-only инвентаризация метаданных трёх фиксированных каталогов WebView (`run-as ... ls -1`); имена не публикуются, файлы не открываются/не копируются. [Windows #45655304597](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45655304597) code SHA `19811258` SUCCESS **39/39**, packaged double-run PASS. Реальный inventory ещё NOT_TESTED. B01 BLOCKED, #442 FROZEN.
+- **Новый пользовательский отчёт 25.11.2026 16:39 UTC:** `oneplus-usb-metadata=PASS`, `oneplus-private-db-gate=PASS`, **`oneplus-idb-inventory=PASS / WEBVIEW_STORAGE_DIRECTORY_ENTRIES_PRESENT`**. Установлена только доступность метаданных каталога WebView: ни файлы, ни значения IndexedDB не считаны. `full-indexeddb-export=NEEDS_INPUT / FULL_EXPORT_NOT_FOUND`, `oneplus-downloads-export=NEEDS_INPUT / NO_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS`; Gallery/MediaStore и независимый Android restore остаются **NOT_VERIFIED**. `fullBackupVerified=false`, `originalFilesModified=false`, `deletion=NOT_ATTEMPTED`. Не путать `run-as`/каталоги с копией данных.
+- **Draft #528 → #527 → #526 → #525 → #524:** разрешена *только* одноразовая read-only инвентаризация метаданных трёх фиксированных каталогов WebView (`run-as ... ls -1`); имена не публикуются, файлы не открываются/не копируются. [Windows #45655304597](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45655304597) code SHA `19811258` SUCCESS **39/39**, packaged double-run PASS. Реальный inventory подтверждён отдельным пользовательским отчётом 16:39 UTC, уровень доказательства **DIRECTORY_METADATA_ONLY_NOT_BACKUP**. B01 BLOCKED, #442 FROZEN.
 
 ## Нерешённые блокеры
 
@@ -33,7 +33,7 @@ PR #500–#507: подробные доказательства — в журн�
 
 ## Следующий безопасный этап
 
-1. После точного CI #528: один запуск обновлённого Windows ZIP на OnePlus проверит **только метаданные** каталогов WebView. Передавать исключительно обезличенный `PASEKA-CHECK-*.json`; ни база, ни видео не копируются.
+1. **Повторный запуск каталожной инвентаризации не требуется.** Следующий B01 gate — безопасный app-level полный экспорт из уже установленной версии **только если функция экспорта действительно присутствует**, затем локальная независимая проверка JSON из Draft #524. Без APK upgrade, raw LevelDB transfer, live restore и передачи личного архива в чат/CI. Если экспорт недоступен, B01 остаётся BLOCKED до отдельного безопасного пути получения оригинальной копии.
 2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
