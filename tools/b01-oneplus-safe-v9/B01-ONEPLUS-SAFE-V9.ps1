@@ -7,6 +7,7 @@ Set-StrictMode -Version Latest
 $pkg = 'ru.paseka.journal'
 $maxBytes = [long]8 * 1024 * 1024 * 1024
 $base = $PSScriptRoot
+$script:privateOutputDir=$null
 $results = Join-Path $base 'results'
 [void][IO.Directory]::CreateDirectory($results)
 $runFolder = Join-Path $results ('run-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N').Substring(0,8))
@@ -399,6 +400,18 @@ try {
     Save-Report
     Write-Host 'Candidate TAR verified structurally. THIS IS NOT A FULL OR RESTORED BACKUP.' -ForegroundColor Yellow
 } catch {
+    # Failed captures remain local for audit, but are visibly marked INVALID.
+    # Never delete or silently promote an incomplete TAR into a verified backup.
+    if($script:privateOutputDir -and [IO.Directory]::Exists($script:privateOutputDir) -and
+       $report.status -ne 'CANDIDATE_ONLY') {
+        $marker=Join-Path $script:privateOutputDir 'INVALID-CANDIDATE-NOT-BACKUP.txt'
+        try {
+            $text='BLOCKED: This is an INCOMPLETE or UNVERIFIED local candidate. Do NOT restore or delete original data.'
+            $b=[Text.Encoding]::ASCII.GetBytes($text)
+            $fmark=New-Object IO.FileStream($marker,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+            try{$fmark.Write($b,0,$b.Length);$fmark.Flush()}finally{$fmark.Dispose()}
+        } catch {}
+    }
     if($report.code -eq 'NOT_STARTED') { $report.code='UNEXPECTED_SCRIPT_ERROR' }
     $report.status='BLOCKED'; Save-Report
     Write-Host ('BLOCKED: '+$report.code) -ForegroundColor Red
