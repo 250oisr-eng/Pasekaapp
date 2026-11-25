@@ -597,3 +597,93 @@ jobs:
           path: tools/b01-v17-bundle/*
           if-no-files-found: error
           retention-days: 7
+
+      - name: V18 physical LevelDB log CRC32C - Windows PowerShell 5.1 isolated fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script='tools/b01-oneplus-safe-v9/RUN-ONEPLUS-LEVELDB-CRC-V18.ps1'
+          # Valid LevelDB log FULL record: crc32c(type 0x01 || ASCII SYNTHETIC)
+          # masked CRC 0xe93e7bca, length 9, record kind 1.
+          [byte[]]$valid=@(202,123,62,233,9,0,1,83,89,78,84,72,69,84,73,67)
+          foreach($case in @(
+            @{name='GOOD';expected='LEVELDB_LOG_CRC32C_AND_FRAGMENT_BOUNDARIES_VALID'},
+            @{name='CRC_CORRUPT';expected='LOG_CRC32C_MISMATCH'},
+            @{name='TRUNCATED';expected='LOG_FRAGMENT_OUTSIDE_BLOCK'},
+            @{name='NO_LOG';expected='NO_INDEXEDDB_LEVELDB_LOG_FOUND'},
+            @{name='INVALID_RECON';expected='INCOMPLETE_PC_RECONSTRUCTION'}
+          )){
+            $fixtureRoot=Join-Path $env:RUNNER_TEMP ('b01-v18-'+$case.name)
+            $fresh=Join-Path $fixtureRoot 'test-package'
+            $persistent=Join-Path $fixtureRoot 'persistent'
+            $recon=Join-Path $persistent 'pc-reconstruction-11111111111111111111111111111111'
+            $db=Join-Path $recon 'app_webview/Default/IndexedDB/https_example_0.indexeddb.leveldb'
+            [void][IO.Directory]::CreateDirectory($fresh)
+            [void][IO.Directory]::CreateDirectory($db)
+            Copy-Item -LiteralPath $script -Destination $fresh
+            if($case.name -ne 'NO_LOG'){
+              [byte[]]$payload=[byte[]]$valid.Clone()
+              if($case.name -eq 'CRC_CORRUPT'){$payload[7]=$payload[7] -bxor 1}
+              if($case.name -eq 'TRUNCATED'){$payload=$payload[0..9]}
+              [IO.File]::WriteAllBytes((Join-Path $db '000001.log'),$payload)
+            }
+            if($case.name -eq 'INVALID_RECON'){
+              [IO.File]::WriteAllText((Join-Path $recon 'INVALID-PC-RECONSTRUCTION-NOT-BACKUP.txt'),'invalid fixture')
+            }
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-LEVELDB-CRC-V18.ps1') -CandidateRoot $persistent | Out-Null
+            $reportPath=Join-Path $fresh 'B01-RESULT.json'
+            if(-not [IO.File]::Exists($reportPath)){throw "V18 report missing: $($case.name)"}
+            $report=Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+            Write-Host ("V18 $($case.name): $($report.status) $($report.code)")
+            if($report.code -ne $case.expected){throw "V18 unexpected code $($case.name): $($report.code)"}
+            if($report.webviewDbOpened -ne 'NO' -or $report.userValuesExported -ne 'NO' -or
+               $report.fullBackupVerified -ne $false -or $report.phoneWrites -ne 'NOT_ATTEMPTED' -or
+               $report.androidRestore -ne 'NOT_TESTED' -or $report.network -ne 'NOT_ATTEMPTED'){
+              throw 'V18 claimed database restore or device operation'
+            }
+            if($case.name -eq 'GOOD' -and ($report.physicalRecordsValid -ne 1 -or
+               $report.logicalRecordsClosed -ne 1 -or $report.logBytesChecked -ne 16 -or
+               $report.logFilesChecked -ne 1)){
+              throw 'V18 did not validate known CRC32C synthetic fixture'
+            }
+            if($case.name -eq 'CRC_CORRUPT' -and $report.crcFailures -ne 1){
+              throw 'V18 did not count a CRC failure'
+            }
+            $hash=(Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash
+            & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fresh 'RUN-ONEPLUS-LEVELDB-CRC-V18.ps1') -CandidateRoot $persistent | Out-Null
+            if((Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash -ne $hash){
+              throw 'V18 overwrote an existing evidence report'
+            }
+          }
+
+      - name: Stage V18 independent LevelDB physical CRC audit package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src='tools/b01-oneplus-safe-v9'
+          $dest='tools/b01-v18-bundle'
+          [void][IO.Directory]::CreateDirectory($dest)
+          foreach($p in @(
+            @{src='START-LEVELDB-V18.cmd';dst='START.cmd'},
+            @{src='RUN-ONEPLUS-LEVELDB-CRC-V18.ps1';dst='RUN-ONEPLUS-LEVELDB-CRC-V18.ps1'},
+            @{src='README-LEVELDB-V18.txt';dst='README.txt'}
+          )){
+            Copy-Item -LiteralPath (Join-Path $src $p.src) -Destination (Join-Path $dest $p.dst)
+            if((Get-FileHash -LiteralPath (Join-Path $src $p.src) -Algorithm SHA256).Hash -ne
+               (Get-FileHash -LiteralPath (Join-Path $dest $p.dst) -Algorithm SHA256).Hash){
+              throw 'V18 package source SHA mismatch'
+            }
+          }
+          if(@(Get-ChildItem -LiteralPath $dest -File).Count -ne 3){throw 'V18 package must have three files'}
+          if(@(Get-ChildItem -LiteralPath $dest -Recurse -File |
+              Where-Object {$_.Extension -in @('.tar','.json','.db','.log','.ldb','.jpg','.mp4','.apk')}).Count -ne 0){
+            throw 'V18 bundle contains possible private app data'
+          }
+
+      - name: Upload V18 standalone offline LevelDB CRC ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-INDEXEDDB-LOG-CRC-V18
+          path: tools/b01-v18-bundle/*
+          if-no-files-found: error
+          retention-days: 7
