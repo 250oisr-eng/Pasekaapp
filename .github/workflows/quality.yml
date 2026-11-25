@@ -12,6 +12,7 @@ on:
       - 'package-lock.json'
       - 'scripts/**'
       - 'tests/**'
+      - 'qa/**'
       - '.github/workflows/**'
 
 concurrency:
