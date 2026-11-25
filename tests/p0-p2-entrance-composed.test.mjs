@@ -12,7 +12,9 @@ function load(name,deps){
  const next=/\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
  next.lastIndex=m.index+m[0].length;
  const stop=next.exec(html);
- return new Function('deps','with(deps){return ('+html.slice(m.index,stop?stop.index:html.indexOf('</script>',m.index))+');}')(deps);
+ const end=name==='deleteAllData' ? html.indexOf("\ndocument.querySelectorAll(",m.index) : (stop?stop.index:html.indexOf('</script>',m.index));
+ assert.ok(end>m.index,'missing function boundary');
+ return new Function('deps','with(deps){return ('+html.slice(m.index,end)+');}')(deps);
 }
 async function create(){
  const factory=new IDBFactory();
