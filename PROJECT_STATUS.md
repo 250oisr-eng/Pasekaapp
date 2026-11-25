@@ -6,7 +6,7 @@
 
 - Физический пользовательский V11: `BLOCKED/NO_PREVIOUS_PUBLIC_TAR_FOUND`, `adbUsed=NO`. В V9.1 публичный TAR не прошёл размер/512. **Истинная причина несоответствия ещё неизвестна.**
 - Пользователь **удаляет предыдущие тесты**. Новое обязательное правило: **один полностью независимый ZIP / один START / один JSON**; без поиска или запроса старых диагностических TAR, папок, результатов и без просьб «продолжай». Максимальная автономия до реальной границы безопасности; развёрнуто в `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md §6.1–6.2` (пока Draft).
-- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): подготовлен новый **V13**, публичный read-only ADB тест из *чистого ZIP*, без использования старых версий. Никакого чтения приватной базы, установки/очистки приложения или загрузки TAR в чат. Один отчёт `unified-results/run-*/b01-unified-result.json`. Реальный OnePlus V13 `NOT_TESTED`.
+- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): V13 — независимый ZIP/START/JSON, новый публичный read-only ADB тест без прошлых тестов. Windows CI [#45583387019](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45583387019) SUCCESS (4 synthetic случая, private NOT_ATTEMPTED), ZIP SHA256 `93a9096cdcea515ba0e7a15f3ab523e3d70e74528d0fa995a8f6869c29a7a09b`, CRC PASS. Один `unified-results/run-*/b01-unified-result.json`; физический OnePlus V13 `NOT_TESTED`.
 - V13 даёт только диагностику публичного TAR; **полная резервная копия, MediaStore/Gallery и независимый restore остаются NOT_VERIFIED**. B01 `BLOCKED`, нельзя устанавливать другой APK или удалять оригиналы.
 
 ## Незавершённые зависимости
