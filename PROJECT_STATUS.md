@@ -2,6 +2,12 @@
 
 **25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
+## B04/B05 последняя проверка — Draft #519 (25.11.2026)
+
+- **V5 physical OnePlus:** `PASS_APKSIGNER_VERIFY` установленного `ru.paseka.journal`, cert SHA-256 `9b10baf04e1e09bfe2d58e72b1c1eecf04b48f532940b5e91a3083bd73ddb0aa`; APK SHA-256 `a6e14157fcdce06885cb8c6a5ad55c8a76170c3fa4cefa234b1715d80865aec6`. B04 installed signer = DEVICE_USER_REPORTED_PASS; новый APK upgrade NOT_VERIFIED.
+- [Draft #519](https://github.com/250oisr-eng/Pasekaapp/pull/519): B05 local keystore entry digest comparison has five synthetic regression tests (Fast #45570755984 SUCCESS on code SHA e9b4baa2; final docs SHA 1bbeeb2b Android #45570818088 and Governance #45570818356 SUCCESS). Real original key NOT_FOUND/NOT_TESTED; certificate alone cannot recover private key.
+- **B05 остаётся BLOCKED:** нет доказанного доступного долгоживущего private signing key с backup и успешным подписанием независимого QA APK; `assembleDebug` не является proof. **B01 BLOCKED** full external backup/restore. #442 video cleanup FROZEN. Ни merge, ни release, ни OnePlus install.
+
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
 - **[#506](https://github.com/250oisr-eng/Pasekaapp/pull/506) MERGED**, `main=635e4e3dded87a595645bb479e2c74040577ea5d`: `scripts/verify-exported-archive.mjs` теперь контролирует **фактический** объём чтения полного экспортированного `paseka-idb-full-v1` JSON до 512 MiB, запрещает symlink, проверяет identity/изменение файла/UTF-8. **Fast #45556213707, Governance #45556213617, Android #45556213559 SUCCESS** на точном main. Это проверка файла, не восстановление.
@@ -19,14 +25,14 @@
 ## Нерешённые блокеры
 
 - **B01 P0 — BLOCKED:** нет проверенной внешней копии всех оригинальных источников OnePlus (в том числе Gallery/MediaStore/отдельные видео), нет независимого restore на пустой цели. Старый TAR некорректен. Новый локальный checker не заменяет backup/restore.
-- **B04/B05 P0 — BLOCKED:** реальный signing fingerprint установленного `ru.paseka.journal` и постоянный приватный ключ не подтверждены; **Draft #469** остаётся частично неперенесённым. Прямой APK upgrade запрещён до B01 backup, восстановления и rollback.
+- **B04 installed signer — DEVICE_USER_REPORTED_PASS V5 / future upgrade NOT_VERIFIED; B05 P0 — BLOCKED:** постоянный приватный ключ не подтверждён; **Draft #469** остаётся частично неперенесённым. Прямой APK upgrade запрещён до B01 backup, восстановления и rollback.
 - **B06/B10 — FROZEN #442:** лицензированные веса, реальный детектор пчёл/видеоконвейер и доказательное удаление оригиналов не подтверждены. Оригиналы **не удалять**.
 - **P1 OP01–14/B11 — NOT_VERIFIED:** новый многосекционный профиль и физический OP13/CAS не активировать; холодный offline и обновление на реальном OnePlus не проверены. Не смешивать новую технологию с Farrar.
 
 ## Следующий безопасный этап
 
 1. Только при доступности реального внешнего файла и ПК: локально проверить полный экспорт отдельно от обычного JSON, затем независимый restore на пустой среде; **архив с личными данными в чат/CI не загружать**.
-2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
+2. Установленный сертификат OnePlus уже проверен V5; повторное ADB чтение не требуется. Только при наличии candidate keystore выполнить read-only сравнение публичного сертификата; до B01/B05 нельзя устанавливать новую сборку.
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный CI не равен физическому испытанию.
