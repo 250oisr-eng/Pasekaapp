@@ -136,6 +136,18 @@
       "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
       "id": "b09-atomicity-20261124-pr476"
+    },
+    {
+      "id": "b01-tar-local-audit-20261125-pr509",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/509",
+      "codeSha": "f0bc0a044822f6bb0bf872e9a66bed371ea5d81c",
+      "ciRuns": [],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "V3.2 physical diagnostic user-reported; no independent recovery or production scenario verified. Local 7/7 synthetic TAR audit only, exact final CI pending.",
+      "notes": "No repeated physical diagnostic requested. Read-only inspection only; no archive uploaded. CI will be filled only after exact SHA."
     }
   ],
   "evaluation": {
