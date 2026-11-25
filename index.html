@@ -3738,7 +3738,7 @@ async function confirmHoneyReturn(){
 
 async function downloadG0SourceInventory(){
  const status=$('g0InventoryStatus');
- if(rejectWhileStartupNotReady()){if(status)status.textContent='Инвентаризация не запущена: база не открыта безопасно.';return;}
+ if(rejectWhileStartupNotReady()){if(status)status.textContent='Проверка G0 невозможна: база не открыта безопасно.';return;}
  if(status)status.textContent='Проверяю только метаданные текущей базы…';
  try{
   await saveQueue;
