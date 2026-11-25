@@ -33,10 +33,10 @@ function harness({network=async()=>new Response('ok'),existingCaches=[],offlineS
   };
   const fetch=async request=>{requests.push(request.url);return network(request);};
   vm.runInNewContext(source,{self,caches,fetch,Response,URL});
-  const fireFetch=async(url,{mode='cors',method='GET'}={})=>{
+  const fireFetch=async(url,{mode='cors',method='GET',headers=new Headers(),cache='default'}={})=>{
     let responsePromise=null;
     const settled=[];
-    const request={url,mode,method};
+    const request={url,mode,method,headers,cache};
     listeners.get('fetch')({
       request,
       respondWith:promise=>{responsePromise=Promise.resolve(promise);},
@@ -169,4 +169,34 @@ test('B11 new v320 policy does not overwrite active v319 cache and only retires 
  assert.ok(!h.deleted.includes('paseka-shell-v320'));
  assert.ok(!h.deleted.includes('paseka-shell-v321'));
  assert.ok(!h.deleted.includes('paseka-shell-v319-user'));
+});
+
+test('B11 SW bypasses Authorization requests rather than using or populating shared shell cache',async()=>{
+ const sw=harness({network:async()=>new Response('sensitive',{status:200})});
+ const result=await sw.fireFetch(scope+'js/hive-model.js',{
+  headers:new Headers({authorization:'Bearer SYNTHETIC_TEST_ONLY'})
+ });
+ assert.equal(result,null,'authorized fetch belongs to browser/network, not shared shell cache');
+ assert.deepEqual(sw.requests,[]);
+ assert.deepEqual(sw.writes,[]);
+});
+
+test('B11 SW bypasses HTTP range and explicit no-store requests even for shell paths',async()=>{
+ for(const settings of [
+  {headers:new Headers({range:'bytes=0-4'})},
+  {cache:'no-store'}
+ ]){
+  const sw=harness();
+  const result=await sw.fireFetch(scope+'index.html',settings);
+  assert.equal(result,null,'caller-controlled private fetch must bypass SW');
+  assert.deepEqual(sw.requests,[]);
+  assert.deepEqual(sw.writes,[]);
+ }
+});
+
+test('B11 ordinary canonical shell GET still uses offline caching',async()=>{
+ const sw=harness({network:async()=>new Response('synthetic shell',{status:200})});
+ const result=await sw.fireFetch(scope+'js/hive-model.js',{headers:new Headers()});
+ assert.equal(await result.text(),'synthetic shell');
+ assert.equal(sw.writes.length,1,'security bypass must not disable normal offline caching');
 });
