@@ -1,0 +1,52 @@
+name: B01 V9 Windows PowerShell synthetic gate
+on:
+  pull_request:
+    paths:
+      - 'tools/b01-oneplus-safe-v9/**'
+      - 'tests/b01-v9-*'
+      - '.github/workflows/b01-v9-windows-mock.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PowerShell 5.1 against synthetic ADB only (never real phone)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $sandbox=Join-Path $env:RUNNER_TEMP 'paseka-b01-v9-mock'
+          New-Item -ItemType Directory -Force -Path $sandbox | Out-Null
+          Copy-Item -Path 'tools/b01-oneplus-safe-v9/*' -Destination $sandbox -Recurse -Force
+          $platform=Join-Path $sandbox 'platform-tools'
+          New-Item -ItemType Directory -Force -Path $platform | Out-Null
+          $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          if(-not (Test-Path $compiler)){throw 'Windows .NET Framework C# compiler unavailable'}
+          & $compiler /nologo /target:exe "/out:$platform\adb.exe" 'tests/b01-v9-MockAdb.cs'
+          if($LASTEXITCODE -ne 0){throw 'Synthetic mock compiler failed'}
+          [IO.File]::WriteAllText((Join-Path $platform 'AdbWinApi.dll'),'synthetic-test-marker')
+          foreach($case in @(
+            @{mode='PASS';expected='CANDIDATE_ONLY'},
+            @{mode='BAD_HEADER';expected='BLOCKED'},
+            @{mode='BAD_PRIVATE_HEADER';expected='BLOCKED'},
+            @{mode='RUNNING';expected='BLOCKED'},
+            @{mode='OLD_ADB';expected='BLOCKED'},
+            @{mode='NO_SHELL_V2';expected='BLOCKED'},
+            @{mode='REMOTE_ERROR';expected='BLOCKED'},
+            @{mode='BAD_COVERAGE';expected='BLOCKED'}
+          )){
+            $env:B01_MOCK_MODE=$case.mode
+            'CAPTURE' | & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'B01-ONEPLUS-SAFE-V9.ps1') | Out-Null
+            $files=@(Get-ChildItem -Path (Join-Path $sandbox 'results') -Filter 'b01-v9-result.json' -Recurse | Sort-Object LastWriteTimeUtc)
+            $latest=$files[-1]
+            $report=Get-Content -LiteralPath $latest.FullName -Raw | ConvertFrom-Json
+            Write-Host ("$($case.mode): $($report.status) $($report.code)")
+            if($report.status -ne $case.expected){throw "Mock $($case.mode) unexpected status $($report.status)"}
+            if($report.backupCompleteness -ne 'NOT_VERIFIED' -or $report.independentRestore -ne 'NOT_TESTED' -or $report.mediaStoreGalleryCoverage -ne 'NOT_TESTED'){
+              throw 'False full-backup proof in synthetic runner'
+            }
+          }
+          Remove-Item Env:B01_MOCK_MODE
