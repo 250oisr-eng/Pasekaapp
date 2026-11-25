@@ -251,7 +251,8 @@ function GrabTar([string]$argsLine,[string]$fileName,[string]$kind) {
     $out=Join-Path $runFolder $fileName
     # The output file never exists before capture and is never overwritten. On failure it
     # remains for local forensic review; it is not a validated backup.
-    $r=Invoke-ProcessCapture -ArgsLine $argsLine -OutputFile $out -Limit $maxBytes
+    $captureLimit=if($kind -eq 'PUBLIC'){[long]64*1024*1024}else{$maxBytes}
+    $r=Invoke-ProcessCapture -ArgsLine $argsLine -OutputFile $out -Limit $captureLimit
     if($kind -eq 'PUBLIC') {
         $report.publicTarBytes=[long]$r.bytes
         $report.publicTarModulo512=[int]($r.bytes % 512)
