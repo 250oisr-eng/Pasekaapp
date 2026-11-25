@@ -2,6 +2,12 @@
 
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
+## Cross-PR P0/P2 check — Draft #513, 25.11.2026
+
+- [Draft #513](https://github.com/250oisr-eng/Pasekaapp/pull/513) is a **stacked test-only integration** on top of #512, using exactly the read-only metadata cursor from #511. No merge/release permitted automatically. A new fake-indexeddb regression verifies SHA-256 of a synthetic original after list, denied direct delete, and denied whole-db reset. Original media files not touched.
+- Source cross-PR code/test SHA `02fdc90c2747335844e4d4d08afca765d9d585da` Fast Quality #45565279763 SUCCESS; Governance #45565286208 SUCCESS; Android CI on exact SHA pending at this record. Historical first test-extraction FAIL fixed without loosening P0 guards.
+- B01 complete original backup and independent restore BLOCKED, B04/B05 signing BLOCKED, #442 real bee detection and cleanup FROZEN. No OnePlus/PC test required for this synthetic integration stage. User will be warned before any needed real device testing.
+
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
 - [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
