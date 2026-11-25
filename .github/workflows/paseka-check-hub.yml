@@ -111,6 +111,14 @@ jobs:
                 throw 'Packaged hub reported unsupported proof'
               }
             }
+            # Exercise the actual one-click Windows entrypoint, not just its Node script.
+            # The CI flag suppresses Explorer/pause only; all integrity and USB gates remain.
+            $env:PASEKA_PHYSICAL_CI_TEST='1'
+            & (Join-Path $smoke 'ПРОВЕРИТЬ-ПАСЕКУ.cmd')
+            if($LASTEXITCODE -ne 0){throw 'One-click Windows entrypoint failed'}
+            $now=@(Get-ChildItem -LiteralPath 'PASEKA-CHECK-REPORTS' -Filter 'PASEKA-CHECK-*.json' -File)
+            if($now.Count -ne 3){throw 'One-click Windows entrypoint did not preserve three reports'}
+            Write-Host 'PASEKA_REAL_CMD_ENTRYPOINT_SAFE_PASS'
             Add-Content -LiteralPath 'README-RU.txt' -Value 'synthetic-tamper-test'
             # Expected nonzero refusal must NOT cause the entire PowerShell step
             # to fail. Inspect the child exit code explicitly.
