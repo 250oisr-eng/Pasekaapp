@@ -28,7 +28,7 @@ export async function findOriginal(root){
  const items=await readdir(root,{withFileTypes:true});
  const matches=[];
  for(const entry of items){
-  if(!entry.isFile()||!/^paseka-idb-full-[A-Za-z0-9_-]+\.json$/i.test(entry.name))continue;
+  if(!entry.isFile()||!/\.json$/i.test(entry.name))continue;
   const path=join(root,entry.name),stat=await lstat(path);
   if(!stat.isFile()||stat.isSymbolicLink()||stat.size!==SOURCE_BYTES)continue;
   if((await sha(path))===SOURCE_HASH)matches.push(path);
