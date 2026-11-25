@@ -2,12 +2,12 @@
 
 **25.11.2026.** Живая исходная `main=fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`. Устаревшие SHA, прежние диагностики V8–V12 и история MERGED — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и Git. Источники: [AGENTS](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
 
-## Активная задача P0 B01 — единый тест без предыдущих файлов
+## Активная задача P0 B01 — самостоятельная публичная проверка V14
 
-- Физический пользовательский V11: `BLOCKED/NO_PREVIOUS_PUBLIC_TAR_FOUND`, `adbUsed=NO`. В V9.1 публичный TAR не прошёл размер/512. **Истинная причина несоответствия ещё неизвестна.**
-- Пользователь **удаляет предыдущие тесты**. Новое обязательное правило: **один полностью независимый ZIP / один START / один JSON**; без поиска или запроса старых диагностических TAR, папок, результатов и без просьб «продолжай». Максимальная автономия до реальной границы безопасности; развёрнуто в `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md §6.1–6.2` (пока Draft).
-- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): V13 — независимый ZIP/START/JSON, новый публичный read-only ADB тест без прошлых тестов. Windows CI [#45583387019](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45583387019) SUCCESS (4 synthetic случая, private NOT_ATTEMPTED), ZIP SHA256 `93a9096cdcea515ba0e7a15f3ab523e3d70e74528d0fa995a8f6869c29a7a09b`, CRC PASS. Один `unified-results/run-*/b01-unified-result.json`; физический OnePlus V13 `NOT_TESTED`.
-- V13 даёт только диагностику публичного TAR; **полная резервная копия, MediaStore/Gallery и независимый restore остаются NOT_VERIFIED**. B01 `BLOCKED`, нельзя устанавливать другой APK или удалять оригиналы.
+- Реальный отчёт от **25.11.2026 09:24:48Z** `b01-v9-result(2).json`: OnePlus NE2213, ADB 1.0.41, shell_v2 и процессная проверка PASS; `BLOCKED/PUBLIC_TAR_INVALID_TAR_BLOCK_ALIGNMENT_OR_LENGTH_INVALID`. Размер TAR и его содержимое отсутствуют в JSON. **Причина UNKNOWN**. Private NOT_ATTEMPTED; restore/video delete НЕ выполнялись.
+- **Пользователь удаляет предыдущие тесты.** Не искать и не требовать старые ZIP, TAR, JSON; единый новый тест и максимальная автономия закреплены в `AGENTS.md` и `docs/ПРАВИЛА-РАЗРАБОТКИ.md`. История прежних V8–V13 — в журнале.
+- [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): V14 — **один автономный ZIP, один START.cmd, один `B01-RESULT.json` в корне**. Сначала публичный `adb shell` TAR; при блокировке `PUBLIC_TAR_GATE` отдельно сравнить **публичный** `adb exec-out`, зафиксировать byte count, mod512, checksum, EOF/error-tail классификацию. `exec-out` запрещён для приватного режима; размер публичного потока ≤64 MiB. Реальный V14 `NOT_TESTED`.
+- V14 не создаёт полную копию данных, не читает private/видео, не восстанавливает и не удаляет. **B01 BLOCKED** до доказанного backup всех источников, MediaStore/Gallery и независимого restore; no APK install, no media cleanup.
 
 ## Незавершённые зависимости
 
