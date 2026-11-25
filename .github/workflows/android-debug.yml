@@ -124,6 +124,8 @@ jobs:
             gradle-${{ runner.os }}-
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Audit CI debug APK signing certificate against physical OnePlus reference
+        run: node scripts/audit-ci-debug-apk-signer.mjs
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
