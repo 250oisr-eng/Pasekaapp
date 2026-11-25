@@ -6,7 +6,10 @@ import {IDBFactory} from 'fake-indexeddb';
 // Exercise actual production transaction routines; no second backup implementation.
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 function production(name,deps){
- const begin=html.indexOf('function '+name+'(');\n const next=/\\n(?:async\\s+)?function\\s+[A-Za-z_$][\\w$]*\\s*\\(/g;\n next.lastIndex=begin+('function '+name+'(').length;\n const match=next.exec(html),end=match?.index??-1;
+ const begin=html.indexOf('function '+name+'(');
+ const next=/\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
+ next.lastIndex=begin+('function '+name+'(').length;
+ const match=next.exec(html),end=match?.index??-1;
  assert.ok(begin>=0&&end>begin,'production function missing: '+name);
  return new Function('deps','with(deps){return ('+html.slice(begin,end)+');}')(deps);
 }
