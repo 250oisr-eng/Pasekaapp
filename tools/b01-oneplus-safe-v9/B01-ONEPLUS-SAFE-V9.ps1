@@ -1,7 +1,7 @@
 # PASEKA B01/V9: read-only phone -> NEW local candidate file. Windows PowerShell 5.1.
 # This is NOT an independent restore and never marks fullBackupVerified.
 # No Android writes, no install/uninstall/clear/force-stop/restore/delete/network.
-param([switch]$PublicOnly)
+param([switch]$PublicOnly,[ValidateSet('SHELL','EXEC_OUT')][string]$PublicTransport='SHELL')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $pkg = 'ru.paseka.journal'
@@ -29,6 +29,11 @@ $report = [ordered]@{
     adbProbeStderrChars = $null
     shellV2Advertised = $false
     publicTar = 'NOT_TESTED'
+    publicTarTransport = $PublicTransport
+    publicTarBytes = $null
+    publicTarModulo512 = $null
+    publicTarCaptureExitCode = $null
+    publicTarHostStderrClass = 'NOT_TESTED'
     privateTar = 'NOT_ATTEMPTED'
     privateTarBytes = 0
     privateTarSha256 = $null
@@ -247,6 +252,13 @@ function GrabTar([string]$argsLine,[string]$fileName,[string]$kind) {
     # The output file never exists before capture and is never overwritten. On failure it
     # remains for local forensic review; it is not a validated backup.
     $r=Invoke-ProcessCapture -ArgsLine $argsLine -OutputFile $out -Limit $maxBytes
+    if($kind -eq 'PUBLIC') {
+        $report.publicTarBytes=[long]$r.bytes
+        $report.publicTarModulo512=[int]($r.bytes % 512)
+        $report.publicTarCaptureExitCode=[int]$r.exitCode
+        $report.publicTarHostStderrClass=if($r.stderr.Length -eq 0){'NONE'}else{'NONEMPTY_REDACTED'}
+        Save-Report
+    }
     if($r.exitCode -ne 0 -or $r.stderr.Length -gt 0) { Fail ($kind+'_ADB_EXIT_OR_STDERR') }
     try { $audit=Inspect-Tar $out }
     catch { Fail ($kind+'_TAR_INVALID_'+[string]$_.Exception.Message) }
@@ -285,7 +297,8 @@ try {
     if(-not $publicFile) { Fail 'NO_VERIFIED_READABLE_PUBLIC_FILE' }
     $parent=[regex]::Replace($publicFile,'/[^/]+$','')
     $name=($publicFile -split '/')[-1]
-    $pArgs='-s '+$script:serial+' shell run-as '+$pkg+' tar -cf - -C '+$parent+' '+$name
+    $transport=if($PublicTransport -eq 'EXEC_OUT'){'exec-out'}else{'shell'}
+    $pArgs='-s '+$script:serial+' '+$transport+' run-as '+$pkg+' tar -cf - -C '+$parent+' '+$name
     $pub=GrabTar $pArgs 'public-only-v9.tar' 'PUBLIC'
     $report.publicTar='STRUCTURALLY_VALID_PUBLIC_TAR'
     Save-Report
