@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {chooseAdbBinary,parseOnePlusTarget,inspectConnectedOnePlus,inspectOnePlusFullExportPresence} from '../scripts/check-oneplus-readonly-usb.mjs';
+import {chooseAdbBinary,parseOnePlusTarget,inspectConnectedOnePlus,inspectOnePlusFullExportPresence,inspectOnePlusPrivateDbAccessGate} from '../scripts/check-oneplus-readonly-usb.mjs';
 import {executeChecks} from '../scripts/paseka-check-hub.mjs';
 
 test('USB probe refuses zero, offline, unauthorized, emulator and multiple ADB devices',()=>{
@@ -124,4 +124,80 @@ test('phone Downloads scan missing or inaccessible remains NEEDS_INPUT/BLOCKED',
  }});
  assert.equal(denied.status,'BLOCKED');
  assert.equal(denied.code,'USB_EXPORT_LISTING_NOT_AVAILABLE');
+});
+
+test('B01 run-as gate confirms only installed app identity, never lists or copies private files', async()=>{
+  const commands=[];
+  const command=(_,argv)=>{
+    commands.push(argv);
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+    const key=argv.slice(3).join(' ');
+    const known={
+      'getprop ro.kernel.qemu':'0',
+      'getprop ro.product.manufacturer':'OnePlus',
+      'getprop ro.product.model':'NE2215',
+      'pm path ru.paseka.journal':'package:/data/app/x/base.apk',
+      'run-as ru.paseka.journal id':'uid=10123(u0_a123) gid=10123(u0_a123) groups=1015(sdcard_rw)'
+    };
+    if(!(key in known))throw Error('unexpected ADB command '+key);
+    return known[key];
+  };
+  const result=await inspectOnePlusPrivateDbAccessGate({binary:'fixture',command});
+  assert.deepEqual(result,{
+    status:'PASS',code:'INSTALLED_APP_RUN_AS_IDENTITY_AVAILABLE',
+    proofLevel:'RUN_AS_ID_ONLY_NO_DATABASE_ACCESS'
+  });
+  assert.ok(commands.some(args=>args.slice(3).join(' ')==='run-as ru.paseka.journal id'));
+  assert.ok(commands.every(args=>!/(?:pull|install|rm|clear|tar|cat|find|ls|sqlite|cp|su)/.test(args.slice(3).join(' '))));
+  assert.doesNotMatch(JSON.stringify(result),/USB12345|10123|sdcard_rw/);
+});
+test('B01 run-as unavailable on release app is NEEDS_INPUT, no debug bypass',async()=>{
+  const calls=[];
+  const command=(_,argv)=>{
+    calls.push(argv);
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+    const key=argv.slice(3).join(' ');
+    if(key==='run-as ru.paseka.journal id')throw Error('run-as: package not debuggable');
+    return {
+      'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
+      'getprop ro.product.model':'NE2215',
+      'pm path ru.paseka.journal':'package:/data/app/x/base.apk'
+    }[key];
+  };
+  const result=await inspectOnePlusPrivateDbAccessGate({binary:'fixture',command});
+  assert.equal(result.status,'NEEDS_INPUT');
+  assert.equal(result.code,'INSTALLED_APP_RUN_AS_UNAVAILABLE');
+  assert.ok(calls.every(args=>!args.includes('su')&&!args.includes('install')&&!args.includes('pull')));
+});
+test('B01 run-as malformed identity is BLOCKED, not a backup PASS',async()=>{
+  const command=(_,argv)=>{
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+    const key=argv.slice(3).join(' ');
+    return {
+      'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
+      'getprop ro.product.model':'NE2215',
+      'pm path ru.paseka.journal':'package:/data/app/x/base.apk',
+      'run-as ru.paseka.journal id':'run-as: permission denied'
+    }[key];
+  };
+  const result=await inspectOnePlusPrivateDbAccessGate({binary:'fixture',command});
+  assert.equal(result.status,'BLOCKED');
+  assert.equal(result.code,'RUN_AS_IDENTITY_NOT_ATTESTED');
+});
+test('B01 run-as gate refuses wrong hardware before invoking run-as',async()=>{
+  const commands=[];
+  const command=(_,argv)=>{
+    commands.push(argv.slice(3).join(' '));
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+    const key=argv.slice(3).join(' ');
+    return {
+      'getprop ro.kernel.qemu':'1',
+      'getprop ro.product.manufacturer':'OnePlus',
+      'getprop ro.product.model':'NE2215'
+    }[key];
+  };
+  const result=await inspectOnePlusPrivateDbAccessGate({binary:'fixture',command});
+  assert.equal(result.status,'NEEDS_INPUT');
+  assert.equal(result.code,'PRIVATE_DB_GATE_REQUIRES_ATTESTED_ONEPLUS');
+  assert.ok(!commands.some(s=>s.includes('run-as')));
 });

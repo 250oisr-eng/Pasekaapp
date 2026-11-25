@@ -81,3 +81,42 @@ export async function inspectOnePlusFullExportPresence({binary,command=defaultCo
     };
   }catch{return {status:'BLOCKED',code:'USB_EXPORT_LISTING_NOT_AVAILABLE',proofLevel:'NOT_VERIFIED'};}
 }
+
+/**
+ * B01: attested installed-app sandbox access eligibility, without reading
+ * any private app file. 'run-as <package> id' can only inspect the active
+ * shell identity; this intentionally does NOT execute ls, find, cat, tar,
+ * sqlite3, cp, pull or any command that touches user records.
+ *
+ * PASS means only that OS allowed the identity-switch command. It does NOT
+ * prove backup, IndexedDB origin, usable WebView, or video copies.
+ */
+export async function inspectOnePlusPrivateDbAccessGate({binary,command=defaultCommand}={}) {
+  const attested=await inspectConnectedOnePlus({binary,command});
+  if(attested.status!=='PASS')return {
+    status:'NEEDS_INPUT',code:'PRIVATE_DB_GATE_REQUIRES_ATTESTED_ONEPLUS',
+    proofLevel:'NOT_VERIFIED'
+  };
+  let target;
+  try{target=parseOnePlusTarget(command(binary,['devices','-l']));}
+  catch{return {status:'BLOCKED',code:'PRIVATE_DB_GATE_DEVICE_NOT_AVAILABLE',proofLevel:'NOT_VERIFIED'};}
+  if(target.status!=='READY')return {
+    status:'NEEDS_INPUT',code:'USB_TARGET_CHANGED_DURING_GATE',proofLevel:'NOT_VERIFIED'
+  };
+  try{
+    const raw=String(command(binary,[
+      '-s',target.serial,'shell','run-as','ru.paseka.journal','id'
+    ]));
+    if(!/^uid=[0-9]+[(][^)]{1,120}[)][ \t]+gid=[0-9]+[(]/.test(raw.trim()))
+      return {status:'BLOCKED',code:'RUN_AS_IDENTITY_NOT_ATTESTED',proofLevel:'NOT_VERIFIED'};
+    return {
+      status:'PASS',code:'INSTALLED_APP_RUN_AS_IDENTITY_AVAILABLE',
+      proofLevel:'RUN_AS_ID_ONLY_NO_DATABASE_ACCESS'
+    };
+  }catch{
+    // Most release APKs are non-debuggable; no fallback to root, su,
+    // alternate package ID, shell sandbox bypass, or app modification.
+    return {status:'NEEDS_INPUT',code:'INSTALLED_APP_RUN_AS_UNAVAILABLE',
+      proofLevel:'NOT_VERIFIED'};
+  }
+}
