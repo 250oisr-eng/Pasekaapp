@@ -1,10 +1,9 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## V9.1 preflight correction (25.11.2026)
+## B01 P0 — 25.11.2026: физический V9.1 `PUBLIC_TAR` FAIL
 
-- Физический V9: `adbVersion=1.0.41`, `BLOCKED/PREFLIGHT/ADB_READONLY_COMMAND_FAILED`, модель неизвестна, public/private TAR не выполнялись; деталь команды отсутствовала в старом отчёте.
-- Draft #522: фиксированные номера probe, класс stderr без текста, строго один `adb devices -l` retry после канонического daemon-startup баннера. В иных случаях fail-closed.
-- Windows synthetic **14/14**, [#45577450594](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45577450594) SUCCESS; Governance [#45577450377](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45577450377) SUCCESS (код/README SHA `69cd80dbb428f64a6c508079185ff4e01486be5a`). OnePlus V9.1 не запускался; B01 `BLOCKED`. Следующий шаг — один локальный V9.1 JSON, без TAR в чат.
+- OnePlus NE2213: ADB 1.0.41, shell_v2, run-as, process gate PASS; `PUBLIC_TAR_INVALID_TAR_BLOCK_ALIGNMENT_OR_LENGTH_INVALID`. **Приватные данные не читались, restore NOT_TESTED**.
+- Draft #522: PC-only V10 проверяет уже сохранённый публичный `public-only-v9.tar` без ADB, извлечения и передачи файлов. Windows CI: пять synthetic TAR PASS. Следующий шаг — только обезличенный JSON локальной форензики. B01 BLOCKED; APK/удаление видео запрещены.
 
 ## 25.11.2026 — B01: Windows TAR capture V9, Draft #522
 
