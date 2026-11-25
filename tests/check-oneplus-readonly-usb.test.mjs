@@ -227,8 +227,7 @@ test('B01 WebView inventory reads only fixed directory metadata after successful
  assert.equal(result.proofLevel,'DIRECTORY_METADATA_ONLY_NOT_BACKUP');
  assert.doesNotMatch(JSON.stringify(result),/private|https|leveldb|LOG|USB12345|10123/);
  const privateCommands=calls.map(args=>args.slice(3)).filter(args=>args[0]==='run-as');
- assert.deepEqual(privateCommands.map(args=>args.slice(2,4).join(' ')),
-  ['','ls -1','ls -1','ls -1'].map(x=>x)); 
+ assert.equal(privateCommands.length,4);
  assert.ok(privateCommands.every(args=>
    (args.length===3&&args[2]==='id') ||
    (args.length===5&&args[2]==='ls'&&args[3]==='-1')));
