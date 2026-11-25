@@ -43,6 +43,8 @@ test('V15 private candidate remains outside deleted tests and cannot be overwrit
   assert.match(child,/INVALID-CANDIDATE-NOT-BACKUP.txt/);
   assert.match(child,/FileMode\]::CreateNew/);
   assert.match(child,/privateTarSha256/);
+  assert.ok(child.includes("$report.privateTar='ATTEMPTED_UNVERIFIED'"));
+  assert.ok(parent.includes('$r.privateTar=$data.privateTar'));
 });
 test('V15 no false full backup or phone writes even with candidate success',()=>{
   const contracts=[
