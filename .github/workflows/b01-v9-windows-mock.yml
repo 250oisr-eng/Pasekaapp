@@ -336,10 +336,18 @@ jobs:
               # User deletes all disposable tests: preserved PC candidate must survive.
               Remove-Item -LiteralPath $fresh -Recurse -Force
               if(-not [IO.File]::Exists($archives[0].FullName)){throw 'V15 candidate was inside deleted test folder'}
+            } elseif($case.mode -eq 'BAD_PRIVATE_HEADER') {
+              # A failed private read leaves a partial local file deliberately; NEVER treat as backup.
+              $partials=@(Get-ChildItem -LiteralPath $persistent -Filter '*.tar' -Recurse -File)
+              $badMarkers=@(Get-ChildItem -LiteralPath $persistent -Filter 'INVALID-CANDIDATE-NOT-BACKUP.txt' -Recurse -File)
+              $validManifests=@(Get-ChildItem -LiteralPath $persistent -Filter 'MANIFEST.json' -Recurse -File)
+              if($partials.Count -ne 1 -or $badMarkers.Count -ne 1 -or $validManifests.Count -ne 0){
+                throw 'V15 failure candidate incorrectly promoted or unmarked'
+              }
             } else {
               if([IO.Directory]::Exists($persistent) -and
                  @(Get-ChildItem -LiteralPath $persistent -Filter '*.tar' -Recurse -File).Count -gt 0){
-                throw 'V15 created a private archive without an authorized successful capture'
+                throw 'V15 read private data without explicit successful capture'
               }
             }
           }
