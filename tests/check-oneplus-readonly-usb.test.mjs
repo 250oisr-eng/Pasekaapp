@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {chooseAdbBinary,parseOnePlusTarget,inspectConnectedOnePlus,inspectOnePlusFullExportPresence,inspectOnePlusPrivateDbAccessGate} from '../scripts/check-oneplus-readonly-usb.mjs';
+import {chooseAdbBinary,parseOnePlusTarget,inspectConnectedOnePlus,inspectOnePlusFullExportPresence,inspectOnePlusPrivateDbAccessGate,inspectOnePlusIdbInventory} from '../scripts/check-oneplus-readonly-usb.mjs';
 import {executeChecks} from '../scripts/paseka-check-hub.mjs';
 
 test('USB probe refuses zero, offline, unauthorized, emulator and multiple ADB devices',()=>{
@@ -200,4 +200,75 @@ test('B01 run-as gate refuses wrong hardware before invoking run-as',async()=>{
   assert.equal(result.status,'NEEDS_INPUT');
   assert.equal(result.code,'PRIVATE_DB_GATE_REQUIRES_ATTESTED_ONEPLUS');
   assert.ok(!commands.some(s=>s.includes('run-as')));
+});
+
+test('B01 WebView inventory reads only fixed directory metadata after successful identity gate',async()=>{
+ const calls=[];
+ const command=(_,args)=>{
+   calls.push(args);
+   if(args[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+   const key=args.slice(3).join(' ');
+   const known={
+     'getprop ro.kernel.qemu':'0',
+     'getprop ro.product.manufacturer':'OnePlus',
+     'getprop ro.product.model':'NE2215',
+     'pm path ru.paseka.journal':'package:/data/app/x/base.apk',
+     'run-as ru.paseka.journal id':'uid=10123(u0_a123) gid=10123(u0_a123) groups=1015(sdcard_rw)',
+     'run-as ru.paseka.journal ls -1 app_webview/Default/IndexedDB':'https_private_origin_0.indexeddb.leveldb',
+     'run-as ru.paseka.journal ls -1 app_webview/IndexedDB':'',
+     'run-as ru.paseka.journal ls -1 app_webview/Default/Local Storage/leveldb':'LOG'
+   };
+   if(!(key in known))throw Error('unsupported');
+   return known[key];
+ };
+ const result=await inspectOnePlusIdbInventory({binary:'fixture',command});
+ assert.equal(result.status,'PASS');
+ assert.equal(result.code,'WEBVIEW_STORAGE_DIRECTORY_ENTRIES_PRESENT');
+ assert.equal(result.proofLevel,'DIRECTORY_METADATA_ONLY_NOT_BACKUP');
+ assert.doesNotMatch(JSON.stringify(result),/private|https|leveldb|LOG|USB12345|10123/);
+ const privateCommands=calls.map(args=>args.slice(3)).filter(args=>args[0]==='run-as');
+ assert.deepEqual(privateCommands.map(args=>args.slice(2,4).join(' ')),
+  ['','ls -1','ls -1','ls -1'].map(x=>x)); 
+ assert.ok(privateCommands.every(args=>
+   (args.length===3&&args[2]==='id') ||
+   (args.length===5&&args[2]==='ls'&&args[3]==='-1')));
+ assert.ok(calls.every(args=>!args.includes('pull')&&!args.includes('install')&&!args.includes('cat')&&!args.includes('tar')&&!args.includes('rm')));
+});
+test('B01 WebView inventory cannot bypass run-as or claim database absent',async()=>{
+ const commands=[];
+ const command=(_,args)=>{
+   commands.push(args);
+   if(args[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+   const key=args.slice(3).join(' ');
+   const known={
+     'getprop ro.kernel.qemu':'0',
+     'getprop ro.product.manufacturer':'OnePlus',
+     'getprop ro.product.model':'NE2215',
+     'pm path ru.paseka.journal':'package:/data/app/x/base.apk'
+   };
+   if(key==='run-as ru.paseka.journal id')throw Error('package is not debuggable');
+   return known[key];
+ };
+ const result=await inspectOnePlusIdbInventory({binary:'fixture',command});
+ assert.equal(result.status,'NEEDS_INPUT');
+ assert.equal(result.code,'PRIVATE_STORE_INVENTORY_REQUIRES_RUN_AS');
+ assert.ok(!commands.some(args=>args.includes('ls')));
+});
+test('B01 WebView inventory unavailable directories do not imply database destroyed',async()=>{
+ const command=(_,args)=>{
+   if(args[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
+   const key=args.slice(3).join(' ');
+   const known={
+     'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
+     'getprop ro.product.model':'NE2215',
+     'pm path ru.paseka.journal':'package:/data/app/x/base.apk',
+     'run-as ru.paseka.journal id':'uid=10123(u0_a123) gid=10123(u0_a123)'
+   };
+   if(key.startsWith('run-as ru.paseka.journal ls'))throw Error('No such file or directory: private name');
+   return known[key];
+ };
+ const result=await inspectOnePlusIdbInventory({binary:'fixture',command});
+ assert.equal(result.status,'NEEDS_INPUT');
+ assert.equal(result.code,'WEBVIEW_CANDIDATE_DIRECTORIES_UNAVAILABLE');
+ assert.doesNotMatch(JSON.stringify(result),/No such|private name/);
 });
