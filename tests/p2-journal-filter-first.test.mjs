@@ -110,3 +110,24 @@ test('legacy duplicate family ID retains first-match behavior of former Array.fi
  assert.match(els.records.innerHTML,/data-record-id="a"/);
  assert.match(els.records.innerHTML,/data-record-id="b"/);
 });
+
+test('family dropdown avoids repeated visible-record scans while retaining first historical label',()=>{
+ const {deps,records,els,render}=env();
+ deps.S.families=deps.S.families.filter(f=>f.id!=='f2');
+ records[3].familyNameAtTime='Первое историческое имя';
+ records.push({id:'later',hive:'h1',family:'f2',date:'2026-11-19',type:'Осмотр',familyNameAtTime:'Другое имя'});
+ // Observe only the current available record array's find, not shared infrastructure.
+ let recordFindCalls=0;
+ const oldFilter=deps.S.records.filter.bind(deps.S.records);
+ deps.S.records.filter=(...args)=>{
+   const rows=oldFilter(...args);
+   rows.find=()=>{recordFindCalls++;throw Error('repeated record scan forbidden');};
+   return rows;
+ };
+ els.journalSearch.value='';
+ assert.doesNotThrow(render);
+ assert.equal(recordFindCalls,0);
+ assert.match(els.journalFamilyFilter.innerHTML,/Первое историческое имя/);
+ assert.doesNotMatch(els.journalFamilyFilter.innerHTML,/Другое имя/);
+ assert.deepEqual(records.map(r=>r.id).slice(0,5),['a','z','b','c','archived']);
+});
