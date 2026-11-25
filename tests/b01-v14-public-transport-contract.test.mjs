@@ -57,7 +57,7 @@ test('V14 is compatible with Windows PowerShell 5.1 without a BOM',()=>{
 });
 
 test('PUBLIC capture bounded to forensic 64 MiB; private route remains separately gated',()=>{
-  assert.match(child,/\\$captureLimit=if\(\$kind -eq 'PUBLIC'\)\{\[long\]64\*1024\*1024\}else\{\$maxBytes\}/);
+  assert.ok(child.includes("$captureLimit=if($kind -eq 'PUBLIC'){[long]64*1024*1024}else{$maxBytes}"));
   assert.match(child,/EXEC_OUT_PUBLIC_ONLY/);
   assert.match(child,/if\(\$PublicTransport -eq 'EXEC_OUT' -and -not \$PublicOnly\)/);
 });
