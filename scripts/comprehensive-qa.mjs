@@ -19,23 +19,40 @@ export function validateQAMatrix(matrix, discovered) {
   assert.equal(matrix.phoneActionsRequiredNow, 0);
   assert.ok(Array.isArray(matrix.lanes) && matrix.lanes.length >= 8);
   assert.ok(Array.isArray(matrix.externalGates) && matrix.externalGates.length >= 4);
-  const seen = new Set(), names = new Set();
+  const seen = new Set(), names = new Set(), patterns = [];
   for (const lane of matrix.lanes) {
     assert.match(lane.id, /^[a-z][a-z0-9_]*$/);
     assert.ok(!names.has(lane.id), 'QA lane repeated');
     names.add(lane.id);
     assert.ok(['P0', 'P1', 'P2'].includes(lane.priority));
     assert.ok(Array.isArray(lane.files) && lane.files.length);
+    assert.ok(Array.isArray(lane.autoPrefixes) && lane.autoPrefixes.length);
+    for (const prefix of lane.autoPrefixes) {
+      assert.match(prefix,/^[a-z0-9-]+$/,'unsafe automatic QA prefix');
+      patterns.push({prefix,lane:lane.id});
+    }
     for (const file of lane.files) {
       assert.match(file, TEST_FILE, 'unsafe or unrecognized QA file');
       assert.ok(!seen.has(file), 'QA test file assigned twice: ' + file);
       seen.add(file);
     }
   }
-  const declared = [...seen].sort();
   const actual = [...discovered].sort();
-  assert.deepEqual(declared, actual,
-    'all executable tests must have exactly one QA lane; update matrix when adding tests');
+  assert.equal(new Set(actual).size,actual.length,'discovery contains repeated test files');
+  for(const file of seen)assert.ok(actual.includes(file),
+    'QA manifest refers to a deleted test file: '+file);
+  const autoCounts=Object.fromEntries(matrix.lanes.map(l=>[l.id,0]));
+  for(const file of actual){
+    assert.match(file,TEST_FILE,'unsafe discovered QA test file');
+    if(seen.has(file))continue;
+    const base=file.slice('tests/'.length);
+    const matches=patterns.filter(rule=>base.startsWith(rule.prefix));
+    if(!matches.length)throw Error('Unclassified new QA test: '+file);
+    const longest=Math.max(...matches.map(x=>x.prefix.length));
+    const winners=matches.filter(x=>x.prefix.length===longest);
+    if(winners.length!==1)throw Error('Ambiguous new QA test: '+file);
+    autoCounts[winners[0].lane]++;
+  }
   const gateIds = new Set();
   for (const gate of matrix.externalGates) {
     assert.match(gate.id, /^[A-Z][A-Z0-9_]+$/);
@@ -47,8 +64,9 @@ export function validateQAMatrix(matrix, discovered) {
   }
   for (const mandatory of ['B01_FULL_DEVICE_RECOVERY', 'B04_B05_ANDROID_UPGRADE',
     'DEVICE_VIDEO_PIPELINE_V0_V6']) assert.ok(gateIds.has(mandatory));
-  return {laneCount:matrix.lanes.length, testFileCount:declared.length,
-    externalGateCount:matrix.externalGates.length};
+  return {laneCount:matrix.lanes.length, testFileCount:actual.length,
+    automaticallyClassified:Object.values(autoCounts).reduce((a,n)=>a+n,0),
+    autoCounts, externalGateCount:matrix.externalGates.length};
 }
 
 export function parseTapSummary(raw) {
@@ -84,7 +102,8 @@ export function buildQAReport({matrix, discovered, tap, sha = null, packageTestS
     ...inventory,
     suite:summary,
     laneResults:matrix.lanes.map(lane=>({
-      id:lane.id, priority:lane.priority, title:lane.title, testFiles:lane.files.length,
+      id:lane.id, priority:lane.priority, title:lane.title,
+      testFiles:lane.files.length+inventory.autoCounts[lane.id],
       status:summary.status==='PASS_SYNTHETIC'
         ? 'COVERED_BY_PASSING_FULL_SYNTHETIC_SUITE'
         : 'NOT_VERIFIED_SEPARATELY'
