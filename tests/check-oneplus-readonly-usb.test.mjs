@@ -130,7 +130,7 @@ test('B01 run-as gate confirms only installed app identity, never lists or copie
   const commands=[];
   const command=(_,argv)=>{
     commands.push(argv);
-    if(argv[0]==='devices')return 'List of devices attached\\nUSB12345 device\\n';
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
     const key=argv.slice(3).join(' ');
     const known={
       'getprop ro.kernel.qemu':'0',
@@ -155,7 +155,7 @@ test('B01 run-as unavailable on release app is NEEDS_INPUT, no debug bypass',asy
   const calls=[];
   const command=(_,argv)=>{
     calls.push(argv);
-    if(argv[0]==='devices')return 'List of devices attached\\nUSB12345 device\\n';
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
     const key=argv.slice(3).join(' ');
     if(key==='run-as ru.paseka.journal id')throw Error('run-as: package not debuggable');
     return {
@@ -171,7 +171,7 @@ test('B01 run-as unavailable on release app is NEEDS_INPUT, no debug bypass',asy
 });
 test('B01 run-as malformed identity is BLOCKED, not a backup PASS',async()=>{
   const command=(_,argv)=>{
-    if(argv[0]==='devices')return 'List of devices attached\\nUSB12345 device\\n';
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
     const key=argv.slice(3).join(' ');
     return {
       'getprop ro.kernel.qemu':'0','getprop ro.product.manufacturer':'OnePlus',
@@ -188,7 +188,7 @@ test('B01 run-as gate refuses wrong hardware before invoking run-as',async()=>{
   const commands=[];
   const command=(_,argv)=>{
     commands.push(argv.slice(3).join(' '));
-    if(argv[0]==='devices')return 'List of devices attached\\nUSB12345 device\\n';
+    if(argv[0]==='devices')return 'List of devices attached\nUSB12345 device\n';
     const key=argv.slice(3).join(' ');
     return {
       'getprop ro.kernel.qemu':'1',
