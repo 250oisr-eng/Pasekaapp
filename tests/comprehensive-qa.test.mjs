@@ -17,16 +17,29 @@ test('comprehensive QA accounts for every full-suite test file exactly once',()=
  assert.ok(inventory.laneCount>=8);
  assert.ok(inventory.externalGateCount>=4);
 });
-test('unlisted tests and duplicated lane assignments fail closed',()=>{
- const missing=structuredClone(matrix);
- missing.lanes[0].files.pop();
- assert.throws(()=>validateQAMatrix(missing,discovered),/all executable tests/);
+test('parallel test files are auto-classified by deterministic prefix without central edit',()=>{
+ const future=[...discovered,'tests/journal-future-write-rollback.test.mjs'];
+ const inventory=validateQAMatrix(matrix,future);
+ assert.equal(inventory.testFileCount,discovered.length+1);
+ assert.equal(inventory.automaticallyClassified,1);
+ assert.equal(inventory.autoCounts.journal,1);
+});
+test('missing, ambiguous and duplicated QA tests fail closed',()=>{
+ const unknown=[...discovered,'tests/unknown-future-contract.test.mjs'];
+ assert.throws(()=>validateQAMatrix(matrix,unknown),/Unclassified new QA test/);
+ const ambiguous=structuredClone(matrix);
+ ambiguous.lanes.find(x=>x.id==='release').autoPrefixes.push('journal-');
+ assert.throws(()=>validateQAMatrix(ambiguous,
+   [...discovered,'tests/journal-future-write-rollback.test.mjs']),/Ambiguous new QA test/);
  const duplicate=structuredClone(matrix);
  duplicate.lanes[1].files.push(duplicate.lanes[0].files[0]);
  assert.throws(()=>validateQAMatrix(duplicate,discovered),/assigned twice/);
  const unsafe=structuredClone(matrix);
  unsafe.lanes[1].files[0]='../private/real-user-data.json';
  assert.throws(()=>validateQAMatrix(unsafe,discovered),/unsafe or unrecognized/);
+ const stale=structuredClone(matrix);
+ stale.lanes[1].files.push('tests/idb-file-that-no-longer-exists.test.mjs');
+ assert.throws(()=>validateQAMatrix(stale,discovered),/deleted test file/);
 });
 test('physical device evidence cannot become PASS by changing a CI matrix label',()=>{
  const untrusted=structuredClone(matrix);
