@@ -188,7 +188,7 @@ function Run-Usb {
     Save-Report
     $candidate=Join-Path $new[0].Directory.FullName 'public-only-v9.tar'
     if([IO.File]::Exists($candidate)){
-        $file=New-Object IO.FileInfo($candidate)
+        $file=[IO.FileInfo]::new($candidate)
         # Even when public TAR was rejected in V9.1, preserve the rejection and
         # run the independent offline diagnostic without touching private data.
         Run-Offline $file
