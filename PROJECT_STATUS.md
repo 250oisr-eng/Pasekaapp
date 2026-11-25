@@ -1,6 +1,13 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+## 25.11.2026 — B01: Windows TAR capture V9, Draft #522
+
+- Live main до PR: `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`. [Draft #522](https://github.com/250oisr-eng/Pasekaapp/pull/522): отдельный Windows PowerShell 5.1 read-only `tools/b01-oneplus-safe-v9/` с ADB >=1.0.41 + `shell_v2`, публичным TAR preflight, explicit CAPTURE, запретом перезаписи, process guard, header/payload/EOF проверки и SHA-256.
+- Exact code SHA `c4eeb62c1a6d2a5566646a16fee4752b67c99195`: [Windows synthetic run #45575886776](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45575886776) **SUCCESS**, 8/8 synthetic modes (1 PASS+7 negative). Fast [#45575877666](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45575877666) **SUCCESS**; Android [#45575886737](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45575886737) **CANCELLED**, не объявлять PASS. Real OnePlus V9 `NOT_TESTED`.
+- Сбой пользовательского V8: `BLOCKED/LOCAL_TAR_VERIFY/INVALID_TAR_HEADER_CHECKSUM`; старый raw ADB мог смешивать stderr и TAR, но V8 root `UNKNOWN`. Физический private backup, Gallery/MediaStore и independent restore всё ещё `BLOCKED/NOT_VERIFIED`. **NO_PHONE_WRITE / NO_RESTORE / NO_VIDEO_DELETE / NO_RELEASE / NO_MERGE**.
+- Следующий единственный физический шаг после готовности ПК: одно локальное V9 публичное испытание, приватный кандидат только при его PASS. В чат только JSON, TAR никогда. Далее независимое восстановление на пустой цели; без него B01 не снят.
+
+**25.11.2026 — сверенный main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
