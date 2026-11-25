@@ -27,7 +27,7 @@
 ## Дополнительные независимые дочерние Draft (масштабированный цикл)
 
 - [#530](https://github.com/250oisr-eng/Pasekaapp/pull/530) поверх #515, HEAD `5f5a5bb6c962fe2110204b958684c49067993e9c`: `Response.redirected===true` теперь не сохраняется в кеш PWA даже при HTTP 200; отдельно проверены install и normal fetch. На точном SHA **Android build SUCCESS, Governance SUCCESS**; физический cold offline NOT_TESTED. Не терять защиту от private/no-store и 204/206, уже существующую в родителе.
-- [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) поверх #510: индекс семьи только в рендеринге журнала, 3 новых теста. При legacy duplicate ID сохраняет **первое** совпадение как исходный `Array.find`; имя исчезнувшей семьи берёт из historical snapshot. Финальный код+docs SHA `4301613dfddeb4b3da6e5b65ac9d40651a9b2bf0`; exact-head CI нельзя считать PASS до завершения.
+- [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) поверх #510: индекс семьи только в рендеринге журнала, 3 новых теста. При legacy duplicate ID сохраняет **первое** совпадение как исходный `Array.find`; имя исчезнувшей семьи берёт из historical snapshot. Финальный код+docs SHA `4301613dfddeb4b3da6e5b65ac9d40651a9b2bf0`; exact-head Android #45659290364 и Governance #45659290425 **SUCCESS**; физический прирост скорости не измерен.
 - Обе дочерние ветки отличаются по файлам и не составляют объединённую проверенную сборку. После любого отдельно разрешённого merge — новые CI на текущем SHA, а физические метрики и B01/B04/B05 — отдельные ворота.
 
 ## F6–F7: последовательность на будущее
