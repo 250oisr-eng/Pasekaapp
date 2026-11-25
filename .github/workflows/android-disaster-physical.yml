@@ -9,6 +9,8 @@ on:
       - 'js/disaster-archive.js'
       - 'diagnostics/disaster-phone-proof/**'
       - 'tools/b01-real-android-kit/**'
+      - 'tools/oneplus-recovery/**'
+      - 'tests/oneplus-recovery-kit.test.mjs'
       - 'tests/b01-emulator-owner-stage.test.mjs'
       - 'tests/b01-owner-android-import.test.mjs'
       - 'scripts/prepare-disaster-phone-proof.mjs'
