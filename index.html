@@ -3738,6 +3738,7 @@ async function confirmHoneyReturn(){
 
 async function downloadG0SourceInventory(){
  const status=$('g0InventoryStatus');
+ if(rejectWhileStartupNotReady()){if(status)status.textContent='Инвентаризация не запущена: база не открыта безопасно.';return;}
  if(status)status.textContent='Проверяю только метаданные текущей базы…';
  try{
   await saveQueue;
@@ -3756,6 +3757,7 @@ async function downloadG0SourceInventory(){
 // Read-only P0 archive workflow. No destructive full-database restore is exposed.
 async function downloadDisasterArchive(){
  const status=$('disasterArchiveStatus');
+ if(rejectWhileStartupNotReady()){if(status)status.textContent='Полный архив не готов: запуск и чтение базы не подтверждены.';return;}
  try{
   if(status)status.textContent='Проверка и подготовка полного архива…';
   await saveQueue;
