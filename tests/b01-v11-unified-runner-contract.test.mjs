@@ -47,7 +47,7 @@ test('V11 final sanitized JSON cannot claim full restoration or leak filenames',
 });
 test('mandatory project rule favors standalone one-launch tools over patching old folders',()=>{
   assert.match(rules,/Каждый тест — один самостоятельный ZIP\/START\/JSON/);
-  assert.match(rules,/предыдущие тесты пользователь удаляет/i);
+  assert.match(rules,/старые тесты пользователь удаляет/i);
 });
 
 test('V11 remains parseable under Windows PowerShell 5.1 default file encoding',()=>{
