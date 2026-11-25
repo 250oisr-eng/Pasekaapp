@@ -1,0 +1,66 @@
+name: B01 local-only full archive Windows verifier
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/verify-exported-archive.mjs'
+      - 'scripts/prove-exported-archive-recovery.mjs'
+      - 'scripts/run-b01-oneclick.mjs'
+      - 'tests/prove-exported-archive-recovery.test.mjs'
+      - 'tests/run-b01-oneclick.test.mjs'
+      - 'tools/b01-full-archive-kit/**'
+      - '.github/workflows/b01-full-archive-local-kit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-offline-kit:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Test source selection, archive byte-reopen and fail-closed guards on Windows
+        run: node --test tests/prove-exported-archive-recovery.test.mjs tests/run-b01-oneclick.test.mjs tests/verify-exported-archive.test.mjs
+      - name: Package offline archive verifier, without source files or credentials
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dst='B01-FULL-ARCHIVE-WINDOWS'
+          foreach($folder in @($dst,"$dst/scripts","$dst/js","$dst/node_modules")) {
+            New-Item -ItemType Directory -Path $folder -Force | Out-Null
+          }
+          foreach($name in @('verify-exported-archive.mjs','prove-exported-archive-recovery.mjs','run-b01-oneclick.mjs')) {
+            Copy-Item -LiteralPath "scripts/$name" -Destination "$dst/scripts"
+          }
+          Copy-Item -LiteralPath 'js/disaster-archive.js' -Destination "$dst/js"
+          Copy-Item -LiteralPath 'node_modules/fake-indexeddb' -Destination "$dst/node_modules/fake-indexeddb" -Recurse
+          Copy-Item -LiteralPath (Get-Command node.exe).Source -Destination $dst
+          Copy-Item -LiteralPath 'tools/b01-full-archive-kit/ПРОВЕРИТЬ-ПОЛНЫЙ-АРХИВ.cmd' -Destination $dst
+          Copy-Item -LiteralPath 'tools/b01-full-archive-kit/README-RU.txt' -Destination $dst
+          foreach($name in @('verify-exported-archive.mjs','prove-exported-archive-recovery.mjs','run-b01-oneclick.mjs')) {
+            & "$dst/node.exe" --check "$dst/scripts/$name"
+            if($LASTEXITCODE -ne 0){throw "Syntax check failed: $name"}
+          }
+          if(-not (Test-Path -LiteralPath "$dst/node_modules/fake-indexeddb/package.json")) {
+            throw 'Missing offline fake-indexeddb runtime'
+          }
+          if(@(Get-ChildItem -LiteralPath $dst -Recurse -File | Where-Object {
+            $_.Name -match '^paseka-full-idb-.*[.]json$' -or $_.Extension -in @('.tar','.mp4','.mkv','.jpg','.ldb','.log')
+          }).Count -gt 0) {
+            throw 'User/archive-like data must never be packaged'
+          }
+          Write-Host 'B01_OFFLINE_WINDOWS_KIT_ONLY_NO_PRIVATE_FILES'
+      - name: Publish offline one-click Windows archive validator
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-FULL-ARCHIVE-ONE-CLICK-WINDOWS
+          path: B01-FULL-ARCHIVE-WINDOWS/
+          if-no-files-found: error
+          retention-days: 7
