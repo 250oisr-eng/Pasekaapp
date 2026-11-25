@@ -102,3 +102,21 @@ test('B01 destructive prompts explicitly exclude standalone entrance videos from
  assert.match(source('restoreBackup'),/отдельные видео летков в неё НЕ входят/);
  assert.match(source('deleteAllData'),/Без отдельно проверенного полного архива и независимого восстановления/);
 });
+
+
+test('P0 G0 inventory and full archive must not claim an unverified startup was a valid source',async()=>{
+ const text={g0InventoryStatus:{textContent:''},disasterArchiveStatus:{textContent:''}};
+ const gate={ready:false};
+ const deps={
+  rejectWhileStartupNotReady:load('rejectWhileStartupNotReady',{startupWriteGate:gate}),
+  $:name=>text[name],
+  db:{transaction(){throw Error('NO_DB_ACCESS_BEFORE_BOOTSTRAP')}},
+  saveQueue:Promise.resolve(),
+  PasekaDisasterArchive:{exportArchive(){throw Error('NO_EXPORT')}},
+ };
+ await load('downloadG0SourceInventory',deps)();
+ await load('downloadDisasterArchive',deps)();
+ assert.match(text.g0InventoryStatus.textContent,/не запущена/);
+ assert.match(text.disasterArchiveStatus.textContent,/не готов/);
+ assert.equal(gate.ready,false);
+});
