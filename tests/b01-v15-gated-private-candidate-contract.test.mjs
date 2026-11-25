@@ -40,6 +40,8 @@ test('V15 private candidate remains outside deleted tests and cannot be overwrit
   assert.match(child,/candidateOutsideTestFolder=\$true/);
   assert.match(child,/candidateManifestWritten=\$true/);
   assert.match(child,/MANIFEST.json/);
+  assert.match(child,/INVALID-CANDIDATE-NOT-BACKUP.txt/);
+  assert.match(child,/FileMode\]::CreateNew/);
   assert.match(child,/privateTarSha256/);
 });
 test('V15 no false full backup or phone writes even with candidate success',()=>{
