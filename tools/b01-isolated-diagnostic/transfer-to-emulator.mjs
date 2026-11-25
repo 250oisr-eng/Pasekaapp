@@ -150,8 +150,12 @@ export async function executeIsolatedTransfer({persistentRoot,adb,apk,aapt,dryRu
  const hardware=adbSync(spawnSyncFn,adb,serial,'shell','getprop','ro.hardware');
  const fingerprint=adbSync(spawnSyncFn,adb,serial,'shell','getprop','ro.build.fingerprint');
  const avdName=adbSync(spawnSyncFn,adb,serial,'emu','avd','name').split(/\r?\n/)[0].trim();
- const liveInstalled=adbSync(spawnSyncFn,adb,serial,'shell','pm','path',LIVE).includes('package:');
- const diagnosticInstalled=adbSync(spawnSyncFn,adb,serial,'shell','pm','path',DIAGNOSTIC).includes('package:');
+ // Unlike "pm path" on absent packages, "pm list packages" exits 0.
+ // A failure to obtain the full package inventory MUST block any write.
+ const packageList=adbSync(spawnSyncFn,adb,serial,'shell','pm','list','packages');
+ const installed=new Set(packageList.split(/\r?\n/).map(x=>x.trim()).filter(x=>/^package:[a-zA-Z0-9_.]+$/.test(x)).map(x=>x.slice(8)));
+ const liveInstalled=installed.has(LIVE);
+ const diagnosticInstalled=installed.has(DIAGNOSTIC);
  classifyEmulator({serial,hardware,fingerprint,qemu,avdName,liveInstalled,diagnosticInstalled});
  const report={
   schema:'paseka-b01-isolated-emulator-transfer-v20',
