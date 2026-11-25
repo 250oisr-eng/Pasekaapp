@@ -54,7 +54,7 @@ test('full database reset refuses confirmations and cannot delete original video
  const end=html.indexOf("\ndocument.querySelectorAll('nav button')",start);
  assert.ok(start>=0&&end>start);
  const code=html.slice(start,end);
- assert.doesNotMatch(code,/indexedDB\\.deleteDatabase\\(|\\.clear\\(/);
+ assert.doesNotMatch(code,/indexedDB\.deleteDatabase\(|\.clear\(/);
  const messages=[];
  const deps={
   rejectWhileStartupNotReady:()=>null,
