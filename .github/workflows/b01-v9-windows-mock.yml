@@ -28,16 +28,25 @@ jobs:
           & $compiler /nologo /target:exe "/out:$platform\adb.exe" (Join-Path (Get-Location).Path 'tests/b01-v9-MockAdb.cs')
           if($LASTEXITCODE -ne 0){throw 'Synthetic mock compiler failed'}
           [IO.File]::WriteAllText((Join-Path $platform 'AdbWinApi.dll'),'synthetic-test-marker')
+          $env:B01_MOCK_STATE_DIR=$sandbox
           foreach($case in @(
             @{mode='PASS';expected='CANDIDATE_ONLY'},
+            @{mode='DAEMON_STARTUP_ONCE';expected='CANDIDATE_ONLY';startup=$true},
             @{mode='BAD_HEADER';expected='BLOCKED'},
             @{mode='BAD_PRIVATE_HEADER';expected='BLOCKED'},
             @{mode='RUNNING';expected='BLOCKED'},
             @{mode='OLD_ADB';expected='BLOCKED'},
             @{mode='NO_SHELL_V2';expected='BLOCKED'},
             @{mode='REMOTE_ERROR';expected='BLOCKED'},
-            @{mode='BAD_COVERAGE';expected='BLOCKED'}
+            @{mode='BAD_COVERAGE';expected='BLOCKED'},
+            @{mode='DEVICES_STARTUP_REPEAT';expected='BLOCKED';code='ADB_DEVICES_RETRY_EXIT_OR_STDERR';probe='DEVICES_AFTER_STARTUP'},
+            @{mode='DEVICES_UNKNOWN_STDERR';expected='BLOCKED';code='ADB_DEVICES_INITIAL_EXIT_OR_STDERR';probe='DEVICES_INITIAL'},
+            @{mode='DEVICES_EXIT_FAIL';expected='BLOCKED';code='ADB_DEVICES_INITIAL_EXIT_OR_STDERR';probe='DEVICES_INITIAL'},
+            @{mode='MODEL_FAIL';expected='BLOCKED';code='ADB_DEVICE_MODEL_EXIT_OR_STDERR';probe='DEVICE_MODEL'},
+            @{mode='DEVICES_UNAUTHORIZED';expected='BLOCKED';code='EXACTLY_ONE_AUTHORIZED_DEVICE_REQUIRED'}
           )){
+            $marker=Join-Path $sandbox 'b01-device-started.flag'
+            if(Test-Path -LiteralPath $marker){Remove-Item -LiteralPath $marker -Force}
             $env:B01_MOCK_MODE=$case.mode
             'CAPTURE' | & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $sandbox 'B01-ONEPLUS-SAFE-V9.ps1') | Out-Null
             $files=@(Get-ChildItem -Path (Join-Path $sandbox 'results') -Filter 'b01-v9-result.json' -Recurse | Sort-Object LastWriteTimeUtc)
@@ -45,6 +54,15 @@ jobs:
             $report=Get-Content -LiteralPath $latest.FullName -Raw | ConvertFrom-Json
             Write-Host ("$($case.mode): $($report.status) $($report.code)")
             if($report.status -ne $case.expected){throw "Mock $($case.mode) unexpected status $($report.status)"}
+            if($case.ContainsKey('code') -and $report.code -ne $case.code) {
+              throw "Mock $($case.mode) unexpected code $($report.code)"
+            }
+            if($case.ContainsKey('probe') -and $report.adbProbeId -ne $case.probe) {
+              throw "Mock $($case.mode) unexpected probe $($report.adbProbeId)"
+            }
+            if($case.ContainsKey('startup') -and $report.adbServerStartupObserved -ne $case.startup) {
+              throw "Mock $($case.mode) startup diagnostic mismatch"
+            }
             if($report.backupCompleteness -ne 'NOT_VERIFIED' -or $report.independentRestore -ne 'NOT_TESTED' -or $report.mediaStoreGalleryCoverage -ne 'NOT_TESTED'){
               throw 'False full-backup proof in synthetic runner'
             }
