@@ -205,11 +205,29 @@ test('video queue transitions are explicit and reject illegal state changes', ()
   assert.equal(entrance.transitionVideoQueue(retry.record,'uploading').ok,true);
 });
 
-test('original video can be deleted only after completed analysis, persisted result and server confirmation', () => {
+test('P0 video original deletion remains FROZEN even after completed AI, persisted result and server acknowledgement', () => {
   const base={status:'completed',resultPersisted:true,serverDeleteConfirmed:true};
-  assert.equal(entrance.canDeleteVideoOriginal(base),true);
+  assert.equal(entrance.canDeleteVideoOriginal(base),false);
   assert.equal(entrance.canDeleteVideoOriginal({...base,resultPersisted:false}),false);
   assert.equal(entrance.canDeleteVideoOriginal({...base,serverDeleteConfirmed:false}),false);
   assert.equal(entrance.canDeleteVideoOriginal({...base,status:'analyzing'}),false);
   assert.equal(entrance.canDeleteVideoOriginal({status:'failed_retryable',resultPersisted:true,serverDeleteConfirmed:true}),false);
+  assert.equal(entrance.canDeleteVideoOriginal(null),false);
+  assert.equal(entrance.canDeleteVideoOriginal(undefined),false);
+  assert.equal(entrance.canDeleteVideoOriginal({}),false);
+});
+
+test('untrusted record flags cannot silently lift original video deletion freeze', () => {
+  const forged={status:'completed',resultPersisted:true,serverDeleteConfirmed:true,
+    fullBackupVerified:true,independentRestore:true,mediaStoreGalleryCoverage:'VERIFIED',
+    detectorLicensed:true,modelProvenanceVerified:true,cleanupAuthorized:true,
+    userConfirmed:true,deleteAllowed:true,allCopiesBackedUp:true,
+    videoOriginalBytesRestored:true,recognitionConfidence:1};
+  assert.equal(entrance.canDeleteVideoOriginal(forged),false);
+  assert.equal(entrance.canDeleteVideoOriginal(Object.freeze({...forged})),false);
+  // A finished queue transition records analytics status, not delete authorization.
+  const analyzing={status:'analyzing',resultPersisted:true,serverDeleteConfirmed:true};
+  const finished=entrance.transitionVideoQueue(analyzing,'completed',{updatedAt:'2026-11-25T12:00:00Z'});
+  assert.equal(finished.ok,true);
+  assert.equal(entrance.canDeleteVideoOriginal({...finished.record,...forged}),false);
 });
