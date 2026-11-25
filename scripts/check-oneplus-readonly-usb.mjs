@@ -57,3 +57,27 @@ export async function inspectConnectedOnePlus({binary,command=defaultCommand}={}
       proofLevel:'USB_DEVICE_PACKAGE_METADATA_ONLY'};
  }catch{return {status:'BLOCKED',code:'USB_DEVICE_METADATA_PROBE_FAILED',proofLevel:'NOT_VERIFIED'};}
 }
+
+export async function inspectOnePlusFullExportPresence({binary,command=defaultCommand}={}) {
+  // Only metadata. The names returned by ADB must never enter a report.
+  const verified=await inspectConnectedOnePlus({binary,command});
+  if(verified.status!=='PASS')return {
+    status:'NEEDS_INPUT',code:'FULL_EXPORT_SCAN_REQUIRES_ATTESTED_ONEPLUS',
+    proofLevel:'NOT_VERIFIED'};
+  let target;
+  try{target=parseOnePlusTarget(command(binary,['devices','-l']));}
+  catch{return {status:'BLOCKED',code:'USB_EXPORT_LISTING_NOT_AVAILABLE',proofLevel:'NOT_VERIFIED'};}
+  if(target.status!=='READY')return {status:'NEEDS_INPUT',code:'USB_TARGET_CHANGED_DURING_PROBE',proofLevel:'NOT_VERIFIED'};
+  try {
+    const raw=String(command(binary,['-s',target.serial,'shell','ls','-1','/sdcard/Download']));
+    const count=raw.split(/\r?\n/).filter(name=>
+      /^paseka-full-idb-\d{4}-\d{2}-\d{2}(?:\s*\(\d+\))?\.json$/i.test(name.trim())).length;
+    return {
+      status:count===1?'PASS':'NEEDS_INPUT',
+      code:count===0?'NO_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS':
+        count===1?'ONE_FULL_EXPORT_FILENAME_IN_PHONE_DOWNLOADS':
+        'MULTIPLE_FULL_EXPORT_FILENAMES_IN_PHONE_DOWNLOADS',
+      proofLevel:'FILENAME_PRESENCE_ONLY_NOT_FILE_READBACK'
+    };
+  }catch{return {status:'BLOCKED',code:'USB_EXPORT_LISTING_NOT_AVAILABLE',proofLevel:'NOT_VERIFIED'};}
+}
