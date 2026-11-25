@@ -2,6 +2,13 @@
 
 **25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
+## Parallel P2 rendering cycle — Draft #510 (25.11.2026)
+
+- Main baseline `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`. [Draft #510](https://github.com/250oisr-eng/Pasekaapp/pull/510) selectively adapts two read-only optimizations from stacked #427: journal filtering before sorting, and bounded latest 100 audit preview; no state writes / IndexedDB / profile activation / original-video mutation.
+- Initial journal code/test SHA `57b0648df9f75d4be634a1d20f0f4d347dd092a8`: Fast #45563046891 SUCCESS; docs SHA `54c4ca681c5e6a8e2a8aeca188df8191e2ed3996`: Governance #45563080289 and Android #45563080290 SUCCESS. New audit-preview code/test SHA and CI still require exact verification.
+- [Draft #509](https://github.com/250oisr-eng/Pasekaapp/pull/509): TAR index auditor — Fast #45562456647, Governance #45562712672, Android #45562712691 SUCCESS across specified code/final docs SHAs; B01 full backup/restore NOT VERIFIED.
+- B01/B04/B05 and video #442 remain BLOCKED/FROZEN; OnePlus source data and originals not changed. NO_MERGE / NO_RELEASE.
+
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
 - **[#506](https://github.com/250oisr-eng/Pasekaapp/pull/506) MERGED**, `main=635e4e3dded87a595645bb479e2c74040577ea5d`: `scripts/verify-exported-archive.mjs` теперь контролирует **фактический** объём чтения полного экспортированного `paseka-idb-full-v1` JSON до 512 MiB, запрещает symlink, проверяет identity/изменение файла/UTF-8. **Fast #45556213707, Governance #45556213617, Android #45556213559 SUCCESS** на точном main. Это проверка файла, не восстановление.
