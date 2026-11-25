@@ -96,7 +96,7 @@ test('B01 v20 full mocked emulator import: no physical commands, private bytes s
       'emu avd name':'PASEKA_B01_ISOLATED_TEST\nOK',
       'shell pm path ru.paseka.journal':'',
       'shell pm path ru.paseka.journal.diagnostic.restore':'',
-      'install --no-streaming '+apk:'Success'
+      ['install --no-streaming '+apk]:'Success'
     };
     if(value in cases)return {status:0,stdout:cases[value]};
     if(value.startsWith('exec-out run-as ru.paseka.journal.diagnostic.restore sha256sum ')){
