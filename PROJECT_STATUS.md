@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**25.11.2026 — current main requires live verification**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
@@ -22,6 +22,11 @@
 - **[Draft #524](https://github.com/250oisr-eng/Pasekaapp/pull/524) IMPLEMENTED_DRAFT:** отдельный локальный `scripts/prove-exported-archive-recovery.mjs` (без доступа к телефону) проверяет существующий файл `paseka-idb-full-v1`: ограниченное неизменяемое чтение, временная fake IndexedDB, `inspectArchive` → `atomicRestore` в пустую DB → точное сравнение всех Store/Blob → закрытие/повторное открытие и проверка SHA. Тесты включают binary same-size corruption, старые дополнительные stores и невалидный архив. **Точный код+docs SHA `14aa7e844edc346b5452cf9f37840ba8e8f11abc`: [Android #45625611272](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45625611272) SUCCESS — 817/817 тестов, debug APK PASS; [Governance #45625611266](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45625611266) SUCCESS.**
 - **[Draft #525](https://github.com/250oisr-eng/Pasekaapp/pull/525) IMPLEMENTED_DRAFT, stacked on #524:** единый offline Windows `ПРОВЕРИТЬ-ПАСЕКУ.cmd` для B01 и следующих локальных проверок. Проверяет доступный полный экспорт через одноразовую IndexedDB, пишет **новые** обезличенные отчёты в `PASEKA-CHECK-REPORTS`, не повторяет сырую пересадку LevelDB. При отсутствии JSON отмечает `NEEDS_INPUT`; MediaStore — `NEEDS_DEVICE_EVIDENCE`. Устройство, сеть, исходные файлы и видео не затрагивает. **Windows CI #45630998698 PASS на SHA `56fea1f` — 22/22 и два запуска реального ZIP; Governance #45630998840 PASS.**
 - **Не доказаны** существование полного реального экспортированного JSON с OnePlus, Gallery/MediaStore и независимый Android restore. B01 и видео #442 остаются BLOCKED/FROZEN; никаких production-операций.
+
+## OnePlus — безопасное чтение на реальном телефоне (Draft #526)
+
+- **[Draft #526](https://github.com/250oisr-eng/Pasekaapp/pull/526), stacked #525 → #524:** добавлена к тому же `ПРОВЕРИТЬ-ПАСЕКУ.cmd` **необязательная** локальная проверка ADB только при наличии установленного SDK, единственного авторизованного физического USB и аппаратного OnePlus 10 Pro. Разрешены только `adb devices -l`, `getprop`, `pm path ru.paseka.journal`; нет `install/pull/clear`, чтения приватной IndexedDB, запуска приложения, изменения данных. Если нет USB — `NEEDS_INPUT`, а не ложный PASS. Никакого доступа к USB пользователя непосредственно из ChatGPT/GitHub нет.
+- **[Windows CI #45633525568](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45633525568) на кодовом SHA `5eaf4395a36b324dd07e94e042aebaf64a48adcd` SUCCESS: 30/30 тестов**, проверка собранного Windows ZIP двойным запуском PASS; ZIP `PASEKA-UNIFIED-OFFLINE-CHECK-CENTER` artifact #15031967148. Реальное OnePlus USB исполнение NOT_TESTED, Android общий CI требует финальной проверки.
 
 ## Нерешённые блокеры
 
