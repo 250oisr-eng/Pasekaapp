@@ -1338,6 +1338,8 @@ function getEntranceVideo(id){
  return new Promise((ok,no)=>{let tx,q;try{tx=db.transaction('entrance_media','readonly');q=tx.objectStore('entrance_media').get(id)}catch(e){no(e);return}q.onsuccess=()=>ok(q.result||null);q.onerror=()=>no(q.error||new Error('Не удалось открыть видео'))});
 }
 function deleteEntranceVideoBlob(id){
+ const startupBlocked=rejectWhileStartupNotReady();
+ if(startupBlocked)return Promise.reject(startupBlocked);
  // Original video deletion requires verified recovery, a licensed real
  // detector and complete accounting of every copy (issue #442).
  // A confirmation dialog alone cannot authorize irreversible data loss.
