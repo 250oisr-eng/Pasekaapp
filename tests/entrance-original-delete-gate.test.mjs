@@ -90,7 +90,8 @@ test('P0 media storage mutation surface has only the existing insert-only write 
  const listStart=html.indexOf('\nfunction listEntranceVideos(){',saveStart);
  assert.ok(saveStart>=0&&listStart>saveStart);
  assert.match(html.slice(saveStart,listStart),/transaction\('entrance_media','readwrite'\)/);
- assert.match(html.slice(saveStart,listStart),/\.add\(record\)/);\n assert.doesNotMatch(html.slice(saveStart,listStart),/\.put\(record\)/);
+ assert.match(html.slice(saveStart,listStart),/\.add\(record\)/);
+ assert.doesNotMatch(html.slice(saveStart,listStart),/\.put\(record\)/);
  assert.doesNotMatch(html,/indexedDB\s*\.\s*deleteDatabase\s*\(/);
  assert.doesNotMatch(html,/objectStore\s*\(\s*['"]entrance_media['"]\s*\)\s*\.\s*(?:clear|delete)\s*\(/);
 });
