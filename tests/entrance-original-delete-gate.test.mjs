@@ -69,3 +69,14 @@ test('full database reset refuses confirmations and cannot delete original video
  assert.equal(messages.length,1);
  assert.match(messages[0],/Без отдельно проверенного полного архива и независимого восстановления/);
 });
+
+test('whole-database destructive button is visibly disabled while B01/B06 are FROZEN',()=>{
+ const block=html.match(/<div class="card" style="border-color:#d9a39b">([\s\S]*?)<\/div>/);
+ assert.ok(block,'destructive action panel must exist with explicit disabled state');
+ assert.match(block[1],/Удаление заблокировано/);
+ assert.match(block[1],/<button[^>]*\bdisabled\b[^>]*aria-disabled="true"/);
+ assert.doesNotMatch(block[1],/onclick="deleteAllData\(\)"/);
+ assert.doesNotMatch(html,/onclick="deleteAllData\(\)"/);
+ // Direct calls still hit the separate fail-closed function tested above.
+ assert.match(html,/async function deleteAllData\(\)/);
+});
