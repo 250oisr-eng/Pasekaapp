@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install pinned dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund
       - name: Test source selection, archive byte-reopen and fail-closed guards on Windows
         run: node --test tests/prove-exported-archive-recovery.test.mjs tests/run-b01-oneclick.test.mjs tests/verify-exported-archive.test.mjs
       - name: Package offline archive verifier, without source files or credentials
