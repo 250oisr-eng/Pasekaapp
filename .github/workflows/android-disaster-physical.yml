@@ -251,8 +251,13 @@ jobs:
           Copy-Item 'tools/oneplus-recovery/oneplus-recovery.mjs' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/README-RU.txt' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ONEPLUS.cmd' 'oneplus-kit/'
-          Copy-Item 'diagnostic-artifact/app-debug.apk' 'oneplus-kit/'
-          Copy-Item 'diagnostic-artifact/disaster-proof-manifest.json' 'oneplus-kit/diagnostic-manifest.json'
+          $apks = @(Get-ChildItem 'diagnostic-artifact' -Recurse -File -Filter 'app-debug.apk')
+          $manifests = @(Get-ChildItem 'diagnostic-artifact' -Recurse -File -Filter 'disaster-proof-manifest.json')
+          if ($apks.Count -ne 1 -or $manifests.Count -ne 1) {
+            throw 'FAIL_CLOSED_EXACTLY_ONE_APK_AND_ONE_MANIFEST_REQUIRED'
+          }
+          Copy-Item $apks[0].FullName 'oneplus-kit/app-debug.apk'
+          Copy-Item $manifests[0].FullName 'oneplus-kit/diagnostic-manifest.json'
           Copy-Item (Get-Command node.exe -ErrorAction Stop).Source 'oneplus-kit/node.exe'
           $m = Get-Content 'oneplus-kit/diagnostic-manifest.json' -Raw | ConvertFrom-Json
           $apkHash = (Get-FileHash 'oneplus-kit/app-debug.apk' -Algorithm SHA256).Hash.ToLowerInvariant()
