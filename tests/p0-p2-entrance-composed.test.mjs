@@ -56,3 +56,17 @@ test('P0+P2 composed: metadata cursor is read-only; delete helper and whole-db r
   assert.equal(original.id,'protected');
  } finally {db.close();}
 });
+
+test('composed media insert rejects duplicate id and preserves original Blob hash',async()=>{
+ const db=await create();
+ try{
+  const put=load('putEntranceVideo',{db,rejectWhileStartupNotReady:()=>null});
+  const blob=new Blob([Uint8Array.from([0,255,18,5])],{type:'video/mp4'});
+  const checksum=createHash('sha256').update(Buffer.from(await blob.arrayBuffer())).digest('hex');
+  await put({id:'collision-original',blob,hiveId:'h1'});
+  await assert.rejects(put({id:'collision-original',blob:new Blob(['different'])}));
+  const preserved=await record(db,'collision-original');
+  const after=createHash('sha256').update(Buffer.from(await preserved.blob.arrayBuffer())).digest('hex');
+  assert.equal(after,checksum,'original Blob remains byte-identical after failed duplicate insert');
+ }finally{db.close();}
+});
