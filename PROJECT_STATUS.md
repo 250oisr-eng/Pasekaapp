@@ -1,13 +1,18 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — текущий main `01a3449ee232299a37655d0194f39b23161048e7`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+## 26.11.2026 · P2 оптимизация журнала Draft #510
 
-## Parallel P2 rendering cycle — Draft #510 (25.11.2026)
+Рабочий Draft [#510](https://github.com/250oisr-eng/Pasekaapp/pull/510) согласован с защищённым `main=346b3503`: фильтрация событий до сортировки, просмотр только последних 100 аудиторских записей; исходный журнал не усечён. Тесты/документация сохраняются, новый exact-head CI обязателен. Отдельный ребёнок #531 будет согласован последовательно; нет merge/release, P0 оригиналы видео из main не меняются.
 
-- Main baseline `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`. [Draft #510](https://github.com/250oisr-eng/Pasekaapp/pull/510) selectively adapts two read-only optimizations from stacked #427: journal filtering before sorting, and bounded latest 100 audit preview; no state writes / IndexedDB / profile activation / original-video mutation.
-- Initial journal code/test SHA `57b0648df9f75d4be634a1d20f0f4d347dd092a8`: Fast #45563046891 SUCCESS; docs SHA `54c4ca681c5e6a8e2a8aeca188df8191e2ed3996`: Governance #45563080289 and Android #45563080290 SUCCESS. New audit-preview code/test SHA and CI still require exact verification.
-- [Draft #509](https://github.com/250oisr-eng/Pasekaapp/pull/509): TAR index auditor — Fast #45562456647, Governance #45562712672, Android #45562712691 SUCCESS across specified code/final docs SHAs; B01 full backup/restore NOT VERIFIED.
-- B01/B04/B05 and video #442 remain BLOCKED/FROZEN; OnePlus source data and originals not changed. NO_MERGE / NO_RELEASE.
+
+**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+
+## Текущий параллельный цикл — безопасность оригиналов и P2
+
+- [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
+- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой UI и функция сброса блокированы до записи, кнопка полного удаления **disabled без onclick**, legacy helper всегда `false`, даже при поддельных флагах восстановления. Тесты и проверка точного SHA обязательны; без merge/release.
+- [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
+- B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
 
