@@ -25,7 +25,7 @@ test('V13 only calls bundled public-only branch and refuses private read',()=>{
   assert.match(v13,/\& \$v91 -PublicOnly/);
   assert.match(v13,/PRIVATE_OR_PHONE_WRITE_GATE_VIOLATION/);
   assert.match(v13,/data\.privateTar -ne 'NOT_ATTEMPTED'/);
-  assert.match(v91,/param\(\[switch\]\$PublicOnly\)/);
+  assert.match(v91,/param\(\[switch\]\$PublicOnly,/);
   assert.match(v91,/if\(\$PublicOnly\)/);
   assert.match(v13,/privateTar='NOT_ATTEMPTED'/);
   assert.doesNotMatch(v13,/Read-Host|Invoke-WebRequest|start-process/i);
