@@ -145,6 +145,17 @@ jobs:
           await writeFile('disaster-proof-manifest.json',JSON.stringify(manifest,null,2),'utf8');
           console.log('Manifest bound to diagnostic package, APK SHA256, source PR head and CI checkout commit.');
           NODE
+      - name: Verify actual APK application ID before preparing physical kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          test -f "$APK" && test -x "$AAPT"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal.disasterproof2'"
+          if "$AAPT" dump badging "$APK" | grep -F "package: name='ru.paseka.journal'"; then exit 1; fi
+      - name: Check physical OnePlus kit negative guards
+        run: node --test tests/oneplus-recovery-kit.test.mjs
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -206,4 +217,54 @@ jobs:
             disaster-emulator-first-result.txt
             disaster-emulator-restart-result.txt
           if-no-files-found: warn
+          retention-days: 7
+
+  oneplus-kit:
+    name: Package offline Windows physical OnePlus kit (no device access)
+    needs: build
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run Windows negative guards
+        run: node --test tests/oneplus-recovery-kit.test.mjs
+      - name: Download isolated diagnostic APK
+        uses: actions/download-artifact@v4
+        with:
+          name: paseka-disaster-proof-isolated-apk
+          path: diagnostic-artifact
+      - name: Assemble SHA-bound offline kit
+        shell: pwsh
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force oneplus-kit | Out-Null
+          Copy-Item 'tools/oneplus-recovery/oneplus-recovery.mjs' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/README-RU.txt' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ONEPLUS.cmd' 'oneplus-kit/'
+          Copy-Item 'diagnostic-artifact/app-debug.apk' 'oneplus-kit/'
+          Copy-Item 'diagnostic-artifact/disaster-proof-manifest.json' 'oneplus-kit/diagnostic-manifest.json'
+          Copy-Item (Get-Command node.exe -ErrorAction Stop).Source 'oneplus-kit/node.exe'
+          $m = Get-Content 'oneplus-kit/diagnostic-manifest.json' -Raw | ConvertFrom-Json
+          $apkHash = (Get-FileHash 'oneplus-kit/app-debug.apk' -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($m.packageId -ne 'ru.paseka.journal.disasterproof2' -or $m.apkSha256 -ne $apkHash) {
+            throw 'FAIL_CLOSED_DIAGNOSTIC_APK_MANIFEST_IDENTITY'
+          }
+          if ($env:EXPECTED_SOURCE_SHA -and $m.sourceSha -ne $env:EXPECTED_SOURCE_SHA) {
+            throw 'FAIL_CLOSED_APK_SOURCE_SHA_MISMATCH'
+          }
+          Write-Host 'PASS: isolated package and byte-exact APK'
+      - name: Upload offline one-click artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-ONEPLUS-RECOVERY-ONECLICK
+          path: oneplus-kit/
+          if-no-files-found: error
           retention-days: 7
