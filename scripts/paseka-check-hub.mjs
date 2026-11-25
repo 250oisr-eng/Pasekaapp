@@ -121,7 +121,7 @@ export async function executeChecks({checks=REGISTERED,bundleRoot,downloads,desk
 export async function saveReport({bundleRoot,report,stamp=new Date().toISOString().replace(/[:.]/g,'-'),
                               random=()=>randomBytes(5).toString('hex')}={}) {
   if(!bundleRoot||report?.schema!==HUB_SCHEMA)throw Error('INVALID_REPORT');
-  const dir=join(resolve(bundleRoot),'B01-REPORTS');
+  const dir=join(resolve(bundleRoot),'PASEKA-CHECK-REPORTS');
   try {
     const st=await fs.lstat(dir);
     if(!st.isDirectory()||st.isSymbolicLink())throw Error('UNSAFE_REPORT_DIRECTORY');
@@ -150,7 +150,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
    .then(({report})=>{
      for(const [id,item] of Object.entries(report.checks))console.log(id+': '+item.status+' / '+item.code);
      console.log('STATUS: '+report.status);
-     console.log('Report saved in B01-REPORTS. Share only the latest PASEKA-CHECK-*.json.');
+     console.log('Report saved in PASEKA-CHECK-REPORTS. Share only the latest PASEKA-CHECK-*.json.');
      console.log('No original archive or media files are uploaded or changed.');
    }).catch(()=>{console.error('CHECK_HUB_BLOCKED_REPORT_UNAVAILABLE');process.exitCode=3;});
 }
