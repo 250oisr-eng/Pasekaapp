@@ -27,7 +27,7 @@ test('first single click needs archive but preserves user files and reports miss
   assert.equal(result.report.network,'NOT_ATTEMPTED');
   const value=JSON.parse(await readFile(result.path,'utf8'));
   assert.equal(value.checks['full-indexeddb-export'].code,'FULL_EXPORT_NOT_FOUND');
-  assert.deepEqual(await readdir(join(t.bundle,'B01-REPORTS')),[result.path.split(/[\\/]/).at(-1)]);
+  assert.deepEqual(await readdir(join(t.bundle,'PASEKA-CHECK-REPORTS')),[result.path.split(/[\\/]/).at(-1)]);
  }finally{await rm(t.base,{recursive:true,force:true})}
 });
 test('repeated clicks preserve all prior immutable reports, never replace',async()=>{
@@ -38,7 +38,7 @@ test('repeated clicks preserve all prior immutable reports, never replace',async
   const second=await runAndSave({bundleRoot:t.bundle,downloads:t.downloads,desktop:t.desktop});
   assert.notEqual(second.path,first.path);
   assert.deepEqual(await readFile(first.path),firstData);
-  assert.equal((await readdir(join(t.bundle,'B01-REPORTS'))).length,2);
+  assert.equal((await readdir(join(t.bundle,'PASEKA-CHECK-REPORTS'))).length,2);
  }finally{await rm(t.base,{recursive:true,force:true})}
 });
 test('check execution failure redacts private exceptions and never claims success',async()=>{
@@ -66,7 +66,7 @@ test('unsafe symlinked report directory blocks any write',async()=>{
  try{
   const target=join(t.base,'target');
   await mkdir(target);
-  await symlink(target,join(t.bundle,'B01-REPORTS'));
+  await symlink(target,join(t.bundle,'PASEKA-CHECK-REPORTS'));
   const result=await executeChecks({bundleRoot:t.bundle});
   await assert.rejects(saveReport({bundleRoot:t.bundle,report:result}),/UNSAFE_REPORT_DIRECTORY/);
   assert.deepEqual(await readdir(target),[]);
