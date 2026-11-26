@@ -136,6 +136,66 @@
       "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
       "id": "b09-atomicity-20261124-pr476"
+    },
+    {
+      "id": "p1-journal-csv-export-pr548-20261126",
+      "codeSha": "844f1e8413891b1be13ab29fc67833b2094040ac",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/548",
+      "ciRuns": [
+        {
+          "id": 45838173338,
+          "conclusion": "failure"
+        },
+        {
+          "id": 45838243109,
+          "conclusion": "failure"
+        },
+        {
+          "id": 45838482065,
+          "conclusion": "success"
+        },
+        {
+          "id": 45838491275,
+          "conclusion": "success"
+        },
+        {
+          "id": 45838482001,
+          "conclusion": "success"
+        },
+        {
+          "id": 45838491304,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "CSV UI/export code & synthetic tests done; on-device user file transfer NOT_TESTED, real full backup not attempted. Initial regression fixture failures included; no time saving measured."
+    },
+    {
+      "id": "p1-inspection-reminder-pr544-20261126",
+      "codeSha": "c1cc6d96927f82797bb5842b12c278b91279bd1c",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/544",
+      "ciRuns": [
+        {
+          "id": 45838719607,
+          "conclusion": "success"
+        },
+        {
+          "id": 45838719599,
+          "conclusion": "success"
+        },
+        {
+          "id": 45838774825,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Read-only journal inspection prefill + no false today default verified with code tests; independent physical UX NOT_TESTED, no real user changes, time saving NOT_MEASURED."
     }
   ],
   "evaluation": {
