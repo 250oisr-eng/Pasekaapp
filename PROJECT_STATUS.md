@@ -1,10 +1,10 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## 26.11.2026 · OnePlus физический тест #537
+## 26.11.2026 · OnePlus USB: физический запуск BLOCKED
 
-На отдельном Draft [#537](https://github.com/250oisr-eng/Pasekaapp/pull/537), зависимом от #534, подготовлен Windows one-click ZIP с изолированной диагностикой `ru.paseka.journal.disasterproof2` и синтетическим full IndexedDB/Blob restore → force-stop/relaunch. На кодовом SHA `60b802322dd8672d356912434f45f1eeca3d912e`: [Windows ZIP + Android emulator #45705458586](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705458586), [Android #45705458653](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705458653), [Governance #45705458570](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45705458570) **SUCCESS**. Реальный OnePlus NOT_TESTED; рабочие данные, app и production untouched. Нет merge/release/очистки; #442 FROZEN.
+Пользовательский `ONEPLUS-RECOVERY-RESULT.json` (`2026-11-26T06:39:22.218Z`) = `BLOCKED / ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED`. Прежний тест остановился **до установки** `ru.paseka.journal.disasterproof2`; восстановление на телефоне NOT_TESTED, точная причина без ADB-вывода UNKNOWN. В [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) исправлена Windows USB-проверка на `adb -d` (а не необязательное поле `usb:`), с защитой от Wi-Fi/эмулятора и точными кодами BLOCKED. Кодовый SHA `b4676006`: Fast Quality **834/834 PASS** #45769990336, Android #45769996764 SUCCESS, Governance #45769996937 SUCCESS; специализированный [CI #45769996763](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45769996763) проверять перед новым ZIP. Прежний отчёт сохранить, повторить только с новой папкой и новым артефактом. Нет доступа к основному приложению, удалению или production; #442 FROZEN.
 
-**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**26.11.2026 — последний проверенный live main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
