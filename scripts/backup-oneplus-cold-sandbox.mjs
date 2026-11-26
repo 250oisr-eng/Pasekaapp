@@ -96,11 +96,13 @@ function categorizeTarStderr(raw){
 }
 // Only publish bounded stage evidence; stderr is never printed because it
 // may contain user filenames or device-internal paths.
-function transferFailure(code,{tarExitCode=null,transferredBytes=0,stderrSeen=false,stderrCategory='NONE'}={}){
+function transferFailure(code,{tarExitCode=null,transferredBytes=0,stderrSeen=false,stderrCategory='NONE',encodedBytes=null,transportReason=null}={}){
  const e=Error(code);
  e.safeEvidence={stage:'ANDROID_TAR_TRANSFER',tarExitCode:Number.isInteger(tarExitCode)?tarExitCode:null,
    transferredBytes:Number.isSafeInteger(transferredBytes)?transferredBytes:null,
-   stderrSeen:!!stderrSeen,stderrCategory};
+   stderrSeen:!!stderrSeen,stderrCategory,
+   encodedBytes:Number.isSafeInteger(encodedBytes)?encodedBytes:null,
+   transportReason:/^BASE64_TRANSPORT_[A-Z_]+$/.test(transportReason||'')?transportReason:null};
  return e;
 }
 async function streamArchive(command,serial,output){
@@ -127,15 +129,18 @@ async function streamArchive(command,serial,output){
     if(total>MAX_ARCHIVE){child.kill();cb(Error('ARCHIVE_LIMIT_EXCEEDED'));return;}
     sha.update(chunk);cb(null,chunk);
   }});
+  const decoder=new StrictBase64Decoder();
   let streamError=null;
-  try{await pipeline(child.stdout,new StrictBase64Decoder(),tap,stream);}
+  try{await pipeline(child.stdout,decoder,tap,stream);}
   catch(error){streamError=error;}
   const exit=await done;
   if(exit!==0)throw transferFailure('ANDROID_TAR_COMMAND_FAILED',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
-  if(streamError)throw transferFailure(streamError.message==='BASE64_TRANSPORT_CORRUPTED'||streamError.message==='BASE64_TRANSPORT_TRUNCATED'?'BASE64_TRANSPORT_INVALID':'ANDROID_TAR_STREAM_FAILED',{
-    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
+  if(streamError)throw transferFailure(decoder.failureReason?'BASE64_TRANSPORT_INVALID':'ANDROID_TAR_STREAM_FAILED',{
+    tarExitCode:exit,transferredBytes:total,encodedBytes:decoder.encodedBytes,
+    transportReason:decoder.failureReason,
+    stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(stderrBytes>MAX_CAPTURE)throw transferFailure('ANDROID_TAR_STDERR_LIMIT',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:true
@@ -214,7 +219,7 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
   process.exitCode=2; // full physical independent restore never claimed
  },e=>{
   console.log(JSON.stringify({schema:'paseka-oneplus-cold-sandbox-backup-v1',
-   status:'BLOCKED',code:/^[A-Z_]+$/.test(e.message)?e.message:FAIL,
+   status:'BLOCKED',code:/^[A-Z][A-Z0-9_]*$/.test(e.message)?e.message:FAIL,
    evidence:e.safeEvidence||null,
    originalsDeleted:false,installedApplicationChanged:false,independentPhysicalRestoreVerified:false}));
   process.exitCode=1;
