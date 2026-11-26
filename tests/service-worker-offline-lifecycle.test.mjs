@@ -16,7 +16,7 @@ function harness(){
  let responseOverride=null;
  const publicResponse=url=>({
   ok:true,status:200,type:'basic',url,
-  headers:{get:()=> 'public, max-age=600'},
+  headers:{get:name=>String(name).toLowerCase()==='cache-control'?'public, max-age=600':null},
   clone(){return this}
  });
  const caches={
