@@ -19,14 +19,14 @@
 - **B07 P1:** OP11–14 / sectional профиль не активировать до завершения физической модели, зависимых модулей, локальных проверок и миграций. Источник — пользовательский DOCX и отдельные подтверждения.
 - **B09/B11/P2:** synthetic CI, emulator и read-only диагностика не доказывают реальные cold-offline/power-loss/Quota/restore сценарии.
 
-- **#575 MERGED** `09ac5b757b86803eafa616c9f425c8d262145105`: selective Windows Android Studio JBR lookup and installed `apksigner.jar` from historical #517, with isolated tests. Exact-head `270152169672a1fee07e53d1705991fd0147c964`: Android #45885947784 SUCCESS (Node regression/APK/sign audit), Governance #45885947805 SUCCESS. **#517 CLOSED/SUPERSEDED WITHOUT MERGE**, source retained. Physical Windows/OnePlus validation NOT_TESTED; B01/B04/B05 remain blocked.
+- **#575 MERGED:** Windows JBR/apksigner read-only discovery (from #517), Android #45885947784 / Governance #45885947805 SUCCESS; #517 CLOSED without merge; OnePlus NOT_TESTED.
 
-- **#577 MERGED** `aa9fc17702730f9b5dc2931edee18e78c867478b`: isolated TAR header check from old #509 plus negative tests. Exact-head `422d169c6f8b3932a1b4782231bdbde2cbcdf849`: Android #45886634965 and Governance #45886635009 SUCCESS. **#509 CLOSED/SUPERSEDED WITHOUT MERGE**, source retained. B01 full backup/restore still BLOCKED.
+- **#577 MERGED:** TAR header negative tests ported from #509, Android #45886634965 / Governance #45886635009 SUCCESS; #509 CLOSED without merge; B01 still BLOCKED.
 
-- **#579 MERGED** `cedcb63441b09a08fd78fd22e5b2a65687da1f5e`: selective WIP/diagnostic STOP/exact CI rules from #533 into existing F0–F7, Governance #45887287260 SUCCESS exact HEAD `9b44124d7bf9a783f43dfb02d846ea6742804682`. **#533 CLOSED/SUPERSEDED WITHOUT MERGE**, source branch retained.
+- **#579 MERGED:** WIP/STOP/exact-CI rules from #533 into F0–F7, Governance #45887287260 SUCCESS; #533 CLOSED without merge.
 
-- **#581/#582 MERGED:** B05 public keytool certificate and debug signer read-only code selectively ported from old #519/#520; old sources CLOSED without merge. Main after #582: `70e9cec1be2d6b5aea032b55c1c91fa9de0840ae`. Private signing key/upgrade/rollback still BLOCKED.
-- **#583 MERGED** `f306b35074b19c4d0bb2ae01e3a535f14cc29b04`: generic 4-body staged honey pair validation, tested exact-head `da147b94aaa4ad3ae9959a2a7771fefaa538c958`, Android #45889321180 SUCCESS and Governance #45889321099 SUCCESS. Old #200 CLOSED without merge; profile B07 not activated.
+- **#581/#582 MERGED:** read-only cert and debug-signer checker from closed #519/#520. Signing key/upgrade/rollback BLOCKED.
+- **#583 MERGED:** 4-body honey pair validation from #200, Android #45889321180 / Governance #45889321099 SUCCESS on exact PR HEAD; #200 CLOSED without merge; B07 inactive.
 - **Root audit K:** [33 historical root PR inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md) and [machine review](docs/PR-AUDIT-ROOTS-2026-11-26-K.json). 30 root sources OPEN, 358 historical stacked; 388 indexed open overall (not exhaustive REST). Original #157 has unsafe video deletion eligibility, HOLD. 31 open-source diff structures checked; targeted deep semantics 4. No bulk merge.
 
 - **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
