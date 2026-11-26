@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · main до текущего Draft #574: `c2d6d805a2b08c46560d99e7e2e6cd39cb7bde92`.** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
+**26.11.2026 · последняя проверенная кодовая интеграция `09ac5b757b86803eafa616c9f425c8d262145105` (#575).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -9,7 +9,7 @@
 - **#60 CLOSED/SUPERSEDED** без слияния: текущий `auditLegacyLayoutBodyReferences` и read-only регрессии выявляют отсутствующие/некорректные ссылки и неизвестную спецификацию; старый жёсткий `inspect()` не переносить. #43 ранее CLOSED/SUPERSEDED после #570.
 - **#534 OPEN / REVIEW_REQUIRED:** на HEAD `a8ab152c44e64617f0b7714c06f47bd51e6d5e9c` Governance #45690879408, Android #45690879512 и isolated synthetic restore #45690879551 SUCCESS. Это не реальный независимый restore полного архива OnePlus, не разрешение на обновление или очистку.
 - **#7 OPEN / PRESERVE_SOURCE:** уникальный исторический аудит резервирования, не сливать его старый статус целиком. **#533 OPEN / DOCS_RECONCILE**: отделить уникальные WIP/STOP-критерии от старого снимка. **#60/#534/#7/#533** имеют мотивированные комментарии.
-- Предыдущий поисковый PR census: 397 индексированных открытых PR до очистки; индекс GitHub неполон (прямой #516 отсутствовал в census). Структурная опись и 38 root/358 stacked — **исторический snapshot**, не перепроверенные live head/semantic diff всех PR. Не делать массовый merge/close ради счётчика.
+- Предыдущий поисковый PR census: 393 индексированных открытых PR при новой 15-дневной поисковой сверке после #8/#43/#60/#517; индекс GitHub неполон (прямой #516 отсутствовал в census). Структурная опись и 38 root/358 stacked — **исторический snapshot**, не перепроверенные live head/semantic diff всех PR. Не делать массовый merge/close ради счётчика.
 
 ## Действующие запреты и доказательства
 
@@ -19,10 +19,10 @@
 - **B07 P1:** OP11–14 / sectional профиль не активировать до завершения физической модели, зависимых модулей, локальных проверок и миграций. Источник — пользовательский DOCX и отдельные подтверждения.
 - **B09/B11/P2:** synthetic CI, emulator и read-only диагностика не доказывают реальные cold-offline/power-loss/Quota/restore сценарии.
 
-- **B04 selective code port in Draft:** Windows Android Studio JBR lookup and installed `apksigner.jar` location from historical #517, without old status files; `scripts/check-oneplus-upgrade.mjs`, `tests/check-oneplus-upgrade.test.mjs`, [F0–F2 contract](docs/B04-JAVA-LOCATOR-SELECTIVE-PORT-2026-11-26.md). Exact-head CI PENDING; device NOT_TESTED, B01/B04/B05 remain blocked.
+- **#575 MERGED** `09ac5b757b86803eafa616c9f425c8d262145105`: selective Windows Android Studio JBR lookup and installed `apksigner.jar` from historical #517, with isolated tests. Exact-head `270152169672a1fee07e53d1705991fd0147c964`: Android #45885947784 SUCCESS (Node regression/APK/sign audit), Governance #45885947805 SUCCESS. **#517 CLOSED/SUPERSEDED WITHOUT MERGE**, source retained. Physical Windows/OnePlus validation NOT_TESTED; B01/B04/B05 remain blocked.
 
 ## Следующий конкретный шаг
 
-Завершить docs-only #574 после исправления ограничения Governance и exact-head CI. Затем разбирать один независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
+После проверенных слияний #574/#575 разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
