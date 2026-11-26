@@ -255,5 +255,13 @@
       "scenariosEvidence": "Six synthetic UI/race/XSS tests and exact main-integrated CI PASS; no real OnePlus UI, media source or user files tested. Merge not authorized.",
       "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
     }
-  ]
+  ],
+  "workEquipmentLabelsIntegration20261126": {
+    "codeSha": "48ecc12dce5043a3308f7c2cf7e1bdb60dac141d",
+    "targetedTestsPassed": null,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED",
+    "ci": "PENDING",
+    "merged": false
+  }
 }
