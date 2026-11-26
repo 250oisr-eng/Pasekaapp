@@ -10,7 +10,7 @@ import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-col
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
 import {classifyPidof,classifyPs} from '../scripts/oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from '../scripts/oneplus-strict-base64.mjs';
-import {encodedShellArgs,classifyEncodedProbe} from '../scripts/oneplus-encoded-shell.mjs';
+import {encodedShellArgs,classifyEncodedProbe,isModernAdbClient,hasShellV2Feature} from '../scripts/oneplus-encoded-shell.mjs';
 import {inspectEncodedShell} from '../scripts/probe-oneplus-encoded-shell.mjs';
 import {Readable} from 'node:stream';
 
@@ -47,11 +47,17 @@ const fs=require('node:fs');
 const marker=process.env.FAKE_STOP_MARKER;
 const args=process.argv.slice(2);
 const mode=process.env.FAKE_ADB_MODE||'ok';
+if(args[0]==='version') {
+ process.stdout.write('Android Debug Bridge version '+(mode==='old_client'?'1.0.32':'1.0.41')+'\\nVersion 37.0.3\\n');process.exit(0);
+}
 if(args[0]==='devices') {
  process.stdout.write('List of devices attached\\n'+(mode==='many'?'A device\\nB device\\n':'NE2213 device product:test\\n'));process.exit(0);
 }
 if(args[0]!=='-s'||args[1]!=='NE2213')process.exit(51);
 const tail=args.slice(2).join(' ');
+if(tail==='features'){
+ process.stdout.write(mode==='no_shell_v2'?'stat_v2,cmd\\n':'shell_v2,stat_v2,cmd\\n');process.exit(0);
+}
 if(tail==='shell pidof ru.paseka.journal'){if(mode==='running' && (!marker||!fs.existsSync(marker))){process.stdout.write('1234\\n');process.exit(0);}process.exit(mode==='psfallback'?0:1);}
 if(tail==='shell ps -A'){
  if(mode==='psfallback'){process.stdout.write('USER PID PPID VSZ RSS WCHAN ADDR S NAME\\nuser 123 1 100 100 0 0 S another.app\\n');process.exit(0);}
@@ -591,4 +597,42 @@ test('remote TAR stderr is never mixed into valid Base64 or promoted into backup
   if(saved.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved.mode;
   if(saved.src===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=saved.src;
  }
+});
+
+test('public host ADB version + negotiated shell_v2 feature are mandatory',()=>{
+ for(const old of ['Android Debug Bridge version 1.0.31','Android Debug Bridge version 1.0.40',
+                   "untrusted binary","/system/bin/sh: chvt: can't find tty"]){
+  assert.equal(isModernAdbClient(old),false);
+ }
+ assert.equal(isModernAdbClient('Android Debug Bridge version 1.0.41\nVersion 37.0.3'),true);
+ assert.equal(hasShellV2Feature('shell_v2,stat_v2,cmd\n'),true);
+ assert.equal(hasShellV2Feature('cmd,stat_v2'),false);
+});
+test('legacy host adb and missing device shell_v2 reject before TAR or original reads',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const saved=process.env.FAKE_ADB_MODE;
+ try{
+  for(const [mode,code] of [['old_client','ADB_HOST_CLIENT_INCOMPATIBLE'],
+                            ['no_shell_v2','ADB_DEVICE_NO_SHELL_V2']]){
+   process.env.FAKE_ADB_MODE=mode;
+   await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),error=>error.message===code);
+   await assert.rejects(inspectEncodedShell({adb:f.stub}),error=>error.message===code);
+   assert.deepEqual(await readdir(f.dest),[]);
+   assert.deepEqual(await readFile(f.original),f.payload);
+  }
+ }finally{
+  if(saved===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved;
+ }
+});
+test('Windows kit prefers separately installed Google adb ahead of stale PATH',async()=>{
+ const ps=await readFile(new URL('../tools/b01-oneplus-cold-backup/choose-backup-destination.ps1',import.meta.url),'utf8');
+ const file=await readFile(new URL('../tools/b01-oneplus-cold-backup/GET-OFFICIAL-ADB.txt',import.meta.url),'utf8');
+ const local=ps.indexOf("Join-Path $PSScriptRoot 'platform-tools");
+ const sdk=ps.indexOf("Join-Path $env:LOCALAPPDATA 'Android");
+ const path=ps.indexOf('Get-Command adb.exe');
+ assert.ok(local>=0 && sdk>local && path>sdk);
+ assert.match(ps,/ADB_HOST_CLIENT_INCOMPATIBLE/);
+ assert.match(file,/developer.android.com\/tools\/releases\/platform-tools/);
+ assert.match(file,/AdbWinApi\.dll/);
+ assert.doesNotMatch(ps,/Invoke-WebRequest|DownloadFile|curl/);
 });
