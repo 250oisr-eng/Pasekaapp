@@ -11,3 +11,38 @@ test('UI loads the body module before app code and precaches it',()=>{assert.ok(
 test('matching profile IDs are sufficient when profile objects are stored by reference',()=>{const s=fixture();for(const hive of s.hives){hive.profileId=hive.profile.id;delete hive.profile;}const r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,true)});
 
 test('physical body swap moves a stored body into an installed position without changing assembly slots',()=>{const s=fixture();s.layouts.h1.installedBoxes=['1'];s.layouts.h2.installedBoxes=[];const fromFrames=s.layouts.h1.boxes['1'].frames,toFrames=s.layouts.h2.boxes['2'].frames,r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});assert.equal(r.ok,true);assert.equal(r.state.layouts.h1.corpusIds['1'],'body-b');assert.equal(r.state.layouts.h2.corpusIds['2'],'body-a');assert.equal(r.state.layouts.h1.boxes['1'].frames[0].frameId,toFrames[0].frameId);assert.equal(r.state.layouts.h1.boxes['1'].frames[0].history.at(-1).action,'corpus_transfer');assert.equal(r.state.layouts.h2.boxes['2'].frames[0].frameId,fromFrames[0].frameId);assert.equal(r.state.layouts.h2.boxes['2'].frames[0].history.at(-1).action,'corpus_transfer');assert.deepEqual(r.state.layouts.h1.installedBoxes,['1']);assert.deepEqual(r.state.layouts.h2.installedBoxes,[]) });
+
+
+test('same profile ID does not override contradictory frame heights',()=>{
+ const s=fixture(),before=JSON.stringify(s);
+ s.hives[1].profile=structuredClone(s.hives[0].profile);
+ s.hives[1].profile.frame.heightMm=195;
+ const frozen=JSON.stringify(s);
+ const r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});
+ assert.equal(r.ok,false);assert.equal(r.error.code,'incompatible_corpus');
+ assert.equal(JSON.stringify(s),frozen);assert.notEqual(before,frozen);
+});
+test('same profile ID does not override contradictory brood body heights or capacity',()=>{
+ const s=fixture();s.hives[1].profile=structuredClone(s.hives[0].profile);
+ s.hives[1].profile.brood.boxHeightMm=210;
+ const frozen=JSON.stringify(s);
+ assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'}).error.code,'incompatible_corpus');
+ assert.equal(JSON.stringify(s),frozen);
+ s.hives[1].profile.brood.boxHeightMm=195;s.hives[1].profile.brood.framesPerBox=7;
+ assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'}).error.code,'incompatible_corpus');
+});
+test('missing one-sided profile or inconsistent declared family cannot authorize a body swap',()=>{
+ const s=fixture();s.hives[1].profile=null;s.hives[1].profileId='farrar-6x6-v1';
+ const before=JSON.stringify(s);
+ assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'}).error.code,'incompatible_corpus');
+ assert.equal(JSON.stringify(s),before);
+ s.hives[1].profile=structuredClone(s.hives[0].profile);
+ s.hives[0].profile.family='farrar';s.hives[1].profile.family='sectional';
+ assert.equal(swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'}).error.code,'incompatible_corpus');
+});
+test('existing Farrar same-profile swaps and honey bodies with unknown shared box height remain compatible',()=>{
+ const s=fixture();const brood=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});
+ const honey=swap(s,{fromHiveId:'h1',fromBoxKey:'H1',toHiveId:'h2',toBoxKey:'H1'});
+ assert.equal(brood.ok,true);assert.equal(honey.ok,true);
+ assert.equal(s.hives[0].profile.honey.boxHeightMm??null,null);
+});
