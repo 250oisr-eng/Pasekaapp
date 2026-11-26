@@ -14,13 +14,17 @@ export function assessTapSummary(raw) {
     physicalDeviceVerified: false, independentRestoreVerified: false,
     videoDeletionAuthorized: false, releaseAuthorized: false };
 
-  if (typeof raw !== 'string' || raw.length === 0 ||
-      !/^TAP version 13\r?$/m.test(raw)) return unknown;
+  if (typeof raw !== 'string' || raw.length === 0) return unknown;
+  // One TAP header and one top-level completion plan are mandatory. Nested
+  // subtests can have indented plans, so do not equate plan count to tests.
+  const headers = [...raw.matchAll(/^TAP version 13\r?$/gm)];
+  const plans = [...raw.matchAll(/^1\.\.[0-9]+\r?$/gm)];
+  if (headers.length !== 1 || plans.length !== 1) return unknown;
 
   // Require exactly one final full-suite summary. This rejects truncated logs,
   // concatenated runs and ambiguous evidence instead of selecting the last PASS.
   const starts = [...raw.matchAll(/^# tests [0-9]+\r?$/gm)];
-  if (starts.length !== 1) return unknown;
+  if (starts.length !== 1 || plans[0].index >= starts[0].index) return unknown;
   const footer = raw.slice(starts[0].index);
   const values = {};
   for (const field of FIELDS) {
