@@ -28,4 +28,34 @@ export function classifyEncodedProbe({code,output='',overflow=false}){
  else fact.reason='BASE64_PREFLIGHT_DIFFERENT_BASE64';
  return fact;
 }
+
+// Each public probe is static: no user text, no filesystem read, no TAR.
+// Variants isolate the remote command lexer, the app UID wrapper and base64.
+// They are diagnostic only and never grant backup permission automatically.
+export const PUBLIC_PROBE_VARIANTS=Object.freeze([
+ {id:'outer_printf',args:['exec-out','sh','-c',"'printf PASEKA_BASE64_PROBE_V1'"],expected:'plain'},
+ {id:'outer_base64',args:['exec-out','sh','-c',"'printf PASEKA_BASE64_PROBE_V1 | base64'"],expected:'base64'},
+ {id:'app_printf',args:['exec-out','run-as',PACKAGE,'sh','-c',"'printf PASEKA_BASE64_PROBE_V1'"],expected:'plain'},
+ {id:'app_base64',args:['exec-out','run-as',PACKAGE,'sh','-c',"'printf PASEKA_BASE64_PROBE_V1 | base64'"],expected:'base64'},
+ {id:'app_base64_pipefail',args:['exec-out','run-as',PACKAGE,'sh','-c',"'set -o pipefail; printf PASEKA_BASE64_PROBE_V1 | base64'"],expected:'base64'},
+]);
+export function classifyPublicProbe(result,expectedType){
+ const expected=expectedType==='plain'?PREVIEW:Buffer.from(PREVIEW,'ascii').toString('base64');
+ const output=result.output||'';
+ const normalized=output.replace(/[\\r\\n]/g,'');
+ const bytes=Buffer.byteLength(output,'latin1');
+ const fact={status:'BLOCKED',reason:'DIFFERENT_OUTPUT',
+  exitCode:Number.isInteger(result.code)?result.code:null,
+  outputBytes:bytes,normalizedBytes:Buffer.byteLength(normalized,'latin1'),
+  containsExpected:normalized.includes(expected),containsPublicLiteral:normalized.includes(PREVIEW),
+  hasControlBytes:/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/.test(normalized)};
+ if(result.overflow){fact.reason='OUTPUT_LIMIT';return fact;}
+ if(result.code!==0){fact.reason='COMMAND_FAILED';return fact;}
+ if(normalized===expected){fact.status='PASS';fact.reason=null;return fact;}
+ if(!normalized){fact.reason='EMPTY';return fact;}
+ if(fact.containsExpected){fact.reason='EXPECTED_WITH_EXTRA_OUTPUT';return fact;}
+ if(!/^[A-Za-z0-9+/=]+$/.test(normalized)){fact.reason='NON_BASE64_OR_SHELL_TEXT';return fact;}
+ fact.reason='DIFFERENT_PRINTABLE_OUTPUT';return fact;
+}
+
 export {PACKAGE};
