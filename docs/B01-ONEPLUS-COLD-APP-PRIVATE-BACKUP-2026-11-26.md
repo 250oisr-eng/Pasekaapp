@@ -1,3 +1,36 @@
+## 26.11.2026 — реальный OnePlus: ошибка chvt, зависимость от ПК ADB
+
+Физический публичный вывод команды `adb shell -T run-as ...`:
+
+```text
+/system/bin/sh: chvt: can't find tty: run-as ru.paseka.journal sh -c ...
+EXIT=0
+```
+
+Команда `run-as` не исполнилась: не-Base64 stdout является текстом ошибки.
+Самое правдоподобное объяснение — ADB-клиент ПК старой версии, который
+не распознаёт опцию `shell -T`. **Версия ПК пока неизвестна**;
+`chvt` не доказывает конкретный релиз и не разрешает обход в виде `exec-out`.
+
+Исправление в Draft #543: до `adb devices`, `run-as`, force-stop и
+любой попытки архива проверить локальную `adb version` (1.0.41 или новее),
+после выбора одного авторизованного устройства проверить `adb -s SERIAL features`
+на `shell_v2`. Неудача даёт `ADB_HOST_CLIENT_INCOMPATIBLE` или
+`ADB_DEVICE_NO_SHELL_V2` и прекращает операцию без приватных чтений.
+Windows-комплект сначала использует `platform-tools\\adb.exe` рядом с
+`RUN-ONEPLUS-BACKUP.cmd`, затем локальный Android SDK, затем PATH.
+
+**Лицензия:** APK и Android Platform-Tools не включаются в этот комплект.
+Пользователь самостоятельно принимает условия Google на
+https://developer.android.com/tools/releases/platform-tools, загружает
+официальный Windows ZIP, распаковывает целиком `platform-tools` рядом
+с `RUN-ONEPLUS-BACKUP.cmd`. Подробности — `GET-OFFICIAL-ADB.txt` в ZIP.
+Старые `.partial` сохраняются. Следующий физический запуск возможен
+только после exact-code CI нового комплекта. Backup/independent restore
+NOT_VERIFIED; видео не удалять.
+
+---
+
 ## Исправление транспортного дефекта — 26.11.2026 (Draft #543)
 
 **Корневая ошибка в инструментарии:** `adb exec-out` использует один поток для удалённых stdout/stderr и возвращает код локального adb, который может быть 0 при ошибке удалённой программы. Поэтому даже `printf` мог давать лишние байты, а TAR терял 512-байтовое выравнивание. Это подтверждается исходным ADB client commandline.cpp (ветка AOSP main); конкретное содержимое 270 байт не наблюдалось и не реконструируется.
