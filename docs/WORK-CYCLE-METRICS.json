@@ -589,5 +589,42 @@
     "physicalDevice": "NOT_TESTED",
     "productionActions": 0,
     "newP0MergeApproved": false
+  },
+  "prAuditCycleI20261126": {
+    "sourceMainSha": "aa9fc17702730f9b5dc2931edee18e78c867478b",
+    "sourcePr": 509,
+    "selectiveMergedPr": 577,
+    "selectiveCodeHead": "422d169c6f8b3932a1b4782231bdbde2cbcdf849",
+    "selectiveMergeSha": "aa9fc17702730f9b5dc2931edee18e78c867478b",
+    "ciRuns": [
+      {
+        "id": 45886634965,
+        "conclusion": "success",
+        "type": "Android_Debug_APK_and_regressions"
+      },
+      {
+        "id": 45886635009,
+        "conclusion": "success",
+        "type": "Governance_Docs"
+      }
+    ],
+    "sourceClosedWithoutMerge": true,
+    "indexedOpenPRs": 392,
+    "historicalMainBased": 34,
+    "historicalStacked": 358,
+    "liveHeadBaseDirectlyChecked": 29,
+    "historicalCycles": 0,
+    "maxHistoricalParentDepth": 142,
+    "openDescendantsOfClosed60": 6,
+    "unresolvedParentBaseRows": 69,
+    "verifiedUnresolvedBaseBranches": 5,
+    "sourceCompleteness": "SEARCH_INDEX_NOT_PROVEN_EXHAUSTIVE",
+    "semanticallyReviewedAll358": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "fullRestore": "BLOCKED",
+    "verifiedRealUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "measuredTimeSavings": null,
+    "productionActions": 0
   }
 }
