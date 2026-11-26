@@ -9,6 +9,26 @@ import {parseDeviceList,validateUsbTransportState,validateManifest,PACKAGE} from
 const HERE=dirname(fileURLToPath(import.meta.url));
 const REPORT='ONEPLUS-DIAGNOSTIC-SIGNER-RESULT.json';
 const fail=code=>Object.assign(new Error(code),{code});
+export const SIGNER_STAGES=Object.freeze([
+ 'READ_MANIFEST','HASH_CANDIDATE','SDK_DISCOVERY','USB_DISCOVERY','USB_TRANSPORT',
+ 'INSTALLED_PACKAGE_PATH','PULL_INSTALLED_APK','INSTALLED_BADGING','INSTALLED_SIGNER',
+ 'CANDIDATE_BADGING','CANDIDATE_SIGNER','COMPARE_SIGNERS'
+]);
+export function safeSignerFailure(error,stage){
+ const failedStage=SIGNER_STAGES.includes(stage)?stage:'UNRECOGNIZED_STAGE';
+ const rawCode=typeof error?.code==='string'?error.code:'';
+ const allowed=new Set(['LOCAL_ANDROID_SDK_TOOLS_NOT_FOUND','INSTALLED_BASE_APK_PATH_UNVERIFIED',
+ 'APK_PACKAGE_VERSION_UNVERIFIED','APK_SIGNER_COUNT_UNVERIFIED','APK_SIGNER_FINGERPRINT_INVALID',
+ 'DIAGNOSTIC_PACKAGE_MISMATCH','SIGNER_UNKNOWN','CANDIDATE_APK_SIZE_INVALID',
+ 'CANDIDATE_SHA256_MISMATCH','UNTRUSTED_DIAGNOSTIC_MANIFEST',
+ 'ADB_USB_DEVICE_NOT_VISIBLE','ADB_MULTIPLE_DEVICES_CONNECTED','ADB_USB_DEBUGGING_NOT_AUTHORIZED',
+ 'ADB_USB_DEVICE_OFFLINE','ADB_DEVICE_NOT_READY','ADB_WIRELESS_OR_EMULATOR_NOT_ALLOWED',
+ 'ADB_PHYSICAL_USB_TRANSPORT_NOT_READY']);
+ return {status:'BLOCKED',code:rawCode==='ENOENT'?'LOCAL_EXECUTABLE_OR_FILE_NOT_FOUND':
+  allowed.has(rawCode)?rawCode:'SIGNER_PREFLIGHT_UNKNOWN_ERROR',
+  failedStage,installationAuthorized:false,productionPackageTouched:false,
+  noInstallNoOverwriteNoDelete:true};
+}
 export function parseInstalledPath(output){
  const lines=String(output).trim().split(/\r?\n/).filter(Boolean);
  if(lines.length!==1||!/^package:\/[^\s]+\/base\.apk$/.test(lines[0]))throw fail('INSTALLED_BASE_APK_PATH_UNVERIFIED');
@@ -52,27 +72,42 @@ function androidSdk(){
  }
  throw fail('LOCAL_ANDROID_SDK_TOOLS_NOT_FOUND');
 }
-export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,manifestPath=join(HERE,'diagnostic-manifest.json'),candidatePath=join(HERE,'app-debug.apk')}={}){
+export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,
+ setStage=()=>{},manifestPath=join(HERE,'diagnostic-manifest.json'),
+ candidatePath=join(HERE,'app-debug.apk')}={}){
+ const mark=stage=>{if(!SIGNER_STAGES.includes(stage))throw fail('UNRECOGNIZED_STAGE');setStage(stage);};
+ mark('READ_MANIFEST');
  const manifest=JSON.parse(readFileSync(manifestPath,'utf8'));
  validateManifest(manifest);
+ mark('HASH_CANDIDATE');
  const candidateBytes=readFileSync(candidatePath);
  if(candidateBytes.length===0||candidateBytes.length>150*1024*1024)throw fail('CANDIDATE_APK_SIZE_INVALID');
  if(createHash('sha256').update(candidateBytes).digest('hex')!==manifest.apkSha256)throw fail('CANDIDATE_SHA256_MISMATCH');
+ mark('SDK_DISCOVERY');
  const {adb,aapt,jar}=sdk();
+ mark('USB_DISCOVERY');
  parseDeviceList(commandFn(adb,['devices','-l']));
+ mark('USB_TRANSPORT');
  validateUsbTransportState(commandFn(adb,['-d','get-state']));
  // Never query the owner's production package; only isolated diagnostic.
+ mark('INSTALLED_PACKAGE_PATH');
  const remote=parseInstalledPath(commandFn(adb,['-d','shell','pm','path',PACKAGE]));
  const temporary=mkdtempSync(join(tmpdir(),'paseka-diagnostic-signer-'));
  try{
   const installedPath=join(temporary,'installed-diagnostic.apk');
+  mark('PULL_INSTALLED_APK');
   commandFn(adb,['-d','pull',remote,installedPath],120000);
-  const readMeta=path=>({
-   packageId:PACKAGE,
-   versionCode:parsePackageVersion(commandFn(aapt,['dump','badging',path])),
-   signer:parseCertificate(commandFn('java',['-jar',jar,'verify','--print-certs',path]))
-  });
-  return {...compareDiagnosticSigning(readMeta(installedPath),readMeta(candidatePath)),
+  const readMeta=(path,kind)=>{
+   mark(kind==='INSTALLED'?'INSTALLED_BADGING':'CANDIDATE_BADGING');
+   const versionCode=parsePackageVersion(commandFn(aapt,['dump','badging',path]));
+   mark(kind==='INSTALLED'?'INSTALLED_SIGNER':'CANDIDATE_SIGNER');
+   const signer=parseCertificate(commandFn('java',['-jar',jar,'verify','--print-certs',path]));
+   return {packageId:PACKAGE,versionCode,signer};
+  };
+  const installed=readMeta(installedPath,'INSTALLED');
+  const candidate=readMeta(candidatePath,'CANDIDATE');
+  mark('COMPARE_SIGNERS');
+  return {...compareDiagnosticSigning(installed,candidate),
    installedDiagnosticPresent:true,productionPackageTouched:false,
    noInstallNoOverwriteNoDelete:true,syntheticDataPreserved:true,
    // Do not report fingerprints, serials, package paths or private data.
@@ -80,11 +115,9 @@ export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,manif
  }finally{rmSync(temporary,{force:true,recursive:true});}
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- let report;
- try{report=inspectDiagnosticSigning();}
- catch(e){report={status:'BLOCKED',code:e?.code||'SIGNER_PREFLIGHT_UNKNOWN_ERROR',
-  installationAuthorized:false,productionPackageTouched:false,
-  noInstallNoOverwriteNoDelete:true};}
+ let report,failedStage='READ_MANIFEST';
+ try{report=inspectDiagnosticSigning({setStage:stage=>{failedStage=stage;}});}
+ catch(e){report=safeSignerFailure(e,failedStage);}
  const {writeFileSync}=await import('node:fs');
  try{writeFileSync(join(HERE,REPORT),JSON.stringify({schema:'paseka-diagnostic-signer-preflight-v1',...report},null,2)+'\n',{flag:'wx'});}
  catch{console.error('REPORT_EXISTS_OR_CANNOT_WRITE');process.exitCode=1;process.exit();}
