@@ -46,3 +46,28 @@ test('existing Farrar same-profile swaps and honey bodies with unknown shared bo
  assert.equal(brood.ok,true);assert.equal(honey.ok,true);
  assert.equal(s.hives[0].profile.honey.boxHeightMm??null,null);
 });
+
+
+test('invalid non-null frame histories on either side prevent swap without touching original hives',()=>{
+ for(const side of ['source','destination']){
+  const s=fixture(),frame=side==='source'?s.layouts.h1.boxes['1'].frames[0]:s.layouts.h2.boxes['2'].frames[0];
+  frame.history={corrupt:true};
+  const before=JSON.stringify(s),r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});
+  assert.equal(r.ok,false);assert.equal(r.error.code,'invalid_frame_history');assert.equal(JSON.stringify(s),before);
+ }
+});
+test('legacy null and absent frame history remain valid and do not mutate source snapshots',()=>{
+ const s=fixture();
+ s.layouts.h1.boxes['1'].frames[0].history=null;
+ delete s.layouts.h2.boxes['2'].frames[0].history;
+ const before=JSON.stringify(s),r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});
+ assert.equal(r.ok,true);
+ assert.equal(JSON.stringify(s),before);
+ assert.equal(r.state.layouts.h2.boxes['2'].frames[0].history.at(-1).action,'corpus_transfer');
+ assert.equal(r.state.layouts.h1.boxes['1'].frames[0].history.at(-1).action,'corpus_transfer');
+});
+test('malformed frame entry fails closed without changing corpus identifiers',()=>{
+ const s=fixture();s.layouts.h2.boxes['2'].frames.push(null);
+ const before=JSON.stringify(s),r=swap(s,{fromHiveId:'h1',fromBoxKey:'1',toHiveId:'h2',toBoxKey:'2'});
+ assert.equal(r.ok,false);assert.equal(r.error.code,'invalid_frame_history');assert.equal(JSON.stringify(s),before);
+});
