@@ -1,6 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · checked main `71c658e64ed9a4e1442b15019b57b7c854752543` after #535; verify live GitHub before next write.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+**26.11.2026 · last verified integration main `7d8af290cb9621ea7e83610a939dbceb19027b20`; verify live SHA before further work.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+
+## Текущий макроцикл PR — селективные исправления
+
+- **#557, #558, #559, #560 MERGED:** B09 заблокированная IndexedDB миграция (test-only), Farrar 180/195 (test-only), read-only JSON family/hive coherence, GPS pesticide provenance. Exact PR-head Android CI SUCCESS #45877095034, #45877248236, #45877525614, #45877662641 соответственно. Последний main `7d8af290cb9621ea7e83610a939dbceb19027b20`.
+- **Исторические #536, #42, #516, #44, #69 CLOSED/SUPERSEDED** с доказательствами в описаниях; ветки сохранены. #69 уже имеет закрытого потомка #70. [Полный отчёт этого цикла](docs/PR-AUDIT-CHECKPOINT-2026-11-26-C.md).
+- Exact post-merge push CI на main **NOT_VERIFIED**; PR-triggered CI не заменяет проверку SHA слияния. 411-строчная инвентаризация — **исторический** снимок, не новый live count. Никаких production/OnePlus/video операций.
 
 ## Последний PR-макроцикл (verified actions)
 
