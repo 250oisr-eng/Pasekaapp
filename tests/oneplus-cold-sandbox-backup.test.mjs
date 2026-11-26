@@ -46,14 +46,14 @@ if(args[0]==='devices') {
 }
 if(args[0]!=='-s'||args[1]!=='NE2213')process.exit(51);
 const tail=args.slice(2).join(' ');
-if(tail==='shell pidof ru.paseka.journal')process.exit(mode==='running' && (!marker||!fs.existsSync(marker))?0:mode==='psfallback'?0:1);
+if(tail==='shell pidof ru.paseka.journal'){if(mode==='running' && (!marker||!fs.existsSync(marker))){process.stdout.write('1234\\n');process.exit(0);}process.exit(mode==='psfallback'?0:1);}
 if(tail==='shell ps -A'){
  if(mode==='psfallback'){process.stdout.write('USER PID PPID VSZ RSS WCHAN ADDR S NAME\\nuser 123 1 100 100 0 0 S another.app\\n');process.exit(0);}
  process.exit(60);
 }
 if(tail==='shell ps -A -o NAME') {
  if(mode==='psfallback')process.exit(1);
- process.stdout.write('NAME\\n'+(mode==='remote' && (!marker||!fs.existsSync(marker))?'ru.paseka.journal:remote\\n':''));process.exit(0);
+ process.stdout.write('NAME\\nother.app\\n'+(mode==='remote' && (!marker||!fs.existsSync(marker))?'ru.paseka.journal:remote\\n':''));process.exit(0);
 }
 if(tail==='shell am force-stop ru.paseka.journal'){
  if(mode==='stop_denied')process.exit(1);
