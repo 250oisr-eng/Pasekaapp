@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {parseInstalledPath,parsePackageVersion,parseCertificate,compareDiagnosticSigning}
+import {parseInstalledPath,parsePackageVersion,parseCertificate,compareDiagnosticSigning,safeSignerFailure,SIGNER_STAGES}
  from '../tools/oneplus-recovery/inspect-diagnostic-signing.mjs';
 const id='ru.paseka.journal.disasterproof2';
 const a='a'.repeat(64),b='b'.repeat(64);
@@ -50,4 +50,21 @@ test('script has no commands to mutate phone and only pulls isolated package APK
  assert.match(cmd,/ONEPLUS-DIAGNOSTIC-SIGNER-RESULT\.json/);
  const workflow=await readFile(new URL('../.github/workflows/android-disaster-physical.yml',import.meta.url),'utf8');
  assert.match(workflow,/Copy-Item 'tools\/oneplus-recovery\/inspect-diagnostic-signing\.mjs'/);
+});
+
+test('owner ENOENT report is staged and sanitized even when executable is missing',()=>{
+ const stage=SIGNER_STAGES.includes('INSTALLED_SIGNER')?'INSTALLED_SIGNER':'unexpected';
+ const error=Object.assign(new Error('C:\\Secret\\Private\\java.exe'),{code:'ENOENT',path:'C:\\Secret\\Private\\java.exe'});
+ const result=safeSignerFailure(error,stage);
+ assert.deepEqual(result,{status:'BLOCKED',code:'LOCAL_EXECUTABLE_OR_FILE_NOT_FOUND',
+  failedStage:'INSTALLED_SIGNER',installationAuthorized:false,
+  productionPackageTouched:false,noInstallNoOverwriteNoDelete:true});
+ assert.doesNotMatch(JSON.stringify(result),/Secret|Private|java.exe/);
+ assert.equal(safeSignerFailure(error,'secret/path').failedStage,'UNRECOGNIZED_STAGE');
+});
+test('unknown raw ADB/process errors never leak command or device serial',()=>{
+ const result=safeSignerFailure({code:'secret-sn-123',message:'owner data'},'USB_DISCOVERY');
+ assert.equal(result.code,'SIGNER_PREFLIGHT_UNKNOWN_ERROR');
+ assert.equal(result.failedStage,'USB_DISCOVERY');
+ assert.doesNotMatch(JSON.stringify(result),/secret|owner data/);
 });
