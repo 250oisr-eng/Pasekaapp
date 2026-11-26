@@ -4319,7 +4319,7 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   const startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
   // A new IndexedDB is not proof of a first install. Keep the write gate closed until consent.
-  const firstRunConfirmed=requireFirstRunConsent(databaseCreatedDuringOpen,loaded,readStartupUseMarker(),message=>window.confirm(message));
+  requireFirstRunConsent(databaseCreatedDuringOpen,loaded,readStartupUseMarker(),message=>window.confirm(message));
   if(loaded){
    try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
    catch(primaryError){
