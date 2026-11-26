@@ -19,6 +19,19 @@
 | #537 | Stacked on #534; physical OnePlus kit and isolated package; physical device proof not obtained | **STACKED/HOLD** |
 | #525–#528 | Nested USB/check-hub branches, overlapping and dependent; #543 / user direction freezes repeated ADB/USB work | **STACKED/HOLD**, no device operations |
 
+
+## Live direct metadata pass over 38 indexed main-root PRs
+
+Direct `get_pr_info` was performed for all 38 IDs in the indexed root roster (as well as independent checks for #516 and stacked #525–#528/#537). **Only #534 reported `mergeable=true`** at query time; the other 37 indexed root PRs reported `mergeable=false`. This is a structural flag, **not** a code safety verdict, and can change with new commits. #534 is an isolated synthetic Android recovery diagnostic, **not** a physical B01 restore proof; do not merge on the basis of its mergeability flag alone.
+
+Root roster by risk class for subsequent patch-level review:
+- B01/B04/B05/data and Android: #543, #534, #532, #524, #523, #522, #521, #520, #519, #517, #509, #479, #469, #452, #168, #14, #9.
+- Physical hive/sectional/inventory/journal: #453, #451, #200, #187, #86, #81, #60, #54, #43.
+- Media/video: #157, #1.
+- Docs, governance and research: #533, #529, #381, #191, #189, #188, #156, #96, #90, #7.
+
+For this pass, code-level patches were selectively examined for #8, #60, #516, #529 and #533; the other candidates' actual implementation and test semantics remain **REVIEW_REQUIRED**. All 358 stacked PRs need dependency-level review before any retarget/merge, regardless of `mergeable` status. This limits the meaning of the word “audit” to confirmed metadata enumeration and specifically evidenced deep samples, not blanket certification.
+
 ## Safety and integration policy
 1. No wholesale merges, rebases, retargets or deletions of stacked dependencies. Validate base/head live immediately before any operation, review actual diff against current main and confirm whether unique behavior is already present.
 2. Any port that touches backups, restore, IndexedDB, Service Worker, video, hive profile or critical operations requires negative/regression tests and CI on exact new SHA.
