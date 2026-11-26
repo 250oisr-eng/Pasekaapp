@@ -35,6 +35,8 @@
 
 - **Root review N, MERGED #589:** [33-source patch line inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md) and [machine inventory](docs/PR-AUDIT-LINE-SCAN-2026-11-26-N.json). Exactly 33 root PRs live-state/HEAD checked; 30 OPEN Draft / 3 CLOSED without merge; 407 returned file patches, +36,512 / −312 lines mechanically scanned, no missing returned per-file patches. Human exhaustive review / exact-head CI for every root **NOT_DONE**, not an automatic merge approval. #1/#157 unsafe media deletion HOLD; #14/#168 legacy store clears and #543 optional OnePlus force-stop highlighted. #589 менял только документацию; runtime не изменён.
 
+- **#591 Draft P1 frame strip (#187):** 3 рендера 0/1/6/10, exact SHA `cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531`. Android #45894814279: Node 994/994, APK/signer SUCCESS; Governance #45894814269 SUCCESS. IndexedDB/SW без изменений; браузер/OnePlus NOT_TESTED, не merged.
+
 ## Следующий конкретный шаг
 
 По root audit N: не объединять старые корни целиком; для #187 оценить безопасные оставшиеся browser/Playwright регрессии или следующий независимый корневой P1 код по фактическому main; не вносить устаревший HTML целиком. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
