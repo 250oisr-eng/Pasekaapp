@@ -71,7 +71,7 @@ if(tail==='shell run-as ru.paseka.journal pwd'){
 if(tail==='shell run-as ru.paseka.journal ls -ld app_webview'){
  process.stdout.write('drwx app_webview\\n');process.exit(0);
 }
-if(tail==='exec-out run-as ru.paseka.journal sh -c printf PASEKA_BASE64_PROBE_V1 | base64'){
+if(tail==='exec-out run-as ru.paseka.journal sh -c set -o pipefail; printf PASEKA_BASE64_PROBE_V1 | base64'){
  if(mode==='probe_corrupt'){process.stdout.write('BROKEN');process.exit(0);}
  if(mode==='probe_denied'){process.exit(1);}
  process.stdout.write(Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64')+'\\n');process.exit(0);
