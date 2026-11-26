@@ -6,7 +6,7 @@
 
 - [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543): исправлено смешивание stdout/stderr и потеря удалённого exit у прежнего `adb exec-out`; используется `adb shell -T`, Shell v2, строгий Base64 и fail-closed TAR/SHA. Матрица проб удалена.
 - **Точный code/test SHA `1fa485c32d6f5132ead092172c7c4fa8f7f87619`**: [USB kit Linux+Windows+Android 15 emulator #45831597099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099) SUCCESS; Fast #45831584331, Governance #45831597239, Android #45831597063/#45831584362 SUCCESS. Emulator подтвердил stdout/stderr, exit 42 и Base64; данных пасеки нет. [Windows ZIP](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099/artifacts/15122283627) до 03.12.2026.
-- **B01 BLOCKED:** 26.11 реальный OnePlus вернул `BASE64_PREFLIGHT_NON_BASE64_OUTPUT` (Force-stop NO); до TAR и приватных чтений. Нужен вывод одной публичной команды; физического архива и restore нет.
+- **B01 BLOCKED:** OnePlus вернул `/system/bin/sh: chvt: can't find tty` и ложный exit 0. Вероятно, старый ADB ПК не распознал `-T` (его версия ещё неизвестна). В Draft #543 введена проверка ADB >=1.0.41 и `shell_v2` ДО приватного доступа, Windows выбирает официальный SDK. Физических TAR и restore нет.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
