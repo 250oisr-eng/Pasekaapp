@@ -187,5 +187,32 @@
     "completedVerifiedUserScenarios": 0,
     "scenariosEvidence": "Documentation governance refactor only; no user-device scenario or physical data migration attempted. Repeated reads NOT_MEASURED.",
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
-  }
+  },
+  "featureDraftCycles": [
+    {
+      "id": "b09-late-idb-abort-and-entrance-media-20261126",
+      "codeSha": "6b6b61fceb4aefb54d9678715fc423bdb091e384",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/538",
+      "ciRuns": [
+        {
+          "id": 45855002393,
+          "conclusion": "success"
+        },
+        {
+          "id": 45855009504,
+          "conclusion": "success"
+        },
+        {
+          "id": 45855002315,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Production IDB transaction functions + synthetic close/reopen, real entrance_media Blob retained; no real user backup, physical quota or device proof.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
+    }
+  ]
 }
