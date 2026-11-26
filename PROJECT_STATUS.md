@@ -35,7 +35,7 @@
 
 - **Root review N, MERGED #589:** [33-source patch line inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md) and [machine inventory](docs/PR-AUDIT-LINE-SCAN-2026-11-26-N.json). Exactly 33 root PRs live-state/HEAD checked; 30 OPEN Draft / 3 CLOSED without merge; 407 returned file patches, +36,512 / −312 lines mechanically scanned, no missing returned per-file patches. Human exhaustive review / exact-head CI for every root **NOT_DONE**, not an automatic merge approval. #1/#157 unsafe media deletion HOLD; #14/#168 legacy store clears and #543 optional OnePlus force-stop highlighted. #589 менял только документацию; runtime не изменён.
 
-- **P1 frame-strip (Draft `fix/p1-brood-frame-strip-dynamic-20261126`):** из #187: 6-колоночная схема переносила 10 рамок. Три рендера теперь учитывают длину массива; тест 0/1/6/10, горизонтальная прокрутка. Данные, клавиатура и SW не изменены; CI/OnePlus НЕ ПРОВЕРЕНЫ, слияния нет.
+- **#591 Draft P1 frame strip (#187):** 3 рендера 0/1/6/10, exact SHA `cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531`. Android #45894814279: Node 994/994, APK/signer SUCCESS; Governance #45894814269 SUCCESS. IndexedDB/SW без изменений; браузер/OnePlus NOT_TESTED, не merged.
 
 ## Следующий конкретный шаг
 
