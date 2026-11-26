@@ -23,3 +23,7 @@ F2 = LIMITED_SAFE_DRAFT. Исправление только UI, без внес
 ### Совместимость с P0 #512 (main `346b350`)
 
 При переносе сохраняются запрет удаления оригинального видео, защита от общего удаления IndexedDB и insert-only `add(record)`. Используется `data-video-id` только для просмотра; устаревшая кнопка удаления исключена. Регрессия запрещает восстановление опасного обработчика. Физический OnePlus NOT_TESTED; release и merge не разрешены.
+
+## Результат интеграционной проверки на SHA 8628da0df246a24aaa1b3be5fe079a9c055b2547
+
+Ветка #514 синхронизирована с актуальным main d74e5eb8 (слияние #538) и сохраняет уже интегрированные P0 guard #512. На новом кодовом SHA: Fast Quality [#45857550313](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45857550313), Governance [#45857560393](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45857560393), Android [#45857550096](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45857550096) и [#45857560542](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45857560542) — SUCCESS. Все изменения ограничены read-only UI и защитой ID, не разрешают удаление/распознавание видео. **READY_FOR_MERGE_REVIEW**, но отдельного разрешения на merge #514 нет. Физический телефон NOT_TESTED.
