@@ -790,6 +790,20 @@
     "productionActions": 0,
     "realVerifiedUserScenarios": 0,
     "timeSavedMeasured": null,
-    "ciRuns": []
+    "ciRuns": [
+      {
+        "id": 45893897907,
+        "conclusion": "failure",
+        "type": "Governance_Docs_initial_status_oversize"
+      },
+      {
+        "id": 45894003850,
+        "conclusion": "success",
+        "type": "Governance_Docs_final_audit_head"
+      }
+    ],
+    "auditReportPr": 589,
+    "auditReportExactHead": "fd8567621ebb23f8a2846cd4f706175cadbfaca1",
+    "auditReportMergeSha": "a55aa97633e2a79195de2de1768c46a462192262"
   }
 }
