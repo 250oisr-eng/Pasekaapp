@@ -189,15 +189,48 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-five-way-readonly-base64-probe-20261126",
+    "id": "b01-shellv2-android-emulator-transport-proof-20261126",
     "pr": 543,
-    "source": "Real OnePlus public probe: BASE64_PREFLIGHT_NON_BASE64_OUTPUT exit=0 stdout=270 bytes normalized=260, no private reads",
-    "deviceBackupStatus": "BLOCKED_PUBLIC_BASE64_PROBE",
+    "source": "OnePlus five public probes previously returned extra bytes; actual Android API35 emulator now proves Shell v2 transport",
+    "codeSha": "1fa485c32d6f5132ead092172c7c4fa8f7f87619",
+    "deviceBackupStatus": "BLOCKED_NO_PHYSICAL_ONEPLUS_ARCHIVE",
+    "androidEmulatorTransport": "PASS_STDOUT_STDERR_REMOTE_EXIT_AND_BASE64",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
-    "ciRuns": [],
-    "notes": "Five public-only ADB echo/base64 variants distinguish outer shell, run-as and pipefail without printing stdout or touching app-private data."
+    "ciRuns": [
+      {
+        "id": 45831168211,
+        "conclusion": "failure",
+        "kind": "initial-emulator-newline-fixture"
+      },
+      {
+        "id": 45831597099,
+        "conclusion": "success",
+        "kind": "linux-windows-emulator-usb-kit"
+      },
+      {
+        "id": 45831584331,
+        "conclusion": "success",
+        "kind": "fast-quality"
+      },
+      {
+        "id": 45831597239,
+        "conclusion": "success",
+        "kind": "governance"
+      },
+      {
+        "id": 45831597063,
+        "conclusion": "success",
+        "kind": "android-pr"
+      },
+      {
+        "id": 45831584362,
+        "conclusion": "success",
+        "kind": "android-push"
+      }
+    ],
+    "notes": "Emulator tests one true Android Shell v2 session, not physical OnePlus USB/private storage or independent restore. No repeated shell probe matrix; actual backup blocked until USB/PC external destination; no measured time saving."
   }
 }

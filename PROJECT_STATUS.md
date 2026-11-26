@@ -1,17 +1,17 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**26.11.2026 — проверенный main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## 26.11.2026 — исправление транспорта Draft #543 (Shell v2)
+## 26.11.2026 — B01: реальный Android Shell v2 в CI, Draft #543
 
-- Исходный B01 USB `exec-out` смешивал удалённые stdout/stderr и не возвращал remote exit: 5 публичных проб с лишними байтами и старые повреждённые TAR не подходят для backup. Код Draft #543 переведён на `adb shell -T` с Shell v2 (без PTY), строгим разделением stderr, remote exit, Base64/TAR/SHA validation; пять альтернативных probe упразднены. **Физический PASS/независимый restore не подтверждены**; исходные `.partial` сохраняются.
-- Пользователь подтвердил отсутствие полного архива в установленном APK. `#512` MERGED в main `346b35035861257be45dae93ee0573cbd4de9082`, но не опубликован на телефон. B01 остаётся BLOCKED, исходники не удалять. [Инструкция](docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md).
-- Следующий шаг: CI для точного head #543, затем при доступном доверенном USB — штатный read-only preflight и опциональный отдельный холодный TAR на внешний носитель; никакого повторения матриц команд.
+- [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543): исправлено смешивание stdout/stderr и потеря удалённого exit у прежнего `adb exec-out`; используется `adb shell -T`, Shell v2, строгий Base64 и fail-closed TAR/SHA. Матрица из пяти shell-проб удалена.
+- **Точный code/test SHA `1fa485c32d6f5132ead092172c7c4fa8f7f87619`**: [USB kit Linux+Windows+Android 15 emulator #45831597099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099) SUCCESS; Fast #45831584331, Governance #45831597239, Android #45831597063/#45831584362 SUCCESS. Emulator **реально** подтвердил разделение stdout/stderr, remote exit 42 и public Base64; исходных данных нет. [Windows ZIP](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099/artifacts/15122283627) до 03.12.2026.
+- **B01 DEVICE_BACKUP / RESTORE — BLOCKED:** физических OnePlus TAR и независимого восстановления нет. Старые повреждённые `.partial` не использовать и не удалять. На установленной v315 нет полного backup UI; #512 MERGED в main, но не выпущен на OnePlus. Следующий физический шаг — только одна штатная попытка при наличии USB/ПК и внешнего накопителя; без повторного перебора shell-команд.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
 - Draft #511: курсор метаданных видео CI PASS, real RAM NOT_MEASURED.
-- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой UI и функция сброса блокированы до записи, кнопка полного удаления **disabled без onclick**, legacy helper всегда `false`, даже при поддельных флагах восстановления. Тесты и проверка точного SHA обязательны; без merge/release.
+- [#512 MERGED](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой UI и функция сброса блокированы до записи, кнопка полного удаления **disabled без onclick**, legacy helper всегда `false`, даже при поддельных флагах восстановления. Main защищён; на телефоне новая сборка не установлена.
 - [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
 - B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
 
