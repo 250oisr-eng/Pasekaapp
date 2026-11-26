@@ -51,6 +51,60 @@ async function nearbyHeaderOffsets(h,size,expected){
  }
  return candidates;
 }
+// Follow checksum-valid headers after the first defect for DIAGNOSTICS ONLY.
+// Header checksum verifies headers, never the underlying file payload.
+// Only a UNIQUE nearby header shift may be followed; never modify the source.
+async function traceHeaderDrift(handle,size,start){
+ const shifts=[],sampleOffsets=[],maxEvents=1024,maxHeaders=MAX_ENTRIES;
+ let pos=start,headersAfterDefect=0,netShift=0;
+ for(let iterations=0;iterations<maxHeaders;iterations++){
+  if(pos+BLOCK>size)return {result:'NO_HEADER_REMAINING',headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+  let {bytesRead,buf}=await readBlock(handle,pos);
+  if(bytesRead!==BLOCK)return {result:'SHORT_READ',headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+  let parsed=headerCheck(buf);
+  if(!parsed.valid){
+   const possibilities=[];
+   for(let delta=-16;delta<=16;delta++){
+    if(delta===0)continue;
+    const at=pos+delta;
+    if(at<0||at+BLOCK>size)continue;
+    const probe=await readBlock(handle,at);
+    if(probe.bytesRead!==BLOCK)continue;
+    const candidate=headerCheck(probe.buf);
+    if(!candidate.valid)continue;
+    if(candidate.zero){
+     if(at+BLOCK*2>size)continue;
+     const following=await readBlock(handle,at+BLOCK);
+     if(following.bytesRead!==BLOCK||!allZero(following.buf))continue;
+    }
+    possibilities.push({delta,at,parsed:candidate});
+    if(possibilities.length>1)break;
+   }
+   if(possibilities.length!==1)return {result:possibilities.length?'AMBIGUOUS_HEADER_SHIFT':'NO_UNIQUE_NEARBY_HEADER',
+    headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+   const choice=possibilities[0];
+   if(shifts.length>=maxEvents)return {result:'SHIFT_EVENT_LIMIT',headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+   shifts.push(choice.delta);
+   if(sampleOffsets.length<8)sampleOffsets.push({expectedOffset:pos,relativeShift:choice.delta});
+   netShift+=choice.delta;
+   pos=choice.at;
+   parsed=choice.parsed;
+  }
+  if(parsed.zero){
+   const after=await readBlock(handle,pos+BLOCK);
+   if(after.bytesRead!==BLOCK||!allZero(after.buf))
+    return {result:'END_MARKERS_INVALID',headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+   return {result:'SHIFTED_END_MARKERS_FOUND_NOT_A_BACKUP',headersAfterDefect,
+     shiftEvents:shifts.length,netShift,sampleOffsets};
+  }
+  headersAfterDefect++;
+  const advance=BLOCK+Math.ceil(parsed.payload/BLOCK)*BLOCK;
+  if(!Number.isSafeInteger(advance)||pos+advance>size)
+   return {result:'ENTRY_DATA_EXCEEDS_SOURCE',headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+  pos+=advance;
+ }
+ return {result:'HEADER_LIMIT',headersAfterDefect,shiftEvents:shifts.length,netShift,sampleOffsets};
+}
 export async function inspectPartial(path){
  const src=resolve(path),stat=await lstat(src);
  if(stat.isSymbolicLink()||!stat.isFile()||stat.size>LIMIT||!src.endsWith('.tar.partial'))throw Error('INVALID_PARTIAL_SOURCE');
@@ -93,6 +147,8 @@ export async function inspectPartial(path){
   if(invalidHeaderOffset!==null && ['INVALID_HEADER_CHECKSUM_FIELD','HEADER_CHECKSUM_MISMATCH','INVALID_ENTRY_SIZE'].includes(problem)){
     resyncCandidates=await nearbyHeaderOffsets(h,stat.size,invalidHeaderOffset);
   }
+  const driftTrace=invalidHeaderOffset!==null?
+    await traceHeaderDrift(h,stat.size,invalidHeaderOffset):null;
   const exact=stat.size%BLOCK===0;
   const ok=!problem&&endingOffset!==null&&exact;
   return {schema:'paseka-partial-tar-audit-v1',
@@ -100,6 +156,7 @@ export async function inspectPartial(path){
    reason:problem||(!exact?'NON_512_ALIGNED_LENGTH':null),
    bytes:stat.size,remainder512:stat.size%BLOCK,
    headersVerified:entries,invalidHeaderOffset,resyncCandidateShifts:resyncCandidates,
+   driftTrace,
    endMarkerFound:endingOffset!==null,
    bytesAfterEnd,trailingNonzero,originalsChanged:false,
    sourceModified:false,contentsExtracted:false,
