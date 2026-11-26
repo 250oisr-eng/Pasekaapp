@@ -2,6 +2,13 @@ name: Fast quality checks
 
 on:
   workflow_dispatch:
+  # Verify the QA verifier itself on an exact PR head without duplicating
+  # the full Fast quality suite for every unrelated application PR.
+  pull_request:
+    paths:
+      - '.github/workflows/quality.yml'
+      - 'scripts/qa-tap-evidence.mjs'
+      - 'tests/qa-tap-evidence.test.mjs'
   push:
     paths:
       - 'index.html'
@@ -78,5 +85,16 @@ jobs:
             npm-${{ runner.os }}-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Run complete regression suite
-        run: npm test
+      - name: Run complete regression suite and verify bounded TAP evidence
+        shell: bash
+        run: |
+          # Preserve full test exit status, even if a forged/truncated TAP says PASS.
+          set +e
+          npm test 2>&1 | tee "$RUNNER_TEMP/paseka-tests.tap"
+          results=("${PIPESTATUS[@]}")
+          set -e
+          # Never publish TAP artifacts, user exports, secrets or device logs.
+          node scripts/qa-tap-evidence.mjs "$RUNNER_TEMP/paseka-tests.tap"
+          if [[ "${results[0]}" != 0 || "${results[1]}" != 0 ]]; then
+            exit 1
+          fi

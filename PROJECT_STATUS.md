@@ -29,6 +29,8 @@
 - **#583 MERGED** `f306b35074b19c4d0bb2ae01e3a535f14cc29b04`: generic 4-body staged honey pair validation, tested exact-head `da147b94aaa4ad3ae9959a2a7771fefaa538c958`, Android #45889321180 SUCCESS and Governance #45889321099 SUCCESS. Old #200 CLOSED without merge; profile B07 not activated.
 - **Root audit K:** [33 historical root PR inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md) and [machine review](docs/PR-AUDIT-ROOTS-2026-11-26-K.json). 30 root sources OPEN, 358 historical stacked; 388 indexed open overall (not exhaustive REST). Original #157 has unsafe video deletion eligibility, HOLD. 31 open-source diff structures checked; targeted deep semantics 4. No bulk merge.
 
+- **#532 QA selective port in Draft:** fail-closed summary of the existing full Node TAP run (no fresh synthetic cycles), preserving npm/tee exit codes; [QA F0–F2 contract](docs/QA-TAP-EVIDENCE-SELECTIVE-2026-11-26.md). Hardcoded old PR manifest/network reviews NOT ported. Exact HEAD CI pending, #532 OPEN. Real-device gates unchanged.
+
 ## Следующий конкретный шаг
 
 После #583 приоритетный независимый кандидат — отдельная проверка полезного QA-кода #532 (без устаревшего manifest/workflow) либо source-driven модуль безопасности. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
