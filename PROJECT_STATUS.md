@@ -4,7 +4,7 @@
 
 ## 26.11.2026 — новая реальная операция резервирования OnePlus, Draft #543
 
-- Физический TAR exit=0, 5 122 278 байт, остаток 230; локальный аудит: 17 заголовков, `INVALID_HEADER_CHECKSUM_FIELD`, конца TAR нет. **Копия НЕ подтверждена**. #543 добавил поиск возможного смещения заголовка ±511 байт в том же read-only `INSPECT-EXISTING-PARTIAL.cmd`. Сначала обследовать существующий `.partial`, без нового USB и восстановления.
+- Реальный TAR 5 122 278 байт (остаток 230): после 17 заголовков ошибка на **offset=10240**, контрольный заголовок найден при **+1 байт**. Архив **НЕ подтверждён**. #543 добавил ПК read-only `driftTrace` — выявление последующих повторных сдвигов без изменения `.partial` и без обращения к OnePlus.
 - Пользователь подтвердил, что **на установленном OnePlus нет UI полного архива**. Функция в GitHub source не означает наличия её на установленном APK.
 - [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543), ветка `feat/p0-b01-oneplus-run-as-cold-sandbox-backup-20261126` от main: **новый** однокнопочный Windows exporter `RUN-ONEPLUS-BACKUP.cmd` для приложения `ru.paseka.journal` с `adb exec-out run-as`, запрещающий работающий процесс, замену исходников и перезапись внешнего файла; TAR + SHA, disk SHA readback и `tar -tf`. [Инструкция](docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md). Физическая попытка `BLOCKED`; Gallery/MediaStore/restore `NOT_VERIFIED`; удаление запрещено.
 - #512 MERGED, но не опубликован на телефон; #541/#542 Draft проверяют готовые файлы.
