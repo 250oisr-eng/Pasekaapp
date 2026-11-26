@@ -14,7 +14,7 @@
 ## Активная задача — первый внешний архив (P0/B01)
 
 - **#599 MERGED** `81b6a63c…`, **#598 MERGED** `e906e2f4295e24c020e16e8971419e7b53baf2c3`: после #598 exact-main Fast/Android (1004/1004), Governance и Chromium E2E mobile/desktop SUCCESS. Это не production-release и не OnePlus proof.
-- **#597 DRAFT / main-synced:** в «Резервном копировании» инструкция первого полного экспорта IndexedDB → проверка реально скачанного файла → read-only SHA/структура → отдельная внешняя копия. Не изменяются backup/restore codecs, физические данные, видео и Service Worker. Exact CI новой ветки пока НЕ подтверждён.
+- **#597 DRAFT / main-synced:** в «Резервном копировании» инструкция первого полного экспорта IndexedDB → проверка реально скачанного файла → read-only SHA/структура → отдельная внешняя копия. Не изменяются backup/restore codecs, физические данные, видео и Service Worker. Code SHA `40ce6d01…`: Governance #45904183560, Android #45904183627 (1008/1008 Node, Debug APK) SUCCESS.
 - По зафиксированному уточнению 27.11 оригинальных видео и копий бэкапа у пользователя нет; фактическое содержимое IndexedDB/MediaStore не исследовано. **B01/#442 остаются BLOCKED/FROZEN.** `#595` — отдельный UI Draft.
 
 ## Действующие запреты и доказательства
@@ -41,10 +41,10 @@
 
 - **Root review N #589 MERGED:** [поимённая построчная опись 33 root PR](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md); опасные источники #1/#157/#14/#168/#543 HOLD. Это не полный semantic review.
 
-- **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 OPEN/PARTIALLY_PORTED, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
+- **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 CLOSED без merge; остаток UI в Draft #595, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
 
 ## Следующий конкретный шаг
 
-**#597:** exact-head Node, Governance, Android и контроль read-only ограничений на синхронизированном `main=e906e2f4295e24c020e16e8971419e7b53baf2c3`; после SUCCESS — READY_FOR_MERGE_REVIEW, без merge/release. Реальный внешний файл и независимое восстановление не подтверждены.
+**#597 READY_FOR_MERGE_REVIEW:** code CI SUCCESS; docs-only HEAD отдельно сверить. Без разрешения не сливать; реальный внешний файл/независимое восстановление NOT_VERIFIED. Следующая независимая задача: #595 UI Draft.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
