@@ -6,8 +6,12 @@
 
 - Четыре отчёта 26.11: 06:39Z — `ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED` (до install); 06:49Z — `ADB_COMMAND_FAILED` (стадия неизвестна); 07:02Z — `PROOF_TIMEOUT` на restart после первого тестового WebView PASS и force-stop; 07:14Z — `DEVICE_RESTART_PROOF_FAILED / UNCLASSIFIED_DEVICE_ERROR`, check `error`. **Синтетический Blob после перезапуска физически не подтверждён**; повреждение данных также не доказано.
 - [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) содержит только изолированную диагностику `ru.paseka.journal.disasterproof2`. Исправление на кодовом SHA `f37066a983e5584d21e6b8b815cd0352c4a06a7a`: фиксированные `diagnosticStage` и `diagnosticErrorType` в WebView и Windows verifier, негативные тесты утечки/неизвестных значений. Этот новый формат **отсутствует** в уже установленном старом APK.
-- Предыдущий итоговый HEAD `df98581315dcc18896a2f1ef7cf702bb9dad5347`: Governance [#45774611816](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45774611816) FAILED из-за превышения предела 6500 символов в этом статусе; специализированный [#45774612116](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45774612116) FAILED с 838/839 тестами (тот же Governance guard). Исправляется **документ**, не отключается guard. Повторная проверка необходима на новом точном SHA.
 - До проверки установленного debug signing, сохранения синтетического состояния и точного CI **не обновлять/очищать/переустанавливать** даже тестовый APK. Реальный архив/видео/основной package не затрагивались. B09 = BLOCKED.
+
+## B09 · новый физический отчёт CANDIDATE_BADGING (26.11.2026)
+
+- `ONEPLUS-DIAGNOSTIC-SIGNER-RESULT(1).json`: `BLOCKED/SIGNER_PREFLIGHT_UNKNOWN_ERROR` на `CANDIDATE_BADGING`, без установки/удаления/перезаписи APK и вмешательства в основное приложение. До этого этапа считаны установленный тестовый APK и его сертификат; **сертификаты не сравнены**.
+- Возможная причина — Windows `aapt` не открывает APK из папки распаковки с нестандартным путём (не доказано). В #537 исправлено: после SHA-сверки кандидат побайтово копируется в временную локальную папку, где уже прошёл `aapt` для установленного APK; копия повторно проверяется SHA, исходный APK не изменяется. Добавлен негативный регрессионный тест на Unicode-путь. Финальный exact-SHA CI требуется; старый ZIP не использовать.
 
 ## B09 · физический signer report ENOENT (26.11.2026)
 
