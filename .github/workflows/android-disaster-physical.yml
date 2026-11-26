@@ -250,13 +250,11 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force oneplus-kit | Out-Null
-          Copy-Item 'tools/oneplus-recovery/oneplus-recovery.mjs' 'oneplus-kit/'
-          Copy-Item 'tools/oneplus-recovery/inspect-restart-only.mjs' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/inspect-diagnostic-signing.mjs' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ПОДПИСЬ-БЕЗ-УСТАНОВКИ.cmd' 'oneplus-kit/'
-          Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ.cmd' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/README-RU.txt' 'oneplus-kit/'
-          Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ONEPLUS.cmd' 'oneplus-kit/'
+          # B09 physical signer mismatch: no installer, no force-stop/relaunch
+          # commands in owner-facing ZIP. Keep test sources in Git only.
           $apks = @(Get-ChildItem 'diagnostic-artifact' -Recurse -File -Filter 'app-debug.apk')
           $manifests = @(Get-ChildItem 'diagnostic-artifact' -Recurse -File -Filter 'disaster-proof-manifest.json')
           if ($apks.Count -ne 1 -or $manifests.Count -ne 1) {
@@ -272,6 +270,11 @@ jobs:
           }
           if ($env:EXPECTED_SOURCE_SHA -and $m.sourceSha -ne $env:EXPECTED_SOURCE_SHA) {
             throw 'FAIL_CLOSED_APK_SOURCE_SHA_MISMATCH'
+          }
+          # Fail closed if any runnable install/restart command slips into artifact.
+          $forbidden = @('ПРОВЕРИТЬ-ONEPLUS.cmd','ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ.cmd','oneplus-recovery.mjs','inspect-restart-only.mjs')
+          foreach ($item in $forbidden) {
+            if (Test-Path (Join-Path 'oneplus-kit' $item)) { throw 'B09_FORBIDDEN_DEVICE_MUTATION_SCRIPT_IN_ARTIFACT' }
           }
           Write-Host 'PASS: isolated package and byte-exact APK'
       - name: Upload offline one-click artifact
