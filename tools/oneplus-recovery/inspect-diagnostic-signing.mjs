@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {dirname,join,resolve,win32} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parseDeviceList,validateUsbTransportState,validateManifest,PACKAGE} from './oneplus-recovery.mjs';
+import {parseDeviceList,validateUsbTransportState,validateManifest,PACKAGE} from './signer-readonly-guards.mjs';
 const HERE=dirname(fileURLToPath(import.meta.url));
 const REPORT='ONEPLUS-DIAGNOSTIC-SIGNER-RESULT.json';
 const fail=code=>Object.assign(new Error(code),{code});
