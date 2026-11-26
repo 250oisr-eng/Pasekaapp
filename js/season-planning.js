@@ -18,7 +18,8 @@ function buildNectarBackwardPlan(input){
  const floweringDate=String(input?.floweringDate||''),date=parseDate(floweringDate);
  if(!date)throw new Error('Укажи корректную ожидаемую дату начала цветения.');
  const plantName=String(input?.plantName||'').trim().slice(0,120);
- const minLeadDays=Number(input?.minLeadDays??35),maxLeadDays=Number(input?.maxLeadDays??49),targetLeadDays=Number(input?.targetLeadDays??42);
+ const minLeadDays=Number(input?.minLeadDays??35),maxLeadDays=Number(input?.maxLeadDays??49);
+ const targetLeadDays=Number(input?.targetLeadDays??Math.round((minLeadDays+maxLeadDays)/2));
  if(!Number.isInteger(minLeadDays)||!Number.isInteger(maxLeadDays)||!Number.isInteger(targetLeadDays)||minLeadDays<21||maxLeadDays>70||minLeadDays>targetLeadDays||targetLeadDays>maxLeadDays)throw new Error('Проверь диапазон сроков: от 21 до 70 дней, целые числа.');
  return Object.freeze({plantName,floweringDate,eggLayingWindow:{from:shiftDate(floweringDate,-maxLeadDays),to:shiftDate(floweringDate,-minLeadDays)},targetEggLayingDate:shiftDate(floweringDate,-targetLeadDays),leadDays:{min:minLeadDays,target:targetLeadDays,max:maxLeadDays},basis:'Ориентир: около 21 дня развития рабочей пчелы в ячейке и примерно 2–3 недели до начала лётной работы после выхода. Реальные сроки меняются с возрастной структурой семьи, погодой, кормлением и силой взятка.',warning:'Это обратный биологический ориентир, а не гарантия даты появления сборщиц. Не стимулируй семью автоматически: оцени корма, погоду, силу и риск переохлаждения расплода.'});
 }

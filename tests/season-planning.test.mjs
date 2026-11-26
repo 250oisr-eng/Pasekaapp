@@ -14,6 +14,24 @@ test('nectar planner rejects impossible dates and inverted ranges',()=>{
  assert.throws(()=>plan.buildNectarBackwardPlan({floweringDate:'2027-02-30'}),/дату/i);
  assert.throws(()=>plan.buildNectarBackwardPlan({floweringDate:'2027-07-05',minLeadDays:50,maxLeadDays:40,targetLeadDays:42}),/диапазон/i);
 });
+test('nectar planner uses the midpoint of the selected window and respects explicit targets',()=>{
+ const input={floweringDate:'2027-01-15'};
+ for(const [min,max,target] of [[21,21,21],[21,30,26],[40,49,45],[50,60,55],[70,70,70]]){
+  const result=plan.buildNectarBackwardPlan({...input,minLeadDays:min,maxLeadDays:max});
+  assert.equal(result.leadDays.target,target);
+ }
+ assert.equal(plan.buildNectarBackwardPlan({...input,minLeadDays:50,maxLeadDays:60,targetLeadDays:51}).leadDays.target,51);
+ assert.throws(()=>plan.buildNectarBackwardPlan({...input,minLeadDays:50,maxLeadDays:60,targetLeadDays:42}),/диапазон/i);
+});
+test('planning screen displays the custom window and midpoint across the year boundary',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const handler=html.slice(html.indexOf('function renderNectarBackwardPlan()'),html.indexOf('function renderQueenRearingTimeline()'));
+ const fields={nectarPlantName:{value:'Липа'},nectarFloweringDate:{value:'2027-01-15'},
+  nectarMinLead:{value:'50'},nectarMaxLead:{value:'60'},nectarPlanResult:{}};
+ new Function('$','PasekaSeasonPlanning','safe',handler+';renderNectarBackwardPlan()')(id=>fields[id],plan,String);
+ assert.match(fields.nectarPlanResult.innerHTML,/2026-11-16 — 2026-11-26/);
+ assert.match(fields.nectarPlanResult.innerHTML,/Средний ориентир: 2026-11-21/);
+});
 test('queen rearing timeline accounts for larval age and gives weather-dependent windows',()=>{
  const result=plan.buildQueenRearingTimeline({graftDate:'2027-06-01',larvaAgeHours:24});
  assert.deepEqual(result.estimatedEmergence,{from:'2027-06-12',target:'2027-06-13',to:'2027-06-14'});
