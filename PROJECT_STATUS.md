@@ -2,10 +2,10 @@
 
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## Новая независимая ветка P0/B01 · локальная сверка копий видео (Draft, 26.11.2026)
+## P0/B01 — один локальный аудит, Draft #542 (26.11.2026)
 
-- Добавлен `scripts/audit-local-media-copy.mjs` и `tests/audit-local-media-copy.test.mjs`: два **существующих внешних локальных каталога** сверяются рекурсивно по именам, размерам и потоковому SHA-256 каждого файла. Не следует символическим ссылкам, запрещает вложенные/совпадающие корни, не изменяет файлы, не печатает имена, пути, содержимое или SHA оригиналов. Без файлов владельца — только синтетические тесты. Код SHA `37a840d7eb406f8b40c428d728eb18c93af5f4fc`: Governance #45781389753, Android/regressions #45781389846 **SUCCESS**; Инструкция: [локальная сверка](docs/B01-ЛОКАЛЬНАЯ-СВЕРКА-МЕДИА-КОПИЙ-2026-11-26.md). Кодовые проверки PASS; Draft READY_FOR_MERGE_REVIEW (без merge).
-- Результат `ENUMERATED_LOCAL_MEDIA_COPIES_MATCH_ONLY` **не** доказывает полноту MediaStore/всех origins, восстановление IndexedDB или наличие внешнего полного архива. B01 остаётся BLOCKED. Это независимый тестовый Draft, без merge/deploy и работы с реальными видео.
+- [Draft #541](https://github.com/250oisr-eng/Pasekaapp/pull/541): побайтовое сравнение уже перечисленных медиа-копий; CI PASS, не merged. [Draft #542](https://github.com/250oisr-eng/Pasekaapp/pull/542), stacked на #541: единый `scripts/run-unified-recovery-audit.mjs` проверяет внешний `paseka-idb-full-v1` (SHA/stores/Blob), replay в **чистой fake-indexeddb**, close/reopen/SHA и две существующие локальные media-папки; отчёт обезличен, нет записи/ADB/install/delete. Код SHA `07e809d94910a73e08e3641b2ead1f69ee60a782`: Governance #45783741507, Android #45783741486 **SUCCESS**.
+- [Контракт](docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md) / [инструкция](docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md). **B01 BLOCKED:** нет полной внешней копии всех Gallery/MediaStore/origins и физического независимого восстановления. Exit 0 нет, никаких разрешений на удаление, APK update, merge/release. B09 signer mismatch подтверждён; установленный диагностический APK не менять.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
