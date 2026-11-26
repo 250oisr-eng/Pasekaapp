@@ -558,12 +558,13 @@
     "journalFixedAndroidSuccess": 45882313294,
     "journalNodeTestsPassed": 941,
     "journalNodeTestsFailed": 0,
-    "journalMainIntegration": "NOT_MERGED",
+    "journalMainIntegration": "MERGED_5abcf8e78e22cfeb3550cb2540955412740a64be",
     "startupGuardHistoricPr": 8,
     "startupGuardRisk": "P0_CONFIRMED_GAP_PREVIOUS_USE_MARKER",
     "startupGuardIntegration": "NOT_IMPLEMENTED",
     "physicalDevice": "NOT_TESTED",
     "productionActions": 0,
-    "unapprovedMerges": 0
+    "unapprovedMerges": 0,
+    "journalMergeSha": "5abcf8e78e22cfeb3550cb2540955412740a64be"
   }
 }
