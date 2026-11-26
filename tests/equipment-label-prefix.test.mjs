@@ -42,3 +42,15 @@ test('existing and permanently reserved codes stay unavailable for reassignment'
     assert.equal(labels.nextCode(state, type), prefix + 'АБ');
   }
 });
+
+
+test('typographic dashes in printed frame and body labels are only visual separators',()=>{
+ for(const [type,prefix] of [['frame','Р'],['body','К']]){
+  const canonical=prefix+'АА';
+  for(const dash of ['‐','‑','‒','–','—','―','−']){
+   assert.equal(labels.normalizeCode(prefix+dash+canonical,type),canonical,dash);
+   assert.equal(labels.formatLabelCode(type,prefix+dash+canonical),prefix+'-'+canonical,dash);
+  }
+  assert.equal(labels.normalizeCode(prefix+'—АА',type),null,'missing canonical code character must remain invalid');
+ }
+});

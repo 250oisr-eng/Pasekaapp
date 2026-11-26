@@ -2,9 +2,9 @@
 function normalizeCode(value,type){
  const input=String(value??'').trim().toLocaleUpperCase('ru-RU');
  const prefix=type==='frame'?'Р':type==='body'?'К':'';
- let code=input.replace(/[\s-]/g,'');
+ let code=input.replace(/[\s\u2010-\u2015\u2212-]/gu,'');
  // A bare three-character label can start with its own namespace letter.
- if(prefix && input.startsWith(prefix) && (code.length===4 || /[\s-]/u.test(input.charAt(1)))){
+ if(prefix && input.startsWith(prefix) && (code.length===4 || /[\s\u2010-\u2015\u2212-]/u.test(input.charAt(1)))){
   code=code.slice(1);
  }
  return code.length===3 && [...code].every(char=>ALPHABET.includes(char)) ? code : null;
