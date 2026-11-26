@@ -17,7 +17,7 @@ export function inspectKeytoolList(text, expected = INSTALLED_CERT_SHA256) {
     .map(m=>m[1].trim());
   // Reject combined reports even when only one entry type is reported:
   // multiple aliases can represent several independent keystores entries.
-  const aliases = [...text.matchAll(/^\\s*Alias name:\\s*([^\\r\\n]+)\\s*$/gmi)];
+  const aliases = [...text.matchAll(/^\s*Alias name:\s*([^\r\n]+)\s*$/gmi)];
   const shaMatches = [...text.matchAll(/^\s*SHA256:\s*([0-9a-fA-F:]+)\s*$/gm)]
     .map(m=>m[1].replaceAll(':','').toLowerCase());
   if(aliases.length!==1 || entryTypes.length!==1 || shaMatches.length!==1)
