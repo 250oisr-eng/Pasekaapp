@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {parseDeviceList,validateUsbTransportState,validateDeviceProperties,validateManifest,validateProofLine,PACKAGE} from '../tools/oneplus-recovery/oneplus-recovery.mjs';
+import {parseDeviceList,validateUsbTransportState,parsePackagePresence,validateDeviceProperties,validateManifest,validateProofLine,PACKAGE} from '../tools/oneplus-recovery/oneplus-recovery.mjs';
 const valid={packageId:PACKAGE,originalPackageId:'ru.paseka.journal',apkFile:'app-debug.apk',apkSha256:'a'.repeat(64),sourceSha:'b'.repeat(40)};
 test('Windows ADB without optional usb field still resolves authorized phone',()=>{
  assert.equal(parseDeviceList('List of devices attached\nZX123 device product:x model:NE2213 transport_id:1\n'),'ZX123');
@@ -20,6 +20,19 @@ test('deny missing, unauthorized, offline, wireless, emulator and multiple devic
   ['List of devices attached\na device usb:1\nb device usb:2\n','ADB_MULTIPLE_DEVICES_CONNECTED']
  ];
  for(const [raw,code] of cases)assert.throws(()=>parseDeviceList(raw),e=>e.code===code);
+});
+test('absent package inventory is successful, not a failed pm path command',()=>{
+ assert.equal(parsePackagePresence('',PACKAGE),false);
+ assert.equal(parsePackagePresence('\n',PACKAGE),false);
+ assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2\n',PACKAGE),true);
+ assert.equal(parsePackagePresence('package:ru.paseka.journal\n',MAIN_PACKAGE),true);
+ // Android substring-filtered output may include a different package, not ours.
+ assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2.debug\n',PACKAGE),false);
+ assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2\n',MAIN_PACKAGE),false);
+ for(const value of ['Error: permission denied','package:../bad','package:ok\nFailure [no service]']){
+  assert.throws(()=>parsePackagePresence(value,PACKAGE),/ADB_PACKAGE_QUERY_UNTRUSTED/);
+ }
+ assert.throws(()=>parsePackagePresence('', 'ru.paseka.unexpected'),/UNTRUSTED_PACKAGE_LOOKUP_TARGET/);
 });
 test('verify manufacturer model Android and emulator flags before install',()=>{
  assert.equal(validateDeviceProperties({manufacturer:'OnePlus',model:'NE2213',qemu:'',api:'36'}),true);
@@ -52,4 +65,8 @@ test('one-click CMD is inert without packaged node/apk; no production reset or w
  assert.match(runner,/\['-d','get-state'\]/);
  assert.doesNotMatch(runner,/\['-s',serial/);
  assert.match(runner,/DIAGNOSTIC_PACKAGE_ALREADY_INSTALLED_NO_OVERWRITE/);
+ assert.match(runner,/pm','list','packages','-u',name/);
+ assert.doesNotMatch(runner,/shell','pm','path'/);
+ assert.match(runner,/diagnosticInstallMayHaveOccurred/);
+ assert.match(runner,/failedStage/);
 });

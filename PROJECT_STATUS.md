@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## 26.11.2026 · OnePlus USB: физический запуск BLOCKED
+## 26.11.2026 · OnePlus USB/ADB — второй BLOCKED
 
-Пользовательский `ONEPLUS-RECOVERY-RESULT.json` (`2026-11-26T06:39:22.218Z`) = `BLOCKED / ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED`. Прежний тест остановился **до установки** `ru.paseka.journal.disasterproof2`; восстановление на телефоне NOT_TESTED, точная причина без ADB-вывода UNKNOWN. В [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) исправлена Windows USB-проверка на `adb -d` (а не необязательное поле `usb:`), с защитой от Wi-Fi/эмулятора и точными кодами BLOCKED. Кодовый SHA `b4676006`: Fast Quality **834/834 PASS** #45769990336, Android #45769996764 SUCCESS, Governance #45769996937 SUCCESS; специализированный [CI #45769996763](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45769996763) проверять перед новым ZIP. Прежний отчёт сохранить, повторить только с новой папкой и новым артефактом. Нет доступа к основному приложению, удалению или production; #442 FROZEN.
+Реальные отчёты 26.11: 06:39:22Z `ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED` до установки; 06:49:30Z `ADB_COMMAND_FAILED`, **стадия неизвестна**, APK может быть установлен. Исправление USB через `adb -d` в #537 / `b4676006` прошло Fast 834/834 и итоговый специализированный Android+Windows+эмулятор CI `6cfa62bb` #45770241029 SUCCESS. Новый [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) исправляет AOSP `pm path` exit=1 при отсутствии пакета: теперь `pm list packages -u FILTER`, exact-match и обезличенный `failedStage`, признак возможности установки. До успешного CI новой версии не повторять. Реальное восстановление NOT_TESTED, видео/production не тронуты; #442 FROZEN.
 
 **26.11.2026 — последний проверенный live main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 

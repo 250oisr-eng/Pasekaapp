@@ -30,6 +30,14 @@ export function parseDeviceList(output){
  if(/^emulator-/i.test(serial)||/:\d+$/.test(serial)||/_adb-tls-connect\._tcp/i.test(serial))throw error('ADB_WIRELESS_OR_EMULATOR_NOT_ALLOWED');
  return serial;
 }
+// Unlike 'pm path', 'pm list packages -u FILTER' returns success for absent
+// packages. Compare exact package names, never trust a substring-only match.
+export function parsePackagePresence(output,expected){
+ if(expected!==PACKAGE&&expected!==MAIN_PACKAGE)throw error('UNTRUSTED_PACKAGE_LOOKUP_TARGET');
+ const lines=String(output).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+ if(lines.some(line=>!/^package:[A-Za-z0-9_.]+$/.test(line)))throw error('ADB_PACKAGE_QUERY_UNTRUSTED');
+ return lines.includes('package:'+expected);
+}
 export function validateUsbTransportState(state){
  if(String(state).trim()!=='device')throw error('ADB_PHYSICAL_USB_TRANSPORT_NOT_READY');
  return true;
@@ -47,10 +55,10 @@ export function validateProofLine(line,expected){
 export function validateManifest(m){
  if(m?.packageId!==PACKAGE||m?.originalPackageId!==MAIN_PACKAGE||m?.apkFile!=='app-debug.apk'||!/^[a-f0-9]{64}$/.test(m?.apkSha256||'')||!/^[a-f0-9]{40}$/.test(m?.sourceSha||''))throw error('UNTRUSTED_DIAGNOSTIC_MANIFEST');
 }
-function command(file,args,timeout=15000){
+function command(file,args,timeout=15000,failureCode='ADB_COMMAND_FAILED'){
  return new Promise((resolveResult,reject)=>{
   execFile(file,args,{timeout,maxBuffer:128*1024,windowsHide:true},(err,stdout,stderr)=>{
-   if(err)return reject(error('ADB_COMMAND_FAILED'));
+   if(err)return reject(error(failureCode));
    resolveResult(String(stdout).trim());
   });
  });
@@ -86,7 +94,8 @@ async function liveLogProof(adb,expected,launch){
  try{await new Promise(r=>setTimeout(r,400));await launch();return await promise;}
  catch(e){child.kill();promise.catch(()=>{});throw e;}
 }
-async function run(){
+async function run(setStage=()=>{}){
+ setStage('VERIFY_LOCAL_APK');
  const manifest=JSON.parse(await readFile(resolve(HERE,'diagnostic-manifest.json'),'utf8'));
  validateManifest(manifest);
  const apk=resolve(HERE,'app-debug.apk');
@@ -94,30 +103,43 @@ async function run(){
  if(size<=0||size>MAX_APK)throw error('APK_SIZE_INVALID');
  const digest=createHash('sha256').update(await readFile(apk)).digest('hex');
  if(digest!==manifest.apkSha256)throw error('APK_SHA256_MISMATCH');
+ setStage('ADB_DISCOVERY');
  const adb=await getAdb();
- parseDeviceList(await command(adb,['devices','-l']));
+ parseDeviceList(await command(adb,['devices','-l'],15000,'ADB_DEVICES_COMMAND_FAILED'));
+ setStage('USB_TRANSPORT');
  // Fail closed unless ADB itself confirms a USB-only transport.
  let usbState;
  try{usbState=await command(adb,['-d','get-state']);}
  catch{throw error('ADB_PHYSICAL_USB_TRANSPORT_REQUIRED');}
  validateUsbTransportState(usbState);
- const shell=async (...args)=>command(adb,['-d','shell',...args]);
+ setStage('DEVICE_PROPERTIES');
+ const prop=(key)=>command(adb,['-d','shell','getprop',key],15000,'ADB_GETPROP_COMMAND_FAILED');
  validateDeviceProperties({
-  manufacturer:await shell('getprop','ro.product.manufacturer'),
-  model:await shell('getprop','ro.product.model'),
-  qemu:await shell('getprop','ro.kernel.qemu'),
-  api:await shell('getprop','ro.build.version.sdk')
+  manufacturer:await prop('ro.product.manufacturer'),
+  model:await prop('ro.product.model'),
+  qemu:await prop('ro.kernel.qemu'),
+  api:await prop('ro.build.version.sdk')
  });
- const existing=await shell('pm','path',PACKAGE);
- if(existing.trim())throw error('DIAGNOSTIC_PACKAGE_ALREADY_INSTALLED_NO_OVERWRITE');
- const sourcePackage=await shell('pm','path',MAIN_PACKAGE);
+ setStage('PACKAGE_INVENTORY');
+ const hasPackage=async name=>{
+  const output=await command(adb,['-d','shell','pm','list','packages','-u',name],15000,'ADB_PACKAGE_QUERY_FAILED');
+  return parsePackagePresence(output,name);
+ };
+ // -u is conservative: do not overwrite a diagnostic package with retained data.
+ const existing=await hasPackage(PACKAGE);
+ if(existing)throw error('DIAGNOSTIC_PACKAGE_ALREADY_INSTALLED_NO_OVERWRITE');
+ const sourcePackage=await hasPackage(MAIN_PACKAGE);
  // Reading presence only: never start, pull, stop, update or clear this package.
- const result=await command(adb,['-d','install','--no-incremental',apk],120000);
+ setStage('DIAGNOSTIC_INSTALL');
+ const result=await command(adb,['-d','install','--no-incremental',apk],120000,'ADB_DIAGNOSTIC_INSTALL_COMMAND_FAILED');
  if(!result.includes('Success'))throw error('DIAGNOSTIC_INSTALL_FAILED');
- const start=()=>command(adb,['-d','shell','am','start','-n',PACKAGE+'/.MainActivity'],30000);
+ const start=()=>command(adb,['-d','shell','am','start','-n',PACKAGE+'/.MainActivity'],30000,'ADB_DIAGNOSTIC_LAUNCH_FAILED');
+ setStage('FIRST_RESTORE_PROOF');
  await liveLogProof(adb,FIRST,start);
  // Force-stop only the distinct test package; never restart the whole phone or reset its storage.
- await command(adb,['-d','shell','am','force-stop',PACKAGE]);
+ setStage('FORCE_STOP_DIAGNOSTIC');
+ await command(adb,['-d','shell','am','force-stop',PACKAGE],15000,'ADB_DIAGNOSTIC_FORCE_STOP_FAILED');
+ setStage('RELAUNCH_RESTORE_PROOF');
  await liveLogProof(adb,SECOND,start);
  return {status:'PASS',code:'ONEPLUS_SYNTHETIC_WEBVIEW_RESTORE_AND_RESTART',deviceClass:'ONEPLUS_NE221X',androidApiAtLeast35:true,
   testPackage:PACKAGE,productionPackageTouched:false,productionPackageInstalled:!!sourcePackage,
@@ -125,10 +147,13 @@ async function run(){
   physicalPowerLoss:'NOT_TESTED',videoCleanup:'NOT_ATTEMPTED',sourceSha:manifest.sourceSha};
 }
 async function main(){
- let report;
- try{report=await run();}
- catch(e){report={status:'BLOCKED',code:e?.code||'UNEXPECTED_DIAGNOSTIC_FAILURE',testPackage:PACKAGE,
-  productionPackageTouched:false,realUserDataRecovery:'NOT_TESTED',videoCleanup:'NOT_ATTEMPTED'};}
+ let report,failedStage='NOT_STARTED';
+ const markStage=stage=>{failedStage=stage;};
+ try{report=await run(markStage);}
+ catch(e){report={status:'BLOCKED',code:e?.code||'UNEXPECTED_DIAGNOSTIC_FAILURE',failedStage,
+  diagnosticInstallMayHaveOccurred:['DIAGNOSTIC_INSTALL','FIRST_RESTORE_PROOF','FORCE_STOP_DIAGNOSTIC','RELAUNCH_RESTORE_PROOF'].includes(failedStage),
+  testPackage:PACKAGE,productionPackageTouched:false,
+  realUserDataRecovery:'NOT_TESTED',videoCleanup:'NOT_ATTEMPTED'};}
  const output={schema:'paseka-oneplus-recovery-report-v1',...report,createdAt:now()};
  try{await writeFile(resolve(HERE,REPORT),JSON.stringify(output,null,2)+'\n',{flag:'wx'});}
  catch{console.error('REPORT_NOT_WRITTEN_EXISTING_OR_UNAVAILABLE');process.exitCode=1;return;}
