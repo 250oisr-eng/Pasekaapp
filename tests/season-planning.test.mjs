@@ -94,7 +94,7 @@ test('inspection reminder prefill reads only chosen hive and never saves or auto
  const end=html.indexOf('function renderNectarBackwardPlan(){',start);
  assert.ok(start>0&&end>start,'prefill handler exists');
  const src=html.slice(start,end);
- const fields={inspectionHiveSelect:{value:'h1'},inspectionLastDate:{value:'2026-11-26'},
+ const fields={inspectionHiveSelect:{value:'h1'},inspectionLastDate:{value:'2026-11-26',dataset:{}},
   inspectionPrefillStatus:{textContent:''},inspectionReminderResult:{textContent:'stale result'}};
  const rows=[{id:'one',hive:'h1',type:'Осмотр',date:'2026-11-19'},
              {id:'other',hive:'h2',type:'Осмотр',date:'2026-11-25'}];
@@ -137,4 +137,17 @@ test('planning does not default the last real inspection date to today',async()=
  assert.equal(fields.inspectionLastDate.value,'','must not invent completed inspection');
  assert.equal(fields.nectarFloweringDate.value,'2026-11-26');
  assert.ok(fields.inspectionHiveSelect.innerHTML.includes('h1'));
+});
+
+test('changing hive clears the prior inspection, attribution and due date',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/id="inspectionHiveSelect" onchange="resetInspectionReminder\(\)"/);
+ const handlers=html.slice(html.indexOf('function clearInspectionCalculation()'),html.indexOf('function useLastSavedInspection()'));
+ const fields={inspectionLastDate:{value:'2026-11-01',dataset:{fromJournal:'h1'}},
+  inspectionReminderResult:{textContent:'2026-11-08'},inspectionPrefillStatus:{textContent:'Улей 1'}};
+ new Function('$',handlers+';resetInspectionReminder()')(id=>fields[id]);
+ assert.equal(fields.inspectionLastDate.value,'');
+ assert.deepEqual(fields.inspectionLastDate.dataset,{});
+ assert.equal(fields.inspectionReminderResult.textContent,'');
+ assert.equal(fields.inspectionPrefillStatus.textContent,'');
 });
