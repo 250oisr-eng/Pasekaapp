@@ -845,6 +845,18 @@
         "name": "Governance Docs Checks",
         "conclusion": "success",
         "checkedHead": "cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531"
+      },
+      {
+        "id": 45895083250,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "checkedHead": "6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc"
+      },
+      {
+        "id": 45895083239,
+        "name": "Governance Docs Checks",
+        "conclusion": "success",
+        "checkedHead": "6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc"
       }
     ],
     "pr": 591,
@@ -854,6 +866,39 @@
       "pass": 994,
       "fail": 0,
       "skipped": 0
-    }
+    },
+    "finalPrHead": "6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc",
+    "mergeSha": "4eed81f328cff7541333f28a4d189e89c561c64b",
+    "integration": "IN_MAIN",
+    "publication": "NOT_RELEASED",
+    "browserGeometry": "NOT_VERIFIED",
+    "postMergeRuntimeInspection": "CSS_AND_THREE_RENDERER_BINDINGS_CONFIRMED"
+  },
+  "prPortfolioCleanup20261127": {
+    "referenceMainSha": "4eed81f328cff7541333f28a4d189e89c561c64b",
+    "mergesAuthorized": [
+      591
+    ],
+    "mergesVerified": [
+      {
+        "pr": 591,
+        "mergeSha": "4eed81f328cff7541333f28a4d189e89c561c64b"
+      }
+    ],
+    "closedSupersededWithoutMerge": [
+      {
+        "pr": 188,
+        "head": "567a6e2be4a4d3ec6f88a1808b578462512084b6",
+        "reason": "2026-11-19 historical two-chat coordination already replaced by current F0-F7 governance"
+      }
+    ],
+    "originalSourcePr187": "OPEN_PARTIALLY_PORTED",
+    "otherRootPrsClosed": 0,
+    "bulkMerges": 0,
+    "deviceTests": "NOT_TESTED",
+    "productionActions": 0,
+    "videoCleanup": "FROZEN_442",
+    "measuredTimeSavings": null,
+    "verifiedRealUserScenarios": 0
   }
 }
