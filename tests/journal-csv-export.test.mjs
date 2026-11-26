@@ -76,7 +76,7 @@ test('CSV formula guard handles Unicode invisible whitespace without changing sa
  const {functions}=setup();
  for(const prefix of ['\u00A0','\u200B','\uFEFF','\u2060','\t \u200E']){
   const actual=functions.journalCsvCell(prefix+'=IMPORTXML(A1)');
-  assert.ok(actual.startsWith('"\\''),prefix);
+  assert.ok(actual.startsWith("\"'"),prefix);
  }
  assert.equal(functions.journalCsvCell('Семья №1'),'"Семья №1"');
 });
@@ -86,7 +86,7 @@ test('CSV file name isolates hives and repeated local exports with safe characte
  const second=functions.journalCsvFilename('hive-2','2026-11-26',1234);
  assert.notEqual(first,second);
  assert.notEqual(first,functions.journalCsvFilename('hive-1','2026-11-26',1235));
- assert.match(first,/^paseka-journal-2026-11-26-hive-1-1234\\.csv$/);
- assert.doesNotMatch(functions.journalCsvFilename('../../private','2026-11-26',1234),/[\\/]/);
- assert.match(html,/journalCsvFilename\\(activeJournalHive,today\\(\\),Date\\.now\\(\\)\\)/);
+ assert.match(first,/^paseka-journal-2026-11-26-hive-1-1234\.csv$/);
+ assert.ok(!(/[\\/]/.test(functions.journalCsvFilename('../../private','2026-11-26',1234))));
+ assert.match(html,/journalCsvFilename\(activeJournalHive,today\(\),Date\.now\(\)\)/);
 });
