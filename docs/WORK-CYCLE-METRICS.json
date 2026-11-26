@@ -366,5 +366,25 @@
       }
     ],
     "mergeSha": "0ce520ee3b7fd0e816d79a3311a6433e5c61bfb6"
+  },
+  "integrationEntranceMetadataCursor20261126": {
+    "pr": 511,
+    "codeSha": "e54032ecdfa6cfd8e184b6c31ec066bc02b6e04a",
+    "ci": "CODE_FAST_ANDROID_SUCCESS_DOCS_GOVERNANCE_ANDROID_SUCCESS",
+    "fastRunId": 45868399561,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED",
+    "memorySavings": "NOT_MEASURED",
+    "merged": false,
+    "codeRuns": [
+      45868399561,
+      45868399450,
+      45868408015
+    ],
+    "docsRuns": [
+      45868598729,
+      45868598762
+    ],
+    "readyForMergeReview": true
   }
 }
