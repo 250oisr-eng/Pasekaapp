@@ -95,7 +95,7 @@ test('physical candidate under non-ASCII Windows extraction folder is inspected 
    apkFile:'app-debug.apk',sourceSha:'c'.repeat(40),apkSha256:createHash('sha256').update(bytes).digest('hex')}));
   const stages=[],seenBadging=[];
   const commandFn=(binary,args)=>{
-   if(binary==='adb'&&args[0]==='devices')return 'List of devices attached\\nZX123 device usb:1';
+   if(binary==='adb'&&args[0]==='devices')return 'List of devices attached\nZX123 device usb:1';
    if(binary==='adb'&&args[1]==='get-state')return 'device';
    if(binary==='adb'&&args.includes('pm'))return 'package:/data/app/abc/base.apk';
    if(binary==='adb'&&args[1]==='pull'){writeFileSync(args[3],bytes);return '1 file pulled';}
