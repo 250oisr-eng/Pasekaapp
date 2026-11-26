@@ -23,6 +23,8 @@
 
 - **#577 MERGED** `aa9fc17702730f9b5dc2931edee18e78c867478b`: isolated TAR header check from old #509 plus negative tests. Exact-head `422d169c6f8b3932a1b4782231bdbde2cbcdf849`: Android #45886634965 and Governance #45886635009 SUCCESS. **#509 CLOSED/SUPERSEDED WITHOUT MERGE**, source retained. B01 full backup/restore still BLOCKED.
 
+- **#533 selective docs reconciliation in Draft:** only missing WIP / diagnostic STOP / exact CI distinctions ported to F0–F7 strategy on current main; historical `PROJECT_STATUS.md`, blockers and device claims from #533 not copied. CI and merge pending, old #533 retained until exact-head approval.
+
 ## Следующий конкретный шаг
 
 После #577 и сверки всех исторических цепочек разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
