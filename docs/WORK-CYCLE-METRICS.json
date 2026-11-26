@@ -189,48 +189,46 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-shellv2-android-emulator-transport-proof-20261126",
+    "id": "b01-host-adb-version-shellv2-gate-physical-chvt-20261126",
     "pr": 543,
-    "source": "OnePlus five public probes previously returned extra bytes; actual Android API35 emulator now proves Shell v2 transport",
-    "codeSha": "1fa485c32d6f5132ead092172c7c4fa8f7f87619",
-    "deviceBackupStatus": "BLOCKED_NO_PHYSICAL_ONEPLUS_ARCHIVE",
-    "androidEmulatorTransport": "PASS_STDOUT_STDERR_REMOTE_EXIT_AND_BASE64",
+    "source": "Real OnePlus public stdout: /system/bin/sh: chvt: can't find tty; ADB exit 0. Root cause likely obsolete host adb; actual version unknown.",
+    "codeSha": "8a172dc274e62e6f5bae995f58014a7ddd66d4fe",
+    "deviceBackupStatus": "BLOCKED_PUBLIC_PREFLIGHT_CHVT_HOST_ADB_UNVERIFIED",
+    "hostVersionObserved": null,
+    "androidEmulatorTransport": "PASS_CI_NOT_PHONE",
+    "hostVersionGate": "IMPLEMENTED_1.0.41_MINIMUM",
+    "deviceShellV2FeatureGate": "IMPLEMENTED_BEFORE_PRIVATE_READ",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
     "ciRuns": [
       {
-        "id": 45831168211,
-        "conclusion": "failure",
-        "kind": "initial-emulator-newline-fixture"
-      },
-      {
-        "id": 45831597099,
+        "id": 45834809379,
         "conclusion": "success",
         "kind": "linux-windows-emulator-usb-kit"
       },
       {
-        "id": 45831584331,
-        "conclusion": "success",
-        "kind": "fast-quality"
-      },
-      {
-        "id": 45831597239,
+        "id": 45834809464,
         "conclusion": "success",
         "kind": "governance"
       },
       {
-        "id": 45831597063,
+        "id": 45834799001,
+        "conclusion": "success",
+        "kind": "fast-quality"
+      },
+      {
+        "id": 45834809509,
         "conclusion": "success",
         "kind": "android-pr"
       },
       {
-        "id": 45831584362,
+        "id": 45834798796,
         "conclusion": "success",
         "kind": "android-push"
       }
     ],
-    "notes": "Emulator tests one true Android Shell v2 session, not physical OnePlus USB/private storage or independent restore. No repeated shell probe matrix; actual backup blocked until USB/PC external destination; no measured time saving."
+    "notes": "Safety gate rejects stale adb before any device reads, not proof actual OnePlus was backed up. User must accept Google's license and place entire official Platform-Tools directory beside Windows kit; Google binaries not redistributed. Physical archive and restore NOT_VERIFIED."
   }
 }
