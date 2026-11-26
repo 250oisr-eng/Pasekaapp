@@ -189,16 +189,15 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-process-probe-android-toybox-fallback-20261126",
+    "id": "b01-android-tar-transfer-disambiguation-20261126",
     "pr": 543,
-    "codeSha": null,
-    "source": "Real phone: both pidof and ps UNKNOWN twice; runAsAvailable=true, appWebviewAccessible=true",
-    "deviceBackupStatus": "NOT_VERIFIED",
-    "independentAndroidRestore": "NOT_VERIFIED",
+    "source": "Actual owner Windows USB run: process preflight passes with force-stop NO, then DEVICE_TAR_EXPORT_FAILED",
+    "deviceBackupStatus": "BLOCKED_ANDROID_TAR_TRANSFER",
     "completedVerifiedUserScenarios": 0,
+    "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
-    "ciRuns": [],
     "repeatedDocumentReads": null,
-    "notes": "Shared fail-closed process scanner checks pidof empty-success and ps -A fallback; physical retry pending, no more speculative force-stop."
+    "ciRuns": [],
+    "notes": "Old generic failure split by Android tar exit, received bytes, stderr category (redacted); user device rerun required."
   }
 }
