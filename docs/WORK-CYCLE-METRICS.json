@@ -566,5 +566,28 @@
     "productionActions": 0,
     "unapprovedMerges": 0,
     "journalMergeSha": "5abcf8e78e22cfeb3550cb2540955412740a64be"
+  },
+  "prAuditCycleH20261126": {
+    "sourceMainSha": "e57279b6ca98df0cb99444618268efa5d3fe6eaa",
+    "approvedMergedPRs": [
+      570,
+      571
+    ],
+    "mergeShas": [
+      "5abcf8e78e22cfeb3550cb2540955412740a64be",
+      "e57279b6ca98df0cb99444618268efa5d3fe6eaa"
+    ],
+    "independentStartupFixPr": 572,
+    "independentStartupFixStatus": "IMPLEMENTED_DRAFT",
+    "startupGuardTestsAdded": 10,
+    "previousCiFailedRuns": [
+      45883496446
+    ],
+    "exactHeadAndroidCI": "PENDING_CHECK_LIVE",
+    "exactHeadGovernance": "PENDING_CHECK_LIVE",
+    "fullRestore": "BLOCKED",
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0,
+    "newP0MergeApproved": false
   }
 }

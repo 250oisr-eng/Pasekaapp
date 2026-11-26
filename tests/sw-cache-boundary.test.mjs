@@ -157,18 +157,17 @@ test('B11 canonical query-free shell resource remains cacheable after query guar
  assert.equal(sw.writes[0].request,scope+'js/hive-model.js');
 });
 
-test('B11 new v322 policy retains active shell and future cache while retiring only old Paseka shells',async()=>{
- assert.match(source,/const CACHE='paseka-shell-v322';/);
- assert.match(source,/const CACHE_VERSION=322;/);
+test('B11 new v323 policy preserves user and future caches and retires only older numeric shell versions',async()=>{
+ assert.match(source,/const CACHE='paseka-shell-v323';/);
+ assert.match(source,/const CACHE_VERSION=323;/);
  const h=harness({existingCaches:[
-  'paseka-shell-v318','paseka-shell-v319','paseka-shell-v320','paseka-shell-v321',
-  'paseka-shell-v322','paseka-shell-v323','paseka-shell-v319-user','other-app-cache'
+  'paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322',
+  'paseka-shell-v323','paseka-shell-v324','paseka-shell-v319-user','other-app-cache'
  ]});
  await h.activate();
- assert.deepEqual(h.deleted,['paseka-shell-v318','paseka-shell-v319','paseka-shell-v320','paseka-shell-v321']);
- assert.ok(!h.deleted.includes('paseka-shell-v322'));
- assert.ok(!h.deleted.includes('paseka-shell-v323'));
- assert.ok(!h.deleted.includes('paseka-shell-v319-user'));
+ assert.deepEqual(h.deleted,['paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322']);
+ for(const unchanged of ['paseka-shell-v323','paseka-shell-v324','paseka-shell-v319-user','other-app-cache'])
+  assert.ok(!h.deleted.includes(unchanged));
 });
 
 test('B11 SW bypasses Authorization requests rather than using or populating shared shell cache',async()=>{
