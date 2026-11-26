@@ -12,19 +12,22 @@ const MAX_CAPTURE=1024*1024;
 const MAX_ARCHIVE=16*1024*1024*1024; // fail closed on larger source; do not delete originals
 const FAIL='DEVICE_BACKUP_BLOCKED';
 export function parseArgs(args){
-  if(!Array.isArray(args)||args.length!==2||args[0]!=='--dest'||!args[1]||args[1].startsWith('--'))throw Error(FAIL);
+  if(!Array.isArray(args)||args.length!==2||args[0]!=='--dest'||!args[1]||args[1].startsWith('--'))throw Error('INVALID_ARGUMENTS');
   return {dest:args[1]};
 }
 export function selectOneDevice(raw){
-  if(typeof raw!=='string'||!raw.startsWith('List of devices attached'))throw Error(FAIL);
+  if(typeof raw!=='string'||!raw.startsWith('List of devices attached'))throw Error('ADB_DEVICE_LIST_INVALID');
   const lines=raw.split(/\r?\n/).slice(1).map(x=>x.trim()).filter(Boolean);
   const devices=lines.map(line=>{
     const m=/^([^\s]+)\s+([^\s]+)/.exec(line);
-    if(!m)throw Error(FAIL);
+    if(!m)throw Error('ADB_DEVICE_LIST_INVALID');
     return {serial:m[1],status:m[2]};
   });
-  if(devices.length!==1||devices[0].status!=='device'||
-     !/^[\w.:\-]+$/.test(devices[0].serial))throw Error(FAIL);
+  if(devices.length===0)throw Error('ADB_NO_DEVICE');
+  if(devices.length!==1)throw Error('ADB_MULTIPLE_DEVICES');
+  if(devices[0].status==='unauthorized')throw Error('ADB_DEVICE_UNAUTHORIZED');
+  if(devices[0].status!=='device')throw Error('ADB_DEVICE_NOT_READY');
+  if(!/^[\w.:\-]+$/.test(devices[0].serial))throw Error('ADB_DEVICE_LIST_INVALID');
   return devices[0].serial;
 }
 function limitedProcess(command,args,{max=MAX_CAPTURE}={}){
@@ -34,7 +37,7 @@ function limitedProcess(command,args,{max=MAX_CAPTURE}={}){
   const onData=chunk=>{length+=chunk.length;if(length>max){erred=true;child.kill();return;}chunks.push(chunk);};
   child.stdout.on('data',onData);
   child.stderr.on('data',chunk=>{if(chunk.length>max)erred=true;});
-  child.on('error',()=>reject(Error(FAIL)));
+  child.on('error',()=>reject(Error('ADB_EXEC_NOT_AVAILABLE')));
   child.on('close',code=>resolve({code,stdout:erred?'':Buffer.concat(chunks).toString('utf8'),overflow:erred}));
  });
 }
@@ -97,8 +100,13 @@ async function streamArchive(command,serial,output){
 }
 export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}={}){
  const root=resolve(dest);
- const info=await lstat(root);
- if(!info.isDirectory()||info.isSymbolicLink()||await realpath(root)!==root)throw Error(FAIL);
+ let info;
+ try{info=await lstat(root);}catch{throw Error('DESTINATION_NOT_ACCESSIBLE');}
+ if(!info.isDirectory()||info.isSymbolicLink())throw Error('DESTINATION_NOT_DIRECTORY');
+ const actual=await realpath(root);
+ if(process.platform==='win32'?
+   actual.toLowerCase()!==root.toLowerCase():actual!==root)
+   throw Error('DESTINATION_NOT_CANONICAL');
  const first=await limitedProcess(adbCommand,['devices','-l']);
  if(first.code!==0||first.overflow)throw Error('ADB_NOT_READY');
  const serial=selectOneDevice(first.stdout);
@@ -139,7 +147,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}=
   return result;
  }catch(error){
   // Preserve any partial copy for inspection; never overwrite or remove data.
-  if(staged){} 
+  
   throw error;
  }
 }
@@ -148,7 +156,7 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
   console.log(JSON.stringify(r,null,2));
   process.exitCode=2; // full physical independent restore never claimed
  },e=>{
-  console.error(JSON.stringify({schema:'paseka-oneplus-cold-sandbox-backup-v1',
+  console.log(JSON.stringify({schema:'paseka-oneplus-cold-sandbox-backup-v1',
    status:'BLOCKED',code:/^[A-Z_]+$/.test(e.message)?e.message:FAIL,
    originalsDeleted:false,installedApplicationChanged:false,independentPhysicalRestoreVerified:false}));
   process.exitCode=1;
