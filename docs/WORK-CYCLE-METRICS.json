@@ -1,8 +1,27 @@
 {
+  "p0FirstExternalCopyGuide20261127": {
+      "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
+      "pr": 597,
+      "integration": "DRAFT_MAIN_SYNCED_CI_PENDING",
+      "storageChanges": false,
+      "videoTouched": false,
+      "restoreChanged": false,
+      "serviceWorkerChanges": false,
+      "realExternalCopy": "NOT_VERIFIED",
+      "independentRestore": "NOT_TESTED",
+      "device": "NOT_TESTED",
+      "completedVerifiedUserScenarios": 0,
+      "measuredSavings": null
+    },
   "schemaVersion": 1,
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
+  "inventorySearch20261127": {
+    "journalSearchViewports": 2,
     "device": "NOT_TESTED",
     "completedVerifiedUserScenarios": 0
   },
@@ -966,52 +985,36 @@
     "publication": "NOT_RELEASED",
     "postMergeRuntimeInspection": "LABELS_ACTIVE_NAV_CAPTIONS_VERIFIED"
   },
-  "p0FirstExternalCopyGuide20261127": {
-    "userConfirmedNoOriginalVideos": true,
-    "userConfirmedNoBackupCopies": true,
-    "notPhysicallyAuditedStores": true,
-    "sourceMain": "0f3f1c8a8a4a3972bb36a44043229f47867d7cdc",
-    "branch": "fix/p0-first-external-backup-guide-20261127",
-    "changedRuntime": [
-      "index.html"
-    ],
-    "newTests": [
-      "tests/first-external-backup-guide.test.mjs"
-    ],
-    "newDependencies": 0,
-    "storageChanges": false,
-    "serviceWorkerChanges": false,
-    "restoreChanged": false,
-    "videoTouched": false,
-    "exactShaCi": "SUCCESS_AT_CODE_SHA",
-    "physicalArchiveFile": "NOT_AVAILABLE",
-    "independentRestore": "NOT_TESTED",
-    "realDevice": "NOT_TESTED",
-    "userData": "UNTOUCHED",
-    "successfullyCompletedRealUserScenarios": 0,
-    "measuredSavings": null,
-    "pr": 597,
-    "codeHead": "acc9493a3c4e26c53ce3a89c6ecca6026de85eb1",
-    "android": "CI_BUILD_SUCCESS",
-    "nodeTests": {
-      "tests": 1002,
-      "pass": 1002,
-      "fail": 0,
-      "skipped": 0
-    },
-    "ciRuns": [
+  "familyHistory20261127": {
+    "previousBranchBrowserViewportsPassed": 2,
+    "integratedBrowserViewportsPassed": 2,
+    "browserCodeSha": "4c44a419c7f6517e6e06f45d84b4943eff50509d",
+    "finalCodeSha": "d18ef97533b4721dcc550369de254fe0828766a4",
+    "nodeTestsPassed": 1004,
+    "checks": [
       {
-        "id": 45899227262,
-        "name": "Build Android APK",
-        "conclusion": "success",
-        "checkedHead": "acc9493a3c4e26c53ce3a89c6ecca6026de85eb1"
+        "type": "browser-mobile-desktop",
+        "run": 45903217571,
+        "conclusion": "success"
       },
       {
-        "id": 45899226997,
-        "name": "Governance Docs Checks",
-        "conclusion": "success",
-        "checkedHead": "acc9493a3c4e26c53ce3a89c6ecca6026de85eb1"
+        "type": "fast-node",
+        "run": 45903240403,
+        "conclusion": "success"
+      },
+      {
+        "type": "governance",
+        "run": 45903247215,
+        "conclusion": "success"
+      },
+      {
+        "type": "android-debug",
+        "run": 45903247227,
+        "conclusion": "success"
       }
-    ]
+    ],
+    "device": "NOT_TESTED",
+    "mergeState": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+    "notes": "Browser E2E tests ran on integrated HTML SHA 4c44a419. Next code SHA only adjusts unit test assertions; full 1004 TAP and APK checked on d18ef975. No real device, data restore or release."
   }
 }
