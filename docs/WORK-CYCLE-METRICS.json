@@ -983,12 +983,35 @@
     "serviceWorkerChanges": false,
     "restoreChanged": false,
     "videoTouched": false,
-    "exactShaCi": "PENDING",
+    "exactShaCi": "SUCCESS_AT_CODE_SHA",
     "physicalArchiveFile": "NOT_AVAILABLE",
     "independentRestore": "NOT_TESTED",
     "realDevice": "NOT_TESTED",
     "userData": "UNTOUCHED",
     "successfullyCompletedRealUserScenarios": 0,
-    "measuredSavings": null
+    "measuredSavings": null,
+    "pr": 597,
+    "codeHead": "acc9493a3c4e26c53ce3a89c6ecca6026de85eb1",
+    "android": "CI_BUILD_SUCCESS",
+    "nodeTests": {
+      "tests": 1002,
+      "pass": 1002,
+      "fail": 0,
+      "skipped": 0
+    },
+    "ciRuns": [
+      {
+        "id": 45899227262,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "checkedHead": "acc9493a3c4e26c53ce3a89c6ecca6026de85eb1"
+      },
+      {
+        "id": 45899226997,
+        "name": "Governance Docs Checks",
+        "conclusion": "success",
+        "checkedHead": "acc9493a3c4e26c53ce3a89c6ecca6026de85eb1"
+      }
+    ]
   }
 }
