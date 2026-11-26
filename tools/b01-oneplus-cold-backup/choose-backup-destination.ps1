@@ -72,6 +72,8 @@ if($code -eq 2 -and $status -eq 'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTE
   Write-Host "Bytes received: $($result.evidence.transferredBytes)"
   Write-Host "Tar stderr present: $($result.evidence.stderrSeen)"
   Write-Host "Tar stderr category: $($result.evidence.stderrCategory)"
+  if($null -ne $result.evidence.encodedBytes){ Write-Host "Base64 input bytes: $($result.evidence.encodedBytes)" }
+  if($result.evidence.transportReason){ Write-Host "Base64 failure reason: $($result.evidence.transportReason)" }
   Write-Host 'Private stderr, filenames and source paths are intentionally withheld.'
  }
  switch($result.code) {
