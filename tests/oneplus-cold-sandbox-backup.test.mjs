@@ -10,7 +10,7 @@ import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-col
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
 import {classifyPidof,classifyPs} from '../scripts/oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from '../scripts/oneplus-strict-base64.mjs';
-import {encodedShellArgs,classifyEncodedProbe,classifyPublicProbe,PUBLIC_PROBE_VARIANTS} from '../scripts/oneplus-encoded-shell.mjs';
+import {encodedShellArgs,classifyEncodedProbe} from '../scripts/oneplus-encoded-shell.mjs';
 import {inspectEncodedShell} from '../scripts/probe-oneplus-encoded-shell.mjs';
 import {Readable} from 'node:stream';
 
@@ -78,13 +78,15 @@ if(mode==='probe_corrupt' && tail.includes('PASEKA_BASE64_PROBE_V1') && !tail.in
  else process.stdout.write('PASEKA_BASE64_PROBE_V1');
  process.exit(0);
 }
-if(tail==="exec-out run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; printf PASEKA_BASE64_PROBE_V1 | base64'"){
+if(tail==="shell -T run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; printf PASEKA_BASE64_PROBE_V1 | base64'"){
  if(mode==='probe_corrupt'){process.stdout.write('BROKEN');process.exit(0);}
  if(mode==='probe_denied'){process.exit(1);}
+ if(mode==='probe_stderr'){process.stderr.write('private diagnostic message');}
  process.stdout.write(Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64')+'\\n');process.exit(0);
 }
-if(tail==="exec-out run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; tar -cf - . | base64'"){
+if(tail==="shell -T run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; tar -cf - . | base64'"){
  if(mode==='tar_fail') {process.stderr.write('private/internal/file/name');process.exit(4);}
+ if(mode==='tar_stderr') {process.stderr.write('private/internal/file/name');}
  if(mode==='tar_tiny') {process.stdout.write(Buffer.from('short').toString('base64'));process.exit(0);}
  if(mode==='tar_partial_failure') {
   process.stdout.write(Buffer.alloc(1024,2).toString('base64'));
@@ -497,9 +499,13 @@ test('encoded transport preflight is read-only and refuses mismatch before any T
  }
 });
 
-test('ADB remote exec-out preserves quoted complete sh -c as one argument',()=>{
+test('ADB Shell v2 -T preserves quoted complete sh -c, no exec-out fallback',()=>{
  const probe=encodedShellArgs('NE2213','probe');
  const archive=encodedShellArgs('NE2213','archive');
+ assert.deepEqual(probe.slice(2,4),['shell','-T']);
+ assert.deepEqual(archive.slice(2,4),['shell','-T']);
+ assert.equal(probe.includes('exec-out'),false);
+ assert.equal(archive.includes('exec-out'),false);
  assert.match(probe.at(-1),/^'set -o pipefail; test -d app_webview/);
  assert.match(probe.at(-1),/base64'$/);
  assert.match(archive.at(-1),/^'set -o pipefail; test -d app_webview/);
@@ -540,33 +546,49 @@ test('safe classification reports only shape and never echoes probe output',()=>
  assert.equal(JSON.stringify(result).includes('PRIVATE/USER/PATH'),false);
 });
 
-test('public shell matrix classifies outputs without sharing raw text',()=>{
- const expectBase64=Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64');
- assert.equal(PUBLIC_PROBE_VARIANTS.length,5);
- assert.equal(classifyPublicProbe({code:0,output:expectBase64+'\r\n'},'base64').status,'PASS');
- assert.equal(classifyPublicProbe({code:0,output:'PASEKA_BASE64_PROBE_V1'},'plain').status,'PASS');
- const contaminated=classifyPublicProbe({code:0,output:'prefix:'+expectBase64+'\n'},'base64');
- assert.equal(contaminated.reason,'EXPECTED_WITH_EXTRA_OUTPUT');
- assert.equal(contaminated.containsExpected,true);
- assert.equal(JSON.stringify(contaminated).includes('prefix'),false);
- assert.equal(classifyPublicProbe({code:0,output:'random nonbase64?'},'base64').reason,'NON_BASE64_OR_SHELL_TEXT');
+test('Shell v2 preflight never accepts remote stderr or output with extra text',()=>{
+ const expected=Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64');
+ assert.equal(classifyEncodedProbe({code:0,output:expected+'\\n'}).status,'PASS');
+ const stderr=classifyEncodedProbe({code:0,output:expected+'\\n',stderrBytes:38});
+ assert.equal(stderr.status,'BLOCKED');
+ assert.equal(stderr.reason,'BASE64_PREFLIGHT_REMOTE_STDERR');
+ assert.equal(stderr.stderrSeen,true);
+ assert.equal(classifyEncodedProbe({code:0,output:'noise\\n'+expected}).reason,'BASE64_PREFLIGHT_NON_BASE64_OUTPUT');
 });
-test('read-only public matrix identifies shell variants when primary Base64 preflight fails',{skip:process.platform==='win32'},async t=>{
- const f=await fakeEnvironment(t);
+test('failed public probe executes no matrix and never accesses private files',{skip:process.platform==='win32'},async t=>{
+ const env=await fakeEnvironment(t);
  const saved=process.env.FAKE_ADB_MODE;
  try{
-  process.env.FAKE_ADB_MODE='probe_corrupt';
-  const report=await inspectEncodedShell({adb:f.stub});
-  assert.equal(report.status,'BLOCKED');
-  assert.equal(report.variants.length,5);
-  for(const entry of report.variants){
-   assert.equal(entry.status,'PASS');
-   assert.equal(entry.reason,null);
+  for(const [mode,reason] of [['probe_corrupt','BASE64_PREFLIGHT_DIFFERENT_BASE64'],
+                               ['probe_denied','BASE64_PREFLIGHT_COMMAND_FAILED'],
+                               ['probe_stderr','BASE64_PREFLIGHT_REMOTE_STDERR']]){
+   process.env.FAKE_ADB_MODE=mode;
+   const report=await inspectEncodedShell({adb:env.stub});
+   assert.equal(report.status,'BLOCKED');
+   assert.equal(report.reason,reason);
+   assert.deepEqual(report.variants,[]);
+   assert.equal(report.allPrivateReadsAvoided,true);
+   assert.deepEqual(await readdir(env.dest),[]);
+   assert.deepEqual(await readFile(env.original),env.payload);
   }
-  assert.equal(report.allPrivateReadsAvoided,true);
-  assert.deepEqual(await readdir(f.dest),[]);
-  assert.deepEqual(await readFile(f.original),f.payload);
+ }finally{if(saved===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved;}
+});
+test('remote TAR stderr is never mixed into valid Base64 or promoted into backup',{skip:process.platform==='win32'},async t=>{
+ const env=await fakeEnvironment(t);
+ const saved={mode:process.env.FAKE_ADB_MODE,src:process.env.FAKE_PRIVATE_DIR};
+ try{
+  process.env.FAKE_ADB_MODE='tar_stderr';process.env.FAKE_PRIVATE_DIR=env.src;
+  await assert.rejects(runBackup(env.dest,{adbCommand:env.stub}),err=>{
+   assert.equal(err.message,'ANDROID_TAR_REMOTE_STDERR');
+   assert.equal(err.safeEvidence.stderrSeen,true);
+   assert.ok(err.safeEvidence.transferredBytes>0);
+   assert.ok(!JSON.stringify(err.safeEvidence).includes('private/internal/file/name'));
+   return true;
+  });
+  assert.equal((await readdir(env.dest)).every(x=>x.endsWith('.partial')),true);
+  assert.deepEqual(await readFile(env.original),env.payload);
  }finally{
-  if(saved===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved;
+  if(saved.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved.mode;
+  if(saved.src===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=saved.src;
  }
 });

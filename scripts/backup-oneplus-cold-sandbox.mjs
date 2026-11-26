@@ -37,12 +37,12 @@ export function selectOneDevice(raw){
 function limitedProcess(command,args,{max=MAX_CAPTURE}={}){
  return new Promise((resolve,reject)=>{
   const child=spawn(command,args,{shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']});
-  const chunks=[];let length=0,erred=false;
+  const chunks=[];let length=0,stderrBytes=0,erred=false;
   const onData=chunk=>{length+=chunk.length;if(length>max){erred=true;child.kill();return;}chunks.push(chunk);};
   child.stdout.on('data',onData);
-  child.stderr.on('data',chunk=>{if(chunk.length>max)erred=true;});
+  child.stderr.on('data',chunk=>{stderrBytes+=chunk.length;if(stderrBytes>max){erred=true;child.kill();}});
   child.on('error',()=>reject(Error('ADB_EXEC_NOT_AVAILABLE')));
-  child.on('close',code=>resolve({code,stdout:erred?'':Buffer.concat(chunks).toString('utf8'),overflow:erred}));
+  child.on('close',code=>resolve({code,stdout:erred?'':Buffer.concat(chunks).toString('utf8'),overflow:erred,stderrBytes}));
  });
 }
 function adb(serial,options){return ['-s',serial,...options];}
@@ -78,12 +78,12 @@ async function checkReadable(command,serial){
 // before reading any private app file or opening a backup destination file.
 async function verifyEncodedTransport(command,serial){
  const r=await limitedProcess(command,encodedShellArgs(serial,'probe'),{max:8192});
- const measured=classifyEncodedProbe({code:r.code,output:r.stdout,overflow:r.overflow});
+ const measured=classifyEncodedProbe({code:r.code,output:r.stdout,overflow:r.overflow,stderrBytes:r.stderrBytes});
  if(measured.status!=='PASS'){
   const e=Error(measured.reason);
   e.safeEvidence={stage:'ANDROID_BASE64_PREFLIGHT',
     remoteExitCode:measured.remoteExitCode,outputBytes:measured.outputBytes,
-    normalizedBytes:measured.normalizedBytes,privateDataRead:false};
+    normalizedBytes:measured.normalizedBytes,stderrSeen:measured.stderrSeen,privateDataRead:false};
   throw e;
  }
 }
@@ -155,6 +155,11 @@ async function streamArchive(command,serial,output){
     tarExitCode:exit,transferredBytes:total,encodedBytes:decoder.encodedBytes,
     transportReason:decoder.failureReason,
     stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
+  });
+  // Shell v2 remote stderr must never be treated as TAR data or ignored.
+  if(stderrBytes>0)throw transferFailure('ANDROID_TAR_REMOTE_STDERR',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:true,
+    stderrCategory:categorizeTarStderr(stderrSample),encodedBytes:decoder.encodedBytes
   });
   if(stderrBytes>MAX_CAPTURE)throw transferFailure('ANDROID_TAR_STDERR_LIMIT',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:true

@@ -2,12 +2,11 @@
 
 **25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## 26.11.2026 — новая реальная операция резервирования OnePlus, Draft #543
+## 26.11.2026 — исправление транспорта Draft #543 (Shell v2)
 
-- Новый запуск публичной диагностики: `ADB_NO_DEVICE` (список ADB пуст), до команд Android и матрицы `variants` дело не дошло. Предыдущий `NON_BASE64_OUTPUT`, 270 байт остаётся неразобранным. Следующий шаг — восстановить USB/авторизацию одного OnePlus и повторить **только** `PROBE-BASE64-READONLY.cmd`; TAR не запускать. Backup/restore NOT_VERIFIED.
-- Пользователь подтвердил, что **на установленном OnePlus нет UI полного архива**. Функция в GitHub source не означает наличия её на установленном APK.
-- [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543), ветка `feat/p0-b01-oneplus-run-as-cold-sandbox-backup-20261126` от main: **новый** однокнопочный Windows exporter `RUN-ONEPLUS-BACKUP.cmd` для приложения `ru.paseka.journal` с `adb exec-out run-as`, запрещающий работающий процесс, замену исходников и перезапись внешнего файла; TAR + SHA, disk SHA readback и `tar -tf`. [Инструкция](docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md). Физическая попытка `BLOCKED`; Gallery/MediaStore/restore `NOT_VERIFIED`; удаление запрещено.
-- #512 MERGED, но не опубликован на телефон; #541/#542 Draft проверяют готовые файлы.
+- Исходный B01 USB `exec-out` смешивал удалённые stdout/stderr и не возвращал remote exit: 5 публичных проб с лишними байтами и старые повреждённые TAR не подходят для backup. Код Draft #543 переведён на `adb shell -T` с Shell v2 (без PTY), строгим разделением stderr, remote exit, Base64/TAR/SHA validation; пять альтернативных probe упразднены. **Физический PASS/независимый restore не подтверждены**; исходные `.partial` сохраняются.
+- Пользователь подтвердил отсутствие полного архива в установленном APK. `#512` MERGED в main `346b35035861257be45dae93ee0573cbd4de9082`, но не опубликован на телефон. B01 остаётся BLOCKED, исходники не удалять. [Инструкция](docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md).
+- Следующий шаг: CI для точного head #543, затем при доступном доверенном USB — штатный read-only preflight и опциональный отдельный холодный TAR на внешний носитель; никакого повторения матриц команд.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 

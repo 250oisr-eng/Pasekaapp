@@ -29,12 +29,12 @@ export function classifyPs({code,output='',overflow=false},mode='full'){
 export async function runAdbCommand(adb,args){
  return new Promise((resolve,reject)=>{
   const proc=spawn(adb,args,{shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']});
-  const chunks=[];let size=0,overflow=false;
+  const chunks=[];let size=0,stderrBytes=0,overflow=false;
   proc.stdout.on('data',buf=>{size+=buf.length;if(size>MAX){overflow=true;proc.kill();return;}chunks.push(buf);});
-  // stderr contains device details; never print or store them.
-  proc.stderr.on('data',()=>{});
+  // Only account for stderr bytes. Never disclose or persist their contents.
+  proc.stderr.on('data',buf=>{stderrBytes+=buf.length;if(stderrBytes>MAX){overflow=true;proc.kill();}});
   proc.once('error',()=>reject(Error('ADB_EXEC_NOT_AVAILABLE')));
-  proc.once('close',code=>resolve({code,output:overflow?'':Buffer.concat(chunks).toString('utf8'),overflow}));
+  proc.once('close',code=>resolve({code,output:overflow?'':Buffer.concat(chunks).toString('utf8'),overflow,stderrBytes}));
  });
 }
 export async function probeProcess(adb,serial){
