@@ -39,6 +39,10 @@
 
 ## Следующий конкретный шаг
 
-**#593 MERGED / IN_MAIN:** `72cd8279d0f1cdcfa06fd84594845d31132abe31` — имена и подписи полей «Новый улей», `aria-current` навигации и контраст сводки. Exact PR HEAD `45328a522ed3950155bf7f317090c8919395032a`: Android #45896737579 (998/998, APK/sign), Governance #45896737571 SUCCESS. Live main HTML verified, не release; экранный диктор/OnePlus NOT_TESTED. #187 OPEN/PARTIALLY_PORTED.
+**27.11 пользователь:** нет оригинальных видео и резервных копий. Отсутствие на устройстве НЕ проверено, B01/#442 V0–V6 не сняты.
+
+**#187 CLOSED без merge:** в main #587/#591/#593; оставшаяся часть в Draft #595 (1003/1003 PASS, не merged). UX 2/3 ряда — issue #596; OnePlus NOT_TESTED.
+
+**WIP P0 первый архив:** `fix/p0-first-external-backup-guide-20261127` — инструкция для первой внешней копии с проверкой файла без записи/удаления. Exact CI PENDING; фактического внешнего архива пока нет. Далее B01: независимый архив и реальный restore.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
