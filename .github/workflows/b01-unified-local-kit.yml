@@ -79,6 +79,9 @@ jobs:
         run: |
           Push-Location 'b01-unified-kit'
           try {
+            # Exit 2 is an intentional physical-proof blockade, NOT a failing
+            # process invocation. Assert this exact exit code manually.
+            $PSNativeCommandUseErrorActionPreference = $false
             $raw = & ./node.exe scripts/run-unified-recovery-audit.mjs
             $exit = $LASTEXITCODE
             if ($exit -ne 2) { throw 'B01_RUNNER_FALSIFIED_SUCCESS_OR_FAILURE' }
