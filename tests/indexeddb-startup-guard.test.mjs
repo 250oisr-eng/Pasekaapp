@@ -325,6 +325,13 @@ test('existing valid main bypasses first-use confirmation even with a retained m
  assert.equal(m.authorize(false,s,'present',()=>{prompted=true;return false;}),false);
  assert.equal(prompted,false);
 });
+test('malformed truthy and falsy loaded states never permit first-run reinitialization',()=>{
+ const marker=markerHarness(startupMarkerStore());
+ for(const corrupt of [0,false,'',1,'junk',[]]){
+  assert.throws(()=>marker.authorize(true,corrupt,'absent',()=>true),/некорректное содержимое/);
+ }
+});
+
 test('existing empty database refuses first-use reinitialization despite positive confirmation',()=>{
  const m=markerHarness(startupMarkerStore());
  for(const missing of [undefined,null])assert.throws(()=>m.authorize(false,missing,'absent',()=>true),/существующая локальная база/);
