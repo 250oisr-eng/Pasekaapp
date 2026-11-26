@@ -45,6 +45,35 @@ export function auditDebugMetadata({badging,certificates,apkSha256,checkoutSha,a
  });
 }
 
+// An explicitly supplied *public* installed-app fingerprint may be compared
+// with verified CI debug artifact metadata. A match does NOT attest the reference
+// is fresh, prove private key custody or authorize a production installation.
+export function compareDebugSignerWithReference(metadata,referenceSha256) {
+ requireThat(metadata?.auditStatus==='PASS_DEBUG_ARTIFACT_METADATA_ONLY' &&
+   metadata?.artifactKind==='ANDROID_DEBUG_CI_ONLY_NOT_FOR_ONEPLUS' &&
+   metadata?.packageName===EXPECTED_PACKAGE &&
+   typeof metadata?.signerCertificateSha256==='string' &&
+   SHA64.test(metadata.signerCertificateSha256) &&
+   metadata?.productionUpgradeAuthorized===false &&
+   metadata?.publishingAuthorized===false,
+   'trusted debug metadata required before comparing signer reference');
+ requireThat(typeof referenceSha256==='string'&&SHA64.test(referenceSha256.toLowerCase()),
+   'explicit 64-digit public certificate reference required');
+ const match=metadata.signerCertificateSha256===referenceSha256.toLowerCase();
+ return Object.freeze({
+  status:match?'CI_DEBUG_CERT_MATCHES_SUPPLIED_REFERENCE_METADATA_ONLY':
+    'CI_DEBUG_CERT_DIFFERS_FROM_SUPPLIED_REFERENCE',
+  ciCertificateSha256:metadata.signerCertificateSha256,
+  referenceCertificateSha256:referenceSha256.toLowerCase(),
+  matchesSuppliedReference:match,
+  referenceIsCurrentInstalledCertificate:'NOT_VERIFIED',
+  privateKeyCustodyVerified:false,
+  productionUpgradeAuthorized:false,
+  productionRollbackVerified:false,
+  deviceInstalled:false
+ });
+}
+
 export function auditLocalDebugApk({apkPath,aapt,apksigner,run=execFileSync}){
  requireThat(typeof apkPath==='string'&&basename(apkPath)==='app-debug.apk','debug APK basename must be app-debug.apk');
  requireThat(typeof aapt==='string'&&aapt.length>0&&typeof apksigner==='string'&&apksigner.length>0,
