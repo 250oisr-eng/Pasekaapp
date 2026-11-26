@@ -11,6 +11,7 @@ on:
       - 'tools/b01-real-android-kit/**'
       - 'tools/oneplus-recovery/**'
       - 'tests/oneplus-recovery-kit.test.mjs'
+      - 'tests/oneplus-restart-only.test.mjs'
       - 'tests/b01-emulator-owner-stage.test.mjs'
       - 'tests/b01-owner-android-import.test.mjs'
       - 'scripts/prepare-disaster-phone-proof.mjs'
@@ -249,6 +250,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force oneplus-kit | Out-Null
           Copy-Item 'tools/oneplus-recovery/oneplus-recovery.mjs' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/inspect-restart-only.mjs' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ.cmd' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/README-RU.txt' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ONEPLUS.cmd' 'oneplus-kit/'
           $apks = @(Get-ChildItem 'diagnostic-artifact' -Recurse -File -Filter 'app-debug.apk')

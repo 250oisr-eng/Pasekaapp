@@ -63,6 +63,8 @@ async function watchFreshProof(adb){
  let take=false,buf='',done=false,tagUnparseable=false;
  let resolveProof,rejectProof;
  const observed=new Promise((yes,no)=>{resolveProof=yes;rejectProof=no;});
+ // Prevent an unhandled rejection if logcat exits before an adb command finishes.
+ observed.catch(()=>{});
  const timer=setTimeout(()=>finish(err('RESTART_PROOF_TIMEOUT')),90000);
  function finish(e,result){
   if(done)return;

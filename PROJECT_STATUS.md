@@ -1,8 +1,8 @@
 # PROJECT_STATUS — Пасека 2.0
 
-## 26.11.2026 · OnePlus USB/ADB — второй BLOCKED
+## 26.11.2026 · B09 физический OnePlus: первая половина прошла, restart BLOCKED
 
-Реальные отчёты 26.11: 06:39:22Z `ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED` до установки; 06:49:30Z `ADB_COMMAND_FAILED`, **стадия неизвестна**, APK может быть установлен. Исправление USB через `adb -d` в #537 / `b4676006` прошло Fast 834/834 и итоговый специализированный Android+Windows+эмулятор CI `6cfa62bb` #45770241029 SUCCESS. Новый [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) исправляет AOSP `pm path` exit=1 при отсутствии пакета: теперь `pm list packages -u FILTER`, exact-match и обезличенный `failedStage`, признак возможности установки. До успешного CI новой версии не повторять. Реальное восстановление NOT_TESTED, видео/production не тронуты; #442 FROZEN.
+Три отчёта владельца: 06:39Z `ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED` до установки; 06:49Z `ADB_COMMAND_FAILED` (стадия неизвестна); 07:02:37Z `PROOF_TIMEOUT` на `RELAUNCH_RESTORE_PROOF`. Последний запуск строго прошёл проверку USB, установку отдельного `ru.paseka.journal.disasterproof2`, первый `P0_DISASTER_WEBVIEW_RESTORE_PASS` и команду force-stop, но **не подтвердил второй proof**. Нельзя повторять установку/очищать данные. В [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) добавлен **restart-only без APK install**: обнаружение свежего PASS/BLOCKED с обезличенной классификацией, проверка ID/USB, воздействует только на тестовый пакет. Тесты и CI нового ZIP должны пройти на точном SHA. Реальный пользовательский restore и удаление видео NOT_TESTED; #442 FROZEN.
 
 **26.11.2026 — последний проверенный live main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
