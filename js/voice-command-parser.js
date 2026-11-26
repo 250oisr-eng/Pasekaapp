@@ -11,18 +11,32 @@ function extractJournalOperationFields(input,kind){
  for(const [field,names] of Object.entries(aliases))for(const name of names)aliasToField.set(name,field);
  const escapeRe=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
  const labelAlternatives=[...aliasToField.keys()].sort((a,b)=>b.length-a.length).map(escapeRe).join('|');
- const labelRe=new RegExp('(?:^|[;,\\n])\\s*('+labelAlternatives+')\\s*[:=—-]\\s*','giu');
- const matches=[...normalized.matchAll(labelRe)],found={};
- for(let i=0;i<matches.length;i++){
-  const match=matches[i],field=aliasToField.get(match[1].trim());
-  const start=match.index+match[0].length,end=i+1<matches.length?matches[i+1].index:normalized.length;
-  const value=source.slice(start,end).trim().replace(/[;,\s]+$/u,'').trim();
-  if(value)(found[field] ||= []).push(value);
+ const found={};
+ if(kind==='feeding'&&/^поле\s/iu.test(source)){
+  // In this explicit format the spoken word «поле» starts each field.
+  const label=new RegExp('^('+labelAlternatives+')(?:\\s*[:=—]\\s*|\\s+|$)','iu');
+  const chunks=source.split(/(?:^|[\s,;.]+)поле\s+/iu).slice(1);
+  for(const chunk of chunks){
+   const match=label.exec(chunk);
+   if(!match)continue;
+   const field=aliasToField.get(match[1].toLocaleLowerCase('ru-RU'));
+   const value=chunk.slice(match[0].length).trim();
+   (found[field] ||= []).push(value);
+  }
+ }else{
+  const labelRe=new RegExp('(?:^|[;,\\n])\\s*('+labelAlternatives+')\\s*[:=—-]\\s*','giu');
+  const matches=[...normalized.matchAll(labelRe)];
+  for(let i=0;i<matches.length;i++){
+   const match=matches[i],field=aliasToField.get(match[1].trim());
+   const start=match.index+match[0].length,end=i+1<matches.length?matches[i+1].index:normalized.length;
+   const value=source.slice(start,end).trim().replace(/[;,\s]+$/u,'').trim();
+   if(value)(found[field] ||= []).push(value);
+  }
  }
  const fields={},evidence={},ambiguous=[];
  for(const [field,values] of Object.entries(found)){
   const distinct=[...new Set(values.map(v=>v.toLocaleLowerCase('ru-RU')))];
-  if(distinct.length!==1){ambiguous.push(field);continue}
+  if(distinct.length!==1||!distinct[0]){ambiguous.push(field);continue}
   let value=values[0];
   if(kind==='treatment'&&field==='check'){
    let dateMatch=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
