@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-cold-sandbox.mjs';
+import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
 
 test('strict parsing prevents arguments that could become ADB options',()=>{
  assert.deepEqual(parseArgs(['--dest','E:\\Backup']),{dest:'E:\\Backup',allowForceStop:false});
@@ -173,4 +174,48 @@ test('GUI consent defaults to No and applies only to the target package',async()
  const script=await readFile(new URL('../scripts/backup-oneplus-cold-sandbox.mjs',import.meta.url),'utf8');
  assert.match(script,/\['shell','am','force-stop',PACKAGE\]/);
  assert.doesNotMatch(script,/\['shell','pm','clear'/);
+});
+
+test('read-only process diagnosis reports two distinct signals without ADB mutations',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const previous={mode:process.env.FAKE_ADB_MODE,mark:process.env.FAKE_STOP_MARKER};
+ const marker=join(f.root,'must-not-create-stop-marker');
+ try {
+  process.env.FAKE_ADB_MODE='remote';process.env.FAKE_STOP_MARKER=marker;
+  const report=await diagnose({adb:f.stub,pauseMs:1});
+  assert.equal(report.schema,'paseka-oneplus-process-readonly-diagnostic-v1');
+  assert.equal(report.status,'PROCESS_STATE_AMBIGUOUS');
+  assert.equal(report.first.pidof.state,'ABSENT');
+  assert.equal(report.first.ps.state,'PRESENT');
+  assert.equal(report.runAsAvailable,true);
+  assert.equal(report.appWebviewAccessible,true);
+  assert.equal(report.forceStopAttempted,false);
+  assert.equal(report.archiveAttempted,false);
+  assert.equal(report.phoneDataModified,false);
+  await assert.rejects(access(marker));
+  assert.deepEqual(await readdir(f.dest),[]);
+  assert.ok(!JSON.stringify(report).includes(f.root));
+ }finally {
+  if(previous.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=previous.mode;
+  if(previous.mark===undefined)delete process.env.FAKE_STOP_MARKER;else process.env.FAKE_STOP_MARKER=previous.mark;
+ }
+});
+test('stopped app is diagnosed, with no archive and no force-stop',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const prev=process.env.FAKE_ADB_MODE;process.env.FAKE_ADB_MODE='ok';
+ try{
+  const r=await diagnose({adb:f.stub,pauseMs:1});
+  assert.equal(r.status,'PROCESS_STATE_MEASURED');
+  assert.equal(r.second.pidof.state,'ABSENT');
+  assert.equal(r.second.ps.state,'ABSENT');
+  assert.equal(r.independentRestoreVerified,false);
+  assert.deepEqual(await readdir(f.dest),[]);
+ }finally{if(prev===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=prev;}
+});
+test('diagnostic Windows kit never calls force-stop or archive',async()=>{
+ const ps=await readFile(new URL('../tools/b01-oneplus-cold-backup/run-diagnosis.ps1',import.meta.url),'utf8');
+ const runner=await readFile(new URL('../scripts/diagnose-oneplus-process-readonly.mjs',import.meta.url),'utf8');
+ assert.doesNotMatch(ps,/--allow-force-stop|pm clear|uninstall/i);
+ assert.doesNotMatch(runner,/am','force-stop|exec-out|tar','-cf|writeFile|unlink/i);
+ assert.match(ps,/diagnose-oneplus-process-readonly\.mjs/);
 });
