@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · live main `ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f`.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+**26.11.2026 · live main `a5fcde50472a4ef6f4f304949865d62cce883eb7`.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
 
 ## Текущая очередь после полного структурного аудита PR
 
@@ -8,6 +8,7 @@
 - [#551](https://github.com/250oisr-eng/Pasekaapp/pull/551) и [#552](https://github.com/250oisr-eng/Pasekaapp/pull/552) MERGED: восстановлена поимённая опись и все пути файлов, без массовых merge. Главный риск — 192 PR старой архивной цепочки #168; не переписывать main историческим stacked diff.
 - **#541 MERGED** `2330bf4243ea9ec8765dc110645dadfc02c283b3`: автономная SHA-256 сверка двух уже существующих локальных копий медиа, read-only. Exact-head Fast #45873304752, Governance #45873311752, Android #45873304778/#45873311714 SUCCESS.
 - **#542 MERGED** `ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f`: локальный ограниченный архивный аудит, replay только в новой `fake-indexeddb`, сравнение копий #541 и Windows offline-kit. Exact-head Fast #45873811121, Governance #45873819959, Windows #45873819943, Android #45873811098/#45873819940 SUCCESS. НИ ОДИН тест не доказывает независимый restore реальных данных OnePlus.
+- **#553 MERGED** `a5fcde50472a4ef6f4f304949865d62cce883eb7`: изолированный Chromium E2E (мобильный и настольный сценарии: улей → семья → журнал → reload); Fast CI #45874950849 и Android #45874950845/#45874958477 прошли на PR SHA, E2E #45873925029 прошёл на исходном кодовом SHA. На merge SHA Fast #45875375812 SUCCESS; Chromium #45875375765 и Android #45875375725 требуют отдельного итогового подтверждения. Без реального OnePlus/production.
 - **[#543](https://github.com/250oisr-eng/Pasekaapp/pull/543) DRAFT/FROZEN:** доступ к app-private через ADB, опциональный force-stop; прекратить повторные ADB/USB эксперименты по ранее принятому пользовательскому решению. Нельзя запускать на OnePlus, сливать в main либо выдавать TAR как доказательство recovery. Следующая независимая область — B04/B05 #535/#520/#519 или B09 #536, отдельно по F0–F7; B06 #539/#540 только проверка лицензий.
 
 ## Не снятые ворота
