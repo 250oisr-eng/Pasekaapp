@@ -288,26 +288,83 @@
   "integrationJournalCsv20261126": {
     "pr": 548,
     "codeSha": "45f842cf7fcd77df2a7cd97597003bf005d0e7f0",
-    "ci": "PENDING",
-    "merged": false,
+    "ci": "SUCCESS_EXACT_PR_SHA",
+    "merged": true,
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
-    "performance": "NOT_MEASURED"
+    "performance": "NOT_MEASURED",
+    "ciRuns": [
+      {
+        "id": 45866662576,
+        "conclusion": "success"
+      },
+      {
+        "id": 45866668888,
+        "conclusion": "success"
+      },
+      {
+        "id": 45866662518,
+        "conclusion": "success"
+      },
+      {
+        "id": 45866669259,
+        "conclusion": "success"
+      }
+    ],
+    "mergeSha": "95e8f323ca9a0db3a8da3d507579030a58720eff"
   },
   "integrationJournalPreview20261126": {
     "pr": 510,
-    "ci": "PENDING",
-    "merged": false,
+    "ci": "SUCCESS_EXACT_PR_SHA",
+    "merged": true,
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
-    "performance": "NOT_MEASURED"
+    "performance": "NOT_MEASURED",
+    "ciRuns": [
+      {
+        "id": 45867007995,
+        "conclusion": "success"
+      },
+      {
+        "id": 45867016857,
+        "conclusion": "success"
+      },
+      {
+        "id": 45867008128,
+        "conclusion": "success"
+      },
+      {
+        "id": 45867016907,
+        "conclusion": "success"
+      }
+    ],
+    "mergeSha": "c50c668268372762d2f1fa1d75127c407a0de782"
   },
   "integrationJournalFamilyIndex20261126": {
     "pr": 531,
-    "ci": "PENDING",
-    "merged": false,
+    "ci": "SUCCESS_EXACT_PR_SHA",
+    "merged": true,
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
-    "performance": "NOT_MEASURED"
+    "performance": "NOT_MEASURED",
+    "ciRuns": [
+      {
+        "id": 45867510928,
+        "conclusion": "success"
+      },
+      {
+        "id": 45867520184,
+        "conclusion": "success"
+      },
+      {
+        "id": 45867510999,
+        "conclusion": "success"
+      },
+      {
+        "id": 45867520249,
+        "conclusion": "success"
+      }
+    ],
+    "mergeSha": "0ce520ee3b7fd0e816d79a3311a6433e5c61bfb6"
   }
 }
