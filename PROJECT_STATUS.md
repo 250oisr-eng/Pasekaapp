@@ -9,6 +9,11 @@
 - Предыдущий итоговый HEAD `df98581315dcc18896a2f1ef7cf702bb9dad5347`: Governance [#45774611816](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45774611816) FAILED из-за превышения предела 6500 символов в этом статусе; специализированный [#45774612116](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45774612116) FAILED с 838/839 тестами (тот же Governance guard). Исправляется **документ**, не отключается guard. Повторная проверка необходима на новом точном SHA.
 - До проверки установленного debug signing, сохранения синтетического состояния и точного CI **не обновлять/очищать/переустанавливать** даже тестовый APK. Реальный архив/видео/основной package не затрагивались. B09 = BLOCKED.
 
+## B09 · физический signer report ENOENT (26.11.2026)
+
+- Получен `ONEPLUS-DIAGNOSTIC-SIGNER-RESULT.json`: `BLOCKED/ENOENT`, установка не разрешена, `productionPackageTouched=false`, `noInstallNoOverwriteNoDelete=true`. Отчёт **не содержит стадии** и не позволяет утверждать, что отсутствует Java, ADB, APK или файл; сравнение сертификатов NOT_VERIFIED.
+- Минимальное исправление в существующем Draft #537: `inspect-diagnostic-signing.mjs` возвращает только `failedStage` из закрытого перечня и `LOCAL_EXECUTABLE_OR_FILE_NOT_FOUND` при `ENOENT`, без личных путей/serial/stack; тесты redaction. **Без нового отчёта причину не классифицировать.** Не устанавливать, не очищать и не менять APK.
+
 ## B09 · read-only тест подписи APK
 
 - В Draft #537 добавлен `inspect-diagnostic-signing.mjs` + `ПРОВЕРИТЬ-ПОДПИСЬ-БЕЗ-УСТАНОВКИ.cmd`, проверки несовпадающего сертификата/версии/пакета и ZIP packaging. Только локальный `adb -d pull` APK **тестового пакета**, без установки и доступа к его IndexedDB.
