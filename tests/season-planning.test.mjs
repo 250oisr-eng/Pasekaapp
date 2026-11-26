@@ -68,3 +68,55 @@ test('planning module is included in the phone app and offline cache',async()=>{
  assert.match(html,/PasekaSeasonPlanning\.buildQueenRearingTimeline/);
  assert.match(sw,/\.\/js\/season-planning\.js/);
 });
+
+
+test('latest saved inspection is hive-bound and ignores archived, invalid, future or wrong type',()=>{
+ const rows=[
+  {id:'a',hive:'h1',type:'Осмотр',date:'2026-10-12'},
+  {id:'b',hive:'h1',type:'Осмотр',date:'2026-10-25'},
+  {id:'c',hive:'h1',type:'Осмотр',date:'2026-11-24',archivedAt:'2026-11-25'},
+  {id:'d',hive:'h1',type:'Осмотр',date:'2027-01-01'},
+  {id:'e',hive:'h2',type:'Осмотр',date:'2026-11-20'},
+  {id:'f',hive:'h1',type:'Задача',date:'2026-11-26'},
+  {id:'g',hive:'h1',type:'Осмотр',date:'2026-02-30'}
+ ];
+ const before=JSON.stringify(rows);
+ assert.deepEqual(plan.latestSavedInspection(rows,'h1','2026-11-26'),{date:'2026-10-25',recordId:'b'});
+ assert.deepEqual(plan.latestSavedInspection(rows,'h2','2026-11-26'),{date:'2026-11-20',recordId:'e'});
+ assert.equal(plan.latestSavedInspection(rows,'h3','2026-11-26'),null);
+ assert.equal(JSON.stringify(rows),before);
+ assert.throws(()=>plan.latestSavedInspection(rows,'','2026-11-26'),/выбери улей/i);
+ assert.throws(()=>plan.latestSavedInspection(null,'h1','2026-11-26'),/выбери улей/i);
+});
+test('inspection reminder prefill reads only chosen hive and never saves or auto-completes',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function useLastSavedInspection(){');
+ const end=html.indexOf('function renderNectarBackwardPlan(){',start);
+ assert.ok(start>0&&end>start,'prefill handler exists');
+ const src=html.slice(start,end);
+ const fields={inspectionHiveSelect:{value:'h1'},inspectionLastDate:{value:'2026-11-26'},
+  inspectionPrefillStatus:{textContent:''},inspectionReminderResult:{textContent:'stale result'}};
+ const rows=[{id:'one',hive:'h1',type:'Осмотр',date:'2026-11-19'},
+             {id:'other',hive:'h2',type:'Осмотр',date:'2026-11-25'}];
+ const S={records:rows};
+ const fn=new Function('$','PasekaSeasonPlanning','S','today','hname',
+   src+';return useLastSavedInspection');
+ const handler=fn(id=>fields[id],plan, S,()=> '2026-11-26',id=>'Улей '+id);
+ handler();
+ assert.equal(fields.inspectionLastDate.value,'2026-11-19');
+ assert.equal(fields.inspectionReminderResult.textContent,'');
+ assert.match(fields.inspectionPrefillStatus.textContent,/из журнала/i);
+ assert.doesNotMatch(src,/db\.transaction|save\(|saveQueue|put\(|deleteRecord|createRecord/);
+ fields.inspectionHiveSelect.value='';
+ fields.inspectionLastDate.value='2026-11-01';
+ handler();
+ assert.equal(fields.inspectionLastDate.value,'2026-11-01','no hive must not overwrite manual input');
+});
+test('planning UI offers explicit hive selection and leaves the date calculation manual',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/id="inspectionHiveSelect"/);
+ assert.match(html,/onclick="useLastSavedInspection\(\)"/);
+ assert.match(html,/Дата подставляется только из фактически сохранённой записи/);
+ assert.match(html,/onclick="renderInspectionReminder\(\)"/);
+ assert.match(html,/latestSavedInspection\(S\.records,hive,today\(\)\)/);
+});
