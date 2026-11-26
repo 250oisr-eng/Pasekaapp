@@ -28,7 +28,13 @@ async function journey(browser,origin,name,viewport){
   const page=await context.newPage();
   page.setDefaultTimeout(15000);
   page.on('pageerror',e=>errors.push('Browser JS: '+e.message));
+  let freshContext=true;
   page.on('dialog',async dialog=>{
+    if(freshContext && dialog.type()==='confirm' && dialog.message().endsWith('Подтверждаешь, что это действительно первый запуск новой пасеки?')){
+      freshContext=false;
+      await dialog.accept();
+      return;
+    }
     errors.push('Unexpected '+dialog.type()+': '+dialog.message().slice(0,200));
     await dialog.dismiss();
   });
@@ -39,6 +45,7 @@ async function journey(browser,origin,name,viewport){
   try{
     await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
     await ready();
+    freshContext=false;
     assert.equal(await page.evaluate(()=>S.hives.length),0,'fresh browser is not empty');
     await page.locator('button[data-tab="hives"]').click();
     await page.locator('[data-action="open-new-hive"]').click();
@@ -62,6 +69,26 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#recordDlg').waitFor({state:'hidden'});
     assert.equal(await page.locator('#records .journal-entry').filter({hasText:note}).count(),1,
       'new inspection should be visible exactly once');
+    // Two saved records have the same type, date, hive and search term.
+    await page.locator('#journal').getByRole('button',{name:'＋ Запись'}).click();
+    await page.locator('#rtype').selectOption({label:'Осмотр'});
+    const secondText='Второй осмотр · '+note;
+    await page.locator('#rtext').fill(secondText);
+    await page.locator('#recordForm button.primary').click();
+    await page.locator('#recordDlg').waitFor({state:'hidden'});
+    await page.locator('button[data-tab="home"]').click();
+    await page.locator('#globalSearch').fill(note);
+    const matches=page.locator('#globalSearchResults [data-kind="record"]');
+    assert.equal(await matches.count(),2);
+    const selected=matches.filter({hasText:secondText});
+    const selectedId=await selected.getAttribute('data-id');
+    await selected.click();
+    assert.equal(await page.locator('#recordId').inputValue(),selectedId);
+    assert.equal(await page.locator('#rtext').inputValue(),secondText);
+    await page.keyboard.press('Escape');
+    await page.locator('#recordDlg').waitFor({state:'hidden'});
+    assert.equal(await page.locator('#globalSearch').inputValue(),note);
+    assert.equal(await matches.count(),2);
     const capture=()=>page.evaluate(()=>({
       hives:S.hives.map(h=>h.id),
       families:S.families.map(f=>({id:f.id,hive:f.hive})),
@@ -79,7 +106,8 @@ async function journey(browser,origin,name,viewport){
     await page.locator('button[data-tab="journal"]').click();
     const after=await capture();
     assert.deepEqual(after,before,'hive/family/inspection changed after real reload');
-    assert.equal(await page.locator('#records .journal-entry').filter({hasText:note}).count(),1,
+    assert.equal(await page.locator('#records .journal-entry-text').filter({hasText:secondText}).count(),1);
+    assert.equal(await page.getByText(note,{exact:true}).and(page.locator('#records .journal-entry-text')).count(),1,
       'saved inspection is duplicated or not visible after reload');
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',

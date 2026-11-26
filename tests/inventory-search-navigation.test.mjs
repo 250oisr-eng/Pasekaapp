@@ -25,3 +25,16 @@ test('a corpus search result focuses its exact inventory card, clearing filters 
  assert.deepEqual(calls,['render','open']);
  assert.match(html,/openEquipmentInventory\(button.dataset.id\)/);
 });
+
+test('a stale journal result cannot open an archived, moved or missing entry',()=>{
+ const code=html.slice(html.indexOf('function openGlobalSearchResult('),html.indexOf('function inventoryConditionLabel('));
+ const entries=[{id:'one',hive:'h1'},{id:'two',hive:'h2',archivedAt:'2026-11-27'},{id:'three',hive:'gone'}];
+ const opened=[],alerts=[];
+ const open=new Function('S','editRecord','renderGlobalSearch','alert',code+';return openGlobalSearchResult')(
+  {records:entries,hives:[{id:'h1'},{id:'h2'}]},id=>opened.push(id),()=>{},s=>alerts.push(s));
+ for(const [id,hive] of [['one','h1'],['two','h2'],['one','h2'],['three','gone'],['missing','h1']]){
+  open({dataset:{kind:'record',id,hive}});
+ }
+ assert.deepEqual(opened,['one']);
+ assert.equal(alerts.length,4);
+});

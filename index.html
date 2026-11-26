@@ -1174,8 +1174,9 @@ function renderGlobalSearch(){
   }
  }
  for(const record of S.records.filter(r=>!r.archivedAt)){
-  const family=S.families.find(f=>f.id===record.family),text=[record.date,record.type,record.text,family?.name,record.familySnapshotAtTime?.name].join(' ').toLocaleLowerCase('ru-RU');
-  if(text.includes(query))results.push({kind:'record',id:record.id,hiveId:record.hive,label:record.type+' · '+record.date,detail:'Запись журнала · '+hname(record.hive)});
+  const family=S.families.find(f=>f.id===record.family),historicalName=record.familyNameAtTime||record.familySnapshotAtTime?.name;
+  const text=[record.date,record.type,record.text,family?.name,historicalName,record.familySnapshotAtTime?.name].join(' ').toLocaleLowerCase('ru-RU');
+  if(text.includes(query))results.push({kind:'record',id:record.id,hiveId:record.hive,label:record.type+' · '+record.date,detail:[hname(record.hive),historicalName||family?.name,String(record.text||'').trim().slice(0,96)].filter(Boolean).join(' · ')});
  }
  for(const body of Object.values(S.equipmentInventory?.bodies||{})){const code=PasekaLabels.formatLabelCode('body',body.labelCode),loc=PasekaInventory.locateBody(S,body.id),place=loc?.type==='hive'?hname(loc.hiveId)+' · '+frameLocationName(loc.boxKey,loc.hiveId):loc?.type==='sectional'?hname(loc.hiveId)+' · '+(loc.bodyRole==='honey'?'общий медовый ярус':'секция '+(loc.sectionPosition||'без позиции')):'Склад · '+(loc?.place||'место не указано'),haystack=[code,body.labelCode,body.notes,body.storageLocation,place].join(' ').toLocaleLowerCase('ru-RU');if(haystack.includes(query))results.push({kind:'corpus',id:body.id,hiveId:loc?.hiveId||'',label:'Корпус '+(code||body.id),detail:'Инвентарь · '+place})}
  const shown=results.slice(0,12);
@@ -1192,7 +1193,18 @@ function openGlobalSearchResult(button){
  const kind=button.dataset.kind,hiveId=button.dataset.hive,box=button.dataset.box,index=Number(button.dataset.index);
  if(kind==='hive'||kind==='family'){openHive(hiveId);return}
  if(kind==='frame'){openHive(hiveId);openFrameFromDiagram(box,index);return}
- if(kind==='record'){activeJournalHive=hiveId;showTab('journal');render();const input=$('journalSearch');if(input)input.value=$('globalSearch')?.value||'';renderJournalRecords();return}if(kind==='corpus'){openEquipmentInventory(button.dataset.id);return}
+ if(kind==='record'){
+  const id=button.dataset.id;
+  const record=S.records.find(r=>r.id===id);
+  if(!id||!record||record.archivedAt||record.hive!==hiveId||!S.hives.some(h=>h.id===hiveId)){
+   renderGlobalSearch();
+   alert('Запись или её улей больше недоступны. Выбери другой результат.');
+   return;
+  }
+  editRecord(id);
+  return;
+ }
+ if(kind==='corpus'){openEquipmentInventory(button.dataset.id);return}
 }
 function inventoryConditionLabel(value){return ({good:'Исправен',needs_repair:'Требует осмотра/ремонта',repair:'В ремонте',retired:'Списан'})[value]||'Не указано'}
 function inventoryKindLabel(value){return value==='honey'?'Медовый':'Гнездовой'}
