@@ -28,7 +28,13 @@ async function journey(browser,origin,name,viewport){
   const page=await context.newPage();
   page.setDefaultTimeout(15000);
   page.on('pageerror',e=>errors.push('Browser JS: '+e.message));
+  let freshContext=true;
   page.on('dialog',async dialog=>{
+    if(freshContext && dialog.type()==='confirm' && dialog.message().endsWith('Подтверждаешь, что это действительно первый запуск новой пасеки?')){
+      freshContext=false;
+      await dialog.accept();
+      return;
+    }
     errors.push('Unexpected '+dialog.type()+': '+dialog.message().slice(0,200));
     await dialog.dismiss();
   });
@@ -39,6 +45,7 @@ async function journey(browser,origin,name,viewport){
   try{
     await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
     await ready();
+    freshContext=false;
     assert.equal(await page.evaluate(()=>S.hives.length),0,'fresh browser is not empty');
     await page.locator('button[data-tab="hives"]').click();
     await page.locator('[data-action="open-new-hive"]').click();
@@ -81,6 +88,24 @@ async function journey(browser,origin,name,viewport){
     assert.deepEqual(after,before,'hive/family/inspection changed after real reload');
     assert.equal(await page.locator('#records .journal-entry').filter({hasText:note}).count(),1,
       'saved inspection is duplicated or not visible after reload');
+    await page.locator('button[data-tab="hives"]').click();
+    await page.locator('.hive-row-main').first().click();
+    await page.getByRole('button',{name:'Карточка семьи',exact:true}).click();
+    const card=page.locator('#familyHistoryDlg');
+    await card.waitFor({state:'visible'});
+    await card.locator('#familyHistoryType').selectOption('Осмотр');
+    await card.locator('#familyHistoryDate').fill('2000-01-01');
+    assert.equal(await card.locator('article').count(),0);
+    await card.locator('#familyHistoryDate').fill('');
+    assert.equal(await card.locator('article').filter({hasText:note}).count(),1);
+    await card.getByRole('button',{name:'Открыть запись'}).click();
+    assert.equal(await page.locator('#rtext').inputValue(),note);
+    await page.keyboard.press('Escape');
+    await page.locator('#recordDlg').waitFor({state:'hidden'});
+    assert.equal(await card.locator('#familyHistoryType').inputValue(),'Осмотр');
+    await card.getByRole('button',{name:'Вернуться к улью'}).click();
+    await page.locator('#selectedHivePanel').waitFor({state:'visible'});
+    assert.deepEqual(await capture(),before);
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',
       viewport:name,status:'PASS',source:'local-Chromium-real-IndexedDB',
