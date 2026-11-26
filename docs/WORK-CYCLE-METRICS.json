@@ -136,7 +136,59 @@
       "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
       "id": "b09-atomicity-20261124-pr476"
+    }
+  ],
+  "evaluation": {
+    "minimumRealPostCycles": 2,
+    "preferredRealPostCycles": 3,
+    "fields": [
+      "cycleId",
+      "codeSha",
+      "ciRuns",
+      "repeatedDocumentReads",
+      "trackedBlockersAtStart",
+      "trackedBlockersAtEnd",
+      "completedVerifiedUserScenarios",
+      "scenariosEvidence",
+      "prUrl"
+    ],
+    "definitions": {
+      "repeatedDocumentReads": "Сколько раз в пределах макроцикла перечитан без изменения уже изученный обязательный файл. Одна первичная загрузка не считается повтором. Если лог не вёлся, null, не 0.",
+      "ciRuns": "Список всех известных запущенных CI по коду данного макроцикла, включая cancelled/failure/success; ссылки и exact SHA проверить в GitHub; если охват не полный, пометить в scenariosEvidence.",
+      "trackedBlockersAtStart": "Количество из trackedCriticalDependencies, не решённых на старте, считать только по проверенным источникам; неизвестно -> null.",
+      "trackedBlockersAtEnd": "То же в конце цикла; сокращение доказуемо только при подтверждённой проверке данных/устройства, не по green CI.",
+      "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
+      "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
     },
+    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25: seven independent P0/P1 draft/review/CI tracks #492–#498, code-only merges and synthetic tests verified on their exact SHAs. No live OnePlus physical restore, durable signer, licensed video model or device media cleanup; not a comparable real-user post-reform cycle. Repeated document reads NOT_MEASURED, physical scenarios remain 0, effect NOT_MEASURED. 2026-11-25 macrocycle: #501 external-file read-only structural verifier, #500 installed APK signer read-only CLI, #502 source OP13 ordinary-vs-early-honey gate; main CI code-SHAs verified, physical source backups/restore/installed signer NOT_VERIFIED. Only synthetic fixtures; no user scenario completed. Repeated reads and time savings NOT_MEASURED. 2026-11-25 #504: safe first-launch write gate and source-bound test corrections; Code CI verified exact SHA; no physical OnePlus or independent restore test. No measured user savings. 2026-11-25: #506 bounded external full-archive JSON verification and #507 separate legacy JSON-state-only read-only preflight integrated; PR and main synthetic CI verified on exact code SHAs. Physical OnePlus source archive, independent restore and installed APK signature NOT_VERIFIED; live user scenarios 0 and work-time benefit NOT_MEASURED. Historic #452/#479 remain blocked for physical evidence. 2026-11-25: independent Draft #511 video metadata cursor passes exact code CI and docs CI but no real RAM/OnePlus scenario. Draft #512 original-video delete and full DB reset safety gate is still separate from proof of physical backup, no user scenario completed. Historical #426 packaging feasibility stopped: main 19/19 JS already used. No measured user savings; no new comparable post-reform cycle. 2026-11-25: Updated existing main-based Draft #512 to freeze legacy exported canDeleteVideoOriginal independent of completed/resultPersisted/serverDeleteConfirmed or user-supplied forged backup/delete flags; direct entrance-media and whole-DB deletion were already blocked in Draft. Added negative Node regressions and checked applicable CI. Physical user outcomes still 0 for this P0 code safety change; not merged/released. Repeated document reads and measured time savings remain NOT_MEASURED. 2026-11-25 scope #512: additionally disabled the visible whole-DB delete button (no onclick) while keeping direct deleteAllData() and video helper fail-closed. Separate UI negative regression added. No OnePlus interaction, no actual deletion, and still no approved merge or release. 2026-11-26: #544 inspection read-only prefill and #548 journal CSV have code CI but zero real user scenarios; recorded in featureDraftCycles, NOT included among comparable postReformCycles. Metrics effects remain NOT_MEASURED."
+  },
+  "pilotReformCycle": {
+    "id": "pilot-governance-20261124-pr470",
+    "phase": "REFORM_ROLLOUT_NOT_A_POST_REFORM_PRODUCT_CYCLE",
+    "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/470",
+    "codeSha": "7a29810dcc6cfb3deee56957ae205c574c33704d",
+    "ciRuns": [
+      {
+        "id": 45445521258,
+        "conclusion": "success",
+        "testsPassed": 4,
+        "kind": "governance-docs"
+      },
+      {
+        "id": 45445521237,
+        "conclusion": "success",
+        "testsPassed": 664,
+        "kind": "android-regressions"
+      }
+    ],
+    "repeatedDocumentReads": null,
+    "trackedBlockersAtStart": 4,
+    "trackedBlockersAtEnd": 4,
+    "completedVerifiedUserScenarios": 0,
+    "scenariosEvidence": "Documentation governance refactor only; no user-device scenario or physical data migration attempted. Repeated reads NOT_MEASURED.",
+    "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
+  },
+  "featureDraftCycles": [
     {
       "id": "p1-journal-csv-export-pr548-20261126",
       "codeSha": "844f1e8413891b1be13ab29fc67833b2094040ac",
@@ -171,7 +223,8 @@
       "trackedBlockersAtStart": 4,
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 0,
-      "scenariosEvidence": "CSV UI/export code & synthetic tests done; on-device user file transfer NOT_TESTED, real full backup not attempted. Initial regression fixture failures included; no time saving measured."
+      "scenariosEvidence": "CSV UI/export code & synthetic tests done; on-device user file transfer NOT_TESTED, real full backup not attempted. Initial regression fixture failures included; no time saving measured.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
     },
     {
       "id": "p1-inspection-reminder-pr544-20261126",
@@ -195,57 +248,8 @@
       "trackedBlockersAtStart": 4,
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 0,
-      "scenariosEvidence": "Read-only journal inspection prefill + no false today default verified with code tests; independent physical UX NOT_TESTED, no real user changes, time saving NOT_MEASURED."
+      "scenariosEvidence": "Read-only journal inspection prefill + no false today default verified with code tests; independent physical UX NOT_TESTED, no real user changes, time saving NOT_MEASURED.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
     }
-  ],
-  "evaluation": {
-    "minimumRealPostCycles": 2,
-    "preferredRealPostCycles": 3,
-    "fields": [
-      "cycleId",
-      "codeSha",
-      "ciRuns",
-      "repeatedDocumentReads",
-      "trackedBlockersAtStart",
-      "trackedBlockersAtEnd",
-      "completedVerifiedUserScenarios",
-      "scenariosEvidence",
-      "prUrl"
-    ],
-    "definitions": {
-      "repeatedDocumentReads": "Сколько раз в пределах макроцикла перечитан без изменения уже изученный обязательный файл. Одна первичная загрузка не считается повтором. Если лог не вёлся, null, не 0.",
-      "ciRuns": "Список всех известных запущенных CI по коду данного макроцикла, включая cancelled/failure/success; ссылки и exact SHA проверить в GitHub; если охват не полный, пометить в scenariosEvidence.",
-      "trackedBlockersAtStart": "Количество из trackedCriticalDependencies, не решённых на старте, считать только по проверенным источникам; неизвестно -> null.",
-      "trackedBlockersAtEnd": "То же в конце цикла; сокращение доказуемо только при подтверждённой проверке данных/устройства, не по green CI.",
-      "completedVerifiedUserScenarios": "Число завершённых реальных пользовательских сценариев с конкретным доказательством; синтетические тесты и CI не повышают счётчик.",
-      "effect": "Сравнивать с preReformCycles только после 2–3 завершённых постциклов; числовую экономию времени без измерений не заявлять."
-    },
-    "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25: seven independent P0/P1 draft/review/CI tracks #492–#498, code-only merges and synthetic tests verified on their exact SHAs. No live OnePlus physical restore, durable signer, licensed video model or device media cleanup; not a comparable real-user post-reform cycle. Repeated document reads NOT_MEASURED, physical scenarios remain 0, effect NOT_MEASURED. 2026-11-25 macrocycle: #501 external-file read-only structural verifier, #500 installed APK signer read-only CLI, #502 source OP13 ordinary-vs-early-honey gate; main CI code-SHAs verified, physical source backups/restore/installed signer NOT_VERIFIED. Only synthetic fixtures; no user scenario completed. Repeated reads and time savings NOT_MEASURED. 2026-11-25 #504: safe first-launch write gate and source-bound test corrections; Code CI verified exact SHA; no physical OnePlus or independent restore test. No measured user savings. 2026-11-25: #506 bounded external full-archive JSON verification and #507 separate legacy JSON-state-only read-only preflight integrated; PR and main synthetic CI verified on exact code SHAs. Physical OnePlus source archive, independent restore and installed APK signature NOT_VERIFIED; live user scenarios 0 and work-time benefit NOT_MEASURED. Historic #452/#479 remain blocked for physical evidence. 2026-11-25: independent Draft #511 video metadata cursor passes exact code CI and docs CI but no real RAM/OnePlus scenario. Draft #512 original-video delete and full DB reset safety gate is still separate from proof of physical backup, no user scenario completed. Historical #426 packaging feasibility stopped: main 19/19 JS already used. No measured user savings; no new comparable post-reform cycle. 2026-11-25: Updated existing main-based Draft #512 to freeze legacy exported canDeleteVideoOriginal independent of completed/resultPersisted/serverDeleteConfirmed or user-supplied forged backup/delete flags; direct entrance-media and whole-DB deletion were already blocked in Draft. Added negative Node regressions and checked applicable CI. Physical user outcomes still 0 for this P0 code safety change; not merged/released. Repeated document reads and measured time savings remain NOT_MEASURED. 2026-11-25 scope #512: additionally disabled the visible whole-DB delete button (no onclick) while keeping direct deleteAllData() and video helper fail-closed. Separate UI negative regression added. No OnePlus interaction, no actual deletion, and still no approved merge or release."
-  },
-  "pilotReformCycle": {
-    "id": "pilot-governance-20261124-pr470",
-    "phase": "REFORM_ROLLOUT_NOT_A_POST_REFORM_PRODUCT_CYCLE",
-    "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/470",
-    "codeSha": "7a29810dcc6cfb3deee56957ae205c574c33704d",
-    "ciRuns": [
-      {
-        "id": 45445521258,
-        "conclusion": "success",
-        "testsPassed": 4,
-        "kind": "governance-docs"
-      },
-      {
-        "id": 45445521237,
-        "conclusion": "success",
-        "testsPassed": 664,
-        "kind": "android-regressions"
-      }
-    ],
-    "repeatedDocumentReads": null,
-    "trackedBlockersAtStart": 4,
-    "trackedBlockersAtEnd": 4,
-    "completedVerifiedUserScenarios": 0,
-    "scenariosEvidence": "Documentation governance refactor only; no user-device scenario or physical data migration attempted. Repeated reads NOT_MEASURED.",
-    "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
-  }
+  ]
 }
