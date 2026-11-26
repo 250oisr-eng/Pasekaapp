@@ -53,7 +53,15 @@ test('script has no commands to mutate phone and only pulls isolated package APK
  assert.match(cmd,/inspect-diagnostic-signing\.mjs/);
  assert.match(cmd,/ONEPLUS-DIAGNOSTIC-SIGNER-RESULT\.json/);
  const workflow=await readFile(new URL('../.github/workflows/android-disaster-physical.yml',import.meta.url),'utf8');
- assert.match(workflow,/Copy-Item 'tools\/oneplus-recovery\/inspect-diagnostic-signing\.mjs'/);
+ assert.match(workflow,/Copy-Item 'tools\\/oneplus-recovery\\/inspect-diagnostic-signing\\.mjs'/);
+ assert.match(workflow,/Copy-Item 'tools\\/oneplus-recovery\\/signer-readonly-guards\\.mjs'/);
+ assert.doesNotMatch(workflow,/^\s*Copy-Item 'tools\\/oneplus-recovery\\/ПРОВЕРИТЬ-ONEPLUS\\.cmd'/m);
+ assert.doesNotMatch(workflow,/^\s*Copy-Item 'tools\\/oneplus-recovery\\/ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ\\.cmd'/m);
+ assert.doesNotMatch(workflow,/^\s*Copy-Item 'tools\\/oneplus-recovery\\/oneplus-recovery\\.mjs'/m);
+ const readonly=await readFile(new URL('../tools/oneplus-recovery/signer-readonly-guards.mjs',import.meta.url),'utf8');
+ assert.match(s,/from '\\.\\/signer-readonly-guards\\.mjs'/);
+ assert.doesNotMatch(readonly,/from ['"]\\.\\/oneplus-recovery\\.mjs/);
+ assert.doesNotMatch(readonly,/\\b(?:install|force-stop|uninstall|pm clear|reboot)\\b/);
 });
 
 test('owner ENOENT report is staged and sanitized even when executable is missing',()=>{
