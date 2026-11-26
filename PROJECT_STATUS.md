@@ -4,7 +4,7 @@
 
 ## 26.11.2026 — новая реальная операция резервирования OnePlus, Draft #543
 
-- Физический Base64 preflight: `BASE64_PREFLIGHT_MISMATCH` **до чтения приватных файлов**. Ошибка в удалённом quoting `sh -c` через ADB: #543 добавил кавычки вокруг целой shell-команды, и отдельный `PROBE-BASE64-READONLY.cmd`. Только тест публичной строки; новый TAR **НЕ** запускать до физического `PASS`; backup/restore NOT_VERIFIED.
+- Физический OnePlus public probe: `NON_BASE64_OUTPUT`, exit=0, 270 байт (260 без CR/LF); приватные данные НЕ прочитаны. #543 добавил безопасную матрицу 5 публичных проб `outer/app × printf/base64/pipefail` для локализации shell-ошибки; TAR пока **НЕ** запускать. Архив/восстановление NOT_VERIFIED.
 - Пользователь подтвердил, что **на установленном OnePlus нет UI полного архива**. Функция в GitHub source не означает наличия её на установленном APK.
 - [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543), ветка `feat/p0-b01-oneplus-run-as-cold-sandbox-backup-20261126` от main: **новый** однокнопочный Windows exporter `RUN-ONEPLUS-BACKUP.cmd` для приложения `ru.paseka.journal` с `adb exec-out run-as`, запрещающий работающий процесс, замену исходников и перезапись внешнего файла; TAR + SHA, disk SHA readback и `tar -tf`. [Инструкция](docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md). Физическая попытка `BLOCKED`; Gallery/MediaStore/restore `NOT_VERIFIED`; удаление запрещено.
 - #512 MERGED, но не опубликован на телефон; #541/#542 Draft проверяют готовые файлы.
