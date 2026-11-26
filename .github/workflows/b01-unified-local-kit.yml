@@ -1,0 +1,99 @@
+name: B01 unified local read-only Windows kit (no device or publication)
+on:
+  pull_request:
+    paths:
+      - 'scripts/run-unified-recovery-audit.mjs'
+      - 'scripts/verify-exported-archive.mjs'
+      - 'scripts/audit-local-media-copy.mjs'
+      - 'tools/b01-unified/**'
+      - 'tests/unified-recovery-audit.test.mjs'
+      - '.github/workflows/b01-unified-local-kit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-readonly-kit:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact locked dependencies without scripts
+        shell: pwsh
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run source and regression tests (no local files)
+        shell: pwsh
+        run: |
+          node --test tests/unified-recovery-audit.test.mjs tests/audit-local-media-copy.test.mjs tests/verify-exported-archive.test.mjs
+      - name: Create offline read-only kit, with no APK or ADB
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory 'b01-unified-kit' | Out-Null
+          New-Item -ItemType Directory 'b01-unified-kit/scripts' | Out-Null
+          New-Item -ItemType Directory 'b01-unified-kit/js' | Out-Null
+          New-Item -ItemType Directory 'b01-unified-kit/node_modules' | Out-Null
+          Copy-Item 'tools/b01-unified/RUN-LOCAL-AUDIT.cmd' 'b01-unified-kit/'
+          Copy-Item 'tools/b01-unified/choose-local-files.ps1' 'b01-unified-kit/'
+          Copy-Item 'scripts/run-unified-recovery-audit.mjs' 'b01-unified-kit/scripts/'
+          Copy-Item 'scripts/verify-exported-archive.mjs' 'b01-unified-kit/scripts/'
+          Copy-Item 'scripts/audit-local-media-copy.mjs' 'b01-unified-kit/scripts/'
+          Copy-Item 'js/disaster-archive.js' 'b01-unified-kit/js/'
+          Copy-Item 'package.json' 'b01-unified-kit/'
+          Copy-Item 'node_modules/fake-indexeddb' 'b01-unified-kit/node_modules/fake-indexeddb' -Recurse
+          $nodePath = (Get-Command node.exe).Source
+          Copy-Item $nodePath 'b01-unified-kit/node.exe'
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'b01-unified-kit/choose-local-files.ps1').Path,
+            [ref]$tokens,[ref]$errors)
+          if ($errors.Count -ne 0) { throw 'B01_WINDOWS_GUI_SCRIPT_SYNTAX_ERROR' }
+          # Fail closed: exactly these files, no APK, no ADB and no installer.
+          $expected = @(
+            'RUN-LOCAL-AUDIT.cmd','choose-local-files.ps1','node.exe','package.json',
+            'scripts/run-unified-recovery-audit.mjs',
+            'scripts/verify-exported-archive.mjs','scripts/audit-local-media-copy.mjs',
+            'js/disaster-archive.js'
+          )
+          $files = @(Get-ChildItem 'b01-unified-kit' -Recurse -File)
+          foreach ($item in $files) {
+            $relative = [System.IO.Path]::GetRelativePath(
+              (Resolve-Path 'b01-unified-kit').Path,$item.FullName).Replace('\','/')
+            if ($relative -match '(?i)\.(apk|aab|keystore|jks|pem|key|p12)$' -or
+                $relative -match '(?i)(adb|install-oneplus|force-stop|erase|uninstall|clear-data)') {
+              throw 'B01_FORBIDDEN_DEVICE_FILE_IN_KIT'
+            }
+            if ($relative -notlike 'node_modules/fake-indexeddb/*' -and
+                $relative -cnotin $expected) { throw 'B01_UNEXPECTED_ARTIFACT_CONTENT' }
+          }
+          foreach ($item in $expected) {
+            if (-not (Test-Path (Join-Path 'b01-unified-kit' $item))) {
+              throw 'B01_MISSING_OFFLINE_ARTIFACT_CONTENT'
+            }
+          }
+      - name: Smoke verify offline kit without real input and without success exit
+        shell: pwsh
+        run: |
+          Push-Location 'b01-unified-kit'
+          try {
+            $raw = & ./node.exe scripts/run-unified-recovery-audit.mjs
+            $exit = $LASTEXITCODE
+            if ($exit -ne 2) { throw 'B01_RUNNER_FALSIFIED_SUCCESS_OR_FAILURE' }
+            $result = ($raw -join "`n") | ConvertFrom-Json
+            if ($result.overall -ne 'BLOCKED_MISSING_LOCAL_EVIDENCE' -or
+                $result.originalVideoDeletionAuthorized -ne $false -or
+                $result.installationAuthorized -ne $false) {
+              throw 'B01_OFFLINE_SMOKE_UNSAFE_RESULT'
+            }
+          } finally { Pop-Location }
+      - name: Upload owner-only local audit kit, no user data
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-B01-UNIFIED-LOCAL-READONLY-KIT
+          path: b01-unified-kit/
+          if-no-files-found: error
+          retention-days: 7
