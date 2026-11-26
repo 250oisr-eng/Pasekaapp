@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "purpose": "Проверка эффекта реформы на 2–3 настоящих макроциклах. null=NOT_MEASURED, не ноль.",
+  "workEquipmentLabels20261126": {"targetedTestsPassed": 147, "completedVerifiedUserScenarios": 0, "device": "NOT_TESTED"},
   "baseline": {
     "sourceMainSha": "ecea1c3c50801250d42f49366e00e1e9e96d556f",
     "recordedAt": "2026-11-24",
