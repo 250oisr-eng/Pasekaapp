@@ -79,7 +79,8 @@ test('text extraction accepts explicit multi-digit observations only within sele
 test('inspection form uses current frame capacity and warns without guessing unknown or changing saved entries',()=>{
  const s=apiary(),ids={rhive:{value:'hive-1'},rtype:{value:'Осмотр'},occupancyLabel:{textContent:''},broodLabel:{textContent:''},drawnLabel:{textContent:''},capacityWarning:{style:{display:'none'},textContent:''}};
  for(const id of ['roccupancy','rbrood','rdrawn'])ids[id]={value:'',max:'6',removeAttribute(key){if(key==='max')delete this.max;}};
- const fn=load('updateJournalInspectionCapacity','toggleOccupancy',{S:s,activeJournalHive:'hive-1',journalBroodCapacity:capacity,$:id=>ids[id]});
+ const localCapacity=load('journalBroodCapacity','validateJournalRecordDraft',{getHiveProfile,S:s});
+ const fn=load('updateJournalInspectionCapacity','toggleOccupancy',{S:s,activeJournalHive:'hive-1',journalBroodCapacity:localCapacity,$:id=>ids[id]});
  fn();
  assert.equal(ids.roccupancy.max,'12');
  assert.match(ids.occupancyLabel.textContent,/из 12/);
@@ -92,8 +93,10 @@ test('inspection form uses current frame capacity and warns without guessing unk
  assert.equal(ids.capacityWarning.style.display,'block');
 });
 test('expansion suggestion scales to installed brood capacity and never declares a physical operation completed',()=>{
- const s=apiary();s.tasks=[];const create=load('createExpansionSuggestion','updateJournalInspectionCapacity',{
-  S:s,journalBroodCapacity:capacity,uid:()=> 'suggestion-1',dateShift:()=> '2026-05-03'
+ const s=apiary();s.tasks=[];
+ const localCapacity=load('journalBroodCapacity','validateJournalRecordDraft',{getHiveProfile,S:s});
+ const create=load('createExpansionSuggestion','updateJournalInspectionCapacity',{
+  S:s,journalBroodCapacity:localCapacity,uid:()=> 'suggestion-1',dateShift:()=> '2026-05-03'
  });
  create(inspection({occupancy:10,broodFrames:6,freeDrawn:1}));
  assert.equal(s.tasks.length,1);
