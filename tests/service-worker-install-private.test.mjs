@@ -6,11 +6,11 @@ import {readFile} from 'node:fs/promises';
 const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
 const SCOPE='https://example.invalid/Pasekaapp/';
 
-function makeInstallHarness({restrictedPath=null,unavailablePath=null}={}){
+function makeInstallHarness({restrictedPath=null,unavailablePath=null,partialPath=null,emptyPath=null}={}){
  const listeners=new Map(),stored=new Map(),calls={skipWaiting:0,network:[],addAll:0};
  const mockResponse=path=>({
   ok:path!==unavailablePath,
-  status:path===unavailablePath?404:200,
+  status:path===unavailablePath?404:path===partialPath?206:path===emptyPath?204:200,
   type:'basic',
   headers:{get(name){return name.toLowerCase()==='cache-control'&&path===restrictedPath?'private, no-store':'public, max-age=600'}},
   clone(){return this}
@@ -69,4 +69,16 @@ test('B11 installation caches all allowed same-origin shell assets before activa
  assert.ok(h.stored.has('/Pasekaapp/js/hive-model.js'));
  assert.equal(h.calls.network.length,h.stored.size,'each cached asset has an actual network response');
  assert.ok(h.calls.network.every(path=>path.startsWith('/Pasekaapp/')),'no other origin/scope');
+});
+
+test('B11 install rejects HTTP 206 partial JS and HTTP 204 empty HTML before activation',async()=>{
+ for(const [type,query] of [
+  ['partialPath','/Pasekaapp/js/hive-model.js'],
+  ['emptyPath','/Pasekaapp/index.html']
+ ]){
+  const h=makeInstallHarness({[type]:query});
+  await assert.rejects(h.install(),/Offline shell install blocked/);
+  assert.equal(h.calls.skipWaiting,0,'incomplete bundle must not activate');
+  assert.equal(h.stored.has(query),false,'partial/empty response must never be cached');
+ }
 });

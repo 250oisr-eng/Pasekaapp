@@ -15,7 +15,7 @@ function harness(){
  let deleteFailure=null;
  let responseOverride=null;
  const publicResponse=url=>({
-  ok:true,type:'basic',url,
+  ok:true,status:200,type:'basic',url,
   headers:{get:()=> 'public, max-age=600'},
   clone(){return this}
  });
@@ -92,7 +92,7 @@ test('B11 activation removes obsolete numeric shell versions only, preserving us
  h.buckets.set('paseka-user-content',new Map([['user-data','untouched']]));
  h.buckets.set('paseka-shell-user-content',new Map([['user-data','untouched']]));
  h.buckets.set('paseka-shell-v317-user-backup',new Map([['user-data','untouched']]));
- h.buckets.set('paseka-shell-v319',new Map([['future','untouched']]));
+ h.buckets.set('paseka-shell-v320',new Map([['future','untouched']]));
  h.buckets.set('paseka-shell-v99999999999999999999999',new Map([['unknown','untouched']]));
  await h.lifecycle('install');
  for(const version of [315,316,317]){
@@ -103,9 +103,9 @@ test('B11 activation removes obsolete numeric shell versions only, preserving us
  for(const version of [315,316,317]){
   assert.equal(h.buckets.has('paseka-shell-v'+version),false,'obsolete v'+version+' must be removed');
  }
- assert.equal(h.buckets.has('paseka-shell-v318'),true,'current shell installed');
+ assert.equal(h.buckets.has('paseka-shell-v319'),true,'current shell installed');
  for(const cache of ['another-app-cache','paseka-user-content','paseka-shell-user-content',
-  'paseka-shell-v317-user-backup','paseka-shell-v319','paseka-shell-v99999999999999999999999']){
+  'paseka-shell-v317-user-backup','paseka-shell-v320','paseka-shell-v99999999999999999999999']){
   assert.equal(h.buckets.has(cache),true,'do not delete unrelated/user/future cache '+cache);
  }
  assert.equal(h.calls.claimed,1);
@@ -127,8 +127,8 @@ test('B11 rejected cache deletion prevents clients.claim and leaves user caches 
 
 test('B11 activation refuses to remove misleading numeric names and leaves future versions alone',async()=>{
  const h=harness();
- const protectedNames=['paseka-shell-v0317','paseka-shell-v0','paseka-shell-v318',
-  'paseka-shell-v319','paseka-shell-v317-extra','paseka-shell-v317.0',
+ const protectedNames=['paseka-shell-v0317','paseka-shell-v0','paseka-shell-v319',
+  'paseka-shell-v320','paseka-shell-v317-extra','paseka-shell-v317.0',
   'paseka-shell-v-317','paseka-shell-v9999999999999999999999'];
  for(const name of protectedNames)h.buckets.set(name,new Map([['private','unchanged']]));
  h.buckets.set('paseka-shell-v1',new Map());
@@ -141,7 +141,7 @@ test('B11 activation refuses to remove misleading numeric names and leaves futur
 test('B11 incomplete shell installation rejects before skipWaiting and preserves older cache',async()=>{
  const h=harness();
  h.buckets.set('paseka-shell-v317',new Map([['legacy','persistent']]));
- h.setResponseOverride(url=>url.endsWith('index.html')?{ok:false,type:'basic',headers:{get:()=>''}}:h.publicResponse(url));
+ h.setResponseOverride(url=>url.endsWith('index.html')?{ok:false,status:404,type:'basic',headers:{get:()=>''}}:h.publicResponse(url));
  await assert.rejects(h.lifecycle('install'),/Offline shell install blocked/);
  assert.equal(h.calls.skipWaiting,0);
  assert.equal(h.buckets.has('paseka-shell-v317'),true);
@@ -151,7 +151,7 @@ test('B11 private or no-store shell response cannot activate a new worker',async
  for(const directive of ['private, max-age=60','no-store']){
   const h=harness();
   h.setResponseOverride(url=>url.endsWith('index.html')
-   ?{ok:true,type:'basic',headers:{get:()=>directive}}
+   ?{ok:true,status:200,type:'basic',headers:{get:()=>directive}}
    :h.publicResponse(url));
   await assert.rejects(h.lifecycle('install'),/Offline shell install blocked/);
   assert.equal(h.calls.skipWaiting,0);

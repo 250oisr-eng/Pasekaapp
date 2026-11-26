@@ -1,6 +1,6 @@
 // Only the versioned Paseka application shell may be cached offline.
-const CACHE='paseka-shell-v318';
-const CACHE_VERSION=318;
+const CACHE='paseka-shell-v319';
+const CACHE_VERSION=319;
 const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/p0-source-inventory.js','./js/disaster-archive.js'];
 const SCOPE=new URL(self.registration.scope);
 const SHELL_PATHS=new Set(FILES.map(file=>new URL(file,SCOPE).pathname));
@@ -14,8 +14,10 @@ function isObsoleteShellCache(name){
   return Number.isSafeInteger(version) && version<CACHE_VERSION;
 }
 
+// A 204/206 response is 'ok' but incomplete for an offline JS/HTML asset.
+// Only full, unrestricted HTTP 200 responses can become shell resources.
 function cacheableResponse(response){
-  return response.ok &&
+  return response.status===200 && response.ok &&
     (response.type==='basic'||response.type==='default') &&
     !/\b(?:no-store|private)\b/i.test(response.headers?.get('cache-control')||'');
 }
