@@ -27,6 +27,8 @@
 
 - **B05 #519 selective port in Draft:** local single-alias keytool metadata parser with fail-closed synthetic tests and `.gitignore` for secrets, no key access/device installation. Pending exact-head CI. B05 remains BLOCKED; historical #519 retained until port merged.
 
+- **B05 #520 selective port pending CI:** read-only comparison of audited CI Debug APK public signer against explicit supplied public reference, without implying current OnePlus certificate, safe installation, private key or rollback; existing artifact workflow remains unchanged. #520 source kept open until proven merge.
+
 ## Следующий конкретный шаг
 
 После #579 и синхронизации индексированного реестра разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
