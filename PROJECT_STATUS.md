@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified source main `4eed81f328cff7541333f28a4d189e89c561c64b` after #591.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · verified main `72cd8279d0f1cdcfa06fd84594845d31132abe31` after #593.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
