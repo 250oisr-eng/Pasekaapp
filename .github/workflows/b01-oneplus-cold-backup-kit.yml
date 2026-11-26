@@ -67,6 +67,26 @@ jobs:
           if($raw.status -ne 'BLOCKED' -or $raw.originalsDeleted -ne $false -or
              $raw.installedApplicationChanged -ne $false){throw 'BAD_STOP_REPORT'}
           $global:LASTEXITCODE=0
+      - name: Regression smoke on Windows PowerShell 5.1 (nonzero exit is handled)
+        shell: pwsh
+        run: |
+          $exe=(Resolve-Path './oneplus-usb-backup-kit/node.exe').Path
+          $source=(Resolve-Path './oneplus-usb-backup-kit/scripts/backup-oneplus-cold-sandbox.mjs').Path
+          $ps5 = @'
+          $ErrorActionPreference='Stop'
+          $output = & $env:TEST_NODE $env:TEST_SCRIPT
+          $code=$LASTEXITCODE
+          if($code -ne 1){ throw 'EXPECTED_BLOCKED_EXIT' }
+          $json=($output -join "`n") | ConvertFrom-Json
+          if($json.status -ne 'BLOCKED' -or $json.code -ne 'INVALID_ARGUMENTS'){throw 'BAD_ERROR_REPORT'}
+          exit 0
+          '@
+          $env:TEST_NODE=$exe
+          $env:TEST_SCRIPT=$source
+          $scriptFile=Join-Path $env:RUNNER_TEMP 'paseka-ps51-smoke.ps1'
+          [IO.File]::WriteAllText($scriptFile,$ps5,[Text.UTF8Encoding]::new($false))
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $scriptFile
+          if($LASTEXITCODE -ne 0){throw 'WINDOWS_PS51_NATIVE_COMMAND_ERROR_REGRESSION'}
       - name: Upload private-local kit (no user data)
         uses: actions/upload-artifact@v4
         with:
