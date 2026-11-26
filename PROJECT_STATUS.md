@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · audit N baseline `fcf735e121d7c9916ab85d5482256bcf5f205dbf`; docs-only #589 MERGED at `a55aa97633e2a79195de2de1768c46a462192262`.** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
+**27.11.2026 · verified source main `4eed81f328cff7541333f28a4d189e89c561c64b` after #591.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -31,14 +31,14 @@
 
 - **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
 
-- **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: три адресных aria-label для ульев; общий Enter/Space уже работал. Exact head `7e48cd5da1ae264d8b42439bbd94c18628a9249d`, Android #45892005602 и Governance #45892005533 **SUCCESS**. **#187 OPEN/PARTIALLY_PORTED**, редизайн не переносился; физическая accessibility НЕ ПРОВЕРЕНА.
+- **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: 3 адресных aria-label для ульев; Android/Governance SUCCESS. Исторический #187 OPEN/PARTIALLY_PORTED; остальной UI/Playwright не интегрирован.
 
 - **Root review N, MERGED #589:** [33-source patch line inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md) and [machine inventory](docs/PR-AUDIT-LINE-SCAN-2026-11-26-N.json). Exactly 33 root PRs live-state/HEAD checked; 30 OPEN Draft / 3 CLOSED without merge; 407 returned file patches, +36,512 / −312 lines mechanically scanned, no missing returned per-file patches. Human exhaustive review / exact-head CI for every root **NOT_DONE**, not an automatic merge approval. #1/#157 unsafe media deletion HOLD; #14/#168 legacy store clears and #543 optional OnePlus force-stop highlighted. #589 менял только документацию; runtime не изменён.
 
-- **#591 Draft P1 frame strip (#187):** 3 рендера 0/1/6/10, exact SHA `cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531`. Android #45894814279: Node 994/994, APK/signer SUCCESS; Governance #45894814269 SUCCESS. IndexedDB/SW без изменений; браузер/OnePlus NOT_TESTED, не merged.
+- **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 OPEN/PARTIALLY_PORTED, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
 
 ## Следующий конкретный шаг
 
-По root audit N: не объединять старые корни целиком; для #187 оценить безопасные оставшиеся browser/Playwright регрессии или следующий независимый корневой P1 код по фактическому main; не вносить устаревший HTML целиком. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
+После #591: в историческом #187 проверять оставшиеся пользовательские сценарии UI/Playwright только относительно live `main`, не переносить inline `onkeydown` и honeycomb без регрессий. Исторический #188 закрыт как устаревшие правила координации; его ветка сохранена. Другие root/stacked не объединять массово: #157/#1 cleanup FROZEN, #14/#168 archive restore BLOCKED. Действия по B01/B04/B05/B07 требуют отдельных доказательств, не Android CI.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
