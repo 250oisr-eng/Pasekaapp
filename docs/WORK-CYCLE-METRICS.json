@@ -516,5 +516,38 @@
     "liveHistoricalStacked": 358,
     "liveCensusFile": "docs/PR-AUDIT-LIVE-CENSUS-2026-11-26.json",
     "fullSemanticReviewsOfAllOpen": false
+  },
+  "prAuditCycleF20261126": {
+    "lastVerifiedMainSha": "4c0d9b9093ee613d2befcf05e7c5e4b6efb5c8c5",
+    "openPrCensusCount": 397,
+    "historicalMainBased": 39,
+    "historicalStacked": 358,
+    "census": "docs/PR-AUDIT-LIVE-CENSUS-2026-11-26-F.json",
+    "newMergedPrs": [
+      566,
+      567,
+      568
+    ],
+    "newMergeShas": [
+      "3b42923c70ac808d41090f167a4747d865cf77b8",
+      "af22d2ba5d54ab07b89ab9276388406e4eda9cd3",
+      "4c0d9b9093ee613d2befcf05e7c5e4b6efb5c8c5"
+    ],
+    "exactHeadAndroidCiSuccess": [
+      45879582136,
+      45879689725,
+      45880155202
+    ],
+    "newClosedSupersededPrs": [
+      41,
+      52,
+      170,
+      175
+    ],
+    "fullSemanticReviewsOfAllOpen": false,
+    "postMergePushCi": "NOT_VERIFIED",
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0,
+    "cleanupAuthorized": false
   }
 }
