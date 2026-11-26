@@ -10,6 +10,8 @@ import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-col
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
 import {classifyPidof,classifyPs} from '../scripts/oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from '../scripts/oneplus-strict-base64.mjs';
+import {encodedShellArgs,classifyEncodedProbe} from '../scripts/oneplus-encoded-shell.mjs';
+import {inspectEncodedShell} from '../scripts/probe-oneplus-encoded-shell.mjs';
 import {Readable} from 'node:stream';
 
 test('strict parsing prevents arguments that could become ADB options',()=>{
@@ -71,12 +73,12 @@ if(tail==='shell run-as ru.paseka.journal pwd'){
 if(tail==='shell run-as ru.paseka.journal ls -ld app_webview'){
  process.stdout.write('drwx app_webview\\n');process.exit(0);
 }
-if(tail==='exec-out run-as ru.paseka.journal sh -c set -o pipefail; printf PASEKA_BASE64_PROBE_V1 | base64'){
+if(tail==="exec-out run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; printf PASEKA_BASE64_PROBE_V1 | base64'"){
  if(mode==='probe_corrupt'){process.stdout.write('BROKEN');process.exit(0);}
  if(mode==='probe_denied'){process.exit(1);}
  process.stdout.write(Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64')+'\\n');process.exit(0);
 }
-if(tail==='exec-out run-as ru.paseka.journal sh -c set -o pipefail; tar -cf - . | base64'){
+if(tail==="exec-out run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; tar -cf - . | base64'"){
  if(mode==='tar_fail') {process.stderr.write('private/internal/file/name');process.exit(4);}
  if(mode==='tar_tiny') {process.stdout.write(Buffer.from('short').toString('base64'));process.exit(0);}
  if(mode==='tar_partial_failure') {
@@ -488,4 +490,47 @@ test('encoded transport preflight is read-only and refuses mismatch before any T
  }finally{
   if(old===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=old;
  }
+});
+
+test('ADB remote exec-out preserves quoted complete sh -c as one argument',()=>{
+ const probe=encodedShellArgs('NE2213','probe');
+ const archive=encodedShellArgs('NE2213','archive');
+ assert.match(probe.at(-1),/^'set -o pipefail; test -d app_webview/);
+ assert.match(probe.at(-1),/base64'$/);
+ assert.match(archive.at(-1),/^'set -o pipefail; test -d app_webview/);
+ assert.match(archive.at(-1),/tar -cf - \. \| base64'$/);
+ assert.equal(archive[archive.length-2],'-c');
+ assert.equal(archive.filter(x=>x==='tar').length,0);
+ assert.throws(()=>encodedShellArgs('NE2213;rm -rf /','archive'),/INVALID_DEVICE_SERIAL/);
+ assert.throws(()=>encodedShellArgs('NE2213','other'),/INVALID_ENCODED_COMMAND/);
+});
+test('read-only quoted Android shell probe reports safe measurements and never TAR',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const saved=process.env.FAKE_ADB_MODE;
+ try{
+  process.env.FAKE_ADB_MODE='ok';
+  const success=await inspectEncodedShell({adb:f.stub});
+  assert.equal(success.status,'PASS');
+  assert.equal(success.privateDataRead,false);
+  assert.equal(success.backupAttempted,false);
+  assert.deepEqual(await readdir(f.dest),[]);
+  for(const [mode,reason] of [['probe_corrupt','BASE64_PREFLIGHT_NON_BASE64_OUTPUT'],
+                               ['probe_denied','BASE64_PREFLIGHT_COMMAND_FAILED']]){
+   process.env.FAKE_ADB_MODE=mode;
+   const bad=await inspectEncodedShell({adb:f.stub});
+   assert.equal(bad.status,'BLOCKED');
+   assert.equal(bad.reason,reason);
+   assert.equal(bad.backupAttempted,false);
+   assert.deepEqual(await readdir(f.dest),[]);
+  }
+ }finally{
+  if(saved===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved;
+ }
+});
+test('safe classification reports only shape and never echoes probe output',()=>{
+ const result=classifyEncodedProbe({code:0,output:'NOT PRIVATE/USER/PATH??'});
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.reason,'BASE64_PREFLIGHT_NON_BASE64_OUTPUT');
+ assert.equal(result.privateDataRead,false);
+ assert.equal(JSON.stringify(result).includes('PRIVATE/USER/PATH'),false);
 });
