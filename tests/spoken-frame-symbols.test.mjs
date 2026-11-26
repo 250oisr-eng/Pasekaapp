@@ -43,3 +43,15 @@ test('unusable qualifiers and incomplete codes keep the full transcript unresolv
     assert.ok(result.issues.length, tail);
   }
 });
+
+
+test('singular spoken frame and label-code commands create only a preview, never a physical change',()=>{
+ for(const prefix of ['Добавь рамку ','Запиши код рамки ','Внеси код рамки ']){
+  const command=voice.parseReconciliationVoiceCommand(prefix+'буква К буква М цифра 2');
+  assert.equal(command.type,'append_codes');
+  assert.deepEqual(voice.normalizeSpokenFrameCodes(command.codes).codes,['КМ2']);
+ }
+ for(const phrase of ['Удали рамку КМ2','Сними рамку КМ2','Добавь корпус КМ2']){
+  assert.equal(voice.parseReconciliationVoiceCommand(phrase).type,'ignore');
+ }
+});
