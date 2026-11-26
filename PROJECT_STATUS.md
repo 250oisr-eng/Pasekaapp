@@ -37,3 +37,7 @@
 3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный CI не равен физическому испытанию.
+
+## Голосовая сверка рамок · Work 26.11.2026
+
+Ветка `work/spoken-frame-symbols`, IMPLEMENTED_DRAFT. Команда «добавь рамки буква К буква М цифра 2» даёт КМ2 в предварительном просмотре. 36/36 целевых тестов. Фактическое распознавание микрофоном NOT_TESTED. Следующий шаг — review.
