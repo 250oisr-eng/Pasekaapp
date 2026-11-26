@@ -263,5 +263,13 @@
     "device": "NOT_TESTED",
     "ci": "PENDING",
     "merged": false
+  },
+  "workSpokenFramesIntegration20261126": {
+    "codeSha": "411e257a80231438096fa786aabe7de94b9e6647",
+    "targetedTestsPassed": null,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED",
+    "ci": "PENDING",
+    "merged": false
   }
 }
