@@ -1,5 +1,6 @@
 import {spawn} from 'node:child_process';
-import {open,stat,lstat,realpath,rename,writeFile} from 'node:fs/promises';
+import {open,lstat,realpath,rename,writeFile} from 'node:fs/promises';
+import {createWriteStream} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {Transform} from 'node:stream';
@@ -66,11 +67,10 @@ async function verifyTar(archivePath){
  return {entries:lines.length,indexedDbPresent:indexedDb};
 }
 async function streamArchive(command,serial,output){
- const file=await open(output,'wx',0o600);
  let child=null,total=0;
  const sha=createHash('sha256');
  try{
-  const stream=file.createWriteStream({autoClose:false});
+  const stream=createWriteStream(output,{flags:'wx',mode:0o600});
   child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'tar','-cf','-','.']),{
     shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']
   });
@@ -88,11 +88,11 @@ async function streamArchive(command,serial,output){
   await pipeline(child.stdout,tap,stream);
   const exit=await done;
   if(exit!==0||stderrBytes>MAX_CAPTURE||total<1024||total%512!==0)throw Error('DEVICE_TAR_EXPORT_FAILED');
-  await file.sync();
+  const synced=await open(output,'r');
+  try{await synced.sync();}finally{await synced.close();}
   return {bytes:total,sha256:sha.digest('hex')};
  }finally{
   if(child&&!child.killed&&child.exitCode===null)child.kill();
-  await file.close();
  }
 }
 export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}={}){
