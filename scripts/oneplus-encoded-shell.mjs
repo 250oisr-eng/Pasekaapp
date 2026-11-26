@@ -34,4 +34,16 @@ export function classifyEncodedProbe({code,output='',overflow=false,stderrBytes=
 
 // Exactly one deterministic public preflight is required; no diagnostic
 // command matrix and no guess-based fallback to a different transport.
+// Guard against legacy Windows adb that forwards shell -T into the remote
+// command, seen as a "chvt: can't find tty" response with an exit of zero.
+// Official Platform-Tools adb 1.0.41+ is required before any device reads.
+export function isModernAdbClient(output){
+ const m=/Android Debug Bridge version\s+(\d+)\.(\d+)\.(\d+)/i.exec(output||'');
+ if(!m)return false;
+ const [major,minor,patch]=m.slice(1).map(Number);
+ return major>1 || (major===1&&(minor>0||(minor===0&&patch>=41)));
+}
+export function hasShellV2Feature(output){
+ return typeof output==='string' && output.split(/[,\s]+/).includes('shell_v2');
+}
 export {PACKAGE};
