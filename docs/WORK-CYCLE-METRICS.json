@@ -388,7 +388,7 @@
     "readyForMergeReview": true
   },
   "prPortfolioAudit20261126": {
-    "sourceMainSha": "ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f",
+    "sourceMainSha": "a5fcde50472a4ef6f4f304949865d62cce883eb7",
     "initialOpen": 417,
     "afterConfirmedSupersede": 413,
     "mainBasedReviewedFilePaths": 53,
@@ -434,6 +434,26 @@
     ],
     "frozenPrs": [
       543
+    ],
+    "newAfterSnapshot": [
+      {
+        "pr": 553,
+        "merged": true,
+        "mergeSha": "a5fcde50472a4ef6f4f304949865d62cce883eb7",
+        "scope": "isolated browser E2E only",
+        "codePrRuns": [
+          45874950849,
+          45874950845,
+          45874958477
+        ],
+        "originalE2eRun": 45873925029,
+        "postMergeRunIds": [
+          45875375812,
+          45875375765,
+          45875375725
+        ],
+        "device": "NOT_TESTED"
+      }
     ]
   }
 }
