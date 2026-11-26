@@ -12,7 +12,7 @@
 ## B09 · физический signer report ENOENT (26.11.2026)
 
 - Получен `ONEPLUS-DIAGNOSTIC-SIGNER-RESULT.json`: `BLOCKED/ENOENT`, установка не разрешена, `productionPackageTouched=false`, `noInstallNoOverwriteNoDelete=true`. Отчёт **не содержит стадии** и не позволяет утверждать, что отсутствует Java, ADB, APK или файл; сравнение сертификатов NOT_VERIFIED.
-- Минимальное исправление в существующем Draft #537: `inspect-diagnostic-signing.mjs` возвращает только `failedStage` из закрытого перечня и `LOCAL_EXECUTABLE_OR_FILE_NOT_FOUND` при `ENOENT`, без личных путей/serial/stack; тесты redaction. **Без нового отчёта причину не классифицировать.** Не устанавливать, не очищать и не менять APK.
+- Исправление в Draft #537: signer preflight возвращает allowlisted `failedStage`, санитизирует `ENOENT`/пути/serial/stack и самостоятельно ищет уже установленную Java (JAVA_HOME, Android Studio JBR, PATH), не скачивая ничего; добавлены регрессии. **Без нового отчёта причину не классифицировать.** Не устанавливать, не очищать и не менять APK.
 
 ## B09 · read-only тест подписи APK
 
