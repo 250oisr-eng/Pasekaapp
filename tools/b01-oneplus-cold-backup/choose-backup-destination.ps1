@@ -26,14 +26,29 @@ if(-not (Test-Path $node) -or -not (Test-Path $script)) {
  exit 1
 }
 Write-Host 'ONLY ONE phone must be authorized over ADB.'
-Write-Host 'Close Paseka normally on OnePlus before running. No force-stop/install/clear is performed.'
+Write-Host 'Close Paseka normally. A targeted force-stop can be explicitly approved in the next dialog.'
 Write-Host 'Do not upload the resulting TAR to GitHub or ChatGPT; it contains app-private data.'
 # The native Node runner intentionally returns exit 2 for any cold-file backup
 # because independent Android restoration has NOT been verified.
 # The Node runner always writes a sanitized JSON result to stdout.
 # Avoid 2>&1: Windows PowerShell 5.1 turns native stderr on nonzero exit
 # into a terminating NativeCommandError under ErrorActionPreference=Stop.
-$lines = & $node $script --dest $folder.SelectedPath
+# Explicit consent is required before sending the fixed-package Android
+# force-stop command. Declining keeps the original read-only behavior.
+$question = 'Allow ADB to stop ONLY ru.paseka.journal if Android still shows it running? This can discard unsaved actions. It does NOT clear saved data, install APKs or delete files. Save all current work in Paseka before choosing Yes.'
+$choice = [System.Windows.Forms.MessageBox]::Show(
+ $question,'Optional stop before backup',
+ [System.Windows.Forms.MessageBoxButtons]::YesNo,
+ [System.Windows.Forms.MessageBoxIcon]::Warning,
+ [System.Windows.Forms.MessageBoxDefaultButton]::Button2
+)
+if($choice -eq [System.Windows.Forms.DialogResult]::Yes){
+ Write-Host 'Force-stop permission: YES, only if Paseka process is currently running.'
+ $lines = & $node $script --dest $folder.SelectedPath --allow-force-stop
+}else{
+ Write-Host 'Force-stop permission: NO. Running processes will block the backup.'
+ $lines = & $node $script --dest $folder.SelectedPath
+}
 $code=$LASTEXITCODE
 $report=($lines | ForEach-Object {$_.ToString()}) -join "`n"
 try{
@@ -56,7 +71,8 @@ if($code -eq 2 -and $status -eq 'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTE
   'ADB_NO_DEVICE' { Write-Host 'No connected authorized phone found: check USB cable and USB debugging.' }
   'ADB_MULTIPLE_DEVICES' { Write-Host 'More than one Android device is connected. Disconnect other devices.' }
   'ADB_DEVICE_UNAUTHORIZED' { Write-Host 'Unlock OnePlus and accept the USB debugging authorization prompt.' }
-  'APP_MUST_BE_STOPPED_MANUALLY' { Write-Host 'The Paseka process is running. Close the app normally, then retry.' }
+  'APP_MUST_BE_STOPPED_MANUALLY' { Write-Host 'Paseka is still active or restarts; copy blocked. Do not clear data.' }
+  'ADB_FORCE_STOP_FAILED' { Write-Host 'The explicitly approved targeted stop was rejected; copy blocked.' }
   'RUN_AS_UNAVAILABLE' { Write-Host 'The installed app does not permit run-as. Do not uninstall it or clear data.' }
   'WEBVIEW_DIRECTORY_NOT_ACCESSIBLE' { Write-Host 'Private WebView directory not accessible. No backup was created.' }
   'DESTINATION_NOT_CANONICAL' { Write-Host 'Use a normal local folder directly, not a symbolic link or alias.' }
