@@ -549,5 +549,22 @@
     "physicalDevice": "NOT_TESTED",
     "productionActions": 0,
     "cleanupAuthorized": false
+  },
+  "prAuditCycleG20261126": {
+    "sourceMainSha": "10a77e046d1120d7f8286cd6cdbb3cb8348c99b7",
+    "journalDraftPr": 570,
+    "journalDraftSha": "267253f55d166d34783cdfd4188f6933e9398e1f",
+    "journalInitialFailedRun": 45882146183,
+    "journalFixedAndroidSuccess": 45882313294,
+    "journalNodeTestsPassed": 941,
+    "journalNodeTestsFailed": 0,
+    "journalMainIntegration": "MERGED_5abcf8e78e22cfeb3550cb2540955412740a64be",
+    "startupGuardHistoricPr": 8,
+    "startupGuardRisk": "P0_CONFIRMED_GAP_PREVIOUS_USE_MARKER",
+    "startupGuardIntegration": "NOT_IMPLEMENTED",
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0,
+    "unapprovedMerges": 0,
+    "journalMergeSha": "5abcf8e78e22cfeb3550cb2540955412740a64be"
   }
 }
