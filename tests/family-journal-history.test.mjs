@@ -34,3 +34,31 @@ test('hive summary compares only inspections of the same identified family',()=>
  render(()=>host,'h',{records},()=>null,String);
  assert.doesNotMatch(host.innerHTML,/рамок \([+-]/);
 });
+
+test('family card opens only a unique, live, correctly linked record, never arbitrary duplicate IDs',()=>{
+ const start=html.indexOf('function openFamilyHistoryRecord(');
+ const source=html.slice(start,html.indexOf('function renderFamilyHistory()',start));
+ const records=[{id:'valid',family:'a',hive:'h'}, {id:'archived',family:'a',hive:'h',archivedAt:'2026-04-11'},
+  {id:'other',family:'b',hive:'h'}, {id:'old-hive',family:'a',hive:'missing'},
+  {id:'mismatch',family:'a',familySnapshotAtTime:{id:'b'},hive:'h'}];
+ const opened=[],warnings=[];
+ let rerenders=0;
+ const host={dataset:{familyId:'a'}};
+ const run=new Function('$','S','renderFamilyHistory','alert','editRecord','familyJournalHistory',
+  source+';return openFamilyHistoryRecord')(
+    () => host, {records,hives:[{id:'h'}],families:[{id:'a'}]},
+    () => {rerenders++;}, text=>warnings.push(text),id=>opened.push(id),history);
+ run('valid');
+ for(const id of ['archived','other','old-hive','mismatch','unknown',''])run(id);
+ assert.deepEqual(opened,['valid']);
+ assert.equal(warnings.length,6);
+ records.push({id:'valid',family:'a',hive:'h',text:'conflicting legacy duplicate'});
+ run('valid');
+ assert.deepEqual(opened,['valid'],'duplicate ID must not open arbitrary first match');
+ assert.equal(warnings.length,7);
+ assert.equal(rerenders,7);
+});
+test('family card preserves #599 direct search and inventory navigation',()=>{
+ assert.match(html,/const matches=S\\.records\\.filter\\(r=>r\\.id===id\\)/);
+ assert.match(html,/openEquipmentInventory\\(button\\.dataset\\.id\\)/);
+});

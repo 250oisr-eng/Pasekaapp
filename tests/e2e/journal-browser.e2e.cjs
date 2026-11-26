@@ -69,6 +69,26 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#recordDlg').waitFor({state:'hidden'});
     assert.equal(await page.locator('#records .journal-entry').filter({hasText:note}).count(),1,
       'new inspection should be visible exactly once');
+    // Two saved records have the same type, date, hive and search term.
+    await page.locator('#journal').getByRole('button',{name:'＋ Запись'}).click();
+    await page.locator('#rtype').selectOption({label:'Осмотр'});
+    const secondText='Второй осмотр · '+note;
+    await page.locator('#rtext').fill(secondText);
+    await page.locator('#recordForm button.primary').click();
+    await page.locator('#recordDlg').waitFor({state:'hidden'});
+    await page.locator('button[data-tab="home"]').click();
+    await page.locator('#globalSearch').fill(note);
+    const matches=page.locator('#globalSearchResults [data-kind="record"]');
+    assert.equal(await matches.count(),2);
+    const selected=matches.filter({hasText:secondText});
+    const selectedId=await selected.getAttribute('data-id');
+    await selected.click();
+    assert.equal(await page.locator('#recordId').inputValue(),selectedId);
+    assert.equal(await page.locator('#rtext').inputValue(),secondText);
+    await page.keyboard.press('Escape');
+    await page.locator('#recordDlg').waitFor({state:'hidden'});
+    assert.equal(await page.locator('#globalSearch').inputValue(),note);
+    assert.equal(await matches.count(),2);
     const capture=()=>page.evaluate(()=>({
       hives:S.hives.map(h=>h.id),
       families:S.families.map(f=>({id:f.id,hive:f.hive})),
@@ -86,8 +106,10 @@ async function journey(browser,origin,name,viewport){
     await page.locator('button[data-tab="journal"]').click();
     const after=await capture();
     assert.deepEqual(after,before,'hive/family/inspection changed after real reload');
-    assert.equal(await page.locator('#records .journal-entry').filter({hasText:note}).count(),1,
+    assert.equal(await page.locator('#records .journal-entry-text').filter({hasText:secondText}).count(),1);
+    assert.equal(await page.getByText(note,{exact:true}).and(page.locator('#records .journal-entry-text')).count(),1,
       'saved inspection is duplicated or not visible after reload');
+    // Integration: #599 keeps exact global search links; #598 adds the family timeline.
     await page.locator('button[data-tab="hives"]').click();
     await page.locator('.hive-row-main').first().click();
     await page.getByRole('button',{name:'Карточка семьи',exact:true}).click();
@@ -97,7 +119,8 @@ async function journey(browser,origin,name,viewport){
     await card.locator('#familyHistoryDate').fill('2000-01-01');
     assert.equal(await card.locator('article').count(),0);
     await card.locator('#familyHistoryDate').fill('');
-    assert.equal(await card.locator('article').filter({hasText:note}).count(),1);
+    assert.equal(await card.locator('article').filter({hasText:note}).count(),1,
+      'family history must include only the record linked to the family ID');
     await card.getByRole('button',{name:'Открыть запись'}).click();
     assert.equal(await page.locator('#rtext').inputValue(),note);
     await page.keyboard.press('Escape');
@@ -105,7 +128,7 @@ async function journey(browser,origin,name,viewport){
     assert.equal(await card.locator('#familyHistoryType').inputValue(),'Осмотр');
     await card.getByRole('button',{name:'Вернуться к улью'}).click();
     await page.locator('#selectedHivePanel').waitFor({state:'visible'});
-    assert.deepEqual(await capture(),before);
+    assert.deepEqual(await capture(),before,'history navigation mutated journal data');
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',
       viewport:name,status:'PASS',source:'local-Chromium-real-IndexedDB',

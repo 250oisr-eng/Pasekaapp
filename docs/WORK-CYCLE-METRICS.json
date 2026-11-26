@@ -1,9 +1,13 @@
 {
-  "familyHistory20261127": {"browserViewportsPassed":2,"device":"NOT_TESTED"},
   "schemaVersion": 1,
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
+  "inventorySearch20261127": {
+    "journalSearchViewports": 2,
     "device": "NOT_TESTED",
     "completedVerifiedUserScenarios": 0
   },
@@ -966,5 +970,12 @@
     "integration": "IN_MAIN",
     "publication": "NOT_RELEASED",
     "postMergeRuntimeInspection": "LABELS_ACTIVE_NAV_CAPTIONS_VERIFIED"
+  },
+  "familyHistory20261127": {
+    "previousBranchBrowserViewportsPassed": 2,
+    "integratedBrowserViewportsPassed": null,
+    "device": "NOT_TESTED",
+    "mergeState": "DRAFT",
+    "notes": "#598 merged main #599 into branch; exact-head checks pending, no physical proof"
   }
 }
