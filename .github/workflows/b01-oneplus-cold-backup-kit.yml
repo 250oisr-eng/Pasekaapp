@@ -78,6 +78,7 @@ jobs:
           Copy-Item 'scripts/inspect-oneplus-partial-tar.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'tools/b01-oneplus-cold-backup/RUN-ONEPLUS-BACKUP.cmd' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/choose-backup-destination.ps1' 'oneplus-usb-backup-kit/'
+          Copy-Item 'tools/b01-oneplus-cold-backup/GET-OFFICIAL-ADB.txt' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/DIAGNOSE-ONEPLUS-READONLY.cmd' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/run-diagnosis.ps1' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/PROBE-BASE64-READONLY.cmd' 'oneplus-usb-backup-kit/'
@@ -106,7 +107,7 @@ jobs:
             [ref]$tokens,[ref]$errors)
           if($errors.Count -ne 0){throw 'PARTIAL_AUDIT_PS_PARSE_FAILED'}
           $items=@(Get-ChildItem 'oneplus-usb-backup-kit' -Recurse -File)
-          $expected=@('node.exe','RUN-ONEPLUS-BACKUP.cmd','choose-backup-destination.ps1',
+          $expected=@('node.exe','RUN-ONEPLUS-BACKUP.cmd','choose-backup-destination.ps1','GET-OFFICIAL-ADB.txt',
              'DIAGNOSE-ONEPLUS-READONLY.cmd','run-diagnosis.ps1',
              'PROBE-BASE64-READONLY.cmd','run-encoded-shell-probe.ps1',
              'INSPECT-EXISTING-PARTIAL.cmd','inspect-existing-partial.ps1',
