@@ -71,6 +71,11 @@ if(tail==='shell run-as ru.paseka.journal pwd'){
 if(tail==='shell run-as ru.paseka.journal ls -ld app_webview'){
  process.stdout.write('drwx app_webview\\n');process.exit(0);
 }
+if(tail==='exec-out run-as ru.paseka.journal sh -c printf PASEKA_BASE64_PROBE_V1 | base64'){
+ if(mode==='probe_corrupt'){process.stdout.write('BROKEN');process.exit(0);}
+ if(mode==='probe_denied'){process.exit(1);}
+ process.stdout.write(Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64')+'\\n');process.exit(0);
+}
 if(tail==='exec-out run-as ru.paseka.journal sh -c set -o pipefail; tar -cf - . | base64'){
  if(mode==='tar_fail') {process.stderr.write('private/internal/file/name');process.exit(4);}
  if(mode==='tar_tiny') {process.stdout.write(Buffer.from('short').toString('base64'));process.exit(0);}
@@ -468,4 +473,19 @@ test('numbered BASE64 errors are reported in Windows CLI rather than generic DEV
  assert.match(code,/\^\[A-Z\]\[A-Z0-9_\]\*\$/);
  assert.match(ps,/Base64 input bytes:/);
  assert.match(ps,/Base64 failure reason:/);
+});
+
+test('encoded transport preflight is read-only and refuses mismatch before any TAR file',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const old=process.env.FAKE_ADB_MODE;
+ try{
+  for(const [mode,expected] of [['probe_corrupt','BASE64_PREFLIGHT_MISMATCH'],['probe_denied','BASE64_PREFLIGHT_COMMAND_FAILED']]){
+   process.env.FAKE_ADB_MODE=mode;
+   await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),err=>err.message===expected);
+   assert.deepEqual(await readdir(f.dest),[]);
+  }
+  assert.deepEqual(await readFile(f.original),f.payload);
+ }finally{
+  if(old===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=old;
+ }
 });
