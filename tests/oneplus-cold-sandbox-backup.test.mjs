@@ -446,11 +446,26 @@ test('simulated invalid encoded ADB TAR is never promoted into a backup',{skip:p
  const old={mode:process.env.FAKE_ADB_MODE,private:process.env.FAKE_PRIVATE_DIR};
  try{
   process.env.FAKE_ADB_MODE='base64_bad';process.env.FAKE_PRIVATE_DIR=f.src;
-  await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),/BASE64_TRANSPORT_INVALID/);
+  await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),err=>{
+   assert.equal(err.message,'BASE64_TRANSPORT_INVALID');
+   assert.ok(err.safeEvidence.encodedBytes>0);
+   assert.equal(err.safeEvidence.transferredBytes,0);
+   assert.equal(err.safeEvidence.transportReason,'BASE64_TRANSPORT_INVALID_CHAR');
+   assert.ok(!JSON.stringify(err.safeEvidence).includes('private'));
+   return true;
+  });
   assert.ok((await readdir(f.dest)).every(x=>x.endsWith('.partial')));
   assert.deepEqual(await readFile(f.original),f.payload);
  }finally{
   if(old.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=old.mode;
   if(old.private===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=old.private;
  }
+});
+
+test('numbered BASE64 errors are reported in Windows CLI rather than generic DEVICE_BACKUP_BLOCKED',async()=>{
+ const code=await readFile(new URL('../scripts/backup-oneplus-cold-sandbox.mjs',import.meta.url),'utf8');
+ const ps=await readFile(new URL('../tools/b01-oneplus-cold-backup/choose-backup-destination.ps1',import.meta.url),'utf8');
+ assert.match(code,/\^\[A-Z\]\[A-Z0-9_\]\*\$/);
+ assert.match(ps,/Base64 input bytes:/);
+ assert.match(ps,/Base64 failure reason:/);
 });
