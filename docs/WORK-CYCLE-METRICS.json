@@ -205,13 +205,54 @@
         {
           "id": 45855002315,
           "conclusion": "success"
+        },
+        {
+          "id": 45856804420,
+          "conclusion": "success"
+        },
+        {
+          "id": 45856804305,
+          "conclusion": "success"
+        },
+        {
+          "id": 45856804426,
+          "conclusion": "success"
         }
       ],
       "repeatedDocumentReads": null,
       "trackedBlockersAtStart": 4,
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 0,
-      "scenariosEvidence": "Production IDB transaction functions + synthetic close/reopen, real entrance_media Blob retained; no real user backup, physical quota or device proof.",
+      "scenariosEvidence": "Production IDB transaction functions + synthetic close/reopen, real entrance_media Blob retained; no real user backup, physical quota or device proof. PR #538 merged to main d74e5eb8 after owner approval. Separate low-storage UX feature CANCELLED; existing atomic safety retained; no physical user quota test.",
+      "cycleClassification": "IN_MAIN_SYNTHETIC_PROOF_NOT_REAL_USER_COMPLETION"
+    },
+    {
+      "id": "p1-entrance-video-refresh-main-synced-20261126",
+      "codeSha": "8628da0df246a24aaa1b3be5fe079a9c055b2547",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/514",
+      "ciRuns": [
+        {
+          "id": 45857550313,
+          "conclusion": "success"
+        },
+        {
+          "id": 45857560393,
+          "conclusion": "success"
+        },
+        {
+          "id": 45857550096,
+          "conclusion": "success"
+        },
+        {
+          "id": 45857560542,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Six synthetic UI/race/XSS tests and exact main-integrated CI PASS; no real OnePlus UI, media source or user files tested. Merge not authorized.",
       "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
     }
   ]
