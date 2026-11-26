@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-cold-sandbox.mjs';
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
+import {classifyPidof,classifyPs} from '../scripts/oneplus-process-probe.mjs';
 
 test('strict parsing prevents arguments that could become ADB options',()=>{
  assert.deepEqual(parseArgs(['--dest','E:\\Backup']),{dest:'E:\\Backup',allowForceStop:false});
@@ -45,8 +46,13 @@ if(args[0]==='devices') {
 }
 if(args[0]!=='-s'||args[1]!=='NE2213')process.exit(51);
 const tail=args.slice(2).join(' ');
-if(tail==='shell pidof ru.paseka.journal')process.exit(mode==='running' && (!marker||!fs.existsSync(marker))?0:1);
+if(tail==='shell pidof ru.paseka.journal')process.exit(mode==='running' && (!marker||!fs.existsSync(marker))?0:mode==='psfallback'?0:1);
+if(tail==='shell ps -A'){
+ if(mode==='psfallback'){process.stdout.write('USER PID PPID VSZ RSS WCHAN ADDR S NAME\\nuser 123 1 100 100 0 0 S another.app\\n');process.exit(0);}
+ process.exit(60);
+}
 if(tail==='shell ps -A -o NAME') {
+ if(mode==='psfallback')process.exit(1);
  process.stdout.write('NAME\\n'+(mode==='remote' && (!marker||!fs.existsSync(marker))?'ru.paseka.journal:remote\\n':''));process.exit(0);
 }
 if(tail==='shell am force-stop ru.paseka.journal'){
@@ -184,7 +190,7 @@ test('read-only process diagnosis reports two distinct signals without ADB mutat
   process.env.FAKE_ADB_MODE='remote';process.env.FAKE_STOP_MARKER=marker;
   const report=await diagnose({adb:f.stub,pauseMs:1});
   assert.equal(report.schema,'paseka-oneplus-process-readonly-diagnostic-v1');
-  assert.equal(report.status,'PROCESS_STATE_AMBIGUOUS');
+  assert.equal(report.status,'PROCESS_STATE_CONFLICT');
   assert.equal(report.first.pidof.state,'ABSENT');
   assert.equal(report.first.ps.state,'PRESENT');
   assert.equal(report.runAsAvailable,true);
@@ -218,4 +224,36 @@ test('diagnostic Windows kit never calls force-stop or archive',async()=>{
  assert.doesNotMatch(ps,/--allow-force-stop|pm clear|uninstall/i);
  assert.doesNotMatch(runner,/am','force-stop|exec-out|tar','-cf|writeFile|unlink/i);
  assert.match(ps,/diagnose-oneplus-process-readonly\.mjs/);
+});
+
+test('Android process output variants are parsed fail-closed',()=>{
+ assert.equal(classifyPidof({code:0,output:''}).reason,'EMPTY_SUCCESS');
+ assert.equal(classifyPidof({code:1,output:''}).state,'ABSENT');
+ assert.equal(classifyPidof({code:0,output:'15 22\n'}).state,'PRESENT');
+ assert.equal(classifyPidof({code:127,output:''}).state,'UNKNOWN');
+ assert.equal(classifyPs({code:1,output:''}).state,'UNKNOWN');
+ assert.equal(classifyPs({code:0,output:'NAME\nother.app\nru.paseka.journal:remote\n'},'names').state,'PRESENT');
+ assert.equal(classifyPs({code:0,output:'USER PID PPID VSZ RSS WCHAN ADDR S NAME\nu0_a42 123 1 99 99 0 0 S com.example.app\n'},'full').state,'ABSENT');
+ assert.equal(classifyPs({code:0,output:''},'full').state,'UNKNOWN');
+});
+
+test('Android toybox ps -o NAME unsupported and empty-success pidof: full ps fallback proves stopped safely',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const before={mode:process.env.FAKE_ADB_MODE,private:process.env.FAKE_PRIVATE_DIR};
+ try {
+   process.env.FAKE_ADB_MODE='psfallback';process.env.FAKE_PRIVATE_DIR=f.src;
+   const diag=await diagnose({adb:f.stub,pauseMs:1});
+   assert.equal(diag.status,'PROCESS_STATE_MEASURED');
+   assert.equal(diag.first.state,'ABSENT');
+   assert.equal(diag.first.pidof.reason,'EMPTY_SUCCESS');
+   assert.equal(diag.first.ps.state,'UNKNOWN');
+   assert.equal(diag.first.psFallback.state,'ABSENT');
+   const b=await runBackup(f.dest,{adbCommand:f.stub});
+   assert.equal(b.status,'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTED');
+   assert.equal(b.deviceForcedStopped,false);
+   assert.deepEqual(await readFile(f.original),f.payload);
+ }finally {
+  if(before.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=before.mode;
+  if(before.private===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=before.private;
+ }
 });
