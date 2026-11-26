@@ -189,15 +189,15 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-android-tar-transfer-disambiguation-20261126",
+    "id": "b01-existing-partial-tar-offline-audit-20261126",
     "pr": 543,
-    "source": "Actual owner Windows USB run: process preflight passes with force-stop NO, then DEVICE_TAR_EXPORT_FAILED",
-    "deviceBackupStatus": "BLOCKED_ANDROID_TAR_TRANSFER",
+    "source": "Real OnePlus Android TAR exit 0 stderr NONE transferredBytes=5122278, remainder512=230",
+    "deviceBackupStatus": "BLOCKED_ALIGNMENT_INVALID",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
     "ciRuns": [],
-    "notes": "Old generic failure split by Android tar exit, received bytes, stderr category (redacted); user device rerun required."
+    "notes": "New one-click local only structural TAR verifier for existing .partial file; zero new device accesses; no assumption of recoverable backup."
   }
 }
