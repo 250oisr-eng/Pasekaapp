@@ -1,0 +1,33 @@
+PASEKA 2.0 / B01: OFFICIAL GOOGLE ADB FOR WINDOWS
+
+The Windows backup kit intentionally DOES NOT redistribute Google's SDK.
+
+Why:
+The connected OnePlus reported:
+/system/bin/sh: chvt: can't find tty: run-as ru.paseka.journal ...
+with EXIT=0 after using "adb shell -T". This means the original
+public test command was not executed as intended. A stale/unsupported
+PC adb.exe is a likely explanation; its actual version was not captured.
+
+ONE-TIME SETUP
+1. Open https://developer.android.com/tools/releases/platform-tools
+2. Choose Download SDK Platform-Tools for Windows, read/accept Google's
+   SDK license and download the original ZIP from Google.
+3. Extract the WHOLE "platform-tools" directory inside the folder
+   containing RUN-ONEPLUS-BACKUP.cmd.
+
+Resulting paths:
+  <PASEKA KIT>\RUN-ONEPLUS-BACKUP.cmd
+  <PASEKA KIT>\platform-tools\adb.exe
+  <PASEKA KIT>\platform-tools\AdbWinApi.dll
+  <PASEKA KIT>\platform-tools\AdbWinUsbApi.dll
+
+Do not copy adb.exe alone. Do not remove any existing Android tools.
+The kit prioritizes this newly downloaded copy, then SDK ADB, then PATH.
+It checks the ADB version (>=1.0.41) and device shell_v2 feature
+BEFORE it can read app-private data, create TAR or force-stop Paseka.
+
+Next: keep OnePlus unlocked and USB authorized, save and close Paseka
+normally, select NO for optional force-stop, run RUN-ONEPLUS-BACKUP.cmd ONCE.
+If BLOCKED, stop and send only Failure code (never TAR or personal data).
+No APK install, phone data clear, original-video removal or production deploy.
