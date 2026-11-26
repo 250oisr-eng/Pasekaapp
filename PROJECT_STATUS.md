@@ -4,8 +4,8 @@
 
 ## 26.11.2026 — B01: реальный Android Shell v2 в CI, Draft #543
 
-- [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543): исправлено смешивание stdout/stderr и потеря удалённого exit у прежнего `adb exec-out`; используется `adb shell -T`, Shell v2, строгий Base64 и fail-closed TAR/SHA. Матрица из пяти shell-проб удалена.
-- **Точный code/test SHA `1fa485c32d6f5132ead092172c7c4fa8f7f87619`**: [USB kit Linux+Windows+Android 15 emulator #45831597099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099) SUCCESS; Fast #45831584331, Governance #45831597239, Android #45831597063/#45831584362 SUCCESS. Emulator **реально** подтвердил разделение stdout/stderr, remote exit 42 и public Base64; исходных данных нет. [Windows ZIP](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099/artifacts/15122283627) до 03.12.2026.
+- [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543): исправлено смешивание stdout/stderr и потеря удалённого exit у прежнего `adb exec-out`; используется `adb shell -T`, Shell v2, строгий Base64 и fail-closed TAR/SHA. Матрица проб удалена.
+- **Точный code/test SHA `1fa485c32d6f5132ead092172c7c4fa8f7f87619`**: [USB kit Linux+Windows+Android 15 emulator #45831597099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099) SUCCESS; Fast #45831584331, Governance #45831597239, Android #45831597063/#45831584362 SUCCESS. Emulator подтвердил stdout/stderr, exit 42 и Base64; данных пасеки нет. [Windows ZIP](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099/artifacts/15122283627) до 03.12.2026.
 - **B01 DEVICE_BACKUP / RESTORE — BLOCKED:** физических OnePlus TAR и независимого восстановления нет. Старые повреждённые `.partial` не использовать и не удалять. На установленной v315 нет полного backup UI; #512 MERGED в main, но не выпущен на OnePlus. Следующий физический шаг — только одна штатная попытка при наличии USB/ПК и внешнего накопителя; без повторного перебора shell-команд.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
