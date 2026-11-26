@@ -189,15 +189,15 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-encoded-transport-zero-byte-preflight-20261126",
+    "id": "b01-quoted-shell-public-probe-20261126",
     "pr": 543,
-    "source": "Real OnePlus Base64 transport: Force-stop NO, exit=0, decoded bytes=0, stderr false, generic DEVICE_BACKUP_BLOCKED",
-    "deviceBackupStatus": "BLOCKED_BASE64_ZERO_DECODED",
+    "source": "Real OnePlus Base64 probe produced BASE64_PREFLIGHT_MISMATCH before any private app data was read",
+    "deviceBackupStatus": "BLOCKED_BASE64_PREFLIGHT_MISMATCH",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
     "ciRuns": [],
-    "notes": "Fixed numbered error code masking; reports sanitized encoded byte count and decoder cause; read-only exact sh/pipefail/base64 preflight before reading app-private data."
+    "notes": "ADB exec-out remote shell command sh -c now quoted as a single string; standalone read-only public constant probe is next; no full backup retries until pass."
   }
 }
