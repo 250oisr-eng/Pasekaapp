@@ -370,11 +370,21 @@
   "integrationEntranceMetadataCursor20261126": {
     "pr": 511,
     "codeSha": "e54032ecdfa6cfd8e184b6c31ec066bc02b6e04a",
-    "ci": "FAST_SUCCESS_ANDROID_PENDING",
+    "ci": "CODE_FAST_ANDROID_SUCCESS_DOCS_GOVERNANCE_ANDROID_SUCCESS",
     "fastRunId": 45868399561,
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
     "memorySavings": "NOT_MEASURED",
-    "merged": false
+    "merged": false,
+    "codeRuns": [
+      45868399561,
+      45868399450,
+      45868408015
+    ],
+    "docsRuns": [
+      45868598729,
+      45868598762
+    ],
+    "readyForMergeReview": true
   }
 }
