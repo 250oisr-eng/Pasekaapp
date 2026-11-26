@@ -37,8 +37,10 @@
 
 - **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 OPEN/PARTIALLY_PORTED, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
 
+- **27.11 пользователь:** нет оригинальных видео и резервных копий; не считать это проверкой IndexedDB/устройства. B01/#442 V0–V6 остаются BLOCKED/FROZEN (реестр блокеров).
+
 ## Следующий конкретный шаг
 
-**#593 MERGED / IN_MAIN:** `72cd8279d0f1cdcfa06fd84594845d31132abe31` — имена и подписи полей «Новый улей», `aria-current` навигации и контраст сводки. Exact PR HEAD `45328a522ed3950155bf7f317090c8919395032a`: Android #45896737579 (998/998, APK/sign), Governance #45896737571 SUCCESS. Live main HTML verified, не release; экранный диктор/OnePlus NOT_TESTED. #187 OPEN/PARTIALLY_PORTED.
+**WIP UI #187:** свежая сотовая навигация, единый ИИ, заголовок раздела, 3 превью ульев; критические задачи не скрывать. Отдельная ветка `fix/ui-187-honeycomb-overview-20261127`. Проверить exact CI, затем закрыть старый #187 с переносом доказанного. UX конфликт: 2 ряда в источнике, 3 на узком экране; OnePlus/browser NOT_TESTED. Следом — первый безопасный внешний backup (B01), без удаления данных.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
