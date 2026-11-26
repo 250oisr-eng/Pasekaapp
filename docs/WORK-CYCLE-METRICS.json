@@ -973,9 +973,34 @@
   },
   "familyHistory20261127": {
     "previousBranchBrowserViewportsPassed": 2,
-    "integratedBrowserViewportsPassed": null,
+    "integratedBrowserViewportsPassed": 2,
+    "browserCodeSha": "4c44a419c7f6517e6e06f45d84b4943eff50509d",
+    "finalCodeSha": "d18ef97533b4721dcc550369de254fe0828766a4",
+    "nodeTestsPassed": 1004,
+    "checks": [
+      {
+        "type": "browser-mobile-desktop",
+        "run": 45903217571,
+        "conclusion": "success"
+      },
+      {
+        "type": "fast-node",
+        "run": 45903240403,
+        "conclusion": "success"
+      },
+      {
+        "type": "governance",
+        "run": 45903247215,
+        "conclusion": "success"
+      },
+      {
+        "type": "android-debug",
+        "run": 45903247227,
+        "conclusion": "success"
+      }
+    ],
     "device": "NOT_TESTED",
-    "mergeState": "DRAFT",
-    "notes": "#598 merged main #599 into branch; exact-head checks pending, no physical proof"
+    "mergeState": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+    "notes": "Browser E2E tests ran on integrated HTML SHA 4c44a419. Next code SHA only adjusts unit test assertions; full 1004 TAP and APK checked on d18ef975. No real device, data restore or release."
   }
 }
