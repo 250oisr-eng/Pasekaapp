@@ -99,3 +99,18 @@ test('P2: queue list uses incremental cursor, not getAll of all protected origin
  assert.match(source,/tx\.oncomplete/);
  assert.doesNotMatch(source,/\.delete\(|\.clear\(|\.put\(/);
 });
+
+test('P2 integration retains read-only UI stale guards and blocks all original-video deletion',()=>{
+ const listStart=html.indexOf('function listEntranceVideos(){');
+ const listEnd=html.indexOf('function getEntranceVideo(id){',listStart);
+ const list=html.slice(listStart,listEnd);
+ assert.match(list,/transaction\('entrance_media','readonly'\)/);
+ assert.match(list,/tx\.oncomplete/);
+ assert.doesNotMatch(list,/\.add\(|\.put\(|\.delete\(|\.clear\(/);
+ const refresh=html.slice(html.indexOf('async function refreshEntranceVideos(){'),html.indexOf('async function viewEntranceVideo(',html.indexOf('async function refreshEntranceVideos(){')));
+ assert.match(refresh,/generation!==entranceVideoRefreshGeneration/);
+ assert.match(refresh,/this\.dataset\.videoId/);
+ assert.doesNotMatch(refresh,/deleteEntranceVideoBlob\(/);
+ const deletion=html.slice(html.indexOf('function deleteEntranceVideoBlob(id){'),html.indexOf('function entranceBytes(',html.indexOf('function deleteEntranceVideoBlob(id){')));
+ assert.match(deletion,/ENTRANCE_VIDEO_DELETE_BLOCKED/);
+});
