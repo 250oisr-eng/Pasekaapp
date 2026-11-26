@@ -10,7 +10,7 @@ import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-col
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
 import {classifyPidof,classifyPs} from '../scripts/oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from '../scripts/oneplus-strict-base64.mjs';
-import {encodedShellArgs,classifyEncodedProbe} from '../scripts/oneplus-encoded-shell.mjs';
+import {encodedShellArgs,classifyEncodedProbe,classifyPublicProbe,PUBLIC_PROBE_VARIANTS} from '../scripts/oneplus-encoded-shell.mjs';
 import {inspectEncodedShell} from '../scripts/probe-oneplus-encoded-shell.mjs';
 import {Readable} from 'node:stream';
 
@@ -72,6 +72,11 @@ if(tail==='shell run-as ru.paseka.journal pwd'){
 }
 if(tail==='shell run-as ru.paseka.journal ls -ld app_webview'){
  process.stdout.write('drwx app_webview\\n');process.exit(0);
+}
+if(mode==='probe_corrupt' && tail.includes('PASEKA_BASE64_PROBE_V1') && !tail.includes('test -d app_webview')){
+ if(tail.includes('| base64'))process.stdout.write(Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64')+'\\n');
+ else process.stdout.write('PASEKA_BASE64_PROBE_V1');
+ process.exit(0);
 }
 if(tail==="exec-out run-as ru.paseka.journal sh -c 'set -o pipefail; test -d app_webview || exit 47; printf PASEKA_BASE64_PROBE_V1 | base64'"){
  if(mode==='probe_corrupt'){process.stdout.write('BROKEN');process.exit(0);}
@@ -533,4 +538,35 @@ test('safe classification reports only shape and never echoes probe output',()=>
  assert.equal(result.reason,'BASE64_PREFLIGHT_NON_BASE64_OUTPUT');
  assert.equal(result.privateDataRead,false);
  assert.equal(JSON.stringify(result).includes('PRIVATE/USER/PATH'),false);
+});
+
+test('public shell matrix classifies outputs without sharing raw text',()=>{
+ const expectBase64=Buffer.from('PASEKA_BASE64_PROBE_V1').toString('base64');
+ assert.equal(PUBLIC_PROBE_VARIANTS.length,5);
+ assert.equal(classifyPublicProbe({code:0,output:expectBase64+'\r\n'},'base64').status,'PASS');
+ assert.equal(classifyPublicProbe({code:0,output:'PASEKA_BASE64_PROBE_V1'},'plain').status,'PASS');
+ const contaminated=classifyPublicProbe({code:0,output:'prefix:'+expectBase64+'\n'},'base64');
+ assert.equal(contaminated.reason,'EXPECTED_WITH_EXTRA_OUTPUT');
+ assert.equal(contaminated.containsExpected,true);
+ assert.equal(JSON.stringify(contaminated).includes('prefix'),false);
+ assert.equal(classifyPublicProbe({code:0,output:'random nonbase64?'},'base64').reason,'NON_BASE64_OR_SHELL_TEXT');
+});
+test('read-only public matrix identifies shell variants when primary Base64 preflight fails',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const saved=process.env.FAKE_ADB_MODE;
+ try{
+  process.env.FAKE_ADB_MODE='probe_corrupt';
+  const report=await inspectEncodedShell({adb:f.stub});
+  assert.equal(report.status,'BLOCKED');
+  assert.equal(report.variants.length,5);
+  for(const entry of report.variants){
+   assert.equal(entry.status,'PASS');
+   assert.equal(entry.reason,null);
+  }
+  assert.equal(report.allPrivateReadsAvoided,true);
+  assert.deepEqual(await readdir(f.dest),[]);
+  assert.deepEqual(await readFile(f.original),f.payload);
+ }finally{
+  if(saved===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=saved;
+ }
 });
