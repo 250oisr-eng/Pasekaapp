@@ -67,3 +67,77 @@ test('legacy JSON preflight rejects symlink, malformed data and never mutates or
   assert.throws(()=>auditFile(join(dir,'missing.json'))); 
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test('existing family linked to another existing hive requires review without exposing names or content',()=>{
+ const foreignHive={id:'h-other',number:2};
+ const state={...exportJson.state,
+  hives:[hive,foreignHive],
+  families:[family],
+  records:[{...note('cross'),hive:'h-other'}]
+ };
+ const raw={...exportJson,state};
+ const report=auditPasekaJsonTransfer(raw,{hives:2,families:1,records:1});
+ assert.equal(report.status,'REVIEW_REQUIRED');
+ assert.ok(report.warnings.some(w=>/family and hive association differ/.test(w)));
+ assert.equal(JSON.stringify(report).includes('PRIVATE TEXT MUST NOT APPEAR'),false);
+ assert.equal(JSON.stringify(report).includes('h-other'),false);
+ assert.equal(state.records[0].hive,'h-other','audit may not normalize or mutate historical records');
+});
+test('same-family same-hive and unavailable historical family remain backwards compatible',()=>{
+ const same=auditPasekaJsonTransfer(exportJson);
+ assert.equal(same.status,'JSON_STATE_PREFLIGHT_ONLY');
+ assert.ok(!same.warnings.some(w=>/family and hive association differ/.test(w)));
+ const missing=auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,
+  records:[{...note('archived'),family:'former-family',familySnapshotAtTime:{name:'Archived'}}]
+ }});
+ assert.equal(missing.status,'REVIEW_REQUIRED');
+ assert.ok(missing.warnings.some(w=>/unavailable\/archived family/.test(w)));
+ assert.ok(!missing.warnings.some(w=>/family and hive association differ/.test(w)));
+});
+
+test('family-linked historical note without hive context is REVIEW_REQUIRED, never repaired',()=>{
+ const detached={...note('detached'),hive:null,family:'f-first'};
+ const state={...exportJson.state,records:[detached]};
+ const raw={...exportJson,state};
+ const before=JSON.stringify(raw);
+ const result=auditPasekaJsonTransfer(raw,{hives:1,families:1,records:1});
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/no hive context at row 0/.test(w)));
+ assert.doesNotMatch(JSON.stringify(result),/detached|f-first|PRIVATE TEXT/);
+ assert.equal(JSON.stringify(raw),before,'preflight must not inject inferred hive ID');
+});
+
+test('hive-only note remains valid without a family link and historical snapshots survive',()=>{
+ const hiveOnly={...note('hive-only'),family:null};
+ const state={...exportJson.state,records:[hiveOnly]};
+ const result=auditPasekaJsonTransfer({...exportJson,state},{records:1});
+ assert.equal(result.status,'JSON_STATE_PREFLIGHT_ONLY');
+ assert.ok(!result.warnings.some(w=>/no hive context/.test(w)));
+ assert.ok(result.warnings.some(w=>/entrance_media/.test(w)));
+});
+
+test('absent hive link is not silently accepted because family belongs to existing hive',()=>{
+ const missing={...note('old-hive-unknown'),hive:''};
+ const result=auditPasekaJsonTransfer({...exportJson,state:{...exportJson.state,records:[missing]}});
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/historical association/.test(w)));
+});
+
+test('known family without current hive cannot prove a historical record location',()=>{
+ const unassigned={...family,hive:null};
+ const row=note('historical-family-location');
+ const raw={...exportJson,state:{...exportJson.state,families:[unassigned],records:[row]}};
+ const before=JSON.stringify(raw);
+ const result=auditPasekaJsonTransfer(raw,{hives:1,families:1,records:1});
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/no hive assignment for record at row 0/.test(w)));
+ assert.doesNotMatch(JSON.stringify(result),/historical-family-location|PRIVATE TEXT|f-first|h-first/);
+ assert.equal(JSON.stringify(raw),before);
+});
+test('unknown historical family already produces only the existing missing-family warning',()=>{
+ const raw={...exportJson,state:{...exportJson.state,records:[{...note('historical'),family:'not-in-current-catalog'}]}};
+ const result=auditPasekaJsonTransfer(raw);
+ assert.equal(result.status,'REVIEW_REQUIRED');
+ assert.ok(result.warnings.some(w=>/unavailable\/archived family/.test(w)));
+ assert.ok(!result.warnings.some(w=>/no hive assignment for record/.test(w)));
+});
