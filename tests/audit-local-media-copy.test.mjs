@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, mkdir,writeFile,readFile,rm,symlink,link} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {auditMediaCopy} from '../scripts/audit-local-media-copy.mjs';
+import {auditMediaCopy,parseExpectedFileCount} from '../scripts/audit-local-media-copy.mjs';
 async function dirs(){
  const base=await mkdtemp(join(tmpdir(),'paseka-p0-media-only-'));
  const a=join(base,'source'),b=join(base,'external');
@@ -76,4 +76,11 @@ test('separate paths pointing to same hardlinked file are not independent media 
   await link(join(a,'video.mp4'),join(b,'video.mp4'));
   await assert.rejects(auditMediaCopy(a,b),/MEDIA_COPY_AUDIT_BLOCKED/);
  }finally{await rm(base,{recursive:true,force:true});}
+});
+
+test('CLI expectations fail closed instead of silently allowing invalid or oversized values',()=>{
+ assert.equal(parseExpectedFileCount(undefined),null);
+ assert.equal(parseExpectedFileCount('1'),1);
+ for(const value of ['0','01','-1','NaN','foo','100001','9007199254740999'])
+  assert.throws(()=>parseExpectedFileCount(value),/MEDIA_COPY_AUDIT_BLOCKED/);
 });
