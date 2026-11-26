@@ -81,7 +81,7 @@ if(tail==='exec-out run-as ru.paseka.journal sh -c tar -cf - . | base64'){
  const result=spawnSync('tar',['-cf','-','.'],{cwd:process.env.FAKE_PRIVATE_DIR,encoding:null});
  if(result.status!==0)process.exit(5);
  if(mode==='base64_bad') {process.stdout.write('not-valid-base64?');process.exit(0);}
- process.stdout.write(result.stdout.toString('base64').replace(/.{76}/g,'process.stdout.write(result.stdout);process.exit(0);\\n'));process.exit(0);
+ process.stdout.write(result.stdout.toString('base64'));process.exit(0);
 }
 process.exit(60);
 `;
