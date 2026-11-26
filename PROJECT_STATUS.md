@@ -4,14 +4,17 @@
 
 ## P0/B01 — один локальный аудит, Draft #542 (26.11.2026)
 
+- **OnePlus:** в установленном `ru.paseka.journal` **нет** full-export кнопки; `FULL_EXPORT_NOT_FOUND`. Кнопка только в source, не подтверждена на устройстве. `disasterproof2`: signer/restart BLOCKED. ZIP #542 не создаёт копию. [Фактическая инструкция](docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md).
+
+
 - [Draft #541](https://github.com/250oisr-eng/Pasekaapp/pull/541): побайтовое сравнение уже перечисленных медиа-копий; CI PASS, не merged. [Draft #542](https://github.com/250oisr-eng/Pasekaapp/pull/542), stacked на #541: единый `scripts/run-unified-recovery-audit.mjs` проверяет внешний `paseka-idb-full-v1` (SHA/stores/Blob), replay в **чистой fake-indexeddb**, close/reopen/SHA и две существующие локальные media-папки; отчёт обезличен, нет записи/ADB/install/delete. Код/CI PASS.
 - [Контракт](docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md) / [инструкция](docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md). Windows ZIP без APK/ADB — [Actions #45786699947](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45786699947) **SUCCESS**, artifact #15100513158, code `261df7d6f76642f9850d1f19aac677f0ae0ebe7f`; ввод архив+две папки через GUI, локальный обезличенный JSON; нет физического PASS. **B01-CODE CI VERIFIED; B01-PHYSICAL NOT_VERIFIED:** пользователь указал отсутствие реальных эксплуатационных видео (24.11); синтетика на устройстве есть, но доказательства полного внешнего архива и независимого восстановления нет. Exit 0 нет, никаких разрешений на удаление, APK update, merge/release. B09 signer mismatch подтверждён; установленный диагностический APK не менять.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
-- [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
+- Draft #511: metadata-only видео, CI PASS; RAM NOT_MEASURED.
 - **[#512 MERGED](https://github.com/250oisr-eng/Pasekaapp/pull/512)** в `main=346b35035861257be45dae93ee0573cbd4de9082`: fail-closed video/whole-DB deletion, legacy API, запрет ID-collision overwrite через `add`. Физический release не подтверждён.
-- [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
+- Draft #509/#510: CI проверен, не merged; #426 P2 asset selection не переносить.
 - B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
 
 ## Последний законченный макроцикл — безопасные локальные проверки B01
