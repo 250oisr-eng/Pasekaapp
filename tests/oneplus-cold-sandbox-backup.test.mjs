@@ -95,3 +95,24 @@ test('running app, multiple devices, and denied run-as abort before backup', {sk
   }
  }finally{if(old===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=old;}
 });
+
+test('device detection reports specific safe codes, not private data',()=>{
+ const variants=[
+  ['List of devices attached\n','ADB_NO_DEVICE'],
+  ['List of devices attached\nA device\nB device\n','ADB_MULTIPLE_DEVICES'],
+  ['List of devices attached\nNE2213 unauthorized\n','ADB_DEVICE_UNAUTHORIZED'],
+  ['List of devices attached\nNE2213 offline\n','ADB_DEVICE_NOT_READY'],
+  ['invalid response','ADB_DEVICE_LIST_INVALID']
+ ];
+ for(const [raw,code] of variants){
+  assert.throws(()=>selectOneDevice(raw),error=>error.message===code);
+ }
+});
+test('Windows PowerShell wrapper does not merge native stderr into terminating error records',async()=>{
+ const text=await readFile(new URL('../tools/b01-oneplus-cold-backup/choose-backup-destination.ps1',import.meta.url),'utf8');
+ assert.match(text,/\$lines\s*=\s*&\s*\$node\s+\$script\s+--dest/);
+ assert.doesNotMatch(text,/\$lines\s*=.*2>&1/);
+ assert.match(text,/Failure code:/);
+ const runner=await readFile(new URL('../scripts/backup-oneplus-cold-sandbox.mjs',import.meta.url),'utf8');
+ assert.match(runner,/console\.log\(JSON\.stringify\(\{schema:'paseka-oneplus-cold-sandbox-backup-v1'/);
+});
