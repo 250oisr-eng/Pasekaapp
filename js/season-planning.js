@@ -44,6 +44,20 @@ function buildInspectionReminder(input){
  if(!Number.isInteger(intervalDays)||intervalDays<1||intervalDays>30)throw new Error('Интервал должен быть от 1 до 30 дней.');
  return Object.freeze({lastInspection,intervalDays,dueDate:shiftDate(lastInspection,intervalDays),warning:'Интервал — напоминание, а не гарантия предотвращения роения. При признаках подготовки к роению осмотр и действия определяются фактическим состоянием семьи.'});
 }
+// Derive a calendar input only from explicitly saved inspection records.
+// Never infer that a scheduled, archived or future event was performed.
+function latestSavedInspection(records,hiveId,asOf){
+ if(!Array.isArray(records)||typeof hiveId!=='string'||!hiveId||!parseDate(asOf))
+  throw new Error('Для поиска осмотра выбери улей и корректную текущую дату.');
+ let latest=null;
+ for(const record of records){
+  if(!record||record.hive!==hiveId||record.type!=='Осмотр'||record.archivedAt)continue;
+  const date=record.date;
+  if(!parseDate(date)||date>asOf)continue;
+  if(!latest||date>latest.date)latest={date,recordId:record.id||null};
+ }
+ return latest?Object.freeze(latest):null;
+}
 function rankColonyStrength(items){
  if(!Array.isArray(items))throw new Error('Ожидается список оценок семей.');
  const valid=items.filter(x=>x&&typeof x.hiveId==='string'&&Number.isFinite(Number(x.occupiedStreets))&&Number(x.occupiedStreets)>=0);
@@ -64,5 +78,5 @@ function summarizeTraitScores(observations){
   return {trait,count:values.length,average,status:values.length>=4?'repeated_observations':values.length?'preliminary':'not_assessed'};
  });
 }
-root.PasekaSeasonPlanning=Object.freeze({parseDate,formatDate,shiftDate,buildNectarBackwardPlan,buildQueenRearingTimeline,buildInspectionReminder,rankColonyStrength,summarizeTraitScores});
+root.PasekaSeasonPlanning=Object.freeze({parseDate,formatDate,shiftDate,buildNectarBackwardPlan,buildQueenRearingTimeline,buildInspectionReminder,latestSavedInspection,rankColonyStrength,summarizeTraitScores});
 })(typeof window!=='undefined'?window:globalThis);
