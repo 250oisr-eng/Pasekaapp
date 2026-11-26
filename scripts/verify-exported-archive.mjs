@@ -58,7 +58,7 @@ export async function inspectExportedArchiveText(raw) {
   }
 }
 
-export async function inspectExportedArchiveFile(path, { maxBytes = 512 * 1024 * 1024 } = {}) {
+export async function readExportedArchiveFileText(path, { maxBytes = 512 * 1024 * 1024 } = {}) {
   if (!path || typeof path !== 'string' || !Number.isSafeInteger(maxBytes) || maxBytes < 1)
     throw Error('Invalid local archive path or size limit');
   // Check the already-exported file, never the application's live database.
@@ -93,12 +93,53 @@ export async function inspectExportedArchiveFile(path, { maxBytes = 512 * 1024 *
         finished.dev !== initial.dev || finished.ino !== initial.ino ||
         finished.mtimeMs !== initial.mtimeMs || finished.ctimeMs !== initial.ctimeMs)
       throw Error('Archive file changed during verification; export again');
-    return inspectExportedArchiveText(
-      new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, total))
-    );
+    return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, total));
   } finally {
     await handle.close();
   }
+}
+
+// Restore only in a fresh fake-indexeddb instance in this Node process.
+// This is a code-level replay and reopen proof, never a real device restore.
+export async function replayExportedArchiveInIsolatedMemory(raw) {
+  const verified = await inspectExportedArchiveText(raw);
+  const payload = JSON.parse(raw).payload;
+  const factory = new IDBFactory();
+  const name = 'paseka-v1-unified-ephemeral-only';
+  const openEmpty = () => new Promise((resolve, reject) => {
+    const q = factory.open(name, 3);
+    q.onupgradeneeded = () => {
+      for (const spec of payload.stores)
+        q.result.createObjectStore(spec.name, {
+          keyPath: spec.keyPath, autoIncrement: spec.autoIncrement
+        });
+    };
+    q.onsuccess = () => resolve(q.result);
+    q.onerror = () => reject(q.error || Error('Isolated database open failed'));
+  });
+  let db = await openEmpty();
+  try {
+    const inspection = await archive.inspectArchive(raw, db);
+    await archive.atomicRestore(db, inspection, null);
+    db.close();
+    db = await openEmpty();
+    const proof = await archive.verifyRestoredArchive(db, inspection);
+    if (!proof.verified || proof.sha256 !== verified.manifestSha256)
+      throw Error('Isolated readback differs from archived source');
+    return Object.freeze({
+      status: 'ISOLATED_MEMORY_REPLAY_AND_REOPEN_VERIFIED',
+      archiveSha256Matched: true,
+      verifiedStoreCount: Object.keys(proof.counts).length,
+      realDeviceRestoreVerified: false,
+      userFilesModified: false
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export async function inspectExportedArchiveFile(path, options) {
+  return inspectExportedArchiveText(await readExportedArchiveFileText(path, options));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

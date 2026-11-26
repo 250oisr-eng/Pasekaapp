@@ -388,11 +388,11 @@
     "readyForMergeReview": true
   },
   "prPortfolioAudit20261126": {
-    "sourceMainSha": "58386465d5e8619a9e31c5df85967538ef309418",
+    "sourceMainSha": "ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f",
     "initialOpen": 417,
     "afterConfirmedSupersede": 413,
-    "mainBasedReviewedFilePaths": 54,
-    "stackedPr": 359,
+    "mainBasedReviewedFilePaths": 53,
+    "stackedPr": 358,
     "stacksWithoutOpenParent": 69,
     "confirmedClosed": [
       425,
@@ -402,11 +402,38 @@
     ],
     "deepPatchReviewsAll": false,
     "completedVerifiedUserScenarios": 0,
-    "ci": "DOCS_GOVERNANCE_PRIOR_PR_551_SUCCESS",
+    "ci": "PR_541_542_EXACT_HEAD_SUCCESS;DOCS_GOVERNANCE_PENDING",
     "physicalDevice": "NOT_TESTED",
     "productionActions": 0,
-    "stackedReviewedFilePaths": 359,
-    "totalChangedPathListsVerified": 413,
-    "uniqueChangedPaths": 1079
+    "stackedReviewedFilePaths": 358,
+    "totalChangedPathListsVerified": 411,
+    "uniqueChangedPaths": 1069,
+    "afterSelectiveMergesOpen": 411,
+    "merges": [
+      {
+        "pr": 541,
+        "mergeSha": "2330bf4243ea9ec8765dc110645dadfc02c283b3",
+        "ciRuns": [
+          45873304752,
+          45873311752,
+          45873304778,
+          45873311714
+        ]
+      },
+      {
+        "pr": 542,
+        "mergeSha": "ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f",
+        "ciRuns": [
+          45873811121,
+          45873819959,
+          45873819943,
+          45873811098,
+          45873819940
+        ]
+      }
+    ],
+    "frozenPrs": [
+      543
+    ]
   }
 }

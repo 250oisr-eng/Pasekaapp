@@ -1,7 +1,7 @@
 {
   "schema": "paseka-pr-inventory-v2-with-changed-paths",
   "date": "2026-11-26",
-  "mainSha": "58386465d5e8619a9e31c5df85967538ef309418",
+  "mainSha": "ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f",
   "scope": "ALL_OPEN_METADATA_PLUS_ALL_MAIN_ROOT_CHANGED_FILE_PATHS; NOT 413 DEEP_PATCH_REVIEWS",
   "preAuditOpen": 417,
   "closedAsVerifiedSuperseded": [
@@ -10,9 +10,9 @@
     446,
     450
   ],
-  "afterClosureOpen": 413,
-  "mainRootCount": 54,
-  "stackedCount": 359,
+  "afterClosureOpen": 411,
+  "mainRootCount": 53,
+  "stackedCount": 358,
   "unresolvedOpenParentCount": 69,
   "reviewCategories": {
     "P0_DATA_OR_ANDROID_REVIEW": 24,
@@ -42,16 +42,16 @@
       "highest": 40
     },
     {
-      "root": "157",
-      "count": 14,
-      "lowest": 157,
-      "highest": 173
-    },
-    {
       "root": "453",
       "count": 14,
       "lowest": 453,
       "highest": 467
+    },
+    {
+      "root": "157",
+      "count": 14,
+      "lowest": 157,
+      "highest": 173
     },
     {
       "root": "54",
@@ -96,250 +96,10 @@
       "highest": 537
     },
     {
-      "root": "541",
-      "count": 2,
-      "lowest": 541,
-      "highest": 542
-    },
-    {
-      "root": "7",
+      "root": "543",
       "count": 1,
-      "lowest": 7,
-      "highest": 7
-    },
-    {
-      "root": "8",
-      "count": 1,
-      "lowest": 8,
-      "highest": 8
-    },
-    {
-      "root": "14",
-      "count": 1,
-      "lowest": 14,
-      "highest": 14
-    },
-    {
-      "root": "41",
-      "count": 1,
-      "lowest": 41,
-      "highest": 41
-    },
-    {
-      "root": "42",
-      "count": 1,
-      "lowest": 42,
-      "highest": 42
-    },
-    {
-      "root": "43",
-      "count": 1,
-      "lowest": 43,
-      "highest": 43
-    },
-    {
-      "root": "44",
-      "count": 1,
-      "lowest": 44,
-      "highest": 44
-    },
-    {
-      "root": "52",
-      "count": 1,
-      "lowest": 52,
-      "highest": 52
-    },
-    {
-      "root": "69",
-      "count": 1,
-      "lowest": 69,
-      "highest": 69
-    },
-    {
-      "root": "81",
-      "count": 1,
-      "lowest": 81,
-      "highest": 81
-    },
-    {
-      "root": "86",
-      "count": 1,
-      "lowest": 86,
-      "highest": 86
-    },
-    {
-      "root": "90",
-      "count": 1,
-      "lowest": 90,
-      "highest": 90
-    },
-    {
-      "root": "91",
-      "count": 1,
-      "lowest": 91,
-      "highest": 91
-    },
-    {
-      "root": "96",
-      "count": 1,
-      "lowest": 96,
-      "highest": 96
-    },
-    {
-      "root": "155",
-      "count": 1,
-      "lowest": 155,
-      "highest": 155
-    },
-    {
-      "root": "156",
-      "count": 1,
-      "lowest": 156,
-      "highest": 156
-    },
-    {
-      "root": "170",
-      "count": 1,
-      "lowest": 170,
-      "highest": 170
-    },
-    {
-      "root": "175",
-      "count": 1,
-      "lowest": 175,
-      "highest": 175
-    },
-    {
-      "root": "187",
-      "count": 1,
-      "lowest": 187,
-      "highest": 187
-    },
-    {
-      "root": "188",
-      "count": 1,
-      "lowest": 188,
-      "highest": 188
-    },
-    {
-      "root": "189",
-      "count": 1,
-      "lowest": 189,
-      "highest": 189
-    },
-    {
-      "root": "191",
-      "count": 1,
-      "lowest": 191,
-      "highest": 191
-    },
-    {
-      "root": "451",
-      "count": 1,
-      "lowest": 451,
-      "highest": 451
-    },
-    {
-      "root": "452",
-      "count": 1,
-      "lowest": 452,
-      "highest": 452
-    },
-    {
-      "root": "469",
-      "count": 1,
-      "lowest": 469,
-      "highest": 469
-    },
-    {
-      "root": "479",
-      "count": 1,
-      "lowest": 479,
-      "highest": 479
-    },
-    {
-      "root": "509",
-      "count": 1,
-      "lowest": 509,
-      "highest": 509
-    },
-    {
-      "root": "516",
-      "count": 1,
-      "lowest": 516,
-      "highest": 516
-    },
-    {
-      "root": "517",
-      "count": 1,
-      "lowest": 517,
-      "highest": 517
-    },
-    {
-      "root": "519",
-      "count": 1,
-      "lowest": 519,
-      "highest": 519
-    },
-    {
-      "root": "520",
-      "count": 1,
-      "lowest": 520,
-      "highest": 520
-    },
-    {
-      "root": "521",
-      "count": 1,
-      "lowest": 521,
-      "highest": 521
-    },
-    {
-      "root": "522",
-      "count": 1,
-      "lowest": 522,
-      "highest": 522
-    },
-    {
-      "root": "523",
-      "count": 1,
-      "lowest": 523,
-      "highest": 523
-    },
-    {
-      "root": "529",
-      "count": 1,
-      "lowest": 529,
-      "highest": 529
-    },
-    {
-      "root": "532",
-      "count": 1,
-      "lowest": 532,
-      "highest": 532
-    },
-    {
-      "root": "533",
-      "count": 1,
-      "lowest": 533,
-      "highest": 533
-    },
-    {
-      "root": "535",
-      "count": 1,
-      "lowest": 535,
-      "highest": 535
-    },
-    {
-      "root": "536",
-      "count": 1,
-      "lowest": 536,
-      "highest": 536
-    },
-    {
-      "root": "539",
-      "count": 1,
-      "lowest": 539,
-      "highest": 539
+      "lowest": 543,
+      "highest": 543
     },
     {
       "root": "540",
@@ -348,10 +108,244 @@
       "highest": 540
     },
     {
-      "root": "543",
+      "root": "539",
       "count": 1,
-      "lowest": 543,
-      "highest": 543
+      "lowest": 539,
+      "highest": 539
+    },
+    {
+      "root": "536",
+      "count": 1,
+      "lowest": 536,
+      "highest": 536
+    },
+    {
+      "root": "535",
+      "count": 1,
+      "lowest": 535,
+      "highest": 535
+    },
+    {
+      "root": "533",
+      "count": 1,
+      "lowest": 533,
+      "highest": 533
+    },
+    {
+      "root": "532",
+      "count": 1,
+      "lowest": 532,
+      "highest": 532
+    },
+    {
+      "root": "529",
+      "count": 1,
+      "lowest": 529,
+      "highest": 529
+    },
+    {
+      "root": "523",
+      "count": 1,
+      "lowest": 523,
+      "highest": 523
+    },
+    {
+      "root": "522",
+      "count": 1,
+      "lowest": 522,
+      "highest": 522
+    },
+    {
+      "root": "521",
+      "count": 1,
+      "lowest": 521,
+      "highest": 521
+    },
+    {
+      "root": "520",
+      "count": 1,
+      "lowest": 520,
+      "highest": 520
+    },
+    {
+      "root": "519",
+      "count": 1,
+      "lowest": 519,
+      "highest": 519
+    },
+    {
+      "root": "517",
+      "count": 1,
+      "lowest": 517,
+      "highest": 517
+    },
+    {
+      "root": "516",
+      "count": 1,
+      "lowest": 516,
+      "highest": 516
+    },
+    {
+      "root": "509",
+      "count": 1,
+      "lowest": 509,
+      "highest": 509
+    },
+    {
+      "root": "479",
+      "count": 1,
+      "lowest": 479,
+      "highest": 479
+    },
+    {
+      "root": "469",
+      "count": 1,
+      "lowest": 469,
+      "highest": 469
+    },
+    {
+      "root": "452",
+      "count": 1,
+      "lowest": 452,
+      "highest": 452
+    },
+    {
+      "root": "451",
+      "count": 1,
+      "lowest": 451,
+      "highest": 451
+    },
+    {
+      "root": "191",
+      "count": 1,
+      "lowest": 191,
+      "highest": 191
+    },
+    {
+      "root": "189",
+      "count": 1,
+      "lowest": 189,
+      "highest": 189
+    },
+    {
+      "root": "188",
+      "count": 1,
+      "lowest": 188,
+      "highest": 188
+    },
+    {
+      "root": "187",
+      "count": 1,
+      "lowest": 187,
+      "highest": 187
+    },
+    {
+      "root": "175",
+      "count": 1,
+      "lowest": 175,
+      "highest": 175
+    },
+    {
+      "root": "170",
+      "count": 1,
+      "lowest": 170,
+      "highest": 170
+    },
+    {
+      "root": "156",
+      "count": 1,
+      "lowest": 156,
+      "highest": 156
+    },
+    {
+      "root": "155",
+      "count": 1,
+      "lowest": 155,
+      "highest": 155
+    },
+    {
+      "root": "96",
+      "count": 1,
+      "lowest": 96,
+      "highest": 96
+    },
+    {
+      "root": "91",
+      "count": 1,
+      "lowest": 91,
+      "highest": 91
+    },
+    {
+      "root": "90",
+      "count": 1,
+      "lowest": 90,
+      "highest": 90
+    },
+    {
+      "root": "86",
+      "count": 1,
+      "lowest": 86,
+      "highest": 86
+    },
+    {
+      "root": "81",
+      "count": 1,
+      "lowest": 81,
+      "highest": 81
+    },
+    {
+      "root": "69",
+      "count": 1,
+      "lowest": 69,
+      "highest": 69
+    },
+    {
+      "root": "52",
+      "count": 1,
+      "lowest": 52,
+      "highest": 52
+    },
+    {
+      "root": "44",
+      "count": 1,
+      "lowest": 44,
+      "highest": 44
+    },
+    {
+      "root": "43",
+      "count": 1,
+      "lowest": 43,
+      "highest": 43
+    },
+    {
+      "root": "42",
+      "count": 1,
+      "lowest": 42,
+      "highest": 42
+    },
+    {
+      "root": "41",
+      "count": 1,
+      "lowest": 41,
+      "highest": 41
+    },
+    {
+      "root": "14",
+      "count": 1,
+      "lowest": 14,
+      "highest": 14
+    },
+    {
+      "root": "8",
+      "count": 1,
+      "lowest": 8,
+      "highest": 8
+    },
+    {
+      "root": "7",
+      "count": 1,
+      "lowest": 7,
+      "highest": 7
     }
   ],
   "rows": [
@@ -403,81 +397,6 @@
         "runtime": false,
         "executableScripts": true,
         "workflows": true,
-        "databaseLike": true,
-        "videoLike": false
-      }
-    },
-    {
-      "number": 542,
-      "title": "feat(p0/b01): unified read-only external archive, memory-replay and media-copy audit",
-      "draft": true,
-      "head": "feat/p0-b01-unified-readonly-recovery-audit-20261126",
-      "headSha": "7b34edb95584a61db69192735d2d0420cd6e269a",
-      "base": "feat/p0-b01-readonly-local-media-copy-audit-20261126",
-      "baseSha": "9f6e817a4a1f3de68eda7f811f9c684649290fa2",
-      "parentPr": 541,
-      "rootPr": 541,
-      "depth": 1,
-      "unresolvedOpenParentBase": null,
-      "reviewClass": "STACKED_SELECTIVE_RECONCILIATION",
-      "filePathsChecked": false,
-      "status": "OPEN_NO_MERGE_PROOF",
-      "updatedAt": "2026-11-26T09:34:40Z",
-      "changedPaths": [
-        ".github/workflows/b01-unified-local-kit.yml",
-        "PROJECT_STATUS.md",
-        "docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md",
-        "docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md",
-        "docs/WORK-CYCLE-METRICS.json",
-        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
-        "scripts/run-unified-recovery-audit.mjs",
-        "scripts/verify-exported-archive.mjs",
-        "tests/unified-recovery-audit.test.mjs",
-        "tools/b01-unified/RUN-LOCAL-AUDIT.cmd",
-        "tools/b01-unified/choose-local-files.ps1"
-      ],
-      "changedPathCount": 11,
-      "pathScope": {
-        "docsOnly": false,
-        "testsDocsOnly": false,
-        "runtime": false,
-        "executableScripts": true,
-        "workflows": true,
-        "databaseLike": true,
-        "videoLike": false
-      }
-    },
-    {
-      "number": 541,
-      "title": "feat(p0/b01): read-only SHA-256 comparison of external media copy folders",
-      "draft": true,
-      "head": "feat/p0-b01-readonly-local-media-copy-audit-20261126",
-      "headSha": "9f6e817a4a1f3de68eda7f811f9c684649290fa2",
-      "base": "main",
-      "baseSha": "346b35035861257be45dae93ee0573cbd4de9082",
-      "parentPr": null,
-      "rootPr": 541,
-      "depth": 0,
-      "unresolvedOpenParentBase": null,
-      "reviewClass": "P0_DATA_OR_ANDROID_REVIEW",
-      "filePathsChecked": true,
-      "status": "OPEN_NO_MERGE_PROOF",
-      "updatedAt": "2026-11-26T08:31:59Z",
-      "changedPaths": [
-        "PROJECT_STATUS.md",
-        "docs/B01-ЛОКАЛЬНАЯ-СВЕРКА-МЕДИА-КОПИЙ-2026-11-26.md",
-        "docs/WORK-CYCLE-METRICS.json",
-        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
-        "scripts/audit-local-media-copy.mjs",
-        "tests/audit-local-media-copy.test.mjs"
-      ],
-      "changedPathCount": 6,
-      "pathScope": {
-        "docsOnly": false,
-        "testsDocsOnly": false,
-        "runtime": false,
-        "executableScripts": true,
-        "workflows": false,
         "databaseLike": true,
         "videoLike": false
       }
@@ -15773,31 +15692,32 @@
     }
   ],
   "filePathsCoverage": {
-    "count": 413,
+    "count": 411,
     "allOpenCovered": true,
     "checkedOn": "2026-11-26",
     "level": "changed-file-paths; no full semantic diff or device proofs",
     "counts": {
       "docsOnly": 39,
       "testsDocsOnly": 58,
-      "executableScripts": 135,
+      "executableScripts": 133,
       "runtime": 210,
-      "workflows": 142,
+      "workflows": 141,
       "indexHtml": 86,
       "serviceWorker": 48,
-      "databaseLike": 181,
+      "databaseLike": 179,
       "videoLike": 164,
       "missing": 0
-    }
+    },
+    "uniquePaths": 1069
   },
   "topHotspots": [
     {
       "path": "PROJECT_STATUS.md",
-      "prs": 324
+      "prs": 322
     },
     {
       "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
-      "prs": 324
+      "prs": 322
     },
     {
       "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
@@ -15849,7 +15769,7 @@
     },
     {
       "path": "docs/WORK-CYCLE-METRICS.json",
-      "prs": 23
+      "prs": 21
     },
     {
       "path": "tests/sectional-multiqueen-techprocess.test.mjs",
@@ -15950,6 +15870,16 @@
     {
       "path": "tests/video-archive-v2-copy-inventory.test.mjs",
       "prs": 7
+    }
+  ],
+  "afterSelectiveMerges": [
+    {
+      "pr": 541,
+      "mergeSha": "2330bf4243ea9ec8765dc110645dadfc02c283b3"
+    },
+    {
+      "pr": 542,
+      "mergeSha": "ca2c01edbd08ec6272a7adbe3949cbfd7d446d4f"
     }
   ]
 }
