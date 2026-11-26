@@ -1,6 +1,13 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · last verified integration main `7d8af290cb9621ea7e83610a939dbceb19027b20`; verify live SHA before further work.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+**26.11.2026 · last verified integration main `a95d055c380b835d150c79c39e4a88af73bd0149`; verify live SHA before further work.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+
+## Продолжение PR-аудита — research, источники, физика
+
+- **#562 MERGED** `69adb18a20abfc58eb6c26e2fd1a8c351ab9e8ab`, Governance #45878309941 SUCCESS: независимый справочный протокол чтения исходного DOCX; исторический #91 CLOSED/SUPERSEDED.
+- **#564 MERGED** `a95d055c380b835d150c79c39e4a88af73bd0149`, Governance #45878767637 SUCCESS: #539/#540 исследования детекции сохранены как альтернативы без модели/удаления; исходные #539/#540 CLOSED/SUPERSEDED. Исторический #155 CLOSED/SUPERSEDED.
+- **#563 DRAFT/CI NOT_VERIFIED:** физическая геометрия обмена корпусов, SW v321, исправлены три выявленных CI regressions; повторный Android #45878907609 не подтверждён как PASS. До доказательства не сливать.
+- [Подробный checkpoint D](docs/PR-AUDIT-CHECKPOINT-2026-11-26-D.md). **Live полный счётчик PR неизвестен**; историческая JSON-опись не заменяет нового REST-пагинированного снимка. Точный post-merge push CI на main отдельно NOT_VERIFIED.
 
 ## Текущий макроцикл PR — селективные исправления
 
