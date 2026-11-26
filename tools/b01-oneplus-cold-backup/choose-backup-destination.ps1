@@ -25,7 +25,7 @@ if(-not (Test-Path $node) -or -not (Test-Path $script)) {
  Write-Host 'BLOCKED: incomplete local kit.'
  exit 1
 }
-Write-Host 'ONLY ONE phone must be authorized over ADB.'
+Write-Host 'ONLY ONE phone must be authorized over ADB. New encoded TAR transfer; old corrupt .partial is kept untouched.'
 Write-Host 'Close Paseka normally. A targeted force-stop can be explicitly approved in the next dialog.'
 Write-Host 'Do not upload the resulting TAR to GitHub or ChatGPT; it contains app-private data.'
 # The native Node runner intentionally returns exit 2 for any cold-file backup
@@ -86,6 +86,8 @@ if($code -eq 2 -and $status -eq 'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTE
   'ANDROID_TAR_STREAM_FAILED' { Write-Host 'ADB/TAR transfer stream ended in error. Do not use .partial as backup.' }
   'ANDROID_TAR_EMPTY_OR_TOO_SMALL' { Write-Host 'Android tar produced too few bytes to verify a backup.' }
   'ANDROID_TAR_ALIGNMENT_INVALID' { Write-Host 'Android tar stream did not end on a valid 512-byte block boundary.' }
+  'BASE64_TRANSPORT_INVALID' { Write-Host 'Android encoded transport is damaged or unsupported. This is NOT a valid backup.' }
+  'TAR_STRUCTURE_NOT_VERIFIED' { Write-Host 'Decoded TAR failed independent local header/end-marker validation. No archive promoted.' }
   'DESTINATION_NOT_CANONICAL' { Write-Host 'Use a normal local folder directly, not a symbolic link or alias.' }
   default { Write-Host 'Do not remove or reset the installed application.' }
  }
