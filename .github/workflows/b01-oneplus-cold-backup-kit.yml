@@ -1,0 +1,76 @@
+name: P0 B01 OnePlus cold sandbox USB backup kit (no publication)
+on:
+  pull_request:
+    paths:
+      - 'scripts/backup-oneplus-cold-sandbox.mjs'
+      - 'tests/oneplus-cold-sandbox-backup.test.mjs'
+      - 'tools/b01-oneplus-cold-backup/**'
+      - '.github/workflows/b01-oneplus-cold-backup-kit.yml'
+      - 'docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-adb-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simulated ADB cold-backup, SHA, and blocked variants
+        run: node --test tests/oneplus-cold-sandbox-backup.test.mjs
+  windows-kit:
+    needs: linux-adb-fixture
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Windows argument guard tests
+        shell: pwsh
+        run: node --test tests/oneplus-cold-sandbox-backup.test.mjs
+      - name: Build offline standalone Node kit, never include APK or user data
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory 'oneplus-usb-backup-kit' | Out-Null
+          New-Item -ItemType Directory 'oneplus-usb-backup-kit/scripts' | Out-Null
+          Copy-Item 'scripts/backup-oneplus-cold-sandbox.mjs' 'oneplus-usb-backup-kit/scripts/'
+          Copy-Item 'tools/b01-oneplus-cold-backup/RUN-ONEPLUS-BACKUP.cmd' 'oneplus-usb-backup-kit/'
+          Copy-Item 'tools/b01-oneplus-cold-backup/choose-backup-destination.ps1' 'oneplus-usb-backup-kit/'
+          Copy-Item (Get-Command node.exe).Source 'oneplus-usb-backup-kit/node.exe'
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'oneplus-usb-backup-kit/choose-backup-destination.ps1').Path,
+            [ref]$tokens,[ref]$errors)
+          if($errors.Count -ne 0){throw 'POWERSHELL_PARSE_FAILED'}
+          $items=@(Get-ChildItem 'oneplus-usb-backup-kit' -Recurse -File)
+          $expected=@('node.exe','RUN-ONEPLUS-BACKUP.cmd','choose-backup-destination.ps1',
+             'scripts/backup-oneplus-cold-sandbox.mjs')
+          if($items.Count -ne $expected.Count){throw 'UNEXPECTED_FILE_IN_KIT'}
+          foreach($item in $items){
+            $relative=[System.IO.Path]::GetRelativePath(
+              (Resolve-Path 'oneplus-usb-backup-kit').Path,$item.FullName).Replace('\','/')
+            if($relative -cnotin $expected){throw 'UNEXPECTED_ARCHIVE_FILE'}
+          }
+      - name: Verify kit cannot select a device or write without destination
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference=$false
+          $out = & ./oneplus-usb-backup-kit/node.exe oneplus-usb-backup-kit/scripts/backup-oneplus-cold-sandbox.mjs 2>&1
+          $code = $LASTEXITCODE
+          if($code -ne 1){throw 'MISSING_DEST_MUST_FAIL'}
+          $raw=($out -join "`n") | ConvertFrom-Json
+          if($raw.status -ne 'BLOCKED' -or $raw.originalsDeleted -ne $false -or
+             $raw.installedApplicationChanged -ne $false){throw 'BAD_STOP_REPORT'}
+          $global:LASTEXITCODE=0
+      - name: Upload private-local kit (no user data)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-ONEPLUS-USB-COLD-BACKUP-KIT
+          path: oneplus-usb-backup-kit/
+          if-no-files-found: error
+          retention-days: 7
