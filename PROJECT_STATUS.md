@@ -1,12 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · база интеграции #544 `b0d15000bb6a3161915718e5f2f9bb613f14fec9`.** Основные правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Историю и старые SHA хранить в журнале.
+**26.11.2026 · live main `8ee72eb6d8754a3baaf41a78d797ce6e45533081`.** Основные правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Историю и старые SHA хранить в журнале.
 
 ## Решение пользователя от 26.11.2026 и последовательная очередь
 
 - **[#538](https://github.com/250oisr-eng/Pasekaapp/pull/538) MERGED**: точный main `d74e5eb8877c62763023f34e231c2ebf5050cefe`, Fast #45856804420, Governance #45856804305, Android #45856804426 — SUCCESS. Добавлены только синтетические тесты атомарного отката IndexedDB, без изменения runtime. **Отдельная задача разработки функции контроля нехватки памяти отменена пользователем.** Не возвращаться к тестам памяти на устройстве ради неё. Базовые механизмы целостности и обработки ошибок сохраняются.
 - **[#514](https://github.com/250oisr-eng/Pasekaapp/pull/514) MERGED**: read-only видеожурнал, защита от stale IndexedDB ответов/ошибок и безопасные видео-ID; main `fb73a5bda488e67a610cce7f459a48c827666a0d`. Real OnePlus/видео NOT_TESTED.
-- **MERGED и проверены до слияния:** #515 (SW v319), #530 (SW v320), [#545](https://github.com/250oisr-eng/Pasekaapp/pull/545) (маркировка Р/К, main `3b35dfaf25e3c0d811e61c9eeeaa13cbeb67ba4b`), [#547](https://github.com/250oisr-eng/Pasekaapp/pull/547) (голосовой черновик сверки рамок, main `8cde74996378fced29f5184c7e0885a68ab0b366`). #545: Fast #45859913362, Governance #45860011498, Android #45859913384/#45860011532 SUCCESS. #547: Fast #45860299300, Governance #45860377508, Android #45860299134/#45860377518 SUCCESS. Это exact PR SHA, не физический OnePlus. **#546 MERGED:** голосовой черновик подкормки, main `b0d15000`, три проверки SUCCESS. **Очередь:** [#544](https://github.com/250oisr-eng/Pasekaapp/pull/544) — календарь и дата осмотра выбранного улья. После его интеграции — #548 → #510 → #531. Реальный микрофон, физическая сверка и APK на OnePlus NOT_TESTED.
+- **MERGED и проверены до слияния:** #515 (SW v319), #530 (SW v320), [#545](https://github.com/250oisr-eng/Pasekaapp/pull/545) (маркировка Р/К, main `3b35dfaf25e3c0d811e61c9eeeaa13cbeb67ba4b`), [#547](https://github.com/250oisr-eng/Pasekaapp/pull/547) (голосовой черновик сверки рамок, main `8cde74996378fced29f5184c7e0885a68ab0b366`). #545: Fast #45859913362, Governance #45860011498, Android #45859913384/#45860011532 SUCCESS. #547: Fast #45860299300, Governance #45860377508, Android #45860299134/#45860377518 SUCCESS. Это exact PR SHA, не физический OnePlus. **#546 и #544 MERGED:** #544 main `8ee72eb6d8754a3baaf41a78d797ce6e45533081`. **Новая безопасная очередь (подтверждена live GitHub):** 1) #548 — выбранный журнал в CSV; 2) #510 — фильтр до сортировки, ограниченный preview; 3) #531 — индекс семей после #510. P0 B01 backup/restore и #442 видео по-прежнему FROZEN; никаких тестов реальных данных, OnePlus и выпуска APK.
 - Готовность к интеграционному review ≠ слияние. Публикация, установка на OnePlus и проверка реальных видео не проводились.
 
 ## Замороженные зависимости (не тормозят независимую разработку)
@@ -17,4 +17,4 @@
 - **B07 P1:** физический sectional профиль и OP11–14 не активированы; исходный DOCX + пользовательские уточнения обязательны. **Draft #452** не является завершённым физическим восстановлением.
 - **B09 физический риск:** синтетические fake-indexeddb тесты не равны реальным quota, crash/power loss и независимому restore на устройстве.
 
-**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.**
+**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.**

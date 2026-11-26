@@ -1,6 +1,11 @@
 {
   "schemaVersion": 1,
-  "workNectarPlanner20261126": {"targetedTestsPassed":14,"chromiumPlanningScenario":"PASS","device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "workNectarPlanner20261126": {
+    "targetedTestsPassed": 14,
+    "chromiumPlanningScenario": "PASS",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "purpose": "Проверка эффекта реформы на 2–3 настоящих макроциклах. null=NOT_MEASURED, не ноль.",
   "baseline": {
     "sourceMainSha": "ecea1c3c50801250d42f49366e00e1e9e96d556f",
@@ -163,7 +168,11 @@
     },
     "note": "GitHub proof for the rollout pilot is recorded separately; the 2–3 product/development macrocycles AFTER adoption have not occurred. No effect claim yet. Synthetic SW QA cycle PR #477 (Android #45475559444 719/719 PASS) is evidenced in change journal/PR, excluded from real post-reform product comparison. Physical user scenarios: 0; effect NOT_MEASURED. 2026-11-25: seven independent P0/P1 draft/review/CI tracks #492–#498, code-only merges and synthetic tests verified on their exact SHAs. No live OnePlus physical restore, durable signer, licensed video model or device media cleanup; not a comparable real-user post-reform cycle. Repeated document reads NOT_MEASURED, physical scenarios remain 0, effect NOT_MEASURED. 2026-11-25 macrocycle: #501 external-file read-only structural verifier, #500 installed APK signer read-only CLI, #502 source OP13 ordinary-vs-early-honey gate; main CI code-SHAs verified, physical source backups/restore/installed signer NOT_VERIFIED. Only synthetic fixtures; no user scenario completed. Repeated reads and time savings NOT_MEASURED. 2026-11-25 #504: safe first-launch write gate and source-bound test corrections; Code CI verified exact SHA; no physical OnePlus or independent restore test. No measured user savings. 2026-11-25: #506 bounded external full-archive JSON verification and #507 separate legacy JSON-state-only read-only preflight integrated; PR and main synthetic CI verified on exact code SHAs. Physical OnePlus source archive, independent restore and installed APK signature NOT_VERIFIED; live user scenarios 0 and work-time benefit NOT_MEASURED. Historic #452/#479 remain blocked for physical evidence. 2026-11-25: independent Draft #511 video metadata cursor passes exact code CI and docs CI but no real RAM/OnePlus scenario. Draft #512 original-video delete and full DB reset safety gate is still separate from proof of physical backup, no user scenario completed. Historical #426 packaging feasibility stopped: main 19/19 JS already used. No measured user savings; no new comparable post-reform cycle. 2026-11-25: Updated existing main-based Draft #512 to freeze legacy exported canDeleteVideoOriginal independent of completed/resultPersisted/serverDeleteConfirmed or user-supplied forged backup/delete flags; direct entrance-media and whole-DB deletion were already blocked in Draft. Added negative Node regressions and checked applicable CI. Physical user outcomes still 0 for this P0 code safety change; not merged/released. Repeated document reads and measured time savings remain NOT_MEASURED. 2026-11-25 scope #512: additionally disabled the visible whole-DB delete button (no onclick) while keeping direct deleteAllData() and video helper fail-closed. Separate UI negative regression added. No OnePlus interaction, no actual deletion, and still no approved merge or release. 2026-11-26 independent Draft #538: synthetic injected QuotaExceededError atomic rollback three cases validated at code SHA 300154ffa09f9d76e02557a411191b4ad99443a3; OnePlus storage pressure NOT_TESTED, real user scenarios 0, work-efficiency impact NOT_MEASURED."
   },
-  "workSpokenFeeding20261126": {"targetedTestsPassed": 287, "completedVerifiedUserScenarios": 0, "device": "NOT_TESTED"},
+  "workSpokenFeeding20261126": {
+    "targetedTestsPassed": 287,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED"
+  },
   "pilotReformCycle": {
     "id": "pilot-governance-20261124-pr470",
     "phase": "REFORM_ROLLOUT_NOT_A_POST_REFORM_PRODUCT_CYCLE",
@@ -275,5 +284,14 @@
     "ci": "SUCCESS_EXACT_PR_SHA",
     "merged": true,
     "mergeSha": "8cde74996378fced29f5184c7e0885a68ab0b366"
+  },
+  "integrationJournalCsv20261126": {
+    "pr": 548,
+    "codeSha": "45f842cf7fcd77df2a7cd97597003bf005d0e7f0",
+    "ci": "PENDING",
+    "merged": false,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED",
+    "performance": "NOT_MEASURED"
   }
 }
