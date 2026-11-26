@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · live main `aa9fc17702730f9b5dc2931edee18e78c867478b` (#577).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
+**26.11.2026 · last verified main `cedcb63441b09a08fd78fd22e5b2a65687da1f5e` (#579).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -9,7 +9,7 @@
 - **#60 CLOSED/SUPERSEDED** без слияния: текущий `auditLegacyLayoutBodyReferences` и read-only регрессии выявляют отсутствующие/некорректные ссылки и неизвестную спецификацию; старый жёсткий `inspect()` не переносить. #43 ранее CLOSED/SUPERSEDED после #570.
 - **#534 OPEN / REVIEW_REQUIRED:** на HEAD `a8ab152c44e64617f0b7714c06f47bd51e6d5e9c` Governance #45690879408, Android #45690879512 и isolated synthetic restore #45690879551 SUCCESS. Это не реальный независимый restore полного архива OnePlus, не разрешение на обновление или очистку.
 - **#7 OPEN / PRESERVE_SOURCE:** уникальный исторический аудит резервирования, не сливать его старый статус целиком. **#533 OPEN / DOCS_RECONCILE**: отделить уникальные WIP/STOP-критерии от старого снимка. **#60/#534/#7/#533** имеют мотивированные комментарии.
-- Новый поимённый [PR audit I](docs/PR-AUDIT-CHECKPOINT-2026-11-26-I.md): **392 индексированных OPEN, 34 исторически root, 358 stacked**. Из 358: 0 исторических циклов, глубина до 142, 6 потомков закрытого #60 и 69 PR на 5 ветках без открытого parent PR (все 5 branch существуют). 29 PR проверены напрямую по live head/base; остальные старые SHA/CI НЕ подтверждены, индекс GitHub не гарантирует полноту.
+- Новый поимённый [PR audit J](docs/PR-AUDIT-CHECKPOINT-2026-11-26-J.md): **391 индексированный OPEN, 33 исторически root, 358 stacked**. Из 358: 0 исторических циклов, глубина до 142, 6 потомков закрытого #60 и 69 PR на 5 ветках без открытого parent PR (все 5 branch существуют). 29 PR проверены напрямую по live head/base; остальные старые SHA/CI НЕ подтверждены, индекс GitHub не гарантирует полноту.
 
 ## Действующие запреты и доказательства
 
@@ -23,10 +23,10 @@
 
 - **#577 MERGED** `aa9fc17702730f9b5dc2931edee18e78c867478b`: isolated TAR header check from old #509 plus negative tests. Exact-head `422d169c6f8b3932a1b4782231bdbde2cbcdf849`: Android #45886634965 and Governance #45886635009 SUCCESS. **#509 CLOSED/SUPERSEDED WITHOUT MERGE**, source retained. B01 full backup/restore still BLOCKED.
 
-- **#533 selective docs reconciliation in Draft:** only missing WIP / diagnostic STOP / exact CI distinctions ported to F0–F7 strategy on current main; historical `PROJECT_STATUS.md`, blockers and device claims from #533 not copied. CI and merge pending, old #533 retained until exact-head approval.
+- **#579 MERGED** `cedcb63441b09a08fd78fd22e5b2a65687da1f5e`: selective WIP/diagnostic STOP/exact CI rules from #533 into existing F0–F7, Governance #45887287260 SUCCESS exact HEAD `9b44124d7bf9a783f43dfb02d846ea6742804682`. **#533 CLOSED/SUPERSEDED WITHOUT MERGE**, source branch retained.
 
 ## Следующий конкретный шаг
 
-После #577 и сверки всех исторических цепочек разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
+После #579 и синхронизации индексированного реестра разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
