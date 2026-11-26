@@ -12,8 +12,8 @@ const MAX_CAPTURE=1024*1024;
 const MAX_ARCHIVE=16*1024*1024*1024; // fail closed on larger source; do not delete originals
 const FAIL='DEVICE_BACKUP_BLOCKED';
 export function parseArgs(args){
-  if(!Array.isArray(args)||args.length!==2||args[0]!=='--dest'||!args[1]||args[1].startsWith('--'))throw Error('INVALID_ARGUMENTS');
-  return {dest:args[1]};
+  if(!Array.isArray(args)|| !([2,3].includes(args.length)) ||args[0]!=='--dest'||!args[1]||args[1].startsWith('--')|| (args.length===3 && args[2]!=='--allow-force-stop'))throw Error('INVALID_ARGUMENTS');
+  return {dest:args[1],allowForceStop:args.length===3};
 }
 export function selectOneDevice(raw){
   if(typeof raw!=='string'||!raw.startsWith('List of devices attached'))throw Error('ADB_DEVICE_LIST_INVALID');
@@ -54,6 +54,21 @@ async function checkStopped(command,serial){
  if(ps.stdout.split(/\r?\n/).some(line=>{
    const name=line.trim();return name===PACKAGE||name.startsWith(PACKAGE+':');
  }))throw Error('APP_MUST_BE_STOPPED_MANUALLY');
+}
+// A force-stop is an opt-in local operational action, never the default.
+// It interrupts the app and may discard UNSAVED work, even though it does
+// not clear the installed app's persistent data.
+async function ensureStopped(command,serial,{allowForceStop=false}={}){
+ try {await checkStopped(command,serial);return;}
+ catch(e){
+  if(e.message!=='APP_MUST_BE_STOPPED_MANUALLY'||!allowForceStop)throw e;
+ }
+ const stop=await limitedProcess(command,adb(serial,['shell','am','force-stop',PACKAGE]));
+ if(stop.code!==0||stop.overflow)throw Error('ADB_FORCE_STOP_FAILED');
+ // Detect service auto-restart before and after a modest stabilization window.
+ await checkStopped(command,serial);
+ await new Promise(r=>setTimeout(r,1300));
+ await checkStopped(command,serial);
 }
 async function checkReadable(command,serial){
  const r=await limitedProcess(command,adb(serial,['shell','run-as',PACKAGE,'pwd']));
@@ -98,7 +113,7 @@ async function streamArchive(command,serial,output){
   if(child&&!child.killed&&child.exitCode===null)child.kill();
  }
 }
-export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}={}){
+export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',allowForceStop=false}={}){
  const root=resolve(dest);
  let info;
  try{info=await lstat(root);}catch{throw Error('DESTINATION_NOT_ACCESSIBLE');}
@@ -111,7 +126,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}=
  if(first.code!==0||first.overflow)throw Error('ADB_NOT_READY');
  const serial=selectOneDevice(first.stdout);
  // Read-only preflight: no force-stop, no install, no app storage mutations.
- await checkStopped(adbCommand,serial);
+ await ensureStopped(adbCommand,serial,{allowForceStop});
  await checkReadable(adbCommand,serial);
  const id=randomUUID().slice(0,12);
  const temp=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.tar.partial');
@@ -152,7 +167,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}=
  }
 }
 if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.url){
- Promise.resolve().then(()=>runBackup(parseArgs(process.argv.slice(2)).dest)).then(r=>{
+ Promise.resolve().then(()=>{const opts=parseArgs(process.argv.slice(2));return runBackup(opts.dest,{allowForceStop:opts.allowForceStop});}).then(r=>{
   console.log(JSON.stringify(r,null,2));
   process.exitCode=2; // full physical independent restore never claimed
  },e=>{
