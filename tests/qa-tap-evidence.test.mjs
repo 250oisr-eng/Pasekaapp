@@ -49,7 +49,10 @@ test('missing, malformed, duplicated or concatenated TAP summaries fail closed',
     complete.replace('# todo 0', '# todo 0\n# todo 0'),
     complete + complete,
     complete.replace('# tests 3', '# tests 3\n# tests 3'),
-    complete.replace('TAP version 13', 'TAP version 12')
+    complete.replace('TAP version 13', 'TAP version 12'),
+    complete.replace('1..3\n', ''),
+    complete.replace('1..3\n', '1..3\n1..3\n'),
+    complete.replace('1..3\n', '').replace('# duration_ms 12.5', '# duration_ms 12.5\n1..3')
   ];
   for (const input of invalid) {
     assert.equal(assessTapSummary(input).status, 'NOT_VERIFIED',
