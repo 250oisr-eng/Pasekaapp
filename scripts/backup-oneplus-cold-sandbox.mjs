@@ -59,7 +59,7 @@ async function checkStopped(command,serial){
 // It interrupts the app and may discard UNSAVED work, even though it does
 // not clear the installed app's persistent data.
 async function ensureStopped(command,serial,{allowForceStop=false}={}){
- try {await checkStopped(command,serial);return;}
+ try {await checkStopped(command,serial);return false;}
  catch(e){
   if(e.message!=='APP_MUST_BE_STOPPED_MANUALLY'||!allowForceStop)throw e;
  }
@@ -69,6 +69,7 @@ async function ensureStopped(command,serial,{allowForceStop=false}={}){
  await checkStopped(command,serial);
  await new Promise(r=>setTimeout(r,1300));
  await checkStopped(command,serial);
+ return true;
 }
 async function checkReadable(command,serial){
  const r=await limitedProcess(command,adb(serial,['shell','run-as',PACKAGE,'pwd']));
@@ -126,7 +127,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',a
  if(first.code!==0||first.overflow)throw Error('ADB_NOT_READY');
  const serial=selectOneDevice(first.stdout);
  // Read-only preflight: no force-stop, no install, no app storage mutations.
- await ensureStopped(adbCommand,serial,{allowForceStop});
+ const deviceForcedStopped=await ensureStopped(adbCommand,serial,{allowForceStop});
  await checkReadable(adbCommand,serial);
  const id=randomUUID().slice(0,12);
  const temp=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.tar.partial');
@@ -156,7 +157,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',a
     androidGalleryMediaStoreIncluded:false,
     independentPhysicalRestoreVerified:false,originalsDeleted:false,
     installedApplicationChanged:false,
-    diagnosticPackageChanged:false,deviceForcedStopped:false
+    diagnosticPackageChanged:false,deviceForcedStopped
   };
   await writeFile(reportFile,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});
   return result;
