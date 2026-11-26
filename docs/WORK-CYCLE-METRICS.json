@@ -645,5 +645,50 @@
     "measuredTimeSavings": null,
     "physicalDevice": "NOT_TESTED",
     "productionActions": 0
+  },
+  "prAuditCycleK20261126": {
+    "sourceMainSha": "f306b35074b19c4d0bb2ae01e3a535f14cc29b04",
+    "historicalRootCount": 33,
+    "liveRootMetadataChecked": 33,
+    "openRootPatchFileInventoriesChecked": 31,
+    "targetedSemanticSourceReviews": 4,
+    "sourceClosedPRs": [
+      200,
+      519,
+      520
+    ],
+    "sourceMergedDirectly": 0,
+    "selectiveIntegratedPRs": [
+      581,
+      582,
+      583
+    ],
+    "newCodePortPr": 583,
+    "newCodeTestHeadSha": "da147b94aaa4ad3ae9959a2a7771fefaa538c958",
+    "newCodeMergeSha": "f306b35074b19c4d0bb2ae01e3a535f14cc29b04",
+    "ciRuns": [
+      {
+        "id": 45889321180,
+        "conclusion": "success",
+        "type": "Android_Node_APK_NoUpgrade"
+      },
+      {
+        "id": 45889321099,
+        "conclusion": "success",
+        "type": "Governance_Docs"
+      }
+    ],
+    "historicalMainRootOpen": 30,
+    "historicalStackedOpen": 358,
+    "searchIndexedOpen": 388,
+    "searchExhaustive": false,
+    "fullSemanticsAll33Certified": false,
+    "unsafeVideoPr": 157,
+    "videoCleanupGate": "FROZEN_442",
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0,
+    "verifiedRealUserScenarios": 0,
+    "measuredTimeSavings": null,
+    "repeatedDocumentReads": null
   }
 }

@@ -1,8 +1,8 @@
 {
   "schema": "paseka-pr-indexed-live-graph-v4",
   "date": "2026-11-26",
-  "mainAtSnapshot": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
-  "source": "15 disjoint Github PR open search buckets rechecked after #533 close and #579 merge; not exhaustive REST enumeration",
+  "mainAtSnapshot": "f306b35074b19c4d0bb2ae01e3a535f14cc29b04",
+  "source": "15 daily GitHub Search buckets refreshed after #200/#519/#520 closure and #583 integration; indexed result not exhaustive REST enumeration",
   "constraints": [
     "search membership is indexed, may omit directly available PR such as historical #516",
     "historical base/head/parent/changed paths are not live verified for each row",
@@ -17,19 +17,19 @@
     "2026-11-16": 27,
     "2026-11-17": 0,
     "2026-11-18": 18,
-    "2026-11-19": 26,
+    "2026-11-19": 25,
     "2026-11-20": 88,
     "2026-11-21": 57,
     "2026-11-22": 85,
     "2026-11-23": 15,
     "2026-11-24": 10,
-    "2026-11-25": 16,
+    "2026-11-25": 14,
     "2026-11-26": 1
   },
   "stats": {
-    "indexedOpen": 391,
+    "indexedOpen": 388,
     "historicalStacked": 358,
-    "historicalMainBased": 33,
+    "historicalMainBased": 30,
     "newBeyondPrior": [],
     "parentPrNotIndexed": [
       {
@@ -303,42 +303,6 @@
       "historicalRootPr": 521,
       "historicalDepth": 0,
       "historicalChangedPathCount": 6,
-      "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
-      "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
-    },
-    {
-      "number": 520,
-      "title": "ci(b05): verify built debug APK signature versus verified OnePlus certificate",
-      "createdDay": "2026-11-25",
-      "indexedState": "OPEN",
-      "url": "https://github.com/250oisr-eng/Pasekaapp/pull/520",
-      "historicalHeadSha": "cef00bdb0361b77442503b89a4cff131e72c94bc",
-      "historicalBaseBranch": "main",
-      "historicalParentPr": null,
-      "historicalRootPr": 520,
-      "historicalDepth": 0,
-      "historicalChangedPathCount": 7,
-      "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
-      "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
-    },
-    {
-      "number": 519,
-      "title": "security(b05): compare existing keytool signing entry with verified OnePlus cert safely",
-      "createdDay": "2026-11-25",
-      "indexedState": "OPEN",
-      "url": "https://github.com/250oisr-eng/Pasekaapp/pull/519",
-      "historicalHeadSha": "87f18e00bf079f69808fae3c0568096c6f5da057",
-      "historicalBaseBranch": "main",
-      "historicalParentPr": null,
-      "historicalRootPr": 519,
-      "historicalDepth": 0,
-      "historicalChangedPathCount": 7,
       "historicalUnresolvedBase": null,
       "headShaLiveVerified": false,
       "baseLiveVerified": false,
@@ -5026,26 +4990,6 @@
       "currentBaseBranch": "fix/honey-pairs-2-or-4-validator-2026-11-20"
     },
     {
-      "number": 200,
-      "title": "fix(honey): validate staged 2→4 honey-body pairs without changing Farrar",
-      "createdDay": "2026-11-19",
-      "indexedState": "OPEN",
-      "url": "https://github.com/250oisr-eng/Pasekaapp/pull/200",
-      "historicalHeadSha": "14bc1e5dd87a52179ce6d0658b7b90119785667e",
-      "historicalBaseBranch": "main",
-      "historicalParentPr": null,
-      "historicalRootPr": 200,
-      "historicalDepth": 0,
-      "historicalChangedPathCount": 6,
-      "historicalUnresolvedBase": null,
-      "headShaLiveVerified": true,
-      "baseLiveVerified": true,
-      "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED",
-      "currentHeadSha": "14bc1e5dd87a52179ce6d0658b7b90119785667e",
-      "currentBaseBranch": "main"
-    },
-    {
       "number": 199,
       "title": "test(win11): manual local agent with privacy-filtered GitHub test reports",
       "createdDay": "2026-11-19",
@@ -7177,6 +7121,31 @@
       "state": "MERGED",
       "mergeSha": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
       "governanceRun": 45887287260
+    },
+    {
+      "pr": 519,
+      "state": "CLOSED_NOT_MERGED",
+      "reason": "read-only keytool metadata selectively merged via #581",
+      "integratedMergeSha": "b3279198682fb99702986cd44c3f661a00dcc9cb"
+    },
+    {
+      "pr": 520,
+      "state": "CLOSED_NOT_MERGED",
+      "reason": "CI debug signer public comparison selectively merged via #582",
+      "integratedMergeSha": "70e9cec1be2d6b5aea032b55c1c91fa9de0840ae"
+    },
+    {
+      "pr": 200,
+      "state": "CLOSED_NOT_MERGED",
+      "reason": "staged honey pair validator selectively merged via #583",
+      "integratedMergeSha": "f306b35074b19c4d0bb2ae01e3a535f14cc29b04"
+    },
+    {
+      "pr": 583,
+      "state": "MERGED",
+      "mergeSha": "f306b35074b19c4d0bb2ae01e3a535f14cc29b04",
+      "androidRun": 45889321180,
+      "governanceRun": 45889321099
     }
   ]
 }
