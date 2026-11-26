@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,readdir,rm,chmod} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,readdir,rm,chmod,access} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-cold-sandbox.mjs';
 
 test('strict parsing prevents arguments that could become ADB options',()=>{
- assert.deepEqual(parseArgs(['--dest','E:\\Backup']),{dest:'E:\\Backup'});
+ assert.deepEqual(parseArgs(['--dest','E:\\Backup']),{dest:'E:\\Backup',allowForceStop:false});
+ assert.deepEqual(parseArgs(['--dest','E:\\Backup','--allow-force-stop']),{dest:'E:\\Backup',allowForceStop:true});
  for(const args of [[],['--dest'],['--dest','--delete'],['--unknown','E:\\Backup'],
                     ['--dest','x','--other','y']])assert.throws(()=>parseArgs(args));
 });
@@ -34,6 +35,8 @@ async function fakeEnvironment(t){
  const stub=join(root,'adb-fixture');
  const fake=`#!/usr/bin/env node
 const {spawnSync}=require('node:child_process');
+const fs=require('node:fs');
+const marker=process.env.FAKE_STOP_MARKER;
 const args=process.argv.slice(2);
 const mode=process.env.FAKE_ADB_MODE||'ok';
 if(args[0]==='devices') {
@@ -41,9 +44,14 @@ if(args[0]==='devices') {
 }
 if(args[0]!=='-s'||args[1]!=='NE2213')process.exit(51);
 const tail=args.slice(2).join(' ');
-if(tail==='shell pidof ru.paseka.journal')process.exit(mode==='running'?0:1);
+if(tail==='shell pidof ru.paseka.journal')process.exit(mode==='running' && (!marker||!fs.existsSync(marker))?0:1);
 if(tail==='shell ps -A -o NAME') {
- process.stdout.write('NAME\\n'+(mode==='remote'?'ru.paseka.journal:remote\\n':''));process.exit(0);
+ process.stdout.write('NAME\\n'+(mode==='remote' && (!marker||!fs.existsSync(marker))?'ru.paseka.journal:remote\\n':''));process.exit(0);
+}
+if(tail==='shell am force-stop ru.paseka.journal'){
+ if(mode==='stop_denied')process.exit(1);
+ if(marker)fs.writeFileSync(marker,'yes');
+ process.exit(0);
 }
 if(tail==='shell run-as ru.paseka.journal pwd'){
  if(mode==='denied')process.exit(1);
@@ -115,4 +123,54 @@ test('Windows PowerShell wrapper does not merge native stderr into terminating e
  assert.match(text,/Failure code:/);
  const runner=await readFile(new URL('../scripts/backup-oneplus-cold-sandbox.mjs',import.meta.url),'utf8');
  assert.match(runner,/console\.log\(JSON\.stringify\(\{schema:'paseka-oneplus-cold-sandbox-backup-v1'/);
+});
+
+test('targeted force-stop requires opt-in and is reported truthfully', {skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const before={mode:process.env.FAKE_ADB_MODE,marker:process.env.FAKE_STOP_MARKER,private:process.env.FAKE_PRIVATE_DIR};
+ const mark=join(f.root,'force-stop-consent-marker');
+ try{
+  process.env.FAKE_ADB_MODE='running';
+  process.env.FAKE_STOP_MARKER=mark;
+  process.env.FAKE_PRIVATE_DIR=f.src;
+  await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),/APP_MUST_BE_STOPPED_MANUALLY/);
+  await assert.rejects(access(mark));
+  assert.deepEqual(await readdir(f.dest),[]);
+  const result=await runBackup(f.dest,{adbCommand:f.stub,allowForceStop:true});
+  assert.equal(result.status,'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTED');
+  assert.equal(result.deviceForcedStopped,true);
+  assert.equal(result.originalsDeleted,false);
+  assert.equal((await readFile(mark,'utf8')),'yes');
+  assert.deepEqual(await readFile(f.original),f.payload);
+ }finally{
+  for(const [key,value] of Object.entries({FAKE_ADB_MODE:before.mode,FAKE_STOP_MARKER:before.marker,FAKE_PRIVATE_DIR:before.private})){
+   if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+ }
+});
+test('an already stopped app must never be force-stopped even with opt-in',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const before={mode:process.env.FAKE_ADB_MODE,marker:process.env.FAKE_STOP_MARKER,private:process.env.FAKE_PRIVATE_DIR};
+ const mark=join(f.root,'unexpected-stop');
+ try{
+  process.env.FAKE_ADB_MODE='ok';
+  process.env.FAKE_STOP_MARKER=mark;
+  process.env.FAKE_PRIVATE_DIR=f.src;
+  const result=await runBackup(f.dest,{adbCommand:f.stub,allowForceStop:true});
+  assert.equal(result.deviceForcedStopped,false);
+  await assert.rejects(access(mark));
+ }finally{
+  for(const [key,value] of Object.entries({FAKE_ADB_MODE:before.mode,FAKE_STOP_MARKER:before.marker,FAKE_PRIVATE_DIR:before.private})){
+   if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+ }
+});
+test('GUI consent defaults to No and applies only to the target package',async()=>{
+ const ps=await readFile(new URL('../tools/b01-oneplus-cold-backup/choose-backup-destination.ps1',import.meta.url),'utf8');
+ assert.match(ps,/MessageBoxDefaultButton\]::Button2/);
+ assert.match(ps,/DialogResult\]::Yes/);
+ assert.match(ps,/--allow-force-stop/);
+ const script=await readFile(new URL('../scripts/backup-oneplus-cold-sandbox.mjs',import.meta.url),'utf8');
+ assert.match(script,/\['shell','am','force-stop',PACKAGE\]/);
+ assert.doesNotMatch(script,/\['shell','pm','clear'/);
 });
