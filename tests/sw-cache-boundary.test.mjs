@@ -33,10 +33,10 @@ function harness({network=async()=>new Response('ok'),existingCaches=[],offlineS
   };
   const fetch=async request=>{requests.push(request.url);return network(request);};
   vm.runInNewContext(source,{self,caches,fetch,Response,URL});
-  const fireFetch=async(url,{mode='cors',method='GET'}={})=>{
+  const fireFetch=async(url,{mode='cors',method='GET',headers=new Headers(),cache='default'}={})=>{
     let responsePromise=null;
     const settled=[];
-    const request={url,mode,method};
+    const request={url,mode,method,headers,cache};
     listeners.get('fetch')({
       request,
       respondWith:promise=>{responsePromise=Promise.resolve(promise);},
@@ -125,4 +125,87 @@ test('B11 SW never stores partial HTTP 206 or empty HTTP 204 shell responses',as
  assert.equal(partial.status,206);
  assert.equal(empty.status,204);
  assert.deepEqual(h.writes,[],'no incomplete asset may be cached');
+});
+
+test('B11 SW refuses redirected HTTP 200 during normal shell fetch caching',async()=>{
+ const sw=harness({network:async request=>{
+   // A browser-followed redirect can look like successful HTTP 200.
+   return {status:200,ok:true,type:'basic',redirected:true,
+     headers:new Headers({'cache-control':'public, max-age=300'}),
+     clone(){return this;}};
+ }});
+ const response=await sw.fireFetch(scope+'js/hive-model.js');
+ assert.equal(response.status,200,'network response still reaches caller');
+ assert.deepEqual(sw.writes,[],'redirected content must not poison offline shell cache');
+});
+
+test('B11 query-bearing HTML and JS responses cannot poison canonical offline shell cache',async()=>{
+ const sw=harness({network:async request=>new Response('dynamic response:'+request.url)});
+ const navigated=await sw.fireFetch(scope+'index.html?token=synthetic-secret',{mode:'navigate'});
+ const module=await sw.fireFetch(scope+'js/hive-model.js?session=synthetic-secret');
+ assert.equal(navigated.status,200);
+ assert.equal(module.status,200);
+ assert.equal(sw.writes.length,0,'query response must not enter durable shell cache');
+ assert.equal(sw.requests.length,2,'both queries may still be fetched normally online');
+});
+
+test('B11 canonical query-free shell resource remains cacheable after query guard',async()=>{
+ const sw=harness({network:async()=>new Response('public module')});
+ const resource=await sw.fireFetch(scope+'js/hive-model.js');
+ assert.equal(resource.status,200);
+ assert.equal(sw.writes.length,1);
+ assert.equal(sw.writes[0].request,scope+'js/hive-model.js');
+});
+
+test('B11 new v320 policy does not overwrite active v319 cache and only retires v319 after activation',async()=>{
+ assert.match(source,/const CACHE='paseka-shell-v320';/);
+ assert.match(source,/const CACHE_VERSION=320;/);
+ const h=harness({existingCaches:[
+  'paseka-shell-v318','paseka-shell-v319','paseka-shell-v320',
+  'paseka-shell-v321','paseka-shell-v319-user','other-app-cache'
+ ]});
+ await h.activate();
+ assert.deepEqual(h.deleted,['paseka-shell-v318','paseka-shell-v319']);
+ assert.ok(!h.deleted.includes('paseka-shell-v320'));
+ assert.ok(!h.deleted.includes('paseka-shell-v321'));
+ assert.ok(!h.deleted.includes('paseka-shell-v319-user'));
+});
+
+test('B11 SW bypasses Authorization requests rather than using or populating shared shell cache',async()=>{
+ const sw=harness({network:async()=>new Response('sensitive',{status:200})});
+ const result=await sw.fireFetch(scope+'js/hive-model.js',{
+  headers:new Headers({authorization:'Bearer SYNTHETIC_TEST_ONLY'})
+ });
+ assert.equal(result,null,'authorized fetch belongs to browser/network, not shared shell cache');
+ assert.deepEqual(sw.requests,[]);
+ assert.deepEqual(sw.writes,[]);
+});
+
+test('B11 SW bypasses HTTP range and explicit no-store requests even for shell paths',async()=>{
+ for(const settings of [
+  {headers:new Headers({range:'bytes=0-4'})},
+  {cache:'no-store'}
+ ]){
+  const sw=harness();
+  const result=await sw.fireFetch(scope+'index.html',settings);
+  assert.equal(result,null,'caller-controlled private fetch must bypass SW');
+  assert.deepEqual(sw.requests,[]);
+  assert.deepEqual(sw.writes,[]);
+ }
+});
+
+test('B11 ordinary canonical shell GET still uses offline caching',async()=>{
+ const sw=harness({network:async()=>new Response('synthetic shell',{status:200})});
+ const result=await sw.fireFetch(scope+'js/hive-model.js',{headers:new Headers()});
+ assert.equal(await result.text(),'synthetic shell');
+ assert.equal(sw.writes.length,1,'security bypass must not disable normal offline caching');
+});
+
+
+test('B11 HTTP 200 with Content-Range must reach caller but never poison offline shell cache',async()=>{
+ const sw=harness({network:async()=>new Response('truncated',{status:200,headers:{'content-range':'bytes 0-9/200','cache-control':'public'}})});
+ const response=await sw.fireFetch(scope+'js/hive-model.js');
+ assert.equal(response.status,200);
+ assert.equal(await response.text(),'truncated');
+ assert.deepEqual(sw.writes,[]);
 });
