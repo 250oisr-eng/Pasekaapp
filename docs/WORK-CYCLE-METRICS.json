@@ -733,5 +733,42 @@
     "repeatedDocumentReads": null,
     "measuredTimeSavings": null,
     "productionActions": 0
+  },
+  "prAuditCycleM20261126": {
+    "sourceMainSha": "e1c60d6f6ea47ac2cdc1301e5b0a7d026a5077fb",
+    "historicalSourceRootPr": 187,
+    "sourceState": "OPEN_PARTIALLY_PORTED",
+    "selectivePortPr": 587,
+    "exactHead": "7e48cd5da1ae264d8b42439bbd94c18628a9249d",
+    "mergeSha": "ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430",
+    "ciRuns": [
+      {
+        "id": 45892005602,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "nodeRegressions": "success",
+        "debugApk": "success",
+        "signerNoUpgrade": "success"
+      },
+      {
+        "id": 45892005533,
+        "name": "Governance Docs Checks",
+        "conclusion": "success"
+      }
+    ],
+    "hiveAccessibleAriaLabelsAdded": 3,
+    "existingDelegatedKeyboardPreserved": true,
+    "uiRedesignPorted": false,
+    "searchIndexedOpen": 388,
+    "historicalMainRootOpen": 30,
+    "historicalStackedOpen": 358,
+    "searchExhaustive": false,
+    "realScreenReaderOnOnePlus": "NOT_TESTED",
+    "verifiedRealUserScenarios": 0,
+    "fullIndependentRestore": "BLOCKED",
+    "licensedVideoPipeline": "FROZEN_442",
+    "repeatedDocumentReads": null,
+    "measuredTimeSavings": null,
+    "productionActions": 0
   }
 }

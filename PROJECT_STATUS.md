@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · verified main `5d19c067e4cc832466bd2ebf497a242c729535aa` (#585).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
+**26.11.2026 · verified main `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430` (#587).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -31,10 +31,10 @@
 
 - **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
 
-- **#187 selective UI Draft:** вместо устаревшего редизайна меняются лишь 3 доступных названия элементов каталога ульев; делегированная клавиатура Enter/Space уже была в main и защищена синтетическими тестами. [Контракт](docs/UI-HIVE-ACCESSIBILITY-SELECTIVE-2026-11-26.md). Exact-head CI PENDING; #187 OPEN, без реальных операций.
+- **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: три адресных aria-label для ульев; общий Enter/Space уже работал. Exact head `7e48cd5da1ae264d8b42439bbd94c18628a9249d`, Android #45892005602 и Governance #45892005533 **SUCCESS**. **#187 OPEN/PARTIALLY_PORTED**, редизайн не переносился; физическая accessibility НЕ ПРОВЕРЕНА.
 
 ## Следующий конкретный шаг
 
-После #585 следующий независимый корневой кандидат — #187: проверить уникальные read-only UI/browser регрессии на актуальном main, без старого HTML и потери мобильного UX. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
+После #587 оценить оставшиеся browser/Playwright регрессии #187 или следующий независимый корневой P1 код по фактическому main; не вносить устаревший HTML целиком. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**

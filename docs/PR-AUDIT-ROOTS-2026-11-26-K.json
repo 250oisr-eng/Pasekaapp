@@ -218,7 +218,17 @@
       "diffInventoryInspected": true,
       "semanticCodeReviewed": false,
       "exhaustiveSemanticCertification": false,
-      "releaseAuthorized": false
+      "releaseAuthorized": false,
+      "selectivePort": {
+        "pr": 587,
+        "status": "MERGED",
+        "mergeSha": "ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430",
+        "exactHead": "7e48cd5da1ae264d8b42439bbd94c18628a9249d",
+        "androidRun": 45892005602,
+        "governanceRun": 45892005533,
+        "scope": "three escaped per-hive aria-labels and regression for pre-existing delegated Enter/Space"
+      },
+      "remainingSource": "Old HTML/honeycomb/navigation and Playwright/axe browser test tooling not imported; existing global Enter/Space works; original PR OPEN/PARTIALLY_PORTED."
     },
     {
       "number": 188,
