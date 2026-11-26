@@ -117,6 +117,18 @@ test('physical candidate under non-ASCII Windows extraction folder is inspected 
   assert.ok(seenBadging[1].endsWith('candidate.apk'));
   assert.deepEqual(readFileSync(candidate),bytes);
   assert.ok(stages.includes('STAGE_CANDIDATE_LOCAL'));
+  let badgingCount=0;
+  const failingCommand=(binary,args,...rest)=>{
+   if(binary==='aapt'&&args[0]==='dump'&&++badgingCount===2)
+    throw Object.assign(new Error('private path leaked'),{code:1});
+   return commandFn(binary,args,...rest);
+  };
+  assert.throws(()=>inspectDiagnosticSigning({manifestPath,candidatePath:candidate,
+   sdk:()=>({adb:'adb',aapt:'aapt',jar:'apksigner.jar'}),
+   javaLocator:()=> 'java',commandFn:failingCommand}),/CANDIDATE_AAPT_COMMAND_FAILED/);
+  const error=safeSignerFailure({code:'CANDIDATE_AAPT_COMMAND_FAILED',message:'private path'},'CANDIDATE_BADGING');
+  assert.equal(error.code,'CANDIDATE_AAPT_COMMAND_FAILED');
+  assert.doesNotMatch(JSON.stringify(error),/private path/);
 
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
