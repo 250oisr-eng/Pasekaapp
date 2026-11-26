@@ -1,12 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · live main `fb73a5bda488e67a610cce7f459a48c827666a0d`.** Основные правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Историю и старые SHA хранить в журнале.
+**26.11.2026 · live main `8a382790327f0a8035cf605224915ecf9c10b0c5`.** Основные правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Историю и старые SHA хранить в журнале.
 
 ## Решение пользователя от 26.11.2026 и последовательная очередь
 
 - **[#538](https://github.com/250oisr-eng/Pasekaapp/pull/538) MERGED**: точный main `d74e5eb8877c62763023f34e231c2ebf5050cefe`, Fast #45856804420, Governance #45856804305, Android #45856804426 — SUCCESS. Добавлены только синтетические тесты атомарного отката IndexedDB, без изменения runtime. **Отдельная задача разработки функции контроля нехватки памяти отменена пользователем.** Не возвращаться к тестам памяти на устройстве ради неё. Базовые механизмы целостности и обработки ошибок сохраняются.
 - **[#514](https://github.com/250oisr-eng/Pasekaapp/pull/514) MERGED**: read-only видеожурнал, защита от stale IndexedDB ответов/ошибок и безопасные видео-ID; main `fb73a5bda488e67a610cce7f459a48c827666a0d`. Real OnePlus/видео NOT_TESTED.
-- **Текущий интеграционный review (разрешено пользователем при успешных проверках):** [#515](https://github.com/250oisr-eng/Pasekaapp/pull/515) → [#530](https://github.com/250oisr-eng/Pasekaapp/pull/530) offline; [#545](https://github.com/250oisr-eng/Pasekaapp/pull/545) → [#547](https://github.com/250oisr-eng/Pasekaapp/pull/547) маркировка и голосовые рамки; [#546](https://github.com/250oisr-eng/Pasekaapp/pull/546) голосовая подкормка; [#544](https://github.com/250oisr-eng/Pasekaapp/pull/544) планирование; [#548](https://github.com/250oisr-eng/Pasekaapp/pull/548) CSV; [#510](https://github.com/250oisr-eng/Pasekaapp/pull/510) → [#531](https://github.com/250oisr-eng/Pasekaapp/pull/531) производительность. **Одна задача за раз.**
+- **[#515](https://github.com/250oisr-eng/Pasekaapp/pull/515) MERGED**: SW v319, отклонение 204/206, main `8a382790327f0a8035cf605224915ecf9c10b0c5`. **[#530](https://github.com/250oisr-eng/Pasekaapp/pull/530) NEXT / USER-APPROVED AFTER CI**: SW v320, исключение redirect/Content-Range/запросов с Authorization, Range, no-store или query из общего кеширования; кодовый SHA `2368129bf016b8c0f1c7986e86f3b5106de719b3`. Fast/Governance/Android CI нового SHA проверять перед merge. Затем #545 → #547 → #546 → #544 → #548 → #510 → #531. Реальный cold offline NOT_TESTED.
 - Готовность к интеграционному review ≠ слияние. Публикация, установка на OnePlus и проверка реальных видео не проводились.
 
 ## Замороженные зависимости (не тормозят независимую разработку)
@@ -17,4 +17,4 @@
 - **B07 P1:** физический sectional профиль и OP11–14 не активированы; исходный DOCX + пользовательские уточнения обязательны. **Draft #452** не является завершённым физическим восстановлением.
 - **B09 физический риск:** синтетические fake-indexeddb тесты не равны реальным quota, crash/power loss и независимому restore на устройстве.
 
-**MERGE #515 ONLY AFTER EXACT-HEAD CI / NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.**
+**MERGE #530 ONLY AFTER EXACT-HEAD CI / NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.**
