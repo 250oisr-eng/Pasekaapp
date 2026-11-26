@@ -9,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {probeProcess} from './oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from './oneplus-strict-base64.mjs';
 import {inspectPartial} from './inspect-oneplus-partial-tar.mjs';
-import {encodedShellArgs,classifyEncodedProbe} from './oneplus-encoded-shell.mjs';
+import {encodedShellArgs,classifyEncodedProbe,isModernAdbClient,hasShellV2Feature} from './oneplus-encoded-shell.mjs';
 
 const PACKAGE='ru.paseka.journal';
 const MAX_CAPTURE=1024*1024;
@@ -186,9 +186,17 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',a
  if(process.platform==='win32'?
    actual.toLowerCase()!==root.toLowerCase():actual!==root)
    throw Error('DESTINATION_NOT_CANONICAL');
+ // Fail before even listing device data if host ADB may forward -T
+ // into Android's shell (observed chvt text with false exit=0).
+ const host=await limitedProcess(adbCommand,['version']);
+ if(host.code!==0||host.overflow||!isModernAdbClient(host.stdout))
+   throw Error('ADB_HOST_CLIENT_INCOMPATIBLE');
  const first=await limitedProcess(adbCommand,['devices','-l']);
  if(first.code!==0||first.overflow)throw Error('ADB_NOT_READY');
  const serial=selectOneDevice(first.stdout);
+ const features=await limitedProcess(adbCommand,adb(serial,['features']));
+ if(features.code!==0||features.overflow||!hasShellV2Feature(features.stdout))
+   throw Error('ADB_DEVICE_NO_SHELL_V2');
  // Read-only preflight: no force-stop, no install, no app storage mutations.
  const deviceForcedStopped=await ensureStopped(adbCommand,serial,{allowForceStop});
  await checkReadable(adbCommand,serial);
