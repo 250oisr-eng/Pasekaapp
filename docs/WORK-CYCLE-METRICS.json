@@ -293,5 +293,13 @@
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
     "performance": "NOT_MEASURED"
+  },
+  "integrationJournalPreview20261126": {
+    "pr": 510,
+    "ci": "PENDING",
+    "merged": false,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED",
+    "performance": "NOT_MEASURED"
   }
 }
