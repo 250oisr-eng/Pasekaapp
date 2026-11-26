@@ -24,10 +24,20 @@ test('internal BLOCKED returns ONLY allowlisted reason, never raw error stack',(
   checks:[{name:'error',status:'BLOCKED',detail:'private contents'}]};
  const result=summarizeDiagnosticLine(line(p));
  assert.deepEqual(result,{kind:'DEVICE_RESTART_BLOCKED',
-  reason:'APP_DATABASE_BOOTSTRAP_UNAVAILABLE',failedCheckNames:['error']});
+  reason:'APP_DATABASE_BOOTSTRAP_UNAVAILABLE',diagnosticStage:'UNRECOGNIZED_STAGE',
+  diagnosticErrorType:'UNRECOGNIZED_ERROR_TYPE',failedCheckNames:['error']});
  assert.doesNotMatch(JSON.stringify(result),/secret|private/);
  const unknown=summarizeDiagnosticLine(line({...p,detail:'secret only'}));
  assert.equal(unknown.reason,'UNCLASSIFIED_DEVICE_ERROR');
+ const staged=summarizeDiagnosticLine(line({...p,detail:'opaque stack with private path',
+  diagnosticStage:'RESTART_TARGET_VERIFY',diagnosticErrorType:'InvalidStateError'}));
+ assert.equal(staged.diagnosticStage,'RESTART_TARGET_VERIFY');
+ assert.equal(staged.diagnosticErrorType,'InvalidStateError');
+ assert.doesNotMatch(JSON.stringify(staged),/private path|opaque stack/);
+ const forged=summarizeDiagnosticLine(line({...p,detail:'private-secret',
+  diagnosticStage:'MY_SECRET_PATH',diagnosticErrorType:'password=123'}));
+ assert.equal(forged.diagnosticStage,'UNRECOGNIZED_STAGE');
+ assert.equal(forged.diagnosticErrorType,'UNRECOGNIZED_ERROR_TYPE');
 });
 test('unparseable/truncated logcat tag never counts as a PASS',()=>{
  assert.equal(summarizeDiagnosticLine('unrelated android log'),null);
@@ -40,6 +50,10 @@ test('Windows restart-only CMD and runtime never install, erase or access produc
  assert.match(cmd,/ONEPLUS-RESTART-ONLY-RESULT\.json/);
  assert.match(cmd,/inspect-restart-only\.mjs/);
  assert.match(runner,/parsePackagePresence\(p,PACKAGE\)/);
+ const app=await readFile(new URL('../diagnostics/disaster-phone-proof/runner.js',import.meta.url),'utf8');
+ assert.match(app,/diagnosticStage='RESTART_TARGET_VERIFY'/);
+ assert.match(app,/safeErrorTypes\.has\(diagnosticErrorType\)/);
+ assert.match(runner,/SAFE_STAGES\.has\(p\.diagnosticStage\)/);
  assert.match(runner,/\['-d','shell','am','force-stop',PACKAGE\]/);
  assert.match(runner,/\['-d','shell','am','start','-n',PACKAGE\+'\/\.MainActivity'\]/);
  assert.doesNotMatch(runner,/command\(adb,\['-d','(?:install|uninstall|push|pull|reboot)'/);
