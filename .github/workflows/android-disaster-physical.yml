@@ -251,6 +251,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force oneplus-kit | Out-Null
           Copy-Item 'tools/oneplus-recovery/inspect-diagnostic-signing.mjs' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/signer-readonly-guards.mjs' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ПОДПИСЬ-БЕЗ-УСТАНОВКИ.cmd' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/README-RU.txt' 'oneplus-kit/'
           # B09 physical signer mismatch: no installer, no force-stop/relaunch
