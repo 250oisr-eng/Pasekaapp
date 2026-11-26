@@ -59,6 +59,8 @@ test('family card opens only a unique, live, correctly linked record, never arbi
  assert.equal(rerenders,7);
 });
 test('family card preserves #599 direct search and inventory navigation',()=>{
- assert.match(html,/const matches=S\\.records\\.filter\\(r=>r\\.id===id\\)/);
- assert.match(html,/openEquipmentInventory\\(button\\.dataset\\.id\\)/);
+ assert.ok(html.includes('const matches=S.records.filter(r=>r.id===id);'),
+   'global search must reject duplicate journal IDs');
+ assert.ok(html.includes("if(kind==='corpus'){openEquipmentInventory(button.dataset.id);return}"),
+   'inventory result must open the selected physical body');
 });
