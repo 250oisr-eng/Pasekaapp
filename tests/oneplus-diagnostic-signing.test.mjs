@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {parseInstalledPath,parsePackageVersion,parseCertificate,compareDiagnosticSigning,safeSignerFailure,SIGNER_STAGES}
+import {parseInstalledPath,parsePackageVersion,parseCertificate,compareDiagnosticSigning,safeSignerFailure,SIGNER_STAGES,resolveJava}
  from '../tools/oneplus-recovery/inspect-diagnostic-signing.mjs';
 const id='ru.paseka.journal.disasterproof2';
 const a='a'.repeat(64),b='b'.repeat(64);
@@ -67,4 +67,13 @@ test('unknown raw ADB/process errors never leak command or device serial',()=>{
  assert.equal(result.code,'SIGNER_PREFLIGHT_UNKNOWN_ERROR');
  assert.equal(result.failedStage,'USB_DISCOVERY');
  assert.doesNotMatch(JSON.stringify(result),/secret|owner data/);
+});
+
+test('use existing Android Studio bundled Java without changing PATH or installing runtime',()=>{
+ const studio='C:\\Program Files\\Android\\Android Studio\\jbr\\bin\\java.exe';
+ const result=resolveJava({env:{PROGRAMFILES:'C:\\Program Files',PATH:''},platform:'win32',exists:path=>path===studio});
+ assert.equal(result,studio);
+ const home='X:\\jdk\\bin\\java.exe';
+ assert.equal(resolveJava({env:{JAVA_HOME:'X:\\jdk',PATH:''},platform:'win32',exists:path=>path===home}),home);
+ assert.throws(()=>resolveJava({env:{PATH:''},platform:'win32',exists:()=>false}),/JAVA_RUNTIME_NOT_FOUND/);
 });
