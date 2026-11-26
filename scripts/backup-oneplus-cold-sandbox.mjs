@@ -1,6 +1,6 @@
 import {spawn} from 'node:child_process';
 import {open,lstat,realpath,rename,writeFile} from 'node:fs/promises';
-import {createWriteStream} from 'node:fs';
+import {createReadStream,createWriteStream} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {Transform} from 'node:stream';
@@ -113,6 +113,15 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}=
   const streamed=await streamArchive(adbCommand,serial,temp);
   await checkStopped(adbCommand,serial);
   const validated=await verifyTar(temp);
+  // Independently re-read bytes actually stored on the chosen disk, rather
+  // than trusting only the SHA computed before the operating-system flush.
+  const diskHash=createHash('sha256');let diskBytes=0;
+  for await(const block of createReadStream(temp)){
+    diskBytes+=block.length;diskHash.update(block);
+    if(diskBytes>MAX_ARCHIVE)throw Error('ARCHIVE_LIMIT_EXCEEDED');
+  }
+  if(diskBytes!==streamed.bytes||diskHash.digest('hex')!==streamed.sha256)
+    throw Error('LOCAL_ARCHIVE_READBACK_MISMATCH');
   // This is an app-private cold file snapshot. It is NOT an independent
   // WebView/IndexedDB runtime restore or full Android MediaStore inventory.
   await rename(temp,final);
