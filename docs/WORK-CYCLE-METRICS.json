@@ -136,6 +136,38 @@
       "scenariosEvidence": "Only fake IndexedDB/CI 701/701 and Gradle; true physical OnePlus restoration/Quota/power-loss NOT_VERIFIED. Historic initial CI test ordering failure included; additional governance runs separately tracked in GitHub.",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/476",
       "id": "b09-atomicity-20261124-pr476"
+    },
+    {
+      "id": "p0-b01-media-copy-audit-20261126-pr541",
+      "codeSha": "37a840d7eb406f8b40c428d728eb18c93af5f4fc",
+      "ciRuns": [
+        {
+          "id": 45780970052,
+          "conclusion": "success"
+        },
+        {
+          "id": 45781094692,
+          "conclusion": "failure"
+        },
+        {
+          "id": 45781094703,
+          "conclusion": "success"
+        },
+        {
+          "id": 45781389753,
+          "conclusion": "success"
+        },
+        {
+          "id": 45781389846,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "PR #541: synthetic external-directory byte comparison; 1 CI failure was overrestrictive redaction assertion matching neutral JSON field name, fixed. Tests and Android build SUCCESS on exact code SHA. No physical OnePlus file was inspected, no complete device inventory, independent real restore, APK modification or user backup; B01 remains BLOCKED. Savings NOT_MEASURED.",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/541"
     }
   ],
   "evaluation": {
