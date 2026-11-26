@@ -6,13 +6,14 @@ import {readFile} from 'node:fs/promises';
 const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
 const SCOPE='https://example.invalid/Pasekaapp/';
 
-function makeInstallHarness({restrictedPath=null,unavailablePath=null}={}){
+function makeInstallHarness({restrictedPath=null,unavailablePath=null,partialPath=null,emptyPath=null,redirectedPath=null,range200Path=null}={}){
  const listeners=new Map(),stored=new Map(),calls={skipWaiting:0,network:[],addAll:0};
  const mockResponse=path=>({
   ok:path!==unavailablePath,
-  status:path===unavailablePath?404:200,
+  status:path===unavailablePath?404:path===partialPath?206:path===emptyPath?204:200,
   type:'basic',
-  headers:{get(name){return name.toLowerCase()==='cache-control'&&path===restrictedPath?'private, no-store':'public, max-age=600'}},
+  redirected:path===redirectedPath,
+  headers:{get(name){if(name.toLowerCase()==='content-range')return path===range200Path?'bytes 0-9/200':null;return name.toLowerCase()==='cache-control'?(path===restrictedPath?'private, no-store':'public, max-age=600'):null;},has(name){return name.toLowerCase()==='content-range'&&path===range200Path}},
   clone(){return this}
  });
  const fetch=async request=>{
@@ -69,4 +70,33 @@ test('B11 installation caches all allowed same-origin shell assets before activa
  assert.ok(h.stored.has('/Pasekaapp/js/hive-model.js'));
  assert.equal(h.calls.network.length,h.stored.size,'each cached asset has an actual network response');
  assert.ok(h.calls.network.every(path=>path.startsWith('/Pasekaapp/')),'no other origin/scope');
+});
+
+test('B11 install rejects HTTP 206 partial JS and HTTP 204 empty HTML before activation',async()=>{
+ for(const [type,query] of [
+  ['partialPath','/Pasekaapp/js/hive-model.js'],
+  ['emptyPath','/Pasekaapp/index.html']
+ ]){
+  const h=makeInstallHarness({[type]:query});
+  await assert.rejects(h.install(),/Offline shell install blocked/);
+  assert.equal(h.calls.skipWaiting,0,'incomplete bundle must not activate');
+  assert.equal(h.stored.has(query),false,'partial/empty response must never be cached');
+ }
+});
+
+test('B11 install refuses redirected HTTP 200 shell even when response.ok is true',async()=>{
+ const path='/Pasekaapp/index.html';
+ const h=makeInstallHarness({redirectedPath:path});
+ await assert.rejects(h.install(),/Offline shell install blocked/);
+ assert.equal(h.stored.has(path),false,'redirected response may not replace local shell');
+ assert.equal(h.calls.skipWaiting,0,'redirected app must not activate offline');
+});
+
+
+test('B11 install refuses an anomalous 200 Content-Range and never activates incomplete shell',async()=>{
+ const path='/Pasekaapp/js/hive-model.js';
+ const h=makeInstallHarness({range200Path:path});
+ await assert.rejects(h.install(),/Offline shell install blocked/);
+ assert.equal(h.stored.has(path),false);
+ assert.equal(h.calls.skipWaiting,0);
 });

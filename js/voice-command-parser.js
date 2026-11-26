@@ -14,7 +14,7 @@ function extractJournalOperationFields(input,kind){
  const found={};
  if(kind==='feeding'&&/^поле\s/iu.test(source)){
   // In this explicit format the spoken word «поле» starts each field.
-  const label=new RegExp('^('+labelAlternatives+')(?:\\s*[:=—-]\\s*|\\s+|$)','iu');
+  const label=new RegExp('^('+labelAlternatives+')(?:\\s*[:=—]\\s*|-\\s*|\\s+-(?:\\s+|$)|\\s+|$)','iu');
   const chunks=source.split(/(?:^|[\s,;.]+)поле\s+/iu).slice(1);
   for(const chunk of chunks){
    const match=label.exec(chunk);

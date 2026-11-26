@@ -1,6 +1,6 @@
 // Only the versioned Paseka application shell may be cached offline.
-const CACHE='paseka-shell-v318';
-const CACHE_VERSION=318;
+const CACHE='paseka-shell-v320';
+const CACHE_VERSION=320;
 const FILES=['./','./index.html','./manifest.webmanifest','./icons/paseka.svg','./js/voice-command-parser.js','./js/voice-session.js','./js/hive-model.js','./js/equipment-labels.js','./js/equipment-bodies.js','./js/equipment-inventory.js','./js/equipment-items.js','./js/sectional-physical-layout.js','./js/family-lineage.js','./js/sectional-operation-coordinator.js','./js/equipment-reconciliation.js','./js/equipment-reconciliation-voice.js','./js/entrance-analysis.js','./js/varroa-monitor.js','./js/pesticide-incident.js','./js/season-planning.js','./js/deadout-review.js','./js/p0-source-inventory.js','./js/disaster-archive.js'];
 const SCOPE=new URL(self.registration.scope);
 const SHELL_PATHS=new Set(FILES.map(file=>new URL(file,SCOPE).pathname));
@@ -14,8 +14,14 @@ function isObsoleteShellCache(name){
   return Number.isSafeInteger(version) && version<CACHE_VERSION;
 }
 
+// A 204/206 response is 'ok' but incomplete for an offline JS/HTML asset.
+// Only full, unredirected HTTP 200 responses can become shell resources.
 function cacheableResponse(response){
-  return response.ok &&
+  return response.status===200 && response.ok && response.redirected!==true &&
+    // Some intermediaries incorrectly attach Content-Range to HTTP 200.
+    // Such a body must never become the complete offline application shell.
+    response.headers?.has?.('content-range')!==true &&
+    !response.headers?.get?.('content-range') &&
     (response.type==='basic'||response.type==='default') &&
     !/\b(?:no-store|private)\b/i.test(response.headers?.get('cache-control')||'');
 }
@@ -48,6 +54,9 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
   const request=event.request;
   if(request.method!=='GET')return;
+  // Never substitute or cache shared offline shell for explicitly private, authorized,
+  // byte-range or no-store requests, even when the URL matches an allowlisted path.
+  if(request.headers?.has?.('authorization') || request.headers?.has?.('range') || request.cache==='no-store')return;
   const url=new URL(request.url);
   // Never intercept third-party traffic, other applications on this origin, or user data APIs.
   if(url.origin!==SCOPE.origin)return;
@@ -59,7 +68,9 @@ self.addEventListener('fetch',event=>{
   }
 
   const remember=response=>{
-    if(cacheableResponse(response)&&SHELL_PATHS.has(url.pathname)){
+    // Only the canonical, query-free shell paths may populate the shared offline cache.
+    // A request like index.html?token=... must not become an offline fallback.
+    if(cacheableResponse(response)&&SHELL_PATHS.has(url.pathname)&&!url.search){
       event.waitUntil(caches.open(CACHE).then(cache=>cache.put(request,response.clone())).catch(()=>{}));
     }
     return response;

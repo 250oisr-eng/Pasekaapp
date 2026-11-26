@@ -66,3 +66,11 @@ test('spoken feeding fields accept ordinary hyphen after the label without movin
  assert.deepEqual(result.ambiguous,[]);
  assert.deepEqual(extract('поле количество - поле корм сироп','feeding').fields,{type:'сироп'});
 });
+
+test('a sign attached to a dictated quantity survives manual review', () => {
+ const read = phrase => extract(phrase, 'feeding').fields.amount;
+ assert.equal(read('поле количество -150 г'), '-150 г');
+ assert.equal(read('поле количество -0,5 л'), '-0,5 л');
+ assert.equal(read('поле количество - 150 г'), '150 г');
+ assert.equal(read('поле количество: -150 г'), '-150 г');
+});
