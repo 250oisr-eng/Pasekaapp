@@ -22,10 +22,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - name: Install exact locked dependencies without scripts
+      - name: Install pinned direct dependencies without scripts or lockfile
         shell: pwsh
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --ignore-scripts --no-audit --no-fund --no-save --package-lock=false
       - name: Run source and regression tests (no local files)
         shell: pwsh
         run: |
