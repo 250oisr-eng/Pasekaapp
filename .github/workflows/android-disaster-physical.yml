@@ -12,6 +12,7 @@ on:
       - 'tools/oneplus-recovery/**'
       - 'tests/oneplus-recovery-kit.test.mjs'
       - 'tests/oneplus-restart-only.test.mjs'
+      - 'tests/oneplus-diagnostic-signing.test.mjs'
       - 'tests/b01-emulator-owner-stage.test.mjs'
       - 'tests/b01-owner-android-import.test.mjs'
       - 'scripts/prepare-disaster-phone-proof.mjs'
@@ -236,7 +237,7 @@ jobs:
         with:
           node-version: 20
       - name: Run Windows negative guards
-        run: node --test tests/oneplus-recovery-kit.test.mjs
+        run: node --test tests/oneplus-recovery-kit.test.mjs tests/oneplus-diagnostic-signing.test.mjs
       - name: Download isolated diagnostic APK
         uses: actions/download-artifact@v4
         with:
@@ -251,6 +252,8 @@ jobs:
           New-Item -ItemType Directory -Force oneplus-kit | Out-Null
           Copy-Item 'tools/oneplus-recovery/oneplus-recovery.mjs' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/inspect-restart-only.mjs' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/inspect-diagnostic-signing.mjs' 'oneplus-kit/'
+          Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ПОДПИСЬ-БЕЗ-УСТАНОВКИ.cmd' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ.cmd' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/README-RU.txt' 'oneplus-kit/'
           Copy-Item 'tools/oneplus-recovery/ПРОВЕРИТЬ-ONEPLUS.cmd' 'oneplus-kit/'
