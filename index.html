@@ -1591,7 +1591,7 @@ async function saveDeadoutReview(event){
  $('deadoutForm').reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
 }
 function renderSeasonPlanning(){
- const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()],['inspectionLastDate',today()]];
+ const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()]]; // last inspection is a recorded fact, never default to today
  defaults.forEach(([id,value])=>{const field=$(id);if(field&&!field.value)field.value=value});
  const select=$('inspectionHiveSelect');if(select){
   const previous=select.value||selectedHiveId;
