@@ -21,6 +21,8 @@
 
 - **#575 MERGED** `09ac5b757b86803eafa616c9f425c8d262145105`: selective Windows Android Studio JBR lookup and installed `apksigner.jar` from historical #517, with isolated tests. Exact-head `270152169672a1fee07e53d1705991fd0147c964`: Android #45885947784 SUCCESS (Node regression/APK/sign audit), Governance #45885947805 SUCCESS. **#517 CLOSED/SUPERSEDED WITHOUT MERGE**, source retained. Physical Windows/OnePlus validation NOT_TESTED; B01/B04/B05 remain blocked.
 
+- **#509 selective port pending CI:** new local-only bounded TAR header reader and negative tests in fresh-main Draft; no archive data or device touched. Contract: [B01 TAR audit](docs/B01-TAR-HEADER-SELECTIVE-PORT-2026-11-26.md). This is not a full restore or video backup proof; #509 remains OPEN until verified integration.
+
 ## Следующий конкретный шаг
 
 После проверенных слияний #574/#575 разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
