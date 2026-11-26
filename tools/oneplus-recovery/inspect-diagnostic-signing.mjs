@@ -90,7 +90,7 @@ function androidSdk(){
  }
  throw fail('LOCAL_ANDROID_SDK_TOOLS_NOT_FOUND');
 }
-export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,
+export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,javaLocator=resolveJava,
  setStage=()=>{},manifestPath=join(HERE,'diagnostic-manifest.json'),
  candidatePath=join(HERE,'app-debug.apk')}={}){
  const mark=stage=>{if(!SIGNER_STAGES.includes(stage))throw fail('UNRECOGNIZED_STAGE');setStage(stage);};
@@ -124,7 +124,7 @@ export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,
   if(createHash('sha256').update(readFileSync(candidateLocal)).digest('hex')!==manifest.apkSha256)
    throw fail('CANDIDATE_TEMP_COPY_MISMATCH');
   mark('JAVA_RUNTIME_DISCOVERY');
-  const java=resolveJava();
+  const java=javaLocator();
   const readMeta=(path,kind)=>{
    mark(kind==='INSTALLED'?'INSTALLED_BADGING':'CANDIDATE_BADGING');
    const versionCode=parsePackageVersion(commandFn(aapt,['dump','badging',path]));
