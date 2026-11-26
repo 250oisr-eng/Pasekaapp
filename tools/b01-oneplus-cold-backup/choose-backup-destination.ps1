@@ -67,6 +67,12 @@ if($code -eq 2 -and $status -eq 'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTE
 }else{
  Write-Host "BACKUP NOT VERIFIED: $status"
  if($result -and $result.code){ Write-Host "Failure code: $($result.code)" }
+ if($result -and $result.evidence -and $result.evidence.stage -eq 'ANDROID_TAR_TRANSFER'){
+  Write-Host "Tar exit code: $($result.evidence.tarExitCode)"
+  Write-Host "Bytes received: $($result.evidence.transferredBytes)"
+  Write-Host "Tar stderr present: $($result.evidence.stderrSeen)"
+  Write-Host 'Private stderr, filenames and source paths are intentionally withheld.'
+ }
  switch($result.code) {
   'ADB_NO_DEVICE' { Write-Host 'No connected authorized phone found: check USB cable and USB debugging.' }
   'ADB_MULTIPLE_DEVICES' { Write-Host 'More than one Android device is connected. Disconnect other devices.' }
@@ -75,6 +81,10 @@ if($code -eq 2 -and $status -eq 'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTE
   'ADB_FORCE_STOP_FAILED' { Write-Host 'The explicitly approved targeted stop was rejected; copy blocked.' }
   'RUN_AS_UNAVAILABLE' { Write-Host 'The installed app does not permit run-as. Do not uninstall it or clear data.' }
   'WEBVIEW_DIRECTORY_NOT_ACCESSIBLE' { Write-Host 'Private WebView directory not accessible. No backup was created.' }
+  'ANDROID_TAR_COMMAND_FAILED' { Write-Host 'Android tar exited nonzero; local .partial is NOT a usable backup.' }
+  'ANDROID_TAR_STREAM_FAILED' { Write-Host 'ADB/TAR transfer stream ended in error. Do not use .partial as backup.' }
+  'ANDROID_TAR_EMPTY_OR_TOO_SMALL' { Write-Host 'Android tar produced too few bytes to verify a backup.' }
+  'ANDROID_TAR_ALIGNMENT_INVALID' { Write-Host 'Android tar stream did not end on a valid 512-byte block boundary.' }
   'DESTINATION_NOT_CANONICAL' { Write-Host 'Use a normal local folder directly, not a symbolic link or alias.' }
   default { Write-Host 'Do not remove or reset the installed application.' }
  }
