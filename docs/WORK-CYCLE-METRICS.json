@@ -301,5 +301,13 @@
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
     "performance": "NOT_MEASURED"
+  },
+  "integrationJournalFamilyIndex20261126": {
+    "pr": 531,
+    "ci": "PENDING",
+    "merged": false,
+    "completedVerifiedUserScenarios": 0,
+    "device": "NOT_TESTED",
+    "performance": "NOT_MEASURED"
   }
 }

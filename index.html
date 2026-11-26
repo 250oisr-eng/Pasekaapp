@@ -1028,14 +1028,20 @@ function renderFeedingLedger(){
 
 // Read-only journal list shared by the visible timeline and CSV export.
 // A CSV export does not contain attached Blob/File media or archived records.
-function filteredJournalRows(){
+function filteredJournalRows(familyById=null){
  if(!activeJournalHive)return [];
+ if(!familyById){
+  familyById=new Map();
+  for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
+ }
  const type=$('journalTypeFilter')?.value||'all',familyId=$('journalFamilyFilter')?.value||'all';
  const date=String($('journalDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
  return S.records.filter(r=>r&&!r.archivedAt&&r.hive===activeJournalHive).filter(r=>{
-  const family=S.families.find(f=>f.id===r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
+  if((type!=='all'&&r.type!==type)||(familyId!=='all'&&r.family!==familyId)||(date&&r.date!==date))return false;
+  if(!search)return true;
+  const family=familyById.get(r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
   const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
-  return (type==='all'||r.type===type)&&(familyId==='all'||r.family===familyId)&&(!date||r.date===date)&&(!search||haystack.includes(search));
+  return haystack.includes(search);
  }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
 }
 function journalCsvCell(value){
@@ -1078,6 +1084,12 @@ function renderJournalRecords(){
  const host=$('records');if(!host)return;
  const typeSelect=$('journalTypeFilter'),familySelect=$('journalFamilyFilter');
  const available=S.records.filter(r=>!r.archivedAt&&(!activeJournalHive||r.hive===activeJournalHive));
+ // Preserve first-match semantics of legacy duplicate family IDs.
+ const familyById=new Map();
+ for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
+ // Preserve the first available historical name without repeated array.find.
+ const firstRecordByFamily=new Map();
+ for(const record of available){if(!firstRecordByFamily.has(record.family))firstRecordByFamily.set(record.family,record);}
  if(typeSelect){
   const old=typeSelect.value,types=[...new Set(available.map(r=>r.type).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
   typeSelect.innerHTML='<option value="all">Все события</option>'+types.map(type=>'<option value="'+safe(type)+'">'+safe(type)+'</option>').join('');
@@ -1085,11 +1097,11 @@ function renderJournalRecords(){
  }
  if(familySelect){
   const old=familySelect.value,ids=[...new Set(available.map(r=>r.family).filter(Boolean))];
-  familySelect.innerHTML='<option value="all">Все семьи</option>'+ids.map(id=>{const family=S.families.find(f=>f.id===id),record=available.find(r=>r.family===id);return '<option value="'+safe(id)+'">'+safe(family?.name||record?.familyNameAtTime||record?.familySnapshotAtTime?.name||'Архивная семья')+'</option>'}).join('');
+  familySelect.innerHTML='<option value="all">Все семьи</option>'+ids.map(id=>{const family=familyById.get(id),record=firstRecordByFamily.get(id);return '<option value="'+safe(id)+'">'+safe(family?.name||record?.familyNameAtTime||record?.familySnapshotAtTime?.name||'Архивная семья')+'</option>'}).join('');
   familySelect.value=ids.includes(old)?old:'all';
  }
  const rows=activeJournalHive?available:[];
- const filtered=filteredJournalRows();
+ const filtered=filteredJournalRows(familyById);
  const count=$('journalResultCount');if(count)count.textContent=activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
  host.classList.toggle('has-entries',filtered.length>0);
  host.innerHTML=activeJournalHive?(filtered.map(r=>'<article class="card journal-entry" data-record-id="'+safe(r.id)+'"><div class="journal-entry-head"><span class="journal-entry-type">'+safe(r.type)+'</span><time datetime="'+safe(r.date)+'">'+safe(r.date)+'</time></div>'+(r.text?'<p class="journal-entry-text">'+safe(r.text)+'</p>':'')+recordFamilyHtml(r)+recordExtraHtml(r)+(r.media?.length?'<div class="journal-entry-media">'+mediaHtml(r.media)+'</div>':'')+'<div class="row journal-entry-actions"><button type="button" data-record-id="'+safe(r.id)+'" onclick="editRecord(this.dataset.recordId)">Изменить</button><button type="button" data-record-id="'+safe(r.id)+'" onclick="deleteRecord(this.dataset.recordId)">В архив</button></div></article>').join('')||(rows.length?'<div class="empty">По выбранным фильтрам записей нет.</div>':'<div class="empty">Для этого улья записей пока нет.</div>')):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-const start=html.indexOf('function filteredJournalRows(){');
+const start=html.indexOf('function filteredJournalRows(');
 const end=html.indexOf('function renderJournalRecords(){',start);
 assert.ok(start>0&&end>start,'CSV and filtering functions are in the app');
 const src=html.slice(start,end);
@@ -67,7 +67,7 @@ test('CSV builder refuses a cross-hive or archived record, including direct call
 test('CSV button is present and export functions never change IndexedDB',()=>{
  assert.match(html,/onclick="downloadFilteredJournalCsv\(\)"/);
  assert.match(html,/CSV содержит только текст выбранных записей, без фото, видео, вложений/);
- assert.match(html,/const filtered=filteredJournalRows\(\)/);
+ assert.match(html,/const filtered=filteredJournalRows\(familyById\)/);
  assert.doesNotMatch(src,/db\.transaction|save\(|saveQueue|localStorage|fetch\(|deleteRecord|objectStore|S\.records\.(push|splice)/);
 });
 
