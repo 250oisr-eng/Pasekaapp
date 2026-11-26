@@ -1,39 +1,30 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**26.11.2026.** Последний отмеченный в ветке live main: `346b35035861257be45dae93ee0573cbd4de9082`; сверять с актуальным GitHub. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). История — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## Текущий параллельный цикл — безопасность оригиналов и P2
+## B09 — физическая диагностика OnePlus, Draft #537 (26.11.2026)
 
-- [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
-- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой UI и функция сброса блокированы до записи, кнопка полного удаления **disabled без onclick**, legacy helper всегда `false`, даже при поддельных флагах восстановления. Тесты и проверка точного SHA обязательны; без merge/release.
-- [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
-- B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
+- **Новое решающее доказательство:** получен `ONEPLUS-DIAGNOSTIC-SIGNER-RESULT(2).json`: `BLOCKED/DIAGNOSTIC_SIGNER_MISMATCH`; `installedDiagnosticPresent=true`; `candidateSourceSha=1e48dac72e7060317bedb48986bd338603511f93`; `installationAuthorized=false`; `productionPackageTouched=false`; `noInstallNoOverwriteNoDelete=true`; `syntheticDataPreserved=true`. Сертификат установленного `ru.paseka.journal.disasterproof2` **не совпадает** с сертификатом кандидата. **Обновлять этот пакет нельзя.** Отчёт не раскрывает отпечатки; это не доказательство общего происхождения данных и не проверка реальной пасеки.
+- Прежние отчёты: четыре попытки WebView/force-stop закончились недоказанным restart Blob; signer preflight `ENOENT`, затем `CANDIDATE_BADGING` были диагностическими ошибками. После исправления временной копии APK и классификации `aapt` итоговый signer-результат **доказал несовпадение**. Не повторять циклы signer-тестов без нового сохраняемого ключа/независимой цели.
+- [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537), code HEAD `1e48dac72e7060317bedb48986bd338603511f93`: exact-SHA GitHub Governance #45777923044, Android #45777922977, специализированный #45777922988 — **SUCCESS**. Это CI/эмулятор, **не** физическое восстановление на OnePlus.
+- **B09 BLOCKED / SIGNER_MISMATCH_CONFIRMED:** сохранить установленный тестовый APK и синтетическую IndexedDB; install/update/uninstall/clear запрещены; новую диагностическую версию под этим packageId не ставить. Owner Windows ZIP изменён: из выдачи исключены install и force-stop/relaunch CMD и исполняющий их runner; signer использует отдельные pure read-only guards, добавлены тесты запрета опасных файлов. CI проверить на финальном SHA. Допустимое независимое продолжение — только проектирование локального read-only исследования установленного пакета или отдельный новый appId на новой пустой тестовой базе без утверждения восстановления старой. Ни один вариант не даёт разрешения удалять видео.
 
-## Последний законченный макроцикл — безопасные локальные проверки B01
+## P0: оригиналы и резервное копирование
 
-- **[#506](https://github.com/250oisr-eng/Pasekaapp/pull/506) MERGED**, `main=635e4e3dded87a595645bb479e2c74040577ea5d`: `scripts/verify-exported-archive.mjs` теперь контролирует **фактический** объём чтения полного экспортированного `paseka-idb-full-v1` JSON до 512 MiB, запрещает symlink, проверяет identity/изменение файла/UTF-8. **Fast #45556213707, Governance #45556213617, Android #45556213559 SUCCESS** на точном main. Это проверка файла, не восстановление.
-- **[#507](https://github.com/250oisr-eng/Pasekaapp/pull/507) MERGED**, `main=01a3449ee232299a37655d0194f39b23161048e7`: отдельный `scripts/audit-oneplus-json-transfer.mjs` — локальная, ограниченная 512 MiB проверка **обычного JSON состояния** старой версии OnePlus. Сверяет структуру ульев/семей/записей, ожидаемые counts, сообщает об исключении отдельного `entrance_media`. **Fast #45556536401, Governance #45556536383, Android #45556536188 SUCCESS** на точном main. `JSON_STATE_PREFLIGHT_ONLY` не равно `fullBackupVerified`.
-- **Draft #452 / Draft #479:** источник резервных копий и исторический 1 090-byte TAR остаются без физического доказательства, большой stacked diff не интегрировать целиком. PR отмечены как требующие изолированного review.
+- **B01 BLOCKED:** нет независимого полного внешнего архива `paseka-v1` + Gallery/MediaStore/оригинальных файлов и восстановления на пустой независимой цели. [#472](https://github.com/250oisr-eng/Pasekaapp/pull/472), [#501](https://github.com/250oisr-eng/Pasekaapp/pull/501), [#506](https://github.com/250oisr-eng/Pasekaapp/pull/506), [#507](https://github.com/250oisr-eng/Pasekaapp/pull/507) — кодовые проверки структуры/SHA/ограниченного чтения, **не** физическое доказательство полного восстановления. Старый TAR не считать валидным архивом.
+- **B04/B05 BLOCKED:** установленный production signer OnePlus и постоянный keystore не подтверждены. Read-only инструмент #500 есть в main; **Draft #469** частично не перенесён. Ни прямых обновлений, ни замены производственного APK.
+- **B06/B10 FROZEN #442:** отсутствуют лицензированные веса, полный реальный видеоконвейер и доказательство всех копий. Удаление оригиналов запрещено. [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512) закрывает обходы delete в рабочей ветке, но не в установленном приложении. Не считать флаги очереди разрешением удаления.
 
-## Предыдущие подтверждённые интеграции
+## P1/P2 и интеграция
 
-- **#504 MERGED**, `8b4eabf04220a96e45127568816758360da834c5`: fail-closed первые операции при ошибке IndexedDB/`versionchange`; не разрешены state/media writes, restore, delete или ложный полный G0. Fast #45549767248, Governance #45549767244, Android #45549767279 SUCCESS на main.
-- **#501 MERGED:** локальный `verify-exported-archive` использует исходный `inspectArchive`, отдельную in-memory fake-indexeddb, SHA/stores/counts/Blob. Проверенный **файл** не равен независимому restore.
-- **#500 MERGED:** `check-oneplus-upgrade.mjs --installed-only` умеет read-only получать package/versionCode/SHA-256 сертификата установленного APK с ADB и SDK. Реальный телефон не проверялся.
-- **#502 MERGED:** по исходному DOCX OP13 обычное весеннее развитие и ранний мёд — разные сценарии. В v2 stacked Draft #461–#466 они ещё не активированы в main.
-- Исторический #70 CLOSED/SUPERSEDED: `startupRecoveryPending`/commit-after-save и негативные тесты уже в main.
+- [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511) read-only курсор метаданных Blob; реальное снижение RAM NOT_MEASURED. [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510) селективные оптимизации не merged. P2 asset-selection #426 не имеет доказанной выгоды: 19 JS используются.
+- OP01–14 и OP13/CAS многосекционного профиля остаются **NOT_VERIFIED**; не активировать без полной физической модели и подтверждения пользователя. Не смешивать с Farrar. Старые P1 stacked Draft не сливать пакетом.
+- Избирательно интегрированные в main #500–#507 не означают release. [Draft #452](https://github.com/250oisr-eng/Pasekaapp/pull/452) и [Draft #479](https://github.com/250oisr-eng/Pasekaapp/pull/479) требуют отдельной сверки перед переносом.
 
-## Нерешённые блокеры
+## Следующий безопасный шаг
 
-- **B01 P0 — BLOCKED:** нет проверенной внешней копии всех оригинальных источников OnePlus (в том числе Gallery/MediaStore/отдельные видео), нет независимого restore на пустой цели. Старый TAR некорректен. Новый локальный checker не заменяет backup/restore.
-- **B04/B05 P0 — BLOCKED:** реальный signing fingerprint установленного `ru.paseka.journal` и постоянный приватный ключ не подтверждены; **Draft #469** остаётся частично неперенесённым. Прямой APK upgrade запрещён до B01 backup, восстановления и rollback.
-- **B06/B10 — FROZEN #442:** лицензированные веса, реальный детектор пчёл/видеоконвейер и доказательное удаление оригиналов не подтверждены. Оригиналы **не удалять**.
-- **P1 OP01–14/B11 — NOT_VERIFIED:** новый многосекционный профиль и физический OP13/CAS не активировать; холодный offline и обновление на реальном OnePlus не проверены. Не смешивать новую технологию с Farrar.
+1. **B09:** не продолжать обновление установленного диагностического APK — signer mismatch доказан; сохранять test-only пакет и старую IndexedDB без изменения. Для новой версии — отдельный независимый appId или доказанный исходный ключ с безопасным планом, без удаления старого.
+2. **B01:** внешний полный архив с проверкой оригиналов и независимым восстановлением на пустой цели; личные записи/видео не загружать в GitHub и CI.
+3. Независимо продолжить source-bound P1/P2 review, не сливая PR и не активируя незавершённый физический профиль.
 
-## Следующий безопасный этап
-
-1. Только при доступности реального внешнего файла и ПК: локально проверить полный экспорт отдельно от обычного JSON, затем независимый restore на пустой среде; **архив с личными данными в чат/CI не загружать**.
-2. Только при авторизованном подключении OnePlus: read-only проверить сертификат установленного APK; без доказательства B01/B04/B05 не устанавливать новую сборку.
-3. Независимо продолжить source-bound review оставшихся P1 Draft PR; не подключать OP11–14 к live UI до полной физической модели и user-confirmed CAS.
-
-**NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.** Успешный CI не равен физическому испытанию.
+**NO_MERGE / NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL.**

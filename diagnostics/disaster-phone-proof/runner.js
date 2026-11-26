@@ -5,6 +5,8 @@ const packageId='ru.paseka.journal.disasterproof2';
 const TAG='PASEKA_P0_DISASTER_PROOF_RESULT';
 const checkpoint='paseka-p0-disaster-restart-v2';
 const stages=[];
+let diagnosticStage='APP_BOOTSTRAP';
+const safeErrorTypes=new Set(['Error','TypeError','AbortError','InvalidStateError','NotFoundError','QuotaExceededError','UnknownError']);
 function add(name,status,detail=''){stages.push({name,status,detail:String(detail)});}
 function ensure(value,message){if(!value)throw Error(message);}
 const targetDbName='paseka-b01-disposable-recovery-v1';
@@ -57,8 +59,9 @@ async function waitDb(){
  throw Error('App database not available');
 }
 function rootOwnerStart(){try{window.PasekaB01OwnerArchive?.start?.()}catch(_){/* owner proof separate and optional */}}
-function display(status,code,detail=''){
- const result={schema:'paseka-oneplus-p0-disaster-v1',packageId,isolated:true,productionApp:'NOT_ACCESSED',productionDatabase:'NOT_ACCESSED',originalVideos:'NOT_ACCESSED',autoDelete:'NOT_ATTEMPTED',status,code,checks:stages,detail:String(detail)};
+function display(status,code,detail=' ',diagnosticErrorType='NONE'){
+ const result={schema:'paseka-oneplus-p0-disaster-v1',packageId,isolated:true,productionApp:'NOT_ACCESSED',productionDatabase:'NOT_ACCESSED',originalVideos:'NOT_ACCESSED',autoDelete:'NOT_ATTEMPTED',status,code,checks:stages,detail:String(detail),diagnosticStage,
+  diagnosticErrorType:safeErrorTypes.has(diagnosticErrorType)?diagnosticErrorType:'OTHER'};
  const div=document.createElement('main');div.id='p0-disaster-proof';
  div.style.cssText='position:fixed;inset:0;z-index:2147483647;padding:16px;background:white;color:#182218;overflow:auto;font:15px system-ui;';
  const h=document.createElement('h2');h.textContent='P0 · Аварийное восстановление · '+status;
@@ -72,15 +75,20 @@ function display(status,code,detail=''){
  try{
   ensure(location.protocol==='https:','Only secure Capacitor origin is supported');
   await waitDb();
+  diagnosticStage='SOURCE_PRECHECK';
   const saved=localStorage.getItem(checkpoint);
   if(saved){
     let target;
     try{
+      diagnosticStage='RESTART_TARGET_OPEN';
       target=await openTargetDb();
+      diagnosticStage='RESTART_SOURCE_READ';
       const source=await requestFrom(db,'main','state');
       ensure(source?.meta?.revisionId==='p0-seed','Synthetic source mutated after process restart');
+      diagnosticStage='RESTART_RECEIPT_VALIDATE';
       const receipt=JSON.parse(saved);
       ensure(/^[a-f0-9]{64}$/.test(receipt.sha256),'Invalid pre-restart receipt');
+      diagnosticStage='RESTART_TARGET_VERIFY';
       await verifyTarget(target,receipt.sha256);
       add('androidProcessRestartDurability','PASS','Separate target IndexedDB and Blob survive force-stop/relaunch');
       display('PASS','P0_DISASTER_PHYSICAL_RESTART_PASS');
@@ -129,6 +137,6 @@ function display(status,code,detail=''){
     localStorage.setItem(checkpoint,JSON.stringify({sha256:proof.sha256}));
     display('PASS','P0_DISASTER_WEBVIEW_RESTORE_PASS','Restart separate diagnostic package to test Android durability');
   }finally{target?.close();}
- }catch(e){add('error','BLOCKED',e?.message||e);display('BLOCKED','P0_DISASTER_PROOF_FAILED',e?.stack||e);}
+ }catch(e){add('error','BLOCKED',e?.message||e);display('BLOCKED','P0_DISASTER_PROOF_FAILED',e?.stack||e,e?.name);}
 })();
 })();
