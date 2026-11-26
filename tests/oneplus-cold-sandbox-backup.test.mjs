@@ -386,3 +386,40 @@ test('offline partial inspector exposes no archive names in JSON',{skip:process.
  assert.ok(!report.includes(privateFile));
  assert.ok(!report.includes(src));
 });
+
+test('forensic tracer follows two independent +1 header shifts without restoring or editing',{skip:process.platform==='win32'},async t=>{
+ const root=await mkdtemp(join(tmpdir(),'paseka-trace-drift-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const src=join(root,'src');await mkdir(src);
+ for(let i=0;i<5;i++)await writeFile(join(src,'file-'+i+'.bin'),Buffer.alloc(10+i,51));
+ const p=join(root,'original.tar.partial');
+ execFileSync('tar',['-cf',p,'-C',src,'.']);
+ const original=await readFile(p);
+ const headerOffsets=[];
+ for(let pos=0;pos+512<=original.length;){
+  const h=headerCheck(original.subarray(pos,pos+512));
+  assert.equal(h.valid,true);
+  if(h.zero)break;
+  headerOffsets.push(pos);
+  pos+=512+Math.ceil(h.payload/512)*512;
+ }
+ assert.ok(headerOffsets.length>=5);
+ const offsetA=headerOffsets[2],offsetB=headerOffsets[4];
+ const shifted=Buffer.concat([
+  original.subarray(0,offsetA),Buffer.from([0x41]),
+  original.subarray(offsetA,offsetB),Buffer.from([0x42]),
+  original.subarray(offsetB)
+ ]);
+ const target=join(root,'twoshifts.tar.partial');
+ await writeFile(target,shifted);
+ const report=await inspectPartial(target);
+ assert.equal(report.status,'TAR_INCOMPLETE_OR_INVALID');
+ assert.equal(report.invalidHeaderOffset,offsetA);
+ assert.equal(report.driftTrace.shiftEvents,2);
+ assert.equal(report.driftTrace.netShift,2);
+ assert.equal(report.driftTrace.result,'SHIFTED_END_MARKERS_FOUND_NOT_A_BACKUP');
+ assert.deepEqual(report.driftTrace.sampleOffsets,[{expectedOffset:offsetA,relativeShift:1},{expectedOffset:offsetB+1,relativeShift:1}]);
+ assert.equal(report.contentsExtracted,false);
+ assert.equal(report.sourceModified,false);
+ assert.deepEqual(await readFile(p),original);
+});
