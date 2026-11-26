@@ -68,5 +68,5 @@ test('CSV button is present and export functions never change IndexedDB',()=>{
  assert.match(html,/onclick="downloadFilteredJournalCsv\(\)"/);
  assert.match(html,/CSV содержит только текст выбранных записей, без фото, видео, вложений/);
  assert.match(html,/const filtered=filteredJournalRows\(\)/);
- assert.doesNotMatch(src,/db\.transaction|save\(|saveQueue|localStorage|fetch\(|deleteRecord|put\(|remove\(/);
+ assert.doesNotMatch(src,/db\.transaction|save\(|saveQueue|localStorage|fetch\(|deleteRecord|objectStore|S\.records\.(push|splice)/);
 });
