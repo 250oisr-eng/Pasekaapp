@@ -73,6 +73,17 @@ async function checkReadable(command,serial){
  const d=await limitedProcess(command,adb(serial,['shell','run-as',PACKAGE,'ls','-ld','app_webview']));
  if(d.code!==0||d.overflow)throw Error('WEBVIEW_DIRECTORY_NOT_ACCESSIBLE');
 }
+// Tiny known public constant: validate the exact run-as/sh/base64 path
+// before reading any private app file or opening a backup destination file.
+async function verifyEncodedTransport(command,serial){
+ const proof='PASEKA_BASE64_PROBE_V1';
+ const expected=Buffer.from(proof,'ascii').toString('base64');
+ const result=await limitedProcess(command,adb(serial,[
+  'exec-out','run-as',PACKAGE,'sh','-c','printf PASEKA_BASE64_PROBE_V1 | base64'
+ ]),{max:8192});
+ if(result.overflow||result.code!==0)throw Error('BASE64_PREFLIGHT_COMMAND_FAILED');
+ if(result.stdout.replace(/[\r\n]/g,'')!==expected)throw Error('BASE64_PREFLIGHT_MISMATCH');
+}
 async function verifyTar(archivePath){
  const r=await limitedProcess('tar',['-tf',archivePath],{max:12*1024*1024});
  if(r.code!==0||r.overflow)throw Error('TAR_INTEGRITY_NOT_VERIFIED');
@@ -173,6 +184,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',a
  // Read-only preflight: no force-stop, no install, no app storage mutations.
  const deviceForcedStopped=await ensureStopped(adbCommand,serial,{allowForceStop});
  await checkReadable(adbCommand,serial);
+ await verifyEncodedTransport(adbCommand,serial);
  const id=randomUUID().slice(0,12);
  const temp=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.tar.partial');
  const final=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.tar');
