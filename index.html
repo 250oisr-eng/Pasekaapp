@@ -1037,7 +1037,7 @@ function filteredJournalRows(){
 }
 function journalCsvCell(value){
  let text=String(value??'');
- if(/^[\x00-\x20]*[=+\-@]/.test(text))text="'"+text;
+ if(/^[\x00-\x20\s\u200B-\u200F\u2060]*[=+\-@]/u.test(text))text="'"+text;
  return '"'+text.replace(/"/g,'""')+'"';
 }
 function buildFilteredJournalCsv(rows,hiveId){
@@ -1053,6 +1053,11 @@ function buildFilteredJournalCsv(rows,hiveId){
  }
  return '\uFEFF'+lines.join('\r\n')+'\r\n';
 }
+// Safe unique name: separate hives and repeated downloads without touching files.
+function journalCsvFilename(hiveId,date,tick){
+ const safeId=String(hiveId??'').replace(/[^A-Za-z0-9_-]/g,'-').slice(0,32)||'hive';
+ return 'paseka-journal-'+date+'-'+safeId+'-'+tick+'.csv';
+}
 function downloadFilteredJournalCsv(){
  if(!activeJournalHive){alert('Сначала выбери улей для экспорта журнала.');return;}
  const rows=filteredJournalRows();
@@ -1060,7 +1065,7 @@ function downloadFilteredJournalCsv(){
  try{
   const csv=buildFilteredJournalCsv(rows,activeJournalHive);
   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
-  a.href=url;a.download='paseka-journal-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();
+  a.href=url;a.download=journalCsvFilename(activeJournalHive,today(),Date.now());document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
  }catch(error){alert(error.message||'Не удалось создать CSV.');}
 }
