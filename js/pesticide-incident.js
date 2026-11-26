@@ -8,6 +8,16 @@ function validDateTime(value){
  const [date,time]=value.split('T'),[year,month,day]=date.split('-').map(Number),[hour,minute]=time.split(':').map(Number),d=new Date(Date.UTC(year,month-1,day));
  return d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day&&hour>=0&&hour<=23&&minute>=0&&minute<=59;
 }
+function validGpsTimestamp(value){
+ if(typeof value!=='string')return false;
+ const match=value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|([+-])(\d{2}):(\d{2}))$/);
+ if(!match)return false;
+ const [,year,month,day,hour,minute,second,zone,sign,offsetHour,offsetMinute]=match;
+ const y=Number(year),m=Number(month),d=Number(day),h=Number(hour),min=Number(minute),sec=Number(second),date=new Date(Date.UTC(y,m-1,d));
+ if(date.getUTCFullYear()!==y||date.getUTCMonth()!==m-1||date.getUTCDate()!==d||h>23||min>59||sec>59)return false;
+ if(zone!=='Z'&&(Number(offsetHour)>14||Number(offsetMinute)>59||(Number(offsetHour)===14&&Number(offsetMinute)!==0)))return false;
+ return Number.isFinite(Date.parse(value));
+}
 function buildPesticideIncidentDraft(input,hives,media,makeId,now){
  if(!Array.isArray(hives))throw new Error('Не удалось прочитать список ульев.');
  const observedAt=String(input?.observedAt||'');
@@ -30,12 +40,15 @@ function buildPesticideIncidentDraft(input,hives,media,makeId,now){
   if(!Number.isFinite(latitude)||latitude < -90||latitude>90||!Number.isFinite(longitude)||longitude < -180||longitude>180)throw new Error('Проверь GPS-координаты.');
   const accuracyRaw=input.locationAccuracyM==null?'':String(input.locationAccuracyM).trim();
   if(accuracyRaw!=='' ){if(!/^\d+$/.test(accuracyRaw)||Number(accuracyRaw)>100000)throw new Error('Проверь точность GPS.');locationAccuracyM=Number(accuracyRaw)}
+  const capturedRaw=String(input.gpsCapturedAt??'').trim();
+  if(capturedRaw&&!validGpsTimestamp(capturedRaw))throw new Error('Проверь время фиксации GPS.');
  }
+ const gpsCapturedAt=latitude==null?null:(String(input.gpsCapturedAt??'').trim()||null);
  const files=Array.isArray(media)?media:[];
  if(files.length>MAX_MEDIA)throw new Error('Можно прикрепить не более трёх фотографий.');
  for(const file of files){if(!file||file.kind!=='image'||typeof file.name!=='string'||file.name.length>180||!['image/jpeg','image/png','image/webp','image/heic'].includes(file.type)||typeof file.data!=='string'||!/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(file.data)||file.data.length>MAX_MEDIA_DATA)throw new Error('Фотография имеет неподдерживаемый формат или превышает лимит размера.')}
  const snapshots=affected.map(h=>({id:h.id,number:Number.isInteger(Number(h.number))?Number(h.number):null,label:Number.isInteger(Number(h.number))?'Улей №'+Number(h.number):'Улей'}));
- return {id:makeId(),observedAt,scope,affectedHiveIds:affected.map(h=>h.id),affectedHiveSnapshots:snapshots,deadBeesCount,symptoms,locationLabel,latitude,longitude,locationAccuracyM,gpsCapturedAt:latitude==null?null:String(input.gpsCapturedAt||''),suspectedCrop:crop,suspectedSubstance:substance,suspectedArea:area,weatherNotes:weather,reportedTo,reportReference,sampleId,sampleCollectedAt,sampleSeal,sampleTransferredTo,notes,media:files.map(x=>({kind:'image',name:x.name,type:x.type,data:x.data,sizeBytes:Number(x.sizeBytes)||0,capturedAt:x.capturedAt||null})),causationStatus:'unconfirmed',status:'open',source:'smartphone_manual',createdAt:now,updatedAt:now};
+ return {id:makeId(),observedAt,scope,affectedHiveIds:affected.map(h=>h.id),affectedHiveSnapshots:snapshots,deadBeesCount,symptoms,locationLabel,latitude,longitude,locationAccuracyM,gpsCapturedAt,suspectedCrop:crop,suspectedSubstance:substance,suspectedArea:area,weatherNotes:weather,reportedTo,reportReference,sampleId,sampleCollectedAt,sampleSeal,sampleTransferredTo,notes,media:files.map(x=>({kind:'image',name:x.name,type:x.type,data:x.data,sizeBytes:Number(x.sizeBytes)||0,capturedAt:x.capturedAt||null})),causationStatus:'unconfirmed',status:'open',source:'smartphone_manual',createdAt:now,updatedAt:now};
 }
 function inspectPesticideIncidentIntegrity(state){
  const errors=[],rows=Array.isArray(state?.pesticideIncidents)?state.pesticideIncidents:[],hives=new Set((Array.isArray(state?.hives)?state.hives:[]).map(h=>h?.id).filter(Boolean)),ids=new Set();
@@ -54,7 +67,10 @@ function inspectPesticideIncidentIntegrity(state){
    if(row.scope==='selected_hives'&&!row.affectedHiveIds.length)add('pesticide_incident_selected_scope_empty',{id:row.id});
   }
   if(row.deadBeesCount!=null&&(!Number.isInteger(row.deadBeesCount)||row.deadBeesCount<0||row.deadBeesCount>10000000))add('pesticide_incident_invalid_dead_count',{id:row.id});
+  const hasGps=row.latitude!=null&&row.longitude!=null;
   if((row.latitude==null)!==(row.longitude==null)||row.latitude!=null&&(!Number.isFinite(Number(row.latitude))||row.latitude < -90||row.latitude>90||!Number.isFinite(Number(row.longitude))||row.longitude < -180||row.longitude>180))add('pesticide_incident_invalid_coordinates',{id:row.id});
+  if(row.locationAccuracyM!=null&&(!hasGps||!Number.isInteger(row.locationAccuracyM)||row.locationAccuracyM<0||row.locationAccuracyM>100000))add('pesticide_incident_invalid_gps_accuracy',{id:row.id});
+  if(row.gpsCapturedAt!=null&&row.gpsCapturedAt!==''&&(!hasGps||!validGpsTimestamp(row.gpsCapturedAt)))add('pesticide_incident_invalid_gps_timestamp',{id:row.id});
   if(row.media!=null&&(!Array.isArray(row.media)||row.media.length>MAX_MEDIA||!row.media.every(x=>x&&x.kind==='image'&&typeof x.name==='string'&&x.name.length<=180&&['image/jpeg','image/png','image/webp','image/heic'].includes(x.type)&&typeof x.data==='string'&&/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(x.data)&&x.data.length<=MAX_MEDIA_DATA)))add('pesticide_incident_invalid_media',{id:row.id});
   if(row.causationStatus!=='unconfirmed')add('pesticide_incident_causation_overstated',{id:row.id});
  }
@@ -64,6 +80,6 @@ function summarizePesticideIncidents(rows){
  const items=(Array.isArray(rows)?rows:[]).filter(Boolean).slice().sort((a,b)=>String(b.observedAt).localeCompare(String(a.observedAt)));
  return {total:items.length,open:items.filter(x=>x.status==='open').length,withGps:items.filter(x=>x.latitude!=null&&x.longitude!=null).length,withSamples:items.filter(x=>!!x.sampleId).length,items};
 }
-root.PasekaIncident={VERSION:'pesticide-incident-v1',SCOPES,buildPesticideIncidentDraft,inspectPesticideIncidentIntegrity,summarizePesticideIncidents,validDateTime};
+root.PasekaIncident={VERSION:'pesticide-incident-v1',SCOPES,buildPesticideIncidentDraft,inspectPesticideIncidentIntegrity,summarizePesticideIncidents,validDateTime,validGpsTimestamp};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.PasekaIncident;
 })(typeof window!=='undefined'?window:globalThis);
