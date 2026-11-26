@@ -2,11 +2,11 @@
 
 **26.11.2026 — проверенный main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
-## 26.11.2026 — B01: реальный Android Shell v2 в CI, Draft #543
+## 26.11.2026 — РАЗБЛОКИРОВАНИЕ РАЗРАБОТКИ: B01 LEGACY FROZEN
 
-- [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543): исправлено смешивание stdout/stderr и потеря удалённого exit у прежнего `adb exec-out`; используется `adb shell -T`, Shell v2, строгий Base64 и fail-closed TAR/SHA. Матрица проб удалена.
-- **Точный code/test SHA `1fa485c32d6f5132ead092172c7c4fa8f7f87619`**: [USB kit Linux+Windows+Android 15 emulator #45831597099](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099) SUCCESS; Fast #45831584331, Governance #45831597239, Android #45831597063/#45831584362 SUCCESS. Emulator подтвердил stdout/stderr, exit 42 и Base64; данных пасеки нет. [Windows ZIP](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45831597099/artifacts/15122283627) до 03.12.2026.
-- **B01 BLOCKED:** OnePlus вернул `/system/bin/sh: chvt: can't find tty` и ложный exit 0. Вероятно, старый ADB ПК не распознал `-T` (его версия ещё неизвестна). В Draft #543 введена проверка ADB >=1.0.41 и `shell_v2` ДО приватного доступа, Windows выбирает официальный SDK. Физических TAR и restore нет.
+- **STOP цикла ADB:** реальные ошибки `BASE64_PREFLIGHT_NON_BASE64_OUTPUT`, `/system/bin/sh: chvt: can't find tty`, `ADB_NO_DEVICE` подтверждают отсутствие внешнего архива. [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543) сохраняется как BLOCKED, **не повторять USB/ADB варианты и не просить телефонные тесты** без нового проверяемого основания.
+- **Новая независимая схема:** установленный OnePlus v315 и все оригиналы остаются нетронутыми. Его штатный JSON-экспорт — только записи (без `entrance_media`), общедоступные Gallery/Downloads/MediaStore — отдельный MTP-копирующий путь. Архив этих частей ≠ полный backup app-private IndexedDB. OnePlus Local Backup не включает app data.
+- **P1/P2/UI/offline РАЗРЕШЕНЫ:** разработка в отдельных main-based Draft и пустой PWA/браузерной тестовой среде; полный P0 `paseka-idb-full-v1` export+restore новой версии испытывается независимо от старого APK. Ни merge, ни выпуск, ни live migration, ни автоудаление оригиналов без отдельных разрешений и доказательств. Текущие функциональные Draft #544–#547 уже имеют CI PASS; можно продолжать с них.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
