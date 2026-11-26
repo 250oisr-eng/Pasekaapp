@@ -1,6 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · live main `a5fcde50472a4ef6f4f304949865d62cce883eb7`.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+**26.11.2026 · checked main `71c658e64ed9a4e1442b15019b57b7c854752543` after #535; verify live GitHub before next write.** Фактический GitHub имеет приоритет; нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
+
+## Последний PR-макроцикл (verified actions)
+
+- **#555 MERGED** squash `a92abaa5b35c1f1be2c87ee74335ea04a32439b8` (docs-only; exact PR HEAD Governance SUCCESS).
+- **#535 MERGED** squash `71c658e64ed9a4e1442b15019b57b7c854752543` (debug APK CI provenance and NOT_FOR_ONEPLUS; source PR exact-head Fast, Android, Governance SUCCESS). Post-merge exact-main CI **NOT VERIFIED**; physical OnePlus signing/restore/upgrade remains BLOCKED.
+- Full metadata inventory is a historical snapshot; **not** per-patch review or live PR census. [Detailed checkpoint](docs/PR-AUDIT-CHECKPOINT-2026-11-26-B.md). No mass merge, APK install, production release or video deletion.
 
 ## Текущая очередь после полного структурного аудита PR
 
