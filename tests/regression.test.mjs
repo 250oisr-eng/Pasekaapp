@@ -862,7 +862,8 @@ test('journal draft from AI workspace maps explicit inspection values and keeps 
     showTab:tab=>tabs.push(tab),
     newRecord:()=>{opened=true},
     toggleOccupancy:()=>{toggled=true},
-    extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+    extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText'),
+    journalBroodCapacity:()=>6
   });
   prepare();
   assert.equal(opened,true);
@@ -962,7 +963,7 @@ test('batch frame move never treats winter-forbidden boxes as installed even in 
 });
 
 test('journal draft validator accepts a complete and correctly linked inspection',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[{id:'f1',hive:'h1'}],records:[]};
  const result=validate({id:'r1',date:'2024-02-29',type:'Осмотр',hive:'h1',family:'f1',occupancy:5,broodFrames:3,freeDrawn:1},state);
  assert.equal(result.ok,true);
@@ -970,7 +971,7 @@ test('journal draft validator accepts a complete and correctly linked inspection
 });
 
 test('journal draft validator rejects impossible calendar dates and unsupported record types',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const result=validate({id:'r1',date:'2026-02-30',type:'Неизвестный тип',hive:'h1',family:''},state);
  assert.equal(result.ok,false);
@@ -979,7 +980,7 @@ test('journal draft validator rejects impossible calendar dates and unsupported 
 });
 
 test('journal draft validator rejects missing hives and cross-hive family links',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'},{id:'h2'}],families:[{id:'f1',hive:'h1'}],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Заметка',hive:'h2',family:'f1'},state);
  assert.ok(result.errors.some(error=>error.code==='journal_family_mismatch'));
@@ -988,7 +989,7 @@ test('journal draft validator rejects missing hives and cross-hive family links'
 });
 
 test('journal draft validator accepts an archived family link only while editing its original record',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const archived={id:'r1',family:'old-family',familySnapshotAtTime:{id:'old-family',name:'Архивная семья'}};
  const draft={id:'r1',date:'2026-11-12',type:'Заметка',hive:'h1',family:'old-family'};
@@ -997,7 +998,7 @@ test('journal draft validator accepts an archived family link only while editing
 });
 
 test('journal draft validator rejects duplicate record identifiers',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[{id:'existing'}]};
  const result=validate({id:'existing',date:'2026-11-12',type:'Заметка',hive:'h1',family:''},state);
  assert.ok(result.errors.some(error=>error.code==='journal_duplicate_id'));
@@ -1005,14 +1006,14 @@ test('journal draft validator rejects duplicate record identifiers',()=>{
 });
 
 test('journal inspection metrics must be whole numbers within the six-frame capacity',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Осмотр',hive:'h1',family:'',occupancy:6.5,broodFrames:-1,freeDrawn:7},state);
  assert.equal(result.errors.filter(error=>error.code==='journal_invalid_frame_count').length,3);
 });
 
 test('journal treatment follow-up date is validated as a real date',()=>{
- const validate=loadFunction('validateJournalRecordDraft');
+ const validate=loadFunction('validateJournalRecordDraft',{journalBroodCapacity:()=>6});
  const state={hives:[{id:'h1'}],families:[],records:[]};
  const result=validate({id:'r1',date:'2026-11-12',type:'Обработка',hive:'h1',family:'',treatmentCheck:'2026-02-30'},state);
  assert.ok(result.errors.some(error=>error.code==='journal_invalid_treatment_check_date'));
@@ -2886,7 +2887,8 @@ test('voice inspection fills only empty fields, preserves the source note and ne
  };
  const apply=loadFunction('applyVoiceInspectionFieldsToOpenRecord',{
   $:id=>nodes[id]||null,
-  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText'),
+  journalBroodCapacity:()=>6
  });
  const result=apply('Матка обнаружена, свежие яйца есть, расплод на 3 рамках, занято 5 рамок.');
  assert.equal(result.ok,true);
@@ -2904,7 +2906,8 @@ test('voice inspection refuses an oversized note before changing any field',()=>
  const nodes={rtext:{value:'x'.repeat(12000)},roccupancy:{value:''}};
  const apply=loadFunction('applyVoiceInspectionFieldsToOpenRecord',{
   $:id=>nodes[id]||null,
-  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText')
+  extractInspectionFieldsFromText:loadFunction('extractInspectionFieldsFromText'),
+  journalBroodCapacity:()=>6
  });
  const result=apply('Занято 5 рамок.');
  assert.equal(result.reason,'note_limit');
@@ -3637,7 +3640,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v321/);
+ assert.match(sw,/paseka-shell-v322/);
 });
 
 
@@ -3763,7 +3766,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v321/);
+  assert.match(source,/paseka-shell-v322/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
