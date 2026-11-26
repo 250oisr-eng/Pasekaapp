@@ -261,15 +261,17 @@
     "targetedTestsPassed": null,
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
-    "ci": "PENDING",
-    "merged": false
+    "ci": "SUCCESS_EXACT_PR_SHA",
+    "merged": true,
+    "mergeSha": "3b35dfaf25e3c0d811e61c9eeeaa13cbeb67ba4b"
   },
   "workSpokenFramesIntegration20261126": {
     "codeSha": "411e257a80231438096fa786aabe7de94b9e6647",
     "targetedTestsPassed": null,
     "completedVerifiedUserScenarios": 0,
     "device": "NOT_TESTED",
-    "ci": "PENDING",
-    "merged": false
+    "ci": "SUCCESS_EXACT_PR_SHA",
+    "merged": true,
+    "mergeSha": "8cde74996378fced29f5184c7e0885a68ab0b366"
   }
 }
