@@ -827,12 +827,33 @@
     "serviceWorkerChanged": false,
     "physicalModelChanged": false,
     "appRuntimeChanged": true,
-    "exactHeadCi": "PENDING",
-    "android": "NOT_TESTED",
+    "exactHeadCi": "SUCCESS_AT_CODE_SHA",
+    "android": "CI_BUILD_SUCCESS",
     "device": "NOT_TESTED",
     "userData": "UNTOUCHED",
     "verifiedUserScenarios": 0,
     "measuredTimeSavings": null,
-    "ciRuns": []
+    "ciRuns": [
+      {
+        "id": 45894814279,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "checkedHead": "cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531"
+      },
+      {
+        "id": 45894814269,
+        "name": "Governance Docs Checks",
+        "conclusion": "success",
+        "checkedHead": "cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531"
+      }
+    ],
+    "pr": 591,
+    "codeAndDocsHead": "cf8fd6ad2d876f3a1eb4b4d2be0d1412cb159531",
+    "nodeTests": {
+      "tests": 994,
+      "pass": 994,
+      "fail": 0,
+      "skipped": 0
+    }
   }
 }
