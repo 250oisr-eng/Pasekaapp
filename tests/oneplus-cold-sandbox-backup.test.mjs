@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,readdir,rm,chmod,access} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,readdir,rm,chmod,access,copyFile,appendFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {inspectPartial,headerCheck} from '../scripts/inspect-oneplus-partial-tar.mjs';
 import {createHash} from 'node:crypto';
 import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-cold-sandbox.mjs';
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
@@ -301,4 +303,42 @@ test('Windows wrapper exposes only redacted TAR failure category and counts',asy
  assert.match(ps,/Bytes received:/);
  assert.match(ps,/Tar stderr category:/);
  assert.match(ps,/Private stderr, filenames and source paths are intentionally withheld/);
+});
+
+test('read-only TAR inspector distinguishes complete TAR, nonaligned extra bytes and truncated data',{skip:process.platform==='win32'},async t=>{
+ const root=await mkdtemp(join(tmpdir(),'paseka-partial-tar-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const source=join(root,'src');await mkdir(source);
+ await writeFile(join(source,'data.bin'),Buffer.alloc(8000,7));
+ const good=join(root,'good.tar.partial');
+ execFileSync('tar',['-cf',good,'-C',source,'.']);
+ const original=await readFile(good);
+ const verified=await inspectPartial(good);
+ assert.equal(verified.status,'TAR_STRUCTURE_CHECKED_LOCAL_ONLY');
+ assert.equal(verified.endMarkerFound,true);
+ assert.equal(verified.reason,null);
+ assert.equal(verified.contentsExtracted,false);
+ assert.equal(verified.originalsChanged,false);
+ const junk=join(root,'extra.tar.partial');
+ await copyFile(good,junk);
+ await appendFile(junk,Buffer.alloc(230,33));
+ const extra=await inspectPartial(junk);
+ assert.equal(extra.status,'TAR_INCOMPLETE_OR_INVALID');
+ assert.equal(extra.remainder512,230);
+ assert.equal(extra.reason,'NONZERO_DATA_AFTER_TAR_END');
+ assert.equal(extra.endMarkerFound,true);
+ const truncated=join(root,'trunc.tar.partial');
+ await writeFile(truncated,original.subarray(0,600));
+ const broken=await inspectPartial(truncated);
+ assert.equal(broken.status,'TAR_INCOMPLETE_OR_INVALID');
+ assert.equal(broken.endMarkerFound,false);
+ await assert.rejects(inspectPartial(join(root,'missing.tar.partial')));
+ assert.deepEqual(await readFile(good),original);
+});
+test('tampered TAR header is rejected by checksum without disclosing archived filenames',()=>{
+ const buf=Buffer.alloc(512,0);
+ buf.write('private-customer-record',0,'ascii');
+ const c=headerCheck(buf);
+ assert.equal(c.valid,false);
+ assert.equal(c.reason,'INVALID_HEADER_CHECKSUM_FIELD');
 });
