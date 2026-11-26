@@ -58,7 +58,7 @@ async function fileDigest(path){
   const after=await fd.stat();
   if(bytes!==initial.size||after.size!==initial.size||after.dev!==initial.dev||after.ino!==initial.ino||
      after.ctimeMs!==initial.ctimeMs||after.mtimeMs!==initial.mtimeMs)throw blocked();
-  return {bytes,digest:hash.digest('hex')};
+  return {bytes,digest:hash.digest('hex'),device:initial.dev,inode:initial.ino};
  }finally{await fd.close();}
 }
 export async function auditMediaCopy(sourcePath,copyPath,{expectedFiles=null}={}){
@@ -73,6 +73,9 @@ export async function auditMediaCopy(sourcePath,copyPath,{expectedFiles=null}={}
  for(let i=0;i<src.length;i++){
   if(src[i]!==dst[i])throw blocked();
   const [a,b]=await Promise.all([fileDigest(join(source,src[i])),fileDigest(join(copy,dst[i]))]);
+  // Distinct path names are not proof of distinct copies: reject hardlinks
+  // when the filesystem supplies usable identity fields.
+  if(a.device===b.device&&a.inode===b.inode&&Number.isSafeInteger(a.inode)&&a.inode>0)throw blocked();
   if(a.bytes!==b.bytes||a.digest!==b.digest)throw blocked();
   bytes+=a.bytes;
   if(!Number.isSafeInteger(bytes))throw blocked();
