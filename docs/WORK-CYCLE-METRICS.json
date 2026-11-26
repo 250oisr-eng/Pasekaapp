@@ -965,5 +965,38 @@
     "integration": "IN_MAIN",
     "publication": "NOT_RELEASED",
     "postMergeRuntimeInspection": "LABELS_ACTIVE_NAV_CAPTIONS_VERIFIED"
+  },
+  "ui187FinalSelectiveCycle20261127": {
+    "userSourceStatement": "27.11.2026: no original videos or backups available to user",
+    "provenAbsentOnDevice": false,
+    "blockersStill": [
+      "B01",
+      "442 V0-V6",
+      "B04/B05"
+    ],
+    "originalPr": 187,
+    "originalPrHead": "35dcd979893559c44f5e71819ba3e682de9ca2b0",
+    "sourceMainSha": "0f3f1c8a8a4a3972bb36a44043229f47867d7cdc",
+    "branch": "fix/ui-187-honeycomb-overview-20261127",
+    "components": [
+      "accessibleHoneycomb11Routes",
+      "centerAIUnique",
+      "liveSectionTitle",
+      "homeHivePreview3",
+      "previousUrgentTasksVisible",
+      "approvedErgonomicsSource"
+    ],
+    "newDependencies": 0,
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "hiveModelChanges": false,
+    "appRuntimeChanged": true,
+    "exactCi": "PENDING",
+    "physicalOnePlus": "NOT_TESTED",
+    "browserGeometry": "NOT_TESTED",
+    "userData": "UNTOUCHED",
+    "completedPhysicalScenarios": 0,
+    "measuredTimeSavings": null,
+    "ciRuns": []
   }
 }
