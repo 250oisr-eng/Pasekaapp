@@ -35,7 +35,7 @@ test('home stat captions are legible, including narrow phones', () => {
 
 test('navigation retains eleven destinations and marks the initial active page', () => {
   const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(x => x[1]);
-  assert.deepEqual(tabs, ['home','hives','entrance','journal','ai','forage','varroa','incidents','planning','deadout','settings']);
+  assert.deepEqual(tabs, ['home','hives','entrance','journal','settings','ai','forage','varroa','incidents','planning','deadout']);
   assert.match(nav, /<button class="active" data-tab="home" aria-label="Обзор пасеки" aria-current="page">/);
   assert.equal((nav.match(/aria-current="page"/g) || []).length, 1);
 });
