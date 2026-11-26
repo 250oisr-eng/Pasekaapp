@@ -1,16 +1,16 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**25.11.2026 — последний live main `fdcca080b68aa5b0014b8e99cd3e4f1d428e7ba2`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**26.11.2026 — live main `346b35035861257be45dae93ee0573cbd4de9082`**. Live GitHub имеет приоритет над датированными отчётами. Правила: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и старые сбои — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## P0/B01 — один локальный аудит, Draft #542 (26.11.2026)
 
 - [Draft #541](https://github.com/250oisr-eng/Pasekaapp/pull/541): побайтовое сравнение уже перечисленных медиа-копий; CI PASS, не merged. [Draft #542](https://github.com/250oisr-eng/Pasekaapp/pull/542), stacked на #541: единый `scripts/run-unified-recovery-audit.mjs` проверяет внешний `paseka-idb-full-v1` (SHA/stores/Blob), replay в **чистой fake-indexeddb**, close/reopen/SHA и две существующие локальные media-папки; отчёт обезличен, нет записи/ADB/install/delete. Код SHA `07e809d94910a73e08e3641b2ead1f69ee60a782`: Governance #45783741507, Android #45783741486 **SUCCESS**.
-- [Контракт](docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md) / [инструкция](docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md). **B01 BLOCKED:** нет полной внешней копии всех Gallery/MediaStore/origins и физического независимого восстановления. Exit 0 нет, никаких разрешений на удаление, APK update, merge/release. B09 signer mismatch подтверждён; установленный диагностический APK не менять.
+- [Контракт](docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md) / [инструкция](docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md). Windows ZIP без APK/ADB — [Actions #45786699947](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45786699947) **SUCCESS**, artifact #15100513158, code `261df7d6f76642f9850d1f19aac677f0ae0ebe7f`; ввод архив+две папки через GUI, локальный обезличенный JSON; нет физического PASS. **B01 BLOCKED:** нет полной внешней копии всех Gallery/MediaStore/origins и физического независимого восстановления. Exit 0 нет, никаких разрешений на удаление, APK update, merge/release. B09 signer mismatch подтверждён; установленный диагностический APK не менять.
 
 ## Текущий параллельный цикл — безопасность оригиналов и P2
 
 - [Draft #511](https://github.com/250oisr-eng/Pasekaapp/pull/511): read-only курсор метаданных видео без удержания всех Blob, кодовый Fast/Android и итоговый docs Governance/Android CI SUCCESS. Реальная экономия RAM NOT_MEASURED.
-- [Draft #512](https://github.com/250oisr-eng/Pasekaapp/pull/512): P0 обход #442 — `deleteEntranceVideoBlob`, `deleteAllData` и **экспортируемый `canDeleteVideoOriginal`**, который разрешал удаление по трём флагам очереди/сервера. Все три пути теперь **FROZEN/fail-closed**: прямой UI и функция сброса блокированы до записи, кнопка полного удаления **disabled без onclick**, legacy helper всегда `false`, даже при поддельных флагах восстановления. Тесты и проверка точного SHA обязательны; без merge/release.
+- **[#512 MERGED](https://github.com/250oisr-eng/Pasekaapp/pull/512)** в `main=346b35035861257be45dae93ee0573cbd4de9082`: fail-closed video/whole-DB deletion, legacy API, запрет ID-collision overwrite через `add`. Физический release не подтверждён.
 - [Draft #509/#510](https://github.com/250oisr-eng/Pasekaapp/pull/510): CI проверенные селективные, пока НЕ merged. P2 asset-selection #426 не переносить: в main все 19 JS используются, ожидаемая экономия 0.
 - B01 recovery и B04/B05 signing по-прежнему BLOCKED; #442 detector/auto-cleanup FROZEN. Ни одного реального удаления, установки Android или публикации.
 
