@@ -23,6 +23,8 @@ const ALLOWED_REASONS=[
  ['Only secure Capacitor origin','CAPACITOR_ORIGIN_NOT_SECURE'],
  ['Invalid pre-restart receipt','INVALID_RESTART_CHECKPOINT']
 ];
+const SAFE_STAGES=new Set(['APP_BOOTSTRAP','SOURCE_PRECHECK','RESTART_TARGET_OPEN','RESTART_SOURCE_READ','RESTART_RECEIPT_VALIDATE','RESTART_TARGET_VERIFY']);
+const SAFE_ERROR_TYPES=new Set(['Error','TypeError','AbortError','InvalidStateError','NotFoundError','QuotaExceededError','UnknownError','OTHER']);
 const err=code=>Object.assign(new Error(code),{code});
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 function command(adb,args,ms=15000,code='ADB_COMMAND_FAILED'){
@@ -52,6 +54,8 @@ export function summarizeDiagnosticLine(line){
   const detail=typeof p.detail==='string'?p.detail:'';
   const known=ALLOWED_REASONS.find(([snippet])=>detail.includes(snippet));
   return {kind:'DEVICE_RESTART_BLOCKED',reason:known?known[1]:'UNCLASSIFIED_DEVICE_ERROR',
+   diagnosticStage:SAFE_STAGES.has(p.diagnosticStage)?p.diagnosticStage:'UNRECOGNIZED_STAGE',
+   diagnosticErrorType:SAFE_ERROR_TYPES.has(p.diagnosticErrorType)?p.diagnosticErrorType:'UNRECOGNIZED_ERROR_TYPE',
    failedCheckNames:Array.isArray(p.checks)?
     p.checks.filter(c=>c&&c.status==='BLOCKED').map(c=>String(c.name).replace(/[^A-Za-z0-9_]/g,'').slice(0,32)).slice(0,5):[]};
  }
@@ -130,6 +134,7 @@ async function run(setStage){
  }
  return {status:'BLOCKED',code:'DEVICE_RESTART_PROOF_FAILED',
   deviceFailureReason:proof.reason,failedCheckNames:proof.failedCheckNames,
+  diagnosticStage:proof.diagnosticStage,diagnosticErrorType:proof.diagnosticErrorType,
   physicalOnePlusDiagnostic:true,syntheticBlobReadbackAfterForceStop:false,
   realUserDataRecovery:'NOT_TESTED',videoCleanup:'NOT_ATTEMPTED'};
 }
