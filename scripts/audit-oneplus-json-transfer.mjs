@@ -48,7 +48,26 @@ export function auditPasekaJsonTransfer(raw, expected = {}) {
       warnings.push('Family references an unavailable hive at row ' + index);
     }
   }
+  // A present family ID can still point to another active hive. Treat this
+  // as a reconciliation warning, not a successful integrity/restore proof.
+  // Historic snapshots may intentionally retain an archived family ID.
+  const familiesById = new Map(byType.families.filter(f => typeof f.id === 'string').map(f => [f.id, f]));
   for (const [index, record] of byType.records.entries()) {
+    const linkedFamily = familiesById.get(record.family);
+    // A family-linked record without its own hive cannot prove the historic
+    // association. Require review, not mutation or fabricated reconciliation.
+    if (record.family && !record.hive) {
+      warnings.push('Record with a family link has no hive context at row ' + index + '; review historical association');
+    }
+    // A record linked to a known family with no current hive assignment is
+    // ambiguous, even when the record itself names a valid historical hive.
+    if (record.family && linkedFamily && record.hive && !linkedFamily.hive) {
+      warnings.push('Linked family has no hive assignment for record at row ' + index + '; review historic placement');
+    }
+    if (linkedFamily && record.hive && linkedFamily.hive && record.hive !== linkedFamily.hive) {
+      warnings.push('Record family and hive association differ at row ' + index + '; inspect historical move/archival evidence');
+    }
+
     if (record.hive && !ids.hives.has(record.hive)) {
       warnings.push('Record references an unavailable hive at row ' + index);
     }
