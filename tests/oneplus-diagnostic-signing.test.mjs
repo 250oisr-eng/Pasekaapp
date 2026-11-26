@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {parseInstalledPath,parsePackageVersion,parseCertificate,compareDiagnosticSigning,safeSignerFailure,SIGNER_STAGES,resolveJava}
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync,readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {parseInstalledPath,parsePackageVersion,parseCertificate,compareDiagnosticSigning,safeSignerFailure,SIGNER_STAGES,resolveJava,inspectDiagnosticSigning}
  from '../tools/oneplus-recovery/inspect-diagnostic-signing.mjs';
 const id='ru.paseka.journal.disasterproof2';
 const a='a'.repeat(64),b='b'.repeat(64);
@@ -76,4 +80,43 @@ test('use existing Android Studio bundled Java without changing PATH or installi
  const home='X:\\jdk\\bin\\java.exe';
  assert.equal(resolveJava({env:{JAVA_HOME:'X:\\jdk',PATH:''},platform:'win32',exists:path=>path===home}),home);
  assert.throws(()=>resolveJava({env:{PATH:''},platform:'win32',exists:()=>false}),/JAVA_RUNTIME_NOT_FOUND/);
+});
+
+test('physical candidate under non-ASCII Windows extraction folder is inspected from verified ASCII temp path',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'paseka-b09-test-'));
+ try{
+  const candidate=join(dir,'папка с пробелом','app-debug.apk');
+
+  mkdirSync(join(dir,'папка с пробелом'),{recursive:true});
+  const bytes=Buffer.from('synthetic diagnostic APK test fixture');
+  writeFileSync(candidate,bytes);
+  const manifestPath=join(dir,'diagnostic-manifest.json');
+  writeFileSync(manifestPath,JSON.stringify({packageId:id,originalPackageId:'ru.paseka.journal',
+   apkFile:'app-debug.apk',sourceSha:'c'.repeat(40),apkSha256:createHash('sha256').update(bytes).digest('hex')}));
+  const stages=[],seenBadging=[];
+  const commandFn=(binary,args)=>{
+   if(binary==='adb'&&args[0]==='devices')return 'List of devices attached\\nZX123 device usb:1';
+   if(binary==='adb'&&args[1]==='get-state')return 'device';
+   if(binary==='adb'&&args.includes('pm'))return 'package:/data/app/abc/base.apk';
+   if(binary==='adb'&&args[1]==='pull'){writeFileSync(args[3],bytes);return '1 file pulled';}
+   if(binary==='aapt'&&args[0]==='dump'){
+    seenBadging.push(args[2]);assert.ok(!args[2].includes('папка'));
+    return "package: name='"+id+"' versionCode='1' versionName='1'";
+   }
+   if(binary==='java'&&args.includes('--print-certs'))return 'Signer #1 certificate SHA-256 digest: '+a;
+   throw Error('unexpected stub call '+args.join(' '));
+  };
+  const result=inspectDiagnosticSigning({manifestPath,candidatePath:candidate,
+   sdk:()=>({adb:'adb',aapt:'aapt',jar:'apksigner.jar'}),
+   javaLocator:()=> 'java',commandFn,setStage:stage=>stages.push(stage)});
+  assert.equal(result.code,'SIGNING_METADATA_COMPATIBLE_ONLY');
+  assert.equal(result.installationAuthorized,false);
+  assert.equal(result.noInstallNoOverwriteNoDelete,true);
+  assert.equal(seenBadging.length,2);
+  assert.ok(seenBadging[0].endsWith('installed-diagnostic.apk'));
+  assert.ok(seenBadging[1].endsWith('candidate.apk'));
+  assert.deepEqual(readFileSync(candidate),bytes);
+  assert.ok(stages.includes('STAGE_CANDIDATE_LOCAL'));
+
+ }finally{rmSync(dir,{recursive:true,force:true});}
 });
