@@ -18,6 +18,10 @@ function isObsoleteShellCache(name){
 // Only full, unredirected HTTP 200 responses can become shell resources.
 function cacheableResponse(response){
   return response.status===200 && response.ok && response.redirected!==true &&
+    // Some intermediaries incorrectly attach Content-Range to HTTP 200.
+    // Such a body must never become the complete offline application shell.
+    response.headers?.has?.('content-range')!==true &&
+    !response.headers?.get?.('content-range') &&
     (response.type==='basic'||response.type==='default') &&
     !/\b(?:no-store|private)\b/i.test(response.headers?.get('cache-control')||'');
 }

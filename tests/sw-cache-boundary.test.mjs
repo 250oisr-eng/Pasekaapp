@@ -200,3 +200,12 @@ test('B11 ordinary canonical shell GET still uses offline caching',async()=>{
  assert.equal(await result.text(),'synthetic shell');
  assert.equal(sw.writes.length,1,'security bypass must not disable normal offline caching');
 });
+
+
+test('B11 HTTP 200 with Content-Range must reach caller but never poison offline shell cache',async()=>{
+ const sw=harness({network:async()=>new Response('truncated',{status:200,headers:{'content-range':'bytes 0-9/200','cache-control':'public'}})});
+ const response=await sw.fireFetch(scope+'js/hive-model.js');
+ assert.equal(response.status,200);
+ assert.equal(await response.text(),'truncated');
+ assert.deepEqual(sw.writes,[]);
+});
