@@ -1873,9 +1873,7 @@ test('journal supports family filtering and inline attachment previews',()=>{
  const source=extractFunction('renderJournalRecords');
  assert.match(source,/familySelect/);
  assert.match(source,/mediaHtml\(r\.media\)/);
- const selection=extractFunction('filteredJournalRows');
- assert.match(source,/filteredJournalRows\(\)/);
- assert.match(selection,/mediaNames/);
+ assert.match(source,/mediaNames/);
 });
 
 test('hive detail keeps the hives navigation destination active',()=>{
@@ -3637,7 +3635,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v318/);
+ assert.match(sw,/paseka-shell-v320/);
 });
 
 
@@ -3763,7 +3761,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v318/);
+  assert.match(source,/paseka-shell-v320/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);

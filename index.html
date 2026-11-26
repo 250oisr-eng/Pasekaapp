@@ -461,8 +461,11 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <button type="button" class="primary" onclick="renderQueenRearingTimeline()">Построить календарь</button><div id="queenTimelineResult" aria-live="polite"></div>
  </div>
  <div class="card"><h3 style="margin-top:0">Контрольный интервал осмотра</h3><p class="muted">Настраиваемое напоминание. Семидневный цикл можно использовать в период роевого риска, но он не гарантирует обнаружение всех маточников и предотвращение выхода роя.</p>
-  <label for="inspectionLastDate">Дата последнего осмотра</label><input id="inspectionLastDate" type="date">
-  <label for="inspectionInterval">Интервал, дней</label><input id="inspectionInterval" type="number" min="1" max="30" value="7">
+  <label for="inspectionHiveSelect">Улей для поиска осмотра в журнале</label><select id="inspectionHiveSelect" onchange="resetInspectionReminder()" aria-label="Улей для даты последнего сохранённого осмотра"><option value="">— Выбери улей —</option></select>
+  <button type="button" onclick="useLastSavedInspection()">Подставить последний сохранённый осмотр</button>
+  <div id="inspectionPrefillStatus" class="muted" aria-live="polite">Дата подставляется только из фактически сохранённой записи «Осмотр» выбранного улья. Черновики, архивные и будущие записи не учитываются.</div>
+  <label for="inspectionLastDate">Дата последнего осмотра</label><input id="inspectionLastDate" type="date" oninput="clearInspectionCalculation()">
+  <label for="inspectionInterval">Интервал, дней</label><input id="inspectionInterval" oninput="document.getElementById('inspectionReminderResult').textContent=''" type="number" min="1" max="30" value="7">
   <button type="button" class="primary" onclick="renderInspectionReminder()">Рассчитать дату следующего контроля</button><div id="inspectionReminderResult" class="muted" aria-live="polite"></div>
  </div>
  <div class="card"><b>Что появится следующим этапом</b><p class="muted">Шаблоны технологических карт, оценка силы семьи, селекционная карта матки, сезонные KPI и фото-протокол разбора погибшей семьи. Сначала будут добавлены проверяемые ручные записи; автоматические диагнозы по фотографиям не планируются.</p></div>
@@ -1397,13 +1400,18 @@ function renderEntranceModule(){
  select.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:'');
  refreshEntranceVideos();
 }
+// Discard stale IndexedDB responses on hive selection changes.
+let entranceVideoRefreshGeneration=0;
 async function refreshEntranceVideos(){
+ const generation=++entranceVideoRefreshGeneration;
  const host=$('entranceVideoList');if(!host)return;
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
-  const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><span class="muted">Оригинал защищён от удаления</span></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
- }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
+  const rows=await listEntranceVideos();
+  if(generation!==entranceVideoRefreshGeneration||hiveId!==($('entranceHiveSelect')?.value||''))return;
+  const filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" data-video-id="'+safe(x.id)+'" onclick="viewEntranceVideo(this.dataset.videoId)">Просмотреть</button><span class="muted">Оригинал защищён от удаления</span></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+ }catch(error){if(generation===entranceVideoRefreshGeneration&&hiveId===($('entranceHiveSelect')?.value||''))host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
  const url=URL.createObjectURL(file);
@@ -1630,8 +1638,40 @@ async function saveDeadoutReview(event){
  $('deadoutForm').reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
 }
 function renderSeasonPlanning(){
- const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()],['inspectionLastDate',today()]];
+ const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()]]; // last inspection is a recorded fact, never default to today
  defaults.forEach(([id,value])=>{const field=$(id);if(field&&!field.value)field.value=value});
+ const select=$('inspectionHiveSelect');if(select){
+  const previous=select.value;
+  select.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
+  select.value=S.hives.some(h=>h.id===previous)?previous:'';
+  if(previous!==select.value)resetInspectionReminder();
+ }
+}
+function clearInspectionCalculation(){
+ const date=$('inspectionLastDate');
+ delete date.dataset.fromJournal;
+ $('inspectionReminderResult').textContent='';
+ $('inspectionPrefillStatus').textContent='';
+}
+function resetInspectionReminder(){
+ $('inspectionLastDate').value='';
+ clearInspectionCalculation();
+}
+function useLastSavedInspection(){
+ const status=$('inspectionPrefillStatus'),hive=$('inspectionHiveSelect')?.value;
+ if(!status)return;
+ if(!hive){status.textContent='Выбери улей для поиска последнего сохранённого осмотра.';return;}
+ try{
+  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today());
+  if(!result){
+   if($('inspectionLastDate').dataset.fromJournal)resetInspectionReminder();
+   status.textContent='Для этого улья нет сохранённого осмотра за сегодня или раньше.';return;
+  }
+  $('inspectionLastDate').value=result.date;
+  $('inspectionLastDate').dataset.fromJournal=hive;
+  const previous=$('inspectionReminderResult');if(previous)previous.textContent='';
+  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
+ }catch(error){status.textContent=error.message||'Дата осмотра не найдена.';}
 }
 function renderNectarBackwardPlan(){
  const host=$('nectarPlanResult');if(!host)return;

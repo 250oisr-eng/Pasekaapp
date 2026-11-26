@@ -18,7 +18,8 @@ function buildNectarBackwardPlan(input){
  const floweringDate=String(input?.floweringDate||''),date=parseDate(floweringDate);
  if(!date)throw new Error('Укажи корректную ожидаемую дату начала цветения.');
  const plantName=String(input?.plantName||'').trim().slice(0,120);
- const minLeadDays=Number(input?.minLeadDays??35),maxLeadDays=Number(input?.maxLeadDays??49),targetLeadDays=Number(input?.targetLeadDays??42);
+ const minLeadDays=Number(input?.minLeadDays??35),maxLeadDays=Number(input?.maxLeadDays??49);
+ const targetLeadDays=Number(input?.targetLeadDays??Math.round((minLeadDays+maxLeadDays)/2));
  if(!Number.isInteger(minLeadDays)||!Number.isInteger(maxLeadDays)||!Number.isInteger(targetLeadDays)||minLeadDays<21||maxLeadDays>70||minLeadDays>targetLeadDays||targetLeadDays>maxLeadDays)throw new Error('Проверь диапазон сроков: от 21 до 70 дней, целые числа.');
  return Object.freeze({plantName,floweringDate,eggLayingWindow:{from:shiftDate(floweringDate,-maxLeadDays),to:shiftDate(floweringDate,-minLeadDays)},targetEggLayingDate:shiftDate(floweringDate,-targetLeadDays),leadDays:{min:minLeadDays,target:targetLeadDays,max:maxLeadDays},basis:'Ориентир: около 21 дня развития рабочей пчелы в ячейке и примерно 2–3 недели до начала лётной работы после выхода. Реальные сроки меняются с возрастной структурой семьи, погодой, кормлением и силой взятка.',warning:'Это обратный биологический ориентир, а не гарантия даты появления сборщиц. Не стимулируй семью автоматически: оцени корма, погоду, силу и риск переохлаждения расплода.'});
 }
@@ -43,6 +44,20 @@ function buildInspectionReminder(input){
  if(!Number.isInteger(intervalDays)||intervalDays<1||intervalDays>30)throw new Error('Интервал должен быть от 1 до 30 дней.');
  return Object.freeze({lastInspection,intervalDays,dueDate:shiftDate(lastInspection,intervalDays),warning:'Интервал — напоминание, а не гарантия предотвращения роения. При признаках подготовки к роению осмотр и действия определяются фактическим состоянием семьи.'});
 }
+// Derive a calendar input only from explicitly saved inspection records.
+// Never infer that a scheduled, archived or future event was performed.
+function latestSavedInspection(records,hiveId,asOf){
+ if(!Array.isArray(records)||typeof hiveId!=='string'||!hiveId||!parseDate(asOf))
+  throw new Error('Для поиска осмотра выбери улей и корректную текущую дату.');
+ let latest=null;
+ for(const record of records){
+  if(!record||record.hive!==hiveId||record.type!=='Осмотр'||record.archivedAt)continue;
+  const date=record.date;
+  if(!parseDate(date)||date>asOf)continue;
+  if(!latest||date>latest.date)latest={date,recordId:record.id||null};
+ }
+ return latest?Object.freeze(latest):null;
+}
 function rankColonyStrength(items){
  if(!Array.isArray(items))throw new Error('Ожидается список оценок семей.');
  const valid=items.filter(x=>x&&typeof x.hiveId==='string'&&Number.isFinite(Number(x.occupiedStreets))&&Number(x.occupiedStreets)>=0);
@@ -63,5 +78,5 @@ function summarizeTraitScores(observations){
   return {trait,count:values.length,average,status:values.length>=4?'repeated_observations':values.length?'preliminary':'not_assessed'};
  });
 }
-root.PasekaSeasonPlanning=Object.freeze({parseDate,formatDate,shiftDate,buildNectarBackwardPlan,buildQueenRearingTimeline,buildInspectionReminder,rankColonyStrength,summarizeTraitScores});
+root.PasekaSeasonPlanning=Object.freeze({parseDate,formatDate,shiftDate,buildNectarBackwardPlan,buildQueenRearingTimeline,buildInspectionReminder,latestSavedInspection,rankColonyStrength,summarizeTraitScores});
 })(typeof window!=='undefined'?window:globalThis);
