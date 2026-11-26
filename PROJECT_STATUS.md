@@ -41,8 +41,8 @@
 
 **27.11 пользователь:** нет оригинальных видео и резервных копий. Отсутствие на устройстве НЕ проверено, B01/#442 V0–V6 не сняты.
 
-**#187 CLOSED без merge:** в main #587/#591/#593; оставшаяся часть в Draft #595 (1003/1003 PASS, не merged). UX 2/3 ряда — issue #596; OnePlus NOT_TESTED.
+**#187 CLOSED без merge:** в main #587/#591/#593; оставшаяся часть в Draft #595 (1003/1003 PASS), UX #596, OnePlus NOT_TESTED.
 
-**WIP P0 первый архив:** `fix/p0-first-external-backup-guide-20261127` — инструкция для первой внешней копии с проверкой файла без записи/удаления. Exact CI PENDING; фактического внешнего архива пока нет. Далее B01: независимый архив и реальный restore.
+**P0 первый архив Draft #597:** read-only инструкция и контроль файла, без удаления/restore. Код SHA `acc9493a3c4e26c53ce3a89c6ecca6026de85eb1`: Android #45899227262 (1002/1002, debug signer) и Governance #45899226997 SUCCESS; финальный docs SHA отдельно. Реального внешнего архива нет. Далее B01 — подтверждение независимого файла/восстановления.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
