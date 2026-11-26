@@ -900,5 +900,31 @@
     "videoCleanup": "FROZEN_442",
     "measuredTimeSavings": null,
     "verifiedRealUserScenarios": 0
+  },
+  "p1UiAccessibility187Cycle20261127": {
+    "referenceMainSha": "da60c9eec792c455f4048d83f9d222ad254c4b8a",
+    "sourceRootPr": 187,
+    "branch": "fix/ui-a11y-selective-187-20261127",
+    "filesEdited": [
+      "index.html",
+      "tests/ui-a11y-selective-187.test.mjs",
+      "docs/UI-A11Y-SELECTIVE-187-2026-11-27.md"
+    ],
+    "changeScope": [
+      "hiveDialogAccessibleName",
+      "hiveDialogLabelsAndTouchTargets",
+      "navigationCurrentPage",
+      "apiarySummaryLabelContrast"
+    ],
+    "newRuntimeDependencies": 0,
+    "storageOrSWChanged": false,
+    "profileChanged": false,
+    "backupsOrVideoTouched": false,
+    "exactShaCi": "PENDING",
+    "device": "NOT_TESTED",
+    "browserGeometry": "NOT_TESTED",
+    "realUserScenarios": 0,
+    "measuredSavings": null,
+    "ciRuns": []
   }
 }
