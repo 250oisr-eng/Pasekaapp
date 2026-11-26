@@ -60,6 +60,8 @@ test('Windows restart-only CMD and runtime never install, erase or access produc
  assert.doesNotMatch(runner,/pm','clear|deleteDatabase|rm -rf|process\.env\.ADB_SERIAL/);
  assert.match(runner,/writeFile\(resolve\(HERE,REPORT\),JSON\.stringify\(report,null,2\)\+'\\n',\{flag:'wx'\}\)/);
  const yml=await readFile(new URL('../.github/workflows/android-disaster-physical.yml',import.meta.url),'utf8');
- assert.match(yml,/Copy-Item 'tools\/oneplus-recovery\/inspect-restart-only\.mjs' 'oneplus-kit\/'/);
- assert.match(yml,/Copy-Item 'tools\/oneplus-recovery\/ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ\.cmd' 'oneplus-kit\/'/);
+ // Historic diagnostic remains tested in repo, but must not be redistributed
+ // after a real signer mismatch (no install or force-stop in owner ZIP).
+ assert.doesNotMatch(yml,/^\s*Copy-Item 'tools\/oneplus-recovery\/inspect-restart-only\.mjs' 'oneplus-kit\/'/m);
+ assert.doesNotMatch(yml,/^\s*Copy-Item 'tools\/oneplus-recovery\/ПРОВЕРИТЬ-ПЕРЕЗАПУСК-БЕЗ-УСТАНОВКИ\.cmd' 'oneplus-kit\/'/m);
 });
