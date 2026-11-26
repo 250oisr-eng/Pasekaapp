@@ -191,31 +191,23 @@
   "featureDraftCycles": [
     {
       "id": "p1-journal-csv-export-pr548-20261126",
-      "codeSha": "844f1e8413891b1be13ab29fc67833b2094040ac",
+      "codeSha": "06724122c63704b9665dea9ea7da0ad74a8cf67e",
       "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/548",
       "ciRuns": [
         {
-          "id": 45838173338,
-          "conclusion": "failure"
-        },
-        {
-          "id": 45838243109,
-          "conclusion": "failure"
-        },
-        {
-          "id": 45838482065,
+          "id": 45853108564,
           "conclusion": "success"
         },
         {
-          "id": 45838491275,
+          "id": 45853116536,
           "conclusion": "success"
         },
         {
-          "id": 45838482001,
+          "id": 45853107993,
           "conclusion": "success"
         },
         {
-          "id": 45838491304,
+          "id": 45853116622,
           "conclusion": "success"
         }
       ],
@@ -223,7 +215,7 @@
       "trackedBlockersAtStart": 4,
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 0,
-      "scenariosEvidence": "CSV UI/export code & synthetic tests done; on-device user file transfer NOT_TESTED, real full backup not attempted. Initial regression fixture failures included; no time saving measured.",
+      "scenariosEvidence": "Unicode formula guard, per-hive timestamp filename; no real user CSV file tested.",
       "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
     },
     {
@@ -249,6 +241,122 @@
       "trackedBlockersAtEnd": 4,
       "completedVerifiedUserScenarios": 0,
       "scenariosEvidence": "Read-only journal inspection prefill + no false today default verified with code tests; independent physical UX NOT_TESTED, no real user changes, time saving NOT_MEASURED.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
+    },
+    {
+      "id": "p1-equipment-label-typographic-dashes-20261126",
+      "codeSha": "ff409f409147467f08616c637aed7abd59cf84d6",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/545",
+      "ciRuns": [
+        {
+          "id": 45853500416,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853508067,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853500511,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853508069,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Typographic dash as visual separator in printed labels; no physical scanning or live equipment change.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
+    },
+    {
+      "id": "p1-spoken-feeding-ascii-hyphen-20261126",
+      "codeSha": "ad68a82513dbf73932931b7f85666899b678a1ae",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/546",
+      "ciRuns": [
+        {
+          "id": 45853584018,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853591401,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853584038,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853591447,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Dictated hyphen after feeding field label parsed without corrupting draft value; no real microphone.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
+    },
+    {
+      "id": "p1-spoken-frame-singular-command-20261126",
+      "codeSha": "b832f538ccb775787a5aa41e894b3cf1763f746b",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/547",
+      "ciRuns": [
+        {
+          "id": 45853419127,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853429954,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853419118,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853430028,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "Singular spoken frame code command supported, preview only; physical reconciliation not tested.",
+      "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
+    },
+    {
+      "id": "p1-sw-200-content-range-20261126",
+      "codeSha": "3d499324b498d20bba9a9654d5974eef8872ae70",
+      "prUrl": "https://github.com/250oisr-eng/Pasekaapp/pull/530",
+      "ciRuns": [
+        {
+          "id": 45853210025,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853220225,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853210037,
+          "conclusion": "success"
+        },
+        {
+          "id": 45853220212,
+          "conclusion": "success"
+        }
+      ],
+      "repeatedDocumentReads": null,
+      "trackedBlockersAtStart": 4,
+      "trackedBlockersAtEnd": 4,
+      "completedVerifiedUserScenarios": 0,
+      "scenariosEvidence": "SW rejects HTTP 200 with Content-Range during install/runtime; previous fixture erroneously returned Cache-Control for all headers; fixed. No real offline device.",
       "cycleClassification": "CI_VERIFIED_DRAFT_NOT_REAL_USER_COMPLETION"
     }
   ]
