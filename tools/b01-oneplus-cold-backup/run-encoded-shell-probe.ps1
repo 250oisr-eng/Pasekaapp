@@ -1,8 +1,8 @@
 $ErrorActionPreference='Stop'
-$adb=Get-Command adb.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
-if(-not $adb){
- $candidate=Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
- if(Test-Path $candidate){$adb=$candidate}
+$adb=Join-Path $PSScriptRoot 'platform-tools\adb.exe'
+if(-not (Test-Path $adb)){$adb=Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'}
+if(-not (Test-Path $adb)){
+ $adb=Get-Command adb.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
 }
 if(-not $adb){Write-Host 'BLOCKED: ADB unavailable';exit 1}
 $node=Join-Path $PSScriptRoot 'node.exe'
