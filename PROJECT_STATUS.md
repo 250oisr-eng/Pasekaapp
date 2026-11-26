@@ -1,5 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
+## PR-аудит H · 26.11.2026 (рабочий Draft, не интегрирован)
+
+- Проверенный live `main=d812bfa46e28ec418a1f6ca1a958ecccd445160d` после разрешённого merge #572. Индексированный GitHub-поиск: 397 уникальных OPEN до очистки; 396 после #8/#516 CLOSED. **Поиск не абсолютный полный реестр:** #516 был OPEN при прямой проверке, но отсутствовал в обеих поисковых описях. Текущие числа требуют сверки с независимой пагинацией перед статистическими решениями.
+- #8 CLOSED/SUPERSEDED_UNSAFE: старый код разрешал разрушительный IndexedDB reset; безопасный маркер первого запуска уже #572 IN_MAIN. #516 CLOSED/SUPERSEDED: live script/tests уже содержат весь уникальный read-only cross-hive preflight; устаревшие ветки не merge, не удалены.
+- Точечные предупреждения размещены в #60 (physical inventory), #533 (governance), #516. 38 historically main-based и 358 stacked в поисковом snapshot без #8. Это **не** 396 semantic reviews; детали: [checkpoint H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
+- Следующее: независимо перепроверить полный PR membership; затем поштучно root diff → источник, актуальный main, точный CI, безопасность; stacked — только после родительских цепочек. B01/B04/B05/#442/B07 остаются без новых разрешений на physical/user-data/release.
+
 **26.11.2026 · последний проверенный main `e57279b6ca98df0cb99444618268efa5d3fe6eaa`.** Перед следующим действием проверить live GitHub. Нормативные правила — [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md).
 
 ## Актуальный PR-портфель
