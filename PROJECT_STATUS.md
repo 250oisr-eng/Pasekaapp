@@ -4,7 +4,7 @@
 
 ## 26.11.2026 — новая реальная операция резервирования OnePlus, Draft #543
 
-- OnePlus трижды `APP_MUST_BE_STOPPED_MANUALLY`: обычный stop и локально подтверждённый `adb am force-stop` не дали backup. **Не повторять force-stop**. Новый read-only `DIAGNOSE-ONEPLUS-READONLY.cmd` дважды сверяет `pidof`/`ps` и `run-as`, без записи в телефон. Архив ещё НЕ создан.
+- OnePlus: три попытки backup BLOCKED. Реальный read-only отчёт: `pidof/ps=UNKNOWN` дважды, но `run-as/appWebview=true`. Исправлен Android `pidof` (exit 0/empty) и fallback `ps -A`, отсутствие процесса подтверждается **двумя** сигналами. Архив ещё НЕ создан; повторный force-stop запрещён без новых фактов.
 - Пользователь подтвердил, что **на установленном OnePlus нет UI полного архива**. Функция в GitHub source не означает наличия её на установленном APK.
 - [Draft #543](https://github.com/250oisr-eng/Pasekaapp/pull/543), ветка `feat/p0-b01-oneplus-run-as-cold-sandbox-backup-20261126` от main: **новый** однокнопочный Windows exporter `RUN-ONEPLUS-BACKUP.cmd` для приложения `ru.paseka.journal` с `adb exec-out run-as`, запрещающий работающий процесс, замену исходников и перезапись внешнего файла; TAR + SHA, disk SHA readback и `tar -tf`. [Инструкция](docs/B01-ONEPLUS-COLD-APP-PRIVATE-BACKUP-2026-11-26.md). Физическая попытка `BLOCKED`; Gallery/MediaStore/restore `NOT_VERIFIED`; удаление запрещено.
 - #512 MERGED, но не опубликован на телефон; #541/#542 Draft проверяют готовые файлы.
