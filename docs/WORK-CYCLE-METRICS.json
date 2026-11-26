@@ -402,8 +402,11 @@
     ],
     "deepPatchReviewsAll": false,
     "completedVerifiedUserScenarios": 0,
-    "ci": "PENDING_DOCS_GOVERNANCE",
+    "ci": "DOCS_GOVERNANCE_PRIOR_PR_551_SUCCESS",
     "physicalDevice": "NOT_TESTED",
-    "productionActions": 0
+    "productionActions": 0,
+    "stackedReviewedFilePaths": 359,
+    "totalChangedPathListsVerified": 413,
+    "uniqueChangedPaths": 1079
   }
 }
