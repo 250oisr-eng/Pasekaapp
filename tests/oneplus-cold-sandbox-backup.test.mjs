@@ -481,7 +481,7 @@ test('encoded transport preflight is read-only and refuses mismatch before any T
  const f=await fakeEnvironment(t);
  const old=process.env.FAKE_ADB_MODE;
  try{
-  for(const [mode,expected] of [['probe_corrupt','BASE64_PREFLIGHT_MISMATCH'],['probe_denied','BASE64_PREFLIGHT_COMMAND_FAILED']]){
+  for(const [mode,expected] of [['probe_corrupt','BASE64_PREFLIGHT_DIFFERENT_BASE64'],['probe_denied','BASE64_PREFLIGHT_COMMAND_FAILED']]){
    process.env.FAKE_ADB_MODE=mode;
    await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),err=>err.message===expected);
    assert.deepEqual(await readdir(f.dest),[]);
@@ -514,7 +514,7 @@ test('read-only quoted Android shell probe reports safe measurements and never T
   assert.equal(success.privateDataRead,false);
   assert.equal(success.backupAttempted,false);
   assert.deepEqual(await readdir(f.dest),[]);
-  for(const [mode,reason] of [['probe_corrupt','BASE64_PREFLIGHT_NON_BASE64_OUTPUT'],
+  for(const [mode,reason] of [['probe_corrupt','BASE64_PREFLIGHT_DIFFERENT_BASE64'],
                                ['probe_denied','BASE64_PREFLIGHT_COMMAND_FAILED']]){
    process.env.FAKE_ADB_MODE=mode;
    const bad=await inspectEncodedShell({adb:f.stub});
