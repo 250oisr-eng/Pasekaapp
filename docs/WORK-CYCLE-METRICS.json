@@ -805,5 +805,34 @@
     "auditReportPr": 589,
     "auditReportExactHead": "fd8567621ebb23f8a2846cd4f706175cadbfaca1",
     "auditReportMergeSha": "a55aa97633e2a79195de2de1768c46a462192262"
+  },
+  "p1FrameStripCycle20261126": {
+    "sourceMainSha": "9bf11cc697ed6b8645f97e4ff5d8b9d19a3b397c",
+    "historicalSourceRootPr": 187,
+    "branch": "fix/p1-brood-frame-strip-dynamic-20261126",
+    "filesEdited": [
+      "index.html",
+      "tests/frame-strip-count-main.test.mjs",
+      "docs/UI-FRAME-STRIP-SELECTIVE-2026-11-26.md"
+    ],
+    "frameStripRenderersChanged": 3,
+    "syntheticFrameCounts": [
+      0,
+      1,
+      6,
+      10
+    ],
+    "newNpmDependencies": 0,
+    "storageSchemaChanged": false,
+    "serviceWorkerChanged": false,
+    "physicalModelChanged": false,
+    "appRuntimeChanged": true,
+    "exactHeadCi": "PENDING",
+    "android": "NOT_TESTED",
+    "device": "NOT_TESTED",
+    "userData": "UNTOUCHED",
+    "verifiedUserScenarios": 0,
+    "measuredTimeSavings": null,
+    "ciRuns": []
   }
 }
