@@ -189,15 +189,15 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-existing-partial-tar-offline-audit-20261126",
+    "id": "b01-offline-tar-corruption-resync-20261126",
     "pr": 543,
-    "source": "Real OnePlus Android TAR exit 0 stderr NONE transferredBytes=5122278, remainder512=230",
-    "deviceBackupStatus": "BLOCKED_ALIGNMENT_INVALID",
+    "source": "Real partial audit: bytes=5122278 remainder=230 headersVerified=17 INVALID_HEADER_CHECKSUM_FIELD endMarkerFound=false",
+    "deviceBackupStatus": "INVALID_PARTIAL_TAR",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
     "ciRuns": [],
-    "notes": "New one-click local only structural TAR verifier for existing .partial file; zero new device accesses; no assumption of recoverable backup."
+    "notes": "Offline inspection adds first invalid header offset plus up to eight nearby valid header shift candidates ±511 bytes; no archive repair and no additional OnePlus read."
   }
 }
