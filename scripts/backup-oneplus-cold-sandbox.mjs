@@ -79,17 +79,30 @@ async function verifyTar(archivePath){
  const indexedDb=lines.some(x=>x.includes('/IndexedDB/')||x.includes('/indexeddb/'));
  return {entries:lines.length,indexedDbPresent:indexedDb};
 }
+// Classification is based on bounded Android stderr, but raw device stderr
+// (possibly containing private paths) never enters output or saved reports.
+function categorizeTarStderr(raw){
+ const low=raw.toLowerCase();
+ if(!low)return 'NONE';
+ if(/permission denied|operation not permitted|access denied/.test(low))return 'PERMISSION_DENIED';
+ if(/no space left|not enough space/.test(low))return 'DEVICE_SPACE_EXHAUSTED';
+ if(/file changed as we read|file changed|changed while/.test(low))return 'SOURCE_CHANGED_DURING_READ';
+ if(/not found|not recognized|unknown command|inaccessible or not found/.test(low))return 'COMMAND_OR_PATH_NOT_FOUND';
+ if(/invalid option|unrecognized option|usage: tar|unknown option/.test(low))return 'TAR_OPTION_UNSUPPORTED';
+ if(/broken pipe|write error|read error|input\/output error/.test(low))return 'STREAM_IO_ERROR';
+ return 'OTHER_REDACTED';
+}
 // Only publish bounded stage evidence; stderr is never printed because it
 // may contain user filenames or device-internal paths.
-function transferFailure(code,{tarExitCode=null,transferredBytes=0,stderrSeen=false}={}){
+function transferFailure(code,{tarExitCode=null,transferredBytes=0,stderrSeen=false,stderrCategory='NONE'}={}){
  const e=Error(code);
  e.safeEvidence={stage:'ANDROID_TAR_TRANSFER',tarExitCode:Number.isInteger(tarExitCode)?tarExitCode:null,
    transferredBytes:Number.isSafeInteger(transferredBytes)?transferredBytes:null,
-   stderrSeen:!!stderrSeen};
+   stderrSeen:!!stderrSeen,stderrCategory};
  return e;
 }
 async function streamArchive(command,serial,output){
- let child=null,total=0,stderrBytes=0;
+ let child=null,total=0,stderrBytes=0,stderrSample='';
  const sha=createHash('sha256');
  try{
   const stream=createWriteStream(output,{flags:'wx',mode:0o600});
@@ -98,11 +111,12 @@ async function streamArchive(command,serial,output){
   });
   child.stderr.on('data',data=>{
    stderrBytes+=data.length;
+   if(stderrSample.length<8192)stderrSample+=data.toString('utf8').slice(0,8192-stderrSample.length);
    if(stderrBytes>MAX_CAPTURE)child.kill();
   });
   const done=new Promise((resolve,reject)=>{
     child.once('error',()=>reject(transferFailure('ANDROID_TAR_START_FAILED',{
-      transferredBytes:total,stderrSeen:stderrBytes>0
+      transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
     })));
     child.once('close',code=>resolve(code));
   });
@@ -116,19 +130,19 @@ async function streamArchive(command,serial,output){
   catch(error){streamError=error;}
   const exit=await done;
   if(streamError)throw transferFailure('ANDROID_TAR_STREAM_FAILED',{
-    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(stderrBytes>MAX_CAPTURE)throw transferFailure('ANDROID_TAR_STDERR_LIMIT',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:true
   });
   if(exit!==0)throw transferFailure('ANDROID_TAR_COMMAND_FAILED',{
-    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(total<1024)throw transferFailure('ANDROID_TAR_EMPTY_OR_TOO_SMALL',{
-    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(total%512!==0)throw transferFailure('ANDROID_TAR_ALIGNMENT_INVALID',{
-    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   const synced=await open(output,'r');
   try{await synced.sync();}finally{await synced.close();}
