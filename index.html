@@ -461,6 +461,9 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <button type="button" class="primary" onclick="renderQueenRearingTimeline()">Построить календарь</button><div id="queenTimelineResult" aria-live="polite"></div>
  </div>
  <div class="card"><h3 style="margin-top:0">Контрольный интервал осмотра</h3><p class="muted">Настраиваемое напоминание. Семидневный цикл можно использовать в период роевого риска, но он не гарантирует обнаружение всех маточников и предотвращение выхода роя.</p>
+  <label for="inspectionHiveSelect">Улей для поиска осмотра в журнале</label><select id="inspectionHiveSelect" aria-label="Улей для даты последнего сохранённого осмотра"><option value="">— Выбери улей —</option></select>
+  <button type="button" onclick="useLastSavedInspection()">Подставить последний сохранённый осмотр</button>
+  <div id="inspectionPrefillStatus" class="muted" aria-live="polite">Дата подставляется только из фактически сохранённой записи «Осмотр» выбранного улья. Черновики, архивные и будущие записи не учитываются.</div>
   <label for="inspectionLastDate">Дата последнего осмотра</label><input id="inspectionLastDate" type="date">
   <label for="inspectionInterval">Интервал, дней</label><input id="inspectionInterval" type="number" min="1" max="30" value="7">
   <button type="button" class="primary" onclick="renderInspectionReminder()">Рассчитать дату следующего контроля</button><div id="inspectionReminderResult" class="muted" aria-live="polite"></div>
@@ -1590,6 +1593,23 @@ async function saveDeadoutReview(event){
 function renderSeasonPlanning(){
  const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()],['inspectionLastDate',today()]];
  defaults.forEach(([id,value])=>{const field=$(id);if(field&&!field.value)field.value=value});
+ const select=$('inspectionHiveSelect');if(select){
+  const previous=select.value||selectedHiveId;
+  select.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
+  select.value=S.hives.some(h=>h.id===previous)?previous:'';
+ }
+}
+function useLastSavedInspection(){
+ const status=$('inspectionPrefillStatus'),hive=$('inspectionHiveSelect')?.value;
+ if(!status)return;
+ if(!hive){status.textContent='Выбери улей для поиска последнего сохранённого осмотра.';return;}
+ try{
+  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today());
+  if(!result){status.textContent='Для этого улья нет сохранённого неархивного осмотра с прошедшей датой.';return;}
+  $('inspectionLastDate').value=result.date;
+  const previous=$('inspectionReminderResult');if(previous)previous.textContent='';
+  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
+ }catch(error){status.textContent=error.message||'Дата осмотра не найдена.';}
 }
 function renderNectarBackwardPlan(){
  const host=$('nectarPlanResult');if(!host)return;
