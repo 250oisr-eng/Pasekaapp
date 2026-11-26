@@ -21,6 +21,6 @@ const payload='PASEKA_BASE64_PROBE_V1';
 const encoded=remote(`set -o pipefail; printf ${payload} | base64`);
 assert.equal(encoded.exit,0,'ANDROID_PIPEFAIL_OR_BASE64_FAILED');
 assert.equal(encoded.stderr,'','UNEXPECTED_REMOTE_STDERR');
-const decoded=encoded.stdout.replace(/[\\r\\n]/g,'');
+const decoded=encoded.stdout.replace(/[\r\n]/g,'');
 assert.equal(decoded,Buffer.from(payload,'ascii').toString('base64'),'BASE64_PAYLOAD_MISMATCH');
 console.log('PASS: Android API35 shell -T kept stdout/stderr separate, propagated remote exit 42 and transmitted exact public Base64 with pipefail. No app data or TAR accessed.');
