@@ -25,6 +25,8 @@
 
 - **#579 MERGED** `cedcb63441b09a08fd78fd22e5b2a65687da1f5e`: selective WIP/diagnostic STOP/exact CI rules from #533 into existing F0–F7, Governance #45887287260 SUCCESS exact HEAD `9b44124d7bf9a783f43dfb02d846ea6742804682`. **#533 CLOSED/SUPERSEDED WITHOUT MERGE**, source branch retained.
 
+- **B05 #519 selective port in Draft:** local single-alias keytool metadata parser with fail-closed synthetic tests and `.gitignore` for secrets, no key access/device installation. Pending exact-head CI. B05 remains BLOCKED; historical #519 retained until port merged.
+
 ## Следующий конкретный шаг
 
 После #579 и синхронизации индексированного реестра разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
