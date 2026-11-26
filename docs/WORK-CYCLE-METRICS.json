@@ -189,16 +189,22 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-oneplus-user-approved-stop-20261126",
+    "id": "b01-oneplus-readonly-process-diagnostic-20261126",
     "pr": 543,
-    "source": "Two real OnePlus reports APP_MUST_BE_STOPPED_MANUALLY despite manual stop",
+    "codeSha": "1ab421c5ea75d2c792f54eff399f1172f23960c8",
+    "source": "Third physical user run returned APP_MUST_BE_STOPPED_MANUALLY after explicit targeted ADB force-stop",
     "completedVerifiedUserScenarios": 0,
-    "deviceBackupStatus": "NOT_VERIFIED",
+    "deviceBackupStatus": "BLOCKED_USER_REPORTED",
     "independentAndroidRestore": "NOT_VERIFIED",
-    "userConsentRequired": true,
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
-    "ciRuns": [],
-    "notes": "One-time explicit GUI consent default No; targeted ADB force-stop fixed package only if running. No actual OnePlus retry evidence yet."
+    "ciRuns": [
+      {
+        "id": 45810686619,
+        "conclusion": "success",
+        "kind": "linux-windows-diagnostics"
+      }
+    ],
+    "notes": "Created separate one-click read-only process diagnostic. Need actual sanitized diagnostic output; no more stop retries without evidence."
   }
 }
