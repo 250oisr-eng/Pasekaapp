@@ -455,5 +455,33 @@
         "device": "NOT_TESTED"
       }
     ]
+  },
+  "prAuditCycleC20261126": {
+    "lastVerifiedMainSha": "7d8af290cb9621ea7e83610a939dbceb19027b20",
+    "mergedPortPrs": [
+      557,
+      558,
+      559,
+      560
+    ],
+    "closedSupersededPrs": [
+      536,
+      42,
+      516,
+      44,
+      69
+    ],
+    "exactPrHeadAndroidCiSuccess": [
+      45877095034,
+      45877248236,
+      45877525614,
+      45877662641
+    ],
+    "postMergePushCi": "NOT_VERIFIED",
+    "currentOpenPrCount": null,
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0,
+    "completedVerifiedUserScenarios": 0,
+    "notes": "Historical 411-row inventory does not establish a fresh live PR count. No mass merge, release, original media deletion, production writes, or device install."
   }
 }
