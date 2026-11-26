@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight, auditInstalledPackage } from '../scripts/check-oneplus-upgrade.mjs';
+import { parseBadging, parseSigning, evaluateUpgrade, connectedDevice, parseBaseApkPath, runArtifactPairPreflight, auditInstalledPackage, resolveJavaForApksigner } from '../scripts/check-oneplus-upgrade.mjs';
 
 const signer = 'a'.repeat(64);
 const valid = { packageName: 'ru.paseka.journal', versionCode: 1, signers: [signer] };
@@ -93,4 +93,24 @@ test('B04 certificate digest must have exactly 32 SHA-256 bytes, not a shortened
 test('B04 ambiguous installed base APK path always blocks signer proof',()=>{
  assert.throws(()=>parseBaseApkPath('package:/data/app/one/base.apk\npackage:/data/app/two/base.apk\n'),/BLOCKED/);
  assert.throws(()=>parseBaseApkPath('package:relative/base.apk\n'),/BLOCKED/);
+});
+
+test('B04 Windows JBR discovery selects an installed Java without downloading or installing',()=>{
+ const checked=[];
+ const env={JAVA_HOME:'C:/unavailable',ProgramFiles:'C:/Program Files'};
+ const expected='C:/Program Files/Android/Android Studio/jbr/bin/java.exe';
+ const chosen=resolveJavaForApksigner({platform:'win32',env,fileExists:path=>{
+  checked.push(path);
+  return path.replaceAll('\\\\','/')===expected;
+ }});
+ assert.equal(chosen,expected);
+ assert.ok(checked.some(path=>path.includes('unavailable')));
+ assert.ok(checked.some(path=>path.includes('Android Studio')));
+});
+
+test('B04 Java discovery fails back to PATH and never invents a certificate or Java binary',()=>{
+ const bad={JAVA_HOME:'C:/missing',STUDIO_JDK:'C:/missing2'};
+ assert.equal(resolveJavaForApksigner({platform:'win32',env:bad,fileExists:()=>false}),'java');
+ assert.equal(resolveJavaForApksigner({platform:'linux',env:bad,fileExists:()=>{throw Error('must not inspect Linux paths')}}),'java');
+ assert.equal(resolveJavaForApksigner({platform:'win32',env:{},fileExists:()=>{throw Error('nothing to inspect')}}),'java');
 });

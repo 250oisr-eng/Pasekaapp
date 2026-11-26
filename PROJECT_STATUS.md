@@ -19,6 +19,8 @@
 - **B07 P1:** OP11–14 / sectional профиль не активировать до завершения физической модели, зависимых модулей, локальных проверок и миграций. Источник — пользовательский DOCX и отдельные подтверждения.
 - **B09/B11/P2:** synthetic CI, emulator и read-only диагностика не доказывают реальные cold-offline/power-loss/Quota/restore сценарии.
 
+- **B04 selective code port in Draft:** Windows Android Studio JBR lookup and installed `apksigner.jar` location from historical #517, without old status files; `scripts/check-oneplus-upgrade.mjs`, `tests/check-oneplus-upgrade.test.mjs`, [F0–F2 contract](docs/B04-JAVA-LOCATOR-SELECTIVE-PORT-2026-11-26.md). Exact-head CI PENDING; device NOT_TESTED, B01/B04/B05 remain blocked.
+
 ## Следующий конкретный шаг
 
 Завершить docs-only #574 после исправления ограничения Governance и exact-head CI. Затем разбирать один независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
