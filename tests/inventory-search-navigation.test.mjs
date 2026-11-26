@@ -37,4 +37,9 @@ test('a stale journal result cannot open an archived, moved or missing entry',()
  }
  assert.deepEqual(opened,['one']);
  assert.equal(alerts.length,4);
+ // Duplicate IDs in damaged historical data must never select an arbitrary first record.
+ entries.push({id:'one',hive:'h1',text:'conflicting duplicate'});
+ open({dataset:{kind:'record',id:'one',hive:'h1'}});
+ assert.deepEqual(opened,['one'],'ambiguous ID must not open another editor');
+ assert.equal(alerts.length,5,'ambiguous ID must fail closed');
 });
