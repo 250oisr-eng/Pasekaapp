@@ -965,5 +965,30 @@
     "integration": "IN_MAIN",
     "publication": "NOT_RELEASED",
     "postMergeRuntimeInspection": "LABELS_ACTIVE_NAV_CAPTIONS_VERIFIED"
+  },
+  "p0FirstExternalCopyGuide20261127": {
+    "userConfirmedNoOriginalVideos": true,
+    "userConfirmedNoBackupCopies": true,
+    "notPhysicallyAuditedStores": true,
+    "sourceMain": "0f3f1c8a8a4a3972bb36a44043229f47867d7cdc",
+    "branch": "fix/p0-first-external-backup-guide-20261127",
+    "changedRuntime": [
+      "index.html"
+    ],
+    "newTests": [
+      "tests/first-external-backup-guide.test.mjs"
+    ],
+    "newDependencies": 0,
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "restoreChanged": false,
+    "videoTouched": false,
+    "exactShaCi": "PENDING",
+    "physicalArchiveFile": "NOT_AVAILABLE",
+    "independentRestore": "NOT_TESTED",
+    "realDevice": "NOT_TESTED",
+    "userData": "UNTOUCHED",
+    "successfullyCompletedRealUserScenarios": 0,
+    "measuredSavings": null
   }
 }
