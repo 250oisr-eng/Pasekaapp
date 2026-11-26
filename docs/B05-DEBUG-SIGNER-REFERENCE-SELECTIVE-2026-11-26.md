@@ -1,0 +1,9 @@
+# B05 — выборочная сверка публичных сертификатов из старого #520
+
+**F0–F2, 26.11.2026.** Текущий `main=b3279198682fb99702986cd44c3f661a00dcc9cb` уже содержит более строгий `scripts/audit-android-debug-artifact.mjs`: проверяет байты Debug APK, официальную подпись, SHA256 бинарника и checkout SHA, прикладывает `NOT_FOR_ONEPLUS.txt`. Исторический #520 дублирует этот процесс и добавляет уникальную метаданную сверку сертификата CI с когда-то зафиксированным сертификатом OnePlus.
+
+**F3 узкий перенос:** новая чистая `compareDebugSignerWithReference(metadata, referenceSha256)` сравнивает сертификат из уже проверенного объекта provenance с **явно переданным публичным** SHA-256 отпечатком. Нет второй сборки, новой CI job, ADB, доступа к телефону, чтения signing key или автоматического статического «установленный сейчас» отпечатка. Результат `MATCHES_SUPPLIED_REFERENCE_METADATA_ONLY` или `DIFFERS_FROM_SUPPLIED_REFERENCE`, при этом всегда `referenceIsCurrentInstalledCertificate:NOT_VERIFIED`, `privateKeyCustodyVerified:false`, `productionUpgradeAuthorized:false`, `productionRollbackVerified:false` и `deviceInstalled:false`. Неизвестный/невалидный reference или недопустимый объект provenance — BLOCKED.
+
+**F4–F5:** синтетические негативные тесты на совпадение, несовпадение, попытку подделки полей provenance и сохранение немутируемого исходного объекта; CI на точном HEAD. При фактической проверке уже установленного OnePlus необходимо отдельно установить свежесть отпечатка и совместимость версии, пользовательский B01 backup и rollback. В CI сравнение не считается основанием для установки.
+
+**F6–F7:** старый #520 не сливать целиком: он дублирует защищённый Android workflow и несёт старые статус/метрики. До проверенного merge нового PR исторический #520 остаётся открытым. B01/B04/B05 остаются BLOCKED, #442 FROZEN, release не разрешён.
