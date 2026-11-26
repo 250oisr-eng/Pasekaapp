@@ -8,10 +8,14 @@ if($folder.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
  Write-Host 'CANCELLED_BY_USER; no device operations performed.'
  exit 0
 }
-$adb = (Get-Command adb.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
-if(-not $adb) {
- $candidate = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
- if(Test-Path $candidate) { $adb=$candidate }
+# The user's separately downloaded official platform-tools takes priority.
+# Never use a potentially old PATH adb if an SDK copy is available.
+$adb = Join-Path $PSScriptRoot 'platform-tools\adb.exe'
+if(-not (Test-Path $adb)) {
+ $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+}
+if(-not (Test-Path $adb)) {
+ $adb = (Get-Command adb.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source)
 }
 if(-not $adb) {
  Write-Host 'BLOCKED: ADB was not found. No phone data changed.'
@@ -77,6 +81,13 @@ if($code -eq 2 -and $status -eq 'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTE
   Write-Host 'Private stderr, filenames and source paths are intentionally withheld.'
  }
  switch($result.code) {
+  'ADB_HOST_CLIENT_INCOMPATIBLE' {
+   Write-Host 'BLOCKED: PC adb.exe too old or unidentified, unsafe for shell -T.'
+   Write-Host 'Download official Google SDK Platform-Tools for Windows, accept its license,'
+   Write-Host 'unzip the entire platform-tools folder beside RUN-ONEPLUS-BACKUP.cmd, and rerun.'
+   Write-Host 'Read GET-OFFICIAL-ADB.txt. Do not copy adb.exe alone or remove old tools.'
+  }
+  'ADB_DEVICE_NO_SHELL_V2' { Write-Host 'BLOCKED: Shell v2 missing. No TAR was started.' }
   'ADB_NO_DEVICE' { Write-Host 'No connected authorized phone found: check USB cable and USB debugging.' }
   'ADB_MULTIPLE_DEVICES' { Write-Host 'More than one Android device is connected. Disconnect other devices.' }
   'ADB_DEVICE_UNAUTHORIZED' { Write-Host 'Unlock OnePlus and accept the USB debugging authorization prompt.' }
