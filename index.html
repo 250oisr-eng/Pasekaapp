@@ -653,7 +653,10 @@ function persistStartupUseMarker(storageProvider=()=>window.localStorage){
  }catch(error){return false}
 }
 function requireFirstRunConsent(databaseCreated,loadedState,markerState,confirmFirstUse){
- if(loadedState!=null)return false;
+ if(loadedState!=null){
+  if(typeof loadedState!=='object'||Array.isArray(loadedState))throw new Error('Обнаружено некорректное содержимое базы. Создание пустой пасеки запрещено; исходные данные не изменены.');
+  return false;
+ }
  if(!canInitializeFreshDatabase(databaseCreated,loadedState))throw new Error('Обнаружена существующая локальная база без основной записи и полной автокопии. Автоматическая инициализация остановлена, чтобы не скрыть возможную потерю данных. Не очищай хранилище; сначала проверь резервный JSON-архив.');
  if(markerState==='present')throw new Error('Ранее приложение уже использовалось, но основная база и автокопия исчезли. Создание пустой пасеки заблокировано во избежание потери истории. Не очищай данные и проверь внешний архив.');
  if(markerState!=='absent')throw new Error('Не удалось достоверно проверить маркер предыдущего использования пасеки. Создание пустой базы заблокировано. Проверь доступ к локальному хранилищу и резервный архив.');
