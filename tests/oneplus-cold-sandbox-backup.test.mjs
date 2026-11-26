@@ -68,7 +68,12 @@ if(tail==='shell run-as ru.paseka.journal ls -ld app_webview'){
  process.stdout.write('drwx app_webview\\n');process.exit(0);
 }
 if(tail==='exec-out run-as ru.paseka.journal tar -cf - .'){
- if(mode==='tar_fail')process.exit(4);
+ if(mode==='tar_fail') {process.stderr.write('private/internal/file/name');process.exit(4);}
+ if(mode==='tar_tiny') {process.stdout.write('short');process.exit(0);}
+ if(mode==='tar_partial_failure') {
+  process.stdout.write(Buffer.alloc(1024,2));
+  process.stderr.write('private/internal/file/name');process.exit(5);
+ }
  const result=spawnSync('tar',['-cf','-','.'],{cwd:process.env.FAKE_PRIVATE_DIR,encoding:null});
  if(result.status!==0)process.exit(5);
  process.stdout.write(result.stdout);process.exit(0);
@@ -256,4 +261,35 @@ test('Android toybox ps -o NAME unsupported and empty-success pidof: full ps fal
   if(before.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=before.mode;
   if(before.private===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=before.private;
  }
+});
+
+test('nonzero Android tar exit is reported with safe stage and bytes, private stderr withheld',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const old={mode:process.env.FAKE_ADB_MODE,private:process.env.FAKE_PRIVATE_DIR};
+ try {
+  process.env.FAKE_PRIVATE_DIR=f.src;
+  for (const mode of ['tar_fail','tar_partial_failure','tar_tiny']) {
+   process.env.FAKE_ADB_MODE=mode;
+   await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),err=>{
+     assert.ok(['ANDROID_TAR_COMMAND_FAILED','ANDROID_TAR_EMPTY_OR_TOO_SMALL','ANDROID_TAR_ALIGNMENT_INVALID'].includes(err.message));
+     assert.equal(err.safeEvidence.stage,'ANDROID_TAR_TRANSFER');
+     assert.equal(typeof err.safeEvidence.transferredBytes,'number');
+     assert.equal(err.safeEvidence.stderrSeen,mode!=='tar_tiny');
+     assert.ok(!JSON.stringify(err.safeEvidence).includes('private/internal'));
+     return true;
+   });
+   assert.ok((await readdir(f.dest)).every(name=>name.endsWith('.tar.partial')));
+   assert.deepEqual(await readFile(f.original),f.payload);
+  }
+ } finally {
+  if(old.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=old.mode;
+  if(old.private===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=old.private;
+ }
+});
+test('physical failure code remains specific in Windows stdout JSON, not raw stderr',async()=>{
+ const source=await readFile(new URL('../scripts/backup-oneplus-cold-sandbox.mjs',import.meta.url),'utf8');
+ assert.match(source,/evidence:e\.safeEvidence\|\|null/);
+ assert.doesNotMatch(source,/console\.error\(.*stderr/i);
+ assert.match(source,/ANDROID_TAR_COMMAND_FAILED/);
+ assert.match(source,/ANDROID_TAR_ALIGNMENT_INVALID/);
 });
