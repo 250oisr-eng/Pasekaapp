@@ -131,14 +131,14 @@ async function streamArchive(command,serial,output){
   try{await pipeline(child.stdout,new StrictBase64Decoder(),tap,stream);}
   catch(error){streamError=error;}
   const exit=await done;
+  if(exit!==0)throw transferFailure('ANDROID_TAR_COMMAND_FAILED',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
+  });
   if(streamError)throw transferFailure(streamError.message==='BASE64_TRANSPORT_CORRUPTED'||streamError.message==='BASE64_TRANSPORT_TRUNCATED'?'BASE64_TRANSPORT_INVALID':'ANDROID_TAR_STREAM_FAILED',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(stderrBytes>MAX_CAPTURE)throw transferFailure('ANDROID_TAR_STDERR_LIMIT',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:true
-  });
-  if(exit!==0)throw transferFailure('ANDROID_TAR_COMMAND_FAILED',{
-    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(total<1024)throw transferFailure('ANDROID_TAR_EMPTY_OR_TOO_SMALL',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
