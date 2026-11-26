@@ -1,5 +1,12 @@
 # PROJECT_STATUS — Пасека 2.0
 
+
+## B09 OnePlus — четвёртый отчёт и безопасная детализация (26.11.2026, Draft #537)
+
+- Владелец передал `ONEPLUS-RESTART-ONLY-RESULT(1).json` (`2026-11-26T07:14:02.825Z`): `BLOCKED/DEVICE_RESTART_PROOF_FAILED`, `UNCLASSIFIED_DEVICE_ERROR`, `failedCheckNames=["error"]`. Реальное post-force-stop восстановление синтетического Blob **не подтверждено**; это не свидетельство повреждения рабочих данных.
+- Narrow patch на ветке #537: WebView отправляет allowlisted этап сбоя и класс исключения, Windows verifier сохраняет лишь безопасные коды; добавлены негативные тесты неизвестных значений. Код SHA `f37066a983e5584d21e6b8b815cd0352c4a06a7a`; окончательный exact-SHA CI **не подтверждён** до проверки GitHub Actions.
+- Новая телеметрия требует новой сборки test-only APK; установленная старая версия её не выдаст. **Не** переустанавливать и не очищать APK без отдельного безопасного плана сохранения синтетического состояния. B09 = BLOCKED, B01 full external restore = BLOCKED, #442 auto-delete = FROZEN. Production OnePlus не затронут.
+
 ## 26.11.2026 · B09 физический OnePlus: первая половина прошла, restart BLOCKED
 
 Три отчёта владельца: 06:39Z `ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED` до установки; 06:49Z `ADB_COMMAND_FAILED` (стадия неизвестна); 07:02:37Z `PROOF_TIMEOUT` на `RELAUNCH_RESTORE_PROOF`. Последний запуск строго прошёл проверку USB, установку отдельного `ru.paseka.journal.disasterproof2`, первый `P0_DISASTER_WEBVIEW_RESTORE_PASS` и команду force-stop, но **не подтвердил второй proof**. Нельзя повторять установку/очищать данные. В [Draft #537](https://github.com/250oisr-eng/Pasekaapp/pull/537) добавлен **restart-only без APK install**: обнаружение свежего PASS/BLOCKED с обезличенной классификацией, проверка ID/USB, воздействует только на тестовый пакет. Тесты и CI нового ZIP должны пройти на точном SHA. Реальный пользовательский restore и удаление видео NOT_TESTED; #442 FROZEN.
