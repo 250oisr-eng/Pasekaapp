@@ -1,4 +1,4 @@
-// Pure read-only preflight validators. No ADB commands, package install, launch, or data writes.
+// Pure read-only preflight validators. No subprocesses, device actions or writes.
 export const PACKAGE='ru.paseka.journal.disasterproof2';
 const error=code=>Object.assign(new Error(code),{code});
 export function parseDeviceList(output){
