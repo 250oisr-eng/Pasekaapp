@@ -3,7 +3,7 @@ import {Transform} from 'node:stream';
 // console text, ANSI sequences, inserted bytes or data after padding.
 export class StrictBase64Decoder extends Transform {
  constructor(){
-  super();this.pending='';this.finished=false;this.encodedBytes=0;
+  super();this.pending='';this.finished=false;this.encodedBytes=0;this.failureReason=null;
  }
  _transform(chunk,_encoding,callback){
   try{
@@ -33,11 +33,16 @@ export class StrictBase64Decoder extends Transform {
     this.pending=input.slice(usable);
    }
    callback();
-  }catch{callback(Error('BASE64_TRANSPORT_CORRUPTED'));}
+  }catch(error){
+   this.failureReason=/^BASE64_TRANSPORT_[A-Z_]+$/.test(error.message)?error.message:'BASE64_TRANSPORT_CORRUPTED';
+   callback(Error('BASE64_TRANSPORT_CORRUPTED'));
+  }
  }
  _flush(callback){
-  if(this.pending.length!==0||this.encodedBytes===0)
+  if(this.pending.length!==0||this.encodedBytes===0){
+   this.failureReason=this.encodedBytes===0?'BASE64_TRANSPORT_NO_INPUT':'BASE64_TRANSPORT_TRUNCATED';
    callback(Error('BASE64_TRANSPORT_TRUNCATED'));
+  }
   else callback();
  }
 }
