@@ -42,13 +42,13 @@ export const PUBLIC_PROBE_VARIANTS=Object.freeze([
 export function classifyPublicProbe(result,expectedType){
  const expected=expectedType==='plain'?PREVIEW:Buffer.from(PREVIEW,'ascii').toString('base64');
  const output=result.output||'';
- const normalized=output.replace(/[\\r\\n]/g,'');
+ const normalized=output.replace(/[\r\n]/g,'');
  const bytes=Buffer.byteLength(output,'latin1');
  const fact={status:'BLOCKED',reason:'DIFFERENT_OUTPUT',
   exitCode:Number.isInteger(result.code)?result.code:null,
   outputBytes:bytes,normalizedBytes:Buffer.byteLength(normalized,'latin1'),
   containsExpected:normalized.includes(expected),containsPublicLiteral:normalized.includes(PREVIEW),
-  hasControlBytes:/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/.test(normalized)};
+  hasControlBytes:/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(normalized)};
  if(result.overflow){fact.reason='OUTPUT_LIMIT';return fact;}
  if(result.code!==0){fact.reason='COMMAND_FAILED';return fact;}
  if(normalized===expected){fact.status='PASS';fact.reason=null;return fact;}
