@@ -770,5 +770,26 @@
     "repeatedDocumentReads": null,
     "measuredTimeSavings": null,
     "productionActions": 0
+  },
+  "prAuditCycleN20261126": {
+    "sourceMainSha": "fcf735e121d7c9916ab85d5482256bcf5f205dbf",
+    "historicalRootsCheckedLive": 33,
+    "openDraft": 30,
+    "closedWithoutMerge": 3,
+    "returnedPatchFiles": 407,
+    "mechanicalAddedLines": 36512,
+    "mechanicalDeletedLines": 312,
+    "missingReturnedFilePatches": 0,
+    "patchCompletenessBeyondApi": "NOT_PROVEN",
+    "fullHumanSemanticReview": "NOT_DONE",
+    "allRootCIExactHead": "NOT_CHECKED",
+    "newCodeOrTestsChanged": false,
+    "independentRestore": "BLOCKED",
+    "mediaCleanup": "FROZEN_442",
+    "physicalOnePlus": "NOT_TESTED",
+    "productionActions": 0,
+    "realVerifiedUserScenarios": 0,
+    "timeSavedMeasured": null,
+    "ciRuns": []
   }
 }
