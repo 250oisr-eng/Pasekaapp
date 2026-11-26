@@ -9,6 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {probeProcess} from './oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from './oneplus-strict-base64.mjs';
 import {inspectPartial} from './inspect-oneplus-partial-tar.mjs';
+import {encodedShellArgs,classifyEncodedProbe} from './oneplus-encoded-shell.mjs';
 
 const PACKAGE='ru.paseka.journal';
 const MAX_CAPTURE=1024*1024;
@@ -76,13 +77,15 @@ async function checkReadable(command,serial){
 // Tiny known public constant: validate the exact run-as/sh/base64 path
 // before reading any private app file or opening a backup destination file.
 async function verifyEncodedTransport(command,serial){
- const proof='PASEKA_BASE64_PROBE_V1';
- const expected=Buffer.from(proof,'ascii').toString('base64');
- const result=await limitedProcess(command,adb(serial,[
-  'exec-out','run-as',PACKAGE,'sh','-c','set -o pipefail; printf PASEKA_BASE64_PROBE_V1 | base64'
- ]),{max:8192});
- if(result.overflow||result.code!==0)throw Error('BASE64_PREFLIGHT_COMMAND_FAILED');
- if(result.stdout.replace(/[\r\n]/g,'')!==expected)throw Error('BASE64_PREFLIGHT_MISMATCH');
+ const r=await limitedProcess(command,encodedShellArgs(serial,'probe'),{max:8192});
+ const measured=classifyEncodedProbe({code:r.code,output:r.stdout,overflow:r.overflow});
+ if(measured.status!=='PASS'){
+  const e=Error(measured.reason);
+  e.safeEvidence={stage:'ANDROID_BASE64_PREFLIGHT',
+    remoteExitCode:measured.remoteExitCode,outputBytes:measured.outputBytes,
+    normalizedBytes:measured.normalizedBytes,privateDataRead:false};
+  throw e;
+ }
 }
 async function verifyTar(archivePath){
  const r=await limitedProcess('tar',['-tf',archivePath],{max:12*1024*1024});
@@ -121,7 +124,7 @@ async function streamArchive(command,serial,output){
  const sha=createHash('sha256');
  try{
   const stream=createWriteStream(output,{flags:'wx',mode:0o600});
-  child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'sh','-c','set -o pipefail; tar -cf - . | base64']),{
+  child=spawn(command,encodedShellArgs(serial,'archive'),{
     shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']
   });
   child.stderr.on('data',data=>{
