@@ -2,6 +2,7 @@ import {spawn} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {selectOneDevice} from './backup-oneplus-cold-sandbox.mjs';
+import {probeProcess} from './oneplus-process-probe.mjs';
 
 const PKG='ru.paseka.journal';
 const MAX=8192;
@@ -38,20 +39,18 @@ export async function diagnose({adb=process.env.PASEKA_ADB||'adb', pauseMs=1200}
  const serial=selectOneDevice(list.output);
  const cmd=more=>['-s',serial,'shell',...more];
  const sample=async()=>{
-  const p=await invoke(adb,cmd(['pidof',PKG]));
-  const ps=await invoke(adb,cmd(['ps','-A','-o','NAME']));
-  return {pidof:statusPidof(p),ps:statusPs(ps)};
+  const p=await probeProcess(adb,serial);
+  return {state:p.state,pidof:p.pidof,ps:p.namedPs,psFallback:p.fullPs,reason:p.reason};
  };
  const first=await sample();
  await new Promise(r=>setTimeout(r,pauseMs));
  const second=await sample();
  const runAs=await invoke(adb,cmd(['run-as',PKG,'pwd']));
  const webview=runAs.code===0 ? await invoke(adb,cmd(['run-as',PKG,'ls','-ld','app_webview'])):null;
- const consistent=[first,second].every(x=>
-   x.pidof.state!=='UNKNOWN'&&x.ps.state!=='UNKNOWN'&&x.pidof.state===x.ps.state
- );
+ const consistent=[first,second].every(x=>x.state!=='UNKNOWN'&&x.state===first.state);
+ const contradiction=[first,second].some(x=>x.pidof.state==='ABSENT'&&x.ps.state==='PRESENT');
  return {schema:'paseka-oneplus-process-readonly-diagnostic-v1',
-  status:consistent?'PROCESS_STATE_MEASURED':'PROCESS_STATE_AMBIGUOUS',
+  status:contradiction?'PROCESS_STATE_CONFLICT':consistent?'PROCESS_STATE_MEASURED':'PROCESS_STATE_AMBIGUOUS',
   first,second,
   runAsAvailable:runAs.code===0&&!runAs.overflow,
   appWebviewAccessible:webview?webview.code===0&&!webview.overflow:false,
