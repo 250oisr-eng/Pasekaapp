@@ -991,12 +991,35 @@
     "serviceWorkerChanges": false,
     "hiveModelChanges": false,
     "appRuntimeChanged": true,
-    "exactCi": "PENDING",
+    "exactCi": "SUCCESS_AT_CODE_SHA",
     "physicalOnePlus": "NOT_TESTED",
     "browserGeometry": "NOT_TESTED",
     "userData": "UNTOUCHED",
     "completedPhysicalScenarios": 0,
     "measuredTimeSavings": null,
-    "ciRuns": []
+    "ciRuns": [
+      {
+        "id": 45898359425,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "checkedHead": "09d763b65ecb13d878312c3389dd05d062a1ef62"
+      },
+      {
+        "id": 45898359387,
+        "name": "Governance Docs Checks",
+        "conclusion": "success",
+        "checkedHead": "09d763b65ecb13d878312c3389dd05d062a1ef62"
+      }
+    ],
+    "pr": 595,
+    "codeHead": "09d763b65ecb13d878312c3389dd05d062a1ef62",
+    "android": "CI_BUILD_SUCCESS",
+    "nodeTests": {
+      "tests": 1003,
+      "pass": 1003,
+      "fail": 0,
+      "skipped": 0
+    },
+    "uxVisualFollowupIssue": 596
   }
 }
