@@ -5,6 +5,7 @@ on:
       - 'scripts/backup-oneplus-cold-sandbox.mjs'
       - 'scripts/diagnose-oneplus-process-readonly.mjs'
       - 'scripts/oneplus-process-probe.mjs'
+      - 'scripts/oneplus-strict-base64.mjs'
       - 'scripts/inspect-oneplus-partial-tar.mjs'
       - 'tests/oneplus-cold-sandbox-backup.test.mjs'
       - 'tools/b01-oneplus-cold-backup/**'
@@ -44,6 +45,7 @@ jobs:
           Copy-Item 'scripts/backup-oneplus-cold-sandbox.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'scripts/diagnose-oneplus-process-readonly.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'scripts/oneplus-process-probe.mjs' 'oneplus-usb-backup-kit/scripts/'
+          Copy-Item 'scripts/oneplus-strict-base64.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'scripts/inspect-oneplus-partial-tar.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'tools/b01-oneplus-cold-backup/RUN-ONEPLUS-BACKUP.cmd' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/choose-backup-destination.ps1' 'oneplus-usb-backup-kit/'
@@ -72,7 +74,7 @@ jobs:
              'DIAGNOSE-ONEPLUS-READONLY.cmd','run-diagnosis.ps1',
              'INSPECT-EXISTING-PARTIAL.cmd','inspect-existing-partial.ps1',
              'scripts/backup-oneplus-cold-sandbox.mjs','scripts/diagnose-oneplus-process-readonly.mjs',
-             'scripts/oneplus-process-probe.mjs','scripts/inspect-oneplus-partial-tar.mjs')
+             'scripts/oneplus-process-probe.mjs','scripts/oneplus-strict-base64.mjs','scripts/inspect-oneplus-partial-tar.mjs')
           if($items.Count -ne $expected.Count){throw 'UNEXPECTED_FILE_IN_KIT'}
           foreach($item in $items){
             $relative=[System.IO.Path]::GetRelativePath(
