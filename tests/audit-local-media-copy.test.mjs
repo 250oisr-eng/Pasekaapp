@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir,writeFile,readFile,rm,symlink} from 'node:fs/promises';
+import {mkdtemp, mkdir,writeFile,readFile,rm,symlink,link} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {auditMediaCopy} from '../scripts/audit-local-media-copy.mjs';
@@ -66,5 +66,14 @@ test('fail closed for unsupported expectation, and do not write a report into ei
   assert.equal((await auditMediaCopy(a,b)).filesCompared,1);
   assert.deepEqual(await readFile(join(a,'x')),Buffer.from('x'));
   assert.deepEqual(await readFile(join(b,'x')),Buffer.from('x'));
+ }finally{await rm(base,{recursive:true,force:true});}
+});
+
+test('separate paths pointing to same hardlinked file are not independent media copies',async()=>{
+ const {base,a,b}=await dirs();
+ try{
+  await writeFile(join(a,'video.mp4'),'synthetic');
+  await link(join(a,'video.mp4'),join(b,'video.mp4'));
+  await assert.rejects(auditMediaCopy(a,b),/MEDIA_COPY_AUDIT_BLOCKED/);
  }finally{await rm(base,{recursive:true,force:true});}
 });
