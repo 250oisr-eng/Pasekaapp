@@ -18,7 +18,7 @@ export function safeSignerFailure(error,stage){
  const failedStage=SIGNER_STAGES.includes(stage)?stage:'UNRECOGNIZED_STAGE';
  const rawCode=typeof error?.code==='string'?error.code:'';
  const allowed=new Set(['LOCAL_ANDROID_SDK_TOOLS_NOT_FOUND','INSTALLED_BASE_APK_PATH_UNVERIFIED',
- 'APK_PACKAGE_VERSION_UNVERIFIED','APK_SIGNER_COUNT_UNVERIFIED','APK_SIGNER_FINGERPRINT_INVALID',
+ 'APK_PACKAGE_VERSION_UNVERIFIED','INSTALLED_AAPT_COMMAND_FAILED','CANDIDATE_AAPT_COMMAND_FAILED','APK_SIGNER_COUNT_UNVERIFIED','APK_SIGNER_FINGERPRINT_INVALID',
  'DIAGNOSTIC_PACKAGE_MISMATCH','SIGNER_UNKNOWN','JAVA_RUNTIME_NOT_FOUND','CANDIDATE_APK_SIZE_INVALID',
  'CANDIDATE_SHA256_MISMATCH','CANDIDATE_TEMP_COPY_MISMATCH','UNTRUSTED_DIAGNOSTIC_MANIFEST',
  'ADB_USB_DEVICE_NOT_VISIBLE','ADB_MULTIPLE_DEVICES_CONNECTED','ADB_USB_DEBUGGING_NOT_AUTHORIZED',
@@ -127,7 +127,10 @@ export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,javaL
   const java=javaLocator();
   const readMeta=(path,kind)=>{
    mark(kind==='INSTALLED'?'INSTALLED_BADGING':'CANDIDATE_BADGING');
-   const versionCode=parsePackageVersion(commandFn(aapt,['dump','badging',path]));
+   let badging;
+   try{badging=commandFn(aapt,['dump','badging',path]);}
+   catch{throw fail(kind==='INSTALLED'?'INSTALLED_AAPT_COMMAND_FAILED':'CANDIDATE_AAPT_COMMAND_FAILED');}
+   const versionCode=parsePackageVersion(badging);
    mark(kind==='INSTALLED'?'INSTALLED_SIGNER':'CANDIDATE_SIGNER');
    const signer=parseCertificate(commandFn(java,['-jar',jar,'verify','--print-certs',path]));
    return {packageId:PACKAGE,versionCode,signer};
