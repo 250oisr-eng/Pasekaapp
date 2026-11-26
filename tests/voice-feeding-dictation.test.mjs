@@ -58,3 +58,11 @@ test('voice session fills the open feeding draft and leaves existing fields for 
  await context.handleApiaryVoiceTranscript(command);
  assert.equal(nodes.rfeedingAmount.value,'');
 });
+
+
+test('spoken feeding fields accept ordinary hyphen after the label without moving it into a value',()=>{
+ const result=extract('поле вид корма - сироп поле количество - 150 г поле соотношение - 2:1','feeding');
+ assert.deepEqual(result.fields,{type:'сироп',amount:'150 г',concentration:'2:1'});
+ assert.deepEqual(result.ambiguous,[]);
+ assert.deepEqual(extract('поле количество - поле корм сироп','feeding').fields,{type:'сироп'});
+});
