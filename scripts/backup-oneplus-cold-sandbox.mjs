@@ -8,6 +8,7 @@ import {pipeline} from 'node:stream/promises';
 import {pathToFileURL} from 'node:url';
 import {probeProcess} from './oneplus-process-probe.mjs';
 import {StrictBase64Decoder} from './oneplus-strict-base64.mjs';
+import {inspectPartial} from './inspect-oneplus-partial-tar.mjs';
 
 const PACKAGE='ru.paseka.journal';
 const MAX_CAPTURE=1024*1024;
@@ -107,7 +108,7 @@ async function streamArchive(command,serial,output){
  const sha=createHash('sha256');
  try{
   const stream=createWriteStream(output,{flags:'wx',mode:0o600});
-  child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'sh','-c','tar -cf - . | base64']),{
+  child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'sh','-c','set -o pipefail; tar -cf - . | base64']),{
     shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']
   });
   child.stderr.on('data',data=>{
@@ -174,6 +175,8 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',a
  try{
   const streamed=await streamArchive(adbCommand,serial,temp);
   await checkStopped(adbCommand,serial);
+  const structure=await inspectPartial(temp);
+  if(structure.status!=='TAR_STRUCTURE_CHECKED_LOCAL_ONLY')throw Error('TAR_STRUCTURE_NOT_VERIFIED');
   const validated=await verifyTar(temp);
   // Independently re-read bytes actually stored on the chosen disk, rather
   // than trusting only the SHA computed before the operating-system flush.
