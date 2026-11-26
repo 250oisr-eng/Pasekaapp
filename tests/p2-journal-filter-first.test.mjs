@@ -4,6 +4,10 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 function load(deps) {
+ const filterStart=html.indexOf('function filteredJournalRows(');
+ const filterEnd=html.indexOf('function journalCsvCell(',filterStart);
+ assert.ok(filterStart>=0&&filterEnd>filterStart);
+ deps.filteredJournalRows=new Function('deps','with(deps){return ('+html.slice(filterStart,filterEnd)+');}')(deps);
   const start = html.indexOf('function renderJournalRecords(){');
   assert.ok(start >= 0);
   const next = /\n(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g;
@@ -71,15 +75,16 @@ test('no text search does not enumerate obsolete media names',()=>{
  els.journalSearch.value='ключ';
  assert.throws(render,/full-text media accessed unnecessarily/);
 });
-test('journal reads only selected rows for sorting without sorting unfiltered hive history',()=>{
- const start=html.indexOf('function renderJournalRecords(){');
- const end=html.indexOf('\nfunction ',start+20);
- const source=html.slice(start,end);
- assert.match(source,/const rows=activeJournalHive\?available:\[\];/);
- assert.match(source,/\}\)\.sort\(\(a,b\)=>String\(b\.date\|\|''\)/);
- assert.doesNotMatch(source,/available\.filter\([^\n]+\)\.sort\(/);
+test('shared selected-hive filter sorts only matching records and render reuses the family index',()=>{
+ const filterStart=html.indexOf('function filteredJournalRows(');
+ const filterEnd=html.indexOf('function journalCsvCell(',filterStart);
+ const filterSource=html.slice(filterStart,filterEnd);
+ const renderSource=html.slice(html.indexOf('function renderJournalRecords(){'),html.indexOf('function clearJournalFilters(){'));
+ assert.match(filterSource,/\.sort\(\(a,b\)=>String\(b\.date\|\|''\)/);
+ assert.match(filterSource,/familyById\.get\(r\.family\)/);
+ assert.match(renderSource,/filteredJournalRows\(familyById\)/);
+ assert.doesNotMatch(filterSource,/S\.families\.find\(/);
 });
-
 test('family-name search and family dropdown use indexed lookup without repeated array.find',()=>{
  const {els,deps,render}=env();
  deps.S.families.find=()=>{throw Error('linear family scan forbidden')};

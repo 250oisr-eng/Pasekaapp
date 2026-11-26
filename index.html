@@ -461,8 +461,11 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
   <button type="button" class="primary" onclick="renderQueenRearingTimeline()">Построить календарь</button><div id="queenTimelineResult" aria-live="polite"></div>
  </div>
  <div class="card"><h3 style="margin-top:0">Контрольный интервал осмотра</h3><p class="muted">Настраиваемое напоминание. Семидневный цикл можно использовать в период роевого риска, но он не гарантирует обнаружение всех маточников и предотвращение выхода роя.</p>
-  <label for="inspectionLastDate">Дата последнего осмотра</label><input id="inspectionLastDate" type="date">
-  <label for="inspectionInterval">Интервал, дней</label><input id="inspectionInterval" type="number" min="1" max="30" value="7">
+  <label for="inspectionHiveSelect">Улей для поиска осмотра в журнале</label><select id="inspectionHiveSelect" onchange="resetInspectionReminder()" aria-label="Улей для даты последнего сохранённого осмотра"><option value="">— Выбери улей —</option></select>
+  <button type="button" onclick="useLastSavedInspection()">Подставить последний сохранённый осмотр</button>
+  <div id="inspectionPrefillStatus" class="muted" aria-live="polite">Дата подставляется только из фактически сохранённой записи «Осмотр» выбранного улья. Черновики, архивные и будущие записи не учитываются.</div>
+  <label for="inspectionLastDate">Дата последнего осмотра</label><input id="inspectionLastDate" type="date" oninput="clearInspectionCalculation()">
+  <label for="inspectionInterval">Интервал, дней</label><input id="inspectionInterval" oninput="document.getElementById('inspectionReminderResult').textContent=''" type="number" min="1" max="30" value="7">
   <button type="button" class="primary" onclick="renderInspectionReminder()">Рассчитать дату следующего контроля</button><div id="inspectionReminderResult" class="muted" aria-live="polite"></div>
  </div>
  <div class="card"><b>Что появится следующим этапом</b><p class="muted">Шаблоны технологических карт, оценка силы семьи, селекционная карта матки, сезонные KPI и фото-протокол разбора погибшей семьи. Сначала будут добавлены проверяемые ручные записи; автоматические диагнозы по фотографиям не планируются.</p></div>
@@ -550,7 +553,8 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
 <section id="journal" class="panel">
  <div class="row"><div><h2>Журнал</h2><div class="muted">Хронология наблюдений и работ</div></div><button class="primary" onclick="newRecord()">＋ Запись</button></div>
  <label for="journalHive">Улей</label><select id="journalHive" onchange="selectJournalHive(this.value)"></select>
- <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button></div>
+ <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button><button type="button" onclick="downloadFilteredJournalCsv()">Скачать CSV</button></div>
+ <div class="muted" id="journalCsvScope">CSV содержит только текст выбранных записей, без фото, видео, вложений и архивных событий. Не является резервной копией.</div>
  <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
 </section>
 <section id="settings" class="panel"><h2>Оборудование пасеки</h2><div class="card"><b>Инвентарь физических корпусов</b><p class="muted">Зарегистрированные корпуса с постоянными кодами, местом хранения, состоянием и историей. Складские корпуса можно устанавливать вместо корпуса в улье; снятый корпус вместе с рамками автоматически поступает на склад. Парные медовые комплекты заменяются целиком; независимые корпуса — по одному согласно профилю улья.</p><div id="equipmentInventorySummary" class="muted"></div><button type="button" class="primary" onclick="openEquipmentInventory()">Открыть инвентарь</button></div><div class="card"><b>Физическая сверка рамок</b><p class="muted">Записывай фактически найденные при осмотре коды по улью, корпусу или складскому корпусу. Сверка выявляет отсутствующие, лишние, повторные и найденные не там рамки. Она не меняет реестр автоматически.</p><div id="frameReconciliationSummary" class="muted"></div><button type="button" class="primary" onclick="openFrameReconciliation()">Начать физическую сверку</button><div id="frameReconciliationHistory"></div></div><h2>Резервное копирование</h2><div class="card"><b>Автоматически</b><p class="muted">Основная база сохраняется после каждого изменения. Дополнительно хранится копия предыдущего состояния приложения, включая вложения внутри записей, но не отдельные видео летков. Контрольные снимки журнала сохраняются отдельно.</p><span id="backupStatus" class="pill">Автокопия проверяется…</span><p id="storageUsage" class="muted">Проверка свободного места…</p><button type="button" onclick="restoreAutoBackup()">Восстановить предыдущую автокопию</button><p class="muted">Копии находятся на этом устройстве. Очистка данных браузера или потеря телефона может удалить их.</p></div><div class="card"><b>Ручной архив</b><p class="muted">Скачай JSON и сохрани его вне телефона. Этот формат не включает отдельные видео летков. Для полного архива текущей IndexedDB используй отдельный экспорт P0 ниже и проверь файл вне телефона.</p><button class="primary" onclick="downloadBackup()">Скачать JSON (без отдельных видео летков)</button><label>Восстановить JSON</label><input type="file" id="backupFile" accept=".json"><button onclick="restoreBackup()">Восстановить</button></div><div class="card" id="p0FullArchiveReadonly"><b>P0 · Полный архив IndexedDB (только чтение)</b><p class="muted">Сохраняет все разделы текущей базы, включая отдельные Blob-видео, с SHA-256. Файл нужно сохранить и проверить вне телефона. Это НЕ охватывает Gallery/Downloads/MediaStore, другие приложения и не подтверждает независимое восстановление. Функция восстановления полной базы заблокирована до физической проверки.</p><button type="button" onclick="downloadDisasterArchive()">Скачать полный архив текущей базы</button><label for="disasterFile">Проверить уже сохранённый файл</label><input id="disasterFile" type="file" accept=".json,application/json"><button type="button" onclick="verifyDisasterArchive()">Проверить целостность файла без записи</button><p id="disasterArchiveStatus" class="muted" aria-live="polite"></p></div><div class="card"><b>G0 · Инвентаризация источников (без изменения данных)</b><p class="muted">Считает записи текущей базы IndexedDB, отдельные видео летков и вложения журнала без выгрузки личных файлов. Системные Camera/Gallery/Downloads/MediaStore и другие приложения недоступны. Это диагностический отчёт, а не резервная копия или разрешение удалять видео.</p><button type="button" onclick="downloadG0SourceInventory()">Проверить источники и скачать отчёт G0</button><p id="g0InventoryStatus" class="muted" aria-live="polite"></p></div><div class="card"><b>История перемещений и изменений</b><p class="muted">Фиксируются перемещения семей вместе с их рамками, перемещения отдельных рамок, назначения семей корпусам и установка или снятие корпусов. Последние 500 событий хранятся в резервной копии.</p><div id="auditHistory"></div></div><div class="card" style="border-color:#d9a39b"><b>Удаление данных</b><p class="muted">Удаление отключено: полный внешний архив всех источников видео и независимое восстановление ещё не доказаны. Обычный JSON-архив НЕ включает отдельные видео летков.</p><button type="button" disabled aria-disabled="true" title="Удаление заблокировано до доказанного полного восстановления" style="background:#777;color:white">Удаление заблокировано</button></div><details class="card"><summary><b>Архив записей</b></summary><p class="muted">Архивные записи скрыты из рабочего журнала, но сохраняются в базе и резервных копиях.</p><div id="archivedRecords"></div></details></section>
@@ -1022,16 +1026,68 @@ function renderFeedingLedger(){
  }).join('');
 }
 
+// Read-only journal list shared by the visible timeline and CSV export.
+// A CSV export does not contain attached Blob/File media or archived records.
+function filteredJournalRows(familyById=null){
+ if(!activeJournalHive)return [];
+ if(!familyById){
+  familyById=new Map();
+  for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
+ }
+ const type=$('journalTypeFilter')?.value||'all',familyId=$('journalFamilyFilter')?.value||'all';
+ const date=String($('journalDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
+ return S.records.filter(r=>r&&!r.archivedAt&&r.hive===activeJournalHive).filter(r=>{
+  if((type!=='all'&&r.type!==type)||(familyId!=='all'&&r.family!==familyId)||(date&&r.date!==date))return false;
+  if(!search)return true;
+  const family=familyById.get(r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
+  const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
+  return haystack.includes(search);
+ }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+}
+function journalCsvCell(value){
+ let text=String(value??'');
+ if(/^[\x00-\x20\s\u200B-\u200F\u2060]*[=+\-@]/u.test(text))text="'"+text;
+ return '"'+text.replace(/"/g,'""')+'"';
+}
+function buildFilteredJournalCsv(rows,hiveId){
+ if(!Array.isArray(rows))throw new Error('Список для CSV повреждён.');
+ const columns=['Дата','Улей','Семья','Тип события','Текст записи','Код рамки','ID записи','Вложений (только количество)'];
+ const lines=[columns.map(journalCsvCell).join(';')];
+ for(const r of rows){
+  if(!r||r.archivedAt||r.hive!==hiveId)throw new Error('В CSV обнаружена запись вне текущего улья.');
+  const historical=r.familyNameAtTime||r.familySnapshotAtTime?.name;
+  const family=historical||S.families.find(f=>f.id===r.family)?.name||'';
+  const cells=[r.date,hname(hiveId),family,r.type,r.text,r.frameId,r.id,Array.isArray(r.media)?r.media.length:0];
+  lines.push(cells.map(journalCsvCell).join(';'));
+ }
+ return '\uFEFF'+lines.join('\r\n')+'\r\n';
+}
+// Safe unique name: separate hives and repeated downloads without touching files.
+function journalCsvFilename(hiveId,date,tick){
+ const safeId=String(hiveId??'').replace(/[^A-Za-z0-9_-]/g,'-').slice(0,32)||'hive';
+ return 'paseka-journal-'+date+'-'+safeId+'-'+tick+'.csv';
+}
+function downloadFilteredJournalCsv(){
+ if(!activeJournalHive){alert('Сначала выбери улей для экспорта журнала.');return;}
+ const rows=filteredJournalRows();
+ if(!rows.length){alert('По выбранным фильтрам нет записей для CSV.');return;}
+ try{
+  const csv=buildFilteredJournalCsv(rows,activeJournalHive);
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+  a.href=url;a.download=journalCsvFilename(activeJournalHive,today(),Date.now());document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(error){alert(error.message||'Не удалось создать CSV.');}
+}
+
 function renderJournalRecords(){
  renderFeedingLedger();
  const host=$('records');if(!host)return;
  const typeSelect=$('journalTypeFilter'),familySelect=$('journalFamilyFilter');
- const date=String($('journalDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
  const available=S.records.filter(r=>!r.archivedAt&&(!activeJournalHive||r.hive===activeJournalHive));
- // Preserve Array.find first-match semantics for malformed/legacy duplicate IDs.
+ // Preserve first-match semantics of legacy duplicate family IDs.
  const familyById=new Map();
  for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
- // Preserve available.find first-match semantics for historical family labels.
+ // Preserve the first available historical name without repeated array.find.
  const firstRecordByFamily=new Map();
  for(const record of available){if(!firstRecordByFamily.has(record.family))firstRecordByFamily.set(record.family,record);}
  if(typeSelect){
@@ -1044,17 +1100,8 @@ function renderJournalRecords(){
   familySelect.innerHTML='<option value="all">Все семьи</option>'+ids.map(id=>{const family=familyById.get(id),record=firstRecordByFamily.get(id);return '<option value="'+safe(id)+'">'+safe(family?.name||record?.familyNameAtTime||record?.familySnapshotAtTime?.name||'Архивная семья')+'</option>'}).join('');
   familySelect.value=ids.includes(old)?old:'all';
  }
- const selectedType=typeSelect?.value||'all',selectedFamily=familySelect?.value||'all';
  const rows=activeJournalHive?available:[];
- const filtered=rows.filter(r=>{
-  if((selectedType!=='all'&&r.type!==selectedType)||
-     (selectedFamily!=='all'&&r.family!==selectedFamily)||
-     (date&&r.date!==date))return false;
-  if(!search)return true;
-  const family=familyById.get(r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
-  const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
-  return haystack.includes(search);
- }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ const filtered=filteredJournalRows(familyById);
  const count=$('journalResultCount');if(count)count.textContent=activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
  host.classList.toggle('has-entries',filtered.length>0);
  host.innerHTML=activeJournalHive?(filtered.map(r=>'<article class="card journal-entry" data-record-id="'+safe(r.id)+'"><div class="journal-entry-head"><span class="journal-entry-type">'+safe(r.type)+'</span><time datetime="'+safe(r.date)+'">'+safe(r.date)+'</time></div>'+(r.text?'<p class="journal-entry-text">'+safe(r.text)+'</p>':'')+recordFamilyHtml(r)+recordExtraHtml(r)+(r.media?.length?'<div class="journal-entry-media">'+mediaHtml(r.media)+'</div>':'')+'<div class="row journal-entry-actions"><button type="button" data-record-id="'+safe(r.id)+'" onclick="editRecord(this.dataset.recordId)">Изменить</button><button type="button" data-record-id="'+safe(r.id)+'" onclick="deleteRecord(this.dataset.recordId)">В архив</button></div></article>').join('')||(rows.length?'<div class="empty">По выбранным фильтрам записей нет.</div>':'<div class="empty">Для этого улья записей пока нет.</div>')):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';
@@ -1365,13 +1412,18 @@ function renderEntranceModule(){
  select.value=S.hives.some(h=>h.id===previous)?previous:(S.hives.some(h=>h.id===selectedHiveId)?selectedHiveId:'');
  refreshEntranceVideos();
 }
+// Discard stale IndexedDB responses on hive selection changes.
+let entranceVideoRefreshGeneration=0;
 async function refreshEntranceVideos(){
+ const generation=++entranceVideoRefreshGeneration;
  const host=$('entranceVideoList');if(!host)return;
  const hiveId=$('entranceHiveSelect')?.value||'';
  try{
-  const rows=await listEntranceVideos(),filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
-  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" onclick="viewEntranceVideo(\''+safe(x.id)+'\')">Просмотреть</button><span class="muted">Оригинал защищён от удаления</span></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
- }catch(error){host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
+  const rows=await listEntranceVideos();
+  if(generation!==entranceVideoRefreshGeneration||hiveId!==($('entranceHiveSelect')?.value||''))return;
+  const filtered=rows.filter(x=>!hiveId||x.hiveId===hiveId);
+  host.innerHTML=filtered.length?filtered.map(x=>'<article class="card"><div class="row"><b>'+safe(hname(x.hiveId))+'</b><span class="pill">'+(x.status==='completed'?'Анализ завершён':x.status==='failed_retryable'?'Ошибка, повтор позже':x.status==='failed_permanent'?'Требуется проверка':'В очереди · локально')+'</span></div><div class="muted">'+safe(new Date(x.capturedAt).toLocaleString('ru-RU'))+' · '+Math.round(x.durationSec)+' с · '+x.width+'×'+x.height+' · '+entranceBytes(x.bytes)+'</div><div class="muted">Качество кадров: '+safe(x.frameQualityCheck?.status==='good'?'хорошее':x.frameQualityCheck?.status==='limited'?'ограниченное':x.frameQualityCheck?.status==='poor'?'плохое':'не определено')+'. Сервер анализа пока не подключён; оригинал не удаляется автоматически.</div><div class="row" style="margin-top:8px"><button type="button" data-video-id="'+safe(x.id)+'" onclick="viewEntranceVideo(this.dataset.videoId)">Просмотреть</button><span class="muted">Оригинал защищён от удаления</span></div></article>').join(''):'<p class="empty">Для выбранного улья видеозаписей пока нет.</p>';
+ }catch(error){if(generation===entranceVideoRefreshGeneration&&hiveId===($('entranceHiveSelect')?.value||''))host.textContent='Не удалось прочитать локальное хранилище видео: '+(error.message||error)}
 }
 async function inspectEntranceVideoFile(file){
  const url=URL.createObjectURL(file);
@@ -1598,8 +1650,40 @@ async function saveDeadoutReview(event){
  $('deadoutForm').reset();pendingDeadoutMedia=[];$('deadoutObservedAt').value=today();renderDeadoutModule();
 }
 function renderSeasonPlanning(){
- const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()],['inspectionLastDate',today()]];
+ const defaults=[['nectarFloweringDate',today()],['queenGraftDate',today()]]; // last inspection is a recorded fact, never default to today
  defaults.forEach(([id,value])=>{const field=$(id);if(field&&!field.value)field.value=value});
+ const select=$('inspectionHiveSelect');if(select){
+  const previous=select.value;
+  select.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+safe(h.id)+'">'+safe(hname(h.id))+'</option>').join('');
+  select.value=S.hives.some(h=>h.id===previous)?previous:'';
+  if(previous!==select.value)resetInspectionReminder();
+ }
+}
+function clearInspectionCalculation(){
+ const date=$('inspectionLastDate');
+ delete date.dataset.fromJournal;
+ $('inspectionReminderResult').textContent='';
+ $('inspectionPrefillStatus').textContent='';
+}
+function resetInspectionReminder(){
+ $('inspectionLastDate').value='';
+ clearInspectionCalculation();
+}
+function useLastSavedInspection(){
+ const status=$('inspectionPrefillStatus'),hive=$('inspectionHiveSelect')?.value;
+ if(!status)return;
+ if(!hive){status.textContent='Выбери улей для поиска последнего сохранённого осмотра.';return;}
+ try{
+  const result=PasekaSeasonPlanning.latestSavedInspection(S.records,hive,today());
+  if(!result){
+   if($('inspectionLastDate').dataset.fromJournal)resetInspectionReminder();
+   status.textContent='Для этого улья нет сохранённого осмотра за сегодня или раньше.';return;
+  }
+  $('inspectionLastDate').value=result.date;
+  $('inspectionLastDate').dataset.fromJournal=hive;
+  const previous=$('inspectionReminderResult');if(previous)previous.textContent='';
+  status.textContent='Из журнала подставлена дата '+result.date+' ('+hname(hive)+'). Теперь нажми «Рассчитать дату следующего контроля». Никакая операция не создаётся.';
+ }catch(error){status.textContent=error.message||'Дата осмотра не найдена.';}
 }
 function renderNectarBackwardPlan(){
  const host=$('nectarPlanResult');if(!host)return;
