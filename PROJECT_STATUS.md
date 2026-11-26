@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified main `72cd8279d0f1cdcfa06fd84594845d31132abe31` after #593.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · verified main `81b6a63cc5b57b192c172fa4cb5691b162d0a0bc` after #599.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -11,11 +11,9 @@
 - **#7 OPEN / PRESERVE_SOURCE:** уникальный исторический аудит резервирования, не сливать его старый статус целиком. **#533 CLOSED:** WIP/STOP правила выборочно перенесены в #579. **#60/#534/#7/#533** имеют мотивированные комментарии.
 - [PR audit K](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md): 388 OPEN (30 root, 358 stacked), 29 live SHA/base проверок. Остальные SHA/CI и полнота индекса не подтверждены.
 
-## Work · поиск оборудования
+## Work · карточка семьи
 
-Ветка `work/search-to-inventory-body`: результат открывает конкретный корпус или запись журнала по ID. После закрытия записи запрос сохраняется.
-
-Проверка уникальности ID записи перед открытием: неоднозначная ссылка (дублированный ID) блокируется, данные не меняются. Точный кодовый HEAD `4fd5f847287bc722fc215ecb0f0c2ea19ea21903`; адресная исполняемая проверка трёх сценариев PASS, полный CI на новом SHA пока не подтверждён.
+**#599 MERGED/IN_MAIN** `81b6a63cc5b57b192c172fa4cb5691b162d0a0bc`, exact-main CI SUCCESS. **#598 Draft / CI_VERIFIED:** code SHA `d18ef97533b4721dcc550369de254fe0828766a4`, Fast 1004/1004 #45903240403, Governance #45903247215, Android #45903247227 SUCCESS; Browser E2E mobile/desktop #45903217571 SUCCESS on earlier integrated SHA `4c44a419` (subsequent change only в unit-тесте). OnePlus NOT_TESTED.
 
 ## Действующие запреты и доказательства
 
@@ -39,12 +37,12 @@
 
 - **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: 3 адресных aria-label для ульев; Android/Governance SUCCESS. Исторический #187 OPEN/PARTIALLY_PORTED; остальной UI/Playwright не интегрирован.
 
-- **Root review N, MERGED #589:** [33-source patch line inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md) and [machine inventory](docs/PR-AUDIT-LINE-SCAN-2026-11-26-N.json). Exactly 33 root PRs live-state/HEAD checked; 30 OPEN Draft / 3 CLOSED without merge; 407 returned file patches, +36,512 / −312 lines mechanically scanned, no missing returned per-file patches. Human exhaustive review / exact-head CI for every root **NOT_DONE**, not an automatic merge approval. #1/#157 unsafe media deletion HOLD; #14/#168 legacy store clears and #543 optional OnePlus force-stop highlighted. #589 менял только документацию; runtime не изменён.
+- **Root review N #589 MERGED:** [поимённая построчная опись 33 root PR](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md); опасные источники #1/#157/#14/#168/#543 HOLD. Это не полный semantic review.
 
 - **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 OPEN/PARTIALLY_PORTED, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
 
 ## Следующий конкретный шаг
 
-**#593 MERGED / IN_MAIN:** `72cd8279d0f1cdcfa06fd84594845d31132abe31` — имена и подписи полей «Новый улей», `aria-current` навигации и контраст сводки. Exact PR HEAD `45328a522ed3950155bf7f317090c8919395032a`: Android #45896737579 (998/998, APK/sign), Governance #45896737571 SUCCESS. Live main HTML verified, не release; экранный диктор/OnePlus NOT_TESTED. #187 OPEN/PARTIALLY_PORTED.
+**#598 READY_FOR_MERGE_REVIEW** после exact-code CI и E2E на функционально идентичном HTML. PR остаётся Draft; отдельное разрешение требуется для merge. Нет релиза, реального бэкапа или OnePlus device proof.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
