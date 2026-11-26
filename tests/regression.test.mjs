@@ -1873,7 +1873,9 @@ test('journal supports family filtering and inline attachment previews',()=>{
  const source=extractFunction('renderJournalRecords');
  assert.match(source,/familySelect/);
  assert.match(source,/mediaHtml\(r\.media\)/);
- assert.match(source,/mediaNames/);
+ const selection=extractFunction('filteredJournalRows');
+ assert.match(source,/filteredJournalRows\(\)/);
+ assert.match(selection,/mediaNames/);
 });
 
 test('hive detail keeps the hives navigation destination active',()=>{
