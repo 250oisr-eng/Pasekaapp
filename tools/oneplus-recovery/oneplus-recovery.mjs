@@ -16,12 +16,23 @@ const MAX_APK=150*1024*1024;
 const now=()=>new Date().toISOString();
 function error(code){const e=new Error(code);e.code=code;return e;}
 export function parseDeviceList(output){
- const entries=output.split(/\r?\n/).slice(1).filter(x=>x.trim()).map(x=>{
-  const parts=x.trim().split(/\s+/);
-  return {serial:parts[0],status:parts[1],usb:parts.some(p=>p.startsWith('usb:')),emulator:parts[0]?.startsWith('emulator-')};
+ const entries=output.split(/\r?\n/).slice(1).filter(line=>line.trim()&&!line.startsWith('*')).map(line=>{
+  const parts=line.trim().split(/\s+/);
+  return {serial:parts[0],status:parts[1]};
  });
- if(entries.length!==1||entries[0].status!=='device'||!entries[0].usb||entries[0].emulator)throw error('ONE_AUTHORIZED_PHYSICAL_USB_DEVICE_REQUIRED');
- return entries[0].serial;
+ if(entries.length===0)throw error('ADB_USB_DEVICE_NOT_VISIBLE');
+ if(entries.length!==1)throw error('ADB_MULTIPLE_DEVICES_CONNECTED');
+ const {serial,status}=entries[0];
+ if(status==='unauthorized')throw error('ADB_USB_DEBUGGING_NOT_AUTHORIZED');
+ if(status==='offline')throw error('ADB_USB_DEVICE_OFFLINE');
+ if(status!=='device')throw error('ADB_DEVICE_NOT_READY');
+ // Windows ADB may omit the optional "usb:" field; select USB with adb -d.
+ if(/^emulator-/i.test(serial)||/:\d+$/.test(serial)||/_adb-tls-connect\._tcp/i.test(serial))throw error('ADB_WIRELESS_OR_EMULATOR_NOT_ALLOWED');
+ return serial;
+}
+export function validateUsbTransportState(state){
+ if(String(state).trim()!=='device')throw error('ADB_PHYSICAL_USB_TRANSPORT_NOT_READY');
+ return true;
 }
 export function validateDeviceProperties({manufacturer,model,qemu,api}){
  if(manufacturer.trim().toLowerCase()!=='oneplus'||!/^NE221[0-9A-Za-z]*$/.test(model.trim())||qemu.trim()==='1'||Number(api.trim())<35||!Number.isInteger(Number(api.trim())))throw error('NOT_EXPECTED_ONEPLUS_ANDROID_15_PLUS');
@@ -53,9 +64,9 @@ async function getAdb(){
  }
  throw error('ANDROID_PLATFORM_TOOLS_NOT_FOUND');
 }
-async function liveLogProof(adb,serial,expected,launch){
+async function liveLogProof(adb,expected,launch){
  // Subscribe BEFORE launching. No historical/stale log entries can pass.
- const child=spawn(adb,['-s',serial,'logcat','-T','1','-v','brief'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
+ const child=spawn(adb,['-d','logcat','-T','1','-v','brief'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
  let data='',settled=false;
  const promise=new Promise((resolveResult,reject)=>{
   const deadline=setTimeout(()=>finish(error('PROOF_TIMEOUT')),120000);
@@ -84,8 +95,13 @@ async function run(){
  const digest=createHash('sha256').update(await readFile(apk)).digest('hex');
  if(digest!==manifest.apkSha256)throw error('APK_SHA256_MISMATCH');
  const adb=await getAdb();
- const serial=parseDeviceList(await command(adb,['devices','-l']));
- const shell=async (...args)=>command(adb,['-s',serial,'shell',...args]);
+ parseDeviceList(await command(adb,['devices','-l']));
+ // Fail closed unless ADB itself confirms a USB-only transport.
+ let usbState;
+ try{usbState=await command(adb,['-d','get-state']);}
+ catch{throw error('ADB_PHYSICAL_USB_TRANSPORT_REQUIRED');}
+ validateUsbTransportState(usbState);
+ const shell=async (...args)=>command(adb,['-d','shell',...args]);
  validateDeviceProperties({
   manufacturer:await shell('getprop','ro.product.manufacturer'),
   model:await shell('getprop','ro.product.model'),
@@ -96,13 +112,13 @@ async function run(){
  if(existing.trim())throw error('DIAGNOSTIC_PACKAGE_ALREADY_INSTALLED_NO_OVERWRITE');
  const sourcePackage=await shell('pm','path',MAIN_PACKAGE);
  // Reading presence only: never start, pull, stop, update or clear this package.
- const result=await command(adb,['-s',serial,'install','--no-incremental',apk],120000);
+ const result=await command(adb,['-d','install','--no-incremental',apk],120000);
  if(!result.includes('Success'))throw error('DIAGNOSTIC_INSTALL_FAILED');
- const start=()=>command(adb,['-s',serial,'shell','am','start','-n',PACKAGE+'/.MainActivity'],30000);
- await liveLogProof(adb,serial,FIRST,start);
+ const start=()=>command(adb,['-d','shell','am','start','-n',PACKAGE+'/.MainActivity'],30000);
+ await liveLogProof(adb,FIRST,start);
  // Force-stop only the distinct test package; never restart the whole phone or reset its storage.
- await command(adb,['-s',serial,'shell','am','force-stop',PACKAGE]);
- await liveLogProof(adb,serial,SECOND,start);
+ await command(adb,['-d','shell','am','force-stop',PACKAGE]);
+ await liveLogProof(adb,SECOND,start);
  return {status:'PASS',code:'ONEPLUS_SYNTHETIC_WEBVIEW_RESTORE_AND_RESTART',deviceClass:'ONEPLUS_NE221X',androidApiAtLeast35:true,
   testPackage:PACKAGE,productionPackageTouched:false,productionPackageInstalled:!!sourcePackage,
   testData:'SYNTHETIC_ONLY',verifiedStages:[FIRST,SECOND],realUserDataRecovery:'NOT_TESTED',
