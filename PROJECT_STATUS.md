@@ -29,6 +29,8 @@
 
 - **B05 #520 selective port pending CI:** read-only comparison of audited CI Debug APK public signer against explicit supplied public reference, without implying current OnePlus certificate, safe installation, private key or rollback; existing artifact workflow remains unchanged. #520 source kept open until proven merge.
 
+- **P1 staged honey-pair validator in Draft:** only generic 4-body paired profile validation receives staged 0/2/4 support; two-body and independent modes preserved. Fresh-main selective source PR #200, regression and [F0–F2 contract](docs/P1-HONEY-PAIR-STAGED-SELECTIVE-2026-11-26.md). Exact-head CI PENDING; B07 profile activation still BLOCKED. No data or physical operations.
+
 ## Следующий конкретный шаг
 
 После #579 и синхронизации индексированного реестра разбирать следующий независимый root PR по полному diff, действующим модулям, негативным тестам и live SHA. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
