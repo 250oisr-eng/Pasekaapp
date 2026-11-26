@@ -1,8 +1,8 @@
 {
   "schema": "paseka-pr-indexed-live-graph-v4",
   "date": "2026-11-26",
-  "mainAtSnapshot": "aa9fc17702730f9b5dc2931edee18e78c867478b",
-  "source": "15 disjoint GitHub is:pr is:open created:YYYY-MM-DD search buckets, not an exhaustive GitHub REST paginated PR list",
+  "mainAtSnapshot": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
+  "source": "15 disjoint Github PR open search buckets rechecked after #533 close and #579 merge; not exhaustive REST enumeration",
   "constraints": [
     "search membership is indexed, may omit directly available PR such as historical #516",
     "historical base/head/parent/changed paths are not live verified for each row",
@@ -23,13 +23,13 @@
     "2026-11-22": 85,
     "2026-11-23": 15,
     "2026-11-24": 10,
-    "2026-11-25": 17,
+    "2026-11-25": 16,
     "2026-11-26": 1
   },
   "stats": {
-    "indexedOpen": 392,
+    "indexedOpen": 391,
     "historicalStacked": 358,
-    "historicalMainBased": 34,
+    "historicalMainBased": 33,
     "newBeyondPrior": [],
     "parentPrNotIndexed": [
       {
@@ -124,24 +124,6 @@
       "gate": "ROOT_REVIEW_REQUIRED",
       "currentHeadSha": "a8ab152c44e64617f0b7714c06f47bd51e6d5e9c",
       "currentBaseBranch": "main"
-    },
-    {
-      "number": 533,
-      "title": "docs(governance): finish verified scenarios before growing Draft chains",
-      "createdDay": "2026-11-25",
-      "indexedState": "OPEN",
-      "url": "https://github.com/250oisr-eng/Pasekaapp/pull/533",
-      "historicalHeadSha": "5ce1985fc602e04834c10595dc196b3603ecaae9",
-      "historicalBaseBranch": "main",
-      "historicalParentPr": null,
-      "historicalRootPr": 533,
-      "historicalDepth": 0,
-      "historicalChangedPathCount": 7,
-      "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
-      "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
     },
     {
       "number": 532,
@@ -7183,5 +7165,18 @@
     }
   ],
   "verifiedMissingParentBranchesExist": true,
-  "missingParentBranchExistenceMethod": "GitHub search_branches found each of 5 historical unresolved base names; this is not parent PR discovery or merge proof"
+  "missingParentBranchExistenceMethod": "GitHub search_branches found each of 5 historical unresolved base names; this is not parent PR discovery or merge proof",
+  "postAuditChanges": [
+    {
+      "pr": 533,
+      "state": "CLOSED_NOT_MERGED",
+      "reason": "unique governance scope selectively ported in MERGED #579"
+    },
+    {
+      "pr": 579,
+      "state": "MERGED",
+      "mergeSha": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
+      "governanceRun": 45887287260
+    }
+  ]
 }
