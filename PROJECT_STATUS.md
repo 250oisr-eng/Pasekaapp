@@ -31,6 +31,8 @@
 
 - **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
 
+- **#187 selective UI Draft:** вместо устаревшего редизайна меняются лишь 3 доступных названия элементов каталога ульев; делегированная клавиатура Enter/Space уже была в main и защищена синтетическими тестами. [Контракт](docs/UI-HIVE-ACCESSIBILITY-SELECTIVE-2026-11-26.md). Exact-head CI PENDING; #187 OPEN, без реальных операций.
+
 ## Следующий конкретный шаг
 
 После #585 следующий независимый корневой кандидат — #187: проверить уникальные read-only UI/browser регрессии на актуальном main, без старого HTML и потери мобильного UX. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
