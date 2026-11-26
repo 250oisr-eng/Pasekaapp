@@ -6,6 +6,8 @@ on:
       - 'scripts/diagnose-oneplus-process-readonly.mjs'
       - 'scripts/oneplus-process-probe.mjs'
       - 'scripts/oneplus-strict-base64.mjs'
+      - 'scripts/oneplus-encoded-shell.mjs'
+      - 'scripts/probe-oneplus-encoded-shell.mjs'
       - 'scripts/inspect-oneplus-partial-tar.mjs'
       - 'tests/oneplus-cold-sandbox-backup.test.mjs'
       - 'tools/b01-oneplus-cold-backup/**'
@@ -46,11 +48,15 @@ jobs:
           Copy-Item 'scripts/diagnose-oneplus-process-readonly.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'scripts/oneplus-process-probe.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'scripts/oneplus-strict-base64.mjs' 'oneplus-usb-backup-kit/scripts/'
+          Copy-Item 'scripts/oneplus-encoded-shell.mjs' 'oneplus-usb-backup-kit/scripts/'
+          Copy-Item 'scripts/probe-oneplus-encoded-shell.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'scripts/inspect-oneplus-partial-tar.mjs' 'oneplus-usb-backup-kit/scripts/'
           Copy-Item 'tools/b01-oneplus-cold-backup/RUN-ONEPLUS-BACKUP.cmd' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/choose-backup-destination.ps1' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/DIAGNOSE-ONEPLUS-READONLY.cmd' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/run-diagnosis.ps1' 'oneplus-usb-backup-kit/'
+          Copy-Item 'tools/b01-oneplus-cold-backup/PROBE-BASE64-READONLY.cmd' 'oneplus-usb-backup-kit/'
+          Copy-Item 'tools/b01-oneplus-cold-backup/run-encoded-shell-probe.ps1' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/INSPECT-EXISTING-PARTIAL.cmd' 'oneplus-usb-backup-kit/'
           Copy-Item 'tools/b01-oneplus-cold-backup/inspect-existing-partial.ps1' 'oneplus-usb-backup-kit/'
           Copy-Item (Get-Command node.exe).Source 'oneplus-usb-backup-kit/node.exe'
@@ -66,15 +72,23 @@ jobs:
           if($errors.Count -ne 0){throw 'DIAGNOSTIC_PS_PARSE_FAILED'}
           $tokens=$null; $errors=$null
           [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'oneplus-usb-backup-kit/run-encoded-shell-probe.ps1').Path,
+            [ref]$tokens,[ref]$errors)
+          if($errors.Count -ne 0){throw 'BASE64_PROBE_PS_PARSE_FAILED'}
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
             (Resolve-Path 'oneplus-usb-backup-kit/inspect-existing-partial.ps1').Path,
             [ref]$tokens,[ref]$errors)
           if($errors.Count -ne 0){throw 'PARTIAL_AUDIT_PS_PARSE_FAILED'}
           $items=@(Get-ChildItem 'oneplus-usb-backup-kit' -Recurse -File)
           $expected=@('node.exe','RUN-ONEPLUS-BACKUP.cmd','choose-backup-destination.ps1',
              'DIAGNOSE-ONEPLUS-READONLY.cmd','run-diagnosis.ps1',
+             'PROBE-BASE64-READONLY.cmd','run-encoded-shell-probe.ps1',
              'INSPECT-EXISTING-PARTIAL.cmd','inspect-existing-partial.ps1',
              'scripts/backup-oneplus-cold-sandbox.mjs','scripts/diagnose-oneplus-process-readonly.mjs',
-             'scripts/oneplus-process-probe.mjs','scripts/oneplus-strict-base64.mjs','scripts/inspect-oneplus-partial-tar.mjs')
+             'scripts/oneplus-process-probe.mjs','scripts/oneplus-strict-base64.mjs',
+             'scripts/oneplus-encoded-shell.mjs','scripts/probe-oneplus-encoded-shell.mjs',
+             'scripts/inspect-oneplus-partial-tar.mjs')
           if($items.Count -ne $expected.Count){throw 'UNEXPECTED_FILE_IN_KIT'}
           foreach($item in $items){
             $relative=[System.IO.Path]::GetRelativePath(
