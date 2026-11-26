@@ -1,5 +1,14 @@
 (()=>{const ALPHABET='АБГДЕЖКЛМНПРСТУФХЦЧШЩЭЮЯ245679',CAPACITY=ALPHABET.length**3;
-function normalizeCode(v,t){let s=String(v??'').trim().toLocaleUpperCase('ru-RU'),p=t==='frame'?'Р':t==='body'?'К':'';if(p)s=s.replace(new RegExp('^'+p+'[\s-]*'),'');s=s.replace(/[\s-]/g,'');return s.length===3&&[...s].every(c=>ALPHABET.includes(c))?s:null}
+function normalizeCode(value,type){
+ const input=String(value??'').trim().toLocaleUpperCase('ru-RU');
+ const prefix=type==='frame'?'Р':type==='body'?'К':'';
+ let code=input.replace(/[\s\u2010-\u2015\u2212-]/gu,'');
+ // A bare three-character label can start with its own namespace letter.
+ if(prefix && input.startsWith(prefix) && (code.length===4 || /[\s\u2010-\u2015\u2212-]/u.test(input.charAt(1)))){
+  code=code.slice(1);
+ }
+ return code.length===3 && [...code].every(char=>ALPHABET.includes(char)) ? code : null;
+}
 function formatLabelCode(t,v){const c=normalizeCode(v,t);return c?(t==='frame'?'Р-':t==='body'?'К-':'')+c:''}
 function encode(n){let s='';for(let i=0;i<3;i++){s=ALPHABET[n%ALPHABET.length]+s;n=Math.floor(n/ALPHABET.length)}return s}
 function frames(state){const a=[];for(const [h,l] of Object.entries(state?.layouts||{})){if(!l||typeof l!=='object')continue;for(const [b,v] of Object.entries(l.boxes||{}))if(Array.isArray(v?.frames))v.frames.forEach((f,i)=>a.push({frame:f,hiveId:h,identityScope:'hive:'+h,box:b,position:i+1}));if(Array.isArray(l.honeyFrames))l.honeyFrames.forEach((g,j)=>{if(Array.isArray(g))g.forEach((f,i)=>a.push({frame:f,hiveId:h,identityScope:'hive:'+h,box:'H'+(j+1),position:i+1}))})}const sectionalLayouts=Array.isArray(state?.sectionalLayouts)?state.sectionalLayouts:[];for(const [bodyId,body] of Object.entries(state?.equipmentInventory?.bodies||{}))if(Array.isArray(body?.frames))body.frames.forEach((frame,i)=>{const sectional=sectionalLayouts.find(layout=>layout?.honeyStack?.bodyIds?.includes(bodyId)||(Array.isArray(layout?.sections)&&layout.sections.some(section=>Array.isArray(section?.broodBodyIds)&&section.broodBodyIds.includes(bodyId)))),honey=!!sectional?.honeyStack?.bodyIds?.includes(bodyId),section=sectional?.sections?.find(row=>Array.isArray(row?.broodBodyIds)&&row.broodBodyIds.includes(bodyId)),history=Array.isArray(frame?.history)?frame.history:[];let sourceHive='';for(let j=history.length-1;j>=0&&!sourceHive;j--){const event=history[j];if(event?.action==='corpus_to_storage')sourceHive=String(event.from?.hiveId||'');else if(['family_transfer','box_frames_swapped','corpus_transfer','corpus_from_storage'].includes(event?.action))sourceHive=String(event.to?.hiveId||'')}const hiveId=sectional?.hiveId||'storage',box=honey?'honey:'+bodyId:section?'brood:'+section.position+':'+bodyId:'corpus:'+bodyId;a.push({frame,hiveId,identityScope:sectional?'hive:'+hiveId:sourceHive?'hive:'+sourceHive:'storage:'+bodyId,box,position:i+1,bodyId})});for(const [retiredId,record] of Object.entries(state?.equipmentInventory?.retiredFrames||{})){const frame=record?.frame||record;if(frame&&typeof frame==='object')a.push({frame,hiveId:'retired',identityScope:'retired:'+retiredId,box:'retired',position:1,retiredRecordId:retiredId,retiredRecord:record})}return a}
