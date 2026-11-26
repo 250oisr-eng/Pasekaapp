@@ -189,15 +189,15 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-offline-repeated-header-drift-trace-20261126",
+    "id": "b01-strict-encoded-tar-transport-20261126",
     "pr": 543,
-    "source": "Real original local TAR audit invalidHeaderOffset=10240 resyncCandidateShifts=[1], file bytes=5122278",
+    "source": "Real OnePlus TAR partial: driftTrace 17 shift events, cumulative 24, NO_UNIQUE_NEARBY_HEADER, length 5122278",
     "deviceBackupStatus": "INVALID_PARTIAL_TAR",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
     "ciRuns": [],
-    "notes": "Read-only bounded continuation of TAR checksum-valid headers with unique ±16 shifts, never archive repair or device operations."
+    "notes": "Replaced raw ADB tar stdout with strict base64 and full TAR structure/end markers validation; physical retry not yet verified; original partial untouched."
   }
 }
