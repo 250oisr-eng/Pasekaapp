@@ -120,3 +120,21 @@ test('planning UI offers explicit hive selection and leaves the date calculation
  assert.match(html,/onclick="renderInspectionReminder\(\)"/);
  assert.match(html,/latestSavedInspection\(S\.records,hive,today\(\)\)/);
 });
+
+test('planning does not default the last real inspection date to today',async()=>{
+ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function renderSeasonPlanning(){');
+ const end=html.indexOf('function useLastSavedInspection(){',start);
+ const source=html.slice(start,end);
+ assert.ok(start>0&&end>start);
+ assert.doesNotMatch(source,/['"]inspectionLastDate['"],today\(\)/);
+ assert.match(source,/id==='inspectionLastDate'|last inspection is a recorded fact/);
+ const fields={inspectionHiveSelect:{value:'',innerHTML:''},
+  inspectionLastDate:{value:''},nectarFloweringDate:{value:''},queenGraftDate:{value:''}};
+ const fn=new Function('$','today','S','selectedHiveId','safe','hname',source+';return renderSeasonPlanning');
+ const render=fn(id=>fields[id],()=> '2026-11-26',{hives:[{id:'h1'}]},'',String,id=>'Улей '+id);
+ render();
+ assert.equal(fields.inspectionLastDate.value,'','must not invent completed inspection');
+ assert.equal(fields.nectarFloweringDate.value,'2026-11-26');
+ assert.ok(fields.inspectionHiveSelect.innerHTML.includes('h1'));
+});
