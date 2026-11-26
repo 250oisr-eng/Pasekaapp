@@ -12,14 +12,14 @@ const fail=code=>Object.assign(new Error(code),{code});
 export const SIGNER_STAGES=Object.freeze([
  'READ_MANIFEST','HASH_CANDIDATE','SDK_DISCOVERY','USB_DISCOVERY','USB_TRANSPORT',
  'INSTALLED_PACKAGE_PATH','PULL_INSTALLED_APK','INSTALLED_BADGING','INSTALLED_SIGNER',
- 'CANDIDATE_BADGING','CANDIDATE_SIGNER','COMPARE_SIGNERS'
+ 'CANDIDATE_BADGING','CANDIDATE_SIGNER','JAVA_RUNTIME_DISCOVERY','COMPARE_SIGNERS'
 ]);
 export function safeSignerFailure(error,stage){
  const failedStage=SIGNER_STAGES.includes(stage)?stage:'UNRECOGNIZED_STAGE';
  const rawCode=typeof error?.code==='string'?error.code:'';
  const allowed=new Set(['LOCAL_ANDROID_SDK_TOOLS_NOT_FOUND','INSTALLED_BASE_APK_PATH_UNVERIFIED',
  'APK_PACKAGE_VERSION_UNVERIFIED','APK_SIGNER_COUNT_UNVERIFIED','APK_SIGNER_FINGERPRINT_INVALID',
- 'DIAGNOSTIC_PACKAGE_MISMATCH','SIGNER_UNKNOWN','CANDIDATE_APK_SIZE_INVALID',
+ 'DIAGNOSTIC_PACKAGE_MISMATCH','SIGNER_UNKNOWN','JAVA_RUNTIME_NOT_FOUND','CANDIDATE_APK_SIZE_INVALID',
  'CANDIDATE_SHA256_MISMATCH','UNTRUSTED_DIAGNOSTIC_MANIFEST',
  'ADB_USB_DEVICE_NOT_VISIBLE','ADB_MULTIPLE_DEVICES_CONNECTED','ADB_USB_DEBUGGING_NOT_AUTHORIZED',
  'ADB_USB_DEVICE_OFFLINE','ADB_DEVICE_NOT_READY','ADB_WIRELESS_OR_EMULATOR_NOT_ALLOWED',
@@ -52,6 +52,23 @@ export function compareDiagnosticSigning(installed,candidate){
  if(installed.signer!==candidate.signer)return {status:'BLOCKED',code:'DIAGNOSTIC_SIGNER_MISMATCH',installationAuthorized:false};
  if(candidate.versionCode<installed.versionCode)return {status:'BLOCKED',code:'DIAGNOSTIC_VERSION_DOWNGRADE',installationAuthorized:false};
  return {status:'PASS',code:'SIGNING_METADATA_COMPATIBLE_ONLY',installationAuthorized:false};
+}
+export function resolveJava({env=process.env,exists=existsSync,platform=process.platform}={}){
+ const exe=platform==='win32'?'java.exe':'java';
+ const candidates=[
+  env.JAVA_HOME&&join(env.JAVA_HOME,'bin',exe),
+  env.STUDIO_JDK&&join(env.STUDIO_JDK,'bin',exe),
+  env.PROGRAMFILES&&join(env.PROGRAMFILES,'Android','Android Studio','jbr','bin',exe),
+  env['ProgramFiles(x86)']&&join(env['ProgramFiles(x86)'],'Android','Android Studio','jbr','bin',exe)
+ ].filter(Boolean);
+ for(const candidate of candidates)if(exists(candidate))return candidate;
+ // Normal Java installations expose java on PATH; no subprocess here.
+ const path=(env.PATH||env.Path||'').split(platform==='win32'?';':':').filter(Boolean);
+ for(const directory of path){
+  const candidate=join(directory,exe);
+  if(exists(candidate))return candidate;
+ }
+ throw fail('JAVA_RUNTIME_NOT_FOUND');
 }
 function command(executable,args,timeout=20000){
  return execFileSync(executable,args,{encoding:'utf8',stdio:['ignore','pipe','pipe'],maxBuffer:2*1024*1024,timeout,windowsHide:true}).trim();
@@ -97,11 +114,13 @@ export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,
   const installedPath=join(temporary,'installed-diagnostic.apk');
   mark('PULL_INSTALLED_APK');
   commandFn(adb,['-d','pull',remote,installedPath],120000);
+  mark('JAVA_RUNTIME_DISCOVERY');
+  const java=resolveJava();
   const readMeta=(path,kind)=>{
    mark(kind==='INSTALLED'?'INSTALLED_BADGING':'CANDIDATE_BADGING');
    const versionCode=parsePackageVersion(commandFn(aapt,['dump','badging',path]));
    mark(kind==='INSTALLED'?'INSTALLED_SIGNER':'CANDIDATE_SIGNER');
-   const signer=parseCertificate(commandFn('java',['-jar',jar,'verify','--print-certs',path]));
+   const signer=parseCertificate(commandFn(java,['-jar',jar,'verify','--print-certs',path]));
    return {packageId:PACKAGE,versionCode,signer};
   };
   const installed=readMeta(installedPath,'INSTALLED');
