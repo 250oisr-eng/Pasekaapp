@@ -7,6 +7,7 @@ import {Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {pathToFileURL} from 'node:url';
 import {probeProcess} from './oneplus-process-probe.mjs';
+import {StrictBase64Decoder} from './oneplus-strict-base64.mjs';
 
 const PACKAGE='ru.paseka.journal';
 const MAX_CAPTURE=1024*1024;
@@ -106,7 +107,7 @@ async function streamArchive(command,serial,output){
  const sha=createHash('sha256');
  try{
   const stream=createWriteStream(output,{flags:'wx',mode:0o600});
-  child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'tar','-cf','-','.']),{
+  child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'sh','-c','tar -cf - . | base64']),{
     shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']
   });
   child.stderr.on('data',data=>{
@@ -126,10 +127,10 @@ async function streamArchive(command,serial,output){
     sha.update(chunk);cb(null,chunk);
   }});
   let streamError=null;
-  try{await pipeline(child.stdout,tap,stream);}
+  try{await pipeline(child.stdout,new StrictBase64Decoder(),tap,stream);}
   catch(error){streamError=error;}
   const exit=await done;
-  if(streamError)throw transferFailure('ANDROID_TAR_STREAM_FAILED',{
+  if(streamError)throw transferFailure(streamError.message==='BASE64_TRANSPORT_CORRUPTED'||streamError.message==='BASE64_TRANSPORT_TRUNCATED'?'BASE64_TRANSPORT_INVALID':'ANDROID_TAR_STREAM_FAILED',{
     tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0,stderrCategory:categorizeTarStderr(stderrSample)
   });
   if(stderrBytes>MAX_CAPTURE)throw transferFailure('ANDROID_TAR_STDERR_LIMIT',{
@@ -191,7 +192,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb',a
     status:'APP_PRIVATE_COLD_TAR_ARCHIVED_RESTORE_NOT_TESTED',
     file:final.split(/[\\/]/).pop(),bytes:streamed.bytes,sha256:streamed.sha256,
     tarEntries:validated.entries,indexedDbPathEnumerated:validated.indexedDbPresent,
-    androidGalleryMediaStoreIncluded:false,
+    transportEncoding:'BASE64_STRICT',androidGalleryMediaStoreIncluded:false,
     independentPhysicalRestoreVerified:false,originalsDeleted:false,
     installedApplicationChanged:false,
     diagnosticPackageChanged:false,deviceForcedStopped
