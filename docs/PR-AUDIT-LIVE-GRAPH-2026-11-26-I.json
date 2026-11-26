@@ -46,7 +46,25 @@
       "fix/indexeddb-recovery-commit-flag-2026-11-16"
     ],
     "duplicateSearchIds": [],
-    "maxDailyBucket": 88
+    "maxDailyBucket": 88,
+    "maxHistoricalChainDepth": 142,
+    "historicalCyclesFound": [],
+    "openDescendantsWithParentNoLongerOpen": [
+      68,
+      67,
+      66,
+      65,
+      62,
+      61
+    ],
+    "unresolvedParentBranchGrouping": {
+      "fix/p0-block-entrance-original-video-delete-main-20261125": 2,
+      "perf/p2-video-metadata-cursor-2026-11-23": 16,
+      "review-base/archive-ledger-212-2026-11-22": 36,
+      "fix/sectional-op06-laying-observation-2026-11-16": 12,
+      "fix/indexeddb-recovery-commit-flag-2026-11-16": 3
+    },
+    "liveHeadBaseDirectlyChecked": 29
   },
   "rows": [
     {
@@ -80,10 +98,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 17,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "0ce93c7ff83157c84c1829e80d579b0236c78102",
+      "currentBaseBranch": "test/b01-isolated-android-recovery-20261125"
     },
     {
       "number": 534,
@@ -98,10 +118,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 11,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "a8ab152c44e64617f0b7714c06f47bd51e6d5e9c",
+      "currentBaseBranch": "main"
     },
     {
       "number": 533,
@@ -224,10 +246,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 10,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "ac4efa845d8d12717b849c9a76cca854d118237c",
+      "currentBaseBranch": "feat/b01-isolated-export-recovery-proof"
     },
     {
       "number": 524,
@@ -242,10 +266,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 12,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "673ffbf2868daa4352a274fb1ed99b613bd763ce",
+      "currentBaseBranch": "main"
     },
     {
       "number": 523,
@@ -350,10 +376,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 7,
       "historicalUnresolvedBase": "fix/p0-block-entrance-original-video-delete-main-20261125",
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED"
+      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED",
+      "currentHeadSha": "53b46fa636283c8c059986e021306ac4a0c6275b",
+      "currentBaseBranch": "test/p0-p2-entrance-combined-premerge-20261125"
     },
     {
       "number": 513,
@@ -368,10 +396,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 6,
       "historicalUnresolvedBase": "fix/p0-block-entrance-original-video-delete-main-20261125",
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED"
+      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED",
+      "currentHeadSha": "62b683b12582ad13987630945d3e4c18dd755455",
+      "currentBaseBranch": "fix/p0-block-entrance-original-video-delete-main-20261125"
     },
     {
       "number": 479,
@@ -638,10 +668,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 69,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "b1089a1d31b84d526f859de10589b307ce848e11",
+      "currentBaseBranch": "feat/p1-op01-op14-technology-audit-guards-2026-11-23"
     },
     {
       "number": 453,
@@ -656,10 +688,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 23,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "43c6572aff28861601d5db7fc185adc231f41e5e",
+      "currentBaseBranch": "main"
     },
     {
       "number": 452,
@@ -710,10 +744,12 @@
       "historicalDepth": 13,
       "historicalChangedPathCount": 9,
       "historicalUnresolvedBase": "perf/p2-video-metadata-cursor-2026-11-23",
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED"
+      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED",
+      "currentHeadSha": "c0ef4afccc6060ad36898fce9d6eebde82e626cd",
+      "currentBaseBranch": "test/p0-v2-export-stage-quarantine-full-cycle-2026-11-23"
     },
     {
       "number": 440,
@@ -998,10 +1034,12 @@
       "historicalDepth": 35,
       "historicalChangedPathCount": 8,
       "historicalUnresolvedBase": "review-base/archive-ledger-212-2026-11-22",
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED"
+      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED",
+      "currentHeadSha": "1c4135f9c3472c23b6bc18a42512cdcb2c487682",
+      "currentBaseBranch": "test/p0-v2-multirestart-quarantine-evidence-2026-11-23"
     },
     {
       "number": 423,
@@ -1754,10 +1792,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 8,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "43cb0a2911bbf8b5ff962285369645e5ea3c7947",
+      "currentBaseBranch": "docs/android-phone-only-test-matrix-2026-11-22"
     },
     {
       "number": 381,
@@ -1772,10 +1812,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 2,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "72fa5ae7dac7a1c8202f9681cac60ba8a41e9e4c",
+      "currentBaseBranch": "main"
     },
     {
       "number": 380,
@@ -4994,10 +5036,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 6,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "55b783d43a8d4dd0eb9839a45d76f340044b6f06",
+      "currentBaseBranch": "fix/honey-pairs-2-or-4-validator-2026-11-20"
     },
     {
       "number": 200,
@@ -5012,10 +5056,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 6,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "14bc1e5dd87a52179ce6d0658b7b90119785667e",
+      "currentBaseBranch": "main"
     },
     {
       "number": 199,
@@ -5444,10 +5490,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 16,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "a53fce9929fcc5c42b84b1b6cdb04d69f8b829da",
+      "currentBaseBranch": "feat/full-media-backup-restore-main-2026-11-18"
     },
     {
       "number": 173,
@@ -5516,10 +5564,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 14,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "c8bcb739848f4360cd507f3462b83155267dac33",
+      "currentBaseBranch": "feat/full-media-backup-restore-main-2026-11-18"
     },
     {
       "number": 168,
@@ -5534,10 +5584,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 31,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "06900275c9acc131f6aa93f029987a924bf08eac",
+      "currentBaseBranch": "main"
     },
     {
       "number": 167,
@@ -5714,10 +5766,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 23,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "22f21b4dd012f976e4fe145e96ebcc046f5e9142",
+      "currentBaseBranch": "feat/media-job-lifecycle-contract-2026-11-18"
     },
     {
       "number": 157,
@@ -5732,10 +5786,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 2,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "bb2b48212ac731cf0702b593f816b0fe78f19d8b",
+      "currentBaseBranch": "main"
     },
     {
       "number": 156,
@@ -5840,10 +5896,12 @@
       "historicalDepth": 5,
       "historicalChangedPathCount": 1,
       "historicalUnresolvedBase": "fix/sectional-op06-laying-observation-2026-11-16",
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED"
+      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED",
+      "currentHeadSha": "14cba98d68d953a6bd003cd2361c9267520ccef1",
+      "currentBaseBranch": "feat/r4-physical-excluder-links-2026-11-16"
     },
     {
       "number": 99,
@@ -6200,10 +6258,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 2,
       "historicalUnresolvedBase": "fix/indexeddb-recovery-commit-flag-2026-11-16",
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED"
+      "gate": "ORPHAN_BASE_BRIDGE_REVIEW_REQUIRED",
+      "currentHeadSha": "9e551cba138dcf70b345eb7e8c82020653635ff2",
+      "currentBaseBranch": "fix/indexeddb-recovery-commit-flag-2026-11-16"
     },
     {
       "number": 68,
@@ -6218,10 +6278,12 @@
       "historicalDepth": 6,
       "historicalChangedPathCount": 2,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "f070d98eaca1048e5d1b993f340430861f17586e",
+      "currentBaseBranch": "fix/farrar-invalid-assembly-state-2026-11-16"
     },
     {
       "number": 67,
@@ -6326,10 +6388,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 2,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "PARENT_PR_CLOSED_REVIEW_REQUIRED"
+      "gate": "PARENT_PR_CLOSED_REVIEW_REQUIRED",
+      "currentHeadSha": "aa4f94e300a3d2030c2c152e887f90ed95ed0667",
+      "currentBaseBranch": "fix/inventory-reverse-reference-integrity-2026-11-16"
     },
     {
       "number": 59,
@@ -6416,10 +6480,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 7,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "a354b27fcec249a9beeb0cded62e9b1d84127f67",
+      "currentBaseBranch": "feature/sectional-multiqueen-techprocess-2026-11-15"
     },
     {
       "number": 54,
@@ -6434,10 +6500,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 5,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "0e1b766aa249871ff0335918a0ce84e4adc9fa70",
+      "currentBaseBranch": "main"
     },
     {
       "number": 40,
@@ -6956,10 +7024,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 4,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "7dabc6f0b89437ce38d4dcb502bc8852549c16df",
+      "currentBaseBranch": "prototype/paseka-archive-container-2026-11-14"
     },
     {
       "number": 9,
@@ -6974,10 +7044,12 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 4,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "7efa0fe9ddd3b202623744d6dfe0a8a3d3512e51",
+      "currentBaseBranch": "main"
     },
     {
       "number": 7,
@@ -7082,10 +7154,12 @@
       "historicalDepth": 1,
       "historicalChangedPathCount": 10,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "STACKED_REVIEW_REQUIRED"
+      "gate": "STACKED_REVIEW_REQUIRED",
+      "currentHeadSha": "c2b831cb2eb127d365d071d7b9d322ed8c0d0a53",
+      "currentBaseBranch": "feature/entrance-video-retention-guard-2026-11-13"
     },
     {
       "number": 1,
@@ -7100,10 +7174,14 @@
       "historicalDepth": 0,
       "historicalChangedPathCount": 18,
       "historicalUnresolvedBase": null,
-      "headShaLiveVerified": false,
-      "baseLiveVerified": false,
+      "headShaLiveVerified": true,
+      "baseLiveVerified": true,
       "semanticDiffReviewed": false,
-      "gate": "ROOT_REVIEW_REQUIRED"
+      "gate": "ROOT_REVIEW_REQUIRED",
+      "currentHeadSha": "4992bc070115fb122da74cf555c88040289e2843",
+      "currentBaseBranch": "main"
     }
-  ]
+  ],
+  "verifiedMissingParentBranchesExist": true,
+  "missingParentBranchExistenceMethod": "GitHub search_branches found each of 5 historical unresolved base names; this is not parent PR discovery or merge proof"
 }
