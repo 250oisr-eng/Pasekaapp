@@ -86,10 +86,21 @@ export async function auditMediaCopy(sourcePath,copyPath,{expectedFiles=null}={}
   exhaustiveDeviceInventoryVerified:false,independentRestoreVerified:false,
   originalVideoDeletionAuthorized:false,sourceAndCopyUnmodified:true});
 }
+export function parseExpectedFileCount(argument){
+ if(argument===undefined)return null;
+ if(typeof argument!=='string'||! /^[1-9][0-9]*$/.test(argument))throw blocked();
+ const count=Number(argument);
+ if(!Number.isSafeInteger(count)||count>LIMIT)throw blocked();
+ return count;
+}
 if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.url){
- auditMediaCopy(process.argv[2],process.argv[3],{
-  expectedFiles:process.argv[4]&&/^\d+$/.test(process.argv[4])?Number(process.argv[4]):null
- }).then(result=>console.log(JSON.stringify(result,null,2)),()=>{
+ const audit=async()=>{
+  if(process.argv.length<4||process.argv.length>5)throw blocked();
+  return auditMediaCopy(process.argv[2],process.argv[3],{
+   expectedFiles:parseExpectedFileCount(process.argv[4])
+  });
+ };
+ audit().then(result=>console.log(JSON.stringify(result,null,2)),()=>{
   console.error(JSON.stringify({status:'BLOCKED',code:BLOCKED,noFilesModified:true}));
   process.exitCode=1;
  });
