@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { auditDebugMetadata, auditLocalDebugApk } from '../scripts/audit-android-debug-artifact.mjs';
+import { auditDebugMetadata, auditLocalDebugApk, compareDebugSignerWithReference } from '../scripts/audit-android-debug-artifact.mjs';
 
 const fingerprint='b'.repeat(64),digest='a'.repeat(64),checkout='c'.repeat(40);
 const input=()=>({badging:"package: name='ru.paseka.journal' versionCode='17' versionName='1.0'",
@@ -90,4 +90,41 @@ test('B05 workflow audits before uploading debug APK with explicit warning; no r
  assert.match(wf,/NOT_FOR_ONEPLUS\.txt/);
  assert.match(wf,/permissions:\n  contents: read/);
  assert.doesNotMatch(wf,/apksigner\s+sign|keytool\s+-genkey|gradlew assembleRelease|npm publish|gh release create/);
+});
+
+test('B05 matching explicit public signer reference is metadata-only, never upgrade proof',()=>{
+ const audited=auditDebugMetadata(input()),before=JSON.stringify(audited);
+ const result=compareDebugSignerWithReference(audited,fingerprint);
+ assert.equal(result.status,'CI_DEBUG_CERT_MATCHES_SUPPLIED_REFERENCE_METADATA_ONLY');
+ assert.equal(result.matchesSuppliedReference,true);
+ assert.equal(result.referenceIsCurrentInstalledCertificate,'NOT_VERIFIED');
+ assert.equal(result.privateKeyCustodyVerified,false);
+ assert.equal(result.productionUpgradeAuthorized,false);
+ assert.equal(result.productionRollbackVerified,false);
+ assert.equal(result.deviceInstalled,false);
+ assert.ok(Object.isFrozen(result));
+ assert.equal(JSON.stringify(audited),before);
+});
+
+test('B05 mismatched reference is reported without assuming device or key access',()=>{
+ const result=compareDebugSignerWithReference(auditDebugMetadata(input()),'e'.repeat(64));
+ assert.equal(result.status,'CI_DEBUG_CERT_DIFFERS_FROM_SUPPLIED_REFERENCE');
+ assert.equal(result.matchesSuppliedReference,false);
+ assert.equal(result.productionUpgradeAuthorized,false);
+});
+
+test('B05 signer comparison refuses stale or forged audit output and malformed reference',()=>{
+ const audit=auditDebugMetadata(input());
+ for(const wrong of ['', 'short','z'.repeat(64)]) {
+  assert.throws(()=>compareDebugSignerWithReference(audit,wrong),/BLOCKED/);
+ }
+ assert.throws(()=>compareDebugSignerWithReference({
+  ...audit,productionUpgradeAuthorized:true
+ },fingerprint),/BLOCKED/);
+ assert.throws(()=>compareDebugSignerWithReference({
+  ...audit,auditStatus:'UNVERIFIED'
+ },fingerprint),/BLOCKED/);
+ assert.throws(()=>compareDebugSignerWithReference({
+  ...audit,signerCertificateSha256:'too-short'
+ },fingerprint),/BLOCKED/);
 });
