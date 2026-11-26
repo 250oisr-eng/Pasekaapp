@@ -626,5 +626,24 @@
     "repeatedDocumentReads": null,
     "measuredTimeSavings": null,
     "productionActions": 0
+  },
+  "prAuditCycleJ20261126": {
+    "sourceMainSha": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
+    "selectiveDocsPortPr": 579,
+    "sourceSupersededClosedPr": 533,
+    "codeHead": "9b44124d7bf9a783f43dfb02d846ea6742804682",
+    "mergeSha": "cedcb63441b09a08fd78fd22e5b2a65687da1f5e",
+    "governanceRun": 45887287260,
+    "governanceConclusion": "success",
+    "indexedOpenPRs": 391,
+    "historicalMainBased": 33,
+    "historicalStacked": 358,
+    "liveHeadBaseDirectlyChecked": 29,
+    "searchExhaustive": false,
+    "all358SemanticDiffReviewed": false,
+    "verifiedRealUserScenarios": 0,
+    "measuredTimeSavings": null,
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0
   }
 }
