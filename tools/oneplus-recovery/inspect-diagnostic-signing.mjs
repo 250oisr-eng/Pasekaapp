@@ -1,6 +1,6 @@
 // B09 isolated diagnostic signer preflight. Read-only: no install, force-stop, clear or uninstall.
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,readdirSync,rmSync,existsSync} from 'node:fs';
+import {mkdtempSync,readFileSync,readdirSync,rmSync,existsSync,copyFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {dirname,join,resolve,win32} from 'node:path';
@@ -11,7 +11,7 @@ const REPORT='ONEPLUS-DIAGNOSTIC-SIGNER-RESULT.json';
 const fail=code=>Object.assign(new Error(code),{code});
 export const SIGNER_STAGES=Object.freeze([
  'READ_MANIFEST','HASH_CANDIDATE','SDK_DISCOVERY','USB_DISCOVERY','USB_TRANSPORT',
- 'INSTALLED_PACKAGE_PATH','PULL_INSTALLED_APK','INSTALLED_BADGING','INSTALLED_SIGNER',
+ 'INSTALLED_PACKAGE_PATH','PULL_INSTALLED_APK','STAGE_CANDIDATE_LOCAL','INSTALLED_BADGING','INSTALLED_SIGNER',
  'CANDIDATE_BADGING','CANDIDATE_SIGNER','JAVA_RUNTIME_DISCOVERY','COMPARE_SIGNERS'
 ]);
 export function safeSignerFailure(error,stage){
@@ -20,7 +20,7 @@ export function safeSignerFailure(error,stage){
  const allowed=new Set(['LOCAL_ANDROID_SDK_TOOLS_NOT_FOUND','INSTALLED_BASE_APK_PATH_UNVERIFIED',
  'APK_PACKAGE_VERSION_UNVERIFIED','APK_SIGNER_COUNT_UNVERIFIED','APK_SIGNER_FINGERPRINT_INVALID',
  'DIAGNOSTIC_PACKAGE_MISMATCH','SIGNER_UNKNOWN','JAVA_RUNTIME_NOT_FOUND','CANDIDATE_APK_SIZE_INVALID',
- 'CANDIDATE_SHA256_MISMATCH','UNTRUSTED_DIAGNOSTIC_MANIFEST',
+ 'CANDIDATE_SHA256_MISMATCH','CANDIDATE_TEMP_COPY_MISMATCH','UNTRUSTED_DIAGNOSTIC_MANIFEST',
  'ADB_USB_DEVICE_NOT_VISIBLE','ADB_MULTIPLE_DEVICES_CONNECTED','ADB_USB_DEBUGGING_NOT_AUTHORIZED',
  'ADB_USB_DEVICE_OFFLINE','ADB_DEVICE_NOT_READY','ADB_WIRELESS_OR_EMULATOR_NOT_ALLOWED',
  'ADB_PHYSICAL_USB_TRANSPORT_NOT_READY']);
@@ -115,6 +115,14 @@ export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,
   const installedPath=join(temporary,'installed-diagnostic.apk');
   mark('PULL_INSTALLED_APK');
   commandFn(adb,['-d','pull',remote,installedPath],120000);
+  // Older Windows aapt.exe may fail to open APKs from paths containing
+  // non-ASCII characters. Use the SAME verified ASCII-named temp directory
+  // as the successfully read installed APK. Never change the original file.
+  mark('STAGE_CANDIDATE_LOCAL');
+  const candidateLocal=join(temporary,'candidate.apk');
+  copyFileSync(candidatePath,candidateLocal);
+  if(createHash('sha256').update(readFileSync(candidateLocal)).digest('hex')!==manifest.apkSha256)
+   throw fail('CANDIDATE_TEMP_COPY_MISMATCH');
   mark('JAVA_RUNTIME_DISCOVERY');
   const java=resolveJava();
   const readMeta=(path,kind)=>{
@@ -125,7 +133,7 @@ export function inspectDiagnosticSigning({commandFn=command,sdk=androidSdk,
    return {packageId:PACKAGE,versionCode,signer};
   };
   const installed=readMeta(installedPath,'INSTALLED');
-  const candidate=readMeta(candidatePath,'CANDIDATE');
+  const candidate=readMeta(candidateLocal,'CANDIDATE');
   mark('COMPARE_SIGNERS');
   return {...compareDiagnosticSigning(installed,candidate),
    installedDiagnosticPresent:true,productionPackageTouched:false,
