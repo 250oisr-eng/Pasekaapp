@@ -79,7 +79,7 @@ async function verifyEncodedTransport(command,serial){
  const proof='PASEKA_BASE64_PROBE_V1';
  const expected=Buffer.from(proof,'ascii').toString('base64');
  const result=await limitedProcess(command,adb(serial,[
-  'exec-out','run-as',PACKAGE,'sh','-c','printf PASEKA_BASE64_PROBE_V1 | base64'
+  'exec-out','run-as',PACKAGE,'sh','-c','set -o pipefail; printf PASEKA_BASE64_PROBE_V1 | base64'
  ]),{max:8192});
  if(result.overflow||result.code!==0)throw Error('BASE64_PREFLIGHT_COMMAND_FAILED');
  if(result.stdout.replace(/[\r\n]/g,'')!==expected)throw Error('BASE64_PREFLIGHT_MISMATCH');
