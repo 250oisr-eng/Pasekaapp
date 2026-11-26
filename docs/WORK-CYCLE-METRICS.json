@@ -483,5 +483,32 @@
     "productionActions": 0,
     "completedVerifiedUserScenarios": 0,
     "notes": "Historical 411-row inventory does not establish a fresh live PR count. No mass merge, release, original media deletion, production writes, or device install."
+  },
+  "prAuditCycleD20261126": {
+    "lastVerifiedMainSha": "a95d055c380b835d150c79c39e4a88af73bd0149",
+    "mergedDocsPrs": [
+      562,
+      564
+    ],
+    "closedSupersededPrs": [
+      91,
+      155,
+      539,
+      540
+    ],
+    "exactHeadGovernanceSuccess": [
+      45878309941,
+      45878767637
+    ],
+    "draftWithFailedCi": 563,
+    "initialFailedRun": 45878605621,
+    "initialFailedTests": 3,
+    "correctedCiRun": 45878907609,
+    "correctedCiConclusion": "NOT_VERIFIED",
+    "postMergePushCi": "NOT_VERIFIED",
+    "liveOpenPrCount": null,
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0,
+    "modelRuntime": "FROZEN_442"
   }
 }
