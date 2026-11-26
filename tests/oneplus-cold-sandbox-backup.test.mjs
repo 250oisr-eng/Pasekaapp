@@ -553,7 +553,7 @@ test('Shell v2 preflight never accepts remote stderr or output with extra text',
  assert.equal(stderr.status,'BLOCKED');
  assert.equal(stderr.reason,'BASE64_PREFLIGHT_REMOTE_STDERR');
  assert.equal(stderr.stderrSeen,true);
- assert.equal(classifyEncodedProbe({code:0,output:'noise\n'+expected}).reason,'BASE64_PREFLIGHT_NON_BASE64_OUTPUT');
+ assert.equal(classifyEncodedProbe({code:0,output:'noise?\n'+expected}).reason,'BASE64_PREFLIGHT_NON_BASE64_OUTPUT');
 });
 test('failed public probe executes no matrix and never accesses private files',{skip:process.platform==='win32'},async t=>{
  const env=await fakeEnvironment(t);
