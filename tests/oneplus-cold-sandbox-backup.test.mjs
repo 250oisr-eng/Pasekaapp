@@ -9,6 +9,8 @@ import {createHash} from 'node:crypto';
 import {parseArgs,selectOneDevice,runBackup} from '../scripts/backup-oneplus-cold-sandbox.mjs';
 import {diagnose} from '../scripts/diagnose-oneplus-process-readonly.mjs';
 import {classifyPidof,classifyPs} from '../scripts/oneplus-process-probe.mjs';
+import {StrictBase64Decoder} from '../scripts/oneplus-strict-base64.mjs';
+import {Readable} from 'node:stream';
 
 test('strict parsing prevents arguments that could become ADB options',()=>{
  assert.deepEqual(parseArgs(['--dest','E:\\Backup']),{dest:'E:\\Backup',allowForceStop:false});
@@ -69,16 +71,17 @@ if(tail==='shell run-as ru.paseka.journal pwd'){
 if(tail==='shell run-as ru.paseka.journal ls -ld app_webview'){
  process.stdout.write('drwx app_webview\\n');process.exit(0);
 }
-if(tail==='exec-out run-as ru.paseka.journal tar -cf - .'){
+if(tail==='exec-out run-as ru.paseka.journal sh -c tar -cf - . | base64'){
  if(mode==='tar_fail') {process.stderr.write('private/internal/file/name');process.exit(4);}
- if(mode==='tar_tiny') {process.stdout.write('short');process.exit(0);}
+ if(mode==='tar_tiny') {process.stdout.write(Buffer.from('short').toString('base64'));process.exit(0);}
  if(mode==='tar_partial_failure') {
-  process.stdout.write(Buffer.alloc(1024,2));
+  process.stdout.write(Buffer.alloc(1024,2).toString('base64'));
   process.stderr.write('private/internal/file/name');process.exit(5);
  }
  const result=spawnSync('tar',['-cf','-','.'],{cwd:process.env.FAKE_PRIVATE_DIR,encoding:null});
  if(result.status!==0)process.exit(5);
- process.stdout.write(result.stdout);process.exit(0);
+ if(mode==='base64_bad') {process.stdout.write('not-valid-base64?');process.exit(0);}
+ process.stdout.write(result.stdout.toString('base64').replace(/.{76}/g,'process.stdout.write(result.stdout);process.exit(0);\\n'));process.exit(0);
 }
 process.exit(60);
 `;
@@ -422,4 +425,32 @@ test('forensic tracer follows two independent +1 header shifts without restoring
  assert.equal(report.contentsExtracted,false);
  assert.equal(report.sourceModified,false);
  assert.deepEqual(await readFile(p),original);
+});
+
+test('strict base64 decoder works across arbitrary chunks, tolerates CRLF, and rejects inserted bytes',async()=>{
+ const payload=Buffer.concat([Buffer.alloc(5000,0),Buffer.from([0,10,13,255]),Buffer.alloc(128,255)]);
+ const encoded=payload.toString('base64').replace(/.{76}/g,'$&\r\n');
+ const chunks=[];
+ for(let i=0;i<encoded.length;i+=7)chunks.push(Buffer.from(encoded.slice(i,i+7),'latin1'));
+ async function decode(items){
+  const outputs=[];for await(const chunk of Readable.from(items).pipe(new StrictBase64Decoder()))outputs.push(chunk);
+  return Buffer.concat(outputs);
+ }
+ assert.deepEqual(await decode(chunks),payload);
+ await assert.rejects(decode([Buffer.from(encoded.slice(0,40)+'?'+encoded.slice(40))]),/BASE64_TRANSPORT_CORRUPTED/);
+ await assert.rejects(decode([Buffer.from(encoded.slice(0,encoded.length-1))]),/BASE64_TRANSPORT_TRUNCATED/);
+ await assert.rejects(decode([Buffer.from('YQ==YQ==')]),/BASE64_TRANSPORT_CORRUPTED/);
+});
+test('simulated invalid encoded ADB TAR is never promoted into a backup',{skip:process.platform==='win32'},async t=>{
+ const f=await fakeEnvironment(t);
+ const old={mode:process.env.FAKE_ADB_MODE,private:process.env.FAKE_PRIVATE_DIR};
+ try{
+  process.env.FAKE_ADB_MODE='base64_bad';process.env.FAKE_PRIVATE_DIR=f.src;
+  await assert.rejects(runBackup(f.dest,{adbCommand:f.stub}),/BASE64_TRANSPORT_INVALID/);
+  assert.ok((await readdir(f.dest)).every(x=>x.endsWith('.partial')));
+  assert.deepEqual(await readFile(f.original),f.payload);
+ }finally{
+  if(old.mode===undefined)delete process.env.FAKE_ADB_MODE;else process.env.FAKE_ADB_MODE=old.mode;
+  if(old.private===undefined)delete process.env.FAKE_PRIVATE_DIR;else process.env.FAKE_PRIVATE_DIR=old.private;
+ }
 });
