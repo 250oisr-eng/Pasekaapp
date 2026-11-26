@@ -39,6 +39,6 @@
 
 ## Следующий конкретный шаг
 
-После #591: в историческом #187 проверять оставшиеся пользовательские сценарии UI/Playwright только относительно live `main`, не переносить inline `onkeydown` и honeycomb без регрессий. Исторический #188 закрыт как устаревшие правила координации; его ветка сохранена. Другие root/stacked не объединять массово: #157/#1 cleanup FROZEN, #14/#168 archive restore BLOCKED. Действия по B01/B04/B05/B07 требуют отдельных доказательств, не Android CI.
+**WIP:** `fix/ui-a11y-selective-187-20261127` от main после #592. Из старого #187 выборочно исправлены имена полей диалога «Новый улей», единственный `aria-current` и читаемость сводки; регрессии на синтетическом DOM. Exact CI/OnePlus ещё NOT_TESTED. Не переносить honeycomb, inline keydown, архив, не включать B07/#442. Следующее: проверить применимые CI, описать кодовый SHA и Draft PR.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
