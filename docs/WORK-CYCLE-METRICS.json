@@ -690,5 +690,48 @@
     "verifiedRealUserScenarios": 0,
     "measuredTimeSavings": null,
     "repeatedDocumentReads": null
+  },
+  "prAuditCycleL20261126": {
+    "sourceMainSha": "f52f27fd4e69f3bdcc16aa57e78ff01c29dd74c4",
+    "sourceRootPr": 532,
+    "selectivePortPr": 585,
+    "sourcePrState": "OPEN_PARTIALLY_PORTED",
+    "exactHead": "b67f75ad720548adaa4ea1fdab80b9f104d663c7",
+    "mergeSha": "5d19c067e4cc832466bd2ebf497a242c729535aa",
+    "ciRuns": [
+      {
+        "id": 45891012805,
+        "name": "Fast quality checks",
+        "conclusion": "success",
+        "tapTests": 987,
+        "tapPass": 987,
+        "tapFail": 0,
+        "tapCancelled": 0,
+        "tapSkipped": 0,
+        "tapTodo": 0
+      },
+      {
+        "id": 45891012758,
+        "name": "Build Android APK",
+        "conclusion": "success"
+      },
+      {
+        "id": 45891012722,
+        "name": "Governance Docs Checks",
+        "conclusion": "success"
+      }
+    ],
+    "oldRootOpen": 30,
+    "oldStackedOpen": 358,
+    "searchIndexedOpen": 388,
+    "searchExhaustive": false,
+    "sourcePRClosureAuthorized": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "fullIndependentRestore": "BLOCKED",
+    "licensedVideoPipeline": "FROZEN_442",
+    "verifiedRealUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "measuredTimeSavings": null,
+    "productionActions": 0
   }
 }

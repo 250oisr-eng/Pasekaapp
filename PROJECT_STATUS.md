@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**26.11.2026 · verified main `f306b35074b19c4d0bb2ae01e3a535f14cc29b04` (#583).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
+**26.11.2026 · verified main `5d19c067e4cc832466bd2ebf497a242c729535aa` (#585).** Перед следующим циклом сверять живой GitHub. Нормативы: [AGENTS.md](AGENTS.md), [PROJECT-CONTROL.md](docs/PROJECT-CONTROL.md), [стратегия F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/CI и решения — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [аудит H](docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -29,10 +29,10 @@
 - **#583 MERGED** `f306b35074b19c4d0bb2ae01e3a535f14cc29b04`: generic 4-body staged honey pair validation, tested exact-head `da147b94aaa4ad3ae9959a2a7771fefaa538c958`, Android #45889321180 SUCCESS and Governance #45889321099 SUCCESS. Old #200 CLOSED without merge; profile B07 not activated.
 - **Root audit K:** [33 historical root PR inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md) and [machine review](docs/PR-AUDIT-ROOTS-2026-11-26-K.json). 30 root sources OPEN, 358 historical stacked; 388 indexed open overall (not exhaustive REST). Original #157 has unsafe video deletion eligibility, HOLD. 31 open-source diff structures checked; targeted deep semantics 4. No bulk merge.
 
-- **#532 QA selective port in Draft:** fail-closed summary of the existing full Node TAP run (no fresh synthetic cycles), preserving npm/tee exit codes; [QA F0–F2 contract](docs/QA-TAP-EVIDENCE-SELECTIVE-2026-11-26.md). Hardcoded old PR manifest/network reviews NOT ported. Exact HEAD CI pending, #532 OPEN. Real-device gates unchanged.
+- **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
 
 ## Следующий конкретный шаг
 
-После #583 приоритетный независимый кандидат — отдельная проверка полезного QA-кода #532 (без устаревшего manifest/workflow) либо source-driven модуль безопасности. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
+После #585 следующий независимый корневой кандидат — #187: проверить уникальные read-only UI/browser регрессии на актуальном main, без старого HTML и потери мобильного UX. Не импортировать старые статус и устройство. Один активный WIP цикл. 358 stacked веток рассматривать по зависимостям. Не перезаписывать устаревшими документами современный статус и не удалять историю.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**

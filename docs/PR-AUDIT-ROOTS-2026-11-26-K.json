@@ -488,7 +488,19 @@
       "diffInventoryInspected": true,
       "semanticCodeReviewed": true,
       "exhaustiveSemanticCertification": false,
-      "releaseAuthorized": false
+      "releaseAuthorized": false,
+      "selectivePort": {
+        "pr": 585,
+        "status": "MERGED",
+        "mergeSha": "5d19c067e4cc832466bd2ebf497a242c729535aa",
+        "exactHead": "b67f75ad720548adaa4ea1fdab80b9f104d663c7",
+        "fastQualityRun": 45891012805,
+        "androidRun": 45891012758,
+        "governanceRun": 45891012722,
+        "testsPassed": 987,
+        "testsSkipped": 0
+      },
+      "remainingSource": "Old hardcoded QA tracked-drafts and REST checker, static test lane matrix and expanded artifact workflow not imported; original PR OPEN/PARTIALLY_PORTED."
     },
     {
       "number": 534,
