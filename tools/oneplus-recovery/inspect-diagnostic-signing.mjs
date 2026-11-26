@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync,readFileSync,readdirSync,rmSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
-import {dirname,join,resolve} from 'node:path';
+import {dirname,join,resolve,win32} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseDeviceList,validateUsbTransportState,validateManifest,PACKAGE} from './oneplus-recovery.mjs';
 const HERE=dirname(fileURLToPath(import.meta.url));
@@ -55,17 +55,18 @@ export function compareDiagnosticSigning(installed,candidate){
 }
 export function resolveJava({env=process.env,exists=existsSync,platform=process.platform}={}){
  const exe=platform==='win32'?'java.exe':'java';
+ const pathJoin=platform==='win32'?win32.join:join;
  const candidates=[
-  env.JAVA_HOME&&join(env.JAVA_HOME,'bin',exe),
-  env.STUDIO_JDK&&join(env.STUDIO_JDK,'bin',exe),
-  env.PROGRAMFILES&&join(env.PROGRAMFILES,'Android','Android Studio','jbr','bin',exe),
-  env['ProgramFiles(x86)']&&join(env['ProgramFiles(x86)'],'Android','Android Studio','jbr','bin',exe)
+  env.JAVA_HOME&&pathJoin(env.JAVA_HOME,'bin',exe),
+  env.STUDIO_JDK&&pathJoin(env.STUDIO_JDK,'bin',exe),
+  env.PROGRAMFILES&&pathJoin(env.PROGRAMFILES,'Android','Android Studio','jbr','bin',exe),
+  env['ProgramFiles(x86)']&&pathJoin(env['ProgramFiles(x86)'],'Android','Android Studio','jbr','bin',exe)
  ].filter(Boolean);
  for(const candidate of candidates)if(exists(candidate))return candidate;
  // Normal Java installations expose java on PATH; no subprocess here.
  const path=(env.PATH||env.Path||'').split(platform==='win32'?';':':').filter(Boolean);
  for(const directory of path){
-  const candidate=join(directory,exe);
+  const candidate=pathJoin(directory,exe);
   if(exists(candidate))return candidate;
  }
  throw fail('JAVA_RUNTIME_NOT_FOUND');
