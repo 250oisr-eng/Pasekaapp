@@ -900,5 +900,53 @@
     "videoCleanup": "FROZEN_442",
     "measuredTimeSavings": null,
     "verifiedRealUserScenarios": 0
+  },
+  "p1UiAccessibility187Cycle20261127": {
+    "referenceMainSha": "da60c9eec792c455f4048d83f9d222ad254c4b8a",
+    "sourceRootPr": 187,
+    "branch": "fix/ui-a11y-selective-187-20261127",
+    "filesEdited": [
+      "index.html",
+      "tests/ui-a11y-selective-187.test.mjs",
+      "docs/UI-A11Y-SELECTIVE-187-2026-11-27.md"
+    ],
+    "changeScope": [
+      "hiveDialogAccessibleName",
+      "hiveDialogLabelsAndTouchTargets",
+      "navigationCurrentPage",
+      "apiarySummaryLabelContrast"
+    ],
+    "newRuntimeDependencies": 0,
+    "storageOrSWChanged": false,
+    "profileChanged": false,
+    "backupsOrVideoTouched": false,
+    "exactShaCi": "SUCCESS_AT_CODE_SHA",
+    "device": "NOT_TESTED",
+    "browserGeometry": "NOT_TESTED",
+    "realUserScenarios": 0,
+    "measuredSavings": null,
+    "ciRuns": [
+      {
+        "id": 45896507260,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "checkedHead": "e8a6d7004a1ee26a4d0f1fd8c31b25baf56b8352"
+      },
+      {
+        "id": 45896507237,
+        "name": "Governance Docs Checks",
+        "conclusion": "success",
+        "checkedHead": "e8a6d7004a1ee26a4d0f1fd8c31b25baf56b8352"
+      }
+    ],
+    "pr": 593,
+    "codeHead": "e8a6d7004a1ee26a4d0f1fd8c31b25baf56b8352",
+    "android": "CI_BUILD_SUCCESS",
+    "nodeTests": {
+      "tests": 998,
+      "pass": 998,
+      "fail": 0,
+      "skipped": 0
+    }
   }
 }

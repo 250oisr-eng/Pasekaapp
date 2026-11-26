@@ -39,6 +39,6 @@
 
 ## Следующий конкретный шаг
 
-После #591: в историческом #187 проверять оставшиеся пользовательские сценарии UI/Playwright только относительно live `main`, не переносить inline `onkeydown` и honeycomb без регрессий. Исторический #188 закрыт как устаревшие правила координации; его ветка сохранена. Другие root/stacked не объединять массово: #157/#1 cleanup FROZEN, #14/#168 archive restore BLOCKED. Действия по B01/B04/B05/B07 требуют отдельных доказательств, не Android CI.
+**#593 Draft / CI_VERIFIED_CODE_SHA:** доступность «Новый улей», aria-current, контраст из #187. Кодовый SHA `e8a6d7004a1ee26a4d0f1fd8c31b25baf56b8352`: Android #45896507260 — Node 998/998, APK/sign SUCCESS; Governance #45896507237 SUCCESS. После кодового SHA только docs, итоговый CI проверить отдельно. Browser/OnePlus NOT_TESTED; не переносить honeycomb, #442/B07 не менять. Требуется отдельное разрешение на merge.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
