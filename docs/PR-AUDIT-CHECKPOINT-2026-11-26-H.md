@@ -4,7 +4,7 @@
 - Live `main` at entry: `d812bfa46e28ec418a1f6ca1a958ecccd445160d`; PR #572 confirmed `MERGED`, merge commit equals main.
 - Fresh **15 disjoint GitHub `is:pr is:open created:YYYY-MM-DD`** buckets (12–26 November); each bucket below 100 returned rows. **397 unique open IDs** before this cycle's cleanup, zero duplicates in live census.
 - #8 was independently checked: historical code re-enabled `deleteAllData`/`indexedDB.deleteDatabase` while #572 safely ported the previous-use marker and explicitly retained the destructive reset block. **#8 CLOSED/SUPERSEDED_UNSAFE, NOT MERGED** with documented comment; branch and Git history kept.
-- **396 open** after #8 closure (397 - 1); a fresh complete post-closure rescan is still required if concurrent GitHub changes occur. Classification below is based on the 397-row prior in-repo census minus #8; **historical** base/SHA/path information is not refreshed for every row.
+- **396 indexed open** after #8 and #516 closures, verified by a second 15-bucket search. Important limitation: #516 was directly observed OPEN by the PR endpoint but was absent from both earlier 397-row search census and saved F snapshot, showing that even daily-bucket search is **not a guaranteed complete GitHub census**; avoid declaring the 396 count exhaustive until independently paginated PR listing is reconciled. Classification below is based on the 397-row prior in-repo census minus #8 (which never included #516); **historical** base/SHA/path information is not refreshed for every row.
 - Class split from source metadata after #8 removal: **38 historically main-based / 358 stacked**, totaling 396. Historical review categories: 19 P0 data/Android, 358 stacked, 7 governance/docs, 4 P0/video, 4 P1 technology, 4 independent roots. This is a portfolio triage, **not 396 code-level reviews**.
 
 ## Individually inspected candidates and disposition
@@ -12,7 +12,7 @@
 |---|---|---|
 | #8 | Old startup detector plus destructive reset; #572 merged provides current guarded startup and preserved reset freeze | **CLOSED, not merged**; old UI text only selectively reviewable |
 | #60 | Old `js/equipment-inventory.js` replacement conflicts with newer sectional semantics; #567 separately ported read-only legacy tests | **REVIEW_REQUIRED**; no wholesale merge / close yet |
-| #516 | Useful new cross-hive family-reference warning in read-only JSON preflight; original PR also carries stale `PROJECT_STATUS.md` and docs | **SELECTIVE_PORT_CANDIDATE**; inspect exact current script/tests, then minimal fresh-main patch and exact-head CI |
+| #516 | Subsequent direct inspection of current `scripts/audit-oneplus-json-transfer.mjs` and matching tests proves cross-hive warnings, missing context handling and privacy/non-mutation regression tests already IN_MAIN; old PR carries stale docs | **CLOSED/SUPERSEDED, not merged**, preserved historical branch; prior selective-port hypothesis overturned by direct code evidence |
 | #529 | Historic review document and old status lines; not current product code; PR mergeable=false | **DOCS_RECONCILE**; preserve unique findings before possible supersede |
 | #533 | Governance change overlapping current `AGENTS.md`, status, strategy, blockers; PR mergeable=false; history carries stale states | **DOCS_RECONCILE**; no direct merge |
 | #532 | Comprehensive QA tests/docs, PR mergeable=false; inspect overlap with existing CI gates and negative tests | **REVIEW_REQUIRED** |
@@ -27,9 +27,9 @@
 5. For a superset/superseded historical PR, keep its branch/commits; document preserved unique requirements and evidence before closing.
 
 ## Next bounded audit cycle
-- Reconcile #516's unique `scripts/audit-oneplus-json-transfer.mjs` read-only family/hive warning into current main without copying stale docs and with full tests.
+- No #516 port is required: current main already contains the exact guarded read-only behavior and tests. Select next root candidate only after fresh-source comparison.
 - Work down remaining 38 root candidates with code/semantic review, exact-head CI and conflict checks; classify as MERGEABLE_SAFE, SELECTIVE_PORT, BLOCKED or SUPERSEDED with detailed evidence.
 - Resolve 358 stacked branches topologically only after their parent chains and critical data invariants are reviewed.
-- Update the live census, `PROJECT_STATUS.md`, journal, and metrics after each verified macrocycle. No false claim of fully clearing 396 PRs.
+- Update the live census, `PROJECT_STATUS.md`, journal, and metrics after each verified macrocycle. No false claim of complete enumeration or of deeply clearing 396 indexed PRs.
 
 **Release not authorized; no user data, branches, original video, deployment or device were modified.**
