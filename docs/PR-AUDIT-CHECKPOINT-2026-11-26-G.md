@@ -1,6 +1,6 @@
 # PR audit — continuation G (26 November 2026)
 
-**Live main confirmed:** `10a77e046d1120d7f8286cd6cdbb3cb8348c99b7` (compare with branch `main` identical before this audit). This checkpoint is an evidence-led **review of #43 and #8**, not a claim that all 397 open PR diffs are semantically reviewed.
+**Main before audit:** `10a77e046d1120d7f8286cd6cdbb3cb8348c99b7`. **Main after user-approved #570 merge:** `5abcf8e78e22cfeb3550cb2540955412740a64be`. This checkpoint is an evidence-led **review of #43 and #8**, not a claim that all 397 open PR diffs are semantically reviewed.
 
 ## P1 inspection journal (#43) — confirmed defect, corrected in current-main Draft #570
 
@@ -14,8 +14,8 @@
 
 - First exact-head Android run #45882146183 **FAIL** due to two isolated synthetic test fixture `S` injections; 939/941 passed.
 - Corrected exact HEAD `267253f55d166d34783cdfd4188f6933e9398e1f`: Android [#45882313294](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45882313294) **SUCCESS**, **941/941** Node tests, Gradle **BUILD SUCCESSFUL**, debug APK signer/byte safety audit SUCCESS and artifact uploaded.
-- Diff against verified main is **6 files**, ahead 8/behind 0, mergeable. **Not merged**, `CI_VERIFIED_EXACT_SHA / READY_FOR_MERGE_REVIEW` awaiting separate merge approval per `AGENTS.md`. Full real OnePlus installation NOT_TESTED; Fast Quality standalone not run on this pull request.
-- Do not close old #43 until unique functionality and physical compatibility are reconciled after a permitted current-main integration. Do not copy its old Wrangler preview configuration blindly.
+- Diff against verified main is **6 files**, ahead 8/behind 0, mergeable. **MERGED with explicit user approval** as `5abcf8e78e22cfeb3550cb2540955412740a64be` after exact-head CI; state `IN_MAIN / NOT_DEVICE_TESTED`. Full real OnePlus installation NOT_TESTED; Fast Quality standalone not run on this pull request.
+- Do not close old #43 until all unrelated unique functionality and physical compatibility are reconciled; #570 integration itself is now confirmed. Do not copy its old Wrangler preview configuration blindly.
 
 ## P0 startup data loss (#8) — confirmed structural gap, NOT yet fixed
 
@@ -32,7 +32,7 @@
 4. Preserve hard-blocked `deleteAllData`, `entrance_media` Blob stores, `startupWriteGate`, transactional commit, schema-15 migrations, SW behavior and user data. No production restore/mutation.
 5. The marker cannot prove recovery if both IndexedDB and localStorage (or analogous settings storage) are cleared together. Full external archive remains B01 blocked; do not claim perfect data-loss protection.
 
-**#8: REVIEW_REQUIRED / P0_CONFIRMED_GAP; no new fix created in this checkpoint**, to avoid two simultaneous competing `index.html` changes while #570 is pending. This is a safe ordered dependency, not abandonment.
+**#8: REVIEW_REQUIRED / P0_CONFIRMED_GAP; no new fix created in this checkpoint**, to avoid two simultaneous competing `index.html` changes before #570 integrated. #570 is now IN_MAIN; P0 may proceed in a fresh branch. This is a safe ordered dependency, not abandonment.
 
 ## Evidence integrity and further work
 - Last open-PR census in [checkpoint F](PR-AUDIT-CHECKPOINT-2026-11-26-F.md) was 397 at snapshot time, and current membership must be reread before any PR merge/closure; no full 397-patch review is claimed.
