@@ -386,5 +386,24 @@
       45868598762
     ],
     "readyForMergeReview": true
+  },
+  "prPortfolioAudit20261126": {
+    "sourceMainSha": "58386465d5e8619a9e31c5df85967538ef309418",
+    "initialOpen": 417,
+    "afterConfirmedSupersede": 413,
+    "mainBasedReviewedFilePaths": 54,
+    "stackedPr": 359,
+    "stacksWithoutOpenParent": 69,
+    "confirmedClosed": [
+      425,
+      445,
+      446,
+      450
+    ],
+    "deepPatchReviewsAll": false,
+    "completedVerifiedUserScenarios": 0,
+    "ci": "PENDING_DOCS_GOVERNANCE",
+    "physicalDevice": "NOT_TESTED",
+    "productionActions": 0
   }
 }
