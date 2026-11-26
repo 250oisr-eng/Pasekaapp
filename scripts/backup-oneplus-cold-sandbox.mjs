@@ -45,6 +45,11 @@ function isStopped(pidof){
 async function checkStopped(command,serial){
  const r=await limitedProcess(command,adb(serial,['shell','pidof',PACKAGE]));
  if(!isStopped(r))throw Error('APP_MUST_BE_STOPPED_MANUALLY');
+ const ps=await limitedProcess(command,adb(serial,['shell','ps','-A','-o','NAME']));
+ if(ps.code!==0||ps.overflow||!ps.stdout.includes('NAME'))throw Error('PROCESS_INVENTORY_UNAVAILABLE');
+ if(ps.stdout.split(/\r?\n/).some(line=>{
+   const name=line.trim();return name===PACKAGE||name.startsWith(PACKAGE+':');
+ }))throw Error('APP_MUST_BE_STOPPED_MANUALLY');
 }
 async function checkReadable(command,serial){
  const r=await limitedProcess(command,adb(serial,['shell','run-as',PACKAGE,'pwd']));
@@ -104,10 +109,8 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}=
  const temp=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.tar.partial');
  const final=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.tar');
  const reportFile=join(root,'PASEKA-ONEPLUS-SANDBOX-'+id+'.json');
- let staged=false;
  try{
   const streamed=await streamArchive(adbCommand,serial,temp);
-  staged=true;
   await checkStopped(adbCommand,serial);
   const validated=await verifyTar(temp);
   // This is an app-private cold file snapshot. It is NOT an independent
