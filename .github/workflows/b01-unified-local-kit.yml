@@ -84,6 +84,7 @@ jobs:
             $PSNativeCommandUseErrorActionPreference = $false
             $raw = & ./node.exe scripts/run-unified-recovery-audit.mjs
             $exit = $LASTEXITCODE
+            Write-Host "B01_OFFLINE_SMOKE_EXIT=$exit"
             if ($exit -ne 2) { throw 'B01_RUNNER_FALSIFIED_SUCCESS_OR_FAILURE' }
             $result = ($raw -join "`n") | ConvertFrom-Json
             if ($result.overall -ne 'BLOCKED_MISSING_LOCAL_EVIDENCE' -or
@@ -91,6 +92,9 @@ jobs:
                 $result.installationAuthorized -ne $false) {
               throw 'B01_OFFLINE_SMOKE_UNSAFE_RESULT'
             }
+            # GitHub's PowerShell wrapper exits using LASTEXITCODE even when
+            # the intentionally blocked command was asserted successfully.
+            $global:LASTEXITCODE = 0
           } finally { Pop-Location }
       - name: Upload owner-only local audit kit, no user data
         uses: actions/upload-artifact@v4
