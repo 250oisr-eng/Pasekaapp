@@ -342,3 +342,47 @@ test('tampered TAR header is rejected by checksum without disclosing archived fi
  assert.equal(c.valid,false);
  assert.equal(c.reason,'INVALID_HEADER_CHECKSUM_FIELD');
 });
+
+test('offline forensic TAR resync finds a 230-byte inserted segment without changing original',{skip:process.platform==='win32'},async t=>{
+ const root=await mkdtemp(join(tmpdir(),'paseka-tar-shift-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const src=join(root,'src');await mkdir(src);
+ await writeFile(join(src,'first.bin'),Buffer.alloc(64,21));
+ await writeFile(join(src,'second.bin'),Buffer.alloc(45,99));
+ const tar=join(root,'original.tar.partial');
+ execFileSync('tar',['-cf',tar,'-C',src,'.']);
+ const original=await readFile(tar);
+ // A GNU tar with root-dir header and first-file header. Walk to the
+ // second file header without relying on filename disclosure.
+ let offset=0;
+ for(let n=0;n<2;n++){
+  const h=headerCheck(original.subarray(offset,offset+512));
+  assert.equal(h.valid,true);
+  offset+=512+Math.ceil(h.payload/512)*512;
+ }
+ assert.equal(headerCheck(original.subarray(offset,offset+512)).valid,true);
+ const shifted=join(root,'shifted.tar.partial');
+ const injected=Buffer.alloc(230,0x51);
+ await writeFile(shifted,Buffer.concat([original.subarray(0,offset),injected,original.subarray(offset)]));
+ const out=await inspectPartial(shifted);
+ assert.equal(out.status,'TAR_INCOMPLETE_OR_INVALID');
+ assert.equal(out.reason,'INVALID_HEADER_CHECKSUM_FIELD');
+ assert.equal(out.invalidHeaderOffset,offset);
+ assert.ok(out.resyncCandidateShifts.includes(230));
+ assert.equal(out.headersVerified,2);
+ assert.equal(out.remainder512,230);
+ assert.equal(out.contentsExtracted,false);
+ assert.deepEqual(await readFile(tar),original);
+});
+test('offline partial inspector exposes no archive names in JSON',{skip:process.platform==='win32'},async t=>{
+ const root=await mkdtemp(join(tmpdir(),'paseka-tar-private-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const src=join(root,'src');await mkdir(src);
+ const privateFile='not-for-chat-private-apiary-events.txt';
+ await writeFile(join(src,privateFile),'private');
+ const tar=join(root,'local.tar.partial');
+ execFileSync('tar',['-cf',tar,'-C',src,'.']);
+ const report=JSON.stringify(await inspectPartial(tar));
+ assert.ok(!report.includes(privateFile));
+ assert.ok(!report.includes(src));
+});
