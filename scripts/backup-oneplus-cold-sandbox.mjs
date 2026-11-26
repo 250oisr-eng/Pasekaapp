@@ -6,6 +6,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {pathToFileURL} from 'node:url';
+import {probeProcess} from './oneplus-process-probe.mjs';
 
 const PACKAGE='ru.paseka.journal';
 const MAX_CAPTURE=1024*1024;
@@ -42,18 +43,11 @@ function limitedProcess(command,args,{max=MAX_CAPTURE}={}){
  });
 }
 function adb(serial,options){return ['-s',serial,...options];}
-function isStopped(pidof){
-  // Android pidof returns status 1 for a missing process; other failures stop.
-  return pidof.code===1&&!pidof.stdout.trim()&&!pidof.overflow;
-}
 async function checkStopped(command,serial){
- const r=await limitedProcess(command,adb(serial,['shell','pidof',PACKAGE]));
- if(!isStopped(r))throw Error('APP_MUST_BE_STOPPED_MANUALLY');
- const ps=await limitedProcess(command,adb(serial,['shell','ps','-A','-o','NAME']));
- if(ps.code!==0||ps.overflow||!ps.stdout.includes('NAME'))throw Error('PROCESS_INVENTORY_UNAVAILABLE');
- if(ps.stdout.split(/\r?\n/).some(line=>{
-   const name=line.trim();return name===PACKAGE||name.startsWith(PACKAGE+':');
- }))throw Error('APP_MUST_BE_STOPPED_MANUALLY');
+ const check=await probeProcess(command,serial);
+ if(check.state==='ABSENT')return;
+ if(check.state==='PRESENT')throw Error('APP_MUST_BE_STOPPED_MANUALLY');
+ throw Error('PROCESS_INVENTORY_UNAVAILABLE');
 }
 // A force-stop is an opt-in local operational action, never the default.
 // It interrupts the app and may discard UNSAVED work, even though it does
