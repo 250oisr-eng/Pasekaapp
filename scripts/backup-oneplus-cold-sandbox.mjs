@@ -79,18 +79,31 @@ async function verifyTar(archivePath){
  const indexedDb=lines.some(x=>x.includes('/IndexedDB/')||x.includes('/indexeddb/'));
  return {entries:lines.length,indexedDbPresent:indexedDb};
 }
+// Only publish bounded stage evidence; stderr is never printed because it
+// may contain user filenames or device-internal paths.
+function transferFailure(code,{tarExitCode=null,transferredBytes=0,stderrSeen=false}={}){
+ const e=Error(code);
+ e.safeEvidence={stage:'ANDROID_TAR_TRANSFER',tarExitCode:Number.isInteger(tarExitCode)?tarExitCode:null,
+   transferredBytes:Number.isSafeInteger(transferredBytes)?transferredBytes:null,
+   stderrSeen:!!stderrSeen};
+ return e;
+}
 async function streamArchive(command,serial,output){
- let child=null,total=0;
+ let child=null,total=0,stderrBytes=0;
  const sha=createHash('sha256');
  try{
   const stream=createWriteStream(output,{flags:'wx',mode:0o600});
   child=spawn(command,adb(serial,['exec-out','run-as',PACKAGE,'tar','-cf','-','.']),{
     shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']
   });
-  let stderrBytes=0;
-  child.stderr.on('data',data=>{stderrBytes+=data.length;if(stderrBytes>MAX_CAPTURE)child.kill();});
+  child.stderr.on('data',data=>{
+   stderrBytes+=data.length;
+   if(stderrBytes>MAX_CAPTURE)child.kill();
+  });
   const done=new Promise((resolve,reject)=>{
-    child.once('error',()=>reject(Error(FAIL)));
+    child.once('error',()=>reject(transferFailure('ANDROID_TAR_START_FAILED',{
+      transferredBytes:total,stderrSeen:stderrBytes>0
+    })));
     child.once('close',code=>resolve(code));
   });
   const tap=new Transform({transform(chunk,_enc,cb){
@@ -98,9 +111,25 @@ async function streamArchive(command,serial,output){
     if(total>MAX_ARCHIVE){child.kill();cb(Error('ARCHIVE_LIMIT_EXCEEDED'));return;}
     sha.update(chunk);cb(null,chunk);
   }});
-  await pipeline(child.stdout,tap,stream);
+  let streamError=null;
+  try{await pipeline(child.stdout,tap,stream);}
+  catch(error){streamError=error;}
   const exit=await done;
-  if(exit!==0||stderrBytes>MAX_CAPTURE||total<1024||total%512!==0)throw Error('DEVICE_TAR_EXPORT_FAILED');
+  if(streamError)throw transferFailure('ANDROID_TAR_STREAM_FAILED',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+  });
+  if(stderrBytes>MAX_CAPTURE)throw transferFailure('ANDROID_TAR_STDERR_LIMIT',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:true
+  });
+  if(exit!==0)throw transferFailure('ANDROID_TAR_COMMAND_FAILED',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+  });
+  if(total<1024)throw transferFailure('ANDROID_TAR_EMPTY_OR_TOO_SMALL',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+  });
+  if(total%512!==0)throw transferFailure('ANDROID_TAR_ALIGNMENT_INVALID',{
+    tarExitCode:exit,transferredBytes:total,stderrSeen:stderrBytes>0
+  });
   const synced=await open(output,'r');
   try{await synced.sync();}finally{await synced.close();}
   return {bytes:total,sha256:sha.digest('hex')};
@@ -168,6 +197,7 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
  },e=>{
   console.log(JSON.stringify({schema:'paseka-oneplus-cold-sandbox-backup-v1',
    status:'BLOCKED',code:/^[A-Z_]+$/.test(e.message)?e.message:FAIL,
+   evidence:e.safeEvidence||null,
    originalsDeleted:false,installedApplicationChanged:false,independentPhysicalRestoreVerified:false}));
   process.exitCode=1;
  });
