@@ -1,0 +1,16 @@
+# B05: private signing keys, local signing configurations, secrets.
+# Do not place original keystores or passwords in source control.
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pkcs12
+**/key.properties
+**/keystore.properties
+.env
+.env.*
+!.env.example
+
+# Local user exports, reports and temporary signing artifacts.
+**/oneplus-signer-result*.json
+**/private-signing-report*.json
