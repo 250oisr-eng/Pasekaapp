@@ -187,5 +187,18 @@
     "completedVerifiedUserScenarios": 0,
     "scenariosEvidence": "Documentation governance refactor only; no user-device scenario or physical data migration attempted. Repeated reads NOT_MEASURED.",
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
+  },
+  "latestOnePlusColdBackupWork": {
+    "id": "b01-oneplus-user-approved-stop-20261126",
+    "pr": 543,
+    "source": "Two real OnePlus reports APP_MUST_BE_STOPPED_MANUALLY despite manual stop",
+    "completedVerifiedUserScenarios": 0,
+    "deviceBackupStatus": "NOT_VERIFIED",
+    "independentAndroidRestore": "NOT_VERIFIED",
+    "userConsentRequired": true,
+    "userDataDeleted": false,
+    "repeatedDocumentReads": null,
+    "ciRuns": [],
+    "notes": "One-time explicit GUI consent default No; targeted ADB force-stop fixed package only if running. No actual OnePlus retry evidence yet."
   }
 }
