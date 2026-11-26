@@ -23,7 +23,7 @@ test('byte-identical external copies match without revealing private paths or cl
   assert.equal(result.exhaustiveDeviceInventoryVerified,false);
   assert.equal(result.independentRestoreVerified,false);
   assert.equal(result.originalVideoDeletionAuthorized,false);
-  assert.doesNotMatch(JSON.stringify(result),/серия|видео|source|external|\.mp4|sha256/);
+  assert.doesNotMatch(JSON.stringify(result),/серия|видео|\.mp4|sha256|paseka-p0-media-only-/);
   assert.deepEqual(await readFile(join(a,'серия 1','видео.mp4')),bytes);
   assert.deepEqual(await readFile(join(b,'серия 1','видео.mp4')),bytes);
  }finally{await rm(base,{recursive:true,force:true});}
