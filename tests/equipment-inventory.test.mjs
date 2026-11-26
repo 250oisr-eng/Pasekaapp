@@ -280,3 +280,17 @@ test('inventory integrity rejects missing or duplicate IDs in corpus movement jo
  global.id=saved.events[0].id;
  assert.ok(I.inspect(s,labels).some(error=>error.code==='duplicate_equipment_event_id'));
 });
+
+
+test('default Farrar profile keeps 180 mm frames distinct from 195 mm brood body height',()=>{
+ const appProfile=html.match(/'farrar-6x6-v1':\{([\s\S]*?)\n \},/);
+ assert.ok(appProfile,'default Farrar profile exists in the app catalog');
+ assert.match(appProfile[1],/frame:\{[^}]*heightMm:180/);
+ assert.match(appProfile[1],/brood:\{[^}]*boxHeightMm:195/);
+ assert.match(appProfile[1],/honey:\{[^}]*framesPerBox:10/);
+ const inventoryProfile=source.match(/const DEFAULT_PROFILE=\{([\s\S]*?)\};/);
+ assert.ok(inventoryProfile,'inventory fallback profile exists');
+ assert.match(inventoryProfile[1],/frame:\{[^}]*heightMm:180/);
+ assert.match(inventoryProfile[1],/brood:\{[^}]*boxHeightMm:195/);
+ assert.match(inventoryProfile[1],/honey:\{[^}]*framesPerBox:10/);
+});
