@@ -294,3 +294,26 @@ test('default Farrar profile keeps 180 mm frames distinct from 195 mm brood body
  assert.match(inventoryProfile[1],/brood:\{[^}]*boxHeightMm:195/);
  assert.match(inventoryProfile[1],/honey:\{[^}]*framesPerBox:10/);
 });
+
+
+test('legacy layout read-only audit reports unregistered physical body IDs without migration',()=>{
+ const s=fixture(),before=JSON.stringify(s);
+ const findings=I.auditLegacyLayoutBodyReferences(s);
+ assert.ok(findings.some(x=>x.code==='legacy_body_not_registered'&&x.details.hiveId==='h1'&&x.details.boxKey==='1'&&x.details.bodyId==='b1'&&x.severity==='warning'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('legacy layout audit flags malformed corpus maps and blank IDs without generating a body',()=>{
+ const s=fixture();
+ s.layouts.h1.corpusIds=[];
+ s.layouts.h2.corpusIds['1']='';
+ const before=JSON.stringify(s),findings=I.auditLegacyLayoutBodyReferences(s);
+ assert.ok(findings.some(x=>x.code==='invalid_layout_corpus_references'&&x.details.hiveId==='h1'&&x.severity==='error'));
+ assert.ok(findings.some(x=>x.code==='invalid_layout_body_reference'&&x.details.hiveId==='h2'&&x.details.boxKey==='1'&&x.severity==='error'));
+ assert.equal(JSON.stringify(s),before);
+});
+test('legacy body references with unknown physical specification are warnings, not silent repaired records',()=>{
+ const s=fixture();s.equipmentInventory={bodies:{b1:{id:'b1',kind:'brood',spec:null}}};
+ const before=JSON.stringify(s),findings=I.auditLegacyLayoutBodyReferences(s);
+ assert.ok(findings.some(x=>x.code==='registered_body_spec_unknown'&&x.details.bodyId==='b1'&&x.severity==='warning'));
+ assert.equal(JSON.stringify(s),before);
+});
