@@ -135,7 +135,7 @@ export async function runBackup(dest,{adbCommand=process.env.PASEKA_ADB||'adb'}=
  }
 }
 if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.url){
- runBackup(parseArgs(process.argv.slice(2)).dest).then(r=>{
+ Promise.resolve().then(()=>runBackup(parseArgs(process.argv.slice(2)).dest)).then(r=>{
   console.log(JSON.stringify(r,null,2));
   process.exitCode=2; // full physical independent restore never claimed
  },e=>{
