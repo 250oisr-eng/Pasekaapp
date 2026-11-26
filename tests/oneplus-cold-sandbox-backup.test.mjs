@@ -275,6 +275,7 @@ test('nonzero Android tar exit is reported with safe stage and bytes, private st
      assert.equal(err.safeEvidence.stage,'ANDROID_TAR_TRANSFER');
      assert.equal(typeof err.safeEvidence.transferredBytes,'number');
      assert.equal(err.safeEvidence.stderrSeen,mode!=='tar_tiny');
+     assert.equal(err.safeEvidence.stderrCategory,mode==='tar_tiny'?'NONE':'OTHER_REDACTED');
      assert.ok(!JSON.stringify(err.safeEvidence).includes('private/internal'));
      return true;
    });
@@ -292,4 +293,12 @@ test('physical failure code remains specific in Windows stdout JSON, not raw std
  assert.doesNotMatch(source,/console\.error\(.*stderr/i);
  assert.match(source,/ANDROID_TAR_COMMAND_FAILED/);
  assert.match(source,/ANDROID_TAR_ALIGNMENT_INVALID/);
+});
+
+test('Windows wrapper exposes only redacted TAR failure category and counts',async()=>{
+ const ps=await readFile(new URL('../tools/b01-oneplus-cold-backup/choose-backup-destination.ps1',import.meta.url),'utf8');
+ assert.match(ps,/Tar exit code:/);
+ assert.match(ps,/Bytes received:/);
+ assert.match(ps,/Tar stderr category:/);
+ assert.match(ps,/Private stderr, filenames and source paths are intentionally withheld/);
 });
