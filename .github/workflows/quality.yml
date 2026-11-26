@@ -2,6 +2,13 @@ name: Fast quality checks
 
 on:
   workflow_dispatch:
+  # Verify the QA verifier itself on an exact PR head without duplicating
+  # the full Fast quality suite for every unrelated application PR.
+  pull_request:
+    paths:
+      - '.github/workflows/quality.yml'
+      - 'scripts/qa-tap-evidence.mjs'
+      - 'tests/qa-tap-evidence.test.mjs'
   push:
     paths:
       - 'index.html'
