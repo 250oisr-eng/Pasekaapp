@@ -25,10 +25,10 @@ test('absent package inventory is successful, not a failed pm path command',()=>
  assert.equal(parsePackagePresence('',PACKAGE),false);
  assert.equal(parsePackagePresence('\n',PACKAGE),false);
  assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2\n',PACKAGE),true);
- assert.equal(parsePackagePresence('package:ru.paseka.journal\n',MAIN_PACKAGE),true);
+ assert.equal(parsePackagePresence('package:ru.paseka.journal\n','ru.paseka.journal'),true);
  // Android substring-filtered output may include a different package, not ours.
  assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2.debug\n',PACKAGE),false);
- assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2\n',MAIN_PACKAGE),false);
+ assert.equal(parsePackagePresence('package:ru.paseka.journal.disasterproof2\n','ru.paseka.journal'),false);
  for(const value of ['Error: permission denied','package:../bad','package:ok\nFailure [no service]']){
   assert.throws(()=>parsePackagePresence(value,PACKAGE),/ADB_PACKAGE_QUERY_UNTRUSTED/);
  }
