@@ -638,6 +638,28 @@ function validateJournalRecordDraft(draft,state,existingRecord=null){
 }
 function isFreshDatabaseUpgrade(oldVersion){return oldVersion===0}
 function canInitializeFreshDatabase(databaseCreated,loadedState){return databaseCreated===true&&loadedState==null}
+const STARTUP_USE_MARKER_KEY='paseka:previously-used:v1';
+function readStartupUseMarker(storageProvider=()=>window.localStorage){
+ try{
+  const value=storageProvider().getItem(STARTUP_USE_MARKER_KEY);
+  return value===null?'absent':value==='1'?'present':'invalid';
+ }catch(error){return 'unavailable'}
+}
+function persistStartupUseMarker(storageProvider=()=>window.localStorage){
+ try{
+  const storage=storageProvider();
+  storage.setItem(STARTUP_USE_MARKER_KEY,'1');
+  return storage.getItem(STARTUP_USE_MARKER_KEY)==='1';
+ }catch(error){return false}
+}
+function requireFirstRunConsent(databaseCreated,loadedState,markerState,confirmFirstUse){
+ if(loadedState!=null)return false;
+ if(!canInitializeFreshDatabase(databaseCreated,loadedState))throw new Error('Обнаружена существующая локальная база без основной записи и полной автокопии. Автоматическая инициализация остановлена, чтобы не скрыть возможную потерю данных. Не очищай хранилище; сначала проверь резервный JSON-архив.');
+ if(markerState==='present')throw new Error('Ранее приложение уже использовалось, но основная база и автокопия исчезли. Создание пустой пасеки заблокировано во избежание потери истории. Не очищай данные и проверь внешний архив.');
+ if(markerState!=='absent')throw new Error('Не удалось достоверно проверить маркер предыдущего использования пасеки. Создание пустой базы заблокировано. Проверь доступ к локальному хранилищу и резервный архив.');
+ if(typeof confirmFirstUse!=='function'||confirmFirstUse('ВНИМАНИЕ: не найдены основная база пасеки и её автокопия. Создание пустой пасеки не восстанавливает прежние записи, фотографии и видео. Если ранее пользовался приложением на этом устройстве, нажми «Отмена» и сначала проверь архивы. Подтверждаешь, что это действительно первый запуск новой пасеки?')!==true)throw new Error('Первый запуск без данных не подтверждён. Пустая пасека не создана; не очищай хранилище и проверь резервные копии.');
+ return true;
+}
 function rejectWhileStartupNotReady(){if(startupWriteGate.ready)return null;const error=new Error('Запись запрещена: запуск приложения не завершён или локальная база не прошла проверку. Не очищай хранилище.');error.name='PasekaStartupBlockedError';return error}
 function showStartupFailure(error){
  startupWriteGate.ready=false;
@@ -4296,7 +4318,8 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   let startupMain=null;try{startupMain=await readMain()}catch(e){}
   const startupExpectedRevision=startupMain?.meta?.revisionId||null;
   const loaded=await read();
-  if(!loaded&&!canInitializeFreshDatabase(databaseCreatedDuringOpen,loaded))throw new Error('Обнаружена существующая локальная база без основной записи и полной автокопии. Автоматическая инициализация остановлена, чтобы не скрыть возможную потерю данных. Не очищай хранилище; сначала проверь резервный JSON-архив.');
+  // A new IndexedDB is not proof of a first install. Keep the write gate closed until consent.
+  const firstRunConfirmed=requireFirstRunConsent(databaseCreatedDuringOpen,loaded,readStartupUseMarker(),message=>window.confirm(message));
   if(loaded){
    try{S=assertRawBackupIntegrity(validateBackupState(loaded))}
    catch(primaryError){
@@ -4323,6 +4346,11 @@ async function updateStorageEstimate(){const host=$('storageUsage');if(!host)ret
   }
   if(!S.meta.revisionId){S.meta=S.meta||{};S.meta.revisionId=uid();migrated=true}
   if(migrated||startupRecoveryPending){S.meta.revisionId=uid();S.meta.updatedAt=new Date().toISOString();await commitStartupState(S,startupExpectedRevision,startupRecoveryPending)}
+  // Only a validated and durably committed main record may mark prior use.
+  // Never write this marker on a failed or unconfirmed fresh startup.
+  const verifiedMain=await readMain();
+  if(!verifiedMain||verifiedMain?.meta?.revisionId!==S.meta.revisionId)throw new Error('После запуска не подтверждена сохранённая основная база. Маркер использования не записан; действия остановлены.');
+  if(!persistStartupUseMarker())throw new Error('Основная база проверена, но не удалось закрепить маркер предыдущего использования. Запуск остановлен, данные не очищались.');
   lastPersistedRevision=S.meta.revisionId||null;
   S.extractions=S.extractions||[];S.tasks=S.tasks||[];
   try{const existingBackup=await readAutoBackup();await ensureAutomaticBackup(S,existingBackup)}catch(e){S.meta=S.meta||{};S.meta.autoBackupError=e&&e.name==='QuotaExceededError'?'Недостаточно места для полной резервной копии':'Не удалось проверить или обновить полную резервную копию'}
