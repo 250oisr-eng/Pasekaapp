@@ -189,15 +189,15 @@
     "notes": "Reform pilot is not included in the postReformCycles comparison to avoid self-selection bias. Later docs-only HEAD requires code-vs-docs compare."
   },
   "latestOnePlusColdBackupWork": {
-    "id": "b01-strict-encoded-tar-transport-20261126",
+    "id": "b01-encoded-transport-zero-byte-preflight-20261126",
     "pr": 543,
-    "source": "Real OnePlus TAR partial: driftTrace 17 shift events, cumulative 24, NO_UNIQUE_NEARBY_HEADER, length 5122278",
-    "deviceBackupStatus": "INVALID_PARTIAL_TAR",
+    "source": "Real OnePlus Base64 transport: Force-stop NO, exit=0, decoded bytes=0, stderr false, generic DEVICE_BACKUP_BLOCKED",
+    "deviceBackupStatus": "BLOCKED_BASE64_ZERO_DECODED",
     "completedVerifiedUserScenarios": 0,
     "independentAndroidRestore": "NOT_VERIFIED",
     "userDataDeleted": false,
     "repeatedDocumentReads": null,
     "ciRuns": [],
-    "notes": "Replaced raw ADB tar stdout with strict base64 and full TAR structure/end markers validation; physical retry not yet verified; original partial untouched."
+    "notes": "Fixed numbered error code masking; reports sanitized encoded byte count and decoder cause; read-only exact sh/pipefail/base64 preflight before reading app-private data."
   }
 }
