@@ -937,6 +937,18 @@
         "name": "Governance Docs Checks",
         "conclusion": "success",
         "checkedHead": "e8a6d7004a1ee26a4d0f1fd8c31b25baf56b8352"
+      },
+      {
+        "id": 45896737579,
+        "name": "Build Android APK",
+        "conclusion": "success",
+        "checkedHead": "45328a522ed3950155bf7f317090c8919395032a"
+      },
+      {
+        "id": 45896737571,
+        "name": "Governance Docs Checks",
+        "conclusion": "success",
+        "checkedHead": "45328a522ed3950155bf7f317090c8919395032a"
       }
     ],
     "pr": 593,
@@ -947,6 +959,11 @@
       "pass": 998,
       "fail": 0,
       "skipped": 0
-    }
+    },
+    "finalPrHead": "45328a522ed3950155bf7f317090c8919395032a",
+    "mergeSha": "72cd8279d0f1cdcfa06fd84594845d31132abe31",
+    "integration": "IN_MAIN",
+    "publication": "NOT_RELEASED",
+    "postMergeRuntimeInspection": "LABELS_ACTIVE_NAV_CAPTIONS_VERIFIED"
   }
 }

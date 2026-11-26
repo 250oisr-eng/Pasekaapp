@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified source main `4eed81f328cff7541333f28a4d189e89c561c64b` after #591.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · verified main `72cd8279d0f1cdcfa06fd84594845d31132abe31` after #593.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -39,6 +39,6 @@
 
 ## Следующий конкретный шаг
 
-**#593 Draft / CI_VERIFIED_CODE_SHA:** доступность «Новый улей», aria-current, контраст из #187. Кодовый SHA `e8a6d7004a1ee26a4d0f1fd8c31b25baf56b8352`: Android #45896507260 — Node 998/998, APK/sign SUCCESS; Governance #45896507237 SUCCESS. После кодового SHA только docs, итоговый CI проверить отдельно. Browser/OnePlus NOT_TESTED; не переносить honeycomb, #442/B07 не менять. Требуется отдельное разрешение на merge.
+**#593 MERGED / IN_MAIN:** `72cd8279d0f1cdcfa06fd84594845d31132abe31` — имена и подписи полей «Новый улей», `aria-current` навигации и контраст сводки. Exact PR HEAD `45328a522ed3950155bf7f317090c8919395032a`: Android #45896737579 (998/998, APK/sign), Governance #45896737571 SUCCESS. Live main HTML verified, не release; экранный диктор/OnePlus NOT_TESTED. #187 OPEN/PARTIALLY_PORTED.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
