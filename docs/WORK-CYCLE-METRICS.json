@@ -1538,5 +1538,37 @@
     ],
     "deletedBranches": 0,
     "archiveLimitMiB": 256
+  },
+  "b01ComprehensiveLocalQa20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "branch": "test/b01-comprehensive-device-acceptance-20261127",
+    "baseMainSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
+    "scope": "two daily local ZIPs + one restore button, no external JSON/SAF requirement",
+    "nodeTests": "NOT_VERIFIED",
+    "chromium": "NOT_VERIFIED",
+    "android": "NOT_VERIFIED",
+    "knownPriorEvidence": {
+      "verifiedCodeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
+      "nodePass": 1054,
+      "artifactId": 15193929646,
+      "package": "ru.paseka.journal.qa.daily",
+      "apkSha256": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
+    },
+    "device": "NOT_TESTED",
+    "deviceGates": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7",
+      "G8"
+    ],
+    "naturalDayRequired": true,
+    "noTimeManipulation": true,
+    "noRealData": true,
+    "productionUnchanged": true
   }
 }
