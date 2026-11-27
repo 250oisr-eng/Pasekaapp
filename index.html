@@ -680,6 +680,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 <script>
 const DB='paseka-v1',STORE='main',BACKUP_STORE='full_backup';
 const STARTUP_USE_MARKER_KEY='paseka:previously-used:v1';
+let honeyPairSaving=false;
 function logAudit(type,details={}){S.auditLog=S.auditLog||[];S.auditLog.push({id:uid(),type,at:new Date().toISOString(),...details});if(S.auditLog.length>500)S.auditLog=S.auditLog.slice(-500)}let corpusMoveTargets=[];let startupWriteGate={ready:false};let db,activeJournalHive='',selectedHiveId='',tabHistory=[],showHiveList=true,autoBackupInfo=null,autoBackupRecovered=false,startupRecoveryPending=false,storagePersisted=null,storageEstimate=null,lastPersistedRevision=null;let saveQueue=Promise.resolve();let plantRecognition=null,pendingPlantMedia=[],pendingIncidentMedia=[],pendingDeadoutMedia=[];let pendingRecordMedia=[],cameraStream=null,videoRecorder=null,videoChunks=[],videoTimer=null,videoCountdownInterval=null,videoCaptureFailed=false,videoCaptureBytes=0,videoCaptureStopping=false;let S={hives:[],families:[],records:[],snapshots:[],extractions:[],tasks:[],aiMessages:[],varroaObservations:[],pesticideIncidents:[],deadoutReviews:[],familyEvents:[],sectionalTechProcesses:[]};const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')},safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function journalBroodCapacity(hiveId,state=S){
  const hive=state?.hives?.find(item=>item?.id===hiveId);if(!hive)return null;
@@ -3796,6 +3797,7 @@ async function savePhysicalAssemblyMutation(previous){
  return false;
 }
 async function toggleHoneyPair(){
+ if(honeyPairSaving)return false;
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId);if(l.mode==='winter')return alert('Медовые корпуса не устанавливаются в зимней сборке. Сначала перейди в летний режим.');
  const on=l.honeyBoxInstalled.some(Boolean);
  if(on){
@@ -3804,13 +3806,16 @@ async function toggleHoneyPair(){
  }
  let previous;
  try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную перестановку: '+(error.message||error));return false}
+ honeyPairSaving=true;
  try{
-  if(on)l.honeyBoxInstalled=[false,false];
-  else l.honeyBoxInstalled=[true,true];
-  l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
-  logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
- }catch(error){S=previous;render();alert('Изменение медовых корпусов отменено: '+(error.message||error));return false}
- return savePhysicalAssemblyMutation(previous);
+  try{
+   if(on)l.honeyBoxInstalled=[false,false];
+   else l.honeyBoxInstalled=[true,true];
+   l.honeyInstalled=l.honeyBoxInstalled.every(Boolean);
+   logAudit(on?'honey_pair_removed':'honey_pair_installed',{hiveId,boxes:['H1','H2']});
+  }catch(error){S=previous;render();alert('Изменение медовых корпусов отменено: '+(error.message||error));return false}
+  return await savePhysicalAssemblyMutation(previous);
+ }finally{honeyPairSaving=false}
 }
 function toggleHoneyBox(){toggleHoneyPair()}
 function syncBoxOrigin(){const wrap=$('offshootParentWrap'),sel=$('offshootParent');if(!wrap||!sel)return;wrap.style.display=$('boxOrigin').value==='offshoot'?'block':'none'}

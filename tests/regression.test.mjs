@@ -3833,11 +3833,39 @@ test('queen actual introduction or replacement rejects future dates before any s
  assert.equal(state.queenEvents[0].date,null,'unknown historical introduction day is not invented');
 });
 
+test('honey-pair double activation produces one physical change while persistence is pending',async()=>{
+ let finishWrite, writes=0;
+ const deps={
+  S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
+  selectedStructureHive:()=> 'h',honeyPairSaving:false,alert(){},render(){},
+  save(){writes++;return new Promise(resolve=>{finishWrite=resolve})}
+ };
+ deps.layoutFor=id=>deps.S.layouts[id];
+ deps.cloneApiaryState=()=>structuredClone(deps.S);
+ deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+ deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+ const toggle=loadFunction('toggleHoneyPair',deps);
+ const first=toggle();
+ const repeated=toggle();
+ assert.equal(writes,1);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[true,true]);
+ finishWrite(false);
+ assert.equal(await first,false);
+ assert.equal(await repeated,false);
+ assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+ assert.deepEqual(deps.S.auditLog,[]);
+ const retry=toggle();
+ finishWrite(true);
+ assert.equal(await retry,true);
+ assert.equal(writes,2);
+ assert.deepEqual(deps.S.auditLog.map(event=>event.type),['honey_pair_installed']);
+});
+
 test('honey-pair state and audit both roll back when storage fails or rejects',async()=>{
  for(const failure of ['return_false','throws']){
   const deps={
    S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[],meta:{}},
-   selectedStructureHive:()=> 'h',renders:0,messages:[],
+   selectedStructureHive:()=> 'h',honeyPairSaving:false,renders:0,messages:[],
    alert(text){this.messages.push(text)},render(){this.renders++},
    save:async()=>{if(failure==='throws')throw new Error('test interrupted write');return false}
   };
@@ -3856,7 +3884,7 @@ test('honey-pair state and audit both roll back when storage fails or rejects',a
 test('honey-pair pre-commit audit rejection restores old layout without persisting',async()=>{
  let called=0;
  const deps={S:{layouts:{h:{mode:'summer',honeyBoxInstalled:[false,false],honeyInstalled:false,honeyFrames:[[],[]]}},auditLog:[]},
-  selectedStructureHive:()=> 'h',save:async()=>{called++;return true},render(){},alert(){}};
+  selectedStructureHive:()=> 'h',honeyPairSaving:false,save:async()=>{called++;return true},render(){},alert(){}};
  deps.layoutFor=id=>deps.S.layouts[id];
  deps.cloneApiaryState=()=>structuredClone(deps.S);
  deps.logAudit=()=>{throw new Error('audit unavailable')};
