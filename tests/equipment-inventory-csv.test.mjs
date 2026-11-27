@@ -130,3 +130,25 @@ test('ambiguous and missing inventory links block CSV instead of exporting false
  assert.equal(downloads,0);
  assert.match(alerts[0],/неоднозначно/);
 });
+
+test('export refuses stale visible DOM card IDs instead of emitting incomplete inventory CSV',()=>{
+ const fn=between('function exportFilteredInventoryCsv(){','function clearEquipmentInventoryFilters(){');
+ const sampleState={equipmentInventory:{bodies:{'body-1':sample()}}};
+ const host={querySelectorAll:()=>[{hidden:false,dataset:{inventoryId:'deleted-body'}}]};
+ let downloads=0,alerts=[];
+ const run=new Function('S','PasekaInventory','profileForHive','inventoryLocationLabel',
+  'inventoryBodyFrameCount','PasekaLabels','$','filterEquipmentInventory','buildInventoryCsv',
+  'URL','Blob','document','today','Date','setTimeout','alert',
+  fn+';return exportFilteredInventoryCsv;')(
+  sampleState,{locateBody:()=>{throw Error('must not resolve missing body')}},()=>null,()=> 'Склад',()=>6,
+  {formatLabelCode:(kind,x)=>x},()=>host,()=>{},build,
+  {createObjectURL:()=>{downloads++;return 'blob:invalid'},revokeObjectURL(){}},
+  class{}, {createElement:()=>({}),body:{appendChild(){}}},()=> '2026-11-27',Date,()=>{},
+  msg=>alerts.push(msg)
+ );
+ const before=JSON.stringify(sampleState);
+ run();
+ assert.equal(downloads,0);
+ assert.match(alerts[0],/Корпус больше не найден/);
+ assert.equal(JSON.stringify(sampleState),before);
+});
