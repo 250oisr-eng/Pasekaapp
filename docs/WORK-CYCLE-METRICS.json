@@ -2,6 +2,7 @@
   "videoEntranceResumed20261128": {
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "branch": "feat/video-entrance-resume-safe-20261128",
+    "pr": 654,
     "status": "IMPLEMENTED_DRAFT",
     "targetedRegressionAdded": 1,
     "fullNodeTests": null,
