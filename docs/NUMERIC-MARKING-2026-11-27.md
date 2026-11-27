@@ -27,3 +27,5 @@ Exact marking lookup retains clickable navigation through a live re-resolution, 
 ## Regression gate
 
 Intermediate 2f2c05c5: Node PASS; both Chromium E2E failed (#46064900228/#46064894361) on family search missing existing `data-kind=family`/permanent `data-id` navigation contract. Restored semantic kind and stable ID, separate marking code and live identity revalidation before opening. Added markup and stale-ID regression tests; original E2E remains unchanged. Exact latest CI reported in #651. No production changes.
+
+Accounting E2E on 37f1bc24 reached queen registration after corrected family navigation. Old fixture tried typing `QA-Q-OLD` in now read-only automatic serial field. Updated fixture to exercise approved automatic numbering and assert original/replacement codes are distinct and old code retained, while preserving invalid-future-date and reload checks. No skipped test or reduced validation. Governance length corrected in ae4846c0 (PASS #46065264779).

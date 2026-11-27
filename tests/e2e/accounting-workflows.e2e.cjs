@@ -78,14 +78,15 @@ async function journey(browser,origin){
   assert.equal(await page.locator('#hiveTechnicalView').evaluate(x=>x.open),true,'unfinished assembly stays accessible');
   // Queen: actual UI form first registration, negative future replacement, valid replacement.
   await page.evaluate(()=>openQueenForm(S.families[0].id));
-  await page.locator('#queenCodeInput').fill('QA-Q-OLD');
+  assert.equal(await page.locator('#queenCodeInput').evaluate(el=>el.readOnly),true,'new queen serial is automatic');
   await page.locator('#queenEventDate').fill('2026-11-12');
   await page.locator('#queenForm button.primary').click();
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.length),1);
+  const oldQueenCode=await page.evaluate(()=>S.queens[0].code);assert.match(oldQueenCode,/^М-[1-9][0-9]*$/u);
   await page.evaluate(()=>openQueenForm(S.families[0].id));
   await page.locator('#queenReplacementBtn').click();
-  await page.locator('#queenCodeInput').fill('QA-Q-NEW');
+  assert.equal(await page.locator('#queenCodeInput').evaluate(el=>el.readOnly),true,'replacement receives its own automatic serial');
   await page.locator('#queenEventDate').fill('2099-12-31');
   await page.locator('#queenForm button.primary').click();
   assert.equal(await page.locator('#queenDlg').isVisible(),true,'invalid future date must leave draft open');
@@ -95,6 +96,7 @@ async function journey(browser,origin){
   await page.locator('#queenForm button.primary').click();
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.filter(q=>q.status==='replaced').length),1);
+  const queenCodes=await page.evaluate(()=>S.queens.map(q=>({code:q.code,status:q.status})));assert.equal(queenCodes.find(q=>q.status==='replaced').code,oldQueenCode);const replacement=queenCodes.find(q=>q.status!=='replaced').code;assert.match(replacement,/^М-[1-9][0-9]*$/u);assert.notEqual(replacement,oldQueenCode);
   // Direct hive action opens an empty draft bound to the selected hive; cancel never writes.
   const beforeQuick=await page.evaluate(()=>JSON.stringify(S.records));
   for(const [width,height] of [[320,640],[390,844],[844,390]]){
