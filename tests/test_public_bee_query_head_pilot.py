@@ -5,6 +5,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]/"tools"))
 import run_public_bee_query_head_pilot as p
 
 class QueryHeadTests(unittest.TestCase):
+    def test_coco_frisbee_is_not_a_bee_class(self):
+        names = {i: name for i, name in enumerate(["person", "frisbee", "cat"] +
+                 [f"other {i}" for i in range(77)] + ["N/A"])}
+        self.assertEqual(p.validate_pretrained_labels(names), 80)
+        for label in ("bee", "Honey-Bee", "honeybee", "APIS_MELLIFERA"):
+            altered = dict(names)
+            altered[3] = label
+            with self.assertRaisesRegex(ValueError, "bee class"):
+                p.validate_pretrained_labels(altered)
+        with self.assertRaisesRegex(ValueError, "COCO"):
+            p.validate_pretrained_labels({0: "frisbee"})
+
     def test_video_partitions_do_not_reuse_source_digest(self):
         self.assertNotEqual(p.TRAIN_VIDEO[2],p.VIDEO[2])
         self.assertNotEqual(p.TRAIN_TRACKS[2],p.TRACKS[2])

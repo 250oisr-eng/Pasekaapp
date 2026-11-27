@@ -22,3 +22,6 @@
 Сначала прочитать фактический `PUBLIC_BEE_HEAD_REPORT` из CI, оценить proposal recall и качество trained head. Если recall слабый — не продолжать на том же архитектурном допущении, перейти к полноценному tile-aware detector fine-tune на проверенных публичных сессиях или CPU-feasible self-authored baseline. Не повторять синтетические проверки, не требовать съёмку владельца. Отдельный эталон направления нужен после реального детектора; 1194-event письмо может помочь, но не блокирует bbox pilot.
 
 **NO_MERGE / NO_RELEASE / NO_REAL_USER_DATA / NO_ORIGINAL_DELETE.** #442 остаётся safety gate.
+
+## 28.11 — первый CPU запуск и устранение ошибки
+[Run 46073069194](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46073069194), SHA `e65233f7d07ef2ad7030415d7eba5c545312dff1`: 5/5 contract tests PASS; actual stage FAIL before model forward on `unexpected pretrained class list`. Official pinned config lists COCO `frisbee` (class 34), not `bee`. The substring guard falsely matches `frisbee`. Replaced with exact normalized bee labels plus 80-category COCO sanity check; added regression. No experiment metrics were produced by the failed run. Retrying the identical fixed protocol without changing sources, sampling, training or thresholds.

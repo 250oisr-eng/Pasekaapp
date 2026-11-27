@@ -40,6 +40,21 @@ BASE = f"https://huggingface.co/Roboflow/rf-detr-nano/resolve/{REVISION}/"
 PROCESSOR_REVISION = "9f201577d9415f0378084748d27e68586e6b3600"
 
 
+def validate_pretrained_labels(labels):
+    """Match complete normalized labels, not arbitrary substrings (frisbee)."""
+    if not isinstance(labels, dict) or not labels:
+        raise ValueError("invalid pretrained class map")
+    normalized = {" ".join(str(value).lower().replace("-", " ").replace("_", " ").split())
+                  for value in labels.values()}
+    bee_names = {"bee", "bees", "honeybee", "honeybees", "honey bee", "honey bees",
+                 "bumblebee", "bumblebees", "bumble bee", "bumble bees", "apis mellifera"}
+    if normalized & bee_names:
+        raise ValueError("unexpected pretrained bee class")
+    if len(normalized - {"n/a"}) != 80 or not {"person", "frisbee", "cat"} <= normalized:
+        raise ValueError("unexpected pretrained COCO class map")
+    return len(normalized - {"n/a"})
+
+
 def load_tracks(path):
     frames = {}
     seen = set()
@@ -325,8 +340,7 @@ def run():
         model.eval()
         for parameter in model.parameters():
             parameter.requires_grad_(False)
-        if any("bee" in str(label).lower() for label in model.config.id2label.values()):
-            raise ValueError("unexpected pretrained class list")
+        report["pretrainedCocoClasses"] = validate_pretrained_labels(model.config.id2label)
         # Evaluation is not used to train, tune, select, or normalize the head.
         train_rows = extract_queries(model, processor, tiles(train_px, train_ids, train_refs))
         report["trainProposal"] = proposal_stats(train_rows)
