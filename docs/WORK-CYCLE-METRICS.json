@@ -2316,5 +2316,28 @@
       "sectionalChangesPreserved": true,
       "onePlus": "NOT_TESTED"
     }
+  },
+  "branchDependencyAudit20261128": {
+    "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+    "codeSha": "54c19b68073888572cbedba0a2743c0b557a36ca",
+    "branches": 671,
+    "openPr": 404,
+    "closedPr": 243,
+    "rootPr": 44,
+    "stackedPr": 351,
+    "orphanBasePr": 9,
+    "missingBaseRefs": 0,
+    "cycles": 0,
+    "maxPrDepth": 142,
+    "branchesWithoutOpenPr": 268,
+    "branchesWithoutAnyPr": 25,
+    "withMergedPr": 178,
+    "codeDependencyScripts": 25,
+    "duplicateScriptSources": 0,
+    "missingStaticScriptFiles": 0,
+    "isolatedOp02": true,
+    "cleanupDeletes": 0,
+    "fullReviewOfEachPr": false,
+    "additionalTestsPending": true
   }
 }
