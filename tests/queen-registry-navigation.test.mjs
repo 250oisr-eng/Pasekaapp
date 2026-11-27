@@ -49,3 +49,18 @@ test('queen registry blocks navigation and editing for duplicate hive identifier
  assert.equal(messages.filter(x=>x.includes('недоступна')).length,2);
  assert.equal(JSON.stringify(state),before);
 });
+
+test('queen registry blocks navigation on missing or malformed indices without exceptions',()=>{
+ const valid={queens:[{id:'q',familyId:'f',status:'current'}],families:[{id:'f',hive:'h',currentQueenId:'q'}],hives:[{id:'h'}],queenEvents:[]};
+ const api=new Function(source+';return queenRegistryFamily')();
+ assert.equal(api(valid,'q','f','h').id,'f');
+ for(const field of ['queens','families','hives']){
+  for(const damaged of [undefined,null,{},'invalid']){
+   const state={...valid,[field]:damaged};
+   const snapshot=JSON.stringify(state);
+   assert.equal(api(state,'q','f','h'),null,field+' malformed state must fail closed');
+   assert.equal(JSON.stringify(state),snapshot);
+  }
+ }
+ assert.equal(api(null,'q','f','h'),null);
+});
