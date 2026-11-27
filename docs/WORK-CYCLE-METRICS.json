@@ -1937,10 +1937,26 @@
     "repeatedDocumentReads": null
   },
   "b07UpperPairDraft20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "SUPERSEDED_BY_OWNER_CLARIFICATION",
     "pr": 649,
     "scope": "detached 4-2-4 upper pair and CAS adapter and read-only DOM",
     "baseSha": "0686bd4306b8f38ea153f1a12ec603cb8f08031a",
+    "nodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "ui": "BLOCKED_B07",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
+  },
+  "b07FullRemovalReview20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 649,
+    "scope": "owner contract + withdrawal of partial operation + full removal/independent install read-only review",
+    "baseSha": "51526b2c10e0b8c9bef521752f868e9ed555000a",
     "nodeTests": null,
     "ci": "NOT_VERIFIED",
     "device": "NOT_TESTED",

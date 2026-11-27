@@ -63,45 +63,50 @@ function inventoryReview(state,request,deps){
  }).map(p=>({pairId:p.pairId,bodyIds:p.bodyIds.slice()}));
  return {ok:true,layoutId:c.layout.id,purpose:stack.purpose,bodyCount:ids.length,installedPairs:installed.pairs,offers,pending};
 }
-// B07.2: an extraction review is a selection only. P38/OP08: do not
-// treat unsealed or unknown honey as harvest-ready; no record is created.
+// OP08 owner clarification: full removal only. Plans are read-only and
+// cannot be committed until the full physical state and replay validators exist.
 function extractionReview(state,request,deps){
  const v=inventoryReview(state,request,deps);if(!v.ok)return v;
- if(v.purpose!=='main')return fail('main_harvest_required');
- if(!unique(request.pairIds)||!request.pairIds.length||!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today||typeof request.kilograms!=='number'||!Number.isFinite(request.kilograms)||request.kilograms<=0)return fail('invalid_extraction_review');
- const selected=v.installedPairs.filter(p=>request.pairIds.includes(p.pairId));
- if(selected.length!==request.pairIds.length)return fail('selected_pair_not_installed');
- if(v.bodyCount!==4||v.pending.length||selected.length!==1||selected[0].pairId!==v.installedPairs[1].pairId)return fail('only_upper_pair_supported');
- const bodyIds=selected.flatMap(p=>p.bodyIds),frames=[];
+ if(!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today||v.pending.length)return fail('invalid_extraction_review');
+ if(!Number.isFinite(request.kilograms)||request.kilograms<=0)return fail('invalid_extraction_amount');
+ const allPairIds=v.installedPairs.map(p=>p.pairId);
+ if(request.pairIds!=null&&(!unique(request.pairIds)||request.pairIds.length!==allPairIds.length||!allPairIds.every(id=>request.pairIds.includes(id))))return fail('all_installed_honey_pairs_required');
+ const c=context(state,request.hiveId,deps);if(!c.ok)return c;
+ const excluders=rows(c.layout.honeyStack.excluders),excluderIds=excluders.map(x=>x?.itemId);
+ if(excluderIds.length!==2||!unique(excluderIds)||!['left','right'].every(side=>excluders.filter(x=>x?.side===side).length===1))return fail('both_excluders_required');
+ const bodyIds=v.installedPairs.flatMap(p=>p.bodyIds),sealed=[],unsealed=[],unknown=[];
  for(const bodyId of bodyIds){
-  const body=state.equipmentInventory.bodies[bodyId];
-  for(const frame of body.frames){
-   if(!['sealed','drawn','foundation','partial','extracted'].includes(frame.status))return fail('unsealed_or_unknown_frame_requires_review');
-   if(frame.status==='sealed')frames.push({bodyId,frameId:frame.frameId});
+  const frames=c.bodies[bodyId].frames;
+  if(frames.length!==10)return fail('full_frame_inventory_required');
+  for(const frame of frames){
+   const f={bodyId,frameId:frame.frameId};
+   if(frame.status==='sealed')sealed.push(f);
+   else if(frame.status==='nectar')unsealed.push(f);
+   else if(!['drawn','foundation','partial','extracted'].includes(frame.status))unknown.push(f);
   }
  }
- if(!frames.length)return fail('no_sealed_honey');
- return {ok:true,kind:'extraction_review',hiveId:request.hiveId,layoutId:v.layoutId,pairIds:selected.map(p=>p.pairId),bodyIds,frames,date:request.date,kilograms:request.kilograms};
+ if(!sealed.length)return fail('no_sealed_honey');
+ return {ok:true,kind:'full_removal_review',hiveId:request.hiveId,layoutId:v.layoutId,priorCount:v.bodyCount,targetCount:0,bodyIds,pairIds:allPairIds,excluderIds,sealedFrames:sealed,unsealedFrames:unsealed,unknownFrames:unknown,closureRequired:true,canCommit:false,date:request.date,kilograms:request.kilograms};
 }
-// B07.3: future sectional extraction records must carry physical IDs and
-// original layout ID. Legacy records never qualify. This reads existing
-// evidence only; it does not manufacture a pending record or return bodies.
-function returnReview(state,request,deps){
+// A new installation after a zero-honey interval does not inherit the count
+// or identity of the removed stack. Candidate IDs must be selected explicitly;
+// availability is reviewed without reserving or moving any equipment.
+function installationReview(state,request,deps){
  const c=context(state,request?.hiveId,deps);if(!c.ok)return c;
- if(!str(request.extractionId)||!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today)return fail('invalid_return_review');
- const events=rows(state.extractions).filter(e=>e?.id===request.extractionId);
- if(events.length!==1||!dateOnly(events[0].date)||request.date<events[0].date)return fail('extraction_evidence_missing_or_invalid');
- const items=rows(events[0].items).filter(i=>i?.hiveId===request.hiveId);
- if(items.length!==1)return fail('extraction_item_ambiguous');
- const item=items[0],e=item.sectional;
- if(!obj(e)||e.profileId!==PROFILE||e.layoutId!==c.layout.id||item.returnedAt||item.returned===true)return fail('sectional_pending_return_required');
- const checked=pairGroups(state,e.bodyIds,{type:'storage'},deps);
- if(!checked.ok)return checked;
- if(!unique(e.pairIds)||!same(checked.pairs.map(p=>p.pairId),e.pairIds))return fail('pending_pair_identity_mismatch');
- const installed=rows(c.layout.honeyStack?.bodyIds);
- if(installed.some(id=>e.bodyIds.includes(id))||![2,4].includes(installed.length+e.bodyIds.length))return fail('return_capacity_or_location_mismatch');
- return {ok:true,kind:'return_review',extractionId:request.extractionId,hiveId:request.hiveId,layoutId:e.layoutId,pairIds:e.pairIds.slice(),bodyIds:e.bodyIds.slice(),date:request.date};
+ if(c.layout.honeyStack!=null)return fail('zero_honey_layout_required');
+ if(!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today)return fail('invalid_installation_date');
+ if(!unique(request.bodyIds)||![2,4].includes(request.bodyIds.length))return fail('two_or_four_bodies_required');
+ const checked=pairGroups(state,request.bodyIds,{type:'storage'},deps);if(!checked.ok)return checked;
+ if(request.bodyIds.some(id=>c.bodies[id].frames.length!==10))return fail('full_frame_inventory_required');
+ const ids=request.excluderIds;
+ if(!unique(ids)||ids.length!==2)return fail('both_excluders_required');
+ const items=state.equipmentInventory.items||{};
+ if(ids.some(id=>items[id]?.kind!=='honeyQueenExcluder'||items[id]?.condition!=='good'||items[id]?.location?.type!=='storage'))return fail('excluder_unavailable');
+ return {ok:true,kind:'new_installation_review',hiveId:request.hiveId,layoutId:c.layout.id,priorCount:0,targetCount:request.bodyIds.length,bodyIds:request.bodyIds.slice(),pairIds:checked.pairs.map(p=>p.pairId),excluderIds:ids.slice(),date:request.date,canCommit:false};
 }
+// Deprecated name: old return-by-extraction-ID is no longer a valid contract.
+// Existing records are never deleted or rewritten by this adapter.
+function returnReview(){return fail('use_independent_installation_review');}
 // B07.4: detached candidate for the existing additional-pair coordinator.
 // Caller must still integrate the current IndexedDB CAS/save queue, verify
 // durability and handle rollback. No write callback is accepted here.
@@ -122,8 +127,10 @@ function prepareAdditionalPair(state,request,deps){
 }
 // B07.5: read-only presentation model. No actionable button or event handler.
 function viewModel(state,request,deps){
+ const c=context(state,request?.hiveId,deps);if(!c.ok)return {visible:false};
+ if(c.layout.honeyStack==null)return {visible:true,bodyCount:0,installedPairs:[],offers:[],pending:[],canReviewInstallation:true,canCommit:false,reason:'B07_BLOCKED'};
  const v=inventoryReview(state,request,deps);if(!v.ok)return {visible:false};
- return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2&&!v.pending.length?v.offers:[],pending:v.pending,canReviewExtraction:v.bodyCount===4&&v.purpose==='main'&&!v.pending.length,canCommit:false,reason:'B07_BLOCKED'};
+ return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2&&!v.pending.length?v.offers:[],pending:v.pending,canReviewExtraction:[2,4].includes(v.bodyCount)&&!v.pending.length,canCommit:false,reason:'B07_BLOCKED'};
 }
-window.PasekaSectionalHoneyReview=Object.freeze({inventoryReview,extractionReview,returnReview,prepareAdditionalPair,viewModel});
+window.PasekaSectionalHoneyReview=Object.freeze({inventoryReview,extractionReview,installationReview,returnReview,prepareAdditionalPair,viewModel});
 })();
