@@ -2065,9 +2065,23 @@
     "failure": "regression.test.mjs syntax error (replacement token), Governance PASS"
   },
   "b07AtomicGuardRegression20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
-    "baseSha": "25d0ed93cab9f35b8bdfd63febd6d8ef3f093c55",
-    "ci": "PENDING",
+    "stage": "CI_VERIFIED_NODE_ONLY",
+    "sha": "67ba55bf416f5752047255ee4967dfe3381c7b47",
+    "nodeTests": {
+      "passed": 1100,
+      "total": 1100,
+      "failed": 0,
+      "run": 46067655942
+    },
+    "governance": "PASS",
     "mergeAuthorization": "conditional pass"
+  },
+  "b07SectionalBrowserAcceptance20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "baseSha": "67ba55bf416f5752047255ee4967dfe3381c7b47",
+    "scope": "localhost only compiled test gate, actual screen and IndexedDB 4-0-2",
+    "ci": "PENDING",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false
   }
 }
