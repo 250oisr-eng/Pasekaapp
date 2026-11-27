@@ -14,7 +14,7 @@ const validDate=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(
 function text(value,max){const result=String(value??'').trim();if(result.length>max)throw new Error('Одно из текстовых полей превышает допустимую длину.');return result}
 function buildDeadoutReviewDraft(input,hives,media,makeId,now){
  const hiveId=String(input?.hiveId||''),observedAt=String(input?.observedAt||''),lastAliveDate=String(input?.lastAliveDate||'');
- if(!Array.isArray(hives)||!hives.some(x=>x?.id===hiveId))throw new Error('Выбери существующий улей.');
+ if(!Array.isArray(hives)||hives.filter(x=>x?.id===hiveId).length!==1)throw new Error('Выбери существующий улей с однозначным ID.');
  if(!validDate(observedAt))throw new Error('Укажи корректную дату обнаружения погибшей семьи.');
  if(lastAliveDate&&(!validDate(lastAliveDate)||lastAliveDate>observedAt))throw new Error('Дата последнего подтверждённого осмотра должна быть корректной и не позже обнаружения.');
  for(const [key,values] of Object.entries(ENUMS))if(!values.includes(input?.[key]||'unknown'))throw new Error('Проверь одно из полей чек-листа.');
