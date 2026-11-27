@@ -2063,8 +2063,28 @@
     "base": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
     "scope": "DRAFT_INTEGRATION_TEST_ONLY",
     "op02Activated": false,
-    "exactHeadCi": "PENDING",
+    "exactHeadCi": "CODE_SHA_VERIFIED_DOCS_HEAD_PENDING",
     "device": "NOT_TESTED",
-    "productionMutation": false
+    "productionMutation": false,
+    "codeSha": "c4ad3ee3e0bd4e7a9b958d5706c4d43985b95e5e",
+    "nodePass": 1118,
+    "nodeFail": 0,
+    "verifiedCi": [
+      {
+        "name": "Build Android APK",
+        "id": 46057440938,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 46057440925,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 46057440915,
+        "conclusion": "success"
+      }
+    ]
   }
 }
