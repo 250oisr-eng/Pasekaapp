@@ -1493,7 +1493,7 @@
   "b01TwoDailyArchives20261127": {
     "sourceMain": "50cfdfd66e2691e471b698fbc53af0d16d99aa98",
     "branch": "feat/b01-two-daily-archives",
-    "integration": "CI_VERIFIED_EXACT_SHA",
+    "integration": "IN_MAIN",
     "nodeTests": {
       "tests": 1054,
       "pass": 1054,
@@ -1537,6 +1537,12 @@
       543
     ],
     "deletedBranches": 0,
-    "archiveLimitMiB": 256
+    "archiveLimitMiB": 256,
+    "mergedSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
+    "verifiedCodeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
+    "qaRun": 45993522131,
+    "qaArtifact": 15193929646,
+    "qaPackage": "ru.paseka.journal.qa.daily",
+    "qaApkSha256": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
   }
 }
