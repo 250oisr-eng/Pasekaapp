@@ -13,17 +13,32 @@ test('native archive worker uses actual bundled validation and never bootstraps 
  assert.doesNotMatch(html,/const databaseCreatedDuringOpen=await openDB\(\)/);
  assert.match(html,/PasekaDailyArchives\.rotate\(store/);
  assert.match(html,/location\.origin!=='https:\/\/localhost'/);
+ for(const stage of ['BOOTSTRAP','ORIGIN','MARKER','SOURCE_OPEN','SOURCE_READ','STATE_VALID','STORE_OPEN','ROTATED','FAILED','FINISH'])
+  assert.match(html,new RegExp("trace\\('"+stage+"'\\)"));
+ assert.match(html,/catch\(_\)\{trace\('FAILED'\);outcome='RETRY';\}/);
+ assert.doesNotMatch(html,/trace\(raw|trace\(source/);
 });
 test('native scheduler uses one persisted periodic job, disallows network and file access',async()=>{
  const java=await read('android-native/PasekaDailyArchiveJob.java');
  for(const token of ['getPendingJob(JOB_ID)','setPeriodic(PERIOD_MS, FLEX_MS)','setPersisted(true)','setRequiresStorageNotLow(true)','setBlockNetworkLoads(true)','setAllowFileAccess(false)','setAllowContentAccess(false)','loadDataWithBaseURL("https://localhost/"','jobFinished(parameters, retry)'])assert.ok(java.includes(token),token);
  assert.doesNotMatch(java,/setRequiredNetworkType|setOverrideDeadline|deleteDatabase|clearCache/);
+ assert.match(java,/WATCHDOG_TIMEOUT phase=/);
+ assert.match(java,/MAIN_FRAME_ERROR code=/);
+ assert.match(java,/BRIDGE_FINISH/);
+ assert.match(java,/JOB_FINISHED retry=/);
+ assert.match(java,/case "BOOTSTRAP": case "ORIGIN": case "MARKER":/);
+ assert.doesNotMatch(java,/Log\.[a-z]+\(TAG,.*(?:html|outcome|raw|source|url|error\.getDescription)/i);
 });
 test('native patch is idempotent and preserves distinct package/origin',()=>{
  const config={appId:'ru.paseka.journal',webDir:'www',android:{allowMixedContent:false}};
  const qa=dailyQaConfig(config);
  assert.equal(qa.appId,'ru.paseka.journal.qa.daily');assert.equal(config.appId,'ru.paseka.journal');
  assert.equal(assertDailyConfig(qa),qa.appId);
+ const diag=dailyQaConfig(config,{diagnostic:true});
+ assert.equal(diag.appId,'ru.paseka.journal.qa.daily.diag');
+ assert.equal(assertDailyConfig(diag),diag.appId);
+ assert.notEqual(diag.appId,qa.appId);
+ assert.throws(()=>assertDailyConfig({...diag,server:{url:'https://remote.test'}}),/origin/);
  assert.throws(()=>assertDailyConfig({...config,server:{androidScheme:'http'}}),/origin/);
  assert.throws(()=>assertDailyConfig({...config,server:{url:'https://example.test'}}),/origin/);
  const main='package '+qa.appId+';\npublic class MainActivity extends BridgeActivity {}';
