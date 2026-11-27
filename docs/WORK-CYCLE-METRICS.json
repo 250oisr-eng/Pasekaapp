@@ -1358,7 +1358,7 @@
     "qaPackage": "ru.paseka.journal.qa",
     "ci": "NOT_VERIFIED",
     "binarySha": null,
-    "device": "CYCLE_1_USER_REPORTED_PASS",
+    "device": "CYCLES_1_AND_2_USER_REPORTED_PASS",
     "productionTouched": false,
     "merged": true,
     "pr": 613,
@@ -1395,11 +1395,31 @@
       "independentDeviceLogs": false
     },
     "cycle2": {
+      "status": "USER_REPORTED_PASS",
+      "date": "2026-11-27",
+      "reportedPassCount": 8,
+      "reportedTotal": 8,
+      "remarks": "none",
+      "device": "OnePlus Android 15+",
+      "conditions": [
+        "synthetic hive",
+        "synthetic family",
+        "single observation",
+        "search family history",
+        "reopen",
+        "airplane mode",
+        "no duplicates",
+        "production unchanged"
+      ],
+      "independentDeviceLogs": false,
+      "androidForceStopNotEstablished": true
+    },
+    "cycle3": {
       "status": "AWAITING_USER_PHYSICAL_TEST",
-      "syntheticDataOnly": true,
-      "coldOffline": "NOT_TESTED",
-      "indexedDbPersistence": "NOT_TESTED",
-      "familySearchHistory": "NOT_TESTED"
+      "scope": "QA_IDB_FULL_JSON_EXPORT_READ_ONLY_VERIFY_SECOND_COPY",
+      "fileExists": "NOT_TESTED",
+      "sha256": "NOT_TESTED",
+      "independentRestore": "NOT_TESTED"
     }
   }
 }
