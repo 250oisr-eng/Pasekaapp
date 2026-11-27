@@ -6,7 +6,7 @@
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
-**Draft voice lifecycle (27.11.2026):** защита от устаревших событий микрофона/TTS и зависания после network error; [карточка](docs/VOICE-LIFECYCLE-2026-11-27.md). CI/OnePlus ещё NOT_VERIFIED; #162/#164 не перенесены, требуется совместимость с daily archive scheduler. NO_RELEASE.
+**[#641 Draft](https://github.com/250oisr-eng/Pasekaapp/pull/641):** lifecycle микрофона/TTS; [карточка](docs/VOICE-LIFECYCLE-2026-11-27.md). CI/OnePlus NOT_VERIFIED; Vosk #162/#164 отдельно.
 
 ## План работ и журнал
 
