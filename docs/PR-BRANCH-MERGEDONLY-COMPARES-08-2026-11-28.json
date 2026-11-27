@@ -1,0 +1,493 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 8,
+  "start": 105,
+  "rows": [
+    {
+      "branch": "fix/inventory-history-transactions-current-main-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 125,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 6,
+      "behind": 1092,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bc3c181c691ae840caba4137d1eb612f4799d5ed",
+      "changedPaths": [
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "js/equipment-bodies.js",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "js/equipment-inventory.js",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 6
+        },
+        {
+          "path": "tests/equipment-inventory.test.mjs",
+          "status": "modified",
+          "additions": 57,
+          "deletions": 0
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 50,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 6
+    },
+    {
+      "branch": "fix/op07-12-15-day-window-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 154,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 441,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "166239e80d2724abf0e5256c54873cfc8bbed6a4",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p0-b01-backup-scope-labels-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 498,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 242,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "812d43f719d38e1ad29109200d2b79ba8bdcd691",
+      "changedPaths": [
+        {
+          "path": "docs/P0-B01-BACKUP-SCOPE-LABELS-2026-11-25.md",
+          "status": "added",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/backup-scope-labels.test.mjs",
+          "status": "added",
+          "additions": 21,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "fix/p0-b01-bounded-file-read-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 506,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 231,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "5158f31fe39d96dd54016286e536bd5aeec70755",
+      "changedPaths": [
+        {
+          "path": "docs/P0-B01-BOUNDED-LOCAL-ARCHIVE-READ-2026-11-25.md",
+          "status": "added",
+          "additions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "scripts/verify-exported-archive.mjs",
+          "status": "modified",
+          "additions": 40,
+          "deletions": 5
+        },
+        {
+          "path": "tests/verify-exported-archive.test.mjs",
+          "status": "modified",
+          "additions": 33,
+          "deletions": 1
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "fix/p0-b01-first-launch-write-gate-main-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 504,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 14,
+      "behind": 233,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7ccc95cda98283c4eec261b54f8ca45253766921",
+      "changedPaths": [
+        {
+          "path": "docs/P0-FIRST-LAUNCH-FAIL-CLOSED-GATE-2026-11-25.md",
+          "status": "added",
+          "additions": 16,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 36,
+          "deletions": 11
+        },
+        {
+          "path": "tests/first-launch-startup-gate.test.mjs",
+          "status": "added",
+          "additions": 122,
+          "deletions": 0
+        },
+        {
+          "path": "tests/first-use-storage-journey.test.mjs",
+          "status": "added",
+          "additions": 94,
+          "deletions": 0
+        },
+        {
+          "path": "tests/idb-read-abort-and-malformed-v3.test.mjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 14
+    },
+    {
+      "branch": "fix/p0-first-external-backup-guide-20261127",
+      "closedPrs": [
+        {
+          "number": 597,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 79,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "2af07459d4e2d5cee219b4ae35521999a9b7016b",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p0-main-based-disaster-archive-reconciliation-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 472,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 330,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "4d3d82a65c5dfbddf835cd0f853fbbe684309420",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p0-previous-use-startup-marker-20261126",
+      "closedPrs": [
+        {
+          "number": 572,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 172,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "73483cf6bd3fb4d3e96a7fcca76704836297bb3c",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p1-b11-service-worker-install-private-response-gate-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 477,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 253,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "2726dd6911d07803cc8b82283844d7d0a6d5076c",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p1-b15-cloudflare-manual-release-main-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 497,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 245,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bf2c451106e8c0cea71ad94c84b8ccb4d65ff8b3",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/deploy-cloudflare-worker.yml",
+          "status": "modified",
+          "additions": 42,
+          "deletions": 1
+        },
+        {
+          "path": "docs/P1-B15-CLOUDFLARE-MANUAL-RELEASE-GATE-2026-11-25.md",
+          "status": "added",
+          "additions": 21,
+          "deletions": 0
+        },
+        {
+          "path": "tests/deployment-safety.test.mjs",
+          "status": "added",
+          "additions": 94,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "fix/p1-brood-frame-strip-dynamic-20261126",
+      "closedPrs": [
+        {
+          "number": 591,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 131,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p1-cloudflare-bounded-body-ci-main-20261126",
+      "closedPrs": [
+        {
+          "number": 568,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 193,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "af22d2ba5d54ab07b89ab9276388406e4eda9cd3",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/android-debug.yml",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": ".github/workflows/quality.yml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "tests/cloudflare-bounded-body-ci.test.mjs",
+          "status": "added",
+          "additions": 38,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 3
+    },
+    {
+      "branch": "fix/p1-entrance-video-list-stale-response-20261125",
+      "closedPrs": [
+        {
+          "number": 514,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 13,
+      "behind": 226,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "d74e5eb8877c62763023f34e231c2ebf5050cefe",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 14
+        },
+        {
+          "path": "docs/P1-ENTRANCE-ASYNC-REFRESH-2026-11-25.md",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 42,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 3
+        },
+        {
+          "path": "tests/p1-entrance-video-refresh-race.test.mjs",
+          "status": "added",
+          "additions": 97,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 13
+    },
+    {
+      "branch": "fix/p1-governance-docs-push-main-gate-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 474,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 294,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "9cd45a3e2a585741bcc73a780781ffd1885f8499",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "fix/p1-gps-pesticide-provenance-main-port-20261126",
+      "closedPrs": [
+        {
+          "number": 560,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 202,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0619c44e244568f4f8df8283161e035efffcc5eb",
+      "changedPaths": [
+        {
+          "path": "js/pesticide-incident.js",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 2
+        },
+        {
+          "path": "tests/pesticide-incident.test.mjs",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    }
+  ]
+}
