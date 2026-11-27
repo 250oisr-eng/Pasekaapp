@@ -1,51 +1,27 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · main `e00d5d34cdeeed619bb2af6082650f7643e9994b` after #603.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · verified live main `fa5493da9067d5d50204d19ad92f37ac0605839c` after #604.** Фактические SHA/CI проверять live. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические подтверждения, superseded PR и старые SHA — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), метриках и [аудите](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md).
 
-## Текущая интеграция и портфель PR
+## Интегрировано в основной код
 
-- **#572 MERGED:** fail-closed защита первого запуска и маркер прежнего использования, 951/951 Node, Android/Governance CI SUCCESS на точном кодовом SHA `73483cf6bd3fb4d3e96a7fcca76704836297bb3c`, merge `d812bfa46e28ec418a1f6ca1a958ecccd445160d`. Это не полноценный backup. Реальный OnePlus NOT_TESTED.
-- **#573 MERGED** `c2d6d805a2b08c46560d99e7e2e6cd39cb7bde92`, Governance exact HEAD SUCCESS. #8 и #516 закрыты без слияния как подтверждённые superseded; ветки сохранены.
-- **#60 CLOSED/SUPERSEDED** без слияния: текущий `auditLegacyLayoutBodyReferences` и read-only регрессии выявляют отсутствующие/некорректные ссылки и неизвестную спецификацию; старый жёсткий `inspect()` не переносить. #43 ранее CLOSED/SUPERSEDED после #570.
-- **#534 OPEN / REVIEW_REQUIRED:** на HEAD `a8ab152c44e64617f0b7714c06f47bd51e6d5e9c` Governance #45690879408, Android #45690879512 и isolated synthetic restore #45690879551 SUCCESS. Это не реальный независимый restore полного архива OnePlus, не разрешение на обновление или очистку.
-- **#7 OPEN / PRESERVE_SOURCE:** уникальный исторический аудит резервирования, не сливать его старый статус целиком. **#533 CLOSED:** WIP/STOP правила выборочно перенесены в #579. **#60/#534/#7/#533** имеют мотивированные комментарии.
-- [PR audit K](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md): 388 OPEN (30 root, 358 stacked), 29 live SHA/base проверок. Остальные SHA/CI и полнота индекса не подтверждены.
+- **#599 MERGED:** уникальный ID поиска записи, переход к корпусу в инвентаре; исходный main SHA `81b6a63cc5b57b192c172fa4cb5691b162d0a0bc`.
+- **#598 MERGED:** история семьи и безопасная навигация записей; main SHA `e906e2f4295e24c020e16e8971419e7b53baf2c3`.
+- **#597 MERGED:** UI-путь первого полного внешнего IndexedDB архива и read-only проверка SHA/структуры; main SHA `495e38a99fc00cde5c671444e83d87a40d619750`. **Не является доказательством реального внешнего файла и независимого восстановления.**
+- **#595 MERGED:** 11 навигационных разделов, центральный ИИ, текущий заголовок и три превью ульев; main SHA `2dba3654d503be2070241df1845307b4f9d1f205`.
+- **#603 MERGED:** устранён Chromium-overlap AI/«Ульи» на 320–412px (11–14px) и добавлен автоматический браузерный geometry gate; main `e00d5d34cdeeed619bb2af6082650f7643e9994b`. Exact-main Fast/Android **1014/1014**, Chromium 11/11 viewport, Governance SUCCESS.
+- **#604 MERGED:** устранена вторая ИИ-карточка главной, единственный AI вход в nav, кнопка «＋ Записать событие» осталась в «Последних событиях» с несохранённым черновиком; **main `fa5493da9067d5d50204d19ad92f37ac0605839c`**. Exact-main Fast/Android **1017/1017**, Chromium (11 геометрий и journal mobile/desktop), Governance SUCCESS. Публикационного workflow нет. Физический OnePlus не проверялся.
 
-## Актуальное состояние и следующая UX задача
+## Текущие ограничения
 
-- **#599/#598/#597/#595/#603 MERGED / IN_MAIN.** Main `e00d5d34cdeeed619bb2af6082650f7643e9994b`. #603 устранил overlap AI/«Ульи» (11–14px) на 320–412px; exact-main Chromium 11/11 viewport PASS, Node/Android **1014/1014**, Governance SUCCESS. Не release.
-- **#604 в разработке:** убрать вторую ИИ-карточку с главной по утверждённой эргономике. Единственный центральный вход в nav остаётся; «＋ Записать событие» переходит в «Последние события». Code SHA `e185a4e…`: Fast **1017/1017**, Android APK **1017/1017** и Governance SUCCESS; Chromium mobile/desktop на предыдущем HTML SHA `0e0ac87…` SUCCESS (последняя правка — лишь тест).
-- **#596 OPEN:** 3 мобильных ряда вместо исходного ориентира 2. OnePlus/TalkBack и настоящая safe-area NOT_TESTED; не скрывать расхождение.
-- **B01/#442** сохраняют BLOCKED/FROZEN: нет независимого real backup/restore и доказанной видеоаналитики.
+- **#596 OPEN / PENDING_VISUAL_ACCEPTANCE:** мобильная навигация фактически трёхрядная при исходном пользовательском ориентире двух рядов. Проверено 11 размеров в Chromium, **не** OnePlus/TalkBack/системные жесты. Не закрывать и не изменять список 11 разделов без отдельного UX-решения.
+- **B01 P0 BLOCKED (Draft #452 OPEN, not merged):** полный реальный архив всех источников, независимый restore/rollback и внешняя физическая копия НЕ доказаны; не менять и не удалять данные. Отсутствие доступных оригинальных видео/копий по уточнению 27.11 не доказывает пустоту IndexedDB/устройства.
+- **B04/B05 P0 BLOCKED (Draft #469 OPEN, not merged):** signer и совместимость обновления установленного Android приложения/rollback не доказаны — новые APK на OnePlus не устанавливать.
+- **B06/B10 #442 FROZEN:** нет полного комплекта V0–V6: лицензия весов/датасета, реальное видео, детекция, все копии, восстановление и разрешение удаления. Автоматическая очистка оригиналов запрещена.
+- **B07 P1 BLOCKED:** новый sectional/OP11–14 профиль не активировать до физической модели и всех зависимых валидаторов/миграций. Параметры только из оригинального DOCX/пользовательских уточнений.
+- **B09/B11/P2:** synthetic CI не подтверждает реальный offline, power-loss, storage quota, независимый restore, OnePlus.
 
-## Действующие запреты и доказательства
+## Следующая предметная задача
 
-- **B01 P0 FROZEN/BLOCKED (Draft #452 не интегрирован):** полный независимый архив всех источников, оригиналов видео и реальный безопасный restore/rollback ещё не доказаны. Не изменять реальные данные.
-- **B04/B05 P0 BLOCKED (Draft #469 не интегрирован целиком):** подпись установленной версии, долговременный ключ и совместимое обновление OnePlus не доказаны. Не устанавливать новые APK.
-- **B06/B10 #442 FROZEN:** отсутствует полный комплект V0–V6 для лицензированной модели и реального распознавания пчёл. Автоудаление оригинальных видео запрещено.
-- **B07 P1:** OP11–14 / sectional профиль не активировать до завершения физической модели, зависимых модулей, локальных проверок и миграций. Источник — пользовательский DOCX и отдельные подтверждения.
-- **B09/B11/P2:** synthetic CI, emulator и read-only диагностика не доказывают реальные cold-offline/power-loss/Quota/restore сценарии.
-
-- **#575 MERGED:** Windows JBR/apksigner read-only discovery (from #517), Android #45885947784 / Governance #45885947805 SUCCESS; #517 CLOSED without merge; OnePlus NOT_TESTED.
-
-- **#577 MERGED:** TAR header negative tests ported from #509, Android #45886634965 / Governance #45886635009 SUCCESS; #509 CLOSED without merge; B01 still BLOCKED.
-
-- **#579 MERGED:** WIP/STOP/exact-CI rules from #533 into F0–F7, Governance #45887287260 SUCCESS; #533 CLOSED without merge.
-
-- **#581/#582 MERGED:** read-only cert and debug-signer checker from closed #519/#520. Signing key/upgrade/rollback BLOCKED.
-- **#583 MERGED:** 4-body honey pair validation from #200, Android #45889321180 / Governance #45889321099 SUCCESS on exact PR HEAD; #200 CLOSED without merge; B07 inactive.
-- **Root audit K:** [33 historical root PR inventory](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md) and [machine review](docs/PR-AUDIT-ROOTS-2026-11-26-K.json). 30 root sources OPEN, 358 historical stacked; 388 indexed open overall (not exhaustive REST). Original #157 has unsafe video deletion eligibility, HOLD. 31 open-source diff structures checked; targeted deep semantics 4. No bulk merge.
-
-- **#585 MERGED** `5d19c067e4cc832466bd2ebf497a242c729535aa`: fail-closed Node TAP verification; exact HEAD `b67f75ad720548adaa4ea1fdab80b9f104d663c7`, Fast quality #45891012805 **987/987 PASS**, Android #45891012758 and Governance #45891012722 SUCCESS. Old **#532 OPEN/PARTIALLY_PORTED**: its static PR manifests/network review not imported. B01/B04/B05/#442/B07 still BLOCKED/FROZEN.
-
-- **#587 MERGED** `ab3206a07a7f08dbfb2bc0ef0cfba01a4e402430`: 3 адресных aria-label для ульев; Android/Governance SUCCESS. Исторический #187 CLOSED без merge; UX #596 ожидает физической приёмки.
-
-- **Root review N #589 MERGED:** [поимённая построчная опись 33 root PR](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md); опасные источники #1/#157/#14/#168/#543 HOLD. Это не полный semantic review.
-
-- **#591 MERGED** `4eed81f328cff7541333f28a4d189e89c561c64b`: CSS и 3 рендера рамок 0/1/6/10, горизонтальная прокрутка. Точный PR HEAD `6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc`: Android #45895083250 — 994/994 Node + APK/signature SUCCESS; Governance #45895083239 SUCCESS. Исходный #187 CLOSED без merge; UX #596 ожидает визуальной приёмки, #188 CLOSED/SUPERSEDED без merge. Browser/OnePlus NOT_TESTED; не release.
-
-## Следующий конкретный шаг
-
-**#604 MERGE_AUTHORIZED / CI_VERIFIED_CODE_SHA:** Fast/Android 1017/1017, Chromium mobile/desktop и Governance SUCCESS. После docs-only CI проверить exact HEAD и объединить по разрешению пользователя. #596 остаётся OPEN; не release.
+**#596 — завершение визуальной приёмки UX**, начиная с безопасной desktop/Chromium проверки альтернатив двухрядной компоновки без удаления маршрутов и без физического изменения данных. Реальный OnePlus/TalkBack требует отдельного безопасного device gate. **Если для двухрядной схемы необходимо скрыть/сгруппировать часть 11 маршрутов — требовать отдельного UX-решения пользователя**. Не переделывать код наугад. Возможна параллельная независимая P1 задача при физическом BLOCKED #596.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**

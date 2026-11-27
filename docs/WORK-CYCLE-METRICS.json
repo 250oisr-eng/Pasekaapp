@@ -1131,12 +1131,21 @@
     "twoRowUXAcceptance": "PENDING_VISUAL_ACCEPTANCE",
     "release": "NOT_AUTHORIZED",
     "completedVerifiedUserScenarios": 0,
-    "integration": "IN_MAIN_MERGE_e00d5d34"
+    "integration": "IN_MAIN",
+    "mergeSHA": "e00d5d34cdeeed619bb2af6082650f7643e9994b",
+    "exactMainCI": {
+      "fast": 45953717051,
+      "android": 45953717093,
+      "governance": 45953717072,
+      "chromium": 45953716961,
+      "nodePass": 1014,
+      "fail": 0
+    }
   },
   "uiHomeCanonicalAI20261127": {
     "sourceMain": "e00d5d34cdeeed619bb2af6082650f7643e9994b",
     "pr": 604,
-    "implementation": "CI_VERIFIED_CODE_SHA",
+    "implementation": "IN_MAIN",
     "retainedNavAI": true,
     "homeDuplicateRemoved": true,
     "quickJournalEntryRetained": true,
@@ -1177,6 +1186,16 @@
       "reason": "two stale regression expectations required removed home AI relay",
       "resolution": "updated tests/regression.test.mjs to canonical AI prompt without auto-send"
     },
-    "exactFinalHead": "PENDING_DOCS_ONLY_SHA"
+    "exactFinalHead": "PENDING_DOCS_ONLY_SHA",
+    "mergeSHA": "fa5493da9067d5d50204d19ad92f37ac0605839c",
+    "exactMainCI": {
+      "fast": 45954640877,
+      "android": 45954640830,
+      "governance": 45954640856,
+      "chromium": 45954640768,
+      "nodePass": 1017,
+      "fail": 0,
+      "debugArtifactId": 15177799114
+    }
   }
 }
