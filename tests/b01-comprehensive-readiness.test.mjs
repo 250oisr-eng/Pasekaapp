@@ -57,7 +57,7 @@ test('one visible restore action and exactly two displayed checked ZIP generatio
  assert.match(panel,/id="dailyArchivePrevious"/);
  assert.match(panel,/id="dailyRestoreButton"[^>]+onclick="openDailyRestore\(\)">Восстановить/);
  assert.equal((panel.match(/<button\b/g)||[]).length,1,'no manual create button in B01');
- assert.match(html,/id="legacyBackupDiagnostics"[^>]*hidden inert/);
+ assert.match(html,/<div(?=[^>]*\bid="legacyBackupDiagnostics")(?=[^>]*\bhidden\b)(?=[^>]*\binert\b)[^>]*>/);
  assert.ok(!panel.includes('Скачать полный архив'),'portable file export must not be required');
 });
 
