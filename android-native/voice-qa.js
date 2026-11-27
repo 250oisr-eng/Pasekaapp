@@ -102,7 +102,284 @@
     return {receive,reset,revalidate};
   }
 
-  window.PasekaVoiceQa={appendDraft,parseCommand,commandSession};
+
+  // Natural diary: bounded local slot extraction, not an unrestricted language model.
+  // Keep the original account of events; resolve identities only against current data.
+  function naturalSession(readState,now=()=>Date.now()){
+    let hive=null,family=null,noFamily=false,parts=[],type='',pending=null,ask='hive',ambiguousType=false;
+    const tokens=s=>norm(s).match(/[а-яa-z0-9]+/gu)||[];
+    const ordinals=['','перв','втор','трет','четверт','пят','шест','седьм','восьм','девят','десят','одиннадцат','двенадцат','тринадцат','четырнадцат','пятнадцат','шестнадцат','семнадцат','восемнадцат','девятнадцат','двадцат'];
+    function nword(s){
+      const n=hiveNumber(s);if(n!==null)return n;
+      if(s==='одна'||s==='одну')return 1;
+      const i=ordinals.findIndex((stem,i)=>i>0&&new RegExp('^'+stem+'(?:ый|ой|ий|ая|ое|ую|ого|ому|ом|ем|им|ей|ую|ю|ьего|ьем|ью|ьи|ьей|ья|ье)
+  const get=id=>document.getElementById(id);
+  const api=window.Capacitor?.Plugins?.PasekaOfflineSpeech;
+  const panel=get('qaVoicePanel');
+  if(!panel||!api)return;
+  panel.hidden=false;
+  const note=get('qaVoiceText'),status=get('qaVoiceStatus'),start=get('qaVoiceStart'),stop=get('qaVoiceStop'),install=get('qaVoiceInstall');
+  const mode=get('qaVoiceCommandMode'),feedback=get('qaVoiceFeedback'),manualDraft=get('aiJournalDraftCard');
+  function showFeedback(message){if(feedback)feedback.textContent=message;else paint(message);}
+  const naturalMode=!!get('qaVoiceNatural');
+  const commands=(naturalMode?naturalSession:commandSession)(()=>typeof S==='undefined'?{}:S);
+  let active='',starting=false,stopping=false,stopFailed=false,installed=false,installing=false,listenersReady=false;
+  let talking=false,openingDraft=false,dialogue=0,phraseTimer=null,phrases=[];
+  function clearPhrase(){if(phraseTimer!==null){clearTimeout(phraseTimer);phraseTimer=null;}phrases=[];}
+  const visible=()=>!document.hidden&&(!panel.closest||panel.closest('.panel')?.classList.contains('active')!==false);
+  function invalidateDialogue(){dialogue++;clearPhrase();commands.reset();}
+  function paint(message){
+    if(message)status.textContent=message;
+    start.disabled=!installed||!!active||starting||stopping||stopFailed||installing||talking||!listenersReady;
+    stop.disabled=!talking&&(stopping||(!active&&!starting&&!stopFailed));
+    install.disabled=installed||installing||!!active||starting||stopping||stopFailed||talking;
+    if(mode){mode.disabled=!!active||starting||stopping||talking||stopFailed;note.hidden=mode.checked;get('qaVoiceToDraft').hidden=mode.checked;}
+    get('qaVoiceToDraft').disabled=!!active||starting||stopping||stopFailed||talking||!!mode?.checked;
+  }
+  async function end(message){
+    if(stopping)return false;
+    clearPhrase();active='';starting=false;stopping=true;paint('Останавливаю микрофон…');
+    try{await api.stop();stopFailed=false;paint(message||'Сеанс остановлен. Проверь распознанный текст.');return true;}
+    catch(e){stopFailed=true;paint('Остановка не подтверждена. Повтори «Стоп» или закрой QA приложение.');return false;}
+    finally{stopping=false;paint();}
+  }
+  async function refresh(){
+    try{const s=await api.getStatus();installed=s.modelInstalled===true;paint(installed?'Модель готова. Для теста отключи интернет.':'Модель включена в QA APK. Установи её без интернета.');}
+    catch(e){paint('Не удалось проверить модель.');}
+  }
+  Promise.all([
+    api.addListener('result',event=>{
+      if(!active||event.token!==active)return;
+      if(mode?.checked){
+        if(talking)return;
+        if(!naturalMode){void handleCommand(event.text);return;}
+        const token=active,cycle=dialogue;
+        phrases.push(String(event.text||'').trim());
+        if(phraseTimer!==null)clearTimeout(phraseTimer);
+        phraseTimer=setTimeout(()=>{const text=phrases.join(' ');clearPhrase();if(active===token&&dialogue===cycle&&visible()&&!talking)void handleCommand(text);},1300);
+        return;
+      }
+      const next=appendDraft(note.value,event.text);
+      if(next===null){void end('Предел текста или пустой результат; сеанс остановлен.');return;}
+      note.value=next;
+    }),
+    api.addListener('error',event=>{if(active&&event.token===active){invalidateDialogue();void end(event.message||'Ошибка распознавания.');}})
+  ]).then(()=>{listenersReady=true;paint();return refresh();}).catch(()=>paint('Не удалось подключить локальный микрофон.'));
+  install.onclick=async()=>{
+    if(installing||active||starting||stopping||stopFailed||talking||installed)return;
+    installing=true;paint('Установка модели из APK. Сеть не используется.');
+    try{await api.installModel();await refresh();}
+    catch(e){paint('Ошибка установки: '+String(e.message||e));}
+    finally{installing=false;paint();}
+  };
+  async function begin(){
+    if(!visible()||!installed||active||starting||stopping||stopFailed||installing||talking||!listenersReady)return;
+    const token='qa-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+    active=token;starting=true;paint('Запускаю локальный микрофон…');
+    try{
+      const answer=await api.start({token});
+      if(active!==token)return;
+      if(answer.started!==true||answer.token!==token)throw Error('Неверный ответ запуска');
+      starting=false;paint(mode?.checked?(naturalMode?'Слушаю. Расскажи, что произошло, обычными словами.':'Слушаю локальные команды. Каждую начинай со слова «Пасека».'):'Слушаю локально. Нажми «Стоп» перед записью в журнал.');
+    }catch(e){if(active===token)await end('Микрофон не запущен: '+String(e.message||e));}
+  }
+  start.onclick=()=>{if(active||starting||stopping||talking||stopFailed||installing)return;invalidateDialogue();if(mode?.checked)showFeedback(naturalMode?'Расскажи о работе. Уточню только недостающее.':'Назови улей и семью.');return begin();};
+  stop.onclick=()=>{invalidateDialogue();showFeedback('Сеанс отменён. Ничего не сохранено автоматически.');if(!stopping)void end();};
+  if(mode)mode.onchange=()=>{if(active||starting||stopping||talking||stopFailed)return;invalidateDialogue();showFeedback(mode.checked?(naturalMode?'Говори свободно, без обязательных команд.':'Команды начинай со слова Пасека.'):'Диктовка: текст можно перенести в ручной черновик.');paint();};
+  get('qaVoiceToDraft').onclick=()=>{
+    if(active||starting||stopping||stopFailed||talking||mode?.checked){paint('Сначала останови сеанс и выбери диктовку.');return;}
+    const field=get('aiJournalDraftInput'),next=field?appendDraft(field.value,note.value):null;
+    if(next===null){paint('Нет текста или превышен лимит заметки.');return;}
+    field.value=next;note.value='';field.focus();paint('Текст добавлен в черновик. Выбери улей и открой запись; ничего не сохранено.');
+  };
+  function openDraft(p){
+    // Use existing dialog/form, no direct data mutations or automatic save.
+    if(!commands.revalidate(p)||typeof startupWriteGate==='undefined'||startupWriteGate.ready!==true||
+       get('recordDlg')?.open||!visible()||get('aiJournalDraftInput')?.value?.trim())return false;
+    const previous=activeJournalHive;
+    let complete=false;
+    try{
+      activeJournalHive=p.hiveId;
+      newRecord();
+      if(!get('recordDlg')?.open||get('rhive')?.value!==p.hiveId)return false;
+      get('rtype').value=p.type;
+      if(get('rtype').value!==p.type)return false;
+      toggleOccupancy();
+      get('rfamily').value=p.familyId;
+      if(get('rfamily').value!==p.familyId)return false;
+      get('rtext').value=p.text;
+      const notice=get('aiJournalExtractNotice');
+      if(notice){notice.textContent='Голосовой черновик: проверь семью, дату, тип, текст и фактические показатели. Ничего не сохранено.';notice.style.display='block';}
+      showTab('journal');complete=true;
+      return true;
+    }catch(e){return false;}
+    finally{
+      if(!complete){activeJournalHive=previous;
+        if(get('recordDlg')?.open){try{get('recordDlg').close();}catch(e){}}
+        if(get('rhive'))get('rhive').disabled=false;
+      }
+    }
+  }
+  async function handleCommand(raw){
+    const reply=commands.receive(raw);
+    if(!reply)return;
+    const cycle=dialogue;
+    talking=true;paint();
+    const stopped=await end('Микрофон остановлен для ответа.');
+    if(!stopped||cycle!==dialogue||!visible()){if(!stopped)invalidateDialogue();talking=false;paint();return;}
+    let message=reply.message,opened=false;
+    // Confirm only after the microphone is known stopped, check live IDs again.
+    if(reply.draft){
+      openingDraft=true;opened=openDraft(reply.draft);
+      if(!opened)message='Черновик не открыт. Проверь текущую форму, данные и выбор. Ничего не сохранено.';
+    }
+    // Keep command readback separate from any untransferred raw dictation.
+    showFeedback(message);paint(message);
+    try{if(typeof api.speakLocal==='function')await api.speakLocal({text:message});else throw Error('Нет локального голоса');}
+    catch(e){if(cycle===dialogue)showFeedback(message+' Озвучивание недоступно: нужен установленный русский голос Android.');}
+    finally{talking=false;openingDraft=false;paint();}
+    if(cycle===dialogue&&!reply.stop&&!reply.draft&&visible()&&!stopFailed)await begin();
+  }
+  function leave(){
+    if(active||starting||stopping||talking){invalidateDialogue();showFeedback('Сеанс остановлен при уходе с экрана. Черновик команды отменён.');if(!stopping)void end('Сеанс остановлен при уходе с экрана.');}
+  }
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)leave();});
+  window.addEventListener('pagehide',leave);
+  if(typeof MutationObserver!=='undefined'&&panel.closest){
+    const host=panel.closest('.panel');
+    if(host)new MutationObserver(()=>{if(!openingDraft&&!visible()&&(active||starting||stopping||talking))leave();}).observe(host,{attributes:true,attributeFilter:['class']});
+  }
+  paint();
+})();
+).test(s));
+      return i>0?i:null;
+    }
+    const rows=()=>{const s=readState()||{};return {hives:Array.isArray(s.hives)?s.hives:[],families:Array.isArray(s.families)?s.families:[]}};
+    const validId=s=>typeof s==='string'&&s.trim()!=='';
+    const hiveByNumber=n=>{const h=rows().hives.filter(x=>x&&Number(x.number)===n);
+      return h.length===1&&validId(h[0].id)&&rows().hives.filter(x=>x?.id===h[0].id).length===1?h[0]:null;};
+    const familyByName=(h,name)=>{const f=rows().families.filter(x=>x?.hive===h.id&&norm(x.name)===name);
+      return f.length===1&&validId(f[0].id)&&rows().families.filter(x=>x?.id===f[0].id).length===1?f[0]:null;};
+    function target(){
+      if(!hive)return null;
+      const h=hiveByNumber(hive.number);
+      if(!h||h.id!==hive.id)return null;
+      if(family){const f=familyByName(h,family.name);if(!f||f.id!==family.id)return null;
+        return {hiveId:h.id,hiveNumber:hive.number,familyId:f.id,familyName:String(f.name)};}
+      return noFamily?{hiveId:h.id,hiveNumber:hive.number,familyId:'',familyName:''}:null;
+    }
+    function reset(){hive=null;family=null;noFamily=false;parts=[];type='';pending=null;ask='hive';ambiguousType=false;}
+    const reply=(message,extra={})=>({message,...extra});
+    const label=p=>'Улей '+p.hiveNumber+(p.familyId?', семья '+p.familyName:', без семьи');
+    const readback=p=>label(p)+'. '+p.type+'. '+p.text+'. Всё верно?';
+    function revalidate(p){
+      const t=target();return !!t&&!!p&&now()<=p.expires&&t.hiveId===p.hiveId&&t.hiveNumber===p.hiveNumber&&t.familyId===p.familyId&&t.familyName===p.familyName;
+    }
+    function prompt(){
+      if(!hive){ask='hive';return reply('Какой улей? Назови его номер.');}
+      if(!hiveByNumber(hive.number)||hiveByNumber(hive.number).id!==hive.id){reset();return reply('Улей изменился. Начни запись заново.');}
+      if(!family&&!noFamily){
+        ask='family';const h=rows().families.filter(x=>x?.hive===hive.id&&typeof x.name==='string');
+        const names=[...new Set(h.map(x=>x.name))].slice(0,5).join(', ');
+        return reply('Улей '+hive.number+'. Какая семья?'+(names?' '+names+'.':'')+' Можно сказать «без семьи» для общей заметки.');
+      }
+      if(ambiguousType){ask='type';return reply('Это осмотр, подкормка, обработка или заметка?');}
+      if(!parts.length){ask='text';return reply((family?'Выбрана семья '+(target()?.familyName||''):'Улей '+hive.number)+'. Что записать? Расскажи своими словами.');}
+      const t=target();if(!t){reset();return reply('Улей или семья изменились. Начни запись заново.');}
+      const kind=type||'Заметка';
+      if(!t.familyId&&kind!=='Заметка'){ask='family';noFamily=false;return prompt();}
+      pending={...t,type:kind,text:parts.join('\n'),expires:now()+120000};ask='confirm';
+      return reply(readback(pending),{pending:{...pending}});
+    }
+    function receive(raw){
+      const original=String(raw??'').trim();
+      if(!original)return null;
+      const clean=original.replace(/^пасека(?:[,\s:]+слушай)?[,\s:]+/iu,'').trim(),key=norm(clean).replace(/[.!?]+$/,'').trim();
+      if(/^(?:стоп|закончили|закончили на сегодня|заверши сеанс|хватит слушать|выключи микрофон)$/.test(key)){reset();return reply('Сеанс завершён.',{stop:true});}
+      if(/^(?:отмена|отмени(?: черновик| запись)?|не надо|начнем заново|начать заново|нет отмена)$/.test(key)){reset();return reply('Черновик отменён. Расскажи о следующей записи.');}
+      if(pending&&now()>pending.expires){reset();return reply('Время подтверждения истекло. Расскажи запись заново.');}
+      if(/^(?:повтори(?: черновик| запись)?|что записал|прочитай еще раз)$/.test(key))return pending?reply(readback(pending)):prompt();
+      if(/^(?:да|верно|правильно|все верно|все правильно|подтверждаю(?: черновик| запись)?|открой(?: черновик| запись)?|да открывай|да все верно)$/.test(key)){
+        if(!pending)return prompt();
+        const p=pending;pending=null;
+        if(!revalidate(p)){reset();return reply('Улей или семья изменились. Начни запись заново.');}
+        return reply('Открываю черновик. Проверь и сохрани вручную.',{draft:{...p}});
+      }
+      if(/^(?:нет|неверно|неправильно|не так|не подтверждаю)$/.test(key)){reset();return reply('Хорошо, ничего не сохранено. Расскажи исправленный вариант.');}
+      if(clean.length>500)return reply('Фраза слишком длинная. Расскажи запись короткими частями.');
+      const w=tokens(clean),used=new Set();
+      const mark=(...indices)=>indices.forEach(i=>{if(i>=0&&i<w.length)used.add(i);});
+      const hiveWord=/^(?:улей|улье|улья|улью|ульем|ульи|ульев|ульях)$/;
+      const familyWord=/^(?:семья|семью|семьи|семье|семьей)$/;
+      let numbers=[],hiveMention=false,numberAmbiguous=false;
+      for(let i=0;i<w.length;i++)if(hiveWord.test(w[i])){
+        hiveMention=true;mark(i);
+        let after=i+1;if(w[after]==='номер'){mark(after);after++;}
+        const n=nword(w[after]),before=nword(w[i-1]);
+        if(n!==null){numbers.push(n);mark(after);
+          if(nword(w[after+1])!==null||(['или','либо','и'].includes(w[after+1])&&nword(w[after+2])!==null))numberAmbiguous=true;
+        }
+        else if(before!==null){numbers.push(before);mark(i-1);if(nword(w[i-2])!==null||(['или','либо','и'].includes(w[i-2])&&nword(w[i-3])!==null))numberAmbiguous=true;}
+      }
+      if(ask==='hive'&&!hiveMention&&w.length===1&&nword(w[0])!==null){numbers.push(nword(w[0]));mark(0);}
+      const uniqueNumbers=[...new Set(numbers)];
+      let hCandidate=null;
+      if(hiveMention||numbers.length){
+        if(numberAmbiguous||uniqueNumbers.length!==1||!(hCandidate=hiveByNumber(uniqueNumbers[0]))){
+          if(hive){reset();return reply('Номер улья неоднозначен. Начни запись заново.');}
+          return reply('Не смог однозначно определить улей. Назови один номер.');
+        }
+        if(hive&&(hive.id!==hCandidate.id||hive.number!==uniqueNumbers[0])){reset();return reply('Это другой улей. Старый черновик отменён. Расскажи запись для нового улья заново.');}
+        hive={id:hCandidate.id,number:uniqueNumbers[0]};
+      }
+      const candidates=hive?rows().families.filter(f=>f?.hive===hive.id&&typeof f.name==='string'&&norm(f.name)):[];
+      const none=/^(?:без семьи|весь улей|для всего улья|общая заметка)$/.test(key);
+      const familyMarks=w.map((v,i)=>familyWord.test(v)?i:-1).filter(i=>i>=0);
+      const matches=[];
+      for(const i of familyMarks){
+        mark(i);const found=candidates.map(f=>({f,t:tokens(f.name)})).filter(({t})=>t.length&&t.every((v,k)=>w[i+1+k]===v)).sort((a,b)=>b.t.length-a.t.length);
+        if(found.length){const max=found[0].t.length;for(const m of found.filter(x=>x.t.length===max)){matches.push(m.f);for(let k=1;k<=max;k++)mark(i+k);}
+          if(['или','либо','и'].includes(w[i+max+1])){const j=i+max+2;if(candidates.some(f=>tokens(f.name).every((v,k)=>w[j+k]===v)))return reply('Назови одну семью, не несколько.');}
+        }
+        else if(hive){if(family){reset();return reply('Имя семьи неясно. Начни запись заново.');}ask='family';return reply('Не нашёл семью по этому имени. Назови её точное имя.');}
+      }
+      if(ask==='family'&&hive&&!familyMarks.length&&!none){
+        const exact=candidates.filter(f=>norm(f.name)===key);
+        if(exact.length){matches.push(...exact);w.forEach((v,i)=>mark(i));}
+      }
+      if(none){if(family){reset();return reply('Старый черновик отменён. Начни общую заметку заново.');}noFamily=true;w.forEach((v,i)=>mark(i));}
+      if(matches.length){
+        const names=[...new Set(matches.map(f=>norm(f.name)))];
+        const h=hiveByNumber(hive.number),f=names.length===1&&h?familyByName(h,names[0]):null;
+        if(!f){if(family)reset();return reply('Имя семьи неоднозначно. Выбери конкретную семью вручную или назови уникальное имя.');}
+        if(family&&family.id!==f.id){reset();return reply('Это другая семья. Старый черновик отменён. Расскажи запись заново.');}
+        family={id:f.id,name:names[0]};noFamily=false;
+      }
+      if(familyMarks.length&&!hive){return reply('Сначала уточни номер улья, затем назови семью.');}
+      const kinds=new Set();
+      for(let i=0;i<w.length;i++){
+        const v=w[i];if(used.has(i))continue;
+        if(/^(?:осмотр|осмотрел|осмотрела|осматривал|проверил|проверила)$/.test(v)){kinds.add('Осмотр');mark(i);}
+        if(/^(?:подкормка|подкормку|подкормил|подкормила|покормил|покормила)$/.test(v)){kinds.add('Подкормка');mark(i);}
+        if(/^(?:обработка|обработку|обработал|обработала)$/.test(v)){kinds.add('Обработка');mark(i);}
+        if(/^(?:заметка|заметку|наблюдение)$/.test(v)){kinds.add('Заметка');mark(i);}
+      }
+      if(kinds.size>1||type&&kinds.size===1&&!kinds.has(type)&&ask!=='type')ambiguousType=true;
+      else if(kinds.size===1){type=[...kinds][0];ambiguousType=false;}
+      const filler=/^(?:в|у|на|для|и|а|номер|выбери|открой|запиши|записать|добавь|запись|сегодня|пожалуйста|значит|так|вот|еще)$/;
+      const narrative=w.some((v,i)=>!used.has(i)&&!filler.test(v));
+      if(narrative){
+        if(parts.join('\n').length+clean.length+1>600)return reply('Черновик слишком длинный. Подтверди его или отмени и сделай две записи.');
+        parts.push(clean);
+      }
+      if(!narrative&&!hiveMention&&!numbers.length&&!matches.length&&!none&&!kinds.size)return prompt();
+      pending=null;
+      return prompt();
+    }
+    return {receive,reset,revalidate};
+  }
+
+  window.PasekaVoiceQa={appendDraft,parseCommand,commandSession,naturalSession};
   const get=id=>document.getElementById(id);
   const api=window.Capacitor?.Plugins?.PasekaOfflineSpeech;
   const panel=get('qaVoicePanel');

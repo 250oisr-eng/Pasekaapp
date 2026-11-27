@@ -4,7 +4,7 @@ import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {prepareDailyWorkerAndroid} from './prepare-android-daily-archives.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-export const QA_ID='ru.paseka.journal.qa.voice';
+export const QA_ID='ru.paseka.journal.qa.voice2';
 const PIN='961d5ff98a17f4aa6de69864d0aa71fa5bac682301d2b5d17a3f24c5c99a46d4',MODEL='vosk-model-small-ru-0.22.zip';
 const DAILY='        PasekaDailyArchiveJob.schedule(this);';
 const SUPER='        super.onCreate(state);';
@@ -13,7 +13,7 @@ export function voiceQaConfig(config){
  if(config?.appId!=='ru.paseka.journal'||config.webDir!=='www'||config.android?.allowMixedContent!==false||
    config.server?.url||config.server?.allowNavigation||(config.server?.hostname||'localhost')!=='localhost'||
    (config.server?.androidScheme||'https')!=='https')throw Error('VOICE_QA_BLOCKED: source package or origin');
- return {...config,appId:QA_ID,appName:'Пасека QA — голос'};
+ return {...config,appId:QA_ID,appName:'Пасека QA — разговор'};
 }
 export function patchVoiceActivity(source){
  if(!source.startsWith('package '+QA_ID+';')||source.split(DAILY).length!==2||source.split(SUPER).length!==2)
@@ -48,7 +48,7 @@ export function patchVoiceGradle(source){
  }
  return source;
 }
-const CARD='<div class="card" id="qaVoicePanel" hidden><b>Голосовой журнал · локально (QA)</b><label><input type="checkbox" id="qaVoiceCommandMode" checked> Голосовые команды (выключи для обычной диктовки)</label><p class="muted">«Пасека, выбери улей номер три» · «Пасека, выбери семью Альфа» · «Пасека, запиши осмотр матка обнаружена» · «Пасека, подтверждаю черновик» · «Пасека, отмена».</p><p class="muted">Только синтетические записи. Модель из APK, без аккаунта и сети. При уходе с экрана микрофон выключается.</p><div class="row"><button id="qaVoiceInstall" type="button">Установить модель</button><button id="qaVoiceStart" type="button" disabled>Начать</button><button id="qaVoiceStop" type="button" disabled>Стоп</button></div><div id="qaVoiceStatus" role="status" aria-live="polite">Проверка…</div><p id="qaVoiceFeedback" role="status" aria-live="polite"></p><label for="qaVoiceText">Буфер обычной диктовки</label><textarea id="qaVoiceText" rows="4" maxlength="12000"></textarea><button type="button" id="qaVoiceToDraft">Добавить в черновик журнала</button></div>';
+const CARD='<div class="card" id="qaVoicePanel" hidden><b>Голосовой журнал · свободный рассказ (QA)</b><span id="qaVoiceNatural" hidden></span><label><input type="checkbox" id="qaVoiceCommandMode" checked> Диалог (выключи для обычной диктовки)</label><p class="muted">Расскажи обычными словами: «Осмотрел третий улей, семья Альфа, матка есть». Если чего-то не хватает, приложение спросит. Подтверди «да» или исправь «нет». Ничего не сохраняется автоматически.</p><p class="muted">Только синтетические записи. Модель из APK, без аккаунта и сети. При уходе с экрана микрофон выключается.</p><div class="row"><button id="qaVoiceInstall" type="button">Установить модель</button><button id="qaVoiceStart" type="button" disabled>Начать</button><button id="qaVoiceStop" type="button" disabled>Стоп</button></div><div id="qaVoiceStatus" role="status" aria-live="polite">Проверка…</div><p id="qaVoiceFeedback" role="status" aria-live="polite"></p><label for="qaVoiceText">Буфер обычной диктовки</label><textarea id="qaVoiceText" rows="4" maxlength="12000"></textarea><button type="button" id="qaVoiceToDraft">Добавить в черновик журнала</button></div>';
 export function patchVoiceHtml(source){
  const marker='<section id="home" class="panel active">';
  if(source.split(marker).length!==2||source.split('</body>').length!==2||!source.includes('id="aiJournalDraftInput"'))throw Error('VOICE_QA_BLOCKED: unknown journal UI');

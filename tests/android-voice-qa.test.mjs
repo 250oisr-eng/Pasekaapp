@@ -203,3 +203,52 @@ test('existing handwritten draft blocks voice open without changing it',async()=
  assert.equal(e.recordDlg.open,false);assert.equal(e.aiJournalDraftInput.value,'ручной черновик');
  assert.match(e.qaVoiceFeedback.textContent,/Черновик не открыт/);await h.done();
 });
+
+
+test('natural story accepts a whole observation in one turn, no wake word or fixed order',async()=>{
+ const {naturalSession}=await localDomain();const state=sample(),s=naturalSession(()=>state,()=>100);
+ const p=s.receive('Осмотрел третий улей, семья Альфа, матка есть, пять рамок с расплодом').pending;
+ assert.equal(p.hiveId,'h3');assert.equal(p.familyId,'f1');assert.equal(p.type,'Осмотр');assert.match(p.text,/пять рамок с расплодом/);
+ assert.equal(s.receive('да').draft.familyId,'f1');assert.equal(s.receive('да').draft,undefined);assert.equal(state.records,undefined);
+});
+test('natural dialogue asks only missing slots, remembers observation and accepts short replies',async()=>{
+ const {naturalSession}=await localDomain();const s=naturalSession(sample);
+ assert.match(s.receive('Матка есть, расплод хороший').message,/Какой улей/);
+ assert.match(s.receive('три').message,/Какая семья/);
+ const p=s.receive('Альфа').pending;assert.equal(p.hiveId,'h3');assert.equal(p.familyId,'f1');assert.equal(p.type,'Заметка');assert.match(p.text,/Матка есть/);
+ assert.equal(s.receive('всё верно').draft.familyId,'f1');
+});
+test('natural dialogue accepts number after hive, no mandatory word order',async()=>{
+ const {naturalSession}=await localDomain();const s=naturalSession(sample);
+ const p=s.receive('Семья Альфа, в улье номер три подкормил сиропом').pending;
+ assert.equal(p.hiveId,'h3');assert.equal(p.familyId,'f1');assert.equal(p.type,'Подкормка');
+});
+test('natural dialogue refuses multiple or compound hive numbers and ambiguous families',async()=>{
+ const {naturalSession}=await localDomain();const state=sample();
+ for(const text of ['улей три или четыре семья альфа матка есть','улей двадцать три семья альфа осмотрел','третий улей и четвертый улей семья альфа матка есть']){
+  const s=naturalSession(()=>state);assert.equal(s.receive(text).pending,undefined);
+ }
+ state.families.push({id:'f3',hive:'h3',name:'Альфа'});
+ const s=naturalSession(()=>state);assert.equal(s.receive('улей три семья альфа осмотрел матка есть').pending,undefined);
+ assert.equal(s.receive('да').draft,undefined);
+});
+test('natural dialogue will not carry observations to another target or accept stale confirmation',async()=>{
+ const {naturalSession}=await localDomain();let t=100;const state=sample(),s=naturalSession(()=>state,()=>t);
+ const start=()=>s.receive('улей три семья альфа осмотрел матка есть');
+ start();assert.match(s.receive('улей четыре').message,/другой улей/);assert.equal(s.receive('да').draft,undefined);
+ start();state.families[0].hive='h4';assert.equal(s.receive('да').draft,undefined);
+ state.families[0].hive='h3';start();t+=120001;assert.equal(s.receive('да').draft,undefined);
+});
+test('natural dialogue can add detail, reread and reject a negated confirmation',async()=>{
+ const {naturalSession}=await localDomain();const s=naturalSession(sample);
+ s.receive('улей три семья альфа осмотрел матка есть');
+ const p=s.receive('ещё пять рамок с расплодом').pending;assert.match(p.text,/матка есть\nещё пять/);
+ assert.match(s.receive('повтори').message,/пять рамок/);
+ assert.equal(s.receive('не подтверждаю').draft,undefined);assert.equal(s.receive('да').draft,undefined);
+});
+test('conversation QA package is separate from previous installed voice QA',async()=>{
+ assert.equal(QA_ID,'ru.paseka.journal.qa.voice2');
+ const source=await readFile(new URL('../index.html',import.meta.url),'utf8'),generated=patchVoiceHtml(source);
+ assert.match(generated,/id="qaVoiceNatural"/);assert.match(generated,/Расскажи обычными словами/);
+ assert.equal(assertDailyConfig(voiceQaConfig(config)),QA_ID);
+});

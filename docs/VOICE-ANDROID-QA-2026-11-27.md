@@ -34,3 +34,12 @@ Android 14+ требует microphone foreground service type, FOREGROUND_SERVIC
 ## Согласование с параллельно интегрированным UX #643
 
 Main продвинулся на 26 commits до `6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b`; предыдущий voice head `f9b270a794333329749fbb9f43337134dc689499` Fast 1090/1090, PR стал dirty. Перенос в рабочей ветке: дерево нового main + только 7 voice QA файлов, daily allowlist и аккуратно объединённые статус/индекс/метрики/журнал; не изменяли production index.html, SW или workspace-ui. Фактический новый index прошёл pure patchVoiceHtml с прежними DOM anchors. Перепроверить exact-head CI, Android QA binary, device. Никакого merge PR в main.
+
+
+## 27.11.2026 — пользовательская приёмка и свободная речь
+
+Exact tested binary from 91353463: all 7 CI PASS, 1103/1103, artifact 15226203714, APK SHA256 31bed302b8c9b02ec493725f056edcee21335ee7554ccaa6bf633441856ebb8a. DEVICE_USER_REPORTED_PASS 7/10: download/extract, separate install, artificial hive/family, airplane mode, model installation, microphone permission/session start, lock stops microphone. NOT_TESTED 3/10: hive/family commands, observation/confirm, TTS/save. User feedback: «очень неудобно нужно говорить только определенные слова, в определенном порядке». UX acceptance not passed; do not infer recognition accuracy or actual TTS.
+
+F1–F3 new behavior: after explicit foreground start, no mandatory wake word; 1300 ms grouping of final speech fragments; free observation then missing-slot questions, or whole phrase in one turn. Explicit unique hive number and family name within hive, no fuzzy matching, no implicit target, exact live recheck before opening form; distinct/multiple targets rejected. Exact short contextual yes/no/repeat; no yes before proposal; no auto save. Original narrative preserved; unclassified text general note, multiple types prompt; no invented metrics/doses. On target change reset rather than relink. 120-second confirmation; cancel/stop/visibility invalidates session, no background. Local rule-based understanding, not a local LLM. Vosk transcription and TTS accuracy still physical gates.
+
+F4: separate app ID ru.paseka.journal.qa.voice2 (Пасека QA — разговор) so previous installed QA is not overwritten; no production/schema/SW changes. Original strict parser remains as legacy regression reference, real generated card selects naturalSession. New tests cover one-turn, missing slots, alternate order, multi-target, expired/moved targets, appended details, new package. F5 exact CI and device pending. No reinstall, merge, or release.

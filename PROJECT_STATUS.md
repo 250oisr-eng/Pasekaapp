@@ -8,7 +8,7 @@
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
-**Voice QA #644:** [локальные команды и TTS](docs/VOICE-ANDROID-QA-2026-11-27.md); 1090/1090 на прежнем SHA; адаптирован к UX #643, новый CI/OnePlus NOT_VERIFIED.
+**Voice QA #644:** OnePlus 7/10 USER_REPORTED_PASS на 91353463, 3 NOT_TESTED; фиксированный порядок неудобен. Свободный диалог Draft, отдельный voice2, CI pending.
 
 ## План работ и журнал
 
