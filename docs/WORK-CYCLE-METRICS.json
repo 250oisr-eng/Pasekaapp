@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "COMPACT_EXPORT_VERIFIED_BAD_GENERALIZATION_GROUPED_TRIAL",
+    "stage": "GROUPED_MODEL_MEASURED_EXTERNAL_PARTIAL_REJECTED",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -103,7 +103,11 @@
       "knownDateOverlapImages": 8032,
       "unknownSourceNameImages": 2976,
       "groupsInBothPublisherSplits": 9,
-      "nonoverlapNamedGroups": 0
+      "nonoverlapNamedGroups": 0,
+      "unknownDateTokens": {
+        "20180814": 886,
+        "20230711": 2090
+      }
     },
     "compactMetrics": {
       "testsPassed": 3,
@@ -123,7 +127,35 @@
       },
       "artifactId": 15233613906
     },
-    "groupedTrial": "implemented_not_verified",
+    "groupedTrial": {
+      "run": 46075148819,
+      "codeSha": "fb47ebd617dada5d2b67d0f49e28d960d7158513",
+      "conclusion": "success",
+      "rangeBytes": 17614076,
+      "rangeRequests": 103,
+      "sampleImages": 16,
+      "steps": 480,
+      "threshold": 0.2,
+      "calibrationF1": 0.06060606060606061,
+      "julyA": {
+        "tp": 11,
+        "fp": 47,
+        "fn": 44,
+        "recall": 0.2,
+        "precision": 0.1896551724137931
+      },
+      "julyB": {
+        "tp": 43,
+        "fp": 90,
+        "fn": 121,
+        "recall": 0.2621951219512195,
+        "precision": 0.3233082706766917
+      },
+      "onnxBytes": 157897,
+      "onnxSha256": "29e5a667761b47adfa7620c5e33e6300a0a9ada5c1170d7868229310e8bcc8da",
+      "cpuTileMs": 2.3915023,
+      "artifactId": 15234189502
+    },
     "external": {
       "run": 46075523191,
       "codeSha": "4e438653dbae39461b5a0259508443fe9ecc19af",
@@ -137,7 +169,23 @@
       "fp": 0,
       "fn": 8,
       "conclusion": "partial_decode_failure",
-      "productAdmission": false
+      "productAdmission": false,
+      "retry": {
+        "run": 46075671433,
+        "codeSha": "2fd34cf799202a53097d2b8a1977e1bdf7da3133",
+        "testsPassed": 4,
+        "rangeBytes": 5907822,
+        "rangeRequests": 39,
+        "pairs": 4993,
+        "jpg": 3752,
+        "png": 1241,
+        "successfulSamples": 5,
+        "failedSamples": 1,
+        "tp": 0,
+        "fp": 12,
+        "fn": 12,
+        "conclusion": "PARTIAL_EXTERNAL_COMPARISON_NOT_ACCEPTED"
+      }
     }
   },
   "seasonalWorkspaceUI20261127": {
