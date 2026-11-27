@@ -3,7 +3,7 @@
 **27.11.2026 · verified main `eda81f8ffbf7491dba7b973373248f28cf19450a` after approved #619.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
 
-**OnePlus QA #624:** ADB preflight и G0–G8 готовы к испытанию. CI кода на `feb3f5c8` PASS; финальный SHA отдельно. OnePlus G0–G8 NOT_TESTED. B01/B04/B05/B06/B10 открыты. Подробности — журнал и протокол B01.
+**OnePlus QA #624:** Node 1067/1067 и Android build PASS на `30cf3c3f`; физические G0/G2/G5/G6/G8 USER_REPORTED_PASS, G1 PARTIAL; G3 два ZIP лишь при переводе часов, G4 scheduler зарегистрирован, фоновое выполнение NOT_VERIFIED. Очередной натуральный архив не ранее 29.11.2026. B01/B04/B05/B06/B10 открыты. Детали — B01 QA протокол.
 
 ## Основные интегрированные функции
 
