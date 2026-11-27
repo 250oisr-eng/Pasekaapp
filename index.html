@@ -1463,7 +1463,16 @@ function inventoryCsvCell(value){
  let text=String(value??'');
  // CSV is for external spreadsheets: never let a leading formula survive invisible
  // Unicode direction/spacing controls, BOM or ordinary whitespace.
- if(/^[\\x00-\\x20\\s\\u200B-\\u200F\\u2060\\uFEFF\\u202A-\\u202E\\u2066-\\u2069]*[=+\\-@]/u.test(text))text="'"+text;
+ let i=0;
+ while(i<text.length){
+  const cp=text.codePointAt(i);
+  const invisible=cp<=32||cp===0x00a0||cp===0x1680||cp===0x2028||cp===0x2029||
+   cp===0x202f||cp===0x205f||cp===0x2060||cp===0x3000||cp===0xfeff||
+   (cp>=0x2000&&cp<=0x200f)||(cp>=0x202a&&cp<=0x202e)||(cp>=0x2066&&cp<=0x2069);
+  if(!invisible)break;
+  i+=cp>0xffff?2:1;
+ }
+ if(i<text.length&&'=+-@'.includes(text[i]))text="'"+text;
  return '"'+text.replace(/"/g,'""')+'"';
 }
 function buildInventoryCsv(rows){
