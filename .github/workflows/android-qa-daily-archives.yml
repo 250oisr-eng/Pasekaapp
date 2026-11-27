@@ -1,0 +1,149 @@
+name: Build isolated daily archive QA APK (synthetic only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-qa-daily-archives.yml'
+      - 'scripts/prepare-android-daily-archives.mjs'
+      - 'android-native/**'
+      - 'js/daily-archives.js'
+      - 'tests/daily-archives.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oneplus-daily-archives-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Locate Android command line tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl -fsSLo commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p android-cli
+            unzip -q commandlinetools.zip -d android-cli
+            mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+            cp -R android-cli/cmdline-tools/. "$SDK_ROOT/cmdline-tools/latest/"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: Install Android SDK
+        run: yes | sdkmanager --licenses && sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run existing full regression suite and QA isolation tests
+        run: npm test
+      - name: Prepare embedded web files
+        run: npm run web:prepare
+      - name: Set isolated package only in CI checkout
+        run: node scripts/prepare-android-daily-archives.mjs config
+      - name: Generate and sync Android wrapper
+        run: |
+          npx cap add android
+          npx cap sync android
+          node scripts/patch-android-gradle.mjs
+          node scripts/prepare-android-daily-archives.mjs android
+      - name: Enforce minimum SDK, unique QA package and reject accidental production package
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const ids=[...readFileSync('android/app/build.gradle','utf8').matchAll(/\bapplicationId\s*(?:=\s*)?["']([^"']+)["']/g)].map(m=>m[1]);
+          if(ids.length!==1||ids[0]!=='ru.paseka.journal.qa.daily')throw Error('DAILY_QA_BLOCKED: wrong generated applicationId');
+          let source=readFileSync('android/variables.gradle','utf8');
+          for(const [key,value] of Object.entries({minSdkVersion:35,compileSdkVersion:35,targetSdkVersion:35})){
+            const pattern=new RegExp('(^\\s*'+key+'\\s*=\\s*)\\d+','m');
+            if(!pattern.test(source))throw Error('QA_BLOCKED: unknown Android '+key);
+            source=source.replace(pattern,'$1'+value);
+          }
+          if(!/^\s*minSdkVersion\s*=\s*35\s*$/m.test(source))throw Error('QA_BLOCKED: minSdk not 35');
+          writeFileSync('android/variables.gradle',source);
+          console.log('QA_PACKAGE_VERIFIED ru.paseka.journal.qa.daily / Android API >= 35');
+          NODE
+      - name: Build disposable QA debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify actual APK identity, signature and SHA-256, produce provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-artifact
+          cp android/app/build/outputs/apk/debug/app-debug.apk qa-artifact/PASEKA-DAILY-ARCHIVE-QA-ONLY.apk
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          import {parseBadging,parseSigning} from './scripts/check-oneplus-upgrade.mjs';
+          const file='qa-artifact/PASEKA-DAILY-ARCHIVE-QA-ONLY.apk';
+          const sdk=process.env.ANDROID_HOME+'/build-tools/35.0.0/';
+          const call=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',timeout:30000,maxBuffer:4*1024*1024});
+          const parsed=parseBadging(call(sdk+'aapt',['dump','badging',file]));
+          const signers=parseSigning(call(sdk+'apksigner',['verify','--print-certs',file]));
+          if(parsed.packageName!=='ru.paseka.journal.qa.daily'||signers.length!==1){
+            throw Error('QA_BLOCKED: APK identity/signature is unsafe or unverified');
+          }
+          const sha=call('git',['rev-parse','HEAD']).trim();
+          if(!/^[a-f0-9]{40}$/.test(sha))throw Error('QA_BLOCKED: missing exact source SHA');
+          const bytes=readFileSync(file);
+          const report={
+            artifactKind:'ISOLATED_DISPOSABLE_QA_ONLY_NOT_RELEASE',
+            packageName:parsed.packageName,
+            appLabel:'Пасека QA — автоархив',
+            sourceCommitSha:sha,
+            apkSha256:createHash('sha256').update(bytes).digest('hex'),
+            apkBytes:bytes.length,
+            signerCertificateSha256:signers[0],
+            signingKeyCustody:'EPHEMERAL_DEBUG_DO_NOT_UPDATE',
+            productionPackageTouched:false,
+            onePlusPhysicalProof:'NOT_TESTED',
+            publishingAuthorized:false,
+            originalVideoDeletionAuthorized:false
+          };
+          writeFileSync('qa-artifact/QA-PROVENANCE.json',JSON.stringify(report,null,2)+'\n');
+          console.log('QA_APK_VERIFIED '+report.packageName+' '+report.sourceCommitSha+' '+report.apkSha256);
+          NODE
+      - name: Include install prohibition and boundaries
+        shell: bash
+        run: |
+          printf '%s\n' \
+            'PASEKA-DAILY-ARCHIVE-QA-ONLY' \
+            'Separate disposable Android package: ru.paseka.journal.qa.daily' \
+            'Never use to upgrade production ru.paseka.journal.' \
+            'Only synthetic test records. Test automatic archive and restore ONLY inside this separate package. No production data.' \
+            'Ephemeral debug signer: future in-place upgrades are NOT supported.' \
+            'Check QA-PROVENANCE.json SHA-256 before any permitted installation.' \
+            > qa-artifact/README-QA-ONLY.txt
+      - name: Upload QA APK and verifiable public metadata; no user data
+        uses: actions/upload-artifact@v4
+        with:
+          name: PASEKA-DAILY-ARCHIVE-QA-APK
+          path: qa-artifact/
+          if-no-files-found: error
+          retention-days: 7
