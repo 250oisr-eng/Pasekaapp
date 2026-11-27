@@ -52,12 +52,19 @@ const measure=()=> {
       y=Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
     if(x>0.6&&y>0.6)overlaps.push({a:a.tab,b:b.tab,width:+x.toFixed(2),height:+y.toFixed(2)});
   }
+  const aiButton=nav.querySelector('button[data-tab="ai"]');
+  const bee=aiButton?.querySelector('svg.nav-ai-bee[aria-hidden="true"]');
+  const aiStyle=aiButton?getComputedStyle(aiButton):null;
+  const hexagonButtons=[...nav.querySelectorAll('button[data-tab]')].every(button=>
+    getComputedStyle(button).clipPath.includes('polygon('));
+  const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
+    rimColor:aiStyle?.borderTopColor||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
   return {viewport:{width:innerWidth,height:innerHeight},
     documentWidth:document.documentElement.scrollWidth,
     mainPaddingBottom:parseFloat(getComputedStyle(main).paddingBottom),
     nav:n,buttons,rowTracks:getComputedStyle(nav).gridTemplateRows.trim().split(/\s+/).length,
-    aiDelta:ai?+(ai.cx-n.cx).toFixed(2):null,overlaps};
+    aiDelta:ai?+(ai.cx-n.cx).toFixed(2):null,aiVisual,overlaps};
 };
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -96,6 +103,13 @@ const measure=()=> {
         const tabs=m.buttons.map(b=>b.tab);
         if(JSON.stringify(tabs)!==JSON.stringify(expected))problems.push('navigation routes/order changed');
         if(m.buttons.length!==11)problems.push('expected 11 nav buttons');
+        if(!m.aiVisual.beePresent||m.aiVisual.beePathCount<5)
+          problems.push('central AI must contain an inline stylized bee');
+        if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
+        if(!/rgba\\(/.test(m.aiVisual.rimColor||''))
+          problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
+        if(width<700&&m.rowTracks!==3)
+          problems.push('centered 3-5-3 mobile honeycomb geometry changed');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
         if(m.documentWidth>width+2)problems.push('document horizontal overflow '+m.documentWidth);
