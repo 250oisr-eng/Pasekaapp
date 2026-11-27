@@ -3,7 +3,7 @@
     "stage": "IMPLEMENTED_DRAFT",
     "pr": 647,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "b4b6a0c66c1735b37b6ad6e2f380b74d0ada0a53",
+    "codeSha": "9f977aaaf1166327acb0417bcfd8c9bda7da6346",
     "checkedStaleBranches": 2,
     "staleBranchesZeroUniqueCommits": 2,
     "branchesDeleted": 0,
@@ -19,7 +19,10 @@
     "serviceWorkerChanges": false,
     "productionChanges": false,
     "releaseAuthorized": false,
-    "completedVerifiedUserScenarios": 0
+    "completedVerifiedUserScenarios": 0,
+    "lockPackagesReachable": 100,
+    "lockPackagesOrphaned": 0,
+    "lockGraphNegativeRegression": true
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
