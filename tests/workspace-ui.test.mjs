@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import '../js/workspace-ui.js';
 const ui=globalThis.PasekaWorkspaceUI;
 test('calendar seasons use month boundaries without inferring colony state',()=>{
- const expected=['winter','winter','spring','spring','spring','summer','summer','summer','autumn','autumn','autumn','winter'];
+ const expected=['winter','winter','spring-summer','spring-summer','spring-summer','spring-summer','spring-summer','spring-summer','autumn','autumn','autumn','winter'];
  for(let m=1;m<=12;m++)assert.equal(ui.calendarSeason('2026-'+String(m).padStart(2,'0')+'-01'),expected[m-1]);
  assert.equal(ui.calendarSeason('2024-02-29'),'winter');
 });
@@ -16,7 +16,7 @@ test('invalid dates and unsupported keys are safe',()=>{
 });
 test('manual season overrides calendar without storage, network or task mutation',()=>{
  const result=ui.seasonalContext('2026-11-27','winter');
- assert.equal(result.source,'manual');assert.equal(result.label,'Зима');
+ assert.equal(result.source,'manual');assert.equal(result.label,'Зимовка');
  assert.ok(Object.isFrozen(result));assert.ok(Object.isFrozen(result.topics));
  assert.match(result.note,/Фактическое состояние/);
 });
@@ -49,3 +49,5 @@ test('display preferences are isolated, validated and survive reopening without 
  assert.equal(ui.writePreferences({mode:'field'},()=>{throw Error('disabled storage')}),false);
  assert.deepEqual(ui.readPreferences(()=>{throw Error('disabled storage')}),{mode:'home',season:'auto'});
 });
+
+test('exactly three seasons, old manual choices preserved, seasonal menu changes priority without losing routes',()=>{assert.equal(Object.keys(ui.seasons).length,3);for(const old of ['spring','summer'])assert.equal(ui.normalizePreferences({season:old}).season,'spring-summer');const winter=ui.seasonalContext('2026-01-01'),summer=ui.seasonalContext('2026-06-01'),autumn=ui.seasonalContext('2026-10-01');assert.notDeepEqual(winter.menu,summer.menu);assert.notDeepEqual(summer.menu,autumn.menu);for(const season of [winter,summer,autumn])assert.equal(new Set(season.menu).size,6);});
