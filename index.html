@@ -445,7 +445,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
  <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><div class="global-search-controls"><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" aria-controls="globalSearchResults" oninput="renderGlobalSearch()" onkeydown="handleGlobalSearchKeydown(event)"><button type="button" id="globalSearchClear" hidden aria-label="Очистить поиск по пасеке" onclick="clearGlobalSearch()">Очистить</button></div><div id="globalSearchStatus" class="muted global-search-status" role="status" aria-live="polite" aria-atomic="true"></div><div id="globalSearchResults" class="global-search-results"></div></div>
  <div class="card apiary-status-card"><div class="row"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
  <div class="card home-hives-card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Все ульи →</button></div><div id="homeHivePreviewCount" class="muted" aria-live="polite"></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
- <div class="card home-tasks-card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog()">＋ Запланировать</button></div><div id="homeAlerts"></div><div id="homeTasks"></div></div>
+ <div class="card home-tasks-card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog(document.getElementById('homeTaskHive').value)">＋ Запланировать</button></div><label for="homeTaskHive">Работы по улью</label><select id="homeTaskHive" onchange="renderHomeTasks()"><option value="">Все ульи</option></select><div id="homeAlerts"></div><div id="homeTasks"></div><div id="completedHomeTasks"></div></div>
  <div class="card home-recent-card"><div class="row"><b>Последние события</b><button type="button" onclick="newRecord()">＋ Записать событие</button></div><div id="recent" class="muted">Записей пока нет.</div></div>
 </section>
 <section id="forage" class="panel">
@@ -2137,13 +2137,56 @@ function renderHome(){
  }).join('')||'<div class="empty" style="grid-column:1/-1">Добавь первый улей — его состояние появится здесь.</div>';
  const homeHivePreviewCount=$('homeHivePreviewCount');
  if(homeHivePreviewCount)homeHivePreviewCount.textContent=S.hives.length>homeHivePreviewLimit?'Показаны '+homeHivePreviewLimit+' из '+S.hives.length+' ульев. Полный список — в разделе «Ульи».':'';
- const active=S.tasks.filter(t=>['pending','suggested'].includes(t.status)).sort((a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31')));
+ const filter=$('homeTaskHive'),previous=filter.value;
+ filter.replaceChildren(new Option('Все ульи',''),...S.hives.map(h=>new Option(hname(h.id),h.id)));
+ if(S.hives.some(h=>h.id===previous))filter.value=previous;
+ renderHomeTasks();
+}
+function renderHomeTasks(){
+ const hive=$('homeTaskHive').value;
+ const active=S.tasks.filter(t=>(!hive||t.hive===hive)&&['pending','suggested'].includes(t.status)).sort((a,b)=>String(a.date||'9999-12-31').localeCompare(String(b.date||'9999-12-31')));
  const overdue=active.filter(t=>t.status==='pending'&&t.date<today()),todayTasks=active.filter(t=>t.status==='pending'&&t.date===today()),future=active.filter(t=>t.status==='pending'&&t.date>today()),suggested=active.filter(t=>t.status==='suggested');
  $('homeAlerts').innerHTML=overdue.length?'<div class="card home-alert"><b>⚠ Просрочено: '+overdue.length+'</b>'+overdue.map(t=>taskMarkup(t)).join('')+'</div>':'';
- $('homeTasks').innerHTML=(todayTasks.length?'<h3 class="home-section-title">Сегодня</h3>'+todayTasks.map(taskMarkup).join(''):'')+(suggested.length?'<h3 class="home-section-title">Рекомендации приложения</h3>'+suggested.map(taskMarkup).join(''):'')+(future.length?'<h3 class="home-section-title">Предстоит</h3>'+future.slice(0,5).map(taskMarkup).join(''):'')+(!active.length?'<div class="muted" style="padding:10px 0">Запланированных работ пока нет.</div>':'');
+ $('homeTasks').innerHTML=(todayTasks.length?'<h3 class="home-section-title">Сегодня</h3>'+todayTasks.map(taskMarkup).join(''):'')+(suggested.length?'<h3 class="home-section-title">Рекомендации приложения</h3>'+suggested.map(taskMarkup).join(''):'')+upcomingTasksMarkup(future,$('moreUpcomingTasks')?.open)+(!active.length?'<div class="muted" style="padding:10px 0">'+(hive?'Для этого улья запланированных работ пока нет.':'Запланированных работ пока нет.')+'</div>':'');
+ renderCompletedHomeTasks(hive);
 }
-function taskMarkup(t){const suggested=t.status==='suggested',late=t.status==='pending'&&t.date&&t.date<today(),evidence=Array.isArray(t.aiSourceRecordIds)&&t.aiSourceRecordIds.length?'<div class="muted">Основание: записи журнала '+t.aiSourceRecordIds.map(safe).join(', ')+'</div>':'',rationale=t.aiRationale?'<div class="muted">Почему предложено: '+safe(t.aiRationale)+'</div>':'',feeding=t.type==='Подкормка'?'<div class="muted">План кормления: '+[[t.plannedFeedingType,'вид'],[t.plannedFeedingSubstance,'состав'],[t.plannedFeedingAmount,'количество'],[t.plannedFeedingConcentration,'концентрация'],[t.plannedFeedingMethod,'способ']].filter(([v])=>v).map(([v,k])=>safe(k)+': '+safe(v)).join(' · ')+'</div>':'';return '<div class="'+(suggested?'task-suggested':'task-item')+'"><div class="row"><b>'+safe(t.type)+'</b><span class="task-date '+(late?'task-overdue':'')+'">'+(late?'Просрочено · ':'')+formatTaskDate(t.date)+'</span></div><div class="muted">'+safe(hname(t.hive))+(t.note?' · '+safe(t.note):'')+'</div>'+feeding+evidence+rationale+(suggested?'<div class="muted">Предварительная рекомендация. Проверь основание и назначь дату перед принятием.</div>':'')+'<div class="task-actions">'+(suggested?'<button class="primary" onclick="acceptTask(\''+t.id+'\')">Подтвердить</button><button onclick="dismissTask(\''+t.id+'\')">Отклонить</button>':'<button class="primary" onclick="completeTask(\''+t.id+'\')">Выполнено</button><button onclick="rescheduleTask(\''+t.id+'\')">Перенести</button>')+'</div></div>'}
-function openPlanDialog(){if(!S.hives.length)return alert('Сначала добавь улей');$('planHive').innerHTML=S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');$('planDate').value=dateShift(today(),1);$('planNote').value='';['planFeedingType','planFeedingSubstance','planFeedingAmount','planFeedingConcentration','planFeedingMethod'].forEach(id=>{if($(id))$(id).value=''});togglePlanFeedingFields();$('planDlg').showModal()}
+function completedTaskRecord(state,task){
+ if(!task?.id||task.status!=='done'||!task.completedRecordId||!task.hive)return null;
+ if(state.tasks.filter(t=>t.id===task.id).length!==1)return null;
+ const matches=state.records.filter(r=>r.id===task.completedRecordId);
+ const record=matches.length===1?matches[0]:null;
+ return record&&!record.archivedAt&&record.taskId===task.id&&record.hive===task.hive&&state.hives.some(h=>h.id===task.hive)?record:null;
+}
+function openCompletedTaskRecord(id){
+ const task=S.tasks.find(t=>t.id===id);
+ const record=completedTaskRecord(S,task);
+ if(!record){alert('Связанная запись журнала недоступна.');return;}
+ editRecord(record.id);
+}
+function renderCompletedHomeTasks(hive){
+ const host=$('completedHomeTasks');
+ if(!host)return;
+ const expanded=$('completedTaskHistory')?.open;
+ const rows=S.tasks.filter(t=>t.status==='done'&&(!hive||t.hive===hive)).sort((a,b)=>String(b.completedAt||'').localeCompare(String(a.completedAt||'')));
+ host.innerHTML='<details id="completedTaskHistory"'+(expanded?' open':'')+'><summary>Выполненные работы ('+rows.length+')</summary>'+ (rows.map(t=>'<article class="task-item"><b>'+safe(t.type)+'</b> · '+safe(hname(t.hive))+'<p class="muted">Выполнено: '+safe(t.completedAt||'Дата неизвестна')+'</p>'+(t.note?'<p>'+safe(t.note)+'</p>':'')+(completedTaskRecord(S,t)?'<button type="button" data-task-id="'+safe(t.id)+'" onclick="openCompletedTaskRecord(this.dataset.taskId)">Открыть запись журнала</button>':'<p class="muted">Связанная запись недоступна</p>')+'</article>').join('')||'<p class="muted">Выполненных работ пока нет.</p>')+'</details>';
+}
+function upcomingTasksMarkup(tasks,expanded){
+ if(!tasks.length)return '';
+ const previewSize=5;
+ const preview=tasks.slice(0,previewSize).map(taskMarkup).join('');
+ const rest=tasks.slice(previewSize);
+ const more=rest.length?'<details id="moreUpcomingTasks"'+(expanded?' open':'')+'><summary>Остальные запланированные работы ('+rest.length+')</summary>'+rest.map(taskMarkup).join('')+'</details>':'';
+ return '<h3 class="home-section-title">Предстоит</h3>'+preview+more;
+}
+function taskMarkup(t){const suggested=t.status==='suggested',late=t.status==='pending'&&t.date&&t.date<today(),evidence=Array.isArray(t.aiSourceRecordIds)&&t.aiSourceRecordIds.length?'<div class="muted">Основание: записи журнала '+t.aiSourceRecordIds.map(safe).join(', ')+'</div>':'',rationale=t.aiRationale?'<div class="muted">Почему предложено: '+safe(t.aiRationale)+'</div>':'',feeding=t.type==='Подкормка'?'<div class="muted">План кормления: '+[[t.plannedFeedingType,'вид'],[t.plannedFeedingSubstance,'состав'],[t.plannedFeedingAmount,'количество'],[t.plannedFeedingConcentration,'концентрация'],[t.plannedFeedingMethod,'способ']].filter(([v])=>v).map(([v,k])=>safe(k)+': '+safe(v)).join(' · ')+'</div>':'';return '<div class="'+(suggested?'task-suggested':'task-item')+'"><div class="row"><b>'+safe(t.type)+'</b><span class="task-date '+(late?'task-overdue':'')+'">'+(late?'Просрочено · ':'')+formatTaskDate(t.date)+'</span></div><div class="muted">'+safe(hname(t.hive))+(t.note?' · '+safe(t.note):'')+'</div>'+feeding+evidence+rationale+(suggested?'<div class="muted">Предварительная рекомендация. Проверь основание и назначь дату перед принятием.</div>':'')+'<div class="task-actions">'+(suggested?'<button class="primary" data-task-id="'+safe(t.id)+'" onclick="acceptTask(this.dataset.taskId)">Подтвердить</button><button data-task-id="'+safe(t.id)+'" onclick="dismissTask(this.dataset.taskId)">Отклонить</button>':'<button class="primary" data-task-id="'+safe(t.id)+'" onclick="completeTask(this.dataset.taskId)">Выполнено</button><button data-task-id="'+safe(t.id)+'" onclick="rescheduleTask(this.dataset.taskId)">Перенести</button>')+'</div></div>'}
+const plannedFeedingFields=['Type','Substance','Amount','Concentration','Method'];
+function togglePlanFeedingFields(){
+ $('planFeedingFields').style.display=$('planType').value==='Подкормка'?'':'none';
+}
+function collectPlannedFeedingFields(){
+ return Object.fromEntries(plannedFeedingFields.map(field=>['plannedFeeding'+field,$('planFeeding'+field).value.trim()]));
+}
+function openPlanDialog(hiveId){if(!S.hives.length)return alert('Сначала добавь улей');$('planHive').replaceChildren(...S.hives.map(h=>new Option(hname(h.id),h.id)));if(S.hives.some(h=>h.id===hiveId))$('planHive').value=hiveId;$('planDate').value=dateShift(today(),1);$('planNote').value='';plannedFeedingFields.forEach(field=>{$('planFeeding'+field).value=''});togglePlanFeedingFields();$('planDlg').showModal()}
 $('planForm').onsubmit=async e=>{
  e.preventDefault();S.tasks=S.tasks||[];
  const draft={id:uid(),hive:$('planHive').value,type:$('planType').value,date:$('planDate').value,note:$('planNote').value,...($('planType').value==='Подкормка'?collectPlannedFeedingFields():{}),source:'manual',status:'pending',createdAt:new Date().toISOString()};

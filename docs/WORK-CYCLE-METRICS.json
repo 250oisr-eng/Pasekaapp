@@ -33,6 +33,7 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
+  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
