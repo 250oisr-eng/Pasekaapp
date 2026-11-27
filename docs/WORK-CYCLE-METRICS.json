@@ -1236,6 +1236,10 @@
     "ariaLabelPreserved": true,
     "beeSideView": true,
     "completedVerifiedUserScenarios": 0,
-    "sharedNavigationAcrossTabs": true
+    "sharedNavigationAcrossTabs": true,
+    "design": "angular aggressive profile bee; blue radial-gradient lightening toward edges",
+    "baselineFailedAndroidRun": 45961701643,
+    "baselineFailedTests": 5,
+    "exactHeadCi": "NOT_VERIFIED"
   }
 }
