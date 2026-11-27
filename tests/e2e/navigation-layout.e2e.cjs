@@ -175,6 +175,30 @@ const measure=()=> {
       if(m.rowTracks!==3||m.layoutProblems.length||Math.abs(m.aiDelta)>3)
         failures.push('4-3-4 layout changed on tab '+tab+': '+JSON.stringify(m.layoutProblems));
     }
+    // Independent UI #609 smoke on a disposable Chromium profile: no production records.
+    await page.locator('main>nav button[data-tab="home"]').click();
+    for(const width of [320,390,768]){
+      await page.setViewportSize({width,height:width===320?640:width===390?844:1024});
+      const field=page.locator('#globalSearch');
+      const clear=page.locator('#globalSearchClear');
+      const status=page.locator('#globalSearchStatus');
+      await field.fill('несуществующий запрос xyz');
+      if(!await clear.isVisible())failures.push('global reset hidden with query at '+width);
+      if(!await status.isVisible())failures.push('search result status missing at '+width);
+      if(await status.textContent()!=='Совпадений не найдено.')
+        failures.push('search zero count not announced at '+width);
+      await clear.click();
+      if(await field.inputValue()!=='')failures.push('click reset did not clear at '+width);
+      if(await clear.isVisible())failures.push('reset remained visible when empty at '+width);
+      if(!await field.evaluate(element=>element===document.activeElement))
+        failures.push('click reset did not focus input at '+width);
+      await field.fill('синтетический запрос');
+      await field.press('Escape');
+      if(await field.inputValue()!=='')failures.push('Escape did not clear search at '+width);
+      if(await status.textContent()!=='')failures.push('stale status after Escape at '+width);
+      console.log(JSON.stringify({scenario:'global-search-reset',width,
+        source:'Chromium-disposable-synthetic',realAndroid:'NOT_TESTED'}));
+    }
     assert.deepEqual(errors,[],'unexpected JS errors or dialogs');
     assert.deepEqual(failures,[],'nav geometry regression across supported viewports');
   }finally{if(context)await context.close();if(browser)await browser.close();
