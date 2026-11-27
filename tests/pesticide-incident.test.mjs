@@ -65,3 +65,39 @@ test('incident module is loaded before app and cached offline',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8'),sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
  assert.ok(html.indexOf('./js/pesticide-incident.js')<html.indexOf('<script>'));assert.ok(sw.includes('./js/pesticide-incident.js'));
 });
+
+
+test('incident inspector rejects mismatched or duplicate historical hive snapshots without changing records',()=>{
+ const incident=build({...base,hiveIds:['h1','h2']});
+ const archivedHives={meta:{schemaVersion:11},hives:[],pesticideIncidents:[incident]};
+ const before=JSON.stringify(archivedHives);
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity(archivedHives),[],
+  'exact original snapshots must remain valid after hives have been removed from current apiary');
+ assert.equal(JSON.stringify(archivedHives),before);
+ const cases=[
+  [{...incident,affectedHiveIds:['h1','h1']},'pesticide_incident_invalid_or_duplicate_hive_id'],
+  [{...incident,affectedHiveIds:['h1','h2','h3']},'pesticide_incident_snapshot_mismatch'],
+  [{...incident,affectedHiveSnapshots:[incident.affectedHiveSnapshots[0]]},'pesticide_incident_snapshot_mismatch'],
+  [{...incident,affectedHiveSnapshots:[incident.affectedHiveSnapshots[0],incident.affectedHiveSnapshots[0]]},'pesticide_incident_invalid_or_duplicate_hive_snapshot'],
+  [{...incident,affectedHiveSnapshots:[{id:'other',label:'Подмена'}]},'pesticide_incident_snapshot_mismatch'],
+  [{...incident,affectedHiveIds:[null,'h2']},'pesticide_incident_invalid_or_duplicate_hive_id'],
+  [{...incident,affectedHiveSnapshots:[null,...incident.affectedHiveSnapshots]},'pesticide_incident_invalid_or_duplicate_hive_snapshot'],
+ ];
+ for(const [row,expected] of cases){
+  const s={meta:{schemaVersion:11},hives:[],pesticideIncidents:[row]},original=JSON.stringify(s);
+  assert.ok(api.inspectPesticideIncidentIntegrity(s).some(x=>x.code===expected),expected);
+  assert.equal(JSON.stringify(s),original,'Inspection must not rewrite provenance');
+ }
+});
+test('incident inspector blocks numeric-string GPS spoofing and missing status but preserves valid legacy links',()=>{
+ const row=build({...base,latitude:'53.1',longitude:'45.2'});
+ for(const patch of [
+  {latitude:'53.1'}, {longitude:'45.2'},{latitude:Infinity},{longitude:NaN}
+ ]){
+  const errors=api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[{...row,...patch}]}).map(x=>x.code);
+  assert.ok(errors.includes('pesticide_incident_invalid_coordinates'),JSON.stringify(patch));
+ }
+ assert.ok(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[{...row,status:''}]})
+  .some(x=>x.code==='pesticide_incident_invalid_status'));
+ assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[row]}),[]);
+});
