@@ -1645,6 +1645,37 @@
     "device": "NOT_TESTED",
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/pull/627/checks"
   },
+  "overviewModelDiagnostics20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
+    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
+    "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
+    "mainCi": [
+      {
+        "name": "Governance Docs Checks",
+        "id": 45994063782,
+        "conclusion": "success"
+      }
+    ],
+    "nodeTests": {
+      "pass": 1054,
+      "fail": 0,
+      "targetedPass": 278,
+      "targetedFail": 0
+    },
+    "chromium": {
+      "navigationViewports": 11,
+      "diagnosticsScenarios": 2,
+      "journalScenarios": 2,
+      "archiveScenarios": 2
+    },
+    "webPrepare": "PASS",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
+  },
   "b01OnePlusWorkerDiagnostics20261127": {
     "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "pr": 629,
