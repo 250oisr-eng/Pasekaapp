@@ -39,3 +39,5 @@
 - **B09/B11/P2:** зелёный синтетический CI не доказывает настоящий offline, power-loss, storage quota и OnePlus.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_APK_REINSTALL / NO_PRODUCTION_APK_INSTALL / NO_MASS_MERGE.**
+
+**OP02 Draft #630 · 27.11:** локальный fail-closed guard против отсутствующих `tasks`/`records`, 4 негативных + 1 позитивная адресная проверка; полный CI обновлённого SHA не подтверждён, физическое QA/B07 отдельно. Не активировать sectional профиль.

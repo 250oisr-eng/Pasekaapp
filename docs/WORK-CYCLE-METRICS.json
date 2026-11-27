@@ -33,7 +33,11 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1648,7 +1652,11 @@
   "overviewModelDiagnostics20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
-    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "refreshedLocalNodeTests": {
+      "pass": 1072,
+      "fail": 0,
+      "targetedPass": 13
+    },
     "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
     "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
     "mainCi": [
@@ -1675,5 +1683,37 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
+  },
+  "op02StandaloneDailyPlan20261127": {
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "sourcePr": 453,
+    "sourceHeadSha": "7be9bfaad3ccc4197112b2d5d08fc0015cd38ac6",
+    "codeSha": "cfd902534d3db4cd717e0dc3ffb9b5924ad779ee",
+    "nodePass": 1063,
+    "nodeFail": 0,
+    "op02Pass": 9,
+    "targetedPass": 86,
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Fop02-daily-plan-model",
+    "verifiedAgainstMainSha": "1a609a9ec46cace85a81663648fee749df677932",
+    "syncedLocalValidation": {
+      "nodePass": 1081,
+      "nodeFail": 0,
+      "targetedPass": 86,
+      "governancePass": 5,
+      "chromiumPassed": true,
+      "webPreparePassed": true
+    },
+    "missingAccountingStateGuard": {
+      "implementation": "9cef7695b6140377b6436f922327bc3608c5ae26",
+      "regression": "cfa314698d7a0bfba92758ba4739fd2ab117693c",
+      "negativeCases": 4,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    },
+    "fullCiOfNewHead": "PENDING"
   }
 }
