@@ -33,3 +33,7 @@
 
 ## Доказательства на кодовом SHA `70216c734e91831fe09cc7d98e777814d1a5116d`
 - Fast [#45993512819](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993512819): 1054/1054 PASS. Android [#45993512876](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993512876) SUCCESS. Governance [#45993522032](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522032) SUCCESS. Chromium [#45993512831](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993512831) SUCCESS: corrupted latest → previous → reload; worker HTML same-origin real IDB → primary SHA unchanged. Native Android runtime remains DEVICE_NOT_TESTED. Не выпускать production APK без физической проверки и signer gate. Удаление refs через доступный connector не поддерживается.
+
+## 27.11.2026 · единая комплексная приёмка после #623
+
+**Следующий приоритет:** [B01-COMPREHENSIVE-ONEPLUS-QA-2026-11-27.md](B01-COMPREHENSIVE-ONEPLUS-QA-2026-11-27.md). Это действующий комплект: автоматические G0–G8, одна отдельная `ru.paseka.journal.qa.daily` для физического опыта, этапы натуральных календарных дней, предыдущий ZIP и read-only/подтверждённое restore только QA. Старые испытания Downloads/SAF/JSON — исторические и **не являются обязательными** для утверждённого локального B01. Время фонового JobScheduler не гарантируется, не менять время телефона и не имитировать повреждение настоящих архивов. B04/B05 и #442 остаются независимо заблокированы.
