@@ -1573,5 +1573,34 @@
     ],
     "deviceChanges": false,
     "completedVerifiedUserScenarios": 0
+  },
+  "nonvideoAccountingCycle20261127": {
+    "scope": "FAMILY_ID_INSPECTION_PREFILL_AND_FEEDING_LEDGER",
+    "baseMain": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "draftPr": 627,
+    "codeSha": "f4b933c94850d6eb09734f3c4bde8de0fa49a015",
+    "nodeTests": {
+      "tests": 1057,
+      "pass": 1057,
+      "fail": 0,
+      "runId": 46017055419
+    },
+    "android": "PENDING",
+    "chromium": "PENDING",
+    "serviceWorkerCache": "v325",
+    "indexedDbSchemaChanged": false,
+    "legacyRecordsMutated": false,
+    "videoTouched": false,
+    "releaseAuthorized": false,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "unverifiedUserScenarios": [
+      "queen_create_replace",
+      "inventory_move",
+      "feeding_entry",
+      "inspection_reopen",
+      "honey_harvest",
+      "wintering"
+    ]
   }
 }
