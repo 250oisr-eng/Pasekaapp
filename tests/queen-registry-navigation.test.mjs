@@ -31,3 +31,20 @@ test('queen registry filters actual statuses and opens only the uniquely linked 
  assert.equal(alerts.length,1);assert.equal(calls.length,2);
  S.families.push({...S.families[0]});assert.equal(api.queenRegistryFamily(S,'q2','f1','h2'),null);
 });
+
+
+test('queen registry blocks navigation and editing for duplicate hive identifiers',()=>{
+ const state={hives:[{id:'h1'},{id:'h1'}],families:[{id:'f1',hive:'h1',currentQueenId:'q1'}],queens:[{id:'q1',familyId:'f1',status:'current'}],queenEvents:[]};
+ const messages=[],opened=[];
+ const api=new Function('S','renderQueenRegistry','alert','openFamilyHistory','openQueenForm',source+';return {queenRegistryFamily,openQueenRegistryFamily}')(
+  state,()=>messages.push('render'),message=>messages.push(message),id=>opened.push(id),id=>opened.push(['edit',id]));
+ const before=JSON.stringify(state);
+ assert.equal(api.queenRegistryFamily(state,'q1','f1','h1'),null);
+ const button={dataset:{queenId:'q1',familyId:'f1',hiveId:'h1'}};
+ api.openQueenRegistryFamily(button);
+ api.openQueenRegistryFamily(button,true);
+ assert.deepEqual(opened,[]);
+ assert.equal(messages.filter(x=>x==='render').length,2);
+ assert.equal(messages.filter(x=>x.includes('недоступна')).length,2);
+ assert.equal(JSON.stringify(state),before);
+});
