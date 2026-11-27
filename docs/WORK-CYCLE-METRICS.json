@@ -123,7 +123,22 @@
       },
       "artifactId": 15233613906
     },
-    "groupedTrial": "implemented_not_verified"
+    "groupedTrial": "implemented_not_verified",
+    "external": {
+      "run": 46075523191,
+      "codeSha": "4e438653dbae39461b5a0259508443fe9ecc19af",
+      "testsPassed": 3,
+      "archiveBytes": 2076021293,
+      "rangeBytes": 2642553,
+      "jpegPairs": 3752,
+      "xmlFiles": 4993,
+      "successfulSamples": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 8,
+      "conclusion": "partial_decode_failure",
+      "productAdmission": false
+    }
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",

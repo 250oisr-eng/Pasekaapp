@@ -5,6 +5,7 @@ algorithms and cloud platform design specifications. Dataset, 2021.
 https://lila.science/datasets/boxes-on-bees-and-pollen ; CDLA-Permissive-1.0.
 Never train on this sample, publish images or claim physical hive independence.
 """
+from collections import Counter
 import hashlib
 import io
 import json
@@ -48,7 +49,7 @@ def open_archive():
     return zsrc.RangeReader(URL,size,opener=pinned,budget=CAP),meta
 
 def index(z):
-    imgs={}; xmls={}; seen=set()
+    imgs={}; xmls={}; seen=set(); suffixes=Counter(); other=[]
     infos=z.infolist()
     if not 0<len(infos)<=30000:raise ValueError("archive directory cap")
     for info in infos:
@@ -57,8 +58,11 @@ def index(z):
         seen.add(info.filename)
         if info.is_dir():continue
         k=p.stem
-        target=imgs if p.suffix.lower() in (".jpg",".jpeg") else xmls if p.suffix.lower()==".xml" else None
-        if target is None:continue
+        suffixes[p.suffix.lower()]+=1
+        target=imgs if p.suffix.lower() in (".jpg",".jpeg",".png",".bmp",".tif",".tiff") else xmls if p.suffix.lower()==".xml" else None
+        if target is None:
+            if len(other)<20:other.append(info.filename)
+            continue
         if k in target:raise ValueError("ambiguous image/label basename")
         target[k]=info
     keys=sorted(imgs.keys()&xmls.keys())
@@ -72,6 +76,7 @@ def index(z):
     selected=[groups[group_names[((2*i+1)*len(group_names))//(2*n)]][len(groups[group_names[((2*i+1)*len(group_names))//(2*n)]])//2] for i in range(n)] if n else []
     return imgs,xmls,selected,{"images":len(imgs),"xml":len(xmls),"paired":len(keys),
          "filenamePrefixGroups":len(groups),"prefixExamples":group_names[:20],
+         "suffixCounts":dict(suffixes),"otherFileExamples":other,
          "unparsedNames":len(keys)-sum(map(len,groups.values())),"selectedNames":selected,
          "filenameGroupsArePhysicalHiveProof":False}
 
@@ -147,26 +152,38 @@ def run(model,out):
         with zipfile.ZipFile(reader) as z:
             imgs,xmls,selected,report["inventory"]=index(z)
             if not selected:raise ValueError("no named prefix groups")
-            seen=set();report["samples"]=[];tp=fp=fn=tiles=0;elapsed=0
+            seen=set();report["samples"]=[];report["sampleErrors"]=[];tp=fp=fn=tiles=0;elapsed=0
+            # Reuse the predeclared first six JPEG sample IDs, not a new
+            # sample chosen after observing predictions. Inventory all formats.
+            selected=["Chueried_Churied_01_ST_251","Doettingen_Doettingen_Hive_1_3763","Erlen_Erlen_Hive_04_1553",
+                      "Frohheimstrasse_14_Froh_14_ST_2437","Frohheimstrasse_23_Froh23_TC_2677","unknown_apiary_unknown_hive_5556"]
+            report["fixedOriginalSampleNames"]=selected
             for key in selected:
-                iraw=zsrc.read_entry(z,imgs[key],4*1024*1024);xraw=zsrc.read_entry(z,xmls[key],65536)
-                with Image.open(io.BytesIO(iraw)) as source:
-                    if source.format!="JPEG" or not 0<source.width*source.height<=12000000:raise ValueError("unexpected image format/size")
-                    image=source.convert("RGB")
-                digest=hashlib.sha256(image.tobytes()).hexdigest()
-                if digest in seen:raise ValueError("duplicate decoded sample")
-                seen.add(digest)
-                gt,classes=parse_voc(xraw,*image.size)
-                pred,count,seconds=predict(runtime,image)
-                n=base.match_count(gt,pred,.5)
-                tp+=n;fp+=len(pred)-n;fn+=len(gt)-n;tiles+=count;elapsed+=seconds
-                report["samples"].append({"name":key,"imageSha256":hashlib.sha256(iraw).hexdigest(),
-                   "xmlSha256":hashlib.sha256(xraw).hexdigest(),"decodedSha256":digest,"size":list(image.size),
-                   "classes":classes,"tp":n,"fp":len(pred)-n,"fn":len(gt)-n,"crcVerified":True})
+                evidence={"name":key}
+                try:
+                    iraw=zsrc.read_entry(z,imgs[key],4*1024*1024);xraw=zsrc.read_entry(z,xmls[key],65536)
+                    evidence.update({"imageSha256":hashlib.sha256(iraw).hexdigest(),
+                       "imageBytes":len(iraw),"imageHeaderHex":iraw[:16].hex(),"xmlSha256":hashlib.sha256(xraw).hexdigest(),"crcVerified":True})
+                    with Image.open(io.BytesIO(iraw)) as source:
+                        if source.format not in ("JPEG","PNG","BMP","TIFF") or not 0<source.width*source.height<=12000000:
+                            raise ValueError("unexpected image format/size")
+                        evidence["actualFormat"]=source.format
+                        image=source.convert("RGB")
+                    digest=hashlib.sha256(image.tobytes()).hexdigest()
+                    if digest in seen:raise ValueError("duplicate decoded sample")
+                    seen.add(digest)
+                    gt,classes=parse_voc(xraw,*image.size)
+                    pred,count,seconds=predict(runtime,image)
+                    n=base.match_count(gt,pred,.5)
+                    tp+=n;fp+=len(pred)-n;fn+=len(gt)-n;tiles+=count;elapsed+=seconds
+                    report["samples"].append({**evidence,"decodedSha256":digest,"size":list(image.size),
+                       "classes":classes,"tp":n,"fp":len(pred)-n,"fn":len(gt)-n})
+                except Exception as exc:
+                    report["sampleErrors"].append({**evidence,"errorType":type(exc).__name__,"detail":str(exc)[:180]})
         report["metrics"]={"tp":tp,"fp":fp,"fn":fn,"precision":tp/(tp+fp) if tp+fp else None,
              "recall":tp/(tp+fn) if tp+fn else None,"f1":2*tp/(2*tp+fp+fn) if 2*tp+fp+fn else None,
              "tileCount":tiles,"cpuTileMeanMs":1000*elapsed/tiles if tiles else None}
-        report["status"]="EXTERNAL_COMPARISON_COMPLETED"
+        report["status"]="EXTERNAL_COMPARISON_COMPLETED" if not report["sampleErrors"] else "PARTIAL_EXTERNAL_COMPARISON_NOT_ACCEPTED"
     except Exception as exc:
         report["status"]="STOP_WITHOUT_ACCEPTANCE";report["errorType"]=type(exc).__name__;report["detail"]=str(exc)[:240]
     if reader is not None:report["rangeBytes"]=reader.received;report["rangeRequests"]=reader.requests

@@ -14,4 +14,12 @@ class ExternalTests(unittest.TestCase):
     def test_empty_decode(self):
         raw=np.zeros((5,90,96),np.float32);raw[0]=-100
         b,s=p.decode(raw);self.assertEqual(b.shape,(0,4));self.assertEqual(len(s),0)
+    def test_inventory_recognizes_png_and_jpeg(self):
+        import io,zipfile
+        data=io.BytesIO()
+        with zipfile.ZipFile(data,"w") as z:
+            for name in ("Hive_a_1.jpg","Hive_b_1.png","Hive_a_1.xml","Hive_b_1.xml","README.txt"):z.writestr(name,b"")
+        with zipfile.ZipFile(data) as z:
+            _,_,_,r=p.index(z)
+            self.assertEqual(r["paired"],2);self.assertEqual(r["suffixCounts"][".png"],1)
 if __name__=="__main__":unittest.main()
