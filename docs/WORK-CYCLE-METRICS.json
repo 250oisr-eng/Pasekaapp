@@ -1967,5 +1967,21 @@
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "b07OwnerConfirmationPhysicalCandidate20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 649,
+    "scope": "early 2/4, all-frame readiness, physical-only full removal/installation",
+    "baseSha": "22e67f467a1a1967d513f3486c8135bb09c4eb13",
+    "nodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "ui": "BLOCKED_B07",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }

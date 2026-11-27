@@ -51,7 +51,7 @@ function pairGroups(state,ids,location,deps){
 function inventoryReview(state,request,deps){
  const c=context(state,request?.hiveId,deps);if(!c.ok)return c;
  const stack=c.layout.honeyStack,ids=stack?.bodyIds;
- if(!['early','main'].includes(stack?.purpose)||stack.purpose==='early'&&ids?.length!==2)return fail('honey_stack_unavailable');
+ if(!['early','main'].includes(stack?.purpose)||![2,4].includes(ids?.length))return fail('honey_stack_unavailable');
  const installed=pairGroups(state,ids,{type:'sectional',hiveId:request.hiveId,layoutId:c.layout.id},deps);
  if(!installed.ok)return installed;
  if(deps.physicalLayout.inspect(state).length||deps.coordinator.inspect(state,deps.operationDependencies||{}).length)return fail('sectional_evidence_invalid');
@@ -85,8 +85,8 @@ function extractionReview(state,request,deps){
    else if(!['drawn','foundation','partial','extracted'].includes(frame.status))unknown.push(f);
   }
  }
- if(!sealed.length)return fail('no_sealed_honey');
- return {ok:true,kind:'full_removal_review',hiveId:request.hiveId,layoutId:v.layoutId,priorCount:v.bodyCount,targetCount:0,bodyIds,pairIds:allPairIds,excluderIds,sealedFrames:sealed,unsealedFrames:unsealed,unknownFrames:unknown,closureRequired:true,canCommit:false,date:request.date,kilograms:request.kilograms};
+ if(sealed.length!==bodyIds.length*10)return {ok:false,error:'all_frames_must_be_ready',readyCount:sealed.length,requiredCount:bodyIds.length*10,unsealedFrames:unsealed,unknownFrames:unknown};
+ return {ok:true,kind:'full_removal_review',hiveId:request.hiveId,layoutId:v.layoutId,priorCount:v.bodyCount,targetCount:0,bodyIds,pairIds:allPairIds,excluderIds,sealedFrames:sealed,unsealedFrames:unsealed,unknownFrames:unknown,closureRequired:true,requiredCovers:3,requiredTopRisers:3,canCommit:false,date:request.date,kilograms:request.kilograms};
 }
 // A new installation after a zero-honey interval does not inherit the count
 // or identity of the removed stack. Candidate IDs must be selected explicitly;
@@ -94,7 +94,7 @@ function extractionReview(state,request,deps){
 function installationReview(state,request,deps){
  const c=context(state,request?.hiveId,deps);if(!c.ok)return c;
  if(c.layout.honeyStack!=null)return fail('zero_honey_layout_required');
- if(!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today)return fail('invalid_installation_date');
+ if(!dateOnly(request.date)||!dateOnly(request.today)||request.date>request.today||!['early','main'].includes(request.purpose))return fail('invalid_installation_date_or_purpose');
  if(!unique(request.bodyIds)||![2,4].includes(request.bodyIds.length))return fail('two_or_four_bodies_required');
  const checked=pairGroups(state,request.bodyIds,{type:'storage'},deps);if(!checked.ok)return checked;
  if(request.bodyIds.some(id=>c.bodies[id].frames.length!==10))return fail('full_frame_inventory_required');
@@ -102,7 +102,7 @@ function installationReview(state,request,deps){
  if(!unique(ids)||ids.length!==2)return fail('both_excluders_required');
  const items=state.equipmentInventory.items||{};
  if(ids.some(id=>items[id]?.kind!=='honeyQueenExcluder'||items[id]?.condition!=='good'||items[id]?.location?.type!=='storage'))return fail('excluder_unavailable');
- return {ok:true,kind:'new_installation_review',hiveId:request.hiveId,layoutId:c.layout.id,priorCount:0,targetCount:request.bodyIds.length,bodyIds:request.bodyIds.slice(),pairIds:checked.pairs.map(p=>p.pairId),excluderIds:ids.slice(),date:request.date,canCommit:false};
+ return {ok:true,kind:'new_installation_review',hiveId:request.hiveId,layoutId:c.layout.id,priorCount:0,targetCount:request.bodyIds.length,purpose:request.purpose,bodyIds:request.bodyIds.slice(),pairIds:checked.pairs.map(p=>p.pairId),excluderIds:ids.slice(),date:request.date,canCommit:false};
 }
 // Deprecated name: old return-by-extraction-ID is no longer a valid contract.
 // Existing records are never deleted or rewritten by this adapter.
@@ -130,7 +130,7 @@ function viewModel(state,request,deps){
  const c=context(state,request?.hiveId,deps);if(!c.ok)return {visible:false};
  if(c.layout.honeyStack==null)return {visible:true,bodyCount:0,installedPairs:[],offers:[],pending:[],canReviewInstallation:true,canCommit:false,reason:'B07_BLOCKED'};
  const v=inventoryReview(state,request,deps);if(!v.ok)return {visible:false};
- return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2&&!v.pending.length?v.offers:[],pending:v.pending,canReviewExtraction:[2,4].includes(v.bodyCount)&&!v.pending.length,canCommit:false,reason:'B07_BLOCKED'};
+ return {visible:true,bodyCount:v.bodyCount,installedPairs:v.installedPairs,offers:v.bodyCount===2&&!v.pending.length?v.offers:[],pending:v.pending,readyFrames:v.installedPairs.flatMap(p=>p.bodyIds).reduce((sum,id)=>sum+rows(c.bodies[id].frames).filter(f=>f.status==='sealed').length,0),requiredFrames:v.bodyCount*10,canReviewExtraction:[2,4].includes(v.bodyCount)&&!v.pending.length,canCommit:false,reason:'B07_BLOCKED'};
 }
 window.PasekaSectionalHoneyReview=Object.freeze({inventoryReview,extractionReview,installationReview,returnReview,prepareAdditionalPair,viewModel});
 })();

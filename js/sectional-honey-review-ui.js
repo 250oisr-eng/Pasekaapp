@@ -12,7 +12,7 @@ function render(host,model,labels){
  for(const p of model.installedPairs||[])add('p','Пара: '+p.bodyIds.map(name).join(' / '));
  for(const p of model.offers||[])add('p','Доступна дополнительная пара: '+p.bodyIds.map(name).join(' / '));
  for(const p of model.pending||[])add('p','Ожидает возврата: '+p.bodyIds.map(name).join(' / '));
- if(model.canReviewExtraction)add('p','Откачка: снять все '+model.bodyCount+' медовых корпуса и обе решётки, закрыть секции крышками.');
+ if(model.canReviewExtraction){add('p','Готово к откачке: '+model.readyFrames+' из '+model.requiredFrames+' рамок.');add('p','Откачка только при полной готовности: снять все '+model.bodyCount+' корпуса и обе решётки, установить 3 подкрышника и 3 крышки.');}
  if(model.canReviewInstallation)add('p','Новая установка: выбрать 2 или 4 корпуса и две решётки независимо от предыдущего количества.');
  const status=add('p','Предварительный просмотр. Сохранение физической операции пока заблокировано B07.');
  status.setAttribute('role','status');
