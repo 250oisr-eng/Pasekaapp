@@ -314,13 +314,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  body[data-page="home"] #home{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start}
  #home>.home-intro-card,#home>.workspace-global-search,#home>.home-hives-card{grid-column:1/-1}
  #home>.apiary-status-card{grid-column:1/-1}#home>.home-tasks-card{grid-column:1}#home>.home-recent-card{grid-column:2}
- body[data-page="hiveDetail"] #selectedHivePanel{display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:10px;align-items:start}
- body[data-page="hiveDetail"] #selectedHivePanel>.hive-summary-card,
- body[data-page="hiveDetail"] #selectedHivePanel>.assembly-mode-control,
- body[data-page="hiveDetail"] #selectedHivePanel>#modeTransition,
- body[data-page="hiveDetail"] #selectedHivePanel>.row{grid-column:1/-1}
- body[data-page="hiveDetail"] #selectedHivePanel>.hive-diagram-card{grid-column:1}
- body[data-page="hiveDetail"] #selectedHivePanel>.hive-family-card{grid-column:2}
+
  body[data-page="hiveDetail"] #hiveDiagram{overflow-x:visible}
  body[data-page="hiveDetail"] .summer-box-row{gap:10px}
  body[data-page="hiveDetail"] .box-unit{min-width:0}body[data-page="hiveDetail"] .frame-strip{flex-wrap:wrap}
@@ -334,7 +328,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .journal-entry-media .muted{font-size:10px;overflow-wrap:anywhere}
 @media(min-width:700px){.journal-filter-row{grid-template-columns:minmax(0,1fr) minmax(125px,.42fr) minmax(135px,.45fr) minmax(145px,.35fr) auto}}
 @media(max-width:380px){.journal-filter-row{grid-template-columns:minmax(0,1fr) minmax(105px,.7fr)}.journal-filter-row input[type="search"]{grid-column:1/-1}.journal-filter-row input[type="date"]{grid-column:1}.journal-filter-row button{grid-column:2}}
-@media(orientation:landscape) and (min-width:700px){body[data-page="hiveDetail"] #selectedHivePanel>.hive-diagram-note{grid-column:1}}.hive-row-main[role="button"],.home-hive[role="button"]{cursor:pointer}.hive-row-main[role="button"]:focus-visible,.home-hive[role="button"]:focus-visible{outline:3px solid #83a989;outline-offset:2px}.forage-intro{border-left:4px solid #66886b}.forage-actions,.forage-submit{justify-content:flex-start;flex-wrap:wrap;margin:10px 0}.plant-observation-list{display:grid;gap:9px;margin-top:12px}.plant-observation{padding:12px;border:1px solid #e1e7dd;border-radius:12px;background:#fbfcf9;min-width:0}.plant-observation time{font-size:12px;color:#68736a;white-space:nowrap}.plant-observation p{font-size:13px;line-height:1.45;white-space:pre-wrap;margin:8px 0}.plant-observation .row{align-items:flex-start}.plant-observation .row button{flex:none}.forage-actions button,.forage-submit button{white-space:normal}.plant-photo-preview{display:flex;flex-wrap:wrap;gap:9px;margin:9px 0}.plant-photo-item{width:calc(33.333% - 6px);min-width:90px;max-width:150px}.plant-photo-item img,.plant-observation-thumb{display:block;width:100%;height:100px;object-fit:cover;border-radius:9px;background:#edf0eb}.plant-photo-item button{width:100%;margin-top:4px;padding:6px;font-size:11px}.plant-observation-thumb{width:100px;height:90px;margin:8px 0}.plant-share-consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0;padding:10px;border:1px solid #dce4d9;border-radius:10px;font-size:12px;line-height:1.4}.plant-share-consent input{flex:none;margin-top:2px}
+.hive-row-main[role="button"],.home-hive[role="button"]{cursor:pointer}.hive-row-main[role="button"]:focus-visible,.home-hive[role="button"]:focus-visible{outline:3px solid #83a989;outline-offset:2px}.forage-intro{border-left:4px solid #66886b}.forage-actions,.forage-submit{justify-content:flex-start;flex-wrap:wrap;margin:10px 0}.plant-observation-list{display:grid;gap:9px;margin-top:12px}.plant-observation{padding:12px;border:1px solid #e1e7dd;border-radius:12px;background:#fbfcf9;min-width:0}.plant-observation time{font-size:12px;color:#68736a;white-space:nowrap}.plant-observation p{font-size:13px;line-height:1.45;white-space:pre-wrap;margin:8px 0}.plant-observation .row{align-items:flex-start}.plant-observation .row button{flex:none}.forage-actions button,.forage-submit button{white-space:normal}.plant-photo-preview{display:flex;flex-wrap:wrap;gap:9px;margin:9px 0}.plant-photo-item{width:calc(33.333% - 6px);min-width:90px;max-width:150px}.plant-photo-item img,.plant-observation-thumb{display:block;width:100%;height:100px;object-fit:cover;border-radius:9px;background:#edf0eb}.plant-photo-item button{width:100%;margin-top:4px;padding:6px;font-size:11px}.plant-observation-thumb{width:100px;height:90px;margin:8px 0}.plant-share-consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0;padding:10px;border:1px solid #dce4d9;border-radius:10px;font-size:12px;line-height:1.4}.plant-share-consent input{flex:none;margin-top:2px}
 
 /* AI workspace: distinctive but consistent with the apiary's forest-and-honey palette */
 .ai-hero{display:flex;align-items:center;gap:13px;margin:-4px -4px 14px;padding:17px 15px;border-radius:18px;background:radial-gradient(circle at 12% 18%,#385c48 0,#203e30 42%,#172d25 100%);color:#fff;position:relative;overflow:hidden;border:1px solid #52745a}
@@ -513,8 +507,7 @@ body[data-workspace-mode="night"] #hiveDiagram input,body[data-workspace-mode="n
 #recordDlg input,#recordDlg select,#recordDlg textarea{scroll-margin-bottom:96px;scroll-margin-top:65px}
 @media(orientation:landscape) and (max-height:420px){#recordDlg{scroll-padding-bottom:78px}#recordDlg h2{position:static}#recordDlg .record-actions{padding:4px 0;gap:6px}}
 /* Biological-first hive view; the existing physical editor remains separate. */
-body[data-page="hiveDetail"] #selectedHivePanel{display:block!important;max-width:980px;margin-inline:auto}
-#selectedHivePanel[style*="display: none"],#selectedHivePanel[style*="display:none"]{display:none!important}
+body[data-page="hiveDetail"] #selectedHivePanel{max-width:980px;margin-inline:auto}
 .family-observation-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:10px;margin-top:8px}
 .family-observation{border:1px solid var(--ws-border);border-radius:12px;padding:12px;min-width:0;background:var(--ws-surface)}
 .family-observation h3{margin:0 0 4px!important;overflow-wrap:anywhere}
