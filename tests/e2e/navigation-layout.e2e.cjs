@@ -20,12 +20,11 @@ const server=createServer(async(req,res)=>{
 });
 const scenarios=[
   ['portrait-320',320,640],['portrait-360',360,780],['portrait-390',390,844],
-  ['portrait-412',412,915],['portrait-768',768,1024],['portrait-1024',1024,1365],
+  ['portrait-412',412,915],['portrait-768',768,1024],['portrait-1024',1024,1365],['portrait-1365',1365,1600],
   ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
-  ['landscape-1024',1024,768],['landscape-1365',1365,900]
+  ['landscape-915',915,412],['landscape-768',768,600],['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
-const expected=['entrance','hives','home','planning','journal','ai',
-  'forage','incidents','deadout','varroa','settings'];
+const expected=['home','hives','journal','planning','settings','ai'];
 const measure=()=> {
   const box=el=>{const r=el.getBoundingClientRect();
     return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
@@ -64,24 +63,12 @@ const measure=()=> {
   const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
     rimColor:aiStyle?.borderTopColor||null,background:aiStyle?.backgroundImage||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
-  const mobileRows=[['entrance','hives','home','planning'],
-    ['journal','ai','forage'],
-    ['incidents','deadout','varroa','settings']];
   const layoutProblems=[];
-  if(mobileRows){
-    const ordered=mobileRows.flatMap((row,index)=>row.map(tab=>({tab,row:index})));
-    for(const {tab,row} of ordered){
-      const button=buttons.find(b=>b.tab===tab);
-      if(!button||Math.abs(button.cy-buttons.find(b=>b.tab===mobileRows[row][0]).cy)>1)
-        layoutProblems.push(tab+' is not in designated row '+(row+1));
-    }
-    const hex=buttons.find(b=>b.tab==='entrance');
-    const other=buttons.find(b=>b.tab==='hives');
-    if(hex&&other&&Math.abs(hex.right-other.left)>1)
-      layoutProblems.push('same-row hexagons do not touch edges');
-    const rows=[mobileRows[0][0],mobileRows[1][0],mobileRows[2][0]].map(t=>buttons.find(b=>b.tab===t));
-    if(rows.every(Boolean)&&Math.abs((rows[1].cy-rows[0].cy)-rows[0].height*.75)>1.5)
-      layoutProblems.push('hexagon rows are not vertically tessellated');
+  const first=buttons[0];
+  for(let i=0;i<buttons.length;i++){
+    const button=buttons[i];
+    if(Math.abs(button.cy-first.cy)>1)layoutProblems.push(button.tab+' is not in single row');
+    if(i>0&&button.left<buttons[i-1].right-1)layoutProblems.push('tap targets overlap');
   }
   return {viewport:{width:innerWidth,height:innerHeight},
     documentWidth:document.documentElement.scrollWidth,
@@ -115,41 +102,41 @@ const measure=()=> {
     });
     await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
     await page.locator('main>nav[aria-label="Основные разделы"]').waitFor({state:'visible'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);
+    assert.equal(await page.locator('#recent').textContent(),'Записей пока нет.');
+    assert.equal(await page.getByRole('button',{name:'Открыть ИИ-помощника',exact:true}).count(),1);
+    const expectedRecent=await page.evaluate(()=>{
+      const longLabel='<метка>'+ 'СинтетическаяМетка'.repeat(12);
+      S.records=[{id:'newest',date:'2025-05-05',type:'Запись'},{id:'same-day-first',date:'2025-04-04',type:'Осмотр'},{id:'same-day-last',date:'2025-04-04',type:longLabel},{id:'backdated',date:'2025-01-01',type:'Другая работа'},{id:'archived',date:'2025-06-06',type:'Обработка',archivedAt:'2025-06-07'}];
+      const before=JSON.stringify(S.records);render();if(JSON.stringify(S.records)!==before)throw new Error('Recent preview mutated records');
+      return ['2025-05-05 · Запись · Улей','2025-04-04 · '+longLabel+' · Улей','2025-04-04 · Осмотр · Улей'];
+    });
     const failures=[];
     for(const [name,width,height] of scenarios){
       await page.setViewportSize({width,height});
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       const m=await page.evaluate(measure);
       const problems=[];
+      if(JSON.stringify(await page.locator('#recent li').allTextContents())!==JSON.stringify(expectedRecent))problems.push('recent preview order');
+      if(await page.locator('#recent').evaluate(el=>el.scrollWidth>el.clientWidth+1))problems.push('recent preview overflow');
       if(m.missing)problems.push(m.missing);
       else {
         const tabs=m.buttons.map(b=>b.tab);
         if(JSON.stringify(tabs)!==JSON.stringify(expected))problems.push('navigation routes/order changed');
-        if(m.buttons.length!==11)problems.push('expected 11 nav buttons');
-        if(!m.aiVisual.beePresent||m.aiVisual.beePathCount<5)
-          problems.push('central AI must contain an inline stylized bee');
-        if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
-        if(!m.aiVisual.background?.includes('radial-gradient('))
-          problems.push('AI must use an edge-lightened radial blue gradient');
-        if(!/rgba\(/.test(m.aiVisual.rimColor||''))
-          problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
-        if(m.rowTracks!==3)
-          problems.push('4-3-4 honeycomb rows changed');
+        if(m.buttons.length!==6)problems.push('expected five sections and one AI button');
+        if(m.aiVisual.hexagonButtons)problems.push('obsolete decorative geometry retained');
+        if(m.rowTracks!==1)problems.push('default navigation must be one row');
         problems.push(...m.layoutProblems);
         const ai=m.buttons.find(b=>b.tab==='ai');
-        if(ai?.label)problems.push('AI button must have no visible text');
-        if(ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI accessibility name missing');
-        if(m.buttons.find(b=>b.tab==='ai')?.cy!==m.buttons.find(b=>b.tab==='journal')?.cy)
-          problems.push('AI not in middle row');
+        if(ai?.label!=='ИИ'||ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI visible or accessible name missing');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
         if(m.documentWidth>width+2)problems.push('document horizontal overflow '+m.documentWidth);
         if(m.mainPaddingBottom+1<m.nav.height)problems.push('main bottom padding smaller than nav');
-        if(m.aiDelta===null||Math.abs(m.aiDelta)>3)problems.push('AI not centered: '+m.aiDelta);
         if(m.overlaps.length)problems.push('overlapping tap rectangles: '+JSON.stringify(m.overlaps));
         for(const b of m.buttons){
           if(!b.visible)problems.push(b.tab+' hidden');
-          if(b.width<43.5||b.height<43.5)problems.push(b.tab+' tap target '+Math.round(b.width)+'x'+Math.round(b.height));
+          if(b.width<47.5||b.height<47.5)problems.push(b.tab+' tap target '+Math.round(b.width)+'x'+Math.round(b.height));
           if(!b.hit)problems.push(b.tab+' center hit is intercepted');
           if(b.textOutside||b.overflowX||b.overflowY)problems.push(b.tab+' label overflows');
         }
@@ -164,19 +151,107 @@ const measure=()=> {
         await page.screenshot({path:'e2e-nav-'+name+'-failure.png'}).catch(()=>{});
       }
     }
-    // One shared navigation must persist unchanged across each existing tab.
-    await page.setViewportSize({width:390,height:844});
-    for(const tab of expected){
-      const selector='main>nav[aria-label="Основные разделы"] button[data-tab="'+tab+'"]';
-      await page.locator(selector).click();
+    // Persistent navigation and direct Home from all screens.
+    const primary=page.locator('main>nav[aria-label="Основные разделы"]');
+    const home=primary.locator('button[data-tab="home"]'),back=page.locator('#backButton');
+    async function assertInterior(tab){
+      await page.locator('#'+tab+'.panel.active').waitFor({state:'visible'});
+      assert.ok(await primary.isVisible(),tab+' must keep primary navigation');
+      assert.ok(await back.isVisible(),tab+' Back must be visible');
+      assert.ok(await home.isVisible(),tab+' Home must be visible');
+      const rect=await home.boundingBox();
+      assert.ok(rect.width>=48&&rect.height>=48,tab+' Home tap target');
+      assert.equal(await home.getAttribute('aria-label'),'Обзор пасеки');
+      const parent=({hiveDetail:'hives',entrance:'hives',forage:'planning',varroa:'settings',incidents:'settings',deadout:'settings'})[tab]||tab;
+      assert.equal(await primary.locator('button[aria-current="page"]').getAttribute('data-tab'),parent);
+      assert.equal(await primary.locator('button[data-tab="ai"]').count(),1);
+    }
+    async function assertHome(){
+      await page.locator('#home.panel.active').waitFor({state:'visible'});
+      assert.ok(await primary.isVisible());
+      assert.ok(await home.isVisible());
+      assert.equal(await back.isVisible(),false);
       const m=await page.evaluate(measure);
-      if(JSON.stringify(m.buttons.map(button=>button.tab))!==JSON.stringify(expected))
-        failures.push('navigation changed after opening '+tab);
-      if(m.rowTracks!==3||m.layoutProblems.length||Math.abs(m.aiDelta)>3)
-        failures.push('4-3-4 layout changed on tab '+tab+': '+JSON.stringify(m.layoutProblems));
+      assert.deepEqual(m.buttons.map(x=>x.tab),expected);
+      assert.equal(m.rowTracks,1);
+      assert.deepEqual(m.layoutProblems,[]);
+    }
+    await page.setViewportSize({width:390,height:844});
+    await assertHome();
+    await page.locator('#workspacePreferences summary').click();
+    await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('field');
+    assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'field');
+    assert.ok((await page.getByRole('button',{name:'Осмотр семьи',exact:true}).boundingBox()).height>=56);
+    await page.setViewportSize({width:320,height:640});
+    const fieldGeometry=await page.evaluate(measure);
+    assert.equal(fieldGeometry.rowTracks,2);
+    assert.ok(fieldGeometry.buttons.every(b=>b.width>=55.5&&b.height>=55.5&&b.hit),'field mode 56px targets');
+    assert.ok(fieldGeometry.mainPaddingBottom>=fieldGeometry.nav.height);
+    await page.setViewportSize({width:390,height:844});
+    await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('winter');
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('night');
+    assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
+    // Preferences and theme persist through a reload; verify every primary/secondary route.
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);
+    assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'night');
+    assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
+    for(const tab of ['hives','journal','planning','settings','ai']){
+      await primary.locator('button[data-tab="'+tab+'"]').click();
+      await assertInterior(tab);
+      assert.equal(await page.getByRole('combobox',{name:'Рабочий режим'}).isVisible(),true);
+      assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(22, 30, 26)');
+      assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(34, 44, 38)');
+      assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).transitionDuration),'0s','no intermediate low-contrast theme');
+    }
+    for(const [parent,children] of Object.entries({hives:['entrance'],planning:['forage'],settings:['incidents','deadout','varroa']})){
+      for(const child of children){
+        await primary.locator('button[data-tab="'+parent+'"]').click();
+        await page.locator('#'+parent+' [data-subtab="'+child+'"]').click();
+        await assertInterior(child);
+        assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(34, 44, 38)');
+      }
+    }
+    await home.click();
+    await assertHome();
+    if(!(await page.locator('#workspacePreferences').evaluate(el=>el.open)))await page.locator('#workspacePreferences summary').click();
+    await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('home');
+    await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('auto');
+    await page.locator('#workspacePreferences summary').click();
+    assert.equal(await page.locator('header.home-header').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+    const aiEntry=primary.locator('button[data-tab="ai"]');
+    await aiEntry.focus();
+    await aiEntry.press('Enter');
+    await assertInterior('ai');
+    await back.click();
+    await assertHome();
+    for(const tab of expected.filter(tab=>tab!=='home')){
+      await page.locator('main>nav button[data-tab="'+tab+'"]').click();
+      await assertInterior(tab);
+      await home.click();
+      await assertHome();
+    }
+    for(const [parent,children] of Object.entries({hives:['entrance'],planning:['forage'],settings:['incidents','deadout','varroa']})){
+      for(const child of children){
+        await page.locator('main>nav button[data-tab="'+parent+'"]').click();
+        await assertInterior(parent);
+        const link=page.locator('#'+parent+' [data-subtab="'+child+'"]');
+        assert.equal(await link.count(),1);
+        assert.ok(await link.isVisible(),child+' must be visible within '+parent);
+        assert.ok((await link.boundingBox()).height>=44);
+        await link.click();
+        await assertInterior(child);
+        await back.click();
+        await assertInterior(parent);
+        await link.click();
+        await assertInterior(child);
+        await home.click();
+        await assertHome();
+      }
     }
     // Independent UI #609 smoke on a disposable Chromium profile: no production records.
-    await page.locator('main>nav button[data-tab="home"]').click();
+    await assertHome();
     for(const width of [320,390,768]){
       await page.setViewportSize({width,height:width===320?640:width===390?844:1024});
       const field=page.locator('#globalSearch');

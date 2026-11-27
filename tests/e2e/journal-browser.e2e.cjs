@@ -5,6 +5,10 @@ const {createServer}=require('node:http');
 const {readFile}=require('node:fs/promises');
 const {resolve,extname,sep}=require('node:path');
 const root=resolve(__dirname,'../..');
+async function openPrimary(page,tab){
+ await page.locator('main>nav button[data-tab="'+tab+'"]').click();
+}
+
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.css':'text/css; charset=utf-8'};
 const server=createServer(async(req,res)=>{
   try{
@@ -50,13 +54,13 @@ async function journey(browser,origin,name,viewport){
     const diagnostics=page.getByRole('dialog',{name:'Проверка состояния модели'});
     const indicator=page.locator('#modelDiagnosticsIndicator');
     assert.equal(await indicator.isVisible(),false,'empty model should hide header indicator');
-    await page.locator('button[data-tab="settings"]').click();
+    await openPrimary(page,'settings');
     await page.locator('#settings').getByRole('button',{name:'Проверка состояния модели'}).click();
     assert.match(await diagnostics.textContent(),/Нарушений структуры модели не обнаружено/);
     await diagnostics.getByRole('button',{name:'Закрыть'}).click();
     await diagnostics.waitFor({state:'hidden'});
     assert.equal(await page.locator('#settings').isVisible(),true);
-    await page.locator('button[data-tab="hives"]').click();
+    await openPrimary(page,'hives');
     await page.locator('[data-action="open-new-hive"]').click();
     await page.locator('#hiveDlg').waitFor({state:'visible'});
     await page.locator('#hiveForm button.primary').click();
@@ -85,7 +89,7 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#rtext').fill(secondText);
     await page.locator('#recordForm button.primary').click();
     await page.locator('#recordDlg').waitFor({state:'hidden'});
-    await page.locator('button[data-tab="home"]').click();
+    await openPrimary(page,'home');
     await page.locator('#globalSearch').fill(note);
     const matches=page.locator('#globalSearchResults [data-kind="record"]');
     assert.equal(await matches.count(),2);
@@ -112,14 +116,14 @@ async function journey(browser,origin,name,viewport){
     assert.equal(before.records[0].hive,before.hives[0]);
     await page.reload({waitUntil:'domcontentloaded'});
     await ready();
-    await page.locator('button[data-tab="journal"]').click();
+    await openPrimary(page,'journal');
     const after=await capture();
     assert.deepEqual(after,before,'hive/family/inspection changed after real reload');
     assert.equal(await page.locator('#records .journal-entry-text').filter({hasText:secondText}).count(),1);
     assert.equal(await page.getByText(note,{exact:true}).and(page.locator('#records .journal-entry-text')).count(),1,
       'saved inspection is duplicated or not visible after reload');
     // Integration: #599 keeps exact global search links; #598 adds the family timeline.
-    await page.locator('button[data-tab="hives"]').click();
+    await openPrimary(page,'hives');
     await page.locator('.hive-row-main').first().click();
     await page.getByRole('button',{name:'Карточка семьи',exact:true}).click();
     const card=page.locator('#familyHistoryDlg');
@@ -139,7 +143,7 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#selectedHivePanel').waitFor({state:'visible'});
     assert.deepEqual(await capture(),before,'history navigation mutated journal data');
     // #600 selective port: global family result opens this family's history directly.
-    await page.locator('button[data-tab="home"]').click();
+    await openPrimary(page,'home');
     const familySearch=await page.evaluate(()=>{
       const family=S.families[0];
       return [family?.name,family?.code,family?.breed].find(v=>typeof v==='string'&&v.trim())||'';
@@ -156,11 +160,12 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#selectedHivePanel').waitFor({state:'visible'});
     assert.deepEqual(await capture(),before,'search-to-family-history altered records');
     // Approved UX: one canonical AI entry in bottom nav; keep one-tap record creation on home.
-    await page.locator('button[data-tab="home"]').click();
+    await openPrimary(page,'home');
     assert.equal(await page.locator('#home .home-ai-card').count(),0);
     assert.equal(await page.locator('#home #homeAIQuestion').count(),0);
     assert.equal(await page.locator('main>nav button[data-tab="ai"]').count(),1);
-    await page.locator('#home .home-recent-card').getByRole('button',{name:'＋ Записать событие'}).click();
+    await page.locator('#workspaceQuickHive').selectOption(before.families[0].hive || before.hives[0].id);
+    await page.locator('#home').getByRole('button',{name:'＋ Записать событие',exact:true}).click();
     await page.locator('#recordDlg').waitFor({state:'visible'});
     await page.keyboard.press('Escape');
     await page.locator('#recordDlg').waitFor({state:'hidden'});
@@ -209,7 +214,7 @@ async function journey(browser,origin,name,viewport){
     },snapshot.original);
     assert.deepEqual(await page.evaluate(()=>validateVirtualApiary()),originalIntegrity);
     assert.equal(await indicator.getAttribute('data-severity'),'warning');
-    await page.locator('button[data-tab="settings"]').click();
+    await openPrimary(page,'settings');
     await page.locator('#settings').getByRole('button',{name:'Проверка состояния модели'}).click();
     assert.match(await diagnostics.textContent(),/Предупреждения виртуальной модели/);
     await diagnostics.getByRole('button',{name:'Закрыть'}).click();
@@ -217,7 +222,7 @@ async function journey(browser,origin,name,viewport){
     assert.deepEqual(await capture(),before,'opening diagnostics mutated journal data');
     console.log(JSON.stringify({scenario:'model-diagnostics',viewport:name,status:'PASS'}));
 
-    await page.locator('button[data-tab="home"]').click();
+    await openPrimary(page,'home');
     await page.locator('.home-tasks-card').getByText('＋ Запланировать').click();
     await page.locator('#planType').selectOption('Осмотр');
     await page.locator('#planNote').fill('QA завершённая работа');
@@ -257,7 +262,7 @@ async function archiveJourney(browser,origin){
  const ready=()=>page.waitForFunction(()=>{try{return startupWriteGate.ready===true}catch{return false}});
  const archived=day=>page.waitForFunction(day=>dailyArchiveCheckedDay===day&&!dailyArchiveBusy,day);
  const addHive=async()=>{
-  await page.locator('button[data-tab="hives"]').click();
+  await openPrimary(page,'hives');
   await page.locator('[data-action="open-new-hive"]').click();
   await page.locator('#hiveForm button.primary').click();
   await page.locator('#hiveDlg').waitFor({state:'hidden'});
@@ -287,7 +292,7 @@ async function archiveJourney(browser,origin){
     tx.oncomplete=resolve;tx.onabort=tx.onerror=()=>reject(tx.error);
    });
   });
-  await page.locator('button[data-tab="settings"]').click();
+  await openPrimary(page,'settings');
   assert.equal(await page.locator('#dailyArchivePanel button').count(),1);
   assert.equal(await page.locator('#legacyBackupDiagnostics').isVisible(),false);
   await page.locator('#dailyRestoreButton').click();
@@ -343,7 +348,7 @@ async function nativeArchiveWorkerJourney(browser){
   await day(page,'2026-11-25');
   await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>{try{return startupWriteGate.ready===true&&dailyArchiveCheckedDay==='2026-11-25'&&!dailyArchiveBusy}catch{return false}});
-  await page.locator('button[data-tab="hives"]').click();
+  await openPrimary(page,'hives');
   await page.locator('[data-action="open-new-hive"]').click();
   await page.locator('#hiveForm button.primary').click();
   await page.locator('#hiveDlg').waitFor({state:'hidden'});

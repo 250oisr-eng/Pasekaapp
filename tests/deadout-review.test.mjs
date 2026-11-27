@@ -37,7 +37,7 @@ test('deadout differential does not turn a single visual sign into a definitive 
 test('deadout workflow is wired into the smartphone UI, local schema and offline cache',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
- assert.match(html,/data-tab="deadout"/);
+ assert.match(html,/data-subtab="deadout"/);
  assert.match(html,/id="deadoutForm"/);
  assert.match(html,/capture="environment"/);
  assert.match(html,/PasekaDeadout\.buildDeadoutReviewDraft/);
