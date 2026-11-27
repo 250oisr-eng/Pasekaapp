@@ -1351,7 +1351,7 @@
     }
   },
   "oneplusCurrentQa20261127": {
-    "stage": "IMPLEMENTED_DRAFT",
+    "stage": "BINARY_PROOF_MERGED_DEVICE_NOT_TESTED",
     "branch": "feat/qa-isolated-current-main-20261127",
     "baseMainSha": "14b398c97354800062b170e835a97bf7c76b7eb5",
     "sourcePr": 602,
@@ -1360,6 +1360,20 @@
     "binarySha": null,
     "device": "NOT_TESTED",
     "productionTouched": false,
-    "merged": false
+    "merged": true,
+    "pr": 613,
+    "mainMergeSha": "ab1be71add0e16b20eb47c7a1eaf585411039a46",
+    "verifiedSourceSha": "acd35f567d87c640f2eb620312679cb981d2305f",
+    "nodeTests": {
+      "pass": 1027,
+      "fail": 0
+    },
+    "qaBuildRun": 45967904156,
+    "androidBuildRun": 45967904084,
+    "governanceRun": 45967904112,
+    "artifactId": 15183717921,
+    "artifactExpiresAt": "2026-12-04T08:46:12Z",
+    "apkSha256": "e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6",
+    "published": false
   }
 }
