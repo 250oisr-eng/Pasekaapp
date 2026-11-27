@@ -13,7 +13,7 @@ test('all eleven navigation routes retain consistent visible and keyboard order'
   assert.deepEqual(tabs, ['entrance','hives','home','planning','journal','ai','forage','incidents','deadout','varroa','settings']);
   assert.equal(new Set(tabs).size, 11);
   assert.equal((nav.match(/data-tab="ai"/g) || []).length, 1, 'one AI entry');
-  assert.match(nav, /<button class="active" data-tab="home"[^>]*aria-current="page"/);
+  assert.match(nav, /<button data-tab="home" class="active"[^>]*aria-current="page"/);
   assert.ok(!/onkeydown=/.test(nav), 'do not reinstate legacy inline key events');
 });
 
