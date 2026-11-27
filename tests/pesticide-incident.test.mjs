@@ -101,3 +101,11 @@ test('incident inspector blocks numeric-string GPS spoofing and missing status b
   .some(x=>x.code==='pesticide_incident_invalid_status'));
  assert.deepEqual(api.inspectPesticideIncidentIntegrity({hives,pesticideIncidents:[row]}),[]);
 });
+
+
+test('incident draft refuses malformed photo lists instead of discarding evidence',()=>{
+ for(const bad of [{corrupted:true},'',{length:1,0:{kind:'image'}},42]){
+  assert.throws(()=>build(base,bad),/список фотографий инцидента повреждён/i);
+ }
+ assert.equal(build(base,null).media.length,0);
+});
