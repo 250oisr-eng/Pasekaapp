@@ -45,7 +45,7 @@ async function fixture(){
 
 test('updated B01 acceptance no longer requires external JSON, SAF, USB or file in Downloads',()=>{
  assert.match(plan,/два поколения/i);
- for(const clause of ['Не включать в обязательную приёмку','SAF','USB','paseka-full-idb-*.json','не менять системную дату','NOT_TESTED'])
+ for(const clause of ['Не включать в обязательную приёмку','SAF','USB','paseka-full-idb-*.json','Не менять системную дату','NOT_TESTED'])
   assert.ok(plan.includes(clause),'missing scope boundary '+clause);
  assert.match(plan,/ru\.paseka\.journal\.qa\.daily/);
  assert.doesNotMatch(plan,/приложение QA — архив обязательно установить/);
