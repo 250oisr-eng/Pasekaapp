@@ -24,8 +24,8 @@ const scenarios=[
   ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
   ['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
-const expected=['home','hives','entrance','journal','settings','ai',
-  'forage','varroa','incidents','planning','deadout'];
+const expected=['entrance','hives','home','journal','ai','planning',
+  'forage','incidents','deadout','varroa','settings'];
 const measure=()=> {
   const box=el=>{const r=el.getBoundingClientRect();
     return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
@@ -41,7 +41,9 @@ const measure=()=> {
     const textRects=[...range.getClientRects()].filter(t=>t.width>0.5&&t.height>0.5);
     const textOutside=textRects.some(t=>t.left<r.left-1||t.right>r.right+1||
       t.top<r.top-1||t.bottom>r.bottom+1);
-    return {tab:button.dataset.tab,...r,visible:cs.visibility!=='hidden'&&cs.display!=='none',
+    return {tab:button.dataset.tab,...r,label:button.textContent.trim(),
+      accessibleName:button.getAttribute('aria-label')||button.textContent.trim(),
+      visible:cs.visibility!=='hidden'&&cs.display!=='none',
       hit:hit===button||button.contains(hit),textOutside,
       overflowX:button.scrollWidth>button.clientWidth+1,
       overflowY:button.scrollHeight>button.clientHeight+1};
@@ -50,7 +52,9 @@ const measure=()=> {
   for(let i=0;i<buttons.length;i++)for(let j=i+1;j<buttons.length;j++){
     const a=buttons[i],b=buttons[j],x=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left)),
       y=Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
-    if(x>0.6&&y>0.6)overlaps.push({a:a.tab,b:b.tab,width:+x.toFixed(2),height:+y.toFixed(2)});
+    // In a seamless honeycomb adjoining hexagon bounding boxes intentionally intersect,
+    // while clip-path removes the shared triangular regions. Only same-row overlaps are invalid.
+    if(x>0.6&&y>0.6&&Math.abs(a.cy-b.cy)<1)overlaps.push({a:a.tab,b:b.tab,width:+x.toFixed(2),height:+y.toFixed(2)});
   }
   const aiButton=nav.querySelector('button[data-tab="ai"]');
   const bee=aiButton?.querySelector('svg.nav-ai-bee[aria-hidden="true"]');
@@ -60,11 +64,31 @@ const measure=()=> {
   const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
     rimColor:aiStyle?.borderTopColor||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
+  const compact=innerWidth<700&&!(innerWidth>=560&&innerHeight<520);
+  const mobileRows=compact?[['entrance','hives'],
+    ['home','journal','ai','planning','forage'],
+    ['incidents','deadout','varroa','settings']]:null;
+  const layoutProblems=[];
+  if(mobileRows){
+    const ordered=mobileRows.flatMap((row,index)=>row.map(tab=>({tab,row:index})));
+    for(const {tab,row} of ordered){
+      const button=buttons.find(b=>b.tab===tab);
+      if(!button||Math.abs(button.cy-buttons.find(b=>b.tab===mobileRows[row][0]).cy)>1)
+        layoutProblems.push(tab+' is not in designated row '+(row+1));
+    }
+    const hex=buttons.find(b=>b.tab==='home');
+    const other=buttons.find(b=>b.tab==='journal');
+    if(hex&&other&&Math.abs(hex.right-other.left)>1)
+      layoutProblems.push('same-row hexagons do not touch edges');
+    const rows=[mobileRows[0][0],mobileRows[1][0],mobileRows[2][0]].map(t=>buttons.find(b=>b.tab===t));
+    if(rows.every(Boolean)&&Math.abs((rows[1].cy-rows[0].cy)-rows[0].height*.75)>1.5)
+      layoutProblems.push('hexagon rows are not vertically tessellated');
+  }
   return {viewport:{width:innerWidth,height:innerHeight},
     documentWidth:document.documentElement.scrollWidth,
     mainPaddingBottom:parseFloat(getComputedStyle(main).paddingBottom),
     nav:n,buttons,rowTracks:getComputedStyle(nav).gridTemplateRows.trim().split(/\s+/).length,
-    aiDelta:ai?+(ai.cx-n.cx).toFixed(2):null,aiVisual,overlaps};
+    aiDelta:ai?+(ai.cx-n.cx).toFixed(2):null,aiVisual,overlaps,layoutProblems};
 };
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -109,7 +133,11 @@ const measure=()=> {
         if(!/rgba\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
         if(width<700&&!(height<520&&width>=560)&&m.rowTracks!==3)
-          problems.push('centered 3-5-3 mobile honeycomb geometry changed');
+          problems.push('2-5-4 mobile honeycomb rows changed');
+        problems.push(...m.layoutProblems);
+        const ai=m.buttons.find(b=>b.tab==='ai');
+        if(ai?.label)problems.push('AI button must have no visible text');
+        if(ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI accessibility name missing');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
         if(m.documentWidth>width+2)problems.push('document horizontal overflow '+m.documentWidth);
