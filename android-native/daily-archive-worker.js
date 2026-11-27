@@ -1,5 +1,6 @@
 /* Android worker only: use unchanged local origin, never bootstrap main. */
 (async()=>{
+ window.__pasekaWorkerStarted=true;
  const bridge=window.PasekaArchiveJob;
  if(!bridge||typeof bridge.finish!=='function')return;
  const trace=stage=>{try{bridge.trace(stage);}catch(_){}};
