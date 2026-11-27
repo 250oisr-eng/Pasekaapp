@@ -119,6 +119,10 @@ async function journey(browser,origin){
   // Hive assembly confirmation: physically meaningful 'Done' is committed before showing success.
   await page.locator('button[data-tab="hives"]').click();
   await page.locator('.hive-row-main').first().click();
+  // A pair is a single explicit user action; the change must persist before winter reconfiguration.
+  await page.locator('#honeyPair [data-action="toggle-honey-pair"]').click();
+  await page.evaluate(()=>saveQueue);
+  assert.deepEqual(await page.evaluate(()=>S.layouts[S.hives[0].id].honeyBoxInstalled),[true,true]);
   await page.locator('#assemblyMode').selectOption('winter');
   await page.locator('#assemblyDoneBtn').click();
   await page.waitForFunction(()=>S.layouts[S.hives[0].id].setupComplete===true);
