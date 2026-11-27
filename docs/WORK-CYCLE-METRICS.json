@@ -1,6 +1,6 @@
 {
   "publicBeePilot20261128": {
-    "stage": "ROI_AND_ACTUAL_TRACKING_MEASURED_COMPACT_AND_RANGE_ACTIVE",
+    "stage": "COMPACT_EXPORT_VERIFIED_BAD_GENERALIZATION_GROUPED_TRIAL",
     "pr": 655,
     "sourceMainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
     "codeSha": "c2c5b28493a4dd5461662168ed70839340af8670",
@@ -78,7 +78,7 @@
     "roiTestsPassed": 4,
     "compactCodeSha": "2de6f7faf25a1528a87a02d8fd634347319a04bf",
     "compactRun": 46074461207,
-    "compactConclusion": "pending",
+    "compactConclusion": "success",
     "zenodo": {
       "versionDoi": "10.5281/zenodo.14929560",
       "license": "CC BY 4.0",
@@ -97,8 +97,33 @@
       "backgroundImages": 609,
       "firstParserPairs": 0,
       "dualSchemeParserFixed": true,
-      "knownDateOverlapRisk": true
-    }
+      "knownDateOverlapRisk": true,
+      "dualPairRun": 46074758978,
+      "pairedBothSchemes": 11008,
+      "knownDateOverlapImages": 8032,
+      "unknownSourceNameImages": 2976,
+      "groupsInBothPublisherSplits": 9,
+      "nonoverlapNamedGroups": 0
+    },
+    "compactMetrics": {
+      "testsPassed": 3,
+      "parameters": 38781,
+      "onnxBytes": 157897,
+      "cpuTileMs": 4.8921431,
+      "onnxSha256": "34eea8b0b045cc657e33a7ca353054863cdad4aa55e9bead49011b023acb0e21",
+      "julyA": {
+        "tp": 1,
+        "fp": 2,
+        "fn": 54
+      },
+      "julyB": {
+        "tp": 2,
+        "fp": 15,
+        "fn": 162
+      },
+      "artifactId": 15233613906
+    },
+    "groupedTrial": "implemented_not_verified"
   },
   "seasonalWorkspaceUI20261127": {
     "stage": "IMPLEMENTED_DRAFT",
