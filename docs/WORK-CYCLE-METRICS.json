@@ -33,7 +33,7 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "journalPeriod20261127":{"summaryBrowserViewports":2,"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "journalPeriod20261127":{"drilldownBrowserViewports":2,"summaryBrowserViewports":2,"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
   "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,

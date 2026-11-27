@@ -135,3 +135,45 @@ test('apiary period report counts only saved non-archived records by hive and ty
  assert.equal(JSON.stringify(state),before);
  assert.equal(summarize(state,'2026-11-12','2026-11-10').reduce((sum,row)=>sum+row.total,0),0);
 });
+
+test('summary opens a unique current hive, preserves dates and resets journal-only filters',()=>{
+ const values={journalSearch:'старый запрос',journalTypeFilter:'Осмотр',journalFamilyFilter:'f1',
+  journalDateFilter:'2026-11-10',journalEndDateFilter:'2026-11-12'};
+ const fields=Object.fromEntries(Object.entries(values).map(([key,value])=>[key,{value}]));
+ const calls=[];
+ fields.journalResultCount={focus:()=>calls.push('focus'),scrollIntoView:()=>calls.push('scroll')};
+ const S={hives:[{id:'a'},{id:'b'}],records:[{hive:'a',date:'2026-11-11',type:'Осмотр'}]};
+ const open=new Function('S','$','selectJournalHive','alert',src+';return openJournalFromPeriodSummary')(
+  S,key=>fields[key],id=>calls.push(id),message=>calls.push(message)
+ );
+ const before=JSON.stringify(S);
+ open('b');
+ assert.deepEqual(calls,['b','focus','scroll']);
+ assert.equal(fields.journalDateFilter.value,values.journalDateFilter);
+ assert.equal(fields.journalEndDateFilter.value,values.journalEndDateFilter);
+ assert.equal(fields.journalSearch.value,'');
+ assert.equal(fields.journalTypeFilter.value,'all');
+ assert.equal(fields.journalFamilyFilter.value,'all');
+ assert.equal(JSON.stringify(S),before);
+ calls.length=0;
+ S.hives.push({id:'a'});
+ for(const stale of ['a','historical',''])open(stale);
+ assert.equal(calls.length,3);
+ assert.ok(calls.every(message=>message.includes('недоступен')));
+});
+
+test('summary keeps historical and ambiguous hive counts visible without navigation',()=>{
+ const host={innerHTML:''},S={hives:[{id:'unique'},{id:'duplicate'},{id:'duplicate'}],records:[
+  {hive:'historical',date:'2026-11-11',type:'Осмотр'},
+  {hive:'duplicate',date:'2026-11-11',type:'Подкормка'}
+ ]};
+ const render=new Function('S','$','safe','hname',src+';return renderJournalPeriodSummary')(
+  S,id=>id==='journalPeriodReportContent'?host:null,String,id=>'Улей '+id
+ );
+ render();
+ assert.match(host.innerHTML,/data-hive-id="unique"/);
+ assert.doesNotMatch(host.innerHTML,/data-hive-id="(?:historical|duplicate)"/);
+ assert.match(host.innerHTML,/Исторический улей · historical · 1/);
+ assert.match(host.innerHTML,/Улей duplicate · 1/);
+ assert.match(host.innerHTML,/Всего записей: 2/);
+});
