@@ -46,3 +46,7 @@
 - B01 физический backup/restore, B04/B05 signing/rollback, B07 profile activation, B09/B11 offline/power-loss, OnePlus и release — отдельные неразрешённые gates.
 
 **Доказательства:** live GitHub REST API списка всех страниц `branches`, `pulls?state=open`, `pulls?state=closed`; source-based `index.html`, `sw.js`; GitHub Actions для exact HEAD. Это семантический аудит перечисленных рисков, **не полная ручная проверка каждого из 404 PR**.
+
+## Полная проверка кодового SHA после аудита
+
+GitHub exact code HEAD `4e4870aa4c31b6fcaf59ff3f5f0781afef663f25`: Fast Quality **1138/1138, 0 FAIL** (`46070253517`), Android APK (`46070253525` и `46070261611`) SUCCESS, Chromium E2E (`46070261620`) SUCCESS, Governance (`46070261652`) SUCCESS. Статический тест включает три регрессии: существование локальных ресурсов и pre-cache, изоляцию OP02 и порядок 13 прямых доменных связей. Отчёт не доказывает физический OnePlus, восстановление, отсутствие всех динамических циклов или пригодность старых PR к merge.

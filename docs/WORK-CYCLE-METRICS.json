@@ -2319,7 +2319,7 @@
   },
   "branchDependencyAudit20261128": {
     "mainSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
-    "codeSha": "54c19b68073888572cbedba0a2743c0b557a36ca",
+    "codeSha": "4e4870aa4c31b6fcaf59ff3f5f0781afef663f25",
     "branches": 671,
     "openPr": 404,
     "closedPr": 243,
@@ -2338,8 +2338,38 @@
     "isolatedOp02": true,
     "cleanupDeletes": 0,
     "fullReviewOfEachPr": false,
-    "additionalTestsPending": true,
+    "additionalTestsPending": false,
     "moduleOrderEdgesChecked": 13,
-    "moduleOrderPassExpected": true
+    "moduleOrderPassExpected": true,
+    "ciAtCodeSha": [
+      {
+        "name": "Fast Quality",
+        "id": 46070253517,
+        "conclusion": "success",
+        "tests": 1138
+      },
+      {
+        "name": "Android APK",
+        "id": 46070253525,
+        "conclusion": "success"
+      },
+      {
+        "name": "Android APK",
+        "id": 46070261611,
+        "conclusion": "success"
+      },
+      {
+        "name": "Chromium E2E",
+        "id": 46070261620,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance",
+        "id": 46070261652,
+        "conclusion": "success"
+      }
+    ],
+    "device": "NOT_TESTED",
+    "productionMutation": false
   }
 }

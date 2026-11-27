@@ -10,7 +10,7 @@
 
 ## План работ и журнал
 
-**#647 Draft:** конфликт с #649 устранён; Fast/Android/Chromium/Governance на `54c19b68` PASS. Аудит: 671 ветка / 404 PR, 351 stacked; cleanup без удаления.
+**#647 Draft:** конфликт с #649 устранён; 1138/1138 Node и Android/Chromium/Governance PASS на `4e4870aa`. Аудит 671 ветка / 404 PR / 351 stacked; cleanup без удаления.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
