@@ -44,6 +44,7 @@ async function journey(browser,origin){
    queens:S.queens.map(q=>({id:q.id,familyId:q.familyId,code:q.code,status:q.status})).sort((a,b)=>a.code.localeCompare(b.code)),
    queenEvents:S.queenEvents.map(e=>({type:e.type,queenId:e.queenId,previousQueenId:e.previousQueenId||null,date:e.date})),
    journal:S.records.filter(r=>String(r.text||'').includes('QA-ACCOUNTING-')).map(r=>({id:r.id,type:r.type,date:r.date,hive:r.hive,family:r.family,text:r.text,feedingAmount:r.feedingAmount||''})).sort((a,b)=>a.type.localeCompare(b.type)),
+   extractions:(S.extractions||[]).map(e=>({date:e.date,items:e.items.map(x=>({hiveId:x.hiveId,kilograms:x.kilograms,returnedAt:x.returnedAt,frameIds:x.frameIds}))})),
    inventory:Object.values(S.equipmentInventory?.bodies||{}).map(b=>({id:b.id,kind:b.kind,storageLocation:b.storageLocation,condition:b.condition})).sort((a,b)=>a.id.localeCompare(b.id)),
    layout:{mode:layout.mode,installedBoxes:layout.installedBoxes,honeyBoxInstalled:layout.honeyBoxInstalled,setupComplete:layout.setupComplete},
    audit:S.auditLog?.length||0};
@@ -122,6 +123,29 @@ async function journey(browser,origin){
   // A pair is a single explicit user action; the change must persist before winter reconfiguration.
   await page.locator('#honeyPair [data-action="toggle-honey-pair"]').click();
   await page.evaluate(()=>saveQueue);
+  assert.deepEqual(await page.evaluate(()=>S.layouts[S.hives[0].id].honeyBoxInstalled),[true,true]);
+  // One explicit synthetic sealed frame makes this a source-backed recorded harvest,
+  // rather than inventing kilograms from uninspected empty/foundation frames.
+  await page.evaluate(async()=>{
+   const hive=S.hives[0].id,l=S.layouts[hive],frame=l.honeyFrames?.[0]?.[0];
+   if(!frame||!frame.frameId)throw new Error('Synthetic honey frame is missing its persistent identity');
+   frame.status='sealed';
+   if(!await save())throw new Error('Unable to save synthetic prepared frame');
+  });
+  await page.locator('#selectedHivePanel').getByRole('button',{name:'Откачка мёда',exact:true}).click();
+  await page.locator('#extractDlg').waitFor({state:'visible'});
+  await page.locator('#extractDate').fill('2026-11-25');
+  await page.locator('#extractDlg .extract-select').check();
+  await page.locator('#extractDlg .extract-kg').fill('2.5');
+  await page.locator('#extractDlg').getByRole('button',{name:'Зафиксировать откачку'}).click();
+  await page.locator('#extractDlg').waitFor({state:'hidden'});
+  assert.equal(await page.evaluate(()=>S.extractions.length),1,'harvest event must be committed exactly once');
+  assert.deepEqual(await page.evaluate(()=>S.layouts[S.hives[0].id].honeyBoxInstalled),[false,false]);
+  assert.equal(await page.evaluate(()=>S.layouts[S.hives[0].id].honeyFrames[0][0].status),'extracted');
+  await page.evaluate(()=>returnHoneyBoxes(S.extractions[0].id,S.hives[0].id));
+  await page.locator('#returnHoneyDlg').waitFor({state:'visible'});
+  await page.locator('#returnHoneyDlg').getByRole('button',{name:'Отметить возврат'}).click();
+  await page.locator('#returnHoneyDlg').waitFor({state:'hidden'});
   assert.deepEqual(await page.evaluate(()=>S.layouts[S.hives[0].id].honeyBoxInstalled),[true,true]);
   await page.locator('#assemblyMode').selectOption('winter');
   await page.locator('#assemblyDoneBtn').click();
