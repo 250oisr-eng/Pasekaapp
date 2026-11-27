@@ -2,8 +2,8 @@
 'use strict';
 const seasons=Object.freeze({
  'spring-summer':Object.freeze({label:'Весна-лето',topics:Object.freeze(['Облёт, развитие и расширение','Медосбор и роевое состояние']),menu:Object.freeze(['hives','entrance','forage','planning','journal','varroa'])}),
- autumn:Object.freeze({label:'Осень',topics:Object.freeze(['Кормовые запасы','Подготовка к зимовке']),menu:Object.freeze(['planning','journal','varroa','hives','entrance','forage'])}),
- winter:Object.freeze({label:'Зимовка',topics:Object.freeze(['Наблюдения за зимовкой','Микроклимат и состояние семей']),menu:Object.freeze(['hives','journal','entrance','planning','varroa','forage'])})
+ autumn:Object.freeze({label:'Осень',topics:Object.freeze(['Кормовые запасы','Подготовка к зимовке']),menu:Object.freeze(['planning','journal','varroa','hives'])}),
+ winter:Object.freeze({label:'Зимовка',topics:Object.freeze(['Наблюдения за зимовкой','Микроклимат и состояние семей']),menu:Object.freeze(['hives','journal','planning','entrance'])})
 });
 const modes=Object.freeze({field:'Полевой',home:'Домашний',night:'Ночной'});
 const groups=Object.freeze([

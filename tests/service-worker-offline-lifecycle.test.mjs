@@ -99,6 +99,7 @@ test('B11 activation removes obsolete numeric shell versions only, preserving us
  h.buckets.set('paseka-shell-v323',new Map([['previous323','untouched']]));
  h.buckets.set('paseka-shell-v324',new Map([['old324','untouched']]));
  h.buckets.set('paseka-shell-v325',new Map([['old325','untouched']]));
+ h.buckets.set('paseka-shell-v326',new Map([['old326','untouched']]));
  h.buckets.set('paseka-shell-v328',new Map([['future','untouched']]));
  h.buckets.set('paseka-shell-v99999999999999999999999',new Map([['unknown','untouched']]));
  await h.lifecycle('install');
@@ -116,7 +117,7 @@ test('B11 activation removes obsolete numeric shell versions only, preserving us
   assert.equal(h.buckets.has(cache),true,'do not delete unrelated/user/future cache '+cache);
  }
  assert.equal(h.calls.claimed,1);
- assert.deepEqual(h.calls.deleted,['paseka-shell-v315','paseka-shell-v316','paseka-shell-v317','paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323','paseka-shell-v324','paseka-shell-v325']);
+ assert.deepEqual(h.calls.deleted,['paseka-shell-v315','paseka-shell-v316','paseka-shell-v317','paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323','paseka-shell-v324','paseka-shell-v325','paseka-shell-v326']);
 });
 
 

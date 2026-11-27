@@ -811,6 +811,7 @@ html[data-ime-open="true"] dialog[open]{position:fixed;inset:auto;top:calc(var(-
 <script src="./js/disaster-archive.js"></script>
 <script src="./js/daily-archives.js"></script>
 <script>
+let hiveOnboardingId='';
 function updateKeyboardViewport(){
  const v=window.visualViewport;if(!v)return;
  const root=document.documentElement;
@@ -3293,7 +3294,6 @@ async function deleteHive(id){
   try{alert('Улей удалён и сохранён. Не удалось обновить экран; перезагрузи приложение. Не повторяй удаление.')}catch(alertError){console.error('Не удалось показать сообщение об обновлении интерфейса',alertError)}
  }
 }
-let hiveOnboardingId='';
 function renderHiveOnboarding(){
  const host=$('hiveOnboarding');if(!host)return;
  const active=!!hiveOnboardingId&&selectedHiveId===hiveOnboardingId&&S.hives.some(h=>h.id===hiveOnboardingId);

@@ -162,10 +162,10 @@ test('B11 new v327 policy preserves user and future caches and retires only olde
  assert.match(source,/const CACHE_VERSION=327;/);
  const h=harness({existingCaches:[
   'paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323',
-  'paseka-shell-v324','paseka-shell-v325','paseka-shell-v327','paseka-shell-v328','paseka-shell-v319-user','other-app-cache'
+  'paseka-shell-v324','paseka-shell-v325','paseka-shell-v326','paseka-shell-v327','paseka-shell-v328','paseka-shell-v319-user','other-app-cache'
  ]});
  await h.activate();
- assert.deepEqual(h.deleted,['paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323','paseka-shell-v324','paseka-shell-v325']);
+ assert.deepEqual(h.deleted,['paseka-shell-v319','paseka-shell-v320','paseka-shell-v321','paseka-shell-v322','paseka-shell-v323','paseka-shell-v324','paseka-shell-v325','paseka-shell-v326']);
  for(const unchanged of ['paseka-shell-v327','paseka-shell-v328','paseka-shell-v319-user','other-app-cache'])
   assert.ok(!h.deleted.includes(unchanged));
 });
