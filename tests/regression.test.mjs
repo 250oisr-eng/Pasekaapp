@@ -4107,3 +4107,17 @@ test('B07 guarded atomic IndexedDB write aborts when memory changed just before 
   assert.deepEqual((await readIndexedDb(db,'backup','previous')).state,prior);
  }finally{db.close();}
 });
+
+
+test('B07 frame registry renders historical physical locations without synthesizing a Farrar layout',()=>{
+ const S={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],layouts:{},equipmentLabels:{bodies:{honey1:'ААХ',b2:'ААБ'}}};
+ const fail=()=>{throw Error('legacy layout access forbidden')};
+ const render=loadFunction('frameLocationName',{S,corpusLabelCode:fail,isHoneyBoxKey:fail});
+ assert.equal(render('honey:honey1','h1'),'Медовый корпус К-ААХ');
+ assert.equal(render('brood:left:b2','h1'),'Гнездовой корпус К-ААБ · секция А');
+ assert.match(render('honey:historical-id','h1'),/historical-id/);
+ assert.match(render('undefined','h1'),/место не уточнено/);
+ assert.deepEqual(S.layouts,{});
+ const details=loadFunction('inventoryEventDetails',{S,hname:id=>'Улей '+id,frameLocationName:fail});
+ assert.equal(details({type:'placed',to:{type:'sectional',hiveId:'h1',bodyRole:'honey'}}),'Улей h1 · общий медовый ярус');
+});

@@ -2089,8 +2089,25 @@
   "b07SectionalFixtureIdentity20261128": {
     "baseSha": "1aa0db76511cdabe9b29402112ba2991050eb5a9",
     "stage": "IMPLEMENTED_DRAFT",
-    "ci": "PENDING",
+    "ci": "FAILED_CHROMIUM_RELOAD",
     "reason": "Assign permanent frame identities before recording OP07 evidence; no validator bypass",
+    "physicalDeviceVerified": false,
+    "releaseAuthorized": false,
+    "sha": "dbc485ee7727ec2d82357cff96311064a706b609",
+    "nodeTests": {
+      "passed": 1100,
+      "total": 1100,
+      "run": 46068175927
+    },
+    "governance": "PASS",
+    "android": "PASS",
+    "browserRun": 46068183822
+  },
+  "b07SectionalFrameLocation20261128": {
+    "baseSha": "dbc485ee7727ec2d82357cff96311064a706b609",
+    "stage": "IMPLEMENTED_DRAFT",
+    "ci": "PENDING",
+    "reason": "Sectional frame history uses physical body IDs, not legacy layoutFor; new regression and fail-fast startup diagnostics",
     "physicalDeviceVerified": false,
     "releaseAuthorized": false
   }

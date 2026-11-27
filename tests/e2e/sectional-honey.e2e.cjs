@@ -34,7 +34,11 @@ async function journey(browser,origin){
   if(dialog.type()==='confirm'&&dialog.message().endsWith('Подтверждаешь, что это действительно первый запуск новой пасеки?'))return dialog.accept();
   errors.push('Unexpected dialog: '+dialog.type()+' '+dialog.message());await dialog.dismiss();
  });
- const ready=()=>page.waitForFunction(()=>startupWriteGate.ready===true,null,{timeout:30000});
+ const ready=async()=>{
+  await page.waitForFunction(()=>startupWriteGate.ready===true||!!document.getElementById('startupFailureDetail')?.textContent,null,{timeout:30000}).catch(async e=>{throw Error('Startup timeout: '+JSON.stringify(errors)+'; '+e.message)});
+  const failure=await page.locator('#startupFailureDetail').textContent({timeout:1000}).catch(()=>null);
+  if(failure||!await page.evaluate(()=>startupWriteGate.ready===true))throw Error('Startup refused: '+String(failure||'unknown')+'; '+JSON.stringify(errors));
+ };
  const state=()=>page.evaluate(async()=>{
   const main=await readMain(),backup=await readAutoBackup();
   return {revision:main.meta.revisionId,backupRevision:backup?.state?.meta?.revisionId,bodyIds:main.sectionalLayouts[0]?.honeyStack?.bodyIds||[],covers:(main.sectionalLayouts[0]?.stacks||[]).flatMap(s=>[s.coverItemId,s.topRiserItemId]).filter(Boolean),extractions:main.extractions.map(e=>({id:e.id,items:e.items.map(i=>({boxes:i.boxes,frameIds:i.frameIds,kilograms:i.kilograms,sectional:i.sectional}))})),transitions:main.sectionalTechProcesses[0]?.state.honeyTransitions||[],legacy:main.layouts?.h1??null};
@@ -61,6 +65,7 @@ async function journey(browser,origin){
   await page.evaluate(()=>openHive('h1'));
   const panel=page.locator('#hiveExtractionActions'),form=panel.locator('form');
   assert.match(await panel.textContent(),/Готово к откачке: 40 из 40/);
+  assert.equal(await page.evaluate(()=>Object.hasOwn(S.layouts,'h1')),false,'frame registry must not fabricate a legacy hive layout');
   assert.equal(await page.locator('#legacyExtractionButton').isVisible(),false);
   let before=await state();
   await form.locator('input[type=text]').fill('QA-СКЛАД');
