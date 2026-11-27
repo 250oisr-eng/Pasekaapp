@@ -1,4 +1,21 @@
 {
+  "p0FirstExternalCopyGuide20261127": {
+      "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
+      "pr": 597,
+      "integration": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+      "codeSha": "40ce6d01fbbeaf0de6395a0716a6e2d9533363ba",
+      "nodeTests": {"tests":1008,"pass":1008,"fail":0,"cancelled":0},
+      "verifiedCi": [{"name":"Governance Docs Checks","id":45904183560,"conclusion":"success"},{"name":"Build Android APK","id":45904183627,"conclusion":"success"}],
+      "storageChanges": false,
+      "videoTouched": false,
+      "restoreChanged": false,
+      "serviceWorkerChanges": false,
+      "realExternalCopy": "NOT_VERIFIED",
+      "independentRestore": "NOT_TESTED",
+      "device": "NOT_TESTED",
+      "completedVerifiedUserScenarios": 0,
+      "measuredSavings": null
+    },
   "schemaVersion": 1,
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
