@@ -14,7 +14,7 @@
 ## Актуальные ветки и интеграция
 
 - **#599/#598/#597 MERGED:** поиск корпуса/журнала, карточка семьи, read-only путь первого внешнего архива. Main `495e38a99fc00cde5c671444e83d87a40d619750`; exact-main Fast/Android **1008/1008**, Governance SUCCESS. Не release.
-- **#595 Draft / main-synced:** нижняя сотовая навигация, 11 маршрутов, центральная ИИ-кнопка, заголовок раздела и три превью ульев; задачи не обрезаются. Exact-head CI текущего нового кода требуется.
+- **#595 Draft / main-synced:** нижняя сотовая навигация, 11 маршрутов, центральная ИИ-кнопка, заголовок раздела и три превью ульев; задачи не обрезаются. Code SHA `7a58ac9…`: Governance #45951762030 и Android #45951761963 **1013/1013 PASS**, Debug APK SUCCESS.
 - **UX #596 PENDING_VISUAL_ACCEPTANCE:** проектный ориентир **2 ряда** против раскладки **3 ряда** на узких экранах. OnePlus/TalkBack/геометрия NOT_TESTED.
 - **B01/#442** всё ещё BLOCKED/FROZEN: нет проверенного независимого восстановления и лицензированной реальной видеоаналитики.
 
@@ -46,6 +46,6 @@
 
 ## Следующий конкретный шаг
 
-**#595:** подтвердить Node/Governance/Android на точном кодовом SHA и согласовать финальный docs-only HEAD; при PASS разрешён только merge #595 по отдельному сообщению пользователя, без release. UX #596 остаётся открытой до реальных геометрических испытаний.
+**#595 MERGE_AUTHORIZED / CI_VERIFIED_CODE_SHA:** code CI 1013/1013 PASS, docs-only HEAD требует отдельной Governance-сверки. После PASS и неизменного main выполнить только разрешённый merge #595. UX #596 — PENDING_VISUAL_ACCEPTANCE.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**

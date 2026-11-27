@@ -1039,8 +1039,8 @@
   "ui187HoneycombPort20261127": {
     "sourceMain": "495e38a99fc00cde5c671444e83d87a40d619750",
     "pr": 595,
-    "codeSha": null,
-    "ciStatus": "PENDING_SYNCED_SHA",
+    "codeSha": "7a58ac9ac8565583c025a58620e466cd5b3721cf",
+    "ciStatus": "SUCCESS_EXACT_CODE_SHA",
     "navRoutes": 11,
     "hivePreviewLimit": 3,
     "availableHiveList": "UNFILTERED",
@@ -1051,6 +1051,31 @@
     "visualAcceptanceIssue": 596,
     "realDevice": "NOT_TESTED",
     "productionRelease": "NOT_AUTHORIZED",
-    "completedVerifiedUserScenarios": 0
+    "completedVerifiedUserScenarios": 0,
+    "nodeTests": {
+      "total": 1013,
+      "pass": 1013,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "ci": [
+      {
+        "kind": "Governance",
+        "run": 45951762030,
+        "conclusion": "success"
+      },
+      {
+        "kind": "Android APK",
+        "run": 45951761963,
+        "conclusion": "success",
+        "debugArtifactId": 15176539296
+      }
+    ],
+    "initialSyncedCiFailure": {
+      "sha": "e102ef10d28c465692271cdc60ad0d381d446725",
+      "run": 45951587402,
+      "reason": "Overlapping patch hunks duplicated syntax in navigation test",
+      "resolvedBy": "restore exact verified original test file (blob 5259ed4d103204fe42b8a3f356e51f2e0f173c74)"
+    }
   }
 }
