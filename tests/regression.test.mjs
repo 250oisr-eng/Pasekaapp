@@ -3915,3 +3915,37 @@ test('physical assembly transition commits once after a successful save',async()
  assert.equal(form.modeTransition.style.display,'none');
  assert.equal(deps.pendingAssemblyMode,null);
 });
+
+test('Done button keeps hive assembly editable and unconfirmed when persistence fails',async()=>{
+ for(const outcome of ['false','exception','success']){
+  const layout={mode:'summer',installedBoxes:[1],winterOrder:[],
+   honeyBoxInstalled:[false,false],honeyInstalled:false,setupComplete:false,setupEditing:true,assemblies:[],
+   boxes:Object.fromEntries([1,2,3,4,5,6].map(n=>[n,{family:null}]))};
+  const deps={S:{layouts:{h:layout},auditLog:[],meta:{}},pendingAssemblyMode:'summer',
+   assemblyEditSnapshot:null,selectedStructureHive:()=> 'h',
+   profileForHive:()=>({family:'farrar'}),render(){this.rendered=(this.rendered||0)+1},
+   renderStructure(){this.structureDrawn=(this.structureDrawn||0)+1},
+   alert(message){this.warnings=(this.warnings||[]).concat(message)},
+   save:async()=>{if(outcome==='exception')throw new Error('test storage interruption');return outcome==='success'}};
+  deps.layoutFor=id=>deps.S.layouts[id];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  deps.assemblyBoxChanges=()=>({added:[],removed:[]});
+  deps.savePhysicalAssemblyMutation=loadFunction('savePhysicalAssemblyMutation',deps);
+  const old=structuredClone(deps.S);
+  assert.equal(await loadFunction('finishAssemblySetup',deps)(),outcome==='success');
+  if(outcome==='success'){
+   assert.equal(deps.S.layouts.h.setupComplete,true);
+   assert.equal(deps.S.layouts.h.setupEditing,false);
+   assert.equal(deps.S.auditLog.length,1);
+   assert.equal(deps.pendingAssemblyMode,null);
+   assert.equal(deps.structureDrawn,1);
+  }else{
+   assert.deepEqual(deps.S.layouts,old.layouts,'never acknowledge completion when write did not commit');
+   assert.deepEqual(deps.S.auditLog,old.auditLog,'no fabricated audit after failed write');
+   assert.equal(deps.pendingAssemblyMode,'summer','preserve unsaved editing workflow');
+   assert.equal(deps.S.layouts.h.setupEditing,true);
+   assert.equal(deps.rendered,1);
+  }
+ }
+});
