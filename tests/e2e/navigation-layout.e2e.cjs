@@ -106,7 +106,7 @@ const measure=()=> {
         if(!m.aiVisual.beePresent||m.aiVisual.beePathCount<5)
           problems.push('central AI must contain an inline stylized bee');
         if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
-        if(!/rgba\\(/.test(m.aiVisual.rimColor||''))
+        if(!/rgba\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
         if(width<700&&!(height<520&&width>=560)&&m.rowTracks!==3)
           problems.push('centered 3-5-3 mobile honeycomb geometry changed');
