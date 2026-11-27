@@ -8,7 +8,7 @@ test('native archive worker uses actual bundled validation and never bootstraps 
  assert.doesNotMatch(html,/<script\b[^>]*\bsrc\s*=/i);
  assert.doesNotMatch(html,/<link\b/i);
  assert.match(html,/connect-src 'none'/);
- assert.match(html,/<script>window\.__pasekaProbeInline=true;<\/script>/);
+ assert.match(html,/<script id="paseka-qa-inline-marker">window\.__pasekaProbeInline=true;<\/script>/);
  assert.ok(html.indexOf('window.__pasekaProbeInline=true')<html.indexOf('window.__pasekaWorkerStarted=true'));
  assert.match(html,/window\.__pasekaWorkerStarted=true/);
  assert.match(html,/bridge\.finish\(outcome\)/);
@@ -26,9 +26,13 @@ test('native scheduler uses one persisted periodic job, disallows network and fi
  for(const token of ['getPendingJob(JOB_ID)','setPeriodic(PERIOD_MS, FLEX_MS)','setPersisted(true)','setRequiresStorageNotLow(true)','setBlockNetworkLoads(true)','setAllowFileAccess(false)','setAllowContentAccess(false)','loadDataWithBaseURL("https://localhost/"','jobFinished(parameters, retry)'])assert.ok(java.includes(token),token);
  assert.doesNotMatch(java,/setRequiredNetworkType|setOverrideDeadline|deleteDatabase|clearCache/);
  assert.match(java,/WATCHDOG_TIMEOUT phase=/);
- for(const category of ['NO_INLINE','NO_DB','NO_RUNNER','NO_BRIDGE','NO_METHOD','READY','UNKNOWN','DISPATCH_FAILED'])
+ for(const category of ['HTML_ABSENT','INLINE_NOT_RUN','NO_DB','NO_RUNNER','NO_BRIDGE','NO_METHOD','READY','UNKNOWN','DISPATCH_FAILED'])
   assert.match(java,new RegExp('JS_PROBE_'+category));
  assert.match(java,/JS_CONSOLE_ERROR/);
+ for(const category of ['MAIN_FRAME_INTERCEPTED_','MAIN_HTTP_ERROR','PAGE_STARTED_','PAGE_FINISHED_']) assert.match(java,new RegExp(category));
+ assert.match(java,/getElementById\('paseka-qa-inline-marker'\)/);
+ assert.match(java,/if \(active == parameters && request.isForMainFrame\(\)\)/);
+ assert.doesNotMatch(java,/Log\.[a-z]+\(TAG,.*request\.getUrl\(\)(?!\.toString\(\))|response\.getData\(\)/);
  assert.match(java,/onPageFinished\(WebView view, String url\)/);
  assert.match(java,/view\.evaluateJavascript\(probe, value ->/);
  assert.match(java,/if \(active != parameters\) return;/);
@@ -49,6 +53,14 @@ test('native patch is idempotent and preserves distinct package/origin',()=>{
  assert.equal(assertDailyConfig(diag),diag.appId);
  assert.notEqual(diag.appId,qa.appId);
  const probe=dailyQaConfig(config,{probe:true});
+ const dom=dailyQaConfig(config,{dom:true});
+ assert.equal(dom.appId,'ru.paseka.journal.qa.daily.dom');
+ assert.equal(assertDailyConfig(dom),dom.appId);
+ assert.notEqual(dom.appId,qa.appId);
+ assert.notEqual(dom.appId,probe.appId);
+ assert.notEqual(dom.appId,diag.appId);
+ assert.throws(()=>dailyQaConfig(config,{probe:true,dom:true}),/unexpected/);
+ assert.throws(()=>assertDailyConfig({...dom,server:{url:'https://remote.test'}}),/origin/);
  assert.equal(probe.appId,'ru.paseka.journal.qa.daily.probe');
  assert.equal(assertDailyConfig(probe),probe.appId);
  assert.notEqual(probe.appId,qa.appId);
@@ -69,11 +81,11 @@ test('native patch is idempotent and preserves distinct package/origin',()=>{
  const diagnosticActivity='package '+diag.appId+';\npublic class MainActivity extends BridgeActivity {}';
  assert.match(patchActivity(diagnosticActivity,diag.appId),/PasekaDailyArchiveJob\.schedule\(this\)/);
 });
-test('diagnostic workflow builds isolated probe package with signer and provenance',async()=>{
+test('diagnostic workflow builds isolated DOM package with signer and provenance',async()=>{
  const yaml=await read('.github/workflows/android-qa-daily-diagnostic.yml');
- assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs probe-config/);
- assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.probe'/);
- assert.match(yaml,/PASEKA-DAILY-PROBE-QA-ONLY\.apk/);
+ assert.match(yaml,/node scripts\/prepare-android-daily-archives\.mjs dom-config/);
+ assert.match(yaml,/packageName!=='ru\.paseka\.journal\.qa\.daily\.dom'/);
+ assert.match(yaml,/PASEKA-DAILY-DOM-QA-ONLY\.apk/);
  assert.match(yaml,/signers\.length!==1/);
  assert.match(yaml,/QA-PROVENANCE\.json/);
  assert.match(yaml,/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
