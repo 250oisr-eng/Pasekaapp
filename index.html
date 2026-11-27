@@ -418,6 +418,8 @@ main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]
 main>nav[aria-label="Основные разделы"] button[data-tab="settings"]{grid-row:3;grid-column:8/span 2}
 main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) + env(safe-area-inset-bottom,0px))!important}
 .fab{bottom:calc(clamp(192px,calc((100vw - 14px)*.57735 + 22px),268px) + env(safe-area-inset-bottom,0px))!important}
+.home-recent-card #recent{overflow-wrap:anywhere}
+.home-recent-card #recent ul{display:grid;gap:4px;margin:6px 0 0;padding-inline-start:20px}
 #home .home-hives-card #homeHivePreviewCount:not(:empty){margin-top:7px;font-size:12px}
 /* Keep the user-approved 4-3-4 on desktop, too: desktop single-row
    would change visual/focus order and move the fifth DOM button off-center. */
@@ -2014,7 +2016,12 @@ function render(){
  const jh=$('journalHive');if(jh){jh.innerHTML='<option value="">— Выбери улей —</option>'+S.hives.map(h=>'<option value="'+h.id+'">'+safe(hname(h.id))+'</option>').join('');if(S.hives.some(h=>h.id===activeJournalHive))jh.value=activeJournalHive;else if(selectedHiveId){activeJournalHive=selectedHiveId;jh.value=selectedHiveId}else activeJournalHive='';}
  const list=activeJournalHive?S.records.filter(r=>r.hive===activeJournalHive):[];
  renderJournalRecords();
- const activeRecords=S.records.filter(r=>!r.archivedAt);$('recent').textContent=activeRecords.length?activeRecords.slice(-3).reverse().map(r=>r.date+' · '+r.type+' · '+hname(r.hive)).join(' / '):'Записей пока нет.';$('archivedRecords').innerHTML=S.records.filter(r=>r.archivedAt).sort((a,b)=>b.archivedAt.localeCompare(a.archivedAt)).map(r=>'<div class="row"><span>'+safe(r.date)+' · '+safe(r.type)+' · '+safe(hname(r.hive))+'</span><button onclick="restoreRecord(\''+r.id+'\')">Восстановить</button></div>').join('')||'<p class="muted">Архив пуст.</p>';
+ const recentRecords=S.records.filter(record=>!record.archivedAt).reverse()
+  .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,3);
+ $('recent').innerHTML=recentRecords.length
+  ? '<ul>'+recentRecords.map(record=>'<li>'+safe((record.date||'Дата не указана')+' · '+record.type+' · '+hname(record.hive))+'</li>').join('')+'</ul>'
+  : 'Записей пока нет.';
+ $('archivedRecords').innerHTML=S.records.filter(r=>r.archivedAt).sort((a,b)=>b.archivedAt.localeCompare(a.archivedAt)).map(r=>'<div class="row"><span>'+safe(r.date)+' · '+safe(r.type)+' · '+safe(hname(r.hive))+'</span><button onclick="restoreRecord(\''+r.id+'\')">Восстановить</button></div>').join('')||'<p class="muted">Архив пуст.</p>';
  renderGlobalSearch();
  renderHome();
  if(S.meta?.saveError)$('backupStatus').textContent='ОШИБКА сохранения основной базы: '+S.meta.saveError;else if(autoBackupRecovered)$('backupStatus').textContent='Основная база восстановлена из полной автокопии · снимков: '+S.snapshots.length;else if(S.meta?.autoBackupError)$('backupStatus').textContent='Основные данные сохранены · ошибка автокопии: '+S.meta.autoBackupError;else $('backupStatus').textContent=(autoBackupInfo?'Полная автокопия: '+new Date(autoBackupInfo.at).toLocaleString('ru-RU'):'Полная автокопия ещё не создана')+' · снимков: '+S.snapshots.length;$('backupStatus').textContent+=' · '+(storagePersisted===true?'защита от автоматической очистки включена':storagePersisted===false?'браузер не предоставил защиту от автоматической очистки':'статус защиты хранилища неизвестен');

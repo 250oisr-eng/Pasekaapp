@@ -20,9 +20,9 @@ const server=createServer(async(req,res)=>{
 });
 const scenarios=[
   ['portrait-320',320,640],['portrait-360',360,780],['portrait-390',390,844],
-  ['portrait-412',412,915],['portrait-768',768,1024],['portrait-1024',1024,1365],
+  ['portrait-412',412,915],['portrait-768',768,1024],['portrait-1024',1024,1365],['portrait-1365',1365,1600],
   ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
-  ['landscape-1024',1024,768],['landscape-1365',1365,900]
+  ['landscape-915',915,412],['landscape-768',768,600],['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
 const expected=['entrance','hives','home','planning','journal','ai',
   'forage','incidents','deadout','varroa','settings'];
@@ -115,12 +115,42 @@ const measure=()=> {
     });
     await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
     await page.locator('main>nav[aria-label="Основные разделы"]').waitFor({state:'visible'});
+    await page.waitForFunction(()=>startupWriteGate.ready===true);
+    assert.equal(await page.locator('#recent').textContent(),'Записей пока нет.');
+    const expectedRecent=await page.evaluate(()=>{
+      const longLabel='<метка>'+ 'СинтетическаяМетка'.repeat(12);
+      S.records=[
+        {id:'newest',date:'2025-05-05',type:'Запись'},
+        {id:'same-day-first',date:'2025-04-04',type:'Осмотр'},
+        {id:'same-day-last',date:'2025-04-04',type:longLabel},
+        {id:'backdated',date:'2025-01-01',type:'Другая работа'},
+        {id:'archived',date:'2025-06-06',type:'Обработка',archivedAt:'2025-06-07'}
+      ];
+      const before=JSON.stringify(S.records);
+      render();
+      if(JSON.stringify(S.records)!==before)throw new Error('Recent preview mutated records');
+      return ['2025-05-05 · Запись · Улей','2025-04-04 · '+longLabel+' · Улей','2025-04-04 · Осмотр · Улей'];
+    });
     const failures=[];
+    const ai=page.getByRole('button',{name:'Открыть ИИ-помощника',exact:true});
+    assert.equal(await ai.count(),1);
+    assert.equal(await page.locator('main>nav button[data-tab="ai"]').count(),1);
+    assert.equal(await page.locator('header, #home').locator(
+      '[data-tab="ai"], [onclick*="showTab"][onclick*="ai"], [href="#ai"], #homeAIQuestion'
+    ).count(),0);
+    const home=page.locator('#home');
+    for(const id of ['apiaryStatus','globalSearch','homeHives','homeAlerts','homeTasks','recent'])
+      assert.equal(await home.locator('#'+id).count(),1,id);
     for(const [name,width,height] of scenarios){
       await page.setViewportSize({width,height});
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       const m=await page.evaluate(measure);
       const problems=[];
+      const recent=page.locator('#recent');
+      if(JSON.stringify(await recent.locator('li').allTextContents())!==JSON.stringify(expectedRecent))
+        problems.push('recent preview must show three dated, unarchived events in order');
+      if(await recent.evaluate(el=>el.scrollWidth>el.clientWidth+1))
+        problems.push('recent preview text overflows its card');
       if(m.missing)problems.push(m.missing);
       else {
         const tabs=m.buttons.map(b=>b.tab);
@@ -166,9 +196,24 @@ const measure=()=> {
     }
     // One shared navigation must persist unchanged across each existing tab.
     await page.setViewportSize({width:390,height:844});
+    await page.locator('main>nav button[data-tab="entrance"]').focus();
+    for(const tab of expected){
+      if(tab!=='entrance')await page.keyboard.press('Tab');
+      assert.equal(await page.locator(':focus').getAttribute('data-tab'),tab);
+    }
+    await ai.focus();
+    await page.keyboard.press('Space');
+    await page.locator('#ai.active #aiSignedOut').waitFor({state:'visible'});
+    assert.equal(await ai.getAttribute('aria-current'),'page');
+    await page.locator('#backButton').focus();
+    await page.keyboard.press('Enter');
+    await home.waitFor({state:'visible'});
+    assert.equal(await page.locator('#ai').isVisible(),false);
     for(const tab of expected){
       const selector='main>nav[aria-label="Основные разделы"] button[data-tab="'+tab+'"]';
       await page.locator(selector).click();
+      await page.locator('section#'+tab+'.active').waitFor({state:'visible'});
+      assert.equal(await page.locator(selector).getAttribute('aria-current'),'page');
       const m=await page.evaluate(measure);
       if(JSON.stringify(m.buttons.map(button=>button.tab))!==JSON.stringify(expected))
         failures.push('navigation changed after opening '+tab);
