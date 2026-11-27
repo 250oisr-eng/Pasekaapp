@@ -16,6 +16,7 @@ function buildDailyPlan(state,request,makeId,now){
  const fail=(error)=>({ok:false,error});
  if(!state||typeof state!=='object'||!request||typeof request!=='object'||typeof makeId!=='function')return fail('invalid_request');
  if(request.userConfirmed!==true)return fail('user_confirmation_required');
+ if(!Array.isArray(state.tasks)||!Array.isArray(state.records))return fail('incomplete_accounting_state');
  const hive=findUniqueById(state.hives,request.hiveId);
  if(!hive||hive.profileId!==PROFILE)return fail('sectional_profile_required');
  const family=findUniqueById(state.families,request.familyId);
