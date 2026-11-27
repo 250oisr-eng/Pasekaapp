@@ -77,14 +77,24 @@ public final class PasekaDailyArchiveJob extends JobService {
                 }
             });
             worker.setWebViewClient(new WebViewClient() {
+                @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                    if (active == parameters) Log.i(TAG, "PAGE_STARTED_" + routeCode(url));
+                }
                 @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return true; }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                    if (active == parameters && request.isForMainFrame()) {
+                        Log.w(TAG, "MAIN_FRAME_INTERCEPTED_" + routeCode(request.getUrl().toString()));
+                    }
+                    // Fail closed on every resource. No remote fetch or file access.
                     return new WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden",
                         Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
                 }
+                @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
+                    if (active == parameters && request.isForMainFrame()) Log.w(TAG, "MAIN_HTTP_ERROR");
+                }
                 @Override public void onPageFinished(WebView view, String url) {
                     if (active != parameters) return;
-                    Log.i(TAG, "PAGE_FINISHED phase=" + lastPhase);
+                    Log.i(TAG, "PAGE_FINISHED_" + routeCode(url) + " phase=" + lastPhase);
                     probeJavascript(parameters, view);
                 }
                 @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
@@ -107,10 +117,18 @@ public final class PasekaDailyArchiveJob extends JobService {
             complete(parameters, true);
         }
     }
+    // Log only a fixed classification; never log URL paths, origins or request data.
+    private static String routeCode(String url) {
+        if ("about:blank".equals(url)) return "BLANK";
+        if ("https://localhost/".equals(url)) return "LOCALHOST";
+        if (url != null && url.startsWith("https://localhost/")) return "LOCAL_PATH";
+        return "OTHER";
+    }
     // Read-only fixed-code JS probe. Never evaluate user text or log JS result verbatim.
     private void probeJavascript(JobParameters parameters, WebView view) {
         final String probe = "(function(){try{"
-            + "if(window.__pasekaProbeInline!==true)return 'NO_INLINE';"
+            + "if(!document.getElementById('paseka-qa-inline-marker'))return 'HTML_ABSENT';"
+            + "if(window.__pasekaProbeInline!==true)return 'INLINE_NOT_RUN';"
             + "if(typeof DB!=='string')return 'NO_DB';"
             + "if(window.__pasekaWorkerStarted!==true)return 'NO_RUNNER';"
             + "var b=window.PasekaArchiveJob;"
@@ -121,7 +139,8 @@ public final class PasekaDailyArchiveJob extends JobService {
         try {
             view.evaluateJavascript(probe, value -> {
                 if (active != parameters) return;
-                if ("\"NO_INLINE\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_INLINE");
+                if ("\"HTML_ABSENT\"".equals(value)) Log.w(TAG, "JS_PROBE_HTML_ABSENT");
+                else if ("\"INLINE_NOT_RUN\"".equals(value)) Log.w(TAG, "JS_PROBE_INLINE_NOT_RUN");
                 else if ("\"NO_DB\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_DB");
                 else if ("\"NO_RUNNER\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_RUNNER");
                 else if ("\"NO_BRIDGE\"".equals(value)) Log.w(TAG, "JS_PROBE_NO_BRIDGE");
