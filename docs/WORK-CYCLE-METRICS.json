@@ -1573,5 +1573,22 @@
     ],
     "deviceChanges": false,
     "completedVerifiedUserScenarios": 0
+  },
+  "b01OnePlusWorkerDiagnostics20261127": {
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "pr": 629,
+    "codeStatus": "IMPLEMENTED_DRAFT",
+    "ci": "NOT_VERIFIED",
+    "diagnosticApk": "NOT_BUILT",
+    "device": "NE2213_API36_USER_ADB_EVIDENCE",
+    "forcedJobStarted": true,
+    "lastJobFailed": true,
+    "jobDurationSecondsApprox": 180,
+    "preExistingArchiveSlotsVisible": 2,
+    "newBackgroundArchiveVerified": false,
+    "existingQaApkTouched": false,
+    "productionTouched": false,
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
   }
 }
