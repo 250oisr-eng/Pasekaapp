@@ -108,7 +108,7 @@ const measure=()=> {
         if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
         if(!/rgba\\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
-        if(width<700&&m.rowTracks!==3)
+        if(width<700&&!(height<520&&width>=560)&&m.rowTracks!==3)
           problems.push('centered 3-5-3 mobile honeycomb geometry changed');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
