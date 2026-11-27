@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**B08 / аудит веток 28.11.2026:** [10 тематических циклов](docs/PR-BRANCH-TEN-CYCLES-2026-11-28.md), 80 compare-запросов: 79 ответов (20 ahead=0, 59 ahead>0), 1 ref 404. Это НЕ полный поимённый аудит 170 merged-only. Следующее: проверить ветки по merged-PR ownership, затем точечно сверить два однокоммитных теста и CSV инвентаря. Merge/удаления/release нет; CI для этого docs-only HEAD не подтверждён.
+**B08 / аудит веток 28.11.2026:** [10 тематических циклов](docs/PR-BRANCH-TEN-CYCLES-2026-11-28.md), 80 compare-запросов: 79 ответов (20 ahead=0, 59 ahead>0), 1 ref 404. Это НЕ полный поимённый аудит 170 merged-only. Следующее: установить поимённо 170 merged-only, затем проверить CSV инвентаря и SW без wholesale merge. Два однокоммитных тестовых кандидата уже побайтово идентичны main (Git blob SHA), повторный перенос НЕ нужен. Merge/удаления/release нет; CI для этого docs-only HEAD не подтверждён.
 
 **27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
 
