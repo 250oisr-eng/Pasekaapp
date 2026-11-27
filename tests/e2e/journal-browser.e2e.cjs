@@ -192,6 +192,25 @@ async function archiveJourney(browser,origin){
   await setDay('2026-11-25');
   await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
   await ready();await archived('2026-11-25');
+  // Comprehensive B01 gate: day-one archive is an independent, verified local ZIP;
+  // the user never needs Android Downloads/SAF or a manual creation button.
+  const dayOne=await page.evaluate(async()=>{
+    const store=await getDailyArchiveStore();
+    const rows=await PasekaDailyArchives.readAll(store);
+    const checked=await PasekaDailyArchives.checked(rows,dailyArchiveInspect);
+    return {slots:rows.map(r=>r.slot),checked,day:dailyArchiveCheckedDay};
+  });
+  assert.deepEqual(dayOne.slots,['latest'],'fresh QA has only one committed generation');
+  assert.equal(dayOne.checked[0].valid,true,'first local ZIP has verified SHA/CRC/structure');
+  assert.equal(dayOne.checked[1].missing,true,'previous is not fabricated on first day');
+  assert.equal(dayOne.day,'2026-11-25');
+  const sameDay=await page.evaluate(async()=>{
+    const store=await getDailyArchiveStore(),before=await PasekaDailyArchives.readAll(store);
+    await checkDailyArchives();
+    const after=await PasekaDailyArchives.readAll(store);
+    return {before:before.map(r=>r.id),after:after.map(r=>r.id)};
+  });
+  assert.deepEqual(sameDay.before,sameDay.after,'same day must not replace a verified ZIP');
   await addHive();
   await setDay('2026-11-26');
   await page.evaluate(()=>checkDailyArchives());await archived('2026-11-26');
