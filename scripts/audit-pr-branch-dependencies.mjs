@@ -33,13 +33,26 @@ export function analyzePrBranchGraph(prs, branches, {main='main'}={}) {
     path.pop();active.delete(n);
   }
   for(const p of prs) walk(p.number);
+  // A cycle invalidates any claimed longest path; report null, not an invented number.
+  const depths=new Map();
+  function depth(n) {
+    if(depths.has(n))return depths.get(n);
+    const parents=edges.get(n)||[];
+    const value=1+Math.max(0,...parents.map(depth));
+    depths.set(n,value);
+    return value;
+  }
+  const maxOpenPrChainDepth=cycles.length?null:Math.max(0,...prs.map(p=>depth(p.number)));
+  const duplicateHeads=[...byHead.entries()].filter(([,numbers])=>numbers.length>1)
+    .map(([head,numbers])=>({head,prs:[...numbers].sort((a,b)=>a-b)}))
+    .sort((a,b)=>a.head.localeCompare(b.head));
   return {
     proof:'STRUCTURAL_ONLY_NOT_MERGE_OR_DELETE_SAFETY',
     openPrs:prs.length,mainBased:prs.filter(p=>p.base.ref===main).length,
     stacked:prs.filter(p=>p.base.ref!==main).length,
     branchCount:branches.length,unreferencedBranchCount:unreferenced.length,
     unreferencedBranches:unreferenced,missingLocalHeads,missingLocalBases,
-    stackedWithoutOpenParentPr:externalBases,cycles,
+    stackedWithoutOpenParentPr:externalBases,cycles,maxOpenPrChainDepth,duplicateHeads,
     warning:'Unreferenced is not obsolete; check branch commits, merged/closed PR, unique diff, CI, backup and downstream references before any deletion.'
   };
 }
