@@ -1813,5 +1813,29 @@
     "repeatedDocumentReads": null,
     "completedVerifiedUserScenarios": 0,
     "releaseAuthorized": false
+  },
+  "hiveRecordErgonomics20261127": {
+    "stage": "CI_VERIFIED_EXACT_SHA",
+    "pr": 640,
+    "codeSha": "29aedecfa37360b62469aac373f413781cbe87ac",
+    "basePr": 638,
+    "nodeTests": 1081,
+    "ciRuns": [
+      46055098828,
+      46055102469,
+      46055099036,
+      46055102476
+    ],
+    "cancelDraftViewports": 3,
+    "syntheticOnly": true,
+    "device": "NOT_TESTED",
+    "parallelPreview": {
+      "pr": 639,
+      "sha": "f6c9915a4359e4de4ecfc4a7ead8465496dbdcf1",
+      "ci": "NOT_VERIFIED"
+    },
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "releaseAuthorized": false
   }
 }
