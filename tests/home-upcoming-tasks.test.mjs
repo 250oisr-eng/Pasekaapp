@@ -41,3 +41,25 @@ test('home plan filters all active groups by saved hive and keeps unlinked tasks
  assert.match(fields.homeTasks.innerHTML,/legacy/);
  assert.deepEqual(tasks,before);
 });
+
+test('planning dialog opens with the selected hive and collects only entered feeding details',()=>{
+ const fields={};
+ const get=id=>fields[id]??={style:{},value:''};
+ get('planHive').replaceChildren=()=>{};
+ let opened=false;
+ get('planDlg').showModal=()=>{opened=true};
+ get('planType').value='Осмотр';
+ const source=html.slice(html.indexOf('const plannedFeedingFields='),html.indexOf("$('planForm').onsubmit"));
+ const api=new Function('$','S','Option','hname','dateShift','today',source+';return {openPlanDialog,togglePlanFeedingFields,collectPlannedFeedingFields}')(
+  get,{hives:[{id:'a'},{id:'b'}]},class Option {},String,()=> '2026-11-28',()=> '2026-11-27');
+ api.openPlanDialog('b');
+ assert.equal(opened,true);
+ assert.equal(get('planHive').value,'b');
+ assert.equal(get('planFeedingFields').style.display,'none');
+ get('planType').value='Подкормка';
+ api.togglePlanFeedingFields();
+ assert.equal(get('planFeedingFields').style.display,'');
+ get('planFeedingAmount').value='  отметка  ';
+ assert.equal(api.collectPlannedFeedingFields().plannedFeedingAmount,'отметка');
+ assert.equal(api.collectPlannedFeedingFields().plannedFeedingMethod,'');
+});
