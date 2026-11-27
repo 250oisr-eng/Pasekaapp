@@ -1544,9 +1544,9 @@
     "branch": "test/b01-comprehensive-device-acceptance-20261127",
     "baseMainSha": "94f883be631d5bb205a1c4bbcfbea20fed554f48",
     "scope": "two daily local ZIPs + one restore button, no external JSON/SAF requirement",
-    "nodeTests": "OLD_HEAD_7f25d442_1063_PASS_NEW_HEAD_PENDING",
+    "nodeTests": "EXACT_HEAD_30cf3c3f_1067_PASS_DOCS_ONLY_SHA_PENDING",
     "chromium": "NOT_VERIFIED",
-    "android": "OLD_HEAD_7f25d442_SUCCESS_NEW_HEAD_PENDING",
+    "android": "EXACT_HEAD_30cf3c3f_SUCCESS_DOCS_ONLY_SHA_PENDING",
     "knownPriorEvidence": {
       "verifiedCodeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
       "nodePass": 1054,
@@ -1554,7 +1554,7 @@
       "package": "ru.paseka.journal.qa.daily",
       "apkSha256": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
     },
-    "device": "NOT_TESTED",
+    "device": "PARTIAL_USER_REPORTED_PASS_NE2213_API36",
     "deviceGates": [
       "G0",
       "G1",
@@ -1578,6 +1578,25 @@
       "productionInstall": false,
       "qaInstallRequiresExplicitFlag": true,
       "binaryShaPinned": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
+    },
+    "devicePhysicalEvidence": {
+      "reportedDate": "2026-11-27",
+      "package": "ru.paseka.journal.qa.daily",
+      "G0": "PASS_APK_HASH_SIGNER_ADB_INSTALL",
+      "G1": "PARTIAL_PASS_UI_TWO_SLOTS",
+      "G2": "USER_REPORTED_PASS_FIRST_CHECKED_ZIP",
+      "G3": "PASS_ARTIFICIAL_CLOCK_ONLY_NATURAL_NOT_TESTED",
+      "G4": "CONFIGURATION_PASS_EXECUTION_NOT_VERIFIED",
+      "G5": "USER_REPORTED_PASS_4_OF_4_OFFLINE",
+      "G6": "USER_REPORTED_PASS_4_OF_4_SYNTHETIC_RESTORE",
+      "G7": "SYNTHETIC_CI_PASS_DEVICE_FAULTS_NOT_TESTED",
+      "G8": "USER_REPORTED_PASS_4_OF_4_UI",
+      "clockRestored": "2026-11-27",
+      "latestDate": "2026-11-28",
+      "previousDate": "2026-11-27",
+      "nextNaturallyEligibleDate": "2026-11-29",
+      "productionChanged": false,
+      "criticalVideoDeleted": false
     }
   }
 }
