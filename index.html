@@ -625,9 +625,10 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 <section id="journal" class="panel">
  <div class="row"><div><h2>Журнал</h2><div class="muted">Хронология наблюдений и работ</div></div><button class="primary" onclick="newRecord()">＋ Запись</button></div>
  <label for="journalHive">Улей</label><select id="journalHive" onchange="selectJournalHive(this.value)"></select>
- <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"><button type="button" onclick="clearJournalFilters()">Сбросить</button><button type="button" onclick="downloadFilteredJournalCsv()">Скачать CSV</button></div>
- <div class="muted" id="journalCsvScope">CSV содержит только текст выбранных записей, без фото, видео, вложений и архивных событий. Не является резервной копией.</div>
- <div id="journalResultCount" class="muted journal-result-count"></div><div id="records" class="journal-timeline"></div>
+ <section class="card" id="feedingPlanComparisonPanel" aria-live="polite" style="display:none"><div class="row" style="justify-content:space-between;align-items:center"><b>План и факт подкормки</b><span class="muted" id="feedingPlanComparisonCount"></span></div><div class="muted">Сравниваются только выполненные плановые задачи. Отклонение рассчитывается, только если план и факт указаны с одинаковыми распознанными единицами. Разные единицы не пересчитываются. Повторные записи одной плановой задачи отмечаются отдельно и не входят в суммы.</div><div id="feedingPlanComparisonContent"></div></section><section class="card" id="feedingLedgerPanel" aria-live="polite"><div class="row" style="justify-content:space-between;align-items:center"><b>Учёт подкормок по семьям</b><span class="muted" id="feedingLedgerCount"></span></div><div class="muted">Сводка строится по сохранённым записям текущего улья. Повторные выдачи остаются отдельными событиями. Складываются только количества с одинаковыми явно указанными единицами; литры и миллилитры, килограммы и граммы автоматически не пересчитываются.</div><div id="feedingLedgerContent"></div></section><div class="workspace-filter-row journal-filter-row"><input id="journalSearch" type="search" placeholder="Поиск по тексту и событиям…" aria-label="Поиск по записям журнала" oninput="renderJournalRecords()"><select id="journalFamilyFilter" aria-label="Фильтр по семье" onchange="renderJournalRecords()"><option value="all">Все семьи</option></select><select id="journalTypeFilter" aria-label="Тип события" onchange="renderJournalRecords()"><option value="all">Все события</option></select><div><label for="journalDateFilter">Дата / начало периода</label><input id="journalDateFilter" type="date" aria-label="Фильтр по дате" onchange="renderJournalRecords()"></div><div><label for="journalEndDateFilter">Конец периода</label><input id="journalEndDateFilter" type="date" aria-label="Конец периода" onchange="renderJournalRecords()"></div><button type="button" onclick="clearJournalFilters()">Сбросить</button><button type="button" onclick="downloadFilteredJournalCsv()">Скачать CSV</button></div>
+ <div class="muted" id="journalCsvScope">Без конечной даты выбирается один день. CSV содержит только текст выбранных записей, без фото, видео, вложений и архивных событий. Не является резервной копией.</div>
+ <details class="card" id="journalPeriodReport"><summary>Сводка по всем ульям за выбранные даты</summary><p class="muted">Количество сохранённых записей по типам событий. Учитываются даты. При переходе к улью период сохраняется, остальные фильтры сбрасываются.</p><div id="journalPeriodReportContent" aria-live="polite"></div></details>
+ <div id="journalResultCount" class="muted journal-result-count" tabindex="-1"></div><div id="records" class="journal-timeline"></div>
 </section>
 <section id="settings" class="panel">
  <div class="card"><button type="button" aria-haspopup="dialog" aria-controls="modelDiagnosticsDlg" onclick="$('modelDiagnosticsDlg').showModal()">Проверка состояния модели</button></div>
@@ -1269,6 +1270,51 @@ function renderFeedingLedger(){
 
 // Read-only journal list shared by the visible timeline and CSV export.
 // A CSV export does not contain attached Blob/File media or archived records.
+function journalRecordMatchesPeriod(record,date,endDate){
+ if(endDate)return /^\d{4}-\d{2}-\d{2}$/.test(record.date||'')&&record.date<=endDate&&(!date||record.date>=date);
+ return !date||record.date===date;
+}
+function journalPeriodSummary(state,date,endDate){
+ const byHive=new Map();
+ for(const hive of state.hives)if(hive?.id&&!byHive.has(hive.id))byHive.set(hive.id,{hiveId:hive.id,total:0,types:new Map()});
+ for(const record of state.records){
+  if(!record||record.archivedAt||!journalRecordMatchesPeriod(record,date,endDate))continue;
+  const id=record.hive||'';
+  if(!byHive.has(id))byHive.set(id,{hiveId:id,total:0,types:new Map()});
+  const group=byHive.get(id),type=record.type||'Тип не указан';
+  group.total++;
+  group.types.set(type,(group.types.get(type)||0)+1);
+ }
+ return [...byHive.values()];
+}
+function renderJournalPeriodSummary(){
+ const host=$('journalPeriodReportContent');if(!host)return;
+ const date=$('journalDateFilter')?.value||'',endDate=$('journalEndDateFilter')?.value||'';
+ if(date&&endDate&&date>endDate){host.textContent='Конец периода раньше начала. Исправь даты.';return;}
+ const rows=journalPeriodSummary(S,date,endDate),total=rows.reduce((sum,row)=>sum+row.total,0);
+ host.innerHTML='<p><b>Всего записей: '+total+'</b></p>'+rows.map(row=>{
+  const matches=S.hives.filter(h=>h.id===row.hiveId);
+  const known=matches.length>0;
+  const name=known?hname(row.hiveId):row.hiveId?'Исторический улей · '+row.hiveId:'Улей не указан';
+  const types=[...row.types].sort(([a],[b])=>String(a).localeCompare(String(b),'ru')).map(([type,count])=>safe(type)+' — '+count).join(' · ');
+  const link=matches.length===1&&row.hiveId?'<button type="button" data-hive-id="'+safe(row.hiveId)+'" aria-label="'+safe('Открыть журнал: '+name)+'" onclick="openJournalFromPeriodSummary(this.dataset.hiveId)">Открыть журнал</button>':'';
+  return '<div class="task-item"><b>'+safe(name)+' · '+row.total+'</b><p class="muted">'+(types||'Записей нет')+'</p>'+link+'</div>';
+ }).join('');
+}
+function openJournalFromPeriodSummary(hiveId){
+ if(!hiveId||S.hives.filter(h=>h.id===hiveId).length!==1){
+  alert('Улей больше недоступен. Обнови сводку.');
+  return;
+ }
+ const search=$('journalSearch'),type=$('journalTypeFilter'),family=$('journalFamilyFilter');
+ if(search)search.value='';
+ if(type)type.value='all';
+ if(family)family.value='all';
+ selectJournalHive(hiveId);
+ const result=$('journalResultCount');
+ result?.focus({preventScroll:true});
+ result?.scrollIntoView({block:'start'});
+}
 function filteredJournalRows(familyById=null){
  if(!activeJournalHive)return [];
  if(!familyById){
@@ -1276,9 +1322,10 @@ function filteredJournalRows(familyById=null){
   for(const family of S.families){if(!familyById.has(family.id))familyById.set(family.id,family);}
  }
  const type=$('journalTypeFilter')?.value||'all',familyId=$('journalFamilyFilter')?.value||'all';
- const date=String($('journalDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
+ const date=String($('journalDateFilter')?.value||''),endDate=String($('journalEndDateFilter')?.value||''),search=String($('journalSearch')?.value||'').trim().toLocaleLowerCase('ru-RU');
  return S.records.filter(r=>r&&!r.archivedAt&&r.hive===activeJournalHive).filter(r=>{
-  if((type!=='all'&&r.type!==type)||(familyId!=='all'&&r.family!==familyId)||(date&&r.date!==date))return false;
+  if((type!=='all'&&r.type!==type)||(familyId!=='all'&&r.family!==familyId))return false;
+  if(!journalRecordMatchesPeriod(r,date,endDate))return false;
   if(!search)return true;
   const family=familyById.get(r.family),mediaNames=(r.media||[]).map(m=>m.name||'').join(' ');
   const haystack=[r.date,r.type,r.text,r.frameId,family?.name,r.familyNameAtTime,r.familySnapshotAtTime?.name,mediaNames].join(' ').toLocaleLowerCase('ru-RU');
@@ -1310,6 +1357,8 @@ function journalCsvFilename(hiveId,date,tick){
 }
 function downloadFilteredJournalCsv(){
  if(!activeJournalHive){alert('Сначала выбери улей для экспорта журнала.');return;}
+ const date=$('journalDateFilter')?.value||'',endDate=$('journalEndDateFilter')?.value||'';
+ if(date&&endDate&&date>endDate){alert('Конец периода раньше начала. Исправь даты перед экспортом CSV.');return;}
  const rows=filteredJournalRows();
  if(!rows.length){alert('По выбранным фильтрам нет записей для CSV.');return;}
  try{
@@ -1343,12 +1392,15 @@ function renderJournalRecords(){
  }
  const rows=activeJournalHive?available:[];
  const filtered=filteredJournalRows(familyById);
- const count=$('journalResultCount');if(count)count.textContent=activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
+ renderJournalPeriodSummary();
+ const dateStart=$('journalDateFilter')?.value,dateEnd=$('journalEndDateFilter')?.value;
+ const invalidPeriod=Boolean(dateStart&&dateEnd&&dateStart>dateEnd);
+ const count=$('journalResultCount');if(count)count.textContent=activeJournalHive&&invalidPeriod?'Конец периода раньше начала. Исправь даты.':activeJournalHive?(filtered.length+' из '+rows.length+' записей'):'Выбери улей, чтобы открыть его журнал';
  host.classList.toggle('has-entries',filtered.length>0);
  host.innerHTML=activeJournalHive?(filtered.map(r=>'<article class="card journal-entry" data-record-id="'+safe(r.id)+'"><div class="journal-entry-head"><span class="journal-entry-type">'+safe(r.type)+'</span><time datetime="'+safe(r.date)+'">'+safe(r.date)+'</time></div>'+(r.text?'<p class="journal-entry-text">'+safe(r.text)+'</p>':'')+recordFamilyHtml(r)+recordExtraHtml(r)+(r.media?.length?'<div class="journal-entry-media">'+mediaHtml(r.media)+'</div>':'')+'<div class="row journal-entry-actions"><button type="button" data-record-id="'+safe(r.id)+'" onclick="editRecord(this.dataset.recordId)">Изменить</button><button type="button" data-record-id="'+safe(r.id)+'" onclick="deleteRecord(this.dataset.recordId)">В архив</button></div></article>').join('')||(rows.length?'<div class="empty">По выбранным фильтрам записей нет.</div>':'<div class="empty">Для этого улья записей пока нет.</div>')):'<div class="empty">Сначала выбери улей, чтобы открыть его журнал.</div>';
 }
 function clearJournalFilters(){
- ['journalSearch','journalDateFilter'].forEach(id=>{const el=$(id);if(el)el.value=''});
+ ['journalSearch','journalDateFilter','journalEndDateFilter'].forEach(id=>{const el=$(id);if(el)el.value=''});
  const type=$('journalTypeFilter'),family=$('journalFamilyFilter');if(type)type.value='all';if(family)family.value='all';renderJournalRecords();
 }
 function clearGlobalSearch(){

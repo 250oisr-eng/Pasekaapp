@@ -85,6 +85,22 @@ async function journey(browser,origin,name,viewport){
     await page.locator('#rtext').fill(secondText);
     await page.locator('#recordForm button.primary').click();
     await page.locator('#recordDlg').waitFor({state:'hidden'});
+    const dates=await page.evaluate(()=>({today:today(),yesterday:dateShift(today(),-1),tomorrow:dateShift(today(),1)}));
+    await page.locator('#journalDateFilter').fill(dates.yesterday);
+    assert.equal(await page.locator('#records .journal-entry').count(),0);
+    await page.locator('#journalEndDateFilter').fill(dates.today);
+    assert.equal(await page.locator('#records .journal-entry').count(),2);
+    await page.locator('#journalPeriodReport summary').click();
+    const report=page.locator('#journalPeriodReportContent');
+    assert.match(await report.innerText(),/Всего записей: 2/);
+    assert.match(await report.innerText(),/Осмотр — 2/);
+    await page.locator('#journalDateFilter').fill(dates.tomorrow);
+    assert.match(await page.locator('#journalResultCount').textContent(),/Конец периода раньше начала/);
+    assert.equal(await page.locator('#records .journal-entry').count(),0);
+    await page.locator('#journal').getByRole('button',{name:'Сбросить',exact:true}).click();
+    assert.match(await report.innerText(),/Всего записей: 2/);
+    assert.equal(await page.locator('#journalEndDateFilter').inputValue(),'');
+    assert.equal(await page.locator('#records .journal-entry').count(),2);
     await page.locator('button[data-tab="home"]').click();
     await page.locator('#globalSearch').fill(note);
     const matches=page.locator('#globalSearchResults [data-kind="record"]');
@@ -231,6 +247,35 @@ async function journey(browser,origin,name,viewport){
     assert.equal(await page.locator('#recordId').inputValue(),linked);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('#completedTaskHistory').evaluate(el=>el.open),true);
+    // The all-hive summary drills into a different hive using the same date bounds.
+    await page.locator('button[data-tab="hives"]').click();
+    await page.locator('[data-action="open-new-hive"]').click();
+    await page.locator('#hiveForm button.primary').click();
+    await page.locator('#hiveDlg').waitFor({state:'hidden'});
+    const hiveIds=await page.evaluate(()=>S.hives.map(h=>h.id));
+    assert.equal(hiveIds.length,2);
+    await page.locator('button[data-tab="journal"]').click();
+    await page.locator('#journalHive').selectOption(hiveIds[1]);
+    await page.locator('#journalDateFilter').fill(dates.yesterday);
+    await page.locator('#journalEndDateFilter').fill(dates.today);
+    await page.locator('#journalSearch').fill('не совпадает');
+    if(!(await page.locator('#journalPeriodReport').evaluate(el=>el.open))){
+      await page.locator('#journalPeriodReport summary').click();
+    }
+    const summaryRecords=await page.evaluate(()=>JSON.stringify(S.records));
+    await report.locator('button[data-hive-id="'+hiveIds[0]+'"]').click();
+    assert.equal(await page.locator('#journalHive').inputValue(),hiveIds[0]);
+    assert.equal(await page.locator('#journalDateFilter').inputValue(),dates.yesterday);
+    assert.equal(await page.locator('#journalEndDateFilter').inputValue(),dates.today);
+    assert.equal(await page.locator('#journalSearch').inputValue(),'');
+    assert.equal(await page.locator('#records .journal-entry').count(),3);
+    assert.equal(await page.locator('#journalResultCount').evaluate(el=>el===document.activeElement),true);
+    assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),summaryRecords);
+    await report.locator('button[data-hive-id="'+hiveIds[1]+'"]').click();
+    assert.equal(await page.locator('#journalHive').inputValue(),hiveIds[1]);
+    assert.equal(await page.locator('#records .journal-entry').count(),0);
+    assert.equal(await page.locator('#journalEndDateFilter').inputValue(),dates.today);
+    assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),summaryRecords);
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',
       viewport:name,status:'PASS',source:'local-Chromium-real-IndexedDB',
