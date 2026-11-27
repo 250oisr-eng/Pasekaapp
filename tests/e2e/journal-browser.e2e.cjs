@@ -129,6 +129,16 @@ async function journey(browser,origin,name,viewport){
     await card.getByRole('button',{name:'Вернуться к улью'}).click();
     await page.locator('#selectedHivePanel').waitFor({state:'visible'});
     assert.deepEqual(await capture(),before,'history navigation mutated journal data');
+    const family=await page.evaluate(()=>({id:S.families[0].id,name:S.families[0].name}));
+    await page.locator('button[data-tab="home"]').click();
+    await page.locator('#globalSearch').fill(family.name);
+    await page.locator('#globalSearchResults [data-kind="family"]').click();
+    await card.waitFor({state:'visible'});
+    assert.equal(await card.getAttribute('data-family-id'),family.id);
+    assert.equal(await card.locator('article').filter({hasText:note}).count(),1);
+    await card.getByRole('button',{name:'Вернуться к улью'}).click();
+    await page.locator('#selectedHivePanel').waitFor({state:'visible'});
+    assert.deepEqual(await capture(),before);
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',
       viewport:name,status:'PASS',source:'local-Chromium-real-IndexedDB',

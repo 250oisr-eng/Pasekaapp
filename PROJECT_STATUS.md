@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified main `81b6a63cc5b57b192c172fa4cb5691b162d0a0bc` after #599.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · база `e906e2f4295e24c020e16e8971419e7b53baf2c3` после #598.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -13,7 +13,7 @@
 
 ## Work · карточка семьи
 
-**#599 MERGED/IN_MAIN** `81b6a63cc5b57b192c172fa4cb5691b162d0a0bc`, exact-main CI SUCCESS. **#598 Draft / CI_VERIFIED:** code SHA `d18ef97533b4721dcc550369de254fe0828766a4`, Fast 1004/1004 #45903240403, Governance #45903247215, Android #45903247227 SUCCESS; Browser E2E mobile/desktop #45903217571 SUCCESS on earlier integrated SHA `4c44a419` (subsequent change only в unit-тесте). OnePlus NOT_TESTED.
+**#599 MERGED/IN_MAIN** `81b6a63cc5b57b192c172fa4cb5691b162d0a0bc`, exact-main CI SUCCESS. **#598 MERGED, проверки до слияния:** code SHA `d18ef97533b4721dcc550369de254fe0828766a4`, Fast 1004/1004 #45903240403, Governance #45903247215, Android #45903247227 SUCCESS; Browser E2E mobile/desktop #45903217571 SUCCESS on earlier integrated SHA `4c44a419` (subsequent change only в unit-тесте). OnePlus NOT_TESTED.
 
 ## Действующие запреты и доказательства
 
@@ -43,6 +43,6 @@
 
 ## Следующий конкретный шаг
 
-**#598 READY_FOR_MERGE_REVIEW** после exact-code CI и E2E на функционально идентичном HTML. PR остаётся Draft; отдельное разрешение требуется для merge. Нет релиза, реального бэкапа или OnePlus device proof.
+**#598 и #599 MERGED.** Ветка `work/search-family-identity`: из быстрого поиска открывается карточка конкретной семьи, с возвратом к её улью. Дубли ID и устаревшие результаты требуют повторного выбора.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**
