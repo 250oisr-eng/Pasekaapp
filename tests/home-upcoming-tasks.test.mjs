@@ -15,3 +15,29 @@ test('upcoming tasks preserve order and expansion across the five-task boundary'
  assert.match(list,/<b>5<\/b><details id="moreUpcomingTasks"><summary>[^<]+\(2\)<\/summary><b>6<\/b>/);
  assert.match(render(tasks,true),/<details id="moreUpcomingTasks" open>/);
 });
+
+test('home plan filters all active groups by saved hive and keeps unlinked tasks in the overview',()=>{
+ const fields={homeTaskHive:{value:'b'},homeAlerts:{},homeTasks:{}};
+ const tasks=[
+  {id:'late',hive:'b',status:'pending',date:'2026-01-01'},
+  {id:'now',hive:'b',status:'pending',date:'2026-01-02'},
+  {id:'later',hive:'b',status:'pending',date:'2026-01-03'},
+  {id:'proposal',hive:'b',status:'suggested'},
+  {id:'finished',hive:'b',status:'done'},
+  {id:'other',hive:'a',status:'pending',date:'2026-01-03'},
+  {id:'legacy',status:'pending',date:'2026-01-03'}
+ ];
+ const before=structuredClone(tasks);
+ const source=html.slice(html.indexOf('function renderHomeTasks('),html.indexOf('function upcomingTasksMarkup('));
+ const draw=new Function('S','$','today','taskMarkup','upcomingTasksMarkup',source+';return renderHomeTasks')(
+  {tasks},id=>fields[id],()=>'2026-01-02',t=>t.id,rows=>rows.map(t=>t.id).join(' '));
+ draw();
+ assert.match(fields.homeAlerts.innerHTML,/late/);
+ for(const id of ['now','later','proposal'])assert.ok(fields.homeTasks.innerHTML.includes(id));
+ assert.doesNotMatch(fields.homeTasks.innerHTML,/other|finished|legacy/);
+ fields.homeTaskHive.value='empty';draw();
+ assert.match(fields.homeTasks.innerHTML,/Для этого улья/);
+ fields.homeTaskHive.value='';draw();
+ assert.match(fields.homeTasks.innerHTML,/legacy/);
+ assert.deepEqual(tasks,before);
+});
