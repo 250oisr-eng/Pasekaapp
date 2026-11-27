@@ -1,0 +1,4191 @@
+{
+  "kind": "REVIEW_TRIAGE_NOT_MERGE_OR_DELETE_AUTHORIZATION",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "headShaScope": "post-comparison branch recensus; does not prove atomic head SHA at exact compare instant",
+  "source": "12 pinned compare batches + complete open/closed/branches REST census",
+  "counts": {
+    "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT": 54,
+    "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW": 39,
+    "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT": 30,
+    "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT": 41,
+    "TESTS_ONLY_OR_DOCS_CHECK_CONTENT": 12
+  },
+  "rows": [
+    {
+      "branch": "audit/p0-b04-signer-device-gates-2026-11-25",
+      "mergedPrs": [
+        496
+      ],
+      "headShaPostCompare": "9dd6d50cac6cce8e756c2ed429084aa5b49f4ff9",
+      "ahead": 1,
+      "behind": 245,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/P0-B04-ONEPLUS-SIGNER-EVIDENCE-GATE-2026-11-25.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/pr-complete-filepaths-20261126",
+      "mergedPrs": [
+        552
+      ],
+      "headShaPostCompare": "8d5e6805d1f4cdbb7e980960d3ffb67f69a9615d",
+      "ahead": 1,
+      "behind": 212,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-2026-11-26.md",
+        "docs/PR-AUDIT-INVENTORY-2026-11-26.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/pr-live-graph-census-20261126",
+      "mergedPrs": [
+        578
+      ],
+      "headShaPostCompare": "852b2a496fb8ba8e7d7fbc691b27980f4c8f150a",
+      "ahead": 7,
+      "behind": 166,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-I.md",
+        "docs/PR-AUDIT-LIVE-GRAPH-2026-11-26-I.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/pr-portfolio-checkpoint-2026-11-26-b",
+      "mergedPrs": [
+        556
+      ],
+      "headShaPostCompare": "9816378878beae3b544d59311df0d1e66b98d06b",
+      "ahead": 3,
+      "behind": 205,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-B.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/pr-portfolio-reconcile-20261126",
+      "mergedPrs": [
+        573
+      ],
+      "headShaPostCompare": "b9e7ab1ca08ae51a455f3d74ba737b76096fc3e7",
+      "ahead": 5,
+      "behind": 171,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-H.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/pr-portfolio-triage-20261126",
+      "mergedPrs": [
+        551
+      ],
+      "headShaPostCompare": "05f537ac3584ce69f5c096549707a1df67bc6a41",
+      "ahead": 1,
+      "behind": 213,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-2026-11-26.md",
+        "docs/PR-AUDIT-INVENTORY-2026-11-26.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/pr-root-safety-reconcile-20261126",
+      "mergedPrs": [
+        574
+      ],
+      "headShaPostCompare": "feb7312dfb00f5a3e785eeb7305020a53d37da8c",
+      "ahead": 4,
+      "behind": 170,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/root-33-line-diff-20261126",
+      "mergedPrs": [
+        589
+      ],
+      "headShaPostCompare": "fd8567621ebb23f8a2846cd4f706175cadbfaca1",
+      "ahead": 0,
+      "behind": 148,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/root-33-unique-code-matrix-20261126",
+      "mergedPrs": [
+        584
+      ],
+      "headShaPostCompare": "0455e4f4c1f22b8712c68c295afe3c2260b5e7d5",
+      "ahead": 7,
+      "behind": 160,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md",
+        "docs/PR-AUDIT-LIVE-GRAPH-2026-11-26-I.json",
+        "docs/PR-AUDIT-ROOTS-2026-11-26-K.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "audit/techprocess-safety-review-2026-11-16",
+      "mergedPrs": [
+        77
+      ],
+      "headShaPostCompare": "b190c6e56099c5dd9f35a9f2904c7db065bd5a13",
+      "ahead": 9,
+      "behind": 1112,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/АУДИТ-PR-54-58-2026-11-16.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "ci/run-android-validation-on-pull-requests-2026-11-17",
+      "mergedPrs": [
+        117
+      ],
+      "headShaPostCompare": "d4bbf28e7fdc198c684910362e8314cf439d9b67",
+      "ahead": 1,
+      "behind": 1101,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-debug.yml"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "docs/add-root-project-status-journal-2026-11-17",
+      "mergedPrs": [
+        139
+      ],
+      "headShaPostCompare": "6b2bb4a73c14cc25844d7d06172d9cbb6b0aeb8b",
+      "ahead": 5,
+      "behind": 1080,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "PROJECT_STATUS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/audit-p1-journal-p0-startup-20261126",
+      "mergedPrs": [
+        571
+      ],
+      "headShaPostCompare": "54b0c4189d58df8621a84de75cc9d4dcad352a09",
+      "ahead": 9,
+      "behind": 191,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-G.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/b01-archive-zip-fail-postmerge-20261127",
+      "mergedPrs": [
+        618
+      ],
+      "headShaPostCompare": "5f4fb9d03d6ded7da90193824b27946bde465763",
+      "ahead": 3,
+      "behind": 36,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/b01-qa-saf-built-device-gate-20261127",
+      "mergedPrs": [
+        620
+      ],
+      "headShaPostCompare": "033f520b899c542b1cd65a4c6a53a7a1d8b1be8c",
+      "ahead": 4,
+      "behind": 34,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/b06-two-licensed-research-tracks-main-20261126",
+      "mergedPrs": [
+        564
+      ],
+      "headShaPostCompare": "7c5b80b49ab3432c88f2c38606b76389961ff154",
+      "ahead": 5,
+      "behind": 198,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/B06-LICENSED-BEE-DETECTOR-DECISION-2026-11-26.md",
+        "docs/B06-LICENSED-MODEL-REGISTRY.json",
+        "docs/B06-RESEARCH-RECONCILIATION-2026-11-26.md",
+        "docs/VIDEO-V0-LICENSE-EVIDENCE-2026-11-26.json",
+        "docs/VIDEO-V0-V2-PERMISSIVE-DETECTOR-FEASIBILITY-2026-11-26.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/blocker-registry-lifecycle-2026-11-24",
+      "mergedPrs": [
+        471
+      ],
+      "headShaPostCompare": "a36eb74edf5ca1a5263250cc8e1bde1e54deded9",
+      "ahead": 0,
+      "behind": 301,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/completed-journal-csv-performance-cycle-20261126",
+      "mergedPrs": [
+        550
+      ],
+      "headShaPostCompare": "0f278fdccec0b0502d058b94af9c5a628250dc69",
+      "ahead": 2,
+      "behind": 215,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/correct-frame-height-confirmation-2026-11-17",
+      "mergedPrs": [
+        131
+      ],
+      "headShaPostCompare": "07de72ba921da5c2d83543d4c8215c2fb16f007b",
+      "ahead": 12,
+      "behind": 1087,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/development-workflow-2026-11-17",
+      "mergedPrs": [
+        109
+      ],
+      "headShaPostCompare": "00ff965f17378805282ec2a314bb2518842951e1",
+      "ahead": 7,
+      "behind": 1108,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/family-layout-architecture-audit-2026-11-17",
+      "mergedPrs": [
+        127
+      ],
+      "headShaPostCompare": "d6067ea62a145328d1272073ccb31420dc321b42",
+      "ahead": 6,
+      "behind": 1090,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/family-lineage-model-checkpoint-2026-11-17",
+      "mergedPrs": [
+        129
+      ],
+      "headShaPostCompare": "f86d6ece7b97e0bff5fc8ae0e8d929f8890afee3",
+      "ahead": 6,
+      "behind": 1088,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/finalize-root-audit-n-20261126",
+      "mergedPrs": [
+        590
+      ],
+      "headShaPostCompare": "cdd598ec4b9ac36827081dceec6f58ea9363ddad",
+      "ahead": 0,
+      "behind": 143,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/frame-history-guard-checkpoint-2026-11-17",
+      "mergedPrs": [
+        124
+      ],
+      "headShaPostCompare": "b2a3265c0296171cb175ecdc933d777d28a5340c",
+      "ahead": 5,
+      "behind": 1093,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/free-only-tools-and-ai-collaboration",
+      "mergedPrs": [
+        76
+      ],
+      "headShaPostCompare": "861a7b219164f6a9d80d76b7f5990e2c2fcc72b6",
+      "ahead": 10,
+      "behind": 1113,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/АРХИТЕКТУРА-ПРИЛОЖЕНИЯ.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПАСПОРТ-ПРОЕКТА.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/ПОЛИТИКА-БЕСПЛАТНЫХ-СРЕДСТВ.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/governance-f0-f7-compact-status-2026-11-24",
+      "mergedPrs": [
+        470
+      ],
+      "headShaPostCompare": "dc7ad01724dfca8394fbc6b676c42aae01bc12d7",
+      "ahead": 26,
+      "behind": 345,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/pull_request_template.md",
+        ".github/workflows/governance-docs.yml",
+        "AGENTS.md",
+        "PROJECT_STATUS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "docs/РЕФОРМА-УПРАВЛЕНИЯ-И-МЕТРИКИ-2026-11-24.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+        "docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md",
+        "scripts/governance-check.mjs",
+        "scripts/governance-tests.mjs",
+        "tests/governance-control.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "docs/governance-wip-stop-selective-20261126",
+      "mergedPrs": [
+        579
+      ],
+      "headShaPostCompare": "9b44124d7bf9a783f43dfb02d846ea6742804682",
+      "ahead": 3,
+      "behind": 165,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/hive-deletion-rollback-checkpoint-2026-11-17",
+      "mergedPrs": [
+        120
+      ],
+      "headShaPostCompare": "6f3610d0a5abeb70d6013d97a4c9d9197c0bb048",
+      "ahead": 5,
+      "behind": 1097,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/hive-family-mutation-rollback-checkpoint-2026-11-17",
+      "mergedPrs": [
+        122
+      ],
+      "headShaPostCompare": "e5e723dc8c34a7fd394e010d91fcea60170bae2d",
+      "ahead": 5,
+      "behind": 1095,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/integration-equipment-voice-20261126",
+      "mergedPrs": [
+        549
+      ],
+      "headShaPostCompare": "0e32c7bee392ea3dce3c0128813dd30afb762541",
+      "ahead": 1,
+      "behind": 221,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/integration-ledger-post-485-488-2026-11-25",
+      "mergedPrs": [
+        490
+      ],
+      "headShaPostCompare": "10a3708d4966d28d024d2ccf9546218c789497f4",
+      "ahead": 10,
+      "behind": 248,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/inventory-atomicity-checkpoint-2026-11-17",
+      "mergedPrs": [
+        126
+      ],
+      "headShaPostCompare": "f1c9ca25831b9059e8aca02f0d33f1f1b5257c30",
+      "ahead": 5,
+      "behind": 1091,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/merge-release-authority-2026-11-17",
+      "mergedPrs": [
+        107
+      ],
+      "headShaPostCompare": "e5d2874692183e7d1e7df422e69a0e11f7bd2ee0",
+      "ahead": 7,
+      "behind": 1111,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/oneplus-qa-binary-ready-20261127",
+      "mergedPrs": [
+        614
+      ],
+      "headShaPostCompare": "856cd64afc1db949a5d056aee61f4b64897955af",
+      "ahead": 4,
+      "behind": 40,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/oneplus-qa-cycle1-pass-cycle2-20261127",
+      "mergedPrs": [
+        615
+      ],
+      "headShaPostCompare": "5d0bc502376d4e809fc66850ed8b3d907c3f712e",
+      "ahead": 4,
+      "behind": 39,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/oneplus-qa-cycle2-pass-cycle3-20261127",
+      "mergedPrs": [
+        616
+      ],
+      "headShaPostCompare": "bcdfaa2b9ff85e18321ba7bb4b5c4b2eb3ac4e80",
+      "ahead": 4,
+      "behind": 38,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/p0-b01-b04-op13-cycle-f7-2026-11-25",
+      "mergedPrs": [
+        503
+      ],
+      "headShaPostCompare": "4cee12ef7dfdbf4d531f2c12eb284cb6cc45cbf6",
+      "ahead": 4,
+      "behind": 234,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/p0-b01-local-verifier-json-pair-f7-2026-11-25",
+      "mergedPrs": [
+        508
+      ],
+      "headShaPostCompare": "c0efb5fee83103c6e92e546b6389fe9496c9bddb",
+      "ahead": 9,
+      "behind": 229,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/p0-startup-write-gate-f7-2026-11-25",
+      "mergedPrs": [
+        505
+      ],
+      "headShaPostCompare": "eb39d59acb9b215f039a7d79d063d52a8094cbd9",
+      "ahead": 7,
+      "behind": 232,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/p1-op13-regular-vs-honey-source-contract-2026-11-25",
+      "mergedPrs": [
+        502
+      ],
+      "headShaPostCompare": "0ee675d16d23f21ae2b89d52dc755d61cde17549",
+      "ahead": 1,
+      "behind": 237,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/P1-OP13-SPRING-VARIANT-LIVE-MAIN-GATE-2026-11-25.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/parallel-7-track-cycle-status-2026-11-25",
+      "mergedPrs": [
+        499
+      ],
+      "headShaPostCompare": "4227cfe5b826cc2ddee9ddf3664b6dfb80efc062",
+      "ahead": 10,
+      "behind": 240,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/persist-snapshot-pr-checkpoint-2026-11-17",
+      "mergedPrs": [
+        116
+      ],
+      "headShaPostCompare": "35424601fc7fbea0843962dba6fd3ccb327886d3",
+      "ahead": 5,
+      "behind": 1102,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/persistence-commit-integration-checkpoint-2026-11-17",
+      "mergedPrs": [
+        118
+      ],
+      "headShaPostCompare": "4546a0b86299b817815af67c727ed278fa70c423",
+      "ahead": 5,
+      "behind": 1099,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/persistence-integration-checkpoint-2026-11-17",
+      "mergedPrs": [
+        114
+      ],
+      "headShaPostCompare": "3244456d87d3b460e5ce103bbf844707951cac67",
+      "ahead": 5,
+      "behind": 1103,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/post-merge-591-root-triage-20261127",
+      "mergedPrs": [
+        592
+      ],
+      "headShaPostCompare": "e98f686c928f0064dfa7795b5753777cdfef3d67",
+      "ahead": 0,
+      "behind": 125,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/post-merge-593-ux-status-20261127",
+      "mergedPrs": [
+        594
+      ],
+      "headShaPostCompare": "66f6c794c6b94636fdebfde0172d72ca3bc986d9",
+      "ahead": 0,
+      "behind": 107,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-audit-cycle-f-20261126",
+      "mergedPrs": [
+        569
+      ],
+      "headShaPostCompare": "f8fb6a475a3a1d2ef2508b04c6cc337ebcb6b0c0",
+      "ahead": 7,
+      "behind": 192,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-F.md",
+        "docs/PR-AUDIT-LIVE-CENSUS-2026-11-26-F.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-audit-final-post-b01-20261126",
+      "mergedPrs": [
+        554
+      ],
+      "headShaPostCompare": "f7359a33b5ae132a6ff9204de015ce0b381f98d0",
+      "ahead": 1,
+      "behind": 209,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-2026-11-26.md",
+        "docs/PR-AUDIT-INVENTORY-2026-11-26.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-audit-final-sync-20261126",
+      "mergedPrs": [
+        580
+      ],
+      "headShaPostCompare": "6fdc90b10695dae9f7486c00530253c0c272ea22",
+      "ahead": 7,
+      "behind": 164,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-J.md",
+        "docs/PR-AUDIT-LIVE-GRAPH-2026-11-26-I.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-audit-i-code-merge-finalize-20261126",
+      "mergedPrs": [
+        576
+      ],
+      "headShaPostCompare": "a66090c63f37eb5fa7bdb986851fd743a3201921",
+      "ahead": 2,
+      "behind": 168,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-audit-qa-553-checkpoint-20261126",
+      "mergedPrs": [
+        555
+      ],
+      "headShaPostCompare": "13d50ef3436bd0ea043d71cd104c2cf1f641720c",
+      "ahead": 1,
+      "behind": 207,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-inventory-and-current-state-2026-11-17",
+      "mergedPrs": [
+        112
+      ],
+      "headShaPostCompare": "f173b1c7ba5249065df504dffb15e23149abde8d",
+      "ahead": 4,
+      "behind": 1105,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/PROJECT-CONTROL.md",
+        "docs/АУДИТ-PR-54-58-2026-11-16.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+        "docs/ТЗ-ТЕХПРОЦЕССА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-portfolio-audit-cycle-c-20261126",
+      "mergedPrs": [
+        561
+      ],
+      "headShaPostCompare": "95ff8e3fb8e5290240cd651f70cb23871ebbb10e",
+      "ahead": 4,
+      "behind": 200,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-C.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/pr-portfolio-audit-cycle-d-20261126",
+      "mergedPrs": [
+        565
+      ],
+      "headShaPostCompare": "645e3e26647f866f6449531849fc05eaac9fd56e",
+      "ahead": 10,
+      "behind": 197,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-D.md",
+        "docs/PR-AUDIT-LIVE-CENSUS-2026-11-26.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/project-control-post-merge-2026-11-16",
+      "mergedPrs": [
+        75
+      ],
+      "headShaPostCompare": "c74dcaa012f52114bd58464600f66b24bdbf9f9e",
+      "ahead": 4,
+      "behind": 1114,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/project-control-system-2026-11-16",
+      "mergedPrs": [
+        74
+      ],
+      "headShaPostCompare": "1b65f03512b719b2a2462f20516700c06a6a907a",
+      "ahead": 26,
+      "behind": 1115,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "AGENTS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/АРХИТЕКТУРА-ПРИЛОЖЕНИЯ.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПАСПОРТ-ПРОЕКТА.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+        "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+        "docs/ТЗ-ТЕХПРОЦЕССА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/qa-pr532-partial-port-checkpoint-20261126",
+      "mergedPrs": [
+        586
+      ],
+      "headShaPostCompare": "f7b62914caceb0cf5de656a8248b9f9bc3ce66d5",
+      "ahead": 6,
+      "behind": 158,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-L.md",
+        "docs/PR-AUDIT-ROOTS-2026-11-26-K.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/record-pr146-merge-next-steps-2026-11-17",
+      "mergedPrs": [
+        147
+      ],
+      "headShaPostCompare": "bb995e107b92dbd9b66e5e34f87ff271b76f34da",
+      "ahead": 0,
+      "behind": 1007,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/record-project-status-journal-merge-2026-11-17",
+      "mergedPrs": [
+        140
+      ],
+      "headShaPostCompare": "1908aa0bc481a0938f74ebe8e3bb4eb8224c9d6a",
+      "ahead": 7,
+      "behind": 1079,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/record-release-authority-finalization-2026-11-17",
+      "mergedPrs": [
+        108
+      ],
+      "headShaPostCompare": "eb04266b870414822dcc4b2f491b2093b5e43212",
+      "ahead": 2,
+      "behind": 1109,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/record-status-journal-checkpoint-pr140-2026-11-17",
+      "mergedPrs": [
+        141
+      ],
+      "headShaPostCompare": "b721983377a7d9286f8b90b7d2e92cfc035a9e51",
+      "ahead": 1,
+      "behind": 1078,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/resolve-b03-main-archive-integration-20261127",
+      "mergedPrs": [
+        626
+      ],
+      "headShaPostCompare": "2a96e842f33f746460df3893af6ab2d8bdf827a5",
+      "ahead": 4,
+      "behind": 31,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/sectional-layout-contract-checkpoint-2026-11-17",
+      "mergedPrs": [
+        138
+      ],
+      "headShaPostCompare": "79dc4af2f76d8c240621d5210ada5ac8ceb8d788",
+      "ahead": 6,
+      "behind": 1081,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/source-docx-recovery-protocol-main-20261126",
+      "mergedPrs": [
+        562
+      ],
+      "headShaPostCompare": "3f9ebf7a4f3b5f1d03481bb93243f8b81faaffbc",
+      "ahead": 1,
+      "behind": 199,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ПРОТОКОЛ-ЧТЕНИЯ-ИСХОДНЫХ-DOCX.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/ui-603-604-post-merge-status-20261127",
+      "mergedPrs": [
+        605
+      ],
+      "headShaPostCompare": "0a86b8a2535e3c7b012e150a9a84535693093ce8",
+      "ahead": 0,
+      "behind": 48,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/ui-607-postmerge-checkpoint-20261127",
+      "mergedPrs": [
+        608
+      ],
+      "headShaPostCompare": "83db8bfb772e4aa3308255bd1f77a6e81b924ae9",
+      "ahead": 3,
+      "behind": 46,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/ui-search-postmerge-final-20261127",
+      "mergedPrs": [
+        611
+      ],
+      "headShaPostCompare": "3f6829117c3ced11a22967f77c876b4f0bdf2884",
+      "ahead": 3,
+      "behind": 43,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/ui187-partial-port-checkpoint-20261126",
+      "mergedPrs": [
+        588
+      ],
+      "headShaPostCompare": "cff8ce3c14fe9a9e102ac2850f9730442ae6b034",
+      "ahead": 6,
+      "behind": 156,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PR-AUDIT-CHECKPOINT-2026-11-26-M.md",
+        "docs/PR-AUDIT-ROOTS-2026-11-26-K.json",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/varroa-treatment-sublimation-2026-11-17",
+      "mergedPrs": [
+        153
+      ],
+      "headShaPostCompare": "ef8fe87fd3336cff82aa31b7c99064d930d016c8",
+      "ahead": 0,
+      "behind": 459,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/verify-lineage-guard-ci-and-source-limitations-2026-11-17",
+      "mergedPrs": [
+        133
+      ],
+      "headShaPostCompare": "77d0cce7aa3c3f06c0e4dd28e35b97a826e71b2a",
+      "ahead": 7,
+      "behind": 1085,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "docs/workflow-merge-checkpoint-2026-11-17",
+      "mergedPrs": [
+        110
+      ],
+      "headShaPostCompare": "3d521f161e7ed339cff4f4feea7acef7f96b8283",
+      "ahead": 2,
+      "behind": 1107,
+      "status": "diverged",
+      "tier": "DOCS_ONLY_UNIQUE_SHA_CHECK_CONTENT",
+      "files": [
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/b01-qa-saf-archive-export-20261127",
+      "mergedPrs": [
+        619
+      ],
+      "headShaPostCompare": "ad8f183893de7eadfa3f4f696906fafb1948af81",
+      "ahead": 14,
+      "behind": 35,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-qa-saf-archive.yml",
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-QA-SAF-ARCHIVE-2026-11-27.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "qa/native/PasekaSafExportPlugin.java",
+        "qa/native/qa-saf-export.js",
+        "scripts/prepare-android-qa-saf.mjs",
+        "tests/qa-saf-archive-export.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "feat/b01-two-daily-archives",
+      "mergedPrs": [
+        623
+      ],
+      "headShaPostCompare": "1d2228e171088ff4cbf299513575d23b4a49b143",
+      "ahead": 25,
+      "behind": 33,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-debug.yml",
+        ".github/workflows/android-qa-daily-archives.yml",
+        "PROJECT_STATUS.md",
+        "android-native/PasekaDailyArchiveJob.java",
+        "android-native/daily-archive-worker.js",
+        "docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/РЕЕСТР-БЛОКЕРОВ.md",
+        "index.html",
+        "js/daily-archives.js",
+        "js/disaster-archive.js",
+        "package.json",
+        "scripts/prepare-android-daily-archives.mjs",
+        "scripts/prepare-web.mjs",
+        "sw.js",
+        "tests/android-daily-archive-worker.test.mjs",
+        "tests/daily-archives.test.mjs",
+        "tests/disaster-archive-read-abort.test.mjs",
+        "tests/e2e/journal-browser.e2e.cjs",
+        "tests/regression.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": true,
+        "android": true,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "feat/equipment-items-domain-model-2026-11-17",
+      "mergedPrs": [
+        134
+      ],
+      "headShaPostCompare": "2b036fad83e8f00ad0ac9cba4882915820e28d69",
+      "ahead": 11,
+      "behind": 1084,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "js/equipment-items.js",
+        "tests/equipment-items.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/equipment-items-runtime-validation-2026-11-17",
+      "mergedPrs": [
+        136
+      ],
+      "headShaPostCompare": "c5dc33c3c06db7ec80af23ba6e91bbeb21daa782",
+      "ahead": 3,
+      "behind": 1083,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "sw.js",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/family-events-runtime-integration-2026-11-17",
+      "mergedPrs": [
+        146
+      ],
+      "headShaPostCompare": "ffbf931453868208460e59d274e09d6c557b8297",
+      "ahead": 0,
+      "behind": 1016,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/family-lineage-model-clean-2026-11-17",
+      "mergedPrs": [
+        128
+      ],
+      "headShaPostCompare": "dcfa87783a7a7a83f2883ca9a7ca521e23a1aa2e",
+      "ahead": 14,
+      "behind": 1089,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "js/family-lineage.js",
+        "tests/family-lineage.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/full-frame-inventory-traceability-2026-11-17",
+      "mergedPrs": [
+        151
+      ],
+      "headShaPostCompare": "5980b5b9f619abd441a3830b24b43f64a0f6f446",
+      "ahead": 0,
+      "behind": 609,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/full-installed-corpus-frame-capacity-2026-11-17",
+      "mergedPrs": [
+        152
+      ],
+      "headShaPostCompare": "a82d4137a6f1edab5066cc50f123642d6ea8ecfa",
+      "ahead": 0,
+      "behind": 516,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/p0-b01-offline-archive-verifier-2026-11-25",
+      "mergedPrs": [
+        501
+      ],
+      "headShaPostCompare": "cbf0f16fb7f9f5acd74ec6ff99af32afe980bd1f",
+      "ahead": 4,
+      "behind": 237,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P0-B01-EXPORTED-FILE-OFFLINE-VERIFIER-2026-11-25.md",
+        "scripts/verify-exported-archive.mjs",
+        "tests/verify-exported-archive.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": true,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/p0-b01-readonly-local-media-copy-audit-20261126",
+      "mergedPrs": [
+        541
+      ],
+      "headShaPostCompare": "4f3a6909671a5c41f0e68d227070640343ef3955",
+      "ahead": 15,
+      "behind": 211,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/B01-ЛОКАЛЬНАЯ-СВЕРКА-МЕДИА-КОПИЙ-2026-11-26.md",
+        "scripts/audit-local-media-copy.mjs",
+        "tests/audit-local-media-copy.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": true,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/p0-b01-unified-readonly-recovery-audit-20261126",
+      "mergedPrs": [
+        542
+      ],
+      "headShaPostCompare": "efb37420e2a814bcc003683fdef5d8caecf53fe9",
+      "ahead": 39,
+      "behind": 210,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/b01-unified-local-kit.yml",
+        "docs/B01-ЕДИНЫЙ-ТЕСТ-ИНСТРУКЦИЯ-2026-11-26.md",
+        "docs/B01-ЕДИНЫЙ-ТЕСТ-КОНТРАКТ-2026-11-26.md",
+        "scripts/run-unified-recovery-audit.mjs",
+        "scripts/verify-exported-archive.mjs",
+        "tests/unified-recovery-audit.test.mjs",
+        "tools/b01-unified/RUN-LOCAL-AUDIT.cmd",
+        "tools/b01-unified/choose-local-files.ps1"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": true,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "feat/p0-g0-readonly-source-inventory-2026-11-24",
+      "mergedPrs": [
+        468
+      ],
+      "headShaPostCompare": "b8b8e7dffa554dc16a16762c2d41c34c0c9b9574",
+      "ahead": 0,
+      "behind": 346,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/p1-journal-filtered-csv-export-20261126",
+      "mergedPrs": [
+        548
+      ],
+      "headShaPostCompare": "73afcdb71a41019d36735f6de49f572c2658c3fb",
+      "ahead": 12,
+      "behind": 218,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/journal-csv-export.test.mjs",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/qa-isolated-current-main-20261127",
+      "mergedPrs": [
+        613
+      ],
+      "headShaPostCompare": "acd35f567d87c640f2eb620312679cb981d2305f",
+      "ahead": 8,
+      "behind": 41,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-qa-isolated.yml",
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "scripts/prepare-android-qa-config.mjs",
+        "tests/android-qa-config.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "feat/queen-absence-confirmation-event-2026-11-17",
+      "mergedPrs": [
+        142
+      ],
+      "headShaPostCompare": "451ff2b607feb634d7737a00b3683e0bd3c218df",
+      "ahead": 46,
+      "behind": 1077,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+        "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+        "docs/ТЗ-ТЕХПРОЦЕССА.md",
+        "js/family-lineage.js",
+        "tests/family-lineage.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/sectional-layout-contract-v1-2026-11-17",
+      "mergedPrs": [
+        137
+      ],
+      "headShaPostCompare": "aa18cc00c1aa5a6e98c31486df104b54b8e49046",
+      "ahead": 21,
+      "behind": 1082,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/МОДЕЛЬ-СЕМЕЙ-И-ФИЗИЧЕСКОЙ-РАСКЛАДКИ.md",
+        "index.html",
+        "js/sectional-physical-layout.js",
+        "sw.js",
+        "tests/plant-module.test.mjs",
+        "tests/regression.test.mjs",
+        "tests/sectional-physical-layout.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/sectional-op04-atomic-coordinator-2026-11-17",
+      "mergedPrs": [
+        148
+      ],
+      "headShaPostCompare": "27cb4de3f8bf8848475aa9877bb84affb7a51a83",
+      "ahead": 0,
+      "behind": 923,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/sectional-op05-atomic-mesh-plug-install-2026-11-17",
+      "mergedPrs": [
+        149
+      ],
+      "headShaPostCompare": "f8053b9a91e873ecfd61c07f5f8657ca53b42a02",
+      "ahead": 0,
+      "behind": 785,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/sectional-op07-atomic-honey-stage-2026-11-17",
+      "mergedPrs": [
+        150
+      ],
+      "headShaPostCompare": "70583dc435674de5984640b727cc3f6064c2ca17",
+      "ahead": 0,
+      "behind": 672,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/ui-596-bee-honeycomb-20261127",
+      "mergedPrs": [
+        607
+      ],
+      "headShaPostCompare": "49f85367d2b528f5db57cb820d2416825a37211c",
+      "ahead": 44,
+      "behind": 47,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/e2e-journal.yml",
+        "PROJECT_STATUS.md",
+        "docs/UI-596-BEE-HONEYCOMB-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПРИНЦИПЫ-ЭРГОНОМИКИ-ИНТЕРФЕЙСА.md",
+        "index.html",
+        "tests/e2e/navigation-layout.e2e.cjs",
+        "tests/honeycomb-overview-main.test.mjs",
+        "tests/regression.test.mjs",
+        "tests/ui-a11y-selective-187.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "feat/ui-global-search-reset-a11y-20261127",
+      "mergedPrs": [
+        609
+      ],
+      "headShaPostCompare": "df3ccf77b7a24cf67c1ca0b3bb99b7d2fc34e000",
+      "ahead": 6,
+      "behind": 45,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/UI-GLOBAL-SEARCH-RESET-A11Y-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/global-search-reset-a11y.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "feat/ui-search-family-history-safe-20261127",
+      "mergedPrs": [
+        612
+      ],
+      "headShaPostCompare": "4ab891f3c7cfbf26dc4feffc1499f23686c8b560",
+      "ahead": 10,
+      "behind": 42,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/UI-SEARCH-FAMILY-HISTORY-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/e2e/journal-browser.e2e.cjs",
+        "tests/family-journal-history.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/accounting-inspection-family-attribution-20261127",
+      "mergedPrs": [
+        627
+      ],
+      "headShaPostCompare": "702961561ed53978c44bb72e05c842cb2747e0d7",
+      "ahead": 57,
+      "behind": 30,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/e2e-journal.yml",
+        "PROJECT_STATUS.md",
+        "docs/ACCOUNTING-INSPECTION-FAMILY-ATTRIBUTION-2026-11-27.md",
+        "docs/NONVIDEO-ACCOUNTING-ACCEPTANCE-2026-11-27.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "index.html",
+        "js/season-planning.js",
+        "sw.js",
+        "tests/e2e/accounting-workflows.e2e.cjs",
+        "tests/regression.test.mjs",
+        "tests/season-planning.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "fix/b01-qa-archive-zip-misselect-20261127",
+      "mergedPrs": [
+        617
+      ],
+      "headShaPostCompare": "616c5f81c99e6ad613afee4a0ead2459896b0cc6",
+      "ahead": 6,
+      "behind": 37,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/archive-file-selection.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/b01-tar-header-audit-selective-20261126",
+      "mergedPrs": [
+        577
+      ],
+      "headShaPostCompare": "422d169c6f8b3932a1b4782231bdbde2cbcdf849",
+      "ahead": 5,
+      "behind": 167,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/B01-TAR-HEADER-SELECTIVE-PORT-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "scripts/audit-oneplus-tar.mjs",
+        "tests/audit-oneplus-tar.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/b04-existing-java-locator-main-port-20261126",
+      "mergedPrs": [
+        575
+      ],
+      "headShaPostCompare": "270152169672a1fee07e53d1705991fd0147c964",
+      "ahead": 5,
+      "behind": 169,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/B04-JAVA-LOCATOR-SELECTIVE-PORT-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "scripts/check-oneplus-upgrade.mjs",
+        "tests/check-oneplus-upgrade.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/b05-debug-signer-reference-compare-20261126",
+      "mergedPrs": [
+        582
+      ],
+      "headShaPostCompare": "fc4f38b6fa92cc66ec4d0a0eed538f7004b194d7",
+      "ahead": 5,
+      "behind": 162,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/B05-DEBUG-SIGNER-REFERENCE-SELECTIVE-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "scripts/audit-android-debug-artifact.mjs",
+        "tests/audit-android-debug-artifact.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/b05-keytool-metadata-preflight-main-20261126",
+      "mergedPrs": [
+        581
+      ],
+      "headShaPostCompare": "5152f5aa2855735998efcc8b57833324a0d9edc0",
+      "ahead": 7,
+      "behind": 163,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".gitignore",
+        "PROJECT_STATUS.md",
+        "docs/B05-KEYTOOL-SELECTIVE-PORT-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "scripts/check-b05-keytool-certificate.mjs",
+        "tests/b05-keytool-certificate.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/cloudflare-preview-ai-binding-main-2026-11-17",
+      "mergedPrs": [
+        111
+      ],
+      "headShaPostCompare": "fdd4bb7aa70f80a792c7bd2a5b420854e8edde51",
+      "ahead": 1,
+      "behind": 1106,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "cloudflare/wrangler.jsonc",
+        "tests/cloudflare-wrangler-config.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/family-hive-mutation-rollback-current-main-2026-11-17",
+      "mergedPrs": [
+        121
+      ],
+      "headShaPostCompare": "c3d3ce0b7c04633ba7b9bf7ab3f232f985ccec32",
+      "ahead": 7,
+      "behind": 1096,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/family-lineage-queen-ownership-guards-2026-11-17",
+      "mergedPrs": [
+        130
+      ],
+      "headShaPostCompare": "d0072ba861e9b439e297fb4c349d681b66f665de",
+      "ahead": 2,
+      "behind": 1088,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "js/family-lineage.js",
+        "tests/family-lineage.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/family-transfer-frame-history-guard-current-main-2026-11-17",
+      "mergedPrs": [
+        123
+      ],
+      "headShaPostCompare": "a5e454b5ed4f6c1fb9d6d354446f5cbb3a086335",
+      "ahead": 2,
+      "behind": 1094,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/hive-deletion-rollback-current-main-2026-11-17",
+      "mergedPrs": [
+        119
+      ],
+      "headShaPostCompare": "7b4b9e7bfa9209c59984695e08d1bcd0b565c44e",
+      "ahead": 2,
+      "behind": 1098,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/indexeddb-persistence-queue-safety-2026-11-17",
+      "mergedPrs": [
+        113
+      ],
+      "headShaPostCompare": "9745863d6fbedf10cbca2d2b26eab4b22fa8e703",
+      "ahead": 3,
+      "behind": 1104,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-debug.yml",
+        "index.html",
+        "tests/indexeddb-startup-guard.test.mjs",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "fix/inventory-history-transactions-current-main-2026-11-17",
+      "mergedPrs": [
+        125
+      ],
+      "headShaPostCompare": "3059ef41bec8cd5ddcc850cbcf13bcd09943aef0",
+      "ahead": 6,
+      "behind": 1092,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "js/equipment-bodies.js",
+        "js/equipment-inventory.js",
+        "tests/equipment-inventory.test.mjs",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/op07-12-15-day-window-2026-11-17",
+      "mergedPrs": [
+        154
+      ],
+      "headShaPostCompare": "166239e80d2724abf0e5256c54873cfc8bbed6a4",
+      "ahead": 0,
+      "behind": 441,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p0-b01-backup-scope-labels-2026-11-25",
+      "mergedPrs": [
+        498
+      ],
+      "headShaPostCompare": "e895fb012cb6068e222c6cfecbbc5ab838789e9c",
+      "ahead": 3,
+      "behind": 242,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P0-B01-BACKUP-SCOPE-LABELS-2026-11-25.md",
+        "index.html",
+        "tests/backup-scope-labels.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p0-b01-bounded-file-read-2026-11-25",
+      "mergedPrs": [
+        506
+      ],
+      "headShaPostCompare": "bb04ceaa00c8be75937cebadbea529939bd86742",
+      "ahead": 3,
+      "behind": 231,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P0-B01-BOUNDED-LOCAL-ARCHIVE-READ-2026-11-25.md",
+        "scripts/verify-exported-archive.mjs",
+        "tests/verify-exported-archive.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": true,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p0-b01-first-launch-write-gate-main-2026-11-25",
+      "mergedPrs": [
+        504
+      ],
+      "headShaPostCompare": "1a5a18ed7f3717d173d285110ebca037a0ce17da",
+      "ahead": 14,
+      "behind": 233,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P0-FIRST-LAUNCH-FAIL-CLOSED-GATE-2026-11-25.md",
+        "index.html",
+        "tests/first-launch-startup-gate.test.mjs",
+        "tests/first-use-storage-journey.test.mjs",
+        "tests/idb-read-abort-and-malformed-v3.test.mjs",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p0-first-external-backup-guide-20261127",
+      "mergedPrs": [
+        597
+      ],
+      "headShaPostCompare": "2af07459d4e2d5cee219b4ae35521999a9b7016b",
+      "ahead": 0,
+      "behind": 79,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p0-main-based-disaster-archive-reconciliation-2026-11-24",
+      "mergedPrs": [
+        472
+      ],
+      "headShaPostCompare": "4d3d82a65c5dfbddf835cd0f853fbbe684309420",
+      "ahead": 0,
+      "behind": 330,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p0-previous-use-startup-marker-20261126",
+      "mergedPrs": [
+        572
+      ],
+      "headShaPostCompare": "73483cf6bd3fb4d3e96a7fcca76704836297bb3c",
+      "ahead": 0,
+      "behind": 172,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-b11-service-worker-install-private-response-gate-2026-11-24",
+      "mergedPrs": [
+        477
+      ],
+      "headShaPostCompare": "2726dd6911d07803cc8b82283844d7d0a6d5076c",
+      "ahead": 0,
+      "behind": 253,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-b15-cloudflare-manual-release-main-2026-11-25",
+      "mergedPrs": [
+        497
+      ],
+      "headShaPostCompare": "49b80c3b156e208aef0f92cf176bb158c712078c",
+      "ahead": 3,
+      "behind": 245,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/deploy-cloudflare-worker.yml",
+        "docs/P1-B15-CLOUDFLARE-MANUAL-RELEASE-GATE-2026-11-25.md",
+        "tests/deployment-safety.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "fix/p1-brood-frame-strip-dynamic-20261126",
+      "mergedPrs": [
+        591
+      ],
+      "headShaPostCompare": "6d9f2dab3f5852c8becfc3da3c9f55c1e771c9dc",
+      "ahead": 0,
+      "behind": 131,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-cloudflare-bounded-body-ci-main-20261126",
+      "mergedPrs": [
+        568
+      ],
+      "headShaPostCompare": "2c3994f7d3d7f65d8317ea352a02fb927af14c83",
+      "ahead": 3,
+      "behind": 193,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-debug.yml",
+        ".github/workflows/quality.yml",
+        "tests/cloudflare-bounded-body-ci.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "fix/p1-entrance-video-list-stale-response-20261125",
+      "mergedPrs": [
+        514
+      ],
+      "headShaPostCompare": "3123459cd05e493424a28f50bd882fe2a4d7cb2b",
+      "ahead": 13,
+      "behind": 226,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P1-ENTRANCE-ASYNC-REFRESH-2026-11-25.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "index.html",
+        "tests/p1-entrance-video-refresh-race.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-governance-docs-push-main-gate-2026-11-24",
+      "mergedPrs": [
+        474
+      ],
+      "headShaPostCompare": "9cd45a3e2a585741bcc73a780781ffd1885f8499",
+      "ahead": 0,
+      "behind": 294,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-gps-pesticide-provenance-main-port-20261126",
+      "mergedPrs": [
+        560
+      ],
+      "headShaPostCompare": "a204c4e39373b9eee309666d2f0d91942edaa4b7",
+      "ahead": 2,
+      "behind": 202,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "js/pesticide-incident.js",
+        "tests/pesticide-incident.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-honey-pair-staged-main-20261126",
+      "mergedPrs": [
+        583
+      ],
+      "headShaPostCompare": "da147b94aaa4ad3ae9959a2a7771fefaa538c958",
+      "ahead": 5,
+      "behind": 161,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P1-HONEY-PAIR-STAGED-SELECTIVE-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/honey-pair-profile-validation.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-idb-required-stores-open-gate-2026-11-24",
+      "mergedPrs": [
+        473
+      ],
+      "headShaPostCompare": "157b1bf699fd7cd3294326ef91ad5b208c1b1700",
+      "ahead": 0,
+      "behind": 325,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-journal-physical-brood-capacity-20261126",
+      "mergedPrs": [
+        570
+      ],
+      "headShaPostCompare": "267253f55d166d34783cdfd4188f6933e9398e1f",
+      "ahead": 8,
+      "behind": 191,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "sw.js",
+        "tests/journal-physical-capacity.test.mjs",
+        "tests/regression.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-json-family-hive-review-main-port-20261126",
+      "mergedPrs": [
+        559
+      ],
+      "headShaPostCompare": "06550ed8653829c460d8dc16359b856d020238e0",
+      "ahead": 2,
+      "behind": 202,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "scripts/audit-oneplus-json-transfer.mjs",
+        "tests/audit-oneplus-json-transfer.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-main-journal-varroa-rollback-2026-11-24",
+      "mergedPrs": [
+        475
+      ],
+      "headShaPostCompare": "4c296752e20e117ca94b2f34c14262b29737aaf3",
+      "ahead": 0,
+      "behind": 283,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-safe-physical-body-swap-main-20261126",
+      "mergedPrs": [
+        563
+      ],
+      "headShaPostCompare": "a4536c1e4144966a31de2c72ecc10870f21a926e",
+      "ahead": 7,
+      "behind": 198,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "js/equipment-bodies.js",
+        "sw.js",
+        "tests/equipment-bodies.test.mjs",
+        "tests/regression.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-sw-refuse-partial-shell-20261125",
+      "mergedPrs": [
+        515
+      ],
+      "headShaPostCompare": "ed2d0db3b16441f22e38320a8233646fec34cbb0",
+      "ahead": 12,
+      "behind": 225,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P1-SW-PARTIAL-RESPONSE-2026-11-25.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "sw.js",
+        "tests/regression.test.mjs",
+        "tests/service-worker-install-private.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-sw-reject-redirected-shell-20261125",
+      "mergedPrs": [
+        530
+      ],
+      "headShaPostCompare": "b621bb865da28082496ecbcbf27b53f1baaf8d09",
+      "ahead": 29,
+      "behind": 224,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "sw.js",
+        "tests/regression.test.mjs",
+        "tests/service-worker-install-private.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/p1-sw-safe-cache-main-2026-11-23",
+      "mergedPrs": [
+        443
+      ],
+      "headShaPostCompare": "84bfc1316cf51ffcdbd16dec2687f2462c20e7cb",
+      "ahead": 0,
+      "behind": 429,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/pages-manual-release-gate-2026-11-23",
+      "mergedPrs": [
+        447
+      ],
+      "headShaPostCompare": "ec3e47405f2131553ce37e624d04e628942bdfea",
+      "ahead": 0,
+      "behind": 399,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/persist-snapshot-post-commit-main-2026-11-17",
+      "mergedPrs": [
+        115
+      ],
+      "headShaPostCompare": "475a5fe6e40233ec500d71ae654ed82ea71f9709",
+      "ahead": 3,
+      "behind": 1102,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "index.html",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/qa-failclosed-tap-summary-20261126",
+      "mergedPrs": [
+        585
+      ],
+      "headShaPostCompare": "b67f75ad720548adaa4ea1fdab80b9f104d663c7",
+      "ahead": 11,
+      "behind": 159,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/quality.yml",
+        "PROJECT_STATUS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/QA-TAP-EVIDENCE-SELECTIVE-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "scripts/qa-tap-evidence.mjs",
+        "tests/qa-tap-evidence.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "fix/sectional-inventory-location-main-2026-11-17",
+      "mergedPrs": [
+        145
+      ],
+      "headShaPostCompare": "e14dd6eaa3cec9fe3daa57e2daea0a16d1f638b7",
+      "ahead": 0,
+      "behind": 1038,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/ui-187-honeycomb-overview-20261127",
+      "mergedPrs": [
+        595
+      ],
+      "headShaPostCompare": "78844736fb02ac6b2db4951b007845d5f2613fda",
+      "ahead": 0,
+      "behind": 59,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/ui-a11y-selective-187-20261127",
+      "mergedPrs": [
+        593
+      ],
+      "headShaPostCompare": "45328a522ed3950155bf7f317090c8919395032a",
+      "ahead": 0,
+      "behind": 113,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "fix/ui-hive-accessible-labels-from187-20261126",
+      "mergedPrs": [
+        587
+      ],
+      "headShaPostCompare": "7e48cd5da1ae264d8b42439bbd94c18628a9249d",
+      "ahead": 6,
+      "behind": 157,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/PROJECT-CONTROL.md",
+        "docs/UI-HIVE-ACCESSIBILITY-SELECTIVE-2026-11-26.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/hive-accessibility-keyboard.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "integrate/strategy-main-2026-11-23",
+      "mergedPrs": [
+        448
+      ],
+      "headShaPostCompare": "46975de06028f4568b44c453d8120895bf31ef89",
+      "ahead": 0,
+      "behind": 386,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "integrate/varroa-journal-main-2026-11-23",
+      "mergedPrs": [
+        449
+      ],
+      "headShaPostCompare": "1b6b96b150efee406d7fea85a90e3ec3b0ac4b7d",
+      "ahead": 0,
+      "behind": 367,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "perf/p2-entrance-video-metadata-main-20261125",
+      "mergedPrs": [
+        511
+      ],
+      "headShaPostCompare": "48e928e2757eddc7e68abc54d4b67f79318d50b3",
+      "ahead": 7,
+      "behind": 214,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P2-ENTRANCE-METADATA-ONLY-2026-11-25.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/p2-entrance-metadata-cursor.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "perf/p2-journal-family-lookup-map-20261125",
+      "mergedPrs": [
+        531
+      ],
+      "headShaPostCompare": "b65e0d07b1bc789926c55d98d2c02fa143f76b97",
+      "ahead": 21,
+      "behind": 216,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P2-JOURNAL-FAMILY-LOOKUP-2026-11-25.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/journal-csv-export.test.mjs",
+        "tests/p2-journal-filter-first.test.mjs",
+        "tests/regression.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "perf/p2-journal-filter-first-20261125",
+      "mergedPrs": [
+        510
+      ],
+      "headShaPostCompare": "356e30390858d759db7ea865b3fb86595cb01df2",
+      "ahead": 10,
+      "behind": 217,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P2-JOURNAL-FILTER-FIRST-2026-11-25.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/p2-audit-preview-bound.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p0-b01-legacy-json-preflight-2026-11-25",
+      "mergedPrs": [
+        507
+      ],
+      "headShaPostCompare": "f0200ceb6c6e3f6a1a1b88320d6346f928099b26",
+      "ahead": 3,
+      "behind": 230,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P0-B01-LEGACY-JSON-TRANSFER-PREFLIGHT-2026-11-25.md",
+        "scripts/audit-oneplus-json-transfer.mjs",
+        "tests/audit-oneplus-json-transfer.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p0-b04-readonly-installed-signer-2026-11-25",
+      "mergedPrs": [
+        500
+      ],
+      "headShaPostCompare": "6da2de1b95e47137167161d9fa0ed574ff136add",
+      "ahead": 4,
+      "behind": 237,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P0-B04-INSTALLED-APK-READONLY-AUDIT-2026-11-25.md",
+        "scripts/check-oneplus-upgrade.mjs",
+        "tests/check-oneplus-upgrade.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p1-b08-readonly-pr-triage-after489-2026-11-25",
+      "mergedPrs": [
+        491
+      ],
+      "headShaPostCompare": "6eb9ad696716089ac52b0decdbe693f3b3d16e78",
+      "ahead": 4,
+      "behind": 247,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P1-B08-DRAFT-INTEGRATION-ORDER-2026-11-25.md",
+        "docs/P1-B08-OPEN-PR-TRIAGE-2026-11-25.md",
+        "scripts/read-only-pr-triage.mjs",
+        "tests/read-only-pr-triage.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p1-b09-idb-read-gates-after485-2026-11-25",
+      "mergedPrs": [
+        486
+      ],
+      "headShaPostCompare": "cfc469a79a0ae87b1922fd132ca3df223809987a",
+      "ahead": 4,
+      "behind": 251,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P1-B09-MALFORMED-V3-READ-ABORT-GATE-2026-11-25.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "tests/idb-read-abort-and-malformed-v3.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p1-b11-safe-sw-v318-after485-2026-11-25",
+      "mergedPrs": [
+        489
+      ],
+      "headShaPostCompare": "a97a2a2c3f14ac93f3e2f7b2df475b3812568ca9",
+      "ahead": 4,
+      "behind": 251,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P1-B11-SW-CACHE-OWNERSHIP-2026-11-25.md",
+        "sw.js",
+        "tests/regression.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p1-cloudflare-byte-limit-after485-2026-11-25",
+      "mergedPrs": [
+        487
+      ],
+      "headShaPostCompare": "046dcffb2ae72547110b32f446a70a17829222fe",
+      "ahead": 3,
+      "behind": 251,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "cloudflare/worker.js",
+        "docs/P1-B08-CLOUDFLARE-BOUNDED-BODY-PORT-2026-11-25.md",
+        "tests/cloudflare-bounded-body.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "port/p1-legacy-inventory-audit-after485-2026-11-25",
+      "mergedPrs": [
+        488
+      ],
+      "headShaPostCompare": "c8acf6c69c51e17b889c091bda2c1228bdb28cc2",
+      "ahead": 3,
+      "behind": 251,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "docs/P1-B08-LEGACY-BODY-REFERENCE-READONLY-2026-11-25.md",
+        "js/equipment-inventory.js",
+        "tests/legacy-layout-body-reference-audit.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "qa/e2e-journal-browser-20261126",
+      "mergedPrs": [
+        553
+      ],
+      "headShaPostCompare": "e58cadf4ba2d3bd15af8aa4f4c043c45930cc9e2",
+      "ahead": 2,
+      "behind": 208,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/e2e-journal.yml",
+        "tests/e2e/journal-browser.e2e.cjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "test/b05-debug-apk-provenance-failclosed-20261126",
+      "mergedPrs": [
+        535
+      ],
+      "headShaPostCompare": "3c26e9628b93ac89d2e2a04062d6f4f2f5f9e075",
+      "ahead": 2,
+      "behind": 227,
+      "status": "diverged",
+      "tier": "BUILD_CONFIG_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/android-debug.yml",
+        "diagnostics/android-debug-artifact/NOT_FOR_ONEPLUS.txt",
+        "docs/B05-DEBUG-APK-PROVENANCE-F0-F2-2026-11-26.md",
+        "scripts/audit-android-debug-artifact.mjs",
+        "tests/audit-android-debug-artifact.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "test/b09-quota-atomic-rollback-2026-11-26",
+      "mergedPrs": [
+        538
+      ],
+      "headShaPostCompare": "bd8ed9146ce3d8eddb5c510716135c515786736c",
+      "ahead": 7,
+      "behind": 227,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P1-B09-LATE-ABORT-AND-ENTRANCE-MEDIA-2026-11-26.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/ПЛАН-РАЗРАБОТКИ.md",
+        "tests/idb-quota-atomic-recovery.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p0-b01-archive-request-error-2026-11-25",
+      "mergedPrs": [
+        492
+      ],
+      "headShaPostCompare": "da9d4239d25051a858e80ab6c6fba8ba9b698a5f",
+      "ahead": 2,
+      "behind": 245,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "docs/P0-B01-ARCHIVE-SNAPSHOT-EXTRA-NEGATIVE-2026-11-25.md",
+        "tests/disaster-archive-read-abort.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p0-b01-export-read-abort-2026-11-25",
+      "mergedPrs": [
+        485
+      ],
+      "headShaPostCompare": "1373ffd69bc60479e11a98db67db8e72ab3b0e06",
+      "ahead": 7,
+      "behind": 252,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/P0-B01-ARCHIVE-READ-TRANSACTION-ABORT-2026-11-25.md",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "tests/disaster-archive-read-abort.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-b08-cloudflare-stream-error-2026-11-25",
+      "mergedPrs": [
+        495
+      ],
+      "headShaPostCompare": "7e376464da4f5822f22ff7f22a0f13d91829e08d",
+      "ahead": 2,
+      "behind": 245,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "docs/P1-B08-CLOUDFLARE-MIDSTREAM-FAILURE-2026-11-25.md",
+        "tests/cloudflare-bounded-body.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-b08-readonly-pr-metadata-2026-11-25",
+      "mergedPrs": [
+        493
+      ],
+      "headShaPostCompare": "580331ac11e0c9f8618d8fa880792785542bf7bc",
+      "ahead": 2,
+      "behind": 245,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "docs/P1-B08-PR-INVENTORY-PAGINATION-EXTRA-2026-11-25.md",
+        "tests/read-only-pr-triage.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-b09-blocked-upgrade-main-port-20261126",
+      "mergedPrs": [
+        557
+      ],
+      "headShaPostCompare": "f8b098bb7af38738fead6f5a2b5219fbcc87a9e5",
+      "ahead": 1,
+      "behind": 204,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "tests/idb-blocked-upgrade-retry.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-b09-legacy-idb-upgrade-proofs-2026-11-24",
+      "mergedPrs": [
+        476
+      ],
+      "headShaPostCompare": "e978ae3039088095e51f0fcc82e1724e6b6ac302",
+      "ahead": 0,
+      "behind": 267,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-b11-sw-failclosed-install-2026-11-25",
+      "mergedPrs": [
+        494
+      ],
+      "headShaPostCompare": "4af76eaeb7f2155b209136b72358a4eb81262dfe",
+      "ahead": 2,
+      "behind": 245,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "docs/P1-B11-OFFLINE-INSTALL-EXTRA-GATES-2026-11-25.md",
+        "tests/service-worker-offline-lifecycle.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-body-frame-history-guards-main-20261126",
+      "mergedPrs": [
+        566
+      ],
+      "headShaPostCompare": "226433a777e07742b02d0dead1fd9c928ec99b71",
+      "ahead": 1,
+      "behind": 195,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "tests/equipment-bodies.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-farrar-profile-180mm-regression-main-20261126",
+      "mergedPrs": [
+        558
+      ],
+      "headShaPostCompare": "baf6342de800f260a9ee9945e2be4489491c4085",
+      "ahead": 1,
+      "behind": 204,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "tests/equipment-inventory.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/p1-legacy-body-reference-audit-main-20261126",
+      "mergedPrs": [
+        567
+      ],
+      "headShaPostCompare": "e787697d7b1f88e18bcffed4b2fbda28b8acffae",
+      "ahead": 1,
+      "behind": 195,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "tests/equipment-inventory.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "test/ui-global-search-browser-proof-20261127",
+      "mergedPrs": [
+        610
+      ],
+      "headShaPostCompare": "b243e5103adc7dae8d4fe6d211b86f0df8c7ebaa",
+      "ahead": 5,
+      "behind": 44,
+      "status": "diverged",
+      "tier": "TESTS_ONLY_OR_DOCS_CHECK_CONTENT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/UI-GLOBAL-SEARCH-RESET-A11Y-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "tests/e2e/navigation-layout.e2e.cjs"
+      ],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/family-history-view",
+      "mergedPrs": [
+        598
+      ],
+      "headShaPostCompare": "7111c136aa302f0390b875259be5a266bb1c405f",
+      "ahead": 0,
+      "behind": 94,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/hive-biological-technical-20261127",
+      "mergedPrs": [
+        643
+      ],
+      "headShaPostCompare": "425e8e5b15d3418747681633a1d17ce373762804",
+      "ahead": 0,
+      "behind": 4,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/home-planning-list",
+      "mergedPrs": [
+        621
+      ],
+      "headShaPostCompare": "50be40170c8e3c52015f46c6247f5f358f286cbf",
+      "ahead": 5,
+      "behind": 29,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/e2e/journal-browser.e2e.cjs",
+        "tests/home-upcoming-tasks.test.mjs",
+        "tests/honeycomb-overview-main.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/overview-model-diagnostics",
+      "mergedPrs": [
+        625
+      ],
+      "headShaPostCompare": "c2cd3e7f4e97e7e536d07550131e012adaa7ac2e",
+      "ahead": 4,
+      "behind": 28,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "index.html",
+        "tests/e2e/journal-browser.e2e.cjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/p1-equipment-label-prefix",
+      "mergedPrs": [
+        545
+      ],
+      "headShaPostCompare": "688b36de4187595983399d4fd8fb97ebe569ac51",
+      "ahead": 4,
+      "behind": 223,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "js/equipment-labels.js",
+        "tests/equipment-label-prefix.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/p1-nectar-planning-window",
+      "mergedPrs": [
+        544
+      ],
+      "headShaPostCompare": "09543b028d66eeeb9949ad73e56d0a90b8a96360",
+      "ahead": 8,
+      "behind": 219,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/КАРТОЧКА-LAST-INSPECTION-FROM-JOURNAL-2026-11-26.md",
+        "index.html",
+        "js/season-planning.js",
+        "tests/season-planning.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/search-to-inventory-body",
+      "mergedPrs": [
+        599
+      ],
+      "headShaPostCompare": "a5b7392fa39f2f62975443fbf52bf69dccafd6c2",
+      "ahead": 0,
+      "behind": 99,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/seasonal-workspace-ui-20261127",
+      "mergedPrs": [
+        638
+      ],
+      "headShaPostCompare": "7632061c148d3d9c86add3adc155b54465a73692",
+      "ahead": 0,
+      "behind": 12,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/second-honey-pair-current-model-20261127",
+      "mergedPrs": [
+        649
+      ],
+      "headShaPostCompare": "642db8f42ee5af36783dbee23926fba4ece9ad3a",
+      "ahead": 17,
+      "behind": 1,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        ".github/workflows/e2e-journal.yml",
+        "AGENTS.md",
+        "PROJECT_STATUS.md",
+        "docs/SECOND-HONEY-PAIR-CURRENT-2026-11-27.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+        "docs/ТЗ-ТЕХПРОЦЕССА.md",
+        "index.html",
+        "js/equipment-inventory.js",
+        "js/sectional-honey-persistence.js",
+        "js/sectional-honey-review-ui.js",
+        "js/sectional-honey-review.js",
+        "js/sectional-operation-coordinator.js",
+        "js/sectional-physical-layout.js",
+        "js/sectional-stock-pairs.js",
+        "sw.js",
+        "tests/e2e/sectional-honey.e2e.cjs",
+        "tests/equipment-labels.test.mjs",
+        "tests/honeycomb-overview-main.test.mjs",
+        "tests/regression.test.mjs",
+        "tests/sectional-honey-integration.test.mjs",
+        "tests/sectional-operation-coordinator.test.mjs",
+        "tests/sectional-physical-layout.test.mjs",
+        "tests/service-worker-offline-lifecycle.test.mjs",
+        "tests/sw-cache-boundary.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": true,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": true
+      }
+    },
+    {
+      "branch": "work/spoken-frame-symbols",
+      "mergedPrs": [
+        547
+      ],
+      "headShaPostCompare": "083de6d13bdb391bec69b31149b76e6ccd2524f7",
+      "ahead": 4,
+      "behind": 222,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "js/equipment-reconciliation-voice.js",
+        "tests/spoken-frame-symbols.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/ui-596-geometry-20261127",
+      "mergedPrs": [
+        603
+      ],
+      "headShaPostCompare": "067a0438ce154340e7cf1905b1dbaaaf6eb2758b",
+      "ahead": 0,
+      "behind": 55,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/ui-home-canonical-ai-20261127",
+      "mergedPrs": [
+        604
+      ],
+      "headShaPostCompare": "7a4b4e10b796057ef3328fe156490d7875f6e82b",
+      "ahead": 0,
+      "behind": 51,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/ux-integration-status-20261127",
+      "mergedPrs": [
+        645
+      ],
+      "headShaPostCompare": "e85e9e0c7a2f35e908fdec0b614bc1c0c18d1177",
+      "ahead": 0,
+      "behind": 2,
+      "status": "behind",
+      "tier": "ANCESTOR_ONLY_KEEP_PENDING_REFERENCE_REVIEW",
+      "files": [],
+      "sensitive": {
+        "runtime": false,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    },
+    {
+      "branch": "work/voice-feeding-spoken-fields",
+      "mergedPrs": [
+        546
+      ],
+      "headShaPostCompare": "53e9651431c97075aaacaa4c3eadf997324099fa",
+      "ahead": 3,
+      "behind": 220,
+      "status": "diverged",
+      "tier": "RUNTIME_DIFF_REVIEW_NO_WHOLESALE_PORT",
+      "files": [
+        "PROJECT_STATUS.md",
+        "README.md",
+        "docs/WORK-CYCLE-METRICS.json",
+        "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+        "js/voice-command-parser.js",
+        "tests/voice-feeding-dictation.test.mjs"
+      ],
+      "sensitive": {
+        "runtime": true,
+        "serviceWorker": false,
+        "archiveOrBackup": false,
+        "android": false,
+        "workflows": false
+      }
+    }
+  ]
+}
