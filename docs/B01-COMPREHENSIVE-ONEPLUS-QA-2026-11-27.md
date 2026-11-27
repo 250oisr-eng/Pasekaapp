@@ -69,3 +69,29 @@ errors: none | обезличенный текст
 Обязательны: полный `npm test`, Chromium E2E (в том числе 3 синтетических дня, порча последнего и выбор предыдущего, offline/refresh), Android debug build и изолированный `ru.paseka.journal.qa.daily` binary proof, Governance, связь результатов **с точным SHA**. Нынешние PR #623 доказали **1054/1054 Node**, Android, Chromium и QA APK, но не физический JobScheduler. При следующем изменении кода не переносить статус старого SHA на новую сборку. Никаких выпусков приложения.
 
 **Готово к физическим испытаниям** означает «автоматические ворота доказаны, инструкция доступна», **не** «B01 закрыт»: физические G2–G6 ещё требуют отчёта. Нельзя автоматически отмечать физический PASS исходя из Chromium или времени ожидания.
+
+## 6. Автоматизированный read-only preflight на OnePlus (дополнение 27.11)
+
+Проверенный сценарий B01 остаётся **только** на отдельном package `ru.paseka.journal.qa.daily`. Изолированный APK из [QA #45993522131](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522131/artifacts/15193929646) имеет SHA-256 `b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa`, источник `70216c734e91831fe09cc7d98e777814d1a5116d`. Не использовать неизвестные сборки.
+
+В репозитории: [`scripts/oneplus-daily-qa.mjs`](../scripts/oneplus-daily-qa.mjs), негативные тесты [`tests/oneplus-daily-qa.test.mjs`](../tests/oneplus-daily-qa.test.mjs). На ПК нужны Node 20+, один авторизованный OnePlus через ADB, Android SDK build-tools (aapt, apksigner), на Windows Java, если используется `apksigner.jar`. Настроить `ANDROID_HOME` / Android SDK; для ADB нужен `PATH` или `ADB_PATH`.
+
+После скачивания QA APK и `QA-PROVENANCE.json` в отдельную папку, из корня репозитория:
+
+```bash
+node scripts/oneplus-daily-qa.mjs --apk /path/to/PASEKA-DAILY-ARCHIVE-QA-ONLY.apk --provenance /path/to/QA-PROVENANCE.json --report QA-G0.json
+```
+
+Первая команда **только читает** наличие package, SDK/API, SHA APK и signer; файл `QA-G0.json` создаётся с запретом перезаписи. При `apkVerified=true`, отдельном устройстве и `qaInstalledBefore=false` разрешён **только явный** свежий QA install, без -r/clear/uninstall/upgrade:
+
+```bash
+node scripts/oneplus-daily-qa.mjs --apk /path/to/PASEKA-DAILY-ARCHIVE-QA-ONLY.apk --provenance /path/to/QA-PROVENANCE.json --install-qa --report QA-INSTALL.json
+```
+
+Для следующих календарных дней **до открытия QA** можно выполнить:
+
+```bash
+node scripts/oneplus-daily-qa.mjs --report QA-DAY2-READONLY.json
+```
+
+**Ограничение:** `PACKAGE_PRESENT_NOT_EXECUTION_PROOF` показывает только присутствие пакета в диагностике JobScheduler. Не является доказательством реального запуска в фоне, записи ZIP, восстановления или доступа к содержимому IndexedDB. Для G2/G3/G5/G6 нужны осмотры приложения по таблице выше и свидетельства пользователя; G4 background остаётся `NOT_VERIFIED` без независимого события до открытия. Не вводить реальные данные. Не менять часы системы. Не применять сбои/повреждения на телефоне. Актуальность подписи и бинарника подтверждается независимо от CI кода тестов; проверка приложения на физическом устройстве пока **NOT_TESTED**.
