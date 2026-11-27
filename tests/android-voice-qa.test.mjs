@@ -147,3 +147,59 @@ test('native synthesis selects installed Russian non-network voice, and has canc
  const manifest=patchVoiceManifest(patchManifest('<manifest><application></application></manifest>'));
  assert.match(manifest,/android.intent.action.TTS_SERVICE/);
 });
+
+
+async function commandUiHarness(){
+ const source=await readFile(new URL('../android-native/voice-qa.js',import.meta.url),'utf8');
+ const ids=['qaVoicePanel','qaVoiceText','qaVoiceStatus','qaVoiceStart','qaVoiceStop','qaVoiceInstall','qaVoiceToDraft','qaVoiceCommandMode','qaVoiceFeedback','aiJournalDraftInput','recordDlg','rhive','rtype','rfamily','rtext','aiJournalExtractNotice'];
+ const elements=Object.fromEntries(ids.map(id=>[id,{value:'',disabled:false,style:{},focus(){}}]));
+ elements.qaVoiceCommandMode.checked=true;elements.recordDlg.open=false;elements.recordDlg.close=()=>{elements.recordDlg.open=false};
+ const events={},starts=[],stops=[],speech=[],tabs=[];
+ const api={addListener:async(n,fn)=>{events[n]=fn;return{}},getStatus:async()=>({modelInstalled:true}),
+   start:async({token})=>{starts.push(token);return {started:true,token}},
+   stop:async()=>{stops.push('stop')},
+   speakLocal:({text})=>new Promise((resolve,reject)=>speech.push({text,resolve,reject}))};
+ const window={Capacitor:{Plugins:{PasekaOfflineSpeech:api}},addEventListener(){}};
+ const docEvents={},document={getElementById:id=>elements[id],addEventListener(n,fn){docEvents[n]=fn}};
+ const S=sample(),context={window,document,S,startupWriteGate:{ready:true},activeJournalHive:'',showTab:t=>tabs.push(t),toggleOccupancy(){},newRecord(){elements.recordDlg.open=true;elements.rhive.value=context.activeJournalHive;}};
+ vm.runInNewContext(source,context);await new Promise(resolve=>setImmediate(resolve));
+ const flush=()=>new Promise(resolve=>setImmediate(resolve));
+ const send=async text=>{events.result({token:starts.at(-1),text});await flush();};
+ const done=async()=>{speech.at(-1).resolve();await flush();};
+ return {elements,events,starts,stops,speech,tabs,context,docEvents,document,send,done,flush};
+}
+test('command UI stops microphone for TTS, resumes, opens exact journal form only after confirmation',async()=>{
+ const h=await commandUiHarness(),e=h.elements;
+ e.qaVoiceText.value='неперенесённая диктовка';
+ await e.qaVoiceStart.onclick();
+ await h.send('пасека выбери улей три');assert.equal(h.stops.length,1);assert.equal(h.starts.length,1);
+ assert.match(h.speech[0].text,/Выбран улей 3/);
+ await h.done();assert.equal(h.starts.length,2);
+ await h.send('пасека выбери семью альфа');await h.done();
+ await h.send('пасека запиши осмотр матка обнаружена');assert.equal(e.recordDlg.open,false);
+ assert.match(e.qaVoiceFeedback.textContent,/Улей 3, семья Альфа/);assert.equal(e.qaVoiceText.value,'неперенесённая диктовка');
+ await h.done();await h.send('пасека подтверждаю черновик');
+ assert.equal(e.recordDlg.open,true);assert.equal(e.rhive.value,'h3');assert.equal(e.rfamily.value,'f1');assert.equal(e.rtype.value,'Осмотр');assert.equal(e.rtext.value,'матка обнаружена');
+ assert.equal(h.context.S.records,undefined);assert.deepEqual(h.tabs,['journal']);const count=h.starts.length;
+ await h.done();assert.equal(h.starts.length,count);
+});
+test('TTS failure preserves readback; background cancels dialogue and prevents restart',async()=>{
+ const h=await commandUiHarness(),e=h.elements;
+ await e.qaVoiceStart.onclick();await h.send('пасека выбери улей три');
+ h.speech[0].reject(Error('no local voice'));await h.flush();
+ assert.match(e.qaVoiceFeedback.textContent,/Выбран улей 3.*Озвучивание недоступно/);
+ assert.equal(h.starts.length,2);
+ await h.send('пасека выбери семью альфа');
+ h.document.hidden=true;h.docEvents.visibilitychange();await h.flush();await h.done();
+ assert.equal(h.starts.length,2);assert.equal(e.recordDlg.open,false);
+ assert.match(e.qaVoiceFeedback.textContent,/уходе с экрана/);
+});
+test('existing handwritten draft blocks voice open without changing it',async()=>{
+ const h=await commandUiHarness(),e=h.elements;
+ await e.qaVoiceStart.onclick();await h.send('пасека выбери улей три');await h.done();
+ await h.send('пасека выбери семью альфа');await h.done();
+ await h.send('пасека запиши заметку тест');await h.done();
+ e.aiJournalDraftInput.value='ручной черновик';await h.send('пасека подтверждаю черновик');
+ assert.equal(e.recordDlg.open,false);assert.equal(e.aiJournalDraftInput.value,'ручной черновик');
+ assert.match(e.qaVoiceFeedback.textContent,/Черновик не открыт/);await h.done();
+});

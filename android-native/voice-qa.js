@@ -109,7 +109,8 @@
   if(!panel||!api)return;
   panel.hidden=false;
   const note=get('qaVoiceText'),status=get('qaVoiceStatus'),start=get('qaVoiceStart'),stop=get('qaVoiceStop'),install=get('qaVoiceInstall');
-  const mode=get('qaVoiceCommandMode');
+  const mode=get('qaVoiceCommandMode'),feedback=get('qaVoiceFeedback'),manualDraft=get('aiJournalDraftCard');
+  function showFeedback(message){if(feedback)feedback.textContent=message;else paint(message);}
   const commands=commandSession(()=>typeof S==='undefined'?{}:S);
   let active='',starting=false,stopping=false,stopFailed=false,installed=false,installing=false,listenersReady=false;
   let talking=false,openingDraft=false,dialogue=0;
@@ -120,7 +121,7 @@
     start.disabled=!installed||!!active||starting||stopping||stopFailed||installing||talking||!listenersReady;
     stop.disabled=!talking&&(stopping||(!active&&!starting&&!stopFailed));
     install.disabled=installed||installing||!!active||starting||stopping||stopFailed||talking;
-    if(mode)mode.disabled=!!active||starting||stopping||talking||stopFailed;
+    if(mode){mode.disabled=!!active||starting||stopping||talking||stopFailed;note.hidden=mode.checked;get('qaVoiceToDraft').hidden=mode.checked;}
     get('qaVoiceToDraft').disabled=!!active||starting||stopping||stopFailed||talking||!!mode?.checked;
   }
   async function end(message){
@@ -145,7 +146,7 @@
     api.addListener('error',event=>{if(active&&event.token===active){invalidateDialogue();void end(event.message||'Ошибка распознавания.');}})
   ]).then(()=>{listenersReady=true;paint();return refresh();}).catch(()=>paint('Не удалось подключить локальный микрофон.'));
   install.onclick=async()=>{
-    if(installing||active||starting||stopping||stopFailed||installed)return;
+    if(installing||active||starting||stopping||stopFailed||talking||installed)return;
     installing=true;paint('Установка модели из APK. Сеть не используется.');
     try{await api.installModel();await refresh();}
     catch(e){paint('Ошибка установки: '+String(e.message||e));}
@@ -162,9 +163,9 @@
       starting=false;paint(mode?.checked?'Слушаю локальные команды. Каждую начинай со слова «Пасека».':'Слушаю локально. Нажми «Стоп» перед записью в журнал.');
     }catch(e){if(active===token)await end('Микрофон не запущен: '+String(e.message||e));}
   }
-  start.onclick=()=>{invalidateDialogue();return begin();};
-  stop.onclick=()=>{invalidateDialogue();if(!stopping)void end();};
-  if(mode)mode.onchange=()=>{invalidateDialogue();paint();};
+  start.onclick=()=>{if(active||starting||stopping||talking||stopFailed||installing)return;invalidateDialogue();if(mode?.checked)showFeedback('Назови улей и семью.');return begin();};
+  stop.onclick=()=>{invalidateDialogue();showFeedback('Сеанс отменён. Ничего не сохранено автоматически.');if(!stopping)void end();};
+  if(mode)mode.onchange=()=>{if(active||starting||stopping||talking||stopFailed)return;invalidateDialogue();showFeedback(mode.checked?'Команды начинай со слова Пасека.':'Диктовка: текст можно перенести в ручной черновик.');paint();};
   get('qaVoiceToDraft').onclick=()=>{
     if(active||starting||stopping||stopFailed||talking||mode?.checked){paint('Сначала останови сеанс и выбери диктовку.');return;}
     const field=get('aiJournalDraftInput'),next=field?appendDraft(field.value,note.value):null;
@@ -175,18 +176,29 @@
     // Use existing dialog/form, no direct data mutations or automatic save.
     if(!commands.revalidate(p)||typeof startupWriteGate==='undefined'||startupWriteGate.ready!==true||
        get('recordDlg')?.open||!visible()||get('aiJournalDraftInput')?.value?.trim())return false;
+    const previous=activeJournalHive;
+    let complete=false;
     try{
       activeJournalHive=p.hiveId;
-      showTab('journal');newRecord();
+      newRecord();
       if(!get('recordDlg')?.open||get('rhive')?.value!==p.hiveId)return false;
-      get('rtype').value=p.type;toggleOccupancy();
+      get('rtype').value=p.type;
+      if(get('rtype').value!==p.type)return false;
+      toggleOccupancy();
       get('rfamily').value=p.familyId;
       if(get('rfamily').value!==p.familyId)return false;
       get('rtext').value=p.text;
       const notice=get('aiJournalExtractNotice');
       if(notice){notice.textContent='Голосовой черновик: проверь семью, дату, тип, текст и фактические показатели. Ничего не сохранено.';notice.style.display='block';}
+      showTab('journal');complete=true;
       return true;
     }catch(e){return false;}
+    finally{
+      if(!complete){activeJournalHive=previous;
+        if(get('recordDlg')?.open){try{get('recordDlg').close();}catch(e){}}
+        if(get('rhive'))get('rhive').disabled=false;
+      }
+    }
   }
   async function handleCommand(raw){
     const reply=commands.receive(raw);
@@ -194,23 +206,22 @@
     const cycle=dialogue;
     talking=true;paint();
     const stopped=await end('Микрофон остановлен для ответа.');
-    if(!stopped||cycle!==dialogue||!visible()){talking=false;paint();return;}
+    if(!stopped||cycle!==dialogue||!visible()){if(!stopped)invalidateDialogue();talking=false;paint();return;}
     let message=reply.message,opened=false;
     // Confirm only after the microphone is known stopped, check live IDs again.
     if(reply.draft){
       openingDraft=true;opened=openDraft(reply.draft);
       if(!opened)message='Черновик не открыт. Проверь текущую форму, данные и выбор. Ничего не сохранено.';
     }
-    if(reply.pending)note.value=reply.pending.text;
-    if(opened)note.value='';
-    paint(message);
+    // Keep command readback separate from any untransferred raw dictation.
+    showFeedback(message);paint(message);
     try{if(typeof api.speakLocal==='function')await api.speakLocal({text:message});else throw Error('Нет локального голоса');}
-    catch(e){paint(message+' Озвучивание недоступно: нужен установленный русский голос Android.');}
+    catch(e){if(cycle===dialogue)showFeedback(message+' Озвучивание недоступно: нужен установленный русский голос Android.');}
     finally{talking=false;openingDraft=false;paint();}
     if(cycle===dialogue&&!reply.stop&&!reply.draft&&visible()&&!stopFailed)await begin();
   }
   function leave(){
-    if(active||starting||stopping||talking){invalidateDialogue();if(!stopping)void end('Сеанс остановлен при уходе с экрана.');}
+    if(active||starting||stopping||talking){invalidateDialogue();showFeedback('Сеанс остановлен при уходе с экрана. Черновик команды отменён.');if(!stopping)void end('Сеанс остановлен при уходе с экрана.');}
   }
   document.addEventListener('visibilitychange',()=>{if(document.hidden)leave();});
   window.addEventListener('pagehide',leave);
