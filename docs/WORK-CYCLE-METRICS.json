@@ -1897,5 +1897,174 @@
     "productionMutation": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "op02StandaloneDailyPlan20261127": {
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "sourcePr": 453,
+    "sourceHeadSha": "7be9bfaad3ccc4197112b2d5d08fc0015cd38ac6",
+    "codeSha": "cfd902534d3db4cd717e0dc3ffb9b5924ad779ee",
+    "nodePass": 1063,
+    "nodeFail": 0,
+    "op02Pass": 9,
+    "targetedPass": 86,
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Fop02-daily-plan-model",
+    "verifiedAgainstMainSha": "1a609a9ec46cace85a81663648fee749df677932",
+    "syncedLocalValidation": {
+      "nodePass": 1081,
+      "nodeFail": 0,
+      "targetedPass": 86,
+      "governancePass": 5,
+      "chromiumPassed": true,
+      "webPreparePassed": true
+    },
+    "missingAccountingStateGuard": {
+      "implementation": "9cef7695b6140377b6436f922327bc3608c5ae26",
+      "regression": "cfa314698d7a0bfba92758ba4739fd2ab117693c",
+      "negativeCases": 4,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    },
+    "fullCiOfNewHead": "PENDING"
+  },
+  "journalPeriod20261127": {
+    "drilldownBrowserViewports": 2,
+    "summaryBrowserViewports": 2,
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "invalidRangeCsvGuard": {
+      "negativeCases": 1,
+      "spotCheck": "PASS",
+      "fullExactHeadCi": "PENDING",
+      "dataMutation": false
+    }
+  },
+  "queenRegistryNavigation20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "duplicateHiveIdGuard": {
+      "negativeCases": 2,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    },
+    "corruptRegistryGuard": {
+      "invalidArrayCases": 12,
+      "readOnlyRenderCase": 1,
+      "inMemorySpotCheck": "PASS",
+      "fullExactHeadCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
+    }
+  },
+  "inventoryFilteredCsv20261127": {
+    "sourceMainSha": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "branch": "feat/inventory-filtered-csv-export-20261127",
+    "scope": "USER_INITIATED_READ_ONLY_OFFLINE_FILTERED_INVENTORY_CSV",
+    "source": "docs/INVENTORY-FILTERED-CSV-2026-11-27.md",
+    "files": [
+      "index.html",
+      "tests/equipment-inventory-csv.test.mjs"
+    ],
+    "migration": false,
+    "serviceWorkerChanged": false,
+    "backupChanged": false,
+    "productionTouched": false,
+    "device": "NOT_TESTED",
+    "ci": "CI_VERIFIED_CODE_SHA_AND_BROWSER_E2E",
+    "verifiedUserScenarios": 0,
+    "pr": 633,
+    "codeSha": "b09642a44b986e6dbde6e580f4f10f03eecd68ad",
+    "nodeTests": {
+      "tests": 1077,
+      "pass": 1077,
+      "fail": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Fast quality checks",
+        "id": 46048423361,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 46048431007,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 46048430922,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 46048430929,
+        "conclusion": "success"
+      }
+    ],
+    "newInventoryClickBrowser": "NOT_TESTED",
+    "merged": false,
+    "browserClickValidated": true,
+    "browserOfflineValidated": true,
+    "syntheticMobileExport": "PASS",
+    "syntheticDesktopExport": "PASS",
+    "syntheticStateMutationObserved": false,
+    "staleVisibleIdRegression": {
+      "negativeCases": 1,
+      "expectedNoDownload": true,
+      "exactHeadCi": "PENDING",
+      "device": "NOT_TESTED"
+    }
+  },
+  "frameTypeStatus20261127": {
+    "pr": 636,
+    "codeSha": "7ff62b22ced9af19be38c4f146ec7a6a1bf7178d",
+    "base": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "nodeTests": {
+      "tests": 1078,
+      "pass": 1078,
+      "fail": 0
+    },
+    "verifiedCi": [
+      {
+        "id": 46048613209,
+        "conclusion": "success"
+      },
+      {
+        "id": 46048633114,
+        "conclusion": "success"
+      }
+    ],
+    "integration": "DRAFT",
+    "device": "NOT_TESTED",
+    "production": false,
+    "unknownTypeRegression": {
+      "negativeCases": 1,
+      "expectedNoAudit": true,
+      "device": "NOT_TESTED",
+      "exactHeadCi": "PENDING"
+    }
+  },
+  "dailyAccountingIntegration20261127": {
+    "sources": [
+      630,
+      631,
+      632,
+      633,
+      636
+    ],
+    "base": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+    "scope": "DRAFT_INTEGRATION_TEST_ONLY",
+    "op02Activated": false,
+    "exactHeadCi": "PENDING",
+    "device": "NOT_TESTED",
+    "productionMutation": false
   }
 }
