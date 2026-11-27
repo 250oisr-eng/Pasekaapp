@@ -26,3 +26,9 @@ QA debug signer может меняться от сборки к сборке. *
 Сборка в GitHub, Node и Chromium не доказывают установку/долговечное IndexedDB/физический offline/TalkBack/камеру на OnePlus. На физическом устройстве нужна отдельная обратная связь пользователя: версия Android, SHA файла, циклы PASS/FAIL и обезличенные ошибки. Никаких паролей, ключей, реальных координат или данных пасеки в отчёте.
 
 **Пока физическое устройство не проверено:** `DEVICE_NOT_TESTED`; B01/B04/B05 остаются BLOCKED, #442 V0–V6 FROZEN. Обычная публикация/production deployment по текущему разрешению не выполняются.
+
+## Проверенный QA-бинарник и стоп-пункт для пользователя
+
+**PR #613 MERGED**: main `ab1be71add0e16b20eb47c7a1eaf585411039a46`. Фактический QA APK собран и проверен на PR source SHA `acd35f567d87c640f2eb620312679cb981d2305f` в [GitHub Actions #45967904156](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45967904156), **SUCCESS**. Полный Node suite **1027/1027**; Android build SUCCESS; Governance SUCCESS. CI вывел `QA_PACKAGE_VERIFIED ru.paseka.journal.qa / Android API >= 35` и `QA_APK_VERIFIED` с точным APK SHA256 `e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6`. Артефакт **PASEKA-ONEPLUS-ISOLATED-QA-APK** ID `15183717921`, SHA ZIP `fabcf32c5e11ebc9aaa09750d128fbf1f0508b84aed316a1549c3f7e852bd1be`, доступен до 04.12.2026 (вход в GitHub может требоваться). ZIP SHA и APK SHA — разные значения.
+
+**Начало физического gate:** если Android версии телефона ниже API 35 (Android 15), эта сборка не устанавливается, и нужно отдельное решение о совместимой QA-цели — не обходить проверку. Если версия соответствует, пользователь самостоятельно сверяет package/hash, устанавливает только QA, проходит цикл 1 и сообщает PASS/FAIL. Нельзя устанавливать обычный `ru.paseka.journal` debug APK, нельзя удалять или заменять существующие пользовательские данные. **DEVICE_NOT_TESTED** до реального отчёта. Публикация и production deploy НЕ выполнялись.
