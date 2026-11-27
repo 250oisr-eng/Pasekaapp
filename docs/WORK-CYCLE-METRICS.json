@@ -33,7 +33,11 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1648,7 +1652,11 @@
   "overviewModelDiagnostics20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
-    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "refreshedLocalNodeTests": {
+      "pass": 1072,
+      "fail": 0,
+      "targetedPass": 13
+    },
     "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
     "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
     "mainCi": [
@@ -1675,5 +1683,64 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
+  },
+  "b01OnePlusWorkerDiagnostics20261127": {
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "pr": 629,
+    "codeStatus": "IMPLEMENTED_DRAFT_AND_PHYSICAL_FORCED_JOB_PASS",
+    "ci": "CODE_SHA_12848a22_EXACT_PASS_DOCS_ONLY_HEAD_PENDING",
+    "diagnosticApk": "FIX_ISOLATED_APK_AAPT_APKSIGNER_SHA256_VERIFIED",
+    "device": "NE2213_API36_USER_ADB_EVIDENCE",
+    "forcedJobStarted": true,
+    "lastJobFailed": true,
+    "jobDurationSecondsApprox": 180,
+    "preExistingArchiveSlotsVisible": 2,
+    "newBackgroundArchiveVerified": false,
+    "existingQaApkTouched": false,
+    "productionTouched": false,
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null,
+    "liveDevicePhases": [
+      "START",
+      "ASSET_READY",
+      "LOAD_REQUESTED",
+      "PAGE_FINISHED"
+    ],
+    "javascriptPhaseReached": true,
+    "nextProbePackage": "ru.paseka.journal.qa.daily.fix",
+    "rootCause": "UNCONDITIONAL_403_BLOCKED_INTERNAL_MAIN_FRAME_HTML",
+    "firstInlineScriptReached": false,
+    "physicalProbeCode": "JS_PROBE_NO_INLINE",
+    "physicalProbeObservedTwice": true,
+    "deviceObservedMainFrameIntercepted": true,
+    "deviceObservedMainFrameHttpError": true,
+    "deviceObservedWorkerHtmlAbsent": true,
+    "minimalFix": "ONE_SHOT_DATA_MAIN_FRAME_ONLY",
+    "latestForcedJobStatus": "PASS_OK_RETRY_FALSE",
+    "latestForcedJobEnd": "2026-11-27 20:52:48",
+    "latestForcedJobApproxDurationMs": 329,
+    "latestForcedJobStateAfter": "waiting",
+    "latestJSPhases": [
+      "BOOTSTRAP",
+      "ORIGIN",
+      "MARKER",
+      "SOURCE_OPEN",
+      "SOURCE_READ",
+      "STATE_VALID",
+      "STORE_OPEN",
+      "ROTATED",
+      "FINISH"
+    ],
+    "latestBridgeFinish": "OK",
+    "latestJobRetry": false,
+    "mainFrameDataAllowedOnceObserved": true,
+    "unattendedSchedulerVerified": false,
+    "archiveSlotScreenshotForFix": "FIRST_ARCHIVE_2026-11-27_VERIFIED_BY_APP_UI",
+    "syntheticRestoreForFix": "NOT_TESTED",
+    "latestArchiveDayForFix": "2026-11-27",
+    "previousArchiveForFix": "MISSING_EXPECTED_FIRST_DAY",
+    "firstArchiveCreatedInFixQa": true,
+    "firstArchiveSource": "UNKNOWN_BACKGROUND_OR_FOREGROUND_CATCHUP",
+    "secondNaturalDayArchiveVerified": false
   }
 }

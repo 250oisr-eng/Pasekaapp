@@ -1,7 +1,9 @@
 /* Android worker only: use unchanged local origin, never bootstrap main. */
 (async()=>{
+ window.__pasekaWorkerStarted=true;
  const bridge=window.PasekaArchiveJob;
- if(!bridge||typeof bridge.isArchiveWorker!=='function'||bridge.isArchiveWorker()!==true)return;
+ if(!bridge||typeof bridge.finish!=='function')return;
+ const trace=stage=>{try{bridge.trace(stage);}catch(_){}};
  let store=null,outcome='RETRY';
  function openExistingSource(){
   return new Promise((resolve,reject)=>{
@@ -24,22 +26,32 @@
   });
  }
  try{
+  trace('BOOTSTRAP');
+  if(typeof bridge.isArchiveWorker!=='function'||bridge.isArchiveWorker()!==true)throw Error('Worker bridge unavailable');
+  trace('ORIGIN');
   if(location.origin!=='https://localhost')throw Error('Unexpected archive worker origin');
+  trace('MARKER');
   const marker=readStartupUseMarker();
   if(marker==='absent'){outcome='SKIP';return;}
   if(marker!=='present')throw Error('Previous use not confirmed');
+  trace('SOURCE_OPEN');
   db=await openExistingSource();
+  trace('SOURCE_READ');
   const source=await readMain();
   if(!source||typeof source.meta?.revisionId!=='string'||!source.meta.revisionId)throw Error('Committed main required');
   S=assertRawBackupIntegrity(validateBackupState(source));
   lastPersistedRevision=source.meta.revisionId;
+  trace('STATE_VALID');
   store=await PasekaDailyArchives.openStore();
+  trace('STORE_OPEN');
   await PasekaDailyArchives.rotate(store,{day:today(),createRaw:createDailyArchiveRaw,inspect:dailyArchiveInspect});
+  trace('ROTATED');
   outcome='OK';
- }catch(_){outcome='RETRY';}
+ }catch(_){trace('FAILED');outcome='RETRY';}
  finally{
   try{store?.close();}catch(_){}
   try{db?.close();}catch(_){}
+  trace('FINISH');
   bridge.finish(outcome);
  }
 })();
