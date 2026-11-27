@@ -8,7 +8,7 @@ const digitSymbol=/^[245679]$/u;
 const AMBIGUOUS=new Set(['а','е','у','э','ю','я','же','и']);
 function parseReconciliationVoiceCommand(value){const text=String(value??'').trim().replace(/[.,!?;:]+$/g,'').replace(/\s+/g,' ');const match=text.match(/^(?:добавь|добавить|запиши|внеси)\s+(?:рамки|рамку|коды\s+рамок|код\s+рамки)\s+(.+)$/iu);return match?{type:'append_codes',codes:match[1].trim()}:{type:'ignore'}}
 function appendRecognizedCodes(current,recognized,maxLength=12000){const before=String(current??'').trim(),addition=String(recognized??'').trim();if(!addition)return {ok:false,error:'empty_transcript'};const next=before?before+'\n'+addition:addition;if(next.length>maxLength)return {ok:false,error:'too_long'};return {ok:true,value:next,added:addition}}
-function normalizeSpokenFrameCodes(value){
+function normalizeLegacyFrameCodes(value){
  const raw=String(value??'').trim(),codes=[],issues=[];
  if(!raw)return {raw,codes,issues:[{type:'empty',text:''}],canNormalize:false,preview:''};
  // Speech engines may insert commas between spoken symbols, not only between frame codes.
@@ -50,16 +50,65 @@ function normalizeSpokenFrameCodes(value){
  return {raw,codes,issues,canNormalize:codes.length>0&&issues.length===0,preview:codes.join(', ')};
 }
 
+
+// Decimal input is explicit: whole numbers, not groups of three symbols.
+// Legacy letter dictation remains a separate path. No guessing a list boundary
+// within a spoken compound number; use a pause/comma/«и» between numbers.
+const ONES=['','один','два','три','четыре','пять','шесть','семь','восемь','девять'];
+const TEENS=['десять','одиннадцать','двенадцать','тринадцать','четырнадцать','пятнадцать','шестнадцать','семнадцать','восемнадцать','девятнадцать'];
+const TENS=['','','двадцать','тридцать','сорок','пятьдесят','шестьдесят','семьдесят','восемьдесят','девяносто'];
+const HUNDREDS=['','сто','двести','триста','четыреста','пятьсот','шестьсот','семьсот','восемьсот','девятьсот'];
+function numberBelowThousand(words){
+ let i=0,n=0;const h=HUNDREDS.indexOf(words[i]);if(h>0){n=h*100;i++;}
+ const teen=TEENS.indexOf(words[i]);if(teen>=0){n+=10+teen;i++;}
+ else {const t=TENS.indexOf(words[i]);if(t>1){n+=t*10;i++;}
+  const one=ONES.indexOf(words[i]==='одна'?'один':words[i]==='две'?'два':words[i]);if(one>0){n+=one;i++;}}
+ return i===words.length&&i>0?n:null;
+}
+function parseSpokenNumber(value){
+ const s=String(value??'').trim().toLocaleLowerCase('ru-RU').replace(/^р[\s\u2010-\u2015\u2212-]+/u,'').trim();
+ if(/^[1-9][0-9]{0,5}$/.test(s))return s;
+ const words=s.split(/\s+/u),k=words.findIndex(x=>/^тысяч(?:а|и)?$/.test(x));
+ if(k<0){const n=numberBelowThousand(words);return n?String(n):null;}
+ if(words.slice(k+1).some(x=>/^тысяч(?:а|и)?$/.test(x)))return null;
+ const n=k===0?1:numberBelowThousand(words.slice(0,k)),r=k===words.length-1?0:numberBelowThousand(words.slice(k+1));
+ return n&&r!==null?String(n*1000+r):null;
+}
+function normalizeSpokenFrameCodes(value){
+ const raw=String(value??'').trim();if(!raw)return normalizeLegacyFrameCodes(raw);
+ const chunks=raw.split(/[,;\n]+|\s+и\s+/u).map(x=>x.trim()).filter(Boolean);
+ const isDecimal=s=>/^(?:Р[\s\u2010-\u2015\u2212-]+)?[1-9][0-9]{0,5}$/iu.test(s);
+ const directList=s=>s.split(/\s+/u).every(isDecimal);
+ const numericOnly=chunks.length>0&&chunks.every(s=>parseSpokenNumber(s)||directList(s));
+ if(numericOnly){
+  const codes=chunks.flatMap(s=>{const n=parseSpokenNumber(s);return n?[n]:s.split(/\s+/u).map(parseSpokenNumber);});
+  return {raw,codes,issues:[],canNormalize:true,preview:codes.join(', ')};
+ }
+ // Mixed historic and numeric labels require explicit separators. If a
+ // numeric fragment could be a digit in a legacy spoken label, keep legacy mode.
+ const hasExplicitNumeric=chunks.some(s=>/^(?:Р[\s\u2010-\u2015\u2212-]+)?[1-9][0-9]{0,5}$/iu.test(s)&&(/[0138]/.test(s)||s.length>3||s.length===1&&/^р/i.test(s)));
+ if(hasExplicitNumeric){
+  const codes=[],issues=[];
+  for(const chunk of chunks){const n=parseSpokenNumber(chunk);
+   if(n){codes.push(n);continue;}
+   if(directList(chunk)){codes.push(...chunk.split(/\s+/u).map(parseSpokenNumber));continue;}
+   const l=normalizeLegacyFrameCodes(chunk);codes.push(...l.codes);issues.push(...l.issues);}
+  return {raw,codes,issues,canNormalize:codes.length>0&&issues.length===0,preview:codes.join(', ')};
+ }
+ return normalizeLegacyFrameCodes(raw);
+}
+
 function validateEditedFrameCodes(codes){
  const errors=[];
  if(!Array.isArray(codes)||!codes.length)return {ok:false,errors:[{index:-1,reason:'empty'}]};
  codes.forEach((raw,index)=>{
   const code=String(raw??'').toLocaleUpperCase('ru-RU');
+  if(/^[1-9][0-9]{0,5}$/.test(code))return;
   if(code.length!==3){errors.push({index,reason:'length'});return}
   for(let position=0;position<3;position++)if(!ALPHABET.includes(code[position]))errors.push({index,position,reason:'character',value:code[position]});
  });
  return {ok:errors.length===0,errors};
 }
 
-window.PasekaReconciliationVoice={parseReconciliationVoiceCommand,appendRecognizedCodes,normalizeSpokenFrameCodes,validateEditedFrameCodes};
+window.PasekaReconciliationVoice={parseReconciliationVoiceCommand,appendRecognizedCodes,normalizeSpokenFrameCodes,parseSpokenNumber,validateEditedFrameCodes};
 })();

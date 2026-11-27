@@ -1897,5 +1897,17 @@
     "productionMutation": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "numericMarking20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "sourceMainSha": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+    "codeSha": null,
+    "targetedTests": 8,
+    "nodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageChanges": "optional metadata counters; no IndexedDB version change",
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
   }
 }

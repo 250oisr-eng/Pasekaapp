@@ -39,7 +39,7 @@ test('existing and permanently reserved codes stay unavailable for reassignment'
   assert.throws(() => labels.assignBodyCode(state, 'new', 'К-КАА'), /занят/);
   for (const [type, prefix] of [['frame', 'Р'], ['body', 'К']]) {
     state.meta.nextLabelCodeIndex = {[type]: labels.ALPHABET.indexOf(prefix) * labels.ALPHABET.length ** 2};
-    assert.equal(labels.nextCode(state, type), prefix + 'АБ');
+    assert.equal(labels.nextLegacyCode(state, type), prefix + 'АБ');
   }
 });
 
