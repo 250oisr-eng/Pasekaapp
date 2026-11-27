@@ -1511,7 +1511,18 @@ async function retireInventoryFrame(code){
  if(!result.ok){S=previous;alert(({invalid_frame_code:'Некорректный код рамки.',retirement_reason_required:'Укажи причину списания.',frame_not_found:'Рамка не найдена.',duplicate_frame_location:'Найдено несколько записей этой рамки. Сначала исправь дубли.',frame_already_retired:'Рамка уже списана.',frame_source_ambiguous:'Не удалось однозначно определить местоположение рамки.'})[result.error]||'Не удалось списать рамку: '+result.error);return}
  logAudit('frame_retired',{labelCode:code,reason,previousLocation:result.previousLocation});await saveInventoryChange(previous);
 }
-async function saveInventoryChange(previous){if(!await save()){S=previous;render();return false}renderEquipmentInventory();renderEquipmentReconciliation();return true}
+async function saveInventoryChange(previous){
+ let saved=false,failure='';
+ try{saved=await save()}catch(error){failure=error?.message||'Ошибка сохранения'}
+ if(!saved){
+  failure=S.meta?.saveError||failure||'Сохранение не подтверждено';
+  S=previous;S.meta=S.meta||{};S.meta.saveError=failure;
+  try{render()}catch(error){console.error('Не удалось обновить инвентарь после отмены',error)}
+  if(failure)try{alert('Изменение инвентаря не сохранено и отменено. '+failure)}catch(error){console.error('Не удалось показать сообщение о сохранении',error)}
+  return false;
+ }
+ renderEquipmentInventory();renderEquipmentReconciliation();return true;
+}
 async function registerCurrentCorpusInInventory(){
  const hiveId=selectedStructureHive(),boxKey=String(editingBox),previous=cloneApiaryState(),r=PasekaInventory.registerAtPosition(S,{hiveId,boxKey,profile:profileForHive(hiveId)},PasekaLabels,uid,new Date().toISOString());
  if(!r.ok){S=previous;render();return alert(r.message||'Не удалось зарегистрировать корпус: '+r.error)}if(r.existing)return alert('Этот физический корпус уже учтён в инвентаре.');
