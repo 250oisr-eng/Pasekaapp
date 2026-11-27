@@ -97,6 +97,7 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
 test('central AI has a translucent hex rim and no legacy upward translation', () => {
   assert.match(css,/grid-row:2;grid-column:5\/span 2;width:100%;height:var\(--hex-h\)/);
   assert.match(css,/transform:none!important/);
-  assert.match(css,/border:2px solid rgba\(255,235,180,\.66\)/);
+  assert.match(css,/border:2px solid rgba\(186,242,255,\.74\)/);
+  assert.match(css,/background:radial-gradient\(circle at 50% 48%,#06467f 0%,#087bb8 43%,#56c8ed 73%,#b1f1ff 100%\)/);
   assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
 });
