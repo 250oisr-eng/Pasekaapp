@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 
 const source=await readFile(new URL('../js/disaster-archive.js',import.meta.url),'utf8');
 const start=source.indexOf('function getRecords(db){');
-const end=source.indexOf('\nasync function exportArchive(db){',start);
+const end=source.indexOf('\n// Conservative budget for the encoded representation',start);
 assert.ok(start>=0&&end>start,'must run the real full archive snapshot reader');
 const getRecords=new Function('assert','return ('+source.slice(start,end)+');')(
  (ok,message)=>{if(!ok)throw new Error(message);}

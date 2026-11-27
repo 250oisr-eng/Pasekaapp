@@ -176,8 +176,52 @@ function getRecords(db){
   }catch(e){reject(e);}
  });
 }
-async function exportArchive(db){
+// Conservative budget for the encoded representation, before allocating base64
+// and packed JSON. Legacy callers keep their original contract; daily callers
+// explicitly request a bound. This is not a streaming exporter.
+function assertExportBudget(snap,maxBytes){
+ if(maxBytes===undefined)return;
+ assert(Number.isSafeInteger(maxBytes)&&maxBytes>0,'Invalid archive budget');
+ let total=4096;
+ const add=n=>{total+=n;assert(total<=maxBytes,'Архив превышает безопасный предел; предыдущие копии сохранены');};
+ const seen=new WeakSet();
+ function visit(value,depth=0){
+  assert(depth<200,'Archive record too deep');
+  add(64);
+  if(typeof value==='string'){
+   let bytes=0;
+   for(let i=0;i<value.length;i++){
+    const code=value.charCodeAt(i);
+    if(code<32)bytes+=6;
+    else if(code===34||code===92)bytes+=2;
+    else if(code<128)bytes++;
+    else if(code<2048)bytes+=2;
+    else if(code>=0xd800&&code<=0xdbff&&i+1<value.length&&value.charCodeAt(i+1)>=0xdc00&&value.charCodeAt(i+1)<=0xdfff){bytes+=4;i++;}
+    else if(code>=0xd800&&code<=0xdfff)bytes+=6;
+    else bytes+=3;
+   }
+   add(bytes);return;
+  }
+  if(value===null||typeof value!=='object')return;
+  if(value instanceof Date){add(64);return;}
+  if(value instanceof Blob){add(Math.ceil(value.size/3)*4+1024);if(typeof File!=='undefined'&&value instanceof File)add(value.name.length*6);add(value.type.length*6);return;}
+  if(value instanceof ArrayBuffer){add(Math.ceil(value.byteLength/3)*4);return;}
+  assert(!ArrayBuffer.isView(value),'Typed arrays are not supported; export aborted to prevent data loss');
+  assert(!seen.has(value),'Circular data; export aborted');
+  seen.add(value);
+  if(Array.isArray(value))for(const item of value)visit(item,depth+1);
+  else for(const key of Object.keys(value)){add(key.length*6+64);visit(value[key],depth+1);}
+  seen.delete(value);
+ }
+ for(const store of snap.stores){
+  assert(Array.isArray(store.keys)&&Array.isArray(store.records)&&store.keys.length===store.records.length,'Incomplete IndexedDB snapshot');
+  add(512+store.name.length*6);
+  for(let i=0;i<store.keys.length;i++){visit(store.keys[i]);visit(store.records[i]);}
+ }
+}
+async function exportArchive(db,{maxBytes}={}){
  const snap=await getRecords(db);
+ assertExportBudget(snap,maxBytes);
  const stores=[];
  for(const store of snap.stores){
   assert(store.records&&store.keys&&store.records.length===store.keys.length,'Incomplete IndexedDB snapshot');
@@ -189,7 +233,7 @@ async function exportArchive(db){
  const manifest={format:FORMAT,createdAt:new Date().toISOString(),sha256:await sha(json),counts:Object.fromEntries(stores.map(s=>[s.name,s.entries.length]))};
  return JSON.stringify({manifest,payload});
 }
-async function inspectArchive(raw,db,validateMain){
+async function inspectArchive(raw,db,validateMain,{captureLiveFence=true}={}){
  assert(typeof raw==='string','Archive must be text');
  const envelope=JSON.parse(raw);
  assert(envelope&&envelope.manifest&&envelope.payload,'Archive envelope missing');
@@ -225,11 +269,11 @@ async function inspectArchive(raw,db,validateMain){
  const main=restored.get('main').find(x=>x.key==='state')?.value;
  assert(main&&typeof main==='object','Main state is missing');
  if(validateMain)validateMain(main);
- const liveSnapshot=await snapshotLiveKeys(db);
+ const liveSnapshot=captureLiveFence?await snapshotLiveKeys(db):null;
  return {rows:restored,main,counts:manifest.counts,sha256:manifest.sha256,
-  liveKeySignatures:liveSnapshot.keys,liveValueSignatures:liveSnapshot.values};
+  ...(liveSnapshot?{liveKeySignatures:liveSnapshot.keys,liveValueSignatures:liveSnapshot.values}:{})};
 }
-async function atomicRestore(db,inspection,expectedRevision){
+async function atomicRestore(db,inspection,expectedRevision,{preserveIdenticalLiveBinary=false}={}){
  assert(inspection&&inspection.rows instanceof Map,'Archive must pass preflight');
  const names=Array.from(db.objectStoreNames);
  assert(JSON.stringify(names.slice().sort())===JSON.stringify(Array.from(inspection.rows.keys()).sort()),'Store inventory changed after preflight');
@@ -247,28 +291,78 @@ async function atomicRestore(db,inspection,expectedRevision){
    const main=tx.objectStore('main'),req=main.get('state');
    const checks=names.map(name=>({name,req:tx.objectStore(name).getAllKeys(),values:tx.objectStore(name).getAll()}));
    let remaining=checks.length*2+1,revisionOk=false;
+   const protectedKeys=new Map(names.map(name=>[name,new Set()]));
    const abort=e=>{if(!conflict)conflict=e;try{tx.abort();}catch(_){}};
+   const signature=key=>JSON.stringify(keySignature(key));
+   const commit=()=>{
+    try{
+     for(const {name,req:keys} of checks){
+      const store=tx.objectStore(name),rows=inspection.rows.get(name),keep=protectedKeys.get(name);
+      // A protected row is never cleared, deleted or put. If all live
+      // binary-containing records are identical, preserve their original IDB
+      // objects and change only non-protected records.
+      if(!keep.size)store.clear();
+      else for(const key of keys.result)if(!keep.has(signature(key)))store.delete(key);
+      for(const row of rows){
+       if(keep.has(signature(row.key)))continue;
+       if(store.keyPath===null)store.put(row.value,row.key);
+       else store.put(row.value);
+      }
+     }
+    }catch(e){abort(e);}
+   };
+   const checkProtected=tasks=>{
+    // Keep the all-store readwrite transaction alive while reading Blob
+    // bytes. Every keepalive callback executes inside the write lock, so
+    // another tab cannot replace an equal-size original between comparison
+    // and commit. If the browser ends/aborts the transaction, fail closed.
+    let finished=false,failure=null;
+    const started=Date.now();
+    const compare=async()=>{
+     for(const {name,key,live,target} of tasks){
+      assert(target,'Live binary originals absent from selected archive: '+name);
+      const old=JSON.stringify(await pack(live)),wanted=JSON.stringify(await pack(target.value));
+      assert(old===wanted,'Live binary originals differ from selected archive: '+name);
+      protectedKeys.get(name).add(signature(key));
+     }
+    };
+    compare().then(()=>{finished=true;},e=>{failure=e;finished=true;});
+    const pulse=()=>{
+     if(settled)return;
+     if(Date.now()-started>60000)return abort(new Error('Live binary verification exceeded safety timeout'));
+     if(finished){if(failure)return abort(failure);commit();return;}
+     try{
+      const keepAlive=main.count();
+      keepAlive.onsuccess=pulse;
+      keepAlive.onerror=()=>abort(keepAlive.error||new Error('Live binary transaction lock failed'));
+     }catch(e){abort(e);}
+    };
+    pulse();
+   };
    const proceed=()=>{
     if(--remaining!==0)return;
     if(!revisionOk)return abort(new Error('Database changed since preflight'));
     try{
+     const tasks=[];
      for(const {name,req:keys,values} of checks){
       if(keyListSignature(keys.result)!==inspection.liveKeySignatures[name])
        return abort(new Error('Store keys changed since preflight: '+name));
       if(JSON.stringify(values.result.map(liveValueSignature))!==inspection.liveValueSignatures[name])
        return abort(new Error('Store values changed since preflight: '+name));
-      // All stores, including nested records: never overwrite an existing
-      // binary without a transaction-safe byte-level comparison.
-      for(const value of values.result)assertNoLiveBinary(value,name);
-     }
-     for(const name of names){
-      const store=tx.objectStore(name),rows=inspection.rows.get(name);
-      store.clear();
-      for(const row of rows){
-       if(store.keyPath===null)store.put(row.value,row.key);
-       else store.put(row.value);
+      const targetRows=new Map(inspection.rows.get(name).map(row=>[signature(row.key),row]));
+      for(let i=0;i<values.result.length;i++){
+       const value=values.result[i];
+       try{assertNoLiveBinary(value,name);}
+       catch(e){
+        // Default legacy behavior unchanged. The daily restore path may only
+        // retain an exact byte-identical row, not replace or remove originals.
+        if(!preserveIdenticalLiveBinary||!String(e?.message).startsWith('Live binary originals require non-destructive restore:'))throw e;
+        const key=keys.result[i];
+        tasks.push({name,key,live:value,target:targetRows.get(signature(key))});
+       }
       }
      }
+     if(tasks.length)checkProtected(tasks);else commit();
     }catch(e){abort(e);}
    };
    req.onsuccess=()=>{revisionOk=(req.result?.meta?.revisionId||null)===expectedRevision;proceed();};
