@@ -43,19 +43,20 @@ async function journey(browser,origin,label,viewport){
   await page.locator('#settings').getByRole('button',{name:'Открыть инвентарь'}).click();
   const dlg=page.locator('#equipmentInventoryDlg');
   await dlg.waitFor({state:'visible'});
-  const template=page.locator('#inventoryTemplateHive');
-  const templateOptions=await template.locator('option').count();
-  assert.ok(templateOptions>=1,'new hive must be selectable as a stock template');
-  await template.selectOption({index:0});
-  assert.ok(await template.inputValue(),'inventory template hive must have a physical ID');
-  async function addStock(location,note){
-   await page.locator('#inventoryStoragePlace').fill(location);
-   await page.locator('#inventoryStockNotes').fill(note);
-   await page.getByRole('button',{name:'Зарегистрировать на складе'}).click();
-   await page.waitForFunction(loc=>Object.values(S.equipmentInventory?.bodies||{}).some(x=>x.storageLocation===loc),location);
-  }
-  await addStock('QA Полка A','=2+2');
-  await addStock('QA Полка B','Обычный корпус');
+  // Seed the disposable browser using the same domain API as the stock form.
+  // This E2E tests real filtering, Blob download and offline behavior, not stock creation.
+  const seeded=await page.evaluate(async()=>{
+   const profile=profileForHive(S.hives[0].id),stamp='2026-11-27T12:00:00Z';
+   const first=PasekaInventory.createStockBody(S,{kind:'brood',profile,
+    storageLocation:'QA Полка A',notes:'=2+2'},PasekaLabels,uid,stamp);
+   const second=PasekaInventory.createStockBody(S,{kind:'brood',profile,
+    storageLocation:'QA Полка B',notes:'Обычный корпус'},PasekaLabels,uid,stamp);
+   if(!first.ok||!second.ok)return {ok:false,first,second};
+   const saved=await save();
+   renderEquipmentInventory();
+   return {ok:Boolean(saved),firstId:first.body.id,secondId:second.body.id};
+  });
+  assert.equal(seeded.ok,true,'synthetic inventory setup failed: '+JSON.stringify(seeded));
   const records=await page.evaluate(()=>Object.values(S.equipmentInventory.bodies).filter(x=>x.storageLocation?.startsWith('QA Полка')).map(x=>({id:x.id,place:x.storageLocation})));
   assert.equal(records.length,2);
   const a=records.find(x=>x.place.endsWith('A')),b=records.find(x=>x.place.endsWith('B'));
