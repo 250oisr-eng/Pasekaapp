@@ -1772,5 +1772,46 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "releaseAuthorized": false
+  },
+  "uxErgonomics20261127Verified": {
+    "stage": "READY_FOR_MERGE_REVIEW",
+    "pr": 638,
+    "codeSha": "b29454a647eb38fa79e0edbe74cfcebc1d4f8abc",
+    "ciRuns": [
+      {
+        "id": 46054455908,
+        "conclusion": "success"
+      },
+      {
+        "id": 46054455976,
+        "conclusion": "success"
+      },
+      {
+        "id": 46054463573,
+        "conclusion": "success"
+      },
+      {
+        "id": 46054463522,
+        "conclusion": "success"
+      }
+    ],
+    "nodeTests": 1079,
+    "navigationViewports": 14,
+    "journalScenarios": 2,
+    "accountingScenarios": 1,
+    "diagnosticsScenarios": 2,
+    "syntheticArchiveScenarios": 2,
+    "searchResetViewports": 3,
+    "closedSupersededPr": 622,
+    "preview": {
+      "pr": 639,
+      "sha": "f3fbda635e5c41656b85c73836396996fd3f9dd5",
+      "staticChecks": "PASS",
+      "browser": "NOT_TESTED"
+    },
+    "device": "NOT_TESTED",
+    "repeatedDocumentReads": null,
+    "completedVerifiedUserScenarios": 0,
+    "releaseAuthorized": false
   }
 }
