@@ -207,6 +207,26 @@ function planItemMoves(state,oldLayout,newLayout,suppliedMoves){
 
  // A full-harvest journal is append-only. Current inventory ownership is
  // validated by the physical inspectors; old events prove historical moves.
+// Recover historical pair membership by reversing only corroborated stock
+// regroup events. Identity of a body is never reassigned. Old OP07 records
+// without snapshots remain readable; corrupted chains fail closed.
+function pairAt(state,bodyId,at){
+ const inventory=state.equipmentInventory||{},b=inventory.bodies?.[bodyId];
+ if(!b||!validDate(at))return {ok:false};
+ let pair=b.pairId||null,last=Infinity;
+ const events=rows(b.events).filter(e=>e?.type==='sectional_stock_pair_regrouped').slice().reverse();
+ for(const event of events){
+  const time=Date.parse(event.at);
+  if(!Number.isFinite(time)||time>last||event.bodyId!==bodyId||!nonEmpty(event.id)||event.fromPairId!=null&&!nonEmpty(event.fromPairId)||event.toPairId!=null&&!nonEmpty(event.toPairId))return {ok:false};
+  last=time;
+  if(time<=Date.parse(at))break;
+  const matches=rows(inventory.events).filter(e=>e?.type===event.type&&e.bodyId===bodyId&&e.at===event.at&&e.fromPairId===event.fromPairId&&e.toPairId===event.toPairId);
+  if(matches.length!==1||!nonEmpty(matches[0].id)||matches[0].id===event.id||pair!==event.toPairId)return {ok:false};
+  pair=event.fromPairId;
+ }
+ return {ok:true,pairId:pair};
+}
+
 function inspectHoneyCycles(state,record,layout,initialIds,initialExcluderIds,purpose,startedAt){
  const errors=[],bad=(reason,transitionId)=>errors.push({code:'sectional_full_honey_cycle_invalid',details:{id:record.id,reason,transitionId:transitionId??null}});
  const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b),sorted=a=>rows(a).slice().sort();
@@ -229,6 +249,8 @@ function inspectHoneyCycles(state,record,layout,initialIds,initialExcluderIds,pu
   seen.add(id);last=Date.parse(at);
   if(!eq(prior,current)||!(extract?validStack(prior)&&next===null:prior===null&&validStack(next))){bad('chain_mismatch',id);continue}
   const active=extract?prior:next,bodyIds=active.bodyIds;
+  const historicalPairs=bodyIds.map(id=>pairAt(state,id,at));
+  if(historicalPairs.some(x=>!x.ok)||!eq(historicalPairs.map(x=>x.pairId),rows(t.pairIds).flatMap(id=>[id,id])))bad('historical_pair_evidence_invalid',id);
   if(!eq(t.bodyIds,bodyIds)||!allUnique(t.pairIds)||t.pairIds.length!==bodyIds.length/2||!validClosure(t.closedStacks)||!eq(t.closedAccessoryIds,t.closedStacks.flatMap(s=>[s.coverItemId,s.topRiserItemId])))bad('physical_evidence_invalid',id);
   if(!extract&&!eq(closed,t.closedStacks))bad('closure_chain_mismatch',id);
   const op=(extract?'OP-08-EXTRACT:':'OP-08-INSTALL:')+id,storageMoves=rows(t.bodyStorageMoves);
@@ -396,8 +418,9 @@ function inspect(state,deps={}){
     if((!cycles.hasCycles&&(honey?.purpose!=='main'||bodyIds.length!==4||JSON.stringify(rows(honey?.bodyIds))!==JSON.stringify(expectedHoneyIds)))||op07.evidence?.honeyPurpose!=='main'||initialHoneyIds.length!==2||addedHoneyIds.length!==2||new Set(expectedHoneyIds).size!==4||JSON.stringify(rows(late.evidence?.previousBodyIds))!==JSON.stringify(initialHoneyIds)||JSON.stringify(rows(late.evidence?.honeyBodyIds))!==JSON.stringify(expectedHoneyIds))add('sectional_late_honey_pair_evidence_invalid',{id:record.id});
     const addedFrames=Object.fromEntries(addedHoneyIds.map(bodyId=>[bodyId,rows(state.equipmentInventory?.bodies?.[bodyId]?.frames)]));
     if(JSON.stringify(honeyFrameCompositionEvidence(addedFrames))!==JSON.stringify(late.evidence?.frameComposition))add('sectional_late_honey_pair_frame_composition_invalid',{id:record.id});
-    const pairIds=addedHoneyIds.map(id=>state.equipmentInventory?.bodies?.[id]?.pairId);
-    if(!pairIds.every(nonEmpty)||pairIds[0]!==pairIds[1]||initialHoneyIds.some(id=>state.equipmentInventory?.bodies?.[id]?.pairId===pairIds[0]))add('sectional_late_honey_pair_inventory_pair_invalid',{id:record.id});
+    const historicalAdded=addedHoneyIds.map(id=>pairAt(state,id,late.completedAt)),historicalInitial=initialHoneyIds.map(id=>pairAt(state,id,late.completedAt));
+    const pairIds=historicalAdded.map(x=>x.pairId);
+    if(historicalAdded.some(x=>!x.ok)||historicalInitial.some(x=>!x.ok)||!pairIds.every(nonEmpty)||pairIds[0]!==pairIds[1]||historicalInitial.some(x=>x.pairId===pairIds[0]))add('sectional_late_honey_pair_inventory_pair_invalid',{id:record.id});
     for(const bodyId of addedHoneyIds){
      const body=state.equipmentInventory?.bodies?.[bodyId];
      const local=rows(body?.events).filter(event=>event?.operationId==='OP-07-HONEY-PAIR-ADD'&&event?.type==='placed'&&event?.at===late.completedAt);

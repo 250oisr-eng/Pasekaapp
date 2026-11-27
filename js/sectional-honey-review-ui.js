@@ -69,7 +69,7 @@ function mount(host,bridge){
      for(const s of target.stacks){const pick=coverFields.find(x=>x.stackId===s.id);s.coverItemId=pick.cover.value;s.topRiserItemId=pick.riser.value;for(const id of [s.coverItemId,s.topRiserItemId])itemMoves.push({itemId:id,location:{type:'hive',hiveId:context.hiveId,stackId:s.id}});}
     }else{
      const ids=selection.slice(0,Number(count.value)).map(s=>s.value);
-     const regroup=window.PasekaSectionalStockPairs.prepare(base,{...request,bodyIds:ids},deps.operationDependencies);
+     const regroup=window.PasekaSectionalStockPairs.prepare(base,{...request,bodyIds:ids},{...deps.operationDependencies,PasekaSectionalOperationCoordinator:deps.coordinator});
      if(!regroup.ok){status.textContent='Комплектование невозможно: '+regroup.error;return;}
      prepared=regroup.draft;
      const upper=side=>target.sections.find(s=>s.position===side).upperBroodBodyId;
@@ -83,9 +83,9 @@ function mount(host,bridge){
     if(!candidate.ok){status.textContent='Операция отклонена: '+candidate.error;return;}
     const result=await bridge.commit(candidate,base);
     if(!result?.ok){status.textContent='Не сохранено: '+(result?.error||'неизвестная ошибка');return;}
-    refresh();const notice=el('p',result.warnings?.length?'Операция сохранена. Проверьте резервную копию/обновление экрана.':'Операция сохранена.');notice.setAttribute('role','status');
+    busy=false;refresh();const notice=el('p',result.warnings?.length?'Операция сохранена. Проверьте резервную копию/обновление экрана.':'Операция сохранена.');notice.setAttribute('role','status');
    }catch(error){status.textContent='Операция не подтверждена: '+String(error?.message||error);}
-   finally{busy=false;if(button.isConnected)button.disabled=false;}
+   finally{busy=false;if(button.isConnected)button.disabled=isExtract&&model.readyFrames!==model.requiredFrames;}
   });
  }
  refresh();return Object.freeze({refresh});

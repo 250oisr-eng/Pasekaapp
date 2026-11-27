@@ -21,6 +21,9 @@ function prepare(state,request,deps={}){
   const oldPairs=new Set(ids.map(id=>bodies[id].pairId).filter(Boolean));
   const affected=Object.values(bodies).filter(b=>ids.includes(b.id)||oldPairs.has(b.pairId));
   if(affected.some(b=>!free.has(b.id)))return fail('old_partner_not_free');
+  // Strictly later than recorded movement/regroup evidence: timestamps
+  // distinguish old pair membership from a new stock regroup.
+  for(const b of affected)if(rows(b.events).some(e=>!Number.isFinite(Date.parse(e.at))||Date.parse(e.at)>=Date.parse(at)))return fail('regroup_timestamp_not_after_body_history');
   const draft=structuredClone(state),next=draft.equipmentInventory,used=new Set();
   for(const b of Object.values(next.bodies)){if(str(b.pairId))used.add(b.pairId);for(const e of rows(b.events))if(str(e.id))used.add(e.id);}
   for(const e of rows(next.events))if(str(e.id))used.add(e.id);
