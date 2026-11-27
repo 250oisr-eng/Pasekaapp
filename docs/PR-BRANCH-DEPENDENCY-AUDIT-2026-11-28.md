@@ -72,3 +72,51 @@
 ## Дополнительная проверка защиты `main`
 
 GitHub REST `branches/main` возвращает `protected=false`; репозиторный `GET /rulesets` — `[]`. Точный `GET /branches/main/protection` ответил **403 Resource not accessible by integration**. Поэтому нельзя подтвердить действующую защиту прямых push в `main` и нельзя изменить её данным GitHub-подключением. Это **отдельный риск управления**, а не причина удалять ветки или переключаться на опасную автоматическую публикацию. Проверка/включение ruleset и обязательных PR reviews требует авторизованного доступа к настройкам; `NO_DIRECT_MAIN / NO_AUTO_MERGE / NO_AUTO_DEPLOY` продолжают действовать независимо от GitHub metadata.
+
+## Повторный портфельный аудит: 90 из 260 — 28.11.2026
+
+**Live база:** `main=dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417`. Полная REST пагинация: ветки `[100,100,100,100,100,100,74,0]`, открытые PR `[100,100,100,100,7,0]`, закрытые PR `[100,100,43,0]`. Количество **407 открытых PR, 243 закрытых PR (178 merged, 65 closed-unmerged), 674 ветки**, 48 root и 359 stacked PR. 8 баз без открытого parent PR, все базовые/head refs существуют, циклов 0, depth 143, shared head #13/#14. Показатели ниже — снимок, не приоритет над будущим live GitHub.
+
+**Раскладка 260 веток без роли в открытых PR**, по имени head в полном списке закрытых PR:
+
+| История ветки | Веток | Проверено точным compare с `main` | ahead=0 | Есть уникальные коммиты |
+|---|---:|---:|---:|---:|
+| Соответствующий PR был MERGED | 176 | 6 | 0 | 6 |
+| Только CLOSED и не MERGED | 61 | **61** | **1** | **60** |
+| Ни открытого, ни закрытого PR в полном перечне | 23 | **23** | **6** | **17** |
+| **Всего** | **260** | **90** | **7** | **83** |
+
+**Единственные 7 веток `ahead=0`, для которых получено прямое compare-доказательство:**
+
+| Ветка | Категория | Behind `main` |
+|---|---|---:|
+| `docs/accessory-inventory-model-checkpoint-2026-11-17` | без PR | 1083 |
+| `docs/refresh-audit-and-status-2026-11-16` | без PR | 1111 |
+| `feat/sectional-op06-atomic-queen-laying-removal-2026-11-17` | без PR | 785 |
+| `test/b01-comprehensive-local-qa-20261127` | без PR | 32 |
+| `work/honey-harvest-history` | без PR | 27 |
+| `work/single-sectional-profile-catalog-20261128` | без PR | 1 |
+| `work/hive-record-ergonomics-20261127` | closed-unmerged PR #640 | 9 |
+
+**Не следует удалять даже эти семь без внешней проверки активных automation/worktrees, владельцев и архивных ссылок.** Среди оставшихся 83 обнаружены уникальные изменения архивов/restore, IndexedDB, секционного улья, Android, Cloudflare и исследований видео. Из них 60 — от закрытых неслитых PR и 17 — от веток без PR. Кроме 61 кандидата отдельно сравнены четыре закрытые неслитые ветки, которые **по-прежнему используются как base открытых PR**: `fix/honey-pairs-2-or-4-validator-2026-11-20`, `perf/p2-video-metadata-cursor-2026-11-23`, `fix/indexeddb-recovery-commit-flag-2026-11-16`, `fix/inventory-reverse-reference-integrity-2026-11-16`. У всех есть уникальные коммиты; не включать в число 260.
+
+**Почему 176 merged веток нельзя удалить автоматически:** в выборке из шести веток с объединёнными PR все шесть сохранили собственные коммиты относительно `main` (в т.ч. `audit/pr-live-graph-census-20261126`, `docs/b01-archive-zip-fail-postmerge-20261127`). Это возможно при squash/cherry-pick; `merged_at` говорит о статусе PR, но не о побайтовой сохранности всех файлов и не об отсутствии уникальных SHA. Остальные **170** merged-only веток остаются `NOT_COMPARED`.
+
+### Восемь orphan-parent PR: точный parent→child compare
+
+| PR | Parent→child `ahead/behind` | Критичное пересечение / решение |
+|---|---|---|
+| #513 | 7/21, diverged | Видео и удаление оригиналов, заморозка #442; retarget запрещён |
+| #426 | 11/0 | `scripts/prepare-web.mjs`, Android-упаковка; конфликты с #647, требуется выборочный перенос |
+| #388 | 2/0 | `js/paseka-archive.js`, экспорт и гонки состояния; проверять B01/restore |
+| #201 | 12/0 | `js/sectional-operation-coordinator.js`, физическая модель; B07 закрыт |
+| #202 | 23/0 | Coordinator + `index.html`, поздние медовые корпуса; B07 закрыт |
+| #88 | 142/360, diverged | 13 файлов включая раннюю sectional-технологию; parent вошёл в main, child не является его простым потомком |
+| #71 | 2/0 | `index.html`, ошибка IndexedDB write; parent имеет независимые коммиты относительно main |
+| #61 | 5/0 | `js/equipment-inventory.js`, физический инвентарь; parent имеет независимые коммиты |
+
+**#13/#14 не тождественные патчи при одном HEAD `f3a4ec0d92a4bfcc2721d6f751b5e5c9efb2f0e4`:** у #13 base=`feature/archive-import-staging-2026-11-14` и 7 изменённых файлов; у #14 base=`main` и 11. Четыре пути дополнительно входят в diff #14: `js/paseka-archive.js`, `tests/archive-export.test.mjs`, `tests/archive-format.test.mjs`, `tests/entrance-analysis.test.mjs`. Не закрывать и не сливать ни один PR на основе совпадающего head.
+
+### Изменение проверочного инструмента
+
+`scripts/audit-pr-branch-dependencies.mjs` добавляет read-only `collectPortfolio`/ `analyzeBranchHistory` с **отдельным полным пагинированным `pulls?state=closed`**, четырьмя классами истории и опциональным явно предоставленным `compare`-доказательством. Категории `mergedOnly`, `closedUnmergedOnly`, `mixedClosedStates`, `noClosedPr` **не** равны "можно удалить". Ошибки пагинации и ложные `ahead=0` блокируются негативными тестами. Промежуточный code/test HEAD `65014132e17597df9b482f41a30c6dff67abc174` — Android/Node **1114/1114 PASS** и Governance SUCCESS; финальный docs-only HEAD проверять отдельно.
