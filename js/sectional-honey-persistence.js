@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 // Detached integration adapter for the existing IndexedDB CAS transaction.
-// The caller supplies the real save queue and CAS adapter; not loaded by app.
+// The caller supplies the real save queue and CAS adapter; integrated behind a QA build gate.
 // No in-memory replacement until durable transaction completion.
 async function commitCandidate(candidate,adapter){
  if(candidate?.ok!==true||candidate.kind!=='unsaved_candidate'||typeof candidate.expectedRevisionId!=='string'||!candidate.expectedRevisionId.trim()||candidate.draft?.meta?.revisionId!==candidate.expectedRevisionId)return {ok:false,error:'invalid_candidate'};
@@ -33,7 +33,7 @@ function createRuntimeCommitter(runtime){
   if(candidate?.ok!==true||candidate.kind!=='unsaved_candidate'||!baseState||candidate.expectedRevisionId!==baseState.meta?.revisionId)return {ok:false,error:'invalid_candidate'};
   const fingerprint=JSON.stringify(baseState);
   let draft;try{draft=structuredClone(candidate.draft)}catch{return {ok:false,error:'clone_failed'}}
-  return runtime.withExclusiveMutation(()=>runtime.enqueue(async()=>{
+  return runtime.enqueue(()=>runtime.withExclusiveMutation(async()=>{
    if(!runtime.isWriteReady()||runtime.getPersistedRevision()!==candidate.expectedRevisionId||JSON.stringify(runtime.getState())!==fingerprint)return {ok:false,error:'revision_or_unsaved_state_changed'};
    let snapshot,previous,next;
    try{
@@ -44,6 +44,7 @@ function createRuntimeCommitter(runtime){
     snapshot=await runtime.buildSnapshot(draft);
     if(snapshot?.meta?.revisionId!==next)return {ok:false,error:'snapshot_invalid'};
     const finalErrors=await runtime.validate(snapshot);if(!Array.isArray(finalErrors)||finalErrors.length)return {ok:false,error:'snapshot_validation_failed'};
+    if(!runtime.isWriteReady()||runtime.getPersistedRevision()!==candidate.expectedRevisionId||JSON.stringify(runtime.getState())!==fingerprint)return {ok:false,error:'revision_or_unsaved_state_changed'};
     previous=await runtime.writeMainIfUnchanged(snapshot,candidate.expectedRevisionId);
    }catch{return {ok:false,error:'transaction_not_confirmed'}}
    // Main write already succeeded. Backup/publish failures cannot turn it

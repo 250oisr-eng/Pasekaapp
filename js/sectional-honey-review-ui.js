@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 // Isolated DOM review for synthetic QA. No production attachment or writes.
-function render(host,model,labels){
+function render(host,model,labels,interactive=false){
  if(!host||typeof host.replaceChildren!=='function')throw Error('review_host_required');
  host.replaceChildren();
  if(!model?.visible)return;
@@ -14,7 +14,7 @@ function render(host,model,labels){
  for(const p of model.pending||[])add('p','Ожидает возврата: '+p.bodyIds.map(name).join(' / '));
  if(model.canReviewExtraction){add('p','Готово к откачке: '+model.readyFrames+' из '+model.requiredFrames+' рамок.');add('p','Откачка только при полной готовности: снять все '+model.bodyCount+' корпуса и обе решётки, установить 3 подкрышника и 3 крышки.');}
  if(model.canReviewInstallation)add('p','Новая установка: выбрать 2 или 4 корпуса и две решётки независимо от предыдущего количества.');
- const status=add('p','Предварительный просмотр. Сохранение физической операции пока заблокировано B07.');
+ const status=add('p',interactive?'Запись после подтверждения фактической операции.':'Предварительный просмотр. Сохранение физической операции пока заблокировано B07.');
  status.setAttribute('role','status');
 }
 // Interactive screen component, mounted only by an explicitly enabled host
@@ -31,7 +31,7 @@ function mount(host,bridge){
   if(!layout||!deps)return;
   const model=window.PasekaSectionalHoneyReview.viewModel(state,context,deps);
   if(!model.visible){el('p','Конструкция или история требуют проверки.');return;}
-  render(host,model,state.equipmentLabels?.bodies);
+  render(host,model,state.equipmentLabels?.bodies,true);
   const form=el('form',null),status=el('p','',form);status.setAttribute('role','status');
   const isExtract=model.bodyCount>0,free=window.PasekaSectionalStockPairs.available(state,deps.inventory);
   const choose=(label,items,parent=form)=>{const l=el('label',label,parent),s=el('select',null,l);const none=el('option','Выбрать',s);none.value='';for(const item of items){const o=el('option',item.label||item.id,s);o.value=item.id;}s.required=true;return s;};
@@ -57,7 +57,7 @@ function mount(host,bridge){
    busy=true;button.disabled=true;status.textContent='Проверка операции…';
    try{
     const base=structuredClone(bridge.getState());
-    if(base.meta?.revisionId!==state.meta?.revisionId){status.textContent='Данные изменились. Откройте экран заново.';return;}
+    if(base.meta?.revisionId!==state.meta?.revisionId||JSON.stringify(base.sectionalLayouts?.find(l=>l.hiveId===context.hiveId))!==JSON.stringify(layout)){status.textContent='Данные изменились. Откройте экран заново.';return;}
     const target=structuredClone(layout),at=new Date().toISOString(),location={type:'storage',label:storage.value.trim()},itemMoves=[],bodyStorageMoves=[];
     const request={hiveId:context.hiveId,techProcessId:context.techProcessId,expectedRevisionId:base.meta.revisionId,userConfirmed:true,occurredAt:at,kind:isExtract?'extract':'install'};
     let prepared=base;
@@ -83,7 +83,7 @@ function mount(host,bridge){
     if(!candidate.ok){status.textContent='Операция отклонена: '+candidate.error;return;}
     const result=await bridge.commit(candidate,base);
     if(!result?.ok){status.textContent='Не сохранено: '+(result?.error||'неизвестная ошибка');return;}
-    busy=false;refresh();const notice=el('p',result.warnings?.length?'Операция сохранена. Проверьте резервную копию/обновление экрана.':'Операция сохранена.');notice.setAttribute('role','status');
+    busy=false;if(typeof bridge.afterCommit==='function'){bridge.afterCommit(result);return;}refresh();const notice=el('p',result.warnings?.length?'Операция сохранена. Проверьте резервную копию/обновление экрана.':'Операция сохранена.');notice.setAttribute('role','status');
    }catch(error){status.textContent='Операция не подтверждена: '+String(error?.message||error);}
    finally{busy=false;if(button.isConnected)button.disabled=isExtract&&model.readyFrames!==model.requiredFrames;}
   });
