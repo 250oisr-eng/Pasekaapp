@@ -86,7 +86,18 @@
       "publisherMd5": "1750347f386c8c7bef7a5c8d53a2be72",
       "metadataRun": 46074461207,
       "trainingAdmission": false,
-      "fullArchiveVerified": false
+      "fullArchiveVerified": false,
+      "rangeCodeSha": "bd40a53a3d2086713747b97b6d67d72fc4629a93",
+      "rangeRun": 46074646852,
+      "rangeDirectoryConclusion": "success",
+      "rangeBytesRead": 3755671,
+      "entries": 33646,
+      "trainImages": 8807,
+      "valImages": 2201,
+      "backgroundImages": 609,
+      "firstParserPairs": 0,
+      "dualSchemeParserFixed": true,
+      "knownDateOverlapRisk": true
     }
   },
   "seasonalWorkspaceUI20261127": {

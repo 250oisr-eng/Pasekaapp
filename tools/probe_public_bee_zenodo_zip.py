@@ -87,10 +87,36 @@ def read_entry(z,info,cap):
     # ZipExtFile verifies CRC when the entry is read to EOF.
     return raw
 
+SCHEMES=("labels [bee-pollen-drone-wasp]","labels [bee-pollenbee-drone-wasp]")
+USED_DATES={"20230609","20230711"}
+
+def source_group(path):
+    match=re.fullmatch(r"((?:19|20)[0-9]{6})([a-z])([0-9]+)",PurePosixPath(path).stem,re.I)
+    if not match:return None
+    import datetime
+    try:datetime.datetime.strptime(match[1],"%Y%m%d")
+    except ValueError:return None
+    return match[1]+match[2].lower()
+
+def label_rows(raw):
+    counts={}
+    for line in raw.decode("utf-8").splitlines():
+        if not line.strip():continue
+        row=line.split()
+        if len(row)!=5 or row[0] not in ("0","1","2","3"):raise ValueError("unexpected YOLO label row")
+        k=int(row[0]);x,y,w,h=map(float,row[1:])
+        import math
+        if not all(map(math.isfinite,(x,y,w,h))) or not (0<=x<=1 and 0<=y<=1 and 0<w<=1 and 0<h<=1):
+            raise ValueError("invalid YOLO geometry")
+        if min(x-w/2,y-h/2)<-0.001 or max(x+w/2,y+h/2)>1.001:
+            raise ValueError("YOLO box outside image")
+        counts[str(k)]=counts.get(str(k),0)+1
+    return counts
+
 def inspect(z):
     infos=z.infolist()
     if not 0<len(infos)<=100000:raise ValueError("entry count bound")
-    names={};images={};labels={};groups={};config=[]
+    names={};images={};labels={s:{} for s in SCHEMES};groups={};config=[]
     for info in infos:
         p=safe_name(info)
         if info.filename in names:raise ValueError("duplicate member")
@@ -100,25 +126,52 @@ def inspect(z):
         groups[parent]=groups.get(parent,0)+1
         parts=list(p.parts)
         if p.suffix.lower() in (".jpg",".jpeg",".png") and "images" in parts:
-            parts[parts.index("images")]="labels";k=str(PurePosixPath(*parts).with_suffix(".txt"))
+            parts[parts.index("images")]="LABELS";k=str(PurePosixPath(*parts).with_suffix(".txt"))
             if k in images:raise ValueError("ambiguous image label pair")
             images[k]=info
-        if p.suffix.lower()==".txt" and "labels" in parts:labels[str(p)]=info
-        if p.suffix.lower() in (".yaml",".yml") and info.file_size<65536:config.append(info.filename)
-    paired=sorted(images.keys()&labels.keys())
+        if p.suffix.lower()==".txt":
+            for scheme in SCHEMES:
+                if scheme in parts:
+                    keyparts=parts.copy();keyparts[keyparts.index(scheme)]="LABELS"
+                    k=str(PurePosixPath(*keyparts))
+                    if k in labels[scheme]:raise ValueError("duplicate label")
+                    labels[scheme][k]=info
+        if p.suffix.lower() in (".yaml",".yml") and info.file_size<65536:config.append(info)
+    paired=sorted(images.keys()&labels[SCHEMES[0]].keys()&labels[SCHEMES[1]].keys())
+    groups_by_split={};unknown=0;overlap=0;eligible={}
+    for key in paired:
+        im=images[key];g=source_group(im.filename)
+        if g is None:unknown+=1;continue
+        parts=PurePosixPath(im.filename).parts
+        split="train" if "train" in parts else "val" if "val" in parts else "unknown"
+        counts=groups_by_split.setdefault(g,{})
+        counts[split]=counts.get(split,0)+1
+        if g[:8] in USED_DATES:overlap+=1;continue
+        eligible.setdefault(g,[]).append(key)
+    configs=[]
+    for info in config[:4]:
+        raw=read_entry(z,info,65536)
+        # Publisher YAML is data only. Never load a YAML constructor or execute code.
+        configs.append({"name":info.filename,"sha256":hashlib.sha256(raw).hexdigest(),
+                        "text":raw.decode("utf-8")[:1800]})
     samples=[]
-    # Only diagnostic CRC and local SHA, no redistribution and no training admission.
-    if paired:
-        key=paired[len(paired)//2];i=images[key];l=labels[key]
-        iraw=read_entry(z,i,4*1024*1024);lraw=read_entry(z,l,65536)
+    # At most four distinct nonoverlapping date/letter groups; the publisher's
+    # split is recorded, never trusted as a physical hive separation.
+    for g in sorted(eligible)[:4]:
+        keys=sorted(eligible[g]);key=keys[len(keys)//2];i=images[key]
+        iraw=read_entry(z,i,4*1024*1024)
         if not (iraw.startswith(b"\xff\xd8") or iraw.startswith(b"\x89PNG\r\n\x1a\n")):raise ValueError("invalid image header")
-        samples.append({"image":i.filename,"label":l.filename,"imageBytes":len(iraw),"labelBytes":len(lraw),
-            "imageSha256":hashlib.sha256(iraw).hexdigest(),"labelSha256":hashlib.sha256(lraw).hexdigest(),
-            "labelLineCount":len(lraw.decode("utf-8").splitlines()),"entryCrcVerified":True})
-    return {"entries":len(infos),"imageCandidates":len(images),"labelCandidates":len(labels),"pairedCandidates":len(paired),
-            "directoryCounts":dict(sorted(groups.items())[:80]),"configNames":sorted(config)[:30],
-            "firstNames":sorted(names)[:15],"samplePairs":samples,"archiveFullMd5Verified":False,
-            "sourceSessionIndependenceVerified":False,"trainingAdmission":False}
+        rec={"group":g,"image":i.filename,"imageBytes":len(iraw),"imageSha256":hashlib.sha256(iraw).hexdigest(),"labels":{}}
+        for scheme in SCHEMES:
+            l=labels[scheme][key];lraw=read_entry(z,l,65536)
+            rec["labels"][scheme]={"name":l.filename,"bytes":len(lraw),"sha256":hashlib.sha256(lraw).hexdigest(),"classCounts":label_rows(lraw)}
+        rec["entryCrcVerified"]=True;samples.append(rec)
+    return {"entries":len(infos),"imageCandidates":len(images),"labelCandidatesByScheme":{s:len(v) for s,v in labels.items()},
+            "pairedBothSchemes":len(paired),"groupsByPublisherSplit":dict(sorted(groups_by_split.items())),
+            "knownDateOverlapImages":overlap,"unknownSourceNameImages":unknown,"nonoverlapNamedGroups":sorted(eligible),
+            "groupsInBothPublisherSplits":sorted(g for g,v in groups_by_split.items() if "train" in v and "val" in v),
+            "directoryCounts":dict(sorted(groups.items())[:80]),"configs":configs,
+            "samplePairs":samples,"archiveFullMd5Verified":False,"sourceSessionIndependenceVerified":False,"trainingAdmission":False}
 
 def run():
     report={"doi":DOI,"license":"CC BY 4.0","archiveBytes":SIZE,"publisherMd5":MD5,"budgetBytes":BUDGET,

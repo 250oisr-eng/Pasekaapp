@@ -31,8 +31,15 @@ class RangeTests(unittest.TestCase):
     def test_archive_pair_and_path_traversal(self):
         data=io.BytesIO()
         with zipfile.ZipFile(data,"w") as z:
-            z.writestr("g/images/a.jpg",b"\xff\xd8test");z.writestr("g/labels/a.txt","0 .5 .5 .1 .1")
+            z.writestr("dataset/train/images/20220501a100.jpg",b"\xff\xd8test")
+            for scheme in p.SCHEMES:z.writestr("dataset/train/"+scheme+"/20220501a100.txt","0 .5 .5 .1 .1")
         with zipfile.ZipFile(data) as z:
-            r=p.inspect(z);self.assertEqual(r["pairedCandidates"],1);self.assertFalse(r["trainingAdmission"])
+            r=p.inspect(z);self.assertEqual(r["pairedBothSchemes"],1);self.assertFalse(r["trainingAdmission"])
         with self.assertRaises(ValueError):p.safe_name(zipfile.ZipInfo("../escape"))
+    def test_group_date_and_label_validation(self):
+        self.assertEqual(p.source_group("train/images/20230609b1692.jpg"),"20230609b")
+        self.assertIsNone(p.source_group("train/images/20230230a1.jpg"))
+        self.assertIsNone(p.source_group("random.jpg"))
+        self.assertEqual(p.label_rows(b"0 .5 .5 .1 .1\n3 .5 .5 .2 .2"),{"0":1,"3":1})
+        with self.assertRaises(ValueError):p.label_rows(b"4 .5 .5 .1 .1")
 if __name__=="__main__":unittest.main()
