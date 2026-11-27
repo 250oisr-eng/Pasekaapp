@@ -33,7 +33,11 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1664,6 +1668,16 @@
       "governancePass": 5,
       "chromiumPassed": true,
       "webPreparePassed": true
+    },
+    "missingAccountingStateGuard": {
+      "implementation": "9cef7695b6140377b6436f922327bc3608c5ae26",
+      "regression": "cfa314698d7a0bfba92758ba4739fd2ab117693c",
+      "negativeCases": 4,
+      "positiveCases": 1,
+      "spotCheck": "PASS",
+      "fullCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
     }
   }
 }
