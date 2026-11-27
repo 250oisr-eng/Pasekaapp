@@ -8,10 +8,7 @@ const {readFile}=require('node:fs/promises');
 const {resolve,extname,sep}=require('node:path');
 const root=resolve(__dirname,'../..');
 async function openPrimary(page,tab){
- const home=page.locator('#homeButton');
- if(await home.isVisible())await home.click();
- await page.locator('#home.panel.active').waitFor({state:'visible'});
- if(tab!=='home')await page.locator('main>nav button[data-tab="'+tab+'"]').click();
+ await page.locator('main>nav button[data-tab="'+tab+'"]').click();
 }
 
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',

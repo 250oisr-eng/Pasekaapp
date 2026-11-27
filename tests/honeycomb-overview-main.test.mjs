@@ -4,42 +4,33 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const nav = html.match(/<nav aria-label="Основные разделы">([\s\S]*?)<\/nav>/)?.[1] || '';
-const cssStart = html.indexOf('/* Five top-level sections; retain the centered honeycomb AI control.');
+const cssStart = html.indexOf('/* Unified workspace navigation');
 const cssEnd = html.lastIndexOf('</style>');
 const css = cssStart >= 0 && cssEnd > cssStart ? html.slice(cssStart, cssEnd) : '';
 
-test('five primary routes retain visible and keyboard order; all six secondary routes remain accessible', () => {
-  const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(m => m[1]);
-  assert.deepEqual(tabs, ['home','hives','ai','journal','settings']);
-  assert.equal(new Set(tabs).size,5);
-  for(const [parent,children] of Object.entries({hives:['entrance','varroa'],journal:['planning','forage'],settings:['incidents','deadout']})){
-    const section=html.slice(html.indexOf('<section id="'+parent+'" class="panel">'));
-    const group=section.match(/<div class="section-shortcuts" role="group"[\s\S]*?<\/div>/)?.[0]||'';
-    assert.deepEqual([...group.matchAll(/data-subtab="([^"]+)"/g)].map(m=>m[1]),children);
-    for(const child of children){
-      assert.ok(html.includes('id="'+child+'" class="panel"'));
-      assert.ok(group.includes("showTab('"+child+"')"));
-    }
+test('five sections and a single canonical AI preserve all routes', () => {
+ const tabs=[...nav.matchAll(/data-tab="([^"]+)"/g)].map(m=>m[1]);
+ assert.deepEqual(tabs,['home','hives','journal','planning','settings','ai']);
+ assert.equal(new Set(tabs).size,6);
+ for(const [parent,children] of Object.entries({hives:['entrance'],planning:['forage'],settings:['incidents','deadout','varroa']})){
+  const section=html.slice(html.indexOf('<section id="'+parent+'" class="panel">'));
+  const group=section.match(/<div class="section-shortcuts" role="group"[\s\S]*?<\/div>/)?.[0]||'';
+  assert.deepEqual([...group.matchAll(/data-subtab="([^"]+)"/g)].map(m=>m[1]),children);
+  for(const child of children){
+   assert.ok(html.includes('id="'+child+'" class="panel"'));
+   assert.ok(group.includes("showTab('"+child+"')"));
   }
-  assert.equal((nav.match(/data-tab="ai"/g) || []).length, 1, 'one AI entry');
-  assert.match(nav, /<button data-tab="home" class="active"[^>]*aria-current="page"/);
-  assert.ok(!/onkeydown=/.test(nav), 'do not reinstate legacy inline key events');
+ }
+ assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1);
+ assert.match(nav,/<button data-tab="home" class="active"[^>]*aria-current="page"/);
+ assert.match(nav,/aria-label="Открыть ИИ-помощника"[^>]*>ИИ<\/button>/);
+ assert.doesNotMatch(nav,/onkeydown=/);
 });
-
-test('five-cell honeycomb keeps one row and accessible central AI', () => {
-  assert.ok(css, 'final honeycomb styles must be declared after older rules');
-  assert.match(css,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
-  assert.match(css,/grid-row:1;grid-column:auto/);
-  for(const token of [
-    'grid-template-rows:var(--hex-h)',
-    'gap:0','clip-path:polygon(50% 0',
-    'env(safe-area-inset-bottom,0px)',
-    'focus-visible','prefers-reduced-motion:reduce'
-  ]) assert.ok(css.includes(token),'missing nav safety constraint: '+token);
-  assert.match(css,/button\[data-tab="ai"\]\{\s*grid-row:1;grid-column:3/);
-  assert.match(nav,/<button data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"[^>]*><svg class="nav-ai-bee"/);
-  assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
-  assert.match(html,/document\.addEventListener\('keydown',event=>\{/);
+test('persistent bottom bar is accessible and adapts field mode without obsolete shape constraints',()=>{
+ assert.ok(css);
+ for(const token of ['grid-template-columns:repeat(6,minmax(0,1fr))!important','min-height:48px','min-height:56px','clip-path:none','env(safe-area-inset-bottom,0px)','focus-visible','prefers-reduced-motion:reduce'])assert.ok(css.includes(token),token);
+ assert.doesNotMatch(css,/display:none!important/);
+ assert.doesNotMatch(nav,/nav-ai-bee/);
 });
 
 const homeStart = html.indexOf('function renderHome(){');
@@ -65,13 +56,13 @@ function exerciseHome(count, tasks = []) {
   const S = {hives:Array.from({length:count}, (_,i)=>({id:'hive-'+i})),families:[],tasks};
   const get = id => slots[id] || null;
   const render = new Function('$','S','renderApiaryStatus','layoutFor','getHiveProfile','profileBroodKeys',
-    'profileHoneyKeys','today','safe','frameStatusName','hname','ruPlural','taskMarkup','Option',
+    'profileHoneyKeys','today','safe','frameStatusName','hname','ruPlural','taskMarkup','Option','renderWorkspace',
     homeSource+'\nreturn renderHome;'
   )(get,S,()=>{},()=>({mode:'summer',installedBoxes:[],honeyBoxInstalled:[],honeyFrames:[],boxes:{}}),
     ()=>({family:'farrar',name:'Тестовый профиль',layout:{rows:[]}}),
     ()=>[],()=>[] ,()=> '2026-11-27',
     value=>String(value??''),()=> 'Пусто',id=>id,(n,one,two,many)=>n===1?one:many,
-    task=>'<mark>'+task.id+'</mark>',class Option {constructor(text,value){this.text=text;this.value=value}});
+    task=>'<mark>'+task.id+'</mark>',class Option {constructor(text,value){this.text=text;this.value=value}},()=>{});
   render();
   return slots;
 }
@@ -97,10 +88,4 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
 });
 
 
-test('central AI has a translucent hex rim and no legacy upward translation', () => {
-  assert.match(css,/grid-row:1;grid-column:3;width:100%;height:var\(--hex-h\)/);
-  assert.match(css,/transform:none!important/);
-  assert.match(css,/border:2px solid rgba\(186,242,255,\.74\)/);
-  assert.match(css,/background:radial-gradient\(circle at 50% 48%,#06467f 0%,#087bb8 43%,#56c8ed 73%,#b1f1ff 100%\)/);
-  assert.doesNotMatch(nav,/<span class="nav-ai-label">/);
-});
+test('AI is a single explicit action, not an old decorative constraint',()=>{assert.match(nav,/data-tab="ai"[^>]*aria-label="Открыть ИИ-помощника"/);assert.match(css,/transform:none!important/);});

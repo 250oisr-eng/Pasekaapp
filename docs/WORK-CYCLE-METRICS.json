@@ -1705,5 +1705,30 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
+  },
+  "uxReset20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "priorCodeSha": "783ca683a97db4e2dbdfb8a0e1ec1cd8f7c6aed0",
+    "priorCi": {
+      "fast": "failure",
+      "android": "failure",
+      "governance": "failure",
+      "chromium": "success_one_run"
+    },
+    "closedSupersededPrs": [
+      606,
+      637
+    ],
+    "closedSupersededIssues": [
+      596
+    ],
+    "physicalBranchDeletion": "UNAVAILABLE_CONNECTOR",
+    "nextCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }

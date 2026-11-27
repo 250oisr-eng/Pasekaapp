@@ -35,7 +35,7 @@ test('home stat captions are legible, including narrow phones', () => {
 
 test('navigation retains five primary destinations and marks the initial active page', () => {
   const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(x => x[1]);
-  assert.deepEqual(tabs, ['home','hives','ai','journal','settings']);
+  assert.deepEqual(tabs, ['home','hives','journal','planning','settings','ai']);
   assert.match(nav, /<button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">/);
   assert.equal((nav.match(/aria-current="page"/g) || []).length, 1);
 });
@@ -86,7 +86,7 @@ test('live paintTab switches aria-current exactly once, including hiveDetail and
   const {paintTab,doc,nodes,slots} = navigationHarness();
   const cases = [
     ['home','home'], ['hives','hives'], ['journal','journal'], ['ai','ai'],
-    ['hiveDetail','hives'], ['invalid-synthetic-tab','home'], ['entrance','hives'], ['varroa','hives'], ['planning','journal'], ['forage','journal'], ['incidents','settings'], ['deadout','settings']
+    ['hiveDetail','hives'], ['invalid-synthetic-tab','home'], ['entrance','hives'], ['varroa','settings'], ['planning','planning'], ['forage','planning'], ['incidents','settings'], ['deadout','settings']
   ];
   for (const [page, expected] of cases) {
     paintTab(page);
@@ -104,11 +104,10 @@ test('live paintTab switches aria-current exactly once, including hiveDetail and
   assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
 });
 
-test('primary menu is home-only and each interior page has an accessible icon-only Home button',()=>{
- assert.match(html,/body\[data-page\]:not\(\[data-page="home"\]\) main>nav\[aria-label="Основные разделы"\]\{display:none!important\}/);
- assert.match(html,/<button id="homeButton" type="button" aria-label="На главную" title="На главную" onclick="showTab\('home'\)"><svg[^>]*aria-hidden="true"/);
+test('primary menu persists and Back remains available on interior pages',()=>{
+ assert.doesNotMatch(html,/body\[data-page\]:not\(\[data-page="home"\]\) main>nav\[aria-label="Основные разделы"\]\{display:none!important\}/);
+ assert.doesNotMatch(html,/id="homeButton"/);
  assert.match(html,/id="backBar" style="margin:8px 0;display:none"/);
- assert.match(html,/#homeButton\{width:44px;min-width:44px/);
  const {paintTab,slots}=navigationHarness();
  for(const tab of ['home','hives','hiveDetail','journal','settings','ai','entrance','varroa','planning','forage','incidents','deadout']){
   paintTab(tab);

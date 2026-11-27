@@ -24,7 +24,7 @@ const scenarios=[
   ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
   ['landscape-915',915,412],['landscape-768',768,600],['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
-const expected=['home','hives','ai','journal','settings'];
+const expected=['home','hives','journal','planning','settings','ai'];
 const measure=()=> {
   const box=el=>{const r=el.getBoundingClientRect();
     return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
@@ -68,7 +68,7 @@ const measure=()=> {
   for(let i=0;i<buttons.length;i++){
     const button=buttons[i];
     if(Math.abs(button.cy-first.cy)>1)layoutProblems.push(button.tab+' is not in single row');
-    if(i>0&&Math.abs(button.left-buttons[i-1].right)>1)layoutProblems.push('hexagons do not touch edges');
+    if(i>0&&button.left<buttons[i-1].right-1)layoutProblems.push('tap targets overlap');
   }
   return {viewport:{width:innerWidth,height:innerHeight},
     documentWidth:document.documentElement.scrollWidth,
@@ -123,31 +123,20 @@ const measure=()=> {
       else {
         const tabs=m.buttons.map(b=>b.tab);
         if(JSON.stringify(tabs)!==JSON.stringify(expected))problems.push('navigation routes/order changed');
-        if(m.buttons.length!==5)problems.push('expected 5 nav buttons');
-        if(!m.aiVisual.beePresent||m.aiVisual.beePathCount<5)
-          problems.push('central AI must contain an inline stylized bee');
-        if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
-        if(!m.aiVisual.background?.includes('radial-gradient('))
-          problems.push('AI must use an edge-lightened radial blue gradient');
-        if(!/rgba\(/.test(m.aiVisual.rimColor||''))
-          problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
-        if(m.rowTracks!==1)
-          problems.push('single-row honeycomb changed');
+        if(m.buttons.length!==6)problems.push('expected five sections and one AI button');
+        if(m.aiVisual.hexagonButtons)problems.push('obsolete decorative geometry retained');
+        if(m.rowTracks!==1)problems.push('default navigation must be one row');
         problems.push(...m.layoutProblems);
         const ai=m.buttons.find(b=>b.tab==='ai');
-        if(ai?.label)problems.push('AI button must have no visible text');
-        if(ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI accessibility name missing');
-        if(m.buttons.find(b=>b.tab==='ai')?.cy!==m.buttons.find(b=>b.tab==='journal')?.cy)
-          problems.push('AI not in primary row');
+        if(ai?.label!=='ИИ'||ai?.accessibleName!=='Открыть ИИ-помощника')problems.push('AI visible or accessible name missing');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
         if(m.documentWidth>width+2)problems.push('document horizontal overflow '+m.documentWidth);
         if(m.mainPaddingBottom+1<m.nav.height)problems.push('main bottom padding smaller than nav');
-        if(m.aiDelta===null||Math.abs(m.aiDelta)>3)problems.push('AI not centered: '+m.aiDelta);
         if(m.overlaps.length)problems.push('overlapping tap rectangles: '+JSON.stringify(m.overlaps));
         for(const b of m.buttons){
           if(!b.visible)problems.push(b.tab+' hidden');
-          if(b.width<43.5||b.height<43.5)problems.push(b.tab+' tap target '+Math.round(b.width)+'x'+Math.round(b.height));
+          if(b.width<47.5||b.height<47.5)problems.push(b.tab+' tap target '+Math.round(b.width)+'x'+Math.round(b.height));
           if(!b.hit)problems.push(b.tab+' center hit is intercepted');
           if(b.textOutside||b.overflowX||b.overflowY)problems.push(b.tab+' label overflows');
         }
@@ -162,30 +151,30 @@ const measure=()=> {
         await page.screenshot({path:'e2e-nav-'+name+'-failure.png'}).catch(()=>{});
       }
     }
-    // Home-only primary navigation. Verify visible controls and direct Home from all screens.
+    // Persistent navigation and direct Home from all screens.
     const primary=page.locator('main>nav[aria-label="Основные разделы"]');
-    const home=page.locator('#homeButton'),back=page.locator('#backButton');
+    const home=primary.locator('button[data-tab="home"]'),back=page.locator('#backButton');
     async function assertInterior(tab){
       await page.locator('#'+tab+'.panel.active').waitFor({state:'visible'});
-      assert.equal(await primary.isVisible(),false,tab+' must hide primary navigation');
+      assert.ok(await primary.isVisible(),tab+' must keep primary navigation');
       assert.ok(await back.isVisible(),tab+' Back must be visible');
       assert.ok(await home.isVisible(),tab+' Home must be visible');
       const rect=await home.boundingBox();
-      assert.ok(rect.width>=44&&rect.height>=44,tab+' Home tap target');
-      assert.equal(await home.getAttribute('aria-label'),'На главную');
-      assert.equal(await home.locator('svg[aria-hidden="true"]').count(),1);
-      assert.ok(await page.evaluate(()=>parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom))<110,tab+' must reclaim bottom space');
+      assert.ok(rect.width>=48&&rect.height>=48,tab+' Home tap target');
+      assert.equal(await home.getAttribute('aria-label'),'Обзор пасеки');
+      const parent=({hiveDetail:'hives',entrance:'hives',forage:'planning',varroa:'settings',incidents:'settings',deadout:'settings'})[tab]||tab;
+      assert.equal(await primary.locator('button[aria-current="page"]').getAttribute('data-tab'),parent);
+      assert.equal(await primary.locator('button[data-tab="ai"]').count(),1);
     }
     async function assertHome(){
       await page.locator('#home.panel.active').waitFor({state:'visible'});
       assert.ok(await primary.isVisible());
-      assert.equal(await home.isVisible(),false);
+      assert.ok(await home.isVisible());
       assert.equal(await back.isVisible(),false);
       const m=await page.evaluate(measure);
       assert.deepEqual(m.buttons.map(x=>x.tab),expected);
       assert.equal(m.rowTracks,1);
       assert.deepEqual(m.layoutProblems,[]);
-      assert.ok(Math.abs(m.aiDelta)<=3);
     }
     await page.setViewportSize({width:390,height:844});
     await assertHome();
@@ -193,6 +182,12 @@ const measure=()=> {
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('field');
     assert.equal(await page.locator('body').getAttribute('data-workspace-mode'),'field');
     assert.ok((await page.getByRole('button',{name:'Осмотр семьи',exact:true}).boundingBox()).height>=56);
+    await page.setViewportSize({width:320,height:640});
+    const fieldGeometry=await page.evaluate(measure);
+    assert.equal(fieldGeometry.rowTracks,2);
+    assert.ok(fieldGeometry.buttons.every(b=>b.width>=55.5&&b.height>=55.5&&b.hit),'field mode 56px targets');
+    assert.ok(fieldGeometry.mainPaddingBottom>=fieldGeometry.nav.height);
+    await page.setViewportSize({width:390,height:844});
     await page.getByRole('combobox',{name:'Сезон пасеки'}).selectOption('winter');
     assert.equal(await page.locator('#workspaceSeasonTitle').textContent(),'Зима');
     await page.getByRole('combobox',{name:'Рабочий режим'}).selectOption('night');
@@ -206,7 +201,7 @@ const measure=()=> {
       await home.click();
       await assertHome();
     }
-    for(const [parent,children] of Object.entries({hives:['entrance','varroa'],journal:['planning','forage'],settings:['incidents','deadout']})){
+    for(const [parent,children] of Object.entries({hives:['entrance'],planning:['forage'],settings:['incidents','deadout','varroa']})){
       for(const child of children){
         await page.locator('main>nav button[data-tab="'+parent+'"]').click();
         await assertInterior(parent);
