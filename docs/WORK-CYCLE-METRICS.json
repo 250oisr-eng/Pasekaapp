@@ -1897,5 +1897,18 @@
     "productionMutation": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "uxFinalDevicePreparation20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "runtimeMainSha": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+    "package": "ru.paseka.journal.qa.ux20261127",
+    "mainTests": 1085,
+    "mainCi": "PASS",
+    "binary": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }
