@@ -9,3 +9,7 @@ F4: QA generation добавляет native bridge Vosk/JNA, отдельный 
 F5: Node tests verify generation guards, preservation of daily schedule, draft append, plugin source boundaries; dedicated Android QA CI actual build/pin/signer/package evidence required. Physical mic, installation, ABI/page size, recognition accuracy, airplane mode, archive scheduling on device NOT_TESTED. Никакого обновления ранее установленных APK. Не утверждать, что QA уже работает на OnePlus.
 
 F6: отдельный Draft, не переносить в main как production runtime, не менять текущий QA. После CI — безопасная физическая проверка отдельного APK только на синтетических данных. Дальше совместить native provider с #641/локальными командами и #164 без скрытого сетевого fallback. Реальная field diary, continuous commands, TTS, locked-screen and publication NOT_IMPLEMENTED. F7 NO_RELEASE.
+
+## Повторная проверка
+
+First Fast/Governance on `5b0d5be7` PASS. Усиление: UI ждёт подтверждённый native stop, при отказе блокирует новый сеанс/перенос; успешный перенос очищает QA-буфер и сохраняет исходные пробелы черновика. Два поведенческих теста с mock bridge. APK проверяется после сборки: реальные байты ZIP, UI, daily worker, arm64 Vosk/JNA, ELF PT_LOAD alignment и отдельный zipalign -P 16. Результат 16K alignment не доказывает физический размер страниц устройства. Повторный exact-head CI обязателен.

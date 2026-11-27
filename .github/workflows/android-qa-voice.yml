@@ -8,6 +8,7 @@ on:
       - 'android-native/PasekaVoiceQaPlugin.java'
       - 'android-native/voice-qa.js'
       - 'tests/android-voice-qa.test.mjs'
+      - 'scripts/verify-voice-qa-apk.py'
 
 permissions:
   contents: read
@@ -99,6 +100,8 @@ jobs:
           set -euo pipefail
           mkdir -p qa-artifact
           cp android/app/build/outputs/apk/debug/app-debug.apk qa-artifact/PASEKA-VOICE-QA-ONLY.apk
+          python3 scripts/verify-voice-qa-apk.py qa-artifact/PASEKA-VOICE-QA-ONLY.apk qa-artifact/VOICE-CONTENTS-PROOF.json
+          if "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 qa-artifact/PASEKA-VOICE-QA-ONLY.apk; then echo PASS > qa-artifact/ZIPALIGN-16K.txt; else echo FAIL > qa-artifact/ZIPALIGN-16K.txt; fi
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
           import {createHash} from 'node:crypto';
@@ -119,6 +122,8 @@ jobs:
             artifactKind:'ISOLATED_DISPOSABLE_QA_ONLY_NOT_RELEASE',
             modelSha256:'961d5ff98a17f4aa6de69864d0aa71fa5bac682301d2b5d17a3f24c5c99a46d4',
             modelBundledForQaOnly:true,
+            apkContentsProof:JSON.parse(readFileSync('qa-artifact/VOICE-CONTENTS-PROOF.json','utf8')),
+            zipalign16k:readFileSync('qa-artifact/ZIPALIGN-16K.txt','utf8').trim(),
             packageName:parsed.packageName,
             appLabel:'Пасека QA — голос',
             sourceCommitSha:sha,

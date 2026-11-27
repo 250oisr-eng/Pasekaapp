@@ -51,3 +51,41 @@ test('native QA source pins model identity and guards microphone lifecycle',asyn
  for(const token of ['961d5ff98a17f4aa6de69864d0aa71fa5bac682301d2b5d17a3f24c5c99a46d4','ARCHIVE_BYTES=46236750L','EXPANDED_BYTES=91289240L','files!=14','graph/HCLr.fst','graph/Gr.fst','epoch.incrementAndGet()','current!=session','handleOnPause()','handleOnDestroy()','permissionCall!=call','destination().exists()','session.service.cancel()'])assert.ok(java.includes(token),token);
  assert.doesNotMatch(java,/HttpURLConnection|openConnection\(|https?:\/\/|deleteDatabase|clearCache/);
 });
+
+
+async function uiHarness(){
+ const source=await readFile(new URL('../android-native/voice-qa.js',import.meta.url),'utf8');
+ const ids=['qaVoicePanel','qaVoiceText','qaVoiceStatus','qaVoiceStart','qaVoiceStop','qaVoiceInstall','qaVoiceToDraft','aiJournalDraftInput'];
+ const elements=Object.fromEntries(ids.map(id=>[id,{value:'',disabled:false,focus(){}}]));
+ const events={},stops=[],starts=[];
+ const api={addListener:async(n,fn)=>{events[n]=fn;return{}},getStatus:async()=>({modelInstalled:true}),
+   start:async({token})=>{starts.push(token);return {started:true,token}},
+   stop:()=>new Promise((resolve,reject)=>stops.push({resolve,reject}))};
+ const window={Capacitor:{Plugins:{PasekaOfflineSpeech:api}},addEventListener(){}};
+ const document={getElementById:id=>elements[id],addEventListener(){}};
+ vm.runInNewContext(source,{window,document});
+ await new Promise(resolve=>setImmediate(resolve));
+ return {elements,events,stops,starts};
+}
+test('QA UI ignores stale callbacks and prevents restart/transfer until native stop resolves',async()=>{
+ const {elements:e,events,stops,starts}=await uiHarness();
+ await e.qaVoiceStart.onclick();const token=starts[0];
+ events.result({token:'old',text:'неверно'});assert.equal(e.qaVoiceText.value,'');
+ events.result({token,text:'наблюдение'});assert.equal(e.qaVoiceText.value,'наблюдение');
+ e.qaVoiceStop.onclick();assert.equal(e.qaVoiceStart.disabled,true);assert.equal(e.qaVoiceToDraft.disabled,true);
+ events.result({token,text:'поздняя команда'});assert.equal(e.qaVoiceText.value,'наблюдение');
+ await e.qaVoiceStart.onclick();assert.equal(starts.length,1);
+ e.qaVoiceToDraft.onclick();assert.equal(e.aiJournalDraftInput.value,'');
+ stops[0].resolve();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(e.qaVoiceStart.disabled,false);
+ e.aiJournalDraftInput.value='ручной текст  ';e.qaVoiceToDraft.onclick();
+ assert.equal(e.aiJournalDraftInput.value,'ручной текст  \nнаблюдение');assert.equal(e.qaVoiceText.value,'');
+ e.qaVoiceToDraft.onclick();assert.equal(e.aiJournalDraftInput.value,'ручной текст  \nнаблюдение');
+});
+test('failed native stop keeps start and journal transfer blocked until retry succeeds',async()=>{
+ const {elements:e,stops}=await uiHarness();await e.qaVoiceStart.onclick();e.qaVoiceStop.onclick();
+ stops[0].reject(Error('synthetic stop failure'));await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(e.qaVoiceStart.disabled,true);assert.equal(e.qaVoiceToDraft.disabled,true);assert.equal(e.qaVoiceStop.disabled,false);
+ e.qaVoiceStop.onclick();stops[1].resolve();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(e.qaVoiceStart.disabled,false);assert.equal(e.qaVoiceToDraft.disabled,false);
+});
