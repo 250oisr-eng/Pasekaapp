@@ -1130,6 +1130,53 @@
     "talkBack": "NOT_TESTED",
     "twoRowUXAcceptance": "PENDING_VISUAL_ACCEPTANCE",
     "release": "NOT_AUTHORIZED",
-    "completedVerifiedUserScenarios": 0
+    "completedVerifiedUserScenarios": 0,
+    "integration": "IN_MAIN_MERGE_e00d5d34"
+  },
+  "uiHomeCanonicalAI20261127": {
+    "sourceMain": "e00d5d34cdeeed619bb2af6082650f7643e9994b",
+    "pr": 604,
+    "implementation": "CI_VERIFIED_CODE_SHA",
+    "retainedNavAI": true,
+    "homeDuplicateRemoved": true,
+    "quickJournalEntryRetained": true,
+    "aiPromptChipsRetained": true,
+    "storageChanged": false,
+    "videoTouched": false,
+    "serviceWorkerChanged": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "nodeCI": {
+      "run": 45954139870,
+      "tests": 1017,
+      "pass": 1017,
+      "fail": 0
+    },
+    "chromium": {
+      "run": 45954040590,
+      "conclusion": "success",
+      "checkedHtmlSha": "0e0ac87c7a18e71dfa12ee4b952581f28578e4a6",
+      "journalMobileDesktop": "PASS",
+      "geometry11": "PASS"
+    },
+    "android": {
+      "run": 45954139760,
+      "tests": 1017,
+      "pass": 1017,
+      "fail": 0,
+      "artifactId": 15178077126
+    },
+    "codeSha": "e185a4e828641eeb521291d68f4222c2bf1ddc06",
+    "governance": {
+      "run": 45954145543,
+      "conclusion": "success"
+    },
+    "initialCiFailure": {
+      "sha": "0e0ac87c7a18e71dfa12ee4b952581f28578e4a6",
+      "fastRun": 45954040598,
+      "reason": "two stale regression expectations required removed home AI relay",
+      "resolution": "updated tests/regression.test.mjs to canonical AI prompt without auto-send"
+    },
+    "exactFinalHead": "PENDING_DOCS_ONLY_SHA"
   }
 }

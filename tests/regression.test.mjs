@@ -654,7 +654,7 @@ test('batch frame move compares the executable plan with its reviewed preview',(
 });
 
 
-test('hybrid workspace exposes eleven clear navigation destinations and home AI entry points',()=>{
+test('workspace exposes eleven routes and one canonical AI entry, plus quick journal',()=>{
   const navStart=html.indexOf('<nav aria-label="Основные разделы">');
   const navEnd=html.indexOf('</nav>',navStart);
   assert.ok(navStart>=0&&navEnd>navStart,'accessible main navigation exists');
@@ -662,7 +662,10 @@ test('hybrid workspace exposes eleven clear navigation destinations and home AI 
   assert.equal((nav.match(/data-tab=/g)||[]).length,11);
   for(const label of ['Обзор','Ульи','Лёток','Журнал','Медоносы','Клещ','Инцидент','План','Потери','Ещё'])assert.ok(nav.includes('>'+label+'</button>'));
   assert.match(nav,/<span class="nav-ai-label">ИИ<\/span>/);
-  assert.ok(html.includes('id="homeAIQuestion"'));
+  assert.equal((nav.match(/data-tab="ai"/g)||[]).length,1);
+  assert.ok(!html.includes('id="homeAIQuestion"'));
+  assert.match(html,/<div class="card home-recent-card"><div class="row"><b>Последние события<\/b><button type="button" onclick="newRecord\(\)">＋ Записать событие<\/button>/);
+  assert.ok(html.includes('id="aiQuestion"'));
   assert.ok(html.includes('class="ai-capabilities"'));
   assert.ok(html.includes('class="ai-prompt-chips"'));
 });
@@ -692,17 +695,15 @@ test('AI command confirmation can be explicitly confirmed by voice without remov
  assert.equal((html.match(/if\(!voiceConfirmed&&!confirm\(/g)||[]).length,2);
  assert.match(html,/handleApiaryVoiceTranscript\(transcript\)/);
 });
-test('home AI entry copies the chosen prompt into chat without sending it',()=>{
-  let activeTab='',focused=false;
-  const nodes={homeAIQuestion:{value:'  Проверь состояние семей  '},aiQuestion:{value:'',focus(){focused=true}}};
-  const ask=loadFunction('askAIFromHome',{$:id=>nodes[id],showTab:tab=>{activeTab=tab}});
-  ask();
-  assert.equal(activeTab,'ai');
-  assert.equal(nodes.aiQuestion.value,'Проверь состояние семей');
-  assert.equal(focused,true);
-  const helper=loadFunction('useAIPrompt',{$:id=>nodes[id]});
+test('canonical AI prompt chip fills the AI draft without sending it',()=>{
+  let focused=false,sent=false;
+  const nodes={aiQuestion:{value:'',focus(){focused=true}}};
+  const helper=loadFunction('useAIPrompt',{$:id=>nodes[id],sendAIQuestion:()=>{sent=true}});
   helper('Составь план работ');
   assert.equal(nodes.aiQuestion.value,'Составь план работ');
+  assert.equal(focused,true);
+  assert.equal(sent,false);
+  assert.ok(!html.includes('askAIFromHome('));
 });
 
 

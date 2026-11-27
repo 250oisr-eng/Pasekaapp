@@ -129,6 +129,16 @@ async function journey(browser,origin,name,viewport){
     await card.getByRole('button',{name:'Вернуться к улью'}).click();
     await page.locator('#selectedHivePanel').waitFor({state:'visible'});
     assert.deepEqual(await capture(),before,'history navigation mutated journal data');
+    // Approved UX: one canonical AI entry in bottom nav; keep one-tap record creation on home.
+    await page.locator('button[data-tab="home"]').click();
+    assert.equal(await page.locator('#home .home-ai-card').count(),0);
+    assert.equal(await page.locator('#home #homeAIQuestion').count(),0);
+    assert.equal(await page.locator('main>nav button[data-tab="ai"]').count(),1);
+    await page.locator('#home .home-recent-card').getByRole('button',{name:'＋ Записать событие'}).click();
+    await page.locator('#recordDlg').waitFor({state:'visible'});
+    await page.keyboard.press('Escape');
+    await page.locator('#recordDlg').waitFor({state:'hidden'});
+    assert.deepEqual(await capture(),before,'unsaved quick journal draft mutated data');
     assert.deepEqual(errors,[],'unexpected browser error or dialog');
     console.log(JSON.stringify({scenario:'hive-family-inspection-save-reload-no-duplicate',
       viewport:name,status:'PASS',source:'local-Chromium-real-IndexedDB',
