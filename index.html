@@ -4208,6 +4208,14 @@ async function verifyDisasterArchive(){
  if(!file){if(status)status.textContent='Выберите ранее сохранённый файл полного архива';return;}
  try{
   if(!db)throw new Error('Локальная база недоступна');
+  if(!file.size)throw new Error('Выбран пустой файл. Найдите сохранённый полный JSON-архив в «Загрузках».');
+  // Android's document picker may allow selecting ZIP despite accept=".json".
+  // Check only the signature and name before decoding: never restore or mutate IndexedDB.
+  const signature=new Uint8Array(await file.slice(0,4).arrayBuffer());
+  if(signature[0]===0x50&&signature[1]===0x4b)
+   throw new Error('Выбран ZIP-файл (сигнатура PK), а не полный JSON-архив. В «Загрузках» выберите именно paseka-full-idb-YYYY-MM-DD.json, не ZIP с APK. Ничего не удаляйте.');
+  if(!/\.json$/i.test(file.name||''))
+   throw new Error('Выбран файл не с расширением .json. Нужен сохранённый paseka-full-idb-YYYY-MM-DD.json из «Загрузок».');
   const raw=await file.text();
   const result=await PasekaDisasterArchive.inspectArchive(raw,db,(state)=>assertRawBackupIntegrity(validateBackupState(state)));
   if(status)status.textContent='Файл прошёл SHA-256 и проверку структуры: '+result.sha256+'. Записей: '+Object.values(result.counts).reduce((total,n)=>total+n,0)+'. Независимое восстановление НЕ подтверждено.';
