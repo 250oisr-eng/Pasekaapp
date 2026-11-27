@@ -1897,5 +1897,27 @@
     "productionMutation": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "secondHoneyPairCurrentPort20261127": {
+    "stage": "CI_VERIFIED_EXACT_SHA",
+    "pr": 649,
+    "codeSha": "7c56dc29ae29624db3404e6afdab7d2f9efe3f00",
+    "sourcePrs": [
+      201,
+      202
+    ],
+    "nodeTests": 1096,
+    "ci": {
+      "fast": 46062202372,
+      "android": 46062211080,
+      "governance": 46062211099,
+      "result": "PASS"
+    },
+    "ui": "BLOCKED_B07",
+    "device": "NOT_TESTED",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }
