@@ -65,15 +65,18 @@ public final class PasekaDailyArchiveJob extends JobService {
                     return true;
                 }
             });
-            worker.addJavascriptInterface(new Object() {
-                @JavascriptInterface public boolean isArchiveWorker() { return true; }
-                @JavascriptInterface public void finish(String outcome) {
-                    boolean retry = !"OK".equals(outcome) && !"SKIP".equals(outcome);
-                    main.post(() -> complete(parameters, retry));
-                }
-            }, "PasekaArchiveJob");
+            worker.addJavascriptInterface(new WorkerBridge(parameters), "PasekaArchiveJob");
             worker.loadDataWithBaseURL("https://localhost/", html, "text/html", "UTF-8", null);
         } catch (Exception failure) { complete(parameters, true); }
+    }
+    public final class WorkerBridge {
+        private final JobParameters parameters;
+        WorkerBridge(JobParameters parameters) { this.parameters = parameters; }
+        @JavascriptInterface public boolean isArchiveWorker() { return true; }
+        @JavascriptInterface public void finish(String outcome) {
+            boolean retry = !"OK".equals(outcome) && !"SKIP".equals(outcome);
+            main.post(() -> complete(parameters, retry));
+        }
     }
     private void dispose() {
         if (timeout != null) main.removeCallbacks(timeout);

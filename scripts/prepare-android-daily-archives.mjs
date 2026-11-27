@@ -63,7 +63,8 @@ export function patchManifest(source){
  if(source.includes(service)&&source.includes(permission))return source;
  if(source.includes('PasekaDailyArchiveJob')||source.split('</application>').length!==2||source.split('</manifest>').length!==2)
   throw Error('DAILY_WORKER_BLOCKED: unexpected AndroidManifest');
- return source.replace('</application>',service+'\n    </application>').replace('</manifest>',permission+'\n</manifest>');
+ const patched=source.replace('</application>',service+'\n    </application>');
+ return source.includes(permission)?patched:patched.replace('</manifest>',permission+'\n</manifest>');
 }
 export async function prepareDailyWorkerAndroid(workspace=root){
  const config=JSON.parse(await readFile(join(workspace,'capacitor.config.json'),'utf8')),id=assertDailyConfig(config);

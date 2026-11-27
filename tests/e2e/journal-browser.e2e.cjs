@@ -233,6 +233,70 @@ async function archiveJourney(browser,origin){
  }finally{await context.close();}
 }
 
+
+async function nativeArchiveWorkerJourney(browser){
+ const {buildDailyWorkerHtml}=await import('../../scripts/prepare-android-daily-archives.mjs');
+ const read=path=>readFile(resolve(root,path),'utf8');
+ const workerHtml=await buildDailyWorkerHtml(await read('index.html'),read,await read('android-native/daily-archive-worker.js'));
+ const context=await browser.newContext({locale:'ru-RU',timezoneId:'UTC',serviceWorkers:'block'});
+ const origin='https://localhost';
+ await context.route('**/*',async route=>{
+  const url=new URL(route.request().url());
+  if(url.origin!==origin)return route.abort();
+  if(url.pathname==='/__archive_worker__.html')return route.fulfill({contentType:'text/html; charset=utf-8',body:workerHtml});
+  const file=resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
+  if(!file.startsWith(root+sep)||!mime[extname(file)])return route.abort();
+  try{return await route.fulfill({contentType:mime[extname(file)],body:await readFile(file)});}catch(_){return route.abort();}
+ });
+ const bridge=()=>{window.PasekaArchiveJob={isArchiveWorker:()=>true,finish:value=>{window.__nativeWorkerResult=value;}}};
+ const day=async(page,date)=>page.clock.setFixedTime(new Date(date+'T12:00:00Z'));
+ const page=await context.newPage(),errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ page.on('dialog',async dialog=>{
+  if(dialog.type()==='confirm'&&dialog.message().includes('Подтверждаешь, что это действительно первый запуск')){await dialog.accept();return;}
+  errors.push(dialog.message());await dialog.dismiss();
+ });
+ try{
+  const skipped=await context.newPage();
+  await skipped.addInitScript(bridge);
+  await day(skipped,'2026-11-25');
+  await skipped.goto(origin+'/__archive_worker__.html',{waitUntil:'domcontentloaded'});
+  await skipped.waitForFunction(()=>window.__nativeWorkerResult);
+  assert.equal(await skipped.evaluate(()=>window.__nativeWorkerResult),'SKIP');
+  assert.equal(await skipped.evaluate(async()=>Boolean((await indexedDB.databases()).find(d=>d.name==='paseka-v1'))),false);
+  await skipped.close();
+  await day(page,'2026-11-25');
+  await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>{try{return startupWriteGate.ready===true&&dailyArchiveCheckedDay==='2026-11-25'&&!dailyArchiveBusy}catch{return false}});
+  await page.locator('button[data-tab="hives"]').click();
+  await page.locator('[data-action="open-new-hive"]').click();
+  await page.locator('#hiveForm button.primary').click();
+  await page.locator('#hiveDlg').waitFor({state:'hidden'});
+  await page.evaluate(()=>saveQueue);
+  const digest=()=>page.evaluate(async()=>JSON.parse(await PasekaDisasterArchive.exportArchive(db)).manifest.sha256);
+  const before=await digest();
+  const worker=await context.newPage();
+  worker.on('pageerror',e=>errors.push(e.message));
+  worker.on('dialog',async d=>{errors.push(d.message());await d.dismiss();});
+  await worker.addInitScript(bridge);
+  await day(worker,'2026-11-26');
+  await worker.goto(origin+'/__archive_worker__.html',{waitUntil:'domcontentloaded'});
+  await worker.waitForFunction(()=>window.__nativeWorkerResult);
+  assert.equal(await worker.evaluate(()=>window.__nativeWorkerResult),'OK');
+  assert.equal(await worker.evaluate(()=>startupWriteGate.ready),false,'background worker must never enable main writes');
+  await worker.close();
+  assert.equal(await digest(),before,'background archive mutated primary database');
+  const latest=await page.evaluate(async()=>{
+   const store=await getDailyArchiveStore();
+   const selected=await PasekaDailyArchives.getVerified(store,'latest',dailyArchiveInspect);
+   return {date:selected.row.day,hives:selected.proof.main.hives.length,sha:selected.proof.sha256,slots:(await PasekaDailyArchives.readAll(store)).length};
+  });
+  assert.deepEqual(latest,{date:'2026-11-26',hives:1,sha:before,slots:2});
+  assert.deepEqual(errors,[]);
+  console.log(JSON.stringify({scenario:'native-worker-html-same-origin-offline-archive-no-primary-write',status:'PASS',source:'Chromium simulated native bridge and real IndexedDB',androidScheduler:'NOT_TESTED'}));
+ }finally{await context.close();}
+}
+
 (async()=>{
   await listen();
   const origin='http://127.0.0.1:'+server.address().port;
@@ -242,5 +306,6 @@ async function archiveJourney(browser,origin){
     await journey(browser,origin,'mobile',{width:412,height:915});
     await journey(browser,origin,'desktop',{width:1280,height:800});
     await archiveJourney(browser,origin);
+    await nativeArchiveWorkerJourney(browser);
   }finally{if(browser)await browser.close();await close()}
 })().catch(error=>{console.error(error.stack||String(error));process.exitCode=1});
