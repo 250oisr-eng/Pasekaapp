@@ -1197,5 +1197,54 @@
       "fail": 0,
       "debugArtifactId": 15177799114
     }
+  },
+  "ui596TwoRowCandidate20261127": {
+    "issue": 596,
+    "pr": 606,
+    "status": "CI_VERIFIED_CODE_SHA_DRAFT_VISUAL_APPROVAL_PENDING",
+    "baseMain": "1578fb70b4f14e6fc808f02ccefeaf9fca96d270",
+    "codeSha": "d09ba7aa5d272e35e0c6cd37b4f78561a9a36773",
+    "layout": {
+      "compactRows": 2,
+      "compactSlots": "6+5",
+      "desktopRows": 1,
+      "directDestinations": 11,
+      "aiOneCentered": true,
+      "compactButtonFontMinCssPx": 11,
+      "navHeight320Before": 189,
+      "navHeight320After": 132
+    },
+    "ci": {
+      "fast": 45956426983,
+      "android": 45956426971,
+      "chromium": 45956427106,
+      "tests": 1018,
+      "pass": 1018,
+      "fail": 0,
+      "geometryViewports": 15,
+      "overlapCount": 0,
+      "syntheticScreenshotArtifact": 15178682635,
+      "debugApkArtifact": 15178553110
+    },
+    "firstFailedCi": {
+      "sha": "a26728e6a7fd77c429d36bca08cab021eaaea973",
+      "fastRun": 45955971331,
+      "pass": 1015,
+      "total": 1018,
+      "reason": "two P0 extraction tests captured inserted JS before sentinel, one CSS literal assertion",
+      "resolved": true
+    },
+    "physicalOnePlus": "NOT_TESTED",
+    "talkBack": "NOT_TESTED",
+    "gestureSafeArea": "NOT_VERIFIED",
+    "visualAcceptance": "PENDING_USER_DECISION",
+    "mergeAllowedForDesign": false,
+    "indexedDBChanged": false,
+    "backupRestoreChanged": false,
+    "serviceWorkerChanged": false,
+    "videoTouched": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
   }
 }
