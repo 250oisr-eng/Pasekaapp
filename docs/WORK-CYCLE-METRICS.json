@@ -1489,5 +1489,35 @@
     "artifactExpiresAt": "2026-12-04T09:44:20Z",
     "apkSha256": "83ce0f45cd57acc81f3fd5368b7e13cc8db3057221124b536147336d429ef4d6",
     "originalQaUnchanged": true
+  },
+  "homeRecentEvents20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 622,
+    "sourceMainSha": "50cfdfd66e2691e471b698fbc53af0d16d99aa98",
+    "codeSha": "bae2c402136d47bc12736431dcf7c0092aeea734",
+    "canonicalAiAlreadyInMain": true,
+    "nodeTests": {
+      "pass": 1038,
+      "fail": 0,
+      "targetedPass": 278,
+      "targetedFail": 0
+    },
+    "chromium": {
+      "viewports": 14,
+      "routes": 11,
+      "searchViewports": 3,
+      "journalViewports": 2
+    },
+    "webPrepare": "PASS",
+    "codeCi": [
+      {"name": "Fast", "id": 45989553703, "conclusion": "success"},
+      {"name": "Chromium", "id": 45989553705, "conclusion": "success"},
+      {"name": "Android debug", "id": 45989561734, "conclusion": "success"}
+    ],
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/pull/622/checks",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "next": "Separate technical diagnostics from the overview per approved UX principles"
   }
 }
