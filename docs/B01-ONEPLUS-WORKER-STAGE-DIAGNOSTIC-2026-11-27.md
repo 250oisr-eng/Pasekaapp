@@ -87,3 +87,31 @@ F0–F2: следующая минимальная граница — **толь
 - Следующая QA-сборка исключительно новый `ru.paseka.journal.qa.daily.dom`; прежние `.qa.daily`, `.qa.daily.diag`, `.qa.daily.probe` с нестабильными debug-подписями сохраняются без `-r`, `uninstall`, `pm clear`. Новый пакет требует точного SHA/CI и физического пробного запуска. Если HTML отсутствует — исследовать навигацию/перехват, если HTML есть и inline не исполнен — исследовать JS/CSP/WebView. `DEVICE_NOT_TESTED` для `.dom` до реального лога.
 
 **Эксплуатационная мера:** не запускать повторные G4-попытки до содержательного изменения. При необходимости остановить только зависшие job IDs тестовых пакетов адресным `adb shell cmd jobscheduler cancel -u 0 PACKAGE 1346458437`, не трогая рабочее приложение или первоначальные два ZIP.
+
+## 27.11.2026 — физически доказана ошибочная блокировка внутреннего главного HTML (B01/G4)
+
+Установлен отдельный `ru.paseka.journal.qa.daily.dom`; установка и запуск ADB `Success`. На OnePlus NE2213 Android 16 в одном принудительном запуске `JobScheduler` получено:
+
+```text
+20:45:44.995 START
+20:45:45.003 ASSET_READY
+20:45:45.012 LOAD_REQUESTED
+20:45:45.057 MAIN_FRAME_INTERCEPTED_OTHER
+20:45:45.065 MAIN_HTTP_ERROR
+20:45:45.091 PAGE_STARTED_LOCALHOST
+20:45:45.091 PAGE_FINISHED_LOCALHOST phase=START
+20:45:45.103 PAGE_FINISHED_LOCALHOST phase=START
+20:45:45.103 JS_PROBE_HTML_ABSENT
+20:45:45.105 JS_PROBE_HTML_ABSENT
+```
+
+**Первопричина загрузочной неисправности подтверждена:** `shouldInterceptRequest` без исключений возвращал `403 Forbidden` для всякого запроса, включая *внутренний запрос главного документа*, создаваемый `loadDataWithBaseURL()`. Это уничтожило HTML прежде, чем код архивного worker получил возможность исполниться. `PAGE_FINISHED` обозначает завершение навигации и не удостоверяет действительность HTML. Точный URI главного запроса не выводился ради приватности; `OTHER` — категория, а не утверждение, что это сетевой URL. Android WebViewClient API документирует вызов `shouldInterceptRequest` также для `data:`, а `null` возвращает загрузку ресурса обратно WebView: https://developer.android.com/reference/android/webkit/WebViewClient#shouldInterceptRequest(android.webkit.WebView,%20android.webkit.WebResourceRequest) . Предыдущий `JS_PROBE_NO_INLINE` и текущий `JS_PROBE_HTML_ABSENT` совместно подтверждают отсутствие целевого HTML после HTTP 403.
+
+### F0–F2: минимальное безопасное исправление в Draft #629 (пока без физического PASS)
+
+- `PasekaDailyArchiveJob.java` разрешает `return null` **строго для одного запроса главного фрейма со схемой `data:`**, только пока тот же `JobParameters` активен, под `AtomicBoolean.compareAndSet(true,false)`. Любые последующие `data:`, сетевые `http(s):`, файлы, `content:`, дочерние фреймы по-прежнему получают `403 Forbidden`.
+- Сохраняются `setBlockNetworkLoads(true)`, `setAllowFileAccess(false)`, `setAllowContentAccess(false)`, `shouldOverrideUrlLoading=true`, локальный `https://localhost` base URL, CSP `connect-src 'none'`, исходная библиотека ZIP/SHA/CRC, IndexedDB, `OK/SKIP/RETRY` и watchdog. Не добавляются разрешения сети/хранилища и не отменяется проверка целостности.
+- На главном внутреннем запросе логируется только фиксированный код `MAIN_FRAME_DATA_ALLOWED_ONCE`, без URL/содержимого. Все оригиналы видео, real-данные и два старых QA ZIP остаются вне изменений.
+- Чтобы не заменять ephemeral-подписанный `.qa.daily.dom` и существующие QA-песочницы, вводится независимый `ru.paseka.journal.qa.daily.fix`, только синтетические записи, одноразовый APK в ранее проверенном isolated workflow (новых workflows не нужно). Он не подписан production-ключом; обновлять штатное приложение нельзя.
+- **Тестовая приёмка:** exact-head Node tests, Android compile, aapt/apksigner и SHA-256 APK; затем один физический запуск с короткими scoped логами. `MAIN_FRAME_DATA_ALLOWED_ONCE` должен появиться без `MAIN_HTTP_ERROR`, затем `JS_PHASE` и `BRIDGE_FINISH SKIP` либо `BRIDGE_FINISH OK` (в зависимости от состояния только новой QA-песочницы); timeout означает fail. `OK` всё равно не доказывает байтовое восстановление, а `SKIP` не доказывает создание ZIP. Восстановление только в синтетической QA после независимой проверки.
+- До физического результата **`IMPLEMENTED_DRAFT`, `B01_G4_NOT_VERIFIED`**. Ни merge, ни release, ни удаление оригиналов, ни production restore без разрешения.
