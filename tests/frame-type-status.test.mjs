@@ -63,3 +63,15 @@ test('each existing editor commit call aborts the caller on rejection',()=>{
  assert.equal((html.match(/commitFrameEdit\(\)/g)||[]).length,6);
  assert.match(html,/frameStatusOptions\(x.type,x.status\)/);
 });
+
+
+test('unknown editor frame type is rejected before recording audit or changing a frame',()=>{
+ const {api,fields,frame,events,alerts}=fixture('comb','drawn');
+ const before=structuredClone(frame);
+ fields.frameType.value='obsolete-frame-type';
+ fields.frameStatus.value='foundation';
+ assert.equal(api.commitFrameEdit(),false);
+ assert.deepEqual(frame,before);
+ assert.deepEqual(events,[]);
+ assert.equal(alerts.length,1);
+});
