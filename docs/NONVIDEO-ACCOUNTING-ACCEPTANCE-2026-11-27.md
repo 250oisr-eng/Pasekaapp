@@ -1,0 +1,23 @@
+# Пасека 2.0 — полная матрица приёмки учёта без видео
+
+Дата инвентаризации 27.11.2026. Исходная проверенная ветка `main=9b570ad1ff20c7e6cc440ecf8556b14e848667c9`. **Цель владельца:** завершить повседневный учёт без зависимости от видео; этот план не отменяет B01/B04/B05/B07/B09/B11/B13. Отсутствие отдельного результата не интерпретировать как FAIL или PASS. Обновлять только после соответствующего теста.
+
+| Пользовательский сценарий | Реализация в текущем коде | Автоматическое доказательство | Физический телефон/реальные данные | Ограничение для завершения |
+|---|---|---|---|---|
+| Создать/редактировать улей, открыть структуру, просмотреть историю | `index.html` `defaultHive`, `editHive`, `renderHiveDirectory`; `js/hive-model.js` | `tests/regression.test.mjs`, `tests/hive-model.test.mjs`; browser E2E приложения | Синтетический QA: создание улья/навигация пользовательский PASS, старые версии production не подтверждены | Приёмка изменений на exact SHA и сохранение после reopen |
+| Создать/изменить семью, переходы по ID, потомство, история | `addFamily`, `editFamily`, `familyJournalHistory`, `js/family-lineage.js` | `tests/family-lineage.test.mjs`, `tests/family-journal-history.test.mjs` | Синтетическая семья и история на OnePlus USER_REPORTED_PASS | Проверить перенос и сохранность исторической привязки после reopen |
+| Зарегистрировать/заменить матку | `openQueenForm`, `applyQueenChange`, `inspectQueenRegistryIntegrity` | `tests/regression.test.mjs` (queen registry/guards) | Отдельный сценарий OnePlus NOT_TESTED | Физический create → replace → reopen, прежняя матка в истории |
+| Учёт физических корпусов, рамок, инвентаря, склад/ремонт | `js/equipment-inventory.js`, `equipment-bodies.js`, `equipment-labels.js`, `equipment-items.js`; UI инвентаря | `tests/equipment-*.test.mjs`, тесты регистрации/перемещения/rollback | Физический инвентарь OnePlus NOT_TESTED | Проверить конкретные ID, выдачу, перемещение и сохранение; sectional зависит от B07 |
+| Записать подкормку, план/факт и суммы по семье | `recordDlg`, `buildFeedingPlanComparison`, `buildFeedingLedger` | `tests/regression.test.mjs`, `tests/voice-feeding-dictation.test.mjs`, новый тест family snapshot | Физический сценарий подкормки NOT_TESTED | Сохранение записи, правильный ID семьи, read-only totals, единицы без подмены; OP02 нормы не выдумывать |
+| Записать осмотр, расплод, силу, рассчитать следующую проверку | `validateJournalRecordDraft`, `renderFamilyHealthSummary`, `js/season-planning.js` | `tests/journal-physical-capacity.test.mjs`, `tests/season-planning.test.mjs`, новый тест смены семьи | Синтетический журнал OnePlus PASS, календарное напоминание NOT_TESTED | После переноса семьи нельзя использовать даты чужих осмотров; календарь не завершает реальный осмотр |
+| Медосбор, зимовка и перемещение оборудования | `returnHoneyBoxes`, `confirmHoneyReturn`, `commitWinter`, `moveFrame` | Существующие regression и доменные тесты; необходим точный отчёт по SHA | Физические сценарии NOT_TESTED | Перемещение и состояние после reopen; новую секционную модель не активировать до B07 |
+| Локальный журнал, история, фильтры, CSV, Varroa | `renderJournalRecords`, `filteredJournalRows`, `buildFilteredJournalCsv`, `saveVarroaObservation` | `tests/journal-*.test.mjs`, `tests/varroa-treatment-journal-entry.test.mjs` | QA журнал, история, поиск и offline reopen USER_REPORTED_PASS; Varroa отдельно NOT_TESTED | Записи treatment только после явного подтверждения, B13 offline recovery отдельно |
+| Офлайн запуск и сохранение без потери данных | IndexedDB, Service Worker, две ежедневные локальные ZIP | `tests/service-worker-*.test.mjs`, `tests/daily-archives.test.mjs` | G5/G6 изолированной QA USER_REPORTED_PASS; G3/G4 не завершены | B01, B09, B11 перед релизом и сменой production APK |
+
+## Вывод по текущему заданию
+
+**Не завершено целиком.** Реальные кодовые модули для названных функций существуют и покрыты отдельными автоматическими тестами. Полная физическая проверка маток, инвентаря, подкормок, осмотров, медосбора и зимовки на OnePlus отсутствует. Признавать их `DEVICE_VERIFIED` по наличию кнопок/CI нельзя.
+
+**Данный макроцикл:** устранить два конкретных дефекта достоверности семейного ID в календарном напоминании и сводке подкормок (Draft #627), удостовериться в безопасном офлайн обновлении shell cache и точном CI. Другие модули и real user data не изменять.
+
+**Следующая реализация в том же направлении:** отдельно последовательно проверить существующие сценарии матки → инвентарь → кормление → медосбор/зимовка на синтетической копии и устранить только воспроизведённые дефекты, сохраняя B07 и релизные ограничения.
