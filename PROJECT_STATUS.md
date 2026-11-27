@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · verified live main `7f2f7aad126bebe45670775eb0ced93dd371813b` after approved merge #607.** Фактические SHA/CI проверять live. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические подтверждения, superseded PR и старые SHA — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), метриках и [аудите](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md).
+**27.11.2026 · verified live main `164f6696f62ea266e4daaae4a4e41c4587f6e880` after approved merge #609.** Фактические SHA/CI проверять live. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические подтверждения, superseded PR и старые SHA — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md), метриках и [аудите](docs/PR-AUDIT-CHECKPOINT-2026-11-26-N.md).
 
 ## Интегрировано в основной код
 
@@ -25,9 +25,10 @@
 - **B07 P1 BLOCKED:** новый sectional/OP11–14 профиль не активировать до физической модели и всех зависимых валидаторов/миграций. Параметры только из оригинального DOCX/пользовательских уточнений.
 - **B09/B11/P2:** synthetic CI не подтверждает реальный offline, power-loss, storage quota, независимый restore, OnePlus.
 
-## Независимое P1 UI — быстрый поиск по пасеке (Draft)
+## Интегрировано: #609 — удобство глобального поиска
 
-- **IMPLEMENTED_DRAFT:** отдельная ветка `feat/ui-global-search-reset-a11y-20261127` (не в main). Одно касание «Очистить», Escape и краткий доступный статус результатов без изменения поиска/IndexedDB. Добавлен тест `tests/global-search-reset-a11y.test.mjs`; точные CI ещё NOT_VERIFIED, OnePlus/TalkBack NOT_TESTED. Контракт: [UI search](docs/UI-GLOBAL-SEARCH-RESET-A11Y-2026-11-27.md).
+- **#609 MERGED:** `main=164f6696f62ea266e4daaae4a4e41c4587f6e880`. Кнопка «Очистить» ≥44px, сброс Escape с возвратом фокуса, отдельный aria-live счётчик без многословного озвучивания списка. Семантика поиска, лимит 12 совпадений, IndexedDB, видео и сотовая навигация не изменены. PR exact HEAD `df3ccf77b7a24cf67c1ca0b3bb99b7d2fc34e000`: **1021/1021 Node PASS**, Android debug APK SUCCESS ([CI #45965524188](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45965524188)), Chromium E2E SUCCESS ([#45965524372](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45965524372)), Governance SUCCESS ([#45965524278](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45965524278)). Это PR SHA, а не физический телефон. Публичный выпуск не выполнялся.
+- **Дополнительный тест (отдельный Draft):** `test/ui-global-search-browser-proof-20261127` проверяет поиск `click/Escape` в реальном Chromium на 320/390/768px, исходные данные синтетические. Exact-head browser CI пока NOT_VERIFIED.
 
 ## Следующая предметная задача
 
