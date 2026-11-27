@@ -4042,7 +4042,7 @@ test('rendering extraction history never passes Array.map index as hive ID',()=>
  assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
  const host={innerHTML:''};
  const state={extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]};
- const fn=new Function(','selectedHiveId','frameLocationName','safe',source+';return renderHiveExtractionActions');
+ const fn=new Function('$','S','selectedHiveId','frameLocationName','safe',source+';return renderHiveExtractionActions');
  fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String)();
  assert.match(host.innerHTML,/Корпуса после откачки/);
  assert.match(host.innerHTML,/H1, H2/);
