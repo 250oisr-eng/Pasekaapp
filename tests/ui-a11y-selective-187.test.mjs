@@ -76,7 +76,24 @@ function navigationHarness() {
   assert.ok(start >= 0 && end > start, 'current navigation function exists');
   const source = html.slice(start, end);
   const paintTab = new Function(
-    'document','$','selectedHiveId','S','renderStructure','renderEntranceModule',
+    'document','
+  ];
+  for (const [page, expected] of cases) {
+    paintTab(page);
+    const current = nodes.filter(x => x.getAttribute('aria-current') === 'page');
+    const active = nodes.filter(x => x.classes.has('active'));
+    assert.equal(current.length, 1, 'one current page for ' + page);
+    assert.equal(active.length, 1, 'one visual active page for ' + page);
+    assert.equal(current[0].dataset.tab, expected);
+    assert.equal(active[0], current[0]);
+    assert.equal(doc.body.dataset.page, page.startsWith('invalid') ? 'home' : page);
+    const title = page==='hiveDetail'?'Тестовый улей':({'home':'Обзор','hives':'Ульи','journal':'Журнал','ai':'ИИ-помощник','entrance':'Лёток'})[page]||'Обзор';
+    assert.equal(slots.currentSectionTitle.textContent,title,'title synchronizes with route');
+  }
+  assert.ok(!html.includes('onkeydown="if(event.key==='), 'do not import old inline navigation handlers');
+  assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
+});
+,'selectedHiveId','S','renderStructure','renderEntranceModule',
     'renderSeasonPlanning','renderDeadoutModule', source + ';return paintTab;'
   )(doc, id => slots[id] || null, 'synthetic-only-id', {hives:[{id:'synthetic-only-id',name:'Тестовый улей'}]}, () => {}, () => {}, () => {}, () => {});
   return {paintTab,doc,nodes,slots};

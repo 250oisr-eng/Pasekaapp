@@ -1,8 +1,46 @@
 {
+  "p0FirstExternalCopyGuide20261127": {
+    "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
+    "pr": 597,
+    "integration": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+    "codeSha": "40ce6d01fbbeaf0de6395a0716a6e2d9533363ba",
+    "nodeTests": {
+      "tests": 1008,
+      "pass": 1008,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Governance Docs Checks",
+        "id": 45904183560,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 45904183627,
+        "conclusion": "success"
+      }
+    ],
+    "storageChanges": false,
+    "videoTouched": false,
+    "restoreChanged": false,
+    "serviceWorkerChanges": false,
+    "realExternalCopy": "NOT_VERIFIED",
+    "independentRestore": "NOT_TESTED",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
+  },
   "schemaVersion": 1,
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
+  "inventorySearch20261127": {
+    "journalSearchViewports": 2,
     "device": "NOT_TESTED",
     "completedVerifiedUserScenarios": 0
   },
@@ -966,60 +1004,53 @@
     "publication": "NOT_RELEASED",
     "postMergeRuntimeInspection": "LABELS_ACTIVE_NAV_CAPTIONS_VERIFIED"
   },
-  "ui187FinalSelectiveCycle20261127": {
-    "userSourceStatement": "27.11.2026: no original videos or backups available to user",
-    "provenAbsentOnDevice": false,
-    "blockersStill": [
-      "B01",
-      "442 V0-V6",
-      "B04/B05"
-    ],
-    "originalPr": 187,
-    "originalPrHead": "35dcd979893559c44f5e71819ba3e682de9ca2b0",
-    "sourceMainSha": "0f3f1c8a8a4a3972bb36a44043229f47867d7cdc",
-    "branch": "fix/ui-187-honeycomb-overview-20261127",
-    "components": [
-      "accessibleHoneycomb11Routes",
-      "centerAIUnique",
-      "liveSectionTitle",
-      "homeHivePreview3",
-      "previousUrgentTasksVisible",
-      "approvedErgonomicsSource"
-    ],
-    "newDependencies": 0,
-    "storageChanges": false,
-    "serviceWorkerChanges": false,
-    "hiveModelChanges": false,
-    "appRuntimeChanged": true,
-    "exactCi": "SUCCESS_AT_CODE_SHA",
-    "physicalOnePlus": "NOT_TESTED",
-    "browserGeometry": "NOT_TESTED",
-    "userData": "UNTOUCHED",
-    "completedPhysicalScenarios": 0,
-    "measuredTimeSavings": null,
-    "ciRuns": [
+  "familyHistory20261127": {
+    "previousBranchBrowserViewportsPassed": 2,
+    "integratedBrowserViewportsPassed": 2,
+    "browserCodeSha": "4c44a419c7f6517e6e06f45d84b4943eff50509d",
+    "finalCodeSha": "d18ef97533b4721dcc550369de254fe0828766a4",
+    "nodeTestsPassed": 1004,
+    "checks": [
       {
-        "id": 45898359425,
-        "name": "Build Android APK",
-        "conclusion": "success",
-        "checkedHead": "09d763b65ecb13d878312c3389dd05d062a1ef62"
+        "type": "browser-mobile-desktop",
+        "run": 45903217571,
+        "conclusion": "success"
       },
       {
-        "id": 45898359387,
-        "name": "Governance Docs Checks",
-        "conclusion": "success",
-        "checkedHead": "09d763b65ecb13d878312c3389dd05d062a1ef62"
+        "type": "fast-node",
+        "run": 45903240403,
+        "conclusion": "success"
+      },
+      {
+        "type": "governance",
+        "run": 45903247215,
+        "conclusion": "success"
+      },
+      {
+        "type": "android-debug",
+        "run": 45903247227,
+        "conclusion": "success"
       }
     ],
+    "device": "NOT_TESTED",
+    "mergeState": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+    "notes": "Browser E2E tests ran on integrated HTML SHA 4c44a419. Next code SHA only adjusts unit test assertions; full 1004 TAP and APK checked on d18ef975. No real device, data restore or release."
+  },
+  "ui187HoneycombPort20261127": {
+    "sourceMain": "495e38a99fc00cde5c671444e83d87a40d619750",
     "pr": 595,
-    "codeHead": "09d763b65ecb13d878312c3389dd05d062a1ef62",
-    "android": "CI_BUILD_SUCCESS",
-    "nodeTests": {
-      "tests": 1003,
-      "pass": 1003,
-      "fail": 0,
-      "skipped": 0
-    },
-    "uxVisualFollowupIssue": 596
+    "codeSha": null,
+    "ciStatus": "PENDING_SYNCED_SHA",
+    "navRoutes": 11,
+    "hivePreviewLimit": 3,
+    "availableHiveList": "UNFILTERED",
+    "taskList": "UNFILTERED",
+    "userDataChanged": false,
+    "serviceWorkerChanged": false,
+    "uxTwoRowRule": "UNSATISFIED_3_ROWS_MOBILE",
+    "visualAcceptanceIssue": 596,
+    "realDevice": "NOT_TESTED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "completedVerifiedUserScenarios": 0
   }
 }
