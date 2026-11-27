@@ -50,7 +50,7 @@ test('frame inspection history reaches the oldest issue and returns to the newes
  const fields={}, field=id=>fields[id]??=( {focus(){}} );
  const rows=Array.from({length:17},(_,i)=>({id:'visit-'+i,date:'date-'+i,target:{},issues:[]}));
  rows[16].issues.push({id:'old-issue',status:'open'});
- const api=new Function('$','S','PasekaReconciliation','safe','reconciliationTargetLabel','reconciliationIssueLabel','PasekaLabels',source+';return {renderEquipmentReconciliation,changeFrameHistoryPage}')(
+ const api=new Function('$','S','PasekaReconciliation','safe','reconciliationTargetLabel','reconciliationIssueLabel','PasekaLabels',source+';return {renderEquipmentReconciliation,changeFrameHistoryPage,resetFrameHistoryPage}')(
   field,{}, {list:()=>rows},String,()=>'',()=>'',{formatLabelCode:()=>''});
  api.renderEquipmentReconciliation();
  assert.equal(field('frameHistoryPrev').disabled,true);
@@ -66,6 +66,22 @@ test('frame inspection history reaches the oldest issue and returns to the newes
  assert.equal(field('frameHistoryPageStatus').textContent,'Страница 2 из 3');
  api.changeFrameHistoryPage(-1);
  assert.match(history(),/date-0 ·/);
+ // Apply the scope across all pages, including old reports with mixed outcomes.
+ rows[16].issues.push({id:'closed',status:'resolved'});
+ rows[0].issues.push({id:'other-closed',status:'resolved'});
+ api.changeFrameHistoryPage(1);
+ field('frameHistoryScope').value='open';
+ api.resetFrameHistoryPage();
+ assert.equal(field('frameHistoryPageStatus').textContent,'Страница 1 из 1');
+ assert.equal(history().match(/<article/g).length,1);
+ assert.match(history(),/date-16 ·/);
+ rows[16].issues[0].status='resolved';
+ api.renderEquipmentReconciliation();
+ assert.match(history(),/Нет сверок с открытыми расхождениями/);
+ field('frameHistoryScope').value='all';
+ api.resetFrameHistoryPage();
+ api.changeFrameHistoryPage(2);
+ assert.match(history(),/date-16 ·/);
  rows.length=8;
  api.renderEquipmentReconciliation();
  assert.equal(field('frameHistoryPages').hidden,true);
