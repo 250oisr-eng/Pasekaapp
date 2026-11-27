@@ -1128,7 +1128,8 @@ function recordExtraHtml(r){const pairs=[];if(r.type==='Осмотр'){const m={
 function queenRegistryFamily(state,queenId,familyId,hiveId){
  const queens=(state.queens||[]).filter(q=>q?.id===queenId);
  const families=state.families.filter(f=>f?.id===familyId);
- if(!queenId||!familyId||!hiveId||queens.length!==1||families.length!==1||queens[0].familyId!==familyId||families[0].hive!==hiveId||!state.hives.some(h=>h.id===hiveId))return null;
+ const hives=state.hives.filter(h=>h?.id===hiveId);
+ if(!queenId||!familyId||!hiveId||queens.length!==1||families.length!==1||hives.length!==1||queens[0].familyId!==familyId||families[0].hive!==hiveId)return null;
  return families[0];
 }
 function openQueenRegistryFamily(button,edit=false){
