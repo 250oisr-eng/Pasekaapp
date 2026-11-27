@@ -1749,5 +1749,28 @@
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "uxErgonomics20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "priorCodeSha": "6900abb1cd7f92be59cd6b0c46ec8b73399625f8",
+    "priorCi": {
+      "node": "success",
+      "android": "success",
+      "governance": "success",
+      "workers": "success",
+      "chromium": "failure",
+      "navigationViewportsPassed": 14,
+      "journalMobileDesktop": "pass",
+      "accounting": "pass",
+      "syntheticArchives": "pass",
+      "failure": "intermediate header color during CSS transition"
+    },
+    "parallelPreviewBranch": "work/workspace-preview-20261127",
+    "nextCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "releaseAuthorized": false
   }
 }
