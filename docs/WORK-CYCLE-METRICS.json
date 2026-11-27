@@ -1705,6 +1705,12 @@
     ],
     "integration": "DRAFT",
     "device": "NOT_TESTED",
-    "production": false
+    "production": false,
+    "unknownTypeRegression": {
+      "negativeCases": 1,
+      "expectedNoAudit": true,
+      "device": "NOT_TESTED",
+      "exactHeadCi": "PENDING"
+    }
   }
 }
