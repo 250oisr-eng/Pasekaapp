@@ -1,21 +1,37 @@
 {
   "p0FirstExternalCopyGuide20261127": {
-      "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
-      "pr": 597,
-      "integration": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
-      "codeSha": "40ce6d01fbbeaf0de6395a0716a6e2d9533363ba",
-      "nodeTests": {"tests":1008,"pass":1008,"fail":0,"cancelled":0},
-      "verifiedCi": [{"name":"Governance Docs Checks","id":45904183560,"conclusion":"success"},{"name":"Build Android APK","id":45904183627,"conclusion":"success"}],
-      "storageChanges": false,
-      "videoTouched": false,
-      "restoreChanged": false,
-      "serviceWorkerChanges": false,
-      "realExternalCopy": "NOT_VERIFIED",
-      "independentRestore": "NOT_TESTED",
-      "device": "NOT_TESTED",
-      "completedVerifiedUserScenarios": 0,
-      "measuredSavings": null
+    "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
+    "pr": 597,
+    "integration": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
+    "codeSha": "40ce6d01fbbeaf0de6395a0716a6e2d9533363ba",
+    "nodeTests": {
+      "tests": 1008,
+      "pass": 1008,
+      "fail": 0,
+      "cancelled": 0
     },
+    "verifiedCi": [
+      {
+        "name": "Governance Docs Checks",
+        "id": 45904183560,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 45904183627,
+        "conclusion": "success"
+      }
+    ],
+    "storageChanges": false,
+    "videoTouched": false,
+    "restoreChanged": false,
+    "serviceWorkerChanges": false,
+    "realExternalCopy": "NOT_VERIFIED",
+    "independentRestore": "NOT_TESTED",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "measuredSavings": null
+  },
   "schemaVersion": 1,
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
@@ -1019,5 +1035,47 @@
     "device": "NOT_TESTED",
     "mergeState": "READY_FOR_MERGE_REVIEW_NOT_MERGED",
     "notes": "Browser E2E tests ran on integrated HTML SHA 4c44a419. Next code SHA only adjusts unit test assertions; full 1004 TAP and APK checked on d18ef975. No real device, data restore or release."
+  },
+  "ui187HoneycombPort20261127": {
+    "sourceMain": "495e38a99fc00cde5c671444e83d87a40d619750",
+    "pr": 595,
+    "codeSha": "7a58ac9ac8565583c025a58620e466cd5b3721cf",
+    "ciStatus": "SUCCESS_EXACT_CODE_SHA",
+    "navRoutes": 11,
+    "hivePreviewLimit": 3,
+    "availableHiveList": "UNFILTERED",
+    "taskList": "UNFILTERED",
+    "userDataChanged": false,
+    "serviceWorkerChanged": false,
+    "uxTwoRowRule": "UNSATISFIED_3_ROWS_MOBILE",
+    "visualAcceptanceIssue": 596,
+    "realDevice": "NOT_TESTED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "completedVerifiedUserScenarios": 0,
+    "nodeTests": {
+      "total": 1013,
+      "pass": 1013,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "ci": [
+      {
+        "kind": "Governance",
+        "run": 45951762030,
+        "conclusion": "success"
+      },
+      {
+        "kind": "Android APK",
+        "run": 45951761963,
+        "conclusion": "success",
+        "debugArtifactId": 15176539296
+      }
+    ],
+    "initialSyncedCiFailure": {
+      "sha": "e102ef10d28c465692271cdc60ad0d381d446725",
+      "run": 45951587402,
+      "reason": "Overlapping patch hunks duplicated syntax in navigation test",
+      "resolvedBy": "restore exact verified original test file (blob 5259ed4d103204fe42b8a3f356e51f2e0f173c74)"
+    }
   }
 }
