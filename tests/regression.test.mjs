@@ -34,6 +34,11 @@ function extractFunction(name) {
   const match = re.exec(html);
   assert.ok(match, 'Function not found: ' + name);
   const start = match.index;
+  if (name === 'saveExtractionOnce') {
+    const end=html.indexOf('\n/* B07: main-screen/real-store binding.',start);
+    assert.ok(end>start,'extraction handler ends before sectional runtime bindings');
+    return html.slice(start,end).trim();
+  }
   if (name === 'defaultHive') {
     const end = html.indexOf("\n$('hiveForm').onsubmit=defaultHive;", start);
     assert.ok(end > start, 'defaultHive form binding follows the handler');
@@ -54,6 +59,10 @@ function loadFunction(name, globals = {}) {
   deps.showStartupFailure ||= ()=>{};
   if (name === 'confirmFamilyTransfer') deps.familyTransferFrameHistoryIsValid ||= loadFunction('familyTransferFrameHistoryIsValid');
   deps.window ||= appWindow;
+  // Execute actual profile/evidence predicates, not stubs.
+  deps.SECTIONAL_HONEY_QA_WRITE_ENABLED ??= false;
+  deps.isSectionalHive ||= new Function('deps','with (deps) { return ('+extractFunction('isSectionalHive')+'); }')(deps);
+  deps.sectionalExtractionHasEvidence ||= new Function('deps','with (deps) { return ('+extractFunction('sectionalExtractionHasEvidence')+'); }')(deps);
   deps.PasekaHiveModel ||= appWindow.PasekaHiveModel;
   deps.PasekaLabels ||= appWindow.PasekaLabels;
   deps.PasekaInventory ||= appWindow.PasekaInventory;
@@ -3649,7 +3658,7 @@ test('service worker caches accessory inventory module for offline operation',as
  assert.match(html,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/equipment-items\.js/);
  assert.match(sw,/\.\/js\/p0-source-inventory\.js/);
- assert.match(sw,/paseka-shell-v326/);
+ assert.match(sw,/paseka-shell-v327/);
 });
 
 
@@ -3775,7 +3784,7 @@ test('raw backup integrity reports malformed sectional physical layout records',
 test('service worker caches the sectional layout validator and increments its shell version',()=>{
  const sw=readFile(new URL('../sw.js',import.meta.url),'utf8');
  return sw.then(source=>{
-  assert.match(source,/paseka-shell-v326/);
+  assert.match(source,/paseka-shell-v327/);
   assert.match(source,/\.\/js\/sectional-physical-layout\.js/);
   assert.match(source,/\.\/js\/family-lineage\.js/);
   assert.match(source,/\.\/js\/sectional-operation-coordinator\.js/);
@@ -4076,8 +4085,41 @@ test('rendering extraction history never passes Array.map index as hive ID',()=>
  assert.match(source,/x\.item\.boxes\.map\(key=>frameLocationName\(key,x\.item\.hiveId\)\)/);
  const host={innerHTML:''};
  const state={extractions:[{id:'ext',date:'2026-11-25',items:[{hiveId:'h',kilograms:2,boxes:['H1','H2'],returnedAt:null}]}]};
- const fn=new Function('$','S','selectedHiveId','frameLocationName','safe',source+';return renderHiveExtractionActions');
- fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String)();
+ const fn=new Function('$','S','selectedHiveId','frameLocationName','safe','isSectionalHive',source+';return renderHiveExtractionActions');
+ fn(id=>id==='hiveExtractionActions'?host:null,state,'h',(key,hiveId)=>{assert.equal(hiveId,'h','history must bind true hive ID');return key},String,loadFunction('isSectionalHive',{S:state}))();
  assert.match(host.innerHTML,/Корпуса после откачки/);
  assert.match(host.innerHTML,/H1, H2/);
+});
+
+test('B07 guarded atomic IndexedDB write aborts when memory changed just before put, preserving both records',async()=>{
+ const factory=new IDBFactory(),db=await openRealIndexedDb(factory,'sectional-guard-'+(++indexedDbTestSequence));
+ try{
+  const prior={meta:{revisionId:'r0',schemaVersion:15},value:'main-before'};
+  const backup={at:'2026-11-27T10:00:00.000Z',state:{meta:{revisionId:'r-1',schemaVersion:15},value:'backup-before'}};
+  await seedIndexedDb(db,[['main',prior,'state'],['backup',backup,'previous']]);
+  const write=loadFunction('writeMainWithBackup',{db,STORE:'main',BACKUP_STORE:'backup'});
+  const next={meta:{revisionId:'r1',schemaVersion:15},value:'next'};
+  let checked=0;
+  await assert.rejects(write(next,'r0',()=>{checked++;return false}),/Состояние страницы изменилось/);
+  assert.equal(checked,1);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),prior);
+  assert.deepEqual(await readIndexedDb(db,'backup','previous'),backup);
+  assert.deepEqual(await write(next,'r0',()=>true),prior);
+  assert.deepEqual(await readIndexedDb(db,'main','state'),next);
+  assert.deepEqual((await readIndexedDb(db,'backup','previous')).state,prior);
+ }finally{db.close();}
+});
+
+
+test('B07 frame registry renders historical physical locations without synthesizing a Farrar layout',()=>{
+ const S={hives:[{id:'h1',profileId:'sectional-multiqueen-v1'}],layouts:{},equipmentLabels:{bodies:{honey1:'ААХ',b2:'ААБ'}}};
+ const fail=()=>{throw Error('legacy layout access forbidden')};
+ const render=loadFunction('frameLocationName',{S,corpusLabelCode:fail,isHoneyBoxKey:fail});
+ assert.equal(render('honey:honey1','h1'),'Медовый корпус К-ААХ');
+ assert.equal(render('brood:left:b2','h1'),'Гнездовой корпус К-ААБ · секция А');
+ assert.match(render('honey:historical-id','h1'),/historical-id/);
+ assert.match(render('undefined','h1'),/место не уточнено/);
+ assert.deepEqual(S.layouts,{});
+ const details=loadFunction('inventoryEventDetails',{S,hname:id=>'Улей '+id,frameLocationName:fail});
+ assert.equal(details({type:'placed',to:{type:'sectional',hiveId:'h1',bodyRole:'honey'}}),'Улей h1 · общий медовый ярус');
 });
