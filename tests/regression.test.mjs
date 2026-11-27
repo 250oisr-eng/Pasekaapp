@@ -3815,3 +3815,20 @@ test('feeding ledger attributes historical snapshot-only family and quarantines 
  assert.equal(groups.some(g=>g.familyId==='f2'),false,'archived record is excluded');
  assert.deepEqual(rows,original,'feeding ledger remains read-only');
 });
+
+test('queen actual introduction or replacement rejects future dates before any state mutation',()=>{
+ const apply=loadFunction('applyQueenChange');
+ const state={families:[{id:'family',hive:'h',currentQueenId:'queen-old',queen:{code:'old'}}],
+  queens:[{id:'queen-old',familyId:'family',status:'current',code:'old'}],queenEvents:[]};
+ const before=structuredClone(state);
+ for(const draft of [
+  {familyId:'family',code:'new',date:'2099-12-31'},
+  {familyId:'family',queenId:'queen-old',code:'edited',date:'2099-12-31'}
+ ]){
+  assert.throws(()=>apply(state,draft,()=> 'must-not-be-called'),/будущем/);
+  assert.deepEqual(state,before,'future event cannot replace/modify queen or append an audit event');
+ }
+ const valid=apply(state,{familyId:'family',code:'new',date:null},(()=>{let n=0;return()=> 'valid-'+(++n)})());
+ assert.equal(valid.replaced,true);
+ assert.equal(state.queenEvents[0].date,null,'unknown historical introduction day is not invented');
+});
