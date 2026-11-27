@@ -3712,18 +3712,23 @@ async function finishAssemblySetup(){
  if(assigned.some(n=>!chosen.includes(n))){
   alert('В сборке должны остаться корпуса с назначенными семьями: №'+assigned.filter(n=>!chosen.includes(n)).join(', №'));return;
  }
- if(l.mode==='winter'){l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}
- const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:l.honeyBoxInstalled.slice()};
- const changed=before.mode!==after.mode||JSON.stringify(before.boxes)!==JSON.stringify(after.boxes)||JSON.stringify(before.winterOrder)!==JSON.stringify(after.winterOrder)||JSON.stringify(before.honeyBoxInstalled)!==JSON.stringify(after.honeyBoxInstalled);
- if(changed){
-  l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];
-  l.assemblies.push({date:today(),mode:before.mode,installedBoxes:before.boxes,honeyBoxInstalled:before.honeyBoxInstalled,winterOrder:before.winterOrder});
-  l.assemblies=l.assemblies.slice(-30);
-  if(wasComplete)logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,{mode:after.mode,boxes:after.boxes,winterOrder:after.winterOrder})});
- }
- l.setupComplete=true;l.setupEditing=false;
- if(!wasComplete)logAudit('assembly_configured',{hiveId,mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice()});
- assemblyEditSnapshot=null;pendingAssemblyMode=null;await save();renderStructure();
+ let previous;
+ try{previous=cloneApiaryState()}catch(error){alert('Не удалось подготовить безопасную фиксацию комплектации: '+(error.message||error));return false}
+ try{
+  if(l.mode==='winter'){l.installedBoxes=l.winterOrder.slice();l.honeyBoxInstalled=[false,false];l.honeyInstalled=false}
+  const after={mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice(),honeyBoxInstalled:l.honeyBoxInstalled.slice()};
+  const changed=before.mode!==after.mode||JSON.stringify(before.boxes)!==JSON.stringify(after.boxes)||JSON.stringify(before.winterOrder)!==JSON.stringify(after.winterOrder)||JSON.stringify(before.honeyBoxInstalled)!==JSON.stringify(after.honeyBoxInstalled);
+  if(changed){
+   l.assemblies=Array.isArray(l.assemblies)?l.assemblies:[];
+   l.assemblies.push({date:today(),mode:before.mode,installedBoxes:before.boxes,honeyBoxInstalled:before.honeyBoxInstalled,winterOrder:before.winterOrder});
+   l.assemblies=l.assemblies.slice(-30);
+   if(wasComplete)logAudit('assembly_changed',{hiveId,from:before,to:after,boxChanges:assemblyBoxChanges(before,{mode:after.mode,boxes:after.boxes,winterOrder:after.winterOrder})});
+  }
+  l.setupComplete=true;l.setupEditing=false;
+  if(!wasComplete)logAudit('assembly_configured',{hiveId,mode:l.mode,boxes:l.installedBoxes.slice(),winterOrder:(l.winterOrder||[]).slice()});
+ }catch(error){S=previous;render();alert('Комплектация не зафиксирована: '+(error.message||error));return false}
+ if(!await savePhysicalAssemblyMutation(previous))return false;
+ assemblyEditSnapshot=null;pendingAssemblyMode=null;renderStructure();return true;
 }
 async function commitWinter(){
  const hiveId=selectedStructureHive(),l=layoutFor(hiveId),before={mode:l.mode,boxes:(l.installedBoxes||[]).slice(),winterOrder:(l.winterOrder||[]).slice()},vals=[0,1,2].map(i=>Number($('winterSlot'+i)?.value));
