@@ -44,6 +44,7 @@
     "device": "NOT_TESTED",
     "completedVerifiedUserScenarios": 0
   },
+  "frameAmbiguity20261127":{"openInspectionFilterViewports":2,"historyBrowserViewports":2,"registryLookupBrowserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
   "purpose": "Проверка эффекта реформы на 2–3 настоящих макроциклах. null=NOT_MEASURED, не ноль.",
   "baseline": {
     "sourceMainSha": "ecea1c3c50801250d42f49366e00e1e9e96d556f",
@@ -1573,5 +1574,16 @@
     ],
     "deviceChanges": false,
     "completedVerifiedUserScenarios": 0
+  },
+  "frameReconciliationMain626": {
+    "pr": 601,
+    "sourceMainSha": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
+    "verifiedPriorCodeSha": "53871a70e14a6924576d0e8b1d232f1ced3f675a",
+    "targetedPass": 49,
+    "nodePass": 1057,
+    "nodeFail": 0,
+    "browserScenarios": 2,
+    "device": "NOT_TESTED",
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/pull/601/checks"
   }
 }

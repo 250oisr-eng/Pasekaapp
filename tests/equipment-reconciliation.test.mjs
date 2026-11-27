@@ -12,3 +12,80 @@ test('invalid observed tokens remain visible as discrepancies',()=>{const p=R.pr
 
 test('record preserves the original spoken text separately from normalized observed codes',()=>{const s=state(),r=R.record(s,{date:'2026-11-13',target:{type:'hive',hiveId:'h1'},observedCodes:['ААА','ААБ'],inputText:'буква а буква а буква а, буква а буква а буква б'},labels,'2026-11-13T10:00:00Z');assert.equal(r.ok,true);assert.deepEqual(r.inspection.observedCodes,['ААА','ААБ']);assert.equal(r.inspection.inputText,'буква а буква а буква а, буква а буква а буква б')});
 test('normalized codes are stored as canonical codes, not speech tokens',()=>{const s=state(),r=R.record(s,{date:'2026-11-13',target:{type:'hive',hiveId:'h1'},observedCodes:['ААА'],inputText:'три буква а'},labels,'2026-11-13T10:00:00Z');assert.equal(r.inspection.observedCodes[0],'ААА');assert.equal(r.inspection.inputText,'три буква а')});
+
+test('one observed label cannot confirm two registered frames or select a location by registry order',()=>{
+ for(const locationType of ['hive','storage','retired']){
+  const s=state();
+  s.frames.push({labelCode:'Р-ААА',hiveId:'h1',box:'1',locationType});
+  const target={type:'hive',hiveId:'h1',boxKey:'1'};
+  for(const order of [s.frames,s.frames.slice().reverse()]){
+   const preview=R.preview({...s,frames:order},target,'ААА',labels);
+   assert.deepEqual(preview.issues.map(i=>[i.type,i.code]),[['duplicate_registry_code','ААА']]);
+  }
+  const before=structuredClone(s.frames);
+  const recorded=R.record(s,{date:'2026-11-27',target,observedCodes:'ААА ААА'},labels);
+  assert.deepEqual(recorded.inspection.issues.map(i=>i.type),['duplicate_observation','duplicate_registry_code']);
+  assert.deepEqual(s.frames,before);
+  const other=R.preview(s,{type:'hive',hiveId:'h1',boxKey:'2'},'ААБ',labels);
+  assert.deepEqual(other.issues,[]);
+ }
+});
+
+test('registry lookup shows all exact labels and excludes codes mentioned in other rows',()=>{
+ const fragment=html.slice(html.indexOf("let frameRegistryFilterText="),html.indexOf('function frameRegistryEventText('));
+ const rows=['Р-7КМ','Р-7КМ','Р-7КН'].map(frameCode=>({dataset:{frameCode,search:'Р-7КМ'}}));
+ const fields={equipmentInventoryDlg:{showModal(){}},frameRegistrySearch:{focus(){},scrollIntoView(){}},frameRegistryFilterResult:{}};
+ const lookup=new Function('$','document','PasekaLabels',fragment+
+  ';function renderFrameRegistry(){filterFrameRegistry()} return openFrameRegistryFromInspection')(
+   id=>fields[id],{querySelectorAll:()=>rows},{formatLabelCode:(_,code)=>'Р-'+code});
+ lookup('7КМ');
+ assert.deepEqual(rows.map(row=>row.hidden),[false,false,true]);
+ lookup('ААА');
+ assert.ok(rows.every(row=>row.hidden));
+ assert.match(fields.frameRegistryFilterResult.textContent,/нет рамок с кодом Р-ААА/);
+});
+
+test('frame inspection history reaches the oldest issue and returns to the newest page',()=>{
+ const source=html.slice(html.indexOf('const frameHistoryPageSize='),html.indexOf('function putEntranceVideo('));
+ const fields={}, field=id=>fields[id]??=( {focus(){}} );
+ const rows=Array.from({length:17},(_,i)=>({id:'visit-'+i,date:'date-'+i,target:{},issues:[]}));
+ rows[16].issues.push({id:'old-issue',status:'open'});
+ const api=new Function('$','S','PasekaReconciliation','safe','reconciliationTargetLabel','reconciliationIssueLabel','PasekaLabels',source+';return {renderEquipmentReconciliation,changeFrameHistoryPage,resetFrameHistoryPage}')(
+  field,{}, {list:()=>rows},String,()=>'',()=>'',{formatLabelCode:()=>''});
+ api.renderEquipmentReconciliation();
+ assert.equal(field('frameHistoryPrev').disabled,true);
+ assert.match(field('frameReconciliationSummary').textContent,/расхождений: 1$/);
+ const history=()=>field('frameReconciliationHistory').innerHTML;
+ assert.equal(history().match(/<article/g).length,8);
+ api.changeFrameHistoryPage(1);
+ assert.match(history(),/date-8 ·/);
+ api.changeFrameHistoryPage(1);
+ assert.match(history(),/data-inspection="visit-16" data-issue="old-issue"/);
+ assert.equal(field('frameHistoryNext').disabled,true);
+ api.changeFrameHistoryPage(-1);
+ assert.equal(field('frameHistoryPageStatus').textContent,'Страница 2 из 3');
+ api.changeFrameHistoryPage(-1);
+ assert.match(history(),/date-0 ·/);
+ // Apply the scope across all pages, including old reports with mixed outcomes.
+ rows[16].issues.push({id:'closed',status:'resolved'});
+ rows[0].issues.push({id:'other-closed',status:'resolved'});
+ api.changeFrameHistoryPage(1);
+ field('frameHistoryScope').value='open';
+ api.resetFrameHistoryPage();
+ assert.equal(field('frameHistoryPageStatus').textContent,'Страница 1 из 1');
+ assert.equal(history().match(/<article/g).length,1);
+ assert.match(history(),/date-16 ·/);
+ rows[16].issues[0].status='resolved';
+ api.renderEquipmentReconciliation();
+ assert.match(history(),/Нет сверок с открытыми расхождениями/);
+ field('frameHistoryScope').value='all';
+ api.resetFrameHistoryPage();
+ api.changeFrameHistoryPage(2);
+ assert.match(history(),/date-16 ·/);
+ rows.length=8;
+ api.renderEquipmentReconciliation();
+ assert.equal(field('frameHistoryPages').hidden,true);
+ rows.length=0;
+ api.renderEquipmentReconciliation();
+ assert.match(history(),/ещё не записывались/);
+});
