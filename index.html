@@ -373,16 +373,16 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"].act
    DOM order equals visual/focus order; all eleven existing destinations remain. */
 main>nav[aria-label="Основные разделы"]{
  width:min(100%,440px);max-width:100%;
- display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
- grid-template-rows:repeat(3,56px);gap:2px;
+ display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;
+ grid-template-rows:repeat(2,56px);column-gap:2px;row-gap:4px;
  padding:9px 7px calc(9px + env(safe-area-inset-bottom,0px))!important;
  background:rgba(248,248,243,.98);
 }
 main>nav[aria-label="Основные разделы"] button{
  display:flex;align-items:center;justify-content:center;min-width:0;width:100%;
  height:56px;min-height:56px;padding:5px 2px!important;
- border:1px solid #d6dfd2;border-radius:0;
- clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
+ border:1px solid #d6dfd2;border-radius:11px;
+ clip-path:none; /* Narrow screens: keep full readable 44+px rectangles */
  background:#e8eee5;color:#294a34;font-size:clamp(10px,2.8vw,12px);
  line-height:1.1;font-weight:750;text-align:center;white-space:normal;
  overflow-wrap:anywhere;word-break:normal;box-shadow:none;
@@ -391,13 +391,16 @@ main>nav[aria-label="Основные разделы"] button.active{background:
 main>nav[aria-label="Основные разделы"] button:focus-visible{
  outline:0;box-shadow:inset 0 0 0 3px #f4c85d;
 }
-main>nav[aria-label="Основные разделы"] button[data-tab="home"]{grid-row:1;grid-column:2}
-main>nav[aria-label="Основные разделы"] button[data-tab="hives"]{grid-row:1;grid-column:3}
-main>nav[aria-label="Основные разделы"] button[data-tab="entrance"]{grid-row:1;grid-column:4}
-main>nav[aria-label="Основные разделы"] button[data-tab="journal"]{grid-row:2;grid-column:1}
-main>nav[aria-label="Основные разделы"] button[data-tab="settings"]{grid-row:2;grid-column:2}
+main>nav[aria-label="Основные разделы"] button[data-tab="home"]{grid-row:1;grid-column:1/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="hives"]{grid-row:1;grid-column:3/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="entrance"]{grid-row:1;grid-column:5/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="journal"]{grid-row:1;grid-column:7/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="settings"]{grid-row:1;grid-column:9/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:1;grid-column:11/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]{grid-row:2;grid-column:2/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="incidents"]{grid-row:2;grid-column:4/span 2}
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
- grid-row:2;grid-column:3;width:min(64px,100%);height:56px;min-height:56px;
+ grid-row:2;grid-column:6/span 2;width:min(64px,100%);height:56px;min-height:56px;
  justify-self:center;align-self:center;padding:4px!important;
  transform:none!important; /* override legacy translateY (including active state) */
  border:2px solid #f1d99c;
@@ -406,13 +409,10 @@ main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
 }
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-symbol{font-size:22px;line-height:1}
 main>nav[aria-label="Основные разделы"] button[data-tab="ai"] .nav-ai-label{font-size:10px;line-height:1.1}
-main>nav[aria-label="Основные разделы"] button[data-tab="forage"]{grid-row:2;grid-column:4}
-main>nav[aria-label="Основные разделы"] button[data-tab="varroa"]{grid-row:2;grid-column:5}
-main>nav[aria-label="Основные разделы"] button[data-tab="incidents"]{grid-row:3;grid-column:2}
-main>nav[aria-label="Основные разделы"] button[data-tab="planning"]{grid-row:3;grid-column:3}
-main>nav[aria-label="Основные разделы"] button[data-tab="deadout"]{grid-row:3;grid-column:4}
-main{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))!important}
-.fab{bottom:calc(210px + env(safe-area-inset-bottom,0px))!important}
+main>nav[aria-label="Основные разделы"] button[data-tab="planning"]{grid-row:2;grid-column:8/span 2}
+main>nav[aria-label="Основные разделы"] button[data-tab="deadout"]{grid-row:2;grid-column:10/span 2}
+main{padding-bottom:calc(160px + env(safe-area-inset-bottom,0px))!important}
+.fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))!important}
 #home .home-hives-card #homeHivePreviewCount:not(:empty){margin-top:7px;font-size:12px}
 @media(min-width:700px){
  main>nav[aria-label="Основные разделы"]{
@@ -423,6 +423,8 @@ main{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))!important}
  main>nav[aria-label="Основные разделы"] button{
   grid-row:1!important;grid-column:auto!important;
   height:60px;min-height:60px;font-size:clamp(9px,1.15vw,12px);
+  clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);
+  border-radius:0;
  }
  main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
   grid-column:6!important;width:min(68px,100%);height:64px;min-height:64px;
@@ -440,7 +442,7 @@ main{padding-bottom:calc(220px + env(safe-area-inset-bottom,0px))!important}
   grid-row:1!important;grid-column:auto!important;height:48px;min-height:48px;font-size:9px;
  }
  main>nav[aria-label="Основные разделы"] button[data-tab="ai"]{
-  grid-column:6!important;width:52px;height:50px;min-height:50px;
+  grid-column:6!important;width:min(52px,100%);height:50px;min-height:50px;
  }
  main{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))!important}
  .fab{bottom:calc(54px + env(safe-area-inset-bottom,0px))!important}
@@ -4437,6 +4439,35 @@ async function deleteAllData(){
  // not a verified full backup, independent restore or cleanup authorization.
  alert('Полная очистка заблокирована. Без отдельно проверенного полного архива и независимого восстановления удалять записи пасеки и оригинальные видео нельзя.');
  return false;
+}
+// #596: Desktop uses one honeycomb row; compact portrait uses two readable rows.
+ // Reorder existing controls, never clone them. DOM order and keyboard focus order
+ // must match visual order at each breakpoint; preserve focus during rotation.
+const HONEYCOMB_WIDE_MEDIA='(min-width:700px), (orientation:landscape) and (max-height:520px) and (min-width:560px)';
+const HONEYCOMB_DESKTOP_TABS=['home','hives','entrance','journal','settings','ai','forage','varroa','incidents','planning','deadout'];
+const HONEYCOMB_COMPACT_TABS=['home','hives','entrance','journal','settings','forage','varroa','incidents','ai','planning','deadout'];
+function syncHoneycombNavigationOrder(){
+ const nav=document.querySelector('main>nav[aria-label="Основные разделы"]');
+ if(!nav)return false;
+ const buttons=Array.from(nav.querySelectorAll('button[data-tab]'));
+ const wide=window.matchMedia(HONEYCOMB_WIDE_MEDIA).matches;
+ const order=wide?HONEYCOMB_DESKTOP_TABS:HONEYCOMB_COMPACT_TABS;
+ if(buttons.length!==order.length||
+    new Set(buttons.map(b=>b.dataset.tab)).size!==order.length||
+    order.some(tab=>!buttons.some(b=>b.dataset.tab===tab)))return false;
+ if(buttons.every((b,i)=>b.dataset.tab===order[i]))return true;
+ const focused=document.activeElement;
+ const restoreFocus=nav.contains(focused);
+ const byTab=new Map(buttons.map(b=>[b.dataset.tab,b]));
+ nav.append(...order.map(tab=>byTab.get(tab)));
+ if(restoreFocus)focused.focus({preventScroll:true});
+ return true;
+}
+if(window.matchMedia){
+ const navMedia=window.matchMedia(HONEYCOMB_WIDE_MEDIA);
+ syncHoneycombNavigationOrder();
+ if(navMedia.addEventListener)navMedia.addEventListener('change',syncHoneycombNavigationOrder);
+ else if(navMedia.addListener)navMedia.addListener(syncHoneycombNavigationOrder);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 document.addEventListener('click',function(event){const addButton=event.target.closest('[data-action="open-new-hive"]');if(addButton){event.preventDefault();openNewHive();return}const button=event.target.closest('[data-action="toggle-honey-pair"]');if(!button)return;event.preventDefault();event.stopPropagation();toggleHoneyPair()});

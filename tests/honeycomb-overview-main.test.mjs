@@ -19,23 +19,23 @@ test('all eleven navigation routes retain consistent visible and keyboard order'
 
 test('responsive honeycomb places AI in true center with unique grid cells', () => {
   assert.ok(css, 'honeycomb styles must be declared after current main rules');
-  const grid = [['home',1,2],['hives',1,3],['entrance',1,4],
-    ['journal',2,1],['settings',2,2],['ai',2,3],['forage',2,4],['varroa',2,5],
-    ['incidents',3,2],['planning',3,3],['deadout',3,4]];
+  const grid = [['home',1,1],['hives',1,3],['entrance',1,5],
+    ['journal',1,7],['settings',1,9],['forage',1,11],
+    ['varroa',2,2],['incidents',2,4],['ai',2,6],['planning',2,8],['deadout',2,10]];
   const cells = new Set(grid.map(([,row,col]) => row + ':' + col));
   assert.equal(cells.size, 11, 'mobile cells must not overlap');
   for (const [tab,row,col] of grid) {
-    const re = new RegExp('button\\[data-tab="' + tab + '"\\]\\s*\\{[^}]*grid-row:' + row + ';grid-column:' + col);
+    const re = new RegExp('button\\[data-tab="' + tab + '"\\]\\s*\\{[^}]*grid-row:' + row + ';grid-column:' + col + '/span 2');
     assert.match(css, re, 'mobile slot: ' + tab);
   }
   for(const token of [
-    'grid-template-rows:repeat(3,56px)', 'clip-path:polygon(25% 0',
+    'grid-template-rows:repeat(2,56px)', 'clip-path:polygon(25% 0',
     'calc(9px + env(safe-area-inset-bottom,0px))',
     '@media(min-width:700px)', 'grid-template-columns:repeat(11,minmax(0,1fr))',
     'grid-column:6!important', 'orientation:landscape',
     'min-height:48px', 'focus-visible', 'prefers-reduced-motion:reduce'
   ]) assert.ok(css.includes(token), 'missing nav safety constraint: ' + token);
-  assert.match(css, /button\[data-tab="ai"\]\{\s*grid-row:2;grid-column:3/);
+  assert.match(css, /button\[data-tab="ai"\]\{\s*grid-row:2;grid-column:6\/span 2/);
   assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
 });
 
@@ -94,8 +94,19 @@ test('urgent and today tasks remain visible even for hives beyond preview limit'
 
 
 test('central AI respects its grid cell and never inherits legacy upward translateY', () => {
-  assert.match(css,/grid-row:2;grid-column:3;width:min\(64px,100%\);height:56px;min-height:56px/);
+  assert.match(css,/grid-row:2;grid-column:6\/span 2;width:min\(64px,100%\);height:56px;min-height:56px/);
   assert.match(css,/transform:none!important; \/\* override legacy translateY/);
   assert.match(css,/grid-column:6!important;width:min\(68px,100%\)/);
   assert.match(css,/@media\(max-width:340px\)[\s\S]*?width:min\(58px,100%\)/);
+});
+
+test('responsive compact navigation reorders existing nodes only and preserves focus', () => {
+  assert.match(html,/const HONEYCOMB_COMPACT_TABS=\['home','hives','entrance','journal','settings','forage','varroa','incidents','ai','planning','deadout'\]/);
+  assert.match(html,/const HONEYCOMB_DESKTOP_TABS=\['home','hives','entrance','journal','settings','ai','forage','varroa','incidents','planning','deadout'\]/);
+  assert.match(html,/function syncHoneycombNavigationOrder\(\)/);
+  assert.match(html,/nav\.append\(\.\.\.order\.map\(tab=>byTab\.get\(tab\)\)\)/);
+  assert.match(html,/focused\.focus\(\{preventScroll:true\}\)/);
+  assert.match(css,/grid-template-columns:repeat\(12,minmax\(0,1fr\)\)/);
+  assert.match(css,/clip-path:none; \/\* Narrow screens/);
+  assert.match(css,/main\{padding-bottom:calc\(160px \+ env\(safe-area-inset-bottom,0px\)\)\}/);
 });

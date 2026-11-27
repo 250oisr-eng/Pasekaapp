@@ -20,12 +20,16 @@ const server=createServer(async(req,res)=>{
 });
 const scenarios=[
   ['portrait-320',320,640],['portrait-360',360,780],['portrait-390',390,844],
-  ['portrait-412',412,915],['portrait-768',768,1024],['portrait-1024',1024,1365],
-  ['landscape-640',640,320],['landscape-780',780,360],['landscape-844',844,390],
+  ['portrait-412',412,915],['portrait-560',560,850],['portrait-699',699,960],
+  ['portrait-700',700,960],['portrait-768',768,1024],['portrait-1024',1024,1365],
+  ['landscape-560',560,320],['landscape-640',640,320],
+  ['landscape-780',780,360],['landscape-844',844,390],
   ['landscape-1024',1024,768],['landscape-1365',1365,900]
 ];
-const expected=['home','hives','entrance','journal','settings','ai',
+const desktopOrder=['home','hives','entrance','journal','settings','ai',
   'forage','varroa','incidents','planning','deadout'];
+const compactOrder=['home','hives','entrance','journal','settings','forage',
+  'varroa','incidents','ai','planning','deadout'];
 const measure=()=> {
   const box=el=>{const r=el.getBoundingClientRect();
     return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
@@ -94,7 +98,15 @@ const measure=()=> {
       if(m.missing)problems.push(m.missing);
       else {
         const tabs=m.buttons.map(b=>b.tab);
-        if(JSON.stringify(tabs)!==JSON.stringify(expected))problems.push('navigation routes/order changed');
+        const compact=width<700&&!(width>=560&&width>height&&height<=520);
+        const expected=compact?compactOrder:desktopOrder;
+        if(JSON.stringify(tabs)!==JSON.stringify(expected))problems.push('navigation routes/keyboard order changed');
+        if(m.rowTracks!==(compact?2:1))problems.push('expected '+(compact?2:1)+' grid rows, got '+m.rowTracks);
+        // CSS grid row-major layout and DOM order must match Tab navigation order.
+        const visual=[...m.buttons].sort((a,b)=>
+          (Math.abs(a.cy-b.cy)>5?a.cy-b.cy:a.cx-b.cx)).map(b=>b.tab);
+        if(JSON.stringify(tabs)!==JSON.stringify(visual))
+          problems.push('DOM/Tab order differs from visual row-major order');
         if(m.buttons.length!==11)problems.push('expected 11 nav buttons');
         if(Math.abs(m.nav.bottom-height)>2)problems.push('nav is not anchored to viewport bottom');
         if(m.nav.left< -1||m.nav.right>width+1)problems.push('nav horizontal overflow');
