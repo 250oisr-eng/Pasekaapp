@@ -1130,6 +1130,24 @@
     "talkBack": "NOT_TESTED",
     "twoRowUXAcceptance": "PENDING_VISUAL_ACCEPTANCE",
     "release": "NOT_AUTHORIZED",
-    "completedVerifiedUserScenarios": 0
+    "completedVerifiedUserScenarios": 0,
+    "integration": "IN_MAIN_MERGE_e00d5d34"
+  },
+  "uiHomeCanonicalAI20261127": {
+    "sourceMain": "e00d5d34cdeeed619bb2af6082650f7643e9994b",
+    "pr": null,
+    "implementation": "IMPLEMENTED_DRAFT_CI_PENDING",
+    "retainedNavAI": true,
+    "homeDuplicateRemoved": true,
+    "quickJournalEntryRetained": true,
+    "aiPromptChipsRetained": true,
+    "storageChanged": false,
+    "videoTouched": false,
+    "serviceWorkerChanged": false,
+    "physicalOnePlus": "NOT_TESTED",
+    "productionRelease": "NOT_AUTHORIZED",
+    "nodeCI": "PENDING",
+    "chromium": "PENDING",
+    "android": "PENDING"
   }
 }
