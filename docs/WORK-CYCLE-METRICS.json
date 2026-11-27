@@ -1580,11 +1580,11 @@
     "draftPr": 627,
     "codeSha": "d031e9f7d76864624a32005080cf7634f996e3d4",
     "nodeTests": {
-      "tests": 1057,
-      "pass": 1057,
+      "tests": 1058,
+      "pass": 1058,
       "fail": 0,
-      "runId": 46017055419,
-      "verifiedOnSha": "f4b933c94850d6eb09734f3c4bde8de0fa49a015"
+      "runId": 46017536898,
+      "verifiedOnSha": "d031e9f7d76864624a32005080cf7634f996e3d4"
     },
     "android": "PENDING",
     "chromium": "PENDING",
@@ -1603,7 +1603,7 @@
       "honey_harvest",
       "wintering"
     ],
-    "latestCodeNodeTests": "PENDING_EXACT_SHA",
-    "queenFutureDateGuard": "IMPLEMENTED_DRAFT_REGRESSION_ADDED"
+    "latestCodeNodeTests": "CI_VERIFIED_EXACT_CODE_SHA",
+    "queenFutureDateGuard": "CI_VERIFIED_NODE_ONLY"
   }
 }
