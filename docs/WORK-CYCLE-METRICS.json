@@ -44,6 +44,14 @@
       "fullCi": "PENDING",
       "device": "NOT_TESTED",
       "productionMutation": false
+    },
+    "corruptRegistryGuard": {
+      "invalidArrayCases": 12,
+      "readOnlyRenderCase": 1,
+      "inMemorySpotCheck": "PASS",
+      "fullExactHeadCi": "PENDING",
+      "device": "NOT_TESTED",
+      "productionMutation": false
     }
   },
   "upcomingHomeTasks20261127": {
