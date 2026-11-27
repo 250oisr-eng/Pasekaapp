@@ -1,24 +1,25 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · main `1a609a9ec46cace85a81663648fee749df677932` после #621.** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+**27.11.2026 · UX merge `de04d1725e175adf00fcfda69e9b3c8aebb00b6b` (#643).** Перед merge всегда сверять актуальный SHA и CI. Правила: [AGENTS.md](AGENTS.md), [индекс](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические SHA/PR — в [журнале](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md) и [метриках](docs/WORK-CYCLE-METRICS.json).
+
+**UX · IN_MAIN [#643](https://github.com/250oisr-eng/Pasekaapp/pull/643):** владелец разрешил интеграцию. #638/#640/#643 объединены, #640 закрыт без повторного merge. Биологические карточки, техническая карта, навигация, формы, режимы. Merge de04d172, дерево совпадает с проверенным 425e8e5b; runtime 627e59e4 Node 1085/1085, Android/Chromium/Governance PASS; exact main CI повторяется (Fast/Governance PASS). #639 отдельное QA демо CI PASS, не включено. OnePlus/TalkBack NOT_TESTED. NO_RELEASE, реальные данные не изменены.
 
 **B03 · RESOLVED_INTEGRATION_SCOPE / IN_MAIN (#626 MERGED):** #472/#623 already merged; Fast/Android/Chromium/Governance PASS on `94f883be`; current main differs by docs-only commit, exact-main Governance PASS. Release history not independently verified; B01/B02/B04/B05/B11/B15 remain open. No production release or restore authorized.
 
 **Учёт без видео [#627 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/627):** семейные ID, дата матки, откаты физических операций и защита от двойной записи медовой пары. Main `3f7ad4d7`: 1068/1068 Node и CI PASS. OnePlus/B07 отдельно.
 
-**Voice QA #644:** [карточка](docs/VOICE-ANDROID-QA-2026-11-27.md); Vosk binary PASS на прежнем SHA, локальные команды/TTS Draft; OnePlus NOT_TESTED.
+**Voice QA #644:** [локальные команды и TTS](docs/VOICE-ANDROID-QA-2026-11-27.md); 1090/1090 на прежнем SHA; адаптирован к UX #643, новый CI/OnePlus NOT_VERIFIED.
 
 ## План работ и журнал
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
-**Draft [#625](https://github.com/250oisr-eng/Pasekaapp/pull/625)** — техническая диагностика в разделе «Ещё». Статус CI и ограничения в PR.
+**[#625 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/625)** — техническая диагностика в разделе «Ещё»; exact main checks PASS, физический OnePlus отдельно.
 
 ## Основные интегрированные функции
 
 - **#597–#599 MERGED:** первый внешний архив с read-only проверкой, история семьи и безопасные ссылки из поиска на записи/инвентарь. Полное независимое восстановление реальных данных ещё не доказано.
 - **#603–#604 MERGED:** устранён overlap навигации, один AI-вход в навигации, три превью ульев и однокасательная новая запись из последних событий.
-- **#607 MERGED:** единая на всех вкладках сотовая навигация **4–3–4**, соприкасающиеся шестиугольники, 11 маршрутов, центральная пчела в профиль без надписи на голубом радиальном фоне; доступное имя AI сохранено. PR `49f85367`: Node **1017/1017**, Android/Chromium 11/11/Governance PASS.
 - **#609–#610 MERGED:** одно касание «Очистить» в глобальном поиске, Escape/фокус, aria-live статус числа результатов; 12 результатов и прежние ссылки не изменены. PR `b243e510`: Node **1021/1021**, Android/Chromium 11 viewport и search 320/390/768/Governance PASS.
 - **#608/#611 MERGED:** постинтеграционный статус, история и метрики. Физические OnePlus/TalkBack не проверялись. Публикация не запускалась.
 
@@ -33,7 +34,6 @@
 
 ## Блокировки до физических доказательств
 
-- **#596 P1 / DEVICE_CYCLE_1_USER_REPORTED_PASS:** геометрия 4–3–4, переходы, Back, поворот и первый запуск на OnePlus — PASS по отчёту пользователя 8/8 от 27.11.2026; TalkBack, перчатки, яркое солнце и длительная эксплуатация отдельно NOT_TESTED.
 - **B01 P0 · #623 / IN_MAIN:** [два ZIP и одна кнопка](docs/B01-DAILY-TWO-ARCHIVES-2026-11-27.md). Код `70216c73`: Node **1054/1054**, Android build, Chromium restore + simulated background, Governance PASS. JobScheduler реализован. Изолированный QA #45993522131 PASS, [APK](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45993522131/artifacts/15193929646) до 04.12.2026; физический OnePlus/фон и большие ZIP >256 MiB не подтверждены. Draft #452 исторический. #479/#522/#543 CLOSED. B06/B10 не ослаблены.
 - **B04/B05 P0 BLOCKED (Draft #469):** signer и совместимость обновления установленного Android APK, сохранение данных и rollback не доказаны. **Не устанавливать/обновлять производственный APK; установленный отдельный QA пакет не считать доказательством B04/B05.**
 - **B06/B10 #442 FROZEN:** нет всех V0–V6 (права/лицензии весов, реальный видеоконвейер и GT, все копии, независимый restore). Автоудаление оригинальных видео запрещено.

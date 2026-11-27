@@ -1,6 +1,28 @@
 {
-  "voiceCommandsQa20261127": {"previousBinarySha":"0a035ef3a17d7c52b1640bf59fa821743e3a7ad2","previousVoiceQaRun":46056284180,"pr":644,"integration":"IMPLEMENTED_DRAFT","ci":"NOT_VERIFIED","device":"NOT_TESTED","lockedScreen":"RESEARCH_ONLY","completedVerifiedUserScenarios":0,"storageChanges":false,"measuredSavings":null},
   "voiceAndroidQa20261127": {"sourceMain":"a0e52b83abb2463a9a3a7560ee3cda0517880516","integration":"IMPLEMENTED_DRAFT","modelProofPr":642,"lifecyclePr":641,"ci":"NOT_VERIFIED","device":"NOT_TESTED","completedVerifiedUserScenarios":0,"storageChanges":false,"measuredSavings":null},
+  "voiceCommandsQa20261127": {"previousBinarySha":"0a035ef3a17d7c52b1640bf59fa821743e3a7ad2","previousVoiceQaRun":46056284180,"pr":644,"integration":"IMPLEMENTED_DRAFT","ci":"NOT_VERIFIED","device":"NOT_TESTED","lockedScreen":"RESEARCH_ONLY","completedVerifiedUserScenarios":0,"storageChanges":false,"measuredSavings":null,"previousCodeSha":"f9b270a794333329749fbb9f43337134dc689499","previousNodeTests":{"tests":1090,"pass":1090,"fail":0},"previousFastRun":46056927807,"rebasedOnto":"6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b"},
+  "seasonalWorkspaceUI20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "sourceMainSha": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "codeSha": "a9cf76101c7a4bfc0d65364aa0748d120bc4a836",
+    "targetedTests": 5,
+    "nodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "visualBrowser": "NOT_TESTED",
+    "integrationDependencies": [],
+    "storageChanges": false,
+    "serviceWorkerChanges": true,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "integrationCandidate": true,
+    "composedFrom": [
+      637,
+      622
+    ]
+  },
   "p0FirstExternalCopyGuide20261127": {
     "sourceMain": "e906e2f4295e24c020e16e8971419e7b53baf2c3",
     "pr": 597,
@@ -35,7 +57,11 @@
     "measuredSavings": null
   },
   "schemaVersion": 1,
-  "upcomingHomeTasks20261127":{"browserViewports":2,"device":"NOT_TESTED","completedVerifiedUserScenarios":0},
+  "upcomingHomeTasks20261127": {
+    "browserViewports": 2,
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0
+  },
   "workNectarPlanner20261126": {
     "targetedTestsPassed": 14,
     "chromiumPlanningScenario": "PASS",
@@ -1650,7 +1676,11 @@
   "overviewModelDiagnostics20261127": {
     "stage": "IMPLEMENTED_DRAFT",
     "refreshedMainSha": "1a609a9ec46cace85a81663648fee749df677932",
-    "refreshedLocalNodeTests": {"pass": 1072, "fail": 0, "targetedPass": 13},
+    "refreshedLocalNodeTests": {
+      "pass": 1072,
+      "fail": 0,
+      "targetedPass": 13
+    },
     "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
     "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
     "mainCi": [
@@ -1677,5 +1707,197 @@
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null,
     "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
+  },
+  "uxReset20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "priorCodeSha": "783ca683a97db4e2dbdfb8a0e1ec1cd8f7c6aed0",
+    "priorCi": {
+      "fast": "failure",
+      "android": "failure",
+      "governance": "failure",
+      "chromium": "success_one_run"
+    },
+    "closedSupersededPrs": [
+      606,
+      637
+    ],
+    "closedSupersededIssues": [
+      596
+    ],
+    "physicalBranchDeletion": "UNAVAILABLE_CONNECTOR",
+    "nextCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
+  },
+  "uxTheme20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "priorCodeSha": "2a020df4828f60d309c38852e1f5f38764d3e574",
+    "priorCi": {
+      "governance": "success",
+      "fast": "failure",
+      "android": "failure",
+      "chromium": "failure",
+      "journalSynthetic": "pass"
+    },
+    "preferencesStorage": "isolated UI key only",
+    "nextCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageSchemaChanges": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
+  },
+  "uxErgonomics20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 638,
+    "priorCodeSha": "6900abb1cd7f92be59cd6b0c46ec8b73399625f8",
+    "priorCi": {
+      "node": "success",
+      "android": "success",
+      "governance": "success",
+      "workers": "success",
+      "chromium": "failure",
+      "navigationViewportsPassed": 14,
+      "journalMobileDesktop": "pass",
+      "accounting": "pass",
+      "syntheticArchives": "pass",
+      "failure": "intermediate header color during CSS transition"
+    },
+    "parallelPreviewBranch": "work/workspace-preview-20261127",
+    "nextCi": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "releaseAuthorized": false
+  },
+  "uxErgonomics20261127Verified": {
+    "stage": "READY_FOR_MERGE_REVIEW",
+    "pr": 638,
+    "codeSha": "b29454a647eb38fa79e0edbe74cfcebc1d4f8abc",
+    "ciRuns": [
+      {
+        "id": 46054455908,
+        "conclusion": "success"
+      },
+      {
+        "id": 46054455976,
+        "conclusion": "success"
+      },
+      {
+        "id": 46054463573,
+        "conclusion": "success"
+      },
+      {
+        "id": 46054463522,
+        "conclusion": "success"
+      }
+    ],
+    "nodeTests": 1079,
+    "navigationViewports": 14,
+    "journalScenarios": 2,
+    "accountingScenarios": 1,
+    "diagnosticsScenarios": 2,
+    "syntheticArchiveScenarios": 2,
+    "searchResetViewports": 3,
+    "closedSupersededPr": 622,
+    "preview": {
+      "pr": 639,
+      "sha": "f3fbda635e5c41656b85c73836396996fd3f9dd5",
+      "staticChecks": "PASS",
+      "browser": "NOT_TESTED"
+    },
+    "device": "NOT_TESTED",
+    "repeatedDocumentReads": null,
+    "completedVerifiedUserScenarios": 0,
+    "releaseAuthorized": false
+  },
+  "hiveRecordErgonomics20261127": {
+    "stage": "CI_VERIFIED_EXACT_SHA",
+    "pr": 640,
+    "codeSha": "29aedecfa37360b62469aac373f413781cbe87ac",
+    "basePr": 638,
+    "nodeTests": 1081,
+    "ciRuns": [
+      46055098828,
+      46055102469,
+      46055099036,
+      46055102476
+    ],
+    "cancelDraftViewports": 3,
+    "syntheticOnly": true,
+    "device": "NOT_TESTED",
+    "parallelPreview": {
+      "pr": 639,
+      "sha": "f6c9915a4359e4de4ecfc4a7ead8465496dbdcf1",
+      "ci": "NOT_VERIFIED"
+    },
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "releaseAuthorized": false
+  },
+  "hiveBiologicalTechnical20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 643,
+    "basePr": 640,
+    "codeSha": "627e59e4d46405193f11d0e9642ad6190c3cca03",
+    "nodeTests": 1085,
+    "ci": {
+      "fast": {
+        "id": 46056203810,
+        "result": "success"
+      },
+      "governance": {
+        "id": 46056211894,
+        "result": "success"
+      },
+      "chromium": {
+        "id": 46056211893,
+        "result": "in_progress"
+      },
+      "android": {
+        "id": 46056212011,
+        "result": "in_progress"
+      }
+    },
+    "priorChecks": {
+      "pr638": "PASS",
+      "pr639": "PASS",
+      "pr640": "PASS"
+    },
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "releaseAuthorized": false
+  },
+  "uxIntegrated20261127": {
+    "stage": "IN_MAIN",
+    "pr": 643,
+    "mergeSha": "de04d1725e175adf00fcfda69e9b3c8aebb00b6b",
+    "verifiedRuntime": "627e59e4d46405193f11d0e9642ad6190c3cca03",
+    "verifiedHead": "425e8e5b15d3418747681633a1d17ce373762804",
+    "mergedScope": [
+      638,
+      640,
+      643
+    ],
+    "qaPreviewExcluded": 639,
+    "treeDiffFiles": 0,
+    "nodeTests": 1085,
+    "ci": {
+      "mainFast": "success",
+      "mainGovernance": "success",
+      "mainAndroid": "in_progress",
+      "mainChromium": "in_progress"
+    },
+    "device": "NOT_TESTED",
+    "releaseAuthorized": false,
+    "productionMutation": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }

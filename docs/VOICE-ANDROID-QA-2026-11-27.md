@@ -30,3 +30,7 @@ Android 14+ требует microphone foreground service type, FOREGROUND_SERVIC
 ## UI negative integration pass (pending exact-head CI)
 
 Отдельный текстовый readback переживает TTS failure; raw buffer не перезаписывается command mode; QA manual draft card перенесена на главную вместе с единственным локальным микрофоном. При неуспешном открытии новой формы закрывается только созданная этим действием форма, прежний activeJournalHive восстанавливается. Три mock bridge integration tests: stop→TTS→resume→confirm→real form fields; no TTS/visibility; ручной черновик защищён. Не физический runtime proof.
+
+## Согласование с параллельно интегрированным UX #643
+
+Main продвинулся на 26 commits до `6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b`; предыдущий voice head `f9b270a794333329749fbb9f43337134dc689499` Fast 1090/1090, PR стал dirty. Перенос в рабочей ветке: дерево нового main + только 7 voice QA файлов, daily allowlist и аккуратно объединённые статус/индекс/метрики/журнал; не изменяли production index.html, SW или workspace-ui. Фактический новый index прошёл pure patchVoiceHtml с прежними DOM anchors. Перепроверить exact-head CI, Android QA binary, device. Никакого merge PR в main.
