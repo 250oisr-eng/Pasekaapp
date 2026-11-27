@@ -126,6 +126,45 @@ export async function collectPortfolio(fetchPage) {
   return {...graph,closedPrHistory:analyzeBranchHistory(graph,closed)};
 }
 
+
+/**
+ * A complete, independently supplied changed-file list can reveal collision
+ * candidates, not textual or semantic merge conflicts. No GitHub writes here.
+ */
+export function analyzeRootFileOverlaps(entries,{base='main'}={}) {
+  if(!Array.isArray(entries))throw Error('Complete PR file inventories required');
+  const seen=new Set(), roots=[];
+  for(const entry of entries){
+    if(!Number.isSafeInteger(entry?.number)||entry.number<1||seen.has(entry.number)||
+       typeof entry.base!=='string'||!entry.base||entry.complete!==true||
+       !Array.isArray(entry.paths)||entry.paths.some(path=>
+         typeof path!=='string'||!path||path.startsWith('/')||
+         path.includes('\\')||path.split('/').includes('..'))||
+       new Set(entry.paths).size!==entry.paths.length)
+      throw Error('Incomplete or invalid PR file inventory');
+    seen.add(entry.number);
+    if(entry.base===base)roots.push(entry);
+  }
+  roots.sort((a,b)=>a.number-b.number);
+  const isCritical=path=>/^(?:index\.html|sw\.js|package(?:-lock)?\.json|js\/|scripts\/|android\/|android-native\/|\.github\/workflows\/)/.test(path);
+  const pairs=[];
+  for(let i=0;i<roots.length;i++)for(let j=i+1;j<roots.length;j++){
+    const a=roots[i],b=roots[j],their=new Set(b.paths);
+    const shared=a.paths.filter(path=>their.has(path)).sort();
+    const critical=shared.filter(isCritical);
+    if(critical.length)pairs.push({
+      left:a.number,right:b.number,sharedCritical:critical,
+      sharedTests:shared.filter(path=>path.startsWith('tests/')).length,
+      sharedGovernance:shared.filter(path=>path==='PROJECT_STATUS.md'||path.startsWith('docs/')).length
+    });
+  }
+  return {
+    proof:'COMPLETE_PATH_OVERLAP_ONLY_NOT_SEMANTIC_MERGE_CONFLICT',
+    reviewedRootPrs:roots.length,criticalPairCount:pairs.length,pairs,
+    warning:'Same filename does not prove a merge conflict or justify closing, merging or rebasing a PR.'
+  };
+}
+
 async function listAll(fetchPage,{pageSize=100,maxPages=30}={}) {
   const all=[];
   for(let page=1;page<=maxPages;page++) {
