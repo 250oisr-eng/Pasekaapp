@@ -290,6 +290,7 @@ dialog{max-height:calc(100dvh - 16px)!important;overscroll-behavior:contain}
 .journal-filter-row{grid-template-columns:minmax(0,1fr) minmax(115px,.55fr);align-items:stretch}.journal-filter-row button{min-height:42px}
 .journal-result-count{margin:5px 0 9px;font-size:12px}
 .workspace-global-search{border-color:#d5dfd1;background:linear-gradient(145deg,#fff 0%,#f7f9f4 100%)}.workspace-global-search>input{margin:10px 0 0}
+.global-search-controls{display:flex;gap:8px;align-items:center}.global-search-controls input{min-width:0;flex:1}.global-search-controls button{min-height:44px;white-space:nowrap;padding:9px 10px}.global-search-controls button[hidden]{display:none!important}.global-search-status:not(:empty){font-size:12px;margin-top:6px}
 .global-search-results{display:grid;gap:5px;margin-top:8px}
 .global-search-result{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border:1px solid #e1e7dd;border-radius:11px;background:#fff;text-align:left;color:#304438}
 .global-search-result span:first-child{display:grid;gap:3px;min-width:0}.global-search-result b{font-size:13px}.global-search-result small{font-size:11px;color:#68766b}
@@ -441,7 +442,7 @@ main{padding-bottom:calc(clamp(202px,calc((100vw - 14px)*.57735 + 32px),278px) +
 <main><div class="row" id="backBar" style="margin:8px 0"><button id="backButton" type="button" onclick="goBack()">← Назад</button><span class="muted">Навигация</span></div><nav aria-label="Основные разделы"><button data-tab="entrance">Лёток</button><button data-tab="hives">Ульи</button><button data-tab="home" class="active" aria-label="Обзор пасеки" aria-current="page">Обзор</button><button data-tab="planning">План</button><button data-tab="journal">Журнал</button><button data-tab="ai" class="nav-ai-button" aria-label="Открыть ИИ-помощника" title="ИИ-помощник"><svg class="nav-ai-bee" aria-hidden="true" focusable="false" viewBox="0 0 64 64" width="38" height="38"><path d="M25 29 5 15 33 23 43 31M26 32 9 23 35 29" fill="#b9f4ff" fill-opacity=".72" stroke="#dcfbff" stroke-width="1.25" stroke-linejoin="round"/><path d="M9 49 17 42 21 47 13 57Z" fill="#ffe36c"/><path d="M15 42 21 29 37 26 47 32 41 43 23 49Z" fill="#ffda54" stroke="#fff1a0" stroke-width="1.3" stroke-linejoin="round"/><path d="M23 29 19 43 23 49M31 27 28 46M38 27 36 44" fill="none" stroke="#083a69" stroke-width="5.2"/><path d="M42 29 49 25 57 29 61 36 54 44 45 42 41 37Z" fill="#ffdf64" stroke="#fff1a0" stroke-width="1.3" stroke-linejoin="round"/><path d="M53 28 55 18M48 27 45 20M58 39 63 42" stroke="#f8de66" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M55 32 59 34 55 37 51 35Z" fill="#073b67"/><path d="M20 46 15 55M30 46 27 56M39 42 40 51" stroke="#ffdb61" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button><button data-tab="forage">Медоносы</button><button data-tab="incidents">Инцидент</button><button data-tab="deadout">Потери</button><button data-tab="varroa">Клещ</button><button data-tab="settings">Ещё</button></nav>
 <section id="home" class="panel active">
  <div class="card home-intro-card" style="border-left:4px solid #547b5d"><b>Виртуальная модель пасеки</b><div class="muted">Все ульи, семьи, рамки, осмотры и перестановки здесь являются проектными данными. Приложение не предполагает наличие живых пчёл и не считает пустые записи реальными наблюдениями.</div></div>
- <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" oninput="renderGlobalSearch()"><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
+ <div class="card workspace-global-search"><div class="row"><div><b>Быстрый поиск по пасеке</b><div class="muted">Ульи, семьи, физические рамки и записи</div></div><span class="home-ai-spark" aria-hidden="true">⌕</span></div><div class="global-search-controls"><input id="globalSearch" type="search" placeholder="Например: семья 2, рамка H1-03, матка…" aria-label="Поиск по всей пасеке" aria-controls="globalSearchResults" oninput="renderGlobalSearch()" onkeydown="handleGlobalSearchKeydown(event)"><button type="button" id="globalSearchClear" hidden aria-label="Очистить поиск по пасеке" onclick="clearGlobalSearch()">Очистить</button></div><div id="globalSearchStatus" class="muted global-search-status" role="status" aria-live="polite" aria-atomic="true"></div><div id="globalSearchResults" class="global-search-results"></div></div>
  <div class="card apiary-status-card"><div class="row"><b>Состояние пасеки</b><span class="muted" id="apiaryStatusDate"></span></div><div id="apiaryStatus" class="apiary-status-grid"></div><div id="apiaryAttention" class="apiary-attention"></div></div>
  <div class="card home-hives-card"><div class="row"><b>Мои ульи</b><button onclick="showTab('hives')">Все ульи →</button></div><div id="homeHivePreviewCount" class="muted" aria-live="polite"></div><div id="homeHives" class="home-hive-grid" style="margin-top:10px"></div></div>
  <div class="card home-tasks-card"><div class="row"><b>План работ</b><button class="primary" onclick="openPlanDialog()">＋ Запланировать</button></div><div id="homeAlerts"></div><div id="homeTasks"></div></div>
@@ -1322,9 +1323,20 @@ function clearJournalFilters(){
  ['journalSearch','journalDateFilter'].forEach(id=>{const el=$(id);if(el)el.value=''});
  const type=$('journalTypeFilter'),family=$('journalFamilyFilter');if(type)type.value='all';if(family)family.value='all';renderJournalRecords();
 }
+function clearGlobalSearch(){
+ const input=$('globalSearch');if(!input)return;
+ input.value='';renderGlobalSearch();input.focus();
+}
+function handleGlobalSearchKeydown(event){
+ if(event.key!=='Escape'||!event.currentTarget?.value)return;
+ event.preventDefault();clearGlobalSearch();
+}
 function renderGlobalSearch(){
  const input=$('globalSearch'),host=$('globalSearchResults');if(!input||!host)return;
- const query=input.value.trim().toLocaleLowerCase('ru-RU');if(!query){host.innerHTML='';return}
+ const reset=$('globalSearchClear'),status=$('globalSearchStatus');
+ const query=input.value.trim().toLocaleLowerCase('ru-RU');
+ if(reset)reset.hidden=!input.value;
+ if(!query){host.innerHTML='';if(status)status.textContent='';return}
  const results=[];
  for(const hive of S.hives){
   const layout=layoutFor(hive.id),profile=getHiveProfile(hive),families=S.families.filter(f=>f.hive===hive.id);
@@ -1344,6 +1356,7 @@ function renderGlobalSearch(){
  const shown=results.slice(0,12);
  host.innerHTML=shown.length?shown.map(item=>'<button type="button" class="global-search-result" data-kind="'+item.kind+'" data-id="'+safe(item.id)+'" data-hive="'+safe(item.hiveId)+'" data-box="'+safe(item.box||'')+'" data-index="'+(Number.isInteger(item.index)?item.index:-1)+'" onclick="openGlobalSearchResult(this)"><span><b>'+safe(item.label)+'</b><small>'+safe(item.detail||'')+'</small></span><span aria-hidden="true">↗</span></button>').join(''):'<div class="muted global-search-empty">Совпадений не найдено.</div>';
  if(results.length>shown.length)host.insertAdjacentHTML('beforeend','<div class="muted global-search-empty">Показаны первые '+shown.length+' совпадений из '+results.length+'. Уточни запрос.</div>');
+ if(status)status.textContent=results.length?'Найдено '+results.length+' совпадений. Показано '+shown.length+'.':'Совпадений не найдено.';
 }
 document.addEventListener('keydown',event=>{
  if(event.key!=='Enter'&&event.key!==' ')return;
