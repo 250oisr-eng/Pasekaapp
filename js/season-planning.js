@@ -46,12 +46,20 @@ function buildInspectionReminder(input){
 }
 // Derive a calendar input only from explicitly saved inspection records.
 // Never infer that a scheduled, archived or future event was performed.
-function latestSavedInspection(records,hiveId,asOf){
+function latestSavedInspection(records,hiveId,asOf,familyId=null){
  if(!Array.isArray(records)||typeof hiveId!=='string'||!hiveId||!parseDate(asOf))
   throw new Error('Для поиска осмотра выбери улей и корректную текущую дату.');
+ if(familyId!==null&&(typeof familyId!=='string'||!familyId.trim()))
+  throw new Error('Неоднозначная идентичность семьи для истории осмотров.');
  let latest=null;
  for(const record of records){
   if(!record||record.hive!==hiveId||record.type!=='Осмотр'||record.archivedAt)continue;
+  if(familyId!==null){
+   const snapshotId=record.familySnapshotAtTime?.id;
+   // An unattributed legacy entry or a conflicting snapshot cannot prove an inspection
+   // of the current colony, even when the physical hive ID has remained unchanged.
+   if((record.family||snapshotId)!==familyId||(snapshotId&&record.family&&snapshotId!==record.family))continue;
+  }
   const date=record.date;
   if(!parseDate(date)||date>asOf)continue;
   if(!latest||date>latest.date)latest={date,recordId:record.id||null};
