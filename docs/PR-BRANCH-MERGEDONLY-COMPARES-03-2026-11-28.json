@@ -1,0 +1,661 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 3,
+  "start": 30,
+  "rows": [
+    {
+      "branch": "docs/integration-ledger-post-485-488-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 490,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 10,
+      "behind": 248,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "cb32d0ca8d72f9c4e8d57bb2d06d86a7b5cef237",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 8
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        }
+      ],
+      "returnedFiles": 3,
+      "totalCommits": 10
+    },
+    {
+      "branch": "docs/inventory-atomicity-checkpoint-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 126,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 1091,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0a60810883e33fd5a68d918185c45ba188b04d32",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 5
+    },
+    {
+      "branch": "docs/merge-release-authority-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 107,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 1111,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7274c0fd6bb4da3b4792010668e7c35637eea9ec",
+      "changedPaths": [
+        {
+          "path": "AGENTS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/PROJECT-CONTROL.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ПРАВИЛА-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 5
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 7
+    },
+    {
+      "branch": "docs/oneplus-qa-binary-ready-20261127",
+      "closedPrs": [
+        {
+          "number": 614,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 40,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "ab1be71add0e16b20eb47c7a1eaf585411039a46",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/oneplus-qa-cycle1-pass-cycle2-20261127",
+      "closedPrs": [
+        {
+          "number": 615,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 39,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "c1292f2f329a3ca016810e37e1117a0c5356646c",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 5
+        },
+        {
+          "path": "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+          "status": "modified",
+          "additions": 48,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 28,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/oneplus-qa-cycle2-pass-cycle3-20261127",
+      "closedPrs": [
+        {
+          "number": 616,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 38,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "b9e8de4ad5d0587be4154fe1a128ceb5365b89bb",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 4
+        },
+        {
+          "path": "docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md",
+          "status": "modified",
+          "additions": 40,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 5
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/p0-b01-b04-op13-cycle-f7-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 503,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 234,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f60479263064f59a227a4f26d8d7e7186123181f",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 18
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 4
+    },
+    {
+      "branch": "docs/p0-b01-local-verifier-json-pair-f7-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 508,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 9,
+      "behind": 229,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "01a3449ee232299a37655d0194f39b23161048e7",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 19
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 9
+    },
+    {
+      "branch": "docs/p0-startup-write-gate-f7-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 505,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 232,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "8b4eabf04220a96e45127568816758360da834c5",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 2
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 7
+    },
+    {
+      "branch": "docs/p1-op13-regular-vs-honey-source-contract-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 502,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 237,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "f106e2aa7990ecc5c5ebf99baf5a3c45c54738b1",
+      "changedPaths": [
+        {
+          "path": "docs/P1-OP13-SPRING-VARIANT-LIVE-MAIN-GATE-2026-11-25.md",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "docs/parallel-7-track-cycle-status-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 499,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 10,
+      "behind": 240,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "97e61dcd28cdaf823098e6ba7317fccc9420a3fa",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 16
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 0
+        },
+        {
+          "path": "docs/РЕЕСТР-БЛОКЕРОВ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 6
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 10
+    },
+    {
+      "branch": "docs/persist-snapshot-pr-checkpoint-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 116,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 1102,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "cb55c0c7574e0bed78c1ad033f74b228e22a622e",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 5
+    },
+    {
+      "branch": "docs/persistence-commit-integration-checkpoint-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 118,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 1099,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "36040b3421cb036487706219a22ed2d6d1404dff",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 5
+    },
+    {
+      "branch": "docs/persistence-integration-checkpoint-2026-11-17",
+      "closedPrs": [
+        {
+          "number": 114,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 1103,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "a09c29976aba94417abc01fed97c1b6d43e1d7bf",
+      "changedPaths": [
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТА-ОТКРЫТЫХ-PR-2026-11-17.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЕРЕДАЧА-МЕЖДУ-ЧАТАМИ.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СОСТОЯНИЕ-ПРОЕКТА.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 5
+    },
+    {
+      "branch": "docs/post-merge-591-root-triage-20261127",
+      "closedPrs": [
+        {
+          "number": 592,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 125,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "e98f686c928f0064dfa7795b5753777cdfef3d67",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    }
+  ]
+}
