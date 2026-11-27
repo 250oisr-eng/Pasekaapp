@@ -103,3 +103,15 @@ test('live paintTab switches aria-current exactly once, including hiveDetail and
   assert.ok(!html.includes('onkeydown="if(event.key==='), 'do not import old inline navigation handlers');
   assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
 });
+
+test('primary menu is home-only and each interior page has an accessible icon-only Home button',()=>{
+ assert.match(html,/body\[data-page\]:not\(\[data-page="home"\]\) main>nav\[aria-label="Основные разделы"\]\{display:none!important\}/);
+ assert.match(html,/<button id="homeButton" type="button" aria-label="На главную" title="На главную" onclick="showTab\('home'\)"><svg[^>]*aria-hidden="true"/);
+ assert.match(html,/id="backBar" style="margin:8px 0;display:none"/);
+ assert.match(html,/#homeButton\{width:44px;min-width:44px/);
+ const {paintTab,slots}=navigationHarness();
+ for(const tab of ['home','hives','hiveDetail','journal','settings','ai','entrance','varroa','planning','forage','incidents','deadout']){
+  paintTab(tab);
+  assert.equal(slots.backBar.style.display,tab==='home'?'none':'flex');
+ }
+});

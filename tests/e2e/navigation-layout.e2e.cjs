@@ -151,35 +151,59 @@ const measure=()=> {
         await page.screenshot({path:'e2e-nav-'+name+'-failure.png'}).catch(()=>{});
       }
     }
-    // One shared navigation must persist unchanged across each existing tab.
-    await page.setViewportSize({width:390,height:844});
-    for(const tab of expected){
-      const selector='main>nav[aria-label="Основные разделы"] button[data-tab="'+tab+'"]';
-      await page.locator(selector).click();
-      const m=await page.evaluate(measure);
-      if(JSON.stringify(m.buttons.map(button=>button.tab))!==JSON.stringify(expected))
-        failures.push('navigation changed after opening '+tab);
-      if(m.rowTracks!==1||m.layoutProblems.length||Math.abs(m.aiDelta)>3)
-        failures.push('five-cell layout changed on tab '+tab+': '+JSON.stringify(m.layoutProblems));
+    // Home-only primary navigation. Verify visible controls and direct Home from all screens.
+    const primary=page.locator('main>nav[aria-label="Основные разделы"]');
+    const home=page.locator('#homeButton'),back=page.locator('#backButton');
+    async function assertInterior(tab){
+      await page.locator('#'+tab+'.panel.active').waitFor({state:'visible'});
+      assert.equal(await primary.isVisible(),false,tab+' must hide primary navigation');
+      assert.ok(await back.isVisible(),tab+' Back must be visible');
+      assert.ok(await home.isVisible(),tab+' Home must be visible');
+      const rect=await home.boundingBox();
+      assert.ok(rect.width>=44&&rect.height>=44,tab+' Home tap target');
+      assert.equal(await home.getAttribute('aria-label'),'На главную');
+      assert.equal(await home.locator('svg[aria-hidden="true"]').count(),1);
+      assert.ok(await page.evaluate(()=>parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom))<110,tab+' must reclaim bottom space');
     }
-    // Each grouped screen is reachable, its parent highlighted, and Back returns to the parent.
+    async function assertHome(){
+      await page.locator('#home.panel.active').waitFor({state:'visible'});
+      assert.ok(await primary.isVisible());
+      assert.equal(await home.isVisible(),false);
+      assert.equal(await back.isVisible(),false);
+      const m=await page.evaluate(measure);
+      assert.deepEqual(m.buttons.map(x=>x.tab),expected);
+      assert.equal(m.rowTracks,1);
+      assert.deepEqual(m.layoutProblems,[]);
+      assert.ok(Math.abs(m.aiDelta)<=3);
+    }
+    await page.setViewportSize({width:390,height:844});
+    await assertHome();
+    for(const tab of expected.filter(tab=>tab!=='home')){
+      await page.locator('main>nav button[data-tab="'+tab+'"]').click();
+      await assertInterior(tab);
+      await home.click();
+      await assertHome();
+    }
     for(const [parent,children] of Object.entries({hives:['entrance','varroa'],journal:['planning','forage'],settings:['incidents','deadout']})){
       for(const child of children){
         await page.locator('main>nav button[data-tab="'+parent+'"]').click();
+        await assertInterior(parent);
         const link=page.locator('#'+parent+' [data-subtab="'+child+'"]');
         assert.equal(await link.count(),1);
         assert.ok(await link.isVisible(),child+' must be visible within '+parent);
         assert.ok((await link.boundingBox()).height>=44);
         await link.click();
-        await page.locator('#'+child+'.panel.active').waitFor({state:'visible'});
-        assert.equal(await page.locator('main>nav button.active').getAttribute('data-tab'),parent);
-        assert.equal(await page.locator('main>nav button[data-tab="'+child+'"]').count(),0);
-        await page.locator('#backButton').click();
-        await page.locator('#'+parent+'.panel.active').waitFor({state:'visible'});
+        await assertInterior(child);
+        await back.click();
+        await assertInterior(parent);
+        await link.click();
+        await assertInterior(child);
+        await home.click();
+        await assertHome();
       }
     }
     // Independent UI #609 smoke on a disposable Chromium profile: no production records.
-    await page.locator('main>nav button[data-tab="home"]').click();
+    await assertHome();
     for(const width of [320,390,768]){
       await page.setViewportSize({width,height:width===320?640:width===390?844:1024});
       const field=page.locator('#globalSearch');

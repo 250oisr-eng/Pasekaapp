@@ -7,6 +7,13 @@ const {createServer}=require('node:http');
 const {readFile}=require('node:fs/promises');
 const {resolve,extname,sep}=require('node:path');
 const root=resolve(__dirname,'../..');
+async function openPrimary(page,tab){
+ const home=page.locator('#homeButton');
+ if(await home.isVisible())await home.click();
+ await page.locator('#home.panel.active').waitFor({state:'visible'});
+ if(tab!=='home')await page.locator('main>nav button[data-tab="'+tab+'"]').click();
+}
+
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
  '.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json',
  '.svg':'image/svg+xml','.css':'text/css; charset=utf-8'};
@@ -52,7 +59,7 @@ async function journey(browser,origin){
  try{
   await page.goto(origin+'/index.html',{waitUntil:'domcontentloaded'});await ready();
   assert.equal(await page.evaluate(()=>S.hives.length),0,'fresh disposable database');
-  await page.locator('button[data-tab="hives"]').click();
+  await openPrimary(page,'hives');
   await page.locator('[data-action="open-new-hive"]').click();
   await page.locator('#hiveForm button.primary').click();
   await page.locator('#hiveDlg').waitFor({state:'hidden'});
@@ -82,7 +89,7 @@ async function journey(browser,origin){
   await page.locator('#queenDlg').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(()=>S.queens.filter(q=>q.status==='replaced').length),1);
   // Real journal forms: feeding + inspection with explicit family selection.
-  await page.locator('button[data-tab="journal"]').click();
+  await openPrimary(page,'journal');
   for(const entry of [{type:'Подкормка',date:'2026-11-15',text:'QA-ACCOUNTING-FEED',amount:'150 г'},
                      {type:'Осмотр',date:'2026-11-16',text:'QA-ACCOUNTING-INSPECTION'}]){
    await page.locator('#journal').getByRole('button',{name:'＋ Запись'}).click();
@@ -101,14 +108,14 @@ async function journey(browser,origin){
   assert.match(await page.locator('#feedingLedgerContent').textContent(),/150\s*г/);
   const ledger=await page.evaluate((h)=>buildFeedingLedger(S.records,S.families,h),ids.h);
   assert.equal(ledger.find(g=>g.familyId===ids.f).totals.find(t=>t.unit==='г').amount,150);
-  await page.locator('main>nav button[data-tab="journal"]').click();
+  await openPrimary(page,'journal');
   await page.locator('#journal button[data-subtab="planning"]').click();
   await page.locator('#inspectionHiveSelect').selectOption(ids.h);
   await page.locator('button[onclick="useLastSavedInspection()"]').click();
   assert.equal(await page.locator('#inspectionLastDate').inputValue(),'2026-11-16',
     'planned inspection date must use actually saved record');
   // Inventory: create one physical body on storage, never manufacture two on a brood action.
-  await page.locator('button[data-tab="settings"]').click();
+  await openPrimary(page,'settings');
   await page.evaluate(()=>openEquipmentInventory());
   await page.locator('#equipmentInventoryDlg').waitFor({state:'visible'});
   await page.locator('#inventoryTemplateHive').selectOption(ids.h);
@@ -119,7 +126,7 @@ async function journey(browser,origin){
   assert.equal(await page.evaluate(()=>Object.values(S.equipmentInventory.bodies)[0].storageLocation),'QA-СКЛАД');
   await page.evaluate(()=>document.getElementById('equipmentInventoryDlg').close());
   // Hive assembly confirmation: physically meaningful 'Done' is committed before showing success.
-  await page.locator('button[data-tab="hives"]').click();
+  await openPrimary(page,'hives');
   await page.locator('.hive-row-main').first().click();
   // A pair is a single explicit user action; the change must persist before winter reconfiguration.
   await page.locator('#honeyPair [data-action="toggle-honey-pair"]').click();
