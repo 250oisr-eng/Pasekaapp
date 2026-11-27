@@ -1,0 +1,547 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 12,
+  "start": 165,
+  "rows": [
+    {
+      "branch": "work/overview-model-diagnostics",
+      "closedPrs": [
+        {
+          "number": 625,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 28,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "1a609a9ec46cace85a81663648fee749df677932",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 4
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 31,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 29,
+          "deletions": 6
+        },
+        {
+          "path": "tests/e2e/journal-browser.e2e.cjs",
+          "status": "modified",
+          "additions": 61,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 4
+    },
+    {
+      "branch": "work/p1-equipment-label-prefix",
+      "closedPrs": [
+        {
+          "number": 545,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 223,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "a8ffa6148823c21395001210132ed347a9131b23",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 1
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "js/equipment-labels.js",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 1
+        },
+        {
+          "path": "tests/equipment-label-prefix.test.mjs",
+          "status": "added",
+          "additions": 56,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 4
+    },
+    {
+      "branch": "work/p1-nectar-planning-window",
+      "closedPrs": [
+        {
+          "number": 544,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 8,
+      "behind": 219,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "b0d15000bb6a3161915718e5f2f9bb613f14fec9",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "docs/КАРТОЧКА-LAST-INSPECTION-FROM-JOURNAL-2026-11-26.md",
+          "status": "added",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 38,
+          "deletions": 3
+        },
+        {
+          "path": "js/season-planning.js",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 2
+        },
+        {
+          "path": "tests/season-planning.test.mjs",
+          "status": "modified",
+          "additions": 101,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 8
+    },
+    {
+      "branch": "work/search-to-inventory-body",
+      "closedPrs": [
+        {
+          "number": 599,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 99,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "a5b7392fa39f2f62975443fbf52bf69dccafd6c2",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/seasonal-workspace-ui-20261127",
+      "closedPrs": [
+        {
+          "number": 638,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 12,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7632061c148d3d9c86add3adc155b54465a73692",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/second-honey-pair-current-model-20261127",
+      "closedPrs": [
+        {
+          "number": 649,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 17,
+      "behind": 1,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "6526fe6d7041ef5c52f6115e1c29f1306ca9ab1b",
+      "changedPaths": [
+        {
+          "path": ".github/workflows/e2e-journal.yml",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0
+        },
+        {
+          "path": "AGENTS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "docs/SECOND-HONEY-PAIR-CURRENT-2026-11-27.md",
+          "status": "added",
+          "additions": 42,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 223,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 45,
+          "deletions": 0
+        },
+        {
+          "path": "docs/СВЕРКА-ТЕХПРОЦЕССА-С-ИСТОЧНИКОМ.md",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ТЗ-ТЕХПРОЦЕССА.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 160,
+          "deletions": 18
+        },
+        {
+          "path": "js/equipment-inventory.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "js/sectional-honey-persistence.js",
+          "status": "added",
+          "additions": 60,
+          "deletions": 0
+        },
+        {
+          "path": "js/sectional-honey-review-ui.js",
+          "status": "added",
+          "additions": 94,
+          "deletions": 0
+        },
+        {
+          "path": "js/sectional-honey-review.js",
+          "status": "added",
+          "additions": 136,
+          "deletions": 0
+        },
+        {
+          "path": "js/sectional-operation-coordinator.js",
+          "status": "modified",
+          "additions": 341,
+          "deletions": 8
+        },
+        {
+          "path": "js/sectional-physical-layout.js",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "js/sectional-stock-pairs.js",
+          "status": "added",
+          "additions": 53,
+          "deletions": 0
+        },
+        {
+          "path": "sw.js",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "tests/e2e/sectional-honey.e2e.cjs",
+          "status": "added",
+          "additions": 108,
+          "deletions": 0
+        },
+        {
+          "path": "tests/equipment-labels.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "tests/honeycomb-overview-main.test.mjs",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/regression.test.mjs",
+          "status": "modified",
+          "additions": 46,
+          "deletions": 4
+        },
+        {
+          "path": "tests/sectional-honey-integration.test.mjs",
+          "status": "added",
+          "additions": 321,
+          "deletions": 0
+        },
+        {
+          "path": "tests/sectional-operation-coordinator.test.mjs",
+          "status": "modified",
+          "additions": 208,
+          "deletions": 0
+        },
+        {
+          "path": "tests/sectional-physical-layout.test.mjs",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 6
+        },
+        {
+          "path": "tests/sw-cache-boundary.test.mjs",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 6
+        }
+      ],
+      "returnedFiles": 26,
+      "totalCommits": 17
+    },
+    {
+      "branch": "work/spoken-frame-symbols",
+      "closedPrs": [
+        {
+          "number": 547,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 4,
+      "behind": 222,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "3b35dfaf25e3c0d811e61c9eeeaa13cbeb67ba4b",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "js/equipment-reconciliation-voice.js",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 9
+        },
+        {
+          "path": "tests/spoken-frame-symbols.test.mjs",
+          "status": "added",
+          "additions": 57,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 4
+    },
+    {
+      "branch": "work/ui-596-geometry-20261127",
+      "closedPrs": [
+        {
+          "number": 603,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 55,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "067a0438ce154340e7cf1905b1dbaaaf6eb2758b",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/ui-home-canonical-ai-20261127",
+      "closedPrs": [
+        {
+          "number": 604,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 51,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7a4b4e10b796057ef3328fe156490d7875f6e82b",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/ux-integration-status-20261127",
+      "closedPrs": [
+        {
+          "number": 645,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 2,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "e85e9e0c7a2f35e908fdec0b614bc1c0c18d1177",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/voice-feeding-spoken-fields",
+      "closedPrs": [
+        {
+          "number": 546,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 3,
+      "behind": 220,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "71c92705223618a42c2c82d03a30832ef232b43c",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "README.md",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "js/voice-command-parser.js",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 8
+        },
+        {
+          "path": "tests/voice-feeding-dictation.test.mjs",
+          "status": "added",
+          "additions": 76,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 3
+    }
+  ]
+}
