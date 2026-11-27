@@ -1575,28 +1575,29 @@
     "completedVerifiedUserScenarios": 0
   },
   "nonvideoAccountingCycle20261127": {
-    "scope": "FAMILY_INSPECTION_FEED_QUEEN_INVENTORY_ASSEMBLY_ATOMICITY",
+    "scope": "NONVIDEO_END_TO_END_WITH_ATOMIC_EXTRACTION_AND_NO_GHOST_LAYOUTS",
     "baseMain": "9b570ad1ff20c7e6cc440ecf8556b14e848667c9",
     "draftPr": 627,
-    "codeSha": "967db03031b3206138678422d0183de6d9faf9db",
+    "codeSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2",
     "nodeTests": {
-      "tests": 1064,
-      "pass": 1064,
+      "tests": 1067,
+      "pass": 1067,
       "fail": 0,
-      "runId": 46027959851,
-      "verifiedOnSha": "967db03031b3206138678422d0183de6d9faf9db"
+      "runId": 46030103036,
+      "verifiedOnSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2"
     },
     "android": {
       "status": "SUCCESS",
-      "runId": 46027969289,
-      "codeSha": "967db03031b3206138678422d0183de6d9faf9db",
+      "runId": 46030103514,
+      "codeSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2",
       "physical": "NOT_TESTED"
     },
     "chromium": {
       "status": "SUCCESS",
-      "runId": 46027959844,
-      "codeSha": "967db03031b3206138678422d0183de6d9faf9db",
-      "journey": "HIVE_FAMILY_QUEEN_FEED_INSPECTION_STOCK_HONEY_PAIR_WINTER_RELOAD",
+      "runId": 46029916937,
+      "codeSha": "f27c15948f7287952f1621f0a48cf41c224a9051",
+      "comparedToFinalCode": "ONLY_REGRESSION_TEST_FILE_DIFF",
+      "journey": "HIVE_FAMILY_QUEEN_FEED_INSPECTION_STOCK_HONEY_HARVEST_RETURN_WINTER_RELOAD",
       "source": "SYNTHETIC_REAL_INDEXEDDB",
       "device": "NOT_TESTED"
     },
@@ -1619,9 +1620,8 @@
     "latestCodeNodeTests": "CI_VERIFIED_EXACT_CODE_SHA",
     "queenFutureDateGuard": "CI_VERIFIED_NODE_AND_BROWSER",
     "governance": {
-      "status": "SUCCESS",
-      "runId": 46027969279,
-      "codeSha": "967db03031b3206138678422d0183de6d9faf9db"
+      "status": "PENDING_DOCS_EXACT_HEAD",
+      "codeSha": "0dc04ff763af339c872c700d88c4d74c90eb44b2"
     },
     "inventorySaveRollback": "CI_VERIFIED_NODE",
     "assemblyPersistenceRollback": "CI_VERIFIED_NODE",
@@ -1629,6 +1629,9 @@
     "newBrowserUserJourneys": {
       "syntheticCompleted": 1,
       "physicalCompleted": 0
-    }
+    },
+    "extractionAtomicSave": "CI_VERIFIED_NODE",
+    "extractionHiveIdIndexLeak": "FIXED_AND_BROWSER_VERIFIED",
+    "rawIntegrityReopen": "PASS_SYNTHETIC_REAL_IDB"
   }
 }
