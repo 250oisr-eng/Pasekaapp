@@ -1,0 +1,509 @@
+{
+  "kind": "PINNED_GIT_COMPARE_NOT_SEMANTIC_OR_DELETE_PROOF",
+  "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+  "batch": 11,
+  "start": 150,
+  "rows": [
+    {
+      "branch": "test/b09-quota-atomic-rollback-2026-11-26",
+      "closedPrs": [
+        {
+          "number": 538,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 227,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "346b35035861257be45dae93ee0573cbd4de9082",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 31
+        },
+        {
+          "path": "docs/P1-B09-LATE-ABORT-AND-ENTRANCE-MEDIA-2026-11-26.md",
+          "status": "added",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 29,
+          "deletions": 2
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ПЛАН-РАЗРАБОТКИ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "tests/idb-quota-atomic-recovery.test.mjs",
+          "status": "added",
+          "additions": 195,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 6,
+      "totalCommits": 7
+    },
+    {
+      "branch": "test/p0-b01-archive-request-error-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 492,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 245,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bf2c451106e8c0cea71ad94c84b8ccb4d65ff8b3",
+      "changedPaths": [
+        {
+          "path": "docs/P0-B01-ARCHIVE-SNAPSHOT-EXTRA-NEGATIVE-2026-11-25.md",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tests/disaster-archive-read-abort.test.mjs",
+          "status": "modified",
+          "additions": 38,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "test/p0-b01-export-read-abort-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 485,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 7,
+      "behind": 252,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "0e62ced6e34ea1fc92e7e090c2c514e8306c5f8d",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 13
+        },
+        {
+          "path": "docs/P0-B01-ARCHIVE-READ-TRANSACTION-ABORT-2026-11-25.md",
+          "status": "added",
+          "additions": 19,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0
+        },
+        {
+          "path": "tests/disaster-archive-read-abort.test.mjs",
+          "status": "added",
+          "additions": 84,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 4,
+      "totalCommits": 7
+    },
+    {
+      "branch": "test/p1-b08-cloudflare-stream-error-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 495,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 245,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bf2c451106e8c0cea71ad94c84b8ccb4d65ff8b3",
+      "changedPaths": [
+        {
+          "path": "docs/P1-B08-CLOUDFLARE-MIDSTREAM-FAILURE-2026-11-25.md",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tests/cloudflare-bounded-body.test.mjs",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "test/p1-b08-readonly-pr-metadata-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 493,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 245,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bf2c451106e8c0cea71ad94c84b8ccb4d65ff8b3",
+      "changedPaths": [
+        {
+          "path": "docs/P1-B08-PR-INVENTORY-PAGINATION-EXTRA-2026-11-25.md",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tests/read-only-pr-triage.test.mjs",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "test/p1-b09-blocked-upgrade-main-port-20261126",
+      "closedPrs": [
+        {
+          "number": 557,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 204,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "8fe7d906dbe3c7e6de28c84408bf2f9c791e37fc",
+      "changedPaths": [
+        {
+          "path": "tests/idb-blocked-upgrade-retry.test.mjs",
+          "status": "added",
+          "additions": 74,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "test/p1-b09-legacy-idb-upgrade-proofs-2026-11-24",
+      "closedPrs": [
+        {
+          "number": 476,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 267,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "e978ae3039088095e51f0fcc82e1724e6b6ac302",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "test/p1-b11-sw-failclosed-install-2026-11-25",
+      "closedPrs": [
+        {
+          "number": 494,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 2,
+      "behind": 245,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "bf2c451106e8c0cea71ad94c84b8ccb4d65ff8b3",
+      "changedPaths": [
+        {
+          "path": "docs/P1-B11-OFFLINE-INSTALL-EXTRA-GATES-2026-11-25.md",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tests/service-worker-offline-lifecycle.test.mjs",
+          "status": "modified",
+          "additions": 24,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 2,
+      "totalCommits": 2
+    },
+    {
+      "branch": "test/p1-body-frame-history-guards-main-20261126",
+      "closedPrs": [
+        {
+          "number": 566,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 195,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "782e1d658fd5114b01581400e1ec277b4734fa79",
+      "changedPaths": [
+        {
+          "path": "tests/equipment-bodies.test.mjs",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "test/p1-farrar-profile-180mm-regression-main-20261126",
+      "closedPrs": [
+        {
+          "number": 558,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 204,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "8fe7d906dbe3c7e6de28c84408bf2f9c791e37fc",
+      "changedPaths": [
+        {
+          "path": "tests/equipment-inventory.test.mjs",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "test/p1-legacy-body-reference-audit-main-20261126",
+      "closedPrs": [
+        {
+          "number": 567,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 1,
+      "behind": 195,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "782e1d658fd5114b01581400e1ec277b4734fa79",
+      "changedPaths": [
+        {
+          "path": "tests/equipment-inventory.test.mjs",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 1,
+      "totalCommits": 1
+    },
+    {
+      "branch": "test/ui-global-search-browser-proof-20261127",
+      "closedPrs": [
+        {
+          "number": 610,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 44,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "164f6696f62ea266e4daaae4a4e41c4587f6e880",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3
+        },
+        {
+          "path": "docs/UI-GLOBAL-SEARCH-RESET-A11Y-2026-11-27.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 30,
+          "deletions": 3
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "tests/e2e/navigation-layout.e2e.cjs",
+          "status": "modified",
+          "additions": 24,
+          "deletions": 0
+        }
+      ],
+      "returnedFiles": 5,
+      "totalCommits": 5
+    },
+    {
+      "branch": "work/family-history-view",
+      "closedPrs": [
+        {
+          "number": 598,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 94,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "7111c136aa302f0390b875259be5a266bb1c405f",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/hive-biological-technical-20261127",
+      "closedPrs": [
+        {
+          "number": 643,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "behind",
+      "ahead": 0,
+      "behind": 4,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "425e8e5b15d3418747681633a1d17ce373762804",
+      "changedPaths": [],
+      "returnedFiles": 0,
+      "totalCommits": 0
+    },
+    {
+      "branch": "work/home-planning-list",
+      "closedPrs": [
+        {
+          "number": 621,
+          "merged": true,
+          "base": "main"
+        }
+      ],
+      "status": "diverged",
+      "ahead": 5,
+      "behind": 29,
+      "tooLarge": null,
+      "baseSha": "dcf8a7c519a4ec64e1d2c86a0cfeb72ba3497417",
+      "mergeBaseSha": "3f7ad4d76faf96c81f4da1f05cdf6e0b00523b49",
+      "changedPaths": [
+        {
+          "path": "PROJECT_STATUS.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "docs/WORK-CYCLE-METRICS.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "additions": 48,
+          "deletions": 5
+        },
+        {
+          "path": "tests/e2e/journal-browser.e2e.cjs",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0
+        },
+        {
+          "path": "tests/home-upcoming-tasks.test.mjs",
+          "status": "added",
+          "additions": 78,
+          "deletions": 0
+        },
+        {
+          "path": "tests/honeycomb-overview-main.test.mjs",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 2
+        }
+      ],
+      "returnedFiles": 7,
+      "totalCommits": 5
+    }
+  ]
+}
