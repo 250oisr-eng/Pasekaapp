@@ -137,9 +137,68 @@ public final class PasekaVoiceQaPlugin extends Plugin {
         if(file.isDirectory()){File[] children=file.listFiles();if(children!=null)for(File child:children)removeStaging(child);}
         file.delete();
     }
+
+    private final android.os.Handler speechMain=new android.os.Handler(android.os.Looper.getMainLooper());
+    private volatile PluginCall speakingCall;
+    private android.speech.tts.TextToSpeech tts;
+    private long speechSerial=0;
+    private void finishSpeech(long id,String error){
+        if(id!=speechSerial||speakingCall==null)return;
+        PluginCall call=speakingCall;speakingCall=null;
+        if(tts!=null){try{tts.stop();}catch(Exception ignored){}try{tts.shutdown();}catch(Exception ignored){}tts=null;}
+        if(error==null)call.resolve();else call.reject(error,"LOCAL_TTS_UNAVAILABLE");
+    }
+    private void cancelSpeech(){
+        speechMain.post(()->{if(speakingCall!=null)finishSpeech(speechSerial,"Озвучивание отменено.");});
+    }
+    @PluginMethod public void speakLocal(PluginCall call){
+        final String text=call.getString("text","");
+        if(!qa()||destroyed||!foreground||text.trim().isEmpty()||text.length()>900){
+            call.reject("Озвучивание недоступно.","LOCAL_TTS_UNAVAILABLE");return;
+        }
+        speechMain.post(()->{
+            if(destroyed||!foreground||current!=null||speakingCall!=null){
+                call.reject("Сначала останови микрофон.","LOCAL_TTS_UNAVAILABLE");return;
+            }
+            speakingCall=call;long id=++speechSerial;
+            try{
+                tts=new android.speech.tts.TextToSpeech(getContext(),status->speechMain.post(()->{
+                    if(id!=speechSerial||speakingCall!=call)return;
+                    if(status!=android.speech.tts.TextToSpeech.SUCCESS||destroyed||!foreground){
+                        finishSpeech(id,"Нет локального движка речи.");return;
+                    }
+                    try{
+                        java.util.Set<android.speech.tts.Voice> voices=tts.getVoices();
+                        android.speech.tts.Voice selected=null;
+                        if(voices!=null)for(android.speech.tts.Voice voice:voices){
+                            if("ru".equals(voice.getLocale().getLanguage())&&!voice.isNetworkConnectionRequired()&&
+                               (voice.getFeatures()==null||!voice.getFeatures().contains("notInstalled"))){
+                                if(selected==null||voice.getQuality()>selected.getQuality())selected=voice;
+                            }
+                        }
+                        if(selected==null||tts.setVoice(selected)!=android.speech.tts.TextToSpeech.SUCCESS||
+                           tts.getVoice()==null||tts.getVoice().isNetworkConnectionRequired()||
+                           !"ru".equals(tts.getVoice().getLocale().getLanguage())){
+                            finishSpeech(id,"Не установлен русский локальный голос Android.");return;
+                        }
+                        tts.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener(){
+                            @Override public void onStart(String u){}
+                            @Override public void onDone(String u){speechMain.post(()->finishSpeech(id,null));}
+                            @Override public void onError(String u){speechMain.post(()->finishSpeech(id,"Ошибка локального голоса."));}
+                            @Override public void onStop(String u,boolean interrupted){speechMain.post(()->finishSpeech(id,"Озвучивание прервано."));}
+                        });
+                        if(tts.speak(text,android.speech.tts.TextToSpeech.QUEUE_FLUSH,null,"qa-"+id)!=android.speech.tts.TextToSpeech.SUCCESS)
+                            finishSpeech(id,"Не удалось озвучить.");
+                    }catch(Exception e){finishSpeech(id,"Локальный голос недоступен.");}
+                }));
+                speechMain.postDelayed(()->finishSpeech(id,"Истекло время озвучивания."),45000);
+            }catch(Exception e){finishSpeech(id,"Локальный движок недоступен.");}
+        });
+    }
+
     @PluginMethod public synchronized void start(PluginCall call){
         String token=call.getString("token","");
-        if(!qa()||!foreground||destroyed||!token.matches("[A-Za-z0-9_-]{1,80}")||!ready()){
+        if(!qa()||!foreground||destroyed||speakingCall!=null||!token.matches("[A-Za-z0-9_-]{1,80}")||!ready()){
             call.reject("Открой QA, установи модель и начни сеанс.","VOICE_NOT_READY");return;
         }
         if(permissionCall!=null){call.reject("Дождись запроса разрешения.","PERMISSION_PENDING");return;}
@@ -208,10 +267,10 @@ public final class PasekaVoiceQaPlugin extends Plugin {
     private long invalidate(){return epoch.incrementAndGet();}
     private void closeBefore(long limit){Session s=current;if(s!=null&&s.id<limit)close(s);}
     @PluginMethod public void stop(PluginCall call){
-        long limit=invalidate();submit(call,()->{closeBefore(limit);call.resolve();});
+        cancelSpeech();long limit=invalidate();submit(call,()->{closeBefore(limit);call.resolve();});
     }
     @Override protected void handleOnPause(){
-        foreground=false;long limit=invalidate();
+        foreground=false;cancelSpeech();long limit=invalidate();
         try{worker.execute(()->closeBefore(limit));}catch(RejectedExecutionException ignored){}
     }
     @Override protected void handleOnResume(){foreground=true;}

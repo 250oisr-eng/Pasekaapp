@@ -89,3 +89,61 @@ test('failed native stop keeps start and journal transfer blocked until retry su
  e.qaVoiceStop.onclick();stops[1].resolve();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(e.qaVoiceStart.disabled,false);assert.equal(e.qaVoiceToDraft.disabled,false);
 });
+
+
+async function localDomain(){
+ const source=await readFile(new URL('../android-native/voice-qa.js',import.meta.url),'utf8'),window={};
+ vm.runInNewContext(source,{window,document:{getElementById:()=>null}});
+ return window.PasekaVoiceQa;
+}
+const sample=()=>({hives:[{id:'h3',number:3},{id:'h4',number:4}],families:[{id:'f1',name:'Альфа',hive:'h3'},{id:'f2',name:'Альфа',hive:'h4'}]});
+test('commands require a fresh wake word, exact command and exact hive number',async()=>{
+ const {parseCommand}=await localDomain();
+ assert.equal(parseCommand('подтверждаю черновик').kind,'ignore');
+ assert.equal(parseCommand('пасека не подтверждаю черновик').kind,'unknown');
+ assert.equal(parseCommand('Пасека, слушай, выбери улей номер три').number,3);
+ assert.equal(parseCommand('пасека выбери улей три или четыре').number,null);
+ assert.equal(parseCommand('пасека запиши осмотр матка видна').text,'матка видна');
+});
+test('same family name in different hives resolves only in explicitly selected hive',async()=>{
+ const {commandSession}=await localDomain();const state=sample(),s=commandSession(()=>state,()=>100);
+ assert.match(s.receive('пасека выбери семью альфа').message,/Сначала выбери улей/);
+ s.receive('пасека выбери улей три');s.receive('пасека выбери семью альфа');
+ const p=s.receive('пасека запиши осмотр матка обнаружена').pending;
+ assert.equal(p.hiveId,'h3');assert.equal(p.familyId,'f1');assert.equal(p.type,'Осмотр');
+ assert.match(s.receive('пасека повтори').message,/матка обнаружена/);
+ const confirmed=s.receive('пасека подтверждаю черновик').draft;assert.equal(confirmed.familyId,'f1');
+ assert.equal(s.revalidate(confirmed),true);assert.equal(s.receive('пасека подтверждаю черновик').draft,undefined);
+ assert.equal(state.records,undefined);
+});
+test('duplicate hive number or family name cannot select a target; failed selection clears old target',async()=>{
+ const {commandSession}=await localDomain();const state=sample(),s=commandSession(()=>state);
+ s.receive('пасека выбери улей 3');s.receive('пасека выбери семью альфа');
+ state.families.push({id:'f3',name:'Альфа',hive:'h3'});
+ assert.match(s.receive('пасека выбери семью альфа').message,/неоднозначно/);
+ assert.equal(s.receive('пасека запиши осмотр тест').pending,undefined);
+ state.hives.push({id:'duplicate',number:3});
+ assert.match(s.receive('пасека выбери улей три').message,/неоднозначен/);
+ assert.equal(s.receive('пасека без семьи').message,'Сначала выбери улей.');
+});
+test('expired, cancelled, moved or renamed family drafts cannot be confirmed',async()=>{
+ const {commandSession}=await localDomain();let time=100;const state=sample(),s=commandSession(()=>state,()=>time);
+ const prepare=()=>{s.receive('пасека выбери улей три');s.receive('пасека выбери семью альфа');return s.receive('пасека запиши осмотр тест').pending;};
+ prepare();time+=60001;assert.equal(s.receive('пасека подтверждаю черновик').draft,undefined);
+ prepare();s.receive('пасека отмена');assert.equal(s.receive('пасека подтверждаю черновик').draft,undefined);
+ prepare();state.families[0].hive='h4';assert.equal(s.receive('пасека подтверждаю черновик').draft,undefined);
+ state.families[0].hive='h3';prepare();state.families[0].name='Бета';assert.equal(s.receive('пасека подтверждаю черновик').draft,undefined);
+});
+test('no-family scope must be explicit and is only allowed for a note',async()=>{
+ const {commandSession}=await localDomain();const s=commandSession(sample);
+ s.receive('пасека выбери улей три');assert.equal(s.receive('пасека запиши заметку тест').pending,undefined);
+ s.receive('пасека без семьи');assert.equal(s.receive('пасека запиши подкормку тест').pending,undefined);
+ assert.equal(s.receive('пасека запиши заметку тест').pending.familyId,'');
+ assert.match(s.receive('пасека выбери улей четыре').message,/Сначала подтверди/);
+});
+test('native synthesis selects installed Russian non-network voice, and has cancellation and timeout',async()=>{
+ const java=await readFile(new URL('../android-native/PasekaVoiceQaPlugin.java',import.meta.url),'utf8');
+ for(const token of ['speakLocal(PluginCall call)','!voice.isNetworkConnectionRequired()','"ru".equals(voice.getLocale().getLanguage())','speakingCall!=null','finishSpeech(id','45000','cancelSpeech();long limit=invalidate()'])assert.ok(java.includes(token),token);
+ const manifest=patchVoiceManifest(patchManifest('<manifest><application></application></manifest>'));
+ assert.match(manifest,/android.intent.action.TTS_SERVICE/);
+});

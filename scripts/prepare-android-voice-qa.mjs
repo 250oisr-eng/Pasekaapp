@@ -28,7 +28,13 @@ export function patchVoiceActivity(source){
 export function patchVoiceManifest(source){
  const permission='<uses-permission android:name="android.permission.RECORD_AUDIO" />';
  if(!source.includes('PasekaDailyArchiveJob')||!source.includes('android.permission.RECEIVE_BOOT_COMPLETED')||source.split('</manifest>').length!==2)throw Error('VOICE_QA_BLOCKED: daily manifest missing');
- return source.includes('android.permission.RECORD_AUDIO')?source:source.replace('</manifest>',permission+'\n</manifest>');
+ let result=source.includes('android.permission.RECORD_AUDIO')?source:source.replace('</manifest>',permission+'\n</manifest>');
+ const query='<intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>';
+ if(!result.includes('android.intent.action.TTS_SERVICE')){
+  if(result.includes('</queries>')){if(result.split('</queries>').length!==2)throw Error('VOICE_QA_BLOCKED: duplicate queries');result=result.replace('</queries>',query+'\n</queries>');}
+  else result=result.replace('</manifest>','<queries>'+query+'</queries>\n</manifest>');
+ }
+ return result;
 }
 export function patchVoiceGradle(source){
  const ids=[...source.matchAll(/\bapplicationId\s*(?:=\s*)?["']([^"']+)["']/g)].map(m=>m[1]);
@@ -42,12 +48,14 @@ export function patchVoiceGradle(source){
  }
  return source;
 }
-const CARD='<div class="card" id="qaVoicePanel" hidden><b>QA — локальный микрофон Vosk</b><p class="muted">Только синтетические записи. Модель из APK, без аккаунта и сети. При уходе с экрана микрофон выключается.</p><div class="row"><button id="qaVoiceInstall" type="button">Установить модель</button><button id="qaVoiceStart" type="button" disabled>Начать</button><button id="qaVoiceStop" type="button" disabled>Стоп</button></div><div id="qaVoiceStatus" role="status" aria-live="polite">Проверка…</div><label for="qaVoiceText">Распознанный текст</label><textarea id="qaVoiceText" rows="4" maxlength="12000"></textarea><button type="button" id="qaVoiceToDraft">Добавить в черновик журнала</button></div>';
+const CARD='<div class="card" id="qaVoicePanel" hidden><b>Голосовой журнал · локально (QA)</b><label><input type="checkbox" id="qaVoiceCommandMode" checked> Голосовые команды (выключи для обычной диктовки)</label><p class="muted">«Пасека, выбери улей номер три» · «Пасека, выбери семью Альфа» · «Пасека, запиши осмотр матка обнаружена» · «Пасека, подтверждаю черновик» · «Пасека, отмена».</p><p class="muted">Только синтетические записи. Модель из APK, без аккаунта и сети. При уходе с экрана микрофон выключается.</p><div class="row"><button id="qaVoiceInstall" type="button">Установить модель</button><button id="qaVoiceStart" type="button" disabled>Начать</button><button id="qaVoiceStop" type="button" disabled>Стоп</button></div><div id="qaVoiceStatus" role="status" aria-live="polite">Проверка…</div><label for="qaVoiceText">Распознанный текст</label><textarea id="qaVoiceText" rows="4" maxlength="12000"></textarea><button type="button" id="qaVoiceToDraft">Добавить в черновик журнала</button></div>';
 export function patchVoiceHtml(source){
- const marker='<div id="aiSignedOut" style="display:none">';
+ const marker='<section id="home" class="panel active">';
  if(source.split(marker).length!==2||source.split('</body>').length!==2||!source.includes('id="aiJournalDraftInput"'))throw Error('VOICE_QA_BLOCKED: unknown journal UI');
  if(source.includes('id="qaVoicePanel"')||source.includes('voice-qa.js'))throw Error('VOICE_QA_BLOCKED: duplicate generated panel');
- return source.replace(marker,CARD+'\n  '+marker).replace('</body>','<script src="./voice-qa.js"></script>\n</body>');
+ const legacy='<div class="ai-voice-panel">',button='id="aiVoiceButton"';
+ if(source.split(legacy).length!==2||source.split(button).length!==2)throw Error('VOICE_QA_BLOCKED: legacy voice controls changed');
+ return source.replace(marker,marker+'\n  '+CARD).replace(legacy,'<div class="ai-voice-panel" hidden style="display:none!important">').replace(button,button+' hidden style="display:none!important"').replace('</body>','<script src="./voice-qa.js"></script>\n</body>');
 }
 export async function setupVoiceQa(workspace=root,action,archive){
  const configPath=join(workspace,'capacitor.config.json'),config=JSON.parse(await readFile(configPath,'utf8'));
