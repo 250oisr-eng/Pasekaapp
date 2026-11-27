@@ -30,3 +30,17 @@ test('one observed label cannot confirm two registered frames or select a locati
   assert.deepEqual(other.issues,[]);
  }
 });
+
+test('registry lookup shows all exact labels and excludes codes mentioned in other rows',()=>{
+ const fragment=html.slice(html.indexOf("let frameRegistryFilterText="),html.indexOf('function frameRegistryEventText('));
+ const rows=['Р-7КМ','Р-7КМ','Р-7КН'].map(frameCode=>({dataset:{frameCode,search:'Р-7КМ'}}));
+ const fields={equipmentInventoryDlg:{showModal(){}},frameRegistrySearch:{focus(){},scrollIntoView(){}},frameRegistryFilterResult:{}};
+ const lookup=new Function('$','document','PasekaLabels',fragment+
+  ';function renderFrameRegistry(){filterFrameRegistry()} return openFrameRegistryFromInspection')(
+   id=>fields[id],{querySelectorAll:()=>rows},{formatLabelCode:(_,code)=>'Р-'+code});
+ lookup('7КМ');
+ assert.deepEqual(rows.map(row=>row.hidden),[false,false,true]);
+ lookup('ААА');
+ assert.ok(rows.every(row=>row.hidden));
+ assert.match(fields.frameRegistryFilterResult.textContent,/нет рамок с кодом Р-ААА/);
+});
