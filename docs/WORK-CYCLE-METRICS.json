@@ -1919,5 +1919,21 @@
     "releaseAuthorized": false,
     "completedVerifiedUserScenarios": 0,
     "repeatedDocumentReads": null
+  },
+  "b07HoneyDependenciesReview20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "pr": 649,
+    "scope": "isolated preflight + sectional stock creation only",
+    "baseSha": "bc9506128ca5a4320351d9dda0242c47d2743ed3",
+    "nodeTests": null,
+    "ci": "NOT_VERIFIED",
+    "device": "NOT_TESTED",
+    "storageChanges": false,
+    "serviceWorkerChanges": false,
+    "ui": "BLOCKED_B07",
+    "productionMutation": false,
+    "releaseAuthorized": false,
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null
   }
 }
