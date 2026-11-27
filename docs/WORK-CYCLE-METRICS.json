@@ -1698,10 +1698,10 @@
     "backupChanged": false,
     "productionTouched": false,
     "device": "NOT_TESTED",
-    "ci": "CI_VERIFIED_EXACT_CODE_SHA",
+    "ci": "CI_VERIFIED_CODE_SHA_AND_BROWSER_E2E",
     "verifiedUserScenarios": 0,
     "pr": 633,
-    "codeSha": "b40b1d5c6f4ef54515d6be3654df5ba9d2680ba6",
+    "codeSha": "b09642a44b986e6dbde6e580f4f10f03eecd68ad",
     "nodeTests": {
       "tests": 1077,
       "pass": 1077,
@@ -1710,26 +1710,64 @@
     "verifiedCi": [
       {
         "name": "Fast quality checks",
-        "id": 46046905739,
+        "id": 46048423361,
         "conclusion": "success"
       },
       {
         "name": "Build Android APK",
-        "id": 46046913913,
+        "id": 46048431007,
         "conclusion": "success"
       },
       {
         "name": "Journal real-browser E2E",
-        "id": 46046913948,
+        "id": 46048430922,
         "conclusion": "success"
       },
       {
         "name": "Governance Docs Checks",
-        "id": 46046913897,
+        "id": 46048430929,
         "conclusion": "success"
       }
     ],
     "newInventoryClickBrowser": "NOT_TESTED",
-    "merged": false
+    "merged": false,
+    "browserClickValidated": true,
+    "browserOfflineValidated": true,
+    "syntheticMobileExport": "PASS",
+    "syntheticDesktopExport": "PASS",
+    "syntheticStateMutationObserved": false
+  },
+  "concurrentIndependentDrafts20261127": {
+    "mainAtStart": "a0e52b83abb2463a9a3a7560ee3cda0517880516",
+    "drafts": [
+      {
+        "pr": 633,
+        "scope": "filtered_inventory_csv",
+        "codeSha": "b09642a44b986e6dbde6e580f4f10f03eecd68ad",
+        "synthetic": "NODE_ANDROID_BROWSER_PASS",
+        "device": "NOT_TESTED"
+      },
+      {
+        "pr": 634,
+        "scope": "incident_hive_provenance",
+        "codeSha": "d01fd6cd5c2b597b9972b48354aa13f07dd9ccbe",
+        "nodePass": 1074,
+        "android": "PASS",
+        "governance": "PASS",
+        "device": "NOT_TESTED"
+      },
+      {
+        "pr": 635,
+        "scope": "deadout_evidence_loss_guard",
+        "codeSha": "4dea77442de532f1647f9bb30b5f77ec5b76d411",
+        "nodePass": 1075,
+        "android": "PASS",
+        "governance": "PASS",
+        "device": "NOT_TESTED"
+      }
+    ],
+    "release": "NOT_AUTHORIZED",
+    "merges": 0,
+    "productionMutation": false
   }
 }

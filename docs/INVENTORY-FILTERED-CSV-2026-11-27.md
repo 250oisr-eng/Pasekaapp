@@ -48,3 +48,18 @@ F0–F2: `GO_LIMITED_SCOPE`. F3: `IMPLEMENTED_DRAFT`. F4–F7: `PENDING_EVIDENCE
 Новый CSV обработчик также проверен локально при подготовке коммита: ведущие `=`, пробельные/невидимые Unicode до формулы нейтрализованы, старые записи не изменены. Прямой click-to-download в реальном Chromium/OnePlus отдельно **NOT_TESTED**; mock-DOM unit не заменяет браузерную проверку нового UI. Сохранение на реальном Android, merge и релиз также NOT_TESTED/NOT_AUTHORIZED.
 
 F0–F2: `GO_LIMITED_SCOPE`. F3: `IMPLEMENTED_DRAFT`. F4: `CI_VERIFIED_EXACT_CODE_SHA`. F5: `SYNTHETIC_GUARDS_PASS`, `USER_DEVICE_NOT_TESTED`. F6/F7: `REVIEW_REQUIRED`, `NOT_IN_MAIN`.
+
+## Дополнительный браузерный цикл F5 — реальное скачивание CSV и офлайн
+
+**Кодовый SHA:** `b09642a44b986e6dbde6e580f4f10f03eecd68ad`. Предыдущие тестовые прогоны реального браузера №46047915676 и №46048196796 завершились FAIL из-за неверной подготовки фикстуры (неопределённый улей-образец в форме складского корпуса); приложение при этом правильно отказалось создавать пустой корпус. Тестовый сценарий перенастроен: отдельный Chromium контекст с чистой IndexedDB, созданный в браузере улей, **синтетические корпуса через тот же доменный API**, затем настоящие кнопка, фильтр, событие скачивания и локальная проверка байтов CSV. Production-модель не менялась.
+
+| Доказательство на точном коде | Результат |
+|---|---|
+| [Fast Node #46048423361](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048423361) | **1077/1077 PASS, 0 FAIL** |
+| [Android #46048431007](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048431007) | **SUCCESS** |
+| [Chromium E2E #46048430922](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048430922) | **SUCCESS** — настоящий CSV Blob download; `390×844` mobile PASS, `1366×900` desktop PASS |
+| [Governance #46048430929](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048430929) | **SUCCESS** |
+
+В обоих разрешённых browser contexts: ровно выбранный корпус экспортирован, скрытый не попал в CSV, заметка `=2+2` нейтрализована апострофом, второй экспорт успешно выполнен **без сети**, `JSON.stringify(S.equipmentInventory)` до/после одинаков. Пустая выборка вызвала предупреждение, но не изменила состояние; отдельная проверка не скачала файл. Пользовательский реальный OnePlus по этому SHA **NOT_TESTED**. CSV не является backup/restore.
+
+**Итог F5:** `CI_VERIFIED_CODE_SHA_AND_REAL_BROWSER_SYNTHETIC_OFFLINE_PASS`; F6: `READY_FOR_REVIEW_NOT_MERGED`; F7: `NO_RELEASE`. Документационный коммит после code SHA отдельно проверять по diff/Governance.

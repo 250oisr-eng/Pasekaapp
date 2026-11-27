@@ -8,7 +8,7 @@
 
 ## План работ и журнал
 
-**Draft [#633](https://github.com/250oisr-eng/Pasekaapp/pull/633):** CSV по фильтрам инвентаря, только чтение; код `b40b1d5c` Node 1077/1077 + Android/Chromium/Governance PASS, OnePlus NOT_TESTED.
+**Параллельные Draft:** [#633](https://github.com/250oisr-eng/Pasekaapp/pull/633) — CSV инвентаря: Node 1077/1077, Android, Chromium mobile+desktop online/offline PASS; [#634](https://github.com/250oisr-eng/Pasekaapp/pull/634) — исторические ссылки инцидентов: 1074/1074; [#635](https://github.com/250oisr-eng/Pasekaapp/pull/635) — фото/проверка погибшей семьи: 1075/1075. Все CI на отдельных SHA, OnePlus **NOT_TESTED**, merge/release запрещены.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 
@@ -25,7 +25,7 @@
 ## Последняя интеграция и текущий QA-цикл
 
 - **#612 MERGED:** история выбранной семьи открывается непосредственно из быстрого поиска (выборочный перенос старого #600); устаревшие/перенесённые/неоднозначные ID блокируются. Squash main `14b398c97354800062b170e835a97bf7c76b7eb5`. PR code+docs head `4ab891f3c7cfbf26dc4feffc1499f23686c8b560`: Node **1023/1023**, Android build SUCCESS (#45967365737), Chromium E2E mobile/desktop SUCCESS (#45967366165), Governance SUCCESS (#45967365751). Реальные данные не изменены.
-- **#613 MERGED / BINARY_PROOF:** отдельный тестовый APK `ru.paseka.journal.qa` с собственным sandbox, без изменения рабочего `ru.paseka.journal`. Main `ab1be71add0e16b20eb47c7a1eaf585411039a46`. CI PR exact source SHA `acd35f567d87c640f2eb620312679cb981d2305f`: **1027/1027 Node**, Android debug build + [isolated QA #45967904156](https://github.com/250oisr-eng/Pasekaapp/actions/runs/45967904156) SUCCESS, Governance SUCCESS. Проверены aapt package ID, apksigner fingerprint и APK SHA256 `e0651987d176e6a45f6a03b2ae2c39f613a9725463942d5583f63b49158eeca6`. QA artifact ID `15183717921`, expires 04.12.2026. **DEVICE_CYCLE_1_USER_REPORTED_PASS (8/8):** пользователь сообщил об успешной установке отдельного QA, пустой стартовой пасеке, навигации 4–3–4 без наложений, доступе к разделам/ИИ, Back/сворачивании и повороте; рабочее приложение и данные не изменились по наблюдению пользователя. **Не независимая техническая аттестация.** **DEVICE_CYCLE_2_USER_REPORTED_PASS (8/8):** тестовый улей/семья/наблюдение, поиск истории, возврат, reopen, авиарежим и отсутствие дубликатов сообщены PASS. Не доказывает force-stop/power-loss/restore. TalkBack и яркий свет NOT_TESTED. [Аппаратный протокол](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md). Код/production-данные не изменены.
+- **#613 MERGED / QA:** отдельный `ru.paseka.journal.qa`, 1027 Node, Android/подпись PASS; OnePlus два синтетических цикла по отчёту пользователя 8/8 и 8/8 PASS. Не production/restore/сборка релиза. Подробности и SHA в [аппаратном протоколе](docs/ONEPLUS-ISOLATED-QA-CURRENT-2026-11-27.md).
 
 ## Исторический внешний QA
 
