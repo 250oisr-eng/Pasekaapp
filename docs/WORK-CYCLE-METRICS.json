@@ -1077,5 +1077,23 @@
       "reason": "Overlapping patch hunks duplicated syntax in navigation test",
       "resolvedBy": "restore exact verified original test file (blob 5259ed4d103204fe42b8a3f356e51f2e0f173c74)"
     }
+  },
+  "qaZeroDataOnePlus20261127": {
+    "sourceMain": "2dba3654d503be2070241df1845307b4f9d1f205",
+    "pr": 602,
+    "status": "IMPLEMENTED_DRAFT_PENDING_EXACT_SHA_CI",
+    "scope": "separate package ru.paseka.journal.qa and four-cycle zero-data plan",
+    "codeSha": "7f71dc9b49dba1220f9a7e44e6fb51f424496e65",
+    "exactCi": [],
+    "nodeTests": null,
+    "apkIdentityVerified": null,
+    "verifiedPhysicalScenarios": 0,
+    "storageSchemaChanged": false,
+    "productionPackageChanged": false,
+    "serviceWorkerChanged": false,
+    "videoAutoDeleteAllowed": false,
+    "beeDetection": "FROZEN_NO_REAL_VIDEO_OR_LICENSED_WEIGHTS",
+    "repeatedDocumentReads": null,
+    "measuredSavings": null
   }
 }
