@@ -1145,7 +1145,12 @@ function openQueenRegistryFamily(button,edit=false){
 }
 function renderQueenRegistry(){
  const host=$('queenRegistryList');if(!host)return;
- const all=(S.queens||[]),query=String($('queenRegistrySearch')?.value||'').trim().toLocaleLowerCase('ru-RU'),scope=$('queenRegistryStatus')?.value||'all';
+ if(!Array.isArray(S.queens)||!Array.isArray(S.families)||!Array.isArray(S.hives)||!Array.isArray(S.queenEvents)){
+  host.textContent='Реестр маток повреждён. Проверь целостность данных; записи не изменены.';
+  const count=$('queenRegistryResultCount');if(count)count.textContent='Проверка данных требуется';
+  return;
+ }
+ const all=S.queens,query=String($('queenRegistrySearch')?.value||'').trim().toLocaleLowerCase('ru-RU'),scope=$('queenRegistryStatus')?.value||'all';
  const rows=all.filter(q=>{
   const f=S.families.find(x=>x.id===q.familyId);
   const status=q.status==='current'?'current':['replaced','dead','removed'].includes(q.status)?'historical':'unknown';
