@@ -5,3 +5,8 @@
 **F3/F4:** только `js/deadout-review.js` и `tests/deadout-review.test.mjs`; явная ошибка при некорректном типе медиа, `null` при отсутствии номера (не «№0»), обработка сломанного массива `hives` через код целостности без изменения состояния. Сохранены допустимые старые записи, дата, фото, чек-лист и статус `diagnosis:null`. Не добавлять прогноз причин.
 
 **F5–F7:** Node/Android/Governance на exact SHA и независимые negative tests; физический OnePlus **NOT_TESTED**. IndexedDB, миграции, архивы, реальные файлы и рабочий APK не меняются. Merge, публикация и реальное восстановление не разрешены.
+## F5 — фактические CI и ограничения
+
+**Кодовый SHA:** `4dea77442de532f1647f9bb30b5f77ec5b76d411`, полный Node `1075/1075` PASS (0 FAIL) в [Fast #46048069639](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048069639). Docs-only HEAD `e10d6289abf13c39129366672e50b26c73803bfa` прошёл Android [#46048135372](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048135372) и Governance [#46048135348](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46048135348). Отдельные отрицательные кейсы включены в полный Node прогон. Не подтверждены реальное устройство, production сохранность и release; эти статусы не подменять CI.
+
+F6: small main-based Draft #635, без схематических миграций/видеопотока. F7: не разрешено, требуется отдельное явное решение владельца.
