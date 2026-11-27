@@ -1,6 +1,6 @@
 # PROJECT_STATUS — Пасека 2.0
 
-**27.11.2026 · live main `e906e2f4295e24c020e16e8971419e7b53baf2c3` after #598.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
+**27.11.2026 · live main `495e38a99fc00cde5c671444e83d87a40d619750` after #597.** Текущие PR/SHA/CI проверять live; политика — [AGENTS.md](AGENTS.md), [проектный контроль](docs/PROJECT-CONTROL.md), [F0–F7](docs/СТРАТЕГИЯ-РАЗРАБОТКИ-ПАСЕКА-2026-11-23.md). Исторические результаты — [журнал](docs/ЖУРНАЛ-ИЗМЕНЕНИЙ.md).
 
 ## Текущая интеграция и портфель PR
 
@@ -11,11 +11,12 @@
 - **#7 OPEN / PRESERVE_SOURCE:** уникальный исторический аудит резервирования, не сливать его старый статус целиком. **#533 CLOSED:** WIP/STOP правила выборочно перенесены в #579. **#60/#534/#7/#533** имеют мотивированные комментарии.
 - [PR audit K](docs/PR-AUDIT-CHECKPOINT-2026-11-26-K.md): 388 OPEN (30 root, 358 stacked), 29 live SHA/base проверок. Остальные SHA/CI и полнота индекса не подтверждены.
 
-## Активная задача — первый внешний архив (P0/B01)
+## Актуальные ветки и интеграция
 
-- **#599 MERGED** `81b6a63c…`, **#598 MERGED** `e906e2f4295e24c020e16e8971419e7b53baf2c3`: после #598 exact-main Fast/Android (1004/1004), Governance и Chromium E2E mobile/desktop SUCCESS. Это не production-release и не OnePlus proof.
-- **#597 DRAFT / main-synced:** в «Резервном копировании» инструкция первого полного экспорта IndexedDB → проверка реально скачанного файла → read-only SHA/структура → отдельная внешняя копия. Не изменяются backup/restore codecs, физические данные, видео и Service Worker. Code SHA `40ce6d01…`: Governance #45904183560, Android #45904183627 (1008/1008 Node, Debug APK) SUCCESS.
-- По зафиксированному уточнению 27.11 оригинальных видео и копий бэкапа у пользователя нет; фактическое содержимое IndexedDB/MediaStore не исследовано. **B01/#442 остаются BLOCKED/FROZEN.** `#595` — отдельный UI Draft.
+- **#599/#598/#597 MERGED:** поиск корпуса/журнала, карточка семьи, read-only путь первого внешнего архива. Main `495e38a99fc00cde5c671444e83d87a40d619750`; exact-main Fast/Android **1008/1008**, Governance SUCCESS. Не release.
+- **#595 Draft / main-synced:** нижняя сотовая навигация, 11 маршрутов, центральная ИИ-кнопка, заголовок раздела и три превью ульев; задачи не обрезаются. Code SHA `7a58ac9…`: Governance #45951762030 и Android #45951761963 **1013/1013 PASS**, Debug APK SUCCESS.
+- **UX #596 PENDING_VISUAL_ACCEPTANCE:** проектный ориентир **2 ряда** против раскладки **3 ряда** на узких экранах. OnePlus/TalkBack/геометрия NOT_TESTED.
+- **B01/#442** всё ещё BLOCKED/FROZEN: нет проверенного независимого восстановления и лицензированной реальной видеоаналитики.
 
 ## Действующие запреты и доказательства
 
@@ -45,6 +46,6 @@
 
 ## Следующий конкретный шаг
 
-**#597 READY_FOR_MERGE_REVIEW:** code CI SUCCESS; docs-only HEAD отдельно сверить. Без разрешения не сливать; реальный внешний файл/независимое восстановление NOT_VERIFIED. Следующая независимая задача: #595 UI Draft.
+**#595 MERGE_AUTHORIZED / CI_VERIFIED_CODE_SHA:** code CI 1013/1013 PASS, docs-only HEAD требует отдельной Governance-сверки. После PASS и неизменного main выполнить только разрешённый merge #595. UX #596 — PENDING_VISUAL_ACCEPTANCE.
 
 **NO_RELEASE / NO_PRODUCTION_MUTATION / NO_VIDEO_DELETE / NO_ONEPLUS_INSTALL / NO_MASS_MERGE.**

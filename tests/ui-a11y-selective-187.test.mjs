@@ -35,7 +35,7 @@ test('home stat captions are legible, including narrow phones', () => {
 
 test('navigation retains eleven destinations and marks the initial active page', () => {
   const tabs = [...nav.matchAll(/data-tab="([^"]+)"/g)].map(x => x[1]);
-  assert.deepEqual(tabs, ['home','hives','entrance','journal','ai','forage','varroa','incidents','planning','deadout','settings']);
+  assert.deepEqual(tabs, ['home','hives','entrance','journal','settings','ai','forage','varroa','incidents','planning','deadout']);
   assert.match(nav, /<button class="active" data-tab="home" aria-label="Обзор пасеки" aria-current="page">/);
   assert.equal((nav.match(/aria-current="page"/g) || []).length, 1);
 });
@@ -56,7 +56,7 @@ function navigationHarness() {
   const panels = [...tabs, 'hiveDetail'].map(id => ({
     id, classList: { toggle() {} }
   }));
-  const slots = { backBar:{style:{}}, selectedHivePanel:{style:{}}, hiveHeaderSummary:{style:{}} };
+  const slots = { backBar:{style:{}}, selectedHivePanel:{style:{}}, hiveHeaderSummary:{style:{}}, currentSectionTitle:{textContent:'Обзор'} };
   const doc = {
     body:{dataset:{}},
     getElementById(id) { return panels.find(x => x.id === id) || null; },
@@ -76,14 +76,14 @@ function navigationHarness() {
   assert.ok(start >= 0 && end > start, 'current navigation function exists');
   const source = html.slice(start, end);
   const paintTab = new Function(
-    'document','$','selectedHiveId','renderStructure','renderEntranceModule',
+    'document','$','selectedHiveId','S','renderStructure','renderEntranceModule',
     'renderSeasonPlanning','renderDeadoutModule', source + ';return paintTab;'
-  )(doc, id => slots[id] || null, 'synthetic-only-id', () => {}, () => {}, () => {}, () => {});
-  return {paintTab,doc,nodes};
+  )(doc, id => slots[id] || null, 'synthetic-only-id', {hives:[{id:'synthetic-only-id',name:'Тестовый улей'}]}, () => {}, () => {}, () => {}, () => {});
+  return {paintTab,doc,nodes,slots};
 }
 
 test('live paintTab switches aria-current exactly once, including hiveDetail and unknown pages', () => {
-  const {paintTab,doc,nodes} = navigationHarness();
+  const {paintTab,doc,nodes,slots} = navigationHarness();
   const cases = [
     ['home','home'], ['hives','hives'], ['journal','journal'], ['ai','ai'],
     ['hiveDetail','hives'], ['invalid-synthetic-tab','home'], ['entrance','entrance']
@@ -97,6 +97,8 @@ test('live paintTab switches aria-current exactly once, including hiveDetail and
     assert.equal(current[0].dataset.tab, expected);
     assert.equal(active[0], current[0]);
     assert.equal(doc.body.dataset.page, page.startsWith('invalid') ? 'home' : page);
+    const title = page==='hiveDetail'?'Тестовый улей':({'home':'Обзор','hives':'Ульи','journal':'Журнал','ai':'ИИ-помощник','entrance':'Лёток'})[page]||'Обзор';
+    assert.equal(slots.currentSectionTitle.textContent,title,'title synchronizes with route');
   }
   assert.ok(!html.includes('onkeydown="if(event.key==='), 'do not import old inline navigation handlers');
   assert.match(html, /document\.addEventListener\('keydown',event=>\{/);
