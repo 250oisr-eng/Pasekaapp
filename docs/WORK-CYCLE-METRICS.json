@@ -1493,12 +1493,50 @@
   "b01TwoDailyArchives20261127": {
     "sourceMain": "50cfdfd66e2691e471b698fbc53af0d16d99aa98",
     "branch": "feat/b01-two-daily-archives",
-    "integration": "IMPLEMENTED_DRAFT",
-    "nodeTests": null,
-    "verifiedCi": [],
+    "integration": "CI_VERIFIED_EXACT_SHA",
+    "nodeTests": {
+      "tests": 1054,
+      "pass": 1054,
+      "fail": 0,
+      "cancelled": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Fast quality checks",
+        "id": 45993512819,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 45993512876,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 45993512831,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 45993522032,
+        "conclusion": "success"
+      }
+    ],
     "device": "NOT_TESTED",
     "production": false,
     "completedVerifiedUserScenarios": 0,
-    "measuredSavings": null
+    "measuredSavings": null,
+    "pr": 623,
+    "codeSha": "70216c734e91831fe09cc7d98e777814d1a5116d",
+    "browserRestore": "PASS_SYNTHETIC_REAL_IDB",
+    "backgroundWorker": "PASS_SIMULATED_NATIVE_BRIDGE_REAL_IDB",
+    "androidScheduler": "NOT_TESTED_PHYSICAL",
+    "closedPrs": [
+      479,
+      522,
+      543
+    ],
+    "deletedBranches": 0,
+    "archiveLimitMiB": 256
   }
 }
