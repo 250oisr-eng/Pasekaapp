@@ -1215,13 +1215,13 @@
     "requestedRows": [
       [
         "entrance",
-        "hives"
+        "hives",
+        "home",
+        "planning"
       ],
       [
-        "home",
         "journal",
         "ai",
-        "planning",
         "forage"
       ],
       [
@@ -1235,6 +1235,7 @@
     "visibleAiLabel": false,
     "ariaLabelPreserved": true,
     "beeSideView": true,
-    "completedVerifiedUserScenarios": 0
+    "completedVerifiedUserScenarios": 0,
+    "sharedNavigationAcrossTabs": true
   }
 }
