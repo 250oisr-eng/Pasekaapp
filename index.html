@@ -1287,7 +1287,7 @@ function filteredJournalRows(familyById=null){
 }
 function journalCsvCell(value){
  let text=String(value??'');
- if(/^[\x00-\x20\s\u200B-\u200F\u2060]*[=+\-@]/u.test(text))text="'"+text;
+ if(/^[\x00-\x20\s\u200B-\u200F\u2060\uFEFF\u202A-\u202E\u2066-\u2069]*[=+\-@]/u.test(text))text="'"+text;
  return '"'+text.replace(/"/g,'""')+'"';
 }
 function buildFilteredJournalCsv(rows,hiveId){
