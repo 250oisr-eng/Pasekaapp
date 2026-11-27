@@ -13,3 +13,7 @@
 7. До релиза дополнительно B01 backup/restore, B04/B05 signer/rollback, B09/B11 offline recovery, QA на OnePlus. Синтетический CI не является device proof.
 
 **Запрещено без отдельного разрешения:** merge, deploy, production-обновление, восстановление и удаление реальных данных.
+
+## Автоматические доказательства 27.11.2026
+
+Code SHA `c4ad3ee3e0bd4e7a9b958d5706c4d43985b95e5e`: Node **1118/1118 PASS**, Android build + APK signer check [#46057440938](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46057440938) SUCCESS, Chromium real-browser synthetic [#46057440925](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46057440925) SUCCESS, Governance [#46057440915](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46057440915) SUCCESS. Реальный OnePlus, физические факты, восстановление и release НЕ проверены.
