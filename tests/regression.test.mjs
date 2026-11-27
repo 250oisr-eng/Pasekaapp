@@ -3976,3 +3976,60 @@ test('inventory persistence rollback survives rejected promise and preserves exi
   }
  }
 });
+
+test('honey extraction is atomic across frames, physical pair, journal and audit on failed save',async()=>{
+ for(const failure of ['false','exception','success']){
+  const frames={H1:[{frameId:'fr-1',status:'sealed',history:[]}],H2:[{frameId:'fr-2',status:'nectar',history:[]}]};
+  const base={hives:[{id:'h',number:1}],layouts:{h:{mode:'summer',honeyBoxInstalled:[true,true],
+   honeyInstalled:true,honeyFrames:frames}},records:[],extractions:[],auditLog:[],meta:{}};
+  const nodes={extractDate:{value:'2026-11-25'},extractDlg:{closed:false,close(){this.closed=true}}};
+  const deps={S:structuredClone(base),messages:[],renders:0,saveCalls:0,
+   $:id=>nodes[id],document:{
+    querySelectorAll:()=>[{dataset:{hive:'h'}}],
+    querySelector:selector=>selector.startsWith('.extract-pair')?{checked:true}:
+      selector.startsWith('.extract-kg')?{value:'2.5'}:null
+   },
+   PasekaSeasonPlanning:{parseDate:value=>value==='2026-11-25'?new Date('2026-11-25'):null},
+   PasekaLabels:{appendFrameEvent:(frame,type,details,at)=>frame.history.push({type,details,at})},
+   today:()=> '2026-11-27',hname:()=> 'Улей 1',
+   frameLocationName:key=>key,uid:(()=>{let n=0;return()=> 'test-'+(++n)})(),
+   save:async()=>{deps.saveCalls++;if(failure==='exception')throw new Error('test interrupted IndexedDB');return failure==='success'},
+   alert(message){this.messages.push(message)},render(){this.renders++}
+  };
+  deps.layoutFor=id=>deps.S.layouts[id];deps.frameArray=(layout,key)=>layout.honeyFrames[key];
+  deps.cloneApiaryState=()=>structuredClone(deps.S);
+  deps.logAudit=(type,details)=>deps.S.auditLog.push({type,...details});
+  assert.equal(await loadFunction('saveExtractionOnce',deps)(),failure==='success');
+  assert.equal(deps.saveCalls,1);
+  if(failure==='success'){
+   assert.deepEqual(deps.S.layouts.h.honeyBoxInstalled,[false,false]);
+   assert.equal(deps.S.layouts.h.honeyFrames.H1[0].status,'extracted');
+   assert.equal(deps.S.layouts.h.honeyFrames.H2[0].status,'extracted');
+   assert.equal(deps.S.layouts.h.honeyFrames.H1[0].history.length,1);
+   assert.equal(deps.S.extractions.length,1);
+   assert.equal(deps.S.records.length,1);
+   assert.equal(deps.S.auditLog.length,1);
+   assert.equal(nodes.extractDlg.closed,true);
+  }else{
+   assert.deepEqual(deps.S.layouts,base.layouts,'pair and frame history must revert on failed commit');
+   assert.deepEqual(deps.S.extractions,[]);
+   assert.deepEqual(deps.S.records,[]);
+   assert.deepEqual(deps.S.auditLog,[]);
+   assert.equal(nodes.extractDlg.closed,false,'keep editable form after failure');
+   assert.equal(deps.messages.length,1);
+   assert.equal(deps.renders,1);
+  }
+ }
+});
+test('honey extraction rejects invalid/future date and never touches state',async()=>{
+ const state={records:[],extractions:[],layouts:{},auditLog:[]};
+ for(const date of ['2099-12-31','2026-02-30','']){
+  let saves=0;
+  const deps={S:state,$:()=>({value:date}),
+   PasekaSeasonPlanning:{parseDate:value=>value==='2026-02-30'?null:new Date(value)},
+   today:()=> '2026-11-27',save:async()=>{saves++},alert(){}};
+  await loadFunction('saveExtractionOnce',deps)();
+  assert.equal(saves,0);
+  assert.deepEqual(state.records,[]);
+ }
+});
