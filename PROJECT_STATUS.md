@@ -8,7 +8,7 @@
 
 ## План работ и журнал
 
-**Независимый Draft (CSV инвентаря):** офлайн выгрузка только выбранных физических корпусов; без изменений IndexedDB/backup/OP. CI и OnePlus ещё NOT_VERIFIED. [F0–F7](docs/INVENTORY-FILTERED-CSV-2026-11-27.md).
+**Draft [#633](https://github.com/250oisr-eng/Pasekaapp/pull/633):** CSV по фильтрам инвентаря, только чтение; код `b40b1d5c` Node 1077/1077 + Android/Chromium/Governance PASS, OnePlus NOT_TESTED.
 
 [#621 IN_MAIN](https://github.com/250oisr-eng/Pasekaapp/pull/621): фильтр по улью, выполненные работы и переход в журнал по взаимной связи taskId/completedRecordId. На `1a609a9e` 1072/1072 Node и CI PASS.
 

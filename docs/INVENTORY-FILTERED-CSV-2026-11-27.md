@@ -1,6 +1,6 @@
 # F0–F7 · Экспорт отфильтрованных физических корпусов в CSV
 
-Дата: 27.11.2026. **Статус: IMPLEMENTED_DRAFT; CI/OnePlus до отдельного доказательства NOT_VERIFIED.**
+Дата: 27.11.2026. **Статус: CI_VERIFIED_EXACT_CODE_SHA / IMPLEMENTED_DRAFT; OnePlus NOT_TESTED / NOT_IN_MAIN.**
 Исходный `main` при создании ветки: `a0e52b83abb2463a9a3a7560ee3cda0517880516`.
 Классификация: независимая пользовательская функция учёта оборудования, **не** технология пчеловодства, OP и не backup/restore.
 
@@ -33,3 +33,18 @@
 4. Слияние PR, production deploy и Android release **только по отдельному разрешению**. B01 естественное создание второго ZIP и B04/B05 остаются независимыми блокерами.
 
 F0–F2: `GO_LIMITED_SCOPE`. F3: `IMPLEMENTED_DRAFT`. F4–F7: `PENDING_EVIDENCE`.
+
+## F4/F5 — точные автоматические доказательства (без физической аттестации)
+
+**Кодовый HEAD:** `b40b1d5c6f4ef54515d6be3654df5ba9d2680ba6` (включает исправление CSV guard после первых неудачных промежуточных SHA). Наличие ранних FAILED на других коммитах не маскируется: они были связаны с ошибочной регулярной строкой CSV-кода; она заменена безопасной посимвольной проверкой Unicode-кодов. **Результаты только текущего SHA:**
+
+| CI / покрытие | Run | Факт |
+|---|---|---|
+| Fast quality checks: полный Node + негативные CSV | [#46046905739](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46046905739) | **1077/1077 PASS, 0 FAIL** |
+| Build Android APK | [#46046913913](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46046913913) | **SUCCESS** |
+| Journal real-browser E2E (synthetic) | [#46046913948](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46046913948) | **SUCCESS**, существующие журнал/учёт/навигация не регрессировали |
+| Governance Docs Checks | [#46046913897](https://github.com/250oisr-eng/Pasekaapp/actions/runs/46046913897) | **SUCCESS** |
+
+Новый CSV обработчик также проверен локально при подготовке коммита: ведущие `=`, пробельные/невидимые Unicode до формулы нейтрализованы, старые записи не изменены. Прямой click-to-download в реальном Chromium/OnePlus отдельно **NOT_TESTED**; mock-DOM unit не заменяет браузерную проверку нового UI. Сохранение на реальном Android, merge и релиз также NOT_TESTED/NOT_AUTHORIZED.
+
+F0–F2: `GO_LIMITED_SCOPE`. F3: `IMPLEMENTED_DRAFT`. F4: `CI_VERIFIED_EXACT_CODE_SHA`. F5: `SYNTHETIC_GUARDS_PASS`, `USER_DEVICE_NOT_TESTED`. F6/F7: `REVIEW_REQUIRED`, `NOT_IN_MAIN`.

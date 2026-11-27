@@ -1698,7 +1698,38 @@
     "backupChanged": false,
     "productionTouched": false,
     "device": "NOT_TESTED",
-    "ci": "NOT_VERIFIED",
-    "verifiedUserScenarios": 0
+    "ci": "CI_VERIFIED_EXACT_CODE_SHA",
+    "verifiedUserScenarios": 0,
+    "pr": 633,
+    "codeSha": "b40b1d5c6f4ef54515d6be3654df5ba9d2680ba6",
+    "nodeTests": {
+      "tests": 1077,
+      "pass": 1077,
+      "fail": 0
+    },
+    "verifiedCi": [
+      {
+        "name": "Fast quality checks",
+        "id": 46046905739,
+        "conclusion": "success"
+      },
+      {
+        "name": "Build Android APK",
+        "id": 46046913913,
+        "conclusion": "success"
+      },
+      {
+        "name": "Journal real-browser E2E",
+        "id": 46046913948,
+        "conclusion": "success"
+      },
+      {
+        "name": "Governance Docs Checks",
+        "id": 46046913897,
+        "conclusion": "success"
+      }
+    ],
+    "newInventoryClickBrowser": "NOT_TESTED",
+    "merged": false
   }
 }
