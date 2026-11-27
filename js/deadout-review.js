@@ -18,11 +18,13 @@ function buildDeadoutReviewDraft(input,hives,media,makeId,now){
  if(!validDate(observedAt))throw new Error('Укажи корректную дату обнаружения погибшей семьи.');
  if(lastAliveDate&&(!validDate(lastAliveDate)||lastAliveDate>observedAt))throw new Error('Дата последнего подтверждённого осмотра должна быть корректной и не позже обнаружения.');
  for(const [key,values] of Object.entries(ENUMS))if(!values.includes(input?.[key]||'unknown'))throw new Error('Проверь одно из полей чек-листа.');
- const notes=text(input?.notes,4000),seasonContext=text(input?.seasonContext,1000),photos=Array.isArray(media)?media:[];
+ if(media!=null&&!Array.isArray(media))throw new Error('Список фотографий повреждён; сведения не сохранены.');
+ const notes=text(input?.notes,4000),seasonContext=text(input?.seasonContext,1000),photos=media||[];
  if(photos.length>3)throw new Error('Можно прикрепить не более трёх фотографий.');
  for(const photo of photos)if(!photo||photo.kind!=='image'||typeof photo.name!=='string'||photo.name.length>160||typeof photo.data!=='string'||!/^data:image\/(?:jpeg|png|webp|heic);base64,/i.test(photo.data)||photo.data.length>4500000)throw new Error('Фотография имеет неподдерживаемый формат или слишком большой размер.');
- const hive=hives.find(x=>x.id===hiveId);
- return {id:makeId(),hiveId,hiveNumberAtTime:Number(hive.number),observedAt,lastAliveDate:lastAliveDate||null,...Object.fromEntries(Object.keys(ENUMS).map(key=>[key,input[key]||'unknown'])),seasonContext,notes,media:photos,createdAt:now,updatedAt:now,assessmentType:'observational_differential',diagnosis:null};
+ const hive=hives.find(x=>x.id===hiveId),number=Number(hive.number);
+ const hiveNumberAtTime=Number.isSafeInteger(number)&&number>0?number:null;
+ return {id:makeId(),hiveId,hiveNumberAtTime,observedAt,lastAliveDate:lastAliveDate||null,...Object.fromEntries(Object.keys(ENUMS).map(key=>[key,input[key]||'unknown'])),seasonContext,notes,media:photos,createdAt:now,updatedAt:now,assessmentType:'observational_differential',diagnosis:null};
 }
 function suggestPossibleFactors(review){
  const candidates=[],checks=[];
@@ -43,9 +45,11 @@ function suggestPossibleFactors(review){
 function inspectDeadoutIntegrity(state){
  const errors=[],items=state?.deadoutReviews;
  if(!Array.isArray(items))return Number(state?.meta?.schemaVersion||1)<12?[]:[{code:'deadout_section_missing',details:{}}];
- const ids=new Set(),hiveIds=new Set((state.hives||[]).map(x=>x.id));
+ const ids=new Set(),validHives=Array.isArray(state?.hives);
+ if(!validHives)errors.push({code:'deadout_invalid_hive_registry',details:{}});
+ const hiveIds=new Set((validHives?state.hives:[]).filter(x=>x&&typeof x.id==='string'&&x.id.trim()).map(x=>x.id));
  for(const item of items){
-  if(!item||typeof item!=='object'||typeof item.id!=='string'||!item.id||ids.has(item.id)){errors.push({code:'deadout_invalid_or_duplicate_id',details:{id:item?.id||null}});continue}
+  if(!item||typeof item!=='object'||Array.isArray(item)||typeof item.id!=='string'||!item.id.trim()||ids.has(item.id)){errors.push({code:'deadout_invalid_or_duplicate_id',details:{id:item?.id||null}});continue}
   ids.add(item.id);
   if(!hiveIds.has(item.hiveId)&&(!Number.isInteger(item.hiveNumberAtTime)||item.hiveNumberAtTime<1))errors.push({code:'deadout_hive_reference_missing',details:{id:item.id,hiveId:item.hiveId}});
   if(!validDate(item.observedAt))errors.push({code:'deadout_invalid_date',details:{id:item.id}});if(item.lastAliveDate!=null&&(!validDate(item.lastAliveDate)||item.lastAliveDate>item.observedAt))errors.push({code:'deadout_invalid_last_alive_date',details:{id:item.id}});if(typeof item.notes!=='string'||item.notes.length>4000||typeof item.seasonContext!=='string'||item.seasonContext.length>1000)errors.push({code:'deadout_invalid_text',details:{id:item.id}});
