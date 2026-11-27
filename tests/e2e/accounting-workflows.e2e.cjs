@@ -66,6 +66,16 @@ async function journey(browser,origin){
   await page.locator('#familyDlg').waitFor({state:'hidden'});
   const ids=await page.evaluate(()=>({h:S.hives[0].id,f:S.families[0].id}));
   assert.ok(ids.h&&ids.f);
+  // Biological-first cards and technical configuration remain reachable during setup.
+  const familyCard=page.locator('[data-family-card="'+ids.f+'"]');
+  assert.match(await familyCard.textContent(),/Нет однозначно привязанного осмотра/);
+  const familyDraftBefore=await page.evaluate(()=>JSON.stringify(S.records));
+  await familyCard.getByRole('button',{name:'Осмотр этой семьи',exact:true}).click();
+  assert.equal(await page.locator('#rfamily').inputValue(),ids.f);
+  assert.equal(await page.locator('#roccupancy').inputValue(),'');
+  await page.locator('#recordDlg').getByRole('button',{name:'Отмена',exact:true}).click();
+  assert.equal(await page.evaluate(()=>JSON.stringify(S.records)),familyDraftBefore);
+  assert.equal(await page.locator('#hiveTechnicalView').evaluate(x=>x.open),true,'unfinished assembly stays accessible');
   // Queen: actual UI form first registration, negative future replacement, valid replacement.
   await page.evaluate(()=>openQueenForm(S.families[0].id));
   await page.locator('#queenCodeInput').fill('QA-Q-OLD');
@@ -128,6 +138,11 @@ async function journey(browser,origin){
    await page.locator('#recordDlg').waitFor({state:'hidden'});
   }
   assert.match(await page.locator('#feedingLedgerContent').textContent(),/150\s*г/);
+  await openPrimary(page,'hives');
+  await page.locator('#hiveList .hive-row button.primary').first().click();
+  assert.match(await familyCard.textContent(),/2026-11-16/);
+  assert.match(await familyCard.textContent(),/Не указано/);
+  await openPrimary(page,'journal');
   const ledger=await page.evaluate((h)=>buildFeedingLedger(S.records,S.families,h),ids.h);
   assert.equal(ledger.find(g=>g.familyId===ids.f).totals.find(t=>t.unit==='г').amount,150);
   await openPrimary(page,'planning');
@@ -186,6 +201,15 @@ async function journey(browser,origin){
   assert.equal(before.journal.length,2);
   assert.equal(before.inventory.length,1);
   assert.equal(before.layout.mode,'winter');
+  await page.locator('#hiveTechnicalView summary').first().click().catch(()=>{});
+  if(!(await page.locator('#hiveTechnicalView').evaluate(x=>x.open)))await page.locator('#hiveTechnicalView summary').first().click();
+  const technical=page.locator('#hiveTechnicalMap');
+  assert.equal(await technical.locator('.technical-body').count(),3,'only committed winter bodies');
+  await technical.locator('.technical-body summary').first().click();
+  await technical.locator('.technical-frame-grid button').first().click();
+  assert.equal(await page.locator('#frameMapDlg').isVisible(),true);
+  assert.match(await page.locator('#frameMapContent').textContent(),/Статус в модели/);
+  await page.locator('#frameMapDlg').getByRole('button',{name:'Закрыть'}).click();
   await page.evaluate(()=>saveQueue);
   const integrity=await page.evaluate(()=>validateRawBackupIntegrity(S));
   assert.deepEqual(integrity.errors,[],'accounting state must pass raw-backup integrity BEFORE reload');
