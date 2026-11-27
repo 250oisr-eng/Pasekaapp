@@ -62,7 +62,7 @@ const measure=()=> {
   const hexagonButtons=[...nav.querySelectorAll('button[data-tab]')].every(button=>
     getComputedStyle(button).clipPath.includes('polygon('));
   const aiVisual={beePresent:!!bee,beePathCount:bee?.querySelectorAll('path,ellipse').length||0,
-    rimColor:aiStyle?.borderTopColor||null,hexagonButtons};
+    rimColor:aiStyle?.borderTopColor||null,background:aiStyle?.backgroundImage||null,hexagonButtons};
   const ai=buttons.find(b=>b.tab==='ai');
   const mobileRows=[['entrance','hives','home','planning'],
     ['journal','ai','forage'],
@@ -129,6 +129,8 @@ const measure=()=> {
         if(!m.aiVisual.beePresent||m.aiVisual.beePathCount<5)
           problems.push('central AI must contain an inline stylized bee');
         if(!m.aiVisual.hexagonButtons)problems.push('all nav cells must be hexagons');
+        if(!m.aiVisual.background?.includes('radial-gradient('))
+          problems.push('AI must use an edge-lightened radial blue gradient');
         if(!/rgba\(/.test(m.aiVisual.rimColor||''))
           problems.push('AI border must be translucent: '+m.aiVisual.rimColor);
         if(m.rowTracks!==3)
