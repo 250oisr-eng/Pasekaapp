@@ -1544,5 +1544,34 @@
     "qaArtifact": 15193929646,
     "qaPackage": "ru.paseka.journal.qa.daily",
     "qaApkSha256": "b1a80a510a85197903d936076b93a3f133c9428e7f112082bf602e8528357bfa"
+  },
+  "overviewModelDiagnostics20261127": {
+    "stage": "IMPLEMENTED_DRAFT",
+    "sourceMainSha": "b520fd32c3be1ae59fc3fd3eb9a7a7302a274169",
+    "codeSha": "78ed9ab3ab58da774c64d01d7ba9171c8a8fdea4",
+    "mainCi": [
+      {
+        "name": "Governance Docs Checks",
+        "id": 45994063782,
+        "conclusion": "success"
+      }
+    ],
+    "nodeTests": {
+      "pass": 1054,
+      "fail": 0,
+      "targetedPass": 278,
+      "targetedFail": 0
+    },
+    "chromium": {
+      "navigationViewports": 11,
+      "diagnosticsScenarios": 2,
+      "journalScenarios": 2,
+      "archiveScenarios": 2
+    },
+    "webPrepare": "PASS",
+    "device": "NOT_TESTED",
+    "completedVerifiedUserScenarios": 0,
+    "repeatedDocumentReads": null,
+    "finalHeadEvidence": "https://github.com/250oisr-eng/Pasekaapp/actions?query=branch%3Awork%2Foverview-model-diagnostics"
   }
 }
