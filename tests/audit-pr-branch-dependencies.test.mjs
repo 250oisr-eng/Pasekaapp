@@ -168,3 +168,17 @@ test('overlap guard refuses partial PR file lists, duplicate or unsafe paths',()
  assert.throws(()=>analyzeRootFileOverlaps([changed(1,['index.html']),changed(1,['sw.js'])]),/Incomplete/);
  assert.throws(()=>analyzeRootFileOverlaps(null),/Complete PR file inventories/);
 });
+
+test('suffix files cannot impersonate active build assets in collision reports',()=>{
+ const result=analyzeRootFileOverlaps([
+  changed(1,['index.html.old','sw.js.bak','package-lock.json.backup','scripts-note.txt']),
+  changed(2,['index.html.old','sw.js.bak','package-lock.json.backup','scripts-note.txt'])
+ ]);
+ assert.equal(result.criticalPairCount,0);
+ assert.deepEqual(result.pairs,[]);
+ const actual=analyzeRootFileOverlaps([
+  changed(1,['index.html','sw.js','package-lock.json']),
+  changed(2,['index.html','sw.js','package-lock.json'])
+ ]);
+ assert.deepEqual(actual.pairs[0].sharedCritical,['index.html','package-lock.json','sw.js']);
+});
